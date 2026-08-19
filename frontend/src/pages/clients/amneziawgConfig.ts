@@ -9,7 +9,13 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 // protocol==='amneziawg' filter below is what actually disambiguates.
 export function isAmneziaWGClient(client: ClientRecord | null | undefined): boolean {
   if (!client) return false;
-  return !!(client.privateKey || client.publicKey || client.allowedIPs || client.preSharedKey || client.keepAlive);
+  return !!(
+    client.privateKey ||
+    client.publicKey ||
+    client.allowedIPs ||
+    client.preSharedKey ||
+    client.keepAlive
+  );
 }
 
 export function findAmneziaWGInbound(
@@ -39,7 +45,11 @@ export function buildAmneziaWGClientConfig(
   addressOverride = '',
 ): string {
   const server = inbound?.awgServer;
-  const endpointHost = resolveShareHost(inbound ?? {}, inbound?.nodeAddress ?? '', preferPublicHost(host, publicHost));
+  const endpointHost = resolveShareHost(
+    inbound ?? {},
+    inbound?.nodeAddress ?? '',
+    preferPublicHost(host, publicHost),
+  );
   const address = addressOverride || client.allowedIPs || '10.8.1.2/32';
   const endpoint = `${endpointHost}:${inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
@@ -91,6 +101,7 @@ export function buildAmneziaWGClientConfig(
   lines.push('[Peer]', `PublicKey = ${server?.publicKey || ''}`);
   if (client.preSharedKey) lines.push(`PresharedKey = ${client.preSharedKey}`);
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
-  if (client.keepAlive && client.keepAlive > 0) lines.push(`PersistentKeepalive = ${client.keepAlive}`);
+  if (client.keepAlive && client.keepAlive > 0)
+    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   return lines.join('\n');
 }

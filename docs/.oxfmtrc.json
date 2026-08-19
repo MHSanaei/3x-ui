@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "ignorePatterns": [
+    "node_modules",
+    ".next",
+    ".source",
+    "out",
+    "pnpm-lock.yaml",
+    "public/openapi.json",
+    // Reflowing MDX prose merges headings into paragraphs and collapses lists
+    // inside JSX components (Steps/Callout). Author MDX by hand.
+    "content/**/*.mdx",
+    // Generated API reference pages (fumadocs-openapi output).
+    "content/docs/**/reference/api"
+  ]
+}

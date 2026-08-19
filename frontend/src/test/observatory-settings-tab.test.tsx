@@ -7,10 +7,7 @@ import { renderWithProviders } from './test-utils';
 
 function renderTab(templateSettings: XraySettingsValue) {
   renderWithProviders(
-    <ObservatorySettingsTab
-      templateSettings={templateSettings}
-      mutate={vi.fn()}
-    />,
+    <ObservatorySettingsTab templateSettings={templateSettings} mutate={vi.fn()} />,
   );
 }
 
@@ -24,7 +21,9 @@ describe('ObservatorySettingsTab', () => {
       burstObservatory: { subjectSelector: ['proxy-a'] },
     } as unknown as XraySettingsValue);
 
-    expect(screen.getByText(/This config contains both Observatory and Burst Observatory/)).toBeTruthy();
+    expect(
+      screen.getByText(/This config contains both Observatory and Burst Observatory/),
+    ).toBeTruthy();
     expect(document.querySelector('.ant-segmented')).toBeFalsy();
     expect(screen.getByText('Probe Destination')).toBeTruthy();
     expect(screen.queryByText('Probe URL')).toBeFalsy();
@@ -39,7 +38,9 @@ describe('ObservatorySettingsTab', () => {
       burstObservatory: { subjectSelector: ['stale-burst'] },
     } as unknown as XraySettingsValue);
 
-    expect(screen.getByText(/This config contains both Observatory and Burst Observatory/)).toBeTruthy();
+    expect(
+      screen.getByText(/This config contains both Observatory and Burst Observatory/),
+    ).toBeTruthy();
     expect(document.querySelector('.ant-segmented')).toBeFalsy();
     expect(screen.getByText('Probe URL')).toBeTruthy();
     expect(screen.queryByText('Probe Destination')).toBeFalsy();

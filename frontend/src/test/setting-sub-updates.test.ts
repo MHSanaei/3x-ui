@@ -11,7 +11,10 @@ describe('subUpdates range', () => {
 
   it('rejects values outside the backend range', () => {
     for (const v of [-1, 525601, 1.5]) {
-      expect(AllSettingSchema.safeParse({ subUpdates: v }).success, `subUpdates=${v} should be invalid`).toBe(false);
+      expect(
+        AllSettingSchema.safeParse({ subUpdates: v }).success,
+        `subUpdates=${v} should be invalid`,
+      ).toBe(false);
     }
   });
 });

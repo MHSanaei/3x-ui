@@ -15,7 +15,11 @@ function sourceInbound() {
       clients: [{ id: 'uuid-1', email: 'a@test', flow: 'xtls-rprx-vision' }],
       decryption: 'none',
     }),
-    streamSettings: { network: 'tcp', security: 'reality', realitySettings: { dest: 'www.lovelive-anime.jp:443' } },
+    streamSettings: {
+      network: 'tcp',
+      security: 'reality',
+      realitySettings: { dest: 'www.lovelive-anime.jp:443' },
+    },
     sniffing: { enabled: true },
     nodeId: 2,
     shareAddrStrategy: 'node',

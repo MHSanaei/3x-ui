@@ -8,7 +8,12 @@ import { renderWithProviders } from './test-utils';
 
 function LocationProbe() {
   const location = useLocation();
-  return <output data-testid="location">{location.pathname}{location.hash}</output>;
+  return (
+    <output data-testid="location">
+      {location.pathname}
+      {location.hash}
+    </output>
+  );
 }
 
 describe('SubscriptionGeneralTab', () => {
@@ -17,7 +22,10 @@ describe('SubscriptionGeneralTab', () => {
 
     renderWithProviders(
       <MemoryRouter initialEntries={['/settings#subscription']}>
-        <SubscriptionGeneralTab allSetting={new AllSetting({ subPort: 2096 })} updateSetting={updateSetting} />
+        <SubscriptionGeneralTab
+          allSetting={new AllSetting({ subPort: 2096 })}
+          updateSetting={updateSetting}
+        />
       </MemoryRouter>,
     );
 
@@ -34,7 +42,10 @@ describe('SubscriptionGeneralTab', () => {
 
     renderWithProviders(
       <MemoryRouter initialEntries={['/settings#subscription']}>
-        <SubscriptionGeneralTab allSetting={new AllSetting({ subPort: 2096 })} updateSetting={updateSetting} />
+        <SubscriptionGeneralTab
+          allSetting={new AllSetting({ subPort: 2096 })}
+          updateSetting={updateSetting}
+        />
       </MemoryRouter>,
     );
 

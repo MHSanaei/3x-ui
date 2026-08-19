@@ -30,7 +30,9 @@ export default function SubJsonFinalMaskForm({ value, onChange }: SubJsonFinalMa
   const [form] = Form.useForm();
   const [initial] = useState(() => parseFinalMask(value));
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   const finalmask = Form.useWatch('finalmask', form) as FinalMaskStreamSettings | undefined;
 

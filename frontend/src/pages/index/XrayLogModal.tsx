@@ -73,12 +73,10 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<XrayLogEntry[]>([]);
-  const openRef = useRef(open);
 
   const orderedLogs = useMemo(() => [...logs].reverse(), [logs]);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const runRefresh = useCallback(async () => {
     try {
       const msg = await HttpUtil.post<XrayLogEntry[]>(`/panel/api/server/xraylogs/${rows}`, {
         filter,
@@ -93,19 +91,30 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
     }
   }, [rows, filter, showDirect, showBlocked, showProxy]);
 
+  const refresh = useCallback(() => {
+    setLoading(true);
+    void runRefresh();
+  }, [runRefresh]);
+
   const refreshRef = useRef(refresh);
   useEffect(() => {
     refreshRef.current = refresh;
-  }, [refresh]);
+  });
+
+  // The spinner is raised during render so the fetch effect stays side-effect
+  // free until its response lands.
+  const refreshKey = open
+    ? `${rows}\u0000${showDirect}\u0000${showBlocked}\u0000${showProxy}`
+    : null;
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  if (refreshKey !== loadingKey) {
+    setLoadingKey(refreshKey);
+    if (refreshKey) setLoading(true);
+  }
 
   useEffect(() => {
-    openRef.current = open;
-    if (open) refresh();
-  }, [open, refresh]);
-
-  useEffect(() => {
-    if (openRef.current) refresh();
-  }, [rows, showDirect, showBlocked, showProxy, refresh]);
+    if (open) void runRefresh();
+  }, [open, rows, showDirect, showBlocked, showProxy, runRefresh]);
 
   useEffect(() => {
     if (!open || !autoUpdate) return;
@@ -122,17 +131,19 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       FileManager.downloadTextFile('', 'x-ui.log');
       return;
     }
-    const lines = logs.map((l) => {
-      try {
-        const dt = l.DateTime ? new Date(l.DateTime) : null;
-        const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
-        const eventText = eventToken(l.Event);
-        const emailPart = l.Email ? ` Email=${l.Email}` : '';
-        return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
-      } catch {
-        return JSON.stringify(l);
-      }
-    }).join('\n');
+    const lines = logs
+      .map((l) => {
+        try {
+          const dt = l.DateTime ? new Date(l.DateTime) : null;
+          const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
+          const eventText = eventToken(l.Event);
+          const emailPart = l.Email ? ` Email=${l.Email}` : '';
+          return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
+        } catch {
+          return JSON.stringify(l);
+        }
+      })
+      .join('\n');
     FileManager.downloadTextFile(lines, 'x-ui.log');
   }
 
@@ -147,7 +158,15 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       title={
         <>
           {t('pages.index.accessLogs')}
-          <SyncOutlined spin={loading} className="reload-icon" role="button" tabIndex={0} aria-label={t('refresh')} onClick={refresh} onKeyDown={activateOnKey(refresh)} />
+          <SyncOutlined
+            spin={loading}
+            className="reload-icon"
+            role="button"
+            tabIndex={0}
+            aria-label={t('refresh')}
+            onClick={refresh}
+            onKeyDown={activateOnKey(refresh)}
+          />
         </>
       }
     >
@@ -192,7 +211,12 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">
-          <Button type="primary" onClick={download} icon={<DownloadOutlined />} aria-label={t('download')} />
+          <Button
+            type="primary"
+            onClick={download}
+            icon={<DownloadOutlined />}
+            aria-label={t('download')}
+          />
         </Form.Item>
       </Form>
 

@@ -130,7 +130,9 @@ export const ClientInboundChips = memo(function ClientInboundChips({
     const proto = (inboundsById[id]?.protocol || '').toLowerCase();
     return (
       <Tooltip key={id} title={label(id)}>
-        <Tag color={protocolColors[proto] ?? 'default'} style={CHIP_STYLE}>{label(id)}</Tag>
+        <Tag color={protocolColors[proto] ?? 'default'} style={CHIP_STYLE}>
+          {label(id)}
+        </Tag>
       </Tooltip>
     );
   };
@@ -146,7 +148,9 @@ export const ClientInboundChips = memo(function ClientInboundChips({
           placement="bottomRight"
           content={<div style={OVERFLOW_LIST_STYLE}>{overflow.map(chip)}</div>}
         >
-          <Tag color="default" style={OVERFLOW_CHIP_STYLE}>+{overflow.length}</Tag>
+          <Tag color="default" style={OVERFLOW_CHIP_STYLE}>
+            +{overflow.length}
+          </Tag>
         </Popover>
       )}
     </>

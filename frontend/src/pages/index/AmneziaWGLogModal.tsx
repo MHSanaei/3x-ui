@@ -55,15 +55,15 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<AmneziaWGLogs>({});
-  const openRef = useRef(open);
 
   const peers = useMemo(() => logs.peers ?? [], [logs.peers]);
   const events = useMemo(() => logs.events ?? [], [logs.events]);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const runRefresh = useCallback(async () => {
     try {
-      const msg = await HttpUtil.post<AmneziaWGLogs>(`/panel/api/server/amneziawglogs/${rows}`, { filter });
+      const msg = await HttpUtil.post<AmneziaWGLogs>(`/panel/api/server/amneziawglogs/${rows}`, {
+        filter,
+      });
       if (msg?.success) setLogs(msg.obj || {});
       await PromiseUtil.sleep(300);
     } finally {
@@ -71,19 +71,28 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
     }
   }, [rows, filter]);
 
+  const refresh = useCallback(() => {
+    setLoading(true);
+    void runRefresh();
+  }, [runRefresh]);
+
   const refreshRef = useRef(refresh);
   useEffect(() => {
     refreshRef.current = refresh;
-  }, [refresh]);
+  });
+
+  // The spinner is raised during render so the fetch effect stays side-effect
+  // free until its response lands.
+  const refreshKey = open ? `${rows}|${filter}` : null;
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  if (refreshKey !== loadingKey) {
+    setLoadingKey(refreshKey);
+    if (refreshKey) setLoading(true);
+  }
 
   useEffect(() => {
-    openRef.current = open;
-    if (open) refresh();
-  }, [open, refresh]);
-
-  useEffect(() => {
-    if (openRef.current) refresh();
-  }, [rows, refresh]);
+    if (open) void runRefresh();
+  }, [open, rows, filter, runRefresh]);
 
   useEffect(() => {
     if (!open || !autoUpdate) return;
@@ -114,7 +123,15 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
       title={
         <>
           {t('pages.index.amneziawgLogs')}
-          <SyncOutlined spin={loading} className="reload-icon" role="button" tabIndex={0} aria-label={t('refresh')} onClick={refresh} onKeyDown={activateOnKey(refresh)} />
+          <SyncOutlined
+            spin={loading}
+            className="reload-icon"
+            role="button"
+            tabIndex={0}
+            aria-label={t('refresh')}
+            onClick={refresh}
+            onKeyDown={activateOnKey(refresh)}
+          />
         </>
       }
     >
@@ -149,14 +166,22 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">
-          <Button type="primary" onClick={download} icon={<DownloadOutlined />} aria-label={t('download')} />
+          <Button
+            type="primary"
+            onClick={download}
+            icon={<DownloadOutlined />}
+            aria-label={t('download')}
+          />
         </Form.Item>
       </Form>
 
       <div className={`log-container ${isMobile ? 'log-container-mobile' : ''}`}>
         {peers.length === 0 ? (
           <div className="log-empty">
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('pages.index.amneziawgNoPeers')} />
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t('pages.index.amneziawgNoPeers')}
+            />
           </div>
         ) : isMobile ? (
           peers.map((peer, idx) => (
@@ -236,7 +261,9 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
           <div className="log-empty">{t('pages.index.amneziawgNoEvents')}</div>
         ) : (
           events.map((line, idx) => (
-            <div key={idx} className="awglog-event-line">{line}</div>
+            <div key={idx} className="awglog-event-line">
+              {line}
+            </div>
           ))
         )}
       </div>

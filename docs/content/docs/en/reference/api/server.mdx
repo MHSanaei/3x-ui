@@ -162,8 +162,10 @@ _openapi:
     - depth: 2
       title: Run a live TLS 1.3 probe against a candidate REALITY target and return a
         feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus
-        the certificate SAN DNS names.
-      url: '#run-a-live-tls-13-probe-against-a-candidate-reality-target-and-return-a-feasibility-verdict-tls-13--h2--x25519--trusted-certificate-plus-the-certificate-san-dns-names'
+        the certificate SAN DNS names. A target on a private/loopback address is
+        reported with privateTarget=true and probed only when allowPrivate is
+        set.
+      url: '#run-a-live-tls-13-probe-against-a-candidate-reality-target-and-return-a-feasibility-verdict-tls-13--h2--x25519--trusted-certificate-plus-the-certificate-san-dns-names-a-target-on-a-privateloopback-address-is-reported-with-privatetargettrue-and-probed-only-when-allowprivate-is-set'
     - depth: 2
       title: Probe/discover REALITY targets and return each verdict ranked by
         feasibility then latency. Each comma-separated token may be a domain
@@ -299,8 +301,10 @@ _openapi:
         id: run-xray-tls-ping-against-a-remote-server-and-return-its-live-leaf-certificate-sha-256-hashes-for-pinning-pinnedpeercertsha256
       - content: Run a live TLS 1.3 probe against a candidate REALITY target and return
           a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate)
-          plus the certificate SAN DNS names.
-        id: run-a-live-tls-13-probe-against-a-candidate-reality-target-and-return-a-feasibility-verdict-tls-13--h2--x25519--trusted-certificate-plus-the-certificate-san-dns-names
+          plus the certificate SAN DNS names. A target on a private/loopback
+          address is reported with privateTarget=true and probed only when
+          allowPrivate is set.
+        id: run-a-live-tls-13-probe-against-a-candidate-reality-target-and-return-a-feasibility-verdict-tls-13--h2--x25519--trusted-certificate-plus-the-certificate-san-dns-names-a-target-on-a-privateloopback-address-is-reported-with-privatetargettrue-and-probed-only-when-allowprivate-is-set
       - content: Probe/discover REALITY targets and return each verdict ranked by
           feasibility then latency. Each comma-separated token may be a domain
           (validated with SNI), a bare IP, or a CIDR range (discovered without

@@ -52,7 +52,10 @@ describe('generateAwgObfuscation', () => {
       expectRangeWithin(o.contentPaddingAddition, 8, 64);
       const [, rekeyHi] = expectRangeWithin(o.rekeyAfterTime, 100, 160);
       const [rejectLo] = expectRangeWithin(o.rejectAfterTime, 130, 310);
-      expect(rejectLo, 'reject window must start >= 30s above the rekey window').toBeGreaterThanOrEqual(rekeyHi + 30);
+      expect(
+        rejectLo,
+        'reject window must start >= 30s above the rekey window',
+      ).toBeGreaterThanOrEqual(rekeyHi + 30);
       expectRangeWithin(o.rekeyTimeout, 3, 10);
       expectRangeWithin(o.keepaliveTimeout, 8, 20);
       expectRangeWithin(o.maxHandshakeAttempts, 15, 50);
@@ -63,7 +66,11 @@ describe('generateAwgObfuscation', () => {
   });
 
   it('produces values the hand-written schema accepts unchanged', () => {
-    const parsed = AmneziawgServerSchema.parse({ ...generateAwgObfuscation(), privateKey: 'p', publicKey: 'P' });
+    const parsed = AmneziawgServerSchema.parse({
+      ...generateAwgObfuscation(),
+      privateKey: 'p',
+      publicKey: 'P',
+    });
     expect(parsed.headerProtectionKey).not.toBe('');
   });
 });

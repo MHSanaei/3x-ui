@@ -9,7 +9,13 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 // independent places (this file's two, plus amneziaWGConfigText in Go), and a
 // user comparing a subscription link against a downloaded .conf sees any drift
 // between them immediately.
-const PEER_FIELD_ORDER = ['PublicKey', 'PresharedKey', 'AllowedIPs', 'Endpoint', 'PersistentKeepalive'];
+const PEER_FIELD_ORDER = [
+  'PublicKey',
+  'PresharedKey',
+  'AllowedIPs',
+  'Endpoint',
+  'PersistentKeepalive',
+];
 
 function peerFields(conf: string): string[] {
   const peerBlock = conf.slice(conf.indexOf('[Peer]'));
@@ -26,8 +32,17 @@ describe('AmneziaWG .conf emitters agree on the peer block', () => {
       primaryDns: '8.8.8.8',
       secondaryDns: '',
       mtu: 1420,
-      jc: 4, jmin: 40, jmax: 100, s1: 30, s2: 90, s3: 0, s4: 0,
-      h1: '', h2: '', h3: '', h4: '',
+      jc: 4,
+      jmin: 40,
+      jmax: 100,
+      s1: 30,
+      s2: 90,
+      s3: 0,
+      s4: 0,
+      h1: '',
+      h2: '',
+      h3: '',
+      h4: '',
     },
     clients: [
       {
@@ -41,7 +56,11 @@ describe('AmneziaWG .conf emitters agree on the peer block', () => {
   } as unknown as AmneziawgInboundSettings;
 
   const linkConf = genAmneziaWGConfig({
-    settings, address: 'awg.example.test', port: 51820, remark: 'awg-peer-1', peerIndex: 0,
+    settings,
+    address: 'awg.example.test',
+    port: 51820,
+    remark: 'awg-peer-1',
+    peerIndex: 0,
   });
 
   const client = {
@@ -52,7 +71,11 @@ describe('AmneziaWG .conf emitters agree on the peer block', () => {
     keepAlive: 25,
   } as unknown as ClientRecord;
   const inbound = {
-    id: 1, tag: 'awg-1', remark: 'awg', port: 51820, protocol: 'amneziawg',
+    id: 1,
+    tag: 'awg-1',
+    remark: 'awg',
+    port: 51820,
+    protocol: 'amneziawg',
     awgServer: settings.server,
   } as unknown as InboundOption;
   const clientsPageConf = buildAmneziaWGClientConfig(client, inbound, 'awg.example.test');
@@ -71,13 +94,22 @@ describe('AmneziaWG .conf emitters agree on the peer block', () => {
   });
 
   it('an unset preSharedKey drops the line in both, without disturbing the rest', () => {
-    const noPsk = { ...settings, clients: [{ ...settings.clients[0], preSharedKey: '' }] } as AmneziawgInboundSettings;
+    const noPsk = {
+      ...settings,
+      clients: [{ ...settings.clients[0], preSharedKey: '' }],
+    } as AmneziawgInboundSettings;
     const withoutPsk = genAmneziaWGConfig({
-      settings: noPsk, address: 'awg.example.test', port: 51820, remark: 'awg-peer-1', peerIndex: 0,
+      settings: noPsk,
+      address: 'awg.example.test',
+      port: 51820,
+      remark: 'awg-peer-1',
+      peerIndex: 0,
     });
     const clientWithoutPsk = { ...client, preSharedKey: '' } as unknown as ClientRecord;
     const want = PEER_FIELD_ORDER.filter((f) => f !== 'PresharedKey');
     expect(peerFields(withoutPsk)).toEqual(want);
-    expect(peerFields(buildAmneziaWGClientConfig(clientWithoutPsk, inbound, 'awg.example.test'))).toEqual(want);
+    expect(
+      peerFields(buildAmneziaWGClientConfig(clientWithoutPsk, inbound, 'awg.example.test')),
+    ).toEqual(want);
   });
 });

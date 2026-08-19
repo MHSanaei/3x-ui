@@ -51,7 +51,19 @@ const SIDEBAR_PINNED_KEY = 'sidebar-pinned';
 
 let hoveredAcrossRemounts = false;
 
-type IconName = 'dashboard' | 'inbound' | 'team' | 'groups' | 'setting' | 'tool' | 'cluster' | 'hosts' | 'logout' | 'apidocs' | 'outbound' | 'routing';
+type IconName =
+  | 'dashboard'
+  | 'inbound'
+  | 'team'
+  | 'groups'
+  | 'setting'
+  | 'tool'
+  | 'cluster'
+  | 'hosts'
+  | 'logout'
+  | 'apidocs'
+  | 'outbound'
+  | 'routing';
 
 const iconByName: Record<IconName, ComponentType> = {
   dashboard: DashboardOutlined,
@@ -116,7 +128,13 @@ function VersionBadge({ version, collapsed }: { version: string; collapsed?: boo
   );
 }
 
-function ThemeCycleButton({ id, isDark, isUltra, onCycle, ariaLabel }: {
+function ThemeCycleButton({
+  id,
+  isDark,
+  isUltra,
+  onCycle,
+  ariaLabel,
+}: {
   id: string;
   isDark: boolean;
   isUltra: boolean;
@@ -192,44 +210,70 @@ export default function AppSidebar() {
   const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
-  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(() => [
-    { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
-    { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
-    { key: '/clients', icon: 'team', title: t('menu.clients') },
-    { key: '/groups', icon: 'groups', title: t('menu.groups') },
-    { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
-    { key: '/hosts', icon: 'hosts', title: t('menu.hosts') },
-    { key: '/outbound', icon: 'outbound', title: t('menu.outbounds') },
-    { key: '/routing', icon: 'routing', title: t('menu.routing') },
-    { key: '/settings', icon: 'setting', title: t('menu.settings') },
-    { key: '/xray', icon: 'tool', title: t('menu.xray') },
-    { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
-    { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
-  ], [t]);
+  const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(
+    () => [
+      { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
+      { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
+      { key: '/clients', icon: 'team', title: t('menu.clients') },
+      { key: '/groups', icon: 'groups', title: t('menu.groups') },
+      { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
+      { key: '/hosts', icon: 'hosts', title: t('menu.hosts') },
+      { key: '/outbound', icon: 'outbound', title: t('menu.outbounds') },
+      { key: '/routing', icon: 'routing', title: t('menu.routing') },
+      { key: '/settings', icon: 'setting', title: t('menu.settings') },
+      { key: '/xray', icon: 'tool', title: t('menu.xray') },
+      { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
+      { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
+    ],
+    [t],
+  );
 
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);
   const utilItems = useMemo(() => tabs.filter((tab) => tab.icon === 'logout'), [tabs]);
 
   const settingsChildren = useMemo<NonNullable<MenuProps['items']>>(() => {
     const children: NonNullable<MenuProps['items']> = [
-      { key: '/settings#general', icon: <SettingOutlined />, label: t('pages.settings.panelSettings') },
-      { key: '/settings#security', icon: <SafetyOutlined />, label: t('pages.settings.securitySettings') },
-      { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
+      {
+        key: '/settings#general',
+        icon: <SettingOutlined />,
+        label: t('pages.settings.panelSettings'),
+      },
+      {
+        key: '/settings#security',
+        icon: <SafetyOutlined />,
+        label: t('pages.settings.securitySettings'),
+      },
+      {
+        key: '/settings#telegram',
+        icon: <MessageOutlined />,
+        label: t('pages.settings.TGBotSettings'),
+      },
       { key: '/settings#email', icon: <MailOutlined />, label: t('pages.settings.emailSettings') },
-      { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
+      {
+        key: '/settings#subscription',
+        icon: <CloudServerOutlined />,
+        label: t('pages.settings.subSettings'),
+      },
     ];
     if (showSubFormats) {
-      children.push({ key: '/settings#subscription-formats', icon: <CodeOutlined />, label: t('menu.subFormats') });
+      children.push({
+        key: '/settings#subscription-formats',
+        icon: <CodeOutlined />,
+        label: t('menu.subFormats'),
+      });
     }
     return children;
   }, [t, showSubFormats]);
 
-  const xrayChildren = useMemo<NonNullable<MenuProps['items']>>(() => [
-    { key: '/xray#basic', icon: <SettingOutlined />, label: t('pages.xray.basicTemplate') },
-    { key: '/xray#balancer', icon: <ClusterOutlined />, label: t('pages.xray.Balancers') },
-    { key: '/xray#dns', icon: <DatabaseOutlined />, label: 'DNS' },
-    { key: '/xray#advanced', icon: <CodeOutlined />, label: t('pages.xray.advancedTemplate') },
-  ], [t]);
+  const xrayChildren = useMemo<NonNullable<MenuProps['items']>>(
+    () => [
+      { key: '/xray#basic', icon: <SettingOutlined />, label: t('pages.xray.basicTemplate') },
+      { key: '/xray#balancer', icon: <ClusterOutlined />, label: t('pages.xray.Balancers') },
+      { key: '/xray#dns', icon: <DatabaseOutlined />, label: 'DNS' },
+      { key: '/xray#advanced', icon: <CodeOutlined />, label: t('pages.xray.advancedTemplate') },
+    ],
+    [t],
+  );
 
   const settingsActive = pathname === '/settings';
   const xrayActive = pathname === '/xray';
@@ -237,54 +281,65 @@ export default function AppSidebar() {
     ? `/settings${hash || '#general'}`
     : xrayActive
       ? `/xray${hash || '#basic'}`
-      : (pathname === '' ? '/' : pathname);
+      : pathname === ''
+        ? '/'
+        : pathname;
 
   const openSubmenu = settingsActive ? '/settings' : xrayActive ? '/xray' : null;
   const [openKeys, setOpenKeys] = useState<string[]>(() => (openSubmenu ? [openSubmenu] : []));
-  useEffect(() => {
-    if (openSubmenu) {
-      setOpenKeys((keys) => (keys.includes(openSubmenu) ? keys : [...keys, openSubmenu]));
-    }
-  }, [openSubmenu]);
+  if (openSubmenu && !openKeys.includes(openSubmenu)) {
+    setOpenKeys([...openKeys, openSubmenu]);
+  }
 
-  const toMenuItems = useCallback((items: typeof tabs): MenuProps['items'] =>
-    items.map((tab) => {
-      const Icon = iconByName[tab.icon];
-      if (tab.key === '/settings') {
-        return { key: tab.key, icon: <Icon />, label: tab.title, children: settingsChildren };
+  const toMenuItems = useCallback(
+    (items: typeof tabs): MenuProps['items'] =>
+      items.map((tab) => {
+        const Icon = iconByName[tab.icon];
+        if (tab.key === '/settings') {
+          return { key: tab.key, icon: <Icon />, label: tab.title, children: settingsChildren };
+        }
+        if (tab.key === '/xray') {
+          return { key: tab.key, icon: <Icon />, label: tab.title, children: xrayChildren };
+        }
+        return { key: tab.key, icon: <Icon />, label: tab.title, title: '' };
+      }),
+    [settingsChildren, xrayChildren],
+  );
+
+  const openLink = useCallback(
+    async (key: string) => {
+      if (key === LOGOUT_KEY) {
+        await HttpUtil.post('/logout');
+        window.location.href = window.X_UI_BASE_PATH || '/';
+        return;
       }
-      if (tab.key === '/xray') {
-        return { key: tab.key, icon: <Icon />, label: tab.title, children: xrayChildren };
+      navigate(key);
+    },
+    [navigate],
+  );
+
+  const onMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(
+    ({ key }) => {
+      openLink(String(key));
+    },
+    [openLink],
+  );
+
+  const cycleTheme = useCallback(
+    (id: string) => {
+      pauseAnimationsUntilLeave(id);
+      if (!isDark) {
+        toggleTheme();
+        if (isUltra) toggleUltra();
+      } else if (!isUltra) {
+        toggleUltra();
+      } else {
+        toggleUltra();
+        toggleTheme();
       }
-      return { key: tab.key, icon: <Icon />, label: tab.title, title: '' };
-    }),
-  [settingsChildren, xrayChildren]);
-
-  const openLink = useCallback(async (key: string) => {
-    if (key === LOGOUT_KEY) {
-      await HttpUtil.post('/logout');
-      window.location.href = window.X_UI_BASE_PATH || '/';
-      return;
-    }
-    navigate(key);
-  }, [navigate]);
-
-  const onMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(({ key }) => {
-    openLink(String(key));
-  }, [openLink]);
-
-  const cycleTheme = useCallback((id: string) => {
-    pauseAnimationsUntilLeave(id);
-    if (!isDark) {
-      toggleTheme();
-      if (isUltra) toggleUltra();
-    } else if (!isUltra) {
-      toggleUltra();
-    } else {
-      toggleUltra();
-      toggleTheme();
-    }
-  }, [isDark, isUltra, toggleTheme, toggleUltra]);
+    },
+    [isDark, isUltra, toggleTheme, toggleUltra],
+  );
 
   return (
     <div
@@ -396,7 +451,10 @@ export default function AppSidebar() {
           onOpenChange={(keys) => setOpenKeys(keys as string[])}
           className="drawer-menu drawer-nav"
           items={toMenuItems(navItems)}
-          onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
+          onClick={(info) => {
+            onMenuClick(info);
+            setDrawerOpen(false);
+          }}
         />
         <Menu
           theme={currentTheme}
@@ -404,7 +462,10 @@ export default function AppSidebar() {
           selectedKeys={[selectedKey]}
           className="drawer-menu drawer-utility"
           items={toMenuItems(utilItems)}
-          onClick={(info) => { onMenuClick(info); setDrawerOpen(false); }}
+          onClick={(info) => {
+            onMenuClick(info);
+            setDrawerOpen(false);
+          }}
         />
         <div className="drawer-footer">
           <VersionBadge version={panelVersion} />

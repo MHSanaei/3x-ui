@@ -153,9 +153,7 @@ export function validateRealityMaxClientVer(max: string, min: string): string | 
   if (!maxParts || !minParts) return undefined;
   for (let i = 0; i < 3; i++) {
     if (maxParts[i] !== minParts[i]) {
-      return maxParts[i] < minParts[i]
-        ? 'pages.inbounds.form.maxClientVerBelowMin'
-        : undefined;
+      return maxParts[i] < minParts[i] ? 'pages.inbounds.form.maxClientVerBelowMin' : undefined;
     }
   }
   return undefined;
@@ -255,12 +253,7 @@ export function normalizeXhttpForWire(
 
   if (out.xPaddingObfsMode !== true) {
     delete out.xPaddingObfsMode;
-    dropEmptyStrings(out, [
-      'xPaddingKey',
-      'xPaddingHeader',
-      'xPaddingPlacement',
-      'xPaddingMethod',
-    ]);
+    dropEmptyStrings(out, ['xPaddingKey', 'xPaddingHeader', 'xPaddingPlacement', 'xPaddingMethod']);
   }
 
   if (out.noGRPCHeader !== true) delete out.noGRPCHeader;
@@ -297,13 +290,7 @@ export function normalizeSockoptForWire(
     'mark',
   ]);
 
-  dropFalseFlags(out, [
-    'acceptProxyProtocol',
-    'tcpFastOpen',
-    'tcpMptcp',
-    'penetrate',
-    'V6Only',
-  ]);
+  dropFalseFlags(out, ['acceptProxyProtocol', 'tcpFastOpen', 'tcpMptcp', 'penetrate', 'V6Only']);
 
   if (out.tproxy === 'off') delete out.tproxy;
   if (out.domainStrategy === 'AsIs') delete out.domainStrategy;

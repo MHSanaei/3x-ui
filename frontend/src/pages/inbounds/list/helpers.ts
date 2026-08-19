@@ -20,9 +20,12 @@ export function networkLabel(network: string): string {
   const n = (network || '').toLowerCase();
   if (!n) return 'TCP';
   switch (n) {
-    case 'httpupgrade': return 'HTTPUpgrade';
-    case 'splithttp': return 'SplitHTTP';
-    case 'xhttp': return 'XHTTP';
+    case 'httpupgrade':
+      return 'HTTPUpgrade';
+    case 'splithttp':
+      return 'SplitHTTP';
+    case 'xhttp':
+      return 'XHTTP';
   }
   return n.toUpperCase();
 }
@@ -42,7 +45,11 @@ export function networkL4(network: string): 'UDP' | '' {
 // the L4 transport list independent of streamSettings. Returns a
 // comma-separated label.
 export function commaNetworkLabel(raw: string): string {
-  const parts = (raw || 'tcp').toLowerCase().split(',').map((p) => p.trim()).filter(Boolean);
+  const parts = (raw || 'tcp')
+    .toLowerCase()
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (parts.length === 0) return 'TCP';
   return parts.map(networkLabel).join(',');
 }
@@ -62,8 +69,16 @@ export function mixedNetworkLabel(settings: unknown): string {
   return st.udp ? 'TCP,UDP' : 'TCP';
 }
 
-export function readSettings(settings: unknown): { method?: string; network?: string; allowedNetwork?: string } {
-  return coerceInboundJsonField(settings) as { method?: string; network?: string; allowedNetwork?: string };
+export function readSettings(settings: unknown): {
+  method?: string;
+  network?: string;
+  allowedNetwork?: string;
+} {
+  return coerceInboundJsonField(settings) as {
+    method?: string;
+    network?: string;
+    allowedNetwork?: string;
+  };
 }
 
 export function isInboundMultiUser(record: { protocol: string; settings: unknown }): boolean {

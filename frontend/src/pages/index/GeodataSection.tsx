@@ -38,21 +38,20 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
   const [outbound, setOutbound] = useState<string | undefined>(undefined);
   const [rows, setRows] = useState<GeodataAssetRow[]>([]);
   const [outboundTags, setOutboundTags] = useState<string[]>([]);
-  const templateRef = useRef<Record<string, unknown> | null>(null);
+  const [template, setTemplate] = useState<Record<string, unknown> | null>(null);
   const outboundTestUrlRef = useRef('');
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true });
       if (!msg?.success || typeof msg.obj !== 'string') return;
       const payload = JSON.parse(msg.obj) as Record<string, unknown>;
-      const template = (payload.xraySetting || {}) as Record<string, unknown>;
-      templateRef.current = template;
+      const next = (payload.xraySetting || {}) as Record<string, unknown>;
+      setTemplate(next);
       outboundTestUrlRef.current =
         typeof payload.outboundTestUrl === 'string' ? payload.outboundTestUrl : '';
 
-      const geodata = (template.geodata || {}) as Record<string, unknown>;
+      const geodata = (next.geodata || {}) as Record<string, unknown>;
       const assets = Array.isArray(geodata.assets) ? geodata.assets : [];
       setRows(
         assets
@@ -67,7 +66,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
       // Download outbound candidates: template outbounds + subscription outbounds.
       // Skip blackhole outbounds — routing a download through one just drops it.
       const tags = new Set<string>();
-      const outbounds = Array.isArray(template.outbounds) ? template.outbounds : [];
+      const outbounds = Array.isArray(next.outbounds) ? next.outbounds : [];
       for (const o of outbounds) {
         if (!o || typeof o !== 'object') continue;
         const rec = o as Record<string, unknown>;
@@ -87,8 +86,14 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
     }
   }, []);
 
+  const [wasActive, setWasActive] = useState(false);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) setLoading(true);
+  }
+
   useEffect(() => {
-    if (active) load();
+    if (active) void load();
   }, [active, load]);
 
   function setRow(index: number, patch: Partial<GeodataAssetRow>) {
@@ -102,7 +107,6 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
   }
 
   function save() {
-    const template = templateRef.current;
     if (!template) return;
     const assets = rows
       .map((r) => ({ url: r.url.trim(), file: r.file.trim() }))
@@ -213,7 +217,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
             >
               {t('pages.index.geodataAddFile')}
             </Button>
-            <Button type="primary" onClick={save} disabled={loading || !templateRef.current}>
+            <Button type="primary" onClick={save} disabled={loading || !template}>
               {t('pages.index.geodataSaveRestart')}
             </Button>
           </div>

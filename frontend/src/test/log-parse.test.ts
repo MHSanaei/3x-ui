@@ -64,7 +64,9 @@ describe('parseLogLine — SysLog (journalctl) formats', () => {
 
 describe('parseLogLine — app-log format (SysLog off)', () => {
   it('parses "YYYY/MM/DD HH:MM:SS LEVEL - body"', () => {
-    const r = parseLogLine('2026/06/09 00:35:09 INFO - mtproto: started mtg for inbound 3 on 0.0.0.0:8443');
+    const r = parseLogLine(
+      '2026/06/09 00:35:09 INFO - mtproto: started mtg for inbound 3 on 0.0.0.0:8443',
+    );
     expect(r.date).toBe('2026/06/09');
     expect(r.time).toBe('00:35:09');
     expect(r.levelText).toBe('INFO');

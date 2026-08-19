@@ -41,6 +41,9 @@
           "externalTrafficInformURI": {
             "type": "string"
           },
+          "ipLimitAllowlist": {
+            "type": "string"
+          },
           "ldapAutoCreate": {
             "type": "boolean"
           },
@@ -374,6 +377,7 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
           "ldapBaseDN",
@@ -511,6 +515,9 @@
           },
           "hasWarpSecret": {
             "type": "boolean"
+          },
+          "ipLimitAllowlist": {
+            "type": "string"
           },
           "ldapAutoCreate": {
             "type": "boolean"
@@ -852,6 +859,7 @@
           "hasTgBotToken",
           "hasTwoFactorToken",
           "hasWarpSecret",
+          "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
           "ldapBaseDN",
@@ -1124,6 +1132,14 @@
             "description": "Reset period in days",
             "type": "integer"
           },
+          "resetDay": {
+            "description": "Calendar renewal day 1-31, 0 = interval mode",
+            "type": "integer"
+          },
+          "resetMax": {
+            "description": "Max auto-renew count, 0 = unlimited",
+            "type": "integer"
+          },
           "reverse": {
             "allOf": [
               {
@@ -1155,6 +1171,22 @@
             "format": "int64",
             "type": "integer"
           },
+          "trafficReset": {
+            "description": "Per-client traffic reset cycle, independent of the inbound's own (#5497).",
+            "enum": [
+              "never",
+              "hourly",
+              "daily",
+              "weekly",
+              "monthly"
+            ],
+            "type": "string"
+          },
+          "trafficResetDay": {
+            "maximum": 31,
+            "minimum": 1,
+            "type": "integer"
+          },
           "updated_at": {
             "description": "Last update timestamp",
             "format": "int64",
@@ -1168,6 +1200,8 @@
           "expiryTime",
           "limitIp",
           "reset",
+          "resetDay",
+          "resetMax",
           "security",
           "subId",
           "tgId",
@@ -1263,6 +1297,12 @@
           "reset": {
             "type": "integer"
           },
+          "resetDay": {
+            "type": "integer"
+          },
+          "resetMax": {
+            "type": "integer"
+          },
           "reverse": {},
           "secret": {
             "type": "string"
@@ -1279,6 +1319,12 @@
           },
           "totalGB": {
             "format": "int64",
+            "type": "integer"
+          },
+          "trafficReset": {
+            "type": "string"
+          },
+          "trafficResetDay": {
             "type": "integer"
           },
           "updatedAt": {
@@ -1310,12 +1356,16 @@
           "privateKey",
           "publicKey",
           "reset",
+          "resetDay",
+          "resetMax",
           "reverse",
           "secret",
           "security",
           "subId",
           "tgId",
           "totalGB",
+          "trafficReset",
+          "trafficResetDay",
           "updatedAt",
           "uuid"
         ],
@@ -1375,6 +1425,21 @@
             "example": 0,
             "type": "integer"
           },
+          "resetCount": {
+            "description": "ResetCount is how many have fired, so a prepaid plan stops on its own.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetDay": {
+            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetMax": {
+            "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+            "example": 0,
+            "type": "integer"
+          },
           "subId": {
             "example": "i7tvdpeffi0hvvf1",
             "type": "string"
@@ -1404,6 +1469,9 @@
           "lastOnline",
           "lastSubFetch",
           "reset",
+          "resetCount",
+          "resetDay",
+          "resetMax",
           "subId",
           "total",
           "up",
@@ -2927,6 +2995,11 @@
             "example": "h2",
             "type": "string"
           },
+          "certChainValid": {
+            "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
+            "example": true,
+            "type": "boolean"
+          },
           "certIssuer": {
             "example": "Google Trust Services",
             "type": "string"
@@ -2971,6 +3044,11 @@
             "example": 443,
             "type": "integer"
           },
+          "privateTarget": {
+            "description": "PrivateTarget marks a target that resolves to a loopback/private/link-local\naddress: blocked before the probe unless the caller opted in, then flagged.",
+            "example": false,
+            "type": "boolean"
+          },
           "reason": {
             "type": "string"
           },
@@ -2999,6 +3077,7 @@
         },
         "required": [
           "alpn",
+          "certChainValid",
           "certIssuer",
           "certSubject",
           "certValid",
@@ -3010,6 +3089,7 @@
           "latencyMs",
           "notAfter",
           "port",
+          "privateTarget",
           "reason",
           "serverNames",
           "target",
@@ -3020,7 +3100,7 @@
         "type": "object"
       },
       "ServerSettings": {
-        "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings JSON.\nThe listen port lives on the inbound row itself, like every other protocol.",
+        "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
         "properties": {
           "contentPaddingAddition": {
             "type": "string"
@@ -3029,7 +3109,7 @@
             "type": "boolean"
           },
           "externalInterface": {
-            "description": "ExternalInterface is the host NIC PostUp/PostDown NAT rules attach to.\nEmpty means auto-detect.",
+            "description": "ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live\nagain as of Phase 3.5 -- see the matching fields on Instance for what\nthey gate (internal/amneziawgnet's IPv6-address-alias mechanism).\nIPv6Subnet was never actually vestigial either: InstanceFromInbound\nalready consumes it (via serverAddressV6) to build the server's own\ntunnel address, same as always. Only RouteThroughXray, below, remains\ngenuinely vestigial as of the hard cutover to the embedded path\n(internal/amneziawgnet) -- read from existing stored settings for\nbackward compatibility, but not acted on by anything.",
             "type": "string"
           },
           "h1": {
@@ -3045,6 +3125,7 @@
             "type": "string"
           },
           "headerProtectionKey": {
+            "description": "HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0\nfields, flat and top-level for the same tools/openapigen reason as\nthe block above; Obfuscation() below folds them back into\nObfuscation31's own identically named fields.\nHeaderProtectionKey is a base64 32-byte key; empty (the default)\ndisables AWG 3.0 header protection. A non-empty value requires\nevery one of S1-S4 above to be >= 12 -- ValidateObfuscation\nenforces this at save time, not just at IpcSet time.\nContentPaddingAddition is a \"low-high\" range or bare integer, the\nsame grammar as H1-H4 but capped at uint16 max.",
             "type": "string"
           },
           "i1": {
@@ -3063,7 +3144,6 @@
             "type": "string"
           },
           "ipv6Enabled": {
-            "description": "IPv6Enabled allocates each client an IPv6 host address from IPv6Subnet and\nproxies NDP for it, so upstream routers see it as directly reachable\n(no NAT66). IPv6ExternalInterface overrides ExternalInterface for those.",
             "type": "boolean"
           },
           "ipv6ExternalInterface": {
@@ -3073,7 +3153,7 @@
             "type": "string"
           },
           "jc": {
-            "description": "Obfuscation31's fields repeated flat, not embedded: encoding/json would\ninline an embedded struct but tools/openapigen emits a nested object,\nwhich would silently diverge from the real wire JSON.",
+            "description": "Obfuscation31's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation31 the same way, but the frontend's Go->Zod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation31` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
             "type": "integer"
           },
           "jmax": {
@@ -3092,7 +3172,7 @@
             "type": "integer"
           },
           "primaryDns": {
-            "description": "PrimaryDNS/SecondaryDNS seed downloadable client configs only; the\nserver's own interface never sets a DNS line.",
+            "description": "PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client\nconfigs; the server's own interface never sets one (see BuildClientConfig).",
             "type": "string"
           },
           "privateKey": {
@@ -3102,19 +3182,20 @@
             "type": "string"
           },
           "randomTrailers": {
+            "description": "RandomTrailers/DisableCookies mirror Instance's identically named\nAmneziaWG 3.1 fields -- see that type's own doc comment for the real\nprotocol/interop details. Both real bool fields (not omitempty):\nbuildUAPIConfig always emits both lines explicitly so the\nreconfigure-in-place diff correctly notices a true->false edit, not\njust false->true.",
             "type": "boolean"
           },
           "rejectAfterTime": {
             "type": "string"
           },
           "rekeyAfterTime": {
+            "description": "RekeyAfterTime/RekeyTimeout/RejectAfterTime/KeepaliveTimeout/\nMaxHandshakeAttempts mirror Instance's identically named fields --\nsee that type's own doc comment for the grammar/width/real-default\ndetails. Flat and top-level for the same tools/openapigen reason as\nthe rest of this struct.",
             "type": "string"
           },
           "rekeyTimeout": {
             "type": "string"
           },
           "routeThroughXray": {
-            "description": "RouteThroughXray turns on this inbound's TPROXY-into-Xray bridge; see\nInstance.RouteThroughXray for what that means. Off by default.",
             "type": "boolean"
           },
           "s1": {
@@ -3140,6 +3221,7 @@
           }
         },
         "required": [
+          "disableCookies",
           "h1",
           "h2",
           "h3",
@@ -3149,6 +3231,7 @@
           "jmin",
           "privateKey",
           "publicKey",
+          "randomTrailers",
           "s1",
           "s2",
           "s3",
@@ -3494,6 +3577,9 @@
                           "lastOnline": 1735680000000,
                           "lastSubFetch": 1735680000000,
                           "reset": 0,
+                          "resetCount": 0,
+                          "resetDay": 0,
+                          "resetMax": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
                           "up": 1048576,
@@ -5909,7 +5995,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names.",
+        "summary": "Run a live TLS 1.3 probe against a candidate REALITY target and return a feasibility verdict (TLS 1.3 + h2 + X25519 + trusted certificate) plus the certificate SAN DNS names. A target on a private/loopback address is reported with privateTarget=true and probed only when allowPrivate is set.",
         "operationId": "post_panel_api_server_scanRealityTarget",
         "requestBody": {
           "required": true,
@@ -5944,6 +6030,7 @@
                   "success": true,
                   "obj": {
                     "alpn": "h2",
+                    "certChainValid": true,
                     "certIssuer": "Google Trust Services",
                     "certSubject": "cloudflare.com",
                     "certValid": true,
@@ -5955,6 +6042,7 @@
                     "latencyMs": 180,
                     "notAfter": "2026-08-01T00:00:00Z",
                     "port": 443,
+                    "privateTarget": false,
                     "reason": "",
                     "serverNames": [
                       ""
@@ -6015,6 +6103,7 @@
                   "obj": [
                     {
                       "alpn": "h2",
+                      "certChainValid": true,
                       "certIssuer": "Google Trust Services",
                       "certSubject": "cloudflare.com",
                       "certValid": true,
@@ -6026,6 +6115,7 @@
                       "latencyMs": 180,
                       "notAfter": "2026-08-01T00:00:00Z",
                       "port": 443,
+                      "privateTarget": false,
                       "reason": "",
                       "serverNames": [
                         ""
@@ -6695,7 +6785,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Replace a client's external links (per-client share links and remote subscription URLs surfaced in their subscription). Sends the full set; the server replaces all rows.",
+        "summary": "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.",
         "operationId": "post_panel_api_clients_email_externalLinks",
         "parameters": [
           {
@@ -6713,19 +6803,36 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "externalLinks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means never expire; a negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET."
+                  }
+                },
+                "required": [
+                  "externalLinks"
+                ]
               },
               "example": {
                 "externalLinks": [
                   {
                     "kind": "link",
                     "value": "vless://uuid@host:443?...#srv",
-                    "remark": "DE"
+                    "remark": "DE",
+                    "enable": true,
+                    "expiryTime": 0
                   },
                   {
                     "kind": "subscription",
                     "value": "https://provider.example/sub/abc",
-                    "remark": "Provider"
+                    "remark": "Provider",
+                    "enable": false,
+                    "expiryTime": 1767225600000,
+                    "namePrefix": "[zjh] "
                   }
                 ]
               }
@@ -8372,6 +8479,9 @@
                     "lastOnline": 1735680000000,
                     "lastSubFetch": 1735680000000,
                     "reset": 0,
+                    "resetCount": 0,
+                    "resetDay": 0,
+                    "resetMax": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,

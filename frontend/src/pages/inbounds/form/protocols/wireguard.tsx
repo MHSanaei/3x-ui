@@ -43,7 +43,10 @@ export default function WireguardFields({ wgPubKey, regenInboundWg }: WireguardF
       >
         <Switch />
       </FormField>
-      <FormField name={['settings', 'domainStrategy']} label={t('pages.xray.wireguard.domainStrategy')}>
+      <FormField
+        name={['settings', 'domainStrategy']}
+        label={t('pages.xray.wireguard.domainStrategy')}
+      >
         <Select
           allowClear
           options={[

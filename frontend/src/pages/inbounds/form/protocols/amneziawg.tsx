@@ -10,7 +10,11 @@ interface AmneziawgFieldsProps {
   regenInboundAwgObfuscation: () => void;
 }
 
-export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInboundAwgObfuscation }: AmneziawgFieldsProps) {
+export default function AmneziawgFields({
+  awgPubKey,
+  regenInboundAwg,
+  regenInboundAwgObfuscation,
+}: AmneziawgFieldsProps) {
   const { t } = useTranslation();
   return (
     <>
@@ -19,25 +23,41 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
           <FormField name={['settings', 'server', 'privateKey']} noStyle>
             <Input style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwg} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwg}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item label={t('pages.xray.amneziawg.publicKey')}>
         <Input value={awgPubKey} disabled />
       </Form.Item>
-      <FormField name={['settings', 'server', 'subnetIp']} label={t('pages.xray.amneziawg.subnetIp')}>
+      <FormField
+        name={['settings', 'server', 'subnetIp']}
+        label={t('pages.xray.amneziawg.subnetIp')}
+      >
         <Input placeholder="10.8.1.0" />
       </FormField>
-      <FormField name={['settings', 'server', 'subnetCidr']} label={t('pages.xray.amneziawg.subnetCidr')}>
+      <FormField
+        name={['settings', 'server', 'subnetCidr']}
+        label={t('pages.xray.amneziawg.subnetCidr')}
+      >
         <InputNumber min={1} max={32} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 'mtu']} label={t('pages.xray.amneziawg.mtu')}>
         <InputNumber min={1} style={{ width: '100%' }} />
       </FormField>
-      <FormField name={['settings', 'server', 'primaryDns']} label={t('pages.xray.amneziawg.primaryDns')}>
+      <FormField
+        name={['settings', 'server', 'primaryDns']}
+        label={t('pages.xray.amneziawg.primaryDns')}
+      >
         <Input placeholder="8.8.8.8" />
       </FormField>
-      <FormField name={['settings', 'server', 'secondaryDns']} label={t('pages.xray.amneziawg.secondaryDns')}>
+      <FormField
+        name={['settings', 'server', 'secondaryDns']}
+        label={t('pages.xray.amneziawg.secondaryDns')}
+      >
         <Input placeholder="8.8.4.4" />
       </FormField>
       <FormField
@@ -150,13 +170,22 @@ export default function AmneziawgFields({ awgPubKey, regenInboundAwg, regenInbou
       >
         <Input placeholder="100-160" />
       </FormField>
-      <FormField name={['settings', 'server', 'rekeyTimeout']} label={t('pages.xray.amneziawg.rekeyTimeout')}>
+      <FormField
+        name={['settings', 'server', 'rekeyTimeout']}
+        label={t('pages.xray.amneziawg.rekeyTimeout')}
+      >
         <Input placeholder="3-10" />
       </FormField>
-      <FormField name={['settings', 'server', 'rejectAfterTime']} label={t('pages.xray.amneziawg.rejectAfterTime')}>
+      <FormField
+        name={['settings', 'server', 'rejectAfterTime']}
+        label={t('pages.xray.amneziawg.rejectAfterTime')}
+      >
         <Input placeholder="190-250" />
       </FormField>
-      <FormField name={['settings', 'server', 'keepaliveTimeout']} label={t('pages.xray.amneziawg.keepaliveTimeout')}>
+      <FormField
+        name={['settings', 'server', 'keepaliveTimeout']}
+        label={t('pages.xray.amneziawg.keepaliveTimeout')}
+      >
         <Input placeholder="8-20" />
       </FormField>
       <FormField

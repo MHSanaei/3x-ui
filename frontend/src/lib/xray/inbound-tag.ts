@@ -68,10 +68,7 @@ export interface InboundTagInput {
 export function composeInboundTag(input: InboundTagInput): string {
   const bits = inboundTransports(input.protocol, input.streamSettings, input.settings);
   return (
-    nodeTagPrefix(input.nodeId)
-    + baseInboundTag(input.port ?? 0)
-    + '-'
-    + transportTagSuffix(bits)
+    nodeTagPrefix(input.nodeId) + baseInboundTag(input.port ?? 0) + '-' + transportTagSuffix(bits)
   );
 }
 

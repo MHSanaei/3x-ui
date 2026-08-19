@@ -5,7 +5,12 @@ import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { CodeOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
-import { hasRemarkTokens, previewRemark, SUBSCRIPTION_METADATA_VARIABLES, wrapToken } from '@/lib/remark/remarkVariables';
+import {
+  hasRemarkTokens,
+  previewRemark,
+  SUBSCRIPTION_METADATA_VARIABLES,
+  wrapToken,
+} from '@/lib/remark/remarkVariables';
 import RemarkVarPicker from './RemarkVarPicker';
 
 interface RemarkTemplateFieldProps {
@@ -24,7 +29,15 @@ interface RemarkTemplateFieldProps {
  * (insert-at-caret) and a live, sample-based preview of the expanded result.
  * Used for subscription text fields that support Remark Template variables.
  */
-export default function RemarkTemplateField({ value = '', onChange, maxLength, placeholder, multiline = false, rows, metadataOnly = false }: RemarkTemplateFieldProps) {
+export default function RemarkTemplateField({
+  value = '',
+  onChange,
+  maxLength,
+  placeholder,
+  multiline = false,
+  rows,
+  metadataOnly = false,
+}: RemarkTemplateFieldProps) {
   const { t } = useTranslation();
   const inputRef = useRef<InputRef>(null);
   const textAreaRef = useRef<TextAreaRef>(null);
@@ -60,7 +73,13 @@ export default function RemarkTemplateField({ value = '', onChange, maxLength, p
       title={t('pages.hosts.remarkVars.title')}
     >
       <Tooltip title={t('pages.hosts.remarkVars.title')}>
-        <Button type="text" size="small" icon={<CodeOutlined />} aria-label={t('pages.hosts.remarkVars.title')} style={{ marginInlineEnd: -7 }} />
+        <Button
+          type="text"
+          size="small"
+          icon={<CodeOutlined />}
+          aria-label={t('pages.hosts.remarkVars.title')}
+          style={{ marginInlineEnd: -7 }}
+        />
       </Tooltip>
     </Popover>
   );
@@ -92,7 +111,9 @@ export default function RemarkTemplateField({ value = '', onChange, maxLength, p
       {hasRemarkTokens(value) && (
         <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>
           {t('pages.hosts.remarkVars.preview')}:{' '}
-          <span style={{ fontFamily: 'monospace' }}>{previewRemark(value, variables, metadataOnly) || '—'}</span>
+          <span style={{ fontFamily: 'monospace' }}>
+            {previewRemark(value, variables, metadataOnly) || '—'}
+          </span>
         </div>
       )}
     </div>

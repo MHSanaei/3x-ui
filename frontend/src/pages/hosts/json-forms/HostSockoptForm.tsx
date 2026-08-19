@@ -25,7 +25,13 @@ function serializeClientSockopt(sockopt: unknown): string {
   return serializeOverride(copy);
 }
 
-export default function HostSockoptForm({ value, onChange }: { value?: string; onChange?: (next: string) => void }) {
+export default function HostSockoptForm({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange?: (next: string) => void;
+}) {
   /*
    * Populate the dialerProxy dropdown with the panel's outbound tags (a host can
    * chain through one of the subscription's outbounds by tag). dialerProxy chains

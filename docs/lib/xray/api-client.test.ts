@@ -31,7 +31,7 @@ const base = {
 describe('buildCurl', () => {
   it('GET emits the Bearer header, a single-quoted URL, and no body flag', () => {
     const cmd = buildCurl({ ...base, method: 'GET' });
-    expect(cmd).toContain("-X GET");
+    expect(cmd).toContain('-X GET');
     expect(cmd).toContain("-H 'Authorization: Bearer TKN'");
     expect(cmd).toContain("'https://panel.example.com:2053/panel/api/inbounds/list'");
     expect(cmd).not.toContain('--data');
@@ -39,14 +39,23 @@ describe('buildCurl', () => {
   });
 
   it('POST with a body emits --data and a JSON content type', () => {
-    const cmd = buildCurl({ ...base, method: 'POST', path: '/panel/api/inbounds/add', body: '{"up":0}' });
+    const cmd = buildCurl({
+      ...base,
+      method: 'POST',
+      path: '/panel/api/inbounds/add',
+      body: '{"up":0}',
+    });
     expect(cmd).toContain('-X POST');
-    expect(cmd).toContain("--data '{\"up\":0}'");
-    expect(cmd).toContain("Content-Type: application/json");
+    expect(cmd).toContain('--data \'{"up":0}\'');
+    expect(cmd).toContain('Content-Type: application/json');
   });
 
   it('POST without a body omits --data', () => {
-    const cmd = buildCurl({ ...base, method: 'POST', path: '/panel/api/inbounds/resetAllTraffics' });
+    const cmd = buildCurl({
+      ...base,
+      method: 'POST',
+      path: '/panel/api/inbounds/resetAllTraffics',
+    });
     expect(cmd).not.toContain('--data');
   });
 });
@@ -60,7 +69,12 @@ describe('buildFetchSnippet', () => {
   });
 
   it('POST with a body includes a JSON.stringify body', () => {
-    const snip = buildFetchSnippet({ ...base, method: 'POST', path: '/panel/api/inbounds/add', body: '{"up":0}' });
+    const snip = buildFetchSnippet({
+      ...base,
+      method: 'POST',
+      path: '/panel/api/inbounds/add',
+      body: '{"up":0}',
+    });
     expect(snip).toContain("method: 'POST'");
     expect(snip).toContain('body: JSON.stringify(');
   });

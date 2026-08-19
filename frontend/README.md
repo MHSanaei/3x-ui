@@ -33,7 +33,10 @@ production-style links work without round-tripping through Go.
 | `npm run build` | Regenerates OpenAPI + Zod, then builds into `../internal/web/dist/` |
 | `npm run preview` | Serve the built bundle locally |
 | `npm run typecheck` | `tsc --noEmit` (strict, no emit) |
-| `npm run lint` | ESLint flat config (`@typescript-eslint` + `react-hooks`) |
+| `npm run lint` | oxlint over `src/` + `tools/` (`.oxlintrc.json`) |
+| `npm run lint:deprecated` | Type-aware sweep for JSDoc `@deprecated` APIs (on demand) |
+| `npm run format` | oxfmt (`.oxfmtrc.json`) — rewrites `src/` + `tools/` in place |
+| `npm run format:check` | oxfmt in check mode (no writes) |
 | `npm run test` | Vitest single run (schema fixtures, link parsers, …) |
 | `npm run test:watch` | Vitest watch mode |
 | `npm run storybook` | Storybook dev server on `:6006` (component workbench + autodocs) |
@@ -41,8 +44,8 @@ production-style links work without round-tripping through Go.
 | `npm run gen:api` | Build `public/openapi.json` from `pages/api-docs/endpoints.ts` |
 | `npm run gen:zod` | Run the Go-side openapigen tool → `src/generated/{zod,types}.ts` |
 
-CI runs `typecheck`, `lint`, `test`, `build`, and `build-storybook` on
-every PR (see `../.github/workflows/ci.yml`).
+CI runs `typecheck`, `lint`, `format:check`, `test`, `build`, and
+`build-storybook` on every PR (see `../.github/workflows/ci.yml`).
 
 ### One-off: scan for deprecated APIs
 
@@ -51,12 +54,13 @@ with the JSDoc `@deprecated` tag (AntD prop renames, Zod renames,
 removed Web APIs, etc.):
 
 ```sh
-npx eslint --config eslint.deprecated.config.js src
+npm run lint:deprecated
 ```
 
-It's a type-aware ESLint run against `eslint.deprecated.config.js`
-and is not wired into `npm run lint` because typed linting triples
-the wall-clock time.
+It is oxlint's type-aware mode (`oxlint-tsgolint`, which drives the
+TypeScript 7 `typescript-go` checker) narrowed to `no-deprecated`, and
+is not wired into `npm run lint` because typed linting needs a full
+type-check pass.
 
 ## Production build
 
@@ -85,9 +89,12 @@ normal network requests.
 frontend/
 ├── index.html, login.html, subpage.html  # 3 Vite entries
 ├── tsconfig.json
-├── eslint.config.js
-├── eslint.deprecated.config.js           # On-demand type-aware lint config that flags
-│                                         #   usages of APIs marked with JSDoc @deprecated
+├── .oxlintrc.json                        # oxlint config (replaces the ESLint flat config)
+├── .oxfmtrc.json                         # oxfmt config (Prettier-compatible settings)
+├── tools/oxlint/
+│   └── input-number-guard.mjs            # oxlint JS plugin: the #6121/#6127 cleared-
+│                                         #   InputNumber guard (oxlint has no
+│                                         #   no-restricted-syntax)
 ├── vitest.config.ts
 ├── vite.config.js
 ├── .storybook/                           # Storybook config (main.ts, preview.tsx)
@@ -155,7 +162,7 @@ Patterns:
   - Wire request: `Schema.parse(payload)` inside `mutationFn` — throws,
     because a malformed payload here is always a developer bug
 - **No `.loose()` or `[key: string]: any`** in production schemas.
-  `@typescript-eslint/no-explicit-any: error` is enforced.
+  `typescript/no-explicit-any: error` is enforced by oxlint.
 
 ## Form pattern (Pattern A)
 

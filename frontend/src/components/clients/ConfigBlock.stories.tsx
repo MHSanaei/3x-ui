@@ -17,8 +17,13 @@ const meta = {
     },
   },
   argTypes: {
-    label: { description: 'Protocol/type badge shown on the panel header (e.g. `vless`, `trojan`).' },
-    text: { description: 'The config or share-link text to display, copy, download, and encode as a QR code.' },
+    label: {
+      description: 'Protocol/type badge shown on the panel header (e.g. `vless`, `trojan`).',
+    },
+    text: {
+      description:
+        'The config or share-link text to display, copy, download, and encode as a QR code.',
+    },
     fileName: { description: 'File name used when downloading the text.' },
     qrRemark: { description: 'Optional remark embedded in the QR panel; falls back to `label`.' },
     showQr: { description: 'Whether to show the QR-code action button.' },
@@ -31,8 +36,9 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-const sampleLink = 'vless://11112222-3333-4444-5555-666677778888@panel.example.com:443'
-  + '?type=ws&security=tls&path=%2Fpath#example-node';
+const sampleLink =
+  'vless://11112222-3333-4444-5555-666677778888@panel.example.com:443' +
+  '?type=ws&security=tls&path=%2Fpath#example-node';
 
 export const Collapsed: Story = {
   args: { label: 'vless', text: sampleLink, fileName: 'client-config.txt' },
@@ -58,5 +64,11 @@ export const Expanded: Story = {
 };
 
 export const WithoutQr: Story = {
-  args: { label: 'trojan', text: sampleLink, fileName: 'client-config.txt', showQr: false, tagColor: 'geekblue' },
+  args: {
+    label: 'trojan',
+    text: sampleLink,
+    fileName: 'client-config.txt',
+    showQr: false,
+    tagColor: 'geekblue',
+  },
 };

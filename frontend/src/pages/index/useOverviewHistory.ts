@@ -6,7 +6,16 @@ import type { Status } from '@/models/status';
 const OVERVIEW_WINDOW = 72;
 const SEED_BUCKET_SECONDS = 2;
 
-const SERIES_KEYS = ['cpu', 'mem', 'swap', 'diskUsage', 'netUp', 'netDown', 'tcpCount', 'udpCount'] as const;
+const SERIES_KEYS = [
+  'cpu',
+  'mem',
+  'swap',
+  'diskUsage',
+  'netUp',
+  'netDown',
+  'tcpCount',
+  'udpCount',
+] as const;
 
 export type OverviewSeriesKey = (typeof SERIES_KEYS)[number];
 
@@ -26,7 +35,10 @@ interface HistoryWindow {
 }
 
 function emptySeries(): Record<OverviewSeriesKey, number[]> {
-  return Object.fromEntries(SERIES_KEYS.map((key) => [key, [] as number[]])) as Record<OverviewSeriesKey, number[]>;
+  return Object.fromEntries(SERIES_KEYS.map((key) => [key, [] as number[]])) as Record<
+    OverviewSeriesKey,
+    number[]
+  >;
 }
 
 function emptyWindow(): HistoryWindow {
@@ -116,8 +128,11 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
     };
   }, []);
 
-  useEffect(() => {
-    if (!hasData) return;
+  // Each polled status is appended during render; an effect would show the
+  // chart one sample behind the numbers beside it.
+  const [sampledStatus, setSampledStatus] = useState<Status | null>(null);
+  if (hasData && status !== sampledStatus) {
+    setSampledStatus(status);
     setTrend((prev) => {
       const point = sampleOf(status);
       const next = emptyWindow();
@@ -127,7 +142,7 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
       }
       return next;
     });
-  }, [status, hasData]);
+  }
 
   const labels = useMemo(() => trend.times.map(TimeFormatter.formatClock), [trend.times]);
 

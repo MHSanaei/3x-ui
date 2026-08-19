@@ -4,7 +4,13 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 export function isWireguardClient(client: ClientRecord | null | undefined): boolean {
   if (!client) return false;
-  return !!(client.privateKey || client.publicKey || client.allowedIPs || client.preSharedKey || client.keepAlive);
+  return !!(
+    client.privateKey ||
+    client.publicKey ||
+    client.allowedIPs ||
+    client.preSharedKey ||
+    client.keepAlive
+  );
 }
 
 export function findWireguardInbound(
@@ -22,7 +28,11 @@ export function buildWireguardClientConfig(
   host = window.location.hostname,
   publicHost = '',
 ): string {
-  const endpointHost = resolveShareHost(inbound ?? {}, inbound?.nodeAddress ?? '', preferPublicHost(host, publicHost));
+  const endpointHost = resolveShareHost(
+    inbound ?? {},
+    inbound?.nodeAddress ?? '',
+    preferPublicHost(host, publicHost),
+  );
   const address = client.allowedIPs || '10.0.0.2/32';
   const endpoint = `${endpointHost}:${inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
@@ -39,6 +49,7 @@ export function buildWireguardClientConfig(
   lines.push('[Peer]', `PublicKey = ${inbound?.wgPublicKey || ''}`);
   if (client.preSharedKey) lines.push(`PresharedKey = ${client.preSharedKey}`);
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
-  if (client.keepAlive && client.keepAlive > 0) lines.push(`PersistentKeepalive = ${client.keepAlive}`);
+  if (client.keepAlive && client.keepAlive > 0)
+    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   return lines.join('\n');
 }

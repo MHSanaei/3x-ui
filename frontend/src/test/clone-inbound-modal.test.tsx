@@ -57,8 +57,9 @@ function openTargetDropdown() {
 }
 
 function clickOption(text: string) {
-  const option = Array.from(document.querySelectorAll('.ant-select-item-option'))
-    .find((o) => (o.textContent ?? '').trim() === text);
+  const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    (o) => (o.textContent ?? '').trim() === text,
+  );
   if (!option) throw new Error(`option '${text}' not found`);
   fireEvent.click(option);
 }
@@ -70,8 +71,10 @@ function clickOk() {
 type PostBody = Record<string, unknown> & { nodeId?: number };
 const postedBodies = () => postSpy.mock.calls.map((c) => c[1] as PostBody);
 
-const selectedTitles = () => Array.from(document.querySelectorAll('.ant-select-selection-item[title]'))
-  .map((el) => el.getAttribute('title'));
+const selectedTitles = () =>
+  Array.from(document.querySelectorAll('.ant-select-selection-item[title]')).map((el) =>
+    el.getAttribute('title'),
+  );
 
 beforeEach(() => {
   postSpy.mockClear();
@@ -119,16 +122,19 @@ describe('CloneInboundModal', () => {
     renderModal();
     openTargetDropdown();
 
-    const option = (text: string) => Array.from(document.querySelectorAll('.ant-select-item-option'))
-      .find((o) => (o.textContent ?? '').trim() === text);
+    const option = (text: string) =>
+      Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+        (o) => (o.textContent ?? '').trim() === text,
+      );
     // Only `online` is selectable — `offline` and `unknown` (no heartbeat
     // yet) are both shown but disabled.
     expect(option('arm3 (offline)')?.className).toContain('ant-select-item-option-disabled');
     expect(option('arm5 (unknown)')?.className).toContain('ant-select-item-option-disabled');
     expect(option('arm2')?.className).not.toContain('ant-select-item-option-disabled');
 
-    const labels = Array.from(document.querySelectorAll('.ant-select-item-option'))
-      .map((o) => (o.textContent ?? '').trim());
+    const labels = Array.from(document.querySelectorAll('.ant-select-item-option')).map((o) =>
+      (o.textContent ?? '').trim(),
+    );
     expect(labels).toEqual(['Local panel', 'arm2', 'arm3 (offline)', 'arm5 (unknown)']);
   });
 
@@ -145,7 +151,9 @@ describe('CloneInboundModal', () => {
     // Clear all empties the selection and disables OK.
     fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
     expect(selectedTitles()).toEqual([]);
-    expect((screen.getByRole('button', { name: 'Clone' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Clone' }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 
   it('keeps a cleared selection when the nodes list refetches mid-dialog', () => {
@@ -201,8 +209,11 @@ describe('CloneInboundModal', () => {
     postSpy.mockImplementation(async (_url, data) => {
       const body = data as PostBody;
       if (body.nodeId === 2) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return { success: false, msg: "port 23456 (tcp) already used by inbound 'x' (#1) on *" } as any;
+        return {
+          success: false,
+          msg: "port 23456 (tcp) already used by inbound 'x' (#1) on *",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return { success: true, obj: {} } as any;

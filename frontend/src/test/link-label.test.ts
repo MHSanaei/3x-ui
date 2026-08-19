@@ -54,8 +54,18 @@ describe('link-label parseLinkParts', () => {
     const settings = {
       server: {
         publicKey: 'serverPubKey==',
-        jc: 5, jmin: 10, jmax: 50, s1: 30, s2: 45, s3: 10, s4: 5,
-        h1: '', h2: '', h3: '', h4: '', i1: '',
+        jc: 5,
+        jmin: 10,
+        jmax: 50,
+        s1: 30,
+        s2: 45,
+        s3: 10,
+        s4: 5,
+        h1: '',
+        h2: '',
+        h3: '',
+        h4: '',
+        i1: '',
       },
       clients: [{ email: 'peer-1', privateKey: 'clientPrivKey==', allowedIPs: ['10.8.1.2/32'] }],
     } as unknown as AmneziawgInboundSettings;

@@ -8,14 +8,23 @@ import {
   tokenFor,
 } from '@/lib/xray/geoTokens';
 
-const siteKnown = new Set(['geosite:google', 'geosite:google@ads', 'geosite:cn', 'ext:my_rules.dat:corp']);
+const siteKnown = new Set([
+  'geosite:google',
+  'geosite:google@ads',
+  'geosite:cn',
+  'ext:my_rules.dat:corp',
+]);
 const ipKnown = new Set(['geoip:cn', 'geoip:private', 'ext:my_ips.dat:office']);
 
 describe('parseTokens / formatTokens', () => {
   const cases: Array<[string, string, string[]]> = [
     ['empty value', '', []],
     ['single token', 'geosite:google', ['geosite:google']],
-    ['trims and drops blanks', ' geosite:google , , google.com ,', ['geosite:google', 'google.com']],
+    [
+      'trims and drops blanks',
+      ' geosite:google , , google.com ,',
+      ['geosite:google', 'google.com'],
+    ],
     ['keeps negation', '!geoip:cn, 10.0.0.0/8', ['!geoip:cn', '10.0.0.0/8']],
   ];
 
@@ -31,12 +40,36 @@ describe('parseTokens / formatTokens', () => {
 
 describe('tokenFor', () => {
   const cases: Array<[string, string, string, 'site' | 'ip', string]> = [
-    ['default site database uses the geosite shorthand', 'geosite.dat', 'google', 'site', 'geosite:google'],
+    [
+      'default site database uses the geosite shorthand',
+      'geosite.dat',
+      'google',
+      'site',
+      'geosite:google',
+    ],
     ['default ip database uses the geoip shorthand', 'geoip.dat', 'cn', 'ip', 'geoip:cn'],
-    ['custom site database falls back to ext', 'my_rules.dat', 'corp', 'site', 'ext:my_rules.dat:corp'],
+    [
+      'custom site database falls back to ext',
+      'my_rules.dat',
+      'corp',
+      'site',
+      'ext:my_rules.dat:corp',
+    ],
     ['custom ip database falls back to ext', 'my_ips.dat', 'office', 'ip', 'ext:my_ips.dat:office'],
-    ['ip kind on the site database is not shorthand', 'geosite.dat', 'cn', 'ip', 'ext:geosite.dat:cn'],
-    ['site kind on the ip database is not shorthand', 'geoip.dat', 'cn', 'site', 'ext:geoip.dat:cn'],
+    [
+      'ip kind on the site database is not shorthand',
+      'geosite.dat',
+      'cn',
+      'ip',
+      'ext:geosite.dat:cn',
+    ],
+    [
+      'site kind on the ip database is not shorthand',
+      'geoip.dat',
+      'cn',
+      'site',
+      'ext:geoip.dat:cn',
+    ],
   ];
 
   it.each(cases)('%s', (_name, file, code, kind, expected) => {
@@ -48,7 +81,12 @@ describe('selectionFromValue', () => {
   const cases: Array<[string, string, ReadonlySet<string>, string[]]> = [
     ['empty value selects nothing', '', siteKnown, []],
     ['plain values are not selectable', 'google.com, keyword:ads', siteKnown, []],
-    ['picks known tokens only', 'google.com, geosite:google, geosite:blabla', siteKnown, ['geosite:google']],
+    [
+      'picks known tokens only',
+      'google.com, geosite:google, geosite:blabla',
+      siteKnown,
+      ['geosite:google'],
+    ],
     [
       'keeps the value order',
       'geosite:cn, google.com, geosite:google',
@@ -57,7 +95,12 @@ describe('selectionFromValue', () => {
     ],
     ['drops duplicates', 'geosite:google, geosite:google', siteKnown, ['geosite:google']],
     ['attributes are distinct tokens', 'geosite:google@ads', siteKnown, ['geosite:google@ads']],
-    ['ext tokens are selectable', 'ext:my_rules.dat:corp, ext:other.dat:x', siteKnown, ['ext:my_rules.dat:corp']],
+    [
+      'ext tokens are selectable',
+      'ext:my_rules.dat:corp, ext:other.dat:x',
+      siteKnown,
+      ['ext:my_rules.dat:corp'],
+    ],
     ['negated ip tokens stay unselected', '!geoip:cn, geoip:private', ipKnown, ['geoip:private']],
   ];
 
@@ -161,7 +204,11 @@ describe('mergeSelection', () => {
   });
 
   it('round-trips with selectionFromValue', () => {
-    const value = mergeSelection('google.com, geosite:blabla', ['geosite:google', 'geosite:cn'], siteKnown);
+    const value = mergeSelection(
+      'google.com, geosite:blabla',
+      ['geosite:google', 'geosite:cn'],
+      siteKnown,
+    );
     expect(value).toBe('google.com, geosite:blabla, geosite:google, geosite:cn');
     expect(selectionFromValue(value, siteKnown)).toEqual(['geosite:google', 'geosite:cn']);
   });

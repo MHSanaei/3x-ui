@@ -7,7 +7,12 @@ import { useServerDraft } from '@/hooks/useServerDraft';
 describe('useServerDraft', () => {
   it('keeps an edited draft when the server refetches', () => {
     const { result, rerender } = renderHook(
-      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      ({ server }) =>
+        useServerDraft(
+          server,
+          (value) => ({ ...value }),
+          (left, right) => left.value === right.value,
+        ),
       { initialProps: { server: { value: 'one' } } },
     );
 
@@ -20,7 +25,12 @@ describe('useServerDraft', () => {
 
   it('accepts a refetch that matches the saved draft', () => {
     const { result, rerender } = renderHook(
-      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      ({ server }) =>
+        useServerDraft(
+          server,
+          (value) => ({ ...value }),
+          (left, right) => left.value === right.value,
+        ),
       { initialProps: { server: { value: 'one' } } },
     );
 
@@ -33,7 +43,12 @@ describe('useServerDraft', () => {
 
   it('compares a preserved draft with the latest server value', () => {
     const { result, rerender } = renderHook(
-      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      ({ server }) =>
+        useServerDraft(
+          server,
+          (value) => ({ ...value }),
+          (left, right) => left.value === right.value,
+        ),
       { initialProps: { server: { value: 'one' } } },
     );
 
@@ -46,7 +61,12 @@ describe('useServerDraft', () => {
 
   it('hydrates clean drafts under StrictMode', () => {
     const { result, rerender } = renderHook(
-      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      ({ server }) =>
+        useServerDraft(
+          server,
+          (value) => ({ ...value }),
+          (left, right) => left.value === right.value,
+        ),
       {
         initialProps: { server: { value: 'one' } },
         wrapper: StrictMode,
@@ -61,7 +81,12 @@ describe('useServerDraft', () => {
 
   it('preserves an edit made before the first server response', () => {
     const { result, rerender } = renderHook(
-      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      ({ server }) =>
+        useServerDraft(
+          server,
+          (value) => ({ ...value }),
+          (left, right) => left.value === right.value,
+        ),
       { initialProps: { server: undefined as { value: string } | undefined } },
     );
 
@@ -74,7 +99,12 @@ describe('useServerDraft', () => {
 
   it('marks a sent draft clean before its refetch arrives', () => {
     const { result } = renderHook(
-      ({ server }) => useServerDraft(server, (value) => ({ ...value }), (left, right) => left.value === right.value),
+      ({ server }) =>
+        useServerDraft(
+          server,
+          (value) => ({ ...value }),
+          (left, right) => left.value === right.value,
+        ),
       { initialProps: { server: { value: 'one' } } },
     );
 

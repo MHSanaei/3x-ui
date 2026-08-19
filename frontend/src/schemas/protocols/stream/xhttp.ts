@@ -45,8 +45,15 @@ export const XMUX_FRESH_DEFAULTS: XHttpXmux = {
 // charset (splithttp.PredefinedTable, xray-core #6258). A literal ASCII
 // charset string is also accepted.
 export const XHTTP_SESSION_ID_TABLES = [
-  'ALPHABET', 'Alphabet', 'BASE36', 'Base62', 'HEX',
-  'alphabet', 'base36', 'hex', 'number',
+  'ALPHABET',
+  'Alphabet',
+  'BASE36',
+  'Base62',
+  'HEX',
+  'alphabet',
+  'base36',
+  'hex',
+  'number',
 ] as const;
 
 // xray-core #6258 renamed sessionPlacement/sessionKey to
@@ -68,50 +75,53 @@ function migrateLegacyXhttp(v: unknown): unknown {
   return o;
 }
 
-export const XHttpStreamSettingsSchema = z.preprocess(migrateLegacyXhttp, z.object({
-  path: z.string().default('/'),
-  host: z.string().default(''),
-  mode: XHttpModeSchema.default('auto'),
-  xPaddingBytes: z.string().default('100-1000'),
-  xPaddingObfsMode: z.boolean().default(false),
-  xPaddingKey: z.string().default(''),
-  xPaddingHeader: z.string().default(''),
-  xPaddingPlacement: z.string().default(''),
-  xPaddingMethod: z.string().default(''),
-  sessionIDPlacement: z.string().default(''),
-  sessionIDKey: z.string().default(''),
-  // sessionIDTable: a predefined name (XHTTP_SESSION_ID_TABLES) or a literal
-  // ASCII charset. sessionIDLength: dash-range string (e.g. '8-16'); only
-  // honored when a table is set. xray-core enforces the room-size minimum.
-  sessionIDTable: z.string().default(''),
-  sessionIDLength: z.string().default(''),
-  seqPlacement: z.string().default(''),
-  seqKey: z.string().default(''),
-  uplinkDataPlacement: z.string().default(''),
-  uplinkDataKey: z.string().default(''),
-  // Empty default on purpose: xray-core already defaults to 1MB/30ms, and
-  // baking the literal values into every config and share link gives DPI a
-  // stable fingerprint (#5141 — TSPU keys on scMinPostsIntervalMs=30).
-  scMaxEachPostBytes: z.string().default(''),
-  noSSEHeader: z.boolean().default(false),
-  scMaxBufferedPosts: z.number().int().min(0).default(30),
-  scStreamUpServerSecs: z.string().default('20-80'),
-  serverMaxHeaderBytes: z.number().int().min(0).default(0),
-  uplinkHTTPMethod: z.string().default(''),
-  headers: WsHeaderMapSchema.default({}),
-  // Client-side fields stored on inbound for subscription propagation.
-  // The server listener ignores them at runtime, but the panel embeds
-  // them in share-link `extra` blobs so the same xhttp config can
-  // round-trip on both sides.
-  // - scMinPostsIntervalMs: preserved when non-default (stripped at '' or '30')
-  // - uplinkChunkSize & noGRPCHeader: outbound-only; stripped from inbound wire
-  scMinPostsIntervalMs: z.string().default(''),
-  uplinkChunkSize: z.number().int().min(0).default(0),
-  noGRPCHeader: z.boolean().default(false),
-  xmux: XHttpXmuxSchema.optional(),
-  // UI-only toggle controlling whether the XMUX sub-form is expanded.
-  // Never present on the wire — outbound modal strips it via the
-  // form-to-wire adapter.
-  enableXmux: z.boolean().default(false),
-}));
+export const XHttpStreamSettingsSchema = z.preprocess(
+  migrateLegacyXhttp,
+  z.object({
+    path: z.string().default('/'),
+    host: z.string().default(''),
+    mode: XHttpModeSchema.default('auto'),
+    xPaddingBytes: z.string().default('100-1000'),
+    xPaddingObfsMode: z.boolean().default(false),
+    xPaddingKey: z.string().default(''),
+    xPaddingHeader: z.string().default(''),
+    xPaddingPlacement: z.string().default(''),
+    xPaddingMethod: z.string().default(''),
+    sessionIDPlacement: z.string().default(''),
+    sessionIDKey: z.string().default(''),
+    // sessionIDTable: a predefined name (XHTTP_SESSION_ID_TABLES) or a literal
+    // ASCII charset. sessionIDLength: dash-range string (e.g. '8-16'); only
+    // honored when a table is set. xray-core enforces the room-size minimum.
+    sessionIDTable: z.string().default(''),
+    sessionIDLength: z.string().default(''),
+    seqPlacement: z.string().default(''),
+    seqKey: z.string().default(''),
+    uplinkDataPlacement: z.string().default(''),
+    uplinkDataKey: z.string().default(''),
+    // Empty default on purpose: xray-core already defaults to 1MB/30ms, and
+    // baking the literal values into every config and share link gives DPI a
+    // stable fingerprint (#5141 — TSPU keys on scMinPostsIntervalMs=30).
+    scMaxEachPostBytes: z.string().default(''),
+    noSSEHeader: z.boolean().default(false),
+    scMaxBufferedPosts: z.number().int().min(0).default(30),
+    scStreamUpServerSecs: z.string().default('20-80'),
+    serverMaxHeaderBytes: z.number().int().min(0).default(0),
+    uplinkHTTPMethod: z.string().default(''),
+    headers: WsHeaderMapSchema.default({}),
+    // Client-side fields stored on inbound for subscription propagation.
+    // The server listener ignores them at runtime, but the panel embeds
+    // them in share-link `extra` blobs so the same xhttp config can
+    // round-trip on both sides.
+    // - scMinPostsIntervalMs: preserved when non-default (stripped at '' or '30')
+    // - uplinkChunkSize & noGRPCHeader: outbound-only; stripped from inbound wire
+    scMinPostsIntervalMs: z.string().default(''),
+    uplinkChunkSize: z.number().int().min(0).default(0),
+    noGRPCHeader: z.boolean().default(false),
+    xmux: XHttpXmuxSchema.optional(),
+    // UI-only toggle controlling whether the XMUX sub-form is expanded.
+    // Never present on the wire — outbound modal strips it via the
+    // form-to-wire adapter.
+    enableXmux: z.boolean().default(false),
+  }),
+);
 export type XHttpStreamSettings = z.infer<typeof XHttpStreamSettingsSchema>;

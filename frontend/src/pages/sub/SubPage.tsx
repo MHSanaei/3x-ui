@@ -33,7 +33,11 @@ import {
 } from '@ant-design/icons';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
-import { amneziawgConfigFromLink, isPostQuantumLink, wireguardConfigFromLink } from '@/lib/xray/inbound-link';
+import {
+  amneziawgConfigFromLink,
+  isPostQuantumLink,
+  wireguardConfigFromLink,
+} from '@/lib/xray/inbound-link';
 import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -72,8 +76,9 @@ const isUnlimited = totalByte <= 0 && expireMs === 0;
 const isActive = (() => {
   if (!enabled) return false;
   if (totalByte > 0) {
-    const usedByteCalc = Number(subData.usedByte || 0)
-      || (Number(subData.downloadByte || 0) + Number(subData.uploadByte || 0));
+    const usedByteCalc =
+      Number(subData.usedByte || 0) ||
+      Number(subData.downloadByte || 0) + Number(subData.uploadByte || 0);
     if (usedByteCalc >= totalByte) return false;
   }
   if (expireMs > 0 && Date.now() >= expireMs) return false;
@@ -84,7 +89,9 @@ export default function SubPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
   const [messageApi, messageContextHolder] = message.useMessage();
-  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
+  useEffect(() => {
+    setMessageInstance(messageApi);
+  }, [messageApi]);
   const { isMobile } = useMediaQuery(576);
   const [lang, setLang] = useState<string>(() => LanguageManager.getLanguage());
 
@@ -106,11 +113,14 @@ export default function SubPage() {
     }
   }, [isDark, isUltra, toggleTheme, toggleUltra]);
 
-  const copy = useCallback(async (value: string) => {
-    if (!value) return;
-    const ok = await ClipboardManager.copyText(value);
-    if (ok) messageApi.success(t('copied'));
-  }, [t, messageApi]);
+  const copy = useCallback(
+    async (value: string) => {
+      if (!value) return;
+      const ok = await ClipboardManager.copyText(value);
+      if (ok) messageApi.success(t('copied'));
+    },
+    [t, messageApi],
+  );
 
   const copyAll = useCallback(async () => {
     if (links.length === 0) return;
@@ -155,13 +165,15 @@ export default function SubPage() {
       {
         key: 'status',
         label: t('subscription.status'),
-        children: !enabled
-          ? <Tag color="red">{t('subscription.inactive')}</Tag>
-          : isUnlimited
-            ? <Tag color="purple">{t('subscription.unlimited')}</Tag>
-            : <Tag color={isActive ? 'green' : 'red'}>
-                {isActive ? t('subscription.active') : t('subscription.inactive')}
-              </Tag>,
+        children: !enabled ? (
+          <Tag color="red">{t('subscription.inactive')}</Tag>
+        ) : isUnlimited ? (
+          <Tag color="purple">{t('subscription.unlimited')}</Tag>
+        ) : (
+          <Tag color={isActive ? 'green' : 'red'}>
+            {isActive ? t('subscription.active') : t('subscription.inactive')}
+          </Tag>
+        ),
       },
       { key: 'down', label: t('subscription.downloaded'), children: download },
       { key: 'up', label: t('subscription.uploaded'), children: upload },
@@ -179,51 +191,62 @@ export default function SubPage() {
     items.push({
       key: 'expiry',
       label: t('subscription.expiry'),
-      children: expireMs === 0
-        ? t('subscription.noExpiry')
-        : IntlUtil.formatDate(expireMs, datepicker),
+      children:
+        expireMs === 0 ? t('subscription.noExpiry') : IntlUtil.formatDate(expireMs, datepicker),
     });
     return items;
   }, [t]);
 
-  const androidMenuItems = useMemo(() => [
-    {
-      key: 'android-v2box',
-      label: 'V2Box',
-      onClick: () => open(`v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`),
-    },
-    {
-      key: 'android-v2rayng',
-      label: 'V2RayNG',
-      onClick: () => open(`v2rayng://install-config?url=${encodeURIComponent(subUrl)}`),
-    },
-    { key: 'android-singbox', label: 'Sing-box', onClick: () => copy(subUrl) },
-    { key: 'android-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
-    { key: 'android-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
-    { key: 'android-happ', label: 'Happ', onClick: () => open(`happ://add/${subUrl}`) },
-    { key: 'android-incy', label: 'Incy', onClick: () => open(`incy://add/${subUrl}`) },
-  ], [copy, open]);
+  const androidMenuItems = useMemo(
+    () => [
+      {
+        key: 'android-v2box',
+        label: 'V2Box',
+        onClick: () =>
+          open(
+            `v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`,
+          ),
+      },
+      {
+        key: 'android-v2rayng',
+        label: 'V2RayNG',
+        onClick: () => open(`v2rayng://install-config?url=${encodeURIComponent(subUrl)}`),
+      },
+      { key: 'android-singbox', label: 'Sing-box', onClick: () => copy(subUrl) },
+      { key: 'android-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
+      { key: 'android-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
+      { key: 'android-happ', label: 'Happ', onClick: () => open(`happ://add/${subUrl}`) },
+      { key: 'android-incy', label: 'Incy', onClick: () => open(`incy://add/${subUrl}`) },
+    ],
+    [copy, open],
+  );
 
-  const iosMenuItems = useMemo(() => [
-    { key: 'ios-shadowrocket', label: 'Shadowrocket', onClick: () => open(shadowrocketUrl) },
-    { key: 'ios-v2box', label: 'V2Box', onClick: () => open(v2boxUrl) },
-    { key: 'ios-streisand', label: 'Streisand', onClick: () => open(streisandUrl) },
-    { key: 'ios-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
-    { key: 'ios-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
-    { key: 'ios-happ', label: 'Happ', onClick: () => open(happUrl) },
-    { key: 'ios-incy', label: 'Incy', onClick: () => open(incyUrl) },
-  ], [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl, incyUrl]);
+  const iosMenuItems = useMemo(
+    () => [
+      { key: 'ios-shadowrocket', label: 'Shadowrocket', onClick: () => open(shadowrocketUrl) },
+      { key: 'ios-v2box', label: 'V2Box', onClick: () => open(v2boxUrl) },
+      { key: 'ios-streisand', label: 'Streisand', onClick: () => open(streisandUrl) },
+      { key: 'ios-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
+      { key: 'ios-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
+      { key: 'ios-happ', label: 'Happ', onClick: () => open(happUrl) },
+      { key: 'ios-incy', label: 'Incy', onClick: () => open(incyUrl) },
+    ],
+    [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl, incyUrl],
+  );
 
   const langMenuItems = useMemo(
-    () => (LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[]).map((l) => ({
-      key: l.value,
-      label: (
-        <Space size={8}>
-          <span aria-hidden="true">{l.icon}</span>
-          <span>{l.name}</span>
-        </Space>
+    () =>
+      (LanguageManager.supportedLanguages as { value: string; name: string; icon: string }[]).map(
+        (l) => ({
+          key: l.value,
+          label: (
+            <Space size={8}>
+              <span aria-hidden="true">{l.icon}</span>
+              <span>{l.name}</span>
+            </Space>
+          ),
+        }),
       ),
-    })),
     [],
   );
 
@@ -294,8 +317,10 @@ export default function SubPage() {
                 />
 
                 <SubUsageSummary
-                  usedByte={Number(subData.usedByte || 0)
-                    || (Number(subData.downloadByte || 0) + Number(subData.uploadByte || 0))}
+                  usedByte={
+                    Number(subData.usedByte || 0) ||
+                    Number(subData.downloadByte || 0) + Number(subData.uploadByte || 0)
+                  }
                   totalByte={totalByte}
                   usedLabel={used}
                   totalLabel={total}
@@ -310,7 +335,9 @@ export default function SubPage() {
                     <div className="links-section">
                       {subUrl && (
                         <div className="sub-link-row">
-                          <Tag color="green" className="sub-link-tag">SUB</Tag>
+                          <Tag color="green" className="sub-link-tag">
+                            SUB
+                          </Tag>
                           <a
                             href={subUrl}
                             target="_blank"
@@ -321,26 +348,48 @@ export default function SubPage() {
                             {sId}
                           </a>
                           <div className="sub-link-actions">
-                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Button
+                              size="small"
+                              icon={<CopyOutlined />}
+                              onClick={() => copy(subUrl)}
+                              aria-label={t('copy')}
+                              title={t('copy')}
+                            />
                             <Popover
                               trigger="click"
                               placement="left"
                               destroyOnHidden
                               content={
                                 <div className="sub-link-qr-popover">
-                                  <Tag color="green" className="qr-tag">{t('pages.settings.subSettings')}</Tag>
-                                  <QRCode value={subUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                  <Tag color="green" className="qr-tag">
+                                    {t('pages.settings.subSettings')}
+                                  </Tag>
+                                  <QRCode
+                                    value={subUrl}
+                                    size={QR_SIZE}
+                                    type="svg"
+                                    bordered={false}
+                                    color="#000000"
+                                    bgColor="#ffffff"
+                                  />
                                 </div>
                               }
                             >
-                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                              <Button
+                                size="small"
+                                icon={<QrcodeOutlined />}
+                                aria-label="QR"
+                                title="QR"
+                              />
                             </Popover>
                           </div>
                         </div>
                       )}
                       {subJsonUrl && (
                         <div className="sub-link-row">
-                          <Tag color="purple" className="sub-link-tag">JSON</Tag>
+                          <Tag color="purple" className="sub-link-tag">
+                            JSON
+                          </Tag>
                           <a
                             href={subJsonUrl}
                             target="_blank"
@@ -360,19 +409,39 @@ export default function SubPage() {
                               aria-label={t('download')}
                               title={t('download')}
                             />
-                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subJsonUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Button
+                              size="small"
+                              icon={<CopyOutlined />}
+                              onClick={() => copy(subJsonUrl)}
+                              aria-label={t('copy')}
+                              title={t('copy')}
+                            />
                             <Popover
                               trigger="click"
                               placement="left"
                               destroyOnHidden
                               content={
                                 <div className="sub-link-qr-popover">
-                                  <Tag color="purple" className="qr-tag">{t('pages.settings.subSettings')} JSON</Tag>
-                                  <QRCode value={subJsonUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                  <Tag color="purple" className="qr-tag">
+                                    {t('pages.settings.subSettings')} JSON
+                                  </Tag>
+                                  <QRCode
+                                    value={subJsonUrl}
+                                    size={QR_SIZE}
+                                    type="svg"
+                                    bordered={false}
+                                    color="#000000"
+                                    bgColor="#ffffff"
+                                  />
                                 </div>
                               }
                             >
-                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                              <Button
+                                size="small"
+                                icon={<QrcodeOutlined />}
+                                aria-label="QR"
+                                title="QR"
+                              />
                             </Popover>
                           </div>
                         </div>
@@ -380,7 +449,9 @@ export default function SubPage() {
                       {subClashUrl && (
                         <div className="sub-link-row">
                           <Tooltip title="Clash / Mihomo">
-                            <Tag color="gold" className="sub-link-tag">CLASH</Tag>
+                            <Tag color="gold" className="sub-link-tag">
+                              CLASH
+                            </Tag>
                           </Tooltip>
                           <a
                             href={subClashUrl}
@@ -401,19 +472,39 @@ export default function SubPage() {
                               aria-label={t('download')}
                               title={t('download')}
                             />
-                            <Button size="small" icon={<CopyOutlined />} onClick={() => copy(subClashUrl)} aria-label={t('copy')} title={t('copy')} />
+                            <Button
+                              size="small"
+                              icon={<CopyOutlined />}
+                              onClick={() => copy(subClashUrl)}
+                              aria-label={t('copy')}
+                              title={t('copy')}
+                            />
                             <Popover
                               trigger="click"
                               placement="left"
                               destroyOnHidden
                               content={
                                 <div className="sub-link-qr-popover">
-                                  <Tag color="gold" className="qr-tag">Clash / Mihomo</Tag>
-                                  <QRCode value={subClashUrl} size={QR_SIZE} type="svg" bordered={false} color="#000000" bgColor="#ffffff" />
+                                  <Tag color="gold" className="qr-tag">
+                                    Clash / Mihomo
+                                  </Tag>
+                                  <QRCode
+                                    value={subClashUrl}
+                                    size={QR_SIZE}
+                                    type="svg"
+                                    bordered={false}
+                                    color="#000000"
+                                    bgColor="#ffffff"
+                                  />
                                 </div>
                               }
                             >
-                              <Button size="small" icon={<QrcodeOutlined />} aria-label="QR" title="QR" />
+                              <Button
+                                size="small"
+                                icon={<QrcodeOutlined />}
+                                aria-label="QR"
+                                title="QR"
+                              />
                             </Popover>
                           </div>
                         </div>
@@ -444,72 +535,75 @@ export default function SubPage() {
                         const rowTitle = parts?.remark || fallback;
                         const qrLabel = parts?.remark || rowTitle;
                         const canQr = !isPostQuantumLink(link);
-                        const isWireguardLink = link.startsWith('wireguard://') || link.startsWith('wg://');
+                        const isWireguardLink =
+                          link.startsWith('wireguard://') || link.startsWith('wg://');
                         const isAmneziawgLink = link.startsWith('vpn://');
                         return (
                           <Fragment key={link}>
-                          <div className="sub-link-row">
-                            {parts
-                              ? <LinkTags parts={parts} />
-                              : <Tag className="sub-link-tag">LINK</Tag>}
-                            <span className="sub-link-title" title={rowTitle}>
-                              {rowTitle}
-                            </span>
-                            <div className="sub-link-actions">
-                              <Button
-                                size="small"
-                                icon={<CopyOutlined />}
-                                onClick={() => copy(link)}
-                                aria-label={t('copy')}
-                                title={t('copy')}
-                              />
-                              {canQr && (
-                                <Popover
-                                  trigger="click"
-                                  placement="left"
-                                  destroyOnHidden
-                                  content={
-                                    <div className="sub-link-qr-popover">
-                                      <Tag className="qr-tag">{qrLabel}</Tag>
-                                      <QRCode
-                                        value={link}
-                                        size={220}
-                                        type="svg"
-                                        bordered={false}
-                                        color="#000000"
-                                        bgColor="#ffffff"
-                                      />
-                                    </div>
-                                  }
-                                >
-                                  <Button
-                                    size="small"
-                                    icon={<QrcodeOutlined />}
-                                    aria-label="QR"
-                                    title="QR"
-                                  />
-                                </Popover>
+                            <div className="sub-link-row">
+                              {parts ? (
+                                <LinkTags parts={parts} />
+                              ) : (
+                                <Tag className="sub-link-tag">LINK</Tag>
                               )}
+                              <span className="sub-link-title" title={rowTitle}>
+                                {rowTitle}
+                              </span>
+                              <div className="sub-link-actions">
+                                <Button
+                                  size="small"
+                                  icon={<CopyOutlined />}
+                                  onClick={() => copy(link)}
+                                  aria-label={t('copy')}
+                                  title={t('copy')}
+                                />
+                                {canQr && (
+                                  <Popover
+                                    trigger="click"
+                                    placement="left"
+                                    destroyOnHidden
+                                    content={
+                                      <div className="sub-link-qr-popover">
+                                        <Tag className="qr-tag">{qrLabel}</Tag>
+                                        <QRCode
+                                          value={link}
+                                          size={220}
+                                          type="svg"
+                                          bordered={false}
+                                          color="#000000"
+                                          bgColor="#ffffff"
+                                        />
+                                      </div>
+                                    }
+                                  >
+                                    <Button
+                                      size="small"
+                                      icon={<QrcodeOutlined />}
+                                      aria-label="QR"
+                                      title="QR"
+                                    />
+                                  </Popover>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          {isWireguardLink && (
-                            <ConfigBlock
-                              label={t('pages.clients.wireguardConfig')}
-                              text={wireguardConfigFromLink(link, rowTitle)}
-                              fileName={`${rowTitle || 'peer'}.conf`}
-                              qrRemark={rowTitle}
-                              tagColor="cyan"
-                            />
-                          )}
-                          {isAmneziawgLink && (
-                            <ConfigBlock
-                              label={t('pages.clients.amneziaWgConfig')}
-                              text={amneziawgConfigFromLink(link)}
-                              fileName={`${rowTitle || 'peer'}.conf`}
-                              qrRemark={rowTitle}
-                              tagColor="purple"
-                            />
-                          )}
+                            {isWireguardLink && (
+                              <ConfigBlock
+                                label={t('pages.clients.wireguardConfig')}
+                                text={wireguardConfigFromLink(link, rowTitle)}
+                                fileName={`${rowTitle || 'peer'}.conf`}
+                                qrRemark={rowTitle}
+                                tagColor="cyan"
+                              />
+                            )}
+                            {isAmneziawgLink && (
+                              <ConfigBlock
+                                label={t('pages.clients.amneziaWgConfig')}
+                                text={amneziawgConfigFromLink(link)}
+                                fileName={`${rowTitle || 'peer'}.conf`}
+                                qrRemark={rowTitle}
+                                tagColor="purple"
+                              />
+                            )}
                           </Fragment>
                         );
                       })}

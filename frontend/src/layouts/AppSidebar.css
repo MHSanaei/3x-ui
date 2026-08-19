@@ -77,7 +77,10 @@
   color: var(--ant-color-text-secondary);
   text-decoration: none;
   flex-shrink: 0;
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    transform 0.15s,
+    color 0.2s;
 }
 
 .sidebar-donate:hover,
@@ -104,7 +107,10 @@
   color: var(--ant-color-text-secondary);
   text-decoration: none;
   flex-shrink: 0;
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    transform 0.15s,
+    color 0.2s;
 }
 
 .sidebar-docs:hover,
@@ -132,7 +138,10 @@
   color: var(--ant-color-text-secondary);
   padding: 0;
   flex-shrink: 0;
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    transform 0.15s,
+    color 0.2s;
 }
 
 .sidebar-theme-cycle:hover,
@@ -251,7 +260,10 @@
   color: var(--ant-color-text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.2s, transform 0.15s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    transform 0.15s,
+    color 0.2s;
 }
 
 .sidebar-pin:hover,
@@ -328,8 +340,8 @@ body.dark .ant-drawer-body {
   background-color: #15161a;
 }
 
-html[data-theme="ultra-dark"] body.dark .ant-drawer-content,
-html[data-theme="ultra-dark"] body.dark .ant-drawer-body {
+html[data-theme='ultra-dark'] body.dark .ant-drawer-content,
+html[data-theme='ultra-dark'] body.dark .ant-drawer-body {
   background-color: #050507;
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 export const MOBILE_BREAKPOINT_PX = 768;
 
@@ -11,17 +11,21 @@ export const MOBILE_BREAKPOINT_PX = 768;
  */
 export function useMediaQuery(breakpoint: number = MOBILE_BREAKPOINT_PX) {
   const query = `(max-width: ${breakpoint}px)`;
-  const [isMobile, setIsMobile] = useState<boolean>(() =>
-    typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const mql = window.matchMedia(query);
+      mql.addEventListener('change', onStoreChange);
+      return () => mql.removeEventListener('change', onStoreChange);
+    },
+    [query],
   );
 
-  useEffect(() => {
-    const mql = window.matchMedia(query);
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener('change', onChange);
-    setIsMobile(mql.matches);
-    return () => mql.removeEventListener('change', onChange);
-  }, [query]);
+  const isMobile = useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 
   return { isMobile };
 }
