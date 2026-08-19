@@ -18,21 +18,20 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@orama/orama": "^3.1.18",
-    "fumadocs-core": "^16.14.3",
+    "fumadocs-core": "^16.14.5",
     "fumadocs-docgen": "^3.1.0",
-    "fumadocs-mdx": "^15.2.3",
-    "fumadocs-openapi": "^11.2.3",
-    "fumadocs-ui": "^16.14.3",
-    "lucide-react": "^1.31.0",
-    "mermaid": "^11.16.1",
-    "next": "16.3.0",
+    "fumadocs-mdx": "^15.3.0",
+    "fumadocs-openapi": "^11.2.4",
+    "fumadocs-ui": "^16.14.5",
+    "lucide-react": "^1.33.0",
+    "mermaid": "^11.17.0",
+    "next": "16.3.1",
     "next-themes": "^0.4.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-qr-code": "^2.2.0",
     "tailwind-merge": "^3.6.0",
-    "zbsearch": "3.3.4",
+    "zbsearch": "4.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -41,12 +40,12 @@
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "oxfmt": "0.63.0",
-    "oxlint": "1.78.0",
+    "oxfmt": "0.64.0",
+    "oxlint": "1.79.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
-  "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1"
+  "packageManager": "pnpm@11.22.0+sha512.1ff870c4c6133dfd88fb2afc46dd13d47f09c9794b438c6fdb47ca98caf3bc16381ee0be93a091b8e3824cf01f889f46d7d9e20910fb0be1ab0fb5baa80dd621"
 }
