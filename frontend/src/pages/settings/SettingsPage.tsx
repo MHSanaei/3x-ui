@@ -86,16 +86,9 @@ export default function SettingsPage() {
     savePayload,
   } = useAllSettings();
 
-  const [entryHost, setEntryHost] = useState('');
-  const [entryPort, setEntryPort] = useState('');
-  const [entryIsIP, setEntryIsIP] = useState(false);
-
-  useEffect(() => {
-    const host = window.location.hostname;
-    setEntryHost(host);
-    setEntryPort(window.location.port);
-    setEntryIsIP(isIp(host));
-  }, []);
+  const [entryHost] = useState(() => window.location.hostname);
+  const [entryPort] = useState(() => window.location.port);
+  const [entryIsIP] = useState(() => isIp(window.location.hostname));
 
   const [alertVisible, setAlertVisible] = useState(true);
   const location = useLocation();

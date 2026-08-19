@@ -25,10 +25,8 @@ export default function LogModal({ open, onClose }: LogModalProps) {
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
-  const openRef = useRef(open);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const runRefresh = useCallback(async () => {
     try {
       const msg = await HttpUtil.post<string[]>(`/panel/api/server/logs/${rows}`, {
         level,
@@ -43,19 +41,28 @@ export default function LogModal({ open, onClose }: LogModalProps) {
     }
   }, [rows, level, syslog]);
 
+  const refresh = useCallback(() => {
+    setLoading(true);
+    void runRefresh();
+  }, [runRefresh]);
+
   const refreshRef = useRef(refresh);
   useEffect(() => {
     refreshRef.current = refresh;
-  }, [refresh]);
+  });
+
+  // The spinner is raised during render so the fetch effect stays side-effect
+  // free until its response lands.
+  const refreshKey = open ? `${rows}\u0000${level}\u0000${syslog}` : null;
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  if (refreshKey !== loadingKey) {
+    setLoadingKey(refreshKey);
+    if (refreshKey) setLoading(true);
+  }
 
   useEffect(() => {
-    openRef.current = open;
-    if (open) refresh();
-  }, [open, refresh]);
-
-  useEffect(() => {
-    if (openRef.current) refresh();
-  }, [rows, level, syslog, refresh]);
+    if (open) void runRefresh();
+  }, [open, runRefresh]);
 
   useEffect(() => {
     if (!open || !autoUpdate) return;

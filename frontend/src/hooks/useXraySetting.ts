@@ -139,10 +139,14 @@ export function useXraySetting(): UseXraySettingResult {
   const [outboundTestUrl, setOutboundTestUrlState] = useState(DEFAULT_TEST_URL);
   const [savedXraySetting, setSavedXraySetting] = useState('');
   const [savedOutboundTestUrl, setSavedOutboundTestUrl] = useState(DEFAULT_TEST_URL);
-  const [inboundTags, setInboundTags] = useState<string[]>([]);
-  const [clientReverseTags, setClientReverseTags] = useState<string[]>([]);
-  const [subscriptionOutbounds, setSubscriptionOutbounds] = useState<unknown[]>([]);
-  const [subscriptionOutboundTags, setSubscriptionOutboundTags] = useState<string[]>([]);
+  const config = configQuery.data;
+  const inboundTags = useMemo(() => config?.inboundTags || [], [config]);
+  const clientReverseTags = useMemo(() => config?.clientReverseTags || [], [config]);
+  const subscriptionOutbounds = useMemo<unknown[]>(
+    () => config?.subscriptionOutbounds || [],
+    [config],
+  );
+  const subscriptionOutboundTags = useMemo(() => config?.subscriptionOutboundTags || [], [config]);
   const [outboundTestStates, setOutboundTestStates] = useState<Record<number, OutboundTestState>>(
     {},
   );
@@ -161,34 +165,34 @@ export function useXraySetting(): UseXraySettingResult {
   const templateSettingsRef = useRef<XraySettingsValue | null>(null);
   const subscriptionOutboundsRef = useRef<unknown[]>([]);
 
-  xraySettingRef.current = xraySetting;
-  outboundTestUrlRef.current = outboundTestUrl;
-  savedXraySettingRef.current = savedXraySetting;
-  savedOutboundTestUrlRef.current = savedOutboundTestUrl;
-  templateSettingsRef.current = templateSettings;
-  subscriptionOutboundsRef.current = subscriptionOutbounds;
+  const [syncedConfig, setSyncedConfig] = useState<XrayConfigPayload | undefined>();
 
   useEffect(() => {
-    if (!configQuery.data) return;
-    const obj = configQuery.data;
-    const pretty = JSON.stringify(obj.xraySetting, null, 2);
-    const nextUrl = normalizeOutboundTestUrl(obj.outboundTestUrl || '');
-    setInboundTags(obj.inboundTags || []);
-    setClientReverseTags(obj.clientReverseTags || []);
-    setSubscriptionOutbounds(obj.subscriptionOutbounds || []);
-    setSubscriptionOutboundTags(obj.subscriptionOutboundTags || []);
+    xraySettingRef.current = xraySetting;
+    outboundTestUrlRef.current = outboundTestUrl;
+    savedXraySettingRef.current = savedXraySetting;
+    savedOutboundTestUrlRef.current = savedOutboundTestUrl;
+    templateSettingsRef.current = templateSettings;
+    subscriptionOutboundsRef.current = subscriptionOutbounds;
+  });
+
+  // Adopt a fetched config during render, so the editor never paints one frame
+  // of the previous config after a refetch. Local edits win over the refetch.
+  if (config && config !== syncedConfig) {
+    setSyncedConfig(config);
     const isDirty =
-      savedXraySettingRef.current !== xraySettingRef.current ||
-      savedOutboundTestUrlRef.current !== normalizeOutboundTestUrl(outboundTestUrlRef.current);
-    if (isDirty) return;
-    syncingRef.current = true;
-    setXraySettingState(pretty);
-    setTemplateSettingsState(obj.xraySetting);
-    setSavedXraySetting(pretty);
-    syncingRef.current = false;
-    setOutboundTestUrlState(nextUrl);
-    setSavedOutboundTestUrl(nextUrl);
-  }, [configQuery.data]);
+      savedXraySetting !== xraySetting ||
+      savedOutboundTestUrl !== normalizeOutboundTestUrl(outboundTestUrl);
+    if (!isDirty) {
+      const pretty = JSON.stringify(config.xraySetting, null, 2);
+      const nextUrl = normalizeOutboundTestUrl(config.outboundTestUrl || '');
+      setXraySettingState(pretty);
+      setTemplateSettingsState(config.xraySetting);
+      setSavedXraySetting(pretty);
+      setOutboundTestUrlState(nextUrl);
+      setSavedOutboundTestUrl(nextUrl);
+    }
+  }
 
   const fetched = configQuery.data !== undefined || configQuery.isError;
   const fetchError = configQuery.error ? (configQuery.error as Error).message : '';

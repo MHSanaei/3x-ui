@@ -73,7 +73,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
   const [updating, setUpdating] = useState(false);
 
   const [apiTokens, setApiTokens] = useState<ApiTokenRow[]>([]);
-  const [apiTokensLoading, setApiTokensLoading] = useState(false);
+  const [apiTokensLoading, setApiTokensLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -130,8 +130,7 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
     }
   }
 
-  const loadApiTokens = useCallback(async () => {
-    setApiTokensLoading(true);
+  const fetchApiTokens = useCallback(async () => {
     try {
       const msg = (await HttpUtil.get('/panel/api/setting/apiTokens')) as ApiMsg<ApiTokenRow[]>;
       if (msg?.success) setApiTokens(Array.isArray(msg.obj) ? msg.obj : []);
@@ -140,9 +139,14 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
     }
   }, []);
 
+  const loadApiTokens = useCallback(async () => {
+    setApiTokensLoading(true);
+    await fetchApiTokens();
+  }, [fetchApiTokens]);
+
   useEffect(() => {
-    loadApiTokens();
-  }, [loadApiTokens]);
+    void fetchApiTokens();
+  }, [fetchApiTokens]);
 
   async function copyToken(token: string) {
     if (!token) return;

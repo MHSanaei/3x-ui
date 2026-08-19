@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -69,13 +69,16 @@ export default function GeoBrowserModal({
   const [entryPage, setEntryPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
 
-  const knownRef = useRef<Set<string>>(new Set());
-  const seededFilesRef = useRef<Set<string>>(new Set());
+  const [known, setKnown] = useState<Set<string>>(() => new Set());
+  const [seededFiles, setSeededFiles] = useState<Set<string>>(() => new Set());
 
   const filesQuery = useGeodataFiles(open);
   const files = useMemo(() => databasesFor(filesQuery.data ?? [], kind), [filesQuery.data, kind]);
-  const activeFile = files.find((candidate) => candidate.name === file);
-  const fileKind: GeoKind = activeFile?.kind ?? kind;
+  const activeFile = useMemo(
+    () => files.find((candidate) => candidate.name === file),
+    [files, file],
+  );
+  const fileKind: GeoKind = useMemo(() => activeFile?.kind ?? kind, [activeFile, kind]);
 
   const categoriesQuery = useGeodataCategories(file, '', open && !!file);
   // While a newly picked database loads, the query still serves the previous
@@ -117,28 +120,27 @@ export default function GeoBrowserModal({
     return () => window.clearTimeout(handle);
   }, [entryQuery, entryFilter]);
 
-  useEffect(() => {
-    if (!open) return;
-    knownRef.current = new Set();
-    seededFilesRef.current = new Set();
-    setCategoryQuery('');
-    setEntryQuery('');
-    setEntryFilter('');
-    setActiveCode(undefined);
-    setEntryPage(1);
-    setSelected([]);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || file || files.length === 0) return;
+  // Opening, picking the default database and seeding the selection are all
+  // render-time adjustments — an effect would paint the previous state first.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setKnown(new Set());
+      setSeededFiles(new Set());
+      setCategoryQuery('');
+      setEntryQuery('');
+      setEntryFilter('');
+      setActiveCode(undefined);
+      setEntryPage(1);
+      setSelected([]);
+    }
+  } else if (open && !file && files.length > 0) {
     setFile(preferredFile(files, kind));
-  }, [open, file, files, kind]);
-
-  useEffect(() => {
-    if (!open || !file || categories.length === 0 || seededFilesRef.current.has(file)) return;
+  } else if (open && file && categories.length > 0 && !seededFiles.has(file)) {
     const tokens = categories.map((category) => tokenFor(file, category.code, fileKind));
-    for (const token of tokens) knownRef.current.add(token);
-    seededFilesRef.current.add(file);
+    setKnown(new Set([...known, ...tokens]));
+    setSeededFiles(new Set(seededFiles).add(file));
     const fromValue = selectionFromValue(value, new Set(tokens));
     if (fromValue.length > 0) {
       setSelected((previous) => [
@@ -146,7 +148,7 @@ export default function GeoBrowserModal({
         ...fromValue.filter((token) => !previous.includes(token)),
       ]);
     }
-  }, [open, file, categories, fileKind, value]);
+  }
 
   const visibleCategories = useMemo(() => {
     const query = categoryQuery.trim().toLowerCase();
@@ -276,7 +278,7 @@ export default function GeoBrowserModal({
       title={t('pages.xray.geoBrowser.title')}
       width={880}
       onCancel={onClose}
-      onOk={() => onApply(mergeSelection(value, selected, knownRef.current))}
+      onOk={() => onApply(mergeSelection(value, selected, known))}
       okText={t('pages.xray.geoBrowser.apply')}
       cancelText={t('close')}
       className="geo-browser-modal"

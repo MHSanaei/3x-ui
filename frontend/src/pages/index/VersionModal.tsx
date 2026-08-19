@@ -38,7 +38,6 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   const [loading, setLoading] = useState(false);
 
   const fetchVersions = useCallback(async () => {
-    setLoading(true);
     try {
       const msg = await HttpUtil.get<string[]>('/panel/api/server/getXrayVersion');
       if (msg?.success) setVersions(msg.obj || []);
@@ -47,8 +46,14 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
     }
   }, []);
 
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setLoading(true);
+  }
+
   useEffect(() => {
-    if (open) fetchVersions();
+    if (open) void fetchVersions();
   }, [open, fetchVersions]);
 
   function switchXrayVersion(version: string) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -46,11 +46,16 @@ export default function GroupAddClientsModal({
     [candidates],
   );
 
-  useEffect(() => {
-    if (!open) return;
-    setSelectedEmails([]);
-    setSearch('');
-  }, [open]);
+  // React resets this during render rather than in an effect so the modal's
+  // first open frame already shows cleared fields.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setSelectedEmails([]);
+      setSearch('');
+    }
+  }
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();

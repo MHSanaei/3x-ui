@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { HttpUtil } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { DBInbound, coerceInboundJsonField } from '@/models/dbinbound';
+import type { ClientStats, DBInboundInit } from '@/models/dbinbound';
 import { Protocols } from '@/schemas/primitives';
 import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
 import { setDatepicker } from '@/hooks/useDatepicker';
@@ -203,20 +204,13 @@ export function useInbounds() {
     if (defaults.datepicker) setDatepicker(datepicker);
   }, [datepicker, defaults.datepicker]);
 
-  const expireDiffRef = useRef(expireDiff);
-  expireDiffRef.current = expireDiff;
-  const trafficDiffRef = useRef(trafficDiff);
-  trafficDiffRef.current = trafficDiff;
-
-  // dbInbounds mirrors the slim query data wrapped as DBInbound instances, but
-  // stays mutable so the WS-driven applyClientStatsEvent / applyTrafficEvent
-  // can merge per-row updates without invalidating the entire query.
+  // dbInbounds mirrors the slim query data wrapped as DBInbound instances. The
+  // WS handlers rebuild only the rows they touch, so no refetch is needed.
   const [dbInbounds, setDbInbounds] = useState<DBInboundInstance[]>([]);
   const dbInboundsRef = useRef<DBInboundInstance[]>([]);
-  dbInboundsRef.current = dbInbounds;
-
-  const [clientCount, setClientCount] = useState<Record<number, ClientRollup>>({});
-  const [statsVersion, setStatsVersion] = useState(0);
+  useEffect(() => {
+    dbInboundsRef.current = dbInbounds;
+  });
 
   const [inboundSpeed, setInboundSpeed] = useState<Record<number, InboundSpeedEntry>>(() =>
     Date.now() - inboundSpeedCache.at < SPEED_CACHE_TTL_MS ? inboundSpeedCache.data : {},
@@ -226,20 +220,18 @@ export function useInbounds() {
   }, [inboundSpeed]);
 
   const [onlineClients, setOnlineClients] = useState<string[]>([]);
-  const onlineClientsRef = useRef<string[]>([]);
-  onlineClientsRef.current = onlineClients;
 
   // Online emails keyed by the hosting node's panelGuid. The rollup reads this
   // so each inbound only counts clients online on the node that physically
   // hosts it, attributing a sub-node's clients to that sub-node (#4983).
-  const onlineByGuidRef = useRef<Map<string, Set<string>>>(new Map());
+  const [onlineByGuid, setOnlineByGuid] = useState<Map<string, Set<string>>>(() => new Map());
 
   // Recently-active inbound tags keyed by the hosting node's panelGuid. A GUID
   // missing from this map means "no per-inbound activity reported" (e.g. remote
   // nodes), so the rollup leaves that node's inbounds ungated and falls back to
   // the email signal. A present GUID gates: a client only counts online on an
   // inbound whose tag carried traffic this window.
-  const activeByGuidRef = useRef<Map<string, Set<string>>>(new Map());
+  const [activeByGuid, setActiveByGuid] = useState<Map<string, Set<string>>>(() => new Map());
 
   const [lastOnlineMap, setLastOnlineMap] = useState<Record<string, number>>({});
 
@@ -276,12 +268,12 @@ export function useInbounds() {
       // the master-local synthetic id for an old-build node without one (#4983).
       const guid =
         dbInbound.originNodeGuid || (dbInbound.nodeId != null ? `node:${dbInbound.nodeId}` : '');
-      const nodeOnline = onlineByGuidRef.current.get(guid);
+      const nodeOnline = onlineByGuid.get(guid);
       // A node absent from the active map reports no per-inbound activity, so
       // leave its inbounds ungated. When present, only mark a client online on
       // this inbound if its tag actually carried traffic — that's what stops a
       // multi-inbound client lighting up every inbound it's attached to.
-      const activeForNode = activeByGuidRef.current.get(guid);
+      const activeForNode = activeByGuid.get(guid);
       const inboundActive =
         activeForNode === undefined || !dbInbound.tag || activeForNode.has(dbInbound.tag);
 
@@ -312,8 +304,8 @@ export function useInbounds() {
           if (inboundActive && nodeOnline?.has(client.email)) online.push(client.email);
           if (stats) {
             const expiringSoon =
-              (stats.expiryTime > 0 && stats.expiryTime - now < expireDiffRef.current) ||
-              (stats.total > 0 && stats.total - (stats.up + stats.down) < trafficDiffRef.current);
+              (stats.expiryTime > 0 && stats.expiryTime - now < expireDiff) ||
+              (stats.total > 0 && stats.total - (stats.up + stats.down) < trafficDiff);
             if (expiringSoon) expiring.push(client.email);
           }
         }
@@ -333,12 +325,14 @@ export function useInbounds() {
         comments,
       };
     },
-    [],
+    [onlineByGuid, activeByGuid, expireDiff, trafficDiff],
   );
 
-  const rebuildClientCount = useCallback(() => {
+  // Every write to a DBInbound row also replaces the dbInbounds array, so this
+  // recomputes on both a refetch and a WS-merged stats update.
+  const clientCount = useMemo(() => {
     const counts: Record<number, ClientRollup> = {};
-    for (const dbInbound of dbInboundsRef.current) {
+    for (const dbInbound of dbInbounds) {
       const protocol = dbInbound.protocol;
       if (!TRACKED_PROTOCOLS.includes(protocol)) continue;
       const settings = coerceInboundJsonField(dbInbound.settings) as {
@@ -348,60 +342,44 @@ export function useInbounds() {
       if (protocol === Protocols.SHADOWSOCKS && !isSSMultiUser({ protocol, settings })) continue;
       counts[dbInbound.id] = rollupClients(dbInbound, { clients: settings.clients });
     }
-    setClientCount(counts);
-  }, [rollupClients]);
+    return counts;
+  }, [dbInbounds, rollupClients]);
 
-  // Seed dbInbounds + clientCount from the slim query. Runs on first fetch and
-  // again every time the query refetches (e.g. invalidate from WS bridge).
-  useEffect(() => {
-    if (!slimQuery.data) return;
-    const next: DBInboundInstance[] = [];
-    const counts: Record<number, ClientRollup> = {};
-    for (const row of slimQuery.data as { protocol: string; id: number }[]) {
-      const dbInbound = new DBInbound(row) as DBInboundInstance;
-      next.push(dbInbound);
-      if (TRACKED_PROTOCOLS.includes(row.protocol)) {
-        const settings = coerceInboundJsonField(dbInbound.settings) as {
-          method?: string;
-          clients?: Array<{ email?: string; enable?: boolean; comment?: string }>;
-        };
-        if (
-          row.protocol === Protocols.SHADOWSOCKS &&
-          !isSSMultiUser({ protocol: row.protocol, settings })
-        )
-          continue;
-        counts[row.id] = rollupClients(dbInbound, { clients: settings.clients });
-      }
-    }
-    dbInboundsRef.current = next;
-    setDbInbounds(next);
-    setClientCount(counts);
-  }, [slimQuery.data, rollupClients]);
+  // Adopting fetched data during render (rather than in an effect) keeps the
+  // list from painting one frame of the previous data after a refetch.
+  const [syncedSlim, setSyncedSlim] = useState<unknown>();
+  if (slimQuery.data && slimQuery.data !== syncedSlim) {
+    setSyncedSlim(slimQuery.data);
+    setDbInbounds(
+      (slimQuery.data as { protocol: string; id: number }[]).map(
+        (row) => new DBInbound(row) as DBInboundInstance,
+      ),
+    );
+  }
 
-  useEffect(() => {
-    if (onlinesQuery.data) {
-      onlineClientsRef.current = onlinesQuery.data;
-      setOnlineClients(onlinesQuery.data);
-    }
-  }, [onlinesQuery.data]);
+  const [syncedOnlines, setSyncedOnlines] = useState<unknown>();
+  if (onlinesQuery.data && onlinesQuery.data !== syncedOnlines) {
+    setSyncedOnlines(onlinesQuery.data);
+    setOnlineClients(onlinesQuery.data);
+  }
 
-  useEffect(() => {
-    if (onlinesByGuidQuery.data) {
-      onlineByGuidRef.current = toGuidOnlineMap(onlinesByGuidQuery.data);
-      rebuildClientCount();
-    }
-  }, [onlinesByGuidQuery.data, rebuildClientCount]);
+  const [syncedOnlinesByGuid, setSyncedOnlinesByGuid] = useState<unknown>();
+  if (onlinesByGuidQuery.data && onlinesByGuidQuery.data !== syncedOnlinesByGuid) {
+    setSyncedOnlinesByGuid(onlinesByGuidQuery.data);
+    setOnlineByGuid(toGuidOnlineMap(onlinesByGuidQuery.data));
+  }
 
-  useEffect(() => {
-    if (activeInboundsQuery.data) {
-      activeByGuidRef.current = toGuidOnlineMap(activeInboundsQuery.data);
-      rebuildClientCount();
-    }
-  }, [activeInboundsQuery.data, rebuildClientCount]);
+  const [syncedActiveInbounds, setSyncedActiveInbounds] = useState<unknown>();
+  if (activeInboundsQuery.data && activeInboundsQuery.data !== syncedActiveInbounds) {
+    setSyncedActiveInbounds(activeInboundsQuery.data);
+    setActiveByGuid(toGuidOnlineMap(activeInboundsQuery.data));
+  }
 
-  useEffect(() => {
-    if (lastOnlineQuery.data) setLastOnlineMap(lastOnlineQuery.data);
-  }, [lastOnlineQuery.data]);
+  const [syncedLastOnline, setSyncedLastOnline] = useState<unknown>();
+  if (lastOnlineQuery.data && lastOnlineQuery.data !== syncedLastOnline) {
+    setSyncedLastOnline(lastOnlineQuery.data);
+    setLastOnlineMap(lastOnlineQuery.data);
+  }
 
   const fetched =
     (slimQuery.data !== undefined || slimQuery.isError) &&
@@ -430,185 +408,161 @@ export function useInbounds() {
   // uuid/password/flow/etc.) and swaps it into the cached list. Use this
   // before opening edit / info / qr / export / clone flows — refresh() loads
   // the slim list which doesn't carry per-client secrets.
-  const hydrateInbound = useCallback(
-    async (id: number) => {
-      const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
-      if (!msg?.success || !msg.obj) return null;
-      const validated = parseMsg(msg, InboundDetailSchema, `inbounds/get/${id}`);
-      if (!validated.obj) return null;
-      const dbInbound = new DBInbound(validated.obj) as DBInboundInstance;
-      setDbInbounds((prev) => {
-        const next = prev.map((row) =>
-          (row as unknown as { id: number }).id === id ? dbInbound : row,
-        );
-        dbInboundsRef.current = next;
+  const hydrateInbound = useCallback(async (id: number) => {
+    const msg = await HttpUtil.get(`/panel/api/inbounds/get/${id}`);
+    if (!msg?.success || !msg.obj) return null;
+    const validated = parseMsg(msg, InboundDetailSchema, `inbounds/get/${id}`);
+    if (!validated.obj) return null;
+    const dbInbound = new DBInbound(validated.obj) as DBInboundInstance;
+    setDbInbounds((prev) => {
+      const next = prev.map((row) =>
+        (row as unknown as { id: number }).id === id ? dbInbound : row,
+      );
+      dbInboundsRef.current = next;
+      return next;
+    });
+    return dbInbound;
+  }, []);
+
+  const applyTrafficEvent = useCallback((payload: unknown) => {
+    if (!payload || typeof payload !== 'object') return;
+    const p = payload as {
+      traffics?: TrafficDelta[];
+      nodeTraffics?: TrafficDelta[];
+      onlineClients?: string[];
+      onlineByGuid?: Record<string, string[]>;
+      activeInbounds?: Record<string, string[]>;
+      lastOnlineMap?: Record<string, number>;
+    };
+    if (Array.isArray(p.onlineClients)) {
+      setOnlineClients(p.onlineClients);
+    }
+    if (p.onlineByGuid && typeof p.onlineByGuid === 'object') {
+      setOnlineByGuid(toGuidOnlineMap(p.onlineByGuid));
+    }
+    if (p.activeInbounds && typeof p.activeInbounds === 'object') {
+      setActiveByGuid(toGuidOnlineMap(p.activeInbounds));
+    }
+    if (p.lastOnlineMap && typeof p.lastOnlineMap === 'object') {
+      setLastOnlineMap((prev) => ({ ...prev, ...p.lastOnlineMap! }));
+    }
+    // Speed arrives from two independent 5s polls: the local Xray poll sends
+    // `traffics` (local inbounds) and the node sync sends `nodeTraffics` (node
+    // inbounds). Each replaces speed only within its own scope so the two don't
+    // clobber each other; an idle in-scope inbound — absent from its payload —
+    // clears instead of showing a stale value.
+    const applyTraffics = (
+      traffics: TrafficDelta[],
+      inScope: (ib: DBInboundInstance) => boolean,
+    ) => {
+      const byTag = new Map<string, TrafficDelta>();
+      for (const tr of traffics) {
+        if (!tr || typeof tr.Tag !== 'string') continue;
+        if (tr.IsInbound === false) continue;
+        byTag.set(tr.Tag, tr);
+      }
+      setInboundSpeed((prev) => {
+        const next = { ...prev };
+        for (const ib of dbInboundsRef.current) {
+          if (!inScope(ib)) continue;
+          const delta = byTag.get(ib.tag);
+          if (delta) {
+            next[ib.id] = {
+              up: (delta.Up || 0) / TRAFFIC_POLL_INTERVAL_S,
+              down: (delta.Down || 0) / TRAFFIC_POLL_INTERVAL_S,
+            };
+          } else {
+            delete next[ib.id];
+          }
+        }
         return next;
       });
-      rebuildClientCount();
-      return dbInbound;
-    },
-    [rebuildClientCount],
-  );
+    };
+    if (Array.isArray(p.traffics)) applyTraffics(p.traffics, (ib) => ib.nodeId == null);
+    if (Array.isArray(p.nodeTraffics)) applyTraffics(p.nodeTraffics, (ib) => ib.nodeId != null);
+  }, []);
 
-  const applyTrafficEvent = useCallback(
-    (payload: unknown) => {
-      if (!payload || typeof payload !== 'object') return;
-      const p = payload as {
-        traffics?: TrafficDelta[];
-        nodeTraffics?: TrafficDelta[];
-        onlineClients?: string[];
-        onlineByGuid?: Record<string, string[]>;
-        activeInbounds?: Record<string, string[]>;
-        lastOnlineMap?: Record<string, number>;
-      };
-      if (Array.isArray(p.onlineClients)) {
-        onlineClientsRef.current = p.onlineClients;
-        setOnlineClients(p.onlineClients);
-      }
-      if (p.onlineByGuid && typeof p.onlineByGuid === 'object') {
-        onlineByGuidRef.current = toGuidOnlineMap(p.onlineByGuid);
-      }
-      if (p.activeInbounds && typeof p.activeInbounds === 'object') {
-        activeByGuidRef.current = toGuidOnlineMap(p.activeInbounds);
-      }
-      if (p.lastOnlineMap && typeof p.lastOnlineMap === 'object') {
-        setLastOnlineMap((prev) => ({ ...prev, ...p.lastOnlineMap! }));
-      }
-      // Speed arrives from two independent 5s polls: the local Xray poll sends
-      // `traffics` (local inbounds) and the node sync sends `nodeTraffics` (node
-      // inbounds). Each replaces speed only within its own scope so the two don't
-      // clobber each other; an idle in-scope inbound — absent from its payload —
-      // clears instead of showing a stale value.
-      const applyTraffics = (
-        traffics: TrafficDelta[],
-        inScope: (ib: DBInboundInstance) => boolean,
-      ) => {
-        const byTag = new Map<string, TrafficDelta>();
-        for (const tr of traffics) {
-          if (!tr || typeof tr.Tag !== 'string') continue;
-          if (tr.IsInbound === false) continue;
-          byTag.set(tr.Tag, tr);
-        }
-        setInboundSpeed((prev) => {
-          const next = { ...prev };
-          for (const ib of dbInboundsRef.current) {
-            if (!inScope(ib)) continue;
-            const delta = byTag.get(ib.tag);
-            if (delta) {
-              next[ib.id] = {
-                up: (delta.Up || 0) / TRAFFIC_POLL_INTERVAL_S,
-                down: (delta.Down || 0) / TRAFFIC_POLL_INTERVAL_S,
-              };
-            } else {
-              delete next[ib.id];
-            }
-          }
-          return next;
-        });
-      };
-      if (Array.isArray(p.traffics)) applyTraffics(p.traffics, (ib) => ib.nodeId == null);
-      if (Array.isArray(p.nodeTraffics)) applyTraffics(p.nodeTraffics, (ib) => ib.nodeId != null);
-      rebuildClientCount();
-    },
-    [rebuildClientCount],
-  );
+  const applyClientStatsEvent = useCallback((payload: unknown) => {
+    if (!payload || typeof payload !== 'object') return;
+    const p = payload as {
+      inbounds?: { id: number; up?: number; down?: number; total?: number; enable?: boolean }[];
+      clients?: {
+        email: string;
+        up?: number;
+        down?: number;
+        total?: number;
+        expiryTime?: number;
+        enable?: boolean;
+      }[];
+    };
 
-  const applyClientStatsEvent = useCallback(
-    (payload: unknown) => {
-      if (!payload || typeof payload !== 'object') return;
-      const p = payload as {
-        inbounds?: { id: number; up?: number; down?: number; total?: number; enable?: boolean }[];
-        clients?: {
-          email: string;
-          up?: number;
-          down?: number;
-          total?: number;
-          expiryTime?: number;
-          enable?: boolean;
-        }[];
-      };
-      let touched = false;
-
-      if (Array.isArray(p.inbounds) && p.inbounds.length > 0) {
-        const byId = new Map<
-          number,
-          { id: number; up?: number; down?: number; total?: number; enable?: boolean }
-        >();
-        for (const row of p.inbounds) {
-          if (row && row.id != null) byId.set(row.id, row);
-        }
-        for (const ib of dbInboundsRef.current) {
-          const upd = byId.get((ib as unknown as { id: number }).id);
-          if (!upd) continue;
-          const ibRec = ib as unknown as {
-            up: number;
-            down: number;
-            total: number;
-            enable: boolean;
-          };
-          if (typeof upd.up === 'number') ibRec.up = upd.up;
-          if (typeof upd.down === 'number') ibRec.down = upd.down;
-          if (typeof upd.total === 'number') ibRec.total = upd.total;
-          if (typeof upd.enable === 'boolean') ibRec.enable = upd.enable;
-          touched = true;
-        }
+    const byId = new Map<
+      number,
+      { id: number; up?: number; down?: number; total?: number; enable?: boolean }
+    >();
+    if (Array.isArray(p.inbounds)) {
+      for (const row of p.inbounds) {
+        if (row && row.id != null) byId.set(row.id, row);
       }
-
-      if (Array.isArray(p.clients) && p.clients.length > 0) {
-        const byEmail = new Map<
-          string,
-          {
-            email: string;
-            up?: number;
-            down?: number;
-            total?: number;
-            expiryTime?: number;
-            enable?: boolean;
-          }
-        >();
-        for (const row of p.clients) {
-          if (row && row.email) byEmail.set(row.email, row);
-        }
-        for (const ib of dbInboundsRef.current) {
-          const stats = (
-            ib as unknown as {
-              clientStats: {
-                email: string;
-                up: number;
-                down: number;
-                total: number;
-                expiryTime: number;
-                enable: boolean;
-              }[];
-            }
-          ).clientStats;
-          if (!Array.isArray(stats)) continue;
-          for (let i = 0; i < stats.length; i++) {
-            const stat = stats[i];
-            const upd = byEmail.get(stat.email);
-            if (!upd) continue;
-            if (typeof upd.up === 'number') stat.up = upd.up;
-            if (typeof upd.down === 'number') stat.down = upd.down;
-            if (typeof upd.total === 'number') stat.total = upd.total;
-            if (typeof upd.expiryTime === 'number') stat.expiryTime = upd.expiryTime;
-            if (typeof upd.enable === 'boolean') stat.enable = upd.enable;
-            touched = true;
-          }
-        }
+    }
+    const byEmail = new Map<
+      string,
+      {
+        email: string;
+        up?: number;
+        down?: number;
+        total?: number;
+        expiryTime?: number;
+        enable?: boolean;
       }
-
-      if (touched) {
-        setStatsVersion((v) => v + 1);
-        setDbInbounds((prev) => {
-          const next = [...prev];
-          dbInboundsRef.current = next;
-          return next;
-        });
-        rebuildClientCount();
+    >();
+    if (Array.isArray(p.clients)) {
+      for (const row of p.clients) {
+        if (row && row.email) byEmail.set(row.email, row);
       }
-    },
-    [rebuildClientCount],
-  );
+    }
+    if (byId.size === 0 && byEmail.size === 0) return;
+
+    // Rows carrying an update are rebuilt rather than patched in place: the
+    // derived clientCount only recomputes when a row's identity changes.
+    let touched = false;
+    const next = dbInboundsRef.current.map((ib) => {
+      const upd = byId.get(ib.id);
+      const stats = Array.isArray(ib.clientStats) ? ib.clientStats : null;
+      let statsTouched = false;
+      const nextStats =
+        stats && byEmail.size > 0
+          ? stats.map((stat) => {
+              const su = byEmail.get(stat.email);
+              if (!su) return stat;
+              statsTouched = true;
+              return {
+                ...stat,
+                up: typeof su.up === 'number' ? su.up : stat.up,
+                down: typeof su.down === 'number' ? su.down : stat.down,
+                total: typeof su.total === 'number' ? su.total : stat.total,
+                expiryTime: typeof su.expiryTime === 'number' ? su.expiryTime : stat.expiryTime,
+                enable: typeof su.enable === 'boolean' ? su.enable : stat.enable,
+              } as ClientStats;
+            })
+          : null;
+      if (!upd && !statsTouched) return ib;
+      touched = true;
+      const row = new DBInbound(ib as DBInboundInit) as DBInboundInstance;
+      if (upd) {
+        if (typeof upd.up === 'number') row.up = upd.up;
+        if (typeof upd.down === 'number') row.down = upd.down;
+        if (typeof upd.total === 'number') row.total = upd.total;
+        if (typeof upd.enable === 'boolean') row.enable = upd.enable;
+      }
+      if (statsTouched && nextStats) row.clientStats = nextStats;
+      return row;
+    });
+
+    if (!touched) return;
+    dbInboundsRef.current = next;
+    setDbInbounds(next);
+  }, []);
 
   const totals = useMemo(() => {
     let up = 0;
@@ -629,7 +583,6 @@ export function useInbounds() {
     onlineClients,
     lastOnlineMap,
     inboundSpeed,
-    statsVersion,
     totals,
     expireDiff,
     trafficDiff,

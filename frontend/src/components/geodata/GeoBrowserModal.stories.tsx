@@ -749,8 +749,12 @@ const withDatabases = withFiles([GEOSITE_FILE, GEOIP_FILE]);
 function BrowserDemo(props: GeoBrowserModalProps) {
   const [open, setOpen] = useState(props.open);
   const [value, setValue] = useState(props.value);
-  useEffect(() => setOpen(props.open), [props.open]);
-  useEffect(() => setValue(props.value), [props.value]);
+  const [synced, setSynced] = useState({ open: props.open, value: props.value });
+  if (synced.open !== props.open || synced.value !== props.value) {
+    setSynced({ open: props.open, value: props.value });
+    setOpen(props.open);
+    setValue(props.value);
+  }
   return (
     <Space orientation="vertical" size={12}>
       <Space size={8}>

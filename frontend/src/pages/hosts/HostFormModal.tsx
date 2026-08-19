@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Modal, Select, Switch, Tabs, message } from 'antd';
 import {
@@ -94,12 +94,17 @@ export default function HostFormModal({
   const showTls = security === 'tls' || security === 'reality';
   const showTlsExtras = security === 'tls';
 
-  useEffect(() => {
+  // React resets this during render rather than in an effect so the modal's
+  // first open frame already shows cleared fields.
+  const openHost = open ? host : null;
+  const [syncedHost, setSyncedHost] = useState(openHost);
+  if (openHost !== syncedHost) {
+    setSyncedHost(openHost);
     if (open) {
       methods.reset(defaultsFor(host));
       setLoading(false);
     }
-  }, [open, host, methods]);
+  }
 
   const { nodes } = useNodesQuery();
 

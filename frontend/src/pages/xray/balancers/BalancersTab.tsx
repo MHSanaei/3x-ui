@@ -190,7 +190,14 @@ export default function BalancersTab({
   }, [liveTags]);
 
   useEffect(() => {
-    refreshLive();
+    let cancelled = false;
+    void (async () => {
+      await refreshLive();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [refreshLive]);
 
   async function setOverride(tag: string, target: string) {

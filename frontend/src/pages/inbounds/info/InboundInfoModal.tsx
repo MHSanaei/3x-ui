@@ -99,8 +99,26 @@ export default function InboundInfoModal({
     }
   }, [clientStats, t]);
 
-  useEffect(() => {
-    if (!open || !dbInbound) return;
+  // The panel's contents are a pure function of the props, so they are adopted
+  // during render; only the IP lookup below stays asynchronous.
+  const [syncedProps, setSyncedProps] = useState<{
+    dbInbound: typeof dbInbound;
+    clientIndex: typeof clientIndex;
+    nodeAddress: typeof nodeAddress;
+    subSettings: typeof subSettings;
+    ipLimitEnable: typeof ipLimitEnable;
+  } | null>(null);
+  if (
+    open &&
+    dbInbound &&
+    (syncedProps === null ||
+      syncedProps.dbInbound !== dbInbound ||
+      syncedProps.clientIndex !== clientIndex ||
+      syncedProps.nodeAddress !== nodeAddress ||
+      syncedProps.subSettings !== subSettings ||
+      syncedProps.ipLimitEnable !== ipLimitEnable)
+  ) {
+    setSyncedProps({ dbInbound, clientIndex, nodeAddress, subSettings, ipLimitEnable });
     const info = buildInboundInfo(dbInbound);
     setInbound(info);
     setActiveTab(info.clients.length > 0 ? 'client' : 'inbound');
@@ -189,7 +207,16 @@ export default function InboundInfoModal({
         }
       });
     }
-  }, [open, dbInbound, clientIndex, nodeAddress, subSettings, ipLimitEnable, t]);
+  }
+
+  // The expiry tag colours against the current time; a state-backed clock keeps
+  // render pure and still refreshes the tag while the modal stays open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [open]);
 
   const isEnable = useMemo(() => {
     if (clientSettings) return !!clientSettings.enable;
@@ -202,9 +229,9 @@ export default function InboundInfoModal({
     const used = (clientStats.up ?? 0) + (clientStats.down ?? 0);
     if (total > 0 && used >= total) return true;
     const expiry = clientSettings.expiryTime ?? 0;
-    if (expiry > 0 && Date.now() >= expiry) return true;
+    if (expiry > 0 && now >= expiry) return true;
     return false;
-  }, [clientStats, clientSettings]);
+  }, [clientStats, clientSettings, now]);
 
   const remainingStats = useMemo(() => {
     if (!clientStats || !clientSettings) return '-';
@@ -212,10 +239,12 @@ export default function InboundInfoModal({
     return remained > 0 ? SizeFormatter.sizeFormat(remained) : '-';
   }, [clientStats, clientSettings]);
 
-  const wgPubKey = useMemo(() => {
-    if (!dbInbound?.isWireguard || !inbound?.settings?.secretKey) return '';
-    return Wireguard.generateKeypair(inbound.settings.secretKey as string).publicKey;
-  }, [dbInbound?.isWireguard, inbound?.settings?.secretKey]);
+  const isWireguard = !!dbInbound?.isWireguard;
+  const wgSecretKey = inbound?.settings?.secretKey as string | undefined;
+  const wgPubKey = useMemo(
+    () => (isWireguard && wgSecretKey ? Wireguard.generateKeypair(wgSecretKey).publicKey : ''),
+    [isWireguard, wgSecretKey],
+  );
 
   const formatLastOnline = useCallback(
     (email: string) => {
@@ -438,9 +467,7 @@ export default function InboundInfoModal({
             </td>
             <td>
               {(clientSettings?.expiryTime ?? 0) > 0 ? (
-                <Tag
-                  color={ColorUtils.usageColor(Date.now(), expireDiff, clientSettings!.expiryTime!)}
-                >
+                <Tag color={ColorUtils.usageColor(now, expireDiff, clientSettings!.expiryTime!)}>
                   {IntlUtil.formatDate(clientSettings!.expiryTime!, datepicker)}
                 </Tag>
               ) : (clientSettings?.expiryTime ?? 0) < 0 ? (

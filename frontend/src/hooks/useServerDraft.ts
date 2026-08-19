@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useServerDraft<T>(
   server: T | undefined,
@@ -6,37 +6,30 @@ export function useServerDraft<T>(
   equals: (left: T, right: T) => boolean,
 ) {
   const cloneRef = useRef(clone);
-  const equalsRef = useRef(equals);
-  cloneRef.current = clone;
-  equalsRef.current = equals;
+  useEffect(() => {
+    cloneRef.current = clone;
+  });
 
   const [draft, setDraft] = useState<T | undefined>();
   const [baseline, setBaseline] = useState<T | undefined>();
-  const draftRef = useRef(draft);
-  const baselineRef = useRef(baseline);
-  draftRef.current = draft;
-  baselineRef.current = baseline;
+  const [syncedServer, setSyncedServer] = useState<T | undefined>();
 
-  useEffect(() => {
-    if (server === undefined) return;
-    const currentDraft = draftRef.current;
-    const currentBaseline = baselineRef.current;
-    const isDirty =
-      currentDraft !== undefined &&
-      (currentBaseline === undefined || !equalsRef.current(currentDraft, currentBaseline));
-    setBaseline(server);
-    if (isDirty && !equalsRef.current(currentDraft, server)) return;
-    setDraft(cloneRef.current(server));
-  }, [server]);
+  const isDirty = draft !== undefined && (baseline === undefined || !equals(draft, baseline));
+
+  // Adopting the server value during render (not in an effect) keeps the
+  // returned draft and isDirty consistent within the very first render.
+  if (server !== syncedServer) {
+    setSyncedServer(server);
+    if (server !== undefined) {
+      setBaseline(server);
+      const keepLocalEdits = isDirty && !equals(draft as T, server);
+      if (!keepLocalEdits) setDraft(clone(server));
+    }
+  }
 
   const markSaved = useCallback((value: T) => {
     setBaseline(cloneRef.current(value));
   }, []);
-
-  const isDirty = useMemo(
-    () => draft !== undefined && (baseline === undefined || !equalsRef.current(draft, baseline)),
-    [baseline, draft],
-  );
 
   return { draft, setDraft, isDirty, markSaved };
 }

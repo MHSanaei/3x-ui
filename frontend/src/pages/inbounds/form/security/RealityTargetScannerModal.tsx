@@ -23,10 +23,11 @@ export default function RealityTargetScannerModal({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<RealityScanResult[]>([]);
   const scanRef = useRef(scanRealityCandidates);
-  scanRef.current = scanRealityCandidates;
+  useEffect(() => {
+    scanRef.current = scanRealityCandidates;
+  });
 
-  const runScan = useCallback(async (targets?: string) => {
-    setLoading(true);
+  const applyScan = useCallback(async (targets?: string) => {
     try {
       setResults(await scanRef.current(targets));
     } finally {
@@ -34,11 +35,29 @@ export default function RealityTargetScannerModal({
     }
   }, []);
 
+  const runScan = useCallback(
+    (targets?: string) => {
+      setLoading(true);
+      setResults([]);
+      void applyScan(targets);
+    },
+    [applyScan],
+  );
+
+  // Clearing the previous results is done during render so the auto-scan effect
+  // carries only the request itself.
+  const [scannedOpen, setScannedOpen] = useState(false);
+  if (open !== scannedOpen) {
+    setScannedOpen(open);
+    if (open) {
+      setResults([]);
+      setLoading(true);
+    }
+  }
+
   useEffect(() => {
-    if (!open) return;
-    setResults([]);
-    runScan();
-  }, [open, runScan]);
+    if (open) void applyScan();
+  }, [open, applyScan]);
 
   const columns: ColumnsType<RealityScanResult> = [
     {

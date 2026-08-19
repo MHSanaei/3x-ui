@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input, Modal, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -52,13 +52,17 @@ export default function DetachClientsModal({
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    if (!open) return;
-    const rows = source ? readClientRows(source.settings) : [];
-    setClientRows(rows);
-    setSelectedEmails([]);
-    setSearch('');
-  }, [open, source]);
+  // Reset during render, not in an effect, so the first frame is already clean.
+  const openSource = open ? source : null;
+  const [syncedSource, setSyncedSource] = useState(openSource);
+  if (openSource !== syncedSource) {
+    setSyncedSource(openSource);
+    if (openSource) {
+      setClientRows(readClientRows(openSource.settings));
+      setSelectedEmails([]);
+      setSearch('');
+    }
+  }
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();

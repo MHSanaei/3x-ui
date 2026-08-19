@@ -24,7 +24,9 @@ export default function FinalMaskField({
   const [form] = Form.useForm();
   const [initial] = useState(() => value ?? EMPTY);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
   const lastEmitted = useRef(JSON.stringify(initial));
 
   const finalmask = Form.useWatch('finalmask', form) as FinalMaskStreamSettings | undefined;

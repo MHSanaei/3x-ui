@@ -128,8 +128,11 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
     };
   }, []);
 
-  useEffect(() => {
-    if (!hasData) return;
+  // Each polled status is appended during render; an effect would show the
+  // chart one sample behind the numbers beside it.
+  const [sampledStatus, setSampledStatus] = useState<Status | null>(null);
+  if (hasData && status !== sampledStatus) {
+    setSampledStatus(status);
     setTrend((prev) => {
       const point = sampleOf(status);
       const next = emptyWindow();
@@ -139,7 +142,7 @@ export function useOverviewHistory(status: Status, hasData: boolean): OverviewHi
       }
       return next;
     });
-  }, [status, hasData]);
+  }
 
   const labels = useMemo(() => trend.times.map(TimeFormatter.formatClock), [trend.times]);
 

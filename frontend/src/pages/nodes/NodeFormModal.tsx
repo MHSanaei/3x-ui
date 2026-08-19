@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -103,8 +103,12 @@ export default function NodeFormModal({
     ];
   }, [outboundGroups, t]);
 
-  useEffect(() => {
-    if (!open) return;
+  // Reset during render, not in an effect, so the first frame is already clean.
+  const [synced, setSynced] = useState<{ mode: string; node: NodeRecord | null } | null>(null);
+  if (!open) {
+    if (synced) setSynced(null);
+  } else if (!synced || synced.mode !== mode || synced.node !== (node ?? null)) {
+    setSynced({ mode, node: node ?? null });
     const base = defaultValues();
     const next: NodeFormValues =
       mode === 'edit' && node
@@ -123,7 +127,7 @@ export default function NodeFormModal({
     methods.reset(next);
     setInboundOptions((next.inboundTags || []).map((tag) => ({ tag })));
     setTestResult(null);
-  }, [open, mode, node, methods]);
+  }
 
   const title = useMemo(
     () => (mode === 'edit' ? t('pages.nodes.editNode') : t('pages.nodes.addNode')),

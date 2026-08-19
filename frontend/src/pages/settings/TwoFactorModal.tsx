@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Input, Modal, QRCode, message } from 'antd';
 import * as OTPAuth from 'otpauth';
@@ -32,28 +32,25 @@ export default function TwoFactorModal({
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [enteredCode, setEnteredCode] = useState('');
-  const [qrValue, setQrValue] = useState('');
-  const totpRef = useRef<OTPAuth.TOTP | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-
-    setEnteredCode('');
-    totpRef.current = null;
-    setQrValue('');
-    if (token) {
-      const totp = new OTPAuth.TOTP({
-        issuer: '3x-ui',
-        label: 'Administrator',
-        algorithm: 'SHA1',
-        digits: 6,
-        period: 30,
-        secret: token,
-      });
-      totpRef.current = totp;
-      setQrValue(totp.toString());
-    }
+  const totp = useMemo(() => {
+    if (!open || !token) return null;
+    return new OTPAuth.TOTP({
+      issuer: '3x-ui',
+      label: 'Administrator',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: token,
+    });
   }, [open, token]);
+  const qrValue = totp ? totp.toString() : '';
+
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setEnteredCode('');
+  }
 
   function close(success: boolean, code = '') {
     onConfirm(success, code);
@@ -73,8 +70,8 @@ export default function TwoFactorModal({
       close(true, codeOk.data);
       return;
     }
-    if (!totpRef.current) return;
-    if (totpRef.current.generate() === codeOk.data) {
+    if (!totp) return;
+    if (totp.generate() === codeOk.data) {
       close(true);
     } else {
       messageApi.error(t('pages.settings.security.twoFactorModalError'));

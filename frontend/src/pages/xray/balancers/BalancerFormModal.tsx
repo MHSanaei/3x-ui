@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Form, Input, InputNumber, Modal, Select, Space, Switch, Tag } from 'antd';
@@ -72,12 +72,15 @@ export default function BalancerFormModal({
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const isEdit = balancer != null;
 
-  useEffect(() => {
+  const openBalancer = open ? (balancer ?? null) : undefined;
+  const [syncedBalancer, setSyncedBalancer] = useState<typeof openBalancer>(undefined);
+  if (openBalancer !== syncedBalancer) {
+    setSyncedBalancer(openBalancer);
     if (open) {
       methods.reset(initialState(balancer));
       setSubmitAttempted(false);
     }
-  }, [open, balancer, methods]);
+  }
 
   const strategy = useWatch({ control: methods.control, name: 'strategy' });
   const baselines = useWatch({ control: methods.control, name: 'settings.baselines' }) ?? [];

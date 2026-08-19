@@ -174,12 +174,26 @@ export default function WarpModal({
     }
   }, [methods]);
 
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setWarpConfig(null);
+      setStagedOutbound(null);
+      setLicenseError('');
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
-    setWarpConfig(null);
-    setStagedOutbound(null);
-    setLicenseError('');
-    fetchData();
+    let cancelled = false;
+    void (async () => {
+      await fetchData();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open, fetchData]);
 
   async function register() {

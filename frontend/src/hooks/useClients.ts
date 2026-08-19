@@ -700,7 +700,9 @@ export function useClients(options: UseClientsOptions = {}) {
   // WS-driven in-place merges. Page wires these via useWebSocket; the bridge
   // covers coarse 'invalidate' and 'inbounds' events centrally.
   const queryRef = useRef(query);
-  queryRef.current = query;
+  useEffect(() => {
+    queryRef.current = query;
+  });
 
   const applyTrafficEvent = useCallback(
     (payload: unknown) => {
