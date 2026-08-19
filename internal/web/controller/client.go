@@ -562,11 +562,11 @@ func (a *ClientController) clearHwids(c *gin.Context) {
 func (a *ClientController) deleteHwid(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	if err := a.clientService.DeleteClientHwid(c.Param("email"), id); err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.clients.hwidDeleted"), nil)

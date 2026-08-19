@@ -200,10 +200,8 @@ func (s *ClientService) ClearClientHwids(email string) error {
 	return database.GetDB().Where("sub_id = ?", subID).Delete(&model.ClientHwid{}).Error
 }
 
-// DeleteClientHwid removes a single registered device. The delete is scoped
-// to the client's own sub_id, so an id belonging to a different client's
-// device (ids are a global auto-increment, not per-subID) can never be
-// deleted through this path.
+// DeleteClientHwid removes one device, scoped to the client's sub_id: ids
+// are a global auto-increment, so an id outside this subscription won't match.
 func (s *ClientService) DeleteClientHwid(email string, id int) error {
 	rec, err := s.GetRecordByEmail(nil, email)
 	if err != nil {

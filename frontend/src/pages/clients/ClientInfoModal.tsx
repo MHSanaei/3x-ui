@@ -9,7 +9,6 @@ import {
   QrcodeOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
 
 import { ClipboardManager, FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
@@ -924,13 +923,11 @@ export default function ClientInfoModal({
                   </span>
                   <br />
                   <span className="hint">
-                    {t('pages.clients.firstSeen')}:{' '}
-                    {entry.firstSeen ? dayjs(entry.firstSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                    {t('pages.clients.firstSeen')}: {dateLabel(entry.firstSeen)}
                   </span>
                   <br />
                   <span className="hint">
-                    {t('pages.clients.lastSeen')}:{' '}
-                    {entry.lastSeen ? dayjs(entry.lastSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                    {t('pages.clients.lastSeen')}: {dateLabel(entry.lastSeen)}
                   </span>
                   {entry.userAgent && (
                     <>
@@ -945,6 +942,8 @@ export default function ClientInfoModal({
                   title={t('pages.clients.deleteHwidConfirm')}
                   onConfirm={() => deleteHwid(entry.id)}
                   okType="danger"
+                  okText={t('delete')}
+                  cancelText={t('cancel')}
                 >
                   <Button
                     danger
