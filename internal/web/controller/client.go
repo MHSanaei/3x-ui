@@ -78,6 +78,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clearIps/:email", a.clearIps)
 	g.POST("/hwids/:email", a.getHwids)
 	g.DELETE("/hwids/:email", a.clearHwids)
+	g.DELETE("/hwids/:email/:id", a.deleteHwid)
 	g.POST("/onlines", a.onlines)
 	g.POST("/onlinesByGuid", a.onlinesByGuid)
 	g.POST("/clientIpsByGuid", a.clientIpsByGuid)
@@ -556,6 +557,19 @@ func (a *ClientController) clearHwids(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.logCleanSuccess"), nil)
+}
+
+func (a *ClientController) deleteHwid(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+		return
+	}
+	if err := a.clientService.DeleteClientHwid(c.Param("email"), id); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.clients.hwidDeleted"), nil)
 }
 
 func (a *ClientController) onlines(c *gin.Context) {

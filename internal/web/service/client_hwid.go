@@ -200,6 +200,29 @@ func (s *ClientService) ClearClientHwids(email string) error {
 	return database.GetDB().Where("sub_id = ?", subID).Delete(&model.ClientHwid{}).Error
 }
 
+// DeleteClientHwid removes a single registered device. The delete is scoped
+// to the client's own sub_id, so an id belonging to a different client's
+// device (ids are a global auto-increment, not per-subID) can never be
+// deleted through this path.
+func (s *ClientService) DeleteClientHwid(email string, id int) error {
+	rec, err := s.GetRecordByEmail(nil, email)
+	if err != nil {
+		return err
+	}
+	subID := strings.TrimSpace(rec.SubID)
+	if subID == "" {
+		return errors.New("client has no subscription id")
+	}
+	res := database.GetDB().Where("sub_id = ? AND id = ?", subID, id).Delete(&model.ClientHwid{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("device not found")
+	}
+	return nil
+}
+
 func (s *ClientService) setClientLimitHwidByEmail(tx *gorm.DB, email string, limit int) error {
 	if tx == nil {
 		tx = database.GetDB()

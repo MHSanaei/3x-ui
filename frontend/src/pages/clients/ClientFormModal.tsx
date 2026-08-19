@@ -255,6 +255,7 @@ export default function ClientFormModal({
   const [clientHwids, setClientHwids] = useState<ClientHwidInfo[]>([]);
   const [hwidsLoading, setHwidsLoading] = useState(false);
   const [hwidsClearing, setHwidsClearing] = useState(false);
+  const [deletingHwidId, setDeletingHwidId] = useState<number | null>(null);
   const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
   const fail2ban = useFail2banStatusQuery();
   const limitIpDisabled = !fail2ban.usable;
@@ -572,6 +573,19 @@ export default function ClientFormModal({
       if (msg?.success) setClientHwids([]);
     } finally {
       setHwidsClearing(false);
+    }
+  }
+
+  async function deleteHwid(id: number) {
+    if (!isEdit || !client?.email) return;
+    setDeletingHwidId(id);
+    try {
+      const msg = (await HttpUtil.delete(
+        `/panel/api/clients/hwids/${encodeURIComponent(client.email)}/${id}`,
+      )) as ApiMsg;
+      if (msg?.success) setClientHwids((prev) => prev.filter((entry) => entry.id !== id));
+    } finally {
+      setDeletingHwidId(null);
     }
   }
 
@@ -1466,35 +1480,54 @@ export default function ClientFormModal({
               <div
                 key={entry.id}
                 style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8,
                   borderBottom: '1px solid var(--ant-color-border-secondary)',
                   padding: '8px 0',
                 }}
               >
-                <Typography.Text strong>
-                  {entry.deviceModel || entry.userAgent || t('pages.clients.hwidDevice')}
-                </Typography.Text>
-                <br />
-                <Typography.Text type="secondary">
-                  {[entry.deviceOs, entry.osVersion].filter(Boolean).join(' ')}
-                </Typography.Text>
-                <br />
-                <Typography.Text type="secondary">
-                  {t('pages.clients.firstSeen')}:{' '}
-                  {entry.firstSeen ? dayjs(entry.firstSeen).format('YYYY-MM-DD HH:mm') : '-'}
-                </Typography.Text>
-                <br />
-                <Typography.Text type="secondary">
-                  {t('pages.clients.lastSeen')}:{' '}
-                  {entry.lastSeen ? dayjs(entry.lastSeen).format('YYYY-MM-DD HH:mm') : '-'}
-                </Typography.Text>
-                {entry.userAgent && (
-                  <>
-                    <br />
-                    <Typography.Text type="secondary" style={{ wordBreak: 'break-all' }}>
-                      {entry.userAgent}
-                    </Typography.Text>
-                  </>
-                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Typography.Text strong>
+                    {entry.deviceModel || entry.userAgent || t('pages.clients.hwidDevice')}
+                  </Typography.Text>
+                  <br />
+                  <Typography.Text type="secondary">
+                    {[entry.deviceOs, entry.osVersion].filter(Boolean).join(' ')}
+                  </Typography.Text>
+                  <br />
+                  <Typography.Text type="secondary">
+                    {t('pages.clients.firstSeen')}:{' '}
+                    {entry.firstSeen ? dayjs(entry.firstSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                  </Typography.Text>
+                  <br />
+                  <Typography.Text type="secondary">
+                    {t('pages.clients.lastSeen')}:{' '}
+                    {entry.lastSeen ? dayjs(entry.lastSeen).format('YYYY-MM-DD HH:mm') : '-'}
+                  </Typography.Text>
+                  {entry.userAgent && (
+                    <>
+                      <br />
+                      <Typography.Text type="secondary" style={{ wordBreak: 'break-all' }}>
+                        {entry.userAgent}
+                      </Typography.Text>
+                    </>
+                  )}
+                </div>
+                <Popconfirm
+                  title={t('pages.clients.deleteHwidConfirm')}
+                  onConfirm={() => deleteHwid(entry.id)}
+                  okType="danger"
+                >
+                  <Button
+                    danger
+                    type="text"
+                    size="small"
+                    aria-label={t('pages.clients.deleteHwid')}
+                    icon={<DeleteOutlined />}
+                    loading={deletingHwidId === entry.id}
+                  />
+                </Popconfirm>
               </div>
             ))}
           </div>
