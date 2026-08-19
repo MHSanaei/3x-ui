@@ -957,6 +957,17 @@ func (s *SettingService) SetDevChannelEnable(value bool) error {
 	return s.setBool("devChannelEnable", value)
 }
 
+// GetTorEnable reports whether the managed Tor sidecar should be running --
+// set by the Tor integration's start/stop actions, read back at panel boot
+// to restore whatever state the admin last left it in.
+func (s *SettingService) GetTorEnable() (bool, error) {
+	return s.getBool("torEnable")
+}
+
+func (s *SettingService) SetTorEnable(value bool) error {
+	return s.setBool("torEnable", value)
+}
+
 // GetIpLimitEnable reports whether the IP-limit feature is available. Always
 // true since the panel enforces limits via the core's online-stats API; on an
 // older core the job falls back to access-log parsing and warns there when the

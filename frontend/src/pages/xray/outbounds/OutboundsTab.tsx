@@ -22,6 +22,7 @@ import {
   PlusOutlined,
   CloudOutlined,
   ApiOutlined,
+  EyeInvisibleOutlined,
   MoreOutlined,
   RetweetOutlined,
   PlayCircleOutlined,
@@ -89,6 +90,7 @@ interface OutboundsTabProps {
   onTestAll: (mode: string) => void;
   onShowWarp: () => void;
   onShowNord: () => void;
+  onShowTor: () => void;
   onRefreshXrayData?: () => void;
 }
 
@@ -109,6 +111,7 @@ export default function OutboundsTab({
   onTestAll,
   onShowWarp,
   onShowNord,
+  onShowTor,
   onRefreshXrayData,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
@@ -492,6 +495,7 @@ export default function OutboundsTab({
                   items: [
                     { key: 'warp', icon: <CloudOutlined />, label: 'WARP', onClick: onShowWarp },
                     { key: 'nord', icon: <ApiOutlined />, label: 'NordVPN', onClick: onShowNord },
+                    { key: 'tor', icon: <EyeInvisibleOutlined />, label: 'Tor', onClick: onShowTor },
                     { type: 'divider' },
                     { key: 'import', icon: <ImportOutlined />, label: t('pages.xray.importOutbounds'), onClick: () => setImportOpen(true) },
                     { key: 'export', icon: <ExportOutlined />, label: t('pages.xray.exportOutbounds'), disabled: outbounds.length === 0, onClick: exportOutbounds },

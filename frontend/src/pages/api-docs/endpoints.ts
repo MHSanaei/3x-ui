@@ -1385,6 +1385,14 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/xray/tor/:action',
+        summary: 'Manage the panel-hosted Tor sidecar. The action parameter selects the operation.',
+        params: [
+          { name: 'action', in: 'path', type: 'string', desc: 'status — return {available, running, port, lastLog}. start — launch the managed tor daemon. stop — stop it.' },
+        ],
+      },
+      {
+        method: 'POST',
         path: '/panel/api/xray/resetOutboundsTraffic',
         summary: 'Reset traffic counters for a specific outbound by tag.',
         params: [

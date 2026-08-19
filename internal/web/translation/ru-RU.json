@@ -1796,6 +1796,20 @@
         "outboundAdded": "Исходящий NordVPN добавлен",
         "outboundUpdated": "Исходящий NordVPN обновлён"
       },
+      "tor": {
+        "title": "Tor",
+        "notInstalled": "Tor не найден",
+        "installHint": "Бинарник tor не найден в PATH этого хоста. Установите через пакетный менеджер, затем обновите статус:",
+        "running": "Запущен",
+        "stoppedState": "Остановлен",
+        "startButton": "Запустить",
+        "stopButton": "Остановить",
+        "started": "Tor запущен",
+        "stopped": "Tor остановлен",
+        "startFailed": "Не удалось запустить Tor",
+        "outboundAdded": "Исходящий Tor добавлен",
+        "outboundRemoved": "Исходящий Tor удалён"
+      },
       "warp": {
         "changeIp": "Сменить IP",
         "changeIpSuccess": "IP-адрес WARP успешно изменён!",

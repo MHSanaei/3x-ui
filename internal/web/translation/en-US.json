@@ -1913,6 +1913,20 @@
         "outboundAdded": "NordVPN outbound added",
         "outboundUpdated": "NordVPN outbound updated"
       },
+      "tor": {
+        "title": "Tor",
+        "notInstalled": "Tor not found",
+        "installHint": "No tor binary was found on this host's PATH. Install it via your package manager, then refresh:",
+        "running": "Running",
+        "stoppedState": "Stopped",
+        "startButton": "Start",
+        "stopButton": "Stop",
+        "started": "Tor started",
+        "stopped": "Tor stopped",
+        "startFailed": "Failed to start Tor",
+        "outboundAdded": "Tor outbound added",
+        "outboundRemoved": "Tor outbound removed"
+      },
       "warp": {
         "changeIp": "Change IP",
         "changeIpSuccess": "WARP IP changed successfully!",

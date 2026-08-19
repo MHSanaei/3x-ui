@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/tor"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
@@ -510,6 +511,15 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	)
 	s.cron.Start()
 
+	// Tor is a standalone sidecar with no DB-backed desired-state list to
+	// reconcile from (unlike mtproto/amneziawgnet) -- bring it back up here
+	// if the admin had it running before the last stop.
+	if enabled, _ := s.settingService.GetTorEnable(); enabled {
+		if err := tor.GetManager().Start(); err != nil {
+			logger.Warningf("tor: failed to auto-start on boot: %v", err)
+		}
+	}
+
 	// Wire the inbound-runtime manager once so InboundService can route
 	// add/update/delete to either the local xray or a remote node panel.
 	// The closures bridge into XrayService (which owns the running xray
@@ -690,6 +700,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		_ = s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
+		tor.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

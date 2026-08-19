@@ -25,6 +25,7 @@ type XraySettingController struct {
 	XrayService                 service.XrayService
 	WarpService                 integration.WarpService
 	NordService                 integration.NordService
+	TorService                  integration.TorService
 	OutboundSubscriptionService service.OutboundSubscriptionService
 	GeodataService              service.GeodataService
 }
@@ -46,6 +47,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/", a.getXraySetting)
 	g.POST("/warp/:action", a.warp)
 	g.POST("/nord/:action", a.nord)
+	g.POST("/tor/:action", a.tor)
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
@@ -238,6 +240,22 @@ func (a *XraySettingController) nord(c *gin.Context) {
 		err = a.NordService.DelNordData()
 	}
 
+	jsonObj(c, resp, err)
+}
+
+// tor handles the managed Tor sidecar (internal/tor) based on the action parameter.
+func (a *XraySettingController) tor(c *gin.Context) {
+	action := c.Param("action")
+	var resp any
+	var err error
+	switch action {
+	case "status":
+		resp = a.TorService.Status()
+	case "start":
+		err = a.TorService.Start()
+	case "stop":
+		err = a.TorService.Stop()
+	}
 	jsonObj(c, resp, err)
 }
 
