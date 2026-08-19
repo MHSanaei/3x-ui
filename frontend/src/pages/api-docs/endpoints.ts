@@ -892,6 +892,15 @@ export const sections: readonly Section[] = [
         ],
       },
       {
+        method: 'DELETE',
+        path: '/panel/api/clients/hwids/:email/:id',
+        summary: 'Remove a single registered HWID device by its id, freeing one slot under the HWID limit.',
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email.' },
+          { name: 'id', in: 'path', type: 'number', desc: 'Device id, from the list endpoint.' },
+        ],
+      },
+      {
         method: 'POST',
         path: '/panel/api/clients/onlines',
         summary: 'List the emails of currently connected clients (last seen within the heartbeat window), deduped across every node.',
