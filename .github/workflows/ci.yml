@@ -188,6 +188,9 @@ jobs:
       - name: Lint
         run: npm run lint
         working-directory: frontend
+      - name: Format check
+        run: npm run format:check
+        working-directory: frontend
       - name: Typecheck
         run: npm run typecheck
         working-directory: frontend

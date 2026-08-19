@@ -44,7 +44,8 @@ production-style links work without round-tripping through Go.
 | `npm run gen:api` | Build `public/openapi.json` from `pages/api-docs/endpoints.ts` |
 | `npm run gen:zod` | Run the Go-side openapigen tool → `src/generated/{zod,types}.ts` |
 
-CI runs `typecheck`, `lint`, `test`, `build`, and `build-storybook` on
+CI runs `typecheck`, `lint`, `format:check`, `test`, `build`, and
+`build-storybook` on
 every PR (see `../.github/workflows/ci.yml`).
 
 ### One-off: scan for deprecated APIs

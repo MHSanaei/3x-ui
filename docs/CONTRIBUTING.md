@@ -25,7 +25,7 @@ pnpm dev        # http://localhost:3000
 | `pnpm test`      | Run unit tests (Vitest) for `lib/xray/*` pure logic   |
 | `pnpm gen:api`   | Generate the API reference from `public/openapi.json` |
 
-Before opening a pull request, please run `pnpm typecheck`, `pnpm lint`, and
+Before opening a pull request, please run `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, and
 `pnpm test` — these are the same checks that CI runs on every PR.
 
 ## License

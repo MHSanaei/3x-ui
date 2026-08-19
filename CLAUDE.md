@@ -147,7 +147,8 @@ reads as a broken repo, not a missing step. Run `make dist-stub` once; every
 `make` Go target already depends on it, which is why `make test-go` beats
 `go test ./...`. Run `make help` for all targets. The local gate:
 
-    make verify   # gen-check + lint + typecheck + test + build + build-storybook
+    make verify   # gen-check + lint + format-check + typecheck + test + build
+                  # + build-storybook
 
 That is the *fast* gate, not all of CI. `ci.yml` also runs `make race`,
 `make vulncheck`, a live-Postgres job (where a SKIP counts as a failure) and a

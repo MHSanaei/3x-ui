@@ -37,6 +37,10 @@ lint-fe: ## oxlint on frontend sources
 .PHONY: lint
 lint: lint-go lint-fe ## All linters
 
+.PHONY: format-check
+format-check: ## oxfmt in check mode on frontend sources
+	cd $(FRONTEND) && npm run format:check
+
 .PHONY: typecheck
 typecheck: ## tsc --noEmit
 	cd $(FRONTEND) && npm run typecheck
@@ -79,5 +83,5 @@ build-storybook: ## Build the static Storybook (compile-checks all stories)
 # The PR gate. Matches ci.yml: codegen freshness, both linters, typecheck,
 # both test suites, a full build, and the Storybook compile-check.
 .PHONY: verify
-verify: gen-check lint typecheck msw-worker-check test build build-storybook ## Full local gate (mirrors CI)
+verify: gen-check lint format-check typecheck msw-worker-check test build build-storybook ## Full local gate (mirrors CI)
 	@echo "verify: OK"
