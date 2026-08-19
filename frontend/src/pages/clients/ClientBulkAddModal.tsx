@@ -95,12 +95,14 @@ export default function ClientBulkAddModal({
   const limitIpDisabled = !fail2ban.usable;
   const limitIpNotice = getLimitIpNotice(fail2ban, t);
 
-  useEffect(() => {
-    if (!open) return;
-
-    methods.reset(EMPTY);
-    setDelayedStart(false);
-  }, [open, methods]);
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      methods.reset(EMPTY);
+      setDelayedStart(false);
+    }
+  }
 
   const flowCapableIds = useMemo(() => {
     const ids = new Set<number>();

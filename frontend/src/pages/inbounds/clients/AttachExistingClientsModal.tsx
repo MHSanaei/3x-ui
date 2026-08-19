@@ -49,12 +49,21 @@ export default function AttachExistingClientsModal({
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string | undefined>(undefined);
 
+  // Reset during render, not in an effect, so the first frame is already clean.
+  const openTarget = open ? target : null;
+  const [syncedTarget, setSyncedTarget] = useState(openTarget);
+  if (openTarget !== syncedTarget) {
+    setSyncedTarget(openTarget);
+    if (openTarget) {
+      setLoading(true);
+      setSearch('');
+      setGroupFilter(undefined);
+    }
+  }
+
   useEffect(() => {
     if (!open || !target) return;
     let cancelled = false;
-    setLoading(true);
-    setSearch('');
-    setGroupFilter(undefined);
     HttpUtil.get('/panel/api/clients/list', undefined, { silent: true })
       .then((msg) => {
         if (cancelled) return;

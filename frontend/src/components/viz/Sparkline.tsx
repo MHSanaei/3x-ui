@@ -268,9 +268,11 @@ export default function Sparkline(props: SparklineProps) {
     extrema,
   };
   const cfgRef = useRef(cfg);
-  cfgRef.current = cfg;
   const viewRef = useRef<SparklineView>({ points, yDomain, yTicks, xTickIndexes, extremaPoints });
-  viewRef.current = { points, yDomain, yTicks, xTickIndexes, extremaPoints };
+  useEffect(() => {
+    cfgRef.current = cfg;
+    viewRef.current = { points, yDomain, yTicks, xTickIndexes, extremaPoints };
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);

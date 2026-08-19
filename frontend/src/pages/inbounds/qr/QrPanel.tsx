@@ -133,7 +133,7 @@ export default function QrPanel({
           tabIndex={0}
           aria-label={t('copy')}
           onClick={copyImage}
-          onKeyDown={activateOnKey(copyImage)}
+          onKeyDown={(event) => activateOnKey(copyImage)(event)}
         >
           <Tooltip title={t('copy')}>
             <QRCode

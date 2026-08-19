@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Tag } from 'antd';
 
@@ -40,6 +41,15 @@ export default function InboundStatsModal({
   onClose,
 }: InboundStatsModalProps) {
   const { t } = useTranslation();
+  // The expiry tag colours against the current time; a state-backed clock keeps
+  // render pure and still refreshes the tag while the modal stays open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [open]);
+
   return (
     <Modal
       open={open}
@@ -143,7 +153,7 @@ export default function InboundStatsModal({
           <div className="stat-row">
             <span className="stat-label">{t('pages.inbounds.expireDate')}</span>
             {record.expiryTime > 0 ? (
-              <Tag color={ColorUtils.usageColor(Date.now(), expireDiff, record._expiryTime)}>
+              <Tag color={ColorUtils.usageColor(now, expireDiff, record._expiryTime)}>
                 {IntlUtil.formatRelativeTime(record.expiryTime)}
               </Tag>
             ) : (

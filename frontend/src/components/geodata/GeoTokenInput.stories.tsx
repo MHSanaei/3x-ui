@@ -216,7 +216,11 @@ const withGeodata: Decorator = function GeodataBackend(Story) {
 
 function ControlledTokenInput({ value = '', id = 'geo-rule', ...rest }: GeoTokenInputProps) {
   const [current, setCurrent] = useState(value);
-  useEffect(() => setCurrent(value), [value]);
+  const [synced, setSynced] = useState(value);
+  if (synced !== value) {
+    setSynced(value);
+    setCurrent(value);
+  }
   return (
     <Space orientation="vertical" size={4} style={{ width: 460 }}>
       <label htmlFor={id}>{rest.kind === 'ip' ? 'Target IP' : 'Target domain'}</label>

@@ -287,11 +287,9 @@ export default function AppSidebar() {
 
   const openSubmenu = settingsActive ? '/settings' : xrayActive ? '/xray' : null;
   const [openKeys, setOpenKeys] = useState<string[]>(() => (openSubmenu ? [openSubmenu] : []));
-  useEffect(() => {
-    if (openSubmenu) {
-      setOpenKeys((keys) => (keys.includes(openSubmenu) ? keys : [...keys, openSubmenu]));
-    }
-  }, [openSubmenu]);
+  if (openSubmenu && !openKeys.includes(openSubmenu)) {
+    setOpenKeys([...openKeys, openSubmenu]);
+  }
 
   const toMenuItems = useCallback(
     (items: typeof tabs): MenuProps['items'] =>

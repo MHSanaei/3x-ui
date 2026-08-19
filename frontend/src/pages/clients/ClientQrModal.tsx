@@ -52,16 +52,13 @@ export default function ClientQrModal({
   const [links, setLinks] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const subLink = useMemo(() => {
-    if (!client?.subId || !subSettings?.enable || !subSettings?.subURI) return '';
-    return subSettings.subURI + client.subId;
-  }, [client?.subId, subSettings?.enable, subSettings?.subURI]);
-
-  const subJsonLink = useMemo(() => {
-    if (!client?.subId || !subSettings?.enable) return '';
-    if (!subSettings?.subJsonEnable || !subSettings?.subJsonURI) return '';
-    return subSettings.subJsonURI + client.subId;
-  }, [client?.subId, subSettings?.enable, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
+  const subId = client?.subId;
+  const subEnabled = !!subSettings?.enable;
+  const subLink = subId && subEnabled && subSettings?.subURI ? subSettings.subURI + subId : '';
+  const subJsonLink =
+    subId && subEnabled && subSettings?.subJsonEnable && subSettings?.subJsonURI
+      ? subSettings.subJsonURI + subId
+      : '';
 
   const wgInbound = useMemo(
     () => findWireguardInbound(client, inboundsById),
@@ -79,13 +76,18 @@ export default function ClientQrModal({
 
   const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || links.length > 0;
 
+  // The reset runs during render so the effect only carries the request.
+  const openSubId = open ? (client?.subId ?? '') : '';
+  const [syncedSubId, setSyncedSubId] = useState(openSubId);
+  if (openSubId !== syncedSubId) {
+    setSyncedSubId(openSubId);
+    setLinks([]);
+    setLoading(!!openSubId);
+  }
+
   useEffect(() => {
-    if (!open || !client?.subId) {
-      setLinks([]);
-      return;
-    }
+    if (!open || !client?.subId) return;
     let cancelled = false;
-    setLoading(true);
     (async () => {
       try {
         const msg = (await HttpUtil.get(
@@ -166,13 +168,13 @@ export default function ClientQrModal({
     return out;
   }, [subLink, subJsonLink, wgConfigText, links, client?.email, t]);
 
-  useEffect(() => {
-    if (!open) {
-      setActiveKey([]);
-      return;
-    }
-    setActiveKey(items.length > 0 ? [items[0].key] : []);
-  }, [open, items]);
+  // Expanding the first panel is a render-time adjustment, not a side effect.
+  const firstKey = open && items.length > 0 ? items[0].key : null;
+  const [syncedFirstKey, setSyncedFirstKey] = useState<string | null>(null);
+  if (firstKey !== syncedFirstKey) {
+    setSyncedFirstKey(firstKey);
+    setActiveKey(firstKey ? [firstKey] : []);
+  }
 
   return (
     <Modal

@@ -128,7 +128,15 @@ export default function NordModal({
   }, [fetchCountries]);
 
   useEffect(() => {
-    if (open) fetchData();
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      await fetchData();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open, fetchData]);
 
   async function login() {

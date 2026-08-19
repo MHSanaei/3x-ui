@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Modal, Space, Table, Tabs, message } from 'antd';
 import {
@@ -68,7 +68,6 @@ export default function RoutingTab({
     [templateSettings?.routing?.rules],
   );
   const rulesRef = useRef(rules);
-  rulesRef.current = rules;
   const rowsRef = useRef<RuleRow[]>([]);
 
   const rows: RuleRow[] = useMemo(
@@ -100,7 +99,11 @@ export default function RoutingTab({
         }),
     [rules],
   );
-  rowsRef.current = rows;
+
+  useEffect(() => {
+    rulesRef.current = rules;
+    rowsRef.current = rows;
+  });
 
   const mutate = useCallback(
     (mutator: (next: XraySettingsValue) => void) => {

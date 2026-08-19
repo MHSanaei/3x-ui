@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button, Input, Modal, Tabs, message } from 'antd';
 import { CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -35,9 +35,12 @@ export default function TextModal({
   const [messageApi, messageContextHolder] = message.useMessage();
   const [activeKey, setActiveKey] = useState('');
 
-  useEffect(() => {
-    if (open && tabs && tabs.length > 0) setActiveKey(tabs[0].key);
-  }, [open, tabs]);
+  // Reset on the way out so the next open starts on the first tab; activeTab
+  // falls back to tabs[0] whenever activeKey no longer matches.
+  const close = useCallback(() => {
+    setActiveKey('');
+    onClose();
+  }, [onClose]);
 
   const activeTab = tabs?.find((tab) => tab.key === activeKey) ?? tabs?.[0];
   const activeContent = activeTab ? activeTab.content : content;
@@ -46,7 +49,7 @@ export default function TextModal({
     const ok = await ClipboardManager.copyText(activeContent || '');
     if (ok) {
       messageApi.success(t('copied'));
-      onClose();
+      close();
     }
   }
 
@@ -61,7 +64,7 @@ export default function TextModal({
       <Modal
         open={open}
         title={title}
-        onCancel={onClose}
+        onCancel={close}
         destroyOnHidden
         footer={
           <>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -57,14 +57,20 @@ export default function AttachClientsModal({
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    if (!open) return;
-    const rows = source ? readClientRows(source.settings) : [];
-    setClientRows(rows);
-    setSelectedEmails(rows.map((r) => r.email));
-    setTargetIds([]);
-    setSearch('');
-  }, [open, source]);
+  // React resets this during render rather than in an effect so the modal's
+  // first open frame already shows cleared fields.
+  const openSource = open ? source : null;
+  const [syncedSource, setSyncedSource] = useState(openSource);
+  if (openSource !== syncedSource) {
+    setSyncedSource(openSource);
+    if (openSource) {
+      const rows = readClientRows(openSource.settings);
+      setClientRows(rows);
+      setSelectedEmails(rows.map((r) => r.email));
+      setTargetIds([]);
+      setSearch('');
+    }
+  }
 
   const targetOptions = useMemo(() => {
     if (!source) return [];

@@ -109,14 +109,20 @@ export default function ClientInfoModal({
     keyof typeof SUBSCRIPTION_DOWNLOAD_NAMES | null
   >(null);
 
-  useEffect(() => {
-    if (!open) {
+  // Clearing on close happens during render; the effect owns only the fetch.
+  const openSubId = open ? (client?.subId ?? '') : null;
+  const [syncedSubId, setSyncedSubId] = useState(openSubId);
+  if (openSubId !== syncedSubId) {
+    setSyncedSubId(openSubId);
+    if (openSubId === null) {
       setLinks([]);
       setClientIps([]);
       setIpsModalOpen(false);
-      return;
     }
-    if (!client?.subId) return;
+  }
+
+  useEffect(() => {
+    if (!open || !client?.subId) return;
     let cancelled = false;
     (async () => {
       const msg = (await HttpUtil.get(
@@ -139,22 +145,16 @@ export default function ClientInfoModal({
     return r > 0 ? r : 0;
   }, [totalBytes, used]);
 
-  const subLink = useMemo(() => {
-    if (!client?.subId || !subSettings?.subURI) return '';
-    return subSettings.subURI + client.subId;
-  }, [client?.subId, subSettings?.subURI]);
-
-  const subJsonLink = useMemo(() => {
-    if (!client?.subId) return '';
-    if (!subSettings?.subJsonEnable || !subSettings?.subJsonURI) return '';
-    return subSettings.subJsonURI + client.subId;
-  }, [client?.subId, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
-
-  const subClashLink = useMemo(() => {
-    if (!client?.subId) return '';
-    if (!subSettings?.subClashEnable || !subSettings?.subClashURI) return '';
-    return subSettings.subClashURI + client.subId;
-  }, [client?.subId, subSettings?.subClashEnable, subSettings?.subClashURI]);
+  const subId = client?.subId;
+  const subLink = subId && subSettings?.subURI ? subSettings.subURI + subId : '';
+  const subJsonLink =
+    subId && subSettings?.subJsonEnable && subSettings?.subJsonURI
+      ? subSettings.subJsonURI + subId
+      : '';
+  const subClashLink =
+    subId && subSettings?.subClashEnable && subSettings?.subClashURI
+      ? subSettings.subClashURI + subId
+      : '';
 
   const showSubscription = !!(subSettings?.enable && client?.subId);
   const wgInbound = useMemo(

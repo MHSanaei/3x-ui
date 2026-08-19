@@ -73,12 +73,10 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<XrayLogEntry[]>([]);
-  const openRef = useRef(open);
 
   const orderedLogs = useMemo(() => [...logs].reverse(), [logs]);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const runRefresh = useCallback(async () => {
     try {
       const msg = await HttpUtil.post<XrayLogEntry[]>(`/panel/api/server/xraylogs/${rows}`, {
         filter,
@@ -93,19 +91,30 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
     }
   }, [rows, filter, showDirect, showBlocked, showProxy]);
 
+  const refresh = useCallback(() => {
+    setLoading(true);
+    void runRefresh();
+  }, [runRefresh]);
+
   const refreshRef = useRef(refresh);
   useEffect(() => {
     refreshRef.current = refresh;
-  }, [refresh]);
+  });
+
+  // The spinner is raised during render so the fetch effect stays side-effect
+  // free until its response lands.
+  const refreshKey = open
+    ? `${rows}\u0000${showDirect}\u0000${showBlocked}\u0000${showProxy}`
+    : null;
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  if (refreshKey !== loadingKey) {
+    setLoadingKey(refreshKey);
+    if (refreshKey) setLoading(true);
+  }
 
   useEffect(() => {
-    openRef.current = open;
-    if (open) refresh();
-  }, [open, refresh]);
-
-  useEffect(() => {
-    if (openRef.current) refresh();
-  }, [rows, showDirect, showBlocked, showProxy, refresh]);
+    if (open) void runRefresh();
+  }, [open, rows, showDirect, showBlocked, showProxy, runRefresh]);
 
   useEffect(() => {
     if (!open || !autoUpdate) return;
