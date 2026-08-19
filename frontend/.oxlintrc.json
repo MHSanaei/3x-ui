@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "node_modules/**"
+  ],
+  "plugins": [
+    "typescript",
+    "react",
+    "jsx-a11y"
+  ],
+  "jsPlugins": [
+    "./tools/oxlint/input-number-guard.mjs"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "no-empty": [
+      "error",
+      {
+        "allowEmptyCatch": true
+      }
+    ],
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "error",
+    "jsx-a11y/no-autofocus": "off",
+    "input-number/no-synthetic-clear": "off",
+    "jsx-a11y/prefer-tag-over-role": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/pages/settings/**/*.tsx",
+        "src/pages/xray/**/*.tsx"
+      ],
+      "rules": {
+        "input-number/no-synthetic-clear": "error"
+      }
+    },
+    {
+      "files": [
+        "src/pages/xray/**/*Modal.tsx"
+      ],
+      "rules": {
+        "input-number/no-synthetic-clear": "off"
+      }
+    }
+  ]
+}

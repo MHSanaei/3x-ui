@@ -20,7 +20,7 @@ pnpm dev        # http://localhost:3000
 | `pnpm build`     | Production build                                      |
 | `pnpm start`     | Serve the production build                            |
 | `pnpm typecheck` | Generate MDX/route types and run `tsc --noEmit`       |
-| `pnpm lint`      | ESLint (flat config)                                  |
+| `pnpm lint`      | oxlint (`.oxlintrc.json`)                             |
 | `pnpm format`    | Format with Prettier                                  |
 | `pnpm test`      | Run unit tests (Vitest) for `lib/xray/*` pure logic   |
 | `pnpm gen:api`   | Generate the API reference from `public/openapi.json` |

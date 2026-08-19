@@ -12,7 +12,8 @@
     "dev": "vite",
     "build": "npm run gen:api && vite build",
     "preview": "vite preview",
-    "lint": "eslint src",
+    "lint": "oxlint src",
+    "lint:deprecated": "oxlint --type-aware -A all -D typescript/no-deprecated src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -24,7 +25,7 @@
     "prepare": "cd .. && husky frontend/.husky || true"
   },
   "lint-staged": {
-    "src/**/*.{ts,tsx}": "eslint --fix"
+    "src/**/*.{ts,tsx}": "oxlint --fix"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
@@ -50,7 +51,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@storybook/addon-a11y": "^10.5.7",
     "@storybook/addon-docs": "^10.5.7",
     "@storybook/addon-vitest": "^10.5.7",
@@ -63,25 +63,19 @@
     "@vitejs/plugin-react": "^6.0.5",
     "@vitest/browser-playwright": "4.1.10",
     "@vitest/coverage-v8": "^4.1.10",
-    "eslint": "^10.8.1",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.11.0",
     "husky": "^9.1.7",
     "jsdom": "^30.0.1",
     "lint-staged": "^17.3.0",
     "msw": "^2.15.0",
+    "oxlint": "1.78.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "playwright": "^1.62.1",
     "storybook": "^10.5.7",
-    "typescript": "6.0.3",
-    "typescript-eslint": "^8.67.0",
+    "typescript": "7.0.2",
     "vite": "8.2.1",
     "vitest": "^4.1.10"
   },
   "overrides": {
-    "eslint-plugin-jsx-a11y": {
-      "eslint": "$eslint"
-    },
     "dompurify": "^3.4.11",
     "react-copy-to-clipboard": "^5.1.1",
     "react-inspector": "^9.0.0",

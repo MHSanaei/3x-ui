@@ -186,7 +186,7 @@ Only a genuinely **standalone bundle** (like `login` or `subpage`, reachable wit
 - **Function components + hooks** everywhere. No class components.
 - **Comments in committed Go/TS/TSX: 2 lines MAX per comment block**, spent on the *why* a name cannot hold — an invariant, an issue number, a non-obvious constraint. Names should carry the meaning; rename rather than annotate. Compiler and tool directives (`//go:build`, `//go:generate`, `//nolint:`) are exempt, and HTML `<!-- ... -->` is fine for template structure.
 - **Persian and Arabic users are first-class.** When writing Persian text in toasts or labels, isolate code identifiers on their own lines so RTL reading flows. (Full RTL layout is not currently wired through AntD `ConfigProvider direction` — only the Jalali date picker is RTL-aware — so treat RTL as an open area, not a solved one.)
-- **Schemas over `any`.** New config shapes go in `src/schemas/`; `@typescript-eslint/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
+- **Schemas over `any`.** New config shapes go in `src/schemas/`; oxlint's `typescript/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
 - **Document new endpoints.** Every new `g.POST`/`g.GET` in `internal/web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
 - **Do not break link generation.** Share-link logic lives in `src/lib/xray/` (`inbound-link.ts`, `outbound-link-parser.ts`, …) and is round-tripped by the golden fixture suite — run `npm run test` after any change to URL generation, defaults, or TLS/Reality handling, and regenerate snapshots (`npx vitest run -u`) only for intentional changes. Two runtime paths consume it: the **inbounds page** and the **clients page** subscription links (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`); exercise both.
 - **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — read the live version there rather than trusting a number quoted here — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
@@ -200,7 +200,8 @@ frontend/
 ├── login.html             — login + 2FA entry
 ├── subpage.html           — public subscription viewer entry
 ├── tsconfig.json          — strict, jsx: "react-jsx", paths "@/*" → "src/*"
-├── eslint.config.js       — ESLint flat config (@eslint/js + typescript-eslint + react-hooks)
+├── .oxlintrc.json         — oxlint config (typescript + react-hooks + jsx-a11y)
+├── tools/oxlint/          — input-number-guard.mjs (#6121/#6127 guard as a JS plugin)
 ├── vite.config.js
 ├── vitest.config.ts
 ├── scripts/               — build-openapi.mjs (endpoints.ts → openapi.json)

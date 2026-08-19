@@ -552,7 +552,7 @@ go run main.go                      # run the panel locally (serves embedded dis
 npm install
 npm run dev          # Vite dev server on :5173; proxies API to Go backend on :2053 (run `go run main.go` too)
 npm run typecheck    # tsc --noEmit
-npm run lint         # eslint src
+npm run lint         # oxlint src
 npm run test         # vitest (incl. golden config-generation snapshots)
 npm run gen          # regenerate src/generated/* from Go (gen:zod + gen:api)
 npm run build        # gen:api + vite build → outputs to internal/web/dist (then rebuild Go binary to embed)

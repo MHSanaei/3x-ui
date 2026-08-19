@@ -71,7 +71,7 @@ ever leaves your browser**:
 | Search     | [Orama](https://orama.com) static index                    |
 | Language   | TypeScript (strict)                                         |
 | Tests      | [Vitest](https://vitest.dev) for the pure `lib/xray` logic  |
-| Tooling    | pnpm · ESLint 9 · Prettier                                  |
+| Tooling    | pnpm · oxlint · Prettier                                    |
 
 ## Quick start
 
@@ -91,7 +91,7 @@ Useful scripts:
 | `pnpm dev`       | Start the dev server                         |
 | `pnpm build`     | Production build (also typechecks)           |
 | `pnpm typecheck` | Generate MDX/route types and `tsc --noEmit`  |
-| `pnpm lint`      | Run ESLint                                    |
+| `pnpm lint`      | Run oxlint (`.oxlintrc.json`)                 |
 | `pnpm test`      | Run unit tests (Vitest)                       |
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full list and project conventions.

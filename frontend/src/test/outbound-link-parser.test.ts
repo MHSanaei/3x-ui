@@ -96,7 +96,7 @@ describe('parseVmessLink — XHTTP advanced fields', () => {
     // legacy sessionKey must alias onto the renamed sessionIDKey (#6258)
     const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
     const out = parseVmessLink(link);
-    const xhttp = (out?.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    const xhttp = (out!.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
     expect(xhttp.xPaddingObfsMode).toBe(true);
     expect(xhttp.xPaddingKey).toBe('secret-key');
     expect(xhttp.xPaddingHeader).toBe('X-Pad');
@@ -142,7 +142,7 @@ describe('parseVlessLink — XHTTP advanced fields', () => {
       + '&scMaxBufferedPosts=50'
       + '#imported-pad';
     const out = parseVlessLink(link);
-    const xhttp = (out?.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
+    const xhttp = (out!.streamSettings as Record<string, unknown>).xhttpSettings as Record<string, unknown>;
     expect(xhttp.xPaddingObfsMode).toBe(true);
     expect(xhttp.xPaddingKey).toBe('secret-key');
     expect(xhttp.xPaddingHeader).toBe('X-Pad');
@@ -191,7 +191,7 @@ describe('parseVlessLink', () => {
     const out = parseVlessLink(link);
     const settings = out?.settings as { encryption: string };
     expect(settings.encryption).toBe(enc);
-    const reality = (out?.streamSettings as Record<string, unknown>).realitySettings as Record<string, unknown>;
+    const reality = (out!.streamSettings as Record<string, unknown>).realitySettings as Record<string, unknown>;
     expect(reality.mldsa65Verify).toBe(pqv);
     expect(reality.publicKey).toBe('aQaGBOT2hMfXWebYtjADoOVUrP8qZRdwXVap7nrId0I');
   });
