@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 
-import { formatInboundIssue, formatInboundValidation } from '@/pages/inbounds/form/formatValidationError';
+import {
+  formatInboundIssue,
+  formatInboundValidation,
+} from '@/pages/inbounds/form/formatValidationError';
 
 const templates: Record<string, string> = {
   'pages.inbounds.toasts.invalidClientField': 'Client {client}: {field} — {reason}',
@@ -40,7 +43,9 @@ describe('formatInboundValidation', () => {
     const parsed = schema.safeParse(values);
     expect(parsed.success).toBe(false);
     if (parsed.success) return;
-    expect(formatInboundIssue(parsed.error.issues[0], values, t)).toContain('Client "broken@x.com": tgId — ');
+    expect(formatInboundIssue(parsed.error.issues[0], values, t)).toContain(
+      'Client "broken@x.com": tgId — ',
+    );
   });
 
   it('falls back to the index when the client has no email', () => {
@@ -60,6 +65,8 @@ describe('formatInboundValidation', () => {
       { path: ['port'], message: 'Invalid input' },
     ];
     const values = { settings: { clients: [{ email: 'a@x.com' }] } };
-    expect(formatInboundValidation(issues, values, t)).toBe('Client "a@x.com": tgId — Invalid input  (+1 more)');
+    expect(formatInboundValidation(issues, values, t)).toBe(
+      'Client "a@x.com": tgId — Invalid input  (+1 more)',
+    );
   });
 });

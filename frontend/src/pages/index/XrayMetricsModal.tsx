@@ -48,12 +48,60 @@ interface ObservatoryTag {
 }
 
 const METRICS: MetricDef[] = [
-  { key: 'xrAlloc', tab: 'Heap', tabKey: 'pages.index.xrayTabHeap', title: 'pages.index.xrayTitleHeap', icon: <DatabaseOutlined />, unit: 'B', stroke: '#7c4dff' },
-  { key: 'xrSys', tab: 'Sys', tabKey: 'pages.index.xrayTabSys', title: 'pages.index.xrayTitleSys', icon: <CloudServerOutlined />, unit: 'B', stroke: '#1890ff' },
-  { key: 'xrHeapObjects', tab: 'Objects', tabKey: 'pages.index.xrayTabObjects', title: 'pages.index.xrayTitleObjects', icon: <BlockOutlined />, unit: '', stroke: '#13c2c2' },
-  { key: 'xrNumGC', tab: 'GC Count', tabKey: 'pages.index.xrayTabGcCount', title: 'pages.index.xrayTitleGcCount', icon: <DeleteOutlined />, unit: '', stroke: '#fa8c16' },
-  { key: 'xrPauseNs', tab: 'GC Pause', tabKey: 'pages.index.xrayTabGcPause', title: 'pages.index.xrayTitleGcPause', icon: <PauseCircleOutlined />, unit: 'ns', stroke: '#f5222d' },
-  { key: OBS_KEY, tab: 'Observatory', tabKey: 'pages.index.xrayTabObservatory', title: 'pages.index.xrayTitleObservatory', icon: <EyeOutlined />, unit: 'ms', stroke: '#52c41a' },
+  {
+    key: 'xrAlloc',
+    tab: 'Heap',
+    tabKey: 'pages.index.xrayTabHeap',
+    title: 'pages.index.xrayTitleHeap',
+    icon: <DatabaseOutlined />,
+    unit: 'B',
+    stroke: '#7c4dff',
+  },
+  {
+    key: 'xrSys',
+    tab: 'Sys',
+    tabKey: 'pages.index.xrayTabSys',
+    title: 'pages.index.xrayTitleSys',
+    icon: <CloudServerOutlined />,
+    unit: 'B',
+    stroke: '#1890ff',
+  },
+  {
+    key: 'xrHeapObjects',
+    tab: 'Objects',
+    tabKey: 'pages.index.xrayTabObjects',
+    title: 'pages.index.xrayTitleObjects',
+    icon: <BlockOutlined />,
+    unit: '',
+    stroke: '#13c2c2',
+  },
+  {
+    key: 'xrNumGC',
+    tab: 'GC Count',
+    tabKey: 'pages.index.xrayTabGcCount',
+    title: 'pages.index.xrayTitleGcCount',
+    icon: <DeleteOutlined />,
+    unit: '',
+    stroke: '#fa8c16',
+  },
+  {
+    key: 'xrPauseNs',
+    tab: 'GC Pause',
+    tabKey: 'pages.index.xrayTabGcPause',
+    title: 'pages.index.xrayTitleGcPause',
+    icon: <PauseCircleOutlined />,
+    unit: 'ns',
+    stroke: '#f5222d',
+  },
+  {
+    key: OBS_KEY,
+    tab: 'Observatory',
+    tabKey: 'pages.index.xrayTabObservatory',
+    title: 'pages.index.xrayTitleObservatory',
+    icon: <EyeOutlined />,
+    unit: 'ms',
+    stroke: '#52c41a',
+  },
 ];
 
 function unitFormatter(unit: string): (v: number) => string {
@@ -85,9 +133,10 @@ function fmtTimestamp(unixSec: number): string {
 function formatFullTimestamp(unixSec: number): string {
   const d = new Date(unixSec * 1000);
   const today = new Date();
-  const sameDay = d.getFullYear() === today.getFullYear()
-    && d.getMonth() === today.getMonth()
-    && d.getDate() === today.getDate();
+  const sameDay =
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   const ss = String(d.getSeconds()).padStart(2, '0');
@@ -135,29 +184,32 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
     [tsLookup],
   );
 
-  const applyHistory = useCallback((msg: Msg<{ t: number; v: number }[]> | null | undefined, currentBucket: number) => {
-    if (msg?.success && Array.isArray(msg.obj)) {
-      const vals: number[] = [];
-      const labs: string[] = [];
-      const tss: number[] = [];
-      for (const p of msg.obj) {
-        const d = new Date(p.t * 1000);
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mm = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        labs.push(currentBucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`);
-        vals.push(Number(p.v) || 0);
-        tss.push(Number(p.t) || 0);
+  const applyHistory = useCallback(
+    (msg: Msg<{ t: number; v: number }[]> | null | undefined, currentBucket: number) => {
+      if (msg?.success && Array.isArray(msg.obj)) {
+        const vals: number[] = [];
+        const labs: string[] = [];
+        const tss: number[] = [];
+        for (const p of msg.obj) {
+          const d = new Date(p.t * 1000);
+          const hh = String(d.getHours()).padStart(2, '0');
+          const mm = String(d.getMinutes()).padStart(2, '0');
+          const ss = String(d.getSeconds()).padStart(2, '0');
+          labs.push(currentBucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`);
+          vals.push(Number(p.v) || 0);
+          tss.push(Number(p.t) || 0);
+        }
+        setLabels(labs);
+        setPoints(vals);
+        setTimestamps(tss);
+      } else {
+        setLabels([]);
+        setPoints([]);
+        setTimestamps([]);
       }
-      setLabels(labs);
-      setPoints(vals);
-      setTimestamps(tss);
-    } else {
-      setLabels([]);
-      setPoints([]);
-      setTimestamps([]);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const fetchState = useCallback(async () => {
     try {
@@ -255,7 +307,15 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
     return () => {
       stopObsPolling();
     };
-  }, [open, activeKey, isObservatory, fetchObservatory, fetchObsBucket, fetchMetricBucket, stopObsPolling]);
+  }, [
+    open,
+    activeKey,
+    isObservatory,
+    fetchObservatory,
+    fetchObsBucket,
+    fetchMetricBucket,
+    stopObsPolling,
+  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -314,7 +374,13 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
           const tabLabel = m.tabKey ? t(m.tabKey) : m.tab;
           return {
             key: m.key,
-            label: isMobile ? <span title={tabLabel} aria-label={tabLabel}>{m.icon}</span> : tabLabel,
+            label: isMobile ? (
+              <span title={tabLabel} aria-label={tabLabel}>
+                {m.icon}
+              </span>
+            ) : (
+              tabLabel
+            ),
           };
         })}
       />
@@ -357,10 +423,12 @@ export default function XrayMetricsModal({ open, onClose }: XrayMetricsModalProp
                   </Tag>
                   <Tag color="blue">{activeObsTag.delay} ms</Tag>
                   <span className="obs-stamp">
-                    {t('pages.index.xrayObservatoryLastSeen')}: {fmtTimestamp(activeObsTag.lastSeenTime)}
+                    {t('pages.index.xrayObservatoryLastSeen')}:{' '}
+                    {fmtTimestamp(activeObsTag.lastSeenTime)}
                   </span>
                   <span className="obs-stamp">
-                    {t('pages.index.xrayObservatoryLastTry')}: {fmtTimestamp(activeObsTag.lastTryTime)}
+                    {t('pages.index.xrayObservatoryLastTry')}:{' '}
+                    {fmtTimestamp(activeObsTag.lastTryTime)}
                   </span>
                 </div>
               )}

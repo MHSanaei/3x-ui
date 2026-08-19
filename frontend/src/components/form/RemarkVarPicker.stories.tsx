@@ -20,7 +20,10 @@ const meta = {
     },
   },
   argTypes: {
-    onPick: { description: 'Called with the bare token (e.g. "EMAIL") when a chip is clicked or activated via keyboard.' },
+    onPick: {
+      description:
+        'Called with the bare token (e.g. "EMAIL") when a chip is clicked or activated via keyboard.',
+    },
   },
 } satisfies Meta<typeof RemarkVarPicker>;
 
@@ -29,7 +32,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 function TemplateBuilderDemo() {
-  const [template, setTemplate] = useState('{{INBOUND}}-{{EMAIL}} {{STATUS_EMOJI}} {{TRAFFIC_LEFT}} left');
+  const [template, setTemplate] = useState(
+    '{{INBOUND}}-{{EMAIL}} {{STATUS_EMOJI}} {{TRAFFIC_LEFT}} left',
+  );
   return (
     <div style={{ maxWidth: 520 }}>
       <Input

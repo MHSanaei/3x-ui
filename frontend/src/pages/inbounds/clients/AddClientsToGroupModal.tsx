@@ -37,7 +37,9 @@ export default function AddClientsToGroupModal({
       const list = Array.isArray(msg?.obj) ? (msg.obj as Array<{ name?: string }>) : [];
       setGroups(list.map((g) => g?.name || '').filter(Boolean));
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   return (
@@ -45,7 +47,9 @@ export default function AddClientsToGroupModal({
       open={open}
       count={emails.length}
       groups={groups}
-      onOpenChange={(o) => { if (!o) onClose(); }}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
       onSubmit={async (group) => {
         const msg = await HttpUtil.post(
           '/panel/api/clients/groups/bulkAdd',

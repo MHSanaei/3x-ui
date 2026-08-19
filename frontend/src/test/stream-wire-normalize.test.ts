@@ -23,7 +23,9 @@ describe('validateRealityTarget', () => {
   });
 
   it('rejects host without port', () => {
-    expect(validateRealityTarget('play.google.com')).toBe('pages.inbounds.form.realityTargetNeedsPort');
+    expect(validateRealityTarget('play.google.com')).toBe(
+      'pages.inbounds.form.realityTargetNeedsPort',
+    );
     expect(validateRealityTarget('')).toBe('pages.inbounds.form.realityTargetRequired');
   });
 });
@@ -88,18 +90,21 @@ describe('validateRealityMaxClientVer', () => {
 
 describe('normalizeXhttpForWire stream-one', () => {
   it('drops packet-up and stream-up-only fields on inbound', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      host: 'play.google.com',
-      mode: 'stream-one',
-      xPaddingBytes: '100-1000',
-      scMaxEachPostBytes: '1000000',
-      scMinPostsIntervalMs: '30',
-      scMaxBufferedPosts: 30,
-      scStreamUpServerSecs: '20-80',
-      enableXmux: false,
-      headers: {},
-    }, 'inbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        host: 'play.google.com',
+        mode: 'stream-one',
+        xPaddingBytes: '100-1000',
+        scMaxEachPostBytes: '1000000',
+        scMinPostsIntervalMs: '30',
+        scMaxBufferedPosts: 30,
+        scStreamUpServerSecs: '20-80',
+        enableXmux: false,
+        headers: {},
+      },
+      'inbound',
+    );
 
     expect(out).toMatchObject({
       path: '/app',
@@ -116,59 +121,74 @@ describe('normalizeXhttpForWire stream-one', () => {
   });
 
   it('preserves non-default scMinPostsIntervalMs on inbound for subscriptions', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'packet-up',
-      scMinPostsIntervalMs: '50-150',
-      enableXmux: false,
-    }, 'inbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'packet-up',
+        scMinPostsIntervalMs: '50-150',
+        enableXmux: false,
+      },
+      'inbound',
+    );
 
     expect(out.scMinPostsIntervalMs).toBe('50-150');
   });
 
   it('strips empty scMinPostsIntervalMs on inbound', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'packet-up',
-      scMinPostsIntervalMs: '',
-      enableXmux: false,
-    }, 'inbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'packet-up',
+        scMinPostsIntervalMs: '',
+        enableXmux: false,
+      },
+      'inbound',
+    );
 
     expect(out).not.toHaveProperty('scMinPostsIntervalMs');
   });
 
   it('keeps xmux on outbound stream-one', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'stream-one',
-      xPaddingBytes: '100-1000',
-      xmux: { maxConcurrency: '16-32' },
-      scMaxEachPostBytes: '1000000',
-    }, 'outbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'stream-one',
+        xPaddingBytes: '100-1000',
+        xmux: { maxConcurrency: '16-32' },
+        scMaxEachPostBytes: '1000000',
+      },
+      'outbound',
+    );
 
     expect(out.xmux).toEqual({ maxConcurrency: '16-32' });
     expect(out).not.toHaveProperty('scMaxEachPostBytes');
   });
 
   it('keeps inbound xmux when enableXmux is on (stored for subscription extra; stripped from xray config on Go side)', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'auto',
-      enableXmux: true,
-      xmux: { maxConcurrency: '16-32' },
-    }, 'inbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'auto',
+        enableXmux: true,
+        xmux: { maxConcurrency: '16-32' },
+      },
+      'inbound',
+    );
 
     expect(out).not.toHaveProperty('enableXmux');
     expect(out.xmux).toEqual({ maxConcurrency: '16-32' });
   });
 
   it('drops inbound xmux when enableXmux is off', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'auto',
-      enableXmux: false,
-      xmux: { maxConcurrency: '16-32' },
-    }, 'inbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'auto',
+        enableXmux: false,
+        xmux: { maxConcurrency: '16-32' },
+      },
+      'inbound',
+    );
 
     expect(out).not.toHaveProperty('enableXmux');
     expect(out).not.toHaveProperty('xmux');
@@ -176,12 +196,15 @@ describe('normalizeXhttpForWire stream-one', () => {
 
   // xray-core rejects a config with both maxConnections and maxConcurrency.
   it('drops maxConcurrency when maxConnections is set (xray-core exclusivity)', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'auto',
-      enableXmux: true,
-      xmux: { maxConcurrency: '16-32', maxConnections: 4, hKeepAlivePeriod: 30 },
-    }, 'inbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'auto',
+        enableXmux: true,
+        xmux: { maxConcurrency: '16-32', maxConnections: 4, hKeepAlivePeriod: 30 },
+      },
+      'inbound',
+    );
 
     const xmux = out.xmux as Record<string, unknown>;
     expect(xmux).not.toHaveProperty('maxConcurrency');
@@ -190,11 +213,14 @@ describe('normalizeXhttpForWire stream-one', () => {
   });
 
   it('keeps maxConcurrency when maxConnections is 0/unset', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'stream-one',
-      xmux: { maxConcurrency: '16-32', maxConnections: 0 },
-    }, 'outbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'stream-one',
+        xmux: { maxConcurrency: '16-32', maxConnections: 0 },
+      },
+      'outbound',
+    );
 
     const xmux = out.xmux as Record<string, unknown>;
     expect(xmux.maxConcurrency).toBe('16-32');
@@ -202,11 +228,14 @@ describe('normalizeXhttpForWire stream-one', () => {
   });
 
   it('applies xmux exclusivity on the outbound side too', () => {
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'stream-one',
-      xmux: { maxConcurrency: '16-32', maxConnections: '8' },
-    }, 'outbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'stream-one',
+        xmux: { maxConcurrency: '16-32', maxConnections: '8' },
+      },
+      'outbound',
+    );
 
     const xmux = out.xmux as Record<string, unknown>;
     expect(xmux).not.toHaveProperty('maxConcurrency');
@@ -222,12 +251,15 @@ describe('normalizeXhttpForWire stream-one', () => {
     expect(XMUX_FRESH_DEFAULTS.maxConnections).toBe(3);
     expect(XMUX_FRESH_DEFAULTS.maxConcurrency).toBe('');
 
-    const out = normalizeXhttpForWire({
-      path: '/app',
-      mode: 'stream-one',
-      enableXmux: true,
-      xmux: XMUX_FRESH_DEFAULTS,
-    }, 'outbound');
+    const out = normalizeXhttpForWire(
+      {
+        path: '/app',
+        mode: 'stream-one',
+        enableXmux: true,
+        xmux: XMUX_FRESH_DEFAULTS,
+      },
+      'outbound',
+    );
 
     const xmux = out.xmux as Record<string, unknown>;
     expect(xmux.maxConnections).toBe(3);
@@ -291,21 +323,24 @@ describe('normalizeSockoptForWire', () => {
 
 describe('normalizeStreamSettingsForWire reality', () => {
   it('preserves the nested client settings on inbound (share links read publicKey from there)', () => {
-    const out = normalizeStreamSettingsForWire({
-      network: 'xhttp',
-      security: 'reality',
-      realitySettings: {
-        target: 'play.google.com:443',
-        privateKey: 'priv',
-        serverNames: ['play.google.com'],
-        shortIds: ['abcd'],
-        settings: {
-          publicKey: 'pub',
-          fingerprint: 'chrome',
-          spiderX: '/',
+    const out = normalizeStreamSettingsForWire(
+      {
+        network: 'xhttp',
+        security: 'reality',
+        realitySettings: {
+          target: 'play.google.com:443',
+          privateKey: 'priv',
+          serverNames: ['play.google.com'],
+          shortIds: ['abcd'],
+          settings: {
+            publicKey: 'pub',
+            fingerprint: 'chrome',
+            spiderX: '/',
+          },
         },
       },
-    }, { side: 'inbound' });
+      { side: 'inbound' },
+    );
 
     const reality = out.realitySettings as Record<string, unknown>;
     expect(reality.target).toBe('play.google.com:443');
@@ -316,17 +351,20 @@ describe('normalizeStreamSettingsForWire reality', () => {
   });
 
   it('passes client realitySettings through unchanged on outbound', () => {
-    const out = normalizeStreamSettingsForWire({
-      network: 'xhttp',
-      security: 'reality',
-      realitySettings: {
-        publicKey: 'pub',
-        fingerprint: 'chrome',
-        serverName: 'play.google.com',
-        shortId: 'abcd',
-        spiderX: '/x',
+    const out = normalizeStreamSettingsForWire(
+      {
+        network: 'xhttp',
+        security: 'reality',
+        realitySettings: {
+          publicKey: 'pub',
+          fingerprint: 'chrome',
+          serverName: 'play.google.com',
+          shortId: 'abcd',
+          spiderX: '/x',
+        },
       },
-    }, { side: 'outbound' });
+      { side: 'outbound' },
+    );
 
     const reality = out.realitySettings as Record<string, unknown>;
     expect(reality.publicKey).toBe('pub');
@@ -337,17 +375,20 @@ describe('normalizeStreamSettingsForWire reality', () => {
 
 describe('normalizeStreamSettingsForWire tls', () => {
   it('drops empty uTLS fingerprints from inbound and outbound TLS shapes', () => {
-    const out = normalizeStreamSettingsForWire({
-      network: 'hysteria',
-      security: 'tls',
-      tlsSettings: {
-        fingerprint: '',
-        settings: {
+    const out = normalizeStreamSettingsForWire(
+      {
+        network: 'hysteria',
+        security: 'tls',
+        tlsSettings: {
           fingerprint: '',
-          echConfigList: '',
+          settings: {
+            fingerprint: '',
+            echConfigList: '',
+          },
         },
       },
-    }, { side: 'inbound' });
+      { side: 'inbound' },
+    );
 
     const tls = out.tlsSettings as Record<string, unknown>;
     const settings = tls.settings as Record<string, unknown>;
@@ -374,7 +415,10 @@ describe('inbound formValuesToWirePayload integration', () => {
       lastTrafficResetTime: 0,
       nodeId: null,
       protocol: 'vless',
-      settings: { clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }], decryption: 'none' },
+      settings: {
+        clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }],
+        decryption: 'none',
+      },
       streamSettings: {
         network: 'xhttp',
         security: 'reality',
@@ -478,7 +522,10 @@ describe('inbound formValuesToWirePayload integration', () => {
       lastTrafficResetTime: 0,
       nodeId: null,
       protocol: 'vless',
-      settings: { clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }], decryption: 'none' },
+      settings: {
+        clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }],
+        decryption: 'none',
+      },
       streamSettings: {
         network: 'xhttp',
         security: 'reality',
@@ -526,7 +573,10 @@ describe('inbound formValuesToWirePayload integration', () => {
       lastTrafficResetTime: 0,
       nodeId: null,
       protocol: 'vless',
-      settings: { clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }], decryption: 'none' },
+      settings: {
+        clients: [{ id: '7eeb09ed-ae97-400d-a1ce-2485fb904407', email: 'n' }],
+        decryption: 'none',
+      },
       streamSettings: {
         network: 'xhttp',
         security: 'reality',

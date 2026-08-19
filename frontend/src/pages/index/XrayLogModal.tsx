@@ -122,17 +122,19 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       FileManager.downloadTextFile('', 'x-ui.log');
       return;
     }
-    const lines = logs.map((l) => {
-      try {
-        const dt = l.DateTime ? new Date(l.DateTime) : null;
-        const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
-        const eventText = eventToken(l.Event);
-        const emailPart = l.Email ? ` Email=${l.Email}` : '';
-        return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
-      } catch {
-        return JSON.stringify(l);
-      }
-    }).join('\n');
+    const lines = logs
+      .map((l) => {
+        try {
+          const dt = l.DateTime ? new Date(l.DateTime) : null;
+          const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
+          const eventText = eventToken(l.Event);
+          const emailPart = l.Email ? ` Email=${l.Email}` : '';
+          return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
+        } catch {
+          return JSON.stringify(l);
+        }
+      })
+      .join('\n');
     FileManager.downloadTextFile(lines, 'x-ui.log');
   }
 
@@ -147,7 +149,15 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
       title={
         <>
           {t('pages.index.accessLogs')}
-          <SyncOutlined spin={loading} className="reload-icon" role="button" tabIndex={0} aria-label={t('refresh')} onClick={refresh} onKeyDown={activateOnKey(refresh)} />
+          <SyncOutlined
+            spin={loading}
+            className="reload-icon"
+            role="button"
+            tabIndex={0}
+            aria-label={t('refresh')}
+            onClick={refresh}
+            onKeyDown={activateOnKey(refresh)}
+          />
         </>
       }
     >
@@ -192,7 +202,12 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">
-          <Button type="primary" onClick={download} icon={<DownloadOutlined />} aria-label={t('download')} />
+          <Button
+            type="primary"
+            onClick={download}
+            icon={<DownloadOutlined />}
+            aria-label={t('download')}
+          />
         </Form.Item>
       </Form>
 

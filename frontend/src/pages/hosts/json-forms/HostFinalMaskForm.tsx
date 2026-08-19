@@ -25,7 +25,13 @@ function parseFinalMask(raw: string): FinalMaskStreamSettings {
   return { tcp: [], udp: [] };
 }
 
-export default function HostFinalMaskForm({ value = '', onChange }: { value?: string; onChange?: (next: string) => void }) {
+export default function HostFinalMaskForm({
+  value = '',
+  onChange,
+}: {
+  value?: string;
+  onChange?: (next: string) => void;
+}) {
   const [form] = Form.useForm();
   const [initial] = useState(() => parseFinalMask(value));
   const onChangeRef = useRef(onChange);

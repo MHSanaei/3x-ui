@@ -10,7 +10,10 @@ export default function KcpForm() {
       <FormField label="MTU" name={['streamSettings', 'kcpSettings', 'mtu']}>
         <InputNumber min={0} />
       </FormField>
-      <FormField label={t('pages.inbounds.form.ttiMs')} name={['streamSettings', 'kcpSettings', 'tti']}>
+      <FormField
+        label={t('pages.inbounds.form.ttiMs')}
+        name={['streamSettings', 'kcpSettings', 'tti']}
+      >
         <InputNumber min={0} />
       </FormField>
       <FormField

@@ -36,7 +36,10 @@ describe('parseAdminIds', () => {
   });
 
   it('accepts negative group ids and captures invalid entries', () => {
-    expect(parseAdminIds('-1001234567, abc, 42')).toEqual({ ids: [-1001234567, 42], invalid: ['abc'] });
+    expect(parseAdminIds('-1001234567, abc, 42')).toEqual({
+      ids: [-1001234567, 42],
+      invalid: ['abc'],
+    });
   });
 
   it('returns empty for blank input', () => {
@@ -78,9 +81,9 @@ describe('telegramApiBase', () => {
 
 describe('renderMessageTemplate', () => {
   it('substitutes known variables', () => {
-    expect(renderMessageTemplate('Host {{host}} up {{uptime}}', { host: 'srv', uptime: '3d' })).toBe(
-      'Host srv up 3d',
-    );
+    expect(
+      renderMessageTemplate('Host {{host}} up {{uptime}}', { host: 'srv', uptime: '3d' }),
+    ).toBe('Host srv up 3d');
   });
 
   it('leaves unknown variables literal', () => {
@@ -90,7 +93,11 @@ describe('renderMessageTemplate', () => {
 
 describe('buildBotConfigSummary', () => {
   it('emits the panel settings keys with admin ids joined', () => {
-    const s = buildBotConfigSummary({ token: VALID_TOKEN, adminIds: '111, 222', runTime: '@daily' });
+    const s = buildBotConfigSummary({
+      token: VALID_TOKEN,
+      adminIds: '111, 222',
+      runTime: '@daily',
+    });
     expect(s.tgBotEnable).toBe(true);
     expect(s.tgBotToken).toBe(VALID_TOKEN);
     expect(s.tgBotChatId).toBe('111,222');

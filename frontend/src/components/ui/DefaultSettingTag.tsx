@@ -8,7 +8,10 @@ import { useFactoryDefaults } from '@/api/queries/useFactoryDefaults';
  * default?", not "has the user ever saved this key?" — a stored 2096 and a
  * fallback 2096 behave identically, so they read identically.
  */
-export function matchesFactoryDefault(current: unknown, factoryDefault: string | undefined): boolean {
+export function matchesFactoryDefault(
+  current: unknown,
+  factoryDefault: string | undefined,
+): boolean {
   if (factoryDefault === undefined) return false;
   if (typeof current === 'number') {
     const parsed = Number(factoryDefault);

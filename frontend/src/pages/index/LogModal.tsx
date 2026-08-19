@@ -72,7 +72,15 @@ export default function LogModal({ open, onClose }: LogModalProps) {
   const titleNode = (
     <>
       {t('pages.index.logs')}
-      <SyncOutlined spin={loading} className="reload-icon" role="button" tabIndex={0} aria-label={t('refresh')} onClick={refresh} onKeyDown={activateOnKey(refresh)} />
+      <SyncOutlined
+        spin={loading}
+        className="reload-icon"
+        role="button"
+        tabIndex={0}
+        aria-label={t('refresh')}
+        onClick={refresh}
+        onKeyDown={activateOnKey(refresh)}
+      />
     </>
   );
 
@@ -126,7 +134,12 @@ export default function LogModal({ open, onClose }: LogModalProps) {
           </Checkbox>
         </Form.Item>
         <Form.Item className="download-item">
-          <Button type="primary" onClick={download} icon={<DownloadOutlined />} aria-label={t('download')} />
+          <Button
+            type="primary"
+            onClick={download}
+            icon={<DownloadOutlined />}
+            aria-label={t('download')}
+          />
         </Form.Item>
       </Form>
 
@@ -162,7 +175,9 @@ export default function LogModal({ open, onClose }: LogModalProps) {
             <div key={idx} className="log-line">
               {log.stamp && <span className="log-stamp">{log.stamp}</span>}
               {log.stamp && log.levelText ? ' ' : ''}
-              {log.levelText && <span className={`log-level ${log.levelClass}`}>{log.levelText}</span>}
+              {log.levelText && (
+                <span className={`log-level ${log.levelClass}`}>{log.levelText}</span>
+              )}
               {(log.body || log.service) && (
                 <>
                   {(log.stamp || log.levelText) && <span> - </span>}

@@ -55,36 +55,32 @@ export default function InboundStatsModal({
           <div className="stat-row">
             <span className="stat-label">{t('pages.inbounds.protocol')}</span>
             <Tag color="purple">{record.protocol}</Tag>
-            {(record.isWireguard || record.isHysteria) && (
-              <Tag color="green">UDP</Tag>
-            )}
-            {record.isSS && (() => {
-              const stream = readStreamHints(record.streamSettings);
-              return (
-                <>
-                  <Tag color="green">{shadowsocksNetworkLabel(record.settings)}</Tag>
-                  {stream.isTls && <Tag color="blue">TLS</Tag>}
-                </>
-              );
-            })()}
-            {record.isTunnel && (
-              <Tag color="green">{tunnelNetworkLabel(record.settings)}</Tag>
-            )}
-            {record.isMixed && (
-              <Tag color="green">{mixedNetworkLabel(record.settings)}</Tag>
-            )}
-            {(record.isVMess || record.isVLess || record.isTrojan) && (() => {
-              const stream = readStreamHints(record.streamSettings);
-              const l4 = networkL4(stream.network);
-              return (
-                <>
-                  <Tag color="green">{networkLabel(stream.network)}</Tag>
-                  {l4 && <Tag color="green">{l4}</Tag>}
-                  {stream.isTls && <Tag color="blue">TLS</Tag>}
-                  {stream.isReality && <Tag color="blue">Reality</Tag>}
-                </>
-              );
-            })()}
+            {(record.isWireguard || record.isHysteria) && <Tag color="green">UDP</Tag>}
+            {record.isSS &&
+              (() => {
+                const stream = readStreamHints(record.streamSettings);
+                return (
+                  <>
+                    <Tag color="green">{shadowsocksNetworkLabel(record.settings)}</Tag>
+                    {stream.isTls && <Tag color="blue">TLS</Tag>}
+                  </>
+                );
+              })()}
+            {record.isTunnel && <Tag color="green">{tunnelNetworkLabel(record.settings)}</Tag>}
+            {record.isMixed && <Tag color="green">{mixedNetworkLabel(record.settings)}</Tag>}
+            {(record.isVMess || record.isVLess || record.isTrojan) &&
+              (() => {
+                const stream = readStreamHints(record.streamSettings);
+                const l4 = networkL4(stream.network);
+                return (
+                  <>
+                    <Tag color="green">{networkLabel(stream.network)}</Tag>
+                    {l4 && <Tag color="green">{l4}</Tag>}
+                    {stream.isTls && <Tag color="blue">TLS</Tag>}
+                    {stream.isReality && <Tag color="blue">Reality</Tag>}
+                  </>
+                );
+              })()}
           </div>
           <div className="stat-row">
             <span className="stat-label">{t('pages.inbounds.port')}</span>
@@ -107,8 +103,7 @@ export default function InboundStatsModal({
           <div className="stat-row">
             <span className="stat-label">{t('pages.inbounds.traffic')}</span>
             <Tag color={ColorUtils.usageColor(record.up + record.down, trafficDiff, record.total)}>
-              {SizeFormatter.sizeFormat(record.up + record.down)} /
-              {' '}
+              {SizeFormatter.sizeFormat(record.up + record.down)} /{' '}
               {record.total > 0 ? SizeFormatter.sizeFormat(record.total) : <InfinityIcon />}
             </Tag>
           </div>
@@ -125,15 +120,23 @@ export default function InboundStatsModal({
           {clientCount[record.id] && (
             <div className="stat-row">
               <span className="stat-label">{t('clients')}</span>
-              <Tag color="green" className="client-count-tag">{clientCount[record.id].clients}</Tag>
+              <Tag color="green" className="client-count-tag">
+                {clientCount[record.id].clients}
+              </Tag>
               {clientCount[record.id].online.length > 0 && (
-                <Tag color="blue">{clientCount[record.id].online.length} {t('online')}</Tag>
+                <Tag color="blue">
+                  {clientCount[record.id].online.length} {t('online')}
+                </Tag>
               )}
               {clientCount[record.id].depleted.length > 0 && (
-                <Tag color="red">{clientCount[record.id].depleted.length} {t('depleted')}</Tag>
+                <Tag color="red">
+                  {clientCount[record.id].depleted.length} {t('depleted')}
+                </Tag>
               )}
               {clientCount[record.id].expiring.length > 0 && (
-                <Tag color="orange">{clientCount[record.id].expiring.length} {t('depletingSoon')}</Tag>
+                <Tag color="orange">
+                  {clientCount[record.id].expiring.length} {t('depletingSoon')}
+                </Tag>
               )}
             </div>
           )}
@@ -144,7 +147,9 @@ export default function InboundStatsModal({
                 {IntlUtil.formatRelativeTime(record.expiryTime)}
               </Tag>
             ) : (
-              <Tag color="purple"><InfinityIcon /></Tag>
+              <Tag color="purple">
+                <InfinityIcon />
+              </Tag>
             )}
           </div>
         </div>

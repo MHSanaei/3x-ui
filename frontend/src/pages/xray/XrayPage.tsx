@@ -30,7 +30,11 @@ import { propagateOutboundTagRename } from './basics/helpers';
 import { RoutingTab } from './routing';
 import { OutboundsTab } from './outbounds';
 import { BalancersTab } from './balancers';
-import { cleanupOrphanedBalancerLoopbacks, ensureMissingBalancerLoopbacks, detectBalancerCycles } from './balancers/balancer-loopback';
+import {
+  cleanupOrphanedBalancerLoopbacks,
+  ensureMissingBalancerLoopbacks,
+  detectBalancerCycles,
+} from './balancers/balancer-loopback';
 import { DnsTab } from './dns';
 import { WarpModal, NordModal } from './overrides';
 import './XrayPage.css';
@@ -44,7 +48,9 @@ export default function XrayPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
   const { isMobile } = useMediaQuery();
   const [messageApi, messageContextHolder] = message.useMessage();
-  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
+  useEffect(() => {
+    setMessageInstance(messageApi);
+  }, [messageApi]);
   const xs = useXraySetting();
   const {
     fetched,
@@ -79,7 +85,12 @@ export default function XrayPage() {
   const [advSettings, setAdvSettings] = useState<AdvKey>('xraySetting');
   const location = useLocation();
   const navigate = useNavigate();
-  const pathSection = location.pathname === '/outbound' ? 'outbound' : location.pathname === '/routing' ? 'routing' : '';
+  const pathSection =
+    location.pathname === '/outbound'
+      ? 'outbound'
+      : location.pathname === '/routing'
+        ? 'routing'
+        : '';
   const sectionSlug = pathSection || location.hash.replace(/^#/, '');
   const activeSection = SECTION_SLUGS.includes(sectionSlug) ? sectionSlug : 'basic';
 
@@ -111,7 +122,12 @@ export default function XrayPage() {
       tt.outbounds.push(outbound as never);
     });
   }
-  function onResetOutbound(payload: { index: number; outbound: Record<string, unknown>; oldTag?: string; newTag?: string }) {
+  function onResetOutbound(payload: {
+    index: number;
+    outbound: Record<string, unknown>;
+    oldTag?: string;
+    newTag?: string;
+  }) {
     mutate((tt) => {
       if (!tt.outbounds || payload.index < 0) return;
       tt.outbounds[payload.index] = payload.outbound as never;
@@ -146,10 +162,14 @@ export default function XrayPage() {
     if (!tpl) return '';
     try {
       switch (advSettings) {
-        case 'inboundSettings': return JSON.stringify(tpl.inbounds || [], null, 2);
-        case 'outboundSettings': return JSON.stringify(tpl.outbounds || [], null, 2);
-        case 'routingRuleSettings': return JSON.stringify(tpl.routing?.rules || [], null, 2);
-        default: return '';
+        case 'inboundSettings':
+          return JSON.stringify(tpl.inbounds || [], null, 2);
+        case 'outboundSettings':
+          return JSON.stringify(tpl.outbounds || [], null, 2);
+        case 'routingRuleSettings':
+          return JSON.stringify(tpl.routing?.rules || [], null, 2);
+        default:
+          return '';
       }
     } catch {
       return '';
@@ -259,10 +279,7 @@ export default function XrayPage() {
         );
       case 'dns':
         return (
-          <DnsTab
-            templateSettings={templateSettings}
-            setTemplateSettings={setTemplateSettings}
-          />
+          <DnsTab templateSettings={templateSettings} setTemplateSettings={setTemplateSettings} />
         );
       case 'advanced':
         return (
@@ -312,7 +329,12 @@ export default function XrayPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={spinning || !fetched} delay={200} description={t('loading')} size="large">
+            <Spin
+              spinning={spinning || !fetched}
+              delay={200}
+              description={t('loading')}
+              size="large"
+            >
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : fetchError ? (
@@ -320,7 +342,11 @@ export default function XrayPage() {
                   status="error"
                   title={t('somethingWentWrong')}
                   subTitle={fetchError}
-                  extra={<Button type="primary" onClick={fetchAll}>{t('check')}</Button>}
+                  extra={
+                    <Button type="primary" onClick={fetchAll}>
+                      {t('check')}
+                    </Button>
+                  }
                 />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 0 : 12]}>
@@ -343,9 +369,7 @@ export default function XrayPage() {
                   </Col>
 
                   <Col span={24}>
-                    <Card hoverable>
-                      {sectionBody}
-                    </Card>
+                    <Card hoverable>{sectionBody}</Card>
                   </Col>
                 </Row>
               )}

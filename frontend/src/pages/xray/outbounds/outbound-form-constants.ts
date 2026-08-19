@@ -28,7 +28,14 @@ export const TARGET_STRATEGY_OPTIONS = OutboundDomainStrategySchema.options.map(
 
 // canEnableMux mirrors the adapter's helper but lives here so the modal
 // can show/hide the Mux section without going through the adapter.
-export const MUX_PROTOCOLS = new Set<string>(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
+export const MUX_PROTOCOLS = new Set<string>([
+  'vmess',
+  'vless',
+  'trojan',
+  'shadowsocks',
+  'http',
+  'socks',
+]);
 
 export const NETWORK_OPTIONS: { value: string; label: string }[] = [
   { value: 'tcp', label: 'RAW' },
@@ -48,5 +55,11 @@ export const HYSTERIA_NETWORK_OPTION = { value: 'hysteria', label: 'Hysteria' };
 // protocol section. Wireguard has an address but no port. DNS/freedom/
 // blackhole/loopback have no connect target.
 export const SERVER_PROTOCOLS = new Set<string>([
-  'vmess', 'vless', 'trojan', 'shadowsocks', 'socks', 'http', 'hysteria',
+  'vmess',
+  'vless',
+  'trojan',
+  'shadowsocks',
+  'socks',
+  'http',
+  'hysteria',
 ]);

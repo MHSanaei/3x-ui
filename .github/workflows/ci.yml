@@ -8,6 +8,7 @@ on:
       - "go.sum"
       - "frontend/**"
       - ".nvmrc"
+      - "Makefile"
       - ".github/workflows/ci.yml"
   push:
     branches:
@@ -18,6 +19,7 @@ on:
       - "go.sum"
       - "frontend/**"
       - ".nvmrc"
+      - "Makefile"
       - ".github/workflows/ci.yml"
 
 permissions:
@@ -187,6 +189,9 @@ jobs:
         working-directory: frontend
       - name: Lint
         run: npm run lint
+        working-directory: frontend
+      - name: Format check
+        run: npm run format:check
         working-directory: frontend
       - name: Typecheck
         run: npm run typecheck

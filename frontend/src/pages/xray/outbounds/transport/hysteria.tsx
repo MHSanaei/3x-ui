@@ -41,10 +41,15 @@ export default function HysteriaForm() {
               MASQ_DOT,
               checked
                 ? {
-                  type: '', dir: '', url: '',
-                  rewriteHost: false, insecure: false,
-                  content: '', headers: {}, statusCode: 0,
-                }
+                    type: '',
+                    dir: '',
+                    url: '',
+                    rewriteHost: false,
+                    insecure: false,
+                    content: '',
+                    headers: {},
+                    statusCode: 0,
+                  }
                 : undefined,
             )
           }

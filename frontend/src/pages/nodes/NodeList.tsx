@@ -1,17 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Badge,
-  Button,
-  Card,
-  Dropdown,
-  Modal,
-  Space,
-  Switch,
-  Table,
-  Tag,
-  Tooltip,
-} from 'antd';
+import { Badge, Button, Card, Dropdown, Modal, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { BadgeProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -66,9 +55,12 @@ interface NodeRow extends NodeRecord {
 
 function badgeStatus(status?: string): BadgeProps['status'] {
   switch (status) {
-    case 'online': return 'success';
-    case 'offline': return 'error';
-    default: return 'default';
+    case 'online':
+      return 'success';
+    case 'offline':
+      return 'error';
+    default:
+      return 'default';
   }
 }
 
@@ -92,18 +84,24 @@ function hasXrayProblem(status?: string, xrayState?: string): boolean {
 // Tooltip text + icon color for the status cell. A real probe error (lastError)
 // is a warning and takes precedence; otherwise an Xray-core problem shows purple.
 function statusIssue(record: Pick<NodeRecord, 'status' | 'xrayState' | 'xrayError' | 'lastError'>) {
-  const tip = record.lastError || (hasXrayProblem(record.status, record.xrayState) ? record.xrayError : '') || '';
-  const iconColor = !record.lastError && hasXrayProblem(record.status, record.xrayState)
-    ? XRAY_ERROR_COLOR
-    : 'var(--ant-color-warning)';
+  const tip =
+    record.lastError ||
+    (hasXrayProblem(record.status, record.xrayState) ? record.xrayError : '') ||
+    '';
+  const iconColor =
+    !record.lastError && hasXrayProblem(record.status, record.xrayState)
+      ? XRAY_ERROR_COLOR
+      : 'var(--ant-color-warning)';
   return { tip, iconColor };
 }
 
 function StatusDot({ status, xrayState }: HealthProps) {
   if (status === 'online') {
-    return hasXrayProblem(status, xrayState)
-      ? <span className="xray-error-dot" />
-      : <span className="online-dot" />;
+    return hasXrayProblem(status, xrayState) ? (
+      <span className="xray-error-dot" />
+    ) : (
+      <span className="online-dot" />
+    );
   }
   return <Badge status={badgeStatus(status)} />;
 }
@@ -113,9 +111,10 @@ function StatusLabel({ status, xrayState }: HealthProps) {
   if (status === 'online') {
     const xs = (xrayState || '').toLowerCase().trim();
     if (xs === 'error' || xs === 'stop') {
-      const detail = xs === 'error'
-        ? t('pages.nodes.statusValues.xrayError')
-        : t('pages.nodes.statusValues.xrayStopped');
+      const detail =
+        xs === 'error'
+          ? t('pages.nodes.statusValues.xrayError')
+          : t('pages.nodes.statusValues.xrayStopped');
       return (
         <span style={{ color: XRAY_ERROR_COLOR }}>
           {t('pages.nodes.statusValues.online')} ({detail})
@@ -229,206 +228,307 @@ export default function NodeList({
   function toggleExpanded(id: number) {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
 
-  const columns = useMemo<ColumnsType<NodeRow>>(() => [
-    {
-      title: t('pages.nodes.actions'),
-      align: 'center',
-      width: 190,
-      render: (_value, record) => record.transitive ? (
-        <Tooltip title={t('pages.nodes.subNodeTip', { parent: record.parentGuid ? (nameByGuid.get(record.parentGuid) || '-') : '-' })}>
-          <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
-        </Tooltip>
-      ) : (
-        <Space>
-          <Tooltip title={t('pages.nodes.probe')}>
-            <Button type="text" size="small" style={{ fontSize: 16 }} icon={<ThunderboltOutlined />} aria-label={t('pages.nodes.probe')} onClick={() => onProbe(record)} />
-          </Tooltip>
-          {isUpdateEligible(record) && (
-            <Tooltip title={t('pages.nodes.updatePanel')}>
-              <Button type="text" size="small" style={{ fontSize: 16 }} icon={<CloudDownloadOutlined />} aria-label={t('pages.nodes.updatePanel')} onClick={() => onUpdateNode(record)} />
+  const columns = useMemo<ColumnsType<NodeRow>>(
+    () => [
+      {
+        title: t('pages.nodes.actions'),
+        align: 'center',
+        width: 190,
+        render: (_value, record) =>
+          record.transitive ? (
+            <Tooltip
+              title={t('pages.nodes.subNodeTip', {
+                parent: record.parentGuid ? nameByGuid.get(record.parentGuid) || '-' : '-',
+              })}
+            >
+              <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>
+                {t('pages.nodes.subNode')}
+              </Tag>
             </Tooltip>
-          )}
-          <Tooltip title={t('edit')}>
-            <Button type="text" size="small" style={{ fontSize: 16 }} icon={<EditOutlined />} aria-label={t('edit')} onClick={() => onEdit(record)} />
-          </Tooltip>
-          <Tooltip title={t('delete')}>
-            <Button type="text" size="small" danger style={{ fontSize: 16 }} icon={<DeleteOutlined />} aria-label={t('delete')} onClick={() => onDelete(record)} />
-          </Tooltip>
-        </Space>
-      ),
-    },
-    {
-      title: t('pages.nodes.enable'),
-      dataIndex: 'enable',
-      align: 'center',
-      width: 80,
-      render: (_value, record) => record.transitive ? (
-        <span style={{ opacity: 0.4 }}>—</span>
-      ) : (
-        <Switch
-          checked={!!record.enable}
-          size="small"
-          onChange={(v) => onToggleEnable(record, v)}
-        />
-      ),
-    },
-    {
-      title: t('pages.nodes.name'),
-      dataIndex: 'name',
-      ellipsis: true,
-      render: (_value, record) => (
-        <div className="name-cell" style={record.transitive ? { paddingInlineStart: 20 } : undefined}>
-          <span className="name">
-            {record.transitive && <ApartmentOutlined style={{ marginInlineEnd: 6, opacity: 0.6 }} />}
-            {record.name}
-          </span>
-          {record.remark && <span className="remark">{record.remark}</span>}
-        </div>
-      ),
-    },
-    {
-      title: (
-        <span className="address-header">
-          {t('pages.nodes.address')}
-          <Tooltip title={t('pages.index.toggleIpVisibility')}>
-            {showAddress ? (
-              <EyeOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowAddress(false)} onKeyDown={activateOnKey(() => setShowAddress(false))} />
-            ) : (
-              <EyeInvisibleOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowAddress(true)} onKeyDown={activateOnKey(() => setShowAddress(true))} />
-            )}
-          </Tooltip>
-        </span>
-      ),
-      dataIndex: 'url',
-      ellipsis: true,
-      render: (_value, record) => (
-        <a
-          href={record.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={showAddress ? 'address-visible' : 'address-hidden'}
-        >
-          {record.url}
-        </a>
-      ),
-    },
-    {
-      title: t('pages.nodes.status'),
-      dataIndex: 'status',
-      align: 'center',
-      render: (_value, record) => {
-        const { tip, iconColor } = statusIssue(record);
-        return (
-          <Space size={4}>
-            <StatusDot status={record.status} xrayState={record.xrayState} />
-            <StatusLabel status={record.status} xrayState={record.xrayState} />
-            {tip && (
-              <Tooltip title={tip}>
-                <ExclamationCircleOutlined style={{ color: iconColor }} />
+          ) : (
+            <Space>
+              <Tooltip title={t('pages.nodes.probe')}>
+                <Button
+                  type="text"
+                  size="small"
+                  style={{ fontSize: 16 }}
+                  icon={<ThunderboltOutlined />}
+                  aria-label={t('pages.nodes.probe')}
+                  onClick={() => onProbe(record)}
+                />
               </Tooltip>
-            )}
-          </Space>
-        );
+              {isUpdateEligible(record) && (
+                <Tooltip title={t('pages.nodes.updatePanel')}>
+                  <Button
+                    type="text"
+                    size="small"
+                    style={{ fontSize: 16 }}
+                    icon={<CloudDownloadOutlined />}
+                    aria-label={t('pages.nodes.updatePanel')}
+                    onClick={() => onUpdateNode(record)}
+                  />
+                </Tooltip>
+              )}
+              <Tooltip title={t('edit')}>
+                <Button
+                  type="text"
+                  size="small"
+                  style={{ fontSize: 16 }}
+                  icon={<EditOutlined />}
+                  aria-label={t('edit')}
+                  onClick={() => onEdit(record)}
+                />
+              </Tooltip>
+              <Tooltip title={t('delete')}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  style={{ fontSize: 16 }}
+                  icon={<DeleteOutlined />}
+                  aria-label={t('delete')}
+                  onClick={() => onDelete(record)}
+                />
+              </Tooltip>
+            </Space>
+          ),
       },
-    },
-    {
-      title: t('pages.nodes.cpu'),
-      dataIndex: 'cpuPct',
-      align: 'center',
-      width: 90,
-      render: (_value, record) => formatPct(record.cpuPct),
-    },
-    {
-      title: t('pages.nodes.mem'),
-      dataIndex: 'memPct',
-      align: 'center',
-      width: 90,
-      render: (_value, record) => formatPct(record.memPct),
-    },
-    {
-      title: t('pages.nodes.xrayVersion'),
-      dataIndex: 'xrayVersion',
-      align: 'center',
-      render: (_value, record) => record.xrayVersion || '-',
-    },
-    {
-      title: t('pages.nodes.panelVersion') || 'Panel version',
-      dataIndex: 'panelVersion',
-      align: 'center',
-      render: (_value, record) => {
-        const canUpdate = isUpdateEligible(record)
-          && isPanelUpdateAvailable(latestVersion, record.panelVersion || '');
-        return (
-          <Space size={4}>
-            <span>{record.panelVersion || '-'}</span>
-            {canUpdate && (
-              <Tooltip title={`${t('pages.nodes.updateAvailable')}: ${latestVersion}`}>
-                <Tag color="orange" style={{ margin: 0, cursor: 'pointer' }} role="button" tabIndex={0} onClick={() => onUpdateNode(record)} onKeyDown={activateOnKey(() => onUpdateNode(record))}>
-                  {t('pages.nodes.updateAvailable')}
+      {
+        title: t('pages.nodes.enable'),
+        dataIndex: 'enable',
+        align: 'center',
+        width: 80,
+        render: (_value, record) =>
+          record.transitive ? (
+            <span style={{ opacity: 0.4 }}>—</span>
+          ) : (
+            <Switch
+              checked={!!record.enable}
+              size="small"
+              onChange={(v) => onToggleEnable(record, v)}
+            />
+          ),
+      },
+      {
+        title: t('pages.nodes.name'),
+        dataIndex: 'name',
+        ellipsis: true,
+        render: (_value, record) => (
+          <div
+            className="name-cell"
+            style={record.transitive ? { paddingInlineStart: 20 } : undefined}
+          >
+            <span className="name">
+              {record.transitive && (
+                <ApartmentOutlined style={{ marginInlineEnd: 6, opacity: 0.6 }} />
+              )}
+              {record.name}
+            </span>
+            {record.remark && <span className="remark">{record.remark}</span>}
+          </div>
+        ),
+      },
+      {
+        title: (
+          <span className="address-header">
+            {t('pages.nodes.address')}
+            <Tooltip title={t('pages.index.toggleIpVisibility')}>
+              {showAddress ? (
+                <EyeOutlined
+                  className="ip-toggle-icon"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('pages.index.toggleIpVisibility')}
+                  onClick={() => setShowAddress(false)}
+                  onKeyDown={activateOnKey(() => setShowAddress(false))}
+                />
+              ) : (
+                <EyeInvisibleOutlined
+                  className="ip-toggle-icon"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={t('pages.index.toggleIpVisibility')}
+                  onClick={() => setShowAddress(true)}
+                  onKeyDown={activateOnKey(() => setShowAddress(true))}
+                />
+              )}
+            </Tooltip>
+          </span>
+        ),
+        dataIndex: 'url',
+        ellipsis: true,
+        render: (_value, record) => (
+          <a
+            href={record.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={showAddress ? 'address-visible' : 'address-hidden'}
+          >
+            {record.url}
+          </a>
+        ),
+      },
+      {
+        title: t('pages.nodes.status'),
+        dataIndex: 'status',
+        align: 'center',
+        render: (_value, record) => {
+          const { tip, iconColor } = statusIssue(record);
+          return (
+            <Space size={4}>
+              <StatusDot status={record.status} xrayState={record.xrayState} />
+              <StatusLabel status={record.status} xrayState={record.xrayState} />
+              {tip && (
+                <Tooltip title={tip}>
+                  <ExclamationCircleOutlined style={{ color: iconColor }} />
+                </Tooltip>
+              )}
+            </Space>
+          );
+        },
+      },
+      {
+        title: t('pages.nodes.cpu'),
+        dataIndex: 'cpuPct',
+        align: 'center',
+        width: 90,
+        render: (_value, record) => formatPct(record.cpuPct),
+      },
+      {
+        title: t('pages.nodes.mem'),
+        dataIndex: 'memPct',
+        align: 'center',
+        width: 90,
+        render: (_value, record) => formatPct(record.memPct),
+      },
+      {
+        title: t('pages.nodes.xrayVersion'),
+        dataIndex: 'xrayVersion',
+        align: 'center',
+        render: (_value, record) => record.xrayVersion || '-',
+      },
+      {
+        title: t('pages.nodes.panelVersion') || 'Panel version',
+        dataIndex: 'panelVersion',
+        align: 'center',
+        render: (_value, record) => {
+          const canUpdate =
+            isUpdateEligible(record) &&
+            isPanelUpdateAvailable(latestVersion, record.panelVersion || '');
+          return (
+            <Space size={4}>
+              <span>{record.panelVersion || '-'}</span>
+              {canUpdate && (
+                <Tooltip title={`${t('pages.nodes.updateAvailable')}: ${latestVersion}`}>
+                  <Tag
+                    color="orange"
+                    style={{ margin: 0, cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onUpdateNode(record)}
+                    onKeyDown={activateOnKey(() => onUpdateNode(record))}
+                  >
+                    {t('pages.nodes.updateAvailable')}
+                  </Tag>
+                </Tooltip>
+              )}
+            </Space>
+          );
+        },
+      },
+      {
+        title: t('pages.nodes.uptime'),
+        dataIndex: 'uptimeSecs',
+        align: 'center',
+        render: (_value, record) => formatUptime(record.uptimeSecs),
+      },
+      {
+        title: t('clients'),
+        align: 'center',
+        width: 180,
+        render: (_value, record) => (
+          <Space size={2}>
+            <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>
+              <TeamOutlined /> {record.clientCount || 0}
+            </Tag>
+            {record.activeCount ? (
+              <Tooltip title={t('subscription.active')}>
+                <Tag
+                  color="green"
+                  className="client-count-tag"
+                  style={{ margin: 0, padding: '0 2px' }}
+                >
+                  {record.activeCount}
                 </Tag>
               </Tooltip>
-            )}
+            ) : null}
+            {record.disabledCount ? (
+              <Tooltip title={t('disabled')}>
+                <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>
+                  {record.disabledCount}
+                </Tag>
+              </Tooltip>
+            ) : null}
+            {record.depletedCount ? (
+              <Tooltip title={t('depleted')}>
+                <Tag
+                  color="red"
+                  className="client-count-tag"
+                  style={{ margin: 0, padding: '0 2px' }}
+                >
+                  {record.depletedCount}
+                </Tag>
+              </Tooltip>
+            ) : null}
+            {record.onlineCount ? (
+              <Tooltip title={t('online')}>
+                <Tag
+                  color="blue"
+                  className="client-count-tag"
+                  style={{ margin: 0, padding: '0 2px' }}
+                >
+                  {record.onlineCount}
+                </Tag>
+              </Tooltip>
+            ) : null}
           </Space>
-        );
+        ),
       },
-    },
-    {
-      title: t('pages.nodes.uptime'),
-      dataIndex: 'uptimeSecs',
-      align: 'center',
-      render: (_value, record) => formatUptime(record.uptimeSecs),
-    },
-    {
-      title: t('clients'),
-      align: 'center',
-      width: 180,
-      render: (_value, record) => (
-        <Space size={2}>
-          <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}><TeamOutlined /> {record.clientCount || 0}</Tag>
-          {record.activeCount ? (
-            <Tooltip title={t('subscription.active')}>
-              <Tag color="green" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.activeCount}</Tag>
-            </Tooltip>
-          ) : null}
-          {record.disabledCount ? (
-            <Tooltip title={t('disabled')}>
-              <Tag className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.disabledCount}</Tag>
-            </Tooltip>
-          ) : null}
-          {record.depletedCount ? (
-            <Tooltip title={t('depleted')}>
-              <Tag color="red" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.depletedCount}</Tag>
-            </Tooltip>
-          ) : null}
-          {record.onlineCount ? (
-            <Tooltip title={t('online')}>
-              <Tag color="blue" className="client-count-tag" style={{ margin: 0, padding: '0 2px' }}>{record.onlineCount}</Tag>
-            </Tooltip>
-          ) : null}
-        </Space>
-      ),
-    },
-    {
-      title: t('pages.nodes.latency'),
-      dataIndex: 'latencyMs',
-      align: 'center',
-      width: 100,
-      render: (_value, record) =>
-        record.latencyMs && record.latencyMs > 0 ? `${record.latencyMs} ms` : '-',
-    },
-    {
-      title: t('pages.nodes.lastHeartbeat'),
-      dataIndex: 'lastHeartbeat',
-      align: 'center',
-      width: 120,
-      render: (_value, record) => relativeTime(record.lastHeartbeat),
-    },
-  ], [t, showAddress, relativeTime, latestVersion, onToggleEnable, onProbe, onEdit, onDelete, onUpdateNode, nameByGuid]);
+      {
+        title: t('pages.nodes.latency'),
+        dataIndex: 'latencyMs',
+        align: 'center',
+        width: 100,
+        render: (_value, record) =>
+          record.latencyMs && record.latencyMs > 0 ? `${record.latencyMs} ms` : '-',
+      },
+      {
+        title: t('pages.nodes.lastHeartbeat'),
+        dataIndex: 'lastHeartbeat',
+        align: 'center',
+        width: 120,
+        render: (_value, record) => relativeTime(record.lastHeartbeat),
+      },
+    ],
+    [
+      t,
+      showAddress,
+      relativeTime,
+      latestVersion,
+      onToggleEnable,
+      onProbe,
+      onEdit,
+      onDelete,
+      onUpdateNode,
+      nameByGuid,
+    ],
+  );
 
   return (
     <Card size="small" hoverable>
@@ -455,93 +555,128 @@ export default function NodeList({
                 <div>{t('noData')}</div>
               </div>
             ) : (
-              dataSource.map((record) => record.transitive ? (
-                <div key={String(record.key)} className="node-card" style={{ paddingInlineStart: 16, opacity: 0.85 }}>
-                  <div className="card-head">
-                    <ApartmentOutlined style={{ opacity: 0.6 }} />
-                    <StatusDot status={record.status} xrayState={record.xrayState} />
-                    <span className="node-name">{record.name}</span>
-                    <div className="card-actions">
-                      <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>{t('pages.nodes.subNode')}</Tag>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div key={record.id} className="node-card">
-                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- mouse click-to-expand mirrors the keyboard-accessible chevron disclosure button */}
+              dataSource.map((record) =>
+                record.transitive ? (
                   <div
-                    className="card-head"
-                    onClick={(e) => {
-                      if (!(e.target as HTMLElement).closest('.card-actions')) toggleExpanded(record.id);
-                    }}
+                    key={String(record.key)}
+                    className="node-card"
+                    style={{ paddingInlineStart: 16, opacity: 0.85 }}
                   >
-                    <RightOutlined
-                      className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`}
-                      role="button"
-                      tabIndex={0}
-                      aria-expanded={expandedIds.has(record.id)}
-                      aria-label={record.name}
-                      onKeyDown={activateOnKey(() => toggleExpanded(record.id))}
-                    />
-                    <StatusDot status={record.status} xrayState={record.xrayState} />
-                    <span className="node-name">{record.name}</span>
-                    <div className="card-actions">
-                      <Tooltip title={t('info')}>
-                        <InfoCircleOutlined
-                          className="row-action-trigger"
-                          role="button"
-                          tabIndex={0}
-                          aria-label={t('info')}
-                          onClick={() => setStatsNode(record)}
-                          onKeyDown={activateOnKey(() => setStatsNode(record))}
-                        />
-                      </Tooltip>
-                      <Switch
-                        checked={!!record.enable}
-                        size="small"
-                        onChange={(v) => onToggleEnable(record, v)}
-                      />
-                      <Dropdown
-                        trigger={['click']}
-                        placement="bottomRight"
-                        menu={{
-                          items: [
-                            {
-                              key: 'probe',
-                              label: <><ThunderboltOutlined /> {t('pages.nodes.probe')}</>,
-                              onClick: () => onProbe(record),
-                            },
-                            ...(isUpdateEligible(record) ? [{
-                              key: 'update',
-                              label: <><CloudDownloadOutlined /> {t('pages.nodes.updatePanel')}</>,
-                              onClick: () => onUpdateNode(record),
-                            }] : []),
-                            {
-                              key: 'edit',
-                              label: <><EditOutlined /> {t('edit')}</>,
-                              onClick: () => onEdit(record),
-                            },
-                            {
-                              key: 'delete',
-                              danger: true,
-                              label: <><DeleteOutlined /> {t('delete')}</>,
-                              onClick: () => onDelete(record),
-                            },
-                          ],
-                        }}
-                      >
-                        <Button type="text" size="small" className="row-action-trigger" icon={<MoreOutlined />} aria-label={t('more')} />
-                      </Dropdown>
+                    <div className="card-head">
+                      <ApartmentOutlined style={{ opacity: 0.6 }} />
+                      <StatusDot status={record.status} xrayState={record.xrayState} />
+                      <span className="node-name">{record.name}</span>
+                      <div className="card-actions">
+                        <Tag icon={<ApartmentOutlined />} style={{ margin: 0 }}>
+                          {t('pages.nodes.subNode')}
+                        </Tag>
+                      </div>
                     </div>
                   </div>
-
-                  {expandedIds.has(record.id) && (
-                    <div className="card-history">
-                      <NodeHistoryPanel node={record} />
+                ) : (
+                  <div key={record.id} className="node-card">
+                    {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- mouse click-to-expand mirrors the keyboard-accessible chevron disclosure button */}
+                    <div
+                      className="card-head"
+                      onClick={(e) => {
+                        if (!(e.target as HTMLElement).closest('.card-actions'))
+                          toggleExpanded(record.id);
+                      }}
+                    >
+                      <RightOutlined
+                        className={`card-expand${expandedIds.has(record.id) ? ' is-expanded' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={expandedIds.has(record.id)}
+                        aria-label={record.name}
+                        onKeyDown={activateOnKey(() => toggleExpanded(record.id))}
+                      />
+                      <StatusDot status={record.status} xrayState={record.xrayState} />
+                      <span className="node-name">{record.name}</span>
+                      <div className="card-actions">
+                        <Tooltip title={t('info')}>
+                          <InfoCircleOutlined
+                            className="row-action-trigger"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={t('info')}
+                            onClick={() => setStatsNode(record)}
+                            onKeyDown={activateOnKey(() => setStatsNode(record))}
+                          />
+                        </Tooltip>
+                        <Switch
+                          checked={!!record.enable}
+                          size="small"
+                          onChange={(v) => onToggleEnable(record, v)}
+                        />
+                        <Dropdown
+                          trigger={['click']}
+                          placement="bottomRight"
+                          menu={{
+                            items: [
+                              {
+                                key: 'probe',
+                                label: (
+                                  <>
+                                    <ThunderboltOutlined /> {t('pages.nodes.probe')}
+                                  </>
+                                ),
+                                onClick: () => onProbe(record),
+                              },
+                              ...(isUpdateEligible(record)
+                                ? [
+                                    {
+                                      key: 'update',
+                                      label: (
+                                        <>
+                                          <CloudDownloadOutlined /> {t('pages.nodes.updatePanel')}
+                                        </>
+                                      ),
+                                      onClick: () => onUpdateNode(record),
+                                    },
+                                  ]
+                                : []),
+                              {
+                                key: 'edit',
+                                label: (
+                                  <>
+                                    <EditOutlined /> {t('edit')}
+                                  </>
+                                ),
+                                onClick: () => onEdit(record),
+                              },
+                              {
+                                key: 'delete',
+                                danger: true,
+                                label: (
+                                  <>
+                                    <DeleteOutlined /> {t('delete')}
+                                  </>
+                                ),
+                                onClick: () => onDelete(record),
+                              },
+                            ],
+                          }}
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            className="row-action-trigger"
+                            icon={<MoreOutlined />}
+                            aria-label={t('more')}
+                          />
+                        </Dropdown>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))
+
+                    {expandedIds.has(record.id) && (
+                      <div className="card-history">
+                        <NodeHistoryPanel node={record} />
+                      </div>
+                    )}
+                  </div>
+                ),
+              )
             )}
           </div>
 
@@ -573,9 +708,23 @@ export default function NodeList({
                   </a>
                   <Tooltip title={t('pages.index.toggleIpVisibility')}>
                     {showAddress ? (
-                      <EyeOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowAddress(false)} onKeyDown={activateOnKey(() => setShowAddress(false))} />
+                      <EyeOutlined
+                        className="ip-toggle-icon"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={t('pages.index.toggleIpVisibility')}
+                        onClick={() => setShowAddress(false)}
+                        onKeyDown={activateOnKey(() => setShowAddress(false))}
+                      />
                     ) : (
-                      <EyeInvisibleOutlined className="ip-toggle-icon" role="button" tabIndex={0} aria-label={t('pages.index.toggleIpVisibility')} onClick={() => setShowAddress(true)} onKeyDown={activateOnKey(() => setShowAddress(true))} />
+                      <EyeInvisibleOutlined
+                        className="ip-toggle-icon"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={t('pages.index.toggleIpVisibility')}
+                        onClick={() => setShowAddress(true)}
+                        onKeyDown={activateOnKey(() => setShowAddress(true))}
+                      />
                     )}
                   </Tooltip>
                 </div>
@@ -605,7 +754,9 @@ export default function NodeList({
                   <Tag>{statsNode.xrayVersion || '-'}</Tag>
                 </div>
                 <div className="stat-row">
-                  <span className="stat-label">{t('pages.nodes.panelVersion') || 'Panel version'}</span>
+                  <span className="stat-label">
+                    {t('pages.nodes.panelVersion') || 'Panel version'}
+                  </span>
                   <Tag>{statsNode.panelVersion || '-'}</Tag>
                 </div>
                 <div className="stat-row">
@@ -615,23 +766,35 @@ export default function NodeList({
                 <div className="stat-row">
                   <span className="stat-label">{t('pages.nodes.latency')}</span>
                   <Tag>
-                    {statsNode.latencyMs && statsNode.latencyMs > 0 ? `${statsNode.latencyMs} ms` : '-'}
+                    {statsNode.latencyMs && statsNode.latencyMs > 0
+                      ? `${statsNode.latencyMs} ms`
+                      : '-'}
                   </Tag>
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('clients')}</span>
-                  <Tag><TeamOutlined /> {statsNode.clientCount || 0}</Tag>
+                  <Tag>
+                    <TeamOutlined /> {statsNode.clientCount || 0}
+                  </Tag>
                   {statsNode.activeCount ? (
-                    <Tag color="green">{statsNode.activeCount} {t('subscription.active')}</Tag>
+                    <Tag color="green">
+                      {statsNode.activeCount} {t('subscription.active')}
+                    </Tag>
                   ) : null}
                   {statsNode.disabledCount ? (
-                    <Tag>{statsNode.disabledCount} {t('disabled')}</Tag>
+                    <Tag>
+                      {statsNode.disabledCount} {t('disabled')}
+                    </Tag>
                   ) : null}
                   {statsNode.depletedCount ? (
-                    <Tag color="red">{statsNode.depletedCount} {t('depleted')}</Tag>
+                    <Tag color="red">
+                      {statsNode.depletedCount} {t('depleted')}
+                    </Tag>
                   ) : null}
                   {statsNode.onlineCount ? (
-                    <Tag color="blue">{statsNode.onlineCount} {t('online')}</Tag>
+                    <Tag color="blue">
+                      {statsNode.onlineCount} {t('online')}
+                    </Tag>
                   ) : null}
                 </div>
                 <div className="stat-row">
@@ -651,11 +814,18 @@ export default function NodeList({
           scroll={{ x: 'max-content' }}
           size="middle"
           rowKey="key"
-          rowSelection={dataSource.length > 1 ? {
-            selectedRowKeys: selectedIds,
-            onChange: (keys) => onSelectionChange(keys.filter((k) => typeof k === 'number') as number[]),
-            getCheckboxProps: (record) => ({ disabled: !!record.transitive || !isUpdateEligible(record) }),
-          } : undefined}
+          rowSelection={
+            dataSource.length > 1
+              ? {
+                  selectedRowKeys: selectedIds,
+                  onChange: (keys) =>
+                    onSelectionChange(keys.filter((k) => typeof k === 'number') as number[]),
+                  getCheckboxProps: (record) => ({
+                    disabled: !!record.transitive || !isUpdateEligible(record),
+                  }),
+                }
+              : undefined
+          }
           locale={{
             emptyText: (
               <div className="card-empty">

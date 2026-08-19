@@ -71,7 +71,11 @@ export default function PromptModal({
         <JsonEditor value={value} onChange={setValue} minHeight="240px" maxHeight="60vh" />
       ) : type === 'textarea' ? (
         <Input.TextArea
-          ref={(el) => { textareaRef.current = (el as unknown as { resizableTextArea?: { textArea: HTMLTextAreaElement } })?.resizableTextArea?.textArea ?? null; }}
+          ref={(el) => {
+            textareaRef.current =
+              (el as unknown as { resizableTextArea?: { textArea: HTMLTextAreaElement } })
+                ?.resizableTextArea?.textArea ?? null;
+          }}
           aria-label={title}
           value={value}
           onChange={(e) => setValue(e.target.value)}

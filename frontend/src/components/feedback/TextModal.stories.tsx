@@ -21,8 +21,13 @@ const meta = {
     open: { description: 'Whether the modal is visible.' },
     title: { description: 'Modal title text.' },
     content: { description: 'Text shown when no `tabs` are provided.' },
-    fileName: { description: 'When set, adds a download button that saves the active content under this name.' },
-    json: { description: 'Render the content in a read-only JSON editor with syntax highlighting.' },
+    fileName: {
+      description:
+        'When set, adds a download button that saves the active content under this name.',
+    },
+    json: {
+      description: 'Render the content in a read-only JSON editor with syntax highlighting.',
+    },
     tabs: { description: 'Optional list of `{ key, label, content }` documents shown as tabs.' },
     onClose: { description: 'Called when the modal is dismissed.' },
   },

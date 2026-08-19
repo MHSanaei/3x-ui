@@ -5,9 +5,8 @@ import { InboundSettingsSchema } from '@/schemas/protocols/inbound';
 import { SecuritySettingsSchema } from '@/schemas/protocols/security';
 import { NetworkSettingsSchema, StreamExtrasSchema } from '@/schemas/protocols/stream';
 
-export const InboundStreamFormSchema = NetworkSettingsSchema
-  .and(SecuritySettingsSchema)
-  .and(StreamExtrasSchema);
+export const InboundStreamFormSchema =
+  NetworkSettingsSchema.and(SecuritySettingsSchema).and(StreamExtrasSchema);
 export type InboundStreamFormValues = z.infer<typeof InboundStreamFormSchema>;
 
 export const TrafficResetSchema = z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']);
@@ -54,9 +53,8 @@ export type InboundFormBase = z.infer<typeof InboundFormBaseSchema>;
 
 // Full form values = base + db fields + protocol-discriminated settings.
 // Consumers narrow on `.protocol` to access the matching settings branch.
-export const InboundFormSchema = InboundFormBaseSchema
-  .and(InboundDbFieldsSchema)
-  .and(InboundSettingsSchema);
+export const InboundFormSchema =
+  InboundFormBaseSchema.and(InboundDbFieldsSchema).and(InboundSettingsSchema);
 export type InboundFormValues = z.infer<typeof InboundFormSchema>;
 
 export const FallbackRowSchema = z.object({

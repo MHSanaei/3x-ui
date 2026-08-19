@@ -47,10 +47,7 @@ export type BbrProfile = z.infer<typeof BbrProfileSchema>;
 // to dodge port-based blocking. Both fields are dash-range strings on the
 // wire (e.g. '20000-50000', '5-10'). preprocess coerces legacy DB rows
 // where interval was stored as a number (UI bug — see B19 in commit history).
-const StringRangeSchema = z.preprocess(
-  (v) => (typeof v === 'number' ? String(v) : v),
-  z.string(),
-);
+const StringRangeSchema = z.preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string());
 
 export const QuicUdpHopSchema = z.object({
   ports: StringRangeSchema.default('20000-50000'),

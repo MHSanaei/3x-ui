@@ -15,16 +15,10 @@ export default function HttpUpgradeForm() {
       >
         <Switch />
       </FormField>
-      <FormField
-        name={['streamSettings', 'httpupgradeSettings', 'host']}
-        label={t('host')}
-      >
+      <FormField name={['streamSettings', 'httpupgradeSettings', 'host']} label={t('host')}>
         <Input />
       </FormField>
-      <FormField
-        name={['streamSettings', 'httpupgradeSettings', 'path']}
-        label={t('path')}
-      >
+      <FormField name={['streamSettings', 'httpupgradeSettings', 'path']} label={t('path')}>
         <Input />
       </FormField>
       <FormField

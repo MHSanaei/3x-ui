@@ -33,11 +33,23 @@ const meta = {
     },
   },
   argTypes: {
-    options: { description: 'Option list whose values define the "all" set; matches the AntD Select option shape.' },
+    options: {
+      description:
+        'Option list whose values define the "all" set; matches the AntD Select option shape.',
+    },
     value: { description: 'Currently selected values (controlled).' },
-    onChange: { description: 'Called with the union of the current selection and every option value, or with an empty array on clear.' },
-    selectAllLabel: { description: 'Override for the "Select all" button text; defaults to the translated inbound copy.' },
-    clearLabel: { description: 'Override for the "Clear all" button text; defaults to the translated inbound copy.' },
+    onChange: {
+      description:
+        'Called with the union of the current selection and every option value, or with an empty array on clear.',
+    },
+    selectAllLabel: {
+      description:
+        'Override for the "Select all" button text; defaults to the translated inbound copy.',
+    },
+    clearLabel: {
+      description:
+        'Override for the "Clear all" button text; defaults to the translated inbound copy.',
+    },
   },
 } satisfies Meta<typeof SelectAllClearButtons>;
 

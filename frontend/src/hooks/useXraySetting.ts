@@ -26,7 +26,10 @@ function normalizeOutboundTestUrl(url: string) {
 }
 
 export function isUdpOutbound(outbound: unknown): boolean {
-  const o = outbound as { protocol?: string; streamSettings?: { network?: string } } | null | undefined;
+  const o = outbound as
+    | { protocol?: string; streamSettings?: { network?: string } }
+    | null
+    | undefined;
   const p = o?.protocol;
   const n = o?.streamSettings?.network;
   return p === 'wireguard' || p === 'hysteria' || n === 'hysteria' || n === 'kcp' || n === 'quic';
@@ -90,7 +93,8 @@ type XrayConfigPayload = z.infer<typeof XrayConfigPayloadSchema>;
 export async function fetchXrayConfig(): Promise<XrayConfigPayload> {
   const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to load xray config');
-  if (typeof msg.obj !== 'string') throw new Error('Malformed xray config response: expected string');
+  if (typeof msg.obj !== 'string')
+    throw new Error('Malformed xray config response: expected string');
   let parsed: unknown;
   try {
     parsed = JSON.parse(msg.obj);
@@ -107,7 +111,9 @@ export async function fetchXrayConfig(): Promise<XrayConfigPayload> {
 }
 
 async function fetchOutboundsTraffic(): Promise<OutboundTrafficRow[]> {
-  const msg = await HttpUtil.get('/panel/api/xray/getOutboundsTraffic', undefined, { silent: true });
+  const msg = await HttpUtil.get('/panel/api/xray/getOutboundsTraffic', undefined, {
+    silent: true,
+  });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch outbounds traffic');
   const validated = parseMsg(msg, OutboundTrafficListSchema, 'xray/getOutboundsTraffic');
   return Array.isArray(validated.obj) ? validated.obj : [];
@@ -137,10 +143,14 @@ export function useXraySetting(): UseXraySettingResult {
   const [clientReverseTags, setClientReverseTags] = useState<string[]>([]);
   const [subscriptionOutbounds, setSubscriptionOutbounds] = useState<unknown[]>([]);
   const [subscriptionOutboundTags, setSubscriptionOutboundTags] = useState<string[]>([]);
-  const [outboundTestStates, setOutboundTestStates] = useState<Record<number, OutboundTestState>>({});
+  const [outboundTestStates, setOutboundTestStates] = useState<Record<number, OutboundTestState>>(
+    {},
+  );
   // Subscription outbounds aren't in templateSettings.outbounds, so their test
   // results are keyed by tag rather than by index.
-  const [subscriptionTestStates, setSubscriptionTestStates] = useState<Record<string, OutboundTestState>>({});
+  const [subscriptionTestStates, setSubscriptionTestStates] = useState<
+    Record<string, OutboundTestState>
+  >({});
   const [testingAll, setTestingAll] = useState(false);
 
   const syncingRef = useRef(false);
@@ -167,8 +177,9 @@ export function useXraySetting(): UseXraySettingResult {
     setClientReverseTags(obj.clientReverseTags || []);
     setSubscriptionOutbounds(obj.subscriptionOutbounds || []);
     setSubscriptionOutboundTags(obj.subscriptionOutboundTags || []);
-    const isDirty = savedXraySettingRef.current !== xraySettingRef.current
-      || savedOutboundTestUrlRef.current !== normalizeOutboundTestUrl(outboundTestUrlRef.current);
+    const isDirty =
+      savedXraySettingRef.current !== xraySettingRef.current ||
+      savedOutboundTestUrlRef.current !== normalizeOutboundTestUrl(outboundTestUrlRef.current);
     if (isDirty) return;
     syncingRef.current = true;
     setXraySettingState(pretty);
@@ -242,8 +253,7 @@ export function useXraySetting(): UseXraySettingResult {
   });
 
   const resetTrafficMut = useMutation({
-    mutationFn: (tag: string) =>
-      HttpUtil.post('/panel/api/xray/resetOutboundsTraffic', { tag }),
+    mutationFn: (tag: string) => HttpUtil.post('/panel/api/xray/resetOutboundsTraffic', { tag }),
     onSuccess: (msg) => {
       if (msg?.success) queryClient.invalidateQueries({ queryKey: keys.xray.outboundsTraffic() });
     },
@@ -262,9 +272,18 @@ export function useXraySetting(): UseXraySettingResult {
     },
   });
 
-  const saveAll = useCallback(async () => { await saveMut.mutateAsync(); }, [saveMut]);
-  const resetOutboundsTraffic = useCallback(async (tag: string) => { await resetTrafficMut.mutateAsync(tag); }, [resetTrafficMut]);
-  const resetToDefault = useCallback(async () => { await resetDefaultMut.mutateAsync(); }, [resetDefaultMut]);
+  const saveAll = useCallback(async () => {
+    await saveMut.mutateAsync();
+  }, [saveMut]);
+  const resetOutboundsTraffic = useCallback(
+    async (tag: string) => {
+      await resetTrafficMut.mutateAsync(tag);
+    },
+    [resetTrafficMut],
+  );
+  const resetToDefault = useCallback(async () => {
+    await resetDefaultMut.mutateAsync();
+  }, [resetDefaultMut]);
 
   const spinning = saveMut.isPending || resetDefaultMut.isPending;
 
@@ -285,7 +304,9 @@ export function useXraySetting(): UseXraySettingResult {
         const msg = parseMsg(raw, OutboundTestResultListSchema, 'xray/testOutbounds');
         if (!msg?.success || !Array.isArray(msg.obj)) return failAll(msg?.msg || 'Unknown error');
         const list = msg.obj;
-        return outbounds.map((_ob, i) => list[i] ?? { success: false, error: 'Missing result', mode: effMode });
+        return outbounds.map(
+          (_ob, i) => list[i] ?? { success: false, error: 'Missing result', mode: effMode },
+        );
       } catch (e) {
         return failAll(String(e));
       }
@@ -325,113 +346,134 @@ export function useXraySetting(): UseXraySettingResult {
     [postOutboundTestBatch],
   );
 
-  const testAllOutbounds = useCallback(async (mode = 'tcp') => {
-    // Template outbounds key their results by index (outboundTestStates);
-    // subscription outbounds aren't in the template, so they key by tag
-    // (subscriptionTestStates). Both go through the same probe endpoint.
-    const templateList = templateSettingsRef.current?.outbounds || [];
-    const subList = (subscriptionOutboundsRef.current || []) as Array<{ tag?: string; protocol?: string }>;
-    if ((templateList.length === 0 && subList.length === 0) || testingAll) return;
-    setTestingAll(true);
-    try {
-      type TcpEntry =
-        | { kind: 'tpl'; index: number; outbound: unknown }
-        | { kind: 'sub'; tag: string; outbound: unknown };
-      const tcpQueue: TcpEntry[] = [];
-      // HTTP batches stay homogeneous (all template or all subscription) so a
-      // tag shared between a template and a subscription outbound can't collide
-      // inside one batch, and each batch's results route to one state map.
-      const probeMode = mode === 'real' ? 'real' : 'http';
-      const httpTplQueue: { index: number; outbound: unknown }[] = [];
-      const httpSubQueue: { tag: string; outbound: unknown }[] = [];
-      const enqueue = (ob: { tag?: string; protocol?: string }, kind: 'tpl' | 'sub', index: number, tag: string) => {
-        const proto = ob?.protocol;
-        if (proto === 'blackhole' || proto === 'loopback' || ob?.tag === 'blocked') return;
-        // freedom ("direct") and dns aren't proxies — skip them in every mode.
-        if (proto === 'freedom' || proto === 'dns') return;
-        if (kind === 'sub' && !tag) return;
-        const toHttp = mode !== 'tcp' || isUdpOutbound(ob);
-        if (kind === 'tpl') {
-          if (toHttp) httpTplQueue.push({ index, outbound: ob });
-          else tcpQueue.push({ kind: 'tpl', index, outbound: ob });
-        } else if (toHttp) {
-          httpSubQueue.push({ tag, outbound: ob });
-        } else {
-          tcpQueue.push({ kind: 'sub', tag, outbound: ob });
-        }
-      };
-      templateList.forEach((ob, i) => enqueue(ob, 'tpl', i, ''));
-      subList.forEach((ob) => enqueue(ob, 'sub', -1, typeof ob?.tag === 'string' ? ob.tag : ''));
-
-      // TCP probes are dial-only and cheap server-side; per-item requests
-      // keep results landing one by one, each routed to its own state map.
-      const runTcpLane = async () => {
-        const queue = [...tcpQueue];
-        const worker = async () => {
-          while (queue.length > 0) {
-            const item = queue.shift();
-            if (!item) break;
-            if (item.kind === 'sub') await testSubscriptionOutbound(item.tag, item.outbound, mode);
-            else await testOutbound(item.index, item.outbound, mode);
+  const testAllOutbounds = useCallback(
+    async (mode = 'tcp') => {
+      // Template outbounds key their results by index (outboundTestStates);
+      // subscription outbounds aren't in the template, so they key by tag
+      // (subscriptionTestStates). Both go through the same probe endpoint.
+      const templateList = templateSettingsRef.current?.outbounds || [];
+      const subList = (subscriptionOutboundsRef.current || []) as Array<{
+        tag?: string;
+        protocol?: string;
+      }>;
+      if ((templateList.length === 0 && subList.length === 0) || testingAll) return;
+      setTestingAll(true);
+      try {
+        type TcpEntry =
+          | { kind: 'tpl'; index: number; outbound: unknown }
+          | { kind: 'sub'; tag: string; outbound: unknown };
+        const tcpQueue: TcpEntry[] = [];
+        // HTTP batches stay homogeneous (all template or all subscription) so a
+        // tag shared between a template and a subscription outbound can't collide
+        // inside one batch, and each batch's results route to one state map.
+        const probeMode = mode === 'real' ? 'real' : 'http';
+        const httpTplQueue: { index: number; outbound: unknown }[] = [];
+        const httpSubQueue: { tag: string; outbound: unknown }[] = [];
+        const enqueue = (
+          ob: { tag?: string; protocol?: string },
+          kind: 'tpl' | 'sub',
+          index: number,
+          tag: string,
+        ) => {
+          const proto = ob?.protocol;
+          if (proto === 'blackhole' || proto === 'loopback' || ob?.tag === 'blocked') return;
+          // freedom ("direct") and dns aren't proxies — skip them in every mode.
+          if (proto === 'freedom' || proto === 'dns') return;
+          if (kind === 'sub' && !tag) return;
+          const toHttp = mode !== 'tcp' || isUdpOutbound(ob);
+          if (kind === 'tpl') {
+            if (toHttp) httpTplQueue.push({ index, outbound: ob });
+            else tcpQueue.push({ kind: 'tpl', index, outbound: ob });
+          } else if (toHttp) {
+            httpSubQueue.push({ tag, outbound: ob });
+          } else {
+            tcpQueue.push({ kind: 'sub', tag, outbound: ob });
           }
         };
-        await Promise.all(Array.from({ length: Math.min(8, queue.length) }, () => worker()));
-      };
-      // HTTP probes go out as chunked batches — one temp xray spawn per
-      // chunk instead of one per outbound, with results landing per chunk.
-      const runTplHttpLane = async () => {
-        for (let at = 0; at < httpTplQueue.length; at += HTTP_BATCH_CHUNK) {
-          const chunk = httpTplQueue.slice(at, at + HTTP_BATCH_CHUNK);
-          setOutboundTestStates((prev) => {
-            const next = { ...prev };
-            for (const item of chunk) next[item.index] = { testing: true, result: null, mode: probeMode };
-            return next;
-          });
-          const results = await postOutboundTestBatch(chunk.map((c) => c.outbound), probeMode);
-          setOutboundTestStates((prev) => {
-            const next = { ...prev };
-            chunk.forEach((item, i) => {
-              next[item.index] = { testing: false, result: results[i] };
-            });
-            return next;
-          });
-        }
-      };
-      const runSubHttpLane = async () => {
-        for (let at = 0; at < httpSubQueue.length; at += HTTP_BATCH_CHUNK) {
-          const chunk = httpSubQueue.slice(at, at + HTTP_BATCH_CHUNK);
-          setSubscriptionTestStates((prev) => {
-            const next = { ...prev };
-            for (const item of chunk) next[item.tag] = { testing: true, result: null, mode: probeMode };
-            return next;
-          });
-          const results = await postOutboundTestBatch(chunk.map((c) => c.outbound), probeMode);
-          setSubscriptionTestStates((prev) => {
-            const next = { ...prev };
-            chunk.forEach((item, i) => {
-              next[item.tag] = { testing: false, result: results[i] };
-            });
-            return next;
-          });
-        }
-      };
-      // HTTP batches must not overlap: the backend serialises them with a
-      // non-blocking lock and rejects a second concurrent batch ("Another
-      // outbound test is already running"). Run the template and subscription
-      // HTTP lanes one after the other; TCP probes don't take that lock, so
-      // they still run alongside.
-      const runHttpLane = async () => {
-        await runTplHttpLane();
-        await runSubHttpLane();
-      };
-      await Promise.all([runTcpLane(), runHttpLane()]);
-    } finally {
-      setTestingAll(false);
-    }
-  }, [testingAll, testOutbound, testSubscriptionOutbound, postOutboundTestBatch]);
+        templateList.forEach((ob, i) => enqueue(ob, 'tpl', i, ''));
+        subList.forEach((ob) => enqueue(ob, 'sub', -1, typeof ob?.tag === 'string' ? ob.tag : ''));
 
-  const saveDisabled = savedXraySetting === xraySetting
-    && savedOutboundTestUrl === normalizeOutboundTestUrl(outboundTestUrl);
+        // TCP probes are dial-only and cheap server-side; per-item requests
+        // keep results landing one by one, each routed to its own state map.
+        const runTcpLane = async () => {
+          const queue = [...tcpQueue];
+          const worker = async () => {
+            while (queue.length > 0) {
+              const item = queue.shift();
+              if (!item) break;
+              if (item.kind === 'sub')
+                await testSubscriptionOutbound(item.tag, item.outbound, mode);
+              else await testOutbound(item.index, item.outbound, mode);
+            }
+          };
+          await Promise.all(Array.from({ length: Math.min(8, queue.length) }, () => worker()));
+        };
+        // HTTP probes go out as chunked batches — one temp xray spawn per
+        // chunk instead of one per outbound, with results landing per chunk.
+        const runTplHttpLane = async () => {
+          for (let at = 0; at < httpTplQueue.length; at += HTTP_BATCH_CHUNK) {
+            const chunk = httpTplQueue.slice(at, at + HTTP_BATCH_CHUNK);
+            setOutboundTestStates((prev) => {
+              const next = { ...prev };
+              for (const item of chunk)
+                next[item.index] = { testing: true, result: null, mode: probeMode };
+              return next;
+            });
+            const results = await postOutboundTestBatch(
+              chunk.map((c) => c.outbound),
+              probeMode,
+            );
+            setOutboundTestStates((prev) => {
+              const next = { ...prev };
+              chunk.forEach((item, i) => {
+                next[item.index] = { testing: false, result: results[i] };
+              });
+              return next;
+            });
+          }
+        };
+        const runSubHttpLane = async () => {
+          for (let at = 0; at < httpSubQueue.length; at += HTTP_BATCH_CHUNK) {
+            const chunk = httpSubQueue.slice(at, at + HTTP_BATCH_CHUNK);
+            setSubscriptionTestStates((prev) => {
+              const next = { ...prev };
+              for (const item of chunk)
+                next[item.tag] = { testing: true, result: null, mode: probeMode };
+              return next;
+            });
+            const results = await postOutboundTestBatch(
+              chunk.map((c) => c.outbound),
+              probeMode,
+            );
+            setSubscriptionTestStates((prev) => {
+              const next = { ...prev };
+              chunk.forEach((item, i) => {
+                next[item.tag] = { testing: false, result: results[i] };
+              });
+              return next;
+            });
+          }
+        };
+        // HTTP batches must not overlap: the backend serialises them with a
+        // non-blocking lock and rejects a second concurrent batch ("Another
+        // outbound test is already running"). Run the template and subscription
+        // HTTP lanes one after the other; TCP probes don't take that lock, so
+        // they still run alongside.
+        const runHttpLane = async () => {
+          await runTplHttpLane();
+          await runSubHttpLane();
+        };
+        await Promise.all([runTcpLane(), runHttpLane()]);
+      } finally {
+        setTestingAll(false);
+      }
+    },
+    [testingAll, testOutbound, testSubscriptionOutbound, postOutboundTestBatch],
+  );
+
+  const saveDisabled =
+    savedXraySetting === xraySetting &&
+    savedOutboundTestUrl === normalizeOutboundTestUrl(outboundTestUrl);
 
   const outboundsTraffic = useMemo(() => trafficQuery.data ?? [], [trafficQuery.data]);
 

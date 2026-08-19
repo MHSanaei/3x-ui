@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T, equals: (left: T, right: T) => boolean) {
+export function useServerDraft<T>(
+  server: T | undefined,
+  clone: (value: T) => T,
+  equals: (left: T, right: T) => boolean,
+) {
   const cloneRef = useRef(clone);
   const equalsRef = useRef(equals);
   cloneRef.current = clone;
@@ -17,8 +21,9 @@ export function useServerDraft<T>(server: T | undefined, clone: (value: T) => T,
     if (server === undefined) return;
     const currentDraft = draftRef.current;
     const currentBaseline = baselineRef.current;
-    const isDirty = currentDraft !== undefined
-      && (currentBaseline === undefined || !equalsRef.current(currentDraft, currentBaseline));
+    const isDirty =
+      currentDraft !== undefined &&
+      (currentBaseline === undefined || !equalsRef.current(currentDraft, currentBaseline));
     setBaseline(server);
     if (isDirty && !equalsRef.current(currentDraft, server)) return;
     setDraft(cloneRef.current(server));

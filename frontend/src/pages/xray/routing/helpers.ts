@@ -20,7 +20,10 @@ export function originalRuleIndex(rows: RuleRow[], positionalIndex: number): num
 
 export function csv(value?: string): string[] {
   if (!value) return [];
-  return String(value).split(',').map((s) => s.trim()).filter(Boolean);
+  return String(value)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export function chipPreviewParts(parts: string[]): string {
@@ -45,10 +48,7 @@ export function buildRemarkByTag(
 }
 
 /** Format a single inbound tag as `tag (remark)`, or just `tag` when no distinct remark. */
-export function formatInboundTag(
-  tag: string,
-  remarkByTag: Record<string, string> = {},
-): string {
+export function formatInboundTag(tag: string, remarkByTag: Record<string, string> = {}): string {
   const label = remarkByTag[tag]?.trim();
   if (!label || label === tag) return tag;
   return `${tag} (${label})`;

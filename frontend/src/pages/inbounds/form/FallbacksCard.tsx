@@ -1,6 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Col, Empty, Input, InputNumber, Row, Select, Space } from 'antd';
-import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 
 import type { FallbackRow } from '@/schemas/forms/inbound-form';
 
@@ -33,7 +38,9 @@ export default function FallbacksCard({
       <Button
         size="small"
         onClick={addAllFallbacks}
-        disabled={fallbackChildOptions.length === 0 || fallbacks.length >= fallbackChildOptions.length}
+        disabled={
+          fallbackChildOptions.length === 0 || fallbacks.length >= fallbackChildOptions.length
+        }
         title={t('pages.inbounds.form.addAllFallbackTooltip')}
       >
         {t('pages.inbounds.form.addAll')}
@@ -92,7 +99,12 @@ export default function FallbacksCard({
                 title={t('pages.inbounds.form.moveDown')}
                 icon={<ArrowDownOutlined />}
               />
-              <Button aria-label={t('delete')} danger onClick={() => removeFallback(idx)} icon={<DeleteOutlined />} />
+              <Button
+                aria-label={t('delete')}
+                danger
+                onClick={() => removeFallback(idx)}
+                icon={<DeleteOutlined />}
+              />
             </Space.Compact>
             <Row gutter={[8, 8]}>
               <Col xs={24} sm={12}>

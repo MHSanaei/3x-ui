@@ -24,15 +24,17 @@ function renderModal() {
 }
 
 function openCredentialsTab() {
-  const tab = Array.from(document.querySelectorAll('.ant-tabs-tab'))
-    .find((t) => (t.textContent ?? '').trim() === 'Credentials');
+  const tab = Array.from(document.querySelectorAll('.ant-tabs-tab')).find(
+    (t) => (t.textContent ?? '').trim() === 'Credentials',
+  );
   if (!tab) throw new Error('Credentials tab not found');
   fireEvent.click(tab);
 }
 
 function tooltipIconForLabel(label: string): HTMLElement {
-  const labelEl = Array.from(document.querySelectorAll('.ant-form-item-label label'))
-    .find((l) => (l.textContent ?? '').trim() === label);
+  const labelEl = Array.from(document.querySelectorAll('.ant-form-item-label label')).find(
+    (l) => (l.textContent ?? '').trim() === label,
+  );
   const item = labelEl?.closest('.ant-form-item') as HTMLElement | null;
   if (!item) throw new Error(`Form item not found for label: ${label}`);
   const tip = item.querySelector('.ant-form-item-tooltip') as HTMLElement | null;

@@ -32,10 +32,14 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
   const { control, getValues, setValue } = useFormContext();
   const mode = useWatch({ control, name: `${XH}.mode` }) as string | undefined;
   const obfs = !!useWatch({ control, name: `${XH}.xPaddingObfsMode` });
-  const sessionPlacement = useWatch({ control, name: `${XH}.sessionIDPlacement` }) as string | undefined;
+  const sessionPlacement = useWatch({ control, name: `${XH}.sessionIDPlacement` }) as
+    | string
+    | undefined;
   const table = useWatch({ control, name: `${XH}.sessionIDTable` });
   const seqPlacement = useWatch({ control, name: `${XH}.seqPlacement` }) as string | undefined;
-  const uplinkDataPlacement = useWatch({ control, name: `${XH}.uplinkDataPlacement` }) as string | undefined;
+  const uplinkDataPlacement = useWatch({ control, name: `${XH}.uplinkDataPlacement` }) as
+    | string
+    | undefined;
   const enableXmux = !!useWatch({ control, name: `${XH}.enableXmux` });
 
   function onXmuxMaxConcurrencyChange(value: unknown) {
@@ -60,7 +64,10 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
       <FormField label={t('path')} name={['streamSettings', 'xhttpSettings', 'path']}>
         <Input />
       </FormField>
-      <FormField label={t('pages.inbounds.info.mode')} name={['streamSettings', 'xhttpSettings', 'mode']}>
+      <FormField
+        label={t('pages.inbounds.info.mode')}
+        name={['streamSettings', 'xhttpSettings', 'mode']}
+      >
         <Select options={MODE_OPTIONS} />
       </FormField>
       <FormField
@@ -260,11 +267,7 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
                 label={t('pages.xray.outboundForm.uplinkChunkSize')}
                 name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
               >
-                <InputNumber
-                  min={0}
-                  placeholder="0 (unlimited)"
-                  style={{ width: '100%' }}
-                />
+                <InputNumber min={0} placeholder="0 (unlimited)" style={{ width: '100%' }} />
               </FormField>
             </>
           )}

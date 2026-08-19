@@ -18,7 +18,12 @@ interface BackupModalProps {
   onBusy: (e: BusyEvent) => void;
 }
 
-export default function BackupModal({ open, basePath: _basePath, onClose, onBusy }: BackupModalProps) {
+export default function BackupModal({
+  open,
+  basePath: _basePath,
+  onClose,
+  onBusy,
+}: BackupModalProps) {
   const { t } = useTranslation();
   const isPostgres = window.X_UI_DB_TYPE === 'postgres';
   const [keepHostSettings, setKeepHostSettings] = useState(true);
@@ -67,12 +72,7 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
   }
 
   return (
-    <Modal
-      open={open}
-      title={t('pages.index.backupTitle')}
-      footer={null}
-      onCancel={onClose}
-    >
+    <Modal open={open} title={t('pages.index.backupTitle')} footer={null} onCancel={onClose}>
       {isPostgres && (
         <div className="backup-description" style={{ marginBottom: 16 }}>
           {t('pages.index.backupPostgresNote')}
@@ -83,10 +83,17 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
           <div className="backup-meta">
             <div className="backup-title">{t('pages.index.exportDatabase')}</div>
             <div className="backup-description">
-              {isPostgres ? t('pages.index.exportDatabasePgDesc') : t('pages.index.exportDatabaseDesc')}
+              {isPostgres
+                ? t('pages.index.exportDatabasePgDesc')
+                : t('pages.index.exportDatabaseDesc')}
             </div>
           </div>
-          <Button type="primary" aria-label={t('pages.index.exportDatabase')} onClick={exportDb} icon={<DownloadOutlined />} />
+          <Button
+            type="primary"
+            aria-label={t('pages.index.exportDatabase')}
+            onClick={exportDb}
+            icon={<DownloadOutlined />}
+          />
         </div>
 
         {isPostgres && (
@@ -95,7 +102,12 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
               <div className="backup-title">{t('pages.index.migrationDownload')}</div>
               <div className="backup-description">{t('pages.index.migrationDownloadPgDesc')}</div>
             </div>
-            <Button type="primary" aria-label={t('pages.index.migrationDownload')} onClick={exportMigration} icon={<DownloadOutlined />} />
+            <Button
+              type="primary"
+              aria-label={t('pages.index.migrationDownload')}
+              onClick={exportMigration}
+              icon={<DownloadOutlined />}
+            />
           </div>
         )}
 
@@ -103,15 +115,25 @@ export default function BackupModal({ open, basePath: _basePath, onClose, onBusy
           <div className="backup-meta">
             <div className="backup-title">{t('pages.index.importDatabase')}</div>
             <div className="backup-description">
-              {isPostgres ? t('pages.index.importDatabasePgDesc') : t('pages.index.importDatabaseDesc')}
+              {isPostgres
+                ? t('pages.index.importDatabasePgDesc')
+                : t('pages.index.importDatabaseDesc')}
             </div>
           </div>
-          <Button type="primary" aria-label={t('pages.index.importDatabase')} onClick={importDb} icon={<UploadOutlined />} />
+          <Button
+            type="primary"
+            aria-label={t('pages.index.importDatabase')}
+            onClick={importDb}
+            icon={<UploadOutlined />}
+          />
         </div>
 
         <div className="backup-item">
           <div className="backup-meta">
-            <Checkbox checked={keepHostSettings} onChange={(e) => setKeepHostSettings(e.target.checked)}>
+            <Checkbox
+              checked={keepHostSettings}
+              onChange={(e) => setKeepHostSettings(e.target.checked)}
+            >
               {t('pages.index.importKeepHostSettings')}
             </Checkbox>
             <div className="backup-description">{t('pages.index.importKeepHostSettingsDesc')}</div>

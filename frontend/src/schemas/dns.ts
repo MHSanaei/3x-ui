@@ -2,12 +2,7 @@ import { z } from 'zod';
 
 import { PortSchema } from '@/schemas/primitives';
 
-export const DnsQueryStrategySchema = z.enum([
-  'UseIP',
-  'UseIPv4',
-  'UseIPv6',
-  'UseSystem',
-]);
+export const DnsQueryStrategySchema = z.enum(['UseIP', 'UseIPv4', 'UseIPv6', 'UseSystem']);
 export type DnsQueryStrategy = z.infer<typeof DnsQueryStrategySchema>;
 
 const DnsHostValueSchema = z.union([z.string(), z.array(z.string())]);
@@ -35,22 +30,21 @@ export const DnsServerObjectInnerSchema = z.object({
   serveExpiredTTL: z.number().int().min(0).optional(),
 });
 
-export const DnsServerObjectSchema = z.preprocess(
-  (val) => {
+export const DnsServerObjectSchema = z
+  .preprocess((val) => {
     if (typeof val !== 'object' || val === null || Array.isArray(val)) return val;
     const v = val as Record<string, unknown>;
     if (v.expectIPs && !v.expectedIPs) {
       return { ...v, expectedIPs: v.expectIPs };
     }
     return val;
-  },
-  DnsServerObjectInnerSchema,
-).transform((v) => {
-  if (v.port === undefined && !isEncryptedDnsAddress(v.address)) {
-    return { ...v, port: 53 };
-  }
-  return v;
-});
+  }, DnsServerObjectInnerSchema)
+  .transform((v) => {
+    if (v.port === undefined && !isEncryptedDnsAddress(v.address)) {
+      return { ...v, port: 53 };
+    }
+    return v;
+  });
 export type DnsServerObject = z.infer<typeof DnsServerObjectSchema>;
 
 export const DnsServerEntrySchema = z.union([z.string(), DnsServerObjectSchema]);
