@@ -23,7 +23,8 @@ const controlDialTimeout = 5 * time.Second
 var controlAddr = fmt.Sprintf("127.0.0.1:%d", ControlPort)
 
 func dialControl() (net.Conn, error) {
-	return net.DialTimeout("tcp", controlAddr, controlDialTimeout)
+	dialer := &net.Dialer{Timeout: controlDialTimeout}
+	return dialer.DialContext(context.Background(), "tcp", controlAddr)
 }
 
 func controlSend(conn net.Conn, line string) error {
