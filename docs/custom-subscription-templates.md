@@ -22,28 +22,28 @@ The panel uses standard Go `html/template` to render the subscription page.
 
 When rendering the template, the following variables are injected into the template context (`{{ .variable }}`):
 
-* `{{ .sId }}`: Subscription ID (UUID).
-* `{{ .enabled }}`: Whether the subscription/client is enabled (boolean).
-* `{{ .isOnline }}`: Whether the subscription's client has a live connection right now (boolean). Computed from the panel's online-client tracking (local Xray plus any remote nodes) at render time.
-* `{{ .download }}`: Formatted download traffic (e.g. "2.5 GB").
-* `{{ .upload }}`: Formatted upload traffic.
-* `{{ .total }}`: Formatted total traffic limit.
-* `{{ .used }}`: Formatted used traffic (download + upload).
-* `{{ .remained }}`: Formatted remaining traffic.
-* `{{ .expire }}`: Expiration time as an int64 Unix timestamp in **seconds** (`0` means never). Multiply by 1000 for a JavaScript `Date`.
-* `{{ .lastOnline }}`: Last online time as an int64 Unix timestamp in **milliseconds** (`0` means never seen).
-* `{{ .downloadByte }}`: Download traffic in exact bytes (int64).
-* `{{ .uploadByte }}`: Upload traffic in exact bytes (int64).
-* `{{ .totalByte }}`: Total traffic limit in exact bytes (int64).
-* `{{ .subUrl }}`: The URL of the subscription page.
-* `{{ .subJsonUrl }}`: The URL for the JSON configuration of the subscription.
-* `{{ .subClashUrl }}`: The URL for the Clash/Mihomo configuration.
-* `{{ .subTitle }}`: The subscription title configured in the panel (Subscription → Information). Useful for page branding/headings. May be empty.
-* `{{ .subSupportUrl }}`: The support URL configured in the panel. Useful for a "Contact support" link. May be empty.
-* `{{ .links }}`: A list (slice) of string configurations (VMess, VLESS, etc. URLs). You can loop through them using `{{ range .links }} ... {{ end }}`.
-* `{{ .emails }}`: A list (slice) of client emails, parallel to `links` — the email at index *i* owns the link at index *i*. May contain duplicates when one client has several links.
-* `{{ .announce }}`: The announcement text configured in the panel (Settings → Subscription → Announce). May be empty.
-* `{{ .datepicker }}`: Current calendar format used by the panel (e.g. "gregorian" or "jalali").
+- `{{ .sId }}`: Subscription ID (UUID).
+- `{{ .enabled }}`: Whether the subscription/client is enabled (boolean).
+- `{{ .isOnline }}`: Whether the subscription's client has a live connection right now (boolean). Computed from the panel's online-client tracking (local Xray plus any remote nodes) at render time.
+- `{{ .download }}`: Formatted download traffic (e.g. "2.5 GB").
+- `{{ .upload }}`: Formatted upload traffic.
+- `{{ .total }}`: Formatted total traffic limit.
+- `{{ .used }}`: Formatted used traffic (download + upload).
+- `{{ .remained }}`: Formatted remaining traffic.
+- `{{ .expire }}`: Expiration time as an int64 Unix timestamp in **seconds** (`0` means never). Multiply by 1000 for a JavaScript `Date`.
+- `{{ .lastOnline }}`: Last online time as an int64 Unix timestamp in **milliseconds** (`0` means never seen).
+- `{{ .downloadByte }}`: Download traffic in exact bytes (int64).
+- `{{ .uploadByte }}`: Upload traffic in exact bytes (int64).
+- `{{ .totalByte }}`: Total traffic limit in exact bytes (int64).
+- `{{ .subUrl }}`: The URL of the subscription page.
+- `{{ .subJsonUrl }}`: The URL for the JSON configuration of the subscription.
+- `{{ .subClashUrl }}`: The URL for the Clash/Mihomo configuration.
+- `{{ .subTitle }}`: The subscription title configured in the panel (Subscription → Information). Useful for page branding/headings. May be empty.
+- `{{ .subSupportUrl }}`: The support URL configured in the panel. Useful for a "Contact support" link. May be empty.
+- `{{ .links }}`: A list (slice) of string configurations (VMess, VLESS, etc. URLs). You can loop through them using `{{ range .links }} ... {{ end }}`.
+- `{{ .emails }}`: A list (slice) of client emails, parallel to `links` — the email at index _i_ owns the link at index _i_. May contain duplicates when one client has several links.
+- `{{ .announce }}`: The announcement text configured in the panel (Settings → Subscription → Announce). May be empty.
+- `{{ .datepicker }}`: Current calendar format used by the panel (e.g. "gregorian" or "jalali").
 
 ## Live Status JSON (`?format=info`)
 

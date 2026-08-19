@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "ignorePatterns": [
+    "node_modules",
+    ".next",
+    ".source",
+    "out",
+    "pnpm-lock.yaml",
+    "public/openapi.json",
+    "content/**/*.mdx",
+    "content/docs/**/reference/api"
+  ]
+}

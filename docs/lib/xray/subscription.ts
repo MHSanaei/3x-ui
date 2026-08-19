@@ -214,12 +214,20 @@ function proxyOutbound(c: SubClient): Record<string, unknown> {
       };
       break;
     case 'trojan':
-      settings = { servers: [{ address: c.address, port: c.port, password: c.password ?? '', level: 8 }] };
+      settings = {
+        servers: [{ address: c.address, port: c.port, password: c.password ?? '', level: 8 }],
+      };
       break;
     case 'ss':
       settings = {
         servers: [
-          { address: c.address, port: c.port, password: c.password ?? '', level: 8, method: c.method || '' },
+          {
+            address: c.address,
+            port: c.port,
+            password: c.password ?? '',
+            level: 8,
+            method: c.method || '',
+          },
         ],
       };
       break;

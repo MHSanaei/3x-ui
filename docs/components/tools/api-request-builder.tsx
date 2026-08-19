@@ -1,7 +1,12 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { buildCurl, buildFetchSnippet, type ApiRequestInput, type HttpMethod } from '@/lib/xray/api-client';
+import {
+  buildCurl,
+  buildFetchSnippet,
+  type ApiRequestInput,
+  type HttpMethod,
+} from '@/lib/xray/api-client';
 import { ToolFrame } from './tool-frame';
 import { TextField, SelectField } from './shared/fields';
 import { OutputBlock } from './shared/output-block';

@@ -12,8 +12,8 @@
     "gen:api": "node scripts/gen-openapi.ts",
     "typecheck": "fumadocs-mdx && next typegen && tsc --noEmit",
     "lint": "oxlint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -41,9 +41,9 @@
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "oxfmt": "0.63.0",
     "oxlint": "1.78.0",
     "postcss": "^8.5.26",
-    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "7.0.2",
     "vitest": "^4.1.10"
