@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Tag, message } from 'antd';
-import { PlayCircleOutlined, PauseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Button, Divider, Modal, Popconfirm, Tag, message } from 'antd';
+import { PlayCircleOutlined, PauseCircleOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
 
@@ -69,6 +69,37 @@ export default function TorModal({ open, templateSettings, onClose, onAddOutboun
     }
   }
 
+  async function install() {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/xray/tor/install');
+      if (msg?.success) {
+        messageApi.success(t('pages.xray.tor.installed'));
+      } else {
+        messageApi.error(msg?.msg || t('pages.xray.tor.installFailed'));
+      }
+      await fetchStatus();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function uninstall() {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/xray/tor/uninstall');
+      if (msg?.success) {
+        messageApi.success(t('pages.xray.tor.uninstalled'));
+        if (torOutboundIndex >= 0) onRemoveOutbound(TOR_TAG);
+      } else {
+        messageApi.error(msg?.msg || t('pages.xray.tor.uninstallFailed'));
+      }
+      await fetchStatus();
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function addOutbound() {
     if (!status) return;
     onAddOutbound({
@@ -93,12 +124,18 @@ export default function TorModal({ open, templateSettings, onClose, onAddOutboun
           <>
             <Tag color="red">{t('pages.xray.tor.notInstalled')}</Tag>
             <p style={{ marginTop: 12 }}>{t('pages.xray.tor.installHint')}</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button type="primary" icon={<DownloadOutlined />} loading={loading} onClick={install}>
+                {t('pages.xray.tor.installButton')}
+              </Button>
+              <Button icon={<ReloadOutlined />} loading={loading} onClick={fetchStatus}>
+                {t('refresh')}
+              </Button>
+            </div>
+            <p style={{ marginTop: 12, fontSize: 12, color: '#888' }}>{t('pages.xray.tor.installManualHint')}</p>
             <pre style={{ background: 'var(--ant-color-fill-tertiary, #f5f5f5)', padding: 8, borderRadius: 4 }}>
               apt install tor{'\n'}dnf install tor{'\n'}pacman -S tor
             </pre>
-            <Button icon={<ReloadOutlined />} loading={loading} onClick={fetchStatus}>
-              {t('refresh')}
-            </Button>
           </>
         ) : (
           <>
@@ -118,6 +155,17 @@ export default function TorModal({ open, templateSettings, onClose, onAddOutboun
                 </Button>
               )}
               <Button aria-label={t('refresh')} icon={<ReloadOutlined />} onClick={fetchStatus} />
+              <Popconfirm
+                title={t('pages.xray.tor.uninstallConfirm')}
+                okText={t('delete')}
+                okType="danger"
+                cancelText={t('cancel')}
+                onConfirm={uninstall}
+              >
+                <Button danger icon={<DeleteOutlined />} loading={loading}>
+                  {t('pages.xray.tor.uninstallButton')}
+                </Button>
+              </Popconfirm>
             </div>
             {status?.lastLog && <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>{status.lastLog}</div>}
 

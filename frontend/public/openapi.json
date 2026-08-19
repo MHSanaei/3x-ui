@@ -11305,7 +11305,7 @@
             "name": "action",
             "in": "path",
             "required": true,
-            "description": "status — return {available, running, port, lastLog}. start — launch the managed tor daemon. stop — stop it.",
+            "description": "status — return {available, running, port, lastLog}. start — launch the managed tor daemon. stop — stop it. install — install the tor package via the host package manager. uninstall — stop the daemon and remove the package.",
             "schema": {
               "type": "string"
             }

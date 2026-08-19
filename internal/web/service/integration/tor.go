@@ -44,3 +44,19 @@ func (s *TorService) Stop() error {
 	}
 	return s.SetTorEnable(false)
 }
+
+// Install installs the tor package via the host's package manager. Does not
+// start it -- Start remains a separate, explicit action.
+func (s *TorService) Install() error {
+	return tor.Install()
+}
+
+// Uninstall stops the daemon, removes the tor package, and clears the
+// auto-start flag so a future boot doesn't try to relaunch a binary that's
+// no longer there.
+func (s *TorService) Uninstall() error {
+	if err := tor.Uninstall(); err != nil {
+		return err
+	}
+	return s.SetTorEnable(false)
+}

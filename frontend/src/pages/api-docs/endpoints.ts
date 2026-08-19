@@ -1388,7 +1388,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/xray/tor/:action',
         summary: 'Manage the panel-hosted Tor sidecar. The action parameter selects the operation.',
         params: [
-          { name: 'action', in: 'path', type: 'string', desc: 'status — return {available, running, port, lastLog}. start — launch the managed tor daemon. stop — stop it.' },
+          { name: 'action', in: 'path', type: 'string', desc: 'status — return {available, running, port, lastLog}. start — launch the managed tor daemon. stop — stop it. install — install the tor package via the host package manager. uninstall — stop the daemon and remove the package.' },
         ],
       },
       {
