@@ -1251,6 +1251,8 @@ reset: Number(values.reset) || 0,
                   title={t('pages.clients.deleteHwidConfirm')}
                   onConfirm={() => deleteHwid(entry.id)}
                   okType="danger"
+                  okText={t('delete')}
+                  cancelText={t('cancel')}
                 >
                   <Button
                     danger
