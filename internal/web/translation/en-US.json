@@ -1933,7 +1933,16 @@
         "stopped": "Tor stopped",
         "startFailed": "Failed to start Tor",
         "outboundAdded": "Tor outbound added",
-        "outboundRemoved": "Tor outbound removed"
+        "outboundRemoved": "Tor outbound removed",
+        "exitIpTitle": "Exit IP",
+        "checkIpButton": "Check IP",
+        "checkIpFailed": "Failed to check the exit IP",
+        "checkIpNotTor": "check.torproject.org says this connection is not going through Tor",
+        "newIdentityButton": "New identity",
+        "newIdentitySent": "Requested a new circuit",
+        "newIdentityFailed": "Failed to request a new circuit",
+        "newIdentityHint": "Affects new connections only -- already-open ones keep their circuit. Tor rate-limits this to about once per 10 seconds.",
+        "testButtonHint": "The outbound test button above may time out for Tor (10s budget vs. Tor's typical multi-hop latency) even when Tor works fine -- traffic counters and the exit-IP check above are more reliable signals for this outbound specifically."
       },
       "warp": {
         "changeIp": "Change IP",

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popconfirm, Tag, message } from 'antd';
-import { PlayCircleOutlined, PauseCircleOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlayCircleOutlined, PauseCircleOutlined, ReloadOutlined, DownloadOutlined, DeleteOutlined, GlobalOutlined, SwapOutlined } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
 
@@ -20,6 +20,11 @@ interface TorStatus {
   lastLog?: string;
 }
 
+interface TorExitIP {
+  ip: string;
+  isTor: boolean;
+}
+
 const TOR_TAG = 'tor';
 
 export default function TorModal({ open, templateSettings, onClose, onAddOutbound, onRemoveOutbound }: TorModalProps) {
@@ -27,6 +32,8 @@ export default function TorModal({ open, templateSettings, onClose, onAddOutboun
   const [messageApi, messageContextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<TorStatus | null>(null);
+  const [ipLoading, setIpLoading] = useState(false);
+  const [exitIp, setExitIp] = useState<TorExitIP | null>(null);
 
   const torOutboundIndex = useMemo(() => {
     const list = templateSettings?.outbounds;
@@ -95,6 +102,37 @@ export default function TorModal({ open, templateSettings, onClose, onAddOutboun
         messageApi.error(msg?.msg || t('pages.xray.tor.uninstallFailed'));
       }
       await fetchStatus();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function checkIp() {
+    setIpLoading(true);
+    setExitIp(null);
+    try {
+      const msg = await HttpUtil.post<TorExitIP>('/panel/api/xray/tor/ip');
+      if (msg?.success && msg.obj) {
+        setExitIp(msg.obj);
+        if (!msg.obj.isTor) messageApi.warning(t('pages.xray.tor.checkIpNotTor'));
+      } else {
+        messageApi.error(msg?.msg || t('pages.xray.tor.checkIpFailed'));
+      }
+    } finally {
+      setIpLoading(false);
+    }
+  }
+
+  async function newIdentity() {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post('/panel/api/xray/tor/newIdentity');
+      if (msg?.success) {
+        messageApi.success(t('pages.xray.tor.newIdentitySent'));
+        setExitIp(null);
+      } else {
+        messageApi.error(msg?.msg || t('pages.xray.tor.newIdentityFailed'));
+      }
     } finally {
       setLoading(false);
     }
@@ -169,6 +207,26 @@ export default function TorModal({ open, templateSettings, onClose, onAddOutboun
             </div>
             {status?.lastLog && <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>{status.lastLog}</div>}
 
+            {status?.running && (
+              <>
+                <Divider className="my-10">{t('pages.xray.tor.exitIpTitle')}</Divider>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <Button icon={<GlobalOutlined />} loading={ipLoading} onClick={checkIp}>
+                    {t('pages.xray.tor.checkIpButton')}
+                  </Button>
+                  <Button icon={<SwapOutlined />} loading={loading} onClick={newIdentity}>
+                    {t('pages.xray.tor.newIdentityButton')}
+                  </Button>
+                  {exitIp && (
+                    <Tag color={exitIp.isTor ? 'green' : 'red'}>
+                      {exitIp.ip}
+                    </Tag>
+                  )}
+                </div>
+                <p style={{ marginTop: 8, fontSize: 12, color: '#888' }}>{t('pages.xray.tor.newIdentityHint')}</p>
+              </>
+            )}
+
             <Divider className="my-10">{t('pages.xray.outbound.outboundStatus')}</Divider>
             {torOutboundIndex >= 0 ? (
               <>
@@ -185,6 +243,7 @@ export default function TorModal({ open, templateSettings, onClose, onAddOutboun
                 </Button>
               </>
             )}
+            <p style={{ marginTop: 12, fontSize: 12, color: '#888' }}>{t('pages.xray.tor.testButtonHint')}</p>
           </>
         )}
       </Modal>

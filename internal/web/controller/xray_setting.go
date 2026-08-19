@@ -259,6 +259,10 @@ func (a *XraySettingController) tor(c *gin.Context) {
 		err = a.TorService.Install()
 	case "uninstall":
 		err = a.TorService.Uninstall()
+	case "ip":
+		resp, err = a.TorService.CurrentIP()
+	case "newIdentity":
+		err = a.TorService.NewIdentity()
 	}
 	jsonObj(c, resp, err)
 }

@@ -1,6 +1,9 @@
 package integration
 
 import (
+	"context"
+	"time"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/tor"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
@@ -59,4 +62,31 @@ func (s *TorService) Uninstall() error {
 		return err
 	}
 	return s.SetTorEnable(false)
+}
+
+// TorExitIP is the result of dialing out through the managed SOCKS proxy to
+// check.torproject.org's own API.
+type TorExitIP struct {
+	IP    string `json:"ip"`
+	IsTor bool   `json:"isTor"`
+}
+
+// CurrentIP checks the daemon's current exit IP. This is a real network
+// round-trip through Tor (can take several seconds, more on a fresh
+// circuit), deliberately not folded into the fast Status() poll.
+func (s *TorService) CurrentIP() (TorExitIP, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	ip, isTor, err := tor.CurrentIP(ctx)
+	if err != nil {
+		return TorExitIP{}, err
+	}
+	return TorExitIP{IP: ip, IsTor: isTor}, nil
+}
+
+// NewIdentity asks Tor for a new circuit (SIGNAL NEWNYM) -- the same "New
+// Identity" action Tor Browser exposes. Affects new connections only;
+// already-open ones keep their existing circuit.
+func (s *TorService) NewIdentity() error {
+	return tor.NewIdentity()
 }

@@ -15,9 +15,17 @@ import (
 // with an unrelated tor instance an admin may already be running.
 const SocksPort = 19050
 
-func configDir() string { return config.GetBinFolderPath() + "/tor" }
-func dataDir() string   { return configDir() + "/data" }
-func torrcPath() string { return configDir() + "/torrc" }
+// ControlPort serves Tor's control protocol (used here only for SIGNAL
+// NEWNYM -- "new identity"). Loopback-only, and guarded by
+// CookieAuthentication rather than a fixed password: the cookie file lives
+// inside DataDirectory (0700), so only the same OS user the panel runs as
+// can ever authenticate, with nothing to leak in a config file or process list.
+const ControlPort = 19051
+
+func configDir() string         { return config.GetBinFolderPath() + "/tor" }
+func dataDir() string           { return configDir() + "/data" }
+func torrcPath() string         { return configDir() + "/torrc" }
+func controlCookiePath() string { return dataDir() + "/control_auth_cookie" }
 
 // IsAvailable reports whether a `tor` binary is on PATH. This package never
 // bundles or downloads one -- the admin installs it via their own package
@@ -34,8 +42,8 @@ func IsAvailable() bool {
 // the host, and is never what a one-click "Tor outbound" button should do.
 func renderTorrc() string {
 	return fmt.Sprintf(
-		"SocksPort 127.0.0.1:%d\nDataDirectory %s\nClientOnly 1\nRunAsDaemon 0\nLog notice stdout\n",
-		SocksPort, dataDir(),
+		"SocksPort 127.0.0.1:%d\nControlPort 127.0.0.1:%d\nCookieAuthentication 1\nDataDirectory %s\nClientOnly 1\nRunAsDaemon 0\nLog notice stdout\n",
+		SocksPort, ControlPort, dataDir(),
 	)
 }
 
