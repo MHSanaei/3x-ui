@@ -38,7 +38,9 @@ describe('OutboundFormModal', () => {
       chooseSelectOption('protocol', proto);
       // Flush antd Form.useWatch('protocol') so protocol-specific fields render before
       // reading; otherwise every iteration sees the same default (vless) DOM.
-      await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
       labelsByProto[proto] = fieldLabels();
     }
 
@@ -64,11 +66,13 @@ describe('OutboundFormModal', () => {
           protocol: 'vless',
           tag: 'reverse-out',
           settings: {
-            vnext: [{
-              address: 'example.com',
-              port: 443,
-              users: [{ id: 'c9f0c2d0-0000-4000-8000-000000000000', encryption: 'none' }],
-            }],
+            vnext: [
+              {
+                address: 'example.com',
+                port: 443,
+                users: [{ id: 'c9f0c2d0-0000-4000-8000-000000000000', encryption: 'none' }],
+              },
+            ],
             reverse: { tag: 'r1', sniffing: {} },
           },
           streamSettings: { network: 'tcp', security: 'none' },
@@ -78,12 +82,18 @@ describe('OutboundFormModal', () => {
         onConfirm={onConfirm}
       />,
     );
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
 
     const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
     expect(ok).toBeTruthy();
-    await act(async () => { fireEvent.click(ok); });
-    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     const payload = onConfirm.mock.calls[0][0] as {

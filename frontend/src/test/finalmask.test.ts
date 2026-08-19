@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { migrateXmcSettings, parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { FinalMaskStreamSettingsSchema } from '@/schemas/protocols/stream';
 
-const fixtures = import.meta.glob<unknown>(
-  './golden/fixtures/finalmask/*.json',
-  { eager: true, import: 'default' },
-);
+const fixtures = import.meta.glob<unknown>('./golden/fixtures/finalmask/*.json', {
+  eager: true,
+  import: 'default',
+});
 
 function fixtureName(path: string): string {
   const file = path.split('/').pop() ?? path;
@@ -16,7 +16,10 @@ function fixtureName(path: string): string {
 
 describe('FinalMaskStreamSettingsSchema fixtures', () => {
   const entries = Object.entries(fixtures).sort(([a], [b]) => a.localeCompare(b));
-  expect(entries.length, 'expected at least one fixture under golden/fixtures/finalmask').toBeGreaterThan(0);
+  expect(
+    entries.length,
+    'expected at least one fixture under golden/fixtures/finalmask',
+  ).toBeGreaterThan(0);
 
   for (const [path, raw] of entries) {
     it(`parses ${fixtureName(path)} byte-stably`, () => {
@@ -53,7 +56,12 @@ describe('migrateXmcSettings', () => {
 
   it('leaves an already migrated mask untouched', () => {
     const profiles = [
-      { username: 'Notch', uuid: '069a79f4-44e9-4726-a5be-fca90e38aaf5', texturesValue: 'dmFsdWU=', texturesSignature: 'c2ln' },
+      {
+        username: 'Notch',
+        uuid: '069a79f4-44e9-4726-a5be-fca90e38aaf5',
+        texturesValue: 'dmFsdWU=',
+        texturesSignature: 'c2ln',
+      },
     ];
     const { next, changed } = migrateXmcSettings({ hostname: '', password: 'pw', profiles });
 

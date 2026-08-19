@@ -18,7 +18,9 @@ const meta = {
     },
   },
   argTypes: {
-    when: { description: 'Children mount the first time this becomes true and stay mounted afterwards.' },
+    when: {
+      description: 'Children mount the first time this becomes true and stay mounted afterwards.',
+    },
     fallback: { description: 'Suspense fallback shown while a React.lazy child is still loading.' },
     children: { description: 'Content to mount on demand, typically a lazily imported modal.' },
   },
@@ -53,7 +55,8 @@ function OnDemandDemo() {
         </Card>
       </LazyMount>
       <Typography.Text type="secondary">
-        The card mounts the first time the switch turns on and stays mounted after turning it off; the mount time never changes.
+        The card mounts the first time the switch turns on and stays mounted after turning it off;
+        the mount time never changes.
       </Typography.Text>
     </Space>
   );
@@ -67,7 +70,13 @@ const xrayConfigSnippet = JSON.stringify(
         protocol: 'vless',
         port: 443,
         settings: {
-          clients: [{ id: 'b831381d-6324-4d53-ad4f-8cda48b30811', email: 'alice@corp.example', flow: 'xtls-rprx-vision' }],
+          clients: [
+            {
+              id: 'b831381d-6324-4d53-ad4f-8cda48b30811',
+              email: 'alice@corp.example',
+              flow: 'xtls-rprx-vision',
+            },
+          ],
           decryption: 'none',
         },
         streamSettings: { network: 'tcp', security: 'reality' },

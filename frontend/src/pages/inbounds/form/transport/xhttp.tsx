@@ -22,12 +22,29 @@ function antdValidatorToRhf(fn: (rule: unknown, value: unknown) => Promise<void>
 export default function XhttpForm() {
   const { t } = useTranslation();
   const { control, getValues, setValue } = useFormContext();
-  const xhttpMode = useWatch({ control, name: 'streamSettings.xhttpSettings.mode' }) as string | undefined;
-  const xhttpObfsMode = !!useWatch({ control, name: 'streamSettings.xhttpSettings.xPaddingObfsMode' });
-  const xhttpSessionIDPlacement = useWatch({ control, name: 'streamSettings.xhttpSettings.sessionIDPlacement' }) as string | undefined;
-  const xhttpSessionIDTable = useWatch({ control, name: 'streamSettings.xhttpSettings.sessionIDTable' });
-  const xhttpSeqPlacement = useWatch({ control, name: 'streamSettings.xhttpSettings.seqPlacement' }) as string | undefined;
-  const xhttpUplinkPlacement = useWatch({ control, name: 'streamSettings.xhttpSettings.uplinkDataPlacement' }) as string | undefined;
+  const xhttpMode = useWatch({ control, name: 'streamSettings.xhttpSettings.mode' }) as
+    | string
+    | undefined;
+  const xhttpObfsMode = !!useWatch({
+    control,
+    name: 'streamSettings.xhttpSettings.xPaddingObfsMode',
+  });
+  const xhttpSessionIDPlacement = useWatch({
+    control,
+    name: 'streamSettings.xhttpSettings.sessionIDPlacement',
+  }) as string | undefined;
+  const xhttpSessionIDTable = useWatch({
+    control,
+    name: 'streamSettings.xhttpSettings.sessionIDTable',
+  });
+  const xhttpSeqPlacement = useWatch({
+    control,
+    name: 'streamSettings.xhttpSettings.seqPlacement',
+  }) as string | undefined;
+  const xhttpUplinkPlacement = useWatch({
+    control,
+    name: 'streamSettings.xhttpSettings.uplinkDataPlacement',
+  }) as string | undefined;
   const enableXmux = !!useWatch({ control, name: 'streamSettings.xhttpSettings.enableXmux' });
 
   function onXmuxToggle(checked: boolean) {
@@ -60,7 +77,10 @@ export default function XhttpForm() {
       <FormField name={['streamSettings', 'xhttpSettings', 'path']} label={t('path')}>
         <Input />
       </FormField>
-      <FormField name={['streamSettings', 'xhttpSettings', 'mode']} label={t('pages.inbounds.info.mode')}>
+      <FormField
+        name={['streamSettings', 'xhttpSettings', 'mode']}
+        label={t('pages.inbounds.info.mode')}
+      >
         <Select
           style={{ width: '50%' }}
           options={(['auto', 'packet-up', 'stream-up', 'stream-one'] as const).map((m) => ({

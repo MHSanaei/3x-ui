@@ -80,7 +80,9 @@ export function parseLinkParts(link: string): LinkParts | null {
       security = json.tls ?? '';
       remark = typeof json.ps === 'string' ? json.ps : '';
       port = json.port != null ? String(json.port) : '';
-    } catch { /* unparseable payload, fall back to protocol only */ }
+    } catch {
+      /* unparseable payload, fall back to protocol only */
+    }
   } else {
     try {
       const url = new URL(trimmed);
@@ -90,8 +92,14 @@ export function parseLinkParts(link: string): LinkParts | null {
          the URL authority, so fall back to it when there is no authority port. */
       port = url.port || (url.searchParams.get('port') ?? '');
       const hash = url.hash.replace(/^#/, '');
-      try { remark = decodeURIComponent(hash); } catch { remark = hash; }
-    } catch { /* not URL-shaped, fall back to protocol only */ }
+      try {
+        remark = decodeURIComponent(hash);
+      } catch {
+        remark = hash;
+      }
+    } catch {
+      /* not URL-shaped, fall back to protocol only */
+    }
     if (scheme === 'tg') security = 'FakeTLS';
   }
   if (security === 'none') security = '';
@@ -113,10 +121,18 @@ export function linkMetaText(parts: LinkParts): string {
 export function LinkTags({ parts }: { parts: LinkParts }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-      <Tag color={PROTOCOL_COLORS[parts.protocol]} style={TAG_STYLE}>{parts.protocol}</Tag>
-      {parts.network && <Tag color={TRANSPORT_COLOR} style={TAG_STYLE}>{parts.network}</Tag>}
+      <Tag color={PROTOCOL_COLORS[parts.protocol]} style={TAG_STYLE}>
+        {parts.protocol}
+      </Tag>
+      {parts.network && (
+        <Tag color={TRANSPORT_COLOR} style={TAG_STYLE}>
+          {parts.network}
+        </Tag>
+      )}
       {parts.security && (
-        <Tag color={SECURITY_COLORS[parts.security]} style={TAG_STYLE}>{parts.security}</Tag>
+        <Tag color={SECURITY_COLORS[parts.security]} style={TAG_STYLE}>
+          {parts.security}
+        </Tag>
       )}
     </span>
   );

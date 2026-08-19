@@ -27,9 +27,16 @@ describe('websocket payload identity preservation', () => {
 
 describe('client summary always reflects the server, never a client_stats recompute (#6116)', () => {
   const serverSummary: ClientsSummary = {
-    total: 3, active: 3,
-    onlineCount: 0, depletedCount: 0, expiringCount: 0, deactiveCount: 0,
-    online: [], depleted: [], expiring: [], deactive: [],
+    total: 3,
+    active: 3,
+    onlineCount: 0,
+    depletedCount: 0,
+    expiringCount: 0,
+    deactiveCount: 0,
+    online: [],
+    depleted: [],
+    expiring: [],
+    deactive: [],
   };
 
   const pagedResponse = {

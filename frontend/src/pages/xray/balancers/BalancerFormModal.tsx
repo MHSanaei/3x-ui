@@ -9,10 +9,7 @@ import type { Path } from 'react-hook-form';
 import { InputAddon } from '@/components/ui';
 import { FormField } from '@/components/form/rhf';
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
-import {
-  BalancerFormSchema,
-  type BalancerFormValues,
-} from '@/schemas/xray';
+import { BalancerFormSchema, type BalancerFormValues } from '@/schemas/xray';
 import {
   BalancerStrategyTypeSchema,
   type BalancerStrategyType,
@@ -95,7 +92,10 @@ export default function BalancerFormModal({
   );
 
   const cycleInfo = useMemo(() => {
-    const rules = (templateSettings?.routing?.rules || []) as Array<{ inboundTag?: string[]; balancerTag?: string }>;
+    const rules = (templateSettings?.routing?.rules || []) as Array<{
+      inboundTag?: string[];
+      balancerTag?: string;
+    }>;
     const resolveLoopback = (tag: string): string | null => {
       for (const r of rules) {
         if (Array.isArray(r.inboundTag) && r.inboundTag.includes(tag) && r.balancerTag) {
@@ -135,9 +135,8 @@ export default function BalancerFormModal({
   const wouldCreateCycle = !!cycleInfo[fallbackTag];
 
   const fallbackOptions = useMemo(() => {
-    const options: Array<{ value: string; label: ReactNode; disabled?: boolean; title?: string }> = [
-      { value: '', label: `(${t('none')})` },
-    ];
+    const options: Array<{ value: string; label: ReactNode; disabled?: boolean; title?: string }> =
+      [{ value: '', label: `(${t('none')})` }];
     for (const tg of outboundTags) {
       options.push({ value: tg, label: tg });
     }
@@ -146,10 +145,14 @@ export default function BalancerFormModal({
       options.push({
         value: tg,
         disabled: !!cycle,
-        title: cycle ? t('pages.xray.balancer.cycleTooltip', { path: cycle.join(' → '), start: currentTag }) : undefined,
+        title: cycle
+          ? t('pages.xray.balancer.cycleTooltip', { path: cycle.join(' → '), start: currentTag })
+          : undefined,
         label: (
           <span>
-            <Tag color="blue" style={{ marginRight: 4 }}>{t('pages.xray.rules.balancer')}</Tag>
+            <Tag color="blue" style={{ marginRight: 4 }}>
+              {t('pages.xray.rules.balancer')}
+            </Tag>
             {tg}
           </span>
         ),
@@ -215,13 +218,16 @@ export default function BalancerFormModal({
               const errorMessage = fieldState.error?.message
                 ? t(fieldState.error.message, { defaultValue: fieldState.error.message })
                 : '';
-              const showDuplicate = !errorMessage && (submitAttempted || fieldState.isTouched) && duplicate;
+              const showDuplicate =
+                !errorMessage && (submitAttempted || fieldState.isTouched) && duplicate;
               return (
                 <Form.Item
                   label={t('pages.xray.balancer.tag')}
                   required
                   validateStatus={errorMessage ? 'error' : showDuplicate ? 'warning' : ''}
-                  help={errorMessage || (showDuplicate ? t('pages.xray.balancer.tagDuplicate') : '')}
+                  help={
+                    errorMessage || (showDuplicate ? t('pages.xray.balancer.tagDuplicate') : '')
+                  }
                   hasFeedback
                 >
                   <Input
@@ -286,7 +292,10 @@ export default function BalancerFormModal({
               <FormField
                 name={['settings', 'maxRTT']}
                 label={t('pages.xray.balancer.maxRtt')}
-                transform={{ input: (v) => v ?? '', output: (v) => (typeof v === 'string' && v ? v : undefined) }}
+                transform={{
+                  input: (v) => v ?? '',
+                  output: (v) => (typeof v === 'string' && v ? v : undefined),
+                }}
               >
                 <Input placeholder="e.g. 1s" />
               </FormField>
@@ -295,7 +304,13 @@ export default function BalancerFormModal({
                 label={t('pages.xray.balancer.tolerance')}
                 transform={{ output: (v) => (typeof v === 'number' ? v : undefined) }}
               >
-                <InputNumber min={0} max={1} step={0.01} placeholder="0.01 = 1%" style={{ width: '100%' }} />
+                <InputNumber
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  placeholder="0.01 = 1%"
+                  style={{ width: '100%' }}
+                />
               </FormField>
               <Form.Item label={t('pages.xray.balancer.baselines')}>
                 <Button
@@ -311,9 +326,22 @@ export default function BalancerFormModal({
                       value={b}
                       aria-label={t('pages.xray.balancer.baselines')}
                       placeholder="e.g. 1s"
-                      onChange={(e) => methods.setValue('settings.baselines', baselines.map((x, i) => (i === idx ? e.target.value : x)))}
+                      onChange={(e) =>
+                        methods.setValue(
+                          'settings.baselines',
+                          baselines.map((x, i) => (i === idx ? e.target.value : x)),
+                        )
+                      }
                     />
-                    <InputAddon ariaLabel={t('remove')} onClick={() => methods.setValue('settings.baselines', baselines.filter((_, i) => i !== idx))}>
+                    <InputAddon
+                      ariaLabel={t('remove')}
+                      onClick={() =>
+                        methods.setValue(
+                          'settings.baselines',
+                          baselines.filter((_, i) => i !== idx),
+                        )
+                      }
+                    >
                       <MinusOutlined />
                     </InputAddon>
                   </Space.Compact>
@@ -325,7 +353,12 @@ export default function BalancerFormModal({
                   type="primary"
                   icon={<PlusOutlined />}
                   aria-label={t('add')}
-                  onClick={() => methods.setValue('settings.costs', [...costs, { regexp: false, match: '', value: 1 }])}
+                  onClick={() =>
+                    methods.setValue('settings.costs', [
+                      ...costs,
+                      { regexp: false, match: '', value: 1 },
+                    ])
+                  }
                 />
                 {costs.map((c, idx) => (
                   <Space.Compact key={idx} block style={{ marginTop: 4 }}>
@@ -334,22 +367,47 @@ export default function BalancerFormModal({
                       aria-label={t('pages.xray.balancer.costRegexp')}
                       checkedChildren="re"
                       unCheckedChildren="lit"
-                      onChange={(v) => methods.setValue('settings.costs', costs.map((x, i) => (i === idx ? { ...x, regexp: v } : x)))}
+                      onChange={(v) =>
+                        methods.setValue(
+                          'settings.costs',
+                          costs.map((x, i) => (i === idx ? { ...x, regexp: v } : x)),
+                        )
+                      }
                     />
                     <Input
                       value={c.match}
                       aria-label={t('pages.xray.balancer.costMatch')}
                       placeholder="tag pattern"
-                      onChange={(e) => methods.setValue('settings.costs', costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)))}
+                      onChange={(e) =>
+                        methods.setValue(
+                          'settings.costs',
+                          costs.map((x, i) => (i === idx ? { ...x, match: e.target.value } : x)),
+                        )
+                      }
                     />
                     <InputNumber
                       value={c.value}
                       aria-label={t('pages.xray.balancer.costValue')}
                       placeholder="weight"
                       style={{ width: 100 }}
-                      onChange={(v) => methods.setValue('settings.costs', costs.map((x, i) => (i === idx ? { ...x, value: typeof v === 'number' ? v : 0 } : x)))}
+                      onChange={(v) =>
+                        methods.setValue(
+                          'settings.costs',
+                          costs.map((x, i) =>
+                            i === idx ? { ...x, value: typeof v === 'number' ? v : 0 } : x,
+                          ),
+                        )
+                      }
                     />
-                    <InputAddon ariaLabel={t('remove')} onClick={() => methods.setValue('settings.costs', costs.filter((_, i) => i !== idx))}>
+                    <InputAddon
+                      ariaLabel={t('remove')}
+                      onClick={() =>
+                        methods.setValue(
+                          'settings.costs',
+                          costs.filter((_, i) => i !== idx),
+                        )
+                      }
+                    >
                       <MinusOutlined />
                     </InputAddon>
                   </Space.Compact>

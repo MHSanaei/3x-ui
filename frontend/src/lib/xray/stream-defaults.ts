@@ -7,10 +7,7 @@ import {
   WsStreamSettingsSchema,
   XHttpStreamSettingsSchema,
 } from '@/schemas/protocols/stream';
-import {
-  RealityStreamSettingsSchema,
-  TlsStreamSettingsSchema,
-} from '@/schemas/protocols/security';
+import { RealityStreamSettingsSchema, TlsStreamSettingsSchema } from '@/schemas/protocols/security';
 
 const NETWORK_KEY_MAP = {
   tcp: 'tcpSettings',
@@ -33,22 +30,33 @@ function parseOrDefault(schema: SchemaWithParse, value: unknown): unknown {
 
 function networkSchemaFor(network: string): SchemaWithParse | null {
   switch (network) {
-    case 'tcp': return TcpStreamSettingsSchema;
-    case 'kcp': return KcpStreamSettingsSchema;
-    case 'ws': return WsStreamSettingsSchema;
-    case 'grpc': return GrpcStreamSettingsSchema;
-    case 'httpupgrade': return HttpUpgradeStreamSettingsSchema;
-    case 'xhttp': return XHttpStreamSettingsSchema;
-    case 'hysteria': return HysteriaStreamSettingsSchema;
-    default: return null;
+    case 'tcp':
+      return TcpStreamSettingsSchema;
+    case 'kcp':
+      return KcpStreamSettingsSchema;
+    case 'ws':
+      return WsStreamSettingsSchema;
+    case 'grpc':
+      return GrpcStreamSettingsSchema;
+    case 'httpupgrade':
+      return HttpUpgradeStreamSettingsSchema;
+    case 'xhttp':
+      return XHttpStreamSettingsSchema;
+    case 'hysteria':
+      return HysteriaStreamSettingsSchema;
+    default:
+      return null;
   }
 }
 
 function securitySchemaFor(security: string): { key: string; schema: SchemaWithParse } | null {
   switch (security) {
-    case 'tls': return { key: 'tlsSettings', schema: TlsStreamSettingsSchema };
-    case 'reality': return { key: 'realitySettings', schema: RealityStreamSettingsSchema };
-    default: return null;
+    case 'tls':
+      return { key: 'tlsSettings', schema: TlsStreamSettingsSchema };
+    case 'reality':
+      return { key: 'realitySettings', schema: RealityStreamSettingsSchema };
+    default:
+      return null;
   }
 }
 

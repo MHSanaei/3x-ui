@@ -160,7 +160,12 @@ describe('buildOutbound — wireguard & warp', () => {
     const ob = buildOutbound({
       kind: 'wireguard',
       tag: 'wg',
-      wireguard: { secretKey: 'sk', address: ['10.0.0.2/32'], publicKey: 'pk', endpoint: 'host:51820' },
+      wireguard: {
+        secretKey: 'sk',
+        address: ['10.0.0.2/32'],
+        publicKey: 'pk',
+        endpoint: 'host:51820',
+      },
     });
     const s = ob.settings as Record<string, unknown>;
     expect(s.secretKey).toBe('sk');

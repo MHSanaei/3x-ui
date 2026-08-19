@@ -57,7 +57,10 @@ import {
 } from '@/schemas/client';
 import { parseMsg } from '@/utils/zodValidate';
 
-const ClientRecordListSchema = z.array(ClientRecordSchema).nullable().transform((v) => v ?? []);
+const ClientRecordListSchema = z
+  .array(ClientRecordSchema)
+  .nullable()
+  .transform((v) => v ?? []);
 
 const SubLinksModal = lazy(() => import('../clients/SubLinksModal'));
 const ClientBulkAdjustModal = lazy(() => import('../clients/ClientBulkAdjustModal'));
@@ -90,10 +93,14 @@ export default function GroupsPage() {
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
   const [messageApi, messageContextHolder] = message.useMessage();
-  useEffect(() => { setMessageInstance(messageApi); }, [messageApi]);
+  useEffect(() => {
+    setMessageInstance(messageApi);
+  }, [messageApi]);
   const queryClient = useQueryClient();
 
-  const { subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients({ list: false });
+  const { subSettings, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, bulkDelete } = useClients({
+    list: false,
+  });
 
   const groupsQuery = useQuery({
     queryKey: keys.clients.groups(),
@@ -111,25 +118,33 @@ export default function GroupsPage() {
   const createMut = useMutation({
     mutationFn: (body: { name: string }) =>
       HttpUtil.post('/panel/api/clients/groups/create', body, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
   });
 
   const renameMut = useMutation({
     mutationFn: (body: { oldName: string; newName: string }) =>
       HttpUtil.post('/panel/api/clients/groups/rename', body, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
   });
 
   const deleteMut = useMutation({
     mutationFn: (body: { name: string }) =>
       HttpUtil.post('/panel/api/clients/groups/delete', body, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
   });
 
   const groupResetMut = useMutation({
     mutationFn: (body: { name: string }) =>
       HttpUtil.post('/panel/api/clients/groups/resetTraffic', body, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
   });
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -168,14 +183,8 @@ export default function GroupsPage() {
     () => groups.reduce((acc, g) => acc + (g.trafficUsed || 0), 0),
     [groups],
   );
-  const totalUpload = useMemo(
-    () => groups.reduce((acc, g) => acc + (g.up || 0), 0),
-    [groups],
-  );
-  const totalDownload = useMemo(
-    () => groups.reduce((acc, g) => acc + (g.down || 0), 0),
-    [groups],
-  );
+  const totalUpload = useMemo(() => groups.reduce((acc, g) => acc + (g.up || 0), 0), [groups]);
+  const totalDownload = useMemo(() => groups.reduce((acc, g) => acc + (g.down || 0), 0), [groups]);
 
   function openCreate() {
     setCreateName('');
@@ -209,7 +218,11 @@ export default function GroupsPage() {
       setRenameOpen(false);
       return;
     }
-    if (groups.some((g) => g.name.toLowerCase() === next.toLowerCase() && g.name !== renameTarget.name)) {
+    if (
+      groups.some(
+        (g) => g.name.toLowerCase() === next.toLowerCase() && g.name !== renameTarget.name,
+      )
+    ) {
       messageApi.error(t('pages.groups.renameCollision', { name: next }));
       return;
     }
@@ -305,9 +318,11 @@ export default function GroupsPage() {
             messageApi.success(t('pages.groups.deleteClientsSuccess', { count: ok }));
           } else {
             const firstError = skipped[0]?.reason ?? msg?.msg ?? '';
-            messageApi.warning(firstError
-              ? `${t('pages.groups.deleteClientsMixed', { ok, failed })} — ${firstError}`
-              : t('pages.groups.deleteClientsMixed', { ok, failed }));
+            messageApi.warning(
+              firstError
+                ? `${t('pages.groups.deleteClientsMixed', { ok, failed })} — ${firstError}`
+                : t('pages.groups.deleteClientsMixed', { ok, failed }),
+            );
           }
         }
       },
@@ -404,10 +419,23 @@ export default function GroupsPage() {
       render: (_v, row) => (
         <Space size={4}>
           <Dropdown trigger={['click']} menu={{ items: rowActions(row) }}>
-            <Button aria-label={t('more')} size="small" type="text" style={{ fontSize: 16 }} icon={<MoreOutlined />} />
+            <Button
+              aria-label={t('more')}
+              size="small"
+              type="text"
+              style={{ fontSize: 16 }}
+              icon={<MoreOutlined />}
+            />
           </Dropdown>
           <Tooltip title={t('pages.groups.rename')}>
-            <Button aria-label={t('pages.groups.rename')} size="small" type="text" style={{ fontSize: 16 }} icon={<EditOutlined />} onClick={() => openRename(row)} />
+            <Button
+              aria-label={t('pages.groups.rename')}
+              size="small"
+              type="text"
+              style={{ fontSize: 16 }}
+              icon={<EditOutlined />}
+              onClick={() => openRename(row)}
+            />
           </Tooltip>
         </Space>
       ),
@@ -416,7 +444,11 @@ export default function GroupsPage() {
       title: t('pages.groups.name'),
       dataIndex: 'name',
       key: 'name',
-      render: (name: string) => <Tag color="geekblue" style={{ margin: 0, fontSize: 13 }}>{name}</Tag>,
+      render: (name: string) => (
+        <Tag color="geekblue" style={{ margin: 0, fontSize: 13 }}>
+          {name}
+        </Tag>
+      ),
     },
     {
       title: t('pages.groups.clientCount'),
@@ -471,7 +503,11 @@ export default function GroupsPage() {
                   status="error"
                   title={t('somethingWentWrong')}
                   subTitle={fetchError}
-                  extra={<Button type="primary" loading={loading} onClick={() => groupsQuery.refetch()}>{t('refresh')}</Button>}
+                  extra={
+                    <Button type="primary" loading={loading} onClick={() => groupsQuery.refetch()}>
+                      {t('refresh')}
+                    </Button>
+                  }
                 />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
@@ -522,7 +558,12 @@ export default function GroupsPage() {
                       hoverable
                       title={
                         <div className="card-toolbar">
-                          <Button aria-label={t('pages.groups.addGroup')} type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                          <Button
+                            aria-label={t('pages.groups.addGroup')}
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={openCreate}
+                          >
                             {!isMobile && t('pages.groups.addGroup')}
                           </Button>
                         </div>

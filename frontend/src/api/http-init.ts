@@ -79,7 +79,9 @@ function encodeForm(data: unknown): string {
       return;
     }
     if (typeof value === 'object') {
-      Object.entries(value as Record<string, unknown>).forEach(([k, v]) => append(`${key}[${k}]`, v));
+      Object.entries(value as Record<string, unknown>).forEach(([k, v]) =>
+        append(`${key}[${k}]`, v),
+      );
       return;
     }
     parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);

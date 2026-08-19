@@ -24,7 +24,11 @@
   margin: 8px 8px 16px;
   padding: 16px 18px 18px;
   border-radius: 14px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ant-color-primary) 6%, transparent), transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ant-color-primary) 6%, transparent),
+    transparent
+  );
   border: 1px solid var(--ant-color-border-secondary);
   box-shadow: 0 2px 12px var(--ant-color-fill-quaternary);
 }

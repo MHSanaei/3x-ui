@@ -87,7 +87,11 @@ describe('resolveLoopbackFallback', () => {
   });
 
   const cases: Array<{ name: string; input: string; expected: string }> = [
-    { name: 'resolves a loopback tag through its routing rule', input: '_bl_bal1', expected: 'bal1' },
+    {
+      name: 'resolves a loopback tag through its routing rule',
+      input: '_bl_bal1',
+      expected: 'bal1',
+    },
     { name: 'returns a plain outbound tag unchanged', input: 'direct', expected: 'direct' },
     { name: 'returns an empty tag unchanged', input: '', expected: '' },
     { name: 'derives the balancer tag when no rule maps it', input: '_bl_bal2', expected: 'bal2' },
@@ -161,9 +165,7 @@ describe('ensureBalancerLoopback rule ordering', () => {
 
     ensureBalancerLoopback(settings, 'target');
 
-    expect(loopbackRuleIndex(settings, '_bl_target')).toBeLessThan(
-      generalRuleIndex(settings),
-    );
+    expect(loopbackRuleIndex(settings, '_bl_target')).toBeLessThan(generalRuleIndex(settings));
   });
 
   it('repositions an existing loopback rule that landed after a general rule', () => {
@@ -215,9 +217,7 @@ describe('ensureBalancerLoopback rule ordering', () => {
 
     ensureMissingBalancerLoopbacks(settings);
 
-    expect(loopbackRuleIndex(settings, '_bl_B2')).toBeLessThan(
-      generalRuleIndex(settings),
-    );
+    expect(loopbackRuleIndex(settings, '_bl_B2')).toBeLessThan(generalRuleIndex(settings));
   });
 
   it('keeps the loopback rule ahead of the general rule after a second ensureBalancerLoopback call', () => {
@@ -229,9 +229,7 @@ describe('ensureBalancerLoopback rule ordering', () => {
     ensureBalancerLoopback(settings, 'target');
     ensureBalancerLoopback(settings, 'target');
 
-    expect(loopbackRuleIndex(settings, '_bl_target')).toBeLessThan(
-      generalRuleIndex(settings),
-    );
+    expect(loopbackRuleIndex(settings, '_bl_target')).toBeLessThan(generalRuleIndex(settings));
     expect(
       ruleEntries(settings).filter(
         (r) => Array.isArray(r.inboundTag) && r.inboundTag.includes('_bl_target'),
@@ -307,7 +305,9 @@ describe('propagateBalancerTagRename', () => {
 
   it('leaves unrelated loopback tags untouched', () => {
     const settings = makeSettings({
-      outbounds: [{ tag: '_bl_other', protocol: 'loopback', settings: { inboundTag: '_bl_other' } }],
+      outbounds: [
+        { tag: '_bl_other', protocol: 'loopback', settings: { inboundTag: '_bl_other' } },
+      ],
       rules: [{ type: 'field', inboundTag: ['_bl_other'], balancerTag: 'other' }],
       balancers: [{ tag: 'user', selector: [], fallbackTag: '_bl_other' }],
     });

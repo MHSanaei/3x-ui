@@ -8,7 +8,9 @@ import { useOutboundTags } from '@/api/queries/useOutboundTags';
 export default function MtprotoFields() {
   const { t } = useTranslation();
   const { control } = useFormContext();
-  const routeThroughXray = useWatch({ control, name: 'settings.routeThroughXray' }) as boolean | undefined;
+  const routeThroughXray = useWatch({ control, name: 'settings.routeThroughXray' }) as
+    | boolean
+    | undefined;
   const { data: outboundTags } = useOutboundTags();
   return (
     <>
@@ -26,7 +28,10 @@ export default function MtprotoFields() {
       >
         <Input placeholder="127.0.0.1" />
       </FormField>
-      <FormField name={['settings', 'domainFronting', 'port']} label={t('pages.inbounds.form.mtgDomainFrontingPort')}>
+      <FormField
+        name={['settings', 'domainFronting', 'port']}
+        label={t('pages.inbounds.form.mtgDomainFrontingPort')}
+      >
         <InputNumber min={0} max={65535} placeholder="443" style={{ width: '100%' }} />
       </FormField>
       <FormField
@@ -55,7 +60,11 @@ export default function MtprotoFields() {
           ]}
         />
       </FormField>
-      <FormField name={['settings', 'debug']} label={t('pages.inbounds.form.mtgDebug')} valueProp="checked">
+      <FormField
+        name={['settings', 'debug']}
+        label={t('pages.inbounds.form.mtgDebug')}
+        valueProp="checked"
+      >
         <Switch />
       </FormField>
       <FormField

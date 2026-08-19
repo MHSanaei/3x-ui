@@ -8,19 +8,21 @@ function fixtureName(path: string): string {
   return file.replace(/\.json$/, '');
 }
 
-const dnsFixtures = import.meta.glob<unknown>(
-  './golden/fixtures/dns/*.json',
-  { eager: true, import: 'default' },
-);
+const dnsFixtures = import.meta.glob<unknown>('./golden/fixtures/dns/*.json', {
+  eager: true,
+  import: 'default',
+});
 
-const serverFixtures = import.meta.glob<unknown>(
-  './golden/fixtures/dns-server/*.json',
-  { eager: true, import: 'default' },
-);
+const serverFixtures = import.meta.glob<unknown>('./golden/fixtures/dns-server/*.json', {
+  eager: true,
+  import: 'default',
+});
 
 describe('DnsObjectSchema fixtures', () => {
   const entries = Object.entries(dnsFixtures).sort(([a], [b]) => a.localeCompare(b));
-  expect(entries.length, 'expected at least one fixture under golden/fixtures/dns').toBeGreaterThan(0);
+  expect(entries.length, 'expected at least one fixture under golden/fixtures/dns').toBeGreaterThan(
+    0,
+  );
 
   for (const [path, raw] of entries) {
     it(`parses ${fixtureName(path)} byte-stably`, () => {
@@ -32,7 +34,10 @@ describe('DnsObjectSchema fixtures', () => {
 
 describe('DnsServerObjectSchema fixtures', () => {
   const entries = Object.entries(serverFixtures).sort(([a], [b]) => a.localeCompare(b));
-  expect(entries.length, 'expected at least one fixture under golden/fixtures/dns-server').toBeGreaterThan(0);
+  expect(
+    entries.length,
+    'expected at least one fixture under golden/fixtures/dns-server',
+  ).toBeGreaterThan(0);
 
   for (const [path, raw] of entries) {
     it(`parses ${fixtureName(path)} byte-stably`, () => {
@@ -69,8 +74,12 @@ describe('DnsServerObjectSchema port defaulting', () => {
   });
 
   it('omits port for an h2c and h2c+local address', () => {
-    expect(DnsServerObjectSchema.parse({ address: 'h2c://dns.example.com/dns-query' }).port).toBeUndefined();
-    expect(DnsServerObjectSchema.parse({ address: 'h2c+local://dns.example.com/dns-query' }).port).toBeUndefined();
+    expect(
+      DnsServerObjectSchema.parse({ address: 'h2c://dns.example.com/dns-query' }).port,
+    ).toBeUndefined();
+    expect(
+      DnsServerObjectSchema.parse({ address: 'h2c+local://dns.example.com/dns-query' }).port,
+    ).toBeUndefined();
   });
 
   it('omits port for an uppercase encrypted scheme', () => {
@@ -79,7 +88,10 @@ describe('DnsServerObjectSchema port defaulting', () => {
   });
 
   it('preserves an explicit port on an encrypted address', () => {
-    const parsed = DnsServerObjectSchema.parse({ address: 'https://dns.google/dns-query', port: 8443 });
+    const parsed = DnsServerObjectSchema.parse({
+      address: 'https://dns.google/dns-query',
+      port: 8443,
+    });
     expect(parsed.port).toBe(8443);
   });
 });

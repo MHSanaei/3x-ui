@@ -27,7 +27,11 @@ function readHeader(headers: unknown, name: string): string {
   const needle = name.toLowerCase();
   if (Array.isArray(headers)) {
     for (const h of headers) {
-      if (h && typeof h === 'object' && String((h as { name?: string }).name ?? '').toLowerCase() === needle) {
+      if (
+        h &&
+        typeof h === 'object' &&
+        String((h as { name?: string }).name ?? '').toLowerCase() === needle
+      ) {
         return String((h as { value?: unknown }).value ?? '');
       }
     }
@@ -46,20 +50,22 @@ function readHeader(headers: unknown, name: string): string {
 function readNetworkHost(stream: Record<string, unknown>, network: string): string | null {
   switch (network) {
     case 'tcp': {
-      const tcp = stream.tcpSettings as { header?: { request?: { headers?: unknown } } } | undefined;
+      const tcp = stream.tcpSettings as
+        | { header?: { request?: { headers?: unknown } } }
+        | undefined;
       return readHeader(tcp?.header?.request?.headers, 'host');
     }
     case 'ws': {
       const ws = stream.wsSettings as { host?: string; headers?: unknown } | undefined;
-      return (ws?.host && ws.host.length > 0) ? ws.host : readHeader(ws?.headers, 'host');
+      return ws?.host && ws.host.length > 0 ? ws.host : readHeader(ws?.headers, 'host');
     }
     case 'httpupgrade': {
       const hu = stream.httpupgradeSettings as { host?: string; headers?: unknown } | undefined;
-      return (hu?.host && hu.host.length > 0) ? hu.host : readHeader(hu?.headers, 'host');
+      return hu?.host && hu.host.length > 0 ? hu.host : readHeader(hu?.headers, 'host');
     }
     case 'xhttp': {
       const xh = stream.xhttpSettings as { host?: string; headers?: unknown } | undefined;
-      return (xh?.host && xh.host.length > 0) ? xh.host : readHeader(xh?.headers, 'host');
+      return xh?.host && xh.host.length > 0 ? xh.host : readHeader(xh?.headers, 'host');
     }
     default:
       return null;
@@ -90,13 +96,17 @@ export function buildInboundInfo(dbInbound: DBInboundLike): InboundInfo {
   const security = (stream.security as string | undefined) ?? 'none';
   const clients = Array.isArray(settings.clients) ? (settings.clients as ClientSetting[]) : [];
   const xhttpSettings = stream.xhttpSettings as { mode?: string } | undefined;
-  const grpcSettings = stream.grpcSettings as { multiMode?: boolean; serviceName?: string } | undefined;
+  const grpcSettings = stream.grpcSettings as
+    | { multiMode?: boolean; serviceName?: string }
+    | undefined;
   let serverName = '';
   if (security === 'tls') {
     const tls = stream.tlsSettings as { sni?: string; serverName?: string } | undefined;
     serverName = tls?.sni ?? tls?.serverName ?? '';
   } else if (security === 'reality') {
-    const reality = stream.realitySettings as { serverNames?: string[]; serverName?: string } | undefined;
+    const reality = stream.realitySettings as
+      | { serverNames?: string[]; serverName?: string }
+      | undefined;
     if (Array.isArray(reality?.serverNames)) {
       serverName = reality.serverNames.join(', ');
     } else if (reality?.serverName) {
@@ -158,7 +168,12 @@ export function statsColor(stats: ClientStats, trafficDiff: number) {
 export function formatIpInfo(record: unknown) {
   if (record == null) return '';
   if (typeof record === 'string' || typeof record === 'number') return String(record);
-  const r = record as { ip?: string; IP?: string; timestamp?: number | string; Timestamp?: number | string };
+  const r = record as {
+    ip?: string;
+    IP?: string;
+    timestamp?: number | string;
+    Timestamp?: number | string;
+  };
   const ip = r.ip || r.IP || '';
   const ts = r.timestamp || r.Timestamp || 0;
   if (!ip) return String(record);
@@ -166,8 +181,12 @@ export function formatIpInfo(record: unknown) {
   const date = new Date(Number(ts) * 1000);
   const timeStr = date
     .toLocaleString('en-GB', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
       hour12: false,
     })
     .replace(',', '');

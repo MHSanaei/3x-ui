@@ -3,10 +3,7 @@ import { z } from 'zod';
 export const RuleProtocolSchema = z.enum(['http', 'tls', 'quic', 'bittorrent']);
 export type RuleProtocol = z.infer<typeof RuleProtocolSchema>;
 
-const PortValueSchema = z.union([
-  z.number().int().min(0).max(65535),
-  z.string(),
-]);
+const PortValueSchema = z.union([z.number().int().min(0).max(65535), z.string()]);
 
 export const RuleWebhookSchema = z.object({
   url: z.string(),

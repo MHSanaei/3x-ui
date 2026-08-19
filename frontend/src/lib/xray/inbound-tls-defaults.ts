@@ -24,9 +24,10 @@ export function createHysteriaTlsSettingsWithDefaultCert(): Record<string, unkno
   const tls = createTlsSettingsWithDefaultCert();
   tls.alpn = ['h3'];
 
-  const settings = tls.settings && typeof tls.settings === 'object' && !Array.isArray(tls.settings)
-    ? { ...(tls.settings as Record<string, unknown>) }
-    : {};
+  const settings =
+    tls.settings && typeof tls.settings === 'object' && !Array.isArray(tls.settings)
+      ? { ...(tls.settings as Record<string, unknown>) }
+      : {};
   settings.fingerprint = '';
   tls.settings = settings;
 

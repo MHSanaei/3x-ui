@@ -87,31 +87,38 @@ export default function NodeFormModal({
   // connection") rather than a synthetic option, so it can't read as a second
   // "direct" next to a real freedom outbound.
   const outboundOptions = useMemo<
-    ({ label: string; value: string } | { label: string; options: { label: string; value: string }[] })[]
+    (
+      | { label: string; value: string }
+      | { label: string; options: { label: string; value: string }[] }
+    )[]
   >(() => {
     const outOpts = (outboundGroups?.outbounds ?? []).map((tag) => ({ label: tag, value: tag }));
     if (!outboundGroups?.balancers.length) return outOpts;
     return [
       { label: t('pages.xray.Outbounds'), options: outOpts },
-      { label: t('pages.xray.Balancers'), options: outboundGroups.balancers.map((tag) => ({ label: tag, value: tag })) },
+      {
+        label: t('pages.xray.Balancers'),
+        options: outboundGroups.balancers.map((tag) => ({ label: tag, value: tag })),
+      },
     ];
   }, [outboundGroups, t]);
 
   useEffect(() => {
     if (!open) return;
     const base = defaultValues();
-    const next: NodeFormValues = mode === 'edit' && node
-      ? {
-        ...base,
-        ...(node as unknown as Partial<NodeFormValues>),
-        id: node.id,
-        scheme: (node.scheme as 'http' | 'https') || base.scheme,
-        inboundSyncMode: (node.inboundSyncMode as 'all' | 'selected') || base.inboundSyncMode,
-        inboundTags: node.inboundTags ?? [],
-        apiToken: '',
-        hasStoredToken: node.hasApiToken ?? false,
-      }
-      : base;
+    const next: NodeFormValues =
+      mode === 'edit' && node
+        ? {
+            ...base,
+            ...(node as unknown as Partial<NodeFormValues>),
+            id: node.id,
+            scheme: (node.scheme as 'http' | 'https') || base.scheme,
+            inboundSyncMode: (node.inboundSyncMode as 'all' | 'selected') || base.inboundSyncMode,
+            inboundTags: node.inboundTags ?? [],
+            apiToken: '',
+            hasStoredToken: node.hasApiToken ?? false,
+          }
+        : base;
     if (next.scheme === 'http') next.tlsVerifyMode = 'skip';
     methods.reset(next);
     setInboundOptions((next.inboundTags || []).map((tag) => ({ tag })));
@@ -209,7 +216,9 @@ export default function NodeFormModal({
       const test = await testConnection(payload);
       const probe = test?.success ? test.obj : null;
       if (!probe || probe.status !== 'online') {
-        setTestResult(probe ?? { status: 'offline', error: test?.msg || t('pages.nodes.connectionFailed') });
+        setTestResult(
+          probe ?? { status: 'offline', error: test?.msg || t('pages.nodes.connectionFailed') },
+        );
         return;
       }
       setTestResult(probe);
@@ -303,11 +312,7 @@ export default function NodeFormModal({
                 </FormField>
               </Col>
               <Col xs={24} md={12}>
-                <FormField
-                  label={t('pages.nodes.enable')}
-                  name="enable"
-                  valueProp="checked"
-                >
+                <FormField label={t('pages.nodes.enable')} name="enable" valueProp="checked">
                   <Switch />
                 </FormField>
               </Col>
@@ -379,7 +384,11 @@ export default function NodeFormModal({
               extra={editingWithToken ? t('pages.nodes.apiTokenKeepHint') : undefined}
             >
               <Input.Password
-                placeholder={editingWithToken ? t('pages.nodes.apiTokenKeepHint') : t('pages.nodes.apiTokenPlaceholder')}
+                placeholder={
+                  editingWithToken
+                    ? t('pages.nodes.apiTokenKeepHint')
+                    : t('pages.nodes.apiTokenPlaceholder')
+                }
               />
             </FormField>
 
@@ -423,7 +432,12 @@ export default function NodeFormModal({
                   placeholder={t('pages.nodes.inboundTagsPlaceholder')}
                   popupRender={(menu) => (
                     <>
-                      <Button type="text" block loading={fetchingInbounds} onClick={onFetchInbounds}>
+                      <Button
+                        type="text"
+                        block
+                        loading={fetchingInbounds}
+                        onClick={onFetchInbounds}
+                      >
                         {t('pages.nodes.loadInbounds')}
                       </Button>
                       {menu}
@@ -448,7 +462,9 @@ export default function NodeFormModal({
                       type="success"
                       showIcon
                       title={t('pages.nodes.connectionOk', { ms: testResult.latencyMs })}
-                      description={testResult.xrayVersion ? `Xray ${testResult.xrayVersion}` : undefined}
+                      description={
+                        testResult.xrayVersion ? `Xray ${testResult.xrayVersion}` : undefined
+                      }
                     />
                   ) : (
                     <Alert

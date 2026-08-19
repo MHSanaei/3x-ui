@@ -96,12 +96,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   const activeKeyStr = Array.isArray(activeKey) ? activeKey[0] : activeKey;
 
   return (
-    <Modal
-      open={open}
-      title={t('pages.index.xrayUpdates')}
-      footer={null}
-      onCancel={onClose}
-    >
+    <Modal open={open} title={t('pages.index.xrayUpdates')} footer={null} onCancel={onClose}>
       {modalContextHolder}
       <Spin spinning={loading}>
         <Collapse
@@ -168,11 +163,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
               key: '3',
               label: t('pages.index.geodataTitle'),
               children: (
-                <GeodataSection
-                  active={activeKeyStr === '3'}
-                  onBusy={onBusy}
-                  onClose={onClose}
-                />
+                <GeodataSection active={activeKeyStr === '3'} onBusy={onBusy} onClose={onClose} />
               ),
             },
           ]}

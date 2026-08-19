@@ -129,7 +129,9 @@ export default function AttachClientsModal({
       const skipped = result.skipped?.length ?? 0;
       const errors = result.errors?.length ?? 0;
       if (errors > 0) {
-        messageApi.warning(t('pages.inbounds.attachClientsResultMixed', { attached, skipped, errors }));
+        messageApi.warning(
+          t('pages.inbounds.attachClientsResultMixed', { attached, skipped, errors }),
+        );
       } else {
         messageApi.success(t('pages.inbounds.attachClientsResult', { attached, skipped }));
       }
@@ -151,7 +153,9 @@ export default function AttachClientsModal({
       }}
       okText={t('pages.inbounds.attachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.attachClientsTitle', { remark: formatInboundLabel(source?.tag, source?.remark) })}
+      title={t('pages.inbounds.attachClientsTitle', {
+        remark: formatInboundLabel(source?.tag, source?.remark),
+      })}
       width={680}
     >
       {messageContextHolder}

@@ -1,22 +1,24 @@
 import { z } from 'zod';
 
-export const DefaultsPayloadSchema = z.object({
-  expireDiff: z.number().optional(),
-  trafficDiff: z.number().optional(),
-  tgBotEnable: z.boolean().optional(),
-  subEnable: z.boolean().optional(),
-  subTitle: z.string().optional(),
-  subURI: z.string().optional(),
-  subJsonURI: z.string().optional(),
-  subJsonEnable: z.boolean().optional(),
-  subClashURI: z.string().optional(),
-  subClashEnable: z.boolean().optional(),
-  pageSize: z.number().optional(),
-  datepicker: z.enum(['gregorian', 'jalalian']).optional(),
-  ipLimitEnable: z.boolean().optional(),
-  accessLogEnable: z.boolean().optional(),
-  webDomain: z.string().optional(),
-  subDomain: z.string().optional(),
-}).loose();
+export const DefaultsPayloadSchema = z
+  .object({
+    expireDiff: z.number().optional(),
+    trafficDiff: z.number().optional(),
+    tgBotEnable: z.boolean().optional(),
+    subEnable: z.boolean().optional(),
+    subTitle: z.string().optional(),
+    subURI: z.string().optional(),
+    subJsonURI: z.string().optional(),
+    subJsonEnable: z.boolean().optional(),
+    subClashURI: z.string().optional(),
+    subClashEnable: z.boolean().optional(),
+    pageSize: z.number().optional(),
+    datepicker: z.enum(['gregorian', 'jalalian']).optional(),
+    ipLimitEnable: z.boolean().optional(),
+    accessLogEnable: z.boolean().optional(),
+    webDomain: z.string().optional(),
+    subDomain: z.string().optional(),
+  })
+  .loose();
 
 export type DefaultsPayload = z.infer<typeof DefaultsPayloadSchema>;

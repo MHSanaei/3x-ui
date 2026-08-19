@@ -116,7 +116,9 @@ export default function DetachClientsModal({
       const skipped = result.skipped?.length ?? 0;
       const errors = result.errors?.length ?? 0;
       if (errors > 0) {
-        messageApi.warning(t('pages.inbounds.detachClientsResultMixed', { detached, skipped, errors }));
+        messageApi.warning(
+          t('pages.inbounds.detachClientsResultMixed', { detached, skipped, errors }),
+        );
       } else {
         messageApi.success(t('pages.inbounds.detachClientsResult', { detached, skipped }));
       }

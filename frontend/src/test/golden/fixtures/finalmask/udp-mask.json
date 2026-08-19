@@ -48,13 +48,8 @@
     {
       "type": "xdns",
       "settings": {
-        "domains": [
-          "example.com:txt",
-          "example.org:a"
-        ],
-        "resolvers": [
-          "example.com:txt+udp://1.1.1.1:53"
-        ]
+        "domains": ["example.com:txt", "example.org:a"],
+        "resolvers": ["example.com:txt+udp://1.1.1.1:53"]
       }
     },
     {
@@ -68,10 +63,7 @@
       "type": "realm",
       "settings": {
         "url": "realm://public@example.com/my-realm",
-        "stunServers": [
-          "stun.l.google.com:19302",
-          "global.stun.twilio.com:3478"
-        ]
+        "stunServers": ["stun.l.google.com:19302", "global.stun.twilio.com:3478"]
       }
     }
   ]

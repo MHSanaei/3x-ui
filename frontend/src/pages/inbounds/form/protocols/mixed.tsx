@@ -17,11 +17,7 @@ export default function MixedFields({ mixedUdpOn }: { mixedUdpOn: boolean }) {
           ]}
         />
       </FormField>
-      <FormField
-        name={['settings', 'udp']}
-        label="UDP"
-        valueProp="checked"
-      >
+      <FormField name={['settings', 'udp']} label="UDP" valueProp="checked">
         <Switch />
       </FormField>
       {mixedUdpOn && (

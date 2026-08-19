@@ -16,10 +16,12 @@ export default function AccountsList() {
       <Form.Item label={t('pages.inbounds.form.accounts')}>
         <Button
           size="small"
-          onClick={() => append({
-            user: RandomUtil.randomLowerAndNum(8),
-            pass: RandomUtil.randomLowerAndNum(12),
-          })}
+          onClick={() =>
+            append({
+              user: RandomUtil.randomLowerAndNum(8),
+              pass: RandomUtil.randomLowerAndNum(12),
+            })
+          }
         >
           <PlusOutlined /> {t('add')}
         </Button>

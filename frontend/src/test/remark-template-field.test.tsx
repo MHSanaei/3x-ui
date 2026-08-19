@@ -50,6 +50,8 @@ describe('RemarkTemplateField', () => {
   });
 
   it('previews metadata fields with metadata-safe tokens only', () => {
-    expect(previewRemark('{{EMAIL}}/{{TRAFFIC_LEFT}}', SUBSCRIPTION_METADATA_VARIABLES, true)).toBe('john/{{TRAFFIC_LEFT}}');
+    expect(previewRemark('{{EMAIL}}/{{TRAFFIC_LEFT}}', SUBSCRIPTION_METADATA_VARIABLES, true)).toBe(
+      'john/{{TRAFFIC_LEFT}}',
+    );
   });
 });

@@ -25,14 +25,24 @@ const meta = {
   },
   argTypes: {
     name: { description: 'Field path — a dotted string or an array of segments joined with dots.' },
-    control: { description: 'Optional react-hook-form control; falls back to the surrounding FormProvider.' },
+    control: {
+      description: 'Optional react-hook-form control; falls back to the surrounding FormProvider.',
+    },
     label: { description: 'Form.Item label.' },
     tooltip: { description: 'Form.Item tooltip shown next to the label.' },
     extra: { description: 'Helper text rendered below the input.' },
-    valueProp: { description: 'Prop the child receives the value on: `value` (default) or `checked` for switches.' },
-    transform: { description: 'Optional input/output mappers, e.g. bytes stored in the form but GB shown in the input.' },
+    valueProp: {
+      description:
+        'Prop the child receives the value on: `value` (default) or `checked` for switches.',
+    },
+    transform: {
+      description:
+        'Optional input/output mappers, e.g. bytes stored in the form but GB shown in the input.',
+    },
     onAfterChange: { description: 'Called with the stored value after every change.' },
-    rules: { description: 'Controller-level validation rules applied on top of the form resolver.' },
+    rules: {
+      description: 'Controller-level validation rules applied on top of the form resolver.',
+    },
     required: { description: 'Marks the label with the required asterisk.' },
     noStyle: { description: 'Render the bare input without Form.Item chrome.' },
     children: { description: 'The single Ant Design control to wire up.' },
@@ -56,7 +66,12 @@ function ClientDemo() {
   return (
     <FormProvider {...methods}>
       <Form layout="vertical" style={{ maxWidth: 360 }}>
-        <FormField name="email" label="Email" tooltip="Unique identifier used to match client traffic" required>
+        <FormField
+          name="email"
+          label="Email"
+          tooltip="Unique identifier used to match client traffic"
+          required
+        >
           <Input placeholder="user1@example.com" />
         </FormField>
         <FormField name="flow" label="Flow" extra="Only applies to VLESS over raw TLS">
@@ -96,7 +111,9 @@ function TrafficDemo() {
         >
           <InputNumber min={0} style={{ width: '100%' }} />
         </FormField>
-        <Typography.Text type="secondary">Form state: {totalBytes.toLocaleString()} bytes</Typography.Text>
+        <Typography.Text type="secondary">
+          Form state: {totalBytes.toLocaleString()} bytes
+        </Typography.Text>
       </Form>
     </FormProvider>
   );

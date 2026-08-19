@@ -8,13 +8,19 @@ export default function TunnelFields() {
   const { t } = useTranslation();
   return (
     <>
-      <FormField name={['settings', 'rewriteAddress']} label={t('pages.inbounds.form.rewriteAddress')}>
+      <FormField
+        name={['settings', 'rewriteAddress']}
+        label={t('pages.inbounds.form.rewriteAddress')}
+      >
         <Input />
       </FormField>
       <FormField name={['settings', 'rewritePort']} label={t('pages.inbounds.form.rewritePort')}>
         <InputNumber min={0} max={65535} />
       </FormField>
-      <FormField name={['settings', 'allowedNetwork']} label={t('pages.inbounds.form.allowedNetwork')}>
+      <FormField
+        name={['settings', 'allowedNetwork']}
+        label={t('pages.inbounds.form.allowedNetwork')}
+      >
         <Select
           options={[
             { value: 'tcp,udp', label: 'TCP, UDP' },

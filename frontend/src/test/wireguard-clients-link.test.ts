@@ -78,7 +78,11 @@ describe('wireguard multi-client link/config fan-out', () => {
         ],
       },
     });
-    const out = genWireguardLinks({ inbound: legacy, remark: 'wg-legacy', fallbackHostname: 'wg.example.test' });
+    const out = genWireguardLinks({
+      inbound: legacy,
+      remark: 'wg-legacy',
+      fallbackHostname: 'wg.example.test',
+    });
     const links = out.split('\r\n').filter(Boolean);
     expect(links).toHaveLength(1);
     expect(links[0]).toContain('address=10.0.0.9%2F32');
