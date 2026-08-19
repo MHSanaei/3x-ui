@@ -12,10 +12,10 @@
     "dev": "vite",
     "build": "npm run gen:api && vite build",
     "preview": "vite preview",
-    "lint": "oxlint src",
+    "lint": "oxlint src tools",
     "lint:deprecated": "oxlint --type-aware -A all -D typescript/no-deprecated src",
-    "format": "oxfmt src",
-    "format:check": "oxfmt --check src",
+    "format": "oxfmt src tools",
+    "format:check": "oxfmt --check src tools",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -27,7 +27,10 @@
     "prepare": "cd .. && husky frontend/.husky || true"
   },
   "lint-staged": {
-    "src/**/*.{ts,tsx}": "oxlint --fix"
+    "src/**/*.{ts,tsx}": [
+      "oxfmt",
+      "oxlint --fix"
+    ]
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",

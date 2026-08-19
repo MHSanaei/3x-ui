@@ -33,9 +33,9 @@ production-style links work without round-tripping through Go.
 | `npm run build` | Regenerates OpenAPI + Zod, then builds into `../internal/web/dist/` |
 | `npm run preview` | Serve the built bundle locally |
 | `npm run typecheck` | `tsc --noEmit` (strict, no emit) |
-| `npm run lint` | oxlint (`.oxlintrc.json`: typescript + react-hooks + jsx-a11y) |
+| `npm run lint` | oxlint over `src/` + `tools/` (`.oxlintrc.json`) |
 | `npm run lint:deprecated` | Type-aware sweep for JSDoc `@deprecated` APIs (on demand) |
-| `npm run format` | oxfmt (`.oxfmtrc.json`) — rewrites `src/` in place |
+| `npm run format` | oxfmt (`.oxfmtrc.json`) — rewrites `src/` + `tools/` in place |
 | `npm run format:check` | oxfmt in check mode (no writes) |
 | `npm run test` | Vitest single run (schema fixtures, link parsers, …) |
 | `npm run test:watch` | Vitest watch mode |
@@ -45,8 +45,7 @@ production-style links work without round-tripping through Go.
 | `npm run gen:zod` | Run the Go-side openapigen tool → `src/generated/{zod,types}.ts` |
 
 CI runs `typecheck`, `lint`, `format:check`, `test`, `build`, and
-`build-storybook` on
-every PR (see `../.github/workflows/ci.yml`).
+`build-storybook` on every PR (see `../.github/workflows/ci.yml`).
 
 ### One-off: scan for deprecated APIs
 

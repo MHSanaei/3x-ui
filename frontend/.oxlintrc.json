@@ -28,6 +28,16 @@
         "caughtErrorsIgnorePattern": "^_"
       }
     ],
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unused-expressions": "warn",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/triple-slash-reference": "error",
     "no-empty": [
       "error",
       {
