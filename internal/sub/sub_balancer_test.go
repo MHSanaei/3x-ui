@@ -71,7 +71,7 @@ func TestSubJson_BalancerDocument(t *testing.T) {
 	if balancerDoc == nil {
 		t.Fatalf("balancer doc missing:\n%s", out)
 	}
-	if tags := docOutboundTags(balancerDoc); strings.Join(tags, ",") != "bal-1-vless,bal-1-ws,direct,block" {
+	if tags := docOutboundTags(balancerDoc); strings.Join(tags, ",") != "bal-1-vless,bal-1-vless-2,direct,block" {
 		t.Fatalf("balancer outbound tags = %v", tags)
 	}
 
@@ -223,7 +223,7 @@ func TestSubJson_BalancerTagDedup(t *testing.T) {
 	if balancerDoc == nil {
 		t.Fatalf("balancer doc missing:\n%s", out)
 	}
-	if tags := docOutboundTags(balancerDoc); strings.Join(tags, ",") != "bal-1-ws,bal-1-ws-2,direct,block" {
+	if tags := docOutboundTags(balancerDoc); strings.Join(tags, ",") != "bal-1-vless,bal-1-vless-2,direct,block" {
 		t.Fatalf("balancer outbound tags = %v", tags)
 	}
 }
@@ -299,7 +299,7 @@ func TestSubJson_BalancerExcludesDisabledInbound(t *testing.T) {
 	}
 	tags := docOutboundTags(balancerDoc)
 	joined := strings.Join(tags, ",")
-	if !strings.Contains(joined, "bal-1-ws") {
+	if !strings.Contains(joined, "bal-1-vless") {
 		t.Fatalf("enabled inbound A must be a balancer member: %v", tags)
 	}
 	// B's address must not surface anywhere in the balancer doc — not as an
@@ -402,8 +402,8 @@ func TestSubJson_BalancerObservatoryAlwaysEmittedForProbingStrategies(t *testing
 	routing, _ := pinger["routing"].(map[string]any)
 	balancers, _ := routing["balancers"].([]any)
 	balancer, _ := balancers[0].(map[string]any)
-	if balancer["fallbackTag"] != "bal-1-ws" {
-		t.Fatalf("fallbackTag = %v, want bal-1-ws (first member)", balancer["fallbackTag"])
+	if balancer["fallbackTag"] != "bal-1-vless" {
+		t.Fatalf("fallbackTag = %v, want bal-1-vless (first member)", balancer["fallbackTag"])
 	}
 }
 

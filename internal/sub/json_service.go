@@ -342,19 +342,14 @@ func getEnabledSubBalancers() []model.SubBalancer {
 	return balancers
 }
 
-// balancerTransport maps a member outbound's network onto its tag suffix —
-// the naming convention proven against real clients (tcp → vless, hysteria → hy2).
-func balancerTransport(network string) string {
-	switch network {
-	case "":
+// balancerMemberSuffix picks the bal-N tag suffix from the member's protocol
+// so the tag reads as the real proxy type (bal-1-vmess, bal-1-vless, …) instead
+// of its transport network — a vmess/tcp member used to be mislabelled "vless".
+func balancerMemberSuffix(protocol string) string {
+	if protocol == "" {
 		return "other"
-	case "hysteria":
-		return "hy2"
-	case "tcp":
-		return "vless"
-	default:
-		return network
 	}
+	return protocol
 }
 
 // buildBalancerConfig assembles the balancer profile: members retagged under a
@@ -371,8 +366,8 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 			continue
 		}
 		for _, outbound := range entryProxies[i] {
-			network := outboundNetwork(outbound)
-			base := prefix + balancerTransport(network)
+			protocol, _ := outbound["protocol"].(string)
+			base := prefix + balancerMemberSuffix(protocol)
 			tag := base
 			for suffix := 2; usedTags[tag]; suffix++ {
 				tag = fmt.Sprintf("%s-%d", base, suffix)
@@ -442,12 +437,6 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 
 	config, _ := json.MarshalIndent(newConfigJson, "", "  ")
 	return config
-}
-
-func outboundNetwork(outbound map[string]any) string {
-	stream, _ := outbound["streamSettings"].(map[string]any)
-	network, _ := stream["network"].(string)
-	return network
 }
 
 func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
