@@ -42,7 +42,7 @@ func advancePushedInbound(rt runtime.Runtime, prevSettings string, ib *model.Inb
 }
 
 // delInboundClients removes several clients from a single inbound in one pass:
-// one settings rewrite, one runtime sweep, one Save and one SyncInbound for the
+// one settings rewrite, one runtime sweep, one Save and one link delta for the
 // whole batch, instead of repeating the full per-client cycle. It mirrors the
 // semantics of DelInboundClientByEmail for each removed client. needRestart is
 // the OR across all removals.
@@ -177,11 +177,13 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		if e := tx.Save(oldInbound).Error; e != nil {
 			return e
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
+		detached := make([]string, 0, len(targets))
+		for _, t := range targets {
+			if t.email != "" {
+				detached = append(detached, t.email)
+			}
 		}
-		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, inboundId, nil, detached); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -279,13 +281,10 @@ func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, exclud
 	return used, nil
 }
 
-func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, clients []model.Client, emailSubIDs map[string]string) (string, error) {
-	if emailSubIDs == nil {
-		var err error
-		emailSubIDs, err = inboundSvc.getAllEmailSubIDs()
-		if err != nil {
-			return "", err
-		}
+func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, clients []model.Client) (string, error) {
+	emailSubIDs, err := inboundSvc.emailSubIDsForClients(clients)
+	if err != nil {
+		return "", err
 	}
 	seen := make(map[string]string, len(clients))
 	for _, client := range clients {
@@ -310,14 +309,6 @@ func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, c
 }
 
 func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model.Inbound) (bool, error) {
-	return s.addInboundClient(inboundSvc, data, nil)
-}
-
-// addInboundClient is AddInboundClient with an optional precomputed email→subId
-// map. Bulk callers pass a single snapshot so the global getAllEmailSubIDs scan
-// runs once for the whole batch instead of once per target inbound; a nil map
-// makes it compute its own (the single-add path).
-func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model.Inbound, emailSubIDs map[string]string) (bool, error) {
 	defer lockInbound(data.Id).Unlock()
 
 	clients, err := inboundSvc.GetClients(data)
@@ -346,7 +337,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			interfaceClients[i] = cm
 		}
 	}
-	existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients, emailSubIDs)
+	existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients)
 	if err != nil {
 		return false, err
 	}
@@ -491,6 +482,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	prevSettings := oldInbound.Settings
 	oldInbound.Settings = string(newSettings)
 
+	// From the stamped wire entries, not from clients: created_at / updated_at /
+	// subId are written onto interfaceClients above, after clients was parsed.
+	addedClients, err := settingsEntriesToClients(interfaceClients)
+	if err != nil {
+		return false, err
+	}
+
 	needRestart := false
 
 	rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
@@ -512,11 +510,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		if e := tx.Save(oldInbound).Error; e != nil {
 			return e
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, oldInbound.Id, addedClients, nil); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -658,7 +652,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 
 	if clients[0].Email != oldEmail {
-		existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients, nil)
+		existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients)
 		if err != nil {
 			return false, err
 		}
@@ -822,6 +816,17 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	prevSettings := oldInbound.Settings
 	oldInbound.Settings = string(newSettings)
 
+	// From the stamped wire entry, not from clients[0]: created_at, the
+	// preserved subId and the WireGuard carry-forward land on interfaceClients.
+	changedClients, err := settingsEntriesToClients(interfaceClients[:1])
+	if err != nil {
+		return false, err
+	}
+	var detachEmails []string
+	if len(oldEmail) > 0 && oldEmail != clients[0].Email {
+		detachEmails = []string{oldEmail}
+	}
+
 	needRestart := false
 
 	// Resolve the push plan before the DB write so a node-state lookup failure
@@ -911,11 +916,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				}
 			}
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		// detachEmails covers the rename the guard above refused: the old record
+		// keeps this inbound's link otherwise, which the full sync used to drop.
+		if err := s.ApplyInboundClientDelta(tx, oldInbound.Id, changedClients, detachEmails); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -1091,11 +1094,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		if e := tx.Save(oldInbound).Error; e != nil {
 			return e
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, inboundId, nil, []string{email}); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
