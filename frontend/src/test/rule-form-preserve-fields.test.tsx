@@ -65,12 +65,39 @@ describe('RuleFormModal edit preserves unsurfaced fields', () => {
     );
     await waitFor(() => expect(queryClient.getQueryData(keys.clients.all())).toHaveLength(2));
     const userField = screen.getByLabelText('User');
+    expect(screen.getByText('Select users')).toBeTruthy();
     chooseSelectOption(userField.id, 'alice@example.com');
     chooseSelectOption(userField.id, 'bob@example.com');
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
     expect(onConfirm).toHaveBeenCalledWith(
       expect.objectContaining({ user: ['alice@example.com', 'bob@example.com'] }),
+    );
+  });
+
+  it('preserves a saved user that is no longer in the client list', async () => {
+    vi.spyOn(HttpUtil, 'get').mockResolvedValue(
+      new Msg(true, '', [{ id: 1, email: 'alice@example.com' }]),
+    );
+    const onConfirm = vi.fn();
+
+    renderWithProviders(
+      <RuleFormModal
+        open
+        rule={{ type: 'field', user: ['removed@example.com'], outboundTag: 'direct' }}
+        inboundTags={[]}
+        outboundTags={['direct']}
+        balancerTags={[]}
+        onClose={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('removed@example.com')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ user: ['removed@example.com'] }),
     );
   });
 });

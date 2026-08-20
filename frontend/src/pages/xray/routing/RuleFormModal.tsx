@@ -306,9 +306,17 @@ export default function RuleFormModal({
           >
             <Select
               mode="multiple"
+              allowClear
               loading={clientsLoading}
-              notFoundContent={clientsError ? t('somethingWentWrong') : undefined}
-              optionFilterProp="label"
+              placeholder={t('pages.xray.ruleForm.userPlaceholder')}
+              showSearch={{ optionFilterProp: 'label' }}
+              notFoundContent={
+                clientsLoading
+                  ? t('loading')
+                  : clientsError
+                    ? t('pages.xray.ruleForm.userLoadError')
+                    : t('pages.xray.ruleForm.userEmpty')
+              }
               options={userOptions}
             />
           </FormField>
