@@ -90,5 +90,12 @@ func (s *SubBalancerService) Update(id int, balancer *model.SubBalancer, enabled
 }
 
 func (s *SubBalancerService) Delete(id int) error {
-	return database.GetDB().Delete(&model.SubBalancer{}, id).Error
+	res := database.GetDB().Delete(&model.SubBalancer{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return common.NewError("sub balancer not found")
+	}
+	return nil
 }

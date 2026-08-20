@@ -123,6 +123,16 @@ func TestSubBalancerServiceRoundRobin(t *testing.T) {
 	}
 }
 
+// Deleting a missing balancer reports not-found instead of success:true, so
+// a stale UI row can't claim a delete that touched nothing.
+func TestSubBalancerServiceDeleteNotFound(t *testing.T) {
+	setupSubBalancerDB(t)
+	svc := &SubBalancerService{}
+	if err := svc.Delete(999); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("Delete(999) = %v, want a not-found error", err)
+	}
+}
+
 func TestSubBalancerServiceValidation(t *testing.T) {
 	setupSubBalancerDB(t)
 	svc := &SubBalancerService{}
