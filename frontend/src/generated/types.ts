@@ -700,6 +700,17 @@ export interface Setting {
   value: string;
 }
 
+export interface SubBalancer {
+  createdAt: number;
+  enabled: boolean;
+  id: number;
+  inboundIds: number[];
+  remark: string;
+  sortOrder: number;
+  strategy: string;
+  updatedAt: number;
+}
+
 export interface User {
   id: number;
   password: string;

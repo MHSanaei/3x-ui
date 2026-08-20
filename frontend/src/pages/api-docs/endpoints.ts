@@ -1551,6 +1551,8 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/sub-balancers',
         summary: 'List all subscription balancers in sort order (sort_order asc, id asc).',
+        responseSchema: 'SubBalancer',
+        responseSchemaArray: true,
       },
       {
         method: 'POST',
@@ -1563,6 +1565,7 @@ export const sections: readonly Section[] = [
           { name: 'sortOrder', in: 'body (form)', type: 'integer', desc: '1-based position in the subscription list, interleaved with the inbounds subSortIndex. Default 1.' },
           { name: 'enabled', in: 'body (form)', type: 'boolean', desc: 'Whether the balancer is emitted. Default true.' },
         ],
+        responseSchema: 'SubBalancer',
       },
       {
         method: 'POST',
@@ -1571,6 +1574,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' },
         ],
+        responseSchema: 'SubBalancer',
       },
       {
         method: 'DELETE',
@@ -1579,6 +1583,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' },
         ],
+        responseSchema: 'SubBalancer',
       },
       {
         method: 'POST',
@@ -1587,6 +1592,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' },
         ],
+        responseSchema: 'SubBalancer',
       },
     ],
   },
