@@ -1638,6 +1638,20 @@
         "toastDeleted": "Удалено",
         "toastDeleteFailed": "Не удалось удалить"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "Имя пользователя PIA",
+        "password": "Пароль PIA",
+        "account": "Аккаунт",
+        "region": "Регион",
+        "allRegions": "Все регионы",
+        "noServers": "Для выбранной страны серверы не найдены",
+        "outboundAdded": "Исходящее соединение PIA добавлено",
+        "outboundUpdated": "Исходящее соединение PIA обновлено",
+        "addedServers": "Добавленные серверы",
+        "alreadyAdded": "Этот сервер уже в списке исходящих. Чтобы обновить ключ, нажмите {reset}.",
+        "provisionFailed": "Не удалось создать исходящее PIA. Попробуйте ещё раз."
+      },
       "tabBalancerSettings": "Настройки балансировщика",
       "tabObservatory": "Обсерватория",
       "observatory": {

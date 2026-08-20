@@ -97,12 +97,22 @@ func IsEncrypted(stored string) bool { return strings.HasPrefix(stored, encPrefi
 // Encrypt returns plaintext in ModeOff or row-bound enc:v1 ciphertext otherwise.
 // Empty and already-valid encrypted values remain unchanged.
 func (c *Codec) Encrypt(nodeID int, plaintext string) (string, error) {
+	return c.EncryptBound(aad(nodeID), plaintext)
+}
+
+// Decrypt passes legacy plaintext through; enc: values must authenticate and
+// are never reinterpreted as plaintext after an error.
+func (c *Codec) Decrypt(nodeID int, stored string) (string, error) {
+	return c.DecryptBound(aad(nodeID), stored)
+}
+
+// EncryptBound is Encrypt with an explicit AAD (e.g. settings/pia_token).
+func (c *Codec) EncryptBound(bound []byte, plaintext string) (string, error) {
 	if c.mode == ModeOff || plaintext == "" {
 		return plaintext, nil
 	}
 	if IsEncrypted(plaintext) {
-		// Validate it actually decrypts for this node; if so keep verbatim.
-		if _, err := c.Decrypt(nodeID, plaintext); err != nil {
+		if _, err := c.DecryptBound(bound, plaintext); err != nil {
 			return "", fmt.Errorf("nodetoken: refusing to store undecryptable ciphertext: %w", err)
 		}
 		return plaintext, nil
@@ -119,14 +129,13 @@ func (c *Codec) Encrypt(nodeID int, plaintext string) (string, error) {
 	if _, err := rand.Read(nonce); err != nil {
 		return "", err
 	}
-	ct := gcm.Seal(nil, nonce, []byte(plaintext), aad(nodeID))
+	ct := gcm.Seal(nil, nonce, []byte(plaintext), bound)
 	blob := append(nonce, ct...)
 	return encScheme + c.ring.ActiveID + ":" + base64.RawURLEncoding.EncodeToString(blob), nil
 }
 
-// Decrypt passes legacy plaintext through; enc: values must authenticate and
-// are never reinterpreted as plaintext after an error.
-func (c *Codec) Decrypt(nodeID int, stored string) (string, error) {
+// DecryptBound is Decrypt with an explicit AAD.
+func (c *Codec) DecryptBound(bound []byte, stored string) (string, error) {
 	if c.mode == ModeOff {
 		return stored, nil
 	}
@@ -159,9 +168,9 @@ func (c *Codec) Decrypt(nodeID int, stored string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	pt, err := gcm.Open(nil, blob[:nonceLen], blob[nonceLen:], aad(nodeID))
+	pt, err := gcm.Open(nil, blob[:nonceLen], blob[nonceLen:], bound)
 	if err != nil {
-		return "", fmt.Errorf("nodetoken: authentication failed for node %d: %w", nodeID, err)
+		return "", fmt.Errorf("nodetoken: authentication failed: %w", err)
 	}
 	return string(pt), nil
 }
@@ -232,5 +241,12 @@ func get() *Codec {
 // Encrypt/Decrypt/Enabled operate on the process-wide codec.
 func Encrypt(nodeID int, plaintext string) (string, error) { return get().Encrypt(nodeID, plaintext) }
 func Decrypt(nodeID int, stored string) (string, error)    { return get().Decrypt(nodeID, stored) }
-func Enabled() bool                                        { return get().Enabled() }
-func Active() *Codec                                       { return get() }
+func EncryptBound(bound []byte, plaintext string) (string, error) {
+	return get().EncryptBound(bound, plaintext)
+}
+
+func DecryptBound(bound []byte, stored string) (string, error) {
+	return get().DecryptBound(bound, stored)
+}
+func Enabled() bool  { return get().Enabled() }
+func Active() *Codec { return get() }

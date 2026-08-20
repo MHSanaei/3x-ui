@@ -52,6 +52,21 @@ func TestAADBindsToNode(t *testing.T) {
 	}
 }
 
+func TestAADBindsSettingsApartFromNodes(t *testing.T) {
+	c, _ := NewCodec(ModeRequired, testRing(t, "k1", "k1"))
+	enc, err := c.EncryptBound([]byte("settings/pia_token"), "tok")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Decrypt(1, enc); err == nil {
+		t.Fatal("settings/pia_token ciphertext must not decrypt under nodes/api_token/1")
+	}
+	pt, err := c.DecryptBound([]byte("settings/pia_token"), enc)
+	if err != nil || pt != "tok" {
+		t.Fatalf("pia AAD round-trip: %q err=%v", pt, err)
+	}
+}
+
 func TestNonceIsRandom(t *testing.T) {
 	c, _ := NewCodec(ModeRequired, testRing(t, "k1", "k1"))
 	a, _ := c.Encrypt(1, "same")

@@ -1638,6 +1638,20 @@
         "toastDeleted": "حذف شد",
         "toastDeleteFailed": "حذف ناموفق بود"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "نام کاربری PIA",
+        "password": "رمز عبور PIA",
+        "account": "حساب",
+        "region": "منطقه",
+        "allRegions": "همه منطقه‌ها",
+        "noServers": "برای کشور انتخاب‌شده سروری پیدا نشد",
+        "outboundAdded": "خروجی PIA افزوده شد",
+        "outboundUpdated": "خروجی PIA به‌روز شد",
+        "addedServers": "سرورهای افزوده‌شده",
+        "alreadyAdded": "این سرور از قبل در فهرست خروجی است. برای تمدید کلید {reset} را بزنید.",
+        "provisionFailed": "ساخت خروجی PIA ممکن نشد. دوباره تلاش کنید."
+      },
       "tabBalancerSettings": "تنظیمات بالانسر",
       "tabObservatory": "رصدخانه",
       "observatory": {

@@ -136,6 +136,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   └── model/              # **ALL GORM models** (model.go ~1.1k lines + siblings:
 │   │                           #   node_client_traffic.go, node_client_ip.go,
 │   │                           #   client_global_traffic.go). ⭐ Start here for data shape.
+│   ├── pia/                    # PIA WireGuard protocol client (auth, signed server list, /addKey)
 │   ├── eventbus/               # In-process pub/sub (buffered channel): outbound.down|up,
 │   │                           #   xray.crash, node.down|up, cpu.high, memory.high, login.attempt
 │   ├── tunnelmonitor/          # Optional tunnel health probe (XUI_TUNNEL_HEALTH_* env vars):
@@ -163,7 +164,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   │   ├── host.go         #   /panel/api/hosts   (per-inbound subscription host overrides)
 │   │   │   ├── server.go       #   /panel/api/server  (status, xray version, certs, logs, DB import/export)
 │   │   │   ├── setting.go      #   /panel/api/setting (settings + API tokens)
-│   │   │   ├── xray_setting.go #   /panel/api/xray    (raw Xray config editor, WARP/Nord, geodata)
+│   │   │   ├── xray_setting.go #   /panel/api/xray    (raw Xray config editor, WARP/Nord/PIA, geodata)
 │   │   │   ├── api.go          #   /panel/api gateway (token auth, envelope + CSRF wiring)
 │   │   │   ├── index.go        #   login/logout/csrf/2FA
 │   │   │   ├── spa.go          #   SPA fallback for /panel UI routes
@@ -202,7 +203,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   │   ├── port_conflict.go        # Detect inbound port collisions
 │   │   │   ├── fallback.go             # Xray fallback (SNI/ALPN routing on shared port)
 │   │   │   ├── email/                  # Email notification service (SMTP)
-│   │   │   ├── integration/            # External providers: warp.go (Cloudflare WARP), nord.go (NordVPN)
+│   │   │   ├── integration/            # External providers: warp.go, nord.go, pia.go
 │   │   │   ├── outbound/               # Outbound config service
 │   │   │   ├── panel/                  # Cross-cutting panel services:
 │   │   │   │   ├── panel.go            #   panel-level helpers
@@ -497,7 +498,7 @@ for AutoMigrate in `internal/database/db.go`.
 | **Email notifications**                                                           | `service/email/`                                                             | `internal/eventbus/` (consumers)                                                                    |
 | **CPU / memory alerts** not firing                                                | `job/check_cpu_usage.go`, `job/check_memory_usage.go`                        | `internal/eventbus/`, notifier settings in `service/setting.go`                                     |
 | Xray auto-restart on **dead tunnel**                                              | `internal/tunnelmonitor/`                                                    | `XUI_TUNNEL_HEALTH_*` in `internal/config/`                                                         |
-| **WARP / Nord** outbound integration                                              | `service/integration/warp.go` / `nord.go`                                    | `service/outbound_subscription.go`                                                                  |
+| **WARP / Nord / PIA** outbound integration                                        | `service/integration/warp.go` / `nord.go` / `pia.go`                         | `internal/pia/`, `frontend/src/pages/xray/overrides/`                                               |
 | **MTProto** proxy issues                                                          | `internal/mtproto/manager.go`, `mtproto/process*.go`                         | `job/mtproto_job.go`                                                                                |
 | **DB migration** / new column                                                     | `internal/database/db.go` (AutoMigrate list), `migrate_data.go`              | `model/model.go`                                                                                    |
 | **Cron schedule** changes                                                         | `web.go` → `startTask()`                                                     | the specific `job/*.go`                                                                             |

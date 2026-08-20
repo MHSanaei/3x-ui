@@ -1638,6 +1638,20 @@
         "toastDeleted": "削除しました",
         "toastDeleteFailed": "削除に失敗しました"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "PIA ユーザー名",
+        "password": "PIA パスワード",
+        "account": "アカウント",
+        "region": "リージョン",
+        "allRegions": "すべてのリージョン",
+        "noServers": "選択した国にサーバーがありません",
+        "outboundAdded": "PIA アウトバウンドを追加しました",
+        "outboundUpdated": "PIA アウトバウンドを更新しました",
+        "addedServers": "追加済みサーバー",
+        "alreadyAdded": "このサーバーは既にアウトバウンド一覧にあります。鍵を更新するには {reset} を使ってください。",
+        "provisionFailed": "PIA アウトバウンドを作成できませんでした。もう一度お試しください。"
+      },
       "tabBalancerSettings": "バランサー設定",
       "tabObservatory": "オブザーバトリ",
       "observatory": {

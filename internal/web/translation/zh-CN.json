@@ -1638,6 +1638,20 @@
         "toastDeleted": "已删除",
         "toastDeleteFailed": "删除失败"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "PIA 用户名",
+        "password": "PIA 密码",
+        "account": "账号",
+        "region": "区域",
+        "allRegions": "全部区域",
+        "noServers": "所选国家没有可用服务器",
+        "outboundAdded": "已添加 PIA 出站",
+        "outboundUpdated": "已更新 PIA 出站",
+        "addedServers": "已添加的服务器",
+        "alreadyAdded": "该服务器已在出站列表中。要用新密钥请点 {reset}。",
+        "provisionFailed": "无法生成 PIA 出站，请重试。"
+      },
       "tabBalancerSettings": "负载均衡设置",
       "tabObservatory": "观测器",
       "observatory": {
