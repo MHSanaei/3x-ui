@@ -7,10 +7,8 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
-// useClientHwids owns the fetch/mutate state for one client's registered-device
-// list, shared by every surface that shows it (the client edit form, the
-// read-only info card). email is undefined until the client is known (e.g. the
-// "add client" form has no email yet), in which case every action is a no-op.
+// Fetch/mutate state for one client's registered-device list, shared by the
+// edit form and the info card. No email (add-client form) => every action no-ops.
 export function useClientHwids(email: string | undefined) {
   const [clientHwids, setClientHwids] = useState<ClientHwidInfo[]>([]);
   const [hwidsLoading, setHwidsLoading] = useState(false);
