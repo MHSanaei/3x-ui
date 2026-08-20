@@ -77,10 +77,23 @@ function piaHostnameOf(outbound: PiaOutboundRow): string {
   if (typeof outbound.piaHostname === 'string' && outbound.piaHostname.trim()) {
     return outbound.piaHostname.trim();
   }
-  const tag = outbound.tag ?? '';
-  if (!tag.startsWith('pia-')) return '';
-  const parts = tag.slice(4).split('-');
-  return parts[parts.length - 1] ?? '';
+  return '';
+}
+
+function piaTagPart(s: string, stripDomain: boolean): string {
+  s = s.trim().toLowerCase();
+  if (stripDomain) {
+    const i = s.indexOf('.');
+    if (i > 0) s = s.slice(0, i);
+  }
+  return s.replaceAll('_', '-');
+}
+
+function piaOutboundTag(regionId: string, hostname: string): string {
+  const region = piaTagPart(regionId, false);
+  const server = piaTagPart(hostname, true);
+  if (!region) return `pia-${server}`;
+  return `pia-${region}-${server}`;
 }
 
 function buildPiaOutbound(key: PiaKey): Record<string, unknown> {
@@ -137,12 +150,23 @@ export default function PiaModal({
     () => new Set(piaRows.map((row) => row.hostname).filter(Boolean)),
     [piaRows],
   );
-  const selectedAlreadyAdded = Boolean(hostname && addedHostnames.has(hostname));
+  const addedTags = useMemo(
+    () => new Set(piaRows.map((row) => row.tag).filter(Boolean)),
+    [piaRows],
+  );
 
   const filteredServers = useMemo(() => {
     if (!regionId) return servers;
     return servers.filter((s) => s.regionId === regionId);
   }, [regionId, servers]);
+
+  const selectedServer = filteredServers.find((s) => s.hostname === hostname);
+  const selectedTag = selectedServer
+    ? piaOutboundTag(selectedServer.regionId, selectedServer.hostname)
+    : '';
+  const selectedAlreadyAdded = Boolean(
+    (hostname && addedHostnames.has(hostname)) || (selectedTag && addedTags.has(selectedTag)),
+  );
 
   useEffect(() => {
     methods.setValue('hostname', filteredServers.length > 0 ? filteredServers[0].hostname : null);
@@ -251,11 +275,13 @@ export default function PiaModal({
 
   async function addOutbound() {
     const selected = methods.getValues('hostname');
-    if (!selected || addedHostnames.has(selected)) return;
+    if (!selected || selectedAlreadyAdded) return;
     setLoading(true);
     try {
       const ob = await provisionOutbound(selected);
       if (!ob) return;
+      const tag = typeof ob.tag === 'string' ? ob.tag : '';
+      if (tag && templateSettings?.outbounds?.some((outbound) => outbound?.tag === tag)) return;
       onAddOutbound(ob);
       messageApi.success(t('pages.xray.pia.outboundAdded'));
     } finally {
@@ -418,9 +444,11 @@ export default function PiaModal({
                               danger
                               size="small"
                               loading={loading}
-                              disabled={!row.hostname}
+                              disabled={!row.tag}
                               data-testid={`pia-reset-${row.index}`}
-                              onClick={() => void resetOutbound(row.index, row.hostname)}
+                              onClick={() =>
+                                void resetOutbound(row.index, row.hostname || row.tag || '')
+                              }
                             >
                               {t('reset')}
                             </Button>

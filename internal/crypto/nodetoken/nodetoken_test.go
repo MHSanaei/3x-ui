@@ -49,6 +49,8 @@ func TestAADBindsToNode(t *testing.T) {
 	// Decrypting under a different node id must fail (ciphertext bound to row).
 	if _, err := c.Decrypt(8, enc); err == nil {
 		t.Fatal("expected AAD mismatch error decrypting under wrong node id")
+	} else if !strings.Contains(err.Error(), "node 8") || !strings.Contains(err.Error(), "authentication failed") {
+		t.Fatalf("wrong-node decrypt error: %v", err)
 	}
 }
 

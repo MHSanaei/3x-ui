@@ -49,19 +49,35 @@ func TestParseRegistrationFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := parseRegistration(missing); err == nil {
-		t.Fatal("expected missing server port to be rejected")
+	if _, err := parseRegistration(missing); err == nil || CodeOf(err) != CodeRegistrationInvalid {
+		t.Fatalf("expected missing server port to be rejected: %v", err)
 	}
 
-	invalidFixtures := []string{"status_error.json", "invalid_peer_ip.json", "invalid_peer_prefix.json", "invalid_server_key.json", "invalid_server_ip.json", "invalid_port.json", "invalid_dns.json"}
-	for _, name := range invalidFixtures {
-		t.Run(name, func(t *testing.T) {
-			raw, readErr := os.ReadFile(filepath.Join("testdata", "addkey", name))
+	dnsRaw, err := os.ReadFile(filepath.Join("testdata", "addkey", "invalid_dns.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dnsResult, err := parseRegistration(dnsRaw)
+	if err != nil || len(dnsResult.DNSServers) != 0 {
+		t.Fatalf("invalid dns_servers must be ignored: result=%+v err=%v", dnsResult, err)
+	}
+
+	invalidFixtures := []struct{ file, wantCode string }{
+		{"status_error.json", CodeRegistrationRejected},
+		{"invalid_peer_ip.json", CodeRegistrationInvalid},
+		{"invalid_peer_prefix.json", CodeRegistrationInvalid},
+		{"invalid_server_key.json", CodeRegistrationInvalid},
+		{"invalid_server_ip.json", CodeRegistrationInvalid},
+		{"invalid_port.json", CodeRegistrationInvalid},
+	}
+	for _, test := range invalidFixtures {
+		t.Run(test.file, func(t *testing.T) {
+			raw, readErr := os.ReadFile(filepath.Join("testdata", "addkey", test.file))
 			if readErr != nil {
 				t.Fatal(readErr)
 			}
-			if _, parseErr := parseRegistration(raw); parseErr == nil {
-				t.Fatalf("expected %s to be rejected", name)
+			if _, parseErr := parseRegistration(raw); CodeOf(parseErr) != test.wantCode {
+				t.Fatalf("expected %s, got %s: %v", test.wantCode, CodeOf(parseErr), parseErr)
 			}
 		})
 	}

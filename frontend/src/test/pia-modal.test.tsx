@@ -7,35 +7,67 @@ import { HttpUtil, Msg } from '@/utils';
 import { renderWithProviders } from './test-utils';
 
 const ACCOUNT = { username: 'p1234567', accountHint: 'p*****67' };
-const COUNTRIES = [{ code: 'US' }, { code: 'DE' }];
+const COUNTRIES = [{ code: 'US' }, { code: 'DE' }, { code: 'AL' }];
 const SERVERS = {
   regions: [
     { id: 'us-east', name: 'US East' },
     { id: 'us-west', name: 'US West' },
+    { id: 'al', name: 'Albania' },
   ],
   servers: [
     { hostname: 'useast1', ip: '198.51.100.10', regionId: 'us-east', regionName: 'US East' },
     { hostname: 'uswest1', ip: '198.51.100.30', regionId: 'us-west', regionName: 'US West' },
+    {
+      hostname: 'Server-12406-1a',
+      ip: '198.51.100.40',
+      regionId: 'al',
+      regionName: 'Albania',
+    },
   ],
 };
 
-function mockPiaApi() {
-  vi.mocked(HttpUtil.post).mockImplementation(async (url: string, data?: unknown) => {
-    if (url === '/panel/api/xray/pia/data') return new Msg(true, '', ACCOUNT);
-    if (url === '/panel/api/xray/pia/countries') return new Msg(true, '', COUNTRIES);
-    if (url === '/panel/api/xray/pia/servers') return new Msg(true, '', SERVERS);
-    if (url === '/panel/api/xray/pia/addKey') {
-      const hostname = (data as { hostname?: string } | undefined)?.hostname;
-      if (hostname === 'uswest1') {
-        return new Msg(true, '', {
-          tag: 'pia-us-west-uswest1',
-          hostname: 'uswest1',
-          secretKey: 'secret-west',
-          address: '10.8.0.2/32',
-          publicKey: 'pubkey-west',
-          endpoint: '198.51.100.30:1337',
-        });
-      }
+function piaApiPost(url: string, data?: unknown) {
+  if (url === '/panel/api/xray/pia/data') return new Msg(true, '', ACCOUNT);
+  if (url === '/panel/api/xray/pia/countries') return new Msg(true, '', COUNTRIES);
+  if (url === '/panel/api/xray/pia/servers') {
+    const code = (data as { countryCode?: string } | undefined)?.countryCode?.toUpperCase();
+    if (code === 'AL') {
+      return new Msg(true, '', {
+        regions: [SERVERS.regions[2]],
+        servers: [SERVERS.servers[2]],
+      });
+    }
+    if (code === 'US') {
+      return new Msg(true, '', {
+        regions: SERVERS.regions.slice(0, 2),
+        servers: SERVERS.servers.slice(0, 2),
+      });
+    }
+    return new Msg(true, '', { regions: [], servers: [] });
+  }
+  if (url === '/panel/api/xray/pia/addKey') {
+    const hostname = (data as { hostname?: string } | undefined)?.hostname;
+    if (hostname === 'uswest1') {
+      return new Msg(true, '', {
+        tag: 'pia-us-west-uswest1',
+        hostname: 'uswest1',
+        secretKey: 'secret-west',
+        address: '10.8.0.2/32',
+        publicKey: 'pubkey-west',
+        endpoint: '198.51.100.30:1337',
+      });
+    }
+    if (hostname === 'Server-12406-1a' || hostname === 'pia-al-server-12406-1a') {
+      return new Msg(true, '', {
+        tag: 'pia-al-server-12406-1a',
+        hostname: 'Server-12406-1a',
+        secretKey: 'secret-al',
+        address: '10.8.0.3/32',
+        publicKey: 'pubkey-al',
+        endpoint: '198.51.100.40:1337',
+      });
+    }
+    if (hostname === 'useast1' || hostname === 'pia-us-east-useast1') {
       return new Msg(true, '', {
         tag: 'pia-us-east-useast1',
         hostname: 'useast1',
@@ -45,8 +77,15 @@ function mockPiaApi() {
         endpoint: '198.51.100.10:1337',
       });
     }
-    return new Msg(false, `Unexpected POST ${url}`, null);
-  });
+    return new Msg(false, `Unexpected addKey hostname ${hostname}`, null);
+  }
+  return new Msg(false, `Unexpected POST ${url}`, null);
+}
+
+function mockPiaApi() {
+  vi.mocked(HttpUtil.post).mockImplementation(async (url: string, data?: unknown) =>
+    piaApiPost(url, data),
+  );
 }
 
 function visibleOptions(): HTMLElement[] {
@@ -244,20 +283,79 @@ describe('PIA modal', () => {
     });
   });
 
-  it('disables Reset when the outbound has no hostname', async () => {
+  it('disables Add for a hyphenated cn when only the tag remains', async () => {
     mockPiaApi();
     renderWithProviders(
       <PiaModal
         open
-        templateSettings={{ outbounds: [{ tag: 'pia-' }] }}
+        templateSettings={{ outbounds: [{ tag: 'pia-al-server-12406-1a' }] }}
         onClose={vi.fn()}
         onAddOutbound={vi.fn()}
         onResetOutbound={vi.fn()}
       />,
     );
 
+    await waitFor(() => expect(screen.getByText('p*****67')).toBeTruthy());
+    await chooseOption('pia-country-select', 'AL');
+    await waitFor(() => expect(screen.getByTestId('pia-server-select')).toBeTruthy());
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: /Add outbound/ });
+      expect((btn as HTMLButtonElement).disabled).toBe(true);
+    });
+  });
+
+  it('disables Add when only the outbound tag remains', async () => {
+    mockPiaApi();
+    renderWithProviders(
+      <PiaModal
+        open
+        templateSettings={{ outbounds: [{ tag: 'pia-us-east-useast1' }] }}
+        onClose={vi.fn()}
+        onAddOutbound={vi.fn()}
+        onResetOutbound={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('p*****67')).toBeTruthy());
+    await chooseOption('pia-country-select', 'US');
+    await waitFor(() => expect(screen.getByTestId('pia-server-select')).toBeTruthy());
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: /Add outbound/ });
+      expect((btn as HTMLButtonElement).disabled).toBe(true);
+    });
+  });
+
+  it('resets from the outbound tag when piaHostname was stripped', async () => {
+    const onResetOutbound = vi.fn();
+    const posts: unknown[] = [];
+    mockPiaApi();
+    vi.mocked(HttpUtil.post).mockImplementation(async (url: string, data?: unknown) => {
+      if (url === '/panel/api/xray/pia/addKey') posts.push(data);
+      return piaApiPost(url, data);
+    });
+    renderWithProviders(
+      <PiaModal
+        open
+        templateSettings={{ outbounds: [{ tag: 'pia-al-server-12406-1a' }] }}
+        onClose={vi.fn()}
+        onAddOutbound={vi.fn()}
+        onResetOutbound={onResetOutbound}
+      />,
+    );
+
     const reset = await waitFor(() => screen.getByTestId('pia-reset-0'));
-    expect((reset as HTMLButtonElement).disabled).toBe(true);
+    expect((reset as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(reset);
+    await waitFor(() => expect(onResetOutbound).toHaveBeenCalledTimes(1));
+    expect(posts).toEqual([{ hostname: 'pia-al-server-12406-1a' }]);
+    expectPiaOutbound(onResetOutbound.mock.calls[0][0].outbound as Record<string, unknown>, {
+      tag: 'pia-al-server-12406-1a',
+      hostname: 'Server-12406-1a',
+      secretKey: 'secret-al',
+      address: '10.8.0.3/32',
+      publicKey: 'pubkey-al',
+      endpoint: '198.51.100.40:1337',
+    });
   });
 
   it('does not add an outbound when addKey omits WireGuard fields', async () => {

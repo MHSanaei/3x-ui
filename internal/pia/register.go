@@ -1,5 +1,3 @@
-// Copyright (c) 2026 Masterain. MIT License.
-// Adapted from PIA-Wireguard-Config-Generator-GUI (commit 53686fcd).
 package pia
 
 import (
@@ -120,14 +118,14 @@ func parseRegistration(raw []byte) (Registration, error) {
 	if payload.ServerPort < 1 || payload.ServerPort > 65535 {
 		return Registration{}, NewError(CodeRegistrationInvalid, "PIA returned an invalid WireGuard server port.")
 	}
-	if len(payload.DNSServers) == 0 || len(payload.DNSServers) > 8 {
-		return Registration{}, NewError(CodeRegistrationInvalid, "PIA returned no valid DNS servers.")
-	}
 	dns := make([]netip.Addr, 0, len(payload.DNSServers))
 	for _, value := range payload.DNSServers {
 		address, err := netip.ParseAddr(value)
 		if err != nil || !address.Is4() || address.IsUnspecified() {
-			return Registration{}, NewError(CodeRegistrationInvalid, "PIA returned an invalid DNS server.")
+			continue
+		}
+		if len(dns) == 8 {
+			break
 		}
 		dns = append(dns, address)
 	}

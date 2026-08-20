@@ -103,7 +103,11 @@ func (c *Codec) Encrypt(nodeID int, plaintext string) (string, error) {
 // Decrypt passes legacy plaintext through; enc: values must authenticate and
 // are never reinterpreted as plaintext after an error.
 func (c *Codec) Decrypt(nodeID int, stored string) (string, error) {
-	return c.DecryptBound(aad(nodeID), stored)
+	pt, err := c.DecryptBound(aad(nodeID), stored)
+	if err != nil {
+		return "", fmt.Errorf("nodetoken: node %d: %w", nodeID, err)
+	}
+	return pt, nil
 }
 
 // EncryptBound is Encrypt with an explicit AAD (e.g. settings/pia_token).

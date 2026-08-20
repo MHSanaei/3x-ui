@@ -206,7 +206,7 @@ func (s *PiaService) findServer(hostname string) (piaprotocol.Region, piaprotoco
 	}
 	for _, region := range regions {
 		for _, server := range region.WireGuard {
-			if server.Hostname == hostname {
+			if server.Hostname == hostname || piaOutboundTag(region.ID, server.Hostname) == hostname {
 				return region, server, nil
 			}
 		}
@@ -267,7 +267,7 @@ func (s *PiaService) loadStored() (*piaStored, error) {
 		return nil, err
 	}
 	stored.Token = plain
-	if nodetoken.Enabled() && !nodetoken.IsEncrypted(atRest) {
+	if nodetoken.Enabled() && (!nodetoken.IsEncrypted(atRest) || !nodetoken.Active().EncryptedWithActive(atRest)) {
 		if err := s.saveStored(stored); err != nil {
 			return nil, err
 		}

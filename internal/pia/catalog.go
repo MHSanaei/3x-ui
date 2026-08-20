@@ -1,5 +1,3 @@
-// Copyright (c) 2026 Masterain. MIT License.
-// Adapted from PIA-Wireguard-Config-Generator-GUI (commit 53686fcd).
 package pia
 
 import (
@@ -46,32 +44,36 @@ func (c *Catalog) ListRegions(ctx context.Context) ([]Region, string, error) {
 		done := make(chan struct{})
 		c.refreshing = done
 		c.mu.Unlock()
+		return c.fetchAndPublish(ctx, done)
+	}
+}
 
-		snapshot, err := c.Source.Fetch(ctx)
-		var regions []Region
-		var schema string
-		if err == nil && !snapshot.SignatureVerified {
-			err = NewError(CodeCatalogSignatureInvalid, "The PIA region list was not signature-verified.")
-		}
-		if err == nil {
-			regions, schema, err = ParseServerList(snapshot.Payload, snapshot.SchemaHint)
-		}
-
+func (c *Catalog) fetchAndPublish(ctx context.Context, done chan struct{}) ([]Region, string, error) {
+	defer func() {
 		c.mu.Lock()
-		if err == nil {
-			c.cached = cloneRegions(regions)
-			c.schema = schema
-			c.verified = true
-			c.fetchedAt = c.Now()
-		}
 		c.refreshing = nil
 		close(done)
 		c.mu.Unlock()
-		if err != nil {
-			return nil, "", err
-		}
-		return cloneRegions(regions), schema, nil
+	}()
+	snapshot, err := c.Source.Fetch(ctx)
+	var regions []Region
+	var schema string
+	if err == nil && !snapshot.SignatureVerified {
+		err = NewError(CodeCatalogSignatureInvalid, "The PIA region list was not signature-verified.")
 	}
+	if err == nil {
+		regions, schema, err = ParseServerList(snapshot.Payload, snapshot.SchemaHint)
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	c.mu.Lock()
+	c.cached = cloneRegions(regions)
+	c.schema = schema
+	c.verified = true
+	c.fetchedAt = c.Now()
+	c.mu.Unlock()
+	return cloneRegions(regions), schema, nil
 }
 
 func cloneRegions(regions []Region) []Region {

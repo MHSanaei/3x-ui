@@ -1,5 +1,3 @@
-// Copyright (c) 2026 Masterain. MIT License.
-// Adapted from PIA-Wireguard-Config-Generator-GUI (commit 53686fcd).
 package pia
 
 import (
@@ -46,12 +44,6 @@ func (c *AuthClient) Authenticate(ctx context.Context, username string, password
 	if err := writer.Close(); err != nil {
 		return Token{}, WrapError(CodeAuthenticationUnavailable, "Could not prepare the authentication request.", err)
 	}
-	defer func() {
-		raw := body.Bytes()
-		for i := range raw {
-			raw[i] = 0
-		}
-	}()
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.Endpoint, &body)
 	if err != nil {

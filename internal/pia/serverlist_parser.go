@@ -1,5 +1,3 @@
-// Copyright (c) 2026 Masterain. MIT License.
-// Adapted from PIA-Wireguard-Config-Generator-GUI (commit 53686fcd).
 package pia
 
 import (
@@ -146,15 +144,15 @@ func parseCatalog(raw []byte, allowV7Aliases bool) ([]Region, error) {
 	regions := make([]Region, 0, len(envelope.Regions))
 	for _, rawRegion := range envelope.Regions {
 		if !regionIDPattern.MatchString(rawRegion.ID) || strings.TrimSpace(rawRegion.Name) == "" || len(rawRegion.Name) > 128 {
-			return nil, NewError(CodeCatalogSchemaUnsupported, "A PIA region has an invalid ID or name.")
+			continue
 		}
 		idKey := strings.ToLower(rawRegion.ID)
 		if _, duplicate := seen[idKey]; duplicate {
-			return nil, NewError(CodeCatalogSchemaUnsupported, "The PIA region list contains a duplicate region ID.")
+			continue
 		}
 		seen[idKey] = struct{}{}
 		if !countryCodePattern.MatchString(rawRegion.Country) || rawRegion.Geo == nil || rawRegion.Offline == nil {
-			return nil, NewError(CodeCatalogSchemaUnsupported, "A PIA region is missing required metadata.")
+			continue
 		}
 		if *rawRegion.Offline {
 			continue
@@ -173,7 +171,7 @@ func parseCatalog(raw []byte, allowV7Aliases bool) ([]Region, error) {
 			}
 			ip, err := netip.ParseAddr(rawServer.IP)
 			if err != nil || !ip.Is4() || ip.IsUnspecified() || !validHostname(hostname) {
-				return nil, NewError(CodeCatalogSchemaUnsupported, "A PIA WireGuard server has an invalid hostname or IP address.")
+				continue
 			}
 			servers = append(servers, WireGuardServer{Hostname: hostname, IP: ip})
 		}

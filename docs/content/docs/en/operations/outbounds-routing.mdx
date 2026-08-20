@@ -95,11 +95,13 @@ You can add several servers (one outbound per hostname). The tag is
 `pia-<region>-<server>` (for example `pia-us-east-useast1`). Adding or using
 **Reset** on a row registers a WireGuard key with PIA `/addKey` for that server.
 The same hostname cannot be added twice. Logout clears the stored token only;
-delete unused PIA outbounds from the Outbounds list.
+delete unused PIA outbounds from the Outbounds list. Reset and delete do not
+revoke the WireGuard peer on the PIA account.
 
 The password is not stored. The PIA API token is stored with the same
-`NODE_TOKEN_ENCRYPTION` setting as node API tokens. Peer `allowedIPs` is
-IPv4-only (`0.0.0.0/0`).
+`NODE_TOKEN_ENCRYPTION` setting as node API tokens. If you retire an old
+`XUI_NODE_TOKEN_KEY` without signing into PIA again, Add/Reset fail until you
+re-login. Peer `allowedIPs` is IPv4-only (`0.0.0.0/0`).
 
 ## Outbound subscriptions (server pools)
 

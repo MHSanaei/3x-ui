@@ -1,5 +1,3 @@
-// Copyright (c) 2026 Masterain. MIT License.
-// Adapted from PIA-Wireguard-Config-Generator-GUI (commit 53686fcd).
 package pia
 
 import (

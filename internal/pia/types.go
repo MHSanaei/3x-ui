@@ -1,6 +1,3 @@
-// Copyright (c) 2026 Masterain. MIT License.
-// Adapted from PIA-Wireguard-Config-Generator-GUI (commit 53686fcd).
-
 // Package pia is a standalone PIA WireGuard control-plane client.
 package pia
 

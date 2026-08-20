@@ -122,6 +122,48 @@ func TestPiaAddKeyRegistersWireGuardPeer(t *testing.T) {
 	if key.Address != "10.8.0.1/32" || key.Endpoint != "198.51.100.10:1337" {
 		t.Fatalf("peer: %+v", key)
 	}
+	byTag, err := svc.AddKey("pia-us-east-useast1")
+	if err != nil || byTag.Hostname != "useast1" || byTag.Tag != "pia-us-east-useast1" {
+		t.Fatalf("addKey by tag: %+v err=%v", byTag, err)
+	}
+	if _, err := svc.AddKey("1a"); err == nil || piaprotocol.CodeOf(err) != piaprotocol.CodeServerNotFound {
+		t.Fatalf("truncated hostname must not match: %v", err)
+	}
+}
+
+func TestPiaExpiredTokenNeverReachesRegistrar(t *testing.T) {
+	svc := setupPiaService(t)
+	if _, err := svc.Login("p1234567", "password-long-enough"); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := svc.GetPia()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stored piaStored
+	if err := json.Unmarshal([]byte(raw), &stored); err != nil {
+		t.Fatal(err)
+	}
+	stored.TokenExpiresAt = time.Now().Add(-time.Minute).Unix()
+	rewritten, err := json.Marshal(stored)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SetPia(string(rewritten)); err != nil {
+		t.Fatal(err)
+	}
+	reg := svc.Registrar.(*fakePiaRegistrar)
+	before := reg.n
+	_, err = svc.AddKey("useast1")
+	if err == nil || piaprotocol.CodeOf(err) != piaprotocol.CodeTokenRejected {
+		t.Fatalf("expired token: %v", err)
+	}
+	if piaprotocol.MessageOf(err) != "The PIA token has expired. Sign in again." {
+		t.Fatalf("expired token message: %v", err)
+	}
+	if reg.n != before {
+		t.Fatalf("expired token reached registrar: calls=%d", reg.n)
+	}
 }
 
 func TestPiaDelClearsAccount(t *testing.T) {
@@ -285,5 +327,49 @@ func TestPiaPlaintextMigratesWhenEncryptionEnabled(t *testing.T) {
 	var parsed piaStored
 	if err := json.Unmarshal([]byte(after), &parsed); err != nil || !nodetoken.IsEncrypted(parsed.Token) {
 		t.Fatalf("migrated token: %+v err=%v", parsed, err)
+	}
+}
+
+func TestPiaReencryptsTokenToActiveKey(t *testing.T) {
+	svc := setupPiaService(t)
+	var k1, k2 [32]byte
+	for i := range k1 {
+		k1[i] = byte(i + 1)
+		k2[i] = byte(i + 2)
+	}
+	c1, err := nodetoken.NewCodec(nodetoken.ModeRequired, &nodetoken.Keyring{
+		ActiveID: "k1", Keys: map[string][32]byte{"k1": k1, "k2": k2},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodetoken.Init(c1)
+	t.Cleanup(func() {
+		off, _ := nodetoken.NewCodec(nodetoken.ModeOff, nil)
+		nodetoken.Init(off)
+	})
+	if _, err := svc.Login("p1234567", "password-long-enough"); err != nil {
+		t.Fatal(err)
+	}
+	before, err := svc.GetPia()
+	if err != nil || !strings.Contains(before, "enc:v1:k1:") {
+		t.Fatalf("want k1 ciphertext: %q err=%v", before, err)
+	}
+	c2, err := nodetoken.NewCodec(nodetoken.ModeRequired, &nodetoken.Keyring{
+		ActiveID: "k2", Keys: map[string][32]byte{"k1": k1, "k2": k2},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodetoken.Init(c2)
+	if _, err := svc.GetPiaData(); err != nil {
+		t.Fatal(err)
+	}
+	after, err := svc.GetPia()
+	if err != nil || !strings.Contains(after, "enc:v1:k2:") {
+		t.Fatalf("want k2 ciphertext: %q err=%v", after, err)
+	}
+	if strings.Contains(after, "tokentokentokentoken12") {
+		t.Fatalf("plaintext leaked after rotation: %s", after)
 	}
 }

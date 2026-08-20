@@ -59,7 +59,6 @@ func TestServerListRejectsUnsupportedDuplicateAndTrailingData(t *testing.T) {
 	}{
 		{"unsupported schema", `{"version":99,"groups":{},"regions":[]}`, ""},
 		{"invalid version value", `{"version":"v7beta","groups":{"wg":[]},"regions":[]}`, ""},
-		{"duplicate IDs", `{"version":6,"groups":{"wg":[]},"regions":[{"id":"same","name":"One","country":"US","geo":false,"offline":false,"servers":{"wg":[{"ip":"198.51.100.1","cn":"one.example"}]}},{"id":"SAME","name":"Two","country":"US","geo":false,"offline":false,"servers":{"wg":[{"ip":"198.51.100.2","cn":"two.example"}]}}]}`, "6"},
 		{"trailing JSON", `{"version":6,"groups":{},"regions":[]} {}`, "6"},
 		{"wrong groups type", `{"version":6,"groups":[],"regions":[]}`, "6"},
 		{"wrong field type", `{"version":6,"groups":{"wg":[]},"regions":[{"id":7,"name":"One","country":"US","geo":false,"offline":false,"servers":{"wg":[]}}]}`, "6"},
@@ -70,6 +69,20 @@ func TestServerListRejectsUnsupportedDuplicateAndTrailingData(t *testing.T) {
 				t.Fatalf("expected %s, got %s: %v", CodeCatalogSchemaUnsupported, CodeOf(err), err)
 			}
 		})
+	}
+}
+
+func TestServerListSkipsBadRows(t *testing.T) {
+	duplicate := []byte(`{"version":6,"groups":{"wg":[]},"regions":[{"id":"same","name":"One","country":"US","geo":false,"offline":false,"servers":{"wg":[{"ip":"198.51.100.1","cn":"one.example"}]}},{"id":"SAME","name":"Two","country":"US","geo":false,"offline":false,"servers":{"wg":[{"ip":"198.51.100.2","cn":"two.example"}]}}]}`)
+	regions, _, err := ParseServerList(duplicate, "6")
+	if err != nil || len(regions) != 1 || regions[0].ID != "same" || regions[0].WireGuard[0].Hostname != "one.example" {
+		t.Fatalf("duplicate region id should keep the first: regions=%+v err=%v", regions, err)
+	}
+
+	mixed := []byte(`{"version":6,"groups":{"wg":[]},"regions":[{"id":"us-east","name":"US East","country":"US","geo":false,"offline":false,"servers":{"wg":[{"ip":"2001:db8::1","cn":"bad6"},{"ip":"198.51.100.10","cn":"useast1"}]}}]}`)
+	regions, _, err = ParseServerList(mixed, "6")
+	if err != nil || len(regions) != 1 || len(regions[0].WireGuard) != 1 || regions[0].WireGuard[0].Hostname != "useast1" {
+		t.Fatalf("invalid WireGuard server should be skipped: regions=%+v err=%v", regions, err)
 	}
 }
 
