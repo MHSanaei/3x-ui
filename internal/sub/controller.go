@@ -99,6 +99,7 @@ type subControllerConfig struct {
 	subJsonMux            string
 	subJsonRules          string
 	subJsonFinalMask      string
+	subJsonObservatory    string
 	subClashEnableRouting bool
 	subClashRules         string
 
@@ -180,6 +181,10 @@ func WithSUBJsonFinalMask(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonFinalMask = value }
 }
 
+func WithSUBJsonObservatory(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonObservatory = value }
+}
+
 func WithSUBClashEnableRouting(value bool) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subClashEnableRouting = value }
 }
@@ -243,6 +248,8 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	}
 
 	sub := NewSubService(config.remarkTemplate)
+	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, sub)
+	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
 	a := &SUBController{
 		subTitle:         config.subTitle,
 		subSupportUrl:    config.subSupportURL,
@@ -269,7 +276,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 		updateInterval:     config.updateInterval,
 
 		subService:      sub,
-		subJsonService:  NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, sub),
+		subJsonService:  subJsonSvc,
 		subClashService: NewSubClashService(config.subClashEnableRouting, config.subClashRules, sub),
 
 		subTemplateCache: map[string]*cachedSubTemplate{},

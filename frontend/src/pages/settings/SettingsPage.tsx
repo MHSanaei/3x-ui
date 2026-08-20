@@ -29,6 +29,7 @@ import TelegramTab from './TelegramTab';
 import EmailTab from './EmailTab';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab';
+import SubscriptionBalancersTab from './SubscriptionBalancersTab';
 import './SettingsPage.css';
 
 interface ApiMsg {
@@ -42,6 +43,7 @@ const tabSlugs = [
   'email',
   'subscription',
   'subscription-formats',
+  'subscription-balancers',
 ];
 
 function isIp(h: string): boolean {
@@ -219,6 +221,8 @@ export default function SettingsPage() {
         return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
       case 'subscription-formats':
         return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'subscription-balancers':
+        return <SubscriptionBalancersTab allSetting={allSetting} updateSetting={updateSetting} />;
       default:
         return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
     }

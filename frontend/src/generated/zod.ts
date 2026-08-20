@@ -90,6 +90,7 @@ export const AllSettingSchema = z.object({
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
+  subJsonObservatory: z.string(),
   subJsonPath: z.string(),
   subJsonRules: z.string(),
   subJsonURI: z.string(),
@@ -205,6 +206,7 @@ export const AllSettingViewSchema = z.object({
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
+  subJsonObservatory: z.string(),
   subJsonPath: z.string(),
   subJsonRules: z.string(),
   subJsonURI: z.string(),
@@ -745,6 +747,18 @@ export const SettingSchema = z.object({
   value: z.string(),
 });
 export type Setting = z.infer<typeof SettingSchema>;
+
+export const SubBalancerSchema = z.object({
+  createdAt: z.number().int(),
+  enabled: z.boolean(),
+  id: z.number().int(),
+  inboundIds: z.array(z.number().int()),
+  remark: z.string().max(256),
+  sortOrder: z.number().int().min(1),
+  strategy: z.enum(['leastLoad', 'leastPing', 'random', 'roundRobin']),
+  updatedAt: z.number().int(),
+});
+export type SubBalancer = z.infer<typeof SubBalancerSchema>;
 
 export const UserSchema = z.object({
   id: z.number().int(),

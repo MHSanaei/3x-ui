@@ -5,9 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net/url"
+	"slices"
+	"sort"
 	"strings"
+	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -22,6 +28,7 @@ type SubJsonService struct {
 	defaultOutbounds []json_util.RawMessage
 	finalMask        string
 	mux              string
+	observatory      subBalancerObservatoryConfig
 
 	SubService *SubService
 }
@@ -53,6 +60,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		defaultOutbounds: defaultOutbounds,
 		finalMask:        finalMask,
 		mux:              mux,
+		observatory:      defaultSubBalancerObservatoryConfig(),
 		SubService:       subService,
 	}
 }
@@ -74,9 +82,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	}
 
 	var header string
-	var configArray []json_util.RawMessage
 
 	seenEmails := make(map[string]struct{})
+	entries := make([]subConfigEntry, 0, len(inbounds))
 	// Prepare Inbounds
 	for _, inbound := range inbounds {
 		clients := subReq.matchingClients(inbound, subId)
@@ -88,10 +96,35 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			injectExternalProxy(inbound, hostEps)
 		}
 
+		var inboundConfigs []json_util.RawMessage
 		for _, client := range clients {
 			seenEmails[client.Email] = struct{}{}
-			configArray = append(configArray, s.getConfig(subReq, inbound, client, host)...)
+			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, inbound, client, host)...)
 		}
+		if len(inboundConfigs) > 0 {
+			entries = append(entries, subConfigEntry{
+				sortIndex: inbound.SubSortIndex,
+				id:        inbound.Id,
+				configs:   inboundConfigs,
+			})
+		}
+	}
+	entries = s.appendBalancerEntries(entries)
+
+	// Inbounds arrive sorted by (sub_sort_index, id); balancers interleave by
+	// the same key and, on an equal number, follow the inbound group.
+	sort.SliceStable(entries, func(i, j int) bool {
+		if entries[i].sortIndex != entries[j].sortIndex {
+			return entries[i].sortIndex < entries[j].sortIndex
+		}
+		if entries[i].kind != entries[j].kind {
+			return entries[i].kind < entries[j].kind
+		}
+		return entries[i].id < entries[j].id
+	})
+	var configArray []json_util.RawMessage
+	for _, entry := range entries {
+		configArray = append(configArray, entry.configs...)
 	}
 	for _, ext := range externalLinks {
 		for _, el := range expandEntry(ext) {
@@ -134,6 +167,276 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalJson), header, nil
+}
+
+// subConfigEntry is one ordered block of the JSON subscription: an inbound's
+// configs (kind 0) or a balancer config (kind 1).
+type subConfigEntry struct {
+	sortIndex int
+	kind      int
+	id        int
+	configs   []json_util.RawMessage
+}
+
+const (
+	subBalancerTag      = "balancer"
+	subBalancerProbeURL = "https://www.google.com/generate_204"
+)
+
+// subBalancerObservatoryConfig is the panel-wide burstObservatory ping config
+// emitted into every client-side balancer doc (subJsonObservatory setting).
+type subBalancerObservatoryConfig struct {
+	Destination  string `json:"destination"`
+	Connectivity string `json:"connectivity"`
+	Interval     string `json:"interval"`
+	Sampling     int    `json:"sampling"`
+	Timeout      string `json:"timeout"`
+	HTTPMethod   string `json:"httpMethod"`
+}
+
+func defaultSubBalancerObservatoryConfig() subBalancerObservatoryConfig {
+	return subBalancerObservatoryConfig{
+		Destination:  subBalancerProbeURL,
+		Connectivity: "",
+		Interval:     "1m",
+		Sampling:     2,
+		Timeout:      "5s",
+		HTTPMethod:   "HEAD",
+	}
+}
+
+// SetObservatoryConfig overrides defaults from the panel JSON setting. An empty
+// cfg keeps all defaults; invalid values fall back with a warning, never panic.
+func (s *SubJsonService) SetObservatoryConfig(cfg string) {
+	s.observatory = defaultSubBalancerObservatoryConfig()
+	if cfg == "" {
+		return
+	}
+	var parsed subBalancerObservatoryConfig
+	if err := json.Unmarshal([]byte(cfg), &parsed); err != nil {
+		logger.Warningf("subJsonObservatory: invalid JSON %q, using defaults: %v", cfg, err)
+		return
+	}
+	if parsed.Destination != "" {
+		if validProbeURL(parsed.Destination) {
+			s.observatory.Destination = parsed.Destination
+		} else {
+			logger.Warningf("subJsonObservatory: invalid destination %q, keeping default %q", parsed.Destination, s.observatory.Destination)
+		}
+	}
+	if parsed.Connectivity != "" {
+		if validProbeURL(parsed.Connectivity) {
+			s.observatory.Connectivity = parsed.Connectivity
+		} else {
+			logger.Warningf("subJsonObservatory: invalid connectivity %q, keeping default (skip)", parsed.Connectivity)
+		}
+	}
+	if parsed.Interval != "" {
+		if _, err := time.ParseDuration(parsed.Interval); err == nil {
+			s.observatory.Interval = parsed.Interval
+		} else {
+			logger.Warningf("subJsonObservatory: invalid interval %q, keeping default %q", parsed.Interval, s.observatory.Interval)
+		}
+	}
+	if parsed.Sampling > 0 {
+		s.observatory.Sampling = parsed.Sampling
+	}
+	if parsed.Timeout != "" {
+		if _, err := time.ParseDuration(parsed.Timeout); err == nil {
+			s.observatory.Timeout = parsed.Timeout
+		} else {
+			logger.Warningf("subJsonObservatory: invalid timeout %q, keeping default %q", parsed.Timeout, s.observatory.Timeout)
+		}
+	}
+	if parsed.HTTPMethod == "HEAD" || parsed.HTTPMethod == "GET" {
+		s.observatory.HTTPMethod = parsed.HTTPMethod
+	}
+}
+
+// validProbeURL accepts only absolute http(s) URLs so a malformed probe or
+// connectivity value can't slip into the emitted burstObservatory.
+func validProbeURL(s string) bool {
+	u, err := url.Parse(s)
+	if err != nil || u == nil {
+		return false
+	}
+	return u.Scheme == "http" || u.Scheme == "https"
+}
+
+func (s *SubJsonService) balancerObservatory(prefix string) map[string]any {
+	o := s.observatory
+	return map[string]any{
+		"subjectSelector": []string{prefix},
+		"pingConfig": map[string]any{
+			"destination":  o.Destination,
+			"connectivity": o.Connectivity,
+			"interval":     o.Interval,
+			"sampling":     o.Sampling,
+			"timeout":      o.Timeout,
+			"httpMethod":   o.HTTPMethod,
+		},
+	}
+}
+
+// appendBalancerEntries appends one entry per enabled balancer that has at
+// least one member outbound among the inbound entries.
+func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subConfigEntry {
+	balancers := getEnabledSubBalancers()
+	if len(balancers) == 0 {
+		return entries
+	}
+	// Pre-pass: pull each inbound doc's proxy outbound once so every balancer
+	// reuses it instead of re-unmarshalling the whole document per balancer.
+	entryProxies := make([][]map[string]any, len(entries))
+	for i, entry := range entries {
+		if entry.kind != 0 {
+			continue
+		}
+		for _, config := range entry.configs {
+			if proxy := extractProxyOutbound(config); proxy != nil {
+				entryProxies[i] = append(entryProxies[i], proxy)
+			}
+		}
+	}
+	for i := range balancers {
+		config := s.buildBalancerConfig(&balancers[i], entries, entryProxies)
+		if config == nil {
+			continue
+		}
+		entries = append(entries, subConfigEntry{
+			sortIndex: balancers[i].SortOrder,
+			kind:      1,
+			id:        balancers[i].Id,
+			configs:   []json_util.RawMessage{config},
+		})
+	}
+	return entries
+}
+
+// extractProxyOutbound returns the first outbound of a document when it is the
+// proxy (tag == "proxy"), else nil — the only member shape a balancer retags.
+func extractProxyOutbound(config json_util.RawMessage) map[string]any {
+	var doc map[string]any
+	if json.Unmarshal(config, &doc) != nil {
+		return nil
+	}
+	outbounds, _ := doc["outbounds"].([]any)
+	if len(outbounds) == 0 {
+		return nil
+	}
+	outbound, _ := outbounds[0].(map[string]any)
+	if outbound == nil || outbound["tag"] != "proxy" {
+		return nil
+	}
+	return outbound
+}
+
+func getEnabledSubBalancers() []model.SubBalancer {
+	var balancers []model.SubBalancer
+	if err := database.GetDB().Model(&model.SubBalancer{}).
+		Where("enabled = ?", true).
+		Order("sort_order asc, id asc").Find(&balancers).Error; err != nil {
+		logger.Error("SubJsonService - getEnabledSubBalancers:", err)
+		return nil
+	}
+	return balancers
+}
+
+// balancerMemberSuffix picks the bal-N tag suffix from the member's protocol
+// so the tag reads as the real proxy type (bal-1-vmess, bal-1-vless, …) instead
+// of its transport network — a vmess/tcp member used to be mislabelled "vless".
+func balancerMemberSuffix(protocol string) string {
+	if protocol == "" {
+		return "other"
+	}
+	return protocol
+}
+
+// buildBalancerConfig assembles the balancer profile: members retagged under a
+// per-balancer prefix, a routing.balancers entry, and (for leastPing/leastLoad) an observatory.
+func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
+	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
+	usedTags := make(map[string]bool)
+	var proxies []json_util.RawMessage
+	var firstTag string
+	// entryProxies is the pre-extracted proxy outbounds per entry; kind!=0 rows
+	// have none. Clone before retagging so the cached map stays reusable.
+	for i, entry := range entries {
+		if entry.kind != 0 || !slices.Contains(balancer.InboundIds, entry.id) {
+			continue
+		}
+		for _, outbound := range entryProxies[i] {
+			protocol, _ := outbound["protocol"].(string)
+			base := prefix + balancerMemberSuffix(protocol)
+			tag := base
+			for suffix := 2; usedTags[tag]; suffix++ {
+				tag = fmt.Sprintf("%s-%d", base, suffix)
+			}
+			usedTags[tag] = true
+			member := maps.Clone(outbound)
+			member["tag"] = tag
+			if raw, err := json.MarshalIndent(member, "", "  "); err == nil {
+				if firstTag == "" {
+					firstTag = tag
+				}
+				proxies = append(proxies, raw)
+			}
+		}
+	}
+	if len(proxies) == 0 {
+		return nil
+	}
+
+	outbounds := append([]json_util.RawMessage{}, proxies...)
+	outbounds = append(outbounds, s.defaultOutbounds...)
+
+	// The routing subtree in s.configJson is shared by every emitted document;
+	// clone it (and each rule map) before pointing rules at the balancer.
+	baseRouting, _ := s.configJson["routing"].(map[string]any)
+	routing := make(map[string]any, len(baseRouting)+1)
+	maps.Copy(routing, baseRouting)
+	baseRules, _ := baseRouting["rules"].([]any)
+	rules := make([]any, 0, len(baseRules)+1)
+	for _, rule := range baseRules {
+		ruleMap, ok := rule.(map[string]any)
+		if !ok {
+			rules = append(rules, rule)
+			continue
+		}
+		ruleMap = maps.Clone(ruleMap)
+		if ruleMap["outboundTag"] == "proxy" {
+			delete(ruleMap, "outboundTag")
+			ruleMap["balancerTag"] = subBalancerTag
+		}
+		rules = append(rules, ruleMap)
+	}
+	routing["rules"] = rules
+	isObservatory := balancer.Strategy == "leastPing" || balancer.Strategy == "leastLoad"
+	balancerEntry := map[string]any{
+		"tag":      subBalancerTag,
+		"selector": []string{prefix},
+		"strategy": map[string]any{"type": balancer.Strategy},
+	}
+	if isObservatory && firstTag != "" {
+		// With all probes failing, route to the first member instead of
+		// failing dispatch.
+		balancerEntry["fallbackTag"] = firstTag
+	}
+	routing["balancers"] = []any{balancerEntry}
+
+	newConfigJson := make(map[string]any, len(s.configJson)+2)
+	maps.Copy(newConfigJson, s.configJson)
+	newConfigJson["outbounds"] = outbounds
+	newConfigJson["remarks"] = balancer.Remark
+	newConfigJson["routing"] = routing
+	// leastPing/leastLoad require a burst observatory (Xray refuses to start
+	// them without one); fallbackTag above covers the probe-outage case.
+	if isObservatory {
+		newConfigJson["burstObservatory"] = s.balancerObservatory(prefix)
+	}
+
+	config, _ := json.MarshalIndent(newConfigJson, "", "  ")
+	return config
 }
 
 func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {

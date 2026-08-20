@@ -66,6 +66,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subJsonEnable": false,
     "subJsonFinalMask": "",
     "subJsonMux": "",
+    "subJsonObservatory": "",
     "subJsonPath": "",
     "subJsonRules": "",
     "subJsonURI": "",
@@ -179,6 +180,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subJsonEnable": false,
     "subJsonFinalMask": "",
     "subJsonMux": "",
+    "subJsonObservatory": "",
     "subJsonPath": "",
     "subJsonRules": "",
     "subJsonURI": "",
@@ -727,6 +729,19 @@ export const EXAMPLES: Record<string, unknown> = {
     "id": 0,
     "key": "",
     "value": ""
+  },
+  "SubBalancer": {
+    "createdAt": 1710000000000,
+    "enabled": true,
+    "id": 1,
+    "inboundIds": [
+      1,
+      3
+    ],
+    "remark": "auto-fastest",
+    "sortOrder": 1,
+    "strategy": "random",
+    "updatedAt": 1710000000000
   },
   "User": {
     "id": 0,

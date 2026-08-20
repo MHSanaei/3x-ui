@@ -241,6 +241,9 @@
           "subJsonMux": {
             "type": "string"
           },
+          "subJsonObservatory": {
+            "type": "string"
+          },
           "subJsonPath": {
             "type": "string"
           },
@@ -438,6 +441,7 @@
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
+          "subJsonObservatory",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
@@ -716,6 +720,9 @@
           "subJsonMux": {
             "type": "string"
           },
+          "subJsonObservatory": {
+            "type": "string"
+          },
           "subJsonPath": {
             "type": "string"
           },
@@ -920,6 +927,7 @@
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
+          "subJsonObservatory",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
@@ -3091,6 +3099,71 @@
         ],
         "type": "object"
       },
+      "SubBalancer": {
+        "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
+        "properties": {
+          "createdAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "No gorm default:true — a bool default makes an explicit false at insert\ncollapse back to the column default (zero value is skipped).",
+            "example": true,
+            "type": "boolean"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "inboundIds": {
+            "example": [
+              1,
+              3
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "remark": {
+            "example": "auto-fastest",
+            "maxLength": 256,
+            "type": "string"
+          },
+          "sortOrder": {
+            "example": 1,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "strategy": {
+            "enum": [
+              "leastLoad",
+              "leastPing",
+              "random",
+              "roundRobin"
+            ],
+            "example": "random",
+            "type": "string"
+          },
+          "updatedAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "createdAt",
+          "enabled",
+          "id",
+          "inboundIds",
+          "remark",
+          "sortOrder",
+          "strategy",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "User": {
         "description": "User represents a user account in the 3x-ui panel.",
         "properties": {
@@ -3161,6 +3234,10 @@
     {
       "name": "Xray Settings",
       "description": "Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/api/xray."
+    },
+    {
+      "name": "Subscription Balancers",
+      "description": "Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Sub Balancers."
     },
     {
       "name": "Subscription Server",
@@ -11829,6 +11906,280 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers": {
+      "get": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "List all subscription balancers in sort order (sort_order asc, id asc).",
+        "operationId": "get_panel_api_sub_balancers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubBalancer"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "createdAt": 1710000000000,
+                      "enabled": true,
+                      "id": 1,
+                      "inboundIds": [
+                        1,
+                        3
+                      ],
+                      "remark": "auto-fastest",
+                      "sortOrder": 1,
+                      "strategy": "random",
+                      "updatedAt": 1710000000000
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Create a subscription balancer. It appears in the JSON subscription of every client that sits on at least one selected inbound.",
+        "operationId": "post_panel_api_sub_balancers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers/{id}": {
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).",
+        "operationId": "post_panel_api_sub_balancers_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Delete a balancer by id.",
+        "operationId": "delete_panel_api_sub_balancers_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers/{id}/del": {
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Delete a balancer by id (POST alias of DELETE for clients that cannot send DELETE).",
+        "operationId": "post_panel_api_sub_balancers_id_del",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
                   }
                 }
               }
