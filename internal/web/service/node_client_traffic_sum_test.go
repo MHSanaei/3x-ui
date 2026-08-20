@@ -35,7 +35,7 @@ func createNodeInbound(t *testing.T, db *gorm.DB, nodeID int, tag string, port i
 }
 
 // createNodeInboundWithClient mirrors createNodeInbound but stores the client
-// in the settings JSON so emailUsedByOtherInbounds can see the attachment.
+// in the settings JSON, which the node sync turns into a client_inbounds link.
 func createNodeInboundWithClient(t *testing.T, db *gorm.DB, nodeID int, tag string, port int, email string) {
 	t.Helper()
 	nid := nodeID
