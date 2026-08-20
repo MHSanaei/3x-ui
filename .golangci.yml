@@ -32,12 +32,18 @@ linters:
       # golang.org/x/tools/go/packages is a generator change, out of scope here.
       - linters:
           - staticcheck
-        text: "SA1019: parser.ParseDir"
+        text: "parser\\.ParseDir has been deprecated"
       # ST1005 (capitalized error strings) conflicts with intentional
       # user-facing error copy that tests assert verbatim.
       - linters:
           - staticcheck
         text: "ST1005:"
+      # fasthttp.Client.RetryIf is deprecated in favor of RetryIfErr, which
+      # has a different signature (attempts, err, resetTimeout) — migrating
+      # is a real retry-behavior change, out of scope here.
+      - linters:
+          - staticcheck
+        text: "RetryIf is deprecated: Use RetryIfErr instead"
 
 formatters:
   enable:
