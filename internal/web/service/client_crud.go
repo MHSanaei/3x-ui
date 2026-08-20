@@ -193,11 +193,6 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 
-	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
-	if sidErr != nil {
-		return false, sidErr
-	}
-
 	needRestart := false
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -211,10 +206,10 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		if mErr != nil {
 			return needRestart, mErr
 		}
-		nr, addErr := s.addInboundClient(inboundSvc, &model.Inbound{
+		nr, addErr := s.AddInboundClient(inboundSvc, &model.Inbound{
 			Id:       ibId,
 			Settings: string(settingsPayload),
-		}, emailSubIDs)
+		})
 		if addErr != nil {
 			return needRestart, addErr
 		}
@@ -731,11 +726,6 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 	clientWire.Flow = flow
 	clientWire.UpdatedAt = time.Now().UnixMilli()
 
-	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
-	if sidErr != nil {
-		return false, sidErr
-	}
-
 	needRestart := false
 	for _, ibId := range inboundIds {
 		if _, attached := have[ibId]; attached {
@@ -753,10 +743,10 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		if mErr != nil {
 			return needRestart, mErr
 		}
-		nr, addErr := s.addInboundClient(inboundSvc, &model.Inbound{
+		nr, addErr := s.AddInboundClient(inboundSvc, &model.Inbound{
 			Id:       ibId,
 			Settings: string(settingsPayload),
-		}, emailSubIDs)
+		})
 		if addErr != nil {
 			return needRestart, addErr
 		}
