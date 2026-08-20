@@ -34,21 +34,29 @@ export default function CloneInboundModal({
   const [targets, setTargets] = useState<number[]>([LOCAL_PANEL]);
   const [submitting, setSubmitting] = useState(false);
 
-  const targetOptions = useMemo(() => [
-    { value: LOCAL_PANEL, label: t('pages.inbounds.localPanel'), disabled: false },
-    ...(nodes || []).filter((n) => n.enable).map((n) => ({
-      value: n.id,
-      // Only online nodes are deployable targets: nodes report `unknown`
-      // until their first heartbeat, and the backend refuses any status
-      // other than online.
-      label: `${n.name}${n.status === 'online' ? '' : ` (${n.status || 'offline'})`}`,
-      disabled: n.status !== 'online',
-    })),
-  ], [nodes, t]);
+  const targetOptions = useMemo(
+    () => [
+      { value: LOCAL_PANEL, label: t('pages.inbounds.localPanel'), disabled: false },
+      ...(nodes || [])
+        .filter((n) => n.enable)
+        .map((n) => ({
+          value: n.id,
+          // Only online nodes are deployable targets: nodes report `unknown`
+          // until their first heartbeat, and the backend refuses any status
+          // other than online.
+          label: `${n.name}${n.status === 'online' ? '' : ` (${n.status || 'offline'})`}`,
+          disabled: n.status !== 'online',
+        })),
+    ],
+    [nodes, t],
+  );
 
   // "Select all" must not pick targets the user can't pick manually —
   // offline nodes are disabled options in the dropdown.
-  const selectableOptions = useMemo(() => targetOptions.filter((o) => !o.disabled), [targetOptions]);
+  const selectableOptions = useMemo(
+    () => targetOptions.filter((o) => !o.disabled),
+    [targetOptions],
+  );
 
   // Reset the selection when the dialog OPENS: pre-select the source
   // inbound's own node when it is a selectable target, otherwise the local
@@ -75,17 +83,23 @@ export default function CloneInboundModal({
       for (const target of targets) {
         const msg = await HttpUtil.post(
           '/panel/api/inbounds/add',
-          buildClonePayload(dbInbound, pickClonePort(portsInUse.get(target)), target === LOCAL_PANEL ? null : target),
+          buildClonePayload(
+            dbInbound,
+            pickClonePort(portsInUse.get(target)),
+            target === LOCAL_PANEL ? null : target,
+          ),
           { silent: true },
         );
-        results.push({ ok: !!msg?.success, reason: msg?.success ? '' : (msg?.msg || '') });
+        results.push({ ok: !!msg?.success, reason: msg?.success ? '' : msg?.msg || '' });
       }
       const okCount = results.filter((r) => r.ok).length;
       const failed = results.length - okCount;
       if (failed === 0) {
-        messageApi.success(okCount === 1
-          ? t('pages.inbounds.toasts.inboundCreateSuccess')
-          : t('pages.inbounds.toasts.clonedMany', { count: okCount }));
+        messageApi.success(
+          okCount === 1
+            ? t('pages.inbounds.toasts.inboundCreateSuccess')
+            : t('pages.inbounds.toasts.clonedMany', { count: okCount }),
+        );
       } else {
         const firstError = results.find((r) => !r.ok)?.reason ?? '';
         const base = t('pages.inbounds.toasts.clonedMixed', { ok: okCount, failed });
@@ -114,11 +128,7 @@ export default function CloneInboundModal({
         <Typography.Paragraph type="secondary">
           {t('pages.inbounds.cloneConfirmContent')}
         </Typography.Paragraph>
-        <SelectAllClearButtons
-          options={selectableOptions}
-          value={targets}
-          onChange={setTargets}
-        />
+        <SelectAllClearButtons options={selectableOptions} value={targets} onChange={setTargets} />
         <Select
           aria-label={t('pages.inbounds.deployTo')}
           mode="multiple"

@@ -63,15 +63,15 @@ ever leaves your browser**:
 
 ## Tech stack
 
-| Layer      | Technology                                                  |
-| ---------- | ---------------------------------------------------------- |
-| Framework  | [Next.js 16](https://nextjs.org) (App Router) · React 19   |
-| Docs       | [Fumadocs](https://fumadocs.dev) (`-ui` / `-core` / `-mdx`) |
-| Styling    | [Tailwind CSS v4](https://tailwindcss.com)                 |
-| Search     | [Orama](https://orama.com) static index                    |
-| Language   | TypeScript (strict)                                         |
-| Tests      | [Vitest](https://vitest.dev) for the pure `lib/xray` logic  |
-| Tooling    | pnpm · ESLint 9 · Prettier                                  |
+| Layer     | Technology                                                  |
+| --------- | ----------------------------------------------------------- |
+| Framework | [Next.js 16](https://nextjs.org) (App Router) · React 19    |
+| Docs      | [Fumadocs](https://fumadocs.dev) (`-ui` / `-core` / `-mdx`) |
+| Styling   | [Tailwind CSS v4](https://tailwindcss.com)                  |
+| Search    | [Orama](https://orama.com) static index                     |
+| Language  | TypeScript (strict)                                         |
+| Tests     | [Vitest](https://vitest.dev) for the pure `lib/xray` logic  |
+| Tooling   | pnpm · oxlint · oxfmt                                       |
 
 ## Quick start
 
@@ -86,13 +86,13 @@ pnpm dev        # http://localhost:3000
 
 Useful scripts:
 
-| Script           | Description                                  |
-| ---------------- | -------------------------------------------- |
-| `pnpm dev`       | Start the dev server                         |
-| `pnpm build`     | Production build (also typechecks)           |
-| `pnpm typecheck` | Generate MDX/route types and `tsc --noEmit`  |
-| `pnpm lint`      | Run ESLint                                    |
-| `pnpm test`      | Run unit tests (Vitest)                       |
+| Script           | Description                                 |
+| ---------------- | ------------------------------------------- |
+| `pnpm dev`       | Start the dev server                        |
+| `pnpm build`     | Production build (also typechecks)          |
+| `pnpm typecheck` | Generate MDX/route types and `tsc --noEmit` |
+| `pnpm lint`      | Run oxlint (`.oxlintrc.json`)               |
+| `pnpm test`      | Run unit tests (Vitest)                     |
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full list and project conventions.
 

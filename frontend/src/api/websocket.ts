@@ -35,7 +35,10 @@ export class WebSocketClient {
   }
 
   connect(): void {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)
+    ) {
       return;
     }
     this.shouldReconnect = true;
@@ -48,7 +51,9 @@ export class WebSocketClient {
     this.#cancelReconnect();
     this.reconnectAttempts = 0;
     if (this.ws) {
-      try { this.ws.close(1000, 'client disconnect'); } catch {}
+      try {
+        this.ws.close(1000, 'client disconnect');
+      } catch {}
       this.ws = null;
     }
     this.isConnected = false;
@@ -130,7 +135,9 @@ export class WebSocketClient {
       const byteLen = new Blob([data]).size;
       if (byteLen > WebSocketClient.#MAX_PAYLOAD_BYTES) {
         console.error(`WebSocket: payload too large (${byteLen} bytes), closing`);
-        try { this.ws?.close(1009, 'message too big'); } catch {}
+        try {
+          this.ws?.close(1009, 'message too big');
+        } catch {}
         return;
       }
     }
@@ -141,7 +148,11 @@ export class WebSocketClient {
       console.error('WebSocket: invalid JSON message', err);
       return;
     }
-    if (!message || typeof message !== 'object' || typeof (message as { type?: unknown }).type !== 'string') {
+    if (
+      !message ||
+      typeof message !== 'object' ||
+      typeof (message as { type?: unknown }).type !== 'string'
+    ) {
       console.error('WebSocket: malformed message envelope');
       return;
     }

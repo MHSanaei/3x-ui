@@ -162,7 +162,11 @@ function buildSettings(o: OutboundInput): Record<string, unknown> {
         ],
       };
     case 'trojan':
-      return { servers: [{ address: s?.address ?? '', port: toPort(s?.port), password: s?.password ?? '' }] };
+      return {
+        servers: [
+          { address: s?.address ?? '', port: toPort(s?.port), password: s?.password ?? '' },
+        ],
+      };
     case 'shadowsocks':
       return {
         servers: [

@@ -16,28 +16,31 @@ import {
 // legacy class migration and verified byte-equal to the legacy Inbound
 // class instance methods. Drift past this baseline is a regression.
 
-const fixtures = import.meta.glob<unknown>(
-  './golden/fixtures/inbound/*.json',
-  { eager: true, import: 'default' },
-);
+const fixtures = import.meta.glob<unknown>('./golden/fixtures/inbound/*.json', {
+  eager: true,
+  import: 'default',
+});
 
-interface FixtureShape { protocol: string; settings: Record<string, unknown> }
+interface FixtureShape {
+  protocol: string;
+  settings: Record<string, unknown>;
+}
 
 const STREAM_CASES: { network: string; security: string }[] = [
-  { network: 'tcp',         security: 'none' },
-  { network: 'tcp',         security: 'tls' },
-  { network: 'tcp',         security: 'reality' },
-  { network: 'ws',          security: 'none' },
-  { network: 'ws',          security: 'tls' },
-  { network: 'grpc',        security: 'none' },
-  { network: 'grpc',        security: 'tls' },
-  { network: 'grpc',        security: 'reality' },
-  { network: 'kcp',         security: 'none' },
+  { network: 'tcp', security: 'none' },
+  { network: 'tcp', security: 'tls' },
+  { network: 'tcp', security: 'reality' },
+  { network: 'ws', security: 'none' },
+  { network: 'ws', security: 'tls' },
+  { network: 'grpc', security: 'none' },
+  { network: 'grpc', security: 'tls' },
+  { network: 'grpc', security: 'reality' },
+  { network: 'kcp', security: 'none' },
   { network: 'httpupgrade', security: 'none' },
   { network: 'httpupgrade', security: 'tls' },
-  { network: 'xhttp',       security: 'none' },
-  { network: 'xhttp',       security: 'tls' },
-  { network: 'xhttp',       security: 'reality' },
+  { network: 'xhttp', security: 'none' },
+  { network: 'xhttp', security: 'tls' },
+  { network: 'xhttp', security: 'reality' },
 ];
 
 function fixtureName(path: string): string {
@@ -51,7 +54,6 @@ describe('protocol capability predicates', () => {
     const fix = raw as FixtureShape;
 
     for (const stream of STREAM_CASES) {
-
       it(`${name} :: ${stream.network}/${stream.security}`, () => {
         const values = {
           protocol: fix.protocol,

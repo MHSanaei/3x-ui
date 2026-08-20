@@ -12,7 +12,14 @@ function tpl(
 
 describe('routing default outbound', () => {
   it('reads first outbound tag', () => {
-    expect(getDefaultOutboundTag(tpl([{ tag: 'warp', protocol: 'socks' }, { tag: 'direct', protocol: 'freedom' }]))).toBe('warp');
+    expect(
+      getDefaultOutboundTag(
+        tpl([
+          { tag: 'warp', protocol: 'socks' },
+          { tag: 'direct', protocol: 'freedom' },
+        ]),
+      ),
+    ).toBe('warp');
     expect(getDefaultOutboundTag(tpl([]))).toBe('direct');
   });
 

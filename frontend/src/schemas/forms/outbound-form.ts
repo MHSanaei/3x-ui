@@ -214,9 +214,8 @@ export type MuxForm = z.infer<typeof MuxFormSchema>;
 // DU + extras (sockopt). Hysteria gets a side-channel branch in the modal
 // (legacy ob.stream.hysteria) — keeping the DU strict for now and routing
 // hysteria transport knobs through the Advanced JSON tab if needed.
-export const OutboundStreamFormSchema = NetworkSettingsSchema
-  .and(SecuritySettingsSchema)
-  .and(StreamExtrasSchema);
+export const OutboundStreamFormSchema =
+  NetworkSettingsSchema.and(SecuritySettingsSchema).and(StreamExtrasSchema);
 export type OutboundStreamFormValues = z.infer<typeof OutboundStreamFormSchema>;
 
 // Top-level form base: identity (tag, sendThrough, targetStrategy), then

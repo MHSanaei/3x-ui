@@ -20,7 +20,15 @@ function OutboundGroup() {
     <NotificationCard
       icon={<CloudServerOutlined />}
       title="Outbound"
-      extra={<NotificationHeader count={1} total={2} allSelected={false} indeterminate onToggleAll={noop} />}
+      extra={
+        <NotificationHeader
+          count={1}
+          total={2}
+          allSelected={false}
+          indeterminate
+          onToggleAll={noop}
+        />
+      }
     >
       <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         <NotificationEvent label="Outbound went down" checked onToggle={noop} />
@@ -35,7 +43,15 @@ function XrayGroup() {
     <NotificationCard
       icon={<ThunderboltOutlined />}
       title="Xray"
-      extra={<NotificationHeader count={1} total={1} allSelected indeterminate={false} onToggleAll={noop} />}
+      extra={
+        <NotificationHeader
+          count={1}
+          total={1}
+          allSelected
+          indeterminate={false}
+          onToggleAll={noop}
+        />
+      }
     >
       <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         <NotificationEvent label="Xray crashed" checked onToggle={noop} />
@@ -49,7 +65,15 @@ function NodeGroup() {
     <NotificationCard
       icon={<DesktopOutlined />}
       title="Nodes"
-      extra={<NotificationHeader count={0} total={2} allSelected={false} indeterminate={false} onToggleAll={noop} />}
+      extra={
+        <NotificationHeader
+          count={0}
+          total={2}
+          allSelected={false}
+          indeterminate={false}
+          onToggleAll={noop}
+        />
+      }
     >
       <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         <NotificationEvent label="Node went offline" checked={false} onToggle={noop} />
@@ -64,14 +88,36 @@ function SystemGroup() {
     <NotificationCard
       icon={<DashboardOutlined />}
       title="System"
-      extra={<NotificationHeader count={2} total={2} allSelected indeterminate={false} onToggleAll={noop} />}
+      extra={
+        <NotificationHeader
+          count={2}
+          total={2}
+          allSelected
+          indeterminate={false}
+          onToggleAll={noop}
+        />
+      }
     >
       <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         <NotificationEvent label="CPU usage above threshold (%)" checked onToggle={noop}>
-          <InputNumber size="small" min={0} max={100} defaultValue={80} aria-label="CPU usage threshold percent" style={{ width: 80 }} />
+          <InputNumber
+            size="small"
+            min={0}
+            max={100}
+            defaultValue={80}
+            aria-label="CPU usage threshold percent"
+            style={{ width: 80 }}
+          />
         </NotificationEvent>
         <NotificationEvent label="Memory usage above threshold (%)" checked onToggle={noop}>
-          <InputNumber size="small" min={0} max={100} defaultValue={90} aria-label="Memory usage threshold percent" style={{ width: 80 }} />
+          <InputNumber
+            size="small"
+            min={0}
+            max={100}
+            defaultValue={90}
+            aria-label="Memory usage threshold percent"
+            style={{ width: 80 }}
+          />
         </NotificationEvent>
       </Space>
     </NotificationCard>
@@ -83,7 +129,15 @@ function SecurityGroup() {
     <NotificationCard
       icon={<SafetyOutlined />}
       title="Security"
-      extra={<NotificationHeader count={1} total={1} allSelected indeterminate={false} onToggleAll={noop} />}
+      extra={
+        <NotificationHeader
+          count={1}
+          total={1}
+          allSelected
+          indeterminate={false}
+          onToggleAll={noop}
+        />
+      }
     >
       <Space orientation="vertical" size={8} style={{ width: '100%' }}>
         <NotificationEvent label="Panel login attempt" checked onToggle={noop} />

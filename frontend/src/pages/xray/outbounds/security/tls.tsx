@@ -9,32 +9,20 @@ export default function TlsForm() {
   const { t } = useTranslation();
   return (
     <>
-      <FormField
-        label="SNI"
-        name={['streamSettings', 'tlsSettings', 'serverName']}
-      >
+      <FormField label="SNI" name={['streamSettings', 'tlsSettings', 'serverName']}>
         <Input placeholder={t('pages.xray.outboundForm.serverNamePlaceholder')} />
       </FormField>
-      <FormField
-        label="uTLS"
-        name={['streamSettings', 'tlsSettings', 'fingerprint']}
-      >
+      <FormField label="uTLS" name={['streamSettings', 'tlsSettings', 'fingerprint']}>
         <Select
           allowClear
           placeholder={t('none')}
           options={[{ value: '', label: t('none') }, ...UTLS_OPTIONS]}
         />
       </FormField>
-      <FormField
-        label="ALPN"
-        name={['streamSettings', 'tlsSettings', 'alpn']}
-      >
+      <FormField label="ALPN" name={['streamSettings', 'tlsSettings', 'alpn']}>
         <Select mode="multiple" options={ALPN_OPTIONS} />
       </FormField>
-      <FormField
-        label="ECH"
-        name={['streamSettings', 'tlsSettings', 'echConfigList']}
-      >
+      <FormField label="ECH" name={['streamSettings', 'tlsSettings', 'echConfigList']}>
         <Input />
       </FormField>
       <FormField

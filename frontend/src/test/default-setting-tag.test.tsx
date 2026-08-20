@@ -36,28 +36,25 @@ describe('matchesFactoryDefault', () => {
 
 describe('DefaultSettingTag', () => {
   it('shows the tag when the current value equals the shipped default, however it got there', () => {
-    renderWithProviders(
-      <DefaultSettingTag settingKey="subPort" value={2096} />,
-      { queryClient: clientWithDefaults({ subPort: '2096' }) },
-    );
+    renderWithProviders(<DefaultSettingTag settingKey="subPort" value={2096} />, {
+      queryClient: clientWithDefaults({ subPort: '2096' }),
+    });
 
     expect(screen.getByText('Default')).toBeDefined();
   });
 
   it('renders nothing when the value differs from the default', () => {
-    renderWithProviders(
-      <DefaultSettingTag settingKey="subPort" value={8443} />,
-      { queryClient: clientWithDefaults({ subPort: '2096' }) },
-    );
+    renderWithProviders(<DefaultSettingTag settingKey="subPort" value={8443} />, {
+      queryClient: clientWithDefaults({ subPort: '2096' }),
+    });
 
     expect(screen.queryByText('Default')).toBeNull();
   });
 
   it('renders nothing while defaults are unknown', () => {
-    renderWithProviders(
-      <DefaultSettingTag settingKey="subPort" value={2096} />,
-      { queryClient: makeTestQueryClient() },
-    );
+    renderWithProviders(<DefaultSettingTag settingKey="subPort" value={2096} />, {
+      queryClient: makeTestQueryClient(),
+    });
 
     expect(screen.queryByText('Default')).toBeNull();
   });

@@ -60,7 +60,9 @@ const ClientTrafficCell = memo(function ClientTrafficCell({
     'client-traffic-cell',
     compact ? 'is-compact' : '',
     display.isUnlimited ? 'is-unlimited' : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <Popover content={popover} trigger={['hover', 'click']} placement="top">
@@ -77,7 +79,11 @@ const ClientTrafficCell = memo(function ClientTrafficCell({
         />
         <span className="client-traffic-cell-limit">
           {display.isUnlimited ? (
-            <span className="client-traffic-cell-infinity" role="img" aria-label={t('subscription.unlimited')}>
+            <span
+              className="client-traffic-cell-infinity"
+              role="img"
+              aria-label={t('subscription.unlimited')}
+            >
               <InfinityIcon />
             </span>
           ) : (

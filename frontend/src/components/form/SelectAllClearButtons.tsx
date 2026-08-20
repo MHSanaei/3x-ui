@@ -35,11 +35,7 @@ export default function SelectAllClearButtons<T extends string | number = number
       >
         {selectAllLabel ?? t('pages.clients.selectAllInbounds')}
       </Button>
-      <Button
-        size="small"
-        disabled={value.length === 0}
-        onClick={() => onChange([])}
-      >
+      <Button size="small" disabled={value.length === 0} onClick={() => onChange([])}>
         {clearLabel ?? t('pages.clients.clearAllInbounds')}
       </Button>
     </div>

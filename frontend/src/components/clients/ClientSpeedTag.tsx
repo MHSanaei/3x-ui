@@ -23,8 +23,7 @@ export function ClientSpeedTag({ speed, tableCell = false }: ClientSpeedTagProps
       style={tableCell ? SPEED_TAG_STYLE : undefined}
     >
       ↑ {SizeFormatter.speedFormat(speed.up)}
-      {' / '}
-      ↓ {SizeFormatter.speedFormat(speed.down)}
+      {' / '}↓ {SizeFormatter.speedFormat(speed.down)}
     </Tag>
   );
 }

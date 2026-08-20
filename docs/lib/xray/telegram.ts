@@ -43,7 +43,10 @@ export function validateBotToken(token: string): TokenValidation {
 export function parseAdminIds(raw: string): AdminIdsResult {
   const ids: number[] = [];
   const invalid: string[] = [];
-  for (const part of raw.split(',').map((s) => s.trim()).filter(Boolean)) {
+  for (const part of raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)) {
     // Telegram chat ids are integers; group/channel ids are negative.
     if (/^-?\d+$/.test(part)) ids.push(Number(part));
     else invalid.push(part);

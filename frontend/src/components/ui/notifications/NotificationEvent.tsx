@@ -16,11 +16,7 @@ export function NotificationEvent({ label, checked, onToggle, children }: Props)
       <Checkbox checked={checked} onChange={onToggle}>
         {t(label)}
       </Checkbox>
-      {checked && children && (
-        <div style={{ paddingLeft: 24, marginTop: 4 }}>
-          {children}
-        </div>
-      )}
+      {checked && children && <div style={{ paddingLeft: 24, marginTop: 4 }}>{children}</div>}
     </div>
   );
 }

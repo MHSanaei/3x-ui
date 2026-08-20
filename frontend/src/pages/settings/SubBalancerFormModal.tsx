@@ -18,7 +18,12 @@ import {
 // The JSON subscription only builds proxy outbounds for these protocols;
 // mtproto has no proxy-outbound case, so it is excluded from balancer members.
 const MULTI_CLIENT_PROTOCOLS = new Set([
-  'shadowsocks', 'vless', 'vmess', 'trojan', 'hysteria', 'wireguard',
+  'shadowsocks',
+  'vless',
+  'vmess',
+  'trojan',
+  'hysteria',
+  'wireguard',
 ]);
 
 const STRATEGY_LABEL_KEYS: Record<SubBalancerStrategy, string> = {
@@ -45,7 +50,12 @@ interface SubBalancerFormModalProps {
   onConfirm: (values: SubBalancerFormValues) => void;
 }
 
-export default function SubBalancerFormModal({ open, balancer, onClose, onConfirm }: SubBalancerFormModalProps) {
+export default function SubBalancerFormModal({
+  open,
+  balancer,
+  onClose,
+  onConfirm,
+}: SubBalancerFormModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const methods = useForm<SubBalancerFormValues>({ defaultValues: initialState(balancer) });
@@ -59,20 +69,23 @@ export default function SubBalancerFormModal({ open, balancer, onClose, onConfir
 
   const { data: inboundOptionsRaw } = useInboundOptions();
   const inboundOptions = useMemo(
-    () => (inboundOptionsRaw ?? [])
-      .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
-      .map((ib) => ({
-        label: formatInboundLabel(ib.tag, ib.remark),
-        value: ib.id,
-        title: formatInboundLabel(ib.tag, ib.remark),
-      })),
+    () =>
+      (inboundOptionsRaw ?? [])
+        .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
+        .map((ib) => ({
+          label: formatInboundLabel(ib.tag, ib.remark),
+          value: ib.id,
+          title: formatInboundLabel(ib.tag, ib.remark),
+        })),
     [inboundOptionsRaw],
   );
 
   function onFinish(values: SubBalancerFormValues) {
     const parsed = SubBalancerFormSchema.safeParse(values);
     if (!parsed.success) {
-      messageApi.error(t(parsed.error.issues[0]?.message ?? 'pages.settings.subBalancers.errRemarkRequired'));
+      messageApi.error(
+        t(parsed.error.issues[0]?.message ?? 'pages.settings.subBalancers.errRemarkRequired'),
+      );
       return;
     }
     onConfirm(parsed.data);
@@ -86,9 +99,11 @@ export default function SubBalancerFormModal({ open, balancer, onClose, onConfir
   return (
     <Modal
       open={open}
-      title={isEdit
-        ? `${t('edit')} ${t('pages.settings.subBalancers.title')}`
-        : `+ ${t('pages.settings.subBalancers.add')}`}
+      title={
+        isEdit
+          ? `${t('edit')} ${t('pages.settings.subBalancers.title')}`
+          : `+ ${t('pages.settings.subBalancers.add')}`
+      }
       okText={isEdit ? t('pages.clients.submitEdit') : t('create')}
       cancelText={t('close')}
       mask={{ closable: false }}
@@ -142,7 +157,11 @@ export default function SubBalancerFormModal({ open, balancer, onClose, onConfir
             onChange={(v) => methods.setValue('inboundIds', v, { shouldDirty: true })}
           />
 
-          <FormField label={t('pages.settings.subBalancers.enabled')} name="enabled" valueProp="checked">
+          <FormField
+            label={t('pages.settings.subBalancers.enabled')}
+            name="enabled"
+            valueProp="checked"
+          >
             <Switch />
           </FormField>
         </Form>

@@ -13,7 +13,13 @@ interface ConnectionsCardProps {
   isMobile: boolean;
 }
 
-export default function ConnectionsCard({ status, tcp, udp, labels, isMobile }: ConnectionsCardProps) {
+export default function ConnectionsCard({
+  status,
+  tcp,
+  udp,
+  labels,
+  isMobile,
+}: ConnectionsCardProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const accent = token.colorPrimary;

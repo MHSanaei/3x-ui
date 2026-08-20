@@ -11,19 +11,26 @@ export function useSubBalancerMutations() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: keys.subBalancers.root() });
 
   const createMut = useMutation({
-    mutationFn: (payload: SubBalancerFormValues) => HttpUtil.post('/panel/api/sub-balancers', payload),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+    mutationFn: (payload: SubBalancerFormValues) =>
+      HttpUtil.post('/panel/api/sub-balancers', payload),
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: SubBalancerFormValues }) =>
       HttpUtil.post(`/panel/api/sub-balancers/${id}`, payload),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
   });
 
   const removeMut = useMutation({
     mutationFn: (id: number) => HttpUtil.post(`/panel/api/sub-balancers/${id}/del`),
-    onSuccess: (msg) => { if (msg?.success) invalidate(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidate();
+    },
   });
 
   return {

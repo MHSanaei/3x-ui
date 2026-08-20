@@ -15,7 +15,14 @@ interface Props {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
-export function NotificationGroup({ config, selected, onToggle, onToggleAll, allSetting, updateSetting }: Props) {
+export function NotificationGroup({
+  config,
+  selected,
+  onToggle,
+  onToggleAll,
+  allSetting,
+  updateSetting,
+}: Props) {
   const { t } = useTranslation();
 
   const count = config.events.filter((e) => selected.includes(e.key)).length;
@@ -49,7 +56,8 @@ export function NotificationGroup({ config, selected, onToggle, onToggleAll, all
             onToggle={() => onToggle(event.key)}
           >
             {event.extra?.({
-              value: Number((allSetting as unknown as Record<string, unknown>)[event.settingKey]) || 0,
+              value:
+                Number((allSetting as unknown as Record<string, unknown>)[event.settingKey]) || 0,
               onChange: (v) => updateSetting({ [event.settingKey]: v }),
               ariaLabel: t(`pages.settings.${event.label}`),
             })}

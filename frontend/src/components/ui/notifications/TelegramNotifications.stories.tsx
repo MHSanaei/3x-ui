@@ -18,8 +18,14 @@ const meta = {
     },
   },
   argTypes: {
-    allSetting: { description: 'Panel settings snapshot; reads `tgEnabledEvents` plus the `tgCpu`/`tgMemory` thresholds.' },
-    updateSetting: { description: 'Called with a partial settings patch when an event toggle or threshold changes.' },
+    allSetting: {
+      description:
+        'Panel settings snapshot; reads `tgEnabledEvents` plus the `tgCpu`/`tgMemory` thresholds.',
+    },
+    updateSetting: {
+      description:
+        'Called with a partial settings patch when an event toggle or threshold changes.',
+    },
   },
 } satisfies Meta<typeof TelegramNotifications>;
 

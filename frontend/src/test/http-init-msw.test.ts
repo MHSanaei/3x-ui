@@ -77,7 +77,9 @@ describe('httpRequest against the MSW-mocked network', () => {
         csrfHits += 1;
         return HttpResponse.json({ success: true, obj: CSRF_TOKEN });
       }),
-      http.get(`${ORIGIN}/panel/api/status`, () => HttpResponse.json({ success: true, obj: { up: true } })),
+      http.get(`${ORIGIN}/panel/api/status`, () =>
+        HttpResponse.json({ success: true, obj: { up: true } }),
+      ),
     );
 
     const res = await httpRequest('GET', '/panel/api/status');

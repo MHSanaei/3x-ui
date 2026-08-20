@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { SecuritySettingsSchema } from '@/schemas/protocols';
 import { RealityStreamSettingsSchema } from '@/schemas/protocols/security/reality';
 
-const securityFixtures = import.meta.glob<unknown>(
-  './golden/fixtures/security/*.json',
-  { eager: true, import: 'default' },
-);
+const securityFixtures = import.meta.glob<unknown>('./golden/fixtures/security/*.json', {
+  eager: true,
+  import: 'default',
+});
 
 function fixtureName(path: string): string {
   const file = path.split('/').pop() ?? path;
@@ -16,7 +16,10 @@ function fixtureName(path: string): string {
 
 describe('SecuritySettingsSchema fixtures', () => {
   const entries = Object.entries(securityFixtures).sort(([a], [b]) => a.localeCompare(b));
-  expect(entries.length, 'expected at least one fixture under golden/fixtures/security').toBeGreaterThan(0);
+  expect(
+    entries.length,
+    'expected at least one fixture under golden/fixtures/security',
+  ).toBeGreaterThan(0);
 
   for (const [path, raw] of entries) {
     it(`parses ${fixtureName(path)} byte-stably`, () => {

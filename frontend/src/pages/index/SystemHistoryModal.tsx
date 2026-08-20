@@ -45,15 +45,123 @@ interface MetricDef {
 }
 
 const METRICS: MetricDef[] = [
-  { key: 'cpu', tab: 'CPU', tabKey: 'pages.index.cpu', title: 'pages.index.historyTitleCpu', icon: <DashboardOutlined />, valueMax: 100, unit: '%', stroke: '' },
-  { key: 'mem', tab: 'RAM', tabKey: 'pages.index.memory', title: 'pages.index.historyTitleMem', icon: <DatabaseOutlined />, valueMax: 100, unit: '%', stroke: '#7c4dff', key2: 'swap', stroke2: '#ffa940', name1: 'pages.index.memory', name2: 'pages.index.swap' },
-  { key: 'netUp', tab: 'Bandwidth', tabKey: 'pages.index.historyTabBandwidth', title: 'pages.index.historyTitleNetwork', icon: <GlobalOutlined />, valueMax: null, unit: 'B/s', stroke: '#1890ff', key2: 'netDown', stroke2: '#13c2c2', name1: 'Up', name2: 'Down' },
-  { key: 'pktUp', tab: 'Packets', tabKey: 'pages.index.historyTabPackets', title: 'pages.index.historyTitlePackets', icon: <DeploymentUnitOutlined />, valueMax: null, unit: 'pkt/s', stroke: '#2f54eb', key2: 'pktDown', stroke2: '#36cfc9', name1: 'Up', name2: 'Down' },
-  { key: 'tcpCount', tab: 'Connections', tabKey: 'pages.index.historyTabConnections', title: 'pages.index.historyTitleConnections', icon: <ApiOutlined />, valueMax: null, unit: '', stroke: '#597ef7', key2: 'udpCount', stroke2: '#73d13d', name1: 'TCP', name2: 'UDP' },
-  { key: 'diskRead', tab: 'Disk I/O', tabKey: 'pages.index.historyTabDisk', title: 'pages.index.historyTitleDisk', icon: <HddOutlined />, valueMax: null, unit: 'B/s', stroke: '#eb2f96', key2: 'diskWrite', stroke2: '#722ed1', name1: 'Read', name2: 'Write' },
-  { key: 'diskUsage', tab: 'Disk Usage', tabKey: 'pages.index.historyTabDiskUsage', title: 'pages.index.historyTitleDiskUsage', icon: <PieChartOutlined />, valueMax: 100, unit: '%', stroke: '#13c2c2' },
-  { key: 'online', tab: 'Online', tabKey: 'pages.index.historyTabOnline', title: 'pages.index.historyTitleOnline', icon: <TeamOutlined />, valueMax: null, unit: '', stroke: '#52c41a' },
-  { key: 'load1', tab: 'Load', tabKey: 'pages.index.historyTabLoad', title: 'pages.index.historyTitleLoad', icon: <LineChartOutlined />, valueMax: null, unit: '', stroke: '#fa8c16', key2: 'load5', stroke2: '#f5222d', name1: '1m', name2: '5m', key3: 'load15', stroke3: '#a0d911', name3: '15m' },
+  {
+    key: 'cpu',
+    tab: 'CPU',
+    tabKey: 'pages.index.cpu',
+    title: 'pages.index.historyTitleCpu',
+    icon: <DashboardOutlined />,
+    valueMax: 100,
+    unit: '%',
+    stroke: '',
+  },
+  {
+    key: 'mem',
+    tab: 'RAM',
+    tabKey: 'pages.index.memory',
+    title: 'pages.index.historyTitleMem',
+    icon: <DatabaseOutlined />,
+    valueMax: 100,
+    unit: '%',
+    stroke: '#7c4dff',
+    key2: 'swap',
+    stroke2: '#ffa940',
+    name1: 'pages.index.memory',
+    name2: 'pages.index.swap',
+  },
+  {
+    key: 'netUp',
+    tab: 'Bandwidth',
+    tabKey: 'pages.index.historyTabBandwidth',
+    title: 'pages.index.historyTitleNetwork',
+    icon: <GlobalOutlined />,
+    valueMax: null,
+    unit: 'B/s',
+    stroke: '#1890ff',
+    key2: 'netDown',
+    stroke2: '#13c2c2',
+    name1: 'Up',
+    name2: 'Down',
+  },
+  {
+    key: 'pktUp',
+    tab: 'Packets',
+    tabKey: 'pages.index.historyTabPackets',
+    title: 'pages.index.historyTitlePackets',
+    icon: <DeploymentUnitOutlined />,
+    valueMax: null,
+    unit: 'pkt/s',
+    stroke: '#2f54eb',
+    key2: 'pktDown',
+    stroke2: '#36cfc9',
+    name1: 'Up',
+    name2: 'Down',
+  },
+  {
+    key: 'tcpCount',
+    tab: 'Connections',
+    tabKey: 'pages.index.historyTabConnections',
+    title: 'pages.index.historyTitleConnections',
+    icon: <ApiOutlined />,
+    valueMax: null,
+    unit: '',
+    stroke: '#597ef7',
+    key2: 'udpCount',
+    stroke2: '#73d13d',
+    name1: 'TCP',
+    name2: 'UDP',
+  },
+  {
+    key: 'diskRead',
+    tab: 'Disk I/O',
+    tabKey: 'pages.index.historyTabDisk',
+    title: 'pages.index.historyTitleDisk',
+    icon: <HddOutlined />,
+    valueMax: null,
+    unit: 'B/s',
+    stroke: '#eb2f96',
+    key2: 'diskWrite',
+    stroke2: '#722ed1',
+    name1: 'Read',
+    name2: 'Write',
+  },
+  {
+    key: 'diskUsage',
+    tab: 'Disk Usage',
+    tabKey: 'pages.index.historyTabDiskUsage',
+    title: 'pages.index.historyTitleDiskUsage',
+    icon: <PieChartOutlined />,
+    valueMax: 100,
+    unit: '%',
+    stroke: '#13c2c2',
+  },
+  {
+    key: 'online',
+    tab: 'Online',
+    tabKey: 'pages.index.historyTabOnline',
+    title: 'pages.index.historyTitleOnline',
+    icon: <TeamOutlined />,
+    valueMax: null,
+    unit: '',
+    stroke: '#52c41a',
+  },
+  {
+    key: 'load1',
+    tab: 'Load',
+    tabKey: 'pages.index.historyTabLoad',
+    title: 'pages.index.historyTitleLoad',
+    icon: <LineChartOutlined />,
+    valueMax: null,
+    unit: '',
+    stroke: '#fa8c16',
+    key2: 'load5',
+    stroke2: '#f5222d',
+    name1: '1m',
+    name2: '5m',
+    key3: 'load15',
+    stroke3: '#a0d911',
+    name3: '15m',
+  },
 ];
 
 function unitFormatter(unit: string, activeKey: string): (v: number) => string {
@@ -78,9 +186,10 @@ function unitFormatter(unit: string, activeKey: string): (v: number) => string {
 function formatFullTimestamp(unixSec: number): string {
   const d = new Date(unixSec * 1000);
   const today = new Date();
-  const sameDay = d.getFullYear() === today.getFullYear()
-    && d.getMonth() === today.getMonth()
-    && d.getDate() === today.getDate();
+  const sameDay =
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   const ss = String(d.getSeconds()).padStart(2, '0');
@@ -91,16 +200,74 @@ function formatFullTimestamp(unixSec: number): string {
   return `${MM}-${DD} ${time}`;
 }
 
+interface HistoryChart {
+  points: number[];
+  points2: number[];
+  points3: number[];
+  labels: string[];
+  timestamps: number[];
+}
+
+const EMPTY_CHART: HistoryChart = {
+  points: [],
+  points2: [],
+  points3: [],
+  labels: [],
+  timestamps: [],
+};
+
+async function loadBucket(metric: (typeof METRICS)[number], bucket: number): Promise<HistoryChart> {
+  try {
+    const msg = await HttpUtil.get(`/panel/api/server/history/${metric.key}/${bucket}`);
+    if (!msg?.success || !Array.isArray(msg.obj)) return EMPTY_CHART;
+    const points: number[] = [];
+    const labels: string[] = [];
+    const timestamps: number[] = [];
+    for (const p of msg.obj) {
+      const d = new Date(p.t * 1000);
+      const MM = String(d.getMonth() + 1).padStart(2, '0');
+      const DD = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      labels.push(
+        bucket >= 2880
+          ? `${MM}-${DD} ${hh}:${mm}`
+          : bucket >= 60
+            ? `${hh}:${mm}`
+            : `${hh}:${mm}:${ss}`,
+      );
+      points.push(Number(p.v) || 0);
+      timestamps.push(Number(p.t) || 0);
+    }
+    const fetchAligned = async (key?: string): Promise<number[]> => {
+      if (!key) return [];
+      const m = await HttpUtil.get(`/panel/api/server/history/${key}/${bucket}`);
+      if (!m?.success || !Array.isArray(m.obj)) return [];
+      const byTs = new Map<number, number>();
+      for (const p of m.obj) byTs.set(Number(p.t) || 0, Number(p.v) || 0);
+      return timestamps.map((ts) => byTs.get(ts) ?? 0);
+    };
+    return {
+      labels,
+      points,
+      timestamps,
+      points2: await fetchAligned(metric.key2),
+      points3: await fetchAligned(metric.key3),
+    };
+  } catch (e) {
+    console.error('Failed to fetch history bucket', e);
+    return EMPTY_CHART;
+  }
+}
+
 export default function SystemHistoryModal({ open, status, onClose }: SystemHistoryModalProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
   const [activeKey, setActiveKey] = useState('cpu');
   const [bucket, setBucket] = useState(2);
-  const [points, setPoints] = useState<number[]>([]);
-  const [points2, setPoints2] = useState<number[]>([]);
-  const [points3, setPoints3] = useState<number[]>([]);
-  const [labels, setLabels] = useState<string[]>([]);
-  const [timestamps, setTimestamps] = useState<number[]>([]);
+  const [{ points, points2, points3, labels, timestamps }, setChart] =
+    useState<HistoryChart>(EMPTY_CHART);
 
   const activeMetric = useMemo(() => METRICS.find((m) => m.key === activeKey), [activeKey]);
   const trName = (n?: string) => (n && n.startsWith('pages.') ? t(n) : n);
@@ -128,65 +295,27 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
 
   const fetchBucket = useCallback(async () => {
     if (!activeMetric) return;
-    try {
-      const url = `/panel/api/server/history/${activeMetric.key}/${bucket}`;
-      const msg = await HttpUtil.get(url);
-      if (msg?.success && Array.isArray(msg.obj)) {
-        const vals: number[] = [];
-        const labs: string[] = [];
-        const tss: number[] = [];
-        for (const p of msg.obj) {
-          const d = new Date(p.t * 1000);
-          const MM = String(d.getMonth() + 1).padStart(2, '0');
-          const DD = String(d.getDate()).padStart(2, '0');
-          const hh = String(d.getHours()).padStart(2, '0');
-          const mm = String(d.getMinutes()).padStart(2, '0');
-          const ss = String(d.getSeconds()).padStart(2, '0');
-          const lab = bucket >= 2880 ? `${MM}-${DD} ${hh}:${mm}` : bucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`;
-          labs.push(lab);
-          vals.push(Number(p.v) || 0);
-          tss.push(Number(p.t) || 0);
-        }
-        setLabels(labs);
-        setPoints(vals);
-        setTimestamps(tss);
-
-        const fetchAligned = async (key?: string): Promise<number[]> => {
-          if (!key) return [];
-          const m = await HttpUtil.get(`/panel/api/server/history/${key}/${bucket}`);
-          if (m?.success && Array.isArray(m.obj)) {
-            const byTs = new Map<number, number>();
-            for (const p of m.obj) byTs.set(Number(p.t) || 0, Number(p.v) || 0);
-            return tss.map((ts) => byTs.get(ts) ?? 0);
-          }
-          return [];
-        };
-        setPoints2(await fetchAligned(activeMetric.key2));
-        setPoints3(await fetchAligned(activeMetric.key3));
-      } else {
-        setLabels([]);
-        setPoints([]);
-        setPoints2([]);
-        setPoints3([]);
-        setTimestamps([]);
-      }
-    } catch (e) {
-      console.error('Failed to fetch history bucket', e);
-      setLabels([]);
-      setPoints([]);
-      setPoints2([]);
-      setPoints3([]);
-      setTimestamps([]);
-    }
+    const next = await loadBucket(activeMetric, bucket);
+    setChart(next);
   }, [activeMetric, bucket]);
 
-  useEffect(() => {
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setActiveKey('cpu');
-  }, [open]);
+  }
 
   useEffect(() => {
-    if (open) fetchBucket();
-  }, [open, activeKey, bucket, fetchBucket]);
+    if (!open || !activeMetric) return;
+    let cancelled = false;
+    void (async () => {
+      const next = await loadBucket(activeMetric, bucket);
+      if (!cancelled) setChart(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, activeMetric, bucket]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -232,7 +361,13 @@ export default function SystemHistoryModal({ open, status, onClose }: SystemHist
           const tabLabel = m.tabKey ? t(m.tabKey) : m.tab;
           return {
             key: m.key,
-            label: isMobile ? <span title={tabLabel} aria-label={tabLabel}>{m.icon}</span> : tabLabel,
+            label: isMobile ? (
+              <span title={tabLabel} aria-label={tabLabel}>
+                {m.icon}
+              </span>
+            ) : (
+              tabLabel
+            ),
           };
         })}
       />

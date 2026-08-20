@@ -45,7 +45,9 @@ describe('RoutingTab hidden-loopback index mapping', () => {
     fireEvent.click(switches[1]);
 
     expect(setTemplateSettings).toHaveBeenCalledTimes(1);
-    const updater = setTemplateSettings.mock.calls[0][0] as (prev: XraySettingsValue) => XraySettingsValue;
+    const updater = setTemplateSettings.mock.calls[0][0] as (
+      prev: XraySettingsValue,
+    ) => XraySettingsValue;
     const next = updater(initial);
     const rules = (next.routing as { rules: Array<{ enabled?: boolean }> }).rules;
 

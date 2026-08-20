@@ -4,12 +4,21 @@ import { mergeWarpRotation } from '@/pages/xray/overrides/WarpModal';
 
 const clientId = btoa(String.fromCharCode(1, 2, 3));
 
-function rotatedConfig(overrides: { public_key?: string; host?: string; v4?: string; v6?: string } = {}) {
+function rotatedConfig(
+  overrides: { public_key?: string; host?: string; v4?: string; v6?: string } = {},
+) {
   return {
     config: {
       client_id: clientId,
-      interface: { addresses: { v4: overrides.v4 ?? '172.16.0.2', v6: overrides.v6 ?? '2606:4700::2' } },
-      peers: [{ public_key: overrides.public_key ?? 'newPub', endpoint: { host: overrides.host ?? 'engage.cloudflareclient.com:2408' } }],
+      interface: {
+        addresses: { v4: overrides.v4 ?? '172.16.0.2', v6: overrides.v6 ?? '2606:4700::2' },
+      },
+      peers: [
+        {
+          public_key: overrides.public_key ?? 'newPub',
+          endpoint: { host: overrides.host ?? 'engage.cloudflareclient.com:2408' },
+        },
+      ],
     },
   };
 }
@@ -42,7 +51,11 @@ describe('mergeWarpRotation', () => {
     const merged = mergeWarpRotation(
       existing,
       { private_key: 'newSecret' },
-      rotatedConfig({ public_key: 'newPub', host: 'engage.cloudflareclient.com:2408', v4: '172.16.0.9' }),
+      rotatedConfig({
+        public_key: 'newPub',
+        host: 'engage.cloudflareclient.com:2408',
+        v4: '172.16.0.9',
+      }),
     );
 
     expect(merged).not.toBeNull();

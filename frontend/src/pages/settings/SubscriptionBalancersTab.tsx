@@ -61,7 +61,10 @@ interface SubscriptionBalancersTabProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
-export default function SubscriptionBalancersTab({ allSetting, updateSetting }: SubscriptionBalancersTabProps) {
+export default function SubscriptionBalancersTab({
+  allSetting,
+  updateSetting,
+}: SubscriptionBalancersTabProps) {
   const { t } = useTranslation();
   const { isMobile } = useMediaQuery();
   const { balancers, loading, fetched, fetchError, refetch } = useSubBalancersQuery();
@@ -79,9 +82,7 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
   }, [inboundOptionsRaw]);
 
   async function onConfirm(values: SubBalancerFormValues) {
-    const msg = editing
-      ? await update(editing.id, values)
-      : await create(values);
+    const msg = editing ? await update(editing.id, values) : await create(values);
     if (msg?.success) setModalOpen(false);
   }
 
@@ -105,7 +106,10 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
     updateSetting({ subJsonObservatory: v ? JSON.stringify(DEFAULT_PING_CONFIG) : '' });
   }
 
-  function setObservatoryField<K extends keyof PingConfigObject>(key: K, value: PingConfigObject[K]) {
+  function setObservatoryField<K extends keyof PingConfigObject>(
+    key: K,
+    value: PingConfigObject[K],
+  ) {
     const next = { ...observatoryObj, [key]: value };
     updateSetting({ subJsonObservatory: JSON.stringify(next) });
   }
@@ -197,7 +201,11 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
           showIcon
           style={{ marginBottom: 16 }}
           title={fetchError}
-          action={<Button size="small" onClick={() => refetch()}>{t('refresh')}</Button>}
+          action={
+            <Button size="small" onClick={() => refetch()}>
+              {t('refresh')}
+            </Button>
+          }
         />
       )}
       <div style={{ marginBottom: 12 }}>
@@ -233,44 +241,76 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
         style={{ marginBottom: 16 }}
         title={t('pages.settings.subBalancers.observatory.note')}
       />
-      <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.title')} description={t('pages.settings.subBalancers.observatory.desc')}>
+      <SettingListItem
+        paddings="small"
+        title={t('pages.settings.subBalancers.observatory.title')}
+        description={t('pages.settings.subBalancers.observatory.desc')}
+      >
         <Switch checked={observatoryEnabled} onChange={setObservatoryEnabled} />
       </SettingListItem>
       {observatoryEnabled && (
         <div className="format-settings">
-          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.destination')} description={t('pages.settings.subBalancers.observatory.destinationDesc')}>
+          <SettingListItem
+            paddings="small"
+            title={t('pages.settings.subBalancers.observatory.destination')}
+            description={t('pages.settings.subBalancers.observatory.destinationDesc')}
+          >
             <Input
               value={observatoryObj.destination}
               placeholder="https://www.google.com/generate_204"
               onChange={(e) => setObservatoryField('destination', e.target.value)}
             />
           </SettingListItem>
-          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.connectivity')} description={t('pages.settings.subBalancers.observatory.connectivityDesc')}>
+          <SettingListItem
+            paddings="small"
+            title={t('pages.settings.subBalancers.observatory.connectivity')}
+            description={t('pages.settings.subBalancers.observatory.connectivityDesc')}
+          >
             <Input
               value={observatoryObj.connectivity}
               placeholder="http://connectivitycheck.platform.hicloud.com/generate_204"
               onChange={(e) => setObservatoryField('connectivity', e.target.value)}
             />
           </SettingListItem>
-          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.interval')} description={t('pages.settings.subBalancers.observatory.intervalDesc')}>
+          <SettingListItem
+            paddings="small"
+            title={t('pages.settings.subBalancers.observatory.interval')}
+            description={t('pages.settings.subBalancers.observatory.intervalDesc')}
+          >
             <Input
               value={observatoryObj.interval}
               placeholder="1m"
               onChange={(e) => setObservatoryField('interval', e.target.value)}
             />
           </SettingListItem>
-          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.timeout')} description={t('pages.settings.subBalancers.observatory.timeoutDesc')}>
+          <SettingListItem
+            paddings="small"
+            title={t('pages.settings.subBalancers.observatory.timeout')}
+            description={t('pages.settings.subBalancers.observatory.timeoutDesc')}
+          >
             <Input
               value={observatoryObj.timeout}
               placeholder="5s"
               onChange={(e) => setObservatoryField('timeout', e.target.value)}
             />
           </SettingListItem>
-          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.sampling')} description={t('pages.settings.subBalancers.observatory.samplingDesc')}>
-            <InputNumber value={observatoryObj.sampling} min={1} style={{ width: '100%' }}
-              onChange={onNumber((v) => setObservatoryField('sampling', v))} />
+          <SettingListItem
+            paddings="small"
+            title={t('pages.settings.subBalancers.observatory.sampling')}
+            description={t('pages.settings.subBalancers.observatory.samplingDesc')}
+          >
+            <InputNumber
+              value={observatoryObj.sampling}
+              min={1}
+              style={{ width: '100%' }}
+              onChange={onNumber((v) => setObservatoryField('sampling', v))}
+            />
           </SettingListItem>
-          <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.httpMethod')} description={t('pages.settings.subBalancers.observatory.httpMethodDesc')}>
+          <SettingListItem
+            paddings="small"
+            title={t('pages.settings.subBalancers.observatory.httpMethod')}
+            description={t('pages.settings.subBalancers.observatory.httpMethodDesc')}
+          >
             <Select
               value={observatoryObj.httpMethod}
               style={{ width: '100%' }}
@@ -290,12 +330,20 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
         items={[
           {
             key: 'balancers',
-            label: catTabLabel(<DeploymentUnitOutlined />, t('pages.settings.subBalancers.tabBalancers'), isMobile),
+            label: catTabLabel(
+              <DeploymentUnitOutlined />,
+              t('pages.settings.subBalancers.tabBalancers'),
+              isMobile,
+            ),
             children: balancersTab,
           },
           {
             key: 'observatory',
-            label: catTabLabel(<RadarChartOutlined />, t('pages.settings.subBalancers.tabObservatory'), isMobile),
+            label: catTabLabel(
+              <RadarChartOutlined />,
+              t('pages.settings.subBalancers.tabObservatory'),
+              isMobile,
+            ),
             children: observatoryTab,
           },
         ]}

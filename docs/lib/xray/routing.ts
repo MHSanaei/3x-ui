@@ -121,7 +121,10 @@ export function buildRouting(input: RoutingInput): Record<string, unknown> {
   if (input.observatory) {
     Object.assign(out, buildObservatory(input.observatory));
   } else if (input.balancers.some((b) => b.strategy === 'leastLoad')) {
-    Object.assign(out, buildObservatory({ mode: 'burst', subjectSelector: uniqueSelectors(input.balancers) }));
+    Object.assign(
+      out,
+      buildObservatory({ mode: 'burst', subjectSelector: uniqueSelectors(input.balancers) }),
+    );
   } else if (input.balancers.some((b) => b.strategy === 'leastPing')) {
     Object.assign(
       out,

@@ -17,7 +17,9 @@ function ClientExpiryDemo() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <DateTimePicker value={value} onChange={setValue} placeholder="Expiry date" />
       <Typography.Text type="secondary">
-        {value ? `user1@node-de expiryTime: ${value.valueOf()}` : 'user1@node-de expiryTime: 0 (never expires)'}
+        {value
+          ? `user1@node-de expiryTime: ${value.valueOf()}`
+          : 'user1@node-de expiryTime: 0 (never expires)'}
       </Typography.Text>
     </div>
   );

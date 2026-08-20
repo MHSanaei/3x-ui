@@ -61,4 +61,8 @@ export const SERVICES_OPTIONS = [
 
 export const directSettings = { tag: 'direct', protocol: 'freedom' };
 export const blockedSettings = { tag: 'blocked', protocol: 'blackhole', settings: {} };
-export const ipv4Settings = { tag: 'IPv4', protocol: 'freedom', settings: { domainStrategy: 'UseIPv4' } };
+export const ipv4Settings = {
+  tag: 'IPv4',
+  protocol: 'freedom',
+  settings: { domainStrategy: 'UseIPv4' },
+};

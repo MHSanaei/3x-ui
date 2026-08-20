@@ -116,7 +116,7 @@ body.dark .log-container {
   --log-divider: rgba(255, 255, 255, 0.1);
 }
 
-html[data-theme="ultra-dark"] .log-container {
+html[data-theme='ultra-dark'] .log-container {
   --log-blocked: #ff8a8a;
   --log-proxy: #7fb6f1;
   --log-divider: rgba(255, 255, 255, 0.12);

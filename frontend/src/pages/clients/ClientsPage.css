@@ -70,11 +70,21 @@
   vertical-align: middle;
 }
 
-.dot-green { background: var(--ant-color-success); }
-.dot-blue { background: var(--ant-color-primary); }
-.dot-red { background: var(--ant-color-error); }
-.dot-orange { background: var(--ant-color-warning); }
-.dot-gray { background: var(--ant-color-text-quaternary); }
+.dot-green {
+  background: var(--ant-color-success);
+}
+.dot-blue {
+  background: var(--ant-color-primary);
+}
+.dot-red {
+  background: var(--ant-color-error);
+}
+.dot-orange {
+  background: var(--ant-color-warning);
+}
+.dot-gray {
+  background: var(--ant-color-text-quaternary);
+}
 
 .status-tag {
   margin: 0 0 0 4px;

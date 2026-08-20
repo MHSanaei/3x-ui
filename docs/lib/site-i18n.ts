@@ -222,7 +222,8 @@ const zh: SiteMessages = {
     },
     {
       title: '自托管且可脚本化',
-      description: '单个 Go 二进制文件或 Docker 镜像、SQLite/PostgreSQL 后端，以及用于自动化的完整 REST API。',
+      description:
+        '单个 Go 二进制文件或 Docker 镜像、SQLite/PostgreSQL 后端，以及用于自动化的完整 REST API。',
     },
   ],
   licenseBefore: '基于 ',

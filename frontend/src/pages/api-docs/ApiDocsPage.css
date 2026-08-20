@@ -152,11 +152,11 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-.api-docs-page.is-dark .swagger-ui input[type=text],
-.api-docs-page.is-dark .swagger-ui input[type=password],
-.api-docs-page.is-dark .swagger-ui input[type=search],
-.api-docs-page.is-dark .swagger-ui input[type=email],
-.api-docs-page.is-dark .swagger-ui input[type=file],
+.api-docs-page.is-dark .swagger-ui input[type='text'],
+.api-docs-page.is-dark .swagger-ui input[type='password'],
+.api-docs-page.is-dark .swagger-ui input[type='search'],
+.api-docs-page.is-dark .swagger-ui input[type='email'],
+.api-docs-page.is-dark .swagger-ui input[type='file'],
 .api-docs-page.is-dark .swagger-ui textarea {
   background: var(--sw-bg-input);
   color: var(--sw-text);

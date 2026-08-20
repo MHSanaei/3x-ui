@@ -17,12 +17,7 @@ vi.mock('@/api/queries/useInboundOptions', () => ({
 
 function renderModal(balancer: SubBalancer | null, onConfirm = vi.fn()) {
   renderWithProviders(
-    <SubBalancerFormModal
-      open
-      balancer={balancer}
-      onClose={() => {}}
-      onConfirm={onConfirm}
-    />,
+    <SubBalancerFormModal open balancer={balancer} onClose={() => {}} onConfirm={onConfirm} />,
   );
   return { onConfirm };
 }
@@ -38,8 +33,9 @@ function erroredItemCount(): number {
 }
 
 function remarkInput(): HTMLInputElement {
-  const el = Array.from(document.querySelectorAll('.ant-modal input'))
-    .find((i) => (i as HTMLInputElement).placeholder.includes('Auto'));
+  const el = Array.from(document.querySelectorAll('.ant-modal input')).find((i) =>
+    (i as HTMLInputElement).placeholder.includes('Auto'),
+  );
   if (!el) throw new Error('Remark input not found');
   return el as HTMLInputElement;
 }
@@ -50,8 +46,9 @@ function selectInbound(optionTitle: string) {
   // AntD 6 multiple selects have no .ant-select-selector; mousedown on the
   // root toggles the dropdown.
   fireEvent.mouseDown(multi as HTMLElement);
-  const option = Array.from(document.querySelectorAll('.ant-select-item-option'))
-    .find((o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === optionTitle);
+  const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    (o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === optionTitle,
+  );
   if (!option) throw new Error(`Option '${optionTitle}' not found`);
   fireEvent.click(option);
   fireEvent.keyDown(multi, { key: 'Escape' });
@@ -89,7 +86,12 @@ describe('SubBalancerFormModal', () => {
 
   it('seeds the form from the edited balancer', async () => {
     const { onConfirm } = renderModal({
-      id: 7, remark: 'existing', strategy: 'leastPing', inboundIds: [2], sortOrder: 3, enabled: false,
+      id: 7,
+      remark: 'existing',
+      strategy: 'leastPing',
+      inboundIds: [2],
+      sortOrder: 3,
+      enabled: false,
     });
     expect(remarkInput().value).toBe('existing');
     fireEvent.click(primaryButton());

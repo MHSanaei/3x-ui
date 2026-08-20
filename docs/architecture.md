@@ -29,17 +29,17 @@ token), with a process restart as the fallback on older binaries.
 
 Servers and processes, all launched from `main.go`:
 
-| Server / process | Package | Purpose | Default port |
-|---|---|---|---|
-| **Panel** | `internal/web` | Admin REST/WS API + serves the embedded SPA | 2053 |
-| **Subscription** | `internal/sub` | Public endpoint that hands out client configs (raw / JSON / Clash) | `subPort` setting |
-| **Xray-core** | supervised via `internal/xray` | The actual proxy engine; a child process, not Go code | `inbounds[].port` |
-| **mtg-multi** | supervised via `internal/mtproto` | MTProto proxy child process for MTProto inbounds (multi-secret) | per inbound |
+| Server / process | Package                           | Purpose                                                            | Default port      |
+| ---------------- | --------------------------------- | ------------------------------------------------------------------ | ----------------- |
+| **Panel**        | `internal/web`                    | Admin REST/WS API + serves the embedded SPA                        | 2053              |
+| **Subscription** | `internal/sub`                    | Public endpoint that hands out client configs (raw / JSON / Clash) | `subPort` setting |
+| **Xray-core**    | supervised via `internal/xray`    | The actual proxy engine; a child process, not Go code              | `inbounds[].port` |
+| **mtg-multi**    | supervised via `internal/mtproto` | MTProto proxy child process for MTProto inbounds (multi-secret)    | per inbound       |
 
 Two key ideas that explain most of the complexity:
 
 1. **The DB → Xray config pipeline.** Inbounds/clients live in the DB. On every change the
-   backend regenerates the Xray config and applies it — preferring a *hot diff* (live gRPC
+   backend regenerates the Xray config and applies it — preferring a _hot diff_ (live gRPC
    API mutation) over a full process restart. See §5.1.
 2. **The Runtime abstraction (multi-node).** A panel can manage remote "nodes" (other 3x-ui
    instances). Every state-changing inbound/client operation is dispatched through a
@@ -52,6 +52,7 @@ Two key ideas that explain most of the complexity:
 ## 2. Tech stack
 
 **Backend (Go 1.26):**
+
 - Web framework: **Gin** (`gin-gonic/gin`) + sessions (cookie store), gzip.
 - ORM: **GORM** with **SQLite** (default) or **PostgreSQL** (`XUI_DB_TYPE=postgres`).
 - Scheduler: **robfig/cron/v3** (seconds-precision) for all background jobs.
@@ -61,6 +62,7 @@ Two key ideas that explain most of the complexity:
 - Misc: gorilla/websocket, gopsutil (system stats), go-qrcode, gotp (2FA TOTP).
 
 **Frontend (`frontend/`):**
+
 - **React 19** + **Ant Design 6** + **Vite 8** + **TypeScript**.
 - Data layer: **TanStack Query** (`@tanstack/react-query`) over the native **Fetch API**; **Zod 4** schemas.
 - Router: **react-router 8**. Charts: **uPlot** (`frontend/src/components/viz/Sparkline.tsx`). Editor: **CodeMirror 6**.
@@ -95,7 +97,7 @@ Browser (React, fetch)
 ```
 
 The controller layer is thin. **Business logic lives in services.** When something is wrong
-with *behavior*, the bug is almost always in a service file, not a controller.
+with _behavior_, the bug is almost always in a service file, not a controller.
 
 ### 3.2 Subscription request (end-user fetching their config)
 
@@ -312,8 +314,8 @@ Restart is debounced via an atomic "need restart" flag (`SetToNeedRestart` /
 ### 5.2 Runtime abstraction — Local vs Remote (multi-node) ⭐ most important
 
 A "node" (`model.Node`) is another 3x-ui instance this panel controls. Every state-changing
-inbound/client operation goes through the `runtime.Runtime` interface so the *same service
-code* works whether the target is the local Xray or a remote node.
+inbound/client operation goes through the `runtime.Runtime` interface so the _same service
+code_ works whether the target is the local Xray or a remote node.
 
 - **Interface:** `internal/web/runtime/runtime.go` — `Name`, `AddInbound`, `DelInbound`,
   `UpdateInbound`, `AddUser`, `RemoveUser`, `UpdateUser`, `DeleteUser`, `AddClient`,
@@ -329,7 +331,7 @@ code* works whether the target is the local Xray or a remote node.
 - **Dispatch:** `manager.go` → `Manager.RuntimeFor(nodeID *int)`; `nil` nodeID → `Local`,
   otherwise a cached/lazy-loaded `Remote`. `InvalidateNode(id)` drops a cached remote client.
 
-**Node identity & attribution (the hard part).** Inbounds carry a `NodeID` *and* an
+**Node identity & attribution (the hard part).** Inbounds carry a `NodeID` _and_ an
 `OriginNodeGuid`. Because inbounds can be pushed across hops, the panel attributes traffic and
 online clients back to the originating panel using **stable GUIDs** rather than local IDs.
 Relevant logic: `service/inbound_node.go` (`ReconcileNode`, `SetRemoteTraffic`, GUID merge,
@@ -338,6 +340,7 @@ tracking). Node "dirty" flags drive an **anti-entropy reconciliation** so an off
 inbound edits converge once it reconnects.
 
 **Where to look for node bugs:**
+
 - Operation not reaching a node → `runtime/remote.go` + `runtime/manager.go`.
 - Wrong traffic/online attribution across hops → `service/inbound_node.go` (GUID merge paths).
 - Node shown offline / stale status → `job/node_heartbeat_job.go` + `service/node.go` (`Probe`, `UpdateHeartbeat`).
@@ -360,28 +363,28 @@ Periodic resets: `job/periodic_traffic_reset_job.go` (keyed off `Inbound.Traffic
 
 All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` method in `internal/web/job/`:
 
-| Schedule | Job | Purpose / condition |
-|---|---|---|
-| `@every 1s` | `check_xray_running_job` | Restart Xray if it died (2 consecutive down checks) |
-| `@every 30s` | (inline func in `startTask`) | Debounced Xray restart — consumes the "need restart" flag (§5.1) |
-| `@every 5s` | `xray_traffic_job` | Pull traffic stats from Xray (5s start delay) |
-| `@every 5s` | `node_heartbeat_job` | Probe child nodes (online/offline) |
-| `@every 5s` | `node_traffic_sync_job` | Pull + merge node traffic; push reconciliation |
-| `@every 10s` | `check_client_ip_job` | Enforce per-client IP limits |
-| `@every 10s` | `mtproto_job` | Reconcile `mtg` sidecars against enabled MTProto inbounds |
-| `@every 5m` | `outbound_subscription_job` | Refresh outbound provider configs |
-| `@every 10m` | `clear_logs_job` (`PruneXrayLogsJob`) | Truncate Xray access/error logs once either exceeds 64 MiB |
-| `@hourly` | `warp_ip_job`, `periodic_traffic_reset_job("hourly")` | WARP IP rotation; traffic resets |
-| `@daily` | `clear_logs_job`, `periodic_traffic_reset_job("daily")`, `periodic_traffic_reset_job("monthly")` | IP-limit and Xray access/error log cleanup; daily resets and due monthly resets |
-| `@weekly` | `periodic_traffic_reset_job("weekly")` | Weekly traffic resets |
-| default `@every 1m` | `ldap_sync_job` | Only if LDAP enabled; schedule configurable |
-| default `@daily` | `stats_notify_job` | Only if TG bot enabled; schedule configurable |
-| `@every 2m` | `check_hash_storage` | Only if TG bot enabled; expires bot callback hashes |
-| `@every 1m` | `check_cpu_usage` | Only if a CPU alarm is configured (TG or email); publishes `cpu.high` |
-| `@every 1m` | `check_memory_usage` | Only if a memory alarm is configured; publishes `memory.high` |
-| configurable | `free_os_memory` | Only if `sys.MemoryReleaseIntervalMinutes() > 0`; returns heap to OS |
+| Schedule            | Job                                                                                              | Purpose / condition                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `@every 1s`         | `check_xray_running_job`                                                                         | Restart Xray if it died (2 consecutive down checks)                             |
+| `@every 30s`        | (inline func in `startTask`)                                                                     | Debounced Xray restart — consumes the "need restart" flag (§5.1)                |
+| `@every 5s`         | `xray_traffic_job`                                                                               | Pull traffic stats from Xray (5s start delay)                                   |
+| `@every 5s`         | `node_heartbeat_job`                                                                             | Probe child nodes (online/offline)                                              |
+| `@every 5s`         | `node_traffic_sync_job`                                                                          | Pull + merge node traffic; push reconciliation                                  |
+| `@every 10s`        | `check_client_ip_job`                                                                            | Enforce per-client IP limits                                                    |
+| `@every 10s`        | `mtproto_job`                                                                                    | Reconcile `mtg` sidecars against enabled MTProto inbounds                       |
+| `@every 5m`         | `outbound_subscription_job`                                                                      | Refresh outbound provider configs                                               |
+| `@every 10m`        | `clear_logs_job` (`PruneXrayLogsJob`)                                                            | Truncate Xray access/error logs once either exceeds 64 MiB                      |
+| `@hourly`           | `warp_ip_job`, `periodic_traffic_reset_job("hourly")`                                            | WARP IP rotation; traffic resets                                                |
+| `@daily`            | `clear_logs_job`, `periodic_traffic_reset_job("daily")`, `periodic_traffic_reset_job("monthly")` | IP-limit and Xray access/error log cleanup; daily resets and due monthly resets |
+| `@weekly`           | `periodic_traffic_reset_job("weekly")`                                                           | Weekly traffic resets                                                           |
+| default `@every 1m` | `ldap_sync_job`                                                                                  | Only if LDAP enabled; schedule configurable                                     |
+| default `@daily`    | `stats_notify_job`                                                                               | Only if TG bot enabled; schedule configurable                                   |
+| `@every 2m`         | `check_hash_storage`                                                                             | Only if TG bot enabled; expires bot callback hashes                             |
+| `@every 1m`         | `check_cpu_usage`                                                                                | Only if a CPU alarm is configured (TG or email); publishes `cpu.high`           |
+| `@every 1m`         | `check_memory_usage`                                                                             | Only if a memory alarm is configured; publishes `memory.high`                   |
+| configurable        | `free_os_memory`                                                                                 | Only if `sys.MemoryReleaseIntervalMinutes() > 0`; returns heap to OS            |
 
-To change *when* something runs, edit `startTask()`. To change *what* it does, edit the job file.
+To change _when_ something runs, edit `startTask()`. To change _what_ it does, edit the job file.
 
 ### 5.5 Type generation (Go → TypeScript) ⚠️ don't hand-edit generated files
 
@@ -400,8 +403,9 @@ frontend types (`cd frontend && npm run gen`) instead of editing `src/generated/
 ### 5.6 Share-link / subscription generation
 
 Two distinct code paths produce client configs:
+
 - **Per-client links in the panel** (the "copy link" / QR in the UI): `service/client_link.go`
-  + `util/link/outbound.go`.
+  - `util/link/outbound.go`.
 - **Subscription endpoint** (what a client app polls): `internal/sub/service.go` (raw links),
   `internal/sub/json_service.go` (JSON), `internal/sub/clash_service.go` (Clash YAML).
   **`Host` rows** (`model.Host`, edited under /panel/api/hosts) override address/SNI/path/
@@ -438,70 +442,70 @@ Xray restart.
 GORM models in `internal/database/model/` (main file `model.go` + siblings); all registered
 for AutoMigrate in `internal/database/db.go`.
 
-| Model | Table role | Notable fields |
-|---|---|---|
-| `User` | Admin login | bcrypt password, `LoginEpoch` (invalidates sessions) |
-| `Inbound` | An Xray inbound | `Tag` (unique), `Port`, `Protocol`, `Settings`/`StreamSettings`/`Sniffing` (JSON), `Enable`, `TrafficReset`, `NodeID`, **`OriginNodeGuid`**, `ClientStats` (assoc) |
-| `Client` | In-memory client view | UUID/email/flow/limits (parsed from inbound JSON; not persisted) |
-| `ClientRecord` | Persisted client (`clients`) | `Email` (unique), `SubID`, `UUID`, `TotalGB`, `ExpiryTime`, `LimitIP`, `Group`, `Reset` |
-| `ClientGroup` / `ClientInbound` | Grouping + client↔inbound join | many-to-many wiring, `FlowOverride` |
-| `ClientExternalLink` | Extra links attached to a client | `Kind`, `Value`, `Remark`, `SortIndex` |
-| `Host` | Subscription host overrides (per inbound) | `Address`, `Port`, `Sni`, `Path`, `Security`, `Fingerprint`, `SortOrder`, visibility/exclusion flags |
-| `Node` | A managed child panel | `Guid`, `Address`, `Status`, `TlsVerifyMode`, `PinnedCertSha256`, `ConfigDirty`, version/heartbeat/metric fields |
-| `NodeClientTraffic` | Per-node client traffic baseline | cross-node merge (anti-double-count) |
-| `NodeClientIp` | Per-node client IP attribution | `NodeGuid`, `Email`, `Ips` |
-| `ClientGlobalTraffic` | Cross-master usage totals | `MasterGuid`, `Email`, `Up`, `Down` |
-| `xray.ClientTraffic` | Per-client counters (`client_traffics`) | `Email`, `Up`, `Down`, `Total`, `ExpiryTime`, `LastOnline` |
-| `InboundClientIps` | IP set per client email | drives IP-limit enforcement |
-| `OutboundTraffics` | Outbound counters | per outbound tag |
-| `OutboundSubscription` | External provider subs | Warp/Nord style |
-| `Setting` | Key/value panel settings | everything configurable |
-| `ApiToken` | REST API tokens | SHA-256 hash (plaintext shown once) |
-| `InboundFallback` | Fallback routing on a shared port | SNI/ALPN/path → dest |
-| `HistoryOfSeeders` | Seeder bookkeeping | prevents re-running one-off migrations |
+| Model                           | Table role                                | Notable fields                                                                                                                                                     |
+| ------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `User`                          | Admin login                               | bcrypt password, `LoginEpoch` (invalidates sessions)                                                                                                               |
+| `Inbound`                       | An Xray inbound                           | `Tag` (unique), `Port`, `Protocol`, `Settings`/`StreamSettings`/`Sniffing` (JSON), `Enable`, `TrafficReset`, `NodeID`, **`OriginNodeGuid`**, `ClientStats` (assoc) |
+| `Client`                        | In-memory client view                     | UUID/email/flow/limits (parsed from inbound JSON; not persisted)                                                                                                   |
+| `ClientRecord`                  | Persisted client (`clients`)              | `Email` (unique), `SubID`, `UUID`, `TotalGB`, `ExpiryTime`, `LimitIP`, `Group`, `Reset`                                                                            |
+| `ClientGroup` / `ClientInbound` | Grouping + client↔inbound join            | many-to-many wiring, `FlowOverride`                                                                                                                                |
+| `ClientExternalLink`            | Extra links attached to a client          | `Kind`, `Value`, `Remark`, `SortIndex`                                                                                                                             |
+| `Host`                          | Subscription host overrides (per inbound) | `Address`, `Port`, `Sni`, `Path`, `Security`, `Fingerprint`, `SortOrder`, visibility/exclusion flags                                                               |
+| `Node`                          | A managed child panel                     | `Guid`, `Address`, `Status`, `TlsVerifyMode`, `PinnedCertSha256`, `ConfigDirty`, version/heartbeat/metric fields                                                   |
+| `NodeClientTraffic`             | Per-node client traffic baseline          | cross-node merge (anti-double-count)                                                                                                                               |
+| `NodeClientIp`                  | Per-node client IP attribution            | `NodeGuid`, `Email`, `Ips`                                                                                                                                         |
+| `ClientGlobalTraffic`           | Cross-master usage totals                 | `MasterGuid`, `Email`, `Up`, `Down`                                                                                                                                |
+| `xray.ClientTraffic`            | Per-client counters (`client_traffics`)   | `Email`, `Up`, `Down`, `Total`, `ExpiryTime`, `LastOnline`                                                                                                         |
+| `InboundClientIps`              | IP set per client email                   | drives IP-limit enforcement                                                                                                                                        |
+| `OutboundTraffics`              | Outbound counters                         | per outbound tag                                                                                                                                                   |
+| `OutboundSubscription`          | External provider subs                    | Warp/Nord style                                                                                                                                                    |
+| `Setting`                       | Key/value panel settings                  | everything configurable                                                                                                                                            |
+| `ApiToken`                      | REST API tokens                           | SHA-256 hash (plaintext shown once)                                                                                                                                |
+| `InboundFallback`               | Fallback routing on a shared port         | SNI/ALPN/path → dest                                                                                                                                               |
+| `HistoryOfSeeders`              | Seeder bookkeeping                        | prevents re-running one-off migrations                                                                                                                             |
 
 ---
 
 ## 7. Symptom → File index (start here when debugging)
 
-| Symptom / task | Primary file(s) | Then check |
-|---|---|---|
-| Add/modify an **API endpoint** | `controller/<resource>.go` (route registration at top of each file) | corresponding `service/*.go`, `frontend/src/pages/api-docs/endpoints.ts` |
-| **Inbound** create/update/delete behavior | `service/inbound.go`, `service/inbound_clients.go` | `runtime/*`, `service/xray.go` |
-| **Client** CRUD / limits / expiry | `service/client_crud.go`, `service/client_inbound_apply.go` | model `ClientRecord`, `service/inbound_traffic.go` |
-| **Bulk** client operations slow/wrong | `service/client_bulk.go` | `service/client_paging.go` |
-| Xray **won't apply** a config change | `service/xray.go` (`RestartXray`, `tryHotApply`) | `xray/hot_diff.go`, `xray/process.go` |
-| Xray **restarts when it shouldn't** (kills connections) | `xray/hot_diff.go` (diff not classified as hot) | `service/xray.go` |
-| **Traffic** counts wrong / reset behavior | `service/inbound_traffic.go`, `job/xray_traffic_job.go` | `service/traffic_writer.go`, `job/periodic_traffic_reset_job.go` |
-| **Node** operation not propagating | `runtime/remote.go`, `runtime/manager.go` | `service/inbound_node.go` |
-| **Multi-hop / cross-node attribution** (traffic or online clients on wrong panel) | `service/inbound_node.go` (GUID merge, `synthNodeGuid`, `effectiveNodeGuid`) | `service/node.go`, model `OriginNodeGuid`/`Node.Guid` |
-| Node stuck **offline / stale** | `job/node_heartbeat_job.go`, `service/node.go` (`Probe`, `UpdateHeartbeat`) | `runtime/tls_client.go` (TLS verify) |
-| Node **TLS / mTLS** auth failures | `runtime/tls_client.go`, `service/node_mtls.go`, `service/setting_mtls.go` | `service/node.go` (`FetchCertFingerprint`) |
-| Offline node edits **not reconciling** on reconnect | `service/inbound_node.go` (`ReconcileNode`, dirty flags) | `service/node.go` (`MarkNodeDirty`/`NodeSyncState`) |
-| **Share link / QR** malformed (per protocol) | `service/client_link.go`, `util/link/outbound.go` | `frontend/src/lib/xray/`, `frontend/src/schemas/protocols/` |
-| **Subscription** output wrong (raw/JSON/Clash) | `internal/sub/service.go` | `sub/json_service.go`, `sub/clash_service.go`, sub golden tests |
-| Subscription **host overrides** not applied | `service/host.go`, `sub/host_sub.go` | model `Host`, `frontend/src/pages/hosts/` |
-| **External subscription** import/aggregation | `sub/external_subscription.go`, `sub/external_config.go` | `sub/clash_external.go` |
-| **Settings** not saving / defaults | `service/setting.go`, `controller/setting.go` | model `Setting` |
-| **Login / 2FA / sessions / CSRF** | `controller/index.go`, `service/panel/user.go`, `middleware/` | `session/` |
-| **API tokens** | `service/panel/api_token.go`, `controller/setting.go` | model `ApiToken` |
-| **Port conflict** on inbound add | `service/port_conflict.go` | `controller/inbound.go` |
-| **Fallbacks** (shared 443, SNI routing) | `service/fallback.go`, `controller/inbound.go` | model `InboundFallback` |
-| **Geo category browser** empty / won't open | `xray/geodata/` (`Store`, `reader.go`), `service/geodata.go` | `controller/xray_setting.go` (`/panel/api/xray/geodata/*`), asset dir = `config.GetBinFolderPath()` |
-| **`geosite:`/`geoip:` token** reported unknown in a routing rule | `xray/geodata/token.go`, `service/geodata.go` (`Validate`) | `frontend/src/lib/xray/geoTokens.ts`, `frontend/src/components/geodata/` |
-| **Telegram bot** commands | `service/tgbot/` | `job/stats_notify_job.go` |
-| **Email notifications** | `service/email/` | `internal/eventbus/` (consumers) |
-| **CPU / memory alerts** not firing | `job/check_cpu_usage.go`, `job/check_memory_usage.go` | `internal/eventbus/`, notifier settings in `service/setting.go` |
-| Xray auto-restart on **dead tunnel** | `internal/tunnelmonitor/` | `XUI_TUNNEL_HEALTH_*` in `internal/config/` |
-| **WARP / Nord** outbound integration | `service/integration/warp.go` / `nord.go` | `service/outbound_subscription.go` |
-| **MTProto** proxy issues | `internal/mtproto/manager.go`, `mtproto/process*.go` | `job/mtproto_job.go` |
-| **DB migration** / new column | `internal/database/db.go` (AutoMigrate list), `migrate_data.go` | `model/model.go` |
-| **Cron schedule** changes | `web.go` → `startTask()` | the specific `job/*.go` |
-| **CORS / security headers / HTTPS** | `middleware/`, `web.go` (`initRouter`, TLS setup) | `config/` (env) |
-| **Env vars / paths / DB type** | `internal/config/config.go` | `.env.example` |
-| **Frontend route / screen** | `frontend/src/pages/<area>/`, `frontend/src/routes.tsx` | `frontend/src/api/queries/` |
-| **Frontend ↔ backend type mismatch** | regenerate: `cd frontend && npm run gen` (`tools/openapigen`) | `frontend/src/generated/` |
-| **System status / CPU / metrics** | `service/server.go`, `service/xray_metrics.go`, `service/metric_history.go` | `controller/server.go`, gopsutil |
+| Symptom / task                                                                    | Primary file(s)                                                              | Then check                                                                                          |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Add/modify an **API endpoint**                                                    | `controller/<resource>.go` (route registration at top of each file)          | corresponding `service/*.go`, `frontend/src/pages/api-docs/endpoints.ts`                            |
+| **Inbound** create/update/delete behavior                                         | `service/inbound.go`, `service/inbound_clients.go`                           | `runtime/*`, `service/xray.go`                                                                      |
+| **Client** CRUD / limits / expiry                                                 | `service/client_crud.go`, `service/client_inbound_apply.go`                  | model `ClientRecord`, `service/inbound_traffic.go`                                                  |
+| **Bulk** client operations slow/wrong                                             | `service/client_bulk.go`                                                     | `service/client_paging.go`                                                                          |
+| Xray **won't apply** a config change                                              | `service/xray.go` (`RestartXray`, `tryHotApply`)                             | `xray/hot_diff.go`, `xray/process.go`                                                               |
+| Xray **restarts when it shouldn't** (kills connections)                           | `xray/hot_diff.go` (diff not classified as hot)                              | `service/xray.go`                                                                                   |
+| **Traffic** counts wrong / reset behavior                                         | `service/inbound_traffic.go`, `job/xray_traffic_job.go`                      | `service/traffic_writer.go`, `job/periodic_traffic_reset_job.go`                                    |
+| **Node** operation not propagating                                                | `runtime/remote.go`, `runtime/manager.go`                                    | `service/inbound_node.go`                                                                           |
+| **Multi-hop / cross-node attribution** (traffic or online clients on wrong panel) | `service/inbound_node.go` (GUID merge, `synthNodeGuid`, `effectiveNodeGuid`) | `service/node.go`, model `OriginNodeGuid`/`Node.Guid`                                               |
+| Node stuck **offline / stale**                                                    | `job/node_heartbeat_job.go`, `service/node.go` (`Probe`, `UpdateHeartbeat`)  | `runtime/tls_client.go` (TLS verify)                                                                |
+| Node **TLS / mTLS** auth failures                                                 | `runtime/tls_client.go`, `service/node_mtls.go`, `service/setting_mtls.go`   | `service/node.go` (`FetchCertFingerprint`)                                                          |
+| Offline node edits **not reconciling** on reconnect                               | `service/inbound_node.go` (`ReconcileNode`, dirty flags)                     | `service/node.go` (`MarkNodeDirty`/`NodeSyncState`)                                                 |
+| **Share link / QR** malformed (per protocol)                                      | `service/client_link.go`, `util/link/outbound.go`                            | `frontend/src/lib/xray/`, `frontend/src/schemas/protocols/`                                         |
+| **Subscription** output wrong (raw/JSON/Clash)                                    | `internal/sub/service.go`                                                    | `sub/json_service.go`, `sub/clash_service.go`, sub golden tests                                     |
+| Subscription **host overrides** not applied                                       | `service/host.go`, `sub/host_sub.go`                                         | model `Host`, `frontend/src/pages/hosts/`                                                           |
+| **External subscription** import/aggregation                                      | `sub/external_subscription.go`, `sub/external_config.go`                     | `sub/clash_external.go`                                                                             |
+| **Settings** not saving / defaults                                                | `service/setting.go`, `controller/setting.go`                                | model `Setting`                                                                                     |
+| **Login / 2FA / sessions / CSRF**                                                 | `controller/index.go`, `service/panel/user.go`, `middleware/`                | `session/`                                                                                          |
+| **API tokens**                                                                    | `service/panel/api_token.go`, `controller/setting.go`                        | model `ApiToken`                                                                                    |
+| **Port conflict** on inbound add                                                  | `service/port_conflict.go`                                                   | `controller/inbound.go`                                                                             |
+| **Fallbacks** (shared 443, SNI routing)                                           | `service/fallback.go`, `controller/inbound.go`                               | model `InboundFallback`                                                                             |
+| **Geo category browser** empty / won't open                                       | `xray/geodata/` (`Store`, `reader.go`), `service/geodata.go`                 | `controller/xray_setting.go` (`/panel/api/xray/geodata/*`), asset dir = `config.GetBinFolderPath()` |
+| **`geosite:`/`geoip:` token** reported unknown in a routing rule                  | `xray/geodata/token.go`, `service/geodata.go` (`Validate`)                   | `frontend/src/lib/xray/geoTokens.ts`, `frontend/src/components/geodata/`                            |
+| **Telegram bot** commands                                                         | `service/tgbot/`                                                             | `job/stats_notify_job.go`                                                                           |
+| **Email notifications**                                                           | `service/email/`                                                             | `internal/eventbus/` (consumers)                                                                    |
+| **CPU / memory alerts** not firing                                                | `job/check_cpu_usage.go`, `job/check_memory_usage.go`                        | `internal/eventbus/`, notifier settings in `service/setting.go`                                     |
+| Xray auto-restart on **dead tunnel**                                              | `internal/tunnelmonitor/`                                                    | `XUI_TUNNEL_HEALTH_*` in `internal/config/`                                                         |
+| **WARP / Nord** outbound integration                                              | `service/integration/warp.go` / `nord.go`                                    | `service/outbound_subscription.go`                                                                  |
+| **MTProto** proxy issues                                                          | `internal/mtproto/manager.go`, `mtproto/process*.go`                         | `job/mtproto_job.go`                                                                                |
+| **DB migration** / new column                                                     | `internal/database/db.go` (AutoMigrate list), `migrate_data.go`              | `model/model.go`                                                                                    |
+| **Cron schedule** changes                                                         | `web.go` → `startTask()`                                                     | the specific `job/*.go`                                                                             |
+| **CORS / security headers / HTTPS**                                               | `middleware/`, `web.go` (`initRouter`, TLS setup)                            | `config/` (env)                                                                                     |
+| **Env vars / paths / DB type**                                                    | `internal/config/config.go`                                                  | `.env.example`                                                                                      |
+| **Frontend route / screen**                                                       | `frontend/src/pages/<area>/`, `frontend/src/routes.tsx`                      | `frontend/src/api/queries/`                                                                         |
+| **Frontend ↔ backend type mismatch**                                              | regenerate: `cd frontend && npm run gen` (`tools/openapigen`)                | `frontend/src/generated/`                                                                           |
+| **System status / CPU / metrics**                                                 | `service/server.go`, `service/xray_metrics.go`, `service/metric_history.go`  | `controller/server.go`, gopsutil                                                                    |
 
 ---
 
@@ -522,7 +526,7 @@ for AutoMigrate in `internal/database/db.go`.
    Regenerate instead.
 7. **Models are the contract.** Changing a model field that crosses the API boundary means:
    update `model.go` → handle migration in `db.go`/`migrate_data.go` → regenerate frontend types.
-8. **Two servers, two concerns.** Admin features go in `internal/web`; anything an *end user*
+8. **Two servers, two concerns.** Admin features go in `internal/web`; anything an _end user_
    fetches goes in `internal/sub`. Don't blur them.
 9. **Cross-cutting notifications go through `internal/eventbus/`** — publish an event instead
    of importing the Telegram/email services into producers.
@@ -536,6 +540,7 @@ The canonical gate is the **Makefile** (mirrors CI): `make verify`. Also: `make 
 frontend), `make race`, `make build`. Run `make help` for everything. Raw commands:
 
 **Backend (Go):**
+
 ```bash
 go build ./...                      # compile everything
 go test ./...                       # run all Go tests (many *_test.go alongside sources)
@@ -548,11 +553,12 @@ go run main.go                      # run the panel locally (serves embedded dis
 ```
 
 **Frontend (`cd frontend`, Node 24 — see `.nvmrc`):**
+
 ```bash
 npm install
 npm run dev          # Vite dev server on :5173; proxies API to Go backend on :2053 (run `go run main.go` too)
 npm run typecheck    # tsc --noEmit
-npm run lint         # eslint src
+npm run lint         # oxlint src
 npm run test         # vitest (incl. golden config-generation snapshots)
 npm run gen          # regenerate src/generated/* from Go (gen:zod + gen:api)
 npm run build        # gen:api + vite build → outputs to internal/web/dist (then rebuild Go binary to embed)

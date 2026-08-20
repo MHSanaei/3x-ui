@@ -39,7 +39,9 @@ function InputDemo() {
   const [value, setValue] = useState('');
   return (
     <>
-      <Button type="primary" onClick={() => setOpen(true)}>Rename client</Button>
+      <Button type="primary" onClick={() => setOpen(true)}>
+        Rename client
+      </Button>
       <div style={{ marginTop: 12 }}>Last confirmed: {value || '—'}</div>
       <PromptModal
         open={open}

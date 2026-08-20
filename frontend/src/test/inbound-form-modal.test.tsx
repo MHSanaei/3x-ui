@@ -113,7 +113,9 @@ describe('InboundFormModal', () => {
       chooseSelectOption('protocol', proto);
       // Flush antd Form.useWatch('protocol') before reading — without it every iteration
       // sees the same pre-update DOM and the loop asserts nothing (the original bug here).
-      await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
       labelsByProto[proto] = fieldLabels();
     }
 
@@ -133,25 +135,27 @@ describe('InboundFormModal', () => {
       <InboundFormModal
         open
         mode="edit"
-        dbInbound={new DBInbound({
-          id: 1,
-          port: 12345,
-          listen: '',
-          protocol: 'shadowsocks',
-          remark: 'edge',
-          enable: true,
-          settings: {
-            method: '2022-blake3-aes-128-gcm',
-            password: 'server-password',
-            network: 'tcp,udp',
-            clients: [],
-          },
-          streamSettings: { network: 'tcp', security: 'none', tcpSettings: {} },
-          sniffing: { enabled: false },
-          nodeId: null,
-          shareAddrStrategy: 'custom',
-          shareAddr: 'edge.example.test',
-        })}
+        dbInbound={
+          new DBInbound({
+            id: 1,
+            port: 12345,
+            listen: '',
+            protocol: 'shadowsocks',
+            remark: 'edge',
+            enable: true,
+            settings: {
+              method: '2022-blake3-aes-128-gcm',
+              password: 'server-password',
+              network: 'tcp,udp',
+              clients: [],
+            },
+            streamSettings: { network: 'tcp', security: 'none', tcpSettings: {} },
+            sniffing: { enabled: false },
+            nodeId: null,
+            shareAddrStrategy: 'custom',
+            shareAddr: 'edge.example.test',
+          })
+        }
         dbInbounds={[]}
         availableNodes={[]}
         onClose={() => {}}
@@ -165,20 +169,25 @@ describe('InboundFormModal', () => {
 
   it('keeps the persisted node share strategy through the nodes-loading race (#5375)', async () => {
     const node = { id: 1, name: 'arm2', enable: true, status: 'online' } as never;
-    const buildInbound = () => new DBInbound({
-      id: 1,
-      port: 23456,
-      listen: '',
-      protocol: 'vless',
-      remark: 'noded',
-      enable: true,
-      settings: { clients: [] },
-      streamSettings: { network: 'tcp', security: 'none', tcpSettings: {} },
-      sniffing: { enabled: false },
-      nodeId: 1,
-      shareAddrStrategy: 'node',
-    });
-    const flush = async () => { await act(async () => { await new Promise((r) => setTimeout(r, 0)); }); };
+    const buildInbound = () =>
+      new DBInbound({
+        id: 1,
+        port: 23456,
+        listen: '',
+        protocol: 'vless',
+        remark: 'noded',
+        enable: true,
+        settings: { clients: [] },
+        streamSettings: { network: 'tcp', security: 'none', tcpSettings: {} },
+        sniffing: { enabled: false },
+        nodeId: 1,
+        shareAddrStrategy: 'node',
+      });
+    const flush = async () => {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    };
     const strategyItem = (title: string) =>
       document.querySelector(`.ant-select-content[title="${title}"]`);
     const modal = (nodes: never[], fetched: boolean) => (

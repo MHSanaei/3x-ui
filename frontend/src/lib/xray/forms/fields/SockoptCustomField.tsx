@@ -13,7 +13,9 @@ export default function SockoptCustomField({ value, onChange }: SockoptCustomFie
   const [form] = Form.useForm();
   const [initial] = useState(() => value ?? []);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
   const lastEmitted = useRef(JSON.stringify(initial));
 
   const list = Form.useWatch('customSockopt', form) as CustomSockopt[] | undefined;
