@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"net/url"
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -203,35 +205,62 @@ func defaultSubBalancerObservatoryConfig() subBalancerObservatoryConfig {
 	}
 }
 
-// SetObservatoryConfig overrides defaults from the panel JSON setting. An
-// empty cfg keeps all defaults; empty connectivity skips the direct pre-check.
+// SetObservatoryConfig overrides defaults from the panel JSON setting. An empty
+// cfg keeps all defaults; invalid values fall back with a warning, never panic.
 func (s *SubJsonService) SetObservatoryConfig(cfg string) {
 	s.observatory = defaultSubBalancerObservatoryConfig()
 	if cfg == "" {
 		return
 	}
 	var parsed subBalancerObservatoryConfig
-	if json.Unmarshal([]byte(cfg), &parsed) != nil {
+	if err := json.Unmarshal([]byte(cfg), &parsed); err != nil {
+		logger.Warningf("subJsonObservatory: invalid JSON %q, using defaults: %v", cfg, err)
 		return
 	}
 	if parsed.Destination != "" {
-		s.observatory.Destination = parsed.Destination
+		if validProbeURL(parsed.Destination) {
+			s.observatory.Destination = parsed.Destination
+		} else {
+			logger.Warningf("subJsonObservatory: invalid destination %q, keeping default %q", parsed.Destination, s.observatory.Destination)
+		}
 	}
 	if parsed.Connectivity != "" {
-		s.observatory.Connectivity = parsed.Connectivity
+		if validProbeURL(parsed.Connectivity) {
+			s.observatory.Connectivity = parsed.Connectivity
+		} else {
+			logger.Warningf("subJsonObservatory: invalid connectivity %q, keeping default (skip)", parsed.Connectivity)
+		}
 	}
 	if parsed.Interval != "" {
-		s.observatory.Interval = parsed.Interval
+		if _, err := time.ParseDuration(parsed.Interval); err == nil {
+			s.observatory.Interval = parsed.Interval
+		} else {
+			logger.Warningf("subJsonObservatory: invalid interval %q, keeping default %q", parsed.Interval, s.observatory.Interval)
+		}
 	}
 	if parsed.Sampling > 0 {
 		s.observatory.Sampling = parsed.Sampling
 	}
 	if parsed.Timeout != "" {
-		s.observatory.Timeout = parsed.Timeout
+		if _, err := time.ParseDuration(parsed.Timeout); err == nil {
+			s.observatory.Timeout = parsed.Timeout
+		} else {
+			logger.Warningf("subJsonObservatory: invalid timeout %q, keeping default %q", parsed.Timeout, s.observatory.Timeout)
+		}
 	}
 	if parsed.HTTPMethod == "HEAD" || parsed.HTTPMethod == "GET" {
 		s.observatory.HTTPMethod = parsed.HTTPMethod
 	}
+}
+
+// validProbeURL accepts only absolute http(s) URLs so a malformed probe or
+// connectivity value can't slip into the emitted burstObservatory.
+func validProbeURL(s string) bool {
+	u, err := url.Parse(s)
+	if err != nil || u == nil {
+		return false
+	}
+	return u.Scheme == "http" || u.Scheme == "https"
 }
 
 func (s *SubJsonService) balancerObservatory(prefix string) map[string]any {
