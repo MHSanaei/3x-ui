@@ -180,7 +180,7 @@ type subConfigEntry struct {
 
 const (
 	subBalancerTag      = "balancer"
-	subBalancerProbeURL = "http://www.google.com/generate_204"
+	subBalancerProbeURL = "https://www.google.com/generate_204"
 )
 
 // subBalancerObservatoryConfig is the panel-wide burstObservatory ping config
@@ -199,7 +199,7 @@ func defaultSubBalancerObservatoryConfig() subBalancerObservatoryConfig {
 		Destination:  subBalancerProbeURL,
 		Connectivity: "",
 		Interval:     "1m",
-		Sampling:     3,
+		Sampling:     2,
 		Timeout:      "5s",
 		HTTPMethod:   "HEAD",
 	}

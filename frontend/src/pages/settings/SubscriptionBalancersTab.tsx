@@ -31,6 +31,8 @@ import { onNumber } from '@/utils/onNumber';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { SubBalancer, SubBalancerFormValues } from '@/schemas/subBalancer';
+import { PingConfigSchema, type PingConfigObject } from '@/schemas/observatory';
+import { DEFAULT_BURST_OBSERVATORY } from '@/pages/xray/balancers/balancer-helpers';
 import SubBalancerFormModal from './SubBalancerFormModal';
 import { catTabLabel } from './catTabLabel';
 import './SubscriptionFormatsTab.css';
@@ -42,21 +44,15 @@ const STRATEGY_COLORS: Record<string, string> = {
   roundRobin: 'purple',
 };
 
-const DEFAULT_OBSERVATORY = {
-  destination: 'http://www.google.com/generate_204',
-  connectivity: '',
-  interval: '1m',
-  sampling: 3,
-  timeout: '5s',
-  httpMethod: 'HEAD',
-};
+// Single source for the burst-observatory ping defaults: the Zod schema and
+// DEFAULT_BURST_OBSERVATORY are kept in sync, so the tab just parses through it.
+const DEFAULT_PING_CONFIG = PingConfigSchema.parse({ ...DEFAULT_BURST_OBSERVATORY.pingConfig });
 
-function readJson<T extends object>(raw: string, fallback: T): T {
+function parsePingConfig(raw: string): PingConfigObject {
   try {
-    if (!raw) return fallback;
-    return { ...fallback, ...(JSON.parse(raw) as Partial<T>) };
+    return PingConfigSchema.parse(raw ? JSON.parse(raw) : {});
   } catch {
-    return fallback;
+    return DEFAULT_PING_CONFIG;
   }
 }
 
@@ -101,15 +97,15 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
 
   const observatoryEnabled = allSetting.subJsonObservatory !== '';
   const observatoryObj = useMemo(
-    () => readJson<typeof DEFAULT_OBSERVATORY>(allSetting.subJsonObservatory, DEFAULT_OBSERVATORY),
+    () => parsePingConfig(allSetting.subJsonObservatory),
     [allSetting.subJsonObservatory],
   );
 
   function setObservatoryEnabled(v: boolean) {
-    updateSetting({ subJsonObservatory: v ? JSON.stringify(DEFAULT_OBSERVATORY) : '' });
+    updateSetting({ subJsonObservatory: v ? JSON.stringify(DEFAULT_PING_CONFIG) : '' });
   }
 
-  function setObservatoryField<K extends keyof typeof DEFAULT_OBSERVATORY>(key: K, value: typeof DEFAULT_OBSERVATORY[K]) {
+  function setObservatoryField<K extends keyof PingConfigObject>(key: K, value: PingConfigObject[K]) {
     const next = { ...observatoryObj, [key]: value };
     updateSetting({ subJsonObservatory: JSON.stringify(next) });
   }
@@ -245,7 +241,7 @@ export default function SubscriptionBalancersTab({ allSetting, updateSetting }: 
           <SettingListItem paddings="small" title={t('pages.settings.subBalancers.observatory.destination')} description={t('pages.settings.subBalancers.observatory.destinationDesc')}>
             <Input
               value={observatoryObj.destination}
-              placeholder="http://www.google.com/generate_204"
+              placeholder="https://www.google.com/generate_204"
               onChange={(e) => setObservatoryField('destination', e.target.value)}
             />
           </SettingListItem>

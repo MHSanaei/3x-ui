@@ -16,7 +16,7 @@ export type ObservatoryHttpMethod = z.infer<typeof ObservatoryHttpMethodSchema>;
 export const PingConfigSchema = z
   .object({
     destination: z.string().default('https://www.google.com/generate_204'),
-    connectivity: z.string().default('http://connectivitycheck.platform.hicloud.com/generate_204'),
+    connectivity: z.string().default(''),
     interval: z.string().default('1m'),
     timeout: z.string().default('5s'),
     sampling: z.number().int().min(1).default(2),
