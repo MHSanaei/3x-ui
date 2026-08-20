@@ -73,3 +73,14 @@ Style, naming and refactoring suggestions are nits at most.
 Report at most five nits per review and say "plus N similar" in the summary
 for the rest. Lead the summary with "No blocking issues" when everything found
 is a nit. After the first review of a PR, report blocking findings only.
+
+## What the comment must show
+
+The posted comment is the only part of a review anyone sees, so a bare "no
+issues found" is a receipt, not a review: nothing in it says whether the diff
+was read or the run died early. Every comment therefore ends with a short
+coverage list — one line per area actually checked, naming what was examined
+and what it turned out to be, plus the head SHA and the size of the diff it
+covers. Say which claims could not be verified and why, including a check
+this environment blocked. Keep it under ten lines; it is evidence, not a
+retelling of the pull request.

@@ -506,8 +506,8 @@ jobs:
             --model claude-opus-5
             --effort xhigh
             --max-turns 100
-            --allowedTools "mcp__github_inline_comment__create_inline_comment"
-            --append-system-prompt "Before reviewing, read REVIEW.md at the repository root and follow it: it defines what counts as a blocking finding in this repository, what not to report, and the repo-specific checks. Two overrides apply here. First, the skip gate for already-reviewed PRs: an existing Claude review comment justifies skipping ONLY when its 'Reviewed head:' SHA equals the PR's current head SHA; when the head has moved on, or this run was triggered by an explicit '@claude review' comment, run the full review, focusing on the commits since the previously reviewed head. Second, this is a headless run that terminates the moment you end your turn: launch every subagent with run_in_background set to false and wait for its result inside the same turn - never end your turn while a subagent is still running, and never end it before the review comment is posted. A run that ends without posting the review has failed."
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh api:*),Bash(gh pr diff:*),Read(//tmp/**),Write(//tmp/**),Edit(//tmp/**)"
+            --append-system-prompt "Before reviewing, read REVIEW.md at the repository root and follow it: it defines what counts as a blocking finding in this repository, what not to report, and the repo-specific checks. Three overrides apply here. First, the skip gate for already-reviewed PRs: an existing Claude review comment justifies skipping ONLY when its 'Reviewed head:' SHA equals the PR's current head SHA; when the head has moved on, or this run was triggered by an explicit '@claude review' comment, run the full review, focusing on the commits since the previously reviewed head. Second, this is a headless run that terminates the moment you end your turn: launch every subagent with run_in_background set to false and wait for its result inside the same turn - never end your turn while a subagent is still running, and never end it before the review comment is posted. A run that ends without posting the review has failed. Third, the comment you post is the only part of this run anyone can see: it must carry the coverage list REVIEW.md asks for, whether or not you found anything."
       - name: Upload the run transcript
         if: always()
         env:
@@ -656,6 +656,10 @@ jobs:
   resolve-conflicts:
     if: github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, 'resolve pr conflicts') && github.event.comment.user.login == github.repository_owner && github.event.comment.author_association == 'OWNER'
     runs-on: ubuntu-latest
+    # claude-code-action replaces these with the base branch's copies before it
+    # runs, so a change to them is the action's doing, never the agent's.
+    env:
+      RESTORED_PATHS: ".claude .claude-pr .mcp.json .claude.json .gitmodules .ripgreprc CLAUDE.md CLAUDE.local.md .husky"
     concurrency:
       group: claude-conflicts-${{ github.event.issue.number }}
       cancel-in-progress: false
@@ -745,6 +749,18 @@ jobs:
             git merge --abort 2>/dev/null || true
             hand_back "The merge of \`${base}\` conflicts over paths this job refuses to hand to its tooling:
           $(printf '%s\n' "$odd" | sed 's/^/- /')
+
+          Nothing was changed. Resolve those by hand."
+          fi
+          clobbered=$(printf '%s\n' "$files" | while IFS= read -r f; do
+            for p in $RESTORED_PATHS; do
+              case "$f" in "$p" | "$p"/*) printf '%s\n' "$f" ;; esac
+            done
+          done)
+          if [ -n "$clobbered" ]; then
+            git merge --abort 2>/dev/null || true
+            hand_back "The merge of \`${base}\` conflicts over paths the bot's own tooling replaces with the \`${base}\` copy before it runs, so a resolution there cannot survive:
+          $(printf '%s\n' "$clobbered" | sed 's/^/- /')
 
           Nothing was changed. Resolve those by hand."
           fi
@@ -856,7 +872,12 @@ jobs:
           stray=""
           while IFS= read -r f; do
             [ -z "$f" ] && continue
-            if ! grep -qxF "$f" <<< "$FILES"; then
+            grep -qxF "$f" <<< "$FILES" && continue
+            restored=false
+            for p in $RESTORED_PATHS; do
+              case "$f" in "$p" | "$p"/*) restored=true ;; esac
+            done
+            if [ "$restored" = false ]; then
               stray="${stray} ${f}"
             fi
           done <<< "$(git diff --name-only)"
