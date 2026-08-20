@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Popconfirm, Popover, Tag, Tooltip, message } from 'antd';
-import { CopyOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
+import { CopyOutlined, DownloadOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { ClipboardManager, FileManager, HttpUtil, IntlUtil, SizeFormatter } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { useDatepicker } from '@/hooks/useDatepicker';
+import { useClientHwids } from '@/hooks/useClientHwids';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
+import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
 import { buildAmneziaWGClientConfig, findAmneziaWGInbound, isAmneziaWGClient } from './amneziawgConfig';
@@ -56,16 +58,6 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
-interface ClientHwidInfo {
-  id: number;
-  firstSeen: number;
-  lastSeen: number;
-  userAgent: string;
-  deviceOs: string;
-  osVersion: string;
-  deviceModel: string;
-}
-
 const DEFAULT_SUB: SubSettings = {
   enable: false,
   subURI: '',
@@ -107,10 +99,16 @@ export default function ClientInfoModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
-  const [clientHwids, setClientHwids] = useState<ClientHwidInfo[]>([]);
-  const [hwidsLoading, setHwidsLoading] = useState(false);
-  const [hwidsClearing, setHwidsClearing] = useState(false);
-  const [deletingHwidId, setDeletingHwidId] = useState<number | null>(null);
+  const {
+    clientHwids,
+    hwidsLoading,
+    hwidsClearing,
+    deletingHwidId,
+    loadHwids,
+    clearHwids,
+    deleteHwid,
+    resetHwids,
+  } = useClientHwids(client?.email);
   const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<keyof typeof SUBSCRIPTION_DOWNLOAD_NAMES | null>(null);
 
@@ -119,7 +117,7 @@ export default function ClientInfoModal({
       setLinks([]);
       setClientIps([]);
       setIpsModalOpen(false);
-      setClientHwids([]);
+      resetHwids();
       setHwidsModalOpen(false);
       return;
     }
@@ -133,6 +131,7 @@ export default function ClientInfoModal({
       setLinks(msg?.success && Array.isArray(msg.obj) ? msg.obj : []);
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, client?.subId]);
 
   const traffic = client?.traffic || null;
@@ -221,40 +220,6 @@ export default function ClientInfoModal({
   function openIpsModal() {
     setIpsModalOpen(true);
     if (clientIps.length === 0) void loadIps();
-  }
-
-  async function loadHwids() {
-    if (!client?.email) return;
-    setHwidsLoading(true);
-    try {
-      const msg = await HttpUtil.post(`/panel/api/clients/hwids/${encodeURIComponent(client.email)}`) as ApiMsg<unknown[]>;
-      if (!msg?.success || !Array.isArray(msg.obj)) { setClientHwids([]); return; }
-      setClientHwids(msg.obj.filter((x): x is ClientHwidInfo => !!x && typeof x === 'object' && typeof (x as ClientHwidInfo).id === 'number'));
-    } finally {
-      setHwidsLoading(false);
-    }
-  }
-
-  async function clearHwids() {
-    if (!client?.email) return;
-    setHwidsClearing(true);
-    try {
-      const msg = await HttpUtil.delete(`/panel/api/clients/hwids/${encodeURIComponent(client.email)}`) as ApiMsg;
-      if (msg?.success) setClientHwids([]);
-    } finally {
-      setHwidsClearing(false);
-    }
-  }
-
-  async function deleteHwid(id: number) {
-    if (!client?.email) return;
-    setDeletingHwidId(id);
-    try {
-      const msg = await HttpUtil.delete(`/panel/api/clients/hwids/${encodeURIComponent(client.email)}/${id}`) as ApiMsg;
-      if (msg?.success) setClientHwids((prev) => prev.filter((entry) => entry.id !== id));
-    } finally {
-      setDeletingHwidId(null);
-    }
   }
 
   function openHwidsModal() {
@@ -674,71 +639,19 @@ export default function ClientInfoModal({
         )}
       </Modal>
 
-      <Modal
+      <ClientHwidListModal
         open={hwidsModalOpen}
-        title={`${t('pages.clients.hwidLog')}${client?.email ? ` — ${client.email}` : ''}`}
-        width={520}
-        onCancel={() => setHwidsModalOpen(false)}
-        footer={[
-          <Button key="refresh" icon={<ReloadOutlined />} loading={hwidsLoading} onClick={loadHwids}>
-            {t('refresh')}
-          </Button>,
-          <Button key="clear" danger loading={hwidsClearing} disabled={clientHwids.length === 0} onClick={clearHwids}>
-            {t('pages.clients.clearAll')}
-          </Button>,
-          <Button key="close" type="primary" onClick={() => setHwidsModalOpen(false)}>
-            {t('close')}
-          </Button>,
-        ]}
-      >
-        {clientHwids.length > 0 ? (
-          <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-            {clientHwids.map((entry) => (
-              <div key={entry.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, borderBottom: '1px solid var(--ant-color-border-secondary)', padding: '8px 0' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Tag>{entry.deviceModel || entry.userAgent || t('pages.clients.hwidDevice')}</Tag>
-                  <br />
-                  <span className="hint">
-                    {[entry.deviceOs, entry.osVersion].filter(Boolean).join(' ')}
-                  </span>
-                  <br />
-                  <span className="hint">
-                    {t('pages.clients.firstSeen')}: {dateLabel(entry.firstSeen)}
-                  </span>
-                  <br />
-                  <span className="hint">
-                    {t('pages.clients.lastSeen')}: {dateLabel(entry.lastSeen)}
-                  </span>
-                  {entry.userAgent && (
-                    <>
-                      <br />
-                      <span className="hint" style={{ wordBreak: 'break-all' }}>{entry.userAgent}</span>
-                    </>
-                  )}
-                </div>
-                <Popconfirm
-                  title={t('pages.clients.deleteHwidConfirm')}
-                  onConfirm={() => deleteHwid(entry.id)}
-                  okType="danger"
-                  okText={t('delete')}
-                  cancelText={t('cancel')}
-                >
-                  <Button
-                    danger
-                    type="text"
-                    size="small"
-                    aria-label={t('pages.clients.deleteHwid')}
-                    icon={<DeleteOutlined />}
-                    loading={deletingHwidId === entry.id}
-                  />
-                </Popconfirm>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Tag>{t('pages.clients.noHwids')}</Tag>
-        )}
-      </Modal>
+        email={client?.email}
+        hwids={clientHwids}
+        loading={hwidsLoading}
+        clearing={hwidsClearing}
+        deletingId={deletingHwidId}
+        formatDate={dateLabel}
+        onRefresh={loadHwids}
+        onClearAll={clearHwids}
+        onDelete={deleteHwid}
+        onClose={() => setHwidsModalOpen(false)}
+      />
     </>
   );
 }

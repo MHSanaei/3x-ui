@@ -6553,6 +6553,150 @@
         }
       }
     },
+    "/panel/api/clients/hwids/{email}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "List registered HWID devices for a client. Hashes are not exposed.",
+        "operationId": "post_panel_api_clients_hwids_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "id": 1,
+                      "firstSeen": 1735000000000,
+                      "lastSeen": 1735100000000,
+                      "userAgent": "Happ/1.0",
+                      "deviceOs": "android",
+                      "osVersion": "15",
+                      "deviceModel": "Pixel 9"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Clear all registered HWID devices for a client so new devices can register again.",
+        "operationId": "delete_panel_api_clients_hwids_email",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/hwids/{email}/{id}": {
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Remove a single registered HWID device by its id, freeing one slot under the HWID limit.",
+        "operationId": "delete_panel_api_clients_hwids_email_id",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Device id, from the list endpoint.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/onlines": {
       "post": {
         "tags": [
