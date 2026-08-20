@@ -749,6 +749,7 @@
       "deleteHwid": "Cihazı kaldır",
       "deleteHwidConfirm": "Bu cihaz kaldırılsın mı? Bir sonraki abonelik alımında yeniden kaydolması gerekecek.",
       "hwidDeleted": "Cihaz kaldırıldı.",
+      "clearHwidsConfirm": "Kayıtlı tüm cihazlar kaldırılsın mı? Her cihazın bir sonraki abonelik alımında yeniden kaydolması gerekecek.",
       "limitIpFail2banMissing": "Fail2ban yüklü değil, bu nedenle IP sınırı uygulanamaz. Bu seçeneği etkinleştirmek için x-ui bash menüsünden Fail2ban'ı yükleyin.",
       "limitIpFail2banWindows": "Fail2ban Windows'ta kullanılamadığından IP sınırı uygulanamaz.",
       "limitIpDisabled": "IP sınırı özelliği bu sunucuda devre dışı.",
