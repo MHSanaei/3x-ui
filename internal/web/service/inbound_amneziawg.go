@@ -331,7 +331,7 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 	if forwardedPorts == "" {
 		return ""
 	}
-	if len(amneziawg.ExpandForwardedPorts(forwardedPorts)) >= amneziawg.MaxForwardedPorts {
+	if amneziawg.ExceedsForwardedPortsCap(forwardedPorts) {
 		return fmt.Sprintf("more than %d forwarded ports", amneziawg.MaxForwardedPorts)
 	}
 	if ctx.webPort > 0 && amneziawg.ForwardedPortsInclude(forwardedPorts, ctx.webPort) {

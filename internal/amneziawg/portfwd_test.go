@@ -85,3 +85,21 @@ func TestExpandForwardedPortsCapAppliesAcrossMultipleSpecs(t *testing.T) {
 		t.Fatalf("len(ExpandForwardedPorts(150 distinct single ports)) = %d, want %d", len(got), MaxForwardedPorts)
 	}
 }
+
+func TestExceedsForwardedPortsCap(t *testing.T) {
+	// ExpandForwardedPorts alone can't distinguish "exactly at the cap" from
+	// "over it" -- it stops emitting the instant it hits MaxForwardedPorts,
+	// so its result's length never exceeds the cap either way.
+	exactlyAtCap := "1-100"
+	if ExceedsForwardedPortsCap(exactlyAtCap) {
+		t.Fatalf("ExceedsForwardedPortsCap(%q) = true, want false (spec lands exactly on the boundary)", exactlyAtCap)
+	}
+	oneOverCap := "1-101"
+	if !ExceedsForwardedPortsCap(oneOverCap) {
+		t.Fatalf("ExceedsForwardedPortsCap(%q) = false, want true", oneOverCap)
+	}
+	wellUnderCap := "80,443"
+	if ExceedsForwardedPortsCap(wellUnderCap) {
+		t.Fatalf("ExceedsForwardedPortsCap(%q) = true, want false", wellUnderCap)
+	}
+}

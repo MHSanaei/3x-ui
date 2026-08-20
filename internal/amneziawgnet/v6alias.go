@@ -43,6 +43,13 @@ func effectiveIPv6ExternalInterface(inst amneziawg.Instance) string {
 	return inst.ExternalInterface
 }
 
+// V6AliasesActive reports whether inst is fully configured for per-peer IPv6
+// identity. The Xray-side v6 egress injector must use this exact gate too —
+// see xray.go's injectAmneziawgV6Egress — so the two halves can't diverge.
+func V6AliasesActive(inst amneziawg.Instance) bool {
+	return inst.IPv6Enabled && effectiveIPv6ExternalInterface(inst) != ""
+}
+
 // desiredV6Aliases returns the aliases inst wants right now, keyed by peer
 // email. Empty whenever inst isn't fully configured for this feature
 // (IPv6Enabled false, or no usable interface either way) — deliberately
@@ -50,13 +57,10 @@ func effectiveIPv6ExternalInterface(inst amneziawg.Instance) string {
 // than a separate branch anywhere else.
 func desiredV6Aliases(inst amneziawg.Instance) map[string]v6Alias {
 	out := map[string]v6Alias{}
-	if !inst.IPv6Enabled {
+	if !V6AliasesActive(inst) {
 		return out
 	}
 	iface := effectiveIPv6ExternalInterface(inst)
-	if iface == "" {
-		return out
-	}
 	for _, p := range inst.Peers {
 		if p.Email == "" {
 			continue
