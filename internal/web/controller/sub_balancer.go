@@ -27,30 +27,38 @@ func NewSubBalancerController(g *gin.RouterGroup) *SubBalancerController {
 }
 
 // parseSubBalancerForm reads the urlencoded form (HttpUtil default): scalars
-// via ShouldBind, inboundIds as repeated keys (inboundIds=1&inboundIds=2).
-func parseSubBalancerForm(c *gin.Context) (*model.SubBalancer, error) {
+// via ShouldBind, inboundIds as repeated keys. enabled is returned as *bool so
+// Update can keep the stored value when the key is absent; a bad value is a 400.
+func parseSubBalancerForm(c *gin.Context) (*model.SubBalancer, *bool, error) {
 	form := struct {
 		Remark    string `form:"remark"`
 		Strategy  string `form:"strategy"`
 		SortOrder int    `form:"sortOrder"`
 	}{}
 	if err := c.ShouldBind(&form); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	var enabled *bool
+	if raw, ok := c.GetPostForm("enabled"); ok {
+		v, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid enabled %q: %w", raw, err)
+		}
+		enabled = &v
 	}
 	balancer := &model.SubBalancer{
 		Remark:    form.Remark,
 		Strategy:  form.Strategy,
 		SortOrder: form.SortOrder,
-		Enabled:   c.PostForm("enabled") != "false",
 	}
 	for _, raw := range c.PostFormArray("inboundIds") {
 		id, err := strconv.Atoi(raw)
 		if err != nil {
-			return nil, fmt.Errorf("invalid inbound id %q: %w", raw, err)
+			return nil, nil, fmt.Errorf("invalid inbound id %q: %w", raw, err)
 		}
 		balancer.InboundIds = append(balancer.InboundIds, id)
 	}
-	return balancer, nil
+	return balancer, enabled, nil
 }
 
 func (a *SubBalancerController) parseID(c *gin.Context) (int, error) {
@@ -71,11 +79,12 @@ func (a *SubBalancerController) list(c *gin.Context) {
 }
 
 func (a *SubBalancerController) create(c *gin.Context) {
-	balancer, err := parseSubBalancerForm(c)
+	balancer, enabled, err := parseSubBalancerForm(c)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.create"), err)
 		return
 	}
+	balancer.Enabled = enabled == nil || *enabled
 	created, err := a.SubBalancerService.Create(balancer)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.create"), err)
@@ -90,12 +99,12 @@ func (a *SubBalancerController) update(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.invalidId"), err)
 		return
 	}
-	balancer, err := parseSubBalancerForm(c)
+	balancer, enabled, err := parseSubBalancerForm(c)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.update"), err)
 		return
 	}
-	updated, err := a.SubBalancerService.Update(id, balancer)
+	updated, err := a.SubBalancerService.Update(id, balancer, enabled)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.subBalancers.toasts.update"), err)
 		return

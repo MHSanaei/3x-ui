@@ -69,9 +69,10 @@ func TestSubBalancerServiceCRUD(t *testing.T) {
 		t.Fatalf("list order = [%d %d], want [%d %d]", list[0].Id, list[1].Id, created.Id, second.Id)
 	}
 
+	enabledFalse := false
 	updated, err := svc.Update(second.Id, &model.SubBalancer{
-		Remark: "renamed", Strategy: "leastLoad", InboundIds: []int{2}, SortOrder: 2, Enabled: false,
-	})
+		Remark: "renamed", Strategy: "leastLoad", InboundIds: []int{2}, SortOrder: 2,
+	}, &enabledFalse)
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}

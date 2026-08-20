@@ -68,7 +68,7 @@ func (s *SubBalancerService) Create(balancer *model.SubBalancer) (*model.SubBala
 	return balancer, nil
 }
 
-func (s *SubBalancerService) Update(id int, balancer *model.SubBalancer) (*model.SubBalancer, error) {
+func (s *SubBalancerService) Update(id int, balancer *model.SubBalancer, enabled *bool) (*model.SubBalancer, error) {
 	if err := s.validate(balancer); err != nil {
 		return nil, err
 	}
@@ -80,7 +80,9 @@ func (s *SubBalancerService) Update(id int, balancer *model.SubBalancer) (*model
 	current.Strategy = balancer.Strategy
 	current.InboundIds = balancer.InboundIds
 	current.SortOrder = balancer.SortOrder
-	current.Enabled = balancer.Enabled
+	if enabled != nil {
+		current.Enabled = *enabled
+	}
 	if err := database.GetDB().Save(current).Error; err != nil {
 		return nil, err
 	}
