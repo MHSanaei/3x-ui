@@ -383,8 +383,7 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	newConfigJson["remarks"] = balancer.Remark
 	newConfigJson["routing"] = routing
 	// leastPing/leastLoad require a burst observatory (Xray refuses to start
-	// these strategies without one), so always emit it. fallbackTag above
-	// covers the probe-outage case.
+	// them without one); fallbackTag above covers the probe-outage case.
 	if isObservatory {
 		newConfigJson["burstObservatory"] = s.balancerObservatory(prefix)
 	}

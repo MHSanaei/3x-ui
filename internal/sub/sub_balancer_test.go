@@ -376,10 +376,8 @@ func TestSubJson_BalancerObservatoryConnectivityDefaultEmpty(t *testing.T) {
 	}
 }
 
-// leastPing/leastLoad require a burst observatory (Xray refuses to start these
-// strategies without one), so it is always emitted; the balancer entry carries
-// fallbackTag for the probe-outage case. A stored {"enabled":false} is ignored —
-// the observatory is mandatory for these strategies, not an optional extra.
+// leastPing/leastLoad always emit a burst observatory (Xray won't start them
+// without one); a stored {"enabled":false} is ignored as it is mandatory.
 func TestSubJson_BalancerObservatoryAlwaysEmittedForProbingStrategies(t *testing.T) {
 	seedSubDB(t)
 	a := seedSubInbound(t, "s1", "a", 4771, 1, wsTLSStream)
