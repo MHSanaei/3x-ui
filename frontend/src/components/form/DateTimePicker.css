@@ -27,7 +27,7 @@
 
 .jdp-dark input::placeholder,
 .jdp-ultra input::placeholder {
-  color: rgba(255, 255, 255, 0.30) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
 }
 
 .jdp-disabled {
@@ -62,7 +62,7 @@
 }
 
 .jdp-dark .jdp-clear {
-  color: rgba(255, 255, 255, 0.30);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .jdp-dark .jdp-clear:hover,

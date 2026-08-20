@@ -29,44 +29,45 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
       return;
     }
     setFallbacks(
-      (msg.obj as {
-        childId: number;
-        name?: string;
-        alpn?: string;
-        path?: string;
-        dest?: string;
-        xver?: number;
-      }[])
-        .map((r) => ({
-          rowKey: `fb-${++fallbackKeyRef.current}`,
-          childId: r.childId && r.childId > 0 ? r.childId : null,
-          name: r.name || '',
-          alpn: r.alpn || '',
-          path: r.path || '',
-          dest: r.dest || '',
-          xver: r.xver || 0,
-        })),
+      (
+        msg.obj as {
+          childId: number;
+          name?: string;
+          alpn?: string;
+          path?: string;
+          dest?: string;
+          xver?: number;
+        }[]
+      ).map((r) => ({
+        rowKey: `fb-${++fallbackKeyRef.current}`,
+        childId: r.childId && r.childId > 0 ? r.childId : null,
+        name: r.name || '',
+        alpn: r.alpn || '',
+        path: r.path || '',
+        dest: r.dest || '',
+        xver: r.xver || 0,
+      })),
     );
   };
 
   const saveFallbacks = async (masterId: number) => {
     if (!masterId) return true;
     const payload = {
-      fallbacks: fallbacks.filter((c) => c.childId || (c.dest ?? '').trim()).map((c, i) => ({
-        childId: c.childId,
-        name: c.name,
-        alpn: c.alpn,
-        path: c.path,
-        dest: c.dest,
-        xver: Number(c.xver) || 0,
-        sortOrder: i,
-      })),
+      fallbacks: fallbacks
+        .filter((c) => c.childId || (c.dest ?? '').trim())
+        .map((c, i) => ({
+          childId: c.childId,
+          name: c.name,
+          alpn: c.alpn,
+          path: c.path,
+          dest: c.dest,
+          xver: Number(c.xver) || 0,
+          sortOrder: i,
+        })),
     };
-    const msg = await HttpUtil.post(
-      `/panel/api/inbounds/${masterId}/fallbacks`,
-      payload,
-      { headers: { 'Content-Type': 'application/json' } },
-    );
+    const msg = await HttpUtil.post(`/panel/api/inbounds/${masterId}/fallbacks`, payload, {
+      headers: { 'Content-Type': 'application/json' },
+    });
     return !!msg?.success;
   };
 
@@ -104,30 +105,35 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
   };
 
   const addFallback = () => {
-    setFallbacks((prev) => [...prev, {
-      rowKey: `fb-${++fallbackKeyRef.current}`,
-      childId: null,
-      name: '',
-      alpn: '',
-      path: '',
-      dest: '',
-      xver: 0,
-    }]);
+    setFallbacks((prev) => [
+      ...prev,
+      {
+        rowKey: `fb-${++fallbackKeyRef.current}`,
+        childId: null,
+        name: '',
+        alpn: '',
+        path: '',
+        dest: '',
+        xver: 0,
+      },
+    ]);
   };
 
   const updateFallback = (rowKey: string, patch: Partial<FallbackRow>) => {
-    setFallbacks((prev) => prev.map((r) => {
-      if (r.rowKey !== rowKey) return r;
-      // When the picker selects a new child inbound and the row hasn't
-      // been hand-edited yet (sni/alpn/path/dest all blank, xver = 0),
-      // pull the SNI/ALPN/Path defaults off that child. Operators who
-      // intentionally typed values keep them — we only fill the empties.
-      if (typeof patch.childId === 'number' && patch.childId !== r.childId) {
-        const isPristine = !r.name && !r.alpn && !r.path && !r.dest && r.xver === 0;
-        if (isPristine) return { ...r, ...patch, ...deriveFallbackDefaults(patch.childId) };
-      }
-      return { ...r, ...patch };
-    }));
+    setFallbacks((prev) =>
+      prev.map((r) => {
+        if (r.rowKey !== rowKey) return r;
+        // When the picker selects a new child inbound and the row hasn't
+        // been hand-edited yet (sni/alpn/path/dest all blank, xver = 0),
+        // pull the SNI/ALPN/Path defaults off that child. Operators who
+        // intentionally typed values keep them — we only fill the empties.
+        if (typeof patch.childId === 'number' && patch.childId !== r.childId) {
+          const isPristine = !r.name && !r.alpn && !r.path && !r.dest && r.xver === 0;
+          if (isPristine) return { ...r, ...patch, ...deriveFallbackDefaults(patch.childId) };
+        }
+        return { ...r, ...patch };
+      }),
+    );
   };
 
   const removeFallback = (idx: number) => {

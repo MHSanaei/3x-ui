@@ -70,12 +70,18 @@ export default function ConfigBlock({
         className="config-block"
         collapsible="header"
         defaultActiveKey={defaultOpen ? ['cfg'] : []}
-        items={[{
-          key: 'cfg',
-          label: <Tag color={tagColor} style={{ margin: 0, fontWeight: 600, letterSpacing: '0.3px' }}>{label}</Tag>,
-          extra: actions,
-          children: <code className="config-block-text">{text}</code>,
-        }]}
+        items={[
+          {
+            key: 'cfg',
+            label: (
+              <Tag color={tagColor} style={{ margin: 0, fontWeight: 600, letterSpacing: '0.3px' }}>
+                {label}
+              </Tag>
+            ),
+            extra: actions,
+            children: <code className="config-block-text">{text}</code>,
+          },
+        ]}
       />
     </>
   );

@@ -1,4 +1,11 @@
-import { cloneElement, Fragment, isValidElement, useId, type ReactElement, type ReactNode } from 'react';
+import {
+  cloneElement,
+  Fragment,
+  isValidElement,
+  useId,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { Col, Row } from 'antd';
 import './SettingListItem.css';
 
@@ -22,9 +29,12 @@ export default function SettingListItem({
   const padding = paddings === 'small' ? '10px 20px' : '20px';
   const titleId = useId();
   const node = control ?? children;
-  const labelledNode = title && isValidElement(node) && node.type !== Fragment
-    ? cloneElement(node as ReactElement<{ 'aria-labelledby'?: string }>, { 'aria-labelledby': titleId })
-    : node;
+  const labelledNode =
+    title && isValidElement(node) && node.type !== Fragment
+      ? cloneElement(node as ReactElement<{ 'aria-labelledby'?: string }>, {
+          'aria-labelledby': titleId,
+        })
+      : node;
   return (
     <div className="setting-list-item" style={{ padding }}>
       <Row gutter={[8, 16]} style={{ width: '100%' }}>

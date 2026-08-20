@@ -6,7 +6,9 @@ import { FactoryDefaultsSchema, type FactoryDefaults } from '@/schemas/setting';
 import { keys } from '@/api/queryKeys';
 
 async function fetchFactoryDefaults(): Promise<FactoryDefaults> {
-  const msg = await HttpUtil.post('/panel/api/setting/factoryDefaults', undefined, { silent: true });
+  const msg = await HttpUtil.post('/panel/api/setting/factoryDefaults', undefined, {
+    silent: true,
+  });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch factory defaults');
   const validated = parseMsg(msg, FactoryDefaultsSchema, 'setting/factoryDefaults');
   const parsed = FactoryDefaultsSchema.safeParse(validated.obj);

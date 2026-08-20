@@ -2,7 +2,7 @@
 
 import { create } from 'zbsearch';
 import { useDocsSearch } from 'fumadocs-core/search/client';
-import { oramaStaticClient } from 'fumadocs-core/search/client/orama-static';
+import { staticClient } from 'fumadocs-core/search/client/orama-static';
 import {
   SearchDialog,
   SearchDialogClose,
@@ -21,17 +21,13 @@ interface SharedProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// The static search index is keyed by locale code (en/fa/ru/zh). Fumadocs'
-// default static dialog feeds those codes to Orama as a tokenizer language, but
-// Orama only accepts full names ("english") and throws on "en" — which silently
-// breaks search entirely. All docs content is English (other locales fall back
-// to it), so re-create the dialog — the documented escape hatch for custom search
-// setups — with an initDB that always builds an English index.
+// Fumadocs' default dialog passes the index's locale code as a tokenizer language,
+// and zbsearch throws on anything but a full name — so force "english" everywhere.
 export default function SearchDialogClient(props: SharedProps) {
   const { locale } = useI18n();
   const client = useMemo(
     () =>
-      oramaStaticClient({
+      staticClient({
         from: '/api/search',
         locale,
         initDB: () => create({ schema: { _: 'string' }, language: 'english' }),

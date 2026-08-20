@@ -1,6 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Radio, Select, Space, Switch } from 'antd';
-import { CloudDownloadOutlined, FileProtectOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  CloudDownloadOutlined,
+  FileProtectOutlined,
+  MinusOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
 import { FormField } from '@/components/form/rhf';
@@ -40,11 +45,24 @@ interface CertRowProps {
   clearCertFiles: (certName: number) => void;
 }
 
-function CertRow({ index, total, saving, onRemove, setCertFromPanel, clearCertFiles }: CertRowProps) {
+function CertRow({
+  index,
+  total,
+  saving,
+  onRemove,
+  setCertFromPanel,
+  clearCertFiles,
+}: CertRowProps) {
   const { t } = useTranslation();
   const { control } = useFormContext();
-  const useFile = useWatch({ control, name: `streamSettings.tlsSettings.certificates.${index}.useFile` });
-  const usage = useWatch({ control, name: `streamSettings.tlsSettings.certificates.${index}.usage` });
+  const useFile = useWatch({
+    control,
+    name: `streamSettings.tlsSettings.certificates.${index}.useFile`,
+  });
+  const usage = useWatch({
+    control,
+    name: `streamSettings.tlsSettings.certificates.${index}.usage`,
+  });
   return (
     <div>
       <FormField
@@ -52,12 +70,8 @@ function CertRow({ index, total, saving, onRemove, setCertFromPanel, clearCertFi
         label={`${t('certificate')} ${index + 1}`}
       >
         <Radio.Group buttonStyle="solid">
-          <Radio.Button value={true}>
-            {t('pages.inbounds.certificatePath')}
-          </Radio.Button>
-          <Radio.Button value={false}>
-            {t('pages.inbounds.certificateContent')}
-          </Radio.Button>
+          <Radio.Button value={true}>{t('pages.inbounds.certificatePath')}</Radio.Button>
+          <Radio.Button value={false}>{t('pages.inbounds.certificateContent')}</Radio.Button>
         </Radio.Group>
       </FormField>
       {total > 1 && (
@@ -83,11 +97,7 @@ function CertRow({ index, total, saving, onRemove, setCertFromPanel, clearCertFi
           </FormField>
           <Form.Item label=" ">
             <Space>
-              <Button
-                type="primary"
-                loading={saving}
-                onClick={() => setCertFromPanel(index)}
-              >
+              <Button type="primary" loading={saving} onClick={() => setCertFromPanel(index)}>
                 {t('pages.inbounds.setDefaultCert')}
               </Button>
               <Button danger onClick={() => clearCertFiles(index)}>
@@ -156,7 +166,10 @@ function EchSockoptSection() {
   const on = !!echSockopt;
   return (
     <>
-      <Form.Item label={t('pages.inbounds.form.echSockopt')} tooltip={t('pages.inbounds.form.echSockoptTip')}>
+      <Form.Item
+        label={t('pages.inbounds.form.echSockopt')}
+        tooltip={t('pages.inbounds.form.echSockoptTip')}
+      >
         <Switch
           checked={on}
           onChange={(v) =>
@@ -223,7 +236,10 @@ export default function TlsForm({
       <FormField name={['streamSettings', 'tlsSettings', 'serverName']} label="SNI">
         <Input placeholder={t('pages.inbounds.form.serverNameIndication')} />
       </FormField>
-      <FormField name={['streamSettings', 'tlsSettings', 'cipherSuites']} label={t('pages.inbounds.form.cipherSuites')}>
+      <FormField
+        name={['streamSettings', 'tlsSettings', 'cipherSuites']}
+        label={t('pages.inbounds.form.cipherSuites')}
+      >
         <Select
           options={[
             { value: '', label: t('pages.inbounds.form.autoOption') },
@@ -247,10 +263,7 @@ export default function TlsForm({
           </FormField>
         </Space.Compact>
       </Form.Item>
-      <FormField
-        name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']}
-        label="uTLS"
-      >
+      <FormField name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']} label="uTLS">
         <Select
           options={[
             { value: '', label: 'None' },
@@ -308,17 +321,19 @@ export default function TlsForm({
           aria-label={t('add')}
           type="primary"
           size="small"
-          onClick={() => append({
-            useFile: true,
-            certificateFile: '',
-            keyFile: '',
-            certificate: [],
-            key: [],
-            ocspStapling: 0,
-            oneTimeLoading: false,
-            usage: 'encipherment',
-            buildChain: false,
-          })}
+          onClick={() =>
+            append({
+              useFile: true,
+              certificateFile: '',
+              keyFile: '',
+              certificate: [],
+              key: [],
+              ocspStapling: 0,
+              oneTimeLoading: false,
+              usage: 'encipherment',
+              buildChain: false,
+            })
+          }
         >
           <PlusOutlined />
         </Button>
@@ -342,7 +357,10 @@ export default function TlsForm({
         <Input placeholder="/path/to/sslkeylog.txt" />
       </FormField>
       <EchSockoptSection />
-      <FormField name={['streamSettings', 'tlsSettings', 'echServerKeys']} label={t('pages.inbounds.form.echKey')}>
+      <FormField
+        name={['streamSettings', 'tlsSettings', 'echServerKeys']}
+        label={t('pages.inbounds.form.echKey')}
+      >
         <Input />
       </FormField>
       <FormField
@@ -356,7 +374,9 @@ export default function TlsForm({
           <Button type="primary" loading={saving} onClick={getNewEchCert}>
             {t('pages.inbounds.form.getNewEchCert')}
           </Button>
-          <Button danger onClick={clearEchCert}>{t('clear')}</Button>
+          <Button danger onClick={clearEchCert}>
+            {t('clear')}
+          </Button>
         </Space>
       </Form.Item>
       <Form.Item

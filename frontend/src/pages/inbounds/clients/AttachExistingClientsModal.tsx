@@ -49,12 +49,21 @@ export default function AttachExistingClientsModal({
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string | undefined>(undefined);
 
+  // Reset during render, not in an effect, so the first frame is already clean.
+  const openTarget = open ? target : null;
+  const [syncedTarget, setSyncedTarget] = useState(openTarget);
+  if (openTarget !== syncedTarget) {
+    setSyncedTarget(openTarget);
+    if (openTarget) {
+      setLoading(true);
+      setSearch('');
+      setGroupFilter(undefined);
+    }
+  }
+
   useEffect(() => {
     if (!open || !target) return;
     let cancelled = false;
-    setLoading(true);
-    setSearch('');
-    setGroupFilter(undefined);
     HttpUtil.get('/panel/api/clients/list', undefined, { silent: true })
       .then((msg) => {
         if (cancelled) return;
@@ -113,14 +122,19 @@ export default function AttachExistingClientsModal({
         width: 150,
         ellipsis: true,
         render: (group: string) =>
-          group ? <Tag color="geekblue">{group}</Tag> : <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>,
+          group ? (
+            <Tag color="geekblue">{group}</Tag>
+          ) : (
+            <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>
+          ),
       },
       {
         title: t('enable'),
         key: 'status',
         width: 140,
         render: (_v, row) => {
-          if (row.alreadyAttached) return <Tag color="default">{t('pages.inbounds.attachExistingStatusAttached')}</Tag>;
+          if (row.alreadyAttached)
+            return <Tag color="default">{t('pages.inbounds.attachExistingStatusAttached')}</Tag>;
           return row.enable ? (
             <Tag color="success">{t('enable')}</Tag>
           ) : (
@@ -150,7 +164,9 @@ export default function AttachExistingClientsModal({
       const skipped = result.skipped?.length ?? 0;
       const errors = result.errors?.length ?? 0;
       if (errors > 0) {
-        messageApi.warning(t('pages.inbounds.attachClientsResultMixed', { attached, skipped, errors }));
+        messageApi.warning(
+          t('pages.inbounds.attachClientsResultMixed', { attached, skipped, errors }),
+        );
       } else {
         messageApi.success(t('pages.inbounds.attachClientsResult', { attached, skipped }));
       }
@@ -171,7 +187,9 @@ export default function AttachExistingClientsModal({
       okButtonProps={{ disabled: selectedEmails.length === 0, loading: saving }}
       okText={t('pages.inbounds.attachClients')}
       cancelText={t('cancel')}
-      title={t('pages.inbounds.attachExistingTitle', { remark: formatInboundLabel(target?.tag, target?.remark) })}
+      title={t('pages.inbounds.attachExistingTitle', {
+        remark: formatInboundLabel(target?.tag, target?.remark),
+      })}
       width={680}
     >
       {messageContextHolder}

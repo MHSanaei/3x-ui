@@ -16,7 +16,10 @@ function moduleKeyFor(code: string): string {
 }
 
 let active: string = LanguageManager.getLanguage();
-if (active !== FALLBACK && !Object.prototype.hasOwnProperty.call(lazyModules, moduleKeyFor(active))) {
+if (
+  active !== FALLBACK &&
+  !Object.prototype.hasOwnProperty.call(lazyModules, moduleKeyFor(active))
+) {
   active = FALLBACK;
 }
 
@@ -29,7 +32,9 @@ export async function readyI18n() {
     returnNull: false,
   });
   if (active !== FALLBACK) {
-    const loader = lazyModules[moduleKeyFor(active)] as (() => Promise<{ default: Record<string, unknown> }>) | undefined;
+    const loader = lazyModules[moduleKeyFor(active)] as
+      | (() => Promise<{ default: Record<string, unknown> }>)
+      | undefined;
     if (loader) {
       const mod = await loader();
       const messages = (mod.default ?? mod) as Record<string, unknown>;

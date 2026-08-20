@@ -52,7 +52,11 @@ export function selectionFromValue(value: string, known: ReadonlySet<string>): s
   return selection;
 }
 
-export function mergeSelection(value: string, selected: string[], known: ReadonlySet<string>): string {
+export function mergeSelection(
+  value: string,
+  selected: string[],
+  known: ReadonlySet<string>,
+): string {
   const canonicalKnown = new Set([...known].map(canonicalToken));
   const kept = new Set(
     selected.map((token) => canonicalToken(token)).filter((token) => token !== ''),

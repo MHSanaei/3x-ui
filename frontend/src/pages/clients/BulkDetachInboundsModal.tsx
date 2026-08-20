@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Modal, Select, Typography, message } from 'antd';
 
@@ -7,7 +7,15 @@ import type { InboundOption } from '@/hooks/useClients';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { BulkDetachResult } from '@/schemas/client';
 
-const MULTI_USER_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'hysteria', 'shadowsocks', 'wireguard', 'mtproto']);
+const MULTI_USER_PROTOCOLS = new Set([
+  'vmess',
+  'vless',
+  'trojan',
+  'hysteria',
+  'shadowsocks',
+  'wireguard',
+  'mtproto',
+]);
 
 interface BulkDetachInboundsModalProps {
   open: boolean;
@@ -29,9 +37,13 @@ export default function BulkDetachInboundsModal({
   const [targetIds, setTargetIds] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  // React resets this during render rather than in an effect so the modal's
+  // first open frame already shows cleared fields.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setTargetIds([]);
-  }, [open]);
+  }
 
   const targetOptions = useMemo(() => {
     return (inbounds || [])

@@ -2,7 +2,12 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
 import { keys } from '@/api/queryKeys';
-import { GeoCategoryPageSchema, GeoEntryPageSchema, GeoFileSchema, GeodataTokenIssueSchema } from '@/generated/zod';
+import {
+  GeoCategoryPageSchema,
+  GeoEntryPageSchema,
+  GeoFileSchema,
+  GeodataTokenIssueSchema,
+} from '@/generated/zod';
 import type { GeoCategoryPage, GeoEntryPage, GeoFile, GeodataTokenIssue } from '@/generated/types';
 import { HttpUtil } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
@@ -28,7 +33,11 @@ async function fetchGeodataFiles(): Promise<GeoFile[]> {
 }
 
 async function fetchGeodataCategories(file: string, query: string): Promise<GeoCategoryPage> {
-  const msg = await HttpUtil.get('/panel/api/xray/geodata/categories', { file, q: query }, { silent: true });
+  const msg = await HttpUtil.get(
+    '/panel/api/xray/geodata/categories',
+    { file, q: query },
+    { silent: true },
+  );
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch geodata categories');
   const validated = parseMsg(msg, GeoCategoryPageSchema, 'xray/geodata/categories');
   return validated.obj ?? EMPTY_CATEGORY_PAGE;

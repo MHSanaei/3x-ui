@@ -80,9 +80,16 @@ export interface ClientQueryParams {
 
 const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
 const DEFAULT_SUMMARY: ClientsSummary = {
-  total: 0, active: 0,
-  onlineCount: 0, depletedCount: 0, expiringCount: 0, deactiveCount: 0,
-  online: [], depleted: [], expiring: [], deactive: [],
+  total: 0,
+  active: 0,
+  onlineCount: 0,
+  depletedCount: 0,
+  expiringCount: 0,
+  deactiveCount: 0,
+  online: [],
+  depleted: [],
+  expiring: [],
+  deactive: [],
 };
 
 export interface ClientSpeedEntry {
@@ -129,7 +136,9 @@ function buildQS(p: ClientQueryParams): string {
 
 async function fetchClientPage(params: ClientQueryParams): Promise<ClientPageResponse> {
   const qs = buildQS(params);
-  const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`, undefined, { silent: true });
+  const msg = await HttpUtil.get(`/panel/api/clients/list/paged?${qs}`, undefined, {
+    silent: true,
+  });
   if (!msg?.success || !msg.obj) throw new Error(msg?.msg || 'Failed to fetch clients');
   const validated = parseMsg(msg, ClientPageResponseSchema, 'clients/list/paged', { strict: true });
   if (!validated.obj) throw new Error('Empty clients response');
@@ -144,7 +153,9 @@ async function fetchInboundOptions(): Promise<InboundOption[]> {
 }
 
 async function fetchDefaults(): Promise<Record<string, unknown>> {
-  const msg = await HttpUtil.post('/panel/api/setting/defaultSettings', undefined, { silent: true });
+  const msg = await HttpUtil.post('/panel/api/setting/defaultSettings', undefined, {
+    silent: true,
+  });
   if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch defaults');
   const validated = parseMsg(msg, DefaultsPayloadSchema, 'setting/defaultSettings');
   return validated.obj || {};
@@ -173,24 +184,25 @@ export function useClients(options: UseClientsOptions = {}) {
   const setQuery = useCallback((next: ClientQueryParams) => {
     setQueryState((prev) => {
       if (
-        prev
-        && prev.page === next.page
-        && prev.pageSize === next.pageSize
-        && (prev.search ?? '') === (next.search ?? '')
-        && (prev.filter ?? '') === (next.filter ?? '')
-        && (prev.protocol ?? '') === (next.protocol ?? '')
-        && (prev.inbound ?? '') === (next.inbound ?? '')
-        && (prev.sort ?? '') === (next.sort ?? '')
-        && (prev.order ?? '') === (next.order ?? '')
-        && (prev.expiryFrom ?? 0) === (next.expiryFrom ?? 0)
-        && (prev.expiryTo ?? 0) === (next.expiryTo ?? 0)
-        && (prev.usageFrom ?? 0) === (next.usageFrom ?? 0)
-        && (prev.usageTo ?? 0) === (next.usageTo ?? 0)
-        && (prev.autoRenew ?? '') === (next.autoRenew ?? '')
-        && (prev.hasTgId ?? '') === (next.hasTgId ?? '')
-        && (prev.hasComment ?? '') === (next.hasComment ?? '')
-        && (prev.group ?? '') === (next.group ?? '')
-      ) return prev;
+        prev &&
+        prev.page === next.page &&
+        prev.pageSize === next.pageSize &&
+        (prev.search ?? '') === (next.search ?? '') &&
+        (prev.filter ?? '') === (next.filter ?? '') &&
+        (prev.protocol ?? '') === (next.protocol ?? '') &&
+        (prev.inbound ?? '') === (next.inbound ?? '') &&
+        (prev.sort ?? '') === (next.sort ?? '') &&
+        (prev.order ?? '') === (next.order ?? '') &&
+        (prev.expiryFrom ?? 0) === (next.expiryFrom ?? 0) &&
+        (prev.expiryTo ?? 0) === (next.expiryTo ?? 0) &&
+        (prev.usageFrom ?? 0) === (next.usageFrom ?? 0) &&
+        (prev.usageTo ?? 0) === (next.usageTo ?? 0) &&
+        (prev.autoRenew ?? '') === (next.autoRenew ?? '') &&
+        (prev.hasTgId ?? '') === (next.hasTgId ?? '') &&
+        (prev.hasComment ?? '') === (next.hasComment ?? '') &&
+        (prev.group ?? '') === (next.group ?? '')
+      )
+        return prev;
       return next;
     });
   }, []);
@@ -251,24 +263,27 @@ export function useClients(options: UseClientsOptions = {}) {
   const onlines = useMemo(() => onlinesQuery.data ?? [], [onlinesQuery.data]);
 
   const defaults = defaultsQuery.data ?? {};
-  const subSettings: SubSettings = useMemo(() => ({
-    enable: !!defaults.subEnable,
-    subURI: (defaults.subURI as string) || '',
-    subJsonURI: (defaults.subJsonURI as string) || '',
-    subJsonEnable: !!defaults.subJsonEnable,
-    subClashURI: (defaults.subClashURI as string) || '',
-    subClashEnable: !!defaults.subClashEnable,
-    publicHost: (defaults.subDomain as string) || (defaults.webDomain as string) || '',
-  }), [
-    defaults.subEnable,
-    defaults.subURI,
-    defaults.subJsonURI,
-    defaults.subJsonEnable,
-    defaults.subClashURI,
-    defaults.subClashEnable,
-    defaults.subDomain,
-    defaults.webDomain,
-  ]);
+  const subSettings: SubSettings = useMemo(
+    () => ({
+      enable: !!defaults.subEnable,
+      subURI: (defaults.subURI as string) || '',
+      subJsonURI: (defaults.subJsonURI as string) || '',
+      subJsonEnable: !!defaults.subJsonEnable,
+      subClashURI: (defaults.subClashURI as string) || '',
+      subClashEnable: !!defaults.subClashEnable,
+      publicHost: (defaults.subDomain as string) || (defaults.webDomain as string) || '',
+    }),
+    [
+      defaults.subEnable,
+      defaults.subURI,
+      defaults.subJsonURI,
+      defaults.subJsonEnable,
+      defaults.subClashURI,
+      defaults.subClashEnable,
+      defaults.subDomain,
+      defaults.webDomain,
+    ],
+  );
 
   const ipLimitEnable = !!defaults.ipLimitEnable;
   const tgBotEnable = !!defaults.tgBotEnable;
@@ -284,17 +299,14 @@ export function useClients(options: UseClientsOptions = {}) {
   const [clientSpeed, setClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
   const summary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
 
-  const invalidateAll = useCallback(
-    () => {
-      markLocalInvalidate();
-      return Promise.all([
-        queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
-        queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
-        queryClient.invalidateQueries({ queryKey: keys.xray.config() }),
-      ]);
-    },
-    [queryClient],
-  );
+  const invalidateAll = useCallback(() => {
+    markLocalInvalidate();
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.clients.root() }),
+      queryClient.invalidateQueries({ queryKey: keys.inbounds.root() }),
+      queryClient.invalidateQueries({ queryKey: keys.xray.config() }),
+    ]);
+  }, [queryClient]);
 
   const refresh = useCallback(async () => {
     await invalidateAll();
@@ -311,25 +323,33 @@ export function useClients(options: UseClientsOptions = {}) {
   const createMut = useMutation({
     mutationFn: (payload: unknown) =>
       HttpUtil.post('/panel/api/clients/add', payload, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const bulkAddToGroupMut = useMutation({
     mutationFn: (body: { emails: string[]; group: string }) =>
       HttpUtil.post('/panel/api/clients/groups/bulkAdd', body, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const bulkRemoveFromGroupMut = useMutation({
     mutationFn: (body: { emails: string[] }) =>
       HttpUtil.post('/panel/api/clients/groups/bulkRemove', body, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const updateMut = useMutation({
     mutationFn: ({ email, client }: { email: string; client: unknown }) =>
       HttpUtil.post(`/panel/api/clients/update/${encodeURIComponent(email)}`, client, JSON_HEADERS),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const removeMut = useMutation({
@@ -339,15 +359,22 @@ export function useClients(options: UseClientsOptions = {}) {
         : `/panel/api/clients/del/${encodeURIComponent(email)}`;
       return HttpUtil.post(url);
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const bulkDeleteMut = useMutation({
-    mutationFn: async (payload: { emails: string[]; keepTraffic?: boolean }): Promise<Msg<BulkDeleteResult>> => {
+    mutationFn: async (payload: {
+      emails: string[];
+      keepTraffic?: boolean;
+    }): Promise<Msg<BulkDeleteResult>> => {
       const raw = await HttpUtil.post('/panel/api/clients/bulkDel', payload, JSON_HEADERS);
       return parseMsg(raw, BulkDeleteResultSchema, 'clients/bulkDel');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const bulkCreateMut = useMutation({
@@ -355,70 +382,121 @@ export function useClients(options: UseClientsOptions = {}) {
       const raw = await HttpUtil.post('/panel/api/clients/bulkCreate', payloads, JSON_HEADERS);
       return parseMsg(raw, BulkCreateResultSchema, 'clients/bulkCreate');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const bulkAdjustMut = useMutation({
-    mutationFn: async (payload: { emails: string[]; addDays: number; addBytes: number; flow: string }): Promise<Msg<BulkAdjustResult>> => {
+    mutationFn: async (payload: {
+      emails: string[];
+      addDays: number;
+      addBytes: number;
+      flow: string;
+    }): Promise<Msg<BulkAdjustResult>> => {
       const raw = await HttpUtil.post('/panel/api/clients/bulkAdjust', payload, JSON_HEADERS);
       return parseMsg(raw, BulkAdjustResultSchema, 'clients/bulkAdjust');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const bulkSetEnableMut = useMutation({
-    mutationFn: async (payload: { emails: string[]; enable: boolean }): Promise<Msg<BulkSetEnableResult>> => {
-      const path = payload.enable ? '/panel/api/clients/bulkEnable' : '/panel/api/clients/bulkDisable';
+    mutationFn: async (payload: {
+      emails: string[];
+      enable: boolean;
+    }): Promise<Msg<BulkSetEnableResult>> => {
+      const path = payload.enable
+        ? '/panel/api/clients/bulkEnable'
+        : '/panel/api/clients/bulkDisable';
       const raw = await HttpUtil.post(path, { emails: payload.emails }, JSON_HEADERS);
-      return parseMsg(raw, BulkSetEnableResultSchema, payload.enable ? 'clients/bulkEnable' : 'clients/bulkDisable');
+      return parseMsg(
+        raw,
+        BulkSetEnableResultSchema,
+        payload.enable ? 'clients/bulkEnable' : 'clients/bulkDisable',
+      );
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const attachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/attach`, { inboundIds }, { ...JSON_HEADERS, silentSuccess: true }),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+      HttpUtil.post(
+        `/panel/api/clients/${encodeURIComponent(email)}/attach`,
+        { inboundIds },
+        { ...JSON_HEADERS, silentSuccess: true },
+      ),
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const setExternalLinksMut = useMutation({
     mutationFn: ({ email, externalLinks }: { email: string; externalLinks: ExternalLinkInput[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/externalLinks`, { externalLinks }, { ...JSON_HEADERS, silentSuccess: true }),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+      HttpUtil.post(
+        `/panel/api/clients/${encodeURIComponent(email)}/externalLinks`,
+        { externalLinks },
+        { ...JSON_HEADERS, silentSuccess: true },
+      ),
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const bulkAttachMut = useMutation({
-    mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkAttachResult>> => {
+    mutationFn: async (payload: {
+      emails: string[];
+      inboundIds: number[];
+    }): Promise<Msg<BulkAttachResult>> => {
       const raw = await HttpUtil.post('/panel/api/clients/bulkAttach', payload, JSON_HEADERS);
       return parseMsg(raw, BulkAttachResultSchema, 'clients/bulkAttach');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const detachMut = useMutation({
     mutationFn: ({ email, inboundIds }: { email: string; inboundIds: number[] }) =>
-      HttpUtil.post(`/panel/api/clients/${encodeURIComponent(email)}/detach`, { inboundIds }, { ...JSON_HEADERS, silentSuccess: true }),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+      HttpUtil.post(
+        `/panel/api/clients/${encodeURIComponent(email)}/detach`,
+        { inboundIds },
+        { ...JSON_HEADERS, silentSuccess: true },
+      ),
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
-
   const bulkDetachMut = useMutation({
-    mutationFn: async (payload: { emails: string[]; inboundIds: number[] }): Promise<Msg<BulkDetachResult>> => {
+    mutationFn: async (payload: {
+      emails: string[];
+      inboundIds: number[];
+    }): Promise<Msg<BulkDetachResult>> => {
       const raw = await HttpUtil.post('/panel/api/clients/bulkDetach', payload, JSON_HEADERS);
       return parseMsg(raw, BulkDetachResultSchema, 'clients/bulkDetach');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const resetTrafficMut = useMutation({
     mutationFn: (email: string) =>
       HttpUtil.post(`/panel/api/clients/resetTraffic/${encodeURIComponent(email)}`),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const resetAllTrafficsMut = useMutation({
     mutationFn: () => HttpUtil.post('/panel/api/clients/resetAllTraffics'),
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const delDepletedMut = useMutation({
@@ -426,7 +504,9 @@ export function useClients(options: UseClientsOptions = {}) {
       const raw = await HttpUtil.post('/panel/api/clients/delDepleted');
       return parseMsg(raw, DelDepletedResultSchema, 'clients/delDepleted');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const delOrphansMut = useMutation({
@@ -434,7 +514,9 @@ export function useClients(options: UseClientsOptions = {}) {
       const raw = await HttpUtil.post('/panel/api/clients/delOrphans');
       return parseMsg(raw, DelDepletedResultSchema, 'clients/delOrphans');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const importClientsMut = useMutation({
@@ -442,76 +524,137 @@ export function useClients(options: UseClientsOptions = {}) {
       const raw = await HttpUtil.post('/panel/api/clients/import', { data }, JSON_HEADERS);
       return parseMsg(raw, BulkCreateResultSchema, 'clients/import');
     },
-    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+    onSuccess: (msg) => {
+      if (msg?.success) invalidateAll();
+    },
   });
 
   const create = useCallback((payload: unknown) => createMut.mutateAsync(payload), [createMut]);
-  const update = useCallback((email: string, client: unknown) => {
-    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
-    return updateMut.mutateAsync({ email, client });
-  }, [updateMut]);
-  const remove = useCallback((email: string, keepTraffic = false) => {
-    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
-    return removeMut.mutateAsync({ email, keepTraffic });
-  }, [removeMut]);
-  const bulkDelete = useCallback((emails: string[], keepTraffic = false) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkDeleteResult>);
-    return bulkDeleteMut.mutateAsync({ emails, keepTraffic });
-  }, [bulkDeleteMut]);
-  const bulkCreate = useCallback((payloads: unknown[]) => {
-    if (!Array.isArray(payloads) || payloads.length === 0) return Promise.resolve(null as unknown as Msg<BulkCreateResult>);
-    return bulkCreateMut.mutateAsync(payloads);
-  }, [bulkCreateMut]);
-  const bulkAdjust = useCallback((emails: string[], addDays: number, addBytes: number, flow = '') => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-    return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes, flow });
-  }, [bulkAdjustMut]);
-  const bulkEnable = useCallback((emails: string[]) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkSetEnableResult>);
-    return bulkSetEnableMut.mutateAsync({ emails, enable: true });
-  }, [bulkSetEnableMut]);
-  const bulkDisable = useCallback((emails: string[]) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkSetEnableResult>);
-    return bulkSetEnableMut.mutateAsync({ emails, enable: false });
-  }, [bulkSetEnableMut]);
-  const bulkAddToGroup = useCallback((emails: string[], group: string) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-    return bulkAddToGroupMut.mutateAsync({ emails, group });
-  }, [bulkAddToGroupMut]);
-  const bulkRemoveFromGroup = useCallback((emails: string[]) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
-    return bulkRemoveFromGroupMut.mutateAsync({ emails });
-  }, [bulkRemoveFromGroupMut]);
-  const attach = useCallback((email: string, inboundIds: number[]) => {
-    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
-    return attachMut.mutateAsync({ email, inboundIds });
-  }, [attachMut]);
-  const setExternalLinks = useCallback((email: string, externalLinks: ExternalLinkInput[]) => {
-    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
-    return setExternalLinksMut.mutateAsync({ email, externalLinks });
-  }, [setExternalLinksMut]);
-  const bulkAttach = useCallback((emails: string[], inboundIds: number[]) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
-    if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
-    return bulkAttachMut.mutateAsync({ emails, inboundIds });
-  }, [bulkAttachMut]);
-  const detach = useCallback((email: string, inboundIds: number[]) => {
-    if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
-    return detachMut.mutateAsync({ email, inboundIds });
-  }, [detachMut]);
-  const bulkDetach = useCallback((emails: string[], inboundIds: number[]) => {
-    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
-    if (!Array.isArray(inboundIds) || inboundIds.length === 0) return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
-    return bulkDetachMut.mutateAsync({ emails, inboundIds });
-  }, [bulkDetachMut]);
-  const resetTraffic = useCallback((client: ClientRecord) => {
-    if (!client?.email) return Promise.resolve(null as unknown as Msg<unknown>);
-    return resetTrafficMut.mutateAsync(client.email);
-  }, [resetTrafficMut]);
-  const resetAllTraffics = useCallback(() => resetAllTrafficsMut.mutateAsync(), [resetAllTrafficsMut]);
+  const update = useCallback(
+    (email: string, client: unknown) => {
+      if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+      return updateMut.mutateAsync({ email, client });
+    },
+    [updateMut],
+  );
+  const remove = useCallback(
+    (email: string, keepTraffic = false) => {
+      if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+      return removeMut.mutateAsync({ email, keepTraffic });
+    },
+    [removeMut],
+  );
+  const bulkDelete = useCallback(
+    (emails: string[], keepTraffic = false) => {
+      if (!Array.isArray(emails) || emails.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkDeleteResult>);
+      return bulkDeleteMut.mutateAsync({ emails, keepTraffic });
+    },
+    [bulkDeleteMut],
+  );
+  const bulkCreate = useCallback(
+    (payloads: unknown[]) => {
+      if (!Array.isArray(payloads) || payloads.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkCreateResult>);
+      return bulkCreateMut.mutateAsync(payloads);
+    },
+    [bulkCreateMut],
+  );
+  const bulkAdjust = useCallback(
+    (emails: string[], addDays: number, addBytes: number, flow = '') => {
+      if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
+      return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes, flow });
+    },
+    [bulkAdjustMut],
+  );
+  const bulkEnable = useCallback(
+    (emails: string[]) => {
+      if (!Array.isArray(emails) || emails.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkSetEnableResult>);
+      return bulkSetEnableMut.mutateAsync({ emails, enable: true });
+    },
+    [bulkSetEnableMut],
+  );
+  const bulkDisable = useCallback(
+    (emails: string[]) => {
+      if (!Array.isArray(emails) || emails.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkSetEnableResult>);
+      return bulkSetEnableMut.mutateAsync({ emails, enable: false });
+    },
+    [bulkSetEnableMut],
+  );
+  const bulkAddToGroup = useCallback(
+    (emails: string[], group: string) => {
+      if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
+      return bulkAddToGroupMut.mutateAsync({ emails, group });
+    },
+    [bulkAddToGroupMut],
+  );
+  const bulkRemoveFromGroup = useCallback(
+    (emails: string[]) => {
+      if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
+      return bulkRemoveFromGroupMut.mutateAsync({ emails });
+    },
+    [bulkRemoveFromGroupMut],
+  );
+  const attach = useCallback(
+    (email: string, inboundIds: number[]) => {
+      if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+      return attachMut.mutateAsync({ email, inboundIds });
+    },
+    [attachMut],
+  );
+  const setExternalLinks = useCallback(
+    (email: string, externalLinks: ExternalLinkInput[]) => {
+      if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+      return setExternalLinksMut.mutateAsync({ email, externalLinks });
+    },
+    [setExternalLinksMut],
+  );
+  const bulkAttach = useCallback(
+    (emails: string[], inboundIds: number[]) => {
+      if (!Array.isArray(emails) || emails.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
+      if (!Array.isArray(inboundIds) || inboundIds.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkAttachResult>);
+      return bulkAttachMut.mutateAsync({ emails, inboundIds });
+    },
+    [bulkAttachMut],
+  );
+  const detach = useCallback(
+    (email: string, inboundIds: number[]) => {
+      if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
+      return detachMut.mutateAsync({ email, inboundIds });
+    },
+    [detachMut],
+  );
+  const bulkDetach = useCallback(
+    (emails: string[], inboundIds: number[]) => {
+      if (!Array.isArray(emails) || emails.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
+      if (!Array.isArray(inboundIds) || inboundIds.length === 0)
+        return Promise.resolve(null as unknown as Msg<BulkDetachResult>);
+      return bulkDetachMut.mutateAsync({ emails, inboundIds });
+    },
+    [bulkDetachMut],
+  );
+  const resetTraffic = useCallback(
+    (client: ClientRecord) => {
+      if (!client?.email) return Promise.resolve(null as unknown as Msg<unknown>);
+      return resetTrafficMut.mutateAsync(client.email);
+    },
+    [resetTrafficMut],
+  );
+  const resetAllTraffics = useCallback(
+    () => resetAllTrafficsMut.mutateAsync(),
+    [resetAllTrafficsMut],
+  );
   const delDepleted = useCallback(() => delDepletedMut.mutateAsync(), [delDepletedMut]);
   const delOrphans = useCallback(() => delOrphansMut.mutateAsync(), [delOrphansMut]);
-  const importClients = useCallback((data: string) => importClientsMut.mutateAsync(data), [importClientsMut]);
+  const importClients = useCallback(
+    (data: string) => importClientsMut.mutateAsync(data),
+    [importClientsMut],
+  );
   // Fetch the exported clients so the page can show them in a CodeMirror viewer
   // (Copy / Download), rather than triggering an immediate browser download.
   const exportClients = useCallback(async (): Promise<unknown[] | null> => {
@@ -520,104 +663,115 @@ export function useClients(options: UseClientsOptions = {}) {
     return Array.isArray(msg.obj) ? msg.obj : [];
   }, []);
 
-  const setEnable = useCallback(async (client: ClientRecord, enable: boolean) => {
-    if (!client?.email) return null;
-    const full = await hydrate(client.email);
-    const base = full?.client;
-    if (!base) return null;
-    const payload: Record<string, unknown> = {
-      email: base.email,
-      subId: base.subId,
-      id: base.uuid,
-      password: base.password,
-      auth: base.auth,
-      flow: base.flow || '',
-      security: base.security || 'auto',
-      totalGB: base.totalGB || 0,
-      expiryTime: base.expiryTime || 0,
-      limitIp: base.limitIp || 0,
-      limitHwid: base.limitHwid || 0,
-      tgId: Number(base.tgId) || 0,
-      reset: Number(base.reset) || 0,
-      resetDay: Number(base.resetDay) || 0,
-      resetMax: Number(base.resetMax) || 0,
-      group: base.group || '',
-      comment: base.comment || '',
-      enable: !!enable,
-    };
-    if (base.reverse?.tag) {
-      payload.reverse = { tag: base.reverse.tag };
-    }
-    return update(client.email, payload);
-  }, [hydrate, update]);
+  const setEnable = useCallback(
+    async (client: ClientRecord, enable: boolean) => {
+      if (!client?.email) return null;
+      const full = await hydrate(client.email);
+      const base = full?.client;
+      if (!base) return null;
+      const payload: Record<string, unknown> = {
+        email: base.email,
+        subId: base.subId,
+        id: base.uuid,
+        password: base.password,
+        auth: base.auth,
+        flow: base.flow || '',
+        security: base.security || 'auto',
+        totalGB: base.totalGB || 0,
+        expiryTime: base.expiryTime || 0,
+        limitIp: base.limitIp || 0,
+        limitHwid: base.limitHwid || 0,
+        tgId: Number(base.tgId) || 0,
+        reset: Number(base.reset) || 0,
+        resetDay: Number(base.resetDay) || 0,
+        resetMax: Number(base.resetMax) || 0,
+        group: base.group || '',
+        comment: base.comment || '',
+        enable: !!enable,
+      };
+      if (base.reverse?.tag) {
+        payload.reverse = { tag: base.reverse.tag };
+      }
+      return update(client.email, payload);
+    },
+    [hydrate, update],
+  );
 
   // WS-driven in-place merges. Page wires these via useWebSocket; the bridge
   // covers coarse 'invalidate' and 'inbounds' events centrally.
   const queryRef = useRef(query);
-  queryRef.current = query;
+  useEffect(() => {
+    queryRef.current = query;
+  });
 
-  const applyTrafficEvent = useCallback((payload: unknown) => {
-    if (!payload || typeof payload !== 'object') return;
-    const p = payload as {
-      onlineClients?: string[];
-      clientTraffics?: { email: string; up: number; down: number }[];
-    };
-    if (Array.isArray(p.onlineClients)) {
-      queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
-    }
-    if (Array.isArray(p.clientTraffics)) {
-      // Xray reports a row per client whether or not it moved a byte, so most of
-      // this map used to be zeros. A missing entry and a zero entry render
-      // identically (isActiveSpeed treats both as inactive), so the zeros are
-      // dropped and an unchanged result returns the previous object — which lets
-      // React bail out of the update instead of re-rendering the table.
-      const next: Record<string, ClientSpeedEntry> = {};
-      for (const ct of p.clientTraffics) {
-        if (!ct || !ct.email) continue;
-        const up = ct.up || 0;
-        const down = ct.down || 0;
-        if (up === 0 && down === 0) continue;
-        next[ct.email] = {
-          up: up / TRAFFIC_POLL_INTERVAL_S,
-          down: down / TRAFFIC_POLL_INTERVAL_S,
-        };
+  const applyTrafficEvent = useCallback(
+    (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return;
+      const p = payload as {
+        onlineClients?: string[];
+        clientTraffics?: { email: string; up: number; down: number }[];
+      };
+      if (Array.isArray(p.onlineClients)) {
+        queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
       }
-      setClientSpeed((prev) => (sameSpeedMap(prev, next) ? prev : next));
-    }
-  }, [queryClient]);
+      if (Array.isArray(p.clientTraffics)) {
+        // Xray reports a row per client whether or not it moved a byte, so most of
+        // this map used to be zeros. A missing entry and a zero entry render
+        // identically (isActiveSpeed treats both as inactive), so the zeros are
+        // dropped and an unchanged result returns the previous object — which lets
+        // React bail out of the update instead of re-rendering the table.
+        const next: Record<string, ClientSpeedEntry> = {};
+        for (const ct of p.clientTraffics) {
+          if (!ct || !ct.email) continue;
+          const up = ct.up || 0;
+          const down = ct.down || 0;
+          if (up === 0 && down === 0) continue;
+          next[ct.email] = {
+            up: up / TRAFFIC_POLL_INTERVAL_S,
+            down: down / TRAFFIC_POLL_INTERVAL_S,
+          };
+        }
+        setClientSpeed((prev) => (sameSpeedMap(prev, next) ? prev : next));
+      }
+    },
+    [queryClient],
+  );
 
-  const applyClientStatsEvent = useCallback((payload: unknown) => {
-    if (!payload || typeof payload !== 'object') return;
-    const p = payload as { clients?: ClientStatRow[] };
-    if (!Array.isArray(p.clients) || p.clients.length === 0) return;
-    const active = queryRef.current;
-    if (!active) return;
-    const byEmail = new Map<string, ClientTraffic>();
-    for (const row of p.clients) {
-      if (row && row.email) byEmail.set(row.email, row);
-    }
-    queryClient.setQueryData<ClientPageResponse>(keys.clients.list(active), (prev) => {
-      if (!prev) return prev;
-      let touched = false;
-      const next = prev.items.slice();
-      for (let i = 0; i < next.length; i++) {
-        const row = next[i];
-        const upd = byEmail.get(row?.email);
-        if (!upd) continue;
-        const merged: ClientTraffic = { ...(row.traffic || {}) };
-        if (typeof upd.up === 'number') merged.up = upd.up;
-        if (typeof upd.down === 'number') merged.down = upd.down;
-        if (typeof upd.total === 'number') merged.total = upd.total;
-        if (typeof upd.expiryTime === 'number') merged.expiryTime = upd.expiryTime;
-        if (typeof upd.enable === 'boolean') merged.enable = upd.enable;
-        if (typeof upd.lastOnline === 'number') merged.lastOnline = upd.lastOnline;
-        next[i] = { ...row, traffic: merged };
-        touched = true;
+  const applyClientStatsEvent = useCallback(
+    (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return;
+      const p = payload as { clients?: ClientStatRow[] };
+      if (!Array.isArray(p.clients) || p.clients.length === 0) return;
+      const active = queryRef.current;
+      if (!active) return;
+      const byEmail = new Map<string, ClientTraffic>();
+      for (const row of p.clients) {
+        if (row && row.email) byEmail.set(row.email, row);
       }
-      if (!touched) return prev;
-      return { ...prev, items: next };
-    });
-  }, [queryClient]);
+      queryClient.setQueryData<ClientPageResponse>(keys.clients.list(active), (prev) => {
+        if (!prev) return prev;
+        let touched = false;
+        const next = prev.items.slice();
+        for (let i = 0; i < next.length; i++) {
+          const row = next[i];
+          const upd = byEmail.get(row?.email);
+          if (!upd) continue;
+          const merged: ClientTraffic = { ...(row.traffic || {}) };
+          if (typeof upd.up === 'number') merged.up = upd.up;
+          if (typeof upd.down === 'number') merged.down = upd.down;
+          if (typeof upd.total === 'number') merged.total = upd.total;
+          if (typeof upd.expiryTime === 'number') merged.expiryTime = upd.expiryTime;
+          if (typeof upd.enable === 'boolean') merged.enable = upd.enable;
+          if (typeof upd.lastOnline === 'number') merged.lastOnline = upd.lastOnline;
+          next[i] = { ...row, traffic: merged };
+          touched = true;
+        }
+        if (!touched) return prev;
+        return { ...prev, items: next };
+      });
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
     queryRef.current = query;

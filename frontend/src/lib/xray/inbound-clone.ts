@@ -20,12 +20,14 @@ export function buildClonePayload(dbInbound: DBInbound, port: number, nodeId: nu
     const fallback = createDefaultInboundSettings(dbInbound.protocol);
     clonedSettings = fallback ? JSON.stringify(fallback, null, 2) : '{}';
   }
-  const streamSettingsString = typeof dbInbound.streamSettings === 'string'
-    ? dbInbound.streamSettings
-    : JSON.stringify(dbInbound.streamSettings ?? {});
-  const sniffingString = typeof dbInbound.sniffing === 'string'
-    ? dbInbound.sniffing
-    : JSON.stringify(dbInbound.sniffing ?? {});
+  const streamSettingsString =
+    typeof dbInbound.streamSettings === 'string'
+      ? dbInbound.streamSettings
+      : JSON.stringify(dbInbound.streamSettings ?? {});
+  const sniffingString =
+    typeof dbInbound.sniffing === 'string'
+      ? dbInbound.sniffing
+      : JSON.stringify(dbInbound.sniffing ?? {});
   return {
     up: 0,
     down: 0,
@@ -59,7 +61,9 @@ export function pickClonePort(used: Set<number> | undefined): number {
     port = RandomUtil.randomInteger(10000, 60000);
   }
   if (used.has(port)) {
-    for (port = 10000; port <= 60000 && used.has(port); port++) { /* dense-range scan */ }
+    for (port = 10000; port <= 60000 && used.has(port); port++) {
+      /* dense-range scan */
+    }
     if (port > 60000) port = RandomUtil.randomInteger(10000, 60000);
   }
   return port;

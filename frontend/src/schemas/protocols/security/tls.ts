@@ -86,6 +86,11 @@ export const TlsStreamSettingsSchema = z.object({
   curvePreferences: z.array(z.string()).optional(),
   masterKeyLog: z.string().optional(),
   echSockopt: SockoptStreamSettingsSchema.optional(),
-  settings: TlsClientSettingsSchema.default({ fingerprint: 'chrome', echConfigList: '', pinnedPeerCertSha256: [], verifyPeerCertByName: '' }),
+  settings: TlsClientSettingsSchema.default({
+    fingerprint: 'chrome',
+    echConfigList: '',
+    pinnedPeerCertSha256: [],
+    verifyPeerCertByName: '',
+  }),
 });
 export type TlsStreamSettings = z.infer<typeof TlsStreamSettingsSchema>;

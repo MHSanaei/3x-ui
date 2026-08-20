@@ -2,9 +2,7 @@
   "protocol": "mixed",
   "settings": {
     "auth": "password",
-    "accounts": [
-      { "user": "socksuser", "pass": "sockspass" }
-    ],
+    "accounts": [{ "user": "socksuser", "pass": "sockspass" }],
     "udp": true,
     "ip": "127.0.0.1"
   }

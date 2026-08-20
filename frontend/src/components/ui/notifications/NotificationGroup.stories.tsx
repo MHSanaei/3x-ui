@@ -16,7 +16,15 @@ const systemGroup: NotificationGroupConfig = {
       label: 'eventCPUHigh',
       settingKey: 'tgCpu',
       extra: ({ value, onChange, ariaLabel }) => (
-        <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} aria-label={ariaLabel} style={{ width: 80 }} />
+        <InputNumber
+          size="small"
+          min={0}
+          max={100}
+          value={value}
+          onChange={onChange}
+          aria-label={ariaLabel}
+          style={{ width: 80 }}
+        />
       ),
     },
     {
@@ -24,7 +32,15 @@ const systemGroup: NotificationGroupConfig = {
       label: 'eventMemoryHigh',
       settingKey: 'tgMemory',
       extra: ({ value, onChange, ariaLabel }) => (
-        <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} aria-label={ariaLabel} style={{ width: 80 }} />
+        <InputNumber
+          size="small"
+          min={0}
+          max={100}
+          value={value}
+          onChange={onChange}
+          aria-label={ariaLabel}
+          style={{ width: 80 }}
+        />
       ),
     },
   ],
@@ -53,12 +69,21 @@ const meta = {
     },
   },
   argTypes: {
-    config: { description: 'Group definition: icon, `pages.settings` title key, and the event rows to render.' },
+    config: {
+      description:
+        'Group definition: icon, `pages.settings` title key, and the event rows to render.',
+    },
     selected: { description: 'Enabled event keys; drives each checkbox and the header count.' },
     onToggle: { description: 'Called with the event key when a single checkbox is clicked.' },
-    onToggleAll: { description: 'Called with every event key in the group when the master checkbox is clicked.' },
-    allSetting: { description: 'Panel settings snapshot; threshold values such as `tgCpu` are read from it.' },
-    updateSetting: { description: 'Called with a partial settings patch when a threshold input changes.' },
+    onToggleAll: {
+      description: 'Called with every event key in the group when the master checkbox is clicked.',
+    },
+    allSetting: {
+      description: 'Panel settings snapshot; threshold values such as `tgCpu` are read from it.',
+    },
+    updateSetting: {
+      description: 'Called with a partial settings patch when a threshold input changes.',
+    },
   },
 } satisfies Meta<typeof NotificationGroup>;
 
@@ -77,7 +102,11 @@ function Demo() {
         setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
       }
       onToggleAll={(keys) =>
-        setSelected((prev) => (keys.every((k) => prev.includes(k)) ? prev.filter((k) => !keys.includes(k)) : [...new Set([...prev, ...keys])]))
+        setSelected((prev) =>
+          keys.every((k) => prev.includes(k))
+            ? prev.filter((k) => !keys.includes(k))
+            : [...new Set([...prev, ...keys])],
+        )
       }
       allSetting={settings}
       updateSetting={(patch) => setSettings((prev) => new AllSetting({ ...prev, ...patch }))}

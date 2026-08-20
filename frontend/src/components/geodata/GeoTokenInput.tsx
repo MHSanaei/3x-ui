@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Tooltip, Typography } from 'antd';
+import { Button, Input, Space, Tooltip, Typography } from 'antd';
 import type { InputRef } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
 
@@ -33,7 +33,15 @@ export interface GeoTokenInputProps {
   ref?: Ref<InputRef>;
 }
 
-export default function GeoTokenInput({ value = '', onChange, onBlur, kind, placeholder, id, ref }: GeoTokenInputProps) {
+export default function GeoTokenInput({
+  value = '',
+  onChange,
+  onBlur,
+  kind,
+  placeholder,
+  id,
+  ref,
+}: GeoTokenInputProps) {
   const { t } = useTranslation();
   const [browsing, setBrowsing] = useState(false);
   const [issues, setIssues] = useState<GeodataTokenIssue[]>([]);
@@ -41,13 +49,21 @@ export default function GeoTokenInput({ value = '', onChange, onBlur, kind, plac
   const validate = useValidateGeoTokens();
   const { mutateAsync } = validate;
 
-  useEffect(() => {
-    const tokens = parseTokens(value);
-    if (tokens.length === 0) {
+  // An empty field has nothing to validate, so it clears during render rather
+  // than waiting a commit for the effect to catch up.
+  const isEmpty = parseTokens(value).length === 0;
+  const [wasEmpty, setWasEmpty] = useState(isEmpty);
+  if (isEmpty !== wasEmpty) {
+    setWasEmpty(isEmpty);
+    if (isEmpty) {
       setIssues([]);
       setCheckFailed(false);
-      return;
     }
+  }
+
+  useEffect(() => {
+    const tokens = parseTokens(value);
+    if (tokens.length === 0) return;
     let cancelled = false;
     const timer = setTimeout(() => {
       mutateAsync({ tokens, kind })
@@ -72,25 +88,23 @@ export default function GeoTokenInput({ value = '', onChange, onBlur, kind, plac
 
   return (
     <>
-      <Input
-        ref={ref}
-        id={id}
-        value={value}
-        placeholder={placeholder}
-        onChange={(event) => onChange?.(event.target.value)}
-        onBlur={onBlur}
-        addonAfter={
-          <Tooltip title={t('pages.xray.geoBrowser.openTooltip')}>
-            <Button
-              type="text"
-              size="small"
-              icon={<DatabaseOutlined />}
-              aria-label={t('pages.xray.geoBrowser.openTooltip')}
-              onClick={() => setBrowsing(true)}
-            />
-          </Tooltip>
-        }
-      />
+      <Space.Compact block>
+        <Input
+          ref={ref}
+          id={id}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange?.(event.target.value)}
+          onBlur={onBlur}
+        />
+        <Tooltip title={t('pages.xray.geoBrowser.openTooltip')}>
+          <Button
+            icon={<DatabaseOutlined />}
+            aria-label={t('pages.xray.geoBrowser.openTooltip')}
+            onClick={() => setBrowsing(true)}
+          />
+        </Tooltip>
+      </Space.Compact>
       {groupByReason(issues).map(([reason, tokens]) => (
         <Typography.Text key={reason} type="warning" className="geo-unknown-hint">
           {t(REASON_KEYS[reason] ?? REASON_KEYS.categoryMissing, { tokens: tokens.join(', ') })}

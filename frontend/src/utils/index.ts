@@ -67,7 +67,11 @@ export class HttpUtil {
     return typeof data === 'object' ? (data as Msg) : new Msg(false, 'unknown data:', data);
   }
 
-  static async get<T = unknown>(url: string, params?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
+  static async get<T = unknown>(
+    url: string,
+    params?: unknown,
+    options: HttpOptions = {},
+  ): Promise<Msg<T>> {
     const { silent, silentSuccess, ...rest } = options;
     try {
       const resp = await httpRequest('GET', url, undefined, { ...rest, params });
@@ -75,9 +79,15 @@ export class HttpUtil {
       if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
-      const err = error as { response?: { data?: { msg?: string; message?: string } }; message?: string };
+      const err = error as {
+        response?: { data?: { msg?: string; message?: string } };
+        message?: string;
+      };
       const data = err.response?.data;
-      const errorMsg = new Msg<T>(false, data?.msg || data?.message || err.message || 'Request failed');
+      const errorMsg = new Msg<T>(
+        false,
+        data?.msg || data?.message || err.message || 'Request failed',
+      );
       if (!silent) {
         console.error('GET request failed:', error);
         this._handleMsg(errorMsg);
@@ -86,7 +96,11 @@ export class HttpUtil {
     }
   }
 
-  static async post<T = unknown>(url: string, data?: unknown, options: HttpOptions = {}): Promise<Msg<T>> {
+  static async post<T = unknown>(
+    url: string,
+    data?: unknown,
+    options: HttpOptions = {},
+  ): Promise<Msg<T>> {
     const { silent, silentSuccess, ...rest } = options;
     try {
       const resp = await httpRequest('POST', url, data, rest);
@@ -94,9 +108,15 @@ export class HttpUtil {
       if (!silent) this._handleMsg(msg, silentSuccess);
       return msg;
     } catch (error) {
-      const err = error as { response?: { data?: { msg?: string; message?: string } }; message?: string };
+      const err = error as {
+        response?: { data?: { msg?: string; message?: string } };
+        message?: string;
+      };
       const data = err.response?.data;
-      const errorMsg = new Msg<T>(false, data?.msg || data?.message || err.message || 'Request failed');
+      const errorMsg = new Msg<T>(
+        false,
+        data?.msg || data?.message || err.message || 'Request failed',
+      );
       if (!silent) {
         console.error('POST request failed:', error);
         this._handleMsg(errorMsg);
@@ -114,15 +134,25 @@ export class HttpUtil {
       return msg;
     } catch (error) {
       console.error('DELETE request failed:', error);
-      const err = error as { response?: { data?: { msg?: string; message?: string } }; message?: string };
+      const err = error as {
+        response?: { data?: { msg?: string; message?: string } };
+        message?: string;
+      };
       const data = err.response?.data;
-      const errorMsg = new Msg<T>(false, data?.msg || data?.message || err.message || 'Request failed');
+      const errorMsg = new Msg<T>(
+        false,
+        data?.msg || data?.message || err.message || 'Request failed',
+      );
       if (!silent) this._handleMsg(errorMsg);
       return errorMsg;
     }
   }
 
-  static async postWithModal<T = unknown>(url: string, data?: unknown, modal?: HttpModal | null): Promise<Msg<T>> {
+  static async postWithModal<T = unknown>(
+    url: string,
+    data?: unknown,
+    modal?: HttpModal | null,
+  ): Promise<Msg<T>> {
     if (modal) {
       modal.loading(true);
     }
@@ -160,7 +190,12 @@ export interface RandomSeqOptions {
 }
 
 export class RandomUtil {
-  static getSeq({ type = 'default', hasNumbers = true, hasLowercase = true, hasUppercase = true }: RandomSeqOptions = {}): string {
+  static getSeq({
+    type = 'default',
+    hasNumbers = true,
+    hasLowercase = true,
+    hasUppercase = true,
+  }: RandomSeqOptions = {}): string {
     let seq = '';
 
     switch (type) {
@@ -181,7 +216,7 @@ export class RandomUtil {
     const range = max - min + 1;
     const randomBuffer = new Uint32Array(1);
     window.crypto.getRandomValues(randomBuffer);
-    return Math.floor((randomBuffer[0] / (0xFFFFFFFF + 1)) * range) + min;
+    return Math.floor((randomBuffer[0] / (0xffffffff + 1)) * range) + min;
   }
 
   static randomSeq(count: number, options: RandomSeqOptions = {}): string {
@@ -252,12 +287,12 @@ export class RandomUtil {
 
       while (bits >= 5) {
         bits -= 5;
-        result += base32Chars[(buffer >>> bits) & 0x1F];
+        result += base32Chars[(buffer >>> bits) & 0x1f];
       }
     }
 
     if (bits > 0) {
-      result += base32Chars[(buffer << (5 - bits)) & 0x1F];
+      result += base32Chars[(buffer << (5 - bits)) & 0x1f];
     }
 
     return result;
@@ -557,7 +592,9 @@ export class Wireguard {
       src[2] & 63,
     ]);
     for (let i = 0; i < 4; ++i) {
-      dest[i] = input[i] + 65 +
+      dest[i] =
+        input[i] +
+        65 +
         (((25 - input[i]) >> 8) & 6) -
         (((51 - input[i]) >> 8) & 75) -
         (((61 - input[i]) >> 8) & 15) +
@@ -586,7 +623,8 @@ export class Wireguard {
   }
 
   static generateKeypair(secretKey: string = ''): { publicKey: string; privateKey: string } {
-    const privateKey = secretKey.length > 0 ? this.keyFromBase64(secretKey) : this.generatePrivateKey();
+    const privateKey =
+      secretKey.length > 0 ? this.keyFromBase64(secretKey) : this.generatePrivateKey();
     const publicKey = this.generatePublicKey(privateKey);
     return {
       publicKey: this.keyToBase64(publicKey),
@@ -651,10 +689,7 @@ export class ClipboardManager {
 export class Base64 {
   static encode(content: string = '', safe: boolean = false): string {
     if (safe) {
-      return Base64.encode(content)
-        .replace(/\+/g, '-')
-        .replace(/=/g, '')
-        .replace(/\//g, '_');
+      return Base64.encode(content).replace(/\+/g, '-').replace(/=/g, '').replace(/\//g, '_');
     }
     return window.btoa(String.fromCharCode(...new TextEncoder().encode(content)));
   }
@@ -666,9 +701,7 @@ export class Base64 {
   static decode(content: string = ''): string {
     const normalized = content.replace(/-/g, '+').replace(/_/g, '/');
     const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-    return new TextDecoder().decode(
-      Uint8Array.from(window.atob(padded), (c) => c.charCodeAt(0)),
-    );
+    return new TextDecoder().decode(Uint8Array.from(window.atob(padded), (c) => c.charCodeAt(0)));
   }
 }
 
@@ -719,7 +752,7 @@ export class TimeFormatter {
     if (second < 3600) return (second / 60).toFixed(0) + 'm';
     if (second < 3600 * 24) return (second / 3600).toFixed(0) + 'h';
     const day = Math.floor(second / 3600 / 24);
-    const remain = Number(((second / 3600) - (day * 24)).toFixed(0));
+    const remain = Number((second / 3600 - day * 24).toFixed(0));
     return day + 'd' + (remain > 0 ? ' ' + remain + 'h' : '');
   }
 }
@@ -788,21 +821,34 @@ export class ColorUtils {
     const t = Number(total ?? 0);
     const d = Number(data);
     switch (true) {
-      case data === null || data === undefined: return 'purple';
-      case t < 0: return 'green';
-      case t == 0: return 'purple';
-      case d < t - threshold: return 'green';
-      case d < t: return 'orange';
-      default: return 'red';
+      case data === null || data === undefined:
+        return 'purple';
+      case t < 0:
+        return 'green';
+      case t == 0:
+        return 'purple';
+      case d < t - threshold:
+        return 'green';
+      case d < t:
+        return 'orange';
+      default:
+        return 'red';
     }
   }
 
-  static clientUsageColor(clientStats: ClientUsageStats | null | undefined, trafficDiff: number): string {
+  static clientUsageColor(
+    clientStats: ClientUsageStats | null | undefined,
+    trafficDiff: number,
+  ): string {
     switch (true) {
-      case !clientStats || clientStats.total == 0: return COLORS.purple;
-      case clientStats!.up + clientStats!.down < clientStats!.total - trafficDiff: return COLORS.success;
-      case clientStats!.up + clientStats!.down < clientStats!.total: return COLORS.warning;
-      default: return COLORS.danger;
+      case !clientStats || clientStats.total == 0:
+        return COLORS.purple;
+      case clientStats!.up + clientStats!.down < clientStats!.total - trafficDiff:
+        return COLORS.success;
+      case clientStats!.up + clientStats!.down < clientStats!.total:
+        return COLORS.warning;
+      default:
+        return COLORS.danger;
     }
   }
 
@@ -811,12 +857,18 @@ export class ColorUtils {
     const now = new Date().getTime();
     const expiry = client.expiryTime;
     switch (true) {
-      case expiry === null: return COLORS.purple;
-      case (expiry as number) < 0: return COLORS.success;
-      case (expiry as number) == 0: return COLORS.purple;
-      case now < (expiry as number) - threshold: return COLORS.success;
-      case now < (expiry as number): return COLORS.warning;
-      default: return COLORS.danger;
+      case expiry === null:
+        return COLORS.purple;
+      case (expiry as number) < 0:
+        return COLORS.success;
+      case (expiry as number) == 0:
+        return COLORS.purple;
+      case now < (expiry as number) - threshold:
+        return COLORS.success;
+      case now < (expiry as number):
+        return COLORS.warning;
+      default:
+        return COLORS.danger;
     }
   }
 }
@@ -899,7 +951,11 @@ export class LanguageManager {
 }
 
 export class FileManager {
-  static downloadTextFile(content: BlobPart, filename: string = 'file.txt', options: BlobPropertyBag = { type: 'text/plain' }): void {
+  static downloadTextFile(
+    content: BlobPart,
+    filename: string = 'file.txt',
+    options: BlobPropertyBag = { type: 'text/plain' },
+  ): void {
     const link = window.document.createElement('a');
     link.download = filename;
     link.style.border = '0';
@@ -918,7 +974,10 @@ export class FileManager {
 export type CalendarKind = 'gregorian' | 'jalalian';
 
 export class IntlUtil {
-  static formatDate(date: string | number | Date | null | undefined, calendar: CalendarKind = 'gregorian'): string {
+  static formatDate(
+    date: string | number | Date | null | undefined,
+    calendar: CalendarKind = 'gregorian',
+  ): string {
     if (date == null) return '';
     const d = new Date(date);
     if (!isFinite(d.getTime())) return '';
@@ -944,9 +1003,10 @@ export class IntlUtil {
     if (!isFinite(date)) return '';
     const language = LanguageManager.getLanguage();
     const now = new Date();
-    const diff = date < 0
-      ? Math.round(date / (1000 * 60 * 60 * 24))
-      : Math.round((date - now.getTime()) / (1000 * 60 * 60 * 24));
+    const diff =
+      date < 0
+        ? Math.round(date / (1000 * 60 * 60 * 24))
+        : Math.round((date - now.getTime()) / (1000 * 60 * 60 * 24));
     const formatter = new Intl.RelativeTimeFormat(language, { numeric: 'auto' });
     return formatter.format(diff, 'day');
   }

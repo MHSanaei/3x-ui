@@ -27,17 +27,17 @@ export * from './vmess';
 export * from './wireguard';
 
 export const OutboundSettingsSchema = z.discriminatedUnion('protocol', [
-  z.object({ protocol: z.literal('vmess'),       settings: VmessOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('vless'),       settings: VlessOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('trojan'),      settings: TrojanOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('vmess'), settings: VmessOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('vless'), settings: VlessOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('trojan'), settings: TrojanOutboundSettingsSchema }),
   z.object({ protocol: z.literal('shadowsocks'), settings: ShadowsocksOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('wireguard'),   settings: WireguardOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('hysteria'),    settings: HysteriaOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('http'),        settings: HttpOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('socks'),       settings: SocksOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('freedom'),     settings: FreedomOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('blackhole'),   settings: BlackholeOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('dns'),         settings: DNSOutboundSettingsSchema }),
-  z.object({ protocol: z.literal('loopback'),    settings: LoopbackOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('wireguard'), settings: WireguardOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('hysteria'), settings: HysteriaOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('http'), settings: HttpOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('socks'), settings: SocksOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('freedom'), settings: FreedomOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('blackhole'), settings: BlackholeOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('dns'), settings: DNSOutboundSettingsSchema }),
+  z.object({ protocol: z.literal('loopback'), settings: LoopbackOutboundSettingsSchema }),
 ]);
 export type OutboundSettings = z.infer<typeof OutboundSettingsSchema>;

@@ -24,7 +24,7 @@ export type Security = z.infer<typeof SecuritySchema>;
 export const SecuritySettingsSchema = z.union([
   z.discriminatedUnion('security', [
     z.object({ security: z.literal('none') }),
-    z.object({ security: z.literal('tls'),     tlsSettings:     TlsStreamSettingsSchema }),
+    z.object({ security: z.literal('tls'), tlsSettings: TlsStreamSettingsSchema }),
     z.object({ security: z.literal('reality'), realitySettings: RealityStreamSettingsSchema }),
   ]),
   z.object({ security: z.never().optional() }),

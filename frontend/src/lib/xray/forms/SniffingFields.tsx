@@ -55,11 +55,27 @@ export default function SniffingFields({ name, form, enableLabel }: SniffingFiel
           >
             <Switch />
           </Form.Item>
-          <Form.Item label={t('pages.inbounds.sniffingIpsExcluded')} name={[...name, 'ipsExcluded']}>
-            <Select mode="tags" tokenSeparators={[',']} placeholder="IP/CIDR/geoip:*/ext:*" style={{ width: '100%' }} />
+          <Form.Item
+            label={t('pages.inbounds.sniffingIpsExcluded')}
+            name={[...name, 'ipsExcluded']}
+          >
+            <Select
+              mode="tags"
+              tokenSeparators={[',']}
+              placeholder="IP/CIDR/geoip:*/ext:*"
+              style={{ width: '100%' }}
+            />
           </Form.Item>
-          <Form.Item label={t('pages.inbounds.sniffingDomainsExcluded')} name={[...name, 'domainsExcluded']}>
-            <Select mode="tags" tokenSeparators={[',']} placeholder="domain:*/ext:*" style={{ width: '100%' }} />
+          <Form.Item
+            label={t('pages.inbounds.sniffingDomainsExcluded')}
+            name={[...name, 'domainsExcluded']}
+          >
+            <Select
+              mode="tags"
+              tokenSeparators={[',']}
+              placeholder="domain:*/ext:*"
+              style={{ width: '100%' }}
+            />
           </Form.Item>
         </>
       )}

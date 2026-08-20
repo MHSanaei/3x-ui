@@ -90,7 +90,10 @@ export default function DateTimePicker({
 
   if (datepicker === 'jalalian') {
     return (
-      <div ref={jalaliRef} className={`jdp-wrap${isDark ? ' jdp-dark' : ''}${isUltra ? ' jdp-ultra' : ''}${disabled ? ' jdp-disabled' : ''}${value ? '' : ' jdp-empty'}`}>
+      <div
+        ref={jalaliRef}
+        className={`jdp-wrap${isDark ? ' jdp-dark' : ''}${isUltra ? ' jdp-ultra' : ''}${disabled ? ' jdp-disabled' : ''}${value ? '' : ' jdp-empty'}`}
+      >
         <PersianDateTimePicker
           key={clearNonce}
           value={value ? value.valueOf() : null}

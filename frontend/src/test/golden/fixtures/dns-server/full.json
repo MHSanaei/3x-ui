@@ -1,18 +1,9 @@
 {
   "address": "https://dns.google/dns-query",
   "port": 443,
-  "domains": [
-    "domain:google.com",
-    "domain:youtube.com",
-    "geosite:google"
-  ],
-  "expectedIPs": [
-    "geoip:us",
-    "1.2.3.0/24"
-  ],
-  "unexpectedIPs": [
-    "geoip:private"
-  ],
+  "domains": ["domain:google.com", "domain:youtube.com", "geosite:google"],
+  "expectedIPs": ["geoip:us", "1.2.3.0/24"],
+  "unexpectedIPs": ["geoip:private"],
   "skipFallback": false,
   "finalQuery": false,
   "tag": "google-doh",

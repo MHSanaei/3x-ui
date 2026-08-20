@@ -21,8 +21,12 @@ export function newStreamSlice(network: string): Record<string, unknown> {
       return {
         network: 'kcp',
         kcpSettings: {
-          mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20,
-          cwndMultiplier: 1, maxSendingWindow: 2097152,
+          mtu: 1350,
+          tti: 20,
+          uplinkCapacity: 5,
+          downlinkCapacity: 20,
+          cwndMultiplier: 1,
+          maxSendingWindow: 2097152,
         },
       };
     case 'ws':
@@ -44,7 +48,10 @@ export function newStreamSlice(network: string): Record<string, unknown> {
       return {
         network: 'xhttp',
         xhttpSettings: {
-          path: '/', host: '', mode: '', headers: [],
+          path: '/',
+          host: '',
+          mode: '',
+          headers: [],
           xPaddingBytes: '100-1000',
         },
       };
@@ -69,8 +76,12 @@ export function hysteriaStreamSlice(): Record<string, unknown> {
     ...newStreamSlice('hysteria'),
     security: 'tls',
     tlsSettings: {
-      serverName: '', alpn: ['h3'], fingerprint: '',
-      echConfigList: '', verifyPeerCertByName: '', pinnedPeerCertSha256: '',
+      serverName: '',
+      alpn: ['h3'],
+      fingerprint: '',
+      echConfigList: '',
+      verifyPeerCertByName: '',
+      pinnedPeerCertSha256: '',
     },
   };
 }
@@ -88,8 +99,14 @@ export function applyNetworkChange(
   if (next === 'hysteria') return hysteriaStreamSlice();
   const stream = prevStream ?? {};
   const currentSecurity = (stream.security as string) ?? 'none';
-  const stillTls = canEnableTls({ protocol, streamSettings: { network: next, security: currentSecurity } });
-  const stillReality = canEnableReality({ protocol, streamSettings: { network: next, security: currentSecurity } });
+  const stillTls = canEnableTls({
+    protocol,
+    streamSettings: { network: next, security: currentSecurity },
+  });
+  const stillReality = canEnableReality({
+    protocol,
+    streamSettings: { network: next, security: currentSecurity },
+  });
   const newSecurity =
     currentSecurity === 'tls' && !stillTls
       ? 'none'
@@ -98,7 +115,8 @@ export function applyNetworkChange(
         : currentSecurity;
   const newStream: Record<string, unknown> = { ...newStreamSlice(next), security: newSecurity };
   if (newSecurity === 'tls' && stream.tlsSettings) newStream.tlsSettings = stream.tlsSettings;
-  else if (newSecurity === 'reality' && stream.realitySettings) newStream.realitySettings = stream.realitySettings;
+  else if (newSecurity === 'reality' && stream.realitySettings)
+    newStream.realitySettings = stream.realitySettings;
   return newStream;
 }
 

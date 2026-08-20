@@ -13,9 +13,10 @@ export default function HysteriaFields() {
   const masq = useWatch({ control, name: 'streamSettings.hysteriaSettings.masquerade' }) as
     | { type?: string }
     | undefined;
-  const masqType = useWatch({ control, name: 'streamSettings.hysteriaSettings.masquerade.type' }) as
-    | string
-    | undefined;
+  const masqType = useWatch({
+    control,
+    name: 'streamSettings.hysteriaSettings.masquerade.type',
+  }) as string | undefined;
   return (
     <>
       <FormField
@@ -39,10 +40,15 @@ export default function HysteriaFields() {
               'streamSettings.hysteriaSettings.masquerade',
               checked
                 ? {
-                  type: '', dir: '', url: '',
-                  rewriteHost: false, insecure: false,
-                  content: '', headers: {}, statusCode: 0,
-                }
+                    type: '',
+                    dir: '',
+                    url: '',
+                    rewriteHost: false,
+                    insecure: false,
+                    content: '',
+                    headers: {},
+                    statusCode: 0,
+                  }
                 : undefined,
             )
           }
@@ -50,10 +56,7 @@ export default function HysteriaFields() {
       </Form.Item>
       {masq && (
         <>
-          <FormField
-            label={t('pages.inbounds.form.type')}
-            name={[...MASQ_PATH, 'type']}
-          >
+          <FormField label={t('pages.inbounds.form.type')} name={[...MASQ_PATH, 'type']}>
             <Select
               options={[
                 { value: '', label: 'default (404 page)' },
@@ -65,10 +68,7 @@ export default function HysteriaFields() {
           </FormField>
           {masqType === 'proxy' && (
             <>
-              <FormField
-                label={t('pages.inbounds.form.upstreamUrl')}
-                name={[...MASQ_PATH, 'url']}
-              >
+              <FormField label={t('pages.inbounds.form.upstreamUrl')} name={[...MASQ_PATH, 'url']}>
                 <Input placeholder="https://www.example.com" />
               </FormField>
               <FormField
@@ -88,10 +88,7 @@ export default function HysteriaFields() {
             </>
           )}
           {masqType === 'file' && (
-            <FormField
-              label={t('pages.inbounds.form.directory')}
-              name={[...MASQ_PATH, 'dir']}
-            >
+            <FormField label={t('pages.inbounds.form.directory')} name={[...MASQ_PATH, 'dir']}>
               <Input placeholder="/var/www/html" />
             </FormField>
           )}
@@ -103,16 +100,10 @@ export default function HysteriaFields() {
               >
                 <InputNumber min={0} max={599} style={{ width: '100%' }} />
               </FormField>
-              <FormField
-                label={t('pages.inbounds.form.body')}
-                name={[...MASQ_PATH, 'content']}
-              >
+              <FormField label={t('pages.inbounds.form.body')} name={[...MASQ_PATH, 'content']}>
                 <Input.TextArea autoSize={{ minRows: 3 }} />
               </FormField>
-              <FormField
-                label={t('pages.inbounds.form.headers')}
-                name={[...MASQ_PATH, 'headers']}
-              >
+              <FormField label={t('pages.inbounds.form.headers')} name={[...MASQ_PATH, 'headers']}>
                 <HeaderMapEditor mode="v1" />
               </FormField>
             </>

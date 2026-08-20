@@ -11,11 +11,7 @@ export default function SniffingTab() {
       control={control}
       name="sniffing"
       render={({ field }) => (
-        <SniffingField
-          value={field.value}
-          onChange={field.onChange}
-          enableLabel={t('enable')}
-        />
+        <SniffingField value={field.value} onChange={field.onChange} enableLabel={t('enable')} />
       )}
     />
   );

@@ -47,7 +47,9 @@ describe('OutboundsTab hidden-loopback index mapping', () => {
     const tableRows = tbody?.querySelectorAll('tr.ant-table-row') ?? [];
     expect(tableRows.length).toBe(2);
 
-    const checkButton = tableRows[1].querySelector('button[aria-label="Check"]') as HTMLButtonElement;
+    const checkButton = tableRows[1].querySelector(
+      'button[aria-label="Check"]',
+    ) as HTMLButtonElement;
     fireEvent.click(checkButton);
 
     expect(onTest).toHaveBeenCalledTimes(1);
