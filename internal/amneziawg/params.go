@@ -51,8 +51,10 @@ func GenerateObfuscation31() Obfuscation31 {
 	for o.S1+56 == o.S2 {
 		o.S2 = randInt(15, 150)
 	}
-	o.S3 = randInt(8, 55) // cookie padding (max 64)
-	o.S4 = randInt(4, 27) // transport padding (max 32)
+	// Floored at 12: HeaderProtectionKey is always generated below, and IpcSet
+	// rejects header protection unless every S1-S4 is >= 12.
+	o.S3 = randInt(12, 55) // cookie padding (max 64)
+	o.S4 = randInt(12, 27) // transport padding (max 32)
 
 	h := generateHRanges()
 	o.H1, o.H2, o.H3, o.H4 = h[0], h[1], h[2], h[3]
@@ -147,6 +149,13 @@ func ValidateObfuscation(o Obfuscation31) error {
 	}
 	if err := validateHeaderProtectionKey(o.HeaderProtectionKey); err != nil {
 		return err
+	}
+	if o.HeaderProtectionKey != "" {
+		for i, s := range []int{o.S1, o.S2, o.S3, o.S4} {
+			if s < 12 {
+				return fmt.Errorf("invalid S%d value %d: header protection requires S1-S4 >= 12", i+1, s)
+			}
+		}
 	}
 	if err := validateUintRange(o.ContentPaddingAddition, 0); err != nil {
 		return fmt.Errorf("invalid contentPaddingAddition: %w", err)

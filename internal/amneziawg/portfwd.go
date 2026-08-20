@@ -106,12 +106,28 @@ const MaxForwardedPorts = 100
 // so this is safe to call unconditionally against arbitrary -- including
 // pre-existing, pre-cap -- stored data.
 func ExpandForwardedPorts(forwardedPorts string) []int {
-	seen := make(map[int]struct{}, MaxForwardedPorts)
-	ports := make([]int, 0, MaxForwardedPorts)
+	return expandForwardedPorts(forwardedPorts, MaxForwardedPorts)
+}
+
+// ExceedsForwardedPortsCap reports whether forwardedPorts covers strictly
+// more than MaxForwardedPorts unique ports -- unlike comparing
+// len(ExpandForwardedPorts(...)) to the cap, which can never tell "exactly
+// at the cap" apart from "over it" since that expansion already truncates
+// there.
+func ExceedsForwardedPortsCap(forwardedPorts string) bool {
+	return len(expandForwardedPorts(forwardedPorts, MaxForwardedPorts+1)) > MaxForwardedPorts
+}
+
+// expandForwardedPorts is ExpandForwardedPorts with an explicit stop-count,
+// so ExceedsForwardedPortsCap can probe one past the real cap without
+// expanding an arbitrarily large legacy spec in full.
+func expandForwardedPorts(forwardedPorts string, limit int) []int {
+	seen := make(map[int]struct{}, limit)
+	ports := make([]int, 0, limit)
 outer:
 	for _, spec := range parseForwardedPorts(forwardedPorts) {
 		for p := spec.start; p <= spec.end; p++ {
-			if len(ports) >= MaxForwardedPorts {
+			if len(ports) >= limit {
 				break outer
 			}
 			if _, dup := seen[p]; dup {

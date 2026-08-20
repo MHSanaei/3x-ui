@@ -1,6 +1,7 @@
 package amneziawg
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -83,5 +84,19 @@ func TestExpandForwardedPortsCapAppliesAcrossMultipleSpecs(t *testing.T) {
 	got := ExpandForwardedPorts(spec)
 	if len(got) != MaxForwardedPorts {
 		t.Fatalf("len(ExpandForwardedPorts(150 distinct single ports)) = %d, want %d", len(got), MaxForwardedPorts)
+	}
+}
+
+func TestExceedsForwardedPortsCap(t *testing.T) {
+	atCap := fmt.Sprintf("1-%d", MaxForwardedPorts)
+	if ExceedsForwardedPortsCap(atCap) {
+		t.Fatalf("a spec covering exactly %d ports is AT the cap, not over it", MaxForwardedPorts)
+	}
+	overCap := fmt.Sprintf("1-%d", MaxForwardedPorts+1)
+	if !ExceedsForwardedPortsCap(overCap) {
+		t.Fatalf("a spec covering %d ports must be reported as exceeding the cap", MaxForwardedPorts+1)
+	}
+	if ExceedsForwardedPortsCap("1-10") {
+		t.Fatal("a small spec must not be reported as exceeding the cap")
 	}
 }

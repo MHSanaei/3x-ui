@@ -28,11 +28,16 @@ func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
 		if o.S1+56 == o.S2 {
 			t.Fatalf("S1+56 == S2 (%d+56 == %d): violates kernel constraint", o.S1, o.S2)
 		}
-		if o.S3 < 8 || o.S3 > 55 {
-			t.Fatalf("S3 = %d, want [8,55]", o.S3)
+		if o.S3 < 12 || o.S3 > 55 {
+			t.Fatalf("S3 = %d, want [12,55]", o.S3)
 		}
-		if o.S4 < 4 || o.S4 > 27 {
-			t.Fatalf("S4 = %d, want [4,27]", o.S4)
+		if o.S4 < 12 || o.S4 > 27 {
+			t.Fatalf("S4 = %d, want [12,27]", o.S4)
+		}
+		if o.HeaderProtectionKey != "" {
+			if err := ValidateObfuscation(o); err != nil {
+				t.Fatalf("generated set failed its own validation: %v", err)
+			}
 		}
 		for name, h := range map[string]string{"H1": o.H1, "H2": o.H2, "H3": o.H3, "H4": o.H4} {
 			if err := validateUintRange(h, 0); err != nil {
@@ -155,6 +160,27 @@ func TestValidateObfuscationRejectsBadS3S4(t *testing.T) {
 	o.S3, o.S4 = -1, -1
 	if err := ValidateObfuscation(o); err == nil {
 		t.Fatal("negative S3/S4 must be rejected")
+	}
+}
+
+func TestValidateObfuscationRejectsLowSWithHeaderProtection(t *testing.T) {
+	for field, set := range map[string]func(o *Obfuscation31){
+		"S1": func(o *Obfuscation31) { o.S1 = 11 },
+		"S2": func(o *Obfuscation31) { o.S2 = 11 },
+		"S3": func(o *Obfuscation31) { o.S3 = 11 },
+		"S4": func(o *Obfuscation31) { o.S4 = 11 },
+	} {
+		o := validObfuscation()
+		set(&o)
+		if err := ValidateObfuscation(o); err == nil {
+			t.Fatalf("%s = 11 with a header protection key set must be rejected", field)
+		}
+	}
+	o := validObfuscation()
+	o.HeaderProtectionKey = ""
+	o.S3, o.S4 = 8, 4
+	if err := ValidateObfuscation(o); err != nil {
+		t.Fatalf("S3/S4 below 12 with no header protection key must be accepted: %v", err)
 	}
 }
 

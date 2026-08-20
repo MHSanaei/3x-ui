@@ -722,6 +722,17 @@ func amneziawgV6Inbound(id int, tag string, ext6 string, clients []model.Client)
 	return &model.Inbound{Id: id, Tag: tag, Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
 }
 
+// amneziawgV6InboundNotActive builds an inbound that fails V6AliasesActive
+// (either toggle can do it), unlike amneziawgV6Inbound which always passes it.
+func amneziawgV6InboundNotActive(id int, tag string, ipv6Enabled bool, ext6 string, clients []model.Client) *model.Inbound {
+	server := amneziawg.ServerSettings{
+		SubnetIP: "10.8.1.0", SubnetCIDR: 24,
+		IPv6Enabled: ipv6Enabled, IPv6ExternalInterface: ext6,
+	}
+	settings, _ := json.Marshal(amneziawg.InboundSettings{Server: &server, Clients: clients})
+	return &model.Inbound{Id: id, Tag: tag, Protocol: model.AmneziaWG, Enable: true, Settings: string(settings)}
+}
+
 // injectAmneziawgV6Egress runs after injectAmneziawgnetSocks in the real
 // GetXrayConfig() pipeline and depends on its relay inbound already
 // existing (see the "live" tag check) -- every test below calls both, in
@@ -804,6 +815,36 @@ func TestInjectAmneziawgV6Egress_SkipsPeerWithoutV6Address(t *testing.T) {
 	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
 	if string(cfg.OutboundConfigs) != before {
 		t.Fatalf("a peer with no v6 AllowedIPs entry must not get an outbound, got %s", cfg.OutboundConfigs)
+	}
+}
+
+// The documented "leave the interface blank to auto-detect" happy path must
+// not silently emit a sendThrough for an address the host was never told to
+// own -- there is no auto-detect, so that would fail every connection.
+func TestInjectAmneziawgV6Egress_SkipsWhenIPv6EnabledButInterfaceBlank(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.OutboundConfigs)
+	inbound := amneziawgV6InboundNotActive(1, "awg-1", true, "", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32", "fd86::2/128"}},
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+	if string(cfg.OutboundConfigs) != before {
+		t.Fatalf("IPv6Enabled with a blank interface must not get an outbound (no auto-detect exists), got %s", cfg.OutboundConfigs)
+	}
+}
+
+// The inverse of amneziawgV6Inbound's own always-true IPv6Enabled: a filled
+// IPv6ExternalInterface alone (e.g. left over from a previous enable) must
+// not activate egress on its own.
+func TestInjectAmneziawgV6Egress_SkipsWhenIPv6DisabledEvenWithInterfaceSet(t *testing.T) {
+	cfg := egressTestConfig()
+	before := string(cfg.OutboundConfigs)
+	inbound := amneziawgV6InboundNotActive(1, "awg-1", false, "eth0", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32", "fd86::2/128"}},
+	})
+	injectAmneziawgSocksThenV6(cfg, []*model.Inbound{inbound})
+	if string(cfg.OutboundConfigs) != before {
+		t.Fatalf("IPv6Enabled false must not get an outbound even with a leftover interface set, got %s", cfg.OutboundConfigs)
 	}
 }
 

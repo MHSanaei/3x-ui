@@ -320,6 +320,22 @@ func TestCheckForwardedPortsConflict_RejectsSpecOverCap(t *testing.T) {
 	}
 }
 
+// A spec covering exactly MaxForwardedPorts ports is AT the cap, not over
+// it, and must be accepted -- ExpandForwardedPorts truncates there by
+// design, so a naive len(...) >= cap comparison can't tell the two apart.
+func TestCheckForwardedPortsConflict_AcceptsSpecExactlyAtCap(t *testing.T) {
+	setupConflictDB(t)
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext()
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	spec := fmt.Sprintf("20000-%d", 20000+amneziawg.MaxForwardedPorts-1)
+	if hit := svc.checkForwardedPortsConflict(ctx, spec); hit != "" {
+		t.Fatalf("a spec covering exactly %d ports must be accepted, got collision %q", amneziawg.MaxForwardedPorts, hit)
+	}
+}
+
 // The SOCKS5 relay port an enabled AmneziaWG inbound gets (SOCKSPortForInbound)
 // is a phantom, non-DB-row port -- ctx.inbounds alone can't see it, so
 // checkForwardedPortsConflict must check it explicitly.

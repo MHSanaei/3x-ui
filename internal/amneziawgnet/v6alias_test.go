@@ -22,6 +22,24 @@ func instV6(enabled bool, extIface, v6ExtIface string, peers ...amneziawg.Peer) 
 	}
 }
 
+func TestV6AliasesActive(t *testing.T) {
+	cases := []struct {
+		name string
+		inst amneziawg.Instance
+		want bool
+	}{
+		{"enabled with interface", instV6(true, "eth0", "", peerWithIPs("a@x", "fd86::2/128")), true},
+		{"enabled, IPv6ExternalInterface only", instV6(true, "", "eth1", peerWithIPs("a@x", "fd86::2/128")), true},
+		{"disabled", instV6(false, "eth0", "", peerWithIPs("a@x", "fd86::2/128")), false},
+		{"enabled, no interface either way", instV6(true, "", "", peerWithIPs("a@x", "fd86::2/128")), false},
+	}
+	for _, c := range cases {
+		if got := V6AliasesActive(c.inst); got != c.want {
+			t.Errorf("%s: V6AliasesActive = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
 func TestDesiredV6AliasesDisabledOrNoInterfaceReturnsEmpty(t *testing.T) {
 	cases := []struct {
 		name string

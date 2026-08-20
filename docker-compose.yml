@@ -13,14 +13,9 @@ services:
     # and shown in fail2ban status but never actually applied. NET_RAW covers
     # ip6tables. If you disable Fail2ban, you can drop cap_add.
     #
-    # This does NOT make AmneziaWG inbounds work: the image is Alpine-based,
-    # and AmneziaWG's own packaging (DKMS module + amneziawg-tools) doesn't
-    # target Alpine/musl at all, unlike the Debian/Ubuntu/Fedora/Arch paths
-    # install.sh already handles. The panel itself runs fine either way --
-    # IsAwgInstalled() just logs one warning instead of retrying forever --
-    # but an AmneziaWG inbound's tunnel will never come up from this
-    # container, no matter what capabilities or network mode you add. Run
-    # natively on the host if you plan to use AmneziaWG.
+    # AmneziaWG works in this image: it runs embedded in the panel process
+    # (amneziawg-go over a gVisor userspace netstack), so it needs no kernel
+    # module and no host tooling. Publish its UDP listen port to use it.
     cap_add:
       - NET_ADMIN
       - NET_RAW

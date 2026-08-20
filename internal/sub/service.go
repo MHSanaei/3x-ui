@@ -698,6 +698,14 @@ func amneziaWGHeaderOrDefault(value, fallback string) string {
 // frontend's genAmneziaWGConfig produces (same field order, same optional-field
 // conditionals) -- this is the payload wrapped into vpn:// links below.
 func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client, host string, port int, remark string) string {
+	// These land unescaped in [Interface]; a newline here would inject a
+	// config line (e.g. a rogue PostUp) into the subscriber's .conf.
+	for _, v := range []string{client.PrivateKey, server.PrimaryDNS, server.SecondaryDNS, remark} {
+		if strings.ContainsAny(v, "\r\n") {
+			return ""
+		}
+	}
+
 	var b strings.Builder
 
 	b.WriteString("[Interface]\n")
@@ -799,6 +807,9 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	client := &resolved
 
 	text := amneziaWGConfigText(server, client, s.resolveInboundAddress(inbound), inbound.Port, s.genRemark(inbound, email, "", ""))
+	if text == "" {
+		return ""
+	}
 	return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(text))
 }
 

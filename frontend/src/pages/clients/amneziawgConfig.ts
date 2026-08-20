@@ -55,12 +55,15 @@ export function buildAmneziaWGClientConfig(
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
   const remark = [inboundName, client.email, client.comment].filter(Boolean).join(' - ');
 
+  // These land unescaped in [Interface]; a newline here would inject a
+  // config line (e.g. a rogue PostUp) into the downloaded .conf.
+  const privateKey = client.privateKey || client.password || '';
+  for (const v of [privateKey, server?.primaryDns ?? '', server?.secondaryDns ?? '', remark]) {
+    if (/[\r\n]/.test(v)) return '';
+  }
+
   const dnsParts = [server?.primaryDns, server?.secondaryDns].filter((v) => !!v && v.trim() !== '');
-  const lines = [
-    '[Interface]',
-    `PrivateKey = ${client.privateKey || client.password || ''}`,
-    `Address = ${address}`,
-  ];
+  const lines = ['[Interface]', `PrivateKey = ${privateKey}`, `Address = ${address}`];
   if (dnsParts.length > 0) lines.push(`DNS = ${dnsParts.join(', ')}`);
   if (server?.mtu && server.mtu > 0) lines.push(`MTU = ${server.mtu}`);
 

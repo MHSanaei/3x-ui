@@ -777,9 +777,10 @@ func amneziawgV6EgressTag(inboundID int, email string) string {
 // per-client public IPv6 identity the hard cutover temporarily dropped
 // (Phase 3.5 of the migration plan). Scoped to outbound source identity
 // only: it depends on internal/amneziawgnet's own alias mechanism actually
-// giving the host that address at the OS level (see v6alias.go) — without
-// that, sendThrough would simply fail to bind and Xray would fall back to
-// its default outbound, not error out.
+// giving the host that address at the OS level (see v6alias.go's
+// V6AliasesActive, the exact same gate this function uses below) — without
+// that, sendThrough fails to bind and every connection through it errors
+// outright (freedom.go's dial failure); there is no fallback outbound.
 //
 // The routing rule matches both inboundTag and user: SocksInboundSettings
 // (used by injectAmneziawgnetSocks above) already authenticates each
@@ -847,7 +848,7 @@ func injectAmneziawgV6Egress(cfg *xray.Config, inbounds []*model.Inbound) {
 			continue
 		}
 		inst, ok := amneziawg.InstanceFromInbound(inbound)
-		if !ok {
+		if !ok || !amneziawgnet.V6AliasesActive(inst) {
 			continue
 		}
 		for _, p := range inst.Peers {

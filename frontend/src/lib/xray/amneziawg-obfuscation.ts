@@ -99,8 +99,10 @@ export function generateAwgObfuscation(): AwgObfuscation {
     jmax: jmin + randInt(50, 250),
     s1,
     s2,
-    s3: randInt(8, 55),
-    s4: randInt(4, 27),
+    // Floored at 12, not the protocol's 0/8/4 minima: headerProtectionKey is
+    // always generated below, and IpcSet rejects it unless every s1-s4 >= 12.
+    s3: randInt(12, 55),
+    s4: randInt(12, 27),
     h1,
     h2,
     h3,
