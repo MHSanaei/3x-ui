@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "Selecione ao menos um inbound",
         "errSortOrder": "A ordem deve ser um inteiro ≥ 1",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "Falha ao listar os balanceadores de assinatura",
+          "create": "Falha ao criar o balanceador de assinatura",
+          "update": "Falha ao atualizar o balanceador de assinatura",
+          "delete": "Falha ao excluir o balanceador de assinatura",
+          "invalidId": "Id inválido"
         },
         "tabBalancers": "Balanceadores",
         "tabObservatory": "Observatório",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "Número de probes consecutivos para média de estabilidade.",
           "httpMethod": "Método HTTP",
           "httpMethodDesc": "Método usado nas requisições de probe.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "Balanceadores leastPing/leastLoad sempre carregam um burstObservatory. Esta opção personaliza seus parâmetros de probe — desligue-a para usar os padrões integrados. As alterações se aplicam após reiniciar o painel."
         }
       }
     },

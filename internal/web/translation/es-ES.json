@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "Selecciona al menos un inbound",
         "errSortOrder": "El orden debe ser un número entero ≥ 1",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "No se pudieron listar los balanceadores de suscripción",
+          "create": "No se pudo crear el balanceador de suscripción",
+          "update": "No se pudo actualizar el balanceador de suscripción",
+          "delete": "No se pudo eliminar el balanceador de suscripción",
+          "invalidId": "Id no válido"
         },
         "tabBalancers": "Equilibradores",
         "tabObservatory": "Observatorio",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "Número de probes consecutivos para promediar estabilidad.",
           "httpMethod": "Método HTTP",
           "httpMethodDesc": "Método usado para las solicitudes de probe.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "Los balanceadores leastPing/leastLoad siempre llevan un burstObservatory. Este interruptor personaliza sus parámetros de probe — apágalo para usar los valores predeterminados integrados. Los cambios se aplican tras reiniciar el panel."
         }
       }
     },

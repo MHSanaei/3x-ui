@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "En az bir inbound seçin",
         "errSortOrder": "Sıra 1 veya daha büyük bir tam sayı olmalı",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "Abonelik dengeleyicileri listelenemedi",
+          "create": "Abonelik dengeleyicisi oluşturulamadı",
+          "update": "Abonelik dengeleyicisi güncellenemedi",
+          "delete": "Abonelik dengeleyicisi silinemedi",
+          "invalidId": "Geçersiz id"
         },
         "tabBalancers": "Dengeleyiciler",
         "tabObservatory": "Gözlemci",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "Kararlılık ortalaması için ardışık probe sayısı.",
           "httpMethod": "HTTP yöntemi",
           "httpMethodDesc": "Probe isteklerinde kullanılan HTTP yöntemi.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "leastPing/leastLoad dengeleyicileri her zaman bir burstObservatory taşır. Bu anahtar probe parametrelerini özelleştirir — yerleşik varsayılanları kullanmak için kapatın. Değişiklikler panel yeniden başlatıldıktan sonra uygulanır."
         }
       }
     },

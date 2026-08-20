@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "اختر إينبوندًا واحدًا على الأقل",
         "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "تعذّر عرض موزّعات الاشتراك",
+          "create": "تعذّر إنشاء موزّع اشتراك",
+          "update": "تعذّر تحديث موزّع اشتراك",
+          "delete": "تعذّر حذف موزّع اشتراك",
+          "invalidId": "معرّف غير صالح"
         },
         "tabBalancers": "موازنات التحميل",
         "tabObservatory": "المرصد",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "عدد probe المتتالية لقياس الاستقرار.",
           "httpMethod": "أسلوب HTTP",
           "httpMethodDesc": "الأسلوب المستخدم في طلبات probe.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "تحمل موزّعات leastPing/leastLoad دائمًا burstObservatory. يخصّص هذا المفتاح معاملات probe — أوقفه لاستخدام الإعدادات الافتراضية المدمجة. تُطبَّق التغييرات بعد إعادة تشغيل اللوحة."
         }
       }
     },

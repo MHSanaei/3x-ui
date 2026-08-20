@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "حداقل یک اینباند انتخاب کنید",
         "errSortOrder": "ترتیب باید عدد صحیح ≥ ۱ باشد",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "فهرست‌سازی موزان‌کننده‌های اشتراک ناموفق بود",
+          "create": "ایجاد موزان‌کننده اشتراک ناموفق بود",
+          "update": "به‌روزرسانی موزان‌کننده اشتراک ناموفق بود",
+          "delete": "حذف موزان‌کننده اشتراک ناموفق بود",
+          "invalidId": "شناسه نامعتبر"
         },
         "tabBalancers": "بالانسرها",
         "tabObservatory": "رصدخانه",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "تعداد probe متوالی برای میانگین پایداری.",
           "httpMethod": "متد HTTP",
           "httpMethodDesc": "متد استفاده‌شده برای درخواست‌های probe.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "موزان‌کننده‌های leastPing/leastLoad همیشه burstObservatory دارند. این کلید پارامترهای probe آن را سفارشی می‌کند — آن را خاموش کنید تا از پیش‌فرض‌های داخلی استفاده شود. تغییرات پس از راه‌اندازی مجدد پنل اعمال می‌شوند."
         }
       }
     },

@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "Chọn ít nhất một inbound",
         "errSortOrder": "Thứ tự phải là số nguyên ≥ 1",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "Không thể liệt kê các bộ cân bằng đăng ký",
+          "create": "Không thể tạo bộ cân bằng đăng ký",
+          "update": "Không thể cập nhật bộ cân bằng đăng ký",
+          "delete": "Không thể xóa bộ cân bằng đăng ký",
+          "invalidId": "Id không hợp lệ"
         },
         "tabBalancers": "Cân bằng",
         "tabObservatory": "Observatory",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "Số lần probe liên tiếp để trung bình độ ổn định.",
           "httpMethod": "Phương thức HTTP",
           "httpMethodDesc": "Phương thức dùng cho yêu cầu probe.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "Các bộ cân bằng leastPing/leastLoad luôn mang một burstObservatory. Công tắc này tùy chỉnh các tham số probe — tắt nó để dùng mặc định tích hợp. Các thay đổi áp dụng sau khi khởi động lại bảng điều khiển."
         }
       }
     },

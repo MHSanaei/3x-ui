@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "請至少選擇一個入站",
         "errSortOrder": "順序必須為不小於 1 的整數",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "列出訂閱平衡器失敗",
+          "create": "建立訂閱平衡器失敗",
+          "update": "更新訂閱平衡器失敗",
+          "delete": "刪除訂閱平衡器失敗",
+          "invalidId": "無效的 id"
         },
         "tabBalancers": "負載均衡",
         "tabObservatory": "觀測器",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "用於穩定度平均的連續探活次數。",
           "httpMethod": "HTTP 方法",
           "httpMethodDesc": "探活請求使用的 HTTP 方法。",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "leastPing/leastLoad 平衡器始終帶有 burstObservatory。此開關自訂其探活參數 — 關閉以使用內建預設值。變更在面板重啟後生效。"
         }
       }
     },

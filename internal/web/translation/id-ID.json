@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "Pilih minimal satu inbound",
         "errSortOrder": "Urutan harus bilangan bulat ≥ 1",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "Gagal menampilkan daftar penyeimbang langganan",
+          "create": "Gagal membuat penyeimbang langganan",
+          "update": "Gagal memperbarui penyeimbang langganan",
+          "delete": "Gagal menghapus penyeimbang langganan",
+          "invalidId": "Id tidak valid"
         },
         "tabBalancers": "Penyeimbang",
         "tabObservatory": "Observatory",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "Jumlah probe beruntun untuk merata-ratakan stabilitas.",
           "httpMethod": "Metode HTTP",
           "httpMethodDesc": "Metode yang dipakai untuk permintaan probe.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "Penyeimbang leastPing/leastLoad selalu membawa burstObservatory. Sakelar ini menyesuaikan parameter probe-nya — matikan untuk memakai bawaan default. Perubahan berlaku setelah panel dimulai ulang."
         }
       }
     },

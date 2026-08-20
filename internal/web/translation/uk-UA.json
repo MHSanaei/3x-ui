@@ -1406,11 +1406,11 @@
         "errInboundsRequired": "Виберіть хоча б один інбаунд",
         "errSortOrder": "Порядок — ціле число ≥ 1",
         "toasts": {
-          "list": "Failed to list subscription balancers",
-          "create": "Failed to create subscription balancer",
-          "update": "Failed to update subscription balancer",
-          "delete": "Failed to delete subscription balancer",
-          "invalidId": "Invalid id"
+          "list": "Не вдалося отримати список балансувальників підписки",
+          "create": "Не вдалося створити балансувальник підписки",
+          "update": "Не вдалося оновити балансувальник підписки",
+          "delete": "Не вдалося видалити балансувальник підписки",
+          "invalidId": "Некоректний id"
         },
         "tabBalancers": "Балансери",
         "tabObservatory": "Обсерваторія",
@@ -1429,7 +1429,7 @@
           "samplingDesc": "Кількість підряд перевірок для усереднення стабільності.",
           "httpMethod": "HTTP-метод",
           "httpMethodDesc": "Метод запитів під час перевірок.",
-          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+          "note": "Балансувальники leastPing/leastLoad завжди мають burstObservatory. Цей перемикач налаштовує її параметри probe — вимкніть, щоб використовувати вбудовані значення за замовчуванням. Зміни застосовуються після перезапуску панелі."
         }
       }
     },
