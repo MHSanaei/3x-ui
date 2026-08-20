@@ -1,8 +1,8 @@
 import { z } from 'zod';
- 
+
 export const SubBalancerStrategySchema = z.enum(['leastLoad', 'leastPing', 'random', 'roundRobin']);
 export type SubBalancerStrategy = z.infer<typeof SubBalancerStrategySchema>;
- 
+
 export const SubBalancerSchema = z.object({
   id: z.number(),
   remark: z.string(),
@@ -14,9 +14,9 @@ export const SubBalancerSchema = z.object({
   updatedAt: z.number().optional(),
 });
 export type SubBalancer = z.infer<typeof SubBalancerSchema>;
- 
+
 export const SubBalancerListSchema = z.array(SubBalancerSchema);
- 
+
 export const SubBalancerFormSchema = z.object({
   remark: z
     .string()
