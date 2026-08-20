@@ -282,8 +282,24 @@ func (s *SubJsonService) balancerObservatory(prefix string) map[string]any {
 // least one member outbound among the inbound entries.
 func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subConfigEntry {
 	balancers := getEnabledSubBalancers()
+	if len(balancers) == 0 {
+		return entries
+	}
+	// Pre-pass: pull each inbound doc's proxy outbound once so every balancer
+	// reuses it instead of re-unmarshalling the whole document per balancer.
+	entryProxies := make([][]map[string]any, len(entries))
+	for i, entry := range entries {
+		if entry.kind != 0 {
+			continue
+		}
+		for _, config := range entry.configs {
+			if proxy := extractProxyOutbound(config); proxy != nil {
+				entryProxies[i] = append(entryProxies[i], proxy)
+			}
+		}
+	}
 	for i := range balancers {
-		config := s.buildBalancerConfig(&balancers[i], entries)
+		config := s.buildBalancerConfig(&balancers[i], entries, entryProxies)
 		if config == nil {
 			continue
 		}
@@ -295,6 +311,24 @@ func (s *SubJsonService) appendBalancerEntries(entries []subConfigEntry) []subCo
 		})
 	}
 	return entries
+}
+
+// extractProxyOutbound returns the first outbound of a document when it is the
+// proxy (tag == "proxy"), else nil — the only member shape a balancer retags.
+func extractProxyOutbound(config json_util.RawMessage) map[string]any {
+	var doc map[string]any
+	if json.Unmarshal(config, &doc) != nil {
+		return nil
+	}
+	outbounds, _ := doc["outbounds"].([]any)
+	if len(outbounds) == 0 {
+		return nil
+	}
+	outbound, _ := outbounds[0].(map[string]any)
+	if outbound == nil || outbound["tag"] != "proxy" {
+		return nil
+	}
+	return outbound
 }
 
 func getEnabledSubBalancers() []model.SubBalancer {
@@ -325,30 +359,18 @@ func balancerTransport(network string) string {
 
 // buildBalancerConfig assembles the balancer profile: members retagged under a
 // per-balancer prefix, a routing.balancers entry, and (for leastPing/leastLoad) an observatory.
-func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry) json_util.RawMessage {
+func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
 	var proxies []json_util.RawMessage
 	var firstTag string
-	// entries is the subscriber's accessible set (getInboundsBySubId filters
-	// inbounds.enable=true + a matching client); kind!=0 skips balancer entries.
-	for _, entry := range entries {
+	// entryProxies is the pre-extracted proxy outbounds per entry; kind!=0 rows
+	// have none. Clone before retagging so the cached map stays reusable.
+	for i, entry := range entries {
 		if entry.kind != 0 || !slices.Contains(balancer.InboundIds, entry.id) {
 			continue
 		}
-		for _, config := range entry.configs {
-			var doc map[string]any
-			if json.Unmarshal(config, &doc) != nil {
-				continue
-			}
-			outbounds, _ := doc["outbounds"].([]any)
-			if len(outbounds) == 0 {
-				continue
-			}
-			outbound, _ := outbounds[0].(map[string]any)
-			if outbound == nil || outbound["tag"] != "proxy" {
-				continue
-			}
+		for _, outbound := range entryProxies[i] {
 			network := outboundNetwork(outbound)
 			base := prefix + balancerTransport(network)
 			tag := base
@@ -356,8 +378,9 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 				tag = fmt.Sprintf("%s-%d", base, suffix)
 			}
 			usedTags[tag] = true
-			outbound["tag"] = tag
-			if raw, err := json.MarshalIndent(outbound, "", "  "); err == nil {
+			member := maps.Clone(outbound)
+			member["tag"] = tag
+			if raw, err := json.MarshalIndent(member, "", "  "); err == nil {
 				if firstTag == "" {
 					firstTag = tag
 				}
