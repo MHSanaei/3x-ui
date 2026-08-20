@@ -478,6 +478,19 @@ jobs:
       issues: read
       id-token: write
     steps:
+      - name: Record when this run started
+        id: started
+        run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      # A custom prompt puts the action in agent mode, which never reacts on its
+      # own, so the requester gets no sign the run started.
+      - name: Acknowledge the request
+        if: github.event_name == 'issue_comment'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: gh api "repos/${REPO}/issues/comments/${COMMENT_ID}/reactions" -f content=eyes
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
@@ -494,7 +507,7 @@ jobs:
             --effort xhigh
             --max-turns 100
             --allowedTools "mcp__github_inline_comment__create_inline_comment"
-            --append-system-prompt "Before reviewing, read REVIEW.md at the repository root and follow it: it defines what counts as a blocking finding in this repository, what not to report, and the repo-specific checks."
+            --append-system-prompt "Before reviewing, read REVIEW.md at the repository root and follow it: it defines what counts as a blocking finding in this repository, what not to report, and the repo-specific checks. Two overrides apply here. First, the skip gate for already-reviewed PRs: an existing Claude review comment justifies skipping ONLY when its 'Reviewed head:' SHA equals the PR's current head SHA; when the head has moved on, or this run was triggered by an explicit '@claude review' comment, run the full review, focusing on the commits since the previously reviewed head. Second, this is a headless run that terminates the moment you end your turn: launch every subagent with run_in_background set to false and wait for its result inside the same turn - never end your turn while a subagent is still running, and never end it before the review comment is posted. A run that ends without posting the review has failed."
       - name: Upload the run transcript
         if: always()
         env:
@@ -505,6 +518,26 @@ jobs:
           path: ${{ runner.temp }}/claude-execution-output.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Fail if the review posted nothing
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+          STARTED_AT: ${{ steps.started.outputs.at }}
+        run: |
+          set -euo pipefail
+          head=$(gh api "repos/${REPO}/pulls/${PR}" --jq '.head.sha')
+          # updated_at, not created_at: the skill may update its existing sticky comment.
+          # A pre-existing comment naming the current head SHA means a legitimate skip.
+          posted=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select((.updated_at >= \"${STARTED_AT}\") or (.body | contains(\"${head}\")))] | length")
+          inline=$(gh api "repos/${REPO}/pulls/${PR}/comments" --paginate \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select(.updated_at >= \"${STARTED_AT}\")] | length")
+          if [ "$posted" = "0" ] && [ "$inline" = "0" ]; then
+            echo "::error::The review run ended without posting a review of ${head} on #${PR}. Read the uploaded transcript before re-running."
+            exit 1
+          fi
 
   mention:
     if: >-
@@ -525,6 +558,15 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
+      # A custom prompt puts the action in agent mode, which never reacts on its
+      # own, so the requester gets no sign the run started.
+      - name: Acknowledge the mention
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: gh api "repos/${REPO}/issues/comments/${COMMENT_ID}/reactions" -f content=eyes
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
