@@ -80,7 +80,7 @@ describe('SubBalancerFormModal', () => {
     await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
     expect(onConfirm).toHaveBeenCalledWith({
       remark: 'auto',
-      strategy: 'leastLoad',
+      strategy: 'random',
       inboundIds: [1],
       sortOrder: 1,
       enabled: true,

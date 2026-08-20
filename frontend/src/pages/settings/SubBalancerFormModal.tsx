@@ -31,7 +31,7 @@ const STRATEGY_LABEL_KEYS: Record<SubBalancerStrategy, string> = {
 function initialState(balancer: SubBalancer | null): SubBalancerFormValues {
   return {
     remark: balancer?.remark ?? '',
-    strategy: balancer?.strategy ?? 'leastLoad',
+    strategy: balancer?.strategy ?? 'random',
     inboundIds: [...(balancer?.inboundIds ?? [])],
     sortOrder: balancer?.sortOrder ?? 1,
     enabled: balancer?.enabled ?? true,
