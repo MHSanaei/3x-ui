@@ -100,4 +100,29 @@ describe('RuleFormModal edit preserves unsurfaced fields', () => {
       expect.objectContaining({ user: ['removed@example.com'] }),
     );
   });
+
+  it('accepts a custom user identifier that is not a client record', async () => {
+    vi.spyOn(HttpUtil, 'get').mockResolvedValue(
+      new Msg(true, '', [{ id: 1, email: 'alice@example.com' }]),
+    );
+    const onConfirm = vi.fn();
+
+    renderWithProviders(
+      <RuleFormModal
+        open
+        rule={null}
+        inboundTags={[]}
+        outboundTags={['direct']}
+        balancerTags={[]}
+        onClose={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    const userField = screen.getByLabelText('User');
+    fireEvent.change(userField, { target: { value: 'office-proxy,' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ user: ['office-proxy'] }));
+  });
 });

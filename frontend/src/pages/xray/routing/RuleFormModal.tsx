@@ -298,14 +298,19 @@ export default function RuleFormModal({
 
           <FormField
             name="user"
-            label={t('pages.xray.ruleForm.user')}
+            label={
+              <Tooltip title={t('pages.xray.rules.useComma')}>
+                {t('pages.xray.ruleForm.user')} <QuestionCircleOutlined aria-hidden="true" />
+              </Tooltip>
+            }
             transform={{
               input: (value) => csv(typeof value === 'string' ? value : ''),
               output: (value) => (Array.isArray(value) ? value.join(',') : ''),
             }}
           >
             <Select
-              mode="multiple"
+              mode="tags"
+              tokenSeparators={[',']}
               allowClear
               loading={clientsLoading}
               placeholder={t('pages.xray.ruleForm.userPlaceholder')}
