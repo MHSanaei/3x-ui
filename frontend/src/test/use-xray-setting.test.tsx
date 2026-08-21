@@ -67,4 +67,37 @@ describe('useXraySetting', () => {
     expect(result.current.outboundTestUrl).toBe('');
     expect(result.current.saveDisabled).toBe(true);
   });
+
+  it('runs speed-mode Test All at a chunk size of 1, never batched', async () => {
+    const payload = xrayPayload({
+      xraySetting: {
+        outbounds: [
+          { tag: 'a', protocol: 'vless' },
+          { tag: 'b', protocol: 'vless' },
+          { tag: 'c', protocol: 'vless' },
+        ],
+      },
+    });
+    const testOutboundsCallSizes: number[] = [];
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url, data) => {
+      if (url === '/panel/api/xray/') return new Msg(true, '', JSON.stringify(payload));
+      if (url === '/panel/api/xray/testOutbounds') {
+        const outbounds = JSON.parse((data as Record<string, string>).outbounds);
+        testOutboundsCallSizes.push(outbounds.length);
+        return new Msg(true, '', outbounds.map(() => ({ success: true, mode: 'speed', downloadMbps: 1, uploadMbps: 1 })));
+      }
+      return new Msg(true, '');
+    });
+    const queryClient = makeTestQueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useXraySetting(), { wrapper });
+
+    await waitFor(() => expect(result.current.fetched).toBe(true));
+    await waitFor(() => expect(result.current.templateSettings?.outbounds?.length).toBe(3));
+    await act(async () => { await result.current.testAllOutbounds('speed'); });
+
+    expect(testOutboundsCallSizes).toEqual([1, 1, 1]);
+  });
 });

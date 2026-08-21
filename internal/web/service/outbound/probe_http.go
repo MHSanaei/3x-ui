@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -62,12 +63,39 @@ const (
 	defaultTestURL  = "https://www.google.com/generate_204"
 	egressTraceHost = "cloudflare.com"
 	egressTracePath = "/cdn-cgi/trace"
+
+	// speedDownloadByteCap is a safety ceiling, not a tuned value -- the
+	// wall-clock deadline below, not this cap, is what ends the transfer.
+	speedDownloadByteCap = 2_000_000_000 // ~2 GB
+	// speedTransferChunkSize sizes each Read call in the download loop.
+	speedTransferChunkSize = 64 << 10
+
+	defaultSpeedUploadURL = "https://speed.cloudflare.com/__up"
 )
+
+// Vars, not consts, solely so tests can shorten these (save/restore) to
+// exercise deadline-cutoff behavior without an 8+-second test.
+var (
+	// speedProbeConnectTimeout bounds only reaching a usable connection --
+	// generous so a slow-to-establish outbound (Tor) loses no transfer budget.
+	speedProbeConnectTimeout = 15 * time.Second
+	// speedProbeTransferDuration is the measurement window, per direction.
+	// A deadline hit mid-transfer is a valid partial measurement, not a failure.
+	speedProbeTransferDuration = 8 * time.Second
+)
+
+// defaultSpeedDownloadURL bakes speedDownloadByteCap into Cloudflare's own
+// down-test query param; a var (not a const) since it's built with Sprintf.
+var defaultSpeedDownloadURL = fmt.Sprintf("https://speed.cloudflare.com/__down?bytes=%d", speedDownloadByteCap)
 
 // httpTestSemaphore serialises HTTP-mode batches (each spawns a temp xray
 // instance, which is too expensive to run in parallel). TCP-mode probes are
 // dial-only and don't need the semaphore.
 var httpTestSemaphore sync.Mutex
+
+// speedTestSemaphore is separate from httpTestSemaphore so a long "Test All
+// Speeds" pass doesn't block an ordinary quick latency check.
+var speedTestSemaphore sync.Mutex
 
 // batchProcess is the slice of xray.Process the batch engine needs; a seam
 // so unit tests can stub the process without an xray binary.
@@ -95,32 +123,37 @@ type httpBatchItem struct {
 
 func probeModeLabel(mode string) string {
 	switch mode {
-	case "tcp", "real":
+	case "tcp", "real", "speed":
 		return mode
 	default:
 		return "http"
 	}
 }
 
+// probeOptions bundles per-mode knobs threaded down to the per-item probe
+// call, so a new setting doesn't need another positional param everywhere.
+type probeOptions struct {
+	testURL          string
+	realDelay        bool
+	mode             string
+	speedDownloadURL string
+	speedUploadURL   string
+}
+
 // TestOutbound probes a single outbound; legacy single-test API kept for the
-// /testOutbound endpoint. Dispatch matches TestOutbounds: mode "tcp" dials
-// the outbound's endpoints directly, anything else routes a real HTTP request
-// through a temp xray instance (UDP-transport outbounds are always forced to
-// the HTTP probe — a raw dial can't measure them).
-func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string) (*TestOutboundResult, error) {
+// /testOutbound endpoint. Mode dispatch matches TestOutbounds.
+func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string, mode string, speedDownloadURL string, speedUploadURL string) (*TestOutboundResult, error) {
 	var ob map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &ob); err != nil {
 		return &TestOutboundResult{Mode: probeModeLabel(mode), Success: false, Error: fmt.Sprintf("Invalid outbound JSON: %v", err)}, nil
 	}
-	results := s.testOutboundsParsed([]map[string]any{ob}, testURL, allOutboundsJSON, mode)
+	results := s.testOutboundsParsed([]map[string]any{ob}, testURL, allOutboundsJSON, mode, speedDownloadURL, speedUploadURL)
 	return results[0], nil
 }
 
-// TestOutbounds probes a JSON array of outbounds and returns one result per
-// input, in input order, each carrying the outbound's tag. allOutboundsJSON
-// supplies the config context (sockopt.dialerProxy chains); testURL falls
-// back to the default probe URL when empty.
-func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string) ([]*TestOutboundResult, error) {
+// TestOutbounds probes a JSON array of outbounds, returning one result per
+// input in order. Empty URL params fall back to their own defaults.
+func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, allOutboundsJSON string, mode string, speedDownloadURL string, speedUploadURL string) ([]*TestOutboundResult, error) {
 	var raw []json.RawMessage
 	if err := json.Unmarshal([]byte(outboundsJSON), &raw); err != nil {
 		return nil, fmt.Errorf("invalid outbounds JSON: %w", err)
@@ -135,13 +168,12 @@ func (s *OutboundService) TestOutbounds(outboundsJSON string, testURL string, al
 			items[i] = ob
 		}
 	}
-	return s.testOutboundsParsed(items, testURL, allOutboundsJSON, mode), nil
+	return s.testOutboundsParsed(items, testURL, allOutboundsJSON, mode, speedDownloadURL, speedUploadURL), nil
 }
 
-// testOutboundsParsed splits items into the TCP lane (direct dials, bounded
-// worker pool) and the HTTP lane (one shared temp xray instance), runs both,
-// and returns results aligned with items. A nil item marks unparseable input.
-func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL string, allOutboundsJSON string, mode string) []*TestOutboundResult {
+// testOutboundsParsed splits items into the TCP lane and the HTTP lane (also
+// used for "speed" mode, forced to concurrency 1), then runs both.
+func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL string, allOutboundsJSON string, mode string, speedDownloadURL string, speedUploadURL string) []*TestOutboundResult {
 	results := make([]*TestOutboundResult, len(items))
 
 	modeLabel := probeModeLabel(mode)
@@ -240,14 +272,33 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	if testURL == "" {
 		testURL = defaultTestURL
 	}
+	if speedDownloadURL == "" {
+		speedDownloadURL = defaultSpeedDownloadURL
+	}
+	if speedUploadURL == "" {
+		speedUploadURL = defaultSpeedUploadURL
+	}
+	opts := probeOptions{
+		testURL:          testURL,
+		realDelay:        realDelay,
+		mode:             mode,
+		speedDownloadURL: speedDownloadURL,
+		speedUploadURL:   speedUploadURL,
+	}
 
-	if !httpTestSemaphore.TryLock() {
-		failAll("Another outbound test is already running, please wait")
+	sem := &httpTestSemaphore
+	busyMsg := "Another outbound test is already running, please wait"
+	if mode == "speed" {
+		sem = &speedTestSemaphore
+		busyMsg = "Another speed test is already running, please wait"
+	}
+	if !sem.TryLock() {
+		failAll(busyMsg)
 		return results
 	}
-	defer httpTestSemaphore.Unlock()
+	defer sem.Unlock()
 
-	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, testURL, realDelay)
+	retryPerItem, err := runHTTPProbeBatch(httpItems, allOutbounds, opts)
 	if err == nil {
 		return results
 	}
@@ -260,7 +311,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 	// instance so the broken outbound reports xray's real error and the
 	// rest still get tested. Serial: the poisoned case fails fast (~1s).
 	for _, it := range httpItems {
-		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, testURL, realDelay); ferr != nil {
+		if _, ferr := runHTTPProbeBatch([]*httpBatchItem{it}, allOutbounds, opts); ferr != nil {
 			it.result.Success = false
 			it.result.Error = ferr.Error()
 		}
@@ -274,7 +325,7 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 // whether splitting the batch into per-item instances could help (true for
 // start failures / early exits that a poisoned config would explain, false
 // for environmental failures like a missing binary or no free ports).
-func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL string, realDelay bool) (retryPerItem bool, err error) {
+func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, opts probeOptions) (retryPerItem bool, err error) {
 	ports, release, err := reserveLoopbackPorts(len(items))
 	if err != nil {
 		return false, fmt.Errorf("Failed to reserve test ports: %w", err)
@@ -312,7 +363,13 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 		return err.exited, err
 	}
 
-	sem := make(chan struct{}, httpProbeConcurrency)
+	// Speed mode is hard-forced to concurrency 1 here too (defense in depth):
+	// concurrent throughput tests would contend for the same uplink/downlink.
+	concurrency := httpProbeConcurrency
+	if opts.mode == "speed" {
+		concurrency = 1
+	}
+	sem := make(chan struct{}, concurrency)
 	var wg sync.WaitGroup
 	for i := range items {
 		wg.Add(1)
@@ -320,7 +377,11 @@ func runHTTPProbeBatch(items []*httpBatchItem, allOutbounds []any, testURL strin
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			probeThroughSocks(port, testURL, httpProbeTimeout, realDelay, it.result)
+			if opts.mode == "speed" {
+				probeSpeedThroughSocks(port, opts.speedDownloadURL, opts.speedUploadURL, speedProbeConnectTimeout, speedProbeTransferDuration, it.result)
+			} else {
+				probeThroughSocks(port, opts.testURL, httpProbeTimeout, opts.realDelay, it.result)
+			}
 		}(items[i], ports[i])
 	}
 	wg.Wait()
@@ -553,6 +614,169 @@ func probeThroughSocks(port int, testURL string, timeout time.Duration, realDela
 	if !realDelay {
 		result.Egress = egressTraceProbe(proxyURL)
 	}
+}
+
+// probeSpeedThroughSocks measures download then upload, strictly
+// sequentially -- concurrent directions would contend for the same uplink.
+func probeSpeedThroughSocks(port int, downloadURL, uploadURL string, connectTimeout, transferDuration time.Duration, result *TestOutboundResult) {
+	proxyURL := &url.URL{Scheme: "socks5", Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port))}
+	tr := &http.Transport{
+		Proxy:               http.ProxyURL(proxyURL),
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+	}
+	defer tr.CloseIdleConnections()
+	client := &http.Client{Transport: tr}
+
+	var errs []string
+
+	downBytes, downDur, downErr := speedProbeDownload(client, downloadURL, connectTimeout, transferDuration)
+	if downErr != nil {
+		errs = append(errs, "download: "+downErr.Error())
+	} else {
+		result.Success = true
+		result.DownloadMbps = max(mbps(downBytes, downDur), 0.01)
+	}
+
+	upBytes, upDur, upErr := speedProbeUpload(client, uploadURL, connectTimeout, transferDuration)
+	if upErr != nil {
+		errs = append(errs, "upload: "+upErr.Error())
+	} else {
+		result.Success = true
+		result.UploadMbps = max(mbps(upBytes, upDur), 0.01)
+	}
+
+	if len(errs) > 0 {
+		result.Error = strings.Join(errs, "; ")
+	}
+	if !result.Success && result.Error == "" {
+		result.Error = "Speed test failed"
+	}
+}
+
+// speedProbeDownload swaps a connect-phase timer for a transfer-phase timer
+// once headers arrive, so a slow connect never eats into the transfer window.
+func speedProbeDownload(client *http.Client, downloadURL string, connectTimeout, transferDuration time.Duration) (bytesRead int64, elapsed time.Duration, err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	connectTimer := time.AfterFunc(connectTimeout, cancel)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		connectTimer.Stop()
+		return 0, 0, err
+	}
+	resp, err := client.Do(req)
+	connectTimer.Stop()
+	if err != nil {
+		return 0, 0, err
+	}
+	defer resp.Body.Close()
+
+	transferTimer := time.AfterFunc(transferDuration, cancel)
+	defer transferTimer.Stop()
+
+	start := time.Now()
+	buf := make([]byte, speedTransferChunkSize)
+	var total int64
+	for {
+		n, rerr := resp.Body.Read(buf)
+		total += int64(n)
+		if rerr != nil || time.Since(start) >= transferDuration {
+			break
+		}
+	}
+	return total, time.Since(start), nil
+}
+
+// uploadStart crosses from the transport's goroutine to speedProbeUpload's
+// via a channel (startCh), not a shared variable, so reads are race-free.
+type uploadStart struct {
+	at    time.Time
+	timer *time.Timer
+}
+
+// speedProbeUpload uses httptrace's WroteHeaders (not client.Do returning)
+// as the connect signal, since Do blocks until the whole body is sent/aborted.
+func speedProbeUpload(client *http.Client, uploadURL string, connectTimeout, transferDuration time.Duration) (bytesWritten int64, elapsed time.Duration, err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	connectTimer := time.AfterFunc(connectTimeout, cancel)
+
+	body := &countingZeroReader{cap: speedDownloadByteCap}
+	startCh := make(chan uploadStart, 1)
+	var startOnce sync.Once
+	trace := &httptrace.ClientTrace{
+		WroteHeaders: func() {
+			startOnce.Do(func() {
+				connectTimer.Stop()
+				now := time.Now()
+				timer := time.AfterFunc(transferDuration, cancel)
+				startCh <- uploadStart{at: now, timer: timer}
+			})
+		},
+	}
+
+	req, reqErr := http.NewRequestWithContext(httptrace.WithClientTrace(ctx, trace), http.MethodPost, uploadURL, body)
+	if reqErr != nil {
+		connectTimer.Stop()
+		return 0, 0, reqErr
+	}
+	resp, doErr := client.Do(req)
+	connectTimer.Stop()
+
+	var s uploadStart
+	select {
+	case s = <-startCh:
+	default:
+	}
+	if s.timer != nil {
+		s.timer.Stop()
+	}
+
+	if doErr != nil {
+		if s.at.IsZero() {
+			return atomic.LoadInt64(&body.read), 0, doErr
+		}
+		return atomic.LoadInt64(&body.read), time.Since(s.at), nil
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, probeDrainLimit))
+
+	if s.at.IsZero() {
+		return atomic.LoadInt64(&body.read), 0, nil
+	}
+	return atomic.LoadInt64(&body.read), time.Since(s.at), nil
+}
+
+// countingZeroReader hands out up-to-cap zero bytes for a speed-probe POST
+// body; read is atomic since Read and the result reader use different goroutines.
+type countingZeroReader struct {
+	cap  int64
+	read int64
+}
+
+func (r *countingZeroReader) Read(p []byte) (int, error) {
+	remaining := r.cap - atomic.LoadInt64(&r.read)
+	if remaining <= 0 {
+		return 0, io.EOF
+	}
+	n := int64(len(p))
+	if n > remaining {
+		n = remaining
+	}
+	atomic.AddInt64(&r.read, n)
+	return int(n), nil
+}
+
+// mbps returns 0 (not a tiny positive number) when there's nothing to
+// measure, so callers can tell "no data" apart from "measured, and slow".
+func mbps(bytesTransferred int64, elapsed time.Duration) float64 {
+	seconds := elapsed.Seconds()
+	if seconds <= 0 || bytesTransferred <= 0 {
+		return 0
+	}
+	return float64(bytesTransferred) * 8 / 1_000_000 / seconds
 }
 
 // probeEgressTrace fetches Cloudflare's plain-text trace endpoint through the

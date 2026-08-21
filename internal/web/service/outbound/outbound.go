@@ -141,6 +141,11 @@ type TestOutboundResult struct {
 	TLSMs      int64 `json:"tlsMs,omitempty"`
 	TTFBMs     int64 `json:"ttfbMs,omitempty"`
 
+	// Speed-mode extras: clamped to a minimum of 0.01 like the timing fields
+	// above, so a genuinely-slow-but-measured rate is never elided as unmeasured.
+	DownloadMbps float64 `json:"downloadMbps,omitempty"`
+	UploadMbps   float64 `json:"uploadMbps,omitempty"`
+
 	Endpoints []TestEndpointResult `json:"endpoints,omitempty"`
 	Egress    *TestEgressResult    `json:"egress,omitempty"`
 }

@@ -57,6 +57,10 @@ export default function XrayPage() {
     setTemplateSettings,
     outboundTestUrl,
     setOutboundTestUrl,
+    speedDownloadUrl,
+    setSpeedDownloadUrl,
+    speedUploadUrl,
+    setSpeedUploadUrl,
     inboundTags,
     clientReverseTags,
     subscriptionOutbounds,
@@ -300,6 +304,10 @@ export default function XrayPage() {
             setTemplateSettings={setTemplateSettings}
             outboundTestUrl={outboundTestUrl}
             onChangeOutboundTestUrl={setOutboundTestUrl}
+            speedDownloadUrl={speedDownloadUrl}
+            onChangeSpeedDownloadUrl={setSpeedDownloadUrl}
+            speedUploadUrl={speedUploadUrl}
+            onChangeSpeedUploadUrl={setSpeedUploadUrl}
             onResetDefault={resetToDefault}
           />
         );

@@ -1343,8 +1343,8 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/xray/',
-        summary: 'Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test URL in one response.',
-        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"in-443-tcp\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204"\n  }\n}',
+        summary: 'Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test/speed-test URLs in one response.',
+        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"in-443-tcp\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204",\n    "speedDownloadUrl": "https://speed.cloudflare.com/__down?bytes=2000000000",\n    "speedUploadUrl": "https://speed.cloudflare.com/__up"\n  }\n}',
       },
       {
         method: 'GET',
@@ -1364,10 +1364,12 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/xray/update',
-        summary: 'Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.',
+        summary: 'Save the Xray JSON config template and optionally the outbound test/speed-test URLs. All are sent as form fields.',
         params: [
           { name: 'xraySetting', in: 'body (form)', type: 'string', desc: 'Full Xray JSON config template.' },
           { name: 'outboundTestUrl', in: 'body (form)', type: 'string', desc: 'URL used for outbound reachability tests. Defaults to https://www.google.com/generate_204.' },
+          { name: 'speedDownloadUrl', in: 'body (form)', type: 'string', desc: 'URL used for speed-test downloads. Defaults to https://speed.cloudflare.com/__down?bytes=2000000000.' },
+          { name: 'speedUploadUrl', in: 'body (form)', type: 'string', desc: 'URL used for speed-test uploads. Defaults to https://speed.cloudflare.com/__up.' },
         ],
       },
       {
@@ -1416,18 +1418,22 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'outbound', in: 'body (form)', type: 'string', desc: 'JSON-encoded single outbound to test (required).' },
           { name: 'allOutbounds', in: 'body (form)', type: 'string', desc: 'JSON array of all outbounds — used to resolve dialerProxy chains.' },
-          { name: 'mode', in: 'body (form)', type: 'string', desc: '"tcp" for a fast dial-only probe (parallel-safe), "real" for a real-delay probe whose delay is the full request time including tunnel establishment. Default/empty uses a full HTTP probe reporting the warm per-request round-trip. Both HTTP variants run through a temp xray instance.' },
+          { name: 'mode', in: 'body (form)', type: 'string', desc: '"tcp" for a fast dial-only probe (parallel-safe), "real" for a real-delay probe whose delay is the full request time including tunnel establishment, "speed" for a timed download+upload throughput measurement (slower — connect + up to ~16s per direction). Default/empty uses a full HTTP probe reporting the warm per-request round-trip. All non-tcp variants run through a temp xray instance.' },
+          { name: 'speedDownloadUrl', in: 'body (form)', type: 'string', desc: 'Download target for mode "speed"; ignored otherwise. Falls back to the server-configured speed-test download URL when empty.' },
+          { name: 'speedUploadUrl', in: 'body (form)', type: 'string', desc: 'Upload target for mode "speed"; ignored otherwise. Falls back to the server-configured speed-test upload URL when empty.' },
         ],
         body: 'outbound={"protocol":"freedom","settings":{}}&mode=tcp',
       },
       {
         method: 'POST',
         path: '/panel/api/xray/testOutbounds',
-        summary: 'Test a batch of outbounds (max 50) through one shared temp xray instance. Returns an array of results in input order, each with the outbound tag, delay, HTTP status and a connect/TLS/TTFB timing breakdown.',
+        summary: 'Test a batch of outbounds (max 50) through one shared temp xray instance. Returns an array of results in input order, each with the outbound tag, delay, HTTP status, a connect/TLS/TTFB timing breakdown, or (mode "speed") download/upload Mbit/s.',
         params: [
           { name: 'outbounds', in: 'body (form)', type: 'string', desc: 'JSON array of outbound configs to test (required).' },
           { name: 'allOutbounds', in: 'body (form)', type: 'string', desc: 'JSON array of all outbounds — used to resolve dialerProxy chains.' },
-          { name: 'mode', in: 'body (form)', type: 'string', desc: '"tcp" for fast dial-only probes (UDP-transport outbounds are still probed over HTTP), "real" for real-delay probes whose delay is the full request time including tunnel establishment. Default/empty routes an HTTP request through each outbound and reports the warm per-request round-trip.' },
+          { name: 'mode', in: 'body (form)', type: 'string', desc: '"tcp" for fast dial-only probes (UDP-transport outbounds are still probed over HTTP), "real" for real-delay probes whose delay is the full request time including tunnel establishment, "speed" for a timed down+up throughput measurement per outbound (always run at concurrency 1, regardless of batch size — several outbounds tested at once would contend for the same uplink/downlink). Default/empty routes an HTTP request through each outbound and reports the warm per-request round-trip.' },
+          { name: 'speedDownloadUrl', in: 'body (form)', type: 'string', desc: 'Download target for mode "speed"; ignored otherwise. Falls back to the server-configured speed-test download URL when empty.' },
+          { name: 'speedUploadUrl', in: 'body (form)', type: 'string', desc: 'Upload target for mode "speed"; ignored otherwise. Falls back to the server-configured speed-test upload URL when empty.' },
         ],
         body: 'outbounds=[{"tag":"direct","protocol":"freedom","settings":{}}]&mode=http',
       },

@@ -431,6 +431,30 @@ func (s *SettingService) SetXrayOutboundTestUrl(url string) error {
 	return s.setString("xrayOutboundTestUrl", clean)
 }
 
+func (s *SettingService) GetXraySpeedDownloadUrl() (string, error) {
+	return s.getString("xraySpeedDownloadUrl")
+}
+
+func (s *SettingService) SetXraySpeedDownloadUrl(url string) error {
+	clean, err := SanitizeHTTPURL(url)
+	if err != nil {
+		return err
+	}
+	return s.setString("xraySpeedDownloadUrl", clean)
+}
+
+func (s *SettingService) GetXraySpeedUploadUrl() (string, error) {
+	return s.getString("xraySpeedUploadUrl")
+}
+
+func (s *SettingService) SetXraySpeedUploadUrl(url string) error {
+	clean, err := SanitizeHTTPURL(url)
+	if err != nil {
+		return err
+	}
+	return s.setString("xraySpeedUploadUrl", clean)
+}
+
 func (s *SettingService) GetListen() (string, error) {
 	return s.getString("webListen")
 }

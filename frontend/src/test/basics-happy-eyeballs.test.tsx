@@ -27,6 +27,10 @@ describe('BasicsTab malformed happyEyeballs', () => {
           setTemplateSettings={vi.fn()}
           outboundTestUrl=""
           onChangeOutboundTestUrl={vi.fn()}
+          speedDownloadUrl=""
+          onChangeSpeedDownloadUrl={vi.fn()}
+          speedUploadUrl=""
+          onChangeSpeedUploadUrl={vi.fn()}
           onResetDefault={vi.fn()}
         />,
       ),

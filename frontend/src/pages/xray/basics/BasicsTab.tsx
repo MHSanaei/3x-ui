@@ -31,6 +31,10 @@ interface BasicsTabProps {
   setTemplateSettings: SetTemplate;
   outboundTestUrl: string;
   onChangeOutboundTestUrl: (v: string) => void;
+  speedDownloadUrl: string;
+  onChangeSpeedDownloadUrl: (v: string) => void;
+  speedUploadUrl: string;
+  onChangeSpeedUploadUrl: (v: string) => void;
   onResetDefault: () => void;
 }
 
@@ -39,6 +43,10 @@ export default function BasicsTab({
   setTemplateSettings,
   outboundTestUrl,
   onChangeOutboundTestUrl,
+  speedDownloadUrl,
+  onChangeSpeedDownloadUrl,
+  speedUploadUrl,
+  onChangeSpeedUploadUrl,
   onResetDefault,
 }: BasicsTabProps) {
   const { t } = useTranslation();
@@ -263,6 +271,30 @@ export default function BasicsTab({
                 value={outboundTestUrl}
                 onChange={(e) => onChangeOutboundTestUrl(e.target.value)}
                 placeholder="https://www.google.com/generate_204"
+              />
+            }
+          />
+          <SettingListItem
+            title={t('pages.xray.speedDownloadUrl')}
+            description={t('pages.xray.speedDownloadUrlDesc')}
+            paddings="small"
+            control={
+              <Input
+                value={speedDownloadUrl}
+                onChange={(e) => onChangeSpeedDownloadUrl(e.target.value)}
+                placeholder="https://speed.cloudflare.com/__down?bytes=2000000000"
+              />
+            }
+          />
+          <SettingListItem
+            title={t('pages.xray.speedUploadUrl')}
+            description={t('pages.xray.speedUploadUrlDesc')}
+            paddings="small"
+            control={
+              <Input
+                value={speedUploadUrl}
+                onChange={(e) => onChangeSpeedUploadUrl(e.target.value)}
+                placeholder="https://speed.cloudflare.com/__up"
               />
             }
           />

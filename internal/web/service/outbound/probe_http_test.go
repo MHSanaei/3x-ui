@@ -120,8 +120,21 @@ func serveStubSocks(l net.Listener) {
 			}
 			defer upstream.Close()
 			c.Write([]byte{0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
-			go io.Copy(upstream, c)
+			// Closing either leg must close the other too, or an aborted
+			// client leaves the upstream leg hanging forever on EOF/reset.
+			var closeOnce sync.Once
+			closeBoth := func() {
+				closeOnce.Do(func() {
+					c.Close()
+					upstream.Close()
+				})
+			}
+			go func() {
+				io.Copy(upstream, c)
+				closeBoth()
+			}()
 			io.Copy(c, upstream)
+			closeBoth()
 		}(conn)
 	}
 }
@@ -254,7 +267,7 @@ func TestTestOutboundsPrevalidationAndOrdering(t *testing.T) {
 		map[string]any{"tag": "a", "protocol": "socks"},       // valid
 		map[string]any{"tag": "a", "protocol": "vless"},       // duplicate
 	})
-	results, err := (&OutboundService{}).TestOutbounds(batch, "http://example.invalid/gen", "", "http")
+	results, err := (&OutboundService{}).TestOutbounds(batch, "http://example.invalid/gen", "", "http", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -296,7 +309,7 @@ func TestTestOutboundsFallbackOnStartFailure(t *testing.T) {
 		map[string]any{"tag": "a", "protocol": "socks"},
 		map[string]any{"tag": "b", "protocol": "vless"},
 	})
-	results, err := (&OutboundService{}).TestOutbounds(batch, "http://example.invalid/gen", "", "http")
+	results, err := (&OutboundService{}).TestOutbounds(batch, "http://example.invalid/gen", "", "http", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -322,7 +335,7 @@ func TestTestOutboundsNoFallbackWhenBinaryMissing(t *testing.T) {
 		map[string]any{"tag": "a", "protocol": "socks"},
 		map[string]any{"tag": "b", "protocol": "vless"},
 	})
-	results, err := (&OutboundService{}).TestOutbounds(batch, "http://example.invalid/gen", "", "http")
+	results, err := (&OutboundService{}).TestOutbounds(batch, "http://example.invalid/gen", "", "http", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -346,7 +359,7 @@ func TestTestOutboundsSemaphoreBusy(t *testing.T) {
 	defer httpTestSemaphore.Unlock()
 
 	batch := mustJSON(t, []any{map[string]any{"tag": "a", "protocol": "socks"}})
-	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "http")
+	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "http", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -357,7 +370,7 @@ func TestTestOutboundsSemaphoreBusy(t *testing.T) {
 
 func TestTestOutboundsInputValidation(t *testing.T) {
 	s := &OutboundService{}
-	if _, err := s.TestOutbounds("not json", "", "", "tcp"); err == nil {
+	if _, err := s.TestOutbounds("not json", "", "", "tcp", "", ""); err == nil {
 		t.Error("expected error for invalid JSON")
 	}
 
@@ -365,11 +378,11 @@ func TestTestOutboundsInputValidation(t *testing.T) {
 	for i := range big {
 		big[i] = map[string]any{"tag": fmt.Sprintf("t%d", i), "protocol": "socks"}
 	}
-	if _, err := s.TestOutbounds(mustJSON(t, big), "", "", "tcp"); err == nil {
+	if _, err := s.TestOutbounds(mustJSON(t, big), "", "", "tcp", "", ""); err == nil {
 		t.Error("expected error for oversized batch")
 	}
 
-	results, err := s.TestOutbounds("[]", "", "", "tcp")
+	results, err := s.TestOutbounds("[]", "", "", "tcp", "", "")
 	if err != nil || len(results) != 0 {
 		t.Errorf("empty batch: results=%v err=%v", results, err)
 	}
@@ -397,7 +410,7 @@ func TestTestOutboundsTCPLane(t *testing.T) {
 		"protocol": "socks",
 		"settings": map[string]any{"servers": []any{map[string]any{"address": "127.0.0.1", "port": port}}},
 	}})
-	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "tcp")
+	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "tcp", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -433,7 +446,7 @@ func TestTestOutboundsHTTPBatchThroughStubSocks(t *testing.T) {
 		map[string]any{"tag": "a", "protocol": "vless"},
 		map[string]any{"tag": "b", "protocol": "trojan"},
 	})
-	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "http")
+	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "http", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -497,7 +510,7 @@ func TestTestOutboundsRealDelayBatchThroughStubSocks(t *testing.T) {
 		map[string]any{"tag": "a", "protocol": "vless"},
 		map[string]any{"tag": "wg", "protocol": "wireguard"},
 	})
-	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "real")
+	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "real", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -544,7 +557,7 @@ func TestTestOutboundsTCPModeForcesUDPToHTTPProbe(t *testing.T) {
 	})
 
 	batch := mustJSON(t, []any{map[string]any{"tag": "wg", "protocol": "wireguard"}})
-	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "tcp")
+	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "tcp", "", "")
 	if err != nil {
 		t.Fatalf("TestOutbounds: %v", err)
 	}
@@ -561,6 +574,7 @@ func TestProbeModeLabel(t *testing.T) {
 	cases := []struct{ mode, want string }{
 		{"tcp", "tcp"},
 		{"real", "real"},
+		{"speed", "speed"},
 		{"http", "http"},
 		{"", "http"},
 		{"bogus", "http"},
@@ -593,5 +607,185 @@ func TestProbeThroughSocksTransportFailure(t *testing.T) {
 	probeThroughSocks(l.Addr().(*net.TCPAddr).Port, "http://127.0.0.1:9/", 2*time.Second, false, &result)
 	if result.Success || result.Error == "" {
 		t.Errorf("expected transport failure, got %+v", result)
+	}
+}
+
+// withShortSpeedDurations shortens the package-level speed-probe deadlines
+// so a mid-stream-cutoff test doesn't wait out the real 15s/8s values.
+func withShortSpeedDurations(t *testing.T, connectTimeout, transferDuration time.Duration) {
+	t.Helper()
+	origConnect, origTransfer := speedProbeConnectTimeout, speedProbeTransferDuration
+	speedProbeConnectTimeout, speedProbeTransferDuration = connectTimeout, transferDuration
+	t.Cleanup(func() { speedProbeConnectTimeout, speedProbeTransferDuration = origConnect, origTransfer })
+}
+
+// serveForeverBody streams indefinitely, proving a deadline (not server EOF)
+// is what cuts a transfer off.
+func serveForeverBody(w http.ResponseWriter, r *http.Request) {
+	flusher, _ := w.(http.Flusher)
+	buf := make([]byte, 32<<10)
+	for {
+		if _, err := w.Write(buf); err != nil {
+			return
+		}
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}
+}
+
+func drainAndOK(w http.ResponseWriter, r *http.Request) {
+	io.Copy(io.Discard, r.Body)
+	w.WriteHeader(http.StatusOK)
+}
+
+func TestProbeSpeedThroughSocksFullTransfer(t *testing.T) {
+	down := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(make([]byte, 64<<10)) // small, finishes well before the deadline
+	}))
+	defer down.Close()
+	up := httptest.NewServer(http.HandlerFunc(drainAndOK))
+	defer up.Close()
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer l.Close()
+	go serveStubSocks(l)
+
+	var result TestOutboundResult
+	probeSpeedThroughSocks(l.Addr().(*net.TCPAddr).Port, down.URL, up.URL, 2*time.Second, 1*time.Second, &result)
+	if !result.Success || result.Error != "" {
+		t.Fatalf("expected success, got %+v", result)
+	}
+	if result.DownloadMbps <= 0 {
+		t.Errorf("DownloadMbps = %v, want > 0", result.DownloadMbps)
+	}
+	if result.UploadMbps <= 0 {
+		t.Errorf("UploadMbps = %v, want > 0", result.UploadMbps)
+	}
+}
+
+func TestProbeSpeedThroughSocksPartialRead(t *testing.T) {
+	down := httptest.NewServer(http.HandlerFunc(serveForeverBody))
+	defer down.Close()
+	up := httptest.NewServer(http.HandlerFunc(drainAndOK))
+	defer up.Close()
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer l.Close()
+	go serveStubSocks(l)
+
+	var result TestOutboundResult
+	start := time.Now()
+	probeSpeedThroughSocks(l.Addr().(*net.TCPAddr).Port, down.URL, up.URL, 2*time.Second, 300*time.Millisecond, &result)
+	elapsed := time.Since(start)
+
+	if !result.Success || result.Error != "" {
+		t.Fatalf("a deadline hit mid-transfer should still be a success, got %+v", result)
+	}
+	if result.DownloadMbps <= 0 {
+		t.Errorf("DownloadMbps = %v, want > 0 (partial read)", result.DownloadMbps)
+	}
+	if result.UploadMbps <= 0 {
+		t.Errorf("UploadMbps = %v, want > 0 (partial upload)", result.UploadMbps)
+	}
+	// A server that never stops on its own proves the deadline, not EOF,
+	// ended each ~300ms direction.
+	if elapsed > 3*time.Second {
+		t.Errorf("elapsed = %v, want ~600ms — the deadline should cut off an otherwise-infinite stream", elapsed)
+	}
+}
+
+func TestTestOutboundsSpeedModeSemaphoreBusy(t *testing.T) {
+	withStubProcess(t, func(cfg *xray.Config, configPath string) batchProcess {
+		t.Fatal("process must not be spawned while the speed semaphore is held")
+		return nil
+	})
+
+	speedTestSemaphore.Lock()
+	defer speedTestSemaphore.Unlock()
+
+	batch := mustJSON(t, []any{map[string]any{"tag": "a", "protocol": "socks"}})
+	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "speed", "", "")
+	if err != nil {
+		t.Fatalf("TestOutbounds: %v", err)
+	}
+	if results[0].Success || results[0].Error != "Another speed test is already running, please wait" {
+		t.Errorf("result = %+v, want busy error", results[0])
+	}
+}
+
+func TestTestOutboundsSpeedModeDoesNotBlockHTTPMode(t *testing.T) {
+	httpSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer httpSrv.Close()
+	speedDown := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(make([]byte, 4<<10))
+	}))
+	defer speedDown.Close()
+	speedUp := httptest.NewServer(http.HandlerFunc(drainAndOK))
+	defer speedUp.Close()
+
+	withStubProcess(t, func(cfg *xray.Config, configPath string) batchProcess {
+		return &stubProcess{cfg: cfg, serveSocks: true}
+	})
+
+	// Holding the speed semaphore must not reject an ordinary HTTP-mode test.
+	speedTestSemaphore.Lock()
+	batch := mustJSON(t, []any{map[string]any{"tag": "a", "protocol": "vless"}})
+	results, err := (&OutboundService{}).TestOutbounds(batch, httpSrv.URL, "", "http", "", "")
+	speedTestSemaphore.Unlock()
+	if err != nil {
+		t.Fatalf("TestOutbounds: %v", err)
+	}
+	if !results[0].Success {
+		t.Errorf("http-mode result blocked by a held speed semaphore: %+v", results[0])
+	}
+
+	// And the reverse: httpTestSemaphore must not block a speed-mode test.
+	httpTestSemaphore.Lock()
+	speedBatch := mustJSON(t, []any{map[string]any{"tag": "b", "protocol": "vless"}})
+	speedResults, err := (&OutboundService{}).TestOutbounds(speedBatch, "", "", "speed", speedDown.URL, speedUp.URL)
+	httpTestSemaphore.Unlock()
+	if err != nil {
+		t.Fatalf("TestOutbounds (speed): %v", err)
+	}
+	if !speedResults[0].Success {
+		t.Errorf("speed-mode result blocked by a held http semaphore: %+v", speedResults[0])
+	}
+}
+
+// TestTestOutboundsSpeedModeProcessCleanupAfterDeadline mirrors
+// TestTestOutboundsHTTPBatchThroughStubSocks's cleanup check, for speed mode.
+func TestTestOutboundsSpeedModeProcessCleanupAfterDeadline(t *testing.T) {
+	withShortSpeedDurations(t, 2*time.Second, 300*time.Millisecond)
+
+	down := httptest.NewServer(http.HandlerFunc(serveForeverBody))
+	defer down.Close()
+	up := httptest.NewServer(http.HandlerFunc(drainAndOK))
+	defer up.Close()
+
+	var proc *stubProcess
+	withStubProcess(t, func(cfg *xray.Config, configPath string) batchProcess {
+		proc = &stubProcess{cfg: cfg, serveSocks: true}
+		return proc
+	})
+
+	batch := mustJSON(t, []any{map[string]any{"tag": "a", "protocol": "vless"}})
+	results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "speed", down.URL, up.URL)
+	if err != nil {
+		t.Fatalf("TestOutbounds: %v", err)
+	}
+	if !results[0].Success {
+		t.Fatalf("expected success (partial transfer, deadline-bounded), got %+v", results[0])
+	}
+	if proc.IsRunning() {
+		t.Error("temp process not stopped after a speed-mode batch whose transfer hit its own deadline")
 	}
 }

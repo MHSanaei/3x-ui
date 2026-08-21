@@ -13,11 +13,16 @@ interface TestResultPopoverProps {
   children?: ReactNode;
 }
 
+function fmtMbps(v?: number): string {
+  return typeof v === 'number' ? v.toFixed(1) : '—';
+}
+
 // Latency pill + detail popover for an outbound test result: per-endpoint
 // dial outcomes for TCP probes, HTTP status and the timing breakdown for
 // HTTP probes.
 export default function TestResultPopover({ result: r, children }: TestResultPopoverProps) {
   const { t } = useTranslation();
+  const isSpeed = r.mode === 'speed';
 
   const breakdown: Array<{ key: string; label: string; value: string }> = [];
   if (typeof r.httpStatus === 'number') {
@@ -31,6 +36,12 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
   }
   if (typeof r.ttfbMs === 'number') {
     breakdown.push({ key: 'ttfb', label: t('pages.xray.outbound.breakdownTtfb'), value: `${r.ttfbMs} ms` });
+  }
+  if (typeof r.downloadMbps === 'number') {
+    breakdown.push({ key: 'download', label: t('pages.xray.outbound.breakdownDownload'), value: `${fmtMbps(r.downloadMbps)} ${t('pages.xray.outbound.mbpsUnit')}` });
+  }
+  if (typeof r.uploadMbps === 'number') {
+    breakdown.push({ key: 'upload', label: t('pages.xray.outbound.breakdownUpload'), value: `${fmtMbps(r.uploadMbps)} ${t('pages.xray.outbound.mbpsUnit')}` });
   }
 
   return (
@@ -62,7 +73,11 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
       {children ?? (
         <span className={r.success ? 'pill-ok' : 'pill-fail'}>
           {r.success ? <CheckCircleFilled /> : <CloseCircleFilled />}
-          {r.success ? <span>{r.delay}&nbsp;ms</span> : <span>failed</span>}
+          {r.success
+            ? (isSpeed
+              ? <span>↓{fmtMbps(r.downloadMbps)} / ↑{fmtMbps(r.uploadMbps)} {t('pages.xray.outbound.mbpsUnit')}</span>
+              : <span>{r.delay}&nbsp;ms</span>)
+            : <span>failed</span>}
         </span>
       )}
     </Popover>

@@ -66,7 +66,9 @@ export function effectiveTestMode(o: unknown, mode: OutboundTestMode): OutboundT
 }
 
 export function testModeLabel(mode: string, t: TFunction): string {
-  return mode === 'real' ? t('pages.xray.outbound.modeRealDelay') : mode.toUpperCase();
+  if (mode === 'real') return t('pages.xray.outbound.modeRealDelay');
+  if (mode === 'speed') return t('pages.xray.outbound.modeSpeed');
+  return mode.toUpperCase();
 }
 
 export function trafficFor(outboundsTraffic: OutboundTrafficRow[], o: OutboundRow): { up: number; down: number } {

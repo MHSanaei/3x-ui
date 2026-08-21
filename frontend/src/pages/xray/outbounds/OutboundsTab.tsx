@@ -513,11 +513,33 @@ export default function OutboundsTab({
                   <Radio.Button value="tcp">TCP</Radio.Button>
                   <Radio.Button value="http">HTTP</Radio.Button>
                   <Radio.Button value="real">{t('pages.xray.outbound.modeRealDelay')}</Radio.Button>
+                  <Radio.Button value="speed">{t('pages.xray.outbound.modeSpeed')}</Radio.Button>
                 </Radio.Group>
               </Tooltip>
-              <Button type="primary" loading={testingAll} icon={<PlayCircleOutlined />} onClick={() => onTestAll(testMode)}>
-                {!isMobile && t('pages.xray.outbound.testAll')}
-              </Button>
+              {testMode === 'speed' ? (
+                <Popconfirm
+                  placement="topRight"
+                  okText={t('pages.xray.outbound.testAll')}
+                  cancelText={t('cancel')}
+                  title={(
+                    <div>
+                      <div>{t('pages.xray.outbound.speedTestAllConfirmTitle')}</div>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 4, maxWidth: 280 }}>
+                        {t('pages.xray.outbound.speedTestAllConfirmHint')}
+                      </div>
+                    </div>
+                  )}
+                  onConfirm={() => onTestAll(testMode)}
+                >
+                  <Button type="primary" loading={testingAll} icon={<PlayCircleOutlined />}>
+                    {!isMobile && t('pages.xray.outbound.testAll')}
+                  </Button>
+                </Popconfirm>
+              ) : (
+                <Button type="primary" loading={testingAll} icon={<PlayCircleOutlined />} onClick={() => onTestAll(testMode)}>
+                  {!isMobile && t('pages.xray.outbound.testAll')}
+                </Button>
+              )}
               <Popconfirm
                 placement="topRight"
                 okText={t('reset')}

@@ -109,11 +109,21 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	if outboundTestUrl == "" {
 		outboundTestUrl = "https://www.google.com/generate_204"
 	}
+	speedDownloadUrl, _ := a.SettingService.GetXraySpeedDownloadUrl()
+	if speedDownloadUrl == "" {
+		speedDownloadUrl = "https://speed.cloudflare.com/__down?bytes=2000000000"
+	}
+	speedUploadUrl, _ := a.SettingService.GetXraySpeedUploadUrl()
+	if speedUploadUrl == "" {
+		speedUploadUrl = "https://speed.cloudflare.com/__up"
+	}
 	xrayResponse := map[string]any{
 		"xraySetting":       json.RawMessage(xraySetting),
 		"inboundTags":       json.RawMessage(inboundTags),
 		"clientReverseTags": json.RawMessage(clientReverseTags),
 		"outboundTestUrl":   outboundTestUrl,
+		"speedDownloadUrl":  speedDownloadUrl,
+		"speedUploadUrl":    speedUploadUrl,
 	}
 
 	// Surface subscription outbounds (and their tags) so the frontend can:
@@ -148,6 +158,22 @@ func (a *XraySettingController) updateSetting(c *gin.Context) {
 		outboundTestUrl = "https://www.google.com/generate_204"
 	}
 	if err := a.SettingService.SetXrayOutboundTestUrl(outboundTestUrl); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	speedDownloadUrl := c.PostForm("speedDownloadUrl")
+	if speedDownloadUrl == "" {
+		speedDownloadUrl = "https://speed.cloudflare.com/__down?bytes=2000000000"
+	}
+	if err := a.SettingService.SetXraySpeedDownloadUrl(speedDownloadUrl); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	speedUploadUrl := c.PostForm("speedUploadUrl")
+	if speedUploadUrl == "" {
+		speedUploadUrl = "https://speed.cloudflare.com/__up"
+	}
+	if err := a.SettingService.SetXraySpeedUploadUrl(speedUploadUrl); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
@@ -288,10 +314,27 @@ func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
 	jsonObj(c, "", nil)
 }
 
-// testOutbound tests an outbound configuration and returns the delay/response time.
-// Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
-// Optional form "mode": "tcp" for a fast dial-only probe, "real" for the cold
-// full-request delay, anything else (default) for a full HTTP probe through a temp xray instance.
+// resolveSpeedTestUrls loads speed-test targets only for mode "speed", piped
+// through SanitizePublicHTTPURL like the outbound test URL (SSRF guard).
+func (a *XraySettingController) resolveSpeedTestUrls(mode string) (downloadURL string, uploadURL string, err error) {
+	if mode != "speed" {
+		return "", "", nil
+	}
+	downloadURL, _ = a.SettingService.GetXraySpeedDownloadUrl()
+	downloadURL, err = service.SanitizePublicHTTPURL(downloadURL, false)
+	if err != nil {
+		return "", "", err
+	}
+	uploadURL, _ = a.SettingService.GetXraySpeedUploadUrl()
+	uploadURL, err = service.SanitizePublicHTTPURL(uploadURL, false)
+	if err != nil {
+		return "", "", err
+	}
+	return downloadURL, uploadURL, nil
+}
+
+// testOutbound tests one outbound. Optional "allOutbounds" resolves
+// dialerProxy chains; "mode" is tcp/real/speed/http (default) -- see TestOutbounds.
 func (a *XraySettingController) testOutbound(c *gin.Context) {
 	outboundJSON := c.PostForm("outbound")
 	allOutboundsJSON := c.PostForm("allOutbounds")
@@ -309,8 +352,13 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	speedDownloadURL, speedUploadURL, err := a.resolveSpeedTestUrls(mode)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 
-	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode)
+	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON, mode, speedDownloadURL, speedUploadURL)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -319,12 +367,8 @@ func (a *XraySettingController) testOutbound(c *gin.Context) {
 	jsonObj(c, result, nil)
 }
 
-// testOutbounds tests a batch of outbound configurations through one shared
-// temp xray instance and returns an array of results in input order.
-// Form "outbounds": JSON array of outbound configs (required).
-// Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
-// Optional form "mode": "tcp" for fast dial-only probes, "real" for the cold
-// full-request delay, anything else (default) for real HTTP requests routed through each outbound.
+// testOutbounds tests a batch of outbounds (required "outbounds", JSON array)
+// through one shared temp xray instance; "mode" is tcp/real/speed/http (default).
 func (a *XraySettingController) testOutbounds(c *gin.Context) {
 	outboundsJSON := c.PostForm("outbounds")
 	allOutboundsJSON := c.PostForm("allOutbounds")
@@ -342,8 +386,13 @@ func (a *XraySettingController) testOutbounds(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	speedDownloadURL, speedUploadURL, err := a.resolveSpeedTestUrls(mode)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
 
-	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode)
+	results, err := a.OutboundService.TestOutbounds(outboundsJSON, testURL, allOutboundsJSON, mode, speedDownloadURL, speedUploadURL)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

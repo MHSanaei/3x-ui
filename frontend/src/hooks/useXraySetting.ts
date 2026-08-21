@@ -15,6 +15,8 @@ import {
 } from '@/schemas/xray';
 
 const DEFAULT_TEST_URL = 'https://www.google.com/generate_204';
+const DEFAULT_SPEED_DOWNLOAD_URL = 'https://speed.cloudflare.com/__down?bytes=2000000000';
+const DEFAULT_SPEED_UPLOAD_URL = 'https://speed.cloudflare.com/__up';
 // One HTTP-mode batch request tests this many outbounds through a single
 // shared temp xray instance; chunking keeps responses bounded (~30s worst
 // case — each probe is a cold plus a warm request) and lands Test All
@@ -25,6 +27,14 @@ function normalizeOutboundTestUrl(url: string) {
   return url || DEFAULT_TEST_URL;
 }
 
+function normalizeSpeedDownloadUrl(url: string) {
+  return url || DEFAULT_SPEED_DOWNLOAD_URL;
+}
+
+function normalizeSpeedUploadUrl(url: string) {
+  return url || DEFAULT_SPEED_UPLOAD_URL;
+}
+
 export function isUdpOutbound(outbound: unknown): boolean {
   const o = outbound as { protocol?: string; streamSettings?: { network?: string } } | null | undefined;
   const p = o?.protocol;
@@ -32,7 +42,7 @@ export function isUdpOutbound(outbound: unknown): boolean {
   return p === 'wireguard' || p === 'hysteria' || n === 'hysteria' || n === 'kcp' || n === 'quic';
 }
 
-export type OutboundTestMode = 'tcp' | 'http' | 'real';
+export type OutboundTestMode = 'tcp' | 'http' | 'real' | 'speed';
 
 export type { OutboundTrafficRow, OutboundTestResult };
 
@@ -59,6 +69,10 @@ export interface UseXraySettingResult {
   setTemplateSettings: SetTemplate;
   outboundTestUrl: string;
   setOutboundTestUrl: (v: string) => void;
+  speedDownloadUrl: string;
+  setSpeedDownloadUrl: (v: string) => void;
+  speedUploadUrl: string;
+  setSpeedUploadUrl: (v: string) => void;
   inboundTags: string[];
   clientReverseTags: string[];
   subscriptionOutbounds: unknown[];
@@ -131,8 +145,12 @@ export function useXraySetting(): UseXraySettingResult {
   const [xraySetting, setXraySettingState] = useState('');
   const [templateSettings, setTemplateSettingsState] = useState<XraySettingsValue | null>(null);
   const [outboundTestUrl, setOutboundTestUrlState] = useState(DEFAULT_TEST_URL);
+  const [speedDownloadUrl, setSpeedDownloadUrlState] = useState(DEFAULT_SPEED_DOWNLOAD_URL);
+  const [speedUploadUrl, setSpeedUploadUrlState] = useState(DEFAULT_SPEED_UPLOAD_URL);
   const [savedXraySetting, setSavedXraySetting] = useState('');
   const [savedOutboundTestUrl, setSavedOutboundTestUrl] = useState(DEFAULT_TEST_URL);
+  const [savedSpeedDownloadUrl, setSavedSpeedDownloadUrl] = useState(DEFAULT_SPEED_DOWNLOAD_URL);
+  const [savedSpeedUploadUrl, setSavedSpeedUploadUrl] = useState(DEFAULT_SPEED_UPLOAD_URL);
   const [inboundTags, setInboundTags] = useState<string[]>([]);
   const [clientReverseTags, setClientReverseTags] = useState<string[]>([]);
   const [subscriptionOutbounds, setSubscriptionOutbounds] = useState<unknown[]>([]);
@@ -146,15 +164,23 @@ export function useXraySetting(): UseXraySettingResult {
   const syncingRef = useRef(false);
   const xraySettingRef = useRef('');
   const outboundTestUrlRef = useRef(outboundTestUrl);
+  const speedDownloadUrlRef = useRef(speedDownloadUrl);
+  const speedUploadUrlRef = useRef(speedUploadUrl);
   const savedXraySettingRef = useRef(savedXraySetting);
   const savedOutboundTestUrlRef = useRef(savedOutboundTestUrl);
+  const savedSpeedDownloadUrlRef = useRef(savedSpeedDownloadUrl);
+  const savedSpeedUploadUrlRef = useRef(savedSpeedUploadUrl);
   const templateSettingsRef = useRef<XraySettingsValue | null>(null);
   const subscriptionOutboundsRef = useRef<unknown[]>([]);
 
   xraySettingRef.current = xraySetting;
   outboundTestUrlRef.current = outboundTestUrl;
+  speedDownloadUrlRef.current = speedDownloadUrl;
+  speedUploadUrlRef.current = speedUploadUrl;
   savedXraySettingRef.current = savedXraySetting;
   savedOutboundTestUrlRef.current = savedOutboundTestUrl;
+  savedSpeedDownloadUrlRef.current = savedSpeedDownloadUrl;
+  savedSpeedUploadUrlRef.current = savedSpeedUploadUrl;
   templateSettingsRef.current = templateSettings;
   subscriptionOutboundsRef.current = subscriptionOutbounds;
 
@@ -163,12 +189,16 @@ export function useXraySetting(): UseXraySettingResult {
     const obj = configQuery.data;
     const pretty = JSON.stringify(obj.xraySetting, null, 2);
     const nextUrl = normalizeOutboundTestUrl(obj.outboundTestUrl || '');
+    const nextSpeedDownloadUrl = normalizeSpeedDownloadUrl(obj.speedDownloadUrl || '');
+    const nextSpeedUploadUrl = normalizeSpeedUploadUrl(obj.speedUploadUrl || '');
     setInboundTags(obj.inboundTags || []);
     setClientReverseTags(obj.clientReverseTags || []);
     setSubscriptionOutbounds(obj.subscriptionOutbounds || []);
     setSubscriptionOutboundTags(obj.subscriptionOutboundTags || []);
     const isDirty = savedXraySettingRef.current !== xraySettingRef.current
-      || savedOutboundTestUrlRef.current !== normalizeOutboundTestUrl(outboundTestUrlRef.current);
+      || savedOutboundTestUrlRef.current !== normalizeOutboundTestUrl(outboundTestUrlRef.current)
+      || savedSpeedDownloadUrlRef.current !== normalizeSpeedDownloadUrl(speedDownloadUrlRef.current)
+      || savedSpeedUploadUrlRef.current !== normalizeSpeedUploadUrl(speedUploadUrlRef.current);
     if (isDirty) return;
     syncingRef.current = true;
     setXraySettingState(pretty);
@@ -177,6 +207,10 @@ export function useXraySetting(): UseXraySettingResult {
     syncingRef.current = false;
     setOutboundTestUrlState(nextUrl);
     setSavedOutboundTestUrl(nextUrl);
+    setSpeedDownloadUrlState(nextSpeedDownloadUrl);
+    setSavedSpeedDownloadUrl(nextSpeedDownloadUrl);
+    setSpeedUploadUrlState(nextSpeedUploadUrl);
+    setSavedSpeedUploadUrl(nextSpeedUploadUrl);
   }, [configQuery.data]);
 
   const fetched = configQuery.data !== undefined || configQuery.isError;
@@ -215,6 +249,14 @@ export function useXraySetting(): UseXraySettingResult {
     setOutboundTestUrlState(v);
   }, []);
 
+  const setSpeedDownloadUrl = useCallback((v: string) => {
+    setSpeedDownloadUrlState(v);
+  }, []);
+
+  const setSpeedUploadUrl = useCallback((v: string) => {
+    setSpeedUploadUrlState(v);
+  }, []);
+
   const fetchAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: keys.xray.config() });
   }, [queryClient]);
@@ -227,16 +269,22 @@ export function useXraySetting(): UseXraySettingResult {
     mutationFn: async () => {
       const sentXraySetting = xraySettingRef.current;
       const sentTestUrl = normalizeOutboundTestUrl(outboundTestUrlRef.current);
+      const sentSpeedDownloadUrl = normalizeSpeedDownloadUrl(speedDownloadUrlRef.current);
+      const sentSpeedUploadUrl = normalizeSpeedUploadUrl(speedUploadUrlRef.current);
       const msg = await HttpUtil.post('/panel/api/xray/update', {
         xraySetting: sentXraySetting,
         outboundTestUrl: sentTestUrl,
+        speedDownloadUrl: sentSpeedDownloadUrl,
+        speedUploadUrl: sentSpeedUploadUrl,
       });
-      return { msg, sentXraySetting, sentTestUrl };
+      return { msg, sentXraySetting, sentTestUrl, sentSpeedDownloadUrl, sentSpeedUploadUrl };
     },
-    onSuccess: ({ msg, sentXraySetting, sentTestUrl }) => {
+    onSuccess: ({ msg, sentXraySetting, sentTestUrl, sentSpeedDownloadUrl, sentSpeedUploadUrl }) => {
       if (!msg?.success) return;
       setSavedXraySetting(sentXraySetting);
       setSavedOutboundTestUrl(sentTestUrl);
+      setSavedSpeedDownloadUrl(sentSpeedDownloadUrl);
+      setSavedSpeedUploadUrl(sentSpeedUploadUrl);
       queryClient.invalidateQueries({ queryKey: keys.xray.config() });
     },
   });
@@ -281,6 +329,8 @@ export function useXraySetting(): UseXraySettingResult {
           outbounds: JSON.stringify(outbounds),
           allOutbounds: JSON.stringify(templateSettingsRef.current?.outbounds || []),
           mode: effMode,
+          speedDownloadUrl: speedDownloadUrlRef.current,
+          speedUploadUrl: speedUploadUrlRef.current,
         });
         const msg = parseMsg(raw, OutboundTestResultListSchema, 'xray/testOutbounds');
         if (!msg?.success || !Array.isArray(msg.obj)) return failAll(msg?.msg || 'Unknown error');
@@ -341,7 +391,8 @@ export function useXraySetting(): UseXraySettingResult {
       // HTTP batches stay homogeneous (all template or all subscription) so a
       // tag shared between a template and a subscription outbound can't collide
       // inside one batch, and each batch's results route to one state map.
-      const probeMode = mode === 'real' ? 'real' : 'http';
+      const probeMode = mode === 'tcp' ? 'http' : mode;
+      const chunkSize = mode === 'speed' ? 1 : HTTP_BATCH_CHUNK;
       const httpTplQueue: { index: number; outbound: unknown }[] = [];
       const httpSubQueue: { tag: string; outbound: unknown }[] = [];
       const enqueue = (ob: { tag?: string; protocol?: string }, kind: 'tpl' | 'sub', index: number, tag: string) => {
@@ -380,8 +431,8 @@ export function useXraySetting(): UseXraySettingResult {
       // HTTP probes go out as chunked batches — one temp xray spawn per
       // chunk instead of one per outbound, with results landing per chunk.
       const runTplHttpLane = async () => {
-        for (let at = 0; at < httpTplQueue.length; at += HTTP_BATCH_CHUNK) {
-          const chunk = httpTplQueue.slice(at, at + HTTP_BATCH_CHUNK);
+        for (let at = 0; at < httpTplQueue.length; at += chunkSize) {
+          const chunk = httpTplQueue.slice(at, at + chunkSize);
           setOutboundTestStates((prev) => {
             const next = { ...prev };
             for (const item of chunk) next[item.index] = { testing: true, result: null, mode: probeMode };
@@ -398,8 +449,8 @@ export function useXraySetting(): UseXraySettingResult {
         }
       };
       const runSubHttpLane = async () => {
-        for (let at = 0; at < httpSubQueue.length; at += HTTP_BATCH_CHUNK) {
-          const chunk = httpSubQueue.slice(at, at + HTTP_BATCH_CHUNK);
+        for (let at = 0; at < httpSubQueue.length; at += chunkSize) {
+          const chunk = httpSubQueue.slice(at, at + chunkSize);
           setSubscriptionTestStates((prev) => {
             const next = { ...prev };
             for (const item of chunk) next[item.tag] = { testing: true, result: null, mode: probeMode };
@@ -431,7 +482,9 @@ export function useXraySetting(): UseXraySettingResult {
   }, [testingAll, testOutbound, testSubscriptionOutbound, postOutboundTestBatch]);
 
   const saveDisabled = savedXraySetting === xraySetting
-    && savedOutboundTestUrl === normalizeOutboundTestUrl(outboundTestUrl);
+    && savedOutboundTestUrl === normalizeOutboundTestUrl(outboundTestUrl)
+    && savedSpeedDownloadUrl === normalizeSpeedDownloadUrl(speedDownloadUrl)
+    && savedSpeedUploadUrl === normalizeSpeedUploadUrl(speedUploadUrl);
 
   const outboundsTraffic = useMemo(() => trafficQuery.data ?? [], [trafficQuery.data]);
 
@@ -447,6 +500,10 @@ export function useXraySetting(): UseXraySettingResult {
       setTemplateSettings,
       outboundTestUrl,
       setOutboundTestUrl,
+      speedDownloadUrl,
+      setSpeedDownloadUrl,
+      speedUploadUrl,
+      setSpeedUploadUrl,
       inboundTags,
       clientReverseTags,
       subscriptionOutbounds,
@@ -475,6 +532,10 @@ export function useXraySetting(): UseXraySettingResult {
       setTemplateSettings,
       outboundTestUrl,
       setOutboundTestUrl,
+      speedDownloadUrl,
+      setSpeedDownloadUrl,
+      speedUploadUrl,
+      setSpeedUploadUrl,
       inboundTags,
       clientReverseTags,
       subscriptionOutbounds,

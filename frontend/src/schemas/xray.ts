@@ -40,6 +40,8 @@ export const XrayConfigPayloadSchema = z.object({
   inboundTags: z.array(z.string()).optional(),
   clientReverseTags: z.array(z.string()).optional(),
   outboundTestUrl: z.string().optional(),
+  speedDownloadUrl: z.string().optional(),
+  speedUploadUrl: z.string().optional(),
   // Subscription outbounds are injected at runtime (not persisted in xraySetting).
   // They are provided here so the UI can display them and use their tags in
   // balancers / routing rules.
@@ -68,6 +70,8 @@ export const OutboundTestResultSchema = z.object({
   connectMs: z.number().optional(),
   tlsMs: z.number().optional(),
   ttfbMs: z.number().optional(),
+  downloadMbps: z.number().optional(),
+  uploadMbps: z.number().optional(),
   endpoints: z
     .array(
       z.object({
