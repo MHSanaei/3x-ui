@@ -257,7 +257,8 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 			return fmt.Errorf("amneziawg: client %q: %w", c.Email, err)
 		}
 		// AllowedIPs lands verbatim in a rendered [Peer] block, so a newline here
-		// re-opens an [Interface] section whose PostUp awg-quick runs as root.
+		// re-opens an [Interface] section whose PostUp runs as root once the
+		// downloaded config is applied (client app, or awg-quick directly).
 		normalized, err := normalizeWireguardAllowedIPs(c.AllowedIPs)
 		if err != nil {
 			return fmt.Errorf("amneziawg: client %q: %w", c.Email, err)

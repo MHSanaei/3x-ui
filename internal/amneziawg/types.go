@@ -1,8 +1,13 @@
-// Package amneziawg manages native AmneziaWG interfaces (via awg-quick/awg,
-// the AmneziaWG DKMS kernel module's userspace tools) as sidecars to the
-// panel, the same way internal/mtproto manages mtg processes: one inbound
-// row maps to one desired Instance, and a Manager reconciles the running
-// interfaces toward whatever the database currently wants.
+// Package amneziawg holds the AmneziaWG protocol's shared, DB-backed shapes
+// (Instance, Peer, Obfuscation31, ServerSettings/InboundSettings) and the
+// pure functions that derive an Instance from a stored inbound row. It has
+// no OS dependency of its own: internal/amneziawgnet embeds amneziawg-go
+// over a gVisor netstack and owns the actual running interfaces, one
+// Manager-managed Device per desired Instance -- see that package's Manager
+// for the reconcile-on-tick lifecycle (modeled on internal/mtproto's own
+// Manager), and instance.go's own doc comment for how this package's role
+// narrowed to protocol-shape-only after the kernel-module (DKMS) + awg-quick
+// architecture this fork originally shipped was retired.
 package amneziawg
 
 import "github.com/mhsanaei/3x-ui/v3/internal/database/model"

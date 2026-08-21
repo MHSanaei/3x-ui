@@ -126,9 +126,12 @@ func generateHRanges() [4]string {
 	return out
 }
 
-// ValidateObfuscation rejects malformed parameters before they are saved, so a
-// bad manual entry can't fail `awg-quick up`. Blank H values are allowed (they
-// fall back to a default); each accepts an integer or a "100-800" range.
+// ValidateObfuscation rejects malformed parameters before they are saved, so
+// a bad manual entry can't break the embedded amneziawg-go device's own
+// UAPI config apply (internal/amneziawgnet's buildUAPIConfig/IpcSet) or
+// produce a client config the official app rejects outright. Blank H values
+// are allowed (they fall back to a default); each accepts an integer or a
+// "100-800" range.
 func ValidateObfuscation(o Obfuscation31) error {
 	if o.Jmin > o.Jmax {
 		return fmt.Errorf("invalid Jmin/Jmax: %d must not exceed %d", o.Jmin, o.Jmax)
@@ -274,8 +277,13 @@ func ValidateSubnetIPv4(subnetIP string, subnetCIDR int) error {
 }
 
 // ValidateConfigValue rejects control characters in any value interpolated
-// verbatim into the generated .conf: a newline re-opens an [Interface] section
-// whose "PostUp = ..." awg-quick then executes as root. field names the value.
+// verbatim into a rendered .conf: a newline re-opens an [Interface] section
+// whose "PostUp = ..." runs as root the moment whoever downloaded that
+// config -- the client app, or an admin importing it into the official
+// awg-quick CLI directly -- applies it. The panel's own server side never
+// runs awg-quick itself (internal/amneziawgnet applies config via
+// amneziawg-go's UAPI, not a parsed text file), but this exact value still
+// reaches a real text-based config downstream. field names the value.
 func ValidateConfigValue(field, v string) error {
 	for _, r := range v {
 		if r == '\n' || r == '\r' || r < 0x20 || r == 0x7f {

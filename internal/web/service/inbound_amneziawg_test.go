@@ -233,8 +233,8 @@ func TestInboundAmneziaWGServer_MissingServerBlockReturnsNil(t *testing.T) {
 }
 
 // A newline inside a client's allowedIPs used to reach the rendered .conf,
-// where a following "[Interface]\nPostUp = ..." is executed as root by
-// awg-quick on the next apply.
+// where a following "[Interface]\nPostUp = ..." runs as root the moment
+// whoever applies that config (client app, or awg-quick directly) does so.
 func TestNormalizeAmneziaWGSettings_RejectsInjectedClientAllowedIPs(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
@@ -279,7 +279,7 @@ func TestGetAmneziaWGLogs_ClampsCountAndFiltersEvents(t *testing.T) {
 	logger.InitLogger(logging.DEBUG)
 	logger.Info("amneziawg: started interface awg1 for inbound 1")
 	logger.Info("xray: unrelated line that must never show up here")
-	logger.Warning("amneziawg: awg-quick up awg2 failed")
+	logger.Warning("amneziawgnet: reconcile failed for inbound 2: handshake timeout")
 
 	svc := &ServerService{}
 	logs := svc.GetAmneziaWGLogs("not-a-number", "")
@@ -300,8 +300,8 @@ func TestGetAmneziaWGLogs_ClampsCountAndFiltersEvents(t *testing.T) {
 		t.Fatalf("count=1 must cap the event list, got %d", len(one.Events))
 	}
 	// filter narrows further, case-insensitively.
-	filtered := svc.GetAmneziaWGLogs("100", "AWG-QUICK")
-	if len(filtered.Events) != 1 || !strings.Contains(filtered.Events[0], "awg-quick") {
+	filtered := svc.GetAmneziaWGLogs("100", "RECONCILE")
+	if len(filtered.Events) != 1 || !strings.Contains(filtered.Events[0], "reconcile") {
 		t.Fatalf("filter must narrow to the matching line, got %v", filtered.Events)
 	}
 }

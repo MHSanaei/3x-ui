@@ -56,7 +56,7 @@ type managed struct {
 }
 
 // Manager owns the set of running embedded AmneziaWG interfaces, keyed by
-// inbound id -- the same shape as internal/amneziawg.Manager (GetManager()
+// inbound id -- the same shape as internal/mtproto.Manager (GetManager()
 // + sync.Once, mu-guarded map, Ensure/Reconcile/StopAll/HasRunning), so a
 // caller already familiar with that Manager needs to learn nothing new here.
 // Every Device this Manager builds gets its TCP forwarder and UDP handler
@@ -266,7 +266,7 @@ func addressFingerprint(inst amneziawg.Instance) string {
 
 // Reconcile brings every desired instance's embedded interface up to date
 // and stops any managed interface whose inbound is no longer desired --
-// mirroring internal/amneziawg.Manager.Reconcile's per-tick contract.
+// mirroring internal/mtproto.Manager.Reconcile's per-tick contract.
 func (m *Manager) Reconcile(desired []Desired) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -294,7 +294,7 @@ func (m *Manager) Reconcile(desired []Desired) {
 }
 
 // Remove tears down inbound id's embedded interface, if any -- mirrors
-// internal/amneziawg.Manager.Remove, for a caller that needs to drop a
+// internal/mtproto.Manager.Remove, for a caller that needs to drop a
 // single inbound outside a full Reconcile pass (e.g. the immediate-apply
 // CRUD path in internal/web/runtime/local.go).
 func (m *Manager) Remove(id int) {
