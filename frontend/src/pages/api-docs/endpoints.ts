@@ -844,13 +844,15 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/add',
         summary:
-          'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.',
+          'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets are generated server-side when omitted, so callers can send only the universal fields.',
+        description:
+          'Fields the server fills in when they are omitted — a value sent by the caller is never overwritten:\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan / Shadowsocks** — `password`\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `wireguard: allowedIPs entry already used by another client: <address>` when a different client of that same inbound already holds it. The check is per inbound, so the same address on two different inbounds is accepted. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.',
         params: [
           {
             name: 'client',
             in: 'body (json)',
             type: 'object',
-            desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, limitHwid, tgId (numeric Telegram user ID, 0 = none), comment, enable.',
+            desc: 'Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, limitHwid, tgId (numeric Telegram user ID, 0 = none), comment, enable. Protocol-specific: secret and adTag (mtproto), privateKey, publicKey, preSharedKey, allowedIPs and keepAlive (WireGuard).',
           },
           {
             name: 'inboundIds',
@@ -898,6 +900,8 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/:email/attach',
         summary: 'Attach an existing client to one or more additional inbounds. Body is JSON.',
+        description:
+          'A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `wireguard: allowedIPs entry already used by another client: <address>` when a different client of the target inbound already holds it. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           {
