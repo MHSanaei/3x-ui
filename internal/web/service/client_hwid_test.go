@@ -151,6 +151,53 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	}
 }
 
+func TestDeleteClientHwid(t *testing.T) {
+	initClientHwidTestDB(t)
+	svc := &ClientService{}
+	db := database.GetDB()
+
+	rec := seedHwidClient(t, 5)
+	if _, err := svc.EnforceHwidForSubID(rec.SubID, HwidRequest{Hwid: "device-own"}); err != nil {
+		t.Fatalf("register own device: %v", err)
+	}
+	list, err := svc.ListClientHwids(rec.Email)
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list own devices: err=%v list=%+v", err, list)
+	}
+	ownID := list[0].Id
+
+	other := &model.ClientRecord{Email: "other@example.com", SubID: "sub-other", UUID: "33333333-2222-4333-8444-555555555555", Enable: true, LimitHwid: 5}
+	if err := db.Create(other).Error; err != nil {
+		t.Fatalf("seed other client: %v", err)
+	}
+	if _, err := svc.EnforceHwidForSubID(other.SubID, HwidRequest{Hwid: "device-foreign"}); err != nil {
+		t.Fatalf("register foreign device: %v", err)
+	}
+	otherList, err := svc.ListClientHwids(other.Email)
+	if err != nil || len(otherList) != 1 {
+		t.Fatalf("list foreign devices: err=%v list=%+v", err, otherList)
+	}
+	foreignID := otherList[0].Id
+
+	if err := svc.DeleteClientHwid(rec.Email, foreignID); err == nil {
+		t.Fatalf("deleting a foreign sub_id's device id should fail")
+	}
+	if list, err := svc.ListClientHwids(other.Email); err != nil || len(list) != 1 {
+		t.Fatalf("foreign device should survive a cross-sub_id delete attempt: err=%v list=%+v", err, list)
+	}
+
+	if err := svc.DeleteClientHwid(rec.Email, 999999); err == nil {
+		t.Fatalf("deleting an unknown id should fail")
+	}
+
+	if err := svc.DeleteClientHwid(rec.Email, ownID); err != nil {
+		t.Fatalf("delete own device: %v", err)
+	}
+	if list, err := svc.ListClientHwids(rec.Email); err != nil || len(list) != 0 {
+		t.Fatalf("own device should be gone: err=%v list=%+v", err, list)
+	}
+}
+
 func TestClientHwidGateSharedSubIdUsesMaxLimit(t *testing.T) {
 	initClientHwidTestDB(t)
 	svc := &ClientService{}
