@@ -476,18 +476,27 @@ _openapi:
         id: remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit
     contents:
       - content: >-
-          Fields the server fills in when they are omitted — a value sent by the
-          caller is never overwritten:
+          Fields the server fills in when they are omitted — a valid value sent
+          by the caller is never overwritten. Re-adding an email that already
+          exists, with its stored `subId`, reuses the stored `id`, `password`,
+          `auth` and `secret` instead of minting new ones, so the identity stays
+          in sync across its inbounds.
 
 
           - **VLESS / VMess** — `id`, a fresh UUID
 
-          - **Trojan / Shadowsocks** — `password`
+          - **Trojan** — `password`
+
+          - **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a
+          supplied password that does not base64-decode to the key length of the
+          cipher (16 or 32 bytes) is replaced by a generated key and the call
+          still succeeds, so read the client back if you did not let the server
+          pick. Legacy ciphers keep any non-empty password
 
           - **Hysteria** — `auth`
 
           - **mtproto** — `secret`, a FakeTLS secret derived from the fronting
-          domain of the inbound
+          domain of the inbound, or from `www.cloudflare.com` when it has none
 
           - **WireGuard** — `privateKey` and `publicKey` when both are blank, or
           `publicKey` alone when only a `privateKey` was sent, plus
