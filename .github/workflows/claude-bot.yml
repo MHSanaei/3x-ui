@@ -494,6 +494,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      # Read-only: this job holds a write-scoped token, so building or running
+      # anything out of pr-head/ would turn the review into a pwn-request.
+      # checkout v7 refuses a fork PR ref outright unless that risk is accepted
+      # here, and nearly every pull request to this repository is from a fork.
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number || github.event.issue.number }}/head
+          path: pr-head
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
       - uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -501,13 +511,18 @@ jobs:
           allowed_non_write_users: "*"
           plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
           plugins: "code-review@claude-code-plugins"
-          prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number || github.event.issue.number }}"
+          # The skill reads CLAUDE.md on its own but NOT REVIEW.md - that file
+          # reaches a review only through the append-system-prompt below.
+          prompt: "/code-review:code-review max --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number || github.event.issue.number }}"
+          # allowedTools only pre-approves; it denies nothing. Only the deny
+          # list stops the review executing what it just checked out.
           claude_args: |
             --model claude-opus-5
             --effort xhigh
             --max-turns 100
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh api:*),Bash(gh pr diff:*),Read(//tmp/**),Write(//tmp/**),Edit(//tmp/**)"
-            --append-system-prompt "Before reviewing, read REVIEW.md at the repository root and follow it: it defines what counts as a blocking finding in this repository, what not to report, and the repo-specific checks. Three overrides apply here. First, the skip gate for already-reviewed PRs: an existing Claude review comment justifies skipping ONLY when its 'Reviewed head:' SHA equals the PR's current head SHA; when the head has moved on, or this run was triggered by an explicit '@claude review' comment, run the full review, focusing on the commits since the previously reviewed head. Second, this is a headless run that terminates the moment you end your turn: launch every subagent with run_in_background set to false and wait for its result inside the same turn - never end your turn while a subagent is still running, and never end it before the review comment is posted. A run that ends without posting the review has failed. Third, the comment you post is the only part of this run anyone can see: it must carry the coverage list REVIEW.md asks for, whether or not you found anything."
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh api:*),Bash(gh pr diff:*),Bash(grep:*),Bash(rg:*),Bash(ls:*),Bash(find:*),Bash(sed:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(go doc:*),Bash(go env:*),Read,Glob,Grep,WebFetch,WebSearch"
+            --disallowedTools "Bash(go build:*),Bash(go run:*),Bash(go test:*),Bash(go generate:*),Bash(go install:*),Bash(make:*),Bash(npm:*),Bash(npx:*),Bash(pnpm:*),Bash(yarn:*),Bash(node:*),Bash(bash:*),Bash(sh:*),Bash(docker:*),Bash(chmod:*),Edit,Write,NotebookEdit"
+            --append-system-prompt "Before reviewing, read REVIEW.md at the repository root and follow it: it defines the severity marker every finding carries, what counts as Important in this repository, what not to report, and the repo-specific checks. Five overrides apply here. First, the skip gate for already-reviewed PRs: an existing Claude review comment justifies skipping ONLY when its 'Reviewed head:' SHA equals the PR's current head SHA; when the head has moved on, or this run was triggered by an explicit '@claude review' comment, run the full review, focusing on the commits since the previously reviewed head. Second, this is a headless run that terminates the moment you end your turn: launch every subagent with run_in_background set to false and wait for its result inside the same turn - never end your turn while a subagent is still running, and never end it before the review comment is posted. A run that ends without posting the review has failed. Third, the comment you post is the only part of this run anyone can see: it must open with the tally and end with the coverage list REVIEW.md asks for, whether or not you found anything. Fourth, the default working tree is the BASE branch, and a read-only checkout of the pull request head sits beside it in pr-head/: read and grep the changed files under pr-head/, and treat anything read outside it as the pre-merge baseline rather than as the code under review. Never build, install or execute anything from pr-head/ - this job holds a write-scoped token, so running pull-request code with it is the workflow vulnerability REVIEW.md itself calls blocking. Fifth, you cannot build or test here, but CI already did: read the head commit's checks with 'gh api repos/OWNER/REPO/commits/HEAD_SHA/check-runs' and report what they actually concluded instead of writing that verification was unavailable. A required check that failed, or that never ran on this head, is itself a finding."
       - name: Upload the run transcript
         if: always()
         env:

@@ -59,8 +59,7 @@ file locations when it can answer in one hop.
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
   into `frontend/src/generated/` from Go structs. The OpenAPI doc itself
   (`frontend/public/openapi.json`) is assembled from those + `endpoints.ts` by
-  `frontend/scripts/build-openapi.mjs`. (`tools/seedperf/` is a separate seeding
-  /load helper.)
+  `frontend/scripts/build-openapi.mjs`.
 - `docs/` — separate Next.js/Fumadocs site (pnpm, own CI in `docs-ci.yml`,
   outside `make verify`). Holds a THIRD independent implementation of
   link/subscription generation in `docs/lib/xray/` — check it whenever
