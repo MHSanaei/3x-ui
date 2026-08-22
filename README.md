@@ -182,16 +182,9 @@ This is a personal fork and isn't looking for outside contributors, but [CONTRIB
 
 ## Credit
 
-This fork is built entirely on top of [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — all of the panel, the multi-protocol support, and the underlying architecture is their work; **AmneziaWG support is the only thing added here.** If you find the base project useful, the original author's support links are still the right place for it:
+This fork is built entirely on top of [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — all of the panel, the multi-protocol support, and the underlying architecture is their work; **AmneziaWG support is the only thing added here.**
 
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
-
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
+If this fork is useful to you, donations are welcome: [Donate via T-Bank](https://www.tbank.ru/cf/2qxNvGa3fSX)
 
 The AmneziaWG implementation in this fork was ported from/inspired by:
 

@@ -182,16 +182,9 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 ## Благодарность
 
-Этот форк полностью построен поверх [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — вся панель, поддержка множества протоколов и базовая архитектура — их работа; **единственное, что добавлено здесь — поддержка AmneziaWG.** Если оригинальный проект оказался вам полезен, ссылки на поддержку автора всё ещё актуальны:
+Этот форк полностью построен поверх [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — вся панель, поддержка множества протоколов и базовая архитектура — их работа; **единственное, что добавлено здесь — поддержка AmneziaWG.**
 
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
-
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
+Если этот форк оказался вам полезен, будем рады поддержке: [Donate через T-Bank](https://www.tbank.ru/cf/2qxNvGa3fSX)
 
 Реализация AmneziaWG в этом форке портирована/вдохновлена:
 
