@@ -28,10 +28,9 @@ _openapi:
       url: '#fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to'
     - depth: 2
       title: Create a new client and attach it to one or more inbounds in a single
-        call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password
-        for Trojan/Shadowsocks, auth for Hysteria) are generated server-side
-        when omitted, so callers can send only the universal fields.
-      url: '#create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-uuid-for-vlessvmess-password-for-trojanshadowsocks-auth-for-hysteria-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields'
+        call. Body is JSON. Per-protocol secrets are generated server-side when
+        omitted, so callers can send only the universal fields.
+      url: '#create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields'
     - depth: 2
       title: Update an existing client by email. Changes propagate to every attached
         inbound. Body is the JSON client payload — supply the full set of fields
@@ -278,11 +277,9 @@ _openapi:
           config IDs it is attached to.
         id: fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
       - content: Create a new client and attach it to one or more inbounds in a single
-          call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess,
-          password for Trojan/Shadowsocks, auth for Hysteria) are generated
-          server-side when omitted, so callers can send only the universal
-          fields.
-        id: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-uuid-for-vlessvmess-password-for-trojanshadowsocks-auth-for-hysteria-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+          call. Body is JSON. Per-protocol secrets are generated server-side
+          when omitted, so callers can send only the universal fields.
+        id: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
       - content: Update an existing client by email. Changes propagate to every attached
           inbound. Body is the JSON client payload — supply the full set of
           fields you want to keep (the server replaces the row, it does not
@@ -477,7 +474,57 @@ _openapi:
       - content: Remove a single registered HWID device by its id, freeing one slot
           under the HWID limit.
         id: remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit
-    contents: []
+    contents:
+      - content: >-
+          Fields the server fills in when they are omitted — a valid value sent
+          by the caller is never overwritten. Re-adding an email that already
+          exists, with its stored `subId`, reuses the stored `id`, `password`,
+          `auth` and `secret` instead of minting new ones, so the identity stays
+          in sync across its inbounds.
+
+
+          - **VLESS / VMess** — `id`, a fresh UUID
+
+          - **Trojan** — `password`
+
+          - **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a
+          supplied password that does not base64-decode to the key length of the
+          cipher (16 or 32 bytes) is replaced by a generated key and the call
+          still succeeds, so read the client back if you did not let the server
+          pick. Legacy ciphers keep any non-empty password
+
+          - **Hysteria** — `auth`
+
+          - **mtproto** — `secret`, a FakeTLS secret derived from the fronting
+          domain of the inbound, or from `www.cloudflare.com` when it has none
+
+          - **WireGuard** — `privateKey` and `publicKey` when both are blank, or
+          `publicKey` alone when only a `privateKey` was sent, plus
+          `allowedIPs`: one free `/32` taken from the /24 the existing peers of
+          that inbound already sit in, or from `10.0.0.0/24` when it has none
+
+
+          Accepted on the same body but never generated: `preSharedKey` and
+          `keepAlive` (WireGuard), `adTag` (mtproto).
+
+
+          WireGuard is the only one of these that can fail. Allocation widens
+          the search to the containing /16 before giving up with `wireguard: no
+          free address available in <scope>`, and an `allowedIPs` supplied by
+          the caller is validated instead of allocated: `wireguard: allowedIPs
+          entry already used by another client: <address>` when a different
+          client of that same inbound already holds it. The check is per
+          inbound, so the same address on two different inbounds is accepted.
+          The same validation runs on POST /panel/api/clients/{email}/attach,
+          where a client that already carries an address brings it along.
+        heading: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: 'A WireGuard client brings its stored `allowedIPs` into the new inbound
+          instead of being given a fresh address, so the call fails with
+          `wireguard: allowedIPs entry already used by another client:
+          <address>` when a different client of the target inbound already holds
+          it. Free the address on that inbound first — see POST
+          /panel/api/clients/add for the full rule.'
+        heading: attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
 ---
 
 {/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
