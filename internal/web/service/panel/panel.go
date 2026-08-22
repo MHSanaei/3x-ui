@@ -248,18 +248,23 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
 	runIDEnv := "XUI_UPDATE_RUN_ID=" + strconv.FormatInt(runID, 10)
 	statusFileEnv := "XUI_UPDATE_STATUS_FILE=" + statusFile
+	proxyEnv := updateProxyEnvVars()
 
 	if systemdRun, err := exec.LookPath("systemd-run"); err == nil {
 		unitName := fmt.Sprintf("x-ui-web-update-%d", time.Now().Unix())
-		cmd := exec.CommandContext(context.Background(), systemdRun,
+		args := []string{
 			"--unit", unitName,
-			"--setenv", "XUI_MAIN_FOLDER="+mainFolder,
-			"--setenv", "XUI_SERVICE="+serviceFolder,
-			"--setenv", "XUI_UPDATE_TAG="+updateTag,
+			"--setenv", "XUI_MAIN_FOLDER=" + mainFolder,
+			"--setenv", "XUI_SERVICE=" + serviceFolder,
+			"--setenv", "XUI_UPDATE_TAG=" + updateTag,
 			"--setenv", runIDEnv,
 			"--setenv", statusFileEnv,
-			bash, "-lc", updateScript,
-		)
+		}
+		for _, kv := range proxyEnv {
+			args = append(args, "--setenv", kv)
+		}
+		args = append(args, bash, "-lc", updateScript)
+		cmd := exec.CommandContext(context.Background(), systemdRun, args...)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			output := strings.TrimSpace(string(out))
@@ -296,6 +301,18 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	recordUpdatePID(cmd.Process.Pid)
 	launched = true
 	return runID, nil
+}
+
+// updateProxyEnvVars forwards ambient proxy env vars to systemd-run's child,
+// which (unlike the bash fallback) inherits nothing but --setenv.
+func updateProxyEnvVars() []string {
+	var out []string
+	for _, key := range []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "http_proxy", "HTTP_PROXY", "no_proxy", "NO_PROXY"} {
+		if v := os.Getenv(key); v != "" {
+			out = append(out, key+"="+v)
+		}
+	}
+	return out
 }
 
 // acquireUpdateSlot claims the single in-flight-update slot for runID. It
