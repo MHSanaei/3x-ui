@@ -43,7 +43,7 @@ import './AppSidebar.css';
 
 const DONATE_URL = 'https://www.tbank.ru/cf/2qxNvGa3fSX';
 const DOCS_URL = 'https://docs.sanaei.dev/';
-const REPO_URL = 'https://github.com/Kuzz007/3x-ui';
+const REPO_URL = 'https://github.com/Kuzz007/3x-ui-awg';
 const LOGOUT_KEY = '__logout__';
 const RAIL_WIDTH = 72;
 const SIDER_WIDTH = 220;

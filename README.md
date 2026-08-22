@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
+  <a href="https://github.com/Kuzz007/3x-ui-awg/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui-awg/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui-awg.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
 </p>
 
@@ -90,19 +90,19 @@ Smaller fork-specific improvements beyond AmneziaWG land here as they're added:
 ## Quick Start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/install.sh | bash
 ```
 
 To install a specific version, append its tag (e.g. `v3.5.0-awg.1`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s v3.5.0-awg.1
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/install.sh | bash -s v3.5.0-awg.1
 ```
 
 To install the rolling **dev** build (latest per-commit pre-release from `main`, not a stable release), pass `dev`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh | bash -s dev
+curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/install.sh | bash -s dev
 ```
 
 This fork's own stable releases are tagged `<upstream base version>-awg.N` (e.g. `v3.5.0-awg.1`, built on top of what upstream calls `v3.5.0`) — never a bare `vX.Y.Z` — so they're never mistaken for a real upstream MHSanaei/3x-ui release of the same number.

@@ -129,7 +129,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/Kuzz007/3x-ui/main/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -148,7 +148,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/Kuzz007/3x-ui/main/update.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/update.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         before_show_menu
@@ -166,7 +166,7 @@ update_dev() {
     fi
     # XUI_UPDATE_TAG tells update.sh to install the dev-latest pre-release
     # instead of the latest stable tag.
-    XUI_UPDATE_TAG="dev-latest" bash <(curl -Ls https://raw.githubusercontent.com/Kuzz007/3x-ui/main/update.sh)
+    XUI_UPDATE_TAG="dev-latest" bash <(curl -Ls https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/update.sh)
     if [[ $? == 0 ]]; then
         LOGI "Dev update is complete, Panel has automatically restarted "
         before_show_menu
@@ -219,7 +219,7 @@ update_menu() {
         return 0
     fi
 
-    if replace_xui_script "https://raw.githubusercontent.com/Kuzz007/3x-ui/main/x-ui.sh" "false"; then
+    if replace_xui_script "https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/x-ui.sh" "false"; then
         chmod +x ${xui_folder}/x-ui.sh
         echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
         exit 0
@@ -836,7 +836,7 @@ enable_bbr() {
 }
 
 update_shell() {
-    if replace_xui_script "https://github.com/Kuzz007/3x-ui/raw/main/x-ui.sh" "true"; then
+    if replace_xui_script "https://github.com/Kuzz007/3x-ui-awg/raw/main/x-ui.sh" "true"; then
         LOGI "Upgrade script succeeded, Please rerun the script"
         before_show_menu
     else
