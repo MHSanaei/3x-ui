@@ -14,7 +14,7 @@ function inboundTransports(
   streamSettings: Record<string, unknown> | undefined,
   settings: Record<string, unknown> | undefined,
 ): TransportBits {
-  if (protocol === 'hysteria' || protocol === 'wireguard') return UDP;
+  if (protocol === 'hysteria' || protocol === 'wireguard' || protocol === 'amneziawg') return UDP;
 
   let bits: TransportBits = 0;
   const network = asString(streamSettings?.network);

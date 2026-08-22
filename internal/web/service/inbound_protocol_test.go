@@ -88,3 +88,21 @@ func TestInboundCanHostFallbacks_StaysTcpOnly(t *testing.T) {
 		t.Errorf("inboundCanHostFallbacks(nil) = true, want false")
 	}
 }
+
+// Mirrors NODE_ELIGIBLE_PROTOCOLS in
+// frontend/src/pages/inbounds/form/InboundFormModal.tsx -- keep both lists
+// in sync if a protocol's node-eligibility ever changes.
+func TestIsNodeEligibleProtocol(t *testing.T) {
+	eligible := []model.Protocol{model.VLESS, model.VMESS, model.Trojan, model.Shadowsocks, model.Hysteria, model.WireGuard}
+	for _, p := range eligible {
+		if !isNodeEligibleProtocol(p) {
+			t.Errorf("isNodeEligibleProtocol(%q) = false, want true", p)
+		}
+	}
+	ineligible := []model.Protocol{model.MTProto, model.AmneziaWG, model.Mixed, model.HTTP, model.Tunnel}
+	for _, p := range ineligible {
+		if isNodeEligibleProtocol(p) {
+			t.Errorf("isNodeEligibleProtocol(%q) = true, want false", p)
+		}
+	}
+}

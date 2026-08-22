@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
 import { parseLinkParts, linkMetaText } from '@/lib/xray/link-label';
+import { genAmneziaWGLink } from '@/lib/xray/inbound-link';
+import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 
 // The panel shows the subscription's remark verbatim. Per-client traffic/expiry
 // info is rendered only into the body a client app imports (backend, first link
@@ -39,5 +41,49 @@ describe('link-label parseLinkParts', () => {
     expect(parts?.port).toBe('8443');
     expect(parts?.remark).toBe('mt-inbound');
     expect(parts && linkMetaText(parts)).toBe('mt-inbound:8443');
+  });
+
+  // AmneziaWG's vpn:// links are base64url of a plain .conf text, not a
+  // structured URL (see inbound-link.ts's genAmneziaWGLink) -- there's no
+  // query string or #hash available, so the remark/port have to be read back
+  // out of the decoded .conf body instead. Regression test for a real report:
+  // these links were showing a generic "Vpn" tag and falling back to "Link N"
+  // instead of "AmneziaWG" + the actual remark:port, unlike every other
+  // protocol's link row.
+  it('labels an AmneziaWG vpn:// link with its decoded remark and endpoint port', () => {
+    const settings = {
+      server: {
+        publicKey: 'serverPubKey==',
+        jc: 5,
+        jmin: 10,
+        jmax: 50,
+        s1: 30,
+        s2: 45,
+        s3: 10,
+        s4: 5,
+        h1: '',
+        h2: '',
+        h3: '',
+        h4: '',
+        i1: '',
+      },
+      clients: [{ email: 'peer-1', privateKey: 'clientPrivKey==', allowedIPs: ['10.8.1.2/32'] }],
+    } as unknown as AmneziawgInboundSettings;
+
+    // Cyrillic remark on purpose -- matches the real report, and exercises
+    // the unicode round-trip through base64url (not just plain ASCII).
+    const link = genAmneziaWGLink({
+      settings,
+      address: 'awg.example.test',
+      port: 36541,
+      remark: 'wg-Майфун',
+      peerIndex: 0,
+    });
+
+    const parts = parseLinkParts(link);
+    expect(parts?.protocol).toBe('AmneziaWG');
+    expect(parts?.remark).toBe('wg-Майфун');
+    expect(parts?.port).toBe('36541');
+    expect(parts && linkMetaText(parts)).toBe('wg-Майфун:36541');
   });
 });

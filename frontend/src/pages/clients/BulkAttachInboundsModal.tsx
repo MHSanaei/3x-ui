@@ -15,6 +15,7 @@ const MULTI_USER_PROTOCOLS = new Set([
   'shadowsocks',
   'wireguard',
   'mtproto',
+  'amneziawg',
 ]);
 
 interface BulkAttachInboundsModalProps {

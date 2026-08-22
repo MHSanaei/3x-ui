@@ -25,6 +25,11 @@ import {
   findWireguardInbound,
   isWireguardClient,
 } from './wireguardConfig';
+import {
+  buildAmneziaWGClientConfig,
+  findAmneziaWGInbound,
+  isAmneziaWGClient,
+} from './amneziawgConfig';
 import './ClientInfoModal.css';
 
 const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
@@ -35,6 +40,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   hysteria: 'cyan',
   hysteria2: 'green',
   wireguard: 'gold',
+  amneziawg: 'yellow',
   http: 'purple',
   mixed: 'lime',
   tunnel: 'orange',
@@ -56,6 +62,7 @@ interface ClientInfoModalProps {
   open: boolean;
   client: ClientRecord | null;
   inboundsById: Record<number, InboundOption>;
+  tunnelAllowedIPs?: Record<number, string>;
   isOnline: boolean;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
@@ -86,6 +93,7 @@ export default function ClientInfoModal({
   open,
   client,
   inboundsById,
+  tunnelAllowedIPs,
   isOnline,
   subSettings = DEFAULT_SUB,
   onOpenChange,
@@ -185,6 +193,22 @@ export default function ClientInfoModal({
       subSettings?.publicHost ?? '',
     );
   }, [client, wgInbound, subSettings?.publicHost]);
+
+  const awgInbound = useMemo(
+    () => findAmneziaWGInbound(client, inboundsById),
+    [client, inboundsById],
+  );
+  const awgConfigText = useMemo(() => {
+    if (!client || !awgInbound || !isAmneziaWGClient(client)) return '';
+    const address = awgInbound ? (tunnelAllowedIPs?.[awgInbound.id] ?? '') : '';
+    return buildAmneziaWGClientConfig(
+      client,
+      awgInbound,
+      window.location.hostname,
+      subSettings?.publicHost ?? '',
+      address,
+    );
+  }, [client, awgInbound, tunnelAllowedIPs, subSettings?.publicHost]);
 
   async function copyValue(text: string) {
     if (!text) return;
@@ -761,6 +785,18 @@ export default function ClientInfoModal({
                 <ConfigBlock
                   label={t('pages.clients.config')}
                   text={wgConfigText}
+                  fileName={`${client.email}.conf`}
+                  qrRemark={client.email || 'peer'}
+                />
+              </>
+            )}
+
+            {awgConfigText && client && (
+              <>
+                <Divider>{t('pages.clients.amneziaWgConfig')}</Divider>
+                <ConfigBlock
+                  label={t('pages.clients.config')}
+                  text={awgConfigText}
                   fileName={`${client.email}.conf`}
                   qrRemark={client.email || 'peer'}
                 />

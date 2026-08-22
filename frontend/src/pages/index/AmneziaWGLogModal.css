@@ -1,0 +1,17 @@
+.awglog-events-title {
+  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.awglog-event-line {
+  padding: 2px 0;
+  word-break: break-word;
+}
+
+.xraylog-table .log-row-offline {
+  opacity: 0.6;
+}

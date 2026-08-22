@@ -8,6 +8,7 @@ import (
 
 	"github.com/op/go-logging"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -727,5 +728,200 @@ func TestCheckPortConflict_ReservedAPIPortUDPCoexists(t *testing.T) {
 	}
 	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
 		t.Fatalf("udp-only inbound must coexist with the tcp API inbound; got=%v err=%v", got, err)
+	}
+}
+
+// amneziawgRoutedSettings builds a minimal but complete AmneziaWG settings
+// blob with one qualifying, enabled peer -- the shape that makes
+// injectAmneziawgnetSocks (and therefore checkAmneziawgnetSocksConflict)
+// create a relay inbound at all. The routeThroughXray field is kept in the
+// JSON (a stale value from a pre-cutover install) specifically to prove
+// it's now ignored -- see the "RouteThroughXrayOff" test below.
+const amneziawgRoutedSettings = `{"server":{"privateKey":"priv","publicKey":"pub","subnetIp":"10.8.1.0","subnetCidr":24,"routeThroughXray":true},"clients":[{"email":"a@x","enable":true,"publicKey":"pub-a","allowedIPs":["10.8.1.2/32"]}]}`
+
+// An enabled AmneziaWG inbound's automatic Xray SOCKS5 relay inbound
+// (injectAmneziawgnetSocks) is a synthetic loopback inbound, not a database
+// row, so checkPortConflict needs its own check to catch a collision --
+// exactly the same shape of problem as the reserved API port above.
+func TestCheckPortConflict_AmneziawgnetSocksRelayBlockedLocal(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     relayPort,
+		Protocol: model.VLESS,
+	}
+	got, err := svc.checkPortConflict(candidate, 0)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil {
+		t.Fatalf("a local inbound on the AmneziaWG relay port %d must conflict", relayPort)
+	}
+	if msg := got.String(); !strings.Contains(msg, "awg-1") {
+		t.Fatalf("conflict message should name the owning AmneziaWG inbound; got %q", msg)
+	}
+}
+
+// Nodes run their own Xray, so a node inbound landing on the central panel's
+// AmneziaWG relay port must be allowed -- the relay inbound only ever binds
+// 127.0.0.1 on the local panel's own Xray.
+func TestCheckPortConflict_AmneziawgnetSocksRelayAllowedOnNode(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "node-bridge",
+		Listen:   "0.0.0.0",
+		Port:     relayPort,
+		Protocol: model.VLESS,
+		NodeID:   new(1),
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("a node inbound on the local AmneziaWG relay port must be allowed; got=%v err=%v", got, err)
+	}
+}
+
+// A disabled AmneziaWG inbound never gets a relay inbound injected
+// (injectAmneziawgnetSocks skips !inbound.Enable), so its "reserved" port
+// must not block anything.
+func TestCheckPortConflict_AmneziawgnetSocksRelayIgnoredWhenDisabled(t *testing.T) {
+	setupConflictDB(t)
+	awg := &model.Inbound{Tag: "awg-1", Enable: false, Listen: "0.0.0.0", Port: 51820, Protocol: model.AmneziaWG, Settings: `{}`}
+	if err := database.GetDB().Create(awg).Error; err != nil {
+		t.Fatalf("seed disabled awg inbound: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awg.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     relayPort,
+		Protocol: model.VLESS,
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("a disabled AmneziaWG inbound's port must not be reserved; got=%v err=%v", got, err)
+	}
+}
+
+// Unlike the retired kernel-module bridge, the embedded relay has no
+// RouteThroughXray-style opt-in -- every qualifying AmneziaWG inbound
+// reserves its relay port regardless of that (now-vestigial) field's value,
+// including a stale routeThroughXray:true left over from a pre-cutover
+// install (amneziawgRoutedSettings).
+func TestCheckPortConflict_AmneziawgnetSocksRelayReservedRegardlessOfLegacyRouteThroughXrayField(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{"server":{"privateKey":"priv","publicKey":"pub","subnetIp":"10.8.1.0","subnetCidr":24},"clients":[{"email":"a@x","enable":true,"publicKey":"pub-a","allowedIPs":["10.8.1.2/32"]}]}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     relayPort,
+		Protocol: model.VLESS,
+	}
+	got, err := svc.checkPortConflict(candidate, 0)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil {
+		t.Fatalf("an enabled, qualifying AmneziaWG inbound must reserve its relay port even with RouteThroughXray left at its default")
+	}
+}
+
+// A qualifying AmneziaWG inbound with no enabled/valid peer at all never
+// gets a relay inbound (amneziawg.InstanceFromInbound returns ok=false), so
+// its port isn't reserved.
+func TestCheckPortConflict_AmneziawgnetSocksRelayIgnoredWhenNoQualifyingPeer(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     relayPort,
+		Protocol: model.VLESS,
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("an AmneziaWG inbound with no qualifying peer must not reserve its relay port; got=%v err=%v", got, err)
+	}
+}
+
+// An unrelated port never conflicts with the relay inbound.
+func TestCheckPortConflict_AmneziawgnetSocksRelayDifferentPortAllowed(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-elsewhere",
+		Listen:   "0.0.0.0",
+		Port:     9999,
+		Protocol: model.VLESS,
+	}
+	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
+		t.Fatalf("an unrelated port must not conflict with the AmneziaWG relay inbound; got=%v err=%v", got, err)
+	}
+}
+
+// The reverse direction: saving an AmneziaWG inbound whose own derived relay
+// port happens to equal another inbound's real port must also be rejected,
+// not just the already-covered "someone else picks my relay port" case.
+func TestCheckPortConflict_AmneziawgnetSocksRelayReverseDirectionBlockedOnUpdate(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+	seedInboundConflict(t, "vless-1", "0.0.0.0", relayPort, model.VLESS, ``, `{}`)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Id:       awgInbound.Id,
+		Tag:      "awg-1",
+		Listen:   "0.0.0.0",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Settings: amneziawgRoutedSettings,
+	}
+	got, err := svc.checkPortConflict(candidate, awgInbound.Id)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil {
+		t.Fatalf("awg-1's own derived relay port %d collides with vless-1's real port; must be rejected", relayPort)
 	}
 }

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/netip"
 	"strconv"
 	"strings"
@@ -11,6 +13,41 @@ import (
 )
 
 const defaultWireguardBase = "10.0.0.0/24"
+
+// wireguardSubnetSettings is the subset of a WireGuard inbound's top-level
+// settings JSON this package cares about for subnet resolution. Unlike
+// AmneziaWG (whose whole settings shape is a typed struct in
+// internal/amneziawg), plain WireGuard has no dedicated Go struct on this
+// fork's side at all -- everything else is handled as untyped
+// map[string]any -- so this stays a narrow, local decode rather than
+// introducing a full struct just for two fields.
+type wireguardSubnetSettings struct {
+	SubnetIP   string `json:"subnetIp"`
+	SubnetCIDR int    `json:"subnetCidr"`
+}
+
+// explicitWireguardSubnetBase resolves an admin-configured subnet base out
+// of settingsJSON's own subnetIp/subnetCidr fields, mirroring AmneziaWG's
+// defaultAmneziaWGSubnetBases. Returns "" when either field is unset/empty
+// or doesn't parse as a valid prefix -- callers fall back to
+// wireguardAllocationBase's existing infer-from-clients behavior in that
+// case, so an inbound saved before this field existed (or one that simply
+// never set it) keeps behaving exactly as it always has.
+func explicitWireguardSubnetBase(settingsJSON string) string {
+	var parsed wireguardSubnetSettings
+	if err := json.Unmarshal([]byte(settingsJSON), &parsed); err != nil {
+		return ""
+	}
+	ip := strings.TrimSpace(parsed.SubnetIP)
+	if ip == "" || parsed.SubnetCIDR <= 0 {
+		return ""
+	}
+	base := fmt.Sprintf("%s/%d", ip, parsed.SubnetCIDR)
+	if _, err := netip.ParsePrefix(base); err != nil {
+		return ""
+	}
+	return base
+}
 
 func keepAliveStr(seconds int) string {
 	if seconds <= 0 {
@@ -48,13 +85,24 @@ func wireguardAllocationBase(used []string, fallback string) string {
 
 const wireguardPoolFloorBits = 16
 
-func allocateWireguardAddress(used []string, base string) (string, error) {
+// allocateWireguardAddress returns the first free single-host address in base
+// not already in used, starting at the second host (the server holds the first).
+//
+// allowWidening retries in the containing /16 once base's pool is exhausted.
+// True for Xray-native WireGuard, whose AllowedIPs aren't tied to a kernel
+// interface subnet; AmneziaWG must pass false and fail loudly instead, since an
+// address outside its interface's own Address would be silently unroutable.
+func allocateWireguardAddress(used []string, base string, allowWidening bool) (string, error) {
 	if base == "" {
 		base = defaultWireguardBase
 	}
 	prefix, err := netip.ParsePrefix(base)
 	if err != nil {
 		return "", err
+	}
+	hostBits := "32"
+	if prefix.Addr().Is6() {
+		hostBits = "128"
 	}
 	taken := make(map[netip.Addr]struct{}, len(used))
 	for _, u := range used {
@@ -63,7 +111,7 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 		}
 	}
 	scopes := []netip.Prefix{prefix}
-	if prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
+	if allowWidening && prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
 		if wider, wErr := prefix.Addr().Prefix(wireguardPoolFloorBits); wErr == nil {
 			scopes = append(scopes, wider)
 		}
@@ -72,7 +120,7 @@ func allocateWireguardAddress(used []string, base string) (string, error) {
 		addr := scope.Masked().Addr().Next().Next()
 		for scope.Contains(addr) {
 			if _, ok := taken[addr]; !ok {
-				return addr.String() + "/32", nil
+				return addr.String() + "/" + hostBits, nil
 			}
 			addr = addr.Next()
 		}
@@ -127,12 +175,32 @@ func wireguardAllowedIPsCollision(entries, used []string) string {
 // inbound's subnet. It mutates both the typed clients and the parallel raw client
 // maps that get persisted into the inbound settings. Existing values are never
 // overwritten, so editing a client never rotates its keys.
-func defaultWireguardClients(existing, clients []model.Client, interfaceClients []any) error {
+//
+// crossInboundUsed maps AllowedIPs already claimed by clients on every OTHER
+// WireGuard/AmneziaWG inbound on this panel to a human-readable description
+// of which inbound holds it (see otherTunnelAllowedIPs). It is folded into
+// used only AFTER the base subnet is resolved, so an unrelated inbound's
+// subnet can never skew this inbound's own base-subnet resolution — it only
+// ever narrows which addresses are free to hand out or accept, and lets a
+// manual-entry collision name the other inbound instead of just the address.
+//
+// settingsJSON is checked first for an admin-configured subnetIp/subnetCidr
+// (see explicitWireguardSubnetBase) — set explicitly, that always wins.
+// Only when it's unset does base fall back to inferring from existing
+// clients' own addresses, and finally to defaultWireguardBase, exactly as
+// before this field existed.
+func defaultWireguardClients(settingsJSON string, existing, clients []model.Client, interfaceClients []any, crossInboundUsed map[string]string) error {
 	used := make([]string, 0)
 	for i := range existing {
 		used = append(used, existing[i].AllowedIPs...)
 	}
-	base := wireguardAllocationBase(used, defaultWireguardBase)
+	base := explicitWireguardSubnetBase(settingsJSON)
+	if base == "" {
+		base = wireguardAllocationBase(used, defaultWireguardBase)
+	}
+	for addr := range crossInboundUsed {
+		used = append(used, addr)
+	}
 	for i := range clients {
 		c := &clients[i]
 		if c.PrivateKey == "" && c.PublicKey == "" {
@@ -150,7 +218,7 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 			c.PublicKey = pub
 		}
 		if len(c.AllowedIPs) == 0 {
-			addr, err := allocateWireguardAddress(used, base)
+			addr, err := allocateWireguardAddress(used, base, true)
 			if err != nil {
 				return err
 			}
@@ -164,6 +232,9 @@ func defaultWireguardClients(existing, clients []model.Client, interfaceClients 
 				return common.NewError("wireguard: allowedIPs has no usable entry")
 			}
 			if hit := wireguardAllowedIPsCollision(normalized, used); hit != "" {
+				if where := crossInboundUsed[hit]; where != "" {
+					return common.NewError("wireguard: allowedIPs entry", hit, "is already used by a client on", where)
+				}
 				return common.NewError("wireguard: allowedIPs entry already used by another client:", hit)
 			}
 			c.AllowedIPs = normalized

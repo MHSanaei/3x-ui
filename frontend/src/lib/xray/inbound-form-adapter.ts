@@ -5,6 +5,7 @@ import type {
 } from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
+  AmneziawgClientSchema,
   HysteriaClientSchema,
   MtprotoClientSchema,
   ShadowsocksClientSchema,
@@ -268,6 +269,8 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
       return WireguardClientSchema;
     case 'mtproto':
       return MtprotoClientSchema;
+    case 'amneziawg':
+      return AmneziawgClientSchema;
     default:
       return null;
   }

@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
@@ -13,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
 	stdnet "net"
 	"net/http"
@@ -28,6 +30,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -89,6 +93,13 @@ type Status struct {
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
 	} `json:"xray"`
+	// AmneziaWG gates the overview's AmneziaWG log view: Configured stays true
+	// while an inbound exists but its embedded interface isn't up yet, which
+	// is exactly when that view's event lines are worth reading.
+	AmneziaWG struct {
+		Configured bool `json:"configured"`
+		Running    bool `json:"running"`
+	} `json:"amneziawg"`
 	PanelVersion string    `json:"panelVersion"`
 	PanelGuid    string    `json:"panelGuid"`
 	Uptime       uint64    `json:"uptime"`
@@ -611,6 +622,16 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+
+	var amneziawgCount int64
+	if err := database.GetDB().Model(model.Inbound{}).
+		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Count(&amneziawgCount).Error; err != nil {
+		logger.Warning("count amneziawg inbounds failed:", err)
+	}
+	status.AmneziaWG.Configured = amneziawgCount > 0
+	status.AmneziaWG.Running = amneziawgnet.GetManager().HasRunning()
+
 	status.PanelVersion = config.GetPanelVersion()
 	if guid, err := s.settingService.GetPanelGuid(); err == nil {
 		status.PanelGuid = guid
@@ -1167,6 +1188,175 @@ func parseAccessLogFields(line string) LogEntry {
 	return entry
 }
 
+// amneziawgEmailIndex maps "<inbound tag>|<peer tunnel IP>" to that peer's
+// email, for every AmneziaWG inbound in inbounds. dokodemo-door (the
+// TPROXY bridge every AmneziaWG peer's traffic is routed through, tagged
+// with the AmneziaWG inbound's own tag) has no per-user identity, so Xray's
+// access log never has an "email:" token for these lines -- only the
+// decapsulated peer's own tunnel IP survives as the log's "from" address.
+// This lets GetXrayLogs recover which client that was, the same way it's
+// already shown for every authenticated protocol.
+func amneziawgEmailIndex(inbounds []*model.Inbound) map[string]string {
+	index := make(map[string]string)
+	for _, ib := range inbounds {
+		instance, ok := amneziawg.InstanceFromInbound(ib)
+		if !ok {
+			continue
+		}
+		for _, peer := range instance.Peers {
+			if peer.Email == "" {
+				continue
+			}
+			if ip := amneziawg.FirstIPv4(peer.AllowedIPs); ip != "" {
+				index[ib.Tag+"|"+ip] = peer.Email
+			}
+		}
+	}
+	return index
+}
+
+// PeerActivity is one peer's live embedded-Device-reported state, the
+// counterpart of an Xray access-log entry: a tunnel logs no requests, only
+// handshakes and bytes.
+type PeerActivity struct {
+	Interface  string `json:"interface"`
+	Tag        string `json:"tag"`
+	InboundId  int    `json:"inboundId"`
+	Email      string `json:"email"`
+	Endpoint   string `json:"endpoint"`
+	AllowedIPs string `json:"allowedIPs"`
+	// Handshake is unix milliseconds, 0 when the peer has never connected.
+	Handshake int64 `json:"handshake"`
+	Up        int64 `json:"up"`
+	Down      int64 `json:"down"`
+	Online    bool  `json:"online"`
+}
+
+// amneziawgOnlineWindow mirrors the standard WireGuard convention (and this
+// fork's own prior kernel-module behavior): a handshake this recent counts
+// as online.
+const amneziawgOnlineWindow = 180 * time.Second
+
+// AmneziaWGLogs is what the overview's AmneziaWG log view renders: the live
+// per-peer activity of every running embedded interface, plus the panel's
+// own recent AmneziaWG lifecycle log lines that explain a peer being absent
+// from Peers at all.
+type AmneziaWGLogs struct {
+	Peers   []PeerActivity `json:"peers"`
+	Events  []string       `json:"events"`
+	Running bool           `json:"running"`
+}
+
+// amneziawgEventMarker selects the panel's own AmneziaWG log lines: every
+// logger call in internal/amneziawg, internal/amneziawgnet and their jobs
+// prefixes its message with it.
+const amneziawgEventMarker = "amneziawg"
+
+// amneziawgLogActivity gathers live PeerActivity rows across every enabled,
+// non-node-hosted AmneziaWG inbound, newest handshake first. An inbound
+// amneziawgnet has no running Device for yet (not reconciled, disabled,
+// errored) contributes no rows -- not reported as an error, since the
+// caller (GetAmneziaWGLogs) already has a device-agnostic Running flag from
+// amneziawgnet.GetManager().HasRunning() for that.
+// clampUint64ToInt64 saturates at math.MaxInt64 instead of wrapping negative,
+// for a live uint64 byte counter (amneziawgnet's own UAPI-dump snapshot, not
+// a DB-accumulated total) going into an int64 API field -- unreachable in
+// practice at real traffic volumes, but a silent negative value would be
+// worse than a saturated one if it were ever hit.
+func clampUint64ToInt64(v uint64) int64 {
+	if v > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int64(v)
+}
+
+func amneziawgLogActivity() []PeerActivity {
+	var inbounds []*model.Inbound
+	if err := database.GetDB().
+		Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true).
+		Find(&inbounds).Error; err != nil {
+		logger.Warning("amneziawg logs: list inbounds failed:", err)
+		return nil
+	}
+
+	now := time.Now()
+	var out []PeerActivity
+	for _, inbound := range inbounds {
+		inst, ok := amneziawg.InstanceFromInbound(inbound)
+		if !ok {
+			continue
+		}
+		diag := amneziawgnet.Diagnose(inbound.Id, inst.Peers)
+		if !diag.Running {
+			continue
+		}
+		for _, cd := range diag.Clients {
+			var handshakeMs int64
+			online := false
+			if !cd.LastHandshake.IsZero() {
+				handshakeMs = cd.LastHandshake.UnixMilli()
+				online = now.Sub(cd.LastHandshake) < amneziawgOnlineWindow
+			}
+			out = append(out, PeerActivity{
+				Interface:  inst.InterfaceName,
+				Tag:        inbound.Tag,
+				InboundId:  inbound.Id,
+				Email:      cd.Email,
+				Endpoint:   cd.Endpoint,
+				AllowedIPs: cd.AllowedIPs,
+				Handshake:  handshakeMs,
+				Up:         clampUint64ToInt64(cd.RxBytes),
+				Down:       clampUint64ToInt64(cd.TxBytes),
+				Online:     online,
+			})
+		}
+	}
+	slices.SortFunc(out, func(a, b PeerActivity) int {
+		if a.Handshake != b.Handshake {
+			return cmp.Compare(b.Handshake, a.Handshake)
+		}
+		return strings.Compare(a.Email, b.Email)
+	})
+	return out
+}
+
+// GetAmneziaWGLogs returns at most count peer rows and count event lines,
+// optionally narrowed to rows whose text contains filter (case-insensitive),
+// mirroring GetXrayLogs' own count+filter contract.
+func (s *ServerService) GetAmneziaWGLogs(count string, filter string) *AmneziaWGLogs {
+	limit, err := strconv.Atoi(count)
+	if err != nil || limit < 1 || limit > 10000 {
+		limit = 100
+	}
+	needle := strings.ToLower(strings.TrimSpace(filter))
+
+	logs := &AmneziaWGLogs{Peers: []PeerActivity{}, Events: []string{}, Running: amneziawgnet.GetManager().HasRunning()}
+
+	for _, peer := range amneziawgLogActivity() {
+		if len(logs.Peers) >= limit {
+			break
+		}
+		if needle != "" && !strings.Contains(strings.ToLower(peer.Email+" "+peer.Tag+" "+peer.Interface+" "+peer.Endpoint+" "+peer.AllowedIPs), needle) {
+			continue
+		}
+		logs.Peers = append(logs.Peers, peer)
+	}
+
+	for _, line := range logger.GetLogs(10000, "debug") {
+		if len(logs.Events) >= limit {
+			break
+		}
+		if !strings.Contains(strings.ToLower(line), amneziawgEventMarker) {
+			continue
+		}
+		if needle != "" && !strings.Contains(strings.ToLower(line), needle) {
+			continue
+		}
+		logs.Events = append(logs.Events, line)
+	}
+	return logs
+}
+
 func (s *ServerService) GetXrayLogs(
 	count string,
 	filter string,
@@ -1184,6 +1374,11 @@ func (s *ServerService) GetXrayLogs(
 
 	countInt, _ := strconv.Atoi(count)
 	var entries []LogEntry
+
+	var amneziawgEmails map[string]string
+	if inbounds, err := s.inboundService.GetAllInbounds(); err == nil {
+		amneziawgEmails = amneziawgEmailIndex(inbounds)
+	}
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {
@@ -1212,6 +1407,14 @@ func (s *ServerService) GetXrayLogs(
 		}
 
 		entry := parseAccessLogFields(line)
+
+		if entry.Email == "" && len(amneziawgEmails) > 0 {
+			if ip, _, splitErr := stdnet.SplitHostPort(entry.FromAddress); splitErr == nil {
+				if email, ok := amneziawgEmails[entry.Inbound+"|"+ip]; ok {
+					entry.Email = email
+				}
+			}
+		}
 
 		if logEntryContains(line, freedoms) {
 			if showDirect == "false" {

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -53,6 +55,35 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		}
 		return mtproto.GetManager().Ensure(inst)
 	}
+	if ib.Protocol == model.AmneziaWG {
+		inst, ok := amneziawg.InstanceFromInbound(ib)
+		if !ok {
+			return nil
+		}
+		err := amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
+			Instance: inst,
+			Options: amneziawgnet.DeviceOptions{
+				HeaderProtectionKey:    inst.Obfuscation.HeaderProtectionKey,
+				ContentPaddingAddition: inst.Obfuscation.ContentPaddingAddition,
+				RekeyAfterTime:         inst.Obfuscation.RekeyAfterTime,
+				RekeyTimeout:           inst.Obfuscation.RekeyTimeout,
+				RejectAfterTime:        inst.Obfuscation.RejectAfterTime,
+				KeepaliveTimeout:       inst.Obfuscation.KeepaliveTimeout,
+				MaxHandshakeAttempts:   inst.Obfuscation.MaxHandshakeAttempts,
+				RandomTrailers:         inst.Obfuscation.RandomTrailers,
+				DisableCookies:         inst.Obfuscation.DisableCookies,
+			},
+		})
+		// A brand new inbound can be the first one to qualify for
+		// injectAmneziawgnetSocks's Xray-side relay inbound (e.g. its first
+		// valid peer). Ensure only updates the embedded Device -- flag Xray
+		// for a resync so the relay actually gets created within the next
+		// ApplyPendingRestart tick instead of only at the next full restart.
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		return err
+	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
 		return err
@@ -67,6 +98,16 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 		mtproto.GetManager().Remove(ib.Id)
 		return nil
 	}
+	if ib.Protocol == model.AmneziaWG {
+		amneziawgnet.GetManager().Remove(ib.Id)
+		// The removed inbound may have been the only one backing Xray's
+		// injectAmneziawgnetSocks relay inbound for this tag -- flag a
+		// resync so the now-stale relay gets torn down promptly.
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		return nil
+	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
 		return api.DelInbound(ib.Tag)
 	})
@@ -75,6 +116,9 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 func (l *Local) UpdateInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	if oldIb.Protocol == model.MTProto || newIb.Protocol == model.MTProto {
 		return l.updateMtprotoInbound(ctx, oldIb, newIb)
+	}
+	if oldIb.Protocol == model.AmneziaWG || newIb.Protocol == model.AmneziaWG {
+		return l.updateAmneziaWGInbound(ctx, oldIb, newIb)
 	}
 	_ = l.DelInbound(ctx, oldIb)
 	if !newIb.Enable {
@@ -112,8 +156,61 @@ func (l *Local) updateMtprotoInbound(ctx context.Context, oldIb, newIb *model.In
 	return mtproto.GetManager().Ensure(inst)
 }
 
+// updateAmneziaWGInbound mirrors updateMtprotoInbound: it skips the
+// Remove+Ensure sequence a plain Del+Add would force so that, on an
+// AmneziaWG-to-AmneziaWG edit, Manager.Ensure's own fingerprint comparison
+// can reconfigure the running embedded Device in place via IpcSet instead
+// of always rebuilding it (see internal/amneziawgnet.Manager.ensureLocked --
+// only an address/MTU change forces a rebuild there, not a peer edit).
+//
+// Every exit path below only touches the embedded Device via
+// amneziawgnet.GetManager() -- none of it rebuilds Xray's own config, which
+// is what actually creates/removes injectAmneziawgnetSocks's relay inbound.
+// A peer edit that changes whether this inbound has a qualifying peer at
+// all (its first peer added, or its last one removed) must still get that
+// relay created or torn down, so flag Xray for a resync unconditionally
+// here rather than trying to enumerate which of the branches below need it.
+func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
+	if l.deps.SetNeedRestart != nil {
+		l.deps.SetNeedRestart()
+	}
+	if oldIb.Protocol == model.AmneziaWG && newIb.Protocol != model.AmneziaWG {
+		amneziawgnet.GetManager().Remove(oldIb.Id)
+		if !newIb.Enable {
+			return nil
+		}
+		return l.AddInbound(ctx, newIb)
+	}
+	if oldIb.Protocol != model.AmneziaWG {
+		_ = l.DelInbound(ctx, oldIb)
+	}
+	if !newIb.Enable {
+		amneziawgnet.GetManager().Remove(newIb.Id)
+		return nil
+	}
+	inst, ok := amneziawg.InstanceFromInbound(newIb)
+	if !ok {
+		amneziawgnet.GetManager().Remove(newIb.Id)
+		return nil
+	}
+	return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
+		Instance: inst,
+		Options: amneziawgnet.DeviceOptions{
+			HeaderProtectionKey:    inst.Obfuscation.HeaderProtectionKey,
+			ContentPaddingAddition: inst.Obfuscation.ContentPaddingAddition,
+			RekeyAfterTime:         inst.Obfuscation.RekeyAfterTime,
+			RekeyTimeout:           inst.Obfuscation.RekeyTimeout,
+			RejectAfterTime:        inst.Obfuscation.RejectAfterTime,
+			KeepaliveTimeout:       inst.Obfuscation.KeepaliveTimeout,
+			MaxHandshakeAttempts:   inst.Obfuscation.MaxHandshakeAttempts,
+			RandomTrailers:         inst.Obfuscation.RandomTrailers,
+			DisableCookies:         inst.Obfuscation.DisableCookies,
+		},
+	})
+}
+
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
-	if ib.Protocol == model.MTProto {
+	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -122,7 +219,7 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 }
 
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
-	if ib.Protocol == model.MTProto {
+	if ib.Protocol == model.MTProto || ib.Protocol == model.AmneziaWG {
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {

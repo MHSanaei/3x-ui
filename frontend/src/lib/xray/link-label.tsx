@@ -26,6 +26,7 @@ const PROTOCOL_LABELS: Record<string, string> = {
   wireguard: 'WireGuard',
   wg: 'WireGuard',
   tg: 'MTProto',
+  vpn: 'AmneziaWG',
 };
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -37,6 +38,7 @@ const PROTOCOL_COLORS: Record<string, string> = {
   Hysteria2: 'magenta',
   WireGuard: 'cyan',
   MTProto: 'blue',
+  AmneziaWG: 'yellow',
 };
 
 const SECURITY_COLORS: Record<string, string> = {
@@ -49,6 +51,18 @@ const SECURITY_COLORS: Record<string, string> = {
 const TRANSPORT_COLOR = 'gold';
 
 const TAG_STYLE = { marginInlineEnd: 0, fontWeight: 600, letterSpacing: '0.3px' };
+
+// Reverse of inbound-link.ts's own toBase64Url — base64url (RFC 4648 §5, no
+// padding) back to the original unicode text, needed to read the remark/
+// endpoint back out of a vpn:// link's opaque payload below.
+function fromBase64Url(value: string): string {
+  const b64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
 
 /* Pull protocol, transport, security plus the remark and port out of a share
    link. vless/trojan carry network+security as `type`/`security` query params
@@ -80,6 +94,20 @@ export function parseLinkParts(link: string): LinkParts | null {
       security = json.tls ?? '';
       remark = typeof json.ps === 'string' ? json.ps : '';
       port = json.port != null ? String(json.port) : '';
+    } catch {
+      /* unparseable payload, fall back to protocol only */
+    }
+  } else if (scheme === 'vpn') {
+    /* AmneziaWG's vpn:// links are base64url of a plain .conf text (matching
+       the real AmneziaVPN app's own share-link scheme), not a structured URL
+       — there's no query string or #hash to read a remark/port from without
+       corrupting the payload the app itself needs to decode. The remark and
+       endpoint are still in there as plain .conf lines, though, so pull them
+       back out directly. */
+    try {
+      const cfgText = fromBase64Url(trimmed.slice('vpn://'.length));
+      remark = /^#\s?(.*)$/m.exec(cfgText)?.[1]?.trim() ?? '';
+      port = /^Endpoint\s*=\s*.+:(\d+)\s*$/m.exec(cfgText)?.[1] ?? '';
     } catch {
       /* unparseable payload, fall back to protocol only */
     }

@@ -11,6 +11,11 @@ import {
   findWireguardInbound,
   isWireguardClient,
 } from './wireguardConfig';
+import {
+  buildAmneziaWGClientConfig,
+  findAmneziaWGInbound,
+  isAmneziaWGClient,
+} from './amneziawgConfig';
 
 interface SubSettings {
   enable: boolean;
@@ -24,6 +29,7 @@ interface ClientQrModalProps {
   open: boolean;
   client: ClientRecord | null;
   inboundsById: Record<number, InboundOption>;
+  tunnelAllowedIPs?: Record<number, string>;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
 }
@@ -45,6 +51,7 @@ export default function ClientQrModal({
   open,
   client,
   inboundsById,
+  tunnelAllowedIPs,
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientQrModalProps) {
@@ -74,7 +81,24 @@ export default function ClientQrModal({
     );
   }, [client, wgInbound, subSettings?.publicHost]);
 
-  const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || links.length > 0;
+  const awgInbound = useMemo(
+    () => findAmneziaWGInbound(client, inboundsById),
+    [client, inboundsById],
+  );
+  const awgConfigText = useMemo(() => {
+    if (!client || !awgInbound || !isAmneziaWGClient(client)) return '';
+    const address = awgInbound ? (tunnelAllowedIPs?.[awgInbound.id] ?? '') : '';
+    return buildAmneziaWGClientConfig(
+      client,
+      awgInbound,
+      window.location.hostname,
+      subSettings?.publicHost ?? '',
+      address,
+    );
+  }, [client, awgInbound, tunnelAllowedIPs, subSettings?.publicHost]);
+
+  const hasAnything =
+    !!subLink || !!subJsonLink || !!wgConfigText || !!awgConfigText || links.length > 0;
 
   // The reset runs during render so the effect only carries the request.
   const openSubId = open ? (client?.subId ?? '') : '';
@@ -165,8 +189,25 @@ export default function ClientQrModal({
         ),
       });
     }
+    if (awgConfigText) {
+      out.push({
+        key: 'awg-config',
+        label: (
+          <Tag color="purple" style={{ margin: 0 }}>
+            {t('pages.clients.amneziaWgConfig')}
+          </Tag>
+        ),
+        children: (
+          <QrPanel
+            value={awgConfigText}
+            remark={client?.email || 'peer'}
+            downloadName={`${client?.email || 'peer'}.conf`}
+          />
+        ),
+      });
+    }
     return out;
-  }, [subLink, subJsonLink, wgConfigText, links, client?.email, t]);
+  }, [subLink, subJsonLink, wgConfigText, awgConfigText, links, client?.email, t]);
 
   // Expanding the first panel is a render-time adjustment, not a side effect.
   const firstKey = open && items.length > 0 ? items[0].key : null;

@@ -53,6 +53,24 @@ func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 	}
 }
 
+// nodeEligibleProtocols mirrors the frontend's NODE_ELIGIBLE_PROTOCOLS. The
+// sidecar-managed protocols are absent because their reconcile loops only query
+// NodeID IS NULL rows, so a node-assigned one would never be reconciled at all.
+// A new protocol defaults to ineligible until added here, as on the frontend.
+var nodeEligibleProtocols = map[model.Protocol]bool{
+	model.VLESS:       true,
+	model.VMESS:       true,
+	model.Trojan:      true,
+	model.Shadowsocks: true,
+	model.Hysteria:    true,
+	model.WireGuard:   true,
+}
+
+// isNodeEligibleProtocol reports whether protocol may be assigned to a node.
+func isNodeEligibleProtocol(protocol model.Protocol) bool {
+	return nodeEligibleProtocols[protocol]
+}
+
 // vlessEncryptionEnabled reports whether a VLESS inbound has VLESS-level
 // encryption (vlessenc / ML-KEM) configured. When enabled these fields hold a
 // generated dotted string (e.g. "mlkem768x25519plus.native.0rtt.<key>"); "none"

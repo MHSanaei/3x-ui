@@ -2,6 +2,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  amneziawgConfigFromLink,
+  genAmneziaWGConfig,
+  genAmneziaWGLink,
   genHysteriaLink,
   genInboundLinks,
   genShadowsocksLink,
@@ -15,7 +18,16 @@ import {
   resolveAddr,
 } from '@/lib/xray/inbound-link';
 import { InboundSchema } from '@/schemas/api/inbound';
+import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
+
+// reverse of inbound-link.ts's own toBase64Url, for asserting on the
+// decoded vpn:// payload without depending on that helper being exported.
+function fromBase64Url(value: string): string {
+  const b64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+  return atob(padded);
+}
 
 // Snapshot baseline for the share-link generators. Snapshots were locked
 // at the close of the legacy class migration — at that point each
@@ -354,6 +366,184 @@ describe('genWireguardLink + genWireguardConfig multi allowedIPs', () => {
       peerIndex: 0,
     });
     expect(config).toContain('Address = 10.0.0.2/32, fd00::2/128\n');
+  });
+});
+
+// Real AmneziaVPN app's import path (confirmed by reading its own source)
+// base64url-decodes a vpn:// link, best-effort decompresses it (falling back
+// to the raw bytes for plain text, which is never qCompress-framed), then
+// parses the result as a flat "Key = Value" bag -- so genAmneziaWGLink just
+// needs to wrap genAmneziaWGConfig's already-correct .conf text.
+describe('genAmneziaWGLink vpn:// scheme', () => {
+  const settings = {
+    server: {
+      publicKey: 'serverPubKey==',
+      mtu: 1420,
+      primaryDns: '8.8.8.8',
+      secondaryDns: '8.8.4.4',
+      jc: 5,
+      jmin: 10,
+      jmax: 50,
+      s1: 30,
+      s2: 45,
+      s3: 10,
+      s4: 5,
+      h1: '',
+      h2: '',
+      h3: '',
+      h4: '',
+      i1: '',
+    },
+    clients: [
+      {
+        email: 'peer-1',
+        privateKey: 'clientPrivKey==',
+        allowedIPs: ['10.8.1.2/32'],
+        keepAlive: 25,
+      },
+    ],
+  } as unknown as AmneziawgInboundSettings;
+
+  const input = {
+    settings,
+    address: 'awg.example.test',
+    port: 51820,
+    remark: 'awg-peer-1',
+    peerIndex: 0,
+  };
+
+  it('wraps the .conf text as a base64url-encoded vpn:// link, byte-identical to genAmneziaWGConfig', () => {
+    const link = genAmneziaWGLink(input);
+    expect(link.startsWith('vpn://')).toBe(true);
+
+    const decoded = fromBase64Url(link.slice('vpn://'.length));
+    expect(decoded).toBe(genAmneziaWGConfig(input));
+    expect(decoded).toContain('PrivateKey = clientPrivKey==\n');
+    expect(decoded).toContain('PublicKey = serverPubKey==\n');
+    expect(decoded).toContain('Endpoint = awg.example.test:51820');
+    // No trailing newline: the text ends on its last set field whichever that
+    // is, so the three emitters produce the same shape for the same client.
+    expect(decoded.endsWith('PersistentKeepalive = 25')).toBe(true);
+  });
+
+  it('omits every unset 3.1 field — a lone HeaderProtectionKey line would break the handshake', () => {
+    const decoded = fromBase64Url(genAmneziaWGLink(input).slice('vpn://'.length));
+    for (const absent of [
+      'I2',
+      'HeaderProtectionKey',
+      'ContentPaddingAddition',
+      'RekeyAfterTime',
+      'RekeyTimeout',
+      'RejectAfterTime',
+      'KeepaliveTimeout',
+      'MaxHandshakeAttempts',
+      'RandomTrailers',
+      'DisableCookies',
+    ]) {
+      expect(decoded).not.toContain(absent);
+    }
+  });
+
+  it('returns an empty string when the peer index has no client', () => {
+    expect(genAmneziaWGLink({ ...input, peerIndex: 5 })).toBe('');
+  });
+
+  // The subscription page's own reverse of the above: recovers a vpn://
+  // link's .conf text for the same copy/download/QR "Config" block
+  // WireGuard already gets there (wireguardConfigFromLink's AmneziaWG
+  // counterpart) -- found missing from that page in production (no
+  // download-config affordance for AmneziaWG links, unlike WireGuard's),
+  // even though every other surface in the panel (InboundInfoModal,
+  // ClientInfoModal, ClientQrModal) already had parity.
+  it('amneziawgConfigFromLink round-trips genAmneziaWGLink byte-identical to genAmneziaWGConfig', () => {
+    const link = genAmneziaWGLink(input);
+    expect(amneziawgConfigFromLink(link)).toBe(genAmneziaWGConfig(input));
+  });
+});
+
+describe('amneziawgConfigFromLink edge cases', () => {
+  it('returns an empty string for a non-vpn:// link', () => {
+    expect(amneziawgConfigFromLink('wireguard://abc')).toBe('');
+    expect(amneziawgConfigFromLink('')).toBe('');
+  });
+
+  it('returns an empty string for an unparseable vpn:// payload', () => {
+    expect(amneziawgConfigFromLink('vpn://not-valid-base64url!!!')).toBe('');
+  });
+});
+
+/*
+ * The full AmneziaWG 3.1 parameter block, pinned line-by-line and in order:
+ * the emitted client config must carry the identical block the Go server
+ * emitter writes (internal/amneziawg.writeObfuscation) or the tunnel breaks.
+ */
+describe('genAmneziaWGConfig 3.1 parameters', () => {
+  const settings = {
+    server: {
+      publicKey: 'serverPubKey==',
+      jc: 4,
+      jmin: 40,
+      jmax: 100,
+      s1: 30,
+      s2: 90,
+      s3: 20,
+      s4: 10,
+      h1: '10-2000',
+      h2: '3000-5000',
+      h3: '6000-8000',
+      h4: '9000-11000',
+      i1: '<r 64>',
+      i2: '<r 80>',
+      i3: '',
+      i4: '',
+      i5: '',
+      headerProtectionKey: 'MCPfRGcDGotJ6TcnIdDqsemj2cMIiGHnPUHM5ivXN18=',
+      contentPaddingAddition: '16-48',
+      rekeyAfterTime: '110-140',
+      rekeyTimeout: '4-8',
+      rejectAfterTime: '190-250',
+      keepaliveTimeout: '9-15',
+      maxHandshakeAttempts: '20-40',
+      randomTrailers: true,
+      disableCookies: true,
+    },
+    clients: [{ email: 'peer-1', privateKey: 'clientPrivKey==', allowedIPs: ['10.8.1.2/32'] }],
+  } as unknown as AmneziawgInboundSettings;
+
+  const input = {
+    settings,
+    address: 'awg.example.test',
+    port: 51820,
+    remark: 'awg-31',
+    peerIndex: 0,
+  };
+
+  it('emits every 3.1 line in the shared emitter order and round-trips through vpn://', () => {
+    const cfg = genAmneziaWGConfig(input);
+    const expectedOrder = [
+      'Jc = 4',
+      'H4 = 9000-11000',
+      'I1 = <r 64>',
+      'I2 = <r 80>',
+      'HeaderProtectionKey = MCPfRGcDGotJ6TcnIdDqsemj2cMIiGHnPUHM5ivXN18=',
+      'ContentPaddingAddition = 16-48',
+      'RekeyAfterTime = 110-140',
+      'RekeyTimeout = 4-8',
+      'RejectAfterTime = 190-250',
+      'KeepaliveTimeout = 9-15',
+      'MaxHandshakeAttempts = 20-40',
+      'RandomTrailers = on',
+      'DisableCookies = on',
+      '[Peer]',
+    ];
+    let pos = -1;
+    for (const line of expectedOrder) {
+      const i = cfg.indexOf(line);
+      expect(i, `missing or out-of-order: ${line}\n${cfg}`).toBeGreaterThan(pos);
+      pos = i;
+    }
+    expect(cfg).not.toContain('I3');
+    expect(amneziawgConfigFromLink(genAmneziaWGLink(input))).toBe(cfg);
   });
 });
 

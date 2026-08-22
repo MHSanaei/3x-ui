@@ -100,6 +100,10 @@ func run(root, outDir string) error {
 			Path:        resolveRel(root, "internal/web/service/panel"),
 			StructAllow: setOf("ApiTokenView", "PanelUpdateStatus"),
 		},
+		{
+			Path:        resolveRel(root, "internal/amneziawg"),
+			StructAllow: setOf("ServerSettings"),
+		},
 	}
 
 	schemas, aliases, err := walkPackages(requests)

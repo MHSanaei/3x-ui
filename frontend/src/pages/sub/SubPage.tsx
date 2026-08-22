@@ -33,7 +33,11 @@ import {
 } from '@ant-design/icons';
 
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
-import { isPostQuantumLink, wireguardConfigFromLink } from '@/lib/xray/inbound-link';
+import {
+  amneziawgConfigFromLink,
+  isPostQuantumLink,
+  wireguardConfigFromLink,
+} from '@/lib/xray/inbound-link';
 import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import { setMessageInstance } from '@/utils/messageBus';
@@ -533,6 +537,7 @@ export default function SubPage() {
                         const canQr = !isPostQuantumLink(link);
                         const isWireguardLink =
                           link.startsWith('wireguard://') || link.startsWith('wg://');
+                        const isAmneziawgLink = link.startsWith('vpn://');
                         return (
                           <Fragment key={link}>
                             <div className="sub-link-row">
@@ -588,6 +593,15 @@ export default function SubPage() {
                                 fileName={`${rowTitle || 'peer'}.conf`}
                                 qrRemark={rowTitle}
                                 tagColor="cyan"
+                              />
+                            )}
+                            {isAmneziawgLink && (
+                              <ConfigBlock
+                                label={t('pages.clients.amneziaWgConfig')}
+                                text={amneziawgConfigFromLink(link)}
+                                fileName={`${rowTitle || 'peer'}.conf`}
+                                qrRemark={rowTitle}
+                                tagColor="purple"
                               />
                             )}
                           </Fragment>

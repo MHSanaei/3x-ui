@@ -25,8 +25,14 @@ import {
 import { HttpUtil, SizeFormatter, RandomUtil } from '@/utils';
 import { buildClonePayload } from '@/lib/xray/inbound-clone';
 import { NODE_ELIGIBLE_PROTOCOLS } from '@/lib/xray/node-protocols';
-import { genInboundLinks, genWireguardLinks, preferPublicHost } from '@/lib/xray/inbound-link';
+import {
+  genAmneziaWGLinks,
+  genInboundLinks,
+  genWireguardLinks,
+  preferPublicHost,
+} from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
+import { Protocols } from '@/schemas/primitives';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -335,7 +341,16 @@ export default function InboundsPage() {
               content: genWireguardLinks(genInput),
             },
           ]
-        : undefined;
+        : projected.protocol === Protocols.AMNEZIAWG
+          ? [
+              { key: 'config', label: t('pages.clients.config'), content },
+              {
+                key: 'links',
+                label: t('pages.clients.tabLinks'),
+                content: genAmneziaWGLinks(genInput),
+              },
+            ]
+          : undefined;
       openText({
         title: t('pages.inbounds.exportLinksTitle'),
         content,
