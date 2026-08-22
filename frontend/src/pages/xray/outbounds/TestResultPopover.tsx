@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons';
+import { CheckCircleFilled, CloseCircleFilled, ExclamationCircleFilled } from '@ant-design/icons';
 
 import type { OutboundTestResult } from '@/hooks/useXraySetting';
 
@@ -23,6 +23,11 @@ function fmtMbps(v?: number): string {
 export default function TestResultPopover({ result: r, children }: TestResultPopoverProps) {
   const { t } = useTranslation();
   const isSpeed = r.mode === 'speed';
+  // probeSpeedThroughSocks sets Success as soon as either direction measures
+  // something, so a one-sided failure still reports success -- this flag
+  // keeps that failure from being silently swallowed.
+  const speedPartialFailure = isSpeed && r.success && !!r.error;
+  const speedSummary = `↓${fmtMbps(r.downloadMbps)} / ↑${fmtMbps(r.uploadMbps)} ${t('pages.xray.outbound.mbpsUnit')}`;
 
   const breakdown: Array<{ key: string; label: string; value: string }> = [];
   if (typeof r.httpStatus === 'number') {
@@ -51,9 +56,12 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
       content={
         <div className="timing-breakdown">
           <div className={`td-head ${r.success ? 'ok' : 'fail'}`}>
-            {r.success ? <span>{r.delay} ms</span> : <span>{r.error || 'failed'}</span>}
+            {r.success
+              ? <span>{isSpeed ? speedSummary : `${r.delay} ms`}</span>
+              : <span>{r.error || 'failed'}</span>}
             {r.mode && <span className="mode-badge">{testModeLabel(String(r.mode), t)}</span>}
           </div>
+          {speedPartialFailure && <div className="td-head-partial">{r.error}</div>}
           {(r.endpoints || []).map((ep) => (
             <div key={ep.address} className="endpoint-row">
               <span className={ep.success ? 'dot-ok' : 'dot-fail'}>●</span>
@@ -71,11 +79,11 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
       }
     >
       {children ?? (
-        <span className={r.success ? 'pill-ok' : 'pill-fail'}>
-          {r.success ? <CheckCircleFilled /> : <CloseCircleFilled />}
+        <span className={r.success ? (speedPartialFailure ? 'pill-warn' : 'pill-ok') : 'pill-fail'}>
+          {r.success ? (speedPartialFailure ? <ExclamationCircleFilled /> : <CheckCircleFilled />) : <CloseCircleFilled />}
           {r.success
             ? (isSpeed
-              ? <span>↓{fmtMbps(r.downloadMbps)} / ↑{fmtMbps(r.uploadMbps)} {t('pages.xray.outbound.mbpsUnit')}</span>
+              ? <span>{speedSummary}</span>
               : <span>{r.delay}&nbsp;ms</span>)
             : <span>failed</span>}
         </span>

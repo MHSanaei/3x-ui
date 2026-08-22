@@ -11,6 +11,7 @@
   <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
   <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
+  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4-Донат-FFDD2D.svg" alt="Донат"></a>
 </p>
 
 **Это личный форк [3X-UI](https://github.com/MHSanaei/3x-ui)** — продвинутой веб-панели с открытым исходным кодом для управления серверами [Xray-core](https://github.com/XTLS/Xray-core) — с одним крупным дополнением: **нативной поддержкой AmneziaWG**, добавленной как полноценный протокол наравне с VLESS, VMess, Trojan и остальными. Всё остальное, что умеет 3X-UI (многопротокольные входящие, учёт трафика по клиентам, подписки, несколько узлов, Telegram-бот), не изменено и работает точно так же, как в оригинале.

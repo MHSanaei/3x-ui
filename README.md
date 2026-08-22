@@ -11,6 +11,7 @@
   <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
   <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
+  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4-Donate-FFDD2D.svg" alt="Donate"></a>
 </p>
 
 **This is a personal fork of [3X-UI](https://github.com/MHSanaei/3x-ui)** — the advanced, open-source web control panel for [Xray-core](https://github.com/XTLS/Xray-core) — with one major addition: **native AmneziaWG support**, added as a first-class protocol alongside VLESS, VMess, Trojan, and the rest. Everything else 3X-UI already does (multi-protocol inbounds, per-client traffic accounting, subscriptions, multi-node, the Telegram bot) is unchanged and still works exactly as upstream.

@@ -225,6 +225,7 @@
 }
 
 .pill-ok,
+.pill-warn,
 .pill-fail {
   display: inline-flex;
   align-items: center;
@@ -237,6 +238,11 @@
 .pill-ok {
   color: #008771;
   background: rgba(0, 135, 113, 0.12);
+}
+
+.pill-warn {
+  color: #d48806;
+  background: rgba(212, 136, 6, 0.12);
 }
 
 .pill-fail {
@@ -269,6 +275,13 @@
 
 .outbound-test-popover .td-head.fail {
   color: #e04141;
+}
+
+.outbound-test-popover .td-head-partial {
+  color: #d48806;
+  font-size: 11px;
+  font-weight: 500;
+  margin: -2px 0 4px;
 }
 
 .outbound-test-popover .mode-badge {
