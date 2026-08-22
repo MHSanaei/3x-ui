@@ -185,6 +185,10 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 Этот форк полностью построен поверх [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — вся панель, поддержка множества протоколов и базовая архитектура — их работа; **единственное, что добавлено здесь — поддержка AmneziaWG.**
 
+<p align="center">
+  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F_%D0%9F%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C_%D1%84%D0%BE%D1%80%D0%BA-Donate_%D1%87%D0%B5%D1%80%D0%B5%D0%B7_T--Bank-FFDD2D?style=for-the-badge&labelColor=1a1a1a" alt="Донат через T-Bank"></a>
+</p>
+
 Если этот форк оказался вам полезен, будем рады поддержке: [Donate через T-Bank](https://www.tbank.ru/cf/2qxNvGa3fSX)
 
 Реализация AmneziaWG в этом форке портирована/вдохновлена:

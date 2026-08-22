@@ -185,6 +185,10 @@ This is a personal fork and isn't looking for outside contributors, but [CONTRIB
 
 This fork is built entirely on top of [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — all of the panel, the multi-protocol support, and the underlying architecture is their work; **AmneziaWG support is the only thing added here.**
 
+<p align="center">
+  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F_Support_this_fork-Donate_via_T--Bank-FFDD2D?style=for-the-badge&labelColor=1a1a1a" alt="Donate via T-Bank"></a>
+</p>
+
 If this fork is useful to you, donations are welcome: [Donate via T-Bank](https://www.tbank.ru/cf/2qxNvGa3fSX)
 
 The AmneziaWG implementation in this fork was ported from/inspired by:
