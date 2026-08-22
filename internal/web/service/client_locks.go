@@ -8,6 +8,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
 )
@@ -231,4 +232,96 @@ func stripTombstonedClients(settings string) (string, bool) {
 		return settings, false
 	}
 	return string(b), true
+}
+
+// liftClientLifecycleInSettings rewrites adopted settings from master traffic
+// so a lagging node blob cannot store pre-extension expiry/enable (#6228).
+func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*xray.ClientTraffic) (string, bool) {
+	if settings == "" || len(trafficByEmail) == 0 {
+		return settings, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return settings, false
+	}
+	clients, _ := parsed["clients"].([]any)
+	if len(clients) == 0 {
+		return settings, false
+	}
+	changed := false
+	for i := range clients {
+		cm, ok := clients[i].(map[string]any)
+		if !ok {
+			continue
+		}
+		email, _ := cm["email"].(string)
+		if email == "" {
+			continue
+		}
+		tr := trafficByEmail[email]
+		if tr == nil {
+			continue
+		}
+		nodeExpiry, hasExpiry := jsonClientInt64(cm["expiryTime"])
+		if !hasExpiry {
+			continue
+		}
+		merged := mergeActivationExpiry(tr.ExpiryTime, nodeExpiry)
+		if merged != nodeExpiry {
+			cm["expiryTime"] = merged
+			changed = true
+		}
+		nodeEnable, _ := cm["enable"].(bool)
+		if !nodeEnable && staleNodeDisable(tr, nodeExpiry, 0, 0) && tr.Enable {
+			cm["enable"] = true
+			changed = true
+		}
+		clients[i] = cm
+	}
+	if !changed {
+		return settings, false
+	}
+	parsed["clients"] = clients
+	b, err := json.MarshalIndent(parsed, "", "  ")
+	if err != nil {
+		return settings, false
+	}
+	return string(b), true
+}
+
+// settingsClientAbsoluteExpiry returns a client's absolute expiryTime from
+// settings JSON when present (>0); otherwise ok is false.
+func settingsClientAbsoluteExpiry(settings, email string) (int64, bool) {
+	if settings == "" || email == "" {
+		return 0, false
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return 0, false
+	}
+	clients, _ := parsed["clients"].([]any)
+	for _, c := range clients {
+		cm, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		if e, _ := cm["email"].(string); e != email {
+			continue
+		}
+		exp, has := jsonClientInt64(cm["expiryTime"])
+		if !has || exp <= 0 {
+			return 0, false
+		}
+		return exp, true
+	}
+	return 0, false
+}
+
+func jsonClientInt64(v any) (int64, bool) {
+	// json.Unmarshal into map[string]any yields float64 for numbers.
+	n, ok := v.(float64)
+	if !ok {
+		return 0, false
+	}
+	return int64(n), true
 }
