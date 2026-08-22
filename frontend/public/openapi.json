@@ -11133,7 +11133,7 @@
                     "inboundTags": "[\"in-443-tcp\"]",
                     "clientReverseTags": "[]",
                     "outboundTestUrl": "https://www.google.com/generate_204",
-                    "speedDownloadUrl": "https://speed.cloudflare.com/__down?bytes=2000000000",
+                    "speedDownloadUrl": "https://proof.ovh.net/files/1Gb.dat",
                     "speedUploadUrl": "https://speed.cloudflare.com/__up"
                   }
                 }

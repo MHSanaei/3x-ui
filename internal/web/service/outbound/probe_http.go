@@ -64,13 +64,24 @@ const (
 	egressTraceHost = "cloudflare.com"
 	egressTracePath = "/cdn-cgi/trace"
 
-	// speedDownloadByteCap is a safety ceiling, not a tuned value -- the
-	// wall-clock deadline below, not this cap, is what ends the transfer.
-	speedDownloadByteCap = 2_000_000_000 // ~2 GB
+	// speedUploadByteCap is a safety ceiling on the synthetic POST body, not a
+	// tuned value -- the reader's own deadline is what ends the transfer.
+	speedUploadByteCap = 2_000_000_000 // ~2 GB
 	// speedTransferChunkSize sizes each Read call in the download loop.
 	speedTransferChunkSize = 64 << 10
 
 	defaultSpeedUploadURL = "https://speed.cloudflare.com/__up"
+	// defaultSpeedDownloadURL is a plain static file, not Cloudflare's own
+	// __down: that endpoint TLS-fingerprints Go's client and 403s it.
+	defaultSpeedDownloadURL = "https://proof.ovh.net/files/1Gb.dat"
+
+	// speedProbeUserAgent is defense-in-depth for any custom test URL behind
+	// simpler, header-based bot checks (the default targets above need none).
+	speedProbeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+	// cfMetaUploadBytesHeader is Cloudflare's own count of bytes actually
+	// received -- more trustworthy than our local reader's count.
+	cfMetaUploadBytesHeader = "Cf-Meta-Upload-Bytes"
 )
 
 // Vars, not consts, solely so tests can shorten these (save/restore) to
@@ -83,10 +94,6 @@ var (
 	// A deadline hit mid-transfer is a valid partial measurement, not a failure.
 	speedProbeTransferDuration = 8 * time.Second
 )
-
-// defaultSpeedDownloadURL bakes speedDownloadByteCap into Cloudflare's own
-// down-test query param; a var (not a const) since it's built with Sprintf.
-var defaultSpeedDownloadURL = fmt.Sprintf("https://speed.cloudflare.com/__down?bytes=%d", speedDownloadByteCap)
 
 // httpTestSemaphore serialises HTTP-mode batches (each spawns a temp xray
 // instance, which is too expensive to run in parallel). TCP-mode probes are
@@ -666,12 +673,16 @@ func speedProbeDownload(client *http.Client, downloadURL string, connectTimeout,
 		connectTimer.Stop()
 		return 0, 0, err
 	}
+	req.Header.Set("User-Agent", speedProbeUserAgent)
 	resp, err := client.Do(req)
 	connectTimer.Stop()
 	if err != nil {
 		return 0, 0, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return 0, 0, fmt.Errorf("unexpected status %d", resp.StatusCode)
+	}
 
 	transferTimer := time.AfterFunc(transferDuration, cancel)
 	defer transferTimer.Stop()
@@ -696,14 +707,14 @@ type uploadStart struct {
 	timer *time.Timer
 }
 
-// speedProbeUpload uses httptrace's WroteHeaders (not client.Do returning)
-// as the connect signal, since Do blocks until the whole body is sent/aborted.
+// speedProbeUpload ends the body at EOF (not by aborting) once transferDuration
+// elapses, so the server's own received-byte count, when reported, wins over ours.
 func speedProbeUpload(client *http.Client, uploadURL string, connectTimeout, transferDuration time.Duration) (bytesWritten int64, elapsed time.Duration, err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	connectTimer := time.AfterFunc(connectTimeout, cancel)
 
-	body := &countingZeroReader{cap: speedDownloadByteCap}
+	body := &countingZeroReader{cap: speedUploadByteCap}
 	startCh := make(chan uploadStart, 1)
 	var startOnce sync.Once
 	trace := &httptrace.ClientTrace{
@@ -711,7 +722,8 @@ func speedProbeUpload(client *http.Client, uploadURL string, connectTimeout, tra
 			startOnce.Do(func() {
 				connectTimer.Stop()
 				now := time.Now()
-				timer := time.AfterFunc(transferDuration, cancel)
+				body.setDeadline(now.Add(transferDuration))
+				timer := time.AfterFunc(2*transferDuration, cancel)
 				startCh <- uploadStart{at: now, timer: timer}
 			})
 		},
@@ -722,6 +734,7 @@ func speedProbeUpload(client *http.Client, uploadURL string, connectTimeout, tra
 		connectTimer.Stop()
 		return 0, 0, reqErr
 	}
+	req.Header.Set("User-Agent", speedProbeUserAgent)
 	resp, doErr := client.Do(req)
 	connectTimer.Stop()
 
@@ -742,21 +755,50 @@ func speedProbeUpload(client *http.Client, uploadURL string, connectTimeout, tra
 	}
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, probeDrainLimit))
-
-	if s.at.IsZero() {
-		return atomic.LoadInt64(&body.read), 0, nil
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return 0, 0, fmt.Errorf("unexpected status %d", resp.StatusCode)
 	}
-	return atomic.LoadInt64(&body.read), time.Since(s.at), nil
+
+	written := atomic.LoadInt64(&body.read)
+	if serverBytes, ok := parseCfMetaUploadBytes(resp.Header); ok {
+		written = serverBytes
+	}
+	if s.at.IsZero() {
+		return written, 0, nil
+	}
+	return written, time.Since(s.at), nil
 }
 
-// countingZeroReader hands out up-to-cap zero bytes for a speed-probe POST
-// body; read is atomic since Read and the result reader use different goroutines.
+// parseCfMetaUploadBytes reads Cloudflare's own received-byte count, when
+// present, so upload throughput reflects real delivery, not local buffering.
+func parseCfMetaUploadBytes(h http.Header) (int64, bool) {
+	v := h.Get(cfMetaUploadBytesHeader)
+	if v == "" {
+		return 0, false
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil || n <= 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// countingZeroReader hands out up-to-cap zero bytes for a speed-probe POST body;
+// setDeadline makes Read EOF at a wall-clock cutoff instead of the caller aborting.
 type countingZeroReader struct {
-	cap  int64
-	read int64
+	cap          int64
+	read         int64
+	deadlineNano int64
+}
+
+func (r *countingZeroReader) setDeadline(t time.Time) {
+	atomic.StoreInt64(&r.deadlineNano, t.UnixNano())
 }
 
 func (r *countingZeroReader) Read(p []byte) (int, error) {
+	if dl := atomic.LoadInt64(&r.deadlineNano); dl != 0 && time.Now().UnixNano() >= dl {
+		return 0, io.EOF
+	}
 	remaining := r.cap - atomic.LoadInt64(&r.read)
 	if remaining <= 0 {
 		return 0, io.EOF

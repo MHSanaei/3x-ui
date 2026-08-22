@@ -1344,7 +1344,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/xray/',
         summary: 'Return the Xray config template (JSON string), available inbound tags, client reverse tags, and the configured outbound test/speed-test URLs in one response.',
-        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"in-443-tcp\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204",\n    "speedDownloadUrl": "https://speed.cloudflare.com/__down?bytes=2000000000",\n    "speedUploadUrl": "https://speed.cloudflare.com/__up"\n  }\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "xraySetting": "{...raw xray config...}",\n    "inboundTags": "[\\"in-443-tcp\\"]",\n    "clientReverseTags": "[]",\n    "outboundTestUrl": "https://www.google.com/generate_204",\n    "speedDownloadUrl": "https://proof.ovh.net/files/1Gb.dat",\n    "speedUploadUrl": "https://speed.cloudflare.com/__up"\n  }\n}',
       },
       {
         method: 'GET',
@@ -1368,7 +1368,7 @@ export const sections: readonly Section[] = [
         params: [
           { name: 'xraySetting', in: 'body (form)', type: 'string', desc: 'Full Xray JSON config template.' },
           { name: 'outboundTestUrl', in: 'body (form)', type: 'string', desc: 'URL used for outbound reachability tests. Defaults to https://www.google.com/generate_204.' },
-          { name: 'speedDownloadUrl', in: 'body (form)', type: 'string', desc: 'URL used for speed-test downloads. Defaults to https://speed.cloudflare.com/__down?bytes=2000000000.' },
+          { name: 'speedDownloadUrl', in: 'body (form)', type: 'string', desc: 'URL used for speed-test downloads. Defaults to https://proof.ovh.net/files/1Gb.dat.' },
           { name: 'speedUploadUrl', in: 'body (form)', type: 'string', desc: 'URL used for speed-test uploads. Defaults to https://speed.cloudflare.com/__up.' },
         ],
       },

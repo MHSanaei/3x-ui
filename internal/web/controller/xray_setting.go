@@ -111,7 +111,7 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	}
 	speedDownloadUrl, _ := a.SettingService.GetXraySpeedDownloadUrl()
 	if speedDownloadUrl == "" {
-		speedDownloadUrl = "https://speed.cloudflare.com/__down?bytes=2000000000"
+		speedDownloadUrl = "https://proof.ovh.net/files/1Gb.dat"
 	}
 	speedUploadUrl, _ := a.SettingService.GetXraySpeedUploadUrl()
 	if speedUploadUrl == "" {
@@ -163,7 +163,7 @@ func (a *XraySettingController) updateSetting(c *gin.Context) {
 	}
 	speedDownloadUrl := c.PostForm("speedDownloadUrl")
 	if speedDownloadUrl == "" {
-		speedDownloadUrl = "https://speed.cloudflare.com/__down?bytes=2000000000"
+		speedDownloadUrl = "https://proof.ovh.net/files/1Gb.dat"
 	}
 	if err := a.SettingService.SetXraySpeedDownloadUrl(speedDownloadUrl); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)

@@ -15,7 +15,7 @@ import {
 } from '@/schemas/xray';
 
 const DEFAULT_TEST_URL = 'https://www.google.com/generate_204';
-const DEFAULT_SPEED_DOWNLOAD_URL = 'https://speed.cloudflare.com/__down?bytes=2000000000';
+const DEFAULT_SPEED_DOWNLOAD_URL = 'https://proof.ovh.net/files/1Gb.dat';
 const DEFAULT_SPEED_UPLOAD_URL = 'https://speed.cloudflare.com/__up';
 // One HTTP-mode batch request tests this many outbounds through a single
 // shared temp xray instance; chunking keeps responses bounded (~30s worst

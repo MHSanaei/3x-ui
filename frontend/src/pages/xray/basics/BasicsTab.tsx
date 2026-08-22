@@ -282,7 +282,7 @@ export default function BasicsTab({
               <Input
                 value={speedDownloadUrl}
                 onChange={(e) => onChangeSpeedDownloadUrl(e.target.value)}
-                placeholder="https://speed.cloudflare.com/__down?bytes=2000000000"
+                placeholder="https://proof.ovh.net/files/1Gb.dat"
               />
             }
           />

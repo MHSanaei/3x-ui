@@ -789,3 +789,127 @@ func TestTestOutboundsSpeedModeProcessCleanupAfterDeadline(t *testing.T) {
 		t.Error("temp process not stopped after a speed-mode batch whose transfer hit its own deadline")
 	}
 }
+
+// TestProbeSpeedThroughSocksDownloadNonSuccessStatus guards the real
+// speed.cloudflare.com/__down 403: it must surface as an error, not a speed.
+func TestProbeSpeedThroughSocksDownloadNonSuccessStatus(t *testing.T) {
+	down := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("x"))
+	}))
+	defer down.Close()
+	up := httptest.NewServer(http.HandlerFunc(drainAndOK))
+	defer up.Close()
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer l.Close()
+	go serveStubSocks(l)
+
+	var result TestOutboundResult
+	probeSpeedThroughSocks(l.Addr().(*net.TCPAddr).Port, down.URL, up.URL, 2*time.Second, 300*time.Millisecond, &result)
+	if result.DownloadMbps != 0 {
+		t.Errorf("DownloadMbps = %v, want 0 -- a 403 must not be reported as a measured speed", result.DownloadMbps)
+	}
+	if !strings.Contains(result.Error, "download") || !strings.Contains(result.Error, "403") {
+		t.Errorf("Error = %q, want it to mention the download status 403", result.Error)
+	}
+}
+
+// TestProbeSpeedThroughSocksUploadNonSuccessStatus mirrors the download
+// version for the upload direction.
+func TestProbeSpeedThroughSocksUploadNonSuccessStatus(t *testing.T) {
+	down := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(make([]byte, 64<<10))
+	}))
+	defer down.Close()
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer up.Close()
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer l.Close()
+	go serveStubSocks(l)
+
+	var result TestOutboundResult
+	probeSpeedThroughSocks(l.Addr().(*net.TCPAddr).Port, down.URL, up.URL, 2*time.Second, 300*time.Millisecond, &result)
+	if result.UploadMbps != 0 {
+		t.Errorf("UploadMbps = %v, want 0 -- a 500 must not be reported as a measured speed", result.UploadMbps)
+	}
+	if !strings.Contains(result.Error, "upload") || !strings.Contains(result.Error, "500") {
+		t.Errorf("Error = %q, want it to mention the upload status 500", result.Error)
+	}
+}
+
+// TestProbeSpeedThroughSocksUploadPrefersServerReportedBytes guards the real
+// bug where a local (loopback-buffered) byte count overstated true throughput.
+func TestProbeSpeedThroughSocksUploadPrefersServerReportedBytes(t *testing.T) {
+	down := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(make([]byte, 64<<10))
+	}))
+	defer down.Close()
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(io.Discard, r.Body)
+		w.Header().Set("Cf-Meta-Upload-Bytes", "12345")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer up.Close()
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer l.Close()
+	go serveStubSocks(l)
+
+	var result TestOutboundResult
+	probeSpeedThroughSocks(l.Addr().(*net.TCPAddr).Port, down.URL, up.URL, 2*time.Second, 300*time.Millisecond, &result)
+	if !result.Success || result.Error != "" {
+		t.Fatalf("expected success, got %+v", result)
+	}
+	// The local reader ran unthrottled for ~300ms and would count far more
+	// than 12345 bytes; this generous bound still catches the old bug.
+	wantMax := mbps(12345, 100*time.Millisecond)
+	if result.UploadMbps <= 0 || result.UploadMbps > wantMax {
+		t.Errorf("UploadMbps = %v, want a small value near the server-reported 12345 bytes, not the unthrottled local reader count", result.UploadMbps)
+	}
+}
+
+// TestProbeSpeedThroughSocksUploadCompletesNaturally confirms the upload ends
+// via reader EOF now, not by aborting the connection out from under the server.
+func TestProbeSpeedThroughSocksUploadCompletesNaturally(t *testing.T) {
+	down := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(make([]byte, 64<<10))
+	}))
+	defer down.Close()
+
+	var copyErr error
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, copyErr = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer up.Close()
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer l.Close()
+	go serveStubSocks(l)
+
+	var result TestOutboundResult
+	probeSpeedThroughSocks(l.Addr().(*net.TCPAddr).Port, down.URL, up.URL, 2*time.Second, 300*time.Millisecond, &result)
+	if !result.Success || result.Error != "" {
+		t.Fatalf("expected success, got %+v", result)
+	}
+	if copyErr != nil {
+		t.Errorf("server's body read ended with %v, want a clean EOF from the reader's own deadline, not an aborted connection", copyErr)
+	}
+}
