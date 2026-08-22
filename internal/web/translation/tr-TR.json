@@ -1642,6 +1642,20 @@
         "toastDeleted": "Silindi",
         "toastDeleteFailed": "Silme işlemi başarısız"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "PIA kullanıcı adı",
+        "password": "PIA parolası",
+        "account": "Hesap",
+        "region": "Bölge",
+        "allRegions": "Tüm bölgeler",
+        "noServers": "Seçilen ülke için sunucu bulunamadı",
+        "outboundAdded": "PIA çıkışı eklendi",
+        "outboundUpdated": "PIA çıkışı güncellendi",
+        "addedServers": "Eklenen sunucular",
+        "alreadyAdded": "Bu sunucu zaten çıkış listesinde. Anahtarı yenilemek için {reset} kullanın.",
+        "provisionFailed": "PIA çıkışı oluşturulamadı. Yeniden deneyin."
+      },
       "tabBalancerSettings": "Dengeleyici Ayarları",
       "tabObservatory": "Gözlemci",
       "observatory": {

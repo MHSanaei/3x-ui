@@ -1760,6 +1760,20 @@
         "toastDeleted": "Deleted",
         "toastDeleteFailed": "Delete failed"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "PIA username",
+        "password": "PIA password",
+        "account": "Account",
+        "region": "Region",
+        "allRegions": "All regions",
+        "noServers": "No servers found for the selected country",
+        "outboundAdded": "PIA outbound added",
+        "outboundUpdated": "PIA outbound updated",
+        "addedServers": "Added servers",
+        "alreadyAdded": "This server is already in the outbound list. Use {reset} to renew its key.",
+        "provisionFailed": "Could not build the PIA outbound. Try again."
+      },
       "tabBalancerSettings": "Balancer Settings",
       "tabObservatory": "Observatory",
       "observatory": {

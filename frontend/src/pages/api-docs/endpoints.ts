@@ -1699,7 +1699,7 @@ export const sections: readonly Section[] = [
     id: 'xray-settings',
     title: 'Xray Settings',
     description:
-      'Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/api/xray.',
+      'Xray configuration template, outbound management, Warp/Nord/PIA integration, and config testing. All endpoints under /panel/api/xray.',
     endpoints: [
       {
         method: 'POST',
@@ -1797,6 +1797,43 @@ export const sections: readonly Section[] = [
           },
           { name: 'token', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
           { name: 'key', in: 'body (form)', type: 'string', desc: 'Required when action=setKey.' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/pia/:action',
+        summary: 'Manage PIA WireGuard integration. The action parameter selects the operation.',
+        params: [
+          {
+            name: 'action',
+            in: 'path',
+            type: 'string',
+            desc: 'countries — list available countries from the signed PIA server list. servers — list regions and WireGuard servers in a country (sends countryCode). reg — sign in with a PIA username and password (sends username, password). data — return the signed-in account hint. del — delete stored PIA credentials. addKey — register a WireGuard key with the selected server (sends hostname) and return fields to build the outbound.',
+          },
+          {
+            name: 'username',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Required when action=reg.',
+          },
+          {
+            name: 'password',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Required when action=reg.',
+          },
+          {
+            name: 'countryCode',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Required when action=servers.',
+          },
+          {
+            name: 'hostname',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Required when action=addKey.',
+          },
         ],
       },
       {

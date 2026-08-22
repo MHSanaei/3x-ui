@@ -1642,6 +1642,20 @@
         "toastDeleted": "Đã xóa",
         "toastDeleteFailed": "Xóa thất bại"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "Tên người dùng PIA",
+        "password": "Mật khẩu PIA",
+        "account": "Tài khoản",
+        "region": "Khu vực",
+        "allRegions": "Tất cả khu vực",
+        "noServers": "Không có máy chủ cho quốc gia đã chọn",
+        "outboundAdded": "Đã thêm outbound PIA",
+        "outboundUpdated": "Đã cập nhật outbound PIA",
+        "addedServers": "Máy chủ đã thêm",
+        "alreadyAdded": "Máy chủ này đã có trong danh sách outbound. Dùng {reset} để gia hạn khóa.",
+        "provisionFailed": "Không tạo được outbound PIA. Hãy thử lại."
+      },
       "tabBalancerSettings": "Cài đặt Balancer",
       "tabObservatory": "Observatory",
       "observatory": {

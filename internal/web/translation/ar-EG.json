@@ -1642,6 +1642,20 @@
         "toastDeleted": "تم الحذف",
         "toastDeleteFailed": "فشل الحذف"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "اسم مستخدم PIA",
+        "password": "كلمة مرور PIA",
+        "account": "الحساب",
+        "region": "المنطقة",
+        "allRegions": "كل المناطق",
+        "noServers": "لا توجد خوادم للدولة المحددة",
+        "outboundAdded": "تمت إضافة مسار PIA الصادر",
+        "outboundUpdated": "تم تحديث مسار PIA الصادر",
+        "addedServers": "الخوادم المضافة",
+        "alreadyAdded": "هذا الخادم موجود بالفعل في قائمة الصادر. استخدم {reset} لتجديد المفتاح.",
+        "provisionFailed": "تعذر إنشاء مسار PIA الصادر. حاول مرة أخرى."
+      },
       "tabBalancerSettings": "إعدادات الموازن",
       "tabObservatory": "المرصد",
       "observatory": {

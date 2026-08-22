@@ -1642,6 +1642,20 @@
         "toastDeleted": "Excluído",
         "toastDeleteFailed": "Falha ao excluir"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "Usuário PIA",
+        "password": "Senha PIA",
+        "account": "Conta",
+        "region": "Região",
+        "allRegions": "Todas as regiões",
+        "noServers": "Nenhum servidor para o país selecionado",
+        "outboundAdded": "Saída PIA adicionada",
+        "outboundUpdated": "Saída PIA atualizada",
+        "addedServers": "Servidores adicionados",
+        "alreadyAdded": "Este servidor já está na lista de saídas. Use {reset} para renovar a chave.",
+        "provisionFailed": "Não foi possível criar a saída PIA. Tente novamente."
+      },
       "tabBalancerSettings": "Configurações do balanceador",
       "tabObservatory": "Observatório",
       "observatory": {

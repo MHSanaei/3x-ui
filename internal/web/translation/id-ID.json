@@ -1642,6 +1642,20 @@
         "toastDeleted": "Dihapus",
         "toastDeleteFailed": "Gagal menghapus"
       },
+      "pia": {
+        "menu": "PIA",
+        "username": "Nama pengguna PIA",
+        "password": "Kata sandi PIA",
+        "account": "Akun",
+        "region": "Wilayah",
+        "allRegions": "Semua wilayah",
+        "noServers": "Tidak ada server untuk negara yang dipilih",
+        "outboundAdded": "Outbound PIA ditambahkan",
+        "outboundUpdated": "Outbound PIA diperbarui",
+        "addedServers": "Server yang ditambahkan",
+        "alreadyAdded": "Server ini sudah ada di daftar outbound. Gunakan {reset} untuk memperbarui kuncinya.",
+        "provisionFailed": "Gagal membuat outbound PIA. Coba lagi."
+      },
       "tabBalancerSettings": "Pengaturan Balancer",
       "tabObservatory": "Observatory",
       "observatory": {
