@@ -77,6 +77,7 @@ export function useAllSettings() {
       if (!msg?.success) return;
       if (saved) markSaved(saved);
       queryClient.invalidateQueries({ queryKey: keys.settings.all() });
+      queryClient.invalidateQueries({ queryKey: keys.settings.defaults() });
     },
   });
 

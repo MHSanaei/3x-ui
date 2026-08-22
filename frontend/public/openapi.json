@@ -6490,8 +6490,9 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.",
+        "summary": "Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets are generated server-side when omitted, so callers can send only the universal fields.",
         "operationId": "post_panel_api_clients_add",
+        "description": "Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `wireguard: allowedIPs entry already used by another client: <address>` when a different client of that same inbound already holds it. The check is per inbound, so the same address on two different inbounds is accepted. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.",
         "requestBody": {
           "required": true,
           "content": {
@@ -6668,6 +6669,7 @@
         ],
         "summary": "Attach an existing client to one or more additional inbounds. Body is JSON.",
         "operationId": "post_panel_api_clients_email_attach",
+        "description": "A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `wireguard: allowedIPs entry already used by another client: <address>` when a different client of the target inbound already holds it. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule.",
         "parameters": [
           {
             "name": "email",
@@ -8206,6 +8208,56 @@
             "description": "Client email.",
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/hwids/{email}/{id}": {
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Remove a single registered HWID device by its id, freeing one slot under the HWID limit.",
+        "operationId": "delete_panel_api_clients_hwids_email_id",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Device id, from the list endpoint.",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
