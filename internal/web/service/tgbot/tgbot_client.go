@@ -471,7 +471,7 @@ func (t *Tgbot) clientInfoMsg(
 	if traffic.Total == 0 {
 		total = t.I18nBot("tgbot.unlimited")
 	} else {
-		total = common.FormatTraffic((traffic.Total))
+		total = common.FormatTraffic(traffic.Total)
 	}
 
 	enabled := ""

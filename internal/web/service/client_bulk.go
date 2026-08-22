@@ -60,12 +60,6 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		records = append(records, rec)
 	}
 
-	emailSubIDs, sidErr := inboundSvc.getAllEmailSubIDs()
-	if sidErr != nil {
-		emailSubIDs = nil
-		logger.Warningf("[BulkAttach] getAllEmailSubIDs: %v", sidErr)
-	}
-
 	needRestart := false
 	for _, ibId := range inboundIds {
 		inbound, err := inboundSvc.GetInbound(ibId)
@@ -107,7 +101,7 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			recordErr("inbound %d: %v", ibId, err)
 			continue
 		}
-		nr, err := s.addInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)}, emailSubIDs)
+		nr, err := s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
 		if err != nil {
 			recordErr("inbound %d: %v", ibId, err)
 			continue
@@ -1117,11 +1111,6 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		result.Skipped = append(result.Skipped, BulkCreateReport{Email: email, Reason: reason})
 	}
 
-	emailSubIDs, err := inboundSvc.getAllEmailSubIDs()
-	if err != nil {
-		emailSubIDs = nil
-	}
-
 	type prepared struct {
 		client     model.Client
 		inboundIds []int
@@ -1304,7 +1293,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		payload, e := json.Marshal(map[string][]model.Client{"clients": byInbound[ibId]})
 		if e == nil {
 			var nr bool
-			nr, e = s.addInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)}, emailSubIDs)
+			nr, e = s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
 			if e == nil && nr {
 				needRestart = true
 			}

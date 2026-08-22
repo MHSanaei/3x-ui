@@ -1,0 +1,1 @@
+{"version":"v7","groups":{"wg":[{"name":"wireguard","ports":[1337]}]},"regions":[{"id":"de-berlin","name":"Germany Berlin","country":"DE","geo":true,"offline":false,"port_forwarding":false,"servers":{"wg":[{"ip":"203.0.113.20","hostname":"berlin501"}]}}]}

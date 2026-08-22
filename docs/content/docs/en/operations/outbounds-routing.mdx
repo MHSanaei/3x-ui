@@ -1,13 +1,13 @@
 ---
 title: Outbounds & Routing
-description: Shape egress in 3x-ui — WARP and NordVPN outbounds, outbound subscriptions (server pools), routing rules, and load balancers.
+description: Shape egress in 3x-ui — WARP, NordVPN, PIA WireGuard, outbound subscriptions, routing rules, and load balancers.
 icon: Route
 ---
 
 Inbounds accept clients; **outbounds** decide where their traffic goes next.
-3x-ui can route traffic through Cloudflare WARP, NordVPN, or arbitrary outbound
-pools imported from a subscription, and select between them with routing rules
-and balancers.
+3x-ui can route traffic through Cloudflare WARP, NordVPN, Private Internet Access
+(WireGuard), or arbitrary outbound pools imported from a subscription,
+and select between them with routing rules and balancers.
 
 ## Editing outbounds & routing
 
@@ -85,6 +85,23 @@ with a routing rule.
 3x-ui can fetch NordVPN (NordLynx/WireGuard) credentials from an access token (or
 accept a private key directly) and list countries/servers, so you can build a
 NordVPN outbound.
+
+## PIA WireGuard
+
+3x-ui can sign in with a PIA username and password, list countries/regions/servers
+from the signed PIA server list, and build a WireGuard outbound. Open
+**Xray → Outbounds → More → PIA**, sign in, pick a server, and add the outbound.
+You can add several servers (one outbound per hostname). The tag is
+`pia-<region>-<server>` (for example `pia-us-east-useast1`). Adding or using
+**Reset** on a row registers a WireGuard key with PIA `/addKey` for that server.
+The same hostname cannot be added twice. Logout clears the stored token only;
+delete unused PIA outbounds from the Outbounds list. Reset and delete do not
+revoke the WireGuard peer on the PIA account.
+
+The password is not stored. The PIA API token is stored with the same
+`NODE_TOKEN_ENCRYPTION` setting as node API tokens. If you retire an old
+`XUI_NODE_TOKEN_KEY` without signing into PIA again, Add/Reset fail until you
+re-login. Peer `allowedIPs` is IPv4-only (`0.0.0.0/0`).
 
 ## Outbound subscriptions (server pools)
 

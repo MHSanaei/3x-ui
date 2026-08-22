@@ -41,6 +41,7 @@ file locations when it can answer in one hop.
 - `internal/xray/geodata/` — streaming geosite/geoip `.dat` reader (cached
   category index + paged entries) and `geosite:`/`geoip:`/`ext:` token parsing.
 - `internal/mtproto/` — MTProto inbounds via the bundled `mtg-multi` binary.
+- `internal/pia/` — PIA WireGuard protocol client (auth, signed server list, `/addKey`).
 - `internal/sub/` — subscription server (raw / JSON / Clash).
 - `internal/eventbus/` — in-process pub/sub (outbound/node health, xray.crash,
   cpu.high, memory.high, login.attempt).
@@ -59,8 +60,7 @@ file locations when it can answer in one hop.
 - `tools/openapigen/` — Go generator that emits frontend types + Zod/JSON schemas
   into `frontend/src/generated/` from Go structs. The OpenAPI doc itself
   (`frontend/public/openapi.json`) is assembled from those + `endpoints.ts` by
-  `frontend/scripts/build-openapi.mjs`. (`tools/seedperf/` is a separate seeding
-  /load helper.)
+  `frontend/scripts/build-openapi.mjs`.
 - `docs/` — separate Next.js/Fumadocs site (pnpm, own CI in `docs-ci.yml`,
   outside `make verify`). Holds a THIRD independent implementation of
   link/subscription generation in `docs/lib/xray/` — check it whenever

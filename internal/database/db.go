@@ -167,6 +167,9 @@ func initModels() error {
 	if err := migrateSyncOrphanColumns(); err != nil {
 		return err
 	}
+	if err := migrateClientEmailLowerIndex(); err != nil {
+		return err
+	}
 	if IsPostgres() {
 		if err := resyncPostgresSequences(db, models); err != nil {
 			log.Printf("Error resyncing postgres sequences: %v", err)
@@ -347,6 +350,15 @@ func migrateSyncOrphanColumns() error {
 		return nil
 	}
 	return db.Exec("UPDATE clients SET sync_orphaned_at = 0 WHERE sync_orphaned_at IS NULL").Error
+}
+
+// The client identity checks match emails case-insensitively; without an
+// expression index (which no GORM struct tag can declare) they seq-scan.
+func migrateClientEmailLowerIndex() error {
+	if db.Migrator().HasIndex(&model.ClientRecord{}, "idx_clients_email_lower") {
+		return nil
+	}
+	return db.Exec("CREATE INDEX IF NOT EXISTS idx_clients_email_lower ON clients (LOWER(email))").Error
 }
 
 func migrateHostVerifyPeerCertByNameColumn() error {
