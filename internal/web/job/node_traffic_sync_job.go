@@ -477,12 +477,8 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	return active
 }
 
-// syncCanAdoptInbounds reports whether this sync can perform the "first
-// clean adoption" that InboundsAdoptedAt records. In selected mode the
-// snapshot filter keeps only selected tags and adopted aliases, so with
-// neither the merge adopts nothing — stamping the flag then would arm the
-// reconcile sweep against the node's pre-existing inbounds on their first
-// real sync (#6283).
+// Whether this sync can perform the "first clean adoption" that
+// InboundsAdoptedAt records (#6283).
 func syncCanAdoptInbounds(n *model.Node, adoptedAliases []string) bool {
 	if n == nil || n.InboundSyncMode != "selected" {
 		return true
