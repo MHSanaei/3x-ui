@@ -11,7 +11,10 @@
   <a href="https://github.com/Kuzz007/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui/release.yml.svg" alt="Build"></a>
   <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4-Донат-FFDD2D.svg" alt="Донат"></a>
+</p>
+
+<p align="center">
+  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F_%D0%9F%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C_%D1%84%D0%BE%D1%80%D0%BA-Donate_%D1%87%D0%B5%D1%80%D0%B5%D0%B7_T--Bank-FFDD2D?style=for-the-badge&labelColor=1a1a1a" alt="Донат через T-Bank"></a>
 </p>
 
 **Это личный форк [3X-UI](https://github.com/MHSanaei/3x-ui)** — продвинутой веб-панели с открытым исходным кодом для управления серверами [Xray-core](https://github.com/XTLS/Xray-core) — с одним крупным дополнением: **нативной поддержкой AmneziaWG**, добавленной как полноценный протокол наравне с VLESS, VMess, Trojan и остальными. Всё остальное, что умеет 3X-UI (многопротокольные входящие, учёт трафика по клиентам, подписки, несколько узлов, Telegram-бот), не изменено и работает точно так же, как в оригинале.
@@ -184,10 +187,6 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 ## Благодарность
 
 Этот форк полностью построен поверх [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — вся панель, поддержка множества протоколов и базовая архитектура — их работа; **единственное, что добавлено здесь — поддержка AmneziaWG.**
-
-<p align="center">
-  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F_%D0%9F%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C_%D1%84%D0%BE%D1%80%D0%BA-Donate_%D1%87%D0%B5%D1%80%D0%B5%D0%B7_T--Bank-FFDD2D?style=for-the-badge&labelColor=1a1a1a" alt="Донат через T-Bank"></a>
-</p>
 
 Если этот форк оказался вам полезен, будем рады поддержке: [Donate через T-Bank](https://www.tbank.ru/cf/2qxNvGa3fSX)
 
