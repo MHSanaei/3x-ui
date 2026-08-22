@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"sync"
 	"testing"
 	"time"
 
@@ -286,6 +287,17 @@ func TestPortForwardRoundTripTCPAndUDP(t *testing.T) {
 	clientDev := device.NewDevice(clientTun, awgconn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
 	defer clientDev.Close()
 
+	// wg tracks the TCP/UDP echo goroutines spawned below. Deferring
+	// Wait() here -- before their own defer Close() calls -- means LIFO
+	// defer order runs it between those Close() calls (which unblock the
+	// goroutines' blocking Accept/ReadFrom) and clientDev.Close() (which
+	// tears down the netstack they write back into). Without this, a
+	// goroutine can still be mid-write when Close() races it (-race caught
+	// exactly this: a write in clientDev.Close() vs a read in the UDP
+	// goroutine's WriteTo).
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
 	clientPrivHex, err := wireguard.KeyToHex(clientPriv)
 	if err != nil {
 		t.Fatalf("client key to hex: %v", err)
@@ -338,7 +350,9 @@ primed:
 		t.Fatalf("client ListenTCP: %v", err)
 	}
 	defer tcpSvc.Close()
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
 			c, err := tcpSvc.Accept()
 			if err != nil {
@@ -353,7 +367,9 @@ primed:
 		t.Fatalf("client ListenUDP: %v", err)
 	}
 	defer udpSvc.Close()
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		buf := make([]byte, 1500)
 		for {
 			n, addr, err := udpSvc.ReadFrom(buf)
