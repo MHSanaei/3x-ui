@@ -1461,6 +1461,18 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 
+	clients, err := s.GetClients(inbound)
+	if err != nil {
+		return inbound, false, err
+	}
+	if inbound.Protocol == model.Hysteria {
+		for _, client := range clients {
+			if client.Auth == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+		}
+	}
+
 	oldInbound, err := s.GetInbound(inbound.Id)
 	if err != nil {
 		return inbound, false, err

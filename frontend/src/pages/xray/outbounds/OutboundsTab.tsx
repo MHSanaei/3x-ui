@@ -95,6 +95,7 @@ interface OutboundsTabProps {
   onTestAll: (mode: string) => void;
   onShowWarp: () => void;
   onShowNord: () => void;
+  onShowPia: () => void;
   onRefreshXrayData?: () => void;
 }
 
@@ -115,6 +116,7 @@ export default function OutboundsTab({
   onTestAll,
   onShowWarp,
   onShowNord,
+  onShowPia,
   onRefreshXrayData,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
@@ -550,6 +552,12 @@ export default function OutboundsTab({
                   items: [
                     { key: 'warp', icon: <CloudOutlined />, label: 'WARP', onClick: onShowWarp },
                     { key: 'nord', icon: <ApiOutlined />, label: 'NordVPN', onClick: onShowNord },
+                    {
+                      key: 'pia',
+                      icon: <ApiOutlined />,
+                      label: t('pages.xray.pia.menu'),
+                      onClick: onShowPia,
+                    },
                     { type: 'divider' },
                     {
                       key: 'import',

@@ -39,6 +39,7 @@ describe('OutboundsTab hidden-loopback index mapping', () => {
           onTestAll={vi.fn()}
           onShowWarp={vi.fn()}
           onShowNord={vi.fn()}
+          onShowPia={vi.fn()}
         />
       </QueryClientProvider>,
     );
@@ -77,6 +78,7 @@ describe('OutboundsTab hidden-loopback index mapping', () => {
           onTestAll={vi.fn()}
           onShowWarp={vi.fn()}
           onShowNord={vi.fn()}
+          onShowPia={vi.fn()}
         />
       </QueryClientProvider>,
     );
