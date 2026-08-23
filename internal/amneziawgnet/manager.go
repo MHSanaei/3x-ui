@@ -31,10 +31,8 @@ func verboseLoggerIfEnabled(inboundID int) *device.Logger {
 	return device.NewLogger(device.LogLevelVerbose, fmt.Sprintf("(awg#%d) ", inboundID))
 }
 
-// Desired pairs an amneziawg.Instance (the shared, DB-backed shape
-// internal/amneziawg's own kernel-module Manager also reconciles toward)
-// with this package's own embedded-only DeviceOptions -- the AWG 3.0 fields
-// that shared type doesn't carry, see DeviceOptions' doc comment.
+// Desired pairs an amneziawg.Instance (the shared, DB-backed shape) with
+// this package's embedded-only DeviceOptions -- see DeviceOptions' doc.
 type Desired struct {
 	Instance amneziawg.Instance
 	Options  DeviceOptions
@@ -105,10 +103,7 @@ func (m *Manager) Ensure(d Desired) error {
 // peers/obfuscation/keys/listen_port changed (reconfigure the existing
 // Device in place via IpcSet); or the interface's own address(es)/MTU
 // changed (these are fixed at netstack-construction time, so the only
-// option is closing the old Device and building a fresh one). This is a
-// coarser split than internal/amneziawg's own three-tier noop/reload/
-// restart fingerprinting (that one also tracks host-side TPROXY/NDP rules
-// this embedded path has no equivalent of) -- correct and sufficient here.
+// option is closing the old Device and building a fresh one).
 func (m *Manager) ensureLocked(d Desired) error {
 	inst, opts := d.Instance, d.Options
 	if opts.Logger == nil {

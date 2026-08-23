@@ -280,15 +280,8 @@ func inboundUsesReality(ib *InboundConfig) bool {
 	return stream.Security == "reality"
 }
 
-// inboundUsesTproxy reports whether an inbound's streamSettings mark it as a
-// TPROXY target (internal/amneziawg's own Xray egress bridge -- see
-// service.amneziawgEgressStreamSettings -- is the only inbound kind this
-// fork ever generates with sockopt.tproxy set). Confirmed directly against a
-// real Xray-core instance: adding this kind of inbound through the gRPC
-// HandlerService reports success, but no listener actually ends up bound on
-// the configured port, so TPROXY-redirected traffic silently goes nowhere
-// until the next full restart. Forcing a restart here is the same
-// defensive pattern already used for REALITY inbounds above.
+// inboundUsesTproxy: a sockopt.tproxy inbound (the tunnel protocol's TProxy
+// mode) hot-adds over gRPC "successfully" but binds no listener — restart.
 func inboundUsesTproxy(ib *InboundConfig) bool {
 	if ib == nil || len(ib.StreamSettings) == 0 {
 		return false

@@ -189,7 +189,7 @@ type ServerSettings struct {
 	// every one of S1-S4 above to be >= 12 -- ValidateObfuscation
 	// enforces this at save time, not just at IpcSet time.
 	// ContentPaddingAddition is a "low-high" range or bare integer, the
-	// same grammar as H1-H4 but capped at uint16 max.
+	// same grammar and uint32 cap as H1-H4.
 	HeaderProtectionKey    string `json:"headerProtectionKey,omitempty"`
 	ContentPaddingAddition string `json:"contentPaddingAddition,omitempty"`
 
