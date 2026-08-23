@@ -15,7 +15,7 @@ question it already answers.
 
 3x-ui is an open-source web control panel for managing Xray-core servers.
 
-- Backend: Go 1.26, module `github.com/mhsanaei/3x-ui/v3`, Gin and GORM.
+- Backend: Go 1.27, module `github.com/mhsanaei/3x-ui/v3`, Gin and GORM.
 - It runs Xray-core as a managed child process (`internal/xray/process.go`) and
   imports `github.com/xtls/xray-core` for config types and the gRPC
   stats/handler/router API. The release the panel BUNDLES is pinned in

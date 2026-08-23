@@ -103,7 +103,7 @@ func TestCatalogCoalescesConcurrentRefresh(t *testing.T) {
 		time.Sleep(time.Millisecond)
 	}
 	close(source.release)
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		if err := <-errc; err != nil {
 			t.Fatal(err)
 		}

@@ -37,8 +37,8 @@ func section(t *testing.T, doc, from, to string) string {
 		t.Fatalf("%s no longer contains the heading %q", botContextPath, from)
 	}
 	rest := doc[i+len(from):]
-	if j := strings.Index(rest, to); j >= 0 {
-		return rest[:j]
+	if before, _, ok := strings.Cut(rest, to); ok {
+		return before
 	}
 	return rest
 }

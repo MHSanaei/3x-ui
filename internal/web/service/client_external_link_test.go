@@ -7,10 +7,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-func externalLinkBool(v bool) *bool {
-	return &v
-}
-
 func TestSetExternalLinksPersistsEnableState(t *testing.T) {
 	setupBulkDB(t)
 	db := database.GetDB()
@@ -22,8 +18,8 @@ func TestSetExternalLinksPersistsEnableState(t *testing.T) {
 	}
 
 	if err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
-		{Kind: model.ExternalLinkKindLink, Value: "trojan://pw@example.com:443#on", Remark: "Primary", Enable: externalLinkBool(true), ExpiryTime: 1767225600000},
-		{Kind: model.ExternalLinkKindSubscription, Value: "https://provider.example/sub", Remark: "Provider", Enable: externalLinkBool(false), NamePrefix: "[zjh] "},
+		{Kind: model.ExternalLinkKindLink, Value: "trojan://pw@example.com:443#on", Remark: "Primary", Enable: new(true), ExpiryTime: 1767225600000},
+		{Kind: model.ExternalLinkKindSubscription, Value: "https://provider.example/sub", Remark: "Provider", Enable: new(false), NamePrefix: "[zjh] "},
 		{Kind: model.ExternalLinkKindLink, Value: "trojan://pw@example.net:443#default"},
 	}); err != nil {
 		t.Fatalf("set external links: %v", err)
@@ -76,7 +72,7 @@ func TestSetExternalLinksPreservesFetchStatus(t *testing.T) {
 	}
 
 	if err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
-		{Kind: row.Kind, Value: row.Value, Remark: "new", Enable: externalLinkBool(true)},
+		{Kind: row.Kind, Value: row.Value, Remark: "new", Enable: new(true)},
 	}); err != nil {
 		t.Fatalf("set external links: %v", err)
 	}

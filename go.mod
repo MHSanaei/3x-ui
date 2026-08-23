@@ -1,6 +1,6 @@
 module github.com/mhsanaei/3x-ui/v3
 
-go 1.26.6
+go 1.27.0
 
 require (
 	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
@@ -14,10 +14,12 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
+	github.com/klauspost/compress v1.19.2
 	github.com/mattn/go-sqlite3 v1.14.49
 	github.com/mymmrac/telego v1.11.1
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
+	github.com/refraction-networking/utls v1.8.3-0.20260301010127-aa6edf4b11af
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.26.7
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -26,13 +28,16 @@ require (
 	github.com/xtls/xray-core v1.260327.1-0.20260728075948-5ca6f4b7d4dc
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.55.0
+	golang.org/x/net v0.58.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.41.0
 	google.golang.org/grpc v1.83.0
+	google.golang.org/protobuf v1.36.12
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
+	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0
 	pgregory.net/rapid v1.3.0
 )
 
@@ -65,7 +70,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/juju/ratelimit v1.0.2 // indirect
-	github.com/klauspost/compress v1.19.2
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260802145828-341c2f0c90b5 // indirect
@@ -82,7 +86,6 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20260805114148-88456608a4f6 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.61.0 // indirect
-	github.com/refraction-networking/utls v1.8.3-0.20260301010127-aa6edf4b11af
 	github.com/rogpeppe/go-internal v1.15.0 // indirect
 	github.com/sagernet/sing v0.8.13 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.9 // indirect
@@ -102,7 +105,6 @@ require (
 	golang.org/x/arch v0.30.0 // indirect
 	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297 // indirect
 	golang.org/x/mod v0.40.0 // indirect
-	golang.org/x/net v0.58.0
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
@@ -110,7 +112,5 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446 // indirect
 	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260810153831-ec0a7760b754 // indirect
-	google.golang.org/protobuf v1.36.12
-	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0
 	lukechampine.com/blake3 v1.4.1 // indirect
 )

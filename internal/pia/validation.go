@@ -23,7 +23,7 @@ func validHostname(host string) bool {
 	if host == "" || len(host) > 253 || net.ParseIP(host) != nil || strings.HasSuffix(host, ".") {
 		return false
 	}
-	for _, label := range strings.Split(host, ".") {
+	for label := range strings.SplitSeq(host, ".") {
 		if label == "" || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
 			return false
 		}

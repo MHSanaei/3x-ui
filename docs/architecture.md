@@ -51,7 +51,7 @@ Two key ideas that explain most of the complexity:
 
 ## 2. Tech stack
 
-**Backend (Go 1.26):**
+**Backend (Go 1.27):**
 
 - Web framework: **Gin** (`gin-gonic/gin`) + sessions (cookie store), gzip.
 - ORM: **GORM** with **SQLite** (default) or **PostgreSQL** (`XUI_DB_TYPE=postgres`).
