@@ -370,8 +370,8 @@ func normalizeHappRouting(body []byte) (string, error) {
 
 	payload := ""
 	for _, prefix := range []string{"happ://routing/onadd/", "happ://routing/add/"} {
-		if strings.HasPrefix(text, prefix) {
-			payload = strings.TrimPrefix(text, prefix)
+		if after, ok := strings.CutPrefix(text, prefix); ok {
+			payload = after
 			break
 		}
 	}

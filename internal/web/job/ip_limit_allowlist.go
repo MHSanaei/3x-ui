@@ -2,6 +2,7 @@ package job
 
 import (
 	"net/netip"
+	"slices"
 	"strings"
 )
 
@@ -16,7 +17,7 @@ type ipLimitAllowlist struct {
 // skipped: the validator uses these same rules, so only a hand-edited DB differs.
 func parseIpLimitAllowlist(raw string) ipLimitAllowlist {
 	var list ipLimitAllowlist
-	for _, field := range strings.Split(raw, ",") {
+	for field := range strings.SplitSeq(raw, ",") {
 		field = strings.TrimSpace(field)
 		if field == "" {
 			continue
@@ -52,10 +53,8 @@ func (l ipLimitAllowlist) contains(ip string) bool {
 		return false
 	}
 	addr = addr.Unmap()
-	for _, allowed := range l.addrs {
-		if allowed == addr {
-			return true
-		}
+	if slices.Contains(l.addrs, addr) {
+		return true
 	}
 	for _, prefix := range l.prefixes {
 		if prefix.Contains(addr) {

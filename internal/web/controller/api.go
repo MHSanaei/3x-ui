@@ -155,11 +155,11 @@ func (a *APIController) enforceTokenScope(c *gin.Context) {
 
 func relAPIPath(fullPath string) string {
 	const marker = "/panel/api"
-	i := strings.Index(fullPath, marker)
-	if i < 0 {
+	_, after, ok := strings.Cut(fullPath, marker)
+	if !ok {
 		return ""
 	}
-	return fullPath[i+len(marker):]
+	return after
 }
 
 // initRouter sets up the API routes for inbounds, server, and other endpoints.
