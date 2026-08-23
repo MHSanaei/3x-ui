@@ -961,6 +961,17 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
   if (!client) return '';
   const server = settings.server;
 
+  // These land unescaped in the .conf; a newline would inject a config line
+  // (e.g. a rogue PostUp) — same guard as the panel's other two emitters.
+  for (const v of [
+    client.privateKey ?? '',
+    server.primaryDns ?? '',
+    server.secondaryDns ?? '',
+    remark,
+  ]) {
+    if (/[\r\n]/.test(v)) return '';
+  }
+
   let txt = `[Interface]\n`;
   txt += `PrivateKey = ${client.privateKey ?? ''}\n`;
   txt += `Address = ${(client.allowedIPs ?? []).join(', ')}\n`;
