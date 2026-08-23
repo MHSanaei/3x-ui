@@ -13,9 +13,10 @@ _openapi:
     - depth: 2
       title: 'Return base64-encoded subscription links for all enabled clients
         matching the subscription ID. When the request has an Accept: text/html
-        header or ?html=1, renders a styled info page instead. Default path:
-        /sub/:subid.'
-      url: '#return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-default-path-subsubid'
+        header or ?html=1, renders a styled info page instead. With
+        ?format=info, returns the page view-model as JSON (traffic, expiry,
+        online status; no links) for live polling. Default path: /sub/:subid.'
+      url: '#return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-with-formatinfo-returns-the-page-view-model-as-json-traffic-expiry-online-status-no-links-for-live-polling-default-path-subsubid'
     - depth: 2
       title: 'Return subscription as a JSON array of proxy configs (one per enabled
         client). Only when JSON subscription is enabled in settings. Default
@@ -30,9 +31,10 @@ _openapi:
     headings:
       - content: 'Return base64-encoded subscription links for all enabled clients
           matching the subscription ID. When the request has an Accept:
-          text/html header or ?html=1, renders a styled info page instead.
-          Default path: /sub/:subid.'
-        id: return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-default-path-subsubid
+          text/html header or ?html=1, renders a styled info page instead. With
+          ?format=info, returns the page view-model as JSON (traffic, expiry,
+          online status; no links) for live polling. Default path: /sub/:subid.'
+        id: return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-with-formatinfo-returns-the-page-view-model-as-json-traffic-expiry-online-status-no-links-for-live-polling-default-path-subsubid
       - content: 'Return subscription as a JSON array of proxy configs (one per enabled
           client). Only when JSON subscription is enabled in settings. Default
           path: /json/:subid.'

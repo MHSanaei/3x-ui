@@ -1,0 +1,53 @@
+.pia-data-table {
+  margin: 5px 0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pia-data-table td {
+  padding: 4px 8px;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.pia-data-table td:first-child {
+  font-family: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  width: 130px;
+}
+
+.pia-data-table .row-odd {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.pia-already-added {
+  margin-top: 8px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.pia-added-table {
+  margin: 0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pia-added-table td {
+  padding: 6px 0;
+  vertical-align: middle;
+}
+
+.pia-added-table td:first-child {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  padding-right: 8px;
+}
+
+.pia-added-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}

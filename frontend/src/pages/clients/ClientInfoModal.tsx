@@ -13,10 +13,12 @@ import { ClipboardManager, FileManager, HttpUtil, IntlUtil, SizeFormatter } from
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { useDatepicker } from '@/hooks/useDatepicker';
+import { useClientHwids } from '@/hooks/useClientHwids';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
+import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import {
   buildWireguardClientConfig,
@@ -105,6 +107,17 @@ export default function ClientInfoModal({
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
   const [ipsModalOpen, setIpsModalOpen] = useState(false);
+  const {
+    clientHwids,
+    hwidsLoading,
+    hwidsClearing,
+    deletingHwidId,
+    loadHwids,
+    clearHwids,
+    deleteHwid,
+    resetHwids,
+  } = useClientHwids(client?.email);
+  const [hwidsModalOpen, setHwidsModalOpen] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<
     keyof typeof SUBSCRIPTION_DOWNLOAD_NAMES | null
   >(null);
@@ -118,6 +131,8 @@ export default function ClientInfoModal({
       setLinks([]);
       setClientIps([]);
       setIpsModalOpen(false);
+      resetHwids();
+      setHwidsModalOpen(false);
     }
   }
 
@@ -228,6 +243,11 @@ export default function ClientInfoModal({
   function openIpsModal() {
     setIpsModalOpen(true);
     if (clientIps.length === 0) void loadIps();
+  }
+
+  function openHwidsModal() {
+    setHwidsModalOpen(true);
+    if (clientHwids.length === 0) void loadHwids();
   }
 
   return (
@@ -419,6 +439,24 @@ export default function ClientInfoModal({
                     </td>
                   </tr>
                 )}
+                <tr>
+                  <td>{t('pages.clients.limitHwid')}</td>
+                  <td>{!client.limitHwid ? <Tag>∞</Tag> : <Tag>{client.limitHwid}</Tag>}</td>
+                </tr>
+                <tr>
+                  <td>{t('pages.clients.hwidLog')}</td>
+                  <td>
+                    <Button
+                      size="small"
+                      icon={<EyeOutlined />}
+                      aria-label={t('pages.clients.hwidLog')}
+                      loading={hwidsLoading}
+                      onClick={openHwidsModal}
+                    >
+                      {clientHwids.length > 0 ? clientHwids.length : ''}
+                    </Button>
+                  </td>
+                </tr>
                 <tr>
                   <td>{t('pages.inbounds.createdAt')}</td>
                   <td>
@@ -784,6 +822,20 @@ export default function ClientInfoModal({
           <Tag>{t('tgbot.noIpRecord')}</Tag>
         )}
       </Modal>
+
+      <ClientHwidListModal
+        open={hwidsModalOpen}
+        email={client?.email}
+        hwids={clientHwids}
+        loading={hwidsLoading}
+        clearing={hwidsClearing}
+        deletingId={deletingHwidId}
+        formatDate={dateLabel}
+        onRefresh={loadHwids}
+        onClearAll={clearHwids}
+        onDelete={deleteHwid}
+        onClose={() => setHwidsModalOpen(false)}
+      />
     </>
   );
 }

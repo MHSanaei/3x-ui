@@ -34,6 +34,15 @@ _openapi:
         clients.
       url: '#lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients'
     - depth: 2
+      title: Return every protocol URL (vless://, vmess://, trojan://, ss://,
+        hysteria://, mtproto) across all inbounds and all of their clients.
+        Links are rendered through the subscription engine, so the configured
+        remark template (name-only display part) is applied per client — the
+        same output the client info/QR pages use. Protocols without a URL form
+        (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.
+        Used by the panel’s "Export all inbound links" action.
+      url: '#return-every-protocol-url-vless-vmess-trojan-ss-hysteria-mtproto-across-all-inbounds-and-all-of-their-clients-links-are-rendered-through-the-subscription-engine-so-the-configured-remark-template-name-only-display-part-is-applied-per-client--the-same-output-the-client-infoqr-pages-use-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing-used-by-the-panels-export-all-inbound-links-action'
+    - depth: 2
       title: Fetch a single inbound by numeric ID.
       url: '#fetch-a-single-inbound-by-numeric-id'
     - depth: 2
@@ -59,6 +68,10 @@ _openapi:
       title: Toggle only the enable flag without serialising the whole settings JSON.
         Recommended for UI switches on large inbounds.
       url: '#toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds'
+    - depth: 2
+      title: Set only the subscription sort order. Reads the stored inbound, so a
+        reorder cannot carry a stale client list over a concurrent edit.
+      url: '#set-only-the-subscription-sort-order-reads-the-stored-inbound-so-a-reorder-cannot-carry-a-stale-client-list-over-a-concurrent-edit'
     - depth: 2
       title: Zero out upload + download counters for a single inbound. Does not touch
         per-client counters.
@@ -94,10 +107,6 @@ _openapi:
       title: Replace the entire fallback list for a master inbound. Body is JSON.
         Triggers an Xray restart.
       url: '#replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart'
-    - depth: 2
-      title: Set only the subscription sort order. Reads the stored inbound, so a
-        reorder cannot carry a stale client list over a concurrent edit.
-      url: '#set-only-the-subscription-sort-order-reads-the-stored-inbound-so-a-reorder-cannot-carry-a-stale-client-list-over-a-concurrent-edit'
   structuredData:
     headings:
       - content: List every inbound owned by the authenticated user, including each
@@ -121,6 +130,14 @@ _openapi:
           clientStats so the payload stays small even on panels with thousands
           of clients.
         id: lightweight-picker-projection-of-the-authenticated-users-inbounds-returns-id-remark-tag-protocol-port-a-server-computed-tlsflowcapable-flag-true-for-vless-on-tcp-with-tls-or-reality-or-on-xhttp-with-vless-encryption--vlessenc-enabled-and-ssmethod-the-shadowsocks-cipher-empty-for-non-shadowsocks-inbounds--used-by-the-client-ui-to-generate-a-valid-shadowsocks-2022-psk-use-this-for-dropdowns-and-attach-pickers--it-skips-settings-streamsettings-and-clientstats-so-the-payload-stays-small-even-on-panels-with-thousands-of-clients
+      - content: Return every protocol URL (vless://, vmess://, trojan://, ss://,
+          hysteria://, mtproto) across all inbounds and all of their clients.
+          Links are rendered through the subscription engine, so the configured
+          remark template (name-only display part) is applied per client — the
+          same output the client info/QR pages use. Protocols without a URL form
+          (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.
+          Used by the panel’s "Export all inbound links" action.
+        id: return-every-protocol-url-vless-vmess-trojan-ss-hysteria-mtproto-across-all-inbounds-and-all-of-their-clients-links-are-rendered-through-the-subscription-engine-so-the-configured-remark-template-name-only-display-part-is-applied-per-client--the-same-output-the-client-infoqr-pages-use-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing-used-by-the-panels-export-all-inbound-links-action
       - content: Fetch a single inbound by numeric ID.
         id: fetch-a-single-inbound-by-numeric-id
       - content: Create a new inbound. Send the full inbound payload (protocol, port,
@@ -141,6 +158,9 @@ _openapi:
       - content: Toggle only the enable flag without serialising the whole settings
           JSON. Recommended for UI switches on large inbounds.
         id: toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds
+      - content: Set only the subscription sort order. Reads the stored inbound, so a
+          reorder cannot carry a stale client list over a concurrent edit.
+        id: set-only-the-subscription-sort-order-reads-the-stored-inbound-so-a-reorder-cannot-carry-a-stale-client-list-over-a-concurrent-edit
       - content: Zero out upload + download counters for a single inbound. Does not
           touch per-client counters.
         id: zero-out-upload--download-counters-for-a-single-inbound-does-not-touch-per-client-counters
@@ -169,9 +189,6 @@ _openapi:
       - content: Replace the entire fallback list for a master inbound. Body is JSON.
           Triggers an Xray restart.
         id: replace-the-entire-fallback-list-for-a-master-inbound-body-is-json-triggers-an-xray-restart
-      - content: Set only the subscription sort order. Reads the stored inbound, so a
-          reorder cannot carry a stale client list over a concurrent edit.
-        id: set-only-the-subscription-sort-order-reads-the-stored-inbound-so-a-reorder-cannot-carry-a-stale-client-list-over-a-concurrent-edit
     contents: []
 ---
 
@@ -184,7 +201,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/inbounds/list","method":"get"},{"path":"/panel/api/inbounds/list/slim","method":"get"},{"path":"/panel/api/inbounds/options","method":"get"},{"path":"/panel/api/inbounds/allLinks","method":"get"},{"path":"/panel/api/inbounds/get/{id}","method":"get"},{"path":"/panel/api/inbounds/add","method":"post"},{"path":"/panel/api/inbounds/del/{id}","method":"post"},{"path":"/panel/api/inbounds/bulkDel","method":"post"},{"path":"/panel/api/inbounds/update/{id}","method":"post"},{"path":"/panel/api/inbounds/setEnable/{id}","method":"post"},{"path":"/panel/api/inbounds/{id}/subSortIndex","method":"post"},{"path":"/panel/api/inbounds/{id}/resetTraffic","method":"post"},{"path":"/panel/api/inbounds/{id}/delAllClients","method":"post"},{"path":"/panel/api/inbounds/resetAllTraffics","method":"post"},{"path":"/panel/api/inbounds/import","method":"post"},{"path":"/panel/api/inbounds/pushClientTraffics","method":"post"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"get"},{"path":"/panel/api/inbounds/{id}/fallbacks","method":"post"}]} showTitle />
     </>
   );
 }

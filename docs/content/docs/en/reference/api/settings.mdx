@@ -16,10 +16,20 @@ _openapi:
         preview what a fresh install would use.
       url: '#return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use'
     - depth: 2
+      title: Return the shipped (factory) default value per browser-safe setting key,
+        so clients can tell a stored value apart from the default it would fall
+        back to. Per-install material (secret, panelGuid, mTLS keys) and
+        credential fields are never included.
+      url: '#return-the-shipped-factory-default-value-per-browser-safe-setting-key-so-clients-can-tell-a-stored-value-apart-from-the-default-it-would-fall-back-to-per-install-material-secret-panelguid-mtls-keys-and-credential-fields-are-never-included'
+    - depth: 2
       title: Persist every setting at once. The body mirrors the shape returned by
         /all. Invalid values (bad ports, missing cert pairs, etc.) are rejected
         before write.
       url: '#persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write'
+    - depth: 2
+      title: Validate any regular expression with the backend Go RE2 compiler without
+        saving it.
+      url: '#validate-any-regular-expression-with-the-backend-go-re2-compiler-without-saving-it'
     - depth: 2
       title: Change the panel admin username and password. Requires the current
         credentials for verification. The session is refreshed with the new
@@ -50,10 +60,18 @@ _openapi:
       - content: Return the computed default settings based on the request host. Useful
           to preview what a fresh install would use.
         id: return-the-computed-default-settings-based-on-the-request-host-useful-to-preview-what-a-fresh-install-would-use
+      - content: Return the shipped (factory) default value per browser-safe setting
+          key, so clients can tell a stored value apart from the default it
+          would fall back to. Per-install material (secret, panelGuid, mTLS
+          keys) and credential fields are never included.
+        id: return-the-shipped-factory-default-value-per-browser-safe-setting-key-so-clients-can-tell-a-stored-value-apart-from-the-default-it-would-fall-back-to-per-install-material-secret-panelguid-mtls-keys-and-credential-fields-are-never-included
       - content: Persist every setting at once. The body mirrors the shape returned by
           /all. Invalid values (bad ports, missing cert pairs, etc.) are
           rejected before write.
         id: persist-every-setting-at-once-the-body-mirrors-the-shape-returned-by-all-invalid-values-bad-ports-missing-cert-pairs-etc-are-rejected-before-write
+      - content: Validate any regular expression with the backend Go RE2 compiler
+          without saving it.
+        id: validate-any-regular-expression-with-the-backend-go-re2-compiler-without-saving-it
       - content: Change the panel admin username and password. Requires the current
           credentials for verification. The session is refreshed with the new
           values on success.
@@ -83,7 +101,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/factoryDefaults","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/validateRegex","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
     </>
   );
 }

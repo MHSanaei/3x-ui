@@ -124,6 +124,7 @@ var defaultValueMap = map[string]string{
 	"warp":                        "",
 	"warpUpdateInterval":          "0",
 	"nord":                        "",
+	"pia":                         "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
 	"restartXrayOnClientDisable":  "true",
@@ -919,6 +920,14 @@ func (s *SettingService) GetNord() (string, error) {
 
 func (s *SettingService) SetNord(data string) error {
 	return s.setString("nord", data)
+}
+
+func (s *SettingService) GetPia() (string, error) {
+	return s.getString("pia")
+}
+
+func (s *SettingService) SetPia(data string) error {
+	return s.setString("pia", data)
 }
 
 func (s *SettingService) GetExternalTrafficInformEnable() (bool, error) {
