@@ -26,6 +26,7 @@ type XraySettingController struct {
 	WarpService                 integration.WarpService
 	NordService                 integration.NordService
 	TorService                  integration.TorService
+	FrontProxyService           integration.FrontProxyService
 	OutboundSubscriptionService service.OutboundSubscriptionService
 	GeodataService              service.GeodataService
 }
@@ -48,6 +49,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/warp/:action", a.warp)
 	g.POST("/nord/:action", a.nord)
 	g.POST("/tor/:action", a.tor)
+	g.POST("/frontproxy/:action", a.frontProxy)
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
@@ -289,6 +291,23 @@ func (a *XraySettingController) tor(c *gin.Context) {
 		resp, err = a.TorService.CurrentIP()
 	case "newIdentity":
 		err = a.TorService.NewIdentity()
+	}
+	jsonObj(c, resp, err)
+}
+
+// frontProxy handles the built-in front door (internal/frontproxy) based on
+// the action parameter. Port and decoy edits still need a panel restart.
+func (a *XraySettingController) frontProxy(c *gin.Context) {
+	action := c.Param("action")
+	var resp any
+	var err error
+	switch action {
+	case "status":
+		resp = a.FrontProxyService.Status()
+	case "start":
+		err = a.FrontProxyService.Start()
+	case "stop":
+		err = a.FrontProxyService.Stop()
 	}
 	jsonObj(c, resp, err)
 }
