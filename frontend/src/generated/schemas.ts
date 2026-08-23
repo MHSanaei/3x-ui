@@ -215,6 +215,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux": {
         "type": "string"
       },
+      "subJsonObservatory": {
+        "type": "string"
+      },
       "subJsonPath": {
         "type": "string"
       },
@@ -412,6 +415,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
+      "subJsonObservatory",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
@@ -690,6 +694,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux": {
         "type": "string"
       },
+      "subJsonObservatory": {
+        "type": "string"
+      },
       "subJsonPath": {
         "type": "string"
       },
@@ -894,6 +901,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
+      "subJsonObservatory",
       "subJsonPath",
       "subJsonRules",
       "subJsonURI",
@@ -3232,6 +3240,71 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "key",
       "value"
+    ],
+    "type": "object"
+  },
+  "SubBalancer": {
+    "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
+    "properties": {
+      "createdAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "enabled": {
+        "description": "No gorm default:true — a bool default makes an explicit false at insert\ncollapse back to the column default (zero value is skipped).",
+        "example": true,
+        "type": "boolean"
+      },
+      "id": {
+        "example": 1,
+        "type": "integer"
+      },
+      "inboundIds": {
+        "example": [
+          1,
+          3
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "remark": {
+        "example": "auto-fastest",
+        "maxLength": 256,
+        "type": "string"
+      },
+      "sortOrder": {
+        "example": 1,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "strategy": {
+        "enum": [
+          "leastLoad",
+          "leastPing",
+          "random",
+          "roundRobin"
+        ],
+        "example": "random",
+        "type": "string"
+      },
+      "updatedAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "createdAt",
+      "enabled",
+      "id",
+      "inboundIds",
+      "remark",
+      "sortOrder",
+      "strategy",
+      "updatedAt"
     ],
     "type": "object"
   },

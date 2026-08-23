@@ -2213,6 +2213,84 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'sub-balancers',
+    title: 'Subscription Balancers',
+    description:
+      'Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Sub Balancers.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/sub-balancers',
+        summary: 'List all subscription balancers in sort order (sort_order asc, id asc).',
+        responseSchema: 'SubBalancer',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/sub-balancers',
+        summary:
+          'Create a subscription balancer. It appears in the JSON subscription of every client that sits on at least one selected inbound.',
+        params: [
+          {
+            name: 'remark',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Display label, used as the config remarks (required).',
+          },
+          {
+            name: 'strategy',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Balancer strategy: "leastLoad", "leastPing", "roundRobin" or "random" (xray routing balancer strategies). Default "random".',
+          },
+          {
+            name: 'inboundIds',
+            in: 'body (form)',
+            type: 'integer[]',
+            desc: 'Repeated form keys selecting the member inbounds, e.g. inboundIds=1&inboundIds=3 (required, at least one).',
+          },
+          {
+            name: 'sortOrder',
+            in: 'body (form)',
+            type: 'integer',
+            desc: '1-based position in the subscription list, interleaved with the inbounds subSortIndex. Default 1.',
+          },
+          {
+            name: 'enabled',
+            in: 'body (form)',
+            type: 'boolean',
+            desc: 'Whether the balancer is emitted. Default true.',
+          },
+        ],
+        responseSchema: 'SubBalancer',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/sub-balancers/:id',
+        summary:
+          'Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
+        responseSchema: 'SubBalancer',
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/sub-balancers/:id',
+        summary: 'Delete a balancer by id.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
+        responseSchema: 'SubBalancer',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/sub-balancers/:id/del',
+        summary:
+          'Delete a balancer by id (POST alias of DELETE for clients that cannot send DELETE).',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
+        responseSchema: 'SubBalancer',
+      },
+    ],
+  },
+
+  {
     id: 'subscription',
     title: 'Subscription Server',
     description:

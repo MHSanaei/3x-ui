@@ -74,6 +74,7 @@ export interface AllSetting {
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
+  subJsonObservatory: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -188,6 +189,7 @@ export interface AllSettingView {
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
+  subJsonObservatory: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -740,6 +742,17 @@ export interface Setting {
   id: number;
   key: string;
   value: string;
+}
+
+export interface SubBalancer {
+  createdAt: number;
+  enabled: boolean;
+  id: number;
+  inboundIds: number[];
+  remark: string;
+  sortOrder: number;
+  strategy: string;
+  updatedAt: number;
 }
 
 export interface User {

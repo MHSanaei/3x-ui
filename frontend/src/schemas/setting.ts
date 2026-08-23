@@ -72,6 +72,7 @@ export const AllSettingSchema = z
     subJsonMux: z.string().optional(),
     subJsonRules: z.string().optional(),
     subJsonFinalMask: z.string().optional(),
+    subJsonObservatory: z.string().optional(),
     subHideSettings: z.boolean().optional(),
     timeLocation: z.string().optional(),
     ldapEnable: z.boolean().optional(),

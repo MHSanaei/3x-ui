@@ -124,7 +124,7 @@ file locations when it can answer in one hop.
 
 ## Frontend conventions (summary; full version in frontend/CLAUDE.md)
 - Ant Design 6 only — no Tailwind/shadcn. Targeted tweaks, not rewrites.
-- TS strict; oxlint's `typescript/no-explicit-any` is an error. Zod schemas in
+- TS strict; `@typescript-eslint/no-explicit-any` is an error. Zod schemas in
   `src/schemas/` are the source of truth; infer types with `z.infer`, never
   hand-write. Do not edit `src/generated/`.
 - Node 24 (`.nvmrc`) — `make gen` imports `.ts` directly and needs its type
@@ -146,8 +146,7 @@ reads as a broken repo, not a missing step. Run `make dist-stub` once; every
 `make` Go target already depends on it, which is why `make test-go` beats
 `go test ./...`. Run `make help` for all targets. The local gate:
 
-    make verify   # gen-check + lint + format-check + typecheck + test + build
-                  # + build-storybook
+    make verify   # gen-check + lint + typecheck + test + build + build-storybook
 
 That is the *fast* gate, not all of CI. `ci.yml` also runs `make race`,
 `make vulncheck`, a live-Postgres job (where a SKIP counts as a failure) and a
