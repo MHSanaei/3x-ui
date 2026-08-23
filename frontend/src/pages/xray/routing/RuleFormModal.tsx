@@ -6,6 +6,7 @@ import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { InputAddon } from '@/components/ui';
 import { GeoTokenInput } from '@/components/geodata';
 import { FormField } from '@/components/form/rhf';
+import { useClientOptions } from '@/api/queries/useClientOptions';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { RuleFormSchema, type RuleFormValues } from '@/schemas/xray';
 import { buildRemarkByTag, formatInboundTag, isApiRule } from './helpers';
@@ -79,6 +80,21 @@ export default function RuleFormModal({
 
   const { data: inboundOptions } = useInboundOptions();
   const remarkByTag = useMemo(() => buildRemarkByTag(inboundOptions || []), [inboundOptions]);
+  const {
+    data: clientEmails = [],
+    isFetching: clientsLoading,
+    isError: clientsError,
+  } = useClientOptions(open);
+  const user = useWatch({ control: methods.control, name: 'user' }) ?? '';
+  const selectedUsers = useMemo(() => csv(user), [user]);
+  const userOptions = useMemo(
+    () =>
+      [...new Set([...clientEmails, ...selectedUsers])].map((email) => ({
+        value: email,
+        label: email,
+      })),
+    [clientEmails, selectedUsers],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -275,8 +291,27 @@ export default function RuleFormModal({
                 {t('pages.xray.ruleForm.user')} <QuestionCircleOutlined aria-hidden="true" />
               </Tooltip>
             }
+            transform={{
+              input: (value) => csv(typeof value === 'string' ? value : ''),
+              output: (value) => (Array.isArray(value) ? value.join(',') : ''),
+            }}
           >
-            <Input placeholder="email address" />
+            <Select
+              mode="tags"
+              tokenSeparators={[',']}
+              allowClear
+              loading={clientsLoading}
+              placeholder={t('pages.xray.ruleForm.userPlaceholder')}
+              showSearch={{ optionFilterProp: 'label' }}
+              notFoundContent={
+                clientsLoading
+                  ? t('loading')
+                  : clientsError
+                    ? t('pages.xray.ruleForm.userLoadError')
+                    : t('pages.xray.ruleForm.userEmpty')
+              }
+              options={userOptions}
+            />
           </FormField>
 
           <FormField
