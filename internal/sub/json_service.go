@@ -690,7 +690,6 @@ func jsonMux(global, override string) string {
 
 func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{
-
 		Protocol: string(inbound.Protocol),
 		Tag:      "proxy"}
 	if mux != "" {
@@ -714,7 +713,8 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{
 		Protocol: string(inbound.Protocol),
-		Tag:      "proxy"}
+		Tag:      "proxy",
+	}
 	if mux != "" {
 		outbound.Mux = json_util.RawMessage(mux)
 	}
@@ -793,7 +793,6 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 
 func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
 	outbound := Outbound{
-
 		Protocol: string(inbound.Protocol),
 		Tag:      "proxy"}
 
