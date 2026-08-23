@@ -25,11 +25,6 @@ func initMutDB(t *testing.T) {
 	t.Cleanup(func() { _ = database.CloseDB() })
 }
 
-//go:fix inline
-func externalLinkEnabled(v bool) *bool {
-	return new(v)
-}
-
 // --- json_service.go:40 — rules are merged into routing only when non-empty ---
 
 func TestSubJsonService_CustomRulesPrepended(t *testing.T) {

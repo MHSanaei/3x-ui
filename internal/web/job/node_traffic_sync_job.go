@@ -363,6 +363,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		return nil
 	}
 
+	justPushed := false
 	if n.ConfigDirty {
 		reconcileCtx, reconcileCancel := context.WithTimeout(context.Background(), nodeReconcileTimeout)
 		reconcileErr := j.inboundService.ReconcileNode(reconcileCtx, rt, n)
@@ -377,6 +378,9 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 				logger.Warningf("node traffic sync: clear dirty for %s failed: %v", n.Name, clearErr)
 			}
 			j.structural.set()
+			// The snapshot below may still predate the push we just made, so its
+			// lagging lifecycle values must not merge back this tick (#6228).
+			justPushed = true
 		}
 	}
 
@@ -407,7 +411,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 			}
 		}
 	}
-	changed, err := j.inboundService.SetRemoteTraffic(n.Id, snap, dirty)
+	changed, err := j.inboundService.SetRemoteTraffic(n.Id, snap, dirty, justPushed)
 	if err != nil {
 		logger.Warningf("node traffic sync: merge for %s failed: %v", n.Name, err)
 		return nil
