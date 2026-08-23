@@ -135,10 +135,10 @@ type ServerSettings struct {
 	SubnetCIDR int    `json:"subnetCidr"`
 	MTU        int    `json:"mtu,omitempty"`
 
-	// PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client
-	// configs; the server's own interface never sets one (see BuildClientConfig).
-	PrimaryDNS   string `json:"primaryDns,omitempty"`
-	SecondaryDNS string `json:"secondaryDns,omitempty"`
+	// PrimaryDNS/SecondaryDNS seed client configs' DNS line. Blank is
+	// meaningful, so no omitempty: a dropped key resurrects frontend defaults.
+	PrimaryDNS   string `json:"primaryDns"`
+	SecondaryDNS string `json:"secondaryDns"`
 
 	// ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live
 	// again as of Phase 3.5 -- see the matching fields on Instance for what

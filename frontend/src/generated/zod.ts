@@ -789,7 +789,7 @@ export const ServerSettingsSchema = z.object({
   keepaliveTimeout: z.string().optional(),
   maxHandshakeAttempts: z.string().optional(),
   mtu: z.number().int().optional(),
-  primaryDns: z.string().optional(),
+  primaryDns: z.string(),
   privateKey: z.string(),
   publicKey: z.string(),
   randomTrailers: z.boolean(),
@@ -801,7 +801,7 @@ export const ServerSettingsSchema = z.object({
   s2: z.number().int(),
   s3: z.number().int(),
   s4: z.number().int(),
-  secondaryDns: z.string().optional(),
+  secondaryDns: z.string(),
   subnetCidr: z.number().int(),
   subnetIp: z.string(),
 });

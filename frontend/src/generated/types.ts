@@ -740,7 +740,7 @@ export interface ServerSettings {
   keepaliveTimeout?: string;
   maxHandshakeAttempts?: string;
   mtu?: number;
-  primaryDns?: string;
+  primaryDns: string;
   privateKey: string;
   publicKey: string;
   randomTrailers: boolean;
@@ -752,7 +752,7 @@ export interface ServerSettings {
   s2: number;
   s3: number;
   s4: number;
-  secondaryDns?: string;
+  secondaryDns: string;
   subnetCidr: number;
   subnetIp: string;
 }

@@ -359,3 +359,28 @@ func TestCheckForwardedPortsConflict_CollidesWithAmneziawgnetSocksPort(t *testin
 		t.Fatalf("expected a collision naming the AmneziaWG inbound's SOCKS5 relay port, got %q", hit)
 	}
 }
+
+// A cleared DNS field is meaningful (no DNS line in client configs) and must
+// survive the save round-trip instead of resurrecting the frontend defaults.
+func TestNormalizeAmneziaWGSettingsKeepsClearedDNS(t *testing.T) {
+	setupConflictDB(t)
+	server, err := defaultAmneziaWGServer()
+	if err != nil {
+		t.Fatalf("defaultAmneziaWGServer: %v", err)
+	}
+	server.PrimaryDNS = ""
+	server.SecondaryDNS = ""
+	bs, err := json.Marshal(amneziawg.InboundSettings{Server: server, Clients: []model.Client{}})
+	if err != nil {
+		t.Fatalf("marshal settings: %v", err)
+	}
+	inbound := &model.Inbound{Protocol: model.AmneziaWG, Settings: string(bs)}
+	if err := (&InboundService{}).normalizeAmneziaWGSettings(inbound); err != nil {
+		t.Fatalf("normalizeAmneziaWGSettings: %v", err)
+	}
+	for _, key := range []string{`"primaryDns"`, `"secondaryDns"`} {
+		if !strings.Contains(inbound.Settings, key) {
+			t.Fatalf("cleared %s dropped from persisted settings:\n%s", key, inbound.Settings)
+		}
+	}
+}

@@ -3246,7 +3246,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "primaryDns": {
-        "description": "PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client\nconfigs; the server's own interface never sets one (see BuildClientConfig).",
+        "description": "PrimaryDNS/SecondaryDNS seed client configs' DNS line. Blank is\nmeaningful, so no omitempty: a dropped key resurrects frontend defaults.",
         "type": "string"
       },
       "privateKey": {
@@ -3303,6 +3303,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "jc",
       "jmax",
       "jmin",
+      "primaryDns",
       "privateKey",
       "publicKey",
       "randomTrailers",
@@ -3310,6 +3311,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "s2",
       "s3",
       "s4",
+      "secondaryDns",
       "subnetCidr",
       "subnetIp"
     ],

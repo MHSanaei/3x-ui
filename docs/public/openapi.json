@@ -3272,7 +3272,7 @@
             "type": "integer"
           },
           "primaryDns": {
-            "description": "PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client\nconfigs; the server's own interface never sets one (see BuildClientConfig).",
+            "description": "PrimaryDNS/SecondaryDNS seed client configs' DNS line. Blank is\nmeaningful, so no omitempty: a dropped key resurrects frontend defaults.",
             "type": "string"
           },
           "privateKey": {
@@ -3329,6 +3329,7 @@
           "jc",
           "jmax",
           "jmin",
+          "primaryDns",
           "privateKey",
           "publicKey",
           "randomTrailers",
@@ -3336,6 +3337,7 @@
           "s2",
           "s3",
           "s4",
+          "secondaryDns",
           "subnetCidr",
           "subnetIp"
         ],
