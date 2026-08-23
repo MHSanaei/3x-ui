@@ -342,9 +342,8 @@ func getEnabledSubBalancers() []model.SubBalancer {
 	return balancers
 }
 
-// balancerMemberSuffix picks the bal-N tag suffix from the member's protocol
-// so the tag reads as the real proxy type (bal-1-vmess, bal-1-vless, …) instead
-// of its transport network — a vmess/tcp member used to be mislabelled "vless".
+// Suffix by proxy protocol, not transport network — a vmess/tcp member used to
+// be mislabelled "vless".
 func balancerMemberSuffix(protocol string) string {
 	if protocol == "" {
 		return "other"
