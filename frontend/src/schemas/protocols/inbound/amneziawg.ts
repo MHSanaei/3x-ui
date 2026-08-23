@@ -6,6 +6,11 @@ import { z } from 'zod';
 const optionalClearedInt = (schema: z.ZodNumber) =>
   z.preprocess((v) => (v == null ? undefined : v), schema.optional());
 
+// Same null-absorbing preprocess for fields that keep a schema default:
+// clearing the InputNumber refills the default instead of blocking the save.
+const clearedToDefault = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (v == null ? undefined : v), schema);
+
 // An AmneziaWG client (multi-client model). Same key/address fields as
 // WireguardClientSchema — the panel's generic ClientRecord already has those
 // exact keys (privateKey/publicKey/preSharedKey/allowedIPs/keepAlive), so
@@ -47,7 +52,7 @@ export const AmneziawgServerSchema = z.object({
   privateKey: z.string().optional(),
   publicKey: z.string().optional(),
   subnetIp: z.string().default('10.8.1.0'),
-  subnetCidr: z.number().int().min(1).max(32).default(24),
+  subnetCidr: clearedToDefault(z.number().int().min(1).max(32).default(24)),
   mtu: optionalClearedInt(z.number().int().min(1)),
   primaryDns: z.string().default('8.8.8.8'),
   secondaryDns: z.string().default('8.8.4.4'),
@@ -61,13 +66,13 @@ export const AmneziawgServerSchema = z.object({
   // z.object's default unknown-key stripping doesn't silently drop it from
   // an existing stored settings blob on the next save.
   routeThroughXray: z.boolean().default(false).optional(),
-  jc: z.number().int().min(0).default(5),
-  jmin: z.number().int().min(0).default(10),
-  jmax: z.number().int().min(0).default(50),
-  s1: z.number().int().min(0).default(30),
-  s2: z.number().int().min(0).default(45),
-  s3: z.number().int().min(0).max(64).default(10),
-  s4: z.number().int().min(0).max(32).default(5),
+  jc: clearedToDefault(z.number().int().min(0).default(5)),
+  jmin: clearedToDefault(z.number().int().min(0).default(10)),
+  jmax: clearedToDefault(z.number().int().min(0).default(50)),
+  s1: clearedToDefault(z.number().int().min(0).default(30)),
+  s2: clearedToDefault(z.number().int().min(0).default(45)),
+  s3: clearedToDefault(z.number().int().min(0).max(64).default(10)),
+  s4: clearedToDefault(z.number().int().min(0).max(32).default(5)),
   h1: z.string().default(''),
   h2: z.string().default(''),
   h3: z.string().default(''),
