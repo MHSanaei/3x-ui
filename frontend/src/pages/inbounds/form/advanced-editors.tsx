@@ -67,9 +67,10 @@ export function AdvancedSliceEditor({
         setText(next);
         try {
           const parsed = JSON.parse(next);
-          const toWrite = wrapKey && parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-            ? (parsed as Record<string, unknown>)[wrapKey] ?? {}
-            : parsed;
+          const toWrite =
+            wrapKey && parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+              ? ((parsed as Record<string, unknown>)[wrapKey] ?? {})
+              : parsed;
           setValue(path, toWrite);
           lastEmitRef.current = JSON.stringify(wrapKey ? { [wrapKey]: toWrite } : toWrite, null, 2);
         } catch {
@@ -146,7 +147,17 @@ export function AdvancedAllEditor({
     setText(formStr);
     lastEmitRef.current = formStr;
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [wListen, wPort, wProtocol, wTag, wSettings, wSniffing, wStream, streamEnabled, sniffingEnabled]);
+  }, [
+    wListen,
+    wPort,
+    wProtocol,
+    wTag,
+    wSettings,
+    wSniffing,
+    wStream,
+    streamEnabled,
+    sniffingEnabled,
+  ]);
 
   return (
     <JsonEditor

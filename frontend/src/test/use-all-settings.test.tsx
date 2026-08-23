@@ -13,6 +13,67 @@ afterEach(() => {
 });
 
 describe('useAllSettings', () => {
+  it('refreshes cached default settings after a successful save', async () => {
+    vi.spyOn(HttpUtil, 'post').mockResolvedValue(new Msg(true, '', {}));
+    const queryClient = makeTestQueryClient();
+    const fetchDefaults = vi
+      .fn()
+      .mockResolvedValueOnce({ subURI: 'https://example.com/sub/' })
+      .mockResolvedValueOnce({ subURI: 'https://example.com/my_custom_path/' });
+    const defaultsQuery = {
+      queryKey: keys.settings.defaults(),
+      queryFn: fetchDefaults,
+      staleTime: Infinity,
+    };
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    await queryClient.fetchQuery(defaultsQuery);
+    const { result } = renderHook(() => useAllSettings(), { wrapper });
+
+    await waitFor(() => expect(result.current.fetched).toBe(true));
+    await act(async () => {
+      await result.current.saveAll();
+    });
+
+    const defaults = await queryClient.fetchQuery(defaultsQuery);
+    expect(fetchDefaults).toHaveBeenCalledTimes(2);
+    expect(defaults.subURI).toBe('https://example.com/my_custom_path/');
+  });
+
+  it('keeps cached default settings when a save fails', async () => {
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
+      if (url === '/panel/api/setting/update') return new Msg(false, 'Save failed');
+      return new Msg(true, '', {});
+    });
+    const queryClient = makeTestQueryClient();
+    const fetchDefaults = vi
+      .fn()
+      .mockResolvedValueOnce({ subURI: 'https://example.com/sub/' })
+      .mockResolvedValueOnce({ subURI: 'https://example.com/my_custom_path/' });
+    const defaultsQuery = {
+      queryKey: keys.settings.defaults(),
+      queryFn: fetchDefaults,
+      staleTime: Infinity,
+    };
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    await queryClient.fetchQuery(defaultsQuery);
+    const { result } = renderHook(() => useAllSettings(), { wrapper });
+
+    await waitFor(() => expect(result.current.fetched).toBe(true));
+    await act(async () => {
+      await result.current.saveAll();
+    });
+
+    const defaults = await queryClient.fetchQuery(defaultsQuery);
+    expect(fetchDefaults).toHaveBeenCalledOnce();
+    expect(defaults.subURI).toBe('https://example.com/sub/');
+  });
+
   it('accepts legacy overlength regex settings without logging a response validation warning', async () => {
     const subJsonUserAgentRegex = 'x'.repeat(2_049);
     vi.spyOn(HttpUtil, 'post').mockResolvedValue(new Msg(true, '', { subJsonUserAgentRegex }));
@@ -30,10 +91,7 @@ describe('useAllSettings', () => {
   });
 
   it('keeps an edited setting when a refetch returns older server data', async () => {
-    const values = [
-      { webPort: 2053 },
-      { webPort: 2054 },
-    ];
+    const values = [{ webPort: 2053 }, { webPort: 2054 }];
     let index = 0;
     vi.spyOn(HttpUtil, 'post').mockImplementation(async () => new Msg(true, '', values[index++]));
     const queryClient = makeTestQueryClient();
@@ -56,7 +114,11 @@ describe('useAllSettings', () => {
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
       if (url === '/panel/api/setting/all') {
         fetchCount += 1;
-        return new Msg(true, '', fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' });
+        return new Msg(
+          true,
+          '',
+          fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' },
+        );
       }
       return new Msg(true, '');
     });
@@ -83,7 +145,11 @@ describe('useAllSettings', () => {
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
       if (url === '/panel/api/setting/all') {
         fetchCount += 1;
-        return new Msg(true, '', fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' });
+        return new Msg(
+          true,
+          '',
+          fetchCount === 1 ? { hasTgBotToken: false } : { hasTgBotToken: true, tgBotToken: '' },
+        );
       }
       return new Msg(true, '');
     });
@@ -96,7 +162,11 @@ describe('useAllSettings', () => {
     await waitFor(() => expect(result.current.fetched).toBe(true));
     act(() => result.current.updateSetting({ tgBotToken: 'secret' }));
     await act(async () => {
-      await result.current.savePayload({ ...result.current.allSetting, twoFactorEnable: false, twoFactorToken: '' });
+      await result.current.savePayload({
+        ...result.current.allSetting,
+        twoFactorEnable: false,
+        twoFactorToken: '',
+      });
     });
 
     await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(3));

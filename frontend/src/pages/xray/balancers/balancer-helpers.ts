@@ -13,7 +13,7 @@ export const DEFAULT_BURST_OBSERVATORY = Object.freeze({
   pingConfig: {
     destination: 'https://www.google.com/generate_204',
     interval: '1m',
-    connectivity: 'http://connectivitycheck.platform.hicloud.com/generate_204',
+    connectivity: '',
     timeout: '5s',
     sampling: 2,
     httpMethod: 'HEAD',
@@ -28,7 +28,10 @@ export function collectSelectors(list: BalancerObject[]): string[] {
 
 export function balancerRequiresBurstObservatory(b: BalancerObject): boolean {
   const type = b.strategy?.type || 'random';
-  return type === 'leastLoad' || ((type === 'random' || type === 'roundRobin') && (b.fallbackTag ?? '').length > 0);
+  return (
+    type === 'leastLoad' ||
+    ((type === 'random' || type === 'roundRobin') && (b.fallbackTag ?? '').length > 0)
+  );
 }
 
 export function settingsRequireBurstObservatory(t: XraySettingsValue | null): boolean {
@@ -63,7 +66,8 @@ export function syncObservatories(t: XraySettingsValue) {
   const required = balancers.filter(balancerRequiresBurstObservatory);
   if (required.length > 0) {
     delete t.observatory;
-    if (!t.burstObservatory) t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
+    if (!t.burstObservatory)
+      t.burstObservatory = JSON.parse(JSON.stringify(DEFAULT_BURST_OBSERVATORY));
     (t.burstObservatory as { subjectSelector: string[] }).subjectSelector = collectSelectors([
       ...required,
       ...leastPings,
@@ -72,7 +76,8 @@ export function syncObservatories(t: XraySettingsValue) {
     delete t.burstObservatory;
     if (leastPings.length > 0) {
       if (!t.observatory) t.observatory = JSON.parse(JSON.stringify(DEFAULT_OBSERVATORY));
-      (t.observatory as { subjectSelector: string[] }).subjectSelector = collectSelectors(leastPings);
+      (t.observatory as { subjectSelector: string[] }).subjectSelector =
+        collectSelectors(leastPings);
     } else {
       delete t.observatory;
     }

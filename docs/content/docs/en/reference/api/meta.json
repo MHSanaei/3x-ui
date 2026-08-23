@@ -11,6 +11,7 @@
     "settings",
     "xray-settings",
     "subscription-server",
+    "subscription-balancers",
     "hosts",
     "nodes",
     "backup",

@@ -1,0 +1,8 @@
+{
+  "status": "OK",
+  "peer_ip": "10.0.0.0/24",
+  "server_key": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+  "server_ip": "198.51.100.10",
+  "server_port": 51820,
+  "dns_servers": ["10.0.0.1"]
+}

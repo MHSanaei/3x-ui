@@ -55,11 +55,17 @@
 }
 
 @keyframes obs-dot-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-success) 22%, transparent); }
-  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ant-color-success) 6%, transparent); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ant-color-success) 22%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--ant-color-success) 6%, transparent);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .obs-dot.is-alive { animation: none; }
+  .obs-dot.is-alive {
+    animation: none;
+  }
 }
-

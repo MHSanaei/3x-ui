@@ -17,9 +17,17 @@ const meta = {
     },
   },
   argTypes: {
-    mode: { description: 'Wire shape: `v1` = string per name, `v2` = string[] per name (repeatable headers).' },
-    value: { description: 'Header map in the wire shape matching `mode`; converted to editable rows internally.' },
-    onChange: { description: 'Called with the rebuilt wire-shape map after every row edit, add, or remove.' },
+    mode: {
+      description:
+        'Wire shape: `v1` = string per name, `v2` = string[] per name (repeatable headers).',
+    },
+    value: {
+      description:
+        'Header map in the wire shape matching `mode`; converted to editable rows internally.',
+    },
+    onChange: {
+      description: 'Called with the rebuilt wire-shape map after every row edit, add, or remove.',
+    },
   },
 } satisfies Meta<typeof HeaderMapEditor>;
 
@@ -63,7 +71,14 @@ function WireShapeDemo() {
   return (
     <div style={{ maxWidth: 560 }}>
       <HeaderMapEditor mode="v2" value={value} onChange={setValue} />
-      <pre style={{ marginTop: 16, padding: 12, borderRadius: 8, background: 'rgba(128, 128, 128, 0.12)' }}>
+      <pre
+        style={{
+          marginTop: 16,
+          padding: 12,
+          borderRadius: 8,
+          background: 'rgba(128, 128, 128, 0.12)',
+        }}
+      >
         {JSON.stringify(value ?? {}, null, 2)}
       </pre>
     </div>

@@ -29,18 +29,27 @@ describe('toHeaders', () => {
 const entryCases: Array<[string, HeaderEntry[]]> = [
   ['empty', []],
   ['single', [{ name: 'Host', value: 'example.test' }]],
-  ['duplicate name', [
-    { name: 'Accept', value: 'text/html' },
-    { name: 'Accept', value: 'application/json' },
-  ]],
-  ['empty name skipped', [
-    { name: '', value: 'ignored' },
-    { name: 'X-Real', value: 'kept' },
-  ]],
-  ['empty value skipped', [
-    { name: 'X-Empty', value: '' },
-    { name: 'X-Real', value: 'kept' },
-  ]],
+  [
+    'duplicate name',
+    [
+      { name: 'Accept', value: 'text/html' },
+      { name: 'Accept', value: 'application/json' },
+    ],
+  ],
+  [
+    'empty name skipped',
+    [
+      { name: '', value: 'ignored' },
+      { name: 'X-Real', value: 'kept' },
+    ],
+  ],
+  [
+    'empty value skipped',
+    [
+      { name: 'X-Empty', value: '' },
+      { name: 'X-Real', value: 'kept' },
+    ],
+  ],
 ];
 
 describe('toV2Headers (arr=true)', () => {
@@ -72,7 +81,9 @@ describe('getHeaderValue lookups', () => {
   });
 
   it('returns first value when the header is an array', () => {
-    expect(getHeaderValue({ Accept: ['text/html', 'application/json'] }, 'accept')).toBe('text/html');
+    expect(getHeaderValue({ Accept: ['text/html', 'application/json'] }, 'accept')).toBe(
+      'text/html',
+    );
   });
 
   it('returns empty string when the header has empty array', () => {

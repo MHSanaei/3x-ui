@@ -1,12 +1,8 @@
 ---
 title: API Tokens
-description: 'Manage Bearer tokens used for programmatic auth (bots, central
-  panels acting on this node, CI). Each token has a unique name and an enabled
-  flag — disable to revoke without deleting, delete to revoke permanently.
-  Tokens are stored as SHA-256 hashes and the plaintext is returned only once,
-  in the create response — it cannot be retrieved afterwards, so copy it then.
-  Send one as <code>Authorization: Bearer &lt;token&gt;</code> on any
-  /panel/api/* request — the token is a full-admin credential.'
+description: Manage scoped Bearer tokens for programmatic auth. Tokens grant
+  admin, monitor, or node-sync access, may expire, and are stored as SHA-256
+  hashes. The plaintext is returned only once at creation.
 full: true
 _openapi:
   preload:

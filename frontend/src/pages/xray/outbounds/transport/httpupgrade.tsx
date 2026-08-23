@@ -8,16 +8,10 @@ export default function HttpUpgradeForm() {
   const { t } = useTranslation();
   return (
     <>
-      <FormField
-        label={t('host')}
-        name={['streamSettings', 'httpupgradeSettings', 'host']}
-      >
+      <FormField label={t('host')} name={['streamSettings', 'httpupgradeSettings', 'host']}>
         <Input />
       </FormField>
-      <FormField
-        label={t('path')}
-        name={['streamSettings', 'httpupgradeSettings', 'path']}
-      >
+      <FormField label={t('path')} name={['streamSettings', 'httpupgradeSettings', 'path']}>
         <Input />
       </FormField>
       <FormField

@@ -6,7 +6,11 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
-import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
+import type {
+  OutboundTestMode,
+  OutboundTestState,
+  OutboundTrafficRow,
+} from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
 import TestResultPopover from './TestResultPopover';
@@ -44,7 +48,8 @@ export default function SubscriptionOutbounds({
   const { t } = useTranslation();
 
   const rows = useMemo<OutboundRow[]>(
-    () => (subscriptionOutbounds || []).map((o, i) => ({ ...(o as object), key: i }) as OutboundRow),
+    () =>
+      (subscriptionOutbounds || []).map((o, i) => ({ ...(o as object), key: i }) as OutboundRow),
     [subscriptionOutbounds],
   );
 
@@ -57,10 +62,14 @@ export default function SubscriptionOutbounds({
       </Tooltip>
       <div className="protocol-line">
         <Tag color="green">{record.protocol}</Tag>
-        {[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(record.protocol as never) && (
+        {[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(
+          record.protocol as never,
+        ) && (
           <>
             <Tag>{record.streamSettings?.network}</Tag>
-            {showSecurity(record.streamSettings?.security) && <Tag color="purple">{record.streamSettings?.security}</Tag>}
+            {showSecurity(record.streamSettings?.security) && (
+              <Tag color="purple">{record.streamSettings?.security}</Tag>
+            )}
           </>
         )}
       </div>
@@ -98,7 +107,12 @@ export default function SubscriptionOutbounds({
   const latencyCell = (record: OutboundRow) => {
     const key = record.tag || '';
     const r = testResult(subscriptionTestStates, key);
-    if (!r) return isTesting(subscriptionTestStates, key) ? <LoadingOutlined /> : <span className="empty">—</span>;
+    if (!r)
+      return isTesting(subscriptionTestStates, key) ? (
+        <LoadingOutlined />
+      ) : (
+        <span className="empty">—</span>
+      );
     return <TestResultPopover result={r} />;
   };
 
@@ -122,7 +136,9 @@ export default function SubscriptionOutbounds({
 
   const header = (
     <div className="subscription-outbounds-head">
-      <div className="subscription-outbounds-title">{t('pages.xray.outboundSub.fromSubsTitle')}</div>
+      <div className="subscription-outbounds-title">
+        {t('pages.xray.outboundSub.fromSubsTitle')}
+      </div>
       <div className="subscription-outbounds-desc">{t('pages.xray.outboundSub.fromSubsDesc')}</div>
     </div>
   );
@@ -159,17 +175,51 @@ export default function SubscriptionOutbounds({
       width: 60,
       render: (_v, _record, index) => <span className="row-index">{index + 1}</span>,
     },
-    { title: t('pages.xray.outbound.tag'), key: 'identity', align: 'left', render: (_v, record) => identityCell(record) },
-    { title: t('pages.inbounds.address'), key: 'address', align: 'left', render: (_v, record) => addressCell(record) },
-    { title: t('pages.inbounds.traffic'), key: 'traffic', align: 'left', width: 200, render: (_v, record) => trafficCell(record) },
-    { title: t('pages.nodes.latency'), key: 'testResult', align: 'left', width: 140, render: (_v, record) => latencyCell(record) },
-    { title: t('check'), key: 'test', align: 'center', width: 80, render: (_v, record) => testButton(record) },
+    {
+      title: t('pages.xray.outbound.tag'),
+      key: 'identity',
+      align: 'left',
+      render: (_v, record) => identityCell(record),
+    },
+    {
+      title: t('pages.inbounds.address'),
+      key: 'address',
+      align: 'left',
+      render: (_v, record) => addressCell(record),
+    },
+    {
+      title: t('pages.inbounds.traffic'),
+      key: 'traffic',
+      align: 'left',
+      width: 200,
+      render: (_v, record) => trafficCell(record),
+    },
+    {
+      title: t('pages.nodes.latency'),
+      key: 'testResult',
+      align: 'left',
+      width: 140,
+      render: (_v, record) => latencyCell(record),
+    },
+    {
+      title: t('check'),
+      key: 'test',
+      align: 'center',
+      width: 80,
+      render: (_v, record) => testButton(record),
+    },
   ];
 
   return (
     <div className="subscription-outbounds" style={{ marginTop: 16 }}>
       {header}
-      <Table columns={columns} dataSource={rows} rowKey={(r) => r.key} pagination={false} size="small" />
+      <Table
+        columns={columns}
+        dataSource={rows}
+        rowKey={(r) => r.key}
+        pagination={false}
+        size="small"
+      />
     </div>
   );
 }

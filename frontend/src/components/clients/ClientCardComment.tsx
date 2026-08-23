@@ -3,7 +3,10 @@ type ClientCardCommentProps = {
   className?: string;
 };
 
-export default function ClientCardComment({ comment, className = 'client-card-comment' }: ClientCardCommentProps) {
+export default function ClientCardComment({
+  comment,
+  className = 'client-card-comment',
+}: ClientCardCommentProps) {
   if (!comment) return null;
 
   return (

@@ -118,7 +118,7 @@ func TestAutoRenewClients_CalendarModeClampsShortMonths(t *testing.T) {
 func firstBillingMidnightAfter(t *testing.T, from time.Time, day int, loc *time.Location) time.Time {
 	t.Helper()
 	cur := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, loc)
-	for i := 0; i < 400; i++ {
+	for range 400 {
 		cur = cur.AddDate(0, 0, 1)
 		want := day
 		if last := time.Date(cur.Year(), cur.Month()+1, 0, 0, 0, 0, 0, loc).Day(); want > last {

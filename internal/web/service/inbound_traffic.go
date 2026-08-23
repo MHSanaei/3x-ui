@@ -325,6 +325,8 @@ func apiUserFromClient(client map[string]any, cipher string) map[string]any {
 	return user
 }
 
+// Candidates and renewals are not the same set: a skipped candidate keeps its
+// counters, so only the clients actually reset may lose their cross-panel rows.
 func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMutationBatch) (bool, int64, error) {
 	// check for time expired
 	var traffics []*xray.ClientTraffic
@@ -408,6 +410,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	for i := range traffics {
 		trafficByEmail[traffics[i].Email] = traffics[i]
 	}
+	renewedEmails := make([]string, 0, len(traffics))
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
 		_ = json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
@@ -464,6 +467,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			}
 			traffic.Down = 0
 			traffic.Up = 0
+			renewedEmails = append(renewedEmails, email)
 			if !traffic.Enable {
 				traffic.Enable = true
 				c["enable"] = true
@@ -508,7 +512,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	}
 	// A renewed client starts a fresh quota window: drop the cross-panel rows
 	// too, or the stale pushed totals would re-deplete it immediately.
-	if err = clearGlobalTraffic(tx, renewEmails...); err != nil {
+	if err = clearGlobalTraffic(tx, renewedEmails...); err != nil {
 		return false, 0, err
 	}
 	for _, clientToAdd := range clientsToAdd {
@@ -520,7 +524,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			action: trafficAddUser, inbound: clientToAdd.inbound, client: clientToAdd.client,
 		})
 	}
-	return needRestart, int64(len(traffics)), nil
+	return needRestart, int64(len(renewedEmails)), nil
 }
 
 // AddClientStat inserts a per-client accounting row, or refreshes the

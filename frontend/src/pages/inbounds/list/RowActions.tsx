@@ -26,7 +26,19 @@ interface RowActionsMenuProps {
   isMobile?: boolean;
 }
 
-export function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients }: { record: DBInboundRecord; subEnable: boolean; t: (k: string) => string; isMobile?: boolean; hasClients?: boolean }): MenuProps['items'] {
+export function buildRowActionsMenu({
+  record,
+  subEnable,
+  t,
+  isMobile,
+  hasClients,
+}: {
+  record: DBInboundRecord;
+  subEnable: boolean;
+  t: (k: string) => string;
+  isMobile?: boolean;
+  hasClients?: boolean;
+}): MenuProps['items'] {
   const items: MenuProps['items'] = [];
   if (isMobile) {
     items.push({ key: 'edit', icon: <EditOutlined />, label: t('edit') });
@@ -44,20 +56,53 @@ export function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients
       });
     }
   } else {
-    items.push({ key: 'showInfo', icon: <InfoCircleOutlined />, label: t('pages.inbounds.inboundInfo') });
+    items.push({
+      key: 'showInfo',
+      icon: <InfoCircleOutlined />,
+      label: t('pages.inbounds.inboundInfo'),
+    });
   }
-  items.push({ key: 'clipboard', icon: <CopyOutlined />, label: t('pages.inbounds.exportInbound') });
-  items.push({ key: 'resetTraffic', icon: <RetweetOutlined />, label: t('pages.inbounds.resetTraffic') });
+  items.push({
+    key: 'clipboard',
+    icon: <CopyOutlined />,
+    label: t('pages.inbounds.exportInbound'),
+  });
+  items.push({
+    key: 'resetTraffic',
+    icon: <RetweetOutlined />,
+    label: t('pages.inbounds.resetTraffic'),
+  });
   items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
   if (isInboundMultiUser(record)) {
-    items.push({ key: 'attachExisting', icon: <UsergroupAddOutlined />, label: t('pages.inbounds.attachExistingClients') });
+    items.push({
+      key: 'attachExisting',
+      icon: <UsergroupAddOutlined />,
+      label: t('pages.inbounds.attachExistingClients'),
+    });
   }
   if (isInboundMultiUser(record) && hasClients) {
-    items.push({ key: 'attachClients', icon: <UsergroupAddOutlined />, label: t('pages.inbounds.attachClients') });
-    items.push({ key: 'detachClients', icon: <UsergroupDeleteOutlined />, label: t('pages.inbounds.detachClients') });
-    items.push({ key: 'addToGroup', icon: <TagsOutlined />, label: t('pages.inbounds.addClientsToGroup') });
+    items.push({
+      key: 'attachClients',
+      icon: <UsergroupAddOutlined />,
+      label: t('pages.inbounds.attachClients'),
+    });
+    items.push({
+      key: 'detachClients',
+      icon: <UsergroupDeleteOutlined />,
+      label: t('pages.inbounds.detachClients'),
+    });
+    items.push({
+      key: 'addToGroup',
+      icon: <TagsOutlined />,
+      label: t('pages.inbounds.addClientsToGroup'),
+    });
     items.push({ type: 'divider' });
-    items.push({ key: 'delAllClients', icon: <UsergroupDeleteOutlined />, danger: true, label: t('pages.inbounds.delAllClients') });
+    items.push({
+      key: 'delAllClients',
+      icon: <UsergroupDeleteOutlined />,
+      danger: true,
+      label: t('pages.inbounds.delAllClients'),
+    });
   } else {
     items.push({ type: 'divider' });
   }
@@ -69,7 +114,14 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
   const { t } = useTranslation();
   return (
     <div className="action-buttons">
-      <Button type="text" size="small" style={{ fontSize: 16 }} icon={<EditOutlined />} aria-label={t('edit')} onClick={() => onClick('edit')} />
+      <Button
+        type="text"
+        size="small"
+        style={{ fontSize: 16 }}
+        icon={<EditOutlined />}
+        aria-label={t('edit')}
+        onClick={() => onClick('edit')}
+      />
       <Dropdown
         trigger={['click']}
         menu={{
@@ -77,7 +129,13 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
           onClick: ({ key }) => onClick(key as RowAction),
         }}
       >
-        <Button type="text" size="small" style={{ fontSize: 16 }} icon={<MoreOutlined />} aria-label={t('more')} />
+        <Button
+          type="text"
+          size="small"
+          style={{ fontSize: 16 }}
+          icon={<MoreOutlined />}
+          aria-label={t('more')}
+        />
       </Dropdown>
     </div>
   );

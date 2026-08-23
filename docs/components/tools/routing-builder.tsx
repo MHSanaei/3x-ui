@@ -38,8 +38,24 @@ const DEFAULT_BALANCERS: BalancerRow[] = [
   { tag: 'balancer', selector: 'proxy', strategy: 'leastPing', fallbackTag: '' },
 ];
 const DEFAULT_RULES: RuleRow[] = [
-  { domain: 'geosite:category-ads-all', ip: '', port: '', network: 'any', inboundTag: '', targetKind: 'outbound', targetTag: 'block' },
-  { domain: '', ip: 'geoip:private', port: '', network: 'any', inboundTag: '', targetKind: 'outbound', targetTag: 'direct' },
+  {
+    domain: 'geosite:category-ads-all',
+    ip: '',
+    port: '',
+    network: 'any',
+    inboundTag: '',
+    targetKind: 'outbound',
+    targetTag: 'block',
+  },
+  {
+    domain: '',
+    ip: 'geoip:private',
+    port: '',
+    network: 'any',
+    inboundTag: '',
+    targetKind: 'outbound',
+    targetTag: 'direct',
+  },
 ];
 
 function list(s: string): string[] {
@@ -113,7 +129,10 @@ export function RoutingBuilder() {
           type="button"
           className={addBtn}
           onClick={() =>
-            setBalancers((p) => [...p, { tag: '', selector: '', strategy: 'random', fallbackTag: '' }])
+            setBalancers((p) => [
+              ...p,
+              { tag: '', selector: '', strategy: 'random', fallbackTag: '' },
+            ])
           }
         >
           Add balancer
@@ -163,7 +182,15 @@ export function RoutingBuilder() {
           onClick={() =>
             setRules((p) => [
               ...p,
-              { domain: '', ip: '', port: '', network: 'any', inboundTag: '', targetKind: 'outbound', targetTag: '' },
+              {
+                domain: '',
+                ip: '',
+                port: '',
+                network: 'any',
+                inboundTag: '',
+                targetKind: 'outbound',
+                targetTag: '',
+              },
             ])
           }
         >
@@ -174,13 +201,47 @@ export function RoutingBuilder() {
         {rules.map((r, i) => (
           <div key={i} className="rounded-xl border p-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <TextField label="Domain (comma)" value={r.domain} onChange={(v) => patchRule(i, { domain: v })} placeholder="geosite:google, example.com" />
-              <TextField label="IP (comma)" value={r.ip} onChange={(v) => patchRule(i, { ip: v })} placeholder="geoip:cn, 1.1.1.1" />
-              <TextField label="Port" value={r.port} onChange={(v) => patchRule(i, { port: v })} placeholder="443 or 1000-2000" />
-              <SelectField label="Network" value={r.network} onChange={(v) => patchRule(i, { network: v })} options={NETWORKS} />
-              <TextField label="Inbound tag (comma)" value={r.inboundTag} onChange={(v) => patchRule(i, { inboundTag: v })} placeholder="optional" />
-              <SelectField label="Target kind" value={r.targetKind} onChange={(v) => patchRule(i, { targetKind: v as 'outbound' | 'balancer' })} options={TARGET_KINDS} />
-              <TextField label="Target tag" value={r.targetTag} onChange={(v) => patchRule(i, { targetTag: v })} />
+              <TextField
+                label="Domain (comma)"
+                value={r.domain}
+                onChange={(v) => patchRule(i, { domain: v })}
+                placeholder="geosite:google, example.com"
+              />
+              <TextField
+                label="IP (comma)"
+                value={r.ip}
+                onChange={(v) => patchRule(i, { ip: v })}
+                placeholder="geoip:cn, 1.1.1.1"
+              />
+              <TextField
+                label="Port"
+                value={r.port}
+                onChange={(v) => patchRule(i, { port: v })}
+                placeholder="443 or 1000-2000"
+              />
+              <SelectField
+                label="Network"
+                value={r.network}
+                onChange={(v) => patchRule(i, { network: v })}
+                options={NETWORKS}
+              />
+              <TextField
+                label="Inbound tag (comma)"
+                value={r.inboundTag}
+                onChange={(v) => patchRule(i, { inboundTag: v })}
+                placeholder="optional"
+              />
+              <SelectField
+                label="Target kind"
+                value={r.targetKind}
+                onChange={(v) => patchRule(i, { targetKind: v as 'outbound' | 'balancer' })}
+                options={TARGET_KINDS}
+              />
+              <TextField
+                label="Target tag"
+                value={r.targetTag}
+                onChange={(v) => patchRule(i, { targetTag: v })}
+              />
             </div>
             <div className="mt-2 flex justify-end">
               <button

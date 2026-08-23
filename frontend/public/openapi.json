@@ -241,6 +241,9 @@
           "subJsonMux": {
             "type": "string"
           },
+          "subJsonObservatory": {
+            "type": "string"
+          },
           "subJsonPath": {
             "type": "string"
           },
@@ -438,6 +441,7 @@
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
+          "subJsonObservatory",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
@@ -716,6 +720,9 @@
           "subJsonMux": {
             "type": "string"
           },
+          "subJsonObservatory": {
+            "type": "string"
+          },
           "subJsonPath": {
             "type": "string"
           },
@@ -920,6 +927,7 @@
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
+          "subJsonObservatory",
           "subJsonPath",
           "subJsonRules",
           "subJsonURI",
@@ -3091,6 +3099,71 @@
         ],
         "type": "object"
       },
+      "SubBalancer": {
+        "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
+        "properties": {
+          "createdAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "No gorm default:true — a bool default makes an explicit false at insert\ncollapse back to the column default (zero value is skipped).",
+            "example": true,
+            "type": "boolean"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "inboundIds": {
+            "example": [
+              1,
+              3
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "remark": {
+            "example": "auto-fastest",
+            "maxLength": 256,
+            "type": "string"
+          },
+          "sortOrder": {
+            "example": 1,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "strategy": {
+            "enum": [
+              "leastLoad",
+              "leastPing",
+              "random",
+              "roundRobin"
+            ],
+            "example": "random",
+            "type": "string"
+          },
+          "updatedAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "createdAt",
+          "enabled",
+          "id",
+          "inboundIds",
+          "remark",
+          "sortOrder",
+          "strategy",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "User": {
         "description": "User represents a user account in the 3x-ui panel.",
         "properties": {
@@ -3160,7 +3233,11 @@
     },
     {
       "name": "Xray Settings",
-      "description": "Xray configuration template, outbound management, Warp/Nord integration, and config testing. All endpoints under /panel/api/xray."
+      "description": "Xray configuration template, outbound management, Warp/Nord/PIA integration, and config testing. All endpoints under /panel/api/xray."
+    },
+    {
+      "name": "Subscription Balancers",
+      "description": "Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Sub Balancers."
     },
     {
       "name": "Subscription Server",
@@ -6245,8 +6322,9 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets (UUID for VLESS/VMess, password for Trojan/Shadowsocks, auth for Hysteria) are generated server-side when omitted, so callers can send only the universal fields.",
+        "summary": "Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets are generated server-side when omitted, so callers can send only the universal fields.",
         "operationId": "post_panel_api_clients_add",
+        "description": "Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `wireguard: allowedIPs entry already used by another client: <address>` when a different client of that same inbound already holds it. The check is per inbound, so the same address on two different inbounds is accepted. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.",
         "requestBody": {
           "required": true,
           "content": {
@@ -6423,6 +6501,7 @@
         ],
         "summary": "Attach an existing client to one or more additional inbounds. Body is JSON.",
         "operationId": "post_panel_api_clients_email_attach",
+        "description": "A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `wireguard: allowedIPs entry already used by another client: <address>` when a different client of the target inbound already holds it. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule.",
         "parameters": [
           {
             "name": "email",
@@ -7961,6 +8040,56 @@
             "description": "Client email.",
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/hwids/{email}/{id}": {
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Remove a single registered HWID device by its id, freeing one slot under the HWID limit.",
+        "operationId": "delete_panel_api_clients_hwids_email_id",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Device id, from the list endpoint.",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -11091,6 +11220,47 @@
         }
       }
     },
+    "/panel/api/xray/pia/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage PIA WireGuard integration. The action parameter selects the operation.",
+        "operationId": "post_panel_api_xray_pia_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "countries — list available countries from the signed PIA server list. servers — list regions and WireGuard servers in a country (sends countryCode). reg — sign in with a PIA username and password (sends username, password). data — return the signed-in account hint. del — delete stored PIA credentials. addKey — register a WireGuard key with the selected server (sends hostname) and return fields to build the outbound.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/resetOutboundsTraffic": {
       "post": {
         "tags": [
@@ -11829,6 +11999,280 @@
                       "type": "string"
                     },
                     "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers": {
+      "get": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "List all subscription balancers in sort order (sort_order asc, id asc).",
+        "operationId": "get_panel_api_sub_balancers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubBalancer"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "createdAt": 1710000000000,
+                      "enabled": true,
+                      "id": 1,
+                      "inboundIds": [
+                        1,
+                        3
+                      ],
+                      "remark": "auto-fastest",
+                      "sortOrder": 1,
+                      "strategy": "random",
+                      "updatedAt": 1710000000000
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Create a subscription balancer. It appears in the JSON subscription of every client that sits on at least one selected inbound.",
+        "operationId": "post_panel_api_sub_balancers",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers/{id}": {
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).",
+        "operationId": "post_panel_api_sub_balancers_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Delete a balancer by id.",
+        "operationId": "delete_panel_api_sub_balancers_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/sub-balancers/{id}/del": {
+      "post": {
+        "tags": [
+          "Subscription Balancers"
+        ],
+        "summary": "Delete a balancer by id (POST alias of DELETE for clients that cannot send DELETE).",
+        "operationId": "post_panel_api_sub_balancers_id_del",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Balancer id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SubBalancer"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "createdAt": 1710000000000,
+                    "enabled": true,
+                    "id": 1,
+                    "inboundIds": [
+                      1,
+                      3
+                    ],
+                    "remark": "auto-fastest",
+                    "sortOrder": 1,
+                    "strategy": "random",
+                    "updatedAt": 1710000000000
                   }
                 }
               }

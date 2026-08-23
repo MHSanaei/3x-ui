@@ -33,7 +33,7 @@ The `@` import alias maps to `src/`.
 - Function components + hooks only; no class components.
 - Comments in committed TS/TSX: 2 lines MAX per comment block, spent on the
   *why* a name cannot hold (same rule as root CLAUDE.md). HTML comments are fine.
-- TS strict; `no-explicit-any` is an error. Build forms with `useZodForm` +
+- TS strict; oxlint's `typescript/no-explicit-any` is an error. Build forms with `useZodForm` +
   `FormField` from `@/components/form/rhf` (wrap the tree in `FormProvider`);
   validate through the `zodResolver` or per-field
   `rules={{ validate: rhfZodValidate(Schema.shape.field) }}` — messages are Zod

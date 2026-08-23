@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useState, type ReactNode } from 'react';
 import { Spin } from 'antd';
 
 interface LazyMountProps {
@@ -13,9 +13,7 @@ interface LazyMountProps {
 // on heavy list pages to keep the initial bundle small.
 export default function LazyMount({ when, fallback = <Spin />, children }: LazyMountProps) {
   const [mounted, setMounted] = useState(when);
-  useEffect(() => {
-    if (when && !mounted) setMounted(true);
-  }, [when, mounted]);
+  if (when && !mounted) setMounted(true);
   if (!mounted) return null;
   return <Suspense fallback={fallback}>{children}</Suspense>;
 }

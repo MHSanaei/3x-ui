@@ -46,7 +46,9 @@ export function hostToExternalProxyEntry(host: HostLinkInput): ExternalProxyEntr
     fingerprint: host.fingerprint,
     alpn: host.alpn && host.alpn.length > 0 ? host.alpn : undefined,
     pinnedPeerCertSha256:
-      host.pinnedPeerCertSha256 && host.pinnedPeerCertSha256.length > 0 ? host.pinnedPeerCertSha256 : undefined,
+      host.pinnedPeerCertSha256 && host.pinnedPeerCertSha256.length > 0
+        ? host.pinnedPeerCertSha256
+        : undefined,
     verifyPeerCertByName: host.verifyPeerCertByName || undefined,
     echConfigList: host.echConfigList || undefined,
     vlessRoute: host.vlessRoute || undefined,

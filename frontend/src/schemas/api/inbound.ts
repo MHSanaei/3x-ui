@@ -18,9 +18,8 @@ import { NetworkSettingsSchema, StreamExtrasSchema } from '@/schemas/protocols/s
 // (~9e15) lose precision; the panel works around this for the traffic
 // counters by stringifying them at the API edge. Not modeled here.
 
-export const StreamSettingsSchema = NetworkSettingsSchema
-  .and(SecuritySettingsSchema)
-  .and(StreamExtrasSchema);
+export const StreamSettingsSchema =
+  NetworkSettingsSchema.and(SecuritySettingsSchema).and(StreamExtrasSchema);
 export type StreamSettings = z.infer<typeof StreamSettingsSchema>;
 
 export const InboundCoreSchema = z.object({

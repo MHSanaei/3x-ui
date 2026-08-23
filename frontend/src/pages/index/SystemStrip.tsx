@@ -32,7 +32,9 @@ export default function SystemStrip({ status, showIp, onToggleIp }: SystemStripP
           <div className="ov-strip-split">
             <div>
               <div className="ov-strip-sub">Xray</div>
-              <div className="ov-strip-value">{TimeFormatter.formatSecond(status.appStats.uptime)}</div>
+              <div className="ov-strip-value">
+                {TimeFormatter.formatSecond(status.appStats.uptime)}
+              </div>
             </div>
             <span className="ov-strip-split-sep" />
             <div>

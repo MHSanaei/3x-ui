@@ -7,7 +7,9 @@ export function useZodForm<TFieldValues extends FieldValues>(
   schema: z.ZodType<TFieldValues>,
   options?: Omit<UseFormProps<TFieldValues>, 'resolver'>,
 ): UseFormReturn<TFieldValues> {
-  const resolver = zodResolver(schema as z.ZodType<TFieldValues, TFieldValues>) as Resolver<TFieldValues>;
+  const resolver = zodResolver(
+    schema as z.ZodType<TFieldValues, TFieldValues>,
+  ) as Resolver<TFieldValues>;
   return useForm<TFieldValues>({
     mode: 'onSubmit',
     reValidateMode: 'onChange',

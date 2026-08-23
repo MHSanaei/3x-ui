@@ -23,9 +23,7 @@ export default function ShadowsocksFields({ isSSWith2022 }: ShadowsocksFieldsPro
           setValue('settings.password', RandomUtil.randomShadowsocksPassword(v as string));
         }}
       >
-        <Select
-          options={SSMethodSchema.options.map((m) => ({ value: m, label: m }))}
-        />
+        <Select options={SSMethodSchema.options.map((m) => ({ value: m, label: m }))} />
       </FormField>
       {isSSWith2022 && (
         <Form.Item label={t('password')}>
@@ -57,11 +55,7 @@ export default function ShadowsocksFields({ isSSWith2022 }: ShadowsocksFieldsPro
           ]}
         />
       </FormField>
-      <FormField
-        name={['settings', 'ivCheck']}
-        label="ivCheck"
-        valueProp="checked"
-      >
+      <FormField name={['settings', 'ivCheck']} label="ivCheck" valueProp="checked">
         <Switch />
       </FormField>
     </>

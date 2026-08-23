@@ -392,6 +392,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		return nil
 	}
 	snap.ManagedAliases = rt.AdoptedInboundAliases()
+	syncCanAdopt := syncCanAdoptInbounds(n, snap.ManagedAliases)
 	service.FilterNodeSnapshot(n, snap)
 	_, _, dirty, _, _ := j.nodeService.NodeSyncState(n.Id)
 	if !dirty {
@@ -422,7 +423,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 	if changed {
 		j.structural.set()
 	}
-	if !dirty && n.InboundsAdoptedAt == 0 {
+	if !dirty && n.InboundsAdoptedAt == 0 && syncCanAdopt {
 		if markErr := j.nodeService.MarkNodeInboundsAdopted(n.Id); markErr != nil {
 			logger.Warningf("node traffic sync: mark inbounds adopted for %s failed: %v", n.Name, markErr)
 		}
@@ -482,4 +483,13 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		}
 	}
 	return active
+}
+
+// Whether this sync can perform the "first clean adoption" that
+// InboundsAdoptedAt records (#6283).
+func syncCanAdoptInbounds(n *model.Node, adoptedAliases []string) bool {
+	if n == nil || n.InboundSyncMode != "selected" {
+		return true
+	}
+	return len(n.InboundTags) > 0 || len(adoptedAliases) > 0
 }

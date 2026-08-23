@@ -25,8 +25,9 @@ func initMutDB(t *testing.T) {
 	t.Cleanup(func() { _ = database.CloseDB() })
 }
 
+//go:fix inline
 func externalLinkEnabled(v bool) *bool {
-	return &v
+	return new(v)
 }
 
 // --- json_service.go:40 — rules are merged into routing only when non-empty ---
@@ -312,7 +313,7 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://a", Remark: "first", SortIndex: 1}).Error; err != nil {
 		t.Fatalf("seed link a: %v", err)
 	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://disabled", Remark: "disabled", Enable: externalLinkEnabled(false), SortIndex: 3}).Error; err != nil {
+	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://disabled", Remark: "disabled", Enable: new(false), SortIndex: 3}).Error; err != nil {
 		t.Fatalf("seed disabled link: %v", err)
 	}
 	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://expired", Remark: "expired", ExpiryTime: time.Now().Add(-time.Hour).UnixMilli(), SortIndex: 4}).Error; err != nil {

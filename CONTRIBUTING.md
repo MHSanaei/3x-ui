@@ -4,7 +4,7 @@ Thanks for taking the time to contribute to 3x-ui. This guide gets a development
 
 ## Prerequisites
 
-- **Go 1.26+** (the version pinned in `go.mod`)
+- **Go 1.27+** (the version pinned in `go.mod`)
 - **Node.js 24 LTS** (the version pinned in `.nvmrc`) and npm 10+ (for the React frontend)
 - **Git**
 - **A C compiler** — required by the CGo SQLite driver (`github.com/mattn/go-sqlite3`). Linux and macOS already ship one; for Windows see below.
@@ -186,7 +186,7 @@ Only a genuinely **standalone bundle** (like `login` or `subpage`, reachable wit
 - **Function components + hooks** everywhere. No class components.
 - **Comments in committed Go/TS/TSX: 2 lines MAX per comment block**, spent on the *why* a name cannot hold — an invariant, an issue number, a non-obvious constraint. Names should carry the meaning; rename rather than annotate. Compiler and tool directives (`//go:build`, `//go:generate`, `//nolint:`) are exempt, and HTML `<!-- ... -->` is fine for template structure.
 - **Persian and Arabic users are first-class.** When writing Persian text in toasts or labels, isolate code identifiers on their own lines so RTL reading flows. (Full RTL layout is not currently wired through AntD `ConfigProvider direction` — only the Jalali date picker is RTL-aware — so treat RTL as an open area, not a solved one.)
-- **Schemas over `any`.** New config shapes go in `src/schemas/`; `@typescript-eslint/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
+- **Schemas over `any`.** New config shapes go in `src/schemas/`; oxlint's `typescript/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
 - **Document new endpoints.** Every new `g.POST`/`g.GET` in `internal/web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
 - **Do not break link generation.** Share-link logic lives in `src/lib/xray/` (`inbound-link.ts`, `outbound-link-parser.ts`, …) and is round-tripped by the golden fixture suite — run `npm run test` after any change to URL generation, defaults, or TLS/Reality handling, and regenerate snapshots (`npx vitest run -u`) only for intentional changes. Two runtime paths consume it: the **inbounds page** and the **clients page** subscription links (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`); exercise both.
 - **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — read the live version there rather than trusting a number quoted here — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
@@ -200,7 +200,8 @@ frontend/
 ├── login.html             — login + 2FA entry
 ├── subpage.html           — public subscription viewer entry
 ├── tsconfig.json          — strict, jsx: "react-jsx", paths "@/*" → "src/*"
-├── eslint.config.js       — ESLint flat config (@eslint/js + typescript-eslint + react-hooks)
+├── .oxlintrc.json         — oxlint config (typescript + react-hooks + jsx-a11y)
+├── tools/oxlint/          — input-number-guard.mjs (#6121/#6127 guard as a JS plugin)
 ├── vite.config.js
 ├── vitest.config.ts
 ├── scripts/               — build-openapi.mjs (endpoints.ts → openapi.json)
@@ -279,7 +280,7 @@ CI runs this for you nightly (and on demand) via `.github/workflows/mutation.yml
 
 ### CI
 
-`.github/workflows/ci.yml` runs per PR: `go-test` (with `-shuffle -count=1`), a `race` job (`-race -shuffle -count=1`), a `fuzz-smoke` job on the critical parsers, and the frontend `typecheck`/`lint`/`test`/`build`/`build-storybook`. Snapshots are regression guards — regenerate them (`npx vitest run -u`) only for intentional output changes, never to make a red test green.
+`.github/workflows/ci.yml` runs per PR: `go-test` (with `-shuffle -count=1`), a `race` job (`-race -shuffle -count=1`), a `fuzz-smoke` job on the critical parsers, and the frontend `typecheck`/`lint`/`format:check`/`test`/`build`/`build-storybook`. Snapshots are regression guards — regenerate them (`npx vitest run -u`) only for intentional output changes, never to make a red test green.
 
 ## Sending a pull request
 
@@ -288,7 +289,7 @@ CI runs this for you nightly (and on demand) via `.github/workflows/mutation.yml
 3. Run the relevant checks before pushing:
    - `go build ./...`
    - `go test ./...` (when Go code changed)
-   - `cd frontend && npm run typecheck && npm run lint && npm run test && npm run build && npm run build-storybook` (when the frontend changed; CI runs this same set on every PR via `.github/workflows/ci.yml`)
+   - `cd frontend && npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build && npm run build-storybook` (when the frontend changed; CI runs this same set on every PR via `.github/workflows/ci.yml`)
 4. Commit messages follow the existing pattern in `git log` — `<area>: short imperative summary`, then a body explaining the *why*. Conventional-commit prefixes (`feat`, `fix`, `refactor`, `chore`, `style`, `docs`) are encouraged.
 5. Open the PR against `main` with a brief description of what changed and how to test it.
 

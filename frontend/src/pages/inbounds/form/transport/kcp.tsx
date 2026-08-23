@@ -10,13 +10,22 @@ export default function KcpForm() {
       <FormField name={['streamSettings', 'kcpSettings', 'mtu']} label="MTU">
         <InputNumber min={576} max={1460} />
       </FormField>
-      <FormField name={['streamSettings', 'kcpSettings', 'tti']} label={t('pages.inbounds.form.ttiMs')}>
+      <FormField
+        name={['streamSettings', 'kcpSettings', 'tti']}
+        label={t('pages.inbounds.form.ttiMs')}
+      >
         <InputNumber min={10} max={100} />
       </FormField>
-      <FormField name={['streamSettings', 'kcpSettings', 'uplinkCapacity']} label={t('pages.inbounds.form.uplinkMbps')}>
+      <FormField
+        name={['streamSettings', 'kcpSettings', 'uplinkCapacity']}
+        label={t('pages.inbounds.form.uplinkMbps')}
+      >
         <InputNumber min={0} />
       </FormField>
-      <FormField name={['streamSettings', 'kcpSettings', 'downlinkCapacity']} label={t('pages.inbounds.form.downlinkMbps')}>
+      <FormField
+        name={['streamSettings', 'kcpSettings', 'downlinkCapacity']}
+        label={t('pages.inbounds.form.downlinkMbps')}
+      >
         <InputNumber min={0} />
       </FormField>
       <FormField

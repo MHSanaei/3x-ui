@@ -7,6 +7,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // applyClientRecordMerge merges incoming client-record fields onto row using the
@@ -78,13 +79,23 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	}
 }
 
+// SyncInbound makes the inbound's client records and links match clients
+// exactly: links for clients no longer in the set are removed.
 func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.Client) error {
+	return s.syncInboundClients(tx, inboundId, clients, nil, true)
+}
+
+// ApplyInboundClientDelta persists only the clients an edit actually changed
+// plus the emails it detached, leaving every other link on the inbound alone —
+// the whole point being that a one-client edit must not rewrite the inbound's
+// entire membership set (#6252).
+func (s *ClientService) ApplyInboundClientDelta(tx *gorm.DB, inboundId int, changed []model.Client, detachEmails []string) error {
+	return s.syncInboundClients(tx, inboundId, changed, detachEmails, false)
+}
+
+func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients []model.Client, detachEmails []string, prune bool) error {
 	if tx == nil {
 		tx = database.GetDB()
-	}
-
-	if err := tx.Where("inbound_id = ?", inboundId).Delete(&model.ClientInbound{}).Error; err != nil {
-		return err
 	}
 
 	emails := make([]string, 0, len(clients))
@@ -166,8 +177,8 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		}
 	}
 
-	links := make([]model.ClientInbound, 0, len(clients))
-	linked := make(map[int]struct{}, len(clients))
+	wantedFlow := make(map[int]string, len(clients))
+	wantedIds := make([]int, 0, len(clients))
 	for i := range clients {
 		email := strings.TrimSpace(clients[i].Email)
 		if email == "" {
@@ -177,18 +188,100 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 		if !ok {
 			continue
 		}
-		if _, dup := linked[id]; dup {
+		if _, dup := wantedFlow[id]; dup {
 			continue
 		}
-		linked[id] = struct{}{}
-		links = append(links, model.ClientInbound{
+		wantedFlow[id] = clients[i].Flow
+		wantedIds = append(wantedIds, id)
+	}
+
+	return s.reconcileInboundLinks(tx, inboundId, wantedFlow, wantedIds, detachEmails, prune)
+}
+
+// reconcileInboundLinks writes only the client_inbounds rows that differ. prune
+// also removes links absent from wantedFlow, which only a full sync may do.
+func (s *ClientService) reconcileInboundLinks(tx *gorm.DB, inboundId int, wantedFlow map[int]string, wantedIds []int, detachEmails []string, prune bool) error {
+	var current []model.ClientInbound
+	if prune {
+		if err := tx.Where("inbound_id = ?", inboundId).Find(&current).Error; err != nil {
+			return err
+		}
+	} else {
+		for _, batch := range chunkInts(wantedIds, sqlInChunk) {
+			var rows []model.ClientInbound
+			if err := tx.Where("inbound_id = ? AND client_id IN ?", inboundId, batch).Find(&rows).Error; err != nil {
+				return err
+			}
+			current = append(current, rows...)
+		}
+	}
+
+	var toDelete []int
+	toUpdate := make(map[string][]int)
+	have := make(map[int]struct{}, len(current))
+	for _, link := range current {
+		have[link.ClientId] = struct{}{}
+		flow, keep := wantedFlow[link.ClientId]
+		if !keep {
+			if prune {
+				toDelete = append(toDelete, link.ClientId)
+			}
+			continue
+		}
+		// Plain compare, not non-empty-wins: clearing a flow must persist "".
+		if flow != link.FlowOverride {
+			toUpdate[flow] = append(toUpdate[flow], link.ClientId)
+		}
+	}
+
+	if len(detachEmails) > 0 {
+		for _, batch := range chunkStrings(detachEmails, sqlInChunk) {
+			var ids []int
+			if err := tx.Model(&model.ClientRecord{}).Where("email IN ?", batch).Pluck("id", &ids).Error; err != nil {
+				return err
+			}
+			for _, id := range ids {
+				if _, keep := wantedFlow[id]; !keep {
+					toDelete = append(toDelete, id)
+				}
+			}
+		}
+	}
+
+	toInsert := make([]model.ClientInbound, 0, len(wantedIds))
+	for _, id := range wantedIds {
+		if _, exists := have[id]; exists {
+			continue
+		}
+		toInsert = append(toInsert, model.ClientInbound{
 			ClientId:     id,
 			InboundId:    inboundId,
-			FlowOverride: clients[i].Flow,
+			FlowOverride: wantedFlow[id],
 		})
 	}
-	if len(links) > 0 {
-		if err := tx.CreateInBatches(links, 200).Error; err != nil {
+
+	for _, batch := range chunkInts(toDelete, sqlInChunk) {
+		if err := tx.Where("inbound_id = ? AND client_id IN ?", inboundId, batch).
+			Delete(&model.ClientInbound{}).Error; err != nil {
+			return err
+		}
+	}
+	for flow, ids := range toUpdate {
+		for _, batch := range chunkInts(ids, sqlInChunk) {
+			if err := tx.Model(&model.ClientInbound{}).
+				Where("inbound_id = ? AND client_id IN ?", inboundId, batch).
+				Update("flow_override", flow).Error; err != nil {
+				return err
+			}
+		}
+	}
+	if len(toInsert) > 0 {
+		// The delete this replaced also serialized concurrent syncs of one
+		// inbound; without the clause a racing node poll aborts its whole tx.
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "client_id"}, {Name: "inbound_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"flow_override"}),
+		}).CreateInBatches(toInsert, 200).Error; err != nil {
 			return err
 		}
 	}

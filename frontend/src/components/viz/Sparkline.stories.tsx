@@ -2,7 +2,10 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import Sparkline from './Sparkline';
 
-const wave = Array.from({ length: 48 }, (_, i) => 45 + Math.round(28 * Math.sin(i / 4) + (i % 5) * 3));
+const wave = Array.from(
+  { length: 48 },
+  (_, i) => 45 + Math.round(28 * Math.sin(i / 4) + (i % 5) * 3),
+);
 const inverse = wave.map((v) => Math.max(0, 100 - v));
 
 const meta = {
