@@ -65,19 +65,20 @@ export default function SubBalancerFormModal({
     if (open) methods.reset(initialState(balancer));
   }, [open, balancer, methods]);
 
-  const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' }) ?? [];
+  const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
 
   const { data: inboundOptionsRaw } = useInboundOptions();
   const inboundOptions = useMemo(
     () =>
       (inboundOptionsRaw ?? [])
         .filter((ib) => MULTI_CLIENT_PROTOCOLS.has(ib.protocol || ''))
+        .filter((ib) => ib.enable || (inboundIds || []).includes(ib.id))
         .map((ib) => ({
           label: formatInboundLabel(ib.tag, ib.remark),
           value: ib.id,
           title: formatInboundLabel(ib.tag, ib.remark),
         })),
-    [inboundOptionsRaw],
+    [inboundOptionsRaw, inboundIds],
   );
 
   function onFinish(values: SubBalancerFormValues) {
@@ -153,7 +154,7 @@ export default function SubBalancerFormModal({
           </FormField>
           <SelectAllClearButtons
             options={inboundOptions}
-            value={inboundIds}
+            value={inboundIds || []}
             onChange={(v) => methods.setValue('inboundIds', v, { shouldDirty: true })}
           />
 

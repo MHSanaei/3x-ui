@@ -8,8 +8,9 @@ import { renderWithProviders } from './test-utils';
 vi.mock('@/api/queries/useInboundOptions', () => ({
   useInboundOptions: () => ({
     data: [
-      { id: 1, tag: 'inb-vless', remark: 'First', protocol: 'vless', port: 443 },
-      { id: 2, tag: 'inb-ws', remark: 'Second', protocol: 'vmess', port: 8443 },
+      { id: 1, tag: 'inb-vless', remark: 'First', protocol: 'vless', port: 443, enable: true },
+      { id: 2, tag: 'inb-ws', remark: 'Second', protocol: 'vmess', port: 8443, enable: true },
+      { id: 3, tag: 'inb-off', remark: 'Disabled', protocol: 'vless', port: 8080, enable: false },
     ],
     isLoading: false,
   }),
@@ -38,6 +39,15 @@ function remarkInput(): HTMLInputElement {
   );
   if (!el) throw new Error('Remark input not found');
   return el as HTMLInputElement;
+}
+
+function inboundOptionTitles(): string[] {
+  const multi = document.querySelector('.ant-select-multiple');
+  if (!multi) throw new Error('Inbound multi-select not found');
+  fireEvent.mouseDown(multi as HTMLElement);
+  return Array.from(document.querySelectorAll('.ant-select-item-option')).map((o) =>
+    (o.getAttribute('title') ?? o.textContent ?? '').trim(),
+  );
 }
 
 function selectInbound(optionTitle: string) {
@@ -103,5 +113,24 @@ describe('SubBalancerFormModal', () => {
       sortOrder: 3,
       enabled: false,
     });
+  });
+
+  // A disabled member is dropped by the sub server, so offering it here would
+  // silently stop the balancer document from being emitted (#5645).
+  it('hides disabled inbounds from the member picker', () => {
+    renderModal(null);
+    expect(inboundOptionTitles()).toEqual(['First', 'Second']);
+  });
+
+  it('keeps an already-selected disabled inbound visible when editing', () => {
+    renderModal({
+      id: 8,
+      remark: 'existing',
+      strategy: 'random',
+      inboundIds: [3],
+      sortOrder: 1,
+      enabled: true,
+    });
+    expect(inboundOptionTitles()).toContain('Disabled');
   });
 });
