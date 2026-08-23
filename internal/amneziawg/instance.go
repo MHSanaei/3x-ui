@@ -124,9 +124,7 @@ func serverAddressV6(subnetCIDR string) (addr string, ok bool) {
 }
 
 // FirstIPv4 returns the first IPv4 address (mask stripped) among allowedIPs,
-// or "" if none — used by internal/web/service/server.go's
-// amneziawgEmailIndex to derive a peer's tunnel IPv4 address for the panel's
-// access-log viewer.
+// or "" if none — used to derive a peer's tunnel IPv4 address.
 func FirstIPv4(allowedIPs []string) string {
 	for _, a := range allowedIPs {
 		if prefix, err := netip.ParsePrefix(a); err == nil {

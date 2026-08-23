@@ -1188,33 +1188,6 @@ func parseAccessLogFields(line string) LogEntry {
 	return entry
 }
 
-// amneziawgEmailIndex maps "<inbound tag>|<peer tunnel IP>" to that peer's
-// email, for every AmneziaWG inbound in inbounds. dokodemo-door (the
-// TPROXY bridge every AmneziaWG peer's traffic is routed through, tagged
-// with the AmneziaWG inbound's own tag) has no per-user identity, so Xray's
-// access log never has an "email:" token for these lines -- only the
-// decapsulated peer's own tunnel IP survives as the log's "from" address.
-// This lets GetXrayLogs recover which client that was, the same way it's
-// already shown for every authenticated protocol.
-func amneziawgEmailIndex(inbounds []*model.Inbound) map[string]string {
-	index := make(map[string]string)
-	for _, ib := range inbounds {
-		instance, ok := amneziawg.InstanceFromInbound(ib)
-		if !ok {
-			continue
-		}
-		for _, peer := range instance.Peers {
-			if peer.Email == "" {
-				continue
-			}
-			if ip := amneziawg.FirstIPv4(peer.AllowedIPs); ip != "" {
-				index[ib.Tag+"|"+ip] = peer.Email
-			}
-		}
-	}
-	return index
-}
-
 // PeerActivity is one peer's live embedded-Device-reported state, the
 // counterpart of an Xray access-log entry: a tunnel logs no requests, only
 // handshakes and bytes.
@@ -1375,11 +1348,6 @@ func (s *ServerService) GetXrayLogs(
 	countInt, _ := strconv.Atoi(count)
 	var entries []LogEntry
 
-	var amneziawgEmails map[string]string
-	if inbounds, err := s.inboundService.GetAllInbounds(); err == nil {
-		amneziawgEmails = amneziawgEmailIndex(inbounds)
-	}
-
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {
 		return nil
@@ -1407,14 +1375,6 @@ func (s *ServerService) GetXrayLogs(
 		}
 
 		entry := parseAccessLogFields(line)
-
-		if entry.Email == "" && len(amneziawgEmails) > 0 {
-			if ip, _, splitErr := stdnet.SplitHostPort(entry.FromAddress); splitErr == nil {
-				if email, ok := amneziawgEmails[entry.Inbound+"|"+ip]; ok {
-					entry.Email = email
-				}
-			}
-		}
 
 		if logEntryContains(line, freedoms) {
 			if showDirect == "false" {
