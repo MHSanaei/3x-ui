@@ -1404,6 +1404,14 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/xray/frontproxy/:action',
+        summary: "Manage the built-in front door that Xray's REALITY fallback target points at. The action parameter selects the operation.",
+        params: [
+          { name: 'action', in: 'path', type: 'string', desc: 'status — return {running, port, templates}. start — bring the front-door listener up and remember the choice across restarts. stop — shut it down, also remembered. Port, certificate and decoy settings are persisted separately and only take effect after a panel restart.' },
+        ],
+      },
+      {
+        method: 'POST',
         path: '/panel/api/xray/resetOutboundsTraffic',
         summary: 'Reset traffic counters for a specific outbound by tag.',
         params: [

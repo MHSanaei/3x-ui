@@ -11386,6 +11386,47 @@
         }
       }
     },
+    "/panel/api/xray/frontproxy/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage the built-in front door that Xray's REALITY fallback target points at. The action parameter selects the operation.",
+        "operationId": "post_panel_api_xray_frontproxy_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "status — return {running, port, templates}. start — bring the front-door listener up and remember the choice across restarts. stop — shut it down, also remembered. Port, certificate and decoy settings are persisted separately and only take effect after a panel restart.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/resetOutboundsTraffic": {
       "post": {
         "tags": [
