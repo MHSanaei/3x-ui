@@ -271,9 +271,10 @@ func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*x
 			cm["expiryTime"] = merged
 			changed = true
 		}
-		nodeEnable, _ := cm["enable"].(bool)
-		if !nodeEnable && staleNodeDisable(tr, nodeExpiry, 0, 0) && tr.Enable {
-			cm["enable"] = true
+		// tr is the already-merged master row, authoritative in both directions:
+		// a lagging blob must not re-enable a disabled client either (#4917).
+		if nodeEnable, _ := cm["enable"].(bool); nodeEnable != tr.Enable {
+			cm["enable"] = tr.Enable
 			changed = true
 		}
 		clients[i] = cm
@@ -289,15 +290,16 @@ func liftClientLifecycleInSettings(settings string, trafficByEmail map[string]*x
 	return string(b), true
 }
 
-// settingsClientAbsoluteExpiry returns a client's absolute expiryTime from
-// settings JSON when present (>0); otherwise ok is false.
-func settingsClientAbsoluteExpiry(settings, email string) (int64, bool) {
-	if settings == "" || email == "" {
-		return 0, false
+// settingsClientAbsoluteExpiries indexes the absolute (>0) expiryTime of every
+// client in a settings blob. Never nil, so callers can cache it per inbound.
+func settingsClientAbsoluteExpiries(settings string) map[string]int64 {
+	out := map[string]int64{}
+	if settings == "" {
+		return out
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
-		return 0, false
+		return out
 	}
 	clients, _ := parsed["clients"].([]any)
 	for _, c := range clients {
@@ -305,16 +307,15 @@ func settingsClientAbsoluteExpiry(settings, email string) (int64, bool) {
 		if !ok {
 			continue
 		}
-		if e, _ := cm["email"].(string); e != email {
+		email, _ := cm["email"].(string)
+		if email == "" {
 			continue
 		}
-		exp, has := jsonClientInt64(cm["expiryTime"])
-		if !has || exp <= 0 {
-			return 0, false
+		if exp, has := jsonClientInt64(cm["expiryTime"]); has && exp > 0 {
+			out[email] = exp
 		}
-		return exp, true
 	}
-	return 0, false
+	return out
 }
 
 func jsonClientInt64(v any) (int64, bool) {

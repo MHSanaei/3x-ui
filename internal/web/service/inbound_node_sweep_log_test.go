@@ -28,7 +28,7 @@ func TestNodeSnapshotSweepLogsRemovedInbound(t *testing.T) {
 		Tag: survivor.Tag, Port: survivor.Port, Protocol: model.VLESS, Enable: true,
 		Settings: survivor.Settings,
 	}}}
-	if _, err := (&InboundService{}).setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+	if _, err := (&InboundService{}).setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked: %v", err)
 	}
 

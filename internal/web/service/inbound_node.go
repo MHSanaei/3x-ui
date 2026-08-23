@@ -224,19 +224,33 @@ func mergeActivationExpiry(existing, node int64) int64 {
 	return node
 }
 
-// staleNodeDisable: older-expiry enable=false is ignored unless projected usage
-// (master + this tick's deltas) is already over quota (#6228 / #4917).
-func staleNodeDisable(master *xray.ClientTraffic, nodeExpiry, deltaUp, deltaDown int64) bool {
+// masterLimitsAllowClient reports whether the master's own deadline and quota
+// (including this tick's deltas) still permit the client.
+func masterLimitsAllowClient(master *xray.ClientTraffic, now, deltaUp, deltaDown int64) bool {
 	if master == nil {
 		return false
 	}
-	if master.ExpiryTime <= 0 || nodeExpiry <= 0 || nodeExpiry >= master.ExpiryTime {
+	if master.ExpiryTime > 0 && master.ExpiryTime <= now {
 		return false
 	}
 	if master.Total > 0 && master.Up+deltaUp+master.Down+deltaDown >= master.Total {
 		return false
 	}
 	return true
+}
+
+// nodeDisableIsStale reports an enable=false the node decided against limits the
+// master has since changed, so it must not latch back (#6228 / #4917).
+func nodeDisableIsStale(master *xray.ClientTraffic, node xray.ClientTraffic, now, deltaUp, deltaDown int64) bool {
+	if master == nil {
+		return false
+	}
+	// Matching limits mean the node judged the client on the master's own terms:
+	// that verdict is genuine and still latches, as #4917 requires.
+	if node.ExpiryTime == master.ExpiryTime && node.Total == master.Total {
+		return false
+	}
+	return masterLimitsAllowClient(master, now, deltaUp, deltaDown)
 }
 
 func clampTrafficCounter(v int64) int64 {
@@ -249,34 +263,34 @@ func clampTrafficCounter(v int64) int64 {
 	return v
 }
 
-// applyMasterClientLifecycle overlays master traffic onto a node-reported client
-// for SyncInbound (#6228). cs is the matching ClientStats row when present.
+// applyMasterClientLifecycle overlays the already-merged master row onto a
+// node-reported client for SyncInbound (#6228).
 func applyMasterClientLifecycle(c *model.Client, master *xray.ClientTraffic, cs *xray.ClientTraffic) {
-	nodeSettingsExpiry := c.ExpiryTime
-	if master != nil {
-		c.ExpiryTime = mergeActivationExpiry(master.ExpiryTime, nodeSettingsExpiry)
-	}
-	if cs != nil && !cs.Enable {
-		if staleNodeDisable(master, cs.ExpiryTime, 0, 0) {
-			c.Enable = master.Enable
-		} else {
+	if master == nil {
+		// No central row to speak for the client: the node's own latch is all
+		// there is, and it may only disable.
+		if cs != nil && !cs.Enable {
 			c.Enable = false
 		}
 		return
 	}
-	if master != nil {
-		c.Enable = master.Enable
-	}
+	c.ExpiryTime = mergeActivationExpiry(master.ExpiryTime, c.ExpiryTime)
+	c.Enable = master.Enable
 }
 
 // nodeClientRenewed reports a node-side auto-renew: an absolute deadline moved
-// forward while the node's cumulative counter fell below the stored baseline.
+// forward, evidenced by a renewal-count bump or a drop below the stored baseline.
 func nodeClientRenewed(existing *xray.ClientTraffic, cs xray.ClientTraffic, canon, base nodeTrafficCounter) bool {
 	if (cs.Reset <= 0 && cs.ResetDay <= 0) || cs.ExpiryTime <= 0 || existing.ExpiryTime <= 0 {
 		return false
 	}
 	if cs.ExpiryTime <= existing.ExpiryTime {
 		return false
+	}
+	// A client that used no traffic in the period never dips, so the renewal
+	// counter is the only evidence autoRenewClients leaves behind (#6228).
+	if cs.ResetCount > existing.ResetCount {
+		return true
 	}
 	return canon.Up < base.Up || canon.Down < base.Down
 }
@@ -327,11 +341,13 @@ func (s *InboundService) SnapshotHasUnadoptedInbounds(nodeID int, snap *runtime.
 	return false, nil
 }
 
-func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
+// SetRemoteTraffic merges a node snapshot. justPushed marks the tick whose
+// config push just landed, whose snapshot may still predate it (#6228).
+func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnapshot, dirty, justPushed bool) (bool, error) {
 	var structuralChange bool
 	err := submitTrafficWrite(func() error {
 		var inner error
-		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap, dirty)
+		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap, dirty, justPushed)
 		return inner
 	})
 	return structuralChange, err
@@ -396,7 +412,7 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 	return &a
 }
 
-func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty bool) (bool, error) {
+func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.TrafficSnapshot, dirty, justPushed bool) (bool, error) {
 	if snap == nil || nodeID <= 0 {
 		return false, nil
 	}
@@ -417,6 +433,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// Re-read inside the serialized writer: a client added while this snapshot
 	// was in flight marks the node dirty after the caller sampled the flag.
 	dirty = dirty || nodeRow.ConfigDirty
+	// Adoption, record sync and sweeps still run on a just-pushed tick; only the
+	// client lifecycle merge waits for a snapshot that reflects the push.
+	lifecycleFrozen := dirty || justPushed
 	nodeRow.Id = nodeID
 	unmanagedTag := unmanagedTagPredicate(&nodeRow)
 	selfKey := effectiveNodeKey(&model.Node{Id: nodeID, Guid: nodeRow.Guid})
@@ -843,6 +862,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			continue
 		}
 		snapEmails := make(map[string]struct{}, len(snapIb.ClientStats))
+		// Parsed once per inbound on the first renewal candidate, not per client.
+		var snapExpiries map[string]int64
 		for _, cs := range snapIb.ClientStats {
 			snapEmails[cs.Email] = struct{}{}
 
@@ -906,22 +927,25 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 			existing := centralCSByEmail[cs.Email]
 			if existing != nil {
-				expiryChanged := !dirty && existing.ExpiryTime != mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime)
+				expiryChanged := !lifecycleFrozen && existing.ExpiryTime != mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime)
 				// Only a real latch to disabled is structural; one-way merge never
 				// re-enables from the node.
-				enableChanged := !dirty && existing.Enable && !cs.Enable &&
-					!staleNodeDisable(existing, cs.ExpiryTime, deltaUp, deltaDown)
-				metaChanged := !dirty && (existing.Total != cs.Total || existing.Reset != cs.Reset)
+				enableChanged := !lifecycleFrozen && existing.Enable && !cs.Enable &&
+					!nodeDisableIsStale(existing, cs, now, deltaUp, deltaDown)
+				metaChanged := !lifecycleFrozen && (existing.Total != cs.Total || existing.Reset != cs.Reset)
 				if enableChanged || metaChanged || expiryChanged {
 					structuralChange = true
 				}
 			}
 
-			renewed := !dirty && seen && existing != nil && nodeClientRenewed(existing, cs, canon, base)
+			renewed := !lifecycleFrozen && seen && existing != nil && nodeClientRenewed(existing, cs, canon, base)
 			if renewed {
-				// Settings must also show a later absolute; otherwise lagging
-				// ClientStats after a master shorten look like a renew (#6228).
-				if se, ok := settingsClientAbsoluteExpiry(snapIb.Settings, cs.Email); ok && se <= existing.ExpiryTime {
+				// Reject when the node's own settings still carry the old absolute:
+				// lagging ClientStats after a master shorten mimic a renew (#6228).
+				if snapExpiries == nil {
+					snapExpiries = settingsClientAbsoluteExpiries(snapIb.Settings)
+				}
+				if se, ok := snapExpiries[cs.Email]; ok && se <= existing.ExpiryTime {
 					renewed = false
 				}
 			}
@@ -932,12 +956,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					fmt.Sprintf(
 						`UPDATE client_traffics
 						 SET up = ?, down = ?, enable = ?, total = ?,
-						     expiry_time = ?, reset = ?, reset_day = ?, last_online = %s
+						     expiry_time = ?, reset = ?, reset_day = ?, reset_count = ?, last_online = %s
 						 WHERE email = ?`,
 						database.GreatestExpr("last_online", "?"),
 					),
 					canon.Up, canon.Down, cs.Enable, cs.Total,
-					cs.ExpiryTime, cs.Reset, cs.ResetDay,
+					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetCount,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
 					return false, err
@@ -951,9 +975,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				existing.Total = cs.Total
 				existing.ExpiryTime = cs.ExpiryTime
 				existing.Reset = cs.Reset
+				existing.ResetCount = cs.ResetCount
 				structuralChange = true
-			} else if dirty {
-				// Pending master push: keep expiry/enable/total/reset authoritative.
+			} else if lifecycleFrozen {
+				// Push pending or just landed: only counters may move, the master
+				// keeps expiry/enable/total/reset.
 				if err := tx.Exec(
 					fmt.Sprintf(
 						`UPDATE client_traffics
@@ -988,7 +1014,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 						database.GreatestExpr("last_online", "?"),
 					),
 					deltaUp, deltaDown,
-					cs.Enable, cs.ExpiryTime, cs.ExpiryTime, deltaUp, deltaDown,
+					cs.Enable, cs.ExpiryTime, cs.Total, now, deltaUp, deltaDown,
 					cs.Total,
 					cs.ExpiryTime, cs.Reset, cs.ResetDay,
 					cs.LastOnline, cs.Email,
@@ -997,7 +1023,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 				if existing != nil {
 					priorExpiry := existing.ExpiryTime
-					if !cs.Enable && !staleNodeDisable(existing, cs.ExpiryTime, deltaUp, deltaDown) {
+					if !cs.Enable && !nodeDisableIsStale(existing, cs, now, deltaUp, deltaDown) {
 						existing.Enable = false
 					}
 					existing.ExpiryTime = mergeActivationExpiry(priorExpiry, cs.ExpiryTime)
@@ -1007,10 +1033,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					existing.Reset = cs.Reset
 				}
 			}
-			// While dirty, do not lower the baseline on any counter dip. A lagging
-			// longer expiry plus a dip looks like nodeClientRenewed and would
-			// undo a master shorten after ClearNodeDirty (#6228).
-			if dirty && seen && (canon.Up < base.Up || canon.Down < base.Down) {
+			// A dip plus a lagging longer expiry mimics nodeClientRenewed and would
+			// undo a master shorten once the freeze lifts (#6228).
+			if lifecycleFrozen && seen && (canon.Up < base.Up || canon.Down < base.Down) {
 				continue
 			}
 			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
@@ -1071,16 +1096,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			adoptedSettings = lifted
 			lifecycleLifted = true
 		}
-		if err := tx.Model(model.Inbound{}).
-			Where("id = ?", p.central.Id).
-			Update("settings", adoptedSettings).Error; err != nil {
-			return false, err
+		if p.central.Settings != adoptedSettings {
+			if err := tx.Model(model.Inbound{}).
+				Where("id = ?", p.central.Id).
+				Update("settings", adoptedSettings).Error; err != nil {
+				return false, err
+			}
+			structuralChange = true
 		}
+		// The fingerprint stamps the un-lifted wire blob on purpose: a lift must
+		// leave reconcile a mismatch to re-push against.
 		if liftChanged || adoptedWireChanged(p.central, p.snapIb, p.wireSettings) {
 			adoptedInbounds = append(adoptedInbounds, adoptedWireInbound(p.central, p.snapIb, p.wireSettings))
-		}
-		if p.central.Settings != adoptedSettings {
-			structuralChange = true
 		}
 	}
 	for _, snapIb := range snap.Inbounds {

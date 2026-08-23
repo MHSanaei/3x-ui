@@ -37,20 +37,22 @@ func GreatestExpr(a, b string) string {
 	return fmt.Sprintf("MAX(%s, %s)", a, b)
 }
 
-// ClientTrafficEnableMergeExpr: placeholders nodeEnable, nodeExpiry, nodeExpiry,
-// deltaUp, deltaDown. Quota check includes this statement's deltas (#6228/#4917).
+// ClientTrafficEnableMergeExpr: placeholders nodeEnable, nodeExpiry, nodeTotal,
+// now, deltaUp, deltaDown. Mirrors nodeDisableIsStale (#6228 / #4917).
 func ClientTrafficEnableMergeExpr() string {
 	if IsPostgres() {
 		return `CASE
 			WHEN ?::boolean THEN enable::boolean
-			WHEN CAST(? AS BIGINT) > 0 AND expiry_time > CAST(? AS BIGINT)
+			WHEN (expiry_time <> CAST(? AS BIGINT) OR total <> CAST(? AS BIGINT))
+				AND (expiry_time <= 0 OR expiry_time > CAST(? AS BIGINT))
 				AND (total <= 0 OR up + ? + down + ? < total) THEN enable::boolean
 			ELSE false
 		END`
 	}
 	return `CASE
 		WHEN ? THEN enable
-		WHEN CAST(? AS BIGINT) > 0 AND expiry_time > CAST(? AS BIGINT)
+		WHEN (expiry_time <> CAST(? AS BIGINT) OR total <> CAST(? AS BIGINT))
+			AND (expiry_time <= 0 OR expiry_time > CAST(? AS BIGINT))
 			AND (total <= 0 OR up + ? + down + ? < total) THEN enable
 		ELSE 0
 	END`

@@ -74,7 +74,7 @@ func TestSetRemoteTrafficRereadsConfigDirty(t *testing.T) {
 		t.Fatalf("mark node dirty: %v", err)
 	}
 
-	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked: %v", err)
 	}
 
@@ -101,7 +101,7 @@ func TestDeselectedTagIsNotSwept(t *testing.T) {
 	keepSettings := `{"clients":[{"email":"kept@x","enable":true}]}`
 	dropSettings := `{"clients":[{"email":"dropped@x","enable":true}]}`
 	snap := snapshotWithTwoInbounds(t, "keep", keepSettings, "kept@x", "drop", dropSettings, "dropped@x")
-	if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
 		t.Fatalf("seed sync: %v", err)
 	}
 	if rec, traf := countClientRows(t, db, "dropped@x"); rec != 1 || traf != 1 {
@@ -109,7 +109,7 @@ func TestDeselectedTagIsNotSwept(t *testing.T) {
 	}
 
 	keepOnly := snapshotWithClients(t, "keep", keepSettings, xray.ClientTraffic{Email: "kept@x", Enable: true})
-	if _, err := svc.setRemoteTrafficLocked(1, keepOnly, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, keepOnly, false, false); err != nil {
 		t.Fatalf("post-deselect sync: %v", err)
 	}
 

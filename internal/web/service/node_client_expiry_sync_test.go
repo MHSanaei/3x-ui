@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -28,7 +29,7 @@ func TestMergeActivationExpiry(t *testing.T) {
 		{"node still un-activated does not reset deadline", early, dur, early},
 		{"node un-activated zero does not reset deadline", early, 0, early},
 		{"master absolute ignores later node absolute", early, late, early},
-		{"master shorten ignores lagging longer node", early, late, early},
+		{"node value equal to master is a no-op", early, early, early},
 		{"stale earlier absolute does not clobber later", late, early, late},
 		{"both un-activated keep node value", dur, dur, dur},
 	}
@@ -41,34 +42,71 @@ func TestMergeActivationExpiry(t *testing.T) {
 	}
 }
 
-func TestStaleNodeDisable(t *testing.T) {
-	const (
-		early = int64(1000)
-		late  = int64(2000)
-	)
+func TestNodeDisableIsStale(t *testing.T) {
+	now := time.Now().UnixMilli()
+	const quota = int64(100)
 	cases := []struct {
 		name      string
 		master    *xray.ClientTraffic
-		nodeExp   int64
+		node      xray.ClientTraffic
+		deltaUp   int64
+		deltaDown int64
 		wantStale bool
 	}{
-		{"nil master", nil, early, false},
-		{"same absolute deadline", &xray.ClientTraffic{ExpiryTime: late}, late, false},
-		{"node older than master after extend", &xray.ClientTraffic{ExpiryTime: late}, early, true},
-		{"node newer renewal", &xray.ClientTraffic{ExpiryTime: early}, late, false},
-		{"unactivated node", &xray.ClientTraffic{ExpiryTime: late}, -1, false},
-		{"unlimited master", &xray.ClientTraffic{ExpiryTime: 0}, early, false},
-		{"older expiry but master over quota", &xray.ClientTraffic{
-			ExpiryTime: late, Total: 100, Up: 60, Down: 50,
-		}, early, false},
-		{"older expiry under quota still stale", &xray.ClientTraffic{
-			ExpiryTime: late, Total: 100, Up: 10, Down: 10,
-		}, early, true},
+		{name: "nil master", node: xray.ClientTraffic{ExpiryTime: earlyAbs}},
+		{
+			name:      "matching limits are a genuine verdict",
+			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
+			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
+			wantStale: false,
+		},
+		{
+			name:      "node still holds the pre-extension deadline",
+			master:    &xray.ClientTraffic{ExpiryTime: lateAbs},
+			node:      xray.ClientTraffic{ExpiryTime: earlyAbs},
+			wantStale: true,
+		},
+		{
+			name:      "node still holds the pre-top-up quota",
+			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: 2 * quota, Up: 60, Down: 50},
+			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
+			wantStale: true,
+		},
+		{
+			name:   "master itself expired",
+			master: &xray.ClientTraffic{ExpiryTime: earlyAbs},
+			node:   xray.ClientTraffic{ExpiryTime: earlyAbs - 1000},
+		},
+		{
+			name:   "master itself over quota",
+			master: &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 60, Down: 50},
+			node:   xray.ClientTraffic{ExpiryTime: earlyAbs, Total: quota},
+		},
+		{
+			name:      "this tick's deltas cross the master quota",
+			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 40, Down: 50},
+			node:      xray.ClientTraffic{ExpiryTime: earlyAbs, Total: quota},
+			deltaUp:   10,
+			deltaDown: 10,
+		},
+		{
+			// Same row without the deltas: the crossing above is the deltas' doing.
+			name:      "under the master quota before this tick's deltas",
+			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 40, Down: 50},
+			node:      xray.ClientTraffic{ExpiryTime: earlyAbs, Total: quota},
+			wantStale: true,
+		},
+		{
+			name:      "un-activated node duration against an absolute master",
+			master:    &xray.ClientTraffic{ExpiryTime: lateAbs},
+			node:      xray.ClientTraffic{ExpiryTime: -2592000000},
+			wantStale: true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := staleNodeDisable(c.master, c.nodeExp, 0, 0); got != c.wantStale {
-				t.Fatalf("staleNodeDisable(...) = %v, want %v", got, c.wantStale)
+			if got := nodeDisableIsStale(c.master, c.node, now, c.deltaUp, c.deltaDown); got != c.wantStale {
+				t.Fatalf("nodeDisableIsStale(...) = %v, want %v", got, c.wantStale)
 			}
 		})
 	}
@@ -210,18 +248,15 @@ func TestNodeRenew_WithMatchingSettings(t *testing.T) {
 	}
 }
 
-// TestNodeStaleExpiryAfterExtend_NotClobbered reproduces #6228: a client expires,
-// the admin extends it on the master, then a node that still holds the previous
-// deadline syncs enable=false + the old expiry. That snapshot must not undo the
-// extension on traffics, client records, or the adopted inbound settings JSON.
+// A node still holding the pre-extension deadline must not undo the extension on
+// traffics, client records or the adopted settings JSON (#6228).
 func TestNodeStaleExpiryAfterExtend_NotClobbered(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "extended")
 	svc := &InboundService{}
 
 	const email = "extended"
-	const expired = int64(1786835245763)
-	const extended = int64(1789427245763)
+	expired, extended := earlyAbs, lateAbs
 
 	staleSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":false,"expiryTime":%d}]}`, email, expired)
@@ -302,8 +337,7 @@ func TestNodeStaleLift_MarksNodeDirty(t *testing.T) {
 	svc := &InboundService{}
 
 	const email = "extended"
-	const expired = earlyAbs
-	const extended = lateAbs
+	expired, extended := earlyAbs, lateAbs
 	staleSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":false,"expiryTime":%d}]}`, email, expired)
 
@@ -355,9 +389,8 @@ func TestNodeStaleLift_MarksNodeDirty(t *testing.T) {
 	}
 }
 
-// TestNodeQuotaDisable_SameExpiryStillLatches ensures #4917 stays intact: a
-// node disable for traffic quota (same absolute expiry as the master) must
-// still one-way-merge enable=false onto the master.
+// A node disable decided on the master's own limits is genuine and must still
+// one-way-merge enable=false onto the master (#4917).
 func TestNodeQuotaDisable_SameExpiryStillLatches(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInbound(t, db, 1, "n1-in", 41001)
@@ -377,17 +410,15 @@ func TestNodeQuotaDisable_SameExpiryStillLatches(t *testing.T) {
 	}
 }
 
-// TestNodeQuotaDisable_OlderExpiryStillLatchesWhenOverQuota: once the master
-// row is already depleted, a node disable must latch even if its expiry lags
-// the merged max — otherwise staleNodeDisable would skip genuine quota cuts.
+// Once the master row is itself depleted, a node disable latches even though the
+// node's limits lag — otherwise genuine quota cuts would be skipped.
 func TestNodeQuotaDisable_OlderExpiryStillLatchesWhenOverQuota(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInbound(t, db, 1, "n1-in", 41001)
 	svc := &InboundService{}
 
 	const email = "quota-lag"
-	const early = int64(1786835245763)
-	const late = int64(1789427245763)
+	early, late := earlyAbs, lateAbs
 
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
 		Email: email, Up: 10, Down: 10, Total: 100, ExpiryTime: late, Enable: true,
@@ -410,16 +441,6 @@ func TestNodeQuotaDisable_OlderExpiryStillLatchesWhenOverQuota(t *testing.T) {
 	}
 }
 
-func TestStaleNodeDisable_ProjectedQuotaWithDeltas(t *testing.T) {
-	master := &xray.ClientTraffic{ExpiryTime: lateAbs, Total: 100, Up: 40, Down: 50}
-	if !staleNodeDisable(master, earlyAbs, 0, 0) {
-		t.Fatal("under quota without deltas should be stale")
-	}
-	if staleNodeDisable(master, earlyAbs, 10, 10) {
-		t.Fatal("projected over-quota disable must not be treated as stale")
-	}
-}
-
 // TestNodeMasterShorten_NotClobberedWhileDirty: master shortened expiry while
 // config_dirty; a lagging longer node snapshot must not raise client_traffics.
 func TestNodeMasterShorten_NotClobberedWhileDirty(t *testing.T) {
@@ -428,8 +449,7 @@ func TestNodeMasterShorten_NotClobberedWhileDirty(t *testing.T) {
 	svc := &InboundService{}
 
 	const email = "shortened"
-	const longExp = lateAbs
-	const shortExp = earlyAbs
+	longExp, shortExp := lateAbs, earlyAbs
 	longSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":true,"expiryTime":%d}]}`, email, longExp)
 
@@ -455,7 +475,7 @@ func TestNodeMasterShorten_NotClobberedWhileDirty(t *testing.T) {
 		Update("total", int64(999)).Error; err != nil {
 		t.Fatalf("master total: %v", err)
 	}
-	if _, err := svc.setRemoteTrafficLocked(1, snap, true); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snap, true, false); err != nil {
 		t.Fatalf("dirty sync: %v", err)
 	}
 	got := readTraffic(t, db, email)
@@ -471,17 +491,15 @@ func TestNodeMasterShorten_NotClobberedWhileDirty(t *testing.T) {
 	}
 }
 
-// TestNodeMasterShorten_SettingsBeatLaggingClientStats: after push, settings
-// carry the shortened absolute while ClientStats may still report the old
-// longer deadline — merge must follow settings (#6228).
-func TestNodeMasterShorten_SettingsBeatLaggingClientStats(t *testing.T) {
+// The master's shortened absolute survives a snapshot whose ClientStats still
+// report the longer deadline (#6228).
+func TestNodeMasterShorten_LaggingClientStatsIgnored(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "short-settings")
 	svc := &InboundService{}
 
 	const email = "short-settings"
-	const longExp = lateAbs
-	const shortExp = earlyAbs
+	longExp, shortExp := lateAbs, earlyAbs
 	longSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":true,"expiryTime":%d}]}`, email, longExp)
 	shortSettings := fmt.Sprintf(
@@ -500,7 +518,7 @@ func TestNodeMasterShorten_SettingsBeatLaggingClientStats(t *testing.T) {
 			ClientStats: []xray.ClientTraffic{{Email: email, ExpiryTime: longExp, Enable: true}},
 		}},
 	}
-	if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
 		t.Fatalf("clean sync: %v", err)
 	}
 	if got := readTraffic(t, db, email); got.ExpiryTime != shortExp {
@@ -517,8 +535,7 @@ func TestNodeMasterShorten_CleanSiblingCannotRaise(t *testing.T) {
 	svc := &InboundService{}
 
 	const email = "sib-short"
-	const longExp = lateAbs
-	const shortExp = earlyAbs
+	longExp, shortExp := lateAbs, earlyAbs
 	longSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":true,"expiryTime":%d}]}`, email, longExp)
 
@@ -547,8 +564,7 @@ func TestNodeMasterShorten_LaggingStatsNotTreatedAsRenew(t *testing.T) {
 	svc := &InboundService{}
 
 	const email = "short-renew-trap"
-	const longExp = lateAbs
-	const shortExp = earlyAbs
+	longExp, shortExp := lateAbs, earlyAbs
 	shortSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":true,"expiryTime":%d}]}`, email, shortExp)
 
@@ -577,8 +593,7 @@ func TestNodeStaleExpiryAfterExtend_WhileDirty(t *testing.T) {
 	svc := &InboundService{}
 
 	const email = "extended-dirty"
-	const expired = earlyAbs
-	const extended = lateAbs
+	expired, extended := earlyAbs, lateAbs
 	staleSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":false,"expiryTime":%d}]}`, email, expired)
 
@@ -599,7 +614,7 @@ func TestNodeStaleExpiryAfterExtend_WhileDirty(t *testing.T) {
 			ClientStats: []xray.ClientTraffic{{Email: email, ExpiryTime: expired, Enable: false}},
 		}},
 	}
-	if _, err := svc.setRemoteTrafficLocked(1, snap, true); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snap, true, false); err != nil {
 		t.Fatalf("dirty sync: %v", err)
 	}
 	got := readTraffic(t, db, email)
@@ -636,7 +651,7 @@ func TestNodeRenewal_SkippedWhileDirty(t *testing.T) {
 			}},
 		}},
 	}
-	if _, err := svc.setRemoteTrafficLocked(1, snap, true); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snap, true, false); err != nil {
 		t.Fatalf("dirty sync: %v", err)
 	}
 	got := readTraffic(t, db, email)
@@ -650,7 +665,7 @@ func TestNodeRenewal_SkippedWhileDirty(t *testing.T) {
 		Updates(map[string]any{"config_dirty": false, "config_dirty_at": int64(0)}).Error; err != nil {
 		t.Fatalf("clear dirty: %v", err)
 	}
-	if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
 		t.Fatalf("clean sync: %v", err)
 	}
 	if got := readTraffic(t, db, email); got.ExpiryTime != lateAbs {
@@ -666,8 +681,7 @@ func TestNodeExtend_FreshSettingsLaggingDisable(t *testing.T) {
 	svc := &InboundService{}
 
 	const email = "ext-lag"
-	const expired = earlyAbs
-	const extended = lateAbs
+	expired, extended := earlyAbs, lateAbs
 	staleSettings := fmt.Sprintf(
 		`{"clients":[{"email":%q,"enable":false,"expiryTime":%d}]}`, email, expired)
 	freshSettings := fmt.Sprintf(
@@ -686,7 +700,7 @@ func TestNodeExtend_FreshSettingsLaggingDisable(t *testing.T) {
 			ClientStats: []xray.ClientTraffic{{Email: email, ExpiryTime: expired, Enable: false}},
 		}},
 	}
-	if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
 		t.Fatalf("clean sync: %v", err)
 	}
 	got := readTraffic(t, db, email)
@@ -698,19 +712,164 @@ func TestNodeExtend_FreshSettingsLaggingDisable(t *testing.T) {
 	}
 }
 
+// A client that used no traffic never dips below its baseline, so the renewal
+// counter is the only evidence the node auto-renewed (#6228).
+func TestNodeRenew_ZeroTrafficUsesResetCount(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+	svc := &InboundService{}
+
+	const email = "idle-renew"
+	firstSettings := fmt.Sprintf(
+		`{"clients":[{"email":%q,"enable":true,"expiryTime":%d}]}`, email, earlyAbs)
+	renewSettings := fmt.Sprintf(
+		`{"clients":[{"email":%q,"enable":true,"expiryTime":%d}]}`, email, lateAbs)
+
+	syncNodeWithSettings(t, svc, 1, "n1-in", firstSettings, xray.ClientTraffic{
+		Email: email, ExpiryTime: earlyAbs, Reset: 30, Enable: true,
+	})
+	syncNodeWithSettings(t, svc, 1, "n1-in", renewSettings, xray.ClientTraffic{
+		Email: email, ExpiryTime: lateAbs, Reset: 30, ResetCount: 1, Enable: true,
+	})
+
+	got := readTraffic(t, db, email)
+	if got.ExpiryTime != lateAbs {
+		t.Fatalf("zero-traffic renewal dropped: expiry=%d want %d", got.ExpiryTime, lateAbs)
+	}
+	if got.ResetCount != 1 {
+		t.Fatalf("renewal count not persisted, so the next renewal cannot be seen: got %d want 1", got.ResetCount)
+	}
+}
+
+// A quota top-up leaves the expiry alone, so the node's lagging disable must be
+// recognised by the stale quota it was decided against (#6228).
+func TestNodeQuotaTopUp_LaggingDisableIgnored(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+	svc := &InboundService{}
+
+	const email = "topped-up"
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
+		Email: email, Up: 10, Down: 10, Total: 100, ExpiryTime: lateAbs, Enable: true,
+	})
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{
+			"total": int64(500), "enable": true, "up": int64(60), "down": int64(50),
+		}).Error; err != nil {
+		t.Fatalf("master top-up: %v", err)
+	}
+
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
+		Email: email, Up: 60, Down: 50, Total: 100, ExpiryTime: lateAbs, Enable: false,
+	})
+	if got := readTraffic(t, db, email); !got.Enable {
+		t.Fatal("node disable decided on the pre-top-up quota latched over the raised one")
+	}
+}
+
+// The settings lift is authoritative in both directions: a blob predating a
+// master disable must not carry enable=true back into central settings (#4917).
+func TestNodeStaleEnable_LiftedOffInSettings(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "cut-off")
+	svc := &InboundService{}
+
+	const email = "cut-off"
+	liveSettings := fmt.Sprintf(
+		`{"clients":[{"email":%q,"enable":true,"expiryTime":%d}]}`, email, lateAbs)
+
+	syncNodeWithSettings(t, svc, 1, "n1-in", liveSettings,
+		xray.ClientTraffic{Email: email, ExpiryTime: lateAbs, Enable: true})
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
+		Update("enable", false).Error; err != nil {
+		t.Fatalf("master disable: %v", err)
+	}
+
+	syncNodeWithSettings(t, svc, 1, "n1-in", liveSettings,
+		xray.ClientTraffic{Email: email, ExpiryTime: lateAbs, Enable: true})
+
+	var ib model.Inbound
+	if err := db.Where("tag = ?", "n1-in").First(&ib).Error; err != nil {
+		t.Fatalf("read inbound: %v", err)
+	}
+	clients, err := svc.GetClients(&ib)
+	if err != nil {
+		t.Fatalf("GetClients: %v", err)
+	}
+	var found bool
+	for _, c := range clients {
+		if c.Email != email {
+			continue
+		}
+		found = true
+		if c.Enable {
+			t.Fatal("adopted settings re-enabled a client the master disabled")
+		}
+	}
+	if !found {
+		t.Fatal("client missing from adopted inbound settings")
+	}
+}
+
+// The tick whose push just landed freezes only the lifecycle merge: adoption,
+// new client rows and traffic accumulation must keep working (#6228).
+func TestNodeJustPushed_FreezesLifecycleOnly(t *testing.T) {
+	db := initTrafficTestDB(t)
+	createNodeInbound(t, db, 1, "n1-in", 41001)
+	svc := &InboundService{}
+
+	const kept = "kept"
+	const fresh = "fresh"
+	extended := lateAbs + 86400000
+
+	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
+		Email: kept, Up: 10, Down: 10, Total: 100, ExpiryTime: lateAbs, Enable: true,
+	})
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", kept).
+		Updates(map[string]any{"expiry_time": extended, "total": int64(500)}).Error; err != nil {
+		t.Fatalf("master edit: %v", err)
+	}
+
+	snap := &runtime.TrafficSnapshot{
+		Inbounds: []*model.Inbound{{
+			Tag: "n1-in",
+			ClientStats: []xray.ClientTraffic{
+				{Email: kept, Up: 20, Down: 20, Total: 100, ExpiryTime: lateAbs, Enable: false},
+				{Email: fresh, Up: 5, Down: 5, ExpiryTime: lateAbs, Enable: true},
+			},
+		}},
+	}
+	if _, err := svc.setRemoteTrafficLocked(1, snap, false, true); err != nil {
+		t.Fatalf("just-pushed sync: %v", err)
+	}
+
+	got := readTraffic(t, db, kept)
+	if got.ExpiryTime != extended || got.Total != 500 || !got.Enable {
+		t.Fatalf("just-pushed tick adopted lagging lifecycle: expiry=%d total=%d enable=%v",
+			got.ExpiryTime, got.Total, got.Enable)
+	}
+	if got.Up != 10 || got.Down != 10 {
+		t.Fatalf("just-pushed tick dropped this tick's traffic: up=%d down=%d, want 10/10", got.Up, got.Down)
+	}
+	if row := readTraffic(t, db, fresh); row.Email != fresh {
+		t.Fatalf("just-pushed tick skipped adoption of a new client: %+v", row)
+	}
+}
+
 // TestClientTrafficMergeSQLMatchesHelpers pins the dialect SQL expressions
 // against the Go helpers so the in-memory replay after UPDATE cannot drift.
 func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 	db := initTrafficTestDB(t)
 
 	const email = "sql-merge"
+	now := time.Now().UnixMilli()
 	cases := []struct {
 		name                      string
 		masterExpiry              int64
 		masterEnable              bool
 		masterUp, masterDown, tot int64
 		deltaUp, deltaDown        int64
-		nodeExpiry                int64
+		nodeExpiry, nodeTotal     int64
 		nodeEnable                bool
 		wantExpiry                int64
 		wantEnable                bool
@@ -725,14 +884,14 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 			name:         "same expiry quota disable",
 			masterExpiry: lateAbs, masterEnable: true,
 			masterUp: 60, masterDown: 50, tot: 100,
-			nodeExpiry: lateAbs, nodeEnable: false,
+			nodeExpiry: lateAbs, nodeTotal: 100, nodeEnable: false,
 			wantExpiry: lateAbs, wantEnable: false,
 		},
 		{
 			name:         "older expiry but master over quota",
 			masterExpiry: lateAbs, masterEnable: true,
 			masterUp: 60, masterDown: 50, tot: 100,
-			nodeExpiry: earlyAbs, nodeEnable: false,
+			nodeExpiry: earlyAbs, nodeTotal: 100, nodeEnable: false,
 			wantExpiry: lateAbs, wantEnable: false,
 		},
 		{
@@ -748,11 +907,17 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 			wantExpiry: lateAbs, wantEnable: true,
 		},
 		{
+			name:         "expired master latches node disable",
+			masterExpiry: earlyAbs, masterEnable: true,
+			nodeExpiry: earlyAbs - 1000, nodeEnable: false,
+			wantExpiry: earlyAbs, wantEnable: false,
+		},
+		{
 			name:         "older expiry crosses quota via deltas",
 			masterExpiry: lateAbs, masterEnable: true,
 			masterUp: 40, masterDown: 50, tot: 100,
 			deltaUp: 10, deltaDown: 10,
-			nodeExpiry: earlyAbs, nodeEnable: false,
+			nodeExpiry: earlyAbs, nodeTotal: 100, nodeEnable: false,
 			wantExpiry: lateAbs, wantEnable: false,
 		},
 	}
@@ -774,7 +939,8 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 			}
 			wantExpiry := mergeActivationExpiry(c.masterExpiry, c.nodeExpiry)
 			wantEnable := c.masterEnable
-			if !c.nodeEnable && !staleNodeDisable(master, c.nodeExpiry, c.deltaUp, c.deltaDown) {
+			node := xray.ClientTraffic{ExpiryTime: c.nodeExpiry, Total: c.nodeTotal}
+			if !c.nodeEnable && !nodeDisableIsStale(master, node, now, c.deltaUp, c.deltaDown) {
 				wantEnable = false
 			}
 			if wantExpiry != c.wantExpiry || wantEnable != c.wantEnable {
@@ -787,7 +953,7 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 					`UPDATE client_traffics SET enable = %s, expiry_time = %s WHERE email = ?`,
 					enableExpr, expiryExpr,
 				),
-				c.nodeEnable, c.nodeExpiry, c.nodeExpiry, c.deltaUp, c.deltaDown,
+				c.nodeEnable, c.nodeExpiry, c.nodeTotal, now, c.deltaUp, c.deltaDown,
 				c.nodeExpiry,
 				rowEmail,
 			).Error; err != nil {
@@ -802,9 +968,11 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 	}
 }
 
-const (
-	earlyAbs = int64(1786835245763)
-	lateAbs  = int64(1789427245763)
+// Relative to the run: the merge rules now compare the master deadline against
+// wall-clock now, so fixed timestamps would rot into the wrong side of it.
+var (
+	earlyAbs = time.Now().UnixMilli() - 30*86400000
+	lateAbs  = time.Now().UnixMilli() + 30*86400000
 )
 
 // TestNodeActivationLiftsClientRecordExpiry reproduces #5714: the node activates

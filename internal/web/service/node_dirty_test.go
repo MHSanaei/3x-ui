@@ -52,7 +52,7 @@ func TestSetRemoteTraffic_DirtyPreservesConfig(t *testing.T) {
 	}
 
 	svc := InboundService{}
-	if _, err := svc.setRemoteTrafficLocked(id, snap, true); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(id, snap, true, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked dirty: %v", err)
 	}
 
@@ -93,7 +93,7 @@ func TestSetRemoteTraffic_MissingDisabledInboundIsNotSwept(t *testing.T) {
 		Tag: reported.Tag, Enable: true,
 		Port: reported.Port, Protocol: reported.Protocol, Settings: reported.Settings,
 	}}}
-	if _, err := (&InboundService{}).setRemoteTrafficLocked(node.Id, snap, false); err != nil {
+	if _, err := (&InboundService{}).setRemoteTrafficLocked(node.Id, snap, false, false); err != nil {
 		t.Fatal(err)
 	}
 	var count int64
