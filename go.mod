@@ -35,7 +35,20 @@ require (
 	pgregory.net/rapid v1.3.0
 )
 
-require github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
+require (
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
+	github.com/caddyserver/certmagic v0.25.4
+)
+
+require (
+	github.com/caddyserver/zerossl v0.1.5 // indirect
+	github.com/libdns/libdns v1.1.1 // indirect
+	github.com/mholt/acmez/v3 v3.1.6 // indirect
+	github.com/zeebo/blake3 v0.2.4 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
+	go.uber.org/zap/exp v0.3.0 // indirect
+)
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
