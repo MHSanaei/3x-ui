@@ -49,7 +49,7 @@ func TestSyncOrphanSurvivesMergeUntilGraceElapses(t *testing.T) {
 		t.Fatalf("setup: clients=%d client_traffics=%d, want 1/1", rec, traf)
 	}
 
-	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false, false); err != nil {
 		t.Fatalf("orphaning merge: %v", err)
 	}
 	if rec, traf := countClientRows(t, db, email); rec != 1 || traf != 1 {
@@ -99,7 +99,7 @@ func TestSyncOrphanMarkClearedOnReattach(t *testing.T) {
 	syncNodeWithSettings(t, svc, 1, "n1-in", settings,
 		xray.ClientTraffic{Email: email, Up: 5, Down: 5, Enable: true})
 
-	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false, false); err != nil {
 		t.Fatalf("orphaning merge: %v", err)
 	}
 	if readOrphanMark(t, db, email) <= 0 {

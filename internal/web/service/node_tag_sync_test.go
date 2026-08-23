@@ -46,7 +46,7 @@ func TestSetRemoteTraffic_KeepsInboundOnPrefixMismatch(t *testing.T) {
 	}
 
 	svc := InboundService{}
-	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked: %v", err)
 	}
 
@@ -83,7 +83,7 @@ func TestSetRemoteTraffic_AdoptsCompatibleOriginAliasWithoutDuplicate(t *testing
 		Tag: "already-deployed", Enable: true, Port: 8443, Protocol: model.VLESS,
 		Settings: `{"clients":[]}`, Up: 11, Down: 22,
 	}}}
-	if _, err := (&InboundService{}).setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+	if _, err := (&InboundService{}).setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked: %v", err)
 	}
 

@@ -46,7 +46,7 @@ func TestSetRemoteTraffic_AdoptsNodeHostRows(t *testing.T) {
 	}
 
 	svc := InboundService{}
-	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked: %v", err)
 	}
 
