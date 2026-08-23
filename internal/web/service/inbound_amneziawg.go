@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"gorm.io/gorm"
 )
 
 // DesiredAmneziaWGInstances derives the AmneziaWG interfaces this panel
@@ -238,7 +239,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 		}
 	}
 
-	portCtx, err := s.loadPortConflictContext()
+	portCtx, err := s.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		return err
 	}
@@ -289,12 +290,12 @@ type portConflictContext struct {
 // inbound hosted on THIS panel (node_id IS NULL) — an inbound hosted on a
 // different node listens on that node's own host, never this one, so it can
 // never collide with a DNAT rule this process installs.
-func (s *InboundService) loadPortConflictContext() (portConflictContext, error) {
+func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictContext, error) {
 	var ctx portConflictContext
 	if webPort, err := (&SettingService{}).GetPort(); err == nil {
 		ctx.webPort = webPort
 	}
-	err := database.GetDB().Model(model.Inbound{}).
+	err := db.Model(model.Inbound{}).
 		Where("enable = ? AND node_id IS NULL", true).
 		Find(&ctx.inbounds).Error
 	return ctx, err

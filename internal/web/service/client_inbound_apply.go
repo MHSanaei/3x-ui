@@ -250,9 +250,9 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 // selfEmails skips this identity's own entries. Email is globally unique, so a
 // match there is never a real collision -- and Attach deliberately reuses one
 // address across every inbound it attaches the identity to.
-func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, excludeID int, selfEmails map[string]struct{}) (map[string]string, error) {
+func (s *ClientService) otherTunnelAllowedIPs(db *gorm.DB, inboundSvc *InboundService, excludeID int, selfEmails map[string]struct{}) (map[string]string, error) {
 	var inbounds []*model.Inbound
-	err := database.GetDB().Model(model.Inbound{}).
+	err := db.Model(model.Inbound{}).
 		Where("protocol IN ? AND id != ?", []model.Protocol{model.WireGuard, model.AmneziaWG}, excludeID).
 		Find(&inbounds).Error
 	if err != nil {
@@ -388,14 +388,15 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 		interfaceClients = keptWire
 	}
 
+	var selfEmails map[string]struct{}
 	if oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG {
-		selfEmails := make(map[string]struct{}, len(clients))
+		selfEmails = make(map[string]struct{}, len(clients))
 		for _, c := range clients {
 			if c.Email != "" {
 				selfEmails[strings.ToLower(c.Email)] = struct{}{}
 			}
 		}
-		crossUsed, cErr := s.otherTunnelAllowedIPs(inboundSvc, oldInbound.Id, selfEmails)
+		crossUsed, cErr := s.otherTunnelAllowedIPs(database.GetDB(), inboundSvc, oldInbound.Id, selfEmails)
 		if cErr != nil {
 			return false, cErr
 		}
@@ -413,7 +414,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 
 	var portCtx portConflictContext
 	if oldInbound.Protocol == model.AmneziaWG {
-		portCtx, err = inboundSvc.loadPortConflictContext()
+		portCtx, err = inboundSvc.loadPortConflictContext(database.GetDB())
 		if err != nil {
 			return false, err
 		}
@@ -499,6 +500,34 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	// Persist client stats + inbound atomically, serialized against the traffic
 	// poll to avoid the cross-transaction lock-order deadlock (runSerializedTx).
 	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		// lockInbound is per-inbound, so the pre-tx cross-inbound checks race
+		// concurrent writers on other inbounds — re-run them in here (#6225).
+		if oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG {
+			crossUsed, cErr := s.otherTunnelAllowedIPs(tx, inboundSvc, oldInbound.Id, selfEmails)
+			if cErr != nil {
+				return cErr
+			}
+			crossAddrs := make([]string, 0, len(crossUsed))
+			for addr := range crossUsed {
+				crossAddrs = append(crossAddrs, addr)
+			}
+			for i := range clients {
+				if hit := wireguardAllowedIPsCollision(clients[i].AllowedIPs, crossAddrs); hit != "" {
+					return common.NewError("allowedIPs entry", hit, "is already used by a client on", crossUsed[hit])
+				}
+			}
+		}
+		if oldInbound.Protocol == model.AmneziaWG {
+			txPortCtx, pErr := inboundSvc.loadPortConflictContext(tx)
+			if pErr != nil {
+				return pErr
+			}
+			for i := range clients {
+				if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[i].ForwardedPorts); hit != "" {
+					return common.NewError("amneziawg: forwardedPorts collides with", hit)
+				}
+			}
+		}
 		for i := range clients {
 			if len(clients[i].Email) == 0 {
 				continue
@@ -711,7 +740,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 	if oldInbound.Protocol == model.AmneziaWG {
-		portCtx, err := inboundSvc.loadPortConflictContext()
+		portCtx, err := inboundSvc.loadPortConflictContext(database.GetDB())
 		if err != nil {
 			return false, err
 		}
@@ -845,6 +874,17 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	// Persist client stats + inbound atomically, serialized against the traffic
 	// poll to avoid the cross-transaction lock-order deadlock (runSerializedTx).
 	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		// Same re-check-inside-the-writer rule as AddInboundClient (#6225):
+		// the pre-tx pass can race a concurrent writer on another inbound.
+		if oldInbound.Protocol == model.AmneziaWG {
+			txPortCtx, pErr := inboundSvc.loadPortConflictContext(tx)
+			if pErr != nil {
+				return pErr
+			}
+			if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[0].ForwardedPorts); hit != "" {
+				return common.NewError("amneziawg: forwardedPorts collides with", hit)
+			}
+		}
 		if len(clients[0].Email) > 0 {
 			if len(oldEmail) > 0 {
 				emailUnchanged := strings.EqualFold(oldEmail, clients[0].Email)
