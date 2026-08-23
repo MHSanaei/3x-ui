@@ -249,6 +249,13 @@ export const AllSettingViewSchema = z.object({
 });
 export type AllSettingView = z.infer<typeof AllSettingViewSchema>;
 
+export const AmneziaWGLogsSchema = z.object({
+  events: z.array(z.string()),
+  peers: z.array(z.lazy(() => PeerActivitySchema)),
+  running: z.boolean(),
+});
+export type AmneziaWGLogs = z.infer<typeof AmneziaWGLogsSchema>;
+
 export const ApiTokenSchema = z.object({
   createdAt: z.number().int(),
   enabled: z.boolean(),
@@ -706,6 +713,20 @@ export const PanelUpdateStatusSchema = z.object({
   state: z.string(),
 });
 export type PanelUpdateStatus = z.infer<typeof PanelUpdateStatusSchema>;
+
+export const PeerActivitySchema = z.object({
+  allowedIPs: z.string(),
+  down: z.number().int(),
+  email: z.string(),
+  endpoint: z.string(),
+  handshake: z.number().int(),
+  inboundId: z.number().int(),
+  interface: z.string(),
+  online: z.boolean(),
+  tag: z.string(),
+  up: z.number().int(),
+});
+export type PeerActivity = z.infer<typeof PeerActivitySchema>;
 
 export const ProbeResultUISchema = z.object({
   cpuPct: z.number(),

@@ -221,6 +221,26 @@ export const EXAMPLES: Record<string, unknown> = {
     "webListen": "",
     "webPort": 1
   },
+  "AmneziaWGLogs": {
+    "events": [
+      "2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1"
+    ],
+    "peers": [
+      {
+        "allowedIPs": "10.8.1.2/32",
+        "down": 4194304,
+        "email": "peer@example.com",
+        "endpoint": "203.0.113.9:51820",
+        "handshake": 1735732800000,
+        "inboundId": 1,
+        "interface": "awg1",
+        "online": true,
+        "tag": "inbound-51820",
+        "up": 1048576
+      }
+    ],
+    "running": true
+  },
   "ApiToken": {
     "createdAt": 0,
     "enabled": false,
@@ -692,6 +712,18 @@ export const EXAMPLES: Record<string, unknown> = {
     "finishedAt": 1735689612,
     "runId": "1735689600123456789",
     "state": "success"
+  },
+  "PeerActivity": {
+    "allowedIPs": "10.8.1.2/32",
+    "down": 4194304,
+    "email": "peer@example.com",
+    "endpoint": "203.0.113.9:51820",
+    "handshake": 1735732800000,
+    "inboundId": 1,
+    "interface": "awg1",
+    "online": true,
+    "tag": "inbound-51820",
+    "up": 1048576
   },
   "ProbeResultUI": {
     "cpuPct": 12.5,

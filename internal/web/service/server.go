@@ -1192,17 +1192,17 @@ func parseAccessLogFields(line string) LogEntry {
 // counterpart of an Xray access-log entry: a tunnel logs no requests, only
 // handshakes and bytes.
 type PeerActivity struct {
-	Interface  string `json:"interface"`
-	Tag        string `json:"tag"`
-	InboundId  int    `json:"inboundId"`
-	Email      string `json:"email"`
-	Endpoint   string `json:"endpoint"`
-	AllowedIPs string `json:"allowedIPs"`
+	Interface  string `json:"interface" example:"awg1"`
+	Tag        string `json:"tag" example:"inbound-51820"`
+	InboundId  int    `json:"inboundId" example:"1"`
+	Email      string `json:"email" example:"peer@example.com"`
+	Endpoint   string `json:"endpoint" example:"203.0.113.9:51820"`
+	AllowedIPs string `json:"allowedIPs" example:"10.8.1.2/32"`
 	// Handshake is unix milliseconds, 0 when the peer has never connected.
-	Handshake int64 `json:"handshake"`
-	Up        int64 `json:"up"`
-	Down      int64 `json:"down"`
-	Online    bool  `json:"online"`
+	Handshake int64 `json:"handshake" example:"1735732800000"`
+	Up        int64 `json:"up" example:"1048576"`
+	Down      int64 `json:"down" example:"4194304"`
+	Online    bool  `json:"online" example:"true"`
 }
 
 // amneziawgOnlineWindow mirrors the standard WireGuard convention (and this
@@ -1216,8 +1216,8 @@ const amneziawgOnlineWindow = 180 * time.Second
 // from Peers at all.
 type AmneziaWGLogs struct {
 	Peers   []PeerActivity `json:"peers"`
-	Events  []string       `json:"events"`
-	Running bool           `json:"running"`
+	Events  []string       `json:"events" example:"[\"2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1\"]"`
+	Running bool           `json:"running" example:"true"`
 }
 
 // amneziawgEventMarker selects the panel's own AmneziaWG log lines: every

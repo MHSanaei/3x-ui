@@ -231,6 +231,12 @@ export interface AllSettingView {
   webPort: number;
 }
 
+export interface AmneziaWGLogs {
+  events: string[];
+  peers: PeerActivity[];
+  running: boolean;
+}
+
 export interface ApiToken {
   createdAt: number;
   enabled: boolean;
@@ -660,6 +666,19 @@ export interface PanelUpdateStatus {
   finishedAt: number;
   runId: string;
   state: string;
+}
+
+export interface PeerActivity {
+  allowedIPs: string;
+  down: number;
+  email: string;
+  endpoint: string;
+  handshake: number;
+  inboundId: number;
+  interface: string;
+  online: boolean;
+  tag: string;
+  up: number;
 }
 
 export interface ProbeResultUI {

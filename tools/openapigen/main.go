@@ -95,6 +95,8 @@ func run(root, outDir string) error {
 				"ProbeResultUI",
 				"RealityScanResult",
 				"GeodataTokenIssue",
+				"AmneziaWGLogs",
+				"PeerActivity",
 			),
 		},
 		{

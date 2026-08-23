@@ -944,6 +944,36 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "AmneziaWGLogs": {
+    "description": "AmneziaWGLogs is what the overview's AmneziaWG log view renders: the live\nper-peer activity of every running embedded interface, plus the panel's\nown recent AmneziaWG lifecycle log lines that explain a peer being absent\nfrom Peers at all.",
+    "properties": {
+      "events": {
+        "example": [
+          "2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "peers": {
+        "items": {
+          "$ref": "#/components/schemas/PeerActivity"
+        },
+        "type": "array"
+      },
+      "running": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "events",
+      "peers",
+      "running"
+    ],
+    "type": "object"
+  },
   "ApiToken": {
     "properties": {
       "createdAt": {
@@ -2912,6 +2942,68 @@ export const SCHEMAS: Record<string, unknown> = {
       "finishedAt",
       "runId",
       "state"
+    ],
+    "type": "object"
+  },
+  "PeerActivity": {
+    "description": "PeerActivity is one peer's live embedded-Device-reported state, the\ncounterpart of an Xray access-log entry: a tunnel logs no requests, only\nhandshakes and bytes.",
+    "properties": {
+      "allowedIPs": {
+        "example": "10.8.1.2/32",
+        "type": "string"
+      },
+      "down": {
+        "example": 4194304,
+        "format": "int64",
+        "type": "integer"
+      },
+      "email": {
+        "example": "peer@example.com",
+        "type": "string"
+      },
+      "endpoint": {
+        "example": "203.0.113.9:51820",
+        "type": "string"
+      },
+      "handshake": {
+        "description": "Handshake is unix milliseconds, 0 when the peer has never connected.",
+        "example": 1735732800000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "inboundId": {
+        "example": 1,
+        "type": "integer"
+      },
+      "interface": {
+        "example": "awg1",
+        "type": "string"
+      },
+      "online": {
+        "example": true,
+        "type": "boolean"
+      },
+      "tag": {
+        "example": "inbound-51820",
+        "type": "string"
+      },
+      "up": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "allowedIPs",
+      "down",
+      "email",
+      "endpoint",
+      "handshake",
+      "inboundId",
+      "interface",
+      "online",
+      "tag",
+      "up"
     ],
     "type": "object"
   },

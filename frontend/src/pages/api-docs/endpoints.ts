@@ -628,8 +628,7 @@ export const sections: readonly Section[] = [
           },
         ],
         body: 'filter=awg1',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "peers": [\n      {\n        "interface": "awg1",\n        "tag": "inbound-51820",\n        "inboundId": 1,\n        "email": "peer@example.com",\n        "endpoint": "203.0.113.9:51820",\n        "allowedIPs": "10.8.1.2/32",\n        "handshake": 1735732800000,\n        "up": 1048576,\n        "down": 4194304,\n        "online": true\n      }\n    ],\n    "events": ["2025/01/01 12:00:00 INFO - amneziawg: started interface awg1 for inbound 1"],\n    "running": true\n  }\n}',
+        responseSchema: 'AmneziaWGLogs',
       },
       {
         method: 'POST',

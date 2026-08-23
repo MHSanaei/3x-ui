@@ -7,31 +7,13 @@ import { HttpUtil, FileManager, IntlUtil, PromiseUtil, SizeFormatter } from '@/u
 import { activateOnKey } from '@/utils/a11y';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import type { AmneziaWGLogs } from '@/generated/types';
 import './XrayLogModal.css';
 import './AmneziaWGLogModal.css';
 
 interface AmneziaWGLogModalProps {
   open: boolean;
   onClose: () => void;
-}
-
-interface AmneziaWGPeerActivity {
-  interface?: string;
-  tag?: string;
-  inboundId?: number;
-  email?: string;
-  endpoint?: string;
-  allowedIPs?: string;
-  handshake?: number;
-  up?: number;
-  down?: number;
-  online?: boolean;
-}
-
-interface AmneziaWGLogs {
-  peers?: AmneziaWGPeerActivity[];
-  events?: string[];
-  running?: boolean;
 }
 
 const AUTO_UPDATE_INTERVAL = 5000;
@@ -54,7 +36,7 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
   const [filter, setFilter] = useState('');
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState<AmneziaWGLogs>({});
+  const [logs, setLogs] = useState<Partial<AmneziaWGLogs>>({});
 
   const peers = useMemo(() => logs.peers ?? [], [logs.peers]);
   const events = useMemo(() => logs.events ?? [], [logs.events]);
