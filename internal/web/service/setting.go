@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/frontproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
@@ -130,6 +132,18 @@ var defaultValueMap = map[string]string{
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
 	"panelOutbound":               "",
 	"devChannelEnable":            "false",
+
+	// Front-door defaults. Off by default: enabling it only makes sense
+	// once REALITY's fallback target actually points at frontProxyPort.
+	"frontProxyEnable":        "false",
+	"frontProxyListen":        "127.0.0.1",
+	"frontProxyPort":          "7443",
+	"frontProxyCertMode":      "manual",
+	"frontProxyDomain":        "",
+	"frontProxyEmail":         "",
+	"frontProxyDecoyMode":     "template",
+	"frontProxyDecoyTemplate": "maintenance",
+	"frontProxyDecoyProxyURL": "",
 
 	// LDAP defaults
 	"ldapEnable":             "false",
@@ -990,6 +1004,106 @@ func (s *SettingService) GetTorEnable() (bool, error) {
 
 func (s *SettingService) SetTorEnable(value bool) error {
 	return s.setBool("torEnable", value)
+}
+
+// GetFrontProxyEnable reports whether the front door should be listening.
+// Read at boot to restore whatever state the admin last left it in.
+func (s *SettingService) GetFrontProxyEnable() (bool, error) {
+	return s.getBool("frontProxyEnable")
+}
+
+func (s *SettingService) SetFrontProxyEnable(value bool) error {
+	return s.setBool("frontProxyEnable", value)
+}
+
+func (s *SettingService) GetFrontProxyListen() (string, error) {
+	return s.getString("frontProxyListen")
+}
+
+func (s *SettingService) SetFrontProxyListen(value string) error {
+	return s.setString("frontProxyListen", value)
+}
+
+// GetFrontProxyPort is the loopback port an admin puts into a REALITY
+// inbound's target field as 127.0.0.1:<port>.
+func (s *SettingService) GetFrontProxyPort() (int, error) {
+	return s.getInt("frontProxyPort")
+}
+
+func (s *SettingService) SetFrontProxyPort(value int) error {
+	if value <= 0 || value > 65535 {
+		return common.NewErrorf("invalid front proxy port: %v", value)
+	}
+	return s.setInt("frontProxyPort", value)
+}
+
+// GetFrontProxyCertMode is "manual" (admin-managed files) or "auto" (ACME).
+func (s *SettingService) GetFrontProxyCertMode() (string, error) {
+	return s.getString("frontProxyCertMode")
+}
+
+func (s *SettingService) SetFrontProxyCertMode(value string) error {
+	if value != string(frontproxy.CertManual) && value != string(frontproxy.CertAuto) {
+		return common.NewErrorf("invalid front proxy cert mode: %v", value)
+	}
+	return s.setString("frontProxyCertMode", value)
+}
+
+func (s *SettingService) GetFrontProxyDomain() (string, error) {
+	return s.getString("frontProxyDomain")
+}
+
+func (s *SettingService) SetFrontProxyDomain(value string) error {
+	return s.setString("frontProxyDomain", value)
+}
+
+func (s *SettingService) GetFrontProxyEmail() (string, error) {
+	return s.getString("frontProxyEmail")
+}
+
+func (s *SettingService) SetFrontProxyEmail(value string) error {
+	return s.setString("frontProxyEmail", value)
+}
+
+// GetFrontProxyDecoyMode is "template", "upload" or "proxy".
+func (s *SettingService) GetFrontProxyDecoyMode() (string, error) {
+	return s.getString("frontProxyDecoyMode")
+}
+
+func (s *SettingService) SetFrontProxyDecoyMode(value string) error {
+	switch frontproxy.DecoyMode(value) {
+	case frontproxy.DecoyTemplate, frontproxy.DecoyUpload, frontproxy.DecoyProxy:
+		return s.setString("frontProxyDecoyMode", value)
+	}
+	return common.NewErrorf("invalid front proxy decoy mode: %v", value)
+}
+
+func (s *SettingService) GetFrontProxyDecoyTemplate() (string, error) {
+	return s.getString("frontProxyDecoyTemplate")
+}
+
+// SetFrontProxyDecoyTemplate accepts only a name the package actually
+// embeds, so the UI can never persist a choice that silently degrades.
+func (s *SettingService) SetFrontProxyDecoyTemplate(value string) error {
+	if !slices.Contains(frontproxy.DecoyTemplateNames(), value) {
+		return common.NewErrorf("unknown front proxy decoy template: %v", value)
+	}
+	return s.setString("frontProxyDecoyTemplate", value)
+}
+
+func (s *SettingService) GetFrontProxyDecoyProxyURL() (string, error) {
+	return s.getString("frontProxyDecoyProxyURL")
+}
+
+func (s *SettingService) SetFrontProxyDecoyProxyURL(value string) error {
+	if value == "" {
+		return s.setString("frontProxyDecoyProxyURL", "")
+	}
+	clean, err := SanitizePublicHTTPURL(value, false)
+	if err != nil {
+		return err
+	}
+	return s.setString("frontProxyDecoyProxyURL", clean)
 }
 
 // GetIpLimitEnable reports whether the IP-limit feature is available. Always
