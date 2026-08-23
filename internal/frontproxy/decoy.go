@@ -146,16 +146,15 @@ func newProxyDecoy(raw string) (http.Handler, error) {
 	if target.Host == "" {
 		return nil, fmt.Errorf("decoy proxy URL has no host")
 	}
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	// Present the upstream's own hostname so name-based virtual hosting on
-	// the far side resolves to the site the admin actually pointed at.
-	director := proxy.Director
-	proxy.Director = func(r *http.Request) {
-		director(r)
-		r.Host = target.Host
-	}
-	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, _ error) {
-		w.WriteHeader(http.StatusBadGateway)
-	}
-	return proxy, nil
+	return &httputil.ReverseProxy{
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			// SetURL leaves Host derived from the target, which is exactly
+			// what name-based virtual hosting on the far side needs.
+			pr.SetURL(target)
+			pr.SetXForwarded()
+		},
+		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, _ error) {
+			w.WriteHeader(http.StatusBadGateway)
+		},
+	}, nil
 }

@@ -14,7 +14,8 @@ import (
 func upstreamOn(t *testing.T, marker string) int {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(marker + " " + r.URL.Path + " proto=" + r.Header.Get("X-Forwarded-Proto")))
+		_, _ = w.Write([]byte(marker + " " + r.URL.Path +
+			" proto=" + r.Header.Get("X-Forwarded-Proto") + " host=" + r.Host))
 	}))
 	t.Cleanup(srv.Close)
 	_, portStr, err := net.SplitHostPort(strings.TrimPrefix(srv.URL, "http://"))
@@ -68,6 +69,21 @@ func TestHandlerMarksForwardedProtoHTTPS(t *testing.T) {
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/p/x", nil))
 	if !strings.Contains(rec.Body.String(), "proto=https") {
 		t.Errorf("X-Forwarded-Proto not set to https, got %q", rec.Body.String())
+	}
+}
+
+// The panel must see the hostname the client actually asked for, not the
+// loopback target, or it builds its links and cookies against 127.0.0.1.
+func TestHandlerPreservesClientHost(t *testing.T) {
+	panelPort := upstreamOn(t, "PANEL")
+	h := newHandler(Config{PanelBasePath: "/p/", PanelPort: panelPort}, DecoyConfig{})
+
+	req := httptest.NewRequest(http.MethodGet, "/p/x", nil)
+	req.Host = "panel.example.com"
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if !strings.Contains(rec.Body.String(), "host=panel.example.com") {
+		t.Errorf("client Host not forwarded, got %q", rec.Body.String())
 	}
 }
 

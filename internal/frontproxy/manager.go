@@ -145,17 +145,20 @@ func newHandler(routing Config, decoy DecoyConfig) http.Handler {
 // ReverseProxy tunnels Upgrade requests itself, which the panel's /ws needs.
 func newLoopbackProxy(port int) http.Handler {
 	target := &url.URL{Scheme: "http", Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port))}
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	director := proxy.Director
-	proxy.Director = func(r *http.Request) {
-		director(r)
-		// The hop to the panel is plaintext loopback, but the client's
-		// connection was TLS; without this the panel builds http:// links.
-		r.Header.Set("X-Forwarded-Proto", "https")
+	return &httputil.ReverseProxy{
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			pr.SetURL(target)
+			// SetURL would leave Host pointing at the loopback target; the
+			// panel needs the name the client asked for to build its links.
+			pr.Out.Host = pr.In.Host
+			pr.SetXForwarded()
+			// The hop itself is plaintext loopback, but this listener only
+			// ever serves TLS, so the client's side was always https.
+			pr.Out.Header.Set("X-Forwarded-Proto", "https")
+		},
+		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
+			logger.Warningf("frontproxy: upstream 127.0.0.1:%d unreachable: %v", port, err)
+			w.WriteHeader(http.StatusBadGateway)
+		},
 	}
-	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
-		logger.Warningf("frontproxy: upstream 127.0.0.1:%d unreachable: %v", port, err)
-		w.WriteHeader(http.StatusBadGateway)
-	}
-	return proxy
 }
