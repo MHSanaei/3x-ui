@@ -32,9 +32,9 @@ describe('generateAwgObfuscation', () => {
       expect(o.jmax - o.jmin).toBeGreaterThanOrEqual(50);
       expect(o.jmax - o.jmin).toBeLessThanOrEqual(250);
       expect(o.s1 + 56).not.toBe(o.s2);
-      expect(o.s3).toBeGreaterThanOrEqual(8);
+      expect(o.s3).toBeGreaterThanOrEqual(12);
       expect(o.s3).toBeLessThanOrEqual(55);
-      expect(o.s4).toBeGreaterThanOrEqual(4);
+      expect(o.s4).toBeGreaterThanOrEqual(12);
       expect(o.s4).toBeLessThanOrEqual(27);
 
       const hBounds = [o.h1, o.h2, o.h3, o.h4].map((h) => expectRangeWithin(h, 5, 2147483647));
