@@ -6,6 +6,7 @@ import { Drawer, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
+  ApartmentOutlined,
   CloseOutlined,
   CloudServerOutlined,
   ClusterOutlined,
@@ -177,6 +178,7 @@ export default function AppSidebar() {
   const { pathname, hash } = useLocation();
   const { allSetting } = useAllSettings();
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
+  const showSubBalancers = !!allSetting.subJsonEnable;
 
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
   const [pinned, setPinned] = useState(readSidebarPinned);
@@ -262,8 +264,15 @@ export default function AppSidebar() {
         label: t('menu.subFormats'),
       });
     }
+    if (showSubBalancers) {
+      children.push({
+        key: '/settings#subscription-balancers',
+        icon: <ApartmentOutlined />,
+        label: t('pages.settings.subBalancers.menu'),
+      });
+    }
     return children;
-  }, [t, showSubFormats]);
+  }, [t, showSubFormats, showSubBalancers]);
 
   const xrayChildren = useMemo<NonNullable<MenuProps['items']>>(
     () => [

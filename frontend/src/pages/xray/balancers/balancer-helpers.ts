@@ -13,7 +13,7 @@ export const DEFAULT_BURST_OBSERVATORY = Object.freeze({
   pingConfig: {
     destination: 'https://www.google.com/generate_204',
     interval: '1m',
-    connectivity: 'http://connectivitycheck.platform.hicloud.com/generate_204',
+    connectivity: '',
     timeout: '5s',
     sampling: 2,
     httpMethod: 'HEAD',

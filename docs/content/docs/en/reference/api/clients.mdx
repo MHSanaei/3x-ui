@@ -14,18 +14,24 @@ _openapi:
         JSON-encoded-string form is still accepted on write).
       url: '#list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write'
     - depth: 2
-      title: Filter, sort, and paginate clients on the server. Each item is a slim row
-        (no uuid/password/auth/flow/security/reverse/tgId) so the clients page
-        can ship 25-ish rows in a few KB instead of the full table. The response
-        also includes a summary computed across the full DB row set so dashboard
-        counters stay stable as the user paginates or filters. Page size capped
-        at 200; fetch /get/:email to obtain the full per-client payload for an
-        edit/info modal.
-      url: '#filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal'
+      title: 'Filter, sort, and paginate clients on the server. Each item is a slim
+        row (no uuid/password/auth/flow/security/reverse/tgId) so the clients
+        page can ship 25-ish rows in a few KB instead of the full table. The
+        response also includes a summary computed across the full DB row set so
+        dashboard counters stay stable as the user paginates or filters: the
+        *Count fields are exact, while the email arrays beside them stop at 200
+        entries so the payload does not grow with the panel. Page size capped at
+        200; fetch /get/:email to obtain the full per-client payload for an
+        edit/info modal.'
+      url: '#filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-the-count-fields-are-exact-while-the-email-arrays-beside-them-stop-at-200-entries-so-the-payload-does-not-grow-with-the-panel-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal'
     - depth: 2
       title: Fetch one client by email, including the inbound IDs and external config
         IDs it is attached to.
       url: '#fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to'
+    - depth: 2
+      title: Fetch clients by Telegram user ID. Returns an array since multiple
+        clients can share the same Telegram ID.
+      url: '#fetch-clients-by-telegram-user-id-returns-an-array-since-multiple-clients-can-share-the-same-telegram-id'
     - depth: 2
       title: Create a new client and attach it to one or more inbounds in a single
         call. Body is JSON. Per-protocol secrets are generated server-side when
@@ -48,10 +54,10 @@ _openapi:
       title: Detach a client from one or more inbounds without deleting the client.
       url: '#detach-a-client-from-one-or-more-inbounds-without-deleting-the-client'
     - depth: 2
-      title: Replace a client's external links (per-client share links and remote
-        subscription URLs surfaced in their subscription). Sends the full set;
-        the server replaces all rows.
-      url: '#replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows'
+      title: Replace a client's external links and external subscriptions. Sends the
+        full set; the server replaces all rows. Disabled rows stay saved for
+        editing but are not emitted in generated subscriptions.
+      url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions'
     - depth: 2
       title: Reset the up/down counters for every client globally. Quotas and expiry
         are not affected. Triggers an Xray restart if any counter actually
@@ -64,10 +70,10 @@ _openapi:
       url: '#delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound'
     - depth: 2
       title: Delete every client that is not attached to any inbound, along with its
-        traffic record, IP log, and external links. Useful for clearing clients
-        left unattached after their inbounds were removed. Returns the deleted
-        count. Cannot be undone.
-      url: '#delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone'
+        traffic record, IP log, HWID devices, and external links. Useful for
+        clearing clients left unattached after their inbounds were removed.
+        Returns the deleted count. Cannot be undone.
+      url: '#delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone'
     - depth: 2
       title: Return every client as a {client, inboundIds} array — the same shape
         /bulkCreate and /import accept — so the payload round-trips straight
@@ -88,12 +94,16 @@ _openapi:
       title: 'Shift expiry and/or traffic quota for many clients in one call.
         addDays/addBytes may be negative. Clients with unlimited expiry
         (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the
-        corresponding field — bulk extend never converts unlimited to limited.
-        The optional flow directive sets the XTLS flow on every client: "none"
-        clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the
-        inbound supports it (omit or "" to leave it unchanged). Returns the
-        adjusted count and per-email skip reasons.'
-      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons'
+        corresponding field — bulk extend never converts unlimited to limited. A
+        client that was auto-disabled solely because it was depleted (expired or
+        over quota) is automatically re-enabled — locally and on its node — when
+        the adjustment lifts it out of depletion; a manually-disabled or
+        still-depleted client is left disabled. The optional flow directive sets
+        the XTLS flow on every client: "none" clears it,
+        "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound
+        supports it (omit or "" to leave it unchanged). Returns the adjusted
+        count and per-email skip reasons.'
+      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons'
     - depth: 2
       title: Enable many clients in one call. Emails are grouped by inbound and
         applied with a single read-modify-write per inbound; the running Xray
@@ -189,6 +199,13 @@ _openapi:
         label was cleared.
       url: '#remove-a-group-deletes-the-client_groups-row-and-clears-the-group-label-from-every-matching-client-both-clientsgroup_name-and-the-inbound-settings-json-the-clients-themselves-are-not-deleted--use-bulkdel-after-filtering-by-group-for-that-returns-the-count-of-clients-whose-label-was-cleared'
     - depth: 2
+      title: Reset only the group-level traffic counter shown on the groups page.
+        Snapshots the current up/down sum of the group's members as a baseline
+        so the group total reads zero, while leaving each client's own counters
+        (and their quotas) untouched. No Xray restart is triggered. Creates the
+        client_groups row if the group exists only as a derived label.
+      url: '#reset-only-the-group-level-traffic-counter-shown-on-the-groups-page-snapshots-the-current-updown-sum-of-the-groups-members-as-a-baseline-so-the-group-total-reads-zero-while-leaving-each-clients-own-counters-and-their-quotas-untouched-no-xray-restart-is-triggered-creates-the-client_groups-row-if-the-group-exists-only-as-a-derived-label'
+    - depth: 2
       title: Zero out a single client’s up/down counters. Re-enables the client across
         every attached inbound and pushes the change to Xray (or the remote
         node) so depleted users can connect again immediately.
@@ -204,6 +221,17 @@ _openapi:
     - depth: 2
       title: Reset the recorded IP list for a client.
       url: '#reset-the-recorded-ip-list-for-a-client'
+    - depth: 2
+      title: List registered HWID devices for a client. Hashes are not exposed.
+      url: '#list-registered-hwid-devices-for-a-client-hashes-are-not-exposed'
+    - depth: 2
+      title: Clear all registered HWID devices for a client so new devices can
+        register again.
+      url: '#clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again'
+    - depth: 2
+      title: Remove a single registered HWID device by its id, freeing one slot under
+        the HWID limit.
+      url: '#remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit'
     - depth: 2
       title: List the emails of currently connected clients (last seen within the
         heartbeat window), deduped across every node.
@@ -248,34 +276,28 @@ _openapi:
         Protocols without a URL form (socks, http, mixed, wireguard, dokodemo,
         tunnel) contribute nothing.'
       url: '#return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing'
-    - depth: 2
-      title: List registered HWID devices for a client. Hashes are not exposed.
-      url: '#list-registered-hwid-devices-for-a-client-hashes-are-not-exposed'
-    - depth: 2
-      title: Clear all registered HWID devices for a client so new devices can
-        register again.
-      url: '#clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again'
-    - depth: 2
-      title: Remove a single registered HWID device by its id, freeing one slot under
-        the HWID limit.
-      url: '#remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit'
   structuredData:
     headings:
       - content: List every client with its attached inbound IDs and traffic record. The
           reverse field, if set, is returned as a nested JSON object (legacy
           JSON-encoded-string form is still accepted on write).
         id: list-every-client-with-its-attached-inbound-ids-and-traffic-record-the-reverse-field-if-set-is-returned-as-a-nested-json-object-legacy-json-encoded-string-form-is-still-accepted-on-write
-      - content: Filter, sort, and paginate clients on the server. Each item is a slim
+      - content: 'Filter, sort, and paginate clients on the server. Each item is a slim
           row (no uuid/password/auth/flow/security/reverse/tgId) so the clients
           page can ship 25-ish rows in a few KB instead of the full table. The
           response also includes a summary computed across the full DB row set
-          so dashboard counters stay stable as the user paginates or filters.
-          Page size capped at 200; fetch /get/:email to obtain the full
-          per-client payload for an edit/info modal.
-        id: filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal
+          so dashboard counters stay stable as the user paginates or filters:
+          the *Count fields are exact, while the email arrays beside them stop
+          at 200 entries so the payload does not grow with the panel. Page size
+          capped at 200; fetch /get/:email to obtain the full per-client payload
+          for an edit/info modal.'
+        id: filter-sort-and-paginate-clients-on-the-server-each-item-is-a-slim-row-no-uuidpasswordauthflowsecurityreversetgid-so-the-clients-page-can-ship-25-ish-rows-in-a-few-kb-instead-of-the-full-table-the-response-also-includes-a-summary-computed-across-the-full-db-row-set-so-dashboard-counters-stay-stable-as-the-user-paginates-or-filters-the-count-fields-are-exact-while-the-email-arrays-beside-them-stop-at-200-entries-so-the-payload-does-not-grow-with-the-panel-page-size-capped-at-200-fetch-getemail-to-obtain-the-full-per-client-payload-for-an-editinfo-modal
       - content: Fetch one client by email, including the inbound IDs and external
           config IDs it is attached to.
         id: fetch-one-client-by-email-including-the-inbound-ids-and-external-config-ids-it-is-attached-to
+      - content: Fetch clients by Telegram user ID. Returns an array since multiple
+          clients can share the same Telegram ID.
+        id: fetch-clients-by-telegram-user-id-returns-an-array-since-multiple-clients-can-share-the-same-telegram-id
       - content: Create a new client and attach it to one or more inbounds in a single
           call. Body is JSON. Per-protocol secrets are generated server-side
           when omitted, so callers can send only the universal fields.
@@ -293,10 +315,10 @@ _openapi:
         id: attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
       - content: Detach a client from one or more inbounds without deleting the client.
         id: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
-      - content: Replace a client's external links (per-client share links and remote
-          subscription URLs surfaced in their subscription). Sends the full set;
-          the server replaces all rows.
-        id: replace-a-clients-external-links-per-client-share-links-and-remote-subscription-urls-surfaced-in-their-subscription-sends-the-full-set-the-server-replaces-all-rows
+      - content: Replace a client's external links and external subscriptions. Sends the
+          full set; the server replaces all rows. Disabled rows stay saved for
+          editing but are not emitted in generated subscriptions.
+        id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions
       - content: Reset the up/down counters for every client globally. Quotas and expiry
           are not affected. Triggers an Xray restart if any counter actually
           moved.
@@ -307,10 +329,10 @@ _openapi:
           running inbound.
         id: delete-every-client-whose-traffic-quota-is-exhausted-used--total-when-reset-is-disabled-or-whose-expiry-has-passed-returns-the-deleted-count-and-triggers-an-xray-restart-when-any-client-was-on-a-running-inbound
       - content: Delete every client that is not attached to any inbound, along with its
-          traffic record, IP log, and external links. Useful for clearing
-          clients left unattached after their inbounds were removed. Returns the
-          deleted count. Cannot be undone.
-        id: delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
+          traffic record, IP log, HWID devices, and external links. Useful for
+          clearing clients left unattached after their inbounds were removed.
+          Returns the deleted count. Cannot be undone.
+        id: delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
       - content: Return every client as a {client, inboundIds} array — the same shape
           /bulkCreate and /import accept — so the payload round-trips straight
           back through /import. Clients with no inbound attachment are included
@@ -329,11 +351,15 @@ _openapi:
           addDays/addBytes may be negative. Clients with unlimited expiry
           (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the
           corresponding field — bulk extend never converts unlimited to limited.
-          The optional flow directive sets the XTLS flow on every client: "none"
+          A client that was auto-disabled solely because it was depleted
+          (expired or over quota) is automatically re-enabled — locally and on
+          its node — when the adjustment lifts it out of depletion; a
+          manually-disabled or still-depleted client is left disabled. The
+          optional flow directive sets the XTLS flow on every client: "none"
           clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where
           the inbound supports it (omit or "" to leave it unchanged). Returns
           the adjusted count and per-email skip reasons.'
-        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
+        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
       - content: Enable many clients in one call. Emails are grouped by inbound and
           applied with a single read-modify-write per inbound; the running Xray
           (local or remote node) is updated to add each user. Note that enabling
@@ -417,6 +443,13 @@ _openapi:
           /bulkDel after filtering by group for that. Returns the count of
           clients whose label was cleared.
         id: remove-a-group-deletes-the-client_groups-row-and-clears-the-group-label-from-every-matching-client-both-clientsgroup_name-and-the-inbound-settings-json-the-clients-themselves-are-not-deleted--use-bulkdel-after-filtering-by-group-for-that-returns-the-count-of-clients-whose-label-was-cleared
+      - content: Reset only the group-level traffic counter shown on the groups page.
+          Snapshots the current up/down sum of the group's members as a baseline
+          so the group total reads zero, while leaving each client's own
+          counters (and their quotas) untouched. No Xray restart is triggered.
+          Creates the client_groups row if the group exists only as a derived
+          label.
+        id: reset-only-the-group-level-traffic-counter-shown-on-the-groups-page-snapshots-the-current-updown-sum-of-the-groups-members-as-a-baseline-so-the-group-total-reads-zero-while-leaving-each-clients-own-counters-and-their-quotas-untouched-no-xray-restart-is-triggered-creates-the-client_groups-row-if-the-group-exists-only-as-a-derived-label
       - content: Zero out a single client’s up/down counters. Re-enables the client
           across every attached inbound and pushes the change to Xray (or the
           remote node) so depleted users can connect again immediately.
@@ -429,6 +462,14 @@ _openapi:
         id: list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
       - content: Reset the recorded IP list for a client.
         id: reset-the-recorded-ip-list-for-a-client
+      - content: List registered HWID devices for a client. Hashes are not exposed.
+        id: list-registered-hwid-devices-for-a-client-hashes-are-not-exposed
+      - content: Clear all registered HWID devices for a client so new devices can
+          register again.
+        id: clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again
+      - content: Remove a single registered HWID device by its id, freeing one slot
+          under the HWID limit.
+        id: remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit
       - content: List the emails of currently connected clients (last seen within the
           heartbeat window), deduped across every node.
         id: list-the-emails-of-currently-connected-clients-last-seen-within-the-heartbeat-window-deduped-across-every-node
@@ -466,14 +507,6 @@ _openapi:
           proxy. Protocols without a URL form (socks, http, mixed, wireguard,
           dokodemo, tunnel) contribute nothing.'
         id: return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
-      - content: List registered HWID devices for a client. Hashes are not exposed.
-        id: list-registered-hwid-devices-for-a-client-hashes-are-not-exposed
-      - content: Clear all registered HWID devices for a client so new devices can
-          register again.
-        id: clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again
-      - content: Remove a single registered HWID device by its id, freeing one slot
-          under the HWID limit.
-        id: remove-a-single-registered-hwid-device-by-its-id-freeing-one-slot-under-the-hwid-limit
     contents:
       - content: >-
           Fields the server fills in when they are omitted — a valid value sent
@@ -536,7 +569,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/links/{email}","method":"get"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -1187,6 +1188,22 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		}
 		if err := tx.Where("inbound_id = ?", id).Delete(&model.Host{}).Error; err != nil {
 			return err
+		}
+		// Drop the deleted inbound from any sub-balancer that selects it; a
+		// dangling id would emit a member no subscriber can resolve (#5648).
+		var balancers []model.SubBalancer
+		if err := tx.Find(&balancers).Error; err != nil {
+			return err
+		}
+		for i := range balancers {
+			before := balancers[i].InboundIds
+			balancers[i].InboundIds = slices.DeleteFunc(before, func(b int) bool { return b == id })
+			if len(balancers[i].InboundIds) == len(before) {
+				continue
+			}
+			if err := tx.Save(&balancers[i]).Error; err != nil {
+				return err
+			}
 		}
 		if loadErr == nil && ib.NodeID != nil {
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *ib.NodeID)
