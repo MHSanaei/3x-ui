@@ -112,4 +112,35 @@ describe('AmneziaWG .conf emitters agree on the peer block', () => {
       peerFields(buildAmneziaWGClientConfig(clientWithoutPsk, inbound, 'awg.example.test')),
     ).toEqual(want);
   });
+
+  // amneziawg-tools' parse_bool (src/config.c) takes on/off and 0/1 only --
+  // anything else prints "Boolean value is neither on/off nor 0/1", returns
+  // false, and config_read_line then frees the device and fails the read. So a
+  // "= true" here does not degrade the tunnel, it makes the whole .conf
+  // unloadable. Both emitters carried that form until the v3.7.0 sync.
+  it('emits the AWG 3.1 booleans in the only form the real parser accepts', () => {
+    const awg31 = {
+      ...settings,
+      server: { ...settings.server, randomTrailers: true, disableCookies: true },
+    } as AmneziawgInboundSettings;
+    const fromLink = genAmneziaWGConfig({
+      settings: awg31,
+      address: 'awg.example.test',
+      port: 51820,
+      remark: 'awg-peer-1',
+      peerIndex: 0,
+    });
+    const fromClientsPage = buildAmneziaWGClientConfig(
+      client,
+      { ...inbound, awgServer: awg31.server } as unknown as InboundOption,
+      'awg.example.test',
+    );
+
+    for (const conf of [fromLink, fromClientsPage]) {
+      expect(conf).toContain('RandomTrailers = on');
+      expect(conf).toContain('DisableCookies = on');
+      expect(conf).not.toMatch(/RandomTrailers\s*=\s*(true|false)/);
+      expect(conf).not.toMatch(/DisableCookies\s*=\s*(true|false)/);
+    }
+  });
 });
