@@ -236,3 +236,39 @@ func (s *InboundService) ClearClientIps(clientEmail string) error {
 	}
 	return nil
 }
+
+// PruneStaleClientIps enforces clientIpStaleAfterSeconds for rows the online
+// scan no longer rewrites: an offline client's addresses must still expire.
+func (s *InboundService) PruneStaleClientIps() error {
+	db := database.GetDB()
+	cutoff := time.Now().Unix() - clientIpStaleAfterSeconds
+
+	var rows []model.InboundClientIps
+	if err := db.Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		var entries []clientIpEntry
+		if row.Ips != "" {
+			// Legacy blobs without timestamps stay untouched; the next scan rewrites them.
+			if err := json.Unmarshal([]byte(row.Ips), &entries); err != nil {
+				continue
+			}
+		}
+		kept := mergeClientIpEntries(nil, entries, cutoff)
+		if len(kept) == 0 {
+			if err := db.Delete(&model.InboundClientIps{}, row.Id).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if len(kept) == len(entries) {
+			continue
+		}
+		b, _ := json.Marshal(kept)
+		if err := db.Model(&model.InboundClientIps{}).Where("id = ?", row.Id).Update("ips", string(b)).Error; err != nil {
+			return err
+		}
+	}
+	return pruneStaleNodeClientIps(cutoff)
+}

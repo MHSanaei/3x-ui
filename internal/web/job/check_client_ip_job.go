@@ -36,6 +36,7 @@ type CheckClientIpJob struct {
 	bannedSeen    map[string]int64
 	xrayService   service.XrayService
 	allowlist     ipLimitAllowlist
+	lastIpPrune   int64
 }
 
 var job *CheckClientIpJob
@@ -44,6 +45,9 @@ const defaultXrayAPIPort = 62789
 
 const ipStaleAfterSeconds = int64(30 * 60)
 
+// pruneStaleIpRows cadence; the scan itself cannot prune offline clients' rows.
+const ipPruneIntervalSeconds = int64(5 * 60)
+
 // NewCheckClientIpJob creates a new client IP monitoring job instance.
 func NewCheckClientIpJob() *CheckClientIpJob {
 	job = new(CheckClientIpJob)
@@ -51,6 +55,7 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 }
 
 func (j *CheckClientIpJob) Run() {
+	j.pruneStaleIpRows()
 	observed, apiMode := j.collectFromOnlineAPI()
 	if !apiMode {
 		// xray is down or predates the online-stats API. There is no access-log
@@ -768,4 +773,17 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 	}
 
 	return nil, err
+}
+
+// Runs before the fail2ban/apiMode gates: retention must hold for stored rows
+// even while nothing is being collected.
+func (j *CheckClientIpJob) pruneStaleIpRows() {
+	now := time.Now().Unix()
+	if now-j.lastIpPrune < ipPruneIntervalSeconds {
+		return
+	}
+	j.lastIpPrune = now
+	if err := (&service.InboundService{}).PruneStaleClientIps(); err != nil {
+		logger.Warning("prune stale client ip rows failed:", err)
+	}
 }
