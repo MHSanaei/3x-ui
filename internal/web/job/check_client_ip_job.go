@@ -634,10 +634,11 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		return
 	}
 
-	// Only perform remove/re-add for protocols supported by XrayAPI.AddUser
+	// Protocols XrayAPI can remove and re-add from a marshaled model.Client.
+	// wireguard stays out: keepAlive marshals as a number, AddUser wants a string.
 	protocol := string(inbound.Protocol)
 	switch protocol {
-	case "vmess", "vless", "trojan", "shadowsocks":
+	case "vmess", "vless", "trojan", "shadowsocks", "hysteria":
 		// supported protocols, continue
 	default:
 		logger.Warningf("[LIMIT_IP] Temporary disconnect is not supported for protocol %s on inbound %s", protocol, inbound.Tag)
