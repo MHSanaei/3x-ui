@@ -42,6 +42,14 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
     return `https://${domain}${path.startsWith('/') ? path : `/${path}`}`;
   }, [allSetting.frontProxyDomain, allSetting.subPath]);
 
+  const proxiedPanelURL = useMemo(() => {
+    const domain = (allSetting.frontProxyDomain ?? '').trim();
+    if (!domain) return '';
+    const base = (allSetting.webBasePath ?? '/').trim();
+    const rooted = base.startsWith('/') ? base : `/${base}`;
+    return `https://${domain}${rooted.endsWith('/') ? rooted : `${rooted}/`}panel/`;
+  }, [allSetting.frontProxyDomain, allSetting.webBasePath]);
+
   const subURIHasPort = useMemo(() => {
     const current = (allSetting.subURI ?? '').trim();
     if (!current) return true;
@@ -196,6 +204,12 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
       <SettingListItem paddings="small" title={t('pages.settings.frontProxy.domain')} description={t('pages.settings.frontProxy.domainDesc')}>
         <Input value={allSetting.frontProxyDomain} placeholder="panel.example.com"
           onChange={(e) => updateSetting({ frontProxyDomain: e.target.value })} />
+      </SettingListItem>
+
+      <SettingListItem paddings="small" title={t('pages.settings.frontProxy.panelUrl')} description={t('pages.settings.frontProxy.panelUrlDesc')}>
+        <Typography.Text code copyable={!!proxiedPanelURL}>
+          {proxiedPanelURL || t('pages.settings.frontProxy.subUriNeedsDomain')}
+        </Typography.Text>
       </SettingListItem>
 
       {allSetting.subEnable && (
