@@ -77,6 +77,48 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	t.SendMsgToTgbot(chatId, msg, ReplyMarkup)
 }
 
+const telegramPageLimit = 2000
+
+func pageMessage(message string, limit int) []string {
+	if len(message) <= limit {
+		return []string{message}
+	}
+
+	pages := make([]string, 0)
+	for _, block := range strings.Split(message, "\r\n\r\n") {
+		for _, page := range splitMessageLines(block, limit) {
+			last := len(pages) - 1
+			if last >= 0 && len(pages[last])+len("\r\n\r\n")+len(page) <= limit {
+				pages[last] += "\r\n\r\n" + page
+				continue
+			}
+			pages = append(pages, page)
+		}
+	}
+	if len(pages) > 0 && strings.TrimSpace(pages[len(pages)-1]) == "" {
+		pages = pages[:len(pages)-1]
+	}
+	return pages
+}
+
+func splitMessageLines(block string, limit int) []string {
+	if len(block) <= limit {
+		return []string{block}
+	}
+
+	lines := strings.Split(block, "\r\n")
+	pages := []string{lines[0]}
+	for _, line := range lines[1:] {
+		last := len(pages) - 1
+		if len(pages[last])+len("\r\n")+len(line) > limit {
+			pages = append(pages, line)
+			continue
+		}
+		pages[last] += "\r\n" + line
+	}
+	return pages
+}
+
 // SendMsgToTgbot sends a message to the Telegram bot with optional reply markup.
 func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.ReplyMarkup) {
 	if !isRunning {
@@ -88,28 +130,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 		return
 	}
 
-	var allMessages []string
-	limit := 2000
-
-	// paging message if it is big
-	if len(msg) > limit {
-		messages := strings.Split(msg, "\r\n\r\n")
-		lastIndex := -1
-
-		for _, message := range messages {
-			if (len(allMessages) == 0) || (len(allMessages[lastIndex])+len(message) > limit) {
-				allMessages = append(allMessages, message)
-				lastIndex++
-			} else {
-				allMessages[lastIndex] += "\r\n\r\n" + message
-			}
-		}
-		if strings.TrimSpace(allMessages[len(allMessages)-1]) == "" {
-			allMessages = allMessages[:len(allMessages)-1]
-		}
-	} else {
-		allMessages = append(allMessages, msg)
-	}
+	allMessages := pageMessage(msg, telegramPageLimit)
 	for n, message := range allMessages {
 		params := telego.SendMessageParams{
 			ChatID:    tu.ID(chatId),
