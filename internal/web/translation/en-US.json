@@ -1238,7 +1238,7 @@
         "introDesc": "One local TLS listener that routes by path: your panel's base path goes to the panel, the subscription path to the subscription server, and everything else shows a decoy site. Point a REALITY inbound's fallback target at it so probes of your :443 see an ordinary website.",
         "realityTargetHint": "REALITY fallback target:",
         "state": "Current state",
-        "stateDesc": "Start or stop the listener right now. Port, certificate and decoy changes need Save plus a panel restart.",
+        "stateDesc": "Start or stop the listener right now. Decoy and path changes apply on Save; the port, listen address and certificate need a panel restart.",
         "running": "Running",
         "stopped": "Stopped",
         "startButton": "Start",

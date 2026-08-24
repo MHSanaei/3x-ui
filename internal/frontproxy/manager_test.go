@@ -183,3 +183,38 @@ func TestStopWhenNotRunningIsNoOp(t *testing.T) {
 	}
 	m.StopAll()
 }
+
+// Changing the decoy must take effect on the running listener. Rebuilding it
+// through Stop/Start would drop connections and redo the TLS setup for what
+// is only a change of handler.
+func TestReloadSwapsTheDecoyWithoutRestarting(t *testing.T) {
+	m := &Manager{}
+	m.store(newHandler(Config{PanelBasePath: "/p/", PanelPort: 1},
+		DecoyConfig{Mode: DecoyTemplate, Template: "maintenance"}))
+
+	before := httptest.NewRecorder()
+	m.dispatch(before, httptest.NewRequest(http.MethodGet, "/", nil))
+	firstTag := before.Header().Get("ETag")
+
+	m.store(newHandler(Config{PanelBasePath: "/p/", PanelPort: 1},
+		DecoyConfig{Mode: DecoyTemplate, Template: "tetris"}))
+
+	after := httptest.NewRecorder()
+	m.dispatch(after, httptest.NewRequest(http.MethodGet, "/", nil))
+	if after.Header().Get("ETag") == firstTag {
+		t.Error("the decoy did not change after the handler was swapped")
+	}
+	if !strings.Contains(after.Body.String(), "<html") {
+		t.Errorf("swapped decoy served no page: %q", after.Body.String())
+	}
+}
+
+// Reload on a stopped manager must not resurrect it, or a settings save would
+// silently start a proxy the admin had turned off.
+func TestReloadOnStoppedManagerStaysStopped(t *testing.T) {
+	m := &Manager{}
+	m.Reload(Options{Port: 8443, Routing: Config{PanelBasePath: "/p/", PanelPort: 2053}})
+	if m.IsRunning() {
+		t.Error("Reload started a manager that was not running")
+	}
+}

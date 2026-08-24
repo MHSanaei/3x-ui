@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -31,6 +32,10 @@ type Manager struct {
 	server   *http.Server
 	listener net.Listener
 	cancel   context.CancelFunc
+	// routed is swapped when routing or decoy settings change. The server is
+	// handed a stable dispatcher that reads this, so a settings edit does not
+	// have to tear down the listener and redo the TLS setup.
+	routed atomic.Pointer[http.Handler]
 }
 
 var (
@@ -78,8 +83,9 @@ func (m *Manager) Start(opts Options) error {
 	}
 	ln = tls.NewListener(ln, tlsCfg)
 
+	m.store(newHandler(opts.Routing, opts.Decoy))
 	srv := &http.Server{
-		Handler:           newHandler(opts.Routing, opts.Decoy),
+		Handler:           http.HandlerFunc(m.dispatch),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -87,6 +93,32 @@ func (m *Manager) Start(opts Options) error {
 	go func() { _ = srv.Serve(ln) }()
 	logger.Infof("frontproxy: listening on %s", addr)
 	return nil
+}
+
+func (m *Manager) store(h http.Handler) { m.routed.Store(&h) }
+
+// dispatch is the handler the server actually holds. It stays the same object
+// for the listener's whole life while what it delegates to can be replaced.
+func (m *Manager) dispatch(w http.ResponseWriter, r *http.Request) {
+	h := m.routed.Load()
+	if h == nil {
+		http.Error(w, "", http.StatusServiceUnavailable)
+		return
+	}
+	(*h).ServeHTTP(w, r)
+}
+
+// Reload applies changed routing and decoy settings to a running proxy. It
+// does not touch the listener, so the port and the certificate keep whatever
+// they were given at Start -- those still need a real restart.
+func (m *Manager) Reload(opts Options) {
+	m.mu.Lock()
+	running := m.server != nil
+	m.mu.Unlock()
+	if !running {
+		return
+	}
+	m.store(newHandler(opts.Routing, opts.Decoy))
 }
 
 // Stop shuts the reverse proxy down. A no-op when it is already stopped.

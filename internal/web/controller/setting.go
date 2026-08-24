@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 
@@ -144,6 +145,14 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
 			err = bumpErr
+		}
+	}
+	if err == nil {
+		// Routing and decoy settings swap into the running listener, so a new
+		// decoy takes effect on save. The port, listen address and certificate
+		// are baked into the listener and still need a panel restart.
+		if reloadErr := (&integration.FrontProxyService{}).Reload(); reloadErr != nil {
+			logger.Warning("reverse proxy reload after settings change failed:", reloadErr)
 		}
 	}
 	if err == nil && form.PanelOutbound != oldPanelOutbound {

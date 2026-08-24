@@ -48,7 +48,7 @@ func (s *FrontProxyService) InstallDecoy(r io.ReaderAt, size int64) error {
 	if err := frontproxy.InstallDecoyArchive(DecoyDir(), r, size); err != nil {
 		return err
 	}
-	return s.restartIfRunning()
+	return s.Reload()
 }
 
 // RemoveDecoy deletes the uploaded site, leaving the reverse proxy on whatever
@@ -57,12 +57,16 @@ func (s *FrontProxyService) RemoveDecoy() error {
 	if err := frontproxy.RemoveDecoy(DecoyDir()); err != nil {
 		return err
 	}
-	return s.restartIfRunning()
+	return s.Reload()
 }
 
-// restartIfRunning reloads the door in place. Whether upload mode is usable
-// at all is decided once when its handler is built, not per request.
-func (s *FrontProxyService) restartIfRunning() error {
+// Reload applies changed routing and decoy settings without interrupting the
+// listener, so picking a different decoy takes effect on save rather than
+// needing the admin to stop and start the proxy by hand.
+//
+// The listener itself keeps the port and certificate it was started with;
+// changing those still needs a restart, and the tab says so.
+func (s *FrontProxyService) Reload() error {
 	if !frontproxy.GetManager().IsRunning() {
 		return nil
 	}
@@ -70,10 +74,8 @@ func (s *FrontProxyService) restartIfRunning() error {
 	if err != nil {
 		return err
 	}
-	if err := frontproxy.GetManager().Stop(); err != nil {
-		return err
-	}
-	return frontproxy.GetManager().Start(opts)
+	frontproxy.GetManager().Reload(opts)
+	return nil
 }
 
 // Options assembles the running configuration from settings. The panel's own
