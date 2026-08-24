@@ -351,12 +351,45 @@ func balancerMemberSuffix(protocol string) string {
 	return protocol
 }
 
+// balMember is one retagged member outbound and the inbound it came from.
+type balMember struct {
+	tag       string
+	inboundId int
+}
+
+// leastLoadCosts builds xray's static strategy settings costs: higher value =
+// picked less often. Members without a configured weight default to 1.0, but
+// nil is returned unless at least one member carries an explicit weight — an
+// all-1.0 array would only bloat every subscription response.
+func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
+	if balancer.Strategy != "leastLoad" || len(members) == 0 || len(balancer.MemberWeights) == 0 {
+		return nil
+	}
+	costs := make([]any, 0, len(members))
+	configured := false
+	for _, m := range members {
+		value := 1.0
+		if weight, ok := balancer.MemberWeights[m.inboundId]; ok && weight > 0 {
+			value = weight
+			configured = true
+		}
+		costs = append(costs, map[string]any{"match": m.tag, "value": value})
+	}
+	if !configured {
+		return nil
+	}
+	return costs
+}
+
 // buildBalancerConfig assembles the balancer profile: members retagged under a
 // per-balancer prefix, a routing.balancers entry, and (for leastPing/leastLoad) an observatory.
 func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
 	var proxies []json_util.RawMessage
+	// Members in emission order with their owning inbound, so costs[] can
+	// reference the exact retagged tags assigned here.
+	var members []balMember
 	var firstTag string
 	// entryProxies is the pre-extracted proxy outbounds per entry; kind!=0 rows
 	// have none. Clone before retagging so the cached map stays reusable.
@@ -375,6 +408,7 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 			member := maps.Clone(outbound)
 			member["tag"] = tag
 			if raw, err := json.MarshalIndent(member, "", "  "); err == nil {
+				members = append(members, balMember{tag: tag, inboundId: entry.id})
 				if firstTag == "" {
 					firstTag = tag
 				}
@@ -411,10 +445,14 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	}
 	routing["rules"] = rules
 	isObservatory := balancer.Strategy == "leastPing" || balancer.Strategy == "leastLoad"
+	strategyEntry := map[string]any{"type": balancer.Strategy}
+	if costs := leastLoadCosts(balancer, members); costs != nil {
+		strategyEntry["settings"] = map[string]any{"costs": costs}
+	}
 	balancerEntry := map[string]any{
 		"tag":      subBalancerTag,
 		"selector": []string{prefix},
-		"strategy": map[string]any{"type": balancer.Strategy},
+		"strategy": strategyEntry,
 	}
 	if isObservatory && firstTag != "" {
 		// With all probes failing, route to the first member instead of
