@@ -35,6 +35,7 @@ import {
 import { ClipboardManager, IntlUtil, LanguageManager } from '@/utils';
 import {
   amneziawgConfigFromLink,
+  fitsInQrCode,
   isPostQuantumLink,
   wireguardConfigFromLink,
 } from '@/lib/xray/inbound-link';
@@ -534,7 +535,7 @@ export default function SubPage() {
                         const fallback = `Link ${idx + 1}`;
                         const rowTitle = parts?.remark || fallback;
                         const qrLabel = parts?.remark || rowTitle;
-                        const canQr = !isPostQuantumLink(link);
+                        const canQr = !isPostQuantumLink(link) && fitsInQrCode(link);
                         const isWireguardLink =
                           link.startsWith('wireguard://') || link.startsWith('wg://');
                         const isAmneziawgLink = link.startsWith('vpn://');

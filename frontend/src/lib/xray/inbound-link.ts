@@ -1577,6 +1577,14 @@ function wgPeerCommentSuffix(peer: unknown): string {
   return typeof comment === 'string' && comment.trim() !== '' ? ` (${comment.trim()})` : '';
 }
 
+// Byte-mode capacity of a version-40 QR at antd's default errorLevel "M". Past
+// it the encoder throws RangeError("Data too long") and takes the page down.
+const QR_BYTE_CAPACITY = 2331;
+
+export function fitsInQrCode(value: string): boolean {
+  return new TextEncoder().encode(value).length <= QR_BYTE_CAPACITY;
+}
+
 export function isPostQuantumLink(link: string): boolean {
   if (/[?&]pqv=/.test(link)) return true;
   if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
