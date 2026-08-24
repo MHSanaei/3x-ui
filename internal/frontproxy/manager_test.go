@@ -87,6 +87,56 @@ func TestHandlerPreservesClientHost(t *testing.T) {
 	}
 }
 
+// tlsUpstreamOn stands in for a panel that has certificate files configured
+// and therefore serves HTTPS on its own port.
+func tlsUpstreamOn(t *testing.T, marker string) int {
+	t.Helper()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(marker + " " + r.URL.Path))
+	}))
+	t.Cleanup(srv.Close)
+	_, portStr, err := net.SplitHostPort(strings.TrimPrefix(srv.URL, "https://"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return port
+}
+
+// A panel holding its own certificates answers a plaintext hop with a 307 back
+// to the URL the client already asked for, which browsers follow until they
+// give up. The hop has to speak TLS to it instead.
+func TestHandlerSpeaksTLSToATLSUpstream(t *testing.T) {
+	h := newHandler(Config{
+		PanelBasePath: "/p/",
+		PanelPort:     tlsUpstreamOn(t, "PANEL"),
+		UpstreamTLS:   true,
+	}, DecoyConfig{})
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/p/panel/", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "PANEL") {
+		t.Errorf("body = %q, want it to reach the TLS upstream", rec.Body.String())
+	}
+}
+
+// The mirror case: a plaintext panel must still be dialled in plaintext.
+func TestHandlerSpeaksPlaintextToAPlainUpstream(t *testing.T) {
+	h := newHandler(Config{PanelBasePath: "/p/", PanelPort: upstreamOn(t, "PANEL")}, DecoyConfig{})
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/p/panel/", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+	}
+}
+
 // A dead upstream must produce a plain 502, never a panic that would take
 // the whole reverse proxy (and with it the decoy) down.
 func TestHandlerSurvivesDeadUpstream(t *testing.T) {

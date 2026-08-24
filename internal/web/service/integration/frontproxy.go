@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"io"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -125,10 +126,28 @@ func (s *FrontProxyService) Options() (frontproxy.Options, error) {
 			SubPath:       subPath,
 			SubPort:       subPort,
 			SubEnabled:    subEnable,
+			UpstreamTLS:   s.upstreamServesTLS(),
 		},
 		Decoy: decoy,
 		TLS:   tlsSettings,
 	}, nil
+}
+
+// upstreamServesTLS mirrors the condition the panel and subscription servers
+// use to decide whether to wrap their own listeners in TLS: both files set and
+// loadable. Get this wrong in the "yes" direction and the hop fails outright;
+// wrong in the "no" direction and their HTTP-to-HTTPS redirector loops.
+func (s *FrontProxyService) upstreamServesTLS() bool {
+	certFile, err := s.GetCertFile()
+	if err != nil || certFile == "" {
+		return false
+	}
+	keyFile, err := s.GetKeyFile()
+	if err != nil || keyFile == "" {
+		return false
+	}
+	_, err = tls.LoadX509KeyPair(certFile, keyFile)
+	return err == nil
 }
 
 func (s *FrontProxyService) decoyConfig() (frontproxy.DecoyConfig, error) {

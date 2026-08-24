@@ -30,6 +30,9 @@ type Config struct {
 	SubPath       string
 	SubPort       int
 	SubEnabled    bool
+	// UpstreamTLS is set when the panel and subscription listeners serve TLS
+	// themselves, which they do whenever certificate files are configured.
+	UpstreamTLS bool
 }
 
 // resolveTarget picks the destination for one request path. Subscription is

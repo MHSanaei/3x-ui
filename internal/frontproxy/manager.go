@@ -126,8 +126,8 @@ func (m *Manager) IsRunning() bool {
 // newHandler dispatches each request to the panel, the subscription server,
 // or the decoy, per the routing config.
 func newHandler(routing Config, decoy DecoyConfig) http.Handler {
-	panelProxy := newLoopbackProxy(routing.PanelPort)
-	subProxy := newLoopbackProxy(routing.SubPort)
+	panelProxy := newLoopbackProxy(routing.PanelPort, routing.UpstreamTLS)
+	subProxy := newLoopbackProxy(routing.SubPort, routing.UpstreamTLS)
 	decoyHandler := newDecoyHandler(decoy)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch routing.resolveTarget(r.URL.Path) {
@@ -143,17 +143,33 @@ func newHandler(routing Config, decoy DecoyConfig) http.Handler {
 
 // newLoopbackProxy forwards to one of the panel's own listeners. Go's
 // ReverseProxy tunnels Upgrade requests itself, which the panel's /ws needs.
-func newLoopbackProxy(port int) http.Handler {
-	target := &url.URL{Scheme: "http", Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port))}
+//
+// useTLS must match how that listener is actually running. A listener with
+// certificates wraps itself in an HTTP-to-HTTPS redirector, so a plaintext
+// hop there is answered with a 307 back to the URL the client already asked
+// for -- an infinite redirect loop rather than an error.
+func newLoopbackProxy(port int, useTLS bool) http.Handler {
+	scheme := "http"
+	var transport http.RoundTripper
+	if useTLS {
+		scheme = "https"
+		// Verifying this certificate is meaningless: it names the public
+		// domain, not 127.0.0.1, and the hop never leaves the machine.
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // loopback hop, see above
+		}
+	}
+	target := &url.URL{Scheme: scheme, Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port))}
 	return &httputil.ReverseProxy{
+		Transport: transport,
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetURL(target)
 			// SetURL would leave Host pointing at the loopback target; the
 			// panel needs the name the client asked for to build its links.
 			pr.Out.Host = pr.In.Host
 			pr.SetXForwarded()
-			// The hop itself is plaintext loopback, but this listener only
-			// ever serves TLS, so the client's side was always https.
+			// Whatever the hop itself uses, this listener only ever serves
+			// TLS, so the client's side was always https.
 			pr.Out.Header.Set("X-Forwarded-Proto", "https")
 		},
 		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
