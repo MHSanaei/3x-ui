@@ -1,6 +1,7 @@
 package service
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -36,9 +37,41 @@ func (s *SubBalancerService) validate(b *model.SubBalancer) error {
 	if len(b.InboundIds) == 0 {
 		return common.NewError("balancer must select at least one inbound")
 	}
+	if err := s.validateWeights(b); err != nil {
+		return err
+	}
 	if b.SortOrder < 1 {
 		b.SortOrder = 1
 	}
+	return nil
+}
+
+// validateWeights rejects non-positive weights (a silent default would hide a
+// typo like "0" meaning "never pick this node"), drops entries for inbounds no
+// longer selected, and errors on weights with any strategy but leastLoad —
+// xray would ignore them, so storing them would pretend a knob exists.
+func (s *SubBalancerService) validateWeights(b *model.SubBalancer) error {
+	if len(b.MemberWeights) == 0 {
+		b.MemberWeights = nil
+		return nil
+	}
+	if b.Strategy != "leastLoad" {
+		return common.NewError("balancer weights only apply to the leastLoad strategy")
+	}
+	cleaned := make(map[int]float64, len(b.MemberWeights))
+	for id, weight := range b.MemberWeights {
+		if !slices.Contains(b.InboundIds, id) {
+			continue
+		}
+		if weight <= 0 {
+			return common.NewError("balancer member weights must be greater than 0")
+		}
+		cleaned[id] = weight
+	}
+	if len(cleaned) == 0 {
+		cleaned = nil
+	}
+	b.MemberWeights = cleaned
 	return nil
 }
 
@@ -79,6 +112,7 @@ func (s *SubBalancerService) Update(id int, balancer *model.SubBalancer, enabled
 	current.Remark = balancer.Remark
 	current.Strategy = balancer.Strategy
 	current.InboundIds = balancer.InboundIds
+	current.MemberWeights = balancer.MemberWeights
 	current.SortOrder = balancer.SortOrder
 	if enabled != nil {
 		current.Enabled = *enabled

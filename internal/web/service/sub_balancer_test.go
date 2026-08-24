@@ -159,3 +159,61 @@ func TestSubBalancerServiceValidation(t *testing.T) {
 		})
 	}
 }
+
+// Weights are a leastLoad-only knob; xray silently ignores costs elsewhere, so
+// storing them would pretend a knob exists. Non-positive weights are rejected
+// rather than defaulted — a zero usually means a typo'd "never pick this node".
+func TestSubBalancerServiceWeightValidation(t *testing.T) {
+	setupSubBalancerDB(t)
+	svc := &SubBalancerService{}
+
+	if _, err := svc.Create(&model.SubBalancer{
+		Remark: "w", Strategy: "random", InboundIds: []int{1},
+		MemberWeights: map[int]float64{1: 0.5},
+	}); err == nil || !strings.Contains(err.Error(), "leastLoad strategy") {
+		t.Fatalf("weights with random = %v, want leastLoad-strategy error", err)
+	}
+
+	if _, err := svc.Create(&model.SubBalancer{
+		Remark: "w", Strategy: "leastLoad", InboundIds: []int{1},
+		MemberWeights: map[int]float64{1: -0.5},
+	}); err == nil || !strings.Contains(err.Error(), "greater than 0") {
+		t.Fatalf("negative weight = %v, must be rejected", err)
+	}
+
+	stray, err := svc.Create(&model.SubBalancer{
+		Remark: "stray", Strategy: "leastLoad", InboundIds: []int{1, 2},
+		MemberWeights: map[int]float64{2: 0.25, 99: 3.0},
+	})
+	if err != nil {
+		t.Fatalf("create with stray weight id: %v", err)
+	}
+	stored, err := svc.Get(stray.Id)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if len(stored.MemberWeights) != 1 || stored.MemberWeights[2] != 0.25 {
+		t.Fatalf("memberWeights = %v, want only {2:0.25} (id 99 dropped)", stored.MemberWeights)
+	}
+
+	reweighted, err := svc.Update(stray.Id, &model.SubBalancer{
+		Remark: "stray", Strategy: "leastLoad", InboundIds: []int{1, 2},
+		MemberWeights: map[int]float64{1: 2.5}, SortOrder: 1,
+	}, nil)
+	if err != nil {
+		t.Fatalf("update weights: %v", err)
+	}
+	if reweighted.MemberWeights[1] != 2.5 || len(reweighted.MemberWeights) != 1 {
+		t.Fatalf("updated memberWeights = %v, want {1:2.5}", reweighted.MemberWeights)
+	}
+
+	cleared, err := svc.Update(stray.Id, &model.SubBalancer{
+		Remark: "stray", Strategy: "leastLoad", InboundIds: []int{1, 2}, SortOrder: 1,
+	}, nil)
+	if err != nil {
+		t.Fatalf("update without weights: %v", err)
+	}
+	if cleared.MemberWeights != nil {
+		t.Fatalf("absent memberWeights must clear stored weights, got %v", cleared.MemberWeights)
+	}
+}
