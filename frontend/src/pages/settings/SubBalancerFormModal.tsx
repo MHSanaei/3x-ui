@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
-import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import SelectAllClearButtons from '@/components/form/SelectAllClearButtons';
@@ -38,6 +38,7 @@ function initialState(balancer: SubBalancer | null): SubBalancerFormValues {
     remark: balancer?.remark ?? '',
     strategy: balancer?.strategy ?? 'random',
     inboundIds: [...(balancer?.inboundIds ?? [])],
+    memberWeights: balancer?.memberWeights ? { ...balancer.memberWeights } : undefined,
     sortOrder: balancer?.sortOrder ?? 1,
     enabled: balancer?.enabled ?? true,
   };
@@ -66,6 +67,10 @@ export default function SubBalancerFormModal({
   }, [open, balancer, methods]);
 
   const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
+  const strategy = useWatch({ control: methods.control, name: 'strategy' });
+  // Weights only make sense for leastLoad; the fields hide but keep their
+  // values so an accidental toggle away and back loses nothing until submit.
+  const showWeights = strategy === 'leastLoad';
 
   const { data: inboundOptionsRaw } = useInboundOptions();
   const inboundOptions = useMemo(
@@ -82,7 +87,20 @@ export default function SubBalancerFormModal({
   );
 
   function onFinish(values: SubBalancerFormValues) {
-    const parsed = SubBalancerFormSchema.safeParse(values);
+    const candidate: SubBalancerFormValues = { ...values };
+    if (candidate.memberWeights) {
+      const cleaned = Object.fromEntries(
+        Object.entries(candidate.memberWeights).filter(
+          ([, v]) => typeof v === 'number' && Number.isFinite(v) && v > 0,
+        ),
+      );
+      candidate.memberWeights = Object.keys(cleaned).length > 0 ? cleaned : undefined;
+    }
+    // xray ignores costs on every strategy but leastLoad — never send them.
+    if (candidate.strategy !== 'leastLoad') {
+      delete candidate.memberWeights;
+    }
+    const parsed = SubBalancerFormSchema.safeParse(candidate);
     if (!parsed.success) {
       messageApi.error(
         t(parsed.error.issues[0]?.message ?? 'pages.settings.subBalancers.errRemarkRequired'),
@@ -157,6 +175,50 @@ export default function SubBalancerFormModal({
             value={inboundIds || []}
             onChange={(v) => methods.setValue('inboundIds', v, { shouldDirty: true })}
           />
+
+          {showWeights && (inboundIds ?? []).length > 0 && (
+            <Form.Item
+              className="sub-balancer-weights"
+              label={t('pages.settings.subBalancers.weights')}
+              tooltip={t('pages.settings.subBalancers.weightsHelp')}
+              style={{ marginBottom: 16 }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(inboundIds ?? []).map((id) => {
+                  const option = inboundOptions.find((o) => o.value === id);
+                  return (
+                    <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        title={option?.title}
+                        style={{
+                          minWidth: 0,
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {option?.label ?? `#${id}`}
+                      </span>
+                      <Controller
+                        control={methods.control}
+                        name={`memberWeights.${id}`}
+                        render={({ field }) => (
+                          <InputNumber
+                            min={0.1}
+                            step={0.1}
+                            precision={1}
+                            style={{ width: 120 }}
+                            value={(field.value as number | undefined) ?? 1}
+                            onChange={(v) => field.onChange(typeof v === 'number' ? v : undefined)}
+                          />
+                        )}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </Form.Item>
+          )}
 
           <FormField
             label={t('pages.settings.subBalancers.enabled')}
