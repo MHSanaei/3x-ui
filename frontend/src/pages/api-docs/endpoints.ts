@@ -2249,6 +2249,12 @@ export const sections: readonly Section[] = [
             desc: 'Repeated form keys selecting the member inbounds, e.g. inboundIds=1&inboundIds=3 (required, at least one).',
           },
           {
+            name: 'memberWeights',
+            in: 'body (form)',
+            type: 'string (JSON object)',
+            desc: 'leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {"3":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped.',
+          },
+          {
             name: 'sortOrder',
             in: 'body (form)',
             type: 'integer',
@@ -2267,7 +2273,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/sub-balancers/:id',
         summary:
-          'Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).',
+          'Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle); omitting memberWeights clears stored weights.',
         params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
         responseSchema: 'SubBalancer',
       },
