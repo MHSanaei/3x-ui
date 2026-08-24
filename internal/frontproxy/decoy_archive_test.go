@@ -194,6 +194,39 @@ func TestUploadedArchiveIsServed(t *testing.T) {
 	}
 }
 
+// A traversing path must not reach the filesystem outside the decoy: if a hit
+// and a miss produced different statuses, a prober could test for any file.
+func TestUploadDecoyIsNotAFilesystemOracle(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "decoy")
+	r, size := zipOf(t, [2]string{"index.html", "<h1>decoy site</h1>"})
+	if err := InstallDecoyArchive(dir, r, size); err != nil {
+		t.Fatalf("InstallDecoyArchive: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "present.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := newDecoyHandler(DecoyConfig{Mode: DecoyUpload, Dir: dir})
+	serve := func(p string) (int, string) {
+		req := httptest.NewRequest(http.MethodGet, "http://decoy.example/", nil)
+		req.URL.Path = p
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Code, rec.Body.String()
+	}
+
+	hitCode, hitBody := serve("/../present.txt")
+	missCode, missBody := serve("/../absent.txt")
+	if hitCode != missCode || hitBody != missBody {
+		t.Errorf("existing vs missing outside file differ: %d %q vs %d %q",
+			hitCode, hitBody, missCode, missBody)
+	}
+	if !strings.Contains(hitBody, "decoy site") {
+		t.Errorf("traversal did not land on the decoy index: %q", hitBody)
+	}
+}
+
 func TestRemoveDecoy(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "decoy")
 	r, size := zipOf(t, [2]string{"index.html", "x"})

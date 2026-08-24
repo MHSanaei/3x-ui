@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -121,12 +122,19 @@ func newUploadDecoy(dir string) (http.Handler, error) {
 	}
 	fs := http.FileServer(http.Dir(dir))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Clean before touching the filesystem. An unclean path would stat
+		// outside dir, and the hit/miss shows up in the status a prober sees.
+		target := path.Clean("/" + r.URL.Path)
+		rel := strings.TrimPrefix(target, "/")
 		// Serve index.html for unknown paths so the decoy looks like a site
 		// rather than exposing a 404 that differs from the real thing.
-		if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(strings.TrimPrefix(r.URL.Path, "/")))); err != nil {
-			r = r.Clone(r.Context())
-			r.URL.Path = "/"
+		if rel != "" {
+			if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(rel))); err != nil {
+				target = "/"
+			}
 		}
+		r = r.Clone(r.Context())
+		r.URL.Path, r.URL.RawPath = target, ""
 		fs.ServeHTTP(w, r)
 	}), nil
 }
