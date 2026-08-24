@@ -183,7 +183,16 @@ export default function SubBalancerFormModal({
               tooltip={t('pages.settings.subBalancers.weightsHelp')}
               style={{ marginBottom: 16 }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  maxHeight: 220,
+                  overflowY: 'auto',
+                  paddingRight: 4,
+                }}
+              >
                 {(inboundIds ?? []).map((id) => {
                   const option = inboundOptions.find((o) => o.value === id);
                   return (
