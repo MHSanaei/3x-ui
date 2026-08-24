@@ -3542,8 +3542,7 @@
                 },
                 "required": [
                   "username",
-                  "password",
-                  "twoFactorCode"
+                  "password"
                 ]
               },
               "example": {
@@ -4447,6 +4446,25 @@
         ],
         "summary": "Bulk-import an inbound from a JSON blob (e.g. one exported via the UI). The body uses form encoding with a single \"data\" field.",
         "operationId": "post_panel_api_inbounds_import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "string",
+                    "description": "JSON-encoded inbound payload."
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -4482,7 +4500,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "masterGuid": {
+                    "type": "string",
+                    "description": "Stable GUID of the pushing master panel."
+                  },
+                  "traffics": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Client traffic rows; only email/up/down are read."
+                  }
+                },
+                "required": [
+                  "masterGuid",
+                  "traffics"
+                ]
               },
               "example": {
                 "masterGuid": "9f6c2d-…",
@@ -4601,7 +4636,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "fallbacks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Array of {childId, name, alpn, path, dest, xver, sortOrder} entries. Leave dest empty to auto-resolve from the child inbound's listen+port; set it (e.g. \"8443\", \"127.0.0.1:8443\", \"/dev/shm/x.sock\") to override."
+                  }
+                },
+                "required": [
+                  "fallbacks"
+                ]
               },
               "example": {
                 "fallbacks": [
@@ -5661,6 +5708,22 @@
         ],
         "summary": "Self-update the panel to the latest version. The server restarts on success.",
         "operationId": "post_panel_api_server_updatePanel",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dev": {
+                    "type": "boolean",
+                    "description": "Override this run's channel. Omit to use the panel's configured channel."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -5700,9 +5763,18 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "dev": {
+                    "type": "boolean",
+                    "description": "true = dev channel, false = stable."
+                  }
+                },
+                "required": [
+                  "dev"
+                ]
               }
             }
           }
@@ -5735,18 +5807,8 @@
         "tags": [
           "Server"
         ],
-        "summary": "Refresh the default GeoIP / GeoSite data files. Body can include a fileName, or use the /:fileName variant.",
+        "summary": "Refresh the default GeoIP / GeoSite data files. Use the /:fileName variant to update one file.",
         "operationId": "post_panel_api_server_updateGeofile",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -5830,15 +5892,21 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
-              },
-              "example": {
-                "level": "info",
-                "syslog": false
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "description": "Minimum log level filter."
+                  },
+                  "syslog": {
+                    "type": "boolean",
+                    "description": "Read system logs instead of the panel log."
+                  }
+                }
               }
             }
           }
@@ -5889,11 +5957,29 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": "string",
+                    "description": "Keyword filter — only lines containing this string."
+                  },
+                  "showDirect": {
+                    "type": "string",
+                    "description": "\"true\" to include direct (freedom) traffic lines."
+                  },
+                  "showBlocked": {
+                    "type": "string",
+                    "description": "\"true\" to include blocked (blackhole) traffic lines."
+                  },
+                  "showProxy": {
+                    "type": "string",
+                    "description": "\"true\" to include proxy traffic lines."
+                  }
+                }
               }
             }
           }
@@ -5944,11 +6030,17 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": "string",
+                    "description": "Keyword filter — only rows/lines containing this string."
+                  }
+                }
               }
             }
           }
@@ -6008,6 +6100,31 @@
         ],
         "summary": "Restore the panel DB from an uploaded backup (multipart form, field name \"db\"). SQLite panels accept a SQLite database (.db) or a SQLite migration dump (.dump); PostgreSQL panels accept a pg_dump archive (.dump), a SQLite database (.db), or a SQLite migration dump. The panel restarts after restore. Destructive.",
         "operationId": "post_panel_api_server_importDB",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "db": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Database backup or migration file to upload."
+                  },
+                  "keepHostSettings": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Keep this machine's addresses, certificates and node identity. Default true."
+                  }
+                },
+                "required": [
+                  "db"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -6041,9 +6158,18 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "sni": {
+                    "type": "string",
+                    "description": "Server Name Indication to generate the ECH config for."
+                  }
+                },
+                "required": [
+                  "sni"
+                ]
               }
             }
           }
@@ -6081,9 +6207,46 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "certFile": {
+                        "type": "string",
+                        "pattern": ".*\\S.*",
+                        "description": "Path to a certificate file on the server. Takes precedence over certContent."
+                      },
+                      "certContent": {
+                        "type": "string",
+                        "pattern": ".*\\S.*",
+                        "description": "Inline PEM (or DER) certificate content, used when certFile is empty."
+                      }
+                    },
+                    "required": [
+                      "certFile"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "certFile": {
+                        "type": "string",
+                        "pattern": ".*\\S.*",
+                        "description": "Path to a certificate file on the server. Takes precedence over certContent."
+                      },
+                      "certContent": {
+                        "type": "string",
+                        "pattern": ".*\\S.*",
+                        "description": "Inline PEM (or DER) certificate content, used when certFile is empty."
+                      }
+                    },
+                    "required": [
+                      "certContent"
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -6127,9 +6290,18 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "server": {
+                    "type": "string",
+                    "description": "Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com."
+                  }
+                },
+                "required": [
+                  "server"
+                ]
               }
             }
           }
@@ -6173,9 +6345,30 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "description": "Candidate target as host or host:port (default port 443), e.g. www.cloudflare.com:443."
+                  },
+                  "sni": {
+                    "type": "string",
+                    "description": "SNI the handshake sends and the certificate is verified against (the inbound serverNames). Defaults to the target host, which a fronting proxy answers with its default certificate."
+                  },
+                  "xver": {
+                    "type": "integer",
+                    "description": "PROXY protocol version the target expects (matches the inbound xver). 0 = none."
+                  },
+                  "allowPrivate": {
+                    "type": "boolean",
+                    "description": "Probe a private/internal/loopback target (LAN, Docker service name). Default false (SSRF guard blocks it and the response sets privateTarget=true)."
+                  }
+                },
+                "required": [
+                  "target"
+                ]
               }
             }
           }
@@ -6240,11 +6433,17 @@
         "summary": "Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, a built-in seed list is probed.",
         "operationId": "post_panel_api_server_scanRealityTargets",
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "targets": {
+                    "type": "string",
+                    "description": "Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, a built-in seed list is probed."
+                  }
+                }
               }
             }
           }
@@ -6356,6 +6555,46 @@
         ],
         "summary": "Submit a list of recently active IP timestamps. The panel merges them with the existing database to maintain a unified global IP-limit view.",
         "operationId": "post_panel_api_server_clientIps",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "clientEmail": {
+                      "type": "string"
+                    },
+                    "ips": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ip": {
+                            "type": "string"
+                          },
+                          "timestamp": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "ip",
+                          "timestamp"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "clientEmail",
+                    "ips"
+                  ]
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -6671,7 +6910,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "client": {
+                    "type": "object",
+                    "description": "Client fields: email, subId, id (uuid), password, auth, flow, totalGB, expiryTime, limitIp, limitHwid, tgId (numeric Telegram user ID, 0 = none), comment, enable. Protocol-specific: secret and adTag (mtproto), privateKey, publicKey, preSharedKey, allowedIPs and keepAlive (WireGuard)."
+                  },
+                  "inboundIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Inbound IDs to attach the client to. At least one required."
+                  }
+                },
+                "required": [
+                  "client",
+                  "inboundIds"
+                ]
               },
               "example": {
                 "client": {
@@ -6859,7 +7115,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "inboundIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Inbound IDs to attach."
+                  }
+                },
+                "required": [
+                  "inboundIds"
+                ]
               },
               "example": {
                 "inboundIds": [
@@ -6919,7 +7187,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "inboundIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Inbound IDs to detach."
+                  }
+                },
+                "required": [
+                  "inboundIds"
+                ]
               },
               "example": {
                 "inboundIds": [
@@ -7682,7 +7962,27 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Emails of existing clients to attach."
+                  },
+                  "inboundIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Target inbound IDs to attach every client to."
+                  }
+                },
+                "required": [
+                  "emails",
+                  "inboundIds"
+                ]
               },
               "example": {
                 "emails": [
@@ -7745,7 +8045,27 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Emails of existing clients to detach."
+                  },
+                  "inboundIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Inbound IDs to detach the clients from."
+                  }
+                },
+                "required": [
+                  "emails",
+                  "inboundIds"
+                ]
               },
               "example": {
                 "emails": [
@@ -11110,9 +11430,7 @@
                   }
                 },
                 "required": [
-                  "name",
-                  "scope",
-                  "expiresAt"
+                  "name"
                 ]
               },
               "example": {
@@ -11456,6 +11774,29 @@
         ],
         "summary": "Save the Xray JSON config template and optionally the outbound test URL. Both are sent as form fields.",
         "operationId": "post_panel_api_xray_update",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "xraySetting": {
+                    "type": "string",
+                    "description": "Full Xray JSON config template."
+                  },
+                  "outboundTestUrl": {
+                    "type": "string",
+                    "description": "URL used for outbound reachability tests. Defaults to https://www.google.com/generate_204."
+                  }
+                },
+                "required": [
+                  "xraySetting"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -11491,12 +11832,40 @@
             "name": "action",
             "in": "path",
             "required": true,
-            "description": "data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).",
+            "description": "data — return Warp stats. del — delete Warp data. config — return current config. reg — register (sends keys). changeIp — rotate the endpoint. license — set a Warp+ key. interval — set automatic rotation in hours.",
             "schema": {
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "privateKey": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "publicKey": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "license": {
+                    "type": "string",
+                    "description": "Required when action=license."
+                  },
+                  "interval": {
+                    "type": "integer",
+                    "description": "Non-negative hours between automatic rotations. Required when action=interval; 0 disables rotation."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -11538,6 +11907,30 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "countryId": {
+                    "type": "string",
+                    "description": "Required when action=servers."
+                  },
+                  "token": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "key": {
+                    "type": "string",
+                    "description": "Required when action=setKey."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -11579,6 +11972,34 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Required when action=reg."
+                  },
+                  "countryCode": {
+                    "type": "string",
+                    "description": "Required when action=servers."
+                  },
+                  "hostname": {
+                    "type": "string",
+                    "description": "Required when action=addKey."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -11612,9 +12033,18 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string",
+                    "description": "Outbound tag to reset (e.g. \"proxy\", \"direct\")."
+                  }
+                },
+                "required": [
+                  "tag"
+                ]
               }
             }
           }
@@ -11652,9 +12082,26 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "outbound": {
+                    "type": "string",
+                    "description": "JSON-encoded single outbound to test (required)."
+                  },
+                  "allOutbounds": {
+                    "type": "string",
+                    "description": "JSON array of all outbounds — used to resolve dialerProxy chains."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "\"tcp\" for a fast dial-only probe (parallel-safe), \"real\" for a real-delay probe whose delay is the full request time including tunnel establishment. Default/empty uses a full HTTP probe reporting the warm per-request round-trip. Both HTTP variants run through a temp xray instance."
+                  }
+                },
+                "required": [
+                  "outbound"
+                ]
               }
             }
           }
@@ -11692,9 +12139,26 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "outbounds": {
+                    "type": "string",
+                    "description": "JSON array of outbound configs to test (required)."
+                  },
+                  "allOutbounds": {
+                    "type": "string",
+                    "description": "JSON array of all outbounds — used to resolve dialerProxy chains."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "\"tcp\" for fast dial-only probes (UDP-transport outbounds are still probed over HTTP), \"real\" for real-delay probes whose delay is the full request time including tunnel establishment. Default/empty routes an HTTP request through each outbound and reports the warm per-request round-trip."
+                  }
+                },
+                "required": [
+                  "outbounds"
+                ]
               }
             }
           }
@@ -11732,9 +12196,18 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "tags": {
+                    "type": "string",
+                    "description": "Comma-separated balancer tags to query (e.g. \"b1,b2\")."
+                  }
+                },
+                "required": [
+                  "tags"
+                ]
               }
             }
           }
@@ -11772,9 +12245,22 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string",
+                    "description": "Balancer tag (required)."
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "Outbound tag to force. Empty clears the override and returns control to the strategy."
+                  }
+                },
+                "required": [
+                  "tag"
+                ]
               }
             }
           }
@@ -11812,9 +12298,86 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "domain": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Target domain. Either domain or ip is required."
+                      },
+                      "ip": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Target IP. Either domain or ip is required."
+                      },
+                      "port": {
+                        "type": "integer",
+                        "description": "Target port (optional)."
+                      },
+                      "network": {
+                        "type": "string",
+                        "description": "\"tcp\" (default) or \"udp\"."
+                      },
+                      "inboundTag": {
+                        "type": "string",
+                        "description": "Simulate arrival on this inbound (optional)."
+                      },
+                      "protocol": {
+                        "type": "string",
+                        "description": "Sniffed protocol such as http, tls, bittorrent (optional)."
+                      },
+                      "email": {
+                        "type": "string",
+                        "description": "User attribution for user-based rules (optional)."
+                      }
+                    },
+                    "required": [
+                      "domain"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "domain": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Target domain. Either domain or ip is required."
+                      },
+                      "ip": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Target IP. Either domain or ip is required."
+                      },
+                      "port": {
+                        "type": "integer",
+                        "description": "Target port (optional)."
+                      },
+                      "network": {
+                        "type": "string",
+                        "description": "\"tcp\" (default) or \"udp\"."
+                      },
+                      "inboundTag": {
+                        "type": "string",
+                        "description": "Simulate arrival on this inbound (optional)."
+                      },
+                      "protocol": {
+                        "type": "string",
+                        "description": "Sniffed protocol such as http, tls, bittorrent (optional)."
+                      },
+                      "email": {
+                        "type": "string",
+                        "description": "User attribution for user-based rules (optional)."
+                      }
+                    },
+                    "required": [
+                      "ip"
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -12027,9 +12590,22 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "tokens": {
+                    "type": "string",
+                    "description": "Comma-separated routing tokens, e.g. \"geosite:google,geosite:blabla\". Max 500 per request."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "description": "\"ip\" to parse the tokens as IP rules (geoip:, ext-ip:, leading !). Anything else parses them as domain rules (geosite:, ext-site:)."
+                  }
+                },
+                "required": [
+                  "tokens"
+                ]
               }
             }
           }
@@ -12092,6 +12668,58 @@
         ],
         "summary": "Create an outbound subscription. The URL is fetched, parsed into outbounds with stable tags, and merged additively into the running Xray config.",
         "operationId": "post_panel_api_xray_outbound_subs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "remark": {
+                    "type": "string",
+                    "description": "Optional display label."
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Subscription URL (required). Must be a public http(s) address; private/internal targets are blocked unless allowPrivate is true."
+                  },
+                  "tagPrefix": {
+                    "type": "string",
+                    "description": "Prefix for generated outbound tags. Defaults to the lowest free \"sub<N>-\" prefix."
+                  },
+                  "updateInterval": {
+                    "type": "integer",
+                    "default": 600,
+                    "description": "Seconds between auto-refreshes. Default 600."
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether the subscription is active. Default true."
+                  },
+                  "allowPrivate": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Allow the URL to point at a private/internal/loopback address. Default false."
+                  },
+                  "allowInsecure": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip TLS certificate verification when fetching the subscription's URL. Default false."
+                  },
+                  "prepend": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Place this subscription's outbounds before the manual template outbounds. Default false."
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -12133,6 +12761,58 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "remark": {
+                    "type": "string",
+                    "description": "Optional display label."
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Subscription URL (required). Must be a public http(s) address; private/internal targets are blocked unless allowPrivate is true."
+                  },
+                  "tagPrefix": {
+                    "type": "string",
+                    "description": "Prefix for generated outbound tags. Defaults to the lowest free \"sub<N>-\" prefix."
+                  },
+                  "updateInterval": {
+                    "type": "integer",
+                    "default": 600,
+                    "description": "Seconds between auto-refreshes. Default 600."
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether the subscription is active. Default true."
+                  },
+                  "allowPrivate": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Allow the URL to point at a private/internal/loopback address. Default false."
+                  },
+                  "allowInsecure": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip TLS certificate verification when fetching the subscription's URL. Default false."
+                  },
+                  "prepend": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Place this subscription's outbounds before the manual template outbounds. Default false."
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -12295,6 +12975,22 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dir": {
+                    "type": "string",
+                    "description": "\"up\" to raise priority, anything else to lower it."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -12325,6 +13021,33 @@
         ],
         "summary": "Preview a subscription URL: fetch and parse it into outbounds without persisting anything.",
         "operationId": "post_panel_api_xray_outbound_subs_parse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "Subscription URL to preview (required)."
+                  },
+                  "allowPrivate": {
+                    "type": "boolean",
+                    "description": "Allow a private/internal/loopback URL. Default false."
+                  },
+                  "allowInsecure": {
+                    "type": "boolean",
+                    "description": "Skip TLS certificate verification. Default false."
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -12406,6 +13129,53 @@
         ],
         "summary": "Create a subscription balancer. It appears in the JSON subscription of every client that sits on at least one selected inbound.",
         "operationId": "post_panel_api_sub_balancers",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "remark": {
+                    "type": "string",
+                    "description": "Display label, used as the config remarks (required)."
+                  },
+                  "strategy": {
+                    "type": "string",
+                    "default": "random",
+                    "description": "Balancer strategy: \"leastLoad\", \"leastPing\", \"roundRobin\" or \"random\". Default \"random\"."
+                  },
+                  "inboundIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Repeated form keys selecting the member inbounds (required, at least one)."
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "1-based position in the subscription list. Default 1."
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the balancer is emitted. Default true on create; unchanged when omitted on update."
+                  }
+                },
+                "required": [
+                  "remark",
+                  "inboundIds"
+                ]
+              },
+              "encoding": {
+                "inboundIds": {
+                  "style": "form",
+                  "explode": true
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -12452,7 +13222,7 @@
         "tags": [
           "Subscription Balancers"
         ],
-        "summary": "Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).",
+        "summary": "Update a balancer by id. Accepts the same form fields as create; omitted enabled keeps its current value.",
         "operationId": "post_panel_api_sub_balancers_id",
         "parameters": [
           {
@@ -12465,6 +13235,53 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "remark": {
+                    "type": "string",
+                    "description": "Display label, used as the config remarks (required)."
+                  },
+                  "strategy": {
+                    "type": "string",
+                    "default": "random",
+                    "description": "Balancer strategy: \"leastLoad\", \"leastPing\", \"roundRobin\" or \"random\". Default \"random\"."
+                  },
+                  "inboundIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Repeated form keys selecting the member inbounds (required, at least one)."
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "1-based position in the subscription list. Default 1."
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the balancer is emitted. Default true on create; unchanged when omitted on update."
+                  }
+                },
+                "required": [
+                  "remark",
+                  "inboundIds"
+                ]
+              },
+              "encoding": {
+                "inboundIds": {
+                  "style": "form",
+                  "explode": true
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
