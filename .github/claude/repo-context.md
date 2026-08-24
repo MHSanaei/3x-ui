@@ -82,7 +82,7 @@ question it already answers.
      `cd docs && pnpm gen:api`, because `docs-ci.yml` fires only on `docs/**`.
      Step 4 is the one that reaches production wrong.
 - **i18n.** A new English key goes in EVERY locale JSON in
-  `internal/web/translation/` (13 files) AND must be referenced from
+  `internal/web/translation/` (2 files) AND must be referenced from
   `frontend/src` or Go in the SAME change.
   `frontend/src/test/i18n-dead-keys.test.ts` fails on a missing locale file and
   on an orphan key alike.

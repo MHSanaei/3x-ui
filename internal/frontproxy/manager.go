@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
 )
 
 // Options is everything the reverse proxy needs to run, resolved from settings
@@ -90,7 +91,7 @@ func (m *Manager) Start(opts Options) error {
 		IdleTimeout:       120 * time.Second,
 	}
 	m.server, m.listener, m.cancel = srv, ln, cancel
-	go func() { _ = srv.Serve(ln) }()
+	go network.ServeHTTP(srv, ln, "Reverse proxy")
 	logger.Infof("frontproxy: listening on %s", addr)
 	return nil
 }

@@ -400,14 +400,14 @@ func TestApplyCommonHeadersResolvesRemoteHappAndFailsClosed(t *testing.T) {
 	primeRemoteRouting(t, routingSourceResolver, remoteRoutingHapp, source)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
-	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", true, source, false)
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", true, "", source, false)
 	if recorder.Header().Get("Routing-Enable") != "true" || !strings.HasPrefix(recorder.Header().Get("Routing"), "happ://routing/onadd/") {
 		t.Fatalf("headers = %#v", recorder.Header())
 	}
 
 	recorder = httptest.NewRecorder()
 	ctx, _ = gin.CreateTestContext(recorder)
-	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, source, false)
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, "", source, false)
 	if recorder.Header().Get("Routing-Enable") != "" || !strings.HasPrefix(recorder.Header().Get("Routing"), "happ://routing/onadd/") {
 		t.Fatalf("independent routing headers = %#v", recorder.Header())
 	}
@@ -417,7 +417,7 @@ func TestApplyCommonHeadersResolvesRemoteHappAndFailsClosed(t *testing.T) {
 	}), false)
 	recorder = httptest.NewRecorder()
 	ctx, _ = gin.CreateTestContext(recorder)
-	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", true, "https://example.com/bad", false)
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", true, "", "https://example.com/bad", false)
 	if recorder.Header().Get("Routing-Enable") != "true" || recorder.Header().Get("Routing") != "" {
 		t.Fatalf("invalid remote source leaked routing headers: %#v", recorder.Header())
 	}
