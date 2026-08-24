@@ -14,7 +14,7 @@ import (
 func TestCheckForwardedPortsConflict_EmptySpecNoConflict(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestCheckForwardedPortsConflict_EmptySpecNoConflict(t *testing.T) {
 func TestCheckForwardedPortsConflict_CollidesWithPanelPort(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestCheckForwardedPortsConflict_CollidesWithEnabledInboundPort(t *testing.T
 	seedInboundConflict(t, "vless-8080", "0.0.0.0", 8080, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestCheckForwardedPortsConflict_IgnoresDisabledInboundPort(t *testing.T) {
 	}
 
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestCheckForwardedPortsConflict_NoCollisionWhenPortsDontOverlap(t *testing.
 	seedInboundConflict(t, "vless-8080", "0.0.0.0", 8080, model.VLESS, `{"network":"tcp"}`, `{}`)
 
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestCheckForwardedPortsConflict_IgnoresPortOnDifferentNode(t *testing.T) {
 	seedInboundConflictNode(t, "node1-8080", "0.0.0.0", 8080, model.VLESS, `{"network":"tcp"}`, `{}`, new(1))
 
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestCheckForwardedPortsConflict_IgnoresPortOnDifferentNode(t *testing.T) {
 func TestCheckForwardedPortsConflict_RejectsSpecOverCap(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestCheckForwardedPortsConflict_RejectsSpecOverCap(t *testing.T) {
 func TestCheckForwardedPortsConflict_AcceptsSpecExactlyAtCap(t *testing.T) {
 	setupConflictDB(t)
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestCheckForwardedPortsConflict_CollidesWithAmneziawgnetSocksPort(t *testin
 	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
 
 	svc := &InboundService{}
-	ctx, err := svc.loadPortConflictContext()
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		t.Fatalf("loadPortConflictContext: %v", err)
 	}

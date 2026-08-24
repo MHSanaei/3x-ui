@@ -795,6 +795,7 @@ export const RealityScanResultSchema = z.object({
 export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
 export const ServerSettingsSchema = z.object({
+  awgVersion: z.string().optional(),
   contentPaddingAddition: z.string().optional(),
   disableCookies: z.boolean(),
   externalInterface: z.string().optional(),
@@ -817,7 +818,7 @@ export const ServerSettingsSchema = z.object({
   keepaliveTimeout: z.string().optional(),
   maxHandshakeAttempts: z.string().optional(),
   mtu: z.number().int().optional(),
-  primaryDns: z.string(),
+  primaryDns: z.string().optional(),
   privateKey: z.string(),
   publicKey: z.string(),
   randomTrailers: z.boolean(),
@@ -829,7 +830,7 @@ export const ServerSettingsSchema = z.object({
   s2: z.number().int(),
   s3: z.number().int(),
   s4: z.number().int(),
-  secondaryDns: z.string(),
+  secondaryDns: z.string().optional(),
   subnetCidr: z.number().int(),
   subnetIp: z.string(),
 });

@@ -31,7 +31,7 @@ func TestManagerLifecycle(t *testing.T) {
 		PublicKey:     pub,
 		Address:       []string{"10.203.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20,
 		},
@@ -125,7 +125,7 @@ func TestEnsureUnchangedInstanceDoesNotResetLivePeers(t *testing.T) {
 		PublicKey:     pub,
 		Address:       []string{"10.204.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20,
 		},
@@ -204,7 +204,7 @@ func TestForwardedPortsOnlyChangeStillReconcilesPortForwards(t *testing.T) {
 		PublicKey:     pub,
 		Address:       []string{"10.205.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20,
 		},
@@ -266,7 +266,7 @@ func TestEnsureHeaderProtectionKeyChangeReconfiguresInPlace(t *testing.T) {
 		PublicKey:     pub,
 		Address:       []string{"10.207.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20,
 		},
@@ -326,7 +326,7 @@ func TestEnsureRejectsHeaderProtectionKeyWithLowS1S4(t *testing.T) {
 		PublicKey:     pub,
 		Address:       []string{"10.208.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 5, S2: 5, S3: 5, S4: 5, // all below amneziawg-go's own 12-byte minimum
 		},

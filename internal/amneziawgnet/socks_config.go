@@ -8,11 +8,17 @@ import (
 )
 
 // SOCKSBasePort is the first loopback port used for an AmneziaWG inbound's
-// own Xray SOCKS5 relay inbound (see relay.go/SocksInboundSettings).
+// own Xray SOCKS5 relay inbound (see relay.go/SocksInboundSettings). Its own
+// range, distinct from amneziawg.EgressBasePort (63100, the kernel-module
+// path's TPROXY bridge port) so the two can never collide even if both
+// happen to be reachable during a transition.
 const SOCKSBasePort = 65100
 
-// SOCKSPortForInbound derives one inbound's loopback SOCKS5 relay port from
-// its id, so config generation and the dialing relay never need to negotiate.
+// SOCKSPortForInbound returns the loopback port of one AmneziaWG inbound's
+// own Xray SOCKS5 relay inbound, derived deterministically from its id so
+// the config-generation code (which builds the inbound) and the relay code
+// (which dials it) never have to agree on a runtime-negotiated value --
+// mirrors amneziawg.EgressPortForInbound's own reasoning exactly.
 func SOCKSPortForInbound(inboundID int) int {
 	return SOCKSBasePort + inboundID
 }

@@ -70,11 +70,11 @@ func TestInstanceFromInboundCopiesAWG30Fields(t *testing.T) {
 	if !ok {
 		t.Fatal("expected a usable instance")
 	}
-	if inst.Obfuscation.HeaderProtectionKey != "some-header-protection-key" {
-		t.Fatalf("HeaderProtectionKey = %q, want it copied from ServerSettings", inst.Obfuscation.HeaderProtectionKey)
+	if inst.HeaderProtectionKey != "some-header-protection-key" {
+		t.Fatalf("HeaderProtectionKey = %q, want it copied from ServerSettings", inst.HeaderProtectionKey)
 	}
-	if inst.Obfuscation.ContentPaddingAddition != "50-100" {
-		t.Fatalf("ContentPaddingAddition = %q, want it copied from ServerSettings", inst.Obfuscation.ContentPaddingAddition)
+	if inst.ContentPaddingAddition != "50-100" {
+		t.Fatalf("ContentPaddingAddition = %q, want it copied from ServerSettings", inst.ContentPaddingAddition)
 	}
 }
 

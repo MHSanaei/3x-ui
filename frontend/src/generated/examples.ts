@@ -788,6 +788,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "x25519": true
   },
   "ServerSettings": {
+    "awgVersion": "",
     "contentPaddingAddition": "",
     "disableCookies": false,
     "externalInterface": "",

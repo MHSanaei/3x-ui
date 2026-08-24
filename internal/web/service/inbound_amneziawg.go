@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"gorm.io/gorm"
 )
 
 // DesiredAmneziaWGInstances derives the AmneziaWG interfaces this panel
@@ -110,7 +111,7 @@ func (s *InboundService) applyLocalAmneziaWG(inboundId int) {
 // obfuscation set, the default tunnel subnet/DNS, and a freshly generated
 // keypair.
 func defaultAmneziaWGServer() (*amneziawg.ServerSettings, error) {
-	obf := amneziawg.GenerateObfuscation31("default")
+	obf := amneziawg.GenerateObfuscation20("default")
 	server := &amneziawg.ServerSettings{
 		SubnetIP:     "10.8.1.0",
 		SubnetCIDR:   24,
@@ -265,7 +266,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 		return fmt.Errorf("amneziawg: %w", err)
 	}
 
-	portCtx, err := s.loadPortConflictContext()
+	portCtx, err := s.loadPortConflictContext(database.GetDB())
 	if err != nil {
 		return err
 	}
@@ -307,12 +308,12 @@ type portConflictContext struct {
 // inbound hosted on THIS panel (node_id IS NULL) — an inbound hosted on a
 // different node listens on that node's own host, never this one, so it can
 // never collide with a port-forward listener this process opens.
-func (s *InboundService) loadPortConflictContext() (portConflictContext, error) {
+func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictContext, error) {
 	var ctx portConflictContext
 	if webPort, err := (&SettingService{}).GetPort(); err == nil {
 		ctx.webPort = webPort
 	}
-	err := database.GetDB().Model(model.Inbound{}).
+	err := db.Model(model.Inbound{}).
 		Where("enable = ? AND node_id IS NULL", true).
 		Find(&ctx.inbounds).Error
 	return ctx, err

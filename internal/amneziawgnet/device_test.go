@@ -51,7 +51,7 @@ func TestNewDeviceHandshakeForwarderAndIdentity(t *testing.T) {
 		PublicKey:     serverPub,
 		Address:       []string{"10.201.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20,
 		},
@@ -182,7 +182,7 @@ func TestBuildUAPIConfigHeaderProtectionAndContentPaddingLines(t *testing.T) {
 	}
 	inst := amneziawg.Instance{
 		PrivateKey: priv,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			S1: 20, S2: 20, S3: 20, S4: 20,
 		},
 	}
@@ -255,7 +255,7 @@ func TestNewDeviceHeaderProtectionAndContentPaddingRoundTrip(t *testing.T) {
 		PublicKey:     serverPub,
 		Address:       []string{"10.202.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation31{
+		Obfuscation: amneziawg.Obfuscation20{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20, // all >= 12, required for header protection
 		},

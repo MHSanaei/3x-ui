@@ -3286,6 +3286,10 @@ export const SCHEMAS: Record<string, unknown> = {
   "ServerSettings": {
     "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
     "properties": {
+      "awgVersion": {
+        "description": "AwgVersion is the admin-declared AmneziaWG protocol-version ceiling\nfor this inbound: AwgVersion2 (default) or AwgVersion3. Purely a\nsave-time/UI gate -- amneziawgnet's actual UAPI config never reads\nit, only HeaderProtectionKey/ContentPaddingAddition directly -- it\nexists so enabling either of those two fields is a deliberate,\nvisible choice instead of something that silently starts working\n(or silently keeps working after being turned back off) with no\nadmin-facing signal at all. See EffectiveAwgVersion/ValidateAwgVersion\nin params.go for the back-compat and consistency rules this field\nfollows.",
+        "type": "string"
+      },
       "contentPaddingAddition": {
         "type": "string"
       },
@@ -3309,7 +3313,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "headerProtectionKey": {
-        "description": "HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0\nfields, flat and top-level for the same tools/openapigen reason as\nthe block above; Obfuscation() below folds them back into\nObfuscation31's own identically named fields.\nHeaderProtectionKey is a base64 32-byte key; empty (the default)\ndisables AWG 3.0 header protection. A non-empty value requires\nevery one of S1-S4 above to be \u003e= 12 -- ValidateObfuscation\nenforces this at save time, not just at IpcSet time.\nContentPaddingAddition is a \"low-high\" range or bare integer, the\nsame grammar and uint32 cap as H1-H4.",
+        "description": "HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0\nfields, flat and top-level for the same tools/openapigen reason as\nthe block above -- deliberately NOT part of Obfuscation20/\nObfuscation() below, matching Instance's own separation.\nHeaderProtectionKey is a base64 32-byte key; empty (the default)\ndisables AWG 3.0 header protection. A non-empty value requires\nevery one of S1-S4 above to be \u003e= 12 -- ValidateHeaderProtection\nenforces this at save time, not just at IpcSet time.\nContentPaddingAddition is a \"low-high\" range or bare integer, the\nsame grammar as H1-H4 but capped at uint16 max.",
         "type": "string"
       },
       "i1": {
@@ -3337,7 +3341,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "jc": {
-        "description": "Obfuscation31's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation31 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation31` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
+        "description": "Obfuscation20's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation20 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation20` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
         "type": "integer"
       },
       "jmax": {
@@ -3356,7 +3360,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "primaryDns": {
-        "description": "PrimaryDNS/SecondaryDNS seed client configs' DNS line. Blank is\nmeaningful, so no omitempty: a dropped key resurrects frontend defaults.",
+        "description": "PrimaryDNS/SecondaryDNS seed the DNS line of downloadable client\nconfigs; the server's own interface never sets one (see BuildClientConfig).",
         "type": "string"
       },
       "privateKey": {
@@ -3413,7 +3417,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "jc",
       "jmax",
       "jmin",
-      "primaryDns",
       "privateKey",
       "publicKey",
       "randomTrailers",
@@ -3421,7 +3424,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "s2",
       "s3",
       "s4",
-      "secondaryDns",
       "subnetCidr",
       "subnetIp"
     ],
