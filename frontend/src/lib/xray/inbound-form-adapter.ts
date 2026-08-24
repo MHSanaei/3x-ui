@@ -1,4 +1,8 @@
-import type { InboundFormValues, ShareAddrStrategy, TrafficReset } from '@/schemas/forms/inbound-form';
+import type {
+  InboundFormValues,
+  ShareAddrStrategy,
+  TrafficReset,
+} from '@/schemas/forms/inbound-form';
 import type { InboundSettings } from '@/schemas/protocols/inbound';
 import {
   AmneziawgClientSchema,
@@ -48,6 +52,7 @@ export interface RawInboundRow {
   shareAddrStrategy?: string;
   shareAddr?: string;
   subSortIndex?: number;
+  disableFlow?: boolean;
   clientStats?: unknown;
 }
 
@@ -76,6 +81,7 @@ export interface WireInboundPayload {
   shareAddrStrategy: ShareAddrStrategy;
   shareAddr: string;
   subSortIndex: number;
+  disableFlow: boolean;
 }
 
 function coerceJsonObject(value: unknown): Record<string, unknown> {
@@ -142,7 +148,7 @@ function healStreamNetworkKey(stream: Record<string, unknown>): void {
 
 function tlsCerts(stream: Record<string, unknown>): Record<string, unknown>[] {
   const tls = stream.tlsSettings as { certificates?: unknown } | undefined;
-  return Array.isArray(tls?.certificates) ? tls.certificates as Record<string, unknown>[] : [];
+  return Array.isArray(tls?.certificates) ? (tls.certificates as Record<string, unknown>[]) : [];
 }
 
 function synthesizeTlsCertUseFile(stream: Record<string, unknown>): void {
@@ -164,9 +170,8 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const protocol = (row.protocol || 'vless') as InboundSettings['protocol'];
   const settings = coerceJsonObject(row.settings) as InboundSettings['settings'];
   const rawStream = coerceJsonObject(row.streamSettings);
-  const streamSettings = Object.keys(rawStream).length > 0
-    ? (rawStream as StreamSettings)
-    : undefined;
+  const streamSettings =
+    Object.keys(rawStream).length > 0 ? (rawStream as StreamSettings) : undefined;
   if (streamSettings) {
     healStreamNetworkKey(streamSettings as unknown as Record<string, unknown>);
     synthesizeTlsCertUseFile(streamSettings as unknown as Record<string, unknown>);
@@ -211,6 +216,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
     subSortIndex: Math.max(1, row.subSortIndex ?? 1),
+    disableFlow: row.disableFlow ?? false,
     protocol,
     settings,
   } as InboundFormValues;
@@ -249,15 +255,24 @@ export function pruneEmpty(value: unknown): unknown {
 // gives us the canonical projection.
 function clientSchemaForProtocol(protocol: string): z.ZodType | null {
   switch (protocol) {
-    case 'vless': return VlessClientSchema;
-    case 'vmess': return VmessClientSchema;
-    case 'trojan': return TrojanClientSchema;
-    case 'shadowsocks': return ShadowsocksClientSchema;
-    case 'hysteria': return HysteriaClientSchema;
-    case 'wireguard': return WireguardClientSchema;
-    case 'mtproto': return MtprotoClientSchema;
-    case 'amneziawg': return AmneziawgClientSchema;
-    default: return null;
+    case 'vless':
+      return VlessClientSchema;
+    case 'vmess':
+      return VmessClientSchema;
+    case 'trojan':
+      return TrojanClientSchema;
+    case 'shadowsocks':
+      return ShadowsocksClientSchema;
+    case 'hysteria':
+      return HysteriaClientSchema;
+    case 'wireguard':
+      return WireguardClientSchema;
+    case 'mtproto':
+      return MtprotoClientSchema;
+    case 'amneziawg':
+      return AmneziawgClientSchema;
+    default:
+      return null;
   }
 }
 
@@ -304,7 +319,9 @@ export function dropLegacyOptionalEmpties(
     // sub-fields are empty; otherwise drop only the empty sub-arrays so
     // the wire payload doesn't carry a stray `"tcp": []` next to a
     // populated UDP mask list (and vice versa).
-    const fm = stream.finalmask as { tcp?: unknown[]; udp?: unknown[]; quicParams?: unknown } | undefined;
+    const fm = stream.finalmask as
+      | { tcp?: unknown[]; udp?: unknown[]; quicParams?: unknown }
+      | undefined;
     if (fm && typeof fm === 'object') {
       const hasTcp = Array.isArray(fm.tcp) && fm.tcp.length > 0;
       const hasUdp = Array.isArray(fm.udp) && fm.udp.length > 0;
@@ -358,11 +375,14 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     streamSettings: streamPruned ? JSON.stringify(streamPruned) : '',
     // mtproto is mtg-served, not Xray, so sniffing never applies — emit empty
     // rather than the default { enabled: false } so the row carries no sniffing.
-    sniffing: canEnableSniffing({ protocol: values.protocol }) ? JSON.stringify(normalizeSniffing(values.sniffing)) : '',
+    sniffing: canEnableSniffing({ protocol: values.protocol })
+      ? JSON.stringify(normalizeSniffing(values.sniffing))
+      : '',
     tag: values.tag,
     shareAddrStrategy: values.shareAddrStrategy,
     shareAddr: values.shareAddr,
     subSortIndex: values.subSortIndex,
+    disableFlow: values.disableFlow,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;
   return payload;

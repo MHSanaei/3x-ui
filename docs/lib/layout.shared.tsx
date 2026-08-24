@@ -2,7 +2,15 @@ import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { Heart } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { TelegramIcon } from '@/components/icons';
-import { appName, productRepoUrl, telegramChannel, telegramChannelUrl, donateUrl, siteUrl } from './shared';
+import { DocsThemeSwitch } from '@/components/theme-switch';
+import {
+  appName,
+  productRepoUrl,
+  telegramChannel,
+  telegramChannelUrl,
+  donateUrl,
+  siteUrl,
+} from './shared';
 import { getSiteMessages } from './site-i18n';
 
 // Build locale-aware shared layout options. With `hideLocale: 'default-locale'`,
@@ -12,6 +20,9 @@ export function baseOptions(lang: string): BaseLayoutProps {
   const m = getSiteMessages(lang);
 
   return {
+    slots: {
+      themeSwitch: DocsThemeSwitch,
+    },
     nav: {
       title: (
         <span className="inline-flex items-center gap-2 font-semibold">

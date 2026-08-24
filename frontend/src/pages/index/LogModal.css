@@ -151,7 +151,7 @@ body.dark .log-container {
   --log-divider: rgba(255, 255, 255, 0.1);
 }
 
-html[data-theme="ultra-dark"] .log-container {
+html[data-theme='ultra-dark'] .log-container {
   --log-stamp: #7fb6f1;
   --log-debug: #7fb6f1;
   --log-info: #5fd9b0;

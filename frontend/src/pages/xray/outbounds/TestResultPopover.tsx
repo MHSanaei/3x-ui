@@ -31,22 +31,46 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
 
   const breakdown: Array<{ key: string; label: string; value: string }> = [];
   if (typeof r.httpStatus === 'number') {
-    breakdown.push({ key: 'status', label: t('pages.xray.outbound.httpStatus'), value: String(r.httpStatus) });
+    breakdown.push({
+      key: 'status',
+      label: t('pages.xray.outbound.httpStatus'),
+      value: String(r.httpStatus),
+    });
   }
   if (typeof r.connectMs === 'number') {
-    breakdown.push({ key: 'connect', label: t('pages.xray.outbound.breakdownConnect'), value: `${r.connectMs} ms` });
+    breakdown.push({
+      key: 'connect',
+      label: t('pages.xray.outbound.breakdownConnect'),
+      value: `${r.connectMs} ms`,
+    });
   }
   if (typeof r.tlsMs === 'number') {
-    breakdown.push({ key: 'tls', label: t('pages.xray.outbound.breakdownTls'), value: `${r.tlsMs} ms` });
+    breakdown.push({
+      key: 'tls',
+      label: t('pages.xray.outbound.breakdownTls'),
+      value: `${r.tlsMs} ms`,
+    });
   }
   if (typeof r.ttfbMs === 'number') {
-    breakdown.push({ key: 'ttfb', label: t('pages.xray.outbound.breakdownTtfb'), value: `${r.ttfbMs} ms` });
+    breakdown.push({
+      key: 'ttfb',
+      label: t('pages.xray.outbound.breakdownTtfb'),
+      value: `${r.ttfbMs} ms`,
+    });
   }
   if (typeof r.downloadMbps === 'number') {
-    breakdown.push({ key: 'download', label: t('pages.xray.outbound.breakdownDownload'), value: `${fmtMbps(r.downloadMbps)} ${t('pages.xray.outbound.mbpsUnit')}` });
+    breakdown.push({
+      key: 'download',
+      label: t('pages.xray.outbound.breakdownDownload'),
+      value: `${fmtMbps(r.downloadMbps)} ${t('pages.xray.outbound.mbpsUnit')}`,
+    });
   }
   if (typeof r.uploadMbps === 'number') {
-    breakdown.push({ key: 'upload', label: t('pages.xray.outbound.breakdownUpload'), value: `${fmtMbps(r.uploadMbps)} ${t('pages.xray.outbound.mbpsUnit')}` });
+    breakdown.push({
+      key: 'upload',
+      label: t('pages.xray.outbound.breakdownUpload'),
+      value: `${fmtMbps(r.uploadMbps)} ${t('pages.xray.outbound.mbpsUnit')}`,
+    });
   }
 
   return (
@@ -56,9 +80,11 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
       content={
         <div className="timing-breakdown">
           <div className={`td-head ${r.success ? 'ok' : 'fail'}`}>
-            {r.success
-              ? <span>{isSpeed ? speedSummary : `${r.delay} ms`}</span>
-              : <span>{r.error || 'failed'}</span>}
+            {r.success ? (
+              <span>{isSpeed ? speedSummary : `${r.delay} ms`}</span>
+            ) : (
+              <span>{r.error || 'failed'}</span>
+            )}
             {r.mode && <span className="mode-badge">{testModeLabel(String(r.mode), t)}</span>}
           </div>
           {speedPartialFailure && <div className="td-head-partial">{r.error}</div>}
@@ -66,7 +92,9 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
             <div key={ep.address} className="endpoint-row">
               <span className={ep.success ? 'dot-ok' : 'dot-fail'}>●</span>
               <span className="ep-addr">{ep.address}</span>
-              <span className="ep-meta">{ep.success ? `${ep.delay} ms` : ep.error || 'failed'}</span>
+              <span className="ep-meta">
+                {ep.success ? `${ep.delay} ms` : ep.error || 'failed'}
+              </span>
             </div>
           ))}
           {breakdown.map((row) => (
@@ -80,12 +108,24 @@ export default function TestResultPopover({ result: r, children }: TestResultPop
     >
       {children ?? (
         <span className={r.success ? (speedPartialFailure ? 'pill-warn' : 'pill-ok') : 'pill-fail'}>
-          {r.success ? (speedPartialFailure ? <ExclamationCircleFilled /> : <CheckCircleFilled />) : <CloseCircleFilled />}
-          {r.success
-            ? (isSpeed
-              ? <span>{speedSummary}</span>
-              : <span>{r.delay}&nbsp;ms</span>)
-            : <span>failed</span>}
+          {r.success ? (
+            speedPartialFailure ? (
+              <ExclamationCircleFilled />
+            ) : (
+              <CheckCircleFilled />
+            )
+          ) : (
+            <CloseCircleFilled />
+          )}
+          {r.success ? (
+            isSpeed ? (
+              <span>{speedSummary}</span>
+            ) : (
+              <span>{r.delay}&nbsp;ms</span>
+            )
+          ) : (
+            <span>failed</span>
+          )}
         </span>
       )}
     </Popover>

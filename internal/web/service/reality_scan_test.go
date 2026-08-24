@@ -79,13 +79,13 @@ func TestSplitRealityTarget(t *testing.T) {
 }
 
 func TestScanRealityTargetInputValidation(t *testing.T) {
-	if _, err := (&ServerService{}).ScanRealityTarget("", 0); err == nil {
+	if _, err := (&ServerService{}).ScanRealityTarget("", "", 0, false); err == nil {
 		t.Error("ScanRealityTarget(empty) expected error, got nil")
 	}
 }
 
 func TestScanRealityTargetBlocksPrivate(t *testing.T) {
-	res, err := (&ServerService{}).ScanRealityTarget("10.0.0.1:443", 0)
+	res, err := (&ServerService{}).ScanRealityTarget("10.0.0.1:443", "", 0, false)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(private) unexpected error: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestScanRealityTargetBlocksPrivate(t *testing.T) {
 // still fails -- but for the honest reason that nothing answered, not because
 // the guard refused to dial.
 func TestScanRealityTargetProbesLoopback(t *testing.T) {
-	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:1", 0)
+	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:1", "", 0, false)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(loopback) unexpected error: %v", err)
 	}

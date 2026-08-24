@@ -29,10 +29,19 @@
         "XUI_LOG_FOLDER": "x-ui",
         "XUI_BIN_FOLDER": "x-ui",
         "XUI_DB_TYPE": "postgres",
-        "XUI_DB_DSN": "postgres://xui:xuipass@127.0.0.1:5432/xui?sslmode=disable",
-        "PATH": "C:\\Program Files\\PostgreSQL\\18\\bin;${env:PATH}"
+        "XUI_DB_DSN": "postgres://xui:xuipass@127.0.0.1:5432/xui?sslmode=disable"
+      },
+      "windows": {
+        "env": {
+          "XUI_DEBUG": "true",
+          "XUI_LOG_FOLDER": "x-ui",
+          "XUI_BIN_FOLDER": "x-ui",
+          "XUI_DB_TYPE": "postgres",
+          "XUI_DB_DSN": "postgres://xui:xuipass@127.0.0.1:5432/xui?sslmode=disable",
+          "PATH": "C:\\Program Files\\PostgreSQL\\18\\bin;${env:PATH}"
+        }
       },
       "console": "integratedTerminal"
-    },
+    }
   ]
 }

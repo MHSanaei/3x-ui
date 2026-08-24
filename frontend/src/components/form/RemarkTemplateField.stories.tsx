@@ -17,7 +17,10 @@ const meta = {
     },
   },
   argTypes: {
-    value: { description: 'Current template string; any {{VAR}} token enables the live preview below the input.' },
+    value: {
+      description:
+        'Current template string; any {{VAR}} token enables the live preview below the input.',
+    },
     onChange: { description: 'Called with the updated template on typing or token insertion.' },
     maxLength: { description: 'Maximum template length; picker insertions are clamped to it.' },
     placeholder: { description: 'Placeholder shown while the template is empty.' },
@@ -30,7 +33,14 @@ type Story = StoryObj<typeof meta>;
 
 function InteractiveDemo() {
   const [value, setValue] = useState('{{STATUS_EMOJI}} {{INBOUND}}-{{EMAIL}} | {{TRAFFIC_LEFT}}');
-  return <RemarkTemplateField value={value} onChange={setValue} maxLength={256} placeholder="{{INBOUND}}-{{EMAIL}}" />;
+  return (
+    <RemarkTemplateField
+      value={value}
+      onChange={setValue}
+      maxLength={256}
+      placeholder="{{INBOUND}}-{{EMAIL}}"
+    />
+  );
 }
 
 export const Empty: Story = {

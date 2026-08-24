@@ -457,6 +457,8 @@ func parseHysteria2(link string) (*ParseResult, error) {
 		},
 	}
 	applyFinalMask(stream, params)
+	applyHysteria2Obfs(stream, params)
+	applyHysteria2Hop(stream, params)
 
 	identity := "hysteria2:" + auth + "@" + host + ":" + strconv.Itoa(port) + "?" + canonicalQuery(params)
 
@@ -684,6 +686,69 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 			stream["finalmask"] = parsed
 		}
 	}
+}
+
+// applyHysteria2Obfs rebuilds the salamander mask from the standard Hysteria2
+// obfs=salamander & obfs-password=<pw> pair (every non-3x-ui client, and this
+// panel's own generator, speak it instead of the private fm=<json> dump). A
+// salamander mask already carrying a password via fm= wins; a password-less one
+// is completed rather than left empty.
+func applyHysteria2Obfs(stream map[string]any, p url.Values) {
+	if !strings.EqualFold(p.Get("obfs"), "salamander") {
+		return
+	}
+	password := firstParam(p, "obfs-password", "obfs_password", "obfsPassword")
+	if password == "" {
+		return
+	}
+	finalmask := ensureChildMap(stream, "finalmask")
+	udp, _ := finalmask["udp"].([]any)
+	for _, m := range udp {
+		mask, ok := m.(map[string]any)
+		if !ok || mask["type"] != "salamander" {
+			continue
+		}
+		settings, ok := mask["settings"].(map[string]any)
+		if !ok {
+			settings = map[string]any{}
+			mask["settings"] = settings
+		}
+		if pw, _ := settings["password"].(string); pw == "" {
+			settings["password"] = password
+		}
+		return
+	}
+	finalmask["udp"] = append(udp, map[string]any{
+		"type":     "salamander",
+		"settings": map[string]any{"password": password},
+	})
+}
+
+// applyHysteria2Hop rebuilds the UDP port-hopping range from the standard mport
+// param, which the generator emits as finalmask.quicParams.udpHop.ports. A range
+// already supplied via fm= wins; the client-side interval falls back to the same
+// default the panel writes.
+func applyHysteria2Hop(stream map[string]any, p url.Values) {
+	ports := firstParam(p, "mport")
+	if ports == "" {
+		return
+	}
+	quicParams := ensureChildMap(ensureChildMap(stream, "finalmask"), "quicParams")
+	if udpHop, ok := quicParams["udpHop"].(map[string]any); ok {
+		if existing, _ := udpHop["ports"].(string); existing != "" {
+			return
+		}
+	}
+	quicParams["udpHop"] = map[string]any{"ports": ports, "interval": "5-10"}
+}
+
+func ensureChildMap(parent map[string]any, key string) map[string]any {
+	m, ok := parent[key].(map[string]any)
+	if !ok {
+		m = map[string]any{}
+		parent[key] = m
+	}
+	return m
 }
 
 // sanitizeFinalMaskQuicParams coerces the strictly numeric quicParams fields

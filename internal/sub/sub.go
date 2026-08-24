@@ -155,6 +155,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonFinalMask = ""
 	}
 
+	SubJsonObservatory, err := s.settingService.GetSubJsonObservatory()
+	if err != nil {
+		SubJsonObservatory = ""
+	}
+
 	SubClashEnableRouting, err := s.settingService.GetSubClashEnableRouting()
 	if err != nil {
 		SubClashEnableRouting = false
@@ -291,6 +296,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBJsonMux(SubJsonMux),
 		WithSUBJsonRules(SubJsonRules),
 		WithSUBJsonFinalMask(SubJsonFinalMask),
+		WithSUBJsonObservatory(SubJsonObservatory),
 		WithSUBClashEnableRouting(SubClashEnableRouting),
 		WithSUBClashRules(SubClashRules),
 		WithSUBTitle(SubTitle),
@@ -383,9 +389,7 @@ func (s *Server) Start() (err error) {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	go func() {
-		_ = s.httpServer.Serve(listener)
-	}()
+	go network.ServeHTTP(s.httpServer, listener, "Subscription server")
 
 	return nil
 }

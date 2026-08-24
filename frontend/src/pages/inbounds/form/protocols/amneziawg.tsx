@@ -1,10 +1,20 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Form, Input, InputNumber, Select, Space, Switch } from 'antd';
-import { RadarChartOutlined, ReloadOutlined, ThunderboltOutlined, ToolOutlined } from '@ant-design/icons';
+import {
+  RadarChartOutlined,
+  ReloadOutlined,
+  ThunderboltOutlined,
+  ToolOutlined,
+} from '@ant-design/icons';
 
 import { FormField } from '@/components/form/rhf';
-import { CPS_SLOTS, I1_PROFILE_CHOICES, type CpsSlot, type I1ProfileChoice } from '@/lib/xray/i1Generators';
+import {
+  CPS_SLOTS,
+  I1_PROFILE_CHOICES,
+  type CpsSlot,
+  type I1ProfileChoice,
+} from '@/lib/xray/i1Generators';
 import { AWG_VERSION_2, AWG_VERSION_3 } from '@/schemas/protocols/inbound/amneziawg';
 import AwgDiagnosticsModal from '@/pages/inbounds/form/AwgDiagnosticsModal';
 
@@ -62,14 +72,25 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'privateKey']} noStyle>
             <Input style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwg} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwg}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item label={t('pages.xray.amneziawg.publicKey')}>
         <Input value={awgPubKey} disabled />
       </Form.Item>
-      <Form.Item label={t('pages.xray.amneziawg.diagnostics')} tooltip={t('pages.xray.amneziawg.diagnosticsHint')}>
-        <Button icon={<ToolOutlined />} disabled={!inboundId} onClick={() => setDiagnosticsOpen(true)}>
+      <Form.Item
+        label={t('pages.xray.amneziawg.diagnostics')}
+        tooltip={t('pages.xray.amneziawg.diagnosticsHint')}
+      >
+        <Button
+          icon={<ToolOutlined />}
+          disabled={!inboundId}
+          onClick={() => setDiagnosticsOpen(true)}
+        >
           {t('pages.xray.amneziawg.diagnosticsOpen')}
         </Button>
       </Form.Item>
@@ -80,19 +101,31 @@ export default function AmneziawgFields({
           inboundId={inboundId}
         />
       )}
-      <FormField name={['settings', 'server', 'subnetIp']} label={t('pages.xray.amneziawg.subnetIp')}>
+      <FormField
+        name={['settings', 'server', 'subnetIp']}
+        label={t('pages.xray.amneziawg.subnetIp')}
+      >
         <Input placeholder="10.8.1.0" />
       </FormField>
-      <FormField name={['settings', 'server', 'subnetCidr']} label={t('pages.xray.amneziawg.subnetCidr')}>
+      <FormField
+        name={['settings', 'server', 'subnetCidr']}
+        label={t('pages.xray.amneziawg.subnetCidr')}
+      >
         <InputNumber min={1} max={32} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 'mtu']} label={t('pages.xray.amneziawg.mtu')}>
         <InputNumber style={{ width: '100%' }} />
       </FormField>
-      <FormField name={['settings', 'server', 'primaryDns']} label={t('pages.xray.amneziawg.primaryDns')}>
+      <FormField
+        name={['settings', 'server', 'primaryDns']}
+        label={t('pages.xray.amneziawg.primaryDns')}
+      >
         <Input placeholder="8.8.8.8" />
       </FormField>
-      <FormField name={['settings', 'server', 'secondaryDns']} label={t('pages.xray.amneziawg.secondaryDns')}>
+      <FormField
+        name={['settings', 'server', 'secondaryDns']}
+        label={t('pages.xray.amneziawg.secondaryDns')}
+      >
         <Input placeholder="8.8.4.4" />
       </FormField>
       <FormField
@@ -123,7 +156,10 @@ export default function AmneziawgFields({
       >
         <Input placeholder="eth0" />
       </FormField>
-      <Form.Item label={t('pages.xray.amneziawg.obfuscation')} tooltip={t('pages.xray.amneziawg.obfuscationHint')}>
+      <Form.Item
+        label={t('pages.xray.amneziawg.obfuscation')}
+        tooltip={t('pages.xray.amneziawg.obfuscationHint')}
+      >
         <Button icon={<ReloadOutlined />} onClick={regenInboundAwgObfuscation}>
           {t('pages.xray.amneziawg.regenerateObfuscation')}
         </Button>
@@ -165,7 +201,10 @@ export default function AmneziawgFields({
       <FormField name={['settings', 'server', 'h4']} label={t('pages.xray.amneziawg.h4')}>
         <Input placeholder="4 or 100-800" />
       </FormField>
-      <Form.Item label={t('pages.xray.amneziawg.quicCapture')} tooltip={t('pages.xray.amneziawg.quicCaptureHint')}>
+      <Form.Item
+        label={t('pages.xray.amneziawg.quicCapture')}
+        tooltip={t('pages.xray.amneziawg.quicCaptureHint')}
+      >
         <Space direction="vertical" style={{ width: '100%' }} size={8}>
           <Input
             value={quicCaptureHost}
@@ -229,7 +268,11 @@ export default function AmneziawgFields({
             <FormField name={['settings', 'server', slot]} noStyle>
               <Input placeholder="<r 64>" style={{ flex: 1 }} />
             </FormField>
-            <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={() => onRegenCps(slot)} />
+            <Button
+              aria-label={t('regenerate')}
+              icon={<ReloadOutlined />}
+              onClick={() => onRegenCps(slot)}
+            />
           </Space.Compact>
         </Form.Item>
       ))}
@@ -255,7 +298,11 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'headerProtectionKey']} noStyle>
             <Input style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgHeaderProtectionKey} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwgHeaderProtectionKey}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item
@@ -266,7 +313,11 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'contentPaddingAddition']} noStyle>
             <Input placeholder="0 or 50-100" style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgContentPaddingAddition} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwgContentPaddingAddition}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item
@@ -277,7 +328,11 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'rekeyAfterTime']} noStyle>
             <Input placeholder="120 or 118-135" style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgRekeyAfterTime} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwgRekeyAfterTime}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item
@@ -288,7 +343,11 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'rekeyTimeout']} noStyle>
             <Input placeholder="5 or 4-8" style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgRekeyTimeout} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwgRekeyTimeout}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item
@@ -299,7 +358,11 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'rejectAfterTime']} noStyle>
             <Input placeholder="180 or 175-190" style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgRejectAfterTime} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwgRejectAfterTime}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item
@@ -310,7 +373,11 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'keepaliveTimeout']} noStyle>
             <Input placeholder="10 or 9-17" style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgKeepaliveTimeout} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwgKeepaliveTimeout}
+          />
         </Space.Compact>
       </Form.Item>
       <Form.Item
@@ -321,7 +388,11 @@ export default function AmneziawgFields({
           <FormField name={['settings', 'server', 'maxHandshakeAttempts']} noStyle>
             <Input placeholder="18 or 15-22" style={{ width: 'calc(100% - 32px)' }} />
           </FormField>
-          <Button aria-label={t('regenerate')} icon={<ReloadOutlined />} onClick={regenInboundAwgMaxHandshakeAttempts} />
+          <Button
+            aria-label={t('regenerate')}
+            icon={<ReloadOutlined />}
+            onClick={regenInboundAwgMaxHandshakeAttempts}
+          />
         </Space.Compact>
       </Form.Item>
       <FormField

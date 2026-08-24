@@ -112,7 +112,8 @@
     "docs": "Documentation",
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
-    "unpinSidebar": "Unpin sidebar"
+    "unpinSidebar": "Unpin sidebar",
+    "subFormats": "Sub Formats"
   },
   "pages": {
     "login": {
@@ -259,7 +260,26 @@
       "healthCritical": "{list} — critical",
       "panel": "Panel",
       "threads": "Threads",
-      "uptime": "Uptime"
+      "uptime": "Uptime",
+      "amneziawgLogs": "AmneziaWG Logs",
+      "amneziawgHandshake": "Last Handshake",
+      "amneziawgInterface": "Interface",
+      "amneziawgInbound": "Inbound",
+      "amneziawgEndpoint": "Endpoint",
+      "amneziawgIdle": "Idle",
+      "amneziawgEvents": "Events",
+      "amneziawgNoPeers": "No AmneziaWG peers are currently up",
+      "amneziawgNoEvents": "No AmneziaWG events recorded yet",
+      "logLevelDebug": "Debug",
+      "logLevelInfo": "Info",
+      "logLevelNotice": "Notice",
+      "logLevelWarning": "Warning",
+      "logLevelError": "Error",
+      "accessDirect": "DIRECT",
+      "accessBlocked": "BLOCKED",
+      "accessProxy": "PROXY",
+      "importKeepHostSettings": "Keep this machine's settings",
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
     },
     "inbounds": {
       "totalDownUp": "Total Sent/Received",
@@ -434,7 +454,8 @@
         "scanRealityTargetNotFeasible": "Target is reachable but not feasible for REALITY.",
         "invalidClientField": "Client {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
-        "moreIssues": "{message}  (+{count} more)"
+        "moreIssues": "{message}  (+{count} more)",
+        "scanRealityTargetPrivate": "Target is reachable but sits on a private/local network."
       },
       "form": {
         "moveUp": "Move up",
@@ -644,7 +665,14 @@
           "node": "Node address",
           "listen": "Inbound listen",
           "custom": "Custom"
-        }
+        },
+        "scanCertExpiry": "Certificate expires",
+        "scanSniUsed": "SNI used",
+        "scanPrivateNote": "Checked over a private/local network — this address is not reachable from the internet.",
+        "scanPrivateConfirmTitle": "Target on a local network",
+        "scanPrivateConfirmContent": "\"{target}\" resolves to a private or loopback address. The check will bypass the panel SSRF guard for this probe only. Continue?",
+        "disableFlow": "Disable XTLS flow",
+        "disableFlowHelp": "Opt this inbound out of automatic xtls-rprx-vision injection, even when its transport is flow-capable (e.g. a tunneled XHTTP inbound with VLESS encryption). Clients keep Vision on your other capable inbounds in the same subscription. VLESS only."
       },
       "info": {
         "mode": "Mode",
@@ -872,7 +900,16 @@
         "delOrphans": "{count} unattached clients deleted",
         "imported": "{count} clients imported",
         "importedMixed": "{ok} imported, {failed} skipped"
-      }
+      },
+      "namePrefix": "Name prefix",
+      "lastFetchAt": "Last fetch",
+      "lastFetchError": "Fetch error",
+      "neverFetched": "Not fetched yet",
+      "renewMax": "Max renewals",
+      "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
+      "renewOnDay": "Renew on day",
+      "renewOnDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode.",
+      "renewsUsed": "Renewals used"
     },
     "groups": {
       "name": "Name",
@@ -1020,7 +1057,8 @@
         "descRESET_DAYS": "Traffic reset period in days",
         "descPROTOCOL": "Inbound protocol (VLESS, VMess, Trojan, …)",
         "descTRANSPORT": "Transport network (tcp, ws, grpc, …)",
-        "descSECURITY": "Transport security (TLS, REALITY, NONE)"
+        "descSECURITY": "Transport security (TLS, REALITY, NONE)",
+        "descRESET_DAY": "Calendar renewal day of the month"
       },
       "toasts": {
         "list": "Failed to load hosts",
@@ -1568,7 +1606,60 @@
         "pathLeadingSlash": "Path must start with /"
       },
       "secretClear": "Clear",
-      "secretClearUndo": "Undo clear"
+      "secretClearUndo": "Undo clear",
+      "calendarGregorian": "Gregorian (Standard)",
+      "calendarJalalian": "Jalalian (شمسی)",
+      "ipLimitAllowlist": "IP limit allowlist",
+      "ipLimitAllowlistDesc": "Addresses and networks that the IP limit never counts and never bans, so a shared office or campus address cannot use up a client's limit. Comma-separated, IP or CIDR.",
+      "subBalancers": {
+        "menu": "Sub Balancers",
+        "title": "Subscription balancer",
+        "add": "Add balancer",
+        "desc": "Each enabled balancer is added to the JSON subscription as one extra profile that automatically picks the best of the selected inbounds' endpoints (routing.balancers + burstObservatory in the client config).",
+        "remark": "Remark",
+        "remarkPlaceholder": "Auto · fastest",
+        "strategy": "Strategy",
+        "strategyLeastLoad": "Least load",
+        "strategyLeastPing": "Least ping",
+        "strategyRandom": "Random",
+        "strategyRoundRobin": "Round robin",
+        "sortOrder": "Order",
+        "sortOrderHelp": "Position in the subscription list, interleaved with the inbounds' own order; on equal numbers the balancer comes after the inbound.",
+        "inbounds": "Inbounds",
+        "inboundsCount": "{count} Inbounds",
+        "enabled": "Enabled",
+        "empty": "No balancers yet",
+        "deleteConfirm": "Delete this balancer?",
+        "errRemarkRequired": "Remark is required",
+        "errInboundsRequired": "Select at least one inbound",
+        "errSortOrder": "Order must be a whole number ≥ 1",
+        "toasts": {
+          "list": "Failed to list subscription balancers",
+          "create": "Failed to create subscription balancer",
+          "update": "Failed to update subscription balancer",
+          "delete": "Failed to delete subscription balancer",
+          "invalidId": "Invalid id"
+        },
+        "tabBalancers": "Balancers",
+        "tabObservatory": "Observatory",
+        "observatory": {
+          "title": "Balancer observatory",
+          "desc": "Probe parameters for the burst observatory emitted into each leastPing/leastLoad balancer profile. random/roundRobin balancers get no observatory. Stored as a panel-wide JSON-sub setting.",
+          "destination": "Probe URL",
+          "destinationDesc": "URL the client pings to measure each member outbound.",
+          "connectivity": "Connectivity URL",
+          "connectivityDesc": "Optional URL checked once to confirm the member can reach the probe destination. Leave empty to skip.",
+          "interval": "Probe interval",
+          "intervalDesc": "Time between probe rounds, e.g. 1m.",
+          "timeout": "Probe timeout",
+          "timeoutDesc": "Per-probe timeout, e.g. 5s.",
+          "sampling": "Sampling",
+          "samplingDesc": "Number of consecutive probes averaged for stability.",
+          "httpMethod": "HTTP method",
+          "httpMethodDesc": "Method used for probe requests.",
+          "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
+        }
+      }
     },
     "xray": {
       "save": "Save",
@@ -1999,7 +2090,8 @@
         "randomTrailers": "Random Trailers (3.1)",
         "randomTrailersHint": "Requires the version above to be set to 3.0, and the peer to run AmneziaWG 3.1+ with this same setting enabled. Appends a random amount of padding after every packet -- if only one side has it on, that side's larger packets get silently dropped by the other. Off by default.",
         "disableCookies": "Disable Cookie Replies (3.1)",
-        "disableCookiesHint": "Requires the version above to be set to 3.0. Stops this server from sending WireGuard's built-in DoS-protection cookie replies during a handshake flood -- trades that protection away for a less distinctive packet shape. Purely local, no matching peer setting needed. Off by default."
+        "disableCookiesHint": "Requires the version above to be set to 3.0. Stops this server from sending WireGuard's built-in DoS-protection cookie replies during a handshake flood -- trades that protection away for a less distinctive packet shape. Purely local, no matching peer setting needed. Off by default.",
+        "timingRangeHint": "A single integer or a low-high range. Leave empty to keep the WireGuard default."
       },
       "tun": {
         "userLevel": "User Level"
@@ -2122,7 +2214,21 @@
         "poolSize": "Pool Size"
       },
       "defaultOutbound": "Default Outbound",
-      "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list)."
+      "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list).",
+      "pia": {
+        "menu": "PIA",
+        "username": "PIA username",
+        "password": "PIA password",
+        "account": "Account",
+        "region": "Region",
+        "allRegions": "All regions",
+        "noServers": "No servers found for the selected country",
+        "outboundAdded": "PIA outbound added",
+        "outboundUpdated": "PIA outbound updated",
+        "addedServers": "Added servers",
+        "alreadyAdded": "This server is already in the outbound list. Use {reset} to renew its key.",
+        "provisionFailed": "Could not build the PIA outbound. Try again."
+      }
     }
   },
   "tgbot": {

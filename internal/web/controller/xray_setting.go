@@ -2,11 +2,13 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	piaprotocol "github.com/mhsanaei/3x-ui/v3/internal/pia"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
@@ -27,13 +29,14 @@ type XraySettingController struct {
 	NordService                 integration.NordService
 	TorService                  integration.TorService
 	FrontProxyService           integration.FrontProxyService
+	PiaService                  integration.PiaService
 	OutboundSubscriptionService service.OutboundSubscriptionService
 	GeodataService              service.GeodataService
 }
 
 // NewXraySettingController creates a new XraySettingController and initializes its routes.
 func NewXraySettingController(g *gin.RouterGroup) *XraySettingController {
-	a := &XraySettingController{}
+	a := &XraySettingController{PiaService: *integration.NewPiaService()}
 	a.initRouter(g)
 	return a
 }
@@ -51,6 +54,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/tor/:action", a.tor)
 	g.POST("/frontproxy/:action", a.frontProxy)
 	g.POST("/frontproxy/decoy/upload", a.frontProxyDecoyUpload)
+	g.POST("/pia/:action", a.pia)
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
@@ -329,6 +333,39 @@ func (a *XraySettingController) frontProxyDecoyUpload(c *gin.Context) {
 		return
 	}
 	jsonObj(c, a.FrontProxyService.Status(), nil)
+}
+
+func (a *XraySettingController) pia(c *gin.Context) {
+	action := c.Param("action")
+	var resp any
+	var err error
+	switch action {
+	case "countries":
+		resp, err = a.PiaService.GetCountries()
+	case "servers":
+		resp, err = a.PiaService.GetServers(c.PostForm("countryCode"))
+	case "reg":
+		resp, err = a.PiaService.Login(c.PostForm("username"), c.PostForm("password"))
+	case "data":
+		resp, err = a.PiaService.GetPiaData()
+	case "del":
+		err = a.PiaService.DelPiaData()
+	case "addKey":
+		resp, err = a.PiaService.AddKey(c.PostForm("hostname"))
+	default:
+		jsonMsg(c, "unknown action", common.NewError("unknown action"))
+		return
+	}
+	if err != nil {
+		var pe *piaprotocol.Error
+		if errors.As(err, &pe) && pe != nil {
+			jsonObj(c, nil, common.NewError(pe.Message))
+			return
+		}
+		jsonObj(c, nil, err)
+		return
+	}
+	jsonObj(c, resp, nil)
 }
 
 // getOutboundsTraffic retrieves the traffic statistics for outbounds.

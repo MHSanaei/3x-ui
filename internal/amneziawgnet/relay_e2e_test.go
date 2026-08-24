@@ -87,7 +87,7 @@ func TestSocksRelayAgainstRealXray(t *testing.T) {
 		PublicKey:     serverPub,
 		Address:       []string{"10.204.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation20{
+		Obfuscation: amneziawg.Obfuscation31{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20,
 		},
@@ -334,7 +334,7 @@ func TestManagerEnsureAutomaticallyWiresRelay(t *testing.T) {
 		PublicKey:     serverPub,
 		Address:       []string{"10.205.0.1/24"},
 		MTU:           1420,
-		Obfuscation: amneziawg.Obfuscation20{
+		Obfuscation: amneziawg.Obfuscation31{
 			Jc: 4, Jmin: 40, Jmax: 70,
 			S1: 20, S2: 30, S3: 20, S4: 20,
 		},

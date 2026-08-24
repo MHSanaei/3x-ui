@@ -32,7 +32,7 @@ linters:
       # golang.org/x/tools/go/packages is a generator change, out of scope here.
       - linters:
           - staticcheck
-        text: "parser\\.ParseDir has been deprecated"
+        text: 'SA1019: (go/)?parser\.ParseDir'
       # ST1005 (capitalized error strings) conflicts with intentional
       # user-facing error copy that tests assert verbatim.
       - linters:

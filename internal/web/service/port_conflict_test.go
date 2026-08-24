@@ -893,3 +893,35 @@ func TestCheckPortConflict_AmneziawgnetSocksRelayDifferentPortAllowed(t *testing
 		t.Fatalf("an unrelated port must not conflict with the AmneziaWG relay inbound; got=%v err=%v", got, err)
 	}
 }
+
+// The reverse direction: saving an AmneziaWG inbound whose own derived relay
+// port happens to equal another inbound's real port must also be rejected,
+// not just the already-covered "someone else picks my relay port" case.
+func TestCheckPortConflict_AmneziawgnetSocksRelayReverseDirectionBlockedOnUpdate(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-1").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+	seedInboundConflict(t, "vless-1", "0.0.0.0", relayPort, model.VLESS, ``, `{}`)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Id:       awgInbound.Id,
+		Tag:      "awg-1",
+		Listen:   "0.0.0.0",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Settings: amneziawgRoutedSettings,
+	}
+	got, err := svc.checkPortConflict(candidate, awgInbound.Id)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil {
+		t.Fatalf("awg-1's own derived relay port %d collides with vless-1's real port; must be rejected", relayPort)
+	}
+}

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Tag, Tooltip } from 'antd';
 import {
+  ApiOutlined,
   ArrowUpOutlined,
   AreaChartOutlined,
   BarsOutlined,
@@ -28,6 +29,7 @@ interface OverviewActionBarProps {
   onRestartXray: () => void;
   onOpenLogs: () => void;
   onOpenXrayLogs: () => void;
+  onOpenAmneziaWGLogs: () => void;
   onOpenConfig: () => void;
   onOpenBackup: () => void;
   onOpenSystemHistory: () => void;
@@ -61,6 +63,7 @@ export default function OverviewActionBar({
   onRestartXray,
   onOpenLogs,
   onOpenXrayLogs,
+  onOpenAmneziaWGLogs,
   onOpenConfig,
   onOpenBackup,
   onOpenSystemHistory,
@@ -75,20 +78,68 @@ export default function OverviewActionBar({
 
   const actionGroups: BarAction[][] = [
     [
-      { key: 'restart', icon: <ReloadOutlined />, text: t('pages.index.restartXray'), onClick: onRestartXray, primary: true },
-      { key: 'stop', icon: <PoweroffOutlined />, text: t('pages.index.stopXray'), onClick: onStopXray },
+      {
+        key: 'restart',
+        icon: <ReloadOutlined />,
+        text: t('pages.index.restartXray'),
+        onClick: onRestartXray,
+        primary: true,
+      },
+      {
+        key: 'stop',
+        icon: <PoweroffOutlined />,
+        text: t('pages.index.stopXray'),
+        onClick: onStopXray,
+      },
     ],
     [
       { key: 'logs', icon: <BarsOutlined />, text: t('pages.index.logs'), onClick: onOpenLogs },
       ...(accessLogEnable
-        ? [{ key: 'accessLogs', icon: <FileTextOutlined />, text: t('pages.index.accessLogs'), onClick: onOpenXrayLogs }]
+        ? [
+            {
+              key: 'accessLogs',
+              icon: <FileTextOutlined />,
+              text: t('pages.index.accessLogs'),
+              onClick: onOpenXrayLogs,
+            },
+          ]
         : []),
-      { key: 'config', icon: <ControlOutlined />, text: t('pages.index.config'), onClick: onOpenConfig },
-      { key: 'backup', icon: <CloudServerOutlined />, text: t('pages.index.backupTitle'), onClick: onOpenBackup },
+      ...(status.amneziawg.configured
+        ? [
+            {
+              key: 'amneziawgLogs',
+              icon: <ApiOutlined />,
+              text: t('pages.index.amneziawgLogs'),
+              onClick: onOpenAmneziaWGLogs,
+            },
+          ]
+        : []),
+      {
+        key: 'config',
+        icon: <ControlOutlined />,
+        text: t('pages.index.config'),
+        onClick: onOpenConfig,
+      },
+      {
+        key: 'backup',
+        icon: <CloudServerOutlined />,
+        text: t('pages.index.backupTitle'),
+        onClick: onOpenBackup,
+      },
     ],
     [
-      { key: 'history', icon: <AreaChartOutlined />, text: t('pages.index.systemHistoryTitle'), onClick: onOpenSystemHistory },
-      { key: 'metrics', icon: <ArrowUpOutlined />, text: t('pages.index.xrayMetricsTitle'), onClick: onOpenXrayMetrics },
+      {
+        key: 'history',
+        icon: <AreaChartOutlined />,
+        text: t('pages.index.systemHistoryTitle'),
+        onClick: onOpenSystemHistory,
+      },
+      {
+        key: 'metrics',
+        icon: <ArrowUpOutlined />,
+        text: t('pages.index.xrayMetricsTitle'),
+        onClick: onOpenXrayMetrics,
+      },
     ],
   ];
 
@@ -98,11 +149,7 @@ export default function OverviewActionBar({
       <span>{`${t('pages.index.xrayStatus')} · ${stateText}`}</span>
       {hasVersion && (
         <Tooltip title={t('pages.index.xraySwitch')}>
-          <button
-            type="button"
-            className="ov-state-version"
-            onClick={onOpenVersionSwitch}
-          >
+          <button type="button" className="ov-state-version" onClick={onOpenVersionSwitch}>
             {`v${status.xray.version}`}
           </button>
         </Tooltip>

@@ -9,7 +9,13 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 // protocol==='amneziawg' filter below is what actually disambiguates.
 export function isAmneziaWGClient(client: ClientRecord | null | undefined): boolean {
   if (!client) return false;
-  return !!(client.privateKey || client.publicKey || client.allowedIPs || client.preSharedKey || client.keepAlive);
+  return !!(
+    client.privateKey ||
+    client.publicKey ||
+    client.allowedIPs ||
+    client.preSharedKey ||
+    client.keepAlive
+  );
 }
 
 export function findAmneziaWGInbound(
@@ -27,15 +33,24 @@ function hLine(key: string, value: string | undefined, fallback: string): string
   return `${key} = ${value && value.trim() !== '' ? value : fallback}`;
 }
 
+// addressOverride carries this inbound's own AllowedIPs (ClientHydrateSchema's
+// tunnelAllowedIPs). ClientRecord.allowedIPs is a single shared column, so for
+// an identity attached to both WireGuard and AmneziaWG it holds the WireGuard
+// address — writing that into the AmneziaWG .conf yields an unroutable peer.
 export function buildAmneziaWGClientConfig(
   client: ClientRecord,
   inbound: InboundOption | undefined,
   host = window.location.hostname,
   publicHost = '',
+  addressOverride = '',
 ): string {
   const server = inbound?.awgServer;
-  const endpointHost = resolveShareHost(inbound ?? {}, inbound?.nodeAddress ?? '', preferPublicHost(host, publicHost));
-  const address = client.allowedIPs || '10.8.1.2/32';
+  const endpointHost = resolveShareHost(
+    inbound ?? {},
+    inbound?.nodeAddress ?? '',
+    preferPublicHost(host, publicHost),
+  );
+  const address = addressOverride || client.allowedIPs || '10.8.1.2/32';
   const endpoint = `${endpointHost}:${inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
   const remark = [inboundName, client.email, client.comment].filter(Boolean).join(' - ');
@@ -69,23 +84,27 @@ export function buildAmneziaWGClientConfig(
   if (server?.i3) lines.push(`I3 = ${server.i3}`);
   if (server?.i4) lines.push(`I4 = ${server.i4}`);
   if (server?.i5) lines.push(`I5 = ${server.i5}`);
-  // AmneziaWG 3.0 fields -- HeaderProtectionKey especially must match the
-  // server's value exactly, or every handshake fails outright (not just
-  // weaker obfuscation).
-  if (server?.headerProtectionKey) lines.push(`HeaderProtectionKey = ${server.headerProtectionKey}`);
-  if (server?.contentPaddingAddition) lines.push(`ContentPaddingAddition = ${server.contentPaddingAddition}`);
-  // AmneziaWG 3.1 -- RandomTrailers especially must match the server's
-  // value: amneziawg-go only accepts an oversized (trailer-padded) packet
-  // when the RECEIVING side's own RandomTrailers is also on, so a one-sided
-  // setting makes that side's packets start getting silently dropped.
-  if (server?.randomTrailers) lines.push('RandomTrailers = true');
-  if (server?.disableCookies) lines.push('DisableCookies = true');
+  const optional31: Array<[string, string | undefined]> = [
+    ['HeaderProtectionKey', server?.headerProtectionKey],
+    ['ContentPaddingAddition', server?.contentPaddingAddition],
+    ['RekeyAfterTime', server?.rekeyAfterTime],
+    ['RekeyTimeout', server?.rekeyTimeout],
+    ['RejectAfterTime', server?.rejectAfterTime],
+    ['KeepaliveTimeout', server?.keepaliveTimeout],
+    ['MaxHandshakeAttempts', server?.maxHandshakeAttempts],
+  ];
+  for (const [key, value] of optional31) {
+    if (value && value.trim() !== '') lines.push(`${key} = ${value}`);
+  }
+  if (server?.randomTrailers) lines.push('RandomTrailers = on');
+  if (server?.disableCookies) lines.push('DisableCookies = on');
 
   lines.push('');
   if (remark) lines.push(`# ${remark}`);
   lines.push('[Peer]', `PublicKey = ${server?.publicKey || ''}`);
   if (client.preSharedKey) lines.push(`PresharedKey = ${client.preSharedKey}`);
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
-  if (client.keepAlive && client.keepAlive > 0) lines.push(`PersistentKeepalive = ${client.keepAlive}`);
+  if (client.keepAlive && client.keepAlive > 0)
+    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
   return lines.join('\n');
 }

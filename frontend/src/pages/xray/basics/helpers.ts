@@ -1,7 +1,11 @@
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
 import { blockedSettings, directSettings } from './constants';
 
-export function ruleGetter(t: XraySettingsValue | null, outboundTag: string, property: string): string[] {
+export function ruleGetter(
+  t: XraySettingsValue | null,
+  outboundTag: string,
+  property: string,
+): string[] {
   if (!t?.routing?.rules) return [];
   const out: string[] = [];
   for (const rule of t.routing.rules) {
@@ -18,7 +22,12 @@ export function ruleGetter(t: XraySettingsValue | null, outboundTag: string, pro
   return out;
 }
 
-export function ruleSetter(t: XraySettingsValue, outboundTag: string, property: string, data: string[]): void {
+export function ruleSetter(
+  t: XraySettingsValue,
+  outboundTag: string,
+  property: string,
+  data: string[],
+): void {
   if (!t.routing) return;
   if (!Array.isArray(t.routing.rules)) t.routing.rules = [];
   const current = ruleGetter(t, outboundTag, property);

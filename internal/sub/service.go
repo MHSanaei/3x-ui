@@ -42,9 +42,8 @@ type SubService struct {
 	// other context — the sub info page, the panel's link/QR displays — renders
 	// the name-only template, like Remnawave.
 	subscriptionBody bool
-	// usageShown tracks, per client email, whether the info part of the template
-	// has already been emitted this request, so it appears on the first body
-	// link only. Per-request state; reset in PrepareForRequest.
+	// usageShown emits info once per subscription identity, including twins.
+	// PrepareForRequest resets this per-request state.
 	usageShown             map[string]bool
 	showIdentityOnAllLinks bool
 	inboundService         service.InboundService
@@ -742,38 +741,46 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	fmt.Fprintf(&b, "H2 = %s\n", amneziaWGHeaderOrDefault(server.H2, "2"))
 	fmt.Fprintf(&b, "H3 = %s\n", amneziaWGHeaderOrDefault(server.H3, "3"))
 	fmt.Fprintf(&b, "H4 = %s\n", amneziaWGHeaderOrDefault(server.H4, "4"))
-	if server.I1 != "" {
-		fmt.Fprintf(&b, "I1 = %s\n", server.I1)
+	for i, v := range []string{server.I1, server.I2, server.I3, server.I4, server.I5} {
+		if v != "" {
+			fmt.Fprintf(&b, "I%d = %s\n", i+1, v)
+		}
 	}
-	// AmneziaWG 3.0 fields -- HeaderProtectionKey especially must match the
-	// server's value exactly, or every handshake fails outright.
-	if server.HeaderProtectionKey != "" {
-		fmt.Fprintf(&b, "HeaderProtectionKey = %s\n", server.HeaderProtectionKey)
+	optional := []struct{ key, v string }{
+		{"HeaderProtectionKey", server.HeaderProtectionKey},
+		{"ContentPaddingAddition", server.ContentPaddingAddition},
+		{"RekeyAfterTime", server.RekeyAfterTime},
+		{"RekeyTimeout", server.RekeyTimeout},
+		{"RejectAfterTime", server.RejectAfterTime},
+		{"KeepaliveTimeout", server.KeepaliveTimeout},
+		{"MaxHandshakeAttempts", server.MaxHandshakeAttempts},
 	}
-	if server.ContentPaddingAddition != "" {
-		fmt.Fprintf(&b, "ContentPaddingAddition = %s\n", server.ContentPaddingAddition)
+	for _, p := range optional {
+		if p.v != "" {
+			fmt.Fprintf(&b, "%s = %s\n", p.key, p.v)
+		}
 	}
-	// AmneziaWG 3.1 -- RandomTrailers especially must match the server's
-	// value: amneziawg-go only accepts an oversized (trailer-padded) packet
-	// when the RECEIVING side's own RandomTrailers is also on, so a one-sided
-	// setting makes that side's packets start getting silently dropped.
 	if server.RandomTrailers {
-		b.WriteString("RandomTrailers = true\n")
+		b.WriteString("RandomTrailers = on\n")
 	}
 	if server.DisableCookies {
-		b.WriteString("DisableCookies = true\n")
+		b.WriteString("DisableCookies = on\n")
 	}
 
+	// Peer field order follows wg-quick(8) and the panel's other two AmneziaWG
+	// emitters (genAmneziaWGConfig, buildAmneziaWGClientConfig); all three are
+	// independent implementations, so any drift here is invisible until a user
+	// compares a subscription link against a downloaded .conf.
 	fmt.Fprintf(&b, "\n# %s\n", remark)
 	b.WriteString("[Peer]\n")
 	fmt.Fprintf(&b, "PublicKey = %s\n", server.PublicKey)
+	if client.PreSharedKey != "" {
+		fmt.Fprintf(&b, "PresharedKey = %s\n", client.PreSharedKey)
+	}
 	b.WriteString("AllowedIPs = 0.0.0.0/0, ::/0\n")
 	fmt.Fprintf(&b, "Endpoint = %s:%d", host, port)
-	if client.PreSharedKey != "" {
-		fmt.Fprintf(&b, "\nPresharedKey = %s", client.PreSharedKey)
-	}
 	if client.KeepAlive > 0 {
-		fmt.Fprintf(&b, "\nPersistentKeepalive = %d\n", client.KeepAlive)
+		fmt.Fprintf(&b, "\nPersistentKeepalive = %d", client.KeepAlive)
 	}
 
 	return b.String()
@@ -953,7 +960,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	default:
 		params["security"] = "none"
 	}
-	if len(client.Flow) > 0 && vlessFlowAllowed(streamNetwork, security, settings) {
+	if len(client.Flow) > 0 && !inbound.DisableFlow && vlessFlowAllowed(streamNetwork, security, settings) {
 		params["flow"] = client.Flow
 	}
 
@@ -1003,7 +1010,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		applyShareTLSParams(stream, params)
 	case "reality":
 		applyShareRealityParams(stream, params, subKey(client))
-		if streamNetwork == "tcp" && len(client.Flow) > 0 {
+		if streamNetwork == "tcp" && len(client.Flow) > 0 && !inbound.DisableFlow {
 			params["flow"] = client.Flow
 		}
 	default:
@@ -1207,6 +1214,12 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		protocol = "hysteria"
 	}
 
+	// Set before the externalProxy fan-out: a Host overrides only the
+	// address, so every endpoint inherits the inbound's UDP hop range.
+	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
+		params["mport"] = hopPorts
+	}
+
 	// Fan out one link per External Proxy entry if any. Previously this
 	// generator ignored `externalProxy` entirely, so the link kept the
 	// server's own IP/port even when the admin configured an alternate
@@ -1236,9 +1249,6 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 
 	// No external proxy configured — use the inbound's resolved address so
 	// node-managed inbounds get the node's host instead of the central panel's.
-	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
-		params["mport"] = hopPorts
-	}
 	link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", "quic"))
 }

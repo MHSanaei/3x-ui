@@ -18,6 +18,9 @@ export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
 
+export const trafficLocalApplyActionSchema = z.number().int();
+export type trafficLocalApplyAction = z.infer<typeof trafficLocalApplyActionSchema>;
+
 export const transportBitsSchema = z.number().int();
 export type transportBits = z.infer<typeof transportBitsSchema>;
 
@@ -35,6 +38,7 @@ export const AllSettingSchema = z.object({
   frontProxyEnable: z.boolean(),
   frontProxyListen: z.string(),
   frontProxyPort: z.number().int().min(1).max(65535),
+  ipLimitAllowlist: z.string(),
   ldapAutoCreate: z.boolean(),
   ldapAutoDelete: z.boolean(),
   ldapBaseDN: z.string(),
@@ -96,6 +100,7 @@ export const AllSettingSchema = z.object({
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
+  subJsonObservatory: z.string(),
   subJsonPath: z.string(),
   subJsonRules: z.string(),
   subJsonURI: z.string(),
@@ -160,6 +165,7 @@ export const AllSettingViewSchema = z.object({
   hasTgBotToken: z.boolean(),
   hasTwoFactorToken: z.boolean(),
   hasWarpSecret: z.boolean(),
+  ipLimitAllowlist: z.string(),
   ldapAutoCreate: z.boolean(),
   ldapAutoDelete: z.boolean(),
   ldapBaseDN: z.string(),
@@ -221,6 +227,7 @@ export const AllSettingViewSchema = z.object({
   subJsonEnable: z.boolean(),
   subJsonFinalMask: z.string(),
   subJsonMux: z.string(),
+  subJsonObservatory: z.string(),
   subJsonPath: z.string(),
   subJsonRules: z.string(),
   subJsonURI: z.string(),
@@ -263,6 +270,13 @@ export const AllSettingViewSchema = z.object({
   webPort: z.number().int().min(1).max(65535),
 });
 export type AllSettingView = z.infer<typeof AllSettingViewSchema>;
+
+export const AmneziaWGLogsSchema = z.object({
+  events: z.array(z.string()),
+  peers: z.array(z.lazy(() => PeerActivitySchema)),
+  running: z.boolean(),
+});
+export type AmneziaWGLogs = z.infer<typeof AmneziaWGLogsSchema>;
 
 export const ApiTokenSchema = z.object({
   createdAt: z.number().int(),
@@ -307,12 +321,16 @@ export const ClientSchema = z.object({
   privateKey: z.string().optional(),
   publicKey: z.string().optional(),
   reset: z.number().int(),
+  resetDay: z.number().int(),
+  resetMax: z.number().int(),
   reverse: z.lazy(() => ClientReverseSchema).nullable().optional(),
   secret: z.string().optional(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
   totalGB: z.number().int(),
+  trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']).optional(),
+  trafficResetDay: z.number().int().min(1).max(31).optional(),
   updated_at: z.number().int().optional(),
 });
 export type Client = z.infer<typeof ClientSchema>;
@@ -346,12 +364,16 @@ export const ClientRecordSchema = z.object({
   privateKey: z.string(),
   publicKey: z.string(),
   reset: z.number().int(),
+  resetDay: z.number().int(),
+  resetMax: z.number().int(),
   reverse: z.unknown(),
   secret: z.string(),
   security: z.string(),
   subId: z.string(),
   tgId: z.number().int(),
   totalGB: z.number().int(),
+  trafficReset: z.string(),
+  trafficResetDay: z.number().int(),
   updatedAt: z.number().int(),
   uuid: z.string(),
 });
@@ -372,6 +394,9 @@ export const ClientTrafficSchema = z.object({
   lastOnline: z.number().int(),
   lastSubFetch: z.number().int(),
   reset: z.number().int(),
+  resetCount: z.number().int(),
+  resetDay: z.number().int(),
+  resetMax: z.number().int(),
   subId: z.string(),
   total: z.number().int(),
   up: z.number().int(),
@@ -509,6 +534,7 @@ export type HostGroup = z.infer<typeof HostGroupSchema>;
 
 export const InboundSchema = z.object({
   clientStats: z.array(z.lazy(() => ClientTrafficSchema)),
+  disableFlow: z.boolean(),
   down: z.number().int(),
   enable: z.boolean(),
   expiryTime: z.number().int(),
@@ -710,6 +736,20 @@ export const PanelUpdateStatusSchema = z.object({
 });
 export type PanelUpdateStatus = z.infer<typeof PanelUpdateStatusSchema>;
 
+export const PeerActivitySchema = z.object({
+  allowedIPs: z.string(),
+  down: z.number().int(),
+  email: z.string(),
+  endpoint: z.string(),
+  handshake: z.number().int(),
+  inboundId: z.number().int(),
+  interface: z.string(),
+  online: z.boolean(),
+  tag: z.string(),
+  up: z.number().int(),
+});
+export type PeerActivity = z.infer<typeof PeerActivitySchema>;
+
 export const ProbeResultUISchema = z.object({
   cpuPct: z.number(),
   error: z.string(),
@@ -732,6 +772,7 @@ export type QuicCaptureResult = z.infer<typeof QuicCaptureResultSchema>;
 
 export const RealityScanResultSchema = z.object({
   alpn: z.string(),
+  certChainValid: z.boolean(),
   certIssuer: z.string(),
   certSubject: z.string(),
   certValid: z.boolean(),
@@ -743,6 +784,7 @@ export const RealityScanResultSchema = z.object({
   latencyMs: z.number().int(),
   notAfter: z.string(),
   port: z.number().int(),
+  privateTarget: z.boolean(),
   reason: z.string(),
   serverNames: z.array(z.string()),
   target: z.string(),
@@ -753,7 +795,6 @@ export const RealityScanResultSchema = z.object({
 export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
 export const ServerSettingsSchema = z.object({
-  awgVersion: z.string().optional(),
   contentPaddingAddition: z.string().optional(),
   disableCookies: z.boolean(),
   externalInterface: z.string().optional(),
@@ -776,7 +817,7 @@ export const ServerSettingsSchema = z.object({
   keepaliveTimeout: z.string().optional(),
   maxHandshakeAttempts: z.string().optional(),
   mtu: z.number().int().optional(),
-  primaryDns: z.string().optional(),
+  primaryDns: z.string(),
   privateKey: z.string(),
   publicKey: z.string(),
   randomTrailers: z.boolean(),
@@ -788,7 +829,7 @@ export const ServerSettingsSchema = z.object({
   s2: z.number().int(),
   s3: z.number().int(),
   s4: z.number().int(),
-  secondaryDns: z.string().optional(),
+  secondaryDns: z.string(),
   subnetCidr: z.number().int(),
   subnetIp: z.string(),
 });
@@ -800,6 +841,18 @@ export const SettingSchema = z.object({
   value: z.string(),
 });
 export type Setting = z.infer<typeof SettingSchema>;
+
+export const SubBalancerSchema = z.object({
+  createdAt: z.number().int(),
+  enabled: z.boolean(),
+  id: z.number().int(),
+  inboundIds: z.array(z.number().int()),
+  remark: z.string().max(256),
+  sortOrder: z.number().int().min(1),
+  strategy: z.enum(['leastLoad', 'leastPing', 'random', 'roundRobin']),
+  updatedAt: z.number().int(),
+});
+export type SubBalancer = z.infer<typeof SubBalancerSchema>;
 
 export const UserSchema = z.object({
   id: z.number().int(),

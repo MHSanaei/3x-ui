@@ -1,31 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Radio,
-  Select,
-  Space,
-  Tabs,
-  message,
-} from 'antd';
+import { Form, Input, InputNumber, Modal, Radio, Select, Space, Tabs, message } from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { FinalMaskField, SniffingField } from '@/lib/xray/forms/fields';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
-import {
-  formValuesToWirePayload,
-  rawOutboundToFormValues,
-} from '@/lib/xray/outbound-form-adapter';
+import { formValuesToWirePayload, rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
 import { XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
-import {
-  OutboundFormBaseSchema,
-  type OutboundFormValues,
-} from '@/schemas/forms/outbound-form';
+import { OutboundFormBaseSchema, type OutboundFormValues } from '@/schemas/forms/outbound-form';
 import {
   canEnableReality,
   canEnableStream,
@@ -110,11 +94,15 @@ export default function OutboundFormModal({
 
   const tag = (useWatch({ control: methods.control, name: 'tag' }) ?? '') as string;
   const protocol = (useWatch({ control: methods.control, name: 'protocol' }) ?? 'vless') as string;
-  const network = (useWatch({ control: methods.control, name: 'streamSettings.network' }) ?? '') as string;
-  const security = (useWatch({ control: methods.control, name: 'streamSettings.security' }) ?? 'none') as string;
+  const network = (useWatch({ control: methods.control, name: 'streamSettings.network' }) ??
+    '') as string;
+  const security = (useWatch({ control: methods.control, name: 'streamSettings.security' }) ??
+    'none') as string;
   const flow = (useWatch({ control: methods.control, name: 'settings.flow' }) ?? '') as string;
   const reverseTag = useWatch({ control: methods.control, name: 'settings.reverseTag' });
-  const wgSecretKey = useWatch({ control: methods.control, name: 'settings.secretKey' }) as string | undefined;
+  const wgSecretKey = useWatch({ control: methods.control, name: 'settings.secretKey' }) as
+    | string
+    | undefined;
 
   const streamAllowed = canEnableStream({ protocol });
   const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
@@ -147,9 +135,7 @@ export default function OutboundFormModal({
 
   useEffect(() => {
     if (!open) return;
-    const initial = outboundProp
-      ? rawOutboundToFormValues(outboundProp)
-      : buildAddModeValues();
+    const initial = outboundProp ? rawOutboundToFormValues(outboundProp) : buildAddModeValues();
     methods.reset(initial);
     setActiveKey('1');
     setJsonText(JSON.stringify(formValuesToWirePayload(initial), null, 2));
@@ -168,7 +154,10 @@ export default function OutboundFormModal({
       return;
     }
     if (network) return;
-    methods.setValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' } as StreamValue);
+    methods.setValue('streamSettings', {
+      ...newStreamSlice('tcp'),
+      security: 'none',
+    } as StreamValue);
   }, [streamAllowed, network, protocol, methods]);
 
   useEffect(() => {
@@ -206,7 +195,10 @@ export default function OutboundFormModal({
       if (nextProtocol === 'hysteria') {
         methods.setValue('streamSettings', hysteriaStreamSlice() as StreamValue);
       } else if ((methods.getValues('streamSettings.network') ?? '') === 'hysteria') {
-        methods.setValue('streamSettings', { ...newStreamSlice('tcp'), security: 'none' } as StreamValue);
+        methods.setValue('streamSettings', {
+          ...newStreamSlice('tcp'),
+          security: 'none',
+        } as StreamValue);
       }
     });
     return () => sub.unsubscribe();
@@ -336,8 +328,9 @@ export default function OutboundFormModal({
       messageApi.error(t('pages.xray.balancer.reservedPrefix'));
       return;
     }
-    const isDuplicateTag = (existingTags || []).includes(tagValue)
-      && !(isEdit && (outboundProp?.tag as string | undefined) === tagValue);
+    const isDuplicateTag =
+      (existingTags || []).includes(tagValue) &&
+      !(isEdit && (outboundProp?.tag as string | undefined) === tagValue);
     if (isDuplicateTag) {
       messageApi.error('Tag already used by another outbound');
       return;
@@ -389,14 +382,23 @@ export default function OutboundFormModal({
                         rules={{ required: 'pages.xray.outboundForm.tagRequired' }}
                         render={({ field, fieldState }) => {
                           const errorMessage = fieldState.error?.message
-                            ? t(fieldState.error.message, { defaultValue: fieldState.error.message })
+                            ? t(fieldState.error.message, {
+                                defaultValue: fieldState.error.message,
+                              })
                             : '';
                           return (
                             <Form.Item
                               label={t('pages.xray.outbound.tag')}
                               required
-                              validateStatus={errorMessage ? 'error' : duplicateTag ? 'warning' : undefined}
-                              help={errorMessage || (duplicateTag ? t('pages.xray.outboundForm.tagDuplicate') : undefined)}
+                              validateStatus={
+                                errorMessage ? 'error' : duplicateTag ? 'warning' : undefined
+                              }
+                              help={
+                                errorMessage ||
+                                (duplicateTag
+                                  ? t('pages.xray.outboundForm.tagDuplicate')
+                                  : undefined)
+                              }
                             >
                               <Input
                                 value={field.value}
@@ -496,7 +498,10 @@ export default function OutboundFormModal({
                           xtls-rprx-vision flow, on TCP+(tls|reality). */}
                       {tlsFlowAllowed && flow === 'xtls-rprx-vision' && (
                         <>
-                          <FormField label={t('pages.xray.outboundForm.visionTestpre')} name={['settings', 'testpre']}>
+                          <FormField
+                            label={t('pages.xray.outboundForm.visionTestpre')}
+                            name={['settings', 'testpre']}
+                          >
                             <InputNumber min={0} style={{ width: '100%' }} />
                           </FormField>
                           <Form.Item label={t('pages.inbounds.form.visionTestseed')}>
@@ -518,7 +523,9 @@ export default function OutboundFormModal({
                             buttonStyle="solid"
                             onChange={(e) => onSecurityChange(e.target.value as string)}
                           >
-                            {network !== 'hysteria' && <Radio.Button value="none">{t('none')}</Radio.Button>}
+                            {network !== 'hysteria' && (
+                              <Radio.Button value="none">{t('none')}</Radio.Button>
+                            )}
                             {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
                             {realityAllowed && <Radio.Button value="reality">Reality</Radio.Button>}
                           </Radio.Group>
@@ -529,7 +536,9 @@ export default function OutboundFormModal({
 
                       {security === 'reality' && realityAllowed && <RealityForm />}
 
-                      {((streamAllowed && network) || !streamAllowed || protocol === 'wireguard') && (
+                      {((streamAllowed && network) ||
+                        !streamAllowed ||
+                        protocol === 'wireguard') && (
                         <SockoptForm outboundTags={dialerProxyTags ?? existingTags} />
                       )}
 
@@ -555,7 +564,11 @@ export default function OutboundFormModal({
                   key: '2',
                   label: 'JSON',
                   children: (
-                    <Space orientation="vertical" size={10} style={{ width: '100%', marginTop: 10 }}>
+                    <Space
+                      orientation="vertical"
+                      size={10}
+                      style={{ width: '100%', marginTop: 10 }}
+                    >
                       <Input.Search
                         value={linkInput}
                         placeholder="vmess:// vless:// trojan:// ss:// hysteria2:// wireguard://"

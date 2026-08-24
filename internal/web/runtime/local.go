@@ -63,15 +63,15 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		err := amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
 			Instance: inst,
 			Options: amneziawgnet.DeviceOptions{
-				HeaderProtectionKey:    inst.HeaderProtectionKey,
-				ContentPaddingAddition: inst.ContentPaddingAddition,
-				RekeyAfterTime:         inst.RekeyAfterTime,
-				RekeyTimeout:           inst.RekeyTimeout,
-				RejectAfterTime:        inst.RejectAfterTime,
-				KeepaliveTimeout:       inst.KeepaliveTimeout,
-				MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
-				RandomTrailers:         inst.RandomTrailers,
-				DisableCookies:         inst.DisableCookies,
+				HeaderProtectionKey:    inst.Obfuscation.HeaderProtectionKey,
+				ContentPaddingAddition: inst.Obfuscation.ContentPaddingAddition,
+				RekeyAfterTime:         inst.Obfuscation.RekeyAfterTime,
+				RekeyTimeout:           inst.Obfuscation.RekeyTimeout,
+				RejectAfterTime:        inst.Obfuscation.RejectAfterTime,
+				KeepaliveTimeout:       inst.Obfuscation.KeepaliveTimeout,
+				MaxHandshakeAttempts:   inst.Obfuscation.MaxHandshakeAttempts,
+				RandomTrailers:         inst.Obfuscation.RandomTrailers,
+				DisableCookies:         inst.Obfuscation.DisableCookies,
 			},
 		})
 		// A brand new inbound can be the first one to qualify for
@@ -196,15 +196,15 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 	return amneziawgnet.GetManager().Ensure(amneziawgnet.Desired{
 		Instance: inst,
 		Options: amneziawgnet.DeviceOptions{
-			HeaderProtectionKey:    inst.HeaderProtectionKey,
-			ContentPaddingAddition: inst.ContentPaddingAddition,
-			RekeyAfterTime:         inst.RekeyAfterTime,
-			RekeyTimeout:           inst.RekeyTimeout,
-			RejectAfterTime:        inst.RejectAfterTime,
-			KeepaliveTimeout:       inst.KeepaliveTimeout,
-			MaxHandshakeAttempts:   inst.MaxHandshakeAttempts,
-			RandomTrailers:         inst.RandomTrailers,
-			DisableCookies:         inst.DisableCookies,
+			HeaderProtectionKey:    inst.Obfuscation.HeaderProtectionKey,
+			ContentPaddingAddition: inst.Obfuscation.ContentPaddingAddition,
+			RekeyAfterTime:         inst.Obfuscation.RekeyAfterTime,
+			RekeyTimeout:           inst.Obfuscation.RekeyTimeout,
+			RejectAfterTime:        inst.Obfuscation.RejectAfterTime,
+			KeepaliveTimeout:       inst.Obfuscation.KeepaliveTimeout,
+			MaxHandshakeAttempts:   inst.Obfuscation.MaxHandshakeAttempts,
+			RandomTrailers:         inst.Obfuscation.RandomTrailers,
+			DisableCookies:         inst.Obfuscation.DisableCookies,
 		},
 	})
 }

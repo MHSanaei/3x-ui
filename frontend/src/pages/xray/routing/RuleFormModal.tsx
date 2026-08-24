@@ -62,7 +62,10 @@ const PROTOCOLS = ['http', 'tls', 'bittorrent', 'quic'];
 
 function csv(value: string): string[] {
   if (!value) return [];
-  return value.split(',').map((s) => s.trim()).filter(Boolean);
+  return value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export default function RuleFormModal({
@@ -240,7 +243,9 @@ export default function RuleFormModal({
                   aria-label={t('pages.nodes.name')}
                   placeholder={t('pages.nodes.name')}
                   onChange={(e) => {
-                    const next = attrs.map((a, i) => (i === idx ? ([e.target.value, a[1]] as [string, string]) : a));
+                    const next = attrs.map((a, i) =>
+                      i === idx ? ([e.target.value, a[1]] as [string, string]) : a,
+                    );
                     methods.setValue('attrs', next);
                   }}
                 />
@@ -249,14 +254,21 @@ export default function RuleFormModal({
                   aria-label={t('pages.xray.ruleForm.value')}
                   placeholder={t('pages.xray.ruleForm.value')}
                   onChange={(e) => {
-                    const next = attrs.map((a, i) => (i === idx ? ([a[0], e.target.value] as [string, string]) : a));
+                    const next = attrs.map((a, i) =>
+                      i === idx ? ([a[0], e.target.value] as [string, string]) : a,
+                    );
                     methods.setValue('attrs', next);
                   }}
                 />
                 <Button
                   aria-label={t('remove')}
                   icon={<MinusOutlined />}
-                  onClick={() => methods.setValue('attrs', attrs.filter((_, i) => i !== idx))}
+                  onClick={() =>
+                    methods.setValue(
+                      'attrs',
+                      attrs.filter((_, i) => i !== idx),
+                    )
+                  }
                 />
               </Space.Compact>
             ))}
@@ -328,7 +340,10 @@ export default function RuleFormModal({
           <FormField name="inboundTag" label={t('pages.xray.ruleForm.inboundTags')}>
             <Select
               mode="multiple"
-              options={inboundTags.map((tag) => ({ value: tag, label: formatInboundTag(tag, remarkByTag) }))}
+              options={inboundTags.map((tag) => ({
+                value: tag,
+                label: formatInboundTag(tag, remarkByTag),
+              }))}
             />
           </FormField>
 

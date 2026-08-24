@@ -167,17 +167,16 @@ func TestAllocateWireguardAddressFillsItsOwnSlash24First(t *testing.T) {
 	}
 }
 
-func TestAllocateWireguardAddressWithoutWideningFailsClosed(t *testing.T) {
-	// AmneziaWG's caller passes allowWidening=false: an address outside the
-	// kernel interface's own configured subnet would never actually route,
-	// so exhausting the pool must error instead of silently handing out an
-	// address from a wider scope (unlike plain WireGuard's allowWidening=true).
+func TestAllocateWireguardAddressNoWideningFailsWhenPoolExhausted(t *testing.T) {
 	used := make([]string, 0, 254)
 	for i := 2; i <= 255; i++ {
 		used = append(used, fmt.Sprintf("10.0.0.%d/32", i))
 	}
+	// allowWidening=false: AmneziaWG's own call. A full /24 must fail loudly
+	// instead of handing out an address from the containing /16 that the
+	// kernel interface's own Address never routes (PR #6105 Finding 12).
 	if _, err := allocateWireguardAddress(used, "10.0.0.0/24", false); err == nil {
-		t.Fatal("expected an error on a full /24 with widening disabled, got nil")
+		t.Fatal("a full /24 with widening disabled must fail, not widen")
 	}
 }
 

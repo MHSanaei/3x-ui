@@ -6,6 +6,7 @@ import {
   formValuesToWirePayload,
   type RawInboundRow,
 } from '@/lib/xray/inbound-form-adapter';
+import { DBInbound, type DBInboundInit } from '@/models/dbinbound';
 import { InboundDbFieldsSchema, InboundFormSchema } from '@/schemas/forms/inbound-form';
 import { normalizeXhttpForWire } from '@/lib/xray/stream-wire-normalize';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
@@ -37,19 +38,21 @@ const vlessRow: RawInboundRow = {
   tag: 'inbound-1',
   nodeId: null,
   settings: {
-    clients: [{
-      id: '8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02',
-      email: 'alice@example.test',
-      flow: '',
-      limitIp: 0,
-      totalGB: 0,
-      expiryTime: 0,
-      enable: true,
-      tgId: 0,
-      subId: 'abc123def',
-      comment: '',
-      reset: 0,
-    }],
+    clients: [
+      {
+        id: '8c14d6f7-2e3b-4a91-9d24-3f7a6b8c1e02',
+        email: 'alice@example.test',
+        flow: '',
+        limitIp: 0,
+        totalGB: 0,
+        expiryTime: 0,
+        enable: true,
+        tgId: 0,
+        subId: 'abc123def',
+        comment: '',
+        reset: 0,
+      },
+    ],
     decryption: 'none',
     encryption: 'none',
     fallbacks: [],
@@ -167,7 +170,9 @@ describe('transportless streamSettings (wireguard / tunnel)', () => {
         sockopt: { tcpFastOpen: true },
       }),
     });
-    const stream = values.streamSettings as { sockopt?: { tproxy?: string; tcpFastOpen?: boolean } };
+    const stream = values.streamSettings as {
+      sockopt?: { tproxy?: string; tcpFastOpen?: boolean };
+    };
     expect(stream.sockopt?.tproxy).toBe('off');
     expect(stream.sockopt?.tcpFastOpen).toBe(true);
   });
@@ -283,7 +288,38 @@ describe('formValuesToWirePayload', () => {
   });
 
   it('defaults a missing monthly reset day to the first', () => {
-    expect(rawInboundToFormValues({ ...vlessRow, trafficResetDay: undefined }).trafficResetDay).toBe(1);
+    expect(
+      rawInboundToFormValues({ ...vlessRow, trafficResetDay: undefined }).trafficResetDay,
+    ).toBe(1);
+  });
+});
+
+describe('disableFlow', () => {
+  it('DBInbound constructor preserves disableFlow from the API row', () => {
+    expect(new DBInbound({ disableFlow: true }).disableFlow).toBe(true);
+    expect(new DBInbound({ disableFlow: false }).disableFlow).toBe(false);
+  });
+
+  it('DBInbound defaults disableFlow to false when the API omits it', () => {
+    expect(new DBInbound({ protocol: 'vless' }).disableFlow).toBe(false);
+    expect(new DBInbound().disableFlow).toBe(false);
+  });
+
+  it('rawInboundToFormValues reads disableFlow and defaults to false', () => {
+    expect(rawInboundToFormValues({ ...vlessRow, disableFlow: true }).disableFlow).toBe(true);
+    expect(rawInboundToFormValues(vlessRow).disableFlow).toBe(false);
+  });
+
+  it('formValuesToWirePayload includes disableFlow', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, disableFlow: true });
+    expect(formValuesToWirePayload(values).disableFlow).toBe(true);
+  });
+
+  it('disableFlow survives raw → DBInbound → values → payload (the edit round-trip)', () => {
+    const db = new DBInbound({ ...vlessRow, disableFlow: true } as unknown as DBInboundInit);
+    const values = rawInboundToFormValues(db as unknown as RawInboundRow);
+    const payload = formValuesToWirePayload(values);
+    expect(payload.disableFlow).toBe(true);
   });
 });
 
@@ -346,7 +382,8 @@ describe('legacy xhttp session keys on edit (#5621)', () => {
 
   it('rawInboundToFormValues lifts sessionPlacement/sessionKey onto the renamed keys', () => {
     const values = rawInboundToFormValues(legacyXhttpRow);
-    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>).xhttpSettings;
+    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>)
+      .xhttpSettings;
     expect(xhttp.sessionIDPlacement).toBe('cookie');
     expect(xhttp.sessionIDKey).toBe('x_session');
     expect(xhttp.sessionPlacement).toBeUndefined();
@@ -393,7 +430,8 @@ describe('xhttp xmux maxConcurrency survives a load/re-save round-trip', () => {
 
   it('rawInboundToFormValues does not resurrect a non-zero maxConnections', () => {
     const values = rawInboundToFormValues(xmuxRow);
-    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>).xhttpSettings;
+    const xhttp = (values.streamSettings as unknown as Record<string, Record<string, unknown>>)
+      .xhttpSettings;
     expect(xhttp.enableXmux).toBe(true);
     const xmux = xhttp.xmux as Record<string, unknown>;
     expect(xmux.maxConcurrency).toBe('1-2');

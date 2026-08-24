@@ -2,7 +2,11 @@ import type { TFunction } from 'i18next';
 
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
 import { isUdpOutbound } from '@/hooks/useXraySetting';
-import type { OutboundTestMode, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
+import type {
+  OutboundTestMode,
+  OutboundTestState,
+  OutboundTrafficRow,
+} from '@/hooks/useXraySetting';
 
 import type { OutboundRow } from './outbounds-tab-types';
 
@@ -37,11 +41,14 @@ export function outboundAddresses(o: OutboundRow): string[] {
     }
     case Protocols.DNS: {
       const addr = (settings?.rewriteAddress as string) || (settings?.address as string) || '';
-      const port = (settings?.rewritePort as string | number) || (settings?.port as string | number) || '';
+      const port =
+        (settings?.rewritePort as string | number) || (settings?.port as string | number) || '';
       return addr || port ? [`${addr}:${port}`] : [];
     }
     case Protocols.Wireguard:
-      return (((settings?.peers as Array<{ endpoint?: string }>) || []).map((p) => p.endpoint || '').filter(Boolean));
+      return ((settings?.peers as Array<{ endpoint?: string }>) || [])
+        .map((p) => p.endpoint || '')
+        .filter(Boolean);
     default:
       return [];
   }
@@ -49,7 +56,12 @@ export function outboundAddresses(o: OutboundRow): string[] {
 
 export function isUntestable(o: OutboundRow): boolean {
   if (!o) return true;
-  if (o.protocol === Protocols.Blackhole || o.protocol === Protocols.Loopback || o.tag === 'blocked') return true;
+  if (
+    o.protocol === Protocols.Blackhole ||
+    o.protocol === Protocols.Loopback ||
+    o.tag === 'blocked'
+  )
+    return true;
   // freedom ("direct") and dns aren't proxies — a TCP dial has no endpoint and
   // an HTTP probe would only measure the host's own direct reachability, so
   // they're untestable in every mode.
@@ -71,7 +83,10 @@ export function testModeLabel(mode: string, t: TFunction): string {
   return mode.toUpperCase();
 }
 
-export function trafficFor(outboundsTraffic: OutboundTrafficRow[], o: OutboundRow): { up: number; down: number } {
+export function trafficFor(
+  outboundsTraffic: OutboundTrafficRow[],
+  o: OutboundRow,
+): { up: number; down: number } {
   const tr = outboundsTraffic.find((x) => x.tag === o.tag);
   return { up: tr?.up || 0, down: tr?.down || 0 };
 }
@@ -86,16 +101,24 @@ export function countryName(country?: string, locale?: string): string {
   const code = (country || '').trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(code)) return '';
   try {
-    return new Intl.DisplayNames(locale ? [locale] : undefined, { type: 'region' }).of(code) || code;
+    return (
+      new Intl.DisplayNames(locale ? [locale] : undefined, { type: 'region' }).of(code) || code
+    );
   } catch {
     return code;
   }
 }
 
-export function isTesting<K extends string | number>(states: Record<K, OutboundTestState>, idx: K): boolean {
+export function isTesting<K extends string | number>(
+  states: Record<K, OutboundTestState>,
+  idx: K,
+): boolean {
   return !!states?.[idx]?.testing;
 }
 
-export function testResult<K extends string | number>(states: Record<K, OutboundTestState>, idx: K) {
+export function testResult<K extends string | number>(
+  states: Record<K, OutboundTestState>,
+  idx: K,
+) {
   return states?.[idx]?.result || null;
 }

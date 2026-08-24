@@ -99,7 +99,9 @@ describe('useClients query gating', () => {
   });
 
   it('reports settingsReady even when the settings request fails, so the page can still render', async () => {
-    vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', emptyPage));
+    vi.spyOn(HttpUtil, 'get').mockImplementation(
+      async (url: string) => new Msg(true, '', url.includes('/inbounds/options') ? [] : emptyPage),
+    );
     vi.spyOn(HttpUtil, 'post').mockResolvedValue(new Msg(false, 'boom', null));
     const { result } = renderHook(() => useClients(), { wrapper: wrapperFor() });
 

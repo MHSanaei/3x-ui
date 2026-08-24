@@ -57,8 +57,19 @@ export function sortHosts(hosts: HostRecord[]): HostRecord[] {
 export default function HostList(props: HostListProps) {
   const { t } = useTranslation();
   const {
-    hosts, inboundOptions, loading, isMobile, selectedGroupIds, onSelectionChange,
-    onAdd, onEdit, onDelete, onToggleEnable, onMove, onBulkEnable, onBulkDelete,
+    hosts,
+    inboundOptions,
+    loading,
+    isMobile,
+    selectedGroupIds,
+    onSelectionChange,
+    onAdd,
+    onEdit,
+    onDelete,
+    onToggleEnable,
+    onMove,
+    onBulkEnable,
+    onBulkDelete,
   } = props;
 
   const inboundsMap = useMemo(() => {
@@ -79,16 +90,43 @@ export default function HostList(props: HostListProps) {
         return (
           <Space size={2}>
             <Tooltip title={t('pages.hosts.moveUp')}>
-              <Button size="small" type="text" icon={<ArrowUpOutlined />} aria-label={t('pages.hosts.moveUp')} disabled={idx === 0} onClick={() => onMove(h, 'up')} />
+              <Button
+                size="small"
+                type="text"
+                icon={<ArrowUpOutlined />}
+                aria-label={t('pages.hosts.moveUp')}
+                disabled={idx === 0}
+                onClick={() => onMove(h, 'up')}
+              />
             </Tooltip>
             <Tooltip title={t('pages.hosts.moveDown')}>
-              <Button size="small" type="text" icon={<ArrowDownOutlined />} aria-label={t('pages.hosts.moveDown')} disabled={idx >= count - 1} onClick={() => onMove(h, 'down')} />
+              <Button
+                size="small"
+                type="text"
+                icon={<ArrowDownOutlined />}
+                aria-label={t('pages.hosts.moveDown')}
+                disabled={idx >= count - 1}
+                onClick={() => onMove(h, 'down')}
+              />
             </Tooltip>
             <Tooltip title={t('edit')}>
-              <Button size="small" type="text" icon={<EditOutlined />} aria-label={t('edit')} onClick={() => onEdit(h)} />
+              <Button
+                size="small"
+                type="text"
+                icon={<EditOutlined />}
+                aria-label={t('edit')}
+                onClick={() => onEdit(h)}
+              />
             </Tooltip>
             <Tooltip title={t('delete')}>
-              <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label={t('delete')} onClick={() => onDelete(h)} />
+              <Button
+                size="small"
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label={t('delete')}
+                onClick={() => onDelete(h)}
+              />
             </Tooltip>
           </Space>
         );
@@ -117,20 +155,34 @@ export default function HostList(props: HostListProps) {
       title: t('pages.hosts.fields.endpoint'),
       key: 'endpoint',
       render: (_, h) => {
-        const addrs = h.hosts?.filter(a => a.trim() !== '') || [];
-        if (addrs.length === 0) return <Tag color="orange">{t('pages.hosts.fields.inheritAddress') || 'inherits'}</Tag>;
+        const addrs = h.hosts?.filter((a) => a.trim() !== '') || [];
+        if (addrs.length === 0)
+          return <Tag color="orange">{t('pages.hosts.fields.inheritAddress') || 'inherits'}</Tag>;
         const visible = addrs.slice(0, 1);
         const overflow = addrs.slice(1);
         return (
           <>
-            {visible.map((addr) => <Tag key={addr}>{addr}</Tag>)}
+            {visible.map((addr) => (
+              <Tag key={addr}>{addr}</Tag>
+            ))}
             {overflow.length > 0 && (
               <Popover
                 trigger="click"
                 placement="bottomRight"
                 content={
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 280, maxHeight: 280, overflowY: 'auto' }}>
-                    {overflow.map((addr) => <Tag key={addr}>{addr}</Tag>)}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      maxWidth: 280,
+                      maxHeight: 280,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {overflow.map((addr) => (
+                      <Tag key={addr}>{addr}</Tag>
+                    ))}
                   </div>
                 }
               >
@@ -153,12 +205,14 @@ export default function HostList(props: HostListProps) {
         const overflow = ids.slice(1);
         const chip = (id: number) => {
           const ib = inboundsMap.get(id);
-          const label = ib ? (ib.remark || ib.tag || `#${id}`) : `#${id}`;
+          const label = ib ? ib.remark || ib.tag || `#${id}` : `#${id}`;
           const proto = (ib?.protocol || '').toLowerCase();
           const color = INBOUND_PROTOCOL_COLORS[proto] ?? 'default';
           return (
             <Tooltip key={id} title={label}>
-              <Tag color={color} style={{ margin: 2 }}>{label}</Tag>
+              <Tag color={color} style={{ margin: 2 }}>
+                {label}
+              </Tag>
             </Tooltip>
           );
         };
@@ -170,7 +224,16 @@ export default function HostList(props: HostListProps) {
                 trigger="click"
                 placement="bottomRight"
                 content={
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 280, maxHeight: 280, overflowY: 'auto' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      maxWidth: 280,
+                      maxHeight: 280,
+                      overflowY: 'auto',
+                    }}
+                  >
                     {overflow.map(chip)}
                   </div>
                 }
@@ -193,9 +256,18 @@ export default function HostList(props: HostListProps) {
     {
       title: t('pages.hosts.fields.tags'),
       key: 'tags',
-      render: (_, h) => (h.tags && h.tags.length > 0
-        ? <Space size={[0, 4]} wrap>{h.tags.map((tag) => <Tag key={tag} color="blue">{tag}</Tag>)}</Space>
-        : <span className="host-muted">—</span>),
+      render: (_, h) =>
+        h.tags && h.tags.length > 0 ? (
+          <Space size={[0, 4]} wrap>
+            {h.tags.map((tag) => (
+              <Tag key={tag} color="blue">
+                {tag}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          <span className="host-muted">—</span>
+        ),
     },
   ];
 
@@ -217,7 +289,9 @@ export default function HostList(props: HostListProps) {
           </Tag>
           <Button onClick={() => onBulkEnable(true)}>{t('pages.hosts.bulkEnable')}</Button>
           <Button onClick={() => onBulkEnable(false)}>{t('pages.hosts.bulkDisable')}</Button>
-          <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>{t('pages.hosts.bulkDelete')}</Button>
+          <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>
+            {t('pages.hosts.bulkDelete')}
+          </Button>
         </>
       )}
     </div>

@@ -1189,3 +1189,33 @@ func TestGenHysteriaLinkOmitsFinalMaskQueryParam(t *testing.T) {
 		t.Fatalf("missing standard obfs-password: %s", got)
 	}
 }
+
+func TestGenHysteriaLinkKeepsHopPortsWithExternalProxy(t *testing.T) {
+	stream := `{
+		"security":"tls",
+		"tlsSettings":{"serverName":"hy.sni"},
+		"finalmask":{"quicParams":{"udpHop":{"ports":"20000-50000","interval":"5-10"}}},
+		"externalProxy":[
+			{"dest":"cdn.example.com","port":8443},
+			{"dest":"2001:db8::10","port":9443}
+		]
+	}`
+	in := &model.Inbound{
+		Listen:         "203.0.113.1",
+		Port:           443,
+		Protocol:       model.Hysteria,
+		Remark:         "hy2",
+		Settings:       `{"version":2,"clients":[{"auth":"hyauth","email":"user"}]}`,
+		StreamSettings: stream,
+	}
+	got := (&SubService{}).genHysteriaLink(in, "user")
+	links := strings.Split(got, "\n")
+	if len(links) != 2 {
+		t.Fatalf("expected one link per external proxy, got %d: %q", len(links), got)
+	}
+	for _, link := range links {
+		if !strings.Contains(link, "mport=20000-50000") {
+			t.Fatalf("external-proxy link lost the UDP hop range: %s", link)
+		}
+	}
+}

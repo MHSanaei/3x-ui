@@ -38,7 +38,6 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   const [loading, setLoading] = useState(false);
 
   const fetchVersions = useCallback(async () => {
-    setLoading(true);
     try {
       const msg = await HttpUtil.get<string[]>('/panel/api/server/getXrayVersion');
       if (msg?.success) setVersions(msg.obj || []);
@@ -47,8 +46,14 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
     }
   }, []);
 
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setLoading(true);
+  }
+
   useEffect(() => {
-    if (open) fetchVersions();
+    if (open) void fetchVersions();
   }, [open, fetchVersions]);
 
   function switchXrayVersion(version: string) {
@@ -96,12 +101,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
   const activeKeyStr = Array.isArray(activeKey) ? activeKey[0] : activeKey;
 
   return (
-    <Modal
-      open={open}
-      title={t('pages.index.xrayUpdates')}
-      footer={null}
-      onCancel={onClose}
-    >
+    <Modal open={open} title={t('pages.index.xrayUpdates')} footer={null} onCancel={onClose}>
       {modalContextHolder}
       <Spin spinning={loading}>
         <Collapse
@@ -168,11 +168,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
               key: '3',
               label: t('pages.index.geodataTitle'),
               children: (
-                <GeodataSection
-                  active={activeKeyStr === '3'}
-                  onBusy={onBusy}
-                  onClose={onClose}
-                />
+                <GeodataSection active={activeKeyStr === '3'} onBusy={onBusy} onClose={onClose} />
               ),
             },
           ]}

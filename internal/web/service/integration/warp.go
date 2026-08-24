@@ -23,9 +23,12 @@ type WarpService struct {
 }
 
 const (
-	warpAPIBase   = "https://api.cloudflareclient.com/v0a4005"
 	warpClientVer = "a-6.30-3596"
 )
+
+// warpAPIBase is the Cloudflare WARP registration API base URL. It is a var
+// (not a const) so integration tests can point it at a mock server.
+var warpAPIBase = "https://api.cloudflareclient.com/v0a4005"
 
 func (s *WarpService) GetWarpData() (string, error) {
 	return s.GetWarp()
@@ -198,6 +201,23 @@ func (s *WarpService) ChangeWarpIP() (string, error) {
 		return "", err
 	}
 
+	// RegWarp stores the new device's data, which for a fresh registration
+	// carries an empty license_key. Re-apply the old license key to the stored
+	// data BEFORE the remote upgrade attempt, so a failed re-apply can never
+	// delete the saved key.
+	var reapplyWarn error
+	if license, ok := warpDataMap["license_key"]; ok && len(license) >= 26 {
+		if parsed.Data == nil {
+			parsed.Data = make(map[string]string)
+		}
+		parsed.Data["license_key"] = license
+		if stored, err := json.MarshalIndent(parsed.Data, "", "  "); err != nil {
+			return "", err
+		} else if err := s.SetWarp(string(stored)); err != nil {
+			return "", err
+		}
+	}
+
 	xraySvc := service.XraySettingService{}
 	if err := xraySvc.UpdateWarpXraySetting(parsed.Data, parsed.Config); err != nil {
 		return "", err
@@ -205,11 +225,27 @@ func (s *WarpService) ChangeWarpIP() (string, error) {
 
 	if license, ok := warpDataMap["license_key"]; ok && len(license) >= 26 {
 		if _, licErr := s.SetWarpLicense(license); licErr != nil {
-			logger.Warning("ChangeWarpIP: failed to re-apply WARP license: ", licErr)
+			// The key is already preserved in storage above; surface the
+			// remote failure instead of silently downgrading to a free account.
+			reapplyWarn = licErr
+			logger.Warning("ChangeWarpIP: failed to re-apply WARP license (key preserved in storage): ", licErr)
 		}
 	}
 
-	return result, nil
+	// Return the final stored data (with the preserved license key) instead of
+	// RegWarp's snapshot, which always carries an empty license.
+	response := map[string]any{
+		"data":   parsed.Data,
+		"config": parsed.Config,
+	}
+	if reapplyWarn != nil {
+		response["warning"] = fmt.Sprintf("failed to re-apply WARP license: %v", reapplyWarn)
+	}
+	resultJSON, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(resultJSON), nil
 }
 
 // loadWarpCreds reads the stored warp JSON and ensures access_token + device_id are set.

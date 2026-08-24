@@ -6,8 +6,16 @@ import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
-import { buildWireguardClientConfig, findWireguardInbound, isWireguardClient } from './wireguardConfig';
-import { buildAmneziaWGClientConfig, findAmneziaWGInbound, isAmneziaWGClient } from './amneziawgConfig';
+import {
+  buildWireguardClientConfig,
+  findWireguardInbound,
+  isWireguardClient,
+} from './wireguardConfig';
+import {
+  buildAmneziaWGClientConfig,
+  findAmneziaWGInbound,
+  isAmneziaWGClient,
+} from './amneziawgConfig';
 
 interface SubSettings {
   enable: boolean;
@@ -21,6 +29,7 @@ interface ClientQrModalProps {
   open: boolean;
   client: ClientRecord | null;
   inboundsById: Record<number, InboundOption>;
+  tunnelAllowedIPs?: Record<number, string>;
   subSettings?: SubSettings;
   onOpenChange: (open: boolean) => void;
 }
@@ -30,12 +39,19 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
-const DEFAULT_SUB: SubSettings = { enable: false, subURI: '', subJsonURI: '', subJsonEnable: false, publicHost: '' };
+const DEFAULT_SUB: SubSettings = {
+  enable: false,
+  subURI: '',
+  subJsonURI: '',
+  subJsonEnable: false,
+  publicHost: '',
+};
 
 export default function ClientQrModal({
   open,
   client,
   inboundsById,
+  tunnelAllowedIPs,
   subSettings = DEFAULT_SUB,
   onOpenChange,
 }: ClientQrModalProps) {
@@ -43,43 +59,64 @@ export default function ClientQrModal({
   const [links, setLinks] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const subLink = useMemo(() => {
-    if (!client?.subId || !subSettings?.enable || !subSettings?.subURI) return '';
-    return subSettings.subURI + client.subId;
-  }, [client?.subId, subSettings?.enable, subSettings?.subURI]);
+  const subId = client?.subId;
+  const subEnabled = !!subSettings?.enable;
+  const subLink = subId && subEnabled && subSettings?.subURI ? subSettings.subURI + subId : '';
+  const subJsonLink =
+    subId && subEnabled && subSettings?.subJsonEnable && subSettings?.subJsonURI
+      ? subSettings.subJsonURI + subId
+      : '';
 
-  const subJsonLink = useMemo(() => {
-    if (!client?.subId || !subSettings?.enable) return '';
-    if (!subSettings?.subJsonEnable || !subSettings?.subJsonURI) return '';
-    return subSettings.subJsonURI + client.subId;
-  }, [client?.subId, subSettings?.enable, subSettings?.subJsonEnable, subSettings?.subJsonURI]);
-
-  const wgInbound = useMemo(() => findWireguardInbound(client, inboundsById), [client, inboundsById]);
+  const wgInbound = useMemo(
+    () => findWireguardInbound(client, inboundsById),
+    [client, inboundsById],
+  );
   const wgConfigText = useMemo(() => {
     if (!client || !wgInbound || !isWireguardClient(client)) return '';
-    return buildWireguardClientConfig(client, wgInbound, window.location.hostname, subSettings?.publicHost ?? '');
+    return buildWireguardClientConfig(
+      client,
+      wgInbound,
+      window.location.hostname,
+      subSettings?.publicHost ?? '',
+    );
   }, [client, wgInbound, subSettings?.publicHost]);
 
-  const awgInbound = useMemo(() => findAmneziaWGInbound(client, inboundsById), [client, inboundsById]);
+  const awgInbound = useMemo(
+    () => findAmneziaWGInbound(client, inboundsById),
+    [client, inboundsById],
+  );
   const awgConfigText = useMemo(() => {
     if (!client || !awgInbound || !isAmneziaWGClient(client)) return '';
-    return buildAmneziaWGClientConfig(client, awgInbound, window.location.hostname, subSettings?.publicHost ?? '');
-  }, [client, awgInbound, subSettings?.publicHost]);
+    const address = awgInbound ? (tunnelAllowedIPs?.[awgInbound.id] ?? '') : '';
+    return buildAmneziaWGClientConfig(
+      client,
+      awgInbound,
+      window.location.hostname,
+      subSettings?.publicHost ?? '',
+      address,
+    );
+  }, [client, awgInbound, tunnelAllowedIPs, subSettings?.publicHost]);
 
-  const hasAnything = !!subLink || !!subJsonLink || !!wgConfigText || !!awgConfigText || links.length > 0;
+  const hasAnything =
+    !!subLink || !!subJsonLink || !!wgConfigText || !!awgConfigText || links.length > 0;
+
+  // The reset runs during render so the effect only carries the request.
+  const openSubId = open ? (client?.subId ?? '') : '';
+  const [syncedSubId, setSyncedSubId] = useState(openSubId);
+  if (openSubId !== syncedSubId) {
+    setSyncedSubId(openSubId);
+    setLinks([]);
+    setLoading(!!openSubId);
+  }
 
   useEffect(() => {
-    if (!open || !client?.subId) {
-      setLinks([]);
-      return;
-    }
+    if (!open || !client?.subId) return;
     let cancelled = false;
-    setLoading(true);
     (async () => {
       try {
-        const msg = await HttpUtil.get(
+        const msg = (await HttpUtil.get(
           `/panel/api/clients/subLinks/${encodeURIComponent(client.subId!)}`,
-        ) as ApiMsg<string[]>;
+        )) as ApiMsg<string[]>;
         if (!cancelled) {
           setLinks(msg?.success && Array.isArray(msg.obj) ? msg.obj : []);
         }
@@ -87,7 +124,9 @@ export default function ClientQrModal({
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open, client?.subId]);
 
   const [activeKey, setActiveKey] = useState<string[]>([]);
@@ -98,7 +137,9 @@ export default function ClientQrModal({
       out.push({
         key: 'sub',
         label: t('subscription.title'),
-        children: <QrPanel value={subLink} remark={`${client?.email || ''} — ${t('subscription.title')}`} />,
+        children: (
+          <QrPanel value={subLink} remark={`${client?.email || ''} — ${t('subscription.title')}`} />
+        ),
       });
     }
     if (subJsonLink) {
@@ -116,7 +157,9 @@ export default function ClientQrModal({
           <LinkTags parts={parts} />
           {meta && <span style={{ opacity: 0.6, fontSize: 12 }}>({meta})</span>}
         </span>
-      ) : `${t('pages.clients.link')} ${idx + 1}`;
+      ) : (
+        `${t('pages.clients.link')} ${idx + 1}`
+      );
       out.push({
         key: `l${idx}`,
         label,
@@ -132,7 +175,11 @@ export default function ClientQrModal({
     if (wgConfigText) {
       out.push({
         key: 'wg-config',
-        label: <Tag color="cyan" style={{ margin: 0 }}>{t('pages.clients.wireguardConfig')}</Tag>,
+        label: (
+          <Tag color="cyan" style={{ margin: 0 }}>
+            {t('pages.clients.wireguardConfig')}
+          </Tag>
+        ),
         children: (
           <QrPanel
             value={wgConfigText}
@@ -145,7 +192,11 @@ export default function ClientQrModal({
     if (awgConfigText) {
       out.push({
         key: 'awg-config',
-        label: <Tag color="purple" style={{ margin: 0 }}>{t('pages.clients.amneziaWgConfig')}</Tag>,
+        label: (
+          <Tag color="purple" style={{ margin: 0 }}>
+            {t('pages.clients.amneziaWgConfig')}
+          </Tag>
+        ),
         children: (
           <QrPanel
             value={awgConfigText}
@@ -158,13 +209,13 @@ export default function ClientQrModal({
     return out;
   }, [subLink, subJsonLink, wgConfigText, awgConfigText, links, client?.email, t]);
 
-  useEffect(() => {
-    if (!open) {
-      setActiveKey([]);
-      return;
-    }
-    setActiveKey(items.length > 0 ? [items[0].key] : []);
-  }, [open, items]);
+  // Expanding the first panel is a render-time adjustment, not a side effect.
+  const firstKey = open && items.length > 0 ? items[0].key : null;
+  const [syncedFirstKey, setSyncedFirstKey] = useState<string | null>(null);
+  if (firstKey !== syncedFirstKey) {
+    setSyncedFirstKey(firstKey);
+    setActiveKey(firstKey ? [firstKey] : []);
+  }
 
   return (
     <Modal
@@ -177,15 +228,21 @@ export default function ClientQrModal({
     >
       <Spin spinning={loading}>
         {!client?.subId && !loading && (
-          <div style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>{t('pages.clients.noSubId')}</div>
+          <div style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>
+            {t('pages.clients.noSubId')}
+          </div>
         )}
         {client?.subId && !hasAnything && !loading && (
-          <div style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>{t('pages.clients.noLinks')}</div>
+          <div style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>
+            {t('pages.clients.noLinks')}
+          </div>
         )}
         {hasAnything && (
           <Collapse
             activeKey={activeKey}
-            onChange={(keys) => setActiveKey(typeof keys === 'string' ? [keys] : (keys as string[]))}
+            onChange={(keys) =>
+              setActiveKey(typeof keys === 'string' ? [keys] : (keys as string[]))
+            }
             items={items}
           />
         )}

@@ -84,7 +84,11 @@ describe('useXraySetting', () => {
       if (url === '/panel/api/xray/testOutbounds') {
         const outbounds = JSON.parse((data as Record<string, string>).outbounds);
         testOutboundsCallSizes.push(outbounds.length);
-        return new Msg(true, '', outbounds.map(() => ({ success: true, mode: 'speed', downloadMbps: 1, uploadMbps: 1 })));
+        return new Msg(
+          true,
+          '',
+          outbounds.map(() => ({ success: true, mode: 'speed', downloadMbps: 1, uploadMbps: 1 })),
+        );
       }
       return new Msg(true, '');
     });
@@ -96,7 +100,9 @@ describe('useXraySetting', () => {
 
     await waitFor(() => expect(result.current.fetched).toBe(true));
     await waitFor(() => expect(result.current.templateSettings?.outbounds?.length).toBe(3));
-    await act(async () => { await result.current.testAllOutbounds('speed'); });
+    await act(async () => {
+      await result.current.testAllOutbounds('speed');
+    });
 
     expect(testOutboundsCallSizes).toEqual([1, 1, 1]);
   });

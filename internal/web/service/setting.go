@@ -68,6 +68,7 @@ var defaultValueMap = map[string]string{
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
+	"ipLimitAllowlist":            "",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
@@ -123,11 +124,13 @@ var defaultValueMap = map[string]string{
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonFinalMask":            "",
+	"subJsonObservatory":          "",
 	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
 	"warpUpdateInterval":          "0",
 	"nord":                        "",
+	"pia":                         "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
 	"restartXrayOnClientDisable":  "true",
@@ -693,6 +696,12 @@ func (s *SettingService) GetSessionMaxAge() (int, error) {
 	return s.getInt("sessionMaxAge")
 }
 
+// GetIpLimitAllowlist returns the operator's trusted addresses and networks,
+// which the IP limit neither counts nor bans.
+func (s *SettingService) GetIpLimitAllowlist() (string, error) {
+	return s.getString("ipLimitAllowlist")
+}
+
 func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
 	return s.getString("trustedProxyCIDRs")
 }
@@ -940,6 +949,10 @@ func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
 }
 
+func (s *SettingService) GetSubJsonObservatory() (string, error) {
+	return s.getString("subJsonObservatory")
+}
+
 func (s *SettingService) GetSubThemeDir() (string, error) {
 	return s.getString("subThemeDir")
 }
@@ -962,6 +975,14 @@ func (s *SettingService) GetNord() (string, error) {
 
 func (s *SettingService) SetNord(data string) error {
 	return s.setString("nord", data)
+}
+
+func (s *SettingService) GetPia() (string, error) {
+	return s.getString("pia")
+}
+
+func (s *SettingService) SetPia(data string) error {
+	return s.setString("pia", data)
 }
 
 func (s *SettingService) GetExternalTrafficInformEnable() (bool, error) {
@@ -1512,6 +1533,26 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
 	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
 	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
+	for name, value := range map[string]*string{
+		"Happ routing source":         &allSetting.SubRoutingRules,
+		"Clash/Mihomo routing source": &allSetting.SubClashRules,
+		"Incy routing source":         &allSetting.SubIncyRoutingRules,
+	} {
+		if err := validateRemoteRoutingURLSetting(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateRemoteRoutingURLSetting(name string, value *string) error {
+	canonical, remote, err := common.ParseRemoteRoutingURL(*value)
+	if err != nil {
+		return common.NewError(name, err.Error())
+	}
+	if remote {
+		*value = canonical
+	}
 	return nil
 }
 

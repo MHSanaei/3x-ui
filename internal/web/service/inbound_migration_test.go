@@ -1,9 +1,12 @@
 package service
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -87,6 +90,41 @@ func TestMigrationRequirements_BackfillsClientTrafficsWithMultiDomainInbound(t *
 	}
 	if !strings.Contains(refreshed.StreamSettings, "externalProxy") {
 		t.Errorf("MultiDomain migration did not commit; streamSettings = %q", refreshed.StreamSettings)
+	}
+}
+
+func TestMigrationRequirementsReturnsAddClientStatFailure(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+	db := database.GetDB()
+	first := &model.Inbound{UserId: 1, Tag: "first", Port: 31001, Protocol: model.VLESS, Settings: `{"clients":[{"email":"first@example.test","id":"id-1"}]}`, StreamSettings: `{}`}
+	if err := db.Create(first).Error; err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	const injected = "injected AddClientStat failure"
+	failSave := func(tx *gorm.DB) {
+		tx.AddError(errors.New(injected))
+	}
+	if err := db.Callback().Update().Before("gorm:update").Register("test:fail-migration-inbound-save", failSave); err != nil {
+		t.Fatalf("register update callback: %v", err)
+	}
+	if err := db.Callback().Create().Before("gorm:create").Register("test:fail-migration-inbound-save", failSave); err != nil {
+		t.Fatalf("register create callback: %v", err)
+	}
+	err := (&InboundService{}).MigrationRequirements()
+	if err == nil || err.Error() != injected {
+		t.Fatalf("MigrationRequirements error = %v, want %q", err, injected)
+	}
+	var count int64
+	if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", "first@example.test").Count(&count).Error; err != nil {
+		t.Fatalf("count rolled-back traffic: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("earlier traffic write committed after save failure: count=%d", count)
 	}
 }
 

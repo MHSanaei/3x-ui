@@ -1,15 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
-const MOBILE_BREAKPOINT_PX = 768;
+export const MOBILE_BREAKPOINT_PX = 768;
 
+/**
+ * Tracks whether the viewport is narrower than `breakpoint`.
+ *
+ * Uses the native `matchMedia` change event instead of the `resize` event so
+ * that state updates fire only when the query actually flips, not on every
+ * pixel change during a window drag.
+ */
 export function useMediaQuery(breakpoint: number = MOBILE_BREAKPOINT_PX) {
-  const [isMobile, setIsMobile] = useState<boolean>(() => window.innerWidth <= breakpoint);
+  const query = `(max-width: ${breakpoint}px)`;
 
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= breakpoint);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [breakpoint]);
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const mql = window.matchMedia(query);
+      mql.addEventListener('change', onStoreChange);
+      return () => mql.removeEventListener('change', onStoreChange);
+    },
+    [query],
+  );
+
+  const isMobile = useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 
   return { isMobile };
 }

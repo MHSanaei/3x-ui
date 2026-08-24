@@ -5,6 +5,7 @@ export type ProcessState = string;
 export type Protocol = string;
 export type SubLinkProvider = unknown;
 export type staticEgressResolver = string;
+export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
 export interface AllSetting {
@@ -21,6 +22,7 @@ export interface AllSetting {
   frontProxyEnable: boolean;
   frontProxyListen: string;
   frontProxyPort: number;
+  ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
   ldapBaseDN: string;
@@ -82,6 +84,7 @@ export interface AllSetting {
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
+  subJsonObservatory: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -145,6 +148,7 @@ export interface AllSettingView {
   hasTgBotToken: boolean;
   hasTwoFactorToken: boolean;
   hasWarpSecret: boolean;
+  ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
   ldapBaseDN: string;
@@ -206,6 +210,7 @@ export interface AllSettingView {
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
+  subJsonObservatory: string;
   subJsonPath: string;
   subJsonRules: string;
   subJsonURI: string;
@@ -246,6 +251,12 @@ export interface AllSettingView {
   webKeyFile: string;
   webListen: string;
   webPort: number;
+}
+
+export interface AmneziaWGLogs {
+  events: string[];
+  peers: PeerActivity[];
+  running: boolean;
 }
 
 export interface ApiToken {
@@ -289,12 +300,16 @@ export interface Client {
   privateKey?: string;
   publicKey?: string;
   reset: number;
+  resetDay: number;
+  resetMax: number;
   reverse?: ClientReverse | null;
   secret?: string;
   security: string;
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficReset?: string;
+  trafficResetDay?: number;
   updated_at?: number;
 }
 
@@ -326,12 +341,16 @@ export interface ClientRecord {
   privateKey: string;
   publicKey: string;
   reset: number;
+  resetDay: number;
+  resetMax: number;
   reverse: unknown;
   secret: string;
   security: string;
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficReset: string;
+  trafficResetDay: number;
   updatedAt: number;
   uuid: string;
 }
@@ -350,6 +369,9 @@ export interface ClientTraffic {
   lastOnline: number;
   lastSubFetch: number;
   reset: number;
+  resetCount: number;
+  resetDay: number;
+  resetMax: number;
   subId: string;
   total: number;
   up: number;
@@ -476,6 +498,7 @@ export interface HostGroup {
 
 export interface Inbound {
   clientStats: ClientTraffic[];
+  disableFlow: boolean;
   down: number;
   enable: boolean;
   expiryTime: number;
@@ -667,6 +690,19 @@ export interface PanelUpdateStatus {
   state: string;
 }
 
+export interface PeerActivity {
+  allowedIPs: string;
+  down: number;
+  email: string;
+  endpoint: string;
+  handshake: number;
+  inboundId: number;
+  interface: string;
+  online: boolean;
+  tag: string;
+  up: number;
+}
+
 export interface ProbeResultUI {
   cpuPct: number;
   error: string;
@@ -687,6 +723,7 @@ export interface QuicCaptureResult {
 
 export interface RealityScanResult {
   alpn: string;
+  certChainValid: boolean;
   certIssuer: string;
   certSubject: string;
   certValid: boolean;
@@ -698,6 +735,7 @@ export interface RealityScanResult {
   latencyMs: number;
   notAfter: string;
   port: number;
+  privateTarget: boolean;
   reason: string;
   serverNames: string[];
   target: string;
@@ -707,7 +745,6 @@ export interface RealityScanResult {
 }
 
 export interface ServerSettings {
-  awgVersion?: string;
   contentPaddingAddition?: string;
   disableCookies: boolean;
   externalInterface?: string;
@@ -730,7 +767,7 @@ export interface ServerSettings {
   keepaliveTimeout?: string;
   maxHandshakeAttempts?: string;
   mtu?: number;
-  primaryDns?: string;
+  primaryDns: string;
   privateKey: string;
   publicKey: string;
   randomTrailers: boolean;
@@ -742,7 +779,7 @@ export interface ServerSettings {
   s2: number;
   s3: number;
   s4: number;
-  secondaryDns?: string;
+  secondaryDns: string;
   subnetCidr: number;
   subnetIp: string;
 }
@@ -751,6 +788,17 @@ export interface Setting {
   id: number;
   key: string;
   value: string;
+}
+
+export interface SubBalancer {
+  createdAt: number;
+  enabled: boolean;
+  id: number;
+  inboundIds: number[];
+  remark: string;
+  sortOrder: number;
+  strategy: string;
+  updatedAt: number;
 }
 
 export interface User {

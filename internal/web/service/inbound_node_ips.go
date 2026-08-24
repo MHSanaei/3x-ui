@@ -299,3 +299,36 @@ func (s *InboundService) DeleteNodeClientIpsByGuid(guid string) error {
 	db := database.GetDB()
 	return db.Where("node_guid = ?", guid).Delete(&model.NodeClientIp{}).Error
 }
+
+// pruneStaleNodeClientIps sweeps every attribution row: upsertNodeClientIps
+// only revisits emails present in a scan, so unobserved rows never expire there.
+func pruneStaleNodeClientIps(cutoff int64) error {
+	db := database.GetDB()
+	var rows []model.NodeClientIp
+	if err := db.Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		var entries []model.ClientIpEntry
+		if row.Ips != "" {
+			if err := json.Unmarshal([]byte(row.Ips), &entries); err != nil {
+				continue
+			}
+		}
+		kept := mergeModelClientIpEntries(nil, entries, cutoff)
+		if len(kept) == 0 {
+			if err := db.Delete(&model.NodeClientIp{}, row.Id).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if len(kept) == len(entries) {
+			continue
+		}
+		b, _ := json.Marshal(kept)
+		if err := db.Model(&model.NodeClientIp{}).Where("id = ?", row.Id).Update("ips", string(b)).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -62,7 +62,12 @@ describe('BalancerFormModal', () => {
   });
 
   it('disables save and warns when the chosen fallback would create a balancer cycle', () => {
-    const editing: BalancerFormValue = { tag: 'A', strategy: 'random', selector: ['proxy'], fallbackTag: 'B' };
+    const editing: BalancerFormValue = {
+      tag: 'A',
+      strategy: 'random',
+      selector: ['proxy'],
+      fallbackTag: 'B',
+    };
     const others: BalancerObject[] = [{ tag: 'B', selector: ['direct'], fallbackTag: 'A' }];
     const onConfirm = vi.fn();
     renderWithProviders(

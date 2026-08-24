@@ -52,7 +52,7 @@ func TestSetRemoteTraffic_DirtyPreservesConfig(t *testing.T) {
 	}
 
 	svc := InboundService{}
-	if _, err := svc.setRemoteTrafficLocked(id, snap, true); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(id, snap, true, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked dirty: %v", err)
 	}
 
@@ -65,6 +65,43 @@ func TestSetRemoteTraffic_DirtyPreservesConfig(t *testing.T) {
 	}
 	if got.Up != 500 || got.Down != 700 {
 		t.Fatalf("traffic counters not applied while dirty: up=%d down=%d", got.Up, got.Down)
+	}
+}
+
+func TestSetRemoteTraffic_MissingDisabledInboundIsNotSwept(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+	node := &model.Node{Name: "disabled-snapshot", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "online"}
+	if err := db.Create(node).Error; err != nil {
+		t.Fatal(err)
+	}
+	disabled := &model.Inbound{
+		UserId: 1, NodeID: &node.Id, Tag: "disabled", Enable: false,
+		Port: 24443, Protocol: model.VLESS, Settings: `{"clients":[]}`,
+	}
+	reported := &model.Inbound{
+		UserId: 1, NodeID: &node.Id, Tag: "reported", Enable: true,
+		Port: 24444, Protocol: model.VLESS, Settings: `{"clients":[]}`,
+	}
+	if err := db.Create(disabled).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(reported).Error; err != nil {
+		t.Fatal(err)
+	}
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{{
+		Tag: reported.Tag, Enable: true,
+		Port: reported.Port, Protocol: reported.Protocol, Settings: reported.Settings,
+	}}}
+	if _, err := (&InboundService{}).setRemoteTrafficLocked(node.Id, snap, false, false); err != nil {
+		t.Fatal(err)
+	}
+	var count int64
+	if err := db.Model(&model.Inbound{}).Where("id=?", disabled.Id).Count(&count).Error; err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("disabled inbound rows=%d, want 1", count)
 	}
 }
 

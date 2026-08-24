@@ -67,7 +67,7 @@ jobs:
             already answered there, link that page.
 
             Stack (confirm in go.mod / frontend/package.json if it matters):
-            - Backend: Go 1.26 (module github.com/mhsanaei/3x-ui/v3), Gin,
+            - Backend: Go 1.27 (module github.com/mhsanaei/3x-ui/v3), Gin,
               GORM. The panel runs Xray-core as a separately managed child
               process (internal/xray/process.go) and also imports
               github.com/xtls/xray-core as a library for config types and its

@@ -18,9 +18,8 @@ interface ClientHwidListModalProps {
   onClose: () => void;
 }
 
-// ClientHwidListModal is the one place the HWID device list is rendered —
-// shared by the client edit form and the read-only client info card so the
-// two surfaces can't drift (date format, row layout) the way they once did.
+// The single place the HWID device list is rendered — the edit form and the
+// info card share it so date format and row layout can't drift apart again.
 export default function ClientHwidListModal({
   open,
   email,

@@ -18,10 +18,19 @@ import {
 } from '@/lib/xray/inbound-defaults';
 import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
 import { HttpInboundSettingsSchema } from '@/schemas/protocols/inbound/http';
-import { HysteriaClientSchema, HysteriaInboundSettingsSchema } from '@/schemas/protocols/inbound/hysteria';
+import {
+  HysteriaClientSchema,
+  HysteriaInboundSettingsSchema,
+} from '@/schemas/protocols/inbound/hysteria';
 import { MixedInboundSettingsSchema } from '@/schemas/protocols/inbound/mixed';
-import { ShadowsocksClientSchema, ShadowsocksInboundSettingsSchema } from '@/schemas/protocols/inbound/shadowsocks';
-import { TrojanClientSchema, TrojanInboundSettingsSchema } from '@/schemas/protocols/inbound/trojan';
+import {
+  ShadowsocksClientSchema,
+  ShadowsocksInboundSettingsSchema,
+} from '@/schemas/protocols/inbound/shadowsocks';
+import {
+  TrojanClientSchema,
+  TrojanInboundSettingsSchema,
+} from '@/schemas/protocols/inbound/trojan';
 import { TunnelInboundSettingsSchema } from '@/schemas/protocols/inbound/tunnel';
 import { VlessClientSchema, VlessInboundSettingsSchema } from '@/schemas/protocols/inbound/vless';
 import { VmessClientSchema, VmessInboundSettingsSchema } from '@/schemas/protocols/inbound/vmess';

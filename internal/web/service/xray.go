@@ -206,6 +206,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if flow == "xtls-rprx-vision-udp443" {
 				flow = "xtls-rprx-vision"
 			}
+			if inbound.DisableFlow {
+				flow = ""
+			}
 			entry := map[string]any{"email": c.Email}
 			switch inbound.Protocol {
 			case model.VLESS:
@@ -380,9 +383,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	injectAmneziawgnetSocks(xrayConfig, inbounds)
 
 	// Restores each opted-in peer's own distinct public IPv6 source identity
-	// for its outbound connections, dropped by the hard cutover above (see
-	// Phase 3.5 of the migration plan) — a peer that has an IPv6 address in
-	// its AllowedIPs, on an inbound with IPv6Enabled, gets its own freedom
+	// for its outbound connections — a peer that has an IPv6 address in its
+	// AllowedIPs, on an inbound with IPv6Enabled, gets its own freedom
 	// outbound bound to that exact address via sendThrough.
 	// internal/amneziawgnet's own Manager is responsible for actually
 	// aliasing that address onto the host (see v6alias.go) so the kernel
@@ -684,39 +686,29 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 	})
 }
 
-// amneziawgEgressSniffingSettings enables sniffing on the AmneziaWG SOCKS5
-// relay inbound, matching this fork's own normal per-inbound default (see
-// default.json's "mixed" inbound). Without this, domain-based Routing rules
-// can never match a single byte of AmneziaWG traffic: a peer resolves DNS
-// itself, through the tunnel, before ever sending a packet — by the time
-// the embedded forwarder recovers the decapsulated traffic, the destination
-// is already a bare IP, with no domain name attached at the network layer
-// at all. Sniffing recovers it from the payload itself (TLS SNI / HTTP Host
-// / QUIC) the same way it already does for every other inbound; without
-// it, only tag/IP/network-based rules can ever match this traffic, and any
+// amneziawgEgressSniffingSettings matches this fork's normal per-inbound
+// default (see default.json's "mixed" inbound). Without this, domain-based
+// Routing rules can never match this relay: the peer resolved DNS
+// itself, through the tunnel, before ever sending a packet — by the time the
+// embedded forwarder recovers the decapsulated traffic, the destination is
+// already a bare IP, with no domain name attached at the network layer at
+// all. Sniffing recovers it from the payload itself (TLS SNI / HTTP Host /
+// QUIC) the same way it already does for every other inbound; without it,
+// only tag/IP/network-based rules can ever match this traffic, and any
 // domain rule above it in the list is silently unreachable.
 const amneziawgEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
 
 // injectAmneziawgnetSocks gives every enabled AmneziaWG inbound with at
 // least one qualifying peer its own loopback SOCKS5 inbound for the
 // embedded (amneziawg-go) relay path (internal/amneziawgnet) -- always on,
-// unlike injectAmneziawgEgress's opt-in RouteThroughXray bridge above, since
-// there is no alternative datapath once traffic is decapsulated in gVisor:
-// Xray's own freedom outbound is how it reaches the real internet at all
-// (see internal/amneziawgnet/relay.go's doc comment, Finding 3 of the
-// migration plan). Tagged with the inbound's own real tag, for the same two
-// reasons injectAmneziawgEgress already is: it's already selectable in the
-// panel's stock Routing page (InboundService.GetInboundTags is
-// protocol-blind), and per-inbound traffic totals
+// since there is no alternative datapath once traffic is decapsulated in
+// gVisor: Xray's own freedom outbound is how it reaches the real internet at
+// all (see internal/amneziawgnet/relay.go's doc comment, Finding 3 of the
+// migration plan). Tagged with the inbound's own real tag: it's already
+// selectable in the panel's stock Routing page (InboundService.GetInboundTags
+// is protocol-blind), and per-inbound traffic totals
 // (internal/web/service/inbound_traffic.go's addClientTraffic) match by
 // exact tag -- reusing it isn't a style choice.
-//
-// No RouteThroughXray gate, no qualifying-peer IPv4 check the way
-// injectAmneziawgEgress needs one: amneziawg.InstanceFromInbound already
-// returns ok=false for zero qualifying peers (Enable && PublicKey != "" &&
-// len(AllowedIPs) > 0), and peer identity here comes from Email directly,
-// not an IPv4 lookup, so a v6-only peer is just as valid an account as any
-// other.
 func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 	existingTags := make(map[string]struct{}, len(cfg.InboundConfigs))
 	for i := range cfg.InboundConfigs {
@@ -892,7 +884,7 @@ func injectAmneziawgV6Egress(cfg *xray.Config, inbounds []*model.Inbound) {
 		return
 	}
 
-	merged := make([]any, 0, len(existingOutbounds)+len(newOutbounds))
+	merged := make([]any, 0, len(existingOutbounds))
 	merged = append(merged, existingOutbounds...)
 	merged = append(merged, newOutbounds...)
 	combined, err := json.MarshalIndent(merged, "", "  ")

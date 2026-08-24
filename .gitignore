@@ -19,9 +19,6 @@ backup/
 bin/
 x-ui/
 dist/
-!internal/web/dist/
-internal/web/dist/*
-!internal/web/dist/.gitkeep
 release/
 node_modules/
 

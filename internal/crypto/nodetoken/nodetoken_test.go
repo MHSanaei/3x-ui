@@ -49,6 +49,23 @@ func TestAADBindsToNode(t *testing.T) {
 	// Decrypting under a different node id must fail (ciphertext bound to row).
 	if _, err := c.Decrypt(8, enc); err == nil {
 		t.Fatal("expected AAD mismatch error decrypting under wrong node id")
+	} else if !strings.Contains(err.Error(), "node 8") || !strings.Contains(err.Error(), "authentication failed") {
+		t.Fatalf("wrong-node decrypt error: %v", err)
+	}
+}
+
+func TestAADBindsSettingsApartFromNodes(t *testing.T) {
+	c, _ := NewCodec(ModeRequired, testRing(t, "k1", "k1"))
+	enc, err := c.EncryptBound([]byte("settings/pia_token"), "tok")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Decrypt(1, enc); err == nil {
+		t.Fatal("settings/pia_token ciphertext must not decrypt under nodes/api_token/1")
+	}
+	pt, err := c.DecryptBound([]byte("settings/pia_token"), enc)
+	if err != nil || pt != "tok" {
+		t.Fatalf("pia AAD round-trip: %q err=%v", pt, err)
 	}
 }
 

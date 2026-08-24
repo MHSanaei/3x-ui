@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest';
 
-import { parseAllowedIPsList, resolveTunnelAllowedIPsByInbound } from '@/pages/clients/ClientFormModal';
+import {
+  parseAllowedIPsList,
+  resolveTunnelAllowedIPsByInbound,
+} from '@/pages/clients/ClientFormModal';
 
 describe('parseAllowedIPsList', () => {
   it('splits, trims, and drops empty entries', () => {
-    expect(parseAllowedIPsList(' 10.0.0.2/32 , 10.0.0.3/32,')).toEqual(['10.0.0.2/32', '10.0.0.3/32']);
+    expect(parseAllowedIPsList(' 10.0.0.2/32 , 10.0.0.3/32,')).toEqual([
+      '10.0.0.2/32',
+      '10.0.0.3/32',
+    ]);
   });
 
   it('returns an empty array for a blank string', () => {
@@ -35,7 +41,13 @@ describe('resolveTunnelAllowedIPsByInbound', () => {
   it('omits a protocol entirely when its inbound is not among the attached ids', () => {
     const wireguardIds = new Set([7]);
     const amneziawgIds = new Set([10]);
-    const result = resolveTunnelAllowedIPsByInbound([7], wireguardIds, amneziawgIds, ['10.0.0.2/32'], ['10.8.1.21/32']);
+    const result = resolveTunnelAllowedIPsByInbound(
+      [7],
+      wireguardIds,
+      amneziawgIds,
+      ['10.0.0.2/32'],
+      ['10.8.1.21/32'],
+    );
     expect(result).toEqual({ 7: ['10.0.0.2/32'] });
     expect(result).not.toHaveProperty('10');
   });
@@ -48,7 +60,13 @@ describe('resolveTunnelAllowedIPsByInbound', () => {
   it('picks the first matching id when multiple inbounds of the same protocol are attached', () => {
     const wireguardIds = new Set([7, 8]);
     const amneziawgIds = new Set([10]);
-    const result = resolveTunnelAllowedIPsByInbound([8, 7, 10], wireguardIds, amneziawgIds, ['10.0.0.2/32'], ['10.8.1.21/32']);
+    const result = resolveTunnelAllowedIPsByInbound(
+      [8, 7, 10],
+      wireguardIds,
+      amneziawgIds,
+      ['10.0.0.2/32'],
+      ['10.8.1.21/32'],
+    );
     expect(result).toEqual({ 8: ['10.0.0.2/32'], 10: ['10.8.1.21/32'] });
   });
 });

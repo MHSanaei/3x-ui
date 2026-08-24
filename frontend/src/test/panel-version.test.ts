@@ -33,7 +33,7 @@ describe('isPanelUpdateAvailable', () => {
 
   // Parity with web/service/panel.go TestIsNewerVersionAwgSuffix -- this
   // fork's own "-awg.N" release tags (see internal/config/version).
-  it('handles this fork\'s -awg.N release tags', () => {
+  it("handles this fork's -awg.N release tags", () => {
     expect(isPanelUpdateAvailable('v3.5.0-awg.1', '3.5.0-awg.1')).toBe(false);
     expect(isPanelUpdateAvailable('v3.5.0-awg.2', '3.5.0-awg.1')).toBe(true);
     expect(isPanelUpdateAvailable('v3.5.0-awg.1', '3.5.0-awg.2')).toBe(false);

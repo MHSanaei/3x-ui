@@ -33,15 +33,21 @@ export default function PromptModal({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const inputRef = useRef<InputRef | null>(null);
 
+  const [openedWith, setOpenedWith] = useState<string | null>(null);
+  const openKey = open ? `${type}\u0000${initialValue}` : null;
+  if (openKey !== openedWith) {
+    setOpenedWith(openKey);
+    if (open) setValue(initialValue);
+  }
+
   useEffect(() => {
-    if (open) {
-      setValue(initialValue);
-      setTimeout(() => {
-        if (type === 'textarea') textareaRef.current?.focus();
-        else inputRef.current?.focus();
-      }, 50);
-    }
-  }, [open, initialValue, type]);
+    if (!open) return;
+    const id = setTimeout(() => {
+      if (type === 'textarea') textareaRef.current?.focus();
+      else inputRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(id);
+  }, [open, type]);
 
   function onKeydown(e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) {
     if (type !== 'textarea' && e.key === 'Enter') {
@@ -71,7 +77,11 @@ export default function PromptModal({
         <JsonEditor value={value} onChange={setValue} minHeight="240px" maxHeight="60vh" />
       ) : type === 'textarea' ? (
         <Input.TextArea
-          ref={(el) => { textareaRef.current = (el as unknown as { resizableTextArea?: { textArea: HTMLTextAreaElement } })?.resizableTextArea?.textArea ?? null; }}
+          ref={(el) => {
+            textareaRef.current =
+              (el as unknown as { resizableTextArea?: { textArea: HTMLTextAreaElement } })
+                ?.resizableTextArea?.textArea ?? null;
+          }}
           aria-label={title}
           value={value}
           onChange={(e) => setValue(e.target.value)}

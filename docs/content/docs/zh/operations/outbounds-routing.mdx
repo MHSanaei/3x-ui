@@ -1,11 +1,12 @@
 ---
 title: 出站与路由
-description: 在 3x-ui 中调整出口流量——WARP 与 NordVPN 出站、出站订阅（服务器池）、路由规则以及负载均衡器。
+description: 在 3x-ui 中调整出口流量——WARP、NordVPN、PIA WireGuard、出站订阅（服务器池）、路由规则以及负载均衡器。
 icon: Route
 ---
 
 入站负责接受客户端；**出站**则决定客户端的流量接下来发往何处。
-3x-ui 可以让流量经由 Cloudflare WARP、NordVPN，或从订阅导入的任意出站池转发，
+3x-ui 可以让流量经由 Cloudflare WARP、NordVPN、Private Internet Access
+（WireGuard），或从订阅导入的任意出站池转发，
 并通过路由规则和均衡器在它们之间进行选择。
 
 ## 编辑出站与路由
@@ -80,6 +81,19 @@ WARP 账户，并将其接入一个标签为 **`warp`** 的 WireGuard 出站：
 3x-ui 可以根据访问令牌获取 NordVPN（NordLynx/WireGuard）凭据（或
 直接接受一个私钥），并列出国家/服务器，从而让你构建一个
 NordVPN 出站。
+
+## PIA WireGuard
+
+3x-ui 可以用 PIA 用户名和密码登录，从已验签的服务器列表里选择国家/区域/服务器，
+并生成 WireGuard 出站。打开 **Xray → 出站 → 更多 → PIA**，登录后选服务器并添加出站。
+可以添加多台服务器（每个 hostname 一条出站）。标签为 `pia-<region>-<server>`（例如
+`pia-us-east-useast1`）。添加或对该行 **Reset** 会向该服务器的 PIA `/addKey` 注册密钥。
+同一 hostname 不能添加两次。登出只清除保存的 token；删除出站请在出站列表里操作。
+Reset 或删除出站不会撤销 PIA 账户侧的 WireGuard peer。
+
+密码不落库。PIA API token 与节点 API token 共用 `NODE_TOKEN_ENCRYPTION`。
+若在未重新登录 PIA 的情况下淘汰旧的 `XUI_NODE_TOKEN_KEY`，Add/Reset 会失败，直到再次登录。
+对端 `allowedIPs` 仅为 `0.0.0.0/0`（IPv4）。
 
 ## 出站订阅（服务器池）
 

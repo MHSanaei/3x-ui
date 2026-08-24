@@ -1,20 +1,46 @@
-.mt-4 { margin-top: 4px; }
-.mt-8 { margin-top: 8px; }
-.mt-10 { margin-top: 10px; }
-.mt-12 { margin-top: 12px; }
-.mt-20 { margin-top: 20px; }
+.mt-4 {
+  margin-top: 4px;
+}
+.mt-8 {
+  margin-top: 8px;
+}
+.mt-10 {
+  margin-top: 10px;
+}
+.mt-12 {
+  margin-top: 12px;
+}
+.mt-20 {
+  margin-top: 20px;
+}
 
-.mb-4 { margin-bottom: 4px; }
-.mb-8 { margin-bottom: 8px; }
-.mb-10 { margin-bottom: 10px; }
-.mb-12 { margin-bottom: 12px; }
+.mb-4 {
+  margin-bottom: 4px;
+}
+.mb-8 {
+  margin-bottom: 8px;
+}
+.mb-10 {
+  margin-bottom: 10px;
+}
+.mb-12 {
+  margin-bottom: 12px;
+}
 
-.ml-8 { margin-left: 8px; }
+.ml-8 {
+  margin-left: 8px;
+}
 
-.my-8 { margin: 8px 0; }
-.my-10 { margin: 10px 0; }
+.my-8 {
+  margin: 8px 0;
+}
+.my-10 {
+  margin: 10px 0;
+}
 
-.zero-margin { margin: 0; }
+.zero-margin {
+  margin: 0;
+}
 
 .danger-icon {
   margin-left: 8px;
@@ -42,12 +68,21 @@
 }
 
 @keyframes online-blink {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.55); }
-  50% { opacity: 0.35; box-shadow: 0 0 0 4px rgba(82, 196, 26, 0); }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.55);
+  }
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 0 4px rgba(82, 196, 26, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .online-dot { animation: none; }
+  .online-dot {
+    animation: none;
+  }
 }
 
 /* Purple indicator for nodes that are reachable via the panel API (status=online)
@@ -60,15 +95,24 @@
   border-radius: 50%;
   margin-inline-end: 5px;
   vertical-align: middle;
-  background: #722ED1;
+  background: #722ed1;
   animation: xray-error-blink 1.1s ease-in-out infinite;
 }
 
 @keyframes xray-error-blink {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(114, 46, 209, 0.55); }
-  50% { opacity: 0.35; box-shadow: 0 0 0 4px rgba(114, 46, 209, 0); }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(114, 46, 209, 0.55);
+  }
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 0 4px rgba(114, 46, 209, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .xray-error-dot { animation: none; }
+  .xray-error-dot {
+    animation: none;
+  }
 }

@@ -90,7 +90,10 @@ export default function PanelUpdateModal({
   function updatePanel() {
     modal.confirm({
       title: t('pages.index.panelUpdateDialog'),
-      content: t('pages.index.panelUpdateDialogDesc').replace('#version#', info.latestVersion || ''),
+      content: t('pages.index.panelUpdateDialogDesc').replace(
+        '#version#',
+        info.latestVersion || '',
+      ),
       okText: t('confirm'),
       cancelText: t('cancel'),
       onOk: async () => {
@@ -111,8 +114,16 @@ export default function PanelUpdateModal({
           return;
         }
         modal[outcome === 'failed' ? 'error' : 'warning']({
-          title: t(outcome === 'failed' ? 'pages.index.panelUpdateFailedTitle' : 'pages.index.panelUpdateUnknownTitle'),
-          content: t(outcome === 'failed' ? 'pages.index.panelUpdateFailedDesc' : 'pages.index.panelUpdateUnknownDesc'),
+          title: t(
+            outcome === 'failed'
+              ? 'pages.index.panelUpdateFailedTitle'
+              : 'pages.index.panelUpdateUnknownTitle',
+          ),
+          content: t(
+            outcome === 'failed'
+              ? 'pages.index.panelUpdateFailedDesc'
+              : 'pages.index.panelUpdateUnknownDesc',
+          ),
           okText: t('refresh'),
           onOk: () => window.location.reload(),
         });
@@ -123,12 +134,7 @@ export default function PanelUpdateModal({
   return (
     <>
       {contextHolder}
-      <Modal
-        open={open}
-        title={t('pages.index.updatePanel')}
-        footer={null}
-        onCancel={onClose}
-      >
+      <Modal open={open} title={t('pages.index.updatePanel')} footer={null} onCancel={onClose}>
         {info.updateAvailable && (
           <Alert
             type="warning"
@@ -141,11 +147,7 @@ export default function PanelUpdateModal({
         <div className="version-list">
           <div className="version-list-item">
             <span>{t('pages.index.devChannel')}</span>
-            <Switch
-              checked={!!devChannelEnable}
-              loading={channelBusy}
-              onChange={handleChannel}
-            />
+            <Switch checked={!!devChannelEnable} loading={channelBusy} onChange={handleChannel} />
           </div>
         </div>
 
@@ -160,16 +162,22 @@ export default function PanelUpdateModal({
 
         <div className="version-list">
           <div className="version-list-item">
-            <span>{isDev ? t('pages.index.currentCommit') : t('pages.index.currentPanelVersion')}</span>
+            <span>
+              {isDev ? t('pages.index.currentCommit') : t('pages.index.currentPanelVersion')}
+            </span>
             {isDev ? (
               <Tag color="green">{info.currentCommit || '?'}</Tag>
             ) : (
-              <Tag color="green">{formatPanelVersion(window.X_UI_CUR_VER || info.currentVersion) || '?'}</Tag>
+              <Tag color="green">
+                {formatPanelVersion(window.X_UI_CUR_VER || info.currentVersion) || '?'}
+              </Tag>
             )}
           </div>
           {info.updateAvailable ? (
             <div className="version-list-item">
-              <span>{isDev ? t('pages.index.latestCommit') : t('pages.index.latestPanelVersion')}</span>
+              <span>
+                {isDev ? t('pages.index.latestCommit') : t('pages.index.latestPanelVersion')}
+              </span>
               <Tag color="purple">{(isDev ? info.latestCommit : info.latestVersion) || '-'}</Tag>
             </div>
           ) : (
@@ -189,7 +197,9 @@ export default function PanelUpdateModal({
             {info.awgEngineLatestVersion && (
               <div className="version-list-item">
                 <span>{t('pages.index.awgEngineLatestVersion')}</span>
-                <Tag color={info.awgEngineLatestVersion === info.awgEngineVersion ? 'green' : 'purple'}>
+                <Tag
+                  color={info.awgEngineLatestVersion === info.awgEngineVersion ? 'green' : 'purple'}
+                >
                   {info.awgEngineLatestVersion}
                 </Tag>
               </div>

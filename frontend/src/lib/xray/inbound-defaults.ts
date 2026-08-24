@@ -1,11 +1,17 @@
 import { RandomUtil, Wireguard } from '@/utils';
 
-import { AWG_VERSION_2, type AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
+import {
+  AWG_VERSION_2,
+  type AmneziawgInboundSettings,
+} from '@/schemas/protocols/inbound/amneziawg';
 import type { HttpInboundSettings } from '@/schemas/protocols/inbound/http';
 import type { HysteriaClient, HysteriaInboundSettings } from '@/schemas/protocols/inbound/hysteria';
 import type { MixedInboundSettings } from '@/schemas/protocols/inbound/mixed';
 import type { MtprotoClient, MtprotoInboundSettings } from '@/schemas/protocols/inbound/mtproto';
-import type { ShadowsocksClient, ShadowsocksInboundSettings } from '@/schemas/protocols/inbound/shadowsocks';
+import type {
+  ShadowsocksClient,
+  ShadowsocksInboundSettings,
+} from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
 import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
 import type { TunnelInboundSettings } from '@/schemas/protocols/inbound/tunnel';
@@ -108,9 +114,13 @@ export interface ShadowsocksClientSeed extends ClientBaseSeed {
 // (the parent inbound's method is authoritative); only 2022-blake3 multi-
 // user inbounds use the per-client method. Callers pass `ssMethod` to seed
 // a method-specific password length when creating a multi-user client.
-export function createDefaultShadowsocksClient(seed: ShadowsocksClientSeed = {}): ShadowsocksClient {
+export function createDefaultShadowsocksClient(
+  seed: ShadowsocksClientSeed = {},
+): ShadowsocksClient {
   const method = seed.method ?? '';
-  const password = seed.password ?? RandomUtil.randomShadowsocksPassword(seed.ssMethod ?? '2022-blake3-aes-256-gcm');
+  const password =
+    seed.password ??
+    RandomUtil.randomShadowsocksPassword(seed.ssMethod ?? '2022-blake3-aes-256-gcm');
   return {
     method,
     password,
@@ -293,7 +303,7 @@ export function createDefaultWireguardInboundSettings(
 // parameters (jc/jmin/.../i1) use the same starting values the Go backend's
 // own generator range-checks against; the user (or the backend's own
 // defaulting on save) can randomize/edit them further — see
-// internal/amneziawg.GenerateObfuscation20 on the Go side.
+// internal/amneziawg.GenerateObfuscation31 on the Go side.
 export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSettings {
   const kp = Wireguard.generateKeypair();
   return {
@@ -360,18 +370,31 @@ export type AnyInboundSettings =
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
-    case 'vless':       return createDefaultVlessInboundSettings();
-    case 'vmess':       return createDefaultVmessInboundSettings();
-    case 'trojan':      return createDefaultTrojanInboundSettings();
-    case 'shadowsocks': return createDefaultShadowsocksInboundSettings();
-    case 'hysteria':    return createDefaultHysteriaInboundSettings();
-    case 'http':        return createDefaultHttpInboundSettings();
-    case 'mixed':       return createDefaultMixedInboundSettings();
-    case 'tunnel':      return createDefaultTunnelInboundSettings();
-    case 'tun':         return createDefaultTunInboundSettings();
-    case 'wireguard':   return createDefaultWireguardInboundSettings();
-    case 'mtproto':     return createDefaultMtprotoInboundSettings();
-    case 'amneziawg':   return createDefaultAmneziawgInboundSettings();
-    default:            return null;
+    case 'vless':
+      return createDefaultVlessInboundSettings();
+    case 'vmess':
+      return createDefaultVmessInboundSettings();
+    case 'trojan':
+      return createDefaultTrojanInboundSettings();
+    case 'shadowsocks':
+      return createDefaultShadowsocksInboundSettings();
+    case 'hysteria':
+      return createDefaultHysteriaInboundSettings();
+    case 'http':
+      return createDefaultHttpInboundSettings();
+    case 'mixed':
+      return createDefaultMixedInboundSettings();
+    case 'tunnel':
+      return createDefaultTunnelInboundSettings();
+    case 'tun':
+      return createDefaultTunInboundSettings();
+    case 'wireguard':
+      return createDefaultWireguardInboundSettings();
+    case 'mtproto':
+      return createDefaultMtprotoInboundSettings();
+    case 'amneziawg':
+      return createDefaultAmneziawgInboundSettings();
+    default:
+      return null;
   }
 }

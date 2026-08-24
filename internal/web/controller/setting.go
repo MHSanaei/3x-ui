@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -131,10 +132,16 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	oldTgToken, _ := a.settingService.GetTgBotToken()
 	oldTgChatId, _ := a.settingService.GetTgBotChatId()
 	oldTgAPIServer, _ := a.settingService.GetTgBotAPIServer()
-	if twoFactorErr == nil && oldTwoFactor && !allSetting.TwoFactorEnable {
-		if err := a.settingService.VerifyTwoFactorCode(form.TwoFactorCode); err != nil {
-			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
-			return
+	if twoFactorErr == nil && oldTwoFactor {
+		// Rebinding the authenticator is the same class of change as turning 2FA
+		// off, so both need a current code. Blank still means "unchanged".
+		submittedToken := strings.TrimSpace(allSetting.TwoFactorToken)
+		storedToken, _ := a.settingService.GetTwoFactorToken()
+		if !allSetting.TwoFactorEnable || (submittedToken != "" && submittedToken != storedToken) {
+			if err := a.settingService.VerifyTwoFactorCode(form.TwoFactorCode); err != nil {
+				jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+				return
+			}
 		}
 	}
 	err := a.settingService.UpdateAllSetting(allSetting, service.SecretClears{

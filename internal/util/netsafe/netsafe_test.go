@@ -23,6 +23,19 @@ func TestIsBlockedIP(t *testing.T) {
 		{"8.8.8.8", false},
 		{"1.1.1.1", false},
 		{"2606:4700:4700::1111", false},
+		// IPv6 transition prefixes tunnel an arbitrary IPv4 destination that
+		// Go's net.IP predicates do not see through (GHSA-cfpf-wmjp-gh6c).
+		{"2002:7f00:0001::1", true},           // 6to4 -> 127.0.0.1
+		{"2002:a9fe:a9fe::1", true},           // 6to4 -> 169.254.169.254
+		{"64:ff9b::7f00:1", true},             // NAT64 well-known -> 127.0.0.1
+		{"64:ff9b::a9fe:a9fe", true},          // NAT64 well-known -> 169.254.169.254
+		{"64:ff9b:1::a9fe:a9fe", true},        // NAT64 local-use
+		{"2001:0:dead:beef::80ff:fffe", true}, // Teredo -> 127.0.0.1
+		{"100.64.0.1", true},                  // CGNAT
+		{"::ffff:100.64.0.1", true},           // CGNAT via 4-in-6
+		{"fec0::1", true},                     // site-local
+		{"64:ff9b::8.8.8.8", false},           // NAT64 to a public host stays reachable
+		{"2001:db8::1", false},                // documentation prefix is not Teredo
 	}
 	for _, c := range cases {
 		t.Run(c.ip, func(t *testing.T) {

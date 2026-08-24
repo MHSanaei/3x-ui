@@ -24,7 +24,7 @@ func TestOtherTunnelAllowedIPs(t *testing.T) {
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
-	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id, nil)
+	used, err := svc.otherTunnelAllowedIPs(database.GetDB(), inboundSvc, wgInbound.Id, nil)
 	if err != nil {
 		t.Fatalf("otherTunnelAllowedIPs: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestOtherTunnelAllowedIPsExcludesSelfEmail(t *testing.T) {
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
-	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id, map[string]struct{}{"shared@id": {}})
+	used, err := svc.otherTunnelAllowedIPs(database.GetDB(), inboundSvc, wgInbound.Id, map[string]struct{}{"shared@id": {}})
 	if err != nil {
 		t.Fatalf("otherTunnelAllowedIPs: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestOtherTunnelAllowedIPsEmptyWhenNoSiblings(t *testing.T) {
 
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
-	used, err := svc.otherTunnelAllowedIPs(inboundSvc, wgInbound.Id, nil)
+	used, err := svc.otherTunnelAllowedIPs(database.GetDB(), inboundSvc, wgInbound.Id, nil)
 	if err != nil {
 		t.Fatalf("otherTunnelAllowedIPs: %v", err)
 	}

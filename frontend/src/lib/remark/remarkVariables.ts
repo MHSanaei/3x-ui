@@ -45,19 +45,21 @@ export const REMARK_VARIABLES: RemarkVar[] = [
   { token: 'EXPIRE_UNIX', group: 'time', sample: '1788300000' },
   { token: 'CREATED_UNIX', group: 'time', sample: '1700000000' },
   { token: 'RESET_DAYS', group: 'time', sample: '30' },
+  { token: 'RESET_DAY', group: 'time', sample: '15' },
   // Connection (inbound config descriptors)
   { token: 'PROTOCOL', group: 'connection', sample: 'VLESS' },
   { token: 'TRANSPORT', group: 'connection', sample: 'ws' },
   { token: 'SECURITY', group: 'connection', sample: 'TLS' },
 ];
 
-export const SUBSCRIPTION_METADATA_VARIABLES: RemarkVar[] = REMARK_VARIABLES.filter((v) => (
-  v.token === 'EMAIL'
-  || v.token === 'ID'
-  || v.token === 'SHORT_ID'
-  || v.token === 'TELEGRAM_ID'
-  || v.token === 'SUB_ID'
-));
+export const SUBSCRIPTION_METADATA_VARIABLES: RemarkVar[] = REMARK_VARIABLES.filter(
+  (v) =>
+    v.token === 'EMAIL' ||
+    v.token === 'ID' ||
+    v.token === 'SHORT_ID' ||
+    v.token === 'TELEGRAM_ID' ||
+    v.token === 'SUB_ID',
+);
 
 const SAMPLE_BY_TOKEN: Record<string, string> = Object.fromEntries(
   REMARK_VARIABLES.map((v) => [v.token, v.sample]),
@@ -81,7 +83,11 @@ export function hasRemarkTokens(template: string): boolean {
  * tokens collapse to empty by default; metadata fields can keep unsupported
  * tokens literal because the backend does the same for backwards compatibility.
  */
-export function previewRemark(template: string, variables: RemarkVar[] = REMARK_VARIABLES, keepUnknown = false): string {
+export function previewRemark(
+  template: string,
+  variables: RemarkVar[] = REMARK_VARIABLES,
+  keepUnknown = false,
+): string {
   if (!hasRemarkTokens(template)) return template;
   const allowed = new Set(variables.map((v) => v.token));
   return template.replace(TOKEN_RE, (match, tok: string) => {

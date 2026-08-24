@@ -17,10 +17,19 @@ interface ClientBulkAdjustModalProps {
   open: boolean;
   count: number;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (addDays: number, addBytes: number, flow: string) => Promise<{ adjusted: number; skipped?: { email: string; reason: string }[] } | null>;
+  onSubmit: (
+    addDays: number,
+    addBytes: number,
+    flow: string,
+  ) => Promise<{ adjusted: number; skipped?: { email: string; reason: string }[] } | null>;
 }
 
-export default function ClientBulkAdjustModal({ open, count, onOpenChange, onSubmit }: ClientBulkAdjustModalProps) {
+export default function ClientBulkAdjustModal({
+  open,
+  count,
+  onOpenChange,
+  onSubmit,
+}: ClientBulkAdjustModalProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [submitting, setSubmitting] = useState(false);
@@ -53,9 +62,11 @@ export default function ClientBulkAdjustModal({ open, count, onOpenChange, onSub
         messageApi.success(t('pages.clients.toasts.bulkAdjusted', { count: ok }));
       } else {
         const firstReason = result.skipped?.[0]?.reason ?? '';
-        messageApi.warning(firstReason
-          ? `${t('pages.clients.toasts.bulkAdjustedMixed', { ok, skipped })} — ${firstReason}`
-          : t('pages.clients.toasts.bulkAdjustedMixed', { ok, skipped }));
+        messageApi.warning(
+          firstReason
+            ? `${t('pages.clients.toasts.bulkAdjustedMixed', { ok, skipped })} — ${firstReason}`
+            : t('pages.clients.toasts.bulkAdjustedMixed', { ok, skipped }),
+        );
       }
       onOpenChange(false);
     } finally {

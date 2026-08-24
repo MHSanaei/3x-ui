@@ -14,7 +14,9 @@ function hexToBytes(hex: string): Uint8Array {
 // profile, whose literal bytes are all ASCII) and leaves <tag N> markers
 // as-is, so the reconstructed string can be asserted against directly.
 function decodeChainAsText(chain: string): string {
-  return chain.replace(/<b 0x([0-9a-f]+)>/g, (_m, hex: string) => new TextDecoder().decode(hexToBytes(hex)));
+  return chain.replace(/<b 0x([0-9a-f]+)>/g, (_m, hex: string) =>
+    new TextDecoder().decode(hexToBytes(hex)),
+  );
 }
 
 function bBlockHexLengths(chain: string): number[] {
@@ -54,7 +56,11 @@ function isGreaseHex(hex4: string): boolean {
 // Returns the negotiated cipher count/first-cipher hex and the raw
 // extension tokens so each profile's own test can do its distinguishing
 // spot-checks (GREASE presence, extension order, exact cipher count).
-function expectValidClientHello(chain: string): { cipherCount: number; firstCipherHex: string; extTokens: ChainToken[] } {
+function expectValidClientHello(chain: string): {
+  cipherCount: number;
+  firstCipherHex: string;
+  extTokens: ChainToken[];
+} {
   const tokens = tokenize(chain);
 
   const record = tokens[0];
@@ -85,12 +91,25 @@ function expectValidClientHello(chain: string): { cipherCount: number; firstCiph
   const extTokens = tokens.slice(9);
   expect(parseInt(extLenPrefix.hex, 16)).toBe(sumByteLen(extTokens));
 
-  return { cipherCount: cipherDeclaredLen / 2, firstCipherHex: cipherBlock.hex.slice(4, 8), extTokens };
+  return {
+    cipherCount: cipherDeclaredLen / 2,
+    firstCipherHex: cipherBlock.hex.slice(4, 8),
+    extTokens,
+  };
 }
 
 describe('I1_PROFILE_CHOICES', () => {
   it('lists random plus the seven implemented profiles, random first', () => {
-    expect(I1_PROFILE_CHOICES).toEqual(['random', 'dns', 'quic', 'sip', 'stun', 'chrome', 'firefox', 'safari']);
+    expect(I1_PROFILE_CHOICES).toEqual([
+      'random',
+      'dns',
+      'quic',
+      'sip',
+      'stun',
+      'chrome',
+      'firefox',
+      'safari',
+    ]);
   });
 });
 
@@ -154,7 +173,7 @@ describe('genI1 — stun profile', () => {
     expect(blocks[0].endsWith('2112a442')).toBe(true); // magic cookie
   });
 
-  it("SOFTWARE attribute length is a multiple of 4 in [16, 32] and matches the <rc N> tag", async () => {
+  it('SOFTWARE attribute length is a multiple of 4 in [16, 32] and matches the <rc N> tag', async () => {
     const result = await genI1('stun', 'example.com');
     const rcMatch = result!.chain.match(/<rc (\d+)>$/);
     const softwareLen = Number(rcMatch![1]);
@@ -181,7 +200,9 @@ describe('genI1 — sip profile', () => {
     expect(text).toContain('@example.com>;tag=');
     expect(text).toContain('\r\nTo: <sip:example.com>\r\nCall-ID: ');
     expect(text).toContain('@example.com\r\nCSeq: ');
-    expect(text).toContain(' OPTIONS\r\nMax-Forwards: 70\r\nUser-Agent: PJSIP/2.13\r\nContent-Length: 0\r\n\r\n');
+    expect(text).toContain(
+      ' OPTIONS\r\nMax-Forwards: 70\r\nUser-Agent: PJSIP/2.13\r\nContent-Length: 0\r\n\r\n',
+    );
   });
 
   it('randomizes exactly the fields a real client would vary (Via branch, From tag, Call-ID, CSeq)', async () => {
@@ -325,7 +346,9 @@ describe('genI1 — safari profile', () => {
       if (t.kind === 'bytes') expect(t.hex.startsWith('0023')).toBe(false);
     }
     // signature_algorithms (type 13) carries rsa_pss_rsae_sha384 (0x0805) twice in a row.
-    const sigAlgBlock = extTokens.find((t) => t.kind === 'bytes' && t.hex.startsWith('000d')) as { hex: string } | undefined;
+    const sigAlgBlock = extTokens.find((t) => t.kind === 'bytes' && t.hex.startsWith('000d')) as
+      | { hex: string }
+      | undefined;
     expect(sigAlgBlock).toBeDefined();
     expect(sigAlgBlock!.hex).toContain('08050805'); // rsa_pss_rsae_sha384 (0x0805) back-to-back
   });

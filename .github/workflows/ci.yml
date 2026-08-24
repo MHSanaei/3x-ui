@@ -8,6 +8,7 @@ on:
       - "go.sum"
       - "frontend/**"
       - ".nvmrc"
+      - "Makefile"
       - ".github/workflows/**"
   push:
     branches:
@@ -18,6 +19,7 @@ on:
       - "go.sum"
       - "frontend/**"
       - ".nvmrc"
+      - "Makefile"
       - ".github/workflows/**"
 
 permissions:
@@ -55,6 +57,9 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      XUI_DB_TYPE: postgres
+      XUI_DB_DSN: "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=xui_durable sslmode=disable"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -66,9 +71,24 @@ jobs:
       - name: PostgreSQL durable-first tests
         run: |
           set -o pipefail
-          XUI_DB_TYPE=postgres XUI_DB_DSN="host=127.0.0.1 port=5432 user=postgres password=postgres dbname=xui_durable sslmode=disable" \
-            go test ./internal/web/service -run 'PostgresCommitFailure' -count=1 -v | tee /tmp/postgres-durable-first.log
-          if grep -q -- '--- SKIP' /tmp/postgres-durable-first.log; then
+          go test ./internal/web/service -run 'PostgresCommitFailure' -count=1 -v | tee /tmp/postgres-durable-first.log
+          # Count passes rather than assert no SKIP: a renamed or deleted test
+          # prints "no tests to run" and exits 0, leaving the step green for nothing.
+          passed=$(grep -c -- '--- PASS' /tmp/postgres-durable-first.log || true)
+          if [ "$passed" -lt 1 ]; then
+            echo "expected at least 1 passing durable-first test, got $passed" >&2
+            exit 1
+          fi
+
+      - name: PostgreSQL schema and migration tests
+        run: |
+          set -o pipefail
+          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
+          # Both must pass. Counting, not SKIP-matching: renaming either test would
+          # otherwise leave this step green while testing nothing.
+          passed=$(grep -c -- '--- PASS' /tmp/postgres-schema.log || true)
+          if [ "$passed" -lt 2 ]; then
+            echo "expected 2 passing PostgreSQL schema tests, got $passed" >&2
             exit 1
           fi
 
@@ -164,8 +184,14 @@ jobs:
       - name: Install
         run: npm ci
         working-directory: frontend
+      - name: Verify generated MSW worker is current
+        run: git diff --exit-code -- public/mockServiceWorker.js package-lock.json
+        working-directory: frontend
       - name: Lint
         run: npm run lint
+        working-directory: frontend
+      - name: Format check
+        run: npm run format:check
         working-directory: frontend
       - name: Typecheck
         run: npm run typecheck

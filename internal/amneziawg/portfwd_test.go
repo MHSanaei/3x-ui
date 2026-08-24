@@ -1,6 +1,7 @@
 package amneziawg
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -87,19 +88,15 @@ func TestExpandForwardedPortsCapAppliesAcrossMultipleSpecs(t *testing.T) {
 }
 
 func TestExceedsForwardedPortsCap(t *testing.T) {
-	// ExpandForwardedPorts alone can't distinguish "exactly at the cap" from
-	// "over it" -- it stops emitting the instant it hits MaxForwardedPorts,
-	// so its result's length never exceeds the cap either way.
-	exactlyAtCap := "1-100"
-	if ExceedsForwardedPortsCap(exactlyAtCap) {
-		t.Fatalf("ExceedsForwardedPortsCap(%q) = true, want false (spec lands exactly on the boundary)", exactlyAtCap)
+	atCap := fmt.Sprintf("1-%d", MaxForwardedPorts)
+	if ExceedsForwardedPortsCap(atCap) {
+		t.Fatalf("a spec covering exactly %d ports is AT the cap, not over it", MaxForwardedPorts)
 	}
-	oneOverCap := "1-101"
-	if !ExceedsForwardedPortsCap(oneOverCap) {
-		t.Fatalf("ExceedsForwardedPortsCap(%q) = false, want true", oneOverCap)
+	overCap := fmt.Sprintf("1-%d", MaxForwardedPorts+1)
+	if !ExceedsForwardedPortsCap(overCap) {
+		t.Fatalf("a spec covering %d ports must be reported as exceeding the cap", MaxForwardedPorts+1)
 	}
-	wellUnderCap := "80,443"
-	if ExceedsForwardedPortsCap(wellUnderCap) {
-		t.Fatalf("ExceedsForwardedPortsCap(%q) = true, want false", wellUnderCap)
+	if ExceedsForwardedPortsCap("1-10") {
+		t.Fatal("a small spec must not be reported as exceeding the cap")
 	}
 }

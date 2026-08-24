@@ -61,10 +61,22 @@ describe('effectiveAwgVersion', () => {
   // any position.
   it('promotes a legacy record with only a timer field set', () => {
     expect(effectiveAwgVersion('', '', '', '118-135', '', '', '', '')).toBe(AWG_VERSION_3);
-    expect(effectiveAwgVersion(undefined, undefined, undefined, undefined, undefined, undefined, '15-22')).toBe(AWG_VERSION_3);
+    expect(
+      effectiveAwgVersion(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        '15-22',
+      ),
+    ).toBe(AWG_VERSION_3);
   });
 
   it('never overrides an explicit awgVersion even with a timer field set', () => {
-    expect(effectiveAwgVersion(AWG_VERSION_2, '', '', '', '', '175-190', '', '')).toBe(AWG_VERSION_2);
+    expect(effectiveAwgVersion(AWG_VERSION_2, '', '', '', '', '175-190', '', '')).toBe(
+      AWG_VERSION_2,
+    );
   });
 });

@@ -152,6 +152,13 @@ func (s *InboundService) MergeInboundClientIps(incomingIps []model.InboundClient
 }
 
 func (s *InboundService) UpdateClientIPs(tx *gorm.DB, oldEmail string, newEmail string) error {
+	// The caller only renames onto a free identity, so a row already sitting on
+	// newEmail is stale tracking data — drop it instead of failing the edit.
+	if oldEmail != newEmail {
+		if err := tx.Where("client_email = ?", newEmail).Delete(model.InboundClientIps{}).Error; err != nil {
+			return err
+		}
+	}
 	return tx.Model(model.InboundClientIps{}).Where("client_email = ?", oldEmail).Update("client_email", newEmail).Error
 }
 
@@ -228,4 +235,40 @@ func (s *InboundService) ClearClientIps(clientEmail string) error {
 		return err
 	}
 	return nil
+}
+
+// PruneStaleClientIps enforces clientIpStaleAfterSeconds for rows the online
+// scan no longer rewrites: an offline client's addresses must still expire.
+func (s *InboundService) PruneStaleClientIps() error {
+	db := database.GetDB()
+	cutoff := time.Now().Unix() - clientIpStaleAfterSeconds
+
+	var rows []model.InboundClientIps
+	if err := db.Find(&rows).Error; err != nil {
+		return err
+	}
+	for _, row := range rows {
+		var entries []clientIpEntry
+		if row.Ips != "" {
+			// Legacy blobs without timestamps stay untouched; the next scan rewrites them.
+			if err := json.Unmarshal([]byte(row.Ips), &entries); err != nil {
+				continue
+			}
+		}
+		kept := mergeClientIpEntries(nil, entries, cutoff)
+		if len(kept) == 0 {
+			if err := db.Delete(&model.InboundClientIps{}, row.Id).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if len(kept) == len(entries) {
+			continue
+		}
+		b, _ := json.Marshal(kept)
+		if err := db.Model(&model.InboundClientIps{}).Where("id = ?", row.Id).Update("ips", string(b)).Error; err != nil {
+			return err
+		}
+	}
+	return pruneStaleNodeClientIps(cutoff)
 }

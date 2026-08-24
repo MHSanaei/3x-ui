@@ -1,3 +1,6 @@
+/* oxlint-disable react/set-state-in-effect -- fork code predating the oxlint migration: the
+   latest-ref idiom and effect-driven state here are deliberate and
+   VPS-verified. Revisit as a standalone refactor, not during a version sync. */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Badge, Modal, Table, Tag } from 'antd';
@@ -30,7 +33,11 @@ interface AwgDiagnosticsModalProps {
 // handshake/traffic status straight from the running amneziawg-go Device's
 // own UAPI dump. Fetched fresh every time the modal opens (no polling --
 // this is a point-in-time check, not a live dashboard).
-export default function AwgDiagnosticsModal({ open, onClose, inboundId }: AwgDiagnosticsModalProps) {
+export default function AwgDiagnosticsModal({
+  open,
+  onClose,
+  inboundId,
+}: AwgDiagnosticsModalProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [diag, setDiag] = useState<AwgDiagnostics | null>(null);
@@ -65,7 +72,12 @@ export default function AwgDiagnosticsModal({ open, onClose, inboundId }: AwgDia
       destroyOnHidden
     >
       {error && (
-        <Alert type="error" showIcon message={t('pages.xray.amneziawg.diagnosticsError')} style={{ marginBottom: 16 }} />
+        <Alert
+          type="error"
+          showIcon
+          message={t('pages.xray.amneziawg.diagnosticsError')}
+          style={{ marginBottom: 16 }}
+        />
       )}
       {!error && diag && !diag.running && (
         <Alert
@@ -97,8 +109,7 @@ export default function AwgDiagnosticsModal({ open, onClose, inboundId }: AwgDia
             dataIndex: 'connected',
             render: (connected: boolean) => (
               <Tag color={connected ? 'success' : 'default'}>
-                <Badge status={connected ? 'success' : 'default'} />
-                {' '}
+                <Badge status={connected ? 'success' : 'default'} />{' '}
                 {connected
                   ? t('pages.xray.amneziawg.diagnosticsConnected')
                   : t('pages.xray.amneziawg.diagnosticsNeverConnected')}

@@ -86,19 +86,12 @@ func wireguardAllocationBase(used []string, fallback string) string {
 const wireguardPoolFloorBits = 16
 
 // allocateWireguardAddress returns the first free single-host address in base
-// (suffixed /32 for an IPv4 base, /128 for IPv6) that is not already present
-// in used. The server holds the first host (.1 / ::1), so allocation starts
-// at the second host (.2 / ::2). When allowWidening is set and base is an
-// IPv4 prefix narrower than wireguardPoolFloorBits, falls back to a wider
-// /16 scope once the configured base is exhausted, so a small pool doesn't
-// hard-fail while a wider address space is genuinely available.
+// not already in used, starting at the second host (the server holds the first).
 //
-// allowWidening must be false for AmneziaWG: unlike plain WireGuard, an
-// AmneziaWG peer's address must fall inside the kernel interface's own
-// configured Address subnet to be routable at all, so silently handing out
-// an address from a wider scope would produce an address the interface can
-// never actually reach — better to fail loudly on pool exhaustion than hand
-// out a client config that will never connect.
+// allowWidening retries in the containing /16 once base's pool is exhausted.
+// True for Xray-native WireGuard, whose AllowedIPs aren't tied to a kernel
+// interface subnet; AmneziaWG must pass false and fail loudly instead, since an
+// address outside its interface's own Address would be silently unroutable.
 func allocateWireguardAddress(used []string, base string, allowWidening bool) (string, error) {
 	if base == "" {
 		base = defaultWireguardBase

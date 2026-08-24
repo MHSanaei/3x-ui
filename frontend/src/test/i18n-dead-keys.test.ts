@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /*
- * Guards the en-US/ru-RU translation set two ways: every key in en-US must be
+ * Guards the 13-locale translation set two ways: every key in en-US must be
  * referenced somewhere in the frontend or Go sources (dead keys accumulate
  * silently — this test deleted over two hundred of them when it was
  * introduced), and every locale must carry exactly the en-US key set
@@ -41,7 +41,8 @@ function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
 
 function collectSources(dir: string, exts: string[], out: string[]): void {
   for (const entry of readdirSync(dir)) {
-    if (['node_modules', 'dist', 'generated', '.git', '.local', 'storybook-static'].includes(entry)) continue;
+    if (['node_modules', 'dist', 'generated', '.git', '.local', 'storybook-static'].includes(entry))
+      continue;
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       collectSources(full, exts, out);
@@ -63,7 +64,9 @@ describe('i18n keys', () => {
   const tokens = new Set(blob.match(/[A-Za-z][A-Za-z0-9_.]*/g) ?? []);
 
   const prefixes: string[] = [];
-  for (const match of blob.matchAll(/['"`]([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+\.?)['"`]\s*\+/g)) {
+  for (const match of blob.matchAll(
+    /['"`]([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+\.?)['"`]\s*\+/g,
+  )) {
     prefixes.push(match[1]);
   }
   for (const match of blob.matchAll(/[`']([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+\.?)\$\{/g)) {
@@ -74,14 +77,18 @@ describe('i18n keys', () => {
     const dead = enKeys.filter(
       (key) => !tokens.has(key) && !prefixes.some((p) => key.startsWith(p)),
     );
-    expect(dead, `dead i18n keys (delete from both locales):\n  ${dead.join('\n  ')}`).toEqual([]);
+    expect(dead, `dead i18n keys (delete from all 13 locales):\n  ${dead.join('\n  ')}`).toEqual(
+      [],
+    );
   });
 
   it('every locale carries exactly the en-US key set', () => {
     const enSet = new Set(enKeys);
     for (const file of readdirSync(translationDir)) {
       if (!file.endsWith('.json') || file === 'en-US.json') continue;
-      const keys = new Set(flattenKeys(JSON.parse(readFileSync(join(translationDir, file), 'utf8'))));
+      const keys = new Set(
+        flattenKeys(JSON.parse(readFileSync(join(translationDir, file), 'utf8'))),
+      );
       const missing = enKeys.filter((k) => !keys.has(k));
       const orphans = [...keys].filter((k) => !enSet.has(k));
       expect(missing, `${file} is missing keys:\n  ${missing.join('\n  ')}`).toEqual([]);

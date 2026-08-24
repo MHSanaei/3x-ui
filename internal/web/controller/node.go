@@ -325,7 +325,10 @@ func (a *NodeController) probe(c *gin.Context) {
 	} else {
 		patch.Status = "online"
 	}
-	_ = a.nodeService.UpdateHeartbeat(id, patch)
+	if err := a.nodeService.UpdateHeartbeat(id, patch); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.nodes.toasts.test"), err)
+		return
+	}
 	jsonObj(c, patch.ToUI(probeErr == nil), nil)
 }
 

@@ -66,38 +66,44 @@ export default function BasicsTab({
   );
 
   const setLevel0 = useCallback(
-    (field: string, value: number | null) => mutate((tt) => {
-      if (!tt.policy) tt.policy = {};
-      if (!tt.policy.levels) tt.policy.levels = {};
-      if (!tt.policy.levels['0']) tt.policy.levels['0'] = {};
-      if (value === null || value === undefined) {
-        delete tt.policy.levels['0'][field];
-      } else {
-        tt.policy.levels['0'][field] = value;
-      }
-    }),
+    (field: string, value: number | null) =>
+      mutate((tt) => {
+        if (!tt.policy) tt.policy = {};
+        if (!tt.policy.levels) tt.policy.levels = {};
+        if (!tt.policy.levels['0']) tt.policy.levels['0'] = {};
+        if (value === null || value === undefined) {
+          delete tt.policy.levels['0'][field];
+        } else {
+          tt.policy.levels['0'][field] = value;
+        }
+      }),
     [mutate],
   );
 
-  const metricsCfg = (templateSettings as { metrics?: { tag?: string; listen?: string } } | null)?.metrics;
+  const metricsCfg = (templateSettings as { metrics?: { tag?: string; listen?: string } } | null)
+    ?.metrics;
 
   const setMetrics = useCallback(
-    (field: 'tag' | 'listen', value: string) => mutate((tt) => {
-      const node = tt as { metrics?: { tag?: string; listen?: string }; stats?: Record<string, unknown> };
-      const m: { tag?: string; listen?: string } = { ...(node.metrics ?? {}) };
-      if (value.trim() === '') {
-        delete m[field];
-      } else {
-        m[field] = value.trim();
-      }
-      if (!m.listen && !m.tag) {
-        delete node.metrics;
-      } else {
-        node.metrics = m;
-        // xray-core's metrics handler needs a stats object to populate.
-        if (!node.stats) node.stats = {};
-      }
-    }),
+    (field: 'tag' | 'listen', value: string) =>
+      mutate((tt) => {
+        const node = tt as {
+          metrics?: { tag?: string; listen?: string };
+          stats?: Record<string, unknown>;
+        };
+        const m: { tag?: string; listen?: string } = { ...(node.metrics ?? {}) };
+        if (value.trim() === '') {
+          delete m[field];
+        } else {
+          m[field] = value.trim();
+        }
+        if (!m.listen && !m.tag) {
+          delete node.metrics;
+        } else {
+          node.metrics = m;
+          // xray-core's metrics handler needs a stats object to populate.
+          if (!node.stats) node.stats = {};
+        }
+      }),
     [mutate],
   );
 
@@ -112,16 +118,18 @@ export default function BasicsTab({
   }
 
   const freedomStrategy =
-    (templateSettings?.outbounds?.find((o) => o?.protocol === 'freedom' && o?.tag === 'direct')?.settings as
-      | { domainStrategy?: string }
-      | undefined)?.domainStrategy ?? 'AsIs';
+    (
+      templateSettings?.outbounds?.find((o) => o?.protocol === 'freedom' && o?.tag === 'direct')
+        ?.settings as { domainStrategy?: string } | undefined
+    )?.domainStrategy ?? 'AsIs';
 
   const directFreedomOutbound = templateSettings?.outbounds?.find(
     (o) => o?.protocol === 'freedom' && o?.tag === 'direct',
   );
   const directHappyEyeballs = (() => {
-    const sockopt = (directFreedomOutbound?.streamSettings as { sockopt?: { happyEyeballs?: unknown } } | undefined)
-      ?.sockopt;
+    const sockopt = (
+      directFreedomOutbound?.streamSettings as { sockopt?: { happyEyeballs?: unknown } } | undefined
+    )?.sockopt;
     const raw = sockopt?.happyEyeballs;
     if (raw == null || typeof raw !== 'object') return null;
     const parsed = HappyEyeballsSchema.safeParse(raw);
@@ -186,17 +194,25 @@ export default function BasicsTab({
                 value={freedomStrategy}
                 style={{ width: '100%' }}
                 options={OutboundDomainStrategies.map((s) => ({ value: s, label: s }))}
-                onChange={(next) => mutate((tt) => {
-                  if (!tt.outbounds) tt.outbounds = [];
-                  const idx = tt.outbounds.findIndex((o) => o?.protocol === 'freedom' && o?.tag === 'direct');
-                  if (idx < 0) {
-                    tt.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: { domainStrategy: next } });
-                  } else {
-                    const ob = tt.outbounds[idx];
-                    ob.settings = (ob.settings || {}) as Record<string, unknown>;
-                    (ob.settings as Record<string, unknown>).domainStrategy = next;
-                  }
-                })}
+                onChange={(next) =>
+                  mutate((tt) => {
+                    if (!tt.outbounds) tt.outbounds = [];
+                    const idx = tt.outbounds.findIndex(
+                      (o) => o?.protocol === 'freedom' && o?.tag === 'direct',
+                    );
+                    if (idx < 0) {
+                      tt.outbounds.push({
+                        protocol: 'freedom',
+                        tag: 'direct',
+                        settings: { domainStrategy: next },
+                      });
+                    } else {
+                      const ob = tt.outbounds[idx];
+                      ob.settings = (ob.settings || {}) as Record<string, unknown>;
+                      (ob.settings as Record<string, unknown>).domainStrategy = next;
+                    }
+                  })
+                }
               />
             }
           />
@@ -225,10 +241,12 @@ export default function BasicsTab({
                     style={{ width: '100%' }}
                     value={directHappyEyeballs.tryDelayMs}
                     placeholder="150"
-                    onChange={onNumber((v) => setDirectHappyEyeballs({
-                      ...directHappyEyeballs,
-                      tryDelayMs: v,
-                    }))}
+                    onChange={onNumber((v) =>
+                      setDirectHappyEyeballs({
+                        ...directHappyEyeballs,
+                        tryDelayMs: v,
+                      }),
+                    )}
                   />
                 }
               />
@@ -238,10 +256,12 @@ export default function BasicsTab({
                 control={
                   <Switch
                     checked={directHappyEyeballs.prioritizeIPv6}
-                    onChange={(checked) => setDirectHappyEyeballs({
-                      ...directHappyEyeballs,
-                      prioritizeIPv6: checked,
-                    })}
+                    onChange={(checked) =>
+                      setDirectHappyEyeballs({
+                        ...directHappyEyeballs,
+                        prioritizeIPv6: checked,
+                      })
+                    }
                   />
                 }
               />
@@ -256,9 +276,11 @@ export default function BasicsTab({
                 value={routingStrategy}
                 style={{ width: '100%' }}
                 options={ROUTING_DOMAIN_STRATEGIES.map((s) => ({ value: s, label: s }))}
-                onChange={(next) => mutate((tt) => {
-                  if (tt.routing) tt.routing.domainStrategy = next;
-                })}
+                onChange={(next) =>
+                  mutate((tt) => {
+                    if (tt.routing) tt.routing.domainStrategy = next;
+                  })
+                }
               />
             }
           />
@@ -319,11 +341,13 @@ export default function BasicsTab({
               control={
                 <Switch
                   checked={!!policy[field]}
-                  onChange={(checked) => mutate((tt) => {
-                    if (!tt.policy) tt.policy = {};
-                    if (!tt.policy.system) tt.policy.system = {};
-                    tt.policy.system[field] = checked;
-                  })}
+                  onChange={(checked) =>
+                    mutate((tt) => {
+                      if (!tt.policy) tt.policy = {};
+                      if (!tt.policy.system) tt.policy.system = {};
+                      tt.policy.system[field] = checked;
+                    })
+                  }
                 />
               }
             />
@@ -418,7 +442,11 @@ export default function BasicsTab({
                 value={(log.loglevel as string) || 'warning'}
                 style={{ width: '100%' }}
                 options={LOG_LEVELS.map((s) => ({ value: s, label: s }))}
-                onChange={(v) => mutate((tt) => { if (tt.log) tt.log.loglevel = v; })}
+                onChange={(v) =>
+                  mutate((tt) => {
+                    if (tt.log) tt.log.loglevel = v;
+                  })
+                }
               />
             }
           />
@@ -431,7 +459,11 @@ export default function BasicsTab({
                 value={(log.access as string) || ''}
                 style={{ width: '100%' }}
                 options={ACCESS_LOG.map((s) => ({ value: s, label: s }))}
-                onChange={(v) => mutate((tt) => { if (tt.log) tt.log.access = v; })}
+                onChange={(v) =>
+                  mutate((tt) => {
+                    if (tt.log) tt.log.access = v;
+                  })
+                }
               />
             }
           />
@@ -443,8 +475,15 @@ export default function BasicsTab({
               <Select
                 value={(log.error as string) || ''}
                 style={{ width: '100%' }}
-                options={[{ value: '', label: t('empty') }, ...ERROR_LOG.map((s) => ({ value: s, label: s }))]}
-                onChange={(v) => mutate((tt) => { if (tt.log) tt.log.error = v; })}
+                options={[
+                  { value: '', label: t('empty') },
+                  ...ERROR_LOG.map((s) => ({ value: s, label: s })),
+                ]}
+                onChange={(v) =>
+                  mutate((tt) => {
+                    if (tt.log) tt.log.error = v;
+                  })
+                }
               />
             }
           />
@@ -456,8 +495,15 @@ export default function BasicsTab({
               <Select
                 value={(log.maskAddress as string) || ''}
                 style={{ width: '100%' }}
-                options={[{ value: '', label: t('empty') }, ...MASK_ADDRESS.map((s) => ({ value: s, label: s }))]}
-                onChange={(v) => mutate((tt) => { if (tt.log) tt.log.maskAddress = v; })}
+                options={[
+                  { value: '', label: t('empty') },
+                  ...MASK_ADDRESS.map((s) => ({ value: s, label: s })),
+                ]}
+                onChange={(v) =>
+                  mutate((tt) => {
+                    if (tt.log) tt.log.maskAddress = v;
+                  })
+                }
               />
             }
           />
@@ -468,7 +514,11 @@ export default function BasicsTab({
             control={
               <Switch
                 checked={!!log.dnsLog}
-                onChange={(v) => mutate((tt) => { if (tt.log) tt.log.dnsLog = v; })}
+                onChange={(v) =>
+                  mutate((tt) => {
+                    if (tt.log) tt.log.dnsLog = v;
+                  })
+                }
               />
             }
           />

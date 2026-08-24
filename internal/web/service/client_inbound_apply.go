@@ -42,7 +42,7 @@ func advancePushedInbound(rt runtime.Runtime, prevSettings string, ib *model.Inb
 }
 
 // delInboundClients removes several clients from a single inbound in one pass:
-// one settings rewrite, one runtime sweep, one Save and one SyncInbound for the
+// one settings rewrite, one runtime sweep, one Save and one link delta for the
 // whole batch, instead of repeating the full per-client cycle. It mirrors the
 // semantics of DelInboundClientByEmail for each removed client. needRestart is
 // the OR across all removals.
@@ -177,11 +177,13 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 		if e := tx.Save(oldInbound).Error; e != nil {
 			return e
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
+		detached := make([]string, 0, len(targets))
+		for _, t := range targets {
+			if t.email != "" {
+				detached = append(detached, t.email)
+			}
 		}
-		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, inboundId, nil, detached); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -239,31 +241,18 @@ func (s *ClientService) delInboundClients(inboundSvc *InboundService, inboundId 
 	return needRestart, nil
 }
 
-// otherTunnelAllowedIPs collects every AllowedIPs entry already claimed by a
-// WireGuard/AmneziaWG client on any OTHER enabled inbound of either protocol
-// on this panel, mapped to a short human-readable description of which
-// inbound holds it. defaultWireguardClients/defaultAmneziaWGClients only
-// ever check uniqueness against their OWN inbound's client list, so two
-// inbounds (whether the same protocol or not) that happen to share a subnet
-// could otherwise silently hand out or accept the same address — this is
-// the cross-inbound half of that guarantee.
-// Deliberately not filtered by enable: a disabled sibling inbound's
-// addresses stay reserved so re-enabling it later can't collide with
-// something handed out in the meantime.
+// otherTunnelAllowedIPs maps every AllowedIPs entry claimed on another
+// WireGuard/AmneziaWG inbound to a description of which one holds it: the
+// per-inbound defaulters only check their own client list, so two inbounds
+// sharing a subnet could otherwise hand out the same address. Disabled
+// siblings count too, keeping their addresses reserved for a later re-enable.
 //
-// selfEmails excludes a sibling inbound's entry from being treated as a
-// collision when it belongs to one of these emails — the identity currently
-// being added/attached, not some other client. Since ClientRecord.Email is
-// globally unique, a match here can only ever be this same identity's own
-// entry on another inbound, never a genuine different-client collision.
-// This matters for Attach: it deliberately gives one identity the same
-// AllowedIPs on every inbound it's attached to (ClientService.Attach copies
-// the ClientRecord's stored address into each inbound it processes), so
-// attaching the same email to a second inbound right after the first must
-// not see the first inbound's now-fresh copy of its own address as taken.
-func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, excludeID int, selfEmails map[string]struct{}) (map[string]string, error) {
+// selfEmails skips this identity's own entries. Email is globally unique, so a
+// match there is never a real collision -- and Attach deliberately reuses one
+// address across every inbound it attaches the identity to.
+func (s *ClientService) otherTunnelAllowedIPs(db *gorm.DB, inboundSvc *InboundService, excludeID int, selfEmails map[string]struct{}) (map[string]string, error) {
 	var inbounds []*model.Inbound
-	err := database.GetDB().Model(model.Inbound{}).
+	err := db.Model(model.Inbound{}).
 		Where("protocol IN ? AND id != ?", []model.Protocol{model.WireGuard, model.AmneziaWG}, excludeID).
 		Find(&inbounds).Error
 	if err != nil {
@@ -292,13 +281,10 @@ func (s *ClientService) otherTunnelAllowedIPs(inboundSvc *InboundService, exclud
 	return used, nil
 }
 
-func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, clients []model.Client, emailSubIDs map[string]string) (string, error) {
-	if emailSubIDs == nil {
-		var err error
-		emailSubIDs, err = inboundSvc.getAllEmailSubIDs()
-		if err != nil {
-			return "", err
-		}
+func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, clients []model.Client) (string, error) {
+	emailSubIDs, err := inboundSvc.emailSubIDsForClients(clients)
+	if err != nil {
+		return "", err
 	}
 	seen := make(map[string]string, len(clients))
 	for _, client := range clients {
@@ -323,14 +309,6 @@ func (s *ClientService) checkEmailsExistForClients(inboundSvc *InboundService, c
 }
 
 func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model.Inbound) (bool, error) {
-	return s.addInboundClient(inboundSvc, data, nil)
-}
-
-// addInboundClient is AddInboundClient with an optional precomputed email→subId
-// map. Bulk callers pass a single snapshot so the global getAllEmailSubIDs scan
-// runs once for the whole batch instead of once per target inbound; a nil map
-// makes it compute its own (the single-add path).
-func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model.Inbound, emailSubIDs map[string]string) (bool, error) {
 	defer lockInbound(data.Id).Unlock()
 
 	clients, err := inboundSvc.GetClients(data)
@@ -359,7 +337,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			interfaceClients[i] = cm
 		}
 	}
-	existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients, emailSubIDs)
+	existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients)
 	if err != nil {
 		return false, err
 	}
@@ -410,14 +388,15 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		interfaceClients = keptWire
 	}
 
+	var selfEmails map[string]struct{}
 	if oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG {
-		selfEmails := make(map[string]struct{}, len(clients))
+		selfEmails = make(map[string]struct{}, len(clients))
 		for _, c := range clients {
 			if c.Email != "" {
 				selfEmails[strings.ToLower(c.Email)] = struct{}{}
 			}
 		}
-		crossUsed, cErr := s.otherTunnelAllowedIPs(inboundSvc, oldInbound.Id, selfEmails)
+		crossUsed, cErr := s.otherTunnelAllowedIPs(database.GetDB(), inboundSvc, oldInbound.Id, selfEmails)
 		if cErr != nil {
 			return false, cErr
 		}
@@ -435,7 +414,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 
 	var portCtx portConflictContext
 	if oldInbound.Protocol == model.AmneziaWG {
-		portCtx, err = inboundSvc.loadPortConflictContext()
+		portCtx, err = inboundSvc.loadPortConflictContext(database.GetDB())
 		if err != nil {
 			return false, err
 		}
@@ -457,7 +436,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 			if client.Auth == "" {
 				return false, common.NewError("empty client ID")
 			}
-		case "wireguard":
+		case "wireguard", "amneziawg":
 			if client.PublicKey == "" {
 				return false, common.NewError("wireguard client requires a key")
 			}
@@ -508,6 +487,13 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	prevSettings := oldInbound.Settings
 	oldInbound.Settings = string(newSettings)
 
+	// From the stamped wire entries, not from clients: created_at / updated_at /
+	// subId are written onto interfaceClients above, after clients was parsed.
+	addedClients, err := settingsEntriesToClients(interfaceClients)
+	if err != nil {
+		return false, err
+	}
+
 	needRestart := false
 
 	rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
@@ -518,6 +504,34 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 	// Persist client stats + inbound atomically, serialized against the traffic
 	// poll to avoid the cross-transaction lock-order deadlock (runSerializedTx).
 	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		// lockInbound is per-inbound, so the pre-tx cross-inbound checks race
+		// concurrent writers on other inbounds — re-run them in here (#6225).
+		if oldInbound.Protocol == model.WireGuard || oldInbound.Protocol == model.AmneziaWG {
+			crossUsed, cErr := s.otherTunnelAllowedIPs(tx, inboundSvc, oldInbound.Id, selfEmails)
+			if cErr != nil {
+				return cErr
+			}
+			crossAddrs := make([]string, 0, len(crossUsed))
+			for addr := range crossUsed {
+				crossAddrs = append(crossAddrs, addr)
+			}
+			for i := range clients {
+				if hit := wireguardAllowedIPsCollision(clients[i].AllowedIPs, crossAddrs); hit != "" {
+					return common.NewError("allowedIPs entry", hit, "is already used by a client on", crossUsed[hit])
+				}
+			}
+		}
+		if oldInbound.Protocol == model.AmneziaWG {
+			txPortCtx, pErr := inboundSvc.loadPortConflictContext(tx)
+			if pErr != nil {
+				return pErr
+			}
+			for i := range clients {
+				if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[i].ForwardedPorts); hit != "" {
+					return common.NewError("amneziawg: forwardedPorts collides with", hit)
+				}
+			}
+		}
 		for i := range clients {
 			if len(clients[i].Email) == 0 {
 				continue
@@ -529,11 +543,7 @@ func (s *ClientService) addInboundClient(inboundSvc *InboundService, data *model
 		if e := tx.Save(oldInbound).Error; e != nil {
 			return e
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, oldInbound.Id, addedClients, nil); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -644,7 +654,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		newClientId = clients[0].Email
 	case "hysteria":
 		newClientId = clients[0].Auth
-	case "wireguard":
+	case "wireguard", "amneziawg":
 		newClientId = clients[0].Email
 	case "amneziawg":
 		newClientId = clients[0].Email
@@ -677,7 +687,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 
 	if clients[0].Email != oldEmail {
-		existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients, nil)
+		existEmail, err := s.checkEmailsExistForClients(inboundSvc, clients)
 		if err != nil {
 			return false, err
 		}
@@ -736,7 +746,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		}
 	}
 	if oldInbound.Protocol == model.AmneziaWG {
-		portCtx, err := inboundSvc.loadPortConflictContext()
+		portCtx, err := inboundSvc.loadPortConflictContext(database.GetDB())
 		if err != nil {
 			return false, err
 		}
@@ -841,6 +851,17 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	prevSettings := oldInbound.Settings
 	oldInbound.Settings = string(newSettings)
 
+	// From the stamped wire entry, not from clients[0]: created_at, the
+	// preserved subId and the WireGuard carry-forward land on interfaceClients.
+	changedClients, err := settingsEntriesToClients(interfaceClients[:1])
+	if err != nil {
+		return false, err
+	}
+	var detachEmails []string
+	if len(oldEmail) > 0 && oldEmail != clients[0].Email {
+		detachEmails = []string{oldEmail}
+	}
+
 	needRestart := false
 
 	// Resolve the push plan before the DB write so a node-state lookup failure
@@ -859,6 +880,17 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	// Persist client stats + inbound atomically, serialized against the traffic
 	// poll to avoid the cross-transaction lock-order deadlock (runSerializedTx).
 	if txErr := runSerializedTx(func(tx *gorm.DB) error {
+		// Same re-check-inside-the-writer rule as AddInboundClient (#6225):
+		// the pre-tx pass can race a concurrent writer on another inbound.
+		if oldInbound.Protocol == model.AmneziaWG {
+			txPortCtx, pErr := inboundSvc.loadPortConflictContext(tx)
+			if pErr != nil {
+				return pErr
+			}
+			if hit := inboundSvc.checkForwardedPortsConflict(txPortCtx, clients[0].ForwardedPorts); hit != "" {
+				return common.NewError("amneziawg: forwardedPorts collides with", hit)
+			}
+		}
 		if len(clients[0].Email) > 0 {
 			if len(oldEmail) > 0 {
 				emailUnchanged := strings.EqualFold(oldEmail, clients[0].Email)
@@ -930,11 +962,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				}
 			}
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, oldInbound.Id, finalClients); err != nil {
+		// detachEmails covers the rename the guard above refused: the old record
+		// keeps this inbound's link otherwise, which the full sync used to drop.
+		if err := s.ApplyInboundClientDelta(tx, oldInbound.Id, changedClients, detachEmails); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {
@@ -1110,11 +1140,7 @@ func (s *ClientService) DelInboundClientByEmail(inboundSvc *InboundService, inbo
 		if e := tx.Save(oldInbound).Error; e != nil {
 			return e
 		}
-		finalClients, gcErr := inboundSvc.GetClients(oldInbound)
-		if gcErr != nil {
-			return gcErr
-		}
-		if err := s.SyncInbound(tx, inboundId, finalClients); err != nil {
+		if err := s.ApplyInboundClientDelta(tx, inboundId, nil, []string{email}); err != nil {
 			return err
 		}
 		if oldInbound.NodeID != nil {

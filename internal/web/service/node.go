@@ -794,6 +794,9 @@ func FilterNodeSnapshot(n *model.Node, snap *runtime.TrafficSnapshot) {
 		return
 	}
 	allowed := nodeSelectedTagSet(n)
+	for _, tag := range snap.ManagedAliases {
+		allowed[tag] = struct{}{}
+	}
 	filtered := make([]*model.Inbound, 0, len(snap.Inbounds))
 	for _, inbound := range snap.Inbounds {
 		if inbound == nil {

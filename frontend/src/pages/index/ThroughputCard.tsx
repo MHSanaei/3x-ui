@@ -16,7 +16,13 @@ interface ThroughputCardProps {
   isMobile: boolean;
 }
 
-export default function ThroughputCard({ status, up, down, labels, isMobile }: ThroughputCardProps) {
+export default function ThroughputCard({
+  status,
+  up,
+  down,
+  labels,
+  isMobile,
+}: ThroughputCardProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const accent = token.colorPrimary;

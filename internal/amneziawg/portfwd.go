@@ -109,18 +109,18 @@ func ExpandForwardedPorts(forwardedPorts string) []int {
 	return expandForwardedPorts(forwardedPorts, MaxForwardedPorts)
 }
 
-// ExceedsForwardedPortsCap reports whether forwardedPorts expands to more
-// than MaxForwardedPorts unique ports. Expanding to MaxForwardedPorts+1 (one
-// past the cap) rather than reusing ExpandForwardedPorts's own
-// cap-truncated result is what actually distinguishes "exactly at the cap"
-// from "over it" -- ExpandForwardedPorts stops emitting the instant it hits
-// MaxForwardedPorts, so its result's length can never exceed the cap and a
-// len(...) >= MaxForwardedPorts check would wrongly reject a spec that
-// lands exactly on the boundary.
+// ExceedsForwardedPortsCap reports whether forwardedPorts covers strictly
+// more than MaxForwardedPorts unique ports -- unlike comparing
+// len(ExpandForwardedPorts(...)) to the cap, which can never tell "exactly
+// at the cap" apart from "over it" since that expansion already truncates
+// there.
 func ExceedsForwardedPortsCap(forwardedPorts string) bool {
 	return len(expandForwardedPorts(forwardedPorts, MaxForwardedPorts+1)) > MaxForwardedPorts
 }
 
+// expandForwardedPorts is ExpandForwardedPorts with an explicit stop-count,
+// so ExceedsForwardedPortsCap can probe one past the real cap without
+// expanding an arbitrarily large legacy spec in full.
 func expandForwardedPorts(forwardedPorts string, limit int) []int {
 	seen := make(map[int]struct{}, limit)
 	ports := make([]int, 0, limit)

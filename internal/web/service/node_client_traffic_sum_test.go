@@ -35,7 +35,7 @@ func createNodeInbound(t *testing.T, db *gorm.DB, nodeID int, tag string, port i
 }
 
 // createNodeInboundWithClient mirrors createNodeInbound but stores the client
-// in the settings JSON so emailUsedByOtherInbounds can see the attachment.
+// in the settings JSON, which the node sync turns into a client_inbounds link.
 func createNodeInboundWithClient(t *testing.T, db *gorm.DB, nodeID int, tag string, port int, email string) {
 	t.Helper()
 	nid := nodeID
@@ -51,7 +51,7 @@ func syncNode(t *testing.T, svc *InboundService, nodeID int, tag string, stats .
 	snap := &runtime.TrafficSnapshot{
 		Inbounds: []*model.Inbound{{Tag: tag, ClientStats: stats}},
 	}
-	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked node %d: %v", nodeID, err)
 	}
 }
@@ -65,7 +65,7 @@ func syncNodeWithSettings(t *testing.T, svc *InboundService, nodeID int, tag, se
 	snap := &runtime.TrafficSnapshot{
 		Inbounds: []*model.Inbound{{Tag: tag, Settings: settings, ClientStats: stats}},
 	}
-	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked node %d: %v", nodeID, err)
 	}
 }
@@ -344,7 +344,7 @@ func TestInboundRemoval_KeepsSharedEmailRow(t *testing.T) {
 	// vanishes from the snapshot. The shared accumulator must survive — losing
 	// it would let the next node sync re-seed the row with that node's counter
 	// alone, showing only the last panel's number instead of the sum.
-	if _, err := svc.setRemoteTrafficLocked(1, &runtime.TrafficSnapshot{}, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(1, &runtime.TrafficSnapshot{}, false, false); err != nil {
 		t.Fatalf("sync node 1 with empty snapshot: %v", err)
 	}
 	assertUpDown(t, readTraffic(t, db, email), 110, 110, "after node 1 inbound removal")
@@ -406,7 +406,7 @@ func TestStatsUnderSiblingInbound_KeepsNodeBaseline(t *testing.T) {
 			{Tag: "n1-a", Settings: settings, ClientStats: []xray.ClientTraffic{{Email: email, Up: up, Down: down, Enable: true}}},
 			{Tag: "n1-b", Settings: `{"clients": []}`},
 		}}
-		if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+		if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
 	}
@@ -451,7 +451,7 @@ func TestMultiAttach_SameNode_DivergentSiblings(t *testing.T) {
 			{Tag: "n1-b", Settings: settings, ClientStats: []xray.ClientTraffic{{Email: email, Up: b, Down: b, Enable: true}}},
 			{Tag: "n1-c", Settings: settings, ClientStats: []xray.ClientTraffic{{Email: email, Up: c, Down: c, Enable: true}}},
 		}}
-		if _, err := svc.setRemoteTrafficLocked(1, snap, false); err != nil {
+		if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
 			t.Fatalf("sync: %v", err)
 		}
 	}

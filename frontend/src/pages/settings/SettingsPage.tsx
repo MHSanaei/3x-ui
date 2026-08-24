@@ -29,6 +29,7 @@ import TelegramTab from './TelegramTab';
 import EmailTab from './EmailTab';
 import SubscriptionGeneralTab from './SubscriptionGeneralTab';
 import SubscriptionFormatsTab from './SubscriptionFormatsTab';
+import SubscriptionBalancersTab from './SubscriptionBalancersTab';
 import FrontProxyTab from './FrontProxyTab';
 import './SettingsPage.css';
 
@@ -36,7 +37,16 @@ interface ApiMsg {
   success?: boolean;
 }
 
-const tabSlugs = ['general', 'security', 'telegram', 'email', 'subscription', 'subscription-formats', 'frontproxy'];
+const tabSlugs = [
+  'general',
+  'security',
+  'telegram',
+  'email',
+  'subscription',
+  'subscription-formats',
+  'subscription-balancers',
+  'frontproxy',
+];
 
 function isIp(h: string): boolean {
   if (typeof h !== 'string') return false;
@@ -80,18 +90,9 @@ export default function SettingsPage() {
     savePayload,
   } = useAllSettings();
 
-  const [entryHost, setEntryHost] = useState('');
-  const [entryPort, setEntryPort] = useState('');
-  const [entryIsIP, setEntryIsIP] = useState(false);
-
-  useEffect(() => {
-     
-    const host = window.location.hostname;
-    setEntryHost(host);
-    setEntryPort(window.location.port);
-    setEntryIsIP(isIp(host));
-     
-  }, []);
+  const [entryHost] = useState(() => window.location.hostname);
+  const [entryPort] = useState(() => window.location.port);
+  const [entryIsIP] = useState(() => isIp(window.location.hostname));
 
   const [alertVisible, setAlertVisible] = useState(true);
   const location = useLocation();
@@ -100,7 +101,7 @@ export default function SettingsPage() {
 
   function rebuildUrlAfterRestart(): string {
     const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = allSetting;
-    const newProtocol = (webCertFile || webKeyFile) ? 'https:' : 'http:';
+    const newProtocol = webCertFile || webKeyFile ? 'https:' : 'http:';
 
     let base = webBasePath ? webBasePath.replace(/^\//, '') : '';
     if (base && !base.endsWith('/')) base += '/';
@@ -145,7 +146,7 @@ export default function SettingsPage() {
       onOk: async () => {
         setSpinning(true);
         try {
-          const msg = await HttpUtil.post('/panel/api/setting/restartPanel') as ApiMsg;
+          const msg = (await HttpUtil.post('/panel/api/setting/restartPanel')) as ApiMsg;
           if (!msg?.success) return;
           await PromiseUtil.sleep(5000);
           window.location.replace(rebuildUrlAfterRestart());
@@ -171,7 +172,11 @@ export default function SettingsPage() {
     if (allSetting.subEnable) {
       let subPath = allSetting.subPath;
       if (allSetting.subURI) {
-        try { subPath = new URL(allSetting.subURI).pathname; } catch { /* noop */ }
+        try {
+          subPath = new URL(allSetting.subURI).pathname;
+        } catch {
+          /* noop */
+        }
       }
       if (subPath === '/sub/') {
         out.push(t('pages.settings.warnDefaultSubPath'));
@@ -180,7 +185,11 @@ export default function SettingsPage() {
     if (allSetting.subJsonEnable) {
       let p = allSetting.subJsonPath;
       if (allSetting.subJsonURI) {
-        try { p = new URL(allSetting.subJsonURI).pathname; } catch { /* noop */ }
+        try {
+          p = new URL(allSetting.subJsonURI).pathname;
+        } catch {
+          /* noop */
+        }
       }
       if (p === '/json/') {
         out.push(t('pages.settings.warnDefaultJsonPath'));
@@ -198,13 +207,28 @@ export default function SettingsPage() {
 
   const categoryBody = useMemo(() => {
     switch (activeSlug) {
-      case 'security': return <SecurityTab allSetting={allSetting} updateSetting={updateSetting} saveSetting={savePayload} />;
-      case 'telegram': return <TelegramTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'email': return <EmailTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'subscription': return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'subscription-formats': return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
-      case 'frontproxy': return <FrontProxyTab allSetting={allSetting} updateSetting={updateSetting} />;
-      default: return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'security':
+        return (
+          <SecurityTab
+            allSetting={allSetting}
+            updateSetting={updateSetting}
+            saveSetting={savePayload}
+          />
+        );
+      case 'telegram':
+        return <TelegramTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'email':
+        return <EmailTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'subscription':
+        return <SubscriptionGeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'subscription-formats':
+        return <SubscriptionFormatsTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'subscription-balancers':
+        return <SubscriptionBalancersTab allSetting={allSetting} updateSetting={updateSetting} />;
+      case 'frontproxy':
+        return <FrontProxyTab allSetting={allSetting} updateSetting={updateSetting} />;
+      default:
+        return <GeneralTab allSetting={allSetting} updateSetting={updateSetting} />;
     }
   }, [activeSlug, allSetting, updateSetting, savePayload]);
 
@@ -217,7 +241,12 @@ export default function SettingsPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={spinning || !fetched} delay={200} description={t('loading')} size="large">
+            <Spin
+              spinning={spinning || !fetched}
+              delay={200}
+              description={t('loading')}
+              size="large"
+            >
               {!fetched ? (
                 <div className="loading-spacer" />
               ) : (
@@ -229,14 +258,16 @@ export default function SettingsPage() {
                       closable={{ onClose: () => setAlertVisible(false) }}
                       className="conf-alert"
                       title={t('pages.settings.securityWarnings')}
-                      description={(
+                      description={
                         <>
                           <b>{t('pages.settings.panelExposed')}</b>
                           <ul>
-                            {confAlerts.map((msg, i) => <li key={i}>{msg}</li>)}
+                            {confAlerts.map((msg, i) => (
+                              <li key={i}>{msg}</li>
+                            ))}
                           </ul>
                         </>
-                      )}
+                      }
                     />
                   )}
 
@@ -249,7 +280,12 @@ export default function SettingsPage() {
                               <Button type="primary" disabled={saveDisabled} onClick={onSave}>
                                 {t('pages.settings.save')}
                               </Button>
-                              <Button type="primary" danger disabled={!saveDisabled} onClick={restartPanel}>
+                              <Button
+                                type="primary"
+                                danger
+                                disabled={!saveDisabled}
+                                onClick={restartPanel}
+                              >
                                 {t('pages.settings.restartPanel')}
                               </Button>
                             </Space>
@@ -263,9 +299,7 @@ export default function SettingsPage() {
                     </Col>
 
                     <Col span={24}>
-                      <Card hoverable>
-                        {categoryBody}
-                      </Card>
+                      <Card hoverable>{categoryBody}</Card>
                     </Col>
                   </Row>
                 </>

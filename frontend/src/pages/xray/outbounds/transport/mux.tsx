@@ -19,11 +19,7 @@ export default function MuxForm({ protocol, network }: MuxFormProps) {
   if (!isMuxAllowed(protocol, flow, network)) return null;
   return (
     <>
-      <FormField
-        label={t('pages.settings.mux')}
-        name={['mux', 'enabled']}
-        valueProp="checked"
-      >
+      <FormField label={t('pages.settings.mux')} name={['mux', 'enabled']} valueProp="checked">
         <Switch />
       </FormField>
       {muxEnabled && (

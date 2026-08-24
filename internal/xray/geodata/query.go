@@ -103,10 +103,7 @@ func sliceBounds(total, offset, limit int) (int, int) {
 	if limit <= 0 || limit > MaxPageSize {
 		limit = MaxPageSize
 	}
-	to := offset + limit
-	if to > total {
-		to = total
-	}
+	to := min(offset+limit, total)
 	return offset, to
 }
 

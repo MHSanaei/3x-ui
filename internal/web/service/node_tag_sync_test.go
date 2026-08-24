@@ -46,7 +46,7 @@ func TestSetRemoteTraffic_KeepsInboundOnPrefixMismatch(t *testing.T) {
 	}
 
 	svc := InboundService{}
-	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false); err != nil {
+	if _, err := svc.setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
 		t.Fatalf("setRemoteTrafficLocked: %v", err)
 	}
 
@@ -62,5 +62,39 @@ func TestSetRemoteTraffic_KeepsInboundOnPrefixMismatch(t *testing.T) {
 	}
 	if rows[0].Up != 1000 || rows[0].Down != 2000 {
 		t.Fatalf("traffic not attributed across prefix mismatch: up=%d down=%d", rows[0].Up, rows[0].Down)
+	}
+}
+
+func TestSetRemoteTraffic_AdoptsCompatibleOriginAliasWithoutDuplicate(t *testing.T) {
+	setupConflictDB(t)
+	db := database.GetDB()
+
+	const nodeID = 1
+	if err := db.Create(&model.Node{Id: nodeID, Name: "node", Address: "10.0.0.2", Port: 2053, ApiToken: "t", Guid: "node-guid"}).Error; err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	id := nodeID
+	central := &model.Inbound{UserId: 1, NodeID: &id, OriginNodeGuid: "node-guid", Tag: "desired-name", Enable: true, Port: 8443, Protocol: model.VLESS, Settings: `{"clients":[]}`}
+	if err := db.Create(central).Error; err != nil {
+		t.Fatalf("create central inbound: %v", err)
+	}
+
+	snap := &runtime.TrafficSnapshot{Inbounds: []*model.Inbound{{
+		Tag: "already-deployed", Enable: true, Port: 8443, Protocol: model.VLESS,
+		Settings: `{"clients":[]}`, Up: 11, Down: 22,
+	}}}
+	if _, err := (&InboundService{}).setRemoteTrafficLocked(nodeID, snap, false, false); err != nil {
+		t.Fatalf("setRemoteTrafficLocked: %v", err)
+	}
+
+	var rows []model.Inbound
+	if err := db.Where("node_id = ?", nodeID).Find(&rows).Error; err != nil {
+		t.Fatalf("list node inbounds: %v", err)
+	}
+	if len(rows) != 1 || rows[0].Id != central.Id || rows[0].Tag != "desired-name" {
+		t.Fatalf("alias adoption rows = %#v, want original central inbound only", rows)
+	}
+	if rows[0].Up != 11 || rows[0].Down != 22 {
+		t.Fatalf("alias traffic = %d/%d, want 11/22", rows[0].Up, rows[0].Down)
 	}
 }

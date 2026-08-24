@@ -74,6 +74,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/xraylogs/:count", a.getXrayLogs)
+	g.POST("/amneziawglogs/:count", a.getAmneziaWGLogs)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewEchCert", a.getNewEchCert)
 	g.POST("/getCertHash", a.getCertHash)
@@ -321,6 +322,13 @@ func (a *ServerController) getXrayLogs(c *gin.Context) {
 	jsonObj(c, logs, nil)
 }
 
+// getAmneziaWGLogs retrieves the live AmneziaWG peer activity and the panel's
+// own AmneziaWG event lines, optionally narrowed by a free-text filter.
+func (a *ServerController) getAmneziaWGLogs(c *gin.Context) {
+	logs := a.serverService.GetAmneziaWGLogs(c.Param("count"), c.PostForm("filter"))
+	jsonObj(c, logs, nil)
+}
+
 // getConfigJson retrieves the Xray configuration as JSON.
 func (a *ServerController) getConfigJson(c *gin.Context) {
 	configJson, err := a.serverService.GetConfigJson()
@@ -376,7 +384,11 @@ func (a *ServerController) importDB(c *gin.Context) {
 		return
 	}
 	defer file.Close()
-	if err := a.serverService.ImportDB(file); err != nil {
+	// Absent field keeps this machine's own listen addresses, certificates and
+	// node identity: the safe default for the common case of moving a config to
+	// a new host. Send keepHostSettings=false to clone a machine wholesale.
+	keepHostSettings := c.Request.FormValue("keepHostSettings") != "false"
+	if err := a.serverService.ImportDB(file, keepHostSettings); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.importDatabaseError"), err)
 		return
 	}
@@ -461,11 +473,12 @@ func (a *ServerController) getRemoteCertHash(c *gin.Context) {
 	jsonObj(c, hashes, nil)
 }
 
-// scanRealityTarget runs a live TLS 1.3 probe against the candidate REALITY
-// target and returns a structured feasibility verdict plus the cert SAN names.
+// scanRealityTarget probes the candidate REALITY target with the given sni and
+// returns a feasibility verdict; allowPrivate is the panel's confirmed opt-in.
 func (a *ServerController) scanRealityTarget(c *gin.Context) {
 	xver, _ := strconv.Atoi(c.PostForm("xver"))
-	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"), xver)
+	allowPrivate := c.PostForm("allowPrivate") == "true"
+	res, err := a.serverService.ScanRealityTarget(c.PostForm("target"), c.PostForm("sni"), xver, allowPrivate)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.scanRealityTargetError"), err)
 		return

@@ -2,16 +2,54 @@ package netsafe
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"regexp"
 	"strings"
 	"time"
 )
 
+// ErrPrivateAddressBlocked marks a failed dial where the guard refused at least
+// one resolved address, so a caller offering an opt-in can tell it apart from an
+// ordinary connection failure.
+var ErrPrivateAddressBlocked = errors.New("blocked private/internal address")
+
+// Ranges Go's net.IP predicates do not treat as internal. The transition
+// mechanisms here are deprecated (RFC 7526) or local-use, so none carry public traffic.
+var blockedPrefixes = []netip.Prefix{
+	netip.MustParsePrefix("100.64.0.0/10"),  // CGNAT (RFC 6598)
+	netip.MustParsePrefix("2002::/16"),      // 6to4 (RFC 3056)
+	netip.MustParsePrefix("2001::/32"),      // Teredo (RFC 4380)
+	netip.MustParsePrefix("64:ff9b:1::/48"), // NAT64 local-use (RFC 8215)
+	netip.MustParsePrefix("fec0::/10"),      // site-local (RFC 3879)
+}
+
+// Judged by the IPv4 it embeds rather than blocked outright: on a DNS64 network
+// every public IPv4 host resolves into this prefix (RFC 6052 mandates /96 here).
+var nat64WellKnown = netip.MustParsePrefix("64:ff9b::/96")
+
 func IsBlockedIP(ip net.IP) bool {
-	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+		return true
+	}
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return false
+	}
+	addr = addr.Unmap()
+	for _, prefix := range blockedPrefixes {
+		if prefix.Contains(addr) {
+			return true
+		}
+	}
+	if nat64WellKnown.Contains(addr) {
+		embedded := addr.As16()
+		return IsBlockedIP(net.IP(embedded[12:16]))
+	}
+	return false
 }
 
 type allowPrivateCtxKey struct{}
@@ -42,10 +80,10 @@ func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn
 			return nil, err
 		}
 	}
-	var lastErr error
+	var lastErr, blockedErr error
 	for _, ipAddr := range ips {
 		if !allowPrivate && IsBlockedIP(ipAddr.IP) {
-			lastErr = fmt.Errorf("blocked private/internal address %s", ipAddr.IP)
+			blockedErr = fmt.Errorf("%w %s", ErrPrivateAddressBlocked, ipAddr.IP)
 			continue
 		}
 		conn, derr := defaultDialer.DialContext(ctx, network, net.JoinHostPort(ipAddr.IP.String(), port))
@@ -53,6 +91,14 @@ func SSRFGuardedDialContext(ctx context.Context, network, addr string) (net.Conn
 			return conn, nil
 		}
 		lastErr = derr
+	}
+	// A dual-stack name can mix refused and merely unreachable addresses, so the
+	// refusal is reported alongside instead of being lost to the last failure.
+	if blockedErr != nil {
+		if lastErr != nil {
+			return nil, fmt.Errorf("%w; %w", blockedErr, lastErr)
+		}
+		return nil, blockedErr
 	}
 	if lastErr == nil {
 		lastErr = fmt.Errorf("no usable address for %s", host)

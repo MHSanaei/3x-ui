@@ -35,6 +35,8 @@ type CheckClientIpJob struct {
 	disAllowedIps []string
 	bannedSeen    map[string]int64
 	xrayService   service.XrayService
+	allowlist     ipLimitAllowlist
+	lastIpPrune   int64
 }
 
 var job *CheckClientIpJob
@@ -43,6 +45,9 @@ const defaultXrayAPIPort = 62789
 
 const ipStaleAfterSeconds = int64(30 * 60)
 
+// pruneStaleIpRows cadence; the scan itself cannot prune offline clients' rows.
+const ipPruneIntervalSeconds = int64(5 * 60)
+
 // NewCheckClientIpJob creates a new client IP monitoring job instance.
 func NewCheckClientIpJob() *CheckClientIpJob {
 	job = new(CheckClientIpJob)
@@ -50,6 +55,7 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 }
 
 func (j *CheckClientIpJob) Run() {
+	j.pruneStaleIpRows()
 	observed, apiMode := j.collectFromOnlineAPI()
 	if !apiMode {
 		// xray is down or predates the online-stats API. There is no access-log
@@ -67,7 +73,13 @@ func (j *CheckClientIpJob) Run() {
 	if hasLimit {
 		f2bInstalled = j.checkFail2BanInstalled()
 	}
-	j.processObserved(observed, j.resolveEnforce(hasLimit, f2bInstalled), true)
+	// Read only when the limit is actually applied: this runs every 10s and
+	// most panels carry no IP limit at all.
+	enforce := j.resolveEnforce(hasLimit, f2bInstalled)
+	if enforce {
+		j.allowlist = j.loadAllowlist()
+	}
+	j.processObserved(observed, enforce, true)
 }
 
 // resolveEnforce decides whether limits can actually be enforced this run.
@@ -124,6 +136,18 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 	var probe int64
 	err := db.Model(&model.ClientRecord{}).Where("limit_ip > 0").Limit(1).Count(&probe).Error
 	return err == nil && probe > 0
+}
+
+// loadAllowlist reads the operator's trusted addresses once per scan; a bad
+// read leaves the list empty, which enforces the limit as before rather than
+// silently exempting everyone.
+func (j *CheckClientIpJob) loadAllowlist() ipLimitAllowlist {
+	raw, err := (&service.SettingService{}).GetIpLimitAllowlist()
+	if err != nil {
+		logger.Warning("[LimitIP] could not read the allowlist, enforcing without it:", err)
+		return ipLimitAllowlist{}
+	}
+	return parseIpLimitAllowlist(raw)
 }
 
 const ipScanChunk = 400
@@ -510,7 +534,11 @@ func (j *CheckClientIpJob) updateInboundClientIps(tx *gorm.DB, inboundClientIps 
 	j.disAllowedIps = []string{}
 
 	// historical db-only ips are excluded from this count on purpose.
-	keptLive, bannedLive := selectIpsToBan(liveIps, limitIp)
+	limitedIps, allowedIps := j.allowlist.split(liveIps)
+	keptLive, bannedLive := selectIpsToBan(limitedIps, limitIp)
+	// Allowlisted addresses stay connected and out of the count: charging them
+	// against the limit would still cut the shared network the entry protects.
+	keptLive = append(keptLive, allowedIps...)
 	actionable := j.filterAdvancedSinceLastBan(clientEmail, bannedLive)
 	if len(actionable) > 0 {
 		shouldCleanLog = true
@@ -611,10 +639,11 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		return
 	}
 
-	// Only perform remove/re-add for protocols supported by XrayAPI.AddUser
+	// Protocols XrayAPI can remove and re-add from a marshaled model.Client.
+	// wireguard stays out: keepAlive marshals as a number, AddUser wants a string.
 	protocol := string(inbound.Protocol)
 	switch protocol {
-	case "vmess", "vless", "trojan", "shadowsocks":
+	case "vmess", "vless", "trojan", "shadowsocks", "hysteria":
 		// supported protocols, continue
 	default:
 		logger.Warningf("[LIMIT_IP] Temporary disconnect is not supported for protocol %s on inbound %s", protocol, inbound.Tag)
@@ -744,4 +773,17 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 	}
 
 	return nil, err
+}
+
+// Runs before the fail2ban/apiMode gates: retention must hold for stored rows
+// even while nothing is being collected.
+func (j *CheckClientIpJob) pruneStaleIpRows() {
+	now := time.Now().Unix()
+	if now-j.lastIpPrune < ipPruneIntervalSeconds {
+		return
+	}
+	j.lastIpPrune = now
+	if err := (&service.InboundService{}).PruneStaleClientIps(); err != nil {
+		logger.Warning("prune stale client ip rows failed:", err)
+	}
 }

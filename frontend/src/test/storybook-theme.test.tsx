@@ -9,7 +9,9 @@ function Story() {
 }
 
 function StorybookTheme({ theme }: { theme: 'light' | 'dark' }) {
-  return withTheme(Story, { globals: { theme } } as Partial<Parameters<typeof withTheme>[1]> as Parameters<typeof withTheme>[1]);
+  return withTheme(Story, { globals: { theme } } as Partial<
+    Parameters<typeof withTheme>[1]
+  > as Parameters<typeof withTheme>[1]);
 }
 
 afterEach(() => {
@@ -41,7 +43,11 @@ test('preserves unrelated body classes when applying the panel theme', () => {
   message.className = 'message-fixture';
   document.body.append(message);
 
-  render(<ThemeProvider><div>Panel</div></ThemeProvider>);
+  render(
+    <ThemeProvider>
+      <div>Panel</div>
+    </ThemeProvider>,
+  );
 
   expect(document.body.classList.contains('panel-fixture')).toBe(true);
   expect(document.body.classList.contains('dark')).toBe(true);

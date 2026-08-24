@@ -21,14 +21,34 @@ const STUN_SOFTWARE_MAX = 32;
 // this fork's admins actually see skews toward more than a purely global
 // list would.
 const I1_HOSTS = [
-  'www.apple.com', 'www.google.com', 'www.microsoft.com', 'cdn.jsdelivr.net',
-  'yandex.ru', 'vk.com', 'mail.ru', 'ozon.ru', 'wildberries.ru', 'rutube.ru', 'gosuslugi.ru', 'sberbank.ru', 'tbank.ru',
+  'www.apple.com',
+  'www.google.com',
+  'www.microsoft.com',
+  'cdn.jsdelivr.net',
+  'yandex.ru',
+  'vk.com',
+  'mail.ru',
+  'ozon.ru',
+  'wildberries.ru',
+  'rutube.ru',
+  'gosuslugi.ru',
+  'sberbank.ru',
+  'tbank.ru',
 ];
 
 export type I1Profile = 'dns' | 'quic' | 'sip' | 'stun' | 'chrome' | 'firefox' | 'safari';
 export type I1ProfileChoice = I1Profile | 'random';
 
-export const I1_PROFILE_CHOICES: I1ProfileChoice[] = ['random', 'dns', 'quic', 'sip', 'stun', 'chrome', 'firefox', 'safari'];
+export const I1_PROFILE_CHOICES: I1ProfileChoice[] = [
+  'random',
+  'dns',
+  'quic',
+  'sip',
+  'stun',
+  'chrome',
+  'firefox',
+  'safari',
+];
 
 // The 5 real CPS UAPI slots, in order -- shared by amneziawg.tsx (renders
 // one identically-shaped generate row per slot) and InboundFormModal.tsx
@@ -129,11 +149,13 @@ function genStunI1(): string {
   const attrLen = 4 + softwareLen;
 
   const c = new CpsChain();
-  c.bytes(new Uint8Array([
-    ...u16be(0x0001), // Binding Request
-    ...u16be(attrLen),
-    ...u32be(0x2112a442), // magic cookie
-  ]));
+  c.bytes(
+    new Uint8Array([
+      ...u16be(0x0001), // Binding Request
+      ...u16be(attrLen),
+      ...u32be(0x2112a442), // magic cookie
+    ]),
+  );
   c.tag('r', 12); // transaction id
   c.bytes(new Uint8Array([...u16be(0x8022), ...u16be(softwareLen)])); // SOFTWARE attribute header
   c.tag('rc', softwareLen);
@@ -190,8 +212,8 @@ const QUIC_SAMPLE_END = 20;
 const TLS_HANDSHAKE_HEAD = 6;
 
 const QUIC_INITIAL_SALT = new Uint8Array([
-  0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17,
-  0x9a, 0xe6, 0xa4, 0xc8, 0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a,
+  0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17, 0x9a, 0xe6, 0xa4, 0xc8, 0x0c, 0xad,
+  0xcc, 0xbb, 0x7f, 0x0a,
 ]);
 
 export function isQuicI1Supported(): boolean {
@@ -238,7 +260,13 @@ function quicStr8(b: Bytes): Bytes {
 }
 
 async function hmacSha256(keyBytes: Bytes, data: Bytes): Promise<Bytes> {
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
   const sig = await crypto.subtle.sign('HMAC', key, data);
   return new Uint8Array(sig);
 }
@@ -267,8 +295,15 @@ async function quicInitialKeys(dcid: Bytes): Promise<{ key: Bytes; iv: Bytes; hp
   return { key, iv, hp };
 }
 
-async function aesGcmSeal(keyBytes: Bytes, iv: Bytes, aad: Bytes, plaintext: Bytes): Promise<Bytes> {
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt']);
+async function aesGcmSeal(
+  keyBytes: Bytes,
+  iv: Bytes,
+  aad: Bytes,
+  plaintext: Bytes,
+): Promise<Bytes> {
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, [
+    'encrypt',
+  ]);
   const sealed = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv, additionalData: aad, tagLength: 128 },
     key,
@@ -285,8 +320,14 @@ async function aesGcmSeal(keyBytes: Bytes, iv: Bytes, aad: Bytes, plaintext: Byt
 // AES_Encrypt(key, sample) -- precisely the header-protection mask RFC
 // 9001 S5.4.3 defines.
 async function aesEcbSingleBlock(keyBytes: Bytes, block: Bytes): Promise<Bytes> {
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CTR' }, false, ['encrypt']);
-  const mask = await crypto.subtle.encrypt({ name: 'AES-CTR', counter: block, length: 128 }, key, new Uint8Array(16));
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CTR' }, false, [
+    'encrypt',
+  ]);
+  const mask = await crypto.subtle.encrypt(
+    { name: 'AES-CTR', counter: block, length: 128 },
+    key,
+    new Uint8Array(16),
+  );
   return new Uint8Array(mask);
 }
 
@@ -320,7 +361,12 @@ function tlsClientHello(sni: string): Bytes {
     ext,
   );
   return concatBytes(
-    new Uint8Array([0x01, (body.length >> 16) & 0xff, (body.length >> 8) & 0xff, body.length & 0xff]),
+    new Uint8Array([
+      0x01,
+      (body.length >> 16) & 0xff,
+      (body.length >> 8) & 0xff,
+      body.length & 0xff,
+    ]),
     body,
   );
 }
@@ -367,7 +413,12 @@ async function quicInitialPacket(
 // Alternating keep/randomize byte counts over the finished packet: the
 // static prefix must cover the header-protection sample, so the first cut
 // never starts before ciphertext byte (20 - len(pkn)).
-function quicCutParts(frameHeaderLen: number, helloLen: number, pknLen: number, headerLen: number): number[] {
+function quicCutParts(
+  frameHeaderLen: number,
+  helloLen: number,
+  pknLen: number,
+  headerLen: number,
+): number[] {
   let keep = frameHeaderLen + TLS_HANDSHAKE_HEAD;
   let randomized = QUIC_HELLO_RAND_LEN;
   const short = QUIC_SAMPLE_END - pknLen - keep;
@@ -375,7 +426,12 @@ function quicCutParts(frameHeaderLen: number, helloLen: number, pknLen: number, 
     keep += short;
     randomized -= short;
   }
-  return [headerLen + keep, randomized, helloLen - TLS_HANDSHAKE_HEAD - QUIC_HELLO_RAND_LEN, QUIC_TAG_LEN];
+  return [
+    headerLen + keep,
+    randomized,
+    helloLen - TLS_HANDSHAKE_HEAD - QUIC_HELLO_RAND_LEN,
+    QUIC_TAG_LEN,
+  ];
 }
 
 function quicToCps(packet: Bytes, parts: number[]): string {
@@ -498,7 +554,14 @@ const TLS_CIPHER = {
   RSA_3DES_EDE_CBC_SHA: 0x000a,
 } as const;
 
-const NAMED_GROUP = { x25519: 29, secp256r1: 23, secp384r1: 24, secp521r1: 25, ffdhe2048: 256, ffdhe3072: 257 } as const;
+const NAMED_GROUP = {
+  x25519: 29,
+  secp256r1: 23,
+  secp384r1: 24,
+  secp521r1: 25,
+  ffdhe2048: 256,
+  ffdhe3072: 257,
+} as const;
 
 const SIG_ALG = {
   ecdsa_secp256r1_sha256: 0x0403,
@@ -622,10 +685,14 @@ function keyShareExt(shares: { group: number; greaseBody?: number[] }[]): ExtPar
   return {
     len: 4 + 2 + listLen,
     emit: (c) => {
-      c.bytes(new Uint8Array([...u16be(TLS_EXT.keyShare), ...u16be(2 + listLen), ...u16be(listLen)]));
+      c.bytes(
+        new Uint8Array([...u16be(TLS_EXT.keyShare), ...u16be(2 + listLen), ...u16be(listLen)]),
+      );
       for (const s of shares) {
         if (s.greaseBody) {
-          c.bytes(new Uint8Array([...u16be(s.group), ...u16be(s.greaseBody.length), ...s.greaseBody]));
+          c.bytes(
+            new Uint8Array([...u16be(s.group), ...u16be(s.greaseBody.length), ...s.greaseBody]),
+          );
         } else {
           c.bytes(new Uint8Array([...u16be(s.group), ...u16be(32)]));
           c.tag('r', 32);
@@ -644,9 +711,17 @@ function buildTlsClientHello(cipherSuites: number[], exts: ExtPart[]): string {
   const c = new CpsChain();
   const extsLen = exts.reduce((sum, e) => sum + e.len, 0);
   const cipherLen = cipherSuites.length * 2;
-  const bodyLen = 2 /* legacy_version */ + 32 /* Random */ + 1 + 32 /* session_id */
-    + 2 + cipherLen /* cipher_suites */ + 1 + 1 /* compression_methods */
-    + 2 + extsLen; /* extensions */
+  const bodyLen =
+    2 /* legacy_version */ +
+    32 /* Random */ +
+    1 +
+    32 /* session_id */ +
+    2 +
+    cipherLen /* cipher_suites */ +
+    1 +
+    1 /* compression_methods */ +
+    2 +
+    extsLen; /* extensions */
 
   // content type = handshake(22); legacy record version is always 3.1, a
   // real, well-known quirk even for a TLS 1.3 ClientHello (middlebox
@@ -673,13 +748,21 @@ function genChromeI1(host: string): string {
 
   const cipherSuites = [
     cipherGrease,
-    TLS_CIPHER.AES_128_GCM_SHA256, TLS_CIPHER.AES_256_GCM_SHA384, TLS_CIPHER.CHACHA20_POLY1305_SHA256,
-    TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256,
-    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384,
-    TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305, TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
-    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA, TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA,
-    TLS_CIPHER.RSA_AES_128_GCM_SHA256, TLS_CIPHER.RSA_AES_256_GCM_SHA384,
-    TLS_CIPHER.RSA_AES_128_CBC_SHA, TLS_CIPHER.RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.AES_128_GCM_SHA256,
+    TLS_CIPHER.AES_256_GCM_SHA384,
+    TLS_CIPHER.CHACHA20_POLY1305_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.RSA_AES_256_CBC_SHA,
   ];
 
   const exts: ExtPart[] = [
@@ -687,15 +770,25 @@ function genChromeI1(host: string): string {
     serverNameExt(host),
     emptyExt(TLS_EXT.extendedMasterSecret),
     renegotiationInfoExt(),
-    u16ListExt2(TLS_EXT.supportedGroups, [groupGrease, NAMED_GROUP.x25519, NAMED_GROUP.secp256r1, NAMED_GROUP.secp384r1]),
+    u16ListExt2(TLS_EXT.supportedGroups, [
+      groupGrease,
+      NAMED_GROUP.x25519,
+      NAMED_GROUP.secp256r1,
+      NAMED_GROUP.secp384r1,
+    ]),
     u8ListExt(TLS_EXT.ecPointFormats, [0]), // uncompressed
     emptyExt(TLS_EXT.sessionTicket),
     alpnExt(['h2', 'http/1.1']),
     statusRequestExt(),
     u16ListExt2(TLS_EXT.signatureAlgorithms, [
-      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.rsa_pss_rsae_sha256, SIG_ALG.rsa_pkcs1_sha256,
-      SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.rsa_pss_rsae_sha384, SIG_ALG.rsa_pkcs1_sha384,
-      SIG_ALG.rsa_pss_rsae_sha512, SIG_ALG.rsa_pkcs1_sha512,
+      SIG_ALG.ecdsa_secp256r1_sha256,
+      SIG_ALG.rsa_pss_rsae_sha256,
+      SIG_ALG.rsa_pkcs1_sha256,
+      SIG_ALG.ecdsa_secp384r1_sha384,
+      SIG_ALG.rsa_pss_rsae_sha384,
+      SIG_ALG.rsa_pkcs1_sha384,
+      SIG_ALG.rsa_pss_rsae_sha512,
+      SIG_ALG.rsa_pkcs1_sha512,
     ]),
     emptyExt(TLS_EXT.sct),
     keyShareExt([{ group: groupGrease, greaseBody: [0] }, { group: NAMED_GROUP.x25519 }]),
@@ -712,14 +805,23 @@ function genChromeI1(host: string): string {
 
 function genFirefoxI1(host: string): string {
   const cipherSuites = [
-    TLS_CIPHER.AES_128_GCM_SHA256, TLS_CIPHER.CHACHA20_POLY1305_SHA256, TLS_CIPHER.AES_256_GCM_SHA384,
-    TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256,
-    TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305, TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
-    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384,
-    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA, TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA,
-    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA, TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA,
-    TLS_CIPHER.RSA_AES_128_GCM_SHA256, TLS_CIPHER.RSA_AES_256_GCM_SHA384,
-    TLS_CIPHER.RSA_AES_128_CBC_SHA, TLS_CIPHER.RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.AES_128_GCM_SHA256,
+    TLS_CIPHER.CHACHA20_POLY1305_SHA256,
+    TLS_CIPHER.AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.RSA_AES_256_CBC_SHA,
   ];
 
   const exts: ExtPart[] = [
@@ -727,23 +829,37 @@ function genFirefoxI1(host: string): string {
     emptyExt(TLS_EXT.extendedMasterSecret),
     renegotiationInfoExt(),
     u16ListExt2(TLS_EXT.supportedGroups, [
-      NAMED_GROUP.x25519, NAMED_GROUP.secp256r1, NAMED_GROUP.secp384r1, NAMED_GROUP.secp521r1,
-      NAMED_GROUP.ffdhe2048, NAMED_GROUP.ffdhe3072,
+      NAMED_GROUP.x25519,
+      NAMED_GROUP.secp256r1,
+      NAMED_GROUP.secp384r1,
+      NAMED_GROUP.secp521r1,
+      NAMED_GROUP.ffdhe2048,
+      NAMED_GROUP.ffdhe3072,
     ]),
     u8ListExt(TLS_EXT.ecPointFormats, [0]),
     emptyExt(TLS_EXT.sessionTicket),
     alpnExt(['h2', 'http/1.1']),
     statusRequestExt(),
     u16ListExt2(TLS_EXT.delegatedCredentials, [
-      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.ecdsa_secp521r1_sha512, SIG_ALG.ecdsa_sha1,
+      SIG_ALG.ecdsa_secp256r1_sha256,
+      SIG_ALG.ecdsa_secp384r1_sha384,
+      SIG_ALG.ecdsa_secp521r1_sha512,
+      SIG_ALG.ecdsa_sha1,
     ]),
     keyShareExt([{ group: NAMED_GROUP.x25519 }, { group: NAMED_GROUP.secp256r1 }]),
     u16ListExt1(TLS_EXT.supportedVersions, [TLS13_VERSION, TLS12_VERSION]),
     u16ListExt2(TLS_EXT.signatureAlgorithms, [
-      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.ecdsa_secp521r1_sha512,
-      SIG_ALG.rsa_pss_rsae_sha256, SIG_ALG.rsa_pss_rsae_sha384, SIG_ALG.rsa_pss_rsae_sha512,
-      SIG_ALG.rsa_pkcs1_sha256, SIG_ALG.rsa_pkcs1_sha384, SIG_ALG.rsa_pkcs1_sha512,
-      SIG_ALG.ecdsa_sha1, SIG_ALG.rsa_pkcs1_sha1,
+      SIG_ALG.ecdsa_secp256r1_sha256,
+      SIG_ALG.ecdsa_secp384r1_sha384,
+      SIG_ALG.ecdsa_secp521r1_sha512,
+      SIG_ALG.rsa_pss_rsae_sha256,
+      SIG_ALG.rsa_pss_rsae_sha384,
+      SIG_ALG.rsa_pss_rsae_sha512,
+      SIG_ALG.rsa_pkcs1_sha256,
+      SIG_ALG.rsa_pkcs1_sha384,
+      SIG_ALG.rsa_pkcs1_sha512,
+      SIG_ALG.ecdsa_sha1,
+      SIG_ALG.rsa_pkcs1_sha1,
     ]),
     pskModesExt([1]),
     recordSizeLimitExt(16385),
@@ -762,17 +878,31 @@ function genSafariI1(host: string): string {
 
   const cipherSuites = [
     cipherGrease,
-    TLS_CIPHER.AES_128_GCM_SHA256, TLS_CIPHER.AES_256_GCM_SHA384, TLS_CIPHER.CHACHA20_POLY1305_SHA256,
-    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305,
-    TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384, TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256, TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
-    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA384, TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA256,
-    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA, TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA,
-    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA384, TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA256,
-    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA, TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA,
-    TLS_CIPHER.RSA_AES_256_GCM_SHA384, TLS_CIPHER.RSA_AES_128_GCM_SHA256,
-    TLS_CIPHER.RSA_AES_256_CBC_SHA256, TLS_CIPHER.RSA_AES_128_CBC_SHA256,
-    TLS_CIPHER.RSA_AES_256_CBC_SHA, TLS_CIPHER.RSA_AES_128_CBC_SHA,
-    TLS_CIPHER.ECDHE_ECDSA_3DES_EDE_CBC_SHA, TLS_CIPHER.ECDHE_RSA_3DES_EDE_CBC_SHA,
+    TLS_CIPHER.AES_128_GCM_SHA256,
+    TLS_CIPHER.AES_256_GCM_SHA384,
+    TLS_CIPHER.CHACHA20_POLY1305_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.ECDHE_RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.ECDHE_RSA_CHACHA20_POLY1305,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA384,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA256,
+    TLS_CIPHER.ECDHE_ECDSA_AES_256_CBC_SHA,
+    TLS_CIPHER.ECDHE_ECDSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA384,
+    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA256,
+    TLS_CIPHER.ECDHE_RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.RSA_AES_256_GCM_SHA384,
+    TLS_CIPHER.RSA_AES_128_GCM_SHA256,
+    TLS_CIPHER.RSA_AES_256_CBC_SHA256,
+    TLS_CIPHER.RSA_AES_128_CBC_SHA256,
+    TLS_CIPHER.RSA_AES_256_CBC_SHA,
+    TLS_CIPHER.RSA_AES_128_CBC_SHA,
+    TLS_CIPHER.ECDHE_ECDSA_3DES_EDE_CBC_SHA,
+    TLS_CIPHER.ECDHE_RSA_3DES_EDE_CBC_SHA,
     TLS_CIPHER.RSA_3DES_EDE_CBC_SHA,
   ];
 
@@ -782,7 +912,11 @@ function genSafariI1(host: string): string {
     emptyExt(TLS_EXT.extendedMasterSecret),
     renegotiationInfoExt(),
     u16ListExt2(TLS_EXT.supportedGroups, [
-      groupGrease, NAMED_GROUP.x25519, NAMED_GROUP.secp256r1, NAMED_GROUP.secp384r1, NAMED_GROUP.secp521r1,
+      groupGrease,
+      NAMED_GROUP.x25519,
+      NAMED_GROUP.secp256r1,
+      NAMED_GROUP.secp384r1,
+      NAMED_GROUP.secp521r1,
     ]),
     u8ListExt(TLS_EXT.ecPointFormats, [0]),
     alpnExt(['h2', 'http/1.1']),
@@ -790,14 +924,28 @@ function genSafariI1(host: string): string {
     // Real iOS14 capture lists rsa_pss_rsae_sha384 twice in a row -- kept
     // exactly as captured (see this section's own doc comment on why).
     u16ListExt2(TLS_EXT.signatureAlgorithms, [
-      SIG_ALG.ecdsa_secp256r1_sha256, SIG_ALG.rsa_pss_rsae_sha256, SIG_ALG.rsa_pkcs1_sha256,
-      SIG_ALG.ecdsa_secp384r1_sha384, SIG_ALG.ecdsa_sha1, SIG_ALG.rsa_pss_rsae_sha384, SIG_ALG.rsa_pss_rsae_sha384,
-      SIG_ALG.rsa_pkcs1_sha384, SIG_ALG.rsa_pss_rsae_sha512, SIG_ALG.rsa_pkcs1_sha512, SIG_ALG.rsa_pkcs1_sha1,
+      SIG_ALG.ecdsa_secp256r1_sha256,
+      SIG_ALG.rsa_pss_rsae_sha256,
+      SIG_ALG.rsa_pkcs1_sha256,
+      SIG_ALG.ecdsa_secp384r1_sha384,
+      SIG_ALG.ecdsa_sha1,
+      SIG_ALG.rsa_pss_rsae_sha384,
+      SIG_ALG.rsa_pss_rsae_sha384,
+      SIG_ALG.rsa_pkcs1_sha384,
+      SIG_ALG.rsa_pss_rsae_sha512,
+      SIG_ALG.rsa_pkcs1_sha512,
+      SIG_ALG.rsa_pkcs1_sha1,
     ]),
     emptyExt(TLS_EXT.sct),
     keyShareExt([{ group: groupGrease, greaseBody: [0] }, { group: NAMED_GROUP.x25519 }]),
     pskModesExt([1]),
-    u16ListExt1(TLS_EXT.supportedVersions, [versionGrease, TLS13_VERSION, TLS12_VERSION, TLS11_VERSION, TLS10_VERSION]),
+    u16ListExt1(TLS_EXT.supportedVersions, [
+      versionGrease,
+      TLS13_VERSION,
+      TLS12_VERSION,
+      TLS11_VERSION,
+      TLS10_VERSION,
+    ]),
     litExt(ext2Grease, [0]),
     emptyExt(TLS_EXT.padding),
   ];
@@ -820,14 +968,16 @@ export interface I1GenResult {
 // 'quic' choice without crypto.subtle (see isQuicI1Supported; the caller
 // should check this before offering 'quic' at all, so this is a backstop,
 // not the primary UX).
-export async function genI1(profileChoice: I1ProfileChoice, host = ''): Promise<I1GenResult | null> {
+export async function genI1(
+  profileChoice: I1ProfileChoice,
+  host = '',
+): Promise<I1GenResult | null> {
   const quicOk = isQuicI1Supported();
   const profiles: I1Profile[] = quicOk
     ? ['dns', 'quic', 'sip', 'stun', 'chrome', 'firefox', 'safari']
     : ['dns', 'sip', 'stun', 'chrome', 'firefox', 'safari'];
-  const profile: I1Profile = profileChoice === 'random'
-    ? profiles[randRange(0, profiles.length - 1)]
-    : profileChoice;
+  const profile: I1Profile =
+    profileChoice === 'random' ? profiles[randRange(0, profiles.length - 1)] : profileChoice;
   if (profile === 'quic' && !quicOk) return null;
   const resolvedHost = host || I1_HOSTS[randRange(0, I1_HOSTS.length - 1)];
 

@@ -8,7 +8,10 @@
 .api-docs-page .ant-card {
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s ease;
 }
 
 .index-page.is-dark .ant-card,
@@ -91,7 +94,10 @@
 .hosts-page .ant-card {
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s ease;
 }
 
 .hosts-page.is-dark .ant-card {

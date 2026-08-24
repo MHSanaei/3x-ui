@@ -187,7 +187,7 @@ func TestEnsureMasterClientCertConcurrentFirstUseMintsOneCredential(t *testing.T
 	}
 	close(start)
 	var first crypto.CertKeyPEM
-	for i := 0; i < callers; i++ {
+	for i := range callers {
 		credential := <-results
 		if err := <-errs; err != nil {
 			t.Fatalf("caller %d: %v", i, err)

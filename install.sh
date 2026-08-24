@@ -1410,6 +1410,21 @@ _install_xui_service_unit() {
     return 0
 }
 
+# resolve_latest_tag prints the latest stable release tag. It prefers the web
+# releases/latest redirect, which is not subject to the unauthenticated API's
+# 60 req/h-per-IP limit that trips shared CI/CGNAT addresses (the install then
+# fails with "Failed to fetch x-ui version"), and falls back to the API.
+resolve_latest_tag() {
+    local url tag
+    url=$(curl -sSLI -o /dev/null -w '%{url_effective}' --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://github.com/kuzzrus/3x-ui-awg/releases/latest" 2>/dev/null)
+    tag=${url##*/tag/}
+    if [[ "$tag" != "$url" && -n "$tag" && "$tag" != "latest" ]]; then
+        echo "$tag"
+        return 0
+    fi
+    curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/kuzzrus/3x-ui-awg/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+}
+
 install_x-ui() {
     # If this cd ever silently failed, every later step that builds a path
     # by string-concatenating ${xui_folder} (absolute, CWD-independent)
@@ -1425,7 +1440,7 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
-        tag_version=$(curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/kuzzrus/3x-ui-awg/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(resolve_latest_tag)
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
             exit 1
@@ -1576,6 +1591,39 @@ install_x-ui() {
         echo -e "${red}Failed to cd into ${xui_folder} after installing -- cannot continue${plain}"
         exit 1
     fi
+
+    # Restore anything from the old bin/ that the fresh release doesn't ship
+    # (custom geoip/geosite files, or anything else an admin hand-placed
+    # there) -- never overwrites a same-named file the new release provides,
+    # so bundled assets (geoip.dat, geoip_RU.dat, ...) still get the fresh
+    # per-release copy. Runs after the arch-rename above so xray-linux-arm32/
+    # mtg-linux-arm already exist under their final names there and aren't
+    # mistaken for custom files needing a restore. Skips paths the panel
+    # itself regenerates at runtime (config.json, mtproto/*.toml -- see
+    # internal/xray/process.go, internal/mtproto/manager.go): those aren't
+    # admin-placed, and restoring a stale one only resurrects dead state (an
+    # orphaned mtg config for a since-deleted inbound) or the wrong
+    # directory permissions.
+    if [[ -n "${custom_bin_backup}" ]]; then
+        local restored_custom_bin=()
+        while IFS= read -r -d '' f; do
+            local rel="${f#"${custom_bin_backup}"/}"
+            case "${rel}" in
+                config.json | mtproto | mtproto/*) continue ;;
+            esac
+            if [[ ! -e "bin/${rel}" ]]; then
+                mkdir -p "bin/$(dirname "${rel}")"
+                cp -a "${f}" "bin/${rel}"
+                restored_custom_bin+=("${rel}")
+            fi
+        done < <(find "${custom_bin_backup}" \( -type f -o -type l \) -print0)
+        rm -rf "${custom_bin_backup}"
+        custom_bin_backup=""
+        if [[ ${#restored_custom_bin[@]} -gt 0 ]]; then
+            echo -e "${green}Restored custom file(s) in bin/ not shipped by this release: ${restored_custom_bin[*]}${plain}"
+        fi
+    fi
+    trap - EXIT INT TERM
 
     # Restore anything from the old bin/ that the fresh release doesn't ship
     # (custom geoip/geosite files, or anything else an admin hand-placed

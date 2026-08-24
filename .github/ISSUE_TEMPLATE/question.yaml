@@ -72,7 +72,10 @@ body:
     id: screenshots
     attributes:
       label: Screenshots or config snippets
-      description: Drag images or paste relevant config. Redact tokens, real domains, client UUIDs.
+      description: |
+        Drag images or paste relevant config. Redact tokens, real domains,
+        client UUIDs. Prefer pasted text over screenshots — images cannot
+        be searched or machine-read.
     validations:
       required: false
 

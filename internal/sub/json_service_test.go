@@ -120,6 +120,22 @@ func TestSubJsonServicePinnedCertJoinedToString(t *testing.T) {
 	}
 }
 
+func TestSubJsonServiceTLSCipherSuitesForwarded(t *testing.T) {
+	svc := NewSubJsonService("", "", "", nil)
+	stream := svc.streamData(`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"a.example.com","cipherSuites":"TLS_AES_256_GCM_SHA384","settings":{}}}`, "")
+
+	tls, _ := stream["tlsSettings"].(map[string]any)
+	if got := tls["cipherSuites"]; got != "TLS_AES_256_GCM_SHA384" {
+		t.Fatalf("cipherSuites = %#v, want %q", got, "TLS_AES_256_GCM_SHA384")
+	}
+
+	stream = svc.streamData(`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"a.example.com","cipherSuites":"","settings":{}}}`, "")
+	tls, _ = stream["tlsSettings"].(map[string]any)
+	if _, present := tls["cipherSuites"]; present {
+		t.Fatalf("empty cipherSuites must be omitted, got %#v", tls["cipherSuites"])
+	}
+}
+
 func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
@@ -130,6 +146,16 @@ func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	}
 	if settings["address"] != "1.2.3.4" || settings["id"] != "uuid-1" || settings["encryption"] != "none" || settings["flow"] != "xtls-rprx-vision" {
 		t.Fatalf("flat vless settings wrong: %#v", settings)
+	}
+}
+
+func TestSubJsonServiceVlessFlowSuppressedByDisableFlow(t *testing.T) {
+	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`, DisableFlow: true}
+	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
+
+	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(&SubService{}, inbound, nil, client, ""))
+	if _, ok := settings["flow"]; ok {
+		t.Fatalf("DisableFlow inbound must not carry a flow in the JSON outbound: %#v", settings)
 	}
 }
 

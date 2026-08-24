@@ -23,7 +23,8 @@ const meta = {
         'Panel settings snapshot; smtpEnabledEvents holds the selected event keys and smtpCpu/smtpMemory the alert threshold percentages.',
     },
     updateSetting: {
-      description: 'Receives a partial settings patch when an event is toggled or a threshold input changes.',
+      description:
+        'Receives a partial settings patch when an event is toggled or a threshold input changes.',
     },
   },
 } satisfies Meta<typeof EmailNotifications>;
@@ -56,7 +57,9 @@ export const SystemThresholdAlerts: Story = {
   args: placeholderArgs,
   render: () => (
     <StatefulDemo
-      initial={new AllSetting({ smtpEnabledEvents: 'cpu.high,memory.high', smtpCpu: 85, smtpMemory: 90 })}
+      initial={
+        new AllSetting({ smtpEnabledEvents: 'cpu.high,memory.high', smtpCpu: 85, smtpMemory: 90 })
+      }
     />
   ),
 };
@@ -64,7 +67,9 @@ export const SystemThresholdAlerts: Story = {
 export const InfrastructureOnly: Story = {
   args: placeholderArgs,
   render: () => (
-    <StatefulDemo initial={new AllSetting({ smtpEnabledEvents: 'outbound.down,node.down,node.up,xray.crash' })} />
+    <StatefulDemo
+      initial={new AllSetting({ smtpEnabledEvents: 'outbound.down,node.down,node.up,xray.crash' })}
+    />
   ),
 };
 
