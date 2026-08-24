@@ -46,6 +46,23 @@ func TestResolveTargetRejectsPrefixLookalikes(t *testing.T) {
 	}
 }
 
+// Go leaves ".." in r.URL.Path, so dispatch sees traversing paths verbatim.
+// They must never resolve to the panel or the subscription without the real
+// prefix actually leading the path.
+func TestResolveTargetRejectsTraversalIntoSecrets(t *testing.T) {
+	c := testConfig()
+	for _, path := range []string{
+		"/x/../nAMUGqBqnQ6crf3zvE/panel",
+		"/../nAMUGqBqnQ6crf3zvE/",
+		"/x/../pojht0vsfvseghbdnr/abc",
+		"/..%2fnAMUGqBqnQ6crf3zvE/",
+	} {
+		if got := c.resolveTarget(path); got != RouteDecoy {
+			t.Errorf("resolveTarget(%q) = %v, want RouteDecoy", path, got)
+		}
+	}
+}
+
 // With the subscription server switched off its path is not special, so it
 // falls through to the decoy rather than proxying to a dead port.
 func TestResolveTargetIgnoresSubPathWhenDisabled(t *testing.T) {
