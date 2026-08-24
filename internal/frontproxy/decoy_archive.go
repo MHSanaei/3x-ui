@@ -144,8 +144,10 @@ func extractDecoy(zr *zip.Reader, dst, prefix string) error {
 		}
 		written += n
 	}
-	if written == 0 {
-		return fmt.Errorf("archive contains no files")
+	// The listing promised an index.html, but the entry may have been skipped
+	// as non-regular. Catch that here rather than silently serve a template.
+	if !DecoyInstalled(dst) {
+		return fmt.Errorf("archive has no usable index.html")
 	}
 	return nil
 }

@@ -96,6 +96,41 @@ func TestInstallDecoyArchiveRejects(t *testing.T) {
 	}
 }
 
+// A symlinked index.html satisfies the listing check but is skipped during
+// extraction, so the upload must fail loudly instead of reporting success and
+// leaving the door on a template.
+func TestInstallDecoyArchiveRejectsNonRegularIndex(t *testing.T) {
+	buf := &bytes.Buffer{}
+	zw := zip.NewWriter(buf)
+	header := &zip.FileHeader{Name: "index.html"}
+	header.SetMode(os.ModeSymlink | 0o777)
+	w, err := zw.CreateHeader(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte("/etc/passwd")); err != nil {
+		t.Fatal(err)
+	}
+	other, err := zw.Create("other.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := other.Write([]byte("filler")); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	dir := filepath.Join(t.TempDir(), "decoy")
+	if err := InstallDecoyArchive(dir, bytes.NewReader(buf.Bytes()), int64(buf.Len())); err == nil {
+		t.Fatal("install succeeded with a symlinked index.html, want refusal")
+	}
+	if _, err := os.Stat(dir); err == nil {
+		t.Error("a refused install still created the decoy directory")
+	}
+}
+
 func TestInstallDecoyArchiveRejectsTooManyEntries(t *testing.T) {
 	entries := make([][2]string, 0, maxDecoyEntries+1)
 	entries = append(entries, [2]string{"index.html", "x"})
