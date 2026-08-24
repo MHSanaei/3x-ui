@@ -13,6 +13,7 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   ExportOutlined,
+  GatewayOutlined,
   GithubOutlined,
   GlobalOutlined,
   HeartOutlined,
@@ -217,6 +218,7 @@ export default function AppSidebar() {
       { key: '/settings#telegram', icon: <MessageOutlined />, label: t('pages.settings.TGBotSettings') },
       { key: '/settings#email', icon: <MailOutlined />, label: t('pages.settings.emailSettings') },
       { key: '/settings#subscription', icon: <CloudServerOutlined />, label: t('pages.settings.subSettings') },
+      { key: '/settings#frontproxy', icon: <GatewayOutlined />, label: t('pages.settings.frontProxy.tab') },
     ];
     if (showSubFormats) {
       children.push({ key: '/settings#subscription-formats', icon: <CodeOutlined />, label: 'Sub Formats' });

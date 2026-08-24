@@ -418,6 +418,23 @@ func updateSetting(port int, username string, password string, webBasePath strin
 	return nil
 }
 
+// disableFrontProxySetting turns the built-in reverse proxy off by writing
+// straight to the database, so it works over SSH when a misconfigured door
+// has made the panel itself unreachable. Restart the panel afterwards.
+func disableFrontProxySetting() error {
+	if err := database.InitDB(config.GetDBPath()); err != nil {
+		fmt.Println("Database initialization failed:", err)
+		return err
+	}
+	settingService := service.SettingService{}
+	if err := settingService.SetFrontProxyEnable(false); err != nil {
+		fmt.Println("Failed to disable the front proxy:", err)
+		return err
+	}
+	fmt.Println("Front proxy disabled. Restart the panel for it to take effect.")
+	return nil
+}
+
 // updateCert updates the SSL certificate files for the panel.
 func updateCert(publicKey string, privateKey string) {
 	err := database.InitDB(config.GetDBPath())
@@ -606,6 +623,7 @@ func main() {
 	var getCert bool
 	var getApiToken bool
 	var resetTwoFactor bool
+	var disableFrontProxy bool
 	settingCmd.BoolVar(&reset, "reset", false, "Reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "Display current settings")
 	settingCmd.IntVar(&port, "port", 0, "Set panel port number")
@@ -614,6 +632,7 @@ func main() {
 	settingCmd.StringVar(&webBasePath, "webBasePath", "", "Set base path for Panel")
 	settingCmd.StringVar(&listenIP, "listenIP", "", "set panel listenIP IP")
 	settingCmd.BoolVar(&resetTwoFactor, "resetTwoFactor", false, "Reset two-factor authentication settings")
+	settingCmd.BoolVar(&disableFrontProxy, "disableFrontProxy", false, "Turn the built-in reverse proxy off (recovery path when it makes the panel unreachable)")
 	settingCmd.BoolVar(&getListen, "getListen", false, "Display current panel listenIP IP")
 	settingCmd.BoolVar(&getCert, "getCert", false, "Display current certificate settings")
 	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Display current API token")
@@ -694,6 +713,11 @@ func main() {
 			}
 		} else {
 			if err = updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor); err != nil {
+				return
+			}
+		}
+		if disableFrontProxy {
+			if err = disableFrontProxySetting(); err != nil {
 				return
 			}
 		}

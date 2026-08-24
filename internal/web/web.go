@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
+	"github.com/mhsanaei/3x-ui/v3/internal/frontproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/tor"
@@ -32,6 +33,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -520,6 +522,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	}
 
+	// Same shape for the reverse proxy. AutoStart never returns an error: a
+	// proxy that cannot come up must not stop the panel itself from starting.
+	(&integration.FrontProxyService{}).AutoStart()
+
 	// Wire the inbound-runtime manager once so InboundService can route
 	// add/update/delete to either the local xray or a remote node panel.
 	// The closures bridge into XrayService (which owns the running xray
@@ -701,6 +707,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		tor.GetManager().StopAll()
+		frontproxy.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

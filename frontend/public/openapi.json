@@ -41,6 +41,35 @@
           "externalTrafficInformURI": {
             "type": "string"
           },
+          "frontProxyCertMode": {
+            "type": "string"
+          },
+          "frontProxyDecoyMode": {
+            "type": "string"
+          },
+          "frontProxyDecoyProxyURL": {
+            "type": "string"
+          },
+          "frontProxyDecoyTemplate": {
+            "type": "string"
+          },
+          "frontProxyDomain": {
+            "type": "string"
+          },
+          "frontProxyEmail": {
+            "type": "string"
+          },
+          "frontProxyEnable": {
+            "type": "boolean"
+          },
+          "frontProxyListen": {
+            "type": "string"
+          },
+          "frontProxyPort": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
           "ldapAutoCreate": {
             "type": "boolean"
           },
@@ -380,6 +409,15 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "frontProxyCertMode",
+          "frontProxyDecoyMode",
+          "frontProxyDecoyProxyURL",
+          "frontProxyDecoyTemplate",
+          "frontProxyDomain",
+          "frontProxyEmail",
+          "frontProxyEnable",
+          "frontProxyListen",
+          "frontProxyPort",
           "ldapAutoCreate",
           "ldapAutoDelete",
           "ldapBaseDN",
@@ -498,6 +536,35 @@
           },
           "externalTrafficInformURI": {
             "type": "string"
+          },
+          "frontProxyCertMode": {
+            "type": "string"
+          },
+          "frontProxyDecoyMode": {
+            "type": "string"
+          },
+          "frontProxyDecoyProxyURL": {
+            "type": "string"
+          },
+          "frontProxyDecoyTemplate": {
+            "type": "string"
+          },
+          "frontProxyDomain": {
+            "type": "string"
+          },
+          "frontProxyEmail": {
+            "type": "string"
+          },
+          "frontProxyEnable": {
+            "type": "boolean"
+          },
+          "frontProxyListen": {
+            "type": "string"
+          },
+          "frontProxyPort": {
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
           },
           "hasApiToken": {
             "type": "boolean"
@@ -859,6 +926,15 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "frontProxyCertMode",
+          "frontProxyDecoyMode",
+          "frontProxyDecoyProxyURL",
+          "frontProxyDecoyTemplate",
+          "frontProxyDomain",
+          "frontProxyEmail",
+          "frontProxyEnable",
+          "frontProxyListen",
+          "frontProxyPort",
           "hasApiToken",
           "hasLdapPassword",
           "hasNordSecret",
@@ -11363,6 +11439,87 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/frontproxy/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage the built-in reverse proxy that Xray's REALITY fallback target points at. The action parameter selects the operation.",
+        "operationId": "post_panel_api_xray_frontproxy_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "status — return {running, port, templates, decoyUploaded}. start — bring the reverse-proxy listener up and remember the choice across restarts. stop — shut it down, also remembered. removeDecoy — delete the uploaded decoy site. Port, certificate and decoy settings are persisted separately and only take effect after a panel restart.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/frontproxy/decoy/upload": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Replace the reverse proxy decoy with an uploaded static site. The zip must contain an index.html, either at its root or inside a single wrapping folder.",
+        "operationId": "post_panel_api_xray_frontproxy_decoy_upload",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
