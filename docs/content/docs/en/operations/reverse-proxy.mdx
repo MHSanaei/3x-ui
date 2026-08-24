@@ -9,6 +9,45 @@ automatic HTTPS, and hide the real ports behind ports 80/443. Prefer to let the
 panel terminate TLS directly? Get a certificate with the
 [`x-ui` SSL menu](/docs/config/ssl-certificates) instead.
 
+## Built-in front door
+
+This fork ships its own reverse proxy, so the common case needs no Nginx or
+Caddy at all. Turn it on under **Settings → Front door**. It is a single local
+TLS listener that routes by path:
+
+| Request path | Goes to |
+| --- | --- |
+| Your panel's web base path | The panel |
+| Your subscription path | The subscription server |
+| Everything else | A decoy site |
+
+The point is the third row. Pair it with REALITY: set a REALITY inbound's
+fallback `target` to `127.0.0.1:<front door port>`, and anyone who probes your
+`:443` without a valid REALITY key is handed an ordinary-looking website
+instead of something that reveals a panel is running here.
+
+<Callout type="warn">
+  REALITY's fallback is a blind byte relay — Xray cannot decrypt it, so the
+  front door has to terminate real TLS itself. Choose **Manual** to reuse the
+  panel's own certificate files, or **Automatic** to have the panel obtain one
+  from Let's Encrypt. Automatic uses the HTTP-01 challenge, because Xray owns
+  port 443; port 80 must be free and reachable from the internet.
+</Callout>
+
+The decoy can be one of the pages built into the panel, a static site you
+upload as a zip (an `index.html` at its root or inside a single folder, up to
+64 MiB), or a reverse proxy to a site you already host elsewhere.
+
+<Callout type="info">
+  If a misconfigured front door ever locks you out of the panel, turn it off
+  over SSH with `x-ui setting -disableFrontProxy` and restart the panel. The
+  command writes straight to the database and does not need a running panel.
+</Callout>
+
+Reach for Nginx or Caddy instead when you need things the front door
+deliberately does not do: routing for services other than this panel, CDN
+fronting, or per-path rate limiting and access rules.
+
 ## Generate a config
 
 <ReverseProxyGenerator />
