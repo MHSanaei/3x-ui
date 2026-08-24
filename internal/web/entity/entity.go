@@ -131,6 +131,16 @@ type AllSetting struct {
 	LdapDefaultLimitIP     int    `json:"ldapDefaultLimitIP" form:"ldapDefaultLimitIP" validate:"gte=0"`
 
 	WarpUpdateInterval int `json:"warpUpdateInterval" form:"warpUpdateInterval" validate:"gte=0"`
+
+	FrontProxyEnable        bool   `json:"frontProxyEnable" form:"frontProxyEnable"`
+	FrontProxyListen        string `json:"frontProxyListen" form:"frontProxyListen"`
+	FrontProxyPort          int    `json:"frontProxyPort" form:"frontProxyPort" validate:"gte=1,lte=65535"`
+	FrontProxyCertMode      string `json:"frontProxyCertMode" form:"frontProxyCertMode"`
+	FrontProxyDomain        string `json:"frontProxyDomain" form:"frontProxyDomain"`
+	FrontProxyEmail         string `json:"frontProxyEmail" form:"frontProxyEmail"`
+	FrontProxyDecoyMode     string `json:"frontProxyDecoyMode" form:"frontProxyDecoyMode"`
+	FrontProxyDecoyTemplate string `json:"frontProxyDecoyTemplate" form:"frontProxyDecoyTemplate"`
+	FrontProxyDecoyProxyURL string `json:"frontProxyDecoyProxyURL" form:"frontProxyDecoyProxyURL"`
 }
 
 type AllSettingView struct {

@@ -1348,6 +1348,9 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	if err := validateSubUserAgentRegexes(allSetting); err != nil {
 		return err
 	}
+	if err := validateFrontProxySettings(allSetting); err != nil {
+		return err
+	}
 	if err := allSetting.CheckValid(); err != nil {
 		return err
 	}
@@ -1483,6 +1486,42 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 	// the scheme instead of forcing SanitizeHTTPURL's http(s)-only rule.
 	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
 	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
+	return nil
+}
+
+// validateFrontProxySettings repeats what the SetFrontProxyXxx setters
+// enforce: UpdateAllSetting writes fields straight to the DB and skips them.
+func validateFrontProxySettings(allSetting *entity.AllSetting) error {
+	if allSetting.FrontProxyPort <= 0 || allSetting.FrontProxyPort > 65535 {
+		return common.NewErrorf("invalid front proxy port: %v", allSetting.FrontProxyPort)
+	}
+	if allSetting.FrontProxyListen != "" && net.ParseIP(allSetting.FrontProxyListen) == nil {
+		return common.NewError("front proxy listen is not a valid ip:", allSetting.FrontProxyListen)
+	}
+	mode := frontproxy.CertMode(allSetting.FrontProxyCertMode)
+	if mode != frontproxy.CertManual && mode != frontproxy.CertAuto {
+		return common.NewErrorf("invalid front proxy cert mode: %v", allSetting.FrontProxyCertMode)
+	}
+	// ACME needs a name to ask for; without one the door would come up with
+	// no certificate at all and every REALITY fallback would fail its TLS.
+	if mode == frontproxy.CertAuto && strings.TrimSpace(allSetting.FrontProxyDomain) == "" {
+		return common.NewError("automatic certificates need a domain")
+	}
+	switch frontproxy.DecoyMode(allSetting.FrontProxyDecoyMode) {
+	case frontproxy.DecoyTemplate, frontproxy.DecoyUpload, frontproxy.DecoyProxy:
+	default:
+		return common.NewErrorf("invalid front proxy decoy mode: %v", allSetting.FrontProxyDecoyMode)
+	}
+	if !slices.Contains(frontproxy.DecoyTemplateNames(), allSetting.FrontProxyDecoyTemplate) {
+		return common.NewErrorf("unknown front proxy decoy template: %v", allSetting.FrontProxyDecoyTemplate)
+	}
+	if allSetting.FrontProxyDecoyProxyURL != "" {
+		clean, err := SanitizePublicHTTPURL(allSetting.FrontProxyDecoyProxyURL, false)
+		if err != nil {
+			return common.NewError("front proxy decoy URL is invalid:", err)
+		}
+		allSetting.FrontProxyDecoyProxyURL = clean
+	}
 	return nil
 }
 

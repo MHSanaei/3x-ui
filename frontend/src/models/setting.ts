@@ -107,6 +107,15 @@ export class AllSetting {
   smtpCpu = 80;
   smtpMemory = 80;
   outboundDownThreshold = 3;
+  frontProxyEnable = false;
+  frontProxyListen = '127.0.0.1';
+  frontProxyPort = 7443;
+  frontProxyCertMode: 'manual' | 'auto' = 'manual';
+  frontProxyDomain = '';
+  frontProxyEmail = '';
+  frontProxyDecoyMode: 'template' | 'upload' | 'proxy' = 'template';
+  frontProxyDecoyTemplate = 'maintenance';
+  frontProxyDecoyProxyURL = '';
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;

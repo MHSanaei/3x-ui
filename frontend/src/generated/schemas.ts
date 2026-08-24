@@ -15,6 +15,35 @@ export const SCHEMAS: Record<string, unknown> = {
       "externalTrafficInformURI": {
         "type": "string"
       },
+      "frontProxyCertMode": {
+        "type": "string"
+      },
+      "frontProxyDecoyMode": {
+        "type": "string"
+      },
+      "frontProxyDecoyProxyURL": {
+        "type": "string"
+      },
+      "frontProxyDecoyTemplate": {
+        "type": "string"
+      },
+      "frontProxyDomain": {
+        "type": "string"
+      },
+      "frontProxyEmail": {
+        "type": "string"
+      },
+      "frontProxyEnable": {
+        "type": "boolean"
+      },
+      "frontProxyListen": {
+        "type": "string"
+      },
+      "frontProxyPort": {
+        "maximum": 65535,
+        "minimum": 1,
+        "type": "integer"
+      },
       "ldapAutoCreate": {
         "type": "boolean"
       },
@@ -354,6 +383,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
+      "frontProxyCertMode",
+      "frontProxyDecoyMode",
+      "frontProxyDecoyProxyURL",
+      "frontProxyDecoyTemplate",
+      "frontProxyDomain",
+      "frontProxyEmail",
+      "frontProxyEnable",
+      "frontProxyListen",
+      "frontProxyPort",
       "ldapAutoCreate",
       "ldapAutoDelete",
       "ldapBaseDN",
@@ -472,6 +510,35 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "externalTrafficInformURI": {
         "type": "string"
+      },
+      "frontProxyCertMode": {
+        "type": "string"
+      },
+      "frontProxyDecoyMode": {
+        "type": "string"
+      },
+      "frontProxyDecoyProxyURL": {
+        "type": "string"
+      },
+      "frontProxyDecoyTemplate": {
+        "type": "string"
+      },
+      "frontProxyDomain": {
+        "type": "string"
+      },
+      "frontProxyEmail": {
+        "type": "string"
+      },
+      "frontProxyEnable": {
+        "type": "boolean"
+      },
+      "frontProxyListen": {
+        "type": "string"
+      },
+      "frontProxyPort": {
+        "maximum": 65535,
+        "minimum": 1,
+        "type": "integer"
       },
       "hasApiToken": {
         "type": "boolean"
@@ -833,6 +900,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
+      "frontProxyCertMode",
+      "frontProxyDecoyMode",
+      "frontProxyDecoyProxyURL",
+      "frontProxyDecoyTemplate",
+      "frontProxyDomain",
+      "frontProxyEmail",
+      "frontProxyEnable",
+      "frontProxyListen",
+      "frontProxyPort",
       "hasApiToken",
       "hasLdapPassword",
       "hasNordSecret",
