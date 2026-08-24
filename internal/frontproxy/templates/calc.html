@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "calc" "title" "Калькулятор" "Онлайн-калькулятор" "Простой калькулятор"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { width:100%; max-width:20rem; padding:{{.Pad}}px; }
+h1 { font-size:1.1rem; margin:0 0 .9rem; color:{{.Muted}}; font-weight:500; }
+#out { font-size:2rem; text-align:right; padding:.7rem .9rem; border-radius:{{.Radius}}px;
+  background:rgba(128,128,128,.1); font-variant-numeric:tabular-nums; overflow:hidden;
+  white-space:nowrap; text-overflow:ellipsis; margin-bottom:.7rem; }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.5rem; }
+button { font:inherit; padding:.8rem 0; border:0; cursor:pointer; border-radius:{{.Radius}}px;
+  background:rgba(128,128,128,.12); color:inherit; }
+button:hover { background:rgba(128,128,128,.2); }
+button.op { background:{{.Accent}}; color:#fff; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "calc" "head" "Калькулятор" "Быстрый счёт" "Считалка"}}</h1>
+<div id="out">0</div>
+<div class="grid" id="pad"></div>
+</main>
+<script>
+(function () {
+  var out = document.getElementById('out');
+  var expr = '';
+  var keys = ['C', '(', ')', '/', '7', '8', '9', '*', '4', '5', '6', '-', '1', '2', '3', '+', '0', '.', '=', ''];
+  var pad = document.getElementById('pad');
+  keys.forEach(function (k) {
+    if (k === '') { pad.appendChild(document.createElement('span')); return; }
+    var b = document.createElement('button');
+    b.textContent = k;
+    if ('/*-+='.indexOf(k) >= 0) b.className = 'op';
+    b.addEventListener('click', function () { press(k); });
+    pad.appendChild(b);
+  });
+  function press(k) {
+    if (k === 'C') { expr = ''; out.textContent = '0'; return; }
+    if (k === '=') { out.textContent = evaluate(expr); expr = out.textContent === 'Ошибка' ? '' : out.textContent; return; }
+    expr += k;
+    out.textContent = expr;
+  }
+  function evaluate(s) {
+    var tokens = s.match(/\d+\.?\d*|[()+\-*/]/g);
+    if (!tokens) return 'Ошибка';
+    var prec = { '+': 1, '-': 1, '*': 2, '/': 2 }, ops = [], vals = [];
+    function apply() {
+      var op = ops.pop(), b = vals.pop(), a = vals.pop();
+      if (a === undefined || b === undefined) throw 0;
+      if (op === '+') vals.push(a + b);
+      else if (op === '-') vals.push(a - b);
+      else if (op === '*') vals.push(a * b);
+      else { if (b === 0) throw 0; vals.push(a / b); }
+    }
+    try {
+      for (var i = 0; i < tokens.length; i++) {
+        var t = tokens[i];
+        if (/^\d/.test(t)) vals.push(parseFloat(t));
+        else if (t === '(') ops.push(t);
+        else if (t === ')') { while (ops.length && ops[ops.length - 1] !== '(') apply(); ops.pop(); }
+        else { while (ops.length && prec[ops[ops.length - 1]] >= prec[t]) apply(); ops.push(t); }
+      }
+      while (ops.length) apply();
+      var r = vals.pop();
+      if (vals.length || r === undefined || !isFinite(r)) return 'Ошибка';
+      return String(Math.round(r * 1e10) / 1e10);
+    } catch (e) { return 'Ошибка'; }
+  }
+})();
+</script>
+</body>
+</html>

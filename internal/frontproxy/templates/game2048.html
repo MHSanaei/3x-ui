@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "game2048" "title" "2048" "Игра 2048" "Головоломка 2048"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1.2rem; margin:0 0 .8rem; }
+#b { display:grid; grid-template-columns:repeat(4,4rem); gap:.45rem; justify-content:center;
+  touch-action:none; user-select:none; }
+#b div { height:4rem; display:flex; align-items:center; justify-content:center;
+  border-radius:{{.Radius}}px; background:rgba(128,128,128,.1); font-weight:600; font-size:1.3rem; }
+#b div.f { background:{{.Accent}}; color:#fff; }
+#s { margin:1rem 0 .3rem; color:{{.Muted}}; }
+.hint { color:{{.Muted}}; font-size:.85rem; margin:0; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "game2048" "head" "2048" "Складывай числа" "Головоломка 2048"}}</h1>
+<div id="b"></div>
+<p id="s">Счёт: 0</p>
+<p class="hint">Управление — стрелки или свайп</p>
+</main>
+<script>
+(function () {
+  var cells = [], grid = [], score = 0;
+  var b = document.getElementById('b'), s = document.getElementById('s');
+  for (var i = 0; i < 16; i++) { var d = document.createElement('div'); b.appendChild(d); cells.push(d); }
+  function spawn() {
+    var free = [];
+    for (var i = 0; i < 16; i++) if (!grid[i]) free.push(i);
+    if (!free.length) return;
+    grid[free[Math.floor(Math.random() * free.length)]] = Math.random() < 0.9 ? 2 : 4;
+  }
+  function paint() {
+    for (var i = 0; i < 16; i++) {
+      cells[i].textContent = grid[i] || '';
+      cells[i].className = grid[i] ? 'f' : '';
+    }
+    s.textContent = 'Счёт: ' + score;
+  }
+  function line(v) {
+    var a = v.filter(function (x) { return x; });
+    for (var i = 0; i < a.length - 1; i++) {
+      if (a[i] === a[i + 1]) { a[i] *= 2; score += a[i]; a.splice(i + 1, 1); }
+    }
+    while (a.length < 4) a.push(0);
+    return a;
+  }
+  function move(dir) {
+    var before = grid.join(',');
+    for (var i = 0; i < 4; i++) {
+      var idx = [];
+      for (var j = 0; j < 4; j++) {
+        idx.push(dir === 'l' || dir === 'r' ? i * 4 + j : j * 4 + i);
+      }
+      if (dir === 'r' || dir === 'd') idx.reverse();
+      var vals = line(idx.map(function (k) { return grid[k]; }));
+      idx.forEach(function (k, n) { grid[k] = vals[n]; });
+    }
+    if (grid.join(',') !== before) { spawn(); paint(); }
+  }
+  document.addEventListener('keydown', function (e) {
+    var m = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd' }[e.key];
+    if (!m) return;
+    e.preventDefault(); move(m);
+  });
+  var sx = 0, sy = 0;
+  b.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; });
+  b.addEventListener('pointerup', function (e) {
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+    if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'r' : 'l');
+    else move(dy > 0 ? 'd' : 'u');
+  });
+  grid = new Array(16).fill(0);
+  spawn(); spawn(); paint();
+})();
+</script>
+</body>
+</html>

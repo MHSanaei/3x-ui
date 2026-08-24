@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "minesweeper" "title" "Сапёр" "Игра Сапёр" "Минное поле"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1.2rem; margin:0 0 .8rem; }
+#b { display:grid; grid-template-columns:repeat(9,2.1rem); gap:2px; justify-content:center; }
+#b button { font:inherit; font-size:.95rem; font-weight:600; height:2.1rem; padding:0; border:0;
+  cursor:pointer; border-radius:3px; background:{{.Accent}}; color:#fff; }
+#b button.open { background:rgba(128,128,128,.12); color:{{.Ink}}; cursor:default; }
+#b button.mine { background:#c0392b; color:#fff; }
+#s { margin:1rem 0 .8rem; color:{{.Muted}}; min-height:1.4em; }
+#again { font:inherit; padding:.5rem 1.2rem; border:0; border-radius:{{.Radius}}px;
+  background:rgba(128,128,128,.15); color:inherit; cursor:pointer; }
+.hint { color:{{.Muted}}; font-size:.82rem; margin:.6rem 0 0; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "minesweeper" "head" "Сапёр" "Минное поле" "Найди все мины"}}</h1>
+<div id="b"></div>
+<p id="s">Мин: 10</p>
+<button id="again">Новая игра</button>
+<p class="hint">ЛКМ — открыть, ПКМ — флажок</p>
+</main>
+<script>
+(function () {
+  var W = 9, H = 9, M = 10;
+  var cells = [], mine = [], open = [], flag = [], over = false, opened = 0;
+  var b = document.getElementById('b'), s = document.getElementById('s');
+  for (var i = 0; i < W * H; i++) {
+    (function (i) {
+      var el = document.createElement('button');
+      el.addEventListener('click', function () { dig(i); });
+      el.addEventListener('contextmenu', function (e) { e.preventDefault(); mark(i); });
+      b.appendChild(el); cells.push(el);
+    })(i);
+  }
+  function around(i) {
+    var r = Math.floor(i / W), c = i % W, out = [];
+    for (var dr = -1; dr <= 1; dr++) {
+      for (var dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        var nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < H && nc >= 0 && nc < W) out.push(nr * W + nc);
+      }
+    }
+    return out;
+  }
+  function count(i) {
+    return around(i).filter(function (j) { return mine[j]; }).length;
+  }
+  function dig(i) {
+    if (over || open[i] || flag[i]) return;
+    if (mine[i]) {
+      over = true;
+      for (var k = 0; k < W * H; k++) if (mine[k]) { cells[k].className = 'mine'; cells[k].textContent = '✳'; }
+      s.textContent = 'Взрыв! Попробуйте снова';
+      return;
+    }
+    var stack = [i];
+    while (stack.length) {
+      var j = stack.pop();
+      if (open[j] || flag[j]) continue;
+      open[j] = true; opened++;
+      var n = count(j);
+      cells[j].className = 'open';
+      cells[j].textContent = n ? n : '';
+      if (!n) around(j).forEach(function (k) { if (!open[k]) stack.push(k); });
+    }
+    if (opened === W * H - M) { over = true; s.textContent = 'Поле разминировано!'; }
+  }
+  function mark(i) {
+    if (over || open[i]) return;
+    flag[i] = !flag[i];
+    cells[i].textContent = flag[i] ? '⚑' : '';
+    var left = M - flag.filter(Boolean).length;
+    s.textContent = 'Мин: ' + left;
+  }
+  function reset() {
+    mine = []; open = []; flag = []; over = false; opened = 0;
+    var spots = [];
+    for (var i = 0; i < W * H; i++) spots.push(i);
+    for (var k = 0; k < M; k++) {
+      var p = Math.floor(Math.random() * spots.length);
+      mine[spots[p]] = true; spots.splice(p, 1);
+    }
+    cells.forEach(function (el) { el.className = ''; el.textContent = ''; });
+    s.textContent = 'Мин: ' + M;
+  }
+  document.getElementById('again').addEventListener('click', reset);
+  reset();
+})();
+</script>
+</body>
+</html>

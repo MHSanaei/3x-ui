@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "soon" "title" "Скоро открытие" "Готовим запуск" "Мы почти готовы"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.6 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { max-width:{{.Wide}}rem; padding:{{.Pad}}px; text-align:center; }
+h1 { font-size:1.7rem; margin:0 0 .5rem; }
+p { color:{{.Muted}}; margin:0 0 1.5rem; }
+.bar { height:6px; border-radius:{{.Radius}}px; background:rgba(128,128,128,.2); overflow:hidden; }
+.bar i { display:block; height:100%; width:68%; background:{{.Accent}}; }
+.pct { margin-top:.6rem; font-size:.85rem; color:{{.Muted}}; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "soon" "head" "Скоро открытие" "Готовим запуск" "Мы почти готовы"}}</h1>
+<p>{{.Pick "soon" "body" "Сайт находится в разработке. Загляните позже." "Заканчиваем последние приготовления." "Ещё немного — и всё будет готово."}}</p>
+<div class="bar"><i></i></div>
+<div class="pct">{{.Pick "soon" "pct" "Готовность 68%" "Почти готово" "Осталось совсем чуть-чуть"}}</div>
+</main>
+</body>
+</html>

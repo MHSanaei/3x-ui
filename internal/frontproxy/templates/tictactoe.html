@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "tictactoe" "title" "Крестики-нолики" "Игра в крестики-нолики" "Три в ряд"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1.2rem; margin:0 0 1rem; }
+#b { display:grid; grid-template-columns:repeat(3,4.5rem); gap:.5rem; justify-content:center; }
+#b button { font:inherit; font-size:2rem; height:4.5rem; border:0; cursor:pointer;
+  border-radius:{{.Radius}}px; background:rgba(128,128,128,.12); color:{{.Accent}}; }
+#b button:hover:not(:disabled) { background:rgba(128,128,128,.22); }
+#msg { margin:1.1rem 0 .8rem; min-height:1.5em; color:{{.Muted}}; }
+#again { font:inherit; padding:.5rem 1.2rem; border:0; border-radius:{{.Radius}}px;
+  background:{{.Accent}}; color:#fff; cursor:pointer; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "tictactoe" "head" "Крестики-нолики" "Три в ряд" "Сыграем?"}}</h1>
+<div id="b"></div>
+<p id="msg">Ваш ход — X</p>
+<button id="again">Заново</button>
+</main>
+<script>
+(function () {
+  var wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  var cells = [], board = new Array(9).fill(''), over = false;
+  var b = document.getElementById('b'), msg = document.getElementById('msg');
+  for (var i = 0; i < 9; i++) {
+    (function (i) {
+      var el = document.createElement('button');
+      el.addEventListener('click', function () { play(i); });
+      b.appendChild(el); cells.push(el);
+    })(i);
+  }
+  function winner(s) {
+    for (var i = 0; i < wins.length; i++) {
+      var w = wins[i];
+      if (s[w[0]] && s[w[0]] === s[w[1]] && s[w[1]] === s[w[2]]) return s[w[0]];
+    }
+    return s.indexOf('') < 0 ? 'draw' : null;
+  }
+  function paint() {
+    for (var i = 0; i < 9; i++) { cells[i].textContent = board[i]; cells[i].disabled = !!board[i] || over; }
+  }
+  function finish(w) {
+    over = true;
+    msg.textContent = w === 'draw' ? 'Ничья' : (w === 'X' ? 'Вы выиграли' : 'Победа компьютера');
+    paint();
+  }
+  function best() {
+    var empty = [];
+    for (var i = 0; i < 9; i++) if (!board[i]) empty.push(i);
+    for (var k = 0; k < 2; k++) {
+      var me = k === 0 ? 'O' : 'X';
+      for (var j = 0; j < empty.length; j++) {
+        var t = board.slice(); t[empty[j]] = me;
+        if (winner(t) === me) return empty[j];
+      }
+    }
+    if (!board[4]) return 4;
+    return empty[Math.floor(Math.random() * empty.length)];
+  }
+  function play(i) {
+    if (over || board[i]) return;
+    board[i] = 'X'; paint();
+    var w = winner(board);
+    if (w) return finish(w);
+    var m = best();
+    if (m !== undefined) board[m] = 'O';
+    paint();
+    w = winner(board);
+    if (w) return finish(w);
+    msg.textContent = 'Ваш ход — X';
+  }
+  document.getElementById('again').addEventListener('click', function () {
+    board = new Array(9).fill(''); over = false; msg.textContent = 'Ваш ход — X'; paint();
+  });
+  paint();
+})();
+</script>
+</body>
+</html>

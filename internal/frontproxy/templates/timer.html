@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "timer" "title" "Секундомер" "Таймер и секундомер" "Онлайн-секундомер"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1rem; font-weight:500; color:{{.Muted}}; margin:0 0 1rem;
+  text-transform:uppercase; letter-spacing:.12em; }
+#t { font-size:clamp(2.6rem,13vw,4.6rem); font-weight:600; font-variant-numeric:tabular-nums;
+  color:{{.Accent}}; margin:0 0 1.4rem; }
+button { font:inherit; padding:.6rem 1.4rem; margin:0 .3rem; border:0; cursor:pointer;
+  border-radius:{{.Radius}}px; background:rgba(128,128,128,.15); color:inherit; }
+button.p { background:{{.Accent}}; color:#fff; }
+ol { list-style:none; padding:0; margin:1.4rem 0 0; color:{{.Muted}}; font-size:.9rem;
+  max-height:9rem; overflow:auto; font-variant-numeric:tabular-nums; }
+ol li { padding:.2rem 0; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "timer" "head" "Секундомер" "Отсчёт времени" "Хронометр"}}</h1>
+<p id="t">00:00.0</p>
+<button id="go" class="p">Старт</button>
+<button id="lap">Круг</button>
+<button id="rst">Сброс</button>
+<ol id="laps"></ol>
+</main>
+<script>
+(function () {
+  var start = 0, acc = 0, timer = null, n = 0;
+  var el = document.getElementById('t'), go = document.getElementById('go');
+  function fmt(ms) {
+    var t = Math.floor(ms / 100), d = t % 10, s = Math.floor(t / 10) % 60, m = Math.floor(t / 600);
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s + '.' + d;
+  }
+  function paint() { el.textContent = fmt(acc + (start ? Date.now() - start : 0)); }
+  go.addEventListener('click', function () {
+    if (timer) {
+      acc += Date.now() - start; start = 0;
+      clearInterval(timer); timer = null; go.textContent = 'Старт';
+    } else {
+      start = Date.now(); timer = setInterval(paint, 100); go.textContent = 'Пауза';
+    }
+    paint();
+  });
+  document.getElementById('lap').addEventListener('click', function () {
+    if (!timer && !acc) return;
+    var li = document.createElement('li');
+    li.textContent = 'Круг ' + (++n) + ' — ' + el.textContent;
+    document.getElementById('laps').prepend(li);
+  });
+  document.getElementById('rst').addEventListener('click', function () {
+    clearInterval(timer); timer = null; start = 0; acc = 0; n = 0;
+    go.textContent = 'Старт';
+    document.getElementById('laps').innerHTML = '';
+    paint();
+  });
+  paint();
+})();
+</script>
+</body>
+</html>

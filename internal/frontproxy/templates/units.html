@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "units" "title" "Конвертер величин" "Перевод единиц" "Калькулятор единиц"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.6 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { width:100%; max-width:{{.Wide}}rem; padding:{{.Pad}}px; }
+h1 { font-size:1.3rem; margin:0 0 1rem; }
+select, input { font:inherit; width:100%; box-sizing:border-box; padding:.6rem .7rem;
+  border-radius:{{.Radius}}px; border:1px solid rgba(128,128,128,.3);
+  background:rgba(128,128,128,.06); color:inherit; margin-bottom:.7rem; }
+.row { display:grid; grid-template-columns:1fr auto; gap:.6rem; align-items:start; }
+.eq { text-align:center; color:{{.Muted}}; margin:.2rem 0 .7rem; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "units" "head" "Конвертер величин" "Перевод единиц" "Пересчёт единиц"}}</h1>
+<select id="kind"></select>
+<div class="row"><input id="a" type="number" value="1"><select id="au"></select></div>
+<div class="eq">=</div>
+<div class="row"><input id="b" type="number" readonly><select id="bu"></select></div>
+</main>
+<script>
+(function () {
+  var sets = {
+    'Длина': { 'миллиметр': 0.001, 'сантиметр': 0.01, 'метр': 1, 'километр': 1000, 'дюйм': 0.0254, 'фут': 0.3048, 'миля': 1609.344 },
+    'Масса': { 'грамм': 0.001, 'килограмм': 1, 'тонна': 1000, 'фунт': 0.45359237, 'унция': 0.028349523 },
+    'Объём': { 'миллилитр': 0.001, 'литр': 1, 'кубометр': 1000, 'галлон': 3.785411784 },
+    'Скорость': { 'м/с': 1, 'км/ч': 0.277777778, 'миль/ч': 0.44704, 'узел': 0.514444444 },
+    'Данные': { 'байт': 1, 'КиБ': 1024, 'МиБ': 1048576, 'ГиБ': 1073741824, 'ТиБ': 1099511627776 }
+  };
+  var kind = document.getElementById('kind'), au = document.getElementById('au'), bu = document.getElementById('bu');
+  var a = document.getElementById('a'), b = document.getElementById('b');
+  Object.keys(sets).forEach(function (k) {
+    var o = document.createElement('option'); o.textContent = k; kind.appendChild(o);
+  });
+  function fillUnits() {
+    var units = Object.keys(sets[kind.value]);
+    [au, bu].forEach(function (sel, i) {
+      sel.innerHTML = '';
+      units.forEach(function (u) {
+        var o = document.createElement('option'); o.textContent = u; sel.appendChild(o);
+      });
+      sel.selectedIndex = Math.min(i, units.length - 1);
+    });
+    convert();
+  }
+  function convert() {
+    var f = sets[kind.value];
+    var v = parseFloat(a.value);
+    if (isNaN(v)) { b.value = ''; return; }
+    var r = v * f[au.value] / f[bu.value];
+    b.value = String(Math.round(r * 1e6) / 1e6);
+  }
+  kind.addEventListener('change', fillUnits);
+  [a, au, bu].forEach(function (el) { el.addEventListener('input', convert); el.addEventListener('change', convert); });
+  fillUnits();
+})();
+</script>
+</body>
+</html>

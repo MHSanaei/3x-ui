@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "fifteen" "title" "Пятнашки" "Игра в пятнашки" "Головоломка 15"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1.2rem; margin:0 0 .9rem; }
+#b { display:grid; grid-template-columns:repeat(4,3.6rem); gap:.4rem; justify-content:center; }
+#b button { font:inherit; font-size:1.25rem; font-weight:600; height:3.6rem; border:0;
+  border-radius:{{.Radius}}px; background:{{.Accent}}; color:#fff; cursor:pointer; }
+#b button.empty { background:rgba(128,128,128,.12); cursor:default; }
+#s { margin:1rem 0 .8rem; color:{{.Muted}}; }
+#mix { font:inherit; padding:.5rem 1.2rem; border:0; border-radius:{{.Radius}}px;
+  background:rgba(128,128,128,.15); color:inherit; cursor:pointer; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "fifteen" "head" "Пятнашки" "Головоломка 15" "Собери по порядку"}}</h1>
+<div id="b"></div>
+<p id="s">Ходов: 0</p>
+<button id="mix">Перемешать</button>
+</main>
+<script>
+(function () {
+  var tiles = [], state = [], moves = 0;
+  var b = document.getElementById('b'), s = document.getElementById('s');
+  for (var i = 0; i < 16; i++) {
+    (function (i) {
+      var el = document.createElement('button');
+      el.addEventListener('click', function () { move(i); });
+      b.appendChild(el); tiles.push(el);
+    })(i);
+  }
+  function paint() {
+    for (var i = 0; i < 16; i++) {
+      tiles[i].textContent = state[i] === 0 ? '' : state[i];
+      tiles[i].className = state[i] === 0 ? 'empty' : '';
+    }
+    s.textContent = solved() ? 'Собрано за ' + moves + ' ходов' : 'Ходов: ' + moves;
+  }
+  function solved() {
+    for (var i = 0; i < 15; i++) if (state[i] !== i + 1) return false;
+    return true;
+  }
+  function move(i) {
+    var z = state.indexOf(0);
+    var dr = Math.abs(Math.floor(i / 4) - Math.floor(z / 4));
+    var dc = Math.abs((i % 4) - (z % 4));
+    if (dr + dc !== 1) return;
+    state[z] = state[i]; state[i] = 0; moves++;
+    paint();
+  }
+  function shuffle() {
+    state = []; for (var i = 1; i < 16; i++) state.push(i); state.push(0);
+    for (var k = 0; k < 300; k++) {
+      var z = state.indexOf(0), opts = [];
+      if (z % 4 > 0) opts.push(z - 1);
+      if (z % 4 < 3) opts.push(z + 1);
+      if (z > 3) opts.push(z - 4);
+      if (z < 12) opts.push(z + 4);
+      var p = opts[Math.floor(Math.random() * opts.length)];
+      state[z] = state[p]; state[p] = 0;
+    }
+    moves = 0; paint();
+  }
+  document.getElementById('mix').addEventListener('click', shuffle);
+  shuffle();
+})();
+</script>
+</body>
+</html>

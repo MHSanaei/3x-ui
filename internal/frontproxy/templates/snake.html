@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "snake" "title" "Змейка" "Игра Змейка" "Классическая змейка"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1.2rem; margin:0 0 .8rem; }
+canvas { border-radius:{{.Radius}}px; background:rgba(128,128,128,.1); touch-action:none;
+  max-width:100%; height:auto; }
+#s { margin:.9rem 0 .3rem; color:{{.Muted}}; }
+.hint { color:{{.Muted}}; font-size:.85rem; margin:0; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "snake" "head" "Змейка" "Классическая змейка" "Змейка онлайн"}}</h1>
+<canvas id="c" width="320" height="320"></canvas>
+<p id="s">Счёт: 0</p>
+<p class="hint">Управление — стрелки или свайп</p>
+</main>
+<script>
+(function () {
+  var N = 16, S = 20, c = document.getElementById('c'), g = c.getContext('2d');
+  var snake, dir, next, food, score, timer, dead;
+  var accent = getComputedStyle(document.body).getPropertyValue('color');
+  function reset() {
+    snake = [{ x: 8, y: 8 }]; dir = { x: 1, y: 0 }; next = dir; score = 0; dead = false;
+    drop(); document.getElementById('s').textContent = 'Счёт: 0';
+    clearInterval(timer); timer = setInterval(step, 130);
+  }
+  function drop() {
+    do {
+      food = { x: Math.floor(Math.random() * N), y: Math.floor(Math.random() * N) };
+    } while (snake.some(function (p) { return p.x === food.x && p.y === food.y; }));
+  }
+  function step() {
+    dir = next;
+    var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    if (head.x < 0 || head.y < 0 || head.x >= N || head.y >= N ||
+        snake.some(function (p) { return p.x === head.x && p.y === head.y; })) {
+      dead = true; clearInterval(timer);
+      document.getElementById('s').textContent = 'Игра окончена. Счёт: ' + score;
+      setTimeout(reset, 1500);
+      return;
+    }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score++; document.getElementById('s').textContent = 'Счёт: ' + score; drop();
+    } else snake.pop();
+    draw();
+  }
+  function draw() {
+    g.clearRect(0, 0, c.width, c.height);
+    g.fillStyle = 'rgba(128,128,128,.45)';
+    g.fillRect(food.x * S + 4, food.y * S + 4, S - 8, S - 8);
+    g.fillStyle = accent;
+    snake.forEach(function (p) { g.fillRect(p.x * S + 1, p.y * S + 1, S - 2, S - 2); });
+  }
+  function turn(x, y) {
+    if (dead) return;
+    if (dir.x === -x && dir.y === -y) return;
+    next = { x: x, y: y };
+  }
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowUp') turn(0, -1);
+    else if (k === 'ArrowDown') turn(0, 1);
+    else if (k === 'ArrowLeft') turn(-1, 0);
+    else if (k === 'ArrowRight') turn(1, 0);
+    else return;
+    e.preventDefault();
+  });
+  var sx = 0, sy = 0;
+  c.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; });
+  c.addEventListener('pointerup', function (e) {
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+    if (Math.abs(dx) > Math.abs(dy)) turn(dx > 0 ? 1 : -1, 0);
+    else turn(0, dy > 0 ? 1 : -1);
+  });
+  reset();
+})();
+</script>
+</body>
+</html>

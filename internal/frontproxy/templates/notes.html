@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "notes" "title" "Заметки" "Быстрые заметки" "Блокнот"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; font:16px/1.6 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { max-width:{{.Wide}}rem; margin:0 auto; padding:{{.Pad}}px; }
+h1 { font-size:1.3rem; margin:0 0 .3rem; }
+.hint { color:{{.Muted}}; font-size:.85rem; margin:0 0 1rem; }
+textarea { font:inherit; width:100%; box-sizing:border-box; min-height:60vh; resize:vertical;
+  padding:.9rem 1rem; border-radius:{{.Radius}}px; border:1px solid rgba(128,128,128,.3);
+  background:rgba(128,128,128,.06); color:inherit; }
+textarea:focus { outline:2px solid {{.Accent}}; outline-offset:1px; }
+#saved { color:{{.Accent}}; font-size:.85rem; height:1.2em; margin-top:.5rem; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "notes" "head" "Заметки" "Быстрые заметки" "Блокнот"}}</h1>
+<p class="hint">{{.Pick "notes" "hint" "Текст сохраняется в этом браузере и никуда не отправляется." "Всё остаётся на вашем устройстве." "Записи хранятся локально в браузере."}}</p>
+<textarea id="n" placeholder="Начните печатать..."></textarea>
+<div id="saved"></div>
+</main>
+<script>
+(function () {
+  var key = 'notes.draft', n = document.getElementById('n'), saved = document.getElementById('saved'), t;
+  try { n.value = localStorage.getItem(key) || ''; } catch (e) { }
+  n.addEventListener('input', function () {
+    clearTimeout(t);
+    t = setTimeout(function () {
+      try { localStorage.setItem(key, n.value); saved.textContent = 'Сохранено'; } catch (e) { }
+      setTimeout(function () { saved.textContent = ''; }, 1200);
+    }, 400);
+  });
+})();
+</script>
+</body>
+</html>

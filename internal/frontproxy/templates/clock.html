@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "clock" "title" "Точное время" "Часы" "Который час"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+#t { font-size:clamp(2.8rem, 14vw, 5.5rem); font-weight:600; letter-spacing:.02em;
+  font-variant-numeric:tabular-nums; color:{{.Accent}}; margin:0; }
+#d { margin:.5rem 0 0; color:{{.Muted}}; font-size:1.05rem; }
+h1 { font-size:1rem; font-weight:500; color:{{.Muted}}; margin:0 0 .8rem; text-transform:uppercase; letter-spacing:.12em; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "clock" "head" "Точное время" "Местное время" "Часы"}}</h1>
+<p id="t">--:--:--</p>
+<p id="d"></p>
+</main>
+<script>
+(function () {
+  var days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+  var months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function tick() {
+    var now = new Date();
+    document.getElementById('t').textContent =
+      pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    document.getElementById('d').textContent =
+      days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

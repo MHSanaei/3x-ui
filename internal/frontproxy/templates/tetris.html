@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "tetris" "title" "Тетрис" "Игра Тетрис" "Падающие блоки"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1.2rem; margin:0 0 .8rem; }
+canvas { border-radius:{{.Radius}}px; background:rgba(128,128,128,.1); touch-action:none; }
+#s { margin:.9rem 0 .3rem; color:{{.Muted}}; }
+.hint { color:{{.Muted}}; font-size:.82rem; margin:0; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "tetris" "head" "Тетрис" "Падающие блоки" "Собирай линии"}}</h1>
+<canvas id="c" width="200" height="400"></canvas>
+<p id="s">Очки: 0</p>
+<p class="hint">Стрелки — движение, вверх — поворот</p>
+</main>
+<script>
+(function () {
+  var W = 10, H = 20, S = 20;
+  var shapes = [
+    [[1, 1, 1, 1]],
+    [[1, 1], [1, 1]],
+    [[0, 1, 0], [1, 1, 1]],
+    [[1, 0, 0], [1, 1, 1]],
+    [[0, 0, 1], [1, 1, 1]],
+    [[1, 1, 0], [0, 1, 1]],
+    [[0, 1, 1], [1, 1, 0]]
+  ];
+  var c = document.getElementById('c'), g = c.getContext('2d'), sEl = document.getElementById('s');
+  var board, piece, px, py, score, timer;
+  var accent = getComputedStyle(document.body).getPropertyValue('color');
+  function spawn() {
+    piece = shapes[Math.floor(Math.random() * shapes.length)];
+    px = Math.floor((W - piece[0].length) / 2); py = 0;
+    if (hits(piece, px, py)) {
+      board = blank(); score = 0; sEl.textContent = 'Очки: 0';
+    }
+  }
+  function blank() {
+    var b = [];
+    for (var y = 0; y < H; y++) b.push(new Array(W).fill(0));
+    return b;
+  }
+  function hits(p, ox, oy) {
+    for (var y = 0; y < p.length; y++) {
+      for (var x = 0; x < p[y].length; x++) {
+        if (!p[y][x]) continue;
+        var nx = ox + x, ny = oy + y;
+        if (nx < 0 || nx >= W || ny >= H) return true;
+        if (ny >= 0 && board[ny][nx]) return true;
+      }
+    }
+    return false;
+  }
+  function merge() {
+    for (var y = 0; y < piece.length; y++) {
+      for (var x = 0; x < piece[y].length; x++) {
+        if (piece[y][x] && py + y >= 0) board[py + y][px + x] = 1;
+      }
+    }
+    var cleared = 0;
+    for (var r = H - 1; r >= 0; r--) {
+      if (board[r].every(function (v) { return v; })) {
+        board.splice(r, 1); board.unshift(new Array(W).fill(0)); cleared++; r++;
+      }
+    }
+    if (cleared) { score += cleared * 100; sEl.textContent = 'Очки: ' + score; }
+    spawn();
+  }
+  function drop() {
+    if (hits(piece, px, py + 1)) merge(); else py++;
+    draw();
+  }
+  function rotate() {
+    var r = [];
+    for (var x = 0; x < piece[0].length; x++) {
+      var row = [];
+      for (var y = piece.length - 1; y >= 0; y--) row.push(piece[y][x]);
+      r.push(row);
+    }
+    if (!hits(r, px, py)) piece = r;
+  }
+  function draw() {
+    g.clearRect(0, 0, c.width, c.height);
+    g.fillStyle = accent;
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        if (board[y][x]) g.fillRect(x * S + 1, y * S + 1, S - 2, S - 2);
+      }
+    }
+    for (var py2 = 0; py2 < piece.length; py2++) {
+      for (var px2 = 0; px2 < piece[py2].length; px2++) {
+        if (piece[py2][px2]) g.fillRect((px + px2) * S + 1, (py + py2) * S + 1, S - 2, S - 2);
+      }
+    }
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { if (!hits(piece, px - 1, py)) px--; }
+    else if (e.key === 'ArrowRight') { if (!hits(piece, px + 1, py)) px++; }
+    else if (e.key === 'ArrowDown') { drop(); return; }
+    else if (e.key === 'ArrowUp') rotate();
+    else return;
+    e.preventDefault(); draw();
+  });
+  board = blank(); score = 0; spawn(); draw();
+  timer = setInterval(drop, 550);
+})();
+</script>
+</body>
+</html>

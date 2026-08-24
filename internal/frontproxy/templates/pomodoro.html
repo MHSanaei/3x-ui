@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "pomodoro" "title" "Помодоро" "Таймер помодоро" "Рабочие интервалы"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+#phase { font-size:.95rem; color:{{.Muted}}; text-transform:uppercase; letter-spacing:.12em; margin:0 0 .8rem; }
+#t { font-size:clamp(3rem,15vw,5.5rem); font-weight:600; font-variant-numeric:tabular-nums;
+  color:{{.Accent}}; margin:0 0 1.3rem; }
+button { font:inherit; padding:.6rem 1.4rem; margin:0 .3rem; border:0; cursor:pointer;
+  border-radius:{{.Radius}}px; background:rgba(128,128,128,.15); color:inherit; }
+button.p { background:{{.Accent}}; color:#fff; }
+#done { margin-top:1.2rem; color:{{.Muted}}; font-size:.9rem; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<p id="phase">Работа</p>
+<p id="t">25:00</p>
+<button id="go" class="p">Старт</button>
+<button id="rst">Сброс</button>
+<p id="done">Завершено циклов: 0</p>
+</main>
+<script>
+(function () {
+  var work = 25 * 60, brk = 5 * 60;
+  var left = work, working = true, timer = null, cycles = 0;
+  var el = document.getElementById('t'), ph = document.getElementById('phase');
+  var go = document.getElementById('go'), done = document.getElementById('done');
+  function paint() {
+    var m = Math.floor(left / 60), s = left % 60;
+    el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    ph.textContent = working ? 'Работа' : 'Перерыв';
+  }
+  function tick() {
+    if (left > 0) { left--; paint(); return; }
+    if (working) { cycles++; done.textContent = 'Завершено циклов: ' + cycles; }
+    working = !working;
+    left = working ? work : brk;
+    paint();
+  }
+  go.addEventListener('click', function () {
+    if (timer) { clearInterval(timer); timer = null; go.textContent = 'Старт'; }
+    else { timer = setInterval(tick, 1000); go.textContent = 'Пауза'; }
+  });
+  document.getElementById('rst').addEventListener('click', function () {
+    clearInterval(timer); timer = null; working = true; left = work; cycles = 0;
+    go.textContent = 'Старт'; done.textContent = 'Завершено циклов: 0'; paint();
+  });
+  paint();
+})();
+</script>
+</body>
+</html>

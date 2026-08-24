@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "status" "title" "Состояние сервисов" "Статус систем" "Мониторинг"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:15px/1.6 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { width:100%; max-width:{{.Wide}}rem; padding:{{.Pad}}px; }
+h1 { font-size:1.3rem; margin:0 0 .3rem; }
+.sub { color:{{.Muted}}; margin:0 0 1.4rem; font-size:.9rem; }
+ul { list-style:none; margin:0; padding:0; }
+li { display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding:.7rem .9rem; border-radius:{{.Radius}}px; background:rgba(128,128,128,.08); margin-bottom:.5rem; }
+.ok { color:{{.Accent}}; font-size:.85rem; white-space:nowrap; }
+.dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:{{.Accent}}; margin-right:.4rem; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "status" "head" "Состояние сервисов" "Статус систем" "Мониторинг"}}</h1>
+<p class="sub">{{.Pick "status" "sub" "Все системы работают штатно." "Сбоев не зафиксировано." "Инцидентов нет."}}</p>
+<ul>
+<li><span>{{.Pick "status" "s1" "Веб-сайт" "Основной сайт" "Портал"}}</span><span class="ok"><span class="dot"></span>Работает</span></li>
+<li><span>{{.Pick "status" "s2" "API" "Программный интерфейс" "Шлюз API"}}</span><span class="ok"><span class="dot"></span>Работает</span></li>
+<li><span>{{.Pick "status" "s3" "База данных" "Хранилище" "Хранилище данных"}}</span><span class="ok"><span class="dot"></span>Работает</span></li>
+<li><span>{{.Pick "status" "s4" "Почта" "Почтовая рассылка" "Уведомления"}}</span><span class="ok"><span class="dot"></span>Работает</span></li>
+</ul>
+</main>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Pick "memory" "title" "Найди пару" "Игра на память" "Мемори"}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  font:16px/1.5 {{.Font}}; background:{{.Surface}}; color:{{.Ink}}; }
+main { text-align:center; padding:{{.Pad}}px; }
+h1 { font-size:1.2rem; margin:0 0 .9rem; }
+#b { display:grid; grid-template-columns:repeat(4,3.6rem); gap:.4rem; justify-content:center; }
+#b button { font-size:1.5rem; height:3.6rem; border:0; cursor:pointer; border-radius:{{.Radius}}px;
+  background:{{.Accent}}; color:transparent; }
+#b button.up { background:rgba(128,128,128,.14); color:inherit; }
+#b button.got { background:rgba(128,128,128,.07); color:{{.Muted}}; cursor:default; }
+#s { margin:1rem 0 .8rem; color:{{.Muted}}; }
+#again { font:inherit; padding:.5rem 1.2rem; border:0; border-radius:{{.Radius}}px;
+  background:rgba(128,128,128,.15); color:inherit; cursor:pointer; }
+@media (prefers-color-scheme: dark) { body { background:#17171a; color:#e8e8ea; } }
+</style>
+</head>
+<body>
+<main>
+<h1>{{.Pick "memory" "head" "Найди пару" "Игра на память" "Мемори"}}</h1>
+<div id="b"></div>
+<p id="s">Ходов: 0</p>
+<button id="again">Заново</button>
+</main>
+<script>
+(function () {
+  var faces = ['★', '●', '▲', '■', '◆', '♥', '✦', '☀'];
+  var cards = [], deck = [], open = [], moves = 0, found = 0, lock = false;
+  var b = document.getElementById('b'), s = document.getElementById('s');
+  for (var i = 0; i < 16; i++) {
+    (function (i) {
+      var el = document.createElement('button');
+      el.addEventListener('click', function () { flip(i); });
+      b.appendChild(el); cards.push(el);
+    })(i);
+  }
+  function deal() {
+    deck = faces.concat(faces);
+    for (var i = deck.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+    }
+    open = []; moves = 0; found = 0; lock = false;
+    for (var k = 0; k < 16; k++) { cards[k].textContent = deck[k]; cards[k].className = ''; }
+    s.textContent = 'Ходов: 0';
+  }
+  function flip(i) {
+    if (lock || cards[i].className === 'up' || cards[i].className === 'got') return;
+    cards[i].className = 'up';
+    open.push(i);
+    if (open.length < 2) return;
+    moves++;
+    s.textContent = 'Ходов: ' + moves;
+    var a = open[0], c = open[1];
+    if (deck[a] === deck[c]) {
+      cards[a].className = 'got'; cards[c].className = 'got';
+      open = []; found++;
+      if (found === faces.length) s.textContent = 'Готово за ' + moves + ' ходов';
+      return;
+    }
+    lock = true;
+    setTimeout(function () {
+      cards[a].className = ''; cards[c].className = '';
+      open = []; lock = false;
+    }, 700);
+  }
+  document.getElementById('again').addEventListener('click', deal);
+  deal();
+})();
+</script>
+</body>
+</html>
