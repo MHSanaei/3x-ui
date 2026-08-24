@@ -59,8 +59,8 @@ func (s *FrontProxyService) RemoveDecoy() error {
 	return s.restartIfRunning()
 }
 
-// restartIfRunning reloads the door in place. A running door holds its decoy
-// handler in memory, so swapping files on disk alone would not be seen.
+// restartIfRunning reloads the door in place. Whether upload mode is usable
+// at all is decided once when its handler is built, not per request.
 func (s *FrontProxyService) restartIfRunning() error {
 	if !frontproxy.GetManager().IsRunning() {
 		return nil
