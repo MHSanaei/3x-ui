@@ -1,6 +1,7 @@
 package frontproxy
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,8 +22,11 @@ func TestTemplateDecoyServesEmbeddedPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
-	if !strings.Contains(rec.Body.String(), "Scheduled maintenance") {
-		t.Errorf("body does not look like the maintenance page: %q", rec.Body.String())
+	// The wording varies per install, so assert on what every render shares
+	// rather than on one phrasing this seed happened to pick.
+	body := rec.Body.String()
+	if !strings.Contains(body, `<html lang="ru"`) || !strings.Contains(body, "</html>") {
+		t.Errorf("body does not look like a rendered decoy page: %q", body)
 	}
 }
 
@@ -34,7 +38,7 @@ func TestEveryAdvertisedTemplateLoads(t *testing.T) {
 		t.Fatal("no decoy templates advertised")
 	}
 	for _, name := range names {
-		body, err := readDecoyTemplate(name)
+		body, err := renderDecoyTemplate(name, "seed")
 		if err != nil {
 			t.Errorf("template %q failed to load: %v", name, err)
 			continue
@@ -47,10 +51,10 @@ func TestEveryAdvertisedTemplateLoads(t *testing.T) {
 
 // A template name is admin-supplied; it must never be able to reach outside
 // the embedded set and read arbitrary files.
-func TestReadDecoyTemplateRejectsTraversal(t *testing.T) {
+func TestRenderDecoyTemplateRejectsTraversal(t *testing.T) {
 	for _, name := range []string{"../go.mod", "a/b", `a\b`, "maintenance.html", "./x"} {
-		if _, err := readDecoyTemplate(name); err == nil {
-			t.Errorf("readDecoyTemplate(%q) succeeded, want rejection", name)
+		if _, err := renderDecoyTemplate(name, "seed"); err == nil {
+			t.Errorf("renderDecoyTemplate(%q) succeeded, want rejection", name)
 		}
 	}
 }
@@ -108,5 +112,39 @@ func TestProxyDecoyRejectsBadURLs(t *testing.T) {
 		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "<html") {
 			t.Errorf("proxy URL %q: expected template fallback, got status %d", raw, rec.Code)
 		}
+	}
+}
+
+// The whole point of the variant layer: two installs must not serve the same
+// bytes, or the page hash identifies this panel instead of hiding it.
+func TestTemplatesDifferBetweenInstalls(t *testing.T) {
+	for _, name := range DecoyTemplateNames() {
+		a, err := renderDecoyTemplate(name, "install-one")
+		if err != nil {
+			t.Fatalf("template %q: %v", name, err)
+		}
+		b, err := renderDecoyTemplate(name, "install-two")
+		if err != nil {
+			t.Fatalf("template %q: %v", name, err)
+		}
+		if bytes.Equal(a, b) {
+			t.Errorf("template %q renders identically for two seeds", name)
+		}
+	}
+}
+
+// It must still be stable for one install, though: markup that changes on
+// every reload is its own kind of tell.
+func TestTemplateIsStableForOneInstall(t *testing.T) {
+	a, err := renderDecoyTemplate("maintenance", "same-seed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := renderDecoyTemplate("maintenance", "same-seed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(a, b) {
+		t.Error("the same seed rendered two different pages")
 	}
 }

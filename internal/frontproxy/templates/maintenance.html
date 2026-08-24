@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scheduled maintenance</title>
+<title>{{.Pick "maintenance" "title" "Технические работы" "Сайт временно недоступен" "Идут плановые работы"}}</title>
 <style>
 :root { color-scheme: light dark; }
 body {
@@ -12,13 +12,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #f7f7f8;
-  color: #24242a;
+  font: 16px/1.6 {{.Font}};
+  background: {{.Surface}};
+  color: {{.Ink}};
 }
-main { max-width: 30rem; padding: 2rem; text-align: center; }
+main {
+  max-width: {{.Wide}}rem;
+  padding: {{.Pad}}px;
+  text-align: center;
+  border-radius: {{.Radius}}px;
+}
 h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 .75rem; }
-p { margin: 0; color: #55555f; }
+p { margin: 0; color: {{.Muted}}; }
+.mark { width: 44px; height: 4px; margin: 0 auto 1.25rem; border-radius: 2px; background: {{.Accent}}; }
 @media (prefers-color-scheme: dark) {
   body { background: #17171a; color: #e8e8ea; }
   p { color: #a0a0aa; }
@@ -27,8 +33,9 @@ p { margin: 0; color: #55555f; }
 </head>
 <body>
 <main>
-<h1>Scheduled maintenance</h1>
-<p>This site is temporarily unavailable while we perform routine maintenance. Please check back shortly.</p>
+<div class="mark"></div>
+<h1>{{.Pick "maintenance" "head" "Технические работы" "Сайт временно недоступен" "Скоро вернёмся"}}</h1>
+<p>{{.Pick "maintenance" "body" "Сейчас мы обновляем сервис. Пожалуйста, зайдите чуть позже." "Проводим плановое обслуживание. Загляните к нам через некоторое время." "Ведутся работы по обновлению. Приносим извинения за неудобства."}}</p>
 </main>
 </body>
 </html>

@@ -1,7 +1,9 @@
 package service
 
 import (
+	"crypto/rand"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -144,6 +146,7 @@ var defaultValueMap = map[string]string{
 	"frontProxyDecoyMode":     "template",
 	"frontProxyDecoyTemplate": "maintenance",
 	"frontProxyDecoyProxyURL": "",
+	"frontProxyDecoySeed":     "",
 
 	// LDAP defaults
 	"ldapEnable":             "false",
@@ -1093,6 +1096,29 @@ func (s *SettingService) SetFrontProxyDecoyTemplate(value string) error {
 
 func (s *SettingService) GetFrontProxyDecoyProxyURL() (string, error) {
 	return s.getString("frontProxyDecoyProxyURL")
+}
+
+// GetFrontProxyDecoySeed returns this install's decoy seed, minting one on
+// first use. It is what keeps two installs from rendering byte-identical
+// decoy pages, so it has to persist: a seed that changed on every restart
+// would itself advertise that the pages are generated.
+func (s *SettingService) GetFrontProxyDecoySeed() (string, error) {
+	seed, err := s.getString("frontProxyDecoySeed")
+	if err != nil {
+		return "", err
+	}
+	if seed != "" {
+		return seed, nil
+	}
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	seed = hex.EncodeToString(buf)
+	if err := s.setString("frontProxyDecoySeed", seed); err != nil {
+		return "", err
+	}
+	return seed, nil
 }
 
 func (s *SettingService) SetFrontProxyDecoyProxyURL(value string) error {

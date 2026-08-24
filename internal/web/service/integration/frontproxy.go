@@ -163,11 +163,16 @@ func (s *FrontProxyService) decoyConfig() (frontproxy.DecoyConfig, error) {
 	if err != nil {
 		return frontproxy.DecoyConfig{}, err
 	}
+	seed, err := s.GetFrontProxyDecoySeed()
+	if err != nil {
+		return frontproxy.DecoyConfig{}, err
+	}
 	return frontproxy.DecoyConfig{
 		Mode:     frontproxy.DecoyMode(mode),
 		Template: template,
 		Dir:      DecoyDir(),
 		ProxyURL: proxyURL,
+		Seed:     seed,
 	}, nil
 }
 

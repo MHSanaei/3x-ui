@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Welcome</title>
+<title>{{.Pick "parked" "title" "Домен припаркован" "Сайт в разработке" "Здесь будет сайт"}}</title>
 <style>
 :root { color-scheme: light dark; }
 body {
@@ -12,23 +12,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #ffffff;
-  color: #1f2328;
+  font: 16px/1.6 {{.Font}};
+  background: {{.Surface}};
+  color: {{.Ink}};
 }
-main { max-width: 32rem; padding: 2rem; }
-h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 .75rem; }
-p { margin: 0 0 .5rem; color: #57606a; }
-@media (prefers-color-scheme: dark) {
-  body { background: #0d1117; color: #e6edf3; }
-  p { color: #8b949e; }
+main {
+  max-width: {{.Wide}}rem;
+  padding: {{.Pad}}px;
+  text-align: center;
+  border-radius: {{.Radius}}px;
 }
+h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 .6rem; }
+p { margin: 0 0 1.4rem; color: {{.Muted}}; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: {{.Accent}}; margin: 0 3px; }
 </style>
 </head>
 <body>
 <main>
-<h1>Welcome</h1>
-<p>This domain is registered and configured. There is no public content here yet.</p>
+<h1>{{.Pick "parked" "head" "Домен припаркован" "Сайт в разработке" "Здесь скоро появится сайт"}}</h1>
+<p>{{.Pick "parked" "body" "Страница пока не наполнена содержимым." "Мы ещё готовим этот сайт к запуску." "Содержимое появится позже."}}</p>
+<span class="dot"></span><span class="dot"></span><span class="dot"></span>
 </main>
 </body>
 </html>

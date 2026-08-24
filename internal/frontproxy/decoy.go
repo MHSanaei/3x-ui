@@ -1,8 +1,10 @@
 package frontproxy
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -46,6 +48,9 @@ type DecoyConfig struct {
 	Template string
 	Dir      string
 	ProxyURL string
+	// Seed makes this install's templates render unlike anyone else's. See
+	// Variant for why identical bytes across installs would be a giveaway.
+	Seed string
 }
 
 // newDecoyHandler builds the handler for non-secret paths. It never returns
@@ -65,15 +70,16 @@ func newDecoyHandler(cfg DecoyConfig) http.Handler {
 			logDecoyFallback("proxy", err)
 		}
 	}
-	return newTemplateDecoy(cfg.Template)
+	return newTemplateDecoy(cfg.Template, cfg.Seed)
 }
 
 // newTemplateDecoy serves one embedded page for every path, so a prober sees
 // a consistent site instead of a directory of guessable files.
-func newTemplateDecoy(name string) http.Handler {
-	body, err := readDecoyTemplate(name)
+func newTemplateDecoy(name, seed string) http.Handler {
+	body, err := renderDecoyTemplate(name, seed)
 	if err != nil {
-		body, _ = readDecoyTemplate(DefaultDecoyTemplate)
+		logDecoyFallback("template "+name, err)
+		body, _ = renderDecoyTemplate(DefaultDecoyTemplate, seed)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -86,16 +92,28 @@ func newTemplateDecoy(name string) http.Handler {
 	})
 }
 
-// readDecoyTemplate loads an embedded page by name, rejecting any name that
-// could reach outside the embedded template set.
-func readDecoyTemplate(name string) ([]byte, error) {
+// renderDecoyTemplate loads an embedded page by name and renders it for this
+// install, rejecting any name that could reach outside the template set.
+func renderDecoyTemplate(name, seed string) ([]byte, error) {
 	if name == "" {
 		name = DefaultDecoyTemplate
 	}
 	if strings.ContainsAny(name, `/\.`) {
 		return nil, fmt.Errorf("invalid decoy template name %q", name)
 	}
-	return decoyTemplates.ReadFile("templates/" + name + ".html")
+	raw, err := decoyTemplates.ReadFile("templates/" + name + ".html")
+	if err != nil {
+		return nil, err
+	}
+	tmpl, err := template.New(name).Parse(string(raw))
+	if err != nil {
+		return nil, fmt.Errorf("parsing decoy template %q: %w", name, err)
+	}
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, NewVariant(seed, name)); err != nil {
+		return nil, fmt.Errorf("rendering decoy template %q: %w", name, err)
+	}
+	return out.Bytes(), nil
 }
 
 // DecoyTemplateNames lists the embedded pages, for the settings UI to offer.

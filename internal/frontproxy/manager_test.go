@@ -47,8 +47,8 @@ func TestHandlerDispatchesToEachUpstream(t *testing.T) {
 	}{
 		{"/secretpanel/panel/inbounds", "PANEL"},
 		{"/secretsub/token123", "SUB"},
-		{"/", "Welcome"},
-		{"/wp-admin", "Welcome"},
+		{"/", "Здесь"},
+		{"/wp-admin", "Здесь"},
 	}
 	for _, tc := range cases {
 		rec := httptest.NewRecorder()
