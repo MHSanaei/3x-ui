@@ -914,6 +914,7 @@ export const sections: readonly Section[] = [
               clientEmail: { type: 'string' },
               ips: {
                 type: 'array',
+                nullable: true,
                 items: {
                   type: 'object',
                   properties: { ip: { type: 'string' }, timestamp: { type: 'integer' } },

@@ -164,11 +164,20 @@ function buildOperation(ep, tag) {
           : { type: 'object' };
       if (ep.bodyRequiredOneOf?.length) {
         schema = {
-          anyOf: ep.bodyRequiredOneOf.map((name) => ({
-            type: 'object',
-            properties,
-            required: [...required, name],
-          })),
+          anyOf: ep.bodyRequiredOneOf.map((name) => {
+            const branchProperties = { ...properties };
+            for (const other of ep.bodyRequiredOneOf) {
+              if (other === name || !branchProperties[other]) continue;
+              const { pattern: _pattern, minLength: _minLength, ...rest } =
+                branchProperties[other];
+              branchProperties[other] = rest;
+            }
+            return {
+              type: 'object',
+              properties: branchProperties,
+              required: [...required, name],
+            };
+          }),
         };
       }
     }

@@ -6220,7 +6220,6 @@
                       },
                       "certContent": {
                         "type": "string",
-                        "pattern": ".*\\S.*",
                         "description": "Inline PEM (or DER) certificate content, used when certFile is empty."
                       }
                     },
@@ -6233,7 +6232,6 @@
                     "properties": {
                       "certFile": {
                         "type": "string",
-                        "pattern": ".*\\S.*",
                         "description": "Path to a certificate file on the server. Takes precedence over certContent."
                       },
                       "certContent": {
@@ -6569,6 +6567,7 @@
                     },
                     "ips": {
                       "type": "array",
+                      "nullable": true,
                       "items": {
                         "type": "object",
                         "properties": {
@@ -12311,7 +12310,6 @@
                       },
                       "ip": {
                         "type": "string",
-                        "minLength": 1,
                         "description": "Target IP. Either domain or ip is required."
                       },
                       "port": {
@@ -12344,7 +12342,6 @@
                     "properties": {
                       "domain": {
                         "type": "string",
-                        "minLength": 1,
                         "description": "Target domain. Either domain or ip is required."
                       },
                       "ip": {
