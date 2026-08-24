@@ -458,11 +458,13 @@ func TestSubJson_BalancerLeastLoadCosts(t *testing.T) {
 	}
 	first, _ := costs[0].(map[string]any)
 	second, _ := costs[1].(map[string]any)
-	if first["match"] != "bal-1-vless" || first["value"] != 0.2 {
-		t.Fatalf("costs[0] = %v, want match=bal-1-vless value=0.2", first)
+	// Anchored regexp is required: xray's plain cost match is substring-based,
+	// so a bare "bal-1-vless" would also hit the deduplicated "bal-1-vless-2".
+	if first["regexp"] != true || first["match"] != "^bal-1-vless$" || first["value"] != 0.2 {
+		t.Fatalf("costs[0] = %v, want regexp ^bal-1-vless$ value=0.2", first)
 	}
-	if second["match"] != "bal-1-vless-2" || second["value"] != 1.0 {
-		t.Fatalf("costs[1] = %v, want match=bal-1-vless-2 value=1 (default)", second)
+	if second["regexp"] != true || second["match"] != "^bal-1-vless-2$" || second["value"] != 1.0 {
+		t.Fatalf("costs[1] = %v, want regexp ^bal-1-vless-2$ value=1 (default)", second)
 	}
 }
 

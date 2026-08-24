@@ -373,7 +373,13 @@ func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
 			value = weight
 			configured = true
 		}
-		costs = append(costs, map[string]any{"match": m.tag, "value": value})
+		// Anchored regexp: plain cost matching is substring-based in xray, so
+		// an unanchored "bal-1-vless" would also swallow "bal-1-vless-2".
+		costs = append(costs, map[string]any{
+			"regexp": true,
+			"match":  "^" + m.tag + "$",
+			"value":  value,
+		})
 	}
 	if !configured {
 		return nil
