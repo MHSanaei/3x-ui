@@ -9,7 +9,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
-// FrontProxyService manages the panel's own front door (internal/frontproxy)
+// FrontProxyService manages the panel's own reverse proxy (internal/frontproxy)
 // and remembers whether it should be running across restarts.
 type FrontProxyService struct {
 	service.SettingService
@@ -23,7 +23,7 @@ func DecoyDir() string { return config.GetBinFolderPath() + "/frontproxy-decoy" 
 // so it is picked up by anything that backs that directory up.
 func certStorageDir() string { return config.GetBinFolderPath() + "/frontproxy-certs" }
 
-// FrontProxyStatus reports the front door's current state to the UI.
+// FrontProxyStatus reports the reverse proxy's current state to the UI.
 type FrontProxyStatus struct {
 	Running       bool     `json:"running"`
 	Port          int      `json:"port"`
@@ -50,7 +50,7 @@ func (s *FrontProxyService) InstallDecoy(r io.ReaderAt, size int64) error {
 	return s.restartIfRunning()
 }
 
-// RemoveDecoy deletes the uploaded site, leaving the front door on whatever
+// RemoveDecoy deletes the uploaded site, leaving the reverse proxy on whatever
 // its other decoy modes provide.
 func (s *FrontProxyService) RemoveDecoy() error {
 	if err := frontproxy.RemoveDecoy(DecoyDir()); err != nil {
@@ -185,7 +185,7 @@ func (s *FrontProxyService) tlsSettings() (frontproxy.TLSSettings, error) {
 	}, nil
 }
 
-// Start brings the front door up and persists the choice so panel boot
+// Start brings the reverse proxy up and persists the choice so panel boot
 // restores it automatically (see the auto-start in web.go).
 func (s *FrontProxyService) Start() error {
 	opts, err := s.Options()
@@ -198,7 +198,7 @@ func (s *FrontProxyService) Start() error {
 	return s.SetFrontProxyEnable(true)
 }
 
-// Stop shuts the front door down and persists the choice, mirroring Start.
+// Stop shuts the reverse proxy down and persists the choice, mirroring Start.
 func (s *FrontProxyService) Stop() error {
 	if err := frontproxy.GetManager().Stop(); err != nil {
 		return err
@@ -207,7 +207,7 @@ func (s *FrontProxyService) Stop() error {
 }
 
 // AutoStart brings the door up at boot if the admin left it enabled. It
-// never returns an error: the front door is a secondary feature and must
+// never returns an error: the reverse proxy is a secondary feature and must
 // not be able to stop the panel itself from starting.
 func (s *FrontProxyService) AutoStart() {
 	enabled, err := s.GetFrontProxyEnable()
@@ -216,7 +216,7 @@ func (s *FrontProxyService) AutoStart() {
 	}
 	opts, err := s.Options()
 	if err != nil {
-		logger.Warningf("frontproxy: cannot build config, front door stays down: %v", err)
+		logger.Warningf("frontproxy: cannot build config, reverse proxy stays down: %v", err)
 		return
 	}
 	if err := frontproxy.GetManager().Start(opts); err != nil {

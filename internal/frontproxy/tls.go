@@ -8,7 +8,7 @@ import (
 	"github.com/caddyserver/certmagic"
 )
 
-// CertMode selects where the front door's TLS certificate comes from.
+// CertMode selects where the reverse proxy's TLS certificate comes from.
 type CertMode string
 
 const (
@@ -18,7 +18,7 @@ const (
 	CertAuto CertMode = "auto"
 )
 
-// TLSSettings is the certificate half of the front door. The REALITY
+// TLSSettings is the certificate half of the reverse proxy. The REALITY
 // fallback relays raw bytes, so this listener must terminate TLS itself.
 type TLSSettings struct {
 	Mode       CertMode
@@ -56,7 +56,7 @@ func manualTLSConfig(s TLSSettings) (*tls.Config, error) {
 
 // autoTLSConfig sets up ACME issuance and renewal via CertMagic. It mutates
 // CertMagic's package templates, which is that library's intended usage and
-// safe here because a process has at most one front door.
+// safe here because a process has at most one reverse proxy.
 func autoTLSConfig(ctx context.Context, s TLSSettings) (*tls.Config, error) {
 	if s.Domain == "" {
 		return nil, fmt.Errorf("a domain is required for automatic certificates")

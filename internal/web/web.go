@@ -522,8 +522,8 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	}
 
-	// Same shape for the front door. AutoStart never returns an error: a door
-	// that cannot come up must not stop the panel itself from starting.
+	// Same shape for the reverse proxy. AutoStart never returns an error: a
+	// proxy that cannot come up must not stop the panel itself from starting.
 	(&integration.FrontProxyService{}).AutoStart()
 
 	// Wire the inbound-runtime manager once so InboundService can route

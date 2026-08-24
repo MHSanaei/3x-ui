@@ -15,7 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// Options is everything the front door needs to run, resolved from settings
+// Options is everything the reverse proxy needs to run, resolved from settings
 // by the caller so this package never touches the database.
 type Options struct {
 	Listen  string
@@ -25,7 +25,7 @@ type Options struct {
 	TLS     TLSSettings
 }
 
-// Manager owns the single front-door listener for the whole install.
+// Manager owns the single reverse-proxy listener for the whole install.
 type Manager struct {
 	mu       sync.Mutex
 	server   *http.Server
@@ -38,13 +38,13 @@ var (
 	manager     *Manager
 )
 
-// GetManager returns the process-wide front-door manager singleton.
+// GetManager returns the process-wide reverse-proxy manager singleton.
 func GetManager() *Manager {
 	managerOnce.Do(func() { manager = &Manager{} })
 	return manager
 }
 
-// Start brings the front door up. A no-op, not an error, when it is already
+// Start brings the reverse proxy up. A no-op, not an error, when it is already
 // running -- callers want "make sure it's up", same as the tor manager.
 func (m *Manager) Start(opts Options) error {
 	m.mu.Lock()
@@ -53,17 +53,17 @@ func (m *Manager) Start(opts Options) error {
 		return nil
 	}
 	if opts.Port <= 0 || opts.Port > 65535 {
-		return fmt.Errorf("invalid front-door port %d", opts.Port)
+		return fmt.Errorf("invalid reverse-proxy port %d", opts.Port)
 	}
 	if opts.Routing.PanelBasePath == "" || matchesPrefix("/", opts.Routing.PanelBasePath) {
-		return fmt.Errorf("the panel needs a non-root base path before the front door can tell it apart from the decoy")
+		return fmt.Errorf("the panel needs a non-root base path before the reverse proxy can tell it apart from the decoy")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	tlsCfg, err := buildTLSConfig(ctx, opts.TLS)
 	if err != nil {
 		cancel()
-		return fmt.Errorf("front-door TLS: %w", err)
+		return fmt.Errorf("reverse-proxy TLS: %w", err)
 	}
 
 	listen := opts.Listen
@@ -74,7 +74,7 @@ func (m *Manager) Start(opts Options) error {
 	ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", addr)
 	if err != nil {
 		cancel()
-		return fmt.Errorf("front-door listen on %s: %w", addr, err)
+		return fmt.Errorf("reverse-proxy listen on %s: %w", addr, err)
 	}
 	ln = tls.NewListener(ln, tlsCfg)
 
@@ -89,7 +89,7 @@ func (m *Manager) Start(opts Options) error {
 	return nil
 }
 
-// Stop shuts the front door down. A no-op when it is already stopped.
+// Stop shuts the reverse proxy down. A no-op when it is already stopped.
 func (m *Manager) Stop() error {
 	m.mu.Lock()
 	srv, ln, cancel := m.server, m.listener, m.cancel
@@ -110,13 +110,13 @@ func (m *Manager) Stop() error {
 	return err
 }
 
-// StopAll stops the front door. Matches the StopAll() shape of the other
+// StopAll stops the reverse proxy. Matches the StopAll() shape of the other
 // sidecar managers so web.go's shutdown sequence can call it the same way.
 func (m *Manager) StopAll() {
 	_ = m.Stop()
 }
 
-// IsRunning reports whether the front door is currently listening.
+// IsRunning reports whether the reverse proxy is currently listening.
 func (m *Manager) IsRunning() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()

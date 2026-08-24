@@ -133,7 +133,7 @@ var defaultValueMap = map[string]string{
 	"panelOutbound":               "",
 	"devChannelEnable":            "false",
 
-	// Front-door defaults. Off by default: enabling it only makes sense
+	// Reverse-proxy defaults. Off by default: enabling it only makes sense
 	// once REALITY's fallback target actually points at frontProxyPort.
 	"frontProxyEnable":        "false",
 	"frontProxyListen":        "127.0.0.1",
@@ -1006,7 +1006,7 @@ func (s *SettingService) SetTorEnable(value bool) error {
 	return s.setBool("torEnable", value)
 }
 
-// GetFrontProxyEnable reports whether the front door should be listening.
+// GetFrontProxyEnable reports whether the reverse proxy should be listening.
 // Read at boot to restore whatever state the admin last left it in.
 func (s *SettingService) GetFrontProxyEnable() (bool, error) {
 	return s.getBool("frontProxyEnable")

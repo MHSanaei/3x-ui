@@ -10,7 +10,7 @@ import (
 )
 
 // upstreamOn starts a loopback server that echoes a marker, and returns its
-// port so the front door's proxy (which always dials 127.0.0.1) can reach it.
+// port so the reverse proxy (which always dials 127.0.0.1) can reach it.
 func upstreamOn(t *testing.T, marker string) int {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +88,7 @@ func TestHandlerPreservesClientHost(t *testing.T) {
 }
 
 // A dead upstream must produce a plain 502, never a panic that would take
-// the whole front door (and with it the decoy) down.
+// the whole reverse proxy (and with it the decoy) down.
 func TestHandlerSurvivesDeadUpstream(t *testing.T) {
 	h := newHandler(Config{PanelBasePath: "/p/", PanelPort: 1}, DecoyConfig{})
 	rec := httptest.NewRecorder()

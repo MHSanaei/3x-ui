@@ -73,7 +73,7 @@ func TestUploadDecoyServesIndex(t *testing.T) {
 	}
 }
 
-// An upload directory that was never populated must not turn the front door
+// An upload directory that was never populated must not turn the reverse proxy
 // into a 404/500 -- it falls back to a template so the decoy still looks real.
 func TestUploadDecoyWithoutIndexFallsBackToTemplate(t *testing.T) {
 	rec := serveDecoy(t, DecoyConfig{Mode: DecoyUpload, Dir: t.TempDir()}, "/")
@@ -98,7 +98,7 @@ func TestProxyDecoyForwardsToUpstream(t *testing.T) {
 }
 
 // A malformed or non-HTTP proxy URL must degrade to a template rather than
-// leaving the front door serving nothing.
+// leaving the reverse proxy serving nothing.
 func TestProxyDecoyRejectsBadURLs(t *testing.T) {
 	for _, raw := range []string{"", "://nope", "ftp://example.com", "file:///etc/passwd", "https://"} {
 		if _, err := newProxyDecoy(raw); err == nil {

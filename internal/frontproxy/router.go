@@ -1,4 +1,4 @@
-// Package frontproxy serves the panel's public "front door": the single
+// Package frontproxy is the panel's own reverse proxy: the single
 // local listener Xray's REALITY fallback target points at, which routes by
 // URL path to the panel, to the subscription server, or to a decoy site.
 //
@@ -10,7 +10,7 @@ package frontproxy
 
 import "strings"
 
-// Route names where a front-door request should be sent.
+// Route names where a reverse-proxy request should be sent.
 type Route int
 
 const (
@@ -22,7 +22,7 @@ const (
 	RouteSub
 )
 
-// Config is the routing half of the front door, resolved from settings.
+// Config is the routing half of the reverse proxy, resolved from settings.
 // Ports are loopback targets on this same host.
 type Config struct {
 	PanelBasePath string

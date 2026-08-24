@@ -204,7 +204,7 @@ func swapDecoyDir(dir, staging string) error {
 	return nil
 }
 
-// RemoveDecoy deletes the uploaded site, returning the front door to whatever
+// RemoveDecoy deletes the uploaded site, returning the reverse proxy to whatever
 // template mode would show.
 func RemoveDecoy(dir string) error {
 	if dir == "" {

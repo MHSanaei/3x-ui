@@ -296,7 +296,7 @@ func (a *XraySettingController) tor(c *gin.Context) {
 	jsonObj(c, resp, err)
 }
 
-// frontProxy handles the built-in front door (internal/frontproxy) based on
+// frontProxy handles the built-in reverse proxy (internal/frontproxy) based on
 // the action parameter. Port and decoy edits still need a panel restart.
 func (a *XraySettingController) frontProxy(c *gin.Context) {
 	action := c.Param("action")
@@ -315,7 +315,7 @@ func (a *XraySettingController) frontProxy(c *gin.Context) {
 	jsonObj(c, resp, err)
 }
 
-// frontProxyDecoyUpload replaces the front door's decoy site with an uploaded
+// frontProxyDecoyUpload replaces the reverse proxy's decoy site with an uploaded
 // zip. Multipart rather than JSON, following importDB's precedent.
 func (a *XraySettingController) frontProxyDecoyUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("site")

@@ -418,7 +418,7 @@ func updateSetting(port int, username string, password string, webBasePath strin
 	return nil
 }
 
-// disableFrontProxySetting turns the built-in front door off by writing
+// disableFrontProxySetting turns the built-in reverse proxy off by writing
 // straight to the database, so it works over SSH when a misconfigured door
 // has made the panel itself unreachable. Restart the panel afterwards.
 func disableFrontProxySetting() error {
@@ -632,7 +632,7 @@ func main() {
 	settingCmd.StringVar(&webBasePath, "webBasePath", "", "Set base path for Panel")
 	settingCmd.StringVar(&listenIP, "listenIP", "", "set panel listenIP IP")
 	settingCmd.BoolVar(&resetTwoFactor, "resetTwoFactor", false, "Reset two-factor authentication settings")
-	settingCmd.BoolVar(&disableFrontProxy, "disableFrontProxy", false, "Turn the built-in front door off (recovery path when it makes the panel unreachable)")
+	settingCmd.BoolVar(&disableFrontProxy, "disableFrontProxy", false, "Turn the built-in reverse proxy off (recovery path when it makes the panel unreachable)")
 	settingCmd.BoolVar(&getListen, "getListen", false, "Display current panel listenIP IP")
 	settingCmd.BoolVar(&getCert, "getCert", false, "Display current certificate settings")
 	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Display current API token")

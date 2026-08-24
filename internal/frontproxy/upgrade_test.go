@@ -48,7 +48,7 @@ func echoUpgradeServer(t *testing.T) int {
 }
 
 // The panel pushes live updates over /ws, so a protocol upgrade has to survive
-// the front door's proxy hop in both directions.
+// the reverse proxy's hop in both directions.
 func TestPanelUpgradeIsTunnelled(t *testing.T) {
 	panelPort := echoUpgradeServer(t)
 	door := httptest.NewServer(newHandler(

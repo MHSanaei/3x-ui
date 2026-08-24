@@ -15,7 +15,7 @@ import (
 )
 
 // logDecoyFallback records why a configured decoy could not be used. The
-// front door still serves a template, so this is a warning, never fatal.
+// reverse proxy still serves a template, so this is a warning, never fatal.
 func logDecoyFallback(mode string, err error) {
 	logger.Warningf("frontproxy: %s decoy unusable, falling back to template: %v", mode, err)
 }
@@ -23,7 +23,7 @@ func logDecoyFallback(mode string, err error) {
 //go:embed templates/*.html
 var decoyTemplates embed.FS
 
-// DecoyMode selects what the front door shows for every path that is not one
+// DecoyMode selects what the reverse proxy shows for every path that is not one
 // of the secret ones.
 type DecoyMode string
 
@@ -40,7 +40,7 @@ const (
 // fallback whenever a configured decoy turns out to be unusable.
 const DefaultDecoyTemplate = "maintenance"
 
-// DecoyConfig describes the decoy half of the front door.
+// DecoyConfig describes the decoy half of the reverse proxy.
 type DecoyConfig struct {
 	Mode     DecoyMode
 	Template string
