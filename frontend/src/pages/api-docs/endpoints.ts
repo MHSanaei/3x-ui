@@ -1407,8 +1407,17 @@ export const sections: readonly Section[] = [
         path: '/panel/api/xray/frontproxy/:action',
         summary: "Manage the built-in front door that Xray's REALITY fallback target points at. The action parameter selects the operation.",
         params: [
-          { name: 'action', in: 'path', type: 'string', desc: 'status — return {running, port, templates}. start — bring the front-door listener up and remember the choice across restarts. stop — shut it down, also remembered. Port, certificate and decoy settings are persisted separately and only take effect after a panel restart.' },
+          { name: 'action', in: 'path', type: 'string', desc: 'status — return {running, port, templates, decoyUploaded}. start — bring the front-door listener up and remember the choice across restarts. stop — shut it down, also remembered. removeDecoy — delete the uploaded decoy site. Port, certificate and decoy settings are persisted separately and only take effect after a panel restart.' },
         ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/frontproxy/decoy/upload',
+        summary: 'Replace the front door decoy with an uploaded static site. The zip must contain an index.html, either at its root or inside a single wrapping folder.',
+        params: [
+          { name: 'site', in: 'body (multipart)', type: 'file', desc: 'Zip archive of the site. Capped at 64 MiB and 2000 entries; entries with absolute or traversing paths are rejected.' },
+        ],
+        body: 'multipart/form-data with a "site" file field',
       },
       {
         method: 'POST',

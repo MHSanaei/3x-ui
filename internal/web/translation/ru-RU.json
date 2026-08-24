@@ -1291,7 +1291,8 @@
         "originalUserPassIncorrect": "Неверное имя пользователя или пароль",
         "userPassMustBeNotEmpty": "Новое имя пользователя и новый пароль должны быть заполнены",
         "getOutboundTrafficError": "Ошибка получения трафика исходящего подключения",
-        "resetOutboundTrafficError": "Ошибка сброса трафика исходящего подключения"
+        "resetOutboundTrafficError": "Ошибка сброса трафика исходящего подключения",
+        "frontProxyDecoyUpload": "Не удалось установить сайт-заглушку"
       },
       "smtpSettings": "Настройки SMTP",
       "smtpEnable": "Включить уведомления по Email",

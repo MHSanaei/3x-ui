@@ -50,6 +50,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/nord/:action", a.nord)
 	g.POST("/tor/:action", a.tor)
 	g.POST("/frontproxy/:action", a.frontProxy)
+	g.POST("/frontproxy/decoy/upload", a.frontProxyDecoyUpload)
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
@@ -308,8 +309,26 @@ func (a *XraySettingController) frontProxy(c *gin.Context) {
 		err = a.FrontProxyService.Start()
 	case "stop":
 		err = a.FrontProxyService.Stop()
+	case "removeDecoy":
+		err = a.FrontProxyService.RemoveDecoy()
 	}
 	jsonObj(c, resp, err)
+}
+
+// frontProxyDecoyUpload replaces the front door's decoy site with an uploaded
+// zip. Multipart rather than JSON, following importDB's precedent.
+func (a *XraySettingController) frontProxyDecoyUpload(c *gin.Context) {
+	file, header, err := c.Request.FormFile("site")
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.frontProxyDecoyUpload"), err)
+		return
+	}
+	defer file.Close()
+	if err := a.FrontProxyService.InstallDecoy(file, header.Size); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.frontProxyDecoyUpload"), err)
+		return
+	}
+	jsonObj(c, a.FrontProxyService.Status(), nil)
 }
 
 // getOutboundsTraffic retrieves the traffic statistics for outbounds.

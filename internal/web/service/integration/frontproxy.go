@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"io"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/frontproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -23,18 +25,54 @@ func certStorageDir() string { return config.GetBinFolderPath() + "/frontproxy-c
 
 // FrontProxyStatus reports the front door's current state to the UI.
 type FrontProxyStatus struct {
-	Running   bool     `json:"running"`
-	Port      int      `json:"port"`
-	Templates []string `json:"templates"`
+	Running       bool     `json:"running"`
+	Port          int      `json:"port"`
+	Templates     []string `json:"templates"`
+	DecoyUploaded bool     `json:"decoyUploaded"`
 }
 
 func (s *FrontProxyService) Status() FrontProxyStatus {
 	port, _ := s.GetFrontProxyPort()
 	return FrontProxyStatus{
-		Running:   frontproxy.GetManager().IsRunning(),
-		Port:      port,
-		Templates: frontproxy.DecoyTemplateNames(),
+		Running:       frontproxy.GetManager().IsRunning(),
+		Port:          port,
+		Templates:     frontproxy.DecoyTemplateNames(),
+		DecoyUploaded: frontproxy.DecoyInstalled(DecoyDir()),
 	}
+}
+
+// InstallDecoy unpacks an uploaded site archive. The door is restarted when
+// it is already up so the new content is served without a panel restart.
+func (s *FrontProxyService) InstallDecoy(r io.ReaderAt, size int64) error {
+	if err := frontproxy.InstallDecoyArchive(DecoyDir(), r, size); err != nil {
+		return err
+	}
+	return s.restartIfRunning()
+}
+
+// RemoveDecoy deletes the uploaded site, leaving the front door on whatever
+// its other decoy modes provide.
+func (s *FrontProxyService) RemoveDecoy() error {
+	if err := frontproxy.RemoveDecoy(DecoyDir()); err != nil {
+		return err
+	}
+	return s.restartIfRunning()
+}
+
+// restartIfRunning reloads the door in place. A running door holds its decoy
+// handler in memory, so swapping files on disk alone would not be seen.
+func (s *FrontProxyService) restartIfRunning() error {
+	if !frontproxy.GetManager().IsRunning() {
+		return nil
+	}
+	opts, err := s.Options()
+	if err != nil {
+		return err
+	}
+	if err := frontproxy.GetManager().Stop(); err != nil {
+		return err
+	}
+	return frontproxy.GetManager().Start(opts)
 }
 
 // Options assembles the running configuration from settings. The panel's own
