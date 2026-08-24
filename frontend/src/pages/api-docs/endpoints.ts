@@ -2251,7 +2251,7 @@ export const sections: readonly Section[] = [
           {
             name: 'memberWeights',
             in: 'body (form)',
-            type: 'string (JSON object)',
+            type: 'object',
             desc: 'leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {"3":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped.',
           },
           {
