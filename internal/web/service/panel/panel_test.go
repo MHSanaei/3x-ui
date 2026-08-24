@@ -51,6 +51,47 @@ func TestShellQuote(t *testing.T) {
 	}
 }
 
+// TestUpdateProxyEnvVars covers the bug this function fixes: ambient proxy
+// vars must reach update.sh's systemd-run child, which inherits nothing.
+func TestUpdateProxyEnvVars(t *testing.T) {
+	allKeys := []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "http_proxy", "HTTP_PROXY", "no_proxy", "NO_PROXY"}
+	clearAll := func(t *testing.T) {
+		t.Helper()
+		for _, key := range allKeys {
+			t.Setenv(key, "")
+		}
+	}
+
+	t.Run("nothing set returns nil", func(t *testing.T) {
+		clearAll(t)
+		if got := updateProxyEnvVars(); got != nil {
+			t.Fatalf("updateProxyEnvVars() = %v, want nil", got)
+		}
+	})
+
+	t.Run("forwards each set var under its own name", func(t *testing.T) {
+		clearAll(t)
+		t.Setenv("https_proxy", "socks5://127.0.0.1:10808")
+		t.Setenv("no_proxy", "10.0.0.0/8,localhost")
+		got := updateProxyEnvVars()
+		want := []string{"https_proxy=socks5://127.0.0.1:10808", "no_proxy=10.0.0.0/8,localhost"}
+		if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+			t.Fatalf("updateProxyEnvVars() = %v, want %v", got, want)
+		}
+	})
+
+	// A deliberately HTTP-only proxy config must not silently gain HTTPS traffic.
+	t.Run("http_proxy is not promoted to https_proxy", func(t *testing.T) {
+		clearAll(t)
+		t.Setenv("http_proxy", "http://127.0.0.1:8080")
+		got := updateProxyEnvVars()
+		want := []string{"http_proxy=http://127.0.0.1:8080"}
+		if len(got) != len(want) || got[0] != want[0] {
+			t.Fatalf("updateProxyEnvVars() = %v, want %v", got, want)
+		}
+	})
+}
+
 func TestExtractReleaseCommit(t *testing.T) {
 	full := "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 	cases := []struct {
