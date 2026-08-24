@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kuzz007/3x-ui-awg/actions"><img src="https://img.shields.io/github/actions/workflow/status/Kuzz007/3x-ui-awg/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/Kuzz007/3x-ui-awg.svg" alt="GO Version"></a>
+  <a href="https://github.com/kuzzrus/3x-ui-awg/actions"><img src="https://img.shields.io/github/actions/workflow/status/kuzzrus/3x-ui-awg/release.yml.svg" alt="Build"></a>
+  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/kuzzrus/3x-ui-awg.svg" alt="GO Version"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
 </p>
 
@@ -91,19 +91,19 @@
 ## Быстрый старт
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kuzzrus/3x-ui-awg/main/install.sh | bash
 ```
 
 Чтобы установить конкретную версию, добавьте её тег (например, `v3.5.0-awg.1`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/install.sh | bash -s v3.5.0-awg.1
+curl -fsSL https://raw.githubusercontent.com/kuzzrus/3x-ui-awg/main/install.sh | bash -s v3.5.0-awg.1
 ```
 
 Чтобы установить скользящую сборку **dev** (последний пре-релиз по коммитам из `main`, не стабильный релиз), передайте `dev`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kuzz007/3x-ui-awg/main/install.sh | bash -s dev
+curl -fsSL https://raw.githubusercontent.com/kuzzrus/3x-ui-awg/main/install.sh | bash -s dev
 ```
 
 Собственные стабильные релизы этого форка помечаются тегом `<базовая версия апстрима>-awg.N` (например, `v3.5.0-awg.1`, построен поверх того, что апстрим называет `v3.5.0`) — никогда просто `vX.Y.Z` — чтобы их нельзя было спутать с настоящим релизом MHSanaei/3x-ui того же номера.

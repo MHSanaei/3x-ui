@@ -156,7 +156,7 @@ export default function SubscriptionGeneralTab({ allSetting, updateSetting }: Su
                 <>
                   {t('pages.settings.subThemeDirDesc')}{' '}
                   <a
-                    href="https://github.com/Kuzz007/3x-ui-awg/blob/main/docs/custom-subscription-templates.md"
+                    href="https://github.com/kuzzrus/3x-ui-awg/blob/main/docs/custom-subscription-templates.md"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
