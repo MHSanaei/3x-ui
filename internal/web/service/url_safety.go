@@ -72,15 +72,21 @@ func rejectPrivateHost(ctx context.Context, hostname string) error {
 	if err != nil {
 		return fmt.Errorf("cannot resolve host %s: %w", hostname, err)
 	}
+	return rejectAllBlockedIPs(hostname, ips)
+}
+
+// One usable address is enough — SSRFGuardedDialContext skips blocked ones at
+// dial time, so a poisoned AAAA answer must not veto a healthy hostname.
+func rejectAllBlockedIPs(hostname string, ips []net.IPAddr) error {
 	if len(ips) == 0 {
 		return fmt.Errorf("host %s has no IP addresses", hostname)
 	}
 	for _, ipAddr := range ips {
-		if isBlockedIP(ipAddr.IP) {
-			return fmt.Errorf("host %s resolves to blocked private/internal address %s", hostname, ipAddr.IP.String())
+		if !isBlockedIP(ipAddr.IP) {
+			return nil
 		}
 	}
-	return nil
+	return fmt.Errorf("host %s resolves to blocked private/internal address %s", hostname, ips[0].IP.String())
 }
 
 func isBlockedIP(ip net.IP) bool {
