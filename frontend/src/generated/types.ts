@@ -231,6 +231,12 @@ export interface AllSettingView {
   webPort: number;
 }
 
+export interface AmneziaWGLogs {
+  events: string[];
+  peers: PeerActivity[];
+  running: boolean;
+}
+
 export interface ApiToken {
   createdAt: number;
   enabled: boolean;
@@ -254,6 +260,7 @@ export interface ApiTokenView {
 export interface Client {
   adTag?: string;
   allowedIPs?: string[];
+  allowedIPsByInbound?: Record<number, string[]>;
   auth?: string;
   comment: string;
   created_at?: number;
@@ -261,6 +268,7 @@ export interface Client {
   enable: boolean;
   expiryTime: number;
   flow?: string;
+  forwardedPorts?: string;
   group?: string;
   id?: string;
   keepAlive?: number;
@@ -300,6 +308,7 @@ export interface ClientRecord {
   enable: boolean;
   expiryTime: number;
   flow: string;
+  forwardedPorts: string;
   group: string;
   id: number;
   keepAlive: number;
@@ -512,6 +521,7 @@ export interface InboundFallback {
 }
 
 export interface InboundOption {
+  awgServer?: ServerSettings | null;
   enable: boolean;
   id: number;
   listen?: string;
@@ -658,6 +668,19 @@ export interface PanelUpdateStatus {
   state: string;
 }
 
+export interface PeerActivity {
+  allowedIPs: string;
+  down: number;
+  email: string;
+  endpoint: string;
+  handshake: number;
+  inboundId: number;
+  interface: string;
+  online: boolean;
+  tag: string;
+  up: number;
+}
+
 export interface ProbeResultUI {
   cpuPct: number;
   error: string;
@@ -692,6 +715,46 @@ export interface RealityScanResult {
   tls13: boolean;
   tlsVersion: string;
   x25519: boolean;
+}
+
+export interface ServerSettings {
+  contentPaddingAddition?: string;
+  disableCookies: boolean;
+  externalInterface?: string;
+  h1: string;
+  h2: string;
+  h3: string;
+  h4: string;
+  headerProtectionKey?: string;
+  i1?: string;
+  i2?: string;
+  i3?: string;
+  i4?: string;
+  i5?: string;
+  ipv6Enabled?: boolean;
+  ipv6ExternalInterface?: string;
+  ipv6Subnet?: string;
+  jc: number;
+  jmax: number;
+  jmin: number;
+  keepaliveTimeout?: string;
+  maxHandshakeAttempts?: string;
+  mtu?: number;
+  primaryDns: string;
+  privateKey: string;
+  publicKey: string;
+  randomTrailers: boolean;
+  rejectAfterTime?: string;
+  rekeyAfterTime?: string;
+  rekeyTimeout?: string;
+  routeThroughXray?: boolean;
+  s1: number;
+  s2: number;
+  s3: number;
+  s4: number;
+  secondaryDns: string;
+  subnetCidr: number;
+  subnetIp: string;
 }
 
 export interface Setting {

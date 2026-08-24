@@ -3,6 +3,7 @@ module github.com/mhsanaei/3x-ui/v3
 go 1.27.0
 
 require (
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
 	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-contrib/sessions v1.1.0
 	github.com/gin-gonic/gin v1.12.0
@@ -36,6 +37,7 @@ require (
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
+	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0
 	pgregory.net/rapid v1.3.0
 )
 
@@ -110,6 +112,5 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20260522210424-ecfc5a8d5446 // indirect
 	golang.zx2c4.com/wireguard/windows v1.0.1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260810153831-ec0a7760b754 // indirect
-	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )

@@ -171,6 +171,7 @@ const INBOUND_PROTOCOL_COLORS: Record<string, string> = {
   hysteria: 'cyan',
   hysteria2: 'green',
   wireguard: 'gold',
+  amneziawg: 'yellow',
   http: 'purple',
   mixed: 'lime',
   tunnel: 'orange',
@@ -349,10 +350,16 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null);
   const [editingAttachedIds, setEditingAttachedIds] = useState<number[]>([]);
   const [editingExternalLinks, setEditingExternalLinks] = useState<ExternalLink[]>([]);
+  const [editingTunnelAllowedIPs, setEditingTunnelAllowedIPs] = useState<Record<number, string>>(
+    {},
+  );
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoClient, setInfoClient] = useState<ClientRecord | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [qrClient, setQrClient] = useState<ClientRecord | null>(null);
+  const [viewingTunnelAllowedIPs, setViewingTunnelAllowedIPs] = useState<Record<number, string>>(
+    {},
+  );
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
   const [subLinksOpen, setSubLinksOpen] = useState(false);
@@ -619,6 +626,7 @@ export default function ClientsPage() {
     setEditingClient(null);
     setEditingAttachedIds([]);
     setEditingExternalLinks([]);
+    setEditingTunnelAllowedIPs({});
     setFormOpen(true);
   }
 
@@ -635,6 +643,7 @@ export default function ClientsPage() {
       const ids = full?.inboundIds ?? (Array.isArray(row.inboundIds) ? row.inboundIds : []);
       setEditingAttachedIds([...ids]);
       setEditingExternalLinks(Array.isArray(full?.externalLinks) ? [...full.externalLinks] : []);
+      setEditingTunnelAllowedIPs(full?.tunnelAllowedIPs ?? {});
       setFormOpen(true);
     },
     [hydrate],
@@ -686,6 +695,7 @@ export default function ClientsPage() {
       if (!row) return;
       const full = await hydrate(row.email);
       setInfoClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+      setViewingTunnelAllowedIPs(full?.tunnelAllowedIPs ?? {});
       setInfoOpen(true);
     },
     [hydrate],
@@ -697,6 +707,7 @@ export default function ClientsPage() {
       if (!row) return;
       const full = await hydrate(row.email);
       setQrClient(full ? { ...row, ...full.client, inboundIds: full.inboundIds } : row);
+      setViewingTunnelAllowedIPs(full?.tunnelAllowedIPs ?? {});
       setQrOpen(true);
     },
     [hydrate],
@@ -1838,6 +1849,7 @@ export default function ClientsPage() {
             client={editingClient}
             attachedIds={editingAttachedIds}
             attachedExternalLinks={editingExternalLinks}
+            tunnelAllowedIPs={editingTunnelAllowedIPs}
             inbounds={inbounds}
             tgBotEnable={tgBotEnable}
             groups={allGroups}
@@ -1851,6 +1863,7 @@ export default function ClientsPage() {
             open={infoOpen}
             client={infoClient}
             inboundsById={inboundsById}
+            tunnelAllowedIPs={viewingTunnelAllowedIPs}
             isOnline={infoClient ? isOnline(infoClient.email) : false}
             subSettings={subSettings}
             onOpenChange={setInfoOpen}
@@ -1861,6 +1874,7 @@ export default function ClientsPage() {
             open={qrOpen}
             client={qrClient}
             inboundsById={inboundsById}
+            tunnelAllowedIPs={viewingTunnelAllowedIPs}
             subSettings={subSettings}
             onOpenChange={setQrOpen}
           />

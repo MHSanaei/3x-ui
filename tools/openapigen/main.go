@@ -95,11 +95,17 @@ func run(root, outDir string) error {
 				"ProbeResultUI",
 				"RealityScanResult",
 				"GeodataTokenIssue",
+				"AmneziaWGLogs",
+				"PeerActivity",
 			),
 		},
 		{
 			Path:        resolveRel(root, "internal/web/service/panel"),
 			StructAllow: setOf("ApiTokenView", "PanelUpdateStatus"),
+		},
+		{
+			Path:        resolveRel(root, "internal/amneziawg"),
+			StructAllow: setOf("ServerSettings"),
 		},
 	}
 

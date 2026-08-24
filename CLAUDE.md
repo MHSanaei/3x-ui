@@ -41,6 +41,13 @@ file locations when it can answer in one hop.
 - `internal/xray/geodata/` — streaming geosite/geoip `.dat` reader (cached
   category index + paged entries) and `geosite:`/`geoip:`/`ext:` token parsing.
 - `internal/mtproto/` — MTProto inbounds via the bundled `mtg-multi` binary.
+- `internal/amneziawg/` — AmneziaWG protocol shape: instance/peer derivation
+  from an inbound, 3.1 obfuscation param generation + validation, port-forward
+  spec parsing.
+- `internal/amneziawgnet/` — embedded AmneziaWG runtime: amneziawg-go device
+  over a gVisor userspace netstack, per-inbound reconcile manager, TCP/UDP
+  relay into a loopback per-peer-auth SOCKS5 Xray inbound, port-forward
+  listeners, per-peer IPv6 egress aliases.
 - `internal/pia/` — PIA WireGuard protocol client (auth, signed server list, `/addKey`).
 - `internal/sub/` — subscription server (raw / JSON / Clash).
 - `internal/eventbus/` — in-process pub/sub (outbound/node health, xray.crash,
@@ -51,7 +58,7 @@ file locations when it can answer in one hop.
   - `controller/` — panel + REST API handlers; OpenAPI at /panel/api/openapi.json.
   - `service/` — business logic (InboundService, SettingService, XrayService,
     node sync); subpackages tgbot/, email/, outbound/, panel/, integration/.
-  - `job/` — 17 cron jobs (traffic, fail2ban IP-limit, node heartbeat/sync, LDAP,
+  - `job/` — 18 cron jobs (traffic, fail2ban IP-limit, node heartbeat/sync, LDAP,
     CPU/memory watchdogs, …); full table in `docs/architecture.md` §5.4.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
     `runtime/` (master/sub-node over mTLS), `websocket/`.

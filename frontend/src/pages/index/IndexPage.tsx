@@ -37,6 +37,7 @@ const BackupModal = lazy(() => import('./BackupModal'));
 const SystemHistoryModal = lazy(() => import('./SystemHistoryModal'));
 const XrayMetricsModal = lazy(() => import('./XrayMetricsModal'));
 const XrayLogModal = lazy(() => import('./XrayLogModal'));
+const AmneziaWGLogModal = lazy(() => import('./AmneziaWGLogModal'));
 const VersionModal = lazy(() => import('./VersionModal'));
 import './IndexPage.css';
 
@@ -67,6 +68,7 @@ export default function IndexPage() {
   const [sysHistoryOpen, setSysHistoryOpen] = useState(false);
   const [xrayMetricsOpen, setXrayMetricsOpen] = useState(false);
   const [xrayLogsOpen, setXrayLogsOpen] = useState(false);
+  const [amneziawgLogsOpen, setAmneziawgLogsOpen] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
   const [configTextOpen, setConfigTextOpen] = useState(false);
   const [configText, setConfigText] = useState('');
@@ -202,6 +204,7 @@ export default function IndexPage() {
                     onRestartXray={restartXray}
                     onOpenLogs={() => setLogsOpen(true)}
                     onOpenXrayLogs={() => setXrayLogsOpen(true)}
+                    onOpenAmneziaWGLogs={() => setAmneziawgLogsOpen(true)}
                     onOpenConfig={openConfig}
                     onOpenBackup={() => setBackupOpen(true)}
                     onOpenSystemHistory={() => setSysHistoryOpen(true)}
@@ -327,6 +330,9 @@ export default function IndexPage() {
         </LazyMount>
         <LazyMount when={xrayLogsOpen}>
           <XrayLogModal open={xrayLogsOpen} onClose={() => setXrayLogsOpen(false)} />
+        </LazyMount>
+        <LazyMount when={amneziawgLogsOpen}>
+          <AmneziaWGLogModal open={amneziawgLogsOpen} onClose={() => setAmneziawgLogsOpen(false)} />
         </LazyMount>
         <LazyMount when={versionOpen}>
           <VersionModal

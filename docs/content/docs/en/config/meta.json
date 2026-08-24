@@ -6,6 +6,7 @@
     "ssl-certificates",
     "inbounds",
     "reality",
+    "amneziawg",
     "transports",
     "clients",
     "subscription",

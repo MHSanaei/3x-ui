@@ -944,6 +944,36 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "AmneziaWGLogs": {
+    "description": "AmneziaWGLogs is what the overview's AmneziaWG log view renders: the live\nper-peer activity of every running embedded interface, plus the panel's\nown recent AmneziaWG lifecycle log lines that explain a peer being absent\nfrom Peers at all.",
+    "properties": {
+      "events": {
+        "example": [
+          "2025/01/01 12:00:00 amneziawg: started interface awg1 for inbound 1"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "peers": {
+        "items": {
+          "$ref": "#/components/schemas/PeerActivity"
+        },
+        "type": "array"
+      },
+      "running": {
+        "example": true,
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "events",
+      "peers",
+      "running"
+    ],
+    "type": "object"
+  },
   "ApiToken": {
     "properties": {
       "createdAt": {
@@ -1038,6 +1068,16 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "allowedIPsByInbound": {
+        "additionalProperties": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": "AllowedIPsByInbound optionally overrides AllowedIPs on a per-inbound\nbasis, keyed by inbound id. Lets one identity attached to both\nWireGuard and AmneziaWG carry two genuinely different addresses in a\nsingle Create/Update call instead of the shared AllowedIPs field\nbeing broadcast to every attached tunnel inbound. Absent/unset for a\ngiven inbound id falls back to the shared AllowedIPs exactly as\nbefore -- fully backward compatible for callers that never set this.",
+        "type": "object"
+      },
       "auth": {
         "description": "Auth password (Hysteria)",
         "type": "string"
@@ -1066,6 +1106,10 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "flow": {
         "description": "Flow control (XTLS)",
+        "type": "string"
+      },
+      "forwardedPorts": {
+        "description": "AmneziaWG per-client port-forwarding spec, e.g. \"80,443,8000-8100\"",
         "type": "string"
       },
       "group": {
@@ -1232,6 +1276,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "flow": {
         "type": "string"
       },
+      "forwardedPorts": {
+        "type": "string"
+      },
       "group": {
         "type": "string"
       },
@@ -1310,6 +1357,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "enable",
       "expiryTime",
       "flow",
+      "forwardedPorts",
       "group",
       "id",
       "keepAlive",
@@ -2053,7 +2101,8 @@ export const SCHEMAS: Record<string, unknown> = {
           "mixed",
           "tunnel",
           "tun",
-          "mtproto"
+          "mtproto",
+          "amneziawg"
         ],
         "example": "vless",
         "type": "string"
@@ -2205,6 +2254,15 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "InboundOption": {
     "properties": {
+      "awgServer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServerSettings"
+          }
+        ],
+        "description": "AwgServer carries the full AmneziaWG server block (keys, subnet,\nobfuscation params) so the clients page can render a downloadable\nper-client .conf without a second round trip.",
+        "nullable": true
+      },
       "enable": {
         "example": true,
         "type": "boolean"
@@ -2887,6 +2945,68 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "PeerActivity": {
+    "description": "PeerActivity is one peer's live embedded-Device-reported state, the\ncounterpart of an Xray access-log entry: a tunnel logs no requests, only\nhandshakes and bytes.",
+    "properties": {
+      "allowedIPs": {
+        "example": "10.8.1.2/32",
+        "type": "string"
+      },
+      "down": {
+        "example": 4194304,
+        "format": "int64",
+        "type": "integer"
+      },
+      "email": {
+        "example": "peer@example.com",
+        "type": "string"
+      },
+      "endpoint": {
+        "example": "203.0.113.9:51820",
+        "type": "string"
+      },
+      "handshake": {
+        "description": "Handshake is unix milliseconds, 0 when the peer has never connected.",
+        "example": 1735732800000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "inboundId": {
+        "example": 1,
+        "type": "integer"
+      },
+      "interface": {
+        "example": "awg1",
+        "type": "string"
+      },
+      "online": {
+        "example": true,
+        "type": "boolean"
+      },
+      "tag": {
+        "example": "inbound-51820",
+        "type": "string"
+      },
+      "up": {
+        "example": 1048576,
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "allowedIPs",
+      "down",
+      "email",
+      "endpoint",
+      "handshake",
+      "inboundId",
+      "interface",
+      "online",
+      "tag",
+      "up"
+    ],
+    "type": "object"
+  },
   "ProbeResultUI": {
     "properties": {
       "cpuPct": {
@@ -3050,6 +3170,150 @@ export const SCHEMAS: Record<string, unknown> = {
       "tls13",
       "tlsVersion",
       "x25519"
+    ],
+    "type": "object"
+  },
+  "ServerSettings": {
+    "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
+    "properties": {
+      "contentPaddingAddition": {
+        "type": "string"
+      },
+      "disableCookies": {
+        "type": "boolean"
+      },
+      "externalInterface": {
+        "description": "ExternalInterface, IPv6Enabled, and IPv6ExternalInterface are live\nagain as of Phase 3.5 -- see the matching fields on Instance for what\nthey gate (internal/amneziawgnet's IPv6-address-alias mechanism).\nIPv6Subnet was never actually vestigial either: InstanceFromInbound\nalready consumes it (via serverAddressV6) to build the server's own\ntunnel address, same as always. Only RouteThroughXray, below, remains\ngenuinely vestigial as of the hard cutover to the embedded path\n(internal/amneziawgnet) -- read from existing stored settings for\nbackward compatibility, but not acted on by anything.",
+        "type": "string"
+      },
+      "h1": {
+        "type": "string"
+      },
+      "h2": {
+        "type": "string"
+      },
+      "h3": {
+        "type": "string"
+      },
+      "h4": {
+        "type": "string"
+      },
+      "headerProtectionKey": {
+        "description": "HeaderProtectionKey and ContentPaddingAddition are AmneziaWG 3.0\nfields, flat and top-level for the same tools/openapigen reason as\nthe block above; Obfuscation() below folds them back into\nObfuscation31's own identically named fields.\nHeaderProtectionKey is a base64 32-byte key; empty (the default)\ndisables AWG 3.0 header protection. A non-empty value requires\nevery one of S1-S4 above to be \u003e= 12 -- ValidateObfuscation\nenforces this at save time, not just at IpcSet time.\nContentPaddingAddition is a \"low-high\" range or bare integer, the\nsame grammar and uint32 cap as H1-H4.",
+        "type": "string"
+      },
+      "i1": {
+        "type": "string"
+      },
+      "i2": {
+        "type": "string"
+      },
+      "i3": {
+        "type": "string"
+      },
+      "i4": {
+        "type": "string"
+      },
+      "i5": {
+        "type": "string"
+      },
+      "ipv6Enabled": {
+        "type": "boolean"
+      },
+      "ipv6ExternalInterface": {
+        "type": "string"
+      },
+      "ipv6Subnet": {
+        "type": "string"
+      },
+      "jc": {
+        "description": "Obfuscation31's fields, repeated flat (not embedded) rather than\nnested under their own key: encoding/json would happily inline an\nembedded Obfuscation31 the same way, but the frontend's Go-\u003eZod/TS\ngenerator (tools/openapigen) does not — it emits a genuinely nested\n`obfuscation31` object, which would silently diverge from the real\nwire JSON. See Obfuscation() below for the manager-facing conversion.",
+        "type": "integer"
+      },
+      "jmax": {
+        "type": "integer"
+      },
+      "jmin": {
+        "type": "integer"
+      },
+      "keepaliveTimeout": {
+        "type": "string"
+      },
+      "maxHandshakeAttempts": {
+        "type": "string"
+      },
+      "mtu": {
+        "type": "integer"
+      },
+      "primaryDns": {
+        "description": "PrimaryDNS/SecondaryDNS seed client configs' DNS line. Blank is\nmeaningful, so no omitempty: a dropped key resurrects frontend defaults.",
+        "type": "string"
+      },
+      "privateKey": {
+        "type": "string"
+      },
+      "publicKey": {
+        "type": "string"
+      },
+      "randomTrailers": {
+        "description": "RandomTrailers/DisableCookies mirror Instance's identically named\nAmneziaWG 3.1 fields -- see that type's own doc comment for the real\nprotocol/interop details. Both real bool fields (not omitempty):\nbuildUAPIConfig always emits both lines explicitly so the\nreconfigure-in-place diff correctly notices a true-\u003efalse edit, not\njust false-\u003etrue.",
+        "type": "boolean"
+      },
+      "rejectAfterTime": {
+        "type": "string"
+      },
+      "rekeyAfterTime": {
+        "description": "RekeyAfterTime/RekeyTimeout/RejectAfterTime/KeepaliveTimeout/\nMaxHandshakeAttempts mirror Instance's identically named fields --\nsee that type's own doc comment for the grammar/width/real-default\ndetails. Flat and top-level for the same tools/openapigen reason as\nthe rest of this struct.",
+        "type": "string"
+      },
+      "rekeyTimeout": {
+        "type": "string"
+      },
+      "routeThroughXray": {
+        "type": "boolean"
+      },
+      "s1": {
+        "type": "integer"
+      },
+      "s2": {
+        "type": "integer"
+      },
+      "s3": {
+        "type": "integer"
+      },
+      "s4": {
+        "type": "integer"
+      },
+      "secondaryDns": {
+        "type": "string"
+      },
+      "subnetCidr": {
+        "type": "integer"
+      },
+      "subnetIp": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "disableCookies",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "jc",
+      "jmax",
+      "jmin",
+      "primaryDns",
+      "privateKey",
+      "publicKey",
+      "randomTrailers",
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "secondaryDns",
+      "subnetCidr",
+      "subnetIp"
     ],
     "type": "object"
   },

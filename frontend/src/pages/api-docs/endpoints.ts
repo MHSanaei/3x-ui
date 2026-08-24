@@ -610,6 +610,28 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/server/amneziawglogs/:count',
+        summary:
+          'Return live AmneziaWG peer activity (handshake, endpoint, transfer) plus the panel’s own AmneziaWG event lines.',
+        params: [
+          {
+            name: 'count',
+            in: 'path',
+            type: 'number',
+            desc: 'Maximum peer rows and event lines to return.',
+          },
+          {
+            name: 'filter',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Keyword filter — only rows/lines containing this string.',
+          },
+        ],
+        body: 'filter=awg1',
+        responseSchema: 'AmneziaWGLogs',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/importDB',
         summary:
           'Restore the panel DB from an uploaded backup (multipart form, field name "db"). SQLite panels accept a SQLite database (.db) or a SQLite migration dump (.dump); PostgreSQL panels accept a pg_dump archive (.dump), a SQLite database (.db), or a SQLite migration dump. The panel restarts after restore. Destructive.',

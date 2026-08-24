@@ -21,6 +21,7 @@ import { HttpUtil, NumberFormatter, RandomUtil, SizeFormatter, Wireguard } from 
 import type { RealityScanResult } from '@/generated/types';
 import { rawInboundToFormValues, formValuesToWirePayload } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
+import { generateAwgObfuscation } from '@/lib/xray/amneziawg-obfuscation';
 import { composeInboundTag, isAutoInboundTag, type InboundTagInput } from '@/lib/xray/inbound-tag';
 import {
   canEnableReality,
@@ -56,6 +57,7 @@ import './InboundFormModal.css';
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
 import { formatInboundIssue, formatInboundValidation } from './formatValidationError';
 import {
+  AmneziawgFields,
   HttpFields,
   HysteriaFields,
   MixedFields,
@@ -345,6 +347,41 @@ export default function InboundFormModal({
   const regenInboundWg = () => {
     const kp = Wireguard.generateKeypair();
     setV('settings.secretKey', kp.privateKey);
+  };
+
+  // AmneziaWG uses the same Curve25519 keys as WireGuard, just nested under
+  // settings.server instead of flat on settings — see amneziawg.ts. Unlike
+  // WireGuard's Xray-native inbound (which re-derives its public key at
+  // runtime and never stores one), AmneziaWG's server.publicKey is a real,
+  // persisted field the Go backend reads directly, so it must be kept in
+  // sync even when the user free-types a new private key instead of using
+  // the regenerate button.
+  const awgPrivateKey = useWatch({ control, name: 'settings.server.privateKey' });
+  const awgPubKey =
+    typeof awgPrivateKey === 'string' && awgPrivateKey.length > 0
+      ? Wireguard.generateKeypair(awgPrivateKey).publicKey
+      : '';
+
+  useEffect(() => {
+    if (protocol === Protocols.AMNEZIAWG) {
+      setV('settings.server.publicKey', awgPubKey);
+    }
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [awgPubKey, protocol]);
+
+  const regenInboundAwg = () => {
+    const kp = Wireguard.generateKeypair();
+    setV('settings.server.privateKey', kp.privateKey);
+    setV('settings.server.publicKey', kp.publicKey);
+  };
+
+  // Randomizes the AmneziaWG 3.1 obfuscation set client-side; the shared
+  // generator mirrors the Go backend's amneziawg.GenerateObfuscation31.
+  const regenInboundAwgObfuscation = () => {
+    const obf = generateAwgObfuscation();
+    for (const [field, value] of Object.entries(obf)) {
+      setV(`settings.server.${field}`, value);
+    }
   };
 
   const matchesVlessAuth = (
@@ -740,6 +777,14 @@ export default function InboundFormModal({
         <WireguardFields wgPubKey={wgPubKey} regenInboundWg={regenInboundWg} />
       )}
 
+      {protocol === Protocols.AMNEZIAWG && (
+        <AmneziawgFields
+          awgPubKey={awgPubKey}
+          regenInboundAwg={regenInboundAwg}
+          regenInboundAwgObfuscation={regenInboundAwgObfuscation}
+        />
+      )}
+
       {protocol === Protocols.TUN && <TunFields />}
 
       {protocol === Protocols.TUNNEL && <TunnelFields />}
@@ -1077,6 +1122,7 @@ export default function InboundFormModal({
                     Protocols.TUN,
                     Protocols.WIREGUARD,
                     Protocols.MTPROTO,
+                    Protocols.AMNEZIAWG,
                   ] as string[]
                 ).includes(protocol) || isFallbackHost
                   ? [

@@ -133,6 +133,41 @@ func (s *ClientService) GetInboundIdsForRecord(id int) ([]int, error) {
 	return ids, nil
 }
 
+// TunnelAllowedIPsByInbound returns, for each given WireGuard/AmneziaWG
+// inbound id, the real AllowedIPs this email currently has on that specific
+// inbound's own settings JSON -- joined comma-separated, matching the form
+// value shape a single AllowedIPs field already uses. Non-tunnel inbounds
+// and ids the email isn't actually attached to are simply absent from the
+// result (not an error): callers use this to seed a per-protocol display
+// field, and ClientRecord's own single AllowedIPs column can't tell two
+// different protocol addresses apart, which is exactly the gap this closes.
+func (s *ClientService) TunnelAllowedIPsByInbound(inboundSvc *InboundService, email string, inboundIds []int) (map[int]string, error) {
+	result := make(map[int]string, len(inboundIds))
+	for _, ibId := range inboundIds {
+		inbound, err := inboundSvc.GetInbound(ibId)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			return nil, err
+		}
+		if inbound.Protocol != model.WireGuard && inbound.Protocol != model.AmneziaWG {
+			continue
+		}
+		clients, err := inboundSvc.GetClients(inbound)
+		if err != nil {
+			return nil, err
+		}
+		for i := range clients {
+			if strings.EqualFold(clients[i].Email, email) {
+				result[ibId] = strings.Join(clients[i].AllowedIPs, ",")
+				break
+			}
+		}
+	}
+	return result, nil
+}
+
 func (s *ClientService) List() ([]ClientWithAttachments, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord

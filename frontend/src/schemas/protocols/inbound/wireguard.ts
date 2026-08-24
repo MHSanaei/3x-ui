@@ -69,5 +69,12 @@ export const WireguardInboundSettingsSchema = z.object({
   clients: z.array(WireguardClientSchema).default([]),
   noKernelTun: z.boolean().default(false),
   domainStrategy: WireguardDomainStrategySchema.optional(),
+  // Admin-configurable base subnet new clients are auto-allocated from —
+  // mirrors AmneziaWG's settings.server.subnetIp/subnetCidr. Optional and
+  // left blank by default: an inbound that never sets this keeps the
+  // pre-existing behavior (infer from existing clients' own addresses, else
+  // fall back to 10.0.0.0/24 server-side).
+  subnetIp: z.string().default(''),
+  subnetCidr: optionalClearedInt(z.number().int().min(1).max(32)),
 });
 export type WireguardInboundSettings = z.infer<typeof WireguardInboundSettingsSchema>;
