@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Input, InputNumber, Popconfirm, Select, Space, Switch, Tag, Typography, message } from 'antd';
 import { DeleteOutlined, PauseCircleOutlined, PlayCircleOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
@@ -34,6 +34,23 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
+
+  const proxiedSubURI = useMemo(() => {
+    const domain = (allSetting.frontProxyDomain ?? '').trim();
+    if (!domain) return '';
+    const path = (allSetting.subPath ?? '/').trim();
+    return `https://${domain}${path.startsWith('/') ? path : `/${path}`}`;
+  }, [allSetting.frontProxyDomain, allSetting.subPath]);
+
+  const subURIHasPort = useMemo(() => {
+    const current = (allSetting.subURI ?? '').trim();
+    if (!current) return true;
+    try {
+      return new URL(current).port !== '';
+    } catch {
+      return false;
+    }
+  }, [allSetting.subURI]);
 
   async function dispatch(action: 'start' | 'stop' | 'removeDecoy', okKey: string) {
     setLoading(true);
@@ -176,6 +193,31 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
         />
       </SettingListItem>
 
+      <SettingListItem paddings="small" title={t('pages.settings.frontProxy.domain')} description={t('pages.settings.frontProxy.domainDesc')}>
+        <Input value={allSetting.frontProxyDomain} placeholder="panel.example.com"
+          onChange={(e) => updateSetting({ frontProxyDomain: e.target.value })} />
+      </SettingListItem>
+
+      {allSetting.subEnable && (
+        <SettingListItem paddings="small" title={t('pages.settings.frontProxy.subUri')} description={t('pages.settings.frontProxy.subUriDesc')}>
+          <Space direction="vertical" size={6} style={{ width: '100%' }}>
+            <Typography.Text code copyable={!!proxiedSubURI}>
+              {proxiedSubURI || t('pages.settings.frontProxy.subUriNeedsDomain')}
+            </Typography.Text>
+            <Button
+              size="small"
+              disabled={!proxiedSubURI || allSetting.subURI === proxiedSubURI}
+              onClick={() => updateSetting({ subURI: proxiedSubURI })}
+            >
+              {t('pages.settings.frontProxy.subUriApply')}
+            </Button>
+            {subURIHasPort && (
+              <Typography.Text type="warning">{t('pages.settings.frontProxy.subUriHasPort')}</Typography.Text>
+            )}
+          </Space>
+        </SettingListItem>
+      )}
+
       {allSetting.frontProxyCertMode === 'auto' ? (
         <>
           <Alert
@@ -184,10 +226,6 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
             style={{ margin: '0 20px 12px' }}
             description={t('pages.settings.frontProxy.acmeHttp01Hint')}
           />
-          <SettingListItem paddings="small" title={t('pages.settings.frontProxy.domain')} description={t('pages.settings.frontProxy.domainDesc')}>
-            <Input value={allSetting.frontProxyDomain} placeholder="panel.example.com"
-              onChange={(e) => updateSetting({ frontProxyDomain: e.target.value })} />
-          </SettingListItem>
           <SettingListItem paddings="small" title={t('pages.settings.frontProxy.email')} description={t('pages.settings.frontProxy.emailDesc')}>
             <Input value={allSetting.frontProxyEmail} placeholder="admin@example.com"
               onChange={(e) => updateSetting({ frontProxyEmail: e.target.value })} />
@@ -221,7 +259,10 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
             value={allSetting.frontProxyDecoyTemplate}
             style={{ width: '100%' }}
             onChange={(v) => updateSetting({ frontProxyDecoyTemplate: v })}
-            options={(status?.templates ?? [allSetting.frontProxyDecoyTemplate]).map((name) => ({ value: name, label: name }))}
+            options={(status?.templates ?? [allSetting.frontProxyDecoyTemplate]).map((name) => ({
+              value: name,
+              label: t(`pages.settings.frontProxy.templates.${name}`, { defaultValue: name }),
+            }))}
           />
         </SettingListItem>
       )}
