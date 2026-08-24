@@ -2,6 +2,7 @@ package frontproxy
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"embed"
 	"fmt"
 	"html/template"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -81,12 +83,28 @@ func newTemplateDecoy(name, seed string) http.Handler {
 		logDecoyFallback("template "+name, err)
 		body, _ = renderDecoyTemplate(DefaultDecoyTemplate, seed)
 	}
+	// The body is fixed for this install, so the validator can be computed
+	// once. Without one a browser has nothing to revalidate against and
+	// caches the page heuristically -- which is how a decoy keeps showing
+	// the previous theme long after the admin picked a new one.
+	etag := fmt.Sprintf(`"%x"`, sha256.Sum256(body))
+	length := strconv.Itoa(len(body))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Cache-Control", "no-cache")
+		if match := r.Header.Get("If-None-Match"); match != "" && strings.Contains(match, etag) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Set("Content-Length", length)
 		if r.URL.Path == "/" {
 			w.WriteHeader(http.StatusOK)
 		} else {
 			w.WriteHeader(http.StatusNotFound)
+		}
+		if r.Method == http.MethodHead {
+			return
 		}
 		_, _ = w.Write(body)
 	})

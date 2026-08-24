@@ -148,3 +148,45 @@ func TestTemplateIsStableForOneInstall(t *testing.T) {
 		t.Error("the same seed rendered two different pages")
 	}
 }
+
+// A browser given no validator caches the page heuristically, which is how a
+// decoy keeps showing the previous theme after the admin picks a new one.
+func TestTemplateDecoySendsCacheValidators(t *testing.T) {
+	rec := serveDecoy(t, DecoyConfig{Mode: DecoyTemplate, Template: "clock"}, "/")
+	if rec.Header().Get("ETag") == "" {
+		t.Error("no ETag, so the browser has nothing to revalidate against")
+	}
+	if rec.Header().Get("Cache-Control") == "" {
+		t.Error("no Cache-Control, so freshness is left to browser heuristics")
+	}
+}
+
+// Picking a different theme must change the validator, or a cached copy of
+// the old page stays valid forever.
+func TestSwitchingTemplateChangesTheETag(t *testing.T) {
+	seen := map[string]string{}
+	for _, name := range []string{"clock", "tetris", "parked"} {
+		rec := serveDecoy(t, DecoyConfig{Mode: DecoyTemplate, Template: name}, "/")
+		tag := rec.Header().Get("ETag")
+		if prev, dup := seen[tag]; dup {
+			t.Errorf("themes %q and %q share ETag %s", prev, name, tag)
+		}
+		seen[tag] = name
+	}
+}
+
+// With a matching validator the answer is 304 and no body, so an unchanged
+// decoy costs a browser nothing to recheck.
+func TestUnchangedTemplateRevalidatesTo304(t *testing.T) {
+	first := serveDecoy(t, DecoyConfig{Mode: DecoyTemplate, Template: "clock"}, "/")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("If-None-Match", first.Header().Get("ETag"))
+	rec := httptest.NewRecorder()
+	newDecoyHandler(DecoyConfig{Mode: DecoyTemplate, Template: "clock"}).ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotModified {
+		t.Errorf("status = %d, want 304 for an unchanged page", rec.Code)
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("304 carried a %d-byte body", rec.Body.Len())
+	}
+}
