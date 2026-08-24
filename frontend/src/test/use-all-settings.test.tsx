@@ -29,7 +29,7 @@ describe('useAllSettings', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    await queryClient.fetchQuery(defaultsQuery);
+    await queryClient.query(defaultsQuery);
     const { result } = renderHook(() => useAllSettings(), { wrapper });
 
     await waitFor(() => expect(result.current.fetched).toBe(true));
@@ -37,7 +37,7 @@ describe('useAllSettings', () => {
       await result.current.saveAll();
     });
 
-    const defaults = await queryClient.fetchQuery(defaultsQuery);
+    const defaults = await queryClient.query(defaultsQuery);
     expect(fetchDefaults).toHaveBeenCalledTimes(2);
     expect(defaults.subURI).toBe('https://example.com/my_custom_path/');
   });
@@ -61,7 +61,7 @@ describe('useAllSettings', () => {
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
 
-    await queryClient.fetchQuery(defaultsQuery);
+    await queryClient.query(defaultsQuery);
     const { result } = renderHook(() => useAllSettings(), { wrapper });
 
     await waitFor(() => expect(result.current.fetched).toBe(true));
@@ -69,7 +69,7 @@ describe('useAllSettings', () => {
       await result.current.saveAll();
     });
 
-    const defaults = await queryClient.fetchQuery(defaultsQuery);
+    const defaults = await queryClient.query(defaultsQuery);
     expect(fetchDefaults).toHaveBeenCalledOnce();
     expect(defaults.subURI).toBe('https://example.com/sub/');
   });

@@ -8,7 +8,7 @@ const optionalClearedInt = (schema: z.ZodNumber) =>
 
 // Same null-absorbing preprocess for fields that keep a schema default:
 // clearing the InputNumber refills the default instead of blocking the save.
-const clearedToDefault = <T extends z.ZodTypeAny>(schema: T) =>
+const clearedToDefault = <T extends z.ZodType>(schema: T) =>
   z.preprocess((v) => (v == null ? undefined : v), schema);
 
 // An AmneziaWG client (multi-client model). Same key/address fields as
