@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/tls"
 	"net"
+	"strings"
 	"testing"
 )
 
@@ -84,20 +85,34 @@ func TestScanRealityTargetInputValidation(t *testing.T) {
 }
 
 func TestScanRealityTargetBlocksPrivate(t *testing.T) {
-	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:443", 0)
+	res, err := (&ServerService{}).ScanRealityTarget("10.0.0.1:443", 0)
+	if err != nil {
+		t.Fatalf("ScanRealityTarget(private) unexpected error: %v", err)
+	}
+	if res.Feasible {
+		t.Error("ScanRealityTarget(private) should not be feasible")
+	}
+	if !strings.Contains(res.Reason, "blocked private/internal address") {
+		t.Errorf("reason = %q, want the SSRF guard to refuse a private address", res.Reason)
+	}
+}
+
+// Loopback is exempt so the panel's own reverse proxy can be probed before the
+// REALITY fallback is pointed at it. Nothing listens on port 1, so the scan
+// still fails -- but for the honest reason that nothing answered, not because
+// the guard refused to dial.
+func TestScanRealityTargetProbesLoopback(t *testing.T) {
+	res, err := (&ServerService{}).ScanRealityTarget("127.0.0.1:1", 0)
 	if err != nil {
 		t.Fatalf("ScanRealityTarget(loopback) unexpected error: %v", err)
 	}
-	if res.Feasible {
-		t.Error("ScanRealityTarget(loopback) should not be feasible")
-	}
-	if res.Reason == "" {
-		t.Error("ScanRealityTarget(loopback) should set a reason")
+	if strings.Contains(res.Reason, "blocked private/internal address") {
+		t.Errorf("loopback still refused by the SSRF guard: %q", res.Reason)
 	}
 }
 
 func TestScanRealityTargetsHandlesPrivateAndBadInput(t *testing.T) {
-	results, err := (&ServerService{}).ScanRealityTargets("127.0.0.1:443,10.0.0.1:443,bad host!")
+	results, err := (&ServerService{}).ScanRealityTargets("127.0.0.1:1,10.0.0.1:443,bad host!")
 	if err != nil {
 		t.Fatalf("ScanRealityTargets unexpected error: %v", err)
 	}

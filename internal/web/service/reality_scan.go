@@ -187,8 +187,17 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	// The panel's own reverse proxy is a loopback target, and probing it is the
+	// natural way to check a REALITY fallback before switching to it. Only a
+	// literal loopback address earns the exemption, so the guard still stops a
+	// hostname resolving somewhere private -- a cloud metadata endpoint, say.
+	dialCtx := ctx
+	if ip := net.ParseIP(dialHost); ip != nil && ip.IsLoopback() {
+		dialCtx = netsafe.ContextWithAllowPrivate(ctx, true)
+	}
+
 	start := time.Now()
-	conn, err := netsafe.SSRFGuardedDialContext(ctx, "tcp", addr)
+	conn, err := netsafe.SSRFGuardedDialContext(dialCtx, "tcp", addr)
 	if err != nil {
 		res.Reason = "connection failed: " + err.Error()
 		return res

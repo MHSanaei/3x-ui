@@ -137,6 +137,33 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
           onChange={onNumber((v) => updateSetting({ frontProxyPort: v }))} />
       </SettingListItem>
 
+      <SettingListItem
+        paddings="small"
+        title={t('pages.settings.frontProxy.upstreams')}
+        description={t('pages.settings.frontProxy.upstreamsDesc')}
+      >
+        <Space direction="vertical" size={4}>
+          <Typography.Text type="secondary">
+            {t('pages.settings.frontProxy.upstreamPanel')}
+            {': '}
+            <Typography.Text code>{allSetting.webBasePath}</Typography.Text>
+            {' → 127.0.0.1:'}
+            {allSetting.webPort}
+          </Typography.Text>
+          <Typography.Text type="secondary">
+            {t('pages.settings.frontProxy.upstreamSub')}
+            {': '}
+            {allSetting.subEnable ? (
+              <>
+                <Typography.Text code>{allSetting.subPath}</Typography.Text>
+                {' → 127.0.0.1:'}
+                {allSetting.subPort}
+              </>
+            ) : t('pages.settings.frontProxy.upstreamSubOff')}
+          </Typography.Text>
+        </Space>
+      </SettingListItem>
+
       <SettingListItem paddings="small" title={t('pages.settings.frontProxy.certMode')} description={t('pages.settings.frontProxy.certModeDesc')}>
         <Select
           value={allSetting.frontProxyCertMode}
@@ -168,7 +195,7 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
         </>
       ) : (
         <Alert
-          type="info"
+          type="warning"
           showIcon
           style={{ margin: '0 20px 12px' }}
           description={t('pages.settings.frontProxy.certManualHint')}
