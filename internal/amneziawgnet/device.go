@@ -74,7 +74,17 @@ type DeviceOptions struct {
 type Device struct {
 	*device.Device
 	Stack *stack.Stack
+
+	// localAddrs snapshots the interface addresses the netstack was built
+	// with (hostAddresses of the Instance's Address list). gVisor exposes no
+	// read-back for them, and WriteUDPReply-style raw injection needs a
+	// same-family source address; set once by newUnconfiguredDevice /
+	// newUnconfiguredClientDevice, read-only afterwards.
+	localAddrs []netip.Addr
 }
+
+// LocalAddresses returns the configured tunnel-local address(es).
+func (d *Device) LocalAddresses() []netip.Addr { return d.localAddrs }
 
 // NewDevice constructs, configures, and brings up an embedded AmneziaWG
 // interface for inst in one call: a gVisor-backed tun.Device sized to
@@ -138,7 +148,7 @@ func newUnconfiguredDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device
 	}
 	dev := device.NewDevice(tun, awgconn.NewDefaultBind(), logger)
 
-	return &Device{Device: dev, Stack: gstack}, nil
+	return &Device{Device: dev, Stack: gstack, localAddrs: addrs}, nil
 }
 
 // Configure applies inst/opts to d via UAPI and brings the interface up.

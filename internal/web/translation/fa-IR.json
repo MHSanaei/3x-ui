@@ -1841,7 +1841,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "به انتهای هر بسته بایت‌های تصادفی می‌افزاید. هر دو طرف باید AmneziaWG 3.1+ باشند.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "هرگز پاسخ کوکی ارسال نشود — اثر انگشت DPI را حذف می‌کند اما دفاع در برابر سیل‌آسا را ضعیف می‌کند."
+        "disableCookiesHint": "هرگز پاسخ کوکی ارسال نشود — اثر انگشت DPI را حذف می‌کند اما دفاع در برابر سیل‌آسا را ضعیف می‌کند.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "سطح کاربر"

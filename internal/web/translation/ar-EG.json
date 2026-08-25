@@ -1841,7 +1841,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "يضيف بايتات عشوائية إلى نهاية كل حزمة. يتطلب AmneziaWG 3.1+ على الطرفين.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "عدم إرسال ردود الكوكي — يزيل بصمة DPI لكنه يضعف الحماية من الفيضانات."
+        "disableCookiesHint": "عدم إرسال ردود الكوكي — يزيل بصمة DPI لكنه يضعف الحماية من الفيضانات.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "مستوى المستخدم"

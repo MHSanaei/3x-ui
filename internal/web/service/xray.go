@@ -160,6 +160,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// still carry sessionPlacement/sessionKey; lift them too (same reason as
 	// the per-inbound lift below).
 	xrayConfig.OutboundConfigs = liftOutboundsXhttpSessionIDKeys(xrayConfig.OutboundConfigs)
+	// Swap every "amneziawg" outbound for its socks bridge BEFORE anything
+	// else reads OutboundConfigs: Xray-core has no amneziawg proxy, and
+	// ValidateOutboundConfig / hot-diff would both choke on the raw entry.
+	transformAmneziaWGOutbounds(xrayConfig)
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 

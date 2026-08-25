@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -58,6 +59,19 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 			coreVersion = process.GetXrayVersion()
 		}
 		for _, outbound := range outbounds {
+			// amneziawg is a panel pseudo-protocol, not an Xray one: the
+			// core's loader would reject it outright. Validate it here with
+			// the same rules the embedded device enforces at IpcSet time.
+			if amneziawg.IsAmneziaWGOutbound(outbound) {
+				var probe struct {
+					Tag string `json:"tag"`
+				}
+				_ = json.Unmarshal(outbound, &probe)
+				if err := amneziawg.ValidateAmneziaWGOutbound(probe.Tag, outbound); err != nil {
+					return err
+				}
+				continue
+			}
 			if err := xray.ValidateOutboundConfig(outbound); err != nil {
 				if shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, err) {
 					continue

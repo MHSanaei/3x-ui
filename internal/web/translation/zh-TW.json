@@ -1841,7 +1841,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "在每個封包結尾附加隨機位元組。兩端都需要 AmneziaWG 3.1+。",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "永不傳送 cookie reply——消除一個 DPI 指紋，但會削弱抗洪泛能力。"
+        "disableCookiesHint": "永不傳送 cookie reply——消除一個 DPI 指紋，但會削弱抗洪泛能力。",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "用戶級別"

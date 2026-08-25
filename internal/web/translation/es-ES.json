@@ -1841,7 +1841,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "Añade bytes aleatorios a cada paquete. Ambos extremos necesitan AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "No enviar cookie replies — elimina una huella para DPI, pero debilita la mitigación de inundaciones."
+        "disableCookiesHint": "No enviar cookie replies — elimina una huella para DPI, pero debilita la mitigación de inundaciones.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "Nivel de Usuario"
