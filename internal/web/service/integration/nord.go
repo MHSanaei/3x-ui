@@ -22,7 +22,7 @@ var nordHTTPClient = &http.Client{Timeout: 15 * time.Second}
 const maxResponseSize = 10 << 20
 
 func (s *NordService) GetCountries() (string, error) {
-	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://api.nordvpn.com/v1/countries", nil)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://api.nordvpn.com/v1/servers/countries?filters[servers_technologies][identifier]=wireguard_udp", nil)
 	if reqErr != nil {
 		return "", reqErr
 	}
@@ -48,7 +48,7 @@ func (s *NordService) GetServers(countryId string) (string, error) {
 			return "", common.NewError("invalid country ID")
 		}
 	}
-	url := fmt.Sprintf("https://api.nordvpn.com/v2/servers?limit=0&filters[servers_technologies][id]=35&filters[country_id]=%s", countryId)
+	url := fmt.Sprintf("https://api.nordvpn.com/v2/servers?limit=0&filters[servers_technologies][identifier]=wireguard_udp&filters[country_id]=%s", countryId)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
 		return "", reqErr
@@ -65,28 +65,7 @@ func (s *NordService) GetServers(countryId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var data map[string]any
-	if err := json.Unmarshal(body, &data); err != nil {
-		return string(body), nil
-	}
-
-	servers, ok := data["servers"].([]any)
-	if !ok {
-		return string(body), nil
-	}
-
-	var filtered []any
-	for _, s := range servers {
-		if server, ok := s.(map[string]any); ok {
-			if load, ok := server["load"].(float64); ok && load > 7 {
-				filtered = append(filtered, s)
-			}
-		}
-	}
-	data["servers"] = filtered
-
-	result, _ := json.Marshal(data)
-	return string(result), nil
+	return string(body), nil
 }
 
 func (s *NordService) SetKey(privateKey string) (string, error) {

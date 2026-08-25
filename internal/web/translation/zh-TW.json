@@ -1852,7 +1852,10 @@
         "noServers": "未找到選定國家/地區的伺服器",
         "noPublicKey": "選定的伺服器未公布 NordLynx 公鑰。",
         "outboundAdded": "NordVPN 出站已新增",
-        "outboundUpdated": "NordVPN 出站已更新"
+        "outboundUpdated": "NordVPN 出站已更新",
+        "serverLoad": "伺服器負載",
+        "addedServers": "已新增的伺服器",
+        "alreadyAdded": "此伺服器已在出站清單中。請使用{reset}重新整理其金鑰。"
       },
       "warp": {
         "changeIp": "更換 IP",

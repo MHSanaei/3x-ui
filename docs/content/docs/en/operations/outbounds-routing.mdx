@@ -84,7 +84,14 @@ with a routing rule.
 
 3x-ui can fetch NordVPN (NordLynx/WireGuard) credentials from an access token (or
 accept a private key directly) and list countries/servers, so you can build a
-NordVPN outbound.
+NordVPN outbound. Open **Xray → Outbounds → More → NordVPN**, sign in or save a
+private key, select a server, and add the outbound. You can add several servers;
+each hostname has a unique `nord-<hostname>` tag and cannot be added twice.
+
+**Reset** on an added row keeps its server, tag, peer, and routing references but
+refreshes its embedded private key from the currently stored NordVPN credentials.
+Logout clears only those stored credentials. Existing outbounds continue to use
+their embedded keys; remove unused NordVPN outbounds from the Outbounds list.
 
 ## PIA WireGuard
 
