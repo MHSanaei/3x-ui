@@ -33,6 +33,9 @@ func AttachTCPForwarder(gstack *stack.Stack, handler func(conn *gonet.TCPConn, d
 				r.Complete(true)
 				return
 			}
+			// Nagle holds small writes until an ACK frees them; the real
+			// client's RTT (not this loopback stack's) is what it waits on.
+			ep.SocketOptions().SetDelayOption(false)
 			dest := netip.AddrPortFrom(addrFromTcpip(id.LocalAddress), id.LocalPort)
 			handler(gonet.NewTCPConn(&wq, ep), dest)
 			ep.Close()

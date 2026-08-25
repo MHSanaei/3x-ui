@@ -79,6 +79,9 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 		return
 	}
 	defer upstream.Close()
+	if tc, ok := upstream.(*net.TCPConn); ok {
+		_ = tc.SetNoDelay(true)
+	}
 
 	done := make(chan struct{}, 2)
 	go func() { _, _ = io.Copy(upstream, conn); done <- struct{}{} }()
