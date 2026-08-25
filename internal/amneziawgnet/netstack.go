@@ -30,17 +30,8 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 )
 
-// tunQueueDepth is the outbound packet queue depth for both the gVisor
-// channel endpoint and the handoff channel to amneziawg-go's TUN reader
-// (see the stackTun literal in createNetTUNWithStack for why both need it).
-// tcpip.Stack.Stats() during a real many-connection download (20-28
-// concurrent TCP flows, e.g. a segmented speed test) showed
-// SlowStartRetransmits jump by ~770 in a single second the moment
-// CurrentEstablished crossed ~20 -- consistent with many connections'
-// simultaneous slow-start growth briefly exceeding 1024 outstanding
-// packets and gVisor treating the resulting silent drops as real network
-// loss. 1024 was sized for the single-connection buffering problem this
-// comment used to describe alone; it doesn't cover this one.
+// tunQueueDepth is the outbound packet queue depth for both the gVisor channel endpoint and the handoff channel to amneziawg-go's TUN reader (see the stackTun literal in createNetTUNWithStack).
+// 1024 was too small for several connections' simultaneous TCP slow-start growth; channel.Endpoint drops silently (not blocks) when full, which reads as network loss.
 const tunQueueDepth = 8192
 
 // stackTun implements amneziawg-go's tun.Device directly against a gVisor

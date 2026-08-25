@@ -20,11 +20,7 @@ function expectRangeWithin(value: string, min: number, max: number): [number, nu
   return [lo, hi];
 }
 
-/*
- * Parses a plain integer and asserts min <= n <= max; mirrors the bounds the
- * Go generator's own test pins (internal/amneziawg/params_test.go), so the
- * two generators cannot drift apart silently.
- */
+/* Parses a plain integer and asserts min <= n <= max (see expectRangeWithin above for the range form). */
 function expectIntWithin(value: string, min: number, max: number): number {
   const m = /^(\d+)$/.exec(value);
   expect(m, `${value} is not a plain integer`).not.toBeNull();

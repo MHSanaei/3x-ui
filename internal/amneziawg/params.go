@@ -106,19 +106,8 @@ func generateHeaderProtectionKey() string {
 	return base64.StdEncoding.EncodeToString(key)
 }
 
-// generateHValues returns four distinct values for H1-H4, one per band of the
-// space so distinctness needs no retries. The low bound is >= 5: values 1-4
-// are reserved for vanilla WireGuard message types.
-//
-// Each H is a single value, not a range. amneziawg-go's packet classifier
-// (DeterminePacketTypeAndPadding) only ever compares a fixed-size ciphertext
-// prefix against these bounds, so a wider range buys no DPI resistance -- the
-// range boundaries themselves are never observable on the wire, only the
-// single value the classifier happens to let through. A wide range does cost
-// real throughput: with RandomTrailers on (as every generated set here has
-// it), the handshake-size checks relax from == to >, so a wide H-range starts
-// misclassifying an equally wide fraction of ordinary transport packets as
-// handshakes and silently dropping them (amnezia-vpn/amneziawg-go#183).
+// generateHValues returns one distinct value per H1-H4 band; low bound >= 5 (1-4 are vanilla WG message types).
+// Single values, not ranges: with RandomTrailers on, a wide range misclassifies transport packets as handshakes (amnezia-vpn/amneziawg-go#183).
 func generateHValues() [4]string {
 	const lo = 5
 	bandSize := (awgHMax - lo + 1) / 4

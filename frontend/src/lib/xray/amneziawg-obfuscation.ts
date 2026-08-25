@@ -51,19 +51,8 @@ const generateHeaderProtectionKey = (): string => {
 };
 
 /*
- * Four distinct values for H1-H4: split the space into four bands and take
- * one random value from each (low bound >= 5 since 1-4 are reserved for
- * vanilla WireGuard message types).
- *
- * Each H is a single value, not a range. amneziawg-go's packet classifier
- * only ever compares a fixed-size ciphertext prefix against these bounds, so
- * a wider range buys no DPI resistance -- the range boundaries themselves are
- * never observable on the wire, only the single value the classifier
- * happens to let through. A wide range does cost real throughput: with
- * randomTrailers on (as every generated set here has it), the handshake-size
- * checks relax from == to >, so a wide H-range starts misclassifying an
- * equally wide fraction of ordinary transport packets as handshakes and
- * silently dropping them (amnezia-vpn/amneziawg-go#183).
+ * Four distinct values for H1-H4, one per band; low bound >= 5 (1-4 are vanilla WG message types).
+ * Single values, not ranges: with randomTrailers on, a wide range misclassifies transport packets as handshakes (amnezia-vpn/amneziawg-go#183).
  */
 const generateHValues = (): [string, string, string, string] => {
   const hMax = 2147483647;
