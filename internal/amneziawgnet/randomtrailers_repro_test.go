@@ -2,6 +2,7 @@ package amneziawgnet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -279,7 +280,7 @@ func runThroughputRepro(t *testing.T, randomTrailers bool, listenPort int, handl
 
 	readStart := time.Now()
 	n, err := io.Copy(io.Discard, conn)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		t.Fatalf("client read: %v", err)
 	}
 	if n != reproPayloadSize {
