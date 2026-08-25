@@ -303,7 +303,7 @@ export function createDefaultWireguardInboundSettings(
 // parameters (jc/jmin/.../i1) use the same starting values the Go backend's
 // own generator range-checks against; the user (or the backend's own
 // defaulting on save) can randomize/edit them further — see
-// internal/amneziawg.GenerateObfuscation31 on the Go side.
+// internal/amneziawg.GenerateObfuscation20 on the Go side.
 export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSettings {
   const kp = Wireguard.generateKeypair();
   return {

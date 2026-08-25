@@ -582,11 +582,11 @@ export default function InboundFormModal({
   };
 
   // Randomizes the AmneziaWG 2.0 obfuscation set client-side, mirroring the
-  // ranges/constraints of the Go backend's amneziawg.GenerateObfuscation20
-  // "default" preset (internal/amneziawg/params.go) closely enough for a form
-  // suggestion — exact parity isn't required since the user can still edit
-  // any field afterward, and a fresh, non-crypto-grade random value here is
-  // no weaker than what the backend would have generated on first save.
+  // Go backend's amneziawg.GenerateObfuscation20 "default" preset
+  // (internal/amneziawg/params.go) closely enough for a form suggestion —
+  // exact parity isn't required since the user can still edit any field
+  // afterward, and a fresh, non-crypto-grade random value here is no weaker
+  // than what the backend would have generated on first save.
   const regenInboundAwgObfuscation = () => {
     const randInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
 
@@ -602,19 +602,22 @@ export default function InboundFormModal({
     const s3 = randInt(8, 55);
     const s4 = randInt(4, 27);
 
-    // Four non-overlapping "low-high" ranges for H1-H4: split the space into
-    // four bands and take a random sub-range from each (>= 1000 wide, low
-    // bound >= 5 since 1-4 are reserved for vanilla WireGuard message types).
+    // Four distinct single values for H1-H4, matching the Go backend's
+    // generateHValues: a range's width only ever traded off against itself
+    // (wider buys more amneziawg-go transport/handshake misclassification
+    // risk under RandomTrailers, narrower buys nothing back, since an
+    // H-range's boundaries never appear on the wire), so a single value
+    // removes the collision risk entirely instead of just shrinking it.
+    // Splitting into four bands keeps the four values distinct without
+    // retries (low bound >= 5 since 1-4 are reserved for vanilla WireGuard
+    // message types).
     const hMax = 2147483647;
-    const hMinWidth = 1000;
     const lo = 5;
     const bandSize = Math.floor((hMax - lo + 1) / 4);
-    const hRanges = Array.from({ length: 4 }, (_, i) => {
+    const hValues = Array.from({ length: 4 }, (_, i) => {
       const bandLo = lo + i * bandSize;
       const bandHi = bandLo + bandSize - 1;
-      const start = randInt(bandLo, bandHi - hMinWidth - 1);
-      const end = randInt(start + hMinWidth, bandHi - 1);
-      return `${start}-${end}`;
+      return `${randInt(bandLo, bandHi)}`;
     });
 
     setV('settings.server.jc', jc);
@@ -624,10 +627,10 @@ export default function InboundFormModal({
     setV('settings.server.s2', s2);
     setV('settings.server.s3', s3);
     setV('settings.server.s4', s4);
-    setV('settings.server.h1', hRanges[0]);
-    setV('settings.server.h2', hRanges[1]);
-    setV('settings.server.h3', hRanges[2]);
-    setV('settings.server.h4', hRanges[3]);
+    setV('settings.server.h1', hValues[0]);
+    setV('settings.server.h2', hValues[1]);
+    setV('settings.server.h3', hValues[2]);
+    setV('settings.server.h4', hValues[3]);
     for (const slot of CPS_SLOTS) {
       setV(`settings.server.${slot}`, `<r ${randInt(32, 256)}>`);
     }
