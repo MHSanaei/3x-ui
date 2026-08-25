@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pi-hole</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #1b1b1b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #e6e6e6;
+  }
+  .card { width: 100%; max-width: 340px; padding: 40px 32px; background: #262626; border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4); text-align: center; }
+  .logo { width: 64px; height: 64px; border-radius: 50%; background: #96060c; margin: 0 auto 18px;
+    display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  h1 { font-size: 19px; margin: 0 0 4px; font-weight: 600; }
+  .sub { color: #9a9a9a; font-size: 13px; margin: 0 0 24px; }
+  label { display: block; font-size: 13px; margin: 0 0 6px; color: #b8b8b8; text-align: left; }
+  input { width: 100%; padding: 9px 12px; border: 1px solid #3d3d3d; border-radius: 4px; font-size: 14px;
+    background: #1b1b1b; color: #e6e6e6; }
+  input:focus { outline: none; border-color: #96060c; }
+  button { width: 100%; margin-top: 20px; padding: 10px; border: none; border-radius: 4px;
+    background: #96060c; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: default; }
+  button:hover:not(:disabled) { background: #b3070e; }
+  .err { margin-top: 14px; padding: 8px 12px; border-radius: 4px; background: #3a1a1a; color: #ff9d9d;
+    font-size: 13px; display: none; text-align: left; }
+  .err.show { display: block; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🕳️</div>
+    <h1>Pi-hole</h1>
+    <p class="sub">Веб-интерфейс администрирования</p>
+    <form id="f" autocomplete="off">
+      <label for="p">Пароль</label>
+      <input id="p" type="password" autocomplete="current-password" required>
+      <button id="btn" type="submit">Войти</button>
+      <div class="err" id="err"></div>
+    </form>
+  </div>
+<script>
+document.getElementById('f').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var btn = document.getElementById('btn'), err = document.getElementById('err');
+  btn.disabled = true; err.className = 'err';
+  try {
+    var res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: document.getElementById('p').value })
+    });
+    if (!res.ok) {
+      var msg = 'Неверный пароль';
+      if (res.status === 429) {
+        var retry = res.headers.get('Retry-After');
+        msg = retry ? 'Слишком много попыток входа. Повторите через ' + Math.ceil(retry / 60) + ' мин.' : 'Слишком много попыток входа. Повторите позже.';
+      }
+      err.textContent = msg; err.className = 'err show';
+    }
+  } catch (e) {
+    err.textContent = 'Ошибка сети'; err.className = 'err show';
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
