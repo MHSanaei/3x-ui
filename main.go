@@ -14,6 +14,7 @@ import (
 	"syscall"
 	_ "unsafe"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/crypto/nodetoken"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -91,6 +92,7 @@ func runWebServer() {
 	}
 
 	if os.Getenv("XUI_PPROF") == "true" {
+		amneziawgnet.RegisterDebugStackStats()
 		go func() {
 			logger.Info("pprof profiling server listening on 127.0.0.1:6060")
 			if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil {
