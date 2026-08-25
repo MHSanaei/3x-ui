@@ -129,6 +129,9 @@ func TestGenerateHRangesNonOverlapping(t *testing.T) {
 			if hiN-loN < hMinWidth {
 				t.Fatalf("H%d = %q is narrower than hMinWidth=%d", i+1, r, hMinWidth)
 			}
+			if hiN-loN > hMaxWidth {
+				t.Fatalf("H%d = %q is wider than hMaxWidth=%d", i+1, r, hMaxWidth)
+			}
 			prevHi = hiN
 		}
 	}
