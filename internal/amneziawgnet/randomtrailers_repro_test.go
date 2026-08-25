@@ -349,6 +349,181 @@ const (
 	packetInflationSmallCount = 20
 )
 
+// TestHandshakeMessagePaddingBypassesContentPaddingAddition checks a
+// narrower, separate claim from the transport-packet one above: unlike
+// RoutineEncryption's transport-packet path, device/send.go's handshake
+// message builders (sendHandshakeInitiation/sendHandshakeResponse/
+// SendHandshakeCookie) call randomTrailer() unconditionally -- there is no
+// ContentPaddingAddition check on that code path at all. So a live server
+// with ContentPaddingAddition set (this test uses 22-95, the exact value
+// from the live throughput investigation) still pads its MessageResponse
+// by RandomTrailers' own, much larger, MTU-unbounded amount whenever
+// RandomTrailers is on -- even though CPA suppresses the equivalent effect
+// for ordinary data packets. Repeats a fresh handshake several times since
+// a single one is one random draw.
+func TestHandshakeMessagePaddingBypassesContentPaddingAddition(t *testing.T) {
+	if testing.Short() {
+		t.Skip("several real handshakes; skip in -short")
+	}
+	const rounds = 15
+	var avgResponseSize [2]float64
+	for i, rt := range []bool{false, true} {
+		rt := rt
+		t.Run(fmt.Sprintf("RandomTrailers=%v", rt), func(t *testing.T) {
+			sizes := make([]int, 0, rounds)
+			for r := 0; r < rounds; r++ {
+				sizes = append(sizes, oneHandshakeResponseSize(t, rt, 58950+i*100+r))
+			}
+			sum, max := 0, 0
+			for _, s := range sizes {
+				sum += s
+				if s > max {
+					max = s
+				}
+			}
+			avgResponseSize[i] = float64(sum) / float64(len(sizes))
+			t.Logf("RandomTrailers=%v: %d handshake responses, sizes=%v, avg=%.0f, max=%d",
+				rt, len(sizes), sizes, avgResponseSize[i], max)
+		})
+	}
+	t.Logf("handshake-response inflation ratio (avg, true/false): %.1fx", avgResponseSize[1]/avgResponseSize[0])
+}
+
+// oneHandshakeResponseSize sets up one fresh server+client pair with
+// ContentPaddingAddition=22-95 (matching the live server config that
+// originally surfaced the contradiction this test investigates) and
+// returns the wire size of the server's MessageResponse packet -- the
+// first server->client packet of any connection, sent before any
+// TCP/application data exists at all.
+func oneHandshakeResponseSize(t *testing.T, randomTrailers bool, listenPort int) int {
+	t.Helper()
+	serverPriv, serverPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	clientPriv, clientPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate client keypair: %v", err)
+	}
+
+	inst := amneziawg.Instance{
+		Id:            1,
+		InterfaceName: "awgrepro3",
+		ListenPort:    listenPort,
+		PrivateKey:    serverPriv,
+		PublicKey:     serverPub,
+		Address:       []string{"10.204.0.1/24"},
+		MTU:           1280,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 3, Jmin: 88, Jmax: 156,
+			S1: 30, S2: 138, S3: 13, S4: 22,
+		},
+		Peers: []amneziawg.Peer{{
+			Email:      "repro3@example.com",
+			PublicKey:  clientPub,
+			AllowedIPs: []string{"10.204.0.2/32"},
+		}},
+	}
+	opts := DeviceOptions{
+		ContentPaddingAddition: "22-95",
+		RandomTrailers:         randomTrailers,
+		DisableCookies:         true,
+	}
+
+	dev, err := newUnconfiguredDevice(inst, opts)
+	if err != nil {
+		t.Fatalf("newUnconfiguredDevice: %v", err)
+	}
+	defer dev.Close()
+
+	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) { _ = conn.Close() })
+
+	if err := dev.Configure(inst, opts); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
+
+	sizeCh := make(chan int, 1)
+	relayConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatalf("sniffer listen: %v", err)
+	}
+	defer relayConn.Close()
+	serverAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: listenPort}
+	go func() {
+		buf := make([]byte, 65535)
+		var clientAddr *net.UDPAddr
+		for {
+			n, addr, err := relayConn.ReadFromUDP(buf)
+			if err != nil {
+				return
+			}
+			if addr.Port == listenPort {
+				select {
+				case sizeCh <- n:
+				default:
+				}
+				if clientAddr != nil {
+					_, _ = relayConn.WriteToUDP(buf[:n], clientAddr)
+				}
+				continue
+			}
+			clientAddr = addr
+			_, _ = relayConn.WriteToUDP(buf[:n], serverAddr)
+		}
+	}()
+	relayPort := relayConn.LocalAddr().(*net.UDPAddr).Port
+
+	clientTun, clientNet, err := netstack.CreateNetTUN(
+		[]netip.Addr{netip.MustParseAddr("10.204.0.2")},
+		[]netip.Addr{netip.MustParseAddr("1.1.1.1")}, 1280)
+	if err != nil {
+		t.Fatalf("client CreateNetTUN: %v", err)
+	}
+	clientDev := device.NewDevice(clientTun, awgconn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
+	defer clientDev.Close()
+
+	clientPrivHex, err := wireguard.KeyToHex(clientPriv)
+	if err != nil {
+		t.Fatalf("client key to hex: %v", err)
+	}
+	serverPubHex, err := wireguard.KeyToHex(serverPub)
+	if err != nil {
+		t.Fatalf("server key to hex: %v", err)
+	}
+	rt := "false"
+	if randomTrailers {
+		rt = "true"
+	}
+	clientConf := fmt.Sprintf(
+		"private_key=%s\njc=3\njmin=88\njmax=156\ns1=30\ns2=138\ns3=13\ns4=22\ncontent_padding_addition=22-95\nrandom_trailers=%s\ndisable_cookies=true\npublic_key=%s\nendpoint=127.0.0.1:%d\nallowed_ip=0.0.0.0/0\n",
+		clientPrivHex, rt, serverPubHex, relayPort)
+	if err := clientDev.IpcSet(clientConf); err != nil {
+		t.Fatalf("client IpcSet: %v", err)
+	}
+	if err := clientDev.Up(); err != nil {
+		t.Fatalf("client Up: %v", err)
+	}
+
+	// The device has no reason to initiate a handshake until it actually
+	// has something to send -- a dial attempt is enough to trigger one,
+	// whether or not the TCP connection itself ever completes.
+	go func() {
+		dialCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if c, err := clientNet.DialContext(dialCtx, "tcp", "10.204.9.9:9999"); err == nil {
+			_ = c.Close()
+		}
+	}()
+
+	select {
+	case n := <-sizeCh:
+		return n
+	case <-time.After(5 * time.Second):
+		t.Fatalf("never saw a handshake response from the server")
+		return 0
+	}
+}
+
 // bigThenSmallWritesHandler writes one near-MTU blob, then packetInflationSmallCount
 // separate 1-byte writes with a short delay between each -- long enough that
 // this server endpoint's already-disabled Nagle (see forwarder.go) flushes
