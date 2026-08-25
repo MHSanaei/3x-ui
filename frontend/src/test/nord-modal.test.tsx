@@ -85,9 +85,11 @@ async function clickAddOutbound() {
 function NordHarness({
   initial = [],
   onAdded,
+  onClose = vi.fn(),
 }: {
   initial?: Record<string, unknown>[];
   onAdded?: (outbound: Record<string, unknown>) => void;
+  onClose?: () => void;
 }) {
   const [outbounds, setOutbounds] = useState(initial);
   return (
@@ -96,7 +98,7 @@ function NordHarness({
       <NordModal
         open
         templateSettings={{ outbounds }}
-        onClose={vi.fn()}
+        onClose={onClose}
         onAddOutbound={(outbound) => {
           onAdded?.(outbound);
           setOutbounds((previous) => [...previous, outbound]);
@@ -136,7 +138,10 @@ describe('NordVPN modal', () => {
   it('adds multiple different NordLynx outbounds without closing the modal', async () => {
     mockNordApi();
     const added: Record<string, unknown>[] = [];
-    renderWithProviders(<NordHarness onAdded={(outbound) => added.push(outbound)} />);
+    const onClose = vi.fn();
+    renderWithProviders(
+      <NordHarness onAdded={(outbound) => added.push(outbound)} onClose={onClose} />,
+    );
 
     await waitFor(() => expect(screen.getByText('nord-token')).toBeTruthy());
     await chooseOption('nord-country-select', 'United States');
@@ -149,7 +154,7 @@ describe('NordVPN modal', () => {
       screen.getByTestId('nord-added-table').querySelector('.nord-added-server-endpoint')
         ?.textContent,
     ).toBe('198.51.100.10:51820');
-    expect(screen.getByRole('dialog', { name: 'NordVPN NordLynx' })).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
 
     await chooseOption('nord-server-select', 'United States #2');
     await clickAddOutbound();
@@ -217,14 +222,12 @@ describe('NordVPN modal', () => {
     const countrySelect = screen.getByTestId('nord-country-select').closest('.ant-select');
     expect(countrySelect?.textContent).toContain('🇺🇸 United States (US)');
 
-    const citySelect = await waitFor(() => {
+    await waitFor(() => {
       const select = screen.getByTestId('nord-city-select').closest('.ant-select');
       if (!select?.textContent?.includes('All Cities')) {
         throw new Error('All Cities is not selected');
       }
-      return select;
     });
-    expect(citySelect.textContent).toContain('All Cities');
 
     const serverNode = screen.getByTestId('nord-server-select');
     const serverSelect = serverNode.closest('.ant-select') ?? serverNode;
@@ -244,11 +247,12 @@ describe('NordVPN modal', () => {
 
     await waitFor(() => expect(screen.getByText('nord-token')).toBeTruthy());
     await chooseOption('nord-country-select', 'United States');
+    await waitFor(() => expect(screen.getByTestId('nord-server-select')).toBeTruthy());
     await waitFor(() => {
       const button = screen.getByRole('button', { name: /Add outbound/ });
       expect((button as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText(/already in the outbound list/i)).toBeTruthy();
     });
-    expect(screen.getByText(/already in the outbound list/i)).toBeTruthy();
   });
 
   it('refreshes only the selected existing outbound private key', async () => {
@@ -372,5 +376,52 @@ describe('NordVPN modal', () => {
       ).toBeTruthy(),
     );
     expect(onAddOutbound).not.toHaveBeenCalled();
+  });
+
+  it('reads the NordLynx public key without coupling to a numeric technology ID', async () => {
+    const onAddOutbound = vi.fn();
+    vi.mocked(HttpUtil.post).mockImplementation(async (url: string) => {
+      if (url === '/panel/api/xray/nord/data') {
+        return new Msg(true, '', JSON.stringify(NORD_DATA));
+      }
+      if (url === '/panel/api/xray/nord/countries') {
+        return new Msg(true, '', JSON.stringify(COUNTRIES));
+      }
+      if (url === '/panel/api/xray/nord/servers') {
+        return new Msg(
+          true,
+          '',
+          JSON.stringify({
+            ...SERVER_DATA,
+            servers: [
+              {
+                ...SERVER_DATA.servers[0],
+                technologies: [
+                  { id: 999, metadata: [{ name: 'public_key', value: 'future-public-key' }] },
+                ],
+              },
+            ],
+          }),
+        );
+      }
+      return new Msg(false, `Unexpected POST ${url}`, null);
+    });
+    renderWithProviders(
+      <NordModal
+        open
+        templateSettings={{ outbounds: [] }}
+        onClose={vi.fn()}
+        onAddOutbound={onAddOutbound}
+        onResetOutbound={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText('nord-token')).toBeTruthy());
+    await chooseOption('nord-country-select', 'United States');
+    await clickAddOutbound();
+    await waitFor(() => expect(onAddOutbound).toHaveBeenCalledTimes(1));
+    expect(onAddOutbound.mock.calls[0][0]).toMatchObject({
+      settings: { peers: [{ publicKey: 'future-public-key' }] },
+    });
   });
 });

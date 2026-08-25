@@ -4,41 +4,32 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
 
-type nordRoundTripFunc func(*http.Request) (*http.Response, error)
-
-func (f nordRoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f(req)
-}
-
-func stubNordHTTPClient(t *testing.T, fn nordRoundTripFunc) {
+func stubNordAPI(t *testing.T, handler http.HandlerFunc) {
 	t.Helper()
-	previous := nordHTTPClient
-	nordHTTPClient = &http.Client{Transport: fn}
-	t.Cleanup(func() { nordHTTPClient = previous })
-}
-
-func nordJSONResponse(body string) *http.Response {
-	return &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Header:     make(http.Header),
-		Body:       io.NopCloser(strings.NewReader(body)),
-	}
+	previous := nordAPIBase
+	server := httptest.NewServer(handler)
+	nordAPIBase = server.URL
+	t.Cleanup(func() {
+		nordAPIBase = previous
+		server.Close()
+	})
 }
 
 func TestNordCountriesOnlyRequestsNordLynxServerCountries(t *testing.T) {
-	stubNordHTTPClient(t, func(req *http.Request) (*http.Response, error) {
+	stubNordAPI(t, func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path != "/v1/servers/countries" {
-			t.Fatalf("country path = %q", req.URL.Path)
+			t.Errorf("country path = %q", req.URL.Path)
 		}
 		if got := req.URL.Query().Get("filters[servers_technologies][identifier]"); got != "wireguard_udp" {
-			t.Fatalf("NordLynx technology filter = %q", got)
+			t.Errorf("NordLynx technology filter = %q", got)
 		}
-		return nordJSONResponse(`[{"id":228,"name":"United States","code":"US"}]`), nil
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `[{"id":228,"name":"United States","code":"US"}]`)
 	})
 
 	got, err := (&NordService{}).GetCountries()
@@ -51,14 +42,18 @@ func TestNordCountriesOnlyRequestsNordLynxServerCountries(t *testing.T) {
 }
 
 func TestNordServersPreserveLowLoadServers(t *testing.T) {
-	stubNordHTTPClient(t, func(req *http.Request) (*http.Response, error) {
+	stubNordAPI(t, func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != "/v2/servers" {
+			t.Errorf("server path = %q", req.URL.Path)
+		}
 		if got := req.URL.Query().Get("filters[country_id]"); got != "225" {
-			t.Fatalf("country filter = %q", got)
+			t.Errorf("country filter = %q", got)
 		}
 		if got := req.URL.Query().Get("filters[servers_technologies][identifier]"); got != "wireguard_udp" {
-			t.Fatalf("NordLynx technology filter = %q", got)
+			t.Errorf("NordLynx technology filter = %q", got)
 		}
-		return nordJSONResponse(`{"servers":[{"id":1,"load":0},{"id":2,"load":4}]}`), nil
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"servers":[{"id":1,"load":0},{"id":2,"load":4}]}`)
 	})
 
 	got, err := (&NordService{}).GetServers("225")

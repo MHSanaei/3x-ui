@@ -57,7 +57,7 @@ interface NordServer {
   hostname: string;
   station: string;
   load: number;
-  technologies?: { id: number; metadata?: { name: string; value: string }[] }[];
+  technologies?: { metadata?: { name: string; value: string }[] }[];
   location_ids?: number[];
   cityId?: number | null;
   cityName?: string;
@@ -151,7 +151,7 @@ export default function NordModal({
   const addedTags = useMemo(() => new Set(nordRows.map((row) => row.tag)), [nordRows]);
 
   const filteredServers = useMemo(() => {
-    if (!cityId) return servers;
+    if (cityId == null) return servers;
     return servers.filter((s) => s.cityId === cityId);
   }, [cityId, servers]);
 
@@ -280,7 +280,7 @@ export default function NordModal({
           return { ...s, cityId: city?.id || null, cityName: city?.name || 'Unknown' };
         })
         .sort((a: NordServer, b: NordServer) => a.load - b.load);
-      methods.setValue('cityId', 0);
+      methods.setValue('cityId', null);
       setServers(next);
       if (next.length === 0) messageApi.warning(t('pages.xray.nord.noServers'));
     } finally {
@@ -292,8 +292,9 @@ export default function NordModal({
     const selectedServerId = methods.getValues('serverId');
     const server = servers.find((s) => s.id === selectedServerId);
     if (!server) return null;
-    const tech = server.technologies?.find((tt) => tt.id === 35);
-    const publicKey = tech?.metadata?.find((m) => m.name === 'public_key')?.value;
+    const publicKey = server.technologies
+      ?.flatMap((technology) => technology.metadata ?? [])
+      .find((metadata) => metadata.name === 'public_key')?.value;
     if (!publicKey) {
       messageApi.error(t('pages.xray.nord.noPublicKey'));
       return null;
@@ -456,7 +457,7 @@ export default function NordModal({
                         data-testid="nord-city-select"
                         showSearch={{ optionFilterProp: 'label' }}
                         options={[
-                          { value: 0, label: t('pages.xray.outbound.allCities') },
+                          { value: null, label: t('pages.xray.outbound.allCities') },
                           ...cities.map((c) => ({ value: c.id, label: c.name })),
                         ]}
                       />
