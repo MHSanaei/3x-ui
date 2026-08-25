@@ -16,21 +16,6 @@ import (
 // cross-client compatibility.
 const awgHMax = 2147483647
 
-// hMinWidth is the minimum width of each generated H1-H4 range.
-const hMinWidth = 1000
-
-// hMaxWidth caps the width of each generated H1-H4 range. Deliberately
-// narrow: amneziawg-go's DeterminePacketTypeAndPadding tests every H range
-// against each transport packet's type field (ciphertext, so effectively
-// random) before recognizing it as transport whenever RandomTrailers is
-// enabled, so a wider range only buys a higher chance of misclassifying
-// real transport packets as handshakes and silently dropping them --
-// confirmed live on this fork at ~15% packet loss under the old band-wide
-// default (upstream amneziawg-go#183). Width has no offsetting benefit: an
-// H-range's boundaries never appear on the wire, so a narrow acceptance
-// window is free from a DPI-resistance standpoint.
-const hMaxWidth = 4000
-
 // hMaxValid is the largest value ValidateObfuscation accepts for an H
 // parameter: uint32 max, the kernel's own limit.
 const hMaxValid int64 = 4294967295
@@ -102,7 +87,7 @@ func GenerateObfuscation20(preset string) Obfuscation20 {
 	o.S3 = randInt(8, 55) // cookie padding (max 64)
 	o.S4 = randInt(4, 27) // transport padding (max 32)
 
-	h := generateHRanges()
+	h := generateHValues()
 	o.H1, o.H2, o.H3, o.H4 = h[0], h[1], h[2], h[3]
 
 	// CPS signature packets: N random bytes prepended before each handshake
@@ -117,22 +102,29 @@ func GenerateObfuscation20(preset string) Obfuscation20 {
 	return o
 }
 
-// generateHRanges returns four non-overlapping "low-high" ranges for H1-H4.
-// Each is hMinWidth to hMaxWidth wide, the lowest bound is >= 5 (values 1-4
-// are reserved for vanilla WireGuard message types) and the highest is <=
-// 2^31-1. The space is split into four bands and a random sub-range is taken
-// from each, which guarantees non-overlap (with a gap) and a valid width
-// without retries.
-func generateHRanges() [4]string {
+// generateHValues returns four distinct single values for H1-H4, matching
+// the reference AmneziaWG client's own generator rather than a range: a
+// range's width only trades off against itself here (amneziawg-go tests
+// each H range against every transport packet's type field -- ciphertext,
+// so effectively random -- whenever RandomTrailers is enabled, so any width
+// above the minimum buys nothing but a higher misclassification/packet-loss
+// rate, confirmed live on this fork at ~15% loss under the old band-wide
+// default, see upstream amneziawg-go#183) while a single value never
+// appears on the wire any differently than a narrow range would (an
+// observer only ever sees the same random ciphertext bytes), so there is no
+// DPI-resistance reason to keep any width at all. The lowest bound is >= 5
+// (values 1-4 are reserved for vanilla WireGuard message types) and the
+// highest is <= 2^31-1. The space is split into four bands and one value
+// is taken from each, which guarantees the four are distinct without
+// retries.
+func generateHValues() [4]string {
 	const lo = 5
 	bandSize := (awgHMax - lo + 1) / 4
 	var out [4]string
 	for i := 0; i < 4; i++ {
 		bandLo := lo + i*bandSize
 		bandHi := bandLo + bandSize - 1
-		start := randInt(bandLo, bandHi-hMaxWidth-1)
-		end := randInt(start+hMinWidth, start+hMaxWidth)
-		out[i] = fmt.Sprintf("%d-%d", start, end)
+		out[i] = fmt.Sprintf("%d", randInt(bandLo, bandHi))
 	}
 	return out
 }
