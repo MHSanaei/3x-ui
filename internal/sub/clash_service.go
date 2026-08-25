@@ -443,10 +443,8 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 	return proxy
 }
 
-// buildAmneziaWGProxy produces a mihomo-compatible Clash entry for an
-// AmneziaWG inbound. The proxy type remains "wireguard" (mihomo treats
-// AmneziaWG as a wireguard extension via the amnezia-wg-option sub-block).
-// Returns nil when the client or server has no key.
+// buildAmneziaWGProxy emits a mihomo Clash entry for an AmneziaWG inbound:
+// type stays "wireguard", the obfuscation rides in amnezia-wg-option.
 func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
 	if client.PrivateKey == "" {
 		return nil

@@ -1080,7 +1080,7 @@ func TestBuildAmneziaWGProxyForClashNoKey(t *testing.T) {
 	}
 	client := model.Client{Email: "user"}
 
-	if proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil); proxy != nil {
-		t.Fatalf("buildProxy = %v, want nil for a keyless amneziawg client", proxy)
+	if proxy := svc.buildAmneziaWGProxy(svc.SubService, inbound, client, nil); proxy != nil {
+		t.Fatalf("buildAmneziaWGProxy = %v, want nil for a keyless amneziawg client", proxy)
 	}
 }
