@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"sync"
 	"testing"
 	"time"
 
@@ -287,4 +288,239 @@ func runThroughputRepro(t *testing.T, randomTrailers bool, listenPort int, handl
 		t.Fatalf("client received %d bytes, want %d", n, reproPayloadSize)
 	}
 	return time.Since(readStart)
+}
+
+// TestRandomTrailersPacketSizeInflation checks the actual mechanism behind
+// the live throughput collapse directly, at the wire-size level, instead of
+// via end-to-end throughput (which needs real network RTT to show the
+// effect -- see the two tests above). In amneziawg-go's device/send.go,
+// ContentPaddingAddition's randomPaddingAddition() clamps its output to
+// mtu-packetSize, but RandomTrailers' randomTrailer() clamps only against
+// peer.udpWindow -- a per-peer high-water mark of the largest packet ever
+// sent to that peer, which is NOT capped by MTU and never shrinks. Once one
+// near-MTU packet has flowed, any later small packet (a bare TCP ACK, for
+// example) becomes eligible for zero-padding up to that historical max --
+// potentially far larger than any real path MTU. This sends one big write
+// (to raise the water mark) then several tiny writes, and records the real
+// UDP datagram size of each server->client packet via a transparent sniffer
+// relay, to see whether the small packets actually do inflate.
+func TestRandomTrailersPacketSizeInflation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("real handshake plus a UDP-size-sniffing relay; skip in -short")
+	}
+	var avgSmall [2]float64
+	for i, rt := range []bool{false, true} {
+		rt := rt
+		t.Run(fmt.Sprintf("RandomTrailers=%v", rt), func(t *testing.T) {
+			sizes := runPacketSizeInflationProbe(t, rt, 58920+i)
+
+			bigIdx := -1
+			for idx, s := range sizes {
+				if s > packetInflationBigWrite {
+					bigIdx = idx
+					break
+				}
+			}
+			if bigIdx == -1 {
+				t.Fatalf("never saw the big write's packet among %d recorded sizes: %v", len(sizes), sizes)
+			}
+			small := sizes[bigIdx+1:]
+			if len(small) == 0 {
+				t.Fatalf("no packets recorded after the big write")
+			}
+
+			sum, max := 0, 0
+			for _, s := range small {
+				sum += s
+				if s > max {
+					max = s
+				}
+			}
+			avgSmall[i] = float64(sum) / float64(len(small))
+			t.Logf("RandomTrailers=%v: big write's own packet=%d bytes, %d packets after it, avg=%.0f bytes, max=%d bytes",
+				rt, sizes[bigIdx], len(small), avgSmall[i], max)
+		})
+	}
+	t.Logf("small-packet inflation ratio (avg, true/false): %.1fx", avgSmall[1]/avgSmall[0])
+}
+
+const (
+	packetInflationBigWrite   = 1300
+	packetInflationSmallCount = 20
+)
+
+// bigThenSmallWritesHandler writes one near-MTU blob, then packetInflationSmallCount
+// separate 1-byte writes with a short delay between each -- long enough that
+// this server endpoint's already-disabled Nagle (see forwarder.go) flushes
+// each as its own TCP segment, so each becomes its own WG transport packet.
+func bigThenSmallWritesHandler(conn *gonet.TCPConn, dest netip.AddrPort) {
+	defer conn.Close()
+	_, _ = conn.Write(make([]byte, packetInflationBigWrite))
+	time.Sleep(50 * time.Millisecond)
+	for i := 0; i < packetInflationSmallCount; i++ {
+		_, _ = conn.Write([]byte{byte(i)})
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// runPacketSizeInflationProbe is runThroughputRepro's setup, minus the
+// throughput measurement, plus a UDP relay interposed on the client's
+// configured endpoint so every server->client transport datagram's real
+// wire size can be recorded (WireGuard's usual roaming behavior means the
+// server just learns "the peer" is at the relay's address and replies
+// there, and the relay forwards those replies on to the real client --  no
+// special-casing needed on either amneziawg-go device).
+func runPacketSizeInflationProbe(t *testing.T, randomTrailers bool, listenPort int) []int {
+	t.Helper()
+	serverPriv, serverPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate server keypair: %v", err)
+	}
+	clientPriv, clientPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate client keypair: %v", err)
+	}
+
+	inst := amneziawg.Instance{
+		Id:            1,
+		InterfaceName: "awgrepro2",
+		ListenPort:    listenPort,
+		PrivateKey:    serverPriv,
+		PublicKey:     serverPub,
+		Address:       []string{"10.203.0.1/24"},
+		MTU:           1280,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 3, Jmin: 88, Jmax: 156,
+			S1: 30, S2: 138, S3: 13, S4: 22,
+		},
+		Peers: []amneziawg.Peer{{
+			Email:      "repro2@example.com",
+			PublicKey:  clientPub,
+			AllowedIPs: []string{"10.203.0.2/32"},
+		}},
+	}
+	// ContentPaddingAddition deliberately left empty: send.go's precedence
+	// chain checks it BEFORE RandomTrailers and, when set, never falls
+	// through to randomTrailer() at all -- confirmed earlier this session.
+	// This probe isolates RandomTrailers on its own, so CPA must stay unset.
+	opts := DeviceOptions{
+		RandomTrailers: randomTrailers,
+		DisableCookies: true,
+	}
+
+	dev, err := newUnconfiguredDevice(inst, opts)
+	if err != nil {
+		t.Fatalf("newUnconfiguredDevice: %v", err)
+	}
+	defer dev.Close()
+
+	AttachTCPForwarder(dev.Stack, bigThenSmallWritesHandler)
+
+	if err := dev.Configure(inst, opts); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
+
+	relayPort, getSizes := startUdpSizeSniffer(t, listenPort)
+
+	clientTun, clientNet, err := netstack.CreateNetTUN(
+		[]netip.Addr{netip.MustParseAddr("10.203.0.2")},
+		[]netip.Addr{netip.MustParseAddr("1.1.1.1")}, 1280)
+	if err != nil {
+		t.Fatalf("client CreateNetTUN: %v", err)
+	}
+	clientDev := device.NewDevice(clientTun, awgconn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
+	defer clientDev.Close()
+
+	clientPrivHex, err := wireguard.KeyToHex(clientPriv)
+	if err != nil {
+		t.Fatalf("client key to hex: %v", err)
+	}
+	serverPubHex, err := wireguard.KeyToHex(serverPub)
+	if err != nil {
+		t.Fatalf("server key to hex: %v", err)
+	}
+	rt := "false"
+	if randomTrailers {
+		rt = "true"
+	}
+	clientConf := fmt.Sprintf(
+		"private_key=%s\njc=3\njmin=88\njmax=156\ns1=30\ns2=138\ns3=13\ns4=22\nrandom_trailers=%s\ndisable_cookies=true\npublic_key=%s\nendpoint=127.0.0.1:%d\nallowed_ip=0.0.0.0/0\n",
+		clientPrivHex, rt, serverPubHex, relayPort)
+	if err := clientDev.IpcSet(clientConf); err != nil {
+		t.Fatalf("client IpcSet: %v", err)
+	}
+	if err := clientDev.Up(); err != nil {
+		t.Fatalf("client Up: %v", err)
+	}
+
+	dialCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var conn net.Conn
+	var lastErr error
+	for {
+		c, dialErr := clientNet.DialContext(dialCtx, "tcp", "10.203.9.9:9999")
+		if dialErr == nil {
+			conn = c
+			break
+		}
+		lastErr = dialErr
+		select {
+		case <-dialCtx.Done():
+			t.Fatalf("client dial never succeeded: %v", lastErr)
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+	defer conn.Close()
+
+	if _, err := io.Copy(io.Discard, conn); err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("client read: %v", err)
+	}
+
+	return getSizes()
+}
+
+// startUdpSizeSniffer opens a loopback UDP relay that transparently forwards
+// datagrams between whatever client eventually sends to it and the real
+// server port, recording the size of every server->client datagram it
+// forwards. The client's own address is learned from its first datagram, the
+// same way the real amneziawg-go server learns a peer's endpoint.
+func startUdpSizeSniffer(t *testing.T, serverPort int) (relayPort int, getSizes func() []int) {
+	t.Helper()
+	relayConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatalf("sniffer listen: %v", err)
+	}
+	t.Cleanup(func() { relayConn.Close() })
+
+	var mu sync.Mutex
+	var sizes []int
+
+	go func() {
+		buf := make([]byte, 65535)
+		var clientAddr *net.UDPAddr
+		serverAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: serverPort}
+		for {
+			n, addr, err := relayConn.ReadFromUDP(buf)
+			if err != nil {
+				return
+			}
+			if addr.Port == serverPort {
+				mu.Lock()
+				sizes = append(sizes, n)
+				mu.Unlock()
+				if clientAddr != nil {
+					_, _ = relayConn.WriteToUDP(buf[:n], clientAddr)
+				}
+				continue
+			}
+			clientAddr = addr
+			_, _ = relayConn.WriteToUDP(buf[:n], serverAddr)
+		}
+	}()
+
+	return relayConn.LocalAddr().(*net.UDPAddr).Port, func() []int {
+		mu.Lock()
+		defer mu.Unlock()
+		return append([]int(nil), sizes...)
+	}
 }
