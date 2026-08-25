@@ -113,7 +113,11 @@ export default function AmneziawgFields({
       >
         <InputNumber min={1} max={32} style={{ width: '100%' }} />
       </FormField>
-      <FormField name={['settings', 'server', 'mtu']} label={t('pages.xray.amneziawg.mtu')}>
+      <FormField
+        name={['settings', 'server', 'mtu']}
+        label={t('pages.xray.amneziawg.mtu')}
+        tooltip={t('pages.xray.amneziawg.mtuHint')}
+      >
         <InputNumber style={{ width: '100%' }} />
       </FormField>
       <FormField

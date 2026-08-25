@@ -320,6 +320,46 @@ func ValidateHeaderProtection(headerProtectionKey string, o Obfuscation20) error
 	return nil
 }
 
+// mtuPathCeiling is the largest MTU+S4 sum that fits under a standard
+// 1500-byte path MTU: 1500 - 20 (IPv4) - 8 (UDP) - 32 (AmneziaWG transport
+// header + Poly1305 tag). S4 -- unlike S1-S3, which only pad handshake
+// messages -- prefixes every transport/data packet (amneziawg-go's
+// device/uapi.go stores it into paddings.transport), so it comes directly out
+// of the same budget as the tunnel's own inner MTU. WireGuard sets DF on its
+// UDP, so a packet that overflows this gets silently dropped, not fragmented.
+const mtuPathCeiling = 1440
+
+// EffectiveMTU returns the MTU that should actually be configured: mtu
+// verbatim when the admin set one (an explicit choice is never second-
+// guessed, only rejected outright by ValidateMTUBudget if it doesn't fit),
+// otherwise fallbackDefault shrunk just enough that fallbackDefault+s4 fits
+// mtuPathCeiling. Without this, an admin who never touches the MTU field but
+// generates a wide S4 gets a flat default that silently overflows -- the
+// exact gap that produced a real, measured ~15x download-throughput
+// collapse before this existed.
+func EffectiveMTU(mtu, s4, fallbackDefault int) int {
+	if mtu > 0 {
+		return mtu
+	}
+	if fallbackDefault+s4 > mtuPathCeiling {
+		return mtuPathCeiling - s4
+	}
+	return fallbackDefault
+}
+
+// ValidateMTUBudget rejects an explicit MTU that overflows mtuPathCeiling
+// once S4 is added. mtu <= 0 (unset) is always valid -- EffectiveMTU already
+// keeps that case safe by shrinking the fallback default instead.
+func ValidateMTUBudget(mtu, s4 int) error {
+	if mtu <= 0 {
+		return nil
+	}
+	if mtu+s4 > mtuPathCeiling {
+		return fmt.Errorf("MTU %d + S4 %d exceeds a standard 1500-byte path MTU (budget is %d) -- oversized packets get silently dropped, not fragmented; lower MTU to %d or below, or lower S4", mtu, s4, mtuPathCeiling, mtuPathCeiling-s4)
+	}
+	return nil
+}
+
 // EffectiveAwgVersion returns the AwgVersion that should actually be
 // validated, persisted, and shown to the admin. awg3Fields is every
 // AmneziaWG 3.0-only device field's current value (HeaderProtectionKey,

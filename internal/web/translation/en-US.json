@@ -2013,6 +2013,7 @@
         "subnetIp": "Subnet",
         "subnetCidr": "Subnet CIDR",
         "mtu": "MTU",
+        "mtuHint": "Leave blank to auto-fit S4's per-packet padding under a standard 1500-byte path. Set explicitly, MTU + S4 must stay at or below 1440 -- WireGuard drops an oversized packet outright rather than fragmenting it.",
         "primaryDns": "Primary DNS",
         "secondaryDns": "Secondary DNS",
         "externalInterface": "External Interface",

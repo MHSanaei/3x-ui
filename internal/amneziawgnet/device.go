@@ -15,7 +15,9 @@ import (
 
 // defaultMTU matches internal/amneziawg's own kernel-module interface
 // default -- 1420, WireGuard/AmneziaWG's usual accounting for tunnel
-// encapsulation overhead on a standard 1500-byte-MTU host link.
+// encapsulation overhead on a standard 1500-byte-MTU host link. Used only
+// when the admin leaves MTU unset; amneziawg.EffectiveMTU shrinks it further
+// when S4 needs the room (see newUnconfiguredDevice).
 const defaultMTU = 1420
 
 // DeviceOptions carries AmneziaWG 3.0's device-wide fields (header
@@ -122,10 +124,7 @@ func newUnconfiguredDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device
 		return nil, fmt.Errorf("amneziawgnet: %w", err)
 	}
 
-	mtu := inst.MTU
-	if mtu <= 0 {
-		mtu = defaultMTU
-	}
+	mtu := amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4, defaultMTU)
 
 	tun, gstack, err := createNetTUNWithStack(addrs, mtu)
 	if err != nil {

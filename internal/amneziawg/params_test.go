@@ -6,6 +6,50 @@ import (
 	"testing"
 )
 
+func TestEffectiveMTUUsesExplicitValueVerbatimEvenIfItOverflows(t *testing.T) {
+	// EffectiveMTU never second-guesses an explicit admin choice -- that's
+	// ValidateMTUBudget's job, checked separately at save time.
+	if got := EffectiveMTU(1428, 22, 1420); got != 1428 {
+		t.Fatalf("EffectiveMTU(1428, 22, 1420) = %d, want 1428", got)
+	}
+}
+
+func TestEffectiveMTUShrinksUnsetDefaultToFitS4(t *testing.T) {
+	// fallbackDefault (1420) + S4 (22) = 1442 > mtuPathCeiling (1440), so the
+	// unset case must shrink to 1440-22=1418, not silently overflow.
+	if got := EffectiveMTU(0, 22, 1420); got != 1418 {
+		t.Fatalf("EffectiveMTU(0, 22, 1420) = %d, want 1418", got)
+	}
+}
+
+func TestEffectiveMTULeavesUnsetDefaultAloneWhenItAlreadyFits(t *testing.T) {
+	if got := EffectiveMTU(0, 4, 1420); got != 1420 {
+		t.Fatalf("EffectiveMTU(0, 4, 1420) = %d, want 1420 unchanged", got)
+	}
+}
+
+func TestValidateMTUBudgetAllowsUnsetMTURegardlessOfS4(t *testing.T) {
+	if err := ValidateMTUBudget(0, 32); err != nil {
+		t.Fatalf("mtu <= 0 must never be rejected, even with S4 at its max: %v", err)
+	}
+}
+
+func TestValidateMTUBudgetRejectsOverflow(t *testing.T) {
+	err := ValidateMTUBudget(1428, 22)
+	if err == nil {
+		t.Fatal("expected an error: 1428+22=1450 > 1440")
+	}
+	if !strings.Contains(err.Error(), "1418") {
+		t.Fatalf("error %q does not name the actual ceiling (1440-22=1418)", err.Error())
+	}
+}
+
+func TestValidateMTUBudgetAcceptsExactCeiling(t *testing.T) {
+	if err := ValidateMTUBudget(1418, 22); err != nil {
+		t.Fatalf("1418+22=1440 is exactly at the ceiling, must be accepted: %v", err)
+	}
+}
+
 func TestGenerateObfuscation20DefaultRanges(t *testing.T) {
 	for i := 0; i < 200; i++ {
 		o := GenerateObfuscation20("default")
