@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Assistant</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #fafafa; font-family: Roboto, "Noto Sans", "Segoe UI", Arial, sans-serif;
+  }
+  .card {
+    width: 360px; max-width: calc(100vw - 32px); padding: 32px 28px;
+    background: #fff; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  .logo { display: flex; justify-content: center; margin-bottom: 8px; }
+  .logo svg { width: 56px; height: 56px; }
+  h1 { margin: 0 0 24px; font-size: 20px; font-weight: 500; text-align: center; color: #212121; }
+  label { display: block; font-size: 13px; color: #757575; margin: 16px 0 4px; }
+  input {
+    width: 100%; padding: 10px 8px; font-size: 15px; border: none; border-bottom: 1px solid #949494;
+    background: transparent; color: #212121;
+  }
+  input:focus { outline: none; border-bottom: 2px solid #03a9f4; }
+  .error {
+    display: none; margin-top: 16px; padding: 10px 12px; border-radius: 4px;
+    background: #fdecea; color: #b3261e; font-size: 13px;
+  }
+  .error.show { display: block; }
+  button {
+    margin-top: 24px; width: 100%; padding: 11px; border: none; border-radius: 4px;
+    background: #03a9f4; color: #fff; font-size: 14px; font-weight: 500; letter-spacing: .05em;
+    text-transform: uppercase; cursor: pointer;
+  }
+  button:disabled { background: #b3e0fb; cursor: default; }
+  button:not(:disabled):hover { background: #039be5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="#03a9f4"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"/></svg>
+    </div>
+    <h1>Вход в Home Assistant</h1>
+    <form id="f" autocomplete="off">
+      <label for="u">Имя пользователя</label>
+      <input id="u" name="username" autocapitalize="none" required>
+      <label for="p">Пароль</label>
+      <input id="p" name="password" type="password" required>
+      <div class="error" id="err">Неверное имя пользователя или пароль</div>
+      <button id="submit" type="submit">Войти</button>
+    </form>
+  </div>
+<script>
+(function () {
+  "use strict";
+  var flowId = null;
+
+  function startFlow() {
+    return fetch("/auth/login_flow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: location.origin + "/",
+        handler: ["homeassistant", null],
+        redirect_uri: location.origin + "/",
+        type: "authorize",
+      }),
+    }).then(function (r) { return r.json(); }).then(function (step) {
+      flowId = step.flow_id;
+    });
+  }
+
+  startFlow();
+
+  var messages = {
+    invalid_auth: "Неверное имя пользователя или пароль",
+    unknown: "Слишком много попыток. Повторите позже.",
+  };
+
+  var form = document.getElementById("f");
+  var err = document.getElementById("err");
+  var submit = document.getElementById("submit");
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    err.classList.remove("show");
+    submit.disabled = true;
+
+    var proceed = flowId ? Promise.resolve() : startFlow();
+    proceed.then(function () {
+      return fetch("/auth/login_flow/" + flowId, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: location.origin + "/",
+          username: document.getElementById("u").value,
+          password: document.getElementById("p").value,
+        }),
+      });
+    }).then(function (r) {
+      if (r.status === 403) {
+        err.textContent = "Слишком много попыток входа. Обратитесь к администратору.";
+        err.classList.add("show");
+        return;
+      }
+      return r.json().then(function (step) {
+        var key = step.errors && step.errors.base;
+        err.textContent = messages[key] || messages.unknown;
+        err.classList.add("show");
+        flowId = step.flow_id || flowId;
+      });
+    }).finally(function () {
+      submit.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

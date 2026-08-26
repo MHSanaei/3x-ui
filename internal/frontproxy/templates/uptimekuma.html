@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uptime Kuma</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #161b22; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  .card {
+    width: 380px; max-width: calc(100vw - 32px); padding: 36px 32px;
+    background: #0d1117; border: 1px solid #30363d; border-radius: 10px;
+  }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 28px; }
+  .brand svg { width: 32px; height: 32px; }
+  .brand span { font-size: 20px; font-weight: 600; color: #e6edf3; }
+  label { display: block; font-size: 13px; color: #8b949e; margin: 14px 0 6px; }
+  input {
+    width: 100%; padding: 9px 10px; font-size: 14px; border-radius: 6px;
+    border: 1px solid #30363d; background: #161b22; color: #e6edf3;
+  }
+  input:focus { outline: none; border-color: #2f81f7; }
+  .row { display: flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 13px; color: #8b949e; }
+  .error {
+    display: none; margin-top: 16px; padding: 9px 12px; border-radius: 6px;
+    background: #3b1219; border: 1px solid #7d2933; color: #ff9492; font-size: 13px;
+  }
+  .error.show { display: block; }
+  button {
+    margin-top: 22px; width: 100%; padding: 10px; border: none; border-radius: 6px;
+    background: #2f81f7; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { background: #1d3f70; cursor: default; }
+  button:not(:disabled):hover { background: #2568cf; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="#2f81f7"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M8,10L10.5,12.5L16,7L17.5,8.5L10.5,15.5L6.5,11.5L8,10Z"/></svg>
+      <span>Uptime Kuma</span>
+    </div>
+    <form id="f" autocomplete="off">
+      <label for="u">Имя пользователя</label>
+      <input id="u" name="username" autocapitalize="none" required>
+      <label for="p">Пароль</label>
+      <input id="p" name="password" type="password" required>
+      <label class="row"><input type="checkbox" id="r" style="width:auto"> Запомнить меня</label>
+      <div class="error" id="err"></div>
+      <button id="submit" type="submit">Войти</button>
+    </form>
+  </div>
+<script>
+(function () {
+  "use strict";
+
+  var base = "/socket.io/?EIO=4&transport=polling";
+
+  function handshake() {
+    return fetch(base).then(function (r) { return r.text(); });
+  }
+
+  function connect() {
+    return fetch(base, { method: "POST", body: "40" });
+  }
+
+  var ackSeq = 0;
+  function emitLogin(username, password) {
+    var ackId = ackSeq++;
+    var packet = "42" + ackId + JSON.stringify(["login", { username: username, password: password, token: "" }]);
+    return fetch(base, { method: "POST", body: packet }).then(function (r) { return r.text(); }).then(function (text) {
+      var m = /^43\d*(\[.*\])$/.exec(text);
+      if (!m) { return null; }
+      return JSON.parse(m[1])[0];
+    });
+  }
+
+  var ready = handshake().then(connect);
+
+  var messages = {
+    authIncorrectCreds: "Неверное имя пользователя или пароль",
+  };
+
+  var form = document.getElementById("f");
+  var err = document.getElementById("err");
+  var submit = document.getElementById("submit");
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    err.classList.remove("show");
+    submit.disabled = true;
+
+    ready.then(function () {
+      return emitLogin(document.getElementById("u").value, document.getElementById("p").value);
+    }).then(function (result) {
+      if (!result) { return; }
+      err.textContent = result.msgi18n ? (messages[result.msg] || result.msg) : result.msg;
+      err.classList.add("show");
+    }).finally(function () {
+      submit.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

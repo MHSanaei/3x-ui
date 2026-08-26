@@ -21,6 +21,13 @@ type loginMock struct {
 	// Lockout writes the response once the threshold is hit, for the
 	// remaining time until the ban lifts.
 	Lockout func(w http.ResponseWriter, retryAfter time.Duration)
+
+	// Handler, when set, replaces Path/Reject/Lockout dispatch entirely: it
+	// sees every request for this template, not just one POST path, and
+	// decides everything itself. For products whose real login doesn't fit
+	// "one POST path, one JSON body" (Home Assistant's multi-step flow,
+	// Uptime Kuma's Socket.IO transport instead of REST).
+	Handler func(page http.Handler, tracker *loginAttempts, threshold int, ban time.Duration) http.Handler
 }
 
 // loginDefaultThreshold/loginDefaultBan apply to every mocked login except AdGuard Home.
@@ -52,6 +59,9 @@ func withLoginMock(template string, page http.Handler) http.Handler {
 		return page
 	}
 	tracker := newLoginAttempts()
+	if mock.Handler != nil {
+		return mock.Handler(page, tracker, mock.Threshold, mock.Ban)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != mock.Path {
 			page.ServeHTTP(w, r)
@@ -136,6 +146,21 @@ func init() {
 			w.Header().Set("Retry-After", strconv.Itoa(int(retryAfter.Seconds())))
 			writeJSON(w, http.StatusTooManyRequests, `{"Message":"Too many attempts. Please wait before trying again."}`)
 		},
+	})
+
+	// Home Assistant: POST /auth/login_flow (+/{flow_id}), a multi-step flow,
+	// not a single JSON POST -- see decoy_login_homeassistant.go.
+	registerLoginMock("homeassistant", loginMock{
+		Threshold: 5,
+		Ban:       100 * 365 * 24 * time.Hour, // real HA bans persist until an admin clears them; see that file
+		Handler:   homeAssistantHandler,
+	})
+
+	// Uptime Kuma: login is a Socket.IO event, not a REST POST -- see
+	// decoy_login_uptimekuma.go, which uses its own token bucket instead of
+	// Threshold/Ban.
+	registerLoginMock("uptimekuma", loginMock{
+		Handler: uptimeKumaHandler,
 	})
 }
 
