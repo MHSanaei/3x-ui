@@ -180,6 +180,23 @@ jobs:
               rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
               ;;
           esac
+          case "${{ matrix.platform }}" in
+            amd64)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-unknown-linux-gnu"
+              mv "tuic-server-1.0.0-x86_64-unknown-linux-gnu" "tuic-server"
+              chmod +x "tuic-server"
+              ;;
+            arm64)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-aarch64-unknown-linux-gnu"
+              mv "tuic-server-1.0.0-aarch64-unknown-linux-gnu" "tuic-server"
+              chmod +x "tuic-server"
+              ;;
+            armv7)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-armv7-unknown-linux-gnueabihf"
+              mv "tuic-server-1.0.0-armv7-unknown-linux-gnueabihf" "tuic-server"
+              chmod +x "tuic-server"
+              ;;
+          esac
           cd ../..
 
       - name: Package
@@ -345,7 +362,7 @@ jobs:
   publish-dev:
     name: Publish rolling dev release
     needs: [build, build-windows]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
