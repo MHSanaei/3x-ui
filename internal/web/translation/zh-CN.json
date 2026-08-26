@@ -691,8 +691,7 @@
         "peerNumberConfig": "Peer {n} 配置"
       },
       "sniffingDestOverride": "目标覆盖",
-      "advancedTitle": "高级设置",
-      "getCert": "获取证书"
+      "advancedTitle": "高级设置"
     },
     "clients": {
       "tabBasics": "基本",
@@ -766,7 +765,7 @@
       "limitIpFail2banWindows": "Windows 上不支持 Fail2ban，无法实施 IP 限制。",
       "limitIpDisabled": "此服务器已禁用 IP 限制功能。",
       "password": "密码",
-      "passwordDesc": "仅 Trojan 和 Shadowsocks 客户端使用；VLESS、VMess、Hysteria 和 WireGuard 会忽略此项。",
+      "passwordDesc": "用于 Trojan、Shadowsocks 和 TUIC 客户端；对 VLESS、VMess、Hysteria 和 WireGuard 忽略。",
       "subId": "订阅 ID",
       "online": "在线",
       "email": "邮箱",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "从不发送 cookie reply——消除一个 DPI 指纹，但会削弱抗洪泛能力。"
       },
       "tuic": {
-        "certificate": "证书路径",
-        "certificateHint": "TLS fullchain.pem 证书文件路径",
-        "privateKey": "私钥路径",
-        "privateKeyHint": "TLS privkey.pem 私钥文件路径",
         "congestionControl": "拥塞控制算法",
         "alpn": "ALPN",
         "udpRelayMode": "UDP 转发模式",

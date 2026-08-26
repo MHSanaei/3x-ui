@@ -691,8 +691,7 @@
         "peerNumberConfig": "پیکربندی Peer {n}"
       },
       "sniffingDestOverride": "بازنویسی مقصد",
-      "advancedTitle": "تنظیمات پیشرفته",
-      "getCert": "دریافت گواهی"
+      "advancedTitle": "تنظیمات پیشرفته"
     },
     "clients": {
       "tabBasics": "پایه",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "هرگز پاسخ کوکی ارسال نشود — اثر انگشت DPI را حذف می‌کند اما دفاع در برابر سیل‌آسا را ضعیف می‌کند."
       },
       "tuic": {
-        "certificate": "مسیر گواهی",
-        "certificateHint": "مسیر فایل fullchain.pem گواهی TLS",
-        "privateKey": "مسیر کلید خصوصی",
-        "privateKeyHint": "مسیر فایل privkey.pem کلید خصوصی TLS",
         "congestionControl": "کنترل ازدحام",
         "alpn": "ALPN",
         "udpRelayMode": "حالت رله UDP",

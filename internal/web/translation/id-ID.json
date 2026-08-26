@@ -691,8 +691,7 @@
         "peerNumberConfig": "Konfig Peer {n}"
       },
       "sniffingDestOverride": "Penggantian tujuan",
-      "advancedTitle": "Pengaturan Lanjutan",
-      "getCert": "Dapatkan Sertifikat"
+      "advancedTitle": "Pengaturan Lanjutan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "Tidak pernah mengirim cookie reply — menghapus sidik jari DPI, tetapi melemahkan mitigasi banjir."
       },
       "tuic": {
-        "certificate": "Jalur Sertifikat",
-        "certificateHint": "Jalur ke sertifikat TLS fullchain.pem",
-        "privateKey": "Jalur Kunci Privat",
-        "privateKeyHint": "Jalur ke kunci privat TLS privkey.pem",
         "congestionControl": "Kontrol Kemacetan",
         "alpn": "ALPN",
         "udpRelayMode": "Mode Relai UDP",

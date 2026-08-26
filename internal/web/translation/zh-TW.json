@@ -691,8 +691,7 @@
         "peerNumberConfig": "Peer {n} 設定"
       },
       "sniffingDestOverride": "目標覆寫",
-      "advancedTitle": "進階設定",
-      "getCert": "取得憑證"
+      "advancedTitle": "進階設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "永不傳送 cookie reply——消除一個 DPI 指紋，但會削弱抗洪泛能力。"
       },
       "tuic": {
-        "certificate": "憑證路徑",
-        "certificateHint": "TLS fullchain.pem 憑證檔案路徑",
-        "privateKey": "私鑰路徑",
-        "privateKeyHint": "TLS privkey.pem 私鑰檔案路徑",
         "congestionControl": "壅塞控制演算法",
         "alpn": "ALPN",
         "udpRelayMode": "UDP 轉發模式",

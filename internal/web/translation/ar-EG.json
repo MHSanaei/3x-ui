@@ -691,8 +691,7 @@
         "peerNumberConfig": "تكوين Peer {n}"
       },
       "sniffingDestOverride": "تجاوز الوجهة",
-      "advancedTitle": "الإعدادات المتقدمة",
-      "getCert": "الحصول على الشهادة"
+      "advancedTitle": "الإعدادات المتقدمة"
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "عدم إرسال ردود الكوكي — يزيل بصمة DPI لكنه يضعف الحماية من الفيضانات."
       },
       "tuic": {
-        "certificate": "مسار الشهادة",
-        "certificateHint": "مسار شهادة TLS fullchain.pem",
-        "privateKey": "مسار المفتاح الخاص",
-        "privateKeyHint": "مسار المفتاح الخاص TLS privkey.pem",
         "congestionControl": "التحكم في الازدحام",
         "alpn": "ALPN",
         "udpRelayMode": "وضع ترحيل UDP",

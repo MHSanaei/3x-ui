@@ -691,8 +691,7 @@
         "peerNumberConfig": "Peer {n} Yapılandırması"
       },
       "sniffingDestOverride": "Hedef geçersiz kılma",
-      "advancedTitle": "Gelişmiş Ayarlar",
-      "getCert": "Sertifika Al"
+      "advancedTitle": "Gelişmiş Ayarlar"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "Cookie reply asla gönderilmez — bir DPI parmak izini kaldırır ancak taşma korumasını zayıflatır."
       },
       "tuic": {
-        "certificate": "Sertifika Yolu",
-        "certificateHint": "TLS fullchain.pem sertifika dosyasının yolu",
-        "privateKey": "Özel Anahtar Yolu",
-        "privateKeyHint": "TLS privkey.pem özel anahtar dosyasının yolu",
         "congestionControl": "Tıkanıklık Kontrolü",
         "alpn": "ALPN",
         "udpRelayMode": "UDP İletim Modu",

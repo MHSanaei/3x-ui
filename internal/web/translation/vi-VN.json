@@ -691,8 +691,7 @@
         "peerNumberConfig": "Cấu hình Peer {n}"
       },
       "sniffingDestOverride": "Ghi đè đích",
-      "advancedTitle": "Cài đặt nâng cao",
-      "getCert": "Lấy chứng chỉ"
+      "advancedTitle": "Cài đặt nâng cao"
     },
     "clients": {
       "tabBasics": "Cơ bản",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "Không bao giờ gửi cookie reply — xóa một dấu vết DPI nhưng làm yếu khả năng chống flood."
       },
       "tuic": {
-        "certificate": "Đường dẫn chứng chỉ",
-        "certificateHint": "Đường dẫn đến chứng chỉ TLS fullchain.pem",
-        "privateKey": "Đường dẫn khóa riêng",
-        "privateKeyHint": "Đường dẫn đến khóa riêng TLS privkey.pem",
         "congestionControl": "Kiểm soát tắc nghẽn",
         "alpn": "ALPN",
         "udpRelayMode": "Chế độ chuyển tiếp UDP",

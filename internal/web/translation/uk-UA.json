@@ -691,8 +691,7 @@
         "peerNumberConfig": "Конфіг Peer {n}"
       },
       "sniffingDestOverride": "Перевизначення призначення",
-      "advancedTitle": "Додаткові налаштування",
-      "getCert": "Отримати сертифікат"
+      "advancedTitle": "Додаткові налаштування"
     },
     "clients": {
       "tabBasics": "Основні",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "Ніколи не надсилати cookie reply — прибирає відбиток для DPI, але послаблює захист від флуду."
       },
       "tuic": {
-        "certificate": "Шлях до сертифіката",
-        "certificateHint": "Шлях до fullchain.pem сертифіката TLS",
-        "privateKey": "Шлях до приватного ключа",
-        "privateKeyHint": "Шлях до privkey.pem приватного ключа TLS",
         "congestionControl": "Контроль перевантаження",
         "alpn": "ALPN",
         "udpRelayMode": "Режим ретрансляції UDP",

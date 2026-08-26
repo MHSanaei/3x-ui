@@ -411,7 +411,6 @@
         "streamHelp": "Обёртка блока stream Xray:"
       },
       "advancedTitle": "Дополнительные настройки",
-      "getCert": "Выбрать сертификат",
       "subSortIndex": "Порядок",
       "inboundInfo": "Информация о подключении",
       "exportInbound": "Экспорт подключений",
@@ -766,7 +765,7 @@
       "limitIpFail2banWindows": "Fail2ban недоступен в Windows, поэтому ограничение по IP не может быть применено.",
       "limitIpDisabled": "Функция ограничения по IP отключена на этом сервере.",
       "password": "Пароль",
-      "passwordDesc": "Используется только клиентами Trojan и Shadowsocks; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
+      "passwordDesc": "Используется клиентами Trojan, Shadowsocks и TUIC; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
       "subId": "ID подписки",
       "online": "В сети",
       "email": "Email",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "Не отправлять cookie reply — убирает сигнатуру для DPI, но ослабляет защиту от флуда."
       },
       "tuic": {
-        "certificate": "Путь к сертификату",
-        "certificateHint": "Путь к fullchain.pem сертификату TLS",
-        "privateKey": "Путь к приватному ключу",
-        "privateKeyHint": "Путь к privkey.pem приватному ключу TLS",
         "congestionControl": "Контроль перегрузок",
         "alpn": "ALPN",
         "udpRelayMode": "Режим ретрансляции UDP",

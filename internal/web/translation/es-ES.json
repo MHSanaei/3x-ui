@@ -691,8 +691,7 @@
         "peerNumberConfig": "Config Peer {n}"
       },
       "sniffingDestOverride": "Anulación de destino",
-      "advancedTitle": "Configuración avanzada",
-      "getCert": "Obtener certificado"
+      "advancedTitle": "Configuración avanzada"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "No enviar cookie replies — elimina una huella para DPI, pero debilita la mitigación de inundaciones."
       },
       "tuic": {
-        "certificate": "Ruta del certificado",
-        "certificateHint": "Ruta al certificado TLS fullchain.pem",
-        "privateKey": "Ruta de la clave privada",
-        "privateKeyHint": "Ruta a la clave privada TLS privkey.pem",
         "congestionControl": "Control de congestión",
         "alpn": "ALPN",
         "udpRelayMode": "Modo de retransmisión UDP",

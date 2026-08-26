@@ -155,7 +155,7 @@ export default function TuicFields() {
 
   return (
     <>
-      <Form.Item label={t('pages.xray.tuic.sni')} extra={t('pages.xray.tuic.sniHint')}>
+      <Form.Item label={t('pages.xray.tuic.sni')}>
         <Space.Compact style={{ display: 'flex' }}>
           <Input
             value={sni}
@@ -169,10 +169,7 @@ export default function TuicFields() {
         </Space.Compact>
       </Form.Item>
 
-      <Form.Item
-        label={t('pages.xray.tuic.certificate')}
-        extra={t('pages.xray.tuic.certificateHint')}
-      >
+      <Form.Item label={t('pages.inbounds.publicKey')}>
         <AutoComplete
           value={certificate}
           options={certOptions}
@@ -181,10 +178,7 @@ export default function TuicFields() {
         />
       </Form.Item>
 
-      <Form.Item
-        label={t('pages.xray.tuic.privateKey')}
-        extra={t('pages.xray.tuic.privateKeyHint')}
-      >
+      <Form.Item label={t('pages.inbounds.privatekey')}>
         <AutoComplete
           value={privateKey}
           options={keyOptions}
@@ -194,14 +188,25 @@ export default function TuicFields() {
       </Form.Item>
 
       <Form.Item label=" ">
-        <Button
-          type="default"
-          icon={<CloudDownloadOutlined />}
-          loading={loadingPanelCert}
-          onClick={setCertFromPanel}
-        >
-          {t('pages.inbounds.getCert')}
-        </Button>
+        <Space>
+          <Button
+            type="primary"
+            icon={<CloudDownloadOutlined />}
+            loading={loadingPanelCert}
+            onClick={setCertFromPanel}
+          >
+            {t('pages.inbounds.setDefaultCert')}
+          </Button>
+          <Button
+            danger
+            onClick={() => {
+              setValue('settings.server.certificate', '');
+              setValue('settings.server.private_key', '');
+            }}
+          >
+            {t('clear')}
+          </Button>
+        </Space>
       </Form.Item>
 
       <FormField

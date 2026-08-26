@@ -691,8 +691,7 @@
         "peerNumberConfig": "Peer {n} 設定"
       },
       "sniffingDestOverride": "宛先のオーバーライド",
-      "advancedTitle": "詳細設定",
-      "getCert": "証明書を取得"
+      "advancedTitle": "詳細設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1848,10 +1847,6 @@
         "disableCookiesHint": "cookie replyを送信しません。DPIの指紋を消しますが、フラッド緩和は弱まります。"
       },
       "tuic": {
-        "certificate": "証明書パス",
-        "certificateHint": "TLS 証明書 fullchain.pem のパス",
-        "privateKey": "秘密鍵パス",
-        "privateKeyHint": "TLS 秘密鍵 privkey.pem のパス",
         "congestionControl": "輻輳制御",
         "alpn": "ALPN",
         "udpRelayMode": "UDP リレーモード",
