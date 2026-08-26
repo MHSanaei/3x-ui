@@ -3,6 +3,7 @@ package tuic
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -70,15 +71,23 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	structuralFP := inst.StructuralFingerprint()
 	usersFP := inst.UsersFingerprint()
 
+	uuidToEmail := make(map[string]string, len(inst.Clients))
+	for _, c := range inst.Clients {
+		if c.UUID != "" && c.Email != "" {
+			uuidToEmail[c.UUID] = c.Email
+		}
+	}
+
 	existing, ok := m.procs[inst.Id]
 	if ok && existing != nil && existing.proc != nil && existing.proc.IsRunning() {
 		if existing.structuralFP == structuralFP && existing.usersFP == usersFP {
+			existing.proc.UpdateClients(uuidToEmail)
 			return nil
 		}
 		_ = existing.proc.Stop()
 	}
 
-	proc := newProcess(configPath, inst.Tag)
+	proc := newProcess(configPath, inst.Tag, uuidToEmail)
 	if err := proc.Start(); err != nil {
 		logger.Warningf("tuic: failed to start tuic-server for inbound %d (%s): %v", inst.Id, inst.Tag, err)
 		return err
@@ -92,6 +101,23 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		usersFP:      usersFP,
 	}
 	return nil
+}
+
+func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var emails []string
+	var tags []string
+	for _, mg := range m.procs {
+		if mg.proc != nil && mg.proc.IsRunning() {
+			active := mg.proc.GetActiveEmails(window)
+			if len(active) > 0 {
+				emails = append(emails, active...)
+				tags = append(tags, mg.tag)
+			}
+		}
+	}
+	return emails, tags
 }
 
 func (m *Manager) Remove(id int) {

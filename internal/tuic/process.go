@@ -55,10 +55,12 @@ var (
 )
 
 type procLogWriter struct {
-	mu       sync.Mutex
-	label    string
-	buf      string
-	lastLine string
+	mu          sync.Mutex
+	label       string
+	buf         string
+	lastLine    string
+	uuidToEmail map[string]string
+	lastActive  map[string]int64
 }
 
 func (w *procLogWriter) Write(p []byte) (int, error) {
@@ -94,6 +96,16 @@ func (w *procLogWriter) emitLocked(line string) {
 	}
 	w.lastLine = trimmed
 	logger.Infof("tuic: tuic-server %s | %s", w.label, trimmed)
+
+	now := time.Now().UnixMilli()
+	for uuid, email := range w.uuidToEmail {
+		if strings.Contains(line, uuid) {
+			if w.lastActive == nil {
+				w.lastActive = make(map[string]int64)
+			}
+			w.lastActive[email] = now
+		}
+	}
 }
 
 func (w *procLogWriter) LastLine() string {
@@ -112,11 +124,40 @@ type Process struct {
 	intentionalStop atomic.Bool
 }
 
-func newProcess(configPath, label string) *Process {
+func newProcess(configPath, label string, uuidToEmail map[string]string) *Process {
 	return &Process{
 		configPath: configPath,
-		logWriter:  &procLogWriter{label: label},
+		logWriter: &procLogWriter{
+			label:       label,
+			uuidToEmail: uuidToEmail,
+			lastActive:  make(map[string]int64),
+		},
 	}
+}
+
+func (p *Process) GetActiveEmails(window time.Duration) []string {
+	if p == nil || p.logWriter == nil {
+		return nil
+	}
+	p.logWriter.mu.Lock()
+	defer p.logWriter.mu.Unlock()
+	cutoff := time.Now().Add(-window).UnixMilli()
+	var active []string
+	for email, last := range p.logWriter.lastActive {
+		if last >= cutoff {
+			active = append(active, email)
+		}
+	}
+	return active
+}
+
+func (p *Process) UpdateClients(uuidToEmail map[string]string) {
+	if p == nil || p.logWriter == nil {
+		return
+	}
+	p.logWriter.mu.Lock()
+	defer p.logWriter.mu.Unlock()
+	p.logWriter.uuidToEmail = uuidToEmail
 }
 
 func (p *Process) IsRunning() bool {
