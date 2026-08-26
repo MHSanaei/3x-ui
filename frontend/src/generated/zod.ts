@@ -523,7 +523,7 @@ export const InboundSchema = z.object({
   nodeId: z.number().int().nullable().optional(),
   originNodeGuid: z.string().optional(),
   port: z.number().int().min(0).max(65535),
-  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'amneziawg']),
+  protocol: z.enum(['vmess', 'vless', 'trojan', 'shadowsocks', 'wireguard', 'hysteria', 'http', 'mixed', 'tunnel', 'tun', 'mtproto', 'amneziawg', 'tuic']),
   remark: z.string(),
   settings: z.unknown(),
   shareAddr: z.string(),
@@ -825,6 +825,30 @@ export const SubBalancerSchema = z.object({
   updatedAt: z.number().int(),
 });
 export type SubBalancer = z.infer<typeof SubBalancerSchema>;
+
+export const TuicClientSettingsSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+  uuid: z.string(),
+});
+export type TuicClientSettings = z.infer<typeof TuicClientSettingsSchema>;
+
+export const TuicServerSettingsSchema = z.object({
+  alpn: z.array(z.string()),
+  authentication_timeout: z.number().int(),
+  certificate: z.string(),
+  congestion_control: z.string(),
+  log_level: z.string(),
+  max_idle_time: z.number().int(),
+  max_udp_relay_packet_size: z.number().int(),
+  private_key: z.string(),
+  route_through_xray: z.boolean().optional(),
+  sni: z.string().optional(),
+  udp_relay_mode: z.string(),
+  xray_route_port: z.number().int().optional(),
+  zero_rtt_handshake: z.boolean(),
+});
+export type TuicServerSettings = z.infer<typeof TuicServerSettingsSchema>;
 
 export const UserSchema = z.object({
   id: z.number().int(),

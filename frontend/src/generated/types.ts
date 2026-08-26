@@ -774,6 +774,28 @@ export interface SubBalancer {
   updatedAt: number;
 }
 
+export interface TuicClientSettings {
+  email: string;
+  password: string;
+  uuid: string;
+}
+
+export interface TuicServerSettings {
+  alpn: string[];
+  authentication_timeout: number;
+  certificate: string;
+  congestion_control: string;
+  log_level: string;
+  max_idle_time: number;
+  max_udp_relay_packet_size: number;
+  private_key: string;
+  route_through_xray?: boolean;
+  sni?: string;
+  udp_relay_mode: string;
+  xray_route_port?: number;
+  zero_rtt_handshake: boolean;
+}
+
 export interface User {
   id: number;
   password: string;

@@ -10,7 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-type ServerSettings struct {
+type TuicServerSettings struct {
 	Certificate           string   `json:"certificate"`
 	PrivateKey            string   `json:"private_key"`
 	CongestionControl     string   `json:"congestion_control"`
@@ -26,7 +26,7 @@ type ServerSettings struct {
 	XrayRoutePort         int      `json:"xray_route_port,omitempty"`
 }
 
-type ClientSettings struct {
+type TuicClientSettings struct {
 	UUID     string `json:"uuid"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
@@ -48,7 +48,7 @@ type Instance struct {
 	AuthenticationTimeout int
 	MaxUdpRelayPacketSize int
 	SNI                   string
-	Clients               []ClientSettings
+	Clients               []TuicClientSettings
 	RouteThroughXray      bool
 	XrayRoutePort         int
 }
@@ -216,7 +216,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		maxPacketSize = 1500
 	}
 
-	clients := make([]ClientSettings, 0, len(parsed.Clients))
+	clients := make([]TuicClientSettings, 0, len(parsed.Clients))
 	for _, c := range parsed.Clients {
 		if c.Enable != nil && !*c.Enable {
 			continue
@@ -228,7 +228,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		if uuidVal == "" || c.Password == "" {
 			continue
 		}
-		clients = append(clients, ClientSettings{
+		clients = append(clients, TuicClientSettings{
 			UUID:     uuidVal,
 			Password: c.Password,
 			Email:    c.Email,

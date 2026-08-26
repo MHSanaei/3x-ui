@@ -20,7 +20,7 @@ func TestGenerateConfig(t *testing.T) {
 		MaxIdleTime:           15,
 		AuthenticationTimeout: 3,
 		MaxUdpRelayPacketSize: 1500,
-		Clients: []ClientSettings{
+		Clients: []TuicClientSettings{
 			{UUID: "uuid-1", Password: "pass-1", Email: "e1"},
 			{UUID: "uuid-2", Password: "pass-2", Email: "e2"},
 		},

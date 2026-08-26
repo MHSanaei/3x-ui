@@ -66,7 +66,7 @@ func TestFingerprints(t *testing.T) {
 		Certificate:       "/path/cert",
 		PrivateKey:        "/path/key",
 		CongestionControl: "bbr",
-		Clients: []ClientSettings{
+		Clients: []TuicClientSettings{
 			{UUID: "u1", Password: "p1", Email: "e1"},
 			{UUID: "u2", Password: "p2", Email: "e2"},
 		},
@@ -77,7 +77,7 @@ func TestFingerprints(t *testing.T) {
 		Certificate:       "/path/cert",
 		PrivateKey:        "/path/key",
 		CongestionControl: "bbr",
-		Clients: []ClientSettings{
+		Clients: []TuicClientSettings{
 			{UUID: "u2", Password: "p2", Email: "e2"},
 			{UUID: "u1", Password: "p1", Email: "e1"},
 		},

@@ -818,6 +818,28 @@ export const EXAMPLES: Record<string, unknown> = {
     "strategy": "random",
     "updatedAt": 1710000000000
   },
+  "TuicClientSettings": {
+    "email": "",
+    "password": "",
+    "uuid": ""
+  },
+  "TuicServerSettings": {
+    "alpn": [
+      ""
+    ],
+    "authentication_timeout": 0,
+    "certificate": "",
+    "congestion_control": "",
+    "log_level": "",
+    "max_idle_time": 0,
+    "max_udp_relay_packet_size": 0,
+    "private_key": "",
+    "route_through_xray": false,
+    "sni": "",
+    "udp_relay_mode": "",
+    "xray_route_port": 0,
+    "zero_rtt_handshake": false
+  },
   "User": {
     "id": 0,
     "password": "",
