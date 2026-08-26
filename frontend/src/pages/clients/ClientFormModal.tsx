@@ -1376,11 +1376,14 @@ export default function ClientFormModal({
                                       expiryField.value,
                                       expiryDate,
                                     );
+                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
                                     return (
                                       <DateTimePicker
                                         value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
                                         onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
                                         placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                        allowClear={hasSpecificExpiry}
+                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
                                       />
                                     );
                                   }}
@@ -1450,11 +1453,14 @@ export default function ClientFormModal({
                                       expiryField.value,
                                       expiryDate,
                                     );
+                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
                                     return (
                                       <DateTimePicker
                                         value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
                                         onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
                                         placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                        allowClear={hasSpecificExpiry}
+                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
                                       />
                                     );
                                   }}

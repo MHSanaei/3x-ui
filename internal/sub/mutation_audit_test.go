@@ -331,9 +331,12 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if out[0].Email != "owner@x" || out[0].Enable != true {
 		t.Fatalf("attribution wrong: email=%q enable=%v", out[0].Email, out[0].Enable)
 	}
+	if !out[0].Active {
+		t.Fatal("active owner marked inactive")
+	}
 
-	// A disabled client must not expose its external links. Enable has a gorm
-	// default:true, so flip it with a raw UPDATE that bypasses the default.
+	// A disabled owner stays visible as metadata but cannot expose its link.
+	// Enable has a gorm default:true, so update it after insertion.
 	dis := &model.ClientRecord{Email: "off@x", SubID: "sub-off", UUID: "u3", Enable: true}
 	if err := db.Create(dis).Error; err != nil {
 		t.Fatalf("seed disabled client: %v", err)
@@ -348,8 +351,11 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if err != nil {
 		t.Fatalf("off subId err = %v", err)
 	}
-	if len(offOut) != 0 {
-		t.Fatalf("disabled client entries = %d, want 0", len(offOut))
+	if len(offOut) != 1 {
+		t.Fatalf("disabled client entries = %d, want 1", len(offOut))
+	}
+	if offOut[0].Enable || offOut[0].Active {
+		t.Fatalf("disabled owner state = enable:%v active:%v", offOut[0].Enable, offOut[0].Active)
 	}
 
 	expired := &model.ClientRecord{Email: "expired@x", SubID: "sub-expired", UUID: "u4", Enable: true, ExpiryTime: time.Now().Add(-time.Hour).UnixMilli()}
@@ -363,8 +369,11 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expired subId err = %v", err)
 	}
-	if len(expiredOut) != 0 {
-		t.Fatalf("expired client entries = %d, want 0", len(expiredOut))
+	if len(expiredOut) != 1 {
+		t.Fatalf("expired client entries = %d, want 1", len(expiredOut))
+	}
+	if !expiredOut[0].Enable || expiredOut[0].Active {
+		t.Fatalf("expired owner state = enable:%v active:%v", expiredOut[0].Enable, expiredOut[0].Active)
 	}
 }
 

@@ -14,8 +14,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
 )
 
-// externalLinkEntry is one client × external-link row, resolved for a
-// subscription request. Email/Enable come from the owning client.
+// externalLinkEntry is one client × external-link row resolved for a request.
+// Active applies the owning client's enabled and expiry state.
 type externalLinkEntry struct {
 	Kind       string
 	Value      string
@@ -23,6 +23,7 @@ type externalLinkEntry struct {
 	NamePrefix string
 	Email      string
 	Enable     bool
+	Active     bool
 }
 
 // expandedLink is a single share link contributed by an entry, with the display
@@ -32,10 +33,8 @@ type expandedLink struct {
 	Name string
 }
 
-// getClientExternalLinksBySubId returns every active external-link row attached
-// to an active, unexpired client that carries the given subId, in stable order.
-// Stays inside internal/sub + database + util/link — no dependency on the panel
-// service layer.
+// getClientExternalLinksBySubId returns active rows with owner state attached.
+// Consumers keep inactive owners as metadata but omit their link values.
 func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLinkEntry, error) {
 	db := database.GetDB()
 	var recs []model.ClientRecord
@@ -68,9 +67,6 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 	out := make([]externalLinkEntry, 0, len(rows))
 	for _, r := range rows {
 		rec := byId[r.ClientId]
-		if !rec.Enable || (rec.ExpiryTime > 0 && rec.ExpiryTime <= now) {
-			continue
-		}
 		out = append(out, externalLinkEntry{
 			Kind:       r.Kind,
 			Value:      r.Value,
@@ -78,6 +74,7 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 			NamePrefix: r.NamePrefix,
 			Email:      rec.Email,
 			Enable:     rec.Enable,
+			Active:     rec.Enable && (rec.ExpiryTime <= 0 || rec.ExpiryTime > now),
 		})
 	}
 	return out, nil
