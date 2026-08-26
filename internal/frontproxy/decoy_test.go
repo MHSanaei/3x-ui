@@ -119,6 +119,11 @@ func TestProxyDecoyRejectsBadURLs(t *testing.T) {
 // bytes, or the page hash identifies this panel instead of hiding it.
 func TestTemplatesDifferBetweenInstalls(t *testing.T) {
 	for _, name := range DecoyTemplateNames() {
+		if _, ok := loginMocks[name]; ok {
+			// Exempt: a login-mock renders one real product's fixed branding, not per-install colors.
+			// Matching countless real non-panel installs of that product isn't a fingerprint; looking unlike it would be.
+			continue
+		}
 		a, err := renderDecoyTemplate(name, "install-one")
 		if err != nil {
 			t.Fatalf("template %q: %v", name, err)

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>openmediavault</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #eceff1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #263238;
+  }
+  .card { width: 100%; max-width: 360px; background: #fff; border-radius: 4px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+  .head { background: #205081; color: #fff; padding: 22px 28px; }
+  .head b { font-weight: 700; } .head span { font-weight: 300; }
+  .head .sub { font-size: 12px; opacity: .85; margin-top: 2px; }
+  .body { padding: 28px; }
+  label { display: block; font-size: 12px; margin: 12px 0 6px; color: #607d8b; }
+  input { width: 100%; padding: 9px 10px; border: 1px solid #cfd8dc; border-radius: 3px; font-size: 14px; }
+  input:focus { outline: none; border-color: #205081; }
+  button { width: 100%; margin-top: 20px; padding: 10px; border: none; border-radius: 3px;
+    background: #205081; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: default; }
+  button:hover:not(:disabled) { background: #17406a; }
+  .err { margin-top: 14px; padding: 8px 12px; border-radius: 3px; background: #fdecea; color: #b3261e;
+    font-size: 13px; display: none; }
+  .err.show { display: block; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <div><b>open</b><span>mediavault</span></div>
+      <div class="sub">Панель управления хранилищем</div>
+    </div>
+    <div class="body">
+      <form id="f" autocomplete="off">
+        <label for="u">Имя пользователя</label>
+        <input id="u" autocomplete="username" required>
+        <label for="p">Пароль</label>
+        <input id="p" type="password" autocomplete="current-password" required>
+        <button id="btn" type="submit">Войти</button>
+        <div class="err" id="err"></div>
+      </form>
+    </div>
+  </div>
+<script>
+document.getElementById('f').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var btn = document.getElementById('btn'), err = document.getElementById('err');
+  btn.disabled = true; err.className = 'err';
+  try {
+    var res = await fetch('/rpc.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: 'Session', method: 'login', params: {
+        username: document.getElementById('u').value, password: document.getElementById('p').value
+      } })
+    });
+    var data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (data && data.error) {
+      err.textContent = data.error.code === 5002
+        ? 'Слишком много неудачных попыток входа, повторите позже'
+        : 'Неверное имя пользователя или пароль';
+      err.className = 'err show';
+    } else if (!res.ok) {
+      err.textContent = 'Неверное имя пользователя или пароль'; err.className = 'err show';
+    }
+  } catch (e) {
+    err.textContent = 'Ошибка сети'; err.className = 'err show';
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

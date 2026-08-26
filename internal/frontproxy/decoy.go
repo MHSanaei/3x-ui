@@ -72,7 +72,7 @@ func newDecoyHandler(cfg DecoyConfig) http.Handler {
 			logDecoyFallback("proxy", err)
 		}
 	}
-	return newTemplateDecoy(cfg.Template, cfg.Seed)
+	return withLoginMock(cfg.Template, newTemplateDecoy(cfg.Template, cfg.Seed))
 }
 
 // newTemplateDecoy serves one embedded page for every path, so a prober sees

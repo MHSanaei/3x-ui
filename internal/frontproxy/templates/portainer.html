@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portainer</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #13294b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #e4e9f0;
+  }
+  .card { width: 100%; max-width: 380px; padding: 40px 32px; background: #1b3a63; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  .logo { text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+  .logo span { color: #ff8c3a; }
+  h1 { font-size: 15px; text-align: center; margin: 0 0 24px; font-weight: 400; color: #a7b6cc; }
+  label { display: block; font-size: 12px; margin: 14px 0 6px; color: #a7b6cc; text-transform: uppercase; letter-spacing: .04em; }
+  input { width: 100%; padding: 10px 12px; border: 1px solid #2c517f; border-radius: 4px; font-size: 14px;
+    background: #0f2540; color: #e4e9f0; }
+  input:focus { outline: none; border-color: #ff8c3a; }
+  button { width: 100%; margin-top: 22px; padding: 11px; border: none; border-radius: 4px;
+    background: #ff8c3a; color: #13294b; font-size: 14px; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: default; }
+  button:hover:not(:disabled) { background: #ff9d57; }
+  .err { margin-top: 14px; padding: 8px 12px; border-radius: 4px; background: #4a1f24; color: #ff9d9d;
+    font-size: 13px; display: none; }
+  .err.show { display: block; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">portai<span>ner</span>.io</div>
+    <h1>Вход в учётную запись</h1>
+    <form id="f" autocomplete="off">
+      <label for="u">Имя пользователя</label>
+      <input id="u" autocomplete="username" required>
+      <label for="p">Пароль</label>
+      <input id="p" type="password" autocomplete="current-password" required>
+      <button id="btn" type="submit">Войти</button>
+      <div class="err" id="err"></div>
+    </form>
+  </div>
+<script>
+document.getElementById('f').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var btn = document.getElementById('btn'), err = document.getElementById('err');
+  btn.disabled = true; err.className = 'err';
+  try {
+    var res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ Username: document.getElementById('u').value, Password: document.getElementById('p').value })
+    });
+    if (!res.ok) {
+      var msg = 'Неверные учётные данные';
+      if (res.status === 429) {
+        var retry = res.headers.get('Retry-After');
+        msg = retry ? 'Слишком много попыток. Повторите через ' + Math.ceil(retry / 60) + ' мин.' : 'Слишком много попыток. Повторите позже.';
+      }
+      err.textContent = msg; err.className = 'err show';
+    }
+  } catch (e) {
+    err.textContent = 'Ошибка сети'; err.className = 'err show';
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
