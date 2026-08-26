@@ -380,8 +380,11 @@ install_tuic_server() {
 
     local tuic_url="https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${target_arch}"
     echo -e "${green}Installing tuic-server (${target_arch})...${plain}"
-    if curl -fLR --connect-timeout 10 --retry 2 -o /usr/local/bin/tuic-server "${tuic_url}" 2>/dev/null; then
-        chmod +x /usr/local/bin/tuic-server
+    mkdir -p "${xui_folder}/bin"
+    if curl -fLR --connect-timeout 15 --retry 3 -o "${xui_folder}/bin/tuic-server" "${tuic_url}"; then
+        chmod +x "${xui_folder}/bin/tuic-server"
+        cp -f "${xui_folder}/bin/tuic-server" /usr/local/bin/tuic-server 2>/dev/null || true
+        chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
         echo -e "${green}tuic-server installed successfully${plain}"
     else
         echo -e "${yellow}Failed to download tuic-server (optional), skipping${plain}"

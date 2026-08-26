@@ -16,7 +16,6 @@ type ServerConfig struct {
 	PrivateKey            string            `json:"private_key"`
 	CongestionControl     string            `json:"congestion_control"`
 	ALPN                  []string          `json:"alpn"`
-	UDPRelayMode          string            `json:"udp_relay_mode,omitempty"`
 	ZeroRTTHandshake      bool              `json:"zero_rtt_handshake"`
 	LogLevel              string            `json:"log_level"`
 	MaxIdleTime           string            `json:"max_idle_time,omitempty"`
@@ -49,7 +48,6 @@ func GenerateConfig(inst Instance) ([]byte, error) {
 		PrivateKey:            inst.PrivateKey,
 		CongestionControl:     inst.CongestionControl,
 		ALPN:                  inst.ALPN,
-		UDPRelayMode:          inst.UDPRelayMode,
 		ZeroRTTHandshake:      inst.ZeroRTTHandshake,
 		LogLevel:              inst.LogLevel,
 		AuthTimeout:           authTimeoutStr,
