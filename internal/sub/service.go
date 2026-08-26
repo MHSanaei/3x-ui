@@ -44,7 +44,7 @@ type SubService struct {
 	subscriptionBody bool
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
-	usageShown             map[string]bool
+	usageShown map[string]bool
 	// remarkCounts keeps duplicate node names distinct within one subscription body.
 	// PrepareForRequest resets this per-request state.
 	remarkCounts           map[string]int
