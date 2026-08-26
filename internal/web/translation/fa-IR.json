@@ -287,6 +287,7 @@
       "enable": "فعال",
       "remark": "نام",
       "node": "نود",
+      "relay": { "badge": "Relay" },
       "deployTo": "استقرار روی",
       "localPanel": "پنل لوکال",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "انتخاب همه",
       "bulkDeleteConfirmTitle": "حذف {count} اینباند؟",
       "bulkDeleteConfirmContent": "اینباندهای انتخاب‌شده و تمام کلاینت‌های آن‌ها حذف می‌شوند. این عمل غیرقابل بازگشت است.",
+      "deleteOrphanCheckbox": "کلاینت‌هایی را که دیگر به هیچ اینباندی وابسته نیستند نیز حذف کن ({count})",
       "cloneConfirmTitle": "اینباند «{remark}» کپی شود؟",
       "cloneConfirmContent": "یک نسخه با پورت جدید و لیست کلاینت خالی ساخته می‌شود.",
       "delAllClients": "حذف همه کلاینت‌ها",
@@ -727,8 +729,10 @@
       "clearAllFilters": "پاک کردن همه",
       "filters": {
         "nodes": "نودها",
-        "localPanel": "محلی (همین پنل)"
+      "localPanel": "محلی (همین پنل)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "نمایش {shown} از {total}",
       "sortOldest": "قدیمی‌ترین",
       "sortNewest": "جدیدترین",

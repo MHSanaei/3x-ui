@@ -287,6 +287,7 @@
       "enable": "Увімкнено",
       "remark": "Примітка",
       "node": "Вузол",
+      "relay": { "badge": "Relay" },
       "deployTo": "Розгорнути на",
       "localPanel": "Локальна панель",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "Вибрати все",
       "bulkDeleteConfirmTitle": "Видалити {count} вхідних підключень?",
       "bulkDeleteConfirmContent": "Будуть видалені вибрані вхідні підключення та всі їхні клієнти. Цю дію неможливо скасувати.",
+      "deleteOrphanCheckbox": "Також видалити клієнтів, які більше не належать жодному вхідному підключенню ({count})",
       "cloneConfirmTitle": "Клонувати вхідні \"{remark}\"?",
       "cloneConfirmContent": "Створює копію з новим портом і порожнім списком клієнтів.",
       "delAllClients": "Видалити всіх клієнтів",
@@ -727,8 +729,10 @@
       "clearAllFilters": "Очистити все",
       "filters": {
         "nodes": "Вузли",
-        "localPanel": "Локально (ця панель)"
+      "localPanel": "Локально (ця панель)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "Показано {shown} з {total}",
       "sortOldest": "Спочатку старі",
       "sortNewest": "Спочатку нові",

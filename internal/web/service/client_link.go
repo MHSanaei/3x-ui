@@ -295,6 +295,51 @@ func (s *ClientService) DetachInbound(tx *gorm.DB, inboundId int) error {
 	return tx.Where("inbound_id = ?", inboundId).Delete(&model.ClientInbound{}).Error
 }
 
+func (s *ClientService) orphanClientIDsForInbounds(tx *gorm.DB, inboundIDs []int) ([]int, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	if len(inboundIDs) == 0 {
+		return nil, nil
+	}
+	var ids []int
+	err := tx.Model(&model.ClientInbound{}).
+		Where("inbound_id IN ?", inboundIDs).
+		Where("client_id NOT IN (?)",
+			tx.Model(&model.ClientInbound{}).
+				Select("client_id").
+				Where("inbound_id NOT IN ?", inboundIDs)).
+		Distinct().
+		Pluck("client_id", &ids).Error
+	return ids, err
+}
+
+func (s *ClientService) CountOrphansForInbounds(inboundIDs []int) (int, error) {
+	ids, err := s.orphanClientIDsForInbounds(nil, inboundIDs)
+	return len(ids), err
+}
+
+// PurgeOrphansForInbounds uses the normal full-client delete path so remote
+// runtimes, traffic, HWID and external-link cleanup stay consistent.
+func (s *ClientService) PurgeOrphansForInbounds(
+	inboundSvc *InboundService,
+	inboundIDs []int,
+) (bool, error) {
+	ids, err := s.orphanClientIDsForInbounds(nil, inboundIDs)
+	if err != nil {
+		return false, err
+	}
+	needRestart := false
+	for _, id := range ids {
+		restart, deleteErr := s.Delete(inboundSvc, id, false)
+		if deleteErr != nil {
+			return needRestart, deleteErr
+		}
+		needRestart = needRestart || restart
+	}
+	return needRestart, nil
+}
+
 func (s *ClientService) ListForInbound(tx *gorm.DB, inboundId int) ([]model.Client, error) {
 	if tx == nil {
 		tx = database.GetDB()

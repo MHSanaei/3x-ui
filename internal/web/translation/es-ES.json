@@ -287,6 +287,7 @@
       "enable": "Habilitar",
       "remark": "Notas",
       "node": "Nodo",
+      "relay": { "badge": "Relay" },
       "deployTo": "Desplegar en",
       "localPanel": "Panel local",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "Seleccionar todo",
       "bulkDeleteConfirmTitle": "¿Eliminar {count} inbounds?",
       "bulkDeleteConfirmContent": "Esto elimina los inbounds seleccionados y todos sus clientes. No se puede deshacer.",
+      "deleteOrphanCheckbox": "Eliminar también los clientes que queden sin ningún inbound ({count})",
       "cloneConfirmTitle": "¿Clonar el inbound \"{remark}\"?",
       "cloneConfirmContent": "Crea una copia con un puerto nuevo y una lista de clientes vacía.",
       "delAllClients": "Eliminar todos los clientes",
@@ -727,8 +729,10 @@
       "clearAllFilters": "Limpiar todo",
       "filters": {
         "nodes": "Nodos",
-        "localPanel": "Local (este panel)"
+      "localPanel": "Local (este panel)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "Mostrando {shown} de {total}",
       "sortOldest": "Más antiguos",
       "sortNewest": "Más recientes",

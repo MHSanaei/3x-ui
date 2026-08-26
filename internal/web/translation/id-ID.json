@@ -287,6 +287,7 @@
       "enable": "Aktifkan",
       "remark": "Catatan",
       "node": "Node",
+      "relay": { "badge": "Relay" },
       "deployTo": "Terapkan ke",
       "localPanel": "Panel lokal",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "Pilih semua",
       "bulkDeleteConfirmTitle": "Hapus {count} inbound?",
       "bulkDeleteConfirmContent": "Tindakan ini menghapus inbound yang dipilih beserta semua kliennya. Tidak dapat dibatalkan.",
+      "deleteOrphanCheckbox": "Hapus juga klien yang tidak lagi terhubung ke inbound mana pun ({count})",
       "cloneConfirmTitle": "Klon inbound \"{remark}\"?",
       "cloneConfirmContent": "Membuat salinan dengan port baru dan daftar klien kosong.",
       "delAllClients": "Hapus Semua Klien",
@@ -727,8 +729,10 @@
       "clearAllFilters": "Hapus semua",
       "filters": {
         "nodes": "Node",
-        "localPanel": "Lokal (panel ini)"
+      "localPanel": "Lokal (panel ini)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "Menampilkan {shown} dari {total}",
       "sortOldest": "Terlama dulu",
       "sortNewest": "Terbaru dulu",

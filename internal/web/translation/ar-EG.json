@@ -287,6 +287,7 @@
       "enable": "مفعل",
       "remark": "ملاحظة",
       "node": "العقدة",
+      "relay": { "badge": "Relay" },
       "deployTo": "نشر على",
       "localPanel": "بانل محلي",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "تحديد الكل",
       "bulkDeleteConfirmTitle": "حذف {count} إدخال؟",
       "bulkDeleteConfirmContent": "سيؤدي هذا إلى إزالة الإدخالات المحددة وجميع عملائها. لا يمكن التراجع.",
+      "deleteOrphanCheckbox": "إزالة العملاء الذين لم يعودوا مرتبطين بأي إدخال أيضاً ({count})",
       "cloneConfirmTitle": "نسخ الإدخال \"{remark}\"؟",
       "cloneConfirmContent": "ينشئ نسخة بمنفذ جديد وقائمة عملاء فارغة.",
       "delAllClients": "حذف جميع العملاء",
@@ -727,8 +729,10 @@
       "clearAllFilters": "مسح الكل",
       "filters": {
         "nodes": "النودز",
-        "localPanel": "محلي (هذه اللوحة)"
+      "localPanel": "محلي (هذه اللوحة)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "عرض {shown} من {total}",
       "sortOldest": "الأقدم أولاً",
       "sortNewest": "الأحدث أولاً",

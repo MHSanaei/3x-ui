@@ -24,9 +24,11 @@ import {
   InfoCircleOutlined,
   DeleteOutlined,
   SearchOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
+import { isRelayEntryTag } from '@/lib/xray/relay';
 import { activateOnKey } from '@/utils/a11y';
 
 import { buildRowActionsMenu } from './RowActions';
@@ -48,6 +50,7 @@ export default function InboundList({
   nodesById,
   hasActiveNode,
   onAddInbound,
+  onRelay,
   onGeneralAction,
   onRowAction,
   onBulkDelete,
@@ -196,6 +199,15 @@ export default function InboundList({
           >
             {!isMobile && t('pages.inbounds.addInbound')}
           </Button>
+          <Button
+            type="primary"
+            ghost
+            onClick={onRelay}
+            icon={<SwapOutlined />}
+            aria-label={t('pages.inbounds.relay.title', { defaultValue: '新建中转' })}
+          >
+            {!isMobile && t('pages.inbounds.relay.title', { defaultValue: '新建中转' })}
+          </Button>
           <Dropdown trigger={['click']} menu={generalActionsMenu}>
             <Button
               type="primary"
@@ -282,6 +294,9 @@ export default function InboundList({
                       />
                       <span className="card-id">#{record.id}</span>
                       <span className="tag-name">{record.remark}</span>
+                      {isRelayEntryTag(record.tag) && (
+                        <Tag color="cyan">{t('pages.inbounds.relay.badge')}</Tag>
+                      )}
                       <div className="card-actions">
                         <Tooltip title={t('pages.inbounds.inboundInfo')}>
                           <InfoCircleOutlined

@@ -287,6 +287,7 @@
       "enable": "Etkin",
       "remark": "Açıklama",
       "node": "Düğüm",
+      "relay": { "badge": "Relay" },
       "deployTo": "Şuraya Dağıt",
       "localPanel": "Yerel Panel",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "Tümünü Seç",
       "bulkDeleteConfirmTitle": "{count} gelen bağlantı silinsin mi?",
       "bulkDeleteConfirmContent": "Bu işlem seçili gelen bağlantılarnı ve tüm kullanıcılarını siler. Geri alınamaz.",
+      "deleteOrphanCheckbox": "Artık hiçbir gelen bağlantıya bağlı olmayan kullanıcıları da kaldır ({count})",
       "cloneConfirmTitle": "\"{remark}\" gelen bağlantı klonlansın mı?",
       "cloneConfirmContent": "Yeni bir port ve boş kullanıcı listesiyle bir kopya oluşturur.",
       "delAllClients": "Tüm Kullanıcıları Sil",
@@ -727,8 +729,10 @@
       "clearAllFilters": "Tümünü Temizle",
       "filters": {
         "nodes": "Düğümler",
-        "localPanel": "Yerel (bu panel)"
+      "localPanel": "Yerel (bu panel)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "{total} içinden {shown} gösteriliyor",
       "sortOldest": "Önce En Eski",
       "sortNewest": "Önce En Yeni",

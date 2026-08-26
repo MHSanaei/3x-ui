@@ -1,18 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { AppstoreAddOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
   Alert,
+  Button,
+  Card,
   Form,
   Input,
   InputNumber,
   Modal,
   Radio,
   Select,
+  Space,
   Switch,
+  Tag,
   Tabs,
   Tooltip,
+  Typography,
   message,
 } from 'antd';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
@@ -22,6 +27,13 @@ import type { RealityScanResult } from '@/generated/types';
 import { rawInboundToFormValues, formValuesToWirePayload } from '@/lib/xray/inbound-form-adapter';
 import { createDefaultInboundSettings } from '@/lib/xray/inbound-defaults';
 import { generateAwgObfuscation } from '@/lib/xray/amneziawg-obfuscation';
+import {
+  INBOUND_PRESETS,
+  PRESET_FALLBACK,
+  applyPresetSecrets,
+  type InboundPreset,
+  type PresetId,
+} from '@/lib/xray/inbound-presets';
 import { composeInboundTag, isAutoInboundTag, type InboundTagInput } from '@/lib/xray/inbound-tag';
 import {
   canEnableReality,
@@ -235,6 +247,9 @@ export default function InboundFormModal({
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<RealityScanResult | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
+  const [recommendOpen, setRecommendOpen] = useState(true);
+  const [selectedPresetId, setSelectedPresetId] = useState<PresetId | null>(null);
+  const [presetDomain, setPresetDomain] = useState('');
   const {
     fallbacks,
     fallbackChildOptions,
@@ -330,6 +345,145 @@ export default function InboundFormModal({
     setScanResult,
     setScanning,
   });
+
+  const domainFromCertPath = (certPath: string): string => {
+    const normalized = certPath.replace(/\\/g, '/');
+    return normalized.match(/\/cert\/([^/]+)\//)?.[1] ?? '';
+  };
+
+  const targetNode =
+    typeof wNodeId === 'number' ? selectableNodes.find((node) => node.id === wNodeId) : undefined;
+
+  const fetchCommonSubId = async (): Promise<string> => {
+    const msg = await HttpUtil.get('/panel/api/server/getCommonSubId', undefined, { silent: true });
+    return msg?.success && typeof msg.obj === 'string' ? msg.obj : '';
+  };
+
+  const fetchTargetCertificate = async (): Promise<{
+    certFile: string;
+    keyFile: string;
+    domain: string;
+  }> => {
+    const msg =
+      typeof wNodeId === 'number'
+        ? await HttpUtil.get(`/panel/api/nodes/webCert/${wNodeId}`, undefined, { silent: true })
+        : await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
+    if (!msg?.success) return { certFile: '', keyFile: '', domain: '' };
+    const obj = msg.obj as { webCertFile?: string; webKeyFile?: string; webDomain?: string };
+    const certFile = obj.webCertFile ?? '';
+    const keyFile = obj.webKeyFile ?? '';
+    const nodeAddress = targetNode?.address?.trim() ?? '';
+    const domain =
+      (obj.webDomain ?? '').trim() || domainFromCertPath(certFile) || (nodeAddress || '').trim();
+    return { certFile, keyFile, domain };
+  };
+
+  const fetchRealityKeypair = async (): Promise<{ privateKey: string; publicKey: string } | null> => {
+    const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert', undefined, { silent: true });
+    if (!msg?.success || !msg.obj) return null;
+    return msg.obj as { privateKey: string; publicKey: string };
+  };
+
+  const applyPreset = async (preset: InboundPreset) => {
+    setSaving(true);
+    try {
+      const keepNodeId = (getV('nodeId') as number | null | undefined) ?? null;
+      const cert = preset.needsDomain ? await fetchTargetCertificate() : null;
+      const domain = presetDomain.trim() || cert?.domain || '';
+      const row = preset.build(domain || undefined);
+      const secrets: Parameters<typeof applyPresetSecrets>[1] = {
+        subId: await fetchCommonSubId(),
+      };
+      if (preset.needsRealityKeys) {
+        const keys = await fetchRealityKeypair();
+        if (!keys) {
+          messageApi.error(t('pages.inbounds.toasts.getNewX25519CertError'));
+          return;
+        }
+        secrets.realityPrivateKey = keys.privateKey;
+        secrets.realityPublicKey = keys.publicKey;
+      }
+      if (cert?.certFile && cert.keyFile) {
+        secrets.certFile = cert.certFile;
+        secrets.keyFile = cert.keyFile;
+        secrets.domain = domain;
+      }
+      applyPresetSecrets(row, secrets);
+      const values = rawInboundToFormValues(row);
+      values.nodeId = keepNodeId;
+      methods.reset(values);
+      setSelectedPresetId(preset.id);
+      setPresetDomain(domain);
+      setActiveTab('basic');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addAllRecommended = async () => {
+    setSaving(true);
+    try {
+      const targetNodeId = (getV('nodeId') as number | null | undefined) ?? null;
+      const cert = await fetchTargetCertificate();
+      const domain = presetDomain.trim() || cert.domain;
+      const hasCertificate = !!(cert.certFile && cert.keyFile && domain);
+      const commonSubId = await fetchCommonSubId();
+      const targets = INBOUND_PRESETS.filter((preset) => !preset.needsDomain || hasCertificate);
+      const usedPorts = new Set(
+        dbInbounds
+          .filter((row) => (row.nodeId ?? null) === targetNodeId)
+          .map((row) => row.port),
+      );
+      let created = 0;
+      const failed: string[] = [];
+
+      for (const preset of targets) {
+        const row = preset.build(preset.needsDomain ? domain : undefined);
+        while (row.port && usedPorts.has(row.port)) {
+          row.port = RandomUtil.randomInteger(10000, 60000);
+        }
+        if (row.port) usedPorts.add(row.port);
+        const secrets: Parameters<typeof applyPresetSecrets>[1] = { subId: commonSubId };
+        if (preset.needsRealityKeys) {
+          const keys = await fetchRealityKeypair();
+          if (!keys) {
+            failed.push(PRESET_FALLBACK[preset.id].title);
+            continue;
+          }
+          secrets.realityPrivateKey = keys.privateKey;
+          secrets.realityPublicKey = keys.publicKey;
+        }
+        if (preset.needsDomain) {
+          secrets.certFile = cert.certFile;
+          secrets.keyFile = cert.keyFile;
+          secrets.domain = domain;
+        }
+        applyPresetSecrets(row, secrets);
+        const values = rawInboundToFormValues(row);
+        values.nodeId = targetNodeId;
+        values.remark = t(preset.titleKey, { defaultValue: PRESET_FALLBACK[preset.id].title });
+        const msg = await HttpUtil.post('/panel/api/inbounds/add', formValuesToWirePayload(values));
+        if (msg?.success) created += 1;
+        else failed.push(PRESET_FALLBACK[preset.id].title);
+      }
+
+      if (created > 0) {
+        messageApi.success(
+          t('pages.inbounds.presets.addedN', {
+            count: created,
+            defaultValue: `已添加 ${created} 个推荐协议`,
+          }),
+        );
+        onSaved();
+        onClose();
+      }
+      if (failed.length > 0) {
+        messageApi.warning(`${failed.join('、')} ${t('somethingWentWrong')}`);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleSockopt = (on: boolean) => {
     if (on) {
@@ -439,6 +593,9 @@ export default function InboundFormModal({
     const initial =
       mode === 'edit' && dbInbound ? rawInboundToFormValues(dbInbound) : buildAddModeValues();
     methods.reset(initial);
+    setRecommendOpen(mode === 'add');
+    setSelectedPresetId(null);
+    setPresetDomain('');
     setScanResult(null);
     setActiveTab('basic');
     const initialTag = (initial.tag ?? '') as string;
@@ -458,6 +615,11 @@ export default function InboundFormModal({
       loadFallbacks(dbInbound.id);
     } else {
       loadFallbacks(null);
+    }
+
+    if (mode === 'add') {
+      const recommended = INBOUND_PRESETS.find((preset) => preset.recommended) ?? INBOUND_PRESETS[0];
+      if (recommended) void applyPreset(recommended);
     }
 
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
@@ -604,17 +766,99 @@ export default function InboundFormModal({
 
   const okText = mode === 'edit' ? t('pages.clients.submitEdit') : t('create');
 
+  const activePreset = INBOUND_PRESETS.find((preset) => preset.id === selectedPresetId) ?? null;
+  const simpleMode = mode === 'add' && recommendOpen;
+
+  const onPresetDomainChange = (value: string) => {
+    setPresetDomain(value);
+    setV('streamSettings.tlsSettings.serverName', value.trim());
+  };
+
+  const presetGallery = simpleMode ? (
+    <Card size="small" className="inbound-preset-gallery">
+      <div className="inbound-preset-gallery__header">
+        <div>
+          <Typography.Text strong>
+            {t('pages.inbounds.presets.title', { defaultValue: '一键协议模板' })}
+          </Typography.Text>
+          <Typography.Paragraph type="secondary" className="inbound-preset-gallery__subtitle">
+            {t('pages.inbounds.presets.subtitle', {
+              defaultValue: '选择模板即可填好一套可用配置，创建前仍可调整备注和部署服务器。',
+            })}
+          </Typography.Paragraph>
+        </div>
+        <Button
+          size="small"
+          type="primary"
+          ghost
+          icon={<AppstoreAddOutlined />}
+          loading={saving}
+          onClick={() => void addAllRecommended()}
+        >
+          {t('pages.inbounds.presets.addAll', { defaultValue: '一键添加全部推荐' })}
+        </Button>
+      </div>
+      <div className="inbound-preset-grid">
+        {INBOUND_PRESETS.map((preset) => {
+          const active = preset.id === selectedPresetId;
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              className={`inbound-preset${active ? ' is-active' : ''}`}
+              aria-pressed={active}
+              onClick={() => void applyPreset(preset)}
+            >
+              <span className="inbound-preset__title">
+                {t(preset.titleKey, { defaultValue: PRESET_FALLBACK[preset.id].title })}
+              </span>
+              <Space size={4} wrap>
+                {preset.recommended && (
+                  <Tag color="green">{t('recommend', { defaultValue: '推荐' })}</Tag>
+                )}
+                {preset.needsDomain && (
+                  <Tag color="orange">
+                    {t('pages.inbounds.presets.needDomain', { defaultValue: '需域名证书' })}
+                  </Tag>
+                )}
+              </Space>
+              <span className="inbound-preset__desc">
+                {t(preset.descKey, { defaultValue: PRESET_FALLBACK[preset.id].desc })}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {activePreset?.needsDomain && (
+        <div className="inbound-preset-domain">
+          <Typography.Text>
+            {t('pages.inbounds.presets.domainLabel', { defaultValue: '域名' })}
+          </Typography.Text>
+          <Input
+            value={presetDomain}
+            placeholder="example.com"
+            onChange={(event) => onPresetDomainChange(event.target.value)}
+          />
+        </div>
+      )}
+    </Card>
+  ) : null;
+
   const basicTab = (
     <>
-      <FormField name="enable" label={t('enable')} valueProp="checked">
-        <Switch />
-      </FormField>
+      {presetGallery}
+
+      {!simpleMode && (
+        <FormField name="enable" label={t('enable')} valueProp="checked">
+          <Switch />
+        </FormField>
+      )}
 
       <FormField name="remark" label={t('pages.inbounds.remark')}>
         <Input />
       </FormField>
 
-      {selectableNodes.length > 0 && isNodeEligible && (
+      {selectableNodes.length > 0 && (simpleMode || isNodeEligible) && (
         <FormField name="nodeId" label={t('pages.inbounds.deployTo')}>
           <Select
             showSearch
@@ -632,35 +876,41 @@ export default function InboundFormModal({
         </FormField>
       )}
 
-      <FormField name="protocol" label={t('pages.inbounds.protocol')}>
-        <Select id="protocol" disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
-      </FormField>
+      {!simpleMode && (
+        <FormField name="protocol" label={t('pages.inbounds.protocol')}>
+          <Select id="protocol" disabled={mode === 'edit'} options={PROTOCOL_OPTIONS} />
+        </FormField>
+      )}
 
-      <FormField
-        name="listen"
-        label={labelWithHint(t('pages.inbounds.address'), t('pages.inbounds.form.listenHelp'))}
-      >
-        <Input placeholder={t('pages.inbounds.monitorDesc')} />
-      </FormField>
+      {!simpleMode && (
+        <FormField
+          name="listen"
+          label={labelWithHint(t('pages.inbounds.address'), t('pages.inbounds.form.listenHelp'))}
+        >
+          <Input placeholder={t('pages.inbounds.monitorDesc')} />
+        </FormField>
+      )}
 
-      <FormField
-        name="shareAddrStrategy"
-        label={labelWithHint(
-          t('pages.inbounds.form.shareAddrStrategy'),
-          t('pages.inbounds.form.shareAddrStrategyHelp'),
-        )}
-      >
-        <Select
-          options={SHARE_ADDR_STRATEGIES.filter(
-            (strategy) => strategy !== 'node' || nodeShareOptionAvailable,
-          ).map((strategy) => ({
-            value: strategy,
-            label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
-          }))}
-        />
-      </FormField>
+      {!simpleMode && (
+        <FormField
+          name="shareAddrStrategy"
+          label={labelWithHint(
+            t('pages.inbounds.form.shareAddrStrategy'),
+            t('pages.inbounds.form.shareAddrStrategyHelp'),
+          )}
+        >
+          <Select
+            options={SHARE_ADDR_STRATEGIES.filter(
+              (strategy) => strategy !== 'node' || nodeShareOptionAvailable,
+            ).map((strategy) => ({
+              value: strategy,
+              label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
+            }))}
+          />
+        </FormField>
+      )}
 
-      {shareAddrStrategy === 'custom' && (
+      {!simpleMode && shareAddrStrategy === 'custom' && (
         <FormField
           name="shareAddr"
           label={labelWithHint(
@@ -676,17 +926,19 @@ export default function InboundFormModal({
         </FormField>
       )}
 
-      <FormField
-        name="subSortIndex"
-        label={labelWithHint(
-          t('pages.inbounds.form.subSortIndex'),
-          t('pages.inbounds.form.subSortIndexHelp'),
-        )}
-      >
-        <InputNumber min={1} />
-      </FormField>
+      {!simpleMode && (
+        <FormField
+          name="subSortIndex"
+          label={labelWithHint(
+            t('pages.inbounds.form.subSortIndex'),
+            t('pages.inbounds.form.subSortIndexHelp'),
+          )}
+        >
+          <InputNumber min={1} />
+        </FormField>
+      )}
 
-      {protocol === Protocols.VLESS && (
+      {!simpleMode && protocol === Protocols.VLESS && (
         <FormField
           name="disableFlow"
           valueProp="checked"
@@ -699,13 +951,15 @@ export default function InboundFormModal({
         </FormField>
       )}
 
-      <FormField
-        name="port"
-        label={t('pages.inbounds.port')}
-        rules={{ validate: rhfZodValidate(InboundFormBaseSchema.shape.port) }}
-      >
-        <InputNumber min={isUdsListen ? 0 : 1} max={65535} />
-      </FormField>
+      {!simpleMode && (
+        <FormField
+          name="port"
+          label={t('pages.inbounds.port')}
+          rules={{ validate: rhfZodValidate(InboundFormBaseSchema.shape.port) }}
+        >
+          <InputNumber min={isUdsListen ? 0 : 1} max={65535} />
+        </FormField>
+      )}
 
       <Form.Item
         label={
@@ -1102,6 +1356,36 @@ export default function InboundFormModal({
             wrapperCol={{ sm: { span: 14 } }}
             labelWrap
           >
+            {mode === 'add' && (
+              <div className="inbound-recommend-toggle">
+                <div>
+                  <Typography.Text strong>
+                    {t('pages.inbounds.recommendToggle', { defaultValue: '推荐协议' })}
+                  </Typography.Text>
+                  <Typography.Paragraph type="secondary">
+                    {recommendOpen
+                      ? t('pages.inbounds.recommendToggleOn', {
+                          defaultValue: '使用一键模板快速创建；关闭后可完整手动配置。',
+                        })
+                      : t('pages.inbounds.recommendToggleOff', {
+                          defaultValue: '当前为完整手动配置。',
+                        })}
+                  </Typography.Paragraph>
+                </div>
+                <Switch
+                  checked={recommendOpen}
+                  onChange={(checked) => {
+                    setRecommendOpen(checked);
+                    setActiveTab('basic');
+                    if (checked) {
+                      const recommended =
+                        INBOUND_PRESETS.find((preset) => preset.recommended) ?? INBOUND_PRESETS[0];
+                      if (recommended) void applyPreset(recommended);
+                    }
+                  }}
+                />
+              </div>
+            )}
             <Tabs
               activeKey={activeTab}
               onChange={setActiveTab}
@@ -1112,19 +1396,19 @@ export default function InboundFormModal({
                   children: basicTab,
                   forceRender: true,
                 },
-                ...((
-                  [
-                    Protocols.VLESS,
-                    Protocols.SHADOWSOCKS,
-                    Protocols.HTTP,
-                    Protocols.MIXED,
-                    Protocols.TUNNEL,
-                    Protocols.TUN,
-                    Protocols.WIREGUARD,
-                    Protocols.MTPROTO,
-                    Protocols.AMNEZIAWG,
-                  ] as string[]
-                ).includes(protocol) || isFallbackHost
+                ...(!simpleMode &&
+                (([
+                  Protocols.VLESS,
+                  Protocols.SHADOWSOCKS,
+                  Protocols.HTTP,
+                  Protocols.MIXED,
+                  Protocols.TUNNEL,
+                  Protocols.TUN,
+                  Protocols.WIREGUARD,
+                  Protocols.MTPROTO,
+                  Protocols.AMNEZIAWG,
+                ] as string[]).includes(protocol) ||
+                  isFallbackHost)
                   ? [
                       {
                         key: 'protocol',
@@ -1134,7 +1418,7 @@ export default function InboundFormModal({
                       },
                     ]
                   : []),
-                ...(streamEnabled
+                ...(!simpleMode && streamEnabled
                   ? [
                       {
                         key: 'stream',
@@ -1154,7 +1438,7 @@ export default function InboundFormModal({
                         : []),
                     ]
                   : []),
-                ...(sniffingSupported
+                ...(!simpleMode && sniffingSupported
                   ? [
                       {
                         key: 'sniffing',
@@ -1164,12 +1448,16 @@ export default function InboundFormModal({
                       },
                     ]
                   : []),
-                {
-                  key: 'advanced',
-                  label: t('pages.xray.advancedTemplate'),
-                  children: advancedTab,
-                  forceRender: true,
-                },
+                ...(!simpleMode
+                  ? [
+                      {
+                        key: 'advanced',
+                        label: t('pages.xray.advancedTemplate'),
+                        children: advancedTab,
+                        forceRender: true,
+                      },
+                    ]
+                  : []),
               ]}
             />
           </Form>

@@ -2,6 +2,7 @@ export interface ClientFilters {
   buckets: string[];
   protocols: string[];
   inboundIds: number[];
+  sources: ('relay' | 'inbound' | 'standalone')[];
   // Node ids to filter by; 0 is the "local panel" sentinel (inbounds with
   // no nodeId). Mapped onto inbound ids client-side — see ClientsPage.
   nodeIds: number[];
@@ -20,6 +21,7 @@ export function emptyFilters(): ClientFilters {
     buckets: [],
     protocols: [],
     inboundIds: [],
+    sources: [],
     nodeIds: [],
     groups: [],
     autoRenew: '',
@@ -33,6 +35,7 @@ export function activeFilterCount(f: ClientFilters): number {
   if (f.buckets.length) n++;
   if (f.protocols.length) n++;
   if (f.inboundIds.length) n++;
+  if (f.sources.length) n++;
   if (f.nodeIds.length) n++;
   if (f.groups.length) n++;
   if (f.expiryFrom || f.expiryTo) n++;

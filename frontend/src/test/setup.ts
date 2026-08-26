@@ -6,3 +6,11 @@
 if (typeof globalThis.window === 'undefined') {
   (globalThis as unknown as { window: typeof globalThis }).window = globalThis;
 }
+
+// RandomUtil.randomUUID() branches on window.location.protocol. Unit tests
+// run without a browser location, so use the non-HTTPS fallback path.
+if (typeof globalThis.location === 'undefined') {
+  (globalThis as unknown as { location: { protocol: string } }).location = {
+    protocol: 'http:',
+  };
+}

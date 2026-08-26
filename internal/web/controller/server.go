@@ -56,6 +56,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getDb", a.getDb)
 	g.GET("/getMigration", a.getMigration)
 	g.GET("/getNewUUID", a.getNewUUID)
+	g.GET("/getCommonSubId", a.getCommonSubId)
 	g.GET("/getWebCertFiles", a.getWebCertFiles)
 	g.GET("/descendants", a.descendants)
 	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
@@ -515,6 +516,15 @@ func (a *ServerController) getNewUUID(c *gin.Context) {
 		return
 	}
 	jsonObj(c, uuidResp, nil)
+}
+
+func (a *ServerController) getCommonSubId(c *gin.Context) {
+	id, err := a.settingService.GetCommonSubId()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, id, nil)
 }
 
 // getNewmlkem768 generates a new ML-KEM-768 key.

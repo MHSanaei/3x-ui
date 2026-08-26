@@ -49,6 +49,7 @@ var defaultValueMap = map[string]string{
 	"webCertFile":        "",
 	"webKeyFile":         "",
 	"secret":             random.Seq(32),
+	"commonSubId":        "",
 	"panelGuid":          uuid.NewString(),
 	"apiToken":           "",
 	// Node mTLS material (opt-in). All default empty: the CA + master client
@@ -359,6 +360,23 @@ func (s *SettingService) getString(key string) (string, error) {
 
 func (s *SettingService) setString(key string, value string) error {
 	return s.saveSetting(key, value)
+}
+
+// GetCommonSubId returns the shared subscription id used by one-click
+// templates, creating it on first use.
+func (s *SettingService) GetCommonSubId() (string, error) {
+	id, err := s.getString("commonSubId")
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(id) != "" {
+		return id, nil
+	}
+	id = random.Seq(16)
+	if err := s.setString("commonSubId", id); err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 func effectiveSettingValue(key, stored string) string {

@@ -287,6 +287,9 @@
       "enable": "Enabled",
       "remark": "Remark",
       "node": "Node",
+      "relay": {
+        "badge": "Relay"
+      },
       "deployTo": "Deploy to",
       "localPanel": "Local panel",
       "fallbacks": {
@@ -311,13 +314,14 @@
       "generalActions": "General Actions",
       "modifyInbound": "Modify Inbound",
       "deleteConfirmTitle": "Delete inbound \"{remark}\"?",
-      "deleteConfirmContent": "This removes the inbound and all its clients. This cannot be undone.",
+      "deleteConfirmContent": "This removes the inbound. Clients still attached to other inbounds are not affected.",
       "resetConfirmTitle": "Reset traffic for \"{remark}\"?",
       "resetConfirmContent": "Resets up/down counters to 0 for this inbound.",
       "selectedCount": "{count} selected",
       "selectAll": "Select all",
       "bulkDeleteConfirmTitle": "Delete {count} inbounds?",
-      "bulkDeleteConfirmContent": "This removes the selected inbounds and all their clients. This cannot be undone.",
+      "bulkDeleteConfirmContent": "This removes the selected inbounds. Clients attached to any remaining inbound are not affected.",
+      "deleteOrphanCheckbox": "Also remove clients left without any inbound ({count})",
       "cloneConfirmTitle": "Clone inbound \"{remark}\"?",
       "cloneConfirmContent": "Creates a copy with a new port and an empty client list.",
       "delAllClients": "Delete All Clients",
@@ -728,6 +732,12 @@
       "filters": {
         "nodes": "Nodes",
         "localPanel": "Local (this panel)"
+      },
+      "source": "Source",
+      "sources": {
+        "relay": "Relay",
+        "inbound": "Inbound",
+        "standalone": "Standalone"
       },
       "showingCount": "Showing {shown} of {total}",
       "sortOldest": "Oldest first",

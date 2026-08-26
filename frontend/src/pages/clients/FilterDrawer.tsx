@@ -139,6 +139,19 @@ export default function FilterDrawer({
           />
         </Form.Item>
 
+        <Form.Item label={t('pages.clients.source')}>
+          <Checkbox.Group
+            value={filters.sources}
+            onChange={(v) => patch('sources', v as ClientFilters['sources'])}
+          >
+            <Space orientation="vertical">
+              <Checkbox value="relay">{t('pages.clients.sources.relay')}</Checkbox>
+              <Checkbox value="inbound">{t('pages.clients.sources.inbound')}</Checkbox>
+              <Checkbox value="standalone">{t('pages.clients.sources.standalone')}</Checkbox>
+            </Space>
+          </Checkbox.Group>
+        </Form.Item>
+
         {nodes.length > 0 && (
           <Form.Item label={t('pages.clients.filters.nodes')}>
             <Select

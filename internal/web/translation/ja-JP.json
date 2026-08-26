@@ -287,6 +287,7 @@
       "enable": "有効化",
       "remark": "備考",
       "node": "ノード",
+      "relay": { "badge": "Relay" },
       "deployTo": "デプロイ先",
       "localPanel": "ローカルパネル",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "すべて選択",
       "bulkDeleteConfirmTitle": "{count} 件のインバウンドを削除しますか？",
       "bulkDeleteConfirmContent": "選択したインバウンドと関連付けされたすべてのクライアントを削除します。元に戻せません。",
+      "deleteOrphanCheckbox": "どのインバウンドにも関連付けされなくなったクライアントも削除する ({count})",
       "cloneConfirmTitle": "インバウンド「{remark}」を複製しますか？",
       "cloneConfirmContent": "新しいポートと空のクライアント一覧でコピーを作成します。",
       "delAllClients": "すべてのクライアントを削除",
@@ -727,8 +729,10 @@
       "clearAllFilters": "すべてクリア",
       "filters": {
         "nodes": "ノード",
-        "localPanel": "ローカル（このパネル）"
+      "localPanel": "ローカル（このパネル）"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "{total} 件中 {shown} 件を表示",
       "sortOldest": "古い順",
       "sortNewest": "新しい順",

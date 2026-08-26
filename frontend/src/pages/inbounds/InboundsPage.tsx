@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
+  Checkbox,
   Col,
   ConfigProvider,
   Layout,
@@ -11,6 +12,7 @@ import {
   Row,
   Spin,
   Statistic,
+  Typography,
   message,
 } from 'antd';
 
@@ -50,6 +52,7 @@ const InboundFormModal = lazy(() => import('./form/InboundFormModal'));
 const CloneInboundModal = lazy(() => import('./CloneInboundModal'));
 const InboundInfoModal = lazy(() => import('./info/InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./qr/QrCodeModal'));
+const RelayWizardModal = lazy(() => import('./RelayWizardModal'));
 const AttachClientsModal = lazy(() => import('./clients/AttachClientsModal'));
 const AttachExistingClientsModal = lazy(() => import('./clients/AttachExistingClientsModal'));
 const DetachClientsModal = lazy(() => import('./clients/DetachClientsModal'));
@@ -157,6 +160,11 @@ export default function InboundsPage() {
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDbInbound, setQrDbInbound] = useState<DBInbound | null>(null);
+  const [qrClients, setQrClients] = useState<
+    { email?: string; subId?: string; [k: string]: unknown }[] | null
+  >(null);
+  const [qrProtocolOnly, setQrProtocolOnly] = useState(true);
+  const [relayOpen, setRelayOpen] = useState(false);
 
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
@@ -455,15 +463,33 @@ export default function InboundsPage() {
   }, []);
 
   const confirmDelete = useCallback(
-    (dbInbound: DBInbound) => {
+    async (dbInbound: DBInbound) => {
+      const countMsg = await HttpUtil.get(
+        `/panel/api/inbounds/${dbInbound.id}/orphanCount`,
+        undefined,
+        { silent: true },
+      );
+      const orphanCount = countMsg?.success && typeof countMsg.obj === 'number' ? countMsg.obj : 0;
+      let purgeClients = false;
       modal.confirm({
         title: t('pages.inbounds.deleteConfirmTitle', { remark: dbInbound.remark }),
-        content: t('pages.inbounds.deleteConfirmContent'),
+        content: (
+          <div>
+            <Typography.Paragraph>{t('pages.inbounds.deleteConfirmContent')}</Typography.Paragraph>
+            {orphanCount > 0 && (
+              <Checkbox onChange={(event) => (purgeClients = event.target.checked)}>
+                {t('pages.inbounds.deleteOrphanCheckbox', { count: orphanCount })}
+              </Checkbox>
+            )}
+          </div>
+        ),
         okText: t('delete'),
         okType: 'danger',
         cancelText: t('cancel'),
         onOk: async () => {
-          const msg = await HttpUtil.post(`/panel/api/inbounds/del/${dbInbound.id}`);
+          const msg = await HttpUtil.post(
+            `/panel/api/inbounds/del/${dbInbound.id}?purgeClients=${purgeClients}`,
+          );
           if (msg?.success) await refresh();
         },
       });
@@ -472,22 +498,40 @@ export default function InboundsPage() {
   );
 
   const confirmBulkDelete = useCallback(
-    (ids: number[]) =>
-      new Promise<boolean>((resolve) => {
+    async (ids: number[]) => {
+      const countMsg = await HttpUtil.post(
+        '/panel/api/inbounds/orphanCountBatch',
+        { ids },
+        { silent: true, headers: { 'Content-Type': 'application/json' } },
+      );
+      const orphanCount = countMsg?.success && typeof countMsg.obj === 'number' ? countMsg.obj : 0;
+      let purgeClients = false;
+      return new Promise<boolean>((resolve) => {
         if (ids.length === 0) {
           resolve(false);
           return;
         }
         modal.confirm({
           title: t('pages.inbounds.bulkDeleteConfirmTitle', { count: ids.length }),
-          content: t('pages.inbounds.bulkDeleteConfirmContent'),
+          content: (
+            <div>
+              <Typography.Paragraph>
+                {t('pages.inbounds.bulkDeleteConfirmContent')}
+              </Typography.Paragraph>
+              {orphanCount > 0 && (
+                <Checkbox onChange={(event) => (purgeClients = event.target.checked)}>
+                  {t('pages.inbounds.deleteOrphanCheckbox', { count: orphanCount })}
+                </Checkbox>
+              )}
+            </div>
+          ),
           okText: t('delete'),
           okType: 'danger',
           cancelText: t('cancel'),
           onOk: async () => {
             const msg = await HttpUtil.post(
               '/panel/api/inbounds/bulkDel',
-              { ids },
+              { ids, purgeClients },
               { headers: { 'Content-Type': 'application/json' } },
             );
             const obj = (msg?.obj ?? {}) as {
@@ -511,7 +555,8 @@ export default function InboundsPage() {
           },
           onCancel: () => resolve(false),
         });
-      }),
+      });
+    },
     [modal, refresh, t, messageApi],
   );
 
@@ -639,6 +684,13 @@ export default function InboundsPage() {
           setInfoOpen(true);
           break;
         case 'qrcode':
+          {
+            const settings = coerceInboundJsonField(target.settings) as {
+              clients?: { email?: string; subId?: string; [k: string]: unknown }[];
+            };
+            setQrClients(Array.isArray(settings.clients) ? settings.clients : null);
+            setQrProtocolOnly(true);
+          }
           setQrDbInbound(checkFallback(target));
           setQrOpen(true);
           break;
@@ -773,6 +825,7 @@ export default function InboundsPage() {
                       nodesById={nodesById}
                       hasActiveNode={showNodeInfo}
                       onAddInbound={onAddInbound}
+                      onRelay={() => setRelayOpen(true)}
                       onGeneralAction={onGeneralAction}
                       onRowAction={({ key, dbInbound }) =>
                         onRowAction({ key, dbInbound: dbInbound as unknown as DBInbound })
@@ -819,8 +872,17 @@ export default function InboundsPage() {
             onClose={() => setQrOpen(false)}
             dbInbound={qrDbInbound}
             client={null}
+            clients={qrClients}
+            protocolOnly={qrProtocolOnly}
             nodeAddress={qrNodeAddress}
             subSettings={subSettings}
+          />
+        </LazyMount>
+        <LazyMount when={relayOpen}>
+          <RelayWizardModal
+            open={relayOpen}
+            onClose={() => setRelayOpen(false)}
+            onCreated={refresh}
           />
         </LazyMount>
         <LazyMount when={attachOpen}>

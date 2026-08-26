@@ -43,7 +43,7 @@ export function buildRowActionsMenu({
   if (isMobile) {
     items.push({ key: 'edit', icon: <EditOutlined />, label: t('edit') });
   }
-  if (showQrCodeMenu(record)) {
+  if (showQrCodeMenu(record) || (isInboundMultiUser(record) && hasClients)) {
     items.push({ key: 'qrcode', icon: <QrcodeOutlined />, label: t('qrCode') });
   }
   if (isInboundMultiUser(record)) {
@@ -122,6 +122,16 @@ export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowAc
         aria-label={t('edit')}
         onClick={() => onClick('edit')}
       />
+      {hasClients && isInboundMultiUser(record) && (
+        <Button
+          type="text"
+          size="small"
+          style={{ fontSize: 16 }}
+          icon={<QrcodeOutlined />}
+          aria-label={t('qrCode')}
+          onClick={() => onClick('qrcode')}
+        />
+      )}
       <Dropdown
         trigger={['click']}
         menu={{

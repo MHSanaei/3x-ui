@@ -50,6 +50,7 @@ type ClientPageParams struct {
 	Filter   string `form:"filter"`
 	Protocol string `form:"protocol"`
 	Inbound  string `form:"inbound"`
+	Source   string `form:"source"`
 	Sort     string `form:"sort"`
 	Order    string `form:"order"`
 
@@ -223,6 +224,22 @@ func (q clientQuery) applyParams(tx *gorm.DB, params ClientPageParams, onlines [
 	}
 	if inboundIds := parseCSVInts(params.Inbound); len(inboundIds) > 0 {
 		where("EXISTS (SELECT 1 FROM client_inbounds ci WHERE ci.client_id = c.id AND ci.inbound_id IN ?)", inboundIds)
+	}
+	if sources := parseCSVStrings(params.Source); len(sources) > 0 {
+		sourceConds := make([]string, 0, len(sources))
+		for _, source := range sources {
+			switch source {
+			case "relay":
+				sourceConds = append(sourceConds, "EXISTS (SELECT 1 FROM client_inbounds ci JOIN inbounds ib ON ib.id = ci.inbound_id AND ib.tag LIKE 'relay-in-%' WHERE ci.client_id = c.id)")
+			case "inbound":
+				sourceConds = append(sourceConds, "EXISTS (SELECT 1 FROM client_inbounds ci JOIN inbounds ib ON ib.id = ci.inbound_id WHERE ci.client_id = c.id AND (ib.tag IS NULL OR ib.tag NOT LIKE 'relay-in-%')) AND NOT EXISTS (SELECT 1 FROM client_inbounds ci JOIN inbounds ib ON ib.id = ci.inbound_id AND ib.tag LIKE 'relay-in-%' WHERE ci.client_id = c.id)")
+			case "standalone":
+				sourceConds = append(sourceConds, "NOT EXISTS (SELECT 1 FROM client_inbounds ci WHERE ci.client_id = c.id)")
+			}
+		}
+		if len(sourceConds) > 0 {
+			where("(" + strings.Join(sourceConds, " OR ") + ")")
+		}
 	}
 	if buckets := parseCSVStrings(params.Filter); len(buckets) > 0 {
 		cond, args := q.bucketCond(buckets, onlines)

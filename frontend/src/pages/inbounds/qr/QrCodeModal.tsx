@@ -28,6 +28,8 @@ interface QrCodeModalProps {
   onClose: () => void;
   dbInbound: (DbInboundLike & { remark?: string }) | null;
   client?: ClientSetting | null;
+  clients?: ClientSetting[] | null;
+  protocolOnly?: boolean;
   nodeAddress?: string;
   subSettings?: SubSettings;
 }
@@ -45,6 +47,8 @@ export default function QrCodeModal({
   onClose,
   dbInbound,
   client = null,
+  clients = null,
+  protocolOnly = false,
   nodeAddress = '',
   subSettings,
 }: QrCodeModalProps) {
@@ -56,6 +60,8 @@ export default function QrCodeModal({
   const [amneziawgLinks, setAmneziawgLinks] = useState<string[]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
+  const [subLinks, setSubLinks] = useState<string[]>([]);
+  const [subJsonLinks, setSubJsonLinks] = useState<string[]>([]);
   const [activeKey, setActiveKey] = useState<string[]>([]);
 
   // Building the links is a pure function of the props, so it runs during
@@ -63,6 +69,8 @@ export default function QrCodeModal({
   const [syncedProps, setSyncedProps] = useState<{
     dbInbound: typeof dbInbound;
     client: typeof client;
+    clients: typeof clients;
+    protocolOnly: boolean;
     nodeAddress: typeof nodeAddress;
     subSettings: typeof subSettings;
   } | null>(null);
@@ -72,10 +80,13 @@ export default function QrCodeModal({
     (syncedProps === null ||
       syncedProps.dbInbound !== dbInbound ||
       syncedProps.client !== client ||
+      syncedProps.clients !== clients ||
+      syncedProps.protocolOnly !== protocolOnly ||
       syncedProps.nodeAddress !== nodeAddress ||
       syncedProps.subSettings !== subSettings)
   ) {
-    setSyncedProps({ dbInbound, client, nodeAddress, subSettings });
+    setSyncedProps({ dbInbound, client, clients, protocolOnly, nodeAddress, subSettings });
+    const clientList = Array.isArray(clients) ? clients : client ? [client] : [];
     const inbound = inboundFromDb(dbInbound);
     const fallbackHostname = preferPublicHost(
       window.location.hostname,
@@ -129,13 +140,23 @@ export default function QrCodeModal({
       setLinks([]);
     } else {
       setLinks(
-        genAllLinks({
-          inbound,
-          remark: dbInbound.remark || '',
-          client: client ?? {},
-          hostOverride: nodeAddress,
-          fallbackHostname,
-        }),
+        clientList.length > 0
+          ? clientList.flatMap((item) =>
+              genAllLinks({
+                inbound,
+                remark: [dbInbound.remark || '', item.email || ''].filter(Boolean).join('-'),
+                client: item,
+                hostOverride: nodeAddress,
+                fallbackHostname,
+              }),
+            )
+          : genAllLinks({
+              inbound,
+              remark: dbInbound.remark || '',
+              client: client ?? {},
+              hostOverride: nodeAddress,
+              fallbackHostname,
+            }),
       );
       setWireguardConfigs([]);
       setWireguardLinks([]);
@@ -143,15 +164,26 @@ export default function QrCodeModal({
       setAmneziawgLinks([]);
     }
 
-    const subId = client?.subId;
-    let nextSub = '';
-    let nextSubJson = '';
-    if (subSettings?.enable && subId) {
-      nextSub = (subSettings.subURI || '') + subId;
-      nextSubJson = subSettings.subJsonEnable ? (subSettings.subJsonURI || '') + subId : '';
-    }
+    const nextSubs =
+      !protocolOnly && subSettings?.enable
+        ? clientList
+            .map((item) => item.subId)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+            .map((id) => (subSettings.subURI || '') + id)
+        : [];
+    const nextSubJsons =
+      !protocolOnly && subSettings?.enable && subSettings.subJsonEnable
+        ? clientList
+            .map((item) => item.subId)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+            .map((id) => (subSettings.subJsonURI || '') + id)
+        : [];
+    const nextSub = nextSubs[0] || '';
+    const nextSubJson = nextSubJsons[0] || '';
     setSubLink(nextSub);
     setSubJsonLink(nextSubJson);
+    setSubLinks(nextSubs);
+    setSubJsonLinks(nextSubJsons);
   }
 
   const qrItems = useMemo<QrItem[]>(() => {
@@ -159,6 +191,9 @@ export default function QrCodeModal({
     if (subLink) {
       items.push({ key: 'sub', header: t('subscription.title'), value: subLink });
     }
+    subLinks.slice(1).forEach((value, idx) => {
+      items.push({ key: `sub-${idx + 1}`, header: `${t('subscription.title')} ${idx + 2}`, value });
+    });
     if (subJsonLink) {
       items.push({
         key: 'sub-json',
@@ -166,6 +201,13 @@ export default function QrCodeModal({
         value: subJsonLink,
       });
     }
+    subJsonLinks.slice(1).forEach((value, idx) => {
+      items.push({
+        key: `sub-json-${idx + 1}`,
+        header: `${t('subscription.title')} (JSON) ${idx + 2}`,
+        value,
+      });
+    });
     links.forEach((link, idx) => {
       items.push({ key: `l${idx}`, header: link.remark || `Link ${idx + 1}`, value: link.link });
     });
@@ -205,6 +247,8 @@ export default function QrCodeModal({
   }, [
     subLink,
     subJsonLink,
+    subLinks,
+    subJsonLinks,
     links,
     wireguardConfigs,
     wireguardLinks,

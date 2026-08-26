@@ -71,6 +71,8 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
 	g.POST("/bulkDel", a.bulkDelInbounds)
+	g.GET("/:id/orphanCount", a.getOrphanCount)
+	g.POST("/orphanCountBatch", a.getOrphanCountBatch)
 	g.POST("/update/:id", a.updateInbound)
 	g.POST("/setEnable/:id", a.setInboundEnable)
 	g.POST("/:id/subSortIndex", a.setInboundSubSortIndex)
@@ -182,7 +184,8 @@ func (a *InboundController) delInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundDeleteSuccess"), err)
 		return
 	}
-	needRestart, err := a.inboundService.DelInbound(id)
+	purgeClients, _ := strconv.ParseBool(c.Query("purgeClients"))
+	needRestart, err := a.inboundService.DelInboundPurgeOrphans(id, purgeClients)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -197,7 +200,28 @@ func (a *InboundController) delInbound(c *gin.Context) {
 }
 
 type bulkDelInboundsRequest struct {
-	Ids []int `json:"ids"`
+	Ids          []int `json:"ids"`
+	PurgeClients bool  `json:"purgeClients"`
+}
+
+func (a *InboundController) getOrphanCount(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "get"), err)
+		return
+	}
+	count, err := a.clientService.CountOrphansForInbounds([]int{id})
+	jsonObj(c, count, err)
+}
+
+func (a *InboundController) getOrphanCountBatch(c *gin.Context) {
+	var req bulkDelInboundsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	count, err := a.clientService.CountOrphansForInbounds(req.Ids)
+	jsonObj(c, count, err)
 }
 
 // bulkDelInbounds deletes several inbounds in one call. Failures are
@@ -208,7 +232,7 @@ func (a *InboundController) bulkDelInbounds(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	result, needRestart, err := a.inboundService.DelInbounds(req.Ids)
+	result, needRestart, err := a.inboundService.DelInbounds(req.Ids, req.PurgeClients)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

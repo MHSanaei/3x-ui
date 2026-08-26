@@ -23,6 +23,7 @@ export interface DBInboundRecord extends ProtocolFlags {
   id: number;
   enable: boolean;
   remark: string;
+  tag?: string;
   subSortIndex: number;
   port: number;
   protocol: string;
@@ -78,6 +79,7 @@ export interface InboundListProps {
   nodesById: Map<number, NodeRecord>;
   hasActiveNode: boolean;
   onAddInbound: () => void;
+  onRelay: () => void;
   onGeneralAction: (key: GeneralAction) => void;
   onRowAction: (action: { key: RowAction; dbInbound: DBInboundRecord }) => void;
   onBulkDelete: (ids: number[]) => Promise<boolean>;

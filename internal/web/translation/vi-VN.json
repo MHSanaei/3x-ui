@@ -287,6 +287,7 @@
       "enable": "Kích hoạt",
       "remark": "Chú thích",
       "node": "Node",
+      "relay": { "badge": "Relay" },
       "deployTo": "Triển khai tới",
       "localPanel": "Panel cục bộ",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "Chọn tất cả",
       "bulkDeleteConfirmTitle": "Xóa {count} inbound?",
       "bulkDeleteConfirmContent": "Hành động này xóa các inbound đã chọn và toàn bộ khách hàng của chúng. Không thể hoàn tác.",
+      "deleteOrphanCheckbox": "Xóa cả các client không còn thuộc inbound nào ({count})",
       "cloneConfirmTitle": "Sao chép inbound \"{remark}\"?",
       "cloneConfirmContent": "Tạo bản sao với cổng mới và danh sách khách hàng trống.",
       "delAllClients": "Xóa tất cả khách hàng",
@@ -727,8 +729,10 @@
       "clearAllFilters": "Xóa tất cả",
       "filters": {
         "nodes": "Nút",
-        "localPanel": "Cục bộ (bảng này)"
+      "localPanel": "Cục bộ (bảng này)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "Hiển thị {shown} trên {total}",
       "sortOldest": "Cũ nhất trước",
       "sortNewest": "Mới nhất trước",

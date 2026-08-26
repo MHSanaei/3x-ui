@@ -287,6 +287,7 @@
       "enable": "Включить",
       "remark": "Примечание",
       "node": "Узел",
+      "relay": { "badge": "Relay" },
       "deployTo": "Развернуть на",
       "localPanel": "Локальная панель",
       "fallbacks": {
@@ -318,6 +319,7 @@
       "selectAll": "Выбрать всё",
       "bulkDeleteConfirmTitle": "Удалить {count} подключений?",
       "bulkDeleteConfirmContent": "Выбранные подключения и все их клиенты будут удалены. Это действие нельзя отменить.",
+      "deleteOrphanCheckbox": "Также удалить клиентов, оставшихся без входящих подключений ({count})",
       "cloneConfirmTitle": "Клонировать подключение \"{remark}\"?",
       "cloneConfirmContent": "Создаёт копию с новым портом и пустым списком клиентов.",
       "delAllClients": "Удалить всех клиентов",
@@ -727,8 +729,10 @@
       "clearAllFilters": "Очистить все",
       "filters": {
         "nodes": "Узлы",
-        "localPanel": "Локально (эта панель)"
+      "localPanel": "Локально (эта панель)"
       },
+      "source": "Source",
+      "sources": { "relay": "Relay", "inbound": "Inbound", "standalone": "Standalone" },
       "showingCount": "Показано {shown} из {total}",
       "sortOldest": "Сначала старые",
       "sortNewest": "Сначала новые",

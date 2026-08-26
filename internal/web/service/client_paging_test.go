@@ -288,6 +288,58 @@ func TestListPagedFilters(t *testing.T) {
 	}
 }
 
+func TestListPagedSourceFilter(t *testing.T) {
+	svc, inboundSvc, settingSvc := setupPagingServices(t)
+	seedPagingClients(t)
+	db := database.GetDB()
+
+	relay := &model.Inbound{
+		UserId:   1,
+		Tag:      "relay-in-40100",
+		Enable:   true,
+		Port:     40100,
+		Protocol: model.VLESS,
+		Settings: "{\"clients\":[]}",
+	}
+	if err := db.Create(relay).Error; err != nil {
+		t.Fatalf("create relay inbound: %v", err)
+	}
+	var standalone model.ClientRecord
+	if err := db.Where("email = ?", "kilo_1@x").First(&standalone).Error; err != nil {
+		t.Fatalf("find standalone client: %v", err)
+	}
+	var relayClient model.ClientRecord
+	if err := db.Where("email = ?", "juliet@x").First(&relayClient).Error; err != nil {
+		t.Fatalf("find relay client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: relayClient.Id, InboundId: relay.Id}).Error; err != nil {
+		t.Fatalf("attach relay client: %v", err)
+	}
+
+	tests := []struct {
+		source string
+		want   []string
+	}{
+		{source: "relay", want: []string{"juliet@x"}},
+		{source: "inbound", want: []string{"alpha@x", "bravo@x", "charlie@x", "delta@x", "echo@x", "foxtrot@x", "golf@x", "hotel@x", "india@x", "kilo1@x"}},
+		{source: "standalone", want: []string{standalone.Email}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.source, func(t *testing.T) {
+			resp, err := svc.ListPaged(inboundSvc, settingSvc, ClientPageParams{PageSize: 50, Source: tc.source})
+			if err != nil {
+				t.Fatalf("ListPaged: %v", err)
+			}
+			if got := pagedEmails(resp.Items); !slices.Equal(got, tc.want) {
+				t.Fatalf("emails = %v, want %v", got, tc.want)
+			}
+			if resp.Filtered != len(tc.want) {
+				t.Fatalf("filtered = %d, want %d", resp.Filtered, len(tc.want))
+			}
+		})
+	}
+}
+
 func TestListPagedSorting(t *testing.T) {
 	svc, inboundSvc, settingSvc := setupPagingServices(t)
 	seedPagingClients(t)

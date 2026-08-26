@@ -287,6 +287,9 @@
       "enable": "启用",
       "remark": "备注",
       "node": "节点",
+      "relay": {
+        "badge": "中转"
+      },
       "deployTo": "部署到",
       "localPanel": "本地面板",
       "fallbacks": {
@@ -311,13 +314,14 @@
       "generalActions": "通用操作",
       "modifyInbound": "修改入站",
       "deleteConfirmTitle": "删除入站 \"{remark}\"？",
-      "deleteConfirmContent": "将删除此入站及其所有客户端。该操作不可撤销。",
+      "deleteConfirmContent": "将删除此入站。仍关联其他入站的客户端不会受到影响。",
       "resetConfirmTitle": "重置 \"{remark}\" 的流量？",
       "resetConfirmContent": "将此入站的上/下行计数器清零。",
       "selectedCount": "已选 {count} 项",
       "selectAll": "全选",
       "bulkDeleteConfirmTitle": "删除 {count} 个入站？",
-      "bulkDeleteConfirmContent": "将删除所选入站及其所有客户端。该操作不可撤销。",
+      "bulkDeleteConfirmContent": "将删除所选入站。仍关联未删除入站的客户端不会受到影响。",
+      "deleteOrphanCheckbox": "同时清理删除后不再归属任何入站的客户端（{count} 个）",
       "cloneConfirmTitle": "克隆入站 \"{remark}\"？",
       "cloneConfirmContent": "使用新端口和空客户端列表创建副本。",
       "delAllClients": "删除所有客户端",
@@ -728,6 +732,12 @@
       "filters": {
         "nodes": "节点",
         "localPanel": "本机（此面板）"
+      },
+      "source": "来源",
+      "sources": {
+        "relay": "中转",
+        "inbound": "入站",
+        "standalone": "独立"
       },
       "showingCount": "显示 {shown} / {total}",
       "sortOldest": "最旧优先",

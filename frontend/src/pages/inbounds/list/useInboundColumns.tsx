@@ -8,6 +8,7 @@ import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
 import { coerceInboundJsonField } from '@/models/dbinbound';
+import { isRelayEntryTag } from '@/lib/xray/relay';
 
 import { RowActionsCell } from './RowActions';
 import {
@@ -140,6 +141,16 @@ export function useInboundColumns({
         align: 'center',
         width: 90,
         sorter: (a, b) => compareText(a.remark, b.remark),
+        render: (_, record) => (
+          <>
+            {record.remark}
+            {isRelayEntryTag(record.tag) && (
+              <Tag color="cyan" style={{ marginInlineStart: 4 }}>
+                {t('pages.inbounds.relay.badge')}
+              </Tag>
+            )}
+          </>
+        ),
       });
     }
 

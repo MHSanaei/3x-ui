@@ -1288,6 +1288,19 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	return needRestart, nil
 }
 
+func (s *InboundService) DelInboundPurgeOrphans(id int, purgeClients bool) (bool, error) {
+	needRestart := false
+	if purgeClients {
+		restart, err := s.clientService.PurgeOrphansForInbounds(s, []int{id})
+		if err != nil {
+			return false, err
+		}
+		needRestart = restart
+	}
+	restart, err := s.DelInbound(id)
+	return needRestart || restart, err
+}
+
 type BulkDelInboundResult struct {
 	Deleted int                    `json:"deleted"`
 	Skipped []BulkDelInboundReport `json:"skipped,omitempty"`
@@ -1302,9 +1315,16 @@ type BulkDelInboundReport struct {
 // path per id. Failures are recorded in Skipped and processing continues for
 // the rest; the aggregated needRestart is returned so the caller restarts
 // xray at most once.
-func (s *InboundService) DelInbounds(ids []int) (BulkDelInboundResult, bool, error) {
+func (s *InboundService) DelInbounds(ids []int, purgeClients bool) (BulkDelInboundResult, bool, error) {
 	result := BulkDelInboundResult{}
 	needRestart := false
+	if purgeClients {
+		restart, err := s.clientService.PurgeOrphansForInbounds(s, ids)
+		if err != nil {
+			return result, needRestart, err
+		}
+		needRestart = restart
+	}
 	for _, id := range ids {
 		r, err := s.DelInbound(id)
 		if err != nil {
