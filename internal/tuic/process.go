@@ -175,13 +175,13 @@ func (p *Process) CollectTraffic() (int64, int64) {
 	}
 	var deltaUp, deltaDown int64
 	if rchar >= p.lastRchar {
-		deltaUp = (rchar - p.lastRchar) / 2
+		deltaUp = rchar - p.lastRchar
 		p.lastRchar = rchar
 	} else {
 		p.lastRchar = rchar
 	}
 	if wchar >= p.lastWchar {
-		deltaDown = (wchar - p.lastWchar) / 2
+		deltaDown = wchar - p.lastWchar
 		p.lastWchar = wchar
 	} else {
 		p.lastWchar = wchar

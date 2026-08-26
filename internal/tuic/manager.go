@@ -31,6 +31,9 @@ func GetManager() *Manager {
 		managerInstance = &Manager{
 			procs: make(map[int]*managed),
 		}
+		if n := killStrayTuicProcesses(GetBinaryPath()); n > 0 {
+			logger.Warningf("tuic: terminated %d orphaned tuic-server process(es) from a previous run", n)
+		}
 	})
 	return managerInstance
 }
