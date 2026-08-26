@@ -95,8 +95,21 @@ func TestPlaintextPassThrough(t *testing.T) {
 func TestEncryptedNeverFallsBackToPlaintext(t *testing.T) {
 	c, _ := NewCodec(ModeRequired, testRing(t, "k1", "k1"))
 	enc, _ := c.Encrypt(1, "tok")
-	// Corrupt the ciphertext body — must error, never return raw bytes.
-	bad := enc[:len(enc)-2] + "AA"
+	// Corrupt the ciphertext body — must error, never return raw bytes. Flip
+	// every bit of the last byte (XOR 0xFF) rather than overwriting it with a
+	// fixed value: a fixed replacement has a 1/256 chance of coincidentally
+	// matching the original byte and silently failing to corrupt anything,
+	// which was flaky in CI. x ^ 0xFF != x for every possible byte x.
+	rest, ok := strings.CutPrefix(enc, encScheme+"k1:")
+	if !ok {
+		t.Fatalf("unexpected ciphertext form: %q", enc)
+	}
+	blob, err := base64.RawURLEncoding.DecodeString(rest)
+	if err != nil || len(blob) == 0 {
+		t.Fatalf("decode ciphertext: %v", err)
+	}
+	blob[len(blob)-1] ^= 0xFF
+	bad := encScheme + "k1:" + base64.RawURLEncoding.EncodeToString(blob)
 	if _, err := c.Decrypt(1, bad); err == nil {
 		t.Fatal("corrupted ciphertext must fail, not fall back to plaintext")
 	}
