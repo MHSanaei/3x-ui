@@ -5,54 +5,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Home Assistant</title>
 <style>
-  :root { color-scheme: light; }
+  :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: #fafafa; font-family: Roboto, "Noto Sans", "Segoe UI", Arial, sans-serif;
+  html, body {
+    margin: 0; height: 100%; background: #111318;
+    font-family: Roboto, "Noto Sans", "Segoe UI", Arial, sans-serif;
   }
+  #bg { position: fixed; inset: 0; z-index: 0; }
+  .wrap {
+    position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .logo { width: 64px; height: 64px; border-radius: 16px; background: #03a9f4; display: flex;
+    align-items: center; justify-content: center; margin-bottom: 20px; }
+  .logo svg { width: 34px; height: 34px; }
   .card {
-    width: 360px; max-width: calc(100vw - 32px); padding: 32px 28px;
-    background: #fff; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    width: 380px; max-width: calc(100vw - 32px); padding: 28px 32px;
+    background: rgba(28, 30, 36, .92); border-radius: 8px; border: 1px solid rgba(255,255,255,.06);
   }
-  .logo { display: flex; justify-content: center; margin-bottom: 8px; }
-  .logo svg { width: 56px; height: 56px; }
-  h1 { margin: 0 0 24px; font-size: 20px; font-weight: 500; text-align: center; color: #212121; }
-  label { display: block; font-size: 13px; color: #757575; margin: 16px 0 4px; }
+  h1 { margin: 0 0 22px; font-size: 22px; font-weight: 500; text-align: center; color: #e3e3e3; }
+  .field { position: relative; margin-top: 18px; }
+  label { display: block; font-size: 13px; color: #9a9a9a; margin-bottom: 4px; }
   input {
-    width: 100%; padding: 10px 8px; font-size: 15px; border: none; border-bottom: 1px solid #949494;
-    background: transparent; color: #212121;
+    width: 100%; padding: 9px 8px; font-size: 15px; border: none; border-bottom: 1px solid #55575c;
+    background: transparent; color: #e3e3e3;
   }
   input:focus { outline: none; border-bottom: 2px solid #03a9f4; }
+  .eye {
+    position: absolute; right: 4px; bottom: 8px; background: none; border: none; padding: 4px;
+    cursor: pointer; color: #9a9a9a; width: auto; margin: 0;
+  }
+  .eye svg { width: 20px; height: 20px; display: block; }
+  .row { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 13px; }
+  .row label { display: flex; align-items: center; gap: 6px; color: #c8c8c8; margin: 0; }
+  .row a { color: #03a9f4; text-decoration: none; }
   .error {
     display: none; margin-top: 16px; padding: 10px 12px; border-radius: 4px;
-    background: #fdecea; color: #b3261e; font-size: 13px;
+    background: rgba(207,102,121,.15); color: #ff8a95; font-size: 13px;
   }
   .error.show { display: block; }
-  button {
-    margin-top: 24px; width: 100%; padding: 11px; border: none; border-radius: 4px;
+  button[type=submit] {
+    margin-top: 22px; width: 100%; padding: 11px; border: none; border-radius: 4px;
     background: #03a9f4; color: #fff; font-size: 14px; font-weight: 500; letter-spacing: .05em;
     text-transform: uppercase; cursor: pointer;
   }
-  button:disabled { background: #b3e0fb; cursor: default; }
-  button:not(:disabled):hover { background: #039be5; }
+  button[type=submit]:disabled { background: #1c4a5e; color: #7fa; cursor: default; }
+  button[type=submit]:not(:disabled):hover { background: #039be5; }
+  .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 18px;
+    font-size: 13px; color: #9a9a9a; }
+  .foot a { color: #9a9a9a; text-decoration: none; display: flex; align-items: center; gap: 4px; }
 </style>
 </head>
 <body>
+<canvas id="bg"></canvas>
+<div class="wrap">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="#fff"><path d="M12,3L2,12H5V20H10V14H14V20H19V12H22L12,3Z"/></svg>
+  </div>
   <div class="card">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="#03a9f4"><path d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z"/></svg>
-    </div>
-    <h1>Вход в Home Assistant</h1>
+    <h1>Добро пожаловать домой!</h1>
     <form id="f" autocomplete="off">
-      <label for="u">Имя пользователя</label>
-      <input id="u" name="username" autocapitalize="none" required>
-      <label for="p">Пароль</label>
-      <input id="p" name="password" type="password" required>
+      <div class="field">
+        <label for="u">Имя пользователя</label>
+        <input id="u" name="username" autocapitalize="none" required>
+      </div>
+      <div class="field">
+        <label for="p">Пароль</label>
+        <input id="p" name="password" type="password" required>
+        <button type="button" class="eye" id="eye" aria-label="Показать пароль">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/></svg>
+        </button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="remember" checked style="width:auto"> Запомнить</label>
+        <a href="#" id="forgot">Забыли пароль?</a>
+      </div>
       <div class="error" id="err">Неверное имя пользователя или пароль</div>
       <button id="submit" type="submit">Войти</button>
     </form>
   </div>
+  <div class="foot" style="width:380px; max-width: calc(100vw - 32px);">
+    <span>Русский &#9662;</span>
+    <a href="#" id="help">Справка &#8599;</a>
+  </div>
+</div>
 <script>
 (function () {
   "use strict";
@@ -116,6 +152,63 @@
       submit.disabled = false;
     });
   });
+
+  var eye = document.getElementById("eye");
+  var pw = document.getElementById("p");
+  eye.addEventListener("click", function () {
+    pw.type = pw.type === "password" ? "text" : "password";
+  });
+
+  document.getElementById("forgot").addEventListener("click", function (ev) { ev.preventDefault(); });
+  document.getElementById("help").addEventListener("click", function (ev) { ev.preventDefault(); });
+
+  var canvas = document.getElementById("bg");
+  var ctx = canvas.getContext("2d");
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener("resize", resize);
+
+  var points = [];
+  for (var i = 0; i < 55; i++) {
+    points.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25,
+    });
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < points.length; i++) {
+      var p = points[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0 || p.x > canvas.width) { p.vx *= -1; }
+      if (p.y < 0 || p.y > canvas.height) { p.vy *= -1; }
+      ctx.fillStyle = "rgba(210,215,225,.65)";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (var a = 0; a < points.length; a++) {
+      for (var b = a + 1; b < points.length; b++) {
+        var dx = points[a].x - points[b].x;
+        var dy = points[a].y - points[b].y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 140) {
+          ctx.strokeStyle = "rgba(70,150,220," + ((1 - dist / 140) * 0.5) + ")";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(points[a].x, points[a].y);
+          ctx.lineTo(points[b].x, points[b].y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
 })();
 </script>
 </body>

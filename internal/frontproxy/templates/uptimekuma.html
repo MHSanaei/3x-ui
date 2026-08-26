@@ -7,53 +7,59 @@
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: #161b22; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  html, body {
+    margin: 0; height: 100%; background: #0d1117;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   }
-  .card {
-    width: 380px; max-width: calc(100vw - 32px); padding: 36px 32px;
-    background: #0d1117; border: 1px solid #30363d; border-radius: 10px;
+  header {
+    display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 20px;
+    background: #161b22; border-bottom: 1px solid #21262d;
   }
-  .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 28px; }
-  .brand svg { width: 32px; height: 32px; }
-  .brand span { font-size: 20px; font-weight: 600; color: #e6edf3; }
-  label { display: block; font-size: 13px; color: #8b949e; margin: 14px 0 6px; }
-  input {
-    width: 100%; padding: 9px 10px; font-size: 14px; border-radius: 6px;
-    border: 1px solid #30363d; background: #161b22; color: #e6edf3;
+  header .badge {
+    width: 30px; height: 30px; border-radius: 50%; background: #1f6feb;
+    display: flex; align-items: center; justify-content: center;
   }
+  header .badge svg { width: 18px; height: 18px; }
+  header span { font-size: 18px; font-weight: 700; color: #e6edf3; }
+  .wrap { min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+  form { width: 340px; max-width: calc(100vw - 32px); }
+  input[type=text], input[type=password] {
+    display: block; width: 100%; padding: 12px 18px; font-size: 14px; border-radius: 999px;
+    border: 1px solid #30363d; background: #161b22; color: #e6edf3; margin-top: 14px;
+  }
+  input[type=text]:first-child { margin-top: 0; }
+  input::placeholder { color: #6e7681; }
   input:focus { outline: none; border-color: #2f81f7; }
-  .row { display: flex; align-items: center; gap: 6px; margin-top: 14px; font-size: 13px; color: #8b949e; }
+  .row { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: #c9d1d9; }
   .error {
-    display: none; margin-top: 16px; padding: 9px 12px; border-radius: 6px;
+    display: none; margin-top: 14px; padding: 9px 14px; border-radius: 8px;
     background: #3b1219; border: 1px solid #7d2933; color: #ff9492; font-size: 13px;
   }
   .error.show { display: block; }
   button {
-    margin-top: 22px; width: 100%; padding: 10px; border: none; border-radius: 6px;
-    background: #2f81f7; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+    margin-top: 20px; width: 100%; padding: 11px; border: none; border-radius: 999px;
+    background: #2ecf9d; color: #04261c; font-size: 14px; font-weight: 700; cursor: pointer;
   }
-  button:disabled { background: #1d3f70; cursor: default; }
-  button:not(:disabled):hover { background: #2568cf; }
+  button:disabled { background: #1f4a3d; color: #4c6e63; cursor: default; }
+  button:not(:disabled):hover { background: #29ba8e; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <div class="brand">
-      <svg viewBox="0 0 24 24" fill="#2f81f7"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M8,10L10.5,12.5L16,7L17.5,8.5L10.5,15.5L6.5,11.5L8,10Z"/></svg>
-      <span>Uptime Kuma</span>
-    </div>
-    <form id="f" autocomplete="off">
-      <label for="u">Имя пользователя</label>
-      <input id="u" name="username" autocapitalize="none" required>
-      <label for="p">Пароль</label>
-      <input id="p" name="password" type="password" required>
-      <label class="row"><input type="checkbox" id="r" style="width:auto"> Запомнить меня</label>
-      <div class="error" id="err"></div>
-      <button id="submit" type="submit">Войти</button>
-    </form>
+<header>
+  <div class="badge">
+    <svg viewBox="0 0 24 24" fill="#fff"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M8,10L10.5,12.5L16,7L17.5,8.5L10.5,15.5L6.5,11.5L8,10Z"/></svg>
   </div>
+  <span>Uptime Kuma</span>
+</header>
+<div class="wrap">
+  <form id="f" autocomplete="off">
+    <input id="u" name="username" type="text" placeholder="Логин" autocapitalize="none" required>
+    <input id="p" name="password" type="password" placeholder="Пароль" required>
+    <label class="row"><input type="checkbox" id="r" checked style="width:auto"> Запомнить меня</label>
+    <div class="error" id="err"></div>
+    <button id="submit" type="submit">Вход в систему</button>
+  </form>
+</div>
 <script>
 (function () {
   "use strict";
