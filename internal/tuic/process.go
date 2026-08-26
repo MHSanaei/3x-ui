@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -122,6 +123,25 @@ type Process struct {
 	logWriter       *procLogWriter
 	exitErr         error
 	intentionalStop atomic.Bool
+	lastRchar       int64
+	lastWchar       int64
+}
+
+func readProcIO(pid int) (int64, int64, error) {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/io", pid))
+	if err != nil {
+		return 0, 0, err
+	}
+	var rchar, wchar int64
+	lines := strings.Split(string(data), "\n")
+	for _, l := range lines {
+		if strings.HasPrefix(l, "rchar: ") {
+			rchar, _ = strconv.ParseInt(strings.TrimSpace(l[7:]), 10, 64)
+		} else if strings.HasPrefix(l, "wchar: ") {
+			wchar, _ = strconv.ParseInt(strings.TrimSpace(l[8:]), 10, 64)
+		}
+	}
+	return rchar, wchar, nil
 }
 
 func newProcess(configPath, label string, uuidToEmail map[string]string) *Process {
@@ -133,6 +153,40 @@ func newProcess(configPath, label string, uuidToEmail map[string]string) *Proces
 			lastActive:  make(map[string]int64),
 		},
 	}
+}
+
+func (p *Process) CollectTraffic() (int64, int64) {
+	p.mu.RLock()
+	cmd := p.cmd
+	p.mu.RUnlock()
+	if cmd == nil || cmd.Process == nil {
+		return 0, 0
+	}
+	rchar, wchar, err := readProcIO(cmd.Process.Pid)
+	if err != nil {
+		return 0, 0
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.lastRchar == 0 && p.lastWchar == 0 {
+		p.lastRchar = rchar
+		p.lastWchar = wchar
+		return 0, 0
+	}
+	var deltaUp, deltaDown int64
+	if rchar >= p.lastRchar {
+		deltaUp = (rchar - p.lastRchar) / 2
+		p.lastRchar = rchar
+	} else {
+		p.lastRchar = rchar
+	}
+	if wchar >= p.lastWchar {
+		deltaDown = (wchar - p.lastWchar) / 2
+		p.lastWchar = wchar
+	} else {
+		p.lastWchar = wchar
+	}
+	return deltaUp, deltaDown
 }
 
 func (p *Process) GetActiveEmails(window time.Duration) []string {

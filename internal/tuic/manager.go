@@ -120,6 +120,48 @@ func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
 	return emails, tags
 }
 
+type InboundTrafficDelta struct {
+	Tag     string
+	Up      int64
+	Down    int64
+	Clients map[string]struct {
+		Up   int64
+		Down int64
+	}
+}
+
+func (m *Manager) CollectTraffic() []InboundTrafficDelta {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []InboundTrafficDelta
+	for _, mg := range m.procs {
+		if mg.proc != nil && mg.proc.IsRunning() {
+			deltaUp, deltaDown := mg.proc.CollectTraffic()
+			if deltaUp > 0 || deltaDown > 0 {
+				activeEmails := mg.proc.GetActiveEmails(60 * time.Second)
+				clientMap := make(map[string]struct{ Up, Down int64 })
+				if len(activeEmails) > 0 {
+					perClientUp := deltaUp / int64(len(activeEmails))
+					perClientDown := deltaDown / int64(len(activeEmails))
+					for _, email := range activeEmails {
+						clientMap[email] = struct{ Up, Down int64 }{
+							Up:   perClientUp,
+							Down: perClientDown,
+						}
+					}
+				}
+				out = append(out, InboundTrafficDelta{
+					Tag:     mg.tag,
+					Up:      deltaUp,
+					Down:    deltaDown,
+					Clients: clientMap,
+				})
+			}
+		}
+	}
+	return out
+}
+
 func (m *Manager) Remove(id int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

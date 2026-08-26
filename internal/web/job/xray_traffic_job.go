@@ -80,6 +80,21 @@ func (j *XrayTrafficJob) Run() {
 	if err != nil {
 		return
 	}
+	for _, td := range tuic.GetManager().CollectTraffic() {
+		traffics = append(traffics, &xray.Traffic{
+			Tag:       td.Tag,
+			Up:        td.Up,
+			Down:      td.Down,
+			IsInbound: true,
+		})
+		for email, stats := range td.Clients {
+			clientTraffics = append(clientTraffics, &xray.ClientTraffic{
+				Email: email,
+				Up:    stats.Up,
+				Down:  stats.Down,
+			})
+		}
+	}
 	needRestart0, clientsDisabled, err := j.inboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {
 		logger.Warning("add inbound traffic failed:", err)
