@@ -670,7 +670,8 @@
         "bytesPerSec": "Saniye Başına Bayt",
         "bytesPerSecTip": "Eşik aşıldıktan sonra fallback trafiğine uygulanan hız sınırı (bayt/sn); böylece sondalar sunucunuzu hedefe ücretsiz bant genişliği olarak kullanamaz. 0 = sınır yok (bu yönü devre dışı bırakır).",
         "burstBytesPerSec": "Saniye Başına Patlama Baytı",
-        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir."
+        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir.",
+        "autoFill": "Otomatik Doldur"
       },
       "info": {
         "mode": "Mod",
@@ -689,7 +690,9 @@
         "peerNumber": "Eş {n}",
         "peerNumberConfig": "Peer {n} Yapılandırması"
       },
-      "sniffingDestOverride": "Hedef geçersiz kılma"
+      "sniffingDestOverride": "Hedef geçersiz kılma",
+      "advancedTitle": "Gelişmiş Ayarlar",
+      "getCert": "Sertifika Al"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "Her paketin sonuna rastgele baytlar ekler. Her iki uç da AmneziaWG 3.1+ gerektirir.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Cookie reply asla gönderilmez — bir DPI parmak izini kaldırır ancak taşma korumasını zayıflatır."
+      },
+      "tuic": {
+        "certificate": "Sertifika Yolu",
+        "certificateHint": "TLS fullchain.pem sertifika dosyasının yolu",
+        "privateKey": "Özel Anahtar Yolu",
+        "privateKeyHint": "TLS privkey.pem özel anahtar dosyasının yolu",
+        "congestionControl": "Tıkanıklık Kontrolü",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP İletim Modu",
+        "zeroRttHandshake": "0-RTT El Sıkışması",
+        "logLevel": "Günlük Seviyesi",
+        "maxIdleTime": "Maksimum Boşta Kalma Süresi (sn)",
+        "authTimeout": "Kimlik Doğrulama Zaman Aşımı (sn)",
+        "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",
+        "sni": "SNI",
+        "sniHint": "Sunucu Adı Belirtimi (SNI) geçersiz kılma"
       },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"

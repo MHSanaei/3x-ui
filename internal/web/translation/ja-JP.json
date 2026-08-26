@@ -670,7 +670,8 @@
           "node": "ノードアドレス",
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
-        }
+        },
+        "autoFill": "自動入力"
       },
       "info": {
         "mode": "モード",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "宛先のオーバーライド"
+      "sniffingDestOverride": "宛先のオーバーライド",
+      "advancedTitle": "詳細設定",
+      "getCert": "証明書を取得"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "各パケットにランダムなバイトを追加します。両端にAmneziaWG 3.1+が必要です。",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "cookie replyを送信しません。DPIの指紋を消しますが、フラッド緩和は弱まります。"
+      },
+      "tuic": {
+        "certificate": "証明書パス",
+        "certificateHint": "TLS 証明書 fullchain.pem のパス",
+        "privateKey": "秘密鍵パス",
+        "privateKeyHint": "TLS 秘密鍵 privkey.pem のパス",
+        "congestionControl": "輻輳制御",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP リレーモード",
+        "zeroRttHandshake": "0-RTT ハンドシェイク",
+        "logLevel": "ログレベル",
+        "maxIdleTime": "最大アイドル時間 (秒)",
+        "authTimeout": "認証タイムアウト (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",
+        "sni": "SNI",
+        "sniHint": "Server Name Indication の上書き"
       },
       "tun": {
         "userLevel": "ユーザーレベル"

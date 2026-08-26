@@ -61,6 +61,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'wireguard',
   'mtproto',
   'amneziawg',
+  'tuic',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -664,6 +665,7 @@ export default function ClientFormModal({
       email: values.email.trim(),
       subId: values.subId,
       id: values.uuid,
+      uuid: values.uuid,
       password: values.password,
       auth: values.auth,
       flow: showFlow ? values.flow || '' : '',

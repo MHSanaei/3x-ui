@@ -670,7 +670,8 @@
           "node": "Endereço do nó",
           "listen": "Endereço de escuta do inbound",
           "custom": "Personalizada"
-        }
+        },
+        "autoFill": "Preenchimento automático"
       },
       "info": {
         "mode": "Modo",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Config Peer {n}"
       },
-      "sniffingDestOverride": "Substituição de destino"
+      "sniffingDestOverride": "Substituição de destino",
+      "advancedTitle": "Configurações avançadas",
+      "getCert": "Obter certificado"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "Acrescenta bytes aleatórios a cada pacote. Ambos os lados precisam do AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Nunca enviar cookie replies — remove uma impressão digital de DPI, mas enfraquece a mitigação de inundações."
+      },
+      "tuic": {
+        "certificate": "Caminho do certificado",
+        "certificateHint": "Caminho para o certificado TLS fullchain.pem",
+        "privateKey": "Caminho da chave privada",
+        "privateKeyHint": "Caminho para a chave privada TLS privkey.pem",
+        "congestionControl": "Controle de congestionamento",
+        "alpn": "ALPN",
+        "udpRelayMode": "Modo de retransmissão UDP",
+        "zeroRttHandshake": "Handshake 0-RTT",
+        "logLevel": "Nível de registro",
+        "maxIdleTime": "Tempo máx. ocioso (s)",
+        "authTimeout": "Tempo limite de autenticação (s)",
+        "maxUdpRelayPacketSize": "Tamanho máx. do pacote UDP",
+        "sni": "SNI",
+        "sniHint": "Substituição do Server Name Indication"
       },
       "tun": {
         "userLevel": "Nível do Usuário"

@@ -670,7 +670,8 @@
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",
           "custom": "Tùy chỉnh"
-        }
+        },
+        "autoFill": "Tự động điền"
       },
       "info": {
         "mode": "Chế độ",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Cấu hình Peer {n}"
       },
-      "sniffingDestOverride": "Ghi đè đích"
+      "sniffingDestOverride": "Ghi đè đích",
+      "advancedTitle": "Cài đặt nâng cao",
+      "getCert": "Lấy chứng chỉ"
     },
     "clients": {
       "tabBasics": "Cơ bản",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "Thêm các byte ngẫu nhiên vào cuối mỗi gói. Cả hai đầu cần AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Không bao giờ gửi cookie reply — xóa một dấu vết DPI nhưng làm yếu khả năng chống flood."
+      },
+      "tuic": {
+        "certificate": "Đường dẫn chứng chỉ",
+        "certificateHint": "Đường dẫn đến chứng chỉ TLS fullchain.pem",
+        "privateKey": "Đường dẫn khóa riêng",
+        "privateKeyHint": "Đường dẫn đến khóa riêng TLS privkey.pem",
+        "congestionControl": "Kiểm soát tắc nghẽn",
+        "alpn": "ALPN",
+        "udpRelayMode": "Chế độ chuyển tiếp UDP",
+        "zeroRttHandshake": "Bắt tay 0-RTT",
+        "logLevel": "Mức ghi nhật ký",
+        "maxIdleTime": "Thời gian nhàn rỗi tối đa (giây)",
+        "authTimeout": "Thời gian chờ xác thực (giây)",
+        "maxUdpRelayPacketSize": "Kích thước gói UDP tối đa",
+        "sni": "SNI",
+        "sniHint": "Ghi đè Server Name Indication"
       },
       "tun": {
         "userLevel": "Mức Người Dùng"

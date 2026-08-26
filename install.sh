@@ -367,6 +367,25 @@ install_acme() {
     return 0
 }
 
+install_tuic_server() {
+    local target_arch=""
+    case "$(arch)" in
+        amd64|x86_64) target_arch="x86_64-unknown-linux-gnu" ;;
+        arm64|aarch64) target_arch="aarch64-unknown-linux-gnu" ;;
+        armv7|armv7l) target_arch="armv7-unknown-linux-gnueabihf" ;;
+        *) return 0 ;;
+    esac
+
+    local tuic_url="https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${target_arch}"
+    echo -e "${green}Installing tuic-server (${target_arch})...${plain}"
+    if curl -fLR --connect-timeout 10 --retry 2 -o /usr/local/bin/tuic-server "${tuic_url}" 2>/dev/null; then
+        chmod +x /usr/local/bin/tuic-server
+        echo -e "${green}tuic-server installed successfully${plain}"
+    else
+        echo -e "${yellow}Failed to download tuic-server (optional), skipping${plain}"
+    fi
+}
+
 setup_ssl_certificate() {
     local domain="$1"
     local server_ip="$2"
@@ -1505,6 +1524,7 @@ install_x-ui() {
         # an inbound port with an outdated secret, silently breaking new clients.
         # The freshly installed panel respawns a clean mtg per inbound on start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
+        pkill -f 'tuic-server' > /dev/null 2>&1 || true
 
         # bin/ is about to be wiped wholesale by the tar extraction below. The
         # release only ships known assets (xray/mtg binaries, the bundled
@@ -1569,6 +1589,7 @@ install_x-ui() {
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch)
     fi
+    install_tuic_server
 
     # Restore anything from the old bin/ that the fresh release doesn't ship
     # (custom geoip/geosite files, or anything else an admin hand-placed

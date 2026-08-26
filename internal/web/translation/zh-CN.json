@@ -670,7 +670,8 @@
           "listen": "入站监听地址",
           "custom": "自定义"
         },
-        "verifyPeerCertByName": "按名称验证对端证书"
+        "verifyPeerCertByName": "按名称验证对端证书",
+        "autoFill": "自动填充"
       },
       "info": {
         "mode": "模式",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 配置"
       },
-      "sniffingDestOverride": "目标覆盖"
+      "sniffingDestOverride": "目标覆盖",
+      "advancedTitle": "高级设置",
+      "getCert": "获取证书"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "在每个数据包末尾追加随机字节。两端都需要 AmneziaWG 3.1+。",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "从不发送 cookie reply——消除一个 DPI 指纹，但会削弱抗洪泛能力。"
+      },
+      "tuic": {
+        "certificate": "证书路径",
+        "certificateHint": "TLS fullchain.pem 证书文件路径",
+        "privateKey": "私钥路径",
+        "privateKeyHint": "TLS privkey.pem 私钥文件路径",
+        "congestionControl": "拥塞控制算法",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 转发模式",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日志级别",
+        "maxIdleTime": "最大空闲时间 (秒)",
+        "authTimeout": "认证超时时间 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 数据包大小",
+        "sni": "SNI",
+        "sniHint": "服务器名称指示 (SNI) 覆盖"
       },
       "tun": {
         "userLevel": "用户级别"

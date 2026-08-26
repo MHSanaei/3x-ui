@@ -670,7 +670,8 @@
           "node": "節點地址",
           "listen": "入站監聽地址",
           "custom": "自訂"
-        }
+        },
+        "autoFill": "自動填入"
       },
       "info": {
         "mode": "模式",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "目標覆寫"
+      "sniffingDestOverride": "目標覆寫",
+      "advancedTitle": "進階設定",
+      "getCert": "取得憑證"
     },
     "clients": {
       "tabBasics": "基本",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "在每個封包結尾附加隨機位元組。兩端都需要 AmneziaWG 3.1+。",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "永不傳送 cookie reply——消除一個 DPI 指紋，但會削弱抗洪泛能力。"
+      },
+      "tuic": {
+        "certificate": "憑證路徑",
+        "certificateHint": "TLS fullchain.pem 憑證檔案路徑",
+        "privateKey": "私鑰路徑",
+        "privateKeyHint": "TLS privkey.pem 私鑰檔案路徑",
+        "congestionControl": "壅塞控制演算法",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 轉發模式",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日誌層級",
+        "maxIdleTime": "最大閒置時間 (秒)",
+        "authTimeout": "認證逾時時間 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 封包大小",
+        "sni": "SNI",
+        "sniHint": "伺服器名稱指示 (SNI) 覆蓋"
       },
       "tun": {
         "userLevel": "用戶級別"

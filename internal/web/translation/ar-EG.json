@@ -670,7 +670,8 @@
         "bytesPerSec": "بايت في الثانية",
         "bytesPerSecTip": "حد السرعة (بايت/ثانية) المطبّق على مرور الـ fallback بعد العتبة، عشان الفحوصات ماتقدرش تستخدم سيرفرك كنطاق ترددي مجاني للهدف. 0 = بلا حد (بيعطّل الاتجاه ده).",
         "burstBytesPerSec": "بايت في الثانية للدفقة",
-        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه."
+        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه.",
+        "autoFill": "الملء التلقائي"
       },
       "info": {
         "mode": "الوضع",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "تكوين Peer {n}"
       },
-      "sniffingDestOverride": "تجاوز الوجهة"
+      "sniffingDestOverride": "تجاوز الوجهة",
+      "advancedTitle": "الإعدادات المتقدمة",
+      "getCert": "الحصول على الشهادة"
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "يضيف بايتات عشوائية إلى نهاية كل حزمة. يتطلب AmneziaWG 3.1+ على الطرفين.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "عدم إرسال ردود الكوكي — يزيل بصمة DPI لكنه يضعف الحماية من الفيضانات."
+      },
+      "tuic": {
+        "certificate": "مسار الشهادة",
+        "certificateHint": "مسار شهادة TLS fullchain.pem",
+        "privateKey": "مسار المفتاح الخاص",
+        "privateKeyHint": "مسار المفتاح الخاص TLS privkey.pem",
+        "congestionControl": "التحكم في الازدحام",
+        "alpn": "ALPN",
+        "udpRelayMode": "وضع ترحيل UDP",
+        "zeroRttHandshake": "مصافحة 0-RTT",
+        "logLevel": "مستوى السجل",
+        "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
+        "authTimeout": "مهلة المصادقة (ثوانٍ)",
+        "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
+        "sni": "SNI",
+        "sniHint": "تجاوز إشارة اسم الخادم"
       },
       "tun": {
         "userLevel": "مستوى المستخدم"

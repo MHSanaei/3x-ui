@@ -670,7 +670,8 @@
         "bytesPerSec": "Byte per detik",
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
-        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama."
+        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
+        "autoFill": "Isi Otomatis"
       },
       "info": {
         "mode": "Mode",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Konfig Peer {n}"
       },
-      "sniffingDestOverride": "Penggantian tujuan"
+      "sniffingDestOverride": "Penggantian tujuan",
+      "advancedTitle": "Pengaturan Lanjutan",
+      "getCert": "Dapatkan Sertifikat"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "Menambahkan byte acak ke setiap paket. Kedua sisi butuh AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Tidak pernah mengirim cookie reply — menghapus sidik jari DPI, tetapi melemahkan mitigasi banjir."
+      },
+      "tuic": {
+        "certificate": "Jalur Sertifikat",
+        "certificateHint": "Jalur ke sertifikat TLS fullchain.pem",
+        "privateKey": "Jalur Kunci Privat",
+        "privateKeyHint": "Jalur ke kunci privat TLS privkey.pem",
+        "congestionControl": "Kontrol Kemacetan",
+        "alpn": "ALPN",
+        "udpRelayMode": "Mode Relai UDP",
+        "zeroRttHandshake": "Jabat Tangan 0-RTT",
+        "logLevel": "Tingkat Log",
+        "maxIdleTime": "Waktu Diam Maks (dtk)",
+        "authTimeout": "Batas Waktu Otentikasi (dtk)",
+        "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
+        "sni": "SNI",
+        "sniHint": "Penggantian Server Name Indication"
       },
       "tun": {
         "userLevel": "Level Pengguna"

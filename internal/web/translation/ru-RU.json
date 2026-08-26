@@ -410,6 +410,8 @@
         "stream": "Stream",
         "streamHelp": "Обёртка блока stream Xray:"
       },
+      "advancedTitle": "Дополнительные настройки",
+      "getCert": "Выбрать сертификат",
       "subSortIndex": "Порядок",
       "inboundInfo": "Информация о подключении",
       "exportInbound": "Экспорт подключений",
@@ -456,6 +458,7 @@
         "moreIssues": "{message}  (+{count} ещё)"
       },
       "form": {
+        "autoFill": "Автозаполнение",
         "echSockopt": "ECH Sockopt",
         "echSockoptTip": "Параметры сокета для соединения, через которое Xray получает список конфигураций ECH (например, можно направить запрос через исходящее dialerProxy). Оставьте отключённым для значений по умолчанию.",
         "curvePreferences": "Предпочтения кривых",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "Добавляет случайные байты в конец каждого пакета. Обе стороны должны поддерживать AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Не отправлять cookie reply — убирает сигнатуру для DPI, но ослабляет защиту от флуда."
+      },
+      "tuic": {
+        "certificate": "Путь к сертификату",
+        "certificateHint": "Путь к fullchain.pem сертификату TLS",
+        "privateKey": "Путь к приватному ключу",
+        "privateKeyHint": "Путь к privkey.pem приватному ключу TLS",
+        "congestionControl": "Контроль перегрузок",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляции UDP",
+        "zeroRttHandshake": "0-RTT рукопожатие",
+        "logLevel": "Уровень логирования",
+        "maxIdleTime": "Макс. время простоя (сек)",
+        "authTimeout": "Таймаут аутентификации (сек)",
+        "maxUdpRelayPacketSize": "Макс. размер пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Переопределение Server Name Indication"
       },
       "tun": {
         "userLevel": "Уровень пользователя"

@@ -410,6 +410,8 @@
         "stream": "Stream",
         "streamHelp": "Xray stream block wrapper:"
       },
+      "advancedTitle": "Advanced Settings",
+      "getCert": "Get Certificate",
       "subSortIndex": "Sub order",
       "inboundInfo": "Inbound Information",
       "exportInbound": "Export Inbound",
@@ -456,6 +458,7 @@
         "moreIssues": "{message}  (+{count} more)"
       },
       "form": {
+        "autoFill": "Auto Fill",
         "moveUp": "Move up",
         "moveDown": "Move down",
         "addAll": "Add all",
@@ -1960,6 +1963,22 @@
         "randomTrailersHint": "Appends random bytes to every packet. Both ends need AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Never send cookie replies — removes a DPI fingerprint; weakens flood mitigation."
+      },
+      "tuic": {
+        "certificate": "Certificate Path",
+        "certificateHint": "Path to TLS certificate fullchain.pem",
+        "privateKey": "Private Key Path",
+        "privateKeyHint": "Path to TLS private key privkey.pem",
+        "congestionControl": "Congestion Control",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP Relay Mode",
+        "zeroRttHandshake": "Zero-RTT Handshake",
+        "logLevel": "Log Level",
+        "maxIdleTime": "Max Idle Time (s)",
+        "authTimeout": "Auth Timeout (s)",
+        "maxUdpRelayPacketSize": "Max UDP Packet Size",
+        "sni": "SNI",
+        "sniHint": "Server Name Indication override"
       },
       "tun": {
         "userLevel": "User Level"

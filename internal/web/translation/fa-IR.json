@@ -670,7 +670,8 @@
           "node": "آدرس نود",
           "listen": "آدرس شنود ورودی",
           "custom": "سفارشی"
-        }
+        },
+        "autoFill": "تکمیل خودکار"
       },
       "info": {
         "mode": "حالت",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "پیکربندی Peer {n}"
       },
-      "sniffingDestOverride": "بازنویسی مقصد"
+      "sniffingDestOverride": "بازنویسی مقصد",
+      "advancedTitle": "تنظیمات پیشرفته",
+      "getCert": "دریافت گواهی"
     },
     "clients": {
       "tabBasics": "پایه",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "به انتهای هر بسته بایت‌های تصادفی می‌افزاید. هر دو طرف باید AmneziaWG 3.1+ باشند.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "هرگز پاسخ کوکی ارسال نشود — اثر انگشت DPI را حذف می‌کند اما دفاع در برابر سیل‌آسا را ضعیف می‌کند."
+      },
+      "tuic": {
+        "certificate": "مسیر گواهی",
+        "certificateHint": "مسیر فایل fullchain.pem گواهی TLS",
+        "privateKey": "مسیر کلید خصوصی",
+        "privateKeyHint": "مسیر فایل privkey.pem کلید خصوصی TLS",
+        "congestionControl": "کنترل ازدحام",
+        "alpn": "ALPN",
+        "udpRelayMode": "حالت رله UDP",
+        "zeroRttHandshake": "دست دادن 0-RTT",
+        "logLevel": "سطح گزارش",
+        "maxIdleTime": "حداکثر زمان بیکاری (ثانیه)",
+        "authTimeout": "مهلت زمانی احراز هویت (ثانیه)",
+        "maxUdpRelayPacketSize": "حداکثر اندازه بسته UDP",
+        "sni": "SNI",
+        "sniHint": "بازنویسی نشانگر نام سرور"
       },
       "tun": {
         "userLevel": "سطح کاربر"

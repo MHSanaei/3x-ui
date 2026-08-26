@@ -9,6 +9,7 @@ import {
   genInboundLinks,
   genShadowsocksLink,
   genTrojanLink,
+  genTuicLink,
   applyVlessRoute,
   genVlessLink,
   genVmessLink,
@@ -1054,5 +1055,56 @@ describe('genVlessLink XHTTP extra compatibility', () => {
     expect(extra.sessionIDKey).toBe('X-Session');
     expect(extra.sessionPlacement).toBe('header');
     expect(extra.sessionKey).toBe('X-Session');
+  });
+});
+
+describe('genTuicLink', () => {
+  it('builds a standard tuic share link with all parameters', () => {
+    const inbound = InboundSchema.parse({
+      id: 1,
+      tag: 'tuic-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        server: {
+          certificate: '/etc/cert.pem',
+          private_key: '/etc/key.pem',
+          congestion_control: 'bbr',
+          alpn: ['h3', 'spdy/3.1'],
+          udp_relay_mode: 'native',
+          zero_rtt_handshake: true,
+          sni: 'tuic.example.com',
+        },
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+    });
+
+    const link = genTuicLink({
+      inbound,
+      address: 'example.com',
+      port: 8443,
+      remark: 'TUIC-Node',
+      clientUuid: '11111111-2222-3333-4444-555555555555',
+      clientPassword: 'secretpassword',
+    });
+
+    expect(link).toContain(
+      'tuic://11111111-2222-3333-4444-555555555555:secretpassword@example.com:8443',
+    );
+    expect(link).toContain('congestion_control=bbr');
+    expect(link).toContain('alpn=h3%2Cspdy%2F3.1');
+    expect(link).toContain('sni=tuic.example.com');
+    expect(link).toContain('udp_relay_mode=native');
+    expect(link).toContain('allow_insecure=0');
+    expect(link).toContain('#TUIC-Node');
   });
 });

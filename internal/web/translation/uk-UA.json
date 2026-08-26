@@ -670,7 +670,8 @@
           "node": "Адреса вузла",
           "listen": "Адреса прослуховування inbound",
           "custom": "Користувацька"
-        }
+        },
+        "autoFill": "Автозаповнення"
       },
       "info": {
         "mode": "Режим",
@@ -689,7 +690,9 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Конфіг Peer {n}"
       },
-      "sniffingDestOverride": "Перевизначення призначення"
+      "sniffingDestOverride": "Перевизначення призначення",
+      "advancedTitle": "Додаткові налаштування",
+      "getCert": "Отримати сертифікат"
     },
     "clients": {
       "tabBasics": "Основні",
@@ -1842,6 +1845,22 @@
         "randomTrailersHint": "Додає випадкові байти в кінець кожного пакета. Обидві сторони мають підтримувати AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Ніколи не надсилати cookie reply — прибирає відбиток для DPI, але послаблює захист від флуду."
+      },
+      "tuic": {
+        "certificate": "Шлях до сертифіката",
+        "certificateHint": "Шлях до fullchain.pem сертифіката TLS",
+        "privateKey": "Шлях до приватного ключа",
+        "privateKeyHint": "Шлях до privkey.pem приватного ключа TLS",
+        "congestionControl": "Контроль перевантаження",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляції UDP",
+        "zeroRttHandshake": "0-RTT рукостискання",
+        "logLevel": "Рівень журналювання",
+        "maxIdleTime": "Макс. час простою (сек)",
+        "authTimeout": "Таймаут автентифікації (сек)",
+        "maxUdpRelayPacketSize": "Макс. розмір пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Перевизначення Server Name Indication"
       },
       "tun": {
         "userLevel": "Рівень користувача"
