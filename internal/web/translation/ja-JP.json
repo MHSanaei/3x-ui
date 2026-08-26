@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "転送ポート",
       "amneziaWgForwardedPortsHint": "このクライアントに転送するポート/範囲。例: 80, 443, 8000-8100。空欄で転送なし。",
       "amneziaWgConfig": "AmneziaWG 設定",
+      "tuicConfig": "TUIC 設定 (Clash)",
       "mtprotoSecret": "MTProto シークレット",
       "mtprotoSecretHint": "このクライアントの FakeTLS シークレット。変更するには再生成します。",
       "mtprotoAdTag": "広告タグ（スポンサーチャンネル）",

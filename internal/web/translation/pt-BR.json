@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "Portas encaminhadas",
       "amneziaWgForwardedPortsHint": "Portas/intervalos redirecionados (DNAT) para este cliente, ex. 80, 443, 8000-8100. Deixe vazio se não aplicável.",
       "amneziaWgConfig": "Configuração do AmneziaWG",
+      "tuicConfig": "Configuração do TUIC (Clash)",
       "mtprotoSecret": "Segredo MTProto",
       "mtprotoSecretHint": "O segredo FakeTLS do cliente. Gere novamente para trocá-lo.",
       "mtprotoAdTag": "Ad-tag (canal patrocinado)",

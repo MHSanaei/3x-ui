@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "المنافذ المُعاد توجيهها",
       "amneziaWgForwardedPortsHint": "المنافذ/النطاقات المُعاد توجيهها (DNAT) لهذا العميل، مثل 80, 443, 8000-8100. اتركها فارغة إن لم تكن مطلوبة.",
       "amneziaWgConfig": "إعدادات AmneziaWG",
+      "tuicConfig": "إعدادات TUIC (Clash)",
       "mtprotoSecret": "سر MTProto",
       "mtprotoSecretHint": "سر FakeTLS الخاص بالعميل. أعد التوليد لتغييره.",
       "mtprotoAdTag": "علامة إعلانية (قناة مموّلة)",

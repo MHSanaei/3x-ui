@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "Перенаправлені порти",
       "amneziaWgForwardedPortsHint": "Порти/діапазони, що перенаправляються (DNAT) на цього клієнта, напр. 80, 443, 8000-8100. Залиште порожнім, якщо не потрібно.",
       "amneziaWgConfig": "Конфігурація AmneziaWG",
+      "tuicConfig": "Конфігурація TUIC (Clash)",
       "mtprotoSecret": "Секрет MTProto",
       "mtprotoSecretHint": "Секрет FakeTLS клієнта. Згенеруйте заново, щоб змінити.",
       "mtprotoAdTag": "Рекламний тег (спонсорський канал)",

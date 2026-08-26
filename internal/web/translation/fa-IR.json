@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "پورت‌های هدایت‌شده",
       "amneziaWgForwardedPortsHint": "پورت‌ها/محدوده‌های DNAT شده به این کلاینت، مثلاً 80, 443, 8000-8100. برای غیرفعال بودن خالی بگذارید.",
       "amneziaWgConfig": "پیکربندی AmneziaWG",
+      "tuicConfig": "پیکربندی TUIC (Clash)",
       "mtprotoSecret": "سکرت MTProto",
       "mtprotoSecretHint": "سکرت FakeTLS این کلاینت. برای تعویض، دوباره تولید کنید.",
       "mtprotoAdTag": "برچسب تبلیغاتی (کانال حامی)",

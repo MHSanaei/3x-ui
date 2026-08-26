@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "转发端口",
       "amneziaWgForwardedPortsHint": "转发到此客户端的端口/范围，例如 80, 443, 8000-8100。留空则不转发。",
       "amneziaWgConfig": "AmneziaWG 配置",
+      "tuicConfig": "TUIC 配置 (Clash)",
       "mtprotoSecret": "MTProto 密钥",
       "mtprotoSecretHint": "该客户端的 FakeTLS 密钥。重新生成即可更换。",
       "mtprotoAdTag": "广告标签（赞助频道）",

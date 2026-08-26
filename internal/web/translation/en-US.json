@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "Forwarded Ports",
       "amneziaWgForwardedPortsHint": "Ports/ranges DNAT'd to this client, e.g. 80, 443, 8000-8100. Leave empty for none.",
       "amneziaWgConfig": "AmneziaWG config",
+      "tuicConfig": "TUIC config (Clash)",
       "mtprotoSecret": "MTProto secret",
       "mtprotoSecretHint": "The client's FakeTLS secret. Regenerate to rotate it.",
       "mtprotoAdTag": "Ad-tag (sponsored channel)",

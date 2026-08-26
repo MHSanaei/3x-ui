@@ -878,6 +878,7 @@
       "amneziaWgForwardedPorts": "Port yang Diteruskan",
       "amneziaWgForwardedPortsHint": "Port/rentang yang di-DNAT ke klien ini, mis. 80, 443, 8000-8100. Biarkan kosong jika tidak ada.",
       "amneziaWgConfig": "Konfigurasi AmneziaWG",
+      "tuicConfig": "Konfigurasi TUIC (Clash)",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
       "mtprotoAdTag": "Ad-tag (kanal bersponsor)",

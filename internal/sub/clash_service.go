@@ -448,13 +448,33 @@ func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbo
 	if !ok {
 		return nil
 	}
+	uuid := client.ID
+	password := client.Password
+	for _, c := range inst.Clients {
+		if c.Email == client.Email {
+			if uuid == "" {
+				uuid = c.UUID
+			}
+			if password == "" {
+				password = c.Password
+			}
+			break
+		}
+	}
+	if uuid == "" || password == "" {
+		return nil
+	}
+	server := inbound.Listen
+	if server == "" || server == "0.0.0.0" || server == "::" {
+		server = subReq.resolveInboundAddress(inbound)
+	}
 	proxy := map[string]any{
 		"name":                  subReq.endpointRemark(inbound, client.Email, ep, "tuic"),
 		"type":                  "tuic",
-		"server":                inbound.Listen,
+		"server":                server,
 		"port":                  inbound.Port,
-		"uuid":                  client.ID,
-		"password":              client.Password,
+		"uuid":                  uuid,
+		"password":              password,
 		"congestion-controller": inst.CongestionControl,
 		"udp-relay-mode":        inst.UDPRelayMode,
 		"reduce-rtt":            inst.ZeroRTTHandshake,
