@@ -54,6 +54,8 @@
   .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 18px;
     font-size: 13px; color: #9a9a9a; }
   .foot a { color: #9a9a9a; text-decoration: none; display: flex; align-items: center; gap: 4px; }
+  .foot select { background: #1c1e24; color: #9a9a9a; border: 1px solid #3a3d44; border-radius: 4px;
+    padding: 4px 6px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -78,15 +80,15 @@
       </div>
       <div class="row">
         <label><input type="checkbox" id="remember" checked style="width:auto"> Запомнить</label>
-        <a href="#" id="forgot">Забыли пароль?</a>
+        <a href="https://www.home-assistant.io/docs/locked_out/#forgot-password" target="_blank" rel="noopener noreferrer" id="forgot">Забыли пароль?</a>
       </div>
       <div class="error" id="err">Неверное имя пользователя или пароль</div>
       <button id="submit" type="submit">Войти</button>
     </form>
   </div>
   <div class="foot" style="width:380px; max-width: calc(100vw - 32px);">
-    <span>Русский &#9662;</span>
-    <a href="#" id="help">Справка &#8599;</a>
+    <select id="lang"><option value="ru">Русский</option></select>
+    <a href="https://www.home-assistant.io/docs/authentication/" target="_blank" rel="noopener noreferrer" id="help">Справка &#8599;</a>
   </div>
 </div>
 <script>
@@ -158,9 +160,6 @@
   eye.addEventListener("click", function () {
     pw.type = pw.type === "password" ? "text" : "password";
   });
-
-  document.getElementById("forgot").addEventListener("click", function (ev) { ev.preventDefault(); });
-  document.getElementById("help").addEventListener("click", function (ev) { ev.preventDefault(); });
 
   var canvas = document.getElementById("bg");
   var ctx = canvas.getContext("2d");

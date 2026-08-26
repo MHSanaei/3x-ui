@@ -13,6 +13,7 @@
     background: #101113; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #e8e9ea;
   }
+  html[data-theme=light] body { background: #f4f5f6; color: #24272b; }
   .main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 16px; }
   .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
   .brand svg { width: 30px; height: 30px; }
@@ -20,10 +21,13 @@
   .brand .name b { font-size: 17px; letter-spacing: .03em; display: block; }
   .brand .name span { font-size: 10px; letter-spacing: .12em; color: #9a9ea3; display: block; }
   .card { width: 100%; max-width: 360px; padding: 28px; background: #1b1d20; border-radius: 6px; }
+  html[data-theme=light] .card { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
   label { display: block; font-size: 13px; margin: 0 0 8px; color: #d3d5d7; }
+  html[data-theme=light] label { color: #4a4d51; }
   .field { margin-bottom: 18px; }
   input { width: 100%; padding: 10px 12px; border: 1px solid #34373b; border-radius: 4px; font-size: 14px;
     background: #101113; color: #e8e9ea; }
+  html[data-theme=light] input { background: #fff; border-color: #d6d8db; color: #24272b; }
   input::placeholder { color: #6b6f75; }
   input:focus { outline: none; border-color: #4f8c5b; }
   .field.invalid input { border-color: #d94c4c; }
@@ -37,16 +41,25 @@
     font-size: 13px; display: none; }
   .err.show { display: block; }
   .forgot { margin-top: 18px; font-size: 13px; }
-  .forgot a { color: #5b9bd9; text-decoration: none; }
+  .forgot-toggle { width: auto; margin: 0; padding: 0; background: none; color: #5b9bd9; font-size: 13px;
+    font-weight: 400; text-decoration: underline; }
+  .forgot-msg { display: none; margin-top: 10px; padding: 10px 12px; border-radius: 4px; background: #14181c;
+    color: #b7bcc1; font-size: 12.5px; line-height: 1.5; }
+  html[data-theme=light] .forgot-msg { background: #eef0f2; color: #4a4d51; }
+  .forgot-msg.show { display: block; }
+  .forgot-msg a { color: #5b9bd9; }
   footer { border-top: 1px solid #232528; padding: 18px 24px; font-size: 13px; color: #8a8f95; }
+  html[data-theme=light] footer { border-top-color: #e2e4e6; }
   .foot-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .foot-links { display: flex; align-items: center; gap: 18px; }
   .foot-links a { color: #8a8f95; text-decoration: none; }
   .report { border: 1px solid #3a5f8a; color: #5b9bd9 !important; border-radius: 4px; padding: 4px 10px; }
   .foot-right { display: flex; align-items: center; gap: 10px; }
   .icon-btn { width: 30px; height: 30px; border-radius: 4px; border: 1px solid #34373b; background: transparent;
-    color: #cfd2d5; display: flex; align-items: center; justify-content: center; cursor: default; }
+    color: #cfd2d5; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+  .icon-btn.active { border-color: #4f8c5b; color: #4f8c5b; }
   select { background: #1b1d20; color: #cfd2d5; border: 1px solid #34373b; border-radius: 4px; padding: 5px 8px; font-size: 13px; }
+  html[data-theme=light] select { background: #fff; color: #24272b; border-color: #d6d8db; }
   .copyright { margin-top: 14px; }
   .copyright a { color: #8a8f95; }
 </style>
@@ -75,24 +88,30 @@
         <button id="btn" type="submit">Войти</button>
         <div class="err" id="err"></div>
       </form>
-      <div class="forgot"><a href="#">Забыли пароль?</a></div>
+      <div class="forgot">
+        <button type="button" class="forgot-toggle" id="forgotToggle">Забыли пароль?</button>
+        <div class="forgot-msg" id="forgotMsg">
+          Сброс пароля выполняется администратором сервера через файл конфигурации.
+          Инструкция: <a href="https://github.com/AdguardTeam/AdGuardHome/wiki/Configuration#password-reset" target="_blank" rel="noopener noreferrer">ссылка</a>.
+        </div>
+      </div>
     </div>
   </div>
   <footer>
     <div class="foot-row">
       <div class="foot-links">
-        <a href="#">Главная</a>
-        <a href="#">Политика конфиденциальности</a>
-        <a href="#" class="report">Сообщить о проблеме</a>
+        <a href="https://github.com/AdguardTeam/AdGuardHome" target="_blank" rel="noopener noreferrer">Главная</a>
+        <a href="https://link.adtidy.org/forward.html?action=privacy&from=ui&app=home" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
+        <a href="https://github.com/AdguardTeam/AdGuardHome/issues/new/choose" target="_blank" rel="noopener noreferrer" class="report">Сообщить о проблеме</a>
       </div>
       <div class="foot-right">
-        <span class="icon-btn">◐</span>
-        <span class="icon-btn">☾</span>
-        <span class="icon-btn">○</span>
-        <select disabled><option>Русский</option></select>
+        <button type="button" class="icon-btn" id="themeAuto" title="Как в системе">◐</button>
+        <button type="button" class="icon-btn" id="themeDark" title="Тёмная тема">☾</button>
+        <button type="button" class="icon-btn" id="themeLight" title="Светлая тема">☀</button>
+        <select id="lang"><option value="ru">Русский</option></select>
       </div>
     </div>
-    <div class="copyright">Все права защищены © 2026 <a href="#">AdGuard</a></div>
+    <div class="copyright">Все права защищены © 2026 <a href="https://link.adtidy.org/forward.html?action=home&from=ui&app=home" target="_blank" rel="noopener noreferrer">AdGuard</a></div>
   </footer>
 <script>
 document.getElementById('f').addEventListener('submit', async function (e) {
@@ -130,6 +149,29 @@ document.getElementById('f').addEventListener('submit', async function (e) {
     document.getElementById(id === 'u' ? 'fu' : 'fp').classList.remove('invalid');
   });
 });
+
+document.getElementById('forgotToggle').addEventListener('click', function () {
+  document.getElementById('forgotMsg').classList.toggle('show');
+});
+
+var themeButtons = { auto: 'themeAuto', dark: 'themeDark', light: 'themeLight' };
+function applyTheme(theme) {
+  if (theme === 'auto') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+  Object.keys(themeButtons).forEach(function (key) {
+    document.getElementById(themeButtons[key]).classList.toggle('active', key === theme);
+  });
+  try { localStorage.setItem('theme', theme); } catch (e) {}
+}
+Object.keys(themeButtons).forEach(function (key) {
+  document.getElementById(themeButtons[key]).addEventListener('click', function () { applyTheme(key); });
+});
+var savedTheme = 'auto';
+try { savedTheme = localStorage.getItem('theme') || 'auto'; } catch (e) {}
+applyTheme(savedTheme);
 </script>
 </body>
 </html>
