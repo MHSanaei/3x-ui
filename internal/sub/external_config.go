@@ -32,9 +32,10 @@ type expandedLink struct {
 	Name string
 }
 
-// getClientExternalLinksBySubId returns every external-link row attached to a
-// client that carries the given subId, in stable order. Stays inside
-// internal/sub + database + util/link — no dependency on the panel service layer.
+// getClientExternalLinksBySubId returns every active external-link row attached
+// to an active, unexpired client that carries the given subId, in stable order.
+// Stays inside internal/sub + database + util/link — no dependency on the panel
+// service layer.
 func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLinkEntry, error) {
 	db := database.GetDB()
 	var recs []model.ClientRecord
@@ -67,6 +68,9 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 	out := make([]externalLinkEntry, 0, len(rows))
 	for _, r := range rows {
 		rec := byId[r.ClientId]
+		if !rec.Enable || (rec.ExpiryTime > 0 && rec.ExpiryTime <= now) {
+			continue
+		}
 		out = append(out, externalLinkEntry{
 			Kind:       r.Kind,
 			Value:      r.Value,

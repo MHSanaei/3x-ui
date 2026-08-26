@@ -298,7 +298,7 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 
 	// A client with two link rows: ordering by sort_index and email/enable
 	// attribution from the owning client (the loop copies rec.Email/rec.Enable).
-	rec := &model.ClientRecord{Email: "owner@x", SubID: "sub-ok", UUID: "u2", Enable: true}
+	rec := &model.ClientRecord{Email: "owner@x", SubID: "sub-ok", UUID: "u2", Enable: true, ExpiryTime: time.Now().Add(time.Hour).UnixMilli()}
 	if err := db.Create(rec).Error; err != nil {
 		t.Fatalf("seed client: %v", err)
 	}
@@ -332,9 +332,8 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 		t.Fatalf("attribution wrong: email=%q enable=%v", out[0].Email, out[0].Enable)
 	}
 
-	// A DISABLED client must produce entries with Enable=false, proving the
-	// value is read from the client row (Enable has a gorm default:true, so
-	// flip it with a raw UPDATE that bypasses the default).
+	// A disabled client must not expose its external links. Enable has a gorm
+	// default:true, so flip it with a raw UPDATE that bypasses the default.
 	dis := &model.ClientRecord{Email: "off@x", SubID: "sub-off", UUID: "u3", Enable: true}
 	if err := db.Create(dis).Error; err != nil {
 		t.Fatalf("seed disabled client: %v", err)
@@ -349,11 +348,23 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if err != nil {
 		t.Fatalf("off subId err = %v", err)
 	}
-	if len(offOut) != 1 {
-		t.Fatalf("disabled client entries = %d, want 1", len(offOut))
+	if len(offOut) != 0 {
+		t.Fatalf("disabled client entries = %d, want 0", len(offOut))
 	}
-	if offOut[0].Email != "off@x" || offOut[0].Enable != false {
-		t.Fatalf("disabled attribution wrong: email=%q enable=%v", offOut[0].Email, offOut[0].Enable)
+
+	expired := &model.ClientRecord{Email: "expired@x", SubID: "sub-expired", UUID: "u4", Enable: true, ExpiryTime: time.Now().Add(-time.Hour).UnixMilli()}
+	if err := db.Create(expired).Error; err != nil {
+		t.Fatalf("seed expired client: %v", err)
+	}
+	if err := db.Create(&model.ClientExternalLink{ClientId: expired.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://d", SortIndex: 1}).Error; err != nil {
+		t.Fatalf("seed expired client link: %v", err)
+	}
+	expiredOut, err := s.getClientExternalLinksBySubId("sub-expired")
+	if err != nil {
+		t.Fatalf("expired subId err = %v", err)
+	}
+	if len(expiredOut) != 0 {
+		t.Fatalf("expired client entries = %d, want 0", len(expiredOut))
 	}
 }
 
