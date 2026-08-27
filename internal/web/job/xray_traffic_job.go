@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/outbound"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
@@ -80,21 +79,6 @@ func (j *XrayTrafficJob) Run() {
 	if err != nil {
 		return
 	}
-	for _, td := range tuic.GetManager().CollectTraffic() {
-		traffics = append(traffics, &xray.Traffic{
-			Tag:       td.Tag,
-			Up:        td.Up,
-			Down:      td.Down,
-			IsInbound: true,
-		})
-		for email, stats := range td.Clients {
-			clientTraffics = append(clientTraffics, &xray.ClientTraffic{
-				Email: email,
-				Up:    stats.Up,
-				Down:  stats.Down,
-			})
-		}
-	}
 	needRestart0, clientsDisabled, err := j.inboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {
 		logger.Warning("add inbound traffic failed:", err)
@@ -151,24 +135,17 @@ func (j *XrayTrafficJob) Run() {
 			logger.Warning("bump last online for connected clients failed:", err)
 		}
 	}
-	tuicEmails, tuicTags := tuic.GetManager().GetActiveClients(30 * time.Second)
-	if len(tuicEmails) > 0 {
-		for _, em := range tuicEmails {
-			if !deltaActive[em] {
-				activeEmails = append(activeEmails, em)
-			}
-		}
-		if err := j.inboundService.BumpClientsLastOnline(tuicEmails); err != nil {
-			logger.Warning("bump last online for tuic clients failed:", err)
-		}
-	}
-	activeInboundTags := make([]string, 0, len(traffics)+len(tuicTags))
+	// Pair the email signal with the inbound tags that moved bytes this poll.
+	// Xray's user>>>email counter aggregates across every inbound a client is
+	// attached to, so an online email alone can't say which inbound it used —
+	// gating the per-inbound view on these tags keeps a multi-inbound client
+	// off inbounds that saw no traffic. See issue #4859.
+	activeInboundTags := make([]string, 0, len(traffics))
 	for _, tr := range traffics {
 		if tr != nil && tr.IsInbound && tr.Up+tr.Down > 0 {
 			activeInboundTags = append(activeInboundTags, tr.Tag)
 		}
 	}
-	activeInboundTags = append(activeInboundTags, tuicTags...)
 	j.inboundService.RefreshLocalOnlineClients(activeEmails, activeInboundTags)
 
 	if !websocket.HasClients() {

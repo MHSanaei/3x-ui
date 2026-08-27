@@ -112,6 +112,9 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	}
 	if ib.Protocol == model.AmneziaWG {
 		amneziawgnet.GetManager().Remove(ib.Id)
+		// The removed inbound may have been the only one backing Xray's
+		// injectAmneziawgnetSocks relay inbound for this tag -- flag a
+		// resync so the now-stale relay gets torn down promptly.
 		if l.deps.SetNeedRestart != nil {
 			l.deps.SetNeedRestart()
 		}
