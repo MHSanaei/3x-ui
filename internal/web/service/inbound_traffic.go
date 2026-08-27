@@ -412,8 +412,13 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// instead of a linear scan of every expired row (O(clients × expired) per
 	// inbound, quadratic at scale). Pointers keep the in-place mutation below.
 	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
+	// Keep the pre-renewal quota state: the shared pointer becomes enabled while
+	// processing the first inbound, while an already-enabled row paired with
+	// disabled settings represents an operator-disabled client we must preserve.
+	trafficWasEnabled := make(map[string]bool, len(traffics))
 	for i := range traffics {
 		trafficByEmail[traffics[i].Email] = traffics[i]
+		trafficWasEnabled[traffics[i].Email] = traffics[i].Enable
 	}
 	renewedEmails := make([]string, 0, len(traffics))
 	for inbound_index := range inbounds {
@@ -434,7 +439,6 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			if !ok {
 				continue
 			}
-			settingsEnabled, _ := c["enable"].(bool)
 			// One allowance per period, not per tick: a client away for three
 			// cycles must not catch up three of them against a prepaid cap.
 			newExpiryTime := traffic.ExpiryTime
@@ -467,7 +471,6 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			if traffic.ExpiryTime <= now {
 				// Cap ran out mid-catch-up and the client is still expired: enabling it
 				// for disableInvalidClients to undo adds and removes an xray user for nothing.
-				c["enable"] = traffic.Enable
 				clients[client_index] = any(c)
 				continue
 			}
@@ -476,20 +479,21 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				traffic.Up = 0
 				renewedEmails = append(renewedEmails, email)
 			}
-			trafficWasEnabled := traffic.Enable
-			traffic.Enable = true
-			c["enable"] = true
-			key := inboundClientKey{inboundID: inbounds[inbound_index].Id, email: email}
-			if _, planned := clientsToAddSet[key]; (!trafficWasEnabled || !settingsEnabled) && !planned {
-				clientsToAddSet[key] = struct{}{}
-				clientsToAdd = append(clientsToAdd,
-					struct {
-						inbound model.Inbound
-						client  map[string]any
-					}{
-						inbound: *inbounds[inbound_index],
-						client:  apiUserFromClient(c, cipher),
-					})
+			if !trafficWasEnabled[email] {
+				traffic.Enable = true
+				c["enable"] = true
+				key := inboundClientKey{inboundID: inbounds[inbound_index].Id, email: email}
+				if _, planned := clientsToAddSet[key]; !planned {
+					clientsToAddSet[key] = struct{}{}
+					clientsToAdd = append(clientsToAdd,
+						struct {
+							inbound model.Inbound
+							client  map[string]any
+						}{
+							inbound: *inbounds[inbound_index],
+							client:  apiUserFromClient(c, cipher),
+						})
+				}
 			}
 			clients[client_index] = any(c)
 		}

@@ -84,3 +84,71 @@ func TestAutoRenewClients_UpdatesEveryInboundForSharedEmail(t *testing.T) {
 		}
 	}
 }
+
+func TestAutoRenewClients_PreservesOperatorDisabledClient(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+
+	past := time.Now().Add(-48 * time.Hour).UnixMilli()
+	disabled := model.Client{
+		Email: "disabled@x", ID: "22222222-2222-2222-2222-222222222222",
+		Enable: false, Reset: 30, ExpiryTime: past,
+	}
+	ib := mkInbound(t, 30203, model.VLESS, clientsSettings(t, []model.Client{disabled}))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, []model.Client{disabled}); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: ib.Id, Email: disabled.Email, Enable: true,
+		Up: 100, Down: 200, Reset: 30, ExpiryTime: past,
+	}).Error; err != nil {
+		t.Fatalf("seed client_traffics: %v", err)
+	}
+
+	batch := newTrafficMutationBatch()
+	if _, count, err := svc.autoRenewClients(db, batch); err != nil {
+		t.Fatalf("autoRenewClients: %v", err)
+	} else if count != 1 {
+		t.Fatalf("renewed count = %d, want 1", count)
+	}
+	var traffic xray.ClientTraffic
+	if err := db.Where("email = ?", disabled.Email).First(&traffic).Error; err != nil {
+		t.Fatalf("read client_traffics: %v", err)
+	}
+	if !traffic.Enable || traffic.ExpiryTime <= time.Now().UnixMilli() {
+		t.Fatalf("traffic state not renewed: enable=%v expiry=%d", traffic.Enable, traffic.ExpiryTime)
+	}
+
+	reloaded, err := svc.GetInbound(ib.Id)
+	if err != nil {
+		t.Fatalf("GetInbound: %v", err)
+	}
+	clients, err := svc.GetClients(reloaded)
+	if err != nil {
+		t.Fatalf("GetClients: %v", err)
+	}
+	if len(clients) != 1 {
+		t.Fatalf("clients = %d, want 1", len(clients))
+	}
+	if clients[0].Enable {
+		t.Error("operator-disabled client was enabled in inbound settings")
+	}
+	if clients[0].ExpiryTime != traffic.ExpiryTime {
+		t.Errorf("settings expiry = %d, want %d", clients[0].ExpiryTime, traffic.ExpiryTime)
+	}
+
+	record, err := svc.clientService.GetRecordByEmail(nil, disabled.Email)
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if record.Enable {
+		t.Error("operator-disabled client was enabled in clients table")
+	}
+	if record.ExpiryTime != traffic.ExpiryTime {
+		t.Errorf("clients row expiry = %d, want %d", record.ExpiryTime, traffic.ExpiryTime)
+	}
+	if len(batch.localPlans) != 0 {
+		t.Errorf("runtime add plans = %d, want 0", len(batch.localPlans))
+	}
+}
