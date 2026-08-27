@@ -368,10 +368,15 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	var inbound_ids []int
 	var inbounds []*model.Inbound
 	needRestart := false
+	type inboundClientKey struct {
+		inboundID int
+		email     string
+	}
 	var clientsToAdd []struct {
 		inbound model.Inbound
 		client  map[string]any
 	}
+	clientsToAddSet := make(map[inboundClientKey]struct{})
 
 	// Resolve the inbounds to renew through the client_inbounds link rather than
 	// client_traffics.inbound_id, which goes stale after an inbound is deleted and
@@ -429,6 +434,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 			if !ok {
 				continue
 			}
+			settingsEnabled, _ := c["enable"].(bool)
 			// One allowance per period, not per tick: a client away for three
 			// cycles must not catch up three of them against a prepaid cap.
 			newExpiryTime := traffic.ExpiryTime
@@ -453,24 +459,29 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				}
 				renewals++
 			}
-			if renewals == 0 {
-				continue
+			if renewals > 0 {
+				traffic.ExpiryTime = newExpiryTime
+				traffic.ResetCount += renewals
 			}
-			c["expiryTime"] = newExpiryTime
-			traffic.ExpiryTime = newExpiryTime
-			traffic.ResetCount += renewals
-			if newExpiryTime <= now {
+			c["expiryTime"] = traffic.ExpiryTime
+			if traffic.ExpiryTime <= now {
 				// Cap ran out mid-catch-up and the client is still expired: enabling it
 				// for disableInvalidClients to undo adds and removes an xray user for nothing.
+				c["enable"] = traffic.Enable
 				clients[client_index] = any(c)
 				continue
 			}
-			traffic.Down = 0
-			traffic.Up = 0
-			renewedEmails = append(renewedEmails, email)
-			if !traffic.Enable {
-				traffic.Enable = true
-				c["enable"] = true
+			if renewals > 0 {
+				traffic.Down = 0
+				traffic.Up = 0
+				renewedEmails = append(renewedEmails, email)
+			}
+			trafficWasEnabled := traffic.Enable
+			traffic.Enable = true
+			c["enable"] = true
+			key := inboundClientKey{inboundID: inbounds[inbound_index].Id, email: email}
+			if _, planned := clientsToAddSet[key]; (!trafficWasEnabled || !settingsEnabled) && !planned {
+				clientsToAddSet[key] = struct{}{}
 				clientsToAdd = append(clientsToAdd,
 					struct {
 						inbound model.Inbound
