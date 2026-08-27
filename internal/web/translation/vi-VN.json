@@ -287,7 +287,7 @@
       "enable": "Kích hoạt",
       "remark": "Chú thích",
       "node": "Node",
-      "relay": { "badge": "Relay" },
+      "relay": { "badge": "Relay", "entryMode": "Entry source", "createNewEntry": "New entry", "useExistingEntry": "Use existing entry", "existingEntry": "Existing entry", "selectExistingEntry": "Select an existing local entry", "noExistingEntry": "No local entries available", "existingEntryHint": "Only local entries are shown; an inbound on a remote server cannot be used directly as a local relay entry." },
       "deployTo": "Triển khai tới",
       "localPanel": "Panel cục bộ",
       "fallbacks": {

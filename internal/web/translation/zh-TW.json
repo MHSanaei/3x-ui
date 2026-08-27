@@ -287,7 +287,7 @@
       "enable": "啟用",
       "remark": "備註",
       "node": "節點",
-      "relay": { "badge": "中轉" },
+      "relay": { "badge": "中轉", "entryMode": "入口來源", "createNewEntry": "新建入口", "useExistingEntry": "選擇已有入口", "existingEntry": "已有入口", "selectExistingEntry": "請選擇一個已有的本機入口", "noExistingEntry": "暫無可用的本機入口", "existingEntryHint": "只顯示本機入口；遠程伺服器上的入站不能直接作為本機中轉入口。" },
       "deployTo": "部署到",
       "localPanel": "本機面板",
       "fallbacks": {

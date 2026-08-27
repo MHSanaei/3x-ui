@@ -288,7 +288,14 @@
       "remark": "备注",
       "node": "节点",
       "relay": {
-        "badge": "中转"
+        "badge": "中转",
+        "entryMode": "入口来源",
+        "createNewEntry": "新建入口",
+        "useExistingEntry": "选择已有入口",
+        "existingEntry": "已有入口",
+        "selectExistingEntry": "请选择一个已有的本机入口",
+        "noExistingEntry": "暂无可用的本机入口",
+        "existingEntryHint": "只显示本机已启用的入口；远程服务器上的入站不能直接作为本机中转入口。"
       },
       "deployTo": "部署到",
       "localPanel": "本地面板",

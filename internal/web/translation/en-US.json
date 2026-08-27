@@ -288,7 +288,14 @@
       "remark": "Remark",
       "node": "Node",
       "relay": {
-        "badge": "Relay"
+        "badge": "Relay",
+        "entryMode": "Entry source",
+        "createNewEntry": "New entry",
+        "useExistingEntry": "Use existing entry",
+        "existingEntry": "Existing entry",
+        "selectExistingEntry": "Select an existing local entry",
+        "noExistingEntry": "No local entries available",
+        "existingEntryHint": "Only enabled local entries are shown; an inbound on a remote server cannot be used directly as a local relay entry."
       },
       "deployTo": "Deploy to",
       "localPanel": "Local panel",

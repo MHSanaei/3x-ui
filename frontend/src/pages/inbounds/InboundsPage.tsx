@@ -883,6 +883,7 @@ export default function InboundsPage() {
             open={relayOpen}
             onClose={() => setRelayOpen(false)}
             onCreated={refresh}
+            dbInbounds={dbInbounds}
           />
         </LazyMount>
         <LazyMount when={attachOpen}>
