@@ -26,11 +26,15 @@ type TuicServerSettings struct {
 	XrayRoutePort         int      `json:"xray_route_port,omitempty"`
 }
 
+type ServerSettings = TuicServerSettings
+
 type TuicClientSettings struct {
 	UUID     string `json:"uuid"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
 }
+
+type ClientSettings = TuicClientSettings
 
 type Instance struct {
 	Id                    int

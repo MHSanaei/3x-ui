@@ -12,6 +12,10 @@ import (
 )
 
 func killStrayTuicProcesses(binaryPath string) int {
+	base := filepath.Base(binaryPath)
+	if base == "" || base == "." || base == string(filepath.Separator) {
+		return 0
+	}
 	self := os.Getpid()
 	entries, err := os.ReadDir("/proc")
 	if err != nil {
@@ -23,9 +27,7 @@ func killStrayTuicProcesses(binaryPath string) int {
 		if err != nil || pid == self {
 			continue
 		}
-		exe := procExeBase(pid)
-		cmd := cmdlineArgv0Base(pid)
-		if !strings.Contains(exe, "tuic-server") && !strings.Contains(cmd, "tuic-server") {
+		if procExeBase(pid) != base && cmdlineArgv0Base(pid) != base {
 			continue
 		}
 		if err := syscall.Kill(pid, syscall.SIGKILL); err == nil {

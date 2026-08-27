@@ -259,6 +259,13 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.Secret == "" {
 			c.Secret = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(ib.Settings))
 		}
+	case model.TUIC:
+		if c.ID == "" {
+			c.ID = uuid.NewString()
+		}
+		if c.Password == "" {
+			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
+		}
 	}
 	return nil
 }

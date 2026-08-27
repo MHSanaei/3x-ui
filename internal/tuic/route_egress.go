@@ -1,7 +1,8 @@
 package tuic
 
-const TUICBasePort = 63200
+const SOCKSBasePort = 63200
+const TUICBasePort = SOCKSBasePort
 
 func SOCKSPortForInbound(inboundID int) int {
-	return TUICBasePort + inboundID
+	return SOCKSBasePort + inboundID
 }

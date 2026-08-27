@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -1079,6 +1080,19 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 					inbound.Id, 65535-amneziawgnet.SOCKSBasePort)
 			}
 			conflict, cErr := checkAmneziawgnetSocksReverseConflict(tx, inbound.Id)
+			if cErr != nil {
+				return cErr
+			}
+			if conflict != nil {
+				return common.NewError(conflict.String())
+			}
+		}
+		if inbound.Protocol == model.TUIC {
+			if tuic.SOCKSPortForInbound(inbound.Id) > 65535 {
+				return common.NewErrorf("tuic: inbound id %d exceeds the relay port window (ids above %d are not supported)",
+					inbound.Id, 65535-tuic.SOCKSBasePort)
+			}
+			conflict, cErr := checkTuicSocksReverseConflict(tx, inbound.Id)
 			if cErr != nil {
 				return cErr
 			}

@@ -769,7 +769,7 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 			continue
 		}
 		inst, ok := tuic.InstanceFromInbound(inbound)
-		if !ok {
+		if !ok || !inst.RouteThroughXray || inst.XrayRoutePort <= 0 || inbound.Tag == "" {
 			continue
 		}
 		if _, taken := existingTags[inbound.Tag]; taken {
@@ -779,7 +779,7 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 
 		accounts := make([]map[string]string, 0, len(inst.Clients))
 		for _, c := range inst.Clients {
-			if c.Email != "" {
+			if c.Email != "" && c.Password != "" {
 				accounts = append(accounts, map[string]string{
 					"user": c.Email,
 					"pass": c.Password,
@@ -787,13 +787,14 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 			}
 		}
 
-		settingsMap := map[string]any{
-			"auth": "noauth",
-			"udp":  true,
+		if len(accounts) == 0 {
+			continue
 		}
-		if len(accounts) > 0 {
-			settingsMap["auth"] = "password"
-			settingsMap["accounts"] = accounts
+
+		settingsMap := map[string]any{
+			"auth":     "password",
+			"udp":      true,
+			"accounts": accounts,
 		}
 
 		settingsBytes, err := json.Marshal(settingsMap)
@@ -805,10 +806,9 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 		existingTags[inbound.Tag] = struct{}{}
 		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
 			Listen:   json_util.RawMessage(`"127.0.0.1"`),
-			Port:     tuic.SOCKSPortForInbound(inbound.Id),
+			Port:     inst.XrayRoutePort,
 			Protocol: "socks",
 			Settings: json_util.RawMessage(string(settingsBytes)),
-			Sniffing: json_util.RawMessage(amneziawgEgressSniffingSettings),
 			Tag:      inbound.Tag,
 		})
 	}
