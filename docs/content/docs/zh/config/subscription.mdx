@@ -36,13 +36,29 @@ https://<sub-host>:<sub-port>/<sub-path>/<sub-id>
 
 **格式由路径决定**，每种格式都有各自的启用开关：
 
-| 格式                  | 路径      | 启用方式         | 输出                                                |
-| --------------------- | --------- | ---------------- | --------------------------------------------------- |
-| **原始链接**          | `subPath`      | 始终（若已开启） | 一组 `vless://`、`vmess://` 等链接的列表（当 `subEncrypt` 开启时进行 base64 编码）。 |
-| **JSON**              | `subJsonPath`  | `subJsonEnable`  | 完整的 Xray 客户端配置。                            |
-| **Clash / Mihomo**    | `subClashPath` | `subClashEnable` | YAML 配置文件。                                     |
+| 格式                          | 路径             | 启用方式         | 输出                                                |
+| ----------------------------- | ---------------- | ---------------- | --------------------------------------------------- |
+| **原始链接**                  | `subPath`        | 始终（若已开启） | 一组 `vless://`、`vmess://` 等链接的列表（当 `subEncrypt` 开启时进行 base64 编码）。 |
+| **JSON**                      | `subJsonPath`    | `subJsonEnable`  | 完整的 Xray 客户端配置。                            |
+| **Clash / Mihomo**            | `subClashPath`   | `subClashEnable` | 完整的 Mihomo 兼容 YAML 配置。                      |
+| **Mihomo（明确端点）**        | `/mihomo/`       | `subClashEnable` | 完整 `subClashPath` 配置的别名。                    |
+| **Clash for Windows（旧版）** | `/clash-legacy/` | `subClashEnable` | 仅包含旧 Clash 内核支持的代理类型、传输方式和加密算法。 |
 
 只有使用 **VLESS、VMess、Trojan、Shadowsocks 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列。使用 `Accept: text/html` 头（或 `?html=1`）请求 `subPath` 会返回一个人类可读的信息页面，而非原始内容。
+
+Clash Verge Rev、Mihomo 及其他仍在维护的 Mihomo 客户端应使用
+`/mihomo/<sub-id>`。已经停止维护的 Clash for Windows 应使用
+`/clash-legacy/<sub-id>`；旧版端点只保留兼容的 VMess、Trojan 和
+Shadowsocks 节点，并排除 VLESS、Hysteria2、Reality、XHTTP、HTTPUpgrade
+和 Shadowsocks 2022。如果没有任何兼容节点，端点会明确返回 `422`，而不是返回一份无法导入的 YAML。
+为避免 Mihomo 专用语法进入旧版配置，此端点始终使用最小的 `PROXY` 策略组与
+`MATCH,PROXY` 规则，并忽略自定义 Clash 路由设置。
+
+如果管理员已经把 `/mihomo/` 或 `/clash-legacy/` 分配给其他可配置订阅路径，
+系统会保留原有路径，并在启动时记录警告、跳过发生冲突的别名。
+
+Clash 格式自动识别也不再把 User-Agent 中所有包含 `clash` 的客户端都视为
+Mihomo。默认匹配器只覆盖 Mihomo 系客户端并排除 Clash for Windows；旧版客户端必须使用明确的旧版路径。
 
 ### Base64 与 JSON
 

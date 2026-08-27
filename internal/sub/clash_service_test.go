@@ -42,6 +42,85 @@ func TestEnsureUniqueProxyNames(t *testing.T) {
 	}
 }
 
+func TestLegacyClashProxyCompatibility(t *testing.T) {
+	t.Run("keeps legacy vmess fields", func(t *testing.T) {
+		proxy := map[string]any{
+			"name": "vm", "type": "vmess", "server": "vm.example.com", "port": 443,
+			"uuid": "11111111-2222-4333-8444-555555555555", "alterId": 0, "cipher": "auto",
+			"udp": true, "network": "ws", "tls": true, "servername": "sni.example.com",
+			"ws-opts": map[string]any{"path": "/ws"}, "client-fingerprint": "chrome", "alpn": []string{"h2"},
+		}
+
+		got := legacyClashProxy(proxy)
+		if got == nil || got["type"] != "vmess" || got["network"] != "ws" {
+			t.Fatalf("legacy vmess was filtered or changed: %#v", got)
+		}
+		for _, field := range []string{"client-fingerprint", "alpn"} {
+			if _, exists := got[field]; exists {
+				t.Fatalf("Mihomo-only field %q leaked into legacy vmess: %#v", field, got)
+			}
+		}
+	})
+
+	t.Run("keeps legacy trojan fields", func(t *testing.T) {
+		proxy := map[string]any{
+			"name": "tr", "type": "trojan", "server": "tr.example.com", "port": 443,
+			"password": "secret", "udp": true, "network": "grpc", "tls": true,
+			"sni": "sni.example.com", "servername": "sni.example.com", "alpn": []string{"h2"},
+			"grpc-opts": map[string]any{"grpc-service-name": "svc"},
+		}
+
+		got := legacyClashProxy(proxy)
+		if got == nil || got["type"] != "trojan" || got["sni"] != "sni.example.com" {
+			t.Fatalf("legacy trojan was filtered or changed: %#v", got)
+		}
+		for _, field := range []string{"tls", "servername"} {
+			if _, exists := got[field]; exists {
+				t.Fatalf("field %q is not part of the legacy Trojan schema: %#v", field, got)
+			}
+		}
+
+		withoutTLS := cloneMap(proxy)
+		withoutTLS["tls"] = false
+		if got := legacyClashProxy(withoutTLS); got != nil {
+			t.Fatalf("Trojan without TLS must not reach Clash for Windows: %#v", got)
+		}
+	})
+
+	t.Run("keeps only legacy shadowsocks ciphers", func(t *testing.T) {
+		legacy := map[string]any{
+			"name": "ss", "type": "ss", "server": "ss.example.com", "port": 443,
+			"password": "secret", "cipher": "aes-256-gcm", "udp": true, "network": "tcp", "tls": false,
+		}
+		got := legacyClashProxy(legacy)
+		if got == nil || got["type"] != "ss" {
+			t.Fatalf("legacy Shadowsocks proxy was filtered: %#v", got)
+		}
+		for _, field := range []string{"network", "tls"} {
+			if _, exists := got[field]; exists {
+				t.Fatalf("field %q is not part of the legacy Shadowsocks schema: %#v", field, got)
+			}
+		}
+
+		ss2022 := cloneMap(legacy)
+		ss2022["cipher"] = "2022-blake3-aes-256-gcm"
+		if got := legacyClashProxy(ss2022); got != nil {
+			t.Fatalf("SS-2022 must not reach Clash for Windows: %#v", got)
+		}
+	})
+
+	for _, proxy := range []map[string]any{
+		{"name": "vl", "type": "vless"},
+		{"name": "hy", "type": "hysteria2"},
+		{"name": "xh", "type": "vmess", "cipher": "auto", "network": "xhttp"},
+		{"name": "reality", "type": "vmess", "cipher": "auto", "network": "tcp", "reality-opts": map[string]any{}},
+	} {
+		if got := legacyClashProxy(proxy); got != nil {
+			t.Fatalf("modern proxy reached Clash for Windows: %#v", got)
+		}
+	}
+}
+
 // TestBuildProxy_VLESSRealityFieldsForClash locks the reality field mapping in
 // applySecurity (clash_service.go ~488): a regression that drops servername,
 // public-key, short-id, or client-fingerprint would hand mihomo a broken reality
