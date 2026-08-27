@@ -1,5 +1,3 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md) | [Türkçe](/README.tr_TR.md)
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
@@ -8,199 +6,158 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MHSanaei/3x-ui/releases"><img src="https://img.shields.io/github/v/release/mhsanaei/3x-ui" alt="Release"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg" alt="Build"></a>
-  <a href="#"><img src="https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg" alt="GO Version"></a>
-  <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
-  <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
-  <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
+  <a href="https://github.com/Fourgetu/3x-ui/releases"><img src="https://img.shields.io/github/v/release/Fourgetu/3x-ui" alt="版本"></a>
+  <a href="https://github.com/Fourgetu/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/Fourgetu/3x-ui/release.yml.svg" alt="构建"></a>
+  <a href="https://github.com/Fourgetu/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/Fourgetu/3x-ui/total.svg" alt="下载量"></a>
+  <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="许可证"></a>
 </p>
 
-**3X-UI** is an advanced, open-source web control panel for managing [Xray-core](https://github.com/XTLS/Xray-core) servers. It provides a clean, multi-language interface for deploying, configuring, and monitoring a wide range of proxy and VPN protocols — from a single VPS to multi-node deployments.
+# Fourgetu 3X-UI
 
-Built as an enhanced fork of the original X-UI project, 3X-UI adds broader protocol support, improved stability, per-client traffic accounting, and many quality-of-life features.
+这是基于 [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) 持续同步的中文增强版 3X-UI，用于管理 [Xray-core](https://github.com/XTLS/Xray-core) 服务器。项目保留官方核心功能，并加入了推荐协议模板、中转配置、多服务器部署、节点识别和二维码等实用功能。
 
 > [!IMPORTANT]
-> This project is intended for personal use only. Please do not use it for illegal purposes or in a production environment.
+> 本项目仅供个人学习和使用。请遵守当地法律法规，不要将其用于违法用途或未经授权的网络访问。
 
-## Features
+## 本分支新增功能
 
-- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
-- **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
-- **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
-- **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
-- **Traffic statistics** — per inbound, per client, and per outbound, with reset controls.
-- **Multi-node support** — manage and scale across multiple servers from a single panel.
-- **Outbound & routing** — WARP, NordVPN, custom routing rules, load balancers, and outbound proxy chaining.
-- **Built-in subscription server** with multiple output formats and [custom page templates](docs/custom-subscription-templates.md).
-- **Telegram bot** for remote monitoring and management.
-- **RESTful API** with in-panel Swagger documentation.
-- **Flexible storage** — SQLite (default) or PostgreSQL.
-- **13 UI languages** with dark and light themes.
-- **Fail2ban integration** for enforcing per-client IP limits.
+### 一键推荐协议模板
 
-## Screenshots
+在“添加入站”窗口中可以直接选择推荐协议模板，自动填充一套完整配置：
 
-<details>
-<summary>Click to expand</summary>
+- **VLESS + Reality（Vision）**：免证书，适合作为主力节点。
+- **VLESS + Reality（gRPC）**：Reality 的 gRPC 传输方案，免证书。
+- **Trojan + TLS**：经典 TLS 伪装，需要域名和证书。
+- **VMess + WebSocket + TLS**：支持 CDN 中转，需要域名和证书。
+- **Hysteria2**：基于 QUIC，速度快，需要域名和证书，需使用 sing-box、NekoBox 等支持 Hysteria2 的客户端。
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/01-overview-dark.png">
-  <img alt="Overview" src="./media/01-overview-light.png">
-</picture>
+支持“一键添加全部推荐协议”：已配置证书时创建全部 5 个模板；未配置证书时只创建 2 个免证书 Reality 模板。多个模板可以共用同一个订阅 ID，客户端导入一次即可获取全部节点，并自动读取面板已有的证书和 Reality 密钥。
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/02-add-inbound-dark.png">
-  <img alt="Inbounds" src="./media/02-add-inbound-light.png">
-</picture>
+关闭“推荐协议”开关后，仍可使用完整的手动配置模式，自行设置协议、传输、安全、嗅探和高级参数。
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/03-add-client-dark.png">
-  <img alt="Add client" src="./media/03-add-client-light.png">
-</picture>
+### 中转与落地分流
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
-  <img alt="Configs" src="./media/05-add-nodes-light.png">
-</picture>
+新增“添加中转”向导，用于配置“入口服务器 → 落地服务器”的流量转发：
 
-</details>
+- 落地端可以直接粘贴分享链接，自动识别 VLESS、VMess、Trojan、Shadowsocks、SOCKS 和 HTTP。
+- 自动创建入口入站、落地出站和路由规则，默认使用免证书 Reality 作为入口。
+- 支持创建完成后的连通性测试，查看入口到落地端的延迟。
+- 入站列表会显示“中转”来源标识。
 
-## Quick Start
+### 多服务器部署
+
+在“服务器”页面注册远程服务器后，添加入站时可以选择“部署到”目标服务器。推荐协议模板和中转向导都支持远程部署；离线服务器仍会显示，但会被标记为不可选择，可以从一个面板统一管理多台 VPS。
+
+### 入站和客户端管理增强
+
+- 入站支持勾选后批量删除，并可同时清理不再归属任何入站的孤儿客户端。
+- 客户端列表显示来源：中转、普通入站或独立客户端，并支持按来源筛选。
+- 每个入站支持直接打开二维码；同一入站下的多个客户端会分别生成二维码。
+- 二维码标题包含入站备注和客户端名称，方便手机端扫码导入。
+- 节点名称支持显示服务器、入站备注、客户端名称和端口。
+- 同一客户端关联多个端口时，节点名称会自动增加序号，避免节点名称重复。
+
+### 中文化与版本同步
+
+- 提供中文安装脚本 `install-cn.sh` 和中文管理菜单 `x-ui-cn.sh`。
+- 自动同步本仓库最新发布版本的安装包和官方脚本。
+- 官方功能与本分支功能发生冲突时，优先保留官方实现。
+
+## 官方基础功能
+
+- **多协议入站**：VLESS、VMess、Trojan、Shadowsocks、WireGuard、Hysteria2、HTTP、SOCKS、Dokodemo-door、Tunnel 和 TUN。
+- **现代传输与安全**：TCP、mKCP、WebSocket、gRPC、HTTPUpgrade 和 XHTTP，支持 TLS、XTLS 与 REALITY。
+- **回落（Fallback）**：通过 Xray fallback 在同一端口提供多种协议。
+- **按客户端管理**：流量配额、到期时间、IP 限制、在线状态、分享链接、二维码和订阅。
+- **流量统计**：按入站、客户端和出站统计流量，并支持重置。
+- **出站与路由**：WARP、NordVPN、自定义路由规则、负载均衡和出站代理链。
+- **内置订阅服务器**：支持多种订阅格式和自定义订阅页面模板。
+- **Telegram 机器人**：用于远程监控和管理。
+- **RESTful API**：提供面板内置 Swagger 文档。
+- **数据库支持**：SQLite（默认）和 PostgreSQL。
+- **Fail2ban 集成**：用于执行按客户端的 IP 限制。
+
+## 快速开始
+
+### 中文版安装
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Fourgetu/3x-ui-cn-installer/main/install-cn.sh)
 ```
 
-To install a specific version, append its tag (e.g. `v3.4.0`):
+安装完成后运行以下命令打开中文管理菜单：
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+x-ui
 ```
 
-To install the rolling **dev** build (latest per-commit pre-release from `main`, not a stable release), pass `dev-latest`:
+### 更新和查看版本
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
+x-ui update
+x-ui version
 ```
 
-During installation a random username, password, and access path are generated. After installation, run `x-ui` to open the management menu, where you can start/stop the service, view or reset your login credentials, manage SSL certificates, and more.
+也可以重新执行中文安装命令进行覆盖安装。覆盖安装前建议先备份 `/etc/x-ui` 和 `/usr/local/x-ui`。
 
-For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
+当前稳定版本：[`v3.7.0-fourgetu.2`](https://github.com/Fourgetu/3x-ui/releases/tag/v3.7.0-fourgetu.2)
 
-### Unattended install
+## 支持的平台
 
-The installer also runs **non-interactively** for cloud-init.
-Set `XUI_NONINTERACTIVE=1` (or pipe with no TTY) and it installs end-to-end with
-zero prompts, generating random credentials and writing them to
-`/etc/x-ui/install-result.env`. See [`deploy/`](deploy/) for:
+**操作系统：** Ubuntu、Debian、Armbian、Fedora、CentOS、RHEL、AlmaLinux、Rocky Linux、Oracle Linux、Amazon Linux、Virtuozzo、Arch、Manjaro、Parch、openSUSE、Alpine 和 Windows。
 
-- [Cloud-init user-data](deploy/cloud-init/) — unattended install on any cloud (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [Hetzner Cloud notes](deploy/marketplace/hetzner/) — cloud-init deployment on Hetzner
+**架构：** `amd64` · `386` · `arm64` · `armv7` · `armv6` · `armv5` · `s390x`。
 
-## Supported Platforms
+## 数据库
 
-**Operating systems:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), Alpine, and Windows.
+3X-UI 支持 SQLite 和 PostgreSQL：
 
-**Architectures:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
+- **SQLite（默认）**：数据库文件位于 `/etc/x-ui/x-ui.db`，无需额外配置。
+- **PostgreSQL**：适合客户端数量较多或多服务器部署的场景。
 
-## Database Options
+运行时可以通过环境变量选择数据库：
 
-3X-UI supports two backends, chosen during the install:
-
-- **SQLite** (default) — a single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium deployments.
-- **PostgreSQL** — recommended for high client counts or multi-node setups. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
-
-At runtime the backend is selected via environment variables (the installer writes these to `/etc/default/x-ui` for you):
-
-```
+```bash
 XUI_DB_TYPE=postgres
 XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
 ```
 
-### Migrating an existing SQLite install to PostgreSQL
+## 截图
 
-```bash
-x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
-# then set XUI_DB_TYPE and XUI_DB_DSN in /etc/default/x-ui and restart:
-systemctl restart x-ui
-```
+<details>
+<summary>点击展开</summary>
 
-The source SQLite file is left untouched; remove it manually once you have verified the new backend.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/01-overview-dark.png">
+  <img alt="概览" src="./media/01-overview-light.png">
+</picture>
 
-### Docker
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/02-add-inbound-dark.png">
+  <img alt="添加入站" src="./media/02-add-inbound-light.png">
+</picture>
 
-The default `docker compose up -d` keeps using SQLite. To run with the bundled PostgreSQL service, uncomment the two `XUI_DB_*` env lines in `docker-compose.yml` and start with the profile:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/03-add-client-dark.png">
+  <img alt="添加客户端" src="./media/03-add-client-light.png">
+</picture>
 
-```bash
-docker compose --profile postgres up -d
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
+  <img alt="服务器节点" src="./media/05-add-nodes-light.png">
+</picture>
 
-The image bundles Fail2ban (enabled by default) to enforce per-client **IP limits**. Fail2ban bans offenders with `iptables`, which requires the `NET_ADMIN` capability. `docker-compose.yml` already grants it via `cap_add`; if you start the container with `docker run` instead, add the capabilities yourself, otherwise bans are logged but never applied:
+</details>
 
-```bash
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
-```
+## 贡献
 
-## Environment Variables
+欢迎提交 Issue 和 Pull Request。提交前请阅读[贡献指南](CONTRIBUTING.md)。
 
-| Variable | Description | Default |
-| --- | --- | --- |
-| `XUI_DB_TYPE` | Database backend: `sqlite` or `postgres` | `sqlite` |
-| `XUI_DB_DSN` | PostgreSQL connection string (when `XUI_DB_TYPE=postgres`) | — |
-| `XUI_DB_FOLDER` | Directory for the SQLite database file | `/etc/x-ui` |
-| `XUI_DB_MAX_OPEN_CONNS` | Maximum open connections (PostgreSQL pool) | — |
-| `XUI_DB_MAX_IDLE_CONNS` | Maximum idle connections (PostgreSQL pool) | — |
-| `XUI_INIT_WEB_BASE_PATH` | The initial URI path for the web panel | `/` |
-| `XUI_ENABLE_FAIL2BAN` | Enable Fail2ban-based IP-limit enforcement | `true` |
-| `XUI_LOG_LEVEL` | Log verbosity (`debug`, `info`, `warning`, `error`) | `info` |
-| `XUI_DEBUG` | Enable debug mode | `false` |
-| `XUI_TUNNEL_HEALTH_MONITOR` | Enable the tunnel health monitor (probes a URL and restarts xray after repeated failures; a restart drops all clients) | `false` |
-| `XUI_TUNNEL_HEALTH_PROXY` | Proxy the probe is sent through; point it at a local xray inbound so the probe tests the tunnel (e.g. `socks5://127.0.0.1:1080`). Empty means the probe only checks host connectivity | — |
-| `XUI_TUNNEL_HEALTH_URL` | URL probed for tunnel health | `https://www.cloudflare.com/cdn-cgi/trace` |
-| `XUI_TUNNEL_HEALTH_INTERVAL` | Interval between probes | `30s` |
-| `XUI_TUNNEL_HEALTH_TIMEOUT` | Per-probe timeout | `10s` |
-| `XUI_TUNNEL_HEALTH_FAILURES` | Consecutive failures before a restart is triggered | `3` |
-| `XUI_TUNNEL_HEALTH_COOLDOWN` | Minimum delay between consecutive restarts | `5m` |
+## 许可证
 
-## Supported Languages
+本项目基于 GPL v3 开源协议发布。
 
-The panel UI is available in 13 languages:
+## 致谢
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
-
-## Contributing
-
-Contributions are welcome. Please read the [Contributing Guide](/CONTRIBUTING.md) before opening an issue or pull request.
-
-## A Special Thanks to
-
+- [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui)
 - [alireza0](https://github.com/alireza0/)
-
-## Acknowledgment
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (License: **GPL-3.0**): _This repository contains automatically updated V2Ray routing rules based on data on blocked domains and addresses in Russia._
-
-## Community Tools
-
-Tools and integrations built by the community around 3x-ui.
-
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
-
-## Support project
-
-**If this project is helpful to you, you may wish to give it a**:star2:
-
-<a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
-</a>
-
-</br>
-<a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
-</a>
-
-## Stargazers over Time
-
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
