@@ -582,6 +582,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ssMethod": "",
     "tag": "in-443-tcp",
     "tlsFlowCapable": true,
+    "tuicServer": null,
     "wgDns": "",
     "wgMtu": 0,
     "wgPublicKey": ""

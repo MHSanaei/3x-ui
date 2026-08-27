@@ -652,7 +652,7 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 	if !ok {
 		return ""
 	}
-	var client *tuic.ClientSettings
+	var client *tuic.TuicClientSettings
 	for _, c := range inst.Clients {
 		if c.Email == email {
 			client = &c

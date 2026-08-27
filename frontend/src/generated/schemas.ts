@@ -2316,6 +2316,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "tuicServer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TuicServerSettings"
+          }
+        ],
+        "nullable": true
+      },
       "wgDns": {
         "type": "string"
       },

@@ -50,7 +50,7 @@ func (s *InboundService) DesiredTuicInstances() ([]tuic.Instance, error) {
 			continue
 		}
 		if off := disabled[ib.Id]; len(off) > 0 {
-			kept := make([]tuic.ClientSettings, 0, len(inst.Clients))
+			kept := make([]tuic.TuicClientSettings, 0, len(inst.Clients))
 			for _, c := range inst.Clients {
 				if _, skip := off[c.Email]; !skip {
 					kept = append(kept, c)

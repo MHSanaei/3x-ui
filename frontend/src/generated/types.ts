@@ -536,6 +536,7 @@ export interface InboundOption {
   ssMethod: string;
   tag: string;
   tlsFlowCapable: boolean;
+  tuicServer?: TuicServerSettings | null;
   wgDns?: string;
   wgMtu?: number;
   wgPublicKey?: string;
