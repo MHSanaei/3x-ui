@@ -681,9 +681,6 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 	if inst.UDPRelayMode != "" {
 		params["udp_relay_mode"] = inst.UDPRelayMode
 	}
-	if !inst.ZeroRTTHandshake {
-		params["disable_sni"] = "0"
-	}
 	params["allow_insecure"] = "0"
 
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))

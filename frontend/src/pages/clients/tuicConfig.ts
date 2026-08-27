@@ -30,32 +30,15 @@ export function buildTuicClientConfig(
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
   const remark = [inboundName, client.email].filter(Boolean).join(' - ') || 'tuic-client';
 
-  let tuicSettings: {
-    alpn?: string[];
-    sni?: string;
-    congestion_control?: string;
-    udp_relay_mode?: string;
-    zero_rtt_handshake?: boolean;
-  } = {};
-  const rawSettings = (inbound as { settings?: unknown })?.settings;
-  if (typeof rawSettings === 'string') {
-    try {
-      tuicSettings = JSON.parse(rawSettings);
-    } catch {
-      tuicSettings = {};
-    }
-  } else if (rawSettings && typeof rawSettings === 'object') {
-    tuicSettings = rawSettings as typeof tuicSettings;
-  }
-
+  const tuicServer = inbound?.tuicServer;
   const alpn =
-    Array.isArray(tuicSettings.alpn) && tuicSettings.alpn.length > 0
-      ? tuicSettings.alpn
+    Array.isArray(tuicServer?.alpn) && tuicServer.alpn.length > 0
+      ? tuicServer.alpn
       : ['h3', 'spdy/3.1'];
-  const sni = tuicSettings.sni || endpointHost;
-  const cc = tuicSettings.congestion_control || 'bbr';
-  const udpRelay = tuicSettings.udp_relay_mode || 'native';
-  const reduceRtt = tuicSettings.zero_rtt_handshake ?? true;
+  const sni = tuicServer?.sni || endpointHost;
+  const cc = tuicServer?.congestion_control || 'bbr';
+  const udpRelay = tuicServer?.udp_relay_mode || 'native';
+  const reduceRtt = tuicServer?.zero_rtt_handshake ?? true;
 
   const lines = [
     `# TUIC v5 Client Configuration (Clash / Mihomo / Clash Verge)`,

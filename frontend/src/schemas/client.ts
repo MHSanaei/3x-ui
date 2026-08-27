@@ -101,6 +101,23 @@ export const AwgServerOptionSchema = z
   })
   .loose();
 
+export const TuicServerOptionSchema = z
+  .object({
+    certificate: z.string().optional(),
+    congestion_control: z.string().optional(),
+    alpn: z.array(z.string()).optional(),
+    udp_relay_mode: z.string().optional(),
+    zero_rtt_handshake: z.boolean().optional(),
+    log_level: z.string().optional(),
+    max_idle_time: z.number().optional(),
+    authentication_timeout: z.number().optional(),
+    max_udp_relay_packet_size: z.number().optional(),
+    sni: z.string().optional(),
+  })
+  .loose();
+
+export type TuicServerOption = z.infer<typeof TuicServerOptionSchema>;
+
 export const InboundOptionSchema = z
   .object({
     id: z.number(),
@@ -114,6 +131,7 @@ export const InboundOptionSchema = z
     wgMtu: z.number().optional(),
     wgDns: z.string().optional(),
     awgServer: AwgServerOptionSchema.nullable().optional(),
+    tuicServer: TuicServerOptionSchema.nullable().optional(),
     mtprotoDomain: z.string().optional(),
     // Hosting node id; absent/null for this panel's own inbounds (#4997).
     nodeId: z.number().nullable().optional(),
