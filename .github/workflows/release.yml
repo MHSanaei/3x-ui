@@ -196,6 +196,11 @@ jobs:
               mv "tuic-server-1.0.0-armv7-unknown-linux-gnueabihf" "tuic-server"
               chmod +x "tuic-server"
               ;;
+            386)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-i686-unknown-linux-gnu"
+              mv "tuic-server-1.0.0-i686-unknown-linux-gnu" "tuic-server"
+              chmod +x "tuic-server"
+              ;;
           esac
           cd ../..
 
@@ -324,6 +329,9 @@ jobs:
           Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
           Move-Item "mtg-tmp/$MTG_PKG/mtg-multi.exe" "mtg-windows-amd64.exe"
           Remove-Item -Recurse -Force "mtg-tmp", "$MTG_PKG.zip"
+
+          # TUIC sidecar for Windows
+          curl.exe -sfLRo "tuic-windows-amd64.exe" --retry 5 --retry-all-errors --retry-delay 3 "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-pc-windows-msvc.exe"
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse

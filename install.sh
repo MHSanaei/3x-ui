@@ -373,18 +373,24 @@ install_tuic_server() {
         amd64|x86_64) target_arch="x86_64-unknown-linux-gnu" ;;
         arm64|aarch64) target_arch="aarch64-unknown-linux-gnu" ;;
         armv7|armv7l) target_arch="armv7-unknown-linux-gnueabihf" ;;
+        386|i386|i686) target_arch="i686-unknown-linux-gnu" ;;
+        armv6|armv6l|armv5|armv5l|s390x)
+            echo -e "${yellow}tuic-server does not provide prebuilt binaries for $(arch); TUIC inbounds will be unavailable on this machine${plain}"
+            return 0
+            ;;
         *) return 0 ;;
     esac
 
     local tuic_url="https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${target_arch}"
     echo -e "${green}Installing tuic-server (${target_arch})...${plain}"
     mkdir -p "${xui_folder}/bin"
-    if curl -fLR --connect-timeout 15 --retry 3 -o "${xui_folder}/bin/tuic-server" "${tuic_url}"; then
+    if curl -fLR --connect-timeout 15 --retry 3 -o "${xui_folder}/bin/tuic-server" "${tuic_url}" && [[ -s "${xui_folder}/bin/tuic-server" ]]; then
         chmod +x "${xui_folder}/bin/tuic-server"
         cp -f "${xui_folder}/bin/tuic-server" /usr/local/bin/tuic-server 2>/dev/null || true
         chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
         echo -e "${green}tuic-server installed successfully${plain}"
     else
+        rm -f "${xui_folder}/bin/tuic-server"
         echo -e "${yellow}Failed to download tuic-server (optional), skipping${plain}"
     fi
 }
@@ -1527,7 +1533,7 @@ install_x-ui() {
         # an inbound port with an outdated secret, silently breaking new clients.
         # The freshly installed panel respawns a clean mtg per inbound on start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
-        pkill -f 'tuic-server' > /dev/null 2>&1 || true
+        pkill -f 'tuic-server.*-c ' > /dev/null 2>&1 || true
 
         # bin/ is about to be wiped wholesale by the tar extraction below. The
         # release only ships known assets (xray/mtg binaries, the bundled
