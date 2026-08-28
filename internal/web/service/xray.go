@@ -179,6 +179,16 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		}
 		settings := map[string]any{}
 		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+		var wireguardClientsByEmail map[string]model.Client
+		if inbound.Protocol == model.WireGuard {
+			inboundClients, _ := ParseInboundSettingsClients(inbound.Settings)
+			if len(inboundClients) > 0 {
+				wireguardClientsByEmail = make(map[string]model.Client, len(inboundClients))
+				for _, client := range inboundClients {
+					wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(client.Email))] = client
+				}
+			}
+		}
 
 		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
 		if listErr != nil {
@@ -244,6 +254,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["auth"] = c.Auth
 				}
 			case model.WireGuard:
+				if inboundClient, ok := wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(c.Email))]; ok {
+					c.AllowedIPs = inboundClient.AllowedIPs
+					c.PreSharedKey = inboundClient.PreSharedKey
+				}
 				wgPeers = append(wgPeers, model.WireguardPeerFromClient(c))
 				continue
 			}
