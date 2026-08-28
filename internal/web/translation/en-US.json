@@ -2257,6 +2257,8 @@
     "actions": "Actions",
     "navigate": "Navigate",
     "select": "Select",
-    "copySubscription": "Copy subscription"
+    "copySubscription": "Copy subscription",
+    "restartXray": "Restart Xray Service",
+    "restartXraySuccess": "Xray has been successfully relaunched"
   }
 }

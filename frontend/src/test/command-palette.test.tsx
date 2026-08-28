@@ -43,7 +43,17 @@ describe('CommandPalette component', () => {
     renderPalette();
 
     act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', code: 'KeyK', ctrlKey: true }));
+    });
+    expect(commandPaletteStore.getSnapshot()).toBe(true);
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(commandPaletteStore.getSnapshot()).toBe(false);
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ن', code: 'KeyK', ctrlKey: true }));
     });
     expect(commandPaletteStore.getSnapshot()).toBe(true);
 

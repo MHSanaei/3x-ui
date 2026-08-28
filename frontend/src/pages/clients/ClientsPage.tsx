@@ -1,4 +1,5 @@
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -382,7 +383,11 @@ export default function ClientsPage() {
   >(null);
 
   const initial = readFilterState();
-  const [searchKey, setSearchKey] = useState(initial.searchKey);
+  const [searchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
+  const [searchKey, setSearchKey] = useState(
+    searchParam !== null ? searchParam : initial.searchKey,
+  );
   const [filters, setFilters] = useState<ClientFilters>(initial.filters);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -402,9 +407,16 @@ export default function ClientsPage() {
   // nothing is known yet, which is the one case worth waiting for.
   const resolvedPageSize = pageSizeChoice ?? settingsPageSize ?? initial.pageSize;
   const tablePageSize = resolvedPageSize ?? DEFAULT_TABLE_PAGE_SIZE;
-  // debouncedSearch lags behind the input so we don't spam the server on every
-  // keystroke; the search box still feels instant locally.
   const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
+  const [prevSearchParam, setPrevSearchParam] = useState(searchParam);
+
+  if (searchParam !== prevSearchParam) {
+    setPrevSearchParam(searchParam);
+    if (searchParam !== null) {
+      setSearchKey(searchParam);
+      setDebouncedSearch(searchParam);
+    }
+  }
 
   useEffect(() => {
     localStorage.setItem(

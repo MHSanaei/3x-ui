@@ -2248,5 +2248,17 @@
     "statusFailed": "THẤT BẠI",
     "statusDown": "NGỪNG HOẠT ĐỘNG",
     "statusUp": "HOẠT ĐỘNG"
+  },
+  "commandPalette": {
+    "title": "Bảng lệnh",
+    "placeholder": "Nhập lệnh hoặc tìm kiếm khách hàng, cổng vào, trang...",
+    "search": "Tìm kiếm...",
+    "navigation": "Điều hướng",
+    "actions": "Hành động",
+    "navigate": "Điều hướng",
+    "select": "Chọn",
+    "copySubscription": "Sao chép liên kết gói",
+    "restartXray": "Khởi động lại dịch vụ Xray",
+    "restartXraySuccess": "Dịch vụ Xray đã được khởi động lại thành công"
   }
 }

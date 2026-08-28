@@ -2248,5 +2248,17 @@
     "statusFailed": "BAŞARISIZ",
     "statusDown": "ÇEVRİMDIŞI",
     "statusUp": "ÇEVRİMİÇİ"
+  },
+  "commandPalette": {
+    "title": "Komut Paleti",
+    "placeholder": "Komut yazın veya istemcileri, gelen bağlantıları, sayfaları arayın...",
+    "search": "Ara...",
+    "navigation": "Gezinme",
+    "actions": "İşlemler",
+    "navigate": "Gezin",
+    "select": "Seç",
+    "copySubscription": "Aboneliği kopyala",
+    "restartXray": "Xray Hizmetini Yeniden Başlat",
+    "restartXraySuccess": "Xray hizmeti başarıyla yeniden başlatıldı"
   }
 }

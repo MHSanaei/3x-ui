@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 let isOpen = false;
 const listeners = new Set<() => void>();
@@ -39,23 +39,6 @@ export function useCommandPalette() {
   const openPalette = useCallback(() => commandPaletteStore.open(), []);
   const closePalette = useCallback(() => commandPaletteStore.close(), []);
   const togglePalette = useCallback(() => commandPaletteStore.toggle(), []);
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
-        e.preventDefault();
-        commandPaletteStore.toggle();
-      } else if (e.key === 'Escape' && isOpen) {
-        e.preventDefault();
-        commandPaletteStore.close();
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown, { capture: true });
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown, { capture: true });
-    };
-  }, []);
 
   return {
     isOpen: open,

@@ -2248,5 +2248,17 @@
     "statusFailed": "فشل",
     "statusDown": "غير متصل",
     "statusUp": "متصل"
+  },
+  "commandPalette": {
+    "title": "لوحة الأوامر",
+    "placeholder": "اكتب أمرًا أو ابحث عن العملاء، المنافذ، الصفحات...",
+    "search": "بحث...",
+    "navigation": "التنقل",
+    "actions": "الإجراءات",
+    "navigate": "تنقل",
+    "select": "تحديد",
+    "copySubscription": "نسخ الاشتراك",
+    "restartXray": "إعادة تشغيل خدمة Xray",
+    "restartXraySuccess": "تمت إعادة تشغيل خدمة Xray بنجاح"
   }
 }

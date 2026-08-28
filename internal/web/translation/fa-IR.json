@@ -2257,6 +2257,8 @@
     "actions": "دستورات سیستمی",
     "navigate": "پیمایش",
     "select": "انتخاب",
-    "copySubscription": "کپی لینک اشتراک"
+    "copySubscription": "کپی لینک اشتراک",
+    "restartXray": "راه‌اندازی مجدد سرویس Xray",
+    "restartXraySuccess": "سرویس Xray با موفقیت مجدداً راه‌اندازی شد"
   }
 }

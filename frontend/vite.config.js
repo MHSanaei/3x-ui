@@ -5,7 +5,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 const outDir = path.resolve(import.meta.dirname, '../internal/web/dist');
-const BACKEND_TARGET = process.env.BACKEND_TARGET || 'http://localhost:2053';
+const BACKEND_TARGET = 'http://localhost:2053';
 
 function resolveDBPath() {
   const envFolder = process.env.XUI_DB_FOLDER;
@@ -92,28 +92,9 @@ function rocketLoaderOptOutPlugin() {
 function bypassMigratedRoute(req) {
   if (req.method !== 'GET') return undefined;
   const url = req.url.split('?')[0];
-
-  if (
-    url.startsWith('/src/') ||
-    url.startsWith('/@') ||
-    url.startsWith('/node_modules/') ||
-    url.startsWith('/assets/') ||
-    url === '/favicon.ico' ||
-    url.endsWith('.tsx') ||
-    url.endsWith('.ts') ||
-    url.endsWith('.js') ||
-    url.endsWith('.mjs') ||
-    url.endsWith('.css') ||
-    url.endsWith('.svg') ||
-    url.endsWith('.png') ||
-    url.endsWith('.woff2')
-  ) {
-    return req.url;
-  }
-
   const basePath = refreshBasePath();
 
-  if (url === basePath || url === basePath.slice(0, -1)) return '/login.html';
+  if (url === basePath) return '/login.html';
 
   if (url.startsWith(basePath)) {
     const stripped = url.slice(basePath.length);
@@ -140,7 +121,6 @@ function makeBackendProxy(target) {
   return {
     target,
     changeOrigin: true,
-    secure: false,
     rewrite: rewriteToBackend,
     bypass: bypassMigratedRoute,
     configure(proxy) {

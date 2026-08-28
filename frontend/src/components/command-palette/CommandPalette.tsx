@@ -40,7 +40,7 @@ import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useTheme } from '@/hooks/useTheme';
 import type { ClientRecord, InboundOption } from '@/schemas/client';
-import { useCommandPalette } from './useCommandPalette';
+import { commandPaletteStore, useCommandPalette } from './useCommandPalette';
 import './CommandPalette.css';
 
 interface PaletteItem {
@@ -75,6 +75,28 @@ export default function CommandPalette() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      const isK = e.code === 'KeyK' || e.key === 'k' || e.key === 'K';
+      if ((e.metaKey || e.ctrlKey) && isK) {
+        e.preventDefault();
+        if (isOpen) {
+          close();
+        } else {
+          commandPaletteStore.open();
+        }
+      } else if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        close();
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
+    };
+  }, [isOpen, close]);
 
   useEffect(() => {
     if (isOpen) {
@@ -135,7 +157,7 @@ export default function CommandPalette() {
     close();
     const msg = await HttpUtil.post('/panel/api/server/restartXrayService');
     if (msg?.success) {
-      message.success(t('pages.index.toasts.restartedXray') || 'Xray restarted');
+      message.success(t('commandPalette.restartXraySuccess'));
     }
   }, [close, t]);
 
@@ -169,7 +191,7 @@ export default function CommandPalette() {
       clients.forEach((c) => {
         const up = Number(c.traffic?.up || 0);
         const down = Number(c.traffic?.down || 0);
-        const total = Number(c.traffic?.total || (c.totalGB ? c.totalGB * 1024 * 1024 * 1024 : 0));
+        const total = Number(c.traffic?.total || c.totalGB || 0);
         const trafficUsed = SizeFormatter.sizeFormat(up + down);
         const trafficTotal = total > 0 ? SizeFormatter.sizeFormat(total) : '∞';
         const isOnline = c.enable !== false;
@@ -191,7 +213,7 @@ export default function CommandPalette() {
           secondaryAction:
             c.subId && allSetting.subURI
               ? {
-                  label: t('commandPalette.copySubscription') || 'Copy subscription',
+                  label: t('commandPalette.copySubscription'),
                   icon: <CopyOutlined />,
                   execute: (e) => {
                     e.stopPropagation();
@@ -234,29 +256,17 @@ export default function CommandPalette() {
       {
         path: '/',
         title: t('menu.dashboard'),
-        subtitle: 'Overview & system telemetry',
-        keywords: [
-          'overview',
-          'dashboard',
-          'داشبورد',
-          'نمای کلی',
-          'cpu',
-          'ram',
-          'memory',
-          'traffic',
-          'speed',
-        ],
+        subtitle: t('menu.dashboard'),
+        keywords: ['overview', 'dashboard', 'cpu', 'ram', 'memory', 'traffic', 'speed'],
         icon: <DashboardOutlined />,
       },
       {
         path: '/inbounds',
         title: t('menu.inbounds'),
-        subtitle: 'Manage protocols & ports',
+        subtitle: t('menu.inbounds'),
         keywords: [
           'inbounds',
-          'ورودی',
-          'پورت',
-          'اینباند',
+          'ports',
           'vless',
           'vmess',
           'reality',
@@ -270,85 +280,64 @@ export default function CommandPalette() {
       {
         path: '/clients',
         title: t('menu.clients'),
-        subtitle: 'Manage client accounts & limits',
-        keywords: ['clients', 'مشتریان', 'کاربران', 'کلاینت', 'users', 'sub', 'traffic'],
+        subtitle: t('menu.clients'),
+        keywords: ['clients', 'users', 'sub', 'traffic', 'quota'],
         icon: <TeamOutlined />,
       },
       {
         path: '/groups',
         title: t('menu.groups'),
-        subtitle: 'Client grouping & batch assignments',
-        keywords: ['groups', 'گروه‌ها', 'دسته بندی', 'تگ'],
+        subtitle: t('menu.groups'),
+        keywords: ['groups', 'tags', 'batch'],
         icon: <TagsOutlined />,
       },
       {
         path: '/nodes',
         title: t('menu.nodes'),
-        subtitle: 'Multi-node cluster management',
-        keywords: ['nodes', 'نودها', 'سرورها', 'سرور', 'cluster', 'remote nodes'],
+        subtitle: t('menu.nodes'),
+        keywords: ['nodes', 'servers', 'cluster', 'remote nodes'],
         icon: <ClusterOutlined />,
       },
       {
         path: '/hosts',
         title: t('menu.hosts'),
-        subtitle: 'Custom SNI & domain routing hosts',
-        keywords: ['hosts', 'هاست‌ها', 'دامنه', 'sni', 'domains'],
+        subtitle: t('menu.hosts'),
+        keywords: ['hosts', 'sni', 'domains'],
         icon: <GlobalOutlined />,
       },
       {
         path: '/outbound',
         title: t('menu.outbounds'),
-        subtitle: 'Exit proxies & warp gateways',
-        keywords: [
-          'outbounds',
-          'خروجی',
-          'آتباند',
-          'freedom',
-          'blackhole',
-          'socks',
-          'http',
-          'warp',
-          'nord',
-          'pia',
-        ],
+        subtitle: t('menu.outbounds'),
+        keywords: ['outbounds', 'freedom', 'blackhole', 'socks', 'http', 'warp', 'nord', 'pia'],
         icon: <ExportOutlined />,
       },
       {
         path: '/routing',
         title: t('menu.routing'),
-        subtitle: 'Traffic routing & rule balancer',
-        keywords: [
-          'routing',
-          'روتینگ',
-          'مسیریابی',
-          'قوانین',
-          'rules',
-          'geoip',
-          'geosite',
-          'direct',
-          'block',
-        ],
+        subtitle: t('menu.routing'),
+        keywords: ['routing', 'rules', 'geoip', 'geosite', 'direct', 'block'],
         icon: <SwapOutlined />,
       },
       {
         path: '/settings',
         title: t('menu.settings'),
-        subtitle: 'Panel configuration & security',
-        keywords: ['settings', 'تنظیمات', 'پنل', 'port', 'password', 'ssl', 'telegram'],
+        subtitle: t('menu.settings'),
+        keywords: ['settings', 'config', 'port', 'password', 'ssl', 'telegram'],
         icon: <SettingOutlined />,
       },
       {
         path: '/xray',
         title: t('menu.xray'),
-        subtitle: 'Xray core templates & balancer configs',
-        keywords: ['xray', 'کانفیگ', 'تنظیمات xray', 'template', 'balancer', 'dns'],
+        subtitle: t('menu.xray'),
+        keywords: ['xray', 'templates', 'balancer', 'dns'],
         icon: <ToolOutlined />,
       },
       {
         path: '/api-docs',
         title: t('menu.apiDocs'),
-        subtitle: 'OpenAPI documentation & Swagger explorer',
-        keywords: ['api', 'api docs', 'مستندات', 'swagger', 'rest api', 'endpoints'],
+        subtitle: t('menu.apiDocs'),
+        keywords: ['api', 'api docs', 'swagger', 'rest api', 'endpoints'],
         icon: <ApiOutlined />,
       },
     ];
@@ -374,116 +363,65 @@ export default function CommandPalette() {
       {
         path: '/settings#general',
         title: `${t('menu.settings')} · ${t('pages.settings.panelSettings')}`,
-        subtitle: 'Web port, base path, listen IP, SSL certificates',
-        keywords: [
-          'general',
-          'عمومی',
-          'پورت پنل',
-          'آدرس پنل',
-          'ssl',
-          'certificate',
-          'webPort',
-          'webBasePath',
-          'listenIP',
-          'گواهی',
-        ],
+        subtitle: t('pages.settings.panelSettings'),
+        keywords: ['general', 'webPort', 'webBasePath', 'listenIP', 'ssl', 'certificate'],
         icon: <SettingOutlined />,
       },
       {
         path: '/settings#security',
         title: `${t('menu.settings')} · ${t('pages.settings.securitySettings')}`,
-        subtitle: 'Admin credentials, password, Two-Factor 2FA, session limits',
-        keywords: [
-          'security',
-          'امنیت',
-          'رمز عبور',
-          'نام کاربری',
-          'دو مرحله‌ای',
-          '2fa',
-          'two factor',
-          'password',
-          'username',
-          'login limit',
-        ],
+        subtitle: t('pages.settings.securitySettings'),
+        keywords: ['security', 'password', 'username', '2fa', 'two factor', 'login limit'],
         icon: <SafetyOutlined />,
       },
       {
         path: '/settings#telegram',
         title: `${t('menu.settings')} · ${t('pages.settings.TGBotSettings')}`,
-        subtitle: 'Telegram bot alerts, token, chat ID, backup scheduler',
-        keywords: [
-          'telegram',
-          'تلگرام',
-          'ربات تلگرام',
-          'توکن',
-          'tgbot',
-          'bot token',
-          'chat id',
-          'notifications',
-          'هشدار',
-        ],
+        subtitle: t('pages.settings.TGBotSettings'),
+        keywords: ['telegram', 'tgbot', 'bot token', 'chat id', 'notifications', 'alerts'],
         icon: <MessageOutlined />,
       },
       {
         path: '/settings#email',
         title: `${t('menu.settings')} · ${t('pages.settings.emailSettings')}`,
-        subtitle: 'SMTP mail service, server status and crash alerts',
-        keywords: ['email', 'ایمیل', 'هشدار ایمیل', 'smtp', 'mail', 'crash alerts'],
+        subtitle: t('pages.settings.emailSettings'),
+        keywords: ['email', 'smtp', 'mail', 'crash alerts'],
         icon: <MailOutlined />,
       },
       {
         path: '/settings#subscription',
         title: `${t('menu.settings')} · ${t('pages.settings.subSettings')}`,
-        subtitle: 'Subscription service port, domain, reverse proxy URI',
-        keywords: [
-          'subscription',
-          'سابسکریپشن',
-          'لینک اشتراک',
-          'پورت ساب',
-          'subPort',
-          'subURI',
-          'subDomain',
-          'reverse proxy',
-        ],
+        subtitle: t('pages.settings.subSettings'),
+        keywords: ['subscription', 'subPort', 'subURI', 'subDomain', 'reverse proxy'],
         icon: <CloudServerOutlined />,
       },
       {
         path: '/settings#subscription-formats',
         title: `${t('menu.settings')} · ${t('menu.subFormats')}`,
-        subtitle: 'Clash, Sing-box, V2Ray JSON subscription endpoints',
-        keywords: ['formats', 'فرمت ساب', 'clash', 'sing-box', 'v2ray', 'json', 'sub formats'],
+        subtitle: t('menu.subFormats'),
+        keywords: ['formats', 'clash', 'sing-box', 'v2ray', 'json', 'sub formats'],
         icon: <CodeOutlined />,
       },
       {
         path: '/settings#subscription-balancers',
         title: `${t('menu.settings')} · ${t('pages.settings.subBalancers.menu')}`,
-        subtitle: 'Automated subscription node balancing',
-        keywords: ['balancers', 'لود بالانسر ساب', 'sub balancers', 'balancer nodes'],
+        subtitle: t('pages.settings.subBalancers.menu'),
+        keywords: ['balancers', 'sub balancers', 'balancer nodes'],
         icon: <ApartmentOutlined />,
       },
       {
         path: '/xray#basic',
         title: `${t('menu.xray')} · ${t('pages.xray.basicTemplate')}`,
-        subtitle: 'Freedom strategies, happy eyeballs, connection & log policies',
-        keywords: [
-          'xray basics',
-          'پایه',
-          'عمومی',
-          'freedom strategy',
-          'happy eyeballs',
-          'torrent',
-          'connection',
-        ],
+        subtitle: t('pages.xray.basicTemplate'),
+        keywords: ['basics', 'freedom strategy', 'happy eyeballs', 'torrent', 'connection'],
         icon: <ToolOutlined />,
       },
       {
         path: '/xray#basic',
-        title: `${t('menu.xray')} · ${t('pages.xray.metricsListen') || 'Metrics Endpoint'}`,
-        subtitle: 'Prometheus metrics endpoint, inbound/outbound uplink & downlink stats',
+        title: `${t('menu.xray')} · ${t('pages.xray.metricsListen')}`,
+        subtitle: t('pages.xray.metricsListen'),
         keywords: [
           'metrics',
-          'متریک',
-          'آمار',
           'prometheus',
           'statistics',
           'listen',
@@ -495,85 +433,51 @@ export default function CommandPalette() {
       },
       {
         path: '/xray#basic',
-        title: `${t('menu.xray')} · ${t('pages.xray.connectionLimits') || 'Connection Limits'}`,
-        subtitle: 'Idle timeout (connIdle) and handshake buffer size',
-        keywords: [
-          'limits',
-          'محدودیت اتصال',
-          'بافر',
-          'idle timeout',
-          'bufferSize',
-          'connIdle',
-          'timeout',
-        ],
+        title: `${t('menu.xray')} · ${t('pages.xray.connectionLimits')}`,
+        subtitle: t('pages.xray.connectionLimits'),
+        keywords: ['limits', 'idle timeout', 'bufferSize', 'connIdle', 'timeout'],
         icon: <ClockCircleOutlined />,
       },
       {
         path: '/xray#basic',
-        title: `${t('menu.xray')} · ${t('pages.xray.logConfigs') || 'Log Configs'}`,
-        subtitle: 'Log level (debug/info/warning/error), access log, error log, DNS log',
-        keywords: [
-          'logs',
-          'لاگ xray',
-          'سطح لاگ',
-          'access log',
-          'error log',
-          'dns log',
-          'mask address',
-          'loglevel',
-        ],
+        title: `${t('menu.xray')} · ${t('pages.xray.logConfigs')}`,
+        subtitle: t('pages.xray.logConfigs'),
+        keywords: ['logs', 'access log', 'error log', 'dns log', 'mask address', 'loglevel'],
         icon: <FileTextOutlined />,
       },
       {
         path: '/xray#balancer',
         title: `${t('menu.xray')} · ${t('pages.xray.Balancers')}`,
-        subtitle: 'Traffic load balancers, leastPing, roundRobin, fallback strategies',
-        keywords: [
-          'balancers',
-          'بالانسر',
-          'لود بالانسر',
-          'balancer',
-          'fallback',
-          'leastPing',
-          'roundRobin',
-          'strategy',
-        ],
+        subtitle: t('pages.xray.Balancers'),
+        keywords: ['balancers', 'leastPing', 'roundRobin', 'fallback', 'strategy'],
         icon: <ClusterOutlined />,
       },
       {
         path: '/xray#dns',
-        title: `${t('menu.xray')} · DNS Configs`,
-        subtitle: 'Custom DNS upstream servers, hosts map, DoH, DoT, DoU',
-        keywords: ['dns', 'دی ان اس', 'dns servers', 'hosts', 'doh', 'dot', 'cloudflare dns'],
+        title: `${t('menu.xray')} · ${t('pages.xray.dnsServer')}`,
+        subtitle: t('pages.xray.dnsServer'),
+        keywords: ['dns', 'dns servers', 'hosts', 'doh', 'dot', 'cloudflare dns'],
         icon: <DatabaseOutlined />,
       },
       {
         path: '/xray#outbound',
         title: `${t('menu.xray')} · ${t('pages.xray.Outbounds')}`,
-        subtitle: 'Freedom direct, blackhole, shadowsocks, socks outbounds',
-        keywords: ['outbound', 'خروجی', 'آتباند', 'freedom', 'direct', 'proxy outbounds'],
+        subtitle: t('pages.xray.Outbounds'),
+        keywords: ['outbound', 'freedom', 'direct', 'proxy outbounds'],
         icon: <ExportOutlined />,
       },
       {
         path: '/xray#routing',
-        title: `${t('menu.xray')} · ${t('pages.xray.basicRouting') || 'Routing Rules'}`,
-        subtitle: 'Traffic routing rules, geoip/geosite domain & IP rules',
-        keywords: [
-          'routing',
-          'قوانین مسیریابی',
-          'routing rules',
-          'geoip',
-          'geosite',
-          'block',
-          'direct',
-        ],
+        title: `${t('menu.xray')} · ${t('pages.xray.basicRouting')}`,
+        subtitle: t('pages.xray.basicRouting'),
+        keywords: ['routing', 'routing rules', 'geoip', 'geosite', 'block', 'direct'],
         icon: <SwapOutlined />,
       },
       {
         path: '/xray#advanced',
         title: `${t('menu.xray')} · ${t('pages.xray.advancedTemplate')}`,
-        subtitle: 'Raw JSON configuration template for Xray Core',
-        keywords: ['advanced', 'قالب پیشرفته', 'json template', 'advanced config', 'custom json'],
+        subtitle: t('pages.xray.advancedTemplate'),
+        keywords: ['advanced', 'json template', 'advanced config', 'custom json'],
         icon: <CodeOutlined />,
       },
     ];
@@ -599,27 +503,27 @@ export default function CommandPalette() {
       {
         id: 'act-restart-xray',
         category: 'actions',
-        title: t('pages.index.toasts.restartedXray') || 'Restart Xray Service',
-        subtitle: 'Hot-restart Xray Core backend',
-        keywords: ['restart', 'ری‌استارت', 'راه‌اندازی مجدد', 'xray restart', 'reboot xray'],
+        title: t('commandPalette.restartXray'),
+        subtitle: t('pages.index.restartXray'),
+        keywords: ['restart', 'xray restart', 'reboot xray'],
         icon: <ReloadOutlined style={{ color: '#faad14' }} />,
         action: restartXray,
       },
       {
         id: 'act-cycle-theme',
         category: 'actions',
-        title: 'Cycle Theme (Light → Dark → Ultra)',
-        subtitle: `Currently: ${isUltra ? 'Ultra Dark' : isDark ? 'Dark' : 'Light'}`,
-        keywords: ['theme', 'تم', 'تغییر تم', 'light', 'dark', 'ultra', 'روشن', 'تاریک'],
+        title: t('menu.theme'),
+        subtitle: isUltra ? 'Ultra Dark' : isDark ? 'Dark' : 'Light',
+        keywords: ['theme', 'light', 'dark', 'ultra'],
         icon: isDark ? <SunOutlined /> : <MoonOutlined />,
         action: cycleTheme,
       },
       {
         id: 'act-toggle-theme',
         category: 'actions',
-        title: isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme',
-        subtitle: isDark ? 'Light mode (white)' : 'Dark mode',
-        keywords: ['light', 'dark', 'روشن', 'تاریک', 'تم'],
+        title: isDark ? 'Light Theme' : 'Dark Theme',
+        subtitle: isDark ? 'Light' : 'Dark',
+        keywords: ['theme', 'light', 'dark'],
         icon: isDark ? (
           <SunOutlined style={{ color: '#faad14' }} />
         ) : (
@@ -633,9 +537,9 @@ export default function CommandPalette() {
       {
         id: 'act-add-inbound',
         category: 'actions',
-        title: 'New Inbound',
-        subtitle: 'Create a new proxy port/protocol',
-        keywords: ['add inbound', 'اینباند جدید', 'پورت جدید', 'create inbound', 'new port'],
+        title: `${t('actions')} · ${t('menu.inbounds')}`,
+        subtitle: t('menu.inbounds'),
+        keywords: ['add inbound', 'create inbound', 'new port', 'new inbound'],
         icon: <PlusOutlined style={{ color: '#52c41a' }} />,
         action: () => {
           close();
@@ -645,9 +549,9 @@ export default function CommandPalette() {
       {
         id: 'act-add-client',
         category: 'actions',
-        title: 'New Client',
-        subtitle: 'Create a new user account',
-        keywords: ['add client', 'کلاینت جدید', 'کاربر جدید', 'create user', 'new client'],
+        title: `${t('actions')} · ${t('menu.clients')}`,
+        subtitle: t('menu.clients'),
+        keywords: ['add client', 'create user', 'new client', 'new user'],
         icon: <PlusOutlined style={{ color: '#52c41a' }} />,
         action: () => {
           close();
@@ -718,7 +622,7 @@ export default function CommandPalette() {
         className={`command-palette-modal ${themeModeClass}`}
         role="dialog"
         aria-modal="true"
-        aria-label={t('commandPalette.title') || 'Command Palette'}
+        aria-label={t('commandPalette.title')}
       >
         <div className="command-palette-header">
           {isClientSearching ? (
@@ -730,14 +634,17 @@ export default function CommandPalette() {
             ref={inputRef}
             className="command-palette-input"
             type="text"
-            placeholder={
-              t('commandPalette.placeholder') ||
-              'Type a command or search clients, inbounds, pages...'
-            }
+            placeholder={t('commandPalette.placeholder')}
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
-              setLoadingClients(e.target.value.trim().length > 0);
+              const val = e.target.value;
+              setQuery(val);
+              if (val.trim().length === 0) {
+                setLoadingClients(false);
+                setClients([]);
+              } else {
+                setLoadingClients(true);
+              }
             }}
             onKeyDown={handleKeyDown}
           />
@@ -758,10 +665,10 @@ export default function CommandPalette() {
                 : item.category === 'inbounds'
                   ? t('menu.inbounds')
                   : item.category === 'navigation'
-                    ? t('commandPalette.navigation') || 'Navigation'
+                    ? t('commandPalette.navigation')
                     : item.category === 'settings'
-                      ? t('menu.settings') || 'Settings & Sections'
-                      : t('commandPalette.actions') || 'Actions';
+                      ? t('menu.settings')
+                      : t('commandPalette.actions');
 
             return (
               <div key={item.id} className="command-palette-group">
@@ -816,11 +723,11 @@ export default function CommandPalette() {
             <span>
               <kbd className="command-palette-kbd">↑</kbd>
               <kbd className="command-palette-kbd">↓</kbd>
-              {t('commandPalette.navigate') || 'Navigate'}
+              {t('commandPalette.navigate')}
             </span>
             <span>
               <kbd className="command-palette-kbd">↵</kbd>
-              {t('commandPalette.select') || 'Select'}
+              {t('commandPalette.select')}
             </span>
             <span>
               <kbd className="command-palette-kbd">Esc</kbd>
