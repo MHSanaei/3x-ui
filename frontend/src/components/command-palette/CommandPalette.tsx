@@ -98,6 +98,22 @@ export default function CommandPalette() {
     };
   }, [isOpen, close]);
 
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setQuery('');
+      setClients([]);
+      setActiveIndex(0);
+    }
+  }
+
+  const [prevDebouncedQuery, setPrevDebouncedQuery] = useState(debouncedQuery);
+  if (debouncedQuery !== prevDebouncedQuery) {
+    setPrevDebouncedQuery(debouncedQuery);
+    setActiveIndex(0);
+  }
+
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -245,9 +261,7 @@ export default function CommandPalette() {
         tag: ib.protocol ? <Tag color="blue">{ib.protocol.toUpperCase()}</Tag> : undefined,
         action: () => {
           close();
-          navigate(
-            `/inbounds?search=${encodeURIComponent(ib.tag || ib.remark || String(ib.port || ''))}`,
-          );
+          navigate(`/inbounds?search=${encodeURIComponent(ib.remark || String(ib.port || ''))}`);
         },
       });
     });
@@ -454,8 +468,8 @@ export default function CommandPalette() {
       },
       {
         path: '/xray#dns',
-        title: `${t('menu.xray')} · ${t('pages.xray.dnsServer')}`,
-        subtitle: t('pages.xray.dnsServer'),
+        title: `${t('menu.xray')} · DNS`,
+        subtitle: 'DNS',
         keywords: ['dns', 'dns servers', 'hosts', 'doh', 'dot', 'cloudflare dns'],
         icon: <DatabaseOutlined />,
       },
@@ -537,7 +551,7 @@ export default function CommandPalette() {
       {
         id: 'act-add-inbound',
         category: 'actions',
-        title: `${t('actions')} · ${t('menu.inbounds')}`,
+        title: `${t('commandPalette.actions')} · ${t('menu.inbounds')}`,
         subtitle: t('menu.inbounds'),
         keywords: ['add inbound', 'create inbound', 'new port', 'new inbound'],
         icon: <PlusOutlined style={{ color: '#52c41a' }} />,
@@ -549,7 +563,7 @@ export default function CommandPalette() {
       {
         id: 'act-add-client',
         category: 'actions',
-        title: `${t('actions')} · ${t('menu.clients')}`,
+        title: `${t('commandPalette.actions')} · ${t('menu.clients')}`,
         subtitle: t('menu.clients'),
         keywords: ['add client', 'create user', 'new client', 'new user'],
         icon: <PlusOutlined style={{ color: '#52c41a' }} />,
