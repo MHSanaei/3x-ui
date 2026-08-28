@@ -370,10 +370,10 @@ install_acme() {
 install_tuic_server() {
     local target_arch=""
     case "$(arch)" in
-        amd64|x86_64) target_arch="x86_64-unknown-linux-gnu" ;;
-        arm64|aarch64) target_arch="aarch64-unknown-linux-gnu" ;;
-        armv7|armv7l) target_arch="armv7-unknown-linux-gnueabihf" ;;
-        386|i386|i686) target_arch="i686-unknown-linux-gnu" ;;
+        amd64|x86_64) target_arch="x86_64-unknown-linux-musl" ;;
+        arm64|aarch64) target_arch="aarch64-unknown-linux-musl" ;;
+        armv7|armv7l) target_arch="armv7-unknown-linux-musleabihf" ;;
+        386|i386|i686) target_arch="i686-unknown-linux-musl" ;;
         armv6|armv6l|armv5|armv5l|s390x)
             echo -e "${yellow}tuic-server does not provide prebuilt binaries for $(arch); TUIC inbounds will be unavailable on this machine${plain}"
             return 0

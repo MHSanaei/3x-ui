@@ -769,7 +769,7 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 			continue
 		}
 		inst, ok := tuic.InstanceFromInbound(inbound)
-		if !ok || !inst.RouteThroughXray || inst.XrayRoutePort <= 0 || inbound.Tag == "" {
+		if !ok || inbound.Tag == "" {
 			continue
 		}
 		if _, taken := existingTags[inbound.Tag]; taken {
@@ -806,7 +806,7 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 		existingTags[inbound.Tag] = struct{}{}
 		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
 			Listen:   json_util.RawMessage(`"127.0.0.1"`),
-			Port:     inst.XrayRoutePort,
+			Port:     tuic.SOCKSPortForInbound(inbound.Id),
 			Protocol: "socks",
 			Settings: json_util.RawMessage(string(settingsBytes)),
 			Tag:      inbound.Tag,

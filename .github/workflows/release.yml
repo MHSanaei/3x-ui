@@ -182,23 +182,23 @@ jobs:
           esac
           case "${{ matrix.platform }}" in
             amd64)
-              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-unknown-linux-gnu"
-              mv "tuic-server-1.0.0-x86_64-unknown-linux-gnu" "tuic-server"
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-unknown-linux-musl"
+              mv "tuic-server-1.0.0-x86_64-unknown-linux-musl" "tuic-server"
               chmod +x "tuic-server"
               ;;
             arm64)
-              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-aarch64-unknown-linux-gnu"
-              mv "tuic-server-1.0.0-aarch64-unknown-linux-gnu" "tuic-server"
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-aarch64-unknown-linux-musl"
+              mv "tuic-server-1.0.0-aarch64-unknown-linux-musl" "tuic-server"
               chmod +x "tuic-server"
               ;;
             armv7)
-              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-armv7-unknown-linux-gnueabihf"
-              mv "tuic-server-1.0.0-armv7-unknown-linux-gnueabihf" "tuic-server"
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-armv7-unknown-linux-musleabihf"
+              mv "tuic-server-1.0.0-armv7-unknown-linux-musleabihf" "tuic-server"
               chmod +x "tuic-server"
               ;;
             386)
-              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-i686-unknown-linux-gnu"
-              mv "tuic-server-1.0.0-i686-unknown-linux-gnu" "tuic-server"
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-i686-unknown-linux-musl"
+              mv "tuic-server-1.0.0-i686-unknown-linux-musl" "tuic-server"
               chmod +x "tuic-server"
               ;;
           esac
@@ -331,7 +331,7 @@ jobs:
           Remove-Item -Recurse -Force "mtg-tmp", "$MTG_PKG.zip"
 
           # TUIC sidecar for Windows
-          curl.exe -sfLRo "tuic-windows-amd64.exe" --retry 5 --retry-all-errors --retry-delay 3 "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-pc-windows-msvc.exe"
+          curl.exe -sfLRo "tuic-server-windows-amd64.exe" --retry 5 --retry-all-errors --retry-delay 3 "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-pc-windows-msvc.exe"
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse
