@@ -1,0 +1,573 @@
+/* ==========================================================================
+   Command Palette Backdrop & Modal
+   ========================================================================== */
+
+.command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: cp-fade-in 0.15s ease-out;
+}
+
+.command-palette-backdrop.light {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.command-palette-backdrop.ultra {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+@keyframes cp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.command-palette-modal {
+  position: relative;
+  width: 680px;
+  max-width: 92vw;
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  animation: cp-scale-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+@keyframes cp-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Theme-Specific Container Styles
+   -------------------------------------------------------------------------- */
+
+/* Light Theme */
+.command-palette-modal.light,
+body.light .command-palette-modal {
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f1f1f;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Dark Theme */
+.command-palette-modal.dark,
+body.dark .command-palette-modal {
+  background: rgba(35, 37, 43, 0.95);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.65),
+    0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Ultra Dark Theme */
+.command-palette-modal.ultra,
+html[data-theme='ultra-dark'] .command-palette-modal {
+  background: rgba(16, 16, 19, 0.98);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.9);
+}
+
+/* --------------------------------------------------------------------------
+   Header & Search Input
+   -------------------------------------------------------------------------- */
+
+.command-palette-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 14px;
+  border-bottom: 1px solid;
+}
+
+.command-palette-modal.light .command-palette-header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.command-palette-modal.dark .command-palette-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.command-palette-modal.ultra .command-palette-header {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.command-palette-search-icon {
+  font-size: 24px;
+  width: 28px;
+  height: 28px;
+  color: #1677ff;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.command-palette-search-icon.spinning {
+  color: #1677ff;
+  animation: cp-spin 0.8s linear infinite;
+}
+
+@keyframes cp-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.command-palette-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 16.5px;
+  font-weight: 400;
+  font-family: inherit;
+  letter-spacing: -0.2px;
+}
+
+.command-palette-modal.light .command-palette-input {
+  color: #1f1f1f;
+}
+
+.command-palette-modal.light .command-palette-input::placeholder {
+  color: #8c8c8c;
+}
+
+.command-palette-modal.dark .command-palette-input,
+.command-palette-modal.ultra .command-palette-input {
+  color: #ffffff;
+}
+
+.command-palette-modal.dark .command-palette-input::placeholder,
+.command-palette-modal.ultra .command-palette-input::placeholder {
+  color: #737373;
+}
+
+/* --------------------------------------------------------------------------
+   Body & Scrollbar
+   -------------------------------------------------------------------------- */
+
+.command-palette-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  max-height: calc(72vh - 116px);
+  scrollbar-width: thin;
+}
+
+/* Scrollbar Harmonization */
+.command-palette-modal.light .command-palette-body {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.command-palette-modal.dark .command-palette-body,
+.command-palette-modal.ultra .command-palette-body {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.command-palette-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.command-palette-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.command-palette-modal.light .command-palette-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.command-palette-modal.light .command-palette-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.command-palette-modal.dark .command-palette-body::-webkit-scrollbar-thumb,
+.command-palette-modal.ultra .command-palette-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.command-palette-modal.dark .command-palette-body::-webkit-scrollbar-thumb:hover,
+.command-palette-modal.ultra .command-palette-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   Groups & Items
+   -------------------------------------------------------------------------- */
+
+.command-palette-group {
+  margin-bottom: 8px;
+}
+
+.command-palette-group-title {
+  padding: 6px 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.command-palette-modal.light .command-palette-group-title {
+  color: #8c8c8c;
+}
+
+.command-palette-modal.dark .command-palette-group-title,
+.command-palette-modal.ultra .command-palette-group-title {
+  color: #8c8c8c;
+}
+
+.command-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: start;
+  font-family: inherit;
+  color: inherit;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+  user-select: none;
+}
+
+/* Item Active & Hover States */
+.command-palette-modal.light .command-palette-item.active {
+  background: #e6f4ff;
+  color: #0958d9;
+}
+
+.command-palette-modal.dark .command-palette-item.active {
+  background: rgba(22, 119, 255, 0.2);
+  color: #4096ff;
+}
+
+.command-palette-modal.ultra .command-palette-item.active {
+  background: rgba(22, 119, 255, 0.28);
+  color: #69b1ff;
+}
+
+.command-palette-item-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.command-palette-item-icon {
+  font-size: 20px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.command-palette-item-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.command-palette-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.command-palette-item-subtitle {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.command-palette-modal.light .command-palette-item-subtitle {
+  color: #8c8c8c;
+}
+
+.command-palette-modal.dark .command-palette-item-subtitle,
+.command-palette-modal.ultra .command-palette-item-subtitle {
+  color: #8c8c8c;
+}
+
+.command-palette-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: 12px;
+  flex-shrink: 0;
+}
+
+/* Secondary Action Button (e.g. Copy Subscription) */
+.command-palette-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.15s ease;
+}
+
+.command-palette-modal.light .command-palette-action-btn {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.command-palette-modal.light .command-palette-action-btn:hover {
+  color: #0958d9;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.command-palette-modal.dark .command-palette-action-btn {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.command-palette-modal.dark .command-palette-action-btn:hover {
+  color: #4096ff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.command-palette-modal.ultra .command-palette-action-btn {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.command-palette-modal.ultra .command-palette-action-btn:hover {
+  color: #69b1ff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.command-palette-item.active .command-palette-action-btn {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.command-palette-item.active .command-palette-action-btn:hover {
+  opacity: 1;
+}
+
+.command-palette-tooltip {
+  z-index: 2500 !important;
+}
+
+.command-palette-empty {
+  padding: 36px 16px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.command-palette-modal.light .command-palette-empty {
+  color: #8c8c8c;
+}
+
+.command-palette-modal.dark .command-palette-empty,
+.command-palette-modal.ultra .command-palette-empty {
+  color: #8c8c8c;
+}
+
+/* --------------------------------------------------------------------------
+   Footer & Keyboard Badges
+   -------------------------------------------------------------------------- */
+
+.command-palette-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  font-size: 11.5px;
+  border-top: 1px solid;
+}
+
+.command-palette-modal.light .command-palette-footer {
+  background: #fafafa;
+  border-top-color: rgba(0, 0, 0, 0.08);
+  color: #8c8c8c;
+}
+
+.command-palette-modal.dark .command-palette-footer {
+  background: rgba(21, 22, 26, 0.95);
+  border-top-color: rgba(255, 255, 255, 0.08);
+  color: #8c8c8c;
+}
+
+.command-palette-modal.ultra .command-palette-footer {
+  background: #050507;
+  border-top-color: rgba(255, 255, 255, 0.12);
+  color: #8c8c8c;
+}
+
+.command-palette-kbd-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.command-palette-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 4px;
+  margin-inline-end: 4px;
+}
+
+.command-palette-modal.light .command-palette-kbd {
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  color: #595959;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.command-palette-modal.dark .command-palette-kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #d9d9d9;
+}
+
+.command-palette-modal.ultra .command-palette-kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar Trigger Button
+   -------------------------------------------------------------------------- */
+
+.sidebar-command-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 16px);
+  margin: 8px 8px 4px;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+body.light .sidebar-command-trigger {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #595959;
+}
+
+body.light .sidebar-command-trigger:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #1f1f1f;
+}
+
+body.dark .sidebar-command-trigger {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #8c8c8c;
+}
+
+body.dark .sidebar-command-trigger:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.sidebar-command-trigger .sidebar-command-icon {
+  font-size: 15px;
+}
+
+.sidebar-command-trigger .sidebar-command-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 4px;
+  user-select: none;
+}
+
+.sidebar-command-trigger .sidebar-command-kbd .kbd-cmd {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 10px;
+  line-height: 1;
+  display: inline-block;
+  opacity: 0.9;
+}
+
+.sidebar-command-trigger .sidebar-command-kbd .kbd-key {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-block;
+}
+
+body.light .sidebar-command-trigger .sidebar-command-kbd {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #595959;
+}
+
+body.dark .sidebar-command-trigger .sidebar-command-kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #d9d9d9;
+}
+
+body.dark .sidebar-command-trigger:hover .sidebar-command-kbd {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}

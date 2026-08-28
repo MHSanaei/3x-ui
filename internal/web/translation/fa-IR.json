@@ -2248,5 +2248,15 @@
     "statusFailed": "ناموفق",
     "statusDown": "قطع",
     "statusUp": "وصل"
+  },
+  "commandPalette": {
+    "title": "پالت دستورات",
+    "placeholder": "جستجوی کلاینت‌ها، اینباندها، صفحات یا تایپ دستور...",
+    "search": "جستجو...",
+    "navigation": "ناوبری و صفحات",
+    "actions": "دستورات سیستمی",
+    "navigate": "پیمایش",
+    "select": "انتخاب",
+    "copySubscription": "کپی لینک اشتراک"
   }
 }
