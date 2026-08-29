@@ -25,6 +25,8 @@ interface OverviewActionBarProps {
   panelVersion: string;
   latestVersion: string;
   updateAvailable: boolean;
+  awgEngineVersion?: string;
+  awgEngineLatestVersion?: string;
   onStopXray: () => void;
   onRestartXray: () => void;
   onOpenLogs: () => void;
@@ -59,6 +61,8 @@ export default function OverviewActionBar({
   panelVersion,
   latestVersion,
   updateAvailable,
+  awgEngineVersion,
+  awgEngineLatestVersion,
   onStopXray,
   onRestartXray,
   onOpenLogs,
@@ -143,6 +147,8 @@ export default function OverviewActionBar({
     ],
   ];
 
+  const awgHasNewerEngine = !!awgEngineLatestVersion && awgEngineLatestVersion !== awgEngineVersion;
+
   const statePill = (
     <span className="ov-state" data-state={status.xray.state}>
       <span className="ov-state-dot" style={{ color: status.xray.color }} />
@@ -181,6 +187,31 @@ export default function OverviewActionBar({
           <button type="button" className="ov-panel-version ov-mono" onClick={onOpenPanelUpdate}>
             {formatPanelVersion(panelVersion)}
           </button>
+        </Tooltip>
+      )}
+
+      {awgEngineVersion && (
+        <Tooltip
+          title={
+            awgHasNewerEngine
+              ? `${t('pages.index.awgEngineLatestVersion')}: ${awgEngineLatestVersion}`
+              : t('pages.index.awgEngineVersion')
+          }
+        >
+          {awgHasNewerEngine ? (
+            <Tag
+              className="ov-update-tag"
+              color="purple"
+              icon={<ApiOutlined />}
+              onClick={onOpenPanelUpdate}
+            >
+              {`AmneziaWG ${awgEngineVersion}`}
+            </Tag>
+          ) : (
+            <button type="button" className="ov-panel-version ov-mono" onClick={onOpenPanelUpdate}>
+              {`AmneziaWG ${awgEngineVersion}`}
+            </button>
+          )}
         </Tooltip>
       )}
 

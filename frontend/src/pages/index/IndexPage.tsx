@@ -200,6 +200,8 @@ export default function IndexPage() {
                     panelVersion={displayVersion}
                     latestVersion={panelUpdateInfo.latestVersion}
                     updateAvailable={panelUpdateInfo.updateAvailable}
+                    awgEngineVersion={panelUpdateInfo.awgEngineVersion}
+                    awgEngineLatestVersion={panelUpdateInfo.awgEngineLatestVersion}
                     onStopXray={stopXray}
                     onRestartXray={restartXray}
                     onOpenLogs={() => setLogsOpen(true)}
