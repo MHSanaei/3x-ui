@@ -1378,7 +1378,7 @@
         "adGuardCredentialsHint": "The password must be at least 8 characters. AdGuard Home is restarted so the new login takes effect, so DNS is unanswered for a couple of seconds.",
         "adGuardCredentialsToast": "AdGuard Home login and password changed",
         "adGuardFilterDns": "Resolve client names through AdGuard Home",
-        "adGuardFilterDnsHint": "The core starts resolving names through AdGuard Home, so its blocklists cover every client with no client-side setup. This switches the direct outbound to UseIP: the server resolves instead of the client, so a CDN may return an edge that is not the closest one to them. If AdGuard Home is stopped, resolution falls back to a public server — the internet keeps working, but nothing is filtered. Takes effect after Xray restarts."
+        "adGuardFilterDnsHint": "The core starts resolving names through AdGuard Home, so its blocklists cover every client with no client-side setup. This switches the direct outbound to UseIP: the server resolves instead of the client, so a CDN may return an edge that is not the closest one to them. If AdGuard Home is stopped, resolution falls back to a public server — the internet keeps working, but nothing is filtered. Saving restarts Xray for you."
       },
       "subSettings": "Subscription",
       "subEnable": "Subscription Service",

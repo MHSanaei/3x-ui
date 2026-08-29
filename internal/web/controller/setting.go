@@ -128,6 +128,7 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	allSetting := &form.AllSetting
 	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
 	oldPanelOutbound, _ := a.settingService.GetPanelOutbound()
+	oldAdGuardFilterDNS, _ := a.settingService.GetAdGuardFilterDNS()
 	oldTgEnable, _ := a.settingService.GetTgbotEnabled()
 	oldTgToken, _ := a.settingService.GetTgBotToken()
 	oldTgChatId, _ := a.settingService.GetTgBotChatId()
@@ -168,6 +169,15 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		// hot-appliable, so this normally does not restart Xray.
 		if applyErr := a.xrayService.RestartXray(false); applyErr != nil {
 			logger.Warning("apply panel outbound change failed:", applyErr)
+		}
+	}
+	if err == nil && allSetting.AdguardFilterDns != oldAdGuardFilterDNS {
+		// The dns section and the direct outbound's domainStrategy are both
+		// baked into the generated config, so the toggle does nothing until the
+		// core is handed a new one. Saving it and leaving the old config running
+		// looks exactly like the feature being broken.
+		if applyErr := a.xrayService.RestartXray(false); applyErr != nil {
+			logger.Warning("apply AdGuard Home DNS change failed:", applyErr)
 		}
 	}
 	// UpdateAllSetting already restored a redacted-blank token, so allSetting.TgBotToken is the effective value to compare.
