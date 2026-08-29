@@ -339,6 +339,8 @@ func (a *XraySettingController) adGuard(c *gin.Context) {
 		err = a.AdGuardService.Start()
 	case "stop":
 		err = a.AdGuardService.Stop()
+	case "credentials":
+		err = a.AdGuardService.SetCredentials(c.PostForm("user"), c.PostForm("password"))
 	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.adGuard"), err)

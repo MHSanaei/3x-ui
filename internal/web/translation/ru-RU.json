@@ -1249,7 +1249,12 @@
         "adGuardRemoveConfirm": "Удалить AdGuard Home вместе с его настройками и фильтрами?",
         "adGuardLogin": "Вход в админку",
         "adGuardDoh": "DNS-over-HTTPS для клиентов",
-        "adGuardPorts": "Локально: админка на порту {web}, DNS на порту {dns}. Оба слушают только 127.0.0.1."
+        "adGuardPorts": "Локально: админка на порту {web}, DNS на порту {dns}. Оба слушают только 127.0.0.1.",
+        "adGuardUserPlaceholder": "Логин",
+        "adGuardPasswordPlaceholder": "Новый пароль",
+        "adGuardApplyCredentials": "Сменить вход",
+        "adGuardCredentialsHint": "Пароль — минимум 8 символов. AdGuard Home будет перезапущен, чтобы новый вход вступил в силу: DNS не отвечает пару секунд.",
+        "adGuardCredentialsToast": "Логин и пароль AdGuard Home изменены"
       },
       "subSettings": "Подписка",
       "subEnable": "Включить подписку",

@@ -1371,7 +1371,12 @@
         "adGuardRemoveConfirm": "Remove AdGuard Home along with its settings and filters?",
         "adGuardLogin": "Admin login",
         "adGuardDoh": "DNS-over-HTTPS for clients",
-        "adGuardPorts": "Locally: admin UI on port {web}, DNS on port {dns}. Both listen on 127.0.0.1 only."
+        "adGuardPorts": "Locally: admin UI on port {web}, DNS on port {dns}. Both listen on 127.0.0.1 only.",
+        "adGuardUserPlaceholder": "Username",
+        "adGuardPasswordPlaceholder": "New password",
+        "adGuardApplyCredentials": "Change login",
+        "adGuardCredentialsHint": "The password must be at least 8 characters. AdGuard Home is restarted so the new login takes effect, so DNS is unanswered for a couple of seconds.",
+        "adGuardCredentialsToast": "AdGuard Home login and password changed"
       },
       "subSettings": "Subscription",
       "subEnable": "Subscription Service",

@@ -43,6 +43,9 @@ func (s *AdGuardService) Status() AdGuardStatus {
 		User:      adguard.AdminUser,
 		LastLog:   adguard.GetManager().LastResult(),
 	}
+	if user, err := adguard.CurrentUser(); err == nil {
+		status.User = user
+	}
 	status.Password, _ = s.GetAdGuardPassword()
 	if mode, err := s.GetFrontProxyDecoyMode(); err == nil {
 		status.IsDecoy = frontproxy.DecoyMode(mode) == frontproxy.DecoyAdGuard
@@ -106,6 +109,18 @@ func (s *AdGuardService) Install() error {
 		return err
 	}
 	return (&FrontProxyService{}).Reload()
+}
+
+// SetCredentials changes the AdGuard Home account the admin logs in with.
+//
+// The password is stored here as well as hashed into AdGuard Home's config,
+// for the same reason the generated one is: AdGuard Home keeps only a bcrypt
+// hash, so this is the only place it can be looked up again afterwards.
+func (s *AdGuardService) SetCredentials(user, password string) error {
+	if err := adguard.GetManager().SetCredentials(user, password); err != nil {
+		return err
+	}
+	return s.SetAdGuardPassword(password)
 }
 
 // Uninstall stops AdGuard Home, deletes it along with its config and filters,

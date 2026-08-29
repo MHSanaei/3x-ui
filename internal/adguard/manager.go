@@ -28,6 +28,9 @@ type configView struct {
 	DNS struct {
 		Port int `yaml:"port"`
 	} `yaml:"dns"`
+	Users []struct {
+		Name string `yaml:"name"`
+	} `yaml:"users"`
 }
 
 func readConfig() (configView, error) {
@@ -87,6 +90,20 @@ func DNSPort() (int, error) {
 	return cfg.DNS.Port, nil
 }
 
+// CurrentUser returns the account name AdGuard Home will accept, read from its
+// config so it stays right whether the name was changed from this panel or
+// from AdGuard Home's own settings page.
+func CurrentUser() (string, error) {
+	cfg, err := readConfig()
+	if err != nil {
+		return "", err
+	}
+	if len(cfg.Users) == 0 || cfg.Users[0].Name == "" {
+		return "", fmt.Errorf("%s has no account", ConfigPath())
+	}
+	return cfg.Users[0].Name, nil
+}
+
 // IsConfigured reports whether a seeded config is present, which together with
 // IsInstalled is what the settings UI checks before offering to start.
 func IsConfigured() bool {
@@ -116,6 +133,10 @@ func GetManager() *Manager {
 func (m *Manager) Start() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	return m.startLocked()
+}
+
+func (m *Manager) startLocked() error {
 	if m.proc != nil && m.proc.IsRunning() {
 		return nil
 	}
@@ -161,6 +182,10 @@ func waitForListener(addr string, proc *Process) error {
 func (m *Manager) Stop() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	return m.stopLocked()
+}
+
+func (m *Manager) stopLocked() error {
 	if m.proc == nil || !m.proc.IsRunning() {
 		m.proc = nil
 		return nil
@@ -168,6 +193,43 @@ func (m *Manager) Stop() error {
 	err := m.proc.Stop()
 	m.proc = nil
 	return err
+}
+
+// SetCredentials replaces the AdGuard Home account, restarting it if it was
+// running so the new password actually takes effect.
+//
+// The stop is not optional. AdGuard Home keeps its whole configuration in
+// memory and rewrites the file whenever anything changes, so an edit applied
+// underneath a live instance can simply be overwritten again -- leaving an
+// admin locked out with a password the panel believes it set. Holding the
+// manager lock for the whole sequence keeps a concurrent Start or Stop from
+// interleaving with it.
+func (m *Manager) SetCredentials(user, password string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !IsConfigured() {
+		return fmt.Errorf("AdGuard Home is not installed")
+	}
+	wasRunning := m.proc != nil && m.proc.IsRunning()
+	if wasRunning {
+		if err := m.stopLocked(); err != nil {
+			return err
+		}
+	}
+	if err := writeCredentials(user, password); err != nil {
+		// Bring it back up on a failed edit: the config is untouched, so the
+		// admin is better off with the service running than silently down.
+		if wasRunning {
+			if startErr := m.startLocked(); startErr != nil {
+				logger.Warningf("adguard: could not restart after a failed credential change: %v", startErr)
+			}
+		}
+		return err
+	}
+	if !wasRunning {
+		return nil
+	}
+	return m.startLocked()
 }
 
 // StopAll stops the managed process. Matches the StopAll() shape of the other

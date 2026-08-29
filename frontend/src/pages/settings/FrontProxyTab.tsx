@@ -70,6 +70,8 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
   const [loading, setLoading] = useState(false);
   const [adGuard, setAdGuard] = useState<AdGuardStatus | null>(null);
   const [adGuardLoading, setAdGuardLoading] = useState(false);
+  const [credUser, setCredUser] = useState('');
+  const [credPassword, setCredPassword] = useState('');
 
   const fetchStatus = useCallback(async () => {
     const msg = await HttpUtil.post<FrontProxyStatus>('/panel/api/xray/frontproxy/status');
@@ -88,6 +90,10 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
   useEffect(() => {
     fetchAdGuard();
   }, [fetchAdGuard]);
+
+  useEffect(() => {
+    if (adGuard?.user) setCredUser(adGuard.user);
+  }, [adGuard?.user]);
 
   useEffect(() => {
     if (status?.cert?.state !== 'obtaining') return;
@@ -155,6 +161,25 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
         await fetchAdGuard();
       }
       await fetchStatus();
+    } finally {
+      setAdGuardLoading(false);
+    }
+  }
+
+  async function applyCredentials() {
+    setAdGuardLoading(true);
+    try {
+      const msg = await HttpUtil.post<AdGuardStatus>('/panel/api/xray/adguard/credentials', {
+        user: credUser.trim(),
+        password: credPassword,
+      });
+      if (msg?.success) {
+        messageApi.success(t('pages.settings.frontProxy.adGuardCredentialsToast'));
+        setCredPassword('');
+        if (msg.obj) setAdGuard(msg.obj);
+      } else {
+        messageApi.error(msg?.msg || t('fail'));
+      }
     } finally {
       setAdGuardLoading(false);
     }
@@ -635,6 +660,31 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
                       web: adGuard.webPort,
                       dns: adGuard.dnsPort,
                     })}
+                  </Typography.Text>
+
+                  <Space wrap>
+                    <Input
+                      value={credUser}
+                      style={{ width: 180 }}
+                      placeholder={t('pages.settings.frontProxy.adGuardUserPlaceholder')}
+                      onChange={(e) => setCredUser(e.target.value)}
+                    />
+                    <Input.Password
+                      value={credPassword}
+                      style={{ width: 220 }}
+                      placeholder={t('pages.settings.frontProxy.adGuardPasswordPlaceholder')}
+                      onChange={(e) => setCredPassword(e.target.value)}
+                    />
+                    <Button
+                      loading={adGuardLoading}
+                      disabled={!credUser.trim() || credPassword.length < 8}
+                      onClick={applyCredentials}
+                    >
+                      {t('pages.settings.frontProxy.adGuardApplyCredentials')}
+                    </Button>
+                  </Space>
+                  <Typography.Text type="secondary">
+                    {t('pages.settings.frontProxy.adGuardCredentialsHint')}
                   </Typography.Text>
                 </Space>
               )}
