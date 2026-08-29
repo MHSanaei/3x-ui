@@ -1964,6 +1964,32 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/xray/adguard/:action',
+        summary:
+          'Manage the AdGuard Home instance the reverse proxy can serve as its decoy. Unlike the template decoys this is a real service, so the domain answers with a working admin UI and DNS-over-HTTPS.',
+        params: [
+          {
+            name: 'action',
+            in: 'path',
+            type: 'string',
+            desc: 'status — return {installed, running, webPort, dnsPort, user, password, isDecoy}. install — download the official release (verified against its published sha256), seed a config that skips the first-run wizard, start it and point the decoy at it. uninstall — stop and delete it, returning the decoy to a template. start / stop — control the running instance. credentials — replace the login, restarting AdGuard Home so it takes effect.',
+          },
+          {
+            name: 'user',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'credentials action only. The new account name. Rejected if empty, longer than 64 characters, padded with spaces, or carrying control characters.',
+          },
+          {
+            name: 'password',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'credentials action only. The new password, 8 to 128 characters. Stored as a bcrypt hash in AdGuard Home’s own config, and kept in panel settings so it can be looked up again.',
+          },
+        ],
+      },
+      {
+        method: 'POST',
         path: '/panel/api/xray/resetOutboundsTraffic',
         summary: 'Reset traffic counters for a specific outbound by tag.',
         params: [

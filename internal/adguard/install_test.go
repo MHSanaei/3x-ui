@@ -61,9 +61,13 @@ func checksumServer(t *testing.T, body string) *httptest.Server {
 
 func TestFetchChecksum(t *testing.T) {
 	want := "3b1f2c4d5e6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c"
+	// The real published file writes every name with a "./" prefix. Getting
+	// this wrong is not a theoretical risk: an earlier version compared the
+	// field verbatim and failed on the live release with "no checksum
+	// published", after passing a test that used the bare form.
 	body := "" +
-		"0000000000000000000000000000000000000000000000000000000000000000  AdGuardHome_linux_arm64.tar.gz\n" +
-		want + "  AdGuardHome_linux_amd64.tar.gz\n"
+		"0000000000000000000000000000000000000000000000000000000000000000  ./AdGuardHome_linux_arm64.tar.gz\n" +
+		want + "  ./AdGuardHome_linux_amd64.tar.gz\n"
 
 	t.Run("picks the line for the requested asset", func(t *testing.T) {
 		srv := checksumServer(t, body)
@@ -75,6 +79,21 @@ func TestFetchChecksum(t *testing.T) {
 			t.Errorf("checksum = %s, want %s", hex.EncodeToString(got), want)
 		}
 	})
+
+	// Neither form is what AdGuard Home currently publishes, but both are
+	// ordinary sha256sum output and cost nothing to accept.
+	for _, name := range []string{"AdGuardHome_linux_amd64.tar.gz", "*AdGuardHome_linux_amd64.tar.gz"} {
+		t.Run("accepts the name written as "+name, func(t *testing.T) {
+			srv := checksumServer(t, want+"  "+name+"\n")
+			got, err := fetchChecksumFrom(context.Background(), srv.Client(), srv.URL, "AdGuardHome_linux_amd64.tar.gz")
+			if err != nil {
+				t.Fatalf("fetchChecksumFrom: %v", err)
+			}
+			if hex.EncodeToString(got) != want {
+				t.Errorf("checksum = %s, want %s", hex.EncodeToString(got), want)
+			}
+		})
+	}
 
 	t.Run("refuses an asset with no published checksum", func(t *testing.T) {
 		srv := checksumServer(t, body)
@@ -104,18 +123,5 @@ func TestIsInstalled(t *testing.T) {
 	}
 	if !IsInstalled() {
 		t.Error("IsInstalled is false with a binary in place")
-	}
-}
-
-func TestEqualDigest(t *testing.T) {
-	a := []byte{1, 2, 3}
-	if !equalDigest(a, []byte{1, 2, 3}) {
-		t.Error("equalDigest reported identical digests as different")
-	}
-	if equalDigest(a, []byte{1, 2, 4}) {
-		t.Error("equalDigest reported differing digests as equal")
-	}
-	if equalDigest(a, []byte{1, 2}) {
-		t.Error("equalDigest ignored a length difference")
 	}
 }

@@ -1,6 +1,7 @@
 package adguard
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -163,19 +164,24 @@ func (m *Manager) startLocked() error {
 // waitForListener blocks until the address accepts a connection, giving up
 // early if the process died -- that error is far more useful than a timeout.
 func waitForListener(addr string, proc *Process) error {
-	deadline := time.Now().Add(startupTimeout)
-	for time.Now().Before(deadline) {
+	ctx, cancel := context.WithTimeout(context.Background(), startupTimeout)
+	defer cancel()
+	dialer := &net.Dialer{Timeout: time.Second}
+	for {
 		if !proc.IsRunning() {
 			return fmt.Errorf("AdGuard Home exited during startup: %s", proc.GetResult())
 		}
-		conn, err := net.DialTimeout("tcp", addr, time.Second)
+		conn, err := dialer.DialContext(ctx, "tcp", addr)
 		if err == nil {
 			_ = conn.Close()
 			return nil
 		}
-		time.Sleep(250 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("AdGuard Home did not start listening on %s: %s", addr, proc.GetResult())
+		case <-time.After(250 * time.Millisecond):
+		}
 	}
-	return fmt.Errorf("AdGuard Home did not start listening on %s: %s", addr, proc.GetResult())
 }
 
 // Stop stops AdGuard Home if it is running. A no-op when already stopped.

@@ -11,10 +11,12 @@ package adguard
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,6 +39,10 @@ const releaseBase = "https://github.com/AdguardTeam/AdGuardHome/releases/latest/
 // unexpected cannot fill the disk.
 const maxDownloadBytes = 128 << 20
 
+// binName is the file inside the release tarball, and what it is called on
+// disk once extracted.
+const binName = "AdGuardHome"
+
 // Dir is where the binary, its config and its data live, following the same
 // "sidecar owns a subdirectory of bin/" convention the Tor sidecar uses.
 func Dir() string { return config.GetBinFolderPath() + "/adguardhome" }
@@ -48,10 +54,6 @@ func BinPath() string { return filepath.Join(Dir(), binName) }
 // itself whenever the admin changes something in its own UI.
 func ConfigPath() string { return filepath.Join(Dir(), "AdGuardHome.yaml") }
 
-// binName is the file inside the release tarball, and what it is called on
-// disk once extracted.
-const binName = "AdGuardHome"
-
 // IsInstalled reports whether a usable binary is present, which is what the
 // settings UI shows next to the install button.
 func IsInstalled() bool {
@@ -59,17 +61,15 @@ func IsInstalled() bool {
 	return err == nil && info.Mode().IsRegular()
 }
 
-// assetName maps this build's architecture to the release asset AdGuard Home
-// publishes for it.
+func assetName() (string, error) { return assetNameFor(runtime.GOOS, runtime.GOARCH) }
+
+// assetNameFor is assetName with the platform passed in, so the mapping can be
+// tested for architectures this build is not running on.
 //
 // GOARCH "arm" covers armv5/v6/v7, which the release splits apart and Go gives
 // no runtime way to tell between. armv7 is the only one of the three still
 // found on hardware that runs a panel, so it is the assumption; an armv6 board
 // gets a clear exec-format failure rather than a silent wrong install.
-func assetName() (string, error) { return assetNameFor(runtime.GOOS, runtime.GOARCH) }
-
-// assetNameFor is assetName with the platform passed in, so the mapping can be
-// tested for architectures this build is not running on.
 func assetNameFor(goos, goarch string) (string, error) {
 	// Only the Linux builds are tarballs; the others ship as zip, and a panel
 	// serving a public decoy is a Linux deployment anyway.
@@ -128,6 +128,27 @@ func Install(ctx context.Context, client *http.Client) error {
 	return nil
 }
 
+// withBody issues one GET and hands the response body to fn.
+//
+// The body is read and closed inside this function rather than returned, so
+// there is exactly one place responsible for closing it no matter which caller
+// is fetching what.
+func withBody(ctx context.Context, client *http.Client, url string, fn func(io.Reader) error) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("cannot reach %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s returned HTTP %d", url, resp.StatusCode)
+	}
+	return fn(resp.Body)
+}
+
 // fetchChecksum pulls the release's checksums.txt and returns the digest
 // recorded for one asset. Verifying is worth the extra request: this ends with
 // executing whatever came back, so "it was HTTPS" is a weaker guarantee than
@@ -139,18 +160,32 @@ func fetchChecksum(ctx context.Context, client *http.Client, asset string) ([]by
 // fetchChecksumFrom is fetchChecksum with the release location passed in, so
 // the parsing can be tested without reaching GitHub.
 func fetchChecksumFrom(ctx context.Context, client *http.Client, base, asset string) ([]byte, error) {
-	body, err := get(ctx, client, base+"/checksums.txt")
+	var sum []byte
+	err := withBody(ctx, client, base+"/checksums.txt", func(body io.Reader) error {
+		raw, err := io.ReadAll(io.LimitReader(body, 1<<20))
+		if err != nil {
+			return fmt.Errorf("cannot read AdGuard Home checksums: %w", err)
+		}
+		sum, err = parseChecksum(string(raw), asset)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer body.Close()
-	raw, err := io.ReadAll(io.LimitReader(body, 1<<20))
-	if err != nil {
-		return nil, fmt.Errorf("cannot read AdGuard Home checksums: %w", err)
-	}
-	for _, line := range strings.Split(string(raw), "\n") {
+	return sum, nil
+}
+
+// parseChecksum finds one asset's digest in sha256sum-style output.
+func parseChecksum(raw, asset string) ([]byte, error) {
+	for _, line := range strings.Split(raw, "\n") {
 		fields := strings.Fields(line)
-		if len(fields) != 2 || strings.TrimPrefix(fields[1], "*") != asset {
+		if len(fields) != 2 {
+			continue
+		}
+		// AdGuard Home publishes the names as "./AdGuardHome_linux_amd64.tar.gz",
+		// and coreutils marks binary-mode entries with a leading "*". Comparing
+		// on the base name accepts both without having to predict which.
+		if path.Base(strings.TrimPrefix(fields[1], "*")) != asset {
 			continue
 		}
 		sum, err := hex.DecodeString(fields[0])
@@ -169,40 +204,36 @@ func fetchChecksumFrom(ctx context.Context, client *http.Client, base, asset str
 // exactly as published -- extraction happens as it downloads, and the result
 // is discarded by the caller if verification then fails.
 func downloadBinary(ctx context.Context, client *http.Client, asset string, want []byte, dst string) error {
-	body, err := get(ctx, client, releaseBase+"/"+asset)
-	if err != nil {
-		return err
-	}
-	defer body.Close()
+	return withBody(ctx, client, releaseBase+"/"+asset, func(body io.Reader) error {
+		digest := sha256.New()
+		counted := io.TeeReader(io.LimitReader(body, maxDownloadBytes+1), digest)
+		gz, err := gzip.NewReader(counted)
+		if err != nil {
+			return fmt.Errorf("AdGuard Home download is not a gzip archive: %w", err)
+		}
+		defer gz.Close()
 
-	digest := sha256.New()
-	counted := io.TeeReader(io.LimitReader(body, maxDownloadBytes+1), digest)
-	gz, err := gzip.NewReader(counted)
-	if err != nil {
-		return fmt.Errorf("AdGuard Home download is not a gzip archive: %w", err)
-	}
-	defer gz.Close()
-
-	if err := extractBinary(tar.NewReader(gz), dst); err != nil {
-		return err
-	}
-	// The tar reader stops at the entry it wanted, leaving the rest of the
-	// stream unread -- and unhashed. Drain it so the digest covers the whole
-	// published file rather than just its first entries.
-	if _, err := io.Copy(io.Discard, counted); err != nil {
-		return fmt.Errorf("cannot read AdGuard Home download: %w", err)
-	}
-	if got := digest.Sum(nil); !equalDigest(got, want) {
-		return fmt.Errorf("AdGuard Home download failed checksum verification (got %x, want %x)", got, want)
-	}
-	return nil
+		if err := extractBinary(tar.NewReader(gz), dst); err != nil {
+			return err
+		}
+		// The tar reader stops at the entry it wanted, leaving the rest of the
+		// stream unread -- and unhashed. Drain it so the digest covers the
+		// whole published file rather than just its first entries.
+		if _, err := io.Copy(io.Discard, counted); err != nil {
+			return fmt.Errorf("cannot read AdGuard Home download: %w", err)
+		}
+		if got := digest.Sum(nil); !bytes.Equal(got, want) {
+			return fmt.Errorf("AdGuard Home download failed checksum verification (got %x, want %x)", got, want)
+		}
+		return nil
+	})
 }
 
 // extractBinary writes the single executable entry out of the release tarball.
 func extractBinary(tr *tar.Reader, dst string) error {
 	for {
 		header, err := tr.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return fmt.Errorf("AdGuard Home archive contains no %s executable", binName)
 		}
 		if err != nil {
@@ -228,37 +259,6 @@ func extractBinary(tr *tar.Reader, dst string) error {
 		}
 		return nil
 	}
-}
-
-// equalDigest compares two digests. Not constant-time on purpose: both sides
-// come from the same fetch and neither is a secret.
-func equalDigest(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-// get issues one GET and returns the body, leaving it to the caller to close.
-func get(ctx context.Context, client *http.Client, url string) (io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("cannot reach %s: %w", url, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
-		return nil, fmt.Errorf("%s returned HTTP %d", url, resp.StatusCode)
-	}
-	return resp.Body, nil
 }
 
 // Uninstall stops the daemon and removes everything this package installed,

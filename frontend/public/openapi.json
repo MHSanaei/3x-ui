@@ -11944,6 +11944,47 @@
         }
       }
     },
+    "/panel/api/xray/adguard/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage the AdGuard Home instance the reverse proxy can serve as its decoy. Unlike the template decoys this is a real service, so the domain answers with a working admin UI and DNS-over-HTTPS.",
+        "operationId": "post_panel_api_xray_adguard_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "status — return {installed, running, webPort, dnsPort, user, password, isDecoy}. install — download the official release (verified against its published sha256), seed a config that skips the first-run wizard, start it and point the decoy at it. uninstall — stop and delete it, returning the decoy to a template. start / stop — control the running instance. credentials — replace the login, restarting AdGuard Home so it takes effect.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/resetOutboundsTraffic": {
       "post": {
         "tags": [
