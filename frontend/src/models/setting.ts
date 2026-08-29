@@ -115,7 +115,7 @@ export class AllSetting {
   frontProxyCertMode: 'manual' | 'auto' = 'manual';
   frontProxyDomain = '';
   frontProxyEmail = '';
-  frontProxyDecoyMode: 'template' | 'upload' | 'proxy' = 'template';
+  frontProxyDecoyMode: 'template' | 'upload' | 'proxy' | 'adguard' = 'template';
   frontProxyDecoyTemplate = 'maintenance';
   frontProxyDecoyProxyURL = '';
   hasTgBotToken = false;

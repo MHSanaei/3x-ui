@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/adguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
@@ -533,6 +534,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	}
 
+	// AdGuard Home goes up before the reverse proxy, since it may be what the
+	// proxy is about to serve as its decoy.
+	(&integration.AdGuardService{}).AutoStart()
+
 	// Same shape for the reverse proxy. AutoStart never returns an error: a
 	// proxy that cannot come up must not stop the panel itself from starting.
 	(&integration.FrontProxyService{}).AutoStart()
@@ -717,6 +722,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		amneziawgnet.GetManager().StopAll()
 		tor.GetManager().StopAll()
 		frontproxy.GetManager().StopAll()
+		adguard.GetManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

@@ -17,6 +17,7 @@ import {
   message,
 } from 'antd';
 import {
+  CloudDownloadOutlined,
   DeleteOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
@@ -51,20 +52,42 @@ interface FrontProxyStatus {
   cert: FrontProxyCertStatus;
 }
 
+interface AdGuardStatus {
+  installed: boolean;
+  running: boolean;
+  webPort: number;
+  dnsPort: number;
+  user: string;
+  password?: string;
+  isDecoy: boolean;
+  lastLog?: string;
+}
+
 export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyTabProps) {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const [status, setStatus] = useState<FrontProxyStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [adGuard, setAdGuard] = useState<AdGuardStatus | null>(null);
+  const [adGuardLoading, setAdGuardLoading] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     const msg = await HttpUtil.post<FrontProxyStatus>('/panel/api/xray/frontproxy/status');
     if (msg?.success && msg.obj) setStatus(msg.obj);
   }, []);
 
+  const fetchAdGuard = useCallback(async () => {
+    const msg = await HttpUtil.post<AdGuardStatus>('/panel/api/xray/adguard/status');
+    if (msg?.success && msg.obj) setAdGuard(msg.obj);
+  }, []);
+
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
+
+  useEffect(() => {
+    fetchAdGuard();
+  }, [fetchAdGuard]);
 
   useEffect(() => {
     if (status?.cert?.state !== 'obtaining') return;
@@ -86,6 +109,11 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
     const rooted = base.startsWith('/') ? base : `/${base}`;
     return `https://${domain}${rooted.endsWith('/') ? rooted : `${rooted}/`}panel/`;
   }, [allSetting.frontProxyDomain, allSetting.webBasePath]);
+
+  const dohURL = useMemo(() => {
+    const domain = (allSetting.frontProxyDomain ?? '').trim();
+    return domain ? `https://${domain}/dns-query` : '';
+  }, [allSetting.frontProxyDomain]);
 
   const subURIHasPort = useMemo(() => {
     const current = (allSetting.subURI ?? '').trim();
@@ -109,6 +137,26 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
       await fetchStatus();
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function dispatchAdGuard(
+    action: 'install' | 'uninstall' | 'start' | 'stop',
+    okKey: string,
+  ) {
+    setAdGuardLoading(true);
+    try {
+      const msg = await HttpUtil.post<AdGuardStatus>(`/panel/api/xray/adguard/${action}`);
+      if (msg?.success) {
+        messageApi.success(t(okKey));
+        if (msg.obj) setAdGuard(msg.obj);
+      } else {
+        messageApi.error(msg?.msg || t('fail'));
+        await fetchAdGuard();
+      }
+      await fetchStatus();
+    } finally {
+      setAdGuardLoading(false);
     }
   }
 
@@ -410,6 +458,7 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
             { value: 'template', label: t('pages.settings.frontProxy.decoyTemplateMode') },
             { value: 'upload', label: t('pages.settings.frontProxy.decoyUploadMode') },
             { value: 'proxy', label: t('pages.settings.frontProxy.decoyProxyMode') },
+            { value: 'adguard', label: t('pages.settings.frontProxy.decoyAdGuardMode') },
           ]}
         />
       </SettingListItem>
@@ -476,6 +525,122 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
             onChange={(e) => updateSetting({ frontProxyDecoyProxyURL: e.target.value })}
           />
         </SettingListItem>
+      )}
+
+      {allSetting.frontProxyDecoyMode === 'adguard' && (
+        <>
+          <Alert
+            type="info"
+            showIcon
+            style={{ margin: '0 20px 12px' }}
+            description={t('pages.settings.frontProxy.adGuardHint')}
+          />
+          <SettingListItem
+            paddings="small"
+            title={t('pages.settings.frontProxy.adGuard')}
+            description={t('pages.settings.frontProxy.adGuardDesc')}
+          >
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <Space wrap>
+                {!adGuard?.installed && (
+                  <Tag color="orange">{t('pages.settings.frontProxy.adGuardMissing')}</Tag>
+                )}
+                {adGuard?.installed && adGuard.running && (
+                  <Tag color="green">{t('pages.settings.frontProxy.adGuardRunning')}</Tag>
+                )}
+                {adGuard?.installed && !adGuard.running && (
+                  <Tag color="orange">{t('pages.settings.frontProxy.adGuardStopped')}</Tag>
+                )}
+                {!adGuard?.installed && (
+                  <Button
+                    type="primary"
+                    icon={<CloudDownloadOutlined />}
+                    loading={adGuardLoading}
+                    onClick={() =>
+                      dispatchAdGuard('install', 'pages.settings.frontProxy.adGuardInstalledToast')
+                    }
+                  >
+                    {t('pages.settings.frontProxy.adGuardInstallButton')}
+                  </Button>
+                )}
+                {adGuard?.installed && adGuard.running && (
+                  <Button
+                    danger
+                    icon={<PauseCircleOutlined />}
+                    loading={adGuardLoading}
+                    onClick={() =>
+                      dispatchAdGuard('stop', 'pages.settings.frontProxy.adGuardStoppedToast')
+                    }
+                  >
+                    {t('pages.settings.frontProxy.stopButton')}
+                  </Button>
+                )}
+                {adGuard?.installed && !adGuard.running && (
+                  <Button
+                    type="primary"
+                    icon={<PlayCircleOutlined />}
+                    loading={adGuardLoading}
+                    onClick={() =>
+                      dispatchAdGuard('start', 'pages.settings.frontProxy.adGuardStartedToast')
+                    }
+                  >
+                    {t('pages.settings.frontProxy.startButton')}
+                  </Button>
+                )}
+                {adGuard?.installed && (
+                  <Popconfirm
+                    title={t('pages.settings.frontProxy.adGuardRemoveConfirm')}
+                    okText={t('delete')}
+                    okType="danger"
+                    cancelText={t('cancel')}
+                    onConfirm={() =>
+                      dispatchAdGuard('uninstall', 'pages.settings.frontProxy.adGuardRemovedToast')
+                    }
+                  >
+                    <Button danger icon={<DeleteOutlined />} loading={adGuardLoading}>
+                      {t('delete')}
+                    </Button>
+                  </Popconfirm>
+                )}
+                <Button
+                  aria-label={t('refresh')}
+                  icon={<ReloadOutlined />}
+                  onClick={fetchAdGuard}
+                />
+              </Space>
+
+              {adGuard?.installed && (
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                  <Typography.Text type="secondary">
+                    {t('pages.settings.frontProxy.adGuardLogin')}
+                    {': '}
+                    <Typography.Text code copyable>
+                      {adGuard.user}
+                    </Typography.Text>
+                    {adGuard.password && (
+                      <Typography.Text code copyable>
+                        {adGuard.password}
+                      </Typography.Text>
+                    )}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t('pages.settings.frontProxy.adGuardDoh')}
+                    {': '}
+                    <Typography.Text code copyable={!!dohURL}>
+                      {dohURL || t('pages.settings.frontProxy.subUriNeedsDomain')}
+                    </Typography.Text>
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t('pages.settings.frontProxy.adGuardPorts', {
+                      web: adGuard.webPort,
+                      dns: adGuard.dnsPort,
+                    })}
+                  </Typography.Text>
+                </Space>
+              )}
+            </Space>
+          </SettingListItem>
+        </>
       )}
     </>
   );

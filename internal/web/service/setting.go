@@ -151,6 +151,15 @@ var defaultValueMap = map[string]string{
 	"frontProxyDecoyProxyURL": "",
 	"frontProxyDecoySeed":     "",
 
+	// AdGuard Home cover story. Both of its listeners are loopback-only, so
+	// the DNS side can never become an open resolver; the public way in is
+	// the reverse proxy's "adguard" decoy mode. The password is generated at
+	// install time and kept so the panel can show it again later.
+	"adguardEnable":   "false",
+	"adguardWebPort":  "3000",
+	"adguardDNSPort":  "5335",
+	"adguardPassword": "",
+
 	// LDAP defaults
 	"ldapEnable":             "false",
 	"ldapHost":               "",
@@ -1096,7 +1105,7 @@ func (s *SettingService) GetFrontProxyDecoyMode() (string, error) {
 
 func (s *SettingService) SetFrontProxyDecoyMode(value string) error {
 	switch frontproxy.DecoyMode(value) {
-	case frontproxy.DecoyTemplate, frontproxy.DecoyUpload, frontproxy.DecoyProxy:
+	case frontproxy.DecoyTemplate, frontproxy.DecoyUpload, frontproxy.DecoyProxy, frontproxy.DecoyAdGuard:
 		return s.setString("frontProxyDecoyMode", value)
 	}
 	return common.NewErrorf("invalid front proxy decoy mode: %v", value)
@@ -1151,6 +1160,51 @@ func (s *SettingService) SetFrontProxyDecoyProxyURL(value string) error {
 		return err
 	}
 	return s.setString("frontProxyDecoyProxyURL", clean)
+}
+
+// GetAdGuardEnable reports whether the AdGuard Home sidecar should be running,
+// which is what panel boot restores.
+func (s *SettingService) GetAdGuardEnable() (bool, error) {
+	return s.getBool("adguardEnable")
+}
+
+func (s *SettingService) SetAdGuardEnable(value bool) error {
+	return s.setBool("adguardEnable", value)
+}
+
+// GetAdGuardWebPort is the loopback port AdGuard Home's UI is seeded on. Only
+// the initial value: once installed, its own config is what counts, since
+// AdGuard Home rewrites that file whenever the admin edits anything.
+func (s *SettingService) GetAdGuardWebPort() (int, error) {
+	return s.getInt("adguardWebPort")
+}
+
+func (s *SettingService) SetAdGuardWebPort(port int) error {
+	return s.setInt("adguardWebPort", port)
+}
+
+// GetAdGuardDNSPort is the loopback port AdGuard Home answers plain DNS on,
+// seeded the same way as the web port.
+func (s *SettingService) GetAdGuardDNSPort() (int, error) {
+	return s.getInt("adguardDNSPort")
+}
+
+func (s *SettingService) SetAdGuardDNSPort(port int) error {
+	return s.setInt("adguardDNSPort", port)
+}
+
+// GetAdGuardPassword returns the generated AdGuard Home admin password.
+//
+// Kept in plain text on purpose: AdGuard Home stores only a bcrypt hash, so
+// without this the admin would have exactly one chance to copy it and no way
+// to recover it short of a reinstall. Anyone who can read this row already has
+// the panel's database, and with it the server.
+func (s *SettingService) GetAdGuardPassword() (string, error) {
+	return s.getString("adguardPassword")
+}
+
+func (s *SettingService) SetAdGuardPassword(value string) error {
+	return s.setString("adguardPassword", value)
 }
 
 // GetIpLimitEnable reports whether the IP-limit feature is available. Always

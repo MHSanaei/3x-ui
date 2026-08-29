@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"io"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/adguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/frontproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -171,12 +172,21 @@ func (s *FrontProxyService) decoyConfig() (frontproxy.DecoyConfig, error) {
 	if err != nil {
 		return frontproxy.DecoyConfig{}, err
 	}
+	// Read straight from AdGuard Home's own config rather than from settings:
+	// it rewrites that file itself, so its config is the only thing that says
+	// where it is actually listening. A zero here makes the decoy fall back to
+	// a template instead of proxying into a closed port.
+	adGuardPort, err := adguard.WebPort()
+	if err != nil {
+		adGuardPort = 0
+	}
 	return frontproxy.DecoyConfig{
-		Mode:     frontproxy.DecoyMode(mode),
-		Template: template,
-		Dir:      DecoyDir(),
-		ProxyURL: proxyURL,
-		Seed:     seed,
+		Mode:        frontproxy.DecoyMode(mode),
+		Template:    template,
+		Dir:         DecoyDir(),
+		ProxyURL:    proxyURL,
+		Seed:        seed,
+		AdGuardPort: adGuardPort,
 	}, nil
 }
 

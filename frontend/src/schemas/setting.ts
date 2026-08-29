@@ -102,7 +102,7 @@ export const AllSettingSchema = z
     frontProxyCertMode: z.enum(['manual', 'auto']).optional(),
     frontProxyDomain: z.string().optional(),
     frontProxyEmail: z.string().optional(),
-    frontProxyDecoyMode: z.enum(['template', 'upload', 'proxy']).optional(),
+    frontProxyDecoyMode: z.enum(['template', 'upload', 'proxy', 'adguard']).optional(),
     frontProxyDecoyTemplate: z.string().optional(),
     frontProxyDecoyProxyURL: z.string().optional(),
     ipLimitAllowlist: z.string().optional(),

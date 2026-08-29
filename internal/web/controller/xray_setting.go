@@ -29,6 +29,7 @@ type XraySettingController struct {
 	NordService                 integration.NordService
 	TorService                  integration.TorService
 	FrontProxyService           integration.FrontProxyService
+	AdGuardService              integration.AdGuardService
 	PiaService                  integration.PiaService
 	OutboundSubscriptionService service.OutboundSubscriptionService
 	GeodataService              service.GeodataService
@@ -54,6 +55,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/tor/:action", a.tor)
 	g.POST("/frontproxy/:action", a.frontProxy)
 	g.POST("/frontproxy/decoy/upload", a.frontProxyDecoyUpload)
+	g.POST("/adguard/:action", a.adGuard)
 	g.POST("/pia/:action", a.pia)
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
@@ -317,6 +319,35 @@ func (a *XraySettingController) frontProxy(c *gin.Context) {
 		err = a.FrontProxyService.RemoveDecoy()
 	}
 	jsonObj(c, resp, err)
+}
+
+// adGuard handles the AdGuard Home cover story (internal/adguard) based on the
+// action parameter. "install" is the one-button path: it downloads, configures,
+// starts, and points the reverse proxy's decoy at it.
+func (a *XraySettingController) adGuard(c *gin.Context) {
+	action := c.Param("action")
+	var resp any
+	var err error
+	switch action {
+	case "status":
+		resp = a.AdGuardService.Status()
+	case "install":
+		err = a.AdGuardService.Install()
+	case "uninstall":
+		err = a.AdGuardService.Uninstall()
+	case "start":
+		err = a.AdGuardService.Start()
+	case "stop":
+		err = a.AdGuardService.Stop()
+	}
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.adGuard"), err)
+		return
+	}
+	if resp == nil {
+		resp = a.AdGuardService.Status()
+	}
+	jsonObj(c, resp, nil)
 }
 
 // frontProxyDecoyUpload replaces the reverse proxy's decoy site with an uploaded

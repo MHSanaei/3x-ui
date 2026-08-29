@@ -39,6 +39,11 @@ const (
 	DecoyUpload DecoyMode = "upload"
 	// DecoyProxy reverse-proxies to a site hosted elsewhere.
 	DecoyProxy DecoyMode = "proxy"
+	// DecoyAdGuard serves the panel-managed AdGuard Home instance. Unlike
+	// every other mode this is not a pretend site: a visitor who tries to use
+	// it finds a working DNS service, which is a cover story that survives
+	// being poked at in a way a static page cannot.
+	DecoyAdGuard DecoyMode = "adguard"
 )
 
 // DefaultDecoyTemplate is used when no template was chosen, and as the
@@ -51,6 +56,9 @@ type DecoyConfig struct {
 	Template string
 	Dir      string
 	ProxyURL string
+	// AdGuardPort is the loopback port AdGuard Home serves its UI on, resolved
+	// by the caller so this package stays unaware of that sidecar.
+	AdGuardPort int
 	// Seed makes this install's templates render unlike anyone else's. See
 	// Variant for why identical bytes across installs would be a giveaway.
 	Seed string
@@ -71,6 +79,12 @@ func newDecoyHandler(cfg DecoyConfig) http.Handler {
 			return h
 		} else {
 			logDecoyFallback("proxy", err)
+		}
+	case DecoyAdGuard:
+		if h, err := newAdGuardDecoy(cfg.AdGuardPort); err == nil {
+			return h
+		} else {
+			logDecoyFallback("adguard", err)
 		}
 	}
 	return withLoginMock(cfg.Template, newTemplateDecoy(cfg.Template, cfg.Seed))
@@ -219,6 +233,21 @@ func serveDecoyWithOrigin(w http.ResponseWriter, r *http.Request, fsPath, rel st
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(body)
 	return true
+}
+
+// newAdGuardDecoy forwards everything that is not a secret path to the
+// panel-managed AdGuard Home.
+//
+// It is mounted at the site root on purpose. AdGuard Home builds its UI around
+// absolute paths (/control, /static) and answers DNS-over-HTTPS on the
+// standard /dns-query, so serving it anywhere else would mean rewriting both
+// its links and the one URL its clients are expected to use. At the root, all
+// of that is simply true, and the site is what it appears to be.
+func newAdGuardDecoy(port int) (http.Handler, error) {
+	if port <= 0 || port > 65535 {
+		return nil, fmt.Errorf("AdGuard Home is not installed or not running")
+	}
+	return newLoopbackProxy(port, false), nil
 }
 
 // newProxyDecoy reverse-proxies to a site the admin already hosts elsewhere.
