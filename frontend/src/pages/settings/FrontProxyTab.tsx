@@ -67,10 +67,10 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
   }, [fetchStatus]);
 
   useEffect(() => {
-    if (status?.cert.state !== 'obtaining') return;
+    if (status?.cert?.state !== 'obtaining') return;
     const id = setInterval(fetchStatus, 1500);
     return () => clearInterval(id);
-  }, [status?.cert.state, fetchStatus]);
+  }, [status?.cert?.state, fetchStatus]);
 
   const proxiedSubURI = useMemo(() => {
     const domain = (allSetting.frontProxyDomain ?? '').trim();
@@ -362,7 +362,7 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
         />
       )}
 
-      {status && status.cert.state !== '' && (
+      {status?.cert && status.cert.state !== '' && (
         <SettingListItem
           paddings="small"
           title={t('pages.settings.frontProxy.certStatus')}
