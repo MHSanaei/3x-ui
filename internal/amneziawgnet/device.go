@@ -5,7 +5,6 @@ import (
 	"net/netip"
 	"strings"
 
-	awgconn "github.com/amnezia-vpn/amneziawg-go/v3/conn"
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 
@@ -74,7 +73,14 @@ type DeviceOptions struct {
 type Device struct {
 	*device.Device
 	Stack *stack.Stack
+
+	// localAddrs snapshots the netstack interface addresses (gVisor exposes
+	// no read-back); set once at construction, read-only afterwards.
+	localAddrs []netip.Addr
 }
+
+// LocalAddresses returns the configured tunnel-local address(es).
+func (d *Device) LocalAddresses() []netip.Addr { return d.localAddrs }
 
 // NewDevice constructs, configures, and brings up an embedded AmneziaWG
 // interface for inst in one call: a gVisor-backed tun.Device sized to
@@ -136,9 +142,9 @@ func newUnconfiguredDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device
 	if logger == nil {
 		logger = device.NewLogger(device.LogLevelSilent, "")
 	}
-	dev := device.NewDevice(tun, awgconn.NewDefaultBind(), logger)
+	dev := device.NewDevice(tun, newResolvingBind(), logger)
 
-	return &Device{Device: dev, Stack: gstack}, nil
+	return &Device{Device: dev, Stack: gstack, localAddrs: addrs}, nil
 }
 
 // Configure applies inst/opts to d via UAPI and brings the interface up.

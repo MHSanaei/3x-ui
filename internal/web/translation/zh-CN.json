@@ -1841,7 +1841,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "在每个数据包末尾追加随机字节。两端都需要 AmneziaWG 3.1+。",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "从不发送 cookie reply——消除一个 DPI 指纹，但会削弱抗洪泛能力。"
+        "disableCookiesHint": "从不发送 cookie reply——消除一个 DPI 指纹，但会削弱抗洪泛能力。",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "用户级别"

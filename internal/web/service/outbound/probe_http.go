@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -384,6 +385,33 @@ func buildBatchTestConfig(items []*httpBatchItem, allOutbounds []any, ports []in
 			outbounds = append(outbounds, it.outbound)
 		}
 	}
+	// Bridge amneziawg entries like GetXrayConfig does -- one raw entry fails
+	// the whole temp config; drop unbridgeable ones, not unrelated items.
+	bridged := make([]any, 0, len(outbounds))
+	for _, ob := range outbounds {
+		m, ok := ob.(map[string]any)
+		if !ok {
+			bridged = append(bridged, ob)
+			continue
+		}
+		if p, _ := m["protocol"].(string); p != "amneziawg" {
+			bridged = append(bridged, ob)
+			continue
+		}
+		raw, err := json.Marshal(m)
+		if err != nil {
+			continue
+		}
+		repl, ok := amneziawgnet.BuildSocksBridge(raw)
+		if !ok {
+			continue
+		}
+		var replacement any
+		if json.Unmarshal(repl, &replacement) == nil {
+			bridged = append(bridged, replacement)
+		}
+	}
+	outbounds = bridged
 	for _, ob := range outbounds {
 		outbound, ok := ob.(map[string]any)
 		if !ok {

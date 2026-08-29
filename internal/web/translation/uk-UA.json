@@ -1841,7 +1841,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "Додає випадкові байти в кінець кожного пакета. Обидві сторони мають підтримувати AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "Ніколи не надсилати cookie reply — прибирає відбиток для DPI, але послаблює захист від флуду."
+        "disableCookiesHint": "Ніколи не надсилати cookie reply — прибирає відбиток для DPI, але послаблює захист від флуду.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "Рівень користувача"

@@ -185,6 +185,21 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 		}, nil
 	}
 
+	// The AmneziaWG embedded outbound's egress SOCKS server holds a loopback
+	// TCP listener on amneziawgnet.EgressBasePort while any AWG outbound is
+	// active. It is not a database row, so the DB-backed query below can
+	// never see it; an inbound saved onto that port would silently fail at
+	// the next Xray start, taking every other protocol down with it.
+	if inbound.NodeID == nil && inbound.Port == int(amneziawgnet.EgressBasePort) &&
+		newBits&transportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
+		return &portConflictDetail{
+			Tag:        "amneziawg-egress",
+			Listen:     "127.0.0.1",
+			Port:       inbound.Port,
+			Transports: transportTCP,
+		}, nil
+	}
+
 	// Every enabled local AmneziaWG inbound gets its own automatic Xray
 	// SOCKS5 relay inbound (see injectAmneziawgnetSocks) on 127.0.0.1 at a
 	// port derived purely from its id (amneziawgnet.SOCKSPortForInbound) --

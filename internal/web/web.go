@@ -699,6 +699,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		_ = s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
+		amneziawgnet.GetOutboundManager().StopAll()
 	}
 	if s.cron != nil {
 		s.cron.Stop()

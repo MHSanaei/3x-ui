@@ -32,7 +32,14 @@ export function isUdpOutbound(outbound: unknown): boolean {
     | undefined;
   const p = o?.protocol;
   const n = o?.streamSettings?.network;
-  return p === 'wireguard' || p === 'hysteria' || n === 'hysteria' || n === 'kcp' || n === 'quic';
+  return (
+    p === 'wireguard' ||
+    p === 'hysteria' ||
+    p === 'amneziawg' ||
+    n === 'hysteria' ||
+    n === 'kcp' ||
+    n === 'quic'
+  );
 }
 
 export type OutboundTestMode = 'tcp' | 'http' | 'real';

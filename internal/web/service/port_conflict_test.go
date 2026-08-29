@@ -743,6 +743,28 @@ const amneziawgRoutedSettings = `{"server":{"privateKey":"priv","publicKey":"pub
 // (injectAmneziawgnetSocks) is a synthetic loopback inbound, not a database
 // row, so checkPortConflict needs its own check to catch a collision --
 // exactly the same shape of problem as the reserved API port above.
+// The AmneziaWG egress SOCKS server holds 127.0.0.1:<EgressBasePort> while
+// any AWG outbound is active. It is not a DB row, so an unrelated local TCP
+// inbound saved onto that port would collide with it at Xray start.
+func TestCheckPortConflict_EgressPortBlockedLocal(t *testing.T) {
+	setupConflictDB(t)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{
+		Tag:      "vless-bridge",
+		Listen:   "0.0.0.0",
+		Port:     int(amneziawgnet.EgressBasePort),
+		Protocol: model.VLESS,
+	}
+	got, err := svc.checkPortConflict(candidate, 0)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil {
+		t.Fatalf("a local inbound on the egress port %d must conflict", amneziawgnet.EgressBasePort)
+	}
+}
+
 func TestCheckPortConflict_AmneziawgnetSocksRelayBlockedLocal(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)

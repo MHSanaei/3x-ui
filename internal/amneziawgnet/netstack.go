@@ -1,19 +1,12 @@
-// Package amneziawgnet embeds amneziawg-go (a userspace AmneziaWG
-// implementation, https://github.com/amnezia-vpn/amneziawg-go) directly in
-// the panel process, as an alternative to internal/amneziawg's
-// kernel-module (DKMS) + awg-quick approach. A gVisor userspace network
-// stack (gvisor.dev/gvisor/pkg/tcpip -- already an indirect dependency via
-// xray-core's own proxy/wireguard support) terminates each tunnel, and a
-// forwarder recovers each connection's real, dynamically-arbitrary
-// destination for the caller to relay onward (see Phase 2 of the migration
-// plan: a loopback SOCKS5 dial into Xray, giving native stats/routing/
-// sniffing for free).
+// Package amneziawgnet embeds amneziawg-go and gVisor netstack in-process
+// as a userspace alternative to kernel wireguard / awg-quick.
 package amneziawgnet
 
 import (
 	"fmt"
 	"net/netip"
 	"os"
+	"sync"
 	"syscall"
 
 	awgtun "github.com/amnezia-vpn/amneziawg-go/v3/tun"
@@ -30,60 +23,39 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 )
 
-// tunQueueDepth is the outbound packet queue depth for both the gVisor
-// channel endpoint and the handoff channel to amneziawg-go's TUN reader
-// (see the stackTun literal in createNetTUNWithStack for why both need it).
+// tunQueueDepth is the outbound queue depth for channel endpoint and handoff.
 const tunQueueDepth = 1024
 
-// stackTun implements amneziawg-go's tun.Device directly against a gVisor
-// channel endpoint, the same approach amneziawg-go's own tun/netstack
-// package and xray-core's proxy/wireguard/netstack.go both take. Neither of
-// those exposes the raw *stack.Stack a forwarder needs (amneziawg-go's Net
-// type keeps it unexported), so this is a local, from-source reimplementation
-// rather than a wrapper -- adapted from amneziawg-go v3.0.3's
-// tun/netstack/tun.go (MIT licensed), trimmed to the constructor this
-// package needs.
+// stackTun implements amneziawg-go tun.Device over a gVisor channel endpoint,
+// exposing *stack.Stack for forwarder attachment.
 type stackTun struct {
 	ep             *channel.Endpoint
 	stack          *stack.Stack
 	events         chan awgtun.Event
 	notifyHandle   *channel.NotificationHandle
 	incomingPacket chan *buffer.View
+	done           chan struct{}
+	closeMu        sync.Mutex
+	closed         bool
 	mtu            int
 }
 
-// createNetTUNWithStack builds a gVisor-backed tun.Device for the given
-// local addresses (interface address(es), one per family) and returns the
-// underlying *stack.Stack alongside it so a caller can attach a forwarder
-// (see forwarder.go / udp.go).
+// createNetTUNWithStack builds a gVisor-backed tun.Device for localAddresses
+// and returns underlying *stack.Stack to attach forwarders.
 func createNetTUNWithStack(localAddresses []netip.Addr, mtu int) (awgtun.Device, *stack.Stack, error) {
 	opts := stack.Options{
 		NetworkProtocols:   []stack.NetworkProtocolFactory{ipv4.NewProtocol, ipv6.NewProtocol},
 		TransportProtocols: []stack.TransportProtocolFactory{tcp.NewProtocol, udp.NewProtocol, icmp.NewProtocol6, icmp.NewProtocol4},
-		// HandleLocal must stay false: promiscuous+spoofing mode (see
-		// forwarder.go) is what lets a destination other than the stack's
-		// own configured address reach the forwarder at all.
+		// HandleLocal stays false so non-local destinations reach forwarder.
 		HandleLocal: false,
 	}
 	dev := &stackTun{
-		// tunQueueDepth matches channel.New's own outbound queue depth
-		// below. WriteNotify (called synchronously from whatever gVisor
-		// goroutine is sending TCP data for the download/server->client
-		// direction) pushes into incomingPacket; RoutineReadFromTUN (a
-		// single amneziawg-go goroutine that encrypts and sends each
-		// packet over UDP) is the only reader. With no buffer, every
-		// outbound packet forced a full synchronous handoff between the
-		// two -- gVisor's sender blocked until the encrypt loop was ready
-		// for the next one, one packet at a time, no pipelining. The
-		// upload/client->server direction has no equivalent stall:
-		// Write->InjectInbound->DeliverNetworkPacket hands off into
-		// gVisor's own ~1MB per-connection TCP receive buffer and returns
-		// immediately. Buffering this channel gives the download
-		// direction the same slack the upload direction already had.
+		// tunQueueDepth buffers channel.New and incomingPacket for pipelining.
 		ep:             channel.New(tunQueueDepth, uint32(mtu), ""),
 		stack:          stack.New(opts),
 		events:         make(chan awgtun.Event, 10),
 		incomingPacket: make(chan *buffer.View, tunQueueDepth),
+		done:           make(chan struct{}),
 		mtu:            mtu,
 	}
 	sackEnabledOpt := tcpip.TCPSACKEnabled(true)
@@ -132,25 +104,13 @@ func (t *stackTun) Events() <-chan awgtun.Event { return t.events }
 func (t *stackTun) MTU() (int, error)           { return t.mtu, nil }
 func (t *stackTun) BatchSize() int              { return 1 }
 
-// Read blocks for the first packet, then opportunistically drains any more
-// that are already buffered (non-blocking), up to len(buf). amneziawg-go's
-// caller (RoutineReadFromTUN) sizes buf/sizes to device.BatchSize(), which
-// is the UDP bind's own batch size (128 on Linux, see conn.IdealBatchSize)
-// since that's larger than BatchSize()'s 1 below -- so real buffer capacity
-// for a batch is already there. Without this drain loop, Read always
-// returned exactly one packet no matter how many buf could hold, so every
-// downstream step (peer lookup, per-peer staging, and ultimately the UDP
-// bind's own genuinely batched Send/sendmmsg) processed the download
-// direction one packet at a time while the upload direction's equivalent
-// (bind.Receive/recvmmsg -> decrypt -> stackTun.Write, which already loops
-// over its whole buf) processed up to 128 per cycle. That asymmetry is
-// real, not gVisor/amneziawg-go's -- both the receive and send paths on the
-// UDP bind support batching identically, only this Read implementation
-// didn't use it.
+// Read drains incomingPacket into buf, supporting batched reads.
 func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
-	view, ok := <-t.incomingPacket
-	if !ok {
+	var view *buffer.View
+	select {
+	case <-t.done:
 		return 0, os.ErrClosed
+	case view = <-t.incomingPacket:
 	}
 	n, err := view.Read(buf[0][offset:])
 	if err != nil {
@@ -160,10 +120,7 @@ func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
 	count := 1
 	for count < len(buf) {
 		select {
-		case view, ok := <-t.incomingPacket:
-			if !ok {
-				return count, nil
-			}
+		case view = <-t.incomingPacket:
 			n, err := view.Read(buf[count][offset:])
 			if err != nil {
 				return count, nil
@@ -196,17 +153,41 @@ func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 	return len(buf), nil
 }
 
+// WriteNotify runs on gVisor dispatch while Close tears the endpoint down,
+// so it must never block on closeMu across ep.Read or stack teardown.
 func (t *stackTun) WriteNotify() {
+	t.closeMu.Lock()
+	if t.closed {
+		t.closeMu.Unlock()
+		return
+	}
+	t.closeMu.Unlock()
+
 	pkt := t.ep.Read()
 	if pkt == nil {
 		return
 	}
 	view := pkt.ToView()
 	pkt.DecRef()
-	t.incomingPacket <- view
+
+	// Select against done so racing dispatch abandons packet on close
+	// without blocking Close or panicking on closed channel.
+	select {
+	case t.incomingPacket <- view:
+	case <-t.done:
+	}
 }
 
 func (t *stackTun) Close() error {
+	t.closeMu.Lock()
+	if t.closed {
+		t.closeMu.Unlock()
+		return nil
+	}
+	t.closed = true
+	close(t.done)
+	t.closeMu.Unlock()
+
 	t.stack.RemoveNIC(1)
 	t.stack.Close()
 	t.ep.RemoveNotify(t.notifyHandle)
@@ -214,25 +195,16 @@ func (t *stackTun) Close() error {
 	if t.events != nil {
 		close(t.events)
 	}
-	if t.incomingPacket != nil {
-		close(t.incomingPacket)
-	}
 	return nil
 }
 
-// enablePromiscuousRouting puts the NIC into promiscuous + spoofing mode,
-// the precondition both AttachTCPForwarder and AttachUDPHandler need to see
-// packets addressed to a destination other than the stack's own configured
-// local address. Safe to call from both (and more than once): gVisor's
-// SetPromiscuousMode/SetSpoofing just set a bool on the NIC, not something
-// that accumulates or needs undoing between calls.
+// enablePromiscuousRouting configures NIC promiscuous and spoofing modes.
 func enablePromiscuousRouting(gstack *stack.Stack) {
 	gstack.SetPromiscuousMode(1, true)
 	gstack.SetSpoofing(1, true)
 }
 
-// addrFromTcpip converts a gVisor tcpip.Address (4 or 16 raw bytes) to the
-// stdlib netip.Addr type the rest of this package and its callers use.
+// addrFromTcpip converts a gVisor tcpip.Address to netip.Addr.
 func addrFromTcpip(a tcpip.Address) netip.Addr {
 	if a.Len() == 4 {
 		var b [4]byte

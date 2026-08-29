@@ -557,6 +557,33 @@ func TestTestOutboundsTCPModeForcesUDPToHTTPProbe(t *testing.T) {
 	}
 }
 
+func TestTestOutboundsTCPModeForcesAmneziaWGToHTTPProbe(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	withStubProcess(t, func(cfg *xray.Config, configPath string) batchProcess {
+		return &stubProcess{cfg: cfg, serveSocks: true}
+	})
+	withEgressTraceProbe(t, func(*url.URL) *TestEgressResult {
+		return &TestEgressResult{IPv4: "198.51.100.2", Country: "ZZ", Warp: "off"}
+	})
+
+	batch := mustJSON(t, []any{map[string]any{"tag": "awg", "protocol": "amneziawg"}})
+	results, err := (&OutboundService{}).TestOutbounds(batch, srv.URL, "", "tcp")
+	if err != nil {
+		t.Fatalf("TestOutbounds: %v", err)
+	}
+	r := results[0]
+	if !r.Success || r.Mode != "http" {
+		t.Errorf("amneziawg outbound in tcp mode = %+v, want success with mode %q", r, "http")
+	}
+	if r.Egress == nil || r.Egress.IPv4 != "198.51.100.2" {
+		t.Errorf("amneziawg outbound egress = %+v", r.Egress)
+	}
+}
+
 func TestProbeModeLabel(t *testing.T) {
 	cases := []struct{ mode, want string }{
 		{"tcp", "tcp"},
