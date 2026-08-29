@@ -21,8 +21,10 @@ import {
   PauseCircleOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
+  SyncOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 import { HttpUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
@@ -34,11 +36,19 @@ interface FrontProxyTabProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
+interface FrontProxyCertStatus {
+  state: 'obtaining' | 'obtained' | 'failed' | '';
+  domain?: string;
+  error?: string;
+  notAfter?: string;
+}
+
 interface FrontProxyStatus {
   running: boolean;
   port: number;
   templates: string[];
   decoyUploaded: boolean;
+  cert: FrontProxyCertStatus;
 }
 
 export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyTabProps) {
@@ -55,6 +65,12 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
+
+  useEffect(() => {
+    if (status?.cert.state !== 'obtaining') return;
+    const id = setInterval(fetchStatus, 1500);
+    return () => clearInterval(id);
+  }, [status?.cert.state, fetchStatus]);
 
   const proxiedSubURI = useMemo(() => {
     const domain = (allSetting.frontProxyDomain ?? '').trim();
@@ -344,6 +360,41 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
           style={{ margin: '0 20px 12px' }}
           description={t('pages.settings.frontProxy.certManualHint')}
         />
+      )}
+
+      {status && status.cert.state !== '' && (
+        <SettingListItem
+          paddings="small"
+          title={t('pages.settings.frontProxy.certStatus')}
+          description={t('pages.settings.frontProxy.certStatusDesc')}
+        >
+          {status.cert.state === 'obtaining' && (
+            <Tag icon={<SyncOutlined spin />} color="processing">
+              {t('pages.settings.frontProxy.certStatusObtaining')}
+            </Tag>
+          )}
+          {status.cert.state === 'obtained' && (
+            <Space wrap>
+              <Tag color="green">{t('pages.settings.frontProxy.certStatusObtained')}</Tag>
+              {status.cert.notAfter && (
+                <Typography.Text type="secondary">
+                  {t('pages.settings.frontProxy.certStatusValidUntil', {
+                    date: dayjs(status.cert.notAfter).format('YYYY-MM-DD HH:mm:ss'),
+                  })}
+                </Typography.Text>
+              )}
+            </Space>
+          )}
+          {status.cert.state === 'failed' && (
+            <Alert
+              type="error"
+              showIcon
+              style={{ width: '100%' }}
+              message={t('pages.settings.frontProxy.certStatusFailed')}
+              description={status.cert.error}
+            />
+          )}
+        </SettingListItem>
       )}
 
       <SettingListItem

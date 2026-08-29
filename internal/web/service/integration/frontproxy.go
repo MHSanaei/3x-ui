@@ -26,10 +26,11 @@ func certStorageDir() string { return config.GetBinFolderPath() + "/frontproxy-c
 
 // FrontProxyStatus reports the reverse proxy's current state to the UI.
 type FrontProxyStatus struct {
-	Running       bool     `json:"running"`
-	Port          int      `json:"port"`
-	Templates     []string `json:"templates"`
-	DecoyUploaded bool     `json:"decoyUploaded"`
+	Running       bool                  `json:"running"`
+	Port          int                   `json:"port"`
+	Templates     []string              `json:"templates"`
+	DecoyUploaded bool                  `json:"decoyUploaded"`
+	Cert          frontproxy.CertStatus `json:"cert"`
 }
 
 func (s *FrontProxyService) Status() FrontProxyStatus {
@@ -39,6 +40,7 @@ func (s *FrontProxyService) Status() FrontProxyStatus {
 		Port:          port,
 		Templates:     frontproxy.DecoyTemplateNames(),
 		DecoyUploaded: frontproxy.DecoyInstalled(DecoyDir()),
+		Cert:          frontproxy.CurrentCertStatus(),
 	}
 }
 

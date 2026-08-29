@@ -134,6 +134,10 @@ func (m *Manager) Stop() error {
 	if cancel != nil {
 		cancel()
 	}
+	// A stopped door has nothing left to finish an in-flight ACME round --
+	// without this, an "obtaining" status set right before Stop() would spin
+	// in the UI forever with no event left to resolve it.
+	resetCertStatus()
 	shutdownCtx, done := context.WithTimeout(context.Background(), 10*time.Second)
 	defer done()
 	err := srv.Shutdown(shutdownCtx)

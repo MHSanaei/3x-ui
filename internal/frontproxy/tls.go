@@ -3,6 +3,7 @@ package frontproxy
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 
 	"github.com/caddyserver/certmagic"
@@ -38,15 +39,26 @@ func buildTLSConfig(ctx context.Context, s TLSSettings) (*tls.Config, error) {
 }
 
 // manualTLSConfig loads a certificate the admin already manages, typically
-// via their own certbot -- the path for hosts that already run one.
+// via their own certbot -- the path for hosts that already run one. Loading
+// is synchronous and instant, so there is no "obtaining" phase to report;
+// only the terminal obtained/failed status.
 func manualTLSConfig(s TLSSettings) (*tls.Config, error) {
 	if s.CertFile == "" || s.KeyFile == "" {
-		return nil, fmt.Errorf("certificate and key files are required for manual TLS")
+		err := fmt.Errorf("certificate and key files are required for manual TLS")
+		setCertStatus(CertStatus{State: CertStateFailed, Error: err.Error()})
+		return nil, err
 	}
 	cert, err := tls.LoadX509KeyPair(s.CertFile, s.KeyFile)
 	if err != nil {
-		return nil, fmt.Errorf("loading certificate: %w", err)
+		err = fmt.Errorf("loading certificate: %w", err)
+		setCertStatus(CertStatus{State: CertStateFailed, Error: err.Error()})
+		return nil, err
 	}
+	status := CertStatus{State: CertStateObtained}
+	if leaf, parseErr := x509.ParseCertificate(cert.Certificate[0]); parseErr == nil {
+		status.NotAfter = &leaf.NotAfter
+	}
+	setCertStatus(status)
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
@@ -71,10 +83,21 @@ func autoTLSConfig(ctx context.Context, s TLSSettings) (*tls.Config, error) {
 	certmagic.DefaultACME.DisableTLSALPNChallenge = true
 
 	magic := certmagic.NewDefault()
+	magic.OnEvent = certOnEvent(magic, s.Domain)
 	// Async on purpose: a slow or failing ACME round must never block panel
 	// startup. The door serves the decoy until the certificate lands.
 	if err := magic.ManageAsync(ctx, []string{s.Domain}); err != nil {
-		return nil, fmt.Errorf("managing certificate for %q: %w", s.Domain, err)
+		err = fmt.Errorf("managing certificate for %q: %w", s.Domain, err)
+		setCertStatus(CertStatus{State: CertStateFailed, Domain: s.Domain, Error: err.Error()})
+		return nil, err
+	}
+	// ManageAsync hands off issuance/renewal to a background goroutine and
+	// returns immediately, so a certificate already on disk from a previous
+	// run produces no event at all this run -- seed the status from storage
+	// once here so the UI shows "obtained, valid until X" right away instead
+	// of staying blank until something happens to change it.
+	if notAfter, err := currentCertNotAfter(magic, s.Domain); err == nil {
+		setCertStatus(CertStatus{State: CertStateObtained, Domain: s.Domain, NotAfter: &notAfter})
 	}
 
 	cfg := magic.TLSConfig()
