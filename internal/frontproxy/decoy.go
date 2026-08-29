@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"mime"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -147,6 +148,24 @@ func DecoyTemplateNames() []string {
 	return names
 }
 
+// decoyOriginToken is a placeholder an uploaded static site's own files can
+// use in place of hardcoding their own domain -- substituted with this
+// request's real scheme+host at serve time. Without it, an absolute URL a
+// site generator bakes into sitemap.xml/rss.xml/robots.txt at upload time
+// goes silently stale the moment the reverse proxy's domain changes, and has
+// to be re-uploaded just to fix a URL.
+const decoyOriginToken = "{{DECOY_ORIGIN}}"
+
+// decoySubstitutedExt lists the extensions read into memory for
+// {{DECOY_ORIGIN}} substitution -- the small text formats a static site
+// generator actually emits absolute URLs into. Anything else (images, fonts,
+// ...) is served as-is by http.FileServer, unmodified and with its normal
+// caching headers.
+var decoySubstitutedExt = map[string]bool{
+	".html": true, ".htm": true, ".css": true, ".js": true,
+	".xml": true, ".txt": true, ".json": true,
+}
+
 // newUploadDecoy serves the admin's uploaded site. An empty or missing
 // directory is an error so the caller falls back to a template.
 func newUploadDecoy(dir string) (http.Handler, error) {
@@ -162,17 +181,44 @@ func newUploadDecoy(dir string) (http.Handler, error) {
 		// outside dir, and the hit/miss shows up in the status a prober sees.
 		target := path.Clean("/" + r.URL.Path)
 		rel := strings.TrimPrefix(target, "/")
+		fsPath := filepath.Join(dir, filepath.FromSlash(rel))
 		// Serve index.html for unknown paths so the decoy looks like a site
 		// rather than exposing a 404 that differs from the real thing.
-		if rel != "" {
-			if _, err := os.Stat(filepath.Join(dir, filepath.FromSlash(rel))); err != nil {
-				target = "/"
-			}
+		if rel == "" {
+			rel, fsPath = "index.html", filepath.Join(dir, "index.html")
+		} else if _, err := os.Stat(fsPath); err != nil {
+			target, rel, fsPath = "/", "index.html", filepath.Join(dir, "index.html")
+		}
+		if decoySubstitutedExt[strings.ToLower(filepath.Ext(rel))] && serveDecoyWithOrigin(w, r, fsPath, rel) {
+			return
 		}
 		r = r.Clone(r.Context())
 		r.URL.Path, r.URL.RawPath = target, ""
 		fs.ServeHTTP(w, r)
 	}), nil
+}
+
+// serveDecoyWithOrigin serves one text file with every {{DECOY_ORIGIN}}
+// replaced by this request's own scheme+host. Reports false on any read
+// error so the caller falls through to the plain http.FileServer path rather
+// than surface a broken response for what is otherwise a transient problem.
+func serveDecoyWithOrigin(w http.ResponseWriter, r *http.Request, fsPath, rel string) bool {
+	body, err := os.ReadFile(fsPath)
+	if err != nil {
+		return false
+	}
+	if bytes.Contains(body, []byte(decoyOriginToken)) {
+		body = bytes.ReplaceAll(body, []byte(decoyOriginToken), []byte("https://"+r.Host))
+	}
+	contentType := mime.TypeByExtension(filepath.Ext(rel))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(body)
+	return true
 }
 
 // newProxyDecoy reverse-proxies to a site the admin already hosts elsewhere.

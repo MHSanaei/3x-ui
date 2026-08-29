@@ -77,6 +77,61 @@ func TestUploadDecoyServesIndex(t *testing.T) {
 	}
 }
 
+// A site the admin uploads doesn't know its own domain in advance, and
+// shouldn't have to be re-uploaded just because the reverse proxy's domain
+// changed -- {{DECOY_ORIGIN}} in any of its text files resolves to whatever
+// host the visitor actually used.
+func TestUploadDecoySubstitutesOriginToken(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"index.html": `<html><a href="{{DECOY_ORIGIN}}/articles/a.html">a</a></html>`,
+		"sitemap.xml": `<urlset><url><loc>{{DECOY_ORIGIN}}/</loc></url></urlset>`,
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h, err := newUploadDecoy(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	check := func(path, wantSubstring string) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Host = "ccl.852654.xyz"
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if strings.Contains(rec.Body.String(), "{{DECOY_ORIGIN}}") {
+			t.Errorf("%s: token was not substituted: %q", path, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), wantSubstring) {
+			t.Errorf("%s: want %q in body, got %q", path, wantSubstring, rec.Body.String())
+		}
+	}
+	check("/", "https://ccl.852654.xyz/articles/a.html")
+	check("/sitemap.xml", "https://ccl.852654.xyz/")
+}
+
+// Binary/non-text files must never be read into memory and scanned for the
+// token -- only the small text-format allowlist is, so an uploaded image or
+// font is still streamed as-is by http.FileServer.
+func TestUploadDecoyLeavesNonTextFilesAlone(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html>ok</html>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	raw := []byte("\x89PNG\r\n\x1a\n" + "{{DECOY_ORIGIN}} looks like a token but is inside binary data")
+	if err := os.WriteFile(filepath.Join(dir, "logo.png"), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rec := serveDecoy(t, DecoyConfig{Mode: DecoyUpload, Dir: dir}, "/logo.png")
+	if !bytes.Equal(rec.Body.Bytes(), raw) {
+		t.Errorf("binary file was altered: got %q, want %q", rec.Body.Bytes(), raw)
+	}
+}
+
 // An upload directory that was never populated must not turn the reverse proxy
 // into a 404/500 -- it falls back to a template so the decoy still looks real.
 func TestUploadDecoyWithoutIndexFallsBackToTemplate(t *testing.T) {
