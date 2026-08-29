@@ -12,6 +12,7 @@ import (
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/xtls/xray-core/infra/conf"
 
 	"github.com/op/go-logging"
 )
@@ -35,10 +36,10 @@ const stockOutbounds = `[{"protocol":"freedom","settings":{"domainStrategy":"AsI
 
 // adGuardDNSResult pulls out the two things the injector is responsible for:
 // the servers it points the core at, and the direct outbound's strategy.
-func adGuardDNSResult(t *testing.T, cfg *xray.Config) ([]string, string) {
+func adGuardDNSResult(t *testing.T, cfg *xray.Config) ([]any, string) {
 	t.Helper()
 	var dns struct {
-		Servers []string `json:"servers"`
+		Servers []any `json:"servers"`
 	}
 	if len(cfg.DNSConfig) > 0 {
 		if err := json.Unmarshal(cfg.DNSConfig, &dns); err != nil {
@@ -69,8 +70,17 @@ func TestInjectAdGuardDNS(t *testing.T) {
 		injectAdGuardDNS(cfg, 5335)
 
 		servers, strategy := adGuardDNSResult(t, cfg)
-		if len(servers) != 2 || servers[0] != "127.0.0.1:5335" {
-			t.Errorf("servers = %v, want AdGuard Home first on 127.0.0.1:5335", servers)
+		if len(servers) != 2 {
+			t.Fatalf("servers = %v, want AdGuard Home plus a fallback", servers)
+		}
+		// Address and port must stay separate fields: a server written as one
+		// "host:port" string is parsed as a URL and refused outright.
+		first, ok := servers[0].(map[string]any)
+		if !ok {
+			t.Fatalf("servers[0] = %#v, want an address/port object", servers[0])
+		}
+		if first["address"] != "127.0.0.1" || first["port"] != float64(5335) {
+			t.Errorf("servers[0] = %#v, want address 127.0.0.1 port 5335", first)
 		}
 		// A stopped AdGuard Home must not take every outbound down with it.
 		if servers[len(servers)-1] != adGuardDNSFallback {
@@ -79,6 +89,24 @@ func TestInjectAdGuardDNS(t *testing.T) {
 		// Without this half the dns section would never be consulted at all.
 		if strategy != "UseIP" {
 			t.Errorf("direct outbound domainStrategy = %q, want UseIP", strategy)
+		}
+	})
+
+	// The section this builds is only ever validated by the core itself, at
+	// startup, on the admin's server. Getting it wrong there is not a bad
+	// setting -- the core refuses to start and takes every inbound with it,
+	// which is exactly what a "host:port" server string did. Checking it here
+	// against the core's own parser is the only place that failure is cheap.
+	t.Run("builds a dns section the core itself accepts", func(t *testing.T) {
+		cfg := &xray.Config{OutboundConfigs: json_util.RawMessage(stockOutbounds)}
+		injectAdGuardDNS(cfg, 5335)
+
+		var parsed conf.DNSConfig
+		if err := json.Unmarshal(cfg.DNSConfig, &parsed); err != nil {
+			t.Fatalf("xray-core cannot parse the dns section: %v\n%s", err, cfg.DNSConfig)
+		}
+		if _, err := parsed.Build(); err != nil {
+			t.Fatalf("xray-core rejects the dns section: %v\n%s", err, cfg.DNSConfig)
 		}
 	})
 

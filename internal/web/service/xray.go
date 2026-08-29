@@ -503,8 +503,15 @@ func injectAdGuardDNS(cfg *xray.Config, dnsPort int) {
 		return
 	}
 
+	// The object form is required, not cosmetic: a server given as a plain
+	// string is parsed as a URL, so "127.0.0.1:5335" is rejected with "first
+	// path segment in URL cannot contain colon" and the core refuses to start
+	// at all. Only address-and-port carries a non-53 port.
 	dns, err := json.Marshal(map[string]any{
-		"servers": []any{fmt.Sprintf("127.0.0.1:%d", dnsPort), adGuardDNSFallback},
+		"servers": []any{
+			map[string]any{"address": "127.0.0.1", "port": dnsPort},
+			adGuardDNSFallback,
+		},
 	})
 	if err != nil {
 		logger.Warning("adguard dns: failed to build the dns section, skipping injection:", err)
