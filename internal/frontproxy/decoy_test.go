@@ -84,7 +84,7 @@ func TestUploadDecoyServesIndex(t *testing.T) {
 func TestUploadDecoySubstitutesOriginToken(t *testing.T) {
 	dir := t.TempDir()
 	files := map[string]string{
-		"index.html": `<html><a href="{{DECOY_ORIGIN}}/articles/a.html">a</a></html>`,
+		"index.html":  `<html><a href="{{DECOY_ORIGIN}}/articles/a.html">a</a></html>`,
 		"sitemap.xml": `<urlset><url><loc>{{DECOY_ORIGIN}}/</loc></url></urlset>`,
 	}
 	for name, body := range files {
