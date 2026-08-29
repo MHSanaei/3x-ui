@@ -12,9 +12,9 @@ import (
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-	"github.com/xtls/xray-core/infra/conf"
 
 	"github.com/op/go-logging"
+	"github.com/xtls/xray-core/infra/conf"
 )
 
 func TestMain(m *testing.M) {
