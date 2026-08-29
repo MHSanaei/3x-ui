@@ -28,6 +28,103 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// stockOutbounds mirrors the shipped template: a freedom outbound tagged
+// "direct" resolving AsIs, which is what leaves the dns section inert until
+// the injector switches it.
+const stockOutbounds = `[{"protocol":"freedom","settings":{"domainStrategy":"AsIs"},"tag":"direct"},{"protocol":"blackhole","settings":{},"tag":"blocked"}]`
+
+// adGuardDNSResult pulls out the two things the injector is responsible for:
+// the servers it points the core at, and the direct outbound's strategy.
+func adGuardDNSResult(t *testing.T, cfg *xray.Config) ([]string, string) {
+	t.Helper()
+	var dns struct {
+		Servers []string `json:"servers"`
+	}
+	if len(cfg.DNSConfig) > 0 {
+		if err := json.Unmarshal(cfg.DNSConfig, &dns); err != nil {
+			t.Fatalf("dns section is not valid JSON: %v\n%s", err, cfg.DNSConfig)
+		}
+	}
+	var outbounds []struct {
+		Tag      string `json:"tag"`
+		Settings struct {
+			DomainStrategy string `json:"domainStrategy"`
+		} `json:"settings"`
+	}
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatalf("outbounds are not valid JSON: %v", err)
+	}
+	strategy := ""
+	for _, outbound := range outbounds {
+		if outbound.Tag == adGuardDirectOutboundTag {
+			strategy = outbound.Settings.DomainStrategy
+		}
+	}
+	return dns.Servers, strategy
+}
+
+func TestInjectAdGuardDNS(t *testing.T) {
+	t.Run("points the core at AdGuard Home and switches the direct outbound", func(t *testing.T) {
+		cfg := &xray.Config{OutboundConfigs: json_util.RawMessage(stockOutbounds)}
+		injectAdGuardDNS(cfg, 5335)
+
+		servers, strategy := adGuardDNSResult(t, cfg)
+		if len(servers) != 2 || servers[0] != "127.0.0.1:5335" {
+			t.Errorf("servers = %v, want AdGuard Home first on 127.0.0.1:5335", servers)
+		}
+		// A stopped AdGuard Home must not take every outbound down with it.
+		if servers[len(servers)-1] != adGuardDNSFallback {
+			t.Errorf("servers = %v, want %s kept as the fallback", servers, adGuardDNSFallback)
+		}
+		// Without this half the dns section would never be consulted at all.
+		if strategy != "UseIP" {
+			t.Errorf("direct outbound domainStrategy = %q, want UseIP", strategy)
+		}
+	})
+
+	t.Run("leaves a hand-written dns section alone", func(t *testing.T) {
+		own := `{"servers":["8.8.8.8"]}`
+		cfg := &xray.Config{
+			DNSConfig:       json_util.RawMessage(own),
+			OutboundConfigs: json_util.RawMessage(stockOutbounds),
+		}
+		injectAdGuardDNS(cfg, 5335)
+
+		if string(cfg.DNSConfig) != own {
+			t.Errorf("dns section was rewritten to %s", cfg.DNSConfig)
+		}
+		// The outbound must not move either, or the admin's own resolver would
+		// silently start being used for every dial.
+		if _, strategy := adGuardDNSResult(t, cfg); strategy != "AsIs" {
+			t.Errorf("direct outbound domainStrategy = %q, want it left at AsIs", strategy)
+		}
+	})
+
+	t.Run("refuses rather than half-apply when there is no direct outbound", func(t *testing.T) {
+		cfg := &xray.Config{OutboundConfigs: json_util.RawMessage(`[{"protocol":"blackhole","settings":{},"tag":"blocked"}]`)}
+		injectAdGuardDNS(cfg, 5335)
+
+		// A dns section without the UseIP half is inert, and an inert setting
+		// that reports itself as on is worse than an honest refusal.
+		if len(cfg.DNSConfig) != 0 {
+			t.Errorf("dns section was written anyway: %s", cfg.DNSConfig)
+		}
+	})
+
+	t.Run("refuses an unusable port", func(t *testing.T) {
+		for _, port := range []int{0, -1, 70000} {
+			cfg := &xray.Config{OutboundConfigs: json_util.RawMessage(stockOutbounds)}
+			injectAdGuardDNS(cfg, port)
+			if len(cfg.DNSConfig) != 0 {
+				t.Errorf("port %d: dns section written anyway: %s", port, cfg.DNSConfig)
+			}
+			if _, strategy := adGuardDNSResult(t, cfg); strategy != "AsIs" {
+				t.Errorf("port %d: direct outbound changed to %q", port, strategy)
+			}
+		}
+	})
+}
+
 func TestEnsureAPIServices(t *testing.T) {
 	// legacy template without RoutingService gets it injected
 	out := ensureAPIServices(json_util.RawMessage(`{"services":["HandlerService","LoggerService","StatsService"],"tag":"api"}`))

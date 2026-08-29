@@ -105,6 +105,7 @@ export const AllSettingSchema = z
     frontProxyDecoyMode: z.enum(['template', 'upload', 'proxy', 'adguard']).optional(),
     frontProxyDecoyTemplate: z.string().optional(),
     frontProxyDecoyProxyURL: z.string().optional(),
+    adguardFilterDns: z.boolean().optional(),
     ipLimitAllowlist: z.string().optional(),
     subJsonObservatory: z.string().optional(),
     hasTgBotToken: z.boolean().optional(),

@@ -1254,7 +1254,9 @@
         "adGuardPasswordPlaceholder": "Новый пароль",
         "adGuardApplyCredentials": "Сменить вход",
         "adGuardCredentialsHint": "Пароль — минимум 8 символов. AdGuard Home будет перезапущен, чтобы новый вход вступил в силу: DNS не отвечает пару секунд.",
-        "adGuardCredentialsToast": "Логин и пароль AdGuard Home изменены"
+        "adGuardCredentialsToast": "Логин и пароль AdGuard Home изменены",
+        "adGuardFilterDns": "Фильтровать DNS клиентов через AdGuard Home",
+        "adGuardFilterDnsHint": "Ядро начнёт резолвить имена через AdGuard Home, и его списки блокировок подействуют на всех клиентов без единой настройки на их стороне. Для этого прямой outbound переключается на UseIP: имена разрешает сервер, а не клиент, поэтому CDN может отдать не ближайший к клиенту узел. Если AdGuard Home остановлен, резолв уходит на запасной публичный сервер — интернет не пропадёт, но и фильтрации не будет. Применяется после перезапуска Xray."
       },
       "subSettings": "Подписка",
       "subEnable": "Включить подписку",
