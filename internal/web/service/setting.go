@@ -1642,7 +1642,7 @@ func validateFrontProxySettings(allSetting *entity.AllSetting) error {
 		return common.NewError("automatic certificates need a domain")
 	}
 	switch frontproxy.DecoyMode(allSetting.FrontProxyDecoyMode) {
-	case frontproxy.DecoyTemplate, frontproxy.DecoyUpload, frontproxy.DecoyProxy:
+	case frontproxy.DecoyTemplate, frontproxy.DecoyUpload, frontproxy.DecoyProxy, frontproxy.DecoyAdGuard:
 	default:
 		return common.NewErrorf("invalid front proxy decoy mode: %v", allSetting.FrontProxyDecoyMode)
 	}

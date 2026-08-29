@@ -27,12 +27,6 @@
     "gen:zod": "cd .. && go run ./tools/openapigen",
     "prepare": "cd .. && husky frontend/.husky || true"
   },
-  "lint-staged": {
-    "src/**/*.{ts,tsx}": [
-      "oxfmt",
-      "oxlint --fix"
-    ]
-  },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
     "@codemirror/lang-json": "^6.0.2",

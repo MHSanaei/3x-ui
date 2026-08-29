@@ -144,6 +144,7 @@ type AllSetting struct {
 	FrontProxyDecoyMode     string `json:"frontProxyDecoyMode" form:"frontProxyDecoyMode"`
 	FrontProxyDecoyTemplate string `json:"frontProxyDecoyTemplate" form:"frontProxyDecoyTemplate"`
 	FrontProxyDecoyProxyURL string `json:"frontProxyDecoyProxyURL" form:"frontProxyDecoyProxyURL"`
+	AdguardFilterDns        bool   `json:"adguardFilterDns" form:"adguardFilterDns"`
 }
 
 type AllSettingView struct {
