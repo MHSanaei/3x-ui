@@ -3,7 +3,7 @@ module github.com/mhsanaei/3x-ui/v3
 go 1.27.0
 
 require (
-	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260828
 	github.com/caddyserver/certmagic v0.25.4
 	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-contrib/sessions v1.1.0
