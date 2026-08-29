@@ -70,7 +70,7 @@ func Seed(opts SeedOptions) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("hashing the AdGuard Home password: %w", err)
 	}
-	if err := os.MkdirAll(Dir(), 0o750); err != nil {
+	if err := os.MkdirAll(Dir(), 0o700); err != nil {
 		return "", fmt.Errorf("cannot create %s: %w", Dir(), err)
 	}
 	if err := os.WriteFile(ConfigPath(), []byte(renderConfig(opts, string(hash))), 0o600); err != nil {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -108,6 +109,36 @@ func TestFetchChecksum(t *testing.T) {
 			t.Error("fetchChecksumFrom accepted a digest that is not a sha256")
 		}
 	})
+}
+
+// TestCommandArgsUsesAbsolutePaths guards a failure that looked nothing like
+// its cause: AdGuard Home resolves a relative --config against its --work-dir,
+// so relative paths sent it hunting for <work-dir>/<work-dir>/AdGuardHome.yaml,
+// found nothing, and quietly served its first-run wizard instead of the login
+// while the seeded config sat untouched on disk.
+func TestCommandArgsUsesAbsolutePaths(t *testing.T) {
+	// A relative bin folder is the default, not an edge case: the panel only
+	// gets an absolute one when XUI_BIN_FOLDER is set.
+	t.Setenv("XUI_BIN_FOLDER", "bin")
+
+	bin, args, err := commandArgs()
+	if err != nil {
+		t.Fatalf("commandArgs: %v", err)
+	}
+	if !filepath.IsAbs(bin) {
+		t.Errorf("binary path %q is relative", bin)
+	}
+	for i, arg := range args {
+		if arg != "--config" && arg != "--work-dir" {
+			continue
+		}
+		if i+1 >= len(args) {
+			t.Fatalf("%s has no value in %v", arg, args)
+		}
+		if !filepath.IsAbs(args[i+1]) {
+			t.Errorf("%s value %q is relative", arg, args[i+1])
+		}
+	}
 }
 
 func TestIsInstalled(t *testing.T) {

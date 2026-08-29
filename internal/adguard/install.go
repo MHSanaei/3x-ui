@@ -113,7 +113,9 @@ func Install(ctx context.Context, client *http.Client) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(Dir(), 0o750); err != nil {
+	// 0700 is what AdGuard Home's own permission check wants; anything looser
+	// and it logs a warning about the directory on every start.
+	if err := os.MkdirAll(Dir(), 0o700); err != nil {
 		return fmt.Errorf("cannot create %s: %w", Dir(), err)
 	}
 	staging := BinPath() + ".new"

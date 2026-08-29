@@ -3,8 +3,10 @@ package adguard
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -71,6 +73,40 @@ func (w *procLogWriter) LastLine() string {
 	return w.lastLine
 }
 
+// commandArgs builds the invocation, resolving every path to an absolute one.
+//
+// Absolute is not cosmetic here. AdGuard Home resolves a relative --config
+// against its --work-dir rather than against the current directory, so a
+// relative pair points at <work-dir>/<work-dir>/AdGuardHome.yaml, which does
+// not exist -- and a missing config is how AdGuard Home decides it is being
+// launched for the first time. The failure is silent and looks like the panel
+// never wrote a config: the seeded file is sitting right there, untouched,
+// while the admin is shown the setup wizard.
+//
+// The panel's bin folder is relative ("bin") unless XUI_BIN_FOLDER overrides
+// it, so this is the normal case, not an edge one.
+func commandArgs() (string, []string, error) {
+	bin, err := filepath.Abs(BinPath())
+	if err != nil {
+		return "", nil, fmt.Errorf("resolving the AdGuard Home binary path: %w", err)
+	}
+	configPath, err := filepath.Abs(ConfigPath())
+	if err != nil {
+		return "", nil, fmt.Errorf("resolving the AdGuard Home config path: %w", err)
+	}
+	workDir, err := filepath.Abs(Dir())
+	if err != nil {
+		return "", nil, fmt.Errorf("resolving the AdGuard Home work directory: %w", err)
+	}
+	// --no-check-update: this install is managed by the panel, so the binary
+	// nagging about a release it cannot install itself is noise.
+	return bin, []string{
+		"--config", configPath,
+		"--work-dir", workDir,
+		"--no-check-update",
+	}, nil
+}
+
 // Process wraps the single AdGuard Home invocation.
 type Process struct {
 	mu              sync.RWMutex
@@ -116,15 +152,15 @@ func (p *Process) GetResult() string {
 }
 
 // Start launches AdGuard Home against the seeded config.
-//
-// --no-check-update is set because this install is managed by the panel: the
-// binary nagging about a release it cannot install itself is noise.
 func (p *Process) Start() error {
 	if p.IsRunning() {
 		return errors.New("AdGuard Home is already running")
 	}
-	cmd := exec.CommandContext(context.Background(), BinPath(),
-		"--config", ConfigPath(), "--work-dir", Dir(), "--no-check-update")
+	bin, args, err := commandArgs()
+	if err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(context.Background(), bin, args...)
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 	done := make(chan struct{})
