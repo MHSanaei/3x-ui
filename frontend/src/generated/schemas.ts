@@ -2,9 +2,6 @@
 export const SCHEMAS: Record<string, unknown> = {
   "AllSetting": {
     "properties": {
-      "adguardFilterDns": {
-        "type": "boolean"
-      },
       "datepicker": {
         "type": "string"
       },
@@ -388,7 +385,6 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
-      "adguardFilterDns",
       "datepicker",
       "expireDiff",
       "externalTrafficInformEnable",
@@ -510,9 +506,6 @@ export const SCHEMAS: Record<string, unknown> = {
   },
   "AllSettingView": {
     "properties": {
-      "adguardFilterDns": {
-        "type": "boolean"
-      },
       "datepicker": {
         "type": "string"
       },
@@ -917,7 +910,6 @@ export const SCHEMAS: Record<string, unknown> = {
       }
     },
     "required": [
-      "adguardFilterDns",
       "datepicker",
       "expireDiff",
       "externalTrafficInformEnable",

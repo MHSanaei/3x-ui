@@ -118,7 +118,6 @@ export class AllSetting {
   frontProxyDecoyMode: 'template' | 'upload' | 'proxy' | 'adguard' = 'template';
   frontProxyDecoyTemplate = 'maintenance';
   frontProxyDecoyProxyURL = '';
-  adguardFilterDns = false;
   hasTgBotToken = false;
   hasTwoFactorToken = false;
   hasLdapPassword = false;

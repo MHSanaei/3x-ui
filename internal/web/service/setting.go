@@ -155,11 +155,10 @@ var defaultValueMap = map[string]string{
 	// the DNS side can never become an open resolver; the public way in is
 	// the reverse proxy's "adguard" decoy mode. The password is generated at
 	// install time and kept so the panel can show it again later.
-	"adguardEnable":    "false",
-	"adguardWebPort":   "3000",
-	"adguardDNSPort":   "5335",
-	"adguardPassword":  "",
-	"adguardFilterDns": "false",
+	"adguardEnable":   "false",
+	"adguardWebPort":  "3000",
+	"adguardDNSPort":  "5335",
+	"adguardPassword": "",
 
 	// LDAP defaults
 	"ldapEnable":             "false",
@@ -1171,18 +1170,6 @@ func (s *SettingService) GetAdGuardEnable() (bool, error) {
 
 func (s *SettingService) SetAdGuardEnable(value bool) error {
 	return s.setBool("adguardEnable", value)
-}
-
-// GetAdGuardFilterDNS reports whether the core should resolve names through
-// AdGuard Home, so its blocklists cover every client without client-side
-// setup. Off by default: switching it on also moves the direct outbound to
-// UseIP, which resolves at the server and costs CDN locality.
-func (s *SettingService) GetAdGuardFilterDNS() (bool, error) {
-	return s.getBool("adguardFilterDns")
-}
-
-func (s *SettingService) SetAdGuardFilterDNS(value bool) error {
-	return s.setBool("adguardFilterDns", value)
 }
 
 // GetAdGuardWebPort is the loopback port AdGuard Home's UI is seeded on. Only

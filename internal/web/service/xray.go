@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/adguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -393,20 +392,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// the Xray-side outbound/routing-rule half.
 	injectAmneziawgV6Egress(xrayConfig, inbounds)
 
-	// Send the core's own name resolution through the panel-managed AdGuard
-	// Home when the admin turned that on, so its blocklists cover every client.
-	// The port comes from AdGuard Home's own config rather than from settings,
-	// for the same reason the reverse proxy reads it there: it owns that file.
-	if filterDNS, err := s.settingService.GetAdGuardFilterDNS(); err != nil {
-		logger.Warning("read adguardFilterDns setting failed:", err)
-	} else if filterDNS {
-		if dnsPort, err := adguard.DNSPort(); err != nil {
-			logger.Warning("adguard dns: cannot read the AdGuard Home config, skipping injection:", err)
-		} else {
-			injectAdGuardDNS(xrayConfig, dnsPort)
-		}
-	}
-
 	// Wire the panel's own HTTP traffic through the configured outbound, after
 	// the subscription merge so subscription outbound tags are valid targets.
 	if egressTag, err := s.settingService.GetPanelOutbound(); err != nil {
@@ -438,89 +423,6 @@ const panelEgressBasePort = 62790
 // outboundTag resolves in the final outbound or balancer set. Otherwise the
 // entire injection is skipped. Generated state is hot-appliable and never
 // modifies the stored template or restarts the core.
-// adGuardDNSFallback stays second in the injected server list so a stopped or
-// crashed AdGuard Home degrades to plain resolution instead of taking every
-// outbound connection down with it. The core tries servers in order and keeps
-// the first answer, and AdGuard Home replying "blocked" is itself an answer,
-// so this only comes into play when it is genuinely unreachable.
-const adGuardDNSFallback = "1.1.1.1"
-
-// adGuardDirectOutboundTag is the stock egress this touches. Other freedom
-// outbounds are left alone: the per-peer IPv6-identity ones injected above are
-// deliberate, narrow overrides, and silently changing how they resolve would
-// be a surprise nobody asked for.
-const adGuardDirectOutboundTag = "direct"
-
-// injectAdGuardDNS points the core's own name resolution at the panel-managed
-// AdGuard Home, so its blocklists apply to every domain the core resolves on a
-// client's behalf -- no client-side setting involved.
-//
-// Two edits are needed, not one. The dns section on its own changes nothing:
-// the stock direct outbound is freedom with domainStrategy "AsIs", which dials
-// by hostname and leaves resolution to the host, never consulting the core's
-// own resolver. Switching that outbound to UseIP is what makes the filtering
-// bite -- and is also the half with a cost, since resolving at the server
-// loses the client's location for CDN answers.
-func injectAdGuardDNS(cfg *xray.Config, dnsPort int) {
-	if dnsPort <= 0 || dnsPort > 65535 {
-		logger.Warning("adguard dns: invalid AdGuard Home DNS port ", dnsPort, ", skipping injection")
-		return
-	}
-	// A hand-written dns section is the admin's own resolution policy.
-	// Replacing it silently would be worse than doing nothing.
-	if existing := strings.TrimSpace(string(cfg.DNSConfig)); existing != "" && existing != "{}" && existing != "null" {
-		logger.Warning("adguard dns: the config already has its own dns section, skipping injection")
-		return
-	}
-
-	var outbounds []map[string]any
-	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
-		logger.Warning("adguard dns: outbounds are unparsable, skipping injection:", err)
-		return
-	}
-	switched := false
-	for _, outbound := range outbounds {
-		if outbound["tag"] != adGuardDirectOutboundTag || outbound["protocol"] != "freedom" {
-			continue
-		}
-		settings, ok := outbound["settings"].(map[string]any)
-		if !ok {
-			settings = map[string]any{}
-			outbound["settings"] = settings
-		}
-		settings["domainStrategy"] = "UseIP"
-		switched = true
-	}
-	if !switched {
-		// Without the UseIP half the dns section would be inert, and an inert
-		// setting that reports itself as on is worse than an honest refusal.
-		logger.Warning("adguard dns: no freedom outbound tagged [", adGuardDirectOutboundTag, "], skipping injection")
-		return
-	}
-	newOutbounds, err := json.Marshal(outbounds)
-	if err != nil {
-		logger.Warning("adguard dns: failed to rebuild outbounds, skipping injection:", err)
-		return
-	}
-
-	// The object form is required, not cosmetic: a server given as a plain
-	// string is parsed as a URL, so "127.0.0.1:5335" is rejected with "first
-	// path segment in URL cannot contain colon" and the core refuses to start
-	// at all. Only address-and-port carries a non-53 port.
-	dns, err := json.Marshal(map[string]any{
-		"servers": []any{
-			map[string]any{"address": "127.0.0.1", "port": dnsPort},
-			adGuardDNSFallback,
-		},
-	})
-	if err != nil {
-		logger.Warning("adguard dns: failed to build the dns section, skipping injection:", err)
-		return
-	}
-	cfg.OutboundConfigs = json_util.RawMessage(newOutbounds)
-	cfg.DNSConfig = json_util.RawMessage(dns)
-}
-
 func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	for i := range cfg.InboundConfigs {
 		if cfg.InboundConfigs[i].Tag == PanelEgressInboundTag {

@@ -9,7 +9,6 @@ export type trafficLocalApplyAction = number;
 export type transportBits = number;
 
 export interface AllSetting {
-  adguardFilterDns: boolean;
   datepicker: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
@@ -129,7 +128,6 @@ export interface AllSetting {
 }
 
 export interface AllSettingView {
-  adguardFilterDns: boolean;
   datepicker: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;

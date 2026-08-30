@@ -28,9 +28,6 @@
     "schemas": {
       "AllSetting": {
         "properties": {
-          "adguardFilterDns": {
-            "type": "boolean"
-          },
           "datepicker": {
             "type": "string"
           },
@@ -414,7 +411,6 @@
           }
         },
         "required": [
-          "adguardFilterDns",
           "datepicker",
           "expireDiff",
           "externalTrafficInformEnable",
@@ -536,9 +532,6 @@
       },
       "AllSettingView": {
         "properties": {
-          "adguardFilterDns": {
-            "type": "boolean"
-          },
           "datepicker": {
             "type": "string"
           },
@@ -943,7 +936,6 @@
           }
         },
         "required": [
-          "adguardFilterDns",
           "datepicker",
           "expireDiff",
           "externalTrafficInformEnable",

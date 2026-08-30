@@ -686,19 +686,6 @@ export default function FrontProxyTab({ allSetting, updateSetting }: FrontProxyT
                   <Typography.Text type="secondary">
                     {t('pages.settings.frontProxy.adGuardCredentialsHint')}
                   </Typography.Text>
-
-                  <Space wrap>
-                    <Switch
-                      checked={allSetting.adguardFilterDns}
-                      onChange={(v) => updateSetting({ adguardFilterDns: v })}
-                    />
-                    <Typography.Text>
-                      {t('pages.settings.frontProxy.adGuardFilterDns')}
-                    </Typography.Text>
-                  </Space>
-                  <Typography.Text type="secondary">
-                    {t('pages.settings.frontProxy.adGuardFilterDnsHint')}
-                  </Typography.Text>
                 </Space>
               )}
             </Space>

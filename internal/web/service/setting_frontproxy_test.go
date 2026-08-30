@@ -70,21 +70,3 @@ func TestAllSettingFieldsAreStorable(t *testing.T) {
 		}
 	}
 }
-
-// TestAdGuardFilterDNSIsSavable is deliberately specific: the toggle existed
-// in the UI and in defaultValueMap before it existed on entity.AllSetting, so
-// saving it appeared to work and changed nothing.
-func TestAdGuardFilterDNSIsSavable(t *testing.T) {
-	found := false
-	for _, field := range reflect_util.GetFields(reflect.TypeFor[entity.AllSetting]()) {
-		if field.Tag.Get("json") == "adguardFilterDns" {
-			found = true
-			if field.Type.Kind() != reflect.Bool {
-				t.Errorf("adguardFilterDns is %s, want bool", field.Type.Kind())
-			}
-		}
-	}
-	if !found {
-		t.Error("entity.AllSetting has no adguardFilterDns field, so the toggle cannot be saved")
-	}
-}
