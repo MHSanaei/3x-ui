@@ -2,7 +2,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Tag, Tooltip, message } from 'antd';
+import { ConfigProvider, Tag, Tooltip, message } from 'antd';
 import {
   ApiOutlined,
   ApartmentOutlined,
@@ -62,7 +62,7 @@ interface PaletteItem {
 export default function CommandPalette() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
+  const { isDark, isUltra, toggleTheme, toggleUltra, antdThemeConfig } = useTheme();
   const { isOpen, close } = useCommandPalette();
   const { allSetting } = useAllSettings();
   const { data: inbounds = [] } = useInboundOptions();
@@ -105,6 +105,7 @@ export default function CommandPalette() {
       setQuery('');
       setClients([]);
       setActiveIndex(0);
+      setLoadingClients(false);
     }
   }
 
@@ -252,13 +253,43 @@ export default function CommandPalette() {
     });
 
     matchedInbounds.slice(0, 8).forEach((ib) => {
+      const tags: ReactNode[] = [];
+      if (ib.protocol) {
+        tags.push(
+          <Tag key="protocol" color="purple">
+            {ib.protocol}
+          </Tag>,
+        );
+      }
+      if (ib.network) {
+        const n = ib.network.toLowerCase();
+        let netLabel = n.toUpperCase();
+        if (n === 'httpupgrade') netLabel = 'HTTPUpgrade';
+        else if (n === 'splithttp') netLabel = 'SplitHTTP';
+        else if (n === 'xhttp') netLabel = 'XHTTP';
+        tags.push(
+          <Tag key="network" color="green">
+            {netLabel}
+          </Tag>,
+        );
+      }
+      if (ib.security && ib.security !== 'none') {
+        const s = ib.security.toLowerCase();
+        const secLabel = s === 'reality' ? 'Reality' : s === 'tls' ? 'TLS' : s.toUpperCase();
+        tags.push(
+          <Tag key="security" color="blue">
+            {secLabel}
+          </Tag>,
+        );
+      }
+
       list.push({
         id: `inbound-${ib.id}`,
         category: 'inbounds',
         title: ib.remark || ib.tag || `Inbound #${ib.id}`,
-        subtitle: `Port ${ib.port || ''} · ${ib.protocol || ''}`,
+        subtitle: `Port ${ib.port || ''}`,
         icon: <ImportOutlined style={{ color: '#1677ff' }} />,
-        tag: ib.protocol ? <Tag color="blue">{ib.protocol.toUpperCase()}</Tag> : undefined,
+        tag: tags.length > 0 ? <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>{tags}</div> : undefined,
         action: () => {
           close();
           navigate(`/inbounds?search=${encodeURIComponent(ib.remark || String(ib.port || ''))}`);
@@ -270,14 +301,12 @@ export default function CommandPalette() {
       {
         path: '/',
         title: t('menu.dashboard'),
-        subtitle: t('menu.dashboard'),
         keywords: ['overview', 'dashboard', 'cpu', 'ram', 'memory', 'traffic', 'speed'],
         icon: <DashboardOutlined />,
       },
       {
         path: '/inbounds',
         title: t('menu.inbounds'),
-        subtitle: t('menu.inbounds'),
         keywords: [
           'inbounds',
           'ports',
@@ -294,63 +323,54 @@ export default function CommandPalette() {
       {
         path: '/clients',
         title: t('menu.clients'),
-        subtitle: t('menu.clients'),
         keywords: ['clients', 'users', 'sub', 'traffic', 'quota'],
         icon: <TeamOutlined />,
       },
       {
         path: '/groups',
         title: t('menu.groups'),
-        subtitle: t('menu.groups'),
         keywords: ['groups', 'tags', 'batch'],
         icon: <TagsOutlined />,
       },
       {
         path: '/nodes',
         title: t('menu.nodes'),
-        subtitle: t('menu.nodes'),
         keywords: ['nodes', 'servers', 'cluster', 'remote nodes'],
         icon: <ClusterOutlined />,
       },
       {
         path: '/hosts',
         title: t('menu.hosts'),
-        subtitle: t('menu.hosts'),
         keywords: ['hosts', 'sni', 'domains'],
         icon: <GlobalOutlined />,
       },
       {
         path: '/outbound',
         title: t('menu.outbounds'),
-        subtitle: t('menu.outbounds'),
         keywords: ['outbounds', 'freedom', 'blackhole', 'socks', 'http', 'warp', 'nord', 'pia'],
         icon: <ExportOutlined />,
       },
       {
         path: '/routing',
         title: t('menu.routing'),
-        subtitle: t('menu.routing'),
         keywords: ['routing', 'rules', 'geoip', 'geosite', 'direct', 'block'],
         icon: <SwapOutlined />,
       },
       {
         path: '/settings',
         title: t('menu.settings'),
-        subtitle: t('menu.settings'),
         keywords: ['settings', 'config', 'port', 'password', 'ssl', 'telegram'],
         icon: <SettingOutlined />,
       },
       {
         path: '/xray',
         title: t('menu.xray'),
-        subtitle: t('menu.xray'),
         keywords: ['xray', 'templates', 'balancer', 'dns'],
         icon: <ToolOutlined />,
       },
       {
         path: '/api-docs',
         title: t('menu.apiDocs'),
-        subtitle: t('menu.apiDocs'),
         keywords: ['api', 'api docs', 'swagger', 'rest api', 'endpoints'],
         icon: <ApiOutlined />,
       },
@@ -551,7 +571,7 @@ export default function CommandPalette() {
       {
         id: 'act-add-inbound',
         category: 'actions',
-        title: `${t('commandPalette.actions')} · ${t('menu.inbounds')}`,
+        title: t('pages.inbounds.addInbound'),
         subtitle: t('menu.inbounds'),
         keywords: ['add inbound', 'create inbound', 'new port', 'new inbound'],
         icon: <PlusOutlined style={{ color: '#52c41a' }} />,
@@ -563,7 +583,7 @@ export default function CommandPalette() {
       {
         id: 'act-add-client',
         category: 'actions',
-        title: `${t('commandPalette.actions')} · ${t('menu.clients')}`,
+        title: t('pages.clients.addClient'),
         subtitle: t('menu.clients'),
         keywords: ['add client', 'create user', 'new client', 'new user'],
         icon: <PlusOutlined style={{ color: '#52c41a' }} />,
@@ -625,132 +645,134 @@ export default function CommandPalette() {
   const themeModeClass = isUltra ? 'ultra' : isDark ? 'dark' : 'light';
 
   return (
-    <div
-      className={`command-palette-backdrop ${themeModeClass}`}
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-    >
+    <ConfigProvider theme={antdThemeConfig}>
       <div
-        className={`command-palette-modal ${themeModeClass}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('commandPalette.title')}
+        className={`command-palette-backdrop ${themeModeClass}`}
+        role="presentation"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) close();
+        }}
       >
-        <div className="command-palette-header">
-          {isClientSearching ? (
-            <LoadingOutlined className="command-palette-search-icon spinning" />
-          ) : (
-            <SearchOutlined className="command-palette-search-icon" />
-          )}
-          <input
-            ref={inputRef}
-            className="command-palette-input"
-            type="text"
-            placeholder={t('commandPalette.placeholder')}
-            value={query}
-            onChange={(e) => {
-              const val = e.target.value;
-              setQuery(val);
-              if (val.trim().length === 0) {
-                setLoadingClients(false);
-                setClients([]);
-              } else {
-                setLoadingClients(true);
-              }
-            }}
-            onKeyDown={handleKeyDown}
-          />
-        </div>
+        <div
+          className={`command-palette-modal ${themeModeClass}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('commandPalette.title')}
+        >
+          <div className="command-palette-header">
+            {isClientSearching ? (
+              <LoadingOutlined className="command-palette-search-icon spinning" />
+            ) : (
+              <SearchOutlined className="command-palette-search-icon" />
+            )}
+            <input
+              ref={inputRef}
+              className="command-palette-input"
+              type="text"
+              placeholder={t('commandPalette.placeholder')}
+              value={query}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                if (val.trim().length === 0) {
+                  setLoadingClients(false);
+                  setClients([]);
+                } else {
+                  setLoadingClients(true);
+                }
+              }}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
 
-        <div className="command-palette-body" ref={listRef}>
-          {!isClientSearching && items.length === 0 && (
-            <div className="command-palette-empty">{t('noData')}</div>
-          )}
+          <div className="command-palette-body" ref={listRef}>
+            {!isClientSearching && items.length === 0 && (
+              <div className="command-palette-empty">{t('noData')}</div>
+            )}
 
-          {items.map((item, index) => {
-            const isFirstOfCategory = item.category !== lastCategory;
-            lastCategory = item.category;
+            {items.map((item, index) => {
+              const isFirstOfCategory = item.category !== lastCategory;
+              lastCategory = item.category;
 
-            const categoryLabel =
-              item.category === 'clients'
-                ? t('menu.clients')
-                : item.category === 'inbounds'
-                  ? t('menu.inbounds')
-                  : item.category === 'navigation'
-                    ? t('commandPalette.navigation')
-                    : item.category === 'settings'
-                      ? t('menu.settings')
-                      : t('commandPalette.actions');
+              const categoryLabel =
+                item.category === 'clients'
+                  ? t('menu.clients')
+                  : item.category === 'inbounds'
+                    ? t('menu.inbounds')
+                    : item.category === 'navigation'
+                      ? t('commandPalette.navigation')
+                      : item.category === 'settings'
+                        ? t('commandPalette.settings') || t('menu.settings')
+                        : t('commandPalette.actions');
 
-            return (
-              <div key={item.id} className="command-palette-group">
-                {isFirstOfCategory && (
-                  <div className="command-palette-group-title">{categoryLabel}</div>
-                )}
-                <button
-                  type="button"
-                  className={`command-palette-item ${index === clampedActiveIndex ? 'active' : ''}`}
-                  data-index={index}
-                  onClick={() => item.action()}
-                  onMouseEnter={() => setActiveIndex(index)}
-                >
-                  <div className="command-palette-item-main">
-                    <span className="command-palette-item-icon">{item.icon}</span>
-                    <div className="command-palette-item-content">
-                      <span className="command-palette-item-title">{item.title}</span>
-                      {item.subtitle && (
-                        <span className="command-palette-item-subtitle">{item.subtitle}</span>
+              return (
+                <div key={item.id} className="command-palette-group">
+                  {isFirstOfCategory && (
+                    <div className="command-palette-group-title">{categoryLabel}</div>
+                  )}
+                  <button
+                    type="button"
+                    className={`command-palette-item ${index === clampedActiveIndex ? 'active' : ''}`}
+                    data-index={index}
+                    onClick={() => item.action()}
+                    onMouseEnter={() => setActiveIndex(index)}
+                  >
+                    <div className="command-palette-item-main">
+                      <span className="command-palette-item-icon">{item.icon}</span>
+                      <div className="command-palette-item-content">
+                        <span className="command-palette-item-title">{item.title}</span>
+                        {item.subtitle && (
+                          <span className="command-palette-item-subtitle">{item.subtitle}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="command-palette-item-actions">
+                      {item.tag}
+                      {item.secondaryAction && (
+                        <Tooltip
+                          title={item.secondaryAction.label}
+                          placement="top"
+                          zIndex={2500}
+                          rootClassName="command-palette-tooltip"
+                        >
+                          <button
+                            type="button"
+                            className="command-palette-action-btn"
+                            onClick={item.secondaryAction.execute}
+                            aria-label={item.secondaryAction.label}
+                          >
+                            {item.secondaryAction.icon}
+                          </button>
+                        </Tooltip>
                       )}
                     </div>
-                  </div>
-
-                  <div className="command-palette-item-actions">
-                    {item.tag}
-                    {item.secondaryAction && (
-                      <Tooltip
-                        title={item.secondaryAction.label}
-                        placement="top"
-                        zIndex={2500}
-                        rootClassName="command-palette-tooltip"
-                      >
-                        <button
-                          type="button"
-                          className="command-palette-action-btn"
-                          onClick={item.secondaryAction.execute}
-                          aria-label={item.secondaryAction.label}
-                        >
-                          {item.secondaryAction.icon}
-                        </button>
-                      </Tooltip>
-                    )}
-                  </div>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="command-palette-footer">
-          <div className="command-palette-kbd-group">
-            <span>
-              <kbd className="command-palette-kbd">↑</kbd>
-              <kbd className="command-palette-kbd">↓</kbd>
-              {t('commandPalette.navigate')}
-            </span>
-            <span>
-              <kbd className="command-palette-kbd">↵</kbd>
-              {t('commandPalette.select')}
-            </span>
-            <span>
-              <kbd className="command-palette-kbd">Esc</kbd>
-              {t('close')}
-            </span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
-          <span>3x-ui Command Palette</span>
+
+          <div className="command-palette-footer">
+            <div className="command-palette-kbd-group">
+              <span>
+                <kbd className="command-palette-kbd">↑</kbd>
+                <kbd className="command-palette-kbd">↓</kbd>
+                {t('commandPalette.navigate')}
+              </span>
+              <span>
+                <kbd className="command-palette-kbd">↵</kbd>
+                {t('commandPalette.select')}
+              </span>
+              <span>
+                <kbd className="command-palette-kbd">Esc</kbd>
+                {t('close')}
+              </span>
+            </div>
+            <span>3x-ui Command Palette</span>
+          </div>
         </div>
       </div>
-    </div>
+    </ConfigProvider>
   );
 }

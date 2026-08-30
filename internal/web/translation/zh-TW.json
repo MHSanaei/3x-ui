@@ -2259,6 +2259,7 @@
     "select": "選擇",
     "copySubscription": "複製訂閱連結",
     "restartXray": "重啟 Xray 服務",
-    "restartXraySuccess": "Xray 服務已成功重啟"
+    "restartXraySuccess": "Xray 服務已成功重啟",
+    "settings": "設定"
   }
 }

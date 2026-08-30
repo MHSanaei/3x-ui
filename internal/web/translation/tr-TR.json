@@ -2259,6 +2259,7 @@
     "select": "Seç",
     "copySubscription": "Aboneliği kopyala",
     "restartXray": "Xray Hizmetini Yeniden Başlat",
-    "restartXraySuccess": "Xray hizmeti başarıyla yeniden başlatıldı"
+    "restartXraySuccess": "Xray hizmeti başarıyla yeniden başlatıldı",
+    "settings": "Ayarlar"
   }
 }

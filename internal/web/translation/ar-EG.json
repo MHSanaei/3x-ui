@@ -2259,6 +2259,7 @@
     "select": "تحديد",
     "copySubscription": "نسخ الاشتراك",
     "restartXray": "إعادة تشغيل خدمة Xray",
-    "restartXraySuccess": "تمت إعادة تشغيل خدمة Xray بنجاح"
+    "restartXraySuccess": "تمت إعادة تشغيل خدمة Xray بنجاح",
+    "settings": "الإعدادات"
   }
 }

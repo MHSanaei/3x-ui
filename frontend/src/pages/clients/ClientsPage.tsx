@@ -1,5 +1,5 @@
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -383,6 +383,7 @@ export default function ClientsPage() {
   >(null);
 
   const initial = readFilterState();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const searchParam = searchParams.get('search');
   const [searchKey, setSearchKey] = useState(
@@ -408,10 +409,10 @@ export default function ClientsPage() {
   const resolvedPageSize = pageSizeChoice ?? settingsPageSize ?? initial.pageSize;
   const tablePageSize = resolvedPageSize ?? DEFAULT_TABLE_PAGE_SIZE;
   const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
-  const [prevSearchParam, setPrevSearchParam] = useState(searchParam);
+  const [prevLocationKey, setPrevLocationKey] = useState(location.key);
 
-  if (searchParam !== prevSearchParam) {
-    setPrevSearchParam(searchParam);
+  if (location.key !== prevLocationKey) {
+    setPrevLocationKey(location.key);
     if (searchParam !== null) {
       setSearchKey(searchParam);
       setDebouncedSearch(searchParam);

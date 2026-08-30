@@ -310,6 +310,8 @@ type InboundOption struct {
 	Protocol       string `json:"protocol" example:"vless"`
 	Port           int    `json:"port" example:"443"`
 	Enable         bool   `json:"enable" example:"true"`
+	Network        string `json:"network,omitempty"`
+	Security       string `json:"security,omitempty"`
 	TlsFlowCapable bool   `json:"tlsFlowCapable" example:"true"`
 	SsMethod       string `json:"ssMethod"`
 	WgPublicKey    string `json:"wgPublicKey,omitempty"`
@@ -365,6 +367,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 	out := make([]InboundOption, 0, len(rows))
 	for _, r := range rows {
 		wgPublicKey, wgMtu, wgDns := inboundWireguardHints(r.Protocol, r.Settings)
+		netHint, secHint := inboundStreamHints(r.Protocol, r.StreamSettings, r.Settings)
 		shareAddrStrategy := r.ShareAddrStrategy
 		if shareAddrStrategy == "node" {
 			shareAddrStrategy = ""
@@ -376,6 +379,8 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			Protocol:          r.Protocol,
 			Port:              r.Port,
 			Enable:            r.Enable,
+			Network:           netHint,
+			Security:          secHint,
 			TlsFlowCapable:    !r.DisableFlow && inboundCanEnableTlsFlow(r.Protocol, r.StreamSettings, r.Settings),
 			SsMethod:          inboundShadowsocksMethod(r.Protocol, r.Settings),
 			WgPublicKey:       wgPublicKey,
@@ -391,6 +396,44 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 		})
 	}
 	return out, nil
+}
+
+func inboundStreamHints(protocol string, streamSettings string, settings string) (string, string) {
+	p := strings.ToLower(protocol)
+	if p == "wireguard" || p == "amneziawg" || p == "hysteria" {
+		return "udp", ""
+	}
+	var netHint, secHint string
+	if strings.TrimSpace(streamSettings) != "" {
+		var raw struct {
+			Network  string `json:"network"`
+			Security string `json:"security"`
+		}
+		if err := json.Unmarshal([]byte(streamSettings), &raw); err == nil {
+			netHint = raw.Network
+			secHint = raw.Security
+		}
+	}
+	if netHint == "" && strings.TrimSpace(settings) != "" {
+		var raw struct {
+			Network        string `json:"network"`
+			AllowedNetwork string `json:"allowedNetwork"`
+			UDP            bool   `json:"udp"`
+		}
+		if err := json.Unmarshal([]byte(settings), &raw); err == nil {
+			if raw.Network != "" {
+				netHint = raw.Network
+			} else if raw.AllowedNetwork != "" {
+				netHint = raw.AllowedNetwork
+			} else if raw.UDP {
+				netHint = "tcp,udp"
+			}
+		}
+	}
+	if netHint == "" {
+		netHint = "tcp"
+	}
+	return netHint, secHint
 }
 
 func inboundWireguardHints(protocol string, settings string) (string, int, string) {

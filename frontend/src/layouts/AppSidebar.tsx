@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Drawer, Layout, Menu } from 'antd';
+import { Drawer, Layout, Menu, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
@@ -395,23 +395,26 @@ export default function AppSidebar() {
             </div>
           )}
         </div>
-        {!railCollapsed && (
+        <Tooltip
+          title={railCollapsed ? t('commandPalette.title') || 'Command Palette (Ctrl + K)' : undefined}
+          placement="right"
+        >
           <button
             type="button"
-            className="sidebar-command-trigger"
+            className={`sidebar-command-trigger${railCollapsed ? ' collapsed' : ''}`}
             onClick={openCommandPalette}
             aria-label={t('commandPalette.title') || 'Command Palette (Ctrl + K)'}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="sidebar-command-left">
               <SearchOutlined className="sidebar-command-icon" />
-              <span>{t('commandPalette.search') || 'Search...'}</span>
+              <span className="sidebar-command-text">{t('commandPalette.search') || 'Search...'}</span>
             </span>
             <span className="sidebar-command-kbd">
               <span className="kbd-cmd">⌘</span>
               <span className="kbd-key">K</span>
             </span>
           </button>
-        )}
+        </Tooltip>
         <Menu
           theme={currentTheme}
           mode="inline"

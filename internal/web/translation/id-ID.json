@@ -2259,6 +2259,7 @@
     "select": "Pilih",
     "copySubscription": "Salin langganan",
     "restartXray": "Mulai Ulang Layanan Xray",
-    "restartXraySuccess": "Layanan Xray berhasil dimulai ulang"
+    "restartXraySuccess": "Layanan Xray berhasil dimulai ulang",
+    "settings": "Pengaturan"
   }
 }

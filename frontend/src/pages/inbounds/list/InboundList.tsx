@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type Key } from 'react';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -59,13 +59,14 @@ export default function InboundList({
   // Node filter (#4997): 'all' shows everything, 0 is the local-panel
   // sentinel (inbounds without a nodeId), otherwise a node id. Session-only.
   const [nodeFilter, setNodeFilter] = useState<number | 'all'>('all');
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const searchParam = searchParams.get('search');
   const [searchKey, setSearchKey] = useState(() => searchParam || '');
-  const [prevSearchParam, setPrevSearchParam] = useState(searchParam);
+  const [prevLocationKey, setPrevLocationKey] = useState(location.key);
 
-  if (searchParam !== prevSearchParam) {
-    setPrevSearchParam(searchParam);
+  if (location.key !== prevLocationKey) {
+    setPrevLocationKey(location.key);
     if (searchParam !== null) {
       setSearchKey(searchParam);
     }

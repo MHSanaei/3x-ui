@@ -2259,6 +2259,7 @@
     "select": "Seleccionar",
     "copySubscription": "Copiar suscripción",
     "restartXray": "Reiniciar servicio Xray",
-    "restartXraySuccess": "El servicio Xray se ha reiniciado con éxito"
+    "restartXraySuccess": "El servicio Xray se ha reiniciado con éxito",
+    "settings": "Configuración"
   }
 }

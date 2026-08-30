@@ -480,12 +480,69 @@ html[data-theme='ultra-dark'] .command-palette-modal {
   align-items: center;
   justify-content: space-between;
   width: calc(100% - 16px);
+  height: 36px;
+  box-sizing: border-box;
   margin: 8px 8px 4px;
-  padding: 7px 12px;
+  padding: 0 10px;
   border-radius: 7px;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.sidebar-command-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-command-trigger .sidebar-command-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+}
+
+.sidebar-command-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 1;
+  max-width: 130px;
+  transition: opacity 0.2s ease, max-width 0.2s ease;
+}
+
+.sidebar-command-trigger.collapsed {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-command-trigger.collapsed .sidebar-command-left {
+  justify-content: center;
+  width: 100%;
+  gap: 0;
+}
+
+.sidebar-command-trigger.collapsed .sidebar-command-icon {
+  margin: 0 auto;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.sidebar-command-trigger.collapsed .sidebar-command-text {
+  display: none;
+}
+
+.sidebar-command-trigger.collapsed .sidebar-command-kbd {
+  display: none;
 }
 
 body.light .sidebar-command-trigger {

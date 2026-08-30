@@ -2259,6 +2259,7 @@
     "select": "選択",
     "copySubscription": "サブスクリプションをコピー",
     "restartXray": "Xrayサービスを再起動",
-    "restartXraySuccess": "Xrayサービスが正常に再起動されました"
+    "restartXraySuccess": "Xrayサービスが正常に再起動されました",
+    "settings": "設定"
   }
 }

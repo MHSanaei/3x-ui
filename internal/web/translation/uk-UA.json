@@ -2259,6 +2259,7 @@
     "select": "Вибрати",
     "copySubscription": "Копіювати підписку",
     "restartXray": "Перезапустити службу Xray",
-    "restartXraySuccess": "Службу Xray успішно перезапущено"
+    "restartXraySuccess": "Службу Xray успішно перезапущено",
+    "settings": "Налаштування"
   }
 }
