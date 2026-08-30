@@ -37,7 +37,21 @@ func (p *LinkProvider) SubLinksForSubId(host, subId string) ([]string, error) {
 
 func (p *LinkProvider) LinksForClient(host string, inbound *model.Inbound, email string) []string {
 	svc := p.build(host)
+	clients, err := svc.inboundService.GetClients(inbound)
+	if err == nil {
+		svc.primeLinkClients(inbound.Id, clients, true)
+	}
 	svc.projectThroughFallbackMaster(inbound)
+	if err == nil {
+		for _, client := range clients {
+			if strings.EqualFold(client.Email, email) {
+				if endpoints := svc.hostEndpoints(inbound, "raw"); len(endpoints) > 0 {
+					return splitLinkLines(svc.linkFromHosts(inbound, client, endpoints))
+				}
+				break
+			}
+		}
+	}
 	return splitLinkLines(svc.GetLink(inbound, email))
 }
 

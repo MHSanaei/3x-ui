@@ -190,3 +190,86 @@ func TestMigrate_Postgres(t *testing.T) {
 		t.Fatalf("pg host count after 2nd run = %d, want 2 (idempotent)", count)
 	}
 }
+
+func TestMigrateMtprotoCustomShareAddrToHosts(t *testing.T) {
+	initMigrateDB(t)
+	ib := &model.Inbound{
+		UserId: 1, Tag: "mtproto-custom", Enable: true, Port: 4060, Protocol: model.MTProto,
+		Remark: "MTProto", Settings: `{"clients":[]}`, StreamSettings: `{}`,
+		ShareAddrStrategy: "custom", ShareAddr: "proxy.example.com",
+	}
+	if err := GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+
+	if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	var got model.Inbound
+	if err := GetDB().First(&got, ib.Id).Error; err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	if got.ShareAddrStrategy != "listen" || got.ShareAddr != "" {
+		t.Fatalf("share fields = (%q, %q), want (listen, empty)", got.ShareAddrStrategy, got.ShareAddr)
+	}
+	var hosts []model.Host
+	if err := GetDB().Where("inbound_id = ?", ib.Id).Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != 1 || hosts[0].Remark != "proxy.example.com" || hosts[0].Address != "proxy.example.com" || hosts[0].Port != 0 || hosts[0].Security != "same" {
+		t.Fatalf("migrated hosts = %+v", hosts)
+	}
+	if hosts[0].GroupId == "" {
+		t.Fatal("migrated host has an empty group id")
+	}
+
+	if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
+		t.Fatalf("second migrate: %v", err)
+	}
+	var count int64
+	if err := GetDB().Model(&model.Host{}).Where("inbound_id = ?", ib.Id).Count(&count).Error; err != nil {
+		t.Fatalf("count hosts: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("host count = %d, want 1", count)
+	}
+}
+
+func TestMigrateMtprotoCustomShareAddrKeepsExistingHost(t *testing.T) {
+	initMigrateDB(t)
+	ib := &model.Inbound{
+		UserId: 1, Tag: "mtproto-host", Enable: true, Port: 4060, Protocol: model.MTProto,
+		Remark: "MTProto", Settings: `{"clients":[]}`, StreamSettings: `{}`,
+		ShareAddrStrategy: "custom", ShareAddr: "old.example.com",
+	}
+	if err := GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	existing := &model.Host{
+		GroupId: "existing", InboundId: ib.Id, Remark: "public",
+		Address: "new.example.com", Port: 443, Security: "same",
+	}
+	if err := GetDB().Create(existing).Error; err != nil {
+		t.Fatalf("create host: %v", err)
+	}
+
+	if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	var hosts []model.Host
+	if err := GetDB().Where("inbound_id = ?", ib.Id).Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != 1 || hosts[0].Id != existing.Id {
+		t.Fatalf("hosts = %+v, want only existing host %d", hosts, existing.Id)
+	}
+	var got model.Inbound
+	if err := GetDB().First(&got, ib.Id).Error; err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	if got.ShareAddrStrategy != "listen" || got.ShareAddr != "" {
+		t.Fatalf("share fields = (%q, %q), want (listen, empty)", got.ShareAddrStrategy, got.ShareAddr)
+	}
+}

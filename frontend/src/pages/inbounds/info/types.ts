@@ -1,4 +1,5 @@
 import type { SubSettings } from '../useInbounds';
+import type { HostRecord } from '@/schemas/api/host';
 
 export interface ClientStats {
   email: string;
@@ -82,5 +83,6 @@ export interface InboundInfoModalProps {
   tgBotEnable?: boolean;
   nodeAddress?: string;
   subSettings?: SubSettings;
+  hosts?: HostRecord[];
   lastOnlineMap?: Record<string, number>;
 }

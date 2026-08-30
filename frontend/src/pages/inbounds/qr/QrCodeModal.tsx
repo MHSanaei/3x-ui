@@ -14,6 +14,8 @@ import {
   preferPublicHost,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb, type DbInboundLike } from '@/lib/xray/inbound-from-db';
+import { withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
+import type { HostRecord } from '@/schemas/api/host';
 import QrPanel from './QrPanel';
 import type { SubSettings } from '../useInbounds';
 
@@ -26,10 +28,11 @@ interface ClientSetting {
 interface QrCodeModalProps {
   open: boolean;
   onClose: () => void;
-  dbInbound: (DbInboundLike & { remark?: string }) | null;
+  dbInbound: (DbInboundLike & { id: number; remark?: string }) | null;
   client?: ClientSetting | null;
   nodeAddress?: string;
   subSettings?: SubSettings;
+  hosts?: HostRecord[];
 }
 
 interface QrItem {
@@ -40,6 +43,8 @@ interface QrItem {
   showQr?: boolean;
 }
 
+const EMPTY_HOSTS: HostRecord[] = [];
+
 export default function QrCodeModal({
   open,
   onClose,
@@ -47,6 +52,7 @@ export default function QrCodeModal({
   client = null,
   nodeAddress = '',
   subSettings,
+  hosts = EMPTY_HOSTS,
 }: QrCodeModalProps) {
   const { t } = useTranslation();
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
@@ -65,6 +71,7 @@ export default function QrCodeModal({
     client: typeof client;
     nodeAddress: typeof nodeAddress;
     subSettings: typeof subSettings;
+    hosts: typeof hosts;
   } | null>(null);
   if (
     open &&
@@ -73,10 +80,11 @@ export default function QrCodeModal({
       syncedProps.dbInbound !== dbInbound ||
       syncedProps.client !== client ||
       syncedProps.nodeAddress !== nodeAddress ||
-      syncedProps.subSettings !== subSettings)
+      syncedProps.subSettings !== subSettings ||
+      syncedProps.hosts !== hosts)
   ) {
-    setSyncedProps({ dbInbound, client, nodeAddress, subSettings });
-    const inbound = inboundFromDb(dbInbound);
+    setSyncedProps({ dbInbound, client, nodeAddress, subSettings, hosts });
+    const inbound = withMtprotoHostEndpoints(inboundFromDb(dbInbound), dbInbound.id, hosts);
     const fallbackHostname = preferPublicHost(
       window.location.hostname,
       subSettings?.publicHost ?? '',

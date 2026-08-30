@@ -101,3 +101,26 @@ func TestAddInbound_NoExternalProxyCreatesNoHosts(t *testing.T) {
 		t.Fatalf("host count = %d, want 0", count)
 	}
 }
+
+func TestAddInboundImportConvertsMtprotoCustomShareAddrToHost(t *testing.T) {
+	setupConflictDB(t)
+	inbound := &model.Inbound{
+		UserId: 1, Tag: "mt-import", Port: 4060, Protocol: model.MTProto,
+		Settings:       `{"clients":[{"email":"mt-user","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`,
+		StreamSettings: `{}`, ShareAddrStrategy: "custom", ShareAddr: "proxy.example.com",
+	}
+	created, _, err := (&InboundService{}).AddInbound(inbound)
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+	if created.ShareAddrStrategy != "listen" || created.ShareAddr != "" {
+		t.Fatalf("share fields = (%q, %q), want (listen, empty)", created.ShareAddrStrategy, created.ShareAddr)
+	}
+	var hosts []model.Host
+	if err := database.GetDB().Where("inbound_id = ?", created.Id).Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != 1 || hosts[0].Address != "proxy.example.com" || hosts[0].Port != 0 {
+		t.Fatalf("hosts = %+v, want one inherited-port proxy.example.com host", hosts)
+	}
+}

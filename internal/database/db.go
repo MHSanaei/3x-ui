@@ -410,6 +410,61 @@ func seedHostsFromExternalProxy() error {
 	})
 }
 
+func seedMtprotoCustomShareAddrToHosts() error {
+	const seederName = "MtprotoCustomShareAddrToHosts"
+	var count int64
+	if err := db.Model(&model.HistoryOfSeeders{}).Where("seeder_name = ?", seederName).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		var inbounds []model.Inbound
+		if err := tx.Where("protocol = ? AND TRIM(COALESCE(share_addr_strategy, '')) = ?", string(model.MTProto), "custom").Find(&inbounds).Error; err != nil {
+			return err
+		}
+		for _, inbound := range inbounds {
+			if _, err := CreateHostFromMtprotoCustomShareAddr(tx, inbound.Id, inbound.ShareAddr); err != nil {
+				return err
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).Updates(map[string]any{
+				"share_addr_strategy": "listen",
+				"share_addr":          "",
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: seederName}).Error
+	})
+}
+
+// CreateHostFromMtprotoCustomShareAddr preserves legacy imports without keeping
+// a second persisted share-address mechanism for MTProto.
+func CreateHostFromMtprotoCustomShareAddr(tx *gorm.DB, inboundId int, rawAddress string) (bool, error) {
+	address := strings.TrimSpace(rawAddress)
+	if address == "" {
+		return false, nil
+	}
+	var count int64
+	if err := tx.Model(&model.Host{}).Where("inbound_id = ?", inboundId).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return false, nil
+	}
+	address = strings.TrimPrefix(strings.TrimSuffix(address, "]"), "[")
+	host := &model.Host{
+		GroupId: random.NumLower(16), InboundId: inboundId,
+		Remark: address, Address: address, Security: "same",
+	}
+	if err := tx.Create(host).Error; err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func seedWireguardPeersToClients() error {
 	var history []string
 	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
@@ -1289,6 +1344,10 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if err := seedHostsFromExternalProxy(); err != nil {
+		return err
+	}
+
+	if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
 		return err
 	}
 
