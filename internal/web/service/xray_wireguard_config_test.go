@@ -116,6 +116,70 @@ func TestGetXrayConfigWireGuardPeers(t *testing.T) {
 	}
 }
 
+// One email on two WireGuard inbounds has two tunnel addresses but only one
+// wg_allowed_ips row, so peers must come from each inbound's own settings.
+func TestGetXrayConfigWireGuardPeerKeepsItsOwnInboundAddress(t *testing.T) {
+	setupSettingTestDB(t)
+	seed := func(tag string, port int, allowedIP, presharedKey string) {
+		t.Helper()
+		c := model.Client{
+			Email:        "roamer@wg.test",
+			SubID:        "sub-roamer",
+			Enable:       true,
+			PublicKey:    "pub-roamer",
+			AllowedIPs:   []string{allowedIP},
+			PreSharedKey: presharedKey,
+		}
+		settings, err := json.Marshal(map[string]any{
+			"secretKey": wgTestSecretKey(),
+			"mtu":       1420,
+			"clients":   []model.Client{c},
+		})
+		if err != nil {
+			t.Fatalf("marshal %s settings: %v", tag, err)
+		}
+		in := &model.Inbound{
+			Tag:      tag,
+			Enable:   true,
+			Port:     port,
+			Protocol: model.WireGuard,
+			Settings: string(settings),
+		}
+		if err := database.GetDB().Create(in).Error; err != nil {
+			t.Fatalf("create %s: %v", tag, err)
+		}
+		if err := (&ClientService{}).SyncInbound(nil, in.Id, []model.Client{c}); err != nil {
+			t.Fatalf("SyncInbound(%s): %v", tag, err)
+		}
+	}
+	seed("wg-home", 51830, "10.10.0.2/32", "psk-home")
+	seed("wg-away", 51831, "10.20.0.2/32", "psk-away")
+
+	for _, want := range []struct {
+		tag          string
+		allowedIP    string
+		presharedKey string
+	}{
+		{"wg-home", "10.10.0.2/32", "psk-home"},
+		{"wg-away", "10.20.0.2/32", "psk-away"},
+	} {
+		peers := wgPeerList(t, wgInboundEmittedSettings(t, want.tag))
+		if len(peers) != 1 {
+			t.Fatalf("%s: expected 1 peer, got %d: %v", want.tag, len(peers), peers)
+		}
+		allowed, ok := peers[0]["allowedIPs"].([]any)
+		if !ok || len(allowed) != 1 {
+			t.Fatalf("%s: peer allowedIPs = %v", want.tag, peers[0]["allowedIPs"])
+		}
+		if allowed[0] != want.allowedIP {
+			t.Errorf("%s: allowedIPs = %v, want %s — the peer got the other inbound's address", want.tag, allowed[0], want.allowedIP)
+		}
+		if peers[0]["preSharedKey"] != want.presharedKey {
+			t.Errorf("%s: preSharedKey = %v, want %s", want.tag, peers[0]["preSharedKey"], want.presharedKey)
+		}
+	}
+}
+
 func TestGetXrayConfigWireGuardDisabledClientExcluded(t *testing.T) {
 	clients := []model.Client{
 		{Email: "on@wg.test", Enable: true, PublicKey: "pub-on", AllowedIPs: []string{"10.0.0.2/32"}},

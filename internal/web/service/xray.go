@@ -140,6 +140,20 @@ func RemoveIndex(s []any, index int) []any {
 	return append(s[:index], s[index+1:]...)
 }
 
+// inboundOwnWireguardClients keys a WireGuard inbound's own settings clients by
+// email — the only place a peer's per-inbound address and preshared key live.
+func inboundOwnWireguardClients(settings string) map[string]model.Client {
+	parsed, err := ParseInboundSettingsClients(settings)
+	if err != nil {
+		return nil
+	}
+	byEmail := make(map[string]model.Client, len(parsed))
+	for _, c := range parsed {
+		byEmail[strings.ToLower(strings.TrimSpace(c.Email))] = c
+	}
+	return byEmail
+}
+
 // GetXrayConfig retrieves and builds the Xray configuration from settings and inbounds.
 func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	templateConfig, err := s.settingService.GetXrayConfigTemplate()
@@ -189,6 +203,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		enableMap := make(map[string]bool, len(clientStats))
 		for _, clientTraffic := range clientStats {
 			enableMap[clientTraffic.Email] = clientTraffic.Enable
+		}
+
+		var wgOwn map[string]model.Client
+		if inbound.Protocol == model.WireGuard {
+			wgOwn = inboundOwnWireguardClients(inbound.Settings)
 		}
 
 		finalClients := make([]any, 0, len(dbClients))
@@ -244,6 +263,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["auth"] = c.Auth
 				}
 			case model.WireGuard:
+				if own, ok := wgOwn[strings.ToLower(strings.TrimSpace(c.Email))]; ok {
+					c.AllowedIPs = own.AllowedIPs
+					c.PreSharedKey = own.PreSharedKey
+				}
 				wgPeers = append(wgPeers, model.WireguardPeerFromClient(c))
 				continue
 			}
