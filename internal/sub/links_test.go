@@ -2,7 +2,10 @@ package sub
 
 import (
 	"reflect"
+	"strings"
 	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 func TestSplitLinkLines(t *testing.T) {
@@ -36,5 +39,23 @@ func TestSplitLinkLines_WhitespaceOnlyHasNoEntries(t *testing.T) {
 	got := splitLinkLines("   \n\t  \n")
 	if len(got) != 0 {
 		t.Fatalf("splitLinkLines(whitespace) = %#v, want empty slice", got)
+	}
+}
+
+func TestLinksForClient_UsesHostEndpoints(t *testing.T) {
+	seedSubDB(t)
+	inbound := seedSubInbound(t, "s-gate", "gate", 4431, 1, `{"network":"tcp","security":"none"}`)
+	seedHost(t, &model.Host{
+		InboundId: inbound.Id, Remark: "public", Address: "proxy.example.com",
+		Port: 443, Security: "same",
+	})
+
+	links := NewLinkProvider().LinksForClient("req.example.com", inbound, "gate@e")
+
+	if len(links) != 1 {
+		t.Fatalf("links = %d, want 1: %v", len(links), links)
+	}
+	if !strings.Contains(links[0], "proxy.example.com:443") {
+		t.Fatalf("link = %q, want the host endpoint proxy.example.com:443", links[0])
 	}
 }

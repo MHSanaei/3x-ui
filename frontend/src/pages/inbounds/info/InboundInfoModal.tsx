@@ -141,10 +141,16 @@ export default function InboundInfoModal({
       : null;
     setClientStats(stats);
 
-    const inboundForLinks = withMtprotoHostEndpoints(inboundFromDb(dbInbound), dbInbound.id, hosts);
     const fallbackHostname = preferPublicHost(
       window.location.hostname,
       subSettings?.publicHost ?? '',
+    );
+    const inboundForLinks = withMtprotoHostEndpoints(
+      inboundFromDb(dbInbound),
+      dbInbound.id,
+      hosts,
+      nodeAddress,
+      fallbackHostname,
     );
     if (info.protocol === Protocols.WIREGUARD) {
       setWireguardConfigs(

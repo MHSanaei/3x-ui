@@ -236,7 +236,7 @@ func TestMigrateMtprotoCustomShareAddrToHosts(t *testing.T) {
 	}
 }
 
-func TestMigrateMtprotoCustomShareAddrKeepsExistingHost(t *testing.T) {
+func TestMigrateMtprotoCustomShareAddrWithUnrelatedHost(t *testing.T) {
 	initMigrateDB(t)
 	ib := &model.Inbound{
 		UserId: 1, Tag: "mtproto-host", Enable: true, Port: 4060, Protocol: model.MTProto,
@@ -248,7 +248,48 @@ func TestMigrateMtprotoCustomShareAddrKeepsExistingHost(t *testing.T) {
 	}
 	existing := &model.Host{
 		GroupId: "existing", InboundId: ib.Id, Remark: "public",
-		Address: "new.example.com", Port: 443, Security: "same",
+		Address: "new.example.com", Port: 443, Security: "same", IsDisabled: true,
+	}
+	if err := GetDB().Create(existing).Error; err != nil {
+		t.Fatalf("create host: %v", err)
+	}
+
+	if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	var hosts []model.Host
+	if err := GetDB().Where("inbound_id = ?", ib.Id).Order("id asc").Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != 2 || hosts[0].Id != existing.Id {
+		t.Fatalf("hosts = %+v, want the existing host plus the migrated one", hosts)
+	}
+	if hosts[1].Address != "old.example.com" || hosts[1].Port != 0 || hosts[1].IsDisabled {
+		t.Fatalf("migrated host = %+v, want enabled old.example.com on the inbound port", hosts[1])
+	}
+	var got model.Inbound
+	if err := GetDB().First(&got, ib.Id).Error; err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	if got.ShareAddrStrategy != "listen" || got.ShareAddr != "" {
+		t.Fatalf("share fields = (%q, %q), want (listen, empty)", got.ShareAddrStrategy, got.ShareAddr)
+	}
+}
+
+func TestMigrateMtprotoCustomShareAddrSkipsHostWithSameAddress(t *testing.T) {
+	initMigrateDB(t)
+	ib := &model.Inbound{
+		UserId: 1, Tag: "mtproto-dup", Enable: true, Port: 4060, Protocol: model.MTProto,
+		Remark: "MTProto", Settings: `{"clients":[]}`, StreamSettings: `{}`,
+		ShareAddrStrategy: "custom", ShareAddr: "proxy.example.com",
+	}
+	if err := GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	existing := &model.Host{
+		GroupId: "existing", InboundId: ib.Id, Remark: "public",
+		Address: "proxy.example.com", Port: 443, Security: "same",
 	}
 	if err := GetDB().Create(existing).Error; err != nil {
 		t.Fatalf("create host: %v", err)
@@ -263,13 +304,6 @@ func TestMigrateMtprotoCustomShareAddrKeepsExistingHost(t *testing.T) {
 		t.Fatalf("load hosts: %v", err)
 	}
 	if len(hosts) != 1 || hosts[0].Id != existing.Id {
-		t.Fatalf("hosts = %+v, want only existing host %d", hosts, existing.Id)
-	}
-	var got model.Inbound
-	if err := GetDB().First(&got, ib.Id).Error; err != nil {
-		t.Fatalf("reload inbound: %v", err)
-	}
-	if got.ShareAddrStrategy != "listen" || got.ShareAddr != "" {
-		t.Fatalf("share fields = (%q, %q), want (listen, empty)", got.ShareAddrStrategy, got.ShareAddr)
+		t.Fatalf("hosts = %+v, want only the existing host %d", hosts, existing.Id)
 	}
 }

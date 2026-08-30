@@ -328,11 +328,19 @@ export default function InboundsPage() {
   const exportInboundLinks = useCallback(
     (dbInbound: DBInbound) => {
       const projected = checkFallback(dbInbound);
+      const hostOverride = hostOverrideFor(dbInbound);
+      const fallbackHostname = preferPublicHost(window.location.hostname, subSettings.publicHost);
       const genInput = {
-        inbound: withMtprotoHostEndpoints(inboundFromDb(projected), dbInbound.id, hosts),
+        inbound: withMtprotoHostEndpoints(
+          inboundFromDb(projected),
+          dbInbound.id,
+          hosts,
+          hostOverride,
+          fallbackHostname,
+        ),
         remark: projected.remark,
-        hostOverride: hostOverrideFor(dbInbound),
-        fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
+        hostOverride,
+        fallbackHostname,
       };
       const content = genInboundLinks(genInput);
       const tabs: TextModalTab[] | undefined = projected.isWireguard

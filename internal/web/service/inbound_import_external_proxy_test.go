@@ -124,3 +124,23 @@ func TestAddInboundImportConvertsMtprotoCustomShareAddrToHost(t *testing.T) {
 		t.Fatalf("hosts = %+v, want one inherited-port proxy.example.com host", hosts)
 	}
 }
+
+func TestAddInboundImportDropsInvalidMtprotoCustomShareAddr(t *testing.T) {
+	setupConflictDB(t)
+	inbound := &model.Inbound{
+		UserId: 1, Tag: "mt-bad-import", Port: 4061, Protocol: model.MTProto,
+		Settings:       `{"clients":[{"email":"mt-bad","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`,
+		StreamSettings: `{}`, ShareAddrStrategy: "custom", ShareAddr: "https://proxy.example.com/path",
+	}
+	created, _, err := (&InboundService{}).AddInbound(inbound)
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+	var count int64
+	if err := database.GetDB().Model(&model.Host{}).Where("inbound_id = ?", created.Id).Count(&count).Error; err != nil {
+		t.Fatalf("count hosts: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("host count = %d, want 0", count)
+	}
+}

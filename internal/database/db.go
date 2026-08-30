@@ -426,7 +426,7 @@ func seedMtprotoCustomShareAddrToHosts() error {
 			return err
 		}
 		for _, inbound := range inbounds {
-			if _, err := CreateHostFromMtprotoCustomShareAddr(tx, inbound.Id, inbound.ShareAddr); err != nil {
+			if err := CreateHostFromMtprotoCustomShareAddr(tx, inbound.Id, inbound.ShareAddr); err != nil {
 				return err
 			}
 			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).Updates(map[string]any{
@@ -440,29 +440,22 @@ func seedMtprotoCustomShareAddrToHosts() error {
 	})
 }
 
-// CreateHostFromMtprotoCustomShareAddr preserves legacy imports without keeping
-// a second persisted share-address mechanism for MTProto.
-func CreateHostFromMtprotoCustomShareAddr(tx *gorm.DB, inboundId int, rawAddress string) (bool, error) {
-	address := strings.TrimSpace(rawAddress)
+func CreateHostFromMtprotoCustomShareAddr(tx *gorm.DB, inboundId int, rawAddress string) error {
+	address := strings.TrimPrefix(strings.TrimSuffix(strings.TrimSpace(rawAddress), "]"), "[")
 	if address == "" {
-		return false, nil
+		return nil
 	}
 	var count int64
-	if err := tx.Model(&model.Host{}).Where("inbound_id = ?", inboundId).Count(&count).Error; err != nil {
-		return false, err
+	if err := tx.Model(&model.Host{}).Where("inbound_id = ? AND address = ?", inboundId, address).Count(&count).Error; err != nil {
+		return err
 	}
 	if count > 0 {
-		return false, nil
+		return nil
 	}
-	address = strings.TrimPrefix(strings.TrimSuffix(address, "]"), "[")
-	host := &model.Host{
+	return tx.Create(&model.Host{
 		GroupId: random.NumLower(16), InboundId: inboundId,
 		Remark: address, Address: address, Security: "same",
-	}
-	if err := tx.Create(host).Error; err != nil {
-		return false, err
-	}
-	return true, nil
+	}).Error
 }
 
 func seedWireguardPeersToClients() error {

@@ -84,10 +84,16 @@ export default function QrCodeModal({
       syncedProps.hosts !== hosts)
   ) {
     setSyncedProps({ dbInbound, client, nodeAddress, subSettings, hosts });
-    const inbound = withMtprotoHostEndpoints(inboundFromDb(dbInbound), dbInbound.id, hosts);
     const fallbackHostname = preferPublicHost(
       window.location.hostname,
       subSettings?.publicHost ?? '',
+    );
+    const inbound = withMtprotoHostEndpoints(
+      inboundFromDb(dbInbound),
+      dbInbound.id,
+      hosts,
+      nodeAddress,
+      fallbackHostname,
     );
     if (inbound.protocol === Protocols.WIREGUARD) {
       const peerRemark = client?.email
