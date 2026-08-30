@@ -45,6 +45,10 @@ export type DBInboundInit = Partial<{
   shareAddr: string;
   subSortIndex: number;
   disableFlow: boolean;
+  realityShortIdsRotationEnabled: boolean;
+  realityShortIdsRotationDays: number;
+  realityShortIdsRotationCount: number;
+  realityShortIdsGraceHours: number;
   originNodeGuid: string;
   fallbackParent: FallbackParentRef | null;
 }>;
@@ -94,6 +98,10 @@ export class DBInbound {
   shareAddr: string;
   subSortIndex: number;
   disableFlow: boolean;
+  realityShortIdsRotationEnabled: boolean;
+  realityShortIdsRotationDays: number;
+  realityShortIdsRotationCount: number;
+  realityShortIdsGraceHours: number;
   originNodeGuid: string;
   fallbackParent: FallbackParentRef | null;
 
@@ -125,6 +133,10 @@ export class DBInbound {
     this.shareAddr = '';
     this.subSortIndex = 1;
     this.disableFlow = false;
+    this.realityShortIdsRotationEnabled = false;
+    this.realityShortIdsRotationDays = 30;
+    this.realityShortIdsRotationCount = 0;
+    this.realityShortIdsGraceHours = 24;
     this.originNodeGuid = '';
     this.fallbackParent = null;
     if (data == null) {

@@ -517,6 +517,7 @@ export default function InboundFormModal({
       }
       if (next !== Protocols.VLESS) {
         setV('disableFlow', false);
+        setV('realityShortIdsRotationEnabled', false);
       }
       if (next === Protocols.HYSTERIA) {
         setV('streamSettings', {
@@ -979,6 +980,7 @@ export default function InboundFormModal({
           clearRealityKeypair={clearRealityKeypair}
           genMldsa65={genMldsa65}
           clearMldsa65={clearMldsa65}
+          rotationSupported={protocol === Protocols.VLESS}
         />
       )}
     </>

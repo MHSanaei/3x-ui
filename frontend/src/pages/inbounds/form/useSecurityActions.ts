@@ -323,6 +323,9 @@ export function useSecurityActions({
 
   const onSecurityChange = async (next: string) => {
     setScanResult(null);
+    if (next !== 'reality') {
+      setValue('realityShortIdsRotationEnabled', false);
+    }
     const current = (getValues('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, security: next };
     delete cleaned.tlsSettings;

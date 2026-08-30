@@ -100,6 +100,9 @@ func initModels() error {
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
 		return err
 	}
+	if err := migrateRealityShortIDRotationColumns(); err != nil {
+		return err
+	}
 	models := allModels()
 	for _, mdl := range models {
 		if IsPostgres() && postgresModelSettled(mdl) {
@@ -178,6 +181,41 @@ func initModels() error {
 		}
 	}
 	return nil
+}
+
+func migrateRealityShortIDRotationColumns() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&model.Inbound{}) {
+		return nil
+	}
+	fields := []string{
+		"RealityShortIdsRotationEnabled",
+		"RealityShortIdsRotationDays",
+		"RealityShortIdsRotationCount",
+		"RealityShortIdsGraceHours",
+		"RealityShortIdsActiveCount",
+		"RealityShortIdsRotationCursor",
+		"RealityShortIdsLastRotationTime",
+		"RealityShortIdsNextRotationTime",
+		"RealityShortIdsRetireAt",
+	}
+	for _, field := range fields {
+		if !migrator.HasColumn(&model.Inbound{}, field) {
+			if err := migrator.AddColumn(&model.Inbound{}, field); err != nil {
+				return err
+			}
+		}
+	}
+	return db.Exec(`UPDATE inbounds SET
+        reality_short_ids_rotation_enabled = COALESCE(reality_short_ids_rotation_enabled, FALSE),
+        reality_short_ids_rotation_days = CASE WHEN reality_short_ids_rotation_days IS NULL OR reality_short_ids_rotation_days <= 0 THEN 30 ELSE reality_short_ids_rotation_days END,
+        reality_short_ids_rotation_count = COALESCE(reality_short_ids_rotation_count, 0),
+        reality_short_ids_grace_hours = COALESCE(reality_short_ids_grace_hours, 24),
+        reality_short_ids_active_count = COALESCE(reality_short_ids_active_count, 0),
+        reality_short_ids_rotation_cursor = COALESCE(reality_short_ids_rotation_cursor, 0),
+        reality_short_ids_last_rotation_time = COALESCE(reality_short_ids_last_rotation_time, 0),
+        reality_short_ids_next_rotation_time = COALESCE(reality_short_ids_next_rotation_time, 0),
+        reality_short_ids_retire_at = COALESCE(reality_short_ids_retire_at, 0)`).Error
 }
 
 func postgresModelSettled(mdl any) bool {

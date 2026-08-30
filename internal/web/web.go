@@ -287,6 +287,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // fleet load, skip expensive jobs when no WebSocket clients are connected or
 // node/xray state is unchanged, and export per-job duration/skipped/error
 // counters.
+const cadenceRealityShortIDRotation = "@hourly"
+
 const (
 	cadenceXrayRunning   = "@every 1s"
 	cadenceXrayRestart   = "@every 30s"
@@ -361,6 +363,7 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	_, _ = s.cron.AddJob("@daily", job.NewClearLogsJob())
 	_, _ = s.cron.AddJob(cadenceXrayLogPrune, job.NewPruneXrayLogsJob())
 	_, _ = s.cron.AddJob("@hourly", job.NewWarpIpJob())
+	_, _ = s.cron.AddJob(cadenceRealityShortIDRotation, job.NewRealityShortIDRotationJob())
 
 	// Inbound traffic reset jobs
 	// Run every hour

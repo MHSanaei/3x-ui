@@ -952,6 +952,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
+	if err := normalizeRealityShortIDRotation(inbound, nil, time.Now()); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
@@ -1500,6 +1503,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if inbound.NodeID != nil && !isNodeEligibleProtocol(inbound.Protocol) {
 		return inbound, false, common.NewErrorf("%s inbounds cannot be assigned to a node", inbound.Protocol)
 	}
+	if err := normalizeRealityShortIDRotation(inbound, oldInbound, time.Now()); err != nil {
+		return inbound, false, err
+	}
 
 	// Capture the pre-edit protocol and routing state before oldInbound is
 	// overwritten with the new values further down, then ensure a routed
@@ -1621,6 +1627,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Port = inbound.Port
 		oldInbound.Protocol = inbound.Protocol
 		oldInbound.DisableFlow = inbound.DisableFlow
+		oldInbound.RealityShortIdsRotationEnabled = inbound.RealityShortIdsRotationEnabled
+		oldInbound.RealityShortIdsRotationDays = inbound.RealityShortIdsRotationDays
+		oldInbound.RealityShortIdsRotationCount = inbound.RealityShortIdsRotationCount
+		oldInbound.RealityShortIdsGraceHours = inbound.RealityShortIdsGraceHours
+		oldInbound.RealityShortIdsActiveCount = inbound.RealityShortIdsActiveCount
+		oldInbound.RealityShortIdsRotationCursor = inbound.RealityShortIdsRotationCursor
+		oldInbound.RealityShortIdsLastRotationTime = inbound.RealityShortIdsLastRotationTime
+		oldInbound.RealityShortIdsNextRotationTime = inbound.RealityShortIdsNextRotationTime
+		oldInbound.RealityShortIdsRetireAt = inbound.RealityShortIdsRetireAt
 		oldInbound.Settings = inbound.Settings
 		oldInbound.StreamSettings = inbound.StreamSettings
 		oldInbound.Sniffing = inbound.Sniffing
