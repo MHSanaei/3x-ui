@@ -434,8 +434,7 @@ func balancerStrategy(t *testing.T, docs []map[string]any, remarks string) map[s
 }
 
 // leastLoad with configured weights must emit strategy.settings.costs keyed by
-// the retagged member tags, in emission order; members without a weight count
-// as 1.0.
+// the retagged member tags; members without a weight count as 1.0.
 func TestSubJson_BalancerLeastLoadCosts(t *testing.T) {
 	seedSubDB(t)
 	fast := seedSubInbound(t, "s1", "fast", 4791, 1, wsTLSStream)
@@ -488,9 +487,8 @@ func TestSubJson_BalancerLeastLoadWithoutWeightsOmitsCosts(t *testing.T) {
 	}
 }
 
-// Emission-side guard independent of validate(): a weights row stored with a
-// non-leastLoad strategy (e.g. written directly to the DB) must still emit no
-// costs — xray would ignore them and the doc would lie about its behavior.
+// Emission-side guard independent of validate(): a non-leastLoad row written
+// directly to the DB must still emit no costs — xray would ignore them.
 func TestSubJson_BalancerCostsSkippedForNonLeastLoadStrategy(t *testing.T) {
 	seedSubDB(t)
 	a := seedSubInbound(t, "s1", "a", 4811, 1, wsTLSStream)

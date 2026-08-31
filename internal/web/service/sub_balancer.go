@@ -1,6 +1,7 @@
 package service
 
 import (
+	"math"
 	"slices"
 	"strings"
 
@@ -46,10 +47,8 @@ func (s *SubBalancerService) validate(b *model.SubBalancer) error {
 	return nil
 }
 
-// validateWeights rejects non-positive weights (a silent default would hide a
-// typo like "0" meaning "never pick this node"), drops entries for inbounds no
-// longer selected, and errors on weights with any strategy but leastLoad —
-// xray would ignore them, so storing them would pretend a knob exists.
+// validateWeights rejects weights xray cannot honor (non-positive, outside
+// float32 range, non-leastLoad strategy) and drops stray inbound ids.
 func (s *SubBalancerService) validateWeights(b *model.SubBalancer) error {
 	if len(b.MemberWeights) == 0 {
 		b.MemberWeights = nil
@@ -63,8 +62,10 @@ func (s *SubBalancerService) validateWeights(b *model.SubBalancer) error {
 		if !slices.Contains(b.InboundIds, id) {
 			continue
 		}
-		if weight <= 0 {
-			return common.NewError("balancer member weights must be greater than 0")
+		// xray decodes costs as float32; out-of-range values make it reject the
+		// whole config, and underflow decays to the tag-digit fallback weight.
+		if weight <= 0 || weight > math.MaxFloat32 || weight < math.SmallestNonzeroFloat32 {
+			return common.NewError("balancer member weights must be a positive float32 value")
 		}
 		cleaned[id] = weight
 	}

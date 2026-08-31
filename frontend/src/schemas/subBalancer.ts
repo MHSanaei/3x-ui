@@ -8,7 +8,7 @@ export const SubBalancerSchema = z.object({
   remark: z.string(),
   strategy: SubBalancerStrategySchema,
   inboundIds: z.array(z.number()),
-  memberWeights: z.record(z.string(), z.number()).optional(),
+  memberWeights: z.record(z.string(), z.number()).nullish(),
   sortOrder: z.number(),
   enabled: z.boolean(),
   createdAt: z.number().optional(),

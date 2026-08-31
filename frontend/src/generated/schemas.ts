@@ -3402,7 +3402,6 @@ export const SCHEMAS: Record<string, unknown> = {
       "enabled",
       "id",
       "inboundIds",
-      "memberWeights",
       "remark",
       "sortOrder",
       "strategy",

@@ -1249,7 +1249,7 @@ type SubBalancer struct {
 	InboundIds []int  `json:"inboundIds" form:"inboundIds" gorm:"serializer:json;column:inbound_ids" example:"[1,3]"`
 	// inboundId -> leastLoad weight; absent entries mean 1.0. Only meaningful
 	// with Strategy "leastLoad" — xray ignores costs on every other strategy.
-	MemberWeights map[int]float64 `json:"memberWeights" form:"memberWeights" gorm:"serializer:json;column:member_weights"`
+	MemberWeights map[int]float64 `json:"memberWeights,omitempty" form:"memberWeights" gorm:"serializer:json;column:member_weights"`
 	SortOrder     int             `json:"sortOrder" form:"sortOrder" gorm:"column:sort_order" validate:"omitempty,gte=1" example:"1"`
 	// No gorm default:true — a bool default makes an explicit false at insert
 	// collapse back to the column default (zero value is skipped).

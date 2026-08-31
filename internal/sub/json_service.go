@@ -357,10 +357,8 @@ type balMember struct {
 	inboundId int
 }
 
-// leastLoadCosts builds xray's static strategy settings costs: higher value =
-// picked less often. Members without a configured weight default to 1.0, but
-// nil is returned unless at least one member carries an explicit weight — an
-// all-1.0 array would only bloat every subscription response.
+// leastLoadCosts builds xray's static strategy costs: higher value = picked
+// less often; nil unless a member carries an explicit weight (all-1.0 bloat).
 func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
 	if balancer.Strategy != "leastLoad" || len(members) == 0 || len(balancer.MemberWeights) == 0 {
 		return nil
