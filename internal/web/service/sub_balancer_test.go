@@ -160,9 +160,8 @@ func TestSubBalancerServiceValidation(t *testing.T) {
 	}
 }
 
-// Weights are a leastLoad-only knob; xray silently ignores costs elsewhere, so
-// storing them would pretend a knob exists. Non-positive weights are rejected
-// rather than defaulted — a zero usually means a typo'd "never pick this node".
+// Weights are a leastLoad-only knob (xray ignores costs elsewhere); non-positive
+// weights are rejected rather than defaulted — a zero means "never pick this".
 func TestSubBalancerServiceWeightValidation(t *testing.T) {
 	setupSubBalancerDB(t)
 	svc := &SubBalancerService{}
@@ -177,8 +176,22 @@ func TestSubBalancerServiceWeightValidation(t *testing.T) {
 	if _, err := svc.Create(&model.SubBalancer{
 		Remark: "w", Strategy: "leastLoad", InboundIds: []int{1},
 		MemberWeights: map[int]float64{1: -0.5},
-	}); err == nil || !strings.Contains(err.Error(), "greater than 0") {
+	}); err == nil || !strings.Contains(err.Error(), "positive float32") {
 		t.Fatalf("negative weight = %v, must be rejected", err)
+	}
+
+	if _, err := svc.Create(&model.SubBalancer{
+		Remark: "w", Strategy: "leastLoad", InboundIds: []int{1},
+		MemberWeights: map[int]float64{1: 1e39},
+	}); err == nil || !strings.Contains(err.Error(), "positive float32") {
+		t.Fatalf("above-float32 weight = %v, must be rejected", err)
+	}
+
+	if _, err := svc.Create(&model.SubBalancer{
+		Remark: "w", Strategy: "leastLoad", InboundIds: []int{1},
+		MemberWeights: map[int]float64{1: 1e-50},
+	}); err == nil || !strings.Contains(err.Error(), "positive float32") {
+		t.Fatalf("underflowing weight = %v, must be rejected", err)
 	}
 
 	stray, err := svc.Create(&model.SubBalancer{
@@ -215,5 +228,22 @@ func TestSubBalancerServiceWeightValidation(t *testing.T) {
 	}
 	if cleared.MemberWeights != nil {
 		t.Fatalf("absent memberWeights must clear stored weights, got %v", cleared.MemberWeights)
+	}
+
+	// A toggle-style update (weights key absent) must not erase stored weights
+	// when the payload carries them back — re-Get to prove the column survived.
+	toggled, err := svc.Update(stray.Id, &model.SubBalancer{
+		Remark: "stray", Strategy: "leastLoad", InboundIds: []int{1, 2},
+		MemberWeights: map[int]float64{1: 2.5}, SortOrder: 1,
+	}, nil)
+	if err != nil {
+		t.Fatalf("toggle-style update with weights: %v", err)
+	}
+	reget, err := svc.Get(toggled.Id)
+	if err != nil {
+		t.Fatalf("get after toggle-style update: %v", err)
+	}
+	if len(reget.MemberWeights) != 1 || reget.MemberWeights[1] != 2.5 {
+		t.Fatalf("re-Get memberWeights = %v, want persisted {1:2.5}", reget.MemberWeights)
 	}
 }
