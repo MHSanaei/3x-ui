@@ -35,6 +35,30 @@ func randInt(min, max int) int {
 	return min + int(n.Int64())
 }
 
+// DefaultMTU is WireGuard/AmneziaWG's usual tunnel MTU on a 1500-byte host
+// link, before AmneziaWG's own S4 transport junk is prepended.
+const DefaultMTU = 1420
+
+// EffectiveMTU is the MTU a tunnel actually runs at: the admin's value when
+// set, otherwise DefaultMTU minus S4.
+//
+// amneziawg prepends s4 random bytes to every transport packet and, unlike
+// content padding and trailers, never clamps them against the tunnel MTU, so a
+// plain 1420 tunnel puts full-size packets at 1480+S4 bytes on the wire and
+// fragments every one of them once S4 passes 20.
+//
+// Both ends must agree, so every client-config emitter writes this same number:
+// a config with no MTU line leaves the client on its own 1420 default and
+// fragments the client-to-server direction even after the server is fixed. The
+// 1280 floor is defensive -- validation caps S4 at 32, so it cannot be reached
+// through the panel.
+func EffectiveMTU(configuredMTU, s4 int) int {
+	if configuredMTU > 0 {
+		return configuredMTU
+	}
+	return max(DefaultMTU-max(s4, 0), 1280)
+}
+
 // GenerateObfuscation31 produces a randomized AmneziaWG 3.1 parameter set: a
 // static value gets profiled by DPI, defeating the point.
 func GenerateObfuscation31() Obfuscation31 {

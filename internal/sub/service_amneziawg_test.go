@@ -3,6 +3,7 @@ package sub
 import (
 	"encoding/base64"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -271,6 +272,48 @@ func TestAmneziaWGConfigTextRejectsNewlineInjection(t *testing.T) {
 			remark := tc.mutate(&s, &c)
 			if got := amneziaWGConfigText(&s, &c, "203.0.113.7", 51820, remark); got != "" {
 				t.Fatalf("%s with a newline rendered a config:\n%s", tc.name, got)
+			}
+		})
+	}
+}
+
+// TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU guards a real asymmetry:
+// when the admin leaves MTU unset the server derives one from S4, but a client
+// config with no MTU line leaves the client on its own 1420 default. The client
+// then sends full-size packets at 1480+S4 on the wire and fragments every one
+// of them -- silently, and only in the client-to-server direction.
+func TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU(t *testing.T) {
+	t.Parallel()
+
+	client := &model.Client{
+		Email:      "peer-1",
+		PrivateKey: "clientPrivateKeyBase64ValueForTests00000000=",
+		AllowedIPs: []string{"10.8.1.2/32"},
+	}
+	cases := []struct {
+		name      string
+		serverMTU int
+		s4        int
+		want      string
+	}{
+		{"unset falls back to the S4-aware default", 0, 27, "MTU = 1393"},
+		{"unset with no S4 keeps the plain default", 0, 0, "MTU = 1420"},
+		{"an explicit MTU wins", 1380, 27, "MTU = 1380"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := &amneziawg.ServerSettings{
+				PublicKey: "serverPubKeyBase64ValueForTests000000000000=",
+				MTU:       tc.serverMTU,
+				S4:        tc.s4,
+			}
+			got := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "peer-1")
+			if !strings.Contains(got, tc.want+"\n") {
+				t.Errorf("expected %q in the client config\n%s", tc.want, got)
+			}
+			want := "MTU = " + strconv.Itoa(amneziawg.EffectiveMTU(tc.serverMTU, tc.s4))
+			if !strings.Contains(got, want+"\n") {
+				t.Errorf("client MTU must equal the server's effective MTU (%s)", want)
 			}
 		})
 	}
