@@ -123,6 +123,10 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 			skip(email, verr.Error())
 			continue
 		}
+		if verr := validateClientKeepAlive(client.KeepAlive); verr != nil {
+			skip(email, verr.Error())
+			continue
+		}
 		if verr := validateClientTrafficReset(client.TrafficReset, client.TrafficResetDay); verr != nil {
 			skip(email, verr.Error())
 			continue

@@ -916,6 +916,8 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/update/:email',
         summary:
           'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).',
+        description:
+          'Two field groups are the exception to "replaces, does not patch": identity/credentials (`id`, `password`, `auth`, `secret` — a non-empty value sent still rotates them) and `keepAlive` (WireGuard/AmneziaWG PersistentKeepalive) are preserved from the stored client when omitted from the body, rather than reset to their zero value. For `keepAlive` specifically: omit the field to leave it as stored, send `0` explicitly to disable it — the two are not the same thing.',
         params: [
           {
             name: 'email',

@@ -1213,6 +1213,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "keepAlive": {
+        "description": "seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value",
+        "nullable": true,
         "type": "integer"
       },
       "limitIp": {

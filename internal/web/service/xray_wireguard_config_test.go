@@ -77,7 +77,7 @@ func wgPeerList(t *testing.T, settings map[string]any) []map[string]any {
 
 func TestGetXrayConfigWireGuardPeers(t *testing.T) {
 	clients := []model.Client{
-		{Email: "alice@wg.test", Enable: true, PublicKey: "pub-alice", AllowedIPs: []string{"10.0.0.2/32"}, KeepAlive: 25},
+		{Email: "alice@wg.test", Enable: true, PublicKey: "pub-alice", AllowedIPs: []string{"10.0.0.2/32"}, KeepAlive: model.KeepAlivePtr(25)},
 		{Email: "bob@wg.test", Enable: true, PublicKey: "pub-bob", AllowedIPs: []string{"10.0.0.3/32"}},
 	}
 	seedWGInbound(t, "wg-multi", 51820, clients)

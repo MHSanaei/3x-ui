@@ -76,6 +76,19 @@ func validateClientResetMax(resetMax int) error {
 	return nil
 }
 
+// Rejected rather than clamped: an out-of-range value still gets stored and
+// forwarded into the generated peer config verbatim, where it is the consuming
+// WireGuard/AmneziaWG client's uint16 field that has to reject it instead.
+func validateClientKeepAlive(keepAlive *int) error {
+	if keepAlive == nil {
+		return nil
+	}
+	if *keepAlive < 0 || *keepAlive > 65535 {
+		return common.NewError("client keepAlive must be between 0 and 65535, got:", *keepAlive)
+	}
+	return nil
+}
+
 // normalizeClientTrafficReset stores what the inbound path would store, so the
 // day never reaches the DB as a 0 that three layers downstream each clamp to 1.
 func normalizeClientTrafficReset(c *model.Client) {
@@ -134,6 +147,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		return false, err
 	}
 	if err := validateClientResetMax(client.ResetMax); err != nil {
+		return false, err
+	}
+	if err := validateClientKeepAlive(client.KeepAlive); err != nil {
 		return false, err
 	}
 	if err := validateClientTrafficReset(client.TrafficReset, client.TrafficResetDay); err != nil {
@@ -440,6 +456,9 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientResetMax(updated.ResetMax); err != nil {
 		return false, err
 	}
+	if err := validateClientKeepAlive(updated.KeepAlive); err != nil {
+		return false, err
+	}
 	if err := validateClientTrafficReset(updated.TrafficReset, updated.TrafficResetDay); err != nil {
 		return false, err
 	}
@@ -470,6 +489,11 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	}
 	if updated.Secret == "" {
 		updated.Secret = existing.Secret
+	}
+	// KeepAlive is a pointer for the same reason: ToRecord() collapses nil to
+	// 0, so an omitted field must be backfilled here, not left to convert.
+	if updated.KeepAlive == nil {
+		updated.KeepAlive = model.KeepAlivePtr(existing.KeepAlive)
 	}
 
 	if updated.Email != existing.Email {
