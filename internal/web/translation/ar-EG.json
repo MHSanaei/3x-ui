@@ -874,6 +874,8 @@
       "amneziaWgAllowedIPsHint": "اتركه فارغًا للتعيين التلقائي؛ افصل بين الإدخالات بفواصل",
       "amneziaWgForwardedPorts": "المنافذ المُعاد توجيهها",
       "amneziaWgForwardedPortsHint": "المنافذ/النطاقات المُعاد توجيهها (DNAT) لهذا العميل، مثل 80, 443, 8000-8100. اتركها فارغة إن لم تكن مطلوبة.",
+      "tunnelKeepAlive": "Keepalive (seconds)",
+      "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "إعدادات AmneziaWG",
       "mtprotoSecret": "سر MTProto",
       "mtprotoSecretHint": "سر FakeTLS الخاص بالعميل. أعد التوليد لتغييره.",
