@@ -380,7 +380,7 @@ func TestSubJsonServiceWireguard(t *testing.T) {
 		Email:        "user",
 		PrivateKey:   clientPriv,
 		PreSharedKey: "psk-value",
-		KeepAlive:    25,
+		KeepAlive:    model.KeepAlivePtr(25),
 		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
 	}
 

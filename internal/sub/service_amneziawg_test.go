@@ -214,7 +214,7 @@ func TestAmneziaWGConfigTextPeerFieldOrder(t *testing.T) {
 	server := &amneziawg.ServerSettings{PublicKey: "serverPub", PrimaryDNS: "8.8.8.8", MTU: 1420}
 
 	t.Run("every optional field set", func(t *testing.T) {
-		client := &model.Client{PrivateKey: "clientPriv", AllowedIPs: []string{"10.8.1.2/32"}, PreSharedKey: "psk", KeepAlive: 25}
+		client := &model.Client{PrivateKey: "clientPriv", AllowedIPs: []string{"10.8.1.2/32"}, PreSharedKey: "psk", KeepAlive: model.KeepAlivePtr(25)}
 		conf := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "remark")
 		if got := peerFields(t, conf); !slices.Equal(got, peerFieldOrder) {
 			t.Fatalf("peer fields = %v, want %v\n%s", got, peerFieldOrder, conf)

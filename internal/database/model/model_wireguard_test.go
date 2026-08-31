@@ -13,7 +13,7 @@ func TestClientToRecordRoundTripWireGuard(t *testing.T) {
 		PublicKey:    "cGVlci1wdWJsaWMta2V5LWJhc2U2NC0zMmJ5dGVzISE=",
 		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
 		PreSharedKey: "cHNrLWJhc2U2NC0zMmJ5dGVzLXBsYWNlaG9sZGVyISE=",
-		KeepAlive:    25,
+		KeepAlive:    KeepAlivePtr(25),
 	}
 
 	rec := c.ToRecord()
@@ -29,7 +29,7 @@ func TestClientToRecordRoundTripWireGuard(t *testing.T) {
 		{"PrivateKey", c.PrivateKey, got.PrivateKey},
 		{"PublicKey", c.PublicKey, got.PublicKey},
 		{"PreSharedKey", c.PreSharedKey, got.PreSharedKey},
-		{"KeepAlive", c.KeepAlive, got.KeepAlive},
+		{"KeepAlive", c.KeepAliveSeconds(), got.KeepAliveSeconds()},
 	} {
 		if f.a != f.b {
 			t.Errorf("%s round-trip = %v, want %v", f.name, f.b, f.a)

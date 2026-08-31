@@ -1279,6 +1279,7 @@ export default function ClientFormModal({
                             name="wgKeepAlive"
                             label={t('pages.clients.tunnelKeepAlive')}
                             extra={t('pages.clients.tunnelKeepAliveHint')}
+                            transform={{ output: (v) => Number(v) || 0 }}
                           >
                             <InputNumber min={0} max={65535} style={{ width: '100%' }} />
                           </FormField>

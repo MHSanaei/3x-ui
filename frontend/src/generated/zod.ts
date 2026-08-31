@@ -292,7 +292,7 @@ export const ClientSchema = z.object({
   forwardedPorts: z.string().optional(),
   group: z.string().optional(),
   id: z.string().optional(),
-  keepAlive: z.number().int().optional(),
+  keepAlive: z.number().int().nullable().optional(),
   limitIp: z.number().int(),
   password: z.string().optional(),
   preSharedKey: z.string().optional(),

@@ -271,7 +271,7 @@ export interface Client {
   forwardedPorts?: string;
   group?: string;
   id?: string;
-  keepAlive?: number;
+  keepAlive?: number | null;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
