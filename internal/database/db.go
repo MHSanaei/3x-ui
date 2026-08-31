@@ -1169,6 +1169,22 @@ func initUser() error {
 	return nil
 }
 
+func seedRandomSubscriptionPaths() error {
+	settings := []model.Setting{
+		{Key: "subPath", Value: "/" + random.NumLower(16) + "/"},
+		{Key: "subJsonPath", Value: "/" + random.NumLower(16) + "/"},
+		{Key: "subClashPath", Value: "/" + random.NumLower(16) + "/"},
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		for i := range settings {
+			if err := tx.Where("key = ?", settings[i].Key).FirstOrCreate(&settings[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func runSeeders(isUsersEmpty bool) error {
 	empty, err := isTableEmpty("history_of_seeders")
 	if err != nil {
@@ -2137,6 +2153,11 @@ func InitDB(dbPath string) error {
 	isUsersEmpty, err := isTableEmpty("users")
 	if err != nil {
 		return err
+	}
+	if isUsersEmpty {
+		if err := seedRandomSubscriptionPaths(); err != nil {
+			return err
+		}
 	}
 
 	if err := initUser(); err != nil {
