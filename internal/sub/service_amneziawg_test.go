@@ -277,11 +277,8 @@ func TestAmneziaWGConfigTextRejectsNewlineInjection(t *testing.T) {
 	}
 }
 
-// TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU guards a real asymmetry:
-// when the admin leaves MTU unset the server derives one from S4, but a client
-// config with no MTU line leaves the client on its own 1420 default. The client
-// then sends full-size packets at 1480+S4 on the wire and fragments every one
-// of them -- silently, and only in the client-to-server direction.
+// Guards an asymmetry: the server derives its MTU from S4, but a config with no
+// MTU line leaves the client at 1420 and fragments client-to-server only.
 func TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU(t *testing.T) {
 	t.Parallel()
 

@@ -39,19 +39,8 @@ func randInt(min, max int) int {
 // link, before AmneziaWG's own S4 transport junk is prepended.
 const DefaultMTU = 1420
 
-// EffectiveMTU is the MTU a tunnel actually runs at: the admin's value when
-// set, otherwise DefaultMTU minus S4.
-//
-// amneziawg prepends s4 random bytes to every transport packet and, unlike
-// content padding and trailers, never clamps them against the tunnel MTU, so a
-// plain 1420 tunnel puts full-size packets at 1480+S4 bytes on the wire and
-// fragments every one of them once S4 passes 20.
-//
-// Both ends must agree, so every client-config emitter writes this same number:
-// a config with no MTU line leaves the client on its own 1420 default and
-// fragments the client-to-server direction even after the server is fixed. The
-// 1280 floor is defensive -- validation caps S4 at 32, so it cannot be reached
-// through the panel.
+// EffectiveMTU is the admin's value when set, else DefaultMTU minus S4: s4 junk
+// is prepended to every transport packet and never clamped against the MTU.
 func EffectiveMTU(configuredMTU, s4 int) int {
 	if configuredMTU > 0 {
 		return configuredMTU

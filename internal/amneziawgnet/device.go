@@ -73,7 +73,7 @@ type Device struct {
 
 // NewDevice constructs, configures, and brings up an embedded AmneziaWG
 // interface for inst in one call: a gVisor-backed tun.Device sized to
-// inst.MTU (or defaultMTU), addressed with inst.Address, configured via
+// amneziawg.EffectiveMTU, addressed with inst.Address, configured via
 // UAPI with inst.Obfuscation, inst.PrivateKey, opts' AWG 3.0 fields, and one
 // UAPI peer per inst.Peers entry. It does not attach a forwarder or start
 // relaying traffic -- that's the caller's job (see AttachTCPForwarder /

@@ -101,9 +101,10 @@ func (m *Manager) Ensure(d Desired) error {
 // tearing down every peer's live handshake/session state on every single
 // reconcile, so no connection could ever survive past one tick); only
 // peers/obfuscation/keys/listen_port changed (reconfigure the existing
-// Device in place via IpcSet); or the interface's own address(es)/MTU
-// changed (these are fixed at netstack-construction time, so the only
-// option is closing the old Device and building a fresh one).
+// Device in place via IpcSet); or the interface's own address(es)/effective
+// MTU changed -- S4 counts, the default MTU derives from it (these are fixed
+// at netstack-construction time, so the only option is closing the old
+// Device and building a fresh one).
 func (m *Manager) ensureLocked(d Desired) error {
 	inst, opts := d.Instance, d.Options
 	if opts.Logger == nil {
@@ -251,12 +252,12 @@ func socksRelayForInstance(inst amneziawg.Instance) SocksRelay {
 	}
 }
 
-// addressFingerprint captures the two Instance fields that can't be changed
-// on a running Device via IpcSet alone (they're fixed when the gVisor
-// netstack is built) -- everything else (keys, listen port, obfuscation,
-// AWG 3.0 options, peers) amneziawg-go's own UAPI can hot-reconfigure.
+// addressFingerprint captures what IpcSet can't change on a running Device,
+// fixed when the netstack is built: address, and the S4-derived effective MTU.
 func addressFingerprint(inst amneziawg.Instance) string {
-	return fmt.Sprintf("%d|%s", inst.MTU, strings.Join(inst.Address, ","))
+	return fmt.Sprintf("%d|%s",
+		amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4),
+		strings.Join(inst.Address, ","))
 }
 
 // Reconcile brings every desired instance's embedded interface up to date

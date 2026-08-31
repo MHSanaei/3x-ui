@@ -383,11 +383,8 @@ func TestValidateConfigValueRejectsControlCharacters(t *testing.T) {
 	}
 }
 
-// TestEffectiveMTUKeepsFullSizePacketsUnfragmented locks in the headroom the
-// plain 1420 default did not leave: amneziawg prepends s4 junk bytes to every
-// transport packet and, unlike content padding and trailers, never clamps them
-// against the tunnel MTU -- so a 1420-MTU tunnel puts full-size packets at
-// 1480+S4 on the wire and fragments every one of them once S4 passes 20.
+// The plain 1420 default left no headroom for s4: it put full-size packets at
+// 1480+S4 on the wire and fragmented every one of them once S4 passed 20.
 func TestEffectiveMTUKeepsFullSizePacketsUnfragmented(t *testing.T) {
 	t.Parallel()
 
