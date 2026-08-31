@@ -120,3 +120,9 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+
+// Pins the fix in amnezia-vpn/amneziawg-go#184 (first TUN packet, and any packet
+// right after a live S4 change over UAPI, went out with stale/zero padding and
+// was dropped by the peer). Not merged upstream yet — switch this back to a
+// plain require on amnezia-vpn/amneziawg-go/v3 once it lands in a tagged release.
+replace github.com/amnezia-vpn/amneziawg-go/v3 => github.com/AYastrebov/amneziawg-go/v3 v3.1.20260815-0.20260825133717-fcbeecfd6d73
