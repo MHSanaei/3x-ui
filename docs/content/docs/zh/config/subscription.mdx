@@ -14,7 +14,7 @@ icon: Rss
 | ------------- | ------- | --------------------------------------------------------------- |
 | `subPort`     | `2096`  | 监听端口（与面板分开）。                                        |
 | `subListen`   | _(全部)_ | 绑定地址。                                                      |
-| `subPath`     | `/sub/` | 原始订阅 URL 的基础路径。                                       |
+| `subPath`     | _（每个面板随机生成）_ | 原始订阅 URL 的基础路径。                         |
 | `subDomain`   | _(无)_  | 公开主机名；若设置，服务器仅响应该 Host。                       |
 | `subCertFile` / `subKeyFile` | _(无)_ | TLS 证书 + 密钥 —— 设置后，服务器以 **HTTPS** 提供服务。 |
 | `subEncrypt`  | `true`  | 对原始订阅内容进行 base64 编码。                               |
@@ -23,7 +23,7 @@ icon: Rss
 一个订阅 URL 形如：
 
 ```text
-https://<sub-host>:<sub-port>/sub/<sub-id>
+https://<sub-host>:<sub-port>/<sub-path>/<sub-id>
 ```
 
 其中 `<sub-id>` 是客户端的 **Sub ID**。
@@ -38,11 +38,11 @@ https://<sub-host>:<sub-port>/sub/<sub-id>
 
 | 格式                  | 路径      | 启用方式         | 输出                                                |
 | --------------------- | --------- | ---------------- | --------------------------------------------------- |
-| **原始链接**          | `/sub/`   | 始终（若已开启） | 一组 `vless://`、`vmess://` 等链接的列表（当 `subEncrypt` 开启时进行 base64 编码）。 |
-| **JSON**              | `/json/`  | `subJsonEnable`  | 完整的 Xray 客户端配置。                            |
-| **Clash / Mihomo**    | `/clash/` | `subClashEnable` | YAML 配置文件。                                     |
+| **原始链接**          | `subPath`      | 始终（若已开启） | 一组 `vless://`、`vmess://` 等链接的列表（当 `subEncrypt` 开启时进行 base64 编码）。 |
+| **JSON**              | `subJsonPath`  | `subJsonEnable`  | 完整的 Xray 客户端配置。                            |
+| **Clash / Mihomo**    | `subClashPath` | `subClashEnable` | YAML 配置文件。                                     |
 
-只有使用 **VLESS、VMess、Trojan、Shadowsocks 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列。使用 `Accept: text/html` 头（或 `?html=1`）请求 `/sub/` 会返回一个人类可读的信息页面，而非原始内容。
+只有使用 **VLESS、VMess、Trojan、Shadowsocks 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列。使用 `Accept: text/html` 头（或 `?html=1`）请求 `subPath` 会返回一个人类可读的信息页面，而非原始内容。
 
 ### Base64 与 JSON
 

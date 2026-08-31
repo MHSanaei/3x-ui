@@ -18,7 +18,7 @@ icon: Rss
 | ------------- | ------- | --------------------------------------------------------------- |
 | `subPort`     | `2096`  | پورت گوش‌دادن (جدا از پنل).                                      |
 | `subListen`   | _(همه)_ | آدرس اتصال (bind).                                              |
-| `subPath`     | `/sub/` | مسیر پایه برای URLهای خام اشتراک.                                |
+| `subPath`     | _(تصادفی برای هر پنل)_ | مسیر پایه برای URLهای خام اشتراک.                  |
 | `subDomain`   | _(هیچ)_ | میزبان عمومی؛ اگر تنظیم شود، سرور فقط به همان Host پاسخ می‌دهد.   |
 | `subCertFile` / `subKeyFile` | _(هیچ)_ | گواهی و کلید TLS — هنگام تنظیم، سرور **HTTPS** ارائه می‌دهد. |
 | `subEncrypt`  | `true`  | بدنه‌ی خام اشتراک را با base64 رمزگذاری می‌کند.                   |
@@ -27,7 +27,7 @@ icon: Rss
 یک URL اشتراک به این شکل است:
 
 ```text
-https://<sub-host>:<sub-port>/sub/<sub-id>
+https://<sub-host>:<sub-port>/<sub-path>/<sub-id>
 ```
 
 که در آن `<sub-id>` همان **Sub ID** کلاینت است.
@@ -44,13 +44,13 @@ https://<sub-host>:<sub-port>/sub/<sub-id>
 
 | Format                | Path      | Enabled by       | Output                                              |
 | --------------------- | --------- | ---------------- | --------------------------------------------------- |
-| **لینک‌های خام**       | `/sub/`   | همیشه (اگر روشن باشد) | فهرستی از لینک‌های `vless://`، `vmess://`، … (هنگام فعال‌بودن `subEncrypt` با base64 رمزگذاری می‌شود). |
-| **JSON**              | `/json/`  | `subJsonEnable`  | پیکربندی(های) کامل کلاینت Xray.                      |
-| **Clash / Mihomo**    | `/clash/` | `subClashEnable` | پروفایل YAML.                                        |
+| **لینک‌های خام**       | `subPath`      | همیشه (اگر روشن باشد) | فهرستی از لینک‌های `vless://`، `vmess://`، … (هنگام فعال‌بودن `subEncrypt` با base64 رمزگذاری می‌شود). |
+| **JSON**              | `subJsonPath`  | `subJsonEnable`  | پیکربندی(های) کامل کلاینت Xray.                      |
+| **Clash / Mihomo**    | `subClashPath` | `subClashEnable` | پروفایل YAML.                                        |
 
 فقط ورودی‌های فعالی که از **VLESS، VMess، Trojan، Shadowsocks یا Hysteria2**
 استفاده می‌کنند در یک اشتراک ظاهر می‌شوند و بر اساس شاخص sub-sort آن‌ها مرتب می‌شوند.
-درخواست `/sub/` همراه با هدر `Accept: text/html` (یا `?html=1`) به‌جای بدنه‌ی خام،
+درخواست `subPath` همراه با هدر `Accept: text/html` (یا `?html=1`) به‌جای بدنه‌ی خام،
 یک صفحه‌ی اطلاعات خوانا برای انسان برمی‌گرداند.
 
 ### Base64 vs JSON

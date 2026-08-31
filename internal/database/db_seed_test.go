@@ -16,6 +16,11 @@ func TestInitDB_GeneratesPerPanelSubscriptionPaths(t *testing.T) {
 		if err := InitDB(dbPath); err != nil {
 			t.Fatalf("InitDB failed: %v", err)
 		}
+		defer func() {
+			if err := CloseDB(); err != nil {
+				t.Errorf("CloseDB failed: %v", err)
+			}
+		}()
 
 		keys := []string{"subPath", "subJsonPath", "subClashPath"}
 		paths := make(map[string]string, len(keys))
@@ -31,9 +36,6 @@ func TestInitDB_GeneratesPerPanelSubscriptionPaths(t *testing.T) {
 		}
 		if paths["subPath"] == paths["subJsonPath"] || paths["subPath"] == paths["subClashPath"] || paths["subJsonPath"] == paths["subClashPath"] {
 			t.Fatalf("subscription paths must be distinct: %v", paths)
-		}
-		if err := CloseDB(); err != nil {
-			t.Fatalf("CloseDB failed: %v", err)
 		}
 		return paths
 	}
