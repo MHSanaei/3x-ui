@@ -142,6 +142,35 @@ describe('ClientQrModal Happ presentation', () => {
     expect(HttpUtil.post).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps request B current when request A resolves after leaving and re-entering Happ', async () => {
+    const requestA = deferred<Msg<HappLinkResult>>();
+    const requestB = deferred<Msg<HappLinkResult>>();
+    vi.mocked(HttpUtil.post)
+      .mockReturnValueOnce(requestA.promise)
+      .mockReturnValueOnce(requestB.promise);
+    renderSubject();
+
+    selectVariant('Happ');
+    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledOnce());
+    selectVariant('Standard');
+    selectVariant('Happ');
+    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      requestA.resolve(success('happ://crypt5/request-a'));
+      await requestA.promise;
+    });
+    expect(screen.queryByText('happ://crypt5/request-a')).toBeNull();
+    expect(actionButton('Regenerate').disabled).toBe(true);
+
+    await act(async () => {
+      requestB.resolve(success('happ://crypt5/request-b'));
+      await requestB.promise;
+    });
+    expect(await screen.findByText('happ://crypt5/request-b')).toBeTruthy();
+    expect(screen.queryByText('happ://crypt5/request-a')).toBeNull();
+  });
+
   it('resets to Standard across close and reopen without reusing a prior Happ value', async () => {
     vi.mocked(HttpUtil.post).mockResolvedValue(success());
     const view = renderSubject();
@@ -237,6 +266,7 @@ describe('ClientQrModal Happ presentation', () => {
     renderSubject();
     selectVariant('Happ');
     expect(await screen.findByText(HAPP_LINK)).toBeTruthy();
+    await waitFor(() => expect(actionButton('Regenerate').disabled).toBe(false));
 
     fireEvent.click(actionButton('Regenerate'));
 
