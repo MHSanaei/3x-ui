@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"strconv"
 	"strings"
 	"testing"
@@ -134,6 +135,32 @@ func TestHandlerSpeaksPlaintextToAPlainUpstream(t *testing.T) {
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/p/panel/", nil))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200 (body %q)", rec.Code, rec.Body.String())
+	}
+}
+
+// A connection pooled across the panel's own slow requests has been observed
+// ending in a reset the panel never gets a chance to log (see manager.go's
+// newLoopbackProxy). Asserting on the emergent behavior -- two requests
+// through httptest.NewRecorder, expecting either a distinct r.RemoteAddr or
+// a distinct r.Close per request -- does not reliably tell the pooled and
+// unpooled cases apart: httputil.ReverseProxy's handling of a
+// ResponseRecorder that never had a real net.Conn behind it does not
+// reproduce the pooling behavior a real front-end connection sees. This
+// asserts the one thing that is actually deterministic: the loopback
+// transport's own configuration.
+func TestLoopbackProxyTransportDisablesKeepAlives(t *testing.T) {
+	for _, useTLS := range []bool{false, true} {
+		proxy, ok := newLoopbackProxy(1, useTLS).(*httputil.ReverseProxy)
+		if !ok {
+			t.Fatalf("useTLS=%v: newLoopbackProxy did not return a *httputil.ReverseProxy", useTLS)
+		}
+		transport, ok := proxy.Transport.(*http.Transport)
+		if !ok {
+			t.Fatalf("useTLS=%v: Transport is a %T, want *http.Transport", useTLS, proxy.Transport)
+		}
+		if !transport.DisableKeepAlives {
+			t.Errorf("useTLS=%v: DisableKeepAlives = false, want true", useTLS)
+		}
 	}
 }
 

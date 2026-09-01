@@ -187,14 +187,16 @@ func newHandler(routing Config, decoy DecoyConfig) http.Handler {
 // for -- an infinite redirect loop rather than an error.
 func newLoopbackProxy(port int, useTLS bool) http.Handler {
 	scheme := "http"
-	var transport http.RoundTripper
+	// Pooling buys nothing on a hop that never leaves the machine, and a
+	// pooled connection reused for a slow request (restartXrayService) has
+	// been observed to end in a reset the panel has no chance to log.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DisableKeepAlives = true
 	if useTLS {
 		scheme = "https"
 		// Verifying this certificate is meaningless: it names the public
 		// domain, not 127.0.0.1, and the hop never leaves the machine.
-		transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // loopback hop, see above
-		}
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // loopback hop, see above
 	}
 	target := &url.URL{Scheme: scheme, Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port))}
 	return &httputil.ReverseProxy{
