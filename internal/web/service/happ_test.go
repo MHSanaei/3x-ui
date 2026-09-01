@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -292,12 +292,32 @@ func TestHappGenerateRejectsRedirectAndTimeout(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "current-sub-id")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
-	redirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/elsewhere", http.StatusFound)
-	}))
-	defer redirect.Close()
-	if _, err := newHappTestService(redirect, time.Second).Generate(context.Background(), client.Id, "panel.example"); !errors.Is(err, ErrHappLinkUnavailable) {
-		t.Fatalf("redirect error = %v, want ErrHappLinkUnavailable", err)
+
+	for _, status := range []int{http.StatusTemporaryRedirect, http.StatusPermanentRedirect} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			var originCalls atomic.Int32
+			var targetCalls atomic.Int32
+			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				targetCalls.Add(1)
+				_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/followed"}`)
+			}))
+			defer target.Close()
+			origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				originCalls.Add(1)
+				http.Redirect(w, r, target.URL, status)
+			}))
+			defer origin.Close()
+
+			if _, err := newHappTestService(origin, time.Second).Generate(context.Background(), client.Id, "panel.example"); !errors.Is(err, ErrHappLinkUnavailable) {
+				t.Fatalf("redirect error = %v, want ErrHappLinkUnavailable", err)
+			}
+			if got := originCalls.Load(); got != 1 {
+				t.Fatalf("origin calls = %d, want 1", got)
+			}
+			if got := targetCalls.Load(); got != 0 {
+				t.Fatalf("target calls = %d, want 0", got)
+			}
+		})
 	}
 
 	timeout := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -307,6 +327,33 @@ func TestHappGenerateRejectsRedirectAndTimeout(t *testing.T) {
 	defer timeout.Close()
 	if _, err := newHappTestService(timeout, time.Millisecond).Generate(context.Background(), client.Id, "panel.example"); !errors.Is(err, ErrHappLinkUnavailable) {
 		t.Fatalf("timeout error = %v, want ErrHappLinkUnavailable", err)
+	}
+}
+
+func TestHappGenerateUsesProductionTimeout(t *testing.T) {
+	initHappTestDB(t)
+	client := seedHappClient(t, "current-sub-id")
+	configureHappSubscription(t, true, "https://sub.example/sub/")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
+	}))
+	defer server.Close()
+
+	var gotTimeout time.Duration
+	svc := &HappService{
+		clientService:  &ClientService{},
+		settingService: &SettingService{},
+		endpoint:       server.URL,
+		newHTTPClient: func(timeout time.Duration) *http.Client {
+			gotTimeout = timeout
+			return &http.Client{Timeout: time.Second}
+		},
+	}
+	if _, err := svc.Generate(context.Background(), client.Id, "panel.example"); err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if gotTimeout != 10*time.Second {
+		t.Fatalf("HTTP client timeout = %s, want 10s", gotTimeout)
 	}
 }
 
@@ -328,7 +375,7 @@ func TestHappGenerateLogsSanitizedFailure(t *testing.T) {
 		t.Fatalf("warning logs = %d, want 1", len(logs))
 	}
 	logLine := logs[0]
-	for _, want := range []string{fmt.Sprintf("component=happ_link"), fmt.Sprintf("client_id=%d", client.Id), "reason=http_status", "status=502", "elapsed_ms=", "correlation_id="} {
+	for _, want := range []string{"component=happ_link", "client_id=" + strconv.Itoa(client.Id), "reason=http_status", "status=502", "elapsed_ms=", "correlation_id="} {
 		if !strings.Contains(logLine, want) {
 			t.Fatalf("log %q does not contain %q", logLine, want)
 		}

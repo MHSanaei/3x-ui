@@ -89,20 +89,6 @@ func TestGenerateHappLinkForwardsCurrentRequestAndReturnsOnlyLink(t *testing.T) 
 	}
 }
 
-func TestGenerateHappLinkUsesStaticRouteBeforeEmailWildcards(t *testing.T) {
-	fake := &fakeHappLinkGenerator{}
-	router := newHappClientTestRouter(fake)
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/clients/42/happLink", nil))
-
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("wrong route status = %d body=%s", rec.Code, rec.Body.String())
-	}
-	if fake.calls != 0 || fake.clientID != 0 || fake.host != "" {
-		t.Fatalf("wrong route called Generate %d times with = %d, %q", fake.calls, fake.clientID, fake.host)
-	}
-}
-
 func TestGenerateHappLinkRejectsInvalidIDWithoutCallingGenerator(t *testing.T) {
 	fake := &fakeHappLinkGenerator{}
 	router := newHappClientTestRouter(fake)

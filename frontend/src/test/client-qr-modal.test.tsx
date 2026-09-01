@@ -122,6 +122,7 @@ describe('ClientQrModal Happ presentation', () => {
     expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).disabled).toBe(
       false,
     );
+    expect(screen.queryByRole('button', { name: /Regenerate|Retry/ })).toBeNull();
   });
 
   it('removes the Happ value on leave and makes a fresh request on re-entry', async () => {
@@ -161,7 +162,7 @@ describe('ClientQrModal Happ presentation', () => {
       await requestA.promise;
     });
     expect(screen.queryByText('happ://crypt5/request-a')).toBeNull();
-    expect(actionButton('Regenerate').disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: /Regenerate|Retry/ })).toBeNull();
 
     await act(async () => {
       requestB.resolve(success('happ://crypt5/request-b'));
@@ -258,7 +259,7 @@ describe('ClientQrModal Happ presentation', () => {
     expect(HttpUtil.post).toHaveBeenCalledTimes(2);
   });
 
-  it('clears the old QR and disables duplicate regeneration while loading', async () => {
+  it('clears the old QR and hides duplicate regeneration while loading', async () => {
     const regeneration = deferred<Msg<HappLinkResult>>();
     vi.mocked(HttpUtil.post)
       .mockResolvedValueOnce(success())
@@ -272,7 +273,7 @@ describe('ClientQrModal Happ presentation', () => {
 
     await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(2));
     expect(screen.queryByTestId('qr-panel-value')).toBeNull();
-    expect(actionButton('Regenerate').disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: /Regenerate|Retry/ })).toBeNull();
     expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).disabled).toBe(
       false,
     );
@@ -287,10 +288,14 @@ describe('ClientQrModal Happ presentation', () => {
     expect((await screen.findByTestId('qr-panel-value')).textContent).toBe(exactLink);
   });
 
-  it('treats a malformed success object as a generation failure', async () => {
-    vi.mocked(HttpUtil.post).mockResolvedValue(
-      new Msg<HappLinkResult>(true, '', {} as HappLinkResult),
-    );
+  it.each([
+    ['non-string', { encryptedLink: 7 }],
+    ['empty payload', { encryptedLink: 'happ://crypt5/' }],
+    ['wrong scheme', { encryptedLink: 'https://provider.example/link' }],
+    ['whitespace', { encryptedLink: 'happ://crypt5/has space' }],
+    ['control character', { encryptedLink: 'happ://crypt5/example\n' }],
+  ])('rejects a %s encryptedLink before rendering QrPanel', async (_name, obj) => {
+    vi.mocked(HttpUtil.post).mockResolvedValue(new Msg(true, '', obj));
     renderSubject();
     selectVariant('Happ');
 

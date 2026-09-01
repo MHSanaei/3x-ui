@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Collapse, Modal, Segmented, Spin, Tag } from 'antd';
 import { HttpUtil } from '@/utils';
 import type { HappLinkResult } from '@/generated/types';
+import { HappLinkResultSchema } from '@/generated/zod';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
@@ -41,6 +42,23 @@ interface ApiMsg<T = unknown> {
 }
 
 type QrVariant = 'standard' | 'happ';
+
+const HAPP_CRYPT5_PREFIX = 'happ://crypt5/';
+
+function hasHappForbiddenCharacter(link: string) {
+  return Array.from(link).some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return /\s/u.test(character) || codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
+  });
+}
+
+function isValidHappCrypt5Link(link: string) {
+  return (
+    link.startsWith(HAPP_CRYPT5_PREFIX) &&
+    link.length > HAPP_CRYPT5_PREFIX.length &&
+    !hasHappForbiddenCharacter(link)
+  );
+}
 
 interface SubscriptionQrPresentationProps {
   variant: QrVariant;
@@ -95,14 +113,11 @@ function SubscriptionQrPresentation({
               ) : null}
             </div>
           </Spin>
-          <Button
-            style={{ marginTop: 12 }}
-            loading={happLoading}
-            disabled={happLoading}
-            onClick={onRegenerate}
-          >
-            {happError ? t('pages.clients.happLinkRetry') : t('regenerate')}
-          </Button>
+          {happLink || happError ? (
+            <Button style={{ marginTop: 12 }} onClick={onRegenerate}>
+              {happError ? t('pages.clients.happLinkRetry') : t('regenerate')}
+            </Button>
+          ) : null}
         </div>
       )}
     </div>
@@ -174,14 +189,9 @@ function ClientQrModalContent({
         );
         if (cancelled) return;
 
-        const encryptedLink = msg?.obj?.encryptedLink;
-        if (
-          msg?.success &&
-          typeof encryptedLink === 'string' &&
-          encryptedLink.startsWith('happ://crypt5/') &&
-          encryptedLink.length > 'happ://crypt5/'.length
-        ) {
-          setHappLink(encryptedLink);
+        const result = HappLinkResultSchema.safeParse(msg?.obj);
+        if (msg?.success && result.success && isValidHappCrypt5Link(result.data.encryptedLink)) {
+          setHappLink(result.data.encryptedLink);
         } else {
           setHappError(true);
         }
