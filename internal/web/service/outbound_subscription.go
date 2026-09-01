@@ -455,13 +455,21 @@ func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscriptio
 
 // assignStableTags assigns a tag to each parsed outbound, preferring stability:
 //  1. reuse the tag previously mapped to the link's identity (prev),
-//  2. else reuse the tag at the same position from the last fetch (prevTagByIndex),
+//  2. else reuse the tag at the same position from the last fetch, unless it
+//     belongs to another identity still present in this batch (prevTagByIndex),
 //  3. else allocate a fresh tag from the prefix + remark (link.SuggestTag).
 //
 // Tags are kept unique within the batch by appending "-N" on collision, and are
 // written back into parsed[i]["tag"]. The returned slice holds the assigned tags
 // in order. When tagPrefix is empty a "sub<subID>-" prefix is used for fresh tags.
 func assignStableTags(parsed []link.Outbound, identities []string, prev map[string]string, prevTagByIndex map[int]string, subID int, tagPrefix string) []string {
+	reservedStableTags := map[string]bool{}
+	for i := range parsed {
+		if i < len(identities) && prev[identities[i]] != "" {
+			reservedStableTags[prev[identities[i]]] = true
+		}
+	}
+
 	used := map[string]bool{} // uniqueness within this refresh batch
 	assigned := make([]string, len(parsed))
 	for i := range parsed {
@@ -470,12 +478,14 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 			id = identities[i]
 		}
 		candidate := ""
+		identityTag := ""
 		if old, ok := prev[id]; ok && old != "" {
 			candidate = old
+			identityTag = old
 		}
 		if candidate == "" {
 			// try to reuse by rough positional match from previous fetch (best effort)
-			if old, ok := prevTagByIndex[i]; ok && old != "" {
+			if old, ok := prevTagByIndex[i]; ok && old != "" && !reservedStableTags[old] {
 				candidate = old
 			}
 		}
@@ -493,7 +503,7 @@ func assignStableTags(parsed []link.Outbound, identities []string, prev map[stri
 		}
 		// ensure local uniqueness inside this batch
 		final := candidate
-		for k := 1; used[final]; k++ {
+		for k := 1; used[final] || (reservedStableTags[final] && final != identityTag); k++ {
 			final = fmt.Sprintf("%s-%d", candidate, k)
 		}
 		used[final] = true
