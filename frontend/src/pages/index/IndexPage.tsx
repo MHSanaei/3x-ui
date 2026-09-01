@@ -102,14 +102,24 @@ export default function IndexPage() {
   }, []);
 
   const stopXray = useCallback(async () => {
-    await HttpUtil.post('/panel/api/server/stopXrayService');
-    await refresh();
-  }, [refresh]);
+    setBusy({ busy: true, tip: t('pages.index.stopXray') });
+    try {
+      await HttpUtil.post('/panel/api/server/stopXrayService');
+      await refresh();
+    } finally {
+      setBusy({ busy: false });
+    }
+  }, [refresh, setBusy, t]);
 
   const restartXray = useCallback(async () => {
-    await HttpUtil.post('/panel/api/server/restartXrayService');
-    await refresh();
-  }, [refresh]);
+    setBusy({ busy: true, tip: t('pages.index.restartXray') });
+    try {
+      await HttpUtil.post('/panel/api/server/restartXrayService');
+      await refresh();
+    } finally {
+      setBusy({ busy: false });
+    }
+  }, [refresh, setBusy, t]);
 
   async function handleChannelChange(dev: boolean) {
     const res = await HttpUtil.post('/panel/api/server/setUpdateChannel', { dev });

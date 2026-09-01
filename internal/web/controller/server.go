@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -286,10 +287,12 @@ func (a *ServerController) stopXrayService(c *gin.Context) {
 
 // restartXrayService restarts the Xray service.
 func (a *ServerController) restartXrayService(c *gin.Context) {
-	err := a.serverService.RestartXrayService()
+	err := a.serverService.RestartXrayServiceFromPanel()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.xray.restartError"), err)
-		websocket.BroadcastXrayState("error", err.Error())
+		if !errors.Is(err, service.ErrRestartInFlight) {
+			websocket.BroadcastXrayState("error", err.Error())
+		}
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.xray.restartSuccess"), err)

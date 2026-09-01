@@ -28,6 +28,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -153,6 +154,7 @@ type ServerService struct {
 	emaCPU             float64
 	cachedCpuSpeedMhz  float64
 	lastCpuInfoAttempt time.Time
+	restartInFlight    atomic.Bool
 
 	lastStatusMu sync.RWMutex
 	lastStatus   *Status
@@ -862,6 +864,20 @@ func (s *ServerService) StopXrayService() error {
 		return err
 	}
 	return nil
+}
+
+// ErrRestartInFlight is returned by RestartXrayServiceFromPanel when a panel-
+// triggered restart is already running.
+var ErrRestartInFlight = common.NewError("a restart is already in progress")
+
+// RestartXrayServiceFromPanel rejects a second panel Restart click instead of
+// queuing behind XrayService's lock, where it would run a redundant restart.
+func (s *ServerService) RestartXrayServiceFromPanel() error {
+	if !s.restartInFlight.CompareAndSwap(false, true) {
+		return ErrRestartInFlight
+	}
+	defer s.restartInFlight.Store(false)
+	return s.RestartXrayService()
 }
 
 func (s *ServerService) RestartXrayService() error {
