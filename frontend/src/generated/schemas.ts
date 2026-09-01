@@ -1657,6 +1657,18 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "HappLinkResult": {
+    "properties": {
+      "encryptedLink": {
+        "example": "happ://crypt5/example",
+        "type": "string"
+      }
+    },
+    "required": [
+      "encryptedLink"
+    ],
+    "type": "object"
+  },
   "HistoryOfSeeders": {
     "description": "HistoryOfSeeders tracks which database seeders have been executed to prevent re-running.",
     "properties": {

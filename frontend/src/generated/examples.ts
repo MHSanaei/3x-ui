@@ -407,6 +407,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "reason": "categoryMissing",
     "token": "geosite:blabla"
   },
+  "HappLinkResult": {
+    "encryptedLink": "happ://crypt5/example"
+  },
   "HistoryOfSeeders": {
     "id": 0,
     "seederName": ""

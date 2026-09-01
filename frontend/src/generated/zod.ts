@@ -3,6 +3,9 @@ import { z } from 'zod';
 export const GeoKindSchema = z.string();
 export type GeoKind = z.infer<typeof GeoKindSchema>;
 
+export const HappLinkGeneratorSchema = z.unknown();
+export type HappLinkGenerator = z.infer<typeof HappLinkGeneratorSchema>;
+
 export const OnlineAPISupportSchema = z.number().int();
 export type OnlineAPISupport = z.infer<typeof OnlineAPISupportSchema>;
 
@@ -430,6 +433,11 @@ export const GeodataTokenIssueSchema = z.object({
   token: z.string(),
 });
 export type GeodataTokenIssue = z.infer<typeof GeodataTokenIssueSchema>;
+
+export const HappLinkResultSchema = z.object({
+  encryptedLink: z.string(),
+});
+export type HappLinkResult = z.infer<typeof HappLinkResultSchema>;
 
 export const HistoryOfSeedersSchema = z.object({
   id: z.number().int(),
