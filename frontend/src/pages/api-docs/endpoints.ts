@@ -510,6 +510,21 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/server/restartXrayServiceAsync',
+        summary:
+          'Same reload as POST restartXrayService, but responds before the restart runs and reports the outcome through GET getRestartStatus. Used by the panel’s own dashboard; other callers should keep using restartXrayService.',
+        response: '{\n  "success": true,\n  "obj": {\n    "runId": "1735689600123456789"\n  }\n}',
+        errorResponse: '{\n  "success": false,\n  "msg": "a restart is already in progress"\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/server/getRestartStatus',
+        summary:
+          'Report the outcome of the most recently started dashboard restart (see POST restartXrayServiceAsync). Compare the returned runId against the one restartXrayServiceAsync returned to tell this run apart from a stale result.',
+        responseSchema: 'RestartStatus',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/installXray/:version',
         summary:
           'Download and install the specified Xray version. Pass "latest" for the newest release.',

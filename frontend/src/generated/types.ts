@@ -744,6 +744,12 @@ export interface RealityScanResult {
   x25519: boolean;
 }
 
+export interface RestartStatus {
+  errMsg: string;
+  runId: string;
+  state: string;
+}
+
 export interface ServerSettings {
   awgVersion?: string;
   contentPaddingAddition?: string;

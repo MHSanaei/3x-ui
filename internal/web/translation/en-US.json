@@ -136,6 +136,7 @@
       "xrayStatus": "Xray",
       "stopXray": "Stop",
       "restartXray": "Restart",
+      "restartXrayTimeout": "Xray restart is taking longer than expected -- check the status manually.",
       "xraySwitch": "Version",
       "xrayUpdates": "Xray Updates",
       "xraySwitchClickDesk": "Choose carefully, as older versions may not be compatible with current configurations.",
@@ -1694,6 +1695,7 @@
     "xray": {
       "save": "Save",
       "restartSuccess": "Xray has been successfully relaunched.",
+      "restartAccepted": "Restarting Xray...",
       "stopSuccess": "Xray has been successfully stopped.",
       "restartError": "There was an error when rebooting the Xray.",
       "stopError": "There was an error when stopping the Xray.",

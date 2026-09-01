@@ -787,6 +787,11 @@ export const EXAMPLES: Record<string, unknown> = {
     "tlsVersion": "1.3",
     "x25519": true
   },
+  "RestartStatus": {
+    "errMsg": "",
+    "runId": "1735689600123456789",
+    "state": "success"
+  },
   "ServerSettings": {
     "awgVersion": "",
     "contentPaddingAddition": "",

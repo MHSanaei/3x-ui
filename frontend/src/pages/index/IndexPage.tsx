@@ -10,7 +10,15 @@ import {
   SwapOutlined,
 } from '@ant-design/icons';
 
-import { HttpUtil, CPUFormatter, SizeFormatter, ClipboardManager, FileManager } from '@/utils';
+import {
+  HttpUtil,
+  PromiseUtil,
+  CPUFormatter,
+  SizeFormatter,
+  ClipboardManager,
+  FileManager,
+} from '@/utils';
+import type { RestartStatus } from '@/generated/types';
 import {
   USAGE_CRIT_COLOR,
   USAGE_CRIT_PERCENT,
@@ -40,6 +48,9 @@ const XrayLogModal = lazy(() => import('./XrayLogModal'));
 const AmneziaWGLogModal = lazy(() => import('./AmneziaWGLogModal'));
 const VersionModal = lazy(() => import('./VersionModal'));
 import './IndexPage.css';
+
+const RESTART_POLL_INTERVAL_MS = 1000;
+const RESTART_POLL_DEADLINE_MS = 20_000;
 
 export default function IndexPage() {
   const { t } = useTranslation();
@@ -114,12 +125,41 @@ export default function IndexPage() {
   const restartXray = useCallback(async () => {
     setBusy({ busy: true, tip: t('pages.index.restartXray') });
     try {
-      await HttpUtil.post('/panel/api/server/restartXrayService');
-      await refresh();
+      const started = await HttpUtil.post<{ runId: string }>(
+        '/panel/api/server/restartXrayServiceAsync',
+        undefined,
+        { silentSuccess: true },
+      );
+      if (!started?.success) return;
+      const runId = started.obj?.runId ?? '';
+
+      // The endpoint responds before the restart actually runs, so
+      // completion is polled separately, by this run's own id.
+      const deadline = Date.now() + RESTART_POLL_DEADLINE_MS;
+      while (Date.now() < deadline) {
+        await PromiseUtil.sleep(RESTART_POLL_INTERVAL_MS);
+        const status = await HttpUtil.get<RestartStatus>(
+          '/panel/api/server/getRestartStatus',
+          undefined,
+          { silent: true },
+        );
+        const obj = status?.obj;
+        if (obj?.runId !== runId) continue;
+        if (obj.state === 'success') {
+          messageApi.success(t('pages.xray.restartSuccess'));
+          await refresh();
+          return;
+        }
+        if (obj.state === 'failed') {
+          messageApi.error(obj.errMsg || t('pages.xray.restartError'));
+          return;
+        }
+      }
+      messageApi.warning(t('pages.index.restartXrayTimeout'));
     } finally {
       setBusy({ busy: false });
     }
-  }, [refresh, setBusy, t]);
+  }, [refresh, setBusy, t, messageApi]);
 
   async function handleChannelChange(dev: boolean) {
     const res = await HttpUtil.post('/panel/api/server/setUpdateChannel', { dev });

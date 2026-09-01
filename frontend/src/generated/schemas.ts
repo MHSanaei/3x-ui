@@ -3285,6 +3285,28 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "RestartStatus": {
+    "description": "RestartStatus reports the outcome of the most recent dashboard restart.\nRunID is a decimal string: a UnixNano timestamp, too precise for a JSON number.",
+    "properties": {
+      "errMsg": {
+        "type": "string"
+      },
+      "runId": {
+        "example": "1735689600123456789",
+        "type": "string"
+      },
+      "state": {
+        "example": "success",
+        "type": "string"
+      }
+    },
+    "required": [
+      "errMsg",
+      "runId",
+      "state"
+    ],
+    "type": "object"
+  },
   "ServerSettings": {
     "description": "ServerSettings is the \"server\" block of an AmneziaWG inbound's Settings\nJSON: the interface-level configuration shared by every client/peer. The\nlisten port is deliberately not duplicated here — it lives on the inbound\nrow itself (Inbound.Port), like every other protocol.",
     "properties": {

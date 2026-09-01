@@ -155,6 +155,8 @@ type ServerService struct {
 	cachedCpuSpeedMhz  float64
 	lastCpuInfoAttempt time.Time
 	restartInFlight    atomic.Bool
+	restartResultMu    sync.Mutex
+	restartResult      *RestartStatus
 
 	lastStatusMu sync.RWMutex
 	lastStatus   *Status
@@ -866,11 +868,11 @@ func (s *ServerService) StopXrayService() error {
 	return nil
 }
 
-// ErrRestartInFlight is returned by RestartXrayServiceFromPanel when a panel-
-// triggered restart is already running.
+// ErrRestartInFlight is returned by RestartXrayServiceFromPanel and
+// StartRestartFromPanel when a panel-triggered restart is already running.
 var ErrRestartInFlight = common.NewError("a restart is already in progress")
 
-// RestartXrayServiceFromPanel rejects a second panel Restart click instead of
+// RestartXrayServiceFromPanel rejects a second concurrent click instead of
 // queuing behind XrayService's lock, where it would run a redundant restart.
 func (s *ServerService) RestartXrayServiceFromPanel() error {
 	if !s.restartInFlight.CompareAndSwap(false, true) {
@@ -878,6 +880,66 @@ func (s *ServerService) RestartXrayServiceFromPanel() error {
 	}
 	defer s.restartInFlight.Store(false)
 	return s.RestartXrayService()
+}
+
+// restartAsyncDrainDelay is best-effort, not a guarantee -- a lost response
+// on a slow link just costs the first poll or two, not the real outcome.
+const (
+	restartStateSuccess    = "success"
+	restartStateFailed     = "failed"
+	restartAsyncDrainDelay = 150 * time.Millisecond
+)
+
+// RestartStatus reports the outcome of the most recent dashboard restart.
+// RunID is a decimal string: a UnixNano timestamp, too precise for a JSON number.
+type RestartStatus struct {
+	RunID  string `json:"runId" example:"1735689600123456789"`
+	State  string `json:"state" example:"success"`
+	ErrMsg string `json:"errMsg" example:""`
+}
+
+// StartRestartFromPanel shares RestartXrayServiceFromPanel's slot but
+// returns before the restart runs; poll GetRestartStatus for the outcome.
+func (s *ServerService) StartRestartFromPanel() (string, error) {
+	if !s.restartInFlight.CompareAndSwap(false, true) {
+		return "", ErrRestartInFlight
+	}
+	runID := strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	go func() {
+		defer s.restartInFlight.Store(false)
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic in dashboard restart:", r)
+				s.recordRestartResult(runID, restartStateFailed, fmt.Sprint(r))
+			}
+		}()
+		time.Sleep(restartAsyncDrainDelay)
+		if err := s.RestartXrayService(); err != nil {
+			s.recordRestartResult(runID, restartStateFailed, err.Error())
+			return
+		}
+		s.recordRestartResult(runID, restartStateSuccess, "")
+	}()
+
+	return runID, nil
+}
+
+func (s *ServerService) recordRestartResult(runID, state, errMsg string) {
+	s.restartResultMu.Lock()
+	s.restartResult = &RestartStatus{RunID: runID, State: state, ErrMsg: errMsg}
+	s.restartResultMu.Unlock()
+}
+
+// GetRestartStatus reports the outcome of the restart StartRestartFromPanel
+// started. Compare RunID against its return value to spot a stale result.
+func (s *ServerService) GetRestartStatus() *RestartStatus {
+	s.restartResultMu.Lock()
+	defer s.restartResultMu.Unlock()
+	if s.restartResult == nil {
+		return &RestartStatus{}
+	}
+	return s.restartResult
 }
 
 func (s *ServerService) RestartXrayService() error {

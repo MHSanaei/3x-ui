@@ -794,6 +794,13 @@ export const RealityScanResultSchema = z.object({
 });
 export type RealityScanResult = z.infer<typeof RealityScanResultSchema>;
 
+export const RestartStatusSchema = z.object({
+  errMsg: z.string(),
+  runId: z.string(),
+  state: z.string(),
+});
+export type RestartStatus = z.infer<typeof RestartStatusSchema>;
+
 export const ServerSettingsSchema = z.object({
   awgVersion: z.string().optional(),
   contentPaddingAddition: z.string().optional(),

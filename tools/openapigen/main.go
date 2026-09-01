@@ -98,6 +98,7 @@ func run(root, outDir string) error {
 				"GeodataTokenIssue",
 				"AmneziaWGLogs",
 				"PeerActivity",
+				"RestartStatus",
 			),
 		},
 		{
