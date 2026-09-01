@@ -225,9 +225,9 @@ func resetSetting() error {
 	if err != nil {
 		fmt.Println("Failed to reset settings:", err)
 		return err
-	} else {
-		fmt.Println("Settings successfully reset.")
 	}
+	fmt.Println("Settings successfully reset.")
+	showSetting(true)
 	return nil
 }
 
@@ -278,6 +278,16 @@ func showSetting(show bool) {
 		fmt.Println("hasDefaultCredential:", hasDefaultCredential)
 		fmt.Println("port:", port)
 		fmt.Println("webBasePath:", webBasePath)
+
+		if subPath, err := settingService.GetSubPath(); err == nil {
+			fmt.Println("subPath:", subPath)
+		}
+		if subJsonPath, err := settingService.GetSubJsonPath(); err == nil {
+			fmt.Println("subJsonPath:", subJsonPath)
+		}
+		if subClashPath, err := settingService.GetSubClashPath(); err == nil {
+			fmt.Println("subClashPath:", subClashPath)
+		}
 	}
 }
 

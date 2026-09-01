@@ -2,6 +2,7 @@ package service
 
 import (
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/xlzd/gotp"
@@ -20,6 +21,44 @@ func setupSettingTestDB(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+func TestResetSettingsRegeneratesSubscriptionPaths(t *testing.T) {
+	setupSettingTestDB(t)
+	s := &SettingService{}
+	for key, value := range map[string]string{
+		"subPath":      "/sub/",
+		"subJsonPath":  "/json/",
+		"subClashPath": "/clash/",
+		"webPort":      "8443",
+	} {
+		if err := s.saveSetting(key, value); err != nil {
+			t.Fatalf("save %s: %v", key, err)
+		}
+	}
+
+	if err := s.ResetSettings(); err != nil {
+		t.Fatalf("ResetSettings: %v", err)
+	}
+
+	pathPattern := regexp.MustCompile(`^/[0-9a-z]{16}/$`)
+	paths := map[string]string{}
+	for _, key := range []string{"subPath", "subJsonPath", "subClashPath"} {
+		value, err := s.getString(key)
+		if err != nil {
+			t.Fatalf("read %s: %v", key, err)
+		}
+		if !pathPattern.MatchString(value) {
+			t.Errorf("%s = %q, want /<16 lowercase alphanumeric characters>/", key, value)
+		}
+		paths[key] = value
+	}
+	if paths["subPath"] == paths["subJsonPath"] || paths["subPath"] == paths["subClashPath"] || paths["subJsonPath"] == paths["subClashPath"] {
+		t.Fatalf("subscription paths must be distinct: %v", paths)
+	}
+	if port, err := s.GetPort(); err != nil || port != 2053 {
+		t.Fatalf("web port after reset = %d, %v; want 2053", port, err)
+	}
 }
 
 func TestGetAllSettingViewRedactsSecrets(t *testing.T) {
