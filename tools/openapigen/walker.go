@@ -62,6 +62,9 @@ func walkPackages(requests []packageRequest) ([]Schema, []Alias, error) {
 							schemas = append(schemas, s)
 							continue
 						}
+						if _, ok := ts.Type.(*ast.InterfaceType); ok {
+							continue
+						}
 						if req.AliasAllow != nil && !req.AliasAllow[ts.Name.Name] {
 							continue
 						}

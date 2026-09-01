@@ -3,9 +3,6 @@ import { z } from 'zod';
 export const GeoKindSchema = z.string();
 export type GeoKind = z.infer<typeof GeoKindSchema>;
 
-export const HappLinkGeneratorSchema = z.unknown();
-export type HappLinkGenerator = z.infer<typeof HappLinkGeneratorSchema>;
-
 export const OnlineAPISupportSchema = z.number().int();
 export type OnlineAPISupport = z.infer<typeof OnlineAPISupportSchema>;
 
@@ -14,9 +11,6 @@ export type ProcessState = z.infer<typeof ProcessStateSchema>;
 
 export const ProtocolSchema = z.string();
 export type Protocol = z.infer<typeof ProtocolSchema>;
-
-export const SubLinkProviderSchema = z.unknown();
-export type SubLinkProvider = z.infer<typeof SubLinkProviderSchema>;
 
 export const staticEgressResolverSchema = z.string();
 export type staticEgressResolver = z.infer<typeof staticEgressResolverSchema>;
