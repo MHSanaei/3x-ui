@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Collapse, Modal, Spin, Tag } from 'antd';
+import { Alert, Button, Collapse, Modal, Segmented, Spin, Tag } from 'antd';
 import { HttpUtil } from '@/utils';
+import type { HappLinkResult } from '@/generated/types';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
@@ -39,6 +40,75 @@ interface ApiMsg<T = unknown> {
   obj?: T;
 }
 
+type QrVariant = 'standard' | 'happ';
+
+interface SubscriptionQrPresentationProps {
+  variant: QrVariant;
+  standardLink: string;
+  remark: string;
+  happLink: string;
+  happLoading: boolean;
+  happError: boolean;
+  onVariantChange: (variant: QrVariant) => void;
+  onRegenerate: () => void;
+}
+
+function SubscriptionQrPresentation({
+  variant,
+  standardLink,
+  remark,
+  happLink,
+  happLoading,
+  happError,
+  onVariantChange,
+  onRegenerate,
+}: SubscriptionQrPresentationProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Segmented<QrVariant>
+        block
+        value={variant}
+        options={[
+          { label: t('pages.clients.qrStandard'), value: 'standard' },
+          { label: 'Happ', value: 'happ' },
+        ]}
+        onChange={onVariantChange}
+      />
+      {variant === 'standard' ? (
+        <QrPanel value={standardLink} remark={remark} />
+      ) : (
+        <div>
+          <Spin spinning={happLoading}>
+            <div style={{ minHeight: happLoading ? 48 : undefined }}>
+              {happLink ? <QrPanel value={happLink} remark={remark} /> : null}
+              {happError ? (
+                <Alert
+                  type="error"
+                  showIcon
+                  title={t('pages.clients.happLinkErrorHint', {
+                    dashboard: t('menu.dashboard'),
+                    logs: t('pages.index.logs'),
+                  })}
+                />
+              ) : null}
+            </div>
+          </Spin>
+          <Button
+            style={{ marginTop: 12 }}
+            loading={happLoading}
+            disabled={happLoading}
+            onClick={onRegenerate}
+          >
+            {happError ? t('pages.clients.happLinkRetry') : t('regenerate')}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const DEFAULT_SUB: SubSettings = {
   enable: false,
   subURI: '',
@@ -47,7 +117,17 @@ const DEFAULT_SUB: SubSettings = {
   publicHost: '',
 };
 
-export default function ClientQrModal({
+export default function ClientQrModal(props: ClientQrModalProps) {
+  const subSettings = props.subSettings ?? DEFAULT_SUB;
+  const subId = props.client?.subId ?? '';
+  const subLink =
+    subId && subSettings.enable && subSettings.subURI ? subSettings.subURI + subId : '';
+  const scopeKey = `${props.open ? 1 : 0}\0${props.client?.id ?? ''}\0${subId}\0${subLink}`;
+
+  return <ClientQrModalContent key={scopeKey} {...props} />;
+}
+
+function ClientQrModalContent({
   open,
   client,
   inboundsById,
@@ -66,6 +146,76 @@ export default function ClientQrModal({
     subId && subEnabled && subSettings?.subJsonEnable && subSettings?.subJsonURI
       ? subSettings.subJsonURI + subId
       : '';
+  const clientId = client?.id;
+  const clientSubId = subId ?? '';
+  const [variant, setVariant] = useState<QrVariant>('standard');
+  const [happAttempt, setHappAttempt] = useState(0);
+  const [happLink, setHappLink] = useState('');
+  const [happLoading, setHappLoading] = useState(false);
+  const [happError, setHappError] = useState(false);
+  const canGenerateHapp =
+    typeof clientId === 'number' &&
+    Number.isSafeInteger(clientId) &&
+    clientId > 0 &&
+    !!clientSubId &&
+    !!subLink;
+
+  useEffect(() => {
+    if (!open || variant !== 'happ' || !canGenerateHapp) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const msg = await HttpUtil.post<HappLinkResult>(
+          `/panel/api/clients/happLink/${clientId}`,
+          undefined,
+          { silent: true },
+        );
+        if (cancelled) return;
+
+        const encryptedLink = msg?.obj?.encryptedLink;
+        if (
+          msg?.success &&
+          typeof encryptedLink === 'string' &&
+          encryptedLink.startsWith('happ://crypt5/') &&
+          encryptedLink.length > 'happ://crypt5/'.length
+        ) {
+          setHappLink(encryptedLink);
+        } else {
+          setHappError(true);
+        }
+      } catch {
+        if (!cancelled) setHappError(true);
+      } finally {
+        if (!cancelled) setHappLoading(false);
+      }
+    })();
+
+    return () => {
+      // A retired generation must never replace the QR for a newer modal scope.
+      cancelled = true;
+    };
+  }, [open, variant, clientId, clientSubId, subLink, happAttempt, canGenerateHapp]);
+
+  const selectVariant = useCallback(
+    (nextVariant: QrVariant) => {
+      const generateHapp = nextVariant === 'happ';
+      setVariant(nextVariant);
+      setHappLink('');
+      setHappLoading(generateHapp && canGenerateHapp);
+      setHappError(generateHapp && !canGenerateHapp);
+    },
+    [canGenerateHapp],
+  );
+
+  const regenerateHappLink = useCallback(() => {
+    setHappLink('');
+    setHappLoading(canGenerateHapp);
+    setHappError(!canGenerateHapp);
+    if (!canGenerateHapp) return;
+    setHappAttempt((attempt) => attempt + 1);
+  }, [canGenerateHapp]);
 
   const wgInbound = useMemo(
     () => findWireguardInbound(client, inboundsById),
@@ -138,7 +288,16 @@ export default function ClientQrModal({
         key: 'sub',
         label: t('subscription.title'),
         children: (
-          <QrPanel value={subLink} remark={`${client?.email || ''} — ${t('subscription.title')}`} />
+          <SubscriptionQrPresentation
+            variant={variant}
+            standardLink={subLink}
+            remark={`${client?.email || ''} — ${t('subscription.title')}`}
+            happLink={happLink}
+            happLoading={happLoading}
+            happError={happError}
+            onVariantChange={selectVariant}
+            onRegenerate={regenerateHappLink}
+          />
         ),
       });
     }
@@ -207,7 +366,21 @@ export default function ClientQrModal({
       });
     }
     return out;
-  }, [subLink, subJsonLink, wgConfigText, awgConfigText, links, client?.email, t]);
+  }, [
+    subLink,
+    subJsonLink,
+    variant,
+    happLink,
+    happLoading,
+    happError,
+    wgConfigText,
+    awgConfigText,
+    links,
+    client?.email,
+    selectVariant,
+    regenerateHappLink,
+    t,
+  ]);
 
   // Expanding the first panel is a render-time adjustment, not a side effect.
   const firstKey = open && items.length > 0 ? items[0].key : null;
