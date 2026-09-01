@@ -388,6 +388,7 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		s.recordError(sub, err)
 		return nil, err
 	}
+	identities = scopeIdentities(identities) // see scopeIdentities for why
 
 	// Load previous identities -> tags for stability
 	prev := map[string]string{}
@@ -451,6 +452,24 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 func (s *OutboundSubscriptionService) recordError(sub *model.OutboundSubscription, err error) {
 	sub.LastError = err.Error()
 	_ = database.GetDB().Model(sub).Update("last_error", sub.LastError).Error
+}
+
+// Same-server links differing only by remark share an identity; unscoped,
+// repeats would fight over one persisted tag slot and grow an unbounded suffix.
+func scopeIdentities(identities []string) []string {
+	occurrence := map[string]int{}
+	scoped := make([]string, len(identities))
+	for i, id := range identities {
+		occurrence[id]++
+		if occurrence[id] == 1 {
+			scoped[i] = id
+		} else {
+			// "dup<N>#" can't collide with a real identity: every identity
+			// starts with a protocol prefix (link.outbound.go), never "dup".
+			scoped[i] = fmt.Sprintf("dup%d#%s", occurrence[id], id)
+		}
+	}
+	return scoped
 }
 
 // assignStableTags assigns a tag to each parsed outbound, preferring stability:
@@ -621,7 +640,10 @@ How we do it:
 - On every successful parse we compute a stable "identity" for each link
   (the core of the URI with the remark fragment removed, or for vmess the inner
   JSON without the "ps" field).
-- We persist a map identity -> tag in the LinkIdentities column.
+- We persist a map identity -> tag in the LinkIdentities column. Two links
+  that share an identity (same server, different remark) are disambiguated
+  first by scopeIdentities, so each gets its own slot in that map instead of
+  fighting over one -- see that function's own doc comment.
 - On the next refresh, if we see the same identity again we reuse the previous tag,
   even if the remark changed or minor parameters moved.
 - Only when we have never seen the identity before do we allocate a fresh tag
