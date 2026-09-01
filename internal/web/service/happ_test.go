@@ -237,6 +237,8 @@ func TestHappGenerateRejectsInvalidProviderResponses(t *testing.T) {
 	}{
 		{name: "provider error", statusCode: http.StatusOK, body: `{"error":"nope"}`},
 		{name: "both fields", statusCode: http.StatusOK, body: `{"encrypted_link":"happ://crypt5/example","error":"nope"}`},
+		{name: "duplicate encrypted link", statusCode: http.StatusOK, body: `{"encrypted_link":"happ://crypt5/first","encrypted_link":"happ://crypt5/second"}`},
+		{name: "duplicate error", statusCode: http.StatusOK, body: `{"error":"first","error":"second"}`},
 		{name: "missing fields", statusCode: http.StatusOK, body: `{}`},
 		{name: "null field", statusCode: http.StatusOK, body: `{"encrypted_link":null}`},
 		{name: "non-string field", statusCode: http.StatusOK, body: `{"encrypted_link":7}`},
@@ -264,6 +266,23 @@ func TestHappGenerateRejectsInvalidProviderResponses(t *testing.T) {
 			_, err := newHappTestService(server, time.Second).Generate(context.Background(), client.Id, "panel.example")
 			if !errors.Is(err, ErrHappLinkUnavailable) {
 				t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", err)
+			}
+		})
+	}
+}
+
+func TestParseHappResponseRejectsDuplicateSupportedFields(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "encrypted link", body: `{"encrypted_link":"happ://crypt5/first","encrypted_link":"happ://crypt5/second"}`},
+		{name: "error", body: `{"error":"first","error":"second"}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, reason := parseHappResponse([]byte(tt.body)); reason != "response_shape" {
+				t.Fatalf("parseHappResponse reason = %q, want response_shape", reason)
 			}
 		})
 	}

@@ -156,7 +156,49 @@ func parseHappResponse(body []byte) (string, string) {
 		Error         json.RawMessage `json:"error"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(body))
-	if err := decoder.Decode(&response); err != nil {
+	start, err := decoder.Token()
+	if err != nil {
+		return "", "response_json"
+	}
+	if start == nil {
+		return "", "response_shape"
+	}
+	delimiter, ok := start.(json.Delim)
+	if !ok || delimiter != '{' {
+		return "", "response_json"
+	}
+	seenLink := false
+	seenError := false
+	for decoder.More() {
+		key, err := decoder.Token()
+		if err != nil {
+			return "", "response_json"
+		}
+		name, ok := key.(string)
+		if !ok {
+			return "", "response_json"
+		}
+		var value json.RawMessage
+		if err := decoder.Decode(&value); err != nil {
+			return "", "response_json"
+		}
+		switch name {
+		case "encrypted_link":
+			if seenLink {
+				return "", "response_shape"
+			}
+			seenLink = true
+			response.EncryptedLink = value
+		case "error":
+			if seenError {
+				return "", "response_shape"
+			}
+			seenError = true
+			response.Error = value
+		}
+	}
+	end, err := decoder.Token()
+	if err != nil || end != json.Delim('}') {
 		return "", "response_json"
 	}
 	var extra any
