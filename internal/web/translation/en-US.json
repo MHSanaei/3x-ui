@@ -1283,6 +1283,8 @@
       "subJsonAlwaysArrayDesc": "Return the explicit JSON subscription endpoint as an array even when it contains one profile, as required by the XTLS subscription standard. Auto-detected JSON responses always use arrays. Leave disabled to preserve the legacy single-object response.",
       "subJsonUserAgentRegex": "Xray JSON User-Agent regex",
       "subJsonUserAgentRegexDesc": "Go RE2 regular expression matched against the client's User-Agent to auto-select the Xray JSON format on the standard subscription URL. Empty by default, so auto-detection stays off until you set a pattern for the clients you want to serve. Other clients keep the raw/base64 response. Restart the panel after changes.",
+      "subJsonRoutingRules": "JSON subscription routing profile",
+      "subJsonRoutingRulesDesc": "Routing JSON, happ:// or incy:// deeplink, or https:// URL. When set, it replaces the JSON subscription's DNS and routing rules (baked into the config for clients that ignore headers, e.g. Happ and INCY with client-side balancers). Keep the Happ routing header setting pointing at the same profile so clients fetch the matching geo files.",
       "subClashAutoDetect": "Auto-detect Clash/Mihomo clients",
       "subClashAutoDetectDesc": "When enabled, recognized Clash/Mihomo clients requesting the standard subscription URL receive Clash YAML automatically. Browsers still show the subscription page, other clients keep the raw/base64 response, and the explicit JSON and Clash URLs remain available. Requires Clash/Mihomo subscription to be enabled and a panel restart to apply.",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent regex",

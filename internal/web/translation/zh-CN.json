@@ -1161,6 +1161,8 @@
       "subJsonAlwaysArrayDesc": "即使只有一个配置，也将显式 JSON 订阅端点返回为数组，以符合 XTLS 订阅标准。自动识别的 JSON 响应始终使用数组。禁用时保留旧版单对象响应。",
       "subJsonUserAgentRegex": "Xray JSON User-Agent 正则表达式",
       "subJsonUserAgentRegexDesc": "用于与客户端 User-Agent 进行匹配，从而在标准订阅 URL 上自动选择 Xray JSON 格式的 Go RE2 正则表达式。默认留空，因此在为需要服务的客户端设置规则之前，自动识别保持关闭。其他客户端继续获得原始/Base64 响应。更改后请重启面板。",
+      "subJsonRoutingRules": "JSON 订阅路由配置",
+      "subJsonRoutingRulesDesc": "路由 JSON、happ:// 或 incy:// 深度链接，或 https:// URL。设置后，将替换 JSON 订阅的 DNS 和路由规则（为忽略响应头的客户端直接嵌入配置，例如使用客户端侧负载均衡的 Happ 和 INCY）。请保持 Happ 路由响应头设置指向同一配置，以便客户端下载匹配的 geo 文件。",
       "subClashAutoDetect": "自动识别 Clash/Mihomo 客户端",
       "subClashAutoDetectDesc": "启用后，使用标准订阅 URL 的已识别 Clash/Mihomo 客户端将自动获得 Clash YAML。浏览器仍显示订阅页面，其他客户端继续获得原始/Base64 响应，独立的 JSON 和 Clash URL 仍然可用。需要启用 Clash/Mihomo 订阅并重启面板才能生效。",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent 正则表达式",

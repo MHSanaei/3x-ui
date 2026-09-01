@@ -17,13 +17,12 @@ import { RemarkTemplateField } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
+import { isRemoteRoutingSource } from './subscriptionShared';
 
 interface SubscriptionGeneralTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
-
-const isRemoteRoutingSource = (value: string) => /^https:\/\/\S+$/i.test(value.trim());
 
 const remoteSourceBadge = (value: string) =>
   isRemoteRoutingSource(value) ? <Tag color="blue">HTTPS URL</Tag> : undefined;

@@ -1161,6 +1161,8 @@
       "subJsonAlwaysArrayDesc": "Trả endpoint đăng ký JSON tường minh dưới dạng mảng ngay cả khi chỉ có một hồ sơ, theo tiêu chuẩn XTLS. Phản hồi JSON được tự động nhận diện luôn dùng mảng. Tắt để giữ phản hồi một đối tượng kiểu cũ.",
       "subJsonUserAgentRegex": "Biểu thức User-Agent Xray JSON",
       "subJsonUserAgentRegexDesc": "Biểu thức chính quy Go RE2 được so khớp với User-Agent của ứng dụng để tự động chọn định dạng Xray JSON trên URL đăng ký tiêu chuẩn. Mặc định để trống, nên tính năng tự động nhận diện vẫn tắt cho đến khi bạn đặt mẫu cho các ứng dụng muốn phục vụ. Các ứng dụng khác tiếp tục nhận phản hồi thô/Base64. Khởi động lại bảng điều khiển sau khi thay đổi.",
+      "subJsonRoutingRules": "Hồ sơ định tuyến cho đăng ký JSON",
+      "subJsonRoutingRulesDesc": "JSON định tuyến, deeplink happ:// hoặc incy://, hoặc URL https://. Khi được đặt, nó thay thế DNS và quy tắc định tuyến của đăng ký JSON (được nhúng vào cấu hình cho các client bỏ qua header, ví dụ Happ và INCY với bộ cân bằng phía client). Giữ cài đặt header của Happ trỏ đến cùng hồ sơ để client tải các tệp geo khớp.",
       "subClashAutoDetect": "Tự động nhận diện ứng dụng Clash/Mihomo",
       "subClashAutoDetectDesc": "Khi bật, các ứng dụng Clash/Mihomo được nhận diện khi yêu cầu URL đăng ký tiêu chuẩn sẽ tự động nhận cấu hình Clash YAML. Trình duyệt vẫn hiển thị trang đăng ký, các ứng dụng khác tiếp tục nhận phản hồi thô/Base64, còn các URL JSON và Clash riêng vẫn khả dụng. Cần bật đăng ký Clash/Mihomo và khởi động lại bảng điều khiển để áp dụng thay đổi.",
       "subClashUserAgentRegex": "Biểu thức User-Agent Clash/Mihomo",

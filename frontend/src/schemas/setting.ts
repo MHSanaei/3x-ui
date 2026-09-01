@@ -71,6 +71,7 @@ export const AllSettingSchema = z
     subClashRules: z.string().optional(),
     subJsonMux: z.string().optional(),
     subJsonRules: z.string().optional(),
+    subJsonRoutingRules: z.string().optional(),
     subJsonFinalMask: z.string().optional(),
     subJsonObservatory: z.string().optional(),
     subHideSettings: z.boolean().optional(),
