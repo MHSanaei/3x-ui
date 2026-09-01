@@ -1,10 +1,7 @@
-[English](/README.md) | [Русский](/README.ru_RU.md)
+[Русский](/README.md) | [English](/README.en_US.md)
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
-  </picture>
+  <img alt="3x-ui-awg" src="./media/3x-ui-awg-logo.png">
 </p>
 
 <p align="center">
@@ -14,197 +11,202 @@
 </p>
 
 <p align="center">
-  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F_Support_this_fork-Donate_via_T--Bank-FFDD2D?style=for-the-badge&labelColor=1a1a1a" alt="Donate via T-Bank"></a>
+  <a href="https://www.tbank.ru/cf/2qxNvGa3fSX"><img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F_%D0%9F%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C_%D1%84%D0%BE%D1%80%D0%BA-Donate_%D1%87%D0%B5%D1%80%D0%B5%D0%B7_T--Bank-FFDD2D?style=for-the-badge&labelColor=1a1a1a" alt="Донат через T-Bank"></a>
 </p>
 
-**This is a personal fork of [3X-UI](https://github.com/MHSanaei/3x-ui)** — the advanced, open-source web control panel for [Xray-core](https://github.com/XTLS/Xray-core) — with one major addition: **native AmneziaWG support**, added as a first-class protocol alongside VLESS, VMess, Trojan, and the rest. Everything else 3X-UI already does (multi-protocol inbounds, per-client traffic accounting, subscriptions, multi-node, the Telegram bot) is unchanged and still works exactly as upstream.
-
-This fork exists to run the author's own routers and servers; it isn't trying to replace or compete with the original project. If you're looking for the general-purpose panel, go to [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — everything below only documents what's different here.
+**3x-ui-awg** — панель для управления собственными VPN/прокси-серверами, заточенная на то, чтобы трафик не палился под DPI и не выглядел как VPN вообще. Технически это форк [3X-UI](https://github.com/MHSanaei/3x-ui) — как и раньше, всё, что 3X-UI умел (многопротокольные входящие, учёт трафика, подписки, несколько узлов, Telegram-бот), никуда не делось и работает как в оригинале. Но за это время сюда добавился нативный протокол, две независимые системы маскировки трафика, ещё один способ выхода наружу, и куча правок, найденных не в теории, а на живых серверах — так что дальше это описывается как отдельный проект, а не как список патчей к чужому.
 
 > [!IMPORTANT]
-> This project is intended for personal use only. Please do not use it for illegal purposes or in a production environment.
+> Проект для личного использования. Не используйте его в противозаконных целях или в продакшене.
 
-## What's different in this fork: AmneziaWG
+## AmneziaWG — нативно, а не сбоку
 
-[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) is WireGuard with an added obfuscation layer (junk packets, randomized padding, magic-header rewriting) designed to defeat DPI-based protocol fingerprinting — the same tunnel, but one that doesn't look like a tunnel on the wire.
+[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module) — это WireGuard с добавленным слоем обфускации (мусорные пакеты, случайный паддинг, переписанные магические заголовки), который должен обмануть DPI-фингерпринтинг протокола: тот же туннель, но не выглядящий как туннель в трафике.
 
-- **Embedded, not a kernel module.** AmneziaWG runs entirely inside the panel process ([amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) over a userspace network stack) — no DKMS build, no Secure Boot conflict, no privileged sidecar container, and nothing to install on the host at all.
-- **A first-class protocol.** An AmneziaWG inbound lives in the same `Inbound` table as everything else, so it gets bulk operations, the QR/config-download modal, and subscription links for free — nothing bespoke to learn.
-- **Full AmneziaWG 2.0 obfuscation** — Jc/Jmin/Jmax (junk packets), S1–S4 (packet padding), H1–H4 (magic headers), and all 5 CPS signature-packet slots (I1–I5), each generatable as a DNS/STUN/SIP/QUIC-mimicry packet, a real Chrome/Firefox/Safari TLS ClientHello, or pure randomness with one click — all editable per-inbound, plus a 1.x-compatible fallback for older clients.
-- **Opt-in AmneziaWG 3.0 and 3.1.** A per-inbound version selector unlocks 3.0's `HeaderProtectionKey`/`ContentPaddingAddition` (plus overrides for the handshake/rekey/keepalive timers) and 3.1's `RandomTrailers`/`DisableCookies` — each a deliberate, explicit choice rather than something that starts changing wire behavior on its own.
-- **Every client's traffic already goes through Xray.** No TPROXY, no bridge to opt into: each AmneziaWG inbound relays straight into its own loopback Xray SOCKS5 inbound, so per-client traffic stats, online status, sniffing, and the panel's existing Routing-page rules all just work, exactly like any other protocol — no extra configuration.
-- **Real `vpn://` share links** — the per-client copy-link/QR and the subscription endpoint emit the actual `vpn://` scheme the official AmneziaVPN app expects (base64url of a plain `.conf`), not an invented URI format it couldn't import.
-- **Distinct per-client IPv6 identity and per-client port-forwarding** work under the embedded engine too — a peer with an IPv6 `AllowedIPs` entry gets its own aliased outbound address instead of sharing the host's, and `ForwardedPorts` opens a real listener that dials back into the tunnel — the same admin-facing behavior as the original kernel-module implementation, rebuilt on the new architecture.
+- **Встроено в процесс панели, а не модуль ядра.** Работает поверх пользовательского сетевого стека ([amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go)) — никакой сборки DKMS, никакого конфликта с Secure Boot, никаких привилегированных сайдкар-контейнеров, ничего не нужно ставить на хост отдельно.
+- **Полноценный протокол наравне с остальными.** Живёт в той же таблице `Inbound`, что и всё остальное — bulk-операции, модалка QR/скачивания конфига, ссылки подписки работают из коробки.
+- **Полная обфускация 2.0** — Jc/Jmin/Jmax (мусорные пакеты), S1–S4 (паддинг), H1–H4 (магические заголовки) и все 5 слотов сигнатурных пакетов I1–I5, каждый одним кликом как имитация DNS/STUN/SIP/QUIC-пакета, настоящий TLS ClientHello Chrome/Firefox/Safari или чистая случайность — всё редактируется по инбаунду, плюс совместимость 1.x для старых клиентов.
+- **Опционально 3.0 и 3.1** — `HeaderProtectionKey`/`ContentPaddingAddition` и `RandomTrailers`/`DisableCookies`, каждое включение явное и осознанное, само по себе ничего на проводе не меняет.
+- **Трафик клиента уже идёт через Xray** — без TPROXY и лишних мостов: инбаунд напрямую передаёт трафик в свой loopback SOCKS5-инбаунд Xray, поэтому статистика, онлайн-статус, sniffing и правила маршрутизации работают как для любого другого протокола.
+- **Настоящие ссылки `vpn://`**, которые реально импортирует официальное приложение AmneziaVPN, не выдуманный формат.
+- **Отдельная IPv6-идентичность и проброс портов по клиенту** — тоже на встроенном движке.
 
-## Other changes in this fork
+Это не осталось внутренней доработкой форка — [PR #6105](https://github.com/MHSanaei/3x-ui/pull/6105) с этой реализацией смёржен в основную ветку MHSanaei/3x-ui.
 
-Smaller fork-specific improvements beyond AmneziaWG land here as they're added:
+## Маскировка: два независимых способа спрятать панель
 
-- **Routing rule autocomplete** — the Domain/IP fields in the Xray Routing rule editor suggest geosite/geoip categories (e.g. typing "you" suggests `geosite:youtube`) built live from whatever `.dat` files are actually installed in the Xray bin folder, including custom ones added via the Geodata auto-update feature (e.g. `geosite_roscom.dat`). Free-text entry still works exactly as before.
-- **Live Speed for AmneziaWG and MTProto** — the Speed column used to show `--` for AmneziaWG and MTProto (`mtg`) inbounds/clients even though cumulative traffic totals were correct, since neither runs inside Xray-core's own runtime and so is invisible to its stats API. Both now broadcast live speed alongside every other protocol.
-- **Built-in reverse proxy with a decoy site** — a new **Settings → Reverse proxy** tab turns on a local TLS listener that routes by path: your panel's base path to the panel, your subscription path to the subscription server, and every other path to a decoy site. Point a REALITY inbound's fallback `target` at it and anyone probing your `:443` sees an ordinary website instead of a hint that a panel lives here. The decoy can be one of the built-in pages, your own static site uploaded as a zip, or a reverse proxy to a site you already host. Certificates are either the panel's own files or issued automatically via Let's Encrypt (HTTP-01, since Xray owns `:443`). This replaces the hand-written Nginx config the setup used to require; if a misconfiguration ever locks you out, `x-ui setting -disableFrontProxy` turns it off over SSH.
-- **Custom files in `bin/` survive updates** — a reinstall/update used to wipe the whole `bin/` folder before re-extracting the release, silently deleting anything hand-placed there (most commonly a custom geoip/geosite file referenced from a routing rule via `ext:<file>:<code>`) and breaking every inbound at next start. The installer now backs up `bin/` first and restores only what the new release doesn't ship.
+Сканирующему ваш `:443` без правильного секрета/пути не должно быть видно, что там вообще есть панель — везде должен быть обычный работающий сайт.
 
-## Features
+- **Настоящий AdGuard Home как decoy.** Не имитация — панель сама ставит, настраивает и держит живой AdGuard Home и отдаёт его как содержимое decoy: у зашедшего без секрета — рабочий DNS-фильтр с настоящей админкой и DoH, а не заглушка. Логин/пароль AdGuard Home меняются прямо из панели.
+- **7 интерактивных login-заглушек** — AdGuard Home, Portainer, Pi-hole, OMV, Jellyfin, Home Assistant, Uptime Kuma — с реальной блокировкой по попыткам входа, не просто картинки форм.
+- **Встроенный реверс-прокси** (**Настройки → Реверс-прокси**) сам маршрутизирует по пути: путь панели — в панель, путь подписки — на сервер подписок, всё остальное — на decoy. Укажите его в fallback `target` REALITY-инбаунда. Сертификаты — свои файлы или автовыпуск через Let's Encrypt. Заменяет собой конфиг Nginx, который раньше приходилось писать руками; если что-то пойдёт не так — `x-ui setting -disableFrontProxy` выключает по SSH.
 
-- **Multi-protocol inbounds** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, **AmneziaWG**, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel, and TUN.
-- **Modern transports & security** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade, and XHTTP, secured with TLS, XTLS, and REALITY.
-- **Fallbacks** — serve multiple protocols on a single port (e.g. VLESS and Trojan on 443) using Xray's fallback support.
-- **Per-client management** — traffic quotas, expiry dates, IP limits, live online status, and one-click share links, QR codes, and subscriptions.
-- **Traffic statistics** — per inbound, per client, and per outbound, with reset controls.
-- **Multi-node support** — manage and scale across multiple servers from a single panel.
-- **Outbound & routing** — WARP, NordVPN, custom routing rules, load balancers, and outbound proxy chaining.
-- **Built-in subscription server** with multiple output formats and [custom page templates](docs/custom-subscription-templates.md).
-- **Telegram bot** for remote monitoring and management.
-- **RESTful API** with in-panel Swagger documentation.
-- **Flexible storage** — SQLite (default) or PostgreSQL.
-- **13 UI languages** with dark and light themes.
-- **Fail2ban integration** for enforcing per-client IP limits.
+## Ещё один выход наружу: Tor
 
-## Screenshots
+Однокликовый outbound через Tor — панель сама ставит и держит живым `tor`-процесс, трафик заворачивается через SOCKS5. Медленнее, чем WARP/NordVPN, зато максимум анонимности там, где это важнее скорости.
+
+## Подписки и маршрутизация
+
+- **Пресеты маршрутизации RoscomVPN** для Happ и Incy — DEFAULT/JSONSUB/WHITELIST/Custom одним селектором, набор правил обновляется на лету из внешнего источника.
+- **Автокомплит правил маршрутизации** — поля IP/Домен подсказывают категории geosite/geoip прямо из тех `.dat`-файлов, что реально стоят в bin Xray, включая кастомные.
+- **Стабильные теги подписок** — обновление подписки больше не может тихо переприсвоить чужой стабильный тег другому серверу.
+
+## Собрано и обкатано на реальных серверах
+
+Каждая правка ниже — не гипотетическая, а найденная и подтверждённая на живой инфраструктуре:
+
+- **Keepalive для туннельных клиентов** — можно явно настроить `PersistentKeepalive`, а не только принимать значение по умолчанию.
+- **Live-скорость для AmneziaWG и MTProto** — раньше колонка Speed показывала «--» для обоих, хотя суммарный трафик считался верно.
+- **Кастомные файлы в `bin/` переживают обновления** — раньше апдейт стирал папку `bin/` целиком, теперь бэкапит и восстанавливает только то, чего нет в новом релизе.
+- Плюс закрытые гонки и баги в TPROXY/firewall-правилах, привязке peer-адресов к конкретному инбаунду, MTU при большом паддинге S4 и IPv6-алиасинге — каждый найден и исправлен по факту, не в теории.
+
+## Возможности (полный список)
+
+- **Многопротокольные входящие** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, **AmneziaWG**, MTProto, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel и TUN.
+- **Современные транспорты и безопасность** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade и XHTTP, с TLS, XTLS и REALITY.
+- **Fallback** — несколько протоколов на одном порту (например, VLESS и Trojan на 443).
+- **Исходящие** — WARP, NordVPN, **Tor**, пользовательские правила маршрутизации, балансировщики, цепочки прокси.
+- **Маскировка** — реверс-прокси с decoy (реальный AdGuard Home или login-заглушки).
+- **Управление по клиенту** — квоты трафика, даты истечения, лимиты IP, live-статус, ссылки/QR/подписки в один клик.
+- **Статистика трафика** — по инбаунду, клиенту и исходящему, со сбросом.
+- **Несколько узлов** — управление и масштабирование из одной панели.
+- **Встроенный сервер подписок** с [кастомными шаблонами страниц](docs/custom-subscription-templates.md).
+- **Telegram-бот** для мониторинга и управления.
+- **RESTful API** со Swagger-документацией прямо в панели.
+- **SQLite или PostgreSQL** на выбор.
+- **Русский и английский интерфейс**, тёмная и светлая темы.
+- **Fail2ban** для лимитов IP по клиенту.
+
+## Скриншоты
 
 <details>
-<summary>Click to expand</summary>
+<summary>Показать</summary>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/01-overview-dark.png">
-  <img alt="Overview" src="./media/01-overview-light.png">
+  <img alt="Обзор" src="./media/01-overview-light.png">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/02-add-inbound-dark.png">
-  <img alt="Inbounds" src="./media/02-add-inbound-light.png">
+  <img alt="Входящие" src="./media/02-add-inbound-light.png">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/03-add-client-dark.png">
-  <img alt="Add client" src="./media/03-add-client-light.png">
+  <img alt="Добавление клиента" src="./media/03-add-client-light.png">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./media/05-add-nodes-dark.png">
-  <img alt="Configs" src="./media/05-add-nodes-light.png">
+  <img alt="Конфиги" src="./media/05-add-nodes-light.png">
 </picture>
 
 </details>
 
-## Quick Start
+## Быстрый старт
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kuzzrus/3x-ui-awg/main/install.sh | bash
 ```
 
-To install a specific version, append its tag (e.g. `v3.5.0-awg.1`):
+Чтобы установить конкретную версию, добавьте её тег (например, `v3.7.0-awg.18`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kuzzrus/3x-ui-awg/main/install.sh | bash -s v3.5.0-awg.1
+curl -fsSL https://raw.githubusercontent.com/kuzzrus/3x-ui-awg/main/install.sh | bash -s v3.7.0-awg.18
 ```
 
-To install the rolling **dev** build (latest per-commit pre-release from `main`, not a stable release), pass `dev`:
+Чтобы установить скользящую сборку **dev** (последний пре-релиз по коммитам из `main`, не стабильный релиз), передайте `dev`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kuzzrus/3x-ui-awg/main/install.sh | bash -s dev
 ```
 
-This fork's own stable releases are tagged `<upstream base version>-awg.N` (e.g. `v3.5.0-awg.1`, built on top of what upstream calls `v3.5.0`) — never a bare `vX.Y.Z` — so they're never mistaken for a real upstream MHSanaei/3x-ui release of the same number.
+Стабильные релизы этого форка помечаются тегом `<базовая версия апстрима>-awg.N` (например, `v3.7.0-awg.18`, поверх того, что апстрим называет `v3.7.0`) — никогда просто `vX.Y.Z`, чтобы не спутать с настоящим релизом MHSanaei/3x-ui того же номера.
 
-During installation a random username, password, and access path are generated. After installation, run `x-ui` to open the management menu, where you can start/stop the service, view or reset your login credentials, manage SSL certificates, and more.
+Во время установки генерируются случайные имя пользователя, пароль и путь доступа. После установки выполните `x-ui`, чтобы открыть меню управления: запуск/остановка сервиса, просмотр или сброс учётных данных, управление SSL-сертификатами и остальное.
 
-For general panel documentation beyond what's in this README, see the upstream [project Wiki](https://github.com/MHSanaei/3x-ui/wiki) — none of it is fork-specific, so it still applies.
+Общую документацию по панели, помимо этого README, смотрите в [вики апстрима](https://github.com/MHSanaei/3x-ui/wiki) — там ничего не специфично для этого форка, всё актуально.
 
-### Unattended install
+### Автоматическая установка
 
-The installer also runs **non-interactively** for cloud-init.
-Set `XUI_NONINTERACTIVE=1` (or pipe with no TTY) and it installs end-to-end with
-zero prompts, generating random credentials and writing them to
-`/etc/x-ui/install-result.env`. See [`deploy/`](deploy/) for:
+Установщик работает и **неинтерактивно** — для cloud-init. Задайте `XUI_NONINTERACTIVE=1` (или передайте по конвейеру без TTY), и установка пройдёт без единого запроса, с генерацией случайных учётных данных в `/etc/x-ui/install-result.env`. Смотрите [`deploy/`](deploy/):
 
-- [Cloud-init user-data](deploy/cloud-init/) — unattended install on any cloud (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
-- [Hetzner Cloud notes](deploy/marketplace/hetzner/) — cloud-init deployment on Hetzner
+- [Cloud-init user-data](deploy/cloud-init/) — установка на любом облаке (Hetzner/AWS/DO/Vultr/GCP/Azure/Oracle)
+- [Заметки по Hetzner Cloud](deploy/marketplace/hetzner/)
 
-## Supported Platforms
+## Поддерживаемые платформы
 
-**Operating systems:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), and Alpine. (Upstream also publishes a Windows build; this fork's CI doesn't — everything here targets Linux servers/routers.)
+**ОС:** Ubuntu, Debian, Armbian, Fedora, CentOS, RHEL, AlmaLinux, Rocky Linux, Oracle Linux, Amazon Linux, Virtuozzo, Arch, Manjaro, Parch, openSUSE (Tumbleweed / Leap), Alpine. (В апстриме есть ещё сборка под Windows — в CI этого форка её нет, здесь всё нацелено на Linux-серверы/роутеры.)
 
-**Architectures:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
+**Архитектуры:** `amd64` · `386` · `arm64` (aarch64) · `armv7` · `armv6` · `armv5` · `s390x`.
 
-AmneziaWG is embedded in the panel binary itself (see [What's different in this fork](#whats-different-in-this-fork-amneziawg)) — no kernel module, no separate install step, no distro-specific setup.
+AmneziaWG встроен прямо в бинарник панели — никакого модуля ядра, никакого отдельного шага установки, никакой специфики под дистрибутив.
 
-## Database Options
+## Варианты базы данных
 
-3X-UI supports two backends, chosen during the install:
-
-- **SQLite** (default) — a single file at `/etc/x-ui/x-ui.db`. Zero setup, ideal for small and medium deployments.
-- **PostgreSQL** — recommended for high client counts or multi-node setups. The installer can install PostgreSQL locally for you, or accept a DSN to an existing server.
-
-At runtime the backend is selected via environment variables (the installer writes these to `/etc/default/x-ui` for you):
+- **SQLite** (по умолчанию) — один файл `/etc/x-ui/x-ui.db`, без настройки, хватает для небольших и средних развёртываний.
+- **PostgreSQL** — для большого числа клиентов или нескольких узлов. Установщик может поставить PostgreSQL локально сам или принять DSN к уже существующему серверу.
 
 ```
 XUI_DB_TYPE=postgres
 XUI_DB_DSN=postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable
 ```
 
-### Migrating an existing SQLite install to PostgreSQL
+### Перенос SQLite → PostgreSQL
 
 ```bash
 x-ui migrate-db --dsn "postgres://xui:password@127.0.0.1:5432/xui?sslmode=disable"
-# then set XUI_DB_TYPE and XUI_DB_DSN in /etc/default/x-ui and restart:
 systemctl restart x-ui
 ```
 
-The source SQLite file is left untouched; remove it manually once you have verified the new backend.
+Исходный файл SQLite остаётся нетронутым — удалите вручную после проверки нового бэкенда.
 
-## Environment Variables
+## Переменные окружения
 
-| Variable | Description | Default |
+| Переменная | Описание | По умолчанию |
 | --- | --- | --- |
-| `XUI_DB_TYPE` | Database backend: `sqlite` or `postgres` | `sqlite` |
-| `XUI_DB_DSN` | PostgreSQL connection string (when `XUI_DB_TYPE=postgres`) | — |
-| `XUI_DB_FOLDER` | Directory for the SQLite database file | `/etc/x-ui` |
-| `XUI_DB_MAX_OPEN_CONNS` | Maximum open connections (PostgreSQL pool) | — |
-| `XUI_DB_MAX_IDLE_CONNS` | Maximum idle connections (PostgreSQL pool) | — |
-| `XUI_INIT_WEB_BASE_PATH` | The initial URI path for the web panel | `/` |
-| `XUI_ENABLE_FAIL2BAN` | Enable Fail2ban-based IP-limit enforcement | `true` |
-| `XUI_LOG_LEVEL` | Log verbosity (`debug`, `info`, `warning`, `error`) | `info` |
-| `XUI_DEBUG` | Enable debug mode | `false` |
-| `XUI_TUNNEL_HEALTH_MONITOR` | Enable the tunnel health monitor (probes a URL and restarts xray after repeated failures; a restart drops all clients) | `false` |
-| `XUI_TUNNEL_HEALTH_PROXY` | Proxy the probe is sent through; point it at a local xray inbound so the probe tests the tunnel (e.g. `socks5://127.0.0.1:1080`). Empty means the probe only checks host connectivity | — |
-| `XUI_TUNNEL_HEALTH_URL` | URL probed for tunnel health | `https://www.cloudflare.com/cdn-cgi/trace` |
-| `XUI_TUNNEL_HEALTH_INTERVAL` | Interval between probes | `30s` |
-| `XUI_TUNNEL_HEALTH_TIMEOUT` | Per-probe timeout | `10s` |
-| `XUI_TUNNEL_HEALTH_FAILURES` | Consecutive failures before a restart is triggered | `3` |
-| `XUI_TUNNEL_HEALTH_COOLDOWN` | Minimum delay between consecutive restarts | `5m` |
+| `XUI_DB_TYPE` | Бэкенд БД: `sqlite` или `postgres` | `sqlite` |
+| `XUI_DB_DSN` | Строка подключения PostgreSQL | — |
+| `XUI_DB_FOLDER` | Каталог файла SQLite | `/etc/x-ui` |
+| `XUI_DB_MAX_OPEN_CONNS` | Максимум открытых соединений (пул PostgreSQL) | — |
+| `XUI_DB_MAX_IDLE_CONNS` | Максимум простаивающих соединений | — |
+| `XUI_INIT_WEB_BASE_PATH` | Начальный URI-путь панели | `/` |
+| `XUI_ENABLE_FAIL2BAN` | Fail2ban-лимиты IP | `true` |
+| `XUI_LOG_LEVEL` | Уровень логирования | `info` |
+| `XUI_DEBUG` | Режим отладки | `false` |
+| `XUI_TUNNEL_HEALTH_MONITOR` | Монитор состояния туннеля (перезапускает xray после сбоев — сбрасывает всех клиентов) | `false` |
+| `XUI_TUNNEL_HEALTH_PROXY` | Прокси для пробы (например, `socks5://127.0.0.1:1080`) | — |
+| `XUI_TUNNEL_HEALTH_URL` | URL для проверки | `https://www.cloudflare.com/cdn-cgi/trace` |
+| `XUI_TUNNEL_HEALTH_INTERVAL` | Интервал проб | `30s` |
+| `XUI_TUNNEL_HEALTH_TIMEOUT` | Таймаут пробы | `10s` |
+| `XUI_TUNNEL_HEALTH_FAILURES` | Сбоев подряд до перезапуска | `3` |
+| `XUI_TUNNEL_HEALTH_COOLDOWN` | Минимальная пауза между перезапусками | `5m` |
 
-## Supported Languages
+## Языки интерфейса
 
-The panel UI is available in 13 languages:
+Русский и English, тёмная и светлая темы.
 
-English · فارسی · العربية · 中文（简体） · 中文（繁體） · Español · Русский · Українська · Türkçe · Tiếng Việt · 日本語 · Bahasa Indonesia · Português (Brasil)
+## Для разработчиков
 
-## Developer notes
+Личный форк, сторонние контрибьюторы не ищутся, но [CONTRIBUTING.md](/CONTRIBUTING.md) содержит актуальные инструкции по локальной разработке (версии Go/Node, компилятор для CGo, команды сборки/линта/тестов), если разбираетесь в коде сами.
 
-This is a personal fork and isn't looking for outside contributors, but [CONTRIBUTING.md](/CONTRIBUTING.md) still has accurate, useful local dev-setup instructions (Go/Node versions, the C compiler CGo needs, build/lint/test commands) if you're working on this codebase yourself.
+## Основа и благодарности
 
-## Credit
+Построено поверх [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — вся базовая архитектура панели их работа. Реализация AmneziaWG опирается на:
 
-This fork is built entirely on top of [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — all of the panel, the multi-protocol support, and the underlying architecture is their work; **AmneziaWG support is the only thing added here.**
+- [amnezia-vpn/amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) — пользовательская реализация AmneziaWG поверх сетевого стека [gVisor](https://gvisor.dev/), встроенная прямо в процесс панели.
+- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — исходный PR с AmneziaWG в апстрим (через Docker-сайдкар); отсюда переиспользована фронтенд-схема/структура UI.
+- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — независимый форк с нативным AmneziaWG в проде; ранний менеджер на модуле ядра и генератор параметров обфускации 2.0 были портированы из его пакета `awg/` до перехода на встроенный движок.
 
-If this fork is useful to you, donations are welcome: [Donate via T-Bank](https://www.tbank.ru/cf/2qxNvGa3fSX)
+Если форк оказался полезен — [донат через T-Bank](https://www.tbank.ru/cf/2qxNvGa3fSX).
 
-The AmneziaWG implementation in this fork was ported from/inspired by:
-
-- [amnezia-vpn/amneziawg-go](https://github.com/amnezia-vpn/amneziawg-go) — the userspace AmneziaWG implementation this fork embeds directly in the panel process, over a [gVisor](https://gvisor.dev/) network stack, replacing the original kernel-module-based backend below.
-- [MHSanaei/3x-ui#6086](https://github.com/MHSanaei/3x-ui/pull/6086) — the original AmneziaWG PR against upstream (Docker-sidecar approach); this fork reuses its frontend schema/UI structure.
-- [coinman-dev/3ax-ui](https://github.com/coinman-dev/3ax-ui) — an independent fork already running native AmneziaWG in production; this fork's original kernel-module (`awg-quick`) manager and AmneziaWG 2.0 obfuscation parameter generator were ported from its `awg/` package before this rewrite.
-
-## Acknowledgment
+Также используются:
 
 - [alireza0](https://github.com/alireza0/)
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (License: **GPL-3.0**): _This repository contains automatically updated V2Ray routing rules based on data on blocked domains and addresses in Russia._
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (**GPL-3.0**): расширенные правила маршрутизации v2ray/xray с иранскими доменами, упор на безопасность и блокировку рекламы.
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (**GPL-3.0**): автообновляемые правила маршрутизации по заблокированным в России доменам и адресам.
 
-## Community Tools
+## Инструменты сообщества
 
-Tools and integrations built by the community around 3x-ui.
-
-- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (License: **MIT**): _Manage inbounds, clients, panel settings, and Xray configuration as code with Terraform / OpenTofu._
+- [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (**MIT**) — управление инбаундами, клиентами, настройками панели и конфигурацией Xray как кодом через Terraform / OpenTofu.
