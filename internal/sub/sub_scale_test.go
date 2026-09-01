@@ -209,7 +209,7 @@ func TestGetSubsScale(t *testing.T) {
 				t.Fatalf("GetSubs links = %d, want 3", len(links))
 			}
 
-			jsonSvc := NewSubJsonService("", "", "", &SubService{})
+			jsonSvc := NewSubJsonService("", "", "", "", &SubService{})
 			start = time.Now()
 			for range reps {
 				body, _, err := jsonSvc.GetJson(scaleTargetSubId, "sub.example.com", false)

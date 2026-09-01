@@ -248,7 +248,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	}
 
 	sub := NewSubService(config.remarkTemplate)
-	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, sub)
+	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, "", sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
 	a := &SUBController{
 		subTitle:         config.subTitle,

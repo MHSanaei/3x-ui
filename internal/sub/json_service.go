@@ -34,7 +34,7 @@ type SubJsonService struct {
 }
 
 // NewSubJsonService creates a new JSON subscription service with the given configuration.
-func NewSubJsonService(mux string, rules string, finalMask string, subService *SubService) *SubJsonService {
+func NewSubJsonService(mux string, rules string, finalMask string, routingRules string, subService *SubService) *SubJsonService {
 	var configJson map[string]any
 	var defaultOutbounds []json_util.RawMessage
 	_ = json.Unmarshal([]byte(defaultJson), &configJson)
@@ -45,7 +45,12 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		}
 	}
 
-	if rules != "" {
+	// A baked routing profile replaces the template's dns and routing subtrees
+	// outright; the legacy simple-rules setting only applies when it is absent.
+	bakedSpec := resolveJsonRoutingSpec(routingRules)
+	if !bakedSpec.empty() {
+		applyJsonRouting(configJson, bakedSpec)
+	} else if rules != "" {
 		var newRules []any
 		routing, _ := configJson["routing"].(map[string]any)
 		defaultRules, _ := routing["rules"].([]any)

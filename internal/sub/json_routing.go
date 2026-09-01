@@ -1,6 +1,8 @@
 package sub
 
 import (
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,6 +37,21 @@ func (s jsonRoutingSpec) empty() bool {
 }
 
 var jsonRoutingDeeplinkPrefixes = []string{"happ://routing/onadd/", "incy://routing/onadd/"}
+
+// resolveJsonRoutingSpec parses the routing payload, degrading to an empty
+// spec on error — a bad setting must never take the subscription server down.
+func resolveJsonRoutingSpec(raw string) jsonRoutingSpec {
+	spec, remote, err := parseJsonRoutingSpec(raw)
+	if err != nil {
+		if remote {
+			logger.Warning("subJsonRoutingRules: remote source unavailable, emitting default routing")
+		} else {
+			logger.Warning("subJsonRoutingRules: ", err)
+		}
+		return jsonRoutingSpec{}
+	}
+	return spec
+}
 
 // parseJsonRoutingSpec resolves raw (inline JSON, happ:// or incy:// deeplink,
 // or https:// URL) into a spec. Remote URLs go through the shared
@@ -200,6 +217,89 @@ func routeOrderGroups(order []string) []string {
 		return []string{"block", "direct", "proxy"}
 	}
 	return order
+}
+
+// applyJsonRouting patches the base template with the spec's dns and routing
+// subtrees, mirroring the njs patcher panel admins previously ran behind nginx.
+func applyJsonRouting(configJson map[string]any, spec jsonRoutingSpec) {
+	domestic := spec.DomesticDNSDomain
+	if domestic == "" {
+		ip := spec.DomesticDNSIP
+		if ip == "" {
+			ip = "77.88.8.8"
+		}
+		domestic = "https://" + ip + "/dns-query"
+	}
+	remote := spec.RemoteDNSDomain
+	if remote == "" {
+		ip := spec.RemoteDNSIP
+		if ip == "" {
+			ip = "8.8.8.8"
+		}
+		remote = "https://" + ip + "/dns-query"
+	}
+
+	dns := map[string]any{
+		"tag":           "dns_out",
+		"queryStrategy": "UseIP",
+		"servers":       []any{},
+	}
+	if len(spec.DirectSites) > 0 {
+		dns["servers"] = append(dns["servers"].([]any), map[string]any{
+			"address": domestic,
+			"domains": spec.DirectSites,
+		})
+	}
+	dns["servers"] = append(dns["servers"].([]any), map[string]any{
+		"address":      remote,
+		"skipFallback": false,
+	})
+	if len(spec.DnsHosts) > 0 {
+		dns["hosts"] = spec.DnsHosts
+	}
+
+	domainStrategy := spec.DomainStrategy
+	if domainStrategy == "" {
+		domainStrategy = "IPIfNonMatch"
+	}
+
+	groups := map[string][]map[string]any{
+		"block": {
+			{"domain": stringList(spec.BlockSites), "outboundTag": "block"},
+			{"ip": stringList(spec.BlockIp), "outboundTag": "block"},
+		},
+		"direct": {
+			{"domain": stringList(spec.DirectSites), "outboundTag": "direct"},
+			{"ip": stringList(spec.DirectIp), "outboundTag": "direct"},
+		},
+		"proxy": {
+			{"domain": stringList(spec.ProxySites), "outboundTag": "proxy"},
+			{"ip": stringList(spec.ProxyIp), "outboundTag": "proxy"},
+		},
+	}
+	rules := make([]any, 0, len(routeOrderGroups(spec.RouteOrder))*2+1)
+	for _, group := range routeOrderGroups(spec.RouteOrder) {
+		for _, rule := range groups[group] {
+			var key string
+			if _, ok := rule["domain"]; ok {
+				key = "domain"
+			} else {
+				key = "ip"
+			}
+			if len(rule[key].([]string)) == 0 {
+				continue
+			}
+			entry := map[string]any{"type": "field", key: rule[key], "outboundTag": rule["outboundTag"]}
+			rules = append(rules, entry)
+		}
+	}
+	rules = append(rules, map[string]any{"type": "field", "network": "tcp,udp", "outboundTag": "proxy"})
+
+	configJson["dns"] = dns
+	configJson["routing"] = map[string]any{
+		"domainStrategy": domainStrategy,
+		"rules":          rules,
+	}
 }
 
 func stringList(list []string) []string {

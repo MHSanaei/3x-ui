@@ -57,7 +57,7 @@ func TestSubJson_BalancerDocument(t *testing.T) {
 	})
 
 	rules := `[{"type":"field","domain":["geosite:example"],"outboundTag":"proxy"}]`
-	js := NewSubJsonService("", rules, "", NewSubService(""))
+	js := NewSubJsonService("", rules, "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -155,7 +155,7 @@ func TestSubJson_BalancerOrderInterleavesWithInbounds(t *testing.T) {
 		Remark: "bal", Strategy: "roundRobin", InboundIds: []int{later.Id, first.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -189,7 +189,7 @@ func TestSubJson_BalancerDisabledAndEmptySkipped(t *testing.T) {
 		Remark: "nomembers", Strategy: "random", InboundIds: []int{inbound.Id + 100}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -213,7 +213,7 @@ func TestSubJson_BalancerTagDedup(t *testing.T) {
 		Remark: "dedup", Strategy: "leastPing", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -241,7 +241,7 @@ func TestSubJson_BalancerObservatoryConditional(t *testing.T) {
 		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{lp.Id}, SortOrder: 2, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	js.SetObservatoryConfig(`{"destination":"https://probe.example/204","httpMethod":"GET","sampling":5}`)
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
@@ -287,7 +287,7 @@ func TestSubJson_BalancerExcludesDisabledInbound(t *testing.T) {
 		Remark: "bal", Strategy: "random", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -322,7 +322,7 @@ func TestSubJson_BalancerSkippedWhenAllMembersDisabled(t *testing.T) {
 		Remark: "empty", Strategy: "random", InboundIds: []int{only.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -345,7 +345,7 @@ func TestSubJson_BalancerObservatoryConnectivityDefaultEmpty(t *testing.T) {
 		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{inb.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -386,7 +386,7 @@ func TestSubJson_BalancerObservatoryAlwaysEmittedForProbingStrategies(t *testing
 		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	js.SetObservatoryConfig(`{"enabled":false}`)
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
