@@ -117,6 +117,7 @@ var defaultValueMap = map[string]string{
 	"subClashRules":               "",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
+	"subJsonRoutingRules":         "",
 	"subJsonFinalMask":            "",
 	"subJsonObservatory":          "",
 	"subThemeDir":                 "",
@@ -888,6 +889,10 @@ func (s *SettingService) GetSubJsonMux() (string, error) {
 
 func (s *SettingService) GetSubJsonRules() (string, error) {
 	return s.getString("subJsonRules")
+}
+
+func (s *SettingService) GetSubJsonRoutingRules() (string, error) {
+	return s.getString("subJsonRoutingRules")
 }
 
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
