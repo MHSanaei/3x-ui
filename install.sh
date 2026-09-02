@@ -1368,6 +1368,13 @@ setup_fail2ban() {
         return 0
     fi
 
+    # Scripts older than v3.4.0 have no setup-fail2ban and exit 0 from the
+    # usage banner, which would read as success here.
+    if ! grep -q 'setup-fail2ban' /usr/bin/x-ui; then
+        echo -e "${yellow}This x-ui.sh predates 'x-ui setup-fail2ban'; skipping Fail2ban auto-setup.${plain}"
+        return 0
+    fi
+
     echo -e "${green}Setting up Fail2ban for the IP Limit feature...${plain}"
     if /usr/bin/x-ui setup-fail2ban; then
         echo -e "${green}Fail2ban setup complete.${plain}"
@@ -1424,6 +1431,18 @@ resolve_latest_tag() {
         return 0
     fi
     curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+}
+
+# Older tags predate some of these files (x-ui.rc arrived in v2.8.4), so a
+# pinned tag that lacks one falls back to main with a notice.
+repo_file_ref() {
+    local name="$1"
+    if [[ "${script_ref}" != "main" ]] && ! curl -fsIL --retry 3 --connect-timeout 15 -o /dev/null "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/${name}"; then
+        echo -e "${yellow}${name} is not published for ${script_ref}, using main${plain}" >&2
+        echo "main"
+        return 0
+    fi
+    echo "${script_ref}"
 }
 
 install_x-ui() {
@@ -1486,7 +1505,7 @@ install_x-ui() {
     fi
     local xui_script_temp="/usr/bin/x-ui-temp.$$"
     rm -f "${xui_script_temp}"
-    curl -fLRo "${xui_script_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.sh
+    curl -fLRo "${xui_script_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/$(repo_file_ref x-ui.sh)/x-ui.sh"
     if [[ $? -ne 0 ]]; then
         rm -f "${xui_script_temp}"
         echo -e "${red}Failed to download x-ui.sh${plain}"
@@ -1637,7 +1656,7 @@ install_x-ui() {
     if [[ $release == "alpine" ]]; then
         xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
         rm -f "${xui_rc_temp}"
-        curl -fLRo "${xui_rc_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.rc
+        curl -fLRo "${xui_rc_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/$(repo_file_ref x-ui.rc)/x-ui.rc"
         if [[ $? -ne 0 ]]; then
             rm -f "${xui_rc_temp}"
             echo -e "${red}Failed to download x-ui.rc${plain}"
@@ -1702,13 +1721,13 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.service.debian"
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/$(repo_file_ref x-ui.service.debian)/x-ui.service.debian"
                     ;;
                 arch | manjaro | parch)
-                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.service.arch"
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/$(repo_file_ref x-ui.service.arch)/x-ui.service.arch"
                     ;;
                 *)
-                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.service.rhel"
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/$(repo_file_ref x-ui.service.rhel)/x-ui.service.rhel"
                     ;;
             esac
 
