@@ -793,6 +793,7 @@
       "qrStandard": "Estándar",
       "happLinkRetry": "Reintentar",
       "happLinkErrorHint": "No se pudo generar el enlace de Happ. Reinténtalo o consulta {dashboard} -> {logs} para obtener más detalles.",
+      "happLinkQrTooLong": "Este enlace de Happ es válido, pero es demasiado largo para mostrarlo como código QR. Pulsa «Copiar» para usar el enlace completo.",
       "happLinkDisabledHint": "Activa la generación de enlaces de Happ en Configuración antes de usar Happ.",
       "happLinkDisabledTitle": "La generación de enlaces cifrados de Happ no está activada",
       "happLinkDisabledDescription": "Al activarla, la URL de suscripción actual completa de este cliente se envía a crypto.happ.su para generar un enlace de suscripción happ://crypt5/ cifrado.",

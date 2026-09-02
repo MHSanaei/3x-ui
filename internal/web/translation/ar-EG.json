@@ -793,6 +793,7 @@
       "qrStandard": "قياسي",
       "happLinkRetry": "إعادة المحاولة",
       "happLinkErrorHint": "تعذر إنشاء رابط Happ. أعد المحاولة، أو راجع {dashboard} -> {logs} للاطلاع على التفاصيل.",
+      "happLinkQrTooLong": "هذا الرابط من Happ صالح، لكنه طويل جدًا لعرضه كرمز QR. اضغط «نسخ» لاستخدام الرابط الكامل.",
       "happLinkDisabledHint": "فعّل إنشاء رابط Happ من الإعدادات قبل استخدام Happ.",
       "happLinkDisabledTitle": "إنشاء رابط Happ المشفّر غير مفعّل",
       "happLinkDisabledDescription": "عند التمكين، يُرسل عنوان URL الكامل للاشتراك الحالي لهذا العميل إلى \u2066crypto.happ.su\u2069 لإنشاء رابط اشتراك \u2066happ://crypt5/\u2069 مشفّر.",

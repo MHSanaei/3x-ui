@@ -793,6 +793,7 @@
       "qrStandard": "Standart",
       "happLinkRetry": "Yeniden dene",
       "happLinkErrorHint": "Happ bağlantısı oluşturulamadı. Yeniden deneyin veya ayrıntılar için {dashboard} -> {logs} bölümünü kontrol edin.",
+      "happLinkQrTooLong": "Bu Happ bağlantısı geçerli, ancak QR kodu olarak görüntülenemeyecek kadar uzun. Bağlantının tamamını kullanmak için Kopyala'yı kullanın.",
       "happLinkDisabledHint": "Happ'i kullanmadan önce Ayarlar'dan Happ bağlantısı oluşturmayı etkinleştirin.",
       "happLinkDisabledTitle": "Happ şifreli bağlantı oluşturma etkin değil",
       "happLinkDisabledDescription": "Etkinleştirildiğinde, bu istemcinin mevcut tam abonelik URL'si şifreli bir happ://crypt5/ abonelik bağlantısı oluşturmak için crypto.happ.su adresine gönderilir.",

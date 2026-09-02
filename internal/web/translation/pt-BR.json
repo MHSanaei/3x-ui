@@ -793,6 +793,7 @@
       "qrStandard": "Padrão",
       "happLinkRetry": "Tentar novamente",
       "happLinkErrorHint": "Não foi possível gerar o link do Happ. Tente novamente ou consulte {dashboard} -> {logs} para obter detalhes.",
+      "happLinkQrTooLong": "Este link do Happ é válido, mas é longo demais para ser exibido como código QR. Use “Copiar” para usar o link completo.",
       "happLinkDisabledHint": "Ative a geração de links do Happ em Configurações antes de usar o Happ.",
       "happLinkDisabledTitle": "A geração de links criptografados do Happ não está ativada",
       "happLinkDisabledDescription": "Quando ativada, a URL de assinatura atual completa deste cliente é enviada para crypto.happ.su para gerar um link de assinatura happ://crypt5/ criptografado.",

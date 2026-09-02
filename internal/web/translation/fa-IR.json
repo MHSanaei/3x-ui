@@ -793,6 +793,7 @@
       "qrStandard": "استاندارد",
       "happLinkRetry": "تلاش مجدد",
       "happLinkErrorHint": "لینک Happ ایجاد نشد. دوباره تلاش کنید یا برای جزئیات {dashboard} -> {logs} را بررسی کنید.",
+      "happLinkQrTooLong": "این لینک Happ معتبر است، اما برای نمایش به‌صورت کد QR بیش از حد طولانی است. برای استفاده از لینک کامل، «کپی» را انتخاب کنید.",
       "happLinkDisabledHint": "قبل از استفاده از Happ، ایجاد لینک Happ را در تنظیمات فعال کنید.",
       "happLinkDisabledTitle": "ایجاد لینک رمزگذاری‌شده Happ فعال نیست",
       "happLinkDisabledDescription": "با فعال‌سازی، نشانی اینترنتی کامل اشتراک فعلی این کلاینت به \u2066crypto.happ.su\u2069 ارسال می‌شود تا یک لینک اشتراک رمزگذاری‌شده \u2066happ://crypt5/\u2069 ایجاد شود.",

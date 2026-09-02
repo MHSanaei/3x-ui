@@ -793,6 +793,7 @@
       "qrStandard": "Standar",
       "happLinkRetry": "Coba lagi",
       "happLinkErrorHint": "Tautan Happ tidak dapat dibuat. Coba lagi, atau periksa {dashboard} -> {logs} untuk detailnya.",
+      "happLinkQrTooLong": "Tautan Happ ini valid, tetapi terlalu panjang untuk ditampilkan sebagai kode QR. Gunakan tombol Salin untuk memakai tautan lengkap.",
       "happLinkDisabledHint": "Aktifkan pembuatan tautan Happ di Pengaturan sebelum menggunakan Happ.",
       "happLinkDisabledTitle": "Pembuatan tautan terenkripsi Happ belum diaktifkan",
       "happLinkDisabledDescription": "Jika diaktifkan, URL langganan lengkap yang sedang digunakan klien ini dikirim ke crypto.happ.su untuk menghasilkan tautan langganan happ://crypt5/ terenkripsi.",

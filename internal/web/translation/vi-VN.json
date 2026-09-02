@@ -793,6 +793,7 @@
       "qrStandard": "Tiêu chuẩn",
       "happLinkRetry": "Thử lại",
       "happLinkErrorHint": "Không thể tạo liên kết Happ. Hãy thử lại hoặc kiểm tra {dashboard} -> {logs} để biết chi tiết.",
+      "happLinkQrTooLong": "Liên kết Happ này hợp lệ nhưng quá dài để hiển thị dưới dạng mã QR. Hãy dùng nút Sao chép để sử dụng liên kết đầy đủ.",
       "happLinkDisabledHint": "Hãy bật tính năng tạo liên kết Happ trong Cài đặt trước khi sử dụng Happ.",
       "happLinkDisabledTitle": "Tính năng tạo liên kết Happ được mã hóa chưa được bật",
       "happLinkDisabledDescription": "Khi được bật, URL đăng ký hiện tại đầy đủ của ứng dụng khách này được gửi đến crypto.happ.su để tạo liên kết đăng ký happ://crypt5/ được mã hóa.",

@@ -10,7 +10,11 @@ import { HttpUtil, Msg } from '@/utils';
 import { renderWithProviders } from './test-utils';
 
 vi.mock('@/pages/inbounds/qr', () => ({
-  QrPanel: ({ value }: { value: string }) => <div data-testid="qr-panel-value">{value}</div>,
+  QrPanel: ({ value, showQr = true }: { value: string; showQr?: boolean }) => (
+    <div data-testid="qr-panel-value" data-show-qr={String(showQr)}>
+      {value}
+    </div>
+  ),
 }));
 
 const STANDARD_LINK = 'https://panel.example/sub/alpha';
@@ -501,13 +505,36 @@ describe('ClientQrModal Happ presentation', () => {
     );
   });
 
-  it('passes a valid encryptedLink unchanged to QrPanel', async () => {
-    const exactLink = 'happ://crypt5/AaBbCc-._~';
+  it.each([
+    ['ordinary', 'happ://crypt5/AaBbCc-._~'],
+    ['maximum-size QR', `happ://crypt5/${'a'.repeat(2317)}`],
+  ])('passes a valid %s encryptedLink unchanged to QrPanel', async (_name, exactLink) => {
     vi.mocked(HttpUtil.post).mockResolvedValue(success(exactLink));
     renderSubject();
     selectVariant('Happ');
 
-    expect((await screen.findByTestId('qr-panel-value')).textContent).toBe(exactLink);
+    const panel = await screen.findByTestId('qr-panel-value');
+    expect(panel.textContent).toBe(exactLink);
+    expect(panel.getAttribute('data-show-qr')).toBe('true');
+  });
+
+  it.each([
+    ['ASCII', `happ://crypt5/${'a'.repeat(2318)}`],
+    ['multi-byte', `happ://crypt5/${'界'.repeat(800)}`],
+  ])('keeps a valid %s link available when it is too large for a QR code', async (_name, link) => {
+    vi.mocked(HttpUtil.post).mockResolvedValue(success(link));
+    renderSubject();
+    selectVariant('Happ');
+
+    const panel = await screen.findByTestId('qr-panel-value');
+    expect(panel.textContent).toBe(link);
+    expect(panel.getAttribute('data-show-qr')).toBe('false');
+    expect(
+      screen.getByText(
+        'This Happ link is valid, but it is too long to display as a QR code. Use Copy to use the complete link.',
+      ),
+    ).toBeTruthy();
+    expect(actionButton('Regenerate').disabled).toBe(false);
   });
 
   it.each([

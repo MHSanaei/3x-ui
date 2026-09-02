@@ -793,6 +793,7 @@
       "qrStandard": "標準",
       "happLinkRetry": "重試",
       "happLinkErrorHint": "無法產生 Happ 連結。請重試，或前往 {dashboard} -> {logs} 查看詳細資訊。",
+      "happLinkQrTooLong": "此 Happ 連結有效，但過長，無法顯示為二維碼。請點選「複製」以使用完整連結。",
       "happLinkDisabledHint": "使用 Happ 前，請先在設定中啟用 Happ 連結產生功能。",
       "happLinkDisabledTitle": "Happ 加密連結產生功能尚未啟用",
       "happLinkDisabledDescription": "啟用後，會將該用戶端目前完整的訂閱 URL 傳送至 crypto.happ.su，以產生加密的 happ://crypt5/ 訂閱連結。",

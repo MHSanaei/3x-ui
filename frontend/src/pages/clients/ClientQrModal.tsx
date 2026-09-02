@@ -48,6 +48,9 @@ type QrVariant = 'standard' | 'happ';
 
 const HAPP_CRYPT5_PREFIX = 'happ://crypt5/';
 const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ#subscription';
+// antd's level-M QR encoder tops out at 2331 UTF-8 bytes in byte mode.
+const HAPP_QR_MAX_BYTES = 2331;
+const UTF8_ENCODER = new TextEncoder();
 
 function hasHappForbiddenCharacter(link: string) {
   return Array.from(link).some((character) => {
@@ -62,6 +65,10 @@ function isValidHappCrypt5Link(link: string) {
     link.length > HAPP_CRYPT5_PREFIX.length &&
     !hasHappForbiddenCharacter(link)
   );
+}
+
+function canRenderHappQr(link: string) {
+  return UTF8_ENCODER.encode(link).byteLength <= HAPP_QR_MAX_BYTES;
 }
 
 interface SubscriptionQrPresentationProps {
@@ -90,6 +97,7 @@ function SubscriptionQrPresentation({
   onOpenHappSettings,
 }: SubscriptionQrPresentationProps) {
   const { t } = useTranslation();
+  const showHappQr = canRenderHappQr(happLink);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -149,7 +157,19 @@ function SubscriptionQrPresentation({
           />
           <Spin spinning={happLoading}>
             <div style={{ minHeight: happLoading ? 48 : undefined }}>
-              {happLink ? <QrPanel value={happLink} remark={remark} /> : null}
+              {happLink ? (
+                <>
+                  {!showHappQr ? (
+                    <Alert
+                      style={{ marginBottom: 12 }}
+                      type="info"
+                      showIcon
+                      title={t('pages.clients.happLinkQrTooLong')}
+                    />
+                  ) : null}
+                  <QrPanel value={happLink} remark={remark} showQr={showHappQr} />
+                </>
+              ) : null}
               {happError ? (
                 <Alert
                   type="error"

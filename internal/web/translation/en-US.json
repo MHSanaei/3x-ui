@@ -793,6 +793,7 @@
       "qrStandard": "Standard",
       "happLinkRetry": "Retry",
       "happLinkErrorHint": "The Happ link could not be generated. Retry, or check {dashboard} -> {logs} for details.",
+      "happLinkQrTooLong": "This Happ link is valid, but it is too long to display as a QR code. Use Copy to use the complete link.",
       "happLinkDisabledHint": "Enable Happ link generation in Settings before using Happ.",
       "happLinkDisabledTitle": "Happ encrypted link generation is not enabled",
       "happLinkDisabledDescription": "Enabling it sends this client's complete current subscription URL to crypto.happ.su to generate an encrypted happ://crypt5/ subscription link.",

@@ -793,6 +793,7 @@
       "qrStandard": "標準",
       "happLinkRetry": "再試行",
       "happLinkErrorHint": "Happ リンクを生成できませんでした。再試行するか、詳細は {dashboard} -> {logs} を確認してください。",
+      "happLinkQrTooLong": "この Happ リンクは有効ですが、長すぎて QR コードとして表示できません。完全なリンクを使用するには、「コピー」を使ってください。",
       "happLinkDisabledHint": "Happ を使用する前に、設定で Happ リンクの生成を有効にしてください。",
       "happLinkDisabledTitle": "Happ 暗号化リンクの生成が有効になっていません",
       "happLinkDisabledDescription": "有効にすると、このクライアントの現在の完全なサブスクリプション URL が crypto.happ.su に送信され、暗号化された happ://crypt5/ サブスクリプションリンクが生成されます。",

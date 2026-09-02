@@ -793,6 +793,7 @@
       "qrStandard": "标准",
       "happLinkRetry": "重试",
       "happLinkErrorHint": "无法生成 Happ 链接。请重试，或前往 {dashboard} -> {logs} 查看详情。",
+      "happLinkQrTooLong": "此 Happ 链接有效，但过长，无法显示为二维码。请点击“复制”以使用完整链接。",
       "happLinkDisabledHint": "请先在设置中启用 Happ 链接生成，然后再使用 Happ。",
       "happLinkDisabledTitle": "Happ 加密链接生成未启用",
       "happLinkDisabledDescription": "启用后，会将该客户端当前完整的订阅 URL 发送至 crypto.happ.su，生成加密后的 happ://crypt5/ 订阅链接。",
