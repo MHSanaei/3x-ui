@@ -1852,7 +1852,10 @@
         "noServers": "Không tìm thấy máy chủ cho quốc gia đã chọn",
         "noPublicKey": "Máy chủ đã chọn không công bố khóa công khai NordLynx.",
         "outboundAdded": "Đã thêm outbound NordVPN",
-        "outboundUpdated": "Đã cập nhật outbound NordVPN"
+        "outboundUpdated": "Đã cập nhật outbound NordVPN",
+        "serverLoad": "Tải máy chủ",
+        "addedServers": "Máy chủ đã thêm",
+        "alreadyAdded": "Máy chủ này đã có trong danh sách outbound. Dùng {reset} để làm mới khóa của máy chủ."
       },
       "warp": {
         "changeIp": "Đổi IP",

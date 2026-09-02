@@ -1852,7 +1852,10 @@
         "noServers": "سروری برای کشور انتخابی پیدا نشد",
         "noPublicKey": "سرور انتخابی کلید عمومی NordLynx اعلام نمی‌کند.",
         "outboundAdded": "خروجی NordVPN اضافه شد",
-        "outboundUpdated": "خروجی NordVPN به‌روزرسانی شد"
+        "outboundUpdated": "خروجی NordVPN به‌روزرسانی شد",
+        "serverLoad": "بار سرور",
+        "addedServers": "سرورهای اضافه‌شده",
+        "alreadyAdded": "این سرور از قبل در فهرست خروجی‌ها وجود دارد. برای تازه‌سازی کلید آن از {reset} استفاده کنید."
       },
       "warp": {
         "changeIp": "تغییر IP",

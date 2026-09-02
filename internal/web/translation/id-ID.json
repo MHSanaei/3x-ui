@@ -1852,7 +1852,10 @@
         "noServers": "Tidak ada server ditemukan untuk negara yang dipilih",
         "noPublicKey": "Server yang dipilih tidak mengumumkan kunci publik NordLynx.",
         "outboundAdded": "Outbound NordVPN ditambahkan",
-        "outboundUpdated": "Outbound NordVPN diperbarui"
+        "outboundUpdated": "Outbound NordVPN diperbarui",
+        "serverLoad": "Beban server",
+        "addedServers": "Server yang ditambahkan",
+        "alreadyAdded": "Server ini sudah ada dalam daftar outbound. Gunakan {reset} untuk memperbarui kuncinya."
       },
       "warp": {
         "changeIp": "Ganti IP",

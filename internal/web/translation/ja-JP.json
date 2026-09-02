@@ -1852,7 +1852,10 @@
         "noServers": "選択した国のサーバーが見つかりません",
         "noPublicKey": "選択したサーバーは NordLynx 公開鍵を公開していません。",
         "outboundAdded": "NordVPN アウトバウンドを追加しました",
-        "outboundUpdated": "NordVPN アウトバウンドを更新しました"
+        "outboundUpdated": "NordVPN アウトバウンドを更新しました",
+        "serverLoad": "サーバー負荷",
+        "addedServers": "追加済みサーバー",
+        "alreadyAdded": "このサーバーはすでにアウトバウンド一覧にあります。{reset} で鍵を更新してください。"
       },
       "warp": {
         "changeIp": "IP を変更",

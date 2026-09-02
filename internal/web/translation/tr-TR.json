@@ -1852,7 +1852,10 @@
         "noServers": "Seçilen ülke için sunucu bulunamadı.",
         "noPublicKey": "Seçilen sunucu NordLynx genel anahtarı yayınlamıyor.",
         "outboundAdded": "NordVPN giden bağlantı eklendi.",
-        "outboundUpdated": "NordVPN giden bağlantı güncellendi."
+        "outboundUpdated": "NordVPN giden bağlantı güncellendi.",
+        "serverLoad": "Sunucu yükü",
+        "addedServers": "Eklenen sunucular",
+        "alreadyAdded": "Bu sunucu zaten giden bağlantı listesinde. Anahtarını yenilemek için {reset} kullanın."
       },
       "warp": {
         "changeIp": "IP Değiştir",

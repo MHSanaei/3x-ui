@@ -1970,7 +1970,10 @@
         "noServers": "No servers found for the selected country",
         "noPublicKey": "Selected server does not advertise a NordLynx public key.",
         "outboundAdded": "NordVPN outbound added",
-        "outboundUpdated": "NordVPN outbound updated"
+        "outboundUpdated": "NordVPN outbound updated",
+        "serverLoad": "Server load",
+        "addedServers": "Added servers",
+        "alreadyAdded": "This server is already in the outbound list. Use {reset} to refresh its key."
       },
       "warp": {
         "changeIp": "Change IP",

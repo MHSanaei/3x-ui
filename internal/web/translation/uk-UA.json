@@ -1852,7 +1852,10 @@
         "noServers": "Серверів для обраної країни не знайдено",
         "noPublicKey": "Обраний сервер не повідомляє публічного ключа NordLynx.",
         "outboundAdded": "Вихідний NordVPN додано",
-        "outboundUpdated": "Вихідний NordVPN оновлено"
+        "outboundUpdated": "Вихідний NordVPN оновлено",
+        "serverLoad": "Навантаження сервера",
+        "addedServers": "Додані сервери",
+        "alreadyAdded": "Цей сервер уже є у списку вихідних підключень. Використайте {reset}, щоб оновити його ключ."
       },
       "warp": {
         "changeIp": "Змінити IP",

@@ -1852,7 +1852,10 @@
         "noServers": "Nenhum servidor encontrado para o país selecionado",
         "noPublicKey": "O servidor selecionado não anuncia uma chave pública NordLynx.",
         "outboundAdded": "Saída NordVPN adicionada",
-        "outboundUpdated": "Saída NordVPN atualizada"
+        "outboundUpdated": "Saída NordVPN atualizada",
+        "serverLoad": "Carga do servidor",
+        "addedServers": "Servidores adicionados",
+        "alreadyAdded": "Este servidor já está na lista de saídas. Use {reset} para atualizar sua chave."
       },
       "warp": {
         "changeIp": "Alterar IP",
