@@ -2389,7 +2389,6 @@ remove_iplimit() {
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
             rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-            rm -f /etc/fail2ban/jail.d/3x-ipl-backend.conf
             if [[ $release == "alpine" ]]; then
                 rc-service fail2ban restart
             else
@@ -2493,9 +2492,10 @@ create_iplimit_jails() {
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
-    # Debian 12+ and Ubuntu 22.04+ log sshd to the journal only. A jail.d
-    # override survives package upgrades; editing jail.conf in place does not.
-    if [[ ( "${release}" == "debian" && ${os_version} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version} -ge 2200 ) ]]; then
+    # Debian 12+ / Ubuntu 22.04+ log sshd to the journal only; a jail.d override
+    # survives package upgrades. Only the stock 'backend = auto' is overridden.
+    if [[ ( "${release}" == "debian" && ${os_version} -ge 12 ) || ( "${release}" == "ubuntu" && ${os_version} -ge 2200 ) ]] &&
+        sed -n '0,/action =/p' /etc/fail2ban/jail.conf | grep -q '^backend = auto'; then
         cat << EOF > /etc/fail2ban/jail.d/3x-ipl-backend.conf
 [DEFAULT]
 backend = systemd
