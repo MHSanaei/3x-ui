@@ -145,3 +145,12 @@ and what it turned out to be, plus the head SHA and the size of the diff it
 covers. Say which claims could not be verified and why, including a check
 this environment blocked. Keep that coverage list under ten lines; it is
 evidence, not a retelling of the pull request.
+
+## A finding is a report, not a patch
+
+A finding says what is wrong, where (`file:line`), what triggers it and what
+breaks. It never carries the fix: no `suggestion` block, no patch, no
+replacement snippet, no rewritten function, no "suggested fix" section — in
+the summary and in an inline comment alike. One clause naming where the fix
+belongs is the most it may add. The maintainer decides the change; a review
+that writes it out puts unreviewed code one click from the branch.
