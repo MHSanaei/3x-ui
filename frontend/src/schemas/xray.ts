@@ -114,6 +114,7 @@ export const OutboundTestResultListSchema = z.array(OutboundTestResultSchema);
 
 export const RuleFormSchema = z.object({
   enabled: z.boolean(),
+  comment: z.string(),
   domain: z.string(),
   ip: z.string(),
   port: z.string(),

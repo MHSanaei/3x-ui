@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Dropdown, Switch, Tag } from 'antd';
+import { Button, Dropdown, Switch, Tag, Tooltip } from 'antd';
 import {
   MoreOutlined,
   EditOutlined,
@@ -28,6 +28,7 @@ interface RoutingColumnsParams {
   rowsLength: number;
   showSource: boolean;
   showBalancer: boolean;
+  showComment: boolean;
   onHandlePointerDown: (idx: number, ev: React.PointerEvent) => void;
   openEdit: (idx: number) => void;
   moveUp: (idx: number) => void;
@@ -41,6 +42,7 @@ export function useRoutingColumns({
   rowsLength,
   showSource,
   showBalancer,
+  showComment,
   onHandlePointerDown,
   openEdit,
   moveUp,
@@ -194,6 +196,21 @@ export function useRoutingColumns({
         ),
       },
       {
+        title: t('comment'),
+        align: 'left',
+        width: 150,
+        key: 'comment',
+        hidden: !showComment,
+        render: (_v, record) =>
+          record.comment ? (
+            <Tooltip title={record.comment}>
+              <span className="rule-comment-cell">{record.comment}</span>
+            </Tooltip>
+          ) : (
+            <span className="criterion-empty">—</span>
+          ),
+      },
+      {
         title: t('pages.inbounds.network'),
         align: 'left',
         width: 180,
@@ -317,6 +334,7 @@ export function useRoutingColumns({
       rowsLength,
       showSource,
       showBalancer,
+      showComment,
       remarkByTag,
       onHandlePointerDown,
       openEdit,

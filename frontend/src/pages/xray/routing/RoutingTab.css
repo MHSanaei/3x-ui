@@ -22,6 +22,33 @@
   cursor: grabbing;
 }
 
+.rule-comment-cell {
+  display: block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+}
+
+.rule-comment {
+  margin-top: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  border-radius: 4px;
+  background: var(--ant-color-fill-tertiary);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.rule-comment-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .row-dragging {
   opacity: 0.4;
 }
