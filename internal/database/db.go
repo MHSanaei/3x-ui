@@ -2078,7 +2078,7 @@ func InitDB(dbPath string) error {
 		}
 	default:
 		dir := path.Dir(dbPath)
-		if err = os.MkdirAll(dir, 0o755); err != nil {
+		if err = os.MkdirAll(dir, 0o700); err != nil {
 			return err
 		}
 		if err = cleanupSQLiteBackupDirs(filepath.Dir(dbPath)); err != nil {
@@ -2090,6 +2090,9 @@ func InitDB(dbPath string) error {
 		dsn := dbPath + "?_journal_mode=" + journal + "&_busy_timeout=10000&_synchronous=" + sync + "&_txlock=immediate"
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
+			return err
+		}
+		if err = restrictSQLiteFilePerms(dbPath); err != nil {
 			return err
 		}
 		sqlDB, err := db.DB()
@@ -2190,6 +2193,17 @@ func openPostgresWithRetry(dsn string, c *gorm.Config) (*gorm.DB, error) {
 		log.Printf("postgres connection attempt %d/%d failed: %v", i+1, len(delays), err)
 	}
 	return nil, fmt.Errorf("postgres unreachable after %d attempts: %w", len(delays), lastErr)
+}
+
+// The store holds client UUIDs, Reality private keys and the admin password
+// hash, so it and its WAL/SHM side files must stay owner-only.
+func restrictSQLiteFilePerms(dbPath string) error {
+	for _, name := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+		if err := os.Chmod(name, 0o600); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
 }
 
 func sqliteJournalMode() string {
