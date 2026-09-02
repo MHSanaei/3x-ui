@@ -293,6 +293,8 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	return s.ForRequest(host).getSubs(subId)
 }
 
+// getSubs returns nil only when subId doesn't exist; an inactive-owner-only
+// subId returns a non-nil empty result instead, so branch on == nil, not len().
 func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	var result []string
 	var emails []string
@@ -337,8 +339,16 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		}
 	}
 	for _, ext := range externalLinks {
-		if ext.Enable {
+		if ext.Active {
 			hasEnabledClient = true
+		}
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			emails = append(emails, ext.Email)
+			if result == nil {
+				result = []string{}
+			}
+			continue
 		}
 		for _, el := range expandEntry(ext) {
 			if link := applyRemarkToLink(el.Link, el.Name); link != "" {

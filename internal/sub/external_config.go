@@ -15,7 +15,8 @@ import (
 )
 
 // externalLinkEntry is one client × external-link row, resolved for a
-// subscription request. Email/Enable come from the owning client.
+// subscription request. Email/Enable come from the owning client. Active
+// applies the owning client's enabled and expiry state.
 type externalLinkEntry struct {
 	Kind       string
 	Value      string
@@ -23,6 +24,7 @@ type externalLinkEntry struct {
 	NamePrefix string
 	Email      string
 	Enable     bool
+	Active     bool
 }
 
 // expandedLink is a single share link contributed by an entry, with the display
@@ -74,6 +76,7 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 			NamePrefix: r.NamePrefix,
 			Email:      rec.Email,
 			Enable:     rec.Enable,
+			Active:     rec.Enable && (rec.ExpiryTime <= 0 || rec.ExpiryTime > now),
 		})
 	}
 	return out, nil

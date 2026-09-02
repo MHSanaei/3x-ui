@@ -39,6 +39,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	}
 
 	var proxies []map[string]any
+	var hasInactiveExternal bool
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
@@ -56,6 +57,11 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		}
 	}
 	for _, ext := range externalLinks {
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			hasInactiveExternal = true
+			continue
+		}
 		for _, el := range expandEntry(ext) {
 			name := el.Name
 			if name == "" {
@@ -68,17 +74,23 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		}
 	}
 
-	if len(proxies) == 0 {
+	if len(proxies) == 0 && !hasInactiveExternal {
 		return "", "", nil
 	}
-
-	ensureUniqueProxyNames(proxies)
 
 	emails := make([]string, 0, len(seenEmails))
 	for e := range seenEmails {
 		emails = append(emails, e)
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	// No early return on an empty proxies list: fall through and render it
+	// as a minimal-but-valid Clash doc (PROXY group with only DIRECT) so an
+	// inactive-owner-only subId gets parseable YAML, not a bare 200.
+	if proxies == nil {
+		proxies = []map[string]any{}
+	}
+	ensureUniqueProxyNames(proxies)
 
 	proxyNames := make([]string, 0, len(proxies)+1)
 	for _, proxy := range proxies {
@@ -116,7 +128,6 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", err
 	}
 
-	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalYAML), header, nil
 }
 

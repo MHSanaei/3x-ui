@@ -705,6 +705,7 @@
       "addExternalSubscription": "Add External Subscription",
       "noExternalLinks": "No external links yet.",
       "noExternalSubscriptions": "No external subscriptions yet.",
+      "externalLinkExpiryInherited": "Inherited from the client's own expiry; set a date to override it for this link only.",
       "submitEdit": "Save Changes",
       "clientCount": "Number of Clients",
       "bulk": "Add Bulk",

@@ -365,7 +365,7 @@ func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = false
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
-	if err != nil || len(subs) == 0 {
+	if err != nil || subs == nil {
 		writeSubError(c, err)
 		return PageData{}, false
 	}
@@ -417,12 +417,12 @@ func (a *SUBController) subs(c *gin.Context) {
 	if !a.enforceHwid(c) {
 		return
 	}
-	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBody(c, false) {
+	if shouldAutoServeClash(a.subClashAutoDetect, a.clashEnabled, false, userAgent, a.clashUserAgent) && a.serveClashBodyContent(c, false, true) {
 		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "clash")
 		return
 	}
-	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBody(c, true, "application/json; charset=utf-8", false) {
+	if shouldAutoServeJson(a.jsonAutoDetect, a.jsonEnabled, false, userAgent, a.jsonUserAgent) && a.serveJsonBodyContent(c, true, "application/json; charset=utf-8", false, true) {
 		a.recordSubscriptionFetch(c)
 		logSubscriptionRoute(userAgent, "json")
 		return
@@ -433,7 +433,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = true
 	subs, _, _, traffic, err := subReq.getSubs(subId)
-	if err != nil || len(subs) == 0 {
+	if err != nil || subs == nil {
 		writeSubError(c, err)
 	} else {
 		var result strings.Builder
@@ -448,7 +448,9 @@ func (a *SUBController) subs(c *gin.Context) {
 		metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, profileURL)
 		a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingSource, a.subRoutingRules, a.subHideSettings)
 
-		if a.subIncyEnableRouting {
+		// Nothing to route for an inactive-owner-only subId (len(subs) == 0):
+		// stats-only stays stats-only, not a rules-only fake profile.
+		if a.subIncyEnableRouting && len(subs) > 0 {
 			if rules := ResolveIncyRoutingRules(a.subIncyRoutingSource, a.subIncyRoutingRules); rules != "" {
 				result.WriteString(rules)
 				result.WriteString("\n")
@@ -750,6 +752,12 @@ func (a *SUBController) serveJson(c *gin.Context, alwaysReturnArray bool, conten
 }
 
 func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool) bool {
+	return a.serveJsonBodyContent(c, alwaysReturnArray, contentType, rawDownload, false)
+}
+
+// serveJsonBodyContent is serveJsonBody; see serveClashBodyContent for what
+// requireContent does and why subs() needs it.
+func (a *SUBController) serveJsonBodyContent(c *gin.Context, alwaysReturnArray bool, contentType string, rawDownload bool, requireContent bool) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host, alwaysReturnArray)
@@ -758,7 +766,10 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 		return true
 	}
 	if len(jsonSub) == 0 {
-		return false
+		if header == "" || requireContent {
+			return false
+		}
+		jsonSub = "[]"
 	}
 	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 	var subReq *SubService
@@ -798,6 +809,13 @@ func (a *SUBController) subClashs(c *gin.Context) {
 }
 
 func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
+	return a.serveClashBodyContent(c, rawDownload, false)
+}
+
+// serveClashBodyContent is serveClashBody, but with requireContent an
+// empty-proxies result (real header, e.g. an inactive-only owner) is treated
+// as unhandled too, so subs()'s auto-detect chain falls through to raw.
+func (a *SUBController) serveClashBodyContent(c *gin.Context, rawDownload bool, requireContent bool) bool {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	clashSub, header, err := a.subClashService.GetClash(subId, host)
@@ -806,7 +824,9 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
 		return true
 	}
 	if len(clashSub) == 0 {
-		return false
+		if header == "" || requireContent {
+			return false
+		}
 	}
 	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 	var subReq *SubService

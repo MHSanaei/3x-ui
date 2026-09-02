@@ -705,6 +705,7 @@
       "addExternalSubscription": "Добавить внешнюю подписку",
       "noExternalLinks": "Пока нет внешних ссылок.",
       "noExternalSubscriptions": "Пока нет внешних подписок.",
+      "externalLinkExpiryInherited": "Унаследовано от срока действия клиента; укажите дату, чтобы задать её только для этой ссылки.",
       "submitEdit": "Сохранить изменения",
       "clientCount": "Количество клиентов",
       "bulk": "Массовое добавление",

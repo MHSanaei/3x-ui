@@ -17,6 +17,8 @@ interface DateTimePickerProps {
   format?: string;
   placeholder?: string;
   disabled?: boolean;
+  allowClear?: boolean;
+  maxDate?: Dayjs;
 }
 
 const LIGHT_THEME = {
@@ -53,6 +55,8 @@ export default function DateTimePicker({
   format = 'YYYY-MM-DD HH:mm:ss',
   placeholder = '',
   disabled = false,
+  allowClear = true,
+  maxDate,
 }: DateTimePickerProps) {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
@@ -78,6 +82,17 @@ export default function DateTimePicker({
     return LIGHT_THEME;
   }, [isDark, isUltra]);
 
+  // maxDate disables out-of-range date cells but not a later time on the max
+  // date itself, so clamp here instead of silently reverting a controlled value.
+  const commitChange = (next: Dayjs | null) => {
+    if (next && maxDate && next.isAfter(maxDate)) {
+      onChange(maxDate);
+      if (datepicker === 'jalalian') setClearNonce((n) => n + 1);
+      return;
+    }
+    onChange(next);
+  };
+
   // The library hardcodes a Persian placeholder and exposes no working prop to
   // override it, so clear it (or apply the caller's) on the input directly so
   // the empty field shows no leftover Persian text. No dep array: re-apply
@@ -100,19 +115,20 @@ export default function DateTimePicker({
           onChange={(next: number | string | null) => {
             if (suppressMountEmit.current) return;
             if (next == null || next === '') {
-              onChange(null);
+              commitChange(null);
               return;
             }
             const ms = typeof next === 'number' ? next : Number(next);
-            if (Number.isFinite(ms)) onChange(dayjs(ms));
+            if (Number.isFinite(ms)) commitChange(dayjs(ms));
           }}
           showTime={showTime}
           outputFormat="timestamp"
+          maxDate={maxDate?.toDate()}
           persianNumbers
           rtlCalendar
           theme={persianTheme}
         />
-        {value && !disabled && (
+        {value && allowClear && !disabled && (
           <button
             type="button"
             className="jdp-clear"
@@ -120,7 +136,7 @@ export default function DateTimePicker({
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => {
               e.stopPropagation();
-              onChange(null);
+              commitChange(null);
               setClearNonce((n) => n + 1);
             }}
           >
@@ -134,13 +150,15 @@ export default function DateTimePicker({
   return (
     <DatePicker
       value={value}
-      onChange={(next) => onChange(next || null)}
-      onCalendarChange={(next) => onChange((Array.isArray(next) ? next[0] : next) || null)}
+      onChange={(next) => commitChange(next || null)}
+      onCalendarChange={(next) => commitChange((Array.isArray(next) ? next[0] : next) || null)}
       showTime={showTime ? { format: 'HH:mm:ss' } : false}
       needConfirm={false}
       format={format}
       placeholder={placeholder}
       disabled={disabled}
+      allowClear={allowClear}
+      maxDate={maxDate}
       style={{ width: '100%' }}
     />
   );
