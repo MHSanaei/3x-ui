@@ -2092,8 +2092,8 @@ func InitDB(dbPath string) error {
 		if err != nil {
 			return err
 		}
-		if err = restrictSQLiteFilePerms(dbPath); err != nil {
-			return err
+		if err := restrictSQLiteFilePerms(dbPath); err != nil {
+			log.Printf("restrict SQLite file permissions: %v", err)
 		}
 		sqlDB, err := db.DB()
 		if err != nil {
@@ -2195,8 +2195,8 @@ func openPostgresWithRetry(dsn string, c *gorm.Config) (*gorm.DB, error) {
 	return nil, fmt.Errorf("postgres unreachable after %d attempts: %w", len(delays), lastErr)
 }
 
-// The store holds client UUIDs, Reality private keys and the admin password
-// hash, so it and its WAL/SHM side files must stay owner-only.
+// The store holds client secrets, so it and its WAL/SHM side files stay
+// owner-only. Best effort: a store the panel cannot chmod still opens.
 func restrictSQLiteFilePerms(dbPath string) error {
 	for _, name := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
 		if err := os.Chmod(name, 0o600); err != nil && !errors.Is(err, os.ErrNotExist) {
