@@ -814,6 +814,7 @@ export const EXAMPLES: Record<string, unknown> = {
       1,
       3
     ],
+    "memberWeights": {},
     "remark": "auto-fastest",
     "sortOrder": 1,
     "strategy": "random",
