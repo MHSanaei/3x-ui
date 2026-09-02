@@ -15,6 +15,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "externalTrafficInformURI": {
         "type": "string"
       },
+      "happLinkEnable": {
+        "type": "boolean"
+      },
       "ipLimitAllowlist": {
         "type": "string"
       },
@@ -354,6 +357,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
+      "happLinkEnable",
       "ipLimitAllowlist",
       "ldapAutoCreate",
       "ldapAutoDelete",
@@ -472,6 +476,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "externalTrafficInformURI": {
         "type": "string"
+      },
+      "happLinkEnable": {
+        "type": "boolean"
       },
       "hasApiToken": {
         "type": "boolean"
@@ -833,6 +840,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
+      "happLinkEnable",
       "hasApiToken",
       "hasLdapPassword",
       "hasNordSecret",

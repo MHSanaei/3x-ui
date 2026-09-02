@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRef, forwardRef, useImperativeHandle, useState } from 'react';
+import { MemoryRouter, useLocation } from 'react-router';
 
 import type { HappLinkResult } from '@/generated/types';
 import type { ClientRecord } from '@/hooks/useClients';
@@ -14,18 +15,25 @@ vi.mock('@/pages/inbounds/qr', () => ({
 
 const STANDARD_LINK = 'https://panel.example/sub/alpha';
 const HAPP_LINK = 'happ://crypt5/encrypted-alpha';
+const HAPP_OPTION_LABEL = 'Happ Encrypted Link';
 const CLIENT: ClientRecord = { id: 42, email: 'alice@example.com', subId: 'alpha' };
 const SUB_SETTINGS = {
   enable: true,
   subURI: 'https://panel.example/sub/',
   subJsonURI: '',
   subJsonEnable: false,
+  happLinkEnable: true,
+};
+
+type TestSubSettings = Omit<typeof SUB_SETTINGS, 'happLinkEnable'> & {
+  happLinkEnable?: boolean;
 };
 
 interface SubjectProps {
   open: boolean;
   client: ClientRecord | null;
-  subSettings: typeof SUB_SETTINGS;
+  subSettings: TestSubSettings;
+  onOpenChange: (open: boolean) => void;
 }
 
 interface SubjectHandle {
@@ -52,6 +60,7 @@ const Subject = forwardRef<SubjectHandle, { overrides: Partial<SubjectProps> }>(
     open: true,
     client: CLIENT,
     subSettings: SUB_SETTINGS,
+    onOpenChange: vi.fn(),
     ...overrides,
   });
   useImperativeHandle(
@@ -67,16 +76,34 @@ const Subject = forwardRef<SubjectHandle, { overrides: Partial<SubjectProps> }>(
       client={props.client}
       inboundsById={{}}
       subSettings={props.subSettings}
-      onOpenChange={vi.fn()}
+      onOpenChange={props.onOpenChange}
     />
   );
 });
 
+function LocationProbe() {
+  const location = useLocation();
+  return (
+    <output data-testid="location">
+      {location.pathname}
+      {location.search}
+      {location.hash}
+    </output>
+  );
+}
+
 function renderSubject(overrides: Partial<SubjectProps> = {}) {
   const subjectRef = createRef<SubjectHandle>();
-  const view = renderWithProviders(<Subject ref={subjectRef} overrides={overrides} />);
+  const onOpenChange = vi.fn();
+  const view = renderWithProviders(
+    <MemoryRouter initialEntries={['/clients']}>
+      <Subject ref={subjectRef} overrides={{ onOpenChange, ...overrides }} />
+      <LocationProbe />
+    </MemoryRouter>,
+  );
   return {
     ...view,
+    onOpenChange,
     update(patch: Partial<SubjectProps>) {
       act(() => subjectRef.current?.update(patch));
     },
@@ -84,7 +111,7 @@ function renderSubject(overrides: Partial<SubjectProps> = {}) {
 }
 
 function selectVariant(name: 'Standard' | 'Happ') {
-  fireEvent.click(screen.getByRole('radio', { name }));
+  fireEvent.click(screen.getByRole('radio', { name: name === 'Happ' ? /Happ/ : name }));
 }
 
 function actionButton(name: 'Retry' | 'Regenerate') {
@@ -106,10 +133,155 @@ describe('ClientQrModal Happ presentation', () => {
     expect(HttpUtil.post).not.toHaveBeenCalled();
   });
 
+  it('names the Happ option as an encrypted link', () => {
+    renderSubject();
+
+    expect(screen.getByRole('radio', { name: HAPP_OPTION_LABEL })).toBeTruthy();
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['false', false],
+  ])('marks the selectable Happ option as locked when the gate is %s', (_name, gate) => {
+    const subSettings: TestSubSettings = {
+      enable: SUB_SETTINGS.enable,
+      subURI: SUB_SETTINGS.subURI,
+      subJsonURI: SUB_SETTINGS.subJsonURI,
+      subJsonEnable: SUB_SETTINGS.subJsonEnable,
+    };
+    if (gate !== undefined) subSettings.happLinkEnable = gate;
+
+    renderSubject({ subSettings });
+
+    const standard = screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement;
+    const happ = screen.getByRole('radio', { name: /Happ Encrypted Link/ }) as HTMLInputElement;
+    expect(standard.checked).toBe(true);
+    expect(happ.disabled).toBe(false);
+    expect(
+      screen.getByLabelText('Enable Happ link generation in Settings before using Happ.', {
+        selector: '.anticon-lock',
+      }),
+    ).toBeTruthy();
+    expect(HttpUtil.post).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['false', false],
+  ])(
+    'replaces the blank Happ content with a persistent empty state when the gate is %s',
+    (_name, gate) => {
+      const subSettings: TestSubSettings = {
+        enable: SUB_SETTINGS.enable,
+        subURI: SUB_SETTINGS.subURI,
+        subJsonURI: SUB_SETTINGS.subJsonURI,
+        subJsonEnable: SUB_SETTINGS.subJsonEnable,
+      };
+      if (gate !== undefined) subSettings.happLinkEnable = gate;
+
+      renderSubject({ subSettings });
+
+      const standard = screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement;
+      const happ = screen.getByRole('radio', { name: /Happ Encrypted Link/ }) as HTMLInputElement;
+      fireEvent.click(happ);
+
+      expect(standard.checked).toBe(false);
+      expect(happ.checked).toBe(true);
+      expect(screen.getByText('Happ encrypted link generation is not enabled')).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Enabling it sends this client's complete current subscription URL to crypto.happ.su to generate an encrypted happ://crypt5/ subscription link.",
+        ),
+      ).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Go to Settings' })).toBeTruthy();
+      expect(screen.queryByTestId('qr-panel-value')).toBeNull();
+      expect(screen.queryByRole('button', { name: /Regenerate|Retry/ })).toBeNull();
+      expect(screen.getByRole('dialog').querySelector('[aria-busy="true"]')).toBeNull();
+      expect(HttpUtil.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it('removes the hover and focus tooltip from the locked Happ option', async () => {
+    renderSubject({ subSettings: { ...SUB_SETTINGS, happLinkEnable: false } });
+    const happ = screen.getByRole('radio', { name: /Happ Encrypted Link/ });
+    const happLabel = happ.closest('label');
+    expect(happLabel).not.toBeNull();
+
+    fireEvent.mouseEnter(happLabel!);
+    fireEvent.focus(happ);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    });
+
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('closes the QR modal and deep-links to Happ settings without generating', () => {
+    const view = renderSubject({ subSettings: { ...SUB_SETTINGS, happLinkEnable: false } });
+    selectVariant('Happ');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Go to Settings' }));
+
+    expect(view.onOpenChange).toHaveBeenCalledOnce();
+    expect(view.onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/settings?subscriptionTab=happ#subscription',
+    );
+    expect(HttpUtil.post).not.toHaveBeenCalled();
+  });
+
+  it('returns to Standard without auto-generating when the gate is enabled after selecting Happ', async () => {
+    const view = renderSubject({
+      subSettings: { ...SUB_SETTINGS, happLinkEnable: false },
+    });
+    selectVariant('Happ');
+    expect((screen.getByRole('radio', { name: /Happ/ }) as HTMLInputElement).checked).toBe(true);
+    expect(HttpUtil.post).not.toHaveBeenCalled();
+
+    view.update({ subSettings: { ...SUB_SETTINGS, happLinkEnable: true } });
+
+    await waitFor(() =>
+      expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).checked).toBe(
+        true,
+      ),
+    );
+    expect(
+      screen.queryByText(
+        "Selecting Happ sends this client's complete current subscription URL to crypto.happ.su.",
+      ),
+    ).toBeNull();
+    expect(HttpUtil.post).not.toHaveBeenCalled();
+  });
+
+  it('keeps provider disclosure out of Standard and shows it only in Happ', async () => {
+    vi.mocked(HttpUtil.post).mockReturnValue(new Promise(() => {}));
+    renderSubject();
+
+    expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect(
+      screen.queryByText(
+        "Selecting Happ sends this client's complete current subscription URL to crypto.happ.su.",
+      ),
+    ).toBeNull();
+
+    selectVariant('Happ');
+
+    expect(
+      await screen.findByText(
+        "Selecting Happ sends this client's complete current subscription URL to crypto.happ.su.",
+      ),
+    ).toBeTruthy();
+    expect(HttpUtil.post).toHaveBeenCalledOnce();
+  });
+
   it('posts once with no body and silent errors when Standard switches to Happ', async () => {
     const request = deferred<Msg<HappLinkResult>>();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     vi.mocked(HttpUtil.post).mockReturnValue(request.promise);
     renderSubject();
+    const dialogCount = screen.queryAllByRole('dialog').length;
 
     selectVariant('Happ');
 
@@ -119,6 +291,9 @@ describe('ClientQrModal Happ presentation', () => {
         silent: true,
       });
     });
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.queryAllByRole('dialog')).toHaveLength(dialogCount);
+    confirmSpy.mockRestore();
     expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).disabled).toBe(
       false,
     );
@@ -170,6 +345,35 @@ describe('ClientQrModal Happ presentation', () => {
     });
     expect(await screen.findByText('happ://crypt5/request-b')).toBeTruthy();
     expect(screen.queryByText('happ://crypt5/request-a')).toBeNull();
+  });
+
+  it('returns to Standard and ignores an in-flight response when the gate turns off', async () => {
+    const request = deferred<Msg<HappLinkResult>>();
+    vi.mocked(HttpUtil.post).mockReturnValue(request.promise);
+    const view = renderSubject();
+    selectVariant('Happ');
+    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledOnce());
+
+    view.update({ subSettings: { ...SUB_SETTINGS, happLinkEnable: false } });
+
+    await waitFor(() => {
+      expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).checked).toBe(
+        true,
+      );
+      expect((screen.getByRole('radio', { name: /Happ/ }) as HTMLInputElement).disabled).toBe(
+        false,
+      );
+    });
+    expect(screen.getByTestId('qr-panel-value').textContent).toBe(STANDARD_LINK);
+    expect(screen.queryByRole('button', { name: /Regenerate|Retry/ })).toBeNull();
+    expect(screen.getByRole('dialog').querySelector('[aria-busy="true"]')).toBeNull();
+
+    await act(async () => {
+      request.resolve(success('happ://crypt5/retired-by-gate'));
+      await request.promise;
+    });
+    expect(screen.queryByText('happ://crypt5/retired-by-gate')).toBeNull();
+    expect(HttpUtil.post).toHaveBeenCalledOnce();
   });
 
   it('resets to Standard across close and reopen without reusing a prior Happ value', async () => {
@@ -257,6 +461,24 @@ describe('ClientQrModal Happ presentation', () => {
     expect(await screen.findByText(HAPP_LINK)).toBeTruthy();
     expect(actionButton('Regenerate').disabled).toBe(false);
     expect(HttpUtil.post).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ['Retry', new Msg<HappLinkResult>(false, 'backend detail', null)],
+    ['Regenerate', success()],
+  ])('does not let a stale %s action bypass a disabled gate', async (action, response) => {
+    vi.mocked(HttpUtil.post).mockResolvedValue(response);
+    const view = renderSubject();
+    selectVariant('Happ');
+    const staleAction = await screen.findByRole('button', { name: new RegExp(action) });
+
+    view.update({ subSettings: { ...SUB_SETTINGS, happLinkEnable: false } });
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: new RegExp(action) })).toBeNull(),
+    );
+    fireEvent.click(staleAction);
+
+    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledOnce());
   });
 
   it('clears the old QR and hides duplicate regeneration while loading', async () => {

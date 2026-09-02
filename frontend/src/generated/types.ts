@@ -12,6 +12,7 @@ export interface AllSetting {
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
+  happLinkEnable: boolean;
   ipLimitAllowlist: string;
   ldapAutoCreate: boolean;
   ldapAutoDelete: boolean;
@@ -120,6 +121,7 @@ export interface AllSettingView {
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
+  happLinkEnable: boolean;
   hasApiToken: boolean;
   hasLdapPassword: boolean;
   hasNordSecret: boolean;

@@ -57,6 +57,10 @@ func NewHappService(clientService *ClientService, settingService *SettingService
 func (s *HappService) Generate(ctx context.Context, clientID int, host string) (HappLinkResult, error) {
 	started := time.Now()
 	correlationID := uuid.NewString()
+	// Operator consent is the first boundary: do not build the source URL or HTTP client while disabled.
+	if reason := s.gateFailureReason(); reason != "" {
+		return HappLinkResult{}, s.fail(clientID, reason, 0, started, correlationID, "generation unavailable", "", "")
+	}
 	source, client, reason := s.currentSource(clientID, host)
 	if reason != "" {
 		return HappLinkResult{}, s.fail(clientID, reason, 0, started, correlationID, "source unavailable", "", "")
@@ -108,7 +112,25 @@ func (s *HappService) Generate(ctx context.Context, clientID int, host string) (
 	if currentReason != "" || currentSource != source {
 		return HappLinkResult{}, s.fail(clientID, "source_changed", resp.StatusCode, started, correlationID, "source changed before response", source, client.SubID)
 	}
+	// A sent request cannot be recalled, so revoked consent discards the provider result before return.
+	if reason := s.gateFailureReason(); reason != "" {
+		return HappLinkResult{}, s.fail(clientID, reason, resp.StatusCode, started, correlationID, "generation unavailable", "", "")
+	}
 	return HappLinkResult{EncryptedLink: link}, nil
+}
+
+func (s *HappService) gateFailureReason() string {
+	if s.settingService == nil {
+		return "service_unavailable"
+	}
+	enabled, err := s.settingService.GetHappLinkEnable()
+	if err != nil {
+		return "settings_unavailable"
+	}
+	if !enabled {
+		return "integration_disabled"
+	}
+	return ""
 }
 
 func (s *HappService) currentSource(clientID int, host string) (string, *model.ClientRecord, string) {

@@ -62,6 +62,19 @@ func configureHappSubscription(t *testing.T, enabled bool, subURI string) {
 	}
 }
 
+func configureHappLinkGate(t *testing.T, enabled bool) {
+	t.Helper()
+	if err := (&SettingService{}).saveSetting("happLinkEnable", strconv.FormatBool(enabled)); err != nil {
+		t.Fatalf("save happLinkEnable: %v", err)
+	}
+}
+
+type happRoundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f happRoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
 func newHappTestService(server *httptest.Server, timeout time.Duration) *HappService {
 	return &HappService{
 		clientService:  &ClientService{},
@@ -73,10 +86,105 @@ func newHappTestService(server *httptest.Server, timeout time.Duration) *HappSer
 	}
 }
 
+func TestHappGenerateRejectsDisabledGateBeforeProviderSetup(t *testing.T) {
+	tests := []struct {
+		name      string
+		configure func(*testing.T)
+	}{
+		{name: "missing setting", configure: func(*testing.T) {}},
+		{name: "explicit false", configure: func(t *testing.T) { configureHappLinkGate(t, false) }},
+		{name: "invalid setting", configure: func(t *testing.T) {
+			if err := (&SettingService{}).saveSetting("happLinkEnable", "not-a-bool"); err != nil {
+				t.Fatalf("save invalid happLinkEnable: %v", err)
+			}
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			initHappTestDB(t)
+			client := seedHappClient(t, "current-sub-id")
+			configureHappSubscription(t, true, "https://sub.example/sub/")
+			tt.configure(t)
+
+			var providerCalls atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				providerCalls.Add(1)
+				_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
+			}))
+			defer server.Close()
+			svc := newHappTestService(server, time.Second)
+			baseFactory := svc.newHTTPClient
+			var clientSetups atomic.Int32
+			svc.newHTTPClient = func(timeout time.Duration) *http.Client {
+				clientSetups.Add(1)
+				return baseFactory(timeout)
+			}
+
+			result, err := svc.Generate(context.Background(), client.Id, "panel.example")
+			if !errors.Is(err, ErrHappLinkUnavailable) {
+				t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", err)
+			}
+			if result != (HappLinkResult{}) {
+				t.Fatalf("Generate result = %#v, want empty", result)
+			}
+			if got := clientSetups.Load(); got != 0 {
+				t.Fatalf("HTTP client setups = %d, want 0", got)
+			}
+			if got := providerCalls.Load(); got != 0 {
+				t.Fatalf("provider calls = %d, want 0", got)
+			}
+		})
+	}
+}
+
+func TestHappGenerateDiscardsResultWhenGateDisabledInFlight(t *testing.T) {
+	initHappTestDB(t)
+	client := seedHappClient(t, "current-sub-id")
+	configureHappSubscription(t, true, "https://sub.example/sub/")
+	configureHappLinkGate(t, true)
+
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var providerCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		providerCalls.Add(1)
+		close(entered)
+		<-release
+		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
+	}))
+	defer server.Close()
+
+	type generateOutcome struct {
+		result HappLinkResult
+		err    error
+	}
+	outcome := make(chan generateOutcome, 1)
+	svc := newHappTestService(server, time.Second)
+	go func() {
+		result, err := svc.Generate(context.Background(), client.Id, "panel.example")
+		outcome <- generateOutcome{result: result, err: err}
+	}()
+
+	<-entered
+	configureHappLinkGate(t, false)
+	close(release)
+	got := <-outcome
+	if !errors.Is(got.err, ErrHappLinkUnavailable) {
+		t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", got.err)
+	}
+	if got.result != (HappLinkResult{}) {
+		t.Fatalf("Generate result = %#v, want empty", got.result)
+	}
+	if calls := providerCalls.Load(); calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", calls)
+	}
+}
+
 func TestHappGenerateSendsExplicitCurrentSource(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "current-sub-id")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
+	configureHappLinkGate(t, true)
 
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -119,6 +227,7 @@ func TestHappGenerateUsesDefaultSubscriptionSource(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "fallback-sub-id")
 	configureHappSubscription(t, true, "")
+	configureHappLinkGate(t, true)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
@@ -143,6 +252,7 @@ func TestHappGenerateUsesCurrentSubIDForEachAction(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "before")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
+	configureHappLinkGate(t, true)
 
 	var gotURLs []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -175,6 +285,7 @@ func TestHappGenerateDiscardsResultWhenSourceChangesInFlight(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "before")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
+	configureHappLinkGate(t, true)
 	entered := make(chan struct{})
 	release := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -215,6 +326,7 @@ func TestHappGenerateSkipsUnavailableSources(t *testing.T) {
 			initHappTestDB(t)
 			client := seedHappClient(t, tt.subID)
 			configureHappSubscription(t, tt.enabled, "https://sub.example/sub/")
+			configureHappLinkGate(t, true)
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls.Add(1) }))
 			defer server.Close()
@@ -258,6 +370,7 @@ func TestHappGenerateRejectsInvalidProviderResponses(t *testing.T) {
 			initHappTestDB(t)
 			client := seedHappClient(t, "current-sub-id")
 			configureHappSubscription(t, true, "https://sub.example/sub/")
+			configureHappLinkGate(t, true)
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.statusCode)
 				_, _ = io.WriteString(w, tt.body)
@@ -292,6 +405,7 @@ func TestHappGenerateRejectsRedirectAndTimeout(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "current-sub-id")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
+	configureHappLinkGate(t, true)
 
 	for _, status := range []int{http.StatusTemporaryRedirect, http.StatusPermanentRedirect} {
 		t.Run(http.StatusText(status), func(t *testing.T) {
@@ -334,6 +448,7 @@ func TestHappGenerateUsesProductionTimeout(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "current-sub-id")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
+	configureHappLinkGate(t, true)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
 	}))
@@ -361,6 +476,7 @@ func TestHappGenerateLogsSanitizedFailure(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "current-sub-id")
 	configureHappSubscription(t, true, "https://sub.example/sub/seeded-source-and-secret/")
+	configureHappLinkGate(t, true)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
 		_, _ = io.WriteString(w, `{"error":"https://secret.example/?token=leak"}`)
@@ -387,10 +503,52 @@ func TestHappGenerateLogsSanitizedFailure(t *testing.T) {
 	}
 }
 
+func TestHappGenerateDoesNotExposeTransportErrors(t *testing.T) {
+	initHappTestDB(t)
+	client := seedHappClient(t, "transport-sub-id")
+	configureHappSubscription(t, true, "https://sub.example/sub/transport-source/")
+	configureHappLinkGate(t, true)
+
+	const reflectedError = "request https://crypto.happ.su/?source=https://sub.example/sub/transport-source/transport-sub-id token=secret cookie=session authorization=Bearer-secret happ://crypt5/leak"
+	var transportCalls atomic.Int32
+	svc := &HappService{
+		clientService:  &ClientService{},
+		settingService: &SettingService{},
+		endpoint:       happCryptoEndpoint,
+		newHTTPClient: func(time.Duration) *http.Client {
+			return &http.Client{Transport: happRoundTripperFunc(func(*http.Request) (*http.Response, error) {
+				transportCalls.Add(1)
+				return nil, errors.New(reflectedError)
+			})}
+		},
+	}
+
+	result, err := svc.Generate(context.Background(), client.Id, "panel.example")
+	if !errors.Is(err, ErrHappLinkUnavailable) || err.Error() != "happ link unavailable" {
+		t.Fatalf("Generate error = %v, want generic ErrHappLinkUnavailable", err)
+	}
+	if result != (HappLinkResult{}) {
+		t.Fatalf("Generate result = %#v, want empty", result)
+	}
+	if got := transportCalls.Load(); got != 1 {
+		t.Fatalf("transport calls = %d, want 1", got)
+	}
+	logs := logger.GetLogs(1, "WARNING")
+	if len(logs) != 1 || !strings.Contains(logs[0], "reason=transport") {
+		t.Fatalf("transport warning logs = %#v, want one sanitized transport failure", logs)
+	}
+	for _, secret := range []string{reflectedError, "transport-source", "transport-sub-id", "token=secret", "cookie=session", "authorization=Bearer-secret", "happ://"} {
+		if strings.Contains(logs[0], secret) || strings.Contains(err.Error(), secret) {
+			t.Fatalf("transport failure leaked %q: error=%q log=%q", secret, err, logs[0])
+		}
+	}
+}
+
 func TestHappGenerateDoesNotCacheResults(t *testing.T) {
 	initHappTestDB(t)
 	client := seedHappClient(t, "current-sub-id")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
+	configureHappLinkGate(t, true)
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		calls.Add(1)

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Collapse, Modal, Segmented, Spin, Tag } from 'antd';
+import { useNavigate } from 'react-router';
+import { Alert, Button, Collapse, Empty, Modal, Segmented, Spin, Tag, Typography } from 'antd';
+import { LockOutlined } from '@ant-design/icons';
 import { HttpUtil } from '@/utils';
 import type { HappLinkResult } from '@/generated/types';
 import { HappLinkResultSchema } from '@/generated/zod';
@@ -21,6 +23,7 @@ import {
 
 interface SubSettings {
   enable: boolean;
+  happLinkEnable?: boolean;
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
@@ -44,6 +47,7 @@ interface ApiMsg<T = unknown> {
 type QrVariant = 'standard' | 'happ';
 
 const HAPP_CRYPT5_PREFIX = 'happ://crypt5/';
+const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ#subscription';
 
 function hasHappForbiddenCharacter(link: string) {
   return Array.from(link).some((character) => {
@@ -67,8 +71,10 @@ interface SubscriptionQrPresentationProps {
   happLink: string;
   happLoading: boolean;
   happError: boolean;
+  happLinkEnabled: boolean;
   onVariantChange: (variant: QrVariant) => void;
   onRegenerate: () => void;
+  onOpenHappSettings: () => void;
 }
 
 function SubscriptionQrPresentation({
@@ -78,8 +84,10 @@ function SubscriptionQrPresentation({
   happLink,
   happLoading,
   happError,
+  happLinkEnabled,
   onVariantChange,
   onRegenerate,
+  onOpenHappSettings,
 }: SubscriptionQrPresentationProps) {
   const { t } = useTranslation();
 
@@ -90,14 +98,55 @@ function SubscriptionQrPresentation({
         value={variant}
         options={[
           { label: t('pages.clients.qrStandard'), value: 'standard' },
-          { label: 'Happ', value: 'happ' },
+          {
+            label: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {!happLinkEnabled ? (
+                  <LockOutlined aria-label={t('pages.clients.happLinkDisabledHint')} />
+                ) : null}
+                <span>{t('pages.clients.happLinkOptionLabel')}</span>
+              </span>
+            ),
+            value: 'happ',
+          },
         ]}
         onChange={onVariantChange}
       />
       {variant === 'standard' ? (
         <QrPanel value={standardLink} remark={remark} />
+      ) : !happLinkEnabled ? (
+        <Empty
+          image={<LockOutlined aria-hidden style={{ fontSize: 40, opacity: 0.45 }} />}
+          styles={{ image: { height: 44, marginBottom: 12 } }}
+          style={{
+            minHeight: 190,
+            margin: 0,
+            padding: '20px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+          description={
+            <div style={{ maxWidth: 400, margin: '0 auto' }}>
+              <Typography.Text strong>{t('pages.clients.happLinkDisabledTitle')}</Typography.Text>
+              <Typography.Paragraph type="secondary" style={{ margin: '6px 0 0' }}>
+                {t('pages.clients.happLinkDisabledDescription')}
+              </Typography.Paragraph>
+            </div>
+          }
+        >
+          <Button type="primary" onClick={onOpenHappSettings}>
+            {t('pages.clients.happLinkSettingsAction')}
+          </Button>
+        </Empty>
       ) : (
         <div>
+          <Alert
+            style={{ marginBottom: 16 }}
+            type="warning"
+            showIcon
+            title={t('pages.clients.happLinkDisclosure')}
+          />
           <Spin spinning={happLoading}>
             <div style={{ minHeight: happLoading ? 48 : undefined }}>
               {happLink ? <QrPanel value={happLink} remark={remark} /> : null}
@@ -126,6 +175,7 @@ function SubscriptionQrPresentation({
 
 const DEFAULT_SUB: SubSettings = {
   enable: false,
+  happLinkEnable: false,
   subURI: '',
   subJsonURI: '',
   subJsonEnable: false,
@@ -137,7 +187,9 @@ export default function ClientQrModal(props: ClientQrModalProps) {
   const subId = props.client?.subId ?? '';
   const subLink =
     subId && subSettings.enable && subSettings.subURI ? subSettings.subURI + subId : '';
-  const scopeKey = `${props.open ? 1 : 0}\0${props.client?.id ?? ''}\0${subId}\0${subLink}`;
+  const happLinkEnabled = subSettings.happLinkEnable === true;
+  // A gate change remounts this scope to clear Happ state and retire any in-flight response.
+  const scopeKey = `${props.open ? 1 : 0}\0${props.client?.id ?? ''}\0${subId}\0${subLink}\0${happLinkEnabled ? 1 : 0}`;
 
   return <ClientQrModalContent key={scopeKey} {...props} />;
 }
@@ -151,6 +203,7 @@ function ClientQrModalContent({
   onOpenChange,
 }: ClientQrModalProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [links, setLinks] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -163,12 +216,14 @@ function ClientQrModalContent({
       : '';
   const clientId = client?.id;
   const clientSubId = subId ?? '';
+  const happLinkEnabled = subSettings.happLinkEnable === true;
   const [variant, setVariant] = useState<QrVariant>('standard');
   const [happAttempt, setHappAttempt] = useState(0);
   const [happLink, setHappLink] = useState('');
   const [happLoading, setHappLoading] = useState(false);
   const [happError, setHappError] = useState(false);
   const canGenerateHapp =
+    happLinkEnabled &&
     typeof clientId === 'number' &&
     Number.isSafeInteger(clientId) &&
     clientId > 0 &&
@@ -210,13 +265,13 @@ function ClientQrModalContent({
 
   const selectVariant = useCallback(
     (nextVariant: QrVariant) => {
-      const generateHapp = nextVariant === 'happ';
+      const generateHapp = nextVariant === 'happ' && happLinkEnabled;
       setVariant(nextVariant);
       setHappLink('');
       setHappLoading(generateHapp && canGenerateHapp);
       setHappError(generateHapp && !canGenerateHapp);
     },
-    [canGenerateHapp],
+    [canGenerateHapp, happLinkEnabled],
   );
 
   const regenerateHappLink = useCallback(() => {
@@ -226,6 +281,12 @@ function ClientQrModalContent({
     if (!canGenerateHapp) return;
     setHappAttempt((attempt) => attempt + 1);
   }, [canGenerateHapp]);
+
+  const openHappSettings = useCallback(() => {
+    // This path only exposes the operator gate; authorization and saving remain explicit in Settings.
+    onOpenChange(false);
+    navigate(HAPP_SETTINGS_PATH);
+  }, [navigate, onOpenChange]);
 
   const wgInbound = useMemo(
     () => findWireguardInbound(client, inboundsById),
@@ -237,9 +298,9 @@ function ClientQrModalContent({
       client,
       wgInbound,
       window.location.hostname,
-      subSettings?.publicHost ?? '',
+      subSettings.publicHost ?? '',
     );
-  }, [client, wgInbound, subSettings?.publicHost]);
+  }, [client, wgInbound, subSettings.publicHost]);
 
   const awgInbound = useMemo(
     () => findAmneziaWGInbound(client, inboundsById),
@@ -252,10 +313,10 @@ function ClientQrModalContent({
       client,
       awgInbound,
       window.location.hostname,
-      subSettings?.publicHost ?? '',
+      subSettings.publicHost ?? '',
       address,
     );
-  }, [client, awgInbound, tunnelAllowedIPs, subSettings?.publicHost]);
+  }, [client, awgInbound, tunnelAllowedIPs, subSettings.publicHost]);
 
   const hasAnything =
     !!subLink || !!subJsonLink || !!wgConfigText || !!awgConfigText || links.length > 0;
@@ -305,8 +366,10 @@ function ClientQrModalContent({
             happLink={happLink}
             happLoading={happLoading}
             happError={happError}
+            happLinkEnabled={happLinkEnabled}
             onVariantChange={selectVariant}
             onRegenerate={regenerateHappLink}
+            onOpenHappSettings={openHappSettings}
           />
         ),
       });
@@ -383,12 +446,14 @@ function ClientQrModalContent({
     happLink,
     happLoading,
     happError,
+    happLinkEnabled,
     wgConfigText,
     awgConfigText,
     links,
     client?.email,
     selectVariant,
     regenerateHappLink,
+    openHappSettings,
     t,
   ]);
 

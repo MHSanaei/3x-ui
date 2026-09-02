@@ -41,6 +41,9 @@
           "externalTrafficInformURI": {
             "type": "string"
           },
+          "happLinkEnable": {
+            "type": "boolean"
+          },
           "ipLimitAllowlist": {
             "type": "string"
           },
@@ -380,6 +383,7 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -498,6 +502,9 @@
           },
           "externalTrafficInformURI": {
             "type": "string"
+          },
+          "happLinkEnable": {
+            "type": "boolean"
           },
           "hasApiToken": {
             "type": "boolean"
@@ -859,6 +866,7 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "hasApiToken",
           "hasLdapPassword",
           "hasNordSecret",
