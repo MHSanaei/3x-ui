@@ -1426,6 +1426,27 @@ resolve_latest_tag() {
     curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
 }
 
+# Releases publish <asset>.sha256 next to each archive. A mismatch aborts the
+# install; a missing sidecar (releases predating it) only warns.
+verify_release_checksum() {
+    local url="$1" file="$2" sums="$2.sha256" expected actual
+    rm -f "${sums}"
+    if ! curl -fsL --retry 3 --retry-delay 3 --connect-timeout 15 -o "${sums}" "${url}.sha256"; then
+        rm -f "${sums}"
+        echo -e "${yellow}No checksum published for this release, skipping verification${plain}"
+        return 0
+    fi
+    expected=$(awk 'NR == 1 {print $1}' "${sums}")
+    actual=$(sha256sum "${file}" | awk '{print $1}')
+    rm -f "${sums}"
+    if [[ ! "${expected}" =~ ^[0-9a-f]{64}$ || "${expected}" != "${actual}" ]]; then
+        rm -f "${file}"
+        echo -e "${red}Checksum mismatch for $(basename "${file}"): expected ${expected:-<none>}, got ${actual}${plain}"
+        exit 1
+    fi
+    echo -e "${green}Checksum verified: ${actual}${plain}"
+}
+
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
 
@@ -1447,6 +1468,7 @@ install_x-ui() {
             echo -e "${red}Downloaded x-ui release archive is empty${plain}"
             exit 1
         fi
+        verify_release_checksum "https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz" "${xui_folder}-linux-$(arch).tar.gz"
     else
         tag_version=$1
         # The rolling dev channel ships under a fixed, non-semver tag that is
@@ -1477,6 +1499,7 @@ install_x-ui() {
             echo -e "${red}Downloaded x-ui release archive is empty${plain}"
             exit 1
         fi
+        verify_release_checksum "${url}" "${xui_folder}-linux-$(arch).tar.gz"
     fi
     local xui_script_temp="/usr/bin/x-ui-temp.$$"
     rm -f "${xui_script_temp}"
