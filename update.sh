@@ -1001,11 +1001,13 @@ update_x-ui() {
         rm ${xui_folder}-linux-$(arch).tar.gz -f > /dev/null 2>&1
         _fail "ERROR: Downloaded x-ui release archive is empty, please be sure that your server can access GitHub"
     fi
-    # Releases publish <asset>.sha256 next to each archive. A mismatch aborts
-    # the update; a missing sidecar (releases predating it) only warns.
+    # Releases publish <asset>.sha256 next to each archive. A mismatch or a
+    # failed sidecar download aborts the update; only a 404 (releases
+    # predating the sidecar) is tolerated with a warning.
     archive="${xui_folder}-linux-$(arch).tar.gz"
     rm -f "${archive}.sha256"
-    if ${curl_bin} -fsL --retry 3 --retry-delay 3 --connect-timeout 15 -o "${archive}.sha256" "https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz.sha256" 2> /dev/null; then
+    sidecar_code=$(${curl_bin} -sL --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 60 -o "${archive}.sha256" -w '%{http_code}' "https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz.sha256" 2> /dev/null)
+    if [[ "${sidecar_code}" == "200" ]]; then
         expected_sha256=$(awk 'NR == 1 {print $1}' "${archive}.sha256")
         actual_sha256=$(sha256sum "${archive}" | awk '{print $1}')
         rm -f "${archive}.sha256"
@@ -1014,9 +1016,12 @@ update_x-ui() {
             _fail "ERROR: Checksum mismatch for $(basename "${archive}"): expected ${expected_sha256:-<none>}, got ${actual_sha256}"
         fi
         echo -e "${green}Checksum verified: ${actual_sha256}${plain}"
-    else
+    elif [[ "${sidecar_code}" == "404" ]]; then
         rm -f "${archive}.sha256"
         echo -e "${yellow}No checksum published for this release, skipping verification${plain}"
+    else
+        rm -f "${archive}.sha256" "${archive}"
+        _fail "ERROR: Failed to download the checksum for x-ui-linux-$(arch).tar.gz (HTTP ${sidecar_code})"
     fi
 
     if [[ -e ${xui_folder}/ ]]; then

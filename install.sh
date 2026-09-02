@@ -1426,15 +1426,22 @@ resolve_latest_tag() {
     curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
 }
 
-# Releases publish <asset>.sha256 next to each archive. A mismatch aborts the
-# install; a missing sidecar (releases predating it) only warns.
+# Releases publish <asset>.sha256 next to each archive. A mismatch or a failed
+# sidecar download aborts the install; only a 404 (releases predating the
+# sidecar) is tolerated with a warning.
 verify_release_checksum() {
-    local url="$1" file="$2" sums="$2.sha256" expected actual
+    local url="$1" file="$2" sums="$2.sha256" code expected actual
     rm -f "${sums}"
-    if ! curl -fsL --retry 3 --retry-delay 3 --connect-timeout 15 -o "${sums}" "${url}.sha256"; then
+    code=$(curl -sL --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 60 -o "${sums}" -w '%{http_code}' "${url}.sha256")
+    if [[ "${code}" == "404" ]]; then
         rm -f "${sums}"
         echo -e "${yellow}No checksum published for this release, skipping verification${plain}"
         return 0
+    fi
+    if [[ "${code}" != "200" ]]; then
+        rm -f "${sums}" "${file}"
+        echo -e "${red}Failed to download the checksum for $(basename "${file}") (HTTP ${code})${plain}"
+        exit 1
     fi
     expected=$(awk 'NR == 1 {print $1}' "${sums}")
     actual=$(sha256sum "${file}" | awk '{print $1}')
