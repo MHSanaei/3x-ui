@@ -35,6 +35,44 @@ func outboundSettings(t *testing.T, raw []byte) map[string]any {
 	return settings
 }
 
+func TestDefaultJSONUsesCompatibleLocalInbounds(t *testing.T) {
+	svc := NewSubJsonService("", "", "", nil)
+	inbounds, ok := svc.configJson["inbounds"].([]any)
+	if !ok {
+		t.Fatalf("default JSON inbounds = %#v, want array", svc.configJson["inbounds"])
+	}
+
+	byPort := make(map[float64]map[string]any, len(inbounds))
+	for _, raw := range inbounds {
+		inbound, ok := raw.(map[string]any)
+		if !ok {
+			t.Fatalf("default JSON inbound = %#v, want object", raw)
+		}
+		port, ok := inbound["port"].(float64)
+		if !ok {
+			t.Fatalf("default JSON inbound port = %#v, want number", inbound["port"])
+		}
+		byPort[port] = inbound
+	}
+
+	socks := byPort[10808]
+	if socks == nil {
+		t.Fatal("default JSON is missing the local inbound on port 10808")
+	}
+	if socks["protocol"] != "socks" || socks["tag"] != "mixed" {
+		t.Fatalf("port 10808 protocol/tag = %v/%v, want socks/mixed", socks["protocol"], socks["tag"])
+	}
+	settings, _ := socks["settings"].(map[string]any)
+	if settings == nil || settings["udp"] != true {
+		t.Fatalf("port 10808 settings = %#v, want udp enabled", socks["settings"])
+	}
+
+	http := byPort[10809]
+	if http == nil || http["protocol"] != "http" {
+		t.Fatalf("port 10809 inbound = %#v, want http protocol", http)
+	}
+}
+
 func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","length":"100-200","delay":"10-20"}}],"udp":[{"type":"noise","settings":{"noise":[{"type":"base64","packet":"SGVsbG8="}]}}],"quicParams":{"congestion":"bbr"}}`
 	svc := NewSubJsonService("", "", finalMask, "", nil)

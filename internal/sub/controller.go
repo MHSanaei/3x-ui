@@ -712,9 +712,13 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 	return tmpl, nil
 }
 
-// subJsons handles HTTP requests for JSON subscription configurations.
+// subJsons handles HTTP requests for JSON subscription configurations. The
+// device limit is enforced on every body route, ?view=raw included (#GHSA-7ww3).
 func (a *SUBController) subJsons(c *gin.Context) {
 	if strings.EqualFold(c.Query("view"), "raw") {
+		if !a.enforceHwid(c) {
+			return
+		}
 		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
 			writeSubError(c, nil)
 		}
@@ -767,6 +771,9 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 
 func (a *SUBController) subClashs(c *gin.Context) {
 	if strings.EqualFold(c.Query("view"), "raw") {
+		if !a.enforceHwid(c) {
+			return
+		}
 		if !a.serveClashBody(c, true) {
 			writeSubError(c, nil)
 		}

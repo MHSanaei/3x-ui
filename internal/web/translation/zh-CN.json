@@ -1422,12 +1422,15 @@
         "sortOrderHelp": "在订阅列表中的位置，与入站顺序交错排列；序号相同时排在入站之后。",
         "inbounds": "入站",
         "inboundsCount": "{count} 入站",
+        "weights": "成员权重",
+        "weightsHelp": "仅适用于 LeastLoad：权重越小越常被选中；未设置的成员权重为 1。",
         "enabled": "启用",
         "empty": "暂无均衡器",
         "deleteConfirm": "确定删除此均衡器？",
         "errRemarkRequired": "请填写备注",
         "errInboundsRequired": "请至少选择一个入站",
         "errSortOrder": "顺序必须为不小于 1 的整数",
+        "errWeightPositive": "权重必须大于 0",
         "toasts": {
           "list": "列出订阅均衡器失败",
           "create": "创建订阅均衡器失败",
@@ -1854,7 +1857,10 @@
         "noServers": "未找到选定国家/地区的服务器",
         "noPublicKey": "选定的服务器未公布 NordLynx 公钥。",
         "outboundAdded": "NordVPN 出站已添加",
-        "outboundUpdated": "NordVPN 出站已更新"
+        "outboundUpdated": "NordVPN 出站已更新",
+        "serverLoad": "服务器负载",
+        "addedServers": "已添加的服务器",
+        "alreadyAdded": "此服务器已在出站列表中。请使用{reset}刷新其密钥。"
       },
       "warp": {
         "changeIp": "更换 IP",

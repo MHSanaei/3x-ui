@@ -80,7 +80,13 @@ WARP 账户，并将其接入一个标签为 **`warp`** 的 WireGuard 出站：
 
 3x-ui 可以根据访问令牌获取 NordVPN（NordLynx/WireGuard）凭据（或
 直接接受一个私钥），并列出国家/服务器，从而让你构建一个
-NordVPN 出站。
+NordVPN 出站。打开 **Xray → 出站 → 更多 → NordVPN**，登录或保存私钥后选择服务器并
+添加出站。可以连续添加多台服务器；每个 hostname 使用唯一的 `nord-<hostname>` 标签，
+同一服务器不能重复添加。
+
+对已添加行执行 **Reset** 时，会保留原服务器、标签、peer 和路由引用，只使用当前保存的
+NordVPN 凭据刷新该出站内嵌的私钥。登出只清除保存的凭据，已有出站继续使用其内嵌密钥；
+不再使用的 NordVPN 出站需要从出站列表中删除。
 
 ## PIA WireGuard
 

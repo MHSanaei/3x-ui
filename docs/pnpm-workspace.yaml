@@ -13,3 +13,8 @@ minimumReleaseAgeExclude:
   - lucide-react@1.33.0
   - postcss@8.5.26
   - fumadocs-mdx@15.3.0
+  - '@fumadocs/api-docs@0.2.7'
+  - '@types/node@26.4.1'
+  - fumadocs-core@16.15.5
+  - fumadocs-openapi@11.4.0
+  - fumadocs-ui@16.15.5

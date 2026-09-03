@@ -1422,12 +1422,15 @@
         "sortOrderHelp": "Posisi dalam daftar langganan, berselang-seling dengan urutan inbound; jika sama, penyeimbang berada setelah inbound.",
         "inbounds": "Inbound",
         "inboundsCount": "{count} Inbound",
+        "weights": "Bobot anggota",
+        "weightsHelp": "Hanya untuk LeastLoad: bobot lebih rendah lebih sering dipilih; anggota tanpa nilai berbobot 1.",
         "enabled": "Aktif",
         "empty": "Belum ada penyeimbang",
         "deleteConfirm": "Hapus penyeimbang ini?",
         "errRemarkRequired": "Keterangan wajib diisi",
         "errInboundsRequired": "Pilih minimal satu inbound",
         "errSortOrder": "Urutan harus bilangan bulat ≥ 1",
+        "errWeightPositive": "Bobot harus lebih besar dari 0",
         "toasts": {
           "list": "Gagal menampilkan daftar penyeimbang langganan",
           "create": "Gagal membuat penyeimbang langganan",
@@ -1854,7 +1857,10 @@
         "noServers": "Tidak ada server ditemukan untuk negara yang dipilih",
         "noPublicKey": "Server yang dipilih tidak mengumumkan kunci publik NordLynx.",
         "outboundAdded": "Outbound NordVPN ditambahkan",
-        "outboundUpdated": "Outbound NordVPN diperbarui"
+        "outboundUpdated": "Outbound NordVPN diperbarui",
+        "serverLoad": "Beban server",
+        "addedServers": "Server yang ditambahkan",
+        "alreadyAdded": "Server ini sudah ada dalam daftar outbound. Gunakan {reset} untuk memperbarui kuncinya."
       },
       "warp": {
         "changeIp": "Ganti IP",
