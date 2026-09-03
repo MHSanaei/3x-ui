@@ -11,6 +11,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	_ "unsafe"
 
@@ -493,9 +494,15 @@ func GetListenIP(getListen bool) {
 	}
 }
 
-func GetApiToken(getApiToken bool) {
+func GetApiToken(getApiToken bool, tokenName string) {
 	if !getApiToken {
 		return
+	}
+	// Callers that pass no name keep rotating the single shared slot, so
+	// `install.sh` and every existing invocation behave exactly as before.
+	name := strings.TrimSpace(tokenName)
+	if name == "" {
+		name = cliFallbackTokenName
 	}
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
@@ -512,18 +519,18 @@ func GetApiToken(getApiToken bool) {
 		fmt.Printf("There are %d API token(s) configured. Existing tokens cannot be retrieved in plaintext because only hashes are stored.\n", len(tokens))
 		fmt.Println("If you have lost your token, you can manage and generate new tokens through the Panel UI (Settings -> API Tokens).")
 
-		// Rotate one reusable fallback so repeated calls cannot pile up
+		// Rotate one token per name so repeated calls cannot pile up
 		// indefinitely many admin-equivalent tokens that never expire.
-		created, err := apiTokenService.RecreateByName(cliFallbackTokenName)
+		created, err := apiTokenService.RecreateByName(name)
 		if err != nil {
 			fmt.Println("Failed to create a fallback API token:", err)
 			return
 		}
-		fmt.Println("\nThe CLI fallback token has been regenerated (any previous one is now invalid):")
+		fmt.Printf("\nThe API token %q has been regenerated (any previous one is now invalid):\n", name)
 		fmt.Println("apiToken:", created.Token)
 		return
 	}
-	created, err := apiTokenService.Create("install", "", 0)
+	created, err := apiTokenService.Create(name, "", 0)
 	if err != nil {
 		fmt.Println("create apiToken failed, error info:", err)
 		return
@@ -605,6 +612,7 @@ func main() {
 	var show bool
 	var getCert bool
 	var getApiToken bool
+	var tokenName string
 	var resetTwoFactor bool
 	settingCmd.BoolVar(&reset, "reset", false, "Reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "Display current settings")
@@ -616,7 +624,8 @@ func main() {
 	settingCmd.BoolVar(&resetTwoFactor, "resetTwoFactor", false, "Reset two-factor authentication settings")
 	settingCmd.BoolVar(&getListen, "getListen", false, "Display current panel listenIP IP")
 	settingCmd.BoolVar(&getCert, "getCert", false, "Display current certificate settings")
-	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Display current API token")
+	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Regenerate a CLI API token and print it; this invalidates the previous token of that name")
+	settingCmd.StringVar(&tokenName, "tokenName", "", "Name of the token -getApiToken regenerates (default: "+cliFallbackTokenName+")")
 	settingCmd.StringVar(&webCertFile, "webCert", "", "Set path to public key file for panel")
 	settingCmd.StringVar(&webKeyFile, "webCertKey", "", "Set path to private key file for panel")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "Set token for Telegram bot")
@@ -710,7 +719,7 @@ func main() {
 			GetCertificate(getCert)
 		}
 		if getApiToken {
-			GetApiToken(getApiToken)
+			GetApiToken(getApiToken, tokenName)
 		}
 		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
