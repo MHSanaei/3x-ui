@@ -448,6 +448,9 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				return false, common.NewError("mtproto client ad tag must be 32 hex characters")
 			}
 		case "tuic":
+			if client.ID == "" {
+				return false, common.NewError("empty client ID")
+			}
 			if client.Password == "" {
 				return false, common.NewError("tuic client requires a password")
 			}

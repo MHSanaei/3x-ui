@@ -60,6 +60,9 @@ case $FNAME in
     arm32)
         curl -sfLRo "tuic-server" "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-armv7-unknown-linux-musleabihf"
         ;;
+    i386)
+        curl -sfLRo "tuic-server" "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-i686-unknown-linux-musl"
+        ;;
 esac
 if [ -f "tuic-server" ]; then
     if [ ! -s "tuic-server" ]; then
