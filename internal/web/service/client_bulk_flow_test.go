@@ -64,7 +64,7 @@ func TestBulkAdjust_FlowSetAndClear(t *testing.T) {
 	emails := emailsOf(clients)
 
 	// Set vision flow.
-	res, restart, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "xtls-rprx-vision-udp443")
+	res, restart, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "xtls-rprx-vision-udp443", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust set: %v", err)
 	}
@@ -81,14 +81,14 @@ func TestBulkAdjust_FlowSetAndClear(t *testing.T) {
 	}
 
 	// Setting the same flow again is a no-op: honored (counted) but no restart.
-	if _, restart2, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "xtls-rprx-vision-udp443"); err != nil {
+	if _, restart2, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "xtls-rprx-vision-udp443", nil, ""); err != nil {
 		t.Fatalf("BulkAdjust idempotent: %v", err)
 	} else if restart2 {
 		t.Fatalf("re-setting identical flow should not request a restart")
 	}
 
 	// Clear flow.
-	cres, crestart, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "none")
+	cres, crestart, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "none", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust clear: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestBulkAdjust_FlowIneligibleSkipped(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	res, restart, err := svc.BulkAdjust(inboundSvc, []string{"ws1@x"}, 0, 0, "xtls-rprx-vision")
+	res, restart, err := svc.BulkAdjust(inboundSvc, []string{"ws1@x"}, 0, 0, "xtls-rprx-vision", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
@@ -146,11 +146,11 @@ func TestBulkAdjust_NoDirectiveErrors(t *testing.T) {
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
 
-	if _, _, err := svc.BulkAdjust(inboundSvc, []string{"any@x"}, 0, 0, ""); err == nil {
+	if _, _, err := svc.BulkAdjust(inboundSvc, []string{"any@x"}, 0, 0, "", nil, ""); err == nil {
 		t.Fatalf("expected error when no adjustment is specified")
 	}
 	// An unknown flow directive is ignored (treated as ""), so it also errors.
-	if _, _, err := svc.BulkAdjust(inboundSvc, []string{"any@x"}, 0, 0, "bogus-flow"); err == nil {
+	if _, _, err := svc.BulkAdjust(inboundSvc, []string{"any@x"}, 0, 0, "bogus-flow", nil, ""); err == nil {
 		t.Fatalf("unknown flow should be ignored and error like an empty directive")
 	}
 }
@@ -182,7 +182,7 @@ func TestBulkAdjust_DaysApplyDespiteIneligibleFlow(t *testing.T) {
 		t.Fatalf("seed traffic: %v", err)
 	}
 
-	res, _, err := svc.BulkAdjust(inboundSvc, []string{"mix@x"}, 7, gb, "xtls-rprx-vision")
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{"mix@x"}, 7, gb, "xtls-rprx-vision", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
@@ -215,5 +215,115 @@ func TestBulkAdjust_DaysApplyDespiteIneligibleFlow(t *testing.T) {
 	// Flow left untouched on the ineligible inbound.
 	if got := flowOf(t, svc, "mix@x"); got != "" {
 		t.Fatalf("flow should stay empty on ineligible inbound, got %q", got)
+	}
+}
+
+// TestBulkAdjust_HwidLimit verifies setting and clearing HWID limit in bulk.
+func TestBulkAdjust_HwidLimit(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	clients := []model.Client{
+		{Email: "h1@x", ID: "11111111-1111-1111-1111-111111111111", SubID: "sub-h1", Enable: true},
+		{Email: "h2@x", ID: "22222222-2222-2222-2222-222222222222", SubID: "sub-h2", Enable: true},
+	}
+	ib := mkInbound(t, 30301, model.VLESS, clientsSettings(t, clients))
+	if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	emails := emailsOf(clients)
+
+	limit2 := 2
+	res, restart, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "", &limit2, "")
+	if err != nil {
+		t.Fatalf("BulkAdjust hwid: %v", err)
+	}
+	if res.Adjusted != 2 {
+		t.Fatalf("expected 2 adjusted, got %d", res.Adjusted)
+	}
+	if restart {
+		t.Fatalf("hwid adjustment should not request xray restart")
+	}
+	for _, e := range emails {
+		rec, rErr := svc.GetRecordByEmail(nil, e)
+		if rErr != nil || rec.LimitHwid != 2 {
+			t.Fatalf("%s limitHwid = %d (err=%v), want 2", e, rec.LimitHwid, rErr)
+		}
+	}
+
+	// Reset to 0 (unlimited)
+	limit0 := 0
+	res0, _, err0 := svc.BulkAdjust(inboundSvc, emails, 0, 0, "", &limit0, "")
+	if err0 != nil || res0.Adjusted != 2 {
+		t.Fatalf("BulkAdjust hwid 0: err=%v, res=%+v", err0, res0)
+	}
+	for _, e := range emails {
+		rec, _ := svc.GetRecordByEmail(nil, e)
+		if rec.LimitHwid != 0 {
+			t.Fatalf("%s limitHwid = %d, want 0", e, rec.LimitHwid)
+		}
+	}
+}
+
+// TestBulkAdjust_MtprotoAdTagSetAndClear verifies ad-tag bulk update and clearing.
+func TestBulkAdjust_MtprotoAdTagSetAndClear(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	const tag1 = "0123456789abcdef0123456789abcdef"
+	clients := []model.Client{
+		{Email: "tg1@x", Secret: "ee00112233445566778899aabbccddeeff6578616d706c652e636f6d", Enable: true},
+		{Email: "tg2@x", Secret: "ee101112131415161718191a1b1c1d1e1f6578616d706c652e636f6d", Enable: true},
+	}
+	ib := &model.Inbound{
+		Tag:      "mtproto-bulk-test",
+		Enable:   true,
+		Port:     30401,
+		Protocol: model.MTProto,
+		Settings: clientsSettings(t, clients),
+	}
+	if err := database.GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("create mtproto inbound: %v", err)
+	}
+	if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed mtproto: %v", err)
+	}
+	emails := emailsOf(clients)
+
+	// Set ad-tag
+	res, restart, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "", nil, tag1)
+	if err != nil {
+		t.Fatalf("BulkAdjust adTag: %v", err)
+	}
+	if res.Adjusted != 2 {
+		t.Fatalf("expected 2 adjusted, got %d", res.Adjusted)
+	}
+	if restart {
+		t.Fatalf("mtproto adTag update should not request xray restart")
+	}
+	for _, e := range emails {
+		rec, _ := svc.GetRecordByEmail(nil, e)
+		if rec.AdTag != tag1 {
+			t.Fatalf("%s adTag = %q, want %q", e, rec.AdTag, tag1)
+		}
+	}
+
+	// Clear ad-tag with "none"
+	cres, _, cerr := svc.BulkAdjust(inboundSvc, emails, 0, 0, "", nil, "none")
+	if cerr != nil || cres.Adjusted != 2 {
+		t.Fatalf("BulkAdjust clear adTag: err=%v, res=%+v", cerr, cres)
+	}
+	for _, e := range emails {
+		rec, _ := svc.GetRecordByEmail(nil, e)
+		if rec.AdTag != "" {
+			t.Fatalf("%s adTag = %q, want empty after clear", e, rec.AdTag)
+		}
+	}
+
+	// Invalid ad-tag errors
+	if _, _, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "", nil, "invalid-hex"); err == nil {
+		t.Fatalf("expected error for invalid hex ad tag")
 	}
 }
