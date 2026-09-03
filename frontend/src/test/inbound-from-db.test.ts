@@ -9,6 +9,9 @@ import {
   getInboundClients,
 } from '@/lib/xray/inbound-link';
 import { canEnableTlsFlow, isSS2022, isSSMultiUser } from '@/lib/xray/protocol-capabilities';
+import { hasShareLink } from '@/pages/inbounds/info/helpers';
+import { DBInbound } from '@/models/dbinbound';
+import { Protocols } from '@/schemas/primitives';
 
 const FALLBACK_HOST = 'panel.example.test';
 
@@ -264,5 +267,16 @@ describe('getInboundClients with schema-shaped inbound', () => {
       });
       expect(getInboundClients(inbound)).toBeNull();
     }
+  });
+
+  it('hasShareLink recognizes TUIC', () => {
+    expect(hasShareLink(Protocols.TUIC)).toBe(true);
+    expect(hasShareLink('tuic')).toBe(true);
+  });
+
+  it('DBInbound.isTuic identifies TUIC protocol', () => {
+    const inbound = new DBInbound({ protocol: Protocols.TUIC });
+    expect(inbound.isTuic).toBe(true);
+    expect(inbound.isVMess).toBe(false);
   });
 });
