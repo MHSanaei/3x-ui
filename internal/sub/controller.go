@@ -311,6 +311,8 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	gLink := g.Group(a.subPath)
 	gLink.GET(":subid", a.subs)
 	gLink.HEAD(":subid", a.subs)
+	gLink.GET(":subid/hwid-status", a.hwidStatus)
+	gLink.HEAD(":subid/hwid-status", a.hwidStatus)
 	if a.jsonEnabled {
 		gJson := g.Group(a.subJsonPath)
 		gJson.GET(":subid", a.subJsons)
@@ -673,6 +675,19 @@ func applyHwidHeaders(c *gin.Context, result service.HwidGateResult) {
 	if result.MaxDevicesReached {
 		c.Header("X-Hwid-Max-Devices-Reached", "true")
 	}
+}
+
+// hwidStatus serves read-only device-slot counters for a subscription. It
+// deliberately skips enforceHwid: asking about slots must not consume one.
+func (a *SUBController) hwidStatus(c *gin.Context) {
+	logSubscriptionRoute(c.GetHeader("User-Agent"), "hwid-status")
+	status, found, err := a.clientService.HwidSlotStatusForSubID(c.Param("subid"))
+	if err != nil || !found {
+		writeSubError(c, err)
+		return
+	}
+	setNoCacheHeaders(c)
+	c.JSON(http.StatusOK, status)
 }
 
 // setNoCacheHeaders marks a subscription page response as non-cacheable so VPN
