@@ -18,8 +18,9 @@ _openapi:
       url: '#create-a-subscription-balancer-it-appears-in-the-json-subscription-of-every-client-that-sits-on-at-least-one-selected-inbound'
     - depth: 2
       title: Update a balancer by id. Accepts the same form fields as create (full-row
-        update, including the enabled toggle).
-      url: '#update-a-balancer-by-id-accepts-the-same-form-fields-as-create-full-row-update-including-the-enabled-toggle'
+        update); omitting memberWeights clears stored weights, while omitting
+        enabled keeps its current value.
+      url: '#update-a-balancer-by-id-accepts-the-same-form-fields-as-create-full-row-update-omitting-memberweights-clears-stored-weights-while-omitting-enabled-keeps-its-current-value'
     - depth: 2
       title: Delete a balancer by id.
       url: '#delete-a-balancer-by-id'
@@ -35,8 +36,9 @@ _openapi:
           every client that sits on at least one selected inbound.
         id: create-a-subscription-balancer-it-appears-in-the-json-subscription-of-every-client-that-sits-on-at-least-one-selected-inbound
       - content: Update a balancer by id. Accepts the same form fields as create
-          (full-row update, including the enabled toggle).
-        id: update-a-balancer-by-id-accepts-the-same-form-fields-as-create-full-row-update-including-the-enabled-toggle
+          (full-row update); omitting memberWeights clears stored weights, while
+          omitting enabled keeps its current value.
+        id: update-a-balancer-by-id-accepts-the-same-form-fields-as-create-full-row-update-omitting-memberweights-clears-stored-weights-while-omitting-enabled-keeps-its-current-value
       - content: Delete a balancer by id.
         id: delete-a-balancer-by-id
       - content: Delete a balancer by id (POST alias of DELETE for clients that cannot

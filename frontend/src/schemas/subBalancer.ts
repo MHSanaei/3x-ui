@@ -8,6 +8,7 @@ export const SubBalancerSchema = z.object({
   remark: z.string(),
   strategy: SubBalancerStrategySchema,
   inboundIds: z.array(z.number()),
+  memberWeights: z.record(z.string(), z.number()).nullish(),
   sortOrder: z.number(),
   enabled: z.boolean(),
   createdAt: z.number().optional(),
@@ -27,6 +28,15 @@ export const SubBalancerFormSchema = z.object({
   inboundIds: z
     .array(z.number().int().positive())
     .min(1, 'pages.settings.subBalancers.errInboundsRequired'),
+  // inboundId (stringified) -> leastLoad weight; absent members weigh 1.0.
+  memberWeights: z
+    .record(
+      z.string(),
+      z
+        .number({ message: 'pages.settings.subBalancers.errWeightPositive' })
+        .positive('pages.settings.subBalancers.errWeightPositive'),
+    )
+    .optional(),
   sortOrder: z
     .number({ message: 'pages.settings.subBalancers.errSortOrder' })
     .int('pages.settings.subBalancers.errSortOrder')
