@@ -1433,6 +1433,34 @@ resolve_latest_tag() {
     curl -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
 }
 
+# Releases publish <asset>.sha256 next to each archive. A mismatch or a failed
+# sidecar download aborts the install; only a 404 (releases predating the
+# sidecar) is tolerated with a warning.
+verify_release_checksum() {
+    local url="$1" file="$2" sums="$2.sha256" code expected actual
+    rm -f "${sums}"
+    code=$(curl -sL --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 60 -o "${sums}" -w '%{http_code}' "${url}.sha256")
+    if [[ "${code}" == "404" ]]; then
+        rm -f "${sums}"
+        echo -e "${yellow}No checksum published for this release, skipping verification${plain}"
+        return 0
+    fi
+    if [[ "${code}" != "200" ]]; then
+        rm -f "${sums}" "${file}"
+        echo -e "${red}Failed to download the checksum for $(basename "${file}") (HTTP ${code})${plain}"
+        exit 1
+    fi
+    expected=$(awk 'NR == 1 {print $1}' "${sums}")
+    actual=$(sha256sum "${file}" | awk '{print $1}')
+    rm -f "${sums}"
+    if [[ ! "${expected}" =~ ^[0-9a-f]{64}$ || "${expected}" != "${actual}" ]]; then
+        rm -f "${file}"
+        echo -e "${red}Checksum mismatch for $(basename "${file}"): expected ${expected:-<none>}, got ${actual}${plain}"
+        exit 1
+    fi
+    echo -e "${green}Checksum verified: ${actual}${plain}"
+}
+
 # Older tags predate some of these files (x-ui.rc arrived in v2.8.4). Serving
 # main's copy against an old binary is the mismatch this pinning exists to
 # prevent, so probe before anything is stopped or removed and refuse the tag.
@@ -1471,6 +1499,7 @@ install_x-ui() {
             echo -e "${red}Downloaded x-ui release archive is empty${plain}"
             exit 1
         fi
+        verify_release_checksum "https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz" "${xui_folder}-linux-$(arch).tar.gz"
     else
         tag_version=$1
         # The rolling dev channel ships under a fixed, non-semver tag that is
@@ -1501,6 +1530,7 @@ install_x-ui() {
             echo -e "${red}Downloaded x-ui release archive is empty${plain}"
             exit 1
         fi
+        verify_release_checksum "${url}" "${xui_folder}-linux-$(arch).tar.gz"
     fi
     # x-ui.sh, x-ui.rc and the unit files must come from the same release as
     # the binary; only the rolling dev build tracks main.
