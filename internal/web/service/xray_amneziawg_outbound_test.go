@@ -128,20 +128,60 @@ func TestCheckXrayConfig_AcceptsValidAWGOutbound(t *testing.T) {
 }
 
 func TestCheckXrayConfig_RejectsBrokenAWGOutbound(t *testing.T) {
-	template := `{
-		"outbounds": [{
-			"protocol": "amneziawg",
-			"tag": "awg-bad",
-			"settings": {
-				"secretKey": "not-a-key",
-				"address": ["10.8.0.2/32"],
-				"peers": [{"publicKey": "alsobad", "allowedIPs": ["0.0.0.0/0"], "endpoint": "203.0.113.7:51820"}]
-			}
-		}]
-	}`
+	cases := []struct {
+		name     string
+		template string
+	}{
+		{
+			name: "not a key",
+			template: `{
+				"outbounds": [{
+					"protocol": "amneziawg",
+					"tag": "awg-bad",
+					"settings": {
+						"secretKey": "not-a-key",
+						"address": ["10.8.0.2/32"],
+						"peers": [{"publicKey": "alsobad", "allowedIPs": ["0.0.0.0/0"], "endpoint": "203.0.113.7:51820"}]
+					}
+				}]
+			}`,
+		},
+		{
+			name: "empty secretKey",
+			template: `{
+				"outbounds": [{
+					"protocol": "amneziawg",
+					"tag": "awg-empty-sec",
+					"settings": {
+						"secretKey": "",
+						"address": ["10.8.0.2/32"],
+						"peers": [{"publicKey": "pub", "allowedIPs": ["0.0.0.0/0"], "endpoint": "203.0.113.7:51820"}]
+					}
+				}]
+			}`,
+		},
+		{
+			name: "empty peer publicKey",
+			template: `{
+				"outbounds": [{
+					"protocol": "amneziawg",
+					"tag": "awg-empty-pub",
+					"settings": {
+						"secretKey": "priv",
+						"address": ["10.8.0.2/32"],
+						"peers": [{"publicKey": "", "allowedIPs": ["0.0.0.0/0"], "endpoint": "203.0.113.7:51820"}]
+					}
+				}]
+			}`,
+		},
+	}
 	svc := &XraySettingService{}
-	if err := svc.CheckXrayConfig(template); err == nil {
-		t.Fatal("broken amneziawg outbound accepted")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := svc.CheckXrayConfig(tc.template); err == nil {
+				t.Fatalf("%s: expected error, got nil", tc.name)
+			}
+		})
 	}
 }
 

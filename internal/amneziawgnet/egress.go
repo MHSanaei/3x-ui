@@ -46,10 +46,9 @@ var (
 func GetEgressServer() *socks5EgressServer {
 	egressOnce.Do(func() {
 		egressServer = &socks5EgressServer{
-			stacks:    map[string]*Device{},
-			dns:       map[string]string{},
-			tracked:   map[net.Conn]struct{}{},
-			dnsServer: DefaultTunnelDNSServer,
+			stacks:  map[string]*Device{},
+			dns:     map[string]string{},
+			tracked: map[net.Conn]struct{}{},
 		}
 	})
 	return egressServer
@@ -64,10 +63,7 @@ func (s *socks5EgressServer) currentDNSServer(tag ...string) string {
 			return custom
 		}
 	}
-	if s.dnsServer != "" && s.dnsServer != DefaultTunnelDNSServer {
-		return s.dnsServer
-	}
-	return DefaultTunnelDNSServer
+	return s.dnsServer
 }
 
 // SetDNSServer overrides the domain-target resolver (tests).
@@ -281,11 +277,8 @@ func (s *socks5EgressServer) handleConn(conn net.Conn) {
 	}
 }
 
-// socks5Greeting reads the greeting and replies with our chosen auth method.
-// Only RFC 1929 username/password (0x02) is accepted — the generated bridge
-// always offers it, and requiring it keeps the password check load-bearing
-// rather than resting on the empty-tag invariant. 0xFF means no acceptable
-// method or read failure.
+// socks5Greeting requires RFC 1929 username/password auth (0x02).
+// Returns 0xFF when unauthenticated or unsupported.
 func socks5Greeting(conn net.Conn) (byte, error) {
 	var hdr [2]byte
 	if _, err := io.ReadFull(conn, hdr[:]); err != nil {
@@ -392,9 +385,8 @@ func (s *socks5EgressServer) relayTCP(dev *Device, tag string, upstream net.Conn
 		Addr: tcpip.AddrFromSlice(dest.Addr().AsSlice()),
 		Port: dest.Port(),
 	}
-	// Bound the dial like the sibling port-forward path does; without it an
-	// unreachable peer pins this goroutine, its fd, and the gVisor endpoint
-	// in s.tracked until panel shutdown.
+	// Bound dial with portForwardDialTimeout so unreachable peers do not
+	// pin goroutines and netstack endpoints in s.tracked.
 	dctx, dcancel := context.WithTimeout(context.Background(), portForwardDialTimeout)
 	defer dcancel()
 	tunnelConn, err := gonet.DialContextTCP(dctx, dev.Stack, fa, tunnelNetwork(dest.Addr()))
@@ -476,9 +468,8 @@ func (s *socks5EgressServer) relayUDP(dev *Device, tag string, ctl udpControl, _
 				if perr != nil {
 					continue
 				}
-				// Resolve off the reader loop: a slow or failing tunnel DNS
-				// lookup must not stall every other destination on this
-				// association (single-reader head-of-line blocking).
+				// Resolve off reader loop so slow tunnel DNS lookups do not
+				// stall other destinations on this association.
 				go func(client netip.AddrPort, name string, port uint16, hdrLen int, datagram []byte) {
 					dnsSrv := s.currentDNSServer(tag)
 					rctx, rcancel := context.WithTimeout(context.Background(), tunnelResolveTimeout)
@@ -555,10 +546,8 @@ func (s *udpEgressSessions) closeAll() {
 	}
 }
 
-// deliverUDPDatagram forwards one payload to dst through (or creating) the
-// per-destination tunnel endpoint and pumps replies back to client. Safe
-// for concurrent use: the domain resolver goroutines land here alongside
-// the reader's direct-path datagrams.
+// deliverUDPDatagram forwards one payload to dst through the tunnel endpoint.
+// Safe for concurrent use across resolver and direct-path goroutines.
 func (s *socks5EgressServer) deliverUDPDatagram(dev *Device, tag string, udpConn *net.UDPConn, client netip.AddrPort, sessions *udpEgressSessions, dst netip.AddrPort, payload []byte) {
 	if !client.IsValid() {
 		return // nothing to reply to yet
@@ -583,9 +572,7 @@ func pumpUDPEgress(udpConn *net.UDPConn, client netip.AddrPort, sess *egressUDPS
 	}()
 	buf := make([]byte, 65536)
 	for {
-		// Reap idle egress sessions like the sibling UDP pumps do
-		// (relay.go, portfwd_udp.go): without an idle window a session
-		// is held until the whole association tears down.
+		// Reap idle egress sessions to avoid holding them indefinitely.
 		_ = sess.conn.SetReadDeadline(time.Now().Add(portForwardUDPIdleTimeout))
 		n, err := sess.conn.Read(buf)
 		if err != nil {

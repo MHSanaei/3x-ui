@@ -273,6 +273,9 @@ func ValidateAmneziaWGOutbound(tag string, raw []byte) error {
 	if err := ValidateDNSServer(parsed.DNS); err != nil {
 		return fmt.Errorf("amneziawg outbound %q: invalid dns: %w", tag, err)
 	}
+	if strings.TrimSpace(parsed.SecretKey) == "" {
+		return fmt.Errorf("amneziawg outbound %q: privateKey is required", tag)
+	}
 	if _, err := wireguard.KeyToHex(parsed.SecretKey); err != nil {
 		return fmt.Errorf("amneziawg outbound %q: invalid privateKey: %w", tag, err)
 	}
@@ -293,6 +296,9 @@ func ValidateAmneziaWGOutbound(tag string, raw []byte) error {
 		return fmt.Errorf("amneziawg outbound %q: at least one peer is required", tag)
 	}
 	for i, p := range parsed.Peers {
+		if strings.TrimSpace(p.PublicKey) == "" {
+			return fmt.Errorf("amneziawg outbound %q: peer %d: publicKey is required", tag, i)
+		}
 		if _, err := wireguard.KeyToHex(p.PublicKey); err != nil {
 			return fmt.Errorf("amneziawg outbound %q: peer %d: invalid publicKey: %w", tag, i, err)
 		}

@@ -70,9 +70,8 @@ func (m *OutboundManager) Reconcile(desired []OutboundDesired) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Empty desired converges to "no tunnels": close the egress listener too,
-	// so 127.0.0.1:64900 stays free on installs without AWG outbounds instead
-	// of being bound lazily by every reconcile tick.
+	// Empty desired converges to "no tunnels": close egress listener so
+	// 127.0.0.1:64900 stays free on installs without AWG outbounds.
 	if len(desired) == 0 {
 		for tag, cur := range m.iface {
 			cur.dev.Close()

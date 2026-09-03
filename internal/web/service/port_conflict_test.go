@@ -739,13 +739,8 @@ func TestCheckPortConflict_ReservedAPIPortUDPCoexists(t *testing.T) {
 // it's now ignored -- see the "RouteThroughXrayOff" test below.
 const amneziawgRoutedSettings = `{"server":{"privateKey":"priv","publicKey":"pub","subnetIp":"10.8.1.0","subnetCidr":24,"routeThroughXray":true},"clients":[{"email":"a@x","enable":true,"publicKey":"pub-a","allowedIPs":["10.8.1.2/32"]}]}`
 
-// An enabled AmneziaWG inbound's automatic Xray SOCKS5 relay inbound
-// (injectAmneziawgnetSocks) is a synthetic loopback inbound, not a database
-// row, so checkPortConflict needs its own check to catch a collision --
-// exactly the same shape of problem as the reserved API port above.
-// The AmneziaWG egress SOCKS server holds 127.0.0.1:<EgressBasePort> while
-// any AWG outbound is active. It is not a DB row, so an unrelated local TCP
-// inbound saved onto that port would collide with it at Xray start.
+// A local TCP inbound on EgressBasePort must conflict with the AmneziaWG
+// egress SOCKS server (which is not in the database).
 func TestCheckPortConflict_EgressPortBlockedLocal(t *testing.T) {
 	setupConflictDB(t)
 

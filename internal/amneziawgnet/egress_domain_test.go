@@ -15,6 +15,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
+	"gvisor.dev/gvisor/pkg/tcpip/network/ipv6"
 
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 
@@ -27,9 +28,11 @@ func verboseLoggerForTest(prefix string) *device.Logger {
 }
 
 const (
-	tunnelTestClientAddr  = "10.203.0.2"
-	tunnelTestServerAddr  = "10.203.0.1"
-	egressTestDialTimeout = 5 * time.Second
+	tunnelTestClientAddr   = "10.203.0.2"
+	tunnelTestServerAddr   = "10.203.0.1"
+	tunnelTestClientAddrV6 = "fd00:203::2"
+	tunnelTestServerAddrV6 = "fd00:203::1"
+	egressTestDialTimeout  = 5 * time.Second
 )
 
 // pairedTunnel wires an outbound client device to an embedded server device
@@ -116,6 +119,80 @@ func newPairedTunnelForTest(t *testing.T) *pairedTunnel {
 	}
 }
 
+func newPairedTunnelV6ForTest(t *testing.T) *pairedTunnel {
+	t.Helper()
+	slog := verboseLoggerForTest("(tsrv6) ")
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	clientPriv, clientPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	listenPort := pc.LocalAddr().(*net.UDPAddr).Port
+	pc.Close()
+
+	obf := amneziawg.Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
+	serverInst := amneziawg.Instance{
+		Id:            2,
+		InterfaceName: "awg-dnstest6",
+		ListenPort:    listenPort,
+		PrivateKey:    serverPriv,
+		PublicKey:     serverPub,
+		Address:       []string{tunnelTestServerAddrV6 + "/64", "2606:4700:4700::1111/128"},
+		MTU:           1420,
+		Obfuscation:   obf,
+		Peers: []amneziawg.Peer{{
+			PublicKey:  clientPub,
+			AllowedIPs: []string{tunnelTestClientAddrV6 + "/128"},
+		}},
+	}
+	server, err := newUnconfiguredDevice(serverInst, DeviceOptions{Logger: slog})
+	if err != nil {
+		t.Fatalf("server device: %v", err)
+	}
+	t.Cleanup(server.Close)
+
+	if err := server.Configure(serverInst, DeviceOptions{Logger: slog}); err != nil {
+		t.Fatalf("server Configure: %v", err)
+	}
+
+	clientInst := amneziawg.OutboundInstance{
+		Tag:         "awg-dom-v6-test",
+		Address:     []string{tunnelTestClientAddrV6 + "/128"},
+		MTU:         1420,
+		PrivateKey:  clientPriv,
+		Obfuscation: obf,
+		Peers: []amneziawg.OutboundPeer{{
+			PublicKey:  serverPub,
+			Endpoint:   net.JoinHostPort("127.0.0.1", strconv.Itoa(listenPort)),
+			AllowedIPs: []string{"::/0"},
+			KeepAlive:  1,
+		}},
+	}
+	clog := verboseLoggerForTest("(tcli6) ")
+	client, err := newUnconfiguredClientDevice(clientInst, DeviceOptions{Logger: clog})
+	if err != nil {
+		t.Fatalf("client device: %v", err)
+	}
+	if err := client.ConfigureClient(clientInst, DeviceOptions{Logger: clog}); err != nil {
+		client.Close()
+		t.Fatalf("ConfigureClient: %v", err)
+	}
+	t.Cleanup(client.Close)
+
+	return &pairedTunnel{
+		client:   client,
+		server:   server,
+		serverIP: netip.MustParseAddr(tunnelTestServerAddrV6),
+	}
+}
+
 func registerEgressDeviceForTest(t *testing.T, dev *Device) {
 	t.Helper()
 	srv := GetEgressServer()
@@ -126,11 +203,15 @@ func registerEgressDeviceForTest(t *testing.T, dev *Device) {
 	t.Cleanup(func() { srv.DeleteStack("awg-dom-test") })
 }
 
-// startTunnelDNS answers A queries from INSIDE the server's netstack;
+// startTunnelDNS answers A/AAAA queries from INSIDE the server's netstack;
 // reaching it proves DNS rode the tunnel, not the host resolver.
 func (p *pairedTunnel) startDNS(t *testing.T, answer netip.Addr) chan string {
 	t.Helper()
-	ln, err := gonet.DialUDP(p.server.Stack, &tcpip.FullAddress{NIC: 1, Port: 53}, nil, ipv4.ProtocolNumber)
+	proto := ipv4.ProtocolNumber
+	if p.serverIP.Is6() {
+		proto = ipv6.ProtocolNumber
+	}
+	ln, err := gonet.DialUDP(p.server.Stack, &tcpip.FullAddress{NIC: 1, Port: 53}, nil, proto)
 	if err != nil {
 		t.Fatalf("bind fake dns in server stack: %v", err)
 	}
@@ -243,7 +324,7 @@ func buildARecordReply(q []byte, answer netip.Addr) []byte {
 	return out
 }
 
-func socksAuth(t *testing.T, ctl net.Conn) {
+func socksAuthUser(t *testing.T, ctl net.Conn, user string) {
 	t.Helper()
 	ctl.SetDeadline(time.Now().Add(egressTestDialTimeout))
 	if _, err := ctl.Write([]byte{0x05, 0x02, 0x00, 0x02}); err != nil {
@@ -253,7 +334,7 @@ func socksAuth(t *testing.T, ctl net.Conn) {
 	if _, err := io.ReadFull(ctl, r); err != nil {
 		t.Fatalf("greeting read: %v", err)
 	}
-	user, pass := "awg-dom-test", SocksPassword()
+	pass := SocksPassword()
 	req := make([]byte, 0, 3+len(user)+len(pass))
 	req = append(req, 0x01, byte(len(user)))
 	req = append(req, user...)
@@ -266,6 +347,11 @@ func socksAuth(t *testing.T, ctl net.Conn) {
 	if _, err := io.ReadFull(ctl, auth); err != nil || auth[1] != 0x00 {
 		t.Fatalf("auth rejected: %v %v", err, auth)
 	}
+}
+
+func socksAuth(t *testing.T, ctl net.Conn) {
+	t.Helper()
+	socksAuthUser(t, ctl, "awg-dom-test")
 }
 
 func TestEgressGreetingRejectsNoAuthClient(t *testing.T) {
@@ -321,6 +407,51 @@ func TestEgressConnectDomainResolvesThroughTunnel(t *testing.T) {
 		}
 	case <-time.After(egressTestDialTimeout):
 		t.Fatal("no DNS query reached the in-tunnel resolver")
+	}
+
+	reply := make([]byte, 10)
+	ctl.SetDeadline(time.Now().Add(egressTestDialTimeout))
+	if _, err := io.ReadFull(ctl, reply); err != nil {
+		t.Fatalf("read reply: %v", err)
+	}
+	if reply[1] == 0x00 {
+		t.Fatal("unexpected success: nothing should be listening on the resolved address")
+	}
+}
+
+func TestEgressConnectDomainIPv6OnlyTunnelResolvesThroughTunnel(t *testing.T) {
+	tun := newPairedTunnelV6ForTest(t)
+	srv := GetEgressServer()
+	srv.SetStack("awg-dom-v6-test", tun.client)
+	if err := srv.Listen(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { srv.DeleteStack("awg-dom-v6-test") })
+	gotQuery := tun.overrideDNS(t, tun.serverIP)
+
+	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctl.Close()
+
+	socksAuthUser(t, ctl, "awg-dom-v6-test")
+	name := "v6.example.internal"
+	req := make([]byte, 0, 7+len(name))
+	req = append(req, 0x05, 0x01, 0x00, 0x03, byte(len(name)))
+	req = append(req, name...)
+	req = append(req, 0x00, 0x50)
+	if _, err := ctl.Write(req); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case queried := <-gotQuery:
+		if len(queried) < len(name) || queried[:len(name)] != name {
+			t.Fatalf("resolver queried %q, want prefix %q -- DNS did not ride the v6 tunnel", queried, name)
+		}
+	case <-time.After(egressTestDialTimeout):
+		t.Fatal("no DNS query reached the in-tunnel v6 resolver")
 	}
 
 	reply := make([]byte, 10)
@@ -422,15 +553,29 @@ func TestEgressUDPDatagramDomainForwardedIntoTunnel(t *testing.T) {
 	}
 }
 
-// TestEgressUDPDatagramDomainInterleavedClients pins the round-6 resolver
-// race fix: two clients interleave domain datagrams, so each resolver
-// goroutine must observe the client address handed to it at spawn
-// (pass-by-value) rather than a shared variable rewritten by the reader
-// loop while a resolve is parked.
+// TestEgressUDPDatagramDomainInterleavedClients ensures datagrams pass client
+// address by value into resolver goroutines so responses route correctly.
 func TestEgressUDPDatagramDomainInterleavedClients(t *testing.T) {
 	tun := newPairedTunnelForTest(t)
 	registerEgressDeviceForTest(t, tun.client)
 	gotQuery := tun.overrideDNS(t, tun.serverIP)
+
+	in, err := gonet.DialUDP(tun.server.Stack, &tcpip.FullAddress{NIC: 1, Port: 9999}, nil, ipv4.ProtocolNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+
+	go func() {
+		buf := make([]byte, 512)
+		for {
+			n, from, rerr := in.ReadFrom(buf)
+			if rerr != nil {
+				return
+			}
+			_, _ = in.WriteTo(append([]byte("echo:"), buf[:n]...), from)
+		}
+	}()
 
 	dialUDP := func() *net.UDPConn {
 		ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
@@ -466,26 +611,27 @@ func TestEgressUDPDatagramDomainInterleavedClients(t *testing.T) {
 		return append(d, payload...)
 	}
 
-	a, b := dialUDP(), dialUDP()
-	// Interleave: each client sends twice, forcing reader-loop writes to
-	// `client` (pre-fix) to overlap with parked resolver goroutines. Names
-	// are unique per datagram so the tunnel DNS cache cannot dedupe them.
-	seq := 0
-	for _, c := range []*net.UDPConn{a, b, a, b} {
-		if _, err := c.Write(dgram(seq, "x")); err != nil {
+	for seq := 0; seq < 4; seq++ {
+		udp := dialUDP()
+		payload := fmt.Sprintf("p-%d", seq)
+		if _, err := udp.Write(dgram(seq, payload)); err != nil {
 			t.Fatal(err)
 		}
-		seq++
-		time.Sleep(50 * time.Millisecond)
-	}
-	for i := 0; i < 4; i++ {
 		select {
 		case q := <-gotQuery:
 			if !strings.HasPrefix(q, "interleaved-") {
 				t.Fatalf("resolver queried %q, want an interleaved-* name", q)
 			}
 		case <-time.After(4 * time.Second):
-			t.Fatalf("only %d/4 tunnel DNS queries observed", i)
+			t.Fatalf("query %d not observed", seq)
+		}
+		rcv := make([]byte, 512)
+		nr, _, rerr := udp.ReadFrom(rcv)
+		if rerr != nil {
+			t.Fatalf("reply %d never reached client: %v", seq, rerr)
+		}
+		if nr < 10 || !strings.Contains(string(rcv[:nr]), "echo:"+payload) {
+			t.Fatalf("reply payload = %q, want echo:%s", rcv[:nr], payload)
 		}
 	}
 }

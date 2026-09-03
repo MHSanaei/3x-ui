@@ -139,6 +139,10 @@ func TestValidateAmneziaWGOutbound_AcceptsValidAndRejectsBroken(t *testing.T) {
 		name   string
 		breakF func(m map[string]any)
 	}{
+		{"empty secretKey", func(m map[string]any) { m["secretKey"] = "" }},
+		{"empty peer publicKey", func(m map[string]any) { peer(m)["publicKey"] = "" }},
+		{"whitespace secretKey", func(m map[string]any) { m["secretKey"] = "   " }},
+		{"whitespace peer publicKey", func(m map[string]any) { peer(m)["publicKey"] = "   " }},
 		{"bad endpoint no port", func(m map[string]any) { peer(m)["endpoint"] = "203.0.113.7" }},
 		{"endpoint control char", func(m map[string]any) { peer(m)["endpoint"] = "host:51820\nPostUp=x" }},
 		{"empty allowedIPs", func(m map[string]any) { peer(m)["allowedIPs"] = []string{} }},

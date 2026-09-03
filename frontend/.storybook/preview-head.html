@@ -1,4 +1,7 @@
 <script>
+  if (typeof navigator !== 'undefined' && (!navigator.language || navigator.language.includes('@'))) {
+    Object.defineProperty(navigator, 'language', { value: 'en-US', configurable: true });
+  }
   if (localStorage.getItem('dark-mode') === null) localStorage.setItem('dark-mode', 'false');
   if (localStorage.getItem('isUltraDarkThemeEnabled') === null) {
     localStorage.setItem('isUltraDarkThemeEnabled', 'false');

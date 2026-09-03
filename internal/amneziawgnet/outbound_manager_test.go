@@ -53,11 +53,8 @@ func newTestOutboundDesired(t *testing.T, tag string) OutboundDesired {
 	}
 }
 
-// TestOutboundManagerReconcileEmptyDesiredClosesEgress pins the round-6 fix:
-// an empty desired set must tear down interfaces AND the egress listener, so
-// 127.0.0.1:64900 is not held on installs without AWG outbounds. The
-// empty -> non-empty -> empty transition also locks Close/Listen idempotency
-// across repeated reconcile ticks.
+// TestOutboundManagerReconcileEmptyDesiredClosesEgress verifies that an empty
+// desired set tears down interfaces and releases 127.0.0.1:64900.
 func TestOutboundManagerReconcileEmptyDesiredClosesEgress(t *testing.T) {
 	m := &OutboundManager{iface: map[string]*managedOutbound{}}
 	defer m.Reconcile(nil)
@@ -98,10 +95,8 @@ func TestOutboundManagerReconcileEmptyDesiredClosesEgress(t *testing.T) {
 	}
 }
 
-// TestEgressServerCloseDuringConcurrentAccepts pins the round-7 shutdown
-// race fix: connections accepted right as Close() tears down the listener
-// must observe the closed state under s.mu, so wg.Wait() never hangs on a
-// leaked handler.
+// TestEgressServerCloseDuringConcurrentAccepts ensures Close during
+// concurrent accepts shuts down cleanly without hanging wg.Wait().
 func TestEgressServerCloseDuringConcurrentAccepts(t *testing.T) {
 	srv := GetEgressServer()
 	if err := srv.Listen(); err != nil {

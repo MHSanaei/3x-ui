@@ -41,9 +41,8 @@ func deviceHasV6(addrs []netip.Addr) bool {
 	return false
 }
 
-// defaultDNSFor picks a default resolver matching the tunnel address family:
-// IPv4 default when the tunnel carries IPv4 (or empty), IPv6 default when
-// the tunnel is IPv6-only.
+// defaultDNSFor picks a resolver matching the tunnel address family:
+// IPv4 default (or empty), or IPv6 default when IPv6-only.
 func defaultDNSFor(addrs []netip.Addr) string {
 	if deviceHasV4(addrs) || len(addrs) == 0 {
 		return DefaultTunnelDNSServer
