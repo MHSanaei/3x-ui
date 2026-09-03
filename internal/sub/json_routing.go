@@ -53,6 +53,39 @@ func resolveJsonRoutingSpec(raw string) jsonRoutingSpec {
 	return spec
 }
 
+// jsonRoutingHeaderSource turns the JSON routing setting into a Routing header
+// value (deeplinks pass through, JSON and remote URLs become a happ deeplink);
+// blank means unusable, and the header then stays unset.
+func jsonRoutingHeaderSource(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(trimmed, "incy://") {
+		_, rest, ok := cutAnyPrefix(trimmed, jsonRoutingDeeplinkPrefixes)
+		if !ok {
+			return ""
+		}
+		decoded, err := decodeRoutingBase64(rest)
+		if err != nil {
+			return ""
+		}
+		if _, err := validateAndCompactJSONObject(decoded); err != nil || len(trimmed) > remoteRoutingHappMaxValue {
+			return ""
+		}
+		return trimmed
+	}
+	resolved, _, err := resolveRoutingSource(remoteRoutingHapp, trimmed)
+	if err != nil {
+		return ""
+	}
+	content, err := normalizeHappRouting([]byte(resolved))
+	if err != nil || len(content) > remoteRoutingHappMaxValue {
+		return ""
+	}
+	return content
+}
+
 // parseJsonRoutingSpec resolves raw (inline JSON, happ:// or incy:// deeplink,
 // or https:// URL) into a spec. Remote URLs go through the shared
 // remoteRoutingResolver cache; the caller degrades on error, never fails.

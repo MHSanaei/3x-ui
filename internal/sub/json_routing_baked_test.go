@@ -1,10 +1,14 @@
 package sub
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
@@ -226,4 +230,78 @@ func TestSubJson_BakedRoutingRemoteWarmsAfterColdStart(t *testing.T) {
 	if len(servers) != 2 {
 		t.Fatalf("warm doc dns servers = %v", servers)
 	}
+}
+
+func TestApplyCommonHeadersFallsBackToJsonRoutingProfile(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var object map[string]any
+	if err := json.Unmarshal([]byte(bakedRoutingPayload), &object); err != nil {
+		t.Fatalf("payload: %v", err)
+	}
+	happDeeplink := "happ://routing/onadd/" + base64.StdEncoding.EncodeToString([]byte(mustMarshal(t, object)))
+	incyDeeplink := "incy://routing/onadd/" + base64.StdEncoding.EncodeToString([]byte(mustMarshal(t, map[string]any{"Name": "RoscomVPN"})))
+
+	cases := []struct {
+		name      string
+		jsonRules string
+		happRules string
+		want      string
+	}{
+		{name: "inline json becomes a happ deeplink", jsonRules: bakedRoutingPayload, want: happDeeplink},
+		{name: "happ deeplink passes through", jsonRules: happDeeplink, want: happDeeplink},
+		{name: "incy deeplink passes through", jsonRules: incyDeeplink, want: incyDeeplink},
+		{name: "blank profile keeps the header unset", jsonRules: "", want: ""},
+		{name: "unusable profile keeps the header unset", jsonRules: "happ://routing/onadd/%%%", want: ""},
+		{name: "explicit happ rules take precedence", jsonRules: bakedRoutingPayload, happRules: "happ://routing/onadd/" + base64.StdEncoding.EncodeToString([]byte(`{"A":1}`)), want: "happ://routing/onadd/" + base64.StdEncoding.EncodeToString([]byte(`{"A":1}`))},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			(&SUBController{subJsonRoutingRules: tc.jsonRules}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, tc.happRules, false)
+			if got := recorder.Header().Get("Routing"); got != tc.want {
+				t.Fatalf("Routing = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestApplyCommonHeadersJsonRoutingRemoteFailsClosed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	oldResolver := routingSourceResolver
+	t.Cleanup(func() { routingSourceResolver = oldResolver })
+
+	const source = "https://example.com/DEFAULT.JSON"
+	routingSourceResolver = newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
+		return remoteRoutingResponse(200, mustMarshal(t, fullRoutingPayload())), nil
+	}), false)
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	(&SUBController{subJsonRoutingRules: source}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, "", false)
+	if got := recorder.Header().Get("Routing"); got != "" {
+		t.Fatalf("cold cache must keep the header unset, got %q", got)
+	}
+
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingHapp, source)
+	recorder = httptest.NewRecorder()
+	ctx, _ = gin.CreateTestContext(recorder)
+	(&SUBController{subJsonRoutingRules: source}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, "", false)
+	got := recorder.Header().Get("Routing")
+	if !strings.HasPrefix(got, "happ://routing/onadd/") {
+		t.Fatalf("warm cache Routing = %q", got)
+	}
+	decoded, err := decodeRoutingBase64(strings.TrimPrefix(got, "happ://routing/onadd/"))
+	if err != nil {
+		t.Fatalf("deeplink payload: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(decoded, &payload); err != nil {
+		t.Fatalf("deeplink JSON: %v", err)
+	}
+	if payload["Name"] != "RoscomVPN" {
+		t.Fatalf("deeplink payload = %v", payload)
+	}
+	waitRemoteRoutingIdle(t, routingSourceResolver)
 }

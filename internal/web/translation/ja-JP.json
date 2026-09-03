@@ -1162,7 +1162,7 @@
       "subJsonUserAgentRegex": "Xray JSON User-Agent 正規表現",
       "subJsonUserAgentRegexDesc": "標準サブスクリプション URL で Xray JSON 形式を自動選択するため、クライアントの User-Agent と照合する Go RE2 正規表現です。既定では空欄のため、対象とするクライアント向けのパターンを設定するまで自動判別は無効のままです。その他のクライアントには従来の raw/Base64 応答を返します。変更後にパネルを再起動してください。",
       "subJsonRoutingRules": "JSON サブスクリプションのルーティングプロファイル",
-      "subJsonRoutingRulesDesc": "ルーティング JSON、happ:// または incy:// のディープリンク、もしくは https:// URL。設定すると JSON サブスクリプションの DNS とルーティングルールを置き換えます（ヘッダーを無視するクライアント、例えばクライアントサイドバランサーを使う Happ や INCY 向けに設定へ組み込まれます）。Happ のルーティングヘッダー設定を同じプロファイルに向けておけば、クライアントは対応する geo ファイルを取得します。",
+      "subJsonRoutingRulesDesc": "ルーティング JSON、happ:// または incy:// のディープリンク、もしくは https:// URL。設定すると JSON サブスクリプションの DNS とルーティングルールを置き換えます（ヘッダーを無視するクライアント、例えばクライアントサイドバランサーを使う Happ や INCY 向けに設定へ組み込まれます）。Happ のルーティングヘッダー設定が空の場合、同じプロファイルが自動的に Routing ヘッダーとして送信され（JSON と URL は happ:// ディープリンクに変換）、クライアントは対応する geo ファイルを取得します。",
       "subClashAutoDetect": "Clash/Mihomo クライアントを自動検出",
       "subClashAutoDetectDesc": "有効にすると、標準サブスクリプション URL を要求する既知の Clash/Mihomo クライアントへ Clash YAML を自動的に返します。ブラウザには引き続きサブスクリプションページを表示し、その他のクライアントには従来の raw/Base64 応答を返します。明示的な JSON および Clash URL も引き続き利用できます。Clash/Mihomo サブスクリプションを有効にし、適用のためにパネルを再起動する必要があります。",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent 正規表現",
