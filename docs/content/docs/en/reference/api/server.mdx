@@ -123,9 +123,9 @@ _openapi:
         dev release. Only effective on dev builds.
       url: '#toggle-the-panel-update-channel-between-stable-and-the-rolling-per-commit-dev-release-only-effective-on-dev-builds'
     - depth: 2
-      title: Refresh the default GeoIP / GeoSite data files. Body can include a
-        fileName, or use the /:fileName variant.
-      url: '#refresh-the-default-geoip--geosite-data-files-body-can-include-a-filename-or-use-the-filename-variant'
+      title: Refresh the default GeoIP / GeoSite data files. Use the /:fileName
+        variant to update one file.
+      url: '#refresh-the-default-geoip--geosite-data-files-use-the-filename-variant-to-update-one-file'
     - depth: 2
       title: Refresh a single Geo file by filename (e.g. geoip.dat, geosite.dat).
       url: '#refresh-a-single-geo-file-by-filename-eg-geoipdat-geositedat'
@@ -271,9 +271,9 @@ _openapi:
       - content: Toggle the panel update channel between stable and the rolling
           per-commit dev release. Only effective on dev builds.
         id: toggle-the-panel-update-channel-between-stable-and-the-rolling-per-commit-dev-release-only-effective-on-dev-builds
-      - content: Refresh the default GeoIP / GeoSite data files. Body can include a
-          fileName, or use the /:fileName variant.
-        id: refresh-the-default-geoip--geosite-data-files-body-can-include-a-filename-or-use-the-filename-variant
+      - content: Refresh the default GeoIP / GeoSite data files. Use the /:fileName
+          variant to update one file.
+        id: refresh-the-default-geoip--geosite-data-files-use-the-filename-variant-to-update-one-file
       - content: Refresh a single Geo file by filename (e.g. geoip.dat, geosite.dat).
         id: refresh-a-single-geo-file-by-filename-eg-geoipdat-geositedat
       - content: Return the last N lines of the panel’s own log.

@@ -24,7 +24,8 @@ import (
 )
 
 // tunQueueDepth is the outbound queue depth for channel endpoint and handoff.
-const tunQueueDepth = 1024
+// 1024 starved simultaneous TCP slow-starts; channel.Endpoint drops silently when full.
+const tunQueueDepth = 8192
 
 // stackTun implements amneziawg-go tun.Device over a gVisor channel endpoint,
 // exposing *stack.Stack for forwarder attachment.

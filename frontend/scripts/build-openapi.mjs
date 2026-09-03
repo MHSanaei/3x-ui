@@ -16,7 +16,8 @@ const SECURITY_SCHEMES = {
   bearerAuth: {
     type: 'http',
     scheme: 'bearer',
-    description: 'API token from Settings → Security → API Token. Send as `Authorization: Bearer <token>`.',
+    description:
+      'API token from Settings → Security → API Token. Send as `Authorization: Bearer <token>`.',
   },
   cookieAuth: {
     type: 'apiKey',
@@ -55,7 +56,33 @@ function schemaFromType(t) {
     const itemType = v.slice(0, -2);
     return { type: 'array', items: { type: mapType(itemType) } };
   }
+  if (v === 'file') return { type: 'string', format: 'binary' };
   return { type: mapType(v) };
+}
+
+function schemaFromParam(p) {
+  const schema = schemaFromType(p.type);
+  if (p.defaultValue !== undefined) schema.default = p.defaultValue;
+  if (p.minLength !== undefined) schema.minLength = p.minLength;
+  if (p.pattern !== undefined) schema.pattern = p.pattern;
+  return schema;
+}
+
+function requestBodyContentType(ep, bodyParams) {
+  const locations = new Set(bodyParams.map((p) => p.in));
+  if (locations.size > 1) {
+    throw new Error(
+      `${ep.method} ${ep.path}: request body mixes parameter locations: ${[...locations].join(', ')}`,
+    );
+  }
+  switch (bodyParams[0]?.in) {
+    case 'body (form)':
+      return 'application/x-www-form-urlencoded';
+    case 'body (multipart)':
+      return 'multipart/form-data';
+    default:
+      return 'application/json';
+  }
 }
 
 function tryParseJson(raw) {
@@ -73,9 +100,8 @@ function paramToOpenApi(p) {
     in: p.in,
     required: p.in === 'path' ? true : !p.optional,
     description: p.desc || '',
-    schema: schemaFromType(p.type),
+    schema: schemaFromParam(p),
   };
-  if (p.defaultValue !== undefined) out.schema.default = p.defaultValue;
   return out;
 }
 
@@ -91,7 +117,7 @@ function buildOperation(ep, tag) {
   const params = [];
   const bodyParams = [];
   for (const p of ep.params || []) {
-    if (p.in === 'body') {
+    if (p.in.startsWith('body')) {
       bodyParams.push(p);
     } else if (p.in === 'path' || p.in === 'query' || p.in === 'header') {
       params.push(paramToOpenApi(p));
@@ -113,26 +139,80 @@ function buildOperation(ep, tag) {
 
   if (params.length > 0) op.parameters = params;
 
-  if (ep.body || bodyParams.length > 0) {
-    const example = tryParseJson(ep.body);
+  if (ep.body || bodyParams.length > 0 || ep.requestSchema) {
+    const contentType = requestBodyContentType(ep, bodyParams);
+    const example = contentType === 'application/json' ? tryParseJson(ep.body) : undefined;
     const properties = {};
     const required = [];
     for (const bp of bodyParams) {
       properties[bp.name] = {
-        ...schemaFromType(bp.type),
+        ...schemaFromParam(bp),
         description: bp.desc || '',
       };
       if (!bp.optional) required.push(bp.name);
     }
-    const schema = bodyParams.length > 0
-      ? { type: 'object', properties, ...(required.length > 0 ? { required } : {}) }
-      : { type: 'object' };
+    let schema;
+    if (ep.requestSchema) {
+      if (bodyParams.length > 0 || ep.bodyRequiredOneOf?.length) {
+        throw new Error(
+          `${ep.method} ${ep.path}: requestSchema cannot be combined with body parameters or bodyRequiredOneOf`,
+        );
+      }
+      schema = ep.requestSchema;
+    } else {
+      schema =
+        bodyParams.length > 0
+          ? { type: 'object', properties, ...(required.length > 0 ? { required } : {}) }
+          : { type: 'object' };
+      if (ep.bodyRequiredOneOf?.length) {
+        schema = {
+          anyOf: ep.bodyRequiredOneOf.map((name) => {
+            if (!properties[name]) {
+              throw new Error(
+                `${ep.method} ${ep.path}: bodyRequiredOneOf "${name}" is not a declared body parameter`,
+              );
+            }
+            const branchProperties = { ...properties };
+            for (const other of ep.bodyRequiredOneOf) {
+              if (other === name || !branchProperties[other]) continue;
+              const { pattern: _pattern, minLength: _minLength, ...rest } =
+                branchProperties[other];
+              branchProperties[other] = rest;
+            }
+            return {
+              type: 'object',
+              properties: branchProperties,
+              required: [...required, name],
+            };
+          }),
+        };
+      }
+    }
+
+    const encoding = {};
+    if (contentType === 'application/x-www-form-urlencoded') {
+      for (const bp of bodyParams) {
+        const kind = schemaFromType(bp.type).type;
+        if (kind === 'array') {
+          encoding[bp.name] = { style: 'form', explode: true };
+        } else if (kind === 'object') {
+          // The panel reads such a field with json.Unmarshal, so it must be sent
+          // as JSON text rather than form-style key/value pairs.
+          encoding[bp.name] = { contentType: 'application/json' };
+        }
+      }
+    }
 
     op.requestBody = {
-      required: required.length > 0 || bodyParams.length === 0,
+      required:
+        Boolean(ep.requestSchema) ||
+        Boolean(ep.bodyRequiredOneOf?.length) ||
+        required.length > 0 ||
+        bodyParams.length === 0,
       content: {
-        'application/json': {
+        [contentType]: {
           schema,
+          ...(Object.keys(encoding).length > 0 ? { encoding } : {}),
           ...(example !== undefined ? { example } : {}),
         },
       },
@@ -145,10 +225,14 @@ function buildOperation(ep, tag) {
   if (ep.responseSchema) {
     const obj = EXAMPLES[ep.responseSchema];
     if (obj === undefined) {
-      throw new Error(`${ep.method} ${ep.path}: responseSchema "${ep.responseSchema}" has no generated example`);
+      throw new Error(
+        `${ep.method} ${ep.path}: responseSchema "${ep.responseSchema}" has no generated example`,
+      );
     }
     if (SCHEMAS[ep.responseSchema] === undefined) {
-      throw new Error(`${ep.method} ${ep.path}: responseSchema "${ep.responseSchema}" has no generated schema`);
+      throw new Error(
+        `${ep.method} ${ep.path}: responseSchema "${ep.responseSchema}" has no generated schema`,
+      );
     }
     const ref = { $ref: `#/components/schemas/${ep.responseSchema}` };
     objSchema = ep.responseSchemaArray ? { type: 'array', items: ref } : ref;
@@ -197,7 +281,7 @@ function buildOperation(ep, tag) {
   return op;
 }
 
-function buildSpec() {
+export function buildSpec() {
   const paths = {};
   for (const section of sections) {
     const tag = section.title;
@@ -221,9 +305,7 @@ function buildSpec() {
       description:
         'Programmatic interface to a 3X-UI panel. Authenticate either by logging in (cookie) or with an API token from Settings → Security → API Token (Bearer). All endpoints under /panel/api/* honour both modes — an API token is a full-admin credential, so treat it like the panel password.',
     },
-    servers: [
-      { url: '/', description: 'Current panel (basePath aware)' },
-    ],
+    servers: [{ url: '/', description: 'Current panel (basePath aware)' }],
     components: {
       securitySchemes: SECURITY_SCHEMES,
       schemas: SCHEMAS,
@@ -234,13 +316,13 @@ function buildSpec() {
   };
 }
 
-const spec = buildSpec();
-writeFileSync(outPath, JSON.stringify(spec, null, 2) + '\n');
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const spec = buildSpec();
+  writeFileSync(outPath, JSON.stringify(spec, null, 2) + '\n');
 
-const pathCount = Object.keys(spec.paths).length;
-let opCount = 0;
-for (const ops of Object.values(spec.paths)) opCount += Object.keys(ops).length;
-console.log(`[openapi] wrote ${outPath}`);
-console.log(`[openapi] paths: ${pathCount}, operations: ${opCount}, tags: ${spec.tags.length}`);
-
-void pathToFileURL;
+  const pathCount = Object.keys(spec.paths).length;
+  let opCount = 0;
+  for (const ops of Object.values(spec.paths)) opCount += Object.keys(ops).length;
+  console.log(`[openapi] wrote ${outPath}`);
+  console.log(`[openapi] paths: ${pathCount}, operations: ${opCount}, tags: ${spec.tags.length}`);
+}

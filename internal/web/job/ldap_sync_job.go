@@ -237,22 +237,24 @@ func (j *LdapSyncJob) createClients(newClients []model.Client, inboundIds []int,
 	restartNeeded := false
 	for _, c := range newClients {
 		nr, err := j.clientService.Create(&j.inboundService, &service.ClientCreatePayload{Client: c, InboundIds: inboundIds})
+		// Read before the error check: a partly-applied create still committed
+		// clients on the inbounds that succeeded, and those need the restart.
+		if nr {
+			restartNeeded = true
+		}
 		if err != nil {
 			logger.Warningf("Failed to add client %s for tags %s: %v", c.Email, tagList, err)
 			continue
 		}
 		created++
-		if nr {
-			restartNeeded = true
-		}
+	}
+	if restartNeeded {
+		j.xrayService.SetToNeedRestart()
 	}
 	if created == 0 {
 		return
 	}
 	logger.Infof("LDAP auto-create: %d clients for %s", created, tagList)
-	if restartNeeded {
-		j.xrayService.SetToNeedRestart()
-	}
 }
 
 func (j *LdapSyncJob) batchSetEnable(ib *model.Inbound, emails []string, enable bool) {

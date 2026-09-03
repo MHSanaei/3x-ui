@@ -130,8 +130,12 @@ export default function HostFormModal({
     [],
   );
   const fpOptions = useMemo(
-    () => Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v })),
-    [],
+    // '' = None first: Hysteria (and any no-uTLS host) must be selectable.
+    () => [
+      { value: '', label: t('none') },
+      ...Object.values(UTLS_FINGERPRINT).map((v) => ({ value: v, label: v })),
+    ],
+    [t],
   );
 
   const hostOptions = useMemo(() => {
