@@ -1420,12 +1420,15 @@
         "sortOrderHelp": "Abonelik listesindeki konumu, inbound sırası ile iç içe yerleşir; eşit numarada dengeleyici inbound'dan sonra gelir.",
         "inbounds": "Inbound'lar",
         "inboundsCount": "{count} Inbound'lar",
+        "weights": "Üye ağırlıkları",
+        "weightsHelp": "Yalnızca LeastLoad için: daha düşük ağırlık daha sık seçilir; değeri olmayan üyelerin ağırlığı 1’dir.",
         "enabled": "Etkin",
         "empty": "Henüz dengeleyici yok",
         "deleteConfirm": "Bu dengeleyici silinsin mi?",
         "errRemarkRequired": "Açıklama zorunludur",
         "errInboundsRequired": "En az bir inbound seçin",
         "errSortOrder": "Sıra 1 veya daha büyük bir tam sayı olmalı",
+        "errWeightPositive": "Ağırlıklar 0’dan büyük olmalıdır",
         "toasts": {
           "list": "Abonelik dengeleyicileri listelenemedi",
           "create": "Abonelik dengeleyicisi oluşturulamadı",
@@ -1855,7 +1858,10 @@
         "noServers": "Seçilen ülke için sunucu bulunamadı.",
         "noPublicKey": "Seçilen sunucu NordLynx genel anahtarı yayınlamıyor.",
         "outboundAdded": "NordVPN giden bağlantı eklendi.",
-        "outboundUpdated": "NordVPN giden bağlantı güncellendi."
+        "outboundUpdated": "NordVPN giden bağlantı güncellendi.",
+        "serverLoad": "Sunucu yükü",
+        "addedServers": "Eklenen sunucular",
+        "alreadyAdded": "Bu sunucu zaten giden bağlantı listesinde. Anahtarını yenilemek için {reset} kullanın."
       },
       "warp": {
         "changeIp": "IP Değiştir",

@@ -1538,12 +1538,15 @@
         "sortOrderHelp": "Position in the subscription list, interleaved with the inbounds' own order; on equal numbers the balancer comes after the inbound.",
         "inbounds": "Inbounds",
         "inboundsCount": "{count} Inbounds",
+        "weights": "Member weights",
+        "weightsHelp": "Only for LeastLoad: a lower weight is picked more often; members without a value weigh 1.",
         "enabled": "Enabled",
         "empty": "No balancers yet",
         "deleteConfirm": "Delete this balancer?",
         "errRemarkRequired": "Remark is required",
         "errInboundsRequired": "Select at least one inbound",
         "errSortOrder": "Order must be a whole number ≥ 1",
+        "errWeightPositive": "Weights must be greater than 0",
         "toasts": {
           "list": "Failed to list subscription balancers",
           "create": "Failed to create subscription balancer",
@@ -1973,7 +1976,10 @@
         "noServers": "No servers found for the selected country",
         "noPublicKey": "Selected server does not advertise a NordLynx public key.",
         "outboundAdded": "NordVPN outbound added",
-        "outboundUpdated": "NordVPN outbound updated"
+        "outboundUpdated": "NordVPN outbound updated",
+        "serverLoad": "Server load",
+        "addedServers": "Added servers",
+        "alreadyAdded": "This server is already in the outbound list. Use {reset} to refresh its key."
       },
       "warp": {
         "changeIp": "Change IP",

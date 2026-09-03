@@ -3390,6 +3390,13 @@
             },
             "type": "array"
           },
+          "memberWeights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "inboundId -> leastLoad weight; absent entries mean 1.0. Only meaningful\nwith Strategy \"leastLoad\" — xray ignores costs on every other strategy.",
+            "type": "object"
+          },
           "remark": {
             "example": "auto-fastest",
             "maxLength": 256,
@@ -12388,6 +12395,7 @@
                         1,
                         3
                       ],
+                      "memberWeights": {},
                       "remark": "auto-fastest",
                       "sortOrder": 1,
                       "strategy": "random",
@@ -12435,6 +12443,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
@@ -12452,7 +12461,7 @@
         "tags": [
           "Subscription Balancers"
         ],
-        "summary": "Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).",
+        "summary": "Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle); omitting memberWeights clears stored weights.",
         "operationId": "post_panel_api_sub_balancers_id",
         "parameters": [
           {
@@ -12494,6 +12503,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
@@ -12551,6 +12561,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
@@ -12610,6 +12621,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
