@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 
@@ -179,6 +180,16 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		}
 		settings := map[string]any{}
 		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+		var wireguardClientsByEmail map[string]model.Client
+		if inbound.Protocol == model.WireGuard {
+			inboundClients, _ := ParseInboundSettingsClients(inbound.Settings)
+			if len(inboundClients) > 0 {
+				wireguardClientsByEmail = make(map[string]model.Client, len(inboundClients))
+				for _, client := range inboundClients {
+					wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(client.Email))] = client
+				}
+			}
+		}
 
 		dbClients, listErr := s.inboundService.clientService.ListForInbound(nil, inbound.Id)
 		if listErr != nil {
@@ -244,6 +255,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					entry["auth"] = c.Auth
 				}
 			case model.WireGuard:
+				if inboundClient, ok := wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(c.Email))]; ok {
+					c.AllowedIPs = inboundClient.AllowedIPs
+					c.PreSharedKey = inboundClient.PreSharedKey
+				}
 				wgPeers = append(wgPeers, model.WireguardPeerFromClient(c))
 				continue
 			}
@@ -1020,6 +1035,19 @@ func ensureStatsPolicy(policy json_util.RawMessage) json_util.RawMessage {
 	return out
 }
 
+// caseVariantKeys returns every key of parsed that equals want ignoring case,
+// lowest first so the fold is deterministic when several variants are present.
+func caseVariantKeys(parsed map[string]any, want string) []string {
+	var keys []string
+	for key := range parsed {
+		if strings.EqualFold(key, want) {
+			keys = append(keys, key)
+		}
+	}
+	slices.Sort(keys)
+	return keys
+}
+
 func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	if len(logCfg) == 0 {
 		return logCfg
@@ -1030,12 +1058,29 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 	}
 	changed := false
 	for _, key := range []string{"access", "error"} {
-		v, ok := parsed[key].(string)
+		// xray-core decodes this object with encoding/json, whose case-insensitive
+		// field match makes "Access" reach AccessLog too — fold every variant.
+		variants := caseVariantKeys(parsed, key)
+		value, hasValue := parsed[key]
+		for _, variant := range variants {
+			if variant == key {
+				continue
+			}
+			if !hasValue {
+				value, hasValue = parsed[variant], true
+			}
+			delete(parsed, variant)
+			changed = true
+		}
+		v, ok := value.(string)
 		if !ok {
 			continue
 		}
 		trimmed := strings.TrimSpace(v)
 		if trimmed == "" || strings.EqualFold(trimmed, "none") {
+			if changed {
+				parsed[key] = v
+			}
 			continue
 		}
 		base := path.Base(filepath.ToSlash(trimmed))
@@ -1060,9 +1105,9 @@ func resolveXrayLogPaths(logCfg json_util.RawMessage) json_util.RawMessage {
 }
 
 // stripDisabledRules removes routing rules marked `enabled: false` from the
-// generated runtime config and strips the panel-only `enabled` key from the
-// rest, since xray-core has no such field. The internal api rule is always
-// kept (see isApiRule) so traffic stats can't be toggled off. The stored
+// generated runtime config and strips panel-only keys (`enabled`, `comment`)
+// from the rest, since xray-core has no such fields. The internal api rule is
+// always kept (see isApiRule) so traffic stats can't be toggled off. The stored
 // template is untouched — only the generated config is filtered.
 func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 	if len(routerCfg) == 0 {
@@ -1095,6 +1140,10 @@ func stripDisabledRules(routerCfg json_util.RawMessage) json_util.RawMessage {
 				continue
 			}
 			delete(rule, "enabled")
+			changed = true
+		}
+		if _, exists := rule["comment"]; exists {
+			delete(rule, "comment")
 			changed = true
 		}
 		activeRules = append(activeRules, rule)

@@ -15,9 +15,6 @@ import (
 // but the amneziawg-windows-client config editor rejects anything above.
 const awgHMax = 2147483647
 
-// hMinWidth is the minimum width of each generated H1-H4 range.
-const hMinWidth = 1000
-
 // hMaxValid is the largest value ValidateObfuscation accepts for an H
 // parameter: uint32 max, the kernel's own limit.
 const hMaxValid int64 = 4294967295
@@ -56,7 +53,7 @@ func GenerateObfuscation31() Obfuscation31 {
 	o.S3 = randInt(12, 55) // cookie padding (max 64)
 	o.S4 = randInt(12, 27) // transport padding (max 32)
 
-	h := generateHRanges()
+	h := generateHValues()
 	o.H1, o.H2, o.H3, o.H4 = h[0], h[1], h[2], h[3]
 
 	// CPS signature packet, N random bytes before each handshake. I2-I5 stay
@@ -109,19 +106,16 @@ func generateHeaderProtectionKey() string {
 	return base64.StdEncoding.EncodeToString(key)
 }
 
-// generateHRanges returns four non-overlapping "low-high" ranges for H1-H4,
-// one per band of the space so non-overlap needs no retries. The low bound is
-// >= 5: values 1-4 are reserved for vanilla WireGuard message types.
-func generateHRanges() [4]string {
+// generateHValues returns one distinct value per H1-H4 band; low bound >= 5 (1-4 are vanilla WG message types).
+// Single values, not ranges: with RandomTrailers on, a wide range misclassifies transport packets as handshakes (amnezia-vpn/amneziawg-go#183).
+func generateHValues() [4]string {
 	const lo = 5
 	bandSize := (awgHMax - lo + 1) / 4
 	var out [4]string
 	for i := 0; i < 4; i++ {
 		bandLo := lo + i*bandSize
 		bandHi := bandLo + bandSize - 1
-		start := randInt(bandLo, bandHi-hMinWidth-1)
-		end := randInt(start+hMinWidth, bandHi-1)
-		out[i] = fmt.Sprintf("%d-%d", start, end)
+		out[i] = fmt.Sprintf("%d", randInt(bandLo, bandHi))
 	}
 	return out
 }

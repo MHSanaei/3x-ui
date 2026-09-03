@@ -95,24 +95,19 @@ func assertRangeWithin(t *testing.T, name, v string, min, max int64) (lo, hi int
 	return lo, hi
 }
 
-func TestGenerateHRangesNonOverlapping(t *testing.T) {
+func TestGenerateHValuesDistinct(t *testing.T) {
 	for i := 0; i < 50; i++ {
-		h := generateHRanges()
-		var prevHi int64
-		for i, r := range h {
-			lo, hi, ok := strings.Cut(r, "-")
-			if !ok {
-				t.Fatalf("H%d = %q is not a range", i+1, r)
+		h := generateHValues()
+		var prev int64
+		for i, v := range h {
+			n, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				t.Fatalf("H%d = %q is not a plain integer: %v", i+1, v, err)
 			}
-			loN, _ := strconv.ParseInt(lo, 10, 64)
-			hiN, _ := strconv.ParseInt(hi, 10, 64)
-			if loN <= prevHi {
-				t.Fatalf("H%d = %q overlaps or touches the previous range (prev high=%d)", i+1, r, prevHi)
+			if n <= prev {
+				t.Fatalf("H%d = %q is not strictly greater than the previous value (%d)", i+1, v, prev)
 			}
-			if hiN-loN < hMinWidth {
-				t.Fatalf("H%d = %q is narrower than hMinWidth=%d", i+1, r, hMinWidth)
-			}
-			prevHi = hiN
+			prev = n
 		}
 	}
 }

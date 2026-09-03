@@ -12,7 +12,7 @@ if (messageContainer) {
   message.config({ getContainer: () => messageContainer });
 }
 
-readyI18n().then(() => {
+readyI18n('subscription').then(() => {
   const root = document.getElementById('app');
   if (root) {
     createRoot(root).render(
