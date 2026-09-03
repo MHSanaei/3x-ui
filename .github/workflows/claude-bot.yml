@@ -80,9 +80,28 @@ jobs:
             exit 1
           fi
           echo "sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+      # An automatic re-review of a head that already has one spends a whole run
+      # to reach the same conclusion, so settle it here rather than in the model.
+      - name: Skip a head that already has a review
+        id: reviewed
+        if: github.event_name == 'pull_request_target'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ steps.pinned-sha.outputs.sha }}
+        run: |
+          set -euo pipefail
+          posted=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select((.body | contains(\"Reviewed head:\")) and (.body | contains(\"${HEAD_SHA}\")))] | length")
+          if [ "$posted" != "0" ]; then
+            echo "done=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::#${PR} already carries a review of ${HEAD_SHA}; nothing to review."
+          fi
       # Read-only, and pinned to one immutable commit: this job holds a
       # write-scoped token, so running anything out of pr-head/ would be a pwn-request.
       - uses: actions/checkout@v7
+        if: steps.reviewed.outputs.done != 'true'
         with:
           ref: ${{ steps.pinned-sha.outputs.sha }}
           path: pr-head
@@ -91,6 +110,7 @@ jobs:
       # The skill reads CLAUDE.md on its own but not REVIEW.md, and knows nothing
       # of pr-head/ or this run's head: the brief is the only way both reach it.
       - name: Brief the reviewer
+        if: steps.reviewed.outputs.done != 'true'
         env:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number || github.event.issue.number }}
@@ -108,6 +128,11 @@ jobs:
             printf -- '- CI on that head: gh api repos/%s/commits/%s/check-runs\n' "$REPO" "$HEAD_SHA"
           } > "$RUNNER_TEMP/review-brief.md"
       - uses: anthropics/claude-code-action@v1
+        id: review
+        if: steps.reviewed.outputs.done != 'true'
+        # A refused run fails this step exactly like a real defect would, so the
+        # job classifies the failure below instead of going red on both alike.
+        continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -134,8 +159,31 @@ jobs:
           path: ${{ runner.temp }}/claude-execution-output.json
           if-no-files-found: ignore
           retention-days: 7
+      # An exhausted usage window or an overloaded API is not a broken workflow.
+      # Say so where the maintainer will see it, and leave the job green.
+      - name: Report a review the API refused to run
+        id: throttled
+        if: ${{ !cancelled() && steps.review.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+          TRANSCRIPT: ${{ runner.temp }}/claude-execution-output.json
+        run: |
+          set -euo pipefail
+          [ -f "$TRANSCRIPT" ] || exit 0
+          if jq -e 'any(.[]; .type == "rate_limit_event" and .rate_limit_info.status == "rejected")' "$TRANSCRIPT" >/dev/null 2>&1; then
+            reason="the account's usage limit was already spent when this run started"
+          elif jq -e 'any(.[]; .subtype == "api_retry" and .error_status == 529)' "$TRANSCRIPT" >/dev/null 2>&1; then
+            reason="the API stayed overloaded through every retry"
+          else
+            exit 0
+          fi
+          echo "skipped=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::No review of #${PR}: ${reason}."
+          gh pr comment "$PR" --repo "$REPO" --body "No review ran on this head: ${reason}. Nothing in this pull request was examined. A maintainer can ask for one with \`@claude review\`."
       - name: Fail if the review posted nothing
-        if: ${{ !cancelled() && steps.pinned-sha.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.pinned-sha.outcome == 'success' && steps.reviewed.outputs.done != 'true' && steps.throttled.outputs.skipped != 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -145,9 +193,9 @@ jobs:
           set -euo pipefail
           head=$(gh api "repos/${REPO}/pulls/${PR}" --jq '.head.sha')
           # updated_at, not created_at: the skill may update its existing sticky comment.
-          # A pre-existing comment naming the current head SHA means a legitimate skip.
+          # "Reviewed head:" as well as the SHA — the bot's other comments quote SHAs too.
           posted=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
-            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select((.updated_at >= \"${STARTED_AT}\") or (.body | contains(\"${head}\")))] | length")
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select((.updated_at >= \"${STARTED_AT}\") or ((.body | contains(\"Reviewed head:\")) and (.body | contains(\"${head}\"))))] | length")
           inline=$(gh api "repos/${REPO}/pulls/${PR}/comments" --paginate \
             --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select(.updated_at >= \"${STARTED_AT}\")] | length")
           if [ "$posted" = "0" ] && [ "$inline" = "0" ]; then

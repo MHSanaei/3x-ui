@@ -80,15 +80,38 @@ func (f *fakeNodeRuntime) ResetClientTraffic(context.Context, *model.Inbound, st
 func (f *fakeNodeRuntime) ResetInboundTraffic(context.Context, *model.Inbound) error { return nil }
 func (f *fakeNodeRuntime) ResetAllTraffics(context.Context) error                    { return nil }
 
-// setupNodeRuntime wires an online node + a fake runtime override and returns the
-// node id and the fake so a test can drive the service node-dispatch path without
-// a network node.
-func setupNodeRuntime(t *testing.T) (int, *fakeNodeRuntime) {
+// startSerializedWriter runs the single traffic-writer goroutine for the test, so
+// concurrent service writes take the serialized path production uses.
+func startSerializedWriter(t *testing.T) {
+	t.Helper()
+	resetTrafficWriterForTest(t)
+	StartTrafficWriter()
+}
+
+// useTestRuntimeManager swaps in a fresh runtime.Manager for the test and puts
+// the previous one back afterwards, so overrides can't leak between tests.
+func useTestRuntimeManager(t *testing.T) *runtime.Manager {
 	t.Helper()
 	prev := runtime.GetManager()
 	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, SetNeedRestart: func() {}})
 	runtime.SetManager(mgr)
 	t.Cleanup(func() { runtime.SetManager(prev) })
+	return mgr
+}
+
+// panicNodeRuntime panics on the per-client push, standing in for a bug in the
+// apply path that would otherwise unwind straight out of a fanout goroutine.
+type panicNodeRuntime struct{ fakeNodeRuntime }
+
+func (p *panicNodeRuntime) AddClient(context.Context, *model.Inbound, model.Client) error {
+	panic("boom from node runtime")
+}
+
+// setupNodeRuntime wires an online node + a fake runtime override so a test can
+// drive the service node-dispatch path without a network node.
+func setupNodeRuntime(t *testing.T) (int, *fakeNodeRuntime) {
+	t.Helper()
+	mgr := useTestRuntimeManager(t)
 
 	node := &model.Node{Name: "n1-" + t.Name(), Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, Status: "online"}
 	if err := database.GetDB().Create(node).Error; err != nil {

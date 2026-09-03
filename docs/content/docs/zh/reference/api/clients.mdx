@@ -255,11 +255,11 @@ _openapi:
     - depth: 2
       title: >-
         返回与该订阅 ID 匹配的客户端的每个协议 URL（vless://、vmess://、trojan://、ss://、
-        hysteria://、hy2://）。结果集与 /sub/<subId> 相同，但以 JSON 数组形式返回——不含
+        hysteria://、hy2://）。结果集与配置的 subPath 端点相同，但以 JSON 数组形式返回——不含
         base64。当某入站设置了 streamSettings.externalProxy 时，每个外部代理会发出一条 URL。
         当该 subId 没有已启用的客户端时返回空数组。
       url: >-
-        #return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+        #return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
     - depth: 2
       title: >-
         返回单个客户端在所有挂载入站上的每个 URL——与面板 UI 中“复制 URL”按钮所复制的字符串
@@ -477,11 +477,11 @@ _openapi:
         id: traffic-counters-for-a-client-identified-by-email
       - content: >-
           返回与该订阅 ID 匹配的客户端的每个协议 URL（vless://、vmess://、trojan://、ss://、
-          hysteria://、hy2://）。结果集与 /sub/<subId> 相同，但以 JSON 数组形式返回——不含
+          hysteria://、hy2://）。结果集与配置的 subPath 端点相同，但以 JSON 数组形式返回——不含
           base64。当某入站设置了 streamSettings.externalProxy 时，每个外部代理会发出一条 URL。
           当该 subId 没有已启用的客户端时返回空数组。
         id: >-
-          return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+          return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
       - content: >-
           返回单个客户端在所有挂载入站上的每个 URL——与面板 UI 中“复制 URL”按钮所复制的字符串
           相同。支持的协议：vmess、vless、trojan、shadowsocks、hysteria。若设置了
