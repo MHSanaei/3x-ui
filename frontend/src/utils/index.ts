@@ -879,6 +879,13 @@ export interface SupportedLanguage {
   icon: string;
 }
 
+export type LanguageScope = 'panel' | 'subscription';
+
+const languageCookieNames: Record<LanguageScope, string> = {
+  panel: 'lang',
+  subscription: 'subLang',
+};
+
 export class LanguageManager {
   static readonly supportedLanguages: readonly SupportedLanguage[] = [
     { name: 'العربية', value: 'ar-EG', icon: '🇪🇬' },
@@ -896,9 +903,18 @@ export class LanguageManager {
     { name: 'Português', value: 'pt-BR', icon: '🇧🇷' },
   ];
 
-  static getLanguage(): string {
-    let lang = CookieManager.getCookie('lang');
+  static getLanguage(scope: LanguageScope = 'panel'): string {
+    const cookieName = languageCookieNames[scope];
+    let lang = CookieManager.getCookie(cookieName);
     if (lang) return lang;
+
+    if (scope === 'subscription') {
+      const legacyLang = CookieManager.getCookie(languageCookieNames.panel);
+      if (LanguageManager.isSupportLanguage(legacyLang)) {
+        CookieManager.setCookie(cookieName, legacyLang, 365);
+        return legacyLang;
+      }
+    }
 
     if (window.navigator) {
       const nav = window.navigator as Navigator & { userLanguage?: string };
@@ -924,24 +940,24 @@ export class LanguageManager {
       });
 
       if (LanguageManager.isSupportLanguage(lang)) {
-        CookieManager.setCookie('lang', lang, 365);
+        CookieManager.setCookie(cookieName, lang, 365);
       } else {
-        CookieManager.setCookie('lang', 'en-US', 365);
+        CookieManager.setCookie(cookieName, 'en-US', 365);
         window.location.reload();
       }
     } else {
-      CookieManager.setCookie('lang', 'en-US', 365);
+      CookieManager.setCookie(cookieName, 'en-US', 365);
       window.location.reload();
     }
 
     return lang;
   }
 
-  static setLanguage(language: string): void {
+  static setLanguage(language: string, scope: LanguageScope = 'panel'): void {
     if (!LanguageManager.isSupportLanguage(language)) {
       language = 'en-US';
     }
-    CookieManager.setCookie('lang', language, 365);
+    CookieManager.setCookie(languageCookieNames[scope], language, 365);
     window.location.reload();
   }
 
@@ -977,11 +993,11 @@ export class IntlUtil {
   static formatDate(
     date: string | number | Date | null | undefined,
     calendar: CalendarKind = 'gregorian',
+    language: string = LanguageManager.getLanguage(),
   ): string {
     if (date == null) return '';
     const d = new Date(date);
     if (!isFinite(d.getTime())) return '';
-    const language = LanguageManager.getLanguage();
     const locale = calendar === 'jalalian' ? 'fa-IR' : language;
 
     const intlOptions: Intl.DateTimeFormatOptions = {
