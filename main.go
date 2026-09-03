@@ -632,8 +632,8 @@ func main() {
 	settingCmd.BoolVar(&resetTwoFactor, "resetTwoFactor", false, "Reset two-factor authentication settings")
 	settingCmd.BoolVar(&getListen, "getListen", false, "Display current panel listenIP IP")
 	settingCmd.BoolVar(&getCert, "getCert", false, "Display current certificate settings")
-	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Regenerate a CLI API token and print it; this invalidates the previous token of that name")
-	settingCmd.StringVar(&tokenName, "tokenName", "", "Name of the token -getApiToken regenerates (default: "+cliFallbackTokenName+")")
+	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Print an API token for CLI use, regenerating it and invalidating the previous one; on a panel with no tokens yet it mints one instead")
+	settingCmd.StringVar(&tokenName, "tokenName", "", "Name of the token -getApiToken acts on (default: "+cliFallbackTokenName+", or "+installTokenName+" on a panel with no tokens)")
 	settingCmd.StringVar(&webCertFile, "webCert", "", "Set path to public key file for panel")
 	settingCmd.StringVar(&webKeyFile, "webCertKey", "", "Set path to private key file for panel")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "Set token for Telegram bot")
@@ -704,6 +704,11 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 			return
+		}
+		// flag stops parsing at the first non-flag argument, so the `-getApiToken true`
+		// form drops every flag written after it. Say so instead of acting on a default.
+		if rest := settingCmd.Args(); len(rest) > 0 {
+			fmt.Printf("warning: ignored %q and any flags after it; put flags before positional arguments\n", strings.Join(rest, " "))
 		}
 		if reset {
 			if err = resetSetting(); err != nil {

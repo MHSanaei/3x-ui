@@ -78,9 +78,15 @@ func TestRecreateByNameRejectsOverlongName(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = database.CloseDB() })
 
+	const wantErr = "token name must be 64 characters or fewer"
+
 	svc := ApiTokenService{}
-	if _, err := svc.RecreateByName(strings.Repeat("n", 65)); err == nil {
+	_, err := svc.RecreateByName(strings.Repeat("n", 65))
+	if err == nil {
 		t.Fatal("expected a 65-character token name to be rejected")
+	}
+	if got := strings.TrimSpace(err.Error()); got != wantErr {
+		t.Fatalf("error = %q, want %q — any other error would pass a bare nil check", got, wantErr)
 	}
 	if _, err := svc.RecreateByName(strings.Repeat("n", 64)); err != nil {
 		t.Fatalf("64 characters is the documented limit, got: %v", err)
