@@ -89,6 +89,69 @@ func TestManagerLifecycle(t *testing.T) {
 	}
 }
 
+// An inbound with no explicit MTU derives it from S4, so an S4-only edit is
+// structural: leave it out of the fingerprint and the netstack keeps the old MTU
+// while every client emitter already advertises the new one.
+func TestEnsureRebuildsWhenS4ChangesTheDerivedMTU(t *testing.T) {
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		mtu         int
+		wantRebuild bool
+	}{
+		{"derived MTU", 0, true},
+		{"explicit MTU", 1420, false},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Manager{ifaces: map[int]*managed{}}
+			defer m.StopAll()
+
+			inst := amneziawg.Instance{
+				Id:            9 + i,
+				InterfaceName: fmt.Sprintf("awgtest%d", 9+i),
+				ListenPort:    58719 + i,
+				PrivateKey:    priv,
+				PublicKey:     pub,
+				Address:       []string{"10.209.0.1/24"},
+				MTU:           tt.mtu,
+				Obfuscation: amneziawg.Obfuscation31{
+					Jc: 4, Jmin: 40, Jmax: 70,
+					S1: 20, S2: 30, S3: 20, S4: 5,
+				},
+			}
+			if err := m.Ensure(Desired{Instance: inst}); err != nil {
+				t.Fatalf("Ensure (create): %v", err)
+			}
+			before, _, ok := m.Lookup(inst.Id)
+			if !ok {
+				t.Fatal("Lookup after create: not found")
+			}
+
+			edited := inst
+			edited.Obfuscation.S4 = 27
+			if err := m.Ensure(Desired{Instance: edited}); err != nil {
+				t.Fatalf("Ensure (S4 changed): %v", err)
+			}
+			after, _, ok := m.Lookup(inst.Id)
+			if !ok {
+				t.Fatal("Lookup after S4 edit: not found")
+			}
+
+			if rebuilt := before != after; rebuilt != tt.wantRebuild {
+				t.Errorf("S4 5->27 rebuilt the Device = %v, want %v (MTU %d -> %d)",
+					rebuilt, tt.wantRebuild,
+					amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4),
+					amneziawg.EffectiveMTU(edited.MTU, edited.Obfuscation.S4))
+			}
+		})
+	}
+}
+
 // TestEnsureUnchangedInstanceDoesNotResetLivePeers is a regression test for a
 // real production bug: an unchanged Ensure call (the common case on every
 // 10s AmneziaWGJob reconcile tick when no admin edit happened) was calling

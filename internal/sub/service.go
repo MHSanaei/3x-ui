@@ -722,9 +722,9 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	if len(dns) > 0 {
 		fmt.Fprintf(&b, "DNS = %s\n", strings.Join(dns, ", "))
 	}
-	if server.MTU > 0 {
-		fmt.Fprintf(&b, "MTU = %d\n", server.MTU)
-	}
+	// Always emitted: a missing MTU line leaves the client on its own 1420
+	// default and fragments the client-to-server direction once S4 passes 20.
+	fmt.Fprintf(&b, "MTU = %d\n", amneziawg.EffectiveMTU(server.MTU, server.S4))
 
 	fmt.Fprintf(&b, "Jc = %d\n", server.Jc)
 	fmt.Fprintf(&b, "Jmin = %d\n", server.Jmin)
