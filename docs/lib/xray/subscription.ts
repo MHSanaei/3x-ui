@@ -146,7 +146,7 @@ function subJsonSkeleton(): Record<string, unknown> {
     inbounds: [
       {
         port: 10808,
-        protocol: 'mixed',
+        protocol: 'socks',
         settings: { auth: 'noauth', udp: true, userLevel: 8 },
         sniffing: { destOverride: ['http', 'tls', 'quic', 'fakedns'], enabled: true },
         tag: 'mixed',
