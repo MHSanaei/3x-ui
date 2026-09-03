@@ -15,6 +15,7 @@ export type RuleWebhook = z.infer<typeof RuleWebhookSchema>;
 export const RuleObjectSchema = z.object({
   type: z.literal('field').default('field'),
   enabled: z.boolean().optional(),
+  comment: z.string().optional(),
   domain: z.array(z.string()).optional(),
   ip: z.array(z.string()).optional(),
   port: PortValueSchema.optional(),

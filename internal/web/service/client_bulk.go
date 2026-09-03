@@ -908,8 +908,9 @@ func (s *ClientService) bulkDelInboundClients(
 		return res
 	}
 
-	// Match by email — the client's stable identity (see Delete). Removes every
-	// entry carrying a wanted email, independent of credential drift.
+	// Match by email — the client's stable identity (see Delete). The link-derived
+	// set is deletion intent: an email already absent from settings is successful,
+	// while foundEmails tracks entries that still need settings-specific cleanup.
 	wantedEmails := make(map[string]struct{}, len(emails))
 	for _, email := range emails {
 		if records[email] == nil {
@@ -939,12 +940,6 @@ func (s *ClientService) bulkDelInboundClients(
 		newClients = append(newClients, client)
 	}
 
-	for email := range wantedEmails {
-		if !foundEmails[email] {
-			res.perEmailSkipped[email] = "Client Not Found In Inbound"
-		}
-	}
-
 	db := database.GetDB()
 	newClients = compactOrphans(db, newClients)
 	if newClients == nil {
@@ -953,7 +948,7 @@ func (s *ClientService) bulkDelInboundClients(
 	settings["clients"] = newClients
 	newSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		for email := range foundEmails {
+		for email := range wantedEmails {
 			if _, skip := res.perEmailSkipped[email]; !skip {
 				res.perEmailSkipped[email] = err.Error()
 			}
@@ -991,9 +986,8 @@ func (s *ClientService) bulkDelInboundClients(
 		var sharedErr error
 		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(foundList, inboundId)
 		if sharedErr != nil {
-			for email := range foundEmails {
+			for email := range wantedEmails {
 				res.perEmailSkipped[email] = sharedErr.Error()
-				delete(foundEmails, email)
 			}
 			return res
 		}
@@ -1046,7 +1040,7 @@ func (s *ClientService) bulkDelInboundClients(
 		return nil
 	})
 	if txErr != nil {
-		for email := range foundEmails {
+		for email := range wantedEmails {
 			if _, skip := res.perEmailSkipped[email]; !skip {
 				res.perEmailSkipped[email] = txErr.Error()
 			}
@@ -1071,12 +1065,21 @@ func (s *ClientService) bulkDelInboundClients(
 				}
 			}
 		}
-	} else if len(foundEmails) <= nodeBulkPushThreshold {
+	} else {
+		dispatchEmails := make([]string, 0, len(wantedEmails))
+		for email := range wantedEmails {
+			if _, skip := res.perEmailSkipped[email]; !skip {
+				dispatchEmails = append(dispatchEmails, email)
+			}
+		}
+		if len(dispatchEmails) > nodeBulkPushThreshold {
+			return res
+		}
 		rt, push, _, perr := inboundSvc.nodePushPlan(oldInbound)
 		if perr != nil {
 			logger.Warning("BulkDelete: node runtime lookup after commit failed:", perr)
 		} else if push {
-			for email := range foundEmails {
+			for _, email := range dispatchEmails {
 				if err1 := rt.DeleteClient(context.Background(), email); err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
 				}
