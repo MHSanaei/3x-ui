@@ -1217,6 +1217,22 @@ func initUser() error {
 	return nil
 }
 
+func seedRandomSubscriptionPaths() error {
+	settings := []model.Setting{
+		{Key: "subPath", Value: "/" + random.NumLower(16) + "/"},
+		{Key: "subJsonPath", Value: "/" + random.NumLower(16) + "/"},
+		{Key: "subClashPath", Value: "/" + random.NumLower(16) + "/"},
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		for i := range settings {
+			if err := tx.Where("key = ?", settings[i].Key).FirstOrCreate(&settings[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func runSeeders(isUsersEmpty bool) error {
 	empty, err := isTableEmpty("history_of_seeders")
 	if err != nil {
@@ -2130,7 +2146,7 @@ func InitDB(dbPath string) error {
 		}
 	default:
 		dir := path.Dir(dbPath)
-		if err = os.MkdirAll(dir, 0o755); err != nil {
+		if err = os.MkdirAll(dir, 0o700); err != nil {
 			return err
 		}
 		if err = cleanupSQLiteBackupDirs(filepath.Dir(dbPath)); err != nil {
@@ -2143,6 +2159,9 @@ func InitDB(dbPath string) error {
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
+		}
+		if err := restrictSQLiteFilePerms(dbPath); err != nil {
+			log.Printf("restrict SQLite file permissions: %v", err)
 		}
 		sqlDB, err := db.DB()
 		if err != nil {
@@ -2189,6 +2208,11 @@ func InitDB(dbPath string) error {
 	isUsersEmpty, err := isTableEmpty("users")
 	if err != nil {
 		return err
+	}
+	if isUsersEmpty {
+		if err := seedRandomSubscriptionPaths(); err != nil {
+			return err
+		}
 	}
 
 	if err := initUser(); err != nil {
@@ -2242,6 +2266,17 @@ func openPostgresWithRetry(dsn string, c *gorm.Config) (*gorm.DB, error) {
 		log.Printf("postgres connection attempt %d/%d failed: %v", i+1, len(delays), err)
 	}
 	return nil, fmt.Errorf("postgres unreachable after %d attempts: %w", len(delays), lastErr)
+}
+
+// The store holds client secrets, so it and its WAL/SHM side files stay
+// owner-only. Best effort: a store the panel cannot chmod still opens.
+func restrictSQLiteFilePerms(dbPath string) error {
+	for _, name := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+		if err := os.Chmod(name, 0o600); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
 }
 
 func sqliteJournalMode() string {

@@ -1420,12 +1420,15 @@
         "sortOrderHelp": "الموضع في قائمة الاشتراك، متداخل مع ترتيب الإينبوندات؛ عند تساوي الرقم يأتي الموزّع بعد الإينباند.",
         "inbounds": "الإينبوندات",
         "inboundsCount": "{count} الإينبوندات",
+        "weights": "أوزان الأعضاء",
+        "weightsHelp": "لـ LeastLoad فقط: الوزن الأقل يُختار أكثر؛ العضو بدون قيمة وزنه 1.",
         "enabled": "مُفعّل",
         "empty": "لا يوجد موزّعات بعد",
         "deleteConfirm": "حذف هذا الموزّع؟",
         "errRemarkRequired": "الملاحظة مطلوبة",
         "errInboundsRequired": "اختر إينبوندًا واحدًا على الأقل",
         "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1",
+        "errWeightPositive": "يجب أن تكون الأوزان أكبر من 0",
         "toasts": {
           "list": "تعذّر عرض موزّعات الاشتراك",
           "create": "تعذّر إنشاء موزّع اشتراك",
@@ -1852,7 +1855,10 @@
         "noServers": "لم يتم العثور على خوادم للدولة المحددة",
         "noPublicKey": "الخادم المحدد لا يُعلن عن مفتاح NordLynx العام.",
         "outboundAdded": "تمت إضافة صادر NordVPN",
-        "outboundUpdated": "تم تحديث صادر NordVPN"
+        "outboundUpdated": "تم تحديث صادر NordVPN",
+        "serverLoad": "حمل الخادم",
+        "addedServers": "الخوادم المضافة",
+        "alreadyAdded": "هذا الخادم موجود بالفعل في قائمة الصادرات. استخدم {reset} لتحديث مفتاحه."
       },
       "warp": {
         "changeIp": "تغيير الـ IP",

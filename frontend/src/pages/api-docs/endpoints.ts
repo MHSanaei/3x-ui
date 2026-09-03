@@ -1279,7 +1279,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/subLinks/:subId',
         summary:
-          'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as /sub/<subId>, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
+          'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as the configured subPath endpoint, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
         params: [
           {
             name: 'subId',
@@ -2249,6 +2249,12 @@ export const sections: readonly Section[] = [
             desc: 'Repeated form keys selecting the member inbounds, e.g. inboundIds=1&inboundIds=3 (required, at least one).',
           },
           {
+            name: 'memberWeights',
+            in: 'body (form)',
+            type: 'object',
+            desc: 'leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {"3":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped.',
+          },
+          {
             name: 'sortOrder',
             in: 'body (form)',
             type: 'integer',
@@ -2267,7 +2273,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/sub-balancers/:id',
         summary:
-          'Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle).',
+          'Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle); omitting memberWeights clears stored weights.',
         params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
         responseSchema: 'SubBalancer',
       },
@@ -2293,7 +2299,7 @@ export const sections: readonly Section[] = [
     id: 'subscription',
     title: 'Subscription Server',
     description:
-      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below. All subscription endpoints set response headers for client apps to read traffic/expiry info.',
+      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 2096) and is configured in Settings → Subscription. Fresh panels generate random path prefixes for each format; all paths remain configurable. Every subscription endpoint sets response headers for client apps to read traffic/expiry info.',
     subHeader: [
       {
         name: 'Subscription-Userinfo',
@@ -2321,7 +2327,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/{subPath}:subid',
         summary:
-          'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. Default path: /sub/:subid.',
+          'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. The path prefix is configured by subPath.',
         params: [
           { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
           {
@@ -2337,14 +2343,14 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/{jsonPath}:subid',
         summary:
-          'Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. Default path: /json/:subid.',
+          'Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. The path prefix is configured by subJsonPath.',
         params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
       },
       {
         method: 'GET',
         path: '/{clashPath}:subid',
         summary:
-          'Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.',
+          'Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. The path prefix is configured by subClashPath.',
         params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
       },
     ],
