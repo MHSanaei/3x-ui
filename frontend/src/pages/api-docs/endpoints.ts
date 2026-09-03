@@ -2127,6 +2127,12 @@ export const sections: readonly Section[] = [
             desc: 'Prefix for generated outbound tags. Defaults to "sub<id>-".',
           },
           {
+            name: 'userAgent',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Custom User-Agent sent when fetching this subscription. Defaults to "3x-ui-outbound-sub/1.0".',
+          },
+          {
             name: 'updateInterval',
             in: 'body (form)',
             type: 'integer',
@@ -2143,6 +2149,12 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'boolean',
             desc: 'Allow the URL to point at a private/internal/loopback address (localhost/LAN). Default false (SSRF guard blocks private targets).',
+          },
+          {
+            name: 'allowInsecure',
+            in: 'body (form)',
+            type: 'boolean',
+            desc: 'Skip TLS certificate verification for this subscription. Default false.',
           },
           {
             name: 'prepend',
@@ -2205,6 +2217,24 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Subscription URL to preview (required).',
+          },
+          {
+            name: 'userAgent',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Custom User-Agent sent while fetching the preview.',
+          },
+          {
+            name: 'allowPrivate',
+            in: 'body (form)',
+            type: 'boolean',
+            desc: 'Allow a private/internal/loopback subscription URL during preview.',
+          },
+          {
+            name: 'allowInsecure',
+            in: 'body (form)',
+            type: 'boolean',
+            desc: 'Skip TLS certificate verification during preview.',
           },
         ],
       },
