@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"mime/multipart"
 	stdnet "net"
@@ -2168,21 +2169,35 @@ func (s *ServerService) IsValidGeofileName(filename string) bool {
 	return matched
 }
 
+// Repo is the upstream release base and Asset the name it publishes under; all
+// three publish "geoip.dat", so only FileName tells the local copies apart.
 type geofileEntry struct {
-	URL      string
+	Repo     string
+	Asset    string
 	FileName string
 }
 
-// geofileAllowlist maps the local database name to its upstream release asset.
-// Three upstreams all publish "geoip.dat"/"geosite.dat", so only the local name
-// tells them apart.
 var geofileAllowlist = map[string]geofileEntry{
-	"geoip.dat":      {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip.dat"},
-	"geosite.dat":    {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite.dat"},
-	"geoip_IR.dat":   {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", "geoip_IR.dat"},
-	"geosite_IR.dat": {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", "geosite_IR.dat"},
-	"geoip_RU.dat":   {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
-	"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
+	"geoip.dat":      {"https://github.com/Loyalsoldier/v2ray-rules-dat", "geoip.dat", "geoip.dat"},
+	"geosite.dat":    {"https://github.com/Loyalsoldier/v2ray-rules-dat", "geosite.dat", "geosite.dat"},
+	"geoip_IR.dat":   {"https://github.com/chocolate4u/Iran-v2ray-rules", "geoip.dat", "geoip_IR.dat"},
+	"geosite_IR.dat": {"https://github.com/chocolate4u/Iran-v2ray-rules", "geosite.dat", "geosite_IR.dat"},
+	"geoip_RU.dat":   {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geoip.dat", "geoip_RU.dat"},
+	"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geosite.dat", "geosite_RU.dat"},
+}
+
+func (entry geofileEntry) latestURL() string {
+	return entry.Repo + "/releases/latest/download/" + entry.Asset
+}
+
+func (entry geofileEntry) taggedURL(tag string) string {
+	return entry.Repo + "/releases/download/" + tag + "/" + entry.Asset
+}
+
+// stagedGeofile is a verified download waiting to be moved into the asset folder.
+type stagedGeofile struct {
+	destPath  string
+	stagePath string
 }
 
 // restartXrayAfterGeofileUpdate is a seam: tests assert that an update which
@@ -2202,6 +2217,14 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		wanted = map[string]geofileEntry{fileName: geofileAllowlist[fileName]}
 	}
 
+	// Atomic per upstream, not across all six: one release's databases belong
+	// together, but a failing repo must not discard another repo's good files.
+	byRepo := make(map[string][]geofileEntry, len(wanted))
+	for _, entry := range wanted {
+		byRepo[entry.Repo] = append(byRepo[entry.Repo], entry)
+	}
+	repos := slices.Sorted(maps.Keys(byRepo))
+
 	binFolder := config.GetBinFolderPath()
 	stageDir, err := os.MkdirTemp(binFolder, "geofile-")
 	if err != nil {
@@ -2211,46 +2234,112 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 
 	client := s.settingService.NewProxiedHTTPClient(0)
 
-	// Verify every database before installing any of them: a half-applied update
-	// leaves the core running databases from two different releases.
-	staged := make(map[string]string, len(wanted))
-	for _, entry := range wanted {
-		destPath := filepath.Join(binFolder, entry.FileName)
-		stagePath := filepath.Join(stageDir, entry.FileName)
-		changed, err := s.stageGeofile(client, entry, destPath, stagePath)
+	var errorMessages []string
+	installed := 0
+	for _, repo := range repos {
+		entries := byRepo[repo]
+		slices.SortFunc(entries, func(a, b geofileEntry) int { return strings.Compare(a.FileName, b.FileName) })
+
+		staged, err := s.stageGeofileRelease(client, entries, binFolder, stageDir)
 		if err != nil {
-			return common.NewErrorf("Error downloading Geofile '%s': %v", entry.FileName, err)
+			errorMessages = append(errorMessages, err.Error())
+			continue
 		}
-		if changed {
-			staged[destPath] = stagePath
-		}
-	}
-
-	// Every upstream answered 304, so there is nothing to install and no reason
-	// to restart the core and drop every client connection.
-	if len(staged) == 0 {
-		return nil
-	}
-
-	for destPath, stagePath := range staged {
-		if err := os.Rename(stagePath, destPath); err != nil {
-			return common.NewErrorf("Failed to install Geofile %s: %v", destPath, err)
+		for _, file := range staged {
+			if err := os.Rename(file.stagePath, file.destPath); err != nil {
+				errorMessages = append(errorMessages, fmt.Sprintf("Failed to install Geofile %s: %v", file.destPath, err))
+				continue
+			}
+			installed++
 		}
 	}
 
-	if err := restartXrayAfterGeofileUpdate(s); err != nil {
-		return common.NewErrorf("Updated Geofile '%s' but Failed to start Xray: %v", fileName, err)
+	// Nothing changed, so there is no reason to restart the core and drop every
+	// client connection.
+	if installed > 0 {
+		if err := restartXrayAfterGeofileUpdate(s); err != nil {
+			errorMessages = append(errorMessages, fmt.Sprintf("Updated Geofiles but Failed to start Xray: %v", err))
+		}
+	}
+
+	if len(errorMessages) > 0 {
+		return common.NewErrorf("%s", strings.Join(errorMessages, "\r\n"))
 	}
 
 	return nil
 }
 
+// stageGeofileRelease downloads one upstream's databases and verifies each
+// against a digest from the same release, staging all of them or none.
+func (s *ServerService) stageGeofileRelease(client *http.Client, entries []geofileEntry, binFolder, stageDir string) ([]stagedGeofile, error) {
+	// Resolve "latest" once. These upstreams publish several times a day, and a
+	// release landing mid-batch would check one release's digest against another's bytes.
+	tag, err := resolveGeofileTag(client, entries[0].latestURL())
+	if err != nil {
+		return nil, common.NewErrorf("Error resolving Geofile release from %s: %v", entries[0].Repo, err)
+	}
+
+	var staged []stagedGeofile
+	for _, entry := range entries {
+		destPath := filepath.Join(binFolder, entry.FileName)
+		stagePath := filepath.Join(stageDir, entry.FileName)
+		changed, err := s.stageGeofile(client, entry, tag, destPath, stagePath)
+		if err != nil {
+			return nil, common.NewErrorf("Error downloading Geofile '%s': %v", entry.FileName, err)
+		}
+		if changed {
+			staged = append(staged, stagedGeofile{destPath: destPath, stagePath: stagePath})
+		}
+	}
+	return staged, nil
+}
+
+// resolveGeofileTag reads the immutable release tag a `latest` download
+// redirects to, so the asset and its digest cannot come from two releases.
+func resolveGeofileTag(client *http.Client, latestURL string) (string, error) {
+	pinned := *client
+	pinned.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, latestURL, nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := pinned.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	location := resp.Header.Get("Location")
+	if location == "" {
+		return "", common.NewErrorf("expected a redirect to a tagged release, got HTTP %d", resp.StatusCode)
+	}
+	return geofileTagFromLocation(location)
+}
+
+// geofileTagFromLocation pulls <tag> out of a .../releases/download/<tag>/<asset>
+// redirect target.
+func geofileTagFromLocation(location string) (string, error) {
+	const marker = "/releases/download/"
+	idx := strings.Index(location, marker)
+	if idx < 0 {
+		return "", common.NewErrorf("unexpected release redirect %q", location)
+	}
+	tag, _, found := strings.Cut(location[idx+len(marker):], "/")
+	if !found || tag == "" {
+		return "", common.NewErrorf("unexpected release redirect %q", location)
+	}
+	return tag, nil
+}
+
 // stageGeofile downloads one database into stagePath and checks it against the
 // SHA-256 its upstream publishes. It reports false on 304, staging nothing.
-func (s *ServerService) stageGeofile(client *http.Client, entry geofileEntry, destPath, stagePath string) (bool, error) {
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, entry.URL, nil)
+func (s *ServerService) stageGeofile(client *http.Client, entry geofileEntry, tag, destPath, stagePath string) (bool, error) {
+	assetURL := entry.taggedURL(tag)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, assetURL, nil)
 	if err != nil {
-		return false, common.NewErrorf("Failed to create HTTP request for %s: %v", entry.URL, err)
+		return false, common.NewErrorf("Failed to create HTTP request for %s: %v", assetURL, err)
 	}
 
 	if fileInfo, err := os.Stat(destPath); err == nil {
@@ -2261,7 +2350,7 @@ func (s *ServerService) stageGeofile(client *http.Client, entry geofileEntry, de
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, common.NewErrorf("Failed to download Geofile from %s: %v", entry.URL, err)
+		return false, common.NewErrorf("Failed to download Geofile from %s: %v", assetURL, err)
 	}
 	defer resp.Body.Close()
 
@@ -2270,7 +2359,7 @@ func (s *ServerService) stageGeofile(client *http.Client, entry geofileEntry, de
 	if serverModTimeStr := resp.Header.Get("Last-Modified"); serverModTimeStr != "" {
 		parsedTime, err := time.Parse(http.TimeFormat, serverModTimeStr)
 		if err != nil {
-			logger.Warningf("Failed to parse Last-Modified header for %s: %v", entry.URL, err)
+			logger.Warningf("Failed to parse Last-Modified header for %s: %v", assetURL, err)
 		} else {
 			serverModTime = parsedTime
 		}
@@ -2292,7 +2381,7 @@ func (s *ServerService) stageGeofile(client *http.Client, entry geofileEntry, de
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return false, common.NewErrorf("Failed to download Geofile from %s: received status code %d", entry.URL, resp.StatusCode)
+		return false, common.NewErrorf("Failed to download Geofile from %s: received status code %d", assetURL, resp.StatusCode)
 	}
 
 	file, err := os.Create(stagePath)
@@ -2310,7 +2399,7 @@ func (s *ServerService) stageGeofile(client *http.Client, entry geofileEntry, de
 
 	// TLS protects the transport, not the artifact. Xray parses these databases
 	// when it builds its routing matchers, so a bad one takes the core down.
-	want, err := s.fetchGeofileDigest(client, entry.URL+".sha256sum", path.Base(entry.URL))
+	want, err := s.fetchGeofileDigest(client, assetURL+".sha256sum", entry.Asset)
 	if err != nil {
 		return false, err
 	}
@@ -2344,9 +2433,8 @@ func (s *ServerService) fetchGeofileDigest(client *http.Client, sumsURL, assetNa
 	return parseGeofileDigest(raw, assetName)
 }
 
-// parseGeofileDigest returns the SHA-256 hex a sha256sum sidecar lists for
-// assetName. Upstreams record different paths for it ("geoip.dat" against
-// "release/geoip.dat"), so match the base name, not the recorded one.
+// parseGeofileDigest returns the SHA-256 hex a sidecar lists for assetName,
+// matching on base name since upstreams record "geoip.dat" or "release/geoip.dat".
 func parseGeofileDigest(sums []byte, assetName string) (string, error) {
 	for line := range strings.SplitSeq(string(sums), "\n") {
 		fields := strings.Fields(line)
