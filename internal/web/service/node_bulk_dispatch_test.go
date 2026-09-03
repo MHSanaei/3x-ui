@@ -234,6 +234,9 @@ func TestNodeBulkDeleteDoesNotPushBeforeFailedCommit(t *testing.T) {
 	if got := fake.deleteClient.Load() + fake.deleteUser.Load(); got != 0 {
 		t.Fatalf("failed transaction pushed %d delete call(s) to the node, want 0", got)
 	}
+	if isClientEmailTombstoned(client.Email) {
+		t.Fatal("failed bulk delete left a live tombstone")
+	}
 }
 
 func TestNodeBulkSmallDeleteRemovesWholeRemoteClient(t *testing.T) {
@@ -241,6 +244,10 @@ func TestNodeBulkSmallDeleteRemovesWholeRemoteClient(t *testing.T) {
 	nodeID, fake := setupNodeRuntime(t)
 	client := model.Client{ID: uuid.NewString(), Email: "full-delete@x", Enable: true}
 	nodeInbound(t, nodeID, 30024, []model.Client{client})
+	var record model.ClientRecord
+	if err := database.GetDB().Where("email = ?", client.Email).First(&record).Error; err != nil {
+		t.Fatalf("load client record: %v", err)
+	}
 
 	result, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{client.Email}, true)
 	if err != nil {
@@ -254,6 +261,104 @@ func TestNodeBulkSmallDeleteRemovesWholeRemoteClient(t *testing.T) {
 	}
 	if got := fake.deleteUser.Load(); got != 0 {
 		t.Fatalf("remote DeleteUser detach calls = %d, want 0 for full deletion", got)
+	}
+	var records, links int64
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", client.Email).Count(&records).Error; err != nil {
+		t.Fatalf("count client records: %v", err)
+	}
+	if err := database.GetDB().Model(&model.ClientInbound{}).Where("client_id = ?", record.Id).Count(&links).Error; err != nil {
+		t.Fatalf("count client links: %v", err)
+	}
+	if records != 0 || links != 0 {
+		t.Fatalf("bulk delete left records=%d links=%d, want 0/0", records, links)
+	}
+}
+
+func TestNodeBulkDeleteTreatsMissingSettingsClientAsAlreadyDeleted(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{ID: uuid.NewString(), Email: "drifted-delete@x", Enable: true}
+	ib := nodeInbound(t, nodeID, 30025, []model.Client{client})
+
+	// Simulate a stale normalized link after the client has already disappeared
+	// from the inbound settings JSON.
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", ib.Id).
+		Update("settings", clientsSettings(t, nil)).Error; err != nil {
+		t.Fatalf("drift inbound settings: %v", err)
+	}
+
+	result, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{client.Email}, true)
+	if err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+	if result.Deleted != 1 || len(result.Skipped) != 0 {
+		t.Fatalf("BulkDelete result = %+v, want one deleted client", result)
+	}
+	if got := fake.deleteClient.Load(); got != 1 {
+		t.Fatalf("remote DeleteClient calls = %d, want 1", got)
+	}
+	var records, links int64
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", client.Email).Count(&records).Error; err != nil {
+		t.Fatalf("count client records: %v", err)
+	}
+	if err := database.GetDB().Model(&model.ClientInbound{}).Where("inbound_id = ?", ib.Id).Count(&links).Error; err != nil {
+		t.Fatalf("count client links: %v", err)
+	}
+	if records != 0 || links != 0 {
+		t.Fatalf("bulk delete left records=%d links=%d, want 0/0", records, links)
+	}
+	if !isClientEmailTombstoned(client.Email) {
+		t.Fatal("successful bulk delete withdrew the client tombstone")
+	}
+	t.Cleanup(func() { withdrawClientTombstones(client.Email) })
+}
+
+func TestNodeBulkDeleteCompletesAcrossPresentAndMissingSettings(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{ID: uuid.NewString(), Email: "mixed-delete@x", Enable: true}
+	drifted := nodeInbound(t, nodeID, 30026, []model.Client{client})
+	nodeInbound(t, nodeID, 30027, []model.Client{client})
+
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", drifted.Id).
+		Update("settings", clientsSettings(t, nil)).Error; err != nil {
+		t.Fatalf("drift inbound settings: %v", err)
+	}
+
+	result, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{client.Email}, true)
+	if err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+	if result.Deleted != 1 || len(result.Skipped) != 0 {
+		t.Fatalf("BulkDelete result = %+v, want one deleted client", result)
+	}
+	if got := fake.deleteClient.Load(); got != 2 {
+		t.Fatalf("remote DeleteClient calls = %d, want one per node inbound", got)
+	}
+}
+
+func TestNodeBulkDeleteMalformedSettingsWithdrawsTombstone(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	client := model.Client{ID: uuid.NewString(), Email: "malformed-delete@x", Enable: true}
+	ib := nodeInbound(t, nodeID, 30028, []model.Client{client})
+	if err := database.GetDB().Model(&model.Inbound{}).Where("id = ?", ib.Id).
+		Update("settings", `{"clients":[`).Error; err != nil {
+		t.Fatalf("break inbound settings: %v", err)
+	}
+
+	result, _, err := (&ClientService{}).BulkDelete(&InboundService{}, []string{client.Email}, true)
+	if err != nil {
+		t.Fatalf("BulkDelete: %v", err)
+	}
+	if result.Deleted != 0 || len(result.Skipped) != 1 {
+		t.Fatalf("BulkDelete result = %+v, want one skipped client", result)
+	}
+	if got := fake.deleteClient.Load() + fake.deleteUser.Load(); got != 0 {
+		t.Fatalf("malformed settings pushed %d delete call(s) to the node, want 0", got)
+	}
+	if isClientEmailTombstoned(client.Email) {
+		t.Fatal("failed bulk delete left a live tombstone")
 	}
 }
 
@@ -351,8 +456,8 @@ func TestNodeBulk_LargeDeleteFoldsToDirty(t *testing.T) {
 		t.Fatalf("BulkDelete: %v", err)
 	}
 
-	if got := fake.deleteUser.Load(); got != 0 {
-		t.Fatalf("large delete streamed %d DeleteUser RPCs, want 0 (should fold to dirty)", got)
+	if got := fake.deleteClient.Load() + fake.deleteUser.Load(); got != 0 {
+		t.Fatalf("large delete streamed %d delete RPCs, want 0 (should fold to dirty)", got)
 	}
 	if _, _, dirty, _, err := (&NodeService{}).NodeSyncState(nodeID); err != nil {
 		t.Fatalf("NodeSyncState: %v", err)

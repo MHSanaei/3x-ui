@@ -1421,12 +1421,15 @@
         "sortOrderHelp": "Posição na lista da assinatura, intercalada com a ordem dos inbounds; em caso de empate, o balanceador vem depois do inbound.",
         "inbounds": "Inbounds",
         "inboundsCount": "{count} Inbounds",
+        "weights": "Pesos dos membros",
+        "weightsHelp": "Apenas para LeastLoad: peso menor é escolhido com mais frequência; membros sem valor têm peso 1.",
         "enabled": "Ativado",
         "empty": "Ainda não há balanceadores",
         "deleteConfirm": "Excluir este balanceador?",
         "errRemarkRequired": "A descrição é obrigatória",
         "errInboundsRequired": "Selecione ao menos um inbound",
         "errSortOrder": "A ordem deve ser um inteiro ≥ 1",
+        "errWeightPositive": "Os pesos devem ser maiores que 0",
         "toasts": {
           "list": "Falha ao listar os balanceadores de assinatura",
           "create": "Falha ao criar o balanceador de assinatura",
@@ -1853,7 +1856,10 @@
         "noServers": "Nenhum servidor encontrado para o país selecionado",
         "noPublicKey": "O servidor selecionado não anuncia uma chave pública NordLynx.",
         "outboundAdded": "Saída NordVPN adicionada",
-        "outboundUpdated": "Saída NordVPN atualizada"
+        "outboundUpdated": "Saída NordVPN atualizada",
+        "serverLoad": "Carga do servidor",
+        "addedServers": "Servidores adicionados",
+        "alreadyAdded": "Este servidor já está na lista de saídas. Use {reset} para atualizar sua chave."
       },
       "warp": {
         "changeIp": "Alterar IP",
