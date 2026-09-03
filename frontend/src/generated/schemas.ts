@@ -3418,6 +3418,13 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "memberWeights": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "description": "inboundId -\u003e leastLoad weight; absent entries mean 1.0. Only meaningful\nwith Strategy \"leastLoad\" — xray ignores costs on every other strategy.",
+        "type": "object"
+      },
       "remark": {
         "example": "auto-fastest",
         "maxLength": 256,

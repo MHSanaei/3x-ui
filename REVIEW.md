@@ -103,6 +103,10 @@ near-certain about and that actually breaks something:
 
 - A claim about behaviour needs a `file:line` citation from this repository,
   not an inference from a name.
+- A claim about what the change does to a caller or a callee needs that file
+  read, not inferred from the hunk. A dispatch-rule violation rarely shows
+  inside the diff — the changed line calls an innocuous helper and the
+  `internal/xray/api.go` call sits a frame outside it.
 - A claim that a downstream client rejects or requires a wire-format detail —
   a config key, JSON tag, URI query parameter, YAML or TOML key, an encoding
   or hash choice — must name the upstream symbol that decides it (repository,
@@ -137,6 +141,10 @@ Open with a one-line tally — `2 🔴 / 4 🟡 / 1 🟣` — so the author sees
 shape of the review before the detail. When nothing is 🔴, lead with
 `No blocking issues` and put the tally after it.
 
+Nothing pads the comment: no "Strengths" section, no restatement of what the
+pull request does, no praise, no closing pleasantry. Padding is not neutral —
+it buries the two lines someone actually has to act on.
+
 The posted comment is the only part of a review anyone sees, so a bare "no
 issues found" is a receipt, not a review: nothing in it says whether the diff
 was read or the run died early. Every comment therefore ends with a short
@@ -145,3 +153,24 @@ and what it turned out to be, plus the head SHA and the size of the diff it
 covers. Say which claims could not be verified and why, including a check
 this environment blocked. Keep that coverage list under ten lines; it is
 evidence, not a retelling of the pull request.
+
+## A finding is a report, not a patch
+
+A finding says what is wrong, where (`file:line`), what triggers it and what
+breaks. It never carries the fix: no `suggestion` block, no patch, no
+replacement snippet, no rewritten function, no "suggested fix" section — in
+the summary and in an inline comment alike. One clause naming WHERE the fix
+belongs is the most it may add — a file, a function, a symbol, a layer — and
+nothing about what happens there. Prose is a patch too the moment a verb
+describes the change: "move the lookup inside the body", "spend the comment
+on the invariant instead" hand it over as surely as a diff would, and so does
+holding up an existing symbol as the model to copy. A clause the maintainer
+could apply as written is the fix, however it is punctuated. The maintainer
+decides the change; a review that writes it out puts unreviewed code one
+click from the branch.
+
+A 🔴 or 🟡 finding also says, in one clause, what this pull request did to
+the code it is about — the line it added, the call it moved, the guard it
+dropped — the way a 🟣 says that it predates the change. That clause reports
+what the change did, never what it should have done. Nothing else in the
+comment shows the marker was earned.

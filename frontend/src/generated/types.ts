@@ -778,6 +778,7 @@ export interface SubBalancer {
   enabled: boolean;
   id: number;
   inboundIds: number[];
+  memberWeights?: Record<number, number>;
   remark: string;
   sortOrder: number;
   strategy: string;

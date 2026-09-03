@@ -1429,12 +1429,15 @@
         "sortOrderHelp": "サブスクリプション一覧内の位置。インバウンドの順序と交互に並び、同番号の場合はインバウンドの後ろになります。",
         "inbounds": "インバウンド",
         "inboundsCount": "{count} インバウンド",
+        "weights": "メンバーの重み",
+        "weightsHelp": "LeastLoad のみ：値が小さいほど選ばれやすくなります。未指定のメンバーは重み 1 です。",
         "enabled": "有効",
         "empty": "バランサーはまだありません",
         "deleteConfirm": "このバランサーを削除しますか？",
         "errRemarkRequired": "備考を入力してください",
         "errInboundsRequired": "インバウンドを1つ以上選択してください",
         "errSortOrder": "順序は1以上の整数にしてください",
+        "errWeightPositive": "重みは 0 より大きい必要があります",
         "toasts": {
           "list": "サブスクリプションバランサーの一覧取得に失敗しました",
           "create": "サブスクリプションバランサーの作成に失敗しました",
@@ -1861,7 +1864,10 @@
         "noServers": "選択した国のサーバーが見つかりません",
         "noPublicKey": "選択したサーバーは NordLynx 公開鍵を公開していません。",
         "outboundAdded": "NordVPN アウトバウンドを追加しました",
-        "outboundUpdated": "NordVPN アウトバウンドを更新しました"
+        "outboundUpdated": "NordVPN アウトバウンドを更新しました",
+        "serverLoad": "サーバー負荷",
+        "addedServers": "追加済みサーバー",
+        "alreadyAdded": "このサーバーはすでにアウトバウンド一覧にあります。{reset} で鍵を更新してください。"
       },
       "warp": {
         "changeIp": "IP を変更",

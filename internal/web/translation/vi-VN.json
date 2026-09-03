@@ -1429,12 +1429,15 @@
         "sortOrderHelp": "Vị trí trong danh sách đăng ký, xen kẽ với thứ tự inbound; khi cùng số, bộ cân bằng đứng sau inbound.",
         "inbounds": "Inbound",
         "inboundsCount": "{count} Inbound",
+        "weights": "Trọng số thành viên",
+        "weightsHelp": "Chỉ dành cho LeastLoad: trọng số nhỏ hơn được chọn thường xuyên hơn; thành viên không có giá trị mang trọng số 1.",
         "enabled": "Đã bật",
         "empty": "Chưa có bộ cân bằng nào",
         "deleteConfirm": "Xóa bộ cân bằng này?",
         "errRemarkRequired": "Cần nhập ghi chú",
         "errInboundsRequired": "Chọn ít nhất một inbound",
         "errSortOrder": "Thứ tự phải là số nguyên ≥ 1",
+        "errWeightPositive": "Trọng số phải lớn hơn 0",
         "toasts": {
           "list": "Không thể liệt kê các bộ cân bằng đăng ký",
           "create": "Không thể tạo bộ cân bằng đăng ký",
@@ -1861,7 +1864,10 @@
         "noServers": "Không tìm thấy máy chủ cho quốc gia đã chọn",
         "noPublicKey": "Máy chủ đã chọn không công bố khóa công khai NordLynx.",
         "outboundAdded": "Đã thêm outbound NordVPN",
-        "outboundUpdated": "Đã cập nhật outbound NordVPN"
+        "outboundUpdated": "Đã cập nhật outbound NordVPN",
+        "serverLoad": "Tải máy chủ",
+        "addedServers": "Máy chủ đã thêm",
+        "alreadyAdded": "Máy chủ này đã có trong danh sách outbound. Dùng {reset} để làm mới khóa của máy chủ."
       },
       "warp": {
         "changeIp": "Đổi IP",
