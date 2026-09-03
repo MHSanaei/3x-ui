@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
@@ -49,10 +50,39 @@ type managed struct {
 	dev          *Device
 	udpRelay     *UDPRelay
 	portForwards *PortForwardSet
-	peers        *PeerIndex
-	inst         amneziawg.Instance
-	structFP     string
-	uapiConfig   string
+	// peers is the live snapshot the attached TCP/UDP handlers read; an
+	// in-place reconfigure must Store into this same struct, not a new one.
+	peers      atomic.Pointer[PeerIndex]
+	inst       amneziawg.Instance
+	structFP   string
+	uapiConfig string
+}
+
+func (m *managed) lookupPeer(addr netip.Addr) (amneziawg.Peer, bool) {
+	peers := m.peers.Load()
+	if peers == nil {
+		return amneziawg.Peer{}, false
+	}
+	return peers.Lookup(addr)
+}
+
+func (m *managed) handleUDP(src, dst netip.AddrPort, payload []byte) {
+	peer, ok := m.lookupPeer(src.Addr())
+	if !ok {
+		return
+	}
+	m.udpRelay.Handle(src, dst, peer.Email, payload)
+}
+
+func (m *managed) close() {
+	m.portForwards.Close()
+	// Cleared before Close: a TCP handler already past lookupPeer (its own
+	// goroutine, see AttachTCPForwarder) must fail closed, not resolve a peer.
+	m.peers.Store(nil)
+	// Stop packet delivery before closing the relay so an in-flight handler
+	// cannot publish a new session after the relay has already been swept.
+	m.dev.Close()
+	m.udpRelay.Close()
 }
 
 // Manager owns the set of running embedded AmneziaWG interfaces, keyed by
@@ -140,7 +170,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		// buildUAPIConfig actually reads, the way a hand-maintained field
 		// list could.
 		if conf == cur.uapiConfig {
-			cur.peers = NewPeerIndex(inst.Peers)
+			cur.peers.Store(NewPeerIndex(inst.Peers))
 			cur.inst = inst
 			applyV6Aliases(diffV6Aliases(oldInst, inst))
 			// buildUAPIConfig never reads ForwardedPorts (it's a panel-level
@@ -156,7 +186,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 		if err := cur.dev.IpcSet(conf); err != nil {
 			return fmt.Errorf("amneziawgnet: reconfigure inbound %d: %w", inst.Id, err)
 		}
-		cur.peers = NewPeerIndex(inst.Peers)
+		cur.peers.Store(NewPeerIndex(inst.Peers))
 		cur.inst = inst
 		cur.uapiConfig = conf
 		applyV6Aliases(diffV6Aliases(oldInst, inst))
@@ -165,9 +195,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 	}
 
 	if exists {
-		cur.udpRelay.Close()
-		cur.portForwards.Close()
-		cur.dev.Close()
+		cur.close()
 		delete(m.ifaces, inst.Id)
 	}
 	dev, err := newUnconfiguredDevice(inst, opts)
@@ -178,40 +206,30 @@ func (m *Manager) ensureLocked(d Desired) error {
 	relay := socksRelayForInstance(inst)
 	udpRelay := NewUDPRelay(relay, dev.Stack)
 	portForwards := NewPortForwardSet(dev.Stack, inst.Id)
-	inboundID := inst.Id // captured for the closures below, which outlive this call
+	next := &managed{
+		dev:          dev,
+		udpRelay:     udpRelay,
+		portForwards: portForwards,
+		inst:         inst,
+		structFP:     structFP,
+	}
+	next.peers.Store(NewPeerIndex(inst.Peers))
 	AttachTCPForwarder(dev.Stack, func(conn *gonet.TCPConn, dest netip.AddrPort) {
 		srcAddrPort, err := netip.ParseAddrPort(conn.RemoteAddr().String())
 		if err != nil {
 			conn.Close()
 			return
 		}
-		// Re-fetched on every connection, not captured once at attach time:
-		// a reconfigure-in-place (peers added/removed, no rebuild) replaces
-		// cur.peers without ever re-attaching the forwarder, so a stale
-		// captured index would silently miss newly-added peers.
-		_, peers, ok := m.Lookup(inboundID)
-		if !ok {
-			conn.Close()
-			return
-		}
-		peer, ok := peers.Lookup(srcAddrPort.Addr().Unmap())
+		// Load the latest immutable peer snapshot without entering the
+		// lifecycle lock held while a device reconfigures or closes.
+		peer, ok := next.lookupPeer(srcAddrPort.Addr().Unmap())
 		if !ok {
 			conn.Close()
 			return
 		}
 		relay.RelayTCP(conn, peer.Email, dest)
 	})
-	AttachUDPHandler(dev.Stack, func(src, dst netip.AddrPort, payload []byte) {
-		_, peers, ok := m.Lookup(inboundID)
-		if !ok {
-			return
-		}
-		peer, ok := peers.Lookup(src.Addr())
-		if !ok {
-			return
-		}
-		udpRelay.Handle(src, dst, peer.Email, payload)
-	})
+	AttachUDPHandler(dev.Stack, next.handleUDP)
 
 	// Handlers are registered on dev.Stack above, BEFORE Configure's IpcSet
 	// can start any peer's receive goroutine -- see newUnconfiguredDevice's
@@ -229,16 +247,8 @@ func (m *Manager) ensureLocked(d Desired) error {
 	// the no-op check above a correct baseline to compare the next tick
 	// against instead of an empty string.
 	conf, _ := buildUAPIConfig(inst, opts)
-
-	m.ifaces[inst.Id] = &managed{
-		dev:          dev,
-		udpRelay:     udpRelay,
-		portForwards: portForwards,
-		peers:        NewPeerIndex(inst.Peers),
-		inst:         inst,
-		structFP:     structFP,
-		uapiConfig:   conf,
-	}
+	next.uapiConfig = conf
+	m.ifaces[inst.Id] = next
 	applyV6Aliases(diffV6Aliases(oldInst, inst))
 	portForwards.Reconcile(inst)
 	logger.Infof("amneziawgnet: started embedded interface %s for inbound %d", inst.InterfaceName, inst.Id)
@@ -280,9 +290,7 @@ func (m *Manager) Reconcile(desired []Desired) {
 			continue
 		}
 		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
-		cur.udpRelay.Close()
-		cur.portForwards.Close()
-		cur.dev.Close()
+		cur.close()
 		delete(m.ifaces, id)
 		logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
 	}
@@ -305,9 +313,7 @@ func (m *Manager) Remove(id int) {
 		return
 	}
 	applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
-	cur.udpRelay.Close()
-	cur.portForwards.Close()
-	cur.dev.Close()
+	cur.close()
 	delete(m.ifaces, id)
 	logger.Infof("amneziawgnet: stopped embedded interface for removed inbound %d", id)
 }
@@ -318,9 +324,7 @@ func (m *Manager) StopAll() {
 	defer m.mu.Unlock()
 	for id, cur := range m.ifaces {
 		applyV6Aliases(diffV6Aliases(cur.inst, amneziawg.Instance{}))
-		cur.udpRelay.Close()
-		cur.portForwards.Close()
-		cur.dev.Close()
+		cur.close()
 		delete(m.ifaces, id)
 	}
 }
@@ -332,11 +336,8 @@ func (m *Manager) HasRunning() bool {
 	return len(m.ifaces) > 0
 }
 
-// Lookup returns the running Device and PeerIndex for inbound id, if any --
-// the forwarder/UDP-handler closures ensureLocked attaches use this to
-// re-fetch the current peer index on every connection (see ensureLocked's
-// comment on why), and it's equally available to a test harness or any
-// other caller that wants read access to a managed interface's state.
+// Lookup returns the running device and current peer snapshot for diagnostics,
+// tests, and other callers outside the packet-delivery path.
 func (m *Manager) Lookup(id int) (dev *Device, peers *PeerIndex, ok bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -344,5 +345,5 @@ func (m *Manager) Lookup(id int) (dev *Device, peers *PeerIndex, ok bool) {
 	if !exists {
 		return nil, nil, false
 	}
-	return cur.dev, cur.peers, true
+	return cur.dev, cur.peers.Load(), true
 }

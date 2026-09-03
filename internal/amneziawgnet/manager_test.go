@@ -3,6 +3,7 @@ package amneziawgnet
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -86,6 +87,69 @@ func TestManagerLifecycle(t *testing.T) {
 	}
 	if _, _, ok := m.Lookup(inst.Id); ok {
 		t.Error("Lookup succeeded after Reconcile([]) removed the interface")
+	}
+}
+
+// Regression test: the UDP handler used to call Manager.Lookup, taking
+// Manager.mu -- deadlocking against a lifecycle op waiting on this goroutine.
+func TestManagedUDPHandlerDoesNotWaitForManagerLock(t *testing.T) {
+	priv, pub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	_, peerPub, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate peer keypair: %v", err)
+	}
+
+	m := &Manager{ifaces: map[int]*managed{}}
+	inst := amneziawg.Instance{
+		Id:            20,
+		InterfaceName: "awgtest20",
+		ListenPort:    58720,
+		PrivateKey:    priv,
+		PublicKey:     pub,
+		Address:       []string{"10.210.0.1/24"},
+		MTU:           1420,
+		Obfuscation: amneziawg.Obfuscation20{
+			Jc: 4, Jmin: 40, Jmax: 70,
+			S1: 20, S2: 30, S3: 20, S4: 20,
+		},
+		Peers: []amneziawg.Peer{{
+			Email:      "lock-test-peer@example.com",
+			PublicKey:  peerPub,
+			AllowedIPs: []string{"10.210.0.2/32"},
+		}},
+	}
+	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+		t.Fatalf("Ensure: %v", err)
+	}
+	defer m.StopAll()
+
+	cur, ok := m.ifaces[inst.Id]
+	if !ok {
+		t.Fatal("Ensure did not register the managed interface")
+	}
+
+	done := make(chan struct{})
+	m.mu.Lock()
+	go func() {
+		// src matches the peer's AllowedIPs, so this reaches the real
+		// udpRelay.Handle, not just lookupPeer's early-return branch.
+		cur.handleUDP(
+			netip.MustParseAddrPort("10.210.0.2:1234"),
+			netip.MustParseAddrPort("10.210.0.3:53"),
+			[]byte("payload"),
+		)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		m.mu.Unlock()
+	case <-time.After(time.Second):
+		m.mu.Unlock()
+		t.Fatal("UDP handler blocked on the manager lifecycle lock")
 	}
 }
 
