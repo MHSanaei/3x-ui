@@ -1459,6 +1459,8 @@ verify_release_checksum() {
         exit 1
     fi
     echo -e "${green}Checksum verified: ${actual}${plain}"
+}
+
 # Older tags predate some of these files (x-ui.rc arrived in v2.8.4). Serving
 # main's copy against an old binary is the mismatch this pinning exists to
 # prevent, so probe before anything is stopped or removed and refuse the tag.
