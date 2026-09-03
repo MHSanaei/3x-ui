@@ -547,8 +547,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// The closures bridge into XrayService (which owns the running xray
 	// process state) without forcing the runtime package to import service.
 	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{
-		APIPort:        func() int { return s.xrayService.GetXrayAPIPort() },
-		SetNeedRestart: func() { s.xrayService.SetToNeedRestart() },
+		APIPort:                      func() int { return s.xrayService.GetXrayAPIPort() },
+		SetNeedRestart:               func() { s.xrayService.SetToNeedRestart() },
+		ScheduleAmneziaWGRelayResync: func() { s.xrayService.ScheduleAmneziaWGRelayResync() },
 	}))
 	runtime.GetManager().SetNodeEgressResolver(&s.settingService)
 	// Supply the master client certificate for nodes in mtls mode. Issued lazily

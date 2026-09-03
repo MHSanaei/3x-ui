@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
@@ -26,7 +27,23 @@ var (
 	isNeedXrayRestart atomic.Bool // Indicates that restart was requested for Xray
 	isManuallyStopped atomic.Bool // Indicates that Xray was stopped manually from the panel
 	xrayState         xrayLifecycle
+
+	amneziawgRelayResyncMu       sync.Mutex
+	amneziawgRelayResyncTimer    *time.Timer
+	amneziawgRelayResyncLastFire time.Time
 )
+
+// amneziawgRelayResyncDelay: how long ScheduleAmneziaWGRelayResync waits
+// before firing. A var, not a const, so tests can shrink it.
+var amneziawgRelayResyncDelay = 2 * time.Second
+
+// amneziawgRelayResyncMinGap bounds restart rate, not just latency: once
+// fired, further calls wait for cadenceXrayRestart's own 30s tick instead.
+var amneziawgRelayResyncMinGap = 30 * time.Second
+
+// amneziawgRelayResyncFire is what the timer calls once it fires -- a var so
+// tests can observe it without touching real Xray-restart machinery.
+var amneziawgRelayResyncFire = (*XrayService).ApplyPendingRestart
 
 type xrayLifecycle struct {
 	mu      sync.RWMutex
@@ -1508,6 +1525,28 @@ func (s *XrayService) StopXray() error {
 // SetToNeedRestart marks that Xray needs to be restarted.
 func (s *XrayService) SetToNeedRestart() {
 	isNeedXrayRestart.Store(true)
+}
+
+// ScheduleAmneziaWGRelayResync is SetToNeedRestart plus the debounced,
+// rate-limited timer described by the three amneziawgRelayResync* vars above.
+func (s *XrayService) ScheduleAmneziaWGRelayResync() {
+	s.SetToNeedRestart()
+
+	amneziawgRelayResyncMu.Lock()
+	defer amneziawgRelayResyncMu.Unlock()
+	if time.Since(amneziawgRelayResyncLastFire) < amneziawgRelayResyncMinGap {
+		// A fast resync fired recently; let the 30s cron tick absorb this one.
+		return
+	}
+	if amneziawgRelayResyncTimer != nil {
+		amneziawgRelayResyncTimer.Stop()
+	}
+	amneziawgRelayResyncTimer = time.AfterFunc(amneziawgRelayResyncDelay, func() {
+		amneziawgRelayResyncMu.Lock()
+		amneziawgRelayResyncLastFire = time.Now()
+		amneziawgRelayResyncMu.Unlock()
+		amneziawgRelayResyncFire(s)
+	})
 }
 
 // GetXrayAPIPort returns the port the local xray process is listening on
