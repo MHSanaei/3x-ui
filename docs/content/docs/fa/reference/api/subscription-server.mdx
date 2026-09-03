@@ -3,10 +3,10 @@ title: سرور اشتراک
 description: >-
   یک سرور HTTP/HTTPS جداگانه که لینک‌های اشتراک پراکسی (استاندارد، JSON و Clash)
   را به کلاینت‌ها ارائه می‌دهد. این سرور روی پورت اختصاصی خودش (به‌صورت پیش‌فرض
-  10882) گوش می‌دهد و در بخش Settings ← Subscription پیکربندی می‌شود. مسیرها قابل
-  پیکربندی هستند؛ مقادیر پیش‌فرض در ادامه نشان داده شده‌اند. همه‌ی نقاط پایانی
-  اشتراک، هدرهای پاسخ را برای خواندن اطلاعات ترافیک/انقضا توسط برنامه‌های کلاینت
-  تنظیم می‌کنند.
+  2096) گوش می‌دهد و در بخش Settings ← Subscription پیکربندی می‌شود. پنل‌های جدید
+  برای هر قالب پیشوند مسیر تصادفی تولید می‌کنند و همه‌ی مسیرها قابل پیکربندی
+  می‌مانند. همه‌ی نقاط پایانی اشتراک، هدرهای پاسخ را برای خواندن اطلاعات
+  ترافیک/انقضا توسط برنامه‌های کلاینت تنظیم می‌کنند.
 full: true
 _openapi:
   preload:
@@ -16,45 +16,46 @@ _openapi:
       title: >-
         Return base64-encoded subscription links for all enabled clients
         matching the subscription ID. When the request has an Accept: text/html
-        header or ?html=1, renders a styled info page instead. Default path:
-        /sub/:subid.
+        header or ?html=1, renders a styled info page instead. The path prefix is
+        configured by subPath.
       url: >-
-        #return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-default-path-subsubid
+        #return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-with-formatinfo-returns-the-page-view-model-as-json-traffic-expiry-online-status-no-links-for-live-polling-the-path-prefix-is-configured-by-subpath
     - depth: 2
       title: >-
         Return subscription as a JSON array of proxy configs (one per enabled
-        client). Only when JSON subscription is enabled in settings. Default
-        path: /json/:subid.
+        client). Only when JSON subscription is enabled in settings. The path
+        prefix is configured by subJsonPath.
       url: >-
-        #return-subscription-as-a-json-array-of-proxy-configs-one-per-enabled-client-only-when-json-subscription-is-enabled-in-settings-default-path-jsonsubid
+        #return-subscription-as-a-json-array-of-proxy-configs-one-per-enabled-client-only-when-json-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subjsonpath
     - depth: 2
       title: >-
         Return subscription as a Clash/Mihomo-compatible YAML config, including
         configured global Clash routing rules. Only when Clash subscription is
-        enabled in settings. Default path: /clash/:subid.
+        enabled in settings. The path prefix is configured by subClashPath.
       url: >-
-        #return-subscription-as-a-clashmihomo-compatible-yaml-config-including-configured-global-clash-routing-rules-only-when-clash-subscription-is-enabled-in-settings-default-path-clashsubid
+        #return-subscription-as-a-clashmihomo-compatible-yaml-config-including-configured-global-clash-routing-rules-only-when-clash-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subclashpath
   structuredData:
     headings:
       - content: >-
           Return base64-encoded subscription links for all enabled clients
           matching the subscription ID. When the request has an Accept:
-          text/html header or ?html=1, renders a styled info page instead.
-          Default path: /sub/:subid.
+          text/html header or ?html=1, renders a styled info page instead. The
+          path prefix is configured by subPath.
         id: >-
-          return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-default-path-subsubid
+          return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-with-formatinfo-returns-the-page-view-model-as-json-traffic-expiry-online-status-no-links-for-live-polling-the-path-prefix-is-configured-by-subpath
       - content: >-
           Return subscription as a JSON array of proxy configs (one per enabled
-          client). Only when JSON subscription is enabled in settings. Default
-          path: /json/:subid.
+          client). Only when JSON subscription is enabled in settings. The path
+          prefix is configured by subJsonPath.
         id: >-
-          return-subscription-as-a-json-array-of-proxy-configs-one-per-enabled-client-only-when-json-subscription-is-enabled-in-settings-default-path-jsonsubid
+          return-subscription-as-a-json-array-of-proxy-configs-one-per-enabled-client-only-when-json-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subjsonpath
       - content: >-
           Return subscription as a Clash/Mihomo-compatible YAML config,
           including configured global Clash routing rules. Only when Clash
-          subscription is enabled in settings. Default path: /clash/:subid.
+          subscription is enabled in settings. The path prefix is configured by
+          subClashPath.
         id: >-
-          return-subscription-as-a-clashmihomo-compatible-yaml-config-including-configured-global-clash-routing-rules-only-when-clash-subscription-is-enabled-in-settings-default-path-clashsubid
+          return-subscription-as-a-clashmihomo-compatible-yaml-config-including-configured-global-clash-routing-rules-only-when-clash-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subclashpath
     contents: []
 ---
 

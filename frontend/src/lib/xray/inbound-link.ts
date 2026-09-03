@@ -12,6 +12,7 @@ import type { ExternalProxyEntry } from '@/schemas/protocols/stream/external-pro
 import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalmask';
 import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
 
+import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
 import { deriveSpiderX } from './spider-x';
@@ -437,7 +438,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     params.set('security', 'tls');
     if (stream.security === 'tls') {
       const tls = stream.tlsSettings;
-      params.set('fp', tls.settings.fingerprint);
+      if (tls.settings.fingerprint.length > 0) params.set('fp', tls.settings.fingerprint);
       params.set('alpn', tls.alpn.join(','));
       if (tls.serverName.length > 0) params.set('sni', tls.serverName);
       if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
@@ -543,7 +544,7 @@ function writeTlsParams(
 ): void {
   if (stream.security !== 'tls') return;
   const tls = stream.tlsSettings;
-  params.set('fp', tls.settings.fingerprint);
+  if (tls.settings.fingerprint.length > 0) params.set('fp', tls.settings.fingerprint);
   params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
@@ -801,12 +802,19 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     const salamander = udpMasks.find((m) => m?.type === 'salamander');
     const obfsPassword = salamander?.settings?.password;
     if (typeof obfsPassword === 'string' && obfsPassword.length > 0) {
-      params.set('obfs', 'salamander');
+      // packetSize (Gecko mode) exports via v2rayN's native fields; the
+      // experimental fm=<json> dump breaks mihomo and other strict clients.
+      const range = parseGeckoPacketSize(salamander?.settings?.packetSize);
+      if (range) {
+        params.set('obfs', 'gecko');
+        params.set('minPacketSize', String(range.min));
+        params.set('maxPacketSize', String(range.max));
+      } else {
+        params.set('obfs', 'salamander');
+      }
       params.set('obfs-password', obfsPassword);
     }
   }
-
-  applyFinalMaskToParams(stream.finalmask, params);
 
   const hopPorts = stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
   if (hopPorts.length > 0) {
