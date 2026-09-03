@@ -2341,6 +2341,15 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/{subPath}:subid/hwid-status',
+        summary:
+          'Return aggregate HWID device-slot usage for the subscription: whether an HWID limit is active, the limit, how many devices are registered and how many slots remain. Read-only — it never registers a device, so asking does not consume a slot. Counters only: no HWID value, email or device metadata. Responds 404 for an unknown or disabled subscription. Default path: /sub/:subid/hwid-status.',
+        description:
+          'Responds with the bare object <code>{"active":true,"limit":2,"registered":1,"remaining":1,"full":false}</code> — not the <code>{success,msg,obj}</code> panel envelope, like the other subscription-server routes. With no HWID limit configured: <code>{"active":false,"limit":0,"registered":0,"remaining":0,"full":false}</code>.',
+        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
+      },
+      {
+        method: 'GET',
         path: '/{jsonPath}:subid',
         summary:
           'Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. Default path: /json/:subid.',
