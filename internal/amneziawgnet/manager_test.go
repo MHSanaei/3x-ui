@@ -91,9 +91,12 @@ func TestManagerLifecycle(t *testing.T) {
 }
 
 func TestManagedUDPHandlerDoesNotWaitForManagerLock(t *testing.T) {
-	cur := &managed{}
-	cur.peers.Store(NewPeerIndex(nil))
-	m := &Manager{ifaces: map[int]*managed{10: cur}}
+	cur := &managed{udpRelay: NewUDPRelay(SocksRelay{Addr: "invalid"}, nil)}
+	cur.peers.Store(NewPeerIndex([]amneziawg.Peer{{
+		Email:      "peer@test",
+		AllowedIPs: []string{"10.210.0.2/32"},
+	}}))
+	m := &Manager{}
 
 	done := make(chan struct{})
 	m.mu.Lock()
@@ -101,7 +104,7 @@ func TestManagedUDPHandlerDoesNotWaitForManagerLock(t *testing.T) {
 		cur.handleUDP(
 			netip.MustParseAddrPort("10.210.0.2:1234"),
 			netip.MustParseAddrPort("10.210.0.3:53"),
-			nil,
+			[]byte("query"),
 		)
 		close(done)
 	}()

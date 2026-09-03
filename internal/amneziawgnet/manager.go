@@ -210,8 +210,8 @@ func (m *Manager) ensureLocked(d Desired) error {
 			conn.Close()
 			return
 		}
-		// Load the latest immutable peer snapshot without entering the
-		// lifecycle lock held while a device reconfigures or closes.
+		// Reload for every connection: in-place reconfiguration swaps the peer
+		// index without reattaching handlers and may hold the lifecycle lock.
 		peer, ok := next.lookupPeer(srcAddrPort.Addr().Unmap())
 		if !ok {
 			conn.Close()
