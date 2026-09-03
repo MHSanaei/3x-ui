@@ -444,7 +444,7 @@ func TestSubJson_BalancerLeastLoadCosts(t *testing.T) {
 		MemberWeights: map[int]float64{fast.Id: 0.2}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -476,7 +476,7 @@ func TestSubJson_BalancerLeastLoadWithoutWeightsOmitsCosts(t *testing.T) {
 		Remark: "plain", Strategy: "leastLoad", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -498,7 +498,7 @@ func TestSubJson_BalancerCostsSkippedForNonLeastLoadStrategy(t *testing.T) {
 		MemberWeights: map[int]float64{a.Id: 0.5}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)

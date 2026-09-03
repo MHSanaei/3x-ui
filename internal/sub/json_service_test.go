@@ -36,7 +36,7 @@ func outboundSettings(t *testing.T, raw []byte) map[string]any {
 }
 
 func TestDefaultJSONUsesCompatibleLocalInbounds(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	inbounds, ok := svc.configJson["inbounds"].([]any)
 	if !ok {
 		t.Fatalf("default JSON inbounds = %#v, want array", svc.configJson["inbounds"])
