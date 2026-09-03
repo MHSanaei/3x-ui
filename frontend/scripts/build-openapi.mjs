@@ -68,10 +68,12 @@ function schemaFromParam(p) {
   return schema;
 }
 
-function requestBodyContentType(bodyParams) {
+function requestBodyContentType(ep, bodyParams) {
   const locations = new Set(bodyParams.map((p) => p.in));
   if (locations.size > 1) {
-    throw new Error(`request body mixes parameter locations: ${[...locations].join(', ')}`);
+    throw new Error(
+      `${ep.method} ${ep.path}: request body mixes parameter locations: ${[...locations].join(', ')}`,
+    );
   }
   switch (bodyParams[0]?.in) {
     case 'body (form)':
@@ -138,7 +140,7 @@ function buildOperation(ep, tag) {
   if (params.length > 0) op.parameters = params;
 
   if (ep.body || bodyParams.length > 0 || ep.requestSchema) {
-    const contentType = requestBodyContentType(bodyParams);
+    const contentType = requestBodyContentType(ep, bodyParams);
     const example = contentType === 'application/json' ? tryParseJson(ep.body) : undefined;
     const properties = {};
     const required = [];
@@ -151,9 +153,9 @@ function buildOperation(ep, tag) {
     }
     let schema;
     if (ep.requestSchema) {
-      if (bodyParams.length > 0) {
+      if (bodyParams.length > 0 || ep.bodyRequiredOneOf?.length) {
         throw new Error(
-          `${ep.method} ${ep.path}: requestSchema cannot be combined with body parameters`,
+          `${ep.method} ${ep.path}: requestSchema cannot be combined with body parameters or bodyRequiredOneOf`,
         );
       }
       schema = ep.requestSchema;
@@ -165,6 +167,11 @@ function buildOperation(ep, tag) {
       if (ep.bodyRequiredOneOf?.length) {
         schema = {
           anyOf: ep.bodyRequiredOneOf.map((name) => {
+            if (!properties[name]) {
+              throw new Error(
+                `${ep.method} ${ep.path}: bodyRequiredOneOf "${name}" is not a declared body parameter`,
+              );
+            }
             const branchProperties = { ...properties };
             for (const other of ep.bodyRequiredOneOf) {
               if (other === name || !branchProperties[other]) continue;
@@ -185,8 +192,13 @@ function buildOperation(ep, tag) {
     const encoding = {};
     if (contentType === 'application/x-www-form-urlencoded') {
       for (const bp of bodyParams) {
-        if (schemaFromType(bp.type).type === 'array') {
+        const kind = schemaFromType(bp.type).type;
+        if (kind === 'array') {
           encoding[bp.name] = { style: 'form', explode: true };
+        } else if (kind === 'object') {
+          // The panel reads such a field with json.Unmarshal, so it must be sent
+          // as JSON text rather than form-style key/value pairs.
+          encoding[bp.name] = { contentType: 'application/json' };
         }
       }
     }

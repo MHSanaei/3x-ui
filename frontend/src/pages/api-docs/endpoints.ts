@@ -60,6 +60,10 @@ export interface Section {
   endpoints: Endpoint[];
 }
 
+// /inbounds/update replaces the whole row, so it takes the same payload as /add.
+const inboundBody =
+  '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}';
+
 const outboundSubscriptionBodyParams: EndpointParam[] = [
   {
     name: 'remark',
@@ -267,7 +271,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/inbounds/add',
         summary:
           'Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).',
-        body: '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}',
+        body: inboundBody,
         errorResponse: '{\n  "success": false,\n  "msg": "Port 443 is already in use"\n}',
       },
       {
@@ -291,6 +295,7 @@ export const sections: readonly Section[] = [
         summary:
           'Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        body: inboundBody,
       },
       {
         method: 'POST',

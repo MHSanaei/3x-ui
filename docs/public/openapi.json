@@ -4197,6 +4197,50 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "enable": true,
+                "remark": "VLESS-443",
+                "listen": "",
+                "port": 443,
+                "protocol": "vless",
+                "expiryTime": 0,
+                "total": 0,
+                "settings": {
+                  "clients": [
+                    {
+                      "id": "...",
+                      "email": "user1"
+                    }
+                  ],
+                  "decryption": "none",
+                  "fallbacks": []
+                },
+                "streamSettings": {
+                  "network": "tcp",
+                  "security": "reality",
+                  "realitySettings": {
+                    "show": false,
+                    "dest": "..."
+                  }
+                },
+                "sniffing": {
+                  "enabled": true,
+                  "destOverride": [
+                    "http",
+                    "tls"
+                  ]
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
@@ -13180,6 +13224,9 @@
                 "inboundIds": {
                   "style": "form",
                   "explode": true
+                },
+                "memberWeights": {
+                  "contentType": "application/json"
                 }
               }
             }
@@ -13291,6 +13338,9 @@
                 "inboundIds": {
                   "style": "form",
                   "explode": true
+                },
+                "memberWeights": {
+                  "contentType": "application/json"
                 }
               }
             }

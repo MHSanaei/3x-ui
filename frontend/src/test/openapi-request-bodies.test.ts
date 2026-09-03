@@ -21,7 +21,7 @@ interface OpenApiRequestBody {
     string,
     {
       schema: OpenApiSchema;
-      encoding?: Record<string, { style: string; explode: boolean }>;
+      encoding?: Record<string, { style?: string; explode?: boolean; contentType?: string }>;
     }
   >;
 }
@@ -74,6 +74,12 @@ describe('generated OpenAPI request bodies', () => {
     ];
     expect(balancerUpdate.schema.required).toEqual(['remark', 'inboundIds']);
     expect(balancerUpdate.encoding?.inboundIds).toEqual({ style: 'form', explode: true });
+    expect(balancerUpdate.encoding?.memberWeights).toEqual({ contentType: 'application/json' });
+
+    const inboundUpdate = requestBody('/panel/api/inbounds/update/{id}').content[
+      'application/json'
+    ];
+    expect(inboundUpdate.schema).toEqual({ type: 'object' });
 
     const multipart = requestBody('/panel/api/server/importDB').content['multipart/form-data'];
     expect(multipart.schema.properties?.db).toEqual({
