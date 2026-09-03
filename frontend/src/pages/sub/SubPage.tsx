@@ -569,6 +569,8 @@ export default function SubPage() {
                                         <QRCode
                                           value={link}
                                           size={220}
+                                          errorLevel="L"
+                                          marginSize={4}
                                           type="svg"
                                           bordered={false}
                                           color="#000000"
