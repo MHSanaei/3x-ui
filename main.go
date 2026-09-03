@@ -37,6 +37,10 @@ import (
 // cannot accumulate admin-equivalent credentials that are never revoked.
 const cliFallbackTokenName = "cli-fallback"
 
+// installTokenName is minted once on a panel with no tokens and is deliberately
+// not the rotated slot, so the credential the installer recorded keeps working.
+const installTokenName = "install"
+
 // initNodeTokenCrypto loads the process codec, preferring the key file over
 // the environment and failing closed when an enabled policy lacks a key.
 func initNodeTokenCrypto() error {
@@ -498,12 +502,9 @@ func GetApiToken(getApiToken bool, tokenName string) {
 	if !getApiToken {
 		return
 	}
-	// Callers that pass no name keep rotating the single shared slot, so
-	// `install.sh` and every existing invocation behave exactly as before.
+	// An explicit name applies to both branches below; without one each keeps
+	// the name it already used, so every existing invocation is unaffected.
 	name := strings.TrimSpace(tokenName)
-	if name == "" {
-		name = cliFallbackTokenName
-	}
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("open database failed, error info:", err)
@@ -521,14 +522,21 @@ func GetApiToken(getApiToken bool, tokenName string) {
 
 		// Rotate one token per name so repeated calls cannot pile up
 		// indefinitely many admin-equivalent tokens that never expire.
-		created, err := apiTokenService.RecreateByName(name)
+		rotated := name
+		if rotated == "" {
+			rotated = cliFallbackTokenName
+		}
+		created, err := apiTokenService.RecreateByName(rotated)
 		if err != nil {
 			fmt.Println("Failed to create a fallback API token:", err)
 			return
 		}
-		fmt.Printf("\nThe API token %q has been regenerated (any previous one is now invalid):\n", name)
+		fmt.Printf("\nThe API token %q has been regenerated (any previous one is now invalid):\n", rotated)
 		fmt.Println("apiToken:", created.Token)
 		return
+	}
+	if name == "" {
+		name = installTokenName
 	}
 	created, err := apiTokenService.Create(name, "", 0)
 	if err != nil {

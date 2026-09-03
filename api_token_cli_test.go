@@ -8,6 +8,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 )
 
@@ -31,6 +32,15 @@ func tokenNames(t *testing.T) []string {
 		names = append(names, token.Name)
 	}
 	return names
+}
+
+func tokenRow(t *testing.T, name string) model.ApiToken {
+	t.Helper()
+	var row model.ApiToken
+	if err := database.GetDB().Where("name = ?", name).First(&row).Error; err != nil {
+		t.Fatalf("load token %q: %v", name, err)
+	}
+	return row
 }
 
 func hasName(names []string, want string) bool {
@@ -64,6 +74,8 @@ func TestGetApiTokenRotatesOnlyTheNamedToken(t *testing.T) {
 	}
 }
 
+// An explicit name has to win on both branches, or the same command would
+// produce ci-bot on a populated panel and "install" on a fresh one.
 func TestGetApiTokenUsesGivenNameOnEmptyDatabase(t *testing.T) {
 	newTokenCLIEnv(t)
 
@@ -73,29 +85,39 @@ func TestGetApiTokenUsesGivenNameOnEmptyDatabase(t *testing.T) {
 	if !hasName(names, "ci-bot") {
 		t.Fatalf("token names = %v, want ci-bot among them", names)
 	}
+	if hasName(names, installTokenName) {
+		t.Fatalf("token names = %v, want no %s when a name was given", names, installTokenName)
+	}
 }
 
-// install.sh runs `x-ui setting -getApiToken true` with no name, on both a
-// fresh and an already-populated database. Both must land on one slot.
-func TestGetApiTokenDefaultsToFallbackName(t *testing.T) {
+// install.sh records the token it gets on a fresh panel. A later bare
+// -getApiToken must rotate the fallback slot and leave that record valid.
+func TestGetApiTokenPreservesInstallTokenWhenRotating(t *testing.T) {
 	newTokenCLIEnv(t)
 
 	GetApiToken(true, "")
+	installed := tokenRow(t, installTokenName)
+
+	GetApiToken(true, "")
+
 	names := tokenNames(t)
 	if !hasName(names, cliFallbackTokenName) {
 		t.Fatalf("token names = %v, want %s among them", names, cliFallbackTokenName)
 	}
-
-	GetApiToken(true, "")
-	names = tokenNames(t)
-	if len(names) != 1 || names[0] != cliFallbackTokenName {
-		t.Fatalf("token names = %v, want exactly [%s] after a repeat call", names, cliFallbackTokenName)
+	if got := tokenRow(t, installTokenName); got.Id != installed.Id {
+		t.Fatalf("%s row id = %d, want %d — the installer's token was replaced", installTokenName, got.Id, installed.Id)
+	}
+	if got := tokenRow(t, installTokenName); got.Token != installed.Token {
+		t.Fatalf("the %s token hash changed, so the recorded credential stopped working", installTokenName)
 	}
 }
 
 func TestGetApiTokenTrimsName(t *testing.T) {
 	newTokenCLIEnv(t)
 
+	if _, err := (&panel.ApiTokenService{}).RecreateByName("seed"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
 	GetApiToken(true, "   ")
 
 	names := tokenNames(t)
