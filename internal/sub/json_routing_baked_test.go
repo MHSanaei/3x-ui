@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -183,5 +184,46 @@ func TestSubJson_LegacyRulesStillWorkWithoutBakedRouting(t *testing.T) {
 	ruleJSON, _ := json.Marshal(routing["rules"])
 	if !strings.Contains(string(ruleJSON), "geosite:example") {
 		t.Fatalf("legacy rules missing: %s", ruleJSON)
+	}
+}
+
+func TestSubJson_BakedRoutingRemoteWarmsAfterColdStart(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "tcpin", 4806, 1, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
+
+	oldResolver := routingSourceResolver
+	t.Cleanup(func() { routingSourceResolver = oldResolver })
+	const source = "https://example.com/DEFAULT.JSON"
+	routingSourceResolver = newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
+		return remoteRoutingResponse(200, mustMarshal(t, fullRoutingPayload())), nil
+	}), false)
+
+	js := NewSubJsonService("", "", "", source, NewSubService(""))
+	// Cold: no request has primed the resolver cache yet.
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	docs := parseSubJsonDocs(t, out)
+	routing, _ := docs[0]["routing"].(map[string]any)
+	if routing["domainStrategy"] != "AsIs" {
+		t.Fatalf("cold doc must keep default routing: %v", routing["domainStrategy"])
+	}
+
+	// The cron job warms the cache; the next request must bake the profile.
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingHapp, source)
+	out, _, err = js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	docs = parseSubJsonDocs(t, out)
+	routing, _ = docs[0]["routing"].(map[string]any)
+	if routing["domainStrategy"] != "IPIfNonMatch" {
+		t.Fatalf("warm doc must carry the profile: %v", routing["domainStrategy"])
+	}
+	dns, _ := docs[0]["dns"].(map[string]any)
+	servers, _ := dns["servers"].([]any)
+	if len(servers) != 2 {
+		t.Fatalf("warm doc dns servers = %v", servers)
 	}
 }
