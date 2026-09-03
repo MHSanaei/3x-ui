@@ -144,3 +144,32 @@ func TestAddInboundImportDropsInvalidMtprotoCustomShareAddr(t *testing.T) {
 		t.Fatalf("host count = %d, want 0", count)
 	}
 }
+
+func TestUpdateInboundConvertsMtprotoCustomShareAddrToHost(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "mt-update", "127.0.0.1", 4062, model.MTProto, `{}`,
+		`{"clients":[{"email":"mt-upd","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`)
+
+	var existing model.Inbound
+	if err := database.GetDB().Where("tag = ?", "mt-update").First(&existing).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	update := existing
+	update.ShareAddrStrategy = "custom"
+	update.ShareAddr = "edge.example.com"
+	updated, _, err := (&InboundService{}).UpdateInbound(&update)
+	if err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+	if updated.ShareAddrStrategy != "listen" || updated.ShareAddr != "" {
+		t.Fatalf("share fields = (%q, %q), want (listen, empty)", updated.ShareAddrStrategy, updated.ShareAddr)
+	}
+
+	var hosts []model.Host
+	if err := database.GetDB().Where("inbound_id = ?", existing.Id).Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != 1 || hosts[0].Address != "edge.example.com" || hosts[0].Port != 0 {
+		t.Fatalf("hosts = %+v, want one inherited-port edge.example.com host", hosts)
+	}
+}

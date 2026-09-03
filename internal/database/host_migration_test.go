@@ -307,3 +307,51 @@ func TestMigrateMtprotoCustomShareAddrSkipsHostWithSameAddress(t *testing.T) {
 		t.Fatalf("hosts = %+v, want only the existing host %d", hosts, existing.Id)
 	}
 }
+
+func TestMigrateMtprotoCustomShareAddrWithUnusableSameAddressHost(t *testing.T) {
+	cases := []struct {
+		name     string
+		existing model.Host
+	}{
+		{"disabled", model.Host{IsDisabled: true}},
+		{"excludes_raw", model.Host{ExcludeFromSubTypes: []string{"raw"}}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			initMigrateDB(t)
+			ib := &model.Inbound{
+				UserId: 1, Tag: "mtproto-" + c.name, Enable: true, Port: 4060, Protocol: model.MTProto,
+				Remark: "MTProto", Settings: `{"clients":[]}`, StreamSettings: `{}`,
+				ShareAddrStrategy: "custom", ShareAddr: "proxy.example.com",
+			}
+			if err := GetDB().Create(ib).Error; err != nil {
+				t.Fatalf("create inbound: %v", err)
+			}
+			existing := c.existing
+			existing.GroupId = "existing"
+			existing.InboundId = ib.Id
+			existing.Remark = "parked"
+			existing.Address = "proxy.example.com"
+			existing.Security = "same"
+			if err := GetDB().Create(&existing).Error; err != nil {
+				t.Fatalf("create host: %v", err)
+			}
+
+			if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
+				t.Fatalf("migrate: %v", err)
+			}
+
+			var hosts []model.Host
+			if err := GetDB().Where("inbound_id = ?", ib.Id).Order("id asc").Find(&hosts).Error; err != nil {
+				t.Fatalf("load hosts: %v", err)
+			}
+			if len(hosts) != 2 {
+				t.Fatalf("hosts = %+v, want the parked host plus a usable one", hosts)
+			}
+			migrated := hosts[1]
+			if migrated.Address != "proxy.example.com" || migrated.IsDisabled || len(migrated.ExcludeFromSubTypes) != 0 {
+				t.Fatalf("migrated host = %+v, want an enabled raw-included proxy.example.com", migrated)
+			}
+		})
+	}
+}

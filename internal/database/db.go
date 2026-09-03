@@ -445,12 +445,15 @@ func CreateHostFromMtprotoCustomShareAddr(tx *gorm.DB, inboundId int, rawAddress
 	if address == "" {
 		return nil
 	}
-	var count int64
-	if err := tx.Model(&model.Host{}).Where("inbound_id = ? AND address = ?", inboundId, address).Count(&count).Error; err != nil {
+	var sameAddress []model.Host
+	if err := tx.Where("inbound_id = ? AND address = ? AND is_disabled = ?", inboundId, address, false).
+		Find(&sameAddress).Error; err != nil {
 		return err
 	}
-	if count > 0 {
-		return nil
+	for _, host := range sameAddress {
+		if !slices.Contains(host.ExcludeFromSubTypes, "raw") {
+			return nil
+		}
 	}
 	return tx.Create(&model.Host{
 		GroupId: random.NumLower(16), InboundId: inboundId,
