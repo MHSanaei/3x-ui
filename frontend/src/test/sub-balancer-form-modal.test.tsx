@@ -64,6 +64,26 @@ function selectInbound(optionTitle: string) {
   fireEvent.keyDown(multi, { key: 'Escape' });
 }
 
+function selectStrategy(label: string) {
+  const single = Array.from(document.querySelectorAll('.ant-select')).find(
+    (s) => !s.classList.contains('ant-select-multiple'),
+  );
+  if (!single) throw new Error('Strategy select not found');
+  fireEvent.mouseDown(single as HTMLElement);
+  const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    (o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === label,
+  );
+  if (!option) throw new Error(`Strategy option '${label}' not found`);
+  fireEvent.click(option);
+  fireEvent.keyDown(single, { key: 'Escape' });
+}
+
+function weightInputs(): HTMLInputElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLInputElement>('.sub-balancer-weights .ant-input-number-input'),
+  );
+}
+
 describe('SubBalancerFormModal', () => {
   it('shows no validation errors when freshly opened in add mode', () => {
     renderModal(null);
@@ -132,5 +152,57 @@ describe('SubBalancerFormModal', () => {
       enabled: true,
     });
     expect(inboundOptionTitles()).toContain('Disabled');
+  });
+
+  // Weights are a leastLoad-only xray knob; the inputs must not exist under
+  // other strategies rather than merely being hidden.
+  it('shows weight inputs for selected inbounds only under leastLoad', async () => {
+    const { onConfirm } = renderModal(null);
+    fireEvent.change(remarkInput(), { target: { value: 'weighted' } });
+    selectInbound('First');
+    selectInbound('Second');
+    selectStrategy('Least load');
+    await waitFor(() => expect(weightInputs()).toHaveLength(2));
+
+    fireEvent.change(weightInputs()[0], { target: { value: '0.5' } });
+    fireEvent.click(primaryButton());
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ strategy: 'leastLoad', memberWeights: { '1': 0.5 } }),
+    );
+  });
+
+  it('omits memberWeights when a non-leastLoad strategy is saved', async () => {
+    const { onConfirm } = renderModal(null);
+    fireEvent.change(remarkInput(), { target: { value: 'plain' } });
+    selectInbound('First');
+    selectStrategy('Least load');
+    await waitFor(() => expect(weightInputs()).toHaveLength(1));
+    fireEvent.change(weightInputs()[0], { target: { value: '0.5' } });
+    selectStrategy('Random');
+    await waitFor(() => expect(document.querySelector('.sub-balancer-weights')).toBeNull());
+    fireEvent.click(primaryButton());
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm).toHaveBeenCalledWith({
+      remark: 'plain',
+      strategy: 'random',
+      inboundIds: [1],
+      sortOrder: 1,
+      enabled: true,
+    });
+  });
+
+  it('seeds weight values from the edited balancer', async () => {
+    renderModal({
+      id: 9,
+      remark: 'existing',
+      strategy: 'leastLoad',
+      inboundIds: [2],
+      memberWeights: { '2': 1.5 },
+      sortOrder: 1,
+      enabled: true,
+    });
+    await waitFor(() => expect(weightInputs()).toHaveLength(1));
+    expect(weightInputs()[0].value).toBe('1.5');
   });
 });

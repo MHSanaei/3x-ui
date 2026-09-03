@@ -3390,6 +3390,13 @@
             },
             "type": "array"
           },
+          "memberWeights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "inboundId -> leastLoad weight; absent entries mean 1.0. Only meaningful\nwith Strategy \"leastLoad\" — xray ignores costs on every other strategy.",
+            "type": "object"
+          },
           "remark": {
             "example": "auto-fastest",
             "maxLength": 256,
@@ -3505,7 +3512,7 @@
     },
     {
       "name": "Subscription Server",
-      "description": "A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below. All subscription endpoints set response headers for client apps to read traffic/expiry info."
+      "description": "A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 2096) and is configured in Settings → Subscription. Fresh panels generate random path prefixes for each format; all paths remain configurable. Every subscription endpoint sets response headers for client apps to read traffic/expiry info."
     },
     {
       "name": "WebSocket",
@@ -9043,7 +9050,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as /sub/<subId>, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.",
+        "summary": "Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as the configured subPath endpoint, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.",
         "operationId": "get_panel_api_clients_subLinks_subId",
         "parameters": [
           {
@@ -13108,6 +13115,7 @@
                         1,
                         3
                       ],
+                      "memberWeights": {},
                       "remark": "auto-fastest",
                       "sortOrder": 1,
                       "strategy": "random",
@@ -13149,6 +13157,10 @@
                     },
                     "description": "Repeated form keys selecting the member inbounds (required, at least one)."
                   },
+                  "memberWeights": {
+                    "type": "object",
+                    "description": "leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {\"3\":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped."
+                  },
                   "sortOrder": {
                     "type": "integer",
                     "default": 1,
@@ -13202,6 +13214,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
@@ -13219,7 +13232,7 @@
         "tags": [
           "Subscription Balancers"
         ],
-        "summary": "Update a balancer by id. Accepts the same form fields as create; omitted enabled keeps its current value.",
+        "summary": "Update a balancer by id. Accepts the same form fields as create (full-row update); omitting memberWeights clears stored weights, while omitting enabled keeps its current value.",
         "operationId": "post_panel_api_sub_balancers_id",
         "parameters": [
           {
@@ -13255,6 +13268,10 @@
                     },
                     "description": "Repeated form keys selecting the member inbounds (required, at least one)."
                   },
+                  "memberWeights": {
+                    "type": "object",
+                    "description": "leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {\"3\":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped."
+                  },
                   "sortOrder": {
                     "type": "integer",
                     "default": 1,
@@ -13308,6 +13325,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
@@ -13365,6 +13383,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
@@ -13424,6 +13443,7 @@
                       1,
                       3
                     ],
+                    "memberWeights": {},
                     "remark": "auto-fastest",
                     "sortOrder": 1,
                     "strategy": "random",
@@ -13441,7 +13461,7 @@
         "tags": [
           "Subscription Server"
         ],
-        "summary": "Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. Default path: /sub/:subid.",
+        "summary": "Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. The path prefix is configured by subPath.",
         "operationId": "get_subPath_subid",
         "parameters": [
           {
@@ -13500,7 +13520,7 @@
         "tags": [
           "Subscription Server"
         ],
-        "summary": "Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. Default path: /json/:subid.",
+        "summary": "Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. The path prefix is configured by subJsonPath.",
         "operationId": "get_jsonPath_subid",
         "parameters": [
           {
@@ -13550,7 +13570,7 @@
         "tags": [
           "Subscription Server"
         ],
-        "summary": "Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.",
+        "summary": "Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. The path prefix is configured by subClashPath.",
         "operationId": "get_clashPath_subid",
         "parameters": [
           {

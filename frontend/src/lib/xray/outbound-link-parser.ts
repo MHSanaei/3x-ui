@@ -258,14 +258,34 @@ function ensureFinalMask(stream: Raw): Raw {
   return stream.finalmask as Raw;
 }
 
-// Rebuild the salamander mask from the standard Hysteria2 obfs pair (every
-// non-3x-ui client, and this panel's own generator, speak it instead of the
-// private fm=<json> dump). A salamander mask already carrying a password via fm=
-// wins; a password-less one is completed rather than left empty.
+// Rebuild the salamander mask from the standard Hysteria2 obfs pair; an fm=
+// password wins. obfs=gecko adds min/maxPacketSize stored as packetSize.
 function applyHysteria2Obfs(stream: Raw, params: URLSearchParams): void {
-  if ((params.get('obfs') ?? '').toLowerCase() !== 'salamander') return;
+  const obfs = (params.get('obfs') ?? '').toLowerCase();
+  const isGecko = obfs === 'gecko';
+  if (!isGecko && obfs !== 'salamander') return;
   const password = firstParam(params, 'obfs-password', 'obfs_password', 'obfsPassword');
   if (!password) return;
+  let packetSize = '';
+  if (isGecko) {
+    // Both halves required and numeric, matching the export side; anything
+    // else is dropped rather than stored as a malformed range.
+    const minSize = (params.get('minPacketSize') ?? '').trim();
+    const maxSize = (params.get('maxPacketSize') ?? '').trim();
+    const min = Number(minSize);
+    const max = Number(maxSize);
+    if (
+      /^\d+$/.test(minSize) &&
+      /^\d+$/.test(maxSize) &&
+      Number.isSafeInteger(min) &&
+      Number.isSafeInteger(max) &&
+      min >= 1 &&
+      max >= min &&
+      max <= 2048
+    ) {
+      packetSize = `${min}-${max}`;
+    }
+  }
   const finalmask = ensureFinalMask(stream);
   const udp = Array.isArray(finalmask.udp) ? (finalmask.udp as Raw[]) : [];
   const existing = udp.find(
@@ -279,9 +299,16 @@ function applyHysteria2Obfs(stream: Raw, params: URLSearchParams): void {
     ) as Raw;
     if (typeof settings.password !== 'string' || settings.password.length === 0)
       settings.password = password;
+    if (
+      packetSize !== '' &&
+      !(typeof settings.packetSize === 'string' && settings.packetSize.length > 0)
+    )
+      settings.packetSize = packetSize;
     return;
   }
-  finalmask.udp = [...udp, { type: 'salamander', settings: { password } }];
+  const settings: Raw = { password };
+  if (packetSize !== '') settings.packetSize = packetSize;
+  finalmask.udp = [...udp, { type: 'salamander', settings }];
 }
 
 // Rebuild the UDP port-hopping range from the standard mport param, which the

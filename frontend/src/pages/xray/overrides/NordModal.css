@@ -1,41 +1,327 @@
+.nord-modal .ant-modal-container {
+  overflow: hidden;
+}
+
+.nord-modal .ant-modal-body {
+  max-height: min(720px, calc(100vh - 160px));
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.nord-login-form {
+  margin-top: 20px;
+}
+
+.nord-login-action {
+  display: block;
+  margin-left: auto;
+}
+
+.nord-account-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-fill-quaternary);
+}
+
 .nord-data-table {
-  margin: 5px 0;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   border-collapse: collapse;
 }
 
+.nord-data-table tr + tr td {
+  padding-top: 8px;
+}
+
 .nord-data-table td {
-  padding: 4px 8px;
+  padding: 0;
+  vertical-align: top;
+}
+
+.nord-data-table td:first-child {
+  width: 112px;
+  padding-right: 12px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nord-data-table td:last-child {
   word-break: break-all;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
 
-.nord-data-table td:first-child {
-  font-family: inherit;
-  font-weight: 500;
-  white-space: nowrap;
-  width: 130px;
+.nord-section-divider {
+  margin: 18px 0 14px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
-.nord-data-table .row-odd {
-  background: var(--ant-color-fill-tertiary);
+.nord-location-form .ant-form-item {
+  margin-bottom: 0;
 }
 
-.server-row {
-  display: inline-flex;
+.nord-location-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+.nord-server-field {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.nord-server-popup .ant-select-item-option {
+  min-height: 44px;
+  padding: 8px 10px;
+}
+
+.nord-server-popup .ant-select-item-option-content {
+  overflow: visible;
+}
+
+.nord-server-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.nord-server-option-copy {
+  display: flex;
+  flex: 1;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  min-width: 0;
 }
 
-.server-name {
+.nord-server-option-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ant-color-text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nord-server-option-meta {
+  display: flex;
   flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.nord-server-option-hostname {
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-overflow: ellipsis;
+}
+
+.nord-server-option-address,
+.nord-selected-server-address,
+.nord-added-server-endpoint {
+  color: var(--ant-color-text-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.nord-server-option-address {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.server-load-tag {
-  margin-right: 0;
+.nord-server-load {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 2px 7px;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentcolor 8%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.nord-server-load-low {
+  color: var(--ant-color-success);
+}
+
+.nord-server-load-medium {
+  color: var(--ant-color-warning);
+}
+
+.nord-server-load-high {
+  color: var(--ant-color-error);
+}
+
+.nord-server-load-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.nord-server-load-label {
+  color: var(--ant-color-text-secondary);
+  font-weight: 500;
+}
+
+.nord-server-load-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.nord-selected-server {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.nord-selected-server-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nord-selected-server-hostname {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ant-color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nord-selected-server-address {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nord-add-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.nord-already-added {
+  flex: 1;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.nord-added-table {
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--ant-color-fill-quaternary);
+  overflow: hidden;
+}
+
+.nord-added-table tr + tr td {
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.nord-added-table td {
+  padding: 9px 12px;
+  vertical-align: middle;
+}
+
+.nord-added-table td:first-child {
+  padding-right: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nord-added-server-tag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.nord-added-server-endpoint {
+  margin-left: 12px;
+}
+
+.nord-added-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+@media (max-width: 575px) {
+  .nord-modal {
+    max-width: calc(100vw - 24px);
+    margin: 12px auto;
+  }
+
+  .nord-modal .ant-modal-body {
+    max-height: calc(100vh - 124px);
+  }
+
+  .nord-account-card {
+    flex-direction: column;
+  }
+
+  .nord-account-card > .ant-btn {
+    align-self: flex-end;
+  }
+
+  .nord-location-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nord-server-field {
+    grid-column: auto;
+  }
+
+  .nord-selected-server-hostname,
+  .nord-selected-server-address,
+  .nord-server-load-label {
+    display: none;
+  }
+
+  .nord-server-option-meta > span:first-child,
+  .nord-server-option-meta > span[aria-hidden='true'],
+  .nord-server-option-address {
+    display: none;
+  }
+
+  .nord-add-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .nord-add-actions .ant-btn {
+    width: 100%;
+  }
 }
