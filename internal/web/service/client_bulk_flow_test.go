@@ -327,3 +327,145 @@ func TestBulkAdjust_MtprotoAdTagSetAndClear(t *testing.T) {
 		t.Fatalf("expected error for invalid hex ad tag")
 	}
 }
+
+// TestBulkAdjust_AdTagIneligibleSkipped verifies that non-MTProto clients are
+// refused adTag adjustment, reported as skipped, and their ClientRecord is untouched.
+func TestBulkAdjust_AdTagIneligibleSkipped(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	clients := []model.Client{
+		{Email: "vless-notg@x", ID: "55555555-5555-5555-5555-555555555555", SubID: "vless-notg", Enable: true},
+	}
+	ib := mkInbound(t, 30501, model.VLESS, clientsSettings(t, clients))
+	if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	const tag1 = "0123456789abcdef0123456789abcdef"
+	res, restart, err := svc.BulkAdjust(inboundSvc, []string{"vless-notg@x"}, 0, 0, "", nil, tag1)
+	if err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+	if res.Adjusted != 0 {
+		t.Fatalf("ineligible protocol should adjust nothing, got %d", res.Adjusted)
+	}
+	if restart {
+		t.Fatalf("no change should not request restart")
+	}
+	if len(res.Skipped) != 1 || res.Skipped[0].Email != "vless-notg@x" || res.Skipped[0].Reason != "adTag not supported on inbound" {
+		t.Fatalf("expected vless-notg@x in skipped with 'adTag not supported on inbound', got %+v", res.Skipped)
+	}
+	rec, err := svc.GetRecordByEmail(nil, "vless-notg@x")
+	if err != nil {
+		t.Fatalf("GetRecordByEmail: %v", err)
+	}
+	if rec.AdTag != "" {
+		t.Fatalf("adTag on non-MTProto record should stay empty, got %q", rec.AdTag)
+	}
+}
+
+// TestBulkAdjust_DaysApplyDespiteIneligibleAdTag verifies that when a non-MTProto
+// client is adjusted with both days and adTag, days are applied but adTag is not
+// written to ClientRecord and is reported as skipped.
+func TestBulkAdjust_DaysApplyDespiteIneligibleAdTag(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	const day = int64(24 * 60 * 60 * 1000)
+	baseExpiry := time.Now().UnixMilli() + 30*day
+
+	clients := []model.Client{
+		{Email: "vless-days@x", ID: "66666666-6666-6666-6666-666666666666", SubID: "vless-days", Enable: true, ExpiryTime: baseExpiry},
+	}
+	ib := mkInbound(t, 30601, model.VLESS, clientsSettings(t, clients))
+	if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if err := database.GetDB().Create(&xray.ClientTraffic{Email: "vless-days@x", Enable: true, ExpiryTime: baseExpiry}).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+
+	const tag1 = "0123456789abcdef0123456789abcdef"
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{"vless-days@x"}, 7, 0, "", nil, tag1)
+	if err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+	if res.Adjusted != 1 {
+		t.Fatalf("days should still be applied: Adjusted=%d skipped=%v", res.Adjusted, res.Skipped)
+	}
+	if len(res.Skipped) != 1 || res.Skipped[0].Email != "vless-days@x" || res.Skipped[0].Reason != "adTag not supported on inbound" {
+		t.Fatalf("expected vless-days@x reported for unhonored adTag, got %v", res.Skipped)
+	}
+
+	rec, err := svc.GetRecordByEmail(nil, "vless-days@x")
+	if err != nil {
+		t.Fatalf("record: %v", err)
+	}
+	if rec.ExpiryTime != baseExpiry+7*day {
+		t.Fatalf("expiry time not advanced: got %d, want %d", rec.ExpiryTime, baseExpiry+7*day)
+	}
+	if rec.AdTag != "" {
+		t.Fatalf("adTag should remain empty on ClientRecord for non-MTProto, got %q", rec.AdTag)
+	}
+}
+
+// TestBulkAdjust_MixedMtprotoAndVless_AdTag verifies bulk adjust over a mixed
+// MTProto and VLESS selection.
+func TestBulkAdjust_MixedMtprotoAndVless_AdTag(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	const tag1 = "0123456789abcdef0123456789abcdef"
+	tgClients := []model.Client{
+		{Email: "tg-mix@x", Secret: "ee00112233445566778899aabbccddeeff6578616d706c652e636f6d", Enable: true},
+	}
+	tgIb := &model.Inbound{
+		Tag:      "mtproto-mix",
+		Enable:   true,
+		Port:     30701,
+		Protocol: model.MTProto,
+		Settings: clientsSettings(t, tgClients),
+	}
+	if err := database.GetDB().Create(tgIb).Error; err != nil {
+		t.Fatalf("create mtproto: %v", err)
+	}
+	if err := svc.SyncInbound(nil, tgIb.Id, tgClients); err != nil {
+		t.Fatalf("sync mtproto: %v", err)
+	}
+
+	vlessClients := []model.Client{
+		{Email: "vless-mix@x", ID: "77777777-7777-7777-7777-777777777777", SubID: "vless-mix", Enable: true},
+	}
+	vlessIb := mkInbound(t, 30702, model.VLESS, clientsSettings(t, vlessClients))
+	if err := svc.SyncInbound(nil, vlessIb.Id, vlessClients); err != nil {
+		t.Fatalf("sync vless: %v", err)
+	}
+
+	emails := []string{"tg-mix@x", "vless-mix@x"}
+	res, restart, err := svc.BulkAdjust(inboundSvc, emails, 0, 0, "", nil, tag1)
+	if err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+	if res.Adjusted != 1 {
+		t.Fatalf("expected 1 adjusted (MTProto only), got %d", res.Adjusted)
+	}
+	if restart {
+		t.Fatalf("adTag should not restart xray")
+	}
+	if len(res.Skipped) != 1 || res.Skipped[0].Email != "vless-mix@x" || res.Skipped[0].Reason != "adTag not supported on inbound" {
+		t.Fatalf("expected vless-mix@x in skipped, got %+v", res.Skipped)
+	}
+
+	tgRec, _ := svc.GetRecordByEmail(nil, "tg-mix@x")
+	if tgRec.AdTag != tag1 {
+		t.Fatalf("tg-mix@x adTag = %q, want %q", tgRec.AdTag, tag1)
+	}
+	vlessRec, _ := svc.GetRecordByEmail(nil, "vless-mix@x")
+	if vlessRec.AdTag != "" {
+		t.Fatalf("vless-mix@x adTag = %q, want empty", vlessRec.AdTag)
+	}
+}
