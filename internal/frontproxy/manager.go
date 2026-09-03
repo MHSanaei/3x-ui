@@ -53,9 +53,11 @@ func GetManager() *Manager {
 // Start brings the reverse proxy up. A no-op, not an error, when it is already
 // running -- callers want "make sure it's up", same as the tor manager.
 func (m *Manager) Start(opts Options) error {
+	logger.Info("frontproxy: Start: acquiring manager lock")
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.server != nil {
+		logger.Info("frontproxy: Start: already running, no-op")
 		return nil
 	}
 	if opts.Port <= 0 || opts.Port > 65535 {
@@ -65,6 +67,7 @@ func (m *Manager) Start(opts Options) error {
 		return fmt.Errorf("the panel needs a non-root base path before the reverse proxy can tell it apart from the decoy")
 	}
 
+	logger.Infof("frontproxy: Start: building TLS config (mode=%s)", opts.TLS.Mode)
 	ctx, cancel := context.WithCancel(context.Background())
 	tlsCfg, err := buildTLSConfig(ctx, opts.TLS)
 	if err != nil {
@@ -72,6 +75,7 @@ func (m *Manager) Start(opts Options) error {
 		return fmt.Errorf("reverse-proxy TLS: %w", err)
 	}
 
+	logger.Info("frontproxy: Start: TLS config ready, opening listener")
 	listen := opts.Listen
 	if listen == "" {
 		listen = "127.0.0.1"
