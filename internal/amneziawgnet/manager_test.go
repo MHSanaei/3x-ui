@@ -3,6 +3,7 @@ package amneziawgnet
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -86,6 +87,34 @@ func TestManagerLifecycle(t *testing.T) {
 	}
 	if _, _, ok := m.Lookup(inst.Id); ok {
 		t.Error("Lookup succeeded after Reconcile([]) removed the interface")
+	}
+}
+
+func TestManagedUDPHandlerDoesNotWaitForManagerLock(t *testing.T) {
+	cur := &managed{udpRelay: NewUDPRelay(SocksRelay{Addr: "invalid"}, nil)}
+	cur.peers.Store(NewPeerIndex([]amneziawg.Peer{{
+		Email:      "peer@test",
+		AllowedIPs: []string{"10.210.0.2/32"},
+	}}))
+	m := &Manager{}
+
+	done := make(chan struct{})
+	m.mu.Lock()
+	go func() {
+		cur.handleUDP(
+			netip.MustParseAddrPort("10.210.0.2:1234"),
+			netip.MustParseAddrPort("10.210.0.3:53"),
+			[]byte("query"),
+		)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		m.mu.Unlock()
+	case <-time.After(time.Second):
+		m.mu.Unlock()
+		t.Fatal("UDP handler blocked on the manager lifecycle lock")
 	}
 }
 

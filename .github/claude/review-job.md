@@ -15,15 +15,31 @@ report, the repo-specific checks, the verification bar and the volume cap. The
 skill loads `CLAUDE.md` on its own; it does not load `REVIEW.md`, which is why
 this briefing exists.
 
+Where the skill and `REVIEW.md` disagree, `REVIEW.md` wins. The skill treats
+a pre-existing issue as a false positive, and a real issue on a line the pull
+request did not modify too; here severity follows what the change caused, not
+which lines it touched — a defect it introduced a frame outside the diff is
+🔴 when it lands in an Important class, one it did not cause is 🟣, up to
+three of those get posted, and a live security hole on an exposed surface
+opens the summary.
+
+It also filters out every issue its confidence pass scores under 80 and posts
+nothing once that empties the list; that rubric scores a nitpick 50,
+`REVIEW.md` allots five nits, and the comment goes up either way. It says to
+avoid emojis, and the whole severity system is three of them. Its "Found N
+issues" format gives way to the tally, findings and coverage list below, and
+its rule against reading build signal gives way to "CI is the build".
+
 ## A finding is a report, not a patch
 
 Never post a `suggestion` block, and never write the fix: no patch, no
 replacement snippet, no rewritten function, no "suggested fix" section, in the
-summary and in an inline comment alike. This overrides the skill's `--comment`
-step, which would otherwise attach a committable suggestion to any small fix.
-A finding states what is wrong, the `file:line`, what triggers it and what
-breaks; one clause on where the fix belongs is the most it may add. The
-maintainer decides the change.
+summary and in an inline comment alike. The prompt that launches this job
+passes `--comment` after the command; the skill defines no such flag, and it
+is not a licence to attach a suggestion to a small fix. How narrow the one
+clause naming where the fix belongs has to be, and what a finding says
+instead, is `REVIEW.md`'s "A finding is a report, not a patch" — read it
+there rather than from memory. The maintainer decides the change.
 
 ## Skip gate
 

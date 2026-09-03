@@ -155,7 +155,7 @@ write_install_result() {
     local u="$1" p="$2" port="$3" wbp="$4" scheme="$5" host="$6" token="$7" dbtype="$8"
     local result_file="/etc/x-ui/install-result.env"
     local url_host="${host:-SERVER_IP_UNKNOWN}"
-    install -d -m 755 /etc/x-ui 2> /dev/null
+    install -d -m 700 /etc/x-ui 2> /dev/null
     local prev_umask
     prev_umask=$(umask)
     umask 077
@@ -1368,6 +1368,13 @@ setup_fail2ban() {
         return 0
     fi
 
+    # Scripts older than v3.4.0 have no setup-fail2ban and exit 0 from the
+    # usage banner, which would read as success here.
+    if ! grep -q '"setup-fail2ban")' /usr/bin/x-ui; then
+        echo -e "${yellow}This x-ui.sh predates 'x-ui setup-fail2ban'; skipping Fail2ban auto-setup.${plain}"
+        return 0
+    fi
+
     echo -e "${green}Setting up Fail2ban for the IP Limit feature...${plain}"
     if /usr/bin/x-ui setup-fail2ban; then
         echo -e "${green}Fail2ban setup complete.${plain}"
@@ -1452,6 +1459,21 @@ verify_release_checksum() {
         exit 1
     fi
     echo -e "${green}Checksum verified: ${actual}${plain}"
+# Older tags predate some of these files (x-ui.rc arrived in v2.8.4). Serving
+# main's copy against an old binary is the mismatch this pinning exists to
+# prevent, so probe before anything is stopped or removed and refuse the tag.
+require_repo_files() {
+    local ref="$1" name status
+    shift
+    [[ "${ref}" == "main" ]] && return 0
+    for name in "$@"; do
+        status=$(curl -sIL --retry 3 --connect-timeout 15 -o /dev/null -w '%{http_code}' "https://raw.githubusercontent.com/MHSanaei/3x-ui/${ref}/${name}")
+        if [[ "${status}" != "200" ]]; then
+            echo -e "${red}${name} is not available for ${ref} (HTTP ${status})${plain}"
+            echo -e "${red}Install a release that ships it, or 'dev' for the rolling build. Your existing installation has not been touched.${plain}"
+            exit 1
+        fi
+    done
 }
 
 install_x-ui() {
@@ -1508,9 +1530,20 @@ install_x-ui() {
         fi
         verify_release_checksum "${url}" "${xui_folder}-linux-$(arch).tar.gz"
     fi
+    # x-ui.sh, x-ui.rc and the unit files must come from the same release as
+    # the binary; only the rolling dev build tracks main.
+    local script_ref="${tag_version}"
+    if [[ "${tag_version}" == "dev-latest" ]]; then
+        script_ref="main"
+    fi
+    # The unit files are only fetched when the release tarball lacks them, so
+    # they are checked at that point instead of here.
+    local required_files=("x-ui.sh")
+    [[ $release == "alpine" ]] && required_files+=("x-ui.rc")
+    require_repo_files "${script_ref}" "${required_files[@]}"
     local xui_script_temp="/usr/bin/x-ui-temp.$$"
     rm -f "${xui_script_temp}"
-    curl -fLRo "${xui_script_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    curl -fLRo "${xui_script_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.sh"
     if [[ $? -ne 0 ]]; then
         rm -f "${xui_script_temp}"
         echo -e "${red}Failed to download x-ui.sh${plain}"
@@ -1661,7 +1694,7 @@ install_x-ui() {
     if [[ $release == "alpine" ]]; then
         xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
         rm -f "${xui_rc_temp}"
-        curl -fLRo "${xui_rc_temp}" https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
+        curl -fLRo "${xui_rc_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.rc"
         if [[ $? -ne 0 ]]; then
             rm -f "${xui_rc_temp}"
             echo -e "${red}Failed to download x-ui.rc${plain}"
@@ -1726,18 +1759,18 @@ install_x-ui() {
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
             case "${release}" in
                 ubuntu | debian | armbian)
-                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian"
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.service.debian"
                     ;;
                 arch | manjaro | parch)
-                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch"
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.service.arch"
                     ;;
                 *)
-                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel"
+                    service_unit_url="https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.service.rhel"
                     ;;
             esac
 
             if ! _install_xui_service_unit "$service_unit_url" "true"; then
-                echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
+                echo -e "${red}Failed to install x-ui.service from GitHub (${script_ref}) -- the release tarball did not ship one either${plain}"
                 exit 1
             fi
             service_installed=true
