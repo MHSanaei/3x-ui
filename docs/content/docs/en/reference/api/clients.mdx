@@ -56,8 +56,11 @@ _openapi:
     - depth: 2
       title: Replace a client's external links and external subscriptions. Sends the
         full set; the server replaces all rows. Disabled rows stay saved for
-        editing but are not emitted in generated subscriptions.
-      url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions'
+        editing but are not emitted in generated subscriptions. The owning
+        client's disabled or expired state also stops these rows from being
+        emitted on future subscription fetches; credentials already imported by
+        an app remain valid until the external provider revokes them.
+      url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them'
     - depth: 2
       title: Reset the up/down counters for every client globally. Quotas and expiry
         are not affected. Triggers an Xray restart if any counter actually
@@ -318,8 +321,11 @@ _openapi:
         id: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
       - content: Replace a client's external links and external subscriptions. Sends the
           full set; the server replaces all rows. Disabled rows stay saved for
-          editing but are not emitted in generated subscriptions.
-        id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions
+          editing but are not emitted in generated subscriptions. The owning
+          client's disabled or expired state also stops these rows from being
+          emitted on future subscription fetches; credentials already imported
+          by an app remain valid until the external provider revokes them.
+        id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them
       - content: Reset the up/down counters for every client globally. Quotas and expiry
           are not affected. Triggers an Xray restart if any counter actually
           moved.
