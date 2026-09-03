@@ -39,4 +39,14 @@ describe('subscription language scope', () => {
     expect(utils.IntlUtil.formatDate(0, 'gregorian', 'fa-IR')).toBe('fa-IR');
     expect(dateTimeFormat).toHaveBeenLastCalledWith('fa-IR', expect.any(Object));
   });
+
+  it('does not resolve the language for empty or invalid dates', async () => {
+    const utils = await import('@/utils');
+    const getLanguage = vi.spyOn(utils.LanguageManager, 'getLanguage').mockReturnValue('en-US');
+
+    expect(utils.IntlUtil.formatDate(null)).toBe('');
+    expect(utils.IntlUtil.formatDate(undefined)).toBe('');
+    expect(utils.IntlUtil.formatDate('not-a-date')).toBe('');
+    expect(getLanguage).not.toHaveBeenCalled();
+  });
 });

@@ -993,12 +993,13 @@ export class IntlUtil {
   static formatDate(
     date: string | number | Date | null | undefined,
     calendar: CalendarKind = 'gregorian',
-    language: string = LanguageManager.getLanguage(),
+    language?: string,
   ): string {
     if (date == null) return '';
     const d = new Date(date);
     if (!isFinite(d.getTime())) return '';
-    const locale = calendar === 'jalalian' ? 'fa-IR' : language;
+    const resolvedLanguage = language ?? LanguageManager.getLanguage();
+    const locale = calendar === 'jalalian' ? 'fa-IR' : resolvedLanguage;
 
     const intlOptions: Intl.DateTimeFormatOptions = {
       year: 'numeric',
