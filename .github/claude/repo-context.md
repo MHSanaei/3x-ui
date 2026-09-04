@@ -3,8 +3,9 @@
 Briefing for the issue analyst in `.github/workflows/claude-issue-analyst.yml`.
 It exists so these facts live in ONE place next to the code instead of being
 restated in the prompt, where they went stale silently. (Pull-request review is
-separate: the code-review skill in `.github/workflows/claude-bot.yml` is briefed
-with `CLAUDE.md`, `REVIEW.md` and `.github/claude/review-job.md`, not this.)
+separate: the code-review skill in `.github/workflows/claude-pr-review.yml` is
+briefed with `CLAUDE.md`, `REVIEW.md` and `.github/claude/review-job.md`, not
+this.)
 
 `CLAUDE.md`, `frontend/CLAUDE.md` and `docs/architecture.md` outrank this file.
 Where they disagree with it, they win and this file is the thing to fix.
