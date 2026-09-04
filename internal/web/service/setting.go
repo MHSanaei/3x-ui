@@ -36,8 +36,10 @@ var xrayTemplateConfig string
 const (
 	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
 	DefaultSubJsonUserAgentRegex  = ``
-	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
-	DefaultTrustedProxyCIDRs      = "127.0.0.1/32,::1/128"
+	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	DefaultSubExpiredTemplate         = "⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}"
+	DefaultSubTrafficDepletedTemplate = "🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}"
+	DefaultTrustedProxyCIDRs          = "127.0.0.1/32,::1/128"
 	maxRegexLength                = 2048
 )
 
@@ -70,6 +72,9 @@ var defaultValueMap = map[string]string{
 	"trafficDiff":                 "0",
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
+	"subInfoNodeEnable":          "false",
+	"subExpiredTemplate":         DefaultSubExpiredTemplate,
+	"subTrafficDepletedTemplate": DefaultSubTrafficDepletedTemplate,
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
@@ -674,6 +679,18 @@ func (s *SettingService) GetRemarkTemplate() (string, error) {
 
 func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 	return s.getBool("subShowIdentityOnAllLinks")
+}
+
+func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
+	return s.getBool("subInfoNodeEnable")
+}
+
+func (s *SettingService) GetSubExpiredTemplate() (string, error) {
+	return s.getString("subExpiredTemplate")
+}
+
+func (s *SettingService) GetSubTrafficDepletedTemplate() (string, error) {
+	return s.getString("subTrafficDepletedTemplate")
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {

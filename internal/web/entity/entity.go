@@ -35,6 +35,9 @@ type AllSetting struct {
 	TrafficDiff               int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"`
 	RemarkTemplate            string `json:"remarkTemplate" form:"remarkTemplate"`
 	SubShowIdentityOnAllLinks bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
+	SubInfoNodeEnable          bool   `json:"subInfoNodeEnable" form:"subInfoNodeEnable"`
+	SubExpiredTemplate         string `json:"subExpiredTemplate" form:"subExpiredTemplate"`
+	SubTrafficDepletedTemplate string `json:"subTrafficDepletedTemplate" form:"subTrafficDepletedTemplate"`
 	Datepicker                string `json:"datepicker" form:"datepicker"`
 
 	TgBotEnable     bool   `json:"tgBotEnable" form:"tgBotEnable"`
