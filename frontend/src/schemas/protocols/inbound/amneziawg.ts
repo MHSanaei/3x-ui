@@ -66,11 +66,13 @@ export const AmneziawgServerSchema = z.object({
   // z.object's default unknown-key stripping doesn't silently drop it from
   // an existing stored settings blob on the next save.
   routeThroughXray: z.boolean().default(false).optional(),
-  jc: clearedToDefault(z.number().int().min(0).default(5)),
-  jmin: clearedToDefault(z.number().int().min(0).default(10)),
-  jmax: clearedToDefault(z.number().int().min(0).default(50)),
-  s1: clearedToDefault(z.number().int().min(0).default(30)),
-  s2: clearedToDefault(z.number().int().min(0).default(45)),
+  // Upper bounds match amneziawg-go's own UAPI parsers (device/uapi.go):
+  // jc/jmin/jmax are uint32, s1-s4 uint16. Wider values make IpcSet fail.
+  jc: clearedToDefault(z.number().int().min(0).max(4294967295).default(5)),
+  jmin: clearedToDefault(z.number().int().min(0).max(4294967295).default(10)),
+  jmax: clearedToDefault(z.number().int().min(0).max(4294967295).default(50)),
+  s1: clearedToDefault(z.number().int().min(0).max(65535).default(30)),
+  s2: clearedToDefault(z.number().int().min(0).max(65535).default(45)),
   s3: clearedToDefault(z.number().int().min(0).max(64).default(10)),
   s4: clearedToDefault(z.number().int().min(0).max(32).default(5)),
   h1: z.string().default(''),
