@@ -2254,5 +2254,18 @@
     "statusFailed": "FAILED",
     "statusDown": "DOWN",
     "statusUp": "UP"
+  },
+  "commandPalette": {
+    "title": "Command Palette",
+    "placeholder": "Type a command or search clients, inbounds, pages...",
+    "search": "Search...",
+    "navigation": "Navigation",
+    "actions": "Actions",
+    "navigate": "Navigate",
+    "select": "Select",
+    "copySubscription": "Copy subscription",
+    "restartXray": "Restart Xray Service",
+    "restartXraySuccess": "Xray has been successfully relaunched",
+    "settings": "Settings"
   }
 }

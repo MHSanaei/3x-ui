@@ -2254,5 +2254,18 @@
     "statusFailed": "GAGAL",
     "statusDown": "MATI",
     "statusUp": "AKTIF"
+  },
+  "commandPalette": {
+    "title": "Palet Perintah",
+    "placeholder": "Ketik perintah atau cari klien, inbound, halaman...",
+    "search": "Cari...",
+    "navigation": "Navigasi",
+    "actions": "Tindakan",
+    "navigate": "Navigasi",
+    "select": "Pilih",
+    "copySubscription": "Salin langganan",
+    "restartXray": "Mulai Ulang Layanan Xray",
+    "restartXraySuccess": "Layanan Xray berhasil dimulai ulang",
+    "settings": "Pengaturan"
   }
 }

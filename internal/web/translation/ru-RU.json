@@ -2254,5 +2254,18 @@
     "statusFailed": "НЕУДАЧНО",
     "statusDown": "НЕДОСТУПЕН",
     "statusUp": "РАБОТАЕТ"
+  },
+  "commandPalette": {
+    "title": "Командная строка",
+    "placeholder": "Введите команду или найдите клиентов, инбаунды, страницы...",
+    "search": "Поиск...",
+    "navigation": "Навигация",
+    "actions": "Действия",
+    "navigate": "Перейти",
+    "select": "Выбрать",
+    "copySubscription": "Копировать подписку",
+    "restartXray": "Перезапустить службу Xray",
+    "restartXraySuccess": "Служба Xray успешно перезапущена",
+    "settings": "Настройки"
   }
 }

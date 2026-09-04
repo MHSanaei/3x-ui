@@ -2254,5 +2254,18 @@
     "statusFailed": "失敗",
     "statusDown": "中斷",
     "statusUp": "恢復"
+  },
+  "commandPalette": {
+    "title": "命令面板",
+    "placeholder": "輸入命令或搜尋客戶端、入站、頁面...",
+    "search": "搜尋...",
+    "navigation": "頁面導航",
+    "actions": "系統操作",
+    "navigate": "導航",
+    "select": "選擇",
+    "copySubscription": "複製訂閱連結",
+    "restartXray": "重啟 Xray 服務",
+    "restartXraySuccess": "Xray 服務已成功重啟",
+    "settings": "設定"
   }
 }

@@ -2254,5 +2254,18 @@
     "statusFailed": "失敗",
     "statusDown": "ダウン",
     "statusUp": "アップ"
+  },
+  "commandPalette": {
+    "title": "コマンドパレット",
+    "placeholder": "コマンドを入力するか、クライアント、インバウンド、ページを検索...",
+    "search": "検索...",
+    "navigation": "ナビゲーション",
+    "actions": "操作",
+    "navigate": "移動",
+    "select": "選択",
+    "copySubscription": "サブスクリプションをコピー",
+    "restartXray": "Xrayサービスを再起動",
+    "restartXraySuccess": "Xrayサービスが正常に再起動されました",
+    "settings": "設定"
   }
 }

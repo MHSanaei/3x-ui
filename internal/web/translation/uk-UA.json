@@ -2254,5 +2254,18 @@
     "statusFailed": "НЕВДАЛО",
     "statusDown": "НЕДОСТУПНО",
     "statusUp": "ДОСТУПНО"
+  },
+  "commandPalette": {
+    "title": "Командний рядок",
+    "placeholder": "Введіть команду або знайдіть клієнтів, інбаунди, сторінки...",
+    "search": "Пошук...",
+    "navigation": "Навігація",
+    "actions": "Дії",
+    "navigate": "Перейти",
+    "select": "Вибрати",
+    "copySubscription": "Копіювати підписку",
+    "restartXray": "Перезапустити службу Xray",
+    "restartXraySuccess": "Службу Xray успішно перезапущено",
+    "settings": "Налаштування"
   }
 }

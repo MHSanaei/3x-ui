@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Drawer, Layout, Menu } from 'antd';
+import { Drawer, Layout, Menu, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   ApiOutlined,
@@ -28,6 +28,7 @@ import {
   PushpinOutlined,
   ReadOutlined,
   SafetyOutlined,
+  SearchOutlined,
   SettingOutlined,
   SunOutlined,
   SwapOutlined,
@@ -40,6 +41,7 @@ import { HttpUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
+import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
 import './AppSidebar.css';
 
 const DONATE_URL = 'https://donate.sanaei.dev/';
@@ -174,6 +176,7 @@ function saveSidebarPinned(pinned: boolean) {
 export default function AppSidebar() {
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
+  const { open: openCommandPalette } = useCommandPalette();
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
   const { allSetting } = useAllSettings();
@@ -392,6 +395,26 @@ export default function AppSidebar() {
             </div>
           )}
         </div>
+        <Tooltip
+          title={railCollapsed ? t('commandPalette.title') || 'Command Palette (Ctrl + K)' : undefined}
+          placement="right"
+        >
+          <button
+            type="button"
+            className={`sidebar-command-trigger${railCollapsed ? ' collapsed' : ''}`}
+            onClick={openCommandPalette}
+            aria-label={t('commandPalette.title') || 'Command Palette (Ctrl + K)'}
+          >
+            <span className="sidebar-command-left">
+              <SearchOutlined className="sidebar-command-icon" />
+              <span className="sidebar-command-text">{t('commandPalette.search') || 'Search...'}</span>
+            </span>
+            <span className="sidebar-command-kbd">
+              <span className="kbd-cmd">⌘</span>
+              <span className="kbd-key">K</span>
+            </span>
+          </button>
+        </Tooltip>
         <Menu
           theme={currentTheme}
           mode="inline"
@@ -452,6 +475,25 @@ export default function AppSidebar() {
             </button>
           </div>
         </div>
+        <button
+          type="button"
+          className="sidebar-command-trigger"
+          onClick={() => {
+            setDrawerOpen(false);
+            openCommandPalette();
+          }}
+          aria-label={t('commandPalette.title') || 'Command Palette (Ctrl + K)'}
+          style={{ margin: '8px 12px 4px', width: 'calc(100% - 24px)' }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SearchOutlined className="sidebar-command-icon" />
+            <span>{t('commandPalette.search') || 'Search...'}</span>
+          </span>
+          <span className="sidebar-command-kbd">
+            <span className="kbd-cmd">⌘</span>
+            <span className="kbd-key">K</span>
+          </span>
+        </button>
         <Menu
           theme={currentTheme}
           mode="inline"
