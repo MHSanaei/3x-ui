@@ -9,6 +9,7 @@ import (
 	"github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
@@ -241,6 +242,9 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 	if inbound.Protocol == model.WireGuard {
 		return s.buildWireguardProxy(subReq, inbound, client, ep)
 	}
+	if inbound.Protocol == model.AmneziaWG {
+		return s.buildAmneziaWGProxy(subReq, inbound, client, ep)
+	}
 
 	network, _ := stream["network"].(string)
 
@@ -443,6 +447,153 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 		if len(servers) > 0 {
 			proxy["dns"] = servers
 		}
+	}
+
+	return proxy
+}
+
+// buildAmneziaWGProxy emits a mihomo Clash entry for an AmneziaWG inbound:
+// type stays "wireguard", the obfuscation rides in amnezia-wg-option.
+func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
+	if client.PrivateKey == "" {
+		return nil
+	}
+
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.Server == nil {
+		return nil
+	}
+	server := parsed.Server
+
+	proxy := map[string]any{
+		"name":        subReq.endpointRemark(inbound, client.Email, ep, ""),
+		"type":        "wireguard",
+		"server":      inbound.Listen,
+		"port":        inbound.Port,
+		"udp":         true,
+		"private-key": client.PrivateKey,
+	}
+
+	if server.PublicKey != "" {
+		proxy["public-key"] = server.PublicKey
+	}
+	if client.PreSharedKey != "" {
+		proxy["pre-shared-key"] = client.PreSharedKey
+	}
+	if client.KeepAlive > 0 {
+		proxy["persistent-keepalive"] = client.KeepAlive
+	}
+
+	for _, addr := range client.AllowedIPs {
+		ip := stripCIDR(addr)
+		if ip == "" {
+			continue
+		}
+		if strings.Contains(ip, ":") {
+			proxy["ipv6"] = ip
+		} else {
+			proxy["ip"] = ip
+		}
+	}
+
+	if server.MTU > 0 {
+		proxy["mtu"] = server.MTU
+	}
+
+	var dns []string
+	if server.PrimaryDNS != "" {
+		dns = append(dns, server.PrimaryDNS)
+	}
+	if server.SecondaryDNS != "" {
+		dns = append(dns, server.SecondaryDNS)
+	}
+	if len(dns) > 0 {
+		proxy["dns"] = dns
+	}
+
+	awg := map[string]any{}
+	if server.Jc != 0 {
+		awg["jc"] = server.Jc
+	}
+	if server.Jmin != 0 {
+		awg["jmin"] = server.Jmin
+	}
+	if server.Jmax != 0 {
+		awg["jmax"] = server.Jmax
+	}
+	if server.S1 != 0 {
+		awg["s1"] = server.S1
+	}
+	if server.S2 != 0 {
+		awg["s2"] = server.S2
+	}
+	if server.S3 != 0 {
+		awg["s3"] = server.S3
+	}
+	if server.S4 != 0 {
+		awg["s4"] = server.S4
+	}
+	if server.H1 != "" {
+		awg["h1"] = server.H1
+	}
+	if server.H2 != "" {
+		awg["h2"] = server.H2
+	}
+	if server.H3 != "" {
+		awg["h3"] = server.H3
+	}
+	if server.H4 != "" {
+		awg["h4"] = server.H4
+	}
+	for i, v := range []string{server.I1, server.I2, server.I3, server.I4, server.I5} {
+		if v != "" {
+			awg[fmt.Sprintf("i%d", i+1)] = v
+		}
+	}
+
+	needsV3 := false
+	if server.HeaderProtectionKey != "" {
+		awg["header-protection-key"] = server.HeaderProtectionKey
+		needsV3 = true
+	}
+	if server.ContentPaddingAddition != "" {
+		awg["content-padding-addition"] = server.ContentPaddingAddition
+		needsV3 = true
+	}
+	if server.RekeyAfterTime != "" {
+		awg["rekey-after-time"] = server.RekeyAfterTime
+		needsV3 = true
+	}
+	if server.RekeyTimeout != "" {
+		awg["rekey-timeout"] = server.RekeyTimeout
+		needsV3 = true
+	}
+	if server.RejectAfterTime != "" {
+		awg["reject-after-time"] = server.RejectAfterTime
+		needsV3 = true
+	}
+	if server.KeepaliveTimeout != "" {
+		awg["keepalive-timeout"] = server.KeepaliveTimeout
+		needsV3 = true
+	}
+	if server.MaxHandshakeAttempts != "" {
+		awg["max-handshake-attempts"] = server.MaxHandshakeAttempts
+		needsV3 = true
+	}
+	if server.RandomTrailers {
+		awg["random-trailers"] = true
+		needsV3 = true
+	}
+	if server.DisableCookies {
+		awg["disable-cookies"] = true
+		needsV3 = true
+	}
+	if needsV3 {
+		awg["version"] = 3
+	}
+
+	if len(awg) > 0 {
+		proxy["amnezia-wg-option"] = awg
 	}
 
 	return proxy
