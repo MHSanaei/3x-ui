@@ -1107,4 +1107,39 @@ describe('genTuicLink', () => {
     expect(link).toContain('allow_insecure=0');
     expect(link).toContain('#TUIC-Node');
   });
+
+  it('falls back to default alpn and udp_relay_mode when server settings are empty', () => {
+    const inbound = InboundSchema.parse({
+      id: 2,
+      tag: 'tuic-default-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+    });
+
+    const link = genTuicLink({
+      inbound,
+      address: 'example.com',
+      port: 8443,
+      remark: 'TUIC-Default',
+      clientUuid: '11111111-2222-3333-4444-555555555555',
+      clientPassword: 'secretpassword',
+    });
+
+    expect(link).toContain('congestion_control=bbr');
+    expect(link).toContain('alpn=h3%2Cspdy%2F3.1');
+    expect(link).toContain('udp_relay_mode=native');
+    expect(link).toContain('allow_insecure=0');
+  });
 });

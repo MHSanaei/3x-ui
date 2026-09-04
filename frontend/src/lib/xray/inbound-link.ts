@@ -884,18 +884,21 @@ export function genTuicLink(input: GenTuicLinkInput): string {
     (server.congestion_control as string) || (rawSettings.congestion_control as string) || 'bbr';
   url.searchParams.set('congestion_control', cc);
 
-  const alpn = (server.alpn as string[]) || (rawSettings.alpn as string[]);
-  if (Array.isArray(alpn) && alpn.length > 0) {
-    url.searchParams.set('alpn', alpn.join(','));
-  }
+  const alpn = (Array.isArray(server.alpn) && server.alpn.length > 0
+    ? (server.alpn as string[])
+    : null) ||
+    (Array.isArray(rawSettings.alpn) && rawSettings.alpn.length > 0
+      ? (rawSettings.alpn as string[])
+      : null) || ['h3', 'spdy/3.1'];
+  url.searchParams.set('alpn', alpn.join(','));
+
   const sni = (server.sni as string) || (rawSettings.sni as string);
   if (sni) {
     url.searchParams.set('sni', sni);
   }
-  const udpRelay = (server.udp_relay_mode as string) || (rawSettings.udp_relay_mode as string);
-  if (udpRelay) {
-    url.searchParams.set('udp_relay_mode', udpRelay);
-  }
+  const udpRelay =
+    (server.udp_relay_mode as string) || (rawSettings.udp_relay_mode as string) || 'native';
+  url.searchParams.set('udp_relay_mode', udpRelay);
   url.searchParams.set('allow_insecure', '0');
 
   const fragment = externalProxy?.remark ? `${remark}-${externalProxy.remark}` : remark;

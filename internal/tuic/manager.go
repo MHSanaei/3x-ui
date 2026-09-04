@@ -148,20 +148,11 @@ func (m *Manager) CollectTraffic() []InboundTrafficDelta {
 		if mg.proc != nil && mg.proc.IsRunning() {
 			deltaUp, deltaDown := mg.proc.CollectTraffic()
 			if deltaUp > 0 || deltaDown > 0 {
-				activeEmails := mg.proc.GetActiveEmails(60 * time.Second)
-				targets := activeEmails
-				if len(targets) == 0 {
-					targets = mg.clientEmails
-				}
 				clientMap := make(map[string]struct{ Up, Down int64 })
-				if len(targets) > 0 {
-					perClientUp := deltaUp / int64(len(targets))
-					perClientDown := deltaDown / int64(len(targets))
-					for _, email := range targets {
-						clientMap[email] = struct{ Up, Down int64 }{
-							Up:   perClientUp,
-							Down: perClientDown,
-						}
+				if len(mg.clientEmails) == 1 {
+					clientMap[mg.clientEmails[0]] = struct{ Up, Down int64 }{
+						Up:   deltaUp,
+						Down: deltaDown,
 					}
 				}
 				out = append(out, InboundTrafficDelta{

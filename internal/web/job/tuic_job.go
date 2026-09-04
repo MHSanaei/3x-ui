@@ -35,32 +35,33 @@ func (j *TuicJob) Run() {
 	deltas := mgr.CollectTraffic()
 	onlineEmails, _ := mgr.GetActiveClients(30 * time.Second)
 
-	clientTraffics := make([]*xray.ClientTraffic, 0)
+	clientUp := make(map[string]int64)
+	clientDown := make(map[string]int64)
 	inboundUp := make(map[string]int64)
 	inboundDown := make(map[string]int64)
-	seenClients := make(map[string]bool)
 	for _, d := range deltas {
 		for email, stats := range d.Clients {
-			clientTraffics = append(clientTraffics, &xray.ClientTraffic{
-				Email: email,
-				Up:    stats.Up,
-				Down:  stats.Down,
-			})
-			seenClients[email] = true
+			clientUp[email] += stats.Up
+			clientDown[email] += stats.Down
 		}
 		inboundUp[d.Tag] += d.Up
 		inboundDown[d.Tag] += d.Down
 	}
 
 	for _, email := range onlineEmails {
-		if !seenClients[email] {
-			clientTraffics = append(clientTraffics, &xray.ClientTraffic{
-				Email: email,
-				Up:    0,
-				Down:  0,
-			})
-			seenClients[email] = true
+		if _, ok := clientUp[email]; !ok {
+			clientUp[email] = 0
+			clientDown[email] = 0
 		}
+	}
+
+	clientTraffics := make([]*xray.ClientTraffic, 0, len(clientUp))
+	for email, up := range clientUp {
+		clientTraffics = append(clientTraffics, &xray.ClientTraffic{
+			Email: email,
+			Up:    up,
+			Down:  clientDown[email],
+		})
 	}
 
 	traffics := make([]*xray.Traffic, 0, len(inboundUp))
