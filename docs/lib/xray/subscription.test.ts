@@ -120,6 +120,19 @@ describe('buildJsonSubscription', () => {
     expect(cfg.remarks).toBe('HK-01');
   });
 
+  it('uses the iOS-compatible SOCKS inbound while preserving the mixed tag and HTTP inbound', () => {
+    const cfg = JSON.parse(buildJsonSubscription([vlessClient]));
+    const socks = cfg.inbounds.find((inbound: { port: number }) => inbound.port === 10808);
+    const http = cfg.inbounds.find((inbound: { port: number }) => inbound.port === 10809);
+
+    expect(socks).toMatchObject({
+      protocol: 'socks',
+      tag: 'mixed',
+      settings: { udp: true },
+    });
+    expect(http).toMatchObject({ protocol: 'http' });
+  });
+
   it('trojan uses servers[] with a password and no method', () => {
     const trojan: SubClient = {
       protocol: 'trojan',

@@ -345,7 +345,7 @@ func (a *SUBController) buildSubPageData(c *gin.Context) (PageData, bool) {
 	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = false
 	subs, emails, lastOnline, traffic, err := subReq.getSubs(subId)
-	if err != nil || len(subs) == 0 {
+	if err != nil || subs == nil {
 		writeSubError(c, err)
 		return PageData{}, false
 	}
@@ -413,7 +413,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	subReq := a.subService.ForRequest(host)
 	subReq.subscriptionBody = true
 	subs, _, _, traffic, err := subReq.getSubs(subId)
-	if err != nil || len(subs) == 0 {
+	if err != nil || subs == nil {
 		writeSubError(c, err)
 	} else {
 		var result strings.Builder
@@ -705,9 +705,13 @@ func (a *SUBController) loadSubTemplate(themeDir string) (*template.Template, er
 	return tmpl, nil
 }
 
-// subJsons handles HTTP requests for JSON subscription configurations.
+// subJsons handles HTTP requests for JSON subscription configurations. The
+// device limit is enforced on every body route, ?view=raw included (#GHSA-7ww3).
 func (a *SUBController) subJsons(c *gin.Context) {
 	if strings.EqualFold(c.Query("view"), "raw") {
+		if !a.enforceHwid(c) {
+			return
+		}
 		if !a.serveJsonBody(c, a.jsonAlwaysArray, "application/json; charset=utf-8", true) {
 			writeSubError(c, nil)
 		}
@@ -738,7 +742,7 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 		writeSubError(c, err)
 		return true
 	}
-	if len(jsonSub) == 0 {
+	if len(jsonSub) == 0 && header == "" {
 		return false
 	}
 	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
@@ -760,6 +764,9 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 
 func (a *SUBController) subClashs(c *gin.Context) {
 	if strings.EqualFold(c.Query("view"), "raw") {
+		if !a.enforceHwid(c) {
+			return
+		}
 		if !a.serveClashBody(c, true) {
 			writeSubError(c, nil)
 		}
@@ -786,7 +793,7 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool) bool {
 		writeSubError(c, err)
 		return true
 	}
-	if len(clashSub) == 0 {
+	if len(clashSub) == 0 && header == "" {
 		return false
 	}
 	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)

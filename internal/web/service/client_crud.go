@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"runtime/debug"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -14,6 +17,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -116,6 +120,8 @@ func (s *ClientService) GetClientsByTrafficReset(period string) ([]ClientResetCy
 	return cycles, nil
 }
 
+// Create applies the client to every requested inbound: one failing inbound no
+// longer aborts the others, so the error can name several and needRestart holds.
 func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreatePayload) (bool, error) {
 	if payload == nil {
 		return false, common.NewError("empty payload")
@@ -194,14 +200,16 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 
-	needRestart := false
+	// Prepared before any inbound is written: fillProtocolDefaults mints the
+	// shared credentials on the first inbound and every later one reuses them.
+	adds := make([]*model.Inbound, 0, len(payload.InboundIds))
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
-			return needRestart, getErr
+			return false, fmt.Errorf("inbound %d: %w", ibId, getErr)
 		}
 		if err := s.fillProtocolDefaults(&client, inbound); err != nil {
-			return needRestart, err
+			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
 		clientForInbound := client
 		if ips, ok := client.AllowedIPsByInbound[ibId]; ok {
@@ -217,23 +225,59 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(clientForInbound, inbound)}})
 		if mErr != nil {
-			return needRestart, mErr
+			return false, fmt.Errorf("inbound %d: %w", ibId, mErr)
 		}
-		nr, addErr := s.AddInboundClient(inboundSvc, &model.Inbound{
-			Id:       ibId,
-			Settings: string(settingsPayload),
-		})
-		if addErr != nil {
-			return needRestart, addErr
-		}
-		if nr {
-			needRestart = true
-		}
+		adds = append(adds, &model.Inbound{Id: ibId, Settings: string(settingsPayload)})
 	}
-	if err := s.setClientLimitHwidByEmail(nil, client.Email, payload.LimitHwid); err != nil {
-		return needRestart, err
+	needRestart, fanoutErr := s.fanoutInboundClientAdds(inboundSvc, adds)
+	if fanoutErr != nil {
+		// Never on a failed create: this retrims the devices of an email that
+		// already existed, and a create the panel reported as failed must not.
+		return needRestart, fanoutErr
 	}
-	return needRestart, nil
+	return needRestart, s.setClientLimitHwidByEmail(nil, client.Email, payload.LimitHwid)
+}
+
+// inboundFanoutConcurrency caps how many inbounds one create/attach applies at
+// once, so a client spanning many of them can't start an unbounded RPC burst.
+const inboundFanoutConcurrency = 4
+
+// fanoutInboundClientAdds applies one payload per inbound with the node pushes
+// overlapping; unlike the sequential loop, one failure no longer stops the rest.
+func (s *ClientService) fanoutInboundClientAdds(inboundSvc *InboundService, adds []*model.Inbound) (bool, error) {
+	var needRestart atomic.Bool
+	errs := make([]error, len(adds))
+	sem := make(chan struct{}, inboundFanoutConcurrency)
+	var wg sync.WaitGroup
+	for i := range adds {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			// Off the request goroutine gin's Recovery no longer covers this,
+			// so an unrecovered panic here would take the whole panel down.
+			defer func() {
+				if r := recover(); r != nil {
+					// The apply may already have committed, so ask for the
+					// restart the lost return value can no longer report.
+					needRestart.Store(true)
+					errs[i] = fmt.Errorf("inbound %d: panic: %v", adds[i].Id, r)
+					logger.Errorf("panic adding client to inbound %d: %v\n%s", adds[i].Id, r, debug.Stack())
+				}
+			}()
+			nr, err := s.AddInboundClient(inboundSvc, adds[i])
+			if nr {
+				needRestart.Store(true)
+			}
+			if err != nil {
+				errs[i] = fmt.Errorf("inbound %d: %w", adds[i].Id, err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	return needRestart.Load(), errors.Join(errs...)
 }
 
 func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound) error {
@@ -799,6 +843,8 @@ func addressesFitAmneziaWGInbound(addrs []string, ib *model.Inbound) bool {
 	return true
 }
 
+// Attach applies the client to every requested inbound: one failing inbound no
+// longer aborts the others, so the error can name several and needRestart holds.
 func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []int) (bool, error) {
 	existing, err := s.GetByID(id)
 	if err != nil {
@@ -833,38 +879,29 @@ func (s *ClientService) Attach(inboundSvc *InboundService, id int, inboundIds []
 		clientWire.AllowedIPs = nil
 	}
 
-	needRestart := false
+	adds := make([]*model.Inbound, 0, len(inboundIds))
 	for _, ibId := range inboundIds {
 		if _, attached := have[ibId]; attached {
 			continue
 		}
 		inbound, getErr := inboundSvc.GetInbound(ibId)
 		if getErr != nil {
-			return needRestart, getErr
+			return false, fmt.Errorf("inbound %d: %w", ibId, getErr)
 		}
 		copyClient := *clientWire
 		if !addressesFitAmneziaWGInbound(copyClient.AllowedIPs, inbound) {
 			copyClient.AllowedIPs = nil
 		}
 		if err := s.fillProtocolDefaults(&copyClient, inbound); err != nil {
-			return needRestart, err
+			return false, fmt.Errorf("inbound %d: %w", ibId, err)
 		}
 		settingsPayload, mErr := json.Marshal(map[string][]model.Client{"clients": {clientWithInboundFlow(copyClient, inbound)}})
 		if mErr != nil {
-			return needRestart, mErr
+			return false, fmt.Errorf("inbound %d: %w", ibId, mErr)
 		}
-		nr, addErr := s.AddInboundClient(inboundSvc, &model.Inbound{
-			Id:       ibId,
-			Settings: string(settingsPayload),
-		})
-		if addErr != nil {
-			return needRestart, addErr
-		}
-		if nr {
-			needRestart = true
-		}
+		adds = append(adds, &model.Inbound{Id: ibId, Settings: string(settingsPayload)})
 	}
-	return needRestart, nil
+	return s.fanoutInboundClientAdds(inboundSvc, adds)
 }
 
 func (s *ClientService) CreateOne(inboundSvc *InboundService, inboundId int, client model.Client) (bool, error) {

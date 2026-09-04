@@ -47,6 +47,8 @@ func remoteRoutingResponse(status int, body string) *http.Response {
 
 func waitRemoteRoutingIdle(t *testing.T, resolver *remoteRoutingResolver) {
 	t.Helper()
+	// Wait on refresh goroutines to prevent logging race after test teardown.
+	resolver.refreshWG.Wait()
 	deadline := time.Now().Add(2 * time.Second)
 	for {
 		resolver.mu.Lock()
