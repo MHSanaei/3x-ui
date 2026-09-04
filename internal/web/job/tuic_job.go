@@ -52,8 +52,19 @@ func (j *TuicJob) Run() {
 		})
 	}
 
-	if len(traffics) > 0 {
-		needRestart, _, err := j.inboundService.AddTraffic(traffics, nil)
+	// Build zero-byte client traffic entries for active clients so adjustTraffics can
+	// activate delayed-start expiryTime for TUIC clients without inflating traffic.
+	clientTraffics := make([]*xray.ClientTraffic, 0, len(onlineEmails))
+	for _, email := range onlineEmails {
+		clientTraffics = append(clientTraffics, &xray.ClientTraffic{
+			Email: email,
+			Up:    0,
+			Down:  0,
+		})
+	}
+
+	if len(traffics) > 0 || len(clientTraffics) > 0 {
+		needRestart, _, err := j.inboundService.AddTraffic(traffics, clientTraffics)
 		if err != nil {
 			logger.Warning("tuic job: add traffic failed:", err)
 		} else if needRestart {

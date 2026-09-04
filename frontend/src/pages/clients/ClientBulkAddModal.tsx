@@ -142,12 +142,6 @@ export default function ClientBulkAddModal({
   );
 
   useEffect(() => {
-    if (hasTuic && methods.getValues('totalGB') !== 0) {
-      methods.setValue('totalGB', 0);
-    }
-  }, [hasTuic, methods]);
-
-  useEffect(() => {
     if (!showFlow && flow) {
       methods.setValue('flow', '');
     }
@@ -413,7 +407,7 @@ export default function ClientBulkAddModal({
               }
               transform={{ output: (v) => Number(v) || 0 }}
             >
-              <InputNumber min={0} step={1} disabled={hasTuic} />
+              <InputNumber min={0} step={1} />
             </FormField>
 
             <Form.Item label={t('pages.clients.delayedStart')}>

@@ -549,12 +549,6 @@ export default function ClientFormModal({
   }, [ss2022Method, methods]);
 
   useEffect(() => {
-    if (hasTuic && methods.getValues('totalGB') !== 0) {
-      methods.setValue('totalGB', 0);
-    }
-  }, [hasTuic, methods]);
-
-  useEffect(() => {
     if (showMtproto && !secret) {
       methods.setValue('secret', generateMtprotoSecret(mtprotoDomain));
     }
@@ -881,12 +875,7 @@ export default function ClientFormModal({
                             }
                             transform={{ output: (v) => Number(v) || 0 }}
                           >
-                            <InputNumber
-                              min={0}
-                              step={1}
-                              disabled={hasTuic}
-                              style={{ width: '100%' }}
-                            />
+                            <InputNumber min={0} step={1} style={{ width: '100%' }} />
                           </FormField>
                         </Col>
                         <Col xs={24} md={6}>

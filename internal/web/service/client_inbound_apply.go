@@ -457,9 +457,6 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			if client.Email == "" {
 				return false, common.NewError("empty client email")
 			}
-			if client.TotalGB > 0 {
-				return false, common.NewError("tuic does not support per-client traffic limits; set traffic limit on the inbound instead")
-			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
@@ -693,9 +690,6 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	}
 	if oldInbound.Protocol == model.MTProto && clients[0].AdTag != "" && !model.ValidMtprotoAdTag(clients[0].AdTag) {
 		return false, common.NewError("mtproto client ad tag must be 32 hex characters")
-	}
-	if oldInbound.Protocol == model.TUIC && clients[0].TotalGB > 0 {
-		return false, common.NewError("tuic does not support per-client traffic limits; set traffic limit on the inbound instead")
 	}
 
 	if clients[0].Email != oldEmail {
