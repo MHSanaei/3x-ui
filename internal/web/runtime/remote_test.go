@@ -440,3 +440,35 @@ func TestSanitizeStreamSettingsForRemote(t *testing.T) {
 		})
 	}
 }
+
+// An adopted alias maps a central tag onto a differently-named node inbound.
+// refreshRemoteIDs rebuilds the cache from node-reported tags only, so the
+// alias must be re-applied or every later op on that inbound misses.
+func TestRemoteAdoptedAliasSurvivesRefresh(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if req.URL.Path == "/panel/api/inbounds/list" {
+			_, _ = w.Write([]byte(`{"success":true,"obj":[{"id":5,"tag":"legacy-in"},{"id":6,"tag":"in-2"}]}`))
+			return
+		}
+		http.NotFound(w, req)
+	}))
+	defer srv.Close()
+
+	r := NewRemote(nodeForPlainServer(t, srv, "verify", "tok"), nil)
+	central := &model.Inbound{Tag: "central-in", Settings: `{"clients":[]}`}
+	r.AdoptInboundAlias(central, RemoteInboundOption{Id: 5, Tag: "legacy-in"})
+
+	// Resolving a different tag misses the cache and forces a full refresh.
+	if _, err := r.resolveRemoteID(context.Background(), "in-2"); err != nil {
+		t.Fatalf("resolveRemoteID(in-2): %v", err)
+	}
+
+	id, err := r.resolveRemoteID(context.Background(), central.Tag)
+	if err != nil {
+		t.Fatalf("resolveRemoteID(%s) after refresh: %v", central.Tag, err)
+	}
+	if id != 5 {
+		t.Fatalf("adopted alias resolved to %d, want 5", id)
+	}
+}

@@ -404,6 +404,13 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 		next[ib.Tag] = ib.Id
 	}
 	r.mu.Lock()
+	// A rebuild sees only node-reported tags, so the adopted aliases must be
+	// re-applied or a later op on an adopted inbound re-creates it as a duplicate.
+	for centralTag, nodeTag := range r.adoptedAliases {
+		if id, ok := next[nodeTag]; ok {
+			next[centralTag] = id
+		}
+	}
 	r.remoteIDByTag = next
 	r.mu.Unlock()
 	return nil
