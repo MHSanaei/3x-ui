@@ -34,7 +34,7 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
+	DefaultSubClashUserAgentRegex = `(?i)(mihomo|clash[- ]?(verge|meta|nyanpasu)|flclash)`
 	DefaultSubJsonUserAgentRegex  = ``
 	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
 	DefaultTrustedProxyCIDRs      = "127.0.0.1/32,::1/128"
