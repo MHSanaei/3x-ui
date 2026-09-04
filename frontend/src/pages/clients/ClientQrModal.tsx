@@ -10,14 +10,15 @@ import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
+import { formatTunnelConfigMeta } from '@/lib/inbounds/label';
 import {
   buildWireguardClientConfig,
-  findWireguardInbound,
+  findWireguardInbounds,
   isWireguardClient,
 } from './wireguardConfig';
 import {
   buildAmneziaWGClientConfig,
-  findAmneziaWGInbound,
+  findAmneziaWGInbounds,
   isAmneziaWGClient,
 } from './amneziawgConfig';
 
@@ -308,38 +309,50 @@ function ClientQrModalContent({
     navigate(HAPP_SETTINGS_PATH);
   }, [navigate, onOpenChange]);
 
-  const wgInbound = useMemo(
-    () => findWireguardInbound(client, inboundsById),
+  const wgInbounds = useMemo(
+    () => findWireguardInbounds(client, inboundsById),
     [client, inboundsById],
   );
-  const wgConfigText = useMemo(() => {
-    if (!client || !wgInbound || !isWireguardClient(client)) return '';
-    return buildWireguardClientConfig(
-      client,
-      wgInbound,
-      window.location.hostname,
-      subSettings.publicHost ?? '',
-    );
-  }, [client, wgInbound, subSettings.publicHost]);
+  const wgConfigs = useMemo(() => {
+    if (!client || !isWireguardClient(client)) return [];
+    return wgInbounds
+      .map((ib) => {
+        const address = tunnelAllowedIPs?.[ib.id] ?? '';
+        const text = buildWireguardClientConfig(
+          client,
+          ib,
+          window.location.hostname,
+          subSettings.publicHost ?? '',
+          address,
+        );
+        return { inbound: ib, text };
+      })
+      .filter((c) => !!c.text);
+  }, [client, wgInbounds, tunnelAllowedIPs, subSettings.publicHost]);
 
-  const awgInbound = useMemo(
-    () => findAmneziaWGInbound(client, inboundsById),
+  const awgInbounds = useMemo(
+    () => findAmneziaWGInbounds(client, inboundsById),
     [client, inboundsById],
   );
-  const awgConfigText = useMemo(() => {
-    if (!client || !awgInbound || !isAmneziaWGClient(client)) return '';
-    const address = awgInbound ? (tunnelAllowedIPs?.[awgInbound.id] ?? '') : '';
-    return buildAmneziaWGClientConfig(
-      client,
-      awgInbound,
-      window.location.hostname,
-      subSettings.publicHost ?? '',
-      address,
-    );
-  }, [client, awgInbound, tunnelAllowedIPs, subSettings.publicHost]);
+  const awgConfigs = useMemo(() => {
+    if (!client || !isAmneziaWGClient(client)) return [];
+    return awgInbounds
+      .map((ib) => {
+        const address = tunnelAllowedIPs?.[ib.id] ?? '';
+        const text = buildAmneziaWGClientConfig(
+          client,
+          ib,
+          window.location.hostname,
+          subSettings.publicHost ?? '',
+          address,
+        );
+        return { inbound: ib, text };
+      })
+      .filter((c) => !!c.text);
+  }, [client, awgInbounds, tunnelAllowedIPs, subSettings.publicHost]);
 
   const hasAnything =
-    !!subLink || !!subJsonLink || !!wgConfigText || !!awgConfigText || links.length > 0;
+    !!subLink || !!subJsonLink || wgConfigs.length > 0 || awgConfigs.length > 0 || links.length > 0;
 
   // The reset runs during render so the effect only carries the request.
   const openSubId = open ? (client?.subId ?? '') : '';
@@ -424,40 +437,38 @@ function ClientQrModalContent({
         ),
       });
     });
-    if (wgConfigText) {
-      out.push({
-        key: 'wg-config',
-        label: (
+    wgConfigs.forEach(({ inbound, text }) => {
+      const meta = formatTunnelConfigMeta(inbound, client?.email, wgConfigs.length);
+      const label = (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Tag color="cyan" style={{ margin: 0 }}>
             {t('pages.clients.wireguardConfig')}
           </Tag>
-        ),
-        children: (
-          <QrPanel
-            value={wgConfigText}
-            remark={client?.email || 'peer'}
-            downloadName={`${client?.email || 'peer'}.conf`}
-          />
-        ),
-      });
-    }
-    if (awgConfigText) {
+          {meta.label && <span style={{ opacity: 0.85, fontSize: 12 }}>{meta.label}</span>}
+        </span>
+      );
       out.push({
-        key: 'awg-config',
-        label: (
+        key: `wg-config-${inbound.id}`,
+        label,
+        children: <QrPanel value={text} remark={meta.qrRemark} downloadName={meta.fileName} />,
+      });
+    });
+    awgConfigs.forEach(({ inbound, text }) => {
+      const meta = formatTunnelConfigMeta(inbound, client?.email, awgConfigs.length);
+      const label = (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Tag color="purple" style={{ margin: 0 }}>
             {t('pages.clients.amneziaWgConfig')}
           </Tag>
-        ),
-        children: (
-          <QrPanel
-            value={awgConfigText}
-            remark={client?.email || 'peer'}
-            downloadName={`${client?.email || 'peer'}.conf`}
-          />
-        ),
+          {meta.label && <span style={{ opacity: 0.85, fontSize: 12 }}>{meta.label}</span>}
+        </span>
+      );
+      out.push({
+        key: `awg-config-${inbound.id}`,
+        label,
+        children: <QrPanel value={text} remark={meta.qrRemark} downloadName={meta.fileName} />,
       });
-    }
+    });
     return out;
   }, [
     subLink,
@@ -467,8 +478,8 @@ function ClientQrModalContent({
     happLoading,
     happError,
     happLinkEnabled,
-    wgConfigText,
-    awgConfigText,
+    wgConfigs,
+    awgConfigs,
     links,
     client?.email,
     selectVariant,

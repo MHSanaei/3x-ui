@@ -189,15 +189,21 @@ func (a *ClientController) create(c *gin.Context) {
 		return
 	}
 	needRestart, err := a.clientService.Create(&a.inboundService, &payload)
+	// Flagged before the error check: a partly-applied create leaves clients
+	// committed on the inbounds that succeeded, and those still need the restart.
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	// A partly-applied call committed real clients; a rejected one touched
+	// nothing, and broadcasting those would refetch every panel for nothing.
+	if needRestart || err == nil {
+		notifyClientsChanged()
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), pendingNodeObj(a.inboundService.AnyNodePending(payload.InboundIds)), nil)
-	if needRestart {
-		a.xrayService.SetToNeedRestart()
-	}
-	notifyClientsChanged()
 }
 
 func (a *ClientController) update(c *gin.Context) {
@@ -254,15 +260,19 @@ func (a *ClientController) attach(c *gin.Context) {
 		return
 	}
 	needRestart, err := a.clientService.AttachByEmail(&a.inboundService, email, body.InboundIds)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	// A partly-applied call committed real clients; a rejected one touched
+	// nothing, and broadcasting those would refetch every panel for nothing.
+	if needRestart || err == nil {
+		notifyClientsChanged()
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), pendingNodeObj(a.inboundService.AnyNodePending(body.InboundIds)), nil)
-	if needRestart {
-		a.xrayService.SetToNeedRestart()
-	}
-	notifyClientsChanged()
 }
 
 func (a *ClientController) setExternalLinks(c *gin.Context) {
