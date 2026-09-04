@@ -9,6 +9,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -30,11 +31,22 @@ type SubJsonService struct {
 	mux              string
 	observatory      subBalancerObservatoryConfig
 
+	// bakedRouting is re-resolved per request: a remote URL may be cold at
+	// construction time and warm up later via the cron job.
+	routingRules   string
+	bakedRoutingMu sync.Mutex
+	bakedRouting   *bakedRoutingState
+
 	SubService *SubService
 }
 
+type bakedRoutingState struct {
+	spec       jsonRoutingSpec
+	configJson map[string]any
+}
+
 // NewSubJsonService creates a new JSON subscription service with the given configuration.
-func NewSubJsonService(mux string, rules string, finalMask string, subService *SubService) *SubJsonService {
+func NewSubJsonService(mux string, rules string, finalMask string, routingRules string, subService *SubService) *SubJsonService {
 	var configJson map[string]any
 	var defaultOutbounds []json_util.RawMessage
 	_ = json.Unmarshal([]byte(defaultJson), &configJson)
@@ -45,7 +57,9 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		}
 	}
 
-	if rules != "" {
+	// A baked routing profile replaces the template's dns and routing subtrees
+	// outright; the legacy simple-rules setting only applies without a profile.
+	if routingRules == "" && rules != "" {
 		var newRules []any
 		routing, _ := configJson["routing"].(map[string]any)
 		defaultRules, _ := routing["rules"].([]any)
@@ -60,9 +74,34 @@ func NewSubJsonService(mux string, rules string, finalMask string, subService *S
 		defaultOutbounds: defaultOutbounds,
 		finalMask:        finalMask,
 		mux:              mux,
+		routingRules:     routingRules,
 		observatory:      defaultSubBalancerObservatoryConfig(),
 		SubService:       subService,
 	}
+}
+
+// bakedTemplate returns the base template with the routing profile applied.
+// The profile is re-resolved on every request so an upstream edit reaches the
+// documents without a restart; a failed resolve keeps the last good template.
+func (s *SubJsonService) bakedTemplate() map[string]any {
+	if s.routingRules == "" {
+		return s.configJson
+	}
+	spec := resolveJsonRoutingSpec(s.routingRules)
+	s.bakedRoutingMu.Lock()
+	defer s.bakedRoutingMu.Unlock()
+	if s.bakedRouting != nil {
+		if spec.empty() || spec.equal(s.bakedRouting.spec) {
+			return s.bakedRouting.configJson
+		}
+	} else if spec.empty() {
+		return s.configJson
+	}
+	template := make(map[string]any, len(s.configJson)+2)
+	maps.Copy(template, s.configJson)
+	applyJsonRouting(template, spec)
+	s.bakedRouting = &bakedRoutingState{spec: spec, configJson: template}
+	return template
 }
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
@@ -146,7 +185,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			newOutbounds := []json_util.RawMessage{outbound}
 			newOutbounds = append(newOutbounds, s.defaultOutbounds...)
 			newConfigJson := make(map[string]any)
-			maps.Copy(newConfigJson, s.configJson)
+			maps.Copy(newConfigJson, s.bakedTemplate())
 			newConfigJson["outbounds"] = newOutbounds
 			newConfigJson["remarks"] = remark
 			newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
@@ -436,9 +475,9 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	outbounds := append([]json_util.RawMessage{}, proxies...)
 	outbounds = append(outbounds, s.defaultOutbounds...)
 
-	// The routing subtree in s.configJson is shared by every emitted document;
+	// The routing subtree is shared by every emitted document;
 	// clone it (and each rule map) before pointing rules at the balancer.
-	baseRouting, _ := s.configJson["routing"].(map[string]any)
+	baseRouting, _ := s.bakedTemplate()["routing"].(map[string]any)
 	routing := make(map[string]any, len(baseRouting)+1)
 	maps.Copy(routing, baseRouting)
 	baseRules, _ := baseRouting["rules"].([]any)
@@ -475,7 +514,7 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	routing["balancers"] = []any{balancerEntry}
 
 	newConfigJson := make(map[string]any, len(s.configJson)+2)
-	maps.Copy(newConfigJson, s.configJson)
+	maps.Copy(newConfigJson, s.bakedTemplate())
 	newConfigJson["outbounds"] = outbounds
 	newConfigJson["remarks"] = balancer.Remark
 	newConfigJson["routing"] = routing
@@ -593,7 +632,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
 		newConfigJson := make(map[string]any)
-		maps.Copy(newConfigJson, s.configJson)
+		maps.Copy(newConfigJson, s.bakedTemplate())
 
 		transport, _ := newStream["network"].(string)
 		newConfigJson["outbounds"] = newOutbounds

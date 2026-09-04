@@ -45,13 +45,14 @@ type cachedSubTemplate struct {
 
 // SUBController handles HTTP requests for subscription links and JSON configurations.
 type SUBController struct {
-	subTitle         string
-	subSupportUrl    string
-	subProfileUrl    string
-	subAnnounce      string
-	subEnableRouting bool
-	subRoutingRules  string
-	subHideSettings  bool
+	subTitle            string
+	subSupportUrl       string
+	subProfileUrl       string
+	subAnnounce         string
+	subEnableRouting    bool
+	subRoutingRules     string
+	subJsonRoutingRules string
+	subHideSettings     bool
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
@@ -98,6 +99,7 @@ type subControllerConfig struct {
 
 	subJsonMux            string
 	subJsonRules          string
+	subJsonRoutingRules   string
 	subJsonFinalMask      string
 	subJsonObservatory    string
 	subClashEnableRouting bool
@@ -177,6 +179,10 @@ func WithSUBJsonRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonRules = value }
 }
 
+func WithSUBJsonRoutingRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonRoutingRules = value }
+}
+
 func WithSUBJsonFinalMask(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonFinalMask = value }
 }
@@ -248,16 +254,17 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	}
 
 	sub := NewSubService(config.remarkTemplate)
-	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, sub)
+	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, config.subJsonRoutingRules, sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
 	a := &SUBController{
-		subTitle:         config.subTitle,
-		subSupportUrl:    config.subSupportURL,
-		subProfileUrl:    config.subProfileURL,
-		subAnnounce:      config.subAnnounce,
-		subEnableRouting: config.subEnableRouting,
-		subRoutingRules:  config.subRoutingRules,
-		subHideSettings:  config.subHideSettings,
+		subTitle:            config.subTitle,
+		subSupportUrl:       config.subSupportURL,
+		subProfileUrl:       config.subProfileURL,
+		subAnnounce:         config.subAnnounce,
+		subEnableRouting:    config.subEnableRouting,
+		subRoutingRules:     config.subRoutingRules,
+		subJsonRoutingRules: config.subJsonRoutingRules,
+		subHideSettings:     config.subHideSettings,
 
 		subIncyEnableRouting: config.subIncyEnableRouting,
 		subIncyRoutingRules:  config.subIncyRoutingRules,
@@ -848,6 +855,11 @@ func (a *SUBController) ApplyCommonHeaders(
 	// Advanced (Happ). Routing stays independent of the enable flag; remote
 	// values come only from the validated cache and never delay this response.
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
+	if strings.TrimSpace(profileRoutingRules) == "" {
+		// Happ/INCY fetch the geo files the baked JSON rules reference through
+		// this header, so a blank Happ setting falls back to the JSON profile.
+		rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
+	}
 	if profileEnableRouting {
 		c.Writer.Header().Set("Routing-Enable", "true")
 	}

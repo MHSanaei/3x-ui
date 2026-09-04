@@ -76,6 +76,7 @@ export interface AllSetting {
   subJsonMux: string;
   subJsonObservatory: string;
   subJsonPath: string;
+  subJsonRoutingRules: string;
   subJsonRules: string;
   subJsonURI: string;
   subJsonUserAgentRegex: string;
@@ -191,6 +192,7 @@ export interface AllSettingView {
   subJsonMux: string;
   subJsonObservatory: string;
   subJsonPath: string;
+  subJsonRoutingRules: string;
   subJsonRules: string;
   subJsonURI: string;
   subJsonUserAgentRegex: string;

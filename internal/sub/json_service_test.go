@@ -36,7 +36,7 @@ func outboundSettings(t *testing.T, raw []byte) map[string]any {
 }
 
 func TestDefaultJSONUsesCompatibleLocalInbounds(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	inbounds, ok := svc.configJson["inbounds"].([]any)
 	if !ok {
 		t.Fatalf("default JSON inbounds = %#v, want array", svc.configJson["inbounds"])
@@ -75,7 +75,7 @@ func TestDefaultJSONUsesCompatibleLocalInbounds(t *testing.T) {
 
 func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","length":"100-200","delay":"10-20"}}],"udp":[{"type":"noise","settings":{"noise":[{"type":"base64","packet":"SGVsbG8="}]}}],"quicParams":{"congestion":"bbr"}}`
-	svc := NewSubJsonService("", "", finalMask, nil)
+	svc := NewSubJsonService("", "", finalMask, "", nil)
 
 	if hasDirectOutOutbound(svc) {
 		t.Fatal("direct_out outbound must never be emitted")
@@ -112,7 +112,7 @@ func TestSubJsonServiceInjectsGlobalFinalMask(t *testing.T) {
 
 func TestSubJsonServiceMergesWithExistingFinalMask(t *testing.T) {
 	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello"}}]}`
-	svc := NewSubJsonService("", "", finalMask, nil)
+	svc := NewSubJsonService("", "", finalMask, "", nil)
 
 	stream := svc.streamData(`{
 		"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}},
@@ -132,7 +132,7 @@ func TestSubJsonServiceMergesWithExistingFinalMask(t *testing.T) {
 }
 
 func TestSubJsonServiceNoFinalMaskWhenEmpty(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	stream := svc.streamData(`{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`, "")
 	if _, ok := stream["finalmask"]; ok {
 		t.Fatal("no finalmask should be emitted when subJsonFinalMask is empty")
@@ -146,7 +146,7 @@ func TestSubJsonServiceNoFinalMaskWhenEmpty(t *testing.T) {
 // the JSON subscription must emit that form, not an array, or v2ray clients fail
 // to import the config (#5401).
 func TestSubJsonServicePinnedCertJoinedToString(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	stream := svc.streamData(`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"a.example.com","settings":{"pinnedPeerCertSha256":["aa11","bb22"]}}}`, "")
 
 	tls, _ := stream["tlsSettings"].(map[string]any)
@@ -159,7 +159,7 @@ func TestSubJsonServicePinnedCertJoinedToString(t *testing.T) {
 }
 
 func TestSubJsonServiceTLSCipherSuitesForwarded(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	stream := svc.streamData(`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"a.example.com","cipherSuites":"TLS_AES_256_GCM_SHA384","settings":{}}}`, "")
 
 	tls, _ := stream["tlsSettings"].(map[string]any)
@@ -178,7 +178,7 @@ func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(&SubService{}, inbound, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genVless(&SubService{}, inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vless outbound must not use vnext")
 	}
@@ -191,7 +191,7 @@ func TestSubJsonServiceVlessFlowSuppressedByDisableFlow(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`, DisableFlow: true}
 	client := model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVless(&SubService{}, inbound, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genVless(&SubService{}, inbound, nil, client, ""))
 	if _, ok := settings["flow"]; ok {
 		t.Fatalf("DisableFlow inbound must not carry a flow in the JSON outbound: %#v", settings)
 	}
@@ -201,7 +201,7 @@ func TestSubJsonServiceVmessFlattened(t *testing.T) {
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VMESS, Settings: `{}`}
 	client := model.Client{ID: "uuid-2"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genVnext(inbound, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genVnext(inbound, nil, client, ""))
 	if _, ok := settings["vnext"]; ok {
 		t.Fatal("vmess outbound must not use vnext")
 	}
@@ -217,7 +217,7 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 	trojan := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Trojan, Settings: `{}`}
 	client := model.Client{Password: "p4ss"}
 
-	settings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(&SubService{}, trojan, nil, client, ""))
+	settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genServer(&SubService{}, trojan, nil, client, ""))
 	server := firstServer(settings)
 	if server == nil {
 		t.Fatalf("trojan outbound must use a servers array, got: %#v", settings)
@@ -230,7 +230,7 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 	}
 
 	ss := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.Shadowsocks, Settings: `{"method":"aes-256-gcm"}`}
-	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", nil).genServer(&SubService{}, ss, nil, client, ""))
+	ssSettings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genServer(&SubService{}, ss, nil, client, ""))
 	ssServer := firstServer(ssSettings)
 	if ssServer == nil {
 		t.Fatalf("shadowsocks outbound must use a servers array, got: %#v", ssSettings)
@@ -242,7 +242,7 @@ func TestSubJsonServiceServerUsesServersArray(t *testing.T) {
 
 func TestSubJsonServiceXmuxSuppressesGlobalMux(t *testing.T) {
 	globalMux := `{"enabled":true,"concurrency":8}`
-	svc := NewSubJsonService(globalMux, "", "", nil)
+	svc := NewSubJsonService(globalMux, "", "", "", nil)
 
 	// When xmux is present in xhttpSettings, the per-inbound xmux handles
 	// multiplexing and the legacy outbound.Mux must NOT be set.
@@ -289,7 +289,7 @@ func TestSubJsonServiceXmuxSuppressesGlobalMux(t *testing.T) {
 
 func TestSubJsonServiceGlobalMuxWhenNoXmux(t *testing.T) {
 	globalMux := `{"enabled":true,"concurrency":8}`
-	svc := NewSubJsonService(globalMux, "", "", nil)
+	svc := NewSubJsonService(globalMux, "", "", "", nil)
 
 	// When no xmux is present, the global subJsonMux should be used.
 	stream := `{"network":"xhttp","security":"tls","tlsSettings":{"serverName":"example.com"},"xhttpSettings":{"path":"/api","mode":"packet-up"}}`
@@ -343,7 +343,7 @@ func realitySpiderXFromStream(t *testing.T, svc *SubJsonService, clientKey strin
 }
 
 func TestSubJsonServiceRealityDataDerivesPerClientSpiderX(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 
 	alice := realitySpiderXFromStream(t, svc, "subAlice")
 	if again := realitySpiderXFromStream(t, svc, "subAlice"); again != alice {
@@ -359,13 +359,13 @@ func TestSubJsonServiceRealityDataDerivesPerClientSpiderX(t *testing.T) {
 // security whose settings key is missing or null previously panicked the
 // subscription request.
 func TestSubJsonServiceStreamDataMalformedInputs(t *testing.T) {
-	withMask := NewSubJsonService("", "", `{"tcp":[{"type":"fragment"}]}`, nil)
+	withMask := NewSubJsonService("", "", `{"tcp":[{"type":"fragment"}]}`, "", nil)
 	stream := withMask.streamData("not-json", "clientKey")
 	if _, ok := stream["finalmask"]; !ok {
 		t.Fatal("finalMask must still apply when stream settings fail to parse")
 	}
 
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 	noReality := svc.streamData(`{"network":"tcp","security":"reality"}`, "clientKey")
 	if v, ok := noReality["realitySettings"]; ok {
 		t.Fatalf("missing realitySettings must stay absent, got %v", v)
@@ -377,7 +377,7 @@ func TestSubJsonServiceStreamDataMalformedInputs(t *testing.T) {
 }
 
 func TestSubJsonServiceRealityDataSpiderXFallsBackWhenNoClientKey(t *testing.T) {
-	svc := NewSubJsonService("", "", "", nil)
+	svc := NewSubJsonService("", "", "", "", nil)
 
 	stream := svc.streamData(`{
 		"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},
@@ -422,7 +422,7 @@ func TestSubJsonServiceWireguard(t *testing.T) {
 		AllowedIPs:   []string{"10.0.0.2/32", "fd00::2/128"},
 	}
 
-	raw := NewSubJsonService("", "", "", nil).genWireguard(inbound, client)
+	raw := NewSubJsonService("", "", "", "", nil).genWireguard(inbound, client)
 	if raw == nil {
 		t.Fatal("genWireguard returned nil for a valid wireguard client")
 	}
@@ -466,7 +466,7 @@ func TestSubJsonServiceWireguardNoKey(t *testing.T) {
 	inbound := &model.Inbound{Listen: "203.0.113.9", Port: 51820, Protocol: model.WireGuard, Settings: `{}`}
 	client := model.Client{Email: "user"}
 
-	if raw := NewSubJsonService("", "", "", nil).genWireguard(inbound, client); raw != nil {
+	if raw := NewSubJsonService("", "", "", "", nil).genWireguard(inbound, client); raw != nil {
 		t.Fatalf("genWireguard = %s, want nil for a keyless wireguard client", raw)
 	}
 }

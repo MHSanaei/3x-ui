@@ -65,6 +65,7 @@ export class AllSetting {
   subClashRules = '';
   subJsonMux = '';
   subJsonRules = '';
+  subJsonRoutingRules = '';
   subJsonFinalMask = '';
   subJsonObservatory = '';
   subThemeDir = '';

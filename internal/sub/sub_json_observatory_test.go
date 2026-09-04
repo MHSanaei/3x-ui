@@ -29,7 +29,7 @@ func TestSubJson_ObservatoryConfigInvalidValuesFallBack(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			js := NewSubJsonService("", "", "", NewSubService(""))
+			js := NewSubJsonService("", "", "", "", NewSubService(""))
 			js.SetObservatoryConfig(tc.cfg)
 			out, _, err := js.GetJson("s1", "req.example.com", true)
 			if err != nil {

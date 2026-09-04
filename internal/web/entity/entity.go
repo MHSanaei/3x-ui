@@ -104,6 +104,7 @@ type AllSetting struct {
 	SubClashRules               string `json:"subClashRules" form:"subClashRules"`
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`
 	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
+	SubJsonRoutingRules         string `json:"subJsonRoutingRules" form:"subJsonRoutingRules"`
 	SubJsonFinalMask            string `json:"subJsonFinalMask" form:"subJsonFinalMask"`
 	SubJsonObservatory          string `json:"subJsonObservatory" form:"subJsonObservatory"`
 	SubThemeDir                 string `json:"subThemeDir" form:"subThemeDir"`

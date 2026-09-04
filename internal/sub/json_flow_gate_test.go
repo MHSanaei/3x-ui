@@ -60,7 +60,7 @@ func TestSub_JSONStripsFlowOnUnsupportedTransport(t *testing.T) {
 		t.Fatalf("clash proxy must not carry a flow on ws+tls:\n%s", yaml)
 	}
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -76,7 +76,7 @@ func TestSub_JSONKeepsFlowOnTcpTLS(t *testing.T) {
 	seedFlowInbound(t, "s1", "tcpflow", 4602,
 		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)

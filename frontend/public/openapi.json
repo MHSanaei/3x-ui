@@ -247,6 +247,9 @@
           "subJsonPath": {
             "type": "string"
           },
+          "subJsonRoutingRules": {
+            "type": "string"
+          },
           "subJsonRules": {
             "type": "string"
           },
@@ -443,6 +446,7 @@
           "subJsonMux",
           "subJsonObservatory",
           "subJsonPath",
+          "subJsonRoutingRules",
           "subJsonRules",
           "subJsonURI",
           "subJsonUserAgentRegex",
@@ -726,6 +730,9 @@
           "subJsonPath": {
             "type": "string"
           },
+          "subJsonRoutingRules": {
+            "type": "string"
+          },
           "subJsonRules": {
             "type": "string"
           },
@@ -929,6 +936,7 @@
           "subJsonMux",
           "subJsonObservatory",
           "subJsonPath",
+          "subJsonRoutingRules",
           "subJsonRules",
           "subJsonURI",
           "subJsonUserAgentRegex",
