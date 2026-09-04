@@ -410,6 +410,57 @@ func seedHostsFromExternalProxy() error {
 	})
 }
 
+func seedMtprotoCustomShareAddrToHosts() error {
+	const seederName = "MtprotoCustomShareAddrToHosts"
+	var count int64
+	if err := db.Model(&model.HistoryOfSeeders{}).Where("seeder_name = ?", seederName).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		var inbounds []model.Inbound
+		if err := tx.Where("protocol = ? AND TRIM(COALESCE(share_addr_strategy, '')) = ?", string(model.MTProto), "custom").Find(&inbounds).Error; err != nil {
+			return err
+		}
+		for _, inbound := range inbounds {
+			if err := CreateHostFromMtprotoCustomShareAddr(tx, inbound.Id, inbound.ShareAddr); err != nil {
+				return err
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).Updates(map[string]any{
+				"share_addr_strategy": "listen",
+				"share_addr":          "",
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: seederName}).Error
+	})
+}
+
+func CreateHostFromMtprotoCustomShareAddr(tx *gorm.DB, inboundId int, rawAddress string) error {
+	address := strings.TrimPrefix(strings.TrimSuffix(strings.TrimSpace(rawAddress), "]"), "[")
+	if address == "" {
+		return nil
+	}
+	var sameAddress []model.Host
+	if err := tx.Where("inbound_id = ? AND address = ? AND is_disabled = ?", inboundId, address, false).
+		Find(&sameAddress).Error; err != nil {
+		return err
+	}
+	for _, host := range sameAddress {
+		if !slices.Contains(host.ExcludeFromSubTypes, "raw") {
+			return nil
+		}
+	}
+	return tx.Create(&model.Host{
+		GroupId: random.NumLower(16), InboundId: inboundId,
+		Remark: address, Address: address, Security: "same",
+	}).Error
+}
+
 func seedWireguardPeersToClients() error {
 	var history []string
 	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
@@ -1305,6 +1356,10 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if err := seedHostsFromExternalProxy(); err != nil {
+		return err
+	}
+
+	if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
 		return err
 	}
 

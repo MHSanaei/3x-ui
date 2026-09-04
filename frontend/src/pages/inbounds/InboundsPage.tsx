@@ -38,6 +38,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
+import { useHostsQuery } from '@/api/queries/useHostsQuery';
+import { withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
 import AppSidebar from '@/layouts/AppSidebar';
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 import type { TextModalTab } from '@/components/feedback/TextModal';
@@ -112,6 +114,7 @@ export default function InboundsPage() {
   }, [messageApi]);
 
   const { nodes: nodesList, fetched: nodesFetched } = useNodesQuery();
+  const { hosts } = useHostsQuery();
   const nodesById = useMemo(() => {
     const map = new Map<number, ReturnType<typeof useNodesQuery>['nodes'][number]>();
     for (const n of nodesList || []) map.set(n.id, n);
@@ -325,11 +328,19 @@ export default function InboundsPage() {
   const exportInboundLinks = useCallback(
     (dbInbound: DBInbound) => {
       const projected = checkFallback(dbInbound);
+      const hostOverride = hostOverrideFor(dbInbound);
+      const fallbackHostname = preferPublicHost(window.location.hostname, subSettings.publicHost);
       const genInput = {
-        inbound: inboundFromDb(projected),
+        inbound: withMtprotoHostEndpoints(
+          inboundFromDb(projected),
+          dbInbound.id,
+          hosts,
+          hostOverride,
+          fallbackHostname,
+        ),
         remark: projected.remark,
-        hostOverride: hostOverrideFor(dbInbound),
-        fallbackHostname: preferPublicHost(window.location.hostname, subSettings.publicHost),
+        hostOverride,
+        fallbackHostname,
       };
       const content = genInboundLinks(genInput);
       const tabs: TextModalTab[] | undefined = projected.isWireguard
@@ -358,7 +369,7 @@ export default function InboundsPage() {
         tabs,
       });
     },
-    [checkFallback, hostOverrideFor, subSettings.publicHost, openText, t],
+    [checkFallback, hostOverrideFor, hosts, subSettings.publicHost, openText, t],
   );
 
   const exportInboundClipboard = useCallback(
@@ -809,6 +820,7 @@ export default function InboundsPage() {
             ipLimitEnable={ipLimitEnable}
             tgBotEnable={tgBotEnable}
             subSettings={subSettings}
+            hosts={hosts}
             lastOnlineMap={lastOnlineMap}
             nodeAddress={infoNodeAddress}
           />
@@ -821,6 +833,7 @@ export default function InboundsPage() {
             client={null}
             nodeAddress={qrNodeAddress}
             subSettings={subSettings}
+            hosts={hosts}
           />
         </LazyMount>
         <LazyMount when={attachOpen}>
