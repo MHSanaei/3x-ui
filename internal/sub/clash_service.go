@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -40,6 +41,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 
 	var proxies []map[string]any
 	var hasInactiveExternal bool
+	var hasEnabledClient bool
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
@@ -52,11 +54,17 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 			injectExternalProxy(inbound, hostEps)
 		}
 		for _, client := range clients {
+			if client.Enable {
+				hasEnabledClient = true
+			}
 			seenEmails[client.Email] = struct{}{}
 			proxies = append(proxies, s.getProxies(subReq, inbound, client, host)...)
 		}
 	}
 	for _, ext := range externalLinks {
+		if ext.Enable {
+			hasEnabledClient = true
+		}
 		if !ext.Active {
 			seenEmails[ext.Email] = struct{}{}
 			hasInactiveExternal = true
@@ -82,8 +90,25 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	for e := range seenEmails {
 		emails = append(emails, e)
 	}
+	slices.Sort(emails)
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	traffic.Enable = hasEnabledClient
 	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+
+	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(proxies) > 0); mode != infoNodeNone {
+		dummyProxy := map[string]any{
+			"name":   remark,
+			"type":   "socks5",
+			"server": "127.0.0.1",
+			"port":   1080,
+		}
+		if mode == infoNodeExpired || mode == infoNodeDepleted {
+			proxies = []map[string]any{dummyProxy}
+		} else {
+			proxies = append([]map[string]any{dummyProxy}, proxies...)
+		}
+	}
+
 	if len(proxies) == 0 {
 		return "", header, nil
 	}
@@ -92,6 +117,9 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 
 	proxyNames := make([]string, 0, len(proxies)+1)
 	for _, proxy := range proxies {
+		if isDummyProxy(proxy) && len(proxies) > 1 {
+			continue
+		}
 		if name, ok := proxy["name"].(string); ok && name != "" {
 			proxyNames = append(proxyNames, name)
 		}
@@ -150,6 +178,19 @@ func ensureUniqueProxyNames(proxies []map[string]any) {
 		seen[name] = struct{}{}
 		proxy["name"] = name
 	}
+}
+
+func isDummyProxy(proxy map[string]any) bool {
+	typ, _ := proxy["type"].(string)
+	server, _ := proxy["server"].(string)
+	var port int
+	switch p := proxy["port"].(type) {
+	case int:
+		port = p
+	case float64:
+		port = int(p)
+	}
+	return typ == "socks5" && server == "127.0.0.1" && port == 1080
 }
 
 func fallbackProxyName(proxy map[string]any, idx int) string {

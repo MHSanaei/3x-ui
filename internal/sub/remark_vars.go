@@ -625,7 +625,7 @@ func (s *SubService) effectiveTemplate(client model.Client) string {
 		s.usageShown = map[string]bool{}
 	}
 	key := templateInfoKey(client)
-	if s.usageShown[key] {
+	if s.subInfoNodeEnable || s.usageShown[key] {
 		remove := firstLinkOnlyBodyTokens
 		if s.showIdentityOnAllLinks {
 			remove = usageInfoTokens

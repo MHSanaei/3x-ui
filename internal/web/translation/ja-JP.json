@@ -1455,7 +1455,13 @@
           "httpMethodDesc": "プローブ要求に使う HTTP メソッド。",
           "note": "leastPing/leastLoad バランサーは常に burstObservatory を持ちます。このスイッチはプローブパラメータをカスタマイズします — オフにすると組み込みのデフォルトを使います。変更はパネルの再起動後に反映されます。"
         }
-      }
+      },
+      "subInfoNodeEnable": "個別情報設定 / ダミーノード",
+      "subInfoNodeEnableDesc": "有効にすると、備考と残りの通信量/日数が上部の独立したSOCKSダミー構成として表示され、期限切れや通信量超過時はステータスのみが返されます。",
+      "subExpiredTemplate": "期限切れテンプレート",
+      "subExpiredTemplateDesc": "サブスクリプションの有効期限が切れた際のダミー構成用テンプレート。",
+      "subTrafficDepletedTemplate": "通信量超過テンプレート",
+      "subTrafficDepletedTemplateDesc": "サブスクリプションの通信量が上限に達した際のダミー構成用テンプレート。"
     },
     "xray": {
       "importRules": "ルールをインポート",

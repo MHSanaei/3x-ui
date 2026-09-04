@@ -217,6 +217,9 @@
           "subEncrypt": {
             "type": "boolean"
           },
+          "subExpiredTemplate": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -225,6 +228,9 @@
           },
           "subIncyRoutingRules": {
             "type": "string"
+          },
+          "subInfoNodeEnable": {
+            "type": "boolean"
           },
           "subJsonAlwaysArray": {
             "type": "boolean"
@@ -286,6 +292,9 @@
             "type": "string"
           },
           "subTitle": {
+            "type": "string"
+          },
+          "subTrafficDepletedTemplate": {
             "type": "string"
           },
           "subURI": {
@@ -433,9 +442,11 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredTemplate",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -456,6 +467,7 @@
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
+          "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
           "tgBotAPIServer",
@@ -696,6 +708,9 @@
           "subEncrypt": {
             "type": "boolean"
           },
+          "subExpiredTemplate": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -704,6 +719,9 @@
           },
           "subIncyRoutingRules": {
             "type": "string"
+          },
+          "subInfoNodeEnable": {
+            "type": "boolean"
           },
           "subJsonAlwaysArray": {
             "type": "boolean"
@@ -765,6 +783,9 @@
             "type": "string"
           },
           "subTitle": {
+            "type": "string"
+          },
+          "subTrafficDepletedTemplate": {
             "type": "string"
           },
           "subURI": {
@@ -919,9 +940,11 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredTemplate",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -942,6 +965,7 @@
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
+          "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
           "tgBotAPIServer",

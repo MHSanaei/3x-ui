@@ -1455,7 +1455,13 @@
           "httpMethodDesc": "Método usado para las solicitudes de probe.",
           "note": "Los balanceadores leastPing/leastLoad siempre llevan un burstObservatory. Este interruptor personaliza sus parámetros de probe — apágalo para usar los valores predeterminados integrados. Los cambios se aplican tras reiniciar el panel."
         }
-      }
+      },
+      "subInfoNodeEnable": "Configuración de información separada / Nodo ficticio",
+      "subInfoNodeEnableDesc": "Si está activado, la información de tráfico y días restantes se muestra en un nodo SOCKS ficticio arriba, y las suscripciones caducadas o agotadas devuelven solo el estado.",
+      "subExpiredTemplate": "Plantilla de expirado",
+      "subExpiredTemplateDesc": "Plantilla para el nodo ficticio cuando la suscripción ha expirado.",
+      "subTrafficDepletedTemplate": "Plantilla de tráfico agotado",
+      "subTrafficDepletedTemplateDesc": "Plantilla para el nodo ficticio cuando el límite de tráfico se ha agotado."
     },
     "xray": {
       "save": "Guardar configuración",

@@ -1455,7 +1455,13 @@
           "httpMethodDesc": "探活请求使用的 HTTP 方法。",
           "note": "leastPing/leastLoad 均衡器始终带有 burstObservatory。此开关自定义其探活参数 — 关闭以使用内置默认值。更改在面板重启后生效。"
         }
-      }
+      },
+      "subInfoNodeEnable": "独立信息配置 / 提示节点",
+      "subInfoNodeEnableDesc": "启用后，备注及剩余流量/天数将作为单独的 SOCKS 提示配置显示在顶部；过期或流量耗尽时仅返回状态提示。",
+      "subExpiredTemplate": "过期提示模板",
+      "subExpiredTemplateDesc": "用户订阅过期时提示配置的备注模板。",
+      "subTrafficDepletedTemplate": "流量耗尽模板",
+      "subTrafficDepletedTemplateDesc": "用户订阅流量用尽时提示配置的备注模板。"
     },
     "xray": {
       "importRules": "导入规则",
