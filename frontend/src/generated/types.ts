@@ -298,6 +298,16 @@ export interface ClientInbound {
   inboundId: number;
 }
 
+export interface ClientPageResponse {
+  filtered: number;
+  groups: string[];
+  items: ClientSlim[];
+  page: number;
+  pageSize: number;
+  summary: ClientsSummary;
+  total: number;
+}
+
 export interface ClientRecord {
   adTag: string;
   allowedIPs: string;
@@ -337,6 +347,25 @@ export interface ClientReverse {
   tag: string;
 }
 
+export interface ClientSlim {
+  comment?: string;
+  createdAt: number;
+  email: string;
+  enable: boolean;
+  expiryTime: number;
+  group?: string;
+  inboundIds: number[];
+  limitHwid: number;
+  limitIp: number;
+  reset: number;
+  resetDay: number;
+  resetMax: number;
+  subId: string;
+  totalGB: number;
+  traffic?: ClientTraffic | null;
+  updatedAt: number;
+}
+
 export interface ClientTraffic {
   down: number;
   email: string;
@@ -354,6 +383,19 @@ export interface ClientTraffic {
   total: number;
   up: number;
   uuid: string;
+}
+
+export interface ClientsSummary {
+  active: number;
+  deactive: string[];
+  deactiveCount: number;
+  depleted: string[];
+  depletedCount: number;
+  expiring: string[];
+  expiringCount: number;
+  online: string[];
+  onlineCount: number;
+  total: number;
 }
 
 export interface FallbackParentInfo {
@@ -542,10 +584,42 @@ export interface InboundOption {
   wgPublicKey?: string;
 }
 
+export interface InboundTrafficSummary {
+  down: number;
+  enable: boolean;
+  id: number;
+  total: number;
+  up: number;
+}
+
+export interface LogEntry {
+  DateTime: string;
+  Email: string;
+  Event: number;
+  FromAddress: string;
+  Inbound: string;
+  Outbound: string;
+  ToAddress: string;
+}
+
+export interface MLDSA65Response {
+  seed: string;
+  verify: string;
+}
+
+export interface MLKEM768Response {
+  client: string;
+  seed: string;
+}
+
 export interface Msg {
   msg: string;
   obj: unknown;
   success: boolean;
+}
+
+export interface NewUUIDResponse {
+  uuid: string;
 }
 
 export interface Node {
@@ -774,6 +848,14 @@ export interface SubBalancer {
   sortOrder: number;
   strategy: string;
   updatedAt: number;
+}
+
+export interface Traffic {
+  Down: number;
+  IsInbound: boolean;
+  IsOutbound: boolean;
+  Tag: string;
+  Up: number;
 }
 
 export interface TuicClientSettings {
