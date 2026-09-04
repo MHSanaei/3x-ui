@@ -788,6 +788,9 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 	}
 	if client.Flow != "" && !inbound.DisableFlow {
 		settings["flow"] = client.Flow
+		// XTLS flows reject mux.cool ("unexpected network TCP"), so the
+		// global subJsonMux must not reach a Vision outbound.
+		outbound.Mux = nil
 	}
 	outbound.Settings = settings
 	result, _ := json.MarshalIndent(outbound, "", "  ")

@@ -126,11 +126,12 @@ describe('buildJsonSubscription', () => {
     const http = cfg.inbounds.find((inbound: { port: number }) => inbound.port === 10809);
 
     expect(socks).toMatchObject({
+      listen: '127.0.0.1',
       protocol: 'socks',
       tag: 'mixed',
       settings: { udp: true },
     });
-    expect(http).toMatchObject({ protocol: 'http' });
+    expect(http).toMatchObject({ listen: '127.0.0.1', protocol: 'http' });
   });
 
   it('trojan uses servers[] with a password and no method', () => {

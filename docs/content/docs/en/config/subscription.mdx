@@ -57,7 +57,7 @@ page instead of the raw body.
 
 The **Base64** body is just the newline-joined share links, standard-base64
 encoded (toggle with `subEncrypt`). The **JSON** body wraps each client in a
-complete Xray client config — a fixed skeleton (local SOCKS/HTTP inbounds, DNS,
+complete Xray client config — a fixed skeleton (local SOCKS/HTTP inbounds bound to 127.0.0.1, DNS,
 routing, policy) plus a `proxy` outbound pointing at the inbound. 3x-ui emits a
 **single config object for one client and an array for several**, uses the flat
 outbound `settings` form (`address`/`port`/`id`, `level: 8`), and strips

@@ -66,10 +66,39 @@ func TestDefaultJSONUsesCompatibleLocalInbounds(t *testing.T) {
 	if settings == nil || settings["udp"] != true {
 		t.Fatalf("port 10808 settings = %#v, want udp enabled", socks["settings"])
 	}
+	if socks["listen"] != "127.0.0.1" {
+		t.Fatalf("port 10808 listen = %#v, want 127.0.0.1 (an unbound local inbound is exposed to the LAN and is not reachable by iOS packet tunnels)", socks["listen"])
+	}
 
 	http := byPort[10809]
 	if http == nil || http["protocol"] != "http" {
 		t.Fatalf("port 10809 inbound = %#v, want http protocol", http)
+	}
+	if http["listen"] != "127.0.0.1" {
+		t.Fatalf("port 10809 listen = %#v, want 127.0.0.1", http["listen"])
+	}
+}
+
+func TestSubJsonServiceVisionFlowSuppressesMux(t *testing.T) {
+	globalMux := `{"enabled":true,"concurrency":8}`
+	svc := NewSubJsonService(globalMux, "", "", nil)
+	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
+
+	raw := svc.genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}, globalMux)
+	var ob map[string]any
+	if err := json.Unmarshal(raw, &ob); err != nil {
+		t.Fatalf("unmarshal outbound: %v", err)
+	}
+	if _, has := ob["mux"]; has {
+		t.Fatal("outbound.Mux must NOT be set on an xtls-rprx-vision outbound: XTLS flows do not support mux.cool")
+	}
+
+	raw = svc.genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1"}, globalMux)
+	if err := json.Unmarshal(raw, &ob); err != nil {
+		t.Fatalf("unmarshal outbound: %v", err)
+	}
+	if _, has := ob["mux"]; !has {
+		t.Fatal("outbound.Mux must still be set on a flow-less vless outbound")
 	}
 }
 
