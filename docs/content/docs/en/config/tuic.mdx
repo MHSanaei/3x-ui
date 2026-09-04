@@ -1,0 +1,112 @@
+---
+title: TUIC
+description: Set up a TUIC inbound in 3x-ui — QUIC congestion control, 0-RTT handshakes, and multi-user authentication.
+icon: Zap
+---
+
+**TUIC** (v5) is a proxy protocol built directly on top of the **QUIC** (HTTP/3) transport
+layer. It uses 0-RTT handshakes, connection multiplexing without head-of-line blocking,
+and custom congestion control algorithms to maintain stable connections over lossy or
+unstable networks.
+
+<Callout type="info">
+  Like MTProto, TUIC runs as a **managed sidecar process** (`tuic-server` 1.0.0,
+  written in Rust) rather than inside Xray-core. The panel manages the binary
+  lifecycle, generates configurations, monitors process health, and tracks
+  inbound traffic and client online presence.
+</Callout>
+
+## Key settings
+
+### Server & QUIC parameters
+
+| Field | Description |
+| --- | --- |
+| **Port** | UDP port for incoming client QUIC connections. |
+| **Certificate & Key** | Full TLS certificate chain and private key. QUIC mandates TLS encryption; self-signed certificates or valid Let's Encrypt / ACME certs are supported. |
+| **SNI** | Server Name Indication matching your TLS certificate domain name. |
+| **Congestion Control** | QUIC congestion control algorithm: `bbr` (recommended for high throughput), `cubic`, or `new_reno`. |
+| **ALPN** | Application-Layer Protocol Negotiation tokens (default: `h3`). |
+| **UDP Relay Mode** | Packet encapsulation mode: `native` (QUIC datagrams, recommended) or `quic`. |
+| **Zero-RTT Handshake** | Enables 0-RTT connection resumption to eliminate initial handshake round-trips for returning clients. |
+| **Authentication Timeout** | Maximum time (seconds) allowed for client authentication before disconnecting (default: `3s`). |
+| **Max Idle Time** | Inactivity timeout (seconds) before closing idle QUIC connections (default: `15s`). |
+| **Max Packet Size** | Maximum UDP relay packet size in bytes (default: `1500`). |
+
+## Set it up in the panel
+
+<Steps>
+
+<Step>
+### Add an inbound
+
+Create a new inbound and choose protocol **TUIC**. Assign a UDP port (e.g. `8443` or `443`).
+</Step>
+
+<Step>
+### Select TLS certificate
+
+Provide the certificate file path and private key file path (or paste their contents). Make sure the configured SNI matches the certificate domain.
+</Step>
+
+<Step>
+### Configure QUIC options
+
+The panel fills recommended defaults (`bbr`, `h3`, `native` UDP relay). Adjust timeouts or enable **Zero-RTT Handshake** if desired.
+</Step>
+
+<Step>
+### Add clients
+
+Each client requires an **Email** identifier, a **UUID** (token), and a **Password**. The panel automatically generates secure random credentials when creating clients.
+</Step>
+
+<Step>
+### Export and connect
+
+Copy the client's share link (`tuic://…`) or open the **QR modal** to download a ready-to-use **Clash / Mihomo YAML** configuration.
+</Step>
+
+</Steps>
+
+## Client support & configuration
+
+TUIC v5 is supported by modern proxy clients including **Clash Verge Rev**, **Mihomo**, **Flclash**, **sing-box**, and **v2rayN**.
+
+### Clash / Mihomo configuration
+
+The panel provides automatic YAML export for Clash/Mihomo in the client QR modal:
+
+```yaml title="clash-tuic.yaml"
+proxies:
+  - name: "3x-ui-tuic"
+    type: tuic
+    server: vpn.example.com
+    port: 8443
+    uuid: 8a47f2b1-5e8c-4a3d-9b1e-7f6c5d4a3b2a
+    password: secure-random-password
+    alpn:
+      - h3
+    sni: vpn.example.com
+    congestion-controller: bbr
+    udp-relay-mode: native
+    reduce-rtt: false
+    skip-cert-verify: false
+```
+
+### Share link format
+
+TUIC share links use standard URI formatting:
+
+```text
+tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.example.com&udp_relay_mode=native&allow_insecure=0#Remark
+```
+
+## Architecture & Notes
+
+<Callout type="info">
+  - **Standalone sidecar**: The panel ships pre-compiled `tuic-server` musl binaries on Linux (amd64, arm64, armv7, 386) and executable for Windows.
+  - **Traffic accounting & limits**: Total traffic is measured from the sidecar process I/O counters (`/proc/<pid>/io`, **Linux only** — on Windows and macOS the counters read zero, so inbound traffic limits are not enforced). Because upstream `tuic-server` does not provide an internal per-user metrics API, individual client traffic limits (`totalGB`) are not supported for TUIC clients. Client access can be controlled via expiration timestamps (`expiryTime`) and manual enable/disable toggles.
+  - **Client updates & connections**: Because upstream `tuic-server` lacks dynamic user reload APIs, client modifications (adding, updating, or disabling clients) restart the sidecar process and momentarily reset active connections.
+  - **Deployment**: Because TUIC operates via a host sidecar process, TUIC inbounds are panel-local (main instance).
+</Callout>

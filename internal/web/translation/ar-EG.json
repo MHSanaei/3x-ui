@@ -670,7 +670,8 @@
         "bytesPerSec": "بايت في الثانية",
         "bytesPerSecTip": "حد السرعة (بايت/ثانية) المطبّق على مرور الـ fallback بعد العتبة، عشان الفحوصات ماتقدرش تستخدم سيرفرك كنطاق ترددي مجاني للهدف. 0 = بلا حد (بيعطّل الاتجاه ده).",
         "burstBytesPerSec": "بايت في الثانية للدفقة",
-        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه."
+        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه.",
+        "autoFill": "الملء التلقائي"
       },
       "info": {
         "mode": "الوضع",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "تكوين Peer {n}"
       },
-      "sniffingDestOverride": "تجاوز الوجهة"
+      "sniffingDestOverride": "تجاوز الوجهة",
+      "advancedTitle": "الإعدادات المتقدمة"
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "المنافذ المُعاد توجيهها",
       "amneziaWgForwardedPortsHint": "المنافذ/النطاقات المُعاد توجيهها (DNAT) لهذا العميل، مثل 80, 443, 8000-8100. اتركها فارغة إن لم تكن مطلوبة.",
       "amneziaWgConfig": "إعدادات AmneziaWG",
+      "tuicConfig": "إعدادات TUIC (Clash)",
       "mtprotoSecret": "سر MTProto",
       "mtprotoSecretHint": "سر FakeTLS الخاص بالعميل. أعد التوليد لتغييره.",
       "mtprotoAdTag": "علامة إعلانية (قناة مموّلة)",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "عدد المرات التي يمكن أن يعمل فيها التجديد التلقائي قبل ترك العميل ينتهي. القيمة 0 تعني بلا حد. تعويض عدة فترات فائتة يستهلك تجديدًا واحدًا لكل فترة.",
       "renewOnDay": "يوم التجديد",
       "renewOnDayDesc": "يتم التجديد في هذا اليوم من كل شهر ميلادي، عند منتصف الليل بتوقيت اللوحة، بدلاً من كل N يوم. إذا كان الشهر أقصر من اليوم المختار، يتم التجديد في آخر يوم منه. القيمة 0 تُبقي وضع الفاصل اليومي.",
-      "renewsUsed": "التجديدات المستخدمة"
+      "renewsUsed": "التجديدات المستخدمة",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "الاسم",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "يضيف بايتات عشوائية إلى نهاية كل حزمة. يتطلب AmneziaWG 3.1+ على الطرفين.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "عدم إرسال ردود الكوكي — يزيل بصمة DPI لكنه يضعف الحماية من الفيضانات."
+      },
+      "tuic": {
+        "congestionControl": "التحكم في الازدحام",
+        "alpn": "ALPN",
+        "udpRelayMode": "وضع ترحيل UDP",
+        "zeroRttHandshake": "مصافحة 0-RTT",
+        "logLevel": "مستوى السجل",
+        "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
+        "authTimeout": "مهلة المصادقة (ثوانٍ)",
+        "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
+        "sni": "SNI",
+        "sniHint": "تجاوز إشارة اسم الخادم"
       },
       "tun": {
         "userLevel": "مستوى المستخدم"

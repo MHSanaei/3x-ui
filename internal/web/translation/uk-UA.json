@@ -670,7 +670,8 @@
           "node": "Адреса вузла",
           "listen": "Адреса прослуховування inbound",
           "custom": "Користувацька"
-        }
+        },
+        "autoFill": "Автозаповнення"
       },
       "info": {
         "mode": "Режим",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Конфіг Peer {n}"
       },
-      "sniffingDestOverride": "Перевизначення призначення"
+      "sniffingDestOverride": "Перевизначення призначення",
+      "advancedTitle": "Додаткові налаштування"
     },
     "clients": {
       "tabBasics": "Основні",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "Перенаправлені порти",
       "amneziaWgForwardedPortsHint": "Порти/діапазони, що перенаправляються (DNAT) на цього клієнта, напр. 80, 443, 8000-8100. Залиште порожнім, якщо не потрібно.",
       "amneziaWgConfig": "Конфігурація AmneziaWG",
+      "tuicConfig": "Конфігурація TUIC (Clash)",
       "mtprotoSecret": "Секрет MTProto",
       "mtprotoSecretHint": "Секрет FakeTLS клієнта. Згенеруйте заново, щоб змінити.",
       "mtprotoAdTag": "Рекламний тег (спонсорський канал)",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "Скільки разів автоподовження може спрацювати, перш ніж клієнта буде залишено спливати. 0 — без обмеження. Надолуження кількох пропущених періодів витрачає по одному подовженню на період.",
       "renewOnDay": "Подовжувати числа",
       "renewOnDayDesc": "Подовжувати цього числа кожного місяця, опівночі за часовим поясом панелі, замість інтервалу в днях. Якщо в місяці такого числа немає, подовження припаде на останній день. 0 — залишити режим інтервалу.",
-      "renewsUsed": "Подовжень витрачено"
+      "renewsUsed": "Подовжень витрачено",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "Назва",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "Додає випадкові байти в кінець кожного пакета. Обидві сторони мають підтримувати AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Ніколи не надсилати cookie reply — прибирає відбиток для DPI, але послаблює захист від флуду."
+      },
+      "tuic": {
+        "congestionControl": "Контроль перевантаження",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляції UDP",
+        "zeroRttHandshake": "0-RTT рукостискання",
+        "logLevel": "Рівень журналювання",
+        "maxIdleTime": "Макс. час простою (сек)",
+        "authTimeout": "Таймаут автентифікації (сек)",
+        "maxUdpRelayPacketSize": "Макс. розмір пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Перевизначення Server Name Indication"
       },
       "tun": {
         "userLevel": "Рівень користувача"

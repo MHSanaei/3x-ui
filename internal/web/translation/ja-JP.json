@@ -670,7 +670,8 @@
           "node": "ノードアドレス",
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
-        }
+        },
+        "autoFill": "自動入力"
       },
       "info": {
         "mode": "モード",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "宛先のオーバーライド"
+      "sniffingDestOverride": "宛先のオーバーライド",
+      "advancedTitle": "詳細設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "転送ポート",
       "amneziaWgForwardedPortsHint": "このクライアントに転送するポート/範囲。例: 80, 443, 8000-8100。空欄で転送なし。",
       "amneziaWgConfig": "AmneziaWG 設定",
+      "tuicConfig": "TUIC 設定 (Clash)",
       "mtprotoSecret": "MTProto シークレット",
       "mtprotoSecretHint": "このクライアントの FakeTLS シークレット。変更するには再生成します。",
       "mtprotoAdTag": "広告タグ（スポンサーチャンネル）",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "自動更新が実行される最大回数です。これを超えるとクライアントはそのまま失効します。0 は無制限。複数の未処理期間をまとめて処理する場合、1 期間につき 1 回消費します。",
       "renewOnDay": "更新する日",
       "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
-      "renewsUsed": "使用済み更新回数"
+      "renewsUsed": "使用済み更新回数",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "名前",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "各パケットにランダムなバイトを追加します。両端にAmneziaWG 3.1+が必要です。",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "cookie replyを送信しません。DPIの指紋を消しますが、フラッド緩和は弱まります。"
+      },
+      "tuic": {
+        "congestionControl": "輻輳制御",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP リレーモード",
+        "zeroRttHandshake": "0-RTT ハンドシェイク",
+        "logLevel": "ログレベル",
+        "maxIdleTime": "最大アイドル時間 (秒)",
+        "authTimeout": "認証タイムアウト (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",
+        "sni": "SNI",
+        "sniHint": "Server Name Indication の上書き"
       },
       "tun": {
         "userLevel": "ユーザーレベル"

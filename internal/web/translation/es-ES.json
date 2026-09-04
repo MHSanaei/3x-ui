@@ -670,7 +670,8 @@
           "node": "Dirección del nodo",
           "listen": "Dirección de escucha del inbound",
           "custom": "Personalizada"
-        }
+        },
+        "autoFill": "Autocompletar"
       },
       "info": {
         "mode": "Modo",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Config Peer {n}"
       },
-      "sniffingDestOverride": "Anulación de destino"
+      "sniffingDestOverride": "Anulación de destino",
+      "advancedTitle": "Configuración avanzada"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "Puertos reenviados",
       "amneziaWgForwardedPortsHint": "Puertos/rangos redirigidos (DNAT) a este cliente, p. ej. 80, 443, 8000-8100. Déjalo vacío si no aplica.",
       "amneziaWgConfig": "Configuración de AmneziaWG",
+      "tuicConfig": "Configuración de TUIC (Clash)",
       "mtprotoSecret": "Secreto MTProto",
       "mtprotoSecretHint": "El secreto FakeTLS del cliente. Vuelve a generarlo para cambiarlo.",
       "mtprotoAdTag": "Ad-tag (canal patrocinado)",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "Cuántas veces puede activarse la renovación automática antes de dejar que el cliente caduque. 0 significa sin límite. Recuperar varios periodos perdidos consume una renovación por periodo.",
       "renewOnDay": "Renovar el día",
       "renewOnDayDesc": "Renueva este día de cada mes natural, a medianoche en la zona horaria del panel, en lugar de cada N días. Si el mes es demasiado corto para el día elegido, renueva su último día. 0 mantiene el modo de intervalo en días.",
-      "renewsUsed": "Renovaciones usadas"
+      "renewsUsed": "Renovaciones usadas",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "Nombre",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "Añade bytes aleatorios a cada paquete. Ambos extremos necesitan AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "No enviar cookie replies — elimina una huella para DPI, pero debilita la mitigación de inundaciones."
+      },
+      "tuic": {
+        "congestionControl": "Control de congestión",
+        "alpn": "ALPN",
+        "udpRelayMode": "Modo de retransmisión UDP",
+        "zeroRttHandshake": "Apretón de manos 0-RTT",
+        "logLevel": "Nivel de registro",
+        "maxIdleTime": "Tiempo máx. de inactividad (s)",
+        "authTimeout": "Tiempo de espera de autenticación (s)",
+        "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",
+        "sni": "SNI",
+        "sniHint": "Sobrescritura de Server Name Indication"
       },
       "tun": {
         "userLevel": "Nivel de Usuario"

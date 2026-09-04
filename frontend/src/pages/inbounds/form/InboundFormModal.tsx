@@ -63,6 +63,7 @@ import {
   MixedFields,
   MtprotoFields,
   ShadowsocksFields,
+  TuicFields,
   TunFields,
   TunnelFields,
   VlessFields,
@@ -277,7 +278,8 @@ export default function InboundFormModal({
   const hasSelectableTransport =
     protocol !== Protocols.HYSTERIA &&
     protocol !== Protocols.WIREGUARD &&
-    protocol !== Protocols.TUNNEL;
+    protocol !== Protocols.TUNNEL &&
+    protocol !== Protocols.TUIC;
 
   const wPort = useWatch({ control, name: 'port' });
   const wListen = (useWatch({ control, name: 'listen' }) ?? '') as string;
@@ -785,6 +787,8 @@ export default function InboundFormModal({
         />
       )}
 
+      {protocol === Protocols.TUIC && <TuicFields />}
+
       {protocol === Protocols.TUN && <TunFields />}
 
       {protocol === Protocols.TUNNEL && <TunnelFields />}
@@ -1123,6 +1127,7 @@ export default function InboundFormModal({
                     Protocols.WIREGUARD,
                     Protocols.MTPROTO,
                     Protocols.AMNEZIAWG,
+                    Protocols.TUIC,
                   ] as string[]
                 ).includes(protocol) || isFallbackHost
                   ? [

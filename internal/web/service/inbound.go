@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -319,7 +320,8 @@ type InboundOption struct {
 	// AwgServer carries the full AmneziaWG server block (keys, subnet,
 	// obfuscation params) so the clients page can render a downloadable
 	// per-client .conf without a second round trip.
-	AwgServer *amneziawg.ServerSettings `json:"awgServer,omitempty"`
+	AwgServer  *amneziawg.ServerSettings `json:"awgServer,omitempty"`
+	TuicServer *tuic.TuicServerSettings  `json:"tuicServer,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -383,6 +385,7 @@ func (s *InboundService) GetInboundOptions(userId int) ([]InboundOption, error) 
 			WgDns:             wgDns,
 			MtprotoDomain:     inboundMtprotoDomain(r.Protocol, r.Settings),
 			AwgServer:         inboundAmneziaWGServer(r.Protocol, r.Settings),
+			TuicServer:        inboundTuicServer(r.Protocol, r.Settings),
 			NodeId:            r.NodeId,
 			NodeAddress:       r.NodeAddress,
 			Listen:            r.Listen,
@@ -431,6 +434,21 @@ func inboundAmneziaWGServer(protocol string, settings string) *amneziawg.ServerS
 		return nil
 	}
 	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil || parsed.Server == nil {
+		return nil
+	}
+	redacted := *parsed.Server
+	redacted.PrivateKey = ""
+	return &redacted
+}
+
+func inboundTuicServer(protocol string, settings string) *tuic.TuicServerSettings {
+	if protocol != string(model.TUIC) || strings.TrimSpace(settings) == "" {
+		return nil
+	}
+	var parsed struct {
+		Server *tuic.TuicServerSettings `json:"server"`
+	}
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil || parsed.Server == nil {
 		return nil
 	}
@@ -1050,6 +1068,16 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.AdTag != "" && !model.ValidMtprotoAdTag(client.AdTag) {
 				return inbound, false, common.NewError("mtproto client ad tag must be 32 hex characters")
 			}
+		case "tuic":
+			if client.ID == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return inbound, false, common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client email")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -1486,6 +1514,19 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		for _, client := range clients {
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
+			}
+		}
+	}
+	if inbound.Protocol == model.TUIC {
+		for _, client := range clients {
+			if client.ID == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return inbound, false, common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client email")
 			}
 		}
 	}

@@ -670,7 +670,8 @@
           "listen": "入站监听地址",
           "custom": "自定义"
         },
-        "verifyPeerCertByName": "按名称验证对端证书"
+        "verifyPeerCertByName": "按名称验证对端证书",
+        "autoFill": "自动填充"
       },
       "info": {
         "mode": "模式",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 配置"
       },
-      "sniffingDestOverride": "目标覆盖"
+      "sniffingDestOverride": "目标覆盖",
+      "advancedTitle": "高级设置"
     },
     "clients": {
       "tabBasics": "基本",
@@ -763,7 +765,7 @@
       "limitIpFail2banWindows": "Windows 上不支持 Fail2ban，无法实施 IP 限制。",
       "limitIpDisabled": "此服务器已禁用 IP 限制功能。",
       "password": "密码",
-      "passwordDesc": "仅 Trojan 和 Shadowsocks 客户端使用；VLESS、VMess、Hysteria 和 WireGuard 会忽略此项。",
+      "passwordDesc": "用于 Trojan、Shadowsocks 和 TUIC 客户端；对 VLESS、VMess、Hysteria 和 WireGuard 忽略。",
       "subId": "订阅 ID",
       "online": "在线",
       "email": "邮箱",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "转发端口",
       "amneziaWgForwardedPortsHint": "转发到此客户端的端口/范围，例如 80, 443, 8000-8100。留空则不转发。",
       "amneziaWgConfig": "AmneziaWG 配置",
+      "tuicConfig": "TUIC 配置 (Clash)",
       "mtprotoSecret": "MTProto 密钥",
       "mtprotoSecretHint": "该客户端的 FakeTLS 密钥。重新生成即可更换。",
       "mtprotoAdTag": "广告标签（赞助频道）",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "自动续期最多可触发的次数，达到后客户端将自然到期。填 0 表示不限制。补齐多个错过的周期时，每个周期消耗一次续期。",
       "renewOnDay": "按日期续期",
       "renewOnDayDesc": "每个自然月的这一天午夜（按面板时区）续期，而不是每 N 天续期一次。若当月没有该日期，则在当月最后一天续期。填 0 保持按天间隔模式。",
-      "renewsUsed": "已用续期次数"
+      "renewsUsed": "已用续期次数",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "名称",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "在每个数据包末尾追加随机字节。两端都需要 AmneziaWG 3.1+。",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "从不发送 cookie reply——消除一个 DPI 指纹，但会削弱抗洪泛能力。"
+      },
+      "tuic": {
+        "congestionControl": "拥塞控制算法",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 转发模式",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日志级别",
+        "maxIdleTime": "最大空闲时间 (秒)",
+        "authTimeout": "认证超时时间 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 数据包大小",
+        "sni": "SNI",
+        "sniHint": "服务器名称指示 (SNI) 覆盖"
       },
       "tun": {
         "userLevel": "用户级别"

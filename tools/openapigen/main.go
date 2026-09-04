@@ -116,6 +116,10 @@ func run(root, outDir string) error {
 			Path:        resolveRel(root, "internal/amneziawg"),
 			StructAllow: setOf("ServerSettings"),
 		},
+		{
+			Path:        resolveRel(root, "internal/tuic"),
+			StructAllow: setOf("TuicServerSettings", "TuicClientSettings"),
+		},
 	}
 
 	schemas, aliases, err := walkPackages(requests)

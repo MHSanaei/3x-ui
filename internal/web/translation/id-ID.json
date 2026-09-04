@@ -670,7 +670,8 @@
         "bytesPerSec": "Byte per detik",
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
-        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama."
+        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
+        "autoFill": "Isi Otomatis"
       },
       "info": {
         "mode": "Mode",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Konfig Peer {n}"
       },
-      "sniffingDestOverride": "Penggantian tujuan"
+      "sniffingDestOverride": "Penggantian tujuan",
+      "advancedTitle": "Pengaturan Lanjutan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "Port yang Diteruskan",
       "amneziaWgForwardedPortsHint": "Port/rentang yang di-DNAT ke klien ini, mis. 80, 443, 8000-8100. Biarkan kosong jika tidak ada.",
       "amneziaWgConfig": "Konfigurasi AmneziaWG",
+      "tuicConfig": "Konfigurasi TUIC (Clash)",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
       "mtprotoAdTag": "Ad-tag (kanal bersponsor)",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
       "renewOnDay": "Perpanjang pada tanggal",
       "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
-      "renewsUsed": "Perpanjangan terpakai"
+      "renewsUsed": "Perpanjangan terpakai",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "Nama",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "Menambahkan byte acak ke setiap paket. Kedua sisi butuh AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Tidak pernah mengirim cookie reply — menghapus sidik jari DPI, tetapi melemahkan mitigasi banjir."
+      },
+      "tuic": {
+        "congestionControl": "Kontrol Kemacetan",
+        "alpn": "ALPN",
+        "udpRelayMode": "Mode Relai UDP",
+        "zeroRttHandshake": "Jabat Tangan 0-RTT",
+        "logLevel": "Tingkat Log",
+        "maxIdleTime": "Waktu Diam Maks (dtk)",
+        "authTimeout": "Batas Waktu Otentikasi (dtk)",
+        "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
+        "sni": "SNI",
+        "sniHint": "Penggantian Server Name Indication"
       },
       "tun": {
         "userLevel": "Level Pengguna"

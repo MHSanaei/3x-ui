@@ -37,6 +37,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'hysteria',
   'wireguard',
   'amneziawg',
+  'tuic',
 ]);
 
 const EMPTY: ClientBulkAddFormValues = {
@@ -126,6 +127,19 @@ export default function ClientBulkAddModal({
     }
     return '';
   }, [inboundIds, inbounds]);
+
+  const tuicIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'tuic') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
+  const hasTuic = useMemo(
+    () => (inboundIds || []).some((id) => tuicIds.has(id)),
+    [inboundIds, tuicIds],
+  );
 
   useEffect(() => {
     if (!showFlow && flow) {
@@ -388,6 +402,9 @@ export default function ClientBulkAddModal({
             <FormField
               name="totalGB"
               label={t('pages.clients.totalGB')}
+              tooltip={
+                hasTuic ? t('pages.clients.tuicTotalGBDesc') : t('pages.clients.totalGBDesc')
+              }
               transform={{ output: (v) => Number(v) || 0 }}
             >
               <InputNumber min={0} step={1} />

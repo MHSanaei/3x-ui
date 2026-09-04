@@ -27,6 +27,7 @@ const PROTOCOL_LABELS: Record<string, string> = {
   wg: 'WireGuard',
   tg: 'MTProto',
   vpn: 'AmneziaWG',
+  tuic: 'TUIC',
 };
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -39,6 +40,7 @@ const PROTOCOL_COLORS: Record<string, string> = {
   WireGuard: 'cyan',
   MTProto: 'blue',
   AmneziaWG: 'yellow',
+  TUIC: 'orange',
 };
 
 const SECURITY_COLORS: Record<string, string> = {
@@ -129,6 +131,10 @@ export function parseLinkParts(link: string): LinkParts | null {
       /* not URL-shaped, fall back to protocol only */
     }
     if (scheme === 'tg') security = 'FakeTLS';
+    if (scheme === 'tuic') {
+      network = 'quic';
+      security = 'TLS';
+    }
   }
   if (security === 'none') security = '';
   return {

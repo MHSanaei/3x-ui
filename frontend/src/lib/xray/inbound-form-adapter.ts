@@ -10,6 +10,7 @@ import {
   MtprotoClientSchema,
   ShadowsocksClientSchema,
   TrojanClientSchema,
+  TuicClientSchema,
   VlessClientSchema,
   VmessClientSchema,
   WireguardClientSchema,
@@ -271,6 +272,8 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
       return MtprotoClientSchema;
     case 'amneziawg':
       return AmneziawgClientSchema;
+    case 'tuic':
+      return TuicClientSchema;
     default:
       return null;
   }

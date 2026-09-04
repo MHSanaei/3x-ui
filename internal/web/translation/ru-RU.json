@@ -410,6 +410,7 @@
         "stream": "Stream",
         "streamHelp": "Обёртка блока stream Xray:"
       },
+      "advancedTitle": "Дополнительные настройки",
       "subSortIndex": "Порядок",
       "inboundInfo": "Информация о подключении",
       "exportInbound": "Экспорт подключений",
@@ -456,6 +457,7 @@
         "moreIssues": "{message}  (+{count} ещё)"
       },
       "form": {
+        "autoFill": "Автозаполнение",
         "echSockopt": "ECH Sockopt",
         "echSockoptTip": "Параметры сокета для соединения, через которое Xray получает список конфигураций ECH (например, можно направить запрос через исходящее dialerProxy). Оставьте отключённым для значений по умолчанию.",
         "curvePreferences": "Предпочтения кривых",
@@ -763,7 +765,7 @@
       "limitIpFail2banWindows": "Fail2ban недоступен в Windows, поэтому ограничение по IP не может быть применено.",
       "limitIpDisabled": "Функция ограничения по IP отключена на этом сервере.",
       "password": "Пароль",
-      "passwordDesc": "Используется только клиентами Trojan и Shadowsocks; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
+      "passwordDesc": "Используется клиентами Trojan, Shadowsocks и TUIC; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
       "subId": "ID подписки",
       "online": "В сети",
       "email": "Email",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "Проброс портов",
       "amneziaWgForwardedPortsHint": "Порты/диапазоны, DNAT'ящиеся на этого клиента, например 80, 443, 8000-8100. Оставьте пустым, если не нужно.",
       "amneziaWgConfig": "Конфиг AmneziaWG",
+      "tuicConfig": "Конфиг TUIC (Clash)",
       "mtprotoSecret": "Секрет MTProto",
       "mtprotoSecretHint": "Секрет FakeTLS клиента. Перегенерируйте, чтобы сменить.",
       "mtprotoAdTag": "Рекламный тег (спонсорский канал)",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "Сколько раз автопродление может сработать, прежде чем клиент будет оставлен истекать. 0 — без ограничения. Догон нескольких пропущенных периодов расходует по одному продлению на период.",
       "renewOnDay": "Продлевать числа",
       "renewOnDayDesc": "Продлевать этого числа каждого месяца, в полночь по часовому поясу панели, вместо интервала в днях. Если в месяце такого числа нет, продление придётся на последний день. 0 — оставить режим интервала.",
-      "renewsUsed": "Продлений израсходовано"
+      "renewsUsed": "Продлений израсходовано",
+      "tuicTotalGBDesc": "TUIC не поддерживает персональные квоты трафика; задайте лимит на уровне инбаунда."
     },
     "groups": {
       "name": "Имя",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "Добавляет случайные байты в конец каждого пакета. Обе стороны должны поддерживать AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "Не отправлять cookie reply — убирает сигнатуру для DPI, но ослабляет защиту от флуда."
+      },
+      "tuic": {
+        "congestionControl": "Контроль перегрузок",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляции UDP",
+        "zeroRttHandshake": "0-RTT рукопожатие",
+        "logLevel": "Уровень логирования",
+        "maxIdleTime": "Макс. время простоя (сек)",
+        "authTimeout": "Таймаут аутентификации (сек)",
+        "maxUdpRelayPacketSize": "Макс. размер пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Переопределение Server Name Indication"
       },
       "tun": {
         "userLevel": "Уровень пользователя"

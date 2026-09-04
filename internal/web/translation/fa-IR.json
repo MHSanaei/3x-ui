@@ -670,7 +670,8 @@
           "node": "آدرس نود",
           "listen": "آدرس شنود ورودی",
           "custom": "سفارشی"
-        }
+        },
+        "autoFill": "تکمیل خودکار"
       },
       "info": {
         "mode": "حالت",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "پیکربندی Peer {n}"
       },
-      "sniffingDestOverride": "بازنویسی مقصد"
+      "sniffingDestOverride": "بازنویسی مقصد",
+      "advancedTitle": "تنظیمات پیشرفته"
     },
     "clients": {
       "tabBasics": "پایه",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "پورت‌های هدایت‌شده",
       "amneziaWgForwardedPortsHint": "پورت‌ها/محدوده‌های DNAT شده به این کلاینت، مثلاً 80, 443, 8000-8100. برای غیرفعال بودن خالی بگذارید.",
       "amneziaWgConfig": "پیکربندی AmneziaWG",
+      "tuicConfig": "پیکربندی TUIC (Clash)",
       "mtprotoSecret": "سکرت MTProto",
       "mtprotoSecretHint": "سکرت FakeTLS این کلاینت. برای تعویض، دوباره تولید کنید.",
       "mtprotoAdTag": "برچسب تبلیغاتی (کانال حامی)",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "تمدید خودکار حداکثر چند بار اجرا شود پیش از آنکه کلاینت منقضی بماند. مقدار ۰ یعنی بدون محدودیت. جبران چند دورهٔ ازدست‌رفته، برای هر دوره یک تمدید مصرف می‌کند.",
       "renewOnDay": "روز تمدید",
       "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود. مقدار ۰ حالت بازهٔ روزانه را حفظ می‌کند.",
-      "renewsUsed": "تمدیدهای استفاده‌شده"
+      "renewsUsed": "تمدیدهای استفاده‌شده",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "نام",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "به انتهای هر بسته بایت‌های تصادفی می‌افزاید. هر دو طرف باید AmneziaWG 3.1+ باشند.",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "هرگز پاسخ کوکی ارسال نشود — اثر انگشت DPI را حذف می‌کند اما دفاع در برابر سیل‌آسا را ضعیف می‌کند."
+      },
+      "tuic": {
+        "congestionControl": "کنترل ازدحام",
+        "alpn": "ALPN",
+        "udpRelayMode": "حالت رله UDP",
+        "zeroRttHandshake": "دست دادن 0-RTT",
+        "logLevel": "سطح گزارش",
+        "maxIdleTime": "حداکثر زمان بیکاری (ثانیه)",
+        "authTimeout": "مهلت زمانی احراز هویت (ثانیه)",
+        "maxUdpRelayPacketSize": "حداکثر اندازه بسته UDP",
+        "sni": "SNI",
+        "sniHint": "بازنویسی نشانگر نام سرور"
       },
       "tun": {
         "userLevel": "سطح کاربر"

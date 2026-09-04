@@ -670,7 +670,8 @@
           "node": "節點地址",
           "listen": "入站監聽地址",
           "custom": "自訂"
-        }
+        },
+        "autoFill": "自動填入"
       },
       "info": {
         "mode": "模式",
@@ -689,7 +690,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "目標覆寫"
+      "sniffingDestOverride": "目標覆寫",
+      "advancedTitle": "進階設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -875,6 +877,7 @@
       "amneziaWgForwardedPorts": "轉發連接埠",
       "amneziaWgForwardedPortsHint": "轉發到此客戶端的連接埠/範圍，例如 80, 443, 8000-8100。留空則不轉發。",
       "amneziaWgConfig": "AmneziaWG 設定",
+      "tuicConfig": "TUIC 設定 (Clash)",
       "mtprotoSecret": "MTProto 金鑰",
       "mtprotoSecretHint": "該用戶端的 FakeTLS 金鑰。重新產生即可更換。",
       "mtprotoAdTag": "廣告標籤（贊助頻道）",
@@ -907,7 +910,8 @@
       "renewMaxDesc": "自動續期最多可觸發的次數，達到後用戶端將自然到期。填 0 表示不限制。補齊多個錯過的週期時，每個週期消耗一次續期。",
       "renewOnDay": "按日期續期",
       "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。填 0 保持按天間隔模式。",
-      "renewsUsed": "已用續期次數"
+      "renewsUsed": "已用續期次數",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead."
     },
     "groups": {
       "name": "名稱",
@@ -1845,6 +1849,18 @@
         "randomTrailersHint": "在每個封包結尾附加隨機位元組。兩端都需要 AmneziaWG 3.1+。",
         "disableCookies": "DisableCookies",
         "disableCookiesHint": "永不傳送 cookie reply——消除一個 DPI 指紋，但會削弱抗洪泛能力。"
+      },
+      "tuic": {
+        "congestionControl": "壅塞控制演算法",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 轉發模式",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日誌層級",
+        "maxIdleTime": "最大閒置時間 (秒)",
+        "authTimeout": "認證逾時時間 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 封包大小",
+        "sni": "SNI",
+        "sniHint": "伺服器名稱指示 (SNI) 覆蓋"
       },
       "tun": {
         "userLevel": "用戶級別"
