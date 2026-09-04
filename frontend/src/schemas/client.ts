@@ -329,10 +329,31 @@ export const ClientBulkAdjustFormSchema = z
     addDays: z.number().int(),
     addGB: z.number(),
     flow: z.string().optional().default(''),
+    limitHwid: z.number().int().min(0).nullable().optional(),
+    adTag: z.string().optional().default(''),
   })
-  .refine((v) => v.addDays !== 0 || v.addGB !== 0 || v.flow !== '', {
-    message: 'pages.clients.bulkAdjustNothing',
-  });
+  .refine(
+    (v) =>
+      v.addDays !== 0 ||
+      v.addGB !== 0 ||
+      v.flow !== '' ||
+      (v.limitHwid !== undefined && v.limitHwid !== null) ||
+      (v.adTag !== undefined && v.adTag.trim() !== ''),
+    {
+      message: 'pages.clients.bulkAdjustNothing',
+    },
+  )
+  .refine(
+    (v) => {
+      const tag = v.adTag?.trim();
+      if (!tag || tag === 'none') return true;
+      return /^[0-9a-fA-F]{32}$/.test(tag);
+    },
+    {
+      message: 'pages.inbounds.form.mtgAdTagInvalid',
+      path: ['adTag'],
+    },
+  );
 
 export const ClientBulkAddFormSchema = z.object({
   emailMethod: z.number().int().min(0).max(4),

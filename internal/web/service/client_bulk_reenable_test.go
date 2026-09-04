@@ -96,7 +96,7 @@ func TestBulkAdjust_ReenablesExpiredThenExtended_AllThreeLocations(t *testing.T)
 	email := "exp@x"
 	ib := seedLocalDisabledClient(t, svc, 52001, "", email, 0, now-reenableDay, 0, 0)
 
-	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 0, "")
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 0, "", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestBulkAdjust_DoesNotReenable_ManuallyDisabledNotDepleted(t *testing.T) {
 	email := "man@x"
 	ib := seedLocalDisabledClient(t, svc, 52002, "", email, 0, now+30*reenableDay, 0, 0)
 
-	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 0, "")
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 0, "", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestBulkAdjust_StaysDisabled_ExtensionTooSmall(t *testing.T) {
 	email := "sml@x"
 	ib := seedLocalDisabledClient(t, svc, 52003, "", email, 0, now-10*reenableDay, 0, 0)
 
-	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 5, 0, ""); err != nil {
+	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 5, 0, "", nil, ""); err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
 	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, false)
@@ -151,7 +151,7 @@ func TestBulkAdjust_ReenablesOverQuota_WhenAddBytesClearsQuota(t *testing.T) {
 	email := "q@x"
 	ib := seedLocalDisabledClient(t, svc, 52004, "", email, 100, 0, 60, 40)
 
-	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, 200, "")
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, 200, "", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestBulkAdjust_QuotaReductionBelowZeroSkipsInsteadOfUnlimited(t *testing.T)
 	}
 	mkTraffic(t, ib.Id, email, 0, 0, 10, 0, true)
 
-	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, -20, "")
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, -20, "", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestBulkAdjust_AppliedFieldReachesTrafficRowDespiteOtherFieldSkip(t *testin
 	}
 	mkTraffic(t, ib.Id, email, 0, 0, 100, 0, true)
 
-	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 50, ""); err != nil {
+	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 50, "", nil, ""); err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
 	if got := trafficOf(t, email).Total; got != 150 {
@@ -219,7 +219,7 @@ func TestBulkAdjust_OverQuota_DaysOnly_StaysDisabled(t *testing.T) {
 	email := "qd@x"
 	ib := seedLocalDisabledClient(t, svc, 52005, "", email, 100, now-reenableDay, 60, 40)
 
-	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 60, 0, ""); err != nil {
+	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 60, 0, "", nil, ""); err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
 	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, false)
@@ -239,7 +239,7 @@ func TestBulkAdjust_NegativeReduction_DoesNotFlipEnable(t *testing.T) {
 	}
 	mkTraffic(t, ib.Id, email, 0, 0, 0, now+5*reenableDay, true)
 
-	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, -10, 0, ""); err != nil {
+	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, -10, 0, "", nil, ""); err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
 	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, true)
@@ -254,7 +254,7 @@ func TestBulkAdjust_FlowOnly_NoEnableChange(t *testing.T) {
 	email := "flow@x"
 	ib := seedLocalDisabledClient(t, svc, 52007, realityStream, email, 0, now-reenableDay, 0, 0)
 
-	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, 0, "xtls-rprx-vision-udp443"); err != nil {
+	if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, 0, "xtls-rprx-vision-udp443", nil, ""); err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
 	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, false)
@@ -271,7 +271,7 @@ func TestBulkAdjust_UnlimitedExpiry_QuotaCleared_Reenables(t *testing.T) {
 	email := "u@x"
 	ib := seedLocalDisabledClient(t, svc, 52008, "", email, 100, 0, 100, 0)
 
-	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, 200, "")
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, 200, "", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestBulkAdjust_NodeInbound_ReenablesDBLocations(t *testing.T) {
 	mkTraffic(t, ib.Id, email, 0, 0, 0, now-reenableDay, false)
 	forceRecordDisabled(t, svc, email)
 
-	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 0, "")
+	res, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 30, 0, "", nil, "")
 	if err != nil {
 		t.Fatalf("BulkAdjust: %v", err)
 	}
