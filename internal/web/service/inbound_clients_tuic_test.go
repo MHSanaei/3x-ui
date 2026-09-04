@@ -63,4 +63,14 @@ func TestAddInboundTuicClientValidation(t *testing.T) {
 	if errNoEmail == nil || strings.TrimSpace(errNoEmail.Error()) != "empty client email" {
 		t.Fatalf("expected 'empty client email' error, got %v", errNoEmail)
 	}
+
+	ibWithQuota := &model.Inbound{
+		Tag:      "tuic-test-quota",
+		Protocol: model.TUIC,
+		Settings: `{"clients":[{"id":"uuid-4","password":"pass","email":"user@example.com","totalGB":10}]}`,
+	}
+	_, _, errQuota := s.AddInbound(ibWithQuota)
+	if errQuota == nil || !strings.Contains(errQuota.Error(), "tuic does not support per-client traffic limits") {
+		t.Fatalf("expected 'tuic does not support per-client traffic limits' error, got %v", errQuota)
+	}
 }

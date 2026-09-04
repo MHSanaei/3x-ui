@@ -101,6 +101,16 @@ describe('createDefaultTuicClient', () => {
     });
     expect(TuicClientSchema.parse(c)).toEqual(c);
   });
+
+  it('rejects non-zero totalGB', () => {
+    const c = createDefaultTuicClient({
+      ...seed,
+      uuid: '11111111-2222-3333-4444-555555555555',
+      password: 'fixed-tuic-pw',
+      totalGB: 10,
+    });
+    expect(() => TuicClientSchema.parse(c)).toThrow();
+  });
 });
 
 describe('createDefault*InboundSettings factories', () => {

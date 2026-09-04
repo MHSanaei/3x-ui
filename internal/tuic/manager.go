@@ -14,8 +14,6 @@ type managed struct {
 	configPath   string
 	structuralFP string
 	usersFP      string
-	clientEmails []string
-	totalClients int
 }
 
 type Manager struct {
@@ -76,12 +74,8 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	structuralFP := inst.StructuralFingerprint()
 	usersFP := inst.UsersFingerprint()
 
-	clientEmails := make([]string, 0, len(inst.Clients))
 	uuidToEmail := make(map[string]string, len(inst.Clients))
 	for _, c := range inst.Clients {
-		if c.Email != "" {
-			clientEmails = append(clientEmails, c.Email)
-		}
 		if c.UUID != "" && c.Email != "" {
 			uuidToEmail[c.UUID] = c.Email
 		}
@@ -90,8 +84,6 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	existing, ok := m.procs[inst.Id]
 	if ok && existing != nil && existing.proc != nil && existing.proc.IsRunning() {
 		if existing.structuralFP == structuralFP && existing.usersFP == usersFP {
-			existing.clientEmails = clientEmails
-			existing.totalClients = len(inst.Clients)
 			existing.proc.UpdateClients(uuidToEmail)
 			return nil
 		}
@@ -110,8 +102,6 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		configPath:   configPath,
 		structuralFP: structuralFP,
 		usersFP:      usersFP,
-		clientEmails: clientEmails,
-		totalClients: len(inst.Clients),
 	}
 	return nil
 }
@@ -151,18 +141,10 @@ func (m *Manager) CollectTraffic() []InboundTrafficDelta {
 		if mg.proc != nil && mg.proc.IsRunning() {
 			deltaUp, deltaDown := mg.proc.CollectTraffic()
 			if deltaUp > 0 || deltaDown > 0 {
-				clientMap := make(map[string]struct{ Up, Down int64 })
-				if mg.totalClients == 1 && len(mg.clientEmails) == 1 {
-					clientMap[mg.clientEmails[0]] = struct{ Up, Down int64 }{
-						Up:   deltaUp,
-						Down: deltaDown,
-					}
-				}
 				out = append(out, InboundTrafficDelta{
-					Tag:     mg.tag,
-					Up:      deltaUp,
-					Down:    deltaDown,
-					Clients: clientMap,
+					Tag:  mg.tag,
+					Up:   deltaUp,
+					Down: deltaDown,
 				})
 			}
 		}

@@ -1078,6 +1078,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client email")
 			}
+			if client.TotalGB > 0 {
+				return inbound, false, common.NewError("tuic does not support per-client traffic limits; set traffic limit on the inbound instead")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -1527,6 +1530,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			}
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client email")
+			}
+			if client.TotalGB > 0 {
+				return inbound, false, common.NewError("tuic does not support per-client traffic limits; set traffic limit on the inbound instead")
 			}
 		}
 	}

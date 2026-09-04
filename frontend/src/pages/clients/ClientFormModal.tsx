@@ -444,6 +444,19 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
+  const tuicIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'tuic') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
+  const hasTuic = useMemo(
+    () => (inboundIds || []).some((id) => tuicIds.has(id)),
+    [inboundIds, tuicIds],
+  );
+
   const mtprotoDomain = useMemo(() => {
     for (const id of inboundIds || []) {
       const ib = (inbounds || []).find((row) => row.id === id);
@@ -534,6 +547,12 @@ export default function ClientFormModal({
       methods.setValue('password', RandomUtil.randomShadowsocksPassword(ss2022Method));
     }
   }, [ss2022Method, methods]);
+
+  useEffect(() => {
+    if (hasTuic && methods.getValues('totalGB') !== 0) {
+      methods.setValue('totalGB', 0);
+    }
+  }, [hasTuic, methods]);
 
   useEffect(() => {
     if (showMtproto && !secret) {
@@ -855,10 +874,19 @@ export default function ClientFormModal({
                           <FormField
                             name="totalGB"
                             label={t('pages.clients.totalGB')}
-                            tooltip={t('pages.clients.totalGBDesc')}
+                            tooltip={
+                              hasTuic
+                                ? t('pages.clients.tuicTotalGBDesc')
+                                : t('pages.clients.totalGBDesc')
+                            }
                             transform={{ output: (v) => Number(v) || 0 }}
                           >
-                            <InputNumber min={0} step={1} style={{ width: '100%' }} />
+                            <InputNumber
+                              min={0}
+                              step={1}
+                              disabled={hasTuic}
+                              style={{ width: '100%' }}
+                            />
                           </FormField>
                         </Col>
                         <Col xs={24} md={6}>

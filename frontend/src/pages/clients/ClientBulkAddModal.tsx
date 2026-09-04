@@ -128,6 +128,25 @@ export default function ClientBulkAddModal({
     return '';
   }, [inboundIds, inbounds]);
 
+  const tuicIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'tuic') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
+  const hasTuic = useMemo(
+    () => (inboundIds || []).some((id) => tuicIds.has(id)),
+    [inboundIds, tuicIds],
+  );
+
+  useEffect(() => {
+    if (hasTuic && methods.getValues('totalGB') !== 0) {
+      methods.setValue('totalGB', 0);
+    }
+  }, [hasTuic, methods]);
+
   useEffect(() => {
     if (!showFlow && flow) {
       methods.setValue('flow', '');
@@ -389,9 +408,12 @@ export default function ClientBulkAddModal({
             <FormField
               name="totalGB"
               label={t('pages.clients.totalGB')}
+              tooltip={
+                hasTuic ? t('pages.clients.tuicTotalGBDesc') : t('pages.clients.totalGBDesc')
+              }
               transform={{ output: (v) => Number(v) || 0 }}
             >
-              <InputNumber min={0} step={1} />
+              <InputNumber min={0} step={1} disabled={hasTuic} />
             </FormField>
 
             <Form.Item label={t('pages.clients.delayedStart')}>

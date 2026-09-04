@@ -106,6 +106,6 @@ tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.ex
 
 <Callout type="info">
   - **Standalone sidecar**: The panel ships pre-compiled `tuic-server` musl binaries on Linux (amd64, arm64, armv7, 386) and executable for Windows.
-  - **Traffic accounting**: Total traffic is accounted from the sidecar process I/O counters and active connections continuously update client online status.
+  - **Traffic accounting & limits**: Total traffic is measured from the sidecar process I/O counters and enforced at the **inbound level** (`inbounds.total`). Because upstream `tuic-server` does not provide an internal per-user metrics API, individual client traffic limits (`totalGB`) are not supported for TUIC clients. Client access can be controlled via expiration timestamps (`expiryTime`) and manual enable/disable toggles.
   - **Deployment**: Because TUIC operates via a host sidecar process, TUIC inbounds are panel-local (main instance).
 </Callout>
