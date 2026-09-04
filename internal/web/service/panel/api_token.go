@@ -124,6 +124,10 @@ func (s *ApiTokenService) RecreateByName(name string) (*ApiTokenView, error) {
 	if name == "" {
 		return nil, common.NewError("token name is required")
 	}
+	// Same column, same limit as Create: the CLI now feeds this operator input.
+	if len(name) > 64 {
+		return nil, common.NewError("token name must be 64 characters or fewer")
+	}
 	plaintext := random.Seq(apiTokenLength)
 	row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(plaintext), Enabled: true}
 	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {

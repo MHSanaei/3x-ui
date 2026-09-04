@@ -11,6 +11,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	_ "unsafe"
 
@@ -35,6 +36,10 @@ import (
 // cliFallbackTokenName is the single token the CLI regenerates, so `-getApiToken`
 // cannot accumulate admin-equivalent credentials that are never revoked.
 const cliFallbackTokenName = "cli-fallback"
+
+// installTokenName is minted once on a panel with no tokens and is deliberately
+// not the rotated slot, so the credential the installer recorded keeps working.
+const installTokenName = "install"
 
 // initNodeTokenCrypto loads the process codec, preferring the key file over
 // the environment and failing closed when an enabled policy lacks a key.
@@ -493,10 +498,13 @@ func GetListenIP(getListen bool) {
 	}
 }
 
-func GetApiToken(getApiToken bool) {
+func GetApiToken(getApiToken bool, tokenName string) {
 	if !getApiToken {
 		return
 	}
+	// An explicit name applies to both branches below; without one each keeps
+	// the name it already used, so every existing invocation is unaffected.
+	name := strings.TrimSpace(tokenName)
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("open database failed, error info:", err)
@@ -512,18 +520,25 @@ func GetApiToken(getApiToken bool) {
 		fmt.Printf("There are %d API token(s) configured. Existing tokens cannot be retrieved in plaintext because only hashes are stored.\n", len(tokens))
 		fmt.Println("If you have lost your token, you can manage and generate new tokens through the Panel UI (Settings -> API Tokens).")
 
-		// Rotate one reusable fallback so repeated calls cannot pile up
+		// Rotate one token per name so repeated calls cannot pile up
 		// indefinitely many admin-equivalent tokens that never expire.
-		created, err := apiTokenService.RecreateByName(cliFallbackTokenName)
+		rotated := name
+		if rotated == "" {
+			rotated = cliFallbackTokenName
+		}
+		created, err := apiTokenService.RecreateByName(rotated)
 		if err != nil {
 			fmt.Println("Failed to create a fallback API token:", err)
 			return
 		}
-		fmt.Println("\nThe CLI fallback token has been regenerated (any previous one is now invalid):")
+		fmt.Printf("\nThe API token %q has been regenerated (any previous one is now invalid):\n", rotated)
 		fmt.Println("apiToken:", created.Token)
 		return
 	}
-	created, err := apiTokenService.Create("install", "", 0)
+	if name == "" {
+		name = installTokenName
+	}
+	created, err := apiTokenService.Create(name, "", 0)
 	if err != nil {
 		fmt.Println("create apiToken failed, error info:", err)
 		return
@@ -605,6 +620,7 @@ func main() {
 	var show bool
 	var getCert bool
 	var getApiToken bool
+	var tokenName string
 	var resetTwoFactor bool
 	settingCmd.BoolVar(&reset, "reset", false, "Reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "Display current settings")
@@ -616,7 +632,8 @@ func main() {
 	settingCmd.BoolVar(&resetTwoFactor, "resetTwoFactor", false, "Reset two-factor authentication settings")
 	settingCmd.BoolVar(&getListen, "getListen", false, "Display current panel listenIP IP")
 	settingCmd.BoolVar(&getCert, "getCert", false, "Display current certificate settings")
-	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Display current API token")
+	settingCmd.BoolVar(&getApiToken, "getApiToken", false, "Print an API token for CLI use, regenerating it and invalidating the previous one; on a panel with no tokens yet it mints one instead")
+	settingCmd.StringVar(&tokenName, "tokenName", "", "Name of the token -getApiToken acts on (default: "+cliFallbackTokenName+", or "+installTokenName+" on a panel with no tokens)")
 	settingCmd.StringVar(&webCertFile, "webCert", "", "Set path to public key file for panel")
 	settingCmd.StringVar(&webKeyFile, "webCertKey", "", "Set path to private key file for panel")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "Set token for Telegram bot")
@@ -688,6 +705,11 @@ func main() {
 			fmt.Println(err)
 			return
 		}
+		// flag stops parsing at the first non-flag argument, so the `-getApiToken true`
+		// form drops every flag written after it. Say so instead of acting on a default.
+		if rest := settingCmd.Args(); len(rest) > 0 {
+			fmt.Printf("warning: ignored %q and any flags after it; put flags before positional arguments\n", strings.Join(rest, " "))
+		}
 		if reset {
 			if err = resetSetting(); err != nil {
 				return
@@ -710,7 +732,7 @@ func main() {
 			GetCertificate(getCert)
 		}
 		if getApiToken {
-			GetApiToken(getApiToken)
+			GetApiToken(getApiToken, tokenName)
 		}
 		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
