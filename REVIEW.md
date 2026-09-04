@@ -44,10 +44,13 @@ surface — still 🟣, but open the summary with it.
   PostgreSQL, or one that loses or overwrites operator data on upgrade or
   rollback. There are no migration files and no down-migrations.
 - A change to what the panel emits on the wire — Xray config JSON, share
-  links, subscription/Clash YAML, mtg-multi TOML — that a downstream client
-  would reject or read differently, or that makes the three independent link
-  implementations (Go `internal/util/link/` + `internal/sub/`, TS
-  `frontend/src/lib/xray/`, TS `docs/lib/xray/`) diverge from one another.
+  links, subscription/Clash YAML, mtg-multi TOML, AmneziaWG obfuscation
+  parameters — that a downstream client would reject or read differently, or
+  that makes two independent implementations of the same output diverge: the
+  three link implementations (Go `internal/util/link/` + `internal/sub/`, TS
+  `frontend/src/lib/xray/`, TS `docs/lib/xray/`), and the AmneziaWG 3.1
+  generator in Go (`internal/amneziawg/params.go`) versus TS
+  (`frontend/src/lib/xray/amneziawg-obfuscation.ts`).
 - Any edit to `.github/workflows/`: this repository runs workflows with
   secrets against a public fork stream. Untrusted expression interpolation
   into `run:` blocks, broadened permissions, weakened guards, or a job that
