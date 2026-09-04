@@ -198,6 +198,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 أدوات وتكاملات بناها المجتمع حول 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (الترخيص: **MIT**): _إدارة الاتصالات الواردة والعملاء وإعدادات اللوحة وتكوين Xray كرمز باستخدام Terraform / OpenTofu._
+- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (الترخيص: **MIT**): _عميل أندرويد أصلي لـ 3x-ui — لوحة التحكم، الاتصالات الواردة، العملاء مع مشاركة رمز QR، العقد وإدارة عدة لوحات. متاح على F-Droid._
 
 ## دعم المشروع
 
