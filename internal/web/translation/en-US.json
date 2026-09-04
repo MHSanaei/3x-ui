@@ -1796,6 +1796,7 @@
         "urlPlaceholder": "https://... (base64 list of links)",
         "tagPrefix": "Tag prefix",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Update interval",
         "hours": "h",
         "minutes": "min",

@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (список ссылок в base64)",
         "tagPrefix": "Префикс тега",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Интервал обновления",
         "hours": "ч",
         "minutes": "мин",

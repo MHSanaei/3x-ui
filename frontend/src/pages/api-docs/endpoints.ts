@@ -11,6 +11,7 @@ export type ParamType =
   | 'string'
   | 'integer'
   | 'integer[]'
+  | 'string[]'
   | 'number'
   | 'boolean'
   | 'object'
@@ -25,6 +26,8 @@ export interface EndpointParam {
   desc?: string;
   optional?: boolean;
   defaultValue?: string | number | boolean;
+  minLength?: number;
+  pattern?: string;
 }
 
 export interface Endpoint {
@@ -38,6 +41,8 @@ export interface Endpoint {
   response?: string;
   errorResponse?: string;
   errorStatus?: number;
+  requestSchema?: Record<string, unknown>;
+  bodyRequiredOneOf?: string[];
   responseSchema?: string;
   responseSchemaArray?: boolean;
 }
@@ -54,6 +59,126 @@ export interface Section {
   subHeader?: SubscriptionHeader[];
   endpoints: Endpoint[];
 }
+
+// /inbounds/update replaces the whole row, so it takes the same payload as /add.
+const inboundBody =
+  '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}';
+
+const outboundSubscriptionBodyParams: EndpointParam[] = [
+  {
+    name: 'remark',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Optional display label.',
+    optional: true,
+  },
+  {
+    name: 'url',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Subscription URL (required). Must be a public http(s) address; private/internal targets are blocked unless allowPrivate is true.',
+  },
+  {
+    name: 'tagPrefix',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Prefix for generated outbound tags. Defaults to the lowest free "sub<N>-" prefix.',
+    optional: true,
+  },
+  {
+    name: 'userAgent',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Custom User-Agent sent when fetching this subscription. Defaults to "3x-ui-outbound-sub/1.0".',
+    optional: true,
+    defaultValue: '3x-ui-outbound-sub/1.0',
+  },
+  {
+    name: 'updateInterval',
+    in: 'body (form)',
+    type: 'integer',
+    desc: 'Seconds between auto-refreshes. Default 600.',
+    optional: true,
+    defaultValue: 600,
+  },
+  {
+    name: 'enabled',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: 'Whether the subscription is active. Default true.',
+    optional: true,
+    defaultValue: true,
+  },
+  {
+    name: 'allowPrivate',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: 'Allow the URL to point at a private/internal/loopback address. Default false.',
+    optional: true,
+    defaultValue: false,
+  },
+  {
+    name: 'allowInsecure',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: "Skip TLS certificate verification when fetching the subscription's URL. Default false.",
+    optional: true,
+    defaultValue: false,
+  },
+  {
+    name: 'prepend',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: "Place this subscription's outbounds before the manual template outbounds. Default false.",
+    optional: true,
+    defaultValue: false,
+  },
+];
+
+const subBalancerBodyParams: EndpointParam[] = [
+  {
+    name: 'remark',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Display label, used as the config remarks (required).',
+  },
+  {
+    name: 'strategy',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Balancer strategy: "leastLoad", "leastPing", "roundRobin" or "random". Default "random".',
+    optional: true,
+    defaultValue: 'random',
+  },
+  {
+    name: 'inboundIds',
+    in: 'body (form)',
+    type: 'integer[]',
+    desc: 'Repeated form keys selecting the member inbounds (required, at least one).',
+  },
+  {
+    name: 'memberWeights',
+    in: 'body (form)',
+    type: 'object',
+    desc: 'leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {"3":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped.',
+    optional: true,
+  },
+  {
+    name: 'sortOrder',
+    in: 'body (form)',
+    type: 'integer',
+    desc: '1-based position in the subscription list. Default 1.',
+    optional: true,
+    defaultValue: 1,
+  },
+  {
+    name: 'enabled',
+    in: 'body (form)',
+    type: 'boolean',
+    desc: 'Whether the balancer is emitted. Default true on create; unchanged when omitted on update.',
+    optional: true,
+  },
+];
 
 export const sections: readonly Section[] = [
   {
@@ -75,6 +200,7 @@ export const sections: readonly Section[] = [
             in: 'body',
             type: 'string',
             desc: 'OTP code when 2FA is enabled. Omit otherwise.',
+            optional: true,
           },
         ],
         body: '{\n  "username": "admin",\n  "password": "admin",\n  "twoFactorCode": "123456"\n}',
@@ -153,7 +279,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/inbounds/add',
         summary:
           'Create a new inbound. Send the full inbound payload (protocol, port, settings, streamSettings, sniffing, remark, expiryTime, total, enable). settings, streamSettings, and sniffing may be sent as nested JSON objects (preferred) or as JSON-encoded strings (legacy).',
-        body: '{\n  "enable": true,\n  "remark": "VLESS-443",\n  "listen": "",\n  "port": 443,\n  "protocol": "vless",\n  "expiryTime": 0,\n  "total": 0,\n  "settings": {\n    "clients": [{ "id": "...", "email": "user1" }],\n    "decryption": "none",\n    "fallbacks": []\n  },\n  "streamSettings": {\n    "network": "tcp",\n    "security": "reality",\n    "realitySettings": { "show": false, "dest": "..." }\n  },\n  "sniffing": {\n    "enabled": true,\n    "destOverride": ["http", "tls"]\n  }\n}',
+        body: inboundBody,
         errorResponse: '{\n  "success": false,\n  "msg": "Port 443 is already in use"\n}',
       },
       {
@@ -177,6 +303,7 @@ export const sections: readonly Section[] = [
         summary:
           'Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
+        body: inboundBody,
       },
       {
         method: 'POST',
@@ -517,6 +644,15 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/server/updatePanel',
         summary: 'Self-update the panel to the latest version. The server restarts on success.',
+        params: [
+          {
+            name: 'dev',
+            in: 'body (form)',
+            type: 'boolean',
+            desc: "Override this run's channel. Omit to use the panel's configured channel.",
+            optional: true,
+          },
+        ],
         response: '{\n  "success": true,\n  "obj": {\n    "runId": "1735689600123456789"\n  }\n}',
       },
       {
@@ -538,16 +674,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/server/updateGeofile',
         summary:
-          'Refresh the default GeoIP / GeoSite data files. Body can include a fileName, or use the /:fileName variant.',
-        params: [
-          {
-            name: 'fileName',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Filename to update (e.g. geoip.dat, geosite.dat). Omit to update all defaults.',
-          },
-        ],
-        body: 'fileName=geoip.dat',
+          'Refresh the default GeoIP / GeoSite data files. Use the /:fileName variant to update one file.',
       },
       {
         method: 'POST',
@@ -568,8 +695,22 @@ export const sections: readonly Section[] = [
         summary: 'Return the last N lines of the panel\u2019s own log.',
         params: [
           { name: 'count', in: 'path', type: 'number', desc: 'Number of trailing log lines.' },
+          {
+            name: 'level',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Minimum log level filter.',
+            optional: true,
+          },
+          {
+            name: 'syslog',
+            in: 'body (form)',
+            type: 'boolean',
+            desc: 'Read system logs instead of the panel log.',
+            optional: true,
+          },
         ],
-        body: '{\n  "level": "info",\n  "syslog": false\n}',
+        body: 'level=info&syslog=false',
         response:
           '{\n  "success": true,\n  "obj": "2025/01/01 12:00:00 [INFO] Server started\\n2025/01/01 12:00:01 [INFO] Xray is running"\n}',
       },
@@ -584,24 +725,28 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Keyword filter — only lines containing this string.',
+            optional: true,
           },
           {
             name: 'showDirect',
             in: 'body (form)',
             type: 'string',
             desc: '"true" to include direct (freedom) traffic lines.',
+            optional: true,
           },
           {
             name: 'showBlocked',
             in: 'body (form)',
             type: 'string',
             desc: '"true" to include blocked (blackhole) traffic lines.',
+            optional: true,
           },
           {
             name: 'showProxy',
             in: 'body (form)',
             type: 'string',
             desc: '"true" to include proxy traffic lines.',
+            optional: true,
           },
         ],
         body: 'filter=error&showDirect=false&showBlocked=true&showProxy=true',
@@ -625,6 +770,7 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Keyword filter — only rows/lines containing this string.',
+            optional: true,
           },
         ],
         body: 'filter=awg1',
@@ -641,6 +787,14 @@ export const sections: readonly Section[] = [
             in: 'body (multipart)',
             type: 'file',
             desc: 'Database backup or migration file to upload.',
+          },
+          {
+            name: 'keepHostSettings',
+            in: 'body (multipart)',
+            type: 'boolean',
+            desc: "Keep this machine's addresses, certificates and node identity. Default true.",
+            optional: true,
+            defaultValue: true,
           },
         ],
       },
@@ -666,18 +820,23 @@ export const sections: readonly Section[] = [
         path: '/panel/api/server/getCertHash',
         summary:
           'Compute the hex SHA-256 of a certificate (DER) for pinning (pinnedPeerCertSha256). Provide either a server file path or inline PEM/DER content.',
+        bodyRequiredOneOf: ['certFile', 'certContent'],
         params: [
           {
             name: 'certFile',
             in: 'body (form)',
             type: 'string',
             desc: 'Path to a certificate file on the server. Takes precedence over certContent.',
+            optional: true,
+            pattern: '.*\\S.*',
           },
           {
             name: 'certContent',
             in: 'body (form)',
             type: 'string',
             desc: 'Inline PEM (or DER) certificate content, used when certFile is empty.',
+            optional: true,
+            pattern: '.*\\S.*',
           },
         ],
         body: 'certFile=/root/cert.crt',
@@ -767,14 +926,25 @@ export const sections: readonly Section[] = [
         path: '/panel/api/server/clientIps',
         summary:
           'Submit a list of recently active IP timestamps. The panel merges them with the existing database to maintain a unified global IP-limit view.',
-        params: [
-          {
-            name: 'ips',
-            in: 'body (json)',
-            type: 'object[]',
-            desc: 'Array of InboundClientIps to merge.',
+        requestSchema: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              clientEmail: { type: 'string' },
+              ips: {
+                type: 'array',
+                nullable: true,
+                items: {
+                  type: 'object',
+                  properties: { ip: { type: 'string' }, timestamp: { type: 'integer' } },
+                  required: ['ip', 'timestamp'],
+                },
+              },
+            },
+            required: ['clientEmail', 'ips'],
           },
-        ],
+        },
       },
     ],
   },
@@ -868,7 +1038,7 @@ export const sections: readonly Section[] = [
         summary:
           'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets are generated server-side when omitted, so callers can send only the universal fields.',
         description:
-          'Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `wireguard: allowedIPs entry already used by another client: <address>` when a different client of that same inbound already holds it. The check is per inbound, so the same address on two different inbounds is accepted. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.',
+          'Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `inbound <id>: wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `inbound <id>: wireguard: allowedIPs entry already used by another client: <address>` when a different client of that same inbound already holds it. The check is per inbound, so the same address on two different inbounds is accepted. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.\n\nAn `inboundIds` entry that names no existing inbound rejects the whole call before anything is written. Past that, the inbounds are applied concurrently and independently: one that fails no longer stops the others, so a `success:false` response can still have created the client on the rest. Every error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. `limitHwid` is applied only when every inbound succeeded, so re-run the call after fixing the failure.',
         params: [
           {
             name: 'client',
@@ -923,7 +1093,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/:email/attach',
         summary: 'Attach an existing client to one or more additional inbounds. Body is JSON.',
         description:
-          'A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `wireguard: allowedIPs entry already used by another client: <address>` when a different client of the target inbound already holds it. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule.',
+          'A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `inbound <id>: wireguard: allowedIPs entry already used by another client: <address>` when a different client of the target inbound already holds it. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule. Inbounds are applied independently, so the remaining ones are still attached and a `success:false` response can be partial.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           {
@@ -956,14 +1126,14 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/:email/externalLinks',
         summary:
-          "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.",
+          "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions. The owning client's disabled or expired state also stops these rows from being emitted on future subscription fetches; credentials already imported by an app remain valid until the external provider revokes them.",
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           {
             name: 'externalLinks',
             in: 'body',
             type: 'object[]',
-            desc: 'Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means never expire; a negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET.',
+            desc: "Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means no link-specific expiry; the owning client's enabled state and expiry still apply. A negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET.",
           },
         ],
         body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true, "expiryTime": 0 },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] " }\n  ]\n}',
@@ -1077,7 +1247,7 @@ export const sections: readonly Section[] = [
           {
             name: 'emails',
             in: 'body (json)',
-            type: 'array',
+            type: 'string[]',
             desc: 'Emails of existing clients to attach.',
           },
           {
@@ -1100,7 +1270,7 @@ export const sections: readonly Section[] = [
           {
             name: 'emails',
             in: 'body (json)',
-            type: 'array',
+            type: 'string[]',
             desc: 'Emails of existing clients to detach.',
           },
           {
@@ -1279,7 +1449,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/subLinks/:subId',
         summary:
-          'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as /sub/<subId>, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
+          'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, hy2://) for clients matching the subscription ID. Same result set as the configured subPath endpoint, but as a JSON array — no base64. When an inbound has streamSettings.externalProxy set, one URL is emitted per external proxy. Empty array when the subId has no enabled clients.',
         params: [
           {
             name: 'subId',
@@ -1666,12 +1836,14 @@ export const sections: readonly Section[] = [
             in: 'body',
             type: 'string',
             desc: 'admin (default), monitor, or node-sync.',
+            optional: true,
           },
           {
             name: 'expiresAt',
             in: 'body',
             type: 'number',
             desc: 'Future Unix milliseconds, or 0 for no expiry.',
+            optional: true,
           },
         ],
         body: '{\n  "name": "central-panel-a",\n  "scope": "node-sync",\n  "expiresAt": 1798761600000\n}',
@@ -1766,6 +1938,7 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'URL used for outbound reachability tests. Defaults to https://www.google.com/generate_204.',
+            optional: true,
           },
         ],
       },
@@ -1778,25 +1951,35 @@ export const sections: readonly Section[] = [
             name: 'action',
             in: 'path',
             type: 'string',
-            desc: 'data — return Warp stats (quota, remaining). del — delete Warp data. config — return current Warp config. reg — register a new Warp endpoint (sends privateKey, publicKey). license — set a Warp+ license key (sends license).',
+            desc: 'data — return Warp stats. del — delete Warp data. config — return current config. reg — register (sends keys). changeIp — rotate the endpoint. license — set a Warp+ key. interval — set automatic rotation in hours.',
           },
           {
             name: 'privateKey',
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=reg.',
+            optional: true,
           },
           {
             name: 'publicKey',
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=reg.',
+            optional: true,
           },
           {
             name: 'license',
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=license.',
+            optional: true,
+          },
+          {
+            name: 'interval',
+            in: 'body (form)',
+            type: 'integer',
+            desc: 'Non-negative hours between automatic rotations. Required when action=interval; 0 disables rotation.',
+            optional: true,
           },
         ],
       },
@@ -1816,9 +1999,22 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=servers.',
+            optional: true,
           },
-          { name: 'token', in: 'body (form)', type: 'string', desc: 'Required when action=reg.' },
-          { name: 'key', in: 'body (form)', type: 'string', desc: 'Required when action=setKey.' },
+          {
+            name: 'token',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Required when action=reg.',
+            optional: true,
+          },
+          {
+            name: 'key',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Required when action=setKey.',
+            optional: true,
+          },
         ],
       },
       {
@@ -1837,24 +2033,28 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=reg.',
+            optional: true,
           },
           {
             name: 'password',
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=reg.',
+            optional: true,
           },
           {
             name: 'countryCode',
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=servers.',
+            optional: true,
           },
           {
             name: 'hostname',
             in: 'body (form)',
             type: 'string',
             desc: 'Required when action=addKey.',
+            optional: true,
           },
         ],
       },
@@ -1889,12 +2089,14 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'JSON array of all outbounds — used to resolve dialerProxy chains.',
+            optional: true,
           },
           {
             name: 'mode',
             in: 'body (form)',
             type: 'string',
             desc: '"tcp" for a fast dial-only probe (parallel-safe), "real" for a real-delay probe whose delay is the full request time including tunnel establishment. Default/empty uses a full HTTP probe reporting the warm per-request round-trip. Both HTTP variants run through a temp xray instance.',
+            optional: true,
           },
         ],
         body: 'outbound={"protocol":"freedom","settings":{}}&mode=tcp',
@@ -1916,12 +2118,14 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'JSON array of all outbounds — used to resolve dialerProxy chains.',
+            optional: true,
           },
           {
             name: 'mode',
             in: 'body (form)',
             type: 'string',
             desc: '"tcp" for fast dial-only probes (UDP-transport outbounds are still probed over HTTP), "real" for real-delay probes whose delay is the full request time including tunnel establishment. Default/empty routes an HTTP request through each outbound and reports the warm per-request round-trip.',
+            optional: true,
           },
         ],
         body: 'outbounds=[{"tag":"direct","protocol":"freedom","settings":{}}]&mode=http',
@@ -1953,6 +2157,7 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Outbound tag to force. Empty clears the override and returns control to the strategy.',
+            optional: true,
           },
         ],
         body: 'tag=b1&target=proxy',
@@ -1962,38 +2167,58 @@ export const sections: readonly Section[] = [
         path: '/panel/api/xray/routeTest',
         summary:
           'Ask the running core which outbound its router would pick for a synthetic connection (RoutingService.TestRoute). No traffic is sent.',
+        bodyRequiredOneOf: ['domain', 'ip'],
         params: [
           {
             name: 'domain',
             in: 'body (form)',
             type: 'string',
             desc: 'Target domain. Either domain or ip is required.',
+            optional: true,
+            minLength: 1,
           },
           {
             name: 'ip',
             in: 'body (form)',
             type: 'string',
             desc: 'Target IP. Either domain or ip is required.',
+            optional: true,
+            minLength: 1,
           },
-          { name: 'port', in: 'body (form)', type: 'number', desc: 'Target port (optional).' },
-          { name: 'network', in: 'body (form)', type: 'string', desc: '"tcp" (default) or "udp".' },
+          {
+            name: 'port',
+            in: 'body (form)',
+            type: 'number',
+            desc: 'Target port (optional).',
+            optional: true,
+          },
+          {
+            name: 'network',
+            in: 'body (form)',
+            type: 'string',
+            desc: '"tcp" (default) or "udp".',
+            optional: true,
+          },
           {
             name: 'inboundTag',
             in: 'body (form)',
             type: 'string',
             desc: 'Simulate arrival on this inbound (optional).',
+            optional: true,
           },
           {
             name: 'protocol',
             in: 'body (form)',
             type: 'string',
             desc: 'Sniffed protocol such as http, tls, bittorrent (optional).',
+            optional: true,
           },
           {
             name: 'email',
             in: 'body (form)',
             type: 'string',
             desc: 'User attribution for user-based rules (optional).',
+            optional: true,
           },
         ],
         body: 'domain=example.com&port=443&network=tcp',
@@ -2097,6 +2322,7 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: '"ip" to parse the tokens as IP rules (geoip:, ext-ip:, leading !). Anything else parses them as domain rules (geosite:, ext-site:).',
+            optional: true,
           },
         ],
         body: 'kind=domain&tokens=geosite:google,geosite:blabla',
@@ -2112,64 +2338,17 @@ export const sections: readonly Section[] = [
         path: '/panel/api/xray/outbound-subs',
         summary:
           'Create an outbound subscription. The URL is fetched, parsed into outbounds with stable tags, and merged additively into the running Xray config.',
-        params: [
-          { name: 'remark', in: 'body (form)', type: 'string', desc: 'Optional display label.' },
-          {
-            name: 'url',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Subscription URL (required). Must be a public http(s) address; private/internal targets are blocked unless allowPrivate is true.',
-          },
-          {
-            name: 'tagPrefix',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Prefix for generated outbound tags. Defaults to "sub<id>-".',
-          },
-          {
-            name: 'userAgent',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Custom User-Agent sent when fetching this subscription. Defaults to "3x-ui-outbound-sub/1.0".',
-          },
-          {
-            name: 'updateInterval',
-            in: 'body (form)',
-            type: 'integer',
-            desc: 'Seconds between auto-refreshes. Default 600.',
-          },
-          {
-            name: 'enabled',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: 'Whether the subscription is active. Default true.',
-          },
-          {
-            name: 'allowPrivate',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: 'Allow the URL to point at a private/internal/loopback address (localhost/LAN). Default false (SSRF guard blocks private targets).',
-          },
-          {
-            name: 'allowInsecure',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: 'Skip TLS certificate verification for this subscription. Default false.',
-          },
-          {
-            name: 'prepend',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: "Place this subscription's outbounds before the manual template outbounds (so one can become the default). Default false.",
-          },
-        ],
+        params: outboundSubscriptionBodyParams,
       },
       {
         method: 'POST',
         path: '/panel/api/xray/outbound-subs/:id',
         summary:
           'Update an existing outbound subscription by id. Accepts the same form fields as create.',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' }],
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Subscription id.' },
+          ...outboundSubscriptionBodyParams,
+        ],
       },
       {
         method: 'DELETE',
@@ -2203,6 +2382,7 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: '"up" to raise priority, anything else to lower it.',
+            optional: true,
           },
         ],
       },
@@ -2223,18 +2403,21 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Custom User-Agent sent while fetching the preview.',
+            optional: true,
           },
           {
             name: 'allowPrivate',
             in: 'body (form)',
             type: 'boolean',
-            desc: 'Allow a private/internal/loopback subscription URL during preview.',
+            desc: 'Allow a private/internal/loopback URL. Default false.',
+            optional: true,
           },
           {
             name: 'allowInsecure',
             in: 'body (form)',
             type: 'boolean',
-            desc: 'Skip TLS certificate verification during preview.',
+            desc: 'Skip TLS certificate verification. Default false.',
+            optional: true,
           },
         ],
       },
@@ -2259,52 +2442,18 @@ export const sections: readonly Section[] = [
         path: '/panel/api/sub-balancers',
         summary:
           'Create a subscription balancer. It appears in the JSON subscription of every client that sits on at least one selected inbound.',
-        params: [
-          {
-            name: 'remark',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Display label, used as the config remarks (required).',
-          },
-          {
-            name: 'strategy',
-            in: 'body (form)',
-            type: 'string',
-            desc: 'Balancer strategy: "leastLoad", "leastPing", "roundRobin" or "random" (xray routing balancer strategies). Default "random".',
-          },
-          {
-            name: 'inboundIds',
-            in: 'body (form)',
-            type: 'integer[]',
-            desc: 'Repeated form keys selecting the member inbounds, e.g. inboundIds=1&inboundIds=3 (required, at least one).',
-          },
-          {
-            name: 'memberWeights',
-            in: 'body (form)',
-            type: 'object',
-            desc: 'leastLoad only: JSON object mapping inbound id to a static weight > 0, e.g. {"3":0.2}. Lower weight = picked more often; absent ids weigh 1. Rejected for other strategies; entries for unselected inbounds are dropped.',
-          },
-          {
-            name: 'sortOrder',
-            in: 'body (form)',
-            type: 'integer',
-            desc: '1-based position in the subscription list, interleaved with the inbounds subSortIndex. Default 1.',
-          },
-          {
-            name: 'enabled',
-            in: 'body (form)',
-            type: 'boolean',
-            desc: 'Whether the balancer is emitted. Default true.',
-          },
-        ],
+        params: subBalancerBodyParams,
         responseSchema: 'SubBalancer',
       },
       {
         method: 'POST',
         path: '/panel/api/sub-balancers/:id',
         summary:
-          'Update a balancer by id. Accepts the same form fields as create (full-row update, including the enabled toggle); omitting memberWeights clears stored weights.',
-        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' }],
+          'Update a balancer by id. Accepts the same form fields as create (full-row update); omitting memberWeights clears stored weights, while omitting enabled keeps its current value.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Balancer id.' },
+          ...subBalancerBodyParams,
+        ],
         responseSchema: 'SubBalancer',
       },
       {
@@ -2329,7 +2478,7 @@ export const sections: readonly Section[] = [
     id: 'subscription',
     title: 'Subscription Server',
     description:
-      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 10882) and is configured in Settings → Subscription. Paths are configurable; defaults are shown below. All subscription endpoints set response headers for client apps to read traffic/expiry info.',
+      'A separate HTTP/HTTPS server that serves proxy subscription links (standard, JSON, and Clash) to clients. The server listens on its own port (default 2096) and is configured in Settings → Subscription. Fresh panels generate random path prefixes for each format; all paths remain configurable. Every subscription endpoint sets response headers for client apps to read traffic/expiry info.',
     subHeader: [
       {
         name: 'Subscription-Userinfo',
@@ -2357,7 +2506,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/{subPath}:subid',
         summary:
-          'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. Default path: /sub/:subid.',
+          'Return base64-encoded subscription links for all enabled clients matching the subscription ID. When the request has an Accept: text/html header or ?html=1, renders a styled info page instead. With ?format=info, returns the page view-model as JSON (traffic, expiry, online status; no links) for live polling. The path prefix is configured by subPath.',
         params: [
           { name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' },
           {
@@ -2373,14 +2522,14 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/{jsonPath}:subid',
         summary:
-          'Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. Default path: /json/:subid.',
+          'Return subscription as a JSON array of proxy configs (one per enabled client). Only when JSON subscription is enabled in settings. The path prefix is configured by subJsonPath.',
         params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
       },
       {
         method: 'GET',
         path: '/{clashPath}:subid',
         summary:
-          'Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. Default path: /clash/:subid.',
+          'Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. The path prefix is configured by subClashPath.',
         params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
       },
     ],

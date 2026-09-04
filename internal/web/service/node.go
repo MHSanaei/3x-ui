@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -1203,6 +1204,10 @@ func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func
 	fn(proxyURL)
 }
 
+// A status envelope holds a handful of scalars; the cap keeps a hostile or
+// broken node from dictating the master's allocation on every heartbeat.
+const maxProbeBodyBytes = 1 << 20 // 1 MiB
+
 func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string) (HeartbeatPatch, error) {
 	patch := HeartbeatPatch{LastHeartbeat: time.Now().Unix()}
 
@@ -1285,7 +1290,7 @@ func (s *NodeService) probe(ctx context.Context, n *model.Node, proxyURL string)
 			} `json:"netIO"`
 		} `json:"obj"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxProbeBodyBytes)).Decode(&envelope); err != nil {
 		patch.LastError = "decode response: " + err.Error()
 		return patch, err
 	}

@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (فهرست base64 از لینک‌ها)",
         "tagPrefix": "پیشوند تگ",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "بازه به‌روزرسانی",
         "hours": "ساعت",
         "minutes": "دقیقه",

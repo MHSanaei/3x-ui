@@ -734,7 +734,7 @@ export default function OutboundsTab({
                   placeholder={t('pages.xray.outboundSub.tagPrefixPlaceholder')}
                 />
               </Form.Item>
-              <Form.Item label="User-Agent">
+              <Form.Item label={t('pages.xray.outboundSub.userAgent')}>
                 <Input
                   value={newSub.userAgent}
                   onChange={(e) => setNewSub({ ...newSub, userAgent: e.target.value })}

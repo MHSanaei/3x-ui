@@ -20,6 +20,16 @@ function expectRangeWithin(value: string, min: number, max: number): [number, nu
   return [lo, hi];
 }
 
+/* Parses a plain integer and asserts min <= n <= max (see expectRangeWithin above for the range form). */
+function expectIntWithin(value: string, min: number, max: number): number {
+  const m = /^(\d+)$/.exec(value);
+  expect(m, `${value} is not a plain integer`).not.toBeNull();
+  const n = Number(m![1]);
+  expect(n).toBeGreaterThanOrEqual(min);
+  expect(n).toBeLessThanOrEqual(max);
+  return n;
+}
+
 describe('generateAwgObfuscation', () => {
   it('stays inside the Go generator ranges and invariants', () => {
     for (let i = 0; i < 200; i++) {
@@ -37,9 +47,11 @@ describe('generateAwgObfuscation', () => {
       expect(o.s4).toBeGreaterThanOrEqual(12);
       expect(o.s4).toBeLessThanOrEqual(27);
 
-      const hBounds = [o.h1, o.h2, o.h3, o.h4].map((h) => expectRangeWithin(h, 5, 2147483647));
+      const hValues = [o.h1, o.h2, o.h3, o.h4].map((h) => expectIntWithin(h, 5, 2147483647));
       for (let j = 1; j < 4; j++) {
-        expect(hBounds[j][0], 'H ranges must not overlap').toBeGreaterThan(hBounds[j - 1][1]);
+        expect(hValues[j], 'H values must be strictly increasing across bands').toBeGreaterThan(
+          hValues[j - 1],
+        );
       }
 
       expect(o.i1).toMatch(/^<r \d+>$/);

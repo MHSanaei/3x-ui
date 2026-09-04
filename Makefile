@@ -54,8 +54,9 @@ test-go: dist-stub ## Go tests (shuffle, no cache)
 	go test -shuffle=on -count=1 $(GO_PKGS)
 
 .PHONY: race
+# internal/web/service runs ~10x slower under -race and overruns go test's 10m default.
 race: dist-stub ## Go tests with the race detector (needs a C compiler)
-	go test -race -shuffle=on -count=1 $(GO_PKGS)
+	go test -race -shuffle=on -count=1 -timeout 25m $(GO_PKGS)
 
 .PHONY: test-fe
 test-fe: ## Frontend tests (vitest)

@@ -14,6 +14,7 @@
   <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
   <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
+  <a href="https://docs.sanaei.dev"><img src="https://img.shields.io/badge/docs-docs.sanaei.dev-22d3ee" alt="Documentation"></a>
 </p>
 
 **3X-UI** es un panel de control web avanzado y de código abierto para gestionar servidores [Xray-core](https://github.com/XTLS/Xray-core). Ofrece una interfaz limpia y multilingüe para desplegar, configurar y monitorear una amplia gama de protocolos de proxy y VPN — desde un único VPS hasta despliegues multinodo.
@@ -25,16 +26,19 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 
 ## Características
 
-- **Entradas multiprotocolo** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, Hysteria2, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel y TUN.
+- **Entradas multiprotocolo** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, Hysteria2, MTProto, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel y TUN.
 - **Transportes y seguridad modernos** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade y XHTTP, protegidos con TLS, XTLS y REALITY.
+- **AmneziaWG integrado** — WireGuard resistente al DPI se ejecuta dentro del panel sobre una pila de red en espacio de usuario, sin módulo del kernel, DKMS ni paquetes adicionales que instalar.
+- **Proxies MTProto** — secretos FakeTLS, ad-tags y cuotas por cliente, aplicados en caliente sin cortar las conexiones existentes.
 - **Fallbacks** — sirve varios protocolos en un solo puerto (p. ej. VLESS y Trojan en el 443) usando la función de fallback de Xray.
-- **Gestión por cliente** — cuotas de tráfico, fechas de caducidad, límites de IP, estado en línea en tiempo real y enlaces de compartición, códigos QR y suscripciones con un solo clic.
+- **Gestión por cliente** — cuotas de tráfico, fechas de caducidad, límites de IP con exenciones para direcciones de confianza, límites de dispositivos (HWID), ciclos de renovación programados, estado en línea en tiempo real y enlaces de compartición, códigos QR y suscripciones con un solo clic.
 - **Estadísticas de tráfico** — por entrada, por cliente y por salida, con controles de reinicio.
-- **Soporte multinodo** — gestiona y escala a través de varios servidores desde un único panel.
-- **Salida y enrutamiento** — WARP, NordVPN, reglas de enrutamiento personalizadas, balanceadores de carga y encadenamiento de proxy de salida.
-- **Servidor de suscripción integrado** con múltiples formatos de salida y [plantillas de página personalizables](docs/custom-subscription-templates.md).
+- **Soporte multinodo** — gestiona y escala a través de varios servidores desde un único panel, incluida la clonación de entradas en otros nodos.
+- **Salida y enrutamiento** — WARP, NordVPN, PIA, reglas de enrutamiento personalizadas, balanceadores de carga con conmutación por error entre balanceadores y encadenamiento de proxy de salida. Las categorías geosite y geoip incluidas se pueden explorar directamente desde el editor de reglas.
+- **Servidor de suscripción integrado** — salida raw, JSON y Clash, seleccionada automáticamente según el User-Agent del cliente, además de [plantillas de página personalizables](docs/custom-subscription-templates.md).
 - **Bot de Telegram** para monitorización y gestión remotas.
-- **API RESTful** con documentación Swagger dentro del panel.
+- **API RESTful** con tokens de alcance limitado y caducidad opcional, y una referencia de la API dentro del panel.
+- **Panel instalable (PWA)** — ancla 3X-UI al escritorio o a la pantalla de inicio del móvil.
 - **Almacenamiento flexible** — SQLite (predeterminado) o PostgreSQL.
 - **13 idiomas de interfaz** con temas oscuro y claro.
 - **Integración con Fail2ban** para aplicar límites de IP por cliente.
@@ -72,10 +76,10 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-Para instalar una versión específica, añade su etiqueta (p. ej. `v3.4.0`):
+Para instalar una versión específica, añade su etiqueta (p. ej. `v3.7.0`):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.7.0
 ```
 
 Para instalar la versión **dev** continua (la última prelanzamiento por commit desde `main`, no una versión estable), pasa `dev-latest`:
@@ -86,7 +90,9 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 Durante la instalación se generan un nombre de usuario, una contraseña y una ruta de acceso aleatorios. Tras la instalación, ejecuta `x-ui` para abrir el menú de gestión, donde puedes iniciar/detener el servicio, ver o restablecer tus credenciales de acceso, gestionar certificados SSL y mucho más.
 
-Para la documentación completa, visita la [Wiki del proyecto](https://github.com/MHSanaei/3x-ui/wiki).
+Cada recurso de la publicación se publica con una suma `.sha256` junto a él. Tanto `install.sh` como el actualizador verifican el archivo contra esa suma y abortan si no coincide.
+
+Para la documentación completa —instalación, configuración, operación y la referencia completa de la API— visita **[docs.sanaei.dev](https://docs.sanaei.dev)**.
 
 ### Instalación desatendida
 
@@ -162,6 +168,11 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_TIMEOUT` | Tiempo de espera por sondeo | `10s` |
 | `XUI_TUNNEL_HEALTH_FAILURES` | Fallos consecutivos antes de que se active un reinicio | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | Retardo mínimo entre reinicios consecutivos | `5m` |
+| `NODE_TOKEN_ENCRYPTION` | Cifrado en reposo de los tokens de API de los nodos: `off`, `migration` o `required` (sin el prefijo `XUI_`) | `off` |
+| `XUI_NODE_TOKEN_KEY_FILE` | Llavero JSON (modo `0600`) con el id de la clave activa y sus claves de 32 bytes en base64 | `/etc/x-ui/node_token_key.json` |
+| `XUI_NODE_TOKEN_KEY` | Una única clave de 32 bytes en base64, usada solo si no se puede cargar el archivo de claves | — |
+
+La lista completa está en la [referencia de variables de entorno](https://docs.sanaei.dev/docs/reference/env-vars).
 
 ## Idiomas Compatibles
 
