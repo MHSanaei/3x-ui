@@ -1455,7 +1455,13 @@
           "httpMethodDesc": "Método usado nas requisições de probe.",
           "note": "Balanceadores leastPing/leastLoad sempre carregam um burstObservatory. Esta opção personaliza seus parâmetros de probe — desligue-a para usar os padrões integrados. As alterações se aplicam após reiniciar o painel."
         }
-      }
+      },
+      "subInfoNodeEnable": "Configuração de informações separada / Nó fictício",
+      "subInfoNodeEnableDesc": "Quando ativado, observações e tráfego/dias restantes são exibidos em uma configuração SOCKS fictícia no topo, e assinaturas expiradas/esgotadas retornam apenas o status.",
+      "subExpiredTemplate": "Modelo expirado",
+      "subExpiredTemplateDesc": "Modelo para a configuração fictícia quando a assinatura expirou.",
+      "subTrafficDepletedTemplate": "Modelo de tráfego esgotado",
+      "subTrafficDepletedTemplateDesc": "Modelo para a configuração fictícia quando a cota de tráfego foi esgotada."
     },
     "xray": {
       "importRules": "Importar regras",

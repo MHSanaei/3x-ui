@@ -1573,7 +1573,13 @@
           "httpMethodDesc": "Method used for probe requests.",
           "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
         }
-      }
+      },
+      "subInfoNodeEnable": "Separate Info Config / Dummy Node",
+      "subInfoNodeEnableDesc": "When enabled, remarks and remaining traffic/days are served as a separate dummy SOCKS config at the top, and expired/depleted subscriptions return only the status config.",
+      "subExpiredTemplate": "Expired Template",
+      "subExpiredTemplateDesc": "Template for the dummy config when the subscriber account has expired.",
+      "subTrafficDepletedTemplate": "Traffic Depleted Template",
+      "subTrafficDepletedTemplateDesc": "Template for the dummy config when subscriber traffic quota is exhausted."
     },
     "xray": {
       "save": "Save",

@@ -1455,7 +1455,13 @@
           "httpMethodDesc": "Probe isteklerinde kullanılan HTTP yöntemi.",
           "note": "leastPing/leastLoad dengeleyicileri her zaman bir burstObservatory taşır. Bu anahtar probe parametrelerini özelleştirir — yerleşik varsayılanları kullanmak için kapatın. Değişiklikler panel yeniden başlatıldıktan sonra uygulanır."
         }
-      }
+      },
+      "subInfoNodeEnable": "Ayrı Bilgi Yapılandırması / Sahte Düğüm",
+      "subInfoNodeEnableDesc": "Etkinleştirildiğinde, notlar ve kalan trafik/günler en üstte ayrı bir sahte SOCKS yapılandırması olarak sunulur; süresi dolmuş veya kotası bitmiş abonelikler yalnızca durum yapılandırmasını alır.",
+      "subExpiredTemplate": "Süresi Dolmuş Şablonu",
+      "subExpiredTemplateDesc": "Abonelik süresi dolduğunda sahte yapılandırma için kullanılacak şablon.",
+      "subTrafficDepletedTemplate": "Trafik Tükendi Şablonu",
+      "subTrafficDepletedTemplateDesc": "Abonelik trafik kotası bittiğinde sahte yapılandırma için kullanılacak şablon."
     },
     "xray": {
       "save": "Kaydet",

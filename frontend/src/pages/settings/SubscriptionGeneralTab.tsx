@@ -184,6 +184,41 @@ export default function SubscriptionGeneralTab({
 
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.subInfoNodeEnable')}
+                description={t('pages.settings.subInfoNodeEnableDesc')}
+              >
+                <Switch
+                  checked={allSetting.subInfoNodeEnable}
+                  onChange={(v) => updateSetting({ subInfoNodeEnable: v })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subExpiredTemplate')}
+                description={t('pages.settings.subExpiredTemplateDesc')}
+              >
+                <RemarkTemplateField
+                  value={allSetting.subExpiredTemplate}
+                  onChange={(v) => updateSetting({ subExpiredTemplate: v })}
+                  maxLength={256}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subTrafficDepletedTemplate')}
+                description={t('pages.settings.subTrafficDepletedTemplateDesc')}
+              >
+                <RemarkTemplateField
+                  value={allSetting.subTrafficDepletedTemplate}
+                  onChange={(v) => updateSetting({ subTrafficDepletedTemplate: v })}
+                  maxLength={256}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.subUpdates')}
                 badge={<DefaultSettingTag settingKey="subUpdates" value={allSetting.subUpdates} />}
                 description={t('pages.settings.subUpdatesDesc')}
