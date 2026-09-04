@@ -41,6 +41,11 @@ func GenerateConfig(inst Instance) ([]byte, error) {
 		maxIdleStr = fmt.Sprintf("%ds", inst.MaxIdleTime)
 	}
 
+	logLevel := inst.LogLevel
+	if logLevel != "trace" && logLevel != "debug" {
+		logLevel = "info"
+	}
+
 	cfg := ServerConfig{
 		Server:                inst.BindTo(),
 		Users:                 users,
@@ -49,7 +54,7 @@ func GenerateConfig(inst Instance) ([]byte, error) {
 		CongestionControl:     inst.CongestionControl,
 		ALPN:                  inst.ALPN,
 		ZeroRTTHandshake:      inst.ZeroRTTHandshake,
-		LogLevel:              inst.LogLevel,
+		LogLevel:              logLevel,
 		AuthTimeout:           authTimeoutStr,
 		MaxIdleTime:           maxIdleStr,
 		MaxExternalPacketSize: inst.MaxUdpRelayPacketSize,

@@ -51,3 +51,37 @@ func TestGenerateConfig(t *testing.T) {
 		t.Fatalf("unexpected users in json: %v", users)
 	}
 }
+
+func TestGenerateConfigLogLevel(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"info", "info"},
+		{"warn", "info"},
+		{"error", "info"},
+		{"", "info"},
+		{"debug", "debug"},
+		{"trace", "trace"},
+	}
+
+	for _, tc := range tests {
+		inst := Instance{
+			Id:       1,
+			Port:     8443,
+			Listen:   "0.0.0.0",
+			LogLevel: tc.input,
+		}
+		data, err := GenerateConfig(inst)
+		if err != nil {
+			t.Fatalf("GenerateConfig error for %s: %v", tc.input, err)
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal(data, &parsed); err != nil {
+			t.Fatalf("Unmarshal error for %s: %v", tc.input, err)
+		}
+		if parsed["log_level"] != tc.expected {
+			t.Fatalf("expected log_level %s for input %s, got %v", tc.expected, tc.input, parsed["log_level"])
+		}
+	}
+}
