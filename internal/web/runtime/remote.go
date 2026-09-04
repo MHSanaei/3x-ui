@@ -407,6 +407,11 @@ func (r *Remote) refreshRemoteIDs(ctx context.Context) error {
 	// A rebuild sees only node-reported tags, so the adopted aliases must be
 	// re-applied or a later op on an adopted inbound re-creates it as a duplicate.
 	for centralTag, nodeTag := range r.adoptedAliases {
+		// A tag the node reports itself is authoritative; the alias only fills
+		// the gap left for a central tag the node knows under another name.
+		if _, reported := next[centralTag]; reported {
+			continue
+		}
 		if id, ok := next[nodeTag]; ok {
 			next[centralTag] = id
 		}
