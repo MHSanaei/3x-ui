@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"math/big"
 	"net/netip"
 	"regexp"
@@ -130,6 +131,28 @@ func ValidateObfuscation(o Obfuscation31) error {
 	if o.Jmin > o.Jmax {
 		return fmt.Errorf("invalid Jmin/Jmax: %d must not exceed %d", o.Jmin, o.Jmax)
 	}
+	// amneziawg-go parses jc/jmin/jmax as uint32 and s1-s4 as uint16
+	// (device/uapi.go); a wider value makes IpcSet reject the whole device.
+	for _, f := range []struct {
+		name string
+		v    int
+		max  int64
+	}{
+		{"Jc", o.Jc, math.MaxUint32},
+		{"Jmin", o.Jmin, math.MaxUint32},
+		{"Jmax", o.Jmax, math.MaxUint32},
+		{"S1", o.S1, math.MaxUint16},
+		{"S2", o.S2, math.MaxUint16},
+	} {
+		if int64(f.v) < 0 || int64(f.v) > f.max {
+			return fmt.Errorf("invalid %s value %d (must be 0..%d)", f.name, f.v, f.max)
+		}
+	}
+	for i, spec := range []string{o.I1, o.I2, o.I3, o.I4, o.I5} {
+		if err := validateObfChain(spec); err != nil {
+			return fmt.Errorf("invalid I%d: %w", i+1, err)
+		}
+	}
 	if o.S3 < 0 || o.S3 > 64 {
 		return fmt.Errorf("invalid S3 value %d (must be 0..64)", o.S3)
 	}
@@ -185,6 +208,40 @@ func ValidateObfuscation(o Obfuscation31) error {
 		}
 	}
 	return nil
+}
+
+// obfChainTags mirrors amneziawg-go's own obfBuilders map (device/obf.go): an
+// unknown tag makes newObfChain fail, and IpcSet then rejects the whole device.
+var obfChainTags = map[string]bool{
+	"b": true, "t": true, "r": true, "rc": true,
+	"rd": true, "d": true, "ds": true, "dz": true,
+}
+
+// validateObfChain checks an I1-I5 signature-packet spec's "<tag value>"
+// structure. Each tag's own value grammar stays amneziawg-go's to enforce.
+func validateObfChain(spec string) error {
+	if strings.TrimSpace(spec) == "" {
+		return nil
+	}
+	remaining := spec
+	for {
+		start := strings.IndexByte(remaining, '<')
+		if start == -1 {
+			return nil
+		}
+		end := strings.IndexByte(remaining[start:], '>')
+		if end == -1 {
+			return fmt.Errorf("spec %q is missing an enclosing '>'", spec)
+		}
+		fields := strings.Fields(remaining[start+1 : start+end])
+		if len(fields) == 0 {
+			return fmt.Errorf("spec %q has an empty <> tag", spec)
+		}
+		if !obfChainTags[fields[0]] {
+			return fmt.Errorf("spec %q uses unknown tag <%s>", spec, fields[0])
+		}
+		remaining = remaining[start+end+1:]
+	}
 }
 
 // CanonicalizeUintRange stores a pasted "110 - 140" as "110-140", and
