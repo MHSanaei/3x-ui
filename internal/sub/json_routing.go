@@ -1,6 +1,9 @@
 package sub
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 
 	"encoding/json"
@@ -36,6 +39,18 @@ func (s jsonRoutingSpec) empty() bool {
 		len(s.ProxySites) == 0 && len(s.ProxyIp) == 0 && len(s.BlockSites) == 0 && len(s.BlockIp) == 0
 }
 
+// equal reports whether two specs carry the same routing payload, so a
+// rebuilt template only replaces the memoised one when the profile changed.
+func (s jsonRoutingSpec) equal(other jsonRoutingSpec) bool {
+	return s.DomainStrategy == other.DomainStrategy &&
+		s.RemoteDNSDomain == other.RemoteDNSDomain && s.RemoteDNSIP == other.RemoteDNSIP &&
+		s.DomesticDNSDomain == other.DomesticDNSDomain && s.DomesticDNSIP == other.DomesticDNSIP &&
+		maps.Equal(s.DnsHosts, other.DnsHosts) && slices.Equal(s.RouteOrder, other.RouteOrder) &&
+		slices.Equal(s.DirectSites, other.DirectSites) && slices.Equal(s.DirectIp, other.DirectIp) &&
+		slices.Equal(s.ProxySites, other.ProxySites) && slices.Equal(s.ProxyIp, other.ProxyIp) &&
+		slices.Equal(s.BlockSites, other.BlockSites) && slices.Equal(s.BlockIp, other.BlockIp)
+}
+
 var jsonRoutingDeeplinkPrefixes = []string{"happ://routing/onadd/", "incy://routing/onadd/"}
 
 // resolveJsonRoutingSpec parses the routing payload, degrading to an empty
@@ -54,8 +69,7 @@ func resolveJsonRoutingSpec(raw string) jsonRoutingSpec {
 }
 
 // jsonRoutingHeaderSource turns the JSON routing setting into a Routing header
-// value (deeplinks pass through, JSON and remote URLs become a happ deeplink);
-// blank means unusable, and the header then stays unset.
+// value; blank means unusable, and the header then stays unset.
 func jsonRoutingHeaderSource(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
@@ -75,7 +89,7 @@ func jsonRoutingHeaderSource(raw string) string {
 		}
 		return trimmed
 	}
-	resolved, _, err := resolveRoutingSource(remoteRoutingHapp, trimmed)
+	resolved, _, err := resolveRoutingSource(remoteRoutingJson, trimmed)
 	if err != nil {
 		return ""
 	}
@@ -87,19 +101,18 @@ func jsonRoutingHeaderSource(raw string) string {
 }
 
 // parseJsonRoutingSpec resolves raw (inline JSON, happ:// or incy:// deeplink,
-// or https:// URL) into a spec. Remote URLs go through the shared
-// remoteRoutingResolver cache; the caller degrades on error, never fails.
+// or https:// URL) into a spec; the caller degrades on error, never fails.
 func parseJsonRoutingSpec(raw string) (jsonRoutingSpec, bool, error) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
 		return jsonRoutingSpec{}, false, nil
 	}
 
-	if _, remote, err := common.ParseRemoteRoutingURL(trimmed); remote || (err != nil && trimmed != raw) {
+	if _, remote, err := common.ParseRemoteRoutingURL(trimmed); remote {
 		if err != nil {
 			return jsonRoutingSpec{}, true, err
 		}
-		resolved, remote, err := resolveRoutingSource(remoteRoutingHapp, trimmed)
+		resolved, remote, err := resolveRoutingSource(remoteRoutingJson, trimmed)
 		if err != nil || !remote {
 			return jsonRoutingSpec{}, true, err
 		}

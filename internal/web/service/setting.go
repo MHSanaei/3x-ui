@@ -1352,9 +1352,10 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 	allSetting.SubSupportUrl = common.EnsureURLScheme(allSetting.SubSupportUrl)
 	allSetting.SubProfileUrl = common.EnsureURLScheme(allSetting.SubProfileUrl)
 	for name, value := range map[string]*string{
-		"Happ routing source":         &allSetting.SubRoutingRules,
-		"Clash/Mihomo routing source": &allSetting.SubClashRules,
-		"Incy routing source":         &allSetting.SubIncyRoutingRules,
+		"Happ routing source":              &allSetting.SubRoutingRules,
+		"Clash/Mihomo routing source":      &allSetting.SubClashRules,
+		"Incy routing source":              &allSetting.SubIncyRoutingRules,
+		"JSON subscription routing source": &allSetting.SubJsonRoutingRules,
 	} {
 		if err := validateRemoteRoutingURLSetting(name, value); err != nil {
 			return err

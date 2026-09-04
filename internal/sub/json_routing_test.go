@@ -146,7 +146,7 @@ func TestParseJsonRoutingSpecRemoteURL(t *testing.T) {
 	}), false)
 
 	const source = "https://example.com/DEFAULT.JSON"
-	primeRemoteRouting(t, routingSourceResolver, remoteRoutingHapp, source)
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingJson, source)
 	spec, _, err := parseJsonRoutingSpec(source)
 	if err != nil {
 		t.Fatalf("parse: err=%v", err)

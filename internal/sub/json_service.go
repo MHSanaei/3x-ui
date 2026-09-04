@@ -31,16 +31,17 @@ type SubJsonService struct {
 	mux              string
 	observatory      subBalancerObservatoryConfig
 
-	// bakedRouting re-resolves the routing profile per request: a remote URL
-	// may be cold at construction time and warm up later via the cron job.
-	routingRules      string
-	bakedRoutingMu    sync.Mutex
-	bakedRoutingBuilt *bakedRoutingState
+	// bakedRouting is re-resolved per request: a remote URL may be cold at
+	// construction time and warm up later via the cron job.
+	routingRules   string
+	bakedRoutingMu sync.Mutex
+	bakedRouting   *bakedRoutingState
 
 	SubService *SubService
 }
 
 type bakedRoutingState struct {
+	spec       jsonRoutingSpec
 	configJson map[string]any
 }
 
@@ -57,8 +58,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, routingRules 
 	}
 
 	// A baked routing profile replaces the template's dns and routing subtrees
-	// outright (resolved lazily per request in bakedTemplate); the legacy
-	// simple-rules setting only applies when no profile is set.
+	// outright; the legacy simple-rules setting only applies without a profile.
 	if routingRules == "" && rules != "" {
 		var newRules []any
 		routing, _ := configJson["routing"].(map[string]any)
@@ -81,26 +81,26 @@ func NewSubJsonService(mux string, rules string, finalMask string, routingRules 
 }
 
 // bakedTemplate returns the base template with the routing profile applied.
-// The profile is resolved lazily per request so a remote URL that was cold at
-// startup (and warmed by the cron job since) still takes effect. A failed
-// resolution is not cached: the next request retries once the cache warms.
+// The profile is re-resolved on every request so an upstream edit reaches the
+// documents without a restart; a failed resolve keeps the last good template.
 func (s *SubJsonService) bakedTemplate() map[string]any {
 	if s.routingRules == "" {
 		return s.configJson
 	}
+	spec := resolveJsonRoutingSpec(s.routingRules)
 	s.bakedRoutingMu.Lock()
 	defer s.bakedRoutingMu.Unlock()
-	if s.bakedRoutingBuilt != nil {
-		return s.bakedRoutingBuilt.configJson
-	}
-	spec := resolveJsonRoutingSpec(s.routingRules)
-	if spec.empty() {
+	if s.bakedRouting != nil {
+		if spec.empty() || spec.equal(s.bakedRouting.spec) {
+			return s.bakedRouting.configJson
+		}
+	} else if spec.empty() {
 		return s.configJson
 	}
 	template := make(map[string]any, len(s.configJson)+2)
 	maps.Copy(template, s.configJson)
 	applyJsonRouting(template, spec)
-	s.bakedRoutingBuilt = &bakedRoutingState{configJson: template}
+	s.bakedRouting = &bakedRoutingState{spec: spec, configJson: template}
 	return template
 }
 

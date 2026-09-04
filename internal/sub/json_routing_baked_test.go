@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -215,7 +216,7 @@ func TestSubJson_BakedRoutingRemoteWarmsAfterColdStart(t *testing.T) {
 	}
 
 	// The cron job warms the cache; the next request must bake the profile.
-	primeRemoteRouting(t, routingSourceResolver, remoteRoutingHapp, source)
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingJson, source)
 	out, _, err = js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -284,7 +285,7 @@ func TestApplyCommonHeadersJsonRoutingRemoteFailsClosed(t *testing.T) {
 		t.Fatalf("cold cache must keep the header unset, got %q", got)
 	}
 
-	primeRemoteRouting(t, routingSourceResolver, remoteRoutingHapp, source)
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingJson, source)
 	recorder = httptest.NewRecorder()
 	ctx, _ = gin.CreateTestContext(recorder)
 	(&SUBController{subJsonRoutingRules: source}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, "", false)
@@ -304,4 +305,106 @@ func TestApplyCommonHeadersJsonRoutingRemoteFailsClosed(t *testing.T) {
 		t.Fatalf("deeplink payload = %v", payload)
 	}
 	waitRemoteRoutingIdle(t, routingSourceResolver)
+}
+
+func TestSubJson_BakedRoutingRemoteUpdateReachesDocuments(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "tcpin", 4807, 1, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`)
+
+	oldResolver := routingSourceResolver
+	t.Cleanup(func() { routingSourceResolver = oldResolver })
+	const source = "https://example.com/DEFAULT.JSON"
+
+	current := mustMarshal(t, fullRoutingPayload())
+	routingSourceResolver = newRemoteRoutingResolver(remoteRoutingTestClient(func(*http.Request) (*http.Response, error) {
+		return remoteRoutingResponse(200, current), nil
+	}), false)
+
+	js := NewSubJsonService("", "", "", source, NewSubService(""))
+	// A cold resolver fails closed (default routing); prime the cache first.
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingJson, source)
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	docs := parseSubJsonDocs(t, out)
+	routing, _ := docs[0]["routing"].(map[string]any)
+	if routing["domainStrategy"] != "IPIfNonMatch" {
+		t.Fatalf("first doc must carry the profile: %v", routing["domainStrategy"])
+	}
+
+	// The operator edits the published profile; after the cache TTL expires,
+	// the next request must re-bake the template with the new payload.
+	updated := fullRoutingPayload()
+	updated["DomainStrategy"] = "AsIs"
+	current = mustMarshal(t, updated)
+	waitRemoteRoutingIdle(t, routingSourceResolver)
+	staleKey := remoteRoutingKey{kind: remoteRoutingJson, source: source}
+	routingSourceResolver.mu.Lock()
+	entry := routingSourceResolver.entries[staleKey]
+	entry.FetchedAt = time.Now().Add(-remoteRoutingCacheTTL - time.Minute).Unix()
+	routingSourceResolver.entries[staleKey] = entry
+	delete(routingSourceResolver.lastAttempt, staleKey)
+	routingSourceResolver.mu.Unlock()
+	primeRemoteRouting(t, routingSourceResolver, remoteRoutingJson, source)
+	out, _, err = js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	docs = parseSubJsonDocs(t, out)
+	routing, _ = docs[0]["routing"].(map[string]any)
+	if routing["domainStrategy"] != "AsIs" {
+		t.Fatalf("updated profile must reach the documents without a restart: %v", routing["domainStrategy"])
+	}
+	waitRemoteRoutingIdle(t, routingSourceResolver)
+}
+
+func TestRemoteRoutingJsonHasItsOwnPersistedRow(t *testing.T) {
+	seedSubDB(t)
+	const source = "https://example.com/DEFAULT.JSON"
+
+	// Two happ-payload settings pointing at different sources must not
+	// overwrite each other's persisted cache rows.
+	happSource := "https://example.com/HAPP.json"
+	for _, tc := range []struct {
+		kind    remoteRoutingKind
+		source  string
+		payload string
+	}{
+		{kind: remoteRoutingHapp, source: happSource, payload: `{"Name":"happ-profile"}`},
+		{kind: remoteRoutingJson, source: source, payload: `{"Name":"json-profile"}`},
+	} {
+		deeplink, err := normalizeHappRouting([]byte(tc.payload))
+		if err != nil {
+			t.Fatalf("normalize: %v", err)
+		}
+		newRemoteRoutingResolver(nil, false).persistEntry(tc.kind, remoteRoutingCacheEntry{
+			Source: tc.source, Content: deeplink, FetchedAt: time.Now().Unix(),
+		})
+	}
+
+	for _, tc := range []struct {
+		kind   remoteRoutingKind
+		source string
+		want   string
+	}{
+		{kind: remoteRoutingHapp, source: happSource, want: "happ-profile"},
+		{kind: remoteRoutingJson, source: source, want: "json-profile"},
+	} {
+		resolver := newRemoteRoutingResolver(nil, true)
+		resolver.now = func() time.Time { return time.Unix(1_800_000_000, 0) }
+		resolver.ensurePersistedLoaded()
+		got, remote, err := resolver.resolve(tc.kind, tc.source)
+		if err != nil || !remote {
+			t.Fatalf("resolve kind=%s: remote=%v err=%v", tc.kind, remote, err)
+		}
+		decoded, err := decodeRoutingBase64(strings.TrimPrefix(got, "happ://routing/onadd/"))
+		if err != nil {
+			t.Fatalf("decode kind=%s: %v", tc.kind, err)
+		}
+		var payload map[string]any
+		if json.Unmarshal(decoded, &payload) != nil || payload["Name"] != tc.want {
+			t.Fatalf("kind=%s payload = %s", tc.kind, decoded)
+		}
+	}
 }
