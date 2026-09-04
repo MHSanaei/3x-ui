@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://...（base64 連結清單）",
         "tagPrefix": "標籤前綴",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "更新間隔",
         "hours": "時",
         "minutes": "分",

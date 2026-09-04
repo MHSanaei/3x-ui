@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (список посилань у base64)",
         "tagPrefix": "Префікс тегу",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Інтервал оновлення",
         "hours": "год",
         "minutes": "хв",

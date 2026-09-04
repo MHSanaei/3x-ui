@@ -96,8 +96,19 @@ func migrateClientTrafficLastSubFetchColumn() error {
 	return migrator.AddColumn(&xray.ClientTraffic{}, "LastSubFetch")
 }
 
+func migrateOutboundSubscriptionUserAgentColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&model.OutboundSubscription{}) || migrator.HasColumn(&model.OutboundSubscription{}, "user_agent") {
+		return nil
+	}
+	return migrator.AddColumn(&model.OutboundSubscription{}, "UserAgent")
+}
+
 func initModels() error {
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
+		return err
+	}
+	if err := migrateOutboundSubscriptionUserAgentColumn(); err != nil {
 		return err
 	}
 	models := allModels()

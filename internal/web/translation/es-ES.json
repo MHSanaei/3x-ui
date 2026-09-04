@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (lista de enlaces en base64)",
         "tagPrefix": "Prefijo de etiqueta",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Intervalo de actualización",
         "hours": "h",
         "minutes": "min",

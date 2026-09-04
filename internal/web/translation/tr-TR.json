@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (bağlantıların base64 listesi)",
         "tagPrefix": "Etiket öneki",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Güncelleme aralığı",
         "hours": "sa",
         "minutes": "dk",

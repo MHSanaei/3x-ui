@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (daftar tautan base64)",
         "tagPrefix": "Awalan tag",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Interval pembaruan",
         "hours": "j",
         "minutes": "mnt",

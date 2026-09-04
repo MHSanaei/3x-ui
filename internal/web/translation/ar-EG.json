@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (قائمة روابط بصيغة base64)",
         "tagPrefix": "بادئة الوسم",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "فاصل التحديث",
         "hours": "س",
         "minutes": "د",

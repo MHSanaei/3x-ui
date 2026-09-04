@@ -1678,6 +1678,7 @@
         "urlPlaceholder": "https://... (danh sách liên kết base64)",
         "tagPrefix": "Tiền tố tag",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Khoảng cập nhật",
         "hours": "giờ",
         "minutes": "phút",

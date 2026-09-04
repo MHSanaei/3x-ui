@@ -58,6 +58,8 @@ func filterOutboundsRejectedByCore(label string, outbounds []any) ([]any, []stri
 // subscription may aggregate many upstream outbounds into one document.
 const maxOutboundSubscriptionBytes int64 = 8 << 20
 
+const defaultOutboundSubscriptionUserAgent = "3x-ui-outbound-sub/1.0"
+
 var errOutboundSubscriptionBodyTooLarge = errors.New("outbound subscription response body exceeds size limit")
 
 func readBoundedOutboundSubscriptionBody(r io.Reader) ([]byte, error) {
@@ -164,7 +166,7 @@ func (s *OutboundSubscriptionService) nextDefaultSubPrefix(excludeId int) (strin
 	return fmt.Sprintf("sub%d-", defaultPrefixNumber(subs, excludeId)), nil
 }
 
-func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) (*model.OutboundSubscription, error) {
+func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix, userAgent string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) (*model.OutboundSubscription, error) {
 	cleanURL, err := SanitizePublicHTTPURL(rawURL, allowPrivate)
 	if err != nil {
 		return nil, common.NewError("invalid subscription URL:", err)
@@ -193,6 +195,7 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 		Enabled:        enabled,
 		AllowPrivate:   allowPrivate,
 		AllowInsecure:  allowInsecure,
+		UserAgent:      strings.TrimSpace(userAgent),
 		Prepend:        prepend,
 		Priority:       int(count),
 		TagPrefix:      prefix,
@@ -205,7 +208,7 @@ func (s *OutboundSubscriptionService) Create(remark, rawURL, tagPrefix string, e
 }
 
 // Update updates editable fields.
-func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) error {
+func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix, userAgent string, enabled bool, updateInterval int, allowPrivate, prepend, allowInsecure bool) error {
 	sub, err := s.Get(id)
 	if err != nil {
 		return err
@@ -232,6 +235,7 @@ func (s *OutboundSubscriptionService) Update(id int, remark, rawURL, tagPrefix s
 	sub.Enabled = enabled
 	sub.AllowPrivate = allowPrivate
 	sub.AllowInsecure = allowInsecure
+	sub.UserAgent = strings.TrimSpace(userAgent)
 	sub.Prepend = prepend
 	sub.TagPrefix = prefix
 	sub.UpdateInterval = updateInterval
@@ -363,7 +367,11 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		s.recordError(sub, err)
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "3x-ui-outbound-sub/1.0")
+	userAgent := strings.TrimSpace(sub.UserAgent)
+	if userAgent == "" {
+		userAgent = defaultOutboundSubscriptionUserAgent
+	}
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {

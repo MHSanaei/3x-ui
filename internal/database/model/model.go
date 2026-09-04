@@ -1227,6 +1227,7 @@ type OutboundSubscription struct {
 	Enabled              bool   `json:"enabled" form:"enabled" gorm:"default:true"`
 	AllowPrivate         bool   `json:"allowPrivate" form:"allowPrivate" gorm:"default:false"`
 	AllowInsecure        bool   `json:"allowInsecure" form:"allowInsecure" gorm:"default:false"`
+	UserAgent            string `json:"userAgent" form:"userAgent"`
 	TagPrefix            string `json:"tagPrefix" form:"tagPrefix"`
 	UpdateInterval       int    `json:"updateInterval" form:"updateInterval" gorm:"default:600"` // seconds between refreshes
 	Priority             int    `json:"priority" form:"priority" gorm:"default:0"`               // order among subscriptions in the merged outbounds (lower = earlier)
