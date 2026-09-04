@@ -79,26 +79,41 @@ func TestDefaultJSONUsesCompatibleLocalInbounds(t *testing.T) {
 	}
 }
 
-func TestSubJsonServiceVisionFlowSuppressesMux(t *testing.T) {
-	globalMux := `{"enabled":true,"concurrency":8}`
+func TestSubJsonServiceVisionFlowDisablesTCPMuxOnly(t *testing.T) {
+	globalMux := `{"enabled":true,"concurrency":8,"xudpConcurrency":16,"xudpProxyUDP443":"reject"}`
 	svc := NewSubJsonService(globalMux, "", "", nil)
 	inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
 
-	raw := svc.genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}, globalMux)
-	var ob map[string]any
-	if err := json.Unmarshal(raw, &ob); err != nil {
-		t.Fatalf("unmarshal outbound: %v", err)
-	}
-	if _, has := ob["mux"]; has {
-		t.Fatal("outbound.Mux must NOT be set on an xtls-rprx-vision outbound: XTLS flows do not support mux.cool")
+	decode := func(raw []byte) map[string]any {
+		t.Helper()
+		var ob map[string]any
+		if err := json.Unmarshal(raw, &ob); err != nil {
+			t.Fatalf("unmarshal outbound: %v", err)
+		}
+		return ob
 	}
 
-	raw = svc.genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1"}, globalMux)
-	if err := json.Unmarshal(raw, &ob); err != nil {
-		t.Fatalf("unmarshal outbound: %v", err)
+	vision := decode([]byte(svc.genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}, globalMux)))
+	mux, _ := vision["mux"].(map[string]any)
+	if mux == nil {
+		t.Fatalf("vision outbound must keep its mux object for the XUDP keys, got %#v", vision["mux"])
 	}
-	if _, has := ob["mux"]; !has {
-		t.Fatal("outbound.Mux must still be set on a flow-less vless outbound")
+	if mux["concurrency"] != float64(-1) {
+		t.Fatalf("vision outbound mux.concurrency = %v, want -1 (TCP mux.cool is rejected by XTLS flows)", mux["concurrency"])
+	}
+	if mux["enabled"] != true || mux["xudpConcurrency"] != float64(16) || mux["xudpProxyUDP443"] != "reject" {
+		t.Fatalf("vision outbound lost its XUDP settings: %#v", mux)
+	}
+
+	plain := decode([]byte(svc.genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1"}, globalMux)))
+	mux, _ = plain["mux"].(map[string]any)
+	if mux == nil || mux["concurrency"] != float64(8) {
+		t.Fatalf("flow-less outbound must keep the global mux unchanged, got %#v", plain["mux"])
+	}
+
+	noMux := decode([]byte(svc.genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1", Flow: "xtls-rprx-vision"}, "")))
+	if _, has := noMux["mux"]; has {
+		t.Fatalf("no global mux must still mean no mux key, got %#v", noMux["mux"])
 	}
 }
 
