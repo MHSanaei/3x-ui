@@ -122,6 +122,7 @@ type Process struct {
 	logWriter       *procLogWriter
 	exitErr         error
 	intentionalStop atomic.Bool
+	ioInitialized   bool
 	lastRchar       int64
 	lastWchar       int64
 }
@@ -150,19 +151,21 @@ func (p *Process) CollectTraffic() (int64, int64) {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.lastRchar == 0 && p.lastWchar == 0 {
+	if !p.ioInitialized {
+		p.ioInitialized = true
 		p.lastRchar = rchar
 		p.lastWchar = wchar
 		return 0, 0
 	}
-	var delta int64
-	if rchar >= p.lastRchar {
-		delta = rchar - p.lastRchar
+	var up, down int64
+	if rchar > p.lastRchar {
+		up = rchar - p.lastRchar
+	}
+	if wchar > p.lastWchar {
+		down = wchar - p.lastWchar
 	}
 	p.lastRchar = rchar
 	p.lastWchar = wchar
-	up := delta / 2
-	down := delta - up
 	return up, down
 }
 

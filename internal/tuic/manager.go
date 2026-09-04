@@ -17,8 +17,9 @@ type managed struct {
 }
 
 type Manager struct {
-	mu    sync.Mutex
-	procs map[int]*managed
+	mu           sync.Mutex
+	procs        map[int]*managed
+	lastStartErr map[int]string
 }
 
 var (
@@ -29,7 +30,8 @@ var (
 func GetManager() *Manager {
 	managerOnce.Do(func() {
 		managerInstance = &Manager{
-			procs: make(map[int]*managed),
+			procs:        make(map[int]*managed),
+			lastStartErr: make(map[int]string),
 		}
 		if n := killStrayTuicProcesses(GetBinaryPath()); n > 0 {
 			logger.Warningf("tuic: terminated %d orphaned tuic-server process(es) from a previous run", n)
@@ -92,9 +94,14 @@ func (m *Manager) ensureLocked(inst Instance) error {
 
 	proc := newProcess(configPath, inst.Tag, uuidToEmail)
 	if err := proc.Start(); err != nil {
-		logger.Warningf("tuic: failed to start tuic-server for inbound %d (%s): %v", inst.Id, inst.Tag, err)
+		errStr := err.Error()
+		if m.lastStartErr[inst.Id] != errStr {
+			m.lastStartErr[inst.Id] = errStr
+			logger.Warningf("tuic: failed to start tuic-server for inbound %d (%s): %v", inst.Id, inst.Tag, err)
+		}
 		return err
 	}
+	delete(m.lastStartErr, inst.Id)
 
 	m.procs[inst.Id] = &managed{
 		proc:         proc,
@@ -124,13 +131,9 @@ func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
 }
 
 type InboundTrafficDelta struct {
-	Tag     string
-	Up      int64
-	Down    int64
-	Clients map[string]struct {
-		Up   int64
-		Down int64
-	}
+	Tag  string
+	Up   int64
+	Down int64
 }
 
 func (m *Manager) CollectTraffic() []InboundTrafficDelta {
@@ -165,6 +168,7 @@ func (m *Manager) removeLocked(id int) {
 		}
 		_ = RemoveConfigFile(id)
 		delete(m.procs, id)
+		delete(m.lastStartErr, id)
 	}
 }
 

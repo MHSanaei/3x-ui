@@ -51,4 +51,13 @@ describe('buildTuicClientConfig', () => {
     const cfg = buildTuicClientConfig(client, inboundNoSni, 'server.example.com', '');
     expect(cfg).toContain('sni: server.example.com');
   });
+
+  it('escapes quotes in passwords and remarks', () => {
+    const dangerousClient: ClientRecord = {
+      ...client,
+      password: 'pass"with"quotes\nnewline',
+    };
+    const cfg = buildTuicClientConfig(dangerousClient, inbound, 'server.example.com', '');
+    expect(cfg).toContain('password: "pass\\"with\\"quotes\\nnewline"');
+  });
 });

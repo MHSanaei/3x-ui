@@ -40,19 +40,21 @@ export function buildTuicClientConfig(
   const udpRelay = tuicServer?.udp_relay_mode || 'native';
   const reduceRtt = tuicServer?.zero_rtt_handshake ?? true;
 
+  const yamlQuote = (v: string) => JSON.stringify(v ?? '');
+
   const lines = [
     `# TUIC v5 Client Configuration (Clash / Mihomo / Clash Verge)`,
     `# ${remark}`,
     `proxies:`,
-    `  - name: "${remark}"`,
+    `  - name: ${yamlQuote(remark)}`,
     `    type: tuic`,
     `    server: ${endpointHost}`,
     `    port: ${inbound?.port || 8443}`,
     `    uuid: ${client.uuid || ''}`,
-    `    password: "${client.password || ''}"`,
+    `    password: ${yamlQuote(client.password || '')}`,
     `    alpn:`,
     ...alpn.map((a: string) => `      - ${a}`),
-    `    sni: ${sni}`,
+    `    sni: ${/["'\\#\s]/.test(sni) ? yamlQuote(sni) : sni}`,
     `    congestion-controller: ${cc}`,
     `    udp-relay-mode: ${udpRelay}`,
     `    reduce-rtt: ${reduceRtt}`,
