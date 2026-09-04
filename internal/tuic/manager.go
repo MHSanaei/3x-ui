@@ -15,6 +15,7 @@ type managed struct {
 	structuralFP string
 	usersFP      string
 	clientEmails []string
+	totalClients int
 }
 
 type Manager struct {
@@ -90,6 +91,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if ok && existing != nil && existing.proc != nil && existing.proc.IsRunning() {
 		if existing.structuralFP == structuralFP && existing.usersFP == usersFP {
 			existing.clientEmails = clientEmails
+			existing.totalClients = len(inst.Clients)
 			existing.proc.UpdateClients(uuidToEmail)
 			return nil
 		}
@@ -109,6 +111,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		structuralFP: structuralFP,
 		usersFP:      usersFP,
 		clientEmails: clientEmails,
+		totalClients: len(inst.Clients),
 	}
 	return nil
 }
@@ -149,7 +152,7 @@ func (m *Manager) CollectTraffic() []InboundTrafficDelta {
 			deltaUp, deltaDown := mg.proc.CollectTraffic()
 			if deltaUp > 0 || deltaDown > 0 {
 				clientMap := make(map[string]struct{ Up, Down int64 })
-				if len(mg.clientEmails) == 1 {
+				if mg.totalClients == 1 && len(mg.clientEmails) == 1 {
 					clientMap[mg.clientEmails[0]] = struct{ Up, Down int64 }{
 						Up:   deltaUp,
 						Down: deltaDown,

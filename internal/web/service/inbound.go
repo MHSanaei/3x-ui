@@ -320,8 +320,8 @@ type InboundOption struct {
 	// AwgServer carries the full AmneziaWG server block (keys, subnet,
 	// obfuscation params) so the clients page can render a downloadable
 	// per-client .conf without a second round trip.
-	AwgServer *amneziawg.ServerSettings `json:"awgServer,omitempty"`
-	TuicServer *tuic.TuicServerSettings `json:"tuicServer,omitempty"`
+	AwgServer  *amneziawg.ServerSettings `json:"awgServer,omitempty"`
+	TuicServer *tuic.TuicServerSettings  `json:"tuicServer,omitempty"`
 	// Hosting node; nil for this panel's own inbounds. Lets the clients
 	// page map a node filter onto inbound IDs (#4997).
 	NodeId *int `json:"nodeId,omitempty"`
@@ -1075,6 +1075,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Password == "" {
 				return inbound, false, common.NewError("tuic client requires a password")
 			}
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client email")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -1511,6 +1514,19 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		for _, client := range clients {
 			if client.Auth == "" {
 				return inbound, false, common.NewError("empty client ID")
+			}
+		}
+	}
+	if inbound.Protocol == model.TUIC {
+		for _, client := range clients {
+			if client.ID == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return inbound, false, common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client email")
 			}
 		}
 	}

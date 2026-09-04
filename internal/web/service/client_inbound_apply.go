@@ -454,6 +454,9 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			if client.Password == "" {
 				return false, common.NewError("tuic client requires a password")
 			}
+			if client.Email == "" {
+				return false, common.NewError("empty client email")
+			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")

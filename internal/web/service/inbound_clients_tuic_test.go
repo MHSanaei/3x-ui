@@ -53,4 +53,14 @@ func TestAddInboundTuicClientValidation(t *testing.T) {
 	if errNoID == nil || strings.TrimSpace(errNoID.Error()) != "empty client ID" {
 		t.Fatalf("expected 'empty client ID' error, got %v", errNoID)
 	}
+
+	ibNoEmail := &model.Inbound{
+		Tag:      "tuic-test-3",
+		Protocol: model.TUIC,
+		Settings: `{"clients":[{"id":"uuid-3","password":"pass","email":""}]}`,
+	}
+	_, _, errNoEmail := s.AddInbound(ibNoEmail)
+	if errNoEmail == nil || strings.TrimSpace(errNoEmail.Error()) != "empty client email" {
+		t.Fatalf("expected 'empty client email' error, got %v", errNoEmail)
+	}
 }
