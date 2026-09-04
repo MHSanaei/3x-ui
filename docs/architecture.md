@@ -285,7 +285,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 ├── x-ui.service.*  / x-ui.rc                               # systemd units (debian/rhel/arch) + rc script
 ├── windows_files/                                          # Windows service support
 └── .github/workflows/        # CI: ci.yml, codeql.yml, docker.yml, release.yml, smoke.yml,
-                              #     mutation.yml, cleanup_caches.yml, claude-bot.yml,
+                              #     mutation.yml, cleanup_caches.yml, claude-pr-review.yml,
                               #     claude-issue-analyst.yml
 ```
 
@@ -574,8 +574,8 @@ root → `go build ./...` / `go run main.go`.
 
 **CI** (`.github/workflows/`): `ci.yml` (build/test/lint), `codeql.yml` (security scan),
 `smoke.yml` (smoke tests), `mutation.yml` (mutation testing), `docker.yml` + `release.yml`
-(multi-arch image + release builds), `cleanup_caches.yml`, `claude-bot.yml` (PR review,
-`@claude` mentions, conflict resolution), `claude-issue-analyst.yml` (issue triage).
+(multi-arch image + release builds), `cleanup_caches.yml`, `claude-pr-review.yml` (PR review
+only - it changes no code), `claude-issue-analyst.yml` (issue triage).
 
 ---
 
