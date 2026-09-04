@@ -874,6 +874,8 @@
       "amneziaWgAllowedIPsHint": "空欄で自動割り当て。複数指定はカンマ区切り",
       "amneziaWgForwardedPorts": "転送ポート",
       "amneziaWgForwardedPortsHint": "このクライアントに転送するポート/範囲。例: 80, 443, 8000-8100。空欄で転送なし。",
+      "tunnelKeepAlive": "Keepalive (seconds)",
+      "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 設定",
       "mtprotoSecret": "MTProto シークレット",
       "mtprotoSecretHint": "このクライアントの FakeTLS シークレット。変更するには再生成します。",

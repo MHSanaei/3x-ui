@@ -583,7 +583,7 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 					"publicKey":    client.PublicKey,
 					"allowedIPs":   client.AllowedIPs,
 					"preSharedKey": client.PreSharedKey,
-					"keepAlive":    keepAliveStr(client.KeepAlive),
+					"keepAlive":    keepAliveStr(client.KeepAliveSeconds()),
 				})
 				if err1 == nil {
 					logger.Debug("Client added on", rt.Name(), ":", client.Email)
@@ -727,7 +727,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 		if clients[0].PreSharedKey == "" {
 			clients[0].PreSharedKey = old.PreSharedKey
 		}
-		if clients[0].KeepAlive == 0 {
+		if clients[0].KeepAlive == nil {
 			clients[0].KeepAlive = old.KeepAlive
 		}
 		// ForwardedPorts is AmneziaWG-only (WireGuard's own inbound never
@@ -794,8 +794,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				if clients[0].PreSharedKey != "" {
 					newMap["preSharedKey"] = clients[0].PreSharedKey
 				}
-				if clients[0].KeepAlive > 0 {
-					newMap["keepAlive"] = clients[0].KeepAlive
+				if ka := clients[0].KeepAliveSeconds(); ka > 0 {
+					newMap["keepAlive"] = ka
 				}
 				if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts != "" {
 					newMap["forwardedPorts"] = clients[0].ForwardedPorts
@@ -1007,7 +1007,7 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 						"publicKey":    clients[0].PublicKey,
 						"allowedIPs":   clients[0].AllowedIPs,
 						"preSharedKey": clients[0].PreSharedKey,
-						"keepAlive":    keepAliveStr(clients[0].KeepAlive),
+						"keepAlive":    keepAliveStr(clients[0].KeepAliveSeconds()),
 					})
 					if err1 == nil {
 						logger.Debug("Client edited on", rt.Name(), ":", clients[0].Email)

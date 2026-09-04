@@ -874,6 +874,8 @@
       "amneziaWgAllowedIPsHint": "留空則自動分配；多個條目用逗號分隔",
       "amneziaWgForwardedPorts": "轉發連接埠",
       "amneziaWgForwardedPortsHint": "轉發到此客戶端的連接埠/範圍，例如 80, 443, 8000-8100。留空則不轉發。",
+      "tunnelKeepAlive": "Keepalive (seconds)",
+      "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 設定",
       "mtprotoSecret": "MTProto 金鑰",
       "mtprotoSecretHint": "該用戶端的 FakeTLS 金鑰。重新產生即可更換。",

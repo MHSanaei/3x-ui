@@ -874,6 +874,8 @@
       "amneziaWgAllowedIPsHint": "برای تخصیص خودکار خالی بگذارید؛ ورودی‌ها را با کاما جدا کنید",
       "amneziaWgForwardedPorts": "پورت‌های هدایت‌شده",
       "amneziaWgForwardedPortsHint": "پورت‌ها/محدوده‌های DNAT شده به این کلاینت، مثلاً 80, 443, 8000-8100. برای غیرفعال بودن خالی بگذارید.",
+      "tunnelKeepAlive": "Keepalive (seconds)",
+      "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "پیکربندی AmneziaWG",
       "mtprotoSecret": "سکرت MTProto",
       "mtprotoSecretHint": "سکرت FakeTLS این کلاینت. برای تعویض، دوباره تولید کنید.",
