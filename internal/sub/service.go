@@ -308,9 +308,71 @@ func (s *SubService) RecordSubscriptionFetch(subId string) error {
 
 // GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int64, xray.ClientTraffic, error) {
-	req := s.ForRequest(host)
-	req.subscriptionBody = true
-	return req.getSubs(subId)
+	return s.ForRequest(host).getSubs(subId)
+}
+
+type infoNodeMode int
+
+const (
+	infoNodeNone infoNodeMode = iota
+	infoNodeActive
+	infoNodeExpired
+	infoNodeDepleted
+)
+
+func (s *SubService) resolveInfoNodeRemark(subId string, uniqueEmails []string, traffic xray.ClientTraffic, hasEntries bool) (infoNodeMode, string) {
+	if !s.subInfoNodeEnable || !s.subscriptionBody {
+		return infoNodeNone, ""
+	}
+	nowSec := time.Now().Unix()
+	isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime/1000 <= nowSec
+	isDepleted := traffic.Total > 0 && (traffic.Up+traffic.Down) >= traffic.Total
+
+	primaryEmail := ""
+	if len(uniqueEmails) > 0 {
+		primaryEmail = uniqueEmails[0]
+	}
+	ctx := remarkContext{
+		client: model.Client{Email: primaryEmail, SubID: subId},
+		stats:  traffic,
+	}
+
+	if isExpired {
+		tmpl := s.subExpiredTemplate
+		if tmpl == "" {
+			tmpl = service.DefaultSubExpiredTemplate
+		}
+		remark := expandRemarkVars(tmpl, ctx)
+		if strings.TrimSpace(remark) == "" {
+			remark = "Expired"
+		}
+		return infoNodeExpired, remark
+	}
+
+	if isDepleted {
+		tmpl := s.subTrafficDepletedTemplate
+		if tmpl == "" {
+			tmpl = service.DefaultSubTrafficDepletedTemplate
+		}
+		remark := expandRemarkVars(tmpl, ctx)
+		if strings.TrimSpace(remark) == "" {
+			remark = "Traffic Depleted"
+		}
+		return infoNodeDepleted, remark
+	}
+
+	if hasEntries {
+		tmpl := s.remarkTemplate
+		if tmpl == "" {
+			tmpl = service.DefaultRemarkTemplate
+		}
+		remark := expandRemarkVars(tmpl, ctx)
+		if strings.TrimSpace(remark) != "" {
+			return infoNodeActive, remark
+		}
+	}
+
+	return infoNodeNone, ""
 }
 
 func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.ClientTraffic, error) {
@@ -380,60 +442,16 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	for e := range seenEmails {
 		uniqueEmails = append(uniqueEmails, e)
 	}
+	slices.Sort(uniqueEmails)
 	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
 	traffic.Enable = hasEnabledClient
 
-	if s.subInfoNodeEnable && s.subscriptionBody {
-		nowSec := time.Now().Unix()
-		isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime/1000 <= nowSec
-		isDepleted := traffic.Total > 0 && (traffic.Up+traffic.Down) >= traffic.Total
-
-		primaryEmail := ""
-		if len(uniqueEmails) > 0 {
-			primaryEmail = uniqueEmails[0]
-		}
-		ctx := remarkContext{
-			client: model.Client{Email: primaryEmail, SubID: subId},
-			stats:  traffic,
-		}
-
-		if isExpired {
-			tmpl := s.subExpiredTemplate
-			if tmpl == "" {
-				tmpl = service.DefaultSubExpiredTemplate
-			}
-			remark := expandRemarkVars(tmpl, ctx)
-			if strings.TrimSpace(remark) == "" {
-				remark = "Expired"
-			}
-			dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
+	if mode, remark := s.resolveInfoNodeRemark(subId, uniqueEmails, traffic, len(result) > 0); mode != infoNodeNone {
+		dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
+		if mode == infoNodeExpired || mode == infoNodeDepleted {
 			return []string{dummyLink}, emails, lastOnline, traffic, nil
 		}
-
-		if isDepleted {
-			tmpl := s.subTrafficDepletedTemplate
-			if tmpl == "" {
-				tmpl = service.DefaultSubTrafficDepletedTemplate
-			}
-			remark := expandRemarkVars(tmpl, ctx)
-			if strings.TrimSpace(remark) == "" {
-				remark = "Traffic Depleted"
-			}
-			dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
-			return []string{dummyLink}, emails, lastOnline, traffic, nil
-		}
-
-		if len(result) > 0 {
-			tmpl := s.remarkTemplate
-			if tmpl == "" {
-				tmpl = service.DefaultRemarkTemplate
-			}
-			remark := expandRemarkVars(tmpl, ctx)
-			if strings.TrimSpace(remark) != "" {
-				dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
-				result = append([]string{dummyLink}, result...)
-			}
-		}
+		result = append([]string{dummyLink}, result...)
 	}
 
 	return result, emails, lastOnline, traffic, nil

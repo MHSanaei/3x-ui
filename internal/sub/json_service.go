@@ -17,7 +17,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 //go:embed default.json
@@ -84,6 +83,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 
 	var header string
 	var hasInactiveExternal bool
+	var hasEnabledClient bool
 
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
@@ -100,6 +100,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 
 		var inboundConfigs []json_util.RawMessage
 		for _, client := range clients {
+			if client.Enable {
+				hasEnabledClient = true
+			}
 			seenEmails[client.Email] = struct{}{}
 			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, inbound, client, host)...)
 		}
@@ -129,6 +132,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		configArray = append(configArray, entry.configs...)
 	}
 	for _, ext := range externalLinks {
+		if ext.Enable {
+			hasEnabledClient = true
+		}
 		if !ext.Active {
 			seenEmails[ext.Email] = struct{}{}
 			hasInactiveExternal = true
@@ -163,52 +169,17 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	for e := range seenEmails {
 		emails = append(emails, e)
 	}
+	slices.Sort(emails)
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	traffic.Enable = hasEnabledClient
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 
-	if subReq.subInfoNodeEnable && subReq.subscriptionBody {
-		nowSec := time.Now().Unix()
-		isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime/1000 <= nowSec
-		isDepleted := traffic.Total > 0 && (traffic.Up+traffic.Down) >= traffic.Total
-
-		primaryEmail := ""
-		if len(emails) > 0 {
-			primaryEmail = emails[0]
-		}
-		ctx := remarkContext{
-			client: model.Client{Email: primaryEmail, SubID: subId},
-			stats:  traffic,
-		}
-
-		if isExpired {
-			tmpl := subReq.subExpiredTemplate
-			if tmpl == "" {
-				tmpl = service.DefaultSubExpiredTemplate
-			}
-			remark := expandRemarkVars(tmpl, ctx)
-			if strings.TrimSpace(remark) == "" {
-				remark = "Expired"
-			}
-			configArray = []json_util.RawMessage{s.genDummySocksConfig(remark)}
-		} else if isDepleted {
-			tmpl := subReq.subTrafficDepletedTemplate
-			if tmpl == "" {
-				tmpl = service.DefaultSubTrafficDepletedTemplate
-			}
-			remark := expandRemarkVars(tmpl, ctx)
-			if strings.TrimSpace(remark) == "" {
-				remark = "Traffic Depleted"
-			}
-			configArray = []json_util.RawMessage{s.genDummySocksConfig(remark)}
-		} else if len(configArray) > 0 {
-			tmpl := subReq.remarkTemplate
-			if tmpl == "" {
-				tmpl = service.DefaultRemarkTemplate
-			}
-			remark := expandRemarkVars(tmpl, ctx)
-			if strings.TrimSpace(remark) != "" {
-				configArray = append([]json_util.RawMessage{s.genDummySocksConfig(remark)}, configArray...)
-			}
+	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(configArray) > 0); mode != infoNodeNone {
+		dummyConfig := s.genDummySocksConfig(remark)
+		if mode == infoNodeExpired || mode == infoNodeDepleted {
+			configArray = []json_util.RawMessage{dummyConfig}
+		} else {
+			configArray = append([]json_util.RawMessage{dummyConfig}, configArray...)
 		}
 	}
 

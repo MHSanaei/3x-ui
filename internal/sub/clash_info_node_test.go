@@ -195,3 +195,54 @@ func TestSubClash_InfoNode_Depleted(t *testing.T) {
 		t.Fatalf("depleted subscription must NOT contain working inbound, got:\n%s", out)
 	}
 }
+
+func TestSubClash_InfoNode_ProxyGroupOrder_DoesNotDefaultToDummy(t *testing.T) {
+	setupInfoNodeTestDB(t)
+	db := database.GetDB()
+
+	ib := &model.Inbound{
+		Id:             1,
+		UserId:         1,
+		Remark:         "Germany-VLESS",
+		Enable:         true,
+		Port:           443,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[{"id":"c1-uuid","email":"user1@test.com","subId":"sub-clash","enable":true,"totalGB":10737418240}]}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientRecord{Id: 1, Email: "user1@test.com", SubID: "sub-clash", UUID: "c1-uuid", Enable: true}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientInbound{InboundId: 1, ClientId: 1}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: 1, Email: "user1@test.com", Enable: true}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	sub := NewSubService("{{EMAIL}}|📊{{TRAFFIC_LEFT}}|{{STATUS}}")
+	sub.subInfoNodeEnable = true
+	clash := NewSubClashService(false, "", sub)
+
+	out, _, err := clash.GetClash("sub-clash", "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+
+	// Status token must be rendered as active
+	if !strings.Contains(out, "active") {
+		t.Fatalf("expected active status in clash dummy remark, got:\n%s", out)
+	}
+
+	// In proxy-groups, PROXY select group must NOT have the dummy node as first member
+	// PROXY group proxies should begin with real proxy
+	if strings.Contains(out, "user1@test.com|active") && strings.Contains(out, "proxies:\n  - user1@test.com|active") {
+		t.Fatalf("PROXY group must NOT contain dummy info node as member, got:\n%s", out)
+	}
+	if !strings.Contains(out, "proxies:\n  - Germany-VLESS\n  - DIRECT") {
+		t.Fatalf("expected real proxy Germany-VLESS in PROXY group, got:\n%s", out)
+	}
+}

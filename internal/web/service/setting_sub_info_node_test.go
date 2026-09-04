@@ -4,26 +4,6 @@ import (
 	"testing"
 )
 
-func TestSettingService_SubInfoNodeSettings(t *testing.T) {
-	setupSettingTestDB(t)
-	svc := &SettingService{}
-
-	enabled, err := svc.GetSubInfoNodeEnable()
-	if err != nil || enabled != false {
-		t.Fatalf("expected subInfoNodeEnable false, got %v, err %v", enabled, err)
-	}
-
-	expTmpl, err := svc.GetSubExpiredTemplate()
-	if err != nil || expTmpl != DefaultSubExpiredTemplate {
-		t.Fatalf("expected default expired template %q, got %q, err %v", DefaultSubExpiredTemplate, expTmpl, err)
-	}
-
-	depTmpl, err := svc.GetSubTrafficDepletedTemplate()
-	if err != nil || depTmpl != DefaultSubTrafficDepletedTemplate {
-		t.Fatalf("expected default traffic depleted template %q, got %q, err %v", DefaultSubTrafficDepletedTemplate, depTmpl, err)
-	}
-}
-
 func TestSubInfoNodeSettingsDefaultsAndPersists(t *testing.T) {
 	setupSettingTestDB(t)
 	s := &SettingService{}

@@ -238,3 +238,128 @@ func TestSubService_InfoNode_TrafficDepleted(t *testing.T) {
 		t.Fatalf("expected depleted remark, got: %q", decodedRemark)
 	}
 }
+
+func TestSubService_GetSubs_NonSubscriptionBody_NoInfoNode(t *testing.T) {
+	setupInfoNodeTestDB(t)
+	db := database.GetDB()
+
+	ib := &model.Inbound{
+		Id:             1,
+		UserId:         1,
+		Remark:         "US-VLESS",
+		Enable:         true,
+		Port:           443,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[{"id":"c1-uuid","email":"user1@test.com","subId":"sub-panel","enable":true,"totalGB":10737418240}]}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatal(err)
+	}
+	rec := &model.ClientRecord{
+		Id:      1,
+		Email:   "user1@test.com",
+		SubID:   "sub-panel",
+		UUID:    "c1-uuid",
+		Enable:  true,
+		TotalGB: 10737418240,
+	}
+	if err := db.Create(rec).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientInbound{InboundId: 1, ClientId: 1}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: 1,
+		Email:     "user1@test.com",
+		Up:        1073741824,
+		Down:      1073741824,
+		Total:     10737418240,
+		Enable:    true,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// When called via GetSubs (e.g. from LinkProvider for admin QR / copy modals),
+	// subscriptionBody is false, so it should render the clean link and not add dummy nodes.
+	svc := NewSubService("{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
+	svc.subInfoNodeEnable = true
+
+	links, _, _, _, err := svc.GetSubs("sub-panel", "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs error: %v", err)
+	}
+	if len(links) != 1 {
+		t.Fatalf("expected 1 clean link, got %d: %v", len(links), links)
+	}
+	if strings.HasPrefix(links[0], "socks://127.0.0.1:1080#") {
+		t.Fatalf("GetSubs must NOT return dummy socks node when subscriptionBody is false: %v", links[0])
+	}
+	if strings.Contains(links[0], "8.00GB") {
+		t.Fatalf("GetSubs must NOT contain snapshot usage stats in non-subscriptionBody context: %v", links[0])
+	}
+}
+
+func TestSubService_InfoNode_MultiClient_DeterministicPrimaryEmail(t *testing.T) {
+	setupInfoNodeTestDB(t)
+	db := database.GetDB()
+
+	ib := &model.Inbound{
+		Id:             1,
+		UserId:         1,
+		Remark:         "Germany-VLESS",
+		Enable:         true,
+		Port:           443,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[{"id":"c1-uuid","email":"zeta@test.com","subId":"sub-multi","enable":true,"totalGB":10737418240},{"id":"c2-uuid","email":"alpha@test.com","subId":"sub-multi","enable":true,"totalGB":10737418240}]}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientRecord{
+		Id: 1, Email: "zeta@test.com", SubID: "sub-multi", UUID: "c1-uuid", Enable: true, TotalGB: 10737418240,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientRecord{
+		Id: 2, Email: "alpha@test.com", SubID: "sub-multi", UUID: "c2-uuid", Enable: true, TotalGB: 10737418240,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientInbound{InboundId: 1, ClientId: 1}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&model.ClientInbound{InboundId: 1, ClientId: 2}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: 1, Email: "zeta@test.com", Up: 100, Down: 100, Total: 10737418240, Enable: true,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: 1, Email: "alpha@test.com", Up: 100, Down: 100, Total: 10737418240, Enable: true,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	svc := NewSubService("{{EMAIL}}")
+	svc.subInfoNodeEnable = true
+	svc.subscriptionBody = true
+
+	for i := 0; i < 5; i++ {
+		links, _, _, _, err := svc.GetSubs("sub-multi", "sub.example.com")
+		if err != nil {
+			t.Fatalf("GetSubs error: %v", err)
+		}
+		if len(links) < 1 || !strings.HasPrefix(links[0], "socks://127.0.0.1:1080#") {
+			t.Fatalf("expected dummy socks node, got: %v", links)
+		}
+		decodedRemark, _ := url.QueryUnescape(strings.TrimPrefix(links[0], "socks://127.0.0.1:1080#"))
+		if decodedRemark != "alpha@test.com" {
+			t.Fatalf("expected primaryEmail 'alpha@test.com' (sorted alphabetically), got %q", decodedRemark)
+		}
+	}
+}
