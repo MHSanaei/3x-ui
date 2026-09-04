@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/netip"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/proxy"
@@ -60,7 +61,7 @@ func SocksInboundSettings(emails []string, password string) ([]byte, error) {
 }
 
 // RelayTCP dials r.Addr, authenticates as email, issues a SOCKS5 CONNECT to
-// dest, and pipes bytes both ways until either side closes or errors.
+// dest, and pipes bytes both ways until both directions end.
 // Blocks until the relay ends; meant to be called from (or as) an
 // AttachTCPForwarder handler, which already runs each connection on its own
 // goroutine.
@@ -80,10 +81,57 @@ func (r SocksRelay) RelayTCP(conn *gonet.TCPConn, email string, dest netip.AddrP
 	}
 	defer upstream.Close()
 
-	done := make(chan struct{}, 2)
-	go func() { _, _ = io.Copy(upstream, conn); done <- struct{}{} }()
-	go func() { _, _ = io.Copy(conn, upstream); done <- struct{}{} }()
-	<-done
+	pipeBothWays(conn, upstream)
+}
+
+// halfCloseIdle bounds how long the surviving direction of a half-closed pair
+// may sit idle, so a peer that vanished mid-transfer cannot pin it forever.
+const halfCloseIdle = 2 * time.Minute
+
+// closeWriter is the half-close half of *net.TCPConn and *gonet.TCPConn.
+type closeWriter interface{ CloseWrite() error }
+
+// guardedReader reads one side of a relayed pair, re-arming its read deadline
+// on every read once armed, so the bound is an idle window, not a total one.
+type guardedReader struct {
+	conn  net.Conn
+	armed atomic.Bool
+}
+
+func (r *guardedReader) Read(p []byte) (int, error) {
+	if r.armed.Load() {
+		_ = r.conn.SetReadDeadline(time.Now().Add(halfCloseIdle))
+	}
+	return r.conn.Read(p)
+}
+
+// arm bounds this side's remaining reads, including one already in flight.
+func (r *guardedReader) arm() {
+	r.armed.Store(true)
+	_ = r.conn.SetReadDeadline(time.Now().Add(halfCloseIdle))
+}
+
+// pipeBothWays copies a and b into each other until BOTH directions end,
+// half-closing each far side in turn so a half-closed peer still gets its reply.
+func pipeBothWays(a, b net.Conn) {
+	ga, gb := &guardedReader{conn: a}, &guardedReader{conn: b}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	// Arming dst bounds the direction still reading from it -- the one this
+	// copy just signalled EOF to.
+	pipe := func(dst, src *guardedReader) {
+		defer wg.Done()
+		_, _ = io.Copy(dst.conn, src)
+		if cw, ok := dst.conn.(closeWriter); ok {
+			_ = cw.CloseWrite()
+		} else {
+			_ = dst.conn.Close()
+		}
+		dst.arm()
+	}
+	go pipe(gb, ga)
+	go pipe(ga, gb)
+	wg.Wait()
 }
 
 // socks5UDPSession is one established SOCKS5 UDP ASSOCIATE session: udpConn
@@ -278,36 +326,45 @@ func (s *socks5UDPSession) receive(buf []byte) (netip.AddrPort, []byte, error) {
 	if len(data) < 4 {
 		return netip.AddrPort{}, nil, fmt.Errorf("amneziawgnet: short SOCKS5 UDP reply (%d bytes)", n)
 	}
-	atyp := data[3]
-	data = data[4:]
-	addr, err := readSocks5Addr(bytesReader{data}, atyp)
+	addr, rest, err := splitSocks5Addr(data[4:], data[3])
 	if err != nil {
 		return netip.AddrPort{}, nil, err
 	}
-	switch atyp {
-	case 0x01:
-		data = data[4:]
-	case 0x04:
-		data = data[16:]
-	}
-	if len(data) < 2 {
+	if len(rest) < 2 {
 		return netip.AddrPort{}, nil, fmt.Errorf("amneziawgnet: truncated SOCKS5 UDP reply port")
 	}
-	port := binary.BigEndian.Uint16(data[:2])
-	return netip.AddrPortFrom(addr, port), data[2:], nil
+	return netip.AddrPortFrom(addr, binary.BigEndian.Uint16(rest[:2])), rest[2:], nil
 }
 
-// bytesReader is the minimal io.Reader readSocks5Addr needs, over an
-// in-memory slice that's already fully available (a received UDP
-// datagram) -- avoids pulling in bytes.Reader just for this.
-type bytesReader struct{ b []byte }
-
-func (r bytesReader) Read(p []byte) (int, error) {
-	n := copy(p, r.b)
-	if n < len(p) {
-		return n, io.ErrUnexpectedEOF
+// splitSocks5Addr decodes the address at the head of b for address type atyp
+// and returns it with whatever follows, length-checked at every step.
+func splitSocks5Addr(b []byte, atyp byte) (netip.Addr, []byte, error) {
+	switch atyp {
+	case 0x01:
+		if len(b) < 4 {
+			return netip.Addr{}, nil, fmt.Errorf("amneziawgnet: truncated SOCKS5 IPv4 reply address")
+		}
+		return netip.AddrFrom4([4]byte(b[:4])), b[4:], nil
+	case 0x04:
+		if len(b) < 16 {
+			return netip.Addr{}, nil, fmt.Errorf("amneziawgnet: truncated SOCKS5 IPv6 reply address")
+		}
+		return netip.AddrFrom16([16]byte(b[:16])), b[16:], nil
+	case 0x03:
+		// Resolving here would block the receive loop on DNS, and a datagram's
+		// own source is an address already -- so only a literal is accepted.
+		if len(b) < 1 || len(b) < 1+int(b[0]) {
+			return netip.Addr{}, nil, fmt.Errorf("amneziawgnet: truncated SOCKS5 domain reply address")
+		}
+		name := string(b[1 : 1+int(b[0])])
+		addr, err := netip.ParseAddr(name)
+		if err != nil {
+			return netip.Addr{}, nil, fmt.Errorf("amneziawgnet: SOCKS5 UDP reply from non-literal address %q", name)
+		}
+		return addr, b[1+int(b[0]):], nil
+	default:
+		return netip.Addr{}, nil, fmt.Errorf("amneziawgnet: unsupported SOCKS5 address type %d", atyp)
 	}
-	return n, nil
 }
 
 // UDPRelay tracks one SOCKS5 UDP ASSOCIATE session per source (tunnel-
@@ -318,13 +375,15 @@ type UDPRelay struct {
 	relay  SocksRelay
 	gstack *stack.Stack
 
+	// Keyed by the comparable netip.AddrPort, like udpForwardListener's own
+	// session map: src.String() would allocate on every relayed datagram.
 	mu       sync.Mutex
-	sessions map[string]*socks5UDPSession
+	sessions map[netip.AddrPort]*socks5UDPSession
 }
 
 // NewUDPRelay creates a UDPRelay for one embedded AmneziaWG Device's stack.
 func NewUDPRelay(relay SocksRelay, gstack *stack.Stack) *UDPRelay {
-	return &UDPRelay{relay: relay, gstack: gstack, sessions: map[string]*socks5UDPSession{}}
+	return &UDPRelay{relay: relay, gstack: gstack, sessions: map[netip.AddrPort]*socks5UDPSession{}}
 }
 
 // Handle relays one packet from src (the peer's tunnel-internal source) to
@@ -334,20 +393,28 @@ func NewUDPRelay(relay SocksRelay, gstack *stack.Stack) *UDPRelay {
 // reusing it for subsequent packets from the same src.
 func (u *UDPRelay) Handle(src, dst netip.AddrPort, email string, payload []byte) {
 	u.mu.Lock()
-	sess, ok := u.sessions[src.String()]
+	sess, ok := u.sessions[src]
 	u.mu.Unlock()
 
 	if !ok {
-		var err error
-		sess, err = newSocks5UDPSession(u.relay.Addr, email, u.relay.Password)
+		fresh, err := newSocks5UDPSession(u.relay.Addr, email, u.relay.Password)
 		if err != nil {
 			logger.Warningf("amneziawgnet: UDPRelay: SOCKS5 associate for %q: %v", email, err)
 			return
 		}
 		u.mu.Lock()
-		u.sessions[src.String()] = sess
-		u.mu.Unlock()
-		go u.pump(src, sess)
+		// Associating happens off-lock, so a concurrent Handle for the same src
+		// may already have published one; keep it, so the key has a single pump.
+		if existing, dup := u.sessions[src]; dup {
+			u.mu.Unlock()
+			fresh.Close()
+			sess = existing
+		} else {
+			u.sessions[src] = fresh
+			u.mu.Unlock()
+			sess = fresh
+			go u.pump(src, fresh)
+		}
 	}
 	if err := sess.sendTo(dst, payload); err != nil {
 		logger.Warningf("amneziawgnet: UDPRelay: send to %s: %v", dst, err)
@@ -360,7 +427,11 @@ func (u *UDPRelay) Handle(src, dst netip.AddrPort, email string, payload []byte)
 func (u *UDPRelay) pump(src netip.AddrPort, sess *socks5UDPSession) {
 	defer func() {
 		u.mu.Lock()
-		delete(u.sessions, src.String())
+		// Only retire our own entry: a delete by key alone would evict whichever
+		// session currently holds src, orphaning a live one.
+		if u.sessions[src] == sess {
+			delete(u.sessions, src)
+		}
 		u.mu.Unlock()
 		sess.Close()
 	}()
