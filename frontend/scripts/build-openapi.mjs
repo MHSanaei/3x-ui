@@ -4,8 +4,14 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { sections } from '../src/pages/api-docs/endpoints.ts';
+import {
+  buildWebSocketEvents,
+  websocketEnvelopeSchema,
+} from '../src/pages/api-docs/websocket-events.ts';
 import { EXAMPLES } from '../src/generated/examples.ts';
 import { SCHEMAS } from '../src/generated/schemas.ts';
+
+const websocketEvents = buildWebSocketEvents(EXAMPLES);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outPath = join(__dirname, '..', 'public', 'openapi.json');
@@ -65,6 +71,7 @@ function schemaFromParam(p) {
   if (p.defaultValue !== undefined) schema.default = p.defaultValue;
   if (p.minLength !== undefined) schema.minLength = p.minLength;
   if (p.pattern !== undefined) schema.pattern = p.pattern;
+  if (p.enum !== undefined) schema.enum = [...p.enum];
   return schema;
 }
 
@@ -175,8 +182,7 @@ function buildOperation(ep, tag) {
             const branchProperties = { ...properties };
             for (const other of ep.bodyRequiredOneOf) {
               if (other === name || !branchProperties[other]) continue;
-              const { pattern: _pattern, minLength: _minLength, ...rest } =
-                branchProperties[other];
+              const { pattern: _pattern, minLength: _minLength, ...rest } = branchProperties[other];
               branchProperties[other] = rest;
             }
             return {
@@ -222,6 +228,10 @@ function buildOperation(ep, tag) {
   const responses = {};
   let successExample = tryParseJson(ep.response);
   let objSchema = {};
+  if (ep.responseObjectSchema && ep.responseSchema) {
+    throw new Error(`${ep.method} ${ep.path}: responseObjectSchema cannot use responseSchema`);
+  }
+  if (ep.responseObjectSchema) objSchema = ep.responseObjectSchema;
   if (ep.responseSchema) {
     const obj = EXAMPLES[ep.responseSchema];
     if (obj === undefined) {
@@ -240,22 +250,26 @@ function buildOperation(ep, tag) {
       successExample = { success: true, obj: ep.responseSchemaArray ? [obj] : obj };
     }
   }
-  responses['200'] = {
-    description: 'Successful response',
-    content: {
-      'application/json': {
-        schema: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            msg: { type: 'string' },
-            obj: objSchema,
+  if (ep.responses) {
+    Object.assign(responses, ep.responses);
+  } else {
+    responses['200'] = {
+      description: 'Successful response',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              msg: { type: 'string' },
+              obj: objSchema,
+            },
           },
+          ...(successExample !== undefined ? { example: successExample } : {}),
         },
-        ...(successExample !== undefined ? { example: successExample } : {}),
       },
-    },
-  };
+    };
+  }
 
   const errExample = tryParseJson(ep.errorResponse);
   if (errExample !== undefined || ep.errorStatus) {
@@ -278,6 +292,7 @@ function buildOperation(ep, tag) {
   }
 
   op.responses = responses;
+  if (ep.security !== undefined) op.security = ep.security;
   return op;
 }
 
@@ -291,6 +306,7 @@ export function buildSpec() {
       paths[openApiPath][ep.method.toLowerCase()] = buildOperation(ep, tag);
     }
   }
+  paths['/ws'].get['x-websocket-events'] = websocketEvents;
 
   const tags = sections.map((s) => ({
     name: s.title,
@@ -308,7 +324,7 @@ export function buildSpec() {
     servers: [{ url: '/', description: 'Current panel (basePath aware)' }],
     components: {
       securitySchemes: SECURITY_SCHEMES,
-      schemas: SCHEMAS,
+      schemas: { ...SCHEMAS, WebSocketEnvelope: websocketEnvelopeSchema },
     },
     security: [{ bearerAuth: [] }, { cookieAuth: [] }],
     tags,

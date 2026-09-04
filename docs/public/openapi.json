@@ -1271,6 +1271,56 @@
         ],
         "type": "object"
       },
+      "ClientPageResponse": {
+        "description": "ClientPageResponse is the shape returned by ListPaged. `Total` is the\nrow count in the DB; `Filtered` is the count after Search/Filter/Protocol\nwere applied, before pagination. The page contains at most PageSize items.\nSummary is computed across the full DB row set so dashboard counters\non the clients page stay stable as the user paginates/filters.",
+        "properties": {
+          "filtered": {
+            "example": 47,
+            "type": "integer"
+          },
+          "groups": {
+            "example": [
+              "staff",
+              "trial"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ClientSlim"
+            },
+            "type": "array"
+          },
+          "page": {
+            "example": 1,
+            "type": "integer"
+          },
+          "pageSize": {
+            "example": 25,
+            "type": "integer"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ClientsSummary"
+          },
+          "total": {
+            "example": 2000,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "filtered",
+          "groups",
+          "items",
+          "page",
+          "pageSize",
+          "summary",
+          "total"
+        ],
+        "type": "object"
+      },
       "ClientRecord": {
         "properties": {
           "adTag": {
@@ -1420,6 +1470,105 @@
         ],
         "type": "object"
       },
+      "ClientSlim": {
+        "description": "ClientSlim is the row-shape used by the clients page. It drops fields the\ntable never reads (UUID, password, auth, flow, security, reverse, tgId)\nso the list payload stays compact even when the panel manages thousands\nof clients. Modals that need the full record still call /get/:email.",
+        "properties": {
+          "comment": {
+            "example": "Primary device",
+            "type": "string"
+          },
+          "createdAt": {
+            "example": 1735000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "email": {
+            "example": "alice@example.com",
+            "type": "string"
+          },
+          "enable": {
+            "example": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "example": 1735689600000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "group": {
+            "example": "staff",
+            "type": "string"
+          },
+          "inboundIds": {
+            "example": [
+              3,
+              5
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "limitHwid": {
+            "example": 0,
+            "type": "integer"
+          },
+          "limitIp": {
+            "example": 0,
+            "type": "integer"
+          },
+          "reset": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetDay": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetMax": {
+            "example": 0,
+            "type": "integer"
+          },
+          "subId": {
+            "example": "abcd1234",
+            "type": "string"
+          },
+          "totalGB": {
+            "example": 53687091200,
+            "format": "int64",
+            "type": "integer"
+          },
+          "traffic": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClientTraffic"
+              }
+            ],
+            "nullable": true
+          },
+          "updatedAt": {
+            "example": 1735100000000,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "createdAt",
+          "email",
+          "enable",
+          "expiryTime",
+          "inboundIds",
+          "limitHwid",
+          "limitIp",
+          "reset",
+          "resetDay",
+          "resetMax",
+          "subId",
+          "totalGB",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "ClientTraffic": {
         "description": "ClientTraffic represents traffic statistics and limits for a specific client.\nIt tracks upload/download usage, expiry times, and online status for inbound clients.",
         "properties": {
@@ -1514,6 +1663,80 @@
           "total",
           "up",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "ClientsSummary": {
+        "description": "ClientsSummary collects per-bucket counts plus the matching email lists so\nthe clients page can render the dashboard stat cards and their hover\npopovers without shipping the full client array. The counters are exact;\nthe lists stop at clientSummaryEmailCap entries and only back the popovers.",
+        "properties": {
+          "active": {
+            "example": 1850,
+            "type": "integer"
+          },
+          "deactive": {
+            "example": [
+              "bob@example.com"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deactiveCount": {
+            "example": 150,
+            "type": "integer"
+          },
+          "depleted": {
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "depletedCount": {
+            "example": 0,
+            "type": "integer"
+          },
+          "expiring": {
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "expiringCount": {
+            "example": 0,
+            "type": "integer"
+          },
+          "online": {
+            "example": [
+              "alice@example.com"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "onlineCount": {
+            "example": 1,
+            "type": "integer"
+          },
+          "total": {
+            "example": 2000,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "deactive",
+          "deactiveCount",
+          "depleted",
+          "depletedCount",
+          "expiring",
+          "expiringCount",
+          "online",
+          "onlineCount",
+          "total"
         ],
         "type": "object"
       },
@@ -2363,6 +2586,118 @@
         ],
         "type": "object"
       },
+      "InboundTrafficSummary": {
+        "properties": {
+          "down": {
+            "example": 2097152,
+            "format": "int64",
+            "type": "integer"
+          },
+          "enable": {
+            "example": true,
+            "type": "boolean"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "total": {
+            "example": 10737418240,
+            "format": "int64",
+            "type": "integer"
+          },
+          "up": {
+            "example": 1048576,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "down",
+          "enable",
+          "id",
+          "total",
+          "up"
+        ],
+        "type": "object"
+      },
+      "LogEntry": {
+        "properties": {
+          "DateTime": {
+            "example": "2025-01-01T12:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "Email": {
+            "example": "alice@example.com",
+            "type": "string"
+          },
+          "Event": {
+            "example": 0,
+            "type": "integer"
+          },
+          "FromAddress": {
+            "example": "192.0.2.10:54321",
+            "type": "string"
+          },
+          "Inbound": {
+            "example": "inbound-443",
+            "type": "string"
+          },
+          "Outbound": {
+            "example": "direct",
+            "type": "string"
+          },
+          "ToAddress": {
+            "example": "example.com:443",
+            "type": "string"
+          }
+        },
+        "required": [
+          "DateTime",
+          "Email",
+          "Event",
+          "FromAddress",
+          "Inbound",
+          "Outbound",
+          "ToAddress"
+        ],
+        "type": "object"
+      },
+      "MLDSA65Response": {
+        "properties": {
+          "seed": {
+            "example": "mldsa65-seed",
+            "type": "string"
+          },
+          "verify": {
+            "example": "mldsa65-verify",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seed",
+          "verify"
+        ],
+        "type": "object"
+      },
+      "MLKEM768Response": {
+        "properties": {
+          "client": {
+            "example": "mlkem768-client",
+            "type": "string"
+          },
+          "seed": {
+            "example": "mlkem768-seed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client",
+          "seed"
+        ],
+        "type": "object"
+      },
       "Msg": {
         "properties": {
           "msg": {
@@ -2377,6 +2712,18 @@
           "msg",
           "obj",
           "success"
+        ],
+        "type": "object"
+      },
+      "NewUUIDResponse": {
+        "properties": {
+          "uuid": {
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
         ],
         "type": "object"
       },
@@ -3435,6 +3782,41 @@
         ],
         "type": "object"
       },
+      "Traffic": {
+        "description": "Traffic represents network traffic statistics for Xray connections.\nIt tracks upload and download bytes for inbound or outbound traffic.",
+        "properties": {
+          "Down": {
+            "example": 2097152,
+            "format": "int64",
+            "type": "integer"
+          },
+          "IsInbound": {
+            "example": true,
+            "type": "boolean"
+          },
+          "IsOutbound": {
+            "example": false,
+            "type": "boolean"
+          },
+          "Tag": {
+            "example": "inbound-443",
+            "type": "string"
+          },
+          "Up": {
+            "example": 1048576,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "Down",
+          "IsInbound",
+          "IsOutbound",
+          "Tag",
+          "Up"
+        ],
+        "type": "object"
+      },
       "User": {
         "description": "User represents a user account in the 3x-ui panel.",
         "properties": {
@@ -3454,6 +3836,38 @@
           "username"
         ],
         "type": "object"
+      },
+      "WebSocketEnvelope": {
+        "type": "object",
+        "required": [
+          "type",
+          "payload",
+          "time"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "status",
+              "traffic",
+              "client_stats",
+              "inbounds",
+              "outbounds",
+              "nodes",
+              "notification",
+              "xray_state",
+              "invalidate"
+            ]
+          },
+          "payload": {
+            "description": "Shape is selected by type; see x-websocket-events on GET /ws."
+          },
+          "time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Server emission time in Unix milliseconds."
+          }
+        }
       }
     }
   },
@@ -5360,12 +5774,16 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/NewUUIDResponse"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
-                  "obj": "550e8400-e29b-41d4-a716-446655440000"
+                  "obj": {
+                    "uuid": "550e8400-e29b-41d4-a716-446655440000"
+                  }
                 }
               }
             }
@@ -5494,7 +5912,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Generate a new ML-DSA-65 keypair (post-quantum signature). Returns {privateKey, publicKey, seed}.",
+        "summary": "Generate a new ML-DSA-65 keypair. Returns {seed, verify}.",
         "operationId": "get_panel_api_server_getNewmldsa65",
         "responses": {
           "200": {
@@ -5510,15 +5928,16 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/MLDSA65Response"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
-                    "privateKey": "mdsa65priv...",
-                    "publicKey": "mdsa65pub...",
-                    "seed": "random-seed..."
+                    "seed": "mldsa65-seed",
+                    "verify": "mldsa65-verify"
                   }
                 }
               }
@@ -5532,7 +5951,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns {clientKey, serverKey}.",
+        "summary": "Generate a new ML-KEM-768 keypair. Returns {seed, client}.",
         "operationId": "get_panel_api_server_getNewmlkem768",
         "responses": {
           "200": {
@@ -5548,14 +5967,16 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/MLKEM768Response"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
-                    "clientKey": "mlkem768-client...",
-                    "serverKey": "mlkem768-server..."
+                    "client": "mlkem768-client",
+                    "seed": "mlkem768-seed"
                   }
                 }
               }
@@ -5976,12 +6397,20 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
                   }
                 },
                 "example": {
                   "success": true,
-                  "obj": "2025/01/01 12:00:00 [INFO] Server started\n2025/01/01 12:00:01 [INFO] Xray is running"
+                  "obj": [
+                    "2025/01/01 12:00:00 [INFO] Server started",
+                    "2025/01/01 12:00:01 [INFO] Xray is running"
+                  ]
                 }
               }
             }
@@ -6049,12 +6478,27 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LogEntry"
+                      }
+                    }
                   }
                 },
                 "example": {
                   "success": true,
-                  "obj": "2025/01/01 12:00:00 rejected  vless  proxy  example.com  reason: no valid user\n2025/01/01 12:00:01 direct  freedom  ok"
+                  "obj": [
+                    {
+                      "DateTime": "2025-01-01T12:00:00Z",
+                      "Email": "alice@example.com",
+                      "Event": 0,
+                      "FromAddress": "192.0.2.10:54321",
+                      "Inbound": "inbound-443",
+                      "Outbound": "direct",
+                      "ToAddress": "example.com:443"
+                    }
+                  ]
                 }
               }
             }
@@ -6733,26 +7177,28 @@
           {
             "name": "page",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "1-indexed page number. Defaults to 1.",
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "default": 1
             }
           },
           {
             "name": "pageSize",
             "in": "query",
-            "required": true,
+            "required": false,
             "description": "Rows per page. Defaults to 25, capped at 200.",
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "default": 25
             }
           },
           {
             "name": "search",
             "in": "query",
-            "required": true,
-            "description": "Case-insensitive substring match on email / subId / comment.",
+            "required": false,
+            "description": "Case-insensitive substring match on email, subId, comment, UUID, password, auth or Telegram ID.",
             "schema": {
               "type": "string"
             }
@@ -6760,8 +7206,8 @@
           {
             "name": "filter",
             "in": "query",
-            "required": true,
-            "description": "Status bucket: online | active | deactive | depleted | expiring.",
+            "required": false,
+            "description": "CSV status buckets: online, active, deactive, depleted or expiring. Values are ORed.",
             "schema": {
               "type": "string"
             }
@@ -6769,8 +7215,17 @@
           {
             "name": "protocol",
             "in": "query",
-            "required": true,
-            "description": "Match clients attached to at least one inbound of this protocol (vless, vmess, trojan, shadowsocks, ...).",
+            "required": false,
+            "description": "CSV inbound protocols: vmess, vless, trojan, shadowsocks, wireguard, hysteria, http, mixed, tunnel, tun, mtproto or amneziawg. Values are ORed.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "inbound",
+            "in": "query",
+            "required": false,
+            "description": "CSV positive inbound IDs. Values are ORed; invalid or non-positive IDs are ignored.",
             "schema": {
               "type": "string"
             }
@@ -6778,17 +7233,116 @@
           {
             "name": "sort",
             "in": "query",
-            "required": true,
-            "description": "Sort key: enable | email | inboundIds | traffic | remaining | expiryTime.",
+            "required": false,
+            "description": "Sort key. An omitted or unknown value falls back to client ID ascending.",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "enable",
+                "email",
+                "inboundIds",
+                "traffic",
+                "remaining",
+                "expiryTime",
+                "createdAt",
+                "updatedAt",
+                "lastOnline"
+              ]
             }
           },
           {
             "name": "order",
             "in": "query",
-            "required": true,
-            "description": "ascend or descend.",
+            "required": false,
+            "description": "Sort direction. Only descend selects descending order; otherwise ascending.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ascend",
+                "descend"
+              ]
+            }
+          },
+          {
+            "name": "expiryFrom",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive minimum expiry time in Unix milliseconds. Zero or negative means unset.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "expiryTo",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive maximum expiry time in Unix milliseconds. Zero or negative means unbounded.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "usageFrom",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive minimum combined upload and download usage in bytes. Zero means unset.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "usageTo",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive maximum combined upload and download usage in bytes. Zero means unbounded.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "autoRenew",
+            "in": "query",
+            "required": false,
+            "description": "on selects clients with an interval or calendar-day reset; off selects clients without either.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "on",
+                "off"
+              ]
+            }
+          },
+          {
+            "name": "hasTgId",
+            "in": "query",
+            "required": false,
+            "description": "yes selects clients with a non-zero Telegram ID; no selects clients without one.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          },
+          {
+            "name": "hasComment",
+            "in": "query",
+            "required": false,
+            "description": "yes selects clients with a non-blank comment; no selects clients without one.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "description": "CSV group names, matched case-insensitively after trimming. Values are ORed.",
             "schema": {
               "type": "string"
             }
@@ -6808,55 +7362,61 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "$ref": "#/components/schemas/ClientPageResponse"
+                    }
                   }
                 },
                 "example": {
                   "success": true,
                   "obj": {
+                    "filtered": 47,
+                    "groups": [
+                      "staff",
+                      "trial"
+                    ],
                     "items": [
                       {
+                        "comment": "Primary device",
+                        "createdAt": 1735000000000,
                         "email": "alice@example.com",
-                        "subId": "abcd1234",
                         "enable": true,
-                        "totalGB": 53687091200,
                         "expiryTime": 1735689600000,
-                        "limitIp": 0,
-                        "limitHwid": 0,
-                        "reset": 0,
+                        "group": "staff",
                         "inboundIds": [
                           3,
                           5
                         ],
-                        "traffic": {
-                          "up": 1024,
-                          "down": 4096,
-                          "enable": true
-                        },
-                        "createdAt": 1735000000000,
+                        "limitHwid": 0,
+                        "limitIp": 0,
+                        "reset": 0,
+                        "resetDay": 0,
+                        "resetMax": 0,
+                        "subId": "abcd1234",
+                        "totalGB": 53687091200,
+                        "traffic": null,
                         "updatedAt": 1735100000000
                       }
                     ],
-                    "total": 2000,
-                    "filtered": 47,
                     "page": 1,
                     "pageSize": 25,
                     "summary": {
-                      "total": 2000,
                       "active": 1850,
-                      "onlineCount": 1,
-                      "depletedCount": 0,
-                      "expiringCount": 0,
+                      "deactive": [
+                        "bob@example.com"
+                      ],
                       "deactiveCount": 150,
+                      "depleted": [],
+                      "depletedCount": 0,
+                      "expiring": [],
+                      "expiringCount": 0,
                       "online": [
                         "alice@example.com"
                       ],
-                      "depleted": [],
-                      "expiring": [],
-                      "deactive": [
-                        "bob@example.com"
-                      ]
-                    }
+                      "onlineCount": 1,
+                      "total": 2000
+                    },
+                    "total": 2000
                   }
                 }
               }
@@ -13563,6 +14123,44 @@
             }
           }
         }
+      },
+      "head": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return the same status and subscription metadata headers as GET without a response body.",
+        "operationId": "head_subPath_subid",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription is available. Headers match GET; no response body."
+          },
+          "404": {
+            "description": "No enabled client matches the subscription ID."
+          },
+          "500": {
+            "description": "Subscription generation failed."
+          }
+        }
       }
     },
     "/{jsonPath}{subid}": {
@@ -13611,6 +14209,44 @@
                 }
               }
             }
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return the JSON subscription status and metadata headers without a body. Registered only when JSON subscriptions are enabled.",
+        "operationId": "head_jsonPath_subid",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jsonPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription is available. Headers match GET; no response body."
+          },
+          "404": {
+            "description": "No enabled client matches the subscription ID."
+          },
+          "500": {
+            "description": "Subscription generation failed."
           }
         }
       }
@@ -13663,6 +14299,44 @@
             }
           }
         }
+      },
+      "head": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return the Clash subscription status and metadata headers without a body. Registered only when Clash subscriptions are enabled.",
+        "operationId": "head_clashPath_subid",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clashPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription is available. Headers match GET; no response body."
+          },
+          "404": {
+            "description": "No enabled client matches the subscription ID."
+          },
+          "500": {
+            "description": "Subscription generation failed."
+          }
+        }
       }
     },
     "/ws": {
@@ -13673,173 +14347,822 @@
         "summary": "Upgrade an HTTP connection to a WebSocket. Requires an authenticated session cookie (Bearer token auth is not supported here). Returns 101 Switching Protocols on success. The server then pushes JSON messages described below.",
         "operationId": "get_ws",
         "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
-                  }
-                }
-              }
-            }
+          "101": {
+            "description": "Switching Protocols. WebSocket messages use WebSocketEnvelope."
+          },
+          "401": {
+            "description": "No authenticated panel session cookie."
           }
-        }
-      }
-    },
-    "→ type: status": {
-      "ws": {
-        "tags": [
-          "WebSocket"
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
         ],
-        "summary": "Server health snapshot pushed every 2 seconds. Contains CPU, memory, swap, disk, network IO, load, and Xray state — same shape as <code>GET /panel/api/server/status</code>.",
-        "operationId": "ws_type_status",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
+        "x-websocket-events": [
+          {
+            "type": "status",
+            "summary": "Server health snapshot pushed every two seconds; same payload as server/status obj.",
+            "payloadSchema": {
+              "type": "object",
+              "required": [
+                "cpu",
+                "cpuCores",
+                "logicalPro",
+                "cpuSpeedMhz",
+                "mem",
+                "swap",
+                "disk",
+                "diskIO",
+                "diskTraffic",
+                "xray",
+                "amneziawg",
+                "panelVersion",
+                "panelGuid",
+                "uptime",
+                "loads",
+                "tcpCount",
+                "udpCount",
+                "netIO",
+                "netTraffic",
+                "publicIP",
+                "appStats"
+              ],
+              "properties": {
+                "cpu": {
+                  "type": "number"
+                },
+                "cpuCores": {
+                  "type": "integer"
+                },
+                "logicalPro": {
+                  "type": "integer"
+                },
+                "cpuSpeedMhz": {
+                  "type": "number"
+                },
+                "mem": {
                   "type": "object",
+                  "required": [
+                    "current",
+                    "total"
+                  ],
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "current": {
+                      "type": "integer",
+                      "format": "int64"
                     },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
+                    "total": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
                   }
                 },
-                "example": {
-                  "type": "status",
-                  "data": {
-                    "cpu": 12.5,
-                    "mem": {
-                      "current": 2147483648,
-                      "total": 8589934592
+                "swap": {
+                  "type": "object",
+                  "required": [
+                    "current",
+                    "total"
+                  ],
+                  "properties": {
+                    "current": {
+                      "type": "integer",
+                      "format": "int64"
                     },
-                    "xray": {
-                      "state": "running"
+                    "total": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                },
+                "disk": {
+                  "type": "object",
+                  "required": [
+                    "current",
+                    "total"
+                  ],
+                  "properties": {
+                    "current": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                },
+                "diskIO": {
+                  "type": "object",
+                  "required": [
+                    "read",
+                    "write"
+                  ],
+                  "properties": {
+                    "read": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "write": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                },
+                "diskTraffic": {
+                  "type": "object",
+                  "required": [
+                    "read",
+                    "write"
+                  ],
+                  "properties": {
+                    "read": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "write": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                },
+                "xray": {
+                  "type": "object",
+                  "required": [
+                    "state",
+                    "errorMsg",
+                    "version"
+                  ],
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "running",
+                        "stop",
+                        "error"
+                      ]
+                    },
+                    "errorMsg": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "amneziawg": {
+                  "type": "object",
+                  "required": [
+                    "configured",
+                    "running"
+                  ],
+                  "properties": {
+                    "configured": {
+                      "type": "boolean"
+                    },
+                    "running": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "panelVersion": {
+                  "type": "string"
+                },
+                "panelGuid": {
+                  "type": "string"
+                },
+                "uptime": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "loads": {
+                  "type": "array",
+                  "nullable": true,
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "tcpCount": {
+                  "type": "integer"
+                },
+                "udpCount": {
+                  "type": "integer"
+                },
+                "netIO": {
+                  "type": "object",
+                  "required": [
+                    "up",
+                    "down",
+                    "pktUp",
+                    "pktDown"
+                  ],
+                  "properties": {
+                    "up": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "down": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "pktUp": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "pktDown": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                },
+                "netTraffic": {
+                  "type": "object",
+                  "required": [
+                    "sent",
+                    "recv",
+                    "pktSent",
+                    "pktRecv"
+                  ],
+                  "properties": {
+                    "sent": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "recv": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "pktSent": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "pktRecv": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  }
+                },
+                "publicIP": {
+                  "type": "object",
+                  "required": [
+                    "ipv4",
+                    "ipv6"
+                  ],
+                  "properties": {
+                    "ipv4": {
+                      "type": "string"
+                    },
+                    "ipv6": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "appStats": {
+                  "type": "object",
+                  "required": [
+                    "threads",
+                    "mem",
+                    "uptime"
+                  ],
+                  "properties": {
+                    "threads": {
+                      "type": "integer"
+                    },
+                    "mem": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "uptime": {
+                      "type": "integer",
+                      "format": "int64"
                     }
                   }
                 }
               }
+            },
+            "example": {
+              "type": "status",
+              "payload": {
+                "cpu": 12.5,
+                "cpuCores": 4,
+                "logicalPro": 8,
+                "cpuSpeedMhz": 3200,
+                "mem": {
+                  "current": 2147483648,
+                  "total": 8589934592
+                },
+                "swap": {
+                  "current": 0,
+                  "total": 2147483648
+                },
+                "disk": {
+                  "current": 53687091200,
+                  "total": 107374182400
+                },
+                "diskIO": {
+                  "read": 1048576,
+                  "write": 2097152
+                },
+                "diskTraffic": {
+                  "read": 4096,
+                  "write": 8192
+                },
+                "xray": {
+                  "state": "running",
+                  "errorMsg": "",
+                  "version": "25.10.31"
+                },
+                "amneziawg": {
+                  "configured": false,
+                  "running": false
+                },
+                "panelVersion": "v3.x.x",
+                "panelGuid": "panel-guid",
+                "uptime": 86400,
+                "loads": [
+                  0.1,
+                  0.2,
+                  0.3
+                ],
+                "tcpCount": 24,
+                "udpCount": 8,
+                "netIO": {
+                  "up": 1048576,
+                  "down": 2097152,
+                  "pktUp": 100,
+                  "pktDown": 200
+                },
+                "netTraffic": {
+                  "sent": 4096,
+                  "recv": 8192,
+                  "pktSent": 10,
+                  "pktRecv": 20
+                },
+                "publicIP": {
+                  "ipv4": "192.0.2.1",
+                  "ipv6": "2001:db8::1"
+                },
+                "appStats": {
+                  "threads": 16,
+                  "mem": 67108864,
+                  "uptime": 3600
+                }
+              },
+              "time": 1735689600000
             }
-          }
-        }
-      }
-    },
-    "→ type: xrayState": {
-      "ws": {
-        "tags": [
-          "WebSocket"
-        ],
-        "summary": "Xray process state change. Fired when Xray starts, stops, or encounters an error.",
-        "operationId": "ws_type_xrayState",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
+          },
+          {
+            "type": "traffic",
+            "summary": "Live traffic deltas plus online, per-node and last-online maps. Local polls send traffics/clientTraffics; node polls send nodeTraffics.",
+            "payloadSchema": {
+              "type": "object",
+              "required": [
+                "onlineClients",
+                "onlineByGuid",
+                "activeInbounds",
+                "lastOnlineMap"
+              ],
+              "properties": {
+                "traffics": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Traffic"
                   }
                 },
-                "example": {
-                  "type": "xrayState",
-                  "data": "running"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "→ type: notification": {
-      "ws": {
-        "tags": [
-          "WebSocket"
-        ],
-        "summary": "In-panel toast notification. Fired on Xray stop/restart, DB import, panel restart, etc.",
-        "operationId": "ws_type_notification",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
+                "clientTraffics": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientTraffic"
                   }
                 },
-                "example": {
-                  "type": "notification",
-                  "title": "Xray service restarted",
-                  "body": "Xray has been restarted successfully",
-                  "severity": "success"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "→ type: invalidate": {
-      "ws": {
-        "tags": [
-          "WebSocket"
-        ],
-        "summary": "Instructs the UI to re-fetch a resource. Fired when another admin session modifies data (e.g. toggling inbound enable).",
-        "operationId": "ws_type_invalidate",
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "msg": {
-                      "type": "string"
-                    },
-                    "obj": {}
+                "nodeTraffics": {
+                  "type": "array",
+                  "nullable": true,
+                  "items": {
+                    "$ref": "#/components/schemas/Traffic"
                   }
                 },
-                "example": {
-                  "type": "invalidate",
-                  "resource": "inbounds"
+                "onlineClients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "onlineByGuid": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "activeInbounds": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "lastOnlineMap": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              },
+              "oneOf": [
+                {
+                  "required": [
+                    "traffics",
+                    "clientTraffics"
+                  ]
+                },
+                {
+                  "required": [
+                    "nodeTraffics"
+                  ]
+                }
+              ]
+            },
+            "example": {
+              "type": "traffic",
+              "payload": {
+                "traffics": [
+                  {
+                    "Down": 2097152,
+                    "IsInbound": true,
+                    "IsOutbound": false,
+                    "Tag": "inbound-443",
+                    "Up": 1048576
+                  }
+                ],
+                "clientTraffics": [
+                  {
+                    "down": 2097152,
+                    "email": "user1",
+                    "enable": true,
+                    "expiryTime": 1735689600000,
+                    "id": 14825,
+                    "inboundId": 1,
+                    "lastOnline": 1735680000000,
+                    "lastSubFetch": 1735680000000,
+                    "reset": 0,
+                    "resetCount": 0,
+                    "resetDay": 0,
+                    "resetMax": 0,
+                    "subId": "i7tvdpeffi0hvvf1",
+                    "total": 10737418240,
+                    "up": 1048576,
+                    "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+                  }
+                ],
+                "onlineClients": [
+                  "alice@example.com"
+                ],
+                "onlineByGuid": {
+                  "panel-guid": [
+                    "alice@example.com"
+                  ]
+                },
+                "activeInbounds": {
+                  "panel-guid": [
+                    "inbound-443"
+                  ]
+                },
+                "lastOnlineMap": {
+                  "alice@example.com": 1735689600000
+                }
+              },
+              "time": 1735689600000
+            }
+          },
+          {
+            "type": "client_stats",
+            "summary": "Absolute client counters and/or inbound summaries; snapshot says whether clients is complete or only recently active rows.",
+            "payloadSchema": {
+              "type": "object",
+              "required": [
+                "snapshot"
+              ],
+              "properties": {
+                "snapshot": {
+                  "type": "boolean"
+                },
+                "clients": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientTraffic"
+                  }
+                },
+                "inbounds": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InboundTrafficSummary"
+                  }
+                }
+              },
+              "anyOf": [
+                {
+                  "required": [
+                    "clients"
+                  ]
+                },
+                {
+                  "required": [
+                    "inbounds"
+                  ]
+                }
+              ]
+            },
+            "example": {
+              "type": "client_stats",
+              "payload": {
+                "snapshot": true,
+                "clients": [
+                  {
+                    "down": 2097152,
+                    "email": "user1",
+                    "enable": true,
+                    "expiryTime": 1735689600000,
+                    "id": 14825,
+                    "inboundId": 1,
+                    "lastOnline": 1735680000000,
+                    "lastSubFetch": 1735680000000,
+                    "reset": 0,
+                    "resetCount": 0,
+                    "resetDay": 0,
+                    "resetMax": 0,
+                    "subId": "i7tvdpeffi0hvvf1",
+                    "total": 10737418240,
+                    "up": 1048576,
+                    "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+                  }
+                ],
+                "inbounds": [
+                  {
+                    "down": 2097152,
+                    "enable": true,
+                    "id": 1,
+                    "total": 10737418240,
+                    "up": 1048576
+                  }
+                ]
+              },
+              "time": 1735689600000
+            }
+          },
+          {
+            "type": "inbounds",
+            "summary": "Full inbound list after an inbound mutation, unless invalidate is used at scale.",
+            "payloadSchema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Inbound"
+              }
+            },
+            "example": {
+              "type": "inbounds",
+              "payload": [
+                {
+                  "clientStats": [
+                    {
+                      "down": 2097152,
+                      "email": "user1",
+                      "enable": true,
+                      "expiryTime": 1735689600000,
+                      "id": 14825,
+                      "inboundId": 1,
+                      "lastOnline": 1735680000000,
+                      "lastSubFetch": 1735680000000,
+                      "reset": 0,
+                      "resetCount": 0,
+                      "resetDay": 0,
+                      "resetMax": 0,
+                      "subId": "i7tvdpeffi0hvvf1",
+                      "total": 10737418240,
+                      "up": 1048576,
+                      "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+                    }
+                  ],
+                  "disableFlow": false,
+                  "down": 0,
+                  "enable": true,
+                  "expiryTime": 0,
+                  "fallbackParent": null,
+                  "id": 1,
+                  "lastTrafficResetTime": 0,
+                  "listen": "",
+                  "nodeId": null,
+                  "originNodeGuid": "",
+                  "port": 443,
+                  "protocol": "vless",
+                  "remark": "VLESS-443",
+                  "settings": null,
+                  "shareAddr": "",
+                  "shareAddrStrategy": "node",
+                  "sniffing": null,
+                  "streamSettings": null,
+                  "subSortIndex": 1,
+                  "tag": "in-443-tcp",
+                  "total": 0,
+                  "trafficReset": "never",
+                  "trafficResetDay": 1,
+                  "up": 0
+                }
+              ],
+              "time": 1735689600000
+            }
+          },
+          {
+            "type": "outbounds",
+            "summary": "Current outbound traffic rows after the periodic traffic collection.",
+            "payloadSchema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/OutboundTraffics"
+              }
+            },
+            "example": {
+              "type": "outbounds",
+              "payload": [
+                {
+                  "down": 0,
+                  "id": 0,
+                  "tag": "",
+                  "total": 0,
+                  "up": 0
+                }
+              ],
+              "time": 1735689600000
+            }
+          },
+          {
+            "type": "nodes",
+            "summary": "Current node tree after the heartbeat probe cycle.",
+            "payloadSchema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/NodeView"
+              }
+            },
+            "example": {
+              "type": "nodes",
+              "payload": [
+                {
+                  "activeCount": 20,
+                  "address": "node.example.com",
+                  "allowPrivateAddress": false,
+                  "basePath": "/",
+                  "clientCount": 25,
+                  "configDirty": false,
+                  "configDirtyAt": 0,
+                  "cpuPct": 12.5,
+                  "createdAt": 1700000000,
+                  "depletedCount": 1,
+                  "disabledCount": 2,
+                  "enable": true,
+                  "guid": "node-guid",
+                  "hasApiToken": true,
+                  "id": 1,
+                  "inboundCount": 3,
+                  "inboundSyncMode": "all",
+                  "inboundTags": [
+                    "in-443-tcp"
+                  ],
+                  "lastError": "",
+                  "lastHeartbeat": 1700000000,
+                  "latencyMs": 42,
+                  "memPct": 45.2,
+                  "name": "edge-1",
+                  "netDown": 1048576,
+                  "netUp": 2097152,
+                  "onlineCount": 5,
+                  "outboundTag": "direct",
+                  "panelVersion": "v3.x.x",
+                  "parentGuid": "",
+                  "pinnedCertSha256": "",
+                  "port": 2053,
+                  "remark": "Primary edge",
+                  "scheme": "https",
+                  "status": "online",
+                  "tlsVerifyMode": "verify",
+                  "transitive": false,
+                  "updatedAt": 1700003600,
+                  "uptimeSecs": 86400,
+                  "xrayError": "",
+                  "xrayState": "running",
+                  "xrayVersion": "25.10.31"
+                }
+              ],
+              "time": 1735689600000
+            }
+          },
+          {
+            "type": "notification",
+            "summary": "An in-panel notification emitted by server actions.",
+            "payloadSchema": {
+              "type": "object",
+              "required": [
+                "title",
+                "message",
+                "level"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "success",
+                    "warning"
+                  ]
                 }
               }
+            },
+            "example": {
+              "type": "notification",
+              "payload": {
+                "title": "Xray service restarted",
+                "message": "Xray service has been restarted successfully",
+                "level": "success"
+              },
+              "time": 1735689600000
+            }
+          },
+          {
+            "type": "xray_state",
+            "summary": "Xray process state change after a stop, restart or error.",
+            "payloadSchema": {
+              "type": "object",
+              "required": [
+                "state",
+                "errorMsg"
+              ],
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "running",
+                    "stop",
+                    "error"
+                  ]
+                },
+                "errorMsg": {
+                  "type": "string"
+                }
+              }
+            },
+            "example": {
+              "type": "xray_state",
+              "payload": {
+                "state": "running",
+                "errorMsg": ""
+              },
+              "time": 1735689600000
+            }
+          },
+          {
+            "type": "invalidate",
+            "summary": "Requests a REST re-fetch. clients is an invalidate payload type, not a top-level event.",
+            "payloadSchema": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "status",
+                    "traffic",
+                    "client_stats",
+                    "inbounds",
+                    "outbounds",
+                    "nodes",
+                    "notification",
+                    "xray_state",
+                    "clients"
+                  ]
+                }
+              }
+            },
+            "example": {
+              "type": "invalidate",
+              "payload": {
+                "type": "inbounds"
+              },
+              "time": 1735689600000
             }
           }
-        }
+        ]
       }
     }
   }
