@@ -17,13 +17,13 @@ func TestSubClash_InfoNode_Active(t *testing.T) {
 	db := database.GetDB()
 
 	ib := &model.Inbound{
-		Id:       1,
-		UserId:   1,
-		Remark:   "Germany-VLESS",
-		Enable:   true,
-		Port:     443,
-		Protocol: model.VLESS,
-		Settings: `{"clients":[{"id":"c1-uuid","email":"user1@test.com","subId":"sub-clash","enable":true,"totalGB":10737418240}]}`,
+		Id:             1,
+		UserId:         1,
+		Remark:         "Germany-VLESS",
+		Enable:         true,
+		Port:           443,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[{"id":"c1-uuid","email":"user1@test.com","subId":"sub-clash","enable":true,"totalGB":10737418240}]}`,
 		StreamSettings: `{"network":"tcp","security":"none"}`,
 	}
 	if err := db.Create(ib).Error; err != nil {
@@ -77,13 +77,13 @@ func TestSubClash_InfoNode_Expired(t *testing.T) {
 
 	expiredTime := time.Now().Add(-24 * time.Hour).UnixMilli()
 	ib := &model.Inbound{
-		Id:       1,
-		UserId:   1,
-		Remark:   "Germany-VLESS",
-		Enable:   true,
-		Port:     443,
-		Protocol: model.VLESS,
-		Settings: fmt.Sprintf(`{"clients":[{"id":"c1-uuid","email":"exp@test.com","subId":"sub-clash-exp","enable":true,"expiryTime":%d}]}`, expiredTime),
+		Id:             1,
+		UserId:         1,
+		Remark:         "Germany-VLESS",
+		Enable:         true,
+		Port:           443,
+		Protocol:       model.VLESS,
+		Settings:       fmt.Sprintf(`{"clients":[{"id":"c1-uuid","email":"exp@test.com","subId":"sub-clash-exp","enable":true,"expiryTime":%d}]}`, expiredTime),
 		StreamSettings: `{"network":"tcp","security":"none"}`,
 	}
 	if err := db.Create(ib).Error; err != nil {
@@ -138,13 +138,13 @@ func TestSubClash_InfoNode_Depleted(t *testing.T) {
 	db := database.GetDB()
 
 	ib := &model.Inbound{
-		Id:       1,
-		UserId:   1,
-		Remark:   "Germany-VLESS",
-		Enable:   true,
-		Port:     443,
-		Protocol: model.VLESS,
-		Settings: `{"clients":[{"id":"c1-uuid","email":"dep@test.com","subId":"sub-clash-dep","enable":true,"totalGB":5368709120}]}`,
+		Id:             1,
+		UserId:         1,
+		Remark:         "Germany-VLESS",
+		Enable:         true,
+		Port:           443,
+		Protocol:       model.VLESS,
+		Settings:       `{"clients":[{"id":"c1-uuid","email":"dep@test.com","subId":"sub-clash-dep","enable":true,"totalGB":5368709120}]}`,
 		StreamSettings: `{"network":"tcp","security":"none"}`,
 	}
 	if err := db.Create(ib).Error; err != nil {

@@ -44,7 +44,7 @@ type SubService struct {
 	subscriptionBody bool
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
-	usageShown             map[string]bool
+	usageShown                 map[string]bool
 	showIdentityOnAllLinks     bool
 	subInfoNodeEnable          bool
 	subExpiredTemplate         string

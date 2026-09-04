@@ -30,15 +30,15 @@ type AllSetting struct {
 	IpLimitAllowlist  string `json:"ipLimitAllowlist" form:"ipLimitAllowlist"`
 	PanelOutbound     string `json:"panelOutbound" form:"panelOutbound"`
 
-	PageSize                  int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`
-	ExpireDiff                int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`
-	TrafficDiff               int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"`
-	RemarkTemplate            string `json:"remarkTemplate" form:"remarkTemplate"`
-	SubShowIdentityOnAllLinks bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
+	PageSize                   int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`
+	ExpireDiff                 int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`
+	TrafficDiff                int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"`
+	RemarkTemplate             string `json:"remarkTemplate" form:"remarkTemplate"`
+	SubShowIdentityOnAllLinks  bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
 	SubInfoNodeEnable          bool   `json:"subInfoNodeEnable" form:"subInfoNodeEnable"`
 	SubExpiredTemplate         string `json:"subExpiredTemplate" form:"subExpiredTemplate"`
 	SubTrafficDepletedTemplate string `json:"subTrafficDepletedTemplate" form:"subTrafficDepletedTemplate"`
-	Datepicker                string `json:"datepicker" form:"datepicker"`
+	Datepicker                 string `json:"datepicker" form:"datepicker"`
 
 	TgBotEnable     bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken      string `json:"tgBotToken" form:"tgBotToken"`
