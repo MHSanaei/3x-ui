@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -402,5 +403,31 @@ func TestEnsureInboundTagAllowed(t *testing.T) {
 	}
 	if len(gotAll.InboundTags) != 0 {
 		t.Fatalf("all-mode node must stay without tags, got %#v", gotAll.InboundTags)
+	}
+}
+
+// A panel-created node inbound is stored as "n<id>-tag" and pushed to the node
+// with the prefix stripped, so the sweep's selected set must match both forms.
+func TestReconcileNode_SelectedModeSweepsPrefixedSelectedTag(t *testing.T) {
+	setupConflictDB(t)
+
+	ts, deletedIDs := fakeNodePanel(t, map[string]int{
+		"keep":          1,
+		"selected-gone": 2,
+		"unmanaged":     3,
+	})
+	node := reconcileTestNode(t, ts, "sel-prefix-node", "selected", nil)
+	prefix := fmt.Sprintf("n%d-", node.Id)
+	node.InboundTags = []string{prefix + "keep", prefix + "selected-gone"}
+	seedInboundConflictNode(t, prefix+"keep", "", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+
+	svc := InboundService{}
+	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
+		t.Fatalf("ReconcileNode: %v", err)
+	}
+
+	got := deletedIDs()
+	if len(got) != 1 || got[0] != 2 {
+		t.Fatalf("deleted remote ids = %v, want [2] (prefixed selected tag must be swept, unmanaged 3 must survive)", got)
 	}
 }
