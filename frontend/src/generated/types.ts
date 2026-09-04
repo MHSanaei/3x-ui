@@ -791,10 +791,8 @@ export interface TuicServerSettings {
   max_idle_time: number;
   max_udp_relay_packet_size: number;
   private_key: string;
-  route_through_xray?: boolean;
   sni?: string;
   udp_relay_mode: string;
-  xray_route_port?: number;
   zero_rtt_handshake: boolean;
 }
 

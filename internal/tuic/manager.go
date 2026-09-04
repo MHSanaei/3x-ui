@@ -14,6 +14,7 @@ type managed struct {
 	configPath   string
 	structuralFP string
 	usersFP      string
+	clientEmails []string
 }
 
 type Manager struct {
@@ -74,8 +75,12 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	structuralFP := inst.StructuralFingerprint()
 	usersFP := inst.UsersFingerprint()
 
+	clientEmails := make([]string, 0, len(inst.Clients))
 	uuidToEmail := make(map[string]string, len(inst.Clients))
 	for _, c := range inst.Clients {
+		if c.Email != "" {
+			clientEmails = append(clientEmails, c.Email)
+		}
 		if c.UUID != "" && c.Email != "" {
 			uuidToEmail[c.UUID] = c.Email
 		}
@@ -84,6 +89,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	existing, ok := m.procs[inst.Id]
 	if ok && existing != nil && existing.proc != nil && existing.proc.IsRunning() {
 		if existing.structuralFP == structuralFP && existing.usersFP == usersFP {
+			existing.clientEmails = clientEmails
 			existing.proc.UpdateClients(uuidToEmail)
 			return nil
 		}
@@ -102,6 +108,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		configPath:   configPath,
 		structuralFP: structuralFP,
 		usersFP:      usersFP,
+		clientEmails: clientEmails,
 	}
 	return nil
 }
@@ -124,9 +131,13 @@ func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
 }
 
 type InboundTrafficDelta struct {
-	Tag  string
-	Up   int64
-	Down int64
+	Tag     string
+	Up      int64
+	Down    int64
+	Clients map[string]struct {
+		Up   int64
+		Down int64
+	}
 }
 
 func (m *Manager) CollectTraffic() []InboundTrafficDelta {
@@ -137,10 +148,27 @@ func (m *Manager) CollectTraffic() []InboundTrafficDelta {
 		if mg.proc != nil && mg.proc.IsRunning() {
 			deltaUp, deltaDown := mg.proc.CollectTraffic()
 			if deltaUp > 0 || deltaDown > 0 {
+				activeEmails := mg.proc.GetActiveEmails(60 * time.Second)
+				targets := activeEmails
+				if len(targets) == 0 {
+					targets = mg.clientEmails
+				}
+				clientMap := make(map[string]struct{ Up, Down int64 })
+				if len(targets) > 0 {
+					perClientUp := deltaUp / int64(len(targets))
+					perClientDown := deltaDown / int64(len(targets))
+					for _, email := range targets {
+						clientMap[email] = struct{ Up, Down int64 }{
+							Up:   perClientUp,
+							Down: perClientDown,
+						}
+					}
+				}
 				out = append(out, InboundTrafficDelta{
-					Tag:  mg.tag,
-					Up:   deltaUp,
-					Down: deltaDown,
+					Tag:     mg.tag,
+					Up:      deltaUp,
+					Down:    deltaDown,
+					Clients: clientMap,
 				})
 			}
 		}

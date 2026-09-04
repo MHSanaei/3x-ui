@@ -232,9 +232,6 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 }
 
 func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
-	if l.deps.SetNeedRestart != nil {
-		l.deps.SetNeedRestart()
-	}
 	if oldIb.Protocol == model.TUIC && newIb.Protocol != model.TUIC {
 		tuic.GetManager().Remove(oldIb.Id)
 		if !newIb.Enable {

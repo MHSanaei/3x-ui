@@ -3466,17 +3466,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "private_key": {
         "type": "string"
       },
-      "route_through_xray": {
-        "type": "boolean"
-      },
       "sni": {
         "type": "string"
       },
       "udp_relay_mode": {
         "type": "string"
-      },
-      "xray_route_port": {
-        "type": "integer"
       },
       "zero_rtt_handshake": {
         "type": "boolean"

@@ -844,10 +844,8 @@ export const TuicServerSettingsSchema = z.object({
   max_idle_time: z.number().int(),
   max_udp_relay_packet_size: z.number().int(),
   private_key: z.string(),
-  route_through_xray: z.boolean().optional(),
   sni: z.string().optional(),
   udp_relay_mode: z.string(),
-  xray_route_port: z.number().int().optional(),
   zero_rtt_handshake: z.boolean(),
 });
 export type TuicServerSettings = z.infer<typeof TuicServerSettingsSchema>;

@@ -673,80 +673,52 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 		return ""
 	}
 
-	var rawSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &rawSettings)
-	serverMap, _ := rawSettings["server"].(map[string]any)
-
-	readString := func(key string) string {
-		if serverMap != nil {
-			if v, ok := serverMap[key].(string); ok && v != "" {
-				return v
-			}
-		}
-		if rawSettings != nil {
-			if v, ok := rawSettings[key].(string); ok && v != "" {
-				return v
-			}
-		}
-		return ""
-	}
-
-	readStringList := func(key string) []string {
-		var list []any
-		if serverMap != nil {
-			if l, ok := serverMap[key].([]any); ok && len(l) > 0 {
-				list = l
-			}
-		}
-		if list == nil && rawSettings != nil {
-			if l, ok := rawSettings[key].([]any); ok && len(l) > 0 {
-				list = l
-			}
-		}
-		if len(list) == 0 {
-			return nil
-		}
-		res := make([]string, 0, len(list))
-		for _, item := range list {
-			if str, ok := item.(string); ok && str != "" {
-				res = append(res, str)
-			}
-		}
-		return res
-	}
-
 	params := make(map[string]string)
-	cc := readString("congestion_control")
+	cc := inst.CongestionControl
 	if cc == "" {
 		cc = "bbr"
 	}
 	params["congestion_control"] = cc
 
-	if alpn := readStringList("alpn"); len(alpn) > 0 {
-		params["alpn"] = strings.Join(alpn, ",")
+	if len(inst.ALPN) > 0 {
+		params["alpn"] = strings.Join(inst.ALPN, ",")
 	}
-	if sni := readString("sni"); sni != "" {
-		params["sni"] = sni
+	if inst.SNI != "" {
+		params["sni"] = inst.SNI
 	}
-	if udpRelay := readString("udp_relay_mode"); udpRelay != "" {
-		params["udp_relay_mode"] = udpRelay
+	if inst.UDPRelayMode != "" {
+		params["udp_relay_mode"] = inst.UDPRelayMode
 	}
 	params["allow_insecure"] = "0"
 
 	stream := unmarshalStreamSettings(inbound.StreamSettings)
 	externalProxies, _ := stream["externalProxy"].([]any)
 	if len(externalProxies) > 0 {
-		return s.buildExternalProxyURLLinks(
-			externalProxies,
-			params,
-			"",
-			func(ep map[string]any, dest string, port int) string {
-				return fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(dest, port))
-			},
-			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep, "")
-			},
-		)
+		links := make([]string, 0, len(externalProxies))
+		for _, externalProxy := range externalProxies {
+			ep, ok := externalProxy.(map[string]any)
+			if !ok {
+				continue
+			}
+			dest, _ := ep["dest"].(string)
+			portF, okPort := ep["port"].(float64)
+			if dest == "" || !okPort {
+				continue
+			}
+			epParams := cloneStringMap(params)
+			if sni, ok := externalProxySNI(ep); ok {
+				epParams["sni"] = sni
+			}
+			if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+				epParams["alpn"] = alpn
+			}
+			if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+				epParams["allow_insecure"] = "1"
+			}
+			link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(dest, int(portF)))
+			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep, "")))
+		}
+		return strings.Join(links, "\n")
 	}
 
 	host := s.resolveInboundAddress(inbound)

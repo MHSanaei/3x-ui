@@ -836,10 +836,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "max_idle_time": 0,
     "max_udp_relay_packet_size": 0,
     "private_key": "",
-    "route_through_xray": false,
     "sni": "",
     "udp_relay_mode": "",
-    "xray_route_port": 0,
     "zero_rtt_handshake": false
   },
   "User": {

@@ -44,11 +44,11 @@ func TestGenTuicLinkBasic(t *testing.T) {
 	if q.Get("allow_insecure") != "0" {
 		t.Fatalf("allow_insecure = %q, want 0", q.Get("allow_insecure"))
 	}
-	if q.Has("alpn") {
-		t.Fatalf("alpn should be omitted when not configured, got %q", q.Get("alpn"))
+	if q.Get("alpn") != "h3,spdy/3.1" {
+		t.Fatalf("alpn = %q, want h3,spdy/3.1", q.Get("alpn"))
 	}
-	if q.Has("udp_relay_mode") {
-		t.Fatalf("udp_relay_mode should be omitted when not configured, got %q", q.Get("udp_relay_mode"))
+	if q.Get("udp_relay_mode") != "native" {
+		t.Fatalf("udp_relay_mode = %q, want native", q.Get("udp_relay_mode"))
 	}
 	if u.Fragment != "tuic-test-user@test" {
 		t.Fatalf("fragment = %q, want tuic-test-user@test", u.Fragment)
@@ -93,7 +93,7 @@ func TestGenTuicLinkExternalProxyFanOut(t *testing.T) {
 		Protocol:       model.TUIC,
 		Remark:         "tuic-base",
 		Settings:       `{"server":{"certificate":"/path/cert","private_key":"/path/key"},"clients":[{"uuid":"11111111-1111-1111-1111-111111111111","password":"testpassword","email":"user@test"}]}`,
-		StreamSettings: `{"externalProxy":[{"dest":"host1.example.com","port":9443,"remark":"US"},{"dest":"host2.example.com","port":10443,"remark":"EU"}]}`,
+		StreamSettings: `{"externalProxy":[{"dest":"host1.example.com","port":9443,"remark":"US"},{"dest":"host2.example.com","port":10443,"remark":"EU","allowInsecure":true}]}`,
 	}
 
 	s := &SubService{}
@@ -113,6 +113,12 @@ func TestGenTuicLinkExternalProxyFanOut(t *testing.T) {
 	if !strings.Contains(u1.Fragment, "US") {
 		t.Fatalf("first fragment = %q, want to contain US", u1.Fragment)
 	}
+	if u1.Query().Get("allow_insecure") != "0" {
+		t.Fatalf("first allow_insecure = %q, want 0", u1.Query().Get("allow_insecure"))
+	}
+	if u1.Query().Has("allowInsecure") {
+		t.Fatalf("first link should not have allowInsecure")
+	}
 
 	u2, err := url.Parse(lines[1])
 	if err != nil {
@@ -123,5 +129,11 @@ func TestGenTuicLinkExternalProxyFanOut(t *testing.T) {
 	}
 	if !strings.Contains(u2.Fragment, "EU") {
 		t.Fatalf("second fragment = %q, want to contain EU", u2.Fragment)
+	}
+	if u2.Query().Get("allow_insecure") != "1" {
+		t.Fatalf("second allow_insecure = %q, want 1", u2.Query().Get("allow_insecure"))
+	}
+	if u2.Query().Has("allowInsecure") {
+		t.Fatalf("second link should not have allowInsecure")
 	}
 }

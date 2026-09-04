@@ -35,11 +35,32 @@ func (j *TuicJob) Run() {
 	deltas := mgr.CollectTraffic()
 	onlineEmails, _ := mgr.GetActiveClients(30 * time.Second)
 
+	clientTraffics := make([]*xray.ClientTraffic, 0)
 	inboundUp := make(map[string]int64)
 	inboundDown := make(map[string]int64)
+	seenClients := make(map[string]bool)
 	for _, d := range deltas {
+		for email, stats := range d.Clients {
+			clientTraffics = append(clientTraffics, &xray.ClientTraffic{
+				Email: email,
+				Up:    stats.Up,
+				Down:  stats.Down,
+			})
+			seenClients[email] = true
+		}
 		inboundUp[d.Tag] += d.Up
 		inboundDown[d.Tag] += d.Down
+	}
+
+	for _, email := range onlineEmails {
+		if !seenClients[email] {
+			clientTraffics = append(clientTraffics, &xray.ClientTraffic{
+				Email: email,
+				Up:    0,
+				Down:  0,
+			})
+			seenClients[email] = true
+		}
 	}
 
 	traffics := make([]*xray.Traffic, 0, len(inboundUp))
@@ -52,9 +73,14 @@ func (j *TuicJob) Run() {
 		})
 	}
 
-	if len(traffics) > 0 {
-		if _, _, err := j.inboundService.AddTraffic(traffics, nil); err != nil {
+	if len(traffics) > 0 || len(clientTraffics) > 0 {
+		needRestart, _, err := j.inboundService.AddTraffic(traffics, clientTraffics)
+		if err != nil {
 			logger.Warning("tuic job: add traffic failed:", err)
+		} else if needRestart {
+			if desired, err := j.inboundService.DesiredTuicInstances(); err == nil {
+				mgr.Reconcile(desired)
+			}
 		}
 	}
 
