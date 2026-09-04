@@ -18,12 +18,12 @@ type PsiphonService struct {
 // PsiphonStatus reports process state to the UI: Installed/Configured gate
 // whether Start can be tried, Running/Tunnel are the process's own cheap view.
 type PsiphonStatus struct {
-	Installed  bool                `json:"installed"`
-	Configured bool                `json:"configured"`
-	Running    bool                `json:"running"`
-	Port       int                 `json:"port"`
+	Installed  bool                 `json:"installed"`
+	Configured bool                 `json:"configured"`
+	Running    bool                 `json:"running"`
+	Port       int                  `json:"port"`
 	Tunnel     psiphon.TunnelStatus `json:"tunnel"`
-	LastLog    string              `json:"lastLog,omitempty"`
+	LastLog    string               `json:"lastLog,omitempty"`
 }
 
 func (s *PsiphonService) Status() (PsiphonStatus, error) {

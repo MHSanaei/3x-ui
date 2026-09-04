@@ -1915,6 +1915,47 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/xray/psiphon/:action',
+        summary:
+          'Manage the panel-hosted Psiphon sidecar. The action parameter selects the operation.',
+        params: [
+          {
+            name: 'action',
+            in: 'path',
+            type: 'string',
+            desc: 'status — return {installed, configured, running, port, tunnel, lastLog}. start — launch the managed Psiphon process. stop — stop it. install — download the pinned ConsoleClient release. uninstall — stop the process and remove the binary/config/data. region — set EgressRegion (sends region), restart, and return the live-verified {ip, country}. verify — dial out through the SOCKS port and return the live {ip, country} without changing the region.',
+          },
+          {
+            name: 'region',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'ISO 3166-1 alpha-2 code, or empty for auto. Required when action=region.',
+          },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/xray/psiphon/config/upload',
+        summary:
+          'Replace the admin-supplied psiphon.config. The panel does not and cannot generate working Psiphon credentials -- this must come from the admin.',
+        params: [
+          {
+            name: 'config',
+            in: 'body (multipart)',
+            type: 'file',
+            desc: 'The psiphon.config JSON file. LocalSocksProxyPort, DisableLocalHTTPProxy and ListenInterface are overwritten regardless of what the file says.',
+          },
+        ],
+        body: 'multipart/form-data with a "config" file field',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/xray/psiphon/regions',
+        summary:
+          'List every ISO 3166-1 alpha-2 code for the egress-region picker (not a Psiphon-curated subset -- see the psiphon/:action region action to actually apply and verify one).',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/xray/pia/:action',
         summary: 'Manage PIA WireGuard integration. The action parameter selects the operation.',
         params: [

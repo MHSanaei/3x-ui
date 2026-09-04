@@ -11945,6 +11945,117 @@
         }
       }
     },
+    "/panel/api/xray/psiphon/{action}": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Manage the panel-hosted Psiphon sidecar. The action parameter selects the operation.",
+        "operationId": "post_panel_api_xray_psiphon_action",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "description": "status — return {installed, configured, running, port, tunnel, lastLog}. start — launch the managed Psiphon process. stop — stop it. install — download the pinned ConsoleClient release. uninstall — stop the process and remove the binary/config/data. region — set EgressRegion (sends region), restart, and return the live-verified {ip, country}. verify — dial out through the SOCKS port and return the live {ip, country} without changing the region.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/psiphon/config/upload": {
+      "post": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "Replace the admin-supplied psiphon.config. The panel does not and cannot generate working Psiphon credentials -- this must come from the admin.",
+        "operationId": "post_panel_api_xray_psiphon_config_upload",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/xray/psiphon/regions": {
+      "get": {
+        "tags": [
+          "Xray Settings"
+        ],
+        "summary": "List every ISO 3166-1 alpha-2 code for the egress-region picker (not a Psiphon-curated subset -- see the psiphon/:action region action to actually apply and verify one).",
+        "operationId": "get_panel_api_xray_psiphon_regions",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/xray/pia/{action}": {
       "post": {
         "tags": [
