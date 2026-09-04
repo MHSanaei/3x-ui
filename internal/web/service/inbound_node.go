@@ -173,8 +173,6 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 	// rest were never imported, so their absence from the local DB must not
 	// delete them from the node. Only a selected tag missing locally (the
 	// panel deleted it while the node was unreachable) may be swept.
-	// The node reports a panel-created inbound with its n<id>- prefix stripped,
-	// so the selected set must carry both forms or the sweep never matches.
 	selected := nodeSelectedTagSet(n)
 	for _, tag := range remoteTags {
 		if _, want := desiredTags[tag]; want {

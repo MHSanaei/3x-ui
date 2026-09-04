@@ -12,9 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// A node answers the probe over a connection the master does not control in the
-// skip/pin TLS modes, so an oversized status body must be rejected rather than
-// buffered whole by encoding/json.
+// An oversized status body must be rejected, not buffered whole by encoding/json.
 func TestProbeRejectsOversizedStatusBody(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -41,7 +39,12 @@ func TestProbeRejectsOversizedStatusBody(t *testing.T) {
 	}
 
 	svc := &NodeService{}
-	if _, err := svc.Probe(context.Background(), n); err == nil {
+	patch, err := svc.Probe(context.Background(), n)
+	if err == nil {
 		t.Fatal("Probe accepted a 3 MiB status body, want an error")
+	}
+	// Pin the rejection to the capped decode, not a transport or envelope failure.
+	if !strings.HasPrefix(patch.LastError, "decode response: ") {
+		t.Fatalf("LastError = %q, want a \"decode response: \" rejection", patch.LastError)
 	}
 }
