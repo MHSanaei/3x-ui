@@ -105,7 +105,8 @@ func (t *stackTun) Events() <-chan awgtun.Event { return t.events }
 func (t *stackTun) MTU() (int, error)           { return t.mtu, nil }
 func (t *stackTun) BatchSize() int              { return 1 }
 
-// Read drains incomingPacket into buf, supporting batched reads.
+// Read drains incomingPacket into buf, supporting batched reads. Each view is
+// released once copied out, so the download path reuses gVisor's pooled chunks.
 func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
 	var view *buffer.View
 	select {
@@ -114,6 +115,7 @@ func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
 	case view = <-t.incomingPacket:
 	}
 	n, err := view.Read(buf[0][offset:])
+	view.Release()
 	if err != nil {
 		return 0, err
 	}
@@ -123,6 +125,7 @@ func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
 		select {
 		case view = <-t.incomingPacket:
 			n, err := view.Read(buf[count][offset:])
+			view.Release()
 			if err != nil {
 				return count, nil
 			}
@@ -135,6 +138,8 @@ func (t *stackTun) Read(buf [][]byte, sizes []int, offset int) (int, error) {
 	return count, nil
 }
 
+// Write injects each packet into the stack. The injector owns the packet
+// buffer -- DecRef returns it and its chunk to gVisor's pools (see loopback.go).
 func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 	for _, b := range buf {
 		packet := b[offset:]
@@ -148,8 +153,10 @@ func (t *stackTun) Write(buf [][]byte, offset int) (int, error) {
 		case 6:
 			t.ep.InjectInbound(header.IPv6ProtocolNumber, pkb)
 		default:
+			pkb.DecRef()
 			return 0, syscall.EAFNOSUPPORT
 		}
+		pkb.DecRef()
 	}
 	return len(buf), nil
 }
@@ -176,6 +183,7 @@ func (t *stackTun) WriteNotify() {
 	select {
 	case t.incomingPacket <- view:
 	case <-t.done:
+		view.Release()
 	}
 }
 

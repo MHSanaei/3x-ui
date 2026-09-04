@@ -121,6 +121,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	}
 
 	var header string
+	var hasInactiveExternal bool
 
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
@@ -166,6 +167,11 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		configArray = append(configArray, entry.configs...)
 	}
 	for _, ext := range externalLinks {
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			hasInactiveExternal = true
+			continue
+		}
 		for _, el := range expandEntry(ext) {
 			outbound := parsedExternalOutbound(el.Link)
 			if outbound == nil {
@@ -187,7 +193,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		}
 	}
 
-	if len(configArray) == 0 {
+	if len(configArray) == 0 && !hasInactiveExternal {
 		return "", "", nil
 	}
 
@@ -196,6 +202,10 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		emails = append(emails, e)
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	if len(configArray) == 0 {
+		return "", header, nil
+	}
 
 	var finalJson []byte
 	if len(configArray) == 1 && !alwaysReturnArray {
@@ -204,7 +214,6 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		finalJson, _ = json.MarshalIndent(configArray, "", "  ")
 	}
 
-	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalJson), header, nil
 }
 

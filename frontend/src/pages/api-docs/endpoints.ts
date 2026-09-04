@@ -1,4 +1,4 @@
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'WS';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD';
 export type ParamLocation =
   | 'path'
   | 'query'
@@ -28,6 +28,7 @@ export interface EndpointParam {
   defaultValue?: string | number | boolean;
   minLength?: number;
   pattern?: string;
+  enum?: readonly (string | number | boolean)[];
 }
 
 export interface Endpoint {
@@ -45,6 +46,9 @@ export interface Endpoint {
   bodyRequiredOneOf?: string[];
   responseSchema?: string;
   responseSchemaArray?: boolean;
+  responseObjectSchema?: Record<string, unknown>;
+  responses?: Record<string, Record<string, unknown>>;
+  security?: readonly Record<string, readonly string[]>[];
 }
 
 export interface SubscriptionHeader {
@@ -171,6 +175,12 @@ const subBalancerBodyParams: EndpointParam[] = [
     optional: true,
   },
 ];
+
+const subscriptionHeadResponses = {
+  '200': { description: 'Subscription is available. Headers match GET; no response body.' },
+  '404': { description: 'No enabled client matches the subscription ID.' },
+  '500': { description: 'Subscription generation failed.' },
+};
 
 export const sections: readonly Section[] = [
   {
@@ -556,7 +566,7 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/server/getNewUUID',
         summary: 'Generate a fresh UUID v4. Convenience helper for client IDs.',
-        response: '{\n  "success": true,\n  "obj": "550e8400-e29b-41d4-a716-446655440000"\n}',
+        responseSchema: 'NewUUIDResponse',
       },
       {
         method: 'GET',
@@ -584,18 +594,14 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/server/getNewmldsa65',
-        summary:
-          'Generate a new ML-DSA-65 keypair (post-quantum signature). Returns {privateKey, publicKey, seed}.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "privateKey": "mdsa65priv...",\n    "publicKey": "mdsa65pub...",\n    "seed": "random-seed..."\n  }\n}',
+        summary: 'Generate a new ML-DSA-65 keypair. Returns {seed, verify}.',
+        responseSchema: 'MLDSA65Response',
       },
       {
         method: 'GET',
         path: '/panel/api/server/getNewmlkem768',
-        summary:
-          'Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns {clientKey, serverKey}.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "clientKey": "mlkem768-client...",\n    "serverKey": "mlkem768-server..."\n  }\n}',
+        summary: 'Generate a new ML-KEM-768 keypair. Returns {seed, client}.',
+        responseSchema: 'MLKEM768Response',
       },
       {
         method: 'GET',
@@ -703,8 +709,9 @@ export const sections: readonly Section[] = [
           },
         ],
         body: 'level=info&syslog=false',
+        responseObjectSchema: { type: 'array', items: { type: 'string' } },
         response:
-          '{\n  "success": true,\n  "obj": "2025/01/01 12:00:00 [INFO] Server started\\n2025/01/01 12:00:01 [INFO] Xray is running"\n}',
+          '{\n  "success": true,\n  "obj": [\n    "2025/01/01 12:00:00 [INFO] Server started",\n    "2025/01/01 12:00:01 [INFO] Xray is running"\n  ]\n}',
       },
       {
         method: 'POST',
@@ -742,8 +749,8 @@ export const sections: readonly Section[] = [
           },
         ],
         body: 'filter=error&showDirect=false&showBlocked=true&showProxy=true',
-        response:
-          '{\n  "success": true,\n  "obj": "2025/01/01 12:00:00 rejected  vless  proxy  example.com  reason: no valid user\\n2025/01/01 12:00:01 direct  freedom  ok"\n}',
+        responseSchema: 'LogEntry',
+        responseSchemaArray: true,
       },
       {
         method: 'POST',
@@ -966,41 +973,132 @@ export const sections: readonly Section[] = [
             in: 'query',
             type: 'number',
             desc: '1-indexed page number. Defaults to 1.',
+            optional: true,
+            defaultValue: 1,
           },
           {
             name: 'pageSize',
             in: 'query',
             type: 'number',
             desc: 'Rows per page. Defaults to 25, capped at 200.',
+            optional: true,
+            defaultValue: 25,
           },
           {
             name: 'search',
             in: 'query',
             type: 'string',
-            desc: 'Case-insensitive substring match on email / subId / comment.',
+            desc: 'Case-insensitive substring match on email, subId, comment, UUID, password, auth or Telegram ID.',
+            optional: true,
           },
           {
             name: 'filter',
             in: 'query',
             type: 'string',
-            desc: 'Status bucket: online | active | deactive | depleted | expiring.',
+            desc: 'CSV status buckets: online, active, deactive, depleted or expiring. Values are ORed.',
+            optional: true,
           },
           {
             name: 'protocol',
             in: 'query',
             type: 'string',
-            desc: 'Match clients attached to at least one inbound of this protocol (vless, vmess, trojan, shadowsocks, ...).',
+            desc: 'CSV inbound protocols: vmess, vless, trojan, shadowsocks, wireguard, hysteria, http, mixed, tunnel, tun, mtproto or amneziawg. Values are ORed.',
+            optional: true,
+          },
+          {
+            name: 'inbound',
+            in: 'query',
+            type: 'string',
+            desc: 'CSV positive inbound IDs. Values are ORed; invalid or non-positive IDs are ignored.',
+            optional: true,
           },
           {
             name: 'sort',
             in: 'query',
             type: 'string',
-            desc: 'Sort key: enable | email | inboundIds | traffic | remaining | expiryTime.',
+            desc: 'Sort key. An omitted or unknown value falls back to client ID ascending.',
+            optional: true,
+            enum: [
+              'enable',
+              'email',
+              'inboundIds',
+              'traffic',
+              'remaining',
+              'expiryTime',
+              'createdAt',
+              'updatedAt',
+              'lastOnline',
+            ],
           },
-          { name: 'order', in: 'query', type: 'string', desc: 'ascend or descend.' },
+          {
+            name: 'order',
+            in: 'query',
+            type: 'string',
+            desc: 'Sort direction. Only descend selects descending order; otherwise ascending.',
+            optional: true,
+            enum: ['ascend', 'descend'],
+          },
+          {
+            name: 'expiryFrom',
+            in: 'query',
+            type: 'number',
+            desc: 'Inclusive minimum expiry time in Unix milliseconds. Zero or negative means unset.',
+            optional: true,
+          },
+          {
+            name: 'expiryTo',
+            in: 'query',
+            type: 'number',
+            desc: 'Inclusive maximum expiry time in Unix milliseconds. Zero or negative means unbounded.',
+            optional: true,
+          },
+          {
+            name: 'usageFrom',
+            in: 'query',
+            type: 'number',
+            desc: 'Inclusive minimum combined upload and download usage in bytes. Zero means unset.',
+            optional: true,
+          },
+          {
+            name: 'usageTo',
+            in: 'query',
+            type: 'number',
+            desc: 'Inclusive maximum combined upload and download usage in bytes. Zero means unbounded.',
+            optional: true,
+          },
+          {
+            name: 'autoRenew',
+            in: 'query',
+            type: 'string',
+            desc: 'on selects clients with an interval or calendar-day reset; off selects clients without either.',
+            optional: true,
+            enum: ['on', 'off'],
+          },
+          {
+            name: 'hasTgId',
+            in: 'query',
+            type: 'string',
+            desc: 'yes selects clients with a non-zero Telegram ID; no selects clients without one.',
+            optional: true,
+            enum: ['yes', 'no'],
+          },
+          {
+            name: 'hasComment',
+            in: 'query',
+            type: 'string',
+            desc: 'yes selects clients with a non-blank comment; no selects clients without one.',
+            optional: true,
+            enum: ['yes', 'no'],
+          },
+          {
+            name: 'group',
+            in: 'query',
+            type: 'string',
+            desc: 'CSV group names, matched case-insensitively after trimming. Values are ORed.',
+            optional: true,
+          },
         ],
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "items": [\n      {\n        "email": "alice@example.com",\n        "subId": "abcd1234",\n        "enable": true,\n        "totalGB": 53687091200,\n        "expiryTime": 1735689600000,\n        "limitIp": 0,\n        "limitHwid": 0,\n        "reset": 0,\n        "inboundIds": [3, 5],\n        "traffic": { "up": 1024, "down": 4096, "enable": true },\n        "createdAt": 1735000000000,\n        "updatedAt": 1735100000000\n      }\n    ],\n    "total": 2000,\n    "filtered": 47,\n    "page": 1,\n    "pageSize": 25,\n    "summary": {\n      "total": 2000,\n      "active": 1850,\n      "onlineCount": 1,\n      "depletedCount": 0,\n      "expiringCount": 0,\n      "deactiveCount": 150,\n      "online": ["alice@example.com"],\n      "depleted": [],\n      "expiring": [],\n      "deactive": ["bob@example.com"]\n    }\n  }\n}',
+        responseSchema: 'ClientPageResponse',
       },
       {
         method: 'GET',
@@ -1030,7 +1128,7 @@ export const sections: readonly Section[] = [
         summary:
           'Create a new client and attach it to one or more inbounds in a single call. Body is JSON. Per-protocol secrets are generated server-side when omitted, so callers can send only the universal fields.',
         description:
-          'Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `wireguard: allowedIPs entry already used by another client: <address>` when a different client of that same inbound already holds it. The check is per inbound, so the same address on two different inbounds is accepted. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.',
+          'Fields the server fills in when they are omitted — a valid value sent by the caller is never overwritten. Re-adding an email that already exists, with its stored `subId`, reuses the stored `id`, `password`, `auth` and `secret` instead of minting new ones, so the identity stays in sync across its inbounds.\n\n- **VLESS / VMess** — `id`, a fresh UUID\n- **Trojan** — `password`\n- **Shadowsocks** — `password`. On a `2022-blake3-*` inbound a supplied password that does not base64-decode to the key length of the cipher (16 or 32 bytes) is replaced by a generated key and the call still succeeds, so read the client back if you did not let the server pick. Legacy ciphers keep any non-empty password\n- **Hysteria** — `auth`\n- **mtproto** — `secret`, a FakeTLS secret derived from the fronting domain of the inbound, or from `www.cloudflare.com` when it has none\n- **WireGuard** — `privateKey` and `publicKey` when both are blank, or `publicKey` alone when only a `privateKey` was sent, plus `allowedIPs`: one free `/32` taken from the /24 the existing peers of that inbound already sit in, or from `10.0.0.0/24` when it has none\n\nAccepted on the same body but never generated: `preSharedKey` and `keepAlive` (WireGuard), `adTag` (mtproto).\n\nWireGuard is the only one of these that can fail. Allocation widens the search to the containing /16 before giving up with `inbound <id>: wireguard: no free address available in <scope>`, and an `allowedIPs` supplied by the caller is validated instead of allocated: `inbound <id>: wireguard: allowedIPs entry already used by another client: <address>` when a different client of that same inbound already holds it. The check is per inbound, so the same address on two different inbounds is accepted. The same validation runs on POST /panel/api/clients/{email}/attach, where a client that already carries an address brings it along.\n\nAn `inboundIds` entry that names no existing inbound rejects the whole call before anything is written. Past that, the inbounds are applied concurrently and independently: one that fails no longer stops the others, so a `success:false` response can still have created the client on the rest. Every error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. `limitHwid` is applied only when every inbound succeeded, so re-run the call after fixing the failure.',
         params: [
           {
             name: 'client',
@@ -1085,7 +1183,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/clients/:email/attach',
         summary: 'Attach an existing client to one or more additional inbounds. Body is JSON.',
         description:
-          'A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `wireguard: allowedIPs entry already used by another client: <address>` when a different client of the target inbound already holds it. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule.',
+          'A WireGuard client brings its stored `allowedIPs` into the new inbound instead of being given a fresh address, so the call fails with `inbound <id>: wireguard: allowedIPs entry already used by another client: <address>` when a different client of the target inbound already holds it. Free the address on that inbound first — see POST /panel/api/clients/add for the full rule. Inbounds are applied independently, so the remaining ones are still attached and a `success:false` response can be partial.',
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           {
@@ -1118,14 +1216,14 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/clients/:email/externalLinks',
         summary:
-          "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions.",
+          "Replace a client's external links and external subscriptions. Sends the full set; the server replaces all rows. Disabled rows stay saved for editing but are not emitted in generated subscriptions. The owning client's disabled or expired state also stops these rows from being emitted on future subscription fetches; credentials already imported by an app remain valid until the external provider revokes them.",
         params: [
           { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
           {
             name: 'externalLinks',
             in: 'body',
             type: 'object[]',
-            desc: 'Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means never expire; a negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET.',
+            desc: "Full replacement list; the server replaces all rows. Each row supports { kind, value, remark, enable, expiryTime, namePrefix }. kind=link: value must be a supported share link such as vless://, vmess://, trojan://, ss://, hysteria2://, or wireguard://, and remark overrides the exported node name. kind=subscription: value must be an http(s) subscription URL, and namePrefix is prepended to fetched node names. Omit enable to default true; enable=false or an expired expiryTime keeps the row saved but excludes it from generated subscriptions. expiryTime is a unix millisecond timestamp where 0 means no link-specific expiry; the owning client's enabled state and expiry still apply. A negative value is rejected. Rows are matched by kind+value across saves, so id is ignored on write. lastFetchAt and lastFetchError are read-only status fields returned by GET.",
           },
         ],
         body: '{\n  "externalLinks": [\n    { "kind": "link", "value": "vless://uuid@host:443?...#srv", "remark": "DE", "enable": true, "expiryTime": 0 },\n    { "kind": "subscription", "value": "https://provider.example/sub/abc", "remark": "Provider", "enable": false, "expiryTime": 1767225600000, "namePrefix": "[zjh] " }\n  ]\n}',
@@ -2504,6 +2602,14 @@ export const sections: readonly Section[] = [
         ],
       },
       {
+        method: 'HEAD',
+        path: '/{subPath}:subid',
+        summary:
+          'Return the same status and subscription metadata headers as GET without a response body.',
+        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
+        responses: subscriptionHeadResponses,
+      },
+      {
         method: 'GET',
         path: '/{jsonPath}:subid',
         summary:
@@ -2511,11 +2617,27 @@ export const sections: readonly Section[] = [
         params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
       },
       {
+        method: 'HEAD',
+        path: '/{jsonPath}:subid',
+        summary:
+          'Return the JSON subscription status and metadata headers without a body. Registered only when JSON subscriptions are enabled.',
+        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
+        responses: subscriptionHeadResponses,
+      },
+      {
         method: 'GET',
         path: '/{clashPath}:subid',
         summary:
           'Return subscription as a Clash/Mihomo-compatible YAML config, including configured global Clash routing rules. Only when Clash subscription is enabled in settings. The path prefix is configured by subClashPath.',
         params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
+      },
+      {
+        method: 'HEAD',
+        path: '/{clashPath}:subid',
+        summary:
+          'Return the Clash subscription status and metadata headers without a body. Registered only when Clash subscriptions are enabled.',
+        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
+        responses: subscriptionHeadResponses,
       },
     ],
   },
@@ -2531,36 +2653,11 @@ export const sections: readonly Section[] = [
         path: '/ws',
         summary:
           'Upgrade an HTTP connection to a WebSocket. Requires an authenticated session cookie (Bearer token auth is not supported here). Returns 101 Switching Protocols on success. The server then pushes JSON messages described below.',
-      },
-      {
-        method: 'WS',
-        path: '→ type: status',
-        summary:
-          'Server health snapshot pushed every 2 seconds. Contains CPU, memory, swap, disk, network IO, load, and Xray state — same shape as <code>GET /panel/api/server/status</code>.',
-        response:
-          '{\n  "type": "status",\n  "data": { "cpu": 12.5, "mem": { "current": 2147483648, "total": 8589934592 }, "xray": { "state": "running" } }\n}',
-      },
-      {
-        method: 'WS',
-        path: '→ type: xrayState',
-        summary:
-          'Xray process state change. Fired when Xray starts, stops, or encounters an error.',
-        response: '{\n  "type": "xrayState",\n  "data": "running"\n}',
-      },
-      {
-        method: 'WS',
-        path: '→ type: notification',
-        summary:
-          'In-panel toast notification. Fired on Xray stop/restart, DB import, panel restart, etc.',
-        response:
-          '{\n  "type": "notification",\n  "title": "Xray service restarted",\n  "body": "Xray has been restarted successfully",\n  "severity": "success"\n}',
-      },
-      {
-        method: 'WS',
-        path: '→ type: invalidate',
-        summary:
-          'Instructs the UI to re-fetch a resource. Fired when another admin session modifies data (e.g. toggling inbound enable).',
-        response: '{\n  "type": "invalidate",\n  "resource": "inbounds"\n}',
+        responses: {
+          '101': { description: 'Switching Protocols. WebSocket messages use WebSocketEnvelope.' },
+          '401': { description: 'No authenticated panel session cookie.' },
+        },
+        security: [{ cookieAuth: [] }],
       },
     ],
   },

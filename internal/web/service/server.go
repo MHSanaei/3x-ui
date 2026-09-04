@@ -351,13 +351,27 @@ func (s *ServerService) AggregateSystemMetric(metric string, bucketSeconds int, 
 }
 
 type LogEntry struct {
-	DateTime    time.Time
-	FromAddress string
-	ToAddress   string
-	Inbound     string
-	Outbound    string
-	Email       string
-	Event       int
+	DateTime    time.Time `json:"DateTime" example:"2025-01-01T12:00:00Z"`
+	FromAddress string    `json:"FromAddress" example:"192.0.2.10:54321"`
+	ToAddress   string    `json:"ToAddress" example:"example.com:443"`
+	Inbound     string    `json:"Inbound" example:"inbound-443"`
+	Outbound    string    `json:"Outbound" example:"direct"`
+	Email       string    `json:"Email" example:"alice@example.com"`
+	Event       int       `json:"Event" example:"0"`
+}
+
+type NewUUIDResponse struct {
+	UUID string `json:"uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
+}
+
+type MLDSA65Response struct {
+	Seed   string `json:"seed" example:"mldsa65-seed"`
+	Verify string `json:"verify" example:"mldsa65-verify"`
+}
+
+type MLKEM768Response struct {
+	Seed   string `json:"seed" example:"mlkem768-seed"`
+	Client string `json:"client" example:"mlkem768-client"`
 }
 
 func getPublicIP(url string) string {
@@ -2328,7 +2342,7 @@ func (s *ServerService) GetNewX25519Cert() (any, error) {
 	return keyPair, nil
 }
 
-func (s *ServerService) GetNewmldsa65() (any, error) {
+func (s *ServerService) GetNewmldsa65() (*MLDSA65Response, error) {
 	// Run the command
 	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "mldsa65")
 	var out bytes.Buffer
@@ -2343,9 +2357,9 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 		return nil, err
 	}
 
-	keyPair := map[string]any{
-		"seed":   seed,
-		"verify": verify,
+	keyPair := &MLDSA65Response{
+		Seed:   seed,
+		Verify: verify,
 	}
 
 	return keyPair, nil
@@ -2636,18 +2650,18 @@ func vlessEncAuthID(label string) string {
 	}
 }
 
-func (s *ServerService) GetNewUUID() (map[string]string, error) {
+func (s *ServerService) GetNewUUID() (*NewUUIDResponse, error) {
 	newUUID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate UUID: %w", err)
 	}
 
-	return map[string]string{
-		"uuid": newUUID.String(),
+	return &NewUUIDResponse{
+		UUID: newUUID.String(),
 	}, nil
 }
 
-func (s *ServerService) GetNewmlkem768() (any, error) {
+func (s *ServerService) GetNewmlkem768() (*MLKEM768Response, error) {
 	// Run the command
 	cmd := exec.CommandContext(context.Background(), xray.GetBinaryPath(), "mlkem768")
 	var out bytes.Buffer
@@ -2662,9 +2676,9 @@ func (s *ServerService) GetNewmlkem768() (any, error) {
 		return nil, err
 	}
 
-	keyPair := map[string]any{
-		"seed":   seed,
-		"client": client,
+	keyPair := &MLKEM768Response{
+		Seed:   seed,
+		Client: client,
 	}
 
 	return keyPair, nil
