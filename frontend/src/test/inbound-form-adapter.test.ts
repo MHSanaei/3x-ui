@@ -323,6 +323,30 @@ describe('disableFlow', () => {
   });
 });
 
+describe('REALITY short ID rotation fields', () => {
+  const rotation = {
+    realityShortIdsRotationEnabled: true,
+    realityShortIdsRotationDays: 14,
+    realityShortIdsRotationCount: 2,
+    realityShortIdsGraceHours: 36,
+  };
+
+  it('defaults rotation to disabled with safe schedule values', () => {
+    const values = rawInboundToFormValues(vlessRow);
+    expect(values.realityShortIdsRotationEnabled).toBe(false);
+    expect(values.realityShortIdsRotationDays).toBe(30);
+    expect(values.realityShortIdsRotationCount).toBe(0);
+    expect(values.realityShortIdsGraceHours).toBe(24);
+  });
+
+  it('survives raw → DBInbound → values → payload', () => {
+    const db = new DBInbound({ ...vlessRow, ...rotation } as unknown as DBInboundInit);
+    const values = rawInboundToFormValues(db as unknown as RawInboundRow);
+    const payload = formValuesToWirePayload(values);
+    expect(payload).toMatchObject(rotation);
+  });
+});
+
 describe('subSortIndex', () => {
   it('rawInboundToFormValues defaults to 1 when field is absent', () => {
     const values = rawInboundToFormValues({ ...vlessRow, subSortIndex: undefined });

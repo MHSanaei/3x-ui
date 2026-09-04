@@ -581,6 +581,7 @@ func (s *SubService) projectThroughFallbackMaster(inbound *model.Inbound) bool {
 		return false
 	}
 	inbound.StreamSettings = mergeStreamFromMaster(inbound.StreamSettings, master.StreamSettings)
+	inbound.RealityShortIdsActiveCount = master.RealityShortIdsActiveCount
 	inbound.Listen = master.Listen
 	inbound.Port = master.Port
 	return true
@@ -958,7 +959,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	case "tls":
 		applyShareTLSParams(stream, params)
 	case "reality":
-		applyShareRealityParams(stream, params, subKey(client))
+		applyShareRealityParams(stream, params, subKey(client), inbound.RealityShortIdsActiveCount)
 	default:
 		params["security"] = "none"
 	}
@@ -1011,7 +1012,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	case "tls":
 		applyShareTLSParams(stream, params)
 	case "reality":
-		applyShareRealityParams(stream, params, subKey(client))
+		applyShareRealityParams(stream, params, subKey(client), inbound.RealityShortIdsActiveCount)
 		if streamNetwork == "tcp" && len(client.Flow) > 0 && !inbound.DisableFlow {
 			params["flow"] = client.Flow
 		}
@@ -1668,7 +1669,7 @@ func hysteriaPinHex(pin string) string {
 	return pin
 }
 
-func applyShareRealityParams(stream map[string]any, params map[string]string, clientKey string) {
+func applyShareRealityParams(stream map[string]any, params map[string]string, clientKey string, activeCount int) {
 	params["security"] = "reality"
 	realitySetting, _ := stream["realitySettings"].(map[string]any)
 	realitySettings, _ := searchKey(realitySetting, "settings")
@@ -1682,8 +1683,8 @@ func applyShareRealityParams(stream map[string]any, params map[string]string, cl
 			params["pbk"], _ = pbkValue.(string)
 		}
 		if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
-			if shortIds, _ := sidValue.([]any); len(shortIds) > 0 {
-				params["sid"], _ = shortIds[random.Num(len(shortIds))].(string)
+			if shortIDs := activeRealityShortIDs(sidValue, activeCount); len(shortIDs) > 0 {
+				params["sid"] = shortIDs[random.Num(len(shortIDs))]
 			}
 		}
 		if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {

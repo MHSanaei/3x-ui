@@ -2330,6 +2330,51 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "vless",
         "type": "string"
       },
+      "realityShortIdsActiveCount": {
+        "description": "Active prefix length in realitySettings.shortIds",
+        "type": "integer"
+      },
+      "realityShortIdsGraceHours": {
+        "description": "Hours retiring IDs remain accepted",
+        "maximum": 8760,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "realityShortIdsLastRotationTime": {
+        "description": "Last successful rotation timestamp in milliseconds",
+        "format": "int64",
+        "type": "integer"
+      },
+      "realityShortIdsNextRotationTime": {
+        "description": "Next scheduled rotation timestamp in milliseconds",
+        "format": "int64",
+        "type": "integer"
+      },
+      "realityShortIdsRetireAt": {
+        "description": "Timestamp when the retiring suffix can be removed",
+        "format": "int64",
+        "type": "integer"
+      },
+      "realityShortIdsRotationCount": {
+        "description": "IDs replaced per rotation; zero replaces all active IDs",
+        "maximum": 64,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "realityShortIdsRotationCursor": {
+        "description": "Next active ID index used by subset rotation",
+        "type": "integer"
+      },
+      "realityShortIdsRotationDays": {
+        "description": "Days between REALITY short ID rotations",
+        "maximum": 3650,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "realityShortIdsRotationEnabled": {
+        "description": "Active REALITY short IDs are the prefix; retiring IDs remain in the suffix\nuntil RetireAt so existing clients survive the grace window.\nEnable automatic REALITY short ID rotation",
+        "type": "boolean"
+      },
       "remark": {
         "description": "Human-readable remark",
         "example": "VLESS-443",
@@ -2399,6 +2444,15 @@ export const SCHEMAS: Record<string, unknown> = {
       "listen",
       "port",
       "protocol",
+      "realityShortIdsActiveCount",
+      "realityShortIdsGraceHours",
+      "realityShortIdsLastRotationTime",
+      "realityShortIdsNextRotationTime",
+      "realityShortIdsRetireAt",
+      "realityShortIdsRotationCount",
+      "realityShortIdsRotationCursor",
+      "realityShortIdsRotationDays",
+      "realityShortIdsRotationEnabled",
       "remark",
       "settings",
       "shareAddr",

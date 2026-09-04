@@ -28,6 +28,10 @@ export const InboundDbFieldsSchema = z.object({
   shareAddr: z.string().default(''),
   subSortIndex: z.number().int().min(1).default(1),
   disableFlow: z.boolean().default(false),
+  realityShortIdsRotationEnabled: z.boolean().default(false),
+  realityShortIdsRotationDays: z.number().int().min(1).max(3650).default(30),
+  realityShortIdsRotationCount: z.number().int().min(0).max(64).default(0),
+  realityShortIdsGraceHours: z.number().int().min(0).max(8760).default(24),
 });
 export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
 

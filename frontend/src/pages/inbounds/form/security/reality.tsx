@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -40,6 +40,7 @@ interface RealityFormProps {
   clearRealityKeypair: () => void;
   genMldsa65: () => void;
   clearMldsa65: () => void;
+  rotationSupported: boolean;
 }
 
 export default function RealityForm({
@@ -55,9 +56,11 @@ export default function RealityForm({
   clearRealityKeypair,
   genMldsa65,
   clearMldsa65,
+  rotationSupported,
 }: RealityFormProps) {
   const { t } = useTranslation();
-  const { getFieldState, trigger } = useFormContext();
+  const { control, getFieldState, trigger } = useFormContext();
+  const rotationEnabled = useWatch({ control, name: 'realityShortIdsRotationEnabled' });
   const [scannerOpen, setScannerOpen] = useState(false);
   /*
    * An untrusted certificate (self-signed fronting service on the LAN) is still
@@ -218,6 +221,61 @@ export default function RealityForm({
           />
         </Space.Compact>
       </Form.Item>
+      {rotationSupported && (
+        <>
+          <Divider>{t('pages.inbounds.form.shortIdRotation')}</Divider>
+          <FormField
+            name="realityShortIdsRotationEnabled"
+            label={t('pages.inbounds.form.shortIdRotation')}
+            tooltip={t('pages.inbounds.form.shortIdRotationHint')}
+            valueProp="checked"
+          >
+            <Switch />
+          </FormField>
+          {rotationEnabled && (
+            <>
+              <FormField
+                name="realityShortIdsRotationDays"
+                label={t('pages.inbounds.form.shortIdRotationDays')}
+              >
+                <InputNumber min={1} max={3650} />
+              </FormField>
+              <FormField
+                name="realityShortIdsRotationCount"
+                label={t('pages.inbounds.form.shortIdRotationCount')}
+                tooltip={t('pages.inbounds.form.shortIdRotationCountHint')}
+                rules={{
+                  validate: (value, formValues) => {
+                    const count = Number(value ?? 0);
+                    const shortIds = formValues?.streamSettings?.realitySettings?.shortIds;
+                    return count === 0 || !Array.isArray(shortIds) || count <= shortIds.length
+                      ? true
+                      : 'pages.inbounds.form.shortIdRotationCountInvalid';
+                  },
+                }}
+              >
+                <InputNumber min={0} max={64} />
+              </FormField>
+              <FormField
+                name="realityShortIdsGraceHours"
+                label={t('pages.inbounds.form.shortIdGraceHours')}
+                tooltip={t('pages.inbounds.form.shortIdGraceHoursHint')}
+                rules={{
+                  validate: (value, formValues) => {
+                    const grace = Number(value ?? 0);
+                    const days = Number(formValues?.realityShortIdsRotationDays ?? 0);
+                    return days <= 0 || grace < days * 24
+                      ? true
+                      : 'pages.inbounds.form.shortIdGraceInvalid';
+                  },
+                }}
+              >
+                <InputNumber min={0} max={8760} />
+              </FormField>
+            </>
+          )}
+        </>
+      )}
       <Form.Item
         label={t('pages.inbounds.form.spiderX')}
         tooltip={t('pages.inbounds.form.spiderXHint')}

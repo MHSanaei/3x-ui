@@ -110,7 +110,14 @@ describe('inbound security forms', () => {
         clearRealityKeypair={noop}
         genMldsa65={noop}
         clearMldsa65={noop}
+        rotationSupported
       />,
+      {
+        realityShortIdsRotationEnabled: true,
+        realityShortIdsRotationDays: 30,
+        realityShortIdsRotationCount: 0,
+        realityShortIdsGraceHours: 24,
+      },
     );
     expect(fieldLabels()).toMatchSnapshot();
   });

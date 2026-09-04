@@ -73,6 +73,18 @@ type Inbound struct {
 
 	DisableFlow bool `json:"disableFlow" form:"disableFlow" gorm:"column:disable_flow;default:false" example:"false"`
 
+	// Active REALITY short IDs are the prefix; retiring IDs remain in the suffix
+	// until RetireAt so existing clients survive the grace window.
+	RealityShortIdsRotationEnabled  bool  `json:"realityShortIdsRotationEnabled" form:"realityShortIdsRotationEnabled" gorm:"column:reality_short_ids_rotation_enabled;default:false;index"`                   // Enable automatic REALITY short ID rotation
+	RealityShortIdsRotationDays     int   `json:"realityShortIdsRotationDays" form:"realityShortIdsRotationDays" gorm:"column:reality_short_ids_rotation_days;default:30" validate:"omitempty,gte=1,lte=3650"` // Days between REALITY short ID rotations
+	RealityShortIdsRotationCount    int   `json:"realityShortIdsRotationCount" form:"realityShortIdsRotationCount" gorm:"column:reality_short_ids_rotation_count;default:0" validate:"omitempty,gte=0,lte=64"` // IDs replaced per rotation; zero replaces all active IDs
+	RealityShortIdsGraceHours       int   `json:"realityShortIdsGraceHours" form:"realityShortIdsGraceHours" gorm:"column:reality_short_ids_grace_hours;default:24" validate:"omitempty,gte=0,lte=8760"`       // Hours retiring IDs remain accepted
+	RealityShortIdsActiveCount      int   `json:"realityShortIdsActiveCount" form:"realityShortIdsActiveCount" gorm:"column:reality_short_ids_active_count;default:0"`                                         // Active prefix length in realitySettings.shortIds
+	RealityShortIdsRotationCursor   int   `json:"realityShortIdsRotationCursor" form:"realityShortIdsRotationCursor" gorm:"column:reality_short_ids_rotation_cursor;default:0"`                                // Next active ID index used by subset rotation
+	RealityShortIdsLastRotationTime int64 `json:"realityShortIdsLastRotationTime" form:"realityShortIdsLastRotationTime" gorm:"column:reality_short_ids_last_rotation_time;default:0"`                         // Last successful rotation timestamp in milliseconds
+	RealityShortIdsNextRotationTime int64 `json:"realityShortIdsNextRotationTime" form:"realityShortIdsNextRotationTime" gorm:"column:reality_short_ids_next_rotation_time;default:0"`                         // Next scheduled rotation timestamp in milliseconds
+	RealityShortIdsRetireAt         int64 `json:"realityShortIdsRetireAt" form:"realityShortIdsRetireAt" gorm:"column:reality_short_ids_retire_at;default:0"`                                                  // Timestamp when the retiring suffix can be removed
+
 	// OriginNodeGuid is the panelGuid of the node that physically hosts this
 	// inbound, propagated up across hops (#4983). Empty for an inbound that
 	// lives on this panel's own xray; set to the originating node's GUID when
