@@ -1,16 +1,14 @@
 package sub
 
 import (
-	"maps"
-	"slices"
-
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
