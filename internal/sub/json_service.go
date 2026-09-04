@@ -788,10 +788,29 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 	}
 	if client.Flow != "" && !inbound.DisableFlow {
 		settings["flow"] = client.Flow
+		outbound.Mux = muxWithoutTCP(mux)
 	}
 	outbound.Settings = settings
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+// XTLS flows reject TCP mux.cool ("unexpected network TCP"); concurrency -1
+// turns only that off and keeps the XUDP keys (Xray reads them under enabled).
+func muxWithoutTCP(mux string) json_util.RawMessage {
+	if mux == "" {
+		return nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(mux), &m); err != nil || m == nil {
+		return nil
+	}
+	m["concurrency"] = -1
+	out, err := json.Marshal(m)
+	if err != nil {
+		return nil
+	}
+	return json_util.RawMessage(out)
 }
 
 func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
