@@ -1844,7 +1844,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "各パケットにランダムなバイトを追加します。両端にAmneziaWG 3.1+が必要です。",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "cookie replyを送信しません。DPIの指紋を消しますが、フラッド緩和は弱まります。"
+        "disableCookiesHint": "cookie replyを送信しません。DPIの指紋を消しますが、フラッド緩和は弱まります。",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "ユーザーレベル"

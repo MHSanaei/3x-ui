@@ -1844,7 +1844,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "Her paketin sonuna rastgele baytlar ekler. Her iki uç da AmneziaWG 3.1+ gerektirir.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "Cookie reply asla gönderilmez — bir DPI parmak izini kaldırır ancak taşma korumasını zayıflatır."
+        "disableCookiesHint": "Cookie reply asla gönderilmez — bir DPI parmak izini kaldırır ancak taşma korumasını zayıflatır.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"

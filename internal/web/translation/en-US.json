@@ -1962,7 +1962,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "Appends random bytes to every packet. Both ends need AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "Never send cookie replies — removes a DPI fingerprint; weakens flood mitigation."
+        "disableCookiesHint": "Never send cookie replies — removes a DPI fingerprint; weakens flood mitigation.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "User Level"

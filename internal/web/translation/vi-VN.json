@@ -1844,7 +1844,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "Thêm các byte ngẫu nhiên vào cuối mỗi gói. Cả hai đầu cần AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "Không bao giờ gửi cookie reply — xóa một dấu vết DPI nhưng làm yếu khả năng chống flood."
+        "disableCookiesHint": "Không bao giờ gửi cookie reply — xóa một dấu vết DPI nhưng làm yếu khả năng chống flood.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "Mức Người Dùng"

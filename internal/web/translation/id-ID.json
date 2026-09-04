@@ -1844,7 +1844,10 @@
         "randomTrailers": "RandomTrailers",
         "randomTrailersHint": "Menambahkan byte acak ke setiap paket. Kedua sisi butuh AmneziaWG 3.1+.",
         "disableCookies": "DisableCookies",
-        "disableCookiesHint": "Tidak pernah mengirim cookie reply — menghapus sidik jari DPI, tetapi melemahkan mitigasi banjir."
+        "disableCookiesHint": "Tidak pernah mengirim cookie reply — menghapus sidik jari DPI, tetapi melemahkan mitigasi banjir.",
+        "listenPort": "Listen Port (optional)",
+        "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
+        "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
       "tun": {
         "userLevel": "Level Pengguna"
