@@ -1148,11 +1148,11 @@ func (s *InboundService) CountClientTraffics() (int64, error) {
 }
 
 type InboundTrafficSummary struct {
-	Id     int   `json:"id"`
-	Up     int64 `json:"up"`
-	Down   int64 `json:"down"`
-	Total  int64 `json:"total"`
-	Enable bool  `json:"enable"`
+	Id     int   `json:"id" example:"1"`
+	Up     int64 `json:"up" example:"1048576"`
+	Down   int64 `json:"down" example:"2097152"`
+	Total  int64 `json:"total" example:"10737418240"`
+	Enable bool  `json:"enable" example:"true"`
 }
 
 func (s *InboundService) GetInboundsTrafficSummary() ([]InboundTrafficSummary, error) {

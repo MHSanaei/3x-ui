@@ -18,22 +18,22 @@ import (
 // so the list payload stays compact even when the panel manages thousands
 // of clients. Modals that need the full record still call /get/:email.
 type ClientSlim struct {
-	Email      string              `json:"email"`
-	SubID      string              `json:"subId"`
-	Enable     bool                `json:"enable"`
-	TotalGB    int64               `json:"totalGB"`
-	ExpiryTime int64               `json:"expiryTime"`
-	LimitIP    int                 `json:"limitIp"`
-	LimitHwid  int                 `json:"limitHwid"`
-	Reset      int                 `json:"reset"`
-	ResetDay   int                 `json:"resetDay"`
-	ResetMax   int                 `json:"resetMax"`
-	Group      string              `json:"group,omitempty"`
-	Comment    string              `json:"comment,omitempty"`
-	InboundIds []int               `json:"inboundIds"`
+	Email      string              `json:"email" example:"alice@example.com"`
+	SubID      string              `json:"subId" example:"abcd1234"`
+	Enable     bool                `json:"enable" example:"true"`
+	TotalGB    int64               `json:"totalGB" example:"53687091200"`
+	ExpiryTime int64               `json:"expiryTime" example:"1735689600000"`
+	LimitIP    int                 `json:"limitIp" example:"0"`
+	LimitHwid  int                 `json:"limitHwid" example:"0"`
+	Reset      int                 `json:"reset" example:"0"`
+	ResetDay   int                 `json:"resetDay" example:"0"`
+	ResetMax   int                 `json:"resetMax" example:"0"`
+	Group      string              `json:"group,omitempty" example:"staff"`
+	Comment    string              `json:"comment,omitempty" example:"Primary device"`
+	InboundIds []int               `json:"inboundIds" example:"[3,5]"`
 	Traffic    *xray.ClientTraffic `json:"traffic,omitempty"`
-	CreatedAt  int64               `json:"createdAt"`
-	UpdatedAt  int64               `json:"updatedAt"`
+	CreatedAt  int64               `json:"createdAt" example:"1735000000000"`
+	UpdatedAt  int64               `json:"updatedAt" example:"1735100000000"`
 }
 
 // ClientPageParams are the query params accepted by /panel/api/clients/list/paged.
@@ -70,12 +70,12 @@ type ClientPageParams struct {
 // on the clients page stay stable as the user paginates/filters.
 type ClientPageResponse struct {
 	Items    []ClientSlim   `json:"items"`
-	Total    int            `json:"total"`
-	Filtered int            `json:"filtered"`
-	Page     int            `json:"page"`
-	PageSize int            `json:"pageSize"`
+	Total    int            `json:"total" example:"2000"`
+	Filtered int            `json:"filtered" example:"47"`
+	Page     int            `json:"page" example:"1"`
+	PageSize int            `json:"pageSize" example:"25"`
 	Summary  ClientsSummary `json:"summary"`
-	Groups   []string       `json:"groups"`
+	Groups   []string       `json:"groups" example:"[\"staff\",\"trial\"]"`
 }
 
 // ClientsSummary collects per-bucket counts plus the matching email lists so
@@ -83,16 +83,16 @@ type ClientPageResponse struct {
 // popovers without shipping the full client array. The counters are exact;
 // the lists stop at clientSummaryEmailCap entries and only back the popovers.
 type ClientsSummary struct {
-	Total         int      `json:"total"`
-	Active        int      `json:"active"`
-	OnlineCount   int      `json:"onlineCount"`
-	DepletedCount int      `json:"depletedCount"`
-	ExpiringCount int      `json:"expiringCount"`
-	DeactiveCount int      `json:"deactiveCount"`
-	Online        []string `json:"online"`
-	Depleted      []string `json:"depleted"`
-	Expiring      []string `json:"expiring"`
-	Deactive      []string `json:"deactive"`
+	Total         int      `json:"total" example:"2000"`
+	Active        int      `json:"active" example:"1850"`
+	OnlineCount   int      `json:"onlineCount" example:"1"`
+	DepletedCount int      `json:"depletedCount" example:"0"`
+	ExpiringCount int      `json:"expiringCount" example:"0"`
+	DeactiveCount int      `json:"deactiveCount" example:"150"`
+	Online        []string `json:"online" example:"[\"alice@example.com\"]"`
+	Depleted      []string `json:"depleted" example:"[]"`
+	Expiring      []string `json:"expiring" example:"[]"`
+	Deactive      []string `json:"deactive" example:"[\"bob@example.com\"]"`
 }
 
 const (

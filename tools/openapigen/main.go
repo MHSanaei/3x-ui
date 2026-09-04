@@ -73,6 +73,7 @@ func run(root, outDir string) error {
 			Path: resolveRel(root, "internal/xray"),
 			StructAllow: setOf(
 				"ClientTraffic",
+				"Traffic",
 			),
 		},
 		{
@@ -90,6 +91,14 @@ func run(root, outDir string) error {
 			Path: resolveRel(root, "internal/web/service"),
 			StructAllow: setOf(
 				"InboundOption",
+				"ClientSlim",
+				"ClientPageResponse",
+				"ClientsSummary",
+				"InboundTrafficSummary",
+				"LogEntry",
+				"NewUUIDResponse",
+				"MLDSA65Response",
+				"MLKEM768Response",
 				"NodeMutationRequest",
 				"NodeView",
 				"ProbeResultUI",
