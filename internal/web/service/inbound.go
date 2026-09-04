@@ -1111,19 +1111,6 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 				return common.NewError(conflict.String())
 			}
 		}
-		if inbound.Protocol == model.TUIC {
-			if tuic.SOCKSPortForInbound(inbound.Id) > 65535 {
-				return common.NewErrorf("tuic: inbound id %d exceeds the relay port window (ids above %d are not supported)",
-					inbound.Id, 65535-tuic.SOCKSBasePort)
-			}
-			conflict, cErr := checkTuicSocksReverseConflict(tx, inbound.Id)
-			if cErr != nil {
-				return cErr
-			}
-			if conflict != nil {
-				return common.NewError(conflict.String())
-			}
-		}
 		// Emails seeded here (import's ClientStats, e.g. the controller's forced
 		// Enable=true on every imported stat row) are authoritative for this call
 		// and must not be clobbered by the AddClientStat loop below, which derives

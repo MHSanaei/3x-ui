@@ -155,20 +155,13 @@ func (p *Process) CollectTraffic() (int64, int64) {
 		p.lastWchar = wchar
 		return 0, 0
 	}
-	var deltaUp, deltaDown int64
+	var delta int64
 	if rchar >= p.lastRchar {
-		deltaUp = rchar - p.lastRchar
-		p.lastRchar = rchar
-	} else {
-		p.lastRchar = rchar
+		delta = rchar - p.lastRchar
 	}
-	if wchar >= p.lastWchar {
-		deltaDown = wchar - p.lastWchar
-		p.lastWchar = wchar
-	} else {
-		p.lastWchar = wchar
-	}
-	return deltaUp, deltaDown
+	p.lastRchar = rchar
+	p.lastWchar = wchar
+	return 0, delta
 }
 
 func (p *Process) GetActiveEmails(window time.Duration) []string {

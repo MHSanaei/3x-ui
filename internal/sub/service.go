@@ -666,23 +666,84 @@ func (s *SubService) genTuicLink(inbound *model.Inbound, email string) string {
 		return ""
 	}
 
-	host := s.resolveInboundAddress(inbound)
-	link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(host, inbound.Port))
+	var rawSettings map[string]any
+	_ = json.Unmarshal([]byte(inbound.Settings), &rawSettings)
+	serverMap, _ := rawSettings["server"].(map[string]any)
+
+	readString := func(key string) string {
+		if serverMap != nil {
+			if v, ok := serverMap[key].(string); ok && v != "" {
+				return v
+			}
+		}
+		if rawSettings != nil {
+			if v, ok := rawSettings[key].(string); ok && v != "" {
+				return v
+			}
+		}
+		return ""
+	}
+
+	readStringList := func(key string) []string {
+		var list []any
+		if serverMap != nil {
+			if l, ok := serverMap[key].([]any); ok && len(l) > 0 {
+				list = l
+			}
+		}
+		if list == nil && rawSettings != nil {
+			if l, ok := rawSettings[key].([]any); ok && len(l) > 0 {
+				list = l
+			}
+		}
+		if len(list) == 0 {
+			return nil
+		}
+		res := make([]string, 0, len(list))
+		for _, item := range list {
+			if str, ok := item.(string); ok && str != "" {
+				res = append(res, str)
+			}
+		}
+		return res
+	}
+
 	params := make(map[string]string)
-	if inst.CongestionControl != "" {
-		params["congestion_control"] = inst.CongestionControl
+	cc := readString("congestion_control")
+	if cc == "" {
+		cc = "bbr"
 	}
-	if len(inst.ALPN) > 0 {
-		params["alpn"] = strings.Join(inst.ALPN, ",")
+	params["congestion_control"] = cc
+
+	if alpn := readStringList("alpn"); len(alpn) > 0 {
+		params["alpn"] = strings.Join(alpn, ",")
 	}
-	if inst.SNI != "" {
-		params["sni"] = inst.SNI
+	if sni := readString("sni"); sni != "" {
+		params["sni"] = sni
 	}
-	if inst.UDPRelayMode != "" {
-		params["udp_relay_mode"] = inst.UDPRelayMode
+	if udpRelay := readString("udp_relay_mode"); udpRelay != "" {
+		params["udp_relay_mode"] = udpRelay
 	}
 	params["allow_insecure"] = "0"
 
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	externalProxies, _ := stream["externalProxy"].([]any)
+	if len(externalProxies) > 0 {
+		return s.buildExternalProxyURLLinks(
+			externalProxies,
+			params,
+			"",
+			func(ep map[string]any, dest string, port int) string {
+				return fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(dest, port))
+			},
+			func(ep map[string]any) string {
+				return s.endpointRemark(inbound, email, ep, "")
+			},
+		)
+	}
+
+	host := s.resolveInboundAddress(inbound)
+	link := fmt.Sprintf("tuic://%s:%s@%s", encodeUserinfo(client.UUID), encodeUserinfo(client.Password), joinHostPort(host, inbound.Port))
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
 }
 

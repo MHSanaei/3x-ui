@@ -1,6 +1,6 @@
 ---
 title: TUIC
-description: Set up a TUIC inbound in 3x-ui — QUIC congestion control, 0-RTT handshakes, multi-user authentication, and routing client traffic through Xray.
+description: Set up a TUIC inbound in 3x-ui — QUIC congestion control, 0-RTT handshakes, and multi-user authentication.
 icon: Zap
 ---
 
@@ -12,10 +12,8 @@ unstable networks.
 <Callout type="info">
   Like MTProto, TUIC runs as a **managed sidecar process** (`tuic-server` 1.0.0,
   written in Rust) rather than inside Xray-core. The panel manages the binary
-  lifecycle, monitors process health, and reads I/O metrics. Each client's
-  authenticated traffic relays through a local loopback SOCKS5 listener
-  (`127.0.0.1:63200+id`) into Xray, so client routing, sniffing, and traffic quotas
-  are seamlessly integrated with the rest of the panel.
+  lifecycle, generates configurations, monitors process health, and tracks
+  inbound traffic and client online presence.
 </Callout>
 
 ## Key settings

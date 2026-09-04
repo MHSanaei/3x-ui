@@ -22,8 +22,6 @@ type TuicServerSettings struct {
 	AuthenticationTimeout int      `json:"authentication_timeout"`
 	MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 	SNI                   string   `json:"sni,omitempty"`
-	RouteThroughXray      bool     `json:"route_through_xray,omitempty"`
-	XrayRoutePort         int      `json:"xray_route_port,omitempty"`
 }
 
 type TuicClientSettings struct {
@@ -49,8 +47,6 @@ type Instance struct {
 	MaxUdpRelayPacketSize int
 	SNI                   string
 	Clients               []TuicClientSettings
-	RouteThroughXray      bool
-	XrayRoutePort         int
 }
 
 func (inst Instance) BindTo() string {
@@ -75,8 +71,6 @@ func (inst Instance) StructuralFingerprint() string {
 		strconv.Itoa(inst.AuthenticationTimeout),
 		strconv.Itoa(inst.MaxUdpRelayPacketSize),
 		inst.SNI,
-		strconv.FormatBool(inst.RouteThroughXray),
-		strconv.Itoa(inst.XrayRoutePort),
 	}
 	return strings.Join(parts, "|")
 }
@@ -111,8 +105,6 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		AuthenticationTimeout int      `json:"authentication_timeout"`
 		MaxUdpRelayPacketSize int      `json:"max_udp_relay_packet_size"`
 		SNI                   string   `json:"sni"`
-		RouteThroughXray      bool     `json:"route_through_xray"`
-		RouteXrayPort         int      `json:"routeXrayPort"`
 		Server                *struct {
 			Certificate           string   `json:"certificate"`
 			PrivateKey            string   `json:"private_key"`
@@ -235,11 +227,6 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		})
 	}
 
-	routePort := parsed.RouteXrayPort
-	if routePort <= 0 {
-		routePort = SOCKSPortForInbound(ib.Id)
-	}
-
 	return Instance{
 		Id:                    ib.Id,
 		Tag:                   ib.Tag,
@@ -257,7 +244,5 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		MaxUdpRelayPacketSize: maxPacketSize,
 		SNI:                   sni,
 		Clients:               clients,
-		RouteThroughXray:      parsed.RouteThroughXray,
-		XrayRoutePort:         routePort,
 	}, true
 }
