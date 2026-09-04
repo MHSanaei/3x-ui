@@ -23,6 +23,7 @@ import {
   CloudOutlined,
   ApiOutlined,
   EyeInvisibleOutlined,
+  UnlockOutlined,
   MoreOutlined,
   RetweetOutlined,
   PlayCircleOutlined,
@@ -98,6 +99,7 @@ interface OutboundsTabProps {
   onShowNord: () => void;
   onShowPia: () => void;
   onShowTor: () => void;
+  onShowPsiphon: () => void;
   onRefreshXrayData?: () => void;
 }
 
@@ -120,6 +122,7 @@ export default function OutboundsTab({
   onShowNord,
   onShowPia,
   onShowTor,
+  onShowPsiphon,
   onRefreshXrayData,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
@@ -566,6 +569,12 @@ export default function OutboundsTab({
                       icon: <EyeInvisibleOutlined />,
                       label: 'Tor',
                       onClick: onShowTor,
+                    },
+                    {
+                      key: 'psiphon',
+                      icon: <UnlockOutlined />,
+                      label: 'Psiphon',
+                      onClick: onShowPsiphon,
                     },
                     { type: 'divider' },
                     {

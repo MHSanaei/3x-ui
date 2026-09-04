@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,7 @@ type XraySettingController struct {
 	WarpService                 integration.WarpService
 	NordService                 integration.NordService
 	TorService                  integration.TorService
+	PsiphonService              integration.PsiphonService
 	FrontProxyService           integration.FrontProxyService
 	AdGuardService              integration.AdGuardService
 	PiaService                  integration.PiaService
@@ -53,6 +55,8 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/warp/:action", a.warp)
 	g.POST("/nord/:action", a.nord)
 	g.POST("/tor/:action", a.tor)
+	g.POST("/psiphon/:action", a.psiphon)
+	g.POST("/psiphon/config/upload", a.psiphonConfigUpload)
 	g.POST("/frontproxy/:action", a.frontProxy)
 	g.POST("/frontproxy/decoy/upload", a.frontProxyDecoyUpload)
 	g.POST("/adguard/:action", a.adGuard)
@@ -64,6 +68,8 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/balancerStatus", a.balancerStatus)
 	g.POST("/balancerOverride", a.balancerOverride)
 	g.POST("/routeTest", a.routeTest)
+
+	g.GET("/psiphon/regions", a.psiphonRegions)
 
 	g.GET("/geodata/files", a.geodataFiles)
 	g.GET("/geodata/categories", a.geodataCategories)
@@ -299,6 +305,59 @@ func (a *XraySettingController) tor(c *gin.Context) {
 	case "newIdentity":
 		err = a.TorService.NewIdentity()
 	}
+	jsonObj(c, resp, err)
+}
+
+// psiphon handles the managed Psiphon sidecar (internal/psiphon) based on the
+// action parameter. "region" restarts the process and returns the live-verified exit.
+func (a *XraySettingController) psiphon(c *gin.Context) {
+	action := c.Param("action")
+	var resp any
+	var err error
+	switch action {
+	case "status":
+		resp, err = a.PsiphonService.Status()
+	case "start":
+		err = a.PsiphonService.Start()
+	case "stop":
+		err = a.PsiphonService.Stop()
+	case "install":
+		err = a.PsiphonService.Install()
+	case "uninstall":
+		err = a.PsiphonService.Uninstall()
+	case "region":
+		resp, err = a.PsiphonService.SetEgressRegion(c.PostForm("region"))
+	case "verify":
+		resp, err = a.PsiphonService.CurrentExit()
+	}
+	jsonObj(c, resp, err)
+}
+
+// psiphonRegions lists the ISO 3166-1 alpha-2 codes the region picker offers.
+// Static reference data, so a plain GET, unlike the other Psiphon operations.
+func (a *XraySettingController) psiphonRegions(c *gin.Context) {
+	jsonObj(c, integration.AvailableRegions(), nil)
+}
+
+// psiphonConfigUpload replaces the admin-supplied psiphon.config. Multipart
+// rather than JSON, following frontProxyDecoyUpload's precedent.
+func (a *XraySettingController) psiphonConfigUpload(c *gin.Context) {
+	file, _, err := c.Request.FormFile("config")
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.psiphonConfigUpload"), err)
+		return
+	}
+	defer file.Close()
+	raw, err := io.ReadAll(io.LimitReader(file, 1<<20))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.psiphonConfigUpload"), err)
+		return
+	}
+	if err := a.PsiphonService.SaveConfig(raw); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.psiphonConfigUpload"), err)
+		return
+	}
+	resp, err := a.PsiphonService.Status()
 	jsonObj(c, resp, err)
 }
 

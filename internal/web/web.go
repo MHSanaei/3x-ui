@@ -23,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/frontproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/psiphon"
 	"github.com/mhsanaei/3x-ui/v3/internal/tor"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
@@ -538,6 +539,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// proxy is about to serve as its decoy.
 	(&integration.AdGuardService{}).AutoStart()
 
+	// Psiphon is the same standalone-sidecar shape as Tor above, via its own AutoStart.
+	(&integration.PsiphonService{}).AutoStart()
+
 	// Same shape for the reverse proxy. AutoStart never returns an error: a
 	// proxy that cannot come up must not stop the panel itself from starting.
 	(&integration.FrontProxyService{}).AutoStart()
@@ -722,6 +726,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		tor.GetManager().StopAll()
+		psiphon.GetManager().StopAll()
 		frontproxy.GetManager().StopAll()
 		adguard.GetManager().StopAll()
 	}

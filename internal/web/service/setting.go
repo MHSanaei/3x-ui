@@ -1040,6 +1040,16 @@ func (s *SettingService) SetTorEnable(value bool) error {
 	return s.setBool("torEnable", value)
 }
 
+// GetPsiphonEnable reports whether the managed Psiphon sidecar should be
+// running, read back at panel boot to restore the admin's last choice.
+func (s *SettingService) GetPsiphonEnable() (bool, error) {
+	return s.getBool("psiphonEnable")
+}
+
+func (s *SettingService) SetPsiphonEnable(value bool) error {
+	return s.setBool("psiphonEnable", value)
+}
+
 // GetFrontProxyEnable reports whether the reverse proxy should be listening.
 // Read at boot to restore whatever state the admin last left it in.
 func (s *SettingService) GetFrontProxyEnable() (bool, error) {
