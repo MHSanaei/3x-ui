@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"maps"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
 	yaml "github.com/goccy/go-yaml"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 type SubClashService struct {
@@ -84,6 +86,69 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
 	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+
+	if subReq.subInfoNodeEnable && subReq.subscriptionBody {
+		nowSec := time.Now().Unix()
+		isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime/1000 <= nowSec
+		isDepleted := traffic.Total > 0 && (traffic.Up+traffic.Down) >= traffic.Total
+
+		primaryEmail := ""
+		if len(emails) > 0 {
+			primaryEmail = emails[0]
+		}
+		ctx := remarkContext{
+			client: model.Client{Email: primaryEmail, SubID: subId},
+			stats:  traffic,
+		}
+
+		if isExpired {
+			tmpl := subReq.subExpiredTemplate
+			if tmpl == "" {
+				tmpl = service.DefaultSubExpiredTemplate
+			}
+			remark := expandRemarkVars(tmpl, ctx)
+			if strings.TrimSpace(remark) == "" {
+				remark = "Expired"
+			}
+			proxies = []map[string]any{{
+				"name":   remark,
+				"type":   "socks5",
+				"server": "127.0.0.1",
+				"port":   1080,
+			}}
+		} else if isDepleted {
+			tmpl := subReq.subTrafficDepletedTemplate
+			if tmpl == "" {
+				tmpl = service.DefaultSubTrafficDepletedTemplate
+			}
+			remark := expandRemarkVars(tmpl, ctx)
+			if strings.TrimSpace(remark) == "" {
+				remark = "Traffic Depleted"
+			}
+			proxies = []map[string]any{{
+				"name":   remark,
+				"type":   "socks5",
+				"server": "127.0.0.1",
+				"port":   1080,
+			}}
+		} else if len(proxies) > 0 {
+			tmpl := subReq.remarkTemplate
+			if tmpl == "" {
+				tmpl = service.DefaultRemarkTemplate
+			}
+			remark := expandRemarkVars(tmpl, ctx)
+			if strings.TrimSpace(remark) != "" {
+				dummyProxy := map[string]any{
+					"name":   remark,
+					"type":   "socks5",
+					"server": "127.0.0.1",
+					"port":   1080,
+				}
+				proxies = append([]map[string]any{dummyProxy}, proxies...)
+			}
+		}
+	}
+
 	if len(proxies) == 0 {
 		return "", header, nil
 	}

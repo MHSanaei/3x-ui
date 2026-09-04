@@ -17,6 +17,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 //go:embed default.json
@@ -164,6 +165,53 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+
+	if subReq.subInfoNodeEnable && subReq.subscriptionBody {
+		nowSec := time.Now().Unix()
+		isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime/1000 <= nowSec
+		isDepleted := traffic.Total > 0 && (traffic.Up+traffic.Down) >= traffic.Total
+
+		primaryEmail := ""
+		if len(emails) > 0 {
+			primaryEmail = emails[0]
+		}
+		ctx := remarkContext{
+			client: model.Client{Email: primaryEmail, SubID: subId},
+			stats:  traffic,
+		}
+
+		if isExpired {
+			tmpl := subReq.subExpiredTemplate
+			if tmpl == "" {
+				tmpl = service.DefaultSubExpiredTemplate
+			}
+			remark := expandRemarkVars(tmpl, ctx)
+			if strings.TrimSpace(remark) == "" {
+				remark = "Expired"
+			}
+			configArray = []json_util.RawMessage{s.genDummySocksConfig(remark)}
+		} else if isDepleted {
+			tmpl := subReq.subTrafficDepletedTemplate
+			if tmpl == "" {
+				tmpl = service.DefaultSubTrafficDepletedTemplate
+			}
+			remark := expandRemarkVars(tmpl, ctx)
+			if strings.TrimSpace(remark) == "" {
+				remark = "Traffic Depleted"
+			}
+			configArray = []json_util.RawMessage{s.genDummySocksConfig(remark)}
+		} else if len(configArray) > 0 {
+			tmpl := subReq.remarkTemplate
+			if tmpl == "" {
+				tmpl = service.DefaultRemarkTemplate
+			}
+			remark := expandRemarkVars(tmpl, ctx)
+			if strings.TrimSpace(remark) != "" {
+				configArray = append([]json_util.RawMessage{s.genDummySocksConfig(remark)}, configArray...)
+			}
+		}
+	}
+
 	if len(configArray) == 0 {
 		return "", header, nil
 	}
@@ -939,6 +987,32 @@ func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Clien
 	}
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+func (s *SubJsonService) genDummySocksConfig(remark string) json_util.RawMessage {
+	outbound := map[string]any{
+		"protocol": "socks",
+		"tag":      "proxy",
+		"settings": map[string]any{
+			"servers": []any{
+				map[string]any{
+					"address": "127.0.0.1",
+					"port":    1080,
+				},
+			},
+		},
+	}
+	rawOutbound, _ := json.Marshal(outbound)
+	newOutbounds := []json_util.RawMessage{rawOutbound}
+	newOutbounds = append(newOutbounds, s.defaultOutbounds...)
+
+	newConfigJson := make(map[string]any)
+	maps.Copy(newConfigJson, s.configJson)
+	newConfigJson["outbounds"] = newOutbounds
+	newConfigJson["remarks"] = remark
+
+	newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
+	return newConfig
 }
 
 func mergeFinalMask(base any, extra map[string]any) map[string]any {
