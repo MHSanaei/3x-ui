@@ -19,7 +19,7 @@ import (
 // that repo has no checksums.txt, so this is this package's own reviewed digest, bumped only deliberately.
 const (
 	releaseCommit = "70d99fd87bb010654e5e0759f347e3ab0f4a952f"
-	releaseSHA256 = "47f8956f3f3cf9813d4cbee4665adc99b1f8ffa788c13dc5e03e824cc29217b"
+	releaseSHA256 = "47f8956f3f3cf9813d4cbee4665adc99b1f8ffa788c13dc5e03e824cc29217b0"
 )
 
 // maxDownloadBytes bounds the download. The real binary is ~10 MiB; this only
@@ -52,9 +52,9 @@ func assetPath(goos, goarch string) (string, error) {
 	return "", fmt.Errorf("no pinned Psiphon binary for %s/%s (only linux/amd64 today)", goos, goarch)
 }
 
-// downloadURL is the raw file at the pinned commit, not "latest" -- a future
-// push to the repo cannot silently change what this downloads.
-func downloadURL(asset string) string {
+// downloadURL is the raw file at the pinned commit, not "latest". A var, not
+// a func, so tests can point it at an httptest server.
+var downloadURL = func(asset string) string {
 	return fmt.Sprintf(
 		"https://raw.githubusercontent.com/Psiphon-Labs/psiphon-tunnel-core-binaries/%s/%s",
 		releaseCommit, asset,
@@ -74,6 +74,9 @@ func Install(ctx context.Context, client *http.Client) error {
 	want, err := hex.DecodeString(releaseSHA256)
 	if err != nil {
 		return fmt.Errorf("malformed pinned checksum: %w", err)
+	}
+	if len(want) != sha256.Size {
+		return fmt.Errorf("malformed pinned checksum: got %d bytes, want %d", len(want), sha256.Size)
 	}
 	if err := os.MkdirAll(Dir(), 0o700); err != nil {
 		return fmt.Errorf("cannot create %s: %w", Dir(), err)

@@ -10,6 +10,7 @@ import (
 // must never control, mirroring tor.renderTorrc's forced ClientOnly=1.
 func applyForcedFields(raw map[string]any) {
 	raw["LocalSocksProxyPort"] = SocksPort
+	raw["DisableLocalSocksProxy"] = false
 	// Only a socks outbound is ever used -- same minimal surface as internal/tor.
 	raw["DisableLocalHTTPProxy"] = true
 	// Loopback-only: a config copied from the Docker deployment commonly
@@ -23,6 +24,9 @@ func SaveConfig(raw []byte) error {
 	var parsed map[string]any
 	if err := json.Unmarshal(raw, &parsed); err != nil {
 		return fmt.Errorf("not a valid psiphon.config: %w", err)
+	}
+	if parsed == nil {
+		return fmt.Errorf("not a valid psiphon.config: expected a JSON object")
 	}
 	applyForcedFields(parsed)
 	out, err := json.MarshalIndent(parsed, "", "  ")

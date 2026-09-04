@@ -28,8 +28,12 @@ type TunnelStatus struct {
 	ClientRegion string `json:"clientRegion,omitempty"`
 }
 
-// CurrentTunnel scans NoticesPath for the latest Tunnels/ConnectedServerRegion/
-// ClientRegion notices. A missing log returns a zero TunnelStatus, not an error.
+// tailScanBytes bounds how much of NoticesPath CurrentTunnel reads -- the
+// file is append-only with no rotation, so this keeps status polling from slowing as a long-lived tunnel's log grows.
+const tailScanBytes = 512 << 10
+
+// CurrentTunnel scans the tail of NoticesPath for the latest Tunnels/
+// ConnectedServerRegion/ClientRegion notices. A missing log returns a zero TunnelStatus, not an error.
 func CurrentTunnel() (TunnelStatus, error) {
 	f, err := os.Open(NoticesPath())
 	if err != nil {
@@ -39,6 +43,14 @@ func CurrentTunnel() (TunnelStatus, error) {
 		return TunnelStatus{}, err
 	}
 	defer f.Close()
+
+	if info, err := f.Stat(); err == nil && info.Size() > tailScanBytes {
+		// A seek can land mid-line; the resulting fragment just fails to
+		// parse as JSON and is skipped, same as any other malformed line.
+		if _, err := f.Seek(-tailScanBytes, io.SeekEnd); err != nil {
+			return TunnelStatus{}, err
+		}
+	}
 
 	var status TunnelStatus
 	scanner := bufio.NewScanner(f)

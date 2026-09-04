@@ -187,25 +187,6 @@ export default function PsiphonModal({
     fileInput.click();
   }
 
-  async function applyRegion() {
-    setVerifyLoading(true);
-    setExitInfo(null);
-    try {
-      const msg = await HttpUtil.post<ExitInfo>('/panel/api/xray/psiphon/region', {
-        region: selectedRegion,
-      });
-      if (msg?.success) {
-        messageApi.success(t('pages.xray.psiphon.regionApplied'));
-        if (msg.obj) setExitInfo(msg.obj);
-      } else {
-        messageApi.error(msg?.msg || t('pages.xray.psiphon.regionFailed'));
-      }
-      await fetchStatus();
-    } finally {
-      setVerifyLoading(false);
-    }
-  }
-
   async function verify() {
     setVerifyLoading(true);
     setExitInfo(null);
@@ -219,6 +200,28 @@ export default function PsiphonModal({
     } finally {
       setVerifyLoading(false);
     }
+  }
+
+  // Two separate requests, not one: stacking the exit check behind the
+  // restart risked exceeding the panel's own HTTP write timeout.
+  async function applyRegion() {
+    setVerifyLoading(true);
+    setExitInfo(null);
+    try {
+      const msg = await HttpUtil.post('/panel/api/xray/psiphon/region', {
+        region: selectedRegion,
+      });
+      if (msg?.success) {
+        messageApi.success(t('pages.xray.psiphon.regionApplied'));
+      } else {
+        messageApi.error(msg?.msg || t('pages.xray.psiphon.regionFailed'));
+        return;
+      }
+      await fetchStatus();
+    } finally {
+      setVerifyLoading(false);
+    }
+    await verify();
   }
 
   function addOutbound() {
