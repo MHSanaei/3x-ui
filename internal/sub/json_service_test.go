@@ -470,3 +470,9 @@ func TestSubJsonServiceWireguardNoKey(t *testing.T) {
 		t.Fatalf("genWireguard = %s, want nil for a keyless wireguard client", raw)
 	}
 }
+
+func TestSubJsonServiceSkipsAmneziaWG(t *testing.T) {
+	if got := NewSubJsonService("", "", "", nil).getConfig(&SubService{address: "sub.example.com"}, &model.Inbound{Listen: "203.0.113.8", Port: 51820, Protocol: model.AmneziaWG}, model.Client{}, "sub.example.com"); len(got) != 0 {
+		t.Fatalf("getConfig emitted %d unsupported AmneziaWG Xray config(s)", len(got))
+	}
+}
