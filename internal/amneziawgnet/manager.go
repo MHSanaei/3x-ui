@@ -88,8 +88,9 @@ func (m *managed) close() {
 // caller only needs to keep calling Ensure/Reconcile with fresh Instance
 // data; it doesn't need to know relay.go exists at all.
 type Manager struct {
-	mu     sync.Mutex
-	ifaces map[int]*managed
+	mu           sync.Mutex
+	ifaces       map[int]*managed
+	kernelEngine Engine
 }
 
 var (
@@ -111,6 +112,13 @@ func GetManager() *Manager {
 func (m *Manager) Ensure(d Desired) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.kernelEngine != nil {
+		if err := m.kernelEngine.Ensure(d); err == nil {
+			return nil
+		} else {
+			logger.Warningf("amneziawgnet: kernel engine failed for inbound %d: %v; falling back to embedded Go engine", d.Instance.Id, err)
+		}
+	}
 	return m.ensureLocked(d)
 }
 
@@ -336,4 +344,18 @@ func (m *Manager) Lookup(id int) (dev *Device, peers *PeerIndex, ok bool) {
 		return nil, nil, false
 	}
 	return cur.dev, cur.peers.Load(), true
+}
+
+// Diagnose builds a live diagnostic snapshot for inbound id.
+func (m *Manager) Diagnose(id int, peers []amneziawg.Peer) Diagnostics {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.kernelEngine != nil && m.kernelEngine.HasRunning() {
+		return m.kernelEngine.Diagnose(id, peers)
+	}
+	cur, exists := m.ifaces[id]
+	if !exists {
+		return Diagnostics{}
+	}
+	return diagnoseDevice(cur.dev, peers)
 }
