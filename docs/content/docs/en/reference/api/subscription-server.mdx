@@ -20,15 +20,27 @@ _openapi:
         by subPath.'
       url: '#return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-with-formatinfo-returns-the-page-view-model-as-json-traffic-expiry-online-status-no-links-for-live-polling-the-path-prefix-is-configured-by-subpath'
     - depth: 2
+      title: Return the same status and subscription metadata headers as GET without a
+        response body.
+      url: '#return-the-same-status-and-subscription-metadata-headers-as-get-without-a-response-body'
+    - depth: 2
       title: Return subscription as a JSON array of proxy configs (one per enabled
         client). Only when JSON subscription is enabled in settings. The path
         prefix is configured by subJsonPath.
       url: '#return-subscription-as-a-json-array-of-proxy-configs-one-per-enabled-client-only-when-json-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subjsonpath'
     - depth: 2
+      title: Return the JSON subscription status and metadata headers without a body.
+        Registered only when JSON subscriptions are enabled.
+      url: '#return-the-json-subscription-status-and-metadata-headers-without-a-body-registered-only-when-json-subscriptions-are-enabled'
+    - depth: 2
       title: Return subscription as a Clash/Mihomo-compatible YAML config, including
         configured global Clash routing rules. Only when Clash subscription is
         enabled in settings. The path prefix is configured by subClashPath.
       url: '#return-subscription-as-a-clashmihomo-compatible-yaml-config-including-configured-global-clash-routing-rules-only-when-clash-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subclashpath'
+    - depth: 2
+      title: Return the Clash subscription status and metadata headers without a body.
+        Registered only when Clash subscriptions are enabled.
+      url: '#return-the-clash-subscription-status-and-metadata-headers-without-a-body-registered-only-when-clash-subscriptions-are-enabled'
   structuredData:
     headings:
       - content: 'Return base64-encoded subscription links for all enabled clients
@@ -38,14 +50,23 @@ _openapi:
           online status; no links) for live polling. The path prefix is
           configured by subPath.'
         id: return-base64-encoded-subscription-links-for-all-enabled-clients-matching-the-subscription-id-when-the-request-has-an-accept-texthtml-header-or-html1-renders-a-styled-info-page-instead-with-formatinfo-returns-the-page-view-model-as-json-traffic-expiry-online-status-no-links-for-live-polling-the-path-prefix-is-configured-by-subpath
+      - content: Return the same status and subscription metadata headers as GET without
+          a response body.
+        id: return-the-same-status-and-subscription-metadata-headers-as-get-without-a-response-body
       - content: Return subscription as a JSON array of proxy configs (one per enabled
           client). Only when JSON subscription is enabled in settings. The path
           prefix is configured by subJsonPath.
         id: return-subscription-as-a-json-array-of-proxy-configs-one-per-enabled-client-only-when-json-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subjsonpath
+      - content: Return the JSON subscription status and metadata headers without a
+          body. Registered only when JSON subscriptions are enabled.
+        id: return-the-json-subscription-status-and-metadata-headers-without-a-body-registered-only-when-json-subscriptions-are-enabled
       - content: Return subscription as a Clash/Mihomo-compatible YAML config, including
           configured global Clash routing rules. Only when Clash subscription is
           enabled in settings. The path prefix is configured by subClashPath.
         id: return-subscription-as-a-clashmihomo-compatible-yaml-config-including-configured-global-clash-routing-rules-only-when-clash-subscription-is-enabled-in-settings-the-path-prefix-is-configured-by-subclashpath
+      - content: Return the Clash subscription status and metadata headers without a
+          body. Registered only when Clash subscriptions are enabled.
+        id: return-the-clash-subscription-status-and-metadata-headers-without-a-body-registered-only-when-clash-subscriptions-are-enabled
     contents: []
 ---
 
@@ -58,7 +79,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/{subPath}{subid}","method":"get"},{"path":"/{jsonPath}{subid}","method":"get"},{"path":"/{clashPath}{subid}","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/{subPath}{subid}","method":"get"},{"path":"/{subPath}{subid}","method":"head"},{"path":"/{jsonPath}{subid}","method":"get"},{"path":"/{jsonPath}{subid}","method":"head"},{"path":"/{clashPath}{subid}","method":"get"},{"path":"/{clashPath}{subid}","method":"head"}]} showTitle />
     </>
   );
 }

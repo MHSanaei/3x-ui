@@ -302,6 +302,55 @@ export const EXAMPLES: Record<string, unknown> = {
     "flowOverride": "",
     "inboundId": 0
   },
+  "ClientPageResponse": {
+    "filtered": 47,
+    "groups": [
+      "staff",
+      "trial"
+    ],
+    "items": [
+      {
+        "comment": "Primary device",
+        "createdAt": 1735000000000,
+        "email": "alice@example.com",
+        "enable": true,
+        "expiryTime": 1735689600000,
+        "group": "staff",
+        "inboundIds": [
+          3,
+          5
+        ],
+        "limitHwid": 0,
+        "limitIp": 0,
+        "reset": 0,
+        "resetDay": 0,
+        "resetMax": 0,
+        "subId": "abcd1234",
+        "totalGB": 53687091200,
+        "traffic": null,
+        "updatedAt": 1735100000000
+      }
+    ],
+    "page": 1,
+    "pageSize": 25,
+    "summary": {
+      "active": 1850,
+      "deactive": [
+        "bob@example.com"
+      ],
+      "deactiveCount": 150,
+      "depleted": [],
+      "depletedCount": 0,
+      "expiring": [],
+      "expiringCount": 0,
+      "online": [
+        "alice@example.com"
+      ],
+      "onlineCount": 1,
+      "total": 2000
+    },
+    "total": 2000
+  },
   "ClientRecord": {
     "adTag": "",
     "allowedIPs": "",
@@ -339,6 +388,27 @@ export const EXAMPLES: Record<string, unknown> = {
   "ClientReverse": {
     "tag": ""
   },
+  "ClientSlim": {
+    "comment": "Primary device",
+    "createdAt": 1735000000000,
+    "email": "alice@example.com",
+    "enable": true,
+    "expiryTime": 1735689600000,
+    "group": "staff",
+    "inboundIds": [
+      3,
+      5
+    ],
+    "limitHwid": 0,
+    "limitIp": 0,
+    "reset": 0,
+    "resetDay": 0,
+    "resetMax": 0,
+    "subId": "abcd1234",
+    "totalGB": 53687091200,
+    "traffic": null,
+    "updatedAt": 1735100000000
+  },
   "ClientTraffic": {
     "down": 2097152,
     "email": "user1",
@@ -356,6 +426,22 @@ export const EXAMPLES: Record<string, unknown> = {
     "total": 10737418240,
     "up": 1048576,
     "uuid": "e18c9a96-71bf-48d4-933f-8b9a46d4290c"
+  },
+  "ClientsSummary": {
+    "active": 1850,
+    "deactive": [
+      "bob@example.com"
+    ],
+    "deactiveCount": 150,
+    "depleted": [],
+    "depletedCount": 0,
+    "expiring": [],
+    "expiringCount": 0,
+    "online": [
+      "alice@example.com"
+    ],
+    "onlineCount": 1,
+    "total": 2000
   },
   "FallbackParentInfo": {
     "masterId": 0,
@@ -591,10 +677,37 @@ export const EXAMPLES: Record<string, unknown> = {
     "wgMtu": 0,
     "wgPublicKey": ""
   },
+  "InboundTrafficSummary": {
+    "down": 2097152,
+    "enable": true,
+    "id": 1,
+    "total": 10737418240,
+    "up": 1048576
+  },
+  "LogEntry": {
+    "DateTime": "2025-01-01T12:00:00Z",
+    "Email": "alice@example.com",
+    "Event": 0,
+    "FromAddress": "192.0.2.10:54321",
+    "Inbound": "inbound-443",
+    "Outbound": "direct",
+    "ToAddress": "example.com:443"
+  },
+  "MLDSA65Response": {
+    "seed": "mldsa65-seed",
+    "verify": "mldsa65-verify"
+  },
+  "MLKEM768Response": {
+    "client": "mlkem768-client",
+    "seed": "mlkem768-seed"
+  },
   "Msg": {
     "msg": "",
     "obj": null,
     "success": false
+  },
+  "NewUUIDResponse": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000"
   },
   "Node": {
     "activeCount": 23,
@@ -823,6 +936,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "sortOrder": 1,
     "strategy": "random",
     "updatedAt": 1710000000000
+  },
+  "Traffic": {
+    "Down": 2097152,
+    "IsInbound": true,
+    "IsOutbound": false,
+    "Tag": "inbound-443",
+    "Up": 1048576
   },
   "User": {
     "id": 0,

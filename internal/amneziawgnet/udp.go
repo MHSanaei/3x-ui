@@ -32,7 +32,9 @@ func AttachUDPHandler(gstack *stack.Stack, handler UDPHandler) {
 	enablePromiscuousRouting(gstack)
 
 	gstack.SetTransportProtocolHandler(udp.ProtocolNumber, func(id stack.TransportEndpointID, pkt *stack.PacketBuffer) bool {
-		data := pkt.Clone().Data().AsRange().ToSlice()
+		// ToSlice already returns an owned copy, so cloning pkt here would only
+		// strand a pooled packet buffer and its chunks on every datagram.
+		data := pkt.Data().AsRange().ToSlice()
 		src := netip.AddrPortFrom(addrFromTcpip(id.RemoteAddress), id.RemotePort)
 		dst := netip.AddrPortFrom(addrFromTcpip(id.LocalAddress), id.LocalPort)
 		handler(src, dst, data)
