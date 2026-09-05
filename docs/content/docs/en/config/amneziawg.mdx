@@ -11,14 +11,11 @@ plain WireGuard is blocked but a WireGuard-shaped tunnel with a different
 fingerprint gets through.
 
 <Callout type="info">
-  AmneziaWG runs **embedded in the panel process** — `amneziawg-go` over a
-  userspace (gVisor) network stack, not a kernel module. There is no DKMS
-  build, no Secure Boot conflict, and no host network/kernel access
-  requirement, so it works the same way inside a container as on bare
-  metal. Each peer's decapsulated traffic relays into its own loopback Xray
-  SOCKS5 inbound, so a peer's routing, sniffing, and per-client stats all
-  come from Xray's own machinery — the same as any other protocol's
-  inbound, not a separate code path.
+  AmneziaWG supports **dual-engine execution**:
+  - **Native Kernel Module (`amneziawg.ko`)**: When the kernel module is available on Linux with `CAP_NET_ADMIN`, 3x-ui automatically utilizes native kernel acceleration for maximum throughput and low CPU overhead.
+  - **Embedded Userspace Engine (`amneziawg-go` + `gVisor`)**: If the kernel module is absent or running inside an unprivileged container, 3x-ui automatically falls back to the embedded engine with zero host dependencies.
+
+  In both engines, each peer's decapsulated traffic connects directly into Xray's routing, sniffing, and per-client quota machinery.
 </Callout>
 
 ## Key settings
@@ -124,6 +121,22 @@ inbound. There is no separate toggle for this: unlike a kernel tunnel,
 there's no other way for a peer's traffic to reach the internet once it's
 decapsulated.
 
+## Kernel Module Acceleration & Docker Setup
+
+To enable zero-copy native kernel module acceleration:
+1. Load the `amneziawg` module on your Linux host: `modprobe amneziawg`.
+2. When running via Docker, grant network administration capabilities:
+   ```yaml
+   services:
+     3x-ui:
+       image: ghcr.io/mhsanaei/3x-ui:latest
+       cap_add:
+         - NET_ADMIN
+       volumes:
+         - /lib/modules:/lib/modules:ro
+   ```
+If the kernel module or `NET_ADMIN` capability is not available, 3x-ui will automatically fall back to the embedded `amneziawg-go` userspace engine.
+
 ## What the configuration looks like
 
 A client's downloadable `.conf` (also what the `vpn://` share link encodes,
@@ -163,6 +176,27 @@ AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = your-server:443
 PersistentKeepalive = 25
 ```
+
+## Docker & Kernel Module Acceleration
+
+By default, 3x-ui runs AmneziaWG using the embedded pure-Go userspace stack (`amneziawg-go` + `gVisor`), which requires no special permissions or host kernel modules.
+
+To enable **native kernel acceleration** (`amneziawg-linux-kernel-module`):
+1. Load the `amneziawg` module on your host Linux system (`sudo modprobe amneziawg`).
+2. When running 3x-ui inside Docker, grant network administration privileges:
+
+```bash
+docker run -d \
+  --name 3x-ui \
+  --restart unless-stopped \
+  --network host \
+  --cap-add=NET_ADMIN \
+  -v /etc/x-ui:/etc/x-ui \
+  -v /lib/modules:/lib/modules:ro \
+  ghcr.io/mhsanaei/3x-ui:latest
+```
+
+When `CAP_NET_ADMIN` and the kernel module are present, 3x-ui automatically boots the high-performance kernel engine. If absent or unprivileged, it automatically falls back to the embedded Go engine with zero downtime.
 
 ## Not yet covered
 
