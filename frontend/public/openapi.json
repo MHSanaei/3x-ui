@@ -6021,6 +6021,186 @@
         }
       }
     },
+    "/panel/api/server/unattendedUpgrades/status": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Report the host’s actual unattended-upgrades configuration (read from /etc/apt/apt.conf.d/ directly, never a cached flag) plus the outcome of the most recent runNow.",
+        "operationId": "get_panel_api_server_unattendedUpgrades_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "installed": true,
+                    "enabled": true,
+                    "mode": "security",
+                    "autoReboot": false,
+                    "lastRun": {
+                      "runId": "",
+                      "state": "pending",
+                      "startedAt": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/unattendedUpgrades/install": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Install the unattended-upgrades OS package via apt-get if it is not already present. Does not change any setting -- see configure.",
+        "operationId": "post_panel_api_server_unattendedUpgrades_install",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/unattendedUpgrades/configure": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Write this panel’s own apt.conf.d drop-in (update scope, auto-reboot) and turn the periodic timer on.",
+        "operationId": "post_panel_api_server_unattendedUpgrades_configure",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/unattendedUpgrades/disable": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Turn off the periodic timer and remove this panel’s own drop-in. Does not remove the unattended-upgrades package itself.",
+        "operationId": "post_panel_api_server_unattendedUpgrades_disable",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/server/unattendedUpgrades/runNow": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Run unattended-upgrade immediately in the background and return a runId. Poll GET status (lastRun) for the outcome, the same shape updatePanel/getUpdateStatus use.",
+        "operationId": "post_panel_api_server_unattendedUpgrades_runNow",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "runId": "1735689600123456789"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/updateGeofile": {
       "post": {
         "tags": [

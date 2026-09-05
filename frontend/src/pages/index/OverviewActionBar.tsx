@@ -13,6 +13,7 @@ import {
   FileTextOutlined,
   PoweroffOutlined,
   ReloadOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 
 import { formatPanelVersion } from '@/lib/panel-version';
@@ -38,6 +39,7 @@ interface OverviewActionBarProps {
   onOpenXrayMetrics: () => void;
   onOpenPanelUpdate: () => void;
   onOpenVersionSwitch: () => void;
+  onOpenUnattendedUpgrades: () => void;
 }
 
 interface BarAction {
@@ -74,6 +76,7 @@ export default function OverviewActionBar({
   onOpenXrayMetrics,
   onOpenPanelUpdate,
   onOpenVersionSwitch,
+  onOpenUnattendedUpgrades,
 }: OverviewActionBarProps) {
   const { t } = useTranslation();
   const stateText = t(XRAY_STATE_KEYS[status.xray.state] ?? 'pages.index.xrayStatusUnknown');
@@ -129,6 +132,12 @@ export default function OverviewActionBar({
         icon: <CloudServerOutlined />,
         text: t('pages.index.backupTitle'),
         onClick: onOpenBackup,
+      },
+      {
+        key: 'unattendedUpgrades',
+        icon: <SafetyOutlined />,
+        text: t('pages.index.unattendedUpgradesTitle'),
+        onClick: onOpenUnattendedUpgrades,
       },
     ],
     [

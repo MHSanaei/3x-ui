@@ -23,6 +23,7 @@ function baseProps() {
     onOpenXrayMetrics: vi.fn(),
     onOpenPanelUpdate: vi.fn(),
     onOpenVersionSwitch: vi.fn(),
+    onOpenUnattendedUpgrades: vi.fn(),
   };
 }
 

@@ -47,6 +47,7 @@ const XrayMetricsModal = lazy(() => import('./XrayMetricsModal'));
 const XrayLogModal = lazy(() => import('./XrayLogModal'));
 const AmneziaWGLogModal = lazy(() => import('./AmneziaWGLogModal'));
 const VersionModal = lazy(() => import('./VersionModal'));
+const UnattendedUpgradesModal = lazy(() => import('./UnattendedUpgradesModal'));
 import './IndexPage.css';
 
 const RESTART_POLL_INTERVAL_MS = 1000;
@@ -81,6 +82,7 @@ export default function IndexPage() {
   const [xrayLogsOpen, setXrayLogsOpen] = useState(false);
   const [amneziawgLogsOpen, setAmneziawgLogsOpen] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
+  const [unattendedUpgradesOpen, setUnattendedUpgradesOpen] = useState(false);
   const [configTextOpen, setConfigTextOpen] = useState(false);
   const [configText, setConfigText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -263,6 +265,7 @@ export default function IndexPage() {
                     onOpenXrayMetrics={() => setXrayMetricsOpen(true)}
                     onOpenPanelUpdate={() => setPanelUpdateOpen(true)}
                     onOpenVersionSwitch={() => setVersionOpen(true)}
+                    onOpenUnattendedUpgrades={() => setUnattendedUpgradesOpen(true)}
                   />
 
                   {health && (
@@ -357,6 +360,12 @@ export default function IndexPage() {
             onChannelChange={handleChannelChange}
             onClose={() => setPanelUpdateOpen(false)}
             onBusy={setBusy}
+          />
+        </LazyMount>
+        <LazyMount when={unattendedUpgradesOpen}>
+          <UnattendedUpgradesModal
+            open={unattendedUpgradesOpen}
+            onClose={() => setUnattendedUpgradesOpen(false)}
           />
         </LazyMount>
         <LazyMount when={logsOpen}>

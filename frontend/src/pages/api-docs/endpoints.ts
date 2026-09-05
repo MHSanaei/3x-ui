@@ -559,6 +559,54 @@ export const sections: readonly Section[] = [
         body: 'dev=true',
       },
       {
+        method: 'GET',
+        path: '/panel/api/server/unattendedUpgrades/status',
+        summary:
+          'Report the host’s actual unattended-upgrades configuration (read from /etc/apt/apt.conf.d/ directly, never a cached flag) plus the outcome of the most recent runNow.',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "installed": true,\n    "enabled": true,\n    "mode": "security",\n    "autoReboot": false,\n    "lastRun": { "runId": "", "state": "pending", "startedAt": 0 }\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/unattendedUpgrades/install',
+        summary:
+          'Install the unattended-upgrades OS package via apt-get if it is not already present. Does not change any setting -- see configure.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/unattendedUpgrades/configure',
+        summary:
+          'Write this panel’s own apt.conf.d drop-in (update scope, auto-reboot) and turn the periodic timer on.',
+        params: [
+          {
+            name: 'mode',
+            in: 'body (form)',
+            type: 'string',
+            desc: '"security" (security updates only) or "full" (also regular updates).',
+          },
+          {
+            name: 'autoReboot',
+            in: 'body (form)',
+            type: 'boolean',
+            desc: 'Reboot automatically if a kernel update requires it. Off by default.',
+          },
+        ],
+        body: 'mode=security&autoReboot=false',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/unattendedUpgrades/disable',
+        summary:
+          'Turn off the periodic timer and remove this panel’s own drop-in. Does not remove the unattended-upgrades package itself.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/server/unattendedUpgrades/runNow',
+        summary:
+          'Run unattended-upgrade immediately in the background and return a runId. Poll GET status (lastRun) for the outcome, the same shape updatePanel/getUpdateStatus use.',
+        response: '{\n  "success": true,\n  "obj": {\n    "runId": "1735689600123456789"\n  }\n}',
+      },
+      {
         method: 'POST',
         path: '/panel/api/server/updateGeofile',
         summary:

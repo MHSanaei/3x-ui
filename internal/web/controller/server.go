@@ -14,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 
@@ -26,10 +27,11 @@ var filenameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-.]+$`)
 type ServerController struct {
 	BaseController
 
-	serverService      service.ServerService
-	settingService     service.SettingService
-	panelService       panel.PanelService
-	xrayMetricsService service.XrayMetricsService
+	serverService             service.ServerService
+	settingService            service.SettingService
+	panelService              panel.PanelService
+	xrayMetricsService        service.XrayMetricsService
+	unattendedUpgradesService integration.UnattendedUpgradesService
 }
 
 // NewServerController creates a new ServerController, initializes routes, and starts background tasks.
@@ -66,6 +68,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getNewVlessEnc", a.getNewVlessEnc)
 	g.GET("/clientIps", a.getClientIps)
 	g.GET("/fail2banStatus", a.getFail2banStatus)
+	g.GET("/unattendedUpgrades/status", a.getUnattendedUpgradesStatus)
 
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
@@ -86,6 +89,10 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/scanRealityTargets", a.scanRealityTargets)
 	g.POST("/awgQuicCapture", a.awgQuicCapture)
 	g.POST("/clientIps", a.setClientIps)
+	g.POST("/unattendedUpgrades/install", a.installUnattendedUpgrades)
+	g.POST("/unattendedUpgrades/configure", a.configureUnattendedUpgrades)
+	g.POST("/unattendedUpgrades/disable", a.disableUnattendedUpgrades)
+	g.POST("/unattendedUpgrades/runNow", a.runUnattendedUpgradesNow)
 }
 
 // startTask registers the @2s ticker that refreshes server status, samples
@@ -254,6 +261,52 @@ func (a *ServerController) setUpdateChannel(c *gin.Context) {
 	}
 	err = a.settingService.SetDevChannelEnable(dev)
 	jsonMsg(c, I18nWeb(c, "pages.index.updateChannelChanged"), err)
+}
+
+// getUnattendedUpgradesStatus reports the host's actual apt.conf.d
+// configuration (never a cached flag) plus the most recent runNow outcome.
+func (a *ServerController) getUnattendedUpgradesStatus(c *gin.Context) {
+	jsonObj(c, a.unattendedUpgradesService.Status(), nil)
+}
+
+// installUnattendedUpgrades installs the unattended-upgrades OS package if
+// it is not already present. Does not itself change any setting -- see
+// configureUnattendedUpgrades.
+func (a *ServerController) installUnattendedUpgrades(c *gin.Context) {
+	err := a.unattendedUpgradesService.Install()
+	jsonMsg(c, I18nWeb(c, "pages.index.unattendedUpgradesInstalled"), err)
+}
+
+// configureUnattendedUpgrades writes this panel's own settings (mode,
+// autoReboot) and turns the periodic timer on.
+func (a *ServerController) configureUnattendedUpgrades(c *gin.Context) {
+	mode := c.PostForm("mode")
+	autoReboot, err := strconv.ParseBool(c.PostForm("autoReboot"))
+	if err != nil {
+		jsonMsg(c, "invalid data", err)
+		return
+	}
+	err = a.unattendedUpgradesService.Configure(mode, autoReboot)
+	jsonMsg(c, I18nWeb(c, "pages.index.unattendedUpgradesConfigured"), err)
+}
+
+// disableUnattendedUpgrades turns off the periodic timer and removes this
+// panel's own drop-in -- does not remove the OS package itself.
+func (a *ServerController) disableUnattendedUpgrades(c *gin.Context) {
+	err := a.unattendedUpgradesService.Disable()
+	jsonMsg(c, I18nWeb(c, "pages.index.unattendedUpgradesDisabled"), err)
+}
+
+// runUnattendedUpgradesNow triggers an immediate run in the background and
+// returns its run ID; the frontend polls getUnattendedUpgradesStatus
+// (lastRun) for the outcome, the same runId/poll shape updatePanel uses.
+func (a *ServerController) runUnattendedUpgradesNow(c *gin.Context) {
+	runID, err := a.unattendedUpgradesService.RunNow()
+	var obj any
+	if err == nil {
+		obj = gin.H{"runId": runID}
+	}
+	jsonMsgObj(c, I18nWeb(c, "pages.index.unattendedUpgradesRunStarted"), obj, err)
 }
 
 // updateGeofile updates the specified geo file for Xray.
