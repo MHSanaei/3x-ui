@@ -101,7 +101,14 @@ var (
 // GetManager returns the process-wide embedded-AmneziaWG manager singleton.
 func GetManager() *Manager {
 	managerOnce.Do(func() {
-		manager = &Manager{ifaces: map[int]*managed{}}
+		m := &Manager{ifaces: map[int]*managed{}}
+		if ok, reason := DetectKernelSupport(); ok {
+			m.kernelEngine = NewKernelEngine()
+			logger.Infof("amneziawgnet: %s, enabled kernel acceleration", reason)
+		} else {
+			logger.Debugf("amneziawgnet: %s, using embedded userspace engine", reason)
+		}
+		manager = m
 	})
 	return manager
 }
