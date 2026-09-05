@@ -36,7 +36,14 @@ import {
   detectBalancerCycles,
 } from './balancers/balancer-loopback';
 import { DnsTab } from './dns';
-import { WarpModal, NordModal, PiaModal, TorModal, PsiphonModal } from './overrides';
+import {
+  WarpModal,
+  NordModal,
+  PiaModal,
+  TorModal,
+  PsiphonModal,
+  WireproxyModal,
+} from './overrides';
 import './XrayPage.css';
 
 const SECTION_SLUGS = ['basic', 'routing', 'outbound', 'balancer', 'dns', 'advanced'];
@@ -89,6 +96,7 @@ export default function XrayPage() {
   const [piaOpen, setPiaOpen] = useState(false);
   const [torOpen, setTorOpen] = useState(false);
   const [psiphonOpen, setPsiphonOpen] = useState(false);
+  const [wireproxyOpen, setWireproxyOpen] = useState(false);
   const [advSettings, setAdvSettings] = useState<AdvKey>('xraySetting');
   const location = useLocation();
   const navigate = useNavigate();
@@ -274,6 +282,7 @@ export default function XrayPage() {
             onShowPia={() => setPiaOpen(true)}
             onShowTor={() => setTorOpen(true)}
             onShowPsiphon={() => setPsiphonOpen(true)}
+            onShowWireproxy={() => setWireproxyOpen(true)}
             onRefreshXrayData={fetchAll}
           />
         );
@@ -426,6 +435,13 @@ export default function XrayPage() {
           open={psiphonOpen}
           templateSettings={templateSettings}
           onClose={() => setPsiphonOpen(false)}
+          onAddOutbound={onAddOutbound}
+          onRemoveOutbound={onRemoveOutboundByTag}
+        />
+        <WireproxyModal
+          open={wireproxyOpen}
+          templateSettings={templateSettings}
+          onClose={() => setWireproxyOpen(false)}
           onAddOutbound={onAddOutbound}
           onRemoveOutbound={onRemoveOutboundByTag}
         />

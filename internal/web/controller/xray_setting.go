@@ -14,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/integration"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/outbound"
+	"github.com/mhsanaei/3x-ui/v3/internal/wireproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,7 @@ type XraySettingController struct {
 	NordService                 integration.NordService
 	TorService                  integration.TorService
 	PsiphonService              integration.PsiphonService
+	WireproxyService            integration.WireproxyService
 	FrontProxyService           integration.FrontProxyService
 	AdGuardService              integration.AdGuardService
 	PiaService                  integration.PiaService
@@ -57,6 +59,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/tor/:action", a.tor)
 	g.POST("/psiphon/:action", a.psiphon)
 	g.POST("/psiphon/config/upload", a.psiphonConfigUpload)
+	g.POST("/wireproxy/:action", a.wireproxy)
 	g.POST("/frontproxy/:action", a.frontProxy)
 	g.POST("/frontproxy/decoy/upload", a.frontProxyDecoyUpload)
 	g.POST("/adguard/:action", a.adGuard)
@@ -358,6 +361,36 @@ func (a *XraySettingController) psiphonConfigUpload(c *gin.Context) {
 		return
 	}
 	resp, err := a.PsiphonService.Status()
+	jsonObj(c, resp, err)
+}
+
+// wireproxy handles the managed WARP-via-wireproxy sidecar
+// (internal/wireproxy) based on the action parameter. "repair" re-runs the
+// admin's own warpwp endpoint scan; mode defaults to its cheapest ("check").
+func (a *XraySettingController) wireproxy(c *gin.Context) {
+	action := c.Param("action")
+	var resp any
+	var err error
+	switch action {
+	case "status":
+		resp, err = a.WireproxyService.Status()
+	case "start":
+		err = a.WireproxyService.Start()
+	case "stop":
+		err = a.WireproxyService.Stop()
+	case "install":
+		err = a.WireproxyService.Install()
+	case "uninstall":
+		err = a.WireproxyService.Uninstall()
+	case "repair":
+		mode := wireproxy.RepairMode(c.PostForm("mode"))
+		if mode == "" {
+			mode = wireproxy.RepairCheck
+		}
+		err = a.WireproxyService.Repair(mode)
+	case "fixRouting":
+		err = a.WireproxyService.FixRouting()
+	}
 	jsonObj(c, resp, err)
 }
 

@@ -1956,6 +1956,26 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/xray/wireproxy/:action',
+        summary:
+          'Manage the panel-hosted WARP-via-wireproxy sidecar (github.com/kuzzrus/WARP_WireProxy_Manager, vendored and pinned). The action parameter selects the operation.',
+        params: [
+          {
+            name: 'action',
+            in: 'path',
+            type: 'string',
+            desc: "status — return {installed, healthy, scheduler, service, socks5, warp, routingGuard}. start / stop — systemctl start/stop the wireproxy service. install — place the pinned scripts and run warpwp --install (OS packages, a WARP registration, a systemd service, a cron scheduler -- see the summary). uninstall — warpwp --remove (safe removal, not --purge). repair — re-run warpwp's own endpoint scan/repair (sends mode: check|quick-scan|deep-scan, default check). fixRouting — warpwp --fix-routing, clearing dangerous system-wide WARP routing outside wireproxy's own management.",
+          },
+          {
+            name: 'mode',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'check, quick-scan, or deep-scan. Only used when action=repair; defaults to check.',
+          },
+        ],
+      },
+      {
+        method: 'POST',
         path: '/panel/api/xray/pia/:action',
         summary: 'Manage PIA WireGuard integration. The action parameter selects the operation.',
         params: [

@@ -37,6 +37,7 @@ import {
   WarningOutlined,
   ExportOutlined,
   ImportOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
@@ -100,6 +101,7 @@ interface OutboundsTabProps {
   onShowPia: () => void;
   onShowTor: () => void;
   onShowPsiphon: () => void;
+  onShowWireproxy: () => void;
   onRefreshXrayData?: () => void;
 }
 
@@ -123,6 +125,7 @@ export default function OutboundsTab({
   onShowPia,
   onShowTor,
   onShowPsiphon,
+  onShowWireproxy,
   onRefreshXrayData,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
@@ -575,6 +578,12 @@ export default function OutboundsTab({
                       icon: <UnlockOutlined />,
                       label: 'Psiphon',
                       onClick: onShowPsiphon,
+                    },
+                    {
+                      key: 'wireproxy',
+                      icon: <SyncOutlined />,
+                      label: 'WireProxy',
+                      onClick: onShowWireproxy,
                     },
                     { type: 'divider' },
                     {
