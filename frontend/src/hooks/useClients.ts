@@ -50,6 +50,7 @@ const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as cons
 
 interface SubSettings {
   enable: boolean;
+  happLinkEnable: boolean;
   subURI: string;
   subJsonURI: string;
   subJsonEnable: boolean;
@@ -266,6 +267,7 @@ export function useClients(options: UseClientsOptions = {}) {
   const subSettings: SubSettings = useMemo(
     () => ({
       enable: !!defaults.subEnable,
+      happLinkEnable: defaults.happLinkEnable === true,
       subURI: (defaults.subURI as string) || '',
       subJsonURI: (defaults.subJsonURI as string) || '',
       subJsonEnable: !!defaults.subJsonEnable,
@@ -275,6 +277,7 @@ export function useClients(options: UseClientsOptions = {}) {
     }),
     [
       defaults.subEnable,
+      defaults.happLinkEnable,
       defaults.subURI,
       defaults.subJsonURI,
       defaults.subJsonEnable,

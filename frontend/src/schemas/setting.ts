@@ -35,6 +35,7 @@ export const AllSettingSchema = z
     twoFactorEnable: z.boolean().optional(),
     twoFactorToken: z.string().optional(),
     xrayTemplateConfig: z.string().optional(),
+    happLinkEnable: z.boolean().optional(),
     subEnable: z.boolean().optional(),
     subJsonEnable: z.boolean().optional(),
     subJsonAutoDetect: z.boolean().optional(),

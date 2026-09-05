@@ -9,7 +9,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { AllSetting } from '@/models/setting';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
@@ -25,6 +25,9 @@ interface SubscriptionGeneralTabProps {
 
 const isRemoteRoutingSource = (value: string) => /^https:\/\/\S+$/i.test(value.trim());
 
+const PANEL_SETTINGS_TAB = '1';
+const HAPP_SETTINGS_TAB = '5';
+
 const remoteSourceBadge = (value: string) =>
   isRemoteRoutingSource(value) ? <Tag color="blue">HTTPS URL</Tag> : undefined;
 
@@ -34,11 +37,15 @@ export default function SubscriptionGeneralTab({
 }: SubscriptionGeneralTabProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isMobile } = useMediaQuery();
+  // Keep the URL semantic while mapping to the legacy numeric key used by these inner tabs.
+  const initialTab =
+    searchParams.get('subscriptionTab') === 'happ' ? HAPP_SETTINGS_TAB : PANEL_SETTINGS_TAB;
 
   return (
     <Tabs
-      defaultActiveKey="1"
+      defaultActiveKey={initialTab}
       items={[
         {
           key: '1',
@@ -310,6 +317,16 @@ export default function SubscriptionGeneralTab({
           label: catTabLabel(<BranchesOutlined />, 'Happ', isMobile),
           children: (
             <>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.happLinkEnable')}
+                description={t('pages.settings.happLinkEnableDesc')}
+              >
+                <Switch
+                  checked={allSetting.happLinkEnable}
+                  onChange={(v) => updateSetting({ happLinkEnable: v })}
+                />
+              </SettingListItem>
               <SettingListItem
                 paddings="small"
                 title={t('pages.settings.subEnableRouting')}

@@ -68,6 +68,7 @@ type AllSetting struct {
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
 	TwoFactorToken  string `json:"twoFactorToken" form:"twoFactorToken"`
 
+	HappLinkEnable              bool   `json:"happLinkEnable" form:"happLinkEnable"`
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`
 	SubJsonEnable               bool   `json:"subJsonEnable" form:"subJsonEnable"`
 	SubJsonAutoDetect           bool   `json:"subJsonAutoDetect" form:"subJsonAutoDetect"`

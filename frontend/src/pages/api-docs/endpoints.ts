@@ -1552,6 +1552,14 @@ export const sections: readonly Section[] = [
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?security=reality&...#user1",\n    "vmess://eyJ2IjoyLC..."\n  ]\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/clients/happLink/:id',
+        summary:
+          'Generate a fresh Happ crypt5 representation of the current client subscription URL. The result is not stored or reused.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Stable client record ID.' }],
+        responseSchema: 'HappLinkResult',
+      },
+      {
         method: 'GET',
         path: '/panel/api/clients/links/:email',
         summary:
