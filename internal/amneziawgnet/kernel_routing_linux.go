@@ -4,10 +4,12 @@ package amneziawgnet
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
@@ -59,7 +61,11 @@ func deleteKernelLink(ifaceName string) error {
 
 func applyKernelUAPI(ifaceName string, uapiConfig string) error {
 	socketPath := fmt.Sprintf("/var/run/wireguard/%s.sock", ifaceName)
-	conn, err := net.Dial("unix", socketPath)
+	var dialer net.Dialer
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	conn, err := dialer.DialContext(ctx, "unix", socketPath)
 	if err != nil {
 		return err
 	}
@@ -111,7 +117,7 @@ func teardownKernelRouting(ifaceName string, inboundID int) error {
 	rule.IifName = ifaceName
 	rule.Table = tableID
 	_ = netlink.RuleDel(rule)
-	return nil
+	return deleteKernelLink(ifaceName)
 }
 
 func readKernelUAPIDump(ifaceName string) (string, error) {
@@ -119,7 +125,11 @@ func readKernelUAPIDump(ifaceName string) (string, error) {
 	if _, err := os.Stat(socketPath); err != nil {
 		return "", err
 	}
-	conn, err := net.Dial("unix", socketPath)
+	var dialer net.Dialer
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	conn, err := dialer.DialContext(ctx, "unix", socketPath)
 	if err != nil {
 		return "", err
 	}
