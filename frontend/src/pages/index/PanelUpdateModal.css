@@ -20,5 +20,15 @@
 .actions-row {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   margin-top: 12px;
+  gap: 8px;
+}
+
+.mr-auto {
+  margin-right: auto;
+}
+
+.rollback-dialog-choices {
+  margin-top: 8px;
 }

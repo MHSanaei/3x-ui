@@ -277,7 +277,13 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "このマシンの設定を保持する",
-      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。"
+      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。",
+      "rollbackToRelease": "Rollback to Release",
+      "rollbackStartedPopover": "Panel rollback started",
+      "rollbackOptionLocal": "Restore previous version (#version# - Instant Local)",
+      "rollbackOptionOnline": "Install latest release (#version# - Online Download)",
+      "rollbackDialogTitle": "Rollback to Release",
+      "rollbackDialogDesc": "Do you really want to roll back 3X-UI to #version#? An automated database backup will be created before restoring."
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",

@@ -277,7 +277,13 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Keep this machine's settings",
-      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file."
+      "importKeepHostSettingsDesc": "Keeps this panel's listen addresses, ports, base path, certificates and node identity instead of taking them from the uploaded file.",
+      "rollbackToRelease": "Rollback to Release",
+      "rollbackStartedPopover": "Panel rollback started",
+      "rollbackOptionLocal": "Restore previous version (#version# - Instant Local)",
+      "rollbackOptionOnline": "Install latest release (#version# - Online Download)",
+      "rollbackDialogTitle": "Rollback to Release",
+      "rollbackDialogDesc": "Do you really want to roll back 3X-UI to #version#? An automated database backup will be created before restoring."
     },
     "inbounds": {
       "totalDownUp": "Total Sent/Received",

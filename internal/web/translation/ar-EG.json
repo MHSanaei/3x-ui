@@ -277,7 +277,13 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "الاحتفاظ بإعدادات هذا الجهاز",
-      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع."
+      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع.",
+      "rollbackToRelease": "Rollback to Release",
+      "rollbackStartedPopover": "Panel rollback started",
+      "rollbackOptionLocal": "Restore previous version (#version# - Instant Local)",
+      "rollbackOptionOnline": "Install latest release (#version# - Online Download)",
+      "rollbackDialogTitle": "Rollback to Release",
+      "rollbackDialogDesc": "Do you really want to roll back 3X-UI to #version#? An automated database backup will be created before restoring."
     },
     "inbounds": {
       "totalDownUp": "إجمالي المرسل/المستقبل",

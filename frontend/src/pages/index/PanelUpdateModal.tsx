@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Modal, Switch, Tag } from 'antd';
-import { CloudDownloadOutlined } from '@ant-design/icons';
+import { Alert, Button, Modal, Radio, Space, Switch, Tag } from 'antd';
+import { CloudDownloadOutlined, RollbackOutlined } from '@ant-design/icons';
 
 import { HttpUtil, PromiseUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
@@ -17,6 +17,9 @@ export interface PanelUpdateInfo {
   currentCommit?: string;
   latestCommit?: string;
   updateAvailable: boolean;
+  localSnapshotVersion?: string;
+  latestStableVersion?: string;
+  hasLocalSnapshot?: boolean;
 }
 
 interface BusyEvent {
@@ -124,6 +127,91 @@ export default function PanelUpdateModal({
     });
   }
 
+  function handleRollback() {
+    let selectedMode = info.hasLocalSnapshot ? 'local' : 'online';
+    const hasDiffChoices =
+      info.hasLocalSnapshot &&
+      !!info.localSnapshotVersion &&
+      !!info.latestStableVersion &&
+      info.localSnapshotVersion !== info.latestStableVersion;
+
+    const targetVer =
+      (selectedMode === 'local' ? info.localSnapshotVersion : info.latestStableVersion) ||
+      info.latestStableVersion ||
+      '';
+
+    const descText = t('pages.index.rollbackDialogDesc').replace('#version#', targetVer);
+
+    const dialogContent = hasDiffChoices ? (
+      <div className="rollback-dialog-choices">
+        <p className="mb-12">{descText}</p>
+        <Radio.Group
+          defaultValue={selectedMode}
+          onChange={(e) => {
+            selectedMode = e.target.value;
+          }}
+        >
+          <Space orientation="vertical">
+            <Radio value="local">
+              {t('pages.index.rollbackOptionLocal').replace(
+                '#version#',
+                info.localSnapshotVersion || '',
+              )}
+            </Radio>
+            <Radio value="online">
+              {t('pages.index.rollbackOptionOnline').replace(
+                '#version#',
+                info.latestStableVersion || '',
+              )}
+            </Radio>
+          </Space>
+        </Radio.Group>
+      </div>
+    ) : (
+      descText
+    );
+
+    modal.confirm({
+      title: t('pages.index.rollbackDialogTitle'),
+      content: dialogContent,
+      okText: t('confirm'),
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const baseTip = t('pages.index.dontRefresh');
+        onClose();
+        onBusy({ busy: true, tip: baseTip });
+        const result = await HttpUtil.post<{ runId: string }>('/panel/api/server/rollbackPanel', {
+          mode: selectedMode,
+        });
+        if (!result?.success) {
+          onBusy({ busy: false });
+          return;
+        }
+        const outcome = await pollUpdateStatus(result.obj?.runId ?? '');
+        onBusy({ busy: false });
+        if (outcome === 'success') {
+          await PromiseUtil.sleep(800);
+          window.location.reload();
+          return;
+        }
+        modal[outcome === 'failed' ? 'error' : 'warning']({
+          title: t(
+            outcome === 'failed'
+              ? 'pages.index.panelUpdateFailedTitle'
+              : 'pages.index.panelUpdateUnknownTitle',
+          ),
+          content: t(
+            outcome === 'failed'
+              ? 'pages.index.panelUpdateFailedDesc'
+              : 'pages.index.panelUpdateUnknownDesc',
+          ),
+          okText: t('refresh'),
+          onOk: () => window.location.reload(),
+        });
+      },
+    });
+  }
+
   return (
     <>
       {contextHolder}
@@ -182,6 +270,11 @@ export default function PanelUpdateModal({
         </div>
 
         <div className="actions-row">
+          {isDev && (
+            <Button danger onClick={handleRollback} icon={<RollbackOutlined />} className="mr-auto">
+              {t('pages.index.rollbackToRelease')}
+            </Button>
+          )}
           <Button
             type="primary"
             disabled={!info.updateAvailable}

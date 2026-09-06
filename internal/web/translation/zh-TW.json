@@ -277,7 +277,13 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "保留本機設定",
-      "importKeepHostSettingsDesc": "保留本面板的監聽位址、連接埠、基礎路徑、憑證與節點身分，而不是使用上傳檔案中的值。"
+      "importKeepHostSettingsDesc": "保留本面板的監聽位址、連接埠、基礎路徑、憑證與節點身分，而不是使用上傳檔案中的值。",
+      "rollbackToRelease": "回滾至穩定版本",
+      "rollbackStartedPopover": "面板回滾已啟動",
+      "rollbackOptionLocal": "恢復先前版本 (#version# - 本地即時)",
+      "rollbackOptionOnline": "下載並安裝最新版本 (#version# - 線上下載)",
+      "rollbackDialogTitle": "回滾至穩定版本",
+      "rollbackDialogDesc": "您確定要將 3X-UI 回滾至 #version# 嗎？在恢復前將自動建立資料庫備份。"
     },
     "inbounds": {
       "totalDownUp": "總上傳 / 下載",

@@ -277,7 +277,13 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Bu makinenin ayarlarını koru",
-      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur."
+      "importKeepHostSettingsDesc": "Yüklenen dosyadan almak yerine bu panelin dinleme adreslerini, portlarını, temel yolunu, sertifikalarını ve düğüm kimliğini korur.",
+      "rollbackToRelease": "Rollback to Release",
+      "rollbackStartedPopover": "Panel rollback started",
+      "rollbackOptionLocal": "Restore previous version (#version# - Instant Local)",
+      "rollbackOptionOnline": "Install latest release (#version# - Online Download)",
+      "rollbackDialogTitle": "Rollback to Release",
+      "rollbackDialogDesc": "Do you really want to roll back 3X-UI to #version#? An automated database backup will be created before restoring."
     },
     "inbounds": {
       "totalDownUp": "Toplam Gönderilen/Alınan",
