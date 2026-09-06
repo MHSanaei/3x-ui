@@ -210,11 +210,6 @@ func (a *ServerController) installXray(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.index.xraySwitchVersionPopover"), err)
 }
 
-// updatePanel starts a panel self-update. With no "dev" form value it follows
-// this panel's own channel setting; an explicit "dev" (sent by the master node
-// updater) overrides it for this run. The response's runId identifies this
-// update for a later getUpdateStatus poll.
-
 // rollbackPanel starts a rollback to a stable release version.
 func (a *ServerController) rollbackPanel(c *gin.Context) {
 	mode := c.PostForm("mode")
@@ -226,6 +221,7 @@ func (a *ServerController) rollbackPanel(c *gin.Context) {
 	jsonMsgObj(c, I18nWeb(c, "pages.index.rollbackStartedPopover"), obj, err)
 }
 
+// updatePanel starts a panel self-update to the latest version.
 func (a *ServerController) updatePanel(c *gin.Context) {
 	devParam := c.PostForm("dev")
 	var runID int64

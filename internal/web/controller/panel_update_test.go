@@ -173,6 +173,9 @@ func TestPanelRollbackInvalidMode(t *testing.T) {
 	if env.Success {
 		t.Fatal("rollbackPanel with invalid mode: success = true, want false")
 	}
+	if !strings.Contains(env.Msg, "invalid rollback mode") {
+		t.Fatalf("rollbackPanel error message = %q, want 'invalid rollback mode'", env.Msg)
+	}
 }
 
 func TestPanelRollbackNonLinuxGuard(t *testing.T) {

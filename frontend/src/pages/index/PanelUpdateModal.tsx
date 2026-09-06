@@ -36,6 +36,50 @@ interface PanelUpdateModalProps {
   onBusy: (e: BusyEvent) => void;
 }
 
+function RollbackConfirmContent({
+  info,
+  onModeChange,
+}: {
+  info: PanelUpdateInfo;
+  onModeChange: (mode: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState(info.hasLocalSnapshot ? 'local' : 'online');
+  const targetVer =
+    (selected === 'local' ? info.localSnapshotVersion : info.latestStableVersion) ||
+    info.latestStableVersion ||
+    '';
+
+  return (
+    <div className="rollback-dialog-choices">
+      <p className="mb-12">{t('pages.index.rollbackDialogDesc').replace('#version#', targetVer)}</p>
+      <Radio.Group
+        value={selected}
+        onChange={(e) => {
+          const next = e.target.value;
+          setSelected(next);
+          onModeChange(next);
+        }}
+      >
+        <Space orientation="vertical">
+          <Radio value="local">
+            {t('pages.index.rollbackOptionLocal').replace(
+              '#version#',
+              info.localSnapshotVersion || '',
+            )}
+          </Radio>
+          <Radio value="online">
+            {t('pages.index.rollbackOptionOnline').replace(
+              '#version#',
+              info.latestStableVersion || '',
+            )}
+          </Radio>
+        </Space>
+      </Radio.Group>
+    </div>
+  );
+}
+
 export default function PanelUpdateModal({
   open,
   info,
@@ -135,40 +179,20 @@ export default function PanelUpdateModal({
       !!info.latestStableVersion &&
       info.localSnapshotVersion !== info.latestStableVersion;
 
-    const targetVer =
+    const singleTargetVer =
       (selectedMode === 'local' ? info.localSnapshotVersion : info.latestStableVersion) ||
       info.latestStableVersion ||
       '';
 
-    const descText = t('pages.index.rollbackDialogDesc').replace('#version#', targetVer);
-
     const dialogContent = hasDiffChoices ? (
-      <div className="rollback-dialog-choices">
-        <p className="mb-12">{descText}</p>
-        <Radio.Group
-          defaultValue={selectedMode}
-          onChange={(e) => {
-            selectedMode = e.target.value;
-          }}
-        >
-          <Space orientation="vertical">
-            <Radio value="local">
-              {t('pages.index.rollbackOptionLocal').replace(
-                '#version#',
-                info.localSnapshotVersion || '',
-              )}
-            </Radio>
-            <Radio value="online">
-              {t('pages.index.rollbackOptionOnline').replace(
-                '#version#',
-                info.latestStableVersion || '',
-              )}
-            </Radio>
-          </Space>
-        </Radio.Group>
-      </div>
+      <RollbackConfirmContent
+        info={info}
+        onModeChange={(m) => {
+          selectedMode = m;
+        }}
+      />
     ) : (
-      descText
+      t('pages.index.rollbackDialogDesc').replace('#version#', singleTargetVer)
     );
 
     modal.confirm({

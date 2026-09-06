@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -244,6 +245,24 @@ func (s *PanelService) StartRollback(mode string) (int64, error) {
 		return 0, fmt.Errorf("panel web update is supported only on Linux installations")
 	}
 
+	if mode != "online" {
+		info, ok := GetStableSnapshotInfo()
+		if !ok || info == nil {
+			return 0, fmt.Errorf("no local stable snapshot found")
+		}
+	}
+
+	runID := time.Now().UnixNano()
+	if !acquireUpdateSlot(runID) {
+		return 0, fmt.Errorf("a panel update is already in progress")
+	}
+	launched := false
+	defer func() {
+		if !launched {
+			releaseUpdateSlot()
+		}
+	}()
+
 	s.backupDatabasePreRollback()
 
 	if err := (&service.SettingService{}).SetDevChannelEnable(false); err != nil {
@@ -251,48 +270,183 @@ func (s *PanelService) StartRollback(mode string) (int64, error) {
 	}
 
 	if mode == "online" {
+		releaseUpdateSlot()
 		return s.startUpdate(false)
 	}
 
-	info, ok := GetStableSnapshotInfo()
-	if !ok || info == nil {
-		return 0, fmt.Errorf("no local stable snapshot found")
+	rid, err := s.startLocalRollback(runID)
+	if err != nil {
+		return 0, err
 	}
-
-	runID := time.Now().UnixNano()
-	if !acquireUpdateSlot(runID) {
-		return 0, fmt.Errorf("a panel update is already in progress")
-	}
-
-	mainFolder, _ := resolveUpdateFolders()
-	if err := RestoreStableSnapshot(mainFolder); err != nil {
-		releaseUpdateSlot()
-		return 0, fmt.Errorf("failed to restore stable snapshot: %w", err)
-	}
-
-	status := PanelUpdateStatus{
-		RunID:      strconv.FormatInt(runID, 10),
-		State:      updateStateSuccess,
-		ExitCode:   0,
-		FinishedAt: time.Now().Unix(),
-	}
-	if data, err := json.Marshal(status); err == nil {
-		_ = os.WriteFile(config.GetUpdateStatusFilePath(), data, 0o644)
-	}
-
-	_ = s.RestartPanel(1 * time.Second)
-	return runID, nil
+	launched = true
+	return rid, nil
 }
 
 func (s *PanelService) backupDatabasePreRollback() {
-	if !database.IsPostgres() {
-		backupPath := filepath.Join(config.GetDBFolderPath(), fmt.Sprintf("backup_pre_rollback_%d.db", time.Now().Unix()))
-		if err := database.BackupSQLite(backupPath); err != nil {
-			logger.Warning("failed to create pre-rollback sqlite backup:", err)
+	folder := config.GetDBFolderPath()
+	now := time.Now().Unix()
+	if database.IsPostgres() {
+		dsn := config.GetDBDSN()
+		if dsn == "" {
+			return
+		}
+		bin, err := exec.LookPath("pg_dump")
+		if err != nil {
+			logger.Warning("pre-rollback postgres backup skipped (pg_dump not found):", err)
+			return
+		}
+		backupPath := filepath.Join(folder, fmt.Sprintf("backup_pre_rollback_%d.dump", now))
+		cmd := exec.CommandContext(context.Background(), bin, "--format=custom", "--no-owner", "--no-privileges", "--file="+backupPath, "--dbname", dsn)
+		if err := cmd.Run(); err != nil {
+			logger.Warning("failed to create pre-rollback postgres backup:", err)
 		} else {
-			logger.Infof("pre-rollback sqlite backup created at %s", backupPath)
+			logger.Infof("pre-rollback postgres backup created at %s", backupPath)
+			prunePreRollbackBackups(folder, ".dump", 3)
+		}
+		return
+	}
+
+	backupPath := filepath.Join(folder, fmt.Sprintf("backup_pre_rollback_%d.db", now))
+	if err := database.BackupSQLite(backupPath); err != nil {
+		logger.Warning("failed to create pre-rollback sqlite backup:", err)
+	} else {
+		logger.Infof("pre-rollback sqlite backup created at %s", backupPath)
+		prunePreRollbackBackups(folder, ".db", 3)
+	}
+}
+
+func prunePreRollbackBackups(dir, ext string, keep int) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	var matches []string
+	prefix := "backup_pre_rollback_"
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasPrefix(entry.Name(), prefix) && strings.HasSuffix(entry.Name(), ext) {
+			matches = append(matches, filepath.Join(dir, entry.Name()))
 		}
 	}
+	if len(matches) <= keep {
+		return
+	}
+	slices.Sort(matches)
+	for i := 0; i < len(matches)-keep; i++ {
+		_ = os.Remove(matches[i])
+	}
+}
+
+func (s *PanelService) startLocalRollback(runID int64) (int64, error) {
+	snapshotBin := filepath.Join(getSnapshotFolder(), "x-ui")
+	if _, err := os.Stat(snapshotBin); err != nil {
+		return 0, fmt.Errorf("snapshot binary missing: %w", err)
+	}
+
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		return 0, fmt.Errorf("bash is required to run the panel rollback: %w", err)
+	}
+
+	mainFolder, serviceFolder := resolveUpdateFolders()
+	statusFile := config.GetUpdateStatusFilePath()
+	dstBinary := filepath.Join(mainFolder, "x-ui")
+
+	scriptContent := fmt.Sprintf(`#!/bin/bash
+status_file=%s
+run_id=%s
+dst_bin=%s
+src_bin=%s
+
+_write_status() {
+    local state="$1"
+    local code="$2"
+    mkdir -p "$(dirname "${status_file}")" 2>/dev/null || true
+    printf '{"runId":"%%s","state":"%%s","exitCode":%%s,"finishedAt":%%s}\n' "${run_id}" "${state}" "${code}" "$(date +%%s)" > "${status_file}" 2>/dev/null || true
+}
+
+_exit_trap() {
+    local code=$?
+    if [ "${code}" -eq 0 ]; then
+        _write_status "success" "0"
+    else
+        _write_status "failed" "${code}"
+    fi
+}
+trap _exit_trap EXIT
+set -e
+
+cp -f "${src_bin}" "${dst_bin}"
+chmod 755 "${dst_bin}"
+
+systemctl daemon-reload >/dev/null 2>&1 || true
+systemctl restart x-ui >/dev/null 2>&1 || rc-service x-ui restart >/dev/null 2>&1 || true
+`, shellQuote(statusFile), shellQuote(strconv.FormatInt(runID, 10)), shellQuote(dstBinary), shellQuote(snapshotBin))
+
+	tmpScript, err := os.CreateTemp("", "3x-ui-rollback-*.sh")
+	if err != nil {
+		return 0, err
+	}
+	scriptPath := tmpScript.Name()
+	if _, err := tmpScript.WriteString(scriptContent); err != nil {
+		_ = tmpScript.Close()
+		_ = os.Remove(scriptPath)
+		return 0, err
+	}
+	_ = tmpScript.Close()
+	_ = os.Chmod(scriptPath, 0o700)
+
+	rollbackScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
+	runIDEnv := "XUI_UPDATE_RUN_ID=" + strconv.FormatInt(runID, 10)
+	statusFileEnv := "XUI_UPDATE_STATUS_FILE=" + statusFile
+	proxyEnv := updateProxyEnvVars()
+
+	if systemdRun, err := exec.LookPath("systemd-run"); err == nil {
+		unitName := fmt.Sprintf("x-ui-web-rollback-%d", time.Now().Unix())
+		args := []string{
+			"--unit", unitName,
+			"--setenv", "XUI_MAIN_FOLDER=" + mainFolder,
+			"--setenv", "XUI_SERVICE=" + serviceFolder,
+			"--setenv", runIDEnv,
+			"--setenv", statusFileEnv,
+		}
+		for _, kv := range proxyEnv {
+			args = append(args, "--setenv", kv)
+		}
+		args = append(args, bash, "-lc", rollbackScript)
+		cmd := exec.CommandContext(context.Background(), systemdRun, args...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			output := strings.TrimSpace(string(out))
+			if !strings.Contains(output, "System has not been booted with systemd") &&
+				!strings.Contains(output, "Failed to connect to bus") {
+				_ = os.Remove(scriptPath)
+				return 0, fmt.Errorf("failed to start panel rollback job: %w: %s", err, output)
+			}
+			logger.Warning("systemd-run is unavailable, falling back to detached rollback process:", output)
+		} else {
+			logger.Infof("started panel rollback job via systemd-run unit %s", unitName)
+			return runID, nil
+		}
+	}
+
+	cmd := exec.CommandContext(context.Background(), bash, "-lc", rollbackScript)
+	cmd.Env = append(os.Environ(),
+		"XUI_MAIN_FOLDER="+mainFolder,
+		"XUI_SERVICE="+serviceFolder,
+		runIDEnv,
+		statusFileEnv,
+	)
+	setDetachedProcess(cmd)
+	if err := cmd.Start(); err != nil {
+		_ = os.Remove(scriptPath)
+		return 0, fmt.Errorf("failed to start panel rollback job: %w", err)
+	}
+	if err := cmd.Process.Release(); err != nil {
+		logger.Warning("failed to release panel rollback process:", err)
+	}
+	logger.Infof("started panel rollback job with pid %d", cmd.Process.Pid)
+	recordUpdatePID(cmd.Process.Pid)
+	return runID, nil
 }
 
 func (s *PanelService) startUpdate(useDev bool) (int64, error) {
