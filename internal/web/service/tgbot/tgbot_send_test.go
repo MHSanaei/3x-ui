@@ -37,6 +37,9 @@ func TestIsTelegramNotModifiedError(t *testing.T) {
 	}
 }
 
+// telego.NewBot rejects any token that does not match `^\d+:[\w-]{35}$`.
+var testBotToken = "123456:" + strings.Repeat("a", 35)
+
 func TestEditMessageTgBotSkipsNotModified(t *testing.T) {
 	// Mock Telegram API that always returns "message is not modified".
 	mock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +56,7 @@ func TestEditMessageTgBotSkipsNotModified(t *testing.T) {
 	origBot := bot
 	t.Cleanup(func() { bot = origBot })
 	var err error
-	bot, err = telego.NewBot("test-token", telego.WithAPIServer(mock.URL))
+	bot, err = telego.NewBot(testBotToken, telego.WithAPIServer(mock.URL))
 	if err != nil {
 		t.Fatalf("NewBot: %v", err)
 	}
@@ -85,7 +88,7 @@ func TestEditMessageCallbackTgBotSkipsNotModified(t *testing.T) {
 	origBot := bot
 	t.Cleanup(func() { bot = origBot })
 	var err error
-	bot, err = telego.NewBot("test-token", telego.WithAPIServer(mock.URL))
+	bot, err = telego.NewBot(testBotToken, telego.WithAPIServer(mock.URL))
 	if err != nil {
 		t.Fatalf("NewBot: %v", err)
 	}
