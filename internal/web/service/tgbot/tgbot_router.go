@@ -47,12 +47,19 @@ func (t *Tgbot) OnReceive() {
 		tgBotMutex.Unlock()
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			if !isPrivateChat(message.Chat) {
+				return nil
+			}
 			userStateMgr.clear(message.Chat.ID)
-			t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
+			scoped := t.forUser(message.From.ID)
+			scoped.SendMsgToTgbot(message.Chat.ID, scoped.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
 			return nil
 		}, th.TextEqual(t.I18nBot("tgbot.buttons.closeKeyboard")))
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			if !isPrivateChat(message.Chat) {
+				return nil
+			}
 			if !t.isCommandForCurrentBot(&message) {
 				return nil
 			}
@@ -62,27 +69,48 @@ func (t *Tgbot) OnReceive() {
 				messageWorkerPool <- struct{}{}        // Acquire worker
 				defer func() { <-messageWorkerPool }() // Release worker
 
-				userStateMgr.clear(message.Chat.ID)
-				t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
+				// Any command ends a pending conversation; the state travels
+				// on so /cancel can say which one it ended.
+				pending, _ := userStateMgr.take(message.Chat.ID)
+				scoped := t.forUser(message.From.ID)
+				scoped.answerCommand(&message, message.Chat.ID, scoped.levelOf(message.From.ID), pending)
 			}()
 			return nil
 		}, th.AnyCommand())
 
 		h.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
+			if !isPrivateChat(query.Message.GetChat()) {
+				return nil
+			}
 			// Use goroutine with worker pool for concurrent callback processing
 			go func() {
 				messageWorkerPool <- struct{}{}        // Acquire worker
 				defer func() { <-messageWorkerPool }() // Release worker
 
 				userStateMgr.clear(query.Message.GetChat().ID)
-				t.answerCallback(&query, checkAdmin(query.From.ID))
+				scoped := t.forUser(query.From.ID)
+				scoped.answerCallback(&query, scoped.levelOf(query.From.ID))
 			}()
 			return nil
 		}, th.AnyCallbackQueryWithMessage())
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			if !isPrivateChat(message.Chat) {
+				return nil
+			}
 			userStateMgr.maybePrune(time.Hour)
+			// Shadowed so every reply in this handler renders in the sender's
+			// language without rewriting each call below.
+			t := t.forUser(message.From.ID)
 			if userState, exists := userStateMgr.get(message.Chat.ID); exists {
+				if t.handleConversationState(&message, userState) {
+					return nil
+				}
+				// Wizard states key by chat while authorization keys by sender, so the
+				// admin check cannot be left to whoever set the state.
+				if !checkAdmin(message.From.ID) {
+					return nil
+				}
 				switch userState {
 				case "awaiting_email":
 					if client_Email == strings.TrimSpace(message.Text) {
@@ -171,10 +199,22 @@ func (t *Tgbot) OnReceive() {
 }
 
 // answerCommand processes incoming command messages from Telegram users.
-func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin bool) {
+func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, level userLevel, pending string) {
 	msg, onlyMessage := "", false
+	isAdmin := level == levelAdmin
 
 	command, _, commandArgs := tu.ParseCommand(message.Text)
+
+	// A stranger sees one greeting and nothing else, so an unlisted command
+	// cannot betray that the bot has a client or admin side at all.
+	if !commandAllowed(level, command) {
+		if level == levelStranger {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.strangerGreeting"))
+			return
+		}
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.unknown"))
+		return
+	}
 
 	// Helper function to handle unknown commands.
 	handleUnknownCommand := func() {
@@ -184,14 +224,38 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	// Handle the command.
 	switch command {
 	case "help":
-		msg += t.I18nBot("tgbot.commands.help")
+		msg += t.helpText()
+		if isAdmin {
+			msg += "\r\n\r\n" + t.adminCommandHelp()
+		}
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
+	case "sethelp":
+		onlyMessage = true
+		if !isAdmin {
+			handleUnknownCommand()
+			break
+		}
+		t.startSetHelp(chatId)
 	case "start":
+		if len(commandArgs) > 0 {
+			t.claimInvite(chatId, message.From, commandArgs[0], isAdmin)
+			// A successful claim promotes the caller mid-command, so the
+			// keyboard below is chosen from the level they now hold.
+			level = t.levelOf(message.From.ID)
+			isAdmin = level == levelAdmin
+		}
+		if level == levelStranger {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.strangerGreeting"))
+			return
+		}
 		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
 		}
 		msg += "\n\n" + t.I18nBot("tgbot.commands.pleaseChoose")
+	case "cancel":
+		onlyMessage = true
+		msg += t.I18nBot(cancelledKey(pending))
 	case "status":
 		onlyMessage = true
 		msg += t.I18nBot("tgbot.commands.status")
@@ -204,11 +268,64 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			if isAdmin {
 				t.searchClient(chatId, commandArgs[0])
 			} else {
-				t.getClientUsage(chatId, message.From.ID, commandArgs[0])
+				t.getClientUsage(chatId, message.From.ID, 0, commandArgs[0])
 			}
 		} else {
-			msg += t.I18nBot("tgbot.commands.usage")
+			// Bare /usage answers for the caller's own configs: printing the syntax
+			// made the common case the one needing an argument they must look up.
+			t.getClientUsage(chatId, message.From.ID, 0)
 		}
+	case "broadcast":
+		onlyMessage = true
+		if !isAdmin {
+			handleUnknownCommand()
+			break
+		}
+		t.startBroadcast(chatId)
+	case "pm":
+		onlyMessage = true
+		t.startClientMessage(message, strings.TrimSpace(strings.Join(commandArgs, " ")))
+	case "send":
+		onlyMessage = true
+		if !isAdmin {
+			handleUnknownCommand()
+			break
+		}
+		if len(commandArgs) < 2 {
+			msg += t.I18nBot("tgbot.commands.sendUsage")
+			break
+		}
+		target, err := strconv.ParseInt(commandArgs[0], 10, 64)
+		if err != nil {
+			msg += t.I18nBot("tgbot.commands.sendUsage")
+			break
+		}
+		t.deliverAdminReply(chatId, target, strings.TrimSpace(strings.Join(commandArgs[1:], " ")))
+	case "whois":
+		onlyMessage = true
+		if !isAdmin {
+			handleUnknownCommand()
+			break
+		}
+		if len(commandArgs) == 0 {
+			msg += t.I18nBot("tgbot.commands.whoisUsage")
+			break
+		}
+		t.whoIs(chatId, commandArgs[0])
+	case "clients":
+		onlyMessage = true
+		if !isAdmin {
+			handleUnknownCommand()
+			break
+		}
+		t.clientRoster(chatId)
+	case "server":
+		onlyMessage = true
+		if !isAdmin {
+			handleUnknownCommand()
+			break
+		}
+		t.serverMenu(chatId)
 	case "inbound":
 		onlyMessage = true
 		if isAdmin && len(commandArgs) > 0 {
@@ -240,15 +357,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	case "clearall":
 		onlyMessage = true
 		if isAdmin {
-			inlineKeyboard := tu.InlineKeyboard(
-				tu.InlineKeyboardRow(
-					tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelReset")).WithCallbackData(t.encodeQuery("reset_all_traffics_cancel")),
-				),
-				tu.InlineKeyboardRow(
-					tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmResetTraffic")).WithCallbackData(t.encodeQuery("reset_all_traffics_c")),
-				),
-			)
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.AreYouSure"), inlineKeyboard)
+			t.confirmResetAllTraffic(chatId)
 		} else {
 			handleUnknownCommand()
 		}
@@ -257,7 +366,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	}
 
 	if msg != "" {
-		t.sendResponse(chatId, msg, onlyMessage, isAdmin)
+		t.sendResponse(chatId, msg, onlyMessage, level)
 	}
 }
 
@@ -278,8 +387,15 @@ func isCommandForBot(text string, username string) bool {
 }
 
 // answerCallback processes callback queries from inline keyboards.
-func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
+func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, level userLevel) {
 	chatId := callbackQuery.Message.GetChat().ID
+	isAdmin := level == levelAdmin
+
+	// A stranger has no keyboard of their own, so any callback they send came
+	// from a forwarded or stale message and is ignored without a reply.
+	if level == levelStranger {
+		return
+	}
 
 	if isAdmin {
 		// get query from hash storage
@@ -344,6 +460,82 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "client_qr_links":
 				t.sendClientQRLinks(chatId, email)
 				return
+			case "qr_sub":
+				t.sendSubscriptionQR(chatId, email, false)
+				return
+			case "qr_subjson":
+				t.sendSubscriptionQR(chatId, email, true)
+				return
+			case "qr_pick":
+				t.qrLinkPicker(chatId, email)
+				return
+			case "qr_one":
+				if target, index, ok := splitEmailIndexTarget(strings.Join(dataArray[1:], " ")); ok {
+					t.sendIndividualLinkQR(chatId, target, index)
+				}
+				return
+			case "client_one_link":
+				t.oneLinkPicker(chatId, email)
+				return
+			case "link_one":
+				if target, index, ok := splitEmailIndexTarget(strings.Join(dataArray[1:], " ")); ok {
+					t.sendOneLink(chatId, target, index)
+				}
+				return
+			case "client_invite_link":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.inviteLink"))
+				t.sendInviteLink(chatId, email)
+				return
+			case "pm_reply":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.replyToClient"))
+				t.promptAdminReply(chatId, email)
+				return
+			case "reset_cred":
+				inlineKeyboard := tu.InlineKeyboard(
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("client_cancel "+email)),
+					),
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmResetCredentials")).WithCallbackData(t.encodeQuery("reset_cred_c "+email)),
+					),
+				)
+				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
+			case "reset_cred_c":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.resetCredentialsSuccess", "Email=="+email))
+				t.rotateClientCredentials(chatId, email, callbackQuery.Message.GetMessageID())
+			case "client_edit":
+				t.clientEditMenu(chatId, email, callbackQuery.Message.GetMessageID())
+			case "client_edit_email":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.change_email"))
+				t.promptClientEdit(chatId, email, stateEditEmailPrefix, "tgbot.messages.renamePrompt")
+			case "client_edit_comment":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.change_comment"))
+				t.promptClientEdit(chatId, email, stateEditCommentPrefix, "tgbot.messages.commentPrompt")
+			case "client_new_subid":
+				inlineKeyboard := tu.InlineKeyboard(
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("client_cancel "+email)),
+					),
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmNewSubID")).WithCallbackData(t.encodeQuery("client_new_subid_c "+email)),
+					),
+				)
+				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
+			case "client_new_subid_c":
+				t.regenerateSubID(chatId, email, callbackQuery.Message.GetMessageID())
+			case "client_delete":
+				inlineKeyboard := tu.InlineKeyboard(
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("client_cancel "+email)),
+					),
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmDeleteClient")).WithCallbackData(t.encodeQuery("client_delete_c "+email)),
+					),
+				)
+				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
+			case "client_delete_c":
+				t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
+				t.deleteClient(chatId, email)
 			case "client_get_usage":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.email", "Email=="+email))
 				t.searchClient(chatId, email)
@@ -1011,6 +1203,24 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				receiver_inbound_ID = inboundIdInt
 				receiver_inbound_IDs = []int{inboundIdInt}
 				t.addClient(callbackQuery.Message.GetChat().ID, t.BuildClientDraftMessage())
+			case "server_inbound_toggle":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+				t.toggleInbound(chatId, dataArray[1], callbackQuery.Message.GetMessageID())
+			case "feature_toggle":
+				t.toggleFeature(chatId, dataArray[1], callbackQuery.Message.GetMessageID())
+			case "bulk_preview":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.bulkActions"))
+				t.bulkPreview(chatId, dataArray[1])
+			case "bulk_apply":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+				t.bulkApply(chatId, dataArray[1])
+			case "roster_filter":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.clientRoster"))
+				t.clientRosterFiltered(chatId, dataArray[1])
+			case "notify_toggle":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+				t.toggleNotification(chatId, dataArray[1], callbackQuery.Message.GetMessageID())
+				return
 			case "add_client_toggle_attach":
 				inboundIdStr := dataArray[1]
 				inboundIdInt, err := strconv.Atoi(inboundIdStr)
@@ -1049,32 +1259,47 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				}
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.allClients"))
 				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
-			case "admin_client_sub_links":
-				inbounds, err := t.getInboundsFor("get_clients_for_sub")
-				if err != nil {
-					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
-					return
-				}
-				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
-			case "admin_client_individual_links":
-				inbounds, err := t.getInboundsFor("get_clients_for_individual")
-				if err != nil {
-					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
-					return
-				}
-				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
-			case "admin_client_qr_links":
-				inbounds, err := t.getInboundsFor("get_clients_for_qr")
-				if err != nil {
-					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
-					return
-				}
-				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
 			}
 		}
 	}
 
 	if !isAdmin && !isClientSelfCallback(callbackQuery.Data) {
+		return
+	}
+
+	// Carries an hour, so it cannot be an exact-match case below. Admin-only,
+	// and the gate is here rather than in the handler's caller.
+	if hour, ok := parseHourCallback(callbackQuery.Data); ok {
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.dailyHour"))
+		t.applyDailyHour(chatId, hour, callbackQuery.Message.GetMessageID())
+		return
+	}
+
+	// Carries a number, so it cannot be an exact-match case below. Admin-only,
+	// like the hour picker it sits beside in Bot Settings.
+	if limit, ok := parseBindLimitCallback(callbackQuery.Data); ok {
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.bindLimit"))
+		t.applyBindLimit(chatId, limit, callbackQuery.Message.GetMessageID())
+		return
+	}
+
+	// Carries a tag, so it cannot be an exact-match case below.
+	if messageKey, ok := parseGuideCallback(callbackQuery.Data); ok {
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.setupGuide"))
+		t.sendGuide(chatId, messageKey)
+		return
+	}
+
+	// Carries a tag, so it cannot be an exact-match case below.
+	if tag, ok := parseLangCallback(callbackQuery.Data); ok {
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, languageLabel(tag))
+		t.applyLanguage(chatId, callbackQuery.From.ID, tag, callbackQuery.Message.GetMessageID())
 		return
 	}
 
@@ -1100,77 +1325,45 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "client_traffic":
 		tgUserID := callbackQuery.From.ID
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.clientUsage"))
-		t.getClientUsage(chatId, tgUserID)
+		t.getClientUsage(chatId, tgUserID, 0)
+	case "client_usage_refresh":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+		t.getClientUsage(chatId, callbackQuery.From.ID, callbackQuery.Message.GetMessageID())
 	case "client_commands":
-		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands"))
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.botCommands"))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands")+"\r\n\r\n"+t.I18nBot("tgbot.commands.helpClientExtraCommands"))
+	case "client_help":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.help"))
+		t.helpMenu(chatId)
+	case "client_guide":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.setupGuide"))
+		t.guideMenu(chatId)
+	case "client_pm":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.messageAdmin"))
+		t.promptClientMessage(chatId, callbackQuery.From.ID)
+	case "client_settings":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.settings"))
+		t.settingsMenu(chatId)
+	case "settings_lang":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.language"))
+		t.languageMenu(chatId, callbackQuery.From.ID, callbackQuery.Message.GetMessageID())
+	case "client_menu":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.backToMenu"))
+		t.SendAnswer(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), level)
+	case "client_configs":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.myConfigs"))
+		t.configsMenu(chatId)
+	case "client_one_link":
+		t.clientPicker(chatId, &callbackQuery.From, "client_one_link", level)
 	case "client_sub_links":
-		// show user's own clients to choose one for sub links
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			// fallback to message
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-			return
-		}
-		if len(traffics) == 0 {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons = append(buttons, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_sub_links "+tr.Email)))
-		}
-		cols := 1
-		if len(buttons) >= 6 {
-			cols = 2
-		}
-		keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), keyboard)
+		t.clientPicker(chatId, &callbackQuery.From, "client_sub_links", level)
 	case "client_individual_links":
-		// show user's clients to choose for individual links
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-			return
-		}
-		if len(traffics) == 0 {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons2 []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons2 = append(buttons2, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_individual_links "+tr.Email)))
-		}
-		cols2 := 1
-		if len(buttons2) >= 6 {
-			cols2 = 2
-		}
-		keyboard2 := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols2, buttons2...))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), keyboard2)
+		t.clientPicker(chatId, &callbackQuery.From, "client_individual_links", level)
 	case "client_qr_links":
-		// show user's clients to choose for QR codes
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOccurred")+"\r\n"+err.Error())
-			return
-		}
-		if len(traffics) == 0 {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons3 []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons3 = append(buttons3, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_qr_links "+tr.Email)))
-		}
-		cols3 := 1
-		if len(buttons3) >= 6 {
-			cols3 = 2
-		}
-		keyboard3 := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols3, buttons3...))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), keyboard3)
+		t.clientPicker(chatId, &callbackQuery.From, "client_qr_links", level)
+	case "client_reset_self":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.selfReset"))
+		t.clientPicker(chatId, &callbackQuery.From, "client_reset_self", level)
 	case "onlines":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.onlines"))
 		t.onlineClients(chatId)
@@ -1179,7 +1372,143 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.onlineClients(chatId, callbackQuery.Message.GetMessageID())
 	case "commands":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpAdminCommands"))
+		t.SendMsgToTgbot(chatId, t.adminCommandHelp())
+	case "broadcast":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.broadcast"))
+		t.startBroadcast(chatId)
+	case "broadcast_send":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+		t.runBroadcast(chatId)
+	case "broadcast_cancel":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.canceled", "Email=="))
+		t.cancelBroadcast(chatId)
+	case "remind_now":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.remindNow"))
+		t.remindPreview(chatId)
+	case "remind_send":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+		t.runManualReminders(chatId)
+	case "admin_panel":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.adminPanel"))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.adminPanel", "Hostname=="+hostname), t.adminKeyboard())
+	case "admin_clients":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.sectionClients"))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.sectionClients"), t.adminClientsKeyboard())
+	case "admin_reports":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.sectionReports"))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.sectionReports"), t.adminReportsKeyboard())
+	case "admin_messaging":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.sectionMessaging"))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.sectionMessaging"), t.adminMessagingKeyboard())
+	case "admin_settings":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.sectionSettings"))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.sectionSettings"), t.adminSettingsKeyboard())
+	case "set_help":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.setHelpText"))
+		t.startSetHelp(chatId)
+	case "user_panel":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.backToUserPanel"))
+		t.SendAnswer(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), level)
+	case "invite_links":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.inviteLinks"))
+		t.inviteLinkPicker(chatId, 0)
+	case "client_roster":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.clientRoster"))
+		t.clientRoster(chatId)
+	case "bulk_menu":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.bulkActions"))
+		t.bulkMenu(chatId)
+	case "roster_search":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.rosterSearch"))
+		t.startRosterSearch(chatId)
+	case "server":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.serverMenu"))
+		t.serverMenu(chatId)
+	case "notify_settings":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.notifications"))
+		t.notificationsMenu(chatId)
+	case "admin_features":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.botFeatures"))
+		t.featuresMenu(chatId)
+	case "settings_hour":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.dailyHour"))
+		t.hourMenu(chatId, callbackQuery.Message.GetMessageID())
+	case "settings_bindings":
+		if !isAdmin {
+			return
+		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.bindLimit"))
+		t.bindLimitMenu(chatId, callbackQuery.Message.GetMessageID())
+	case "server_panel_logs":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.panelLogs"))
+		t.sendPanelLogs(chatId)
+	case "server_xray_logs":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.xrayLogs"))
+		t.sendXrayLogs(chatId)
+	case "server_xray_restart":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.xrayRestart"))
+		t.restartXray(chatId)
+	case "server_xray_stop":
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.AreYouSure"),
+			t.confirmKeyboard("tgbot.buttons.confirmXrayStop", "server_xray_stop_c", "server"))
+	case "server_xray_stop_c":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.xrayStop"))
+		t.stopXray(chatId)
+	case "server_panel_restart":
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.AreYouSure"),
+			t.confirmKeyboard("tgbot.buttons.confirmPanelRestart", "server_panel_restart_c", "server"))
+	case "server_panel_restart_c":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.panelRestart"))
+		t.restartPanel(chatId)
+	case "server_inbounds":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.toggleInbound"))
+		t.refreshInboundPicker(chatId, 0)
+	case "del_depleted":
+		t.confirmDelDepleted(chatId)
+	case "del_depleted_cancel":
+		t.cancelSweep(chatId, callbackQuery.Message.GetMessageID())
+	case "del_depleted_c":
+		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
+		t.deleteDepletedClients(chatId)
 	case "add_client":
 		client_Email = t.randomLowerAndNum(8)
 		client_LimitIP = 0
@@ -1386,38 +1715,12 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			receiver_inbound_IDs = nil
 		}
 	case "reset_all_traffics_cancel":
-		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 1, tu.ReplyKeyboardRemove())
+		t.cancelSweep(chatId, callbackQuery.Message.GetMessageID())
 	case "reset_all_traffics":
-		inlineKeyboard := tu.InlineKeyboard(
-			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelReset")).WithCallbackData(t.encodeQuery("reset_all_traffics_cancel")),
-			),
-			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmResetTraffic")).WithCallbackData(t.encodeQuery("reset_all_traffics_c")),
-			),
-		)
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.AreYouSure"), inlineKeyboard)
+		t.confirmResetAllTraffic(chatId)
 	case "reset_all_traffics_c":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		emails, err := t.inboundService.GetAllEmails()
-		if err != nil {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
-			return
-		}
-
-		for _, email := range emails {
-			err := t.inboundService.ResetClientTrafficByEmail(email)
-			if err == nil {
-				msg := t.I18nBot("tgbot.messages.SuccessResetTraffic", "ClientEmail=="+email)
-				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
-			} else {
-				msg := t.I18nBot("tgbot.messages.FailedResetTraffic", "ClientEmail=="+email, "ErrorMessage=="+err.Error())
-				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
-			}
-		}
-
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.FinishProcess"), tu.ReplyKeyboardRemove())
+		t.resetAllTraffic(chatId)
 	case "get_sorted_traffic_usage_report":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		emails, err := t.inboundService.GetAllEmails()
@@ -1445,7 +1748,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				continue
 			}
 
-			output := t.clientInfoMsg(traffic, false, false, false, false, true, false)
+			output := t.clientInfoMsg(traffic, false, false, false, false, true, false, true)
 			t.SendMsgToTgbot(chatId, output, tu.ReplyKeyboardRemove())
 		}
 		for _, extra_emails := range extra_emails {
@@ -1454,21 +1757,17 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 		}
 	default:
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_sub_links "); ok {
-			email := after
-			t.sendClientSubLinks(chatId, email)
+		verb, arg, matched := clientSelfAction(callbackQuery.Data)
+		if !matched {
 			return
 		}
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_individual_links "); ok {
-			email := after
-			t.sendClientIndividualLinks(chatId, email)
+		// An admin reaching here would already have been served by the block
+		// above; for everyone else the target must be one of their own clients.
+		if !isAdmin && !t.ownsClient(callbackQuery.From.ID, clientSelfTarget(verb, arg)) {
 			return
 		}
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_qr_links "); ok {
-			email := after
-			t.sendClientQRLinks(chatId, email)
-			return
-		}
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+		t.runClientSelfAction(chatId, &callbackQuery.From, verb, arg)
 	}
 }
 
@@ -1482,11 +1781,18 @@ func checkAdmin(tgId int64) bool {
 // safe to run for a non-admin. Every other callback is admin-only (default-deny).
 func isClientSelfCallback(data string) bool {
 	switch data {
-	case "client_traffic", "client_commands", "client_sub_links",
-		"client_individual_links", "client_qr_links":
+	case "client_traffic", "client_commands", "client_help", "client_sub_links",
+		"client_individual_links", "client_qr_links", "client_pm",
+		"client_settings", "client_menu", "settings_lang", "client_reset_self",
+		"client_guide", "client_configs", "client_one_link", "client_usage_refresh":
 		return true
 	}
-	return strings.HasPrefix(data, "client_sub_links ") ||
-		strings.HasPrefix(data, "client_individual_links ") ||
-		strings.HasPrefix(data, "client_qr_links ")
+	if _, ok := parseGuideCallback(data); ok {
+		return true
+	}
+	if _, ok := parseLangCallback(data); ok {
+		return true
+	}
+	_, _, ok := clientSelfAction(data)
+	return ok
 }

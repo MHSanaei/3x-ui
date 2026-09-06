@@ -298,7 +298,7 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 		if len(inbound.ClientStats) > 0 {
 			var output strings.Builder
 			for _, traffic := range inbound.ClientStats {
-				output.WriteString(t.clientInfoMsg(&traffic, true, true, true, true, true, true))
+				output.WriteString(t.clientInfoMsg(&traffic, true, true, true, true, true, true, false))
 			}
 			t.SendMsgToTgbot(chatId, output.String())
 		}

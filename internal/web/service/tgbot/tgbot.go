@@ -21,9 +21,11 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
+	tu "github.com/mymmrac/telego/telegoutil"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
 )
@@ -114,6 +116,16 @@ func (s *userStateStore) get(chatID int64) (string, bool) {
 	return e.state, ok
 }
 
+// Atomic so a command handler can end a pending flow and name the flow it
+// ended without racing the message handler for the same entry.
+func (s *userStateStore) take(chatID int64) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e, ok := s.states[chatID]
+	delete(s.states, chatID)
+	return e.state, ok
+}
+
 func (s *userStateStore) clear(chatID int64) {
 	s.mu.Lock()
 	delete(s.states, chatID)
@@ -165,13 +177,23 @@ type LoginAttempt struct {
 
 // Tgbot provides business logic for Telegram bot integration.
 // It handles bot commands, user interactions, and status reporting via Telegram.
+// Shared rather than a Tgbot field: it caches CPU samples and IP lookups behind
+// a mutex, which a per-user copy of the bot must point at rather than fork.
+var serverService service.ServerService
+
 type Tgbot struct {
 	inboundService service.InboundService
 	clientService  service.ClientService
 	settingService service.SettingService
-	serverService  service.ServerService
 	xrayService    service.XrayService
+	panelService   panel.PanelService
 	lastStatus     *service.Status
+	// Set by forUser so a reply renders in the language its recipient picked;
+	// empty means the panel-wide bot language.
+	lang string
+	// Set by quiet for the daily pass, whose notices are routine enough that
+	// they should not buzz a phone. Interactive replies keep their alert.
+	silent bool
 }
 
 // NewTgbot creates a new Tgbot instance.
@@ -181,7 +203,7 @@ func (t *Tgbot) NewTgbot() *Tgbot {
 
 // I18nBot retrieves a localized message for the bot interface.
 func (t *Tgbot) I18nBot(name string, params ...string) string {
-	return locale.I18n(locale.Bot, name, params...)
+	return locale.I18nLang(t.lang, name, params...)
 }
 
 // GetHashStorage returns the hash storage instance for callback queries.
@@ -339,20 +361,37 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 		}
 	}()
 
-	err := bot.SetMyCommands(context.Background(), &telego.SetMyCommandsParams{
-		Commands: []telego.BotCommand{
-			{Command: "start", Description: t.I18nBot("tgbot.commands.startDesc")},
-			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
-			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
-			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
-			{Command: "usage", Description: t.I18nBot("tgbot.commands.usageDesc")},
-			{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
-			{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
-			{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
-		},
-	})
-	if err != nil {
+	// The default scope reaches everyone who can find the bot, so it lists only
+	// what a customer may run; admin commands are published per admin chat.
+	clientCommands := []telego.BotCommand{
+		{Command: "start", Description: t.I18nBot("tgbot.commands.startDesc")},
+		{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
+		{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
+		{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
+		{Command: "usage", Description: t.I18nBot("tgbot.commands.usageDesc")},
+	}
+	adminCommands := append(append([]telego.BotCommand{}, clientCommands...),
+		telego.BotCommand{Command: "clients", Description: t.I18nBot("tgbot.commands.clientsDesc")},
+		telego.BotCommand{Command: "server", Description: t.I18nBot("tgbot.commands.serverDesc")},
+		telego.BotCommand{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
+		telego.BotCommand{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
+		telego.BotCommand{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
+	)
+
+	if err := bot.SetMyCommands(context.Background(), &telego.SetMyCommandsParams{
+		Commands: clientCommands,
+		Scope:    tu.ScopeDefault(),
+	}); err != nil {
 		logger.Warning("Failed to set bot commands:", err)
+	}
+
+	for _, adminId := range adminIds {
+		if err := bot.SetMyCommands(context.Background(), &telego.SetMyCommandsParams{
+			Commands: adminCommands,
+			Scope:    tu.ScopeChat(tu.ID(adminId)),
+		}); err != nil {
+			logger.Warning("Failed to set admin bot commands:", err)
+		}
 	}
 }
 
