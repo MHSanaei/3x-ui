@@ -5,8 +5,21 @@ icon: Send
 ---
 
 3x-ui can drive a Telegram bot for monitoring, alerts, backups, and remote
-management. Admins get full control; regular users (linked by Telegram ID) can
-check their own usage and links.
+management. It also doubles as a customer-facing self-service channel: a client
+links their own Telegram account to a subscription and then fetches their
+configs, QR codes, usage and expiry without ever touching the panel.
+
+Every update resolves to one of three levels, and commands are allowlisted per
+level rather than denied one by one:
+
+| Level        | Who they are                                  | What they may run                                            |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------ |
+| **stranger** | Not an admin, no subscription bound           | `/start` only — nothing else answers, so the panel stays invisible |
+| **client**   | A Telegram account bound to a subscription    | `/start`, `/help`, `/status`, `/id`, `/usage`, `/pm`, `/cancel` |
+| **admin**    | An ID listed in `tgBotChatId`                 | Everything, including all admin flows                         |
+
+An admin outranks their own client bindings, so an operator who also holds a
+config still reaches the admin console.
 
 <Callout type="info">
   Looking for news and community support? Join the official Telegram channel
@@ -51,19 +64,58 @@ panel:
 These appear in the Telegram command menu: `/start`, `/help`, `/status`, `/id`.
 Additional commands:
 
-| Command            | Who    | Action                                                       |
-| ------------------ | ------ | ------------------------------------------------------------ |
-| `/start`, `/help`  | anyone | Greeting and the menu of inline buttons                      |
-| `/status`          | anyone | Confirm the bot is alive                                     |
-| `/id`              | anyone | Show your Telegram numeric ID                                |
-| `/usage <arg>`     | both   | Admins search clients; users look up their own usage         |
-| `/inbound <remark>`| admin  | Show an inbound's details                                    |
-| `/restart`         | admin  | Restart Xray                                                 |
+| Command            | Who            | Action                                                       |
+| ------------------ | -------------- | ------------------------------------------------------------ |
+| `/start`           | anyone         | Greeting and menu. With an invite token (`/start <subId>`) it binds the account |
+| `/help`            | client, admin  | The help hub; admins can rewrite its text with `/sethelp`    |
+| `/status`          | client, admin  | Confirm the bot is alive                                     |
+| `/id`              | client, admin  | Show your Telegram numeric ID                                |
+| `/usage <arg>`     | client, admin  | Admins search clients; clients look up their own usage       |
+| `/pm`              | client, admin  | Message the admin; admins reply inline from the notification |
+| `/cancel`          | client, admin  | Abort a pending message to the admin, or a pending admin reply |
+| `/inbound <remark>`| admin          | Show an inbound's details                                    |
+| `/restart`         | admin          | Restart Xray                                                 |
 
-Admins also get inline-button flows for server usage, sorted traffic reports,
-resetting traffic, DB backups, ban logs, listing inbounds/clients, online
-clients, "depleting soon", and a full **add-client** wizard. Regular users get
-buttons for their own usage, subscription links, individual links, and QR codes.
+Admins also get inline-button flows, filed into five sections: server usage and
+sorted traffic reports, resetting traffic, DB backups, ban logs, listing
+inbounds/clients, online clients, "depleting soon", a full **add-client**
+wizard, roster search and filters, bulk extend/disable, broadcast, and a
+**Bot Settings** menu for the options in the table below.
+
+## Customer self-service
+
+Binding is what turns a stranger into a client. From a client's card in the
+admin console, **Invite link** produces a deep link of the form:
+
+```
+https://t.me/<your_bot>?start=<subId>
+```
+
+The customer opens it, Telegram sends `/start <subId>`, and the bot binds their
+Telegram account to that subscription and notifies the admin. From then on they
+get a keyboard with:
+
+- **My Configs** — the config list, each delivered with its own QR code and
+  per-platform setup guide.
+- **Usage** — a single message with expiry and traffic that refreshes in place.
+- **Renew** — asks the admin to extend the subscription, plus a switch to stop
+  renewal reminders.
+- **Help** and **Message admin** — the help hub, and a direct line to the
+  operator with inline replies.
+- **Settings** — per-user language, independent of the panel's `tgLang`.
+
+<Callout type="info">
+  One Telegram account may hold several subscriptions, up to `tgBotMaxBindings`
+  (default 5). Set it to `1` for the original one-config-per-account rule, or
+  `0` to remove the ceiling. The limit counts subscriptions, not client records,
+  and every per-config action is re-checked against ownership — a client can
+  only ever act on a config bound to their own Telegram ID.
+</Callout>
+
+Customers are told when their traffic quota passes 80% and 95%. A daily pass
+runs at `tgBotDailyHour` and sends renewal reminders; admins can trigger it
+early with **Remind now**, which first previews how many customers are due and
+then claims the day so the scheduled run cannot repeat it.
 
 ## Reports & alerts
 
@@ -100,6 +152,14 @@ The warning lead times come from `expireDiff` (days before expiry) and
 | `tgCpu` / `tgMemory` | `80` / `80`          | CPU / memory alert thresholds (percent).       |
 | `tgLang`       | `en-US`                    | Bot language.                                  |
 | `tgEnabledEvents` | `login.attempt,cpu.high`| Which events to deliver.                       |
+| `tgBotMaxBindings` | `5`                     | Subscriptions one Telegram account may hold (`1` = old rule, `0` = unlimited). |
+| `tgBotAllowSelfReset` | `false`              | Let customers reset their own configs. The reset knocks every one of that client's devices offline until re-import. |
+| `tgBotDailyHour` | `8`                       | Hour of day the customer-facing daily pass runs, kept apart from `tgRunTime`. |
+| `tgBotSilentNotices` | `false`               | Deliver customer notices without a notification sound. |
+
+The last four are set from the bot's own **Bot Settings** menu rather than Panel
+Settings, and are stored as ordinary settings rows — enabling them needs no
+database migration.
 
 <Callout type="warn">
   The bot token controls your bot — keep it secret and only add **trusted** admin
