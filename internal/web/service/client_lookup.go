@@ -104,6 +104,42 @@ func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int,
 	return ids, nil
 }
 
+// One customer may own several clients, so bound chat ids are deduplicated:
+// a broadcast must reach each person once, not once per subscription.
+func (s *ClientService) DistinctTelegramUserIDs() ([]int64, error) {
+	var ids []int64
+	err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("tg_id <> ?", 0).
+		Distinct().
+		Order("tg_id ASC").
+		Pluck("tg_id", &ids).Error
+	return ids, err
+}
+
+func (s *ClientService) GetRecordBySubID(subId string) (*model.ClientRecord, error) {
+	if subId == "" {
+		return nil, errors.New("sub_id must not be empty")
+	}
+	row := &model.ClientRecord{}
+	if err := database.GetDB().Where("sub_id = ?", subId).First(row).Error; err != nil {
+		return nil, err
+	}
+	return row, nil
+}
+
+// sub_id carries a plain index, not a unique one: one subscription can cover
+// several clients, so callers acting on a subId must handle all of them.
+func (s *ClientService) GetRecordsBySubID(subId string) ([]*model.ClientRecord, error) {
+	if subId == "" {
+		return nil, errors.New("sub_id must not be empty")
+	}
+	var rows []*model.ClientRecord
+	if err := database.GetDB().Where("sub_id = ?", subId).Order("id ASC").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 func (s *ClientService) GetRecordsByTgID(tgId int64) ([]*model.ClientRecord, error) {
 	if tgId <= 0 {
 		return nil, errors.New("tg_id must be a positive integer")
