@@ -23,19 +23,23 @@ import (
 
 // SendReport sends a periodic report to admin chats.
 func (t *Tgbot) SendReport() {
-	runTime, err := t.settingService.GetTgbotRuntime()
-	if err == nil && len(runTime) > 0 {
-		msg := ""
-		msg += t.I18nBot("tgbot.messages.report", "RunTime=="+runTime)
-		msg += t.I18nBot("tgbot.messages.datetime", "DateTime=="+time.Now().Format("2006-01-02 15:04:05"))
-		t.SendMsgToTgbotAdmins(msg)
+	// The heartbeat and the usage block are one report, so they share a switch.
+	if enabled, err := t.settingService.GetTgBotNotifyServerUsage(); err != nil || enabled {
+		runTime, err := t.settingService.GetTgbotRuntime()
+		if err == nil && len(runTime) > 0 {
+			msg := ""
+			msg += t.I18nBot("tgbot.messages.report", "RunTime=="+runTime)
+			msg += t.I18nBot("tgbot.messages.datetime", "DateTime=="+time.Now().Format("2006-01-02 15:04:05"))
+			t.SendMsgToTgbotAdmins(msg)
+		}
+
+		info := t.sendServerUsage()
+		t.SendMsgToTgbotAdmins(info)
 	}
 
-	info := t.sendServerUsage()
-	t.SendMsgToTgbotAdmins(info)
-
-	t.sendExhaustedToAdmins()
-	t.notifyExhausted()
+	if enabled, err := t.settingService.GetTgBotNotifyDepleteSoon(); err != nil || enabled {
+		t.sendExhaustedToAdmins()
+	}
 
 	backupEnable, err := t.settingService.GetTgBotBackup()
 	if err == nil && backupEnable {
@@ -48,11 +52,11 @@ func (t *Tgbot) SendBackupToAdmins() {
 	if !t.IsRunning() {
 		return
 	}
-	dbData, err := t.serverService.GetDb()
+	dbData, err := serverService.GetDb()
 	if err != nil {
 		logger.Error("Error in getting db backup: ", err)
 	}
-	dbFilename := t.serverService.BackupFilename("")
+	dbFilename := serverService.BackupFilename("")
 	for i, adminId := range adminIds {
 		t.sendBackupData(adminId, dbData, dbFilename)
 		// Add delay between sends to avoid Telegram rate limits
@@ -107,7 +111,7 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 	if cachedStatus, found := t.getCachedStatus(); found {
 		t.lastStatus = cachedStatus
 	} else {
-		t.lastStatus = t.serverService.GetStatus(t.lastStatus)
+		t.lastStatus = serverService.GetStatus(t.lastStatus)
 		t.setCachedStatus(t.lastStatus)
 	}
 	var onlines []string
@@ -273,7 +277,7 @@ func (t *Tgbot) getExhausted(chatId int64) {
 		output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+t.I18nBot("tgbot.clients"))
 		var buttons []telego.InlineKeyboardButton
 		for _, traffic := range exhaustedClients {
-			output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
+			output += t.clientInfoMsg(&traffic, true, false, false, true, true, false, false)
 			output += "\r\n"
 			buttons = append(buttons, tu.InlineKeyboardButton(traffic.Email).WithCallbackData(t.encodeQuery("client_get_usage "+traffic.Email)))
 		}
@@ -290,6 +294,48 @@ func (t *Tgbot) getExhausted(chatId int64) {
 		output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 		t.SendMsgToTgbot(chatId, output)
 	}
+}
+
+// A client that already lapsed has been switched off by the traffic job, so it
+// can no longer be near a threshold: it is reported as disabled, not expiring.
+func partitionExpiringClients(traffics []*xray.ClientTraffic, now, exDiff, trDiff int64) (exhausted, disabled []xray.ClientTraffic) {
+	for _, traffic := range traffics {
+		if !traffic.Enable {
+			disabled = append(disabled, *traffic)
+			continue
+		}
+		if (traffic.ExpiryTime > 0 && (traffic.ExpiryTime-now < exDiff)) ||
+			(traffic.Total > 0 && (traffic.Total-(traffic.Up+traffic.Down) < trDiff)) {
+			exhausted = append(exhausted, *traffic)
+		}
+	}
+	return exhausted, disabled
+}
+
+// Returns an empty string when there is nothing worth interrupting the customer
+// for, so the caller never has to decide whether a notice is warranted.
+func (t *Tgbot) buildExhaustedNotice(exhausted, disabled []xray.ClientTraffic) string {
+	if len(exhausted) == 0 && len(disabled) == 0 {
+		return ""
+	}
+	var output strings.Builder
+	output.WriteString(t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients")))
+	output.WriteString(t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabled))))
+	if len(disabled) > 0 {
+		output.WriteString(t.I18nBot("tgbot.clients"))
+		output.WriteString(":\r\n")
+		for _, traffic := range disabled {
+			output.WriteString(t.clientInfoMsg(&traffic, true, false, false, true, true, false, true))
+			output.WriteString("\r\n")
+		}
+	}
+	output.WriteString("\r\n")
+	output.WriteString(t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhausted))))
+	for _, traffic := range exhausted {
+		output.WriteString(t.clientInfoMsg(&traffic, true, false, false, true, true, false, true))
+		output.WriteString("\r\n")
+	}
+	return output.String()
 }
 
 // notifyExhausted sends notifications for exhausted clients.
@@ -321,40 +367,11 @@ func (t *Tgbot) notifyExhausted() {
 						if client.TgID != 0 {
 							chatID := client.TgID
 							if !int64Contains(chatIDsDone, chatID) && !checkAdmin(chatID) {
-								var disabledClients []xray.ClientTraffic
-								var exhaustedClients []xray.ClientTraffic
 								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
 								if err == nil && len(traffics) > 0 {
-									var output strings.Builder
-									output.WriteString(t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients")))
-									for _, traffic := range traffics {
-										if traffic.Enable {
-											if (traffic.ExpiryTime > 0 && (traffic.ExpiryTime-now < exDiff)) ||
-												(traffic.Total > 0 && (traffic.Total-(traffic.Up+traffic.Down) < trDiff)) {
-												exhaustedClients = append(exhaustedClients, *traffic)
-											}
-										} else {
-											disabledClients = append(disabledClients, *traffic)
-										}
-									}
-									if len(exhaustedClients) > 0 {
-										output.WriteString(t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients))))
-										if len(disabledClients) > 0 {
-											output.WriteString(t.I18nBot("tgbot.clients"))
-											output.WriteString(":\r\n")
-											for _, traffic := range disabledClients {
-												output.WriteString(" ")
-												output.WriteString(traffic.Email)
-											}
-											output.WriteString("\r\n")
-										}
-										output.WriteString("\r\n")
-										output.WriteString(t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedClients))))
-										for _, traffic := range exhaustedClients {
-											output.WriteString(t.clientInfoMsg(&traffic, true, false, false, true, true, false))
-											output.WriteString("\r\n")
-										}
-										t.SendMsgToTgbot(chatID, output.String())
+									exhaustedClients, disabledClients := partitionExpiringClients(traffics, now, exDiff, trDiff)
+									if notice := t.buildExhaustedNotice(exhaustedClients, disabledClients); notice != "" {
+										t.SendMsgToTgbot(chatID, notice)
 									}
 									chatIDsDone = append(chatIDsDone, chatID)
 								}
@@ -409,11 +426,11 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 
 // sendBackup sends a backup of the database and configuration files.
 func (t *Tgbot) sendBackup(chatId int64) {
-	dbData, err := t.serverService.GetDb()
+	dbData, err := serverService.GetDb()
 	if err != nil {
 		logger.Error("Error in getting db backup: ", err)
 	}
-	t.sendBackupData(chatId, dbData, t.serverService.BackupFilename(""))
+	t.sendBackupData(chatId, dbData, serverService.BackupFilename(""))
 }
 
 func (t *Tgbot) sendBackupData(chatId int64, dbData []byte, dbFilename string) {
