@@ -25,6 +25,7 @@ func newPanelUpdateTestEngine() *gin.Engine {
 	engine := gin.New()
 	engine.GET("/panel/api/server/getUpdateStatus", a.getUpdateStatus)
 	engine.POST("/panel/api/server/updatePanel", a.updatePanel)
+	engine.POST("/panel/api/server/rollbackPanel", a.rollbackPanel)
 	return engine
 }
 
@@ -148,5 +149,54 @@ func TestUpdatePanel_InvalidDevValueRejectedBeforeLaunch(t *testing.T) {
 	}
 	if len(env.Obj) != 0 && string(env.Obj) != "null" {
 		t.Fatalf("updatePanel error response must not carry an obj/runId: got %s", env.Obj)
+	}
+}
+
+func TestPanelRollbackInvalidMode(t *testing.T) {
+	newHostTestDB(t)
+	engine := newPanelUpdateTestEngine()
+
+	form := url.Values{}
+	form.Set("mode", "unsupported_mode")
+	req := httptest.NewRequest(http.MethodPost, "/panel/api/server/rollbackPanel", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, req)
+
+	var env struct {
+		Success bool   `json:"success"`
+		Msg     string `json:"msg"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal: %v, body=%s", err, w.Body.String())
+	}
+	if env.Success {
+		t.Fatal("rollbackPanel with invalid mode: success = true, want false")
+	}
+}
+
+func TestPanelRollbackNonLinuxGuard(t *testing.T) {
+	if runtime.GOOS == "linux" {
+		t.Skip("skipping non-linux test on linux")
+	}
+	newHostTestDB(t)
+	engine := newPanelUpdateTestEngine()
+
+	form := url.Values{}
+	form.Set("mode", "local")
+	req := httptest.NewRequest(http.MethodPost, "/panel/api/server/rollbackPanel", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, req)
+
+	var env struct {
+		Success bool   `json:"success"`
+		Msg     string `json:"msg"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal: %v, body=%s", err, w.Body.String())
+	}
+	if env.Success {
+		t.Fatal("rollbackPanel on non-linux: success = true, want false")
 	}
 }

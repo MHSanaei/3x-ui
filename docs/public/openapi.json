@@ -6173,6 +6173,58 @@
         }
       }
     },
+    "/panel/api/server/rollbackPanel": {
+      "post": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Roll back the panel to a stable release version via local snapshot or online updater.",
+        "operationId": "post_panel_api_server_rollbackPanel",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "description": "Rollback mode: \"local\" (default if snapshot exists) or \"online\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "runId": "1735689600123456789"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/server/updatePanel": {
       "post": {
         "tags": [

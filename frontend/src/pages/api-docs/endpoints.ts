@@ -640,6 +640,22 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/server/rollbackPanel',
+        summary:
+          'Roll back the panel to a stable release version via local snapshot or online updater.',
+        params: [
+          {
+            name: 'mode',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Rollback mode: "local" (default if snapshot exists) or "online".',
+            optional: true,
+          },
+        ],
+        response: '{\n  "success": true,\n  "obj": {\n    "runId": "1735689600123456789"\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/server/updatePanel',
         summary: 'Self-update the panel to the latest version. The server restarts on success.',
         params: [

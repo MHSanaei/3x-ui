@@ -69,6 +69,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
 	g.POST("/updatePanel", a.updatePanel)
+	g.POST("/rollbackPanel", a.rollbackPanel)
 	g.POST("/setUpdateChannel", a.setUpdateChannel)
 	g.POST("/updateGeofile", a.updateGeofile)
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
@@ -213,6 +214,18 @@ func (a *ServerController) installXray(c *gin.Context) {
 // this panel's own channel setting; an explicit "dev" (sent by the master node
 // updater) overrides it for this run. The response's runId identifies this
 // update for a later getUpdateStatus poll.
+
+// rollbackPanel starts a rollback to a stable release version.
+func (a *ServerController) rollbackPanel(c *gin.Context) {
+	mode := c.PostForm("mode")
+	runID, err := a.panelService.StartRollback(mode)
+	var obj any
+	if err == nil {
+		obj = gin.H{"runId": strconv.FormatInt(runID, 10)}
+	}
+	jsonMsgObj(c, I18nWeb(c, "pages.index.rollbackStartedPopover"), obj, err)
+}
+
 func (a *ServerController) updatePanel(c *gin.Context) {
 	devParam := c.PostForm("dev")
 	var runID int64
