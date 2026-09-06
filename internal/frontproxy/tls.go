@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"strings"
 
 	"github.com/caddyserver/certmagic"
 )
@@ -48,6 +49,11 @@ func manualTLSConfig(s TLSSettings) (*tls.Config, error) {
 		setCertStatus(CertStatus{State: CertStateFailed, Error: err.Error()})
 		return nil, err
 	}
+	if s.Domain == "" {
+		err := fmt.Errorf("a domain is required for manual TLS, so the door can refuse a ClientHello for any other SNI")
+		setCertStatus(CertStatus{State: CertStateFailed, Error: err.Error()})
+		return nil, err
+	}
 	cert, err := tls.LoadX509KeyPair(s.CertFile, s.KeyFile)
 	if err != nil {
 		err = fmt.Errorf("loading certificate: %w", err)
@@ -60,10 +66,31 @@ func manualTLSConfig(s TLSSettings) (*tls.Config, error) {
 	}
 	setCertStatus(status)
 	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		MinVersion:   tls.VersionTLS12,
-		NextProtos:   []string{"h2", "http/1.1"},
+		GetCertificate: sniGatedCertificate(cert, s.Domain),
+		MinVersion:     tls.VersionTLS12,
+		NextProtos:     []string{"h2", "http/1.1"},
 	}, nil
+}
+
+// sniGatedCertificate only ever hands back cert when the ClientHello's SNI
+// matches domain (case-insensitively -- Go's own tls stack already lowercases
+// ServerName, but the admin-typed domain setting might not be). A direct-IP
+// scan -- no SNI at all, or any SNI naming a different site -- gets a clean
+// TLS handshake failure instead of a certificate that discloses which domain
+// this IP actually serves. A plain tls.Config.Certificates list (what this
+// function replaced) has no such check: crypto/tls serves the sole
+// certificate to every ClientHello regardless of SNI, which is exactly the
+// fingerprinting vector this closes. autoTLSConfig's certmagic-backed path
+// does not need this: confirmed by reading certmagic's own
+// getCertDuringHandshake (no OnDemand configured here means an unmatched SNI
+// falls through to its own "no certificate available" error, never our cert).
+func sniGatedCertificate(cert tls.Certificate, domain string) func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if hello.ServerName == "" || !strings.EqualFold(hello.ServerName, domain) {
+			return nil, fmt.Errorf("no certificate for %q", hello.ServerName)
+		}
+		return &cert, nil
+	}
 }
 
 // autoTLSConfig sets up ACME issuance and renewal via CertMagic. It mutates

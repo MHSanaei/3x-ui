@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -58,7 +59,7 @@ func writeTestCert(t *testing.T) (certFile, keyFile string, notAfter time.Time) 
 
 func TestManualTLSConfigRecordsObtainedStatus(t *testing.T) {
 	certFile, keyFile, notAfter := writeTestCert(t)
-	if _, err := manualTLSConfig(TLSSettings{CertFile: certFile, KeyFile: keyFile}); err != nil {
+	if _, err := manualTLSConfig(TLSSettings{CertFile: certFile, KeyFile: keyFile, Domain: "example.test"}); err != nil {
 		t.Fatalf("manualTLSConfig: %v", err)
 	}
 	status := CurrentCertStatus()
@@ -80,6 +81,58 @@ func TestManualTLSConfigRecordsFailedStatus(t *testing.T) {
 	}
 	if status.Error == "" {
 		t.Error("expected a non-empty error message")
+	}
+}
+
+func TestManualTLSConfigRequiresDomain(t *testing.T) {
+	certFile, keyFile, _ := writeTestCert(t)
+	if _, err := manualTLSConfig(TLSSettings{CertFile: certFile, KeyFile: keyFile}); err == nil {
+		t.Fatal("expected an error with no domain configured")
+	}
+	status := CurrentCertStatus()
+	if status.State != CertStateFailed {
+		t.Fatalf("state = %q, want %q", status.State, CertStateFailed)
+	}
+}
+
+// The whole point of sniGatedCertificate: a direct-IP scan (no SNI, or the
+// wrong SNI) must not get the real certificate back, or it can fingerprint
+// which domain this IP serves without ever knowing the domain up front.
+func TestManualTLSConfigGatesOnSNI(t *testing.T) {
+	certFile, keyFile, _ := writeTestCert(t)
+	cfg, err := manualTLSConfig(TLSSettings{CertFile: certFile, KeyFile: keyFile, Domain: "example.test"})
+	if err != nil {
+		t.Fatalf("manualTLSConfig: %v", err)
+	}
+	if cfg.GetCertificate == nil {
+		t.Fatal("GetCertificate is nil -- falls back to serving Certificates[0] regardless of SNI")
+	}
+
+	for _, tc := range []struct {
+		name       string
+		serverName string
+		wantErr    bool
+	}{
+		{"matching SNI", "example.test", false},
+		{"matching SNI, different case", "EXAMPLE.TEST", false},
+		{"wrong SNI", "totally-different-site.com", true},
+		{"no SNI at all (direct-IP scan)", "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cert, err := cfg.GetCertificate(&tls.ClientHelloInfo{ServerName: tc.serverName})
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("GetCertificate(%q) returned a certificate, want a refusal", tc.serverName)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("GetCertificate(%q): %v", tc.serverName, err)
+			}
+			if cert == nil {
+				t.Fatalf("GetCertificate(%q) returned a nil certificate with no error", tc.serverName)
+			}
+		})
 	}
 }
 
@@ -158,7 +211,7 @@ func TestStopClearsCertStatus(t *testing.T) {
 		Port:    freePort(t),
 		Routing: Config{PanelBasePath: "/p/", PanelPort: 2053},
 		Decoy:   DecoyConfig{Mode: DecoyTemplate, Template: "maintenance"},
-		TLS:     TLSSettings{Mode: CertManual, CertFile: certFile, KeyFile: keyFile},
+		TLS:     TLSSettings{Mode: CertManual, CertFile: certFile, KeyFile: keyFile, Domain: "example.test"},
 	}
 	if err := m.Start(opts); err != nil {
 		t.Fatalf("Start: %v", err)
