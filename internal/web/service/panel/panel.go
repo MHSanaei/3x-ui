@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -31,12 +32,15 @@ type PanelService struct{}
 // On the dev channel the version fields carry a "dev+<sha>" label and the commit
 // fields hold the short SHAs that drive the update-available decision.
 type PanelUpdateInfo struct {
-	Channel         string `json:"channel"`
-	CurrentVersion  string `json:"currentVersion"`
-	LatestVersion   string `json:"latestVersion"`
-	CurrentCommit   string `json:"currentCommit,omitempty"`
-	LatestCommit    string `json:"latestCommit,omitempty"`
-	UpdateAvailable bool   `json:"updateAvailable"`
+	Channel              string `json:"channel"`
+	CurrentVersion       string `json:"currentVersion"`
+	LatestVersion        string `json:"latestVersion"`
+	CurrentCommit        string `json:"currentCommit,omitempty"`
+	LatestCommit         string `json:"latestCommit,omitempty"`
+	UpdateAvailable      bool   `json:"updateAvailable"`
+	LocalSnapshotVersion string `json:"localSnapshotVersion,omitempty"`
+	LatestStableVersion  string `json:"latestStableVersion,omitempty"`
+	HasLocalSnapshot     bool   `json:"hasLocalSnapshot"`
 }
 
 const (
@@ -129,8 +133,23 @@ func (s *PanelService) RestartPanel(delay time.Duration) error {
 // is enabled on a dev build it compares commits against the rolling dev release;
 // otherwise it compares versions against the latest stable tag.
 func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
+	snapInfo, hasSnap := GetStableSnapshotInfo()
+	snapVersion := ""
+	if hasSnap && snapInfo != nil {
+		snapVersion = snapInfo.Version
+	}
+
 	if devChannelActive() {
-		return getDevUpdateInfo()
+		info, err := getDevUpdateInfo()
+		if err != nil {
+			return nil, err
+		}
+		info.HasLocalSnapshot = hasSnap
+		info.LocalSnapshotVersion = snapVersion
+		if latestStable, err := fetchLatestPanelVersion(); err == nil {
+			info.LatestStableVersion = latestStable
+		}
+		return info, nil
 	}
 	latest, err := fetchLatestPanelVersion()
 	if err != nil {
@@ -138,10 +157,13 @@ func (s *PanelService) GetUpdateInfo() (*PanelUpdateInfo, error) {
 	}
 	current := config.GetBaseVersion()
 	return &PanelUpdateInfo{
-		Channel:         "stable",
-		CurrentVersion:  current,
-		LatestVersion:   latest,
-		UpdateAvailable: isNewerVersion(latest, current),
+		Channel:              "stable",
+		CurrentVersion:       current,
+		LatestVersion:        latest,
+		LatestStableVersion:  latest,
+		LocalSnapshotVersion: snapVersion,
+		HasLocalSnapshot:     hasSnap,
+		UpdateAvailable:      isNewerVersion(latest, current),
 	}, nil
 }
 
@@ -212,6 +234,67 @@ func (s *PanelService) GetUpdateStatus() *PanelUpdateStatus {
 	return &status
 }
 
+// StartRollback restores the panel to stable release via local snapshot or online updater.
+func (s *PanelService) StartRollback(mode string) (int64, error) {
+	if mode != "" && mode != "local" && mode != "online" {
+		return 0, fmt.Errorf("invalid rollback mode: %s", mode)
+	}
+
+	if runtime.GOOS != "linux" {
+		return 0, fmt.Errorf("panel web update is supported only on Linux installations")
+	}
+
+	s.backupDatabasePreRollback()
+
+	if err := (&service.SettingService{}).SetDevChannelEnable(false); err != nil {
+		logger.Warning("failed to disable dev channel setting on rollback:", err)
+	}
+
+	if mode == "online" {
+		return s.startUpdate(false)
+	}
+
+	info, ok := GetStableSnapshotInfo()
+	if !ok || info == nil {
+		return 0, fmt.Errorf("no local stable snapshot found")
+	}
+
+	runID := time.Now().UnixNano()
+	if !acquireUpdateSlot(runID) {
+		return 0, fmt.Errorf("a panel update is already in progress")
+	}
+
+	mainFolder, _ := resolveUpdateFolders()
+	if err := RestoreStableSnapshot(mainFolder); err != nil {
+		releaseUpdateSlot()
+		return 0, fmt.Errorf("failed to restore stable snapshot: %w", err)
+	}
+
+	status := PanelUpdateStatus{
+		RunID:      strconv.FormatInt(runID, 10),
+		State:      updateStateSuccess,
+		ExitCode:   0,
+		FinishedAt: time.Now().Unix(),
+	}
+	if data, err := json.Marshal(status); err == nil {
+		_ = os.WriteFile(config.GetUpdateStatusFilePath(), data, 0o644)
+	}
+
+	_ = s.RestartPanel(1 * time.Second)
+	return runID, nil
+}
+
+func (s *PanelService) backupDatabasePreRollback() {
+	if !database.IsPostgres() {
+		backupPath := filepath.Join(config.GetDBFolderPath(), fmt.Sprintf("backup_pre_rollback_%d.db", time.Now().Unix()))
+		if err := database.BackupSQLite(backupPath); err != nil {
+			logger.Warning("failed to create pre-rollback sqlite backup:", err)
+		} else {
+			logger.Infof("pre-rollback sqlite backup created at %s", backupPath)
+		}
+	}
+}
+
 func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	runID := time.Now().UnixNano()
 	if !acquireUpdateSlot(runID) {
@@ -241,6 +324,11 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	statusFile := config.GetUpdateStatusFilePath()
 
 	mainFolder, serviceFolder := resolveUpdateFolders()
+	if useDev && !config.IsDevBuild() {
+		if err := SaveStableSnapshot(mainFolder, config.GetBaseVersion()); err != nil {
+			logger.Warning("failed to preserve stable snapshot before dev update:", err)
+		}
+	}
 	updateTag := ""
 	if useDev {
 		updateTag = devReleaseTag

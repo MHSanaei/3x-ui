@@ -3,6 +3,7 @@ package panel
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -358,4 +359,83 @@ func TestGetUpdateStatus(t *testing.T) {
 	if got := svc.GetUpdateStatus(); got.State != updateStatePending {
 		t.Fatalf("unrecognized state normalizes to pending: State = %q, want %q", got.State, updateStatePending)
 	}
+}
+
+
+func TestStartRollback_InvalidMode(t *testing.T) {
+	svc := &PanelService{}
+	if _, err := svc.StartRollback("invalid_mode"); err == nil {
+		t.Fatal("StartRollback with invalid mode succeeded, want error")
+	}
+}
+
+func TestStartRollback_NonLinuxGuard(t *testing.T) {
+	if runtime.GOOS == "linux" {
+		t.Skip("skipping non-linux guard test on linux")
+	}
+	svc := &PanelService{}
+	if _, err := svc.StartRollback("local"); err == nil {
+		t.Fatal("StartRollback on non-linux succeeded, want error")
+	}
+}
+
+func TestStartRollback_MissingLocalSnapshot(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("skipping linux-specific rollback execution test on non-linux")
+	}
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	resetUpdateSlot(t)
+
+	svc := &PanelService{}
+	if _, err := svc.StartRollback("local"); err == nil {
+		t.Fatal("StartRollback('local') without snapshot succeeded, want error")
+	}
+}
+
+func TestStartRollback_LocalSuccess(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("skipping linux-specific rollback execution test on non-linux")
+	}
+	dbFolder := t.TempDir()
+	mainFolder := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbFolder)
+	t.Setenv("XUI_MAIN_FOLDER", mainFolder)
+	resetUpdateSlot(t)
+
+	srcBinary := filepath.Join(mainFolder, "x-ui")
+	stableContent := []byte("#!/bin/sh\necho stable-v2.4.9\n")
+	if err := os.WriteFile(srcBinary, stableContent, 0o755); err != nil {
+		t.Fatalf("failed to create source binary: %v", err)
+	}
+	if err := SaveStableSnapshot(mainFolder, "v2.4.9"); err != nil {
+		t.Fatalf("SaveStableSnapshot failed: %v", err)
+	}
+
+	devContent := []byte("#!/bin/sh\necho dev-latest\n")
+	if err := os.WriteFile(srcBinary, devContent, 0o755); err != nil {
+		t.Fatalf("failed to overwrite dev binary: %v", err)
+	}
+
+	svc := &PanelService{}
+	runID, err := svc.StartRollback("local")
+	if err != nil {
+		t.Fatalf("StartRollback('local') failed: %v", err)
+	}
+	if runID <= 0 {
+		t.Fatalf("runID = %d, want > 0", runID)
+	}
+
+	restored, err := os.ReadFile(srcBinary)
+	if err != nil {
+		t.Fatalf("failed to read restored binary: %v", err)
+	}
+	if string(restored) != string(stableContent) {
+		t.Fatalf("restored binary content = %q, want %q", string(restored), string(stableContent))
+	}
+
+	status := svc.GetUpdateStatus()
+	if status.State != updateStateSuccess {
+		t.Fatalf("update status state = %q, want %q", status.State, updateStateSuccess)
+	}
+	releaseUpdateSlot()
 }
