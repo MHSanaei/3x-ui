@@ -3,7 +3,7 @@
    open prop flipping, a status response landing), at modal-open frequency, not a hot path. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Divider, Modal, Popconfirm, Select, Tag, Typography, message } from 'antd';
+import { Alert, Button, Divider, Modal, Popconfirm, Select, Tag, Typography, message } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -253,6 +253,14 @@ export default function PsiphonModal({
     <>
       {messageContextHolder}
       <Modal open={open} title={t('pages.xray.psiphon.title')} footer={null} onCancel={onClose}>
+        <Alert
+          type="error"
+          showIcon
+          banner
+          message={t('pages.xray.psiphon.russiaWarningTitle')}
+          description={t('pages.xray.psiphon.russiaWarningDesc')}
+          style={{ marginBottom: 12, fontWeight: 600 }}
+        />
         {status && !status.installed ? (
           <>
             <Tag color="red">{t('pages.xray.psiphon.notInstalled')}</Tag>

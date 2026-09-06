@@ -2198,6 +2198,8 @@
       },
       "psiphon": {
         "title": "Psiphon",
+        "russiaWarningTitle": "Do not use on servers located in Russia",
+        "russiaWarningDesc": "Russian ISPs actively fingerprint and block Psiphon's own obfuscation, so the tunnel may not stay reliable, and running a censorship-circumvention tool from inside Russia carries real legal risk for whoever operates the server.",
         "notInstalled": "Psiphon not installed",
         "installHint": "Downloads the official Psiphon ConsoleClient build -- no Docker, no system package.",
         "installButton": "Install",
