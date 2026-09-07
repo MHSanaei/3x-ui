@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "Target is reachable but sits on a private/local network.",
         "invalidClientField": "Client {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "TLS certificate {index}: {reason}",
         "moreIssues": "{message}  (+{count} more)"
       },
       "form": {
@@ -621,6 +622,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "Required. Must include a port (e.g. example.com:443). Without a port Xray-core refuses to start.",
         "realityTargetRequired": "REALITY target is required",
+        "tlsCertificateRequired": "Import a TLS certificate or enter its file path before saving",
+        "tlsPrivateKeyRequired": "Import the TLS private key or enter its file path before saving",
+        "tlsServerCertificateRequired": "TLS requires at least one server certificate with its private key (encipherment or issue)",
         "realityTargetNeedsPort": "REALITY target must include a port (e.g. example.com:443)",
         "realityTargetInvalidPort": "REALITY target has an invalid port",
         "scan": "Scan",

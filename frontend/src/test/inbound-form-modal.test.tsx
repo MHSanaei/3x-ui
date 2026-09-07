@@ -240,6 +240,28 @@ describe('InboundFormModal', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
+  it('blocks adding TLS without a certificate and directs the user to Security', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    messageError.mockClear();
+    renderModal();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'TLS' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Basics' }));
+    fireEvent.click(primaryButton());
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Security' }).getAttribute('aria-selected')).toBe(
+        'true',
+      );
+      expect(messageError).toHaveBeenCalledWith(
+        expect.stringContaining('TLS certificate 1: Import a TLS certificate'),
+      );
+    });
+    expect(post).not.toHaveBeenCalled();
+  });
+
   it('submits a valid clone-like Reality inbound', async () => {
     const post = vi.mocked(HttpUtil.post);
     post.mockClear();

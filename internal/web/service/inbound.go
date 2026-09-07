@@ -589,6 +589,65 @@ func canonicalizeStreamNetworkKey(streamSettings string) string {
 	return string(out)
 }
 
+// validateInboundTLSCertificates rejects incomplete TLS credentials before a
+// save can request an Xray restart. File paths belong to the target node, so
+// only their presence is checked here, not the panel's local filesystem.
+func validateInboundTLSCertificates(streamSettings string) error {
+	if strings.TrimSpace(streamSettings) == "" {
+		return nil
+	}
+	var stream struct {
+		Security    string          `json:"security"`
+		TLSSettings json.RawMessage `json:"tlsSettings"`
+	}
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return common.NewError("Invalid inbound stream settings: ", err)
+	}
+	if !strings.EqualFold(stream.Security, "tls") {
+		return nil
+	}
+	var settings struct {
+		Certificates []struct {
+			CertificateFile string   `json:"certificateFile"`
+			KeyFile         string   `json:"keyFile"`
+			Certificate     []string `json:"certificate"`
+			Key             []string `json:"key"`
+			Usage           string   `json:"usage"`
+		} `json:"certificates"`
+	}
+	if len(stream.TLSSettings) > 0 {
+		if err := json.Unmarshal(stream.TLSSettings, &settings); err != nil {
+			return common.NewError("Invalid inbound TLS settings: ", err)
+		}
+	}
+	hasServerCertificate := false
+	for i, cert := range settings.Certificates {
+		// Match Xray's file-over-inline precedence for each credential.
+		certificate := cert.CertificateFile
+		if certificate == "" {
+			certificate = strings.Join(cert.Certificate, "\n")
+		}
+		if strings.TrimSpace(certificate) == "" {
+			return common.NewErrorf("TLS certificate %d is missing. Configure a certificate file path or certificate content before saving the inbound.", i+1)
+		}
+		if strings.EqualFold(cert.Usage, "verify") {
+			continue
+		}
+		key := cert.KeyFile
+		if key == "" {
+			key = strings.Join(cert.Key, "\n")
+		}
+		if strings.TrimSpace(key) == "" {
+			return common.NewErrorf("TLS certificate %d is missing its private key. Configure a private key file path or private key content before saving the inbound.", i+1)
+		}
+		hasServerCertificate = true
+	}
+	if !hasServerCertificate {
+		return common.NewError("TLS requires a server certificate and private key. Configure an encipherment or issue certificate before saving the inbound.")
+	}
+	return nil
+}
+
 // finalMaskRealityTcpMasks returns the stream's finalmask.tcp masks when the
 // stream uses REALITY security, or nil otherwise. A non-empty result means
 // this stream carries the finalmask+REALITY combination that panics
@@ -946,6 +1005,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateInboundTLSCertificates(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
@@ -1466,6 +1528,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
+	if err := validateInboundTLSCertificates(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}

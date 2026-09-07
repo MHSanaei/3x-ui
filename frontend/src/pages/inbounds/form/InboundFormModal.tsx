@@ -559,6 +559,7 @@ export default function InboundFormModal({
     const parsed = InboundFormSchema.safeParse(values);
     if (!parsed.success) {
       const issues = parsed.error.issues;
+      setActiveTab(tabForValidationPath(issues[0].path));
       messageApi.error(formatInboundValidation(issues, values, t));
       console.error(
         '[InboundFormModal] schema validation failed:',

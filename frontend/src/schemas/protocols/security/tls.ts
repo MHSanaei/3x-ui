@@ -52,7 +52,14 @@ export const TlsCertInlineSchema = z.object({
   usage: TlsCertUsageSchema.default('encipherment'),
   buildChain: z.boolean().default(false),
 });
-export const TlsCertSchema = z.union([TlsCertFileSchema, TlsCertInlineSchema]);
+export const TlsCertSchema = z.union([
+  TlsCertFileSchema,
+  TlsCertInlineSchema,
+  // Verification CAs contain only public certificates. Their omitted private
+  // keys must survive reading a saved inbound for details and share links.
+  TlsCertFileSchema.extend({ usage: z.literal('verify'), keyFile: z.string().optional() }),
+  TlsCertInlineSchema.extend({ usage: z.literal('verify'), key: z.array(z.string()).optional() }),
+]);
 export type TlsCert = z.infer<typeof TlsCertSchema>;
 
 export const TlsClientSettingsSchema = z.object({
