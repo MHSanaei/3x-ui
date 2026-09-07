@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "目標可用，但位於內網/本機網路中。",
         "invalidClientField": "用戶端 {client}：欄位 {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "第 {index} 組 TLS 憑證：{reason}",
         "moreIssues": "{message}  (另有 {count} 項)"
       },
       "form": {
@@ -609,6 +610,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "必填。必須包含連接埠（例如 example.com:443）。沒有連接埠時 Xray-core 將無法啟動。",
         "realityTargetRequired": "REALITY 目標為必填項",
+        "tlsCertificateRequired": "請先匯入 TLS 憑證或填寫憑證檔案路徑，再儲存入站",
+        "tlsPrivateKeyRequired": "請先匯入 TLS 私鑰或填寫私鑰檔案路徑，再儲存入站",
+        "tlsServerCertificateRequired": "TLS 至少需要一組包含私鑰的伺服器憑證（encipherment 或 issue）",
         "realityTargetNeedsPort": "REALITY 目標必須包含連接埠（例如 example.com:443）",
         "realityTargetInvalidPort": "REALITY 目標的連接埠無效",
         "scan": "掃描",

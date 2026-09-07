@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "O destino funciona, mas está em uma rede privada/local.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Certificado TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} mais)"
       },
       "form": {
@@ -630,6 +631,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "Obrigatório. Deve incluir uma porta (ex.: example.com:443). Sem porta, o Xray-core não inicia.",
         "realityTargetRequired": "O alvo REALITY é obrigatório",
+        "tlsCertificateRequired": "Importe um certificado TLS ou informe o caminho do arquivo antes de salvar",
+        "tlsPrivateKeyRequired": "Importe a chave privada TLS ou informe o caminho do arquivo antes de salvar",
+        "tlsServerCertificateRequired": "O TLS exige pelo menos um certificado de servidor com sua chave privada (encipherment ou issue)",
         "realityTargetNeedsPort": "O alvo REALITY deve incluir uma porta (ex.: example.com:443)",
         "realityTargetInvalidPort": "O alvo REALITY tem uma porta inválida",
         "scan": "Escanear",

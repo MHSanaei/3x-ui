@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "Target dapat dijangkau, tetapi berada di jaringan privat/lokal.",
         "invalidClientField": "Klien {client}: kolom {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Sertifikat TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} lainnya)"
       },
       "form": {
@@ -609,6 +610,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "Wajib. Harus menyertakan port (mis. example.com:443). Tanpa port, Xray-core menolak untuk mulai.",
         "realityTargetRequired": "Target REALITY wajib diisi",
+        "tlsCertificateRequired": "Impor sertifikat TLS atau masukkan jalur file sertifikat sebelum menyimpan",
+        "tlsPrivateKeyRequired": "Impor kunci privat TLS atau masukkan jalur file kunci privat sebelum menyimpan",
+        "tlsServerCertificateRequired": "TLS memerlukan setidaknya satu sertifikat server beserta kunci privatnya (encipherment atau issue)",
         "realityTargetNeedsPort": "Target REALITY harus menyertakan port (mis. example.com:443)",
         "realityTargetInvalidPort": "Target REALITY memiliki port yang tidak valid",
         "scan": "Pindai",

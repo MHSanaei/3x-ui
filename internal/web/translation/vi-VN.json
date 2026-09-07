@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "Đích hoạt động nhưng nằm trong mạng riêng/nội bộ.",
         "invalidClientField": "Khách hàng {client}: trường {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Chứng chỉ TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} lỗi khác)"
       },
       "form": {
@@ -630,6 +631,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "Bắt buộc. Phải bao gồm cổng (ví dụ example.com:443). Không có cổng, Xray-core sẽ không khởi động.",
         "realityTargetRequired": "Mục tiêu REALITY là bắt buộc",
+        "tlsCertificateRequired": "Nhập chứng chỉ TLS hoặc điền đường dẫn tệp chứng chỉ trước khi lưu",
+        "tlsPrivateKeyRequired": "Nhập khóa riêng TLS hoặc điền đường dẫn tệp khóa riêng trước khi lưu",
+        "tlsServerCertificateRequired": "TLS yêu cầu ít nhất một chứng chỉ máy chủ kèm khóa riêng (encipherment hoặc issue)",
         "realityTargetNeedsPort": "Mục tiêu REALITY phải bao gồm cổng (ví dụ example.com:443)",
         "realityTargetInvalidPort": "Mục tiêu REALITY có cổng không hợp lệ",
         "scan": "Quét",

@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "Hedef çalışıyor ancak özel/yerel bir ağda.",
         "invalidClientField": "Kullanıcı {client}: {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "TLS sertifikası {index}: {reason}",
         "moreIssues": "{message}  (+{count} tane daha)"
       },
       "form": {
@@ -609,6 +610,9 @@
         "shortIds": "Kısa Kimlikler",
         "realityTargetHint": "Zorunlu. Bir port içermelidir (ör. example.com:443). Port belirtilmezse Xray-core başlamaz.",
         "realityTargetRequired": "REALITY hedefi zorunludur",
+        "tlsCertificateRequired": "Kaydetmeden önce bir TLS sertifikası içe aktarın veya sertifika dosyasının yolunu girin",
+        "tlsPrivateKeyRequired": "Kaydetmeden önce TLS özel anahtarını içe aktarın veya özel anahtar dosyasının yolunu girin",
+        "tlsServerCertificateRequired": "TLS, özel anahtarıyla birlikte en az bir sunucu sertifikası gerektirir (encipherment veya issue)",
         "realityTargetNeedsPort": "REALITY hedefi bir port içermelidir (ör. example.com:443)",
         "realityTargetInvalidPort": "REALITY hedefinde geçersiz bir port var",
         "scan": "Tara",

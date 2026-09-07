@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "هدف کار می‌کند اما در شبکهٔ خصوصی/محلی قرار دارد.",
         "invalidClientField": "کلاینت {client}: فیلد {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "گواهی TLS شماره {index}: {reason}",
         "moreIssues": "{message}  (+{count} مورد دیگر)"
       },
       "form": {
@@ -621,6 +622,9 @@
         "shortIds": "Short IDها",
         "realityTargetHint": "الزامی است. باید شامل پورت باشد (مثلاً example.com:443). بدون پورت، Xray-core اجرا نمی‌شود.",
         "realityTargetRequired": "هدف REALITY الزامی است",
+        "tlsCertificateRequired": "پیش از ذخیره، گواهی TLS را وارد کنید یا مسیر فایل آن را بنویسید",
+        "tlsPrivateKeyRequired": "پیش از ذخیره، کلید خصوصی TLS را وارد کنید یا مسیر فایل آن را بنویسید",
+        "tlsServerCertificateRequired": "TLS به حداقل یک گواهی سرور همراه با کلید خصوصی آن نیاز دارد (encipherment یا issue)",
         "realityTargetNeedsPort": "هدف REALITY باید شامل پورت باشد (مثلاً example.com:443)",
         "realityTargetInvalidPort": "پورت هدف REALITY نامعتبر است",
         "scan": "اسکن",

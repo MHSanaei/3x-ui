@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "ターゲットは利用可能ですが、プライベート/ローカルネットワーク上にあります。",
         "invalidClientField": "クライアント {client}: フィールド {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "TLS 証明書 {index}: {reason}",
         "moreIssues": "{message}  (他 {count} 件)"
       },
       "form": {
@@ -630,6 +631,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "必須です。ポートを含める必要があります（例: example.com:443）。ポートがないと Xray-core は起動しません。",
         "realityTargetRequired": "REALITY ターゲットは必須です",
+        "tlsCertificateRequired": "保存する前に TLS 証明書をインポートするか、証明書ファイルのパスを入力してください",
+        "tlsPrivateKeyRequired": "保存する前に TLS 秘密鍵をインポートするか、秘密鍵ファイルのパスを入力してください",
+        "tlsServerCertificateRequired": "TLS には、秘密鍵を含むサーバー証明書が少なくとも 1 組必要です（encipherment または issue）",
         "realityTargetNeedsPort": "REALITY ターゲットにはポートを含める必要があります（例: example.com:443）",
         "realityTargetInvalidPort": "REALITY ターゲットのポートが無効です",
         "scan": "スキャン",

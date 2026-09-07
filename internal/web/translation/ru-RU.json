@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "Цель работает, но находится в приватной (локальной) сети.",
         "invalidClientField": "Клиент {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Сертификат TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} ещё)"
       },
       "form": {
@@ -630,6 +631,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "Обязательно. Должно содержать порт (например, example.com:443). Без порта Xray-core не запускается.",
         "realityTargetRequired": "Цель REALITY обязательна",
+        "tlsCertificateRequired": "Перед сохранением импортируйте сертификат TLS или укажите путь к его файлу",
+        "tlsPrivateKeyRequired": "Перед сохранением импортируйте закрытый ключ TLS или укажите путь к его файлу",
+        "tlsServerCertificateRequired": "Для TLS требуется хотя бы один сертификат сервера с закрытым ключом (encipherment или issue)",
         "realityTargetNeedsPort": "Цель REALITY должна содержать порт (например, example.com:443)",
         "realityTargetInvalidPort": "У цели REALITY указан недопустимый порт",
         "scan": "Сканировать",

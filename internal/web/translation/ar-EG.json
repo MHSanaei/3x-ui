@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "الهدف يعمل لكنه في شبكة خاصة/محلية.",
         "invalidClientField": "العميل {client}: الحقل {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "شهادة TLS رقم {index}: {reason}",
         "moreIssues": "{message}  (+{count} أخرى)"
       },
       "form": {
@@ -609,6 +610,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "مطلوب. يجب أن يتضمّن منفذًا (مثل example.com:443). بدون منفذ يرفض Xray-core البدء.",
         "realityTargetRequired": "هدف REALITY مطلوب",
+        "tlsCertificateRequired": "استورد شهادة TLS أو أدخل مسار ملفها قبل الحفظ",
+        "tlsPrivateKeyRequired": "استورد مفتاح TLS الخاص أو أدخل مسار ملفه قبل الحفظ",
+        "tlsServerCertificateRequired": "يتطلب TLS شهادة خادم واحدة على الأقل مع مفتاحها الخاص (encipherment أو issue)",
         "realityTargetNeedsPort": "يجب أن يتضمّن هدف REALITY منفذًا (مثل example.com:443)",
         "realityTargetInvalidPort": "هدف REALITY يحتوي على منفذ غير صالح",
         "scan": "فحص",
