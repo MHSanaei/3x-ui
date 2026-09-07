@@ -46,6 +46,7 @@ export interface Endpoint {
   bodyRequiredOneOf?: string[];
   responseSchema?: string;
   responseSchemaArray?: boolean;
+  responseSchemaArrayNullable?: boolean;
   responseObjectSchema?: Record<string, unknown>;
   responses?: Record<string, Record<string, unknown>>;
   security?: readonly Record<string, readonly string[]>[];
@@ -752,6 +753,7 @@ export const sections: readonly Section[] = [
         body: 'filter=error&showDirect=false&showBlocked=true&showProxy=true',
         responseSchema: 'LogEntry',
         responseSchemaArray: true,
+        responseSchemaArrayNullable: true,
       },
       {
         method: 'POST',

@@ -6487,6 +6487,7 @@
                     },
                     "obj": {
                       "type": "array",
+                      "nullable": true,
                       "items": {
                         "$ref": "#/components/schemas/LogEntry"
                       }
