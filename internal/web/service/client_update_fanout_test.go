@@ -65,6 +65,11 @@ func (b *applyBarrierRuntime) UpdateUser(ctx context.Context, ib *model.Inbound,
 	return b.fakeNodeRuntime.UpdateUser(ctx, ib, oldEmail, c)
 }
 
+func (b *applyBarrierRuntime) AddClient(ctx context.Context, ib *model.Inbound, c model.Client) error {
+	b.wait()
+	return b.fakeNodeRuntime.AddClient(ctx, ib, c)
+}
+
 func (b *applyBarrierRuntime) DeleteClient(ctx context.Context, email string) error {
 	b.wait()
 	return b.fakeNodeRuntime.DeleteClient(ctx, email)
