@@ -1,7 +1,7 @@
 # Review job briefing
 
 Appended to the system prompt of the pull-request review job in
-`.github/workflows/claude-bot.yml`. The workflow adds a "This run" section
+`.github/workflows/claude-pr-review.yml`. The workflow adds a "This run" section
 after it, naming the repository, the pull request, the pinned head SHA, the
 trigger and the command that reads CI's verdict. `REVIEW.md` at the repository
 root is the review rubric; this file only says how that rubric is applied in a

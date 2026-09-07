@@ -9,6 +9,8 @@ import (
 	awgconn "github.com/amnezia-vpn/amneziawg-go/v3/conn"
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
+	"gvisor.dev/gvisor/pkg/tcpip"
+	"gvisor.dev/gvisor/pkg/tcpip/header"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -152,5 +154,66 @@ func TestNewDeviceUDPHandlerAndReply(t *testing.T) {
 			t.Fatalf("echoed payload = %q, want %q", got, echoPayload)
 		}
 		return
+	}
+}
+
+// udpDatagram builds a complete IPv4/UDP packet, the shape stackTun.Write
+// expects from amneziawg-go after decryption.
+func udpDatagram(src, dst netip.AddrPort, payload []byte) []byte {
+	total := header.IPv4MinimumSize + header.UDPMinimumSize + len(payload)
+	p := make([]byte, total)
+	ip := header.IPv4(p)
+	ip.Encode(&header.IPv4Fields{
+		TotalLength: uint16(total),
+		TTL:         64,
+		Protocol:    uint8(header.UDPProtocolNumber),
+		SrcAddr:     tcpip.AddrFromSlice(src.Addr().AsSlice()),
+		DstAddr:     tcpip.AddrFromSlice(dst.Addr().AsSlice()),
+	})
+	ip.SetChecksum(^ip.CalculateChecksum())
+	u := header.UDP(p[header.IPv4MinimumSize:])
+	u.Encode(&header.UDPFields{
+		SrcPort: src.Port(),
+		DstPort: dst.Port(),
+		Length:  uint16(header.UDPMinimumSize + len(payload)),
+	})
+	copy(p[header.IPv4MinimumSize+header.UDPMinimumSize:], payload)
+	return p
+}
+
+// TestAttachUDPHandlerDoesNotStrandPacketBuffers drives a real datagram all the
+// way through the stack: Range.ToSlice already copies, so cloning pkt only leaks.
+func TestAttachUDPHandlerDoesNotStrandPacketBuffers(t *testing.T) {
+	tun, gstack, err := createNetTUNWithStack([]netip.Addr{netip.MustParseAddr("10.77.0.1")}, 1420)
+	if err != nil {
+		t.Fatalf("createNetTUNWithStack: %v", err)
+	}
+	defer tun.Close()
+
+	src := netip.MustParseAddrPort("10.77.0.2:40000")
+	dst := netip.MustParseAddrPort("10.77.9.9:5353")
+	payload := make([]byte, 512)
+	var delivered int
+	AttachUDPHandler(gstack, func(gotSrc, gotDst netip.AddrPort, got []byte) {
+		if gotSrc != src || gotDst != dst || len(got) != len(payload) {
+			t.Errorf("handler got (%v -> %v, %d bytes), want (%v -> %v, %d bytes)", gotSrc, gotDst, len(got), src, dst, len(payload))
+		}
+		delivered++
+	})
+
+	bufs := [][]byte{udpDatagram(src, dst, payload)}
+	st := tun.(*stackTun)
+	allocs := testing.AllocsPerRun(500, func() {
+		if _, err := st.Write(bufs, 0); err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+	})
+	if delivered == 0 {
+		t.Fatal("handler never ran: the datagram never reached the UDP transport handler")
+	}
+	// 2 once nothing is stranded (1 is ToSlice itself), 8 with the leaked
+	// clone plus the un-released packet buffer; -race adds ~1.
+	if allocs > 4 {
+		t.Fatalf("UDP delivery allocates %v times per datagram, want <=4: pooled packet buffers are being stranded", allocs)
 	}
 }

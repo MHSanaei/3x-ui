@@ -61,11 +61,27 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 	}
 
 	needRestart := false
+	// Prepared in order first, as in Create: fillProtocolDefaults mints the
+	// shared credentials, so only the node pushes below may overlap.
+	attachIds := make([]int, 0, len(inboundIds))
+	attachPayloads := make([]string, 0, len(inboundIds))
+	attachClients := make([][]model.Client, 0, len(inboundIds))
+	attachAnyTunnel := false
+	// A repeated id used to be caught by the second pass seeing the client
+	// already attached; the applies no longer run before the next prep.
+	seenInbound := make(map[int]struct{}, len(inboundIds))
 	for _, ibId := range inboundIds {
+		if _, dup := seenInbound[ibId]; dup {
+			continue
+		}
+		seenInbound[ibId] = struct{}{}
 		inbound, err := inboundSvc.GetInbound(ibId)
 		if err != nil {
 			recordErr("inbound %d: %v", ibId, err)
 			continue
+		}
+		if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+			attachAnyTunnel = true
 		}
 		existingClients, err := inboundSvc.GetClients(inbound)
 		if err != nil {
@@ -101,15 +117,31 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 			recordErr("inbound %d: %v", ibId, err)
 			continue
 		}
-		nr, err := s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
+		attachIds = append(attachIds, ibId)
+		attachPayloads = append(attachPayloads, string(payload))
+		attachClients = append(attachClients, clientsToAdd)
+	}
+
+	attachResults, attachPanics := fanoutInboundResults(attachIds, addFanoutLimit(attachAnyTunnel), func(i int) inboundApplyOutcome {
+		nr, err := s.AddInboundClient(inboundSvc, &model.Inbound{Id: attachIds[i], Settings: attachPayloads[i]})
+		return inboundApplyOutcome{needRestart: nr, err: err}
+	})
+	for i, out := range attachResults {
+		err := out.err
+		if attachPanics[i] != nil {
+			// The apply may already have committed, so ask for the restart the
+			// lost return value can no longer report.
+			needRestart = true
+			err = attachPanics[i]
+		}
 		if err != nil {
-			recordErr("inbound %d: %v", ibId, err)
+			recordErr("inbound %d: %v", attachIds[i], err)
 			continue
 		}
-		if nr {
+		if out.needRestart {
 			needRestart = true
 		}
-		for _, c := range clientsToAdd {
+		for _, c := range attachClients[i] {
 			result.Attached = append(result.Attached, c.Email)
 		}
 	}
@@ -187,21 +219,38 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 	}
 
 	needRestart := false
+	// Ordered and de-duplicated up front: the sequential loop dropped each map
+	// entry as it went, which the concurrent applies can no longer do.
+	detachIds := make([]int, 0, len(recsByInbound))
+	detachRecs := make([][]*model.ClientRecord, 0, len(recsByInbound))
 	for _, ibId := range inboundIds {
 		recs, ok := recsByInbound[ibId]
 		if !ok {
 			continue
 		}
 		delete(recsByInbound, ibId)
-		nr, err := s.delInboundClients(inboundSvc, ibId, recs, true)
+		detachIds = append(detachIds, ibId)
+		detachRecs = append(detachRecs, recs)
+	}
+	detachResults, detachPanics := fanoutInboundResults(detachIds, inboundFanoutConcurrency, func(i int) inboundApplyOutcome {
+		nr, err := s.delInboundClients(inboundSvc, detachIds[i], detachRecs[i], true)
+		return inboundApplyOutcome{needRestart: nr, err: err}
+	})
+	for i, out := range detachResults {
+		err := out.err
+		if detachPanics[i] != nil {
+			// See BulkAttach: a panicking apply may already have committed.
+			needRestart = true
+			err = detachPanics[i]
+		}
 		if err != nil {
-			recordErr("inbound %d: %v", ibId, err)
-			for _, rec := range recs {
+			recordErr("inbound %d: %v", detachIds[i], err)
+			for _, rec := range detachRecs[i] {
 				emailFailed[strings.ToLower(rec.Email)] = true
 			}
 			continue
 		}
-		if nr {
+		if out.needRestart {
 			needRestart = true
 		}
 	}
@@ -214,6 +263,12 @@ func (s *ClientService) BulkDetach(inboundSvc *InboundService, emails []string, 
 	}
 
 	return result, needRestart, nil
+}
+
+// inboundApplyOutcome carries one inbound's apply result out of the fanout.
+type inboundApplyOutcome struct {
+	needRestart bool
+	err         error
 }
 
 // BulkAdjustResult is returned by BulkAdjust to report how many clients were
@@ -404,8 +459,21 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 	flowHonored := map[string]bool{}
 	flowIneligible := map[string]bool{}
 	execFailed := map[string]bool{}
-	for inboundId, ibEmails := range emailsByInbound {
-		ibRes := s.bulkAdjustInboundClients(inboundSvc, inboundId, ibEmails, plan, flow)
+	adjustIds := sortedInboundIds(emailsByInbound)
+	adjustResults, adjustPanics := fanoutInboundResults(adjustIds, inboundFanoutConcurrency, func(i int) bulkInboundAdjustResult {
+		return s.bulkAdjustInboundClients(inboundSvc, adjustIds[i], emailsByInbound[adjustIds[i]], plan, flow)
+	})
+	for i, ibRes := range adjustResults {
+		if adjustPanics[i] != nil {
+			needRestart = true
+			for _, email := range emailsByInbound[adjustIds[i]] {
+				execFailed[email] = true
+				if _, already := skippedReasons[email]; !already {
+					skippedReasons[email] = adjustPanics[i].Error()
+				}
+			}
+			continue
+		}
 		if ibRes.needRestart {
 			needRestart = true
 		}
@@ -796,8 +864,20 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 	}
 
 	needRestart := false
-	for inboundId, ibEmails := range emailsByInbound {
-		ibResult := s.bulkDelInboundClients(inboundSvc, inboundId, ibEmails, recordsByEmail, keepTraffic)
+	delIds := sortedInboundIds(emailsByInbound)
+	delResults, delPanics := fanoutInboundResults(delIds, inboundFanoutConcurrency, func(i int) bulkInboundDeleteResult {
+		return s.bulkDelInboundClients(inboundSvc, delIds[i], emailsByInbound[delIds[i]], recordsByEmail, keepTraffic)
+	})
+	for i, ibResult := range delResults {
+		if delPanics[i] != nil {
+			needRestart = true
+			for _, email := range emailsByInbound[delIds[i]] {
+				if _, already := skippedReasons[email]; !already {
+					skippedReasons[email] = delPanics[i].Error()
+				}
+			}
+			continue
+		}
 		if ibResult.needRestart {
 			needRestart = true
 		}
@@ -1234,6 +1314,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	inboundOrder := make([]int, 0)
 	failed := make([]bool, len(prep))
 	reason := make([]string, len(prep))
+	createAnyTunnel := false
 
 	for idx := range prep {
 		le := strings.ToLower(prep[idx].client.Email)
@@ -1271,6 +1352,9 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 				ok = false
 				break
 			}
+			if ib.Protocol == model.WireGuard || ib.Protocol == model.AmneziaWG {
+				createAnyTunnel = true
+			}
 			if e := s.fillProtocolDefaults(&prep[idx].client, ib); e != nil {
 				failed[idx] = true
 				reason[idx] = e.Error()
@@ -1292,22 +1376,33 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	}
 
 	needRestart := false
-	for _, ibId := range inboundOrder {
+	createResults, createPanics := fanoutInboundResults(inboundOrder, addFanoutLimit(createAnyTunnel), func(i int) inboundApplyOutcome {
+		ibId := inboundOrder[i]
 		payload, e := json.Marshal(map[string][]model.Client{"clients": byInbound[ibId]})
-		if e == nil {
-			var nr bool
-			nr, e = s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
-			if e == nil && nr {
-				needRestart = true
-			}
+		if e != nil {
+			return inboundApplyOutcome{err: e}
+		}
+		nr, e := s.AddInboundClient(inboundSvc, &model.Inbound{Id: ibId, Settings: string(payload)})
+		return inboundApplyOutcome{needRestart: nr, err: e}
+	})
+	for i, out := range createResults {
+		e := out.err
+		if createPanics[i] != nil {
+			// See BulkAttach: a panicking apply may already have committed.
+			needRestart = true
+			e = createPanics[i]
 		}
 		if e != nil {
-			for _, idx := range idxByInbound[ibId] {
+			for _, idx := range idxByInbound[inboundOrder[i]] {
 				failed[idx] = true
 				if reason[idx] == "" {
 					reason[idx] = e.Error()
 				}
 			}
+			continue
+		}
+		if out.needRestart {
+			needRestart = true
 		}
 	}
 
@@ -1440,8 +1535,20 @@ func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []strin
 	}
 
 	needRestart := false
-	for inboundId, ibEmails := range emailsByInbound {
-		ibRes := s.bulkSetEnableInboundClients(inboundSvc, inboundId, ibEmails, enable)
+	enableIds := sortedInboundIds(emailsByInbound)
+	enableResults, enablePanics := fanoutInboundResults(enableIds, inboundFanoutConcurrency, func(i int) bulkSetEnableInboundResult {
+		return s.bulkSetEnableInboundClients(inboundSvc, enableIds[i], emailsByInbound[enableIds[i]], enable)
+	})
+	for i, ibRes := range enableResults {
+		if enablePanics[i] != nil {
+			needRestart = true
+			for _, email := range emailsByInbound[enableIds[i]] {
+				if _, already := skippedReasons[email]; !already {
+					skippedReasons[email] = enablePanics[i].Error()
+				}
+			}
+			continue
+		}
 		if ibRes.needRestart {
 			needRestart = true
 		}

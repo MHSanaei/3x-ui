@@ -92,13 +92,11 @@ _openapi:
       title: Generate a new X25519 keypair for Reality.
       url: '#generate-a-new-x25519-keypair-for-reality'
     - depth: 2
-      title: Generate a new ML-DSA-65 keypair (post-quantum signature). Returns
-        {privateKey, publicKey, seed}.
-      url: '#generate-a-new-ml-dsa-65-keypair-post-quantum-signature-returns-privatekey-publickey-seed'
+      title: Generate a new ML-DSA-65 keypair. Returns {seed, verify}.
+      url: '#generate-a-new-ml-dsa-65-keypair-returns-seed-verify'
     - depth: 2
-      title: Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns {clientKey,
-        serverKey}.
-      url: '#generate-a-new-ml-kem-768-keypair-post-quantum-kem-returns-clientkey-serverkey'
+      title: Generate a new ML-KEM-768 keypair. Returns {seed, client}.
+      url: '#generate-a-new-ml-kem-768-keypair-returns-seed-client'
     - depth: 2
       title: Generate VLESS encryption auth options. Returns an auths array each with
         id, label, encryption, and decryption fields.
@@ -248,12 +246,10 @@ _openapi:
         id: read-only-summaries-guid-parentguid-name-address-status-versions-of-the-nodes-this-panel-manages-a-parent-panel-calls-it-on-a-node-via-the-node-api-token-to-surface-transitive-sub-nodes-in-a-chained-topology-counts-are-computed-by-the-parent-not-returned-here
       - content: Generate a new X25519 keypair for Reality.
         id: generate-a-new-x25519-keypair-for-reality
-      - content: Generate a new ML-DSA-65 keypair (post-quantum signature). Returns
-          {privateKey, publicKey, seed}.
-        id: generate-a-new-ml-dsa-65-keypair-post-quantum-signature-returns-privatekey-publickey-seed
-      - content: Generate a new ML-KEM-768 keypair (post-quantum KEM). Returns
-          {clientKey, serverKey}.
-        id: generate-a-new-ml-kem-768-keypair-post-quantum-kem-returns-clientkey-serverkey
+      - content: Generate a new ML-DSA-65 keypair. Returns {seed, verify}.
+        id: generate-a-new-ml-dsa-65-keypair-returns-seed-verify
+      - content: Generate a new ML-KEM-768 keypair. Returns {seed, client}.
+        id: generate-a-new-ml-kem-768-keypair-returns-seed-client
       - content: Generate VLESS encryption auth options. Returns an auths array each
           with id, label, encryption, and decryption fields.
         id: generate-vless-encryption-auth-options-returns-an-auths-array-each-with-id-label-encryption-and-decryption-fields

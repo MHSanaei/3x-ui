@@ -1343,6 +1343,9 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 
 	needRestart := false
 	found := false
+	// Built before any inbound is written, as in Update: only the applies
+	// overlap, so one node's round-trip no longer waits on the previous one.
+	applies := make([]inboundApply, 0, len(inboundIds))
 	for _, ibId := range inboundIds {
 		inbound, gErr := inboundSvc.GetInbound(ibId)
 		if gErr != nil {
@@ -1379,17 +1382,17 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 			return needRestart, mErr
 		}
 		inbound.Settings = string(modifiedSettings)
-		nr, uErr := s.UpdateInboundClient(inboundSvc, inbound, clientEmail)
-		if uErr != nil {
-			return needRestart, uErr
-		}
-		needRestart = needRestart || nr
+		data := inbound
+		applies = append(applies, inboundApply{id: ibId, run: func() (bool, error) {
+			return s.UpdateInboundClient(inboundSvc, data, clientEmail)
+		}})
 	}
 
 	if !found {
 		return needRestart, common.NewError("Client Not Found For Email:", clientEmail)
 	}
-	return needRestart, nil
+	nr, applyErr := fanoutInboundApplies(applies)
+	return needRestart || nr, applyErr
 }
 
 func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
