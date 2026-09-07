@@ -763,8 +763,13 @@ func (s *ClientService) bulkAdjustInboundClients(
 					updated.TotalGB = entry.newTotal
 				}
 				updated.UpdatedAt = nowMs
-				if err1 := rt.UpdateUser(context.Background(), oldInbound, email, updated); err1 != nil {
+				ctx, cancel := nodePushContext()
+				err1 := rt.UpdateUser(ctx, oldInbound, email, updated)
+				cancel()
+				if err1 != nil {
 					logger.Warning("Error in updating client on", rt.Name(), ":", err1)
+					// First failure ends the batch push; the reconcile converges the rest.
+					break
 				}
 			}
 		}
@@ -1160,8 +1165,14 @@ func (s *ClientService) bulkDelInboundClients(
 			logger.Warning("BulkDelete: node runtime lookup after commit failed:", perr)
 		} else if push {
 			for _, email := range dispatchEmails {
-				if err1 := rt.DeleteClient(context.Background(), email); err1 != nil {
+				ctx, cancel := nodePushContext()
+				err1 := rt.DeleteClient(ctx, email)
+				cancel()
+				if err1 != nil {
 					logger.Warning("Error in deleting client on", rt.Name(), ":", err1)
+					// The node is already dirty, so one reconcile converges the rest of
+					// the batch instead of paying another deadline per client.
+					break
 				}
 			}
 		}
@@ -1768,9 +1779,14 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 		for _, ch := range changed {
 			updated := ch.client
 			updated.UpdatedAt = nowMs
-			if err1 := rt.UpdateUser(context.Background(), oldInbound, ch.email, updated); err1 != nil {
+			ctx, cancel := nodePushContext()
+			err1 := rt.UpdateUser(ctx, oldInbound, ch.email, updated)
+			cancel()
+			if err1 != nil {
 				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
 				pushFailed = true
+				// First failure ends the batch push; the reconcile converges the rest.
+				break
 			}
 		}
 		if !pushFailed {
