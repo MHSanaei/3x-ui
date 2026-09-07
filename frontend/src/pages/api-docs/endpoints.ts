@@ -265,6 +265,7 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/inbounds/allLinks',
+        responseObjectSchema: { type: 'array', nullable: true, items: { type: 'string' } },
         summary:
           'Return every protocol URL (vless://, vmess://, trojan://, ss://, hysteria://, mtproto) across all inbounds and all of their clients. Links are rendered through the subscription engine, so the configured remark template (name-only display part) is applied per client — the same output the client info/QR pages use. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing. Used by the panel’s "Export all inbound links" action.',
         response:
@@ -709,7 +710,7 @@ export const sections: readonly Section[] = [
           },
         ],
         body: 'level=info&syslog=false',
-        responseObjectSchema: { type: 'array', items: { type: 'string' } },
+        responseObjectSchema: { type: 'array', nullable: true, items: { type: 'string' } },
         response:
           '{\n  "success": true,\n  "obj": [\n    "2025/01/01 12:00:00 [INFO] Server started",\n    "2025/01/01 12:00:01 [INFO] Xray is running"\n  ]\n}',
       },

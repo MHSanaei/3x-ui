@@ -4340,7 +4340,13 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "type": "array",
+                      "nullable": true,
+                      "items": {
+                        "type": "string"
+                      }
+                    }
                   }
                 },
                 "example": {
@@ -6399,6 +6405,7 @@
                     },
                     "obj": {
                       "type": "array",
+                      "nullable": true,
                       "items": {
                         "type": "string"
                       }

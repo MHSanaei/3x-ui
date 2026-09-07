@@ -127,9 +127,18 @@ describe('generated OpenAPI runtime contracts', () => {
     });
   });
 
+  it('documents all inbound links as a nullable string array', () => {
+    expect(responseObjectSchema('/panel/api/inbounds/allLinks')).toEqual({
+      type: 'array',
+      nullable: true,
+      items: { type: 'string' },
+    });
+  });
+
   it('uses the runtime REST response schemas', () => {
     expect(responseObjectSchema('/panel/api/server/logs/{count}', 'post')).toEqual({
       type: 'array',
+      nullable: true,
       items: { type: 'string' },
     });
     expect(responseObjectSchema('/panel/api/server/xraylogs/{count}', 'post')).toEqual({
