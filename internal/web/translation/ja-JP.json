@@ -452,6 +452,7 @@
         "scanRealityTargetPrivate": "ターゲットは利用可能ですが、プライベート/ローカルネットワーク上にあります。",
         "invalidClientField": "クライアント {client}: フィールド {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "TLS 証明書 {index}: {reason}",
         "moreIssues": "{message}  (他 {count} 件)"
       },
       "form": {
@@ -521,6 +522,7 @@
         "type": "種類",
         "upstreamUrl": "Upstream URL",
         "rewriteHost": "Host 書き換え",
+        "xForwarded": "X-Forwarded ヘッダー",
         "skipTlsVerify": "TLS 検証をスキップ",
         "directory": "ディレクトリ",
         "statusCode": "ステータスコード",
@@ -622,13 +624,16 @@
         "maxTimeDiff": "最大時間差 (ms)",
         "minClientVer": "最小クライアントバージョン",
         "maxClientVer": "最大クライアントバージョン",
-        "minClientVerHint": "空欄は無制限ではありません。Xray-core は実行中のコアに組み込まれた最低バージョン（現行リリースでは 26.3.27）を適用し、それより古いバージョンを名乗るクライアント（Mihomo や sing-box などのサードパーティコアを含む）を拒否します。1.0.0 を設定すると許可されますが、古い TLS フィンガープリントも受け入れることになります。",
-        "maxClientVerHint": "空欄は上限なしを意味します。設定する場合は実効的な下限（最小クライアントバージョン。その欄が空欄の場合は Xray-core 組み込みの最低バージョン）を下回らないでください。下回るとすべてのクライアントが拒否されます。",
+        "minClientVerHint": "空欄は下限なしを意味します。Xray-core は Mihomo や sing-box などのサードパーティコアを含め、あらゆるクライアントバージョンを受け入れます。古いバージョンを申告するクライアントを拒否するにはバージョンを設定してください。",
+        "maxClientVerHint": "空欄は上限なしを意味します。設定する場合は最小クライアントバージョンを下回ってはいけません。下回るとすべてのクライアントが拒否されます。",
         "clientVerInvalid": "クライアントバージョンはドット区切りの数値（最大 3 つ、各 0-255）で指定してください（例：26.3.27）",
         "maxClientVerBelowMin": "最大クライアントバージョンは最小クライアントバージョンを下回れません",
         "shortIds": "Short IDs",
         "realityTargetHint": "必須です。ポートを含める必要があります（例: example.com:443）。ポートがないと Xray-core は起動しません。",
         "realityTargetRequired": "REALITY ターゲットは必須です",
+        "tlsCertificateRequired": "保存する前に TLS 証明書をインポートするか、証明書ファイルのパスを入力してください",
+        "tlsPrivateKeyRequired": "保存する前に TLS 秘密鍵をインポートするか、秘密鍵ファイルのパスを入力してください",
+        "tlsServerCertificateRequired": "TLS には、秘密鍵を含むサーバー証明書が少なくとも 1 組必要です（encipherment または issue）",
         "realityTargetNeedsPort": "REALITY ターゲットにはポートを含める必要があります（例: example.com:443）",
         "realityTargetInvalidPort": "REALITY ターゲットのポートが無効です",
         "scan": "スキャン",
@@ -1454,7 +1459,13 @@
           "httpMethodDesc": "プローブ要求に使う HTTP メソッド。",
           "note": "leastPing/leastLoad バランサーは常に burstObservatory を持ちます。このスイッチはプローブパラメータをカスタマイズします — オフにすると組み込みのデフォルトを使います。変更はパネルの再起動後に反映されます。"
         }
-      }
+      },
+      "subInfoNodeEnable": "個別情報設定 / ダミーノード",
+      "subInfoNodeEnableDesc": "有効にすると、備考と残りの通信量/日数が上部の独立したSOCKSダミー構成として表示され、期限切れや通信量超過時はステータスのみが返されます。",
+      "subExpiredTemplate": "期限切れテンプレート",
+      "subExpiredTemplateDesc": "サブスクリプションの有効期限が切れた際のダミー構成用テンプレート。",
+      "subTrafficDepletedTemplate": "通信量超過テンプレート",
+      "subTrafficDepletedTemplateDesc": "サブスクリプションの通信量が上限に達した際のダミー構成用テンプレート。"
     },
     "xray": {
       "importRules": "ルールをインポート",
@@ -1612,6 +1623,7 @@
         "inboundTag": "インバウンドタグ",
         "inboundTagPlaceholder": "ルーティングルールで使うインバウンドタグ",
         "responseType": "レスポンスタイプ",
+        "customResponseData": "カスタム応答（base64）",
         "rewriteNetwork": "ネットワーク書き換え",
         "unchanged": "(変更なし)",
         "unchangedAddress": "(変更なし) 例: 1.1.1.1",
@@ -1624,6 +1636,7 @@
         "blockDelay": "ブロック遅延 (ms)",
         "reverseSniffing": "逆 sniffing",
         "reserved": "予約",
+        "remoteDNS": "リモート DNS",
         "minUploadInterval": "最小アップロード間隔 (ms)",
         "maxUploadSizeBytes": "最大アップロードサイズ (バイト)",
         "uplinkChunkSize": "Uplink チャンクサイズ",

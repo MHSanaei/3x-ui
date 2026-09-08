@@ -79,7 +79,7 @@ jobs:
             needs, and no deeper.
 
             REPOSITORY CONTEXT
-            Read `.github/claude/repo-context.md` in the checkout before you answer
+            Read `.github/claude/issue-analyst-context.md` in the checkout before you answer
             anything. It carries the stack, the repository map, the hard rules, what CI
             runs, and the support facts reporters most often get wrong - the random
             generated credentials, the distro-dependent service environment file, the

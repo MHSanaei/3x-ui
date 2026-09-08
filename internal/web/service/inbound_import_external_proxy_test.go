@@ -101,3 +101,75 @@ func TestAddInbound_NoExternalProxyCreatesNoHosts(t *testing.T) {
 		t.Fatalf("host count = %d, want 0", count)
 	}
 }
+
+func TestAddInboundImportConvertsMtprotoCustomShareAddrToHost(t *testing.T) {
+	setupConflictDB(t)
+	inbound := &model.Inbound{
+		UserId: 1, Tag: "mt-import", Port: 4060, Protocol: model.MTProto,
+		Settings:       `{"clients":[{"email":"mt-user","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`,
+		StreamSettings: `{}`, ShareAddrStrategy: "custom", ShareAddr: "proxy.example.com",
+	}
+	created, _, err := (&InboundService{}).AddInbound(inbound)
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+	if created.ShareAddrStrategy != "listen" || created.ShareAddr != "" {
+		t.Fatalf("share fields = (%q, %q), want (listen, empty)", created.ShareAddrStrategy, created.ShareAddr)
+	}
+	var hosts []model.Host
+	if err := database.GetDB().Where("inbound_id = ?", created.Id).Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != 1 || hosts[0].Address != "proxy.example.com" || hosts[0].Port != 0 {
+		t.Fatalf("hosts = %+v, want one inherited-port proxy.example.com host", hosts)
+	}
+}
+
+func TestAddInboundImportDropsInvalidMtprotoCustomShareAddr(t *testing.T) {
+	setupConflictDB(t)
+	inbound := &model.Inbound{
+		UserId: 1, Tag: "mt-bad-import", Port: 4061, Protocol: model.MTProto,
+		Settings:       `{"clients":[{"email":"mt-bad","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`,
+		StreamSettings: `{}`, ShareAddrStrategy: "custom", ShareAddr: "https://proxy.example.com/path",
+	}
+	created, _, err := (&InboundService{}).AddInbound(inbound)
+	if err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+	var count int64
+	if err := database.GetDB().Model(&model.Host{}).Where("inbound_id = ?", created.Id).Count(&count).Error; err != nil {
+		t.Fatalf("count hosts: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("host count = %d, want 0", count)
+	}
+}
+
+func TestUpdateInboundConvertsMtprotoCustomShareAddrToHost(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "mt-update", "127.0.0.1", 4062, model.MTProto, `{}`,
+		`{"clients":[{"email":"mt-upd","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`)
+
+	var existing model.Inbound
+	if err := database.GetDB().Where("tag = ?", "mt-update").First(&existing).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	update := existing
+	update.ShareAddrStrategy = "custom"
+	update.ShareAddr = "edge.example.com"
+	updated, _, err := (&InboundService{}).UpdateInbound(&update)
+	if err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+	if updated.ShareAddrStrategy != "listen" || updated.ShareAddr != "" {
+		t.Fatalf("share fields = (%q, %q), want (listen, empty)", updated.ShareAddrStrategy, updated.ShareAddr)
+	}
+
+	var hosts []model.Host
+	if err := database.GetDB().Where("inbound_id = ?", existing.Id).Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != 1 || hosts[0].Address != "edge.example.com" || hosts[0].Port != 0 {
+		t.Fatalf("hosts = %+v, want one inherited-port edge.example.com host", hosts)
+	}
+}
