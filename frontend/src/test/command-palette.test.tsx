@@ -261,7 +261,9 @@ describe('CommandPalette component', () => {
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     // No extra search call because trimmed query has not changed
-    const callsAfterAbcSpace = getSpy.mock.calls.filter((c) => String(c[0]).includes('search=abc')).length;
+    const callsAfterAbcSpace = getSpy.mock.calls.filter((c) =>
+      String(c[0]).includes('search=abc'),
+    ).length;
     expect(callsAfterAbcSpace).toBe(1);
     expect(document.querySelector('.command-palette-search-icon.spinning')).toBeNull();
   });

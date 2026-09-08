@@ -243,11 +243,7 @@ export default function CommandPalette() {
     };
 
     const trimmed = query.trim();
-    if (
-      trimmed.length > 0 &&
-      clientSearch.query === trimmed &&
-      clientSearch.items.length > 0
-    ) {
+    if (trimmed.length > 0 && clientSearch.query === trimmed && clientSearch.items.length > 0) {
       clientSearch.items.forEach((c) => {
         const up = Number(c.traffic?.up || 0);
         const down = Number(c.traffic?.down || 0);
