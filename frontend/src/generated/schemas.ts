@@ -2277,6 +2277,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "mtprotoDomain": {
         "type": "string"
       },
+      "network": {
+        "type": "string"
+      },
       "nodeAddress": {
         "description": "Share-host resolution inputs, mirroring the subscription's\nresolveInboundAddress so the clients page renders a node-managed WireGuard\nEndpoint that points at the node, not the master panel. NodeAddress is the\nhosting node's externally reachable address (empty for this panel's own\ninbounds); Listen and ShareAddrStrategy/ShareAddr feed the same\nnode→listen→custom fallback the share/QR links already use.",
         "type": "string"
@@ -2296,6 +2299,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "remark": {
         "example": "VLESS-443",
+        "type": "string"
+      },
+      "security": {
         "type": "string"
       },
       "shareAddr": {

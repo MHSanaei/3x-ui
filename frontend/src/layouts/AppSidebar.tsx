@@ -396,7 +396,9 @@ export default function AppSidebar() {
           )}
         </div>
         <Tooltip
-          title={railCollapsed ? t('commandPalette.title') || 'Command Palette (Ctrl + K)' : undefined}
+          title={
+            railCollapsed ? t('commandPalette.title') || 'Command Palette (Ctrl + K)' : undefined
+          }
           placement="right"
         >
           <button
@@ -407,7 +409,9 @@ export default function AppSidebar() {
           >
             <span className="sidebar-command-left">
               <SearchOutlined className="sidebar-command-icon" />
-              <span className="sidebar-command-text">{t('commandPalette.search') || 'Search...'}</span>
+              <span className="sidebar-command-text">
+                {t('commandPalette.search') || 'Search...'}
+              </span>
             </span>
             <span className="sidebar-command-kbd">
               <span className="kbd-cmd">⌘</span>

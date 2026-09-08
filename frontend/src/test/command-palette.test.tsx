@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 
 import CommandPalette from '@/components/command-palette/CommandPalette';
@@ -28,7 +28,7 @@ describe('CommandPalette component', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('renders and focuses input when opened via store', () => {
+  it('renders and focuses input when opened via store', async () => {
     renderPalette();
 
     act(() => {
@@ -36,7 +36,11 @@ describe('CommandPalette component', () => {
     });
 
     expect(screen.getByRole('dialog')).toBeTruthy();
-    expect(screen.getByPlaceholderText(/Type a command or search/i)).toBeTruthy();
+    const input = screen.getByPlaceholderText(/Type a command or search/i);
+    expect(input).toBeTruthy();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(input);
+    });
   });
 
   it('toggles open and closed with Ctrl+K and Escape keyboard shortcuts', () => {
@@ -106,5 +110,41 @@ describe('CommandPalette component', () => {
     fireEvent.change(input, { target: { value: 'settings' } });
 
     expect(screen.getAllByText(/Panel Settings/i).length).toBeGreaterThan(0);
+  });
+
+  it('resets query on close and does not persist query on reopen', async () => {
+    renderPalette();
+    act(() => {
+      commandPaletteStore.open();
+    });
+
+    const input = screen.getByPlaceholderText(/Type a command or search/i) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'settings' } });
+    expect(input.value).toBe('settings');
+
+    act(() => {
+      commandPaletteStore.close();
+    });
+
+    act(() => {
+      commandPaletteStore.open();
+    });
+
+    const reopenedInput = screen.getByPlaceholderText(
+      /Type a command or search/i,
+    ) as HTMLInputElement;
+    expect(reopenedInput.value).toBe('');
+  });
+
+  it('does not show spinning loader on whitespace-only input', () => {
+    renderPalette();
+    act(() => {
+      commandPaletteStore.open();
+    });
+
+    const input = screen.getByPlaceholderText(/Type a command or search/i);
+    fireEvent.change(input, { target: { value: '   ' } });
+
+    expect(document.querySelector('.command-palette-search-icon.spinning')).toBeNull();
   });
 });

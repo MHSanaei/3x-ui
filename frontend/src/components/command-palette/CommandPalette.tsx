@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -68,7 +68,7 @@ export default function CommandPalette() {
   const { data: inbounds = [] } = useInboundOptions();
 
   const [query, setQuery] = useState('');
-  const debouncedQuery = useDeferredValue(query.trim());
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -101,17 +101,18 @@ export default function CommandPalette() {
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
-    if (isOpen) {
+    if (!isOpen) {
       setQuery('');
+      setDebouncedQuery('');
       setClients([]);
       setActiveIndex(0);
       setLoadingClients(false);
     }
   }
 
-  const [prevDebouncedQuery, setPrevDebouncedQuery] = useState(debouncedQuery);
-  if (debouncedQuery !== prevDebouncedQuery) {
-    setPrevDebouncedQuery(debouncedQuery);
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
     setActiveIndex(0);
   }
 
@@ -122,16 +123,47 @@ export default function CommandPalette() {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setDebouncedQuery('');
+      setClients([]);
+      setLoadingClients(false);
+      return;
+    }
+
+    if (trimmed === debouncedQuery) {
+      setLoadingClients(false);
+      return;
+    }
+
+    setLoadingClients(true);
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(trimmed);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isOpen, query, debouncedQuery]);
+
+  useEffect(() => {
     if (!isOpen || debouncedQuery.length < 1) {
+      setClients([]);
+      setLoadingClients(false);
       return;
     }
 
     let isCurrent = true;
+    const controller = new AbortController();
 
     HttpUtil.get(
       `/panel/api/clients/list/paged?search=${encodeURIComponent(debouncedQuery)}&pageSize=8`,
       undefined,
-      { silent: true },
+      { silent: true, signal: controller.signal },
     )
       .then((msg) => {
         if (!isCurrent) return;
@@ -145,8 +177,10 @@ export default function CommandPalette() {
           setClients([]);
         }
       })
-      .catch(() => {
-        if (isCurrent) setClients([]);
+      .catch((err) => {
+        if (isCurrent && !(err instanceof DOMException && err.name === 'AbortError')) {
+          setClients([]);
+        }
       })
       .finally(() => {
         if (isCurrent) setLoadingClients(false);
@@ -154,6 +188,7 @@ export default function CommandPalette() {
 
     return () => {
       isCurrent = false;
+      controller.abort();
     };
   }, [isOpen, debouncedQuery]);
 
@@ -172,7 +207,9 @@ export default function CommandPalette() {
 
   const restartXray = useCallback(async () => {
     close();
-    const msg = await HttpUtil.post('/panel/api/server/restartXrayService');
+    const msg = await HttpUtil.post('/panel/api/server/restartXrayService', undefined, {
+      silentSuccess: true,
+    });
     if (msg?.success) {
       message.success(t('commandPalette.restartXraySuccess'));
     }
@@ -191,11 +228,11 @@ export default function CommandPalette() {
     close();
   }, [isDark, isUltra, toggleTheme, toggleUltra, close]);
 
-  const isClientSearching = isOpen && debouncedQuery.length >= 1 && loadingClients;
+  const isClientSearching = isOpen && query.trim().length >= 1 && loadingClients;
 
   const items = useMemo<PaletteItem[]>(() => {
     const list: PaletteItem[] = [];
-    const q = debouncedQuery.toLowerCase();
+    const q = query.trim().toLowerCase();
 
     const matches = (title: string, subtitle?: string, keywords: string[] = []) => {
       if (!q) return true;
@@ -204,7 +241,7 @@ export default function CommandPalette() {
       return keywords.some((k) => k.toLowerCase().includes(q));
     };
 
-    if (debouncedQuery.length > 0 && clients.length > 0) {
+    if (query.trim().length > 0 && clients.length > 0 && debouncedQuery === query.trim()) {
       clients.forEach((c) => {
         const up = Number(c.traffic?.up || 0);
         const down = Number(c.traffic?.down || 0);
@@ -289,7 +326,10 @@ export default function CommandPalette() {
         title: ib.remark || ib.tag || `Inbound #${ib.id}`,
         subtitle: `Port ${ib.port || ''}`,
         icon: <ImportOutlined style={{ color: '#1677ff' }} />,
-        tag: tags.length > 0 ? <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>{tags}</div> : undefined,
+        tag:
+          tags.length > 0 ? (
+            <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>{tags}</div>
+          ) : undefined,
         action: () => {
           close();
           navigate(`/inbounds?search=${encodeURIComponent(ib.remark || String(ib.port || ''))}`);
@@ -377,13 +417,12 @@ export default function CommandPalette() {
     ];
 
     pages
-      .filter((p) => matches(p.title, p.subtitle, p.keywords))
+      .filter((p) => matches(p.title, undefined, p.keywords))
       .forEach((p) => {
         list.push({
           id: `nav-${p.path}`,
           category: 'navigation',
           title: p.title,
-          subtitle: p.subtitle,
           keywords: p.keywords,
           icon: p.icon,
           action: () => {
@@ -555,18 +594,17 @@ export default function CommandPalette() {
       {
         id: 'act-toggle-theme',
         category: 'actions',
-        title: isDark ? 'Light Theme' : 'Dark Theme',
-        subtitle: isDark ? 'Light' : 'Dark',
-        keywords: ['theme', 'light', 'dark'],
-        icon: isDark ? (
-          <SunOutlined style={{ color: '#faad14' }} />
-        ) : (
+        title: !isDark ? 'Dark Theme' : !isUltra ? 'Ultra Dark Theme' : 'Light Theme',
+        subtitle: !isDark ? 'Dark' : !isUltra ? 'Ultra Dark' : 'Light',
+        keywords: ['theme', 'light', 'dark', 'ultra'],
+        icon: !isDark ? (
           <MoonOutlined style={{ color: '#1677ff' }} />
+        ) : !isUltra ? (
+          <MoonOutlined style={{ color: '#722ed1' }} />
+        ) : (
+          <SunOutlined style={{ color: '#faad14' }} />
         ),
-        action: () => {
-          toggleTheme();
-          close();
-        },
+        action: cycleTheme,
       },
       {
         id: 'act-add-inbound',
@@ -598,6 +636,7 @@ export default function CommandPalette() {
 
     return list;
   }, [
+    query,
     debouncedQuery,
     clients,
     inbounds,
@@ -610,7 +649,6 @@ export default function CommandPalette() {
     copySubscription,
     restartXray,
     cycleTheme,
-    toggleTheme,
   ]);
 
   const clampedActiveIndex = Math.min(activeIndex, Math.max(0, items.length - 1));
@@ -672,14 +710,7 @@ export default function CommandPalette() {
               placeholder={t('commandPalette.placeholder')}
               value={query}
               onChange={(e) => {
-                const val = e.target.value;
-                setQuery(val);
-                if (val.trim().length === 0) {
-                  setLoadingClients(false);
-                  setClients([]);
-                } else {
-                  setLoadingClients(true);
-                }
+                setQuery(e.target.value);
               }}
               onKeyDown={handleKeyDown}
             />
