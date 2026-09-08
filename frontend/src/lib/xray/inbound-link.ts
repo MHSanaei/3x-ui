@@ -927,6 +927,23 @@ function amneziaWGHLine(key: string, value: string | undefined, fallback: string
   return `${key} = ${value && value.trim() !== '' ? value : fallback}`;
 }
 
+// Mirrors internal/amneziawg.EffectiveMTU on the Go side: s4 junk is
+// prepended to every transport packet and never clamped to the MTU, so a
+// flat 1420 default overflows a standard 1500-byte path once S4 needs the
+// room. An explicit admin MTU is returned untouched (ValidateMTUBudget on
+// the Go side already rejects one that doesn't fit); mtuPathCeiling (1440)
+// matches internal/amneziawg's own const of the same name.
+const mtuPathCeiling = 1440;
+export function effectiveMtu(
+  mtu: number | undefined,
+  s4: number | undefined,
+  fallbackDefault = 1420,
+): number {
+  if (typeof mtu === 'number' && mtu > 0) return mtu;
+  const junk = s4 ?? 0;
+  return fallbackDefault + junk > mtuPathCeiling ? mtuPathCeiling - junk : fallbackDefault;
+}
+
 // Base64url (RFC 4648 §5), no padding — matches the real AmneziaVPN app's
 // own Qt::Base64UrlEncoding | Qt::OmitTrailingEquals framing for vpn:// links.
 function toBase64Url(text: string): string {
@@ -977,9 +994,10 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
   txt += `Address = ${(client.allowedIPs ?? []).join(', ')}\n`;
   const dns = [server.primaryDns, server.secondaryDns].filter((v) => !!v && v.trim() !== '');
   if (dns.length > 0) txt += `DNS = ${dns.join(', ')}\n`;
-  if (typeof server.mtu === 'number' && server.mtu > 0) {
-    txt += `MTU = ${server.mtu}\n`;
-  }
+  // Always emitted -- see effectiveMtu's doc comment: a missing MTU line
+  // leaves the client on its own 1420 default and fragments client-to-server
+  // traffic once S4 needs room the server already accounts for.
+  txt += `MTU = ${effectiveMtu(server.mtu, server.s4)}\n`;
   txt += `Jc = ${server.jc}\n`;
   txt += `Jmin = ${server.jmin}\n`;
   txt += `Jmax = ${server.jmax}\n`;

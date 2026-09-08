@@ -1,5 +1,5 @@
 import { formatInboundLabel } from '@/lib/inbounds/label';
-import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
+import { effectiveMtu, preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 // AmneziaWG clients are wire-identical to WireGuard clients (same
@@ -65,7 +65,10 @@ export function buildAmneziaWGClientConfig(
   const dnsParts = [server?.primaryDns, server?.secondaryDns].filter((v) => !!v && v.trim() !== '');
   const lines = ['[Interface]', `PrivateKey = ${privateKey}`, `Address = ${address}`];
   if (dnsParts.length > 0) lines.push(`DNS = ${dnsParts.join(', ')}`);
-  if (server?.mtu && server.mtu > 0) lines.push(`MTU = ${server.mtu}`);
+  // Always emitted -- see effectiveMtu's doc comment: a missing MTU line
+  // leaves the client on its own 1420 default and fragments client-to-server
+  // traffic once S4 needs room the server already accounts for.
+  lines.push(`MTU = ${effectiveMtu(server?.mtu, server?.s4)}`);
 
   // AmneziaWG obfuscation parameters — must match the server's values.
   lines.push(`Jc = ${server?.jc ?? 5}`);

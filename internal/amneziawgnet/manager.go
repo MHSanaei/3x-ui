@@ -133,9 +133,10 @@ func (m *Manager) Ensure(d Desired) error {
 // tearing down every peer's live handshake/session state on every single
 // reconcile, so no connection could ever survive past one tick); only
 // peers/obfuscation/keys/listen_port changed (reconfigure the existing
-// Device in place via IpcSet); or the interface's own address(es)/MTU
-// changed (these are fixed at netstack-construction time, so the only
-// option is closing the old Device and building a fresh one). This is a
+// Device in place via IpcSet); or the interface's own address(es)/effective
+// MTU changed -- S4 counts, since the effective MTU derives from it (these
+// are fixed at netstack-construction time, so the only option is closing
+// the old Device and building a fresh one). This is a
 // coarser split than internal/amneziawg's own three-tier noop/reload/
 // restart fingerprinting (that one also tracks host-side TPROXY/NDP rules
 // this embedded path has no equivalent of) -- correct and sufficient here.
@@ -266,12 +267,16 @@ func socksRelayForInstance(inst amneziawg.Instance) SocksRelay {
 	}
 }
 
-// addressFingerprint captures the two Instance fields that can't be changed
-// on a running Device via IpcSet alone (they're fixed when the gVisor
-// netstack is built) -- everything else (keys, listen port, obfuscation,
-// AWG 3.0 options, peers) amneziawg-go's own UAPI can hot-reconfigure.
+// addressFingerprint captures what can't be changed on a running Device via
+// IpcSet alone (they're fixed when the gVisor netstack is built) --
+// everything else (keys, listen port, obfuscation, AWG 3.0 options, peers)
+// amneziawg-go's own UAPI can hot-reconfigure. The MTU is the *effective*
+// one, not the raw Instance.MTU: an admin who only changes S4 (MTU left
+// unset) needs newUnconfiguredDevice's shrunk netstack MTU applied too, and
+// that only happens on rebuild -- comparing the raw field would fingerprint
+// as unchanged and leave the running interface on its old, now-wrong MTU.
 func addressFingerprint(inst amneziawg.Instance) string {
-	return fmt.Sprintf("%d|%s", inst.MTU, strings.Join(inst.Address, ","))
+	return fmt.Sprintf("%d|%s", amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4, defaultMTU), strings.Join(inst.Address, ","))
 }
 
 // Reconcile brings every desired instance's embedded interface up to date

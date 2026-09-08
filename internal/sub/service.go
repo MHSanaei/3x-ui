@@ -732,9 +732,12 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	if len(dns) > 0 {
 		fmt.Fprintf(&b, "DNS = %s\n", strings.Join(dns, ", "))
 	}
-	if server.MTU > 0 {
-		fmt.Fprintf(&b, "MTU = %d\n", server.MTU)
-	}
+	// Always emitted, even when the admin left MTU unset: a missing MTU line
+	// leaves the client on its own 1420 default while the embedded server
+	// interface (internal/amneziawgnet) shrinks its netstack MTU to fit S4 --
+	// fixing only the server side leaves client-to-server traffic fragmenting.
+	// 1420 mirrors internal/amneziawgnet's own unexported defaultMTU.
+	fmt.Fprintf(&b, "MTU = %d\n", amneziawg.EffectiveMTU(server.MTU, server.S4, 1420))
 
 	fmt.Fprintf(&b, "Jc = %d\n", server.Jc)
 	fmt.Fprintf(&b, "Jmin = %d\n", server.Jmin)

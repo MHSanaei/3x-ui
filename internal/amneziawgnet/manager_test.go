@@ -405,3 +405,31 @@ func TestEnsureRejectsHeaderProtectionKeyWithLowS1S4(t *testing.T) {
 		t.Fatal("Ensure must fail: amneziawg-go's own IpcSet rejects header protection with S1-S4 below its minimum")
 	}
 }
+
+// TestAddressFingerprintTracksEffectiveMTUNotRawMTU guards a real gap: an
+// admin who edits only S4 (MTU field left unset) needs the netstack rebuilt
+// with the new, S4-shrunk MTU. Fingerprinting the raw Instance.MTU field
+// (unchanged, still 0) would report "nothing to rebuild" and leave the
+// running interface on its old effective MTU.
+func TestAddressFingerprintTracksEffectiveMTUNotRawMTU(t *testing.T) {
+	base := amneziawg.Instance{
+		Address:     []string{"10.8.1.1/24"},
+		Obfuscation: amneziawg.Obfuscation20{S4: 4},
+	}
+	changedS4 := base
+	changedS4.Obfuscation.S4 = 22
+
+	if got := addressFingerprint(base); got == addressFingerprint(changedS4) {
+		t.Fatalf("addressFingerprint(%+v) == addressFingerprint(%+v) = %q, want different fingerprints since the effective MTU shrinks with S4", base, changedS4, got)
+	}
+
+	// An explicit MTU makes the fingerprint independent of S4 again, mirroring
+	// EffectiveMTU's own "explicit value wins" rule.
+	explicitMTU := base
+	explicitMTU.MTU = 1380
+	explicitMTUChangedS4 := explicitMTU
+	explicitMTUChangedS4.Obfuscation.S4 = 22
+	if got, want := addressFingerprint(explicitMTU), addressFingerprint(explicitMTUChangedS4); got != want {
+		t.Fatalf("addressFingerprint with an explicit MTU must ignore S4, got %q vs %q", got, want)
+	}
+}

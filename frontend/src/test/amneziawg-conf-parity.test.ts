@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { genAmneziaWGConfig } from '@/lib/xray/inbound-link';
+import { effectiveMtu, genAmneziaWGConfig } from '@/lib/xray/inbound-link';
 import { buildAmneziaWGClientConfig } from '@/pages/clients/amneziawgConfig';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
@@ -142,5 +142,81 @@ describe('AmneziaWG .conf emitters agree on the peer block', () => {
       expect(conf).not.toMatch(/RandomTrailers\s*=\s*(true|false)/);
       expect(conf).not.toMatch(/DisableCookies\s*=\s*(true|false)/);
     }
+  });
+});
+
+// S4 junk is prepended to every transport packet and never clamped to the
+// MTU, so both emitters must write the same S4-aware value the embedded
+// server interface (internal/amneziawgnet) actually uses.
+describe('AmneziaWG .conf emitters agree on MTU', () => {
+  function build(mtu: number | undefined, s4: number) {
+    const settings = {
+      server: {
+        publicKey: 'serverPubKey==',
+        primaryDns: '8.8.8.8',
+        secondaryDns: '',
+        mtu,
+        jc: 4,
+        jmin: 40,
+        jmax: 100,
+        s1: 30,
+        s2: 90,
+        s3: 0,
+        s4,
+        h1: '',
+        h2: '',
+        h3: '',
+        h4: '',
+      },
+      clients: [{ email: 'peer-1', privateKey: 'clientPrivKey==', allowedIPs: ['10.8.1.2/32'] }],
+    } as unknown as AmneziawgInboundSettings;
+
+    const link = genAmneziaWGConfig({
+      settings,
+      address: 'awg.example.test',
+      port: 51820,
+      remark: 'awg-peer-1',
+      peerIndex: 0,
+    });
+    const download = buildAmneziaWGClientConfig(
+      {
+        email: 'peer-1',
+        privateKey: 'clientPrivKey==',
+        allowedIPs: '10.8.1.2/32',
+      } as unknown as ClientRecord,
+      {
+        id: 1,
+        tag: 'awg-1',
+        remark: 'awg',
+        protocol: 'amneziawg',
+        port: 51820,
+        awgServer: settings.server,
+      } as unknown as InboundOption,
+      'awg.example.test',
+    );
+    return { link, download };
+  }
+
+  function mtuLine(conf: string): string | undefined {
+    return conf.split('\n').find((l) => l.startsWith('MTU = '));
+  }
+
+  it('always emits an MTU, even when the inbound has none set', () => {
+    const { link, download } = build(undefined, 22);
+    const want = `MTU = ${effectiveMtu(undefined, 22)}`;
+    expect(mtuLine(link)).toBe(want);
+    expect(mtuLine(download)).toBe(want);
+  });
+
+  it('keeps an explicit MTU untouched', () => {
+    const { link, download } = build(1380, 22);
+    expect(mtuLine(link)).toBe('MTU = 1380');
+    expect(mtuLine(download)).toBe('MTU = 1380');
+  });
+
+  it('falls back to the plain default when there is no s4', () => {
+    const { link, download } = build(undefined, 0);
+    expect(mtuLine(link)).toBe('MTU = 1420');
+    expect(mtuLine(download)).toBe('MTU = 1420');
   });
 });

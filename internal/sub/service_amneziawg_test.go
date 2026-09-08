@@ -2,9 +2,11 @@ package sub
 
 import (
 	"encoding/base64"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -153,5 +155,44 @@ func TestGetInboundsBySubIdIncludesAmneziaWG(t *testing.T) {
 	}
 	if len(inbounds) != 1 || inbounds[0].Id != in.Id {
 		t.Fatalf("amneziawg inbound not returned for subId: %+v", inbounds)
+	}
+}
+
+// TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU guards an asymmetry: the
+// embedded server interface (internal/amneziawgnet) derives its netstack MTU
+// from S4, but a client .conf with no MTU line leaves that client at its own
+// 1420 default -- fragmenting the client-to-server direction only.
+func TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU(t *testing.T) {
+	client := &model.Client{
+		Email:      "peer-1",
+		PrivateKey: "clientPrivateKeyBase64ValueForTests00000000=",
+		AllowedIPs: []string{"10.8.1.2/32"},
+	}
+	cases := []struct {
+		name      string
+		serverMTU int
+		s4        int
+		want      string
+	}{
+		{"unset falls back to the S4-aware default", 0, 22, "MTU = 1418"},
+		{"unset with no S4 keeps the plain default", 0, 0, "MTU = 1420"},
+		{"an explicit MTU wins", 1380, 22, "MTU = 1380"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := &amneziawg.ServerSettings{
+				PublicKey: "serverPubKeyBase64ValueForTests000000000000=",
+				MTU:       tc.serverMTU,
+				S4:        tc.s4,
+			}
+			got := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "peer-1")
+			if !strings.Contains(got, tc.want+"\n") {
+				t.Errorf("expected %q in the client config\n%s", tc.want, got)
+			}
+			want := "MTU = " + strconv.Itoa(amneziawg.EffectiveMTU(tc.serverMTU, tc.s4, 1420))
+			if !strings.Contains(got, want+"\n") {
+				t.Errorf("client MTU must equal the server's effective MTU (%s)", want)
+			}
+		})
 	}
 }
