@@ -364,6 +364,13 @@ func normalizeHappRouting(body []byte) (string, error) {
 		}
 		return "happ://routing/onadd/" + base64.StdEncoding.EncodeToString(compact), nil
 	}
+	// happ://routing/off is a real, literal deeplink in Happ's own spec (it
+	// explicitly disables routing on the client) -- not a JSON payload and
+	// not an onadd/add deeplink, so it was falling through to the "neither"
+	// rejection below. Ported from MHSanaei/3x-ui#6434.
+	if text == "happ://routing/off" {
+		return text, nil
+	}
 	if strings.ContainsAny(text, "\r\n") {
 		return "", errors.New("Happ deeplink must be a single line")
 	}

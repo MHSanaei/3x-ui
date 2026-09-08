@@ -898,13 +898,30 @@ func (a *SUBController) ApplyCommonHeaders(
 	// Advanced (Happ). Routing stays independent of the enable flag; remote
 	// values come only from the validated cache and never delay this response.
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
+	// Only Happ itself expects these headers at all; sending an explicit
+	// "off" value to every other subscription client would just be noise.
+	// c.Request is nil for a gin.CreateTestContext that never assigns one
+	// (a real request handler always sets it) -- GetHeader would panic on
+	// that, so this reads "" rather than assuming Request is always there.
+	var userAgent string
+	if c.Request != nil {
+		userAgent = c.GetHeader("User-Agent")
+	}
+	isHapp := IsHappClient(userAgent)
 	if profileEnableRouting {
 		c.Writer.Header().Set("Routing-Enable", "true")
+	} else if isHapp {
+		// Ported from MHSanaei/3x-ui#6434: omitting the header entirely left
+		// Happ holding whatever Routing-Enable state it had last cached,
+		// instead of actually turning routing off.
+		c.Writer.Header().Set("Routing-Enable", "0")
 	}
 	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
 		c.Writer.Header().Set("Routing", rules)
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
+	} else if isHapp {
+		c.Writer.Header().Set("Hide-Settings", "0")
 	}
 }

@@ -113,6 +113,25 @@ func TestNormalizeHappRoutingAcceptsJSONAndDeeplink(t *testing.T) {
 	}
 }
 
+// happ://routing/off is a real, literal deeplink in Happ's own spec (it
+// explicitly disables routing on the client), not a JSON payload and not an
+// onadd/add deeplink -- ported from MHSanaei/3x-ui#6434, which found this
+// fell through to the generic rejection.
+func TestNormalizeHappRoutingAcceptsOff(t *testing.T) {
+	got, err := normalizeHappRouting([]byte("happ://routing/off"))
+	if err != nil {
+		t.Fatalf("normalizeHappRouting(off): %v", err)
+	}
+	if got != "happ://routing/off" {
+		t.Fatalf("normalizeHappRouting(off) = %q, want happ://routing/off unchanged", got)
+	}
+	// Untrimmed whitespace must still normalize -- every other accepted form
+	// above goes through the same leading TrimSpace.
+	if got, err := normalizeHappRouting([]byte("  happ://routing/off\n")); err != nil || got != "happ://routing/off" {
+		t.Fatalf("normalizeHappRouting(off with whitespace) = %q, err=%v", got, err)
+	}
+}
+
 func TestRemoteRoutingResolverAcceptsHappRedirect(t *testing.T) {
 	deeplink, err := normalizeHappRouting([]byte(`{"Name":"redirected"}`))
 	if err != nil {
@@ -422,6 +441,51 @@ func TestApplyCommonHeadersResolvesRemoteHappAndFailsClosed(t *testing.T) {
 		t.Fatalf("invalid remote source leaked routing headers: %#v", recorder.Header())
 	}
 	waitRemoteRoutingIdle(t, routingSourceResolver)
+}
+
+// Ported from MHSanaei/3x-ui#6434: a Happ client with routing/hideSettings
+// toggled off must get an explicit "0", not a header omitted entirely --
+// otherwise Happ keeps whatever state it last cached instead of actually
+// turning the setting off. Gated on the client actually being Happ: any
+// other client (or no User-Agent, as every other test in this file already
+// exercises) must see no header at all when off, unchanged from before.
+func TestApplyCommonHeadersSendsExplicitOffForHapp(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	happContext := func() (*gin.Context, *httptest.ResponseRecorder) {
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		ctx.Request = httptest.NewRequest(http.MethodGet, "/sub/x", nil)
+		ctx.Request.Header.Set("User-Agent", "Happ/1.2.3 (iOS)")
+		return ctx, recorder
+	}
+
+	ctx, recorder := happContext()
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, "", "", false)
+	if got := recorder.Header().Get("Routing-Enable"); got != "0" {
+		t.Errorf("Routing-Enable = %q, want \"0\" for a Happ client with routing off", got)
+	}
+	if got := recorder.Header().Get("Hide-Settings"); got != "0" {
+		t.Errorf("Hide-Settings = %q, want \"0\" for a Happ client with hideSettings off", got)
+	}
+
+	ctx, recorder = happContext()
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, "", "", true)
+	if got := recorder.Header().Get("Hide-Settings"); got != "1" {
+		t.Errorf("Hide-Settings = %q, want \"1\" when explicitly enabled", got)
+	}
+
+	recorder = httptest.NewRecorder()
+	ctx, _ = gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/sub/x", nil)
+	ctx.Request.Header.Set("User-Agent", "v2rayN/6.23")
+	(&SUBController{}).ApplyCommonHeaders(ctx, "", "12", "", "", "", "", false, "", "", false)
+	if got := recorder.Header().Get("Routing-Enable"); got != "" {
+		t.Errorf("Routing-Enable = %q, want unset for a non-Happ client", got)
+	}
+	if got := recorder.Header().Get("Hide-Settings"); got != "" {
+		t.Errorf("Hide-Settings = %q, want unset for a non-Happ client", got)
+	}
 }
 
 func TestResolveIncyRemoteSourceUsesAutorouting(t *testing.T) {
