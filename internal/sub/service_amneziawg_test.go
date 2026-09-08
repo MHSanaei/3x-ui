@@ -201,7 +201,7 @@ func peerFields(t *testing.T, conf string) []string {
 		t.Fatalf("config has no [Peer] block:\n%s", conf)
 	}
 	var got []string
-	for _, line := range strings.Split(conf[idx:], "\n") {
+	for line := range strings.SplitSeq(conf[idx:], "\n") {
 		key := strings.TrimSpace(strings.SplitN(line, "=", 2)[0])
 		if slices.Contains(peerFieldOrder, key) {
 			got = append(got, key)

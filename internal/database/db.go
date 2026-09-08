@@ -1193,7 +1193,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1294,6 +1294,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "LegacyProxySettingsCleanup") {
 		if err := clearLegacyProxySettings(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "OutboundRemovedKeysFix") {
+		if err := migrateOutboundRemovedKeys(); err != nil {
 			return err
 		}
 	}
@@ -1482,6 +1488,103 @@ func clearLegacyProxySettings() error {
 		}
 		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
 	})
+}
+
+func migrateOutboundRemovedKeys() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "OutboundRemovedKeysFix"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := rewriteRemovedOutboundKeys(setting.Value)
+	if rErr != nil {
+		log.Printf("OutboundRemovedKeysFix: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "OutboundRemovedKeysFix"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "OutboundRemovedKeysFix"}).Error
+	})
+}
+
+// rewriteRemovedOutboundKeys moves outbound proxySettings.tag to sockopt.dialerProxy
+// and drops freedom sockopt.addressPortStrategy: xray-core v26.9.8 refuses both.
+func rewriteRemovedOutboundKeys(raw string) (string, bool, error) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false, nil
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return raw, false, err
+	}
+	outbounds, ok := cfg["outbounds"].([]any)
+	if !ok {
+		return raw, false, nil
+	}
+	changed := false
+	for _, ob := range outbounds {
+		obj, ok := ob.(map[string]any)
+		if !ok {
+			continue
+		}
+		if proxySettings, present := obj["proxySettings"]; present {
+			ps, _ := proxySettings.(map[string]any)
+			if tag, _ := ps["tag"].(string); tag != "" {
+				sockopt := outboundSockopt(obj, true)
+				if current, _ := sockopt["dialerProxy"].(string); current == "" {
+					sockopt["dialerProxy"] = tag
+				}
+			}
+			delete(obj, "proxySettings")
+			changed = true
+		}
+		if proto, _ := obj["protocol"].(string); proto == "freedom" {
+			if sockopt := outboundSockopt(obj, false); sockopt != nil {
+				if _, present := sockopt["addressPortStrategy"]; present {
+					delete(sockopt, "addressPortStrategy")
+					changed = true
+				}
+			}
+		}
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return raw, false, err
+	}
+	return string(out), true, nil
+}
+
+func outboundSockopt(obj map[string]any, create bool) map[string]any {
+	stream, _ := obj["streamSettings"].(map[string]any)
+	if stream == nil {
+		if !create {
+			return nil
+		}
+		stream = map[string]any{}
+		obj["streamSettings"] = stream
+	}
+	sockopt, _ := stream["sockopt"].(map[string]any)
+	if sockopt == nil {
+		if !create {
+			return nil
+		}
+		sockopt = map[string]any{}
+		stream["sockopt"] = sockopt
+	}
+	return sockopt
 }
 
 func normalizeSettingPaths() error {

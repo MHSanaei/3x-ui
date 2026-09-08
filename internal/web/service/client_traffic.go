@@ -46,16 +46,14 @@ func (s *ClientService) ResetTrafficByEmail(inboundSvc *InboundService, email st
 		return needRestart, nil
 	}
 
+	applies := make([]inboundApply, 0, len(inboundIds))
 	for _, ibId := range inboundIds {
-		nr, rErr := inboundSvc.ResetClientTraffic(ibId, email)
-		if rErr != nil {
-			return needRestart, rErr
-		}
-		if nr {
-			needRestart = true
-		}
+		applies = append(applies, inboundApply{id: ibId, run: func() (bool, error) {
+			return inboundSvc.ResetClientTraffic(ibId, email)
+		}})
 	}
-	return needRestart, nil
+	nr, applyErr := fanoutInboundApplies(applies)
+	return needRestart || nr, applyErr
 }
 
 func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []string) (int, error) {

@@ -113,7 +113,7 @@ func generateHValues() [4]string {
 	const lo = 5
 	bandSize := (awgHMax - lo + 1) / 4
 	var out [4]string
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		bandLo := lo + i*bandSize
 		bandHi := bandLo + bandSize - 1
 		out[i] = fmt.Sprintf("%d", randInt(bandLo, bandHi))

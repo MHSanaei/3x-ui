@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		o := GenerateObfuscation31()
 		if o.Jc < 3 || o.Jc > 6 {
 			t.Fatalf("Jc = %d, want [3,6]", o.Jc)
@@ -96,7 +96,7 @@ func assertRangeWithin(t *testing.T, name, v string, min, max int64) (lo, hi int
 }
 
 func TestGenerateHValuesDistinct(t *testing.T) {
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		h := generateHValues()
 		var prev int64
 		for i, v := range h {
@@ -117,7 +117,7 @@ func validObfuscation() Obfuscation31 {
 }
 
 func TestValidateObfuscationAcceptsGenerated(t *testing.T) {
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		if err := ValidateObfuscation(validObfuscation()); err != nil {
 			t.Fatalf("generated obfuscation set rejected: %v", err)
 		}

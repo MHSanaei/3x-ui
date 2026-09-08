@@ -85,7 +85,7 @@ func pageMessage(message string, limit int) []string {
 	}
 
 	pages := make([]string, 0)
-	for _, block := range strings.Split(message, "\r\n\r\n") {
+	for block := range strings.SplitSeq(message, "\r\n\r\n") {
 		for _, page := range splitMessageLines(block, limit) {
 			last := len(pages) - 1
 			if last >= 0 && len(pages[last])+len("\r\n\r\n")+len(page) <= limit {

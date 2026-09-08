@@ -74,6 +74,17 @@ exports[`RuleObjectSchema fixtures > parses full byte-stably 1`] = `
 }
 `;
 
+exports[`RuleObjectSchema fixtures > parses local-os byte-stably 1`] = `
+{
+  "localOS": [
+    "linux",
+    "darwin",
+  ],
+  "outboundTag": "direct",
+  "type": "field",
+}
+`;
+
 exports[`RuleObjectSchema fixtures > parses minimal byte-stably 1`] = `
 {
   "outboundTag": "direct",

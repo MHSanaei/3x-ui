@@ -18,7 +18,7 @@ func TestProbeRejectsOversizedStatusBody(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"success":true,"obj":{"cpuPct":1,"panelVersion":"`))
 		pad := strings.Repeat("x", 1<<20)
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			_, _ = w.Write([]byte(pad))
 		}
 		_, _ = w.Write([]byte(`"}}`))

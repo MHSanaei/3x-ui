@@ -2336,11 +2336,11 @@ func resolveGeofileTag(client *http.Client, latestURL string) (string, error) {
 // redirect target.
 func geofileTagFromLocation(location string) (string, error) {
 	const marker = "/releases/download/"
-	idx := strings.Index(location, marker)
-	if idx < 0 {
+	_, after, ok := strings.Cut(location, marker)
+	if !ok {
 		return "", common.NewErrorf("unexpected release redirect %q", location)
 	}
-	tag, _, found := strings.Cut(location[idx+len(marker):], "/")
+	tag, _, found := strings.Cut(after, "/")
 	if !found || tag == "" {
 		return "", common.NewErrorf("unexpected release redirect %q", location)
 	}
