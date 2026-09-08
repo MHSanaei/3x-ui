@@ -69,7 +69,10 @@ export default function CommandPalette() {
 
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [clients, setClients] = useState<ClientRecord[]>([]);
+  const [clientSearch, setClientSearch] = useState<{ query: string; items: ClientRecord[] }>({
+    query: '',
+    items: [],
+  });
   const [loadingClients, setLoadingClients] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -104,7 +107,7 @@ export default function CommandPalette() {
     if (!isOpen) {
       setQuery('');
       setDebouncedQuery('');
-      setClients([]);
+      setClientSearch({ query: '', items: [] });
       setActiveIndex(0);
       setLoadingClients(false);
     }
@@ -116,7 +119,7 @@ export default function CommandPalette() {
     setActiveIndex(0);
     if (!query.trim()) {
       setDebouncedQuery('');
-      setClients([]);
+      setClientSearch({ query: '', items: [] });
       setLoadingClients(false);
     }
   }
@@ -167,14 +170,12 @@ export default function CommandPalette() {
           msg?.obj &&
           Array.isArray((msg.obj as { items?: ClientRecord[] }).items)
         ) {
-          setClients((msg.obj as { items: ClientRecord[] }).items);
+          setClientSearch({
+            query: debouncedQuery,
+            items: (msg.obj as { items: ClientRecord[] }).items,
+          });
         } else {
-          setClients([]);
-        }
-      })
-      .catch((err) => {
-        if (isCurrent && !(err instanceof DOMException && err.name === 'AbortError')) {
-          setClients([]);
+          setClientSearch({ query: debouncedQuery, items: [] });
         }
       })
       .finally(() => {
@@ -225,7 +226,10 @@ export default function CommandPalette() {
 
   const trimmedQuery = query.trim();
   const isDebouncing = isOpen && trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
-  const isClientSearching = isOpen && trimmedQuery.length > 0 && (loadingClients || isDebouncing);
+  const isClientSearching =
+    isOpen &&
+    trimmedQuery.length > 0 &&
+    (loadingClients || isDebouncing || clientSearch.query !== trimmedQuery);
 
   const items = useMemo<PaletteItem[]>(() => {
     const list: PaletteItem[] = [];
@@ -238,8 +242,13 @@ export default function CommandPalette() {
       return keywords.some((k) => k.toLowerCase().includes(q));
     };
 
-    if (query.trim().length > 0 && clients.length > 0 && debouncedQuery === query.trim()) {
-      clients.forEach((c) => {
+    const trimmed = query.trim();
+    if (
+      trimmed.length > 0 &&
+      clientSearch.query === trimmed &&
+      clientSearch.items.length > 0
+    ) {
+      clientSearch.items.forEach((c) => {
         const up = Number(c.traffic?.up || 0);
         const down = Number(c.traffic?.down || 0);
         const total = Number(c.traffic?.total || c.totalGB || 0);
@@ -589,21 +598,6 @@ export default function CommandPalette() {
         action: cycleTheme,
       },
       {
-        id: 'act-toggle-theme',
-        category: 'actions',
-        title: !isDark ? 'Dark Theme' : !isUltra ? 'Ultra Dark Theme' : 'Light Theme',
-        subtitle: !isDark ? 'Dark' : !isUltra ? 'Ultra Dark' : 'Light',
-        keywords: ['theme', 'light', 'dark', 'ultra'],
-        icon: !isDark ? (
-          <MoonOutlined style={{ color: '#1677ff' }} />
-        ) : !isUltra ? (
-          <MoonOutlined style={{ color: '#722ed1' }} />
-        ) : (
-          <SunOutlined style={{ color: '#faad14' }} />
-        ),
-        action: cycleTheme,
-      },
-      {
         id: 'act-add-inbound',
         category: 'actions',
         title: t('pages.inbounds.addInbound'),
@@ -634,8 +628,7 @@ export default function CommandPalette() {
     return list;
   }, [
     query,
-    debouncedQuery,
-    clients,
+    clientSearch,
     inbounds,
     isDark,
     isUltra,
