@@ -1829,9 +1829,9 @@ func (s *ServerService) ImportDB(file multipart.File, keepHostSettings bool) err
 	return nil
 }
 
-// pgConnEnv turns the configured PostgreSQL DSN into the PG* environment used by
+// PgConnEnv turns the configured PostgreSQL DSN into the PG* environment used by
 // pg_dump/pg_restore, keeping the password out of the process argument list.
-func pgConnEnv(dsn string) (env []string, dbname string, err error) {
+func PgConnEnv(dsn string) (env []string, dbname string, err error) {
 	u, err := url.Parse(strings.TrimSpace(dsn))
 	if err != nil {
 		return nil, "", err
@@ -1869,7 +1869,7 @@ func (s *ServerService) exportPostgresDB() ([]byte, error) {
 	if err != nil {
 		return nil, common.NewError("pg_dump not found on the server; install the postgresql-client package to back up a PostgreSQL database")
 	}
-	env, dbname, err := pgConnEnv(config.GetDBDSN())
+	env, dbname, err := PgConnEnv(config.GetDBDSN())
 	if err != nil {
 		return nil, common.NewErrorf("invalid PostgreSQL DSN: %v", err)
 	}
@@ -1990,7 +1990,7 @@ func (s *ServerService) restorePostgresDump(file multipart.File, keepHostSetting
 	if err != nil {
 		return common.NewError("pg_restore not found on the server; install the postgresql-client package to restore a PostgreSQL database")
 	}
-	env, dbname, err := pgConnEnv(config.GetDBDSN())
+	env, dbname, err := PgConnEnv(config.GetDBDSN())
 	if err != nil {
 		return common.NewErrorf("invalid PostgreSQL DSN: %v", err)
 	}

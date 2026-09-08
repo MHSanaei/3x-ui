@@ -245,11 +245,21 @@ func (s *PanelService) StartRollback(mode string) (int64, error) {
 		return 0, fmt.Errorf("panel web update is supported only on Linux installations")
 	}
 
-	if mode != "online" {
-		info, ok := GetStableSnapshotInfo()
-		if !ok || info == nil {
-			return 0, fmt.Errorf("no local stable snapshot found")
+	if mode == "online" {
+		s.backupDatabasePreRollback()
+		runID, err := s.startUpdate(false)
+		if err != nil {
+			return 0, err
 		}
+		if err := (&service.SettingService{}).SetDevChannelEnable(false); err != nil {
+			logger.Warning("failed to disable dev channel setting on rollback:", err)
+		}
+		return runID, nil
+	}
+
+	info, ok := GetStableSnapshotInfo()
+	if !ok || info == nil {
+		return 0, fmt.Errorf("no local stable snapshot found")
 	}
 
 	runID := time.Now().UnixNano()
@@ -265,20 +275,14 @@ func (s *PanelService) StartRollback(mode string) (int64, error) {
 
 	s.backupDatabasePreRollback()
 
-	if err := (&service.SettingService{}).SetDevChannelEnable(false); err != nil {
-		logger.Warning("failed to disable dev channel setting on rollback:", err)
-	}
-
-	if mode == "online" {
-		releaseUpdateSlot()
-		return s.startUpdate(false)
-	}
-
 	rid, err := s.startLocalRollback(runID)
 	if err != nil {
 		return 0, err
 	}
 	launched = true
+	if err := (&service.SettingService{}).SetDevChannelEnable(false); err != nil {
+		logger.Warning("failed to disable dev channel setting on rollback:", err)
+	}
 	return rid, nil
 }
 
@@ -295,8 +299,14 @@ func (s *PanelService) backupDatabasePreRollback() {
 			logger.Warning("pre-rollback postgres backup skipped (pg_dump not found):", err)
 			return
 		}
+		env, dbname, err := service.PgConnEnv(dsn)
+		if err != nil {
+			logger.Warning("pre-rollback postgres backup skipped (invalid DSN):", err)
+			return
+		}
 		backupPath := filepath.Join(folder, fmt.Sprintf("backup_pre_rollback_%d.dump", now))
-		cmd := exec.CommandContext(context.Background(), bin, "--format=custom", "--no-owner", "--no-privileges", "--file="+backupPath, "--dbname", dsn)
+		cmd := exec.CommandContext(context.Background(), bin, "--format=custom", "--no-owner", "--no-privileges", "--file="+backupPath, "--dbname", dbname)
+		cmd.Env = env
 		if err := cmd.Run(); err != nil {
 			logger.Warning("failed to create pre-rollback postgres backup:", err)
 		} else {

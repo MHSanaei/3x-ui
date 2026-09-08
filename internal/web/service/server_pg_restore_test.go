@@ -73,3 +73,62 @@ func TestParsePgToolVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestPgConnEnv(t *testing.T) {
+	cases := []struct {
+		name       string
+		dsn        string
+		wantDB     string
+		wantEnvSub []string
+		wantErr    bool
+	}{
+		{
+			name:       "full dsn with password and sslmode",
+			dsn:        "postgres://xui_user:secret_pass@db.example.com:5433/xui_db?sslmode=require",
+			wantDB:     "xui_db",
+			wantEnvSub: []string{"PGHOST=db.example.com", "PGPORT=5433", "PGDATABASE=xui_db", "PGUSER=xui_user", "PGPASSWORD=secret_pass", "PGSSLMODE=require"},
+		},
+		{
+			name:       "postgresql scheme default host and port",
+			dsn:        "postgresql:///local_db",
+			wantDB:     "local_db",
+			wantEnvSub: []string{"PGHOST=127.0.0.1", "PGPORT=5432", "PGDATABASE=local_db"},
+		},
+		{
+			name:    "missing db name",
+			dsn:     "postgres://user:pass@localhost:5432/",
+			wantErr: true,
+		},
+		{
+			name:    "invalid scheme",
+			dsn:     "mysql://user:pass@localhost:3306/db",
+			wantErr: true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env, dbname, err := PgConnEnv(tc.dsn)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("PgConnEnv(%q) err = %v, wantErr = %v", tc.dsn, err, tc.wantErr)
+			}
+			if tc.wantErr {
+				return
+			}
+			if dbname != tc.wantDB {
+				t.Errorf("dbname = %q, want %q", dbname, tc.wantDB)
+			}
+			for _, sub := range tc.wantEnvSub {
+				found := false
+				for _, e := range env {
+					if e == sub {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("env missing expected entry %q; got %v", sub, env)
+				}
+			}
+		})
+	}
+}
