@@ -264,6 +264,54 @@ describe('outbound-form-adapter: round-trip', () => {
     expect(withType.settings).toEqual({ response: { type: 'http' } });
   });
 
+  it('blackhole carries customResponseData only for the custom response type', () => {
+    const custom = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'blackhole',
+        settings: { response: { type: 'custom', customResponseData: 'SFRUUC8xLjEgNDAz' } },
+      }),
+    );
+    expect(custom.settings).toEqual({
+      response: { type: 'custom', customResponseData: 'SFRUUC8xLjEgNDAz' },
+    });
+
+    const http = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'blackhole',
+        settings: { response: { type: 'http', customResponseData: 'ignored' } },
+      }),
+    );
+    expect(http.settings).toEqual({ response: { type: 'http' } });
+  });
+
+  it('wireguard csv-joins remoteDNS on read and splits it on write', () => {
+    const wire = {
+      protocol: 'wireguard',
+      settings: {
+        secretKey: 'YFVmTVCBsLxXJCe4i+jK8PgD3S6vUqfZ4Zl0JVNDfHA=',
+        remoteDNS: ['1.1.1.1', '2606:4700:4700::1111'],
+        peers: [{ publicKey: 'pk', endpoint: 'wg.example.com:51820' }],
+      },
+    };
+    const form = rawOutboundToFormValues(wire);
+    if (form.protocol === 'wireguard') {
+      expect(form.settings.remoteDNS).toBe('1.1.1.1,2606:4700:4700::1111');
+    }
+    const back = formValuesToWirePayload(form);
+    expect((back.settings as { remoteDNS?: string[] }).remoteDNS).toEqual([
+      '1.1.1.1',
+      '2606:4700:4700::1111',
+    ]);
+
+    const unset = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings: { secretKey: wire.settings.secretKey, peers: wire.settings.peers },
+      }),
+    );
+    expect((unset.settings as { remoteDNS?: string[] }).remoteDNS).toBeUndefined();
+  });
+
   it('dns rules normalize qType numeric strings, split domains, carry rCode', () => {
     const wire = {
       protocol: 'dns',

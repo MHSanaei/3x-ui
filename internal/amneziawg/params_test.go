@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		o := GenerateObfuscation31()
 		if o.Jc < 3 || o.Jc > 6 {
 			t.Fatalf("Jc = %d, want [3,6]", o.Jc)
@@ -95,24 +95,19 @@ func assertRangeWithin(t *testing.T, name, v string, min, max int64) (lo, hi int
 	return lo, hi
 }
 
-func TestGenerateHRangesNonOverlapping(t *testing.T) {
-	for i := 0; i < 50; i++ {
-		h := generateHRanges()
-		var prevHi int64
-		for i, r := range h {
-			lo, hi, ok := strings.Cut(r, "-")
-			if !ok {
-				t.Fatalf("H%d = %q is not a range", i+1, r)
+func TestGenerateHValuesDistinct(t *testing.T) {
+	for range 50 {
+		h := generateHValues()
+		var prev int64
+		for i, v := range h {
+			n, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				t.Fatalf("H%d = %q is not a plain integer: %v", i+1, v, err)
 			}
-			loN, _ := strconv.ParseInt(lo, 10, 64)
-			hiN, _ := strconv.ParseInt(hi, 10, 64)
-			if loN <= prevHi {
-				t.Fatalf("H%d = %q overlaps or touches the previous range (prev high=%d)", i+1, r, prevHi)
+			if n <= prev {
+				t.Fatalf("H%d = %q is not strictly greater than the previous value (%d)", i+1, v, prev)
 			}
-			if hiN-loN < hMinWidth {
-				t.Fatalf("H%d = %q is narrower than hMinWidth=%d", i+1, r, hMinWidth)
-			}
-			prevHi = hiN
+			prev = n
 		}
 	}
 }
@@ -122,7 +117,7 @@ func validObfuscation() Obfuscation31 {
 }
 
 func TestValidateObfuscationAcceptsGenerated(t *testing.T) {
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		if err := ValidateObfuscation(validObfuscation()); err != nil {
 			t.Fatalf("generated obfuscation set rejected: %v", err)
 		}
@@ -380,5 +375,62 @@ func TestValidateConfigValueRejectsControlCharacters(t *testing.T) {
 		if err := ValidateConfigValue("email", v); err == nil {
 			t.Errorf("ValidateConfigValue(%q) must be rejected", v)
 		}
+	}
+}
+
+// TestValidateObfuscationRejectsOutOfRangeJunkAndPadding pins the widths
+// amneziawg-go's UAPI actually parses: uint32 for jc/jmin/jmax, uint16 for s1-s4.
+func TestValidateObfuscationRejectsOutOfRangeJunkAndPadding(t *testing.T) {
+	base := Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
+	tests := []struct {
+		name string
+		mut  func(*Obfuscation31)
+	}{
+		{"S1 over uint16", func(o *Obfuscation31) { o.S1 = 65536 }},
+		{"S2 over uint16", func(o *Obfuscation31) { o.S2 = 70000 }},
+		{"negative Jc", func(o *Obfuscation31) { o.Jc = -1 }},
+		{"negative Jmin and Jmax", func(o *Obfuscation31) { o.Jmin, o.Jmax = -5, -1 }},
+		{"Jc over uint32", func(o *Obfuscation31) { o.Jc = 5000000000 }},
+		{"negative S1", func(o *Obfuscation31) { o.S1 = -1 }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := base
+			tt.mut(&o)
+			if err := ValidateObfuscation(o); err == nil {
+				t.Fatal("ValidateObfuscation accepted a value amneziawg-go's UAPI parser rejects, so the inbound would save and then fail to apply")
+			}
+		})
+	}
+	if err := ValidateObfuscation(Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 65535, S2: 30, S3: 20, S4: 20}); err != nil {
+		t.Fatalf("S1 at the uint16 maximum must stay valid: %v", err)
+	}
+}
+
+// TestValidateObfuscationRejectsMalformedSignaturePackets covers I1-I5, whose
+// "<tag value>" chain amneziawg-go parses with newObfChain (device/obf.go).
+func TestValidateObfuscationRejectsMalformedSignaturePackets(t *testing.T) {
+	base := Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
+
+	bad := []string{"<rand 100>", "<r 100", "<>", "<  >", "<r 10><nope 2>"}
+	for _, spec := range bad {
+		t.Run("reject "+spec, func(t *testing.T) {
+			o := base
+			o.I1 = spec
+			if err := ValidateObfuscation(o); err == nil {
+				t.Fatalf("ValidateObfuscation accepted I1=%q, which newObfChain rejects", spec)
+			}
+		})
+	}
+
+	good := []string{"", "<r 100>", "<b ff00><r 10>", "<t><rc 5>", "no tags at all"}
+	for _, spec := range good {
+		t.Run("accept "+spec, func(t *testing.T) {
+			o := base
+			o.I5 = spec
+			if err := ValidateObfuscation(o); err != nil {
+				t.Fatalf("ValidateObfuscation rejected valid I5=%q: %v", spec, err)
+			}
+		})
 	}
 }

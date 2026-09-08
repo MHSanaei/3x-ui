@@ -3,8 +3,9 @@
 Briefing for the issue analyst in `.github/workflows/claude-issue-analyst.yml`.
 It exists so these facts live in ONE place next to the code instead of being
 restated in the prompt, where they went stale silently. (Pull-request review is
-separate: the code-review skill in `.github/workflows/claude-bot.yml` is briefed
-with `CLAUDE.md`, `REVIEW.md` and `.github/claude/review-job.md`, not this.)
+separate: the code-review skill in `.github/workflows/claude-pr-review.yml` is
+briefed with `CLAUDE.md`, `REVIEW.md` and `.github/claude/review-job.md`, not
+this.)
 
 `CLAUDE.md`, `frontend/CLAUDE.md` and `docs/architecture.md` outrank this file.
 Where they disagree with it, they win and this file is the thing to fix.
@@ -27,6 +28,10 @@ question it already answers.
   per inbound. Client, ad-tag and quota/expiry edits are hot-applied through the
   fork's management API (`PUT /secrets`) so connections survive, with a process
   restart as the fallback on older binaries.
+- AmneziaWG inbounds run IN-PROCESS, not as a child: `internal/amneziawgnet/`
+  drives an amneziawg-go device over a gVisor userspace netstack and relays into a
+  loopback SOCKS5 Xray inbound. `internal/amneziawg/` derives the instance and peers
+  from an inbound and generates + validates the 3.1 obfuscation parameters.
 - Storage: SQLite by default (`/etc/x-ui/x-ui.db` on Linux, the executable
   directory on Windows) or PostgreSQL (`XUI_DB_TYPE` / `XUI_DB_DSN`). The SQLite
   driver is CGo, so `CGO_ENABLED=0` builds fail.
@@ -42,6 +47,8 @@ question it already answers.
 | schema, migrations | `internal/database/`, `internal/database/model/` |
 | Xray child process + config | `internal/xray/` |
 | MTProto inbounds | `internal/mtproto/` |
+| AmneziaWG shape + embedded runtime | `internal/amneziawg/`, `internal/amneziawgnet/` |
+| PIA WireGuard client | `internal/pia/` |
 | subscription server | `internal/sub/` |
 | HTTP handlers | `internal/web/controller/` |
 | business logic | `internal/web/service/` |
@@ -112,12 +119,21 @@ Link and subscription generation is implemented three times, independently:
 A change to share-link or subscription output that touches one and not the
 others is how they drift apart.
 
+AmneziaWG's 3.1 obfuscation parameters are a second such pair: generated in Go by
+`GenerateObfuscation31` (`internal/amneziawg/params.go`) and in TS by
+`generateAwgObfuscation` (`frontend/src/lib/xray/amneziawg-obfuscation.ts`).
+Changing one without the other is how the panel and the UI hand out different
+configs for the same inbound.
+
 ## Downstream programs that must accept what the panel emits
 
 - **XTLS/Xray-core** — the Xray config the panel generates, and the VLESS/VMess
   transport and security fields.
 - **MetaCubeX/mihomo** — consumes the Clash YAML from `internal/sub/`.
 - **SagerNet/sing-box** — parses the share links the panel emits.
+- **amnezia-vpn/amneziawg-go** — the obfuscation parameters the panel generates
+  (`Jc`/`Jmin`/`Jmax`, `S1`-`S4`, `H1`-`H4`, `I1`-`I5`). Its `device/uapi.go` is the
+  symbol that decides which keys are accepted.
 - **mhsanaei/mtg-multi** — the MTProto sidecar whose TOML (`[secrets]`,
   `[secret-ad-tags]`, `[secret-limits]`) and management API
   (`PUT /secrets`, `POST /secrets/{name}/reset-quota`) `internal/mtproto/`

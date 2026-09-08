@@ -32,3 +32,40 @@ describe('AmneziawgServerSchema cleared numeric fields', () => {
     expect(parsed.jc).toBe(5);
   });
 });
+
+// The form must reject what amneziawg-go's UAPI parsers reject (device/uapi.go:
+// jc/jmin/jmax uint32, s1-s4 uint16), or the save silently outlives the apply.
+describe('AmneziawgServerSchema obfuscation bounds', () => {
+  const overWidth: Array<[string, number]> = [
+    ['s1', 65536],
+    ['s2', 70000],
+    ['s3', 65],
+    ['s4', 33],
+    ['jc', 4294967296],
+    ['jmin', 4294967296],
+    ['jmax', 5000000000],
+  ];
+
+  it.each(overWidth)('rejects %s above the width amneziawg-go parses', (field, value) => {
+    expect(AmneziawgServerSchema.safeParse({ [field]: value }).success).toBe(false);
+  });
+
+  const atLimit: Array<[string, number]> = [
+    ['s1', 65535],
+    ['s2', 65535],
+    ['s3', 64],
+    ['s4', 32],
+    ['jc', 4294967295],
+  ];
+
+  it.each(atLimit)('accepts %s exactly at its limit', (field, value) => {
+    const parsed = AmneziawgServerSchema.safeParse({ [field]: value });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('still rejects negatives on every junk and padding field', () => {
+    for (const field of ['jc', 'jmin', 'jmax', 's1', 's2', 's3', 's4']) {
+      expect(AmneziawgServerSchema.safeParse({ [field]: -1 }).success).toBe(false);
+    }
+  });
+});

@@ -82,6 +82,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	}
 
 	var header string
+	var hasInactiveExternal bool
 
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
@@ -127,6 +128,11 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		configArray = append(configArray, entry.configs...)
 	}
 	for _, ext := range externalLinks {
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			hasInactiveExternal = true
+			continue
+		}
 		for _, el := range expandEntry(ext) {
 			outbound := parsedExternalOutbound(el.Link)
 			if outbound == nil {
@@ -148,7 +154,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		}
 	}
 
-	if len(configArray) == 0 {
+	if len(configArray) == 0 && !hasInactiveExternal {
 		return "", "", nil
 	}
 
@@ -157,6 +163,10 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		emails = append(emails, e)
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	if len(configArray) == 0 {
+		return "", header, nil
+	}
 
 	var finalJson []byte
 	if len(configArray) == 1 && !alwaysReturnArray {
@@ -165,7 +175,6 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		finalJson, _ = json.MarshalIndent(configArray, "", "  ")
 	}
 
-	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalJson), header, nil
 }
 
@@ -580,6 +589,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 				continue
 			}
 			newOutbounds = append(newOutbounds, wgOutbound)
+		case "amneziawg":
+			continue
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
@@ -779,10 +790,29 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 	}
 	if client.Flow != "" && !inbound.DisableFlow {
 		settings["flow"] = client.Flow
+		outbound.Mux = muxWithoutTCP(mux)
 	}
 	outbound.Settings = settings
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+// XTLS flows reject TCP mux.cool ("unexpected network TCP"); concurrency -1
+// turns only that off and keeps the XUDP keys (Xray reads them under enabled).
+func muxWithoutTCP(mux string) json_util.RawMessage {
+	if mux == "" {
+		return nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(mux), &m); err != nil || m == nil {
+		return nil
+	}
+	m["concurrency"] = -1
+	out, err := json.Marshal(m)
+	if err != nil {
+		return nil
+	}
+	return json_util.RawMessage(out)
 }
 
 func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {

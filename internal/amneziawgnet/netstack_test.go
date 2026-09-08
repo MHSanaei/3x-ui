@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"gvisor.dev/gvisor/pkg/buffer"
+	"gvisor.dev/gvisor/pkg/tcpip/link/channel"
 )
 
 // TestStackTunReadDrainsBufferedBatch is a regression test for a real
@@ -84,5 +85,46 @@ func TestStackTunReadStopsAtBufCapacity(t *testing.T) {
 	}
 	if got := buf[0][:sizes[0]]; string(got) != "\x03" {
 		t.Errorf("leftover packet = %v, want [3]", got)
+	}
+}
+
+// TestStackTunWriteReturnsPacketBuffersToPool locks in gVisor's ownership rule
+// for the upload path: whoever calls InjectInbound must DecRef the packet.
+func TestStackTunWriteReturnsPacketBuffersToPool(t *testing.T) {
+	tun := &stackTun{ep: channel.New(tunQueueDepth, 1420, ""), mtu: 1420}
+	defer tun.ep.Close()
+
+	packet := make([]byte, 1400)
+	packet[0] = 0x45 // IPv4, version nibble is all Write inspects
+	bufs := [][]byte{packet}
+
+	allocs := testing.AllocsPerRun(1000, func() {
+		if _, err := tun.Write(bufs, 0); err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+	})
+	// 0 once pooled, 4 when every packet buffer is stranded; -race adds ~1.
+	if allocs > 1 {
+		t.Fatalf("Write allocates %v times per packet, want <=1: injected packet buffers are not being returned to gVisor's pools", allocs)
+	}
+}
+
+// TestStackTunReadReturnsViewsToPool is the download-path counterpart: a view
+// that is copied out but never released strands its pooled chunk.
+func TestStackTunReadReturnsViewsToPool(t *testing.T) {
+	tun := &stackTun{incomingPacket: make(chan *buffer.View, tunQueueDepth)}
+	packet := make([]byte, 1400)
+	buf := [][]byte{make([]byte, 2048)}
+	sizes := make([]int, 1)
+
+	allocs := testing.AllocsPerRun(1000, func() {
+		tun.incomingPacket <- buffer.NewViewWithData(packet)
+		if _, err := tun.Read(buf, sizes, 0); err != nil {
+			t.Fatalf("Read: %v", err)
+		}
+	})
+	// 0 once the drained view goes back to viewPool, 3 when it does not.
+	if allocs > 1 {
+		t.Fatalf("Read allocates %v times per packet, want <=1: drained views are not being released", allocs)
 	}
 }
