@@ -33,6 +33,10 @@ jobs:
       pull-requests: write
       issues: read
       id-token: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number || github.event.issue.number }}
     steps:
       - name: Record when this run started
         id: started
@@ -43,8 +47,6 @@ jobs:
         if: github.event_name == 'issue_comment'
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
           COMMENT_ID: ${{ github.event.comment.id }}
         run: gh api "repos/${REPO}/issues/comments/${COMMENT_ID}/reactions" -f content=eyes
       - uses: actions/checkout@v7
@@ -55,9 +57,6 @@ jobs:
       - name: Pin the head this run reviews
         id: pinned-sha
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
           PAYLOAD_SHA: ${{ github.event.pull_request.head.sha }}
           COMMENT_AT: ${{ github.event.comment.created_at }}
         run: |
@@ -80,23 +79,19 @@ jobs:
             exit 1
           fi
           echo "sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
-      # An automatic re-review of a head that already has one spends a whole run
-      # to reach the same conclusion, so settle it here rather than in the model.
-      - name: Skip a head that already has a review
+      # One automatic review per pull request: a later push is reviewed only
+      # when a maintainer asks for it with `@claude review`.
+      - name: Skip a pull request that already has a review
         id: reviewed
         if: github.event_name == 'pull_request_target'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ steps.pinned-sha.outputs.sha }}
         run: |
           set -euo pipefail
           posted=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
-            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select((.body | contains(\"Reviewed head:\")) and (.body | contains(\"${HEAD_SHA}\")))] | length")
+            --jq '[.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("Reviewed head:"))] | length' \
+            | awk '{n += $1} END {print n + 0}')
           if [ "$posted" != "0" ]; then
             echo "done=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::#${PR} already carries a review of ${HEAD_SHA}; nothing to review."
+            echo "::notice::#${PR} already carries a review; nothing to review."
           fi
       # Read-only, and pinned to one immutable commit: this job holds a
       # write-scoped token, so running anything out of pr-head/ would be a pwn-request.
@@ -107,26 +102,6 @@ jobs:
           path: pr-head
           persist-credentials: false
           allow-unsafe-pr-checkout: true
-      # The skill reads CLAUDE.md on its own but not REVIEW.md, and knows nothing
-      # of pr-head/ or this run's head: the brief is the only way both reach it.
-      - name: Brief the reviewer
-        if: steps.reviewed.outputs.done != 'true'
-        env:
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
-          HEAD_SHA: ${{ steps.pinned-sha.outputs.sha }}
-          TRIGGER: ${{ github.event_name }} / ${{ github.event.action }}
-        run: |
-          set -euo pipefail
-          {
-            cat .github/claude/review-job.md
-            printf '\n## This run\n\n'
-            printf -- '- Repository: %s\n' "$REPO"
-            printf -- '- Pull request: #%s\n' "$PR"
-            printf -- '- Head under review, checked out read-only in pr-head/: %s\n' "$HEAD_SHA"
-            printf -- '- Trigger: %s\n' "$TRIGGER"
-            printf -- '- CI on that head: gh api repos/%s/commits/%s/check-runs\n' "$REPO" "$HEAD_SHA"
-          } > "$RUNNER_TEMP/review-brief.md"
       - uses: anthropics/claude-code-action@v1
         id: review
         if: steps.reviewed.outputs.done != 'true'
@@ -137,25 +112,99 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_non_write_users: "*"
-          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
-          plugins: "code-review@claude-code-plugins"
-          prompt: "/code-review:code-review max --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number || github.event.issue.number }}"
-          # allowedTools only pre-approves; it denies nothing. Only the deny
-          # list stops the review executing what it just checked out.
+          # Claude Code loads a CLAUDE.md or .claude/rules/ file the moment a file
+          # beside it is read, so a fork's copy under pr-head/ would brief its own review.
+          settings: '{"claudeMdExcludes": ["**/pr-head/**"]}'
+          # allowedTools only pre-approves; it denies nothing. Only the deny list
+          # stops the review executing what it just checked out, or delegating.
           claude_args: |
             --model claude-opus-5
             --effort xhigh
-            --max-turns 100
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh api:*),Bash(gh pr diff:*),Bash(grep:*),Bash(rg:*),Bash(ls:*),Bash(find:*),Bash(sed:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(go doc:*),Bash(go env:*),Read,Glob,Grep,WebFetch,WebSearch"
-            --disallowedTools "Bash(go build:*),Bash(go run:*),Bash(go test:*),Bash(go generate:*),Bash(go install:*),Bash(make:*),Bash(npm:*),Bash(npx:*),Bash(pnpm:*),Bash(yarn:*),Bash(node:*),Bash(bash:*),Bash(sh:*),Bash(docker:*),Bash(chmod:*),Edit,Write,NotebookEdit"
-            --append-system-prompt-file ${{ runner.temp }}/review-brief.md
+            --max-turns 300
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh api:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment ${{ env.PR }}:*),Bash(grep:*),Bash(rg:*),Bash(ls:*),Bash(find:*),Bash(sed:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(git blame:*),Bash(go doc:*),Bash(go env:*),Read,Glob,Grep,WebFetch,WebSearch"
+            --disallowedTools "Agent,Bash(go build:*),Bash(go run:*),Bash(go test:*),Bash(go generate:*),Bash(go install:*),Bash(make:*),Bash(npm:*),Bash(npx:*),Bash(pnpm:*),Bash(yarn:*),Bash(node:*),Bash(bash:*),Bash(sh:*),Bash(docker:*),Bash(chmod:*),Edit,Write,NotebookEdit"
+          prompt: |
+            You are a Senior Software Engineer performing a production-grade code
+            review of pull request #${{ env.PR }} in ${{ env.REPO }}. You are the
+            only reviewer: no other role, no subagent, no second pass. What you
+            post is the whole review.
+
+            Your goal is to identify real defects and meaningful risks, not to
+            criticise style or suggest refactoring nobody needs. Review the entire
+            change in the context of the existing codebase, not the hunks alone.
+
+            Prioritise, in this order:
+            1. Correctness
+            2. Bugs and edge cases
+            3. Security
+            4. Concurrency and race conditions
+            5. Performance
+            6. Data integrity
+            7. API and backward compatibility
+            8. Error handling
+            9. Maintainability
+            10. Test coverage
+
+            Report only what is actionable and supported by evidence from the
+            code. Do not invent hypothetical problems. Do not nitpick formatting
+            or personal style. Do not request tests merely to raise coverage.
+            If the implementation is correct, say so. Do not manufacture findings.
+
+            For every finding, explain the problem, why it can happen, which code
+            is affected (`file:line`), and the impact. Mark it with one severity:
+            CRITICAL - security, data loss, corruption, or severe production failure
+            HIGH - a significant functional or production issue
+            MEDIUM - a real bug or a meaningful reliability or performance problem
+            LOW - a minor but legitimate issue
+
+            THE RUBRIC
+            Read `REVIEW.md` at the repository root before the diff, and follow it:
+            what is HIGH in this repository, the checks to always run, what not to
+            report, the verification bar, the volume cap and the shape of the
+            comment. It also settles the one thing a finding never carries: the
+            fix. Name where the fix belongs, never what it is - no patch, no
+            snippet, no suggestion block, no rewrite in prose. The maintainer
+            decides the change.
+
+            WHAT IS CHECKED OUT WHERE
+            The working tree is the BASE branch. The head under review,
+            ${{ steps.pinned-sha.outputs.sha }}, is checked out read-only in
+            `pr-head/`: read and grep the changed files there, and treat anything
+            outside it as the pre-merge baseline. Never build, install or execute
+            anything from `pr-head/`. This job holds a write-scoped token, and
+            running pull-request code with it is the workflow vulnerability
+            `REVIEW.md` calls blocking.
+
+            CI IS THE BUILD
+            You cannot build or test here, but CI already ran on the head. Read
+            its check runs with
+            `gh api repos/${{ env.REPO }}/commits/${{ steps.pinned-sha.outputs.sha }}/check-runs`
+            and report what they concluded instead of writing that verification
+            was unavailable. A required check that failed, or never ran on this
+            head, is itself a finding.
+
+            ROUNDS
+            Trigger: ${{ github.event_name }} / ${{ github.event.action }}. On an
+            `@claude review`, review in full even when an earlier comment of yours
+            exists, focusing on the commits since the head it names, and apply the
+            rounds rule in `REVIEW.md`: after the first review of a pull request,
+            MEDIUM and above only.
+
+            THE COMMENT
+            This run ends the moment you end your turn, and a run that ends
+            without posting has failed. Anchor each finding to its line with an
+            inline comment, then post the summary with
+            `gh pr comment ${{ env.PR }} --repo ${{ env.REPO }}`. The summary opens
+            with the tally, carries the line
+            `Reviewed head: ${{ steps.pinned-sha.outputs.sha }}`, and ends with the
+            coverage list `REVIEW.md` asks for, whether or not you found anything.
       - name: Upload the run transcript
         if: always()
         env:
           NODE_OPTIONS: ""
         uses: actions/upload-artifact@v7
         with:
-          name: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: claude-review-${{ env.PR }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/claude-execution-output.json
           if-no-files-found: ignore
           retention-days: 7
@@ -165,9 +214,6 @@ jobs:
         id: throttled
         if: ${{ !cancelled() && steps.review.outcome == 'failure' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
           TRANSCRIPT: ${{ runner.temp }}/claude-execution-output.json
         run: |
           set -euo pipefail
@@ -182,23 +228,19 @@ jobs:
           echo "skipped=true" >> "$GITHUB_OUTPUT"
           echo "::notice::No review of #${PR}: ${reason}."
           gh pr comment "$PR" --repo "$REPO" --body "No review ran on this head: ${reason}. Nothing in this pull request was examined. A maintainer can ask for one with \`@claude review\`."
+      # updated_at, not created_at: a re-review may edit its earlier comment.
+      # --paginate prints one jq count per page, so the pages are summed.
       - name: Fail if the review posted nothing
         if: ${{ !cancelled() && steps.pinned-sha.outcome == 'success' && steps.reviewed.outputs.done != 'true' && steps.throttled.outputs.skipped != 'true' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+          HEAD_SHA: ${{ steps.pinned-sha.outputs.sha }}
           STARTED_AT: ${{ steps.started.outputs.at }}
         run: |
           set -euo pipefail
-          head=$(gh api "repos/${REPO}/pulls/${PR}" --jq '.head.sha')
-          # updated_at, not created_at: the skill may update its existing sticky comment.
-          # "Reviewed head:" as well as the SHA — the bot's other comments quote SHAs too.
-          posted=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
-            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select((.updated_at >= \"${STARTED_AT}\") or ((.body | contains(\"Reviewed head:\")) and (.body | contains(\"${head}\"))))] | length")
-          inline=$(gh api "repos/${REPO}/pulls/${PR}/comments" --paginate \
-            --jq "[.[] | select(.user.login == \"github-actions[bot]\") | select(.updated_at >= \"${STARTED_AT}\")] | length")
+          since="[.[] | select(.user.login == \"github-actions[bot]\") | select(.updated_at >= \"${STARTED_AT}\")] | length"
+          posted=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate --jq "$since" | awk '{n += $1} END {print n + 0}')
+          inline=$(gh api "repos/${REPO}/pulls/${PR}/comments" --paginate --jq "$since" | awk '{n += $1} END {print n + 0}')
           if [ "$posted" = "0" ] && [ "$inline" = "0" ]; then
-            echo "::error::The review run ended without posting a review of ${head} on #${PR}. Read the uploaded transcript before re-running."
+            echo "::error::The review run ended without posting a review of ${HEAD_SHA} on #${PR}. Read the uploaded transcript before re-running."
             exit 1
           fi

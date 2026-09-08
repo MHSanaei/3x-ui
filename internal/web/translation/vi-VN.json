@@ -459,6 +459,7 @@
         "scanRealityTargetPrivate": "Đích hoạt động nhưng nằm trong mạng riêng/nội bộ.",
         "invalidClientField": "Khách hàng {client}: trường {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Chứng chỉ TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} lỗi khác)"
       },
       "form": {
@@ -637,6 +638,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "Bắt buộc. Phải bao gồm cổng (ví dụ example.com:443). Không có cổng, Xray-core sẽ không khởi động.",
         "realityTargetRequired": "Mục tiêu REALITY là bắt buộc",
+        "tlsCertificateRequired": "Nhập chứng chỉ TLS hoặc điền đường dẫn tệp chứng chỉ trước khi lưu",
+        "tlsPrivateKeyRequired": "Nhập khóa riêng TLS hoặc điền đường dẫn tệp khóa riêng trước khi lưu",
+        "tlsServerCertificateRequired": "TLS yêu cầu ít nhất một chứng chỉ máy chủ kèm khóa riêng (encipherment hoặc issue)",
         "realityTargetNeedsPort": "Mục tiêu REALITY phải bao gồm cổng (ví dụ example.com:443)",
         "realityTargetInvalidPort": "Mục tiêu REALITY có cổng không hợp lệ",
         "scan": "Quét",
@@ -1462,7 +1466,13 @@
           "httpMethodDesc": "Phương thức dùng cho yêu cầu probe.",
           "note": "Các bộ cân bằng leastPing/leastLoad luôn mang một burstObservatory. Công tắc này tùy chỉnh các tham số probe — tắt nó để dùng mặc định tích hợp. Các thay đổi áp dụng sau khi khởi động lại bảng điều khiển."
         }
-      }
+      },
+      "subInfoNodeEnable": "Cấu hình thông tin riêng / Nút ảo",
+      "subInfoNodeEnableDesc": "Khi bật, ghi chú và lưu lượng/ngày còn lại sẽ hiển thị dưới dạng cấu hình SOCKS ảo riêng ở trên cùng, và đăng ký hết hạn/hết dung lượng chỉ trả về cấu hình trạng thái.",
+      "subExpiredTemplate": "Mẫu hết hạn",
+      "subExpiredTemplateDesc": "Mẫu cho cấu hình ảo khi tài khoản đăng ký đã hết hạn.",
+      "subTrafficDepletedTemplate": "Mẫu hết dung lượng",
+      "subTrafficDepletedTemplateDesc": "Mẫu cho cấu hình ảo khi tài khoản đăng ký đã dùng hết dung lượng."
     },
     "xray": {
       "importRules": "Nhập quy tắc",

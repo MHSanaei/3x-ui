@@ -459,6 +459,7 @@
         "scanRealityTargetPrivate": "Цель работает, но находится в приватной (локальной) сети.",
         "invalidClientField": "Клиент {client}: поле {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Сертификат TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} ещё)"
       },
       "form": {
@@ -637,6 +638,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "Обязательно. Должно содержать порт (например, example.com:443). Без порта Xray-core не запускается.",
         "realityTargetRequired": "Цель REALITY обязательна",
+        "tlsCertificateRequired": "Перед сохранением импортируйте сертификат TLS или укажите путь к его файлу",
+        "tlsPrivateKeyRequired": "Перед сохранением импортируйте закрытый ключ TLS или укажите путь к его файлу",
+        "tlsServerCertificateRequired": "Для TLS требуется хотя бы один сертификат сервера с закрытым ключом (encipherment или issue)",
         "realityTargetNeedsPort": "Цель REALITY должна содержать порт (например, example.com:443)",
         "realityTargetInvalidPort": "У цели REALITY указан недопустимый порт",
         "scan": "Сканировать",
@@ -1462,7 +1466,13 @@
           "httpMethodDesc": "Метод запросов при проверках.",
           "note": "Балансировщики leastPing/leastLoad всегда содержат burst-обсерваторию. Этот переключатель настраивает её параметры проб — выключите, чтобы использовать встроенные значения по умолчанию. Изменения применяются после перезапуска панели."
         }
-      }
+      },
+      "subInfoNodeEnable": "Отдельный инфо-конфиг / фиктивный узел",
+      "subInfoNodeEnableDesc": "Если включено, примечание и остаток трафика/дней отображаются отдельным SOCKS-конфигом вверху, а при истечении срока/трафика возвращается только статус.",
+      "subExpiredTemplate": "Шаблон истекшей подписки",
+      "subExpiredTemplateDesc": "Шаблон для фиктивного узла, когда срок действия подписки истек.",
+      "subTrafficDepletedTemplate": "Шаблон исчерпания трафика",
+      "subTrafficDepletedTemplateDesc": "Шаблон для фиктивного узла, когда лимит трафика исчерпан."
     },
     "xray": {
       "importRules": "Импорт правил",

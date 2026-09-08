@@ -12,6 +12,7 @@ const templates: Record<string, string> = {
   'pages.inbounds.toasts.invalidClientField': 'Client {client}: {field} — {reason}',
   'pages.inbounds.toasts.invalidField': '{field} — {reason}',
   'pages.inbounds.toasts.moreIssues': '{message}  (+{count} more)',
+  'pages.inbounds.toasts.invalidCertificate': 'TLS certificate {index}: {reason}',
   clients: 'clients',
 };
 
@@ -57,6 +58,14 @@ describe('formatInboundValidation', () => {
   it('formats non-client paths plainly', () => {
     const issue = { path: ['port'], message: 'Invalid input' };
     expect(formatInboundIssue(issue, {}, t)).toBe('port — Invalid input');
+  });
+
+  it('identifies the certificate by its displayed row number', () => {
+    const issue = {
+      path: ['streamSettings', 'tlsSettings', 'certificates', 1, 'keyFile'],
+      message: 'Private key is required',
+    };
+    expect(formatInboundIssue(issue, {}, t)).toBe('TLS certificate 2: Private key is required');
   });
 
   it('appends a count when several fields fail', () => {

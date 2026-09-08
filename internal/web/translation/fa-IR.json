@@ -459,6 +459,7 @@
         "scanRealityTargetPrivate": "هدف کار می‌کند اما در شبکهٔ خصوصی/محلی قرار دارد.",
         "invalidClientField": "کلاینت {client}: فیلد {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "گواهی TLS شماره {index}: {reason}",
         "moreIssues": "{message}  (+{count} مورد دیگر)"
       },
       "form": {
@@ -628,6 +629,9 @@
         "shortIds": "Short IDها",
         "realityTargetHint": "الزامی است. باید شامل پورت باشد (مثلاً example.com:443). بدون پورت، Xray-core اجرا نمی‌شود.",
         "realityTargetRequired": "هدف REALITY الزامی است",
+        "tlsCertificateRequired": "پیش از ذخیره، گواهی TLS را وارد کنید یا مسیر فایل آن را بنویسید",
+        "tlsPrivateKeyRequired": "پیش از ذخیره، کلید خصوصی TLS را وارد کنید یا مسیر فایل آن را بنویسید",
+        "tlsServerCertificateRequired": "TLS به حداقل یک گواهی سرور همراه با کلید خصوصی آن نیاز دارد (encipherment یا issue)",
         "realityTargetNeedsPort": "هدف REALITY باید شامل پورت باشد (مثلاً example.com:443)",
         "realityTargetInvalidPort": "پورت هدف REALITY نامعتبر است",
         "scan": "اسکن",
@@ -1462,7 +1466,13 @@
           "httpMethodDesc": "متد استفاده‌شده برای درخواست‌های probe.",
           "note": "موزان‌کننده‌های leastPing/leastLoad همیشه burstObservatory دارند. این کلید پارامترهای probe آن را سفارشی می‌کند — آن را خاموش کنید تا از پیش‌فرض‌های داخلی استفاده شود. تغییرات پس از راه‌اندازی مجدد پنل اعمال می‌شوند."
         }
-      }
+      },
+      "subInfoNodeEnable": "کانفیگ جداگانه اطلاعات / نود نمایشی",
+      "subInfoNodeEnableDesc": "در صورت فعال بودن، مشخصات و حجم/روزهای باقیمانده به عنوان یک کانفیگ مجزای ساکس در بالای لیست نمایش داده می‌شود و در صورت انقضا یا اتمام حجم فقط پیام وضعیت ارسال می‌شود.",
+      "subExpiredTemplate": "قالب پیام انقضا",
+      "subExpiredTemplateDesc": "قالب کانفیگ نمایشی زمانی که اشتراک کاربر منقضی شده است.",
+      "subTrafficDepletedTemplate": "قالب پیام اتمام حجم",
+      "subTrafficDepletedTemplateDesc": "قالب کانفیگ نمایشی زمانی که حجم اشتراک کاربر به پایان رسیده است."
     },
     "xray": {
       "save": "ذخیره",

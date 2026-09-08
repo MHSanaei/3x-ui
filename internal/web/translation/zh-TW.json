@@ -459,6 +459,7 @@
         "scanRealityTargetPrivate": "目標可用，但位於內網/本機網路中。",
         "invalidClientField": "用戶端 {client}：欄位 {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "第 {index} 組 TLS 憑證：{reason}",
         "moreIssues": "{message}  (另有 {count} 項)"
       },
       "form": {
@@ -616,6 +617,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "必填。必須包含連接埠（例如 example.com:443）。沒有連接埠時 Xray-core 將無法啟動。",
         "realityTargetRequired": "REALITY 目標為必填項",
+        "tlsCertificateRequired": "請先匯入 TLS 憑證或填寫憑證檔案路徑，再儲存入站",
+        "tlsPrivateKeyRequired": "請先匯入 TLS 私鑰或填寫私鑰檔案路徑，再儲存入站",
+        "tlsServerCertificateRequired": "TLS 至少需要一組包含私鑰的伺服器憑證（encipherment 或 issue）",
         "realityTargetNeedsPort": "REALITY 目標必須包含連接埠（例如 example.com:443）",
         "realityTargetInvalidPort": "REALITY 目標的連接埠無效",
         "scan": "掃描",
@@ -1462,7 +1466,13 @@
           "httpMethodDesc": "探活請求使用的 HTTP 方法。",
           "note": "leastPing/leastLoad 平衡器始終帶有 burstObservatory。此開關自訂其探活參數 — 關閉以使用內建預設值。變更在面板重啟後生效。"
         }
-      }
+      },
+      "subInfoNodeEnable": "獨立資訊配置 / 提示節點",
+      "subInfoNodeEnableDesc": "啟用後，備註及剩餘流量/天數將作為單獨的 SOCKS 提示配置顯示在頂部；過期或流量耗盡時僅返回狀態提示。",
+      "subExpiredTemplate": "過期提示範本",
+      "subExpiredTemplateDesc": "使用者訂閱過期時提示配置的備註範本。",
+      "subTrafficDepletedTemplate": "流量耗盡範本",
+      "subTrafficDepletedTemplateDesc": "使用者訂閱流量用盡時提示配置的備註範本。"
     },
     "xray": {
       "save": "儲存",

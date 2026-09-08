@@ -191,6 +191,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEncrypt": {
         "type": "boolean"
       },
+      "subExpiredTemplate": {
+        "type": "string"
+      },
       "subHideSettings": {
         "type": "boolean"
       },
@@ -199,6 +202,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subIncyRoutingRules": {
         "type": "string"
+      },
+      "subInfoNodeEnable": {
+        "type": "boolean"
       },
       "subJsonAlwaysArray": {
         "type": "boolean"
@@ -260,6 +266,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subTitle": {
+        "type": "string"
+      },
+      "subTrafficDepletedTemplate": {
         "type": "string"
       },
       "subURI": {
@@ -407,9 +416,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
+      "subExpiredTemplate",
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subInfoNodeEnable",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",
       "subJsonEnable",
@@ -430,6 +441,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
+      "subTrafficDepletedTemplate",
       "subURI",
       "subUpdates",
       "tgBotAPIServer",
@@ -670,6 +682,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEncrypt": {
         "type": "boolean"
       },
+      "subExpiredTemplate": {
+        "type": "string"
+      },
       "subHideSettings": {
         "type": "boolean"
       },
@@ -678,6 +693,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subIncyRoutingRules": {
         "type": "string"
+      },
+      "subInfoNodeEnable": {
+        "type": "boolean"
       },
       "subJsonAlwaysArray": {
         "type": "boolean"
@@ -739,6 +757,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subTitle": {
+        "type": "string"
+      },
+      "subTrafficDepletedTemplate": {
         "type": "string"
       },
       "subURI": {
@@ -893,9 +914,11 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnable",
       "subEnableRouting",
       "subEncrypt",
+      "subExpiredTemplate",
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
+      "subInfoNodeEnable",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",
       "subJsonEnable",
@@ -916,6 +939,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSupportUrl",
       "subThemeDir",
       "subTitle",
+      "subTrafficDepletedTemplate",
       "subURI",
       "subUpdates",
       "tgBotAPIServer",

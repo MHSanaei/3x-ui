@@ -459,6 +459,7 @@
         "scanRealityTargetPrivate": "目标可用，但位于内网/本地网络中。",
         "invalidClientField": "客户端 {client}：字段 {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "第 {index} 组 TLS 证书：{reason}",
         "moreIssues": "{message}  (另有 {count} 项)"
       },
       "form": {
@@ -636,6 +637,9 @@
         "shortIds": "Short IDs",
         "realityTargetHint": "必填。必须包含端口（例如 example.com:443）。没有端口时 Xray-core 将无法启动。",
         "realityTargetRequired": "REALITY 目标为必填项",
+        "tlsCertificateRequired": "请先导入 TLS 证书或填写证书文件路径，再保存入站",
+        "tlsPrivateKeyRequired": "请先导入 TLS 私钥或填写私钥文件路径，再保存入站",
+        "tlsServerCertificateRequired": "TLS 至少需要一组包含私钥的服务端证书（encipherment 或 issue）",
         "realityTargetNeedsPort": "REALITY 目标必须包含端口（例如 example.com:443）",
         "realityTargetInvalidPort": "REALITY 目标的端口无效",
         "scan": "扫描",
@@ -1462,7 +1466,13 @@
           "httpMethodDesc": "探活请求使用的 HTTP 方法。",
           "note": "leastPing/leastLoad 均衡器始终带有 burstObservatory。此开关自定义其探活参数 — 关闭以使用内置默认值。更改在面板重启后生效。"
         }
-      }
+      },
+      "subInfoNodeEnable": "独立信息配置 / 提示节点",
+      "subInfoNodeEnableDesc": "启用后，备注及剩余流量/天数将作为单独的 SOCKS 提示配置显示在顶部；过期或流量耗尽时仅返回状态提示。",
+      "subExpiredTemplate": "过期提示模板",
+      "subExpiredTemplateDesc": "用户订阅过期时提示配置的备注模板。",
+      "subTrafficDepletedTemplate": "流量耗尽模板",
+      "subTrafficDepletedTemplateDesc": "用户订阅流量用尽时提示配置的备注模板。"
     },
     "xray": {
       "importRules": "导入规则",

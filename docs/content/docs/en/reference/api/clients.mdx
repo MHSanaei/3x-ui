@@ -273,13 +273,13 @@ _openapi:
         clients.
       url: '#return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients'
     - depth: 2
-      title: 'Return every URL for one client across all attached inbounds — the same
-        strings the Copy URL button copies in the panel UI. Supported protocols:
-        vmess, vless, trojan, shadowsocks, hysteria. If
-        streamSettings.externalProxy is set, returns one URL per external proxy.
-        Protocols without a URL form (socks, http, mixed, wireguard, dokodemo,
-        tunnel) contribute nothing.'
-      url: '#return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing'
+      title: 'Return every URL for one client across all attached inbounds, one per
+        advertised endpoint: the managed hosts of the inbound, else its
+        streamSettings.externalProxy entries, else its own address. Supported
+        protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols
+        without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel)
+        contribute nothing.'
+      url: '#return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing'
   structuredData:
     headings:
       - content: List every client with its attached inbound IDs and traffic record. The
@@ -508,13 +508,13 @@ _openapi:
           URL is emitted per external proxy. Empty array when the subId has no
           enabled clients.
         id: return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
-      - content: 'Return every URL for one client across all attached inbounds — the
-          same strings the Copy URL button copies in the panel UI. Supported
-          protocols: vmess, vless, trojan, shadowsocks, hysteria. If
-          streamSettings.externalProxy is set, returns one URL per external
-          proxy. Protocols without a URL form (socks, http, mixed, wireguard,
-          dokodemo, tunnel) contribute nothing.'
-        id: return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
+      - content: 'Return every URL for one client across all attached inbounds, one
+          per advertised endpoint: the managed hosts of the inbound, else its
+          streamSettings.externalProxy entries, else its own address. Supported
+          protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols
+          without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel)
+          contribute nothing.'
+        id: return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
     contents:
       - content: >-
           Fields the server fills in when they are omitted — a valid value sent

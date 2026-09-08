@@ -66,9 +66,11 @@ export interface AllSetting {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredTemplate: string;
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
+  subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
   subJsonEnable: boolean;
@@ -89,6 +91,7 @@ export interface AllSetting {
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
+  subTrafficDepletedTemplate: string;
   subURI: string;
   subUpdates: number;
   tgBotAPIServer: string;
@@ -181,9 +184,11 @@ export interface AllSettingView {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredTemplate: string;
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
+  subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
   subJsonEnable: boolean;
@@ -204,6 +209,7 @@ export interface AllSettingView {
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
+  subTrafficDepletedTemplate: string;
   subURI: string;
   subUpdates: number;
   tgBotAPIServer: string;
