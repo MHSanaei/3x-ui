@@ -114,6 +114,11 @@ export default function CommandPalette() {
   if (query !== prevQuery) {
     setPrevQuery(query);
     setActiveIndex(0);
+    if (!query.trim()) {
+      setDebouncedQuery('');
+      setClients([]);
+      setLoadingClients(false);
+    }
   }
 
   useEffect(() => {
@@ -128,20 +133,12 @@ export default function CommandPalette() {
     }
 
     const trimmed = query.trim();
-    if (!trimmed) {
-      setDebouncedQuery('');
-      setClients([]);
-      setLoadingClients(false);
+    if (!trimmed || trimmed === debouncedQuery) {
       return;
     }
 
-    if (trimmed === debouncedQuery) {
-      setLoadingClients(false);
-      return;
-    }
-
-    setLoadingClients(true);
     const timer = window.setTimeout(() => {
+      setLoadingClients(true);
       setDebouncedQuery(trimmed);
     }, 300);
 
@@ -152,8 +149,6 @@ export default function CommandPalette() {
 
   useEffect(() => {
     if (!isOpen || debouncedQuery.length < 1) {
-      setClients([]);
-      setLoadingClients(false);
       return;
     }
 
@@ -228,7 +223,9 @@ export default function CommandPalette() {
     close();
   }, [isDark, isUltra, toggleTheme, toggleUltra, close]);
 
-  const isClientSearching = isOpen && query.trim().length >= 1 && loadingClients;
+  const trimmedQuery = query.trim();
+  const isDebouncing = isOpen && trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
+  const isClientSearching = isOpen && trimmedQuery.length > 0 && (loadingClients || isDebouncing);
 
   const items = useMemo<PaletteItem[]>(() => {
     const list: PaletteItem[] = [];
