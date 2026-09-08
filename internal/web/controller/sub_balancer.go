@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -57,6 +59,15 @@ func parseSubBalancerForm(c *gin.Context) (*model.SubBalancer, *bool, error) {
 			return nil, nil, fmt.Errorf("invalid inbound id %q: %w", raw, err)
 		}
 		balancer.InboundIds = append(balancer.InboundIds, id)
+	}
+	// Weights arrive as one JSON object ("memberWeights":{"3":0.5}); gin cannot
+	// bind bracket-keyed maps from urlencoded forms, unlike repeated scalars.
+	if raw, ok := c.GetPostForm("memberWeights"); ok && strings.TrimSpace(raw) != "" {
+		weights := map[int]float64{}
+		if err := json.Unmarshal([]byte(raw), &weights); err != nil {
+			return nil, nil, fmt.Errorf("invalid memberWeights %q: %w", raw, err)
+		}
+		balancer.MemberWeights = weights
 	}
 	return balancer, enabled, nil
 }

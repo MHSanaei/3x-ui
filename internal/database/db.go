@@ -410,6 +410,57 @@ func seedHostsFromExternalProxy() error {
 	})
 }
 
+func seedMtprotoCustomShareAddrToHosts() error {
+	const seederName = "MtprotoCustomShareAddrToHosts"
+	var count int64
+	if err := db.Model(&model.HistoryOfSeeders{}).Where("seeder_name = ?", seederName).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		var inbounds []model.Inbound
+		if err := tx.Where("protocol = ? AND TRIM(COALESCE(share_addr_strategy, '')) = ?", string(model.MTProto), "custom").Find(&inbounds).Error; err != nil {
+			return err
+		}
+		for _, inbound := range inbounds {
+			if err := CreateHostFromMtprotoCustomShareAddr(tx, inbound.Id, inbound.ShareAddr); err != nil {
+				return err
+			}
+			if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).Updates(map[string]any{
+				"share_addr_strategy": "listen",
+				"share_addr":          "",
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: seederName}).Error
+	})
+}
+
+func CreateHostFromMtprotoCustomShareAddr(tx *gorm.DB, inboundId int, rawAddress string) error {
+	address := strings.TrimPrefix(strings.TrimSuffix(strings.TrimSpace(rawAddress), "]"), "[")
+	if address == "" {
+		return nil
+	}
+	var sameAddress []model.Host
+	if err := tx.Where("inbound_id = ? AND address = ? AND is_disabled = ?", inboundId, address, false).
+		Find(&sameAddress).Error; err != nil {
+		return err
+	}
+	for _, host := range sameAddress {
+		if !slices.Contains(host.ExcludeFromSubTypes, "raw") {
+			return nil
+		}
+	}
+	return tx.Create(&model.Host{
+		GroupId: random.NumLower(16), InboundId: inboundId,
+		Remark: address, Address: address, Security: "same",
+	}).Error
+}
+
 func seedWireguardPeersToClients() error {
 	var history []string
 	if err := db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &history).Error; err != nil {
@@ -1169,6 +1220,22 @@ func initUser() error {
 	return nil
 }
 
+func seedRandomSubscriptionPaths() error {
+	settings := []model.Setting{
+		{Key: "subPath", Value: "/" + random.NumLower(16) + "/"},
+		{Key: "subJsonPath", Value: "/" + random.NumLower(16) + "/"},
+		{Key: "subClashPath", Value: "/" + random.NumLower(16) + "/"},
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		for i := range settings {
+			if err := tx.Where("key = ?", settings[i].Key).FirstOrCreate(&settings[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func runSeeders(isUsersEmpty bool) error {
 	empty, err := isTableEmpty("history_of_seeders")
 	if err != nil {
@@ -1177,7 +1244,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1282,6 +1349,12 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
+	if !slices.Contains(seedersHistory, "OutboundRemovedKeysFix") {
+		if err := migrateOutboundRemovedKeys(); err != nil {
+			return err
+		}
+	}
+
 	if !slices.Contains(seedersHistory, "NodeInboundsAdopted") {
 		if err := seedNodeInboundsAdopted(); err != nil {
 			return err
@@ -1289,6 +1362,10 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if err := seedHostsFromExternalProxy(); err != nil {
+		return err
+	}
+
+	if err := seedMtprotoCustomShareAddrToHosts(); err != nil {
 		return err
 	}
 
@@ -1466,6 +1543,103 @@ func clearLegacyProxySettings() error {
 		}
 		return tx.Create(&model.HistoryOfSeeders{SeederName: "LegacyProxySettingsCleanup"}).Error
 	})
+}
+
+func migrateOutboundRemovedKeys() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "OutboundRemovedKeysFix"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := rewriteRemovedOutboundKeys(setting.Value)
+	if rErr != nil {
+		log.Printf("OutboundRemovedKeysFix: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "OutboundRemovedKeysFix"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "OutboundRemovedKeysFix"}).Error
+	})
+}
+
+// rewriteRemovedOutboundKeys moves outbound proxySettings.tag to sockopt.dialerProxy
+// and drops freedom sockopt.addressPortStrategy: xray-core v26.9.8 refuses both.
+func rewriteRemovedOutboundKeys(raw string) (string, bool, error) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false, nil
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return raw, false, err
+	}
+	outbounds, ok := cfg["outbounds"].([]any)
+	if !ok {
+		return raw, false, nil
+	}
+	changed := false
+	for _, ob := range outbounds {
+		obj, ok := ob.(map[string]any)
+		if !ok {
+			continue
+		}
+		if proxySettings, present := obj["proxySettings"]; present {
+			ps, _ := proxySettings.(map[string]any)
+			if tag, _ := ps["tag"].(string); tag != "" {
+				sockopt := outboundSockopt(obj, true)
+				if current, _ := sockopt["dialerProxy"].(string); current == "" {
+					sockopt["dialerProxy"] = tag
+				}
+			}
+			delete(obj, "proxySettings")
+			changed = true
+		}
+		if proto, _ := obj["protocol"].(string); proto == "freedom" {
+			if sockopt := outboundSockopt(obj, false); sockopt != nil {
+				if _, present := sockopt["addressPortStrategy"]; present {
+					delete(sockopt, "addressPortStrategy")
+					changed = true
+				}
+			}
+		}
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return raw, false, err
+	}
+	return string(out), true, nil
+}
+
+func outboundSockopt(obj map[string]any, create bool) map[string]any {
+	stream, _ := obj["streamSettings"].(map[string]any)
+	if stream == nil {
+		if !create {
+			return nil
+		}
+		stream = map[string]any{}
+		obj["streamSettings"] = stream
+	}
+	sockopt, _ := stream["sockopt"].(map[string]any)
+	if sockopt == nil {
+		if !create {
+			return nil
+		}
+		sockopt = map[string]any{}
+		stream["sockopt"] = sockopt
+	}
+	return sockopt
 }
 
 func normalizeSettingPaths() error {
@@ -2078,7 +2252,7 @@ func InitDB(dbPath string) error {
 		}
 	default:
 		dir := path.Dir(dbPath)
-		if err = os.MkdirAll(dir, 0o755); err != nil {
+		if err = os.MkdirAll(dir, 0o700); err != nil {
 			return err
 		}
 		if err = cleanupSQLiteBackupDirs(filepath.Dir(dbPath)); err != nil {
@@ -2091,6 +2265,9 @@ func InitDB(dbPath string) error {
 		db, err = gorm.Open(sqlite.Open(dsn), c)
 		if err != nil {
 			return err
+		}
+		if err := restrictSQLiteFilePerms(dbPath); err != nil {
+			log.Printf("restrict SQLite file permissions: %v", err)
 		}
 		sqlDB, err := db.DB()
 		if err != nil {
@@ -2137,6 +2314,11 @@ func InitDB(dbPath string) error {
 	isUsersEmpty, err := isTableEmpty("users")
 	if err != nil {
 		return err
+	}
+	if isUsersEmpty {
+		if err := seedRandomSubscriptionPaths(); err != nil {
+			return err
+		}
 	}
 
 	if err := initUser(); err != nil {
@@ -2190,6 +2372,17 @@ func openPostgresWithRetry(dsn string, c *gorm.Config) (*gorm.DB, error) {
 		log.Printf("postgres connection attempt %d/%d failed: %v", i+1, len(delays), err)
 	}
 	return nil, fmt.Errorf("postgres unreachable after %d attempts: %w", len(delays), lastErr)
+}
+
+// The store holds client secrets, so it and its WAL/SHM side files stay
+// owner-only. Best effort: a store the panel cannot chmod still opens.
+func restrictSQLiteFilePerms(dbPath string) error {
+	for _, name := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+		if err := os.Chmod(name, 0o600); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
 }
 
 func sqliteJournalMode() string {

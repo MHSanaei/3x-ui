@@ -89,6 +89,7 @@ export default function RoutingTab({
           if (rule.attrs && typeof rule.attrs === 'object' && !Array.isArray(rule.attrs)) {
             r.attrs = JSON.stringify(rule.attrs, null, 2);
           }
+          r.comment = rule.comment || undefined;
           r.outboundTag = rule.outboundTag;
           r.balancerTag = rule.balancerTag;
           return r;

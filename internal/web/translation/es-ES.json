@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "El destino funciona, pero está en una red privada/local.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Certificado TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} más)"
       },
       "form": {
@@ -501,6 +502,7 @@
         "type": "Tipo",
         "upstreamUrl": "URL Upstream",
         "rewriteHost": "Reescribir Host",
+        "xForwarded": "Cabeceras X-Forwarded",
         "skipTlsVerify": "Saltar verificación TLS",
         "directory": "Directorio",
         "statusCode": "Código de estado",
@@ -623,13 +625,16 @@
         "maxTimeDiff": "Máx. diferencia de tiempo (ms)",
         "minClientVer": "Mín. versión cliente",
         "maxClientVer": "Máx. versión cliente",
-        "minClientVerHint": "Vacío no significa sin restricción: Xray-core aplica entonces el mínimo integrado de la build del núcleo en uso (26.3.27 en las versiones actuales) y rechaza a los clientes que reportan una versión anterior, incluidos núcleos de terceros como Mihomo y sing-box. Con 1.0.0 se aceptan, a costa de admitir huellas TLS obsoletas.",
-        "maxClientVerHint": "Vacío significa sin límite superior. Si se establece, no debe ser inferior al mínimo efectivo — la versión mínima del cliente o, si ese campo está vacío, el mínimo integrado de Xray-core — o todos los clientes serán rechazados.",
+        "minClientVerHint": "Vacío significa sin mínimo: Xray-core acepta cualquier versión de cliente, incluidos núcleos de terceros como Mihomo y sing-box. Establece una versión para rechazar a los clientes que informen una más antigua.",
+        "maxClientVerHint": "Vacío significa sin límite superior. Si se establece, no debe ser inferior a la versión mínima del cliente; de lo contrario, se rechaza a todos los clientes.",
         "clientVerInvalid": "La versión del cliente debe tener hasta tres números separados por puntos, cada uno 0-255 (p. ej. 26.3.27)",
         "maxClientVerBelowMin": "La versión máxima del cliente no debe ser inferior a la versión mínima",
         "shortIds": "Short IDs",
         "realityTargetHint": "Obligatorio. Debe incluir un puerto (p. ej. example.com:443). Sin puerto, Xray-core no arranca.",
         "realityTargetRequired": "El destino REALITY es obligatorio",
+        "tlsCertificateRequired": "Importe un certificado TLS o introduzca la ruta de su archivo antes de guardar",
+        "tlsPrivateKeyRequired": "Importe la clave privada TLS o introduzca la ruta de su archivo antes de guardar",
+        "tlsServerCertificateRequired": "TLS requiere al menos un certificado de servidor con su clave privada (encipherment o issue)",
         "realityTargetNeedsPort": "El destino REALITY debe incluir un puerto (p. ej. example.com:443)",
         "realityTargetInvalidPort": "El destino REALITY tiene un puerto no válido",
         "scan": "Escanear",
@@ -1420,12 +1425,15 @@
         "sortOrderHelp": "Posición en la lista de la suscripción, intercalada con el orden de los inbounds; con el mismo número, el balanceador va después del inbound.",
         "inbounds": "Inbounds",
         "inboundsCount": "{count} Inbounds",
+        "weights": "Pesos de miembros",
+        "weightsHelp": "Solo para LeastLoad: un peso más bajo se elige con más frecuencia; los miembros sin valor pesan 1.",
         "enabled": "Activado",
         "empty": "Aún no hay balanceadores",
         "deleteConfirm": "¿Eliminar este balanceador?",
         "errRemarkRequired": "El comentario es obligatorio",
         "errInboundsRequired": "Selecciona al menos un inbound",
         "errSortOrder": "El orden debe ser un número entero ≥ 1",
+        "errWeightPositive": "Los pesos deben ser mayores que 0",
         "toasts": {
           "list": "No se pudieron listar los balanceadores de suscripción",
           "create": "No se pudo crear el balanceador de suscripción",
@@ -1452,7 +1460,13 @@
           "httpMethodDesc": "Método usado para las solicitudes de probe.",
           "note": "Los balanceadores leastPing/leastLoad siempre llevan un burstObservatory. Este interruptor personaliza sus parámetros de probe — apágalo para usar los valores predeterminados integrados. Los cambios se aplican tras reiniciar el panel."
         }
-      }
+      },
+      "subInfoNodeEnable": "Configuración de información separada / Nodo ficticio",
+      "subInfoNodeEnableDesc": "Si está activado, la información de tráfico y días restantes se muestra en un nodo SOCKS ficticio arriba, y las suscripciones caducadas o agotadas devuelven solo el estado.",
+      "subExpiredTemplate": "Plantilla de expirado",
+      "subExpiredTemplateDesc": "Plantilla para el nodo ficticio cuando la suscripción ha expirado.",
+      "subTrafficDepletedTemplate": "Plantilla de tráfico agotado",
+      "subTrafficDepletedTemplateDesc": "Plantilla para el nodo ficticio cuando el límite de tráfico se ha agotado."
     },
     "xray": {
       "save": "Guardar configuración",
@@ -1610,6 +1624,7 @@
         "inboundTag": "Etiqueta de entrada",
         "inboundTagPlaceholder": "etiqueta de entrada usada en reglas de enrutamiento",
         "responseType": "Tipo de respuesta",
+        "customResponseData": "Respuesta personalizada (base64)",
         "rewriteNetwork": "Reescribir red",
         "unchanged": "(sin cambios)",
         "unchangedAddress": "(sin cambios) p. ej. 1.1.1.1",
@@ -1622,6 +1637,7 @@
         "blockDelay": "Retraso de bloqueo (ms)",
         "reverseSniffing": "Sniffing inverso",
         "reserved": "Reservado",
+        "remoteDNS": "DNS remoto",
         "minUploadInterval": "Intervalo mín. de subida (ms)",
         "maxUploadSizeBytes": "Tamaño máx. de subida (bytes)",
         "uplinkChunkSize": "Tamaño de chunk Uplink",
@@ -1852,7 +1868,10 @@
         "noServers": "No se encontraron servidores para el país seleccionado",
         "noPublicKey": "El servidor seleccionado no anuncia una clave pública NordLynx.",
         "outboundAdded": "Salida NordVPN añadida",
-        "outboundUpdated": "Salida NordVPN actualizada"
+        "outboundUpdated": "Salida NordVPN actualizada",
+        "serverLoad": "Carga del servidor",
+        "addedServers": "Servidores añadidos",
+        "alreadyAdded": "Este servidor ya está en la lista de salidas. Usa {reset} para actualizar su clave."
       },
       "warp": {
         "changeIp": "Cambiar IP",

@@ -21,12 +21,17 @@ export type Security = z.infer<typeof SecuritySchema>;
 // transportless branch accepts that shape, mirroring NetworkSettingsSchema's
 // `network: never().optional()` handling. A present-but-invalid security
 // still fails both branches so a typo can't slip through.
-export const SecuritySettingsSchema = z.union([
-  z.discriminatedUnion('security', [
-    z.object({ security: z.literal('none') }),
-    z.object({ security: z.literal('tls'), tlsSettings: TlsStreamSettingsSchema }),
-    z.object({ security: z.literal('reality'), realitySettings: RealityStreamSettingsSchema }),
-  ]),
-  z.object({ security: z.never().optional() }),
-]);
+
+// The inbound form swaps in a stricter tlsSettings; every other branch is shared.
+export function securitySettingsSchemaFor<T extends z.ZodType>(tlsSettings: T) {
+  return z.union([
+    z.discriminatedUnion('security', [
+      z.object({ security: z.literal('none') }),
+      z.object({ security: z.literal('tls'), tlsSettings }),
+      z.object({ security: z.literal('reality'), realitySettings: RealityStreamSettingsSchema }),
+    ]),
+    z.object({ security: z.never().optional() }),
+  ]);
+}
+export const SecuritySettingsSchema = securitySettingsSchemaFor(TlsStreamSettingsSchema);
 export type SecuritySettings = z.infer<typeof SecuritySettingsSchema>;

@@ -1,6 +1,6 @@
 ---
 title: Environment Variables
-description: Complete reference for 3x-ui's XUI_* environment variables — database, panel, logging, memory, and the tunnel health monitor.
+description: Complete reference for 3x-ui's XUI_* environment variables — database, panel, logging, memory, node token encryption, and the tunnel health monitor.
 icon: Variable
 ---
 
@@ -32,6 +32,36 @@ The default SQLite database path is `/etc/x-ui/x-ui.db`. See
 | `XUI_INIT_WEB_BASE_PATH` | `/`     | Initial web base path on **first** launch (e.g. `/panel`).               |
 | `XUI_ENABLE_FAIL2BAN`    | `true`  | Enable Fail2ban-based IP-limit enforcement.                              |
 | `XUI_SKIP_HSTS`          | `false` | Skip the HSTS header — set `true` when TLS is terminated by a reverse proxy. |
+
+## Node token encryption
+
+Node API bearer tokens — and the stored PIA token — are kept in plaintext by
+default. Encryption at rest is opt-in and fails closed: with any mode other than
+`off`, the panel refuses to start unless it can load a key.
+
+| Variable                  | Default                         | Description                                                                                                                                                            |
+| ------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_TOKEN_ENCRYPTION`   | `off`                           | `off`, `migration` (reads accept plaintext or ciphertext, writes encrypt), or `required` (same writes, startup fails without a key). Note the missing `XUI_` prefix.    |
+| `XUI_NODE_TOKEN_KEY_FILE` | `/etc/x-ui/node_token_key.json` | JSON keyring, mode `0600` or stricter. Loaded first.                                                                                                                   |
+| `XUI_NODE_TOKEN_KEY`      | —                               | A single base64 32-byte key, read only when the key file fails to load. Its key id is fixed to `env`, so it cannot rotate.                                              |
+
+The key file names the active key plus every older key still needed to decrypt:
+
+```json
+{ "active": "k1", "keys": { "k1": "<base64 32-byte key>" } }
+```
+
+Generate a key with `openssl rand -base64 32`; keys are never accepted as
+command-line arguments. After enabling a mode, re-encrypt the rows already in
+the database under the active key:
+
+```bash
+x-ui encrypt-tokens
+```
+
+That covers node rows; the PIA token is re-encrypted the next time it is read.
+To rotate, add the new key to `keys`, point `active` at it, keep the old key for
+decryption, and run `x-ui encrypt-tokens` again.
 
 ## Logging & binaries
 

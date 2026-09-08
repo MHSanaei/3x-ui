@@ -15,6 +15,7 @@ export const HysteriaMasqueradeSchema = z.object({
   dir: z.string().default(''),
   url: z.string().default(''),
   rewriteHost: z.boolean().default(false),
+  xForwarded: z.boolean().optional(),
   insecure: z.boolean().default(false),
   content: z.string().default(''),
   headers: z.record(z.string(), z.string()).default({}),

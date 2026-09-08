@@ -44,10 +44,13 @@ type SubService struct {
 	subscriptionBody bool
 	// usageShown emits info once per subscription identity, including twins.
 	// PrepareForRequest resets this per-request state.
-	usageShown             map[string]bool
-	showIdentityOnAllLinks bool
-	inboundService         service.InboundService
-	settingService         service.SettingService
+	usageShown                 map[string]bool
+	showIdentityOnAllLinks     bool
+	subInfoNodeEnable          bool
+	subExpiredTemplate         string
+	subTrafficDepletedTemplate string
+	inboundService             service.InboundService
+	settingService             service.SettingService
 	// nodesByID is populated per request from the Node table so
 	// resolveInboundAddress can return the node's address for any
 	// inbound whose NodeID is set. Keeps the per-link host derivation
@@ -197,14 +200,29 @@ func (s *SubService) linkSettings(inbound *model.Inbound) map[string]any {
 // (the date formatter reads datepicker). Loading it only in getSubs left
 // JSON/Clash with the zero value.
 func (s *SubService) loadRemarkSettings() {
-	var err error
-	s.datepicker, err = s.settingService.GetDatepicker()
-	if err != nil {
+	if s.datepicker == "" {
 		s.datepicker = "gregorian"
 	}
-	s.showIdentityOnAllLinks, err = s.settingService.GetSubShowIdentityOnAllLinks()
-	if err != nil {
-		s.showIdentityOnAllLinks = false
+	if s.subExpiredTemplate == "" {
+		s.subExpiredTemplate = service.DefaultSubExpiredTemplate
+	}
+	if s.subTrafficDepletedTemplate == "" {
+		s.subTrafficDepletedTemplate = service.DefaultSubTrafficDepletedTemplate
+	}
+	if datepicker, err := s.settingService.GetDatepicker(); err == nil && datepicker != "" {
+		s.datepicker = datepicker
+	}
+	if enabled, err := s.settingService.GetSubShowIdentityOnAllLinks(); err == nil && enabled {
+		s.showIdentityOnAllLinks = enabled
+	}
+	if enabled, err := s.settingService.GetSubInfoNodeEnable(); err == nil && enabled {
+		s.subInfoNodeEnable = enabled
+	}
+	if tmpl, err := s.settingService.GetSubExpiredTemplate(); err == nil && tmpl != "" {
+		s.subExpiredTemplate = tmpl
+	}
+	if tmpl, err := s.settingService.GetSubTrafficDepletedTemplate(); err == nil && tmpl != "" {
+		s.subTrafficDepletedTemplate = tmpl
 	}
 }
 
@@ -293,6 +311,70 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, int
 	return s.ForRequest(host).getSubs(subId)
 }
 
+type infoNodeMode int
+
+const (
+	infoNodeNone infoNodeMode = iota
+	infoNodeActive
+	infoNodeExpired
+	infoNodeDepleted
+)
+
+func (s *SubService) resolveInfoNodeRemark(subId string, uniqueEmails []string, traffic xray.ClientTraffic, hasEntries bool) (infoNodeMode, string) {
+	if !s.subInfoNodeEnable || !s.subscriptionBody {
+		return infoNodeNone, ""
+	}
+	nowSec := time.Now().Unix()
+	isExpired := traffic.ExpiryTime > 0 && traffic.ExpiryTime/1000 <= nowSec
+	isDepleted := traffic.Total > 0 && (traffic.Up+traffic.Down) >= traffic.Total
+
+	primaryEmail := ""
+	if len(uniqueEmails) > 0 {
+		primaryEmail = uniqueEmails[0]
+	}
+	ctx := remarkContext{
+		client: model.Client{Email: primaryEmail, SubID: subId},
+		stats:  traffic,
+	}
+
+	if isExpired {
+		tmpl := s.subExpiredTemplate
+		if tmpl == "" {
+			tmpl = service.DefaultSubExpiredTemplate
+		}
+		remark := expandRemarkVars(tmpl, ctx)
+		if strings.TrimSpace(remark) == "" {
+			remark = "Expired"
+		}
+		return infoNodeExpired, remark
+	}
+
+	if isDepleted {
+		tmpl := s.subTrafficDepletedTemplate
+		if tmpl == "" {
+			tmpl = service.DefaultSubTrafficDepletedTemplate
+		}
+		remark := expandRemarkVars(tmpl, ctx)
+		if strings.TrimSpace(remark) == "" {
+			remark = "Traffic Depleted"
+		}
+		return infoNodeDepleted, remark
+	}
+
+	if hasEntries {
+		tmpl := s.remarkTemplate
+		if tmpl == "" {
+			tmpl = service.DefaultRemarkTemplate
+		}
+		remark := expandRemarkVars(tmpl, ctx)
+		if strings.TrimSpace(remark) != "" {
+			return infoNodeActive, remark
+		}
+	}
+
+	return infoNodeNone, ""
+}
+
 func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.ClientTraffic, error) {
 	var result []string
 	var emails []string
@@ -340,6 +422,13 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		if ext.Enable {
 			hasEnabledClient = true
 		}
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			if result == nil {
+				result = []string{}
+			}
+			continue
+		}
 		for _, el := range expandEntry(ext) {
 			if link := applyRemarkToLink(el.Link, el.Name); link != "" {
 				result = append(result, link)
@@ -353,8 +442,18 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	for e := range seenEmails {
 		uniqueEmails = append(uniqueEmails, e)
 	}
+	slices.Sort(uniqueEmails)
 	traffic, lastOnline := s.AggregateTrafficByEmails(uniqueEmails)
 	traffic.Enable = hasEnabledClient
+
+	if mode, remark := s.resolveInfoNodeRemark(subId, uniqueEmails, traffic, len(result) > 0); mode != infoNodeNone {
+		dummyLink := fmt.Sprintf("socks://127.0.0.1:1080#%s", strings.ReplaceAll(url.QueryEscape(remark), "+", "%20"))
+		if mode == infoNodeExpired || mode == infoNodeDepleted {
+			return []string{dummyLink}, emails, lastOnline, traffic, nil
+		}
+		result = append([]string{dummyLink}, result...)
+	}
+
 	return result, emails, lastOnline, traffic, nil
 }
 
@@ -722,9 +821,9 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	if len(dns) > 0 {
 		fmt.Fprintf(&b, "DNS = %s\n", strings.Join(dns, ", "))
 	}
-	if server.MTU > 0 {
-		fmt.Fprintf(&b, "MTU = %d\n", server.MTU)
-	}
+	// Always emitted: a missing MTU line leaves the client on its own 1420
+	// default and fragments the client-to-server direction once S4 passes 20.
+	fmt.Fprintf(&b, "MTU = %d\n", amneziawg.EffectiveMTU(server.MTU, server.S4))
 
 	fmt.Fprintf(&b, "Jc = %d\n", server.Jc)
 	fmt.Fprintf(&b, "Jmin = %d\n", server.Jmin)
@@ -813,12 +912,8 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(text))
 }
 
-// genMtprotoLink builds a per-client Telegram proxy deep link for an mtproto
-// inbound: the server/port pair plus the client's own FakeTLS secret. The link
-// carries no remark fragment — Telegram proxy deep links have no name field, and
-// a trailing "#remark" is appended to the last query value by lenient parsers,
-// corrupting the server address. The remark is shown separately in the panel UI.
-// Returns "" when the client has no secret.
+// genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret.
+// It omits remarks because lenient parsers fold a fragment into the last query value.
 func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
 		return ""
@@ -827,12 +922,28 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 	if !ok || resolved.Secret == "" {
 		return ""
 	}
-	params := map[string]string{
-		"server": s.resolveInboundAddress(inbound),
-		"port":   fmt.Sprintf("%d", inbound.Port),
-		"secret": resolved.Secret,
+	endpoints := []ShareEndpoint{s.inboundDefaultEndpoint(inbound)}
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	if externalProxies, ok := stream["externalProxy"].([]any); ok && len(externalProxies) > 0 {
+		overrides := make([]ShareEndpoint, 0, len(externalProxies))
+		for _, raw := range externalProxies {
+			if ep, ok := raw.(map[string]any); ok {
+				overrides = append(overrides, externalProxyToEndpoint(ep))
+			}
+		}
+		if len(overrides) > 0 {
+			endpoints = overrides
+		}
 	}
-	return buildLinkWithParams("tg://proxy", params, "")
+	links := make([]string, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
+			"server": endpoint.Address,
+			"port":   fmt.Sprintf("%d", endpoint.Port),
+			"secret": resolved.Secret,
+		}, ""))
+	}
+	return strings.Join(links, "\n")
 }
 
 // Protocol link generators are intentionally ordered as:
@@ -1176,9 +1287,8 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		}
 	}
 
-	// salamander obfs (Hysteria2). Emit only the standard URI fields;
-	// the non-standard fm=<json> finalmask dump breaks mihomo and other
-	// Hysteria2 clients that reject unknown query params.
+	// salamander obfs (Hysteria2): standard URI fields only -- an fm=<json>
+	// dump breaks strict clients. packetSize exports as v2rayN's gecko pair.
 	if finalmask, ok := stream["finalmask"].(map[string]any); ok {
 		if udpMasks, ok := finalmask["udp"].([]any); ok {
 			for _, m := range udpMasks {
@@ -1188,13 +1298,23 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 				}
 				settings, _ := mask["settings"].(map[string]any)
 				if pw, ok := settings["password"].(string); ok && pw != "" {
-					if extra := extraSalamanderKeys(settings); len(extra) > 0 {
+					packetSize, _ := settings["packetSize"].(string)
+					gecko := parseHysteriaPacketSize(packetSize)
+					if gecko != "" {
+						params["obfs"] = "gecko"
+						params["minPacketSize"], params["maxPacketSize"] = splitHysteriaPacketSize(gecko)
+					}
+					// packetSize rides its own URI fields; anything else still
+					// breaks standard clients and must warn even when gecko fires.
+					if extra := extraSalamanderKeys(settings, gecko != ""); len(extra) > 0 {
 						warningKey := fmt.Sprintf("%d:%v", inbound.Id, extra)
 						if _, loaded := salamanderWarningSeen.LoadOrStore(warningKey, struct{}{}); !loaded {
 							logger.Warningf("SubService - inbound %d: salamander settings %v cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra)
 						}
 					}
-					params["obfs"] = "salamander"
+					if params["obfs"] == "" {
+						params["obfs"] = "salamander"
+					}
 					params["obfs-password"] = pw
 					break
 				}
@@ -1258,6 +1378,44 @@ func hysteriaHopPorts(stream map[string]any) string {
 	udpHop, _ := quicParams["udpHop"].(map[string]any)
 	ports, _ := udpHop["ports"].(string)
 	return strings.TrimSpace(ports)
+}
+
+// gecko packetSize bounds mirror xray-core's salamander buffer cap and the
+// frontend editor, so both link generators emit identical URIs.
+const (
+	geckoMinPacketSize = 1
+	geckoMaxPacketSize = 2048
+)
+
+// parseHysteriaPacketSize validates an xray-core salamander packetSize range
+// ("512-1200", the Gecko obfs marker). Returns canonical "min-max" or "".
+func parseHysteriaPacketSize(value string) string {
+	minStr, maxStr, ok := strings.Cut(value, "-")
+	if !ok || minStr == "" || maxStr == "" {
+		return ""
+	}
+	for _, c := range minStr {
+		if c < '0' || c > '9' {
+			return ""
+		}
+	}
+	for _, c := range maxStr {
+		if c < '0' || c > '9' {
+			return ""
+		}
+	}
+	minVal, err1 := strconv.Atoi(minStr)
+	maxVal, err2 := strconv.Atoi(maxStr)
+	if err1 != nil || err2 != nil ||
+		minVal < geckoMinPacketSize || maxVal < minVal || maxVal > geckoMaxPacketSize {
+		return ""
+	}
+	return fmt.Sprintf("%d-%d", minVal, maxVal)
+}
+
+func splitHysteriaPacketSize(value string) (string, string) {
+	minStr, maxStr, _ := strings.Cut(value, "-")
+	return minStr, maxStr
 }
 
 // loadNodes refreshes nodesByID from the DB. Called once per request so
@@ -2843,14 +3001,15 @@ func getHostFromXFH(s string) (string, error) {
 	return s, nil
 }
 
-// extraSalamanderKeys lists salamander settings the hysteria2 URI cannot carry.
-// A server using them rejects every client built from the emitted link.
-func extraSalamanderKeys(settings map[string]any) []string {
+// extraSalamanderKeys lists salamander settings unexpressible in hysteria2 URI;
+// a server using any reported key rejects clients built from the link.
+func extraSalamanderKeys(settings map[string]any, expressedPacketSize bool) []string {
 	var extra []string
 	for k := range settings {
-		if k != "password" {
-			extra = append(extra, k)
+		if k == "password" || (k == "packetSize" && expressedPacketSize) {
+			continue
 		}
+		extra = append(extra, k)
 	}
 	sort.Strings(extra)
 	return extra

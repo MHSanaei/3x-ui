@@ -62,6 +62,23 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses quic-params byte-stably
 }
 `;
 
+exports[`FinalMaskStreamSettingsSchema fixtures > parses quic-params-flags byte-stably 1`] = `
+{
+  "quicParams": {
+    "brutalDisableLossCompensation": true,
+    "brutalDown": "100 mbps",
+    "brutalUp": "60 mbps",
+    "congestion": "brutal",
+    "disableChromeParrot": true,
+    "disableGSO": true,
+    "disablePathMTUDiscovery": false,
+    "disableStatelessReset": true,
+  },
+  "tcp": [],
+  "udp": [],
+}
+`;
+
 exports[`FinalMaskStreamSettingsSchema fixtures > parses realm-tls byte-stably 1`] = `
 {
   "tcp": [],

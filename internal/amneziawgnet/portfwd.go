@@ -24,7 +24,6 @@ package amneziawgnet
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/netip"
 	"sync"
@@ -327,10 +326,7 @@ func relayTCPForward(gstack *stack.Stack, conn net.Conn, inboundID int, key port
 	}
 	defer tunnelConn.Close()
 
-	done := make(chan struct{}, 2)
-	go func() { _, _ = io.Copy(tunnelConn, conn); done <- struct{}{} }()
-	go func() { _, _ = io.Copy(conn, tunnelConn); done <- struct{}{} }()
-	<-done
+	pipeBothWays(conn, tunnelConn)
 }
 
 // Close stops accepting new connections. Already-relaying connections are

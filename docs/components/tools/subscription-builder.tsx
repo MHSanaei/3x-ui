@@ -69,8 +69,8 @@ export function SubscriptionBuilder() {
   const [scheme, setScheme] = useState<'http' | 'https'>('https');
   const [host, setHost] = useState('sub.example.com');
   const [port, setPort] = useState('2096');
-  const [subPath, setSubPath] = useState('/sub/');
-  const [jsonPath, setJsonPath] = useState('/json/');
+  const [subPath, setSubPath] = useState('/your-sub-path/');
+  const [jsonPath, setJsonPath] = useState('/your-json-path/');
   const [subId, setSubId] = useState('user-1');
   const [behindProxy, setBehindProxy] = useState(false);
   const [clients, setClients] = useState<ClientRow[]>(DEFAULT_CLIENTS);
@@ -95,8 +95,8 @@ export function SubscriptionBuilder() {
     setScheme('https');
     setHost('sub.example.com');
     setPort('2096');
-    setSubPath('/sub/');
-    setJsonPath('/json/');
+    setSubPath('/your-sub-path/');
+    setJsonPath('/your-json-path/');
     setSubId('user-1');
     setBehindProxy(false);
     setClients(DEFAULT_CLIENTS);

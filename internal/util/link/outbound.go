@@ -688,18 +688,44 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 	}
 }
 
+// gecko packetSize bounds mirror xray-core's salamander buffer cap.
+const (
+	geckoMinPacketSize = 1
+	geckoMaxPacketSize = 2048
+)
+
+// parsePacketSizeRange validates a min/max pair for the Gecko obfs marker.
+func parsePacketSizeRange(minStr, maxStr string) (int, int, bool) {
+	minVal, err1 := strconv.Atoi(minStr)
+	maxVal, err2 := strconv.Atoi(maxStr)
+	if err1 != nil || err2 != nil ||
+		minVal < geckoMinPacketSize || maxVal < minVal || maxVal > geckoMaxPacketSize {
+		return 0, 0, false
+	}
+	return minVal, maxVal, true
+}
+
 // applyHysteria2Obfs rebuilds the salamander mask from the standard Hysteria2
-// obfs=salamander & obfs-password=<pw> pair (every non-3x-ui client, and this
-// panel's own generator, speak it instead of the private fm=<json> dump). A
-// salamander mask already carrying a password via fm= wins; a password-less one
-// is completed rather than left empty.
+// obfs pair. An fm=-carried password wins; gecko adds the packetSize pair.
 func applyHysteria2Obfs(stream map[string]any, p url.Values) {
-	if !strings.EqualFold(p.Get("obfs"), "salamander") {
+	obfs := p.Get("obfs")
+	isGecko := strings.EqualFold(obfs, "gecko")
+	if !isGecko && !strings.EqualFold(obfs, "salamander") {
 		return
 	}
 	password := firstParam(p, "obfs-password", "obfs_password", "obfsPassword")
 	if password == "" {
 		return
+	}
+	packetSize := ""
+	if isGecko {
+		// Both halves required with digit+range validation, matching the
+		// export side; half-specified or non-numeric values are dropped.
+		minSize := strings.TrimSpace(p.Get("minPacketSize"))
+		maxSize := strings.TrimSpace(p.Get("maxPacketSize"))
+		if min, max, ok := parsePacketSizeRange(minSize, maxSize); ok {
+			packetSize = fmt.Sprintf("%d-%d", min, max)
+		}
 	}
 	finalmask := ensureChildMap(stream, "finalmask")
 	udp, _ := finalmask["udp"].([]any)
@@ -716,11 +742,20 @@ func applyHysteria2Obfs(stream map[string]any, p url.Values) {
 		if pw, _ := settings["password"].(string); pw == "" {
 			settings["password"] = password
 		}
+		if packetSize != "" {
+			if ps, _ := settings["packetSize"].(string); ps == "" {
+				settings["packetSize"] = packetSize
+			}
+		}
 		return
+	}
+	settings := map[string]any{"password": password}
+	if packetSize != "" {
+		settings["packetSize"] = packetSize
 	}
 	finalmask["udp"] = append(udp, map[string]any{
 		"type":     "salamander",
-		"settings": map[string]any{"password": password},
+		"settings": settings,
 	})
 }
 

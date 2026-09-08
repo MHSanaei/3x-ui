@@ -87,7 +87,17 @@ func requestSub(t *testing.T, router *gin.Engine, method string, path string, hw
 func TestSubscriptionHwidGateAcrossBodyRoutes(t *testing.T) {
 	router, subID := initHwidSubRouter(t, 1)
 
-	for _, path := range []string{"/sub/" + subID, "/json/" + subID, "/clash/" + subID} {
+	// ?view=raw only tells /json/ and /clash/ to serve the body instead of the
+	// HTML page, so it stays gated like the plain route (#GHSA-7ww3).
+	bodyRoutes := []string{
+		"/sub/" + subID,
+		"/json/" + subID,
+		"/clash/" + subID,
+		"/json/" + subID + "?view=raw",
+		"/clash/" + subID + "?view=RaW",
+	}
+
+	for _, path := range bodyRoutes {
 		rec := requestSub(t, router, http.MethodGet, path, "", "")
 		if rec.Code != http.StatusNotFound {
 			t.Fatalf("%s missing HWID status = %d, want 404", path, rec.Code)
@@ -102,7 +112,7 @@ func TestSubscriptionHwidGateAcrossBodyRoutes(t *testing.T) {
 		t.Fatalf("HEAD missing HWID = %d %#v", rec.Code, rec.Header())
 	}
 
-	for _, path := range []string{"/sub/" + subID, "/json/" + subID, "/clash/" + subID} {
+	for _, path := range bodyRoutes {
 		rec = requestSub(t, router, http.MethodGet, path, "device-one", "")
 		if rec.Code != http.StatusOK {
 			t.Fatalf("%s registered HWID status = %d, body=%q", path, rec.Code, rec.Body.String())
@@ -112,12 +122,14 @@ func TestSubscriptionHwidGateAcrossBodyRoutes(t *testing.T) {
 		}
 	}
 
-	rec = requestSub(t, router, http.MethodGet, "/json/"+subID, "device-two", "")
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("new HWID after limit status = %d, want 404", rec.Code)
-	}
-	if rec.Header().Get("X-Hwid-Max-Devices-Reached") != "true" || rec.Header().Get("X-Hwid-Limit") != "true" {
-		t.Fatalf("limit headers missing: %#v", rec.Header())
+	for _, path := range bodyRoutes {
+		rec = requestSub(t, router, http.MethodGet, path, "device-two", "")
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("%s new HWID after limit status = %d, want 404", path, rec.Code)
+		}
+		if rec.Header().Get("X-Hwid-Max-Devices-Reached") != "true" || rec.Header().Get("X-Hwid-Limit") != "true" {
+			t.Fatalf("%s limit headers missing: %#v", path, rec.Header())
+		}
 	}
 }
 

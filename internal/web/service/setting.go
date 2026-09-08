@@ -34,11 +34,13 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex = `(?i)(clash|mihomo)`
-	DefaultSubJsonUserAgentRegex  = ``
-	DefaultRemarkTemplate         = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
-	DefaultTrustedProxyCIDRs      = "127.0.0.1/32,::1/128"
-	maxRegexLength                = 2048
+	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
+	DefaultSubJsonUserAgentRegex      = ``
+	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
+	DefaultSubExpiredTemplate         = "⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}"
+	DefaultSubTrafficDepletedTemplate = "🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}"
+	DefaultTrustedProxyCIDRs          = "127.0.0.1/32,::1/128"
+	maxRegexLength                    = 2048
 )
 
 var defaultValueMap = map[string]string{
@@ -70,6 +72,9 @@ var defaultValueMap = map[string]string{
 	"trafficDiff":                 "0",
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
+	"subInfoNodeEnable":           "false",
+	"subExpiredTemplate":          DefaultSubExpiredTemplate,
+	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
 	"timeLocation":                "Local",
 	"tgBotEnable":                 "false",
 	"tgBotToken":                  "",
@@ -309,12 +314,17 @@ func getEnv(key, fallback string) string {
 
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
-	err := db.Where("1 = 1").Delete(model.Setting{}).Error
-	if err != nil {
-		return err
-	}
-	return db.Model(model.User{}).
-		Where("1 = 1").Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("1 = 1").Delete(model.Setting{}).Error; err != nil {
+			return err
+		}
+		paths := []model.Setting{
+			{Key: "subPath", Value: "/" + random.NumLower(16) + "/"},
+			{Key: "subJsonPath", Value: "/" + random.NumLower(16) + "/"},
+			{Key: "subClashPath", Value: "/" + random.NumLower(16) + "/"},
+		}
+		return tx.Create(&paths).Error
+	})
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
@@ -669,6 +679,18 @@ func (s *SettingService) GetRemarkTemplate() (string, error) {
 
 func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 	return s.getBool("subShowIdentityOnAllLinks")
+}
+
+func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
+	return s.getBool("subInfoNodeEnable")
+}
+
+func (s *SettingService) GetSubExpiredTemplate() (string, error) {
+	return s.getString("subExpiredTemplate")
+}
+
+func (s *SettingService) GetSubTrafficDepletedTemplate() (string, error) {
+	return s.getString("subTrafficDepletedTemplate")
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {

@@ -808,3 +808,35 @@ describe('parseOutboundLink dispatcher', () => {
     expect(parseOutboundLink('   ')).toBeNull();
   });
 });
+
+describe('obfs=gecko packetSize validation', () => {
+  const base = 'hysteria2://secret@1.2.3.4:443?security=tls&obfs=gecko&obfs-password=pw';
+
+  const packetSizeOf = (link: string): string | undefined => {
+    const out = parseHysteria2Link(link);
+    expect(out).not.toBeNull();
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as
+      | Record<string, unknown>
+      | undefined;
+    const udp = (finalmask?.udp ?? []) as Array<Record<string, unknown>>;
+    const mask = udp.find((m) => m.type === 'salamander');
+    return (mask?.settings as Record<string, unknown> | undefined)?.packetSize as
+      | string
+      | undefined;
+  };
+
+  it('stores a valid range', () => {
+    expect(packetSizeOf(`${base}&minPacketSize=512&maxPacketSize=1200`)).toBe('512-1200');
+  });
+
+  it.each([
+    ['min only', `${base}&minPacketSize=512`],
+    ['max only', `${base}&maxPacketSize=1200`],
+    ['non-numeric', `${base}&minPacketSize=abc&maxPacketSize=def`],
+    ['zero min', `${base}&minPacketSize=0&maxPacketSize=1200`],
+    ['inverted', `${base}&minPacketSize=1200&maxPacketSize=512`],
+    ['over cap', `${base}&minPacketSize=512&maxPacketSize=4096`],
+  ])('drops the %s range', (_name, link) => {
+    expect(packetSizeOf(link)).toBeUndefined();
+  });
+});

@@ -61,6 +61,7 @@ export const QuicParamsSchema = z.object({
   debug: z.boolean().optional(),
   brutalUp: z.string().optional(),
   brutalDown: z.string().optional(),
+  brutalDisableLossCompensation: z.boolean().optional(),
   udpHop: QuicUdpHopSchema.optional(),
   initStreamReceiveWindow: z.number().int().min(0).optional(),
   maxStreamReceiveWindow: z.number().int().min(0).optional(),
@@ -69,7 +70,10 @@ export const QuicParamsSchema = z.object({
   maxIdleTimeout: z.number().int().min(4).max(120).optional(),
   keepAlivePeriod: z.number().int().min(2).max(60).optional(),
   disablePathMTUDiscovery: z.boolean().optional(),
+  disableChromeParrot: z.boolean().optional(),
+  disableGSO: z.boolean().optional(),
   maxIncomingStreams: z.number().int().min(8).optional(),
+  disableStatelessReset: z.boolean().optional(),
 });
 export type QuicParams = z.infer<typeof QuicParamsSchema>;
 
