@@ -1,9 +1,7 @@
 package main
 
-// The Claude bot prompts in .github/workflows/claude-bot.yml no longer restate
-// repository facts; they read .github/claude/repo-context.md instead. A stale
-// claim in that file is invisible until it produces a wrong review, so every
-// claim a machine can check is pinned here.
+// The bot prompts under .github/workflows/ read .github/claude/repo-context.md
+// instead of restating repo facts; a stale claim there is invisible, so pin it.
 
 import (
 	"os"

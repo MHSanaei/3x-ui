@@ -91,6 +91,7 @@ export default function SubscriptionBalancersTab({
       remark: balancer.remark,
       strategy: balancer.strategy,
       inboundIds: balancer.inboundIds,
+      memberWeights: balancer.memberWeights ?? undefined,
       sortOrder: balancer.sortOrder,
       enabled: !balancer.enabled,
     });

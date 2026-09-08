@@ -34,6 +34,7 @@ import { HttpUtil, IntlUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
+import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
@@ -848,7 +849,7 @@ export default function ClientFormModal({
                             </Space.Compact>
                           </Form.Item>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <FormField
                             name="totalGB"
                             label={t('pages.clients.totalGB')}
@@ -858,7 +859,7 @@ export default function ClientFormModal({
                             <InputNumber min={0} step={1} style={{ width: '100%' }} />
                           </FormField>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <Form.Item
                             label={t('pages.clients.limitIp')}
                             tooltip={t('pages.clients.limitIpDesc')}
@@ -893,7 +894,7 @@ export default function ClientFormModal({
                             </Tooltip>
                           </Form.Item>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <Form.Item
                             label={t('pages.clients.limitHwid')}
                             tooltip={t('pages.clients.limitHwidDesc')}
@@ -1370,17 +1371,22 @@ export default function ClientFormModal({
                                 <Controller
                                   control={methods.control}
                                   name={`externalLinks.${index}.expiryTime`}
-                                  render={({ field: expiryField }) => (
-                                    <DateTimePicker
-                                      value={
-                                        Number(expiryField.value) > 0
-                                          ? dayjs(Number(expiryField.value))
-                                          : null
-                                      }
-                                      onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                      placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
-                                    />
-                                  )}
+                                  render={({ field: expiryField }) => {
+                                    const displayedExpiry = resolveExternalLinkExpiry(
+                                      expiryField.value,
+                                      expiryDate,
+                                    );
+                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
+                                    return (
+                                      <DateTimePicker
+                                        value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
+                                        onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                        placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                        allowClear={hasSpecificExpiry}
+                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
+                                      />
+                                    );
+                                  }}
                                 />
                               </div>
                             </div>
@@ -1442,17 +1448,22 @@ export default function ClientFormModal({
                                 <Controller
                                   control={methods.control}
                                   name={`externalLinks.${index}.expiryTime`}
-                                  render={({ field: expiryField }) => (
-                                    <DateTimePicker
-                                      value={
-                                        Number(expiryField.value) > 0
-                                          ? dayjs(Number(expiryField.value))
-                                          : null
-                                      }
-                                      onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                      placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
-                                    />
-                                  )}
+                                  render={({ field: expiryField }) => {
+                                    const displayedExpiry = resolveExternalLinkExpiry(
+                                      expiryField.value,
+                                      expiryDate,
+                                    );
+                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
+                                    return (
+                                      <DateTimePicker
+                                        value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
+                                        onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                        placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                        allowClear={hasSpecificExpiry}
+                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
+                                      />
+                                    );
+                                  }}
                                 />
                               </div>
                               <Typography.Text

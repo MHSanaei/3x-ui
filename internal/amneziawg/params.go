@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"math/big"
 	"net/netip"
 	"regexp"
@@ -14,9 +15,6 @@ import (
 // awgHMax caps generated H values at 2^31-1: the spec allows the full uint32,
 // but the amneziawg-windows-client config editor rejects anything above.
 const awgHMax = 2147483647
-
-// hMinWidth is the minimum width of each generated H1-H4 range.
-const hMinWidth = 1000
 
 // hMaxValid is the largest value ValidateObfuscation accepts for an H
 // parameter: uint32 max, the kernel's own limit.
@@ -69,7 +67,7 @@ func GenerateObfuscation31() Obfuscation31 {
 	o.S3 = randInt(12, 55) // cookie padding (max 64)
 	o.S4 = randInt(12, 27) // transport padding (max 32)
 
-	h := generateHRanges()
+	h := generateHValues()
 	o.H1, o.H2, o.H3, o.H4 = h[0], h[1], h[2], h[3]
 
 	// CPS signature packet, N random bytes before each handshake. I2-I5 stay
@@ -122,19 +120,16 @@ func generateHeaderProtectionKey() string {
 	return base64.StdEncoding.EncodeToString(key)
 }
 
-// generateHRanges returns four non-overlapping "low-high" ranges for H1-H4,
-// one per band of the space so non-overlap needs no retries. The low bound is
-// >= 5: values 1-4 are reserved for vanilla WireGuard message types.
-func generateHRanges() [4]string {
+// generateHValues returns one distinct value per H1-H4 band; low bound >= 5 (1-4 are vanilla WG message types).
+// Single values, not ranges: with RandomTrailers on, a wide range misclassifies transport packets as handshakes (amnezia-vpn/amneziawg-go#183).
+func generateHValues() [4]string {
 	const lo = 5
 	bandSize := (awgHMax - lo + 1) / 4
 	var out [4]string
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		bandLo := lo + i*bandSize
 		bandHi := bandLo + bandSize - 1
-		start := randInt(bandLo, bandHi-hMinWidth-1)
-		end := randInt(start+hMinWidth, bandHi-1)
-		out[i] = fmt.Sprintf("%d-%d", start, end)
+		out[i] = fmt.Sprintf("%d", randInt(bandLo, bandHi))
 	}
 	return out
 }
@@ -148,6 +143,28 @@ func generateHRanges() [4]string {
 func ValidateObfuscation(o Obfuscation31) error {
 	if o.Jmin > o.Jmax {
 		return fmt.Errorf("invalid Jmin/Jmax: %d must not exceed %d", o.Jmin, o.Jmax)
+	}
+	// amneziawg-go parses jc/jmin/jmax as uint32 and s1-s4 as uint16
+	// (device/uapi.go); a wider value makes IpcSet reject the whole device.
+	for _, f := range []struct {
+		name string
+		v    int
+		max  int64
+	}{
+		{"Jc", o.Jc, math.MaxUint32},
+		{"Jmin", o.Jmin, math.MaxUint32},
+		{"Jmax", o.Jmax, math.MaxUint32},
+		{"S1", o.S1, math.MaxUint16},
+		{"S2", o.S2, math.MaxUint16},
+	} {
+		if int64(f.v) < 0 || int64(f.v) > f.max {
+			return fmt.Errorf("invalid %s value %d (must be 0..%d)", f.name, f.v, f.max)
+		}
+	}
+	for i, spec := range []string{o.I1, o.I2, o.I3, o.I4, o.I5} {
+		if err := validateObfChain(spec); err != nil {
+			return fmt.Errorf("invalid I%d: %w", i+1, err)
+		}
 	}
 	if o.S3 < 0 || o.S3 > 64 {
 		return fmt.Errorf("invalid S3 value %d (must be 0..64)", o.S3)
@@ -204,6 +221,40 @@ func ValidateObfuscation(o Obfuscation31) error {
 		}
 	}
 	return nil
+}
+
+// obfChainTags mirrors amneziawg-go's own obfBuilders map (device/obf.go): an
+// unknown tag makes newObfChain fail, and IpcSet then rejects the whole device.
+var obfChainTags = map[string]bool{
+	"b": true, "t": true, "r": true, "rc": true,
+	"rd": true, "d": true, "ds": true, "dz": true,
+}
+
+// validateObfChain checks an I1-I5 signature-packet spec's "<tag value>"
+// structure. Each tag's own value grammar stays amneziawg-go's to enforce.
+func validateObfChain(spec string) error {
+	if strings.TrimSpace(spec) == "" {
+		return nil
+	}
+	remaining := spec
+	for {
+		start := strings.IndexByte(remaining, '<')
+		if start == -1 {
+			return nil
+		}
+		end := strings.IndexByte(remaining[start:], '>')
+		if end == -1 {
+			return fmt.Errorf("spec %q is missing an enclosing '>'", spec)
+		}
+		fields := strings.Fields(remaining[start+1 : start+end])
+		if len(fields) == 0 {
+			return fmt.Errorf("spec %q has an empty <> tag", spec)
+		}
+		if !obfChainTags[fields[0]] {
+			return fmt.Errorf("spec %q uses unknown tag <%s>", spec, fields[0])
+		}
+		remaining = remaining[start+end+1:]
+	}
 }
 
 // CanonicalizeUintRange stores a pasted "110 - 140" as "110-140", and

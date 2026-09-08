@@ -340,6 +340,13 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 		if ext.Enable {
 			hasEnabledClient = true
 		}
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			if result == nil {
+				result = []string{}
+			}
+			continue
+		}
 		for _, el := range expandEntry(ext) {
 			if link := applyRemarkToLink(el.Link, el.Name); link != "" {
 				result = append(result, link)
@@ -813,12 +820,8 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(text))
 }
 
-// genMtprotoLink builds a per-client Telegram proxy deep link for an mtproto
-// inbound: the server/port pair plus the client's own FakeTLS secret. The link
-// carries no remark fragment — Telegram proxy deep links have no name field, and
-// a trailing "#remark" is appended to the last query value by lenient parsers,
-// corrupting the server address. The remark is shown separately in the panel UI.
-// Returns "" when the client has no secret.
+// genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret.
+// It omits remarks because lenient parsers fold a fragment into the last query value.
 func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
 		return ""
@@ -827,12 +830,28 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 	if !ok || resolved.Secret == "" {
 		return ""
 	}
-	params := map[string]string{
-		"server": s.resolveInboundAddress(inbound),
-		"port":   fmt.Sprintf("%d", inbound.Port),
-		"secret": resolved.Secret,
+	endpoints := []ShareEndpoint{s.inboundDefaultEndpoint(inbound)}
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	if externalProxies, ok := stream["externalProxy"].([]any); ok && len(externalProxies) > 0 {
+		overrides := make([]ShareEndpoint, 0, len(externalProxies))
+		for _, raw := range externalProxies {
+			if ep, ok := raw.(map[string]any); ok {
+				overrides = append(overrides, externalProxyToEndpoint(ep))
+			}
+		}
+		if len(overrides) > 0 {
+			endpoints = overrides
+		}
 	}
-	return buildLinkWithParams("tg://proxy", params, "")
+	links := make([]string, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
+			"server": endpoint.Address,
+			"port":   fmt.Sprintf("%d", endpoint.Port),
+			"secret": resolved.Secret,
+		}, ""))
+	}
+	return strings.Join(links, "\n")
 }
 
 // Protocol link generators are intentionally ordered as:
@@ -1176,9 +1195,8 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		}
 	}
 
-	// salamander obfs (Hysteria2). Emit only the standard URI fields;
-	// the non-standard fm=<json> finalmask dump breaks mihomo and other
-	// Hysteria2 clients that reject unknown query params.
+	// salamander obfs (Hysteria2): standard URI fields only -- an fm=<json>
+	// dump breaks strict clients. packetSize exports as v2rayN's gecko pair.
 	if finalmask, ok := stream["finalmask"].(map[string]any); ok {
 		if udpMasks, ok := finalmask["udp"].([]any); ok {
 			for _, m := range udpMasks {
@@ -1188,13 +1206,23 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 				}
 				settings, _ := mask["settings"].(map[string]any)
 				if pw, ok := settings["password"].(string); ok && pw != "" {
-					if extra := extraSalamanderKeys(settings); len(extra) > 0 {
+					packetSize, _ := settings["packetSize"].(string)
+					gecko := parseHysteriaPacketSize(packetSize)
+					if gecko != "" {
+						params["obfs"] = "gecko"
+						params["minPacketSize"], params["maxPacketSize"] = splitHysteriaPacketSize(gecko)
+					}
+					// packetSize rides its own URI fields; anything else still
+					// breaks standard clients and must warn even when gecko fires.
+					if extra := extraSalamanderKeys(settings, gecko != ""); len(extra) > 0 {
 						warningKey := fmt.Sprintf("%d:%v", inbound.Id, extra)
 						if _, loaded := salamanderWarningSeen.LoadOrStore(warningKey, struct{}{}); !loaded {
 							logger.Warningf("SubService - inbound %d: salamander settings %v cannot be expressed in a hysteria2 URI; standard clients will fail the handshake", inbound.Id, extra)
 						}
 					}
-					params["obfs"] = "salamander"
+					if params["obfs"] == "" {
+						params["obfs"] = "salamander"
+					}
 					params["obfs-password"] = pw
 					break
 				}
@@ -1258,6 +1286,44 @@ func hysteriaHopPorts(stream map[string]any) string {
 	udpHop, _ := quicParams["udpHop"].(map[string]any)
 	ports, _ := udpHop["ports"].(string)
 	return strings.TrimSpace(ports)
+}
+
+// gecko packetSize bounds mirror xray-core's salamander buffer cap and the
+// frontend editor, so both link generators emit identical URIs.
+const (
+	geckoMinPacketSize = 1
+	geckoMaxPacketSize = 2048
+)
+
+// parseHysteriaPacketSize validates an xray-core salamander packetSize range
+// ("512-1200", the Gecko obfs marker). Returns canonical "min-max" or "".
+func parseHysteriaPacketSize(value string) string {
+	minStr, maxStr, ok := strings.Cut(value, "-")
+	if !ok || minStr == "" || maxStr == "" {
+		return ""
+	}
+	for _, c := range minStr {
+		if c < '0' || c > '9' {
+			return ""
+		}
+	}
+	for _, c := range maxStr {
+		if c < '0' || c > '9' {
+			return ""
+		}
+	}
+	minVal, err1 := strconv.Atoi(minStr)
+	maxVal, err2 := strconv.Atoi(maxStr)
+	if err1 != nil || err2 != nil ||
+		minVal < geckoMinPacketSize || maxVal < minVal || maxVal > geckoMaxPacketSize {
+		return ""
+	}
+	return fmt.Sprintf("%d-%d", minVal, maxVal)
+}
+
+func splitHysteriaPacketSize(value string) (string, string) {
+	minStr, maxStr, _ := strings.Cut(value, "-")
+	return minStr, maxStr
 }
 
 // loadNodes refreshes nodesByID from the DB. Called once per request so
@@ -2843,14 +2909,15 @@ func getHostFromXFH(s string) (string, error) {
 	return s, nil
 }
 
-// extraSalamanderKeys lists salamander settings the hysteria2 URI cannot carry.
-// A server using them rejects every client built from the emitted link.
-func extraSalamanderKeys(settings map[string]any) []string {
+// extraSalamanderKeys lists salamander settings unexpressible in hysteria2 URI;
+// a server using any reported key rejects clients built from the link.
+func extraSalamanderKeys(settings map[string]any, expressedPacketSize bool) []string {
 	var extra []string
 	for k := range settings {
-		if k != "password" {
-			extra = append(extra, k)
+		if k == "password" || (k == "packetSize" && expressedPacketSize) {
+			continue
 		}
+		extra = append(extra, k)
 	}
 	sort.Strings(extra)
 	return extra

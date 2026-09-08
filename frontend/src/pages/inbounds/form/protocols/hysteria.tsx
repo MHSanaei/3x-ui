@@ -79,6 +79,13 @@ export default function HysteriaFields() {
                 <Switch />
               </FormField>
               <FormField
+                label={t('pages.inbounds.form.xForwarded')}
+                name={[...MASQ_PATH, 'xForwarded']}
+                valueProp="checked"
+              >
+                <Switch />
+              </FormField>
+              <FormField
                 label={t('pages.inbounds.form.skipTlsVerify')}
                 name={[...MASQ_PATH, 'insecure']}
                 valueProp="checked"

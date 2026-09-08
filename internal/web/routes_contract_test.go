@@ -78,7 +78,7 @@ func documentedContractRoutes(t *testing.T) map[string]bool {
 		t.Fatalf("read endpoints.ts: %v", err)
 	}
 	text := string(source)
-	methodRe := regexp.MustCompile(`method:\s*'(GET|POST|PUT|DELETE|PATCH|WS)'`)
+	methodRe := regexp.MustCompile(`method:\s*'(GET|POST|PUT|DELETE|PATCH|HEAD|WS)'`)
 	pathRe := regexp.MustCompile(`path:\s*'([^']+)'`)
 	methods := methodRe.FindAllStringSubmatchIndex(text, -1)
 	if declared := strings.Count(text, "method: '"); len(methods) != declared {

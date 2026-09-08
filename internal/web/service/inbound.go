@@ -57,6 +57,11 @@ func normalizeInboundShareAddress(inbound *model.Inbound) {
 	if inbound == nil {
 		return
 	}
+	if inbound.Protocol == model.MTProto {
+		inbound.ShareAddrStrategy = "listen"
+		inbound.ShareAddr = ""
+		return
+	}
 	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
 	if addr, err := normalizeInboundShareHost(inbound.ShareAddr); err == nil {
 		inbound.ShareAddr = addr
@@ -67,6 +72,11 @@ func normalizeInboundShareAddress(inbound *model.Inbound) {
 
 func normalizeInboundShareAddressStrict(inbound *model.Inbound) error {
 	if inbound == nil {
+		return nil
+	}
+	if inbound.Protocol == model.MTProto {
+		inbound.ShareAddrStrategy = "listen"
+		inbound.ShareAddr = ""
 		return nil
 	}
 	inbound.ShareAddrStrategy = normalizeInboundShareAddrStrategy(inbound.ShareAddrStrategy)
@@ -111,6 +121,17 @@ func normalizeInboundShareHost(raw string) (string, error) {
 		return "", err
 	}
 	return host, nil
+}
+
+func legacyMtprotoShareAddr(inbound *model.Inbound) string {
+	if inbound == nil || inbound.Protocol != model.MTProto || strings.TrimSpace(inbound.ShareAddrStrategy) != "custom" {
+		return ""
+	}
+	addr, err := normalizeInboundShareHost(inbound.ShareAddr)
+	if err != nil {
+		return ""
+	}
+	return addr
 }
 
 func normalizeInboundShareAddressColumns(tx *gorm.DB) error {
@@ -943,6 +964,7 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	inbound.Id = 0
+	legacyShareAddr := legacyMtprotoShareAddr(inbound)
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
@@ -1118,6 +1140,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			return err
 		}
 		if _, err := database.CreateHostsFromExternalProxy(tx, inbound.Id, inbound.StreamSettings); err != nil {
+			return err
+		}
+		if err := database.CreateHostFromMtprotoCustomShareAddr(tx, inbound.Id, legacyShareAddr); err != nil {
 			return err
 		}
 		if inbound.NodeID != nil {
@@ -1463,6 +1488,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	legacyShareAddr := legacyMtprotoShareAddr(inbound)
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
@@ -1634,6 +1660,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			}
 			oldInbound.ShareAddrStrategy = inbound.ShareAddrStrategy
 			oldInbound.ShareAddr = inbound.ShareAddr
+			if err := database.CreateHostFromMtprotoCustomShareAddr(tx, inbound.Id, legacyShareAddr); err != nil {
+				return err
+			}
 		}
 		if oldTagWasAuto && inbound.Tag == tag {
 			inbound.Tag = ""

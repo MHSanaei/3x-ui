@@ -490,8 +490,14 @@ export default function InboundFormModal({
    */
   useEffect(() => {
     if (!open) return;
-    if (!availableNodesFetched || !protocol) return;
+    if (!protocol) return;
     const current = getV('shareAddrStrategy') as InboundFormValues['shareAddrStrategy'] | undefined;
+    if (protocol === Protocols.MTPROTO) {
+      if (current !== 'listen') setV('shareAddrStrategy', 'listen');
+      if (getV('shareAddr')) setV('shareAddr', '');
+      return;
+    }
+    if (!availableNodesFetched) return;
     if (!nodeShareOptionAvailable && (current ?? 'node') === 'node') {
       setV('shareAddrStrategy', 'listen');
     }
@@ -643,37 +649,42 @@ export default function InboundFormModal({
         <Input placeholder={t('pages.inbounds.monitorDesc')} />
       </FormField>
 
-      <FormField
-        name="shareAddrStrategy"
-        label={labelWithHint(
-          t('pages.inbounds.form.shareAddrStrategy'),
-          t('pages.inbounds.form.shareAddrStrategyHelp'),
-        )}
-      >
-        <Select
-          options={SHARE_ADDR_STRATEGIES.filter(
-            (strategy) => strategy !== 'node' || nodeShareOptionAvailable,
-          ).map((strategy) => ({
-            value: strategy,
-            label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
-          }))}
-        />
-      </FormField>
+      {protocol !== Protocols.MTPROTO && (
+        <>
+          <FormField
+            name="shareAddrStrategy"
+            label={labelWithHint(
+              t('pages.inbounds.form.shareAddrStrategy'),
+              t('pages.inbounds.form.shareAddrStrategyHelp'),
+            )}
+          >
+            <Select
+              options={SHARE_ADDR_STRATEGIES.filter(
+                (strategy) => strategy !== 'node' || nodeShareOptionAvailable,
+              ).map((strategy) => ({
+                value: strategy,
+                label: t(`pages.inbounds.form.shareAddrStrategyOptions.${strategy}`),
+              }))}
+            />
+          </FormField>
 
-      {shareAddrStrategy === 'custom' && (
-        <FormField
-          name="shareAddr"
-          label={labelWithHint(
-            t('pages.inbounds.form.shareAddr'),
-            t('pages.inbounds.form.shareAddrHelp'),
+          {shareAddrStrategy === 'custom' && (
+            <FormField
+              name="shareAddr"
+              label={labelWithHint(
+                t('pages.inbounds.form.shareAddr'),
+                t('pages.inbounds.form.shareAddrHelp'),
+              )}
+              rules={{
+                validate: (value) =>
+                  isValidShareAddrInput(String(value ?? '')) ||
+                  t('pages.inbounds.form.shareAddrHelp'),
+              }}
+            >
+              <Input placeholder="edge.example.com" />
+            </FormField>
           )}
-          rules={{
-            validate: (value) =>
-              isValidShareAddrInput(String(value ?? '')) || t('pages.inbounds.form.shareAddrHelp'),
-          }}
-        >
-          <Input placeholder="edge.example.com" />
-        </FormField>
+        </>
       )}
 
       <FormField

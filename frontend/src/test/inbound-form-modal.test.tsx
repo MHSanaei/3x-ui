@@ -167,6 +167,41 @@ describe('InboundFormModal', () => {
     expect((shareAddrInput as HTMLInputElement).value).toBe('edge.example.test');
   });
 
+  it('uses Hosts instead of showing the custom share address fields for MTProto', async () => {
+    renderWithProviders(
+      <InboundFormModal
+        open
+        mode="edit"
+        dbInbound={
+          new DBInbound({
+            id: 2,
+            port: 4060,
+            listen: '',
+            protocol: 'mtproto',
+            remark: 'proxy',
+            enable: true,
+            settings: { clients: [] },
+            streamSettings: {},
+            sniffing: { enabled: false },
+            nodeId: null,
+            shareAddrStrategy: 'custom',
+            shareAddr: 'proxy.example.test',
+          })
+        }
+        dbInbounds={[]}
+        availableNodes={[]}
+        onClose={() => {}}
+        onSaved={() => {}}
+      />,
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(fieldLabels()).not.toContain('Share address strategy');
+    expect(screen.queryByDisplayValue('proxy.example.test')).toBeNull();
+  });
+
   it('keeps the persisted node share strategy through the nodes-loading race (#5375)', async () => {
     const node = { id: 1, name: 'arm2', enable: true, status: 'online' } as never;
     const buildInbound = () =>

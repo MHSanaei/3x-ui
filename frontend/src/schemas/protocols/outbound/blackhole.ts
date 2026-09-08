@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
-export const BlackholeResponseTypeSchema = z.enum(['none', 'http']);
+export const BlackholeResponseTypeSchema = z.enum(['none', 'http', 'custom']);
 export type BlackholeResponseType = z.infer<typeof BlackholeResponseTypeSchema>;
 
-// Blackhole drops traffic. `response.type` is the only knob — when set, Xray
-// returns the canned 403 HTTP response before closing; when omitted it
-// silently drops. The panel stores it as { response: { type } } or omits the
-// whole `response` key when type is empty.
+// `response.type` picks Xray's reply before closing: none (silent), http
+// (canned 403) or custom (base64 customResponseData). Omitted when empty.
 export const BlackholeOutboundSettingsSchema = z.object({
-  response: z.object({ type: BlackholeResponseTypeSchema }).optional(),
+  response: z
+    .object({ type: BlackholeResponseTypeSchema, customResponseData: z.string().optional() })
+    .optional(),
 });
 export type BlackholeOutboundSettings = z.infer<typeof BlackholeOutboundSettingsSchema>;

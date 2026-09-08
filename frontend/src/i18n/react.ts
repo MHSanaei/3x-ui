@@ -2,6 +2,7 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import { LanguageManager } from '@/utils';
+import type { LanguageScope } from '@/utils';
 import enUS from '../../../internal/web/translation/en-US.json';
 
 const FALLBACK = 'en-US';
@@ -15,15 +16,15 @@ function moduleKeyFor(code: string): string {
   return `../../../internal/web/translation/${code}.json`;
 }
 
-let active: string = LanguageManager.getLanguage();
-if (
-  active !== FALLBACK &&
-  !Object.prototype.hasOwnProperty.call(lazyModules, moduleKeyFor(active))
-) {
-  active = FALLBACK;
-}
+export async function readyI18n(scope: LanguageScope = 'panel') {
+  let active = LanguageManager.getLanguage(scope);
+  if (
+    active !== FALLBACK &&
+    !Object.prototype.hasOwnProperty.call(lazyModules, moduleKeyFor(active))
+  ) {
+    active = FALLBACK;
+  }
 
-export async function readyI18n() {
   await i18next.use(initReactI18next).init({
     lng: active,
     fallbackLng: FALLBACK,

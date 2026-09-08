@@ -56,7 +56,9 @@ export const TlsCertSchema = z.union([TlsCertFileSchema, TlsCertInlineSchema]);
 export type TlsCert = z.infer<typeof TlsCertSchema>;
 
 export const TlsClientSettingsSchema = z.object({
-  fingerprint: TlsFingerprintSchema.default('chrome'),
+  // '' = None. Hysteria rejects uTLS fingerprints, and a chrome default
+  // silently flipped the form's None back to chrome on every save.
+  fingerprint: TlsFingerprintSchema.default(''),
   echConfigList: z.string().default(''),
   pinnedPeerCertSha256: z.array(z.string()).default([]),
   // Panel-only client directive (v2rayN `vcn`): verify the server certificate
@@ -87,7 +89,7 @@ export const TlsStreamSettingsSchema = z.object({
   masterKeyLog: z.string().optional(),
   echSockopt: SockoptStreamSettingsSchema.optional(),
   settings: TlsClientSettingsSchema.default({
-    fingerprint: 'chrome',
+    fingerprint: '',
     echConfigList: '',
     pinnedPeerCertSha256: [],
     verifyPeerCertByName: '',

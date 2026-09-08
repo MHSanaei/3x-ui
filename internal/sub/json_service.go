@@ -82,6 +82,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	}
 
 	var header string
+	var hasInactiveExternal bool
 
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
@@ -127,6 +128,11 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		configArray = append(configArray, entry.configs...)
 	}
 	for _, ext := range externalLinks {
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			hasInactiveExternal = true
+			continue
+		}
 		for _, el := range expandEntry(ext) {
 			outbound := parsedExternalOutbound(el.Link)
 			if outbound == nil {
@@ -148,7 +154,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		}
 	}
 
-	if len(configArray) == 0 {
+	if len(configArray) == 0 && !hasInactiveExternal {
 		return "", "", nil
 	}
 
@@ -157,6 +163,10 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		emails = append(emails, e)
 	}
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	if len(configArray) == 0 {
+		return "", header, nil
+	}
 
 	var finalJson []byte
 	if len(configArray) == 1 && !alwaysReturnArray {
@@ -165,7 +175,6 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		finalJson, _ = json.MarshalIndent(configArray, "", "  ")
 	}
 
-	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalJson), header, nil
 }
 
@@ -351,12 +360,49 @@ func balancerMemberSuffix(protocol string) string {
 	return protocol
 }
 
+// balMember is one retagged member outbound and the inbound it came from.
+type balMember struct {
+	tag       string
+	inboundId int
+}
+
+// leastLoadCosts builds xray's static strategy costs: higher value = picked
+// less often; nil unless a member carries an explicit weight (all-1.0 bloat).
+func leastLoadCosts(balancer *model.SubBalancer, members []balMember) []any {
+	if balancer.Strategy != "leastLoad" || len(members) == 0 || len(balancer.MemberWeights) == 0 {
+		return nil
+	}
+	costs := make([]any, 0, len(members))
+	configured := false
+	for _, m := range members {
+		value := 1.0
+		if weight, ok := balancer.MemberWeights[m.inboundId]; ok && weight > 0 {
+			value = weight
+			configured = true
+		}
+		// Anchored regexp: plain cost matching is substring-based in xray, so
+		// an unanchored "bal-1-vless" would also swallow "bal-1-vless-2".
+		costs = append(costs, map[string]any{
+			"regexp": true,
+			"match":  "^" + m.tag + "$",
+			"value":  value,
+		})
+	}
+	if !configured {
+		return nil
+	}
+	return costs
+}
+
 // buildBalancerConfig assembles the balancer profile: members retagged under a
 // per-balancer prefix, a routing.balancers entry, and (for leastPing/leastLoad) an observatory.
 func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entries []subConfigEntry, entryProxies [][]map[string]any) json_util.RawMessage {
 	prefix := fmt.Sprintf("bal-%d-", balancer.Id)
 	usedTags := make(map[string]bool)
 	var proxies []json_util.RawMessage
+	// Members in emission order with their owning inbound, so costs[] can
+	// reference the exact retagged tags assigned here.
+	var members []balMember
 	var firstTag string
 	// entryProxies is the pre-extracted proxy outbounds per entry; kind!=0 rows
 	// have none. Clone before retagging so the cached map stays reusable.
@@ -375,6 +421,7 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 			member := maps.Clone(outbound)
 			member["tag"] = tag
 			if raw, err := json.MarshalIndent(member, "", "  "); err == nil {
+				members = append(members, balMember{tag: tag, inboundId: entry.id})
 				if firstTag == "" {
 					firstTag = tag
 				}
@@ -411,10 +458,14 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	}
 	routing["rules"] = rules
 	isObservatory := balancer.Strategy == "leastPing" || balancer.Strategy == "leastLoad"
+	strategyEntry := map[string]any{"type": balancer.Strategy}
+	if costs := leastLoadCosts(balancer, members); costs != nil {
+		strategyEntry["settings"] = map[string]any{"costs": costs}
+	}
 	balancerEntry := map[string]any{
 		"tag":      subBalancerTag,
 		"selector": []string{prefix},
-		"strategy": map[string]any{"type": balancer.Strategy},
+		"strategy": strategyEntry,
 	}
 	if isObservatory && firstTag != "" {
 		// With all probes failing, route to the first member instead of
@@ -538,6 +589,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 				continue
 			}
 			newOutbounds = append(newOutbounds, wgOutbound)
+		case "amneziawg":
+			continue
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
@@ -737,10 +790,29 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 	}
 	if client.Flow != "" && !inbound.DisableFlow {
 		settings["flow"] = client.Flow
+		outbound.Mux = muxWithoutTCP(mux)
 	}
 	outbound.Settings = settings
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+// XTLS flows reject TCP mux.cool ("unexpected network TCP"); concurrency -1
+// turns only that off and keeps the XUDP keys (Xray reads them under enabled).
+func muxWithoutTCP(mux string) json_util.RawMessage {
+	if mux == "" {
+		return nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(mux), &m); err != nil || m == nil {
+		return nil
+	}
+	m["concurrency"] = -1
+	out, err := json.Marshal(m)
+	if err != nil {
+		return nil
+	}
+	return json_util.RawMessage(out)
 }
 
 func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {

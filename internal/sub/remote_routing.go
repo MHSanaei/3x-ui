@@ -66,6 +66,7 @@ type remoteRoutingFetch struct {
 }
 
 type remoteRoutingResolver struct {
+	refreshWG    sync.WaitGroup
 	mu           sync.Mutex
 	loadMu       sync.Mutex
 	loaded       bool
@@ -154,7 +155,11 @@ func (r *remoteRoutingResolver) resolveEntry(kind remoteRoutingKind, raw string)
 	r.inflight[key] = fetch
 	r.mu.Unlock()
 
-	common.GoRecover("remote-routing-refresh", func() { r.refresh(key, cached, hasCached, fetch) })
+	r.refreshWG.Add(1)
+	common.GoRecover("remote-routing-refresh", func() {
+		defer r.refreshWG.Done()
+		r.refresh(key, cached, hasCached, fetch)
+	})
 	if hasCached {
 		return cached, true, nil
 	}
