@@ -1595,7 +1595,7 @@ install_x-ui() {
     # Restore anything from the old bin/ that the fresh release doesn't ship
     # (custom geoip/geosite files, or anything else an admin hand-placed
     # there) -- never overwrites a same-named file the new release provides,
-    # so bundled assets (geoip.dat, geoip_RU.dat, ...) still get the fresh
+    # so bundled assets (geoip.dat, geoip_runet.dat, ...) still get the fresh
     # per-release copy. Runs after the arch-rename above so xray-linux-arm32/
     # mtg-linux-arm already exist under their final names there and aren't
     # mistaken for custom files needing a restore. Skips paths the panel
@@ -1628,7 +1628,7 @@ install_x-ui() {
     # Restore anything from the old bin/ that the fresh release doesn't ship
     # (custom geoip/geosite files, or anything else an admin hand-placed
     # there) -- never overwrites a same-named file the new release provides,
-    # so bundled assets (geoip.dat, geoip_RU.dat, ...) still get the fresh
+    # so bundled assets (geoip.dat, geoip_runet.dat, ...) still get the fresh
     # per-release copy. Runs after the arch-rename above so xray-linux-arm32/
     # mtg-linux-arm already exist under their final names there and aren't
     # mistaken for custom files needing a restore. Skips paths the panel

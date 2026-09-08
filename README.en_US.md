@@ -204,8 +204,8 @@ If this fork is useful to you, donations are welcome: [Donate via T-Bank](https:
 Also used:
 
 - [alireza0](https://github.com/alireza0/)
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (**GPL-3.0**): enhanced v2ray/xray routing rules with built-in Iranian domains, focused on security and adblocking.
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (**GPL-3.0**): automatically updated routing rules for domains/addresses blocked in Russia.
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (**GPL-3.0**): automatically updated routing rules for domains/addresses blocked in Russia (`geoip_runet.dat`/`geosite_runet.dat`).
+- [RoscomVPN geosite](https://github.com/hydraponique/roscomvpn-geosite) (**MIT**) / [RoscomVPN geoip](https://github.com/hydraponique/roscomvpn-geoip) (no explicit license): curated domain/IP lists for bypassing Russian blocking (`geosite_roscom.dat`/`geoip_rosip.dat`).
 
 ## Community Tools
 

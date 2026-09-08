@@ -24,10 +24,10 @@ interface VersionModalProps {
 const GEOFILES = [
   'geosite.dat',
   'geoip.dat',
-  'geosite_IR.dat',
-  'geoip_IR.dat',
-  'geosite_RU.dat',
-  'geoip_RU.dat',
+  'geosite_roscom.dat',
+  'geoip_rosip.dat',
+  'geosite_runet.dat',
+  'geoip_runet.dat',
 ];
 
 export default function VersionModal({ open, status, onClose, onBusy }: VersionModalProps) {

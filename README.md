@@ -204,8 +204,8 @@ systemctl restart x-ui
 Также используются:
 
 - [alireza0](https://github.com/alireza0/)
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (**GPL-3.0**): расширенные правила маршрутизации v2ray/xray с иранскими доменами, упор на безопасность и блокировку рекламы.
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (**GPL-3.0**): автообновляемые правила маршрутизации по заблокированным в России доменам и адресам.
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (**GPL-3.0**): автообновляемые правила маршрутизации по заблокированным в России доменам и адресам (`geoip_runet.dat`/`geosite_runet.dat`).
+- [RoscomVPN geosite](https://github.com/hydraponique/roscomvpn-geosite) (**MIT**) / [RoscomVPN geoip](https://github.com/hydraponique/roscomvpn-geoip) (без явной лицензии): курируемые списки доменов/подсетей для обхода блокировок в России (`geosite_roscom.dat`/`geoip_rosip.dat`).
 
 ## Инструменты сообщества
 

@@ -1209,24 +1209,36 @@ delete_ports() {
 update_all_geofiles() {
     local failed=0
     update_geofiles "main" || failed=1
-    update_geofiles "IR" || failed=1
-    update_geofiles "RU" || failed=1
+    update_geofiles "roscom" || failed=1
+    update_geofiles "runet" || failed=1
     return $failed
 }
 
 update_geofiles() {
+    # dat_files/dat_urls are parallel arrays (each file has its own source URL,
+    # since roscom's geoip/geosite come from two separate repos and runet is
+    # fetched from a raw branch file rather than a GitHub Release asset).
     case "${1}" in
         "main")
             dat_files=(geoip geosite)
-            dat_source="Loyalsoldier/v2ray-rules-dat"
+            dat_urls=(
+                "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+                "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+            )
             ;;
-        "IR")
-            dat_files=(geoip_IR geosite_IR)
-            dat_source="chocolate4u/Iran-v2ray-rules"
+        "roscom")
+            dat_files=(geoip_rosip geosite_roscom)
+            dat_urls=(
+                "https://github.com/hydraponique/roscomvpn-geoip/releases/latest/download/geoip.dat"
+                "https://github.com/hydraponique/roscomvpn-geosite/releases/latest/download/geosite.dat"
+            )
             ;;
-        "RU")
-            dat_files=(geoip_RU geosite_RU)
-            dat_source="runetfreedom/russia-v2ray-rules-dat"
+        "runet")
+            dat_files=(geoip_runet geosite_runet)
+            dat_urls=(
+                "https://raw.githubusercontent.com/runetfreedom/russia-v2ray-rules-dat/release/geoip.dat"
+                "https://raw.githubusercontent.com/runetfreedom/russia-v2ray-rules-dat/release/geosite.dat"
+            )
             ;;
         *)
             echo -e "${red}update_geofiles: unknown dataset '${1}'${plain}"
@@ -1234,16 +1246,15 @@ update_geofiles() {
             ;;
     esac
     local failed=0 http_code
-    for dat in "${dat_files[@]}"; do
-        # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
-        remote_file="${dat%%_*}"
+    local i
+    for i in "${!dat_files[@]}"; do
+        local dat="${dat_files[$i]}"
         local dest="${xui_folder}/bin/${dat}.dat"
         local temp_file="${dest}.tmp.$$"
         rm -f "$temp_file"
         # -z (against the live file, not the temp file) skips the download
         # (server answers 304) when the local copy is already current.
-        http_code=$(curl -sSfLRo "$temp_file" -z "$dest" -w '%{http_code}' \
-            https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat)
+        http_code=$(curl -sSfLRo "$temp_file" -z "$dest" -w '%{http_code}' "${dat_urls[$i]}")
         if [[ $? -ne 0 ]]; then
             echo -e "${red}${dat}.dat: download failed${plain}"
             rm -f "$temp_file"
@@ -1287,8 +1298,8 @@ run_geo_update() {
 
 update_geo() {
     echo -e "${green}\t1.${plain} Loyalsoldier (geoip.dat, geosite.dat)"
-    echo -e "${green}\t2.${plain} chocolate4u (geoip_IR.dat, geosite_IR.dat)"
-    echo -e "${green}\t3.${plain} runetfreedom (geoip_RU.dat, geosite_RU.dat)"
+    echo -e "${green}\t2.${plain} RoscomVPN (geoip_rosip.dat, geosite_roscom.dat)"
+    echo -e "${green}\t3.${plain} RuNetFreedom (geoip_runet.dat, geosite_runet.dat)"
     echo -e "${green}\t4.${plain} All"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
@@ -1301,10 +1312,10 @@ update_geo() {
             run_geo_update "Loyalsoldier datasets" update_geofiles "main"
             ;;
         2)
-            run_geo_update "chocolate4u datasets" update_geofiles "IR"
+            run_geo_update "RoscomVPN datasets" update_geofiles "roscom"
             ;;
         3)
-            run_geo_update "runetfreedom datasets" update_geofiles "RU"
+            run_geo_update "RuNetFreedom datasets" update_geofiles "runet"
             ;;
         4)
             run_geo_update "geo files" update_all_geofiles
