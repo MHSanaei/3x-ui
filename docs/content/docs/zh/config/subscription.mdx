@@ -57,8 +57,9 @@ Shadowsocks 节点，并排除 VLESS、Hysteria2、Reality、XHTTP、HTTPUpgrade
 如果管理员已经把 `/mihomo/` 或 `/clash-legacy/` 分配给其他可配置订阅路径，
 系统会保留原有路径，并在启动时记录警告、跳过发生冲突的别名。
 
-Clash 格式自动识别也不再把 User-Agent 中所有包含 `clash` 的客户端都视为
-Mihomo。默认匹配器只覆盖 Mihomo 系客户端并排除 Clash for Windows；旧版客户端必须使用明确的旧版路径。
+Clash 格式自动识别保留原有的 `(?i)(clash|mihomo)` 默认匹配器，确保已有订阅 URL
+继续返回 YAML。它不区分旧版客户端与 Mihomo 系客户端；Clash for Windows 用户
+必须使用 `/clash-legacy/<sub-id>` 获取兼容配置。
 
 ### Base64 与 JSON
 

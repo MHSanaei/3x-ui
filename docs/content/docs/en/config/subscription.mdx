@@ -69,9 +69,10 @@ If an administrator has already assigned `/mihomo/` or `/clash-legacy/` to a
 different configurable subscription path, that existing path is preserved and
 the conflicting alias is skipped with a warning at startup.
 
-Automatic Clash format detection no longer treats every User-Agent containing
-the word `clash` as Mihomo. Its default matcher covers Mihomo-based clients and
-excludes Clash for Windows; legacy clients must use the explicit legacy path.
+Automatic Clash format detection keeps the existing `(?i)(clash|mihomo)`
+default matcher so existing subscription URLs continue returning YAML.
+It does not distinguish legacy clients from Mihomo-based clients; Clash for
+Windows users must use `/clash-legacy/<sub-id>` for a compatible profile.
 
 ### Base64 vs JSON
 

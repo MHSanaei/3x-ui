@@ -34,7 +34,7 @@ import (
 var xrayTemplateConfig string
 
 const (
-	DefaultSubClashUserAgentRegex     = `(?i)(mihomo|clash[- ]?(verge|meta|nyanpasu)|flclash)`
+	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
 	DefaultSubJsonUserAgentRegex      = ``
 	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
 	DefaultSubExpiredTemplate         = "⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}"

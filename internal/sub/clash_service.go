@@ -199,6 +199,7 @@ func legacyClashProxy(proxy map[string]any) map[string]any {
 	}
 
 	var fields []string
+	var cipher string
 	switch proxyType {
 	case "vmess":
 		if !legacyClashNetwork(network) || !legacyVmessCipher(proxy["cipher"]) {
@@ -219,7 +220,8 @@ func legacyClashProxy(proxy map[string]any) map[string]any {
 		}
 	case "ss":
 		tls, _ := proxy["tls"].(bool)
-		if (network != "" && network != "tcp") || tls || !legacyShadowsocksCipher(proxy["cipher"]) {
+		cipher = legacyShadowsocksCipher(proxy["cipher"])
+		if (network != "" && network != "tcp") || tls || cipher == "" {
 			return nil
 		}
 		fields = []string{"name", "type", "server", "port", "password", "cipher", "udp", "plugin", "plugin-opts"}
@@ -232,6 +234,9 @@ func legacyClashProxy(proxy map[string]any) map[string]any {
 		if value, exists := proxy[field]; exists {
 			filtered[field] = value
 		}
+	}
+	if proxyType == "ss" {
+		filtered["cipher"] = cipher
 	}
 	return filtered
 }
@@ -255,17 +260,20 @@ func legacyVmessCipher(value any) bool {
 	}
 }
 
-func legacyShadowsocksCipher(value any) bool {
+func legacyShadowsocksCipher(value any) string {
 	cipher, _ := value.(string)
-	switch strings.ToLower(strings.TrimSpace(cipher)) {
+	cipher = strings.ToLower(strings.TrimSpace(cipher))
+	switch cipher {
+	case "chacha20-poly1305":
+		return "chacha20-ietf-poly1305"
 	case "aes-128-gcm", "aes-192-gcm", "aes-256-gcm",
 		"aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
 		"aes-128-ctr", "aes-192-ctr", "aes-256-ctr",
 		"rc4-md5", "chacha20-ietf", "xchacha20",
 		"chacha20-ietf-poly1305", "xchacha20-ietf-poly1305":
-		return true
+		return cipher
 	default:
-		return false
+		return ""
 	}
 }
 
