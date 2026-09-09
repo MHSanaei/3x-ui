@@ -510,6 +510,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					deltaDown = cs.Down
 				}
 			}
+			// ==================== 2xNode ====================
+			deltaUp = deltaUp * 2
+			deltaDown = deltaDown * 2
+			// ================================================
 
 			if _, rowExists := existingEmails[cs.Email]; !rowExists {
 				if dirty {
