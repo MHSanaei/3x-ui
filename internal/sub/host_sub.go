@@ -61,6 +61,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 		// legacy externalProxy path. Not emitted into output.
 		"isHost": true,
 	}
+	if h.ServerDescription != "" {
+		ep["serverDescription"] = h.ServerDescription
+	}
 	sni := h.Sni
 	if h.OverrideSniFromAddress {
 		sni = dest

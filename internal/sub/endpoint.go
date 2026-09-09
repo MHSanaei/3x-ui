@@ -20,10 +20,11 @@ import (
 // because three behaviors branch on the raw string (keep-base, obj["tls"]
 // rewrite, none-strip).
 type ShareEndpoint struct {
-	Address  string
-	Port     int
-	Remark   string // extra remark slot fed to genRemark, not a rendered remark
-	ForceTls string
+	Address           string
+	Port              int
+	Remark            string // extra remark slot fed to genRemark, not a rendered remark
+	ServerDescription string // subtitle caption displayed in Happ client
+	ForceTls          string
 
 	// ep is the source externalProxy entry. nil for host/default endpoints.
 	ep map[string]any
@@ -38,6 +39,7 @@ func externalProxyToEndpoint(ep map[string]any) ShareEndpoint {
 		e.Port = int(p)
 	}
 	e.Remark, _ = ep["remark"].(string)
+	e.ServerDescription, _ = ep["serverDescription"].(string)
 	e.ForceTls, _ = ep["forceTls"].(string)
 	return e
 }
@@ -131,6 +133,9 @@ func (s *SubService) buildEndpointVmessLinks(eps []ShareEndpoint, baseObj map[st
 		newObj["port"] = e.Port
 		if e.ForceTls != "same" {
 			newObj["tls"] = e.ForceTls
+		}
+		if e.ServerDescription != "" {
+			newObj["serverDescription"] = e.ServerDescription
 		}
 		applyEndpointTLSObj(e, newObj, securityToApply)
 		applyEndpointHostPathObj(e, newObj)

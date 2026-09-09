@@ -112,6 +112,31 @@ type AllSetting struct {
 	SubThemeDir                 string `json:"subThemeDir" form:"subThemeDir"`
 	SubHideSettings             bool   `json:"subHideSettings" form:"subHideSettings"`
 
+	// Happ client customization settings (app-management / routing / UX).
+	SubHappAutoDetect          bool   `json:"subHappAutoDetect" form:"subHappAutoDetect"`
+	SubHappProviderId          string `json:"subHappProviderId" form:"subHappProviderId"`
+	SubHappNewUrl              string `json:"subHappNewUrl" form:"subHappNewUrl"`
+	SubHappFallbackUrl         string `json:"subHappFallbackUrl" form:"subHappFallbackUrl"`
+	SubHappSubInfoColor        string `json:"subHappSubInfoColor" form:"subHappSubInfoColor"`
+	SubHappSubInfoText         string `json:"subHappSubInfoText" form:"subHappSubInfoText"`
+	SubHappSubInfoButtonText   string `json:"subHappSubInfoButtonText" form:"subHappSubInfoButtonText"`
+	SubHappSubInfoButtonLink   string `json:"subHappSubInfoButtonLink" form:"subHappSubInfoButtonLink"`
+	SubHappSubExpire           bool   `json:"subHappSubExpire" form:"subHappSubExpire"`
+	SubHappSubExpireButtonLink string `json:"subHappSubExpireButtonLink" form:"subHappSubExpireButtonLink"`
+	SubHappNotificationExpire  bool   `json:"subHappNotificationExpire" form:"subHappNotificationExpire"`
+	SubHappNoLimit             bool   `json:"subHappNoLimit" form:"subHappNoLimit"`
+	SubHappAlwaysHwid          bool   `json:"subHappAlwaysHwid" form:"subHappAlwaysHwid"`
+	SubHappTunMode             string `json:"subHappTunMode" form:"subHappTunMode"`
+	SubHappTunType             string `json:"subHappTunType" form:"subHappTunType"`
+	SubHappExcludeRoutes       string `json:"subHappExcludeRoutes" form:"subHappExcludeRoutes"`
+	SubHappExcludeApns         bool   `json:"subHappExcludeApns" form:"subHappExcludeApns"`
+	SubHappColorProfile        string `json:"subHappColorProfile" form:"subHappColorProfile"`
+	SubHappPingType            string `json:"subHappPingType" form:"subHappPingType"`
+	SubHappAutoConnect         bool   `json:"subHappAutoConnect" form:"subHappAutoConnect"`
+	SubHappAutoConnectType     string `json:"subHappAutoConnectType" form:"subHappAutoConnectType"`
+	SubHappPerAppMode          string `json:"subHappPerAppMode" form:"subHappPerAppMode"`
+	SubHappPerAppList          string `json:"subHappPerAppList" form:"subHappPerAppList"`
+
 	LdapEnable             bool   `json:"ldapEnable" form:"ldapEnable"`
 	LdapHost               string `json:"ldapHost" form:"ldapHost"`
 	LdapPort               int    `json:"ldapPort" form:"ldapPort" validate:"gte=0,lte=65535"`

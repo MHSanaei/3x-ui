@@ -215,6 +215,31 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubIncyRoutingRules = ""
 	}
 
+	happCfg := HappConfig{}
+	happCfg.AutoDetect, _ = s.settingService.GetSubHappAutoDetect()
+	happCfg.ProviderId, _ = s.settingService.GetSubHappProviderId()
+	happCfg.NewUrl, _ = s.settingService.GetSubHappNewUrl()
+	happCfg.FallbackUrl, _ = s.settingService.GetSubHappFallbackUrl()
+	happCfg.SubInfoColor, _ = s.settingService.GetSubHappSubInfoColor()
+	happCfg.SubInfoText, _ = s.settingService.GetSubHappSubInfoText()
+	happCfg.SubInfoButtonText, _ = s.settingService.GetSubHappSubInfoButtonText()
+	happCfg.SubInfoButtonLink, _ = s.settingService.GetSubHappSubInfoButtonLink()
+	happCfg.SubExpire, _ = s.settingService.GetSubHappSubExpire()
+	happCfg.SubExpireButtonLink, _ = s.settingService.GetSubHappSubExpireButtonLink()
+	happCfg.NotificationExpire, _ = s.settingService.GetSubHappNotificationExpire()
+	happCfg.NoLimit, _ = s.settingService.GetSubHappNoLimit()
+	happCfg.AlwaysHwid, _ = s.settingService.GetSubHappAlwaysHwid()
+	happCfg.TunMode, _ = s.settingService.GetSubHappTunMode()
+	happCfg.TunType, _ = s.settingService.GetSubHappTunType()
+	happCfg.ExcludeRoutes, _ = s.settingService.GetSubHappExcludeRoutes()
+	happCfg.ExcludeApns, _ = s.settingService.GetSubHappExcludeApns()
+	happCfg.ColorProfile, _ = s.settingService.GetSubHappColorProfile()
+	happCfg.PingType, _ = s.settingService.GetSubHappPingType()
+	happCfg.AutoConnect, _ = s.settingService.GetSubHappAutoConnect()
+	happCfg.AutoConnectType, _ = s.settingService.GetSubHappAutoConnectType()
+	happCfg.PerAppMode, _ = s.settingService.GetSubHappPerAppMode()
+	happCfg.PerAppList, _ = s.settingService.GetSubHappPerAppList()
+
 	// set per-request localizer from headers/cookies
 	engine.Use(locale.LocalizerMiddleware())
 
@@ -296,6 +321,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBEnableRouting(SubEnableRouting),
 		WithSUBRoutingRules(SubRoutingRules),
 		WithSUBHideSettings(SubHideSettings),
+		WithSUBHappConfig(happCfg),
 		WithSUBIncyEnableRouting(SubIncyEnableRouting),
 		WithSUBIncyRoutingRules(SubIncyRoutingRules),
 	)

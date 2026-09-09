@@ -73,6 +73,29 @@ export class AllSetting {
   subJsonObservatory = '';
   subThemeDir = '';
   subHideSettings = false;
+  subHappAutoDetect = false;
+  subHappProviderId = '';
+  subHappNewUrl = '';
+  subHappFallbackUrl = '';
+  subHappSubInfoColor = 'blue';
+  subHappSubInfoText = '';
+  subHappSubInfoButtonText = '';
+  subHappSubInfoButtonLink = '';
+  subHappSubExpire = false;
+  subHappSubExpireButtonLink = '';
+  subHappNotificationExpire = false;
+  subHappNoLimit = false;
+  subHappAlwaysHwid = false;
+  subHappTunMode = '';
+  subHappTunType = '';
+  subHappExcludeRoutes = '';
+  subHappExcludeApns = false;
+  subHappColorProfile = '';
+  subHappPingType = '';
+  subHappAutoConnect = false;
+  subHappAutoConnectType = 'lowestdelay';
+  subHappPerAppMode = 'off';
+  subHappPerAppList = '';
 
   timeLocation = 'Local';
 
