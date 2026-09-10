@@ -314,11 +314,13 @@ export default function HappSettingsContent({
                   description={t('pages.settings.subHappTunModeDesc')}
                 >
                   <Select
-                    value={allSetting.subHappTunMode || 'default'}
+                    value={allSetting.subHappTunMode}
                     style={{ width: '100%' }}
                     onChange={(v) => updateSetting({ subHappTunMode: v })}
                     options={[
-                      { value: 'default', label: t('pages.settings.subHappTunModeDefault') },
+                      // happ.su documents tun-mode as system|gvisor only, so
+                      // Default is the unset state rather than a third value.
+                      { value: '', label: t('pages.settings.subHappTunModeDefault') },
                       { value: 'system', label: t('pages.settings.subHappTunModeSystem') },
                       { value: 'gvisor', label: t('pages.settings.subHappTunModeGvisor') },
                     ]}

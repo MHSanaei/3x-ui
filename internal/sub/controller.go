@@ -853,13 +853,12 @@ func (a *SUBController) ApplyCommonHeaders(
 	}
 
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
-	var isHapp bool
-	if c != nil && c.Request != nil {
-		isHapp = IsHappClient(c.GetHeader("User-Agent"))
-	}
+	// The off values undo a previously pushed setting, so they ride the same
+	// opt-in as every other Happ header rather than reaching every Happ client.
+	happManaged := a.happConfig.AutoDetect && c.Request != nil && IsHappClient(c.GetHeader("User-Agent"))
 	if profileEnableRouting {
 		c.Writer.Header().Set("Routing-Enable", "true")
-	} else if isHapp {
+	} else if happManaged {
 		c.Writer.Header().Set("Routing-Enable", "0")
 	}
 	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
@@ -867,9 +866,9 @@ func (a *SUBController) ApplyCommonHeaders(
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
-	} else if isHapp {
+	} else if happManaged {
 		c.Writer.Header().Set("Hide-Settings", "0")
 	}
 
-	ApplyHappHeaders(c, a.happConfig, isHapp)
+	ApplyHappHeaders(c, a.happConfig, happManaged)
 }

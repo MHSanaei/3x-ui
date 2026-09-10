@@ -157,6 +157,14 @@ func TestApplyHappHeaders_Gating(t *testing.T) {
 		if got := recorder.Header().Get("Sub-Info-Text"); got != "" {
 			t.Fatalf("Sub-Info-Text emitted when AutoDetect is false: %q", got)
 		}
+		// happ.su documents routing-enable 0/false as "disables routing
+		// globally", so it must stay behind the same opt-in as the rest.
+		if got := recorder.Header().Get("Routing-Enable"); got != "" {
+			t.Fatalf("Routing-Enable emitted when AutoDetect is false: %q", got)
+		}
+		if got := recorder.Header().Get("Hide-Settings"); got != "" {
+			t.Fatalf("Hide-Settings emitted when AutoDetect is false: %q", got)
+		}
 	})
 }
 
