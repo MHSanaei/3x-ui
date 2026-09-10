@@ -1,4 +1,4 @@
-import { Alert, Button, Input, InputNumber, Switch, Tabs, Tag } from 'antd';
+import { Alert, Button, Input, InputNumber, Switch, Tabs } from 'antd';
 import {
   BranchesOutlined,
   CompassOutlined,
@@ -18,16 +18,12 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
 import HappSettingsContent from './HappSettingsContent';
+import { remoteSourceBadge } from './subscriptionShared';
 
 interface SubscriptionGeneralTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
-
-const isRemoteRoutingSource = (value: string) => /^https:\/\/\S+$/i.test(value.trim());
-
-const remoteSourceBadge = (value: string) =>
-  isRemoteRoutingSource(value) ? <Tag color="blue">HTTPS URL</Tag> : undefined;
 
 export default function SubscriptionGeneralTab({
   allSetting,

@@ -145,6 +145,7 @@ var defaultValueMap = map[string]string{
 	"subClashRules":               "",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
+	"subJsonRoutingRules":         "",
 	"subJsonFinalMask":            "",
 	"subJsonObservatory":          "",
 	"subThemeDir":                 "",
@@ -1027,6 +1028,10 @@ func (s *SettingService) GetSubJsonRules() (string, error) {
 	return s.getString("subJsonRules")
 }
 
+func (s *SettingService) GetSubJsonRoutingRules() (string, error) {
+	return s.getString("subJsonRoutingRules")
+}
+
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
 }
@@ -1489,9 +1494,10 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		}
 	}
 	for name, value := range map[string]*string{
-		"Happ routing source":         &allSetting.SubRoutingRules,
-		"Clash/Mihomo routing source": &allSetting.SubClashRules,
-		"Incy routing source":         &allSetting.SubIncyRoutingRules,
+		"Happ routing source":              &allSetting.SubRoutingRules,
+		"Clash/Mihomo routing source":      &allSetting.SubClashRules,
+		"Incy routing source":              &allSetting.SubIncyRoutingRules,
+		"JSON subscription routing source": &allSetting.SubJsonRoutingRules,
 	} {
 		if err := validateRemoteRoutingURLSetting(name, value); err != nil {
 			return err
