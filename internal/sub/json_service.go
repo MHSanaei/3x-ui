@@ -80,9 +80,8 @@ func NewSubJsonService(mux string, rules string, finalMask string, routingRules 
 	}
 }
 
-// bakedTemplate returns the base template with the routing profile applied.
-// The profile is re-resolved on every request so an upstream edit reaches the
-// documents without a restart; a failed resolve keeps the last good template.
+// Re-resolved per call so an upstream edit reaches the documents without a
+// restart; a failed resolve keeps the last good template.
 func (s *SubJsonService) bakedTemplate() map[string]any {
 	if s.routingRules == "" {
 		return s.configJson
@@ -494,9 +493,12 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	outbounds := append([]json_util.RawMessage{}, proxies...)
 	outbounds = append(outbounds, s.defaultOutbounds...)
 
-	// The routing subtree is shared by every emitted document;
-	// clone it (and each rule map) before pointing rules at the balancer.
-	baseRouting, _ := s.bakedTemplate()["routing"].(map[string]any)
+	// One template per document: two resolves could straddle a profile refresh
+	// and pair this document's dns with the other revision's routing.
+	template := s.bakedTemplate()
+	// Clone the shared routing subtree (and each rule map) before pointing
+	// rules at the balancer.
+	baseRouting, _ := template["routing"].(map[string]any)
 	routing := make(map[string]any, len(baseRouting)+1)
 	maps.Copy(routing, baseRouting)
 	baseRules, _ := baseRouting["rules"].([]any)
@@ -532,8 +534,8 @@ func (s *SubJsonService) buildBalancerConfig(balancer *model.SubBalancer, entrie
 	}
 	routing["balancers"] = []any{balancerEntry}
 
-	newConfigJson := make(map[string]any, len(s.configJson)+2)
-	maps.Copy(newConfigJson, s.bakedTemplate())
+	newConfigJson := make(map[string]any, len(template)+2)
+	maps.Copy(newConfigJson, template)
 	newConfigJson["outbounds"] = outbounds
 	newConfigJson["remarks"] = balancer.Remark
 	newConfigJson["routing"] = routing

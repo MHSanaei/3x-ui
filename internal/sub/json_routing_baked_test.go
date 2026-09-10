@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
 const bakedRoutingPayload = `{
@@ -406,5 +407,41 @@ func TestRemoteRoutingJsonHasItsOwnPersistedRow(t *testing.T) {
 		if json.Unmarshal(decoded, &payload) != nil || payload["Name"] != tc.want {
 			t.Fatalf("kind=%s payload = %s", tc.kind, decoded)
 		}
+	}
+}
+
+const maxSubLogScan = 10240
+
+func routingWarningCount(t *testing.T) int {
+	t.Helper()
+	n := 0
+	for _, line := range logger.GetLogs(maxSubLogScan, "warning") {
+		if strings.Contains(line, "subJsonRoutingRules") {
+			n++
+		}
+	}
+	return n
+}
+
+// A public subscription fetch must not write one warning per emitted document:
+// the 10k in-memory buffer the panel's log view reads is evicted by the flood.
+func TestSubJson_BadRoutingProfileWarnsOncePerRequest(t *testing.T) {
+	seedSubDB(t)
+	for i, name := range []string{"w1", "w2", "w3", "w4", "w5", "w6"} {
+		seedSubInbound(t, "s1", name, 4870+i, 1, `{"network":"tcp","security":"none"}`)
+	}
+
+	js := NewSubJsonService("", "", "", "not json at all", NewSubService(""))
+	before := routingWarningCount(t)
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	docs := parseSubJsonDocs(t, out)
+	if len(docs) < 6 {
+		t.Fatalf("docs = %d, want >= 6:\n%s", len(docs), out)
+	}
+	if got := routingWarningCount(t) - before; got > 1 {
+		t.Fatalf("one request emitting %d documents logged %d warnings, want at most 1", len(docs), got)
 	}
 }

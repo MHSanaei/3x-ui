@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"sync/atomic"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
@@ -49,20 +50,31 @@ func (s jsonRoutingSpec) equal(other jsonRoutingSpec) bool {
 		slices.Equal(s.BlockSites, other.BlockSites) && slices.Equal(s.BlockIp, other.BlockIp)
 }
 
-var jsonRoutingDeeplinkPrefixes = []string{"happ://routing/onadd/", "incy://routing/onadd/"}
+// Both happ forms appear in the wild; normalizeHappRouting accepts each.
+var jsonRoutingDeeplinkPrefixes = []string{
+	"happ://routing/onadd/", "happ://routing/add/", "incy://routing/onadd/",
+}
+
+// bakedTemplate resolves once per emitted document, so an unusable profile
+// must not write one identical warning per document on every public fetch.
+var lastJsonRoutingWarning atomic.Value
 
 // resolveJsonRoutingSpec parses the routing payload, degrading to an empty
 // spec on error — a bad setting must never take the subscription server down.
 func resolveJsonRoutingSpec(raw string) jsonRoutingSpec {
 	spec, remote, err := parseJsonRoutingSpec(raw)
 	if err != nil {
+		warning := "subJsonRoutingRules: " + err.Error()
 		if remote {
-			logger.Warning("subJsonRoutingRules: remote source unavailable, emitting default routing")
-		} else {
-			logger.Warning("subJsonRoutingRules: ", err)
+			warning = "subJsonRoutingRules: remote source unavailable, emitting default routing"
+		}
+		if previous, _ := lastJsonRoutingWarning.Load().(string); previous != warning {
+			lastJsonRoutingWarning.Store(warning)
+			logger.Warning(warning)
 		}
 		return jsonRoutingSpec{}
 	}
+	lastJsonRoutingWarning.Store("")
 	return spec
 }
 

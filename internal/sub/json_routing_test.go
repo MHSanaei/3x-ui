@@ -166,3 +166,27 @@ func TestParseJsonRoutingSpecRemoteUnavailable(t *testing.T) {
 		t.Fatal("unavailable remote source must error")
 	}
 }
+
+// normalizeHappRouting accepts happ://routing/add/ as a routing deeplink
+// (remote_routing.go), so the baked-JSON parser has to accept it too.
+func TestParseJsonRoutingSpecAcceptsAddDeeplink(t *testing.T) {
+	payload := mustMarshal(t, fullRoutingPayload())
+	for _, prefix := range []string{"happ://routing/onadd/", "happ://routing/add/", "incy://routing/onadd/"} {
+		t.Run(prefix, func(t *testing.T) {
+			if _, err := normalizeHappRouting([]byte(prefix + b64Std(payload))); err != nil &&
+				!strings.HasPrefix(prefix, "incy://") {
+				t.Fatalf("normalizeHappRouting rejects %s: %v", prefix, err)
+			}
+			spec, remote, err := parseJsonRoutingSpec(prefix + b64Std(payload))
+			if err != nil || remote {
+				t.Fatalf("parse %s: err=%v remote=%v", prefix, err, remote)
+			}
+			if spec.empty() {
+				t.Fatalf("parse %s: spec is empty, routing would not be baked", prefix)
+			}
+			if spec.DomainStrategy != "IPIfNonMatch" {
+				t.Fatalf("parse %s: DomainStrategy = %q", prefix, spec.DomainStrategy)
+			}
+		})
+	}
+}
