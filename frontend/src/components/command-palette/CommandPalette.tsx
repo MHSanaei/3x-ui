@@ -36,6 +36,7 @@ import {
 } from '@ant-design/icons';
 
 import { ClipboardManager, HttpUtil, SizeFormatter } from '@/utils';
+import { activateOnKey } from '@/utils/a11y';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useTheme } from '@/hooks/useTheme';
@@ -727,11 +728,17 @@ export default function CommandPalette() {
                   {isFirstOfCategory && (
                     <div className="command-palette-group-title">{categoryLabel}</div>
                   )}
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     className={`command-palette-item ${index === clampedActiveIndex ? 'active' : ''}`}
                     data-index={index}
                     onClick={() => item.action()}
+                    onKeyDown={(e) => {
+                      // Enter on the nested copy button must activate that
+                      // button, not the row it sits in.
+                      if (e.target === e.currentTarget) activateOnKey(() => item.action())(e);
+                    }}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
                     <div className="command-palette-item-main">
@@ -764,7 +771,7 @@ export default function CommandPalette() {
                         </Tooltip>
                       )}
                     </div>
-                  </button>
+                  </div>
                 </div>
               );
             })}

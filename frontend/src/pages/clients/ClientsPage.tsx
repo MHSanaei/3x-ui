@@ -408,6 +408,8 @@ export default function ClientsPage() {
   // nothing is known yet, which is the one case worth waiting for.
   const resolvedPageSize = pageSizeChoice ?? settingsPageSize ?? initial.pageSize;
   const tablePageSize = resolvedPageSize ?? DEFAULT_TABLE_PAGE_SIZE;
+  // debouncedSearch lags behind the input so we don't spam the server on every
+  // keystroke; the search box still feels instant locally.
   const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
   const [prevLocationKey, setPrevLocationKey] = useState(location.key);
 

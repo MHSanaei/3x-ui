@@ -251,6 +251,9 @@ html[data-theme='ultra-dark'] .command-palette-modal {
   cursor: pointer;
   text-align: start;
   font-family: inherit;
+  /* The row was a <button>; keep the UA line-height it had so swapping the
+     tag does not grow every row by the panel's body line-height. */
+  line-height: normal;
   color: inherit;
   transition:
     background 0.12s ease,

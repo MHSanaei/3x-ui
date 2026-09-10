@@ -45,6 +45,9 @@ import { useCommandPalette } from '@/components/command-palette/useCommandPalett
 import './AppSidebar.css';
 
 const DONATE_URL = 'https://donate.sanaei.dev/';
+// The palette listens for Ctrl as well as Cmd, so the chip must not show a
+// Mac glyph to the Linux and Windows operators who are most of this panel's.
+const SHORTCUT_MODIFIER = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
 const DOCS_URL = 'https://docs.sanaei.dev/';
 const REPO_URL = 'https://github.com/MHSanaei/3x-ui';
 const LOGOUT_KEY = '__logout__';
@@ -414,7 +417,7 @@ export default function AppSidebar() {
               </span>
             </span>
             <span className="sidebar-command-kbd">
-              <span className="kbd-cmd">⌘</span>
+              <span className="kbd-cmd">{SHORTCUT_MODIFIER}</span>
               <span className="kbd-key">K</span>
             </span>
           </button>
@@ -494,7 +497,7 @@ export default function AppSidebar() {
             <span>{t('commandPalette.search') || 'Search...'}</span>
           </span>
           <span className="sidebar-command-kbd">
-            <span className="kbd-cmd">⌘</span>
+            <span className="kbd-cmd">{SHORTCUT_MODIFIER}</span>
             <span className="kbd-key">K</span>
           </span>
         </button>

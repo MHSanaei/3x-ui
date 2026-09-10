@@ -268,6 +268,53 @@ describe('CommandPalette component', () => {
     expect(document.querySelector('.command-palette-search-icon.spinning')).toBeNull();
   });
 
+  it('keeps the row secondary action independent of the row control', async () => {
+    vi.spyOn(HttpUtil, 'post').mockImplementation(
+      async (url: string) =>
+        new Msg(true, '', url.includes('/setting/all') ? { subURI: 'https://sub.example/' } : {}),
+    );
+    vi.spyOn(HttpUtil, 'get').mockImplementation(async (url: string) => {
+      if (url.includes('/panel/api/inbounds/options')) return new Msg(true, '', []);
+      if (url.includes('search=ali')) {
+        return new Msg(true, '', {
+          items: [
+            {
+              id: 1,
+              email: 'alice@example.com',
+              subId: 'sub123',
+              enable: true,
+              totalGB: 0,
+              traffic: { up: 100, down: 200, total: 0 },
+            },
+          ],
+        });
+      }
+      return new Msg(true, '', {});
+    });
+
+    renderPalette();
+    act(() => {
+      commandPaletteStore.open();
+    });
+
+    const input = screen.getByPlaceholderText(/Type a command or search/i);
+    fireEvent.change(input, { target: { value: 'ali' } });
+    await waitFor(
+      () => {
+        expect(screen.getByText('alice@example.com')).toBeTruthy();
+      },
+      { timeout: 2000 },
+    );
+
+    const copyBtn = document.querySelector('.command-palette-action-btn');
+    expect(copyBtn).toBeTruthy();
+    expect(copyBtn?.parentElement?.closest('button')).toBeNull();
+
+    // Enter on the copy button must not also fire the row's own action.
+    fireEvent.keyDown(copyBtn as Element, { key: 'Enter' });
+    expect(commandPaletteStore.getSnapshot()).toBe(true);
+  });
+
   it('renders a single theme action item without duplicates', () => {
     renderPalette();
     act(() => {
