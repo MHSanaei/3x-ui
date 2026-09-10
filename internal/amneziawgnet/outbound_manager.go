@@ -2,7 +2,6 @@ package amneziawgnet
 
 import (
 	"fmt"
-	"net/netip"
 	"strings"
 	"sync"
 
@@ -51,21 +50,6 @@ func outboundFingerprint(inst amneziawg.OutboundInstance) string {
 	return fmt.Sprintf("%d|%s",
 		amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4),
 		strings.Join(inst.Address, ","))
-}
-
-// normalizeDNSServer normalizes a configured DNS server to host:port.
-func normalizeDNSServer(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return ""
-	}
-	if addr, err := netip.ParseAddr(s); err == nil {
-		return netip.AddrPortFrom(addr, 53).String()
-	}
-	if ap, err := netip.ParseAddrPort(s); err == nil {
-		return ap.String()
-	}
-	return s
 }
 
 // Reconcile converges devices to desired and stops removed tags; per-tick

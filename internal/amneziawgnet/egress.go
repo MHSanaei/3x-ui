@@ -14,6 +14,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
@@ -77,7 +78,7 @@ func (s *socks5EgressServer) SetDNSServer(addr string) {
 func (s *socks5EgressServer) SetStack(tag string, dev *Device, dnsServer ...string) {
 	norm := ""
 	if len(dnsServer) > 0 && dnsServer[0] != "" {
-		norm = normalizeDNSServer(dnsServer[0])
+		norm = amneziawg.NormalizeDNSServer(dnsServer[0])
 	}
 	s.mu.Lock()
 	prevDev := s.stacks[tag]

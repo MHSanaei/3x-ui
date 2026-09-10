@@ -209,15 +209,6 @@ var defaultValueMap = map[string]string{
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
 
-func (s *SettingService) GetDefaultJSONConfig() (any, error) {
-	var jsonData any
-	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
-	if err != nil {
-		return nil, err
-	}
-	return jsonData, nil
-}
-
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 	db := database.GetDB()
 	settings := make([]*model.Setting, 0)
