@@ -751,6 +751,18 @@ function hysteriaPinHex(pin: string): string {
   }
 }
 
+// Hysteria2 hop range advertised as `mport`. xray-core 26.9.9 moved hopping
+// from finalmask.quicParams.udpHop to a 'udphop' UDP mask; inbounds stored
+// before the upgrade still carry the old key.
+function udpHopPorts(stream: NonNullable<Inbound['streamSettings']>): string {
+  for (const mask of stream.finalmask?.udp ?? []) {
+    if (mask.type !== 'udphop') continue;
+    const ports = mask.settings?.remotePorts;
+    if (typeof ports === 'string' && ports.trim().length > 0) return ports.trim();
+  }
+  return stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+}
+
 // Hysteria share link: hysteria2://<auth>@<host>:<port>?<query>#<remark>.
 // The scheme is always hysteria2 — xray-core builds version 2 only, so the
 // settings schema pins it there and the subscription server emits the same
@@ -817,7 +829,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     }
   }
 
-  const hopPorts = stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+  const hopPorts = udpHopPorts(stream);
   if (hopPorts.length > 0) {
     params.set('mport', hopPorts);
   }

@@ -220,6 +220,76 @@
           "subExpiredTemplate": {
             "type": "string"
           },
+          "subHappAlwaysHwid": {
+            "type": "boolean"
+          },
+          "subHappAutoConnect": {
+            "type": "boolean"
+          },
+          "subHappAutoConnectType": {
+            "type": "string"
+          },
+          "subHappAutoDetect": {
+            "description": "Happ client customization settings (app-management / routing / UX).",
+            "type": "boolean"
+          },
+          "subHappColorProfile": {
+            "type": "string"
+          },
+          "subHappExcludeApns": {
+            "type": "boolean"
+          },
+          "subHappExcludeRoutes": {
+            "type": "string"
+          },
+          "subHappFallbackUrl": {
+            "type": "string"
+          },
+          "subHappNewUrl": {
+            "type": "string"
+          },
+          "subHappNoLimit": {
+            "type": "boolean"
+          },
+          "subHappNotificationExpire": {
+            "type": "boolean"
+          },
+          "subHappPerAppList": {
+            "type": "string"
+          },
+          "subHappPerAppMode": {
+            "type": "string"
+          },
+          "subHappPingType": {
+            "type": "string"
+          },
+          "subHappProviderId": {
+            "type": "string"
+          },
+          "subHappSubExpire": {
+            "type": "boolean"
+          },
+          "subHappSubExpireButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonText": {
+            "type": "string"
+          },
+          "subHappSubInfoColor": {
+            "type": "string"
+          },
+          "subHappSubInfoText": {
+            "type": "string"
+          },
+          "subHappTunMode": {
+            "type": "string"
+          },
+          "subHappTunType": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -251,6 +321,9 @@
             "type": "string"
           },
           "subJsonPath": {
+            "type": "string"
+          },
+          "subJsonRoutingRules": {
             "type": "string"
           },
           "subJsonRules": {
@@ -443,6 +516,29 @@
           "subEnableRouting",
           "subEncrypt",
           "subExpiredTemplate",
+          "subHappAlwaysHwid",
+          "subHappAutoConnect",
+          "subHappAutoConnectType",
+          "subHappAutoDetect",
+          "subHappColorProfile",
+          "subHappExcludeApns",
+          "subHappExcludeRoutes",
+          "subHappFallbackUrl",
+          "subHappNewUrl",
+          "subHappNoLimit",
+          "subHappNotificationExpire",
+          "subHappPerAppList",
+          "subHappPerAppMode",
+          "subHappPingType",
+          "subHappProviderId",
+          "subHappSubExpire",
+          "subHappSubExpireButtonLink",
+          "subHappSubInfoButtonLink",
+          "subHappSubInfoButtonText",
+          "subHappSubInfoColor",
+          "subHappSubInfoText",
+          "subHappTunMode",
+          "subHappTunType",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
@@ -454,6 +550,7 @@
           "subJsonMux",
           "subJsonObservatory",
           "subJsonPath",
+          "subJsonRoutingRules",
           "subJsonRules",
           "subJsonURI",
           "subJsonUserAgentRegex",
@@ -711,6 +808,76 @@
           "subExpiredTemplate": {
             "type": "string"
           },
+          "subHappAlwaysHwid": {
+            "type": "boolean"
+          },
+          "subHappAutoConnect": {
+            "type": "boolean"
+          },
+          "subHappAutoConnectType": {
+            "type": "string"
+          },
+          "subHappAutoDetect": {
+            "description": "Happ client customization settings (app-management / routing / UX).",
+            "type": "boolean"
+          },
+          "subHappColorProfile": {
+            "type": "string"
+          },
+          "subHappExcludeApns": {
+            "type": "boolean"
+          },
+          "subHappExcludeRoutes": {
+            "type": "string"
+          },
+          "subHappFallbackUrl": {
+            "type": "string"
+          },
+          "subHappNewUrl": {
+            "type": "string"
+          },
+          "subHappNoLimit": {
+            "type": "boolean"
+          },
+          "subHappNotificationExpire": {
+            "type": "boolean"
+          },
+          "subHappPerAppList": {
+            "type": "string"
+          },
+          "subHappPerAppMode": {
+            "type": "string"
+          },
+          "subHappPingType": {
+            "type": "string"
+          },
+          "subHappProviderId": {
+            "type": "string"
+          },
+          "subHappSubExpire": {
+            "type": "boolean"
+          },
+          "subHappSubExpireButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonText": {
+            "type": "string"
+          },
+          "subHappSubInfoColor": {
+            "type": "string"
+          },
+          "subHappSubInfoText": {
+            "type": "string"
+          },
+          "subHappTunMode": {
+            "type": "string"
+          },
+          "subHappTunType": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -742,6 +909,9 @@
             "type": "string"
           },
           "subJsonPath": {
+            "type": "string"
+          },
+          "subJsonRoutingRules": {
             "type": "string"
           },
           "subJsonRules": {
@@ -941,6 +1111,29 @@
           "subEnableRouting",
           "subEncrypt",
           "subExpiredTemplate",
+          "subHappAlwaysHwid",
+          "subHappAutoConnect",
+          "subHappAutoConnectType",
+          "subHappAutoDetect",
+          "subHappColorProfile",
+          "subHappExcludeApns",
+          "subHappExcludeRoutes",
+          "subHappFallbackUrl",
+          "subHappNewUrl",
+          "subHappNoLimit",
+          "subHappNotificationExpire",
+          "subHappPerAppList",
+          "subHappPerAppMode",
+          "subHappPingType",
+          "subHappProviderId",
+          "subHappSubExpire",
+          "subHappSubExpireButtonLink",
+          "subHappSubInfoButtonLink",
+          "subHappSubInfoButtonText",
+          "subHappSubInfoColor",
+          "subHappSubInfoText",
+          "subHappTunMode",
+          "subHappTunType",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
@@ -952,6 +1145,7 @@
           "subJsonMux",
           "subJsonObservatory",
           "subJsonPath",
+          "subJsonRoutingRules",
           "subJsonRules",
           "subJsonURI",
           "subJsonUserAgentRegex",
@@ -8180,7 +8374,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Returns the adjusted count and per-email skip reasons.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
@@ -8196,7 +8390,9 @@
                 ],
                 "addDays": 30,
                 "addBytes": 53687091200,
-                "flow": "xtls-rprx-vision"
+                "flow": "xtls-rprx-vision",
+                "limitHwid": 2,
+                "adTag": "0123456789abcdef0123456789abcdef"
               }
             }
           }

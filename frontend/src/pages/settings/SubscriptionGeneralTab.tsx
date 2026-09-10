@@ -1,4 +1,4 @@
-import { Alert, Button, Input, InputNumber, Switch, Tabs, Tag } from 'antd';
+import { Alert, Button, Input, InputNumber, Switch, Tabs } from 'antd';
 import {
   BranchesOutlined,
   CompassOutlined,
@@ -17,16 +17,13 @@ import { RemarkTemplateField } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
+import HappSettingsContent from './HappSettingsContent';
+import { remoteSourceBadge } from './subscriptionShared';
 
 interface SubscriptionGeneralTabProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
-
-const isRemoteRoutingSource = (value: string) => /^https:\/\/\S+$/i.test(value.trim());
-
-const remoteSourceBadge = (value: string) =>
-  isRemoteRoutingSource(value) ? <Tag color="blue">HTTPS URL</Tag> : undefined;
 
 export default function SubscriptionGeneralTab({
   allSetting,
@@ -344,40 +341,12 @@ export default function SubscriptionGeneralTab({
           key: '5',
           label: catTabLabel(<BranchesOutlined />, 'Happ', isMobile),
           children: (
-            <>
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.subEnableRouting')}
-                description={t('pages.settings.subEnableRoutingDesc')}
-              >
-                <Switch
-                  checked={allSetting.subEnableRouting}
-                  onChange={(v) => updateSetting({ subEnableRouting: v })}
-                />
-              </SettingListItem>
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.subRoutingRules')}
-                badge={remoteSourceBadge(allSetting.subRoutingRules)}
-                description={t('pages.settings.subRoutingRulesDesc')}
-              >
-                <Input.TextArea
-                  value={allSetting.subRoutingRules}
-                  placeholder="happ://routing/onadd/... or https://.../DEFAULT.DEEPLINK"
-                  onChange={(e) => updateSetting({ subRoutingRules: e.target.value })}
-                />
-              </SettingListItem>
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.subHideSettings')}
-                description={t('pages.settings.subHideSettingsDesc')}
-              >
-                <Switch
-                  checked={allSetting.subHideSettings}
-                  onChange={(v) => updateSetting({ subHideSettings: v })}
-                />
-              </SettingListItem>
-            </>
+            <HappSettingsContent
+              allSetting={allSetting}
+              updateSetting={updateSetting}
+              isMobile={isMobile}
+              remoteSourceBadge={remoteSourceBadge}
+            />
           ),
         },
         {

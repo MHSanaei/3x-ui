@@ -1368,16 +1368,37 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", "quic"))
 }
 
-// hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range
-// (finalmask.quicParams.udpHop.ports), or "" when port hopping is off. The
-// range is emitted as the v2rayN-compatible `mport` query param; the URL port
-// field stays numeric so .NET-Uri-based importers (v2rayN) can parse the link.
+// hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range, or
+// "" when port hopping is off. The range is emitted as the v2rayN-compatible
+// `mport` query param; the URL port field stays numeric so .NET-Uri-based
+// importers (v2rayN) can parse the link.
 func hysteriaHopPorts(stream map[string]any) string {
 	finalmask, _ := stream["finalmask"].(map[string]any)
+	if ports := udpHopMaskPorts(finalmask); ports != "" {
+		return ports
+	}
 	quicParams, _ := finalmask["quicParams"].(map[string]any)
 	udpHop, _ := quicParams["udpHop"].(map[string]any)
 	ports, _ := udpHop["ports"].(string)
 	return strings.TrimSpace(ports)
+}
+
+// udpHopMaskPorts reads remotePorts off the first "udphop" UDP mask. xray-core
+// 26.9.9 moved hopping here from finalmask.quicParams.udpHop, which it now ignores.
+func udpHopMaskPorts(finalmask map[string]any) string {
+	masks, _ := finalmask["udp"].([]any)
+	for _, rawMask := range masks {
+		mask, _ := rawMask.(map[string]any)
+		if maskType, _ := mask["type"].(string); maskType != "udphop" {
+			continue
+		}
+		settings, _ := mask["settings"].(map[string]any)
+		ports, _ := settings["remotePorts"].(string)
+		if ports = strings.TrimSpace(ports); ports != "" {
+			return ports
+		}
+	}
+	return ""
 }
 
 // gecko packetSize bounds mirror xray-core's salamander buffer cap and the
@@ -2145,8 +2166,7 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 
 	if fragment != "" {
 		sb.WriteByte('#')
-		// Match the frontend's encodeURIComponent(remark): spaces become
-		// %20 (not + as in query strings).
+		// Match the frontend's encodeURIComponent(remark): spaces become %20.
 		sb.WriteString(strings.ReplaceAll(url.QueryEscape(fragment), "+", "%20"))
 	}
 	return sb.String()
@@ -2469,6 +2489,7 @@ var validFinalMaskUDPTypes = map[string]struct{}{
 	"noise":         {},
 	"header-custom": {},
 	"realm":         {},
+	"udphop":        {},
 }
 
 var validFinalMaskTCPTypes = map[string]struct{}{

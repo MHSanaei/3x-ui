@@ -45,13 +45,15 @@ type cachedSubTemplate struct {
 
 // SUBController handles HTTP requests for subscription links and JSON configurations.
 type SUBController struct {
-	subTitle         string
-	subSupportUrl    string
-	subProfileUrl    string
-	subAnnounce      string
-	subEnableRouting bool
-	subRoutingRules  string
-	subHideSettings  bool
+	subTitle            string
+	subSupportUrl       string
+	subProfileUrl       string
+	subAnnounce         string
+	subEnableRouting    bool
+	subRoutingRules     string
+	subJsonRoutingRules string
+	subHideSettings     bool
+	happConfig          HappConfig
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
@@ -98,6 +100,7 @@ type subControllerConfig struct {
 
 	subJsonMux            string
 	subJsonRules          string
+	subJsonRoutingRules   string
 	subJsonFinalMask      string
 	subJsonObservatory    string
 	subClashEnableRouting bool
@@ -110,6 +113,7 @@ type subControllerConfig struct {
 	subEnableRouting bool
 	subRoutingRules  string
 	subHideSettings  bool
+	happConfig       HappConfig
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
@@ -177,6 +181,10 @@ func WithSUBJsonRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonRules = value }
 }
 
+func WithSUBJsonRoutingRules(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonRoutingRules = value }
+}
+
 func WithSUBJsonFinalMask(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonFinalMask = value }
 }
@@ -229,6 +237,10 @@ func WithSUBIncyRoutingRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subIncyRoutingRules = value }
 }
 
+func WithSUBHappConfig(value HappConfig) SUBControllerOption {
+	return func(config *subControllerConfig) { config.happConfig = value }
+}
+
 func defaultSUBControllerConfig() subControllerConfig {
 	return subControllerConfig{
 		subPath:        "/sub/",
@@ -248,16 +260,18 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	}
 
 	sub := NewSubService(config.remarkTemplate)
-	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, sub)
+	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, config.subJsonRoutingRules, sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
 	a := &SUBController{
-		subTitle:         config.subTitle,
-		subSupportUrl:    config.subSupportURL,
-		subProfileUrl:    config.subProfileURL,
-		subAnnounce:      config.subAnnounce,
-		subEnableRouting: config.subEnableRouting,
-		subRoutingRules:  config.subRoutingRules,
-		subHideSettings:  config.subHideSettings,
+		subTitle:            config.subTitle,
+		subSupportUrl:       config.subSupportURL,
+		subProfileUrl:       config.subProfileURL,
+		subAnnounce:         config.subAnnounce,
+		subEnableRouting:    config.subEnableRouting,
+		subRoutingRules:     config.subRoutingRules,
+		subJsonRoutingRules: config.subJsonRoutingRules,
+		subHideSettings:     config.subHideSettings,
+		happConfig:          config.happConfig,
 
 		subIncyEnableRouting: config.subIncyEnableRouting,
 		subIncyRoutingRules:  config.subIncyRoutingRules,
@@ -845,16 +859,28 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	// Advanced (Happ). Routing stays independent of the enable flag; remote
-	// values come only from the validated cache and never delay this response.
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
+	if strings.TrimSpace(profileRoutingRules) == "" {
+		// Happ/INCY fetch the geo files the baked JSON rules reference through
+		// this header, so a blank Happ setting falls back to the JSON profile.
+		rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
+	}
+	// The off values undo a previously pushed setting, so they ride the same
+	// opt-in as every other Happ header rather than reaching every Happ client.
+	happManaged := a.happConfig.AutoDetect && c.Request != nil && IsHappClient(c.GetHeader("User-Agent"))
 	if profileEnableRouting {
 		c.Writer.Header().Set("Routing-Enable", "true")
+	} else if happManaged {
+		c.Writer.Header().Set("Routing-Enable", "0")
 	}
 	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
 		c.Writer.Header().Set("Routing", rules)
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
+	} else if happManaged {
+		c.Writer.Header().Set("Hide-Settings", "0")
 	}
+
+	ApplyHappHeaders(c, a.happConfig, happManaged)
 }

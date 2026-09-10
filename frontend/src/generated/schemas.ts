@@ -194,6 +194,76 @@ export const SCHEMAS: Record<string, unknown> = {
       "subExpiredTemplate": {
         "type": "string"
       },
+      "subHappAlwaysHwid": {
+        "type": "boolean"
+      },
+      "subHappAutoConnect": {
+        "type": "boolean"
+      },
+      "subHappAutoConnectType": {
+        "type": "string"
+      },
+      "subHappAutoDetect": {
+        "description": "Happ client customization settings (app-management / routing / UX).",
+        "type": "boolean"
+      },
+      "subHappColorProfile": {
+        "type": "string"
+      },
+      "subHappExcludeApns": {
+        "type": "boolean"
+      },
+      "subHappExcludeRoutes": {
+        "type": "string"
+      },
+      "subHappFallbackUrl": {
+        "type": "string"
+      },
+      "subHappNewUrl": {
+        "type": "string"
+      },
+      "subHappNoLimit": {
+        "type": "boolean"
+      },
+      "subHappNotificationExpire": {
+        "type": "boolean"
+      },
+      "subHappPerAppList": {
+        "type": "string"
+      },
+      "subHappPerAppMode": {
+        "type": "string"
+      },
+      "subHappPingType": {
+        "type": "string"
+      },
+      "subHappProviderId": {
+        "type": "string"
+      },
+      "subHappSubExpire": {
+        "type": "boolean"
+      },
+      "subHappSubExpireButtonLink": {
+        "type": "string"
+      },
+      "subHappSubInfoButtonLink": {
+        "type": "string"
+      },
+      "subHappSubInfoButtonText": {
+        "type": "string"
+      },
+      "subHappSubInfoColor": {
+        "type": "string"
+      },
+      "subHappSubInfoText": {
+        "type": "string"
+      },
+      "subHappTunMode": {
+        "type": "string"
+      },
+      "subHappTunType": {
+        "type": "string"
+      },
       "subHideSettings": {
         "type": "boolean"
       },
@@ -225,6 +295,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subJsonPath": {
+        "type": "string"
+      },
+      "subJsonRoutingRules": {
         "type": "string"
       },
       "subJsonRules": {
@@ -417,6 +490,29 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnableRouting",
       "subEncrypt",
       "subExpiredTemplate",
+      "subHappAlwaysHwid",
+      "subHappAutoConnect",
+      "subHappAutoConnectType",
+      "subHappAutoDetect",
+      "subHappColorProfile",
+      "subHappExcludeApns",
+      "subHappExcludeRoutes",
+      "subHappFallbackUrl",
+      "subHappNewUrl",
+      "subHappNoLimit",
+      "subHappNotificationExpire",
+      "subHappPerAppList",
+      "subHappPerAppMode",
+      "subHappPingType",
+      "subHappProviderId",
+      "subHappSubExpire",
+      "subHappSubExpireButtonLink",
+      "subHappSubInfoButtonLink",
+      "subHappSubInfoButtonText",
+      "subHappSubInfoColor",
+      "subHappSubInfoText",
+      "subHappTunMode",
+      "subHappTunType",
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
@@ -428,6 +524,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux",
       "subJsonObservatory",
       "subJsonPath",
+      "subJsonRoutingRules",
       "subJsonRules",
       "subJsonURI",
       "subJsonUserAgentRegex",
@@ -685,6 +782,76 @@ export const SCHEMAS: Record<string, unknown> = {
       "subExpiredTemplate": {
         "type": "string"
       },
+      "subHappAlwaysHwid": {
+        "type": "boolean"
+      },
+      "subHappAutoConnect": {
+        "type": "boolean"
+      },
+      "subHappAutoConnectType": {
+        "type": "string"
+      },
+      "subHappAutoDetect": {
+        "description": "Happ client customization settings (app-management / routing / UX).",
+        "type": "boolean"
+      },
+      "subHappColorProfile": {
+        "type": "string"
+      },
+      "subHappExcludeApns": {
+        "type": "boolean"
+      },
+      "subHappExcludeRoutes": {
+        "type": "string"
+      },
+      "subHappFallbackUrl": {
+        "type": "string"
+      },
+      "subHappNewUrl": {
+        "type": "string"
+      },
+      "subHappNoLimit": {
+        "type": "boolean"
+      },
+      "subHappNotificationExpire": {
+        "type": "boolean"
+      },
+      "subHappPerAppList": {
+        "type": "string"
+      },
+      "subHappPerAppMode": {
+        "type": "string"
+      },
+      "subHappPingType": {
+        "type": "string"
+      },
+      "subHappProviderId": {
+        "type": "string"
+      },
+      "subHappSubExpire": {
+        "type": "boolean"
+      },
+      "subHappSubExpireButtonLink": {
+        "type": "string"
+      },
+      "subHappSubInfoButtonLink": {
+        "type": "string"
+      },
+      "subHappSubInfoButtonText": {
+        "type": "string"
+      },
+      "subHappSubInfoColor": {
+        "type": "string"
+      },
+      "subHappSubInfoText": {
+        "type": "string"
+      },
+      "subHappTunMode": {
+        "type": "string"
+      },
+      "subHappTunType": {
+        "type": "string"
+      },
       "subHideSettings": {
         "type": "boolean"
       },
@@ -716,6 +883,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "subJsonPath": {
+        "type": "string"
+      },
+      "subJsonRoutingRules": {
         "type": "string"
       },
       "subJsonRules": {
@@ -915,6 +1085,29 @@ export const SCHEMAS: Record<string, unknown> = {
       "subEnableRouting",
       "subEncrypt",
       "subExpiredTemplate",
+      "subHappAlwaysHwid",
+      "subHappAutoConnect",
+      "subHappAutoConnectType",
+      "subHappAutoDetect",
+      "subHappColorProfile",
+      "subHappExcludeApns",
+      "subHappExcludeRoutes",
+      "subHappFallbackUrl",
+      "subHappNewUrl",
+      "subHappNoLimit",
+      "subHappNotificationExpire",
+      "subHappPerAppList",
+      "subHappPerAppMode",
+      "subHappPingType",
+      "subHappProviderId",
+      "subHappSubExpire",
+      "subHappSubExpireButtonLink",
+      "subHappSubInfoButtonLink",
+      "subHappSubInfoButtonText",
+      "subHappSubInfoColor",
+      "subHappSubInfoText",
+      "subHappTunMode",
+      "subHappTunType",
       "subHideSettings",
       "subIncyEnableRouting",
       "subIncyRoutingRules",
@@ -926,6 +1119,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonMux",
       "subJsonObservatory",
       "subJsonPath",
+      "subJsonRoutingRules",
       "subJsonRules",
       "subJsonURI",
       "subJsonUserAgentRegex",

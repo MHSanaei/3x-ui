@@ -2,6 +2,7 @@ package email
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -220,5 +221,35 @@ func TestBuildMessageStripsHeaderInjection(t *testing.T) {
 	}
 	if got := msg.Header.Get("X-Evil"); got != "" {
 		t.Errorf("injected X-Evil header leaked: %q", got)
+	}
+}
+
+// Every Message this file emits is rendered by the frontend under a single
+// "pages.settings." prefix, so a key that carries its own resolves to nothing
+// and the alert shows the raw key instead of the classified reason.
+func TestClassifySMTPErrorReturnsUnprefixedKeys(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"auth", errors.New("535 5.7.8 Authentication credentials invalid"), "smtpErrorAuth"},
+		{"starttls", errors.New("534 must issue a STARTTLS command first"), "smtpErrorStarttls"},
+		{"refused", errors.New("dial tcp 127.0.0.1:25: connection refused"), "smtpErrorRefused"},
+		{"timeout", errors.New("i/o timeout"), "smtpErrorTimeout"},
+		{"relay", errors.New("550 relay not permitted"), "smtpErrorRelay"},
+		{"eof", errors.New("unexpected EOF"), "smtpErrorEof"},
+		{"unknown", errors.New("something nobody classified"), "smtpErrorUnknown"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := classifySMTPError(tc.err)
+			if got != tc.want {
+				t.Fatalf("classifySMTPError = %q, want %q", got, tc.want)
+			}
+			if strings.HasPrefix(got, "pages.settings.") {
+				t.Fatalf("key %q carries the prefix the frontend adds, so it resolves to nothing", got)
+			}
+		})
 	}
 }
