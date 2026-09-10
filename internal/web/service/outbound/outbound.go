@@ -221,7 +221,7 @@ func probeTCPEndpoint(endpoint string, timeout time.Duration) TestEndpointResult
 // dial neither proves reachability nor measures latency. Such outbounds
 // must go through the real xray handshake probe instead.
 func outboundTransportIsUDP(ob map[string]any) bool {
-	if protocol, _ := ob["protocol"].(string); protocol == "hysteria" || protocol == "wireguard" {
+	if protocol, _ := ob["protocol"].(string); protocol == "hysteria" || protocol == "wireguard" || protocol == "amneziawg" {
 		return true
 	}
 	if stream, ok := ob["streamSettings"].(map[string]any); ok {
