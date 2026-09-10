@@ -45,9 +45,8 @@ func seedKeepAliveClient(t *testing.T, email string, keepAlive int) (*model.Inbo
 	return ib, lookupClientRecord(t, email).Id
 }
 
-// The update path restores the stored keepalive whenever the incoming one is
-// zero. That was a 0 -> 0 no-op while no UI could set the field; once the
-// client form could, "0 disables it" became unreachable on an existing client.
+// Carrying forward on a zero incoming keepalive was a 0 -> 0 no-op while no UI
+// could set the field; once the client form could, "0 disables it" was unreachable.
 func TestUpdateCanClearKeepAliveOnAnExistingClient(t *testing.T) {
 	setupBulkDB(t)
 	inboundSvc := &InboundService{}
@@ -76,9 +75,8 @@ func TestUpdateCanClearKeepAliveOnAnExistingClient(t *testing.T) {
 	}
 }
 
-// The other half of the same contract: a payload that never mentions
-// keepAlive (a metadata-only edit from the bot or the API) must still leave
-// the stored value alone.
+// The other half of the contract: a payload that never mentions keepAlive (a
+// metadata-only edit from the bot or the API) leaves the stored value alone.
 func TestUpdateWithoutKeepAlivePreservesTheStoredValue(t *testing.T) {
 	setupBulkDB(t)
 	inboundSvc := &InboundService{}

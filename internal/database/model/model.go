@@ -1125,6 +1125,15 @@ func (c Client) KeepAliveSeconds() int {
 // from a nil KeepAlive, which means the field was never sent.
 func KeepAlivePtr(v int) *int { return &v }
 
+// nonZeroKeepAlive keeps a stored 0 nil: wg_keep_alive cannot tell "off" from
+// "never set", and an explicit 0 would emit keepAlive on every protocol.
+func nonZeroKeepAlive(seconds int) *int {
+	if seconds <= 0 {
+		return nil
+	}
+	return KeepAlivePtr(seconds)
+}
+
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
 		Email:           c.Email,
@@ -1211,7 +1220,7 @@ func (r *ClientRecord) ToClient() *Client {
 		PublicKey:      r.PublicKey,
 		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
 		PreSharedKey:   r.PreSharedKey,
-		KeepAlive:      KeepAlivePtr(r.KeepAlive),
+		KeepAlive:      nonZeroKeepAlive(r.KeepAlive),
 		ForwardedPorts: r.ForwardedPorts,
 		Secret:         r.Secret,
 		AdTag:          r.AdTag,
