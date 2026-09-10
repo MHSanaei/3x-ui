@@ -47,14 +47,14 @@
     "i18next": "^26.4.2",
     "otpauth": "^9.5.2",
     "persian-calendar-suite": "^1.5.6",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "react-hook-form": "^7.87.0",
     "react-i18next": "^17.0.13",
     "react-router": "^8.3.1",
     "swagger-ui-react": "^5.32.15",
     "uplot": "^1.6.32",
-    "zod": "^4.5.4"
+    "zod": "^4.6.1"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.0",
@@ -63,8 +63,8 @@
     "@storybook/react-vite": "^10.6.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/swagger-ui-react": "^5.18.0",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/browser-playwright": "5.0.0",
@@ -90,15 +90,15 @@
       "react": "^19.0.0"
     },
     "swagger-ui-react": {
-      "js-yaml": "^4.2.0",
+      "js-yaml": "^4.3.2",
       "brace-expansion": "^5.0.9"
     },
     "@typeschema/valibot": {
       "valibot": "^1.1.0"
     },
     "@storybook/addon-vitest": {
-      "vitest": "$vitest",
-      "@vitest/browser-playwright": "$@vitest/browser-playwright",
+      "vitest": "^5.0.0",
+      "@vitest/browser-playwright": "5.0.0",
       "@vitest/browser": "5.0.0"
     }
   },

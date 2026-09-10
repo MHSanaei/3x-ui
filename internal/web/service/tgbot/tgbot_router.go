@@ -16,6 +16,40 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
+// recoverBotPanic must be deferred by every bot handler entry point: telego's
+// dispatch has no recovery of its own, so one bad update would kill the panel.
+func recoverBotPanic() {
+	if r := recover(); r != nil {
+		logger.Error("Recovered panic in Telegram bot handler:", r)
+	}
+}
+
+// runBotHandler runs a bot handler on a worker slot and recovers panics: a bad
+// callback must not take down the whole panel, the way a cron panic would not.
+func runBotHandler(fn func()) {
+	messageWorkerPool <- struct{}{}
+	defer func() { <-messageWorkerPool }()
+	defer recoverBotPanic()
+	fn()
+}
+
+// chooseInboundClient fetches the inbound once and reuses the row: the inline
+// keyboard outlives the inbound, so a stale tap must answer an error, not panic.
+func (t *Tgbot) chooseInboundClient(callbackQuery *telego.CallbackQuery, chatId int64, inboundID int, action string) {
+	inbound, err := t.inboundService.GetInbound(inboundID)
+	if err != nil {
+		logger.Warning("chooseInboundClient GetInbound failed:", err)
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.getInboundsFailed"))
+		return
+	}
+	clientsKB, err := t.getInboundClientsFor(inbound, action)
+	if err != nil {
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+		return
+	}
+	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clientsKB)
+}
+
 // OnReceive starts the message receiving loop for the Telegram bot.
 func (t *Tgbot) OnReceive() {
 	params := telego.GetUpdatesParams{
@@ -47,40 +81,37 @@ func (t *Tgbot) OnReceive() {
 		tgBotMutex.Unlock()
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			defer recoverBotPanic()
 			userStateMgr.clear(message.Chat.ID)
 			t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
 			return nil
 		}, th.TextEqual(t.I18nBot("tgbot.buttons.closeKeyboard")))
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			defer recoverBotPanic()
 			if !t.isCommandForCurrentBot(&message) {
 				return nil
 			}
 
 			// Use goroutine with worker pool for concurrent command processing
-			go func() {
-				messageWorkerPool <- struct{}{}        // Acquire worker
-				defer func() { <-messageWorkerPool }() // Release worker
-
+			go runBotHandler(func() {
 				userStateMgr.clear(message.Chat.ID)
 				t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
-			}()
+			})
 			return nil
 		}, th.AnyCommand())
 
 		h.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
 			// Use goroutine with worker pool for concurrent callback processing
-			go func() {
-				messageWorkerPool <- struct{}{}        // Acquire worker
-				defer func() { <-messageWorkerPool }() // Release worker
-
+			go runBotHandler(func() {
 				userStateMgr.clear(query.Message.GetChat().ID)
 				t.answerCallback(&query, checkAdmin(query.From.ID))
-			}()
+			})
 			return nil
 		}, th.AnyCallbackQueryWithMessage())
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			defer recoverBotPanic()
 			userStateMgr.maybePrune(time.Hour)
 			if userState, exists := userStateMgr.get(message.Chat.ID); exists {
 				switch userState {
@@ -294,47 +325,26 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			email := dataArray[1]
 			switch dataArray[0] {
 			case "get_clients_for_sub":
-				inboundId := dataArray[1]
-				inboundIdInt, err := strconv.Atoi(inboundId)
+				inboundIdInt, err := strconv.Atoi(dataArray[1])
 				if err != nil {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
 					return
 				}
-				clientsKB, err := t.getInboundClientsFor(inboundIdInt, "client_sub_links")
-				if err != nil {
-					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
-					return
-				}
-				inbound, _ := t.inboundService.GetInbound(inboundIdInt)
-				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clientsKB)
+				t.chooseInboundClient(callbackQuery, chatId, inboundIdInt, "client_sub_links")
 			case "get_clients_for_individual":
-				inboundId := dataArray[1]
-				inboundIdInt, err := strconv.Atoi(inboundId)
+				inboundIdInt, err := strconv.Atoi(dataArray[1])
 				if err != nil {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
 					return
 				}
-				clientsKB, err := t.getInboundClientsFor(inboundIdInt, "client_individual_links")
-				if err != nil {
-					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
-					return
-				}
-				inbound, _ := t.inboundService.GetInbound(inboundIdInt)
-				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clientsKB)
+				t.chooseInboundClient(callbackQuery, chatId, inboundIdInt, "client_individual_links")
 			case "get_clients_for_qr":
-				inboundId := dataArray[1]
-				inboundIdInt, err := strconv.Atoi(inboundId)
+				inboundIdInt, err := strconv.Atoi(dataArray[1])
 				if err != nil {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
 					return
 				}
-				clientsKB, err := t.getInboundClientsFor(inboundIdInt, "client_qr_links")
-				if err != nil {
-					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
-					return
-				}
-				inbound, _ := t.inboundService.GetInbound(inboundIdInt)
-				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clientsKB)
+				t.chooseInboundClient(callbackQuery, chatId, inboundIdInt, "client_qr_links")
 			case "client_sub_links":
 				t.sendClientSubLinks(chatId, email)
 				return
