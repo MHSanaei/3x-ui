@@ -514,10 +514,11 @@ func amneziaWGClientAddresses(settingsClients []model.Client, client model.Clien
 }
 
 // allBareIPs reports whether every entry is a plain IP address — no port,
-// scheme or interface suffix for mihomo's nameserver parser to choke on.
+// scheme, and no zone, which mihomo brackets into a udp:// URL it then rejects.
 func allBareIPs(servers []string) bool {
 	for _, s := range servers {
-		if _, err := netip.ParseAddr(s); err != nil {
+		addr, err := netip.ParseAddr(s)
+		if err != nil || addr.Zone() != "" {
 			return false
 		}
 	}

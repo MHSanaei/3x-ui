@@ -1206,6 +1206,15 @@ func TestBuildAmneziaWGProxyForClashRemoteDNSResolve(t *testing.T) {
 		}
 	})
 
+	// netip.ParseAddr accepts a zone, but mihomo brackets the address into a
+	// udp:// URL whose url.Parse then rejects "%eth0" as a bad escape.
+	t.Run("zoned IPv6", func(t *testing.T) {
+		proxy := build(t, "8.8.8.8", "fe80::1%eth0")
+		if _, ok := proxy["remote-dns-resolve"]; ok {
+			t.Fatalf("remote-dns-resolve must stay unset for a zoned address, got %v", proxy["remote-dns-resolve"])
+		}
+	})
+
 	t.Run("non-IP entry", func(t *testing.T) {
 		proxy := build(t, "8.8.8.8", "dns.example.com")
 		if dns, ok := proxy["dns"].([]string); !ok || !reflect.DeepEqual(dns, []string{"8.8.8.8", "dns.example.com"}) {
