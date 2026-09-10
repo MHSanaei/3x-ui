@@ -104,9 +104,11 @@ _openapi:
         still-depleted client is left disabled. The optional flow directive sets
         the XTLS flow on every client: "none" clears it,
         "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound
-        supports it (omit or "" to leave it unchanged). Returns the adjusted
+        supports it (omit or "" to leave it unchanged). The optional limitHwid
+        sets maximum registered devices (0 = unlimited). The optional adTag sets
+        MTProto Telegram sponsor channel ("none" clears). Returns the adjusted
         count and per-email skip reasons.'
-      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons'
+      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons'
     - depth: 2
       title: Enable many clients in one call. Emails are grouped by inbound and
         applied with a single read-modify-write per inbound; the running Xray
@@ -276,9 +278,9 @@ _openapi:
       title: 'Return every URL for one client across all attached inbounds, one per
         advertised endpoint: the managed hosts of the inbound, else its
         streamSettings.externalProxy entries, else its own address. Supported
-        protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols
-        without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel)
-        contribute nothing.'
+        protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto.
+        Protocols without a URL form (socks, http, mixed, wireguard, dokodemo,
+        tunnel) contribute nothing.'
       url: '#return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing'
   structuredData:
     headings:
@@ -364,9 +366,11 @@ _openapi:
           manually-disabled or still-depleted client is left disabled. The
           optional flow directive sets the XTLS flow on every client: "none"
           clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where
-          the inbound supports it (omit or "" to leave it unchanged). Returns
-          the adjusted count and per-email skip reasons.'
-        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
+          the inbound supports it (omit or "" to leave it unchanged). The
+          optional limitHwid sets maximum registered devices (0 = unlimited).
+          The optional adTag sets MTProto Telegram sponsor channel ("none"
+          clears). Returns the adjusted count and per-email skip reasons.'
+        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons
       - content: Enable many clients in one call. Emails are grouped by inbound and
           applied with a single read-modify-write per inbound; the running Xray
           (local or remote node) is updated to add each user. Note that enabling
@@ -508,12 +512,12 @@ _openapi:
           URL is emitted per external proxy. Empty array when the subId has no
           enabled clients.
         id: return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
-      - content: 'Return every URL for one client across all attached inbounds, one
-          per advertised endpoint: the managed hosts of the inbound, else its
+      - content: 'Return every URL for one client across all attached inbounds, one per
+          advertised endpoint: the managed hosts of the inbound, else its
           streamSettings.externalProxy entries, else its own address. Supported
-          protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols
-          without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel)
-          contribute nothing.'
+          protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto.
+          Protocols without a URL form (socks, http, mixed, wireguard, dokodemo,
+          tunnel) contribute nothing.'
         id: return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
     contents:
       - content: >-
