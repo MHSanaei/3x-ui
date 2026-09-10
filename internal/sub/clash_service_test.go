@@ -1,9 +1,11 @@
 package sub
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
@@ -1245,4 +1247,54 @@ func TestGetProxies_CustomIPv6ShareAddrIsUnbracketed(t *testing.T) {
 	if got := proxies[0]["server"]; got != "2001:db8::1" {
 		t.Fatalf("server = %v, want 2001:db8::1", got)
 	}
+}
+
+// TestBuildAmneziaWGProxyForClashEffectiveMTU pins the Clash mtu to the same
+// amneziawg.EffectiveMTU every other emitter uses -- the running interface
+// (amneziawgnet), the vpn:// .conf and both TS builders. Omitting the key
+// leaves mihomo on its own 1408 default, above the tunnel once s4 > 12.
+func TestBuildAmneziaWGProxyForClashEffectiveMTU(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	build := func(t *testing.T, mtu, s4 int) map[string]any {
+		t.Helper()
+		settings := fmt.Sprintf(
+			`{"server":{"privateKey":%q,"publicKey":%q,"mtu":%d,"s4":%d}}`,
+			serverPriv, serverPub, mtu, s4)
+		svc := &SubClashService{SubService: &SubService{}}
+		inbound := &model.Inbound{
+			Listen:   "203.0.113.7",
+			Port:     51820,
+			Protocol: model.AmneziaWG,
+			Settings: settings,
+		}
+		client := model.Client{Email: "user", PrivateKey: clientPriv, AllowedIPs: []string{"10.8.1.2/32"}}
+		proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+		if proxy == nil {
+			t.Fatal("buildProxy returned nil for a valid amneziawg client")
+		}
+		return proxy
+	}
+
+	t.Run("unset MTU falls back to 1420-s4", func(t *testing.T) {
+		proxy := build(t, 0, 27)
+		want := amneziawg.EffectiveMTU(0, 27)
+		if proxy["mtu"] != want {
+			t.Fatalf("mtu = %v, want %d (amneziawg.EffectiveMTU)", proxy["mtu"], want)
+		}
+	})
+
+	t.Run("explicit MTU wins", func(t *testing.T) {
+		proxy := build(t, 1380, 27)
+		if proxy["mtu"] != 1380 {
+			t.Fatalf("mtu = %v, want 1380", proxy["mtu"])
+		}
+	})
 }
