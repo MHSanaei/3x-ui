@@ -23,6 +23,7 @@ import {
   Table,
   Tag,
   Tooltip,
+  Typography,
   message,
 } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
@@ -1092,7 +1093,7 @@ export default function ClientsPage() {
         width: 130,
         hidden: allGroups.length === 0,
         render: (_v, record) => {
-          if (!record.group) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
+          if (!record.group) return <Typography.Text type="secondary">—</Typography.Text>;
           const isActive = filters.groups.includes(record.group);
           return (
             <Tag

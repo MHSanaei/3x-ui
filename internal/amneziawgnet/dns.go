@@ -14,6 +14,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
@@ -78,7 +79,7 @@ func dnsCacheKey(tag, dnsServer, host string) string {
 }
 
 func resolveTunnelVia(ctx context.Context, dev *Device, tag string, dnsServer string, host string) (netip.Addr, error) {
-	normDNS := normalizeDNSServer(dnsServer)
+	normDNS := amneziawg.NormalizeDNSServer(dnsServer)
 	if normDNS == "" {
 		normDNS = defaultDNSFor(dev.LocalAddresses())
 	}
