@@ -245,7 +245,13 @@ function buildOperation(ep, tag) {
       );
     }
     const ref = { $ref: `#/components/schemas/${ep.responseSchema}` };
-    objSchema = ep.responseSchemaArray ? { type: 'array', items: ref } : ref;
+    objSchema = ep.responseSchemaArray
+      ? {
+          type: 'array',
+          ...(ep.responseSchemaArrayNullable ? { nullable: true } : {}),
+          items: ref,
+        }
+      : ref;
     if (successExample === undefined) {
       successExample = { success: true, obj: ep.responseSchemaArray ? [obj] : obj };
     }

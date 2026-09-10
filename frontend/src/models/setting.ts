@@ -16,6 +16,10 @@ export class AllSetting {
   trafficDiff = 0;
   remarkTemplate = '{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   subShowIdentityOnAllLinks = false;
+  subInfoNodeEnable = false;
+  subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';
+  subTrafficDepletedTemplate =
+    '🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}';
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
   tgBotEnable = false;
   tgBotToken = '';
@@ -65,10 +69,34 @@ export class AllSetting {
   subClashRules = '';
   subJsonMux = '';
   subJsonRules = '';
+  subJsonRoutingRules = '';
   subJsonFinalMask = '';
   subJsonObservatory = '';
   subThemeDir = '';
   subHideSettings = false;
+  subHappAutoDetect = false;
+  subHappProviderId = '';
+  subHappNewUrl = '';
+  subHappFallbackUrl = '';
+  subHappSubInfoColor = 'blue';
+  subHappSubInfoText = '';
+  subHappSubInfoButtonText = '';
+  subHappSubInfoButtonLink = '';
+  subHappSubExpire = false;
+  subHappSubExpireButtonLink = '';
+  subHappNotificationExpire = false;
+  subHappNoLimit = false;
+  subHappAlwaysHwid = false;
+  subHappTunMode = '';
+  subHappTunType = '';
+  subHappExcludeRoutes = '';
+  subHappExcludeApns = false;
+  subHappColorProfile = '';
+  subHappPingType = '';
+  subHappAutoConnect = false;
+  subHappAutoConnectType = 'lowestdelay';
+  subHappPerAppMode = 'off';
+  subHappPerAppList = '';
 
   timeLocation = 'Local';
 

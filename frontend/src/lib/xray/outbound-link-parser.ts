@@ -311,21 +311,19 @@ function applyHysteria2Obfs(stream: Raw, params: URLSearchParams): void {
   finalmask.udp = [...udp, { type: 'salamander', settings }];
 }
 
-// Rebuild the UDP port-hopping range from the standard mport param, which the
-// generator emits as finalmask.quicParams.udpHop.ports. A range already supplied
-// via fm= wins; the client-side interval falls back to the panel's default.
+// Rebuild the UDP port-hopping range from the standard mport param. xray-core
+// 26.9.9 replaced finalmask.quicParams.udpHop with a 'udphop' UDP mask, whose
+// intervalremote mode is what the old key used to do; an fm= mask wins.
 function applyHysteria2Hop(stream: Raw, params: URLSearchParams): void {
   const ports = firstParam(params, 'mport');
   if (!ports) return;
   const finalmask = ensureFinalMask(stream);
-  const quicParams = (
-    finalmask.quicParams && typeof finalmask.quicParams === 'object'
-      ? finalmask.quicParams
-      : (finalmask.quicParams = {})
-  ) as Raw;
-  const existingHop = quicParams.udpHop as Raw | undefined;
-  if (existingHop && typeof existingHop.ports === 'string' && existingHop.ports.length > 0) return;
-  quicParams.udpHop = { ports, interval: '5-10' };
+  const udp = Array.isArray(finalmask.udp) ? (finalmask.udp as Raw[]) : [];
+  if (udp.some((mask) => (mask as Raw | undefined)?.type === 'udphop')) return;
+  finalmask.udp = [
+    ...udp,
+    { type: 'udphop', settings: { mode: 'intervalremote', interval: '5-10', remotePorts: ports } },
+  ];
 }
 
 const QUIC_PARAMS_NUMERIC_KEYS = [

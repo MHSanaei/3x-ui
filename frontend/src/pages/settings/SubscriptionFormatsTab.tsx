@@ -16,6 +16,7 @@ import { GoRegexInput } from '@/components/form';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
+import { remoteSourceBadge } from './subscriptionShared';
 import SubJsonFinalMaskForm from './SubJsonFinalMaskForm';
 import './SubscriptionFormatsTab.css';
 
@@ -218,6 +219,19 @@ export default function SubscriptionFormatsTab({
                       value={allSetting.subJsonUserAgentRegex}
                       placeholder="(?i)^myclient([ /]|$)"
                       onChange={(value) => updateSetting({ subJsonUserAgentRegex: value })}
+                    />
+                  </SettingListItem>
+                  <SettingListItem
+                    paddings="small"
+                    title={t('pages.settings.subJsonRoutingRules')}
+                    badge={remoteSourceBadge(allSetting.subJsonRoutingRules)}
+                    description={t('pages.settings.subJsonRoutingRulesDesc')}
+                  >
+                    <Input.TextArea
+                      value={allSetting.subJsonRoutingRules}
+                      placeholder="happ://routing/onadd/... , routing JSON, or https://.../DEFAULT.JSON"
+                      onChange={(e) => updateSetting({ subJsonRoutingRules: e.target.value })}
+                      autoSize={{ minRows: 2, maxRows: 6 }}
                     />
                   </SettingListItem>
                 </Card>

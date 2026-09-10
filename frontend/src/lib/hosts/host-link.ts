@@ -1,5 +1,7 @@
 import type { ExternalProxyEntry } from '@/schemas/protocols/stream/external-proxy';
-import type { HostFormValues } from '@/schemas/api/host';
+import type { HostFormValues, HostRecord } from '@/schemas/api/host';
+import type { Inbound } from '@/schemas/api/inbound';
+import { resolveAddr } from '@/lib/xray/inbound-link';
 
 // The subset of a host that affects its share link. Mirrors the fields the
 // backend's hostToExternalProxyMap reads.
@@ -53,4 +55,51 @@ export function hostToExternalProxyEntry(host: HostLinkInput): ExternalProxyEntr
     echConfigList: host.echConfigList || undefined,
     vlessRoute: host.vlessRoute || undefined,
   };
+}
+
+function splitAdvertisedHost(value: string, inboundPort: number): [string, number] {
+  const host = value.trim();
+  if (host.startsWith('[')) {
+    const close = host.indexOf(']');
+    if (close > 0) {
+      const port = host.slice(close + 1).match(/^:(\d+)$/)?.[1];
+      return [host.slice(1, close), port ? Number(port) : inboundPort];
+    }
+  }
+  const match = host.match(/^([^:]*):(\d+)$/);
+  return match ? [match[1], Number(match[2])] : [host, inboundPort];
+}
+
+export function withMtprotoHostEndpoints(
+  inbound: Inbound,
+  inboundId: number,
+  records: HostRecord[],
+  hostOverride: string,
+  fallbackHostname: string,
+): Inbound {
+  if (inbound.protocol !== 'mtproto') return inbound;
+  const endpoints: ExternalProxyEntry[] = [];
+  for (const record of records) {
+    if (
+      record.isDisabled ||
+      !record.inboundIds.includes(inboundId) ||
+      record.excludeFromSubTypes?.includes('raw')
+    ) {
+      continue;
+    }
+    for (const value of record.hosts) {
+      const [dest, port] = splitAdvertisedHost(value, inbound.port);
+      endpoints.push({
+        forceTls: 'same',
+        dest: dest || resolveAddr(inbound, hostOverride, fallbackHostname),
+        port,
+        remark: record.remark || '',
+      });
+    }
+  }
+  if (endpoints.length === 0) return inbound;
+  return {
+    ...inbound,
+    streamSettings: { ...inbound.streamSettings, externalProxy: endpoints },
+  } as Inbound;
 }

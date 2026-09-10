@@ -443,7 +443,9 @@ describe('parseHysteria2Link', () => {
     expect((udp[0].settings as Record<string, unknown>).password).toBe('fromobfs');
   });
 
-  it('reconstructs udpHop from the standard mport param', () => {
+  // xray-core 26.9.9 ignores quicParams.udpHop; hopping is a 'udphop' UDP mask
+  // and its mode must be one the core's UDPHop.Build() accepts.
+  it('reconstructs a udphop mask from the standard mport param', () => {
     const out = parseHysteria2Link(
       'hysteria2://auth@srv:443?security=tls&mport=20000-50000#hy2-mport',
     );
@@ -451,16 +453,25 @@ describe('parseHysteria2Link', () => {
       string,
       unknown
     >;
-    const quic = finalmask.quicParams as Record<string, unknown>;
-    const udpHop = quic.udpHop as Record<string, unknown>;
-    expect(udpHop.ports).toBe('20000-50000');
-    expect(udpHop.interval).toBe('5-10');
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    const hop = udp.find((mask) => mask.type === 'udphop');
+    expect(hop).toBeDefined();
+    const settings = hop!.settings as Record<string, unknown>;
+    expect(settings.remotePorts).toBe('20000-50000');
+    expect(settings.interval).toBe('5-10');
+    expect(settings.mode).toBe('intervalremote');
+    expect((finalmask.quicParams as Record<string, unknown> | undefined)?.udpHop).toBeUndefined();
   });
 
-  it('lets an fm= udpHop win over mport', () => {
+  it('lets an fm= udphop mask win over mport', () => {
     const fm = encodeURIComponent(
       JSON.stringify({
-        quicParams: { udpHop: { ports: '30000-40000', interval: '7-9' } },
+        udp: [
+          {
+            type: 'udphop',
+            settings: { mode: 'intervalremote', interval: '7-9', remotePorts: '30000-40000' },
+          },
+        ],
       }),
     );
     const link = `hysteria2://auth@srv:443?security=tls&mport=1-2&fm=${fm}#hy2-mport-fm`;
@@ -469,12 +480,11 @@ describe('parseHysteria2Link', () => {
       string,
       unknown
     >;
-    const udpHop = (finalmask.quicParams as Record<string, unknown>).udpHop as Record<
-      string,
-      unknown
-    >;
-    expect(udpHop.ports).toBe('30000-40000');
-    expect(udpHop.interval).toBe('7-9');
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp).toHaveLength(1);
+    const settings = udp[0].settings as Record<string, unknown>;
+    expect(settings.remotePorts).toBe('30000-40000');
+    expect(settings.interval).toBe('7-9');
   });
 
   it('round-trips the salamander packetSize (Gecko) under fm', () => {

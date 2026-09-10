@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
-import { hostToExternalProxyEntry } from '@/lib/hosts/host-link';
+import { hostToExternalProxyEntry, withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
+import { inboundFromDb } from '@/lib/xray/inbound-from-db';
 
 describe('hostToExternalProxyEntry', () => {
   const base = {
@@ -58,5 +59,71 @@ describe('hostToExternalProxyEntry', () => {
   it('carries a single vlessRoute value through to the entry', () => {
     expect(hostToExternalProxyEntry({ ...base, vlessRoute: '443' }).vlessRoute).toBe('443');
     expect(hostToExternalProxyEntry({ ...base, vlessRoute: '' }).vlessRoute).toBeUndefined();
+  });
+});
+
+describe('withMtprotoHostEndpoints', () => {
+  const inbound = inboundFromDb({
+    protocol: 'mtproto',
+    port: 4060,
+    listen: '127.0.0.1',
+    settings: { clients: [] },
+    streamSettings: {},
+    sniffing: {},
+  });
+
+  it('projects enabled raw Hosts onto MTProto share endpoints', () => {
+    const got = withMtprotoHostEndpoints(
+      inbound,
+      7,
+      [
+        {
+          groupId: 'public',
+          inboundIds: [7],
+          hosts: ['proxy.example.com:443', '[2001:db8::1]'],
+          port: 443,
+          remark: 'public',
+        },
+      ],
+      '',
+      'panel.example.com',
+    );
+    expect(got.streamSettings?.externalProxy).toEqual([
+      { forceTls: 'same', dest: 'proxy.example.com', port: 443, remark: 'public' },
+      { forceTls: 'same', dest: '2001:db8::1', port: 4060, remark: 'public' },
+    ]);
+  });
+
+  it('inherits the inbound address for a port-only Host', () => {
+    const got = withMtprotoHostEndpoints(
+      inbound,
+      7,
+      [{ groupId: 'port-only', inboundIds: [7], hosts: [':8443'], port: 8443 }],
+      '',
+      'panel.example.com',
+    );
+    expect(got.streamSettings?.externalProxy).toEqual([
+      { forceTls: 'same', dest: 'panel.example.com', port: 8443, remark: '' },
+    ]);
+  });
+
+  it('ignores disabled, excluded and unrelated Hosts', () => {
+    const got = withMtprotoHostEndpoints(
+      inbound,
+      7,
+      [
+        { groupId: 'disabled', inboundIds: [7], hosts: ['a.example.com:443'], isDisabled: true },
+        {
+          groupId: 'excluded',
+          inboundIds: [7],
+          hosts: ['b.example.com:443'],
+          excludeFromSubTypes: ['raw'],
+        },
+        { groupId: 'other', inboundIds: [8], hosts: ['c.example.com:443'] },
+      ],
+      '',
+      'panel.example.com',
+    );
+    expect(got).toBe(inbound);
   });
 });

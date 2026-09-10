@@ -69,6 +69,19 @@ func applyEndpointTLSObj(e ShareEndpoint, obj map[string]any, security string) {
 	}
 }
 
+// dropBaseRealityParams removes the parameters that only mean something on a
+// reality link once a host forces the endpoint to plain TLS or no TLS.
+func dropBaseRealityParams(params map[string]string, baseSecurity, securityToApply string) {
+	if baseSecurity != "reality" || securityToApply == "reality" {
+		return
+	}
+	// sni and fp name the master's reality dest, not this endpoint's own
+	// certificate; the host's values are re-applied right after this.
+	for _, k := range []string{"pbk", "sid", "spx", "pqv", "sni", "fp"} {
+		delete(params, k)
+	}
+}
+
 // buildEndpointLinks renders one URL-param link per endpoint (vless/trojan/ss).
 // securityToApply mirrors the legacy externalProxy loop: "same" keeps the base
 // security, otherwise the endpoint's forceTls wins; "none" strips TLS hint
@@ -87,6 +100,7 @@ func (s *SubService) buildEndpointLinks(
 			securityToApply = e.ForceTls
 		}
 		nextParams := cloneStringMap(params)
+		dropBaseRealityParams(nextParams, baseSecurity, securityToApply)
 		applyEndpointTLSParams(e, nextParams, securityToApply)
 		applyEndpointRealityParams(e, nextParams, securityToApply)
 		applyEndpointHostPath(e, nextParams)

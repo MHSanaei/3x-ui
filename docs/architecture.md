@@ -600,3 +600,30 @@ only - it changes no code), `claude-issue-analyst.yml` (issue triage).
 - **Tests live next to code** (`foo.go` ↔ `foo_test.go`), plus golden snapshots in
   `frontend/src/test/golden/fixtures/` for config generation — update fixtures intentionally,
   not blindly, when output changes.
+
+## AmneziaWG outbound pseudo-protocol
+
+The template stores `protocol: "amneziawg"` rows verbatim; Xray-core has no
+such proxy. At config generation (`GetXrayConfig` and the outbound latency
+probe's batch config) each row is swapped by `amneziawgnet.BuildSocksBridge`
+into a loopback socks outbound pointed at the panel's egress server (port
+`EgressBasePort`), authenticating with the row's tag as username. Sibling keys
+(`mux`, `sendThrough`, `targetStrategy`, `streamSettings.sockopt`) survive the
+swap. The embedded amneziawg-go client device lives in the panel process; an
+unbridgeable entry (unreadable settings, empty/non-string tag) fails config
+generation instead of skipping, because a skipped entry leaves
+`protocol: "amneziawg"` behind -- which makes Xray refuse the whole config.
+
+Traffic flow: Xray socks client -> egress SOCKS5 server (tag = username) ->
+per-tag device netstack -> amneziawg-go tunnel. Domain targets are resolved by
+a DNS exchange through that same netstack (`resolveTunnelVia`, default server
+`DefaultTunnelDNSServer`), so names never leak to the panel host's resolver and
+answers are valid at the tunnel's location; results cache for 60s. UDP flows
+key sessions on the resolved address:port. Peer endpoints may be hostnames:
+`resolvingBind.ParseEndpoint` resolves once at configure time (kernel
+`wg setconf` semantics); a hostname whose DNS dies later needs a template
+re-save or job restart to re-resolve.
+
+`randomTrailers` defaults to false wherever the panel does not control the
+peer (outbound form/schema): a receiver without 3.1 trailers silently drops
+oversized packets from a sender with it enabled.
