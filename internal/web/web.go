@@ -721,13 +721,15 @@ func (s *Server) StopPanelOnly() error {
 
 func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
+	// Bakes in domain/cert/port at Start(), so it must bounce even on a
+	// panel-only restart -- unlike the sidecars below, which must not.
+	frontproxy.GetManager().StopAll()
 	if stopXray {
 		_ = s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		tor.GetManager().StopAll()
 		psiphon.GetManager().StopAll()
-		frontproxy.GetManager().StopAll()
 		adguard.GetManager().StopAll()
 	}
 	if s.cron != nil {
