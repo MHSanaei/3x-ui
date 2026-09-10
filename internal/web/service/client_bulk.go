@@ -344,36 +344,16 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 
 	addExpiryMs := int64(addDays) * 24 * 60 * 60 * 1000
 
-	seen := map[string]struct{}{}
-	cleanEmails := make([]string, 0, len(emails))
-	for _, e := range emails {
-		e = strings.TrimSpace(e)
-		if e == "" {
-			continue
-		}
-		if _, ok := seen[e]; ok {
-			continue
-		}
-		seen[e] = struct{}{}
-		cleanEmails = append(cleanEmails, e)
-	}
+	cleanEmails := trimmedUniqueEmails(emails)
 	if len(cleanEmails) == 0 {
 		return result, false, nil
 	}
 
 	db := database.GetDB()
 
-	var records []model.ClientRecord
-	for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
-		var rows []model.ClientRecord
-		if err := db.Where("email IN ?", batch).Find(&rows).Error; err != nil {
-			return result, false, err
-		}
-		records = append(records, rows...)
-	}
-	recordsByEmail := make(map[string]*model.ClientRecord, len(records))
-	for i := range records {
-		recordsByEmail[records[i].Email] = &records[i]
+	recordsByEmail, err := clientRecordsByEmail(db, cleanEmails)
+	if err != nil {
+		return result, false, err
 	}
 
 	skippedReasons := map[string]string{}
@@ -894,38 +874,22 @@ type BulkDeleteReport struct {
 func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, keepTraffic bool) (BulkDeleteResult, bool, error) {
 	result := BulkDeleteResult{}
 
-	seen := map[string]struct{}{}
-	cleanEmails := make([]string, 0, len(emails))
-	for _, e := range emails {
-		e = strings.TrimSpace(e)
-		if e == "" {
-			continue
-		}
-		if _, ok := seen[e]; ok {
-			continue
-		}
-		seen[e] = struct{}{}
-		cleanEmails = append(cleanEmails, e)
-	}
+	cleanEmails := trimmedUniqueEmails(emails)
 	if len(cleanEmails) == 0 {
 		return result, false, nil
 	}
 
 	db := database.GetDB()
 
-	var records []model.ClientRecord
-	for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
-		var rows []model.ClientRecord
-		if err := db.Where("email IN ?", batch).Find(&rows).Error; err != nil {
-			return result, false, err
-		}
-		records = append(records, rows...)
+	recordsByEmail, err := clientRecordsByEmail(db, cleanEmails)
+	if err != nil {
+		return result, false, err
 	}
-	recordsByEmail := make(map[string]*model.ClientRecord, len(records))
-	tombstoneEmails := make([]string, 0, len(records))
-	for i := range records {
-		recordsByEmail[records[i].Email] = &records[i]
-		tombstoneEmails = append(tombstoneEmails, records[i].Email)
+	tombstoneEmails := make([]string, 0, len(recordsByEmail))
+	for _, email := range cleanEmails {
+		if recordsByEmail[email] != nil {
+			tombstoneEmails = append(tombstoneEmails, email)
+		}
 	}
 	tombstoneClientEmails(tombstoneEmails)
 
@@ -1579,36 +1543,16 @@ type BulkSetEnableReport struct {
 func (s *ClientService) BulkSetEnable(inboundSvc *InboundService, emails []string, enable bool) (BulkSetEnableResult, bool, error) {
 	result := BulkSetEnableResult{}
 
-	seen := map[string]struct{}{}
-	cleanEmails := make([]string, 0, len(emails))
-	for _, e := range emails {
-		e = strings.TrimSpace(e)
-		if e == "" {
-			continue
-		}
-		if _, ok := seen[e]; ok {
-			continue
-		}
-		seen[e] = struct{}{}
-		cleanEmails = append(cleanEmails, e)
-	}
+	cleanEmails := trimmedUniqueEmails(emails)
 	if len(cleanEmails) == 0 {
 		return result, false, nil
 	}
 
 	db := database.GetDB()
 
-	var records []model.ClientRecord
-	for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
-		var rows []model.ClientRecord
-		if err := db.Where("email IN ?", batch).Find(&rows).Error; err != nil {
-			return result, false, err
-		}
-		records = append(records, rows...)
-	}
-	recordsByEmail := make(map[string]*model.ClientRecord, len(records))
-	for i := range records {
-		recordsByEmail[records[i].Email] = &records[i]
+	recordsByEmail, err := clientRecordsByEmail(db, cleanEmails)
+	if err != nil {
+		return result, false, err
 	}
 
 	skippedReasons := map[string]string{}

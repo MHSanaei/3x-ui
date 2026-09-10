@@ -1,7 +1,6 @@
 package service
 
 import (
-	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -60,36 +59,29 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 	if len(emails) == 0 {
 		return 0, nil
 	}
-	seen := map[string]struct{}{}
-	cleanEmails := make([]string, 0, len(emails))
-	for _, e := range emails {
-		e = strings.TrimSpace(e)
-		if e == "" {
-			continue
-		}
-		if _, ok := seen[e]; ok {
-			continue
-		}
-		seen[e] = struct{}{}
-		cleanEmails = append(cleanEmails, e)
-	}
+	cleanEmails := trimmedUniqueEmails(emails)
 	if len(cleanEmails) == 0 {
 		return 0, nil
 	}
 
+	recordsByEmail, err := clientRecordsByEmail(nil, cleanEmails)
+	if err != nil {
+		return 0, err
+	}
 	for _, e := range cleanEmails {
-		rec, err := s.GetRecordByEmail(nil, e)
-		if err == nil && !rec.Enable {
-			updated := rec.ToClient()
-			updated.Enable = true
-			if _, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); uErr != nil {
-				logger.Warning("Failed to auto-enable client during bulk traffic reset:", uErr)
-			}
+		rec := recordsByEmail[e]
+		if rec == nil || rec.Enable {
+			continue
+		}
+		updated := rec.ToClient()
+		updated.Enable = true
+		if _, uErr := s.Update(inboundSvc, rec.Id, *updated, rec.LimitHwid); uErr != nil {
+			logger.Warning("Failed to auto-enable client during bulk traffic reset:", uErr)
 		}
 	}
 
 	affected := 0
-	err := submitTrafficWrite(func() error {
+	err = submitTrafficWrite(func() error {
 		db := database.GetDB()
 		return db.Transaction(func(tx *gorm.DB) error {
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, cleanEmails); err != nil {
