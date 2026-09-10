@@ -329,7 +329,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "forwardedPorts": "",
     "group": "",
     "id": "",
-    "keepAlive": 0,
+    "keepAlive": null,
     "limitIp": 0,
     "password": "",
     "preSharedKey": "",

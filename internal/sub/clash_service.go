@@ -579,8 +579,8 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 	if client.PreSharedKey != "" {
 		proxy["pre-shared-key"] = client.PreSharedKey
 	}
-	if client.KeepAlive > 0 {
-		proxy["persistent-keepalive"] = client.KeepAlive
+	if ka := client.KeepAliveSeconds(); ka > 0 {
+		proxy["persistent-keepalive"] = ka
 	}
 	for _, addr := range client.AllowedIPs {
 		ip := stripCIDR(addr)
@@ -667,8 +667,8 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 	if client.PreSharedKey != "" {
 		proxy["pre-shared-key"] = client.PreSharedKey
 	}
-	if client.KeepAlive > 0 {
-		proxy["persistent-keepalive"] = client.KeepAlive
+	if ka := client.KeepAliveSeconds(); ka > 0 {
+		proxy["persistent-keepalive"] = ka
 	}
 
 	for _, addr := range amneziaWGClientAddresses(parsed.Clients, client) {
