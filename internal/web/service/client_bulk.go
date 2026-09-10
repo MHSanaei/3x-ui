@@ -312,9 +312,8 @@ var bulkFlowAllowed = map[string]struct{}{
 // for every email in the list. Clients whose corresponding field is
 // unlimited (0) are skipped — bulk extend should not accidentally
 // limit an unlimited client. addDays and addBytes may be negative.
-// The optional flow directive sets the XTLS flow on every client.
-// The optional limitHwid sets maximum registered devices (0 = unlimited).
-// The optional adTag sets MTProto Telegram sponsor channel ("none" clears).
+// flow sets the XTLS flow, limitHwid the max registered devices (0 = unlimited)
+// and adTag the MTProto sponsor channel; "none" clears flow or adTag.
 //
 // Like BulkDelete, the work is grouped by inbound so each inbound's
 // settings JSON is parsed and written exactly once regardless of how
@@ -736,14 +735,15 @@ func (s *ClientService) bulkAdjustInboundClients(
 		if _, want := wantedEmails[targetEmail]; !want || targetEmail == "" {
 			continue
 		}
+		clientChanged := false
 		entry := plan[targetEmail]
 		if entry.applyExpiry {
 			c["expiryTime"] = entry.newExpiry
-			hasInboundChanges = true
+			clientChanged = true
 		}
 		if entry.applyTotal {
 			c["totalGB"] = entry.newTotal
-			hasInboundChanges = true
+			clientChanged = true
 		}
 		if flow != "" {
 			if flowEligible {
@@ -756,7 +756,7 @@ func (s *ClientService) bulkAdjustInboundClients(
 					flowChanged = true
 				}
 				res.flowHonored[targetEmail] = true
-				hasInboundChanges = true
+				clientChanged = true
 			} else {
 				// Record separately so this never suppresses the expiry/total
 				// write for the same client (see flowIneligible doc).
@@ -770,13 +770,14 @@ func (s *ClientService) bulkAdjustInboundClients(
 					adTagChanged = true
 				}
 				res.adTagHonored[targetEmail] = true
-				hasInboundChanges = true
+				clientChanged = true
 			} else {
 				res.adTagIneligible[targetEmail] = true
 			}
 		}
-		if hasInboundChanges {
+		if clientChanged {
 			c["updated_at"] = nowMs
+			hasInboundChanges = true
 		}
 		interfaceClients[i] = c
 		foundEmails[targetEmail] = true

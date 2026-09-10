@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -468,4 +469,67 @@ func TestBulkAdjust_MixedMtprotoAndVless_AdTag(t *testing.T) {
 	if vlessRec.AdTag != "" {
 		t.Fatalf("vless-mix@x adTag = %q, want empty", vlessRec.AdTag)
 	}
+}
+
+// TestBulkAdjust_UnchangedClientKeepsUpdatedAt pins the updated_at stamp to the
+// client that actually changed: an untouched client must not be re-stamped only
+// because a client earlier in the same inbound's array was adjusted.
+func TestBulkAdjust_UnchangedClientKeepsUpdatedAt(t *testing.T) {
+	setupBulkDB(t)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	const day = int64(24 * 60 * 60 * 1000)
+	const seeded = int64(1600000000000)
+	baseExpiry := time.Now().UnixMilli() + 30*day
+
+	// chg@x is listed first and takes the expiry bump; keep@x has unlimited
+	// expiry on a ws inbound, so the same call changes nothing for it.
+	clients := []model.Client{
+		{Email: "chg@x", ID: "88888888-8888-8888-8888-888888888888", SubID: "chg", Enable: true, ExpiryTime: baseExpiry, UpdatedAt: seeded},
+		{Email: "keep@x", ID: "99999999-9999-9999-9999-999999999999", SubID: "keep", Enable: true, UpdatedAt: seeded},
+	}
+	ib := mkInboundStream(t, 30801, model.VLESS, clientsSettings(t, clients), wsStream)
+	if err := svc.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if err := database.GetDB().Create(&xray.ClientTraffic{Email: "chg@x", Enable: true, ExpiryTime: baseExpiry}).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+
+	// The flow directive is what keeps keep@x in the plan; the ws inbound cannot
+	// carry it, so the directive is not itself a change for either client.
+	if _, _, err := svc.BulkAdjust(inboundSvc, emailsOf(clients), 7, 0, "xtls-rprx-vision", nil, ""); err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+
+	stamps := settingsUpdatedAt(t, inboundSvc, ib.Id)
+	if stamps["chg@x"] <= seeded {
+		t.Fatalf("adjusted client should be re-stamped, updated_at = %d", stamps["chg@x"])
+	}
+	if stamps["keep@x"] != seeded {
+		t.Fatalf("untouched client updated_at = %d, want %d — a sibling's change must not re-stamp it", stamps["keep@x"], seeded)
+	}
+}
+
+func settingsUpdatedAt(t *testing.T, inboundSvc *InboundService, inboundId int) map[string]int64 {
+	t.Helper()
+	ib, err := inboundSvc.GetInbound(inboundId)
+	if err != nil {
+		t.Fatalf("GetInbound: %v", err)
+	}
+	var parsed struct {
+		Clients []struct {
+			Email     string `json:"email"`
+			UpdatedAt int64  `json:"updated_at"`
+		} `json:"clients"`
+	}
+	if err := json.Unmarshal([]byte(ib.Settings), &parsed); err != nil {
+		t.Fatalf("unmarshal settings: %v", err)
+	}
+	out := make(map[string]int64, len(parsed.Clients))
+	for _, c := range parsed.Clients {
+		out[c.Email] = c.UpdatedAt
+	}
+	return out
 }
