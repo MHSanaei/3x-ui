@@ -57,7 +57,7 @@ func TestSubJson_BalancerDocument(t *testing.T) {
 	})
 
 	rules := `[{"type":"field","domain":["geosite:example"],"outboundTag":"proxy"}]`
-	js := NewSubJsonService("", rules, "", NewSubService(""))
+	js := NewSubJsonService("", rules, "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -155,7 +155,7 @@ func TestSubJson_BalancerOrderInterleavesWithInbounds(t *testing.T) {
 		Remark: "bal", Strategy: "roundRobin", InboundIds: []int{later.Id, first.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -189,7 +189,7 @@ func TestSubJson_BalancerDisabledAndEmptySkipped(t *testing.T) {
 		Remark: "nomembers", Strategy: "random", InboundIds: []int{inbound.Id + 100}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -213,7 +213,7 @@ func TestSubJson_BalancerTagDedup(t *testing.T) {
 		Remark: "dedup", Strategy: "leastPing", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -241,7 +241,7 @@ func TestSubJson_BalancerObservatoryConditional(t *testing.T) {
 		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{lp.Id}, SortOrder: 2, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	js.SetObservatoryConfig(`{"destination":"https://probe.example/204","httpMethod":"GET","sampling":5}`)
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
@@ -287,7 +287,7 @@ func TestSubJson_BalancerExcludesDisabledInbound(t *testing.T) {
 		Remark: "bal", Strategy: "random", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -322,7 +322,7 @@ func TestSubJson_BalancerSkippedWhenAllMembersDisabled(t *testing.T) {
 		Remark: "empty", Strategy: "random", InboundIds: []int{only.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -345,7 +345,7 @@ func TestSubJson_BalancerObservatoryConnectivityDefaultEmpty(t *testing.T) {
 		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{inb.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -386,7 +386,7 @@ func TestSubJson_BalancerObservatoryAlwaysEmittedForProbingStrategies(t *testing
 		Remark: "pinger", Strategy: "leastPing", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	js.SetObservatoryConfig(`{"enabled":false}`)
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
@@ -419,4 +419,92 @@ func observatoryPingConfig(t *testing.T, docs []map[string]any, remarks string) 
 	}
 	ping, _ := obs["pingConfig"].(map[string]any)
 	return ping
+}
+
+func balancerStrategy(t *testing.T, docs []map[string]any, remarks string) map[string]any {
+	t.Helper()
+	doc := findDocByRemarks(docs, remarks)
+	if doc == nil {
+		t.Fatalf("balancer doc %q missing", remarks)
+	}
+	routing, _ := doc["routing"].(map[string]any)
+	balancers, _ := routing["balancers"].([]any)
+	strategy, _ := balancers[0].(map[string]any)["strategy"].(map[string]any)
+	return strategy
+}
+
+// leastLoad with configured weights must emit strategy.settings.costs keyed by
+// the retagged member tags; members without a weight count as 1.0.
+func TestSubJson_BalancerLeastLoadCosts(t *testing.T) {
+	seedSubDB(t)
+	fast := seedSubInbound(t, "s1", "fast", 4791, 1, wsTLSStream)
+	slow := seedSubInbound(t, "s1", "slow", 4792, 2, wsTLSStream)
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "weighted", Strategy: "leastLoad", InboundIds: []int{fast.Id, slow.Id},
+		MemberWeights: map[int]float64{fast.Id: 0.2}, SortOrder: 1, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	strategy := balancerStrategy(t, parseSubJsonDocs(t, out), "weighted")
+	settings, _ := strategy["settings"].(map[string]any)
+	costs, _ := settings["costs"].([]any)
+	if len(costs) != 2 {
+		t.Fatalf("costs = %v, want 2 entries:\n%s", costs, out)
+	}
+	first, _ := costs[0].(map[string]any)
+	second, _ := costs[1].(map[string]any)
+	// Anchored regexp is required: xray's plain cost match is substring-based,
+	// so a bare "bal-1-vless" would also hit the deduplicated "bal-1-vless-2".
+	if first["regexp"] != true || first["match"] != "^bal-1-vless$" || first["value"] != 0.2 {
+		t.Fatalf("costs[0] = %v, want regexp ^bal-1-vless$ value=0.2", first)
+	}
+	if second["regexp"] != true || second["match"] != "^bal-1-vless-2$" || second["value"] != 1.0 {
+		t.Fatalf("costs[1] = %v, want regexp ^bal-1-vless-2$ value=1 (default)", second)
+	}
+}
+
+// leastLoad without any configured weight emits no settings at all.
+func TestSubJson_BalancerLeastLoadWithoutWeightsOmitsCosts(t *testing.T) {
+	seedSubDB(t)
+	a := seedSubInbound(t, "s1", "a", 4801, 1, wsTLSStream)
+	b := seedSubInbound(t, "s1", "b", 4802, 2, wsTLSStream)
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "plain", Strategy: "leastLoad", InboundIds: []int{a.Id, b.Id}, SortOrder: 1, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	strategy := balancerStrategy(t, parseSubJsonDocs(t, out), "plain")
+	if _, has := strategy["settings"]; has {
+		t.Fatalf("leastLoad without weights must not emit strategy.settings: %v", strategy["settings"])
+	}
+}
+
+// Emission-side guard independent of validate(): a non-leastLoad row written
+// directly to the DB must still emit no costs — xray would ignore them.
+func TestSubJson_BalancerCostsSkippedForNonLeastLoadStrategy(t *testing.T) {
+	seedSubDB(t)
+	a := seedSubInbound(t, "s1", "a", 4811, 1, wsTLSStream)
+	b := seedSubInbound(t, "s1", "b", 4812, 2, wsTLSStream)
+	seedSubBalancer(t, &model.SubBalancer{
+		Remark: "misconfig", Strategy: "random", InboundIds: []int{a.Id, b.Id},
+		MemberWeights: map[int]float64{a.Id: 0.5}, SortOrder: 1, Enabled: true,
+	})
+
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
+	out, _, err := js.GetJson("s1", "req.example.com", true)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	strategy := balancerStrategy(t, parseSubJsonDocs(t, out), "misconfig")
+	if _, has := strategy["settings"]; has {
+		t.Fatalf("random balancer must never emit costs despite stored weights: %v", strategy)
+	}
 }

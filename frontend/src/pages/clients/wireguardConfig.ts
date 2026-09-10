@@ -13,13 +13,13 @@ export function isWireguardClient(client: ClientRecord | null | undefined): bool
   );
 }
 
-export function findWireguardInbound(
+export function findWireguardInbounds(
   client: ClientRecord | null | undefined,
   inboundsById: Record<number, InboundOption>,
-): InboundOption | undefined {
+): InboundOption[] {
   return (client?.inboundIds || [])
-    .map((id) => inboundsById[id])
-    .find((ib) => ib?.protocol === 'wireguard');
+    .map((id) => inboundsById?.[id])
+    .filter((ib): ib is InboundOption => ib?.protocol === 'wireguard');
 }
 
 export function buildWireguardClientConfig(
@@ -27,13 +27,14 @@ export function buildWireguardClientConfig(
   inbound: InboundOption | undefined,
   host = window.location.hostname,
   publicHost = '',
+  addressOverride = '',
 ): string {
   const endpointHost = resolveShareHost(
     inbound ?? {},
     inbound?.nodeAddress ?? '',
     preferPublicHost(host, publicHost),
   );
-  const address = client.allowedIPs || '10.0.0.2/32';
+  const address = addressOverride || client.allowedIPs || '10.0.0.2/32';
   const endpoint = `${endpointHost}:${inbound?.port || ''}`;
   const inboundName = inbound ? formatInboundLabel(inbound.tag, inbound.remark) : '';
   const remark = [inboundName, client.email, client.comment].filter(Boolean).join(' - ');

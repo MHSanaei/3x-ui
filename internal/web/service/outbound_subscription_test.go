@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"errors"
+	"slices"
 	"testing"
 
 	"gorm.io/gorm"
@@ -166,9 +167,50 @@ func TestAssignStableTags(t *testing.T) {
 
 	t.Run("falls back to the previous tag at the same position", func(t *testing.T) {
 		parsed := []link.Outbound{{"tag": "JP-Tokyo"}}
-		got := assignStableTags(parsed, []string{"id-new"}, map[string]string{}, map[int]string{0: "sub1-oldpos"}, 1, "")
+		prev := map[string]string{"id-gone": "sub1-oldpos"}
+		got := assignStableTags(parsed, []string{"id-new"}, prev, map[int]string{0: "sub1-oldpos"}, 1, "")
 		if got[0] != "sub1-oldpos" {
 			t.Fatalf("got %q, want sub1-oldpos", got[0])
+		}
+	})
+
+	t.Run("does not let an inserted link steal a stable tag", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "Poland"}, {"tag": "NewServer"}, {"tag": "Netherlands"}}
+		prev := map[string]string{
+			"id-poland":      "sub1-poland",
+			"id-netherlands": "sub1-netherlands",
+		}
+		prevTagByIndex := map[int]string{0: "sub1-poland", 1: "sub1-netherlands"}
+
+		got := assignStableTags(parsed, []string{"id-poland", "id-new", "id-netherlands"}, prev, prevTagByIndex, 1, "")
+		want := []string{"sub1-poland", "sub1-newserver", "sub1-netherlands"}
+		if !slices.Equal(got, want) {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("does not let a fresh tag steal a stable tag", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "Netherlands"}, {"tag": "Renamed"}}
+		prev := map[string]string{"id-netherlands": "sub1-netherlands"}
+
+		got := assignStableTags(parsed, []string{"id-new", "id-netherlands"}, prev, nil, 1, "")
+		want := []string{"sub1-netherlands-1", "sub1-netherlands"}
+		if !slices.Equal(got, want) {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("skips reserved tags while adding a suffix", func(t *testing.T) {
+		parsed := []link.Outbound{{"tag": "Netherlands"}, {"tag": "First"}, {"tag": "Second"}}
+		prev := map[string]string{
+			"id-first":  "sub1-netherlands",
+			"id-second": "sub1-netherlands-1",
+		}
+
+		got := assignStableTags(parsed, []string{"id-new", "id-first", "id-second"}, prev, nil, 1, "")
+		want := []string{"sub1-netherlands-2", "sub1-netherlands", "sub1-netherlands-1"}
+		if !slices.Equal(got, want) {
+			t.Fatalf("got %v, want %v", got, want)
 		}
 	})
 

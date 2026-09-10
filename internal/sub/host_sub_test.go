@@ -294,7 +294,7 @@ func TestSub_HostHeaderReachesClashAndJson(t *testing.T) {
 		t.Fatalf("clash ws-opts should carry the host record's path:\n%s", yaml)
 	}
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -336,7 +336,7 @@ func TestSub_HostSockoptJSON(t *testing.T) {
 		InboundId: ib.Id, SortOrder: 0, Remark: "SO", Address: "so.cdn.com", Port: 8443, Security: "tls",
 		SockoptParams: `{"tcpFastOpen":true}`,
 	})
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -354,7 +354,7 @@ func TestSub_HostMuxJSON(t *testing.T) {
 		InboundId: ib.Id, SortOrder: 0, Remark: "MX", Address: "mx.cdn.com", Port: 8443, Security: "tls",
 		MuxParams: `{"enabled":true,"concurrency":8}`,
 	})
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", false)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)
@@ -416,5 +416,29 @@ func TestSub_ExcludeFromSubTypes(t *testing.T) {
 	}
 	if strings.Contains(yaml, "clashless.cdn.com") {
 		t.Fatalf("host excluded from clash must not appear in GetClash:\n%s", yaml)
+	}
+}
+
+// A host that forces plain TLS over a Reality inbound must not leave the
+// Reality identity behind: pbk/sid/spx and the Reality dest sni describe a
+// handshake the endpoint no longer performs.
+func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
+	seedSubDB(t)
+	reality := `{"network":"tcp","security":"reality","realitySettings":{"serverNames":["master-dest.example.com"],"publicKey":"MASTERPBK","shortIds":["ab12"],"fingerprint":"chrome"}}`
+	ib := seedSubInbound(t, "s1", "reality-in", 4461, 1, reality)
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "edge.example.com", Port: 443, Security: "tls"})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "security=tls") {
+		t.Fatalf("host forces tls, link must say so: %s", joined)
+	}
+	for _, leaked := range []string{"pbk=", "sid=", "spx=", "sni=master-dest.example.com"} {
+		if strings.Contains(joined, leaked) {
+			t.Fatalf("reality parameter %q survived a tls host override: %s", leaked, joined)
+		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"sync"
 	"testing"
 	"time"
 
@@ -285,6 +286,10 @@ func TestPortForwardRoundTripTCPAndUDP(t *testing.T) {
 	}
 	clientDev := device.NewDevice(clientTun, awgconn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
 	defer clientDev.Close()
+	// clientDev.Close() closes the tun's packet channel without waiting for
+	// writers, so every goroutine writing into clientNet must be gone first.
+	var clientSvc sync.WaitGroup
+	defer clientSvc.Wait()
 
 	clientPrivHex, err := wireguard.KeyToHex(clientPriv)
 	if err != nil {
@@ -338,13 +343,16 @@ primed:
 		t.Fatalf("client ListenTCP: %v", err)
 	}
 	defer tcpSvc.Close()
+	clientSvc.Add(1)
 	go func() {
+		defer clientSvc.Done()
 		for {
 			c, err := tcpSvc.Accept()
 			if err != nil {
 				return
 			}
-			go func() { io.Copy(c, c); c.Close() }()
+			clientSvc.Add(1)
+			go func() { defer clientSvc.Done(); io.Copy(c, c); c.Close() }()
 		}
 	}()
 
@@ -353,7 +361,9 @@ primed:
 		t.Fatalf("client ListenUDP: %v", err)
 	}
 	defer udpSvc.Close()
+	clientSvc.Add(1)
 	go func() {
+		defer clientSvc.Done()
 		buf := make([]byte, 1500)
 		for {
 			n, addr, err := udpSvc.ReadFrom(buf)

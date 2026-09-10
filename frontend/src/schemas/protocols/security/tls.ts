@@ -52,11 +52,36 @@ export const TlsCertInlineSchema = z.object({
   usage: TlsCertUsageSchema.default('encipherment'),
   buildChain: z.boolean().default(false),
 });
-export const TlsCertSchema = z.union([TlsCertFileSchema, TlsCertInlineSchema]);
+export const TlsCertSchema = z.union([
+  TlsCertFileSchema,
+  TlsCertInlineSchema,
+  // Verification CAs contain only public certificates. Their omitted private
+  // keys must survive reading a saved inbound for details and share links.
+  TlsCertFileSchema.extend({ usage: z.literal('verify'), keyFile: z.string().optional() }),
+  TlsCertInlineSchema.extend({ usage: z.literal('verify'), key: z.array(z.string()).optional() }),
+]);
 export type TlsCert = z.infer<typeof TlsCertSchema>;
 
+// A stored certificate predates the panel's `useFile` toggle when the boolean is
+// absent; infer the editor mode from whichever half of the credential is filled.
+export function tlsCertUsesFiles(cert: {
+  useFile?: unknown;
+  certificateFile?: unknown;
+  keyFile?: unknown;
+  certificate?: unknown;
+  key?: unknown;
+}): boolean {
+  if (typeof cert.useFile === 'boolean') return cert.useFile;
+  const hasInline =
+    (Array.isArray(cert.certificate) && cert.certificate.length > 0) ||
+    (Array.isArray(cert.key) && cert.key.length > 0);
+  return !!cert.certificateFile || !!cert.keyFile || !hasInline;
+}
+
 export const TlsClientSettingsSchema = z.object({
-  fingerprint: TlsFingerprintSchema.default('chrome'),
+  // '' = None. Hysteria rejects uTLS fingerprints, and a chrome default
+  // silently flipped the form's None back to chrome on every save.
+  fingerprint: TlsFingerprintSchema.default(''),
   echConfigList: z.string().default(''),
   pinnedPeerCertSha256: z.array(z.string()).default([]),
   // Panel-only client directive (v2rayN `vcn`): verify the server certificate
@@ -87,7 +112,7 @@ export const TlsStreamSettingsSchema = z.object({
   masterKeyLog: z.string().optional(),
   echSockopt: SockoptStreamSettingsSchema.optional(),
   settings: TlsClientSettingsSchema.default({
-    fingerprint: 'chrome',
+    fingerprint: '',
     echConfigList: '',
     pinnedPeerCertSha256: [],
     verifyPeerCertByName: '',

@@ -994,6 +994,36 @@ function UdpMaskItem({
                     placeholder="host:port"
                   />
                 </Form.Item>
+                <Form.Item label="IP Mode" name={[fieldName, 'settings', 'ipMode']}>
+                  <Select
+                    allowClear
+                    placeholder="dual"
+                    options={[
+                      { value: 'dual', label: 'Dual' },
+                      { value: 'v4', label: 'IPv4' },
+                      { value: 'v6', label: 'IPv6' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="Port Mapping (UPnP / NAT-PMP)"
+                  name={[fieldName, 'settings', 'portMapping', 'enabled']}
+                  valuePropName="checked"
+                >
+                  <Switch />
+                </Form.Item>
+                <Form.Item
+                  label="Mapping Timeout (s)"
+                  name={[fieldName, 'settings', 'portMapping', 'timeout']}
+                >
+                  <InputNumber min={0} placeholder="10 = default" />
+                </Form.Item>
+                <Form.Item
+                  label="Mapping Lifetime (s)"
+                  name={[fieldName, 'settings', 'portMapping', 'lifetime']}
+                >
+                  <InputNumber min={0} placeholder="600 = default" />
+                </Form.Item>
                 <Divider plain style={{ margin: '8px 0' }}>
                   TLS (optional)
                 </Divider>
@@ -1443,6 +1473,13 @@ function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormI
           <Form.Item label="Brutal Down" name={[...base, 'brutalDown']}>
             <Input placeholder="e.g. 100 mbps" />
           </Form.Item>
+          <Form.Item
+            label="Brutal Disable Loss Comp"
+            name={[...base, 'brutalDisableLossCompensation']}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
         </>
       )}
 
@@ -1474,6 +1511,23 @@ function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormI
       <Form.Item
         label="Disable Path MTU Dis"
         name={[...base, 'disablePathMTUDiscovery']}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      <Form.Item
+        label="Disable Chrome Parrot"
+        name={[...base, 'disableChromeParrot']}
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+      <Form.Item label="Disable GSO" name={[...base, 'disableGSO']} valuePropName="checked">
+        <Switch />
+      </Form.Item>
+      <Form.Item
+        label="Disable Stateless Reset"
+        name={[...base, 'disableStatelessReset']}
         valuePropName="checked"
       >
         <Switch />

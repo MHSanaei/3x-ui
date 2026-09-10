@@ -181,6 +181,13 @@ export default function RuleCardList({
                 ))}
               </div>
             )}
+            {rule.comment && (
+              <Tooltip title={rule.comment}>
+                <div className="rule-comment">
+                  <span className="rule-comment-text">{rule.comment}</span>
+                </div>
+              </Tooltip>
+            )}
           </div>
         ))
       )}

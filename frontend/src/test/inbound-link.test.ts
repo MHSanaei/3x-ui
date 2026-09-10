@@ -233,6 +233,37 @@ describe('genHysteriaLink', () => {
     expect(link.endsWith('#hop-test')).toBe(true);
   });
 
+  it('emits mport from the udphop mask xray-core 26.9.9 moved hopping to', () => {
+    const [, raw] = fixtures[0];
+    const withHop = {
+      ...raw,
+      settings: { ...(raw.settings as Record<string, unknown>), version: 2 },
+      streamSettings: {
+        ...(raw.streamSettings as Record<string, unknown>),
+        finalmask: {
+          udp: [
+            {
+              type: 'udphop',
+              settings: { mode: 'intervalremote', interval: '5-10', remotePorts: '30000-40000' },
+            },
+          ],
+        },
+      },
+    };
+    const typed = InboundSchema.parse(withHop);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      remark: 'hop-mask',
+      clientAuth: client.auth,
+    });
+
+    expect(link).toContain('mport=30000-40000');
+  });
+
   it('normalizes pinSHA256 to hex for base64, raw-hex and colon-hex pins (issue #4818)', () => {
     const [, raw] = fixtures[0];
     const base64Pin = 'yEfdI5XQl4wHgLggHEsomosoFZfUfCdfLXfT+W2N6cQ=';

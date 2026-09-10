@@ -36,3 +36,32 @@ func TestValidateRemoteRoutingURLSettings(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateSubJsonRoutingRulesSetting(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     string
+		want      string
+		wantError string
+	}{
+		{name: "remote URL is canonicalised", value: " https://example.com/DEFAULT.JSON#frag ", want: "https://example.com/DEFAULT.JSON"},
+		{name: "remote URL with credentials is rejected", value: "https://user:pw@example.com/DEFAULT.JSON", wantError: "JSON subscription routing source"},
+		{name: "inline JSON passes through", value: "{\"DirectSites\":[\"geosite:cat\"]}", want: "{\"DirectSites\":[\"geosite:cat\"]}"},
+		{name: "blank stays blank", value: "", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			settings := &entity.AllSetting{SubJsonRoutingRules: tt.value}
+			err := validateSettingsURLs(settings)
+			if tt.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantError) {
+					t.Fatalf("err=%v, want %q", err, tt.wantError)
+				}
+				return
+			}
+			if err != nil || settings.SubJsonRoutingRules != tt.want {
+				t.Fatalf("value=%q err=%v", settings.SubJsonRoutingRules, err)
+			}
+		})
+	}
+}

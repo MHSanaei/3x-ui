@@ -1,5 +1,7 @@
 package service
 
+import "strings"
+
 // sqliteMaxVars is a safe ceiling for the number of bind parameters in a
 // single SQL statement. SQLite's SQLITE_MAX_VARIABLE_NUMBER is 999 on builds
 // before 3.32 and 32766 after; staying under 999 keeps queries portable
@@ -36,6 +38,16 @@ func uniqueNonEmptyStrings(in []string) []string {
 		out = append(out, v)
 	}
 	return out
+}
+
+// trimmedUniqueEmails trims each address before deduplicating, so the bulk
+// client operations treat " a@x " and "a@x" as the same row.
+func trimmedUniqueEmails(in []string) []string {
+	trimmed := make([]string, 0, len(in))
+	for _, e := range in {
+		trimmed = append(trimmed, strings.TrimSpace(e))
+	}
+	return uniqueNonEmptyStrings(trimmed)
 }
 
 // uniqueInts returns a deduplicated copy of in, preserving order of first occurrence.
