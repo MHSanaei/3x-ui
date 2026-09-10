@@ -379,6 +379,9 @@ func normalizeHappRouting(body []byte) (string, error) {
 		}
 		return "happ://routing/onadd/" + base64.StdEncoding.EncodeToString(compact), nil
 	}
+	if text == "happ://routing/off" {
+		return text, nil
+	}
 	if strings.ContainsAny(text, "\r\n") {
 		return "", errors.New("Happ deeplink must be a single line")
 	}

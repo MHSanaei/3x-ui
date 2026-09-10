@@ -217,6 +217,79 @@
           "subEncrypt": {
             "type": "boolean"
           },
+          "subExpiredTemplate": {
+            "type": "string"
+          },
+          "subHappAlwaysHwid": {
+            "type": "boolean"
+          },
+          "subHappAutoConnect": {
+            "type": "boolean"
+          },
+          "subHappAutoConnectType": {
+            "type": "string"
+          },
+          "subHappAutoDetect": {
+            "description": "Happ client customization settings (app-management / routing / UX).",
+            "type": "boolean"
+          },
+          "subHappColorProfile": {
+            "type": "string"
+          },
+          "subHappExcludeApns": {
+            "type": "boolean"
+          },
+          "subHappExcludeRoutes": {
+            "type": "string"
+          },
+          "subHappFallbackUrl": {
+            "type": "string"
+          },
+          "subHappNewUrl": {
+            "type": "string"
+          },
+          "subHappNoLimit": {
+            "type": "boolean"
+          },
+          "subHappNotificationExpire": {
+            "type": "boolean"
+          },
+          "subHappPerAppList": {
+            "type": "string"
+          },
+          "subHappPerAppMode": {
+            "type": "string"
+          },
+          "subHappPingType": {
+            "type": "string"
+          },
+          "subHappProviderId": {
+            "type": "string"
+          },
+          "subHappSubExpire": {
+            "type": "boolean"
+          },
+          "subHappSubExpireButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonText": {
+            "type": "string"
+          },
+          "subHappSubInfoColor": {
+            "type": "string"
+          },
+          "subHappSubInfoText": {
+            "type": "string"
+          },
+          "subHappTunMode": {
+            "type": "string"
+          },
+          "subHappTunType": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -225,6 +298,9 @@
           },
           "subIncyRoutingRules": {
             "type": "string"
+          },
+          "subInfoNodeEnable": {
+            "type": "boolean"
           },
           "subJsonAlwaysArray": {
             "type": "boolean"
@@ -289,6 +365,9 @@
             "type": "string"
           },
           "subTitle": {
+            "type": "string"
+          },
+          "subTrafficDepletedTemplate": {
             "type": "string"
           },
           "subURI": {
@@ -436,9 +515,34 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredTemplate",
+          "subHappAlwaysHwid",
+          "subHappAutoConnect",
+          "subHappAutoConnectType",
+          "subHappAutoDetect",
+          "subHappColorProfile",
+          "subHappExcludeApns",
+          "subHappExcludeRoutes",
+          "subHappFallbackUrl",
+          "subHappNewUrl",
+          "subHappNoLimit",
+          "subHappNotificationExpire",
+          "subHappPerAppList",
+          "subHappPerAppMode",
+          "subHappPingType",
+          "subHappProviderId",
+          "subHappSubExpire",
+          "subHappSubExpireButtonLink",
+          "subHappSubInfoButtonLink",
+          "subHappSubInfoButtonText",
+          "subHappSubInfoColor",
+          "subHappSubInfoText",
+          "subHappTunMode",
+          "subHappTunType",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -460,6 +564,7 @@
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
+          "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
           "tgBotAPIServer",
@@ -700,6 +805,79 @@
           "subEncrypt": {
             "type": "boolean"
           },
+          "subExpiredTemplate": {
+            "type": "string"
+          },
+          "subHappAlwaysHwid": {
+            "type": "boolean"
+          },
+          "subHappAutoConnect": {
+            "type": "boolean"
+          },
+          "subHappAutoConnectType": {
+            "type": "string"
+          },
+          "subHappAutoDetect": {
+            "description": "Happ client customization settings (app-management / routing / UX).",
+            "type": "boolean"
+          },
+          "subHappColorProfile": {
+            "type": "string"
+          },
+          "subHappExcludeApns": {
+            "type": "boolean"
+          },
+          "subHappExcludeRoutes": {
+            "type": "string"
+          },
+          "subHappFallbackUrl": {
+            "type": "string"
+          },
+          "subHappNewUrl": {
+            "type": "string"
+          },
+          "subHappNoLimit": {
+            "type": "boolean"
+          },
+          "subHappNotificationExpire": {
+            "type": "boolean"
+          },
+          "subHappPerAppList": {
+            "type": "string"
+          },
+          "subHappPerAppMode": {
+            "type": "string"
+          },
+          "subHappPingType": {
+            "type": "string"
+          },
+          "subHappProviderId": {
+            "type": "string"
+          },
+          "subHappSubExpire": {
+            "type": "boolean"
+          },
+          "subHappSubExpireButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonText": {
+            "type": "string"
+          },
+          "subHappSubInfoColor": {
+            "type": "string"
+          },
+          "subHappSubInfoText": {
+            "type": "string"
+          },
+          "subHappTunMode": {
+            "type": "string"
+          },
+          "subHappTunType": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -708,6 +886,9 @@
           },
           "subIncyRoutingRules": {
             "type": "string"
+          },
+          "subInfoNodeEnable": {
+            "type": "boolean"
           },
           "subJsonAlwaysArray": {
             "type": "boolean"
@@ -772,6 +953,9 @@
             "type": "string"
           },
           "subTitle": {
+            "type": "string"
+          },
+          "subTrafficDepletedTemplate": {
             "type": "string"
           },
           "subURI": {
@@ -926,9 +1110,34 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredTemplate",
+          "subHappAlwaysHwid",
+          "subHappAutoConnect",
+          "subHappAutoConnectType",
+          "subHappAutoDetect",
+          "subHappColorProfile",
+          "subHappExcludeApns",
+          "subHappExcludeRoutes",
+          "subHappFallbackUrl",
+          "subHappNewUrl",
+          "subHappNoLimit",
+          "subHappNotificationExpire",
+          "subHappPerAppList",
+          "subHappPerAppMode",
+          "subHappPingType",
+          "subHappProviderId",
+          "subHappSubExpire",
+          "subHappSubExpireButtonLink",
+          "subHappSubInfoButtonLink",
+          "subHappSubInfoButtonText",
+          "subHappSubInfoColor",
+          "subHappSubInfoText",
+          "subHappTunMode",
+          "subHappTunType",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -950,6 +1159,7 @@
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
+          "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
           "tgBotAPIServer",
@@ -4348,7 +4558,13 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "type": "array",
+                      "nullable": true,
+                      "items": {
+                        "type": "string"
+                      }
+                    }
                   }
                 },
                 "example": {
@@ -6407,6 +6623,7 @@
                     },
                     "obj": {
                       "type": "array",
+                      "nullable": true,
                       "items": {
                         "type": "string"
                       }
@@ -6488,6 +6705,7 @@
                     },
                     "obj": {
                       "type": "array",
+                      "nullable": true,
                       "items": {
                         "$ref": "#/components/schemas/LogEntry"
                       }
@@ -7599,6 +7817,7 @@
         ],
         "summary": "Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).",
         "operationId": "post_panel_api_clients_update_email",
+        "description": "The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have applied the edit to the remaining inbounds. The client record is written after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the inbound edits in place.",
         "parameters": [
           {
             "name": "email",
@@ -7662,6 +7881,7 @@
         ],
         "summary": "Delete a client by email. Removes it from every attached inbound and drops its traffic record unless keepTraffic=1 is passed.",
         "operationId": "post_panel_api_clients_del_email",
+        "description": "The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have removed the client from the remaining inbounds; the client record is kept in that case, so re-running the call retries exactly the leftovers. The record and traffic rows are dropped after the inbounds, so a failure there is reported without an `inbound <id>:` prefix and leaves the client already removed from every inbound.",
         "parameters": [
           {
             "name": "email",
@@ -7789,6 +8009,7 @@
         ],
         "summary": "Detach a client from one or more inbounds without deleting the client.",
         "operationId": "post_panel_api_clients_email_detach",
+        "description": "The inbounds are applied concurrently and independently: one that fails no longer stops the others. Every inbound error names the inbound it came from (`inbound 7: <message>`), and several failures are reported together, one per line. So a `success:false` response can still have detached the remaining inbounds. Detach writes nothing beyond the inbounds, so every error carries the prefix.",
         "parameters": [
           {
             "name": "email",
@@ -8153,7 +8374,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). Returns the adjusted count and per-email skip reasons.",
+        "summary": "Shift expiry and/or traffic quota for many clients in one call. addDays/addBytes may be negative. Clients with unlimited expiry (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the corresponding field — bulk extend never converts unlimited to limited. A client that was auto-disabled solely because it was depleted (expired or over quota) is automatically re-enabled — locally and on its node — when the adjustment lifts it out of depletion; a manually-disabled or still-depleted client is left disabled. The optional flow directive sets the XTLS flow on every client: \"none\" clears it, \"xtls-rprx-vision\"/\"xtls-rprx-vision-udp443\" set it where the inbound supports it (omit or \"\" to leave it unchanged). The optional limitHwid sets maximum registered devices (0 = unlimited). The optional adTag sets MTProto Telegram sponsor channel (\"none\" clears). Returns the adjusted count and per-email skip reasons.",
         "operationId": "post_panel_api_clients_bulkAdjust",
         "requestBody": {
           "required": true,
@@ -8169,7 +8390,9 @@
                 ],
                 "addDays": 30,
                 "addBytes": 53687091200,
-                "flow": "xtls-rprx-vision"
+                "flow": "xtls-rprx-vision",
+                "limitHwid": 2,
+                "adTag": "0123456789abcdef0123456789abcdef"
               }
             }
           }
@@ -9710,7 +9933,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Return every URL for one client across all attached inbounds — the same strings the Copy URL button copies in the panel UI. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria. If streamSettings.externalProxy is set, returns one URL per external proxy. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.",
+        "summary": "Return every URL for one client across all attached inbounds, one per advertised endpoint: the managed hosts of the inbound, else its streamSettings.externalProxy entries, else its own address. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.",
         "operationId": "get_panel_api_clients_links_email",
         "parameters": [
           {
