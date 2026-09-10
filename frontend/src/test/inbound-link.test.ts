@@ -5,6 +5,7 @@ import {
   amneziawgConfigFromLink,
   genAmneziaWGConfig,
   genAmneziaWGLink,
+  genAllLinks,
   genHysteriaLink,
   genInboundLinks,
   genShadowsocksLink,
@@ -1172,5 +1173,69 @@ describe('genTuicLink', () => {
     expect(link).toContain('alpn=h3%2Cspdy%2F3.1');
     expect(link).toContain('udp_relay_mode=native');
     expect(link).toContain('allow_insecure=0');
+  });
+
+  it('applies externalProxy overrides (sni, alpn, allow_insecure) and does not duplicate remark', () => {
+    const inbound = InboundSchema.parse({
+      id: 3,
+      tag: 'tuic-ep-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        server: {
+          certificate: '/etc/cert.pem',
+          private_key: '/etc/key.pem',
+          congestion_control: 'bbr',
+          alpn: ['h3'],
+          sni: 'default.example.com',
+        },
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+      streamSettings: {
+        externalProxy: [
+          {
+            dest: 'host-us.example.com',
+            port: 9443,
+            remark: 'US',
+            sni: 'override.example.com',
+            alpn: ['h3', 'h2'],
+            allowInsecure: true,
+          },
+        ],
+      },
+    });
+
+    const entries = genAllLinks({
+      inbound,
+      remark: 'TUIC-Node',
+      client: {
+        uuid: '11111111-2222-3333-4444-555555555555',
+        password: 'secretpassword',
+        email: 'user@tuic',
+      },
+      fallbackHostname: 'panel.example.com',
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].remark).toBe('TUIC-Node-US');
+
+    const link = entries[0].link;
+    expect(link).toContain(
+      'tuic://11111111-2222-3333-4444-555555555555:secretpassword@host-us.example.com:9443',
+    );
+    expect(link).toContain('sni=override.example.com');
+    expect(link).toContain('alpn=h3%2Ch2');
+    expect(link).toContain('allow_insecure=1');
+    expect(link).toContain('#TUIC-Node-US');
+    expect(link).not.toContain('#TUIC-Node-US-US');
   });
 });

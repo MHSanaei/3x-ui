@@ -90,11 +90,7 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		if !ok {
 			return nil
 		}
-		err := tuic.GetManager().Ensure(inst)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
-		}
-		return err
+		return tuic.GetManager().Ensure(inst)
 	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
@@ -122,9 +118,6 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	}
 	if ib.Protocol == model.TUIC {
 		tuic.GetManager().Remove(ib.Id)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
-		}
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {

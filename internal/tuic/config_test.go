@@ -58,8 +58,8 @@ func TestGenerateConfigLogLevel(t *testing.T) {
 		expected string
 	}{
 		{"info", "info"},
-		{"warn", "info"},
-		{"error", "info"},
+		{"warn", "warn"},
+		{"error", "error"},
 		{"", "info"},
 		{"debug", "debug"},
 		{"trace", "trace"},

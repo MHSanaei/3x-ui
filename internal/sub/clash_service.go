@@ -543,6 +543,15 @@ func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbo
 	if inst.SNI != "" {
 		proxy["sni"] = inst.SNI
 	}
+	if sni, ok := externalProxySNI(ep); ok {
+		proxy["sni"] = sni
+	}
+	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+		proxy["alpn"] = strings.Split(alpn, ",")
+	}
+	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+		proxy["skip-cert-verify"] = true
+	}
 	return proxy
 }
 

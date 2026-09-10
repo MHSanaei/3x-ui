@@ -42,7 +42,7 @@ func GenerateConfig(inst Instance) ([]byte, error) {
 	}
 
 	logLevel := inst.LogLevel
-	if logLevel != "trace" && logLevel != "debug" {
+	if logLevel == "" {
 		logLevel = "info"
 	}
 

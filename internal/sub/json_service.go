@@ -649,7 +649,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 				continue
 			}
 			newOutbounds = append(newOutbounds, wgOutbound)
-		case "amneziawg":
+		case "amneziawg", "tuic":
 			continue
 		}
 

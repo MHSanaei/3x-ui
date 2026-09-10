@@ -2,6 +2,7 @@ package sub
 
 import (
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -137,3 +138,54 @@ func TestGenTuicLinkExternalProxyFanOut(t *testing.T) {
 		t.Fatalf("second link should not have allowInsecure")
 	}
 }
+
+func TestBuildTuicProxy_ExternalProxyOverrides(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{address: "sub.example.com"}}
+	inbound := &model.Inbound{
+		Listen:   "198.51.100.1",
+		Port:     8443,
+		Protocol: model.TUIC,
+		Remark:   "tuic-base",
+		Settings: `{"server":{"certificate":"/path/cert","private_key":"/path/key","sni":"base.example.com","alpn":["h3"]},"clients":[{"uuid":"11111111-1111-1111-1111-111111111111","password":"testpassword","email":"user@test"}]}`,
+	}
+	client := model.Client{Email: "user@test"}
+
+	// 1. Without overrides from ep
+	baseProxy := svc.buildTuicProxy(svc.SubService, inbound, client, nil)
+	if baseProxy == nil {
+		t.Fatal("baseProxy is nil")
+	}
+	if baseProxy["sni"] != "base.example.com" {
+		t.Fatalf("base sni = %v, want base.example.com", baseProxy["sni"])
+	}
+	if !reflect.DeepEqual(baseProxy["alpn"], []string{"h3"}) {
+		t.Fatalf("base alpn = %v, want [h3]", baseProxy["alpn"])
+	}
+	if _, ok := baseProxy["skip-cert-verify"]; ok {
+		t.Fatalf("base skip-cert-verify should not be set")
+	}
+
+	// 2. With overrides from ep
+	ep := map[string]any{
+		"dest":          "custom.example.com",
+		"port":          float64(9443),
+		"remark":        "custom-node",
+		"sni":           "custom.sni.com",
+		"alpn":          "h3,spdy/3.1",
+		"allowInsecure": true,
+	}
+	proxy := svc.buildTuicProxy(svc.SubService, inbound, client, ep)
+	if proxy == nil {
+		t.Fatal("proxy is nil")
+	}
+	if proxy["sni"] != "custom.sni.com" {
+		t.Fatalf("sni = %v, want custom.sni.com", proxy["sni"])
+	}
+	if !reflect.DeepEqual(proxy["alpn"], []string{"h3", "spdy/3.1"}) {
+		t.Fatalf("alpn = %v, want [h3 spdy/3.1]", proxy["alpn"])
+	}
+	if proxy["skip-cert-verify"] != true {
+		t.Fatalf("skip-cert-verify = %v, want true", proxy["skip-cert-verify"])
+	}
+}
+

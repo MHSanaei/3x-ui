@@ -20,6 +20,7 @@ export type HostLinkInput = Pick<
   | 'overrideSniFromAddress'
   | 'keepSniBlank'
   | 'vlessRoute'
+  | 'allowInsecure'
 >;
 
 // hostToExternalProxyEntry projects a host onto the ExternalProxyEntry shape the
@@ -54,6 +55,7 @@ export function hostToExternalProxyEntry(host: HostLinkInput): ExternalProxyEntr
     verifyPeerCertByName: host.verifyPeerCertByName || undefined,
     echConfigList: host.echConfigList || undefined,
     vlessRoute: host.vlessRoute || undefined,
+    allowInsecure: host.allowInsecure || undefined,
   };
 }
 
