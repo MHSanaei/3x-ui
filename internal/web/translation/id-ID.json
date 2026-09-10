@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "Setiap klien yang dipilih dihapus dari semua inbound terlampir dan catatan lalu lintasnya dihapus. Tidak dapat dibatalkan.",
       "bulkAdjustTitle": "Sesuaikan {count} klien",
       "bulkAdjustHint": "Nilai positif menambah, negatif mengurangi. Klien dengan masa berlaku atau trafik tak terbatas dilewati untuk bidang tersebut.",
-      "bulkAdjustNothing": "Setel hari atau trafik sebelum menerapkan.",
+      "bulkAdjustNothing": "Setel setidaknya satu bidang sebelum menerapkan.",
       "addDays": "Tambah hari",
       "addTrafficGB": "Tambah trafik (GB)",
       "bulkFlow": "Atur flow",
@@ -912,7 +912,8 @@
       "renewMaxDesc": "Berapa kali perpanjangan otomatis boleh berjalan sebelum klien dibiarkan kedaluwarsa. 0 berarti tanpa batas. Mengejar beberapa periode yang terlewat menghabiskan satu perpanjangan per periode.",
       "renewOnDay": "Perpanjang pada tanggal",
       "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
-      "renewsUsed": "Perpanjangan terpakai"
+      "renewsUsed": "Perpanjangan terpakai",
+      "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto."
     },
     "groups": {
       "name": "Nama",

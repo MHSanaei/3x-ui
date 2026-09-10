@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "Seçili her kullanıcı bağlı tüm gelen bağlantılarndan kaldırılır ve trafik kaydı silinir. Geri alınamaz.",
       "bulkAdjustTitle": "{count} Kullanıcıyı Ayarla",
       "bulkAdjustHint": "Pozitif değerler ekler, negatif değerler azaltır. Sınırsız süreli veya trafikli kullanıcılar ilgili alan için atlanır.",
-      "bulkAdjustNothing": "Uygulamadan önce gün veya trafik belirleyin.",
+      "bulkAdjustNothing": "Uygulamadan önce en az bir alan belirleyin.",
       "addDays": "Gün Ekle",
       "addTrafficGB": "Trafik Ekle (GB)",
       "bulkFlow": "Flow ayarla",
@@ -912,7 +912,8 @@
       "renewMaxDesc": "İstemcinin süresi dolmaya bırakılmadan önce otomatik yenilemenin kaç kez çalışabileceği. 0 sınırsız demektir. Kaçırılan birden fazla dönemi telafi etmek, dönem başına bir yenileme harcar.",
       "renewOnDay": "Yenileme günü",
       "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur.",
-      "renewsUsed": "Kullanılan yenileme"
+      "renewsUsed": "Kullanılan yenileme",
+      "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın."
     },
     "groups": {
       "name": "İsim",

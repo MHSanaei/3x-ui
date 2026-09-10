@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "Each selected client is removed from every attached inbound and its traffic record is dropped. This cannot be undone.",
       "bulkAdjustTitle": "Adjust {count} clients",
       "bulkAdjustHint": "Positive values extend, negative values reduce. Clients with unlimited expiry or traffic are skipped for that field.",
-      "bulkAdjustNothing": "Set days, traffic, or flow before applying.",
+      "bulkAdjustNothing": "Set at least one field before applying.",
       "addDays": "Add days",
       "addTrafficGB": "Add traffic (GB)",
       "bulkFlow": "Set flow",
@@ -912,7 +912,8 @@
       "renewMaxDesc": "How many times auto-renew may fire before the client is left to expire. 0 means no limit. Catching up several missed periods spends one renewal per period.",
       "renewOnDay": "Renew on day",
       "renewOnDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode.",
-      "renewsUsed": "Renewals used"
+      "renewsUsed": "Renewals used",
+      "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds."
     },
     "groups": {
       "name": "Name",

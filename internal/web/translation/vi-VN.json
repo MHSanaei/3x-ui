@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "Mỗi khách hàng được chọn sẽ bị gỡ khỏi tất cả inbound đã gắn và bản ghi lưu lượng cũng bị xóa. Không thể hoàn tác.",
       "bulkAdjustTitle": "Điều chỉnh {count} khách hàng",
       "bulkAdjustHint": "Giá trị dương kéo dài, giá trị âm rút ngắn. Khách hàng có hạn hoặc lưu lượng không giới hạn sẽ bị bỏ qua cho trường đó.",
-      "bulkAdjustNothing": "Đặt số ngày hoặc lưu lượng trước khi áp dụng.",
+      "bulkAdjustNothing": "Đặt ít nhất một trường trước khi áp dụng.",
       "addDays": "Thêm ngày",
       "addTrafficGB": "Thêm lưu lượng (GB)",
       "bulkFlow": "Đặt flow",
@@ -912,7 +912,8 @@
       "renewMaxDesc": "Gia hạn tự động được phép chạy bao nhiêu lần trước khi để khách hàng hết hạn. 0 nghĩa là không giới hạn. Bù lại nhiều kỳ đã bỏ lỡ sẽ tiêu tốn một lần gia hạn cho mỗi kỳ.",
       "renewOnDay": "Gia hạn vào ngày",
       "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng. 0 giữ nguyên chế độ khoảng cách theo ngày.",
-      "renewsUsed": "Số lần gia hạn đã dùng"
+      "renewsUsed": "Số lần gia hạn đã dùng",
+      "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto."
     },
     "groups": {
       "name": "Tên",
