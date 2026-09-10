@@ -622,11 +622,13 @@ export interface InboundOption {
   id: number;
   listen?: string;
   mtprotoDomain?: string;
+  network?: string;
   nodeAddress?: string;
   nodeId?: number | null;
   port: number;
   protocol: string;
   remark: string;
+  security?: string;
   shareAddr?: string;
   shareAddrStrategy?: string;
   ssMethod: string;
