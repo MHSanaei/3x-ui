@@ -287,8 +287,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // fleet load, skip expensive jobs when no WebSocket clients are connected or
 // node/xray state is unchanged, and export per-job duration/skipped/error
 // counters.
-const cadenceRealityShortIDRotation = "@hourly"
-
 const (
 	cadenceXrayRunning   = "@every 1s"
 	cadenceXrayRestart   = "@every 30s"
@@ -303,6 +301,9 @@ const (
 	cadenceRemoteRouting = "@every 5m"
 	cadenceXrayLogPrune  = "@every 10m"
 	cadenceCheckHash     = "@every 2m"
+
+	cadenceRealityShortIDRotation = "@hourly"
+
 	// cpu.Percent samples over a full minute (blocking), so a finer cadence just
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
 	cadenceCPUAlarm    = "@every 1m"

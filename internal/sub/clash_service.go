@@ -1083,10 +1083,6 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 	}
 }
 
-func (s *SubClashService) streamData(stream string) map[string]any {
-	return s.streamDataWithActiveRealityIDs(stream, 0)
-}
-
 func (s *SubClashService) streamDataWithActiveRealityIDs(stream string, activeCount int) map[string]any {
 	var streamSettings map[string]any
 	_ = json.Unmarshal([]byte(stream), &streamSettings)

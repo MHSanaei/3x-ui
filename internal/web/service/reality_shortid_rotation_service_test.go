@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"slices"
 	"testing"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"gorm.io/gorm"
 )
 
 type capturingInboundRuntime struct {
@@ -418,5 +421,66 @@ func TestProcessRealityShortIDRotations_DispatchesToNodeRuntime(t *testing.T) {
 		t.Fatalf("NodeSyncState: %v", err)
 	} else if !dirty {
 		t.Fatal("node rotation must mark config dirty for durable reconciliation")
+	}
+}
+
+func TestProcessRealityShortIDRotations_RolledBackRotationIsNotReported(t *testing.T) {
+	setupConflictDB(t)
+	previousManager := runtime.GetManager()
+	manager := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }})
+	fake := &fakeNodeRuntime{}
+	manager.SetLocalRuntimeOverride(fake)
+	runtime.SetManager(manager)
+	t.Cleanup(func() { runtime.SetManager(previousManager) })
+
+	now := time.Date(2026, time.August, 30, 12, 0, 0, 0, time.UTC)
+	inbound := &model.Inbound{
+		UserId:                          1,
+		Tag:                             "reality-rotation-rollback",
+		Enable:                          true,
+		Port:                            44306,
+		Protocol:                        model.VLESS,
+		Settings:                        `{"clients":[]}`,
+		StreamSettings:                  realityRotationStream,
+		RealityShortIdsRotationEnabled:  true,
+		RealityShortIdsRotationDays:     7,
+		RealityShortIdsGraceHours:       24,
+		RealityShortIdsActiveCount:      4,
+		RealityShortIdsNextRotationTime: now.Add(-time.Minute).UnixMilli(),
+	}
+	if err := database.GetDB().Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+
+	// Stand in for the storage failures the writer really meets (busy database,
+	// serialization conflict): the rotation is computed, then the commit fails.
+	const failUpdates = "test:reality_rotation_update_failure"
+	db := database.GetDB()
+	if err := db.Callback().Update().Before("gorm:update").Register(failUpdates, func(d *gorm.DB) {
+		if d.Statement != nil && d.Statement.Table == "inbounds" {
+			d.AddError(errors.New("simulated inbound write failure"))
+		}
+	}); err != nil {
+		t.Fatalf("register failing callback: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Update().Remove(failUpdates) })
+
+	result, err := (&InboundService{}).ProcessRealityShortIDRotations(now)
+	if err == nil {
+		t.Fatal("ProcessRealityShortIDRotations returned nil error for a failed commit")
+	}
+	if result.Rotated != 0 || result.Retired != 0 || result.Initialized != 0 {
+		t.Fatalf("rolled-back rotation was reported as applied: %+v", result)
+	}
+	if got := fake.updateInbound.Load(); got != 0 {
+		t.Fatalf("runtime UpdateInbound calls = %d, want 0 for a rolled-back rotation", got)
+	}
+
+	stored, err := (&InboundService{}).GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	if got := shortIDsFromStream(t, stored.StreamSettings); !slices.Equal(got, []string{"aa", "bbbb", "cccccc", "dddddddd"}) {
+		t.Fatalf("stored short IDs = %v, want the pre-rotation list", got)
 	}
 }

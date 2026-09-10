@@ -234,8 +234,13 @@ func (s *InboundService) processRealityShortIDTransition(id int, now time.Time) 
 		updatedSnapshot = inbound
 		return nil
 	})
-	if err != nil || !transition.Changed {
-		return transition, err
+	// The closure records its steps as it goes, but a failed commit rolled all of
+	// them back, so the run must not report them as applied.
+	if err != nil {
+		return realityShortIDTransition{}, err
+	}
+	if !transition.Changed {
+		return transition, nil
 	}
 
 	rt, push, _, planErr := s.nodePushPlan(&updatedSnapshot)

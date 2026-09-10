@@ -199,12 +199,20 @@ func migrateRealityShortIDRotationColumns() error {
 		"RealityShortIdsNextRotationTime",
 		"RealityShortIdsRetireAt",
 	}
+	backfill := false
 	for _, field := range fields {
-		if !migrator.HasColumn(&model.Inbound{}, field) {
-			if err := migrator.AddColumn(&model.Inbound{}, field); err != nil {
-				return err
-			}
+		if migrator.HasColumn(&model.Inbound{}, field) {
+			continue
 		}
+		if err := migrator.AddColumn(&model.Inbound{}, field); err != nil {
+			return err
+		}
+		backfill = true
+	}
+	// The backfill belongs to the run that added the columns; repeating it would
+	// rewrite every inbound row on every start and undo later panel-owned values.
+	if !backfill {
+		return nil
 	}
 	return db.Exec(`UPDATE inbounds SET
         reality_short_ids_rotation_enabled = COALESCE(reality_short_ids_rotation_enabled, FALSE),

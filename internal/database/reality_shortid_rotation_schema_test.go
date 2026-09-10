@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -75,5 +76,43 @@ func TestMigrateRealityShortIDRotationColumnsFromLegacyInbound(t *testing.T) {
 		got.ActiveCount != 0 || got.Cursor != 0 || got.LastRotation != 0 ||
 		got.NextRotation != 0 || got.RetireAt != 0 {
 		t.Fatalf("legacy defaults = %+v, want disabled/30/0/24 and zero state", got)
+	}
+}
+
+func TestMigrateRealityShortIDRotationColumnsBackfillsOnlyOnce(t *testing.T) {
+	originalDB := db
+	t.Cleanup(func() { db = originalDB })
+	var err error
+	db, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: gormlogger.Discard})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := db.Exec("CREATE TABLE inbounds (id integer primary key autoincrement)").Error; err != nil {
+		t.Fatalf("create legacy inbounds: %v", err)
+	}
+	if err := db.Exec("INSERT INTO inbounds DEFAULT VALUES").Error; err != nil {
+		t.Fatalf("seed legacy inbound: %v", err)
+	}
+	if err := migrateRealityShortIDRotationColumns(); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	// A row the panel later wrote with rotation off keeps a zero interval; a
+	// second backfill would silently rewrite it to the 30-day default.
+	if err := db.Exec("UPDATE inbounds SET reality_short_ids_rotation_days = 0").Error; err != nil {
+		t.Fatalf("seed panel-owned interval: %v", err)
+	}
+	if err := migrateRealityShortIDRotationColumns(); err != nil {
+		t.Fatalf("second migrate: %v", err)
+	}
+
+	var got struct {
+		Days int `gorm:"column:reality_short_ids_rotation_days"`
+	}
+	if err := db.Table("inbounds").First(&got).Error; err != nil {
+		t.Fatalf("read inbound: %v", err)
+	}
+	if got.Days != 0 {
+		t.Fatalf("backfill re-ran on a settled schema: days=%d, want 0", got.Days)
 	}
 }
