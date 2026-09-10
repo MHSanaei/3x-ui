@@ -77,7 +77,7 @@ func TestBulkAdjustAcrossNodesPushesConcurrently(t *testing.T) {
 	}
 
 	bar.arm()
-	if _, _, err := (&ClientService{}).BulkAdjust(&InboundService{}, []string{email}, 1, 0, ""); err != nil {
+	if _, _, err := (&ClientService{}).BulkAdjust(&InboundService{}, []string{email}, 1, 0, "", nil, ""); err != nil {
 		t.Fatalf("BulkAdjust across %d node inbounds: %v", nodes, err)
 	}
 	if got := bar.updateUser.Load(); got == 0 {
