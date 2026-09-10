@@ -40,11 +40,19 @@ describe('amneziawg outbound adapter', () => {
     const values = rawOutboundToFormValues({ protocol: 'amneziawg', tag: 'awg-x' });
     expect(values.protocol).toBe('amneziawg');
     const s = values.settings as AmneziaWGOutboundFormSettings;
-    expect(s.mtu).toBe(1420);
+    expect(s.mtu).toBe(0);
     expect(s.randomTrailers).toBe(false);
     expect(s.disableCookies).toBe(true);
     expect(s.peers).toEqual([]);
     expect(values.tag).toBe('awg-x');
+  });
+
+  // A blank MTU must reach the backend absent, not pinned to 1420: the Go
+  // EffectiveMTU subtracts S4 from the default only when the field is unset.
+  it('leaves a defaulted MTU out of the payload so the backend derives it', () => {
+    const values = rawOutboundToFormValues({ protocol: 'amneziawg', tag: 'awg-x' });
+    const payload = formValuesToWirePayload(values);
+    expect((payload.settings as Record<string, unknown>).mtu).toBeUndefined();
   });
 
   it('round-trips wire -> form -> wire losslessly', () => {

@@ -35,7 +35,7 @@ func durableTestInbound(nodeID *int, tag string, port int) *model.Inbound {
 		Enable:         true,
 		Port:           port,
 		Protocol:       model.VLESS,
-		StreamSettings: `{"network":"tcp","security":"tls"}`,
+		StreamSettings: `{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/node/cert.pem","keyFile":"/node/key.pem"}]}}`,
 		Settings:       `{"clients":[],"decryption":"none"}`,
 	}
 }

@@ -83,6 +83,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 
 	var header string
 	var hasInactiveExternal bool
+	var hasEnabledClient bool
 
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
@@ -99,6 +100,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 
 		var inboundConfigs []json_util.RawMessage
 		for _, client := range clients {
+			if client.Enable {
+				hasEnabledClient = true
+			}
 			seenEmails[client.Email] = struct{}{}
 			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, inbound, client, host)...)
 		}
@@ -128,6 +132,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		configArray = append(configArray, entry.configs...)
 	}
 	for _, ext := range externalLinks {
+		if ext.Enable {
+			hasEnabledClient = true
+		}
 		if !ext.Active {
 			seenEmails[ext.Email] = struct{}{}
 			hasInactiveExternal = true
@@ -162,8 +169,20 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	for e := range seenEmails {
 		emails = append(emails, e)
 	}
+	slices.Sort(emails)
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	traffic.Enable = hasEnabledClient
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+
+	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(configArray) > 0); mode != infoNodeNone {
+		dummyConfig := s.genDummySocksConfig(remark)
+		if mode == infoNodeExpired || mode == infoNodeDepleted {
+			configArray = []json_util.RawMessage{dummyConfig}
+		} else {
+			configArray = append([]json_util.RawMessage{dummyConfig}, configArray...)
+		}
+	}
+
 	if len(configArray) == 0 {
 		return "", header, nil
 	}
@@ -589,6 +608,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 				continue
 			}
 			newOutbounds = append(newOutbounds, wgOutbound)
+		case "amneziawg":
+			continue
 		}
 
 		newOutbounds = append(newOutbounds, s.defaultOutbounds...)
@@ -788,10 +809,29 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 	}
 	if client.Flow != "" && !inbound.DisableFlow {
 		settings["flow"] = client.Flow
+		outbound.Mux = muxWithoutTCP(mux)
 	}
 	outbound.Settings = settings
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+// XTLS flows reject TCP mux.cool ("unexpected network TCP"); concurrency -1
+// turns only that off and keeps the XUDP keys (Xray reads them under enabled).
+func muxWithoutTCP(mux string) json_util.RawMessage {
+	if mux == "" {
+		return nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(mux), &m); err != nil || m == nil {
+		return nil
+	}
+	m["concurrency"] = -1
+	out, err := json.Marshal(m)
+	if err != nil {
+		return nil
+	}
+	return json_util.RawMessage(out)
 }
 
 func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, mux string) json_util.RawMessage {
@@ -939,6 +979,32 @@ func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Clien
 	}
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+func (s *SubJsonService) genDummySocksConfig(remark string) json_util.RawMessage {
+	outbound := map[string]any{
+		"protocol": "socks",
+		"tag":      "proxy",
+		"settings": map[string]any{
+			"servers": []any{
+				map[string]any{
+					"address": "127.0.0.1",
+					"port":    1080,
+				},
+			},
+		},
+	}
+	rawOutbound, _ := json.Marshal(outbound)
+	newOutbounds := []json_util.RawMessage{rawOutbound}
+	newOutbounds = append(newOutbounds, s.defaultOutbounds...)
+
+	newConfigJson := make(map[string]any)
+	maps.Copy(newConfigJson, s.configJson)
+	newConfigJson["outbounds"] = newOutbounds
+	newConfigJson["remarks"] = remark
+
+	newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
+	return newConfig
 }
 
 func mergeFinalMask(base any, extra map[string]any) map[string]any {

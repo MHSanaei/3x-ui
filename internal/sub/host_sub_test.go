@@ -418,3 +418,27 @@ func TestSub_ExcludeFromSubTypes(t *testing.T) {
 		t.Fatalf("host excluded from clash must not appear in GetClash:\n%s", yaml)
 	}
 }
+
+// A host that forces plain TLS over a Reality inbound must not leave the
+// Reality identity behind: pbk/sid/spx and the Reality dest sni describe a
+// handshake the endpoint no longer performs.
+func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
+	seedSubDB(t)
+	reality := `{"network":"tcp","security":"reality","realitySettings":{"serverNames":["master-dest.example.com"],"publicKey":"MASTERPBK","shortIds":["ab12"],"fingerprint":"chrome"}}`
+	ib := seedSubInbound(t, "s1", "reality-in", 4461, 1, reality)
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "H", Address: "edge.example.com", Port: 443, Security: "tls"})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "security=tls") {
+		t.Fatalf("host forces tls, link must say so: %s", joined)
+	}
+	for _, leaked := range []string{"pbk=", "sid=", "spx=", "sni=master-dest.example.com"} {
+		if strings.Contains(joined, leaked) {
+			t.Fatalf("reality parameter %q survived a tls host override: %s", leaked, joined)
+		}
+	}
+}

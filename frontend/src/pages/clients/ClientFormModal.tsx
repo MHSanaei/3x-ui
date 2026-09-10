@@ -849,7 +849,7 @@ export default function ClientFormModal({
                             </Space.Compact>
                           </Form.Item>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <FormField
                             name="totalGB"
                             label={t('pages.clients.totalGB')}
@@ -859,7 +859,7 @@ export default function ClientFormModal({
                             <InputNumber min={0} step={1} style={{ width: '100%' }} />
                           </FormField>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <Form.Item
                             label={t('pages.clients.limitIp')}
                             tooltip={t('pages.clients.limitIpDesc')}
@@ -894,7 +894,7 @@ export default function ClientFormModal({
                             </Tooltip>
                           </Form.Item>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <Form.Item
                             label={t('pages.clients.limitHwid')}
                             tooltip={t('pages.clients.limitHwidDesc')}

@@ -321,28 +321,30 @@ func (s *EmailService) SendTest() error {
 	)
 }
 
-// classifySMTPError maps raw SMTP errors to human-readable messages.
+// classifySMTPError maps a raw SMTP error to an i18n key. The key is returned
+// unprefixed: the caller renders it under "pages.settings.", as does every
+// other Message this file produces.
 func classifySMTPError(err error) string {
 	msg := err.Error()
 	msgLower := strings.ToLower(msg)
 
 	switch {
 	case strings.Contains(msg, "535") || strings.Contains(msgLower, "authentication"):
-		return "pages.settings.smtpErrorAuth"
+		return "smtpErrorAuth"
 	case strings.Contains(msg, "534") || strings.Contains(msgLower, "starttls"):
-		return "pages.settings.smtpErrorStarttls"
+		return "smtpErrorStarttls"
 	case strings.Contains(msg, "465") || strings.Contains(msgLower, "tls"):
-		return "pages.settings.smtpErrorTls"
+		return "smtpErrorTls"
 	case strings.Contains(msgLower, "connection refused") || strings.Contains(msgLower, "dial"):
-		return "pages.settings.smtpErrorRefused"
+		return "smtpErrorRefused"
 	case strings.Contains(msgLower, "timeout"):
-		return "pages.settings.smtpErrorTimeout"
+		return "smtpErrorTimeout"
 	case strings.Contains(msg, "550") || strings.Contains(msgLower, "relay"):
-		return "pages.settings.smtpErrorRelay"
+		return "smtpErrorRelay"
 	case strings.Contains(msgLower, "eof"):
-		return "pages.settings.smtpErrorEof"
+		return "smtpErrorEof"
 	default:
-		return fmt.Sprintf("pages.settings.smtpErrorUnknown: %s", msg)
+		return "smtpErrorUnknown"
 	}
 }
 

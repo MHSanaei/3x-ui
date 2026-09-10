@@ -38,13 +38,17 @@ func buildClientUAPIConfig(inst amneziawg.OutboundInstance, opts DeviceOptions) 
 	writeOptionalLine(&b, "i4", o.I4)
 	writeOptionalLine(&b, "i5", o.I5)
 
+	// An omitted line means "unchanged" to amneziawg-go, so a cleared key can
+	// only reach a live device as the all-zero one that disables the feature.
+	hpHex := strings.Repeat("0", 64)
 	if opts.HeaderProtectionKey != "" {
-		hpHex, err := wireguard.KeyToHex(opts.HeaderProtectionKey)
+		var err error
+		hpHex, err = wireguard.KeyToHex(opts.HeaderProtectionKey)
 		if err != nil {
 			return "", fmt.Errorf("invalid header protection key: %w", err)
 		}
-		fmt.Fprintf(&b, "header_protection_key=%s\n", hpHex)
 	}
+	fmt.Fprintf(&b, "header_protection_key=%s\n", hpHex)
 	if opts.ContentPaddingAddition != "" {
 		fmt.Fprintf(&b, "content_padding_addition=%s\n", opts.ContentPaddingAddition)
 	}
@@ -99,10 +103,7 @@ func newUnconfiguredClientDevice(inst amneziawg.OutboundInstance, opts DeviceOpt
 		return nil, fmt.Errorf("amneziawgnet: %w", err)
 	}
 
-	mtu := inst.MTU
-	if mtu <= 0 {
-		mtu = defaultMTU
-	}
+	mtu := amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4)
 
 	tun, gstack, err := createNetTUNWithStack(addrs, mtu)
 	if err != nil {

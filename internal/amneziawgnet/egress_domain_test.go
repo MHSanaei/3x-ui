@@ -427,7 +427,14 @@ func TestEgressConnectDomainIPv6OnlyTunnelResolvesThroughTunnel(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { srv.DeleteStack("awg-dom-v6-test") })
-	gotQuery := tun.overrideDNS(t, tun.serverIP)
+
+	// No override: a blank dns has to fall through currentDNSServer to
+	// defaultDNSFor, which the server stack answers on its own v6 /128.
+	prevDNS := srv.currentDNSServer()
+	srv.SetDNSServer("")
+	t.Cleanup(func() { srv.SetDNSServer(prevDNS) })
+	resetTunnelDNSCacheForTest()
+	gotQuery := tun.startDNS(t, tun.serverIP)
 
 	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
 	if err != nil {

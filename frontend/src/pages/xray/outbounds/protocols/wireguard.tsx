@@ -99,6 +99,9 @@ export default function WireguardFields() {
       <FormField label={t('pages.xray.outboundForm.reserved')} name={['settings', 'reserved']}>
         <Input placeholder="comma-separated bytes, e.g. 1,2,3" />
       </FormField>
+      <FormField label={t('pages.xray.outboundForm.remoteDNS')} name={['settings', 'remoteDNS']}>
+        <Input placeholder="comma-separated, e.g. 1.1.1.1,2606:4700:4700::1111" />
+      </FormField>
       <Form.Item label={t('pages.inbounds.form.peers')}>
         <Button
           size="small"

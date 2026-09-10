@@ -128,6 +128,12 @@ func TestCheckXrayConfig_AcceptsValidAWGOutbound(t *testing.T) {
 }
 
 func TestCheckXrayConfig_RejectsBrokenAWGOutbound(t *testing.T) {
+	// The emptied field's partner must be a real key, or the case is decided
+	// by that partner and stays green with the empty-key guard removed.
+	priv, pub, err := wgKeypairForTest()
+	if err != nil {
+		t.Fatal(err)
+	}
 	cases := []struct {
 		name     string
 		template string
@@ -155,7 +161,7 @@ func TestCheckXrayConfig_RejectsBrokenAWGOutbound(t *testing.T) {
 					"settings": {
 						"secretKey": "",
 						"address": ["10.8.0.2/32"],
-						"peers": [{"publicKey": "pub", "allowedIPs": ["0.0.0.0/0"], "endpoint": "203.0.113.7:51820"}]
+						"peers": [{"publicKey": "` + pub + `", "allowedIPs": ["0.0.0.0/0"], "endpoint": "203.0.113.7:51820"}]
 					}
 				}]
 			}`,
@@ -167,7 +173,7 @@ func TestCheckXrayConfig_RejectsBrokenAWGOutbound(t *testing.T) {
 					"protocol": "amneziawg",
 					"tag": "awg-empty-pub",
 					"settings": {
-						"secretKey": "priv",
+						"secretKey": "` + priv + `",
 						"address": ["10.8.0.2/32"],
 						"peers": [{"publicKey": "", "allowedIPs": ["0.0.0.0/0"], "endpoint": "203.0.113.7:51820"}]
 					}

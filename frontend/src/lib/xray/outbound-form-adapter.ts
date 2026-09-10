@@ -8,6 +8,7 @@ import type { OutboundDomainStrategy } from '@/schemas/protocols/outbound';
 
 import type {
   AmneziaWGOutboundFormSettings,
+  BlackholeOutboundFormSettings,
   DnsOutboundFormSettings,
   DnsRuleForm,
   FreedomFinalRuleForm,
@@ -245,6 +246,9 @@ function wireguardFromWire(raw: Raw): WireguardOutboundFormSettings {
       return (allowed.includes(s) ? s : '') as WireguardOutboundFormSettings['domainStrategy'];
     })(),
     reserved: reservedArr.join(','),
+    remoteDNS: asArray(raw.remoteDNS)
+      .map((x) => asString(x))
+      .join(','),
     peers,
     noKernelTun: asBool(raw.noKernelTun),
   };
@@ -324,10 +328,13 @@ function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
   };
 }
 
-function blackholeFromWire(raw: Raw) {
+function blackholeFromWire(raw: Raw): BlackholeOutboundFormSettings {
   const response = asObject(raw.response);
   const t = asString(response.type);
-  return { type: (t === 'none' || t === 'http' ? t : '') as '' | 'none' | 'http' };
+  return {
+    type: t === 'none' || t === 'http' || t === 'custom' ? t : '',
+    customResponseData: asString(response.customResponseData),
+  };
 }
 
 function dnsRuleFromWire(raw: unknown): DnsRuleForm {
@@ -388,7 +395,7 @@ function amneziawgPeerFromWire(p: unknown): AmneziaWGOutboundFormSettings['peers
 // an older template may omit.
 function amneziawgFromWire(raw: Raw): AmneziaWGOutboundFormSettings {
   return AmneziaWGOutboundSettingsSchema.parse({
-    mtu: asNumber(raw.mtu, 1420),
+    mtu: asNumber(raw.mtu, 0),
     secretKey: asString(raw.secretKey),
     address: asArray(raw.address).map((x) => asString(x)),
     listenPort: asNumber(raw.listenPort, 0),
@@ -688,6 +695,12 @@ function wireguardToWire(s: WireguardOutboundFormSettings) {
           .map((x) => Number(x.trim()))
           .filter((n) => Number.isFinite(n))
       : undefined,
+    remoteDNS: s.remoteDNS
+      ? s.remoteDNS
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : undefined,
     peers: s.peers.map((p) => ({
       publicKey: p.publicKey,
       preSharedKey: p.psk.length > 0 ? p.psk : undefined,
@@ -734,8 +747,12 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
   };
 }
 
-function blackholeToWire(s: { type: '' | 'none' | 'http' }) {
-  return { response: s.type ? { type: s.type } : undefined };
+function blackholeToWire(s: BlackholeOutboundFormSettings) {
+  if (!s.type) return { response: undefined };
+  if (s.type === 'custom') {
+    return { response: { type: s.type, customResponseData: s.customResponseData } };
+  }
+  return { response: { type: s.type } };
 }
 
 function dnsRuleToWire(r: DnsRuleForm) {

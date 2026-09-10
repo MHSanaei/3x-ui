@@ -46,7 +46,7 @@ https://<sub-host>:<sub-port>/<sub-path>/<sub-id>
 
 ### Base64 与 JSON
 
-**Base64** 内容只是用换行符连接的分享链接，经标准 base64 编码（通过 `subEncrypt` 开关控制）。**JSON** 内容则将每个客户端包装为一份完整的 Xray 客户端配置 —— 一套固定的骨架（本地 SOCKS/HTTP 入站、DNS、路由、策略）加上一个指向该入站的 `proxy` 出站。3x-ui **对单个客户端输出单个配置对象，对多个客户端输出数组**，使用扁平的出站 `settings` 形式（`address`/`port`/`id`，`level: 8`），并从 `streamSettings` 中剥离 `sockopt`。
+**Base64** 内容只是用换行符连接的分享链接，经标准 base64 编码（通过 `subEncrypt` 开关控制）。**JSON** 内容则将每个客户端包装为一份完整的 Xray 客户端配置 —— 一套固定的骨架（绑定到 127.0.0.1 的本地 SOCKS/HTTP 入站、DNS、路由、策略）加上一个指向该入站的 `proxy` 出站。3x-ui **对单个客户端输出单个配置对象，对多个客户端输出数组**，使用扁平的出站 `settings` 形式（`address`/`port`/`id`，`level: 8`），并从 `streamSettings` 中剥离 `sockopt`。
 
 ## 响应头
 

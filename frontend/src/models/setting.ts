@@ -16,6 +16,10 @@ export class AllSetting {
   trafficDiff = 0;
   remarkTemplate = '{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   subShowIdentityOnAllLinks = false;
+  subInfoNodeEnable = false;
+  subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';
+  subTrafficDepletedTemplate =
+    '🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}';
   datepicker: 'gregorian' | 'jalalian' = 'gregorian';
   tgBotEnable = false;
   tgBotToken = '';

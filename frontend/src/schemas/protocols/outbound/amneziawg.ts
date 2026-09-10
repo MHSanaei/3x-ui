@@ -12,7 +12,9 @@ export const AmneziaWGOutboundPeerSchema = z.object({
 export type AmneziaWGOutboundPeer = z.infer<typeof AmneziaWGOutboundPeerSchema>;
 
 export const AmneziaWGOutboundSettingsSchema = z.object({
-  mtu: z.number().int().min(0).default(1420),
+  // 0 = unset, so the backend derives MTU from S4 (amneziawg.EffectiveMTU);
+  // a pinned 1420 fragments every full-size packet once S4 exceeds 20.
+  mtu: z.number().int().min(0).default(0),
   secretKey: z.string().default(''),
   address: z.array(z.string()).default([]),
   listenPort: z.number().int().min(0).max(65535).default(0),

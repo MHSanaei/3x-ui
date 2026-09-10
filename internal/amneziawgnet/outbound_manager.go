@@ -45,8 +45,12 @@ func GetOutboundManager() *OutboundManager {
 	return outboundManager
 }
 
+// outboundFingerprint captures what IpcSet can't change on a running Device,
+// fixed when the netstack is built: address, and the S4-derived effective MTU.
 func outboundFingerprint(inst amneziawg.OutboundInstance) string {
-	return fmt.Sprintf("%d|%s", inst.MTU, strings.Join(inst.Address, ","))
+	return fmt.Sprintf("%d|%s",
+		amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4),
+		strings.Join(inst.Address, ","))
 }
 
 // normalizeDNSServer normalizes a configured DNS server to host:port.

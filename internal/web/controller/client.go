@@ -215,30 +215,42 @@ func (a *ClientController) update(c *gin.Context) {
 	}
 	inboundFilter := parseInboundIdsQuery(c.Query("inboundIds"))
 	needRestart, err := a.clientService.UpdateByEmail(&a.inboundService, email, req.Client, req.LimitHwid, inboundFilter...)
+	// Flagged before the error check: a partly-applied edit leaves the change
+	// committed on the inbounds that succeeded, and those still need the restart.
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	// A partly-applied call committed real changes; a rejected one touched
+	// nothing, and broadcasting those would refetch every panel for nothing.
+	if needRestart || err == nil {
+		notifyClientsChanged()
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), pendingNodeObj(a.clientService.HasPendingNode(&a.inboundService, email)), nil)
-	if needRestart {
-		a.xrayService.SetToNeedRestart()
-	}
-	notifyClientsChanged()
 }
 
 func (a *ClientController) delete(c *gin.Context) {
 	email := c.Param("email")
 	keepTraffic := c.Query("keepTraffic") == "1"
 	needRestart, err := a.clientService.DeleteByEmail(&a.inboundService, email, keepTraffic)
+	// Flagged before the error check: a partly-applied delete already removed
+	// the client from the inbounds that succeeded, and those need the restart.
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	// A partly-applied call committed real removals; a rejected one touched
+	// nothing, and broadcasting those would refetch every panel for nothing.
+	if needRestart || err == nil {
+		notifyClientsChanged()
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientDeleteSuccess"), nil)
-	if needRestart {
-		a.xrayService.SetToNeedRestart()
-	}
-	notifyClientsChanged()
 }
 
 type attachDetachBody struct {
@@ -640,15 +652,21 @@ func (a *ClientController) detach(c *gin.Context) {
 		return
 	}
 	needRestart, err := a.clientService.DetachByEmailMany(&a.inboundService, email, body.InboundIds)
+	// Flagged before the error check: a partly-applied detach already removed
+	// the client from the inbounds that succeeded, and those need the restart.
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	// A partly-applied call committed real removals; a rejected one touched
+	// nothing, and broadcasting those would refetch every panel for nothing.
+	if needRestart || err == nil {
+		notifyClientsChanged()
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientDeleteSuccess"), pendingNodeObj(a.inboundService.AnyNodePending(body.InboundIds)), nil)
-	if needRestart {
-		a.xrayService.SetToNeedRestart()
-	}
-	notifyClientsChanged()
 }
 
 type bulkResetRequest struct {

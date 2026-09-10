@@ -1,9 +1,11 @@
 package sub
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
@@ -882,4 +884,426 @@ func TestBuildWireguardProxyForClashNoKey(t *testing.T) {
 	if proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil); proxy != nil {
 		t.Fatalf("buildProxy = %v, want nil for a keyless wireguard client", proxy)
 	}
+}
+
+func TestBuildAmneziaWGProxyForClash(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub + `","mtu":1420,"primaryDns":"8.8.8.8","secondaryDns":"8.8.4.4","jc":3,"jmin":66,"jmax":150,"s1":147,"s2":146,"s3":28,"s4":27,"h1":"364198942-470015235","h2":"1041963382-1068354159","h3":"1313106728-1361756201","h4":"1801896583-1875457201","i1":"10-20","i2":"30-40"}}`
+
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Remark:   "amneziawg",
+		Settings: settings,
+	}
+	client := model.Client{
+		Email:        "user",
+		PrivateKey:   clientPriv,
+		PreSharedKey: "psk-value",
+		KeepAlive:    25,
+		AllowedIPs:   []string{"10.8.1.2/32", "fd00::2/128"},
+	}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid amneziawg client")
+	}
+	if proxy["type"] != "wireguard" {
+		t.Fatalf("type = %v, want wireguard", proxy["type"])
+	}
+	if proxy["server"] != "203.0.113.7" {
+		t.Fatalf("server = %v, want 203.0.113.7", proxy["server"])
+	}
+	if proxy["port"] != 51820 {
+		t.Fatalf("port = %v, want 51820", proxy["port"])
+	}
+	if proxy["private-key"] != clientPriv {
+		t.Fatalf("private-key = %v, want %v", proxy["private-key"], clientPriv)
+	}
+	if proxy["public-key"] != serverPub {
+		t.Fatalf("public-key = %v, want %v", proxy["public-key"], serverPub)
+	}
+	if proxy["pre-shared-key"] != "psk-value" {
+		t.Fatalf("pre-shared-key = %v, want psk-value", proxy["pre-shared-key"])
+	}
+	if proxy["persistent-keepalive"] != 25 {
+		t.Fatalf("persistent-keepalive = %v, want 25", proxy["persistent-keepalive"])
+	}
+	if proxy["ip"] != "10.8.1.2" {
+		t.Fatalf("ip = %v, want 10.8.1.2", proxy["ip"])
+	}
+	if proxy["ipv6"] != "fd00::2" {
+		t.Fatalf("ipv6 = %v, want fd00::2", proxy["ipv6"])
+	}
+	if proxy["mtu"] != 1420 {
+		t.Fatalf("mtu = %v, want 1420", proxy["mtu"])
+	}
+	if proxy["udp"] != true {
+		t.Fatalf("udp = %v, want true", proxy["udp"])
+	}
+	if dns, ok := proxy["dns"].([]string); !ok || !reflect.DeepEqual(dns, []string{"8.8.8.8", "8.8.4.4"}) {
+		t.Fatalf("dns = %v, want [8.8.8.8 8.8.4.4]", proxy["dns"])
+	}
+
+	awg, ok := proxy["amnezia-wg-option"].(map[string]any)
+	if !ok {
+		t.Fatal("amnezia-wg-option missing")
+	}
+	if awg["jc"] != 3 {
+		t.Fatalf("jc = %v, want 3", awg["jc"])
+	}
+	if awg["jmin"] != 66 {
+		t.Fatalf("jmin = %v, want 66", awg["jmin"])
+	}
+	if awg["jmax"] != 150 {
+		t.Fatalf("jmax = %v, want 150", awg["jmax"])
+	}
+	if awg["s1"] != 147 {
+		t.Fatalf("s1 = %v, want 147", awg["s1"])
+	}
+	if awg["s2"] != 146 {
+		t.Fatalf("s2 = %v, want 146", awg["s2"])
+	}
+	if awg["s3"] != 28 {
+		t.Fatalf("s3 = %v, want 28", awg["s3"])
+	}
+	if awg["s4"] != 27 {
+		t.Fatalf("s4 = %v, want 27", awg["s4"])
+	}
+	if awg["h1"] != "364198942-470015235" {
+		t.Fatalf("h1 = %v, want 364198942-470015235", awg["h1"])
+	}
+	if awg["h2"] != "1041963382-1068354159" {
+		t.Fatalf("h2 = %v, want 1041963382-1068354159", awg["h2"])
+	}
+	if awg["h3"] != "1313106728-1361756201" {
+		t.Fatalf("h3 = %v, want 1313106728-1361756201", awg["h3"])
+	}
+	if awg["h4"] != "1801896583-1875457201" {
+		t.Fatalf("h4 = %v, want 1801896583-1875457201", awg["h4"])
+	}
+	if awg["i1"] != "10-20" {
+		t.Fatalf("i1 = %v, want 10-20", awg["i1"])
+	}
+	if awg["i2"] != "30-40" {
+		t.Fatalf("i2 = %v, want 30-40", awg["i2"])
+	}
+	// v1.0 fields must NOT set version
+	if _, ok := awg["version"]; ok {
+		t.Fatalf("version should not be set for v1.0 obfuscation fields")
+	}
+}
+
+func TestBuildAmneziaWGProxyForClashV3(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub + `","mtu":1280,"primaryDns":"1.1.1.1","jc":3,"jmin":66,"jmax":150,"s1":147,"s2":146,"s3":28,"s4":27,"h1":"364198942-470015235","h2":"1041963382-1068354159","h3":"1313106728-1361756201","h4":"1801896583-1875457201","headerProtectionKey":"DmVT7JtmJM8YoHiA2Wp3xPKI5dTXFx83y2JUQkKg1p8=","contentPaddingAddition":"9-31","rekeyAfterTime":"105-125","rekeyTimeout":"3-5","rejectAfterTime":"176-239","keepaliveTimeout":"11-16","maxHandshakeAttempts":"24-41","randomTrailers":true,"disableCookies":true}}`
+
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Remark:   "amneziawg",
+		Settings: settings,
+	}
+	client := model.Client{
+		Email:      "user",
+		PrivateKey: clientPriv,
+		AllowedIPs: []string{"10.8.1.2/32"},
+	}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid amneziawg v3 client")
+	}
+
+	awg, ok := proxy["amnezia-wg-option"].(map[string]any)
+	if !ok {
+		t.Fatal("amnezia-wg-option missing")
+	}
+	if awg["version"] != 3 {
+		t.Fatalf("version = %v, want 3", awg["version"])
+	}
+	if awg["header-protection-key"] != "DmVT7JtmJM8YoHiA2Wp3xPKI5dTXFx83y2JUQkKg1p8=" {
+		t.Fatalf("header-protection-key = %v", awg["header-protection-key"])
+	}
+	if awg["content-padding-addition"] != "9-31" {
+		t.Fatalf("content-padding-addition = %v", awg["content-padding-addition"])
+	}
+	if awg["rekey-after-time"] != "105-125" {
+		t.Fatalf("rekey-after-time = %v", awg["rekey-after-time"])
+	}
+	if awg["rekey-timeout"] != "3-5" {
+		t.Fatalf("rekey-timeout = %v", awg["rekey-timeout"])
+	}
+	if awg["reject-after-time"] != "176-239" {
+		t.Fatalf("reject-after-time = %v", awg["reject-after-time"])
+	}
+	if awg["keepalive-timeout"] != "11-16" {
+		t.Fatalf("keepalive-timeout = %v", awg["keepalive-timeout"])
+	}
+	if awg["max-handshake-attempts"] != "24-41" {
+		t.Fatalf("max-handshake-attempts = %v", awg["max-handshake-attempts"])
+	}
+	if awg["random-trailers"] != true {
+		t.Fatalf("random-trailers = %v, want true", awg["random-trailers"])
+	}
+	if awg["disable-cookies"] != true {
+		t.Fatalf("disable-cookies = %v, want true", awg["disable-cookies"])
+	}
+}
+
+func TestBuildAmneziaWGProxyForClashNoKey(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	settings := `{"server":{"privateKey":"abc","publicKey":"def","jc":3,"jmin":66,"jmax":150}}`
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Settings: settings,
+	}
+	client := model.Client{Email: "user"}
+
+	if proxy := svc.buildAmneziaWGProxy(svc.SubService, inbound, client, nil); proxy != nil {
+		t.Fatalf("buildAmneziaWGProxy = %v, want nil for a keyless amneziawg client", proxy)
+	}
+}
+
+// TestBuildAmneziaWGProxyForClashPerInboundAddress pins the tunnel address to
+// this inbound's own settings.clients[] entry, the one InstanceFromInbound
+// turns into the running peer's AllowedIPs. model.Client here is what
+// matchingClients hands buildProxy: the shared clients.wg_allowed_ips column,
+// which for an identity attached to both wireguard and amneziawg holds the
+// other protocol's address.
+func TestBuildAmneziaWGProxyForClashPerInboundAddress(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, clientPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub +
+		`","jc":3,"jmin":66,"jmax":150},"clients":[{"email":"dual@x","publicKey":"` + clientPub +
+		`","allowedIPs":["10.8.1.5/32","fd00::5/128"],"enable":true}]}`
+
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Remark:   "amneziawg",
+		Settings: settings,
+	}
+	client := model.Client{
+		Email:      "dual@x",
+		PrivateKey: clientPriv,
+		AllowedIPs: []string{"10.0.0.5/32"},
+	}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid amneziawg client")
+	}
+	if proxy["ip"] != "10.8.1.5" {
+		t.Fatalf("ip = %v, want 10.8.1.5 (this inbound's own address, not the shared column's 10.0.0.5)", proxy["ip"])
+	}
+	if proxy["ipv6"] != "fd00::5" {
+		t.Fatalf("ipv6 = %v, want fd00::5", proxy["ipv6"])
+	}
+}
+
+// TestBuildAmneziaWGProxyForClashFallsBackToClientAddress covers an inbound
+// whose settings.clients[] has no entry for this email: the shared column is
+// then the only address there is.
+func TestBuildAmneziaWGProxyForClashFallsBackToClientAddress(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub +
+		`","jc":3,"jmin":66,"jmax":150},"clients":[{"email":"someone-else@x","allowedIPs":["10.8.1.9/32"]}]}`
+
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Settings: settings,
+	}
+	client := model.Client{Email: "user@x", PrivateKey: clientPriv, AllowedIPs: []string{"10.8.1.2/32"}}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid amneziawg client")
+	}
+	if proxy["ip"] != "10.8.1.2" {
+		t.Fatalf("ip = %v, want 10.8.1.2", proxy["ip"])
+	}
+}
+
+// TestBuildAmneziaWGProxyForClashRemoteDNSResolve pins the flag mihomo gates
+// its `dns` list on, and the guard that keeps a non-IP entry from turning an
+// inert key into a whole-config parse abort.
+func TestBuildAmneziaWGProxyForClashRemoteDNSResolve(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	build := func(t *testing.T, primary, secondary string) map[string]any {
+		t.Helper()
+		settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub +
+			`","primaryDns":"` + primary + `","secondaryDns":"` + secondary + `"}}`
+		svc := &SubClashService{SubService: &SubService{}}
+		inbound := &model.Inbound{
+			Listen:   "203.0.113.7",
+			Port:     51820,
+			Protocol: model.AmneziaWG,
+			Settings: settings,
+		}
+		client := model.Client{Email: "user", PrivateKey: clientPriv, AllowedIPs: []string{"10.8.1.2/32"}}
+		proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+		if proxy == nil {
+			t.Fatal("buildProxy returned nil for a valid amneziawg client")
+		}
+		return proxy
+	}
+
+	t.Run("bare IPs", func(t *testing.T) {
+		proxy := build(t, "8.8.8.8", "fd00::1")
+		if proxy["remote-dns-resolve"] != true {
+			t.Fatalf("remote-dns-resolve = %v, want true: mihomo ignores dns without it", proxy["remote-dns-resolve"])
+		}
+	})
+
+	// netip.ParseAddr accepts a zone, but mihomo brackets the address into a
+	// udp:// URL whose url.Parse then rejects "%eth0" as a bad escape.
+	t.Run("zoned IPv6", func(t *testing.T) {
+		proxy := build(t, "8.8.8.8", "fe80::1%eth0")
+		if _, ok := proxy["remote-dns-resolve"]; ok {
+			t.Fatalf("remote-dns-resolve must stay unset for a zoned address, got %v", proxy["remote-dns-resolve"])
+		}
+	})
+
+	t.Run("non-IP entry", func(t *testing.T) {
+		proxy := build(t, "8.8.8.8", "dns.example.com")
+		if dns, ok := proxy["dns"].([]string); !ok || !reflect.DeepEqual(dns, []string{"8.8.8.8", "dns.example.com"}) {
+			t.Fatalf("dns = %v, want both entries kept", proxy["dns"])
+		}
+		if _, ok := proxy["remote-dns-resolve"]; ok {
+			t.Fatalf("remote-dns-resolve must stay unset when an entry is not a bare IP, got %v", proxy["remote-dns-resolve"])
+		}
+	})
+
+	t.Run("no DNS", func(t *testing.T) {
+		proxy := build(t, "", "")
+		if _, ok := proxy["remote-dns-resolve"]; ok {
+			t.Fatal("remote-dns-resolve must stay unset when there is no dns list")
+		}
+	})
+}
+
+// TestGetProxies_CustomIPv6ShareAddrIsUnbracketed pins that a Clash "server" is a
+// bare host: the custom share address stores IPv6 literals bracketed, and mihomo
+// rejects "[2001:db8::1]" there.
+func TestGetProxies_CustomIPv6ShareAddrIsUnbracketed(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Protocol:          model.VLESS,
+		Port:              443,
+		Remark:            "r",
+		Settings:          `{"encryption":"none"}`,
+		StreamSettings:    `{"network":"tcp","security":"none"}`,
+		ShareAddrStrategy: "custom",
+		ShareAddr:         "[2001:db8::1]",
+	}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555", Email: "a@example.com"}
+
+	proxies := svc.getProxies(svc.SubService, inbound, client, "panel.example.com")
+	if len(proxies) != 1 {
+		t.Fatalf("getProxies returned %d proxies, want 1", len(proxies))
+	}
+	if got := proxies[0]["server"]; got != "2001:db8::1" {
+		t.Fatalf("server = %v, want 2001:db8::1", got)
+	}
+}
+
+// TestBuildAmneziaWGProxyForClashEffectiveMTU pins the Clash mtu to the same
+// amneziawg.EffectiveMTU every other emitter uses -- the running interface
+// (amneziawgnet), the vpn:// .conf and both TS builders. Omitting the key
+// leaves mihomo on its own 1408 default, above the tunnel once s4 > 12.
+func TestBuildAmneziaWGProxyForClashEffectiveMTU(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	build := func(t *testing.T, mtu, s4 int) map[string]any {
+		t.Helper()
+		settings := fmt.Sprintf(
+			`{"server":{"privateKey":%q,"publicKey":%q,"mtu":%d,"s4":%d}}`,
+			serverPriv, serverPub, mtu, s4)
+		svc := &SubClashService{SubService: &SubService{}}
+		inbound := &model.Inbound{
+			Listen:   "203.0.113.7",
+			Port:     51820,
+			Protocol: model.AmneziaWG,
+			Settings: settings,
+		}
+		client := model.Client{Email: "user", PrivateKey: clientPriv, AllowedIPs: []string{"10.8.1.2/32"}}
+		proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+		if proxy == nil {
+			t.Fatal("buildProxy returned nil for a valid amneziawg client")
+		}
+		return proxy
+	}
+
+	t.Run("unset MTU falls back to 1420-s4", func(t *testing.T) {
+		proxy := build(t, 0, 27)
+		want := amneziawg.EffectiveMTU(0, 27)
+		if proxy["mtu"] != want {
+			t.Fatalf("mtu = %v, want %d (amneziawg.EffectiveMTU)", proxy["mtu"], want)
+		}
+	})
+
+	t.Run("explicit MTU wins", func(t *testing.T) {
+		proxy := build(t, 1380, 27)
+		if proxy["mtu"] != 1380 {
+			t.Fatalf("mtu = %v, want 1380", proxy["mtu"])
+		}
+	})
 }

@@ -57,3 +57,61 @@ func TestBuildClientUAPIConfig_ZeroKeepAliveOmitsLine(t *testing.T) {
 		t.Fatalf("zero KeepAlive must not emit a keepalive line:\n%s", conf)
 	}
 }
+
+// amneziawg-go reads an absent UAPI line as "keep the current value", and
+// ensureLocked reconfigures in place, so a cleared key must be sent as zero.
+func TestBuildClientUAPIConfig_ClearedHeaderProtectionKeyIsSentAsZero(t *testing.T) {
+	inst := clientDeviceTestInstance(t)
+	inst.Obfuscation = amneziawg.Obfuscation31{S1: 20, S2: 20, S3: 20, S4: 20}
+
+	key, err := wgutil.GenerateWireguardPSK()
+	if err != nil {
+		t.Fatal(err)
+	}
+	withKey, err := buildClientUAPIConfig(inst, DeviceOptions{HeaderProtectionKey: key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyHex, err := wgutil.KeyToHex(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(withKey, "header_protection_key="+keyHex+"\n") {
+		t.Fatalf("a set key must be emitted verbatim, got:\n%s", withKey)
+	}
+
+	cleared, err := buildClientUAPIConfig(inst, DeviceOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	zero := "header_protection_key=" + strings.Repeat("0", 64) + "\n"
+	if !strings.Contains(cleared, zero) {
+		t.Fatalf("an unset key must be emitted as the all-zero key, got:\n%s", cleared)
+	}
+}
+
+// With no explicit MTU the netstack is built from S4, so an S4-only edit must
+// move the fingerprint or ensureLocked reconfigures in place and keeps the old.
+func TestOutboundFingerprintTracksTheS4DerivedMTU(t *testing.T) {
+	tests := []struct {
+		name       string
+		mtu        int
+		wantChange bool
+	}{
+		{"derived MTU", 0, true},
+		{"explicit MTU", 1420, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inst := clientDeviceTestInstance(t)
+			inst.MTU = tt.mtu
+			inst.Obfuscation.S4 = 12
+			before := outboundFingerprint(inst)
+			inst.Obfuscation.S4 = 28
+			after := outboundFingerprint(inst)
+			if changed := before != after; changed != tt.wantChange {
+				t.Fatalf("fingerprint changed = %v, want %v (%q -> %q)", changed, tt.wantChange, before, after)
+			}
+		})
+	}
+}
