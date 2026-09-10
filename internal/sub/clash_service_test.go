@@ -1084,3 +1084,140 @@ func TestBuildAmneziaWGProxyForClashNoKey(t *testing.T) {
 		t.Fatalf("buildAmneziaWGProxy = %v, want nil for a keyless amneziawg client", proxy)
 	}
 }
+
+// TestBuildAmneziaWGProxyForClashPerInboundAddress pins the tunnel address to
+// this inbound's own settings.clients[] entry, the one InstanceFromInbound
+// turns into the running peer's AllowedIPs. model.Client here is what
+// matchingClients hands buildProxy: the shared clients.wg_allowed_ips column,
+// which for an identity attached to both wireguard and amneziawg holds the
+// other protocol's address.
+func TestBuildAmneziaWGProxyForClashPerInboundAddress(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, clientPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub +
+		`","jc":3,"jmin":66,"jmax":150},"clients":[{"email":"dual@x","publicKey":"` + clientPub +
+		`","allowedIPs":["10.8.1.5/32","fd00::5/128"],"enable":true}]}`
+
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Remark:   "amneziawg",
+		Settings: settings,
+	}
+	client := model.Client{
+		Email:      "dual@x",
+		PrivateKey: clientPriv,
+		AllowedIPs: []string{"10.0.0.5/32"},
+	}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid amneziawg client")
+	}
+	if proxy["ip"] != "10.8.1.5" {
+		t.Fatalf("ip = %v, want 10.8.1.5 (this inbound's own address, not the shared column's 10.0.0.5)", proxy["ip"])
+	}
+	if proxy["ipv6"] != "fd00::5" {
+		t.Fatalf("ipv6 = %v, want fd00::5", proxy["ipv6"])
+	}
+}
+
+// TestBuildAmneziaWGProxyForClashFallsBackToClientAddress covers an inbound
+// whose settings.clients[] has no entry for this email: the shared column is
+// then the only address there is.
+func TestBuildAmneziaWGProxyForClashFallsBackToClientAddress(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub +
+		`","jc":3,"jmin":66,"jmax":150},"clients":[{"email":"someone-else@x","allowedIPs":["10.8.1.9/32"]}]}`
+
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Listen:   "203.0.113.7",
+		Port:     51820,
+		Protocol: model.AmneziaWG,
+		Settings: settings,
+	}
+	client := model.Client{Email: "user@x", PrivateKey: clientPriv, AllowedIPs: []string{"10.8.1.2/32"}}
+
+	proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+	if proxy == nil {
+		t.Fatal("buildProxy returned nil for a valid amneziawg client")
+	}
+	if proxy["ip"] != "10.8.1.2" {
+		t.Fatalf("ip = %v, want 10.8.1.2", proxy["ip"])
+	}
+}
+
+// TestBuildAmneziaWGProxyForClashRemoteDNSResolve pins the flag mihomo gates
+// its `dns` list on, and the guard that keeps a non-IP entry from turning an
+// inert key into a whole-config parse abort.
+func TestBuildAmneziaWGProxyForClashRemoteDNSResolve(t *testing.T) {
+	serverPriv, serverPub, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("server keypair: %v", err)
+	}
+	clientPriv, _, err := wgutil.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("client keypair: %v", err)
+	}
+
+	build := func(t *testing.T, primary, secondary string) map[string]any {
+		t.Helper()
+		settings := `{"server":{"privateKey":"` + serverPriv + `","publicKey":"` + serverPub +
+			`","primaryDns":"` + primary + `","secondaryDns":"` + secondary + `"}}`
+		svc := &SubClashService{SubService: &SubService{}}
+		inbound := &model.Inbound{
+			Listen:   "203.0.113.7",
+			Port:     51820,
+			Protocol: model.AmneziaWG,
+			Settings: settings,
+		}
+		client := model.Client{Email: "user", PrivateKey: clientPriv, AllowedIPs: []string{"10.8.1.2/32"}}
+		proxy := svc.buildProxy(svc.SubService, inbound, client, nil, nil)
+		if proxy == nil {
+			t.Fatal("buildProxy returned nil for a valid amneziawg client")
+		}
+		return proxy
+	}
+
+	t.Run("bare IPs", func(t *testing.T) {
+		proxy := build(t, "8.8.8.8", "fd00::1")
+		if proxy["remote-dns-resolve"] != true {
+			t.Fatalf("remote-dns-resolve = %v, want true: mihomo ignores dns without it", proxy["remote-dns-resolve"])
+		}
+	})
+
+	t.Run("non-IP entry", func(t *testing.T) {
+		proxy := build(t, "8.8.8.8", "dns.example.com")
+		if dns, ok := proxy["dns"].([]string); !ok || !reflect.DeepEqual(dns, []string{"8.8.8.8", "dns.example.com"}) {
+			t.Fatalf("dns = %v, want both entries kept", proxy["dns"])
+		}
+		if _, ok := proxy["remote-dns-resolve"]; ok {
+			t.Fatalf("remote-dns-resolve must stay unset when an entry is not a bare IP, got %v", proxy["remote-dns-resolve"])
+		}
+	})
+
+	t.Run("no DNS", func(t *testing.T) {
+		proxy := build(t, "", "")
+		if _, ok := proxy["remote-dns-resolve"]; ok {
+			t.Fatal("remote-dns-resolve must stay unset when there is no dns list")
+		}
+	})
+}

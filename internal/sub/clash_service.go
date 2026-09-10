@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"net/netip"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -443,6 +444,33 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 	return proxy
 }
 
+// amneziaWGClientAddresses prefers this inbound's own settings entry over the
+// shared clients.wg_allowed_ips column, which for an identity attached to both
+// a wireguard and an amneziawg inbound holds the other one's address.
+func amneziaWGClientAddresses(settingsClients []model.Client, client model.Client) []string {
+	for i := range settingsClients {
+		if !strings.EqualFold(settingsClients[i].Email, client.Email) {
+			continue
+		}
+		if len(settingsClients[i].AllowedIPs) > 0 {
+			return settingsClients[i].AllowedIPs
+		}
+		break
+	}
+	return client.AllowedIPs
+}
+
+// allBareIPs reports whether every entry is a plain IP address — no port,
+// scheme or interface suffix for mihomo's nameserver parser to choke on.
+func allBareIPs(servers []string) bool {
+	for _, s := range servers {
+		if _, err := netip.ParseAddr(s); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 // buildAmneziaWGProxy emits a mihomo Clash entry for an AmneziaWG inbound:
 // type stays "wireguard", the obfuscation rides in amnezia-wg-option.
 func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
@@ -475,7 +503,7 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 		proxy["persistent-keepalive"] = client.KeepAlive
 	}
 
-	for _, addr := range client.AllowedIPs {
+	for _, addr := range amneziaWGClientAddresses(parsed.Clients, client) {
 		ip := stripCIDR(addr)
 		if ip == "" {
 			continue
@@ -500,6 +528,11 @@ func (s *SubClashService) buildAmneziaWGProxy(subReq *SubService, inbound *model
 	}
 	if len(dns) > 0 {
 		proxy["dns"] = dns
+		// mihomo ignores dns without this flag, but aborts the whole config on
+		// a value its dns.ParseNameServer rejects, so only bare IPs opt in.
+		if allBareIPs(dns) {
+			proxy["remote-dns-resolve"] = true
+		}
 	}
 
 	awg := map[string]any{}
