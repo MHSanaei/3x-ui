@@ -154,9 +154,8 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		"rules": []string{"MATCH,PROXY"},
 	}
 
-	// Custom Clash routing can contain Mihomo-only groups, rules, providers,
-	// or even a top-level proxies key. Keep the legacy profile deliberately
-	// small so routing cannot reintroduce unsupported nodes or syntax.
+	// Custom Clash routing can inject Mihomo-only groups, rules, providers or a
+	// top-level proxies key — exactly what the legacy filter just removed.
 	if s.enableRouting && !legacy {
 		resolved, remoteDocument, remote, resolveErr := resolveClashRoutingSource(s.clashRules)
 		if resolveErr == nil && strings.TrimSpace(resolved) != "" {
@@ -167,11 +166,6 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 			} else if err := mergeClashRulesYAML(config, resolved); err != nil {
 				return "", "", err
 			}
-		}
-	}
-	if legacy {
-		if err := validateClashRouteGraph(config); err != nil {
-			return "", "", err
 		}
 	}
 

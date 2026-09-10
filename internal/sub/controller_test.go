@@ -92,43 +92,85 @@ func TestNewSUBControllerOptions(t *testing.T) {
 	}
 }
 
+// A configured subscription path keeps its own format when it collides with a
+// hard-coded Clash alias, and the alias that does not collide still serves.
 func TestClashAliasesSkipConfiguredPathConflicts(t *testing.T) {
+	seedSubDB(t)
+	seedSubProtocolInbound(t, "s1", "vm", 4487, 1, `{"network":"tcp","security":"none"}`, model.VMESS)
+	seedSubInbound(t, "s1", "vl", 4488, 2, `{"network":"tcp","security":"none"}`)
 	gin.SetMode(gin.TestMode)
+
+	type check struct {
+		path    string
+		want    []string
+		notWant []string
+	}
+	// The full Mihomo profile is the only body carrying "type: vless"; the
+	// legacy one keeps VMess and drops it.
+	fullProfile := []string{"type: vmess", "type: vless"}
+	legacyProfile := []string{"type: vmess"}
+
 	tests := []struct {
 		name    string
 		options []SUBControllerOption
+		checks  []check
 	}{
 		{
-			name: "raw path uses Mihomo alias",
-			options: []SUBControllerOption{
-				WithSUBPath(subMihomoPath),
+			name:    "raw path uses Mihomo alias",
+			options: []SUBControllerOption{WithSUBPath(subMihomoPath), WithSUBEncryption(false)},
+			checks: []check{
+				{path: "/mihomo/s1", want: []string{"vmess://"}, notWant: []string{"type: vmess"}},
+				{path: "/clash-legacy/s1", want: legacyProfile, notWant: []string{"type: vless"}},
 			},
 		},
 		{
-			name: "JSON path uses legacy alias",
-			options: []SUBControllerOption{
-				WithSUBJsonEnabled(true),
-				WithSUBJsonPath(subClashLegacyPath),
+			name:    "JSON path uses legacy alias",
+			options: []SUBControllerOption{WithSUBJsonEnabled(true), WithSUBJsonPath(subClashLegacyPath)},
+			checks: []check{
+				{path: "/clash-legacy/s1", want: []string{`"outbounds"`}, notWant: []string{"type: vmess"}},
+				{path: "/mihomo/s1", want: fullProfile},
 			},
 		},
 		{
-			name: "configured Clash path is already Mihomo alias",
-			options: []SUBControllerOption{
-				WithSUBClashPath(subMihomoPath),
+			name:    "configured Clash path is already Mihomo alias",
+			options: []SUBControllerOption{WithSUBClashPath(subMihomoPath)},
+			checks: []check{
+				{path: "/mihomo/s1", want: fullProfile},
+				{path: "/clash-legacy/s1", want: legacyProfile, notWant: []string{"type: vless"}},
 			},
 		},
 		{
-			name: "configured Clash path uses legacy alias",
-			options: []SUBControllerOption{
-				WithSUBClashPath(subClashLegacyPath),
+			name:    "configured Clash path uses legacy alias",
+			options: []SUBControllerOption{WithSUBClashPath(subClashLegacyPath)},
+			checks: []check{
+				{path: "/clash-legacy/s1", want: fullProfile},
+				{path: "/mihomo/s1", want: fullProfile},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := append([]SUBControllerOption{WithSUBClashEnabled(true)}, tt.options...)
-			NewSUBController(gin.New().Group("/"), options...)
+			router := gin.New()
+			NewSUBController(router.Group("/"), append([]SUBControllerOption{WithSUBClashEnabled(true)}, tt.options...)...)
+			for _, c := range tt.checks {
+				resp := httptest.NewRecorder()
+				router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, "http://sub.example.com"+c.path, nil))
+				if resp.Code != http.StatusOK {
+					t.Fatalf("GET %s: status = %d, want 200; body=%s", c.path, resp.Code, resp.Body.String())
+				}
+				body := resp.Body.String()
+				for _, want := range c.want {
+					if !strings.Contains(body, want) {
+						t.Fatalf("GET %s: body is missing %q:\n%s", c.path, want, body)
+					}
+				}
+				for _, notWant := range c.notWant {
+					if strings.Contains(body, notWant) {
+						t.Fatalf("GET %s: body must not contain %q:\n%s", c.path, notWant, body)
+					}
+				}
+			}
 		})
 	}
 }
