@@ -23,11 +23,21 @@ type SubClashService struct {
 	SubService    *SubService
 }
 
+var errNoLegacyClashProxies = errors.New("no Clash for Windows-compatible proxies found; use the Mihomo subscription for modern proxy types")
+
 func NewSubClashService(enableRouting bool, clashRules string, subService *SubService) *SubClashService {
 	return &SubClashService{enableRouting: enableRouting, clashRules: clashRules, SubService: subService}
 }
 
 func (s *SubClashService) GetClash(subId string, host string) (string, string, error) {
+	return s.getClash(subId, host, false)
+}
+
+func (s *SubClashService) GetClashLegacy(subId string, host string) (string, string, error) {
+	return s.getClash(subId, host, true)
+}
+
+func (s *SubClashService) getClash(subId string, host string, legacy bool) (string, string, error) {
 	subReq := s.SubService.ForRequest(host)
 	subReq.subscriptionBody = true
 	inbounds, err := subReq.getInboundsBySubId(subId)
@@ -88,6 +98,12 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	if len(proxies) == 0 && !hasInactiveExternal {
 		return "", "", nil
 	}
+	if legacy {
+		proxies = legacyClashProxies(proxies)
+		if len(proxies) == 0 {
+			return "", "", errNoLegacyClashProxies
+		}
+	}
 
 	emails := make([]string, 0, len(seenEmails))
 	for e := range seenEmails {
@@ -139,7 +155,9 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		"rules": []string{"MATCH,PROXY"},
 	}
 
-	if s.enableRouting {
+	// Custom Clash routing can inject Mihomo-only groups, rules, providers or a
+	// top-level proxies key — exactly what the legacy filter just removed.
+	if s.enableRouting && !legacy {
 		resolved, remoteDocument, remote, resolveErr := resolveClashRoutingSource(s.clashRules)
 		if resolveErr == nil && strings.TrimSpace(resolved) != "" {
 			if remote {
@@ -158,6 +176,102 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 	}
 
 	return string(finalYAML), header, nil
+}
+
+func legacyClashProxies(proxies []map[string]any) []map[string]any {
+	compatible := make([]map[string]any, 0, len(proxies))
+	for _, proxy := range proxies {
+		if filtered := legacyClashProxy(proxy); filtered != nil {
+			compatible = append(compatible, filtered)
+		}
+	}
+	return compatible
+}
+
+func legacyClashProxy(proxy map[string]any) map[string]any {
+	proxyType, _ := proxy["type"].(string)
+	network, _ := proxy["network"].(string)
+	if _, reality := proxy["reality-opts"]; reality {
+		return nil
+	}
+
+	var fields []string
+	var cipher string
+	switch proxyType {
+	case "vmess":
+		if !legacyClashNetwork(network) || !legacyVmessCipher(proxy["cipher"]) {
+			return nil
+		}
+		fields = []string{
+			"name", "type", "server", "port", "uuid", "alterId", "cipher", "udp",
+			"network", "tls", "skip-cert-verify", "servername", "grpc-opts", "ws-opts",
+		}
+	case "trojan":
+		tls, _ := proxy["tls"].(bool)
+		if !tls || !legacyClashNetwork(network) {
+			return nil
+		}
+		fields = []string{
+			"name", "type", "server", "port", "password", "alpn", "sni", "skip-cert-verify",
+			"udp", "network", "grpc-opts", "ws-opts",
+		}
+	case "ss":
+		tls, _ := proxy["tls"].(bool)
+		cipher = legacyShadowsocksCipher(proxy["cipher"])
+		if (network != "" && network != "tcp") || tls || cipher == "" {
+			return nil
+		}
+		fields = []string{"name", "type", "server", "port", "password", "cipher", "udp", "plugin", "plugin-opts"}
+	default:
+		return nil
+	}
+
+	filtered := make(map[string]any, len(fields))
+	for _, field := range fields {
+		if value, exists := proxy[field]; exists {
+			filtered[field] = value
+		}
+	}
+	if proxyType == "ss" {
+		filtered["cipher"] = cipher
+	}
+	return filtered
+}
+
+func legacyClashNetwork(network string) bool {
+	switch network {
+	case "", "tcp", "ws", "grpc":
+		return true
+	default:
+		return false
+	}
+}
+
+func legacyVmessCipher(value any) bool {
+	cipher, _ := value.(string)
+	switch strings.ToLower(strings.TrimSpace(cipher)) {
+	case "auto", "aes-128-gcm", "chacha20-poly1305", "none":
+		return true
+	default:
+		return false
+	}
+}
+
+func legacyShadowsocksCipher(value any) string {
+	cipher, _ := value.(string)
+	cipher = strings.ToLower(strings.TrimSpace(cipher))
+	switch cipher {
+	case "chacha20-poly1305":
+		return "chacha20-ietf-poly1305"
+	case "aes-128-gcm", "aes-192-gcm", "aes-256-gcm",
+		"aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
+		"aes-128-ctr", "aes-192-ctr", "aes-256-ctr",
+		"rc4-md5", "chacha20-ietf", "xchacha20",
+		"chacha20-ietf-poly1305", "xchacha20-ietf-poly1305":
+		return cipher
+	default:
+		return ""
+	}
 }
 
 // ensureUniqueProxyNames keeps every proxy "name" non-empty and unique:
