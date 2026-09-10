@@ -1,0 +1,12 @@
+{
+  "quicParams": {
+    "congestion": "brutal",
+    "brutalUp": "60 mbps",
+    "brutalDown": "100 mbps",
+    "brutalDisableLossCompensation": true,
+    "disablePathMTUDiscovery": false,
+    "disableChromeParrot": true,
+    "disableGSO": true,
+    "disableStatelessReset": true
+  }
+}

@@ -2,6 +2,7 @@ package panel
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
@@ -65,6 +66,30 @@ func TestRecreateByNamePreservesTokenWhenReplacementFails(t *testing.T) {
 	}
 	if !svc.Match(first.Token) {
 		t.Fatal("original token was revoked after replacement failure")
+	}
+}
+
+// Create caps the name at 64 characters; RecreateByName writes the same column
+// and now takes operator input from -tokenName, so it must cap it too.
+func TestRecreateByNameRejectsOverlongName(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	if err := database.InitDB(config.GetDBPath()); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	const wantErr = "token name must be 64 characters or fewer"
+
+	svc := ApiTokenService{}
+	_, err := svc.RecreateByName(strings.Repeat("n", 65))
+	if err == nil {
+		t.Fatal("expected a 65-character token name to be rejected")
+	}
+	if got := strings.TrimSpace(err.Error()); got != wantErr {
+		t.Fatalf("error = %q, want %q — any other error would pass a bare nil check", got, wantErr)
+	}
+	if _, err := svc.RecreateByName(strings.Repeat("n", 64)); err != nil {
+		t.Fatalf("64 characters is the documented limit, got: %v", err)
 	}
 }
 

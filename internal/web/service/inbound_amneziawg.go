@@ -159,11 +159,45 @@ func fillAmneziaWGServerKeys(server *amneziawg.ServerSettings) error {
 	return nil
 }
 
+// resolveAmneziaWGServerKeys settles the server keypair for a save. An omitted
+// key means "unchanged", never "mint a new one": rotating it silently
+// invalidates every client config already handed out.
+func resolveAmneziaWGServerKeys(server *amneziawg.ServerSettings, oldSettings string) error {
+	if server.PrivateKey == "" {
+		storedPriv, storedPub := storedAmneziaWGServerKeys(oldSettings)
+		if storedPriv == "" {
+			return fillAmneziaWGServerKeys(server)
+		}
+		server.PrivateKey, server.PublicKey = storedPriv, storedPub
+	}
+	if server.PublicKey == "" {
+		pub, err := wgutil.PublicKeyFromPrivate(server.PrivateKey)
+		if err != nil {
+			return fmt.Errorf("amneziawg: derive server public key: %w", err)
+		}
+		server.PublicKey = pub
+	}
+	return nil
+}
+
+// storedAmneziaWGServerKeys returns the keypair already saved for this inbound.
+// oldSettings is empty on a first save, and need not be valid AmneziaWG JSON.
+func storedAmneziaWGServerKeys(oldSettings string) (priv, pub string) {
+	if strings.TrimSpace(oldSettings) == "" {
+		return "", ""
+	}
+	var prev amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(oldSettings), &prev); err != nil || prev.Server == nil {
+		return "", ""
+	}
+	return prev.Server.PrivateKey, prev.Server.PublicKey
+}
+
 // normalizeAmneziaWGSettings ensures an AmneziaWG inbound's settings have a
 // valid server block, generating one (fresh obfuscation params + keypair) on
 // first save and validating a manually-edited one so a bad entry can't bring
 // the interface down on the next apply. A no-op for every other protocol.
-func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) error {
+func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldSettings string) error {
 	if inbound.Protocol != model.AmneziaWG {
 		return nil
 	}
@@ -193,10 +227,8 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 			return err
 		}
 		parsed.Server = server
-	} else if parsed.Server.PrivateKey == "" {
-		if err := fillAmneziaWGServerKeys(parsed.Server); err != nil {
-			return err
-		}
+	} else if err := resolveAmneziaWGServerKeys(parsed.Server, oldSettings); err != nil {
+		return err
 	}
 	parsed.Server.HeaderProtectionKey = strings.TrimSpace(parsed.Server.HeaderProtectionKey)
 	for _, f := range []*string{
@@ -264,6 +296,11 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound) erro
 		normalized, err := normalizeWireguardAllowedIPs(c.AllowedIPs)
 		if err != nil {
 			return fmt.Errorf("amneziawg: client %q: %w", c.Email, err)
+		}
+		// An enabled peer with no address is skipped by InstanceFromInbound, and
+		// if it was the only one the whole inbound never starts, silently.
+		if c.Enable && len(normalized) == 0 {
+			return fmt.Errorf("amneziawg: client %q: allowedIPs is required", c.Email)
 		}
 		c.AllowedIPs = normalized
 	}

@@ -29,6 +29,14 @@ var reportedForeignClientClaim sync.Map
 // sequential round-trips. Small ops stay on the live per-client path.
 const nodeBulkPushThreshold = 32
 
+// nodeClientPushTimeout bounds the synchronous per-client push: the change is
+// committed and the node flagged dirty, so a slow node defers to the reconcile.
+const nodeClientPushTimeout = 4 * time.Second
+
+func nodePushContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), nodeClientPushTimeout)
+}
+
 func (s *InboundService) runtimeFor(ib *model.Inbound) (runtime.Runtime, error) {
 	mgr := runtime.GetManager()
 	if mgr == nil {
@@ -173,13 +181,7 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 	// rest were never imported, so their absence from the local DB must not
 	// delete them from the node. Only a selected tag missing locally (the
 	// panel deleted it while the node was unreachable) may be swept.
-	var selected map[string]struct{}
-	if n.InboundSyncMode == "selected" {
-		selected = make(map[string]struct{}, len(n.InboundTags))
-		for _, tag := range n.InboundTags {
-			selected[tag] = struct{}{}
-		}
-	}
+	selected := nodeSelectedTagSet(n)
 	for _, tag := range remoteTags {
 		if _, want := desiredTags[tag]; want {
 			continue

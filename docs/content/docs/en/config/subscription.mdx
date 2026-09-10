@@ -42,22 +42,43 @@ URLs and preview both bodies here:
 
 The **format is chosen by path**, each with its own enable toggle:
 
-| Format                | Path      | Enabled by       | Output                                              |
-| --------------------- | --------- | ---------------- | --------------------------------------------------- |
-| **Raw links**         | `subPath`      | always (if on)   | A list of `vless://`, `vmess://`, … links (base64-encoded when `subEncrypt` is on). |
-| **JSON**              | `subJsonPath`  | `subJsonEnable`  | Full Xray client config(s).                         |
-| **Clash / Mihomo**    | `subClashPath` | `subClashEnable` | YAML profile.                                       |
+| Format                         | Path             | Enabled by       | Output                                              |
+| ------------------------------ | ---------------- | ---------------- | --------------------------------------------------- |
+| **Raw links**                  | `subPath`        | always (if on)   | A list of `vless://`, `vmess://`, … links (base64-encoded when `subEncrypt` is on). |
+| **JSON**                       | `subJsonPath`    | `subJsonEnable`  | Full Xray client config(s).                         |
+| **Clash / Mihomo**             | `subClashPath`   | `subClashEnable` | Full Mihomo-compatible YAML profile.                |
+| **Mihomo (explicit)**          | `/mihomo/`       | `subClashEnable` | Alias for the full `subClashPath` profile.          |
+| **Clash for Windows (legacy)** | `/clash-legacy/` | `subClashEnable` | YAML limited to proxy types, transports, and ciphers supported by the legacy Clash core. |
 
 Only enabled inbounds using **VLESS, VMess, Trojan, Shadowsocks, or Hysteria2**
 appear in a subscription, ordered by their sub-sort index. Requesting `subPath`
 with an `Accept: text/html` header (or `?html=1`) returns a human-readable info
 page instead of the raw body.
 
+Use `/mihomo/<sub-id>` for Clash Verge Rev, Mihomo, and other maintained
+Mihomo-based clients. Use `/clash-legacy/<sub-id>` only for the discontinued
+Clash for Windows client. The legacy endpoint keeps compatible VMess, Trojan,
+and Shadowsocks nodes and excludes VLESS, Hysteria2, Reality, XHTTP,
+HTTPUpgrade, and Shadowsocks 2022. If no compatible node exists, it returns an
+explicit `422` response instead of a YAML profile the client cannot import.
+To avoid Mihomo-only syntax entering the legacy profile, this endpoint always
+uses its minimal `PROXY` group and `MATCH,PROXY` rule and ignores custom Clash
+routing settings.
+
+If an administrator has already assigned `/mihomo/` or `/clash-legacy/` to a
+different configurable subscription path, that existing path is preserved and
+the conflicting alias is skipped with a warning at startup.
+
+Automatic Clash format detection keeps the existing `(?i)(clash|mihomo)`
+default matcher so existing subscription URLs continue returning YAML.
+It does not distinguish legacy clients from Mihomo-based clients; Clash for
+Windows users must use `/clash-legacy/<sub-id>` for a compatible profile.
+
 ### Base64 vs JSON
 
 The **Base64** body is just the newline-joined share links, standard-base64
 encoded (toggle with `subEncrypt`). The **JSON** body wraps each client in a
-complete Xray client config — a fixed skeleton (local SOCKS/HTTP inbounds, DNS,
+complete Xray client config — a fixed skeleton (local SOCKS/HTTP inbounds bound to 127.0.0.1, DNS,
 routing, policy) plus a `proxy` outbound pointing at the inbound. 3x-ui emits a
 **single config object for one client and an array for several**, uses the flat
 outbound `settings` form (`address`/`port`/`id`, `level: 8`), and strips

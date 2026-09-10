@@ -65,6 +65,71 @@ func TestGenMtprotoLinkNoSecret(t *testing.T) {
 	}
 }
 
+func TestGetSubsMtprotoUsesHostEndpoint(t *testing.T) {
+	initSubDB(t)
+	db := database.GetDB()
+
+	inbound := &model.Inbound{
+		Listen:   "127.0.0.1",
+		Port:     4060,
+		Protocol: model.MTProto,
+		Enable:   true,
+		Tag:      "mt-public-port",
+		Settings: `{"clients":[{"email":"u@mt","enable":true,"subId":"sub-public-port","secret":"` + mtprotoTestSecret + `"}]}`,
+	}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	if err := db.Create(&model.Host{
+		InboundId: inbound.Id,
+		Remark:    "public",
+		Address:   "proxy.example.com",
+		Port:      443,
+		Security:  "same",
+	}).Error; err != nil {
+		t.Fatalf("create host: %v", err)
+	}
+	client := &model.ClientRecord{Email: "u@mt", SubID: "sub-public-port", Enable: true, Secret: mtprotoTestSecret}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: inbound.Id}).Error; err != nil {
+		t.Fatalf("attach client: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs(client.SubID, "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if len(links) != 1 {
+		t.Fatalf("links = %d, want 1: %v", len(links), links)
+	}
+	u, err := url.Parse(links[0])
+	if err != nil {
+		t.Fatalf("parse link: %v", err)
+	}
+	if got := u.Query().Get("server"); got != "proxy.example.com" {
+		t.Fatalf("server = %q, want proxy.example.com", got)
+	}
+	if got := u.Query().Get("port"); got != "443" {
+		t.Fatalf("port = %q, want public host port 443", got)
+	}
+	clientLinks := NewLinkProvider().LinksForClient("sub.example.com", inbound, client.Email)
+	if len(clientLinks) != 1 {
+		t.Fatalf("client links = %d, want 1: %v", len(clientLinks), clientLinks)
+	}
+	clientURL, err := url.Parse(clientLinks[0])
+	if err != nil {
+		t.Fatalf("parse client link: %v", err)
+	}
+	if got := clientURL.Query().Get("server"); got != "proxy.example.com" {
+		t.Fatalf("client link server = %q, want proxy.example.com", got)
+	}
+	if got := clientURL.Query().Get("port"); got != "443" {
+		t.Fatalf("client link port = %q, want 443", got)
+	}
+}
+
 // Regression: an mtproto inbound must resolve for a subscription id the same way
 // every other client-bearing protocol does. It was previously dropped from the
 // getInboundsBySubId protocol allowlist, so multi-client MTProto subscriptions

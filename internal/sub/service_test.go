@@ -1081,6 +1081,19 @@ func TestMarshalFinalMask_KeepsXmcTcpMask(t *testing.T) {
 	}
 }
 
+func TestMarshalFinalMask_KeepsUdpHopMask(t *testing.T) {
+	fm := map[string]any{
+		"udp": []any{udpHopMask("20000-50000")},
+	}
+	out, ok := marshalFinalMask(fm)
+	if !ok {
+		t.Fatal("expected ok=true for a udphop udp mask")
+	}
+	if !strings.Contains(out, "udphop") || !strings.Contains(out, "20000-50000") {
+		t.Fatalf("marshaled finalmask dropped the udphop mask: %s", out)
+	}
+}
+
 func TestHasFinalMaskContent(t *testing.T) {
 	if hasFinalMaskContent(nil) {
 		t.Fatal("nil should not count as content")
@@ -1127,6 +1140,13 @@ func TestHysteriaPinHex(t *testing.T) {
 	}
 }
 
+func udpHopMask(ports string) map[string]any {
+	return map[string]any{
+		"type":     "udphop",
+		"settings": map[string]any{"mode": "intervalremote", "interval": "5-10", "remotePorts": ports},
+	}
+}
+
 func TestHysteriaHopPorts(t *testing.T) {
 	withHop := func(ports any) map[string]any {
 		return map[string]any{
@@ -1137,6 +1157,11 @@ func TestHysteriaHopPorts(t *testing.T) {
 			},
 		}
 	}
+	withHopMask := func(ports string) map[string]any {
+		return map[string]any{
+			"finalmask": map[string]any{"udp": []any{udpHopMask(ports)}},
+		}
+	}
 
 	cases := []struct {
 		name   string
@@ -1144,6 +1169,14 @@ func TestHysteriaHopPorts(t *testing.T) {
 		want   string
 	}{
 		{"range", withHop("20000-50000"), "20000-50000"},
+		{"udphop mask", withHopMask("20000-50000"), "20000-50000"},
+		{"udphop mask wins over legacy key", map[string]any{
+			"finalmask": map[string]any{
+				"udp":        []any{udpHopMask("30000-40000")},
+				"quicParams": map[string]any{"udpHop": map[string]any{"ports": "20000-50000"}},
+			},
+		}, "30000-40000"},
+		{"udphop mask without remotePorts", withHopMask(""), ""},
 		{"trimmed", withHop("  443,20000-50000  "), "443,20000-50000"},
 		{"empty string", withHop(""), ""},
 		{"non-string", withHop(float64(443)), ""},

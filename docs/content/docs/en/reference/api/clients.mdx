@@ -56,8 +56,11 @@ _openapi:
     - depth: 2
       title: Replace a client's external links and external subscriptions. Sends the
         full set; the server replaces all rows. Disabled rows stay saved for
-        editing but are not emitted in generated subscriptions.
-      url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions'
+        editing but are not emitted in generated subscriptions. The owning
+        client's disabled or expired state also stops these rows from being
+        emitted on future subscription fetches; credentials already imported by
+        an app remain valid until the external provider revokes them.
+      url: '#replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them'
     - depth: 2
       title: Reset the up/down counters for every client globally. Quotas and expiry
         are not affected. Triggers an Xray restart if any counter actually
@@ -101,9 +104,11 @@ _openapi:
         still-depleted client is left disabled. The optional flow directive sets
         the XTLS flow on every client: "none" clears it,
         "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where the inbound
-        supports it (omit or "" to leave it unchanged). Returns the adjusted
+        supports it (omit or "" to leave it unchanged). The optional limitHwid
+        sets maximum registered devices (0 = unlimited). The optional adTag sets
+        MTProto Telegram sponsor channel ("none" clears). Returns the adjusted
         count and per-email skip reasons.'
-      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons'
+      url: '#shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons'
     - depth: 2
       title: Enable many clients in one call. Emails are grouped by inbound and
         applied with a single read-modify-write per inbound; the running Xray
@@ -270,13 +275,13 @@ _openapi:
         clients.
       url: '#return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients'
     - depth: 2
-      title: 'Return every URL for one client across all attached inbounds — the same
-        strings the Copy URL button copies in the panel UI. Supported protocols:
-        vmess, vless, trojan, shadowsocks, hysteria. If
-        streamSettings.externalProxy is set, returns one URL per external proxy.
+      title: 'Return every URL for one client across all attached inbounds, one per
+        advertised endpoint: the managed hosts of the inbound, else its
+        streamSettings.externalProxy entries, else its own address. Supported
+        protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto.
         Protocols without a URL form (socks, http, mixed, wireguard, dokodemo,
         tunnel) contribute nothing.'
-      url: '#return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing'
+      url: '#return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing'
   structuredData:
     headings:
       - content: List every client with its attached inbound IDs and traffic record. The
@@ -318,8 +323,11 @@ _openapi:
         id: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
       - content: Replace a client's external links and external subscriptions. Sends the
           full set; the server replaces all rows. Disabled rows stay saved for
-          editing but are not emitted in generated subscriptions.
-        id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions
+          editing but are not emitted in generated subscriptions. The owning
+          client's disabled or expired state also stops these rows from being
+          emitted on future subscription fetches; credentials already imported
+          by an app remain valid until the external provider revokes them.
+        id: replace-a-clients-external-links-and-external-subscriptions-sends-the-full-set-the-server-replaces-all-rows-disabled-rows-stay-saved-for-editing-but-are-not-emitted-in-generated-subscriptions-the-owning-clients-disabled-or-expired-state-also-stops-these-rows-from-being-emitted-on-future-subscription-fetches-credentials-already-imported-by-an-app-remain-valid-until-the-external-provider-revokes-them
       - content: Reset the up/down counters for every client globally. Quotas and expiry
           are not affected. Triggers an Xray restart if any counter actually
           moved.
@@ -358,9 +366,11 @@ _openapi:
           manually-disabled or still-depleted client is left disabled. The
           optional flow directive sets the XTLS flow on every client: "none"
           clears it, "xtls-rprx-vision"/"xtls-rprx-vision-udp443" set it where
-          the inbound supports it (omit or "" to leave it unchanged). Returns
-          the adjusted count and per-email skip reasons.'
-        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-returns-the-adjusted-count-and-per-email-skip-reasons
+          the inbound supports it (omit or "" to leave it unchanged). The
+          optional limitHwid sets maximum registered devices (0 = unlimited).
+          The optional adTag sets MTProto Telegram sponsor channel ("none"
+          clears). Returns the adjusted count and per-email skip reasons.'
+        id: shift-expiry-andor-traffic-quota-for-many-clients-in-one-call-adddaysaddbytes-may-be-negative-clients-with-unlimited-expiry-expirytime0-or-unlimited-traffic-totalgb0-are-skipped-for-the-corresponding-field--bulk-extend-never-converts-unlimited-to-limited-a-client-that-was-auto-disabled-solely-because-it-was-depleted-expired-or-over-quota-is-automatically-re-enabled--locally-and-on-its-node--when-the-adjustment-lifts-it-out-of-depletion-a-manually-disabled-or-still-depleted-client-is-left-disabled-the-optional-flow-directive-sets-the-xtls-flow-on-every-client-none-clears-it-xtls-rprx-visionxtls-rprx-vision-udp443-set-it-where-the-inbound-supports-it-omit-or--to-leave-it-unchanged-the-optional-limithwid-sets-maximum-registered-devices-0--unlimited-the-optional-adtag-sets-mtproto-telegram-sponsor-channel-none-clears-returns-the-adjusted-count-and-per-email-skip-reasons
       - content: Enable many clients in one call. Emails are grouped by inbound and
           applied with a single read-modify-write per inbound; the running Xray
           (local or remote node) is updated to add each user. Note that enabling
@@ -502,13 +512,13 @@ _openapi:
           URL is emitted per external proxy. Empty array when the subId has no
           enabled clients.
         id: return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
-      - content: 'Return every URL for one client across all attached inbounds — the
-          same strings the Copy URL button copies in the panel UI. Supported
-          protocols: vmess, vless, trojan, shadowsocks, hysteria. If
-          streamSettings.externalProxy is set, returns one URL per external
-          proxy. Protocols without a URL form (socks, http, mixed, wireguard,
-          dokodemo, tunnel) contribute nothing.'
-        id: return-every-url-for-one-client-across-all-attached-inbounds--the-same-strings-the-copy-url-button-copies-in-the-panel-ui-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-if-streamsettingsexternalproxy-is-set-returns-one-url-per-external-proxy-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
+      - content: 'Return every URL for one client across all attached inbounds, one per
+          advertised endpoint: the managed hosts of the inbound, else its
+          streamSettings.externalProxy entries, else its own address. Supported
+          protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto.
+          Protocols without a URL form (socks, http, mixed, wireguard, dokodemo,
+          tunnel) contribute nothing.'
+        id: return-every-url-for-one-client-across-all-attached-inbounds-one-per-advertised-endpoint-the-managed-hosts-of-the-inbound-else-its-streamsettingsexternalproxy-entries-else-its-own-address-supported-protocols-vmess-vless-trojan-shadowsocks-hysteria-mtproto-protocols-without-a-url-form-socks-http-mixed-wireguard-dokodemo-tunnel-contribute-nothing
     contents:
       - content: >-
           Fields the server fills in when they are omitted — a valid value sent
@@ -544,22 +554,61 @@ _openapi:
 
 
           WireGuard is the only one of these that can fail. Allocation widens
-          the search to the containing /16 before giving up with `wireguard: no
-          free address available in <scope>`, and an `allowedIPs` supplied by
-          the caller is validated instead of allocated: `wireguard: allowedIPs
-          entry already used by another client: <address>` when a different
-          client of that same inbound already holds it. The check is per
-          inbound, so the same address on two different inbounds is accepted.
-          The same validation runs on POST /panel/api/clients/{email}/attach,
-          where a client that already carries an address brings it along.
+          the search to the containing /16 before giving up with `inbound <id>:
+          wireguard: no free address available in <scope>`, and an `allowedIPs`
+          supplied by the caller is validated instead of allocated: `inbound
+          <id>: wireguard: allowedIPs entry already used by another client:
+          <address>` when a different client of that same inbound already holds
+          it. The check is per inbound, so the same address on two different
+          inbounds is accepted. The same validation runs on POST
+          /panel/api/clients/{email}/attach, where a client that already carries
+          an address brings it along.
+
+
+          An `inboundIds` entry that names no existing inbound rejects the whole
+          call before anything is written. Past that, the inbounds are applied
+          concurrently and independently: one that fails no longer stops the
+          others, so a `success:false` response can still have created the
+          client on the rest. Every error names the inbound it came from
+          (`inbound 7: <message>`), and several failures are reported together,
+          one per line. `limitHwid` is applied only when every inbound
+          succeeded, so re-run the call after fixing the failure.
         heading: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: 'The inbounds are applied concurrently and independently: one that
+          fails no longer stops the others. Every inbound error names the
+          inbound it came from (`inbound 7: <message>`), and several failures
+          are reported together, one per line. So a `success:false` response can
+          still have applied the edit to the remaining inbounds. The client
+          record is written after the inbounds, so a failure there is reported
+          without an `inbound <id>:` prefix and leaves the inbound edits in
+          place.'
+        heading: update-an-existing-client-by-email-changes-propagate-to-every-attached-inbound-body-is-the-json-client-payload--supply-the-full-set-of-fields-you-want-to-keep-the-server-replaces-the-row-it-does-not-patch
+      - content: 'The inbounds are applied concurrently and independently: one that
+          fails no longer stops the others. Every inbound error names the
+          inbound it came from (`inbound 7: <message>`), and several failures
+          are reported together, one per line. So a `success:false` response can
+          still have removed the client from the remaining inbounds; the client
+          record is kept in that case, so re-running the call retries exactly
+          the leftovers. The record and traffic rows are dropped after the
+          inbounds, so a failure there is reported without an `inbound <id>:`
+          prefix and leaves the client already removed from every inbound.'
+        heading: delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
       - content: 'A WireGuard client brings its stored `allowedIPs` into the new inbound
           instead of being given a fresh address, so the call fails with
-          `wireguard: allowedIPs entry already used by another client:
-          <address>` when a different client of the target inbound already holds
-          it. Free the address on that inbound first — see POST
-          /panel/api/clients/add for the full rule.'
+          `inbound <id>: wireguard: allowedIPs entry already used by another
+          client: <address>` when a different client of the target inbound
+          already holds it. Free the address on that inbound first — see POST
+          /panel/api/clients/add for the full rule. Inbounds are applied
+          independently, so the remaining ones are still attached and a
+          `success:false` response can be partial.'
         heading: attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
+      - content: 'The inbounds are applied concurrently and independently: one that
+          fails no longer stops the others. Every inbound error names the
+          inbound it came from (`inbound 7: <message>`), and several failures
+          are reported together, one per line. So a `success:false` response can
+          still have detached the remaining inbounds. Detach writes nothing
+          beyond the inbounds, so every error carries the prefix.'
+        heading: detach-a-client-from-one-or-more-inbounds-without-deleting-the-client
 ---
 
 {/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}

@@ -18,6 +18,12 @@ export function formatInboundIssue(issue: IssueLike, values: unknown, t: TFuncti
   const path = Array.isArray(issue?.path) ? issue.path : [];
   const reason = t(issue?.message, { defaultValue: issue?.message });
 
+  if (path[0] === 'streamSettings' && path[1] === 'tlsSettings' && path[2] === 'certificates') {
+    return typeof path[3] === 'number'
+      ? t('pages.inbounds.toasts.invalidCertificate', { index: path[3] + 1, reason })
+      : reason;
+  }
+
   if (path[0] === 'settings' && path[1] === 'clients' && typeof path[2] === 'number') {
     const index = path[2];
     const clients = (values as { settings?: { clients?: ClientLike[] } })?.settings?.clients;

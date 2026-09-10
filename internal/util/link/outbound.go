@@ -760,21 +760,30 @@ func applyHysteria2Obfs(stream map[string]any, p url.Values) {
 }
 
 // applyHysteria2Hop rebuilds the UDP port-hopping range from the standard mport
-// param, which the generator emits as finalmask.quicParams.udpHop.ports. A range
-// already supplied via fm= wins; the client-side interval falls back to the same
-// default the panel writes.
+// param. xray-core 26.9.9 replaced finalmask.quicParams.udpHop with a "udphop"
+// UDP mask, whose intervalremote mode is what the old key used to do; a mask
+// already supplied via fm= wins.
 func applyHysteria2Hop(stream map[string]any, p url.Values) {
 	ports := firstParam(p, "mport")
 	if ports == "" {
 		return
 	}
-	quicParams := ensureChildMap(ensureChildMap(stream, "finalmask"), "quicParams")
-	if udpHop, ok := quicParams["udpHop"].(map[string]any); ok {
-		if existing, _ := udpHop["ports"].(string); existing != "" {
+	finalmask := ensureChildMap(stream, "finalmask")
+	masks, _ := finalmask["udp"].([]any)
+	for _, rawMask := range masks {
+		mask, _ := rawMask.(map[string]any)
+		if maskType, _ := mask["type"].(string); maskType == "udphop" {
 			return
 		}
 	}
-	quicParams["udpHop"] = map[string]any{"ports": ports, "interval": "5-10"}
+	finalmask["udp"] = append(masks, map[string]any{
+		"type": "udphop",
+		"settings": map[string]any{
+			"mode":        "intervalremote",
+			"interval":    "5-10",
+			"remotePorts": ports,
+		},
+	})
 }
 
 func ensureChildMap(parent map[string]any, key string) map[string]any {

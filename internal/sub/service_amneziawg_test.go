@@ -3,6 +3,7 @@ package sub
 import (
 	"encoding/base64"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -201,7 +202,7 @@ func peerFields(t *testing.T, conf string) []string {
 		t.Fatalf("config has no [Peer] block:\n%s", conf)
 	}
 	var got []string
-	for _, line := range strings.Split(conf[idx:], "\n") {
+	for line := range strings.SplitSeq(conf[idx:], "\n") {
 		key := strings.TrimSpace(strings.SplitN(line, "=", 2)[0])
 		if slices.Contains(peerFieldOrder, key) {
 			got = append(got, key)
@@ -214,7 +215,7 @@ func TestAmneziaWGConfigTextPeerFieldOrder(t *testing.T) {
 	server := &amneziawg.ServerSettings{PublicKey: "serverPub", PrimaryDNS: "8.8.8.8", MTU: 1420}
 
 	t.Run("every optional field set", func(t *testing.T) {
-		client := &model.Client{PrivateKey: "clientPriv", AllowedIPs: []string{"10.8.1.2/32"}, PreSharedKey: "psk", KeepAlive: 25}
+		client := &model.Client{PrivateKey: "clientPriv", AllowedIPs: []string{"10.8.1.2/32"}, PreSharedKey: "psk", KeepAlive: model.KeepAlivePtr(25)}
 		conf := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "remark")
 		if got := peerFields(t, conf); !slices.Equal(got, peerFieldOrder) {
 			t.Fatalf("peer fields = %v, want %v\n%s", got, peerFieldOrder, conf)
@@ -271,6 +272,45 @@ func TestAmneziaWGConfigTextRejectsNewlineInjection(t *testing.T) {
 			remark := tc.mutate(&s, &c)
 			if got := amneziaWGConfigText(&s, &c, "203.0.113.7", 51820, remark); got != "" {
 				t.Fatalf("%s with a newline rendered a config:\n%s", tc.name, got)
+			}
+		})
+	}
+}
+
+// Guards an asymmetry: the server derives its MTU from S4, but a config with no
+// MTU line leaves the client at 1420 and fragments client-to-server only.
+func TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU(t *testing.T) {
+	t.Parallel()
+
+	client := &model.Client{
+		Email:      "peer-1",
+		PrivateKey: "clientPrivateKeyBase64ValueForTests00000000=",
+		AllowedIPs: []string{"10.8.1.2/32"},
+	}
+	cases := []struct {
+		name      string
+		serverMTU int
+		s4        int
+		want      string
+	}{
+		{"unset falls back to the S4-aware default", 0, 27, "MTU = 1393"},
+		{"unset with no S4 keeps the plain default", 0, 0, "MTU = 1420"},
+		{"an explicit MTU wins", 1380, 27, "MTU = 1380"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := &amneziawg.ServerSettings{
+				PublicKey: "serverPubKeyBase64ValueForTests000000000000=",
+				MTU:       tc.serverMTU,
+				S4:        tc.s4,
+			}
+			got := amneziaWGConfigText(server, client, "203.0.113.7", 51820, "peer-1")
+			if !strings.Contains(got, tc.want+"\n") {
+				t.Errorf("expected %q in the client config\n%s", tc.want, got)
+			}
+			want := "MTU = " + strconv.Itoa(amneziawg.EffectiveMTU(tc.serverMTU, tc.s4))
+			if !strings.Contains(got, want+"\n") {
+				t.Errorf("client MTU must equal the server's effective MTU (%s)", want)
 			}
 		})
 	}

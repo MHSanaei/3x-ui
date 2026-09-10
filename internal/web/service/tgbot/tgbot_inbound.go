@@ -109,12 +109,7 @@ func (t *Tgbot) getInboundsFor(nextAction string) (*telego.InlineKeyboardMarkup,
 }
 
 // getInboundClientsFor lists clients of an inbound with a specific action prefix to be appended with email
-func (t *Tgbot) getInboundClientsFor(inboundID int, action string) (*telego.InlineKeyboardMarkup, error) {
-	inbound, err := t.inboundService.GetInbound(inboundID)
-	if err != nil {
-		logger.Warning("getInboundClientsFor run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
+func (t *Tgbot) getInboundClientsFor(inbound *model.Inbound, action string) (*telego.InlineKeyboardMarkup, error) {
 	clients, err := t.inboundService.GetClients(inbound)
 	var buttons []telego.InlineKeyboardButton
 

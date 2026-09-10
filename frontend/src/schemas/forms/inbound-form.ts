@@ -2,11 +2,65 @@ import { z } from 'zod';
 
 import { InboundPortSchema, SniffingSchema } from '@/schemas/primitives';
 import { InboundSettingsSchema } from '@/schemas/protocols/inbound';
-import { SecuritySettingsSchema } from '@/schemas/protocols/security';
+import {
+  TlsCertInlineSchema,
+  TlsStreamSettingsSchema,
+  securitySettingsSchemaFor,
+  tlsCertUsesFiles,
+} from '@/schemas/protocols/security';
 import { NetworkSettingsSchema, StreamExtrasSchema } from '@/schemas/protocols/stream';
 
-export const InboundStreamFormSchema =
-  NetworkSettingsSchema.and(SecuritySettingsSchema).and(StreamExtrasSchema);
+// Inbound certificates must follow the selected editor mode. The shared wire
+// union also serves outbound TLS, where a client certificate is optional.
+const InboundTlsCertFieldsSchema = TlsCertInlineSchema.extend({
+  useFile: z.boolean().optional(),
+  certificateFile: z.string().default(''),
+  keyFile: z.string().default(''),
+  certificate: z.array(z.string()).default([]),
+  key: z.array(z.string()).default([]),
+});
+
+const InboundTlsCertSchema = InboundTlsCertFieldsSchema.superRefine((cert, ctx) => {
+  const useFile = tlsCertUsesFiles(cert);
+  const hasCertificate = useFile
+    ? cert.certificateFile.trim() !== ''
+    : cert.certificate.some((line) => line.trim() !== '');
+  const hasKey = useFile ? cert.keyFile.trim() !== '' : cert.key.some((line) => line.trim() !== '');
+  if (!hasCertificate) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [useFile ? 'certificateFile' : 'certificate'],
+      message: 'pages.inbounds.form.tlsCertificateRequired',
+    });
+  }
+  if (cert.usage !== 'verify' && !hasKey) {
+    ctx.addIssue({
+      code: 'custom',
+      path: [useFile ? 'keyFile' : 'key'],
+      message: 'pages.inbounds.form.tlsPrivateKeyRequired',
+    });
+  }
+}).transform((cert) => {
+  const { useFile: _useFile, certificateFile, keyFile, certificate, key, ...settings } = cert;
+  return tlsCertUsesFiles(cert)
+    ? { ...settings, certificateFile, keyFile }
+    : { ...settings, certificate, key };
+});
+
+const InboundTlsSettingsSchema = TlsStreamSettingsSchema.extend({
+  certificates: z
+    .array(InboundTlsCertSchema)
+    .default([])
+    .refine((certificates) => certificates.some((cert) => cert.usage !== 'verify'), {
+      message: 'pages.inbounds.form.tlsServerCertificateRequired',
+    }),
+});
+
+const InboundSecuritySettingsSchema = securitySettingsSchemaFor(InboundTlsSettingsSchema);
+
+export const InboundStreamFormSchema = NetworkSettingsSchema.and(InboundSecuritySettingsSchema).and(
+  StreamExtrasSchema,
+);
 export type InboundStreamFormValues = z.infer<typeof InboundStreamFormSchema>;
 
 export const TrafficResetSchema = z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']);
