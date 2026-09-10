@@ -1,4 +1,5 @@
 import { Base64, Wireguard } from '@/utils';
+import { effectiveMtu } from '@/lib/xray/amneziawg-obfuscation';
 
 import type { Inbound } from '@/schemas/api/inbound';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
@@ -12,6 +13,7 @@ import type { ExternalProxyEntry } from '@/schemas/protocols/stream/external-pro
 import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalmask';
 import type { XHttpStreamSettings } from '@/schemas/protocols/stream/xhttp';
 
+import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
 import { deriveSpiderX } from './spider-x';
@@ -437,7 +439,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     params.set('security', 'tls');
     if (stream.security === 'tls') {
       const tls = stream.tlsSettings;
-      params.set('fp', tls.settings.fingerprint);
+      if (tls.settings.fingerprint.length > 0) params.set('fp', tls.settings.fingerprint);
       params.set('alpn', tls.alpn.join(','));
       if (tls.serverName.length > 0) params.set('sni', tls.serverName);
       if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
@@ -543,7 +545,7 @@ function writeTlsParams(
 ): void {
   if (stream.security !== 'tls') return;
   const tls = stream.tlsSettings;
-  params.set('fp', tls.settings.fingerprint);
+  if (tls.settings.fingerprint.length > 0) params.set('fp', tls.settings.fingerprint);
   params.set('alpn', tls.alpn.join(','));
   if (tls.settings.echConfigList.length > 0) params.set('ech', tls.settings.echConfigList);
   if (tls.serverName.length > 0) params.set('sni', tls.serverName);
@@ -749,6 +751,18 @@ function hysteriaPinHex(pin: string): string {
   }
 }
 
+// Hysteria2 hop range advertised as `mport`. xray-core 26.9.9 moved hopping
+// from finalmask.quicParams.udpHop to a 'udphop' UDP mask; inbounds stored
+// before the upgrade still carry the old key.
+function udpHopPorts(stream: NonNullable<Inbound['streamSettings']>): string {
+  for (const mask of stream.finalmask?.udp ?? []) {
+    if (mask.type !== 'udphop') continue;
+    const ports = mask.settings?.remotePorts;
+    if (typeof ports === 'string' && ports.trim().length > 0) return ports.trim();
+  }
+  return stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+}
+
 // Hysteria share link: hysteria2://<auth>@<host>:<port>?<query>#<remark>.
 // The scheme is always hysteria2 — xray-core builds version 2 only, so the
 // settings schema pins it there and the subscription server emits the same
@@ -801,14 +815,21 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     const salamander = udpMasks.find((m) => m?.type === 'salamander');
     const obfsPassword = salamander?.settings?.password;
     if (typeof obfsPassword === 'string' && obfsPassword.length > 0) {
-      params.set('obfs', 'salamander');
+      // packetSize (Gecko mode) exports via v2rayN's native fields; the
+      // experimental fm=<json> dump breaks mihomo and other strict clients.
+      const range = parseGeckoPacketSize(salamander?.settings?.packetSize);
+      if (range) {
+        params.set('obfs', 'gecko');
+        params.set('minPacketSize', String(range.min));
+        params.set('maxPacketSize', String(range.max));
+      } else {
+        params.set('obfs', 'salamander');
+      }
       params.set('obfs-password', obfsPassword);
     }
   }
 
-  applyFinalMaskToParams(stream.finalmask, params);
-
-  const hopPorts = stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+  const hopPorts = udpHopPorts(stream);
   if (hopPorts.length > 0) {
     params.set('mport', hopPorts);
   }
@@ -977,9 +998,7 @@ export function genAmneziaWGConfig(input: GenAmneziaWGLinkInput): string {
   txt += `Address = ${(client.allowedIPs ?? []).join(', ')}\n`;
   const dns = [server.primaryDns, server.secondaryDns].filter((v) => !!v && v.trim() !== '');
   if (dns.length > 0) txt += `DNS = ${dns.join(', ')}\n`;
-  if (typeof server.mtu === 'number' && server.mtu > 0) {
-    txt += `MTU = ${server.mtu}\n`;
-  }
+  txt += `MTU = ${effectiveMtu(server.mtu, server.s4)}\n`;
   txt += `Jc = ${server.jc}\n`;
   txt += `Jmin = ${server.jmin}\n`;
   txt += `Jmax = ${server.jmax}\n`;

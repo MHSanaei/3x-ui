@@ -311,11 +311,12 @@ _openapi:
       title: >-
         Return every protocol URL (vless://, vmess://, trojan://, ss://,
         hysteria://, hy2://) for clients matching the subscription ID. Same
-        result set as /sub/<subId>, but as a JSON array — no base64. When an
-        inbound has streamSettings.externalProxy set, one URL is emitted per
-        external proxy. Empty array when the subId has no enabled clients.
+        result set as the configured subPath endpoint, but as a JSON array — no
+        base64. When an inbound has streamSettings.externalProxy set, one URL is
+        emitted per external proxy. Empty array when the subId has no enabled
+        clients.
       url: >-
-        #return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+        #return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
     - depth: 2
       title: >-
         Return every URL for one client across all attached inbounds — the same
@@ -593,11 +594,12 @@ _openapi:
       - content: >-
           Return every protocol URL (vless://, vmess://, trojan://, ss://,
           hysteria://, hy2://) for clients matching the subscription ID. Same
-          result set as /sub/<subId>, but as a JSON array — no base64. When an
-          inbound has streamSettings.externalProxy set, one URL is emitted per
-          external proxy. Empty array when the subId has no enabled clients.
+          result set as the configured subPath endpoint, but as a JSON array —
+          no base64. When an inbound has streamSettings.externalProxy set, one
+          URL is emitted per external proxy. Empty array when the subId has no
+          enabled clients.
         id: >-
-          return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-subsubid-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+          return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
       - content: >-
           Return every URL for one client across all attached inbounds — the
           same strings the Copy URL button copies in the panel UI. Supported

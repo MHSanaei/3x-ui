@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "O destino funciona, mas está em uma rede privada/local.",
         "invalidClientField": "Cliente {client}: campo {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "Certificado TLS {index}: {reason}",
         "moreIssues": "{message}  (+{count} mais)"
       },
       "form": {
@@ -522,6 +523,7 @@
         "type": "Tipo",
         "upstreamUrl": "URL Upstream",
         "rewriteHost": "Reescrever Host",
+        "xForwarded": "Cabeçalhos X-Forwarded",
         "skipTlsVerify": "Pular verificação TLS",
         "directory": "Diretório",
         "statusCode": "Código de status",
@@ -623,13 +625,16 @@
         "maxTimeDiff": "Máx. diferença de tempo (ms)",
         "minClientVer": "Mín. versão cliente",
         "maxClientVer": "Máx. versão cliente",
-        "minClientVerHint": "Vazio não significa sem restrição: o Xray-core aplica o mínimo embutido da build do núcleo em uso (26.3.27 nas versões atuais) e rejeita clientes que reportam uma versão mais antiga — incluindo núcleos de terceiros como Mihomo e sing-box. Definir 1.0.0 os aceita, ao custo de admitir impressões digitais TLS desatualizadas.",
-        "maxClientVerHint": "Vazio significa sem limite superior. Se definido, não deve ser menor que o mínimo efetivo — a versão mínima do cliente ou, se aquele campo estiver vazio, o mínimo embutido do Xray-core — ou todos os clientes serão rejeitados.",
+        "minClientVerHint": "Vazio significa sem mínimo: o Xray-core aceita qualquer versão de cliente, incluindo núcleos de terceiros como Mihomo e sing-box. Defina uma versão para rejeitar clientes que informem uma mais antiga.",
+        "maxClientVerHint": "Vazio significa sem limite superior. Se definido, não deve ser menor que a versão mínima do cliente; caso contrário, todos os clientes são rejeitados.",
         "clientVerInvalid": "A versão do cliente deve ter até três números separados por pontos, cada um 0-255 (ex.: 26.3.27)",
         "maxClientVerBelowMin": "A versão máxima do cliente não deve ser menor que a versão mínima",
         "shortIds": "Short IDs",
         "realityTargetHint": "Obrigatório. Deve incluir uma porta (ex.: example.com:443). Sem porta, o Xray-core não inicia.",
         "realityTargetRequired": "O alvo REALITY é obrigatório",
+        "tlsCertificateRequired": "Importe um certificado TLS ou informe o caminho do arquivo antes de salvar",
+        "tlsPrivateKeyRequired": "Importe a chave privada TLS ou informe o caminho do arquivo antes de salvar",
+        "tlsServerCertificateRequired": "O TLS exige pelo menos um certificado de servidor com sua chave privada (encipherment ou issue)",
         "realityTargetNeedsPort": "O alvo REALITY deve incluir uma porta (ex.: example.com:443)",
         "realityTargetInvalidPort": "O alvo REALITY tem uma porta inválida",
         "scan": "Escanear",
@@ -1389,7 +1394,7 @@
       "smtpErrorTimeout": "Tempo de conexão esgotado — host inacessível",
       "smtpErrorRelay": "O servidor rejeita o envio a partir deste endereço",
       "smtpErrorEof": "Conexão encerrada pelo servidor",
-      "smtpErrorUnknown": "Erro de SMTP: {{ .Error }}",
+      "smtpErrorUnknown": "Erro de SMTP — consulte o log do painel",
       "eventMemoryHigh": "Uso de memória alto (%)",
       "remarkTemplate": "Modelo de Observação",
       "remarkTemplateDesc": "Quando definido, isto substitui o modelo de observação de cada link de assinatura — escreva seu próprio formato com os tokens de variáveis (use o botão para inseri-los). Deixe vazio para usar o modelo acima.",
@@ -1420,12 +1425,15 @@
         "sortOrderHelp": "Posição na lista da assinatura, intercalada com a ordem dos inbounds; em caso de empate, o balanceador vem depois do inbound.",
         "inbounds": "Inbounds",
         "inboundsCount": "{count} Inbounds",
+        "weights": "Pesos dos membros",
+        "weightsHelp": "Apenas para LeastLoad: peso menor é escolhido com mais frequência; membros sem valor têm peso 1.",
         "enabled": "Ativado",
         "empty": "Ainda não há balanceadores",
         "deleteConfirm": "Excluir este balanceador?",
         "errRemarkRequired": "A descrição é obrigatória",
         "errInboundsRequired": "Selecione ao menos um inbound",
         "errSortOrder": "A ordem deve ser um inteiro ≥ 1",
+        "errWeightPositive": "Os pesos devem ser maiores que 0",
         "toasts": {
           "list": "Falha ao listar os balanceadores de assinatura",
           "create": "Falha ao criar o balanceador de assinatura",
@@ -1452,7 +1460,13 @@
           "httpMethodDesc": "Método usado nas requisições de probe.",
           "note": "Balanceadores leastPing/leastLoad sempre carregam um burstObservatory. Esta opção personaliza seus parâmetros de probe — desligue-a para usar os padrões integrados. As alterações se aplicam após reiniciar o painel."
         }
-      }
+      },
+      "subInfoNodeEnable": "Configuração de informações separada / Nó fictício",
+      "subInfoNodeEnableDesc": "Quando ativado, observações e tráfego/dias restantes são exibidos em uma configuração SOCKS fictícia no topo, e assinaturas expiradas/esgotadas retornam apenas o status.",
+      "subExpiredTemplate": "Modelo expirado",
+      "subExpiredTemplateDesc": "Modelo para a configuração fictícia quando a assinatura expirou.",
+      "subTrafficDepletedTemplate": "Modelo de tráfego esgotado",
+      "subTrafficDepletedTemplateDesc": "Modelo para a configuração fictícia quando a cota de tráfego foi esgotada."
     },
     "xray": {
       "importRules": "Importar regras",
@@ -1610,6 +1624,7 @@
         "inboundTag": "Tag de entrada",
         "inboundTagPlaceholder": "tag de entrada usada em regras de roteamento",
         "responseType": "Tipo de resposta",
+        "customResponseData": "Resposta personalizada (base64)",
         "rewriteNetwork": "Reescrever rede",
         "unchanged": "(inalterado)",
         "unchangedAddress": "(inalterado) ex. 1.1.1.1",
@@ -1622,6 +1637,7 @@
         "blockDelay": "Atraso do bloqueio (ms)",
         "reverseSniffing": "Sniffing reverso",
         "reserved": "Reservado",
+        "remoteDNS": "DNS remoto",
         "minUploadInterval": "Intervalo mín. de upload (ms)",
         "maxUploadSizeBytes": "Tamanho máx. de upload (bytes)",
         "uplinkChunkSize": "Tamanho do chunk Uplink",
@@ -1852,7 +1868,10 @@
         "noServers": "Nenhum servidor encontrado para o país selecionado",
         "noPublicKey": "O servidor selecionado não anuncia uma chave pública NordLynx.",
         "outboundAdded": "Saída NordVPN adicionada",
-        "outboundUpdated": "Saída NordVPN atualizada"
+        "outboundUpdated": "Saída NordVPN atualizada",
+        "serverLoad": "Carga do servidor",
+        "addedServers": "Servidores adicionados",
+        "alreadyAdded": "Este servidor já está na lista de saídas. Use {reset} para atualizar sua chave."
       },
       "warp": {
         "changeIp": "Alterar IP",

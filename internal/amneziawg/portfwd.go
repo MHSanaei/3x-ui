@@ -46,9 +46,9 @@ func parseForwardedPorts(input string) []portSpec {
 }
 
 func parsePortToken(tok string) (portSpec, bool) {
-	if idx := strings.IndexByte(tok, '-'); idx >= 0 {
-		start, ok1 := parsePortNumber(strings.TrimSpace(tok[:idx]))
-		end, ok2 := parsePortNumber(strings.TrimSpace(tok[idx+1:]))
+	if before, after, ok0 := strings.Cut(tok, "-"); ok0 {
+		start, ok1 := parsePortNumber(strings.TrimSpace(before))
+		end, ok2 := parsePortNumber(strings.TrimSpace(after))
 		if !ok1 || !ok2 || start > end {
 			return portSpec{}, false
 		}

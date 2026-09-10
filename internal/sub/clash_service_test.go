@@ -1221,3 +1221,28 @@ func TestBuildAmneziaWGProxyForClashRemoteDNSResolve(t *testing.T) {
 		}
 	})
 }
+
+// TestGetProxies_CustomIPv6ShareAddrIsUnbracketed pins that a Clash "server" is a
+// bare host: the custom share address stores IPv6 literals bracketed, and mihomo
+// rejects "[2001:db8::1]" there.
+func TestGetProxies_CustomIPv6ShareAddrIsUnbracketed(t *testing.T) {
+	svc := &SubClashService{SubService: &SubService{}}
+	inbound := &model.Inbound{
+		Protocol:          model.VLESS,
+		Port:              443,
+		Remark:            "r",
+		Settings:          `{"encryption":"none"}`,
+		StreamSettings:    `{"network":"tcp","security":"none"}`,
+		ShareAddrStrategy: "custom",
+		ShareAddr:         "[2001:db8::1]",
+	}
+	client := model.Client{ID: "11111111-2222-4333-8444-555555555555", Email: "a@example.com"}
+
+	proxies := svc.getProxies(svc.SubService, inbound, client, "panel.example.com")
+	if len(proxies) != 1 {
+		t.Fatalf("getProxies returned %d proxies, want 1", len(proxies))
+	}
+	if got := proxies[0]["server"]; got != "2001:db8::1" {
+		t.Fatalf("server = %v, want 2001:db8::1", got)
+	}
+}

@@ -106,6 +106,7 @@ export const WireguardOutboundFormSettingsSchema = z.object({
   address: z.string().default(''),
   domainStrategy: z.union([WireguardDomainStrategySchema, z.literal('')]).default(''),
   reserved: z.string().default(''),
+  remoteDNS: z.string().default(''),
   peers: z.array(WireguardOutboundFormPeerSchema).default([]),
   noKernelTun: z.boolean().default(false),
 });
@@ -152,6 +153,7 @@ export type FreedomOutboundFormSettings = z.infer<typeof FreedomOutboundFormSett
 // adapter wraps as { response: { type } } on the wire and omits when empty.
 export const BlackholeOutboundFormSettingsSchema = z.object({
   type: z.union([BlackholeResponseTypeSchema, z.literal('')]).default(''),
+  customResponseData: z.string().default(''),
 });
 export type BlackholeOutboundFormSettings = z.infer<typeof BlackholeOutboundFormSettingsSchema>;
 

@@ -189,7 +189,7 @@ export default function RealityForm({
           },
         }}
       >
-        <Input placeholder="26.3.27" />
+        <Input placeholder="x.y.z" />
       </FormField>
       <FormField
         name={['streamSettings', 'realitySettings', 'maxClientVer']}

@@ -62,6 +62,23 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses quic-params byte-stably
 }
 `;
 
+exports[`FinalMaskStreamSettingsSchema fixtures > parses quic-params-flags byte-stably 1`] = `
+{
+  "quicParams": {
+    "brutalDisableLossCompensation": true,
+    "brutalDown": "100 mbps",
+    "brutalUp": "60 mbps",
+    "congestion": "brutal",
+    "disableChromeParrot": true,
+    "disableGSO": true,
+    "disablePathMTUDiscovery": false,
+    "disableStatelessReset": true,
+  },
+  "tcp": [],
+  "udp": [],
+}
+`;
+
 exports[`FinalMaskStreamSettingsSchema fixtures > parses realm-tls byte-stably 1`] = `
 {
   "tcp": [],
@@ -181,6 +198,25 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`
     },
   ],
   "udp": [],
+}
+`;
+
+exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-hop byte-stably 1`] = `
+{
+  "tcp": [],
+  "udp": [
+    {
+      "settings": {
+        "interval": "5-10",
+        "mode": "intervalremote",
+        "remoteIPs": [
+          "203.0.113.0/24",
+        ],
+        "remotePorts": "20000-50000",
+      },
+      "type": "udphop",
+    },
+  ],
 }
 `;
 

@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "الهدف يعمل لكنه في شبكة خاصة/محلية.",
         "invalidClientField": "العميل {client}: الحقل {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "شهادة TLS رقم {index}: {reason}",
         "moreIssues": "{message}  (+{count} أخرى)"
       },
       "form": {
@@ -501,6 +502,7 @@
         "type": "النوع",
         "upstreamUrl": "Upstream URL",
         "rewriteHost": "إعادة كتابة Host",
+        "xForwarded": "ترويسات X-Forwarded",
         "skipTlsVerify": "تخطي التحقق من TLS",
         "directory": "الدليل",
         "statusCode": "رمز الحالة",
@@ -602,13 +604,16 @@
         "maxTimeDiff": "أقصى فرق زمن (ms)",
         "minClientVer": "أدنى إصدار للعميل",
         "maxClientVer": "أقصى إصدار للعميل",
-        "minClientVerHint": "تركه فارغًا لا يعني بلا قيود: سيفرض Xray-core الحد الأدنى المدمج في إصدار النواة الذي تشغّله (26.3.27 في الإصدارات الحالية) ويرفض العملاء الذين يبلغون عن إصدار أقدم — بما في ذلك النوى الخارجية مثل Mihomo و sing-box. القيمة 1.0.0 تقبلها، مقابل السماح ببصمات TLS قديمة.",
-        "maxClientVerHint": "تركه فارغًا يعني بلا حد أقصى. إذا عُيّن، يجب ألا يقل عن الحد الأدنى الفعلي — أدنى إصدار للعميل، أو الحد الأدنى المدمج في Xray-core عندما يكون ذلك الحقل فارغًا — وإلا سيُرفض جميع العملاء.",
+        "minClientVerHint": "تركه فارغًا يعني بلا حد أدنى: يقبل Xray-core أي إصدار عميل، بما في ذلك النوى الخارجية مثل Mihomo وsing-box. عيّن إصدارًا لرفض العملاء الذين يبلغون عن إصدار أقدم.",
+        "maxClientVerHint": "تركه فارغًا يعني بلا حد أقصى. إذا عُيّن، يجب ألا يقل عن أدنى إصدار للعميل — وإلا سيُرفض جميع العملاء.",
         "clientVerInvalid": "يجب أن يتكون إصدار العميل من ثلاثة أرقام كحد أقصى مفصولة بنقاط، كل منها 0-255 (مثل 26.3.27)",
         "maxClientVerBelowMin": "أقصى إصدار للعميل يجب ألا يقل عن أدنى إصدار للعميل",
         "shortIds": "Short IDs",
         "realityTargetHint": "مطلوب. يجب أن يتضمّن منفذًا (مثل example.com:443). بدون منفذ يرفض Xray-core البدء.",
         "realityTargetRequired": "هدف REALITY مطلوب",
+        "tlsCertificateRequired": "استورد شهادة TLS أو أدخل مسار ملفها قبل الحفظ",
+        "tlsPrivateKeyRequired": "استورد مفتاح TLS الخاص أو أدخل مسار ملفه قبل الحفظ",
+        "tlsServerCertificateRequired": "يتطلب TLS شهادة خادم واحدة على الأقل مع مفتاحها الخاص (encipherment أو issue)",
         "realityTargetNeedsPort": "يجب أن يتضمّن هدف REALITY منفذًا (مثل example.com:443)",
         "realityTargetInvalidPort": "هدف REALITY يحتوي على منفذ غير صالح",
         "scan": "فحص",
@@ -1389,7 +1394,7 @@
       "smtpErrorTimeout": "انتهت مهلة الاتصال — تعذّر الوصول إلى الخادم",
       "smtpErrorRelay": "الخادم يرفض الإرسال من هذا العنوان",
       "smtpErrorEof": "تم إغلاق الاتصال من قبل الخادم",
-      "smtpErrorUnknown": "خطأ SMTP: {{ .Error }}",
+      "smtpErrorUnknown": "خطأ SMTP — راجع سجل اللوحة للتفاصيل",
       "eventMemoryHigh": "ارتفاع استخدام الذاكرة (%)",
       "remarkTemplate": "قالب الملاحظة",
       "remarkTemplateDesc": "عند تعيينه، يحل هذا محل نموذج الملاحظة لكل رابط اشتراك — اكتب صيغتك الخاصة باستخدام رموز المتغيرات (استخدم الزر لإدراجها). اتركه فارغاً لاستخدام النموذج أعلاه.",
@@ -1420,12 +1425,15 @@
         "sortOrderHelp": "الموضع في قائمة الاشتراك، متداخل مع ترتيب الإينبوندات؛ عند تساوي الرقم يأتي الموزّع بعد الإينباند.",
         "inbounds": "الإينبوندات",
         "inboundsCount": "{count} الإينبوندات",
+        "weights": "أوزان الأعضاء",
+        "weightsHelp": "لـ LeastLoad فقط: الوزن الأقل يُختار أكثر؛ العضو بدون قيمة وزنه 1.",
         "enabled": "مُفعّل",
         "empty": "لا يوجد موزّعات بعد",
         "deleteConfirm": "حذف هذا الموزّع؟",
         "errRemarkRequired": "الملاحظة مطلوبة",
         "errInboundsRequired": "اختر إينبوندًا واحدًا على الأقل",
         "errSortOrder": "الترتيب يجب أن يكون عددًا صحيحًا ≥ 1",
+        "errWeightPositive": "يجب أن تكون الأوزان أكبر من 0",
         "toasts": {
           "list": "تعذّر عرض موزّعات الاشتراك",
           "create": "تعذّر إنشاء موزّع اشتراك",
@@ -1452,7 +1460,13 @@
           "httpMethodDesc": "الأسلوب المستخدم في طلبات probe.",
           "note": "تحمل موزّعات leastPing/leastLoad دائمًا burstObservatory. يخصّص هذا المفتاح معاملات probe — أوقفه لاستخدام الإعدادات الافتراضية المدمجة. تُطبَّق التغييرات بعد إعادة تشغيل اللوحة."
         }
-      }
+      },
+      "subInfoNodeEnable": "تكوين معلومات منفصل / عقدة وهمية",
+      "subInfoNodeEnableDesc": "عند التفعيل، يتم عرض الملاحظات وحركة المرور/الأيام المتبقية كتكوين SOCKS منفصل في الأعلى، وعند انتهاء الصلاحية أو نفاد البيانات يتم إرجاع تكوين الحالة فقط.",
+      "subExpiredTemplate": "قالب انتهاء الصلاحية",
+      "subExpiredTemplateDesc": "قالب التكوين الوهمي عند انتهاء صلاحية اشتراك المستخدم.",
+      "subTrafficDepletedTemplate": "قالب نفاد البيانات",
+      "subTrafficDepletedTemplateDesc": "قالب التكوين الوهمي عند استهلاك حصة بيانات المستخدم بالكامل."
     },
     "xray": {
       "save": "احفظ",
@@ -1610,6 +1624,7 @@
         "inboundTag": "وسم الوارد",
         "inboundTagPlaceholder": "وسم الوارد المستخدم في قواعد التوجيه",
         "responseType": "نوع الاستجابة",
+        "customResponseData": "استجابة مخصصة (base64)",
         "rewriteNetwork": "إعادة كتابة الشبكة",
         "unchanged": "(دون تغيير)",
         "unchangedAddress": "(دون تغيير) مثل 1.1.1.1",
@@ -1622,6 +1637,7 @@
         "blockDelay": "تأخير الحظر (ms)",
         "reverseSniffing": "Sniffing عكسي",
         "reserved": "محجوز",
+        "remoteDNS": "DNS بعيد",
         "minUploadInterval": "أدنى فاصل رفع (ms)",
         "maxUploadSizeBytes": "حجم الرفع الأقصى (بايت)",
         "uplinkChunkSize": "حجم chunk الرفع",
@@ -1852,7 +1868,10 @@
         "noServers": "لم يتم العثور على خوادم للدولة المحددة",
         "noPublicKey": "الخادم المحدد لا يُعلن عن مفتاح NordLynx العام.",
         "outboundAdded": "تمت إضافة صادر NordVPN",
-        "outboundUpdated": "تم تحديث صادر NordVPN"
+        "outboundUpdated": "تم تحديث صادر NordVPN",
+        "serverLoad": "حمل الخادم",
+        "addedServers": "الخوادم المضافة",
+        "alreadyAdded": "هذا الخادم موجود بالفعل في قائمة الصادرات. استخدم {reset} لتحديث مفتاحه."
       },
       "warp": {
         "changeIp": "تغيير الـ IP",

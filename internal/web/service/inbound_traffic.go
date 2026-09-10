@@ -368,10 +368,15 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	var inbound_ids []int
 	var inbounds []*model.Inbound
 	needRestart := false
+	type inboundClientKey struct {
+		inboundID int
+		email     string
+	}
 	var clientsToAdd []struct {
 		inbound model.Inbound
 		client  map[string]any
 	}
+	clientsToAddSet := make(map[inboundClientKey]struct{})
 
 	// Resolve the inbounds to renew through the client_inbounds link rather than
 	// client_traffics.inbound_id, which goes stale after an inbound is deleted and
@@ -407,8 +412,13 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 	// instead of a linear scan of every expired row (O(clients × expired) per
 	// inbound, quadratic at scale). Pointers keep the in-place mutation below.
 	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
+	// Keep the pre-renewal quota state: the shared pointer becomes enabled while
+	// processing the first inbound, while an already-enabled row paired with
+	// disabled settings represents an operator-disabled client we must preserve.
+	trafficWasEnabled := make(map[string]bool, len(traffics))
 	for i := range traffics {
 		trafficByEmail[traffics[i].Email] = traffics[i]
+		trafficWasEnabled[traffics[i].Email] = traffics[i].Enable
 	}
 	renewedEmails := make([]string, 0, len(traffics))
 	for inbound_index := range inbounds {
@@ -453,32 +463,37 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				}
 				renewals++
 			}
-			if renewals == 0 {
-				continue
+			if renewals > 0 {
+				traffic.ExpiryTime = newExpiryTime
+				traffic.ResetCount += renewals
 			}
-			c["expiryTime"] = newExpiryTime
-			traffic.ExpiryTime = newExpiryTime
-			traffic.ResetCount += renewals
-			if newExpiryTime <= now {
+			c["expiryTime"] = traffic.ExpiryTime
+			if traffic.ExpiryTime <= now {
 				// Cap ran out mid-catch-up and the client is still expired: enabling it
 				// for disableInvalidClients to undo adds and removes an xray user for nothing.
 				clients[client_index] = any(c)
 				continue
 			}
-			traffic.Down = 0
-			traffic.Up = 0
-			renewedEmails = append(renewedEmails, email)
-			if !traffic.Enable {
+			if renewals > 0 {
+				traffic.Down = 0
+				traffic.Up = 0
+				renewedEmails = append(renewedEmails, email)
+			}
+			if !trafficWasEnabled[email] {
 				traffic.Enable = true
 				c["enable"] = true
-				clientsToAdd = append(clientsToAdd,
-					struct {
-						inbound model.Inbound
-						client  map[string]any
-					}{
-						inbound: *inbounds[inbound_index],
-						client:  apiUserFromClient(c, cipher),
-					})
+				key := inboundClientKey{inboundID: inbounds[inbound_index].Id, email: email}
+				if _, planned := clientsToAddSet[key]; !planned {
+					clientsToAddSet[key] = struct{}{}
+					clientsToAdd = append(clientsToAdd,
+						struct {
+							inbound model.Inbound
+							client  map[string]any
+						}{
+							inbound: *inbounds[inbound_index],
+							client:  apiUserFromClient(c, cipher),
+						})
+				}
 			}
 			clients[client_index] = any(c)
 		}
@@ -649,12 +664,17 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (needRes
 	if err == nil {
 		s.resetMtprotoClientQuota(clientEmail)
 		if resetInbound != nil && resetInbound.NodeID != nil {
-			if rt, rterr := s.runtimeFor(resetInbound); rterr == nil {
-				if e := rt.ResetClientTraffic(context.Background(), resetInbound, clientEmail); e != nil {
+			// Attempted whatever the node's status: nothing replays a reset, so a
+			// node still serving after being marked offline must get it now.
+			if rt, rterr := s.runtimeFor(resetInbound); rterr != nil {
+				logger.Warning("ResetClientTraffic: runtime lookup failed:", rterr)
+			} else {
+				ctx, cancel := nodePushContext()
+				e := rt.ResetClientTraffic(ctx, resetInbound, clientEmail)
+				cancel()
+				if e != nil {
 					logger.Warning("ResetClientTraffic: remote propagation to", rt.Name(), "failed:", e)
 				}
-			} else {
-				logger.Warning("ResetClientTraffic: runtime lookup failed:", rterr)
 			}
 		}
 	}
@@ -1133,11 +1153,11 @@ func (s *InboundService) CountClientTraffics() (int64, error) {
 }
 
 type InboundTrafficSummary struct {
-	Id     int   `json:"id"`
-	Up     int64 `json:"up"`
-	Down   int64 `json:"down"`
-	Total  int64 `json:"total"`
-	Enable bool  `json:"enable"`
+	Id     int   `json:"id" example:"1"`
+	Up     int64 `json:"up" example:"1048576"`
+	Down   int64 `json:"down" example:"2097152"`
+	Total  int64 `json:"total" example:"10737418240"`
+	Enable bool  `json:"enable" example:"true"`
 }
 
 func (s *InboundService) GetInboundsTrafficSummary() ([]InboundTrafficSummary, error) {

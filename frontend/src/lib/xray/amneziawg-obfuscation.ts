@@ -40,6 +40,21 @@ export type AwgObfuscation = Pick<
 
 const randInt = (min: number, max: number) => min + Math.floor(Math.random() * (max - min + 1));
 
+// WireGuard's usual tunnel MTU on a 1500-byte host link.
+export const DEFAULT_MTU = 1420;
+
+/** Floor for the S4-adjusted default, so a large s4 cannot shrink the tunnel
+ * below what clients reliably tolerate. */
+export const MIN_MTU = 1280;
+
+// s4 junk is prepended to every transport packet and never clamped to the MTU,
+// so a plain 1420 tunnel fragments once s4 passes 20. Mirrors Go's EffectiveMTU.
+export function effectiveMtu(configuredMtu: number | undefined, s4: number | undefined): number {
+  if (configuredMtu && configuredMtu > 0) return configuredMtu;
+  const junk = Math.max(s4 ?? 0, 0);
+  return Math.max(DEFAULT_MTU - junk, MIN_MTU);
+}
+
 /*
  * base64 of 32 crypto-grade random bytes — the exact HeaderProtectionKey
  * shape amneziawg-tools parses and the Go backend validates.
@@ -51,21 +66,17 @@ const generateHeaderProtectionKey = (): string => {
 };
 
 /*
- * Four non-overlapping "low-high" ranges for H1-H4: split the space into
- * four bands and take a random sub-range from each (>= 1000 wide, low
- * bound >= 5 since 1-4 are reserved for vanilla WireGuard message types).
+ * Four distinct values for H1-H4, one per band; low bound >= 5 (1-4 are vanilla WG message types).
+ * Single values, not ranges: with randomTrailers on, a wide range misclassifies transport packets as handshakes (amnezia-vpn/amneziawg-go#183).
  */
-const generateHRanges = (): [string, string, string, string] => {
+const generateHValues = (): [string, string, string, string] => {
   const hMax = 2147483647;
-  const hMinWidth = 1000;
   const lo = 5;
   const bandSize = Math.floor((hMax - lo + 1) / 4);
   return Array.from({ length: 4 }, (_, i) => {
     const bandLo = lo + i * bandSize;
     const bandHi = bandLo + bandSize - 1;
-    const start = randInt(bandLo, bandHi - hMinWidth - 1);
-    const end = randInt(start + hMinWidth, bandHi - 1);
-    return `${start}-${end}`;
+    return `${randInt(bandLo, bandHi)}`;
   }) as [string, string, string, string];
 };
 
@@ -76,7 +87,7 @@ export function generateAwgObfuscation(): AwgObfuscation {
   while (s1 + 56 === s2) {
     s2 = randInt(15, 150);
   }
-  const [h1, h2, h3, h4] = generateHRanges();
+  const [h1, h2, h3, h4] = generateHValues();
 
   /*
    * Timing windows bracket WireGuard's stock constants (rekey 120s, reject

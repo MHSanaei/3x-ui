@@ -443,7 +443,9 @@ describe('parseHysteria2Link', () => {
     expect((udp[0].settings as Record<string, unknown>).password).toBe('fromobfs');
   });
 
-  it('reconstructs udpHop from the standard mport param', () => {
+  // xray-core 26.9.9 ignores quicParams.udpHop; hopping is a 'udphop' UDP mask
+  // and its mode must be one the core's UDPHop.Build() accepts.
+  it('reconstructs a udphop mask from the standard mport param', () => {
     const out = parseHysteria2Link(
       'hysteria2://auth@srv:443?security=tls&mport=20000-50000#hy2-mport',
     );
@@ -451,16 +453,25 @@ describe('parseHysteria2Link', () => {
       string,
       unknown
     >;
-    const quic = finalmask.quicParams as Record<string, unknown>;
-    const udpHop = quic.udpHop as Record<string, unknown>;
-    expect(udpHop.ports).toBe('20000-50000');
-    expect(udpHop.interval).toBe('5-10');
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    const hop = udp.find((mask) => mask.type === 'udphop');
+    expect(hop).toBeDefined();
+    const settings = hop!.settings as Record<string, unknown>;
+    expect(settings.remotePorts).toBe('20000-50000');
+    expect(settings.interval).toBe('5-10');
+    expect(settings.mode).toBe('intervalremote');
+    expect((finalmask.quicParams as Record<string, unknown> | undefined)?.udpHop).toBeUndefined();
   });
 
-  it('lets an fm= udpHop win over mport', () => {
+  it('lets an fm= udphop mask win over mport', () => {
     const fm = encodeURIComponent(
       JSON.stringify({
-        quicParams: { udpHop: { ports: '30000-40000', interval: '7-9' } },
+        udp: [
+          {
+            type: 'udphop',
+            settings: { mode: 'intervalremote', interval: '7-9', remotePorts: '30000-40000' },
+          },
+        ],
       }),
     );
     const link = `hysteria2://auth@srv:443?security=tls&mport=1-2&fm=${fm}#hy2-mport-fm`;
@@ -469,12 +480,11 @@ describe('parseHysteria2Link', () => {
       string,
       unknown
     >;
-    const udpHop = (finalmask.quicParams as Record<string, unknown>).udpHop as Record<
-      string,
-      unknown
-    >;
-    expect(udpHop.ports).toBe('30000-40000');
-    expect(udpHop.interval).toBe('7-9');
+    const udp = finalmask.udp as Array<Record<string, unknown>>;
+    expect(udp).toHaveLength(1);
+    const settings = udp[0].settings as Record<string, unknown>;
+    expect(settings.remotePorts).toBe('30000-40000');
+    expect(settings.interval).toBe('7-9');
   });
 
   it('round-trips the salamander packetSize (Gecko) under fm', () => {
@@ -806,5 +816,37 @@ describe('parseOutboundLink dispatcher', () => {
   it('returns null for empty input', () => {
     expect(parseOutboundLink('')).toBeNull();
     expect(parseOutboundLink('   ')).toBeNull();
+  });
+});
+
+describe('obfs=gecko packetSize validation', () => {
+  const base = 'hysteria2://secret@1.2.3.4:443?security=tls&obfs=gecko&obfs-password=pw';
+
+  const packetSizeOf = (link: string): string | undefined => {
+    const out = parseHysteria2Link(link);
+    expect(out).not.toBeNull();
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as
+      | Record<string, unknown>
+      | undefined;
+    const udp = (finalmask?.udp ?? []) as Array<Record<string, unknown>>;
+    const mask = udp.find((m) => m.type === 'salamander');
+    return (mask?.settings as Record<string, unknown> | undefined)?.packetSize as
+      | string
+      | undefined;
+  };
+
+  it('stores a valid range', () => {
+    expect(packetSizeOf(`${base}&minPacketSize=512&maxPacketSize=1200`)).toBe('512-1200');
+  });
+
+  it.each([
+    ['min only', `${base}&minPacketSize=512`],
+    ['max only', `${base}&maxPacketSize=1200`],
+    ['non-numeric', `${base}&minPacketSize=abc&maxPacketSize=def`],
+    ['zero min', `${base}&minPacketSize=0&maxPacketSize=1200`],
+    ['inverted', `${base}&minPacketSize=1200&maxPacketSize=512`],
+    ['over cap', `${base}&minPacketSize=512&maxPacketSize=4096`],
+  ])('drops the %s range', (_name, link) => {
+    expect(packetSizeOf(link)).toBeUndefined();
   });
 });

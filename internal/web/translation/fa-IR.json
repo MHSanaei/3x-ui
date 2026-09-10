@@ -453,6 +453,7 @@
         "scanRealityTargetPrivate": "هدف کار می‌کند اما در شبکهٔ خصوصی/محلی قرار دارد.",
         "invalidClientField": "کلاینت {client}: فیلد {field} — {reason}",
         "invalidField": "{field} — {reason}",
+        "invalidCertificate": "گواهی TLS شماره {index}: {reason}",
         "moreIssues": "{message}  (+{count} مورد دیگر)"
       },
       "form": {
@@ -501,6 +502,7 @@
         "type": "نوع",
         "upstreamUrl": "آدرس Upstream",
         "rewriteHost": "بازنویسی Host",
+        "xForwarded": "هدرهای X-Forwarded",
         "skipTlsVerify": "رد تایید TLS",
         "directory": "دایرکتوری",
         "statusCode": "کد وضعیت",
@@ -614,13 +616,16 @@
         "maxTimeDiff": "حداکثر اختلاف زمان (ms)",
         "minClientVer": "حداقل نسخه کلاینت",
         "maxClientVer": "حداکثر نسخه کلاینت",
-        "minClientVerHint": "خالی بودن به معنای بدون محدودیت نیست: در این حالت Xray-core حداقل داخلیِ نسخهٔ هسته‌ای را که اجرا می‌کنید (در نسخه‌های فعلی 26.3.27) اعمال می‌کند و کلاینت‌هایی را که نسخهٔ قدیمی‌تری اعلام می‌کنند رد می‌کند — از جمله هسته‌های شخص ثالث مانند Mihomo و sing-box. مقدار 1.0.0 آن‌ها را می‌پذیرد، به بهای پذیرش اثر انگشت‌های TLS قدیمی.",
-        "maxClientVerHint": "خالی یعنی بدون سقف. در صورت تنظیم، نباید از حداقلِ مؤثر — حداقل نسخه کلاینت، و در صورت خالی بودن آن فیلد، حداقل داخلی Xray-core — کمتر باشد، وگرنه همهٔ کلاینت‌ها رد می‌شوند.",
+        "minClientVerHint": "خالی یعنی بدون حداقل: Xray-core هر نسخهٔ کلاینتی را می‌پذیرد، از جمله هسته‌های شخص ثالث مانند Mihomo و sing-box. برای رد کردن کلاینت‌هایی که نسخهٔ قدیمی‌تری گزارش می‌دهند، یک نسخه تعیین کنید.",
+        "maxClientVerHint": "خالی یعنی بدون سقف. در صورت تنظیم، نباید از حداقل نسخه کلاینت کمتر باشد — در غیر این صورت همهٔ کلاینت‌ها رد می‌شوند.",
         "clientVerInvalid": "نسخهٔ کلاینت باید حداکثر سه عدد جداشده با نقطه باشد، هر یک 0-255 (مثلاً 26.3.27)",
         "maxClientVerBelowMin": "حداکثر نسخهٔ کلاینت نباید از حداقل نسخهٔ کلاینت کمتر باشد",
         "shortIds": "Short IDها",
         "realityTargetHint": "الزامی است. باید شامل پورت باشد (مثلاً example.com:443). بدون پورت، Xray-core اجرا نمی‌شود.",
         "realityTargetRequired": "هدف REALITY الزامی است",
+        "tlsCertificateRequired": "پیش از ذخیره، گواهی TLS را وارد کنید یا مسیر فایل آن را بنویسید",
+        "tlsPrivateKeyRequired": "پیش از ذخیره، کلید خصوصی TLS را وارد کنید یا مسیر فایل آن را بنویسید",
+        "tlsServerCertificateRequired": "TLS به حداقل یک گواهی سرور همراه با کلید خصوصی آن نیاز دارد (encipherment یا issue)",
         "realityTargetNeedsPort": "هدف REALITY باید شامل پورت باشد (مثلاً example.com:443)",
         "realityTargetInvalidPort": "پورت هدف REALITY نامعتبر است",
         "scan": "اسکن",
@@ -1393,7 +1398,7 @@
       "smtpErrorTimeout": "مهلت اتصال به پایان رسید — میزبان در دسترس نیست",
       "smtpErrorRelay": "سرور ارسال از این آدرس را رد می‌کند",
       "smtpErrorEof": "اتصال توسط سرور بسته شد",
-      "smtpErrorUnknown": "خطای SMTP: {{ .Error }}",
+      "smtpErrorUnknown": "خطای SMTP — جزئیات در لاگ پنل",
       "eventMemoryHigh": "مصرف حافظه بالا (%)",
       "validation": {
         "pathLeadingSlash": "مسیر باید با / شروع شود"
@@ -1420,12 +1425,15 @@
         "sortOrderHelp": "جایگاه در فهرست اشتراک، درهم‌تنیده با ترتیب اینباند‌ها؛ با شمارهٔ برابر، موزان‌کننده بعد از اینباند می‌آید.",
         "inbounds": "اینباند‌ها",
         "inboundsCount": "{count} اینباند‌ها",
+        "weights": "وزن اعضا",
+        "weightsHelp": "فقط برای LeastLoad: وزن کمتر بیشتر انتخاب می‌شود؛ عضوی که مقداری نداشته باشد وزن ۱ دارد.",
         "enabled": "فعال",
         "empty": "هنوز موزان‌کننده‌ای وجود ندارد",
         "deleteConfirm": "این موزان‌کننده حذف شود؟",
         "errRemarkRequired": "توضیح الزامی است",
         "errInboundsRequired": "حداقل یک اینباند انتخاب کنید",
         "errSortOrder": "ترتیب باید عدد صحیح ≥ ۱ باشد",
+        "errWeightPositive": "وزن‌ها باید بزرگ‌تر از ۰ باشند",
         "toasts": {
           "list": "فهرست‌سازی موزان‌کننده‌های اشتراک ناموفق بود",
           "create": "ایجاد موزان‌کننده اشتراک ناموفق بود",
@@ -1452,7 +1460,13 @@
           "httpMethodDesc": "متد استفاده‌شده برای درخواست‌های probe.",
           "note": "موزان‌کننده‌های leastPing/leastLoad همیشه burstObservatory دارند. این کلید پارامترهای probe آن را سفارشی می‌کند — آن را خاموش کنید تا از پیش‌فرض‌های داخلی استفاده شود. تغییرات پس از راه‌اندازی مجدد پنل اعمال می‌شوند."
         }
-      }
+      },
+      "subInfoNodeEnable": "کانفیگ جداگانه اطلاعات / نود نمایشی",
+      "subInfoNodeEnableDesc": "در صورت فعال بودن، مشخصات و حجم/روزهای باقیمانده به عنوان یک کانفیگ مجزای ساکس در بالای لیست نمایش داده می‌شود و در صورت انقضا یا اتمام حجم فقط پیام وضعیت ارسال می‌شود.",
+      "subExpiredTemplate": "قالب پیام انقضا",
+      "subExpiredTemplateDesc": "قالب کانفیگ نمایشی زمانی که اشتراک کاربر منقضی شده است.",
+      "subTrafficDepletedTemplate": "قالب پیام اتمام حجم",
+      "subTrafficDepletedTemplateDesc": "قالب کانفیگ نمایشی زمانی که حجم اشتراک کاربر به پایان رسیده است."
     },
     "xray": {
       "save": "ذخیره",
@@ -1610,6 +1624,7 @@
         "inboundTag": "تگ ورودی",
         "inboundTagPlaceholder": "تگ ورودی استفاده‌شده در قوانین مسیریابی",
         "responseType": "نوع پاسخ",
+        "customResponseData": "پاسخ سفارشی (base64)",
         "rewriteNetwork": "بازنویسی شبکه",
         "unchanged": "(بدون تغییر)",
         "unchangedAddress": "(بدون تغییر) مثل 1.1.1.1",
@@ -1622,6 +1637,7 @@
         "blockDelay": "تأخیر بلاک (ms)",
         "reverseSniffing": "Sniffing معکوس",
         "reserved": "رزرو شده",
+        "remoteDNS": "DNS راه دور",
         "minUploadInterval": "حداقل بازه آپلود (ms)",
         "maxUploadSizeBytes": "حداکثر اندازه آپلود (بایت)",
         "uplinkChunkSize": "اندازه قطعه آپلینک",
@@ -1852,7 +1868,10 @@
         "noServers": "سروری برای کشور انتخابی پیدا نشد",
         "noPublicKey": "سرور انتخابی کلید عمومی NordLynx اعلام نمی‌کند.",
         "outboundAdded": "خروجی NordVPN اضافه شد",
-        "outboundUpdated": "خروجی NordVPN به‌روزرسانی شد"
+        "outboundUpdated": "خروجی NordVPN به‌روزرسانی شد",
+        "serverLoad": "بار سرور",
+        "addedServers": "سرورهای اضافه‌شده",
+        "alreadyAdded": "این سرور از قبل در فهرست خروجی‌ها وجود دارد. برای تازه‌سازی کلید آن از {reset} استفاده کنید."
       },
       "warp": {
         "changeIp": "تغییر IP",

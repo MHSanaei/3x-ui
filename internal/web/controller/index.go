@@ -126,7 +126,6 @@ func (a *IndexController) login(c *gin.Context) {
 		return
 	}
 
-	logger.Infof("%s logged in successfully", safeUser)
 	jsonMsg(c, I18nWeb(c, "pages.login.toasts.successLogin"), nil)
 }
 
