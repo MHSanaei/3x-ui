@@ -116,6 +116,32 @@ func TestBuildEndpointVmessLinks(t *testing.T) {
 	}
 }
 
+// happ.su documents serverDescription as a "#title?serverDescription=<base64>"
+// link parameter, never a key of the VMess object, so nothing may leak into it.
+func TestBuildEndpointVmessLinks_HostServerDescription(t *testing.T) {
+	s := &SubService{}
+	in := &model.Inbound{Remark: "ib"}
+	baseObj := map[string]any{"v": "2", "add": "base.example.com", "port": 443, "type": "none", "id": "uid", "scy": "auto", "net": "tcp", "tls": "none"}
+	host := &model.Host{Address: "a.example.com", Port: 8443, ServerDescription: "Berlin premium"}
+	eps := []ShareEndpoint{externalProxyToEndpoint(hostToExternalProxyMap(host, "a.example.com", 8443))}
+
+	got := s.buildEndpointVmessLinks(eps, baseObj, in, "user", "tcp")
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(got, "vmess://"))
+	if err != nil {
+		t.Fatalf("decode vmess link: %v", err)
+	}
+	var obj map[string]any
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		t.Fatalf("unmarshal vmess object: %v", err)
+	}
+	if obj["add"] != "a.example.com" {
+		t.Fatalf("host endpoint not applied: add = %v", obj["add"])
+	}
+	if value, ok := obj["serverDescription"]; ok {
+		t.Fatalf("VMess object carries serverDescription = %v; it is not a VMess object key", value)
+	}
+}
+
 // N5 — a host's Final Mask is appended to the inbound's own fm param (#5831).
 func TestBuildEndpointLinks_HostFinalMaskMerge(t *testing.T) {
 	s := &SubService{}

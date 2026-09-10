@@ -52,6 +52,7 @@ type SUBController struct {
 	subEnableRouting bool
 	subRoutingRules  string
 	subHideSettings  bool
+	happConfig       HappConfig
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
@@ -110,6 +111,7 @@ type subControllerConfig struct {
 	subEnableRouting bool
 	subRoutingRules  string
 	subHideSettings  bool
+	happConfig       HappConfig
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
@@ -229,6 +231,10 @@ func WithSUBIncyRoutingRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subIncyRoutingRules = value }
 }
 
+func WithSUBHappConfig(value HappConfig) SUBControllerOption {
+	return func(config *subControllerConfig) { config.happConfig = value }
+}
+
 func defaultSUBControllerConfig() subControllerConfig {
 	return subControllerConfig{
 		subPath:        "/sub/",
@@ -258,6 +264,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 		subEnableRouting: config.subEnableRouting,
 		subRoutingRules:  config.subRoutingRules,
 		subHideSettings:  config.subHideSettings,
+		happConfig:       config.happConfig,
 
 		subIncyEnableRouting: config.subIncyEnableRouting,
 		subIncyRoutingRules:  config.subIncyRoutingRules,
@@ -845,16 +852,23 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	// Advanced (Happ). Routing stays independent of the enable flag; remote
-	// values come only from the validated cache and never delay this response.
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
+	// The off values undo a previously pushed setting, so they ride the same
+	// opt-in as every other Happ header rather than reaching every Happ client.
+	happManaged := a.happConfig.AutoDetect && c.Request != nil && IsHappClient(c.GetHeader("User-Agent"))
 	if profileEnableRouting {
 		c.Writer.Header().Set("Routing-Enable", "true")
+	} else if happManaged {
+		c.Writer.Header().Set("Routing-Enable", "0")
 	}
 	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
 		c.Writer.Header().Set("Routing", rules)
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
+	} else if happManaged {
+		c.Writer.Header().Set("Hide-Settings", "0")
 	}
+
+	ApplyHappHeaders(c, a.happConfig, happManaged)
 }

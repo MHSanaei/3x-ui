@@ -217,6 +217,79 @@
           "subEncrypt": {
             "type": "boolean"
           },
+          "subExpiredTemplate": {
+            "type": "string"
+          },
+          "subHappAlwaysHwid": {
+            "type": "boolean"
+          },
+          "subHappAutoConnect": {
+            "type": "boolean"
+          },
+          "subHappAutoConnectType": {
+            "type": "string"
+          },
+          "subHappAutoDetect": {
+            "description": "Happ client customization settings (app-management / routing / UX).",
+            "type": "boolean"
+          },
+          "subHappColorProfile": {
+            "type": "string"
+          },
+          "subHappExcludeApns": {
+            "type": "boolean"
+          },
+          "subHappExcludeRoutes": {
+            "type": "string"
+          },
+          "subHappFallbackUrl": {
+            "type": "string"
+          },
+          "subHappNewUrl": {
+            "type": "string"
+          },
+          "subHappNoLimit": {
+            "type": "boolean"
+          },
+          "subHappNotificationExpire": {
+            "type": "boolean"
+          },
+          "subHappPerAppList": {
+            "type": "string"
+          },
+          "subHappPerAppMode": {
+            "type": "string"
+          },
+          "subHappPingType": {
+            "type": "string"
+          },
+          "subHappProviderId": {
+            "type": "string"
+          },
+          "subHappSubExpire": {
+            "type": "boolean"
+          },
+          "subHappSubExpireButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonText": {
+            "type": "string"
+          },
+          "subHappSubInfoColor": {
+            "type": "string"
+          },
+          "subHappSubInfoText": {
+            "type": "string"
+          },
+          "subHappTunMode": {
+            "type": "string"
+          },
+          "subHappTunType": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -225,6 +298,9 @@
           },
           "subIncyRoutingRules": {
             "type": "string"
+          },
+          "subInfoNodeEnable": {
+            "type": "boolean"
           },
           "subJsonAlwaysArray": {
             "type": "boolean"
@@ -286,6 +362,9 @@
             "type": "string"
           },
           "subTitle": {
+            "type": "string"
+          },
+          "subTrafficDepletedTemplate": {
             "type": "string"
           },
           "subURI": {
@@ -433,9 +512,34 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredTemplate",
+          "subHappAlwaysHwid",
+          "subHappAutoConnect",
+          "subHappAutoConnectType",
+          "subHappAutoDetect",
+          "subHappColorProfile",
+          "subHappExcludeApns",
+          "subHappExcludeRoutes",
+          "subHappFallbackUrl",
+          "subHappNewUrl",
+          "subHappNoLimit",
+          "subHappNotificationExpire",
+          "subHappPerAppList",
+          "subHappPerAppMode",
+          "subHappPingType",
+          "subHappProviderId",
+          "subHappSubExpire",
+          "subHappSubExpireButtonLink",
+          "subHappSubInfoButtonLink",
+          "subHappSubInfoButtonText",
+          "subHappSubInfoColor",
+          "subHappSubInfoText",
+          "subHappTunMode",
+          "subHappTunType",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -456,6 +560,7 @@
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
+          "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
           "tgBotAPIServer",
@@ -696,6 +801,79 @@
           "subEncrypt": {
             "type": "boolean"
           },
+          "subExpiredTemplate": {
+            "type": "string"
+          },
+          "subHappAlwaysHwid": {
+            "type": "boolean"
+          },
+          "subHappAutoConnect": {
+            "type": "boolean"
+          },
+          "subHappAutoConnectType": {
+            "type": "string"
+          },
+          "subHappAutoDetect": {
+            "description": "Happ client customization settings (app-management / routing / UX).",
+            "type": "boolean"
+          },
+          "subHappColorProfile": {
+            "type": "string"
+          },
+          "subHappExcludeApns": {
+            "type": "boolean"
+          },
+          "subHappExcludeRoutes": {
+            "type": "string"
+          },
+          "subHappFallbackUrl": {
+            "type": "string"
+          },
+          "subHappNewUrl": {
+            "type": "string"
+          },
+          "subHappNoLimit": {
+            "type": "boolean"
+          },
+          "subHappNotificationExpire": {
+            "type": "boolean"
+          },
+          "subHappPerAppList": {
+            "type": "string"
+          },
+          "subHappPerAppMode": {
+            "type": "string"
+          },
+          "subHappPingType": {
+            "type": "string"
+          },
+          "subHappProviderId": {
+            "type": "string"
+          },
+          "subHappSubExpire": {
+            "type": "boolean"
+          },
+          "subHappSubExpireButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonLink": {
+            "type": "string"
+          },
+          "subHappSubInfoButtonText": {
+            "type": "string"
+          },
+          "subHappSubInfoColor": {
+            "type": "string"
+          },
+          "subHappSubInfoText": {
+            "type": "string"
+          },
+          "subHappTunMode": {
+            "type": "string"
+          },
+          "subHappTunType": {
+            "type": "string"
+          },
           "subHideSettings": {
             "type": "boolean"
           },
@@ -704,6 +882,9 @@
           },
           "subIncyRoutingRules": {
             "type": "string"
+          },
+          "subInfoNodeEnable": {
+            "type": "boolean"
           },
           "subJsonAlwaysArray": {
             "type": "boolean"
@@ -765,6 +946,9 @@
             "type": "string"
           },
           "subTitle": {
+            "type": "string"
+          },
+          "subTrafficDepletedTemplate": {
             "type": "string"
           },
           "subURI": {
@@ -919,9 +1103,34 @@
           "subEnable",
           "subEnableRouting",
           "subEncrypt",
+          "subExpiredTemplate",
+          "subHappAlwaysHwid",
+          "subHappAutoConnect",
+          "subHappAutoConnectType",
+          "subHappAutoDetect",
+          "subHappColorProfile",
+          "subHappExcludeApns",
+          "subHappExcludeRoutes",
+          "subHappFallbackUrl",
+          "subHappNewUrl",
+          "subHappNoLimit",
+          "subHappNotificationExpire",
+          "subHappPerAppList",
+          "subHappPerAppMode",
+          "subHappPingType",
+          "subHappProviderId",
+          "subHappSubExpire",
+          "subHappSubExpireButtonLink",
+          "subHappSubInfoButtonLink",
+          "subHappSubInfoButtonText",
+          "subHappSubInfoColor",
+          "subHappSubInfoText",
+          "subHappTunMode",
+          "subHappTunType",
           "subHideSettings",
           "subIncyEnableRouting",
           "subIncyRoutingRules",
+          "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
           "subJsonEnable",
@@ -942,6 +1151,7 @@
           "subSupportUrl",
           "subThemeDir",
           "subTitle",
+          "subTrafficDepletedTemplate",
           "subURI",
           "subUpdates",
           "tgBotAPIServer",
@@ -4340,7 +4550,13 @@
                     "msg": {
                       "type": "string"
                     },
-                    "obj": {}
+                    "obj": {
+                      "type": "array",
+                      "nullable": true,
+                      "items": {
+                        "type": "string"
+                      }
+                    }
                   }
                 },
                 "example": {
@@ -6399,6 +6615,7 @@
                     },
                     "obj": {
                       "type": "array",
+                      "nullable": true,
                       "items": {
                         "type": "string"
                       }
@@ -6480,6 +6697,7 @@
                     },
                     "obj": {
                       "type": "array",
+                      "nullable": true,
                       "items": {
                         "$ref": "#/components/schemas/LogEntry"
                       }
@@ -9707,7 +9925,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Return every URL for one client across all attached inbounds — the same strings the Copy URL button copies in the panel UI. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria. If streamSettings.externalProxy is set, returns one URL per external proxy. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.",
+        "summary": "Return every URL for one client across all attached inbounds, one per advertised endpoint: the managed hosts of the inbound, else its streamSettings.externalProxy entries, else its own address. Supported protocols: vmess, vless, trojan, shadowsocks, hysteria, mtproto. Protocols without a URL form (socks, http, mixed, wireguard, dokodemo, tunnel) contribute nothing.",
         "operationId": "get_panel_api_clients_links_email",
         "parameters": [
           {

@@ -137,7 +137,13 @@ export default function DnsServerModal({
   onConfirm,
 }: DnsServerModalProps) {
   const { t } = useTranslation();
-  const methods = useForm<DnsServerForm>({ defaultValues: defaultFormValues() });
+  const methods = useForm<DnsServerForm>({
+    defaultValues: defaultFormValues(),
+  });
+  const address = useWatch({ control: methods.control, name: 'address' }) ?? '';
+  // Xray ignores port for DoH/DoHL/DoQL, so valuesToWire never stores one:
+  // offering the field there discards whatever is typed into it.
+  const portApplies = !isEncryptedDnsAddress(address);
   const domains = useWatch({ control: methods.control, name: 'domains' }) ?? [];
   const expectedIPs = useWatch({ control: methods.control, name: 'expectedIPs' }) ?? [];
   const unexpectedIPs = useWatch({ control: methods.control, name: 'unexpectedIPs' }) ?? [];
@@ -168,13 +174,15 @@ export default function DnsServerModal({
           >
             <Input />
           </FormField>
-          <FormField
-            label={t('pages.inbounds.port')}
-            name="port"
-            rules={{ validate: rhfZodValidate(shape.port) }}
-          >
-            <InputNumber min={1} max={65535} />
-          </FormField>
+          {portApplies && (
+            <FormField
+              label={t('pages.inbounds.port')}
+              name="port"
+              rules={{ validate: rhfZodValidate(shape.port) }}
+            >
+              <InputNumber min={1} max={65535} />
+            </FormField>
+          )}
           <FormField label={t('pages.xray.dns.tag')} name="tag">
             <Input />
           </FormField>

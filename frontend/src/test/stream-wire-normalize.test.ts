@@ -488,6 +488,7 @@ describe('inbound formValuesToWirePayload integration', () => {
         },
         tlsSettings: {
           alpn: ['h3'],
+          certificates: [{ certificateFile: '/cert/server.pem', keyFile: '/cert/server.key' }],
           settings: {
             fingerprint: '',
           },
