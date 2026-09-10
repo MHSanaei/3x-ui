@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "Seçili her kullanıcı bağlı tüm gelen bağlantılarndan kaldırılır ve trafik kaydı silinir. Geri alınamaz.",
       "bulkAdjustTitle": "{count} Kullanıcıyı Ayarla",
       "bulkAdjustHint": "Pozitif değerler ekler, negatif değerler azaltır. Sınırsız süreli veya trafikli kullanıcılar ilgili alan için atlanır.",
-      "bulkAdjustNothing": "Uygulamadan önce gün veya trafik belirleyin.",
+      "bulkAdjustNothing": "Uygulamadan önce en az bir alan belirleyin.",
       "addDays": "Gün Ekle",
       "addTrafficGB": "Trafik Ekle (GB)",
       "bulkFlow": "Flow ayarla",

@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "Cada cliente selecionado é removido dos inbounds associados e o registro de tráfego é descartado. Não é possível desfazer.",
       "bulkAdjustTitle": "Ajustar {count} clientes",
       "bulkAdjustHint": "Valores positivos estendem, negativos reduzem. Clientes com expiração ou tráfego ilimitado são ignorados para esse campo.",
-      "bulkAdjustNothing": "Defina dias ou tráfego antes de aplicar.",
+      "bulkAdjustNothing": "Defina pelo menos um campo antes de aplicar.",
       "addDays": "Adicionar dias",
       "addTrafficGB": "Adicionar tráfego (GB)",
       "bulkFlow": "Definir flow",

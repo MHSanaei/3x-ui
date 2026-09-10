@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "Setiap klien yang dipilih dihapus dari semua inbound terlampir dan catatan lalu lintasnya dihapus. Tidak dapat dibatalkan.",
       "bulkAdjustTitle": "Sesuaikan {count} klien",
       "bulkAdjustHint": "Nilai positif menambah, negatif mengurangi. Klien dengan masa berlaku atau trafik tak terbatas dilewati untuk bidang tersebut.",
-      "bulkAdjustNothing": "Setel hari atau trafik sebelum menerapkan.",
+      "bulkAdjustNothing": "Setel setidaknya satu bidang sebelum menerapkan.",
       "addDays": "Tambah hari",
       "addTrafficGB": "Tambah trafik (GB)",
       "bulkFlow": "Atur flow",

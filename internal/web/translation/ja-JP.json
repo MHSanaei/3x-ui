@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "選択された各クライアントを関連付けされたすべてのインバウンドから削除し、トラフィック記録も破棄します。元に戻せません。",
       "bulkAdjustTitle": "{count} 件のクライアントを調整",
       "bulkAdjustHint": "正の値は延長、負の値は短縮します。無期限の有効期限または無制限のトラフィックを持つクライアントは、その項目についてスキップされます。",
-      "bulkAdjustNothing": "適用する前に日数またはトラフィックを設定してください。",
+      "bulkAdjustNothing": "適用する前に少なくとも1つの項目を設定してください。",
       "addDays": "日数を追加",
       "addTrafficGB": "トラフィックを追加 (GB)",
       "bulkFlow": "Flow を設定",

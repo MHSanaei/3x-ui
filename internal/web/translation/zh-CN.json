@@ -846,7 +846,7 @@
       "bulkDeleteConfirmContent": "每个所选客户端都会从关联的入站中被移除，其流量记录也会被删除。该操作不可撤销。",
       "bulkAdjustTitle": "调整 {count} 个客户端",
       "bulkAdjustHint": "正值延长，负值减少。具有无限期限或流量的客户端将跳过该字段。",
-      "bulkAdjustNothing": "应用前请设置天数或流量。",
+      "bulkAdjustNothing": "应用前请至少设置一项。",
       "addDays": "添加天数",
       "addTrafficGB": "添加流量 (GB)",
       "bulkFlow": "设置 flow",
