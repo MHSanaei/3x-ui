@@ -14,31 +14,25 @@ import (
 
 func TestParseListenAddr(t *testing.T) {
 	cases := []struct {
-		in      string
-		pinned  bool
-		want    string
-		wantErr bool
+		in     string
+		pinned bool
+		want   string
 	}{
 		{in: "", pinned: false},
 		{in: "  ", pinned: false},
 		{in: "0.0.0.0", pinned: false},
 		{in: "::", pinned: false},
+		{in: "::0", pinned: false},
 		{in: "[::]", pinned: false},
+		{in: "[::0]", pinned: false},
 		{in: "127.0.0.1", pinned: true, want: "127.0.0.1"},
 		{in: "::1", pinned: true, want: "::1"},
-		{in: "not-an-ip", wantErr: true},
+		{in: "[::1]", pinned: true, want: "::1"},
+		{in: "not-an-ip", pinned: false},
+		{in: "/var/run/awg.sock", pinned: false},
 	}
 	for _, tc := range cases {
-		addr, ok, err := parseListenAddr(tc.in)
-		if tc.wantErr {
-			if err == nil {
-				t.Fatalf("parseListenAddr(%q) = (%v,%v), want error", tc.in, addr, ok)
-			}
-			continue
-		}
-		if err != nil {
-			t.Fatalf("parseListenAddr(%q): %v", tc.in, err)
-		}
+		addr, ok := parseListenAddr(tc.in)
 		if ok != tc.pinned {
 			t.Fatalf("parseListenAddr(%q) pinned=%v, want %v", tc.in, ok, tc.pinned)
 		}
@@ -49,10 +43,7 @@ func TestParseListenAddr(t *testing.T) {
 }
 
 func TestNewListenBindPinsSpecificAddress(t *testing.T) {
-	bind, err := newListenBind("127.0.0.1")
-	if err != nil {
-		t.Fatalf("newListenBind: %v", err)
-	}
+	bind := newListenBind("127.0.0.1")
 	pb, ok := bind.(*pinnedBind)
 	if !ok {
 		t.Fatalf("bind type = %T, want *pinnedBind", bind)
@@ -75,10 +66,7 @@ func TestNewListenBindPinsSpecificAddress(t *testing.T) {
 		t.Fatalf("LocalAddr = %v, want 127.0.0.1", got)
 	}
 
-	clash, err := newListenBind("127.0.0.1")
-	if err != nil {
-		t.Fatalf("second newListenBind: %v", err)
-	}
+	clash := newListenBind("127.0.0.1")
 	if _, _, err := clash.Open(port); err == nil {
 		clash.Close()
 		t.Fatalf("Open(%d) unexpectedly succeeded on an already-bound address", port)
@@ -86,11 +74,8 @@ func TestNewListenBindPinsSpecificAddress(t *testing.T) {
 }
 
 func TestNewListenBindWildcardUsesDefault(t *testing.T) {
-	for _, listen := range []string{"", "0.0.0.0", "::"} {
-		bind, err := newListenBind(listen)
-		if err != nil {
-			t.Fatalf("newListenBind(%q): %v", listen, err)
-		}
+	for _, listen := range []string{"", "0.0.0.0", "::", "::0", "[::]", "hostname.example", "203.0.113.10", "not-an-ip"} {
+		bind := newListenBind(listen)
 		if _, ok := bind.(*pinnedBind); ok {
 			t.Fatalf("newListenBind(%q) returned pinnedBind, want default StdNetBind", listen)
 		}
@@ -98,10 +83,7 @@ func TestNewListenBindWildcardUsesDefault(t *testing.T) {
 }
 
 func TestPinnedBindRoundTrip(t *testing.T) {
-	server, err := newListenBind("127.0.0.1")
-	if err != nil {
-		t.Fatalf("server bind: %v", err)
-	}
+	server := newListenBind("127.0.0.1")
 	recvFns, port, err := server.Open(0)
 	if err != nil {
 		t.Fatalf("server Open: %v", err)
@@ -160,13 +142,18 @@ func TestAddressFingerprintIncludesListen(t *testing.T) {
 		Obfuscation: amneziawg.Obfuscation31{},
 	}
 	a := addressFingerprint(base)
-	base.Listen = "203.0.113.10"
+	base.Listen = "127.0.0.1"
 	b := addressFingerprint(base)
 	if a == b {
 		t.Fatalf("listen edit did not change addressFingerprint: %q", a)
 	}
-	if addressFingerprint(base) != b {
-		t.Fatal("identical listen should keep fingerprint stable")
+	base.Listen = "0.0.0.0"
+	if addressFingerprint(base) != a {
+		t.Fatal("wildcard spellings must share the empty-listen fingerprint")
+	}
+	base.Listen = "hostname.example"
+	if addressFingerprint(base) != a {
+		t.Fatal("unusable listen must fingerprint like wildcard fallback")
 	}
 }
 

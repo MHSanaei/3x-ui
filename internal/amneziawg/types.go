@@ -75,11 +75,8 @@ type Instance struct {
 	Tag           string
 	InterfaceName string
 	ListenPort    int
-	// Listen is the optional host bind address from the inbound's listen
-	// field (e.g. "203.0.113.10"). Empty, or a wildcard ("0.0.0.0" / "::"),
-	// means bind all addresses — the same default Xray-backed inbounds use.
-	// Carried into internal/amneziawgnet so the embedded device can open a
-	// Bind pinned to this address instead of always using the wildcard.
+	// Listen is an optional host bind address (e.g. "203.0.113.10").
+	// Empty/wildcard keeps dual-stack StdNetBind; a real IP pins the UDP socket.
 	Listen     string
 	PrivateKey string
 	PublicKey  string

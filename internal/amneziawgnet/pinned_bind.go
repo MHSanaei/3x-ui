@@ -9,16 +9,12 @@ import (
 	"sync"
 
 	awgconn "github.com/amnezia-vpn/amneziawg-go/v3/conn"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// pinnedBind is a Bind that opens its UDP socket on exactly one host
-// address. StdNetBind always listens on the wildcard ("0.0.0.0" / "::"),
-// which is what made AmneziaWG inbounds with a non-empty listen field
-// reply from the host's primary address on multi-IP setups (#6367).
-//
-// BatchSize is 1 and sticky/GSO offloads are omitted: correctness of the
-// source address is the point of this Bind, and the common empty-listen
-// path still uses StdNetBind via newListenBind.
+// pinnedBind opens its UDP socket on exactly one host address (#6367).
+// Empty/wildcard listen still uses StdNetBind via newListenBind.
 type pinnedBind struct {
 	mu   sync.Mutex
 	addr netip.Addr
@@ -81,8 +77,7 @@ func (b *pinnedBind) Close() error {
 	return err
 }
 
-// SetMark is a no-op: the panel never configures a WireGuard fwmark for
-// AmneziaWG, and pinning the listen address already fixes reply sourcing.
+// SetMark is a no-op: the panel never configures a WireGuard fwmark here.
 func (b *pinnedBind) SetMark(uint32) error { return nil }
 
 func (b *pinnedBind) Send(bufs [][]byte, ep awgconn.Endpoint) error {
@@ -114,31 +109,79 @@ func (b *pinnedBind) ParseEndpoint(s string) (awgconn.Endpoint, error) {
 
 func (b *pinnedBind) BatchSize() int { return 1 }
 
-// parseListenAddr interprets an inbound listen string. ok is false when the
-// value means "bind all addresses" (empty or a wildcard). An unparseable
-// non-wildcard value is an error so a typo fails loudly instead of silently
-// falling back to the wildcard that caused #6367.
-func parseListenAddr(listen string) (addr netip.Addr, ok bool, err error) {
-	listen = strings.TrimSpace(listen)
-	if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "[::]" {
-		return netip.Addr{}, false, nil
+// isWildcardListen reports empty / dual-stack wildcard listen values.
+// Includes ::0 (isAnyListen) and [::] so AmneziaWG keeps dual-stack StdNetBind.
+func isWildcardListen(listen string) bool {
+	switch strings.TrimSpace(listen) {
+	case "", "0.0.0.0", "::", "::0", "[::]", "[::0]":
+		return true
+	default:
+		return false
 	}
-	addr, err = netip.ParseAddr(listen)
-	if err != nil {
-		return netip.Addr{}, false, fmt.Errorf("invalid listen address %q: %w", listen, err)
-	}
-	return addr.Unmap(), true, nil
 }
 
-// newListenBind returns StdNetBind for wildcard listen values, or a
-// pinnedBind bound to a specific host address.
-func newListenBind(listen string) (awgconn.Bind, error) {
-	addr, pinned, err := parseListenAddr(listen)
+// parseListenAddr returns a concrete host address to pin. ok is false for
+// wildcards and for values that are not a bare IP (previously inert for AWG).
+func parseListenAddr(listen string) (addr netip.Addr, ok bool) {
+	listen = strings.TrimSpace(listen)
+	if isWildcardListen(listen) {
+		return netip.Addr{}, false
+	}
+	// Bracketed IPv6 literal e.g. [::1] — strip for ParseAddr.
+	if strings.HasPrefix(listen, "[") && strings.HasSuffix(listen, "]") {
+		listen = listen[1 : len(listen)-1]
+	}
+	addr, err := netip.ParseAddr(listen)
 	if err != nil {
-		return nil, err
+		return netip.Addr{}, false
 	}
+	return addr.Unmap(), true
+}
+
+// listenBindable probes whether addr can be used as a UDP local address.
+func listenBindable(addr netip.Addr) bool {
+	network := "udp4"
+	if addr.Is6() {
+		network = "udp6"
+	}
+	pc, err := net.ListenPacket(network, net.JoinHostPort(addr.String(), "0"))
+	if err != nil {
+		return false
+	}
+	_ = pc.Close()
+	return true
+}
+
+// newListenBind returns StdNetBind for wildcards / unusable listen values, or
+// a pinnedBind for a real local address. Never fails the inbound on bad listen.
+func newListenBind(listen string) awgconn.Bind {
+	raw := strings.TrimSpace(listen)
+	addr, pinned := parseListenAddr(raw)
 	if !pinned {
-		return awgconn.NewDefaultBind(), nil
+		if raw != "" && !isWildcardListen(raw) {
+			logger.Warningf("amneziawgnet: listen %q is not a bindable IP; using dual-stack wildcard", raw)
+		}
+		return awgconn.NewDefaultBind()
 	}
-	return newPinnedBind(addr), nil
+	if !listenBindable(addr) {
+		logger.Warningf("amneziawgnet: listen %q is not usable on this host; using dual-stack wildcard", raw)
+		return awgconn.NewDefaultBind()
+	}
+	return newPinnedBind(addr)
+}
+
+// normalizedListenFP collapses wildcard spellings so fingerprint rebuilds
+// only when the effective Bind actually changes.
+func normalizedListenFP(listen string) string {
+	if isWildcardListen(listen) {
+		return ""
+	}
+	addr, ok := parseListenAddr(listen)
+	if !ok {
+		return "" // unusable → same Bind as wildcard fallback
+	}
+	if !listenBindable(addr) {
+		return ""
+	}
+	return addr.String()
 }

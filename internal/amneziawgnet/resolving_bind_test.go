@@ -11,11 +11,7 @@ import (
 
 func mustResolvingBind(t *testing.T) *resolvingBind {
 	t.Helper()
-	b, err := newResolvingBind("")
-	if err != nil {
-		t.Fatalf("newResolvingBind: %v", err)
-	}
-	return b
+	return newResolvingBind("")
 }
 
 func endpointAddrPort(ep awgconn.Endpoint) netip.AddrPort {

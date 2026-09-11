@@ -257,14 +257,12 @@ func socksRelayForInstance(inst amneziawg.Instance) SocksRelay {
 	}
 }
 
-// addressFingerprint captures what IpcSet can't change on a running Device,
-// fixed when the netstack/Bind is built: address, the S4-derived effective MTU,
-// and the host listen address the Bind was pinned to (empty = wildcard).
+// addressFingerprint captures Bind/netstack identity IpcSet cannot change.
 func addressFingerprint(inst amneziawg.Instance) string {
 	return fmt.Sprintf("%d|%s|%s",
 		amneziawg.EffectiveMTU(inst.MTU, inst.Obfuscation.S4),
 		strings.Join(inst.Address, ","),
-		strings.TrimSpace(inst.Listen))
+		normalizedListenFP(inst.Listen))
 }
 
 // Reconcile brings every desired instance's embedded interface up to date
