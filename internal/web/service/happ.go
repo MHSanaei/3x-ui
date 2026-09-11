@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	happCryptoEndpoint  = "https://crypto.happ.su/api-v2.php"
+	happCryptoEndpoint  = "https://crypto.happ.su/api-v3.php"
 	happProviderTimeout = 10 * time.Second
 	happMaxResponseSize = 64 << 10
 )

@@ -509,7 +509,7 @@ func TestHappGenerateDoesNotExposeTransportErrors(t *testing.T) {
 	configureHappSubscription(t, true, "https://sub.example/sub/transport-source/")
 	configureHappLinkGate(t, true)
 
-	const reflectedError = "dial tcp: connection refused request https://crypto.happ.su/?source=https://sub.example/sub/transport-source/transport-sub-id token=secret cookie=session authorization=Bearer-secret happ://crypt5/leak"
+	const reflectedError = "dial tcp: connection refused request https://crypto.happ.su/api-v3.php?source=https://sub.example/sub/transport-source/transport-sub-id token=secret cookie=session authorization=Bearer-secret happ://crypt5/leak"
 	var transportCalls atomic.Int32
 	svc := &HappService{
 		clientService:  &ClientService{},
