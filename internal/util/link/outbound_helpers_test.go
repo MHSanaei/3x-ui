@@ -246,8 +246,8 @@ func TestParseTrojanAndSS_CoreFields(t *testing.T) {
 }
 
 func TestParse_KcpSeedAndHeaderType(t *testing.T) {
-	// Share links emit type=kcp&headerType&seed via applyKcpShareParams; import
-	// must restore them into kcpSettings so the outbound can talk to the inbound.
+	// Share links emit type=kcp&headerType&seed; import restores live mkcp-legacy
+	// finalmask (kcpSettings.header/seed are inert in current Xray).
 	link := "vless://uuid@h.com:443?type=kcp&headerType=wechat-video&seed=secret-seed&mtu=1400&tti=50&security=none#kcp1"
 	res, err := ParseLink(link)
 	if err != nil {
@@ -258,18 +258,24 @@ func TestParse_KcpSeedAndHeaderType(t *testing.T) {
 		t.Fatalf("network = %v, want kcp", ss["network"])
 	}
 	kcp := streamSub(t, res, "kcpSettings")
-	if kcp["seed"] != "secret-seed" {
-		t.Fatalf("kcpSettings.seed = %v, want secret-seed", kcp["seed"])
-	}
-	header, _ := kcp["header"].(map[string]any)
-	if header["type"] != "wechat-video" {
-		t.Fatalf("kcpSettings.header.type = %v, want wechat-video", header["type"])
-	}
 	if kcp["mtu"] != 1400 {
 		t.Fatalf("kcpSettings.mtu = %v (%T), want 1400", kcp["mtu"], kcp["mtu"])
 	}
 	if kcp["tti"] != 50 {
 		t.Fatalf("kcpSettings.tti = %v (%T), want 50", kcp["tti"], kcp["tti"])
+	}
+	finalmask, _ := ss["finalmask"].(map[string]any)
+	udp, _ := finalmask["udp"].([]any)
+	if len(udp) != 1 {
+		t.Fatalf("finalmask.udp len = %d, want 1: %#v", len(udp), finalmask)
+	}
+	mask, _ := udp[0].(map[string]any)
+	if mask["type"] != "mkcp-legacy" {
+		t.Fatalf("mask type = %v, want mkcp-legacy", mask["type"])
+	}
+	settings, _ := mask["settings"].(map[string]any)
+	if settings["header"] != "wechat" || settings["value"] != "secret-seed" {
+		t.Fatalf("mkcp-legacy settings = %#v, want header=wechat value=secret-seed", settings)
 	}
 }
 
@@ -279,12 +285,14 @@ func TestParse_KcpSeedAndHeaderType_Trojan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	kcp := streamSub(t, res, "kcpSettings")
-	if kcp["seed"] != "abc123" {
-		t.Fatalf("seed = %v, want abc123", kcp["seed"])
+	ss, _ := res.Outbound["streamSettings"].(map[string]any)
+	finalmask, _ := ss["finalmask"].(map[string]any)
+	udp, _ := finalmask["udp"].([]any)
+	if len(udp) != 1 {
+		t.Fatalf("finalmask.udp len = %d, want 1", len(udp))
 	}
-	header, _ := kcp["header"].(map[string]any)
-	if header["type"] != "srtp" {
-		t.Fatalf("header.type = %v, want srtp", header["type"])
+	settings, _ := udp[0].(map[string]any)["settings"].(map[string]any)
+	if settings["header"] != "srtp" || settings["value"] != "abc123" {
+		t.Fatalf("mkcp-legacy settings = %#v", settings)
 	}
 }

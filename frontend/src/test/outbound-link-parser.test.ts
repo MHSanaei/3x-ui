@@ -239,8 +239,7 @@ describe('parseVlessLink', () => {
 });
 
 describe('parseVlessLink / parseTrojanLink — mKCP seed and headerType', () => {
-  // Share links emit type=kcp&headerType&seed via applyKcpShareParams; import
-  // must restore them into kcpSettings so the outbound can talk to the inbound.
+  // Share links emit type=kcp&headerType&seed; import restores mkcp-legacy finalmask.
   it('restores seed, headerType, mtu, and tti on a vless:// kcp link', () => {
     const link =
       'vless://11111111-2222-4333-8444-555555555555@h.com:443' +
@@ -251,23 +250,26 @@ describe('parseVlessLink / parseTrojanLink — mKCP seed and headerType', () => 
     const stream = out!.streamSettings as Record<string, unknown>;
     expect(stream.network).toBe('kcp');
     const kcp = stream.kcpSettings as Record<string, unknown>;
-    expect(kcp.seed).toBe('secret-seed');
-    expect((kcp.header as Record<string, unknown>).type).toBe('wechat-video');
     expect(kcp.mtu).toBe(1400);
     expect(kcp.tti).toBe(50);
+    const finalmask = stream.finalmask as {
+      udp: Array<{ type: string; settings: Record<string, string> }>;
+    };
+    expect(finalmask.udp).toHaveLength(1);
+    expect(finalmask.udp[0].type).toBe('mkcp-legacy');
+    expect(finalmask.udp[0].settings).toEqual({ header: 'wechat', value: 'secret-seed' });
   });
 
   it('restores seed and headerType on a trojan:// kcp link', () => {
-    const link =
-      'trojan://pw@h.com:443?type=kcp&headerType=srtp&seed=abc123&security=none#kcp-tj';
+    const link = 'trojan://pw@h.com:443?type=kcp&headerType=srtp&seed=abc123&security=none#kcp-tj';
     const out = parseTrojanLink(link);
     expect(out).not.toBeNull();
-    const kcp = (out!.streamSettings as Record<string, unknown>).kcpSettings as Record<
-      string,
-      unknown
-    >;
-    expect(kcp.seed).toBe('abc123');
-    expect((kcp.header as Record<string, unknown>).type).toBe('srtp');
+    const stream = out!.streamSettings as Record<string, unknown>;
+    const finalmask = stream.finalmask as {
+      udp: Array<{ type: string; settings: Record<string, string> }>;
+    };
+    expect(finalmask.udp[0].type).toBe('mkcp-legacy');
+    expect(finalmask.udp[0].settings).toEqual({ header: 'srtp', value: 'abc123' });
   });
 });
 
