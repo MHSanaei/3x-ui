@@ -304,7 +304,6 @@ describe('parseShadowsocksLink', () => {
     expect(settings.servers[0].password).toBe('legacypw');
   });
 
-
   it('preserves Xray TLS query params on import (round-trip)', () => {
     const userinfo = Base64.encode('chacha20-ietf-poly1305:secretpass', true);
     const link =
