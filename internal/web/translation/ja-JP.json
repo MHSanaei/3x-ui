@@ -760,6 +760,7 @@
       "noHwids": "HWID デバイスはまだありません",
       "firstSeen": "初回確認",
       "lastSeen": "最終確認",
+      "hwidFingerprint": "HWID フィンガープリント",
       "deleteHwid": "デバイスを削除",
       "deleteHwidConfirm": "このデバイスを削除しますか?次回のサブスクリプション取得時に再登録が必要になります。",
       "hwidDeleted": "デバイスを削除しました。",

@@ -760,6 +760,7 @@
       "noHwids": "Henüz HWID cihazı yok",
       "firstSeen": "İlk görülme",
       "lastSeen": "Son görülme",
+      "hwidFingerprint": "HWID parmak izi",
       "deleteHwid": "Cihazı kaldır",
       "deleteHwidConfirm": "Bu cihaz kaldırılsın mı? Bir sonraki abonelik alımında yeniden kaydolması gerekecek.",
       "hwidDeleted": "Cihaz kaldırıldı.",

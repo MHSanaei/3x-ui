@@ -760,6 +760,7 @@
       "noHwids": "暂无 HWID 设备",
       "firstSeen": "首次出现",
       "lastSeen": "最后出现",
+      "hwidFingerprint": "HWID 指纹",
       "deleteHwid": "移除设备",
       "deleteHwidConfirm": "移除此设备？下次获取订阅时它将需要重新注册。",
       "hwidDeleted": "设备已移除。",
