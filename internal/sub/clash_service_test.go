@@ -161,6 +161,51 @@ func TestBuildProxy_VLESSRealityFieldsForClash(t *testing.T) {
 	if opts["short-id"] != "ab12" {
 		t.Fatalf("short-id = %v, want ab12", opts["short-id"])
 	}
+	if opts["support-x25519mlkem768"] != true {
+		t.Fatalf("ML-KEM support = %v, want true", opts["support-x25519mlkem768"])
+	}
+}
+
+func TestClashRealityMLKEMAcrossSources(t *testing.T) {
+	svc := NewSubClashService(false, "", &SubService{})
+	for _, security := range []string{"reality", "tls", "none"} {
+		for _, fingerprint := range []string{"", "chrome", "firefox"} {
+			t.Run(security+"/"+fingerprint, func(t *testing.T) {
+				inbound := &model.Inbound{Listen: "example.com", Port: 443, Protocol: model.VLESS, Settings: `{"encryption":"none"}`}
+				client := model.Client{ID: "11111111-2222-4333-8444-555555555555"}
+				stream := svc.streamData(fmt.Sprintf(`{"network":"tcp","security":%q,"realitySettings":{"serverNames":["example.com"],"shortIds":["ab12"],"settings":{"publicKey":"PBKvalue","fingerprint":%q}}}`, security, fingerprint))
+				link := "vless://" + client.ID + "@example.com:443?type=tcp&security=" + security + "&sni=example.com&pbk=PBKvalue&sid=ab12&fp=" + fingerprint
+				for source, proxy := range map[string]map[string]any{
+					"inbound":  svc.buildProxy(svc.SubService, inbound, client, stream, nil),
+					"external": svc.clashProxyFromExternal(link, "external"),
+				} {
+					if proxy == nil {
+						t.Fatalf("%s: missing proxy", source)
+					}
+					opts, exists := proxy["reality-opts"].(map[string]any)
+					if security != "reality" {
+						if exists {
+							t.Fatalf("%s: REALITY options leaked into %s: %#v", source, security, opts)
+						}
+						continue
+					}
+					if opts["support-x25519mlkem768"] != true || opts["public-key"] != "PBKvalue" || opts["short-id"] != "ab12" {
+						t.Fatalf("%s: incorrect REALITY options: %#v", source, opts)
+					}
+					wantFingerprint := fingerprint
+					if wantFingerprint == "" {
+						wantFingerprint = "chrome"
+					}
+					if proxy["client-fingerprint"] != wantFingerprint {
+						t.Fatalf("%s: fingerprint = %v, want %s", source, proxy["client-fingerprint"], wantFingerprint)
+					}
+					if legacyClashProxy(proxy) != nil {
+						t.Fatalf("%s: REALITY must stay excluded from legacy Clash", source)
+					}
+				}
+			})
+		}
+	}
 }
 
 // TestApplyTransport_TCPHeader pins the tcp-header validation (clash_service.go ~359):
