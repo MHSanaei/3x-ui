@@ -84,12 +84,6 @@ function readRules(raw: string): SubJsonRule[] {
   return Array.isArray(parsed) ? (parsed as SubJsonRule[]) : [];
 }
 
-function blockFirst(rules: SubJsonRule[]): SubJsonRule[] {
-  return [...rules].sort(
-    (a, b) => Number(a.outboundTag !== 'block') - Number(b.outboundTag !== 'block'),
-  );
-}
-
 export default function SubscriptionFormatsTab({
   allSetting,
   updateSetting,
@@ -122,15 +116,28 @@ export default function SubscriptionFormatsTab({
     ruleArray.find((r) => r.outboundTag === tag && r[key])?.[key] ?? [];
 
   function writeRules(rules: SubJsonRule[]) {
-    updateSetting({ subJsonRules: rules.length > 0 ? JSON.stringify(blockFirst(rules)) : '' });
+    updateSetting({ subJsonRules: rules.length > 0 ? JSON.stringify(rules) : '' });
   }
 
   function setTagEnabled(tag: string, defaults: SubJsonRule[], enabled: boolean) {
     const rest = ruleArray.filter((r) => r.outboundTag !== tag);
-    writeRules(enabled ? [...rest, ...defaults] : rest);
+    if (!enabled) {
+      // Turning off the last managed tag also drops foreign-tag leftovers so
+      // the panel still has a path back to an empty subJsonRules.
+      const hasManaged = rest.some((r) => r.outboundTag === 'direct' || r.outboundTag === 'block');
+      writeRules(hasManaged ? rest : []);
+      return;
+    }
+    // Prepend block defaults so ads match before direct; never re-sort the rest.
+    writeRules(tag === 'block' ? [...defaults, ...rest] : [...rest, ...defaults]);
   }
 
-  function setRuleValues(tag: string, key: 'ip' | 'domain', template: SubJsonRule, value: string[]) {
+  function setRuleValues(
+    tag: string,
+    key: 'ip' | 'domain',
+    template: SubJsonRule,
+    value: string[],
+  ) {
     let rules = [...ruleArray];
     if (value.length === 0) {
       rules = rules.filter((r) => !(r.outboundTag === tag && r[key]));
@@ -446,9 +453,7 @@ export default function SubscriptionFormatsTab({
                       mode="tags"
                       value={ruleValues('block', 'domain')}
                       style={{ width: '100%' }}
-                      onChange={(v) =>
-                        setRuleValues('block', 'domain', DEFAULT_BLOCK_RULES[0], v)
-                      }
+                      onChange={(v) => setRuleValues('block', 'domain', DEFAULT_BLOCK_RULES[0], v)}
                       options={blockDomainsOptions}
                     />
                   </SettingListItem>
