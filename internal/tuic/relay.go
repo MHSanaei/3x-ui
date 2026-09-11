@@ -17,15 +17,13 @@ const (
 	maxRelayFlows     = 4096
 )
 
-// udpRelay owns an inbound's public UDP port and forwards each client's
-// datagrams to the sidecar on loopback, which is the only place the panel can
-// count the inbound's bytes: upstream tuic-server exposes no stats API and
-// its socket syscalls never reach /proc/<pid>/io. Per-client attribution stays
-// impossible because QUIC payloads are opaque.
+// udpRelay owns an inbound's public UDP port and counts the bytes it forwards to
+// the sidecar on loopback: tuic-server has no stats API and /proc/io stays at 0.
 type udpRelay struct {
 	public    *net.UDPConn
 	upstream  *net.UDPAddr
 	idle      time.Duration
+	maxFlows  int
 	up        atomic.Int64
 	down      atomic.Int64
 	mu        sync.Mutex
@@ -56,6 +54,7 @@ func startUDPRelay(bind string, upstream *net.UDPAddr, idle time.Duration) (*udp
 		public:   public,
 		upstream: upstream,
 		idle:     idle,
+		maxFlows: maxRelayFlows,
 		flows:    make(map[string]*relayFlow),
 		done:     make(chan struct{}),
 	}
@@ -136,8 +135,8 @@ func (r *udpRelay) flowFor(client *net.UDPAddr) (*relayFlow, error) {
 		f.lastSeen.Store(now)
 		return f, nil
 	}
-	if len(r.flows) >= maxRelayFlows {
-		return nil, errors.New("tuic: max relay flows reached")
+	if len(r.flows) >= r.maxFlows {
+		r.evictLeastRecentLocked()
 	}
 	conn, err := net.DialUDP("udp", nil, r.upstream)
 	if err != nil {
@@ -151,6 +150,22 @@ func (r *udpRelay) flowFor(client *net.UDPAddr) (*relayFlow, error) {
 	r.wg.Add(1)
 	go r.pump(f)
 	return f, nil
+}
+
+// Refusing a newcomer at the cap let 4096 junk datagrams lock every new client
+// out until the sweep; the flow last seen longest ago is the junk one.
+func (r *udpRelay) evictLeastRecentLocked() {
+	var oldestKey string
+	oldest := int64(-1)
+	for key, f := range r.flows {
+		if seen := f.lastSeen.Load(); oldest < 0 || seen < oldest {
+			oldest, oldestKey = seen, key
+		}
+	}
+	if f, ok := r.flows[oldestKey]; ok {
+		_ = f.conn.Close()
+		delete(r.flows, oldestKey)
+	}
 }
 
 func (r *udpRelay) pump(f *relayFlow) {

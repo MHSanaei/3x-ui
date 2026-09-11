@@ -125,3 +125,26 @@ func TestUDPRelayRefusesFlowsAfterClose(t *testing.T) {
 		t.Fatalf("%d flow(s) registered after Close", n)
 	}
 }
+
+func TestUDPRelayFullTableAdmitsNewClient(t *testing.T) {
+	relay, err := startUDPRelay("127.0.0.1:0", doublingEcho(t), relayFlowIdle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(relay.Close)
+	relay.mu.Lock()
+	relay.maxFlows = 2
+	relay.mu.Unlock()
+
+	roundTrip(t, relay, []byte("a"))
+	roundTrip(t, relay, []byte("b"))
+	if got := roundTrip(t, relay, []byte("c")); got != 2 {
+		t.Fatalf("third client reply = %d bytes, want 2: a full table must evict, not refuse", got)
+	}
+	relay.mu.Lock()
+	n := len(relay.flows)
+	relay.mu.Unlock()
+	if n != 2 {
+		t.Fatalf("flow table holds %d flows after admitting a third client, want the cap of 2", n)
+	}
+}
