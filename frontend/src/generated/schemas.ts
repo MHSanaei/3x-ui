@@ -1339,6 +1339,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "string"
       },
       "keepAlive": {
+        "description": "Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value",
+        "nullable": true,
         "type": "integer"
       },
       "limitIp": {
@@ -2461,6 +2463,39 @@ export const SCHEMAS: Record<string, unknown> = {
       "tags",
       "verifyPeerCertByName",
       "vlessRoute"
+    ],
+    "type": "object"
+  },
+  "HwidSlotStatus": {
+    "description": "HwidSlotStatus is the aggregate device-slot view exposed to subscribers:\ncounters only, no hwid value or hash, no email, no device metadata.",
+    "properties": {
+      "active": {
+        "example": true,
+        "type": "boolean"
+      },
+      "full": {
+        "example": false,
+        "type": "boolean"
+      },
+      "limit": {
+        "example": 2,
+        "type": "integer"
+      },
+      "registered": {
+        "example": 1,
+        "type": "integer"
+      },
+      "remaining": {
+        "example": 1,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "active",
+      "full",
+      "limit",
+      "registered",
+      "remaining"
     ],
     "type": "object"
   },

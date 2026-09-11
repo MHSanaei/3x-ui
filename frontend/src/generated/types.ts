@@ -325,7 +325,7 @@ export interface Client {
   forwardedPorts?: string;
   group?: string;
   id?: string;
-  keepAlive?: number;
+  keepAlive?: number | null;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
@@ -568,6 +568,14 @@ export interface HostGroup {
   tags: string[];
   verifyPeerCertByName: string;
   vlessRoute: string;
+}
+
+export interface HwidSlotStatus {
+  active: boolean;
+  full: boolean;
+  limit: number;
+  registered: number;
+  remaining: number;
 }
 
 export interface Inbound {

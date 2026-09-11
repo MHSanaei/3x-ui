@@ -346,7 +346,7 @@ export const ClientSchema = z.object({
   forwardedPorts: z.string().optional(),
   group: z.string().optional(),
   id: z.string().optional(),
-  keepAlive: z.number().int().optional(),
+  keepAlive: z.number().int().nullable().optional(),
   limitIp: z.number().int(),
   password: z.string().optional(),
   preSharedKey: z.string().optional(),
@@ -608,6 +608,15 @@ export const HostGroupSchema = z.object({
   vlessRoute: z.string(),
 });
 export type HostGroup = z.infer<typeof HostGroupSchema>;
+
+export const HwidSlotStatusSchema = z.object({
+  active: z.boolean(),
+  full: z.boolean(),
+  limit: z.number().int(),
+  registered: z.number().int(),
+  remaining: z.number().int(),
+});
+export type HwidSlotStatus = z.infer<typeof HwidSlotStatusSchema>;
 
 export const InboundSchema = z.object({
   clientStats: z.array(z.lazy(() => ClientTrafficSchema)),

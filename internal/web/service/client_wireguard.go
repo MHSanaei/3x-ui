@@ -249,8 +249,8 @@ func defaultWireguardClients(settingsJSON string, existing, clients []model.Clie
 				if c.PreSharedKey != "" {
 					m["preSharedKey"] = c.PreSharedKey
 				}
-				if c.KeepAlive > 0 {
-					m["keepAlive"] = c.KeepAlive
+				if ka := c.KeepAliveSeconds(); ka > 0 {
+					m["keepAlive"] = ka
 				}
 				interfaceClients[i] = m
 			}

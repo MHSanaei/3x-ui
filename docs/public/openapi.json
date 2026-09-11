@@ -1365,6 +1365,8 @@
             "type": "string"
           },
           "keepAlive": {
+            "description": "Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value",
+            "nullable": true,
             "type": "integer"
           },
           "limitIp": {
@@ -2487,6 +2489,39 @@
           "tags",
           "verifyPeerCertByName",
           "vlessRoute"
+        ],
+        "type": "object"
+      },
+      "HwidSlotStatus": {
+        "description": "HwidSlotStatus is the aggregate device-slot view exposed to subscribers:\ncounters only, no hwid value or hash, no email, no device metadata.",
+        "properties": {
+          "active": {
+            "example": true,
+            "type": "boolean"
+          },
+          "full": {
+            "example": false,
+            "type": "boolean"
+          },
+          "limit": {
+            "example": 2,
+            "type": "integer"
+          },
+          "registered": {
+            "example": 1,
+            "type": "integer"
+          },
+          "remaining": {
+            "example": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "full",
+          "limit",
+          "registered",
+          "remaining"
         ],
         "type": "object"
       },
@@ -13616,6 +13651,11 @@
                     "type": "string",
                     "description": "Prefix for generated outbound tags. Defaults to the lowest free \"sub<N>-\" prefix."
                   },
+                  "userAgent": {
+                    "type": "string",
+                    "default": "3x-ui-outbound-sub/1.0",
+                    "description": "Custom User-Agent sent when fetching this subscription. Defaults to \"3x-ui-outbound-sub/1.0\"."
+                  },
                   "updateInterval": {
                     "type": "integer",
                     "default": 600,
@@ -13708,6 +13748,11 @@
                   "tagPrefix": {
                     "type": "string",
                     "description": "Prefix for generated outbound tags. Defaults to the lowest free \"sub<N>-\" prefix."
+                  },
+                  "userAgent": {
+                    "type": "string",
+                    "default": "3x-ui-outbound-sub/1.0",
+                    "description": "Custom User-Agent sent when fetching this subscription. Defaults to \"3x-ui-outbound-sub/1.0\"."
                   },
                   "updateInterval": {
                     "type": "integer",
@@ -13960,6 +14005,10 @@
                   "url": {
                     "type": "string",
                     "description": "Subscription URL to preview (required)."
+                  },
+                  "userAgent": {
+                    "type": "string",
+                    "description": "Custom User-Agent sent while fetching the preview."
                   },
                   "allowPrivate": {
                     "type": "boolean",
@@ -14480,6 +14529,99 @@
           },
           "500": {
             "description": "Subscription generation failed."
+          }
+        }
+      }
+    },
+    "/{subPath}{subid}/hwid-status": {
+      "get": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return aggregate HWID device-slot usage for the subscription: whether an HWID limit is active, the limit, how many devices are registered and how many slots remain. Read-only — it never registers a device, so asking does not consume a slot. Counters only: no HWID value, email or device metadata. The path prefix is configured by subPath.",
+        "operationId": "get_subPath_subid_hwid_status",
+        "description": "Responds with the bare HwidSlotStatus object, not the <code>{success,msg,obj}</code> panel envelope, like the other subscription-server routes. With no HWID limit configured, <code>active</code> is false and every counter is 0.",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device-slot counters for the subscription.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "active": true,
+                  "full": false,
+                  "limit": 2,
+                  "registered": 1,
+                  "remaining": 1
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/HwidSlotStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No enabled client matches the subscription ID. Empty body."
+          },
+          "500": {
+            "description": "Database lookup failed. Empty body."
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "Subscription Server"
+        ],
+        "summary": "Return the HWID device-slot status code and headers as GET without a response body.",
+        "operationId": "head_subPath_subid_hwid_status",
+        "parameters": [
+          {
+            "name": "subid",
+            "in": "path",
+            "required": true,
+            "description": "Client subscription ID.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subPath",
+            "in": "path",
+            "required": true,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Headers match GET; no response body."
+          },
+          "404": {
+            "description": "No enabled client matches the subscription ID. Empty body."
+          },
+          "500": {
+            "description": "Database lookup failed. Empty body."
           }
         }
       }

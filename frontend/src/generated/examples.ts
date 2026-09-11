@@ -329,7 +329,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "forwardedPorts": "",
     "group": "",
     "id": "",
-    "keepAlive": 0,
+    "keepAlive": null,
     "limitIp": 0,
     "password": "",
     "preSharedKey": "",
@@ -643,6 +643,13 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "verifyPeerCertByName": "",
     "vlessRoute": ""
+  },
+  "HwidSlotStatus": {
+    "active": true,
+    "full": false,
+    "limit": 2,
+    "registered": 1,
+    "remaining": 1
   },
   "Inbound": {
     "clientStats": [

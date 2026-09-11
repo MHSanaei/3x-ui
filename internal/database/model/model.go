@@ -442,8 +442,8 @@ func WireguardPeerFromClient(c Client) map[string]any {
 	if c.PreSharedKey != "" {
 		peer["preSharedKey"] = c.PreSharedKey
 	}
-	if c.KeepAlive > 0 {
-		peer["keepAlive"] = c.KeepAlive
+	if ka := c.KeepAliveSeconds(); ka > 0 {
+		peer["keepAlive"] = ka
 	}
 	return peer
 }
@@ -891,7 +891,7 @@ type Client struct {
 	// before -- fully backward compatible for callers that never set this.
 	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
 	PreSharedKey        string           `json:"preSharedKey,omitempty"`
-	KeepAlive           int              `json:"keepAlive,omitempty"`
+	KeepAlive           *int             `json:"keepAlive,omitempty"`      // Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value
 	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
 	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
@@ -1114,6 +1114,27 @@ type Host struct {
 
 func (Host) TableName() string { return "hosts" }
 
+// KeepAliveSeconds is the client's PersistentKeepalive, 0 when unset.
+func (c Client) KeepAliveSeconds() int {
+	if c.KeepAlive == nil {
+		return 0
+	}
+	return *c.KeepAlive
+}
+
+// KeepAlivePtr wraps an explicit PersistentKeepalive, 0 included -- distinct
+// from a nil KeepAlive, which means the field was never sent.
+func KeepAlivePtr(v int) *int { return &v }
+
+// nonZeroKeepAlive keeps a stored 0 nil: wg_keep_alive cannot tell "off" from
+// "never set", and an explicit 0 would emit keepAlive on every protocol.
+func nonZeroKeepAlive(seconds int) *int {
+	if seconds <= 0 {
+		return nil
+	}
+	return KeepAlivePtr(seconds)
+}
+
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
 		Email:           c.Email,
@@ -1142,7 +1163,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		PublicKey:      c.PublicKey,
 		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
 		PreSharedKey:   c.PreSharedKey,
-		KeepAlive:      c.KeepAlive,
+		KeepAlive:      c.KeepAliveSeconds(),
 		ForwardedPorts: c.ForwardedPorts,
 		Secret:         c.Secret,
 		AdTag:          c.AdTag,
@@ -1200,7 +1221,7 @@ func (r *ClientRecord) ToClient() *Client {
 		PublicKey:      r.PublicKey,
 		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
 		PreSharedKey:   r.PreSharedKey,
-		KeepAlive:      r.KeepAlive,
+		KeepAlive:      nonZeroKeepAlive(r.KeepAlive),
 		ForwardedPorts: r.ForwardedPorts,
 		Secret:         r.Secret,
 		AdTag:          r.AdTag,
@@ -1228,6 +1249,7 @@ type OutboundSubscription struct {
 	Enabled              bool   `json:"enabled" form:"enabled" gorm:"default:true"`
 	AllowPrivate         bool   `json:"allowPrivate" form:"allowPrivate" gorm:"default:false"`
 	AllowInsecure        bool   `json:"allowInsecure" form:"allowInsecure" gorm:"default:false"`
+	UserAgent            string `json:"userAgent" form:"userAgent"`
 	TagPrefix            string `json:"tagPrefix" form:"tagPrefix"`
 	UpdateInterval       int    `json:"updateInterval" form:"updateInterval" gorm:"default:600"` // seconds between refreshes
 	Priority             int    `json:"priority" form:"priority" gorm:"default:0"`               // order among subscriptions in the merged outbounds (lower = earlier)
