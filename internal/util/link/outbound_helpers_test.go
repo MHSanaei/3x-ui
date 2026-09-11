@@ -244,3 +244,47 @@ func TestParseTrojanAndSS_CoreFields(t *testing.T) {
 		t.Errorf("ss server = %#v", ssrv)
 	}
 }
+
+func TestParse_KcpSeedAndHeaderType(t *testing.T) {
+	// Share links emit type=kcp&headerType&seed via applyKcpShareParams; import
+	// must restore them into kcpSettings so the outbound can talk to the inbound.
+	link := "vless://uuid@h.com:443?type=kcp&headerType=wechat-video&seed=secret-seed&mtu=1400&tti=50&security=none#kcp1"
+	res, err := ParseLink(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	ss, _ := res.Outbound["streamSettings"].(map[string]any)
+	if ss["network"] != "kcp" {
+		t.Fatalf("network = %v, want kcp", ss["network"])
+	}
+	kcp := streamSub(t, res, "kcpSettings")
+	if kcp["seed"] != "secret-seed" {
+		t.Fatalf("kcpSettings.seed = %v, want secret-seed", kcp["seed"])
+	}
+	header, _ := kcp["header"].(map[string]any)
+	if header["type"] != "wechat-video" {
+		t.Fatalf("kcpSettings.header.type = %v, want wechat-video", header["type"])
+	}
+	if kcp["mtu"] != 1400 {
+		t.Fatalf("kcpSettings.mtu = %v (%T), want 1400", kcp["mtu"], kcp["mtu"])
+	}
+	if kcp["tti"] != 50 {
+		t.Fatalf("kcpSettings.tti = %v (%T), want 50", kcp["tti"], kcp["tti"])
+	}
+}
+
+func TestParse_KcpSeedAndHeaderType_Trojan(t *testing.T) {
+	link := "trojan://pw@h.com:443?type=kcp&headerType=srtp&seed=abc123&security=none#kcp-tj"
+	res, err := ParseLink(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	kcp := streamSub(t, res, "kcpSettings")
+	if kcp["seed"] != "abc123" {
+		t.Fatalf("seed = %v, want abc123", kcp["seed"])
+	}
+	header, _ := kcp["header"].(map[string]any)
+	if header["type"] != "srtp" {
+		t.Fatalf("header.type = %v, want srtp", header["type"])
+	}
+}

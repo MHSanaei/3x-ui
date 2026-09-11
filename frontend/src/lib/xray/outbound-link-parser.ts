@@ -219,6 +219,25 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
       applyXhttpStringFromParams(xhttp, params);
       break;
     }
+    case 'kcp': {
+      // Mirror applyKcpShareParams: headerType/seed/mtu/tti from the share link.
+      const kcp = stream.kcpSettings as Raw;
+      const headerType = params.get('headerType');
+      if (headerType) kcp.header = { type: headerType };
+      const seed = params.get('seed');
+      if (seed) kcp.seed = seed;
+      const mtu = params.get('mtu');
+      if (mtu) {
+        const n = Number(mtu);
+        if (Number.isFinite(n) && n > 0) kcp.mtu = n;
+      }
+      const tti = params.get('tti');
+      if (tti) {
+        const n = Number(tti);
+        if (Number.isFinite(n) && n > 0) kcp.tti = n;
+      }
+      break;
+    }
     case 'tcp':
       // vless/trojan TCP HTTP camouflage rides on header=http+host+path
       if (params.get('headerType') === 'http' || params.get('type') === 'http') {

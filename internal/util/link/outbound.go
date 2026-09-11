@@ -638,6 +638,25 @@ func applyTransport(stream map[string]any, p url.Values) {
 				xh[k] = v
 			}
 		}
+	case "kcp":
+		// Mirror applyKcpShareParams: headerType/seed/mtu/tti from the share link.
+		kcp := stream["kcpSettings"].(map[string]any)
+		if ht := p.Get("headerType"); ht != "" {
+			kcp["header"] = map[string]any{"type": ht}
+		}
+		if seed := p.Get("seed"); seed != "" {
+			kcp["seed"] = seed
+		}
+		if mtu := p.Get("mtu"); mtu != "" {
+			if n, err := strconv.Atoi(mtu); err == nil && n > 0 {
+				kcp["mtu"] = n
+			}
+		}
+		if tti := p.Get("tti"); tti != "" {
+			if n, err := strconv.Atoi(tti); err == nil && n > 0 {
+				kcp["tti"] = n
+			}
+		}
 	case "tcp":
 		if p.Get("headerType") == "http" || p.Get("type") == "http" {
 			stream["tcpSettings"] = map[string]any{
