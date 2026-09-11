@@ -109,7 +109,7 @@ export default function FallbacksCard({
             <Row gutter={[8, 8]}>
               <Col xs={24} sm={12}>
                 <Input
-                  prefix="SNI"
+                  prefix={t('pages.inbounds.form.sni')}
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.name}
                   onChange={(e) => updateFallback(record.rowKey, { name: e.target.value })}
@@ -117,7 +117,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  prefix="ALPN"
+                  prefix={t('pages.inbounds.form.alpn')}
                   placeholder={t('pages.inbounds.fallbacks.matchAny') || 'any'}
                   value={record.alpn}
                   onChange={(e) => updateFallback(record.rowKey, { alpn: e.target.value })}
@@ -125,7 +125,7 @@ export default function FallbacksCard({
               </Col>
               <Col xs={24} sm={12}>
                 <Input
-                  prefix="Path"
+                  prefix={t('path')}
                   placeholder="/"
                   value={record.path}
                   onChange={(e) => updateFallback(record.rowKey, { path: e.target.value })}

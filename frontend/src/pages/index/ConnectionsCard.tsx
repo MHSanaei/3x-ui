@@ -46,12 +46,12 @@ export default function ConnectionsCard({
       <div className="ov-conn-legend">
         <div className="ov-legend-label">
           <span className="ov-swatch" style={{ background: accent }} />
-          TCP
+          {t('pages.index.tcp')}
           <span className="ov-legend-num">{status.tcpCount.toLocaleString()}</span>
         </div>
         <div className="ov-legend-label">
           <span className="ov-swatch" style={{ background: udpColor }} />
-          UDP
+          {t('pages.index.udp')}
           <span className="ov-legend-num">{status.udpCount.toLocaleString()}</span>
         </div>
       </div>
@@ -69,8 +69,8 @@ export default function ConnectionsCard({
           valueMax={null}
           stroke={accent}
           stroke2={udpColor}
-          name1="TCP"
-          name2="UDP"
+          name1={t('pages.index.tcp')}
+          name2={t('pages.index.udp')}
           yFormatter={(v) => Math.round(v).toLocaleString()}
           referenceLines={referenceLines}
         />

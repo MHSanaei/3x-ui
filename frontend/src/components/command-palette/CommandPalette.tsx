@@ -531,7 +531,7 @@ export default function CommandPalette() {
       {
         path: '/xray#dns',
         title: `${t('menu.xray')} · DNS`,
-        subtitle: 'DNS',
+        subtitle: t('menu.dnsLabel'),
         keywords: ['dns', 'dns servers', 'hosts', 'doh', 'dot', 'cloudflare dns'],
         icon: <DatabaseOutlined />,
       },

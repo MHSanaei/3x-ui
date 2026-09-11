@@ -233,7 +233,7 @@ export default function TlsForm({
   });
   return (
     <>
-      <FormField name={['streamSettings', 'tlsSettings', 'serverName']} label="SNI">
+      <FormField name={['streamSettings', 'tlsSettings', 'serverName']} label={t('pages.inbounds.form.sni')}>
         <Input placeholder={t('pages.inbounds.form.serverNameIndication')} />
       </FormField>
       <FormField
@@ -263,15 +263,15 @@ export default function TlsForm({
           </FormField>
         </Space.Compact>
       </Form.Item>
-      <FormField name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']} label="uTLS">
+      <FormField name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']} label={t('pages.inbounds.form.utls')}>
         <Select
           options={[
-            { value: '', label: 'None' },
+            { value: '', label: t('none') },
             ...Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp })),
           ]}
         />
       </FormField>
-      <FormField name={['streamSettings', 'tlsSettings', 'alpn']} label="ALPN">
+      <FormField name={['streamSettings', 'tlsSettings', 'alpn']} label={t('pages.inbounds.form.alpn')}>
         <Select
           mode="multiple"
           tokenSeparators={[',']}

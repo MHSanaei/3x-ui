@@ -137,7 +137,7 @@ export default function IndexPage() {
   }
 
   function downloadConfig() {
-    FileManager.downloadTextFile(configText, 'config.json');
+    FileManager.downloadTextFile(configText, t('pages.index.configJson'));
   }
 
   const pageClass = `index-page ${isDark ? 'is-dark' : ''} ${isUltra ? 'is-ultra' : ''}`.trim();
@@ -357,7 +357,7 @@ export default function IndexPage() {
                 size={isMobile ? 'small' : 'middle'}
                 icon={<CloudDownloadOutlined />}
               >
-                {isMobile ? 'Download' : 'config.json'}
+                {isMobile ? t('download') : t('pages.index.configJson')}
               </Button>,
               <Button
                 key="copy"
@@ -366,7 +366,7 @@ export default function IndexPage() {
                 size={isMobile ? 'small' : 'middle'}
                 icon={<CopyOutlined />}
               >
-                Copy
+                {t('copy')}
               </Button>,
             ]}
           >

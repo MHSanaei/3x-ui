@@ -198,13 +198,13 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
         </Form.Item>
         <Form.Item>
           <Checkbox checked={showDirect} onChange={(e) => setShowDirect(e.target.checked)}>
-            Direct
+            {t('pages.index.accessDirect')}
           </Checkbox>
           <Checkbox checked={showBlocked} onChange={(e) => setShowBlocked(e.target.checked)}>
-            Blocked
+            {t('pages.index.accessBlocked')}
           </Checkbox>
           <Checkbox checked={showProxy} onChange={(e) => setShowProxy(e.target.checked)}>
-            Proxy
+            {t('pages.index.accessProxy')}
           </Checkbox>
           <Checkbox checked={autoUpdate} onChange={(e) => setAutoUpdate(e.target.checked)}>
             {t('pages.index.autoUpdate')}
@@ -222,7 +222,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
 
       <div className={`log-container ${isMobile ? 'log-container-mobile' : ''}`}>
         {orderedLogs.length === 0 ? (
-          <div className="log-empty">No Record...</div>
+          <div className="log-empty">{t('pages.index.noRecord')}</div>
         ) : isMobile ? (
           orderedLogs.map((log, idx) => (
             <div key={idx} className="log-card">
@@ -242,19 +242,19 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
               <div className="log-meta">
                 {log.Inbound && (
                   <span className="log-meta-pair">
-                    <span className="log-meta-key">in</span>
+                    <span className="log-meta-key">{t('pages.index.accessInbound')}</span>
                     <span className="log-meta-val">{log.Inbound}</span>
                   </span>
                 )}
                 {log.Outbound && (
                   <span className="log-meta-pair">
-                    <span className="log-meta-key">out</span>
+                    <span className="log-meta-key">{t('pages.index.accessOutbound')}</span>
                     <span className="log-meta-val">{log.Outbound}</span>
                   </span>
                 )}
                 {log.Email && (
                   <span className="log-meta-pair">
-                    <span className="log-meta-key">email</span>
+                    <span className="log-meta-key">{t('pages.index.accessEmail')}</span>
                     <span className="log-meta-val">{log.Email}</span>
                   </span>
                 )}
@@ -265,12 +265,12 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
           <table className="xraylog-table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Inbound</th>
-                <th>Outbound</th>
-                <th>Email</th>
+                <th>{t('pages.index.accessDate')}</th>
+                <th>{t('pages.index.accessFrom')}</th>
+                <th>{t('pages.index.accessTo')}</th>
+                <th>{t('pages.index.accessInbound')}</th>
+                <th>{t('pages.index.accessOutbound')}</th>
+                <th>{t('pages.index.accessEmail')}</th>
               </tr>
             </thead>
             <tbody>

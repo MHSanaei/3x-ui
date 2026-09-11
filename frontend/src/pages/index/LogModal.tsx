@@ -134,7 +134,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
         </Form.Item>
         <Form.Item>
           <Checkbox checked={syslog} onChange={(e) => setSyslog(e.target.checked)}>
-            SysLog
+            {t('pages.index.sysLog')}
           </Checkbox>
           <Checkbox checked={autoUpdate} onChange={(e) => setAutoUpdate(e.target.checked)}>
             {t('pages.index.autoUpdate')}
@@ -152,7 +152,7 @@ export default function LogModal({ open, onClose }: LogModalProps) {
 
       <div className={`log-container ${isMobile ? 'log-container-mobile' : ''}`}>
         {parsedLogs.length === 0 ? (
-          <div className="log-empty">No Record...</div>
+          <div className="log-empty">{t('pages.index.noRecord')}</div>
         ) : isMobile ? (
           parsedLogs.map((log, idx) => (
             <div key={idx} className="log-card">
