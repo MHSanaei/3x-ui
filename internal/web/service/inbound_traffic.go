@@ -448,6 +448,17 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				continue
 			}
 			at := time.UnixMilli(newExpiryTime)
+			// Inclusive end-of-day expiries (e.g. 23:59:59 on the day before the
+			// billing midnight) are the same period end as that midnight. Snap up
+			// without spending an allowance so the first charged step is a full month (#6300).
+			if traffic.ResetDay > 0 {
+				boundary := nextCalendarRenewal(at, traffic.ResetDay, renewLocation)
+				lastDayStart := boundary.AddDate(0, 0, -1)
+				if !at.Before(lastDayStart) && at.Before(boundary) {
+					at = boundary
+					newExpiryTime = at.UnixMilli()
+				}
+			}
 			renewals := 0
 			for newExpiryTime < now {
 				if traffic.ResetMax > 0 && traffic.ResetCount+renewals >= traffic.ResetMax {
