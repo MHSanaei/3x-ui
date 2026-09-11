@@ -118,13 +118,21 @@ vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni
 - **Leaked private key.** Only ever distribute the **public** key to clients.
 - **Wrong flow.** REALITY + XTLS-Vision needs `flow = xtls-rprx-vision` on both
   the inbound client entry and the share link.
-- **Old client cores rejected by default.** An empty **Min Client Ver** is not
-  "no limit": Xray-core falls back to the built-in minimum of the core build you
-  run (26.3.27 in current releases) that keeps client TLS fingerprints fresh, so
-  third-party cores such as Mihomo and sing-box fail REALITY verification even
-  with a correct config — clients see timeouts while only Xray-core based apps
-  connect. Set it to `1.0.0` only if you must support them; that also re-admits
-  outdated fingerprints.
+- **Client version limits.** Xray-core v26.9.8+ no longer sets a minimum when
+  **Min Client Ver** is empty. An explicitly saved minimum still applies. Earlier
+  builds may use a built-in minimum (such as `26.3.27`), rejecting third-party
+  clients even with correct keys. Check the running core version before changing
+  this gate; lowering it also admits older fingerprints.
+- **Mihomo and ML-KEM.** Xray-core v26.9.8+ independently requires an
+  `X25519MLKEM768` key share before the optional `X25519` share. The Clash/Mihomo
+  YAML subscription enables `reality-opts.support-x25519mlkem768` for REALITY
+  nodes, including external links, and uses `chrome` when no fingerprint was set.
+  Explicit fingerprints are preserved: choose one that offers ML-KEM (`chrome`
+  with Mihomo's uTLS v1.8.7); enabling the flag cannot upgrade an old fingerprint.
+  Raw `vless://` links do not carry this Mihomo option, so clients importing them
+  directly still need a persistent override. Very old REALITY servers that reject
+  ML-KEM require a per-node client override setting this option to `false`, or a
+  server upgrade. Clearing the version limit alone does not fix the handshake.
 
 </Callout>
 

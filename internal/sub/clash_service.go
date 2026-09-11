@@ -1072,8 +1072,11 @@ func (s *SubClashService) applySecurity(proxy map[string]any, security string, s
 			realityOpts["short-id"] = shortID
 		}
 		if len(realityOpts) > 0 {
+			// Xray 26.9.8+ rejects REALITY handshakes without an ML-KEM key share.
+			realityOpts["support-x25519mlkem768"] = true
 			proxy["reality-opts"] = realityOpts
 		}
+		proxy["client-fingerprint"] = "chrome"
 		if fingerprint, ok := realitySettings["fingerprint"].(string); ok && fingerprint != "" {
 			proxy["client-fingerprint"] = fingerprint
 		}
