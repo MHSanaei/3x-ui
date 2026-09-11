@@ -698,6 +698,17 @@ export default function InboundFormModal({
         <InputNumber min={1} />
       </FormField>
 
+      <FormField
+        name="excludeFromSub"
+        valueProp="checked"
+        label={labelWithHint(
+          t('pages.inbounds.form.excludeFromSub'),
+          t('pages.inbounds.form.excludeFromSubHelp'),
+        )}
+      >
+        <Switch />
+      </FormField>
+
       {protocol === Protocols.VLESS && (
         <FormField
           name="disableFlow"

@@ -675,6 +675,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "disableFlow": false,
     "down": 0,
     "enable": true,
+    "excludeFromSub": false,
     "expiryTime": 0,
     "fallbackParent": null,
     "id": 1,

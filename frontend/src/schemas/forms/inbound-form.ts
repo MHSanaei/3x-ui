@@ -81,6 +81,7 @@ export const InboundDbFieldsSchema = z.object({
   shareAddrStrategy: ShareAddrStrategySchema.default('node'),
   shareAddr: z.string().default(''),
   subSortIndex: z.number().int().min(1).default(1),
+  excludeFromSub: z.boolean().default(false),
   disableFlow: z.boolean().default(false),
 });
 export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;

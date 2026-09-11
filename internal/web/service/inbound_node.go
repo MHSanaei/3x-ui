@@ -403,6 +403,8 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 	a.Enable = snapIb.Enable
 	a.Remark = snapIb.Remark
 	a.SubSortIndex = normalizeSubSortIndex(snapIb.SubSortIndex)
+	// ExcludeFromSub stays master-authored: older nodes omit the field and
+	// would otherwise reset it to false on every heartbeat mirror.
 	a.Listen = snapIb.Listen
 	a.Port = snapIb.Port
 	a.Protocol = snapIb.Protocol
@@ -727,6 +729,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				Enable:               snapIb.Enable,
 				Remark:               snapIb.Remark,
 				SubSortIndex:         normalizeSubSortIndex(snapIb.SubSortIndex),
+				ExcludeFromSub:       snapIb.ExcludeFromSub,
 				Total:                snapIb.Total,
 				ExpiryTime:           snapIb.ExpiryTime,
 				Up:                   snapIb.Up,

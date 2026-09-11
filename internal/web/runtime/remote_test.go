@@ -196,6 +196,15 @@ func TestWireInboundCarriesDisableFlow(t *testing.T) {
 	}
 }
 
+func TestWireInboundCarriesExcludeFromSub(t *testing.T) {
+	if got := wireInbound(&model.Inbound{ExcludeFromSub: true}, 0).Get("excludeFromSub"); got != "true" {
+		t.Fatalf("excludeFromSub = %q, want true", got)
+	}
+	if got := wireInbound(&model.Inbound{}, 0).Get("excludeFromSub"); got != "false" {
+		t.Fatalf("excludeFromSub = %q, want false", got)
+	}
+}
+
 func TestRemoteHTTPClientEgressProxy(t *testing.T) {
 	// OutboundTag + a resolver → a dedicated proxy client (not the shared default).
 	withTag := NewRemote(&model.Node{Id: 1, Scheme: "https", TlsVerifyMode: "verify", OutboundTag: "warp"}, stubEgress{url: "socks5://127.0.0.1:1080"})
