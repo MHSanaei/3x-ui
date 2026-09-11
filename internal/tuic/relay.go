@@ -12,9 +12,10 @@ import (
 // own max_idle_time (15s by default) closes the session well before that.
 const relayFlowIdle = 2 * time.Minute
 
-// Same order of magnitude quinn asks for on its own socket; the kernel clamps
-// it to net.core.rmem_max silently.
-const relaySocketBuffer = 4 << 20
+const (
+	relaySocketBuffer = 4 << 20
+	maxRelayFlows     = 4096
+)
 
 // udpRelay owns an inbound's public UDP port and forwards each client's
 // datagrams to the sidecar on loopback, which is the only place the panel can
@@ -135,6 +136,9 @@ func (r *udpRelay) flowFor(client *net.UDPAddr) (*relayFlow, error) {
 		f.lastSeen.Store(now)
 		return f, nil
 	}
+	if len(r.flows) >= maxRelayFlows {
+		return nil, errors.New("tuic: max relay flows reached")
+	}
 	conn, err := net.DialUDP("udp", nil, r.upstream)
 	if err != nil {
 		return nil, err
@@ -159,6 +163,7 @@ func (r *udpRelay) pump(f *relayFlow) {
 				return
 			}
 			// ICMP unreachable while the sidecar restarts: drop it, keep the flow.
+			time.Sleep(20 * time.Millisecond)
 			continue
 		}
 		if _, err := r.public.WriteToUDP(buf[:n], f.client); err == nil {

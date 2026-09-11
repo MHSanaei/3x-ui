@@ -214,9 +214,9 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		if c.Enable != nil && !*c.Enable {
 			continue
 		}
-		uuidVal := c.UUID
+		uuidVal := strings.ToLower(strings.TrimSpace(c.UUID))
 		if uuidVal == "" {
-			uuidVal = c.ID
+			uuidVal = strings.ToLower(strings.TrimSpace(c.ID))
 		}
 		if uuidVal == "" || c.Password == "" {
 			continue

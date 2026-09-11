@@ -79,6 +79,7 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if existing, ok := m.procs[inst.Id]; ok && existing != nil {
 		if existing.proc != nil && existing.proc.IsRunning() &&
 			existing.structuralFP == structuralFP && existing.usersFP == usersFP {
+			existing.tag = inst.Tag
 			existing.proc.UpdateClients(uuidToEmail)
 			return nil
 		}
@@ -123,11 +124,13 @@ func (m *Manager) startLocked(inst Instance, uuidToEmail map[string]string) (*Pr
 	}
 	relay, err := startUDPRelay(inst.BindTo(), upstream, relayFlowIdle)
 	if err != nil {
+		_ = RemoveConfigFile(inst.Id)
 		return nil, nil, "", fmt.Errorf("tuic: listen on %s for %d: %w", inst.BindTo(), inst.Id, err)
 	}
 	proc := newProcess(configPath, inst.Tag, uuidToEmail)
 	if err := proc.Start(); err != nil {
 		relay.Close()
+		_ = RemoveConfigFile(inst.Id)
 		return nil, nil, "", err
 	}
 	return proc, relay, configPath, nil

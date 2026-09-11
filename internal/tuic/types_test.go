@@ -34,6 +34,21 @@ func TestInstanceFromInbound(t *testing.T) {
 		}
 	})
 
+	t.Run("normalizes uuid to lowercase and trims space", func(t *testing.T) {
+		ib := &model.Inbound{
+			Id:       12,
+			Protocol: model.TUIC,
+			Settings: `{"clients":[{"uuid":"  A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6D  ","password":"p"}]}`,
+		}
+		inst, ok := InstanceFromInbound(ib)
+		if !ok || len(inst.Clients) != 1 {
+			t.Fatal("expected ok and 1 client")
+		}
+		if inst.Clients[0].UUID != "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d" {
+			t.Fatalf("expected lowercase trimmed UUID, got %q", inst.Clients[0].UUID)
+		}
+	})
+
 	t.Run("nil or wrong protocol", func(t *testing.T) {
 		if _, ok := InstanceFromInbound(nil); ok {
 			t.Fatal("expected false for nil")

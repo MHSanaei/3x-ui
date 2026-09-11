@@ -98,8 +98,9 @@ func (w *procLogWriter) emitLocked(line string) {
 	logger.Infof("tuic: tuic-server %s | %s", w.label, trimmed)
 
 	now := time.Now().UnixMilli()
+	lowerLine := strings.ToLower(line)
 	for uuid, email := range w.uuidToEmail {
-		if strings.Contains(line, uuid) {
+		if strings.Contains(lowerLine, uuid) {
 			if w.lastActive == nil {
 				w.lastActive = make(map[string]int64)
 			}
