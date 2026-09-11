@@ -1388,14 +1388,16 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 			}
 		}
 		if loadErr == nil && ib.NodeID != nil {
+			if err := (&NodeService{}).RemoveInboundTagAllowedTx(tx, *ib.NodeID, ib.Tag); err != nil {
+				return err
+			}
 			return (&NodeService{}).MarkNodeDirtyTx(tx, *ib.NodeID)
 		}
 		return nil
 	}); err != nil {
 		return needRestart, err
 	}
-	// Record deletion intent before the remote push so a selected-mode
-	// reconcile can finish the sweep if the node was unreachable (#6329).
+	// Tombstone before remote push so selected-mode reconcile finishes offline deletes (#6329).
 	if loadErr == nil && ib.NodeID != nil {
 		tombstoneNodeInboundTag(*ib.NodeID, ib.Tag)
 	}
@@ -1864,6 +1866,10 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			nodeID := *oldInbound.NodeID
 			if err := (&NodeService{}).EnsureInboundTagAllowedTx(tx, nodeID, oldInbound.Tag); err != nil {
 				return err
+			}
+			if tag != "" && tag != oldInbound.Tag {
+				tombstoneNodeInboundTag(nodeID, tag)
+				_ = (&NodeService{}).RemoveInboundTagAllowedTx(tx, nodeID, tag)
 			}
 		}
 

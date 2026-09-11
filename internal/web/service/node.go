@@ -758,6 +758,50 @@ func (s *NodeService) EnsureInboundTagAllowedTx(tx *gorm.DB, nodeID int, tag str
 		Updates(map[string]any{"inbound_tags": string(buf)}).Error
 }
 
+// RemoveInboundTagAllowed drops tag from a selected-mode node's InboundTags.
+// DelInbound uses this so an expired delete tombstone cannot re-adopt the row.
+func (s *NodeService) RemoveInboundTagAllowedTx(tx *gorm.DB, nodeID int, tag string) error {
+	tag = strings.TrimSpace(tag)
+	if nodeID <= 0 || tag == "" {
+		return nil
+	}
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	node := &model.Node{}
+	if err := tx.Where("id = ?", nodeID).First(node).Error; err != nil {
+		return err
+	}
+	if node.InboundSyncMode != "selected" {
+		return nil
+	}
+	drop := map[string]struct{}{tag: {}}
+	prefix := nodeTagPrefix(&nodeID)
+	if prefix != "" {
+		if stripped, found := strings.CutPrefix(tag, prefix); found {
+			drop[stripped] = struct{}{}
+		} else {
+			drop[prefix+tag] = struct{}{}
+		}
+	}
+	next := make([]string, 0, len(node.InboundTags))
+	for _, t := range node.InboundTags {
+		if _, skip := drop[t]; skip {
+			continue
+		}
+		next = append(next, t)
+	}
+	if len(next) == len(node.InboundTags) {
+		return nil
+	}
+	buf, err := json.Marshal(next)
+	if err != nil {
+		return err
+	}
+	return tx.Model(model.Node{}).Where("id = ?", nodeID).
+		Updates(map[string]any{"inbound_tags": string(buf)}).Error
+}
+
 func nodeSelectedTagSet(n *model.Node) map[string]struct{} {
 	if n == nil || n.InboundSyncMode != "selected" {
 		return nil

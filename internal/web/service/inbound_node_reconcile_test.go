@@ -96,10 +96,8 @@ func reconcileTestNode(t *testing.T, ts *httptest.Server, name, mode string, tag
 	return n
 }
 
-// In "selected" sync mode the panel never imports the unselected inbounds, so
-// reconcile must not treat their absence from the local DB as a deletion. A
-// selected tag missing locally is swept only when DelInbound left a tombstone
-// (panel deleted it while the node was unreachable).
+// Selected mode must not delete unselected remote inbounds.
+// A selected+missing tag is swept only when DelInbound left a tombstone.
 func TestReconcileNode_SelectedModeLeavesUnselectedRemoteInbounds(t *testing.T) {
 	setupConflictDB(t)
 
@@ -123,10 +121,8 @@ func TestReconcileNode_SelectedModeLeavesUnselectedRemoteInbounds(t *testing.T) 
 	}
 }
 
-// Selecting an existing node inbound writes it into InboundTags before any
-// central row exists. Without a deletion tombstone that must be treated as a
-// pending import — sweeping would delete the inbound the snapshot was about
-// to adopt (#6329).
+// Selecting a node inbound writes InboundTags before any central row exists.
+// Without a tombstone that is a pending import and must not be swept (#6329).
 func TestReconcileNode_SelectedModeSkipsPendingImport(t *testing.T) {
 	setupConflictDB(t)
 
@@ -433,9 +429,8 @@ func TestEnsureInboundTagAllowed(t *testing.T) {
 	}
 }
 
-// A panel-created node inbound is stored as "n<id>-tag" and pushed to the node
-// with the prefix stripped, so the sweep's selected set and deletion tombstone
-// must match both forms.
+// Panel-created node tags use n<id>- prefix centrally and stripped on the node.
+// Sweep selection and tombstones must match both forms.
 func TestReconcileNode_SelectedModeSweepsPrefixedSelectedTag(t *testing.T) {
 	setupConflictDB(t)
 
