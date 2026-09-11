@@ -1231,6 +1231,8 @@
       "noisesSett": "Noises Ayarları",
       "trustedProxyCidrs": "Güvenilir Proxy CIDR'leri",
       "trustedProxyCidrsDesc": "İletilen host, proto ve istemci IP başlıklarını ayarlamasına izin verilen IP'ler/CIDR'ler (virgülle ayrılmış).",
+      "realityScanCandidates": "Reality tarama adayları",
+      "realityScanCandidatesDesc": "Arama boşken Hedef Bul için varsayılan olarak kullanılan, virgülle ayrılmış host:port hedefleri (veya CIDR). Sık kullandığınız hedeflere göre özelleştirin.",
       "ldap": {
         "enable": "LDAP senkronizasyonunu etkinleştir",
         "host": "LDAP sunucusu",
@@ -1563,7 +1565,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "Kaydet",

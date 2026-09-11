@@ -1353,6 +1353,8 @@
       "noisesSett": "Noises Settings",
       "trustedProxyCidrs": "Trusted proxy CIDRs",
       "trustedProxyCidrsDesc": "Comma-separated IPs/CIDRs allowed to set forwarded host, proto, and client IP headers.",
+      "realityScanCandidates": "Reality scan candidates",
+      "realityScanCandidatesDesc": "Comma-separated host:port targets (or CIDRs) used as the default list when Find Targets runs with an empty search. Customize this with destinations you reuse often.",
       "ldap": {
         "enable": "Enable LDAP sync",
         "host": "LDAP host",
@@ -1681,7 +1683,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "Save",

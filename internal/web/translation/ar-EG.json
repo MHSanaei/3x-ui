@@ -1231,6 +1231,8 @@
       "noisesSett": "إعدادات التشويش",
       "trustedProxyCidrs": "CIDR وكلاء موثوقين",
       "trustedProxyCidrsDesc": "IPs/CIDRs مفصولة بفواصل يُسمح لها بتعيين ترويسات host، proto و client IP المعاد توجيهها.",
+      "realityScanCandidates": "مرشحو فحص Reality",
+      "realityScanCandidatesDesc": "قائمة أهداف host:port (أو CIDR) مفصولة بفواصل تُستخدم كقائمة افتراضية عند تشغيل «البحث عن الأهداف» ببحث فارغ. خصّصها للأهداف التي تستخدمها كثيرًا.",
       "ldap": {
         "enable": "تفعيل مزامنة LDAP",
         "host": "مضيف LDAP",
@@ -1563,7 +1565,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "احفظ",

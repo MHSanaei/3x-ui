@@ -1231,6 +1231,8 @@
       "noisesSett": "Cài đặt Noises",
       "trustedProxyCidrs": "CIDR proxy tin cậy",
       "trustedProxyCidrsDesc": "IPs/CIDRs cách nhau bằng dấu phẩy được phép đặt header host, proto và IP client chuyển tiếp.",
+      "realityScanCandidates": "Danh sách ứng viên quét Reality",
+      "realityScanCandidatesDesc": "Danh sách host:port (hoặc CIDR) cách nhau bằng dấu phẩy dùng làm mặc định khi Tìm mục tiêu chạy với ô tìm kiếm trống. Tuỳ chỉnh theo các đích bạn dùng thường xuyên.",
       "ldap": {
         "enable": "Bật đồng bộ LDAP",
         "host": "LDAP host",
@@ -1563,7 +1565,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "importRules": "Nhập quy tắc",

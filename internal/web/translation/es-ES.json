@@ -1231,6 +1231,8 @@
       "noisesSett": "Configuración de Sonidos",
       "trustedProxyCidrs": "CIDR de proxy de confianza",
       "trustedProxyCidrsDesc": "IP/CIDR separados por coma que pueden establecer las cabeceras de host, proto e IP del cliente reenviadas.",
+      "realityScanCandidates": "Candidatos de escaneo Reality",
+      "realityScanCandidatesDesc": "Lista de destinos host:port (o CIDR) separados por comas usada por defecto cuando Buscar objetivos se ejecuta con la búsqueda vacía. Personalízala con destinos que uses a menudo.",
       "ldap": {
         "enable": "Habilitar sincronización LDAP",
         "host": "Host LDAP",
@@ -1563,7 +1565,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "Guardar configuración",

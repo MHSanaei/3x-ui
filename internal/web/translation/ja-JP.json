@@ -1231,6 +1231,8 @@
       "noisesSett": "Noises設定",
       "trustedProxyCidrs": "信頼できるプロキシ CIDR",
       "trustedProxyCidrsDesc": "転送される host、proto、クライアント IP ヘッダーを設定可能な IP/CIDR (カンマ区切り)。",
+      "realityScanCandidates": "Reality スキャン候補",
+      "realityScanCandidatesDesc": "検索が空のときに「ターゲットを探す」で使うデフォルトの host:port（または CIDR）一覧（カンマ区切り）。よく使う宛先に合わせて編集できます。",
       "ldap": {
         "enable": "LDAP 同期を有効化",
         "host": "LDAP host",
@@ -1563,7 +1565,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "importRules": "ルールをインポート",

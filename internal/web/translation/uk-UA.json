@@ -1231,6 +1231,8 @@
       "noisesSett": "Налаштування Noises",
       "trustedProxyCidrs": "Довірені CIDR проксі",
       "trustedProxyCidrsDesc": "IP/CIDR через кому, яким дозволено встановлювати заголовки forwarded host, proto та client IP.",
+      "realityScanCandidates": "Кандидати сканування Reality",
+      "realityScanCandidatesDesc": "Список host:port (або CIDR) через кому — типовий список для «Знайти цілі», коли пошук порожній. Налаштуйте під часто використовувані цілі.",
       "ldap": {
         "enable": "Увімкнути LDAP-синхронізацію",
         "host": "LDAP-хост",
@@ -1563,7 +1565,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "Зберегти",
