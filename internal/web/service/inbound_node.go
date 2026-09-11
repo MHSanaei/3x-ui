@@ -385,7 +385,6 @@ func adoptedWireChanged(c, snapIb *model.Inbound, adoptedSettings string) bool {
 		c.Enable != snapIb.Enable ||
 		c.Remark != snapIb.Remark ||
 		c.SubSortIndex != normalizeSubSortIndex(snapIb.SubSortIndex) ||
-		c.ExcludeFromSub != snapIb.ExcludeFromSub ||
 		c.Listen != snapIb.Listen ||
 		c.Port != snapIb.Port ||
 		c.Protocol != snapIb.Protocol ||
@@ -404,7 +403,8 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 	a.Enable = snapIb.Enable
 	a.Remark = snapIb.Remark
 	a.SubSortIndex = normalizeSubSortIndex(snapIb.SubSortIndex)
-	a.ExcludeFromSub = snapIb.ExcludeFromSub
+	// ExcludeFromSub stays master-authored: older nodes omit the field and
+	// would otherwise reset it to false on every heartbeat mirror.
 	a.Listen = snapIb.Listen
 	a.Port = snapIb.Port
 	a.Protocol = snapIb.Protocol
@@ -777,7 +777,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			updates["enable"] = snapIb.Enable
 			updates["remark"] = snapIb.Remark
 			updates["sub_sort_index"] = normalizeSubSortIndex(snapIb.SubSortIndex)
-			updates["exclude_from_sub"] = snapIb.ExcludeFromSub
 			updates["listen"] = snapIb.Listen
 			updates["port"] = snapIb.Port
 			updates["protocol"] = snapIb.Protocol
