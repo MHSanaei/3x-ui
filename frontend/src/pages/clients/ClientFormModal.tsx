@@ -270,6 +270,7 @@ export default function ClientFormModal({
   const limitHwid = useWatch({ control: methods.control, name: 'limitHwid' });
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
+  const wgPreSharedKey = useWatch({ control: methods.control, name: 'wgPreSharedKey' });
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
   const {
     fields: externalLinkFields,
@@ -506,6 +507,13 @@ export default function ClientFormModal({
     const kp = Wireguard.generateKeypair();
     methods.setValue('wgPrivateKey', kp.privateKey);
     methods.setValue('wgPublicKey', kp.publicKey);
+  }
+
+  function regenerateWireguardPresharedKey() {
+    methods.setValue(
+      'wgPreSharedKey',
+      Wireguard.keyToBase64(Wireguard.generatePresharedKey()),
+    );
   }
 
   function regenerateMtprotoSecret() {
@@ -1232,16 +1240,28 @@ export default function ClientFormModal({
                           >
                             <Input disabled />
                           </FormField>
-                          <FormField
-                            name="wgPreSharedKey"
+                          <Form.Item
                             label={t(
                               showAmneziawg
                                 ? 'pages.clients.amneziaWgPreSharedKey'
                                 : 'pages.clients.wireguardPreSharedKey',
                             )}
                           >
-                            <Input />
-                          </FormField>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <Input
+                                value={wgPreSharedKey}
+                                style={{ flex: 1 }}
+                                onChange={(e) =>
+                                  methods.setValue('wgPreSharedKey', e.target.value)
+                                }
+                              />
+                              <Button
+                                aria-label={t('regenerate')}
+                                icon={<ReloadOutlined />}
+                                onClick={regenerateWireguardPresharedKey}
+                              />
+                            </Space.Compact>
+                          </Form.Item>
                           {showWireguard && showAmneziawg ? (
                             <>
                               <FormField
