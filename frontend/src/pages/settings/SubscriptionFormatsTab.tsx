@@ -379,11 +379,7 @@ export default function SubscriptionFormatsTab({
         },
         {
           key: '4',
-          label: catTabLabel(
-            <CloudServerOutlined />,
-            t('pages.settings.subFormats.dns'),
-            isMobile,
-          ),
+          label: catTabLabel(<CloudServerOutlined />, t('pages.settings.subFormats.dns'), isMobile),
           children: (
             <>
               <SettingListItem
