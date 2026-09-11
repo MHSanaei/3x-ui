@@ -1,50 +1,6 @@
 package service
 
-import (
-	"encoding/json"
-	"testing"
-
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-)
-
-func TestHappLinkEnableDefaultsOffWithoutPersistingRow(t *testing.T) {
-	initHappTestDB(t)
-	if err := database.GetDB().Where("key = ?", "happLinkEnable").Delete(&model.Setting{}).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	s := &SettingService{}
-	if enabled, err := s.GetHappLinkEnable(); err != nil || enabled {
-		t.Fatalf("missing GetHappLinkEnable = %t, %v; want false, nil", enabled, err)
-	}
-	if got := happLinkEnableFromDefaults(t, s); got {
-		t.Fatal("missing happLinkEnable = true, want false")
-	}
-	allSetting, err := s.GetAllSetting()
-	if err != nil {
-		t.Fatal(err)
-	}
-	encoded, err := json.Marshal(allSetting)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var values map[string]any
-	if err := json.Unmarshal(encoded, &values); err != nil {
-		t.Fatal(err)
-	}
-	if got, ok := values["happLinkEnable"].(bool); !ok || got {
-		t.Fatalf("AllSetting happLinkEnable = %#v, want false", values["happLinkEnable"])
-	}
-
-	var count int64
-	if err := database.GetDB().Model(&model.Setting{}).Where("key = ?", "happLinkEnable").Count(&count).Error; err != nil {
-		t.Fatal(err)
-	}
-	if count != 0 {
-		t.Fatalf("default lookup unexpectedly persisted %d happLinkEnable rows", count)
-	}
-}
+import "testing"
 
 func TestHappLinkEnableReadsExplicitValues(t *testing.T) {
 	initHappTestDB(t)

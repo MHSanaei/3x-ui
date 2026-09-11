@@ -509,7 +509,7 @@ func TestHappGenerateDoesNotExposeTransportErrors(t *testing.T) {
 	configureHappSubscription(t, true, "https://sub.example/sub/transport-source/")
 	configureHappLinkGate(t, true)
 
-	const reflectedError = "request https://crypto.happ.su/?source=https://sub.example/sub/transport-source/transport-sub-id token=secret cookie=session authorization=Bearer-secret happ://crypt5/leak"
+	const reflectedError = "dial tcp: connection refused request https://crypto.happ.su/?source=https://sub.example/sub/transport-source/transport-sub-id token=secret cookie=session authorization=Bearer-secret happ://crypt5/leak"
 	var transportCalls atomic.Int32
 	svc := &HappService{
 		clientService:  &ClientService{},
@@ -536,6 +536,9 @@ func TestHappGenerateDoesNotExposeTransportErrors(t *testing.T) {
 	logs := logger.GetLogs(1, "WARNING")
 	if len(logs) != 1 || !strings.Contains(logs[0], "reason=transport") {
 		t.Fatalf("transport warning logs = %#v, want one sanitized transport failure", logs)
+	}
+	if !strings.Contains(logs[0], "dial tcp: connection refused") {
+		t.Fatalf("transport warning %q dropped the diagnostic the UI sends operators to the logs for", logs[0])
 	}
 	for _, secret := range []string{reflectedError, "transport-source", "transport-sub-id", "token=secret", "cookie=session", "authorization=Bearer-secret", "happ://"} {
 		if strings.Contains(logs[0], secret) || strings.Contains(err.Error(), secret) {

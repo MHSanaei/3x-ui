@@ -88,7 +88,7 @@ func (s *HappService) Generate(ctx context.Context, clientID int, host string) (
 	httpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return HappLinkResult{}, s.fail(clientID, "transport", 0, started, correlationID, "request failed", source, client.SubID)
+		return HappLinkResult{}, s.fail(clientID, "transport", 0, started, correlationID, err.Error(), source, client.SubID)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
@@ -101,7 +101,7 @@ func (s *HappService) Generate(ctx context.Context, clientID int, host string) (
 		if errors.Is(err, errHappResponseTooLarge) {
 			reason = "response_too_large"
 		}
-		return HappLinkResult{}, s.fail(clientID, reason, resp.StatusCode, started, correlationID, "invalid provider response", source, client.SubID)
+		return HappLinkResult{}, s.fail(clientID, reason, resp.StatusCode, started, correlationID, err.Error(), source, client.SubID)
 	}
 	link, reason := parseHappResponse(responseBody)
 	if reason != "" {
@@ -159,7 +159,7 @@ func (s *HappService) currentSource(clientID int, host string) (string, *model.C
 
 var errHappResponseTooLarge = errors.New("happ response exceeds size limit")
 
-var happSensitiveDetailToken = regexp.MustCompile(`(?i)(?:[a-z][a-z0-9+.-]*://\S+|(?:token|secret|password|passwd|credential|authorization|bearer|api[_-]?key)\s*(?:=|:)\s*\S+)`)
+var happSensitiveDetailToken = regexp.MustCompile(`(?i)(?:[a-z][a-z0-9+.-]*://\S+|(?:token|secret|password|passwd|credential|authorization|bearer|api[_-]?key|cookie|session)\s*(?:=|:)\s*\S+)`)
 
 func readHappResponse(r io.Reader) ([]byte, error) {
 	body, err := io.ReadAll(io.LimitReader(r, happMaxResponseSize+1))
