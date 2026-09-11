@@ -1279,7 +1279,12 @@
         "addNoise": "+ Ruído",
         "concurrency": "Concorrência",
         "xudpConcurrency": "Concorrência xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "Servidores DNS",
+        "dnsServersDesc": "Endereços DNS separados por vírgula nas assinaturas JSON. O padrão 8.8.8.8 preserva o comportamento atual.",
+        "dnsQueryStrategy": "Estratégia de consulta DNS",
+        "dnsQueryStrategyDesc": "dns.queryStrategy do Xray para assinaturas JSON geradas."
       },
       "mux": "Mux",
       "muxDesc": "Transmitir múltiplos fluxos de dados independentes dentro de um fluxo de dados estabelecido.",

@@ -72,6 +72,8 @@ export class AllSetting {
   subJsonRoutingRules = '';
   subJsonFinalMask = '';
   subJsonObservatory = '';
+  subJsonDNSServers = '8.8.8.8';
+  subJsonDNSQueryStrategy = 'UseIP';
   subThemeDir = '';
   subHideSettings = false;
   subHappAutoDetect = false;

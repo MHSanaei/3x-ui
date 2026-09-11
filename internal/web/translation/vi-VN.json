@@ -1279,7 +1279,12 @@
         "addNoise": "+ Nhiễu",
         "concurrency": "Đồng thời",
         "xudpConcurrency": "Đồng thời xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "Máy chủ DNS",
+        "dnsServersDesc": "Địa chỉ DNS phân tách bằng dấu phẩy trong cấu hình JSON subscription. Mặc định 8.8.8.8 giữ hành vi hiện tại.",
+        "dnsQueryStrategy": "Chiến lược truy vấn DNS",
+        "dnsQueryStrategyDesc": "dns.queryStrategy của Xray cho cấu hình JSON subscription."
       },
       "mux": "Mux",
       "muxDesc": "Truyền nhiều luồng dữ liệu độc lập trong luồng dữ liệu đã thiết lập.",

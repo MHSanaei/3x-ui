@@ -1279,7 +1279,12 @@
         "addNoise": "+ ضوضاء",
         "concurrency": "التزامن",
         "xudpConcurrency": "تزامن xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "خوادم DNS",
+        "dnsServersDesc": "عناوين DNS مفصولة بفواصل لإعدادات اشتراك JSON. الافتراضي 8.8.8.8 يحافظ على السلوك الحالي.",
+        "dnsQueryStrategy": "استراتيجية استعلام DNS",
+        "dnsQueryStrategyDesc": "قيمة dns.queryStrategy في اشتراكات JSON المُنشأة."
       },
       "mux": "Mux",
       "muxDesc": "ينقل أكثر من تيار بيانات مستقل خلال تيار بيانات واحد قائم.",

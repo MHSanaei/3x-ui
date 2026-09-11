@@ -308,6 +308,12 @@
           "subJsonAutoDetect": {
             "type": "boolean"
           },
+          "subJsonDNSQueryStrategy": {
+            "type": "string"
+          },
+          "subJsonDNSServers": {
+            "type": "string"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -545,6 +551,8 @@
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDNSQueryStrategy",
+          "subJsonDNSServers",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -896,6 +904,12 @@
           "subJsonAutoDetect": {
             "type": "boolean"
           },
+          "subJsonDNSQueryStrategy": {
+            "type": "string"
+          },
+          "subJsonDNSServers": {
+            "type": "string"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -1140,6 +1154,8 @@
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDNSQueryStrategy",
+          "subJsonDNSServers",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",

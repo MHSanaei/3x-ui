@@ -110,6 +110,8 @@ type AllSetting struct {
 	SubJsonRoutingRules         string `json:"subJsonRoutingRules" form:"subJsonRoutingRules"`
 	SubJsonFinalMask            string `json:"subJsonFinalMask" form:"subJsonFinalMask"`
 	SubJsonObservatory          string `json:"subJsonObservatory" form:"subJsonObservatory"`
+	SubJsonDNSServers           string `json:"subJsonDNSServers" form:"subJsonDNSServers"`
+	SubJsonDNSQueryStrategy     string `json:"subJsonDNSQueryStrategy" form:"subJsonDNSQueryStrategy"`
 	SubThemeDir                 string `json:"subThemeDir" form:"subThemeDir"`
 	SubHideSettings             bool   `json:"subHideSettings" form:"subHideSettings"`
 

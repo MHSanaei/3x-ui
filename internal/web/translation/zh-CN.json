@@ -1279,7 +1279,12 @@
         "addNoise": "+ 噪声",
         "concurrency": "并发",
         "xudpConcurrency": "xudp 并发",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "DNS 服务器",
+        "dnsServersDesc": "写入 JSON 订阅配置的 DNS 地址（逗号分隔）。默认 8.8.8.8 保持现有行为。Happ/INCY 烘焙路由仍使用其自带 DNS。",
+        "dnsQueryStrategy": "DNS 查询策略",
+        "dnsQueryStrategyDesc": "生成的 JSON 订阅配置中的 Xray dns.queryStrategy。"
       },
       "mux": "Mux",
       "muxDesc": "在已建立的数据流内传输多个独立的数据流",

@@ -319,6 +319,78 @@ func (s *SubJsonService) SetObservatoryConfig(cfg string) {
 	}
 }
 
+const (
+	defaultSubJsonDNSServer     = "8.8.8.8"
+	defaultSubJsonQueryStrategy = "UseIP"
+)
+
+// SetDNSConfig overrides the embedded default.json dns.servers / queryStrategy
+// from panel settings. Empty values keep the historical defaults (8.8.8.8 /
+// UseIP). Invalid queryStrategy values fall back with a warning.
+// Baked routing profiles still replace the dns subtree entirely when active.
+func (s *SubJsonService) SetDNSConfig(servers string, queryStrategy string) {
+	if s.configJson == nil {
+		return
+	}
+	dns, _ := s.configJson["dns"].(map[string]any)
+	if dns == nil {
+		dns = map[string]any{"tag": "dns_out"}
+		s.configJson["dns"] = dns
+	}
+
+	addrs := parseSubJsonDNSServers(servers)
+	dnsServers := make([]any, 0, len(addrs))
+	for _, addr := range addrs {
+		dnsServers = append(dnsServers, map[string]any{
+			"address":      addr,
+			"skipFallback": false,
+		})
+	}
+	dns["servers"] = dnsServers
+
+	strategy := strings.TrimSpace(queryStrategy)
+	if strategy == "" {
+		strategy = defaultSubJsonQueryStrategy
+	}
+	switch strategy {
+	case "UseIP", "UseIPv4", "UseIPv6", "UseSystem":
+		dns["queryStrategy"] = strategy
+	default:
+		logger.Warningf("subJsonDNSQueryStrategy: invalid value %q, keeping default %q", strategy, defaultSubJsonQueryStrategy)
+		dns["queryStrategy"] = defaultSubJsonQueryStrategy
+	}
+	s.configJson["dns"] = dns
+}
+
+func parseSubJsonDNSServers(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return []string{defaultSubJsonDNSServer}
+	}
+	// Accept comma / whitespace / newline separated lists. Also tolerate a
+	// pasted JSON string array without requiring admins to edit raw JSON.
+	parts := strings.FieldsFunc(raw, func(r rune) bool {
+		return r == ',' || r == ';' || r == '\n' || r == '\r' || r == '\t' ||
+			r == ' ' || r == '[' || r == ']' || r == '"' || r == '\''
+	})
+	out := make([]string, 0, len(parts))
+	seen := map[string]struct{}{}
+	for _, addr := range parts {
+		if addr == "" {
+			continue
+		}
+		if _, ok := seen[addr]; ok {
+			continue
+		}
+		seen[addr] = struct{}{}
+		out = append(out, addr)
+	}
+	if len(out) == 0 {
+		return []string{defaultSubJsonDNSServer}
+	}
+	return out
+}
+
 // validProbeURL accepts only absolute http(s) URLs so a malformed probe or
 // connectivity value can't slip into the emitted burstObservatory.
 func validProbeURL(s string) bool {
