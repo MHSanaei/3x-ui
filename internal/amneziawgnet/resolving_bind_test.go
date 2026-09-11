@@ -9,6 +9,15 @@ import (
 	awgconn "github.com/amnezia-vpn/amneziawg-go/v3/conn"
 )
 
+func mustResolvingBind(t *testing.T) *resolvingBind {
+	t.Helper()
+	b, err := newResolvingBind("")
+	if err != nil {
+		t.Fatalf("newResolvingBind: %v", err)
+	}
+	return b
+}
+
 func endpointAddrPort(ep awgconn.Endpoint) netip.AddrPort {
 	std, ok := ep.(*awgconn.StdNetEndpoint)
 	if !ok {
@@ -18,7 +27,7 @@ func endpointAddrPort(ep awgconn.Endpoint) netip.AddrPort {
 }
 
 func TestResolvingBind_ParseEndpointIPLiteral(t *testing.T) {
-	b := newResolvingBind()
+	b := mustResolvingBind(t)
 	ep, err := b.ParseEndpoint("203.0.113.7:51820")
 	if err != nil {
 		t.Fatalf("IP endpoint rejected: %v", err)
@@ -39,7 +48,7 @@ func TestResolvingBind_ParseEndpointHostnameResolves(t *testing.T) {
 	}
 	defer func() { lookupEndpointHost = orig }()
 
-	b := newResolvingBind()
+	b := mustResolvingBind(t)
 	ep, err := b.ParseEndpoint("peer.example.test:443")
 	if err != nil {
 		t.Fatalf("hostname endpoint rejected: %v", err)
@@ -56,14 +65,14 @@ func TestResolvingBind_ParseEndpointResolveFailureIsAnError(t *testing.T) {
 	}
 	defer func() { lookupEndpointHost = orig }()
 
-	b := newResolvingBind()
+	b := mustResolvingBind(t)
 	if _, err := b.ParseEndpoint("missing.example.test:80"); err == nil {
 		t.Fatal("expected resolve failure to surface as an error")
 	}
 }
 
 func TestResolvingBind_ParseEndpointBadPortRejected(t *testing.T) {
-	b := newResolvingBind()
+	b := mustResolvingBind(t)
 	if _, err := b.ParseEndpoint("203.0.113.7:none"); err == nil {
 		t.Fatal("expected bad port to be rejected")
 	}

@@ -134,7 +134,12 @@ func newUnconfiguredDevice(inst amneziawg.Instance, opts DeviceOptions) (*Device
 	if logger == nil {
 		logger = device.NewLogger(device.LogLevelSilent, "")
 	}
-	dev := device.NewDevice(tun, newResolvingBind(), logger)
+	bind, err := newResolvingBind(inst.Listen)
+	if err != nil {
+		_ = tun.Close()
+		return nil, fmt.Errorf("amneziawgnet: listen address: %w", err)
+	}
+	dev := device.NewDevice(tun, bind, logger)
 
 	return &Device{Device: dev, Stack: gstack, localAddrs: addrs}, nil
 }

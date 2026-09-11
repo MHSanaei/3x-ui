@@ -17,6 +17,8 @@ const endpointResolveTimeout = 5 * time.Second
 
 // resolvingBind lets peer endpoints be hostnames: StdNetBind has no DNS and
 // an unresolved name kills the whole IpcSet. Resolved once at configure.
+// When listen is a specific host address, the embedded Bind is a pinnedBind
+// so the UDP socket is bound only to that address (#6367).
 type resolvingBind struct {
 	awgconn.Bind
 }
@@ -35,8 +37,12 @@ func defaultLookupEndpointHost(ctx context.Context, host string) ([]netip.Addr, 
 	return out, nil
 }
 
-func newResolvingBind() *resolvingBind {
-	return &resolvingBind{Bind: awgconn.NewDefaultBind()}
+func newResolvingBind(listen string) (*resolvingBind, error) {
+	inner, err := newListenBind(listen)
+	if err != nil {
+		return nil, err
+	}
+	return &resolvingBind{Bind: inner}, nil
 }
 
 // ParseEndpoint resolves hostnames before handing the address to amneziawg-go

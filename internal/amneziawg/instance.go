@@ -63,6 +63,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		Tag:                   ib.Tag,
 		InterfaceName:         interfaceNameForID(ib.Id),
 		ListenPort:            ib.Port,
+		Listen:                ib.Listen,
 		PrivateKey:            server.PrivateKey,
 		PublicKey:             server.PublicKey,
 		Address:               addresses,

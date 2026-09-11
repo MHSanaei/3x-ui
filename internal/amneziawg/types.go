@@ -75,8 +75,14 @@ type Instance struct {
 	Tag           string
 	InterfaceName string
 	ListenPort    int
-	PrivateKey    string
-	PublicKey     string
+	// Listen is the optional host bind address from the inbound's listen
+	// field (e.g. "203.0.113.10"). Empty, or a wildcard ("0.0.0.0" / "::"),
+	// means bind all addresses — the same default Xray-backed inbounds use.
+	// Carried into internal/amneziawgnet so the embedded device can open a
+	// Bind pinned to this address instead of always using the wildcard.
+	Listen     string
+	PrivateKey string
+	PublicKey  string
 	// Address holds the interface's own tunnel address(es), e.g. "10.8.1.1/24".
 	// Carries both the IPv4 and (when enabled) IPv6 server address.
 	Address []string
