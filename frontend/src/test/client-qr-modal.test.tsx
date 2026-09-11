@@ -380,6 +380,27 @@ describe('ClientQrModal Happ presentation', () => {
     expect(HttpUtil.post).toHaveBeenCalledOnce();
   });
 
+  it('keeps the dialog mounted through close and shows loading instead of noLinks on reopen', async () => {
+    const get = vi.mocked(HttpUtil.get);
+    const previousGet = get.getMockImplementation();
+    get.mockReturnValue(new Promise(() => {}));
+    try {
+      const view = renderSubject({ subSettings: { ...SUB_SETTINGS, enable: false } });
+      const dialog = screen.getByRole('dialog');
+
+      view.update({ open: false });
+      expect(document.body.contains(dialog)).toBe(true);
+
+      view.update({ open: true });
+      await waitFor(() =>
+        expect(screen.getByRole('dialog').querySelector('[aria-busy="true"]')).not.toBeNull(),
+      );
+      expect(screen.queryByText(/No shareable links/)).toBeNull();
+    } finally {
+      get.mockImplementation(previousGet!);
+    }
+  });
+
   it('resets to Standard across close and reopen without reusing a prior Happ value', async () => {
     vi.mocked(HttpUtil.post).mockResolvedValue(success());
     const view = renderSubject();
@@ -507,7 +528,7 @@ describe('ClientQrModal Happ presentation', () => {
 
   it.each([
     ['ordinary', 'happ://crypt5/AaBbCc-._~'],
-    ['maximum-size QR', `happ://crypt5/${'a'.repeat(2317)}`],
+    ['maximum-size QR', `happ://crypt5/${'a'.repeat(2939)}`],
   ])('passes a valid %s encryptedLink unchanged to QrPanel', async (_name, exactLink) => {
     vi.mocked(HttpUtil.post).mockResolvedValue(success(exactLink));
     renderSubject();
@@ -519,8 +540,8 @@ describe('ClientQrModal Happ presentation', () => {
   });
 
   it.each([
-    ['ASCII', `happ://crypt5/${'a'.repeat(2318)}`],
-    ['multi-byte', `happ://crypt5/${'界'.repeat(800)}`],
+    ['ASCII', `happ://crypt5/${'a'.repeat(2940)}`],
+    ['multi-byte', `happ://crypt5/${'界'.repeat(1000)}`],
   ])('keeps a valid %s link available when it is too large for a QR code', async (_name, link) => {
     vi.mocked(HttpUtil.post).mockResolvedValue(success(link));
     renderSubject();

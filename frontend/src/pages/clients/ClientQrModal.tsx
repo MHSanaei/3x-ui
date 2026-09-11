@@ -49,8 +49,8 @@ type QrVariant = 'standard' | 'happ';
 
 const HAPP_CRYPT5_PREFIX = 'happ://crypt5/';
 const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ#subscription';
-// antd's level-M QR encoder tops out at 2331 UTF-8 bytes in byte mode.
-const HAPP_QR_MAX_BYTES = 2331;
+// QrPanel encodes at error level L; QR version 40 holds 2953 UTF-8 bytes at that level.
+const HAPP_QR_MAX_BYTES = 2953;
 const UTF8_ENCODER = new TextEncoder();
 
 function hasHappForbiddenCharacter(link: string) {
@@ -209,8 +209,8 @@ export default function ClientQrModal(props: ClientQrModalProps) {
   const subLink =
     subId && subSettings.enable && subSettings.subURI ? subSettings.subURI + subId : '';
   const happLinkEnabled = subSettings.happLinkEnable === true;
-  // A gate change remounts this scope to clear Happ state and retire any in-flight response.
-  const scopeKey = `${props.open ? 1 : 0}\0${props.client?.id ?? ''}\0${subId}\0${subLink}\0${happLinkEnabled ? 1 : 0}`;
+  // A gate or source change remounts this scope to clear Happ state and retire any in-flight response.
+  const scopeKey = `${props.client?.id ?? ''}\0${subId}\0${subLink}\0${happLinkEnabled ? 1 : 0}`;
 
   return <ClientQrModalContent key={scopeKey} {...props} />;
 }
@@ -361,6 +361,10 @@ function ClientQrModalContent({
     setSyncedSubId(openSubId);
     setLinks([]);
     setLoading(!!openSubId);
+    setVariant('standard');
+    setHappLink('');
+    setHappLoading(false);
+    setHappError(false);
   }
 
   useEffect(() => {
