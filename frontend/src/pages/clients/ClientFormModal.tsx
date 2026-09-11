@@ -270,7 +270,6 @@ export default function ClientFormModal({
   const limitHwid = useWatch({ control: methods.control, name: 'limitHwid' });
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
-  const wgPreSharedKey = useWatch({ control: methods.control, name: 'wgPreSharedKey' });
   const limitIp = useWatch({ control: methods.control, name: 'limitIp' });
   const {
     fields: externalLinkFields,
@@ -510,10 +509,7 @@ export default function ClientFormModal({
   }
 
   function regenerateWireguardPresharedKey() {
-    methods.setValue(
-      'wgPreSharedKey',
-      Wireguard.keyToBase64(Wireguard.generatePresharedKey()),
-    );
+    methods.setValue('wgPreSharedKey', Wireguard.keyToBase64(Wireguard.generatePresharedKey()));
   }
 
   function regenerateMtprotoSecret() {
@@ -1248,13 +1244,9 @@ export default function ClientFormModal({
                             )}
                           >
                             <Space.Compact style={{ display: 'flex' }}>
-                              <Input
-                                value={wgPreSharedKey}
-                                style={{ flex: 1 }}
-                                onChange={(e) =>
-                                  methods.setValue('wgPreSharedKey', e.target.value)
-                                }
-                              />
+                              <FormField name="wgPreSharedKey" noStyle>
+                                <Input style={{ flex: 1 }} />
+                              </FormField>
                               <Button
                                 aria-label={t('regenerate')}
                                 icon={<ReloadOutlined />}
