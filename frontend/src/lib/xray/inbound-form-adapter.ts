@@ -53,6 +53,7 @@ export interface RawInboundRow {
   shareAddrStrategy?: string;
   shareAddr?: string;
   subSortIndex?: number;
+  excludeFromSub?: boolean;
   disableFlow?: boolean;
   clientStats?: unknown;
 }
@@ -82,6 +83,7 @@ export interface WireInboundPayload {
   shareAddrStrategy: ShareAddrStrategy;
   shareAddr: string;
   subSortIndex: number;
+  excludeFromSub: boolean;
   disableFlow: boolean;
 }
 
@@ -210,6 +212,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
     subSortIndex: Math.max(1, row.subSortIndex ?? 1),
+    excludeFromSub: row.excludeFromSub ?? false,
     disableFlow: row.disableFlow ?? false,
     protocol,
     settings,
@@ -376,6 +379,7 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     shareAddrStrategy: values.shareAddrStrategy,
     shareAddr: values.shareAddr,
     subSortIndex: values.subSortIndex,
+    excludeFromSub: values.excludeFromSub,
     disableFlow: values.disableFlow,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;
