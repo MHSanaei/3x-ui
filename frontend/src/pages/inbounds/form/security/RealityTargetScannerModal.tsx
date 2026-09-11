@@ -13,6 +13,7 @@ interface RealityTargetScannerModalProps {
   onClose: () => void;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
   onPick: (result: RealityScanResult) => void;
+  mldsa65Enabled?: boolean;
 }
 
 export default function RealityTargetScannerModal({
@@ -20,6 +21,7 @@ export default function RealityTargetScannerModal({
   onClose,
   scanRealityCandidates,
   onPick,
+  mldsa65Enabled = false,
 }: RealityTargetScannerModalProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -136,7 +138,7 @@ export default function RealityTargetScannerModal({
       width: 100,
       render: (bytes: number) => {
         if (!bytes) return '—';
-        if (bytes < MLDSA65_MIN_CERT_CHAIN_BYTES) {
+        if (mldsa65Enabled && bytes < MLDSA65_MIN_CERT_CHAIN_BYTES) {
           return (
             <Tooltip
               title={t('pages.inbounds.form.scanMldsaCertChainTooSmall', {

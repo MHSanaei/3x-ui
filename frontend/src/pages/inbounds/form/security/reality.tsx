@@ -359,6 +359,7 @@ export default function RealityForm({
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
         onPick={(r) => applyRealityScanResult(r, true)}
+        mldsa65Enabled={mldsa65Enabled}
       />
     </>
   );

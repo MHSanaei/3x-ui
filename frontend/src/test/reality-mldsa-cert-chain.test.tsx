@@ -50,7 +50,10 @@ function FormHarness({
 
 const noop = () => {};
 
-function renderRealityForm(scanResult: RealityScanResult | null, defaultValues?: Record<string, unknown>) {
+function renderRealityForm(
+  scanResult: RealityScanResult | null,
+  defaultValues?: Record<string, unknown>,
+) {
   return renderWithProviders(
     <FormHarness defaultValues={defaultValues}>
       <RealityForm
@@ -91,6 +94,7 @@ describe('ML-DSA-65 cert chain warning', () => {
         onClose={noop}
         scanRealityCandidates={async () => [smallChain]}
         onPick={noop}
+        mldsa65Enabled
       />,
     );
     expect(await findByText('3427 B')).toBeTruthy();
