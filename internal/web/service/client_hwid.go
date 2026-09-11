@@ -34,11 +34,11 @@ type HwidGateResult struct {
 // HwidSlotStatus is the aggregate device-slot view exposed to subscribers:
 // counters only, no hwid value or hash, no email, no device metadata.
 type HwidSlotStatus struct {
-	Active     bool `json:"active"`
-	Limit      int  `json:"limit"`
-	Registered int  `json:"registered"`
-	Remaining  int  `json:"remaining"`
-	Full       bool `json:"full"`
+	Active     bool `json:"active" example:"true"`
+	Limit      int  `json:"limit" example:"2"`
+	Registered int  `json:"registered" example:"1"`
+	Remaining  int  `json:"remaining" example:"1"`
+	Full       bool `json:"full" example:"false"`
 }
 
 const minHwidLength = 6

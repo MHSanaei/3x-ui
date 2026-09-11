@@ -241,4 +241,19 @@ describe('generated OpenAPI runtime contracts', () => {
     expect(operation('/{jsonPath}{subid}', 'head')).toBeDefined();
     expect(operation('/{clashPath}{subid}', 'head')).toBeDefined();
   });
+
+  it('documents the HWID slot status as a bare generated object, not the panel envelope', () => {
+    const path = '/{subPath}{subid}/hwid-status';
+    const json = operation(path, 'get').responses['200'].content?.['application/json'];
+    expect(json?.schema).toEqual({ $ref: '#/components/schemas/HwidSlotStatus' });
+    expect(json?.example).toEqual(EXAMPLES.HwidSlotStatus);
+    expect(spec.components.schemas.HwidSlotStatus.required).toEqual([
+      'active',
+      'full',
+      'limit',
+      'registered',
+      'remaining',
+    ]);
+    expect(operation(path, 'head')).toBeDefined();
+  });
 });

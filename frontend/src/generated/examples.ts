@@ -644,6 +644,13 @@ export const EXAMPLES: Record<string, unknown> = {
     "verifyPeerCertByName": "",
     "vlessRoute": ""
   },
+  "HwidSlotStatus": {
+    "active": true,
+    "full": false,
+    "limit": 2,
+    "registered": 1,
+    "remaining": 1
+  },
   "Inbound": {
     "clientStats": [
       {

@@ -609,6 +609,15 @@ export const HostGroupSchema = z.object({
 });
 export type HostGroup = z.infer<typeof HostGroupSchema>;
 
+export const HwidSlotStatusSchema = z.object({
+  active: z.boolean(),
+  full: z.boolean(),
+  limit: z.number().int(),
+  registered: z.number().int(),
+  remaining: z.number().int(),
+});
+export type HwidSlotStatus = z.infer<typeof HwidSlotStatusSchema>;
+
 export const InboundSchema = z.object({
   clientStats: z.array(z.lazy(() => ClientTrafficSchema)),
   disableFlow: z.boolean(),
