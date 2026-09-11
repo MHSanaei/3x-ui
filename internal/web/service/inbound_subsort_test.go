@@ -55,3 +55,27 @@ func TestSetInboundSubSortIndexUsesNarrowNodeUpdate(t *testing.T) {
 		t.Fatalf("full snapshot node updates = %d, want 0", got)
 	}
 }
+
+func TestSetInboundSubSortIndexPreservesNegative(t *testing.T) {
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	t.Cleanup(func() { _ = database.CloseDB() })
+
+	ib := &model.Inbound{UserId: 1, Remark: "r", Port: 21003, Protocol: model.VLESS, Settings: `{"clients":[]}`, SubSortIndex: 1, Enable: true}
+	if err := database.GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	if err := (&InboundService{}).SetInboundSubSortIndex(ib.Id, -2); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+
+	var got model.Inbound
+	if err := database.GetDB().First(&got, ib.Id).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if got.SubSortIndex != -2 {
+		t.Fatalf("subSortIndex = %d, want -2", got.SubSortIndex)
+	}
+}

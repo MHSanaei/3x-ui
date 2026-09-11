@@ -695,7 +695,7 @@ export default function InboundFormModal({
           t('pages.inbounds.form.subSortIndexHelp'),
         )}
       >
-        <InputNumber min={1} />
+        <InputNumber />
       </FormField>
 
       {protocol === Protocols.VLESS && (

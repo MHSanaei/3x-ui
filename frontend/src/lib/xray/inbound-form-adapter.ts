@@ -209,7 +209,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     nodeId: row.nodeId ?? null,
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
-    subSortIndex: Math.max(1, row.subSortIndex ?? 1),
+    subSortIndex: row.subSortIndex == null || row.subSortIndex === 0 ? 1 : row.subSortIndex,
     disableFlow: row.disableFlow ?? false,
     protocol,
     settings,
