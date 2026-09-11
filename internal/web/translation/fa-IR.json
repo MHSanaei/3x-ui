@@ -728,7 +728,7 @@
         "peerNumberConfig": "پیکربندی Peer {n}"
       },
       "sniffingDestOverride": "بازنویسی مقصد",
-      "id": "ID",
+      "inboundId": "ID",
       "protocols": {
         "vmess": "vmess",
         "vless": "vless",
@@ -963,8 +963,7 @@
       "renewOnDay": "روز تمدید",
       "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود. مقدار ۰ حالت بازهٔ روزانه را حفظ می‌کند.",
       "renewsUsed": "تمدیدهای استفاده‌شده",
-      "bulkAdTagHint": "یک برچسب هگز ۳۲ کاراکتری برای تنظیم وارد کنید، یا 'none' برای پاک کردن در MTProto.",
-      "exportFileName": "clients-export.json"
+      "bulkAdTagHint": "یک برچسب هگز ۳۲ کاراکتری برای تنظیم وارد کنید، یا 'none' برای پاک کردن در MTProto."
     },
     "groups": {
       "name": "نام",

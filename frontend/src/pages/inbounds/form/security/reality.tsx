@@ -147,7 +147,9 @@ export default function RealityForm({
                     {scanResult.host || '—'}
                   </Descriptions.Item>
                   <Descriptions.Item label="TLS">{scanResult.tlsVersion || '—'}</Descriptions.Item>
-                  <Descriptions.Item label={t('pages.inbounds.form.alpn')}>{scanResult.alpn || '—'}</Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.alpn')}>
+                    {scanResult.alpn || '—'}
+                  </Descriptions.Item>
                   <Descriptions.Item label={t('pages.inbounds.form.scanCurve')}>
                     {scanResult.curveID || '—'}
                   </Descriptions.Item>
@@ -168,7 +170,10 @@ export default function RealityForm({
           />
         </Form.Item>
       )}
-      <FormField label={t('pages.inbounds.form.sni')} name={['streamSettings', 'realitySettings', 'serverNames']}>
+      <FormField
+        label={t('pages.inbounds.form.sni')}
+        name={['streamSettings', 'realitySettings', 'serverNames']}
+      >
         <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
       </FormField>
       <FormField

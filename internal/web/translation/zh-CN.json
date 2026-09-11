@@ -728,7 +728,7 @@
         "peerNumberConfig": "Peer {n} 配置"
       },
       "sniffingDestOverride": "目标覆盖",
-      "id": "ID",
+      "inboundId": "ID",
       "protocols": {
         "vmess": "vmess",
         "vless": "vless",
@@ -963,8 +963,7 @@
       "renewOnDay": "按日期续期",
       "renewOnDayDesc": "每个自然月的这一天午夜（按面板时区）续期，而不是每 N 天续期一次。若当月没有该日期，则在当月最后一天续期。填 0 保持按天间隔模式。",
       "renewsUsed": "已用续期次数",
-      "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。",
-      "exportFileName": "clients-export.json"
+      "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。"
     },
     "groups": {
       "name": "名称",

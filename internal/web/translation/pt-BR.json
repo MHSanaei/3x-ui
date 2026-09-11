@@ -728,7 +728,7 @@
         "peerNumberConfig": "Config Peer {n}"
       },
       "sniffingDestOverride": "Substituição de destino",
-      "id": "ID",
+      "inboundId": "ID",
       "protocols": {
         "vmess": "vmess",
         "vless": "vless",
@@ -963,8 +963,7 @@
       "renewOnDay": "Renovar no dia",
       "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias.",
       "renewsUsed": "Renovações usadas",
-      "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto.",
-      "exportFileName": "clients-export.json"
+      "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto."
     },
     "groups": {
       "name": "Nome",

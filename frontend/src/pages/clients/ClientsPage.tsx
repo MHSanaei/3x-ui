@@ -833,7 +833,7 @@ export default function ClientsPage() {
     openText({
       title: t('pages.clients.exportClients'),
       content: JSON.stringify(items, null, 2),
-      fileName: t('pages.clients.exportFileName'),
+      fileName: 'clients-export.json',
     });
   }
 

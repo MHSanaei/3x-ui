@@ -728,7 +728,7 @@
         "peerNumberConfig": "Konfig Peer {n}"
       },
       "sniffingDestOverride": "Penggantian tujuan",
-      "id": "ID",
+      "inboundId": "ID",
       "protocols": {
         "vmess": "vmess",
         "vless": "vless",
@@ -963,8 +963,7 @@
       "renewOnDay": "Perpanjang pada tanggal",
       "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
       "renewsUsed": "Perpanjangan terpakai",
-      "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto.",
-      "exportFileName": "clients-export.json"
+      "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto."
     },
     "groups": {
       "name": "Nama",

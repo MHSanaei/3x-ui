@@ -100,7 +100,7 @@ export function useInboundColumns({
 
     const cols: TableColumnType<DBInboundRecord>[] = [
       {
-        title: t('pages.inbounds.id'),
+        title: t('pages.inbounds.inboundId'),
         dataIndex: 'id',
         key: 'id',
         align: 'right',

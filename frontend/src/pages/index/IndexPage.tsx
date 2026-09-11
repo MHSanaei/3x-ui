@@ -137,7 +137,7 @@ export default function IndexPage() {
   }
 
   function downloadConfig() {
-    FileManager.downloadTextFile(configText, t('pages.index.configJson'));
+    FileManager.downloadTextFile(configText, 'config.json');
   }
 
   const pageClass = `index-page ${isDark ? 'is-dark' : ''} ${isUltra ? 'is-ultra' : ''}`.trim();

@@ -9,10 +9,16 @@ export default function RealityForm() {
   const { t } = useTranslation();
   return (
     <>
-      <FormField label={t('pages.inbounds.form.sni')} name={['streamSettings', 'realitySettings', 'serverName']}>
+      <FormField
+        label={t('pages.inbounds.form.sni')}
+        name={['streamSettings', 'realitySettings', 'serverName']}
+      >
         <Input />
       </FormField>
-      <FormField label={t('pages.inbounds.form.utls')} name={['streamSettings', 'realitySettings', 'fingerprint']}>
+      <FormField
+        label={t('pages.inbounds.form.utls')}
+        name={['streamSettings', 'realitySettings', 'fingerprint']}
+      >
         <Select options={UTLS_OPTIONS} />
       </FormField>
       <FormField

@@ -214,22 +214,54 @@ export default function SubPage() {
         label: t('subscription.apps.v2rayng'),
         onClick: () => open(`v2rayng://install-config?url=${encodeURIComponent(subUrl)}`),
       },
-      { key: 'android-singbox', label: t('subscription.apps.singbox'), onClick: () => copy(subUrl) },
-      { key: 'android-v2raytun', label: t('subscription.apps.v2raytun'), onClick: () => copy(subUrl) },
-      { key: 'android-npvtunnel', label: t('subscription.apps.npvTunnel'), onClick: () => copy(subUrl) },
-      { key: 'android-happ', label: t('subscription.apps.happ'), onClick: () => open(`happ://add/${subUrl}`) },
-      { key: 'android-incy', label: t('subscription.apps.incy'), onClick: () => open(`incy://add/${subUrl}`) },
+      {
+        key: 'android-singbox',
+        label: t('subscription.apps.singbox'),
+        onClick: () => copy(subUrl),
+      },
+      {
+        key: 'android-v2raytun',
+        label: t('subscription.apps.v2raytun'),
+        onClick: () => copy(subUrl),
+      },
+      {
+        key: 'android-npvtunnel',
+        label: t('subscription.apps.npvTunnel'),
+        onClick: () => copy(subUrl),
+      },
+      {
+        key: 'android-happ',
+        label: t('subscription.apps.happ'),
+        onClick: () => open(`happ://add/${subUrl}`),
+      },
+      {
+        key: 'android-incy',
+        label: t('subscription.apps.incy'),
+        onClick: () => open(`incy://add/${subUrl}`),
+      },
     ],
     [copy, open, t],
   );
 
   const iosMenuItems = useMemo(
     () => [
-      { key: 'ios-shadowrocket', label: t('subscription.apps.shadowrocket'), onClick: () => open(shadowrocketUrl) },
+      {
+        key: 'ios-shadowrocket',
+        label: t('subscription.apps.shadowrocket'),
+        onClick: () => open(shadowrocketUrl),
+      },
       { key: 'ios-v2box', label: t('subscription.apps.v2box'), onClick: () => open(v2boxUrl) },
-      { key: 'ios-streisand', label: t('subscription.apps.streisand'), onClick: () => open(streisandUrl) },
+      {
+        key: 'ios-streisand',
+        label: t('subscription.apps.streisand'),
+        onClick: () => open(streisandUrl),
+      },
       { key: 'ios-v2raytun', label: t('subscription.apps.v2raytun'), onClick: () => copy(subUrl) },
-      { key: 'ios-npvtunnel', label: t('subscription.apps.npvTunnel'), onClick: () => copy(subUrl) },
+      {
+        key: 'ios-npvtunnel',
+        label: t('subscription.apps.npvTunnel'),
+        onClick: () => copy(subUrl),
+      },
       { key: 'ios-happ', label: t('subscription.apps.happ'), onClick: () => open(happUrl) },
       { key: 'ios-incy', label: t('subscription.apps.incy'), onClick: () => open(incyUrl) },
     ],
