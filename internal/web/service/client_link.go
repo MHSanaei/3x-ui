@@ -169,11 +169,28 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 	}
 
 	if len(toCreate) > 0 {
+		// Capture intended enable before Create: clients.enable has
+		// gorm:"default:true", so Create drops an explicit false and GORM
+		// mutates the struct to true afterward — restate disabled rows (#6478).
+		wantEnable := make([]bool, len(toCreate))
+		for i, rec := range toCreate {
+			wantEnable[i] = rec.Enable
+		}
 		if err := tx.CreateInBatches(toCreate, 200).Error; err != nil {
 			return err
 		}
-		for _, rec := range toCreate {
+		disabledIDs := make([]int, 0)
+		for i, rec := range toCreate {
 			idByEmail[rec.Email] = rec.Id
+			if !wantEnable[i] {
+				disabledIDs = append(disabledIDs, rec.Id)
+			}
+		}
+		for _, batch := range chunkInts(disabledIDs, sqlInChunk) {
+			if err := tx.Model(&model.ClientRecord{}).Where("id IN ?", batch).
+				UpdateColumn("enable", false).Error; err != nil {
+				return err
+			}
 		}
 	}
 
