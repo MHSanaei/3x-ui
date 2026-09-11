@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -40,6 +41,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/global"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/google/uuid"
@@ -1614,6 +1616,32 @@ func (s *ServerService) GetMigration() ([]byte, string, error) {
 	return data, "x-ui.dump", nil
 }
 
+// schedulePanelRestartAfterImport reloads the panel and subscription HTTP
+// servers so routes registered at startup (notably subPath) match the
+// restored database. Import previously relied on a browser follow-up to
+// restartPanel, which can silently no-op when the imported users table
+// invalidates the session (#6446).
+func schedulePanelRestartAfterImport() {
+	go func() {
+		time.Sleep(3 * time.Second)
+		if global.TriggerRestart() {
+			return
+		}
+		if runtime.GOOS == "windows" {
+			logger.Warning("Imported DB but panel restart hook is not registered; subscription paths may stay stale until a manual restart")
+			return
+		}
+		p, err := os.FindProcess(syscall.Getpid())
+		if err != nil {
+			logger.Warningf("Imported DB but panel restart FindProcess failed: %v", err)
+			return
+		}
+		if err := p.Signal(syscall.SIGHUP); err != nil {
+			logger.Warningf("Imported DB but failed to signal panel restart: %v", err)
+		}
+	}()
+}
+
 // hostBoundSettingKeys are the settings that describe *this* machine rather
 // than the configuration being carried: where the panel and the subscription
 // service listen, the certificates they present, and the identity this panel
@@ -1820,6 +1848,8 @@ func (s *ServerService) ImportDB(file multipart.File, keepHostSettings bool) err
 	if err = s.RestartXrayService(); err != nil {
 		return common.NewErrorf("Imported DB but failed to start Xray: %v; the previous database was kept at %s", err, fallbackPath)
 	}
+
+	schedulePanelRestartAfterImport()
 
 	if _, err := os.Stat(fallbackPath); err == nil {
 		if rerr := os.Remove(fallbackPath); rerr != nil {
@@ -2058,6 +2088,7 @@ func (s *ServerService) restorePostgresDump(file multipart.File, keepHostSetting
 	if err := s.RestartXrayService(); err != nil {
 		return common.NewErrorf("Restored DB but failed to start Xray: %v", err)
 	}
+	schedulePanelRestartAfterImport()
 	return nil
 }
 
@@ -2121,6 +2152,7 @@ func (s *ServerService) migrateSQLiteIntoPostgres(file multipart.File, isSQLDump
 	if err := s.RestartXrayService(); err != nil {
 		return common.NewErrorf("Restored DB but failed to start Xray: %v", err)
 	}
+	schedulePanelRestartAfterImport()
 	return nil
 }
 
