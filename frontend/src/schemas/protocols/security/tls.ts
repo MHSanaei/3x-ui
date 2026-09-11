@@ -52,8 +52,31 @@ export const TlsCertInlineSchema = z.object({
   usage: TlsCertUsageSchema.default('encipherment'),
   buildChain: z.boolean().default(false),
 });
-export const TlsCertSchema = z.union([TlsCertFileSchema, TlsCertInlineSchema]);
+export const TlsCertSchema = z.union([
+  TlsCertFileSchema,
+  TlsCertInlineSchema,
+  // Verification CAs contain only public certificates. Their omitted private
+  // keys must survive reading a saved inbound for details and share links.
+  TlsCertFileSchema.extend({ usage: z.literal('verify'), keyFile: z.string().optional() }),
+  TlsCertInlineSchema.extend({ usage: z.literal('verify'), key: z.array(z.string()).optional() }),
+]);
 export type TlsCert = z.infer<typeof TlsCertSchema>;
+
+// A stored certificate predates the panel's `useFile` toggle when the boolean is
+// absent; infer the editor mode from whichever half of the credential is filled.
+export function tlsCertUsesFiles(cert: {
+  useFile?: unknown;
+  certificateFile?: unknown;
+  keyFile?: unknown;
+  certificate?: unknown;
+  key?: unknown;
+}): boolean {
+  if (typeof cert.useFile === 'boolean') return cert.useFile;
+  const hasInline =
+    (Array.isArray(cert.certificate) && cert.certificate.length > 0) ||
+    (Array.isArray(cert.key) && cert.key.length > 0);
+  return !!cert.certificateFile || !!cert.keyFile || !hasInline;
+}
 
 export const TlsClientSettingsSchema = z.object({
   // '' = None. Hysteria rejects uTLS fingerprints, and a chrome default

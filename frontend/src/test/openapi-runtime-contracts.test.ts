@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildSpec } from '../../scripts/build-openapi.mjs';
+import { EXAMPLES } from '../generated/examples';
 
 interface OpenApiSchema {
   $ref?: string;
@@ -31,7 +32,7 @@ interface OpenApiOperation {
   responses: Record<
     string,
     {
-      content?: Record<string, { schema: OpenApiSchema }>;
+      content?: Record<string, { schema: OpenApiSchema; example?: unknown }>;
     }
   >;
   security?: Record<string, never[]>[];
@@ -127,15 +128,30 @@ describe('generated OpenAPI runtime contracts', () => {
     });
   });
 
+  it('documents all inbound links as a nullable string array', () => {
+    expect(responseObjectSchema('/panel/api/inbounds/allLinks')).toEqual({
+      type: 'array',
+      nullable: true,
+      items: { type: 'string' },
+    });
+  });
+
   it('uses the runtime REST response schemas', () => {
     expect(responseObjectSchema('/panel/api/server/logs/{count}', 'post')).toEqual({
       type: 'array',
+      nullable: true,
       items: { type: 'string' },
     });
     expect(responseObjectSchema('/panel/api/server/xraylogs/{count}', 'post')).toEqual({
       type: 'array',
+      nullable: true,
       items: { $ref: '#/components/schemas/LogEntry' },
     });
+    expect(
+      operation('/panel/api/server/xraylogs/{count}', 'post').responses['200'].content?.[
+        'application/json'
+      ].example,
+    ).toEqual({ success: true, obj: [EXAMPLES.LogEntry] });
     expect(responseObjectSchema('/panel/api/server/getNewUUID')).toEqual({
       $ref: '#/components/schemas/NewUUIDResponse',
     });
@@ -224,5 +240,20 @@ describe('generated OpenAPI runtime contracts', () => {
     expect(operation('/{subPath}{subid}', 'head')).toBeDefined();
     expect(operation('/{jsonPath}{subid}', 'head')).toBeDefined();
     expect(operation('/{clashPath}{subid}', 'head')).toBeDefined();
+  });
+
+  it('documents the HWID slot status as a bare generated object, not the panel envelope', () => {
+    const path = '/{subPath}{subid}/hwid-status';
+    const json = operation(path, 'get').responses['200'].content?.['application/json'];
+    expect(json?.schema).toEqual({ $ref: '#/components/schemas/HwidSlotStatus' });
+    expect(json?.example).toEqual(EXAMPLES.HwidSlotStatus);
+    expect(spec.components.schemas.HwidSlotStatus.required).toEqual([
+      'active',
+      'full',
+      'limit',
+      'registered',
+      'remaining',
+    ]);
+    expect(operation(path, 'head')).toBeDefined();
   });
 });

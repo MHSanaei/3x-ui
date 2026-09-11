@@ -1,0 +1,13 @@
+{
+  "udp": [
+    {
+      "type": "udphop",
+      "settings": {
+        "mode": "intervalremote",
+        "interval": "5-10",
+        "remotePorts": "20000-50000",
+        "remoteIPs": ["203.0.113.0/24"]
+      }
+    }
+  ]
+}

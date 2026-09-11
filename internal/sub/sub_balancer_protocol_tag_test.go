@@ -44,7 +44,7 @@ func TestSubJson_BalancerMemberTagUsesProtocol(t *testing.T) {
 		Remark: "proto", Strategy: "random", InboundIds: []int{vm.Id}, SortOrder: 1, Enabled: true,
 	})
 
-	js := NewSubJsonService("", "", "", NewSubService(""))
+	js := NewSubJsonService("", "", "", "", NewSubService(""))
 	out, _, err := js.GetJson("s1", "req.example.com", true)
 	if err != nil {
 		t.Fatalf("GetJson: %v", err)

@@ -161,7 +161,8 @@ func (l *Local) updateMtprotoInbound(ctx context.Context, oldIb, newIb *model.In
 // AmneziaWG-to-AmneziaWG edit, Manager.Ensure's own fingerprint comparison
 // can reconfigure the running embedded Device in place via IpcSet instead
 // of always rebuilding it (see internal/amneziawgnet.Manager.ensureLocked --
-// only an address/MTU change forces a rebuild there, not a peer edit).
+// only an address or effective-MTU change forces a rebuild there, S4
+// included, not a peer edit).
 //
 // Every exit path below only touches the embedded Device via
 // amneziawgnet.GetManager() -- none of it rebuilds Xray's own config, which
@@ -241,7 +242,7 @@ func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.C
 		"publicKey":    client.PublicKey,
 		"allowedIPs":   client.AllowedIPs,
 		"preSharedKey": client.PreSharedKey,
-		"keepAlive":    wgKeepAlive(client.KeepAlive),
+		"keepAlive":    wgKeepAlive(client.KeepAliveSeconds()),
 	}
 	return l.AddUser(ctx, ib, user)
 }
@@ -282,7 +283,7 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 		"publicKey":    payload.PublicKey,
 		"allowedIPs":   payload.AllowedIPs,
 		"preSharedKey": payload.PreSharedKey,
-		"keepAlive":    wgKeepAlive(payload.KeepAlive),
+		"keepAlive":    wgKeepAlive(payload.KeepAliveSeconds()),
 	}
 	return l.AddUser(ctx, ib, user)
 }

@@ -191,7 +191,12 @@ func TestBuildUAPIConfigHeaderProtectionAndContentPaddingLines(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildUAPIConfig with empty options: %v", err)
 	}
-	if strings.Contains(conf, "header_protection_key=") || strings.Contains(conf, "content_padding_addition=") {
+	// header_protection_key is the exception: an omitted line reads as
+	// "unchanged", so clearing the key has to be sent as the all-zero one.
+	if !strings.Contains(conf, "header_protection_key="+strings.Repeat("0", 64)+"\n") {
+		t.Fatalf("an unset key must be emitted as the all-zero key, got:\n%s", conf)
+	}
+	if strings.Contains(conf, "content_padding_addition=") {
 		t.Fatalf("empty DeviceOptions must not emit AWG 3.0 lines, got:\n%s", conf)
 	}
 
@@ -622,5 +627,45 @@ func TestValidatedObfuscationAlwaysApplies(t *testing.T) {
 				t.Fatalf("ValidateObfuscation accepted this config but amneziawg-go rejected it: %v", err)
 			}
 		})
+	}
+}
+
+// Clearing HeaderProtectionKey on a running inbound must actually reach the
+// device: amneziawg-go treats an absent UAPI line as "keep the current value",
+// so an omitted key leaves header protection permanently on. Worse, the stale
+// key keeps the S1-S4 minimum alive, so lowering them then fails IpcSet with
+// -22 on every reconcile after the peers were already replaced.
+func TestBuildUAPIConfigClearedHeaderProtectionKeyIsSentAsZero(t *testing.T) {
+	priv, _, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	inst := amneziawg.Instance{
+		PrivateKey:  priv,
+		Obfuscation: amneziawg.Obfuscation31{S1: 20, S2: 20, S3: 20, S4: 20},
+	}
+
+	key, err := wireguard.GenerateWireguardPSK()
+	if err != nil {
+		t.Fatalf("generate header protection key: %v", err)
+	}
+	withKey, err := buildUAPIConfig(inst, DeviceOptions{HeaderProtectionKey: key})
+	if err != nil {
+		t.Fatalf("buildUAPIConfig with a key: %v", err)
+	}
+	cleared, err := buildUAPIConfig(inst, DeviceOptions{})
+	if err != nil {
+		t.Fatalf("buildUAPIConfig with the key cleared: %v", err)
+	}
+	if withKey == cleared {
+		t.Fatal("clearing the key produced an identical UAPI config, so the device would never see the change")
+	}
+
+	zero := "header_protection_key=" + strings.Repeat("0", 64) + "\n"
+	if !strings.Contains(cleared, zero) {
+		t.Fatalf("cleared config must carry the all-zero key, got:\n%s", cleared)
+	}
+	if strings.Contains(withKey, zero) {
+		t.Fatalf("a configured key must not be emitted as zero, got:\n%s", withKey)
 	}
 }

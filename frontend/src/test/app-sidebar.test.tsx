@@ -65,3 +65,9 @@ test('returns to the compact rail after unpinning', () => {
   expect(sidebarRoot?.getAttribute('style')).toContain('--sider-rail: 72px');
   expect(localStorage.getItem('sidebar-pinned')).toBe('false');
 });
+
+test('labels the palette shortcut with the modifier the platform actually uses', () => {
+  const view = renderSidebar();
+  const chip = view.container.querySelector('.sidebar-command-kbd');
+  expect(chip?.textContent).toBe('CtrlK');
+});

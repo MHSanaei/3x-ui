@@ -92,6 +92,89 @@ func TestNewSUBControllerOptions(t *testing.T) {
 	}
 }
 
+// A configured subscription path keeps its own format when it collides with a
+// hard-coded Clash alias, and the alias that does not collide still serves.
+func TestClashAliasesSkipConfiguredPathConflicts(t *testing.T) {
+	seedSubDB(t)
+	seedSubProtocolInbound(t, "s1", "vm", 4487, 1, `{"network":"tcp","security":"none"}`, model.VMESS)
+	seedSubInbound(t, "s1", "vl", 4488, 2, `{"network":"tcp","security":"none"}`)
+	gin.SetMode(gin.TestMode)
+
+	type check struct {
+		path    string
+		want    []string
+		notWant []string
+	}
+	// The full Mihomo profile is the only body carrying "type: vless"; the
+	// legacy one keeps VMess and drops it.
+	fullProfile := []string{"type: vmess", "type: vless"}
+	legacyProfile := []string{"type: vmess"}
+
+	tests := []struct {
+		name    string
+		options []SUBControllerOption
+		checks  []check
+	}{
+		{
+			name:    "raw path uses Mihomo alias",
+			options: []SUBControllerOption{WithSUBPath(subMihomoPath), WithSUBEncryption(false)},
+			checks: []check{
+				{path: "/mihomo/s1", want: []string{"vmess://"}, notWant: []string{"type: vmess"}},
+				{path: "/clash-legacy/s1", want: legacyProfile, notWant: []string{"type: vless"}},
+			},
+		},
+		{
+			name:    "JSON path uses legacy alias",
+			options: []SUBControllerOption{WithSUBJsonEnabled(true), WithSUBJsonPath(subClashLegacyPath)},
+			checks: []check{
+				{path: "/clash-legacy/s1", want: []string{`"outbounds"`}, notWant: []string{"type: vmess"}},
+				{path: "/mihomo/s1", want: fullProfile},
+			},
+		},
+		{
+			name:    "configured Clash path is already Mihomo alias",
+			options: []SUBControllerOption{WithSUBClashPath(subMihomoPath)},
+			checks: []check{
+				{path: "/mihomo/s1", want: fullProfile},
+				{path: "/clash-legacy/s1", want: legacyProfile, notWant: []string{"type: vless"}},
+			},
+		},
+		{
+			name:    "configured Clash path uses legacy alias",
+			options: []SUBControllerOption{WithSUBClashPath(subClashLegacyPath)},
+			checks: []check{
+				{path: "/clash-legacy/s1", want: fullProfile},
+				{path: "/mihomo/s1", want: fullProfile},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			router := gin.New()
+			NewSUBController(router.Group("/"), append([]SUBControllerOption{WithSUBClashEnabled(true)}, tt.options...)...)
+			for _, c := range tt.checks {
+				resp := httptest.NewRecorder()
+				router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, "http://sub.example.com"+c.path, nil))
+				if resp.Code != http.StatusOK {
+					t.Fatalf("GET %s: status = %d, want 200; body=%s", c.path, resp.Code, resp.Body.String())
+				}
+				body := resp.Body.String()
+				for _, want := range c.want {
+					if !strings.Contains(body, want) {
+						t.Fatalf("GET %s: body is missing %q:\n%s", c.path, want, body)
+					}
+				}
+				for _, notWant := range c.notWant {
+					if strings.Contains(body, notWant) {
+						t.Fatalf("GET %s: body must not contain %q:\n%s", c.path, notWant, body)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestShouldAutoServeClash(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -106,6 +189,7 @@ func TestShouldAutoServeClash(t *testing.T) {
 		{name: "mihomo", autoDetect: true, clashEnabled: true, userAgent: "mihomo/1.19.12", want: true},
 		{name: "clash case insensitive", autoDetect: true, clashEnabled: true, userAgent: "CLASH-META/1.0", want: true},
 		{name: "flclash covered by clash", autoDetect: true, clashEnabled: true, userAgent: "FlClash/0.8.91", want: true},
+		{name: "clash for windows preserves existing detection", autoDetect: true, clashEnabled: true, userAgent: "ClashforWindows/0.20.39", want: true},
 		{name: "generic client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "GenericClient/1.10.0"},
 		{name: "other client raw fallback", autoDetect: true, clashEnabled: true, userAgent: "OtherClient/2.2"},
 		{name: "unknown raw fallback", autoDetect: true, clashEnabled: true, userAgent: "CustomClient/1.0"},
@@ -396,6 +480,97 @@ func TestStandardSubscriptionAutoDetectsFormats(t *testing.T) {
 	})
 }
 
+func TestExplicitMihomoAndLegacyClashEndpoints(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "vless", 4482, 1, `{"network":"tcp","security":"none"}`)
+	seedSubProtocolInbound(t, "s1", "vmess", 4483, 2, `{"network":"ws","security":"tls","wsSettings":{"path":"/ws"},"tlsSettings":{"serverName":"vm.example.com"}}`, model.VMESS)
+	gin.SetMode(gin.TestMode)
+	router := newSubscriptionTestRouter(subscriptionTestRouterConfig{})
+
+	for _, path := range []string{"/clash/s1", "/mihomo/s1"} {
+		t.Run(path+" keeps the full Mihomo profile", func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com"+path, nil)
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+
+			if resp.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+			}
+			if body := resp.Body.String(); !strings.Contains(body, "type: vless") || !strings.Contains(body, "type: vmess") {
+				t.Fatalf("full profile must keep VLESS and VMess:\n%s", body)
+			}
+		})
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/clash-legacy/s1", nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("legacy status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+	}
+	if body := resp.Body.String(); !strings.Contains(body, "type: vmess") || strings.Contains(body, "type: vless") {
+		t.Fatalf("legacy profile must keep VMess and remove VLESS:\n%s", body)
+	}
+}
+
+func TestLegacyClashEndpointExplainsWhenNoCompatibleProxyExists(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "vless", 4484, 1, `{"network":"tcp","security":"none"}`)
+	gin.SetMode(gin.TestMode)
+
+	req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/clash-legacy/s1", nil)
+	resp := httptest.NewRecorder()
+	newSubscriptionTestRouter(subscriptionTestRouterConfig{}).ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422; body=%s", resp.Code, resp.Body.String())
+	}
+	if !strings.Contains(resp.Body.String(), "no Clash for Windows-compatible proxies") {
+		t.Fatalf("legacy endpoint did not explain the incompatibility: %s", resp.Body.String())
+	}
+}
+
+func TestLegacyClashEndpointIgnoresCustomMihomoRouting(t *testing.T) {
+	seedSubDB(t)
+	seedSubProtocolInbound(t, "s1", "vmess", 4485, 1, `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"vm.example.com"}}`, model.VMESS)
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	NewSUBController(
+		router.Group("/"),
+		WithSUBClashEnabled(true),
+		WithSUBClashEnableRouting(true),
+		WithSUBClashRules(`
+proxies:
+  - name: injected-modern-node
+    type: vless
+    server: modern.example.com
+    port: 443
+    uuid: 11111111-2222-4333-8444-555555555555
+proxy-groups:
+  - name: MIHOMO-ONLY
+    type: select
+    include-all: true
+rules:
+  - MATCH,MIHOMO-ONLY
+`),
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/clash-legacy/s1", nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+	}
+	body := resp.Body.String()
+	if strings.Contains(body, "injected-modern-node") || strings.Contains(body, "type: vless") || strings.Contains(body, "include-all") {
+		t.Fatalf("custom Mihomo routing leaked into legacy profile:\n%s", body)
+	}
+	if !strings.Contains(body, "type: vmess") || !strings.Contains(body, "MATCH,PROXY") {
+		t.Fatalf("legacy profile did not retain its compatible proxy and simple route:\n%s", body)
+	}
+}
+
 func TestFormatEndpointsRawViewBypassesBrowserPage(t *testing.T) {
 	seedSubDB(t)
 	seedSubInbound(t, "s1", "raw", 4481, 1, `{"network":"tcp","security":"none"}`)
@@ -584,5 +759,46 @@ func TestLoadSubTemplate_CacheHitAndInvalidation(t *testing.T) {
 	}
 	if buf.String() != "v2" {
 		t.Fatalf("rendered = %q, want %q after edit", buf.String(), "v2")
+	}
+}
+
+func TestStandardSubscriptionPreservesClashUserAgents(t *testing.T) {
+	seedSubDB(t)
+	seedSubProtocolInbound(t, "s1", "vm", 4905, 1, `{"network":"tcp","security":"none"}`, model.VMESS)
+	gin.SetMode(gin.TestMode)
+	router := newSubscriptionTestRouter(subscriptionTestRouterConfig{clashAutoDetect: true})
+	for _, ua := range []string{"mihomo/1.19.12", "clash.meta", "Clash.Meta/1.19.12", "ClashX Meta/1.0", "ClashforWindows/0.20.39"} {
+		t.Run(ua, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+			req.Header.Set("User-Agent", ua)
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK || resp.Header().Get("Content-Type") != "application/yaml; charset=utf-8" || !strings.Contains(resp.Body.String(), "type: vmess") {
+				t.Fatalf("UA=%q: status=%d, content-type=%q; expected VMess YAML, body=%s", ua, resp.Code, resp.Header().Get("Content-Type"), resp.Body.String())
+			}
+		})
+	}
+}
+
+func TestLegacyClashEndpointNormalizesShadowsocksCipher(t *testing.T) {
+	for _, method := range []string{"chacha20-ietf-poly1305", "chacha20-poly1305"} {
+		t.Run(method, func(t *testing.T) {
+			seedSubDB(t)
+			ib := seedSubProtocolInbound(t, "s1", "ss", 4906, 1, `{"network":"tcp","security":"none"}`, model.Shadowsocks)
+			db := database.GetDB()
+			if err := db.Model(ib).Update("settings", fmt.Sprintf(`{"method":%q,"network":"tcp,udp"}`, method)).Error; err != nil {
+				t.Fatal(err)
+			}
+			if err := db.Model(&model.ClientRecord{}).Where("email = ?", "ss@e").Update("password", "test-password").Error; err != nil {
+				t.Fatal(err)
+			}
+			gin.SetMode(gin.TestMode)
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/clash-legacy/s1", nil)
+			resp := httptest.NewRecorder()
+			newSubscriptionTestRouter(subscriptionTestRouterConfig{}).ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK || !strings.Contains(resp.Body.String(), "type: ss") || !strings.Contains(resp.Body.String(), "cipher: chacha20-ietf-poly1305") {
+				t.Fatalf("method=%s: status=%d, body=%s", method, resp.Code, resp.Body.String())
+			}
+		})
 	}
 }

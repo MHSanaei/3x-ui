@@ -66,9 +66,34 @@ export interface AllSetting {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredTemplate: string;
+  subHappAlwaysHwid: boolean;
+  subHappAutoConnect: boolean;
+  subHappAutoConnectType: string;
+  subHappAutoDetect: boolean;
+  subHappColorProfile: string;
+  subHappExcludeApns: boolean;
+  subHappExcludeRoutes: string;
+  subHappFallbackUrl: string;
+  subHappNewUrl: string;
+  subHappNoLimit: boolean;
+  subHappNotificationExpire: boolean;
+  subHappPerAppList: string;
+  subHappPerAppMode: string;
+  subHappPingType: string;
+  subHappProviderId: string;
+  subHappSubExpire: boolean;
+  subHappSubExpireButtonLink: string;
+  subHappSubInfoButtonLink: string;
+  subHappSubInfoButtonText: string;
+  subHappSubInfoColor: string;
+  subHappSubInfoText: string;
+  subHappTunMode: string;
+  subHappTunType: string;
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
+  subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
   subJsonEnable: boolean;
@@ -76,6 +101,7 @@ export interface AllSetting {
   subJsonMux: string;
   subJsonObservatory: string;
   subJsonPath: string;
+  subJsonRoutingRules: string;
   subJsonRules: string;
   subJsonURI: string;
   subJsonUserAgentRegex: string;
@@ -89,6 +115,7 @@ export interface AllSetting {
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
+  subTrafficDepletedTemplate: string;
   subURI: string;
   subUpdates: number;
   tgBotAPIServer: string;
@@ -182,9 +209,34 @@ export interface AllSettingView {
   subEnable: boolean;
   subEnableRouting: boolean;
   subEncrypt: boolean;
+  subExpiredTemplate: string;
+  subHappAlwaysHwid: boolean;
+  subHappAutoConnect: boolean;
+  subHappAutoConnectType: string;
+  subHappAutoDetect: boolean;
+  subHappColorProfile: string;
+  subHappExcludeApns: boolean;
+  subHappExcludeRoutes: string;
+  subHappFallbackUrl: string;
+  subHappNewUrl: string;
+  subHappNoLimit: boolean;
+  subHappNotificationExpire: boolean;
+  subHappPerAppList: string;
+  subHappPerAppMode: string;
+  subHappPingType: string;
+  subHappProviderId: string;
+  subHappSubExpire: boolean;
+  subHappSubExpireButtonLink: string;
+  subHappSubInfoButtonLink: string;
+  subHappSubInfoButtonText: string;
+  subHappSubInfoColor: string;
+  subHappSubInfoText: string;
+  subHappTunMode: string;
+  subHappTunType: string;
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
+  subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
   subJsonEnable: boolean;
@@ -192,6 +244,7 @@ export interface AllSettingView {
   subJsonMux: string;
   subJsonObservatory: string;
   subJsonPath: string;
+  subJsonRoutingRules: string;
   subJsonRules: string;
   subJsonURI: string;
   subJsonUserAgentRegex: string;
@@ -205,6 +258,7 @@ export interface AllSettingView {
   subSupportUrl: string;
   subThemeDir: string;
   subTitle: string;
+  subTrafficDepletedTemplate: string;
   subURI: string;
   subUpdates: number;
   tgBotAPIServer: string;
@@ -272,7 +326,7 @@ export interface Client {
   forwardedPorts?: string;
   group?: string;
   id?: string;
-  keepAlive?: number;
+  keepAlive?: number | null;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
@@ -521,6 +575,14 @@ export interface HostGroup {
   vlessRoute: string;
 }
 
+export interface HwidSlotStatus {
+  active: boolean;
+  full: boolean;
+  limit: number;
+  registered: number;
+  remaining: number;
+}
+
 export interface Inbound {
   clientStats: ClientTraffic[];
   disableFlow: boolean;
@@ -573,11 +635,13 @@ export interface InboundOption {
   id: number;
   listen?: string;
   mtprotoDomain?: string;
+  network?: string;
   nodeAddress?: string;
   nodeId?: number | null;
   port: number;
   protocol: string;
   remark: string;
+  security?: string;
   shareAddr?: string;
   shareAddrStrategy?: string;
   ssMethod: string;

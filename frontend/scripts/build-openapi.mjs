@@ -112,6 +112,21 @@ function paramToOpenApi(p) {
   return out;
 }
 
+// A `responses` entry that $refs a generated schema takes its example from the
+// Go `example:` tags, the same source responseSchema uses — never hand-written.
+function withGeneratedExample(ep, code, res) {
+  const json = res.content?.['application/json'];
+  const name = json?.schema?.$ref?.replace('#/components/schemas/', '');
+  if (!name) return res;
+  if (SCHEMAS[name] === undefined || EXAMPLES[name] === undefined) {
+    throw new Error(`${ep.method} ${ep.path}: ${code} response schema "${name}" is not generated`);
+  }
+  return {
+    ...res,
+    content: { ...res.content, 'application/json': { example: EXAMPLES[name], ...json } },
+  };
+}
+
 function buildOperation(ep, tag) {
   const op = {
     tags: [tag],
@@ -245,13 +260,21 @@ function buildOperation(ep, tag) {
       );
     }
     const ref = { $ref: `#/components/schemas/${ep.responseSchema}` };
-    objSchema = ep.responseSchemaArray ? { type: 'array', items: ref } : ref;
+    objSchema = ep.responseSchemaArray
+      ? {
+          type: 'array',
+          ...(ep.responseSchemaArrayNullable ? { nullable: true } : {}),
+          items: ref,
+        }
+      : ref;
     if (successExample === undefined) {
       successExample = { success: true, obj: ep.responseSchemaArray ? [obj] : obj };
     }
   }
   if (ep.responses) {
-    Object.assign(responses, ep.responses);
+    for (const [code, res] of Object.entries(ep.responses)) {
+      responses[code] = withGeneratedExample(ep, code, res);
+    }
   } else {
     responses['200'] = {
       description: 'Successful response',

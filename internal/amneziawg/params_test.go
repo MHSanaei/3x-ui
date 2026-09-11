@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenerateObfuscation31DefaultRanges(t *testing.T) {
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		o := GenerateObfuscation31()
 		if o.Jc < 3 || o.Jc > 6 {
 			t.Fatalf("Jc = %d, want [3,6]", o.Jc)
@@ -96,7 +96,7 @@ func assertRangeWithin(t *testing.T, name, v string, min, max int64) (lo, hi int
 }
 
 func TestGenerateHValuesDistinct(t *testing.T) {
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		h := generateHValues()
 		var prev int64
 		for i, v := range h {
@@ -117,7 +117,7 @@ func validObfuscation() Obfuscation31 {
 }
 
 func TestValidateObfuscationAcceptsGenerated(t *testing.T) {
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		if err := ValidateObfuscation(validObfuscation()); err != nil {
 			t.Fatalf("generated obfuscation set rejected: %v", err)
 		}
@@ -375,6 +375,42 @@ func TestValidateConfigValueRejectsControlCharacters(t *testing.T) {
 		if err := ValidateConfigValue("email", v); err == nil {
 			t.Errorf("ValidateConfigValue(%q) must be rejected", v)
 		}
+	}
+}
+
+// The plain 1420 default left no headroom for s4: it put full-size packets at
+// 1480+S4 on the wire and fragmented every one of them once S4 passed 20.
+func TestEffectiveMTUKeepsFullSizePacketsUnfragmented(t *testing.T) {
+	t.Parallel()
+
+	// 20 IPv4 + 8 UDP + 16 transport header + 16 poly1305 tag.
+	const encapOverhead = 60
+	const hostLinkMTU = 1500
+
+	for s4 := 0; s4 <= 32; s4++ {
+		mtu := EffectiveMTU(0, s4)
+		if wire := mtu + encapOverhead + s4; wire > hostLinkMTU {
+			t.Errorf("s4=%d: MTU %d puts a full-size transport packet at %d bytes on the wire, over the %d-byte host link", s4, mtu, wire, hostLinkMTU)
+		}
+	}
+}
+
+// TestEffectiveMTUPrefersTheAdminsValue: the S4-aware default is a fallback,
+// not an override -- an explicit MTU must survive untouched.
+func TestEffectiveMTUPrefersTheAdminsValue(t *testing.T) {
+	t.Parallel()
+
+	if got := EffectiveMTU(1380, 27); got != 1380 {
+		t.Errorf("EffectiveMTU(1380, 27) = %d, want the configured 1380", got)
+	}
+	if got := EffectiveMTU(0, 27); got != DefaultMTU-27 {
+		t.Errorf("EffectiveMTU(0, 27) = %d, want %d", got, DefaultMTU-27)
+	}
+	if got := EffectiveMTU(0, 0); got != DefaultMTU {
+		t.Errorf("EffectiveMTU(0, 0) = %d, want %d", got, DefaultMTU)
+	}
+	if got := EffectiveMTU(-5, 12); got != DefaultMTU-12 {
+		t.Errorf("a nonsense configured MTU must fall back, got %d", got)
 	}
 }
 
