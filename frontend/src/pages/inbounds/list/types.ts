@@ -1,4 +1,5 @@
 import type { NodeRecord } from '@/api/queries/useNodesQuery';
+import type { HostRecord } from '@/schemas/api/host';
 
 export interface StreamHints {
   network: string;
@@ -77,6 +78,7 @@ export interface InboundListProps {
   subEnable: boolean;
   nodesById: Map<number, NodeRecord>;
   hasActiveNode: boolean;
+  hosts: HostRecord[];
   onAddInbound: () => void;
   onGeneralAction: (key: GeneralAction) => void;
   onRowAction: (action: { key: RowAction; dbInbound: DBInboundRecord }) => void;
