@@ -1310,8 +1310,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		if client.SubID == "" {
 			client.SubID = uuid.NewString()
 		}
-		// Preserve payload enable so portable import keeps disabled clients disabled (#6478).
-		// Interactive UI bulk-add always sends enable=true explicitly.
+		// Preserve enable (omit→true in UnmarshalJSON; explicit false kept) (#6478).
 		now := time.Now().UnixMilli()
 		if client.CreatedAt == 0 {
 			client.CreatedAt = now

@@ -8,8 +8,7 @@ import (
 )
 
 // TestExportImportPreservesDisabledEnable covers #6478: ExportAll keeps the
-// real enable flag, and ImportClients (attached via BulkCreate + orphan path)
-// must not force enable=true.
+// real enable flag; ImportClients must not force enable=true.
 func TestExportImportPreservesDisabledEnable(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
@@ -117,4 +116,56 @@ func TestBulkCreatePreservesExplicitDisable(t *testing.T) {
 		t.Fatalf("BulkCreate result=%+v", res)
 	}
 	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, false)
+}
+
+func TestClientCreatePayload_OmitEnableDefaultsTrue(t *testing.T) {
+	raw := []byte(`{"client":{"email":"omit@x","id":"dddddddd-dddd-dddd-dddd-dddddddddddd","subId":"sub-omit"},"inboundIds":[1]}`)
+	var p ClientCreatePayload
+	if err := json.Unmarshal(raw, &p); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if !p.Client.Enable {
+		t.Fatal("omitted enable must default to true")
+	}
+
+	rawFalse := []byte(`{"client":{"email":"off@x","id":"eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee","subId":"sub-off","enable":false},"inboundIds":[1]}`)
+	var pFalse ClientCreatePayload
+	if err := json.Unmarshal(rawFalse, &pFalse); err != nil {
+		t.Fatalf("unmarshal false: %v", err)
+	}
+	if pFalse.Client.Enable {
+		t.Fatal("explicit enable:false must stay false")
+	}
+}
+
+func TestBulkCreate_DisabledOnNodeSkipsAddClient(t *testing.T) {
+	setupBulkDB(t)
+	nodeID, fake := setupNodeRuntime(t)
+	ib := nodeInbound(t, nodeID, 26003, nil)
+	svc := &ClientService{}
+	inboundSvc := &InboundService{}
+
+	const email = "node@disabled"
+	res, _, err := svc.BulkCreate(inboundSvc, []ClientCreatePayload{{
+		Client: model.Client{
+			Email: email, SubID: "sub-node-disabled", Enable: false,
+			ID: "ffffffff-ffff-ffff-ffff-ffffffffffff",
+		},
+		InboundIds: []int{ib.Id},
+	}})
+	if err != nil {
+		t.Fatalf("BulkCreate: %v", err)
+	}
+	if res.Created != 1 {
+		t.Fatalf("BulkCreate result=%+v", res)
+	}
+	if got := fake.addClient.Load(); got != 0 {
+		t.Fatalf("AddClient RPCs = %d, want 0 for enable=false", got)
+	}
+	assertEnableEverywhere(t, svc, inboundSvc, ib.Id, email, false)
+	if _, _, dirty, _, err := (&NodeService{}).NodeSyncState(nodeID); err != nil {
+		t.Fatalf("NodeSyncState: %v", err)
+	} else if !dirty {
+		t.Fatal("disabled node create must leave node dirty for reconcile")
+	}
 }

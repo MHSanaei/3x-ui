@@ -168,7 +168,7 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 			skip(email, err.Error())
 			continue
 		}
-		// clients.enable has gorm:"default:true"; Create drops false — restate (#6478).
+		// gorm default:true drops enable=false on Create — restate (#6478).
 		if !client.Enable {
 			if err := db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).
 				UpdateColumn("enable", false).Error; err != nil {

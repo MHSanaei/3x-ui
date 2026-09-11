@@ -154,9 +154,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if client.SubID == "" {
 		client.SubID = uuid.NewString()
 	}
-	if !client.Enable {
-		client.Enable = true
-	}
+	// Enable: omit defaults true via ClientCreatePayload.UnmarshalJSON; explicit false kept.
 	now := time.Now().UnixMilli()
 	if client.CreatedAt == 0 {
 		client.CreatedAt = now

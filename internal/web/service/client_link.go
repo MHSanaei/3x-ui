@@ -169,9 +169,8 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 	}
 
 	if len(toCreate) > 0 {
-		// Capture intended enable before Create: clients.enable has
-		// gorm:"default:true", so Create drops an explicit false and GORM
-		// mutates the struct to true afterward — restate disabled rows (#6478).
+		// Capture enable before Create: gorm default:true drops explicit false (#6478).
+		// Restate disabled rows after CreateInBatches.
 		wantEnable := make([]bool, len(toCreate))
 		for i, rec := range toCreate {
 			wantEnable[i] = rec.Enable
