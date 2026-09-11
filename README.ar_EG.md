@@ -14,6 +14,7 @@
   <a href="https://github.com/MHSanaei/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true" alt="License"></a>
   <a href="https://pkg.go.dev/github.com/mhsanaei/3x-ui/v3"><img src="https://pkg.go.dev/badge/github.com/mhsanaei/3x-ui/v3.svg" alt="Go Reference"></a>
+  <a href="https://docs.sanaei.dev"><img src="https://img.shields.io/badge/docs-docs.sanaei.dev-22d3ee" alt="Documentation"></a>
 </p>
 
 **3X-UI** هي لوحة تحكم ويب متقدمة ومفتوحة المصدر لإدارة خوادم [Xray-core](https://github.com/XTLS/Xray-core). توفّر واجهة نظيفة ومتعددة اللغات لنشر وتكوين ومراقبة مجموعة واسعة من بروتوكولات الوكيل وVPN — من خادم VPS واحد إلى عمليات النشر متعددة العقد.
@@ -25,16 +26,19 @@
 
 ## الميزات
 
-- **اتصالات واردة متعددة البروتوكولات** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، Hysteria2، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
+- **اتصالات واردة متعددة البروتوكولات** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، AmneziaWG، Hysteria2، MTProto، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
 - **وسائل نقل وأمان حديثة** — TCP (Raw)، mKCP، WebSocket، gRPC، HTTPUpgrade و XHTTP، مؤمَّنة بـ TLS و XTLS و REALITY.
+- **AmneziaWG مدمج** — نسخة WireGuard المقاومة للفحص العميق للحزم (DPI) تعمل داخل اللوحة على مكدس شبكة في فضاء المستخدم، دون وحدة نواة أو DKMS أو حزم إضافية.
+- **وكلاء MTProto** — أسرار FakeTLS وعلامات الإعلانات والحصص لكل عميل، تُطبَّق مباشرةً دون قطع الاتصالات القائمة.
 - **Fallback** — تقديم عدة بروتوكولات على منفذ واحد (مثل VLESS و Trojan على المنفذ 443) باستخدام ميزة fallback في Xray.
-- **إدارة لكل عميل** — حصص الترافيك، تواريخ انتهاء الصلاحية، حدود IP، حالة الاتصال المباشرة، وروابط مشاركة وأكواد QR واشتراكات بنقرة واحدة.
+- **إدارة لكل عميل** — حصص الترافيك، تواريخ انتهاء الصلاحية، حدود IP مع استثناء العناوين الموثوقة، حدود الأجهزة (HWID)، دورات تجديد مجدولة، حالة الاتصال المباشرة، وروابط مشاركة وأكواد QR واشتراكات بنقرة واحدة.
 - **إحصائيات الترافيك** — لكل اتصال وارد، ولكل عميل، ولكل اتصال صادر، مع عناصر تحكم لإعادة التعيين.
-- **دعم العقد المتعددة** — إدارة وتوسيع عبر عدة خوادم من لوحة واحدة.
-- **الاتصالات الصادرة والتوجيه** — WARP، NordVPN، قواعد توجيه مخصصة، موازنات تحميل، وتسلسل الوكلاء الصادرة.
-- **خادم اشتراك مدمج** بصيغ إخراج متعددة و[قوالب صفحات مخصصة](docs/custom-subscription-templates.md).
+- **دعم العقد المتعددة** — إدارة وتوسيع عبر عدة خوادم من لوحة واحدة، بما في ذلك استنساخ الاتصالات الواردة على عقد أخرى.
+- **الاتصالات الصادرة والتوجيه** — WARP، NordVPN، PIA، قواعد توجيه مخصصة، موازنات تحميل مع تجاوز الفشل بين الموازنات، وتسلسل الوكلاء الصادرة. ويمكن تصفّح فئات geosite و geoip المضمّنة مباشرةً من محرر القواعد.
+- **خادم اشتراك مدمج** — إخراج raw و JSON و Clash يُختار تلقائيًا حسب User-Agent الخاص بالعميل، مع [قوالب صفحات مخصصة](docs/custom-subscription-templates.md).
 - **روبوت تيليجرام** للمراقبة والإدارة عن بُعد.
-- **واجهة RESTful API** مع توثيق Swagger داخل اللوحة.
+- **واجهة RESTful API** مع رموز وصول محدودة النطاق وقابلة لانتهاء الصلاحية، ومرجع API داخل اللوحة.
+- **لوحة قابلة للتثبيت (PWA)** — ثبّت 3X-UI على سطح المكتب أو شاشة هاتفك الرئيسية.
 - **تخزين مرن** — SQLite (افتراضي) أو PostgreSQL.
 - **13 لغة لواجهة المستخدم** مع سمات داكنة وفاتحة.
 - **تكامل مع Fail2ban** لفرض حدود IP لكل عميل.
@@ -72,10 +76,10 @@
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-لتثبيت إصدار محدد، أضِف وسمه (مثل `v3.4.0`):
+لتثبيت إصدار محدد، أضِف وسمه (مثل `v3.7.0`):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.7.0
 ```
 
 لتثبيت بنية **dev** المتجددة (أحدث إصدار أولي لكل التزام (commit) من `main`، وليس إصدارًا مستقرًا)، مرّر `dev-latest`:
@@ -86,7 +90,9 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 أثناء التثبيت، يتم إنشاء اسم مستخدم وكلمة مرور ومسار وصول عشوائية. بعد التثبيت، شغّل `x-ui` لفتح قائمة الإدارة، حيث يمكنك بدء/إيقاف الخدمة، وعرض أو إعادة تعيين بيانات تسجيل الدخول، وإدارة شهادات SSL، والمزيد.
 
-للحصول على الوثائق الكاملة، يرجى زيارة [ويكي المشروع](https://github.com/MHSanaei/3x-ui/wiki).
+يُنشر مع كل ملف إصدار مجموع تحقق `.sha256` بجانبه، ويتحقق كل من `install.sh` وأداة التحديث من الأرشيف مقابل هذا المجموع ويتوقفان عند عدم التطابق.
+
+للحصول على الوثائق الكاملة — التثبيت والإعداد والتشغيل ومرجع API الكامل — قم بزيارة **[docs.sanaei.dev](https://docs.sanaei.dev)**.
 
 ### التثبيت غير التفاعلي
 
@@ -162,6 +168,11 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW ... ghcr.io/mhsanaei/3x-ui
 | `XUI_TUNNEL_HEALTH_TIMEOUT` | مهلة كل عملية فحص | `10s` |
 | `XUI_TUNNEL_HEALTH_FAILURES` | عدد حالات الفشل المتتالية قبل تشغيل إعادة التشغيل | `3` |
 | `XUI_TUNNEL_HEALTH_COOLDOWN` | الحد الأدنى للتأخير بين عمليات إعادة التشغيل المتتالية | `5m` |
+| `NODE_TOKEN_ENCRYPTION` | تشفير رموز API الخاصة بالعقد أثناء التخزين: `off` أو `migration` أو `required` (بدون البادئة `XUI_`) | `off` |
+| `XUI_NODE_TOKEN_KEY_FILE` | حلقة مفاتيح JSON (بأذونات `0600`) تضم معرّف المفتاح النشط ومفاتيح 32 بايت بترميز base64 | `/etc/x-ui/node_token_key.json` |
+| `XUI_NODE_TOKEN_KEY` | مفتاح واحد بطول 32 بايت بترميز base64، يُستخدم فقط عند تعذّر تحميل ملف المفاتيح | — |
+
+القائمة الكاملة متوفرة في [مرجع متغيرات البيئة](https://docs.sanaei.dev/docs/reference/env-vars).
 
 ## اللغات المدعومة
 

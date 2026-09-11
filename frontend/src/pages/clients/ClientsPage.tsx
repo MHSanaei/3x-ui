@@ -1,4 +1,5 @@
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Badge,
@@ -22,6 +23,7 @@ import {
   Table,
   Tag,
   Tooltip,
+  Typography,
   message,
 } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
@@ -382,7 +384,12 @@ export default function ClientsPage() {
   >(null);
 
   const initial = readFilterState();
-  const [searchKey, setSearchKey] = useState(initial.searchKey);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
+  const [searchKey, setSearchKey] = useState(
+    searchParam !== null ? searchParam : initial.searchKey,
+  );
   const [filters, setFilters] = useState<ClientFilters>(initial.filters);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -405,6 +412,15 @@ export default function ClientsPage() {
   // debouncedSearch lags behind the input so we don't spam the server on every
   // keystroke; the search box still feels instant locally.
   const [debouncedSearch, setDebouncedSearch] = useState(searchKey);
+  const [prevLocationKey, setPrevLocationKey] = useState(location.key);
+
+  if (location.key !== prevLocationKey) {
+    setPrevLocationKey(location.key);
+    if (searchParam !== null) {
+      setSearchKey(searchParam);
+      setDebouncedSearch(searchParam);
+    }
+  }
 
   useEffect(() => {
     localStorage.setItem(
@@ -1076,7 +1092,7 @@ export default function ClientsPage() {
         width: 130,
         hidden: allGroups.length === 0,
         render: (_v, record) => {
-          if (!record.group) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
+          if (!record.group) return <Typography.Text type="secondary">—</Typography.Text>;
           const isActive = filters.groups.includes(record.group);
           return (
             <Tag
@@ -1893,8 +1909,15 @@ export default function ClientsPage() {
             open={bulkAdjustOpen}
             count={selectedRowKeys.length}
             onOpenChange={setBulkAdjustOpen}
-            onSubmit={async (addDays, addBytes, flow) => {
-              const msg = await bulkAdjust([...selectedRowKeys], addDays, addBytes, flow);
+            onSubmit={async (addDays, addBytes, flow, limitHwid, adTag) => {
+              const msg = await bulkAdjust(
+                [...selectedRowKeys],
+                addDays,
+                addBytes,
+                flow,
+                limitHwid,
+                adTag,
+              );
               if (msg?.success) {
                 setSelectedRowKeys([]);
                 return msg.obj ?? { adjusted: 0 };

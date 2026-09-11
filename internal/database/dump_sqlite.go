@@ -24,7 +24,7 @@ func DumpSQLite(srcPath, outPath string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(outPath, data, 0o644)
+	return os.WriteFile(outPath, data, 0o600)
 }
 
 // DumpSQLiteToBytes builds the same `sqlite3 .dump`-style SQL text as DumpSQLite

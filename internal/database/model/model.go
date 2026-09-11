@@ -441,8 +441,8 @@ func WireguardPeerFromClient(c Client) map[string]any {
 	if c.PreSharedKey != "" {
 		peer["preSharedKey"] = c.PreSharedKey
 	}
-	if c.KeepAlive > 0 {
-		peer["keepAlive"] = c.KeepAlive
+	if ka := c.KeepAliveSeconds(); ka > 0 {
+		peer["keepAlive"] = ka
 	}
 	return peer
 }
@@ -890,7 +890,7 @@ type Client struct {
 	// before -- fully backward compatible for callers that never set this.
 	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
 	PreSharedKey        string           `json:"preSharedKey,omitempty"`
-	KeepAlive           int              `json:"keepAlive,omitempty"`
+	KeepAlive           *int             `json:"keepAlive,omitempty"`      // Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value
 	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
 	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
@@ -1113,6 +1113,27 @@ type Host struct {
 
 func (Host) TableName() string { return "hosts" }
 
+// KeepAliveSeconds is the client's PersistentKeepalive, 0 when unset.
+func (c Client) KeepAliveSeconds() int {
+	if c.KeepAlive == nil {
+		return 0
+	}
+	return *c.KeepAlive
+}
+
+// KeepAlivePtr wraps an explicit PersistentKeepalive, 0 included -- distinct
+// from a nil KeepAlive, which means the field was never sent.
+func KeepAlivePtr(v int) *int { return &v }
+
+// nonZeroKeepAlive keeps a stored 0 nil: wg_keep_alive cannot tell "off" from
+// "never set", and an explicit 0 would emit keepAlive on every protocol.
+func nonZeroKeepAlive(seconds int) *int {
+	if seconds <= 0 {
+		return nil
+	}
+	return KeepAlivePtr(seconds)
+}
+
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
 		Email:           c.Email,
@@ -1141,7 +1162,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		PublicKey:      c.PublicKey,
 		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
 		PreSharedKey:   c.PreSharedKey,
-		KeepAlive:      c.KeepAlive,
+		KeepAlive:      c.KeepAliveSeconds(),
 		ForwardedPorts: c.ForwardedPorts,
 		Secret:         c.Secret,
 		AdTag:          c.AdTag,
@@ -1199,7 +1220,7 @@ func (r *ClientRecord) ToClient() *Client {
 		PublicKey:      r.PublicKey,
 		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
 		PreSharedKey:   r.PreSharedKey,
-		KeepAlive:      r.KeepAlive,
+		KeepAlive:      nonZeroKeepAlive(r.KeepAlive),
 		ForwardedPorts: r.ForwardedPorts,
 		Secret:         r.Secret,
 		AdTag:          r.AdTag,
@@ -1247,7 +1268,10 @@ type SubBalancer struct {
 	Remark     string `json:"remark" form:"remark" validate:"required,max=256" example:"auto-fastest"`
 	Strategy   string `json:"strategy" form:"strategy" validate:"omitempty,oneof=leastLoad leastPing random roundRobin" example:"random"`
 	InboundIds []int  `json:"inboundIds" form:"inboundIds" gorm:"serializer:json;column:inbound_ids" example:"[1,3]"`
-	SortOrder  int    `json:"sortOrder" form:"sortOrder" gorm:"column:sort_order" validate:"omitempty,gte=1" example:"1"`
+	// inboundId -> leastLoad weight; absent entries mean 1.0. Only meaningful
+	// with Strategy "leastLoad" — xray ignores costs on every other strategy.
+	MemberWeights map[int]float64 `json:"memberWeights,omitempty" form:"memberWeights" gorm:"serializer:json;column:member_weights"`
+	SortOrder     int             `json:"sortOrder" form:"sortOrder" gorm:"column:sort_order" validate:"omitempty,gte=1" example:"1"`
 	// No gorm default:true — a bool default makes an explicit false at insert
 	// collapse back to the column default (zero value is skipped).
 	Enabled   bool  `json:"enabled" form:"enabled" example:"true"`

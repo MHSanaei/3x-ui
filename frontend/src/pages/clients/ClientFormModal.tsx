@@ -34,6 +34,7 @@ import { HttpUtil, IntlUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
+import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
@@ -132,6 +133,7 @@ type Values = ClientFormValues & {
   wgAllowedIPs: string;
   awgAllowedIPs: string;
   awgForwardedPorts: string;
+  wgKeepAlive: number;
   secret: string;
   adTag: string;
 };
@@ -168,6 +170,7 @@ const EMPTY: Values = {
   wgAllowedIPs: '',
   awgAllowedIPs: '',
   awgForwardedPorts: '',
+  wgKeepAlive: 25,
   secret: '',
   adTag: '',
 };
@@ -378,6 +381,7 @@ export default function ClientFormModal({
         wgAllowedIPs: wgTunnelIPs ?? client.allowedIPs ?? '',
         awgAllowedIPs: awgTunnelIPs ?? client.allowedIPs ?? '',
         awgForwardedPorts: client.forwardedPorts || '',
+        wgKeepAlive: client.keepAlive ?? 0,
         secret: client.secret || '',
         adTag: client.adTag || '',
       };
@@ -693,6 +697,7 @@ export default function ClientFormModal({
       // so both protocols share this one field set — see wgPrivateKey etc.
       // below and the AmneziaWG-labeled variants of the same inputs.
       clientPayload.privateKey = values.wgPrivateKey;
+      clientPayload.keepAlive = values.wgKeepAlive;
       clientPayload.publicKey = values.wgPublicKey;
       if (values.wgPreSharedKey) {
         clientPayload.preSharedKey = values.wgPreSharedKey;
@@ -848,7 +853,7 @@ export default function ClientFormModal({
                             </Space.Compact>
                           </Form.Item>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <FormField
                             name="totalGB"
                             label={t('pages.clients.totalGB')}
@@ -858,7 +863,7 @@ export default function ClientFormModal({
                             <InputNumber min={0} step={1} style={{ width: '100%' }} />
                           </FormField>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <Form.Item
                             label={t('pages.clients.limitIp')}
                             tooltip={t('pages.clients.limitIpDesc')}
@@ -893,7 +898,7 @@ export default function ClientFormModal({
                             </Tooltip>
                           </Form.Item>
                         </Col>
-                        <Col xs={24} md={6}>
+                        <Col xs={24} md={12}>
                           <Form.Item
                             label={t('pages.clients.limitHwid')}
                             tooltip={t('pages.clients.limitHwidDesc')}
@@ -1271,6 +1276,14 @@ export default function ClientFormModal({
                               <Input placeholder="10.8.1.2/32" />
                             </FormField>
                           )}
+                          <FormField
+                            name="wgKeepAlive"
+                            label={t('pages.clients.tunnelKeepAlive')}
+                            extra={t('pages.clients.tunnelKeepAliveHint')}
+                            transform={{ output: (v) => Number(v) || 0 }}
+                          >
+                            <InputNumber min={0} max={65535} style={{ width: '100%' }} />
+                          </FormField>
                           {showAmneziawg && (
                             <FormField
                               name="awgForwardedPorts"
@@ -1370,17 +1383,22 @@ export default function ClientFormModal({
                                 <Controller
                                   control={methods.control}
                                   name={`externalLinks.${index}.expiryTime`}
-                                  render={({ field: expiryField }) => (
-                                    <DateTimePicker
-                                      value={
-                                        Number(expiryField.value) > 0
-                                          ? dayjs(Number(expiryField.value))
-                                          : null
-                                      }
-                                      onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                      placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
-                                    />
-                                  )}
+                                  render={({ field: expiryField }) => {
+                                    const displayedExpiry = resolveExternalLinkExpiry(
+                                      expiryField.value,
+                                      expiryDate,
+                                    );
+                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
+                                    return (
+                                      <DateTimePicker
+                                        value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
+                                        onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                        placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                        allowClear={hasSpecificExpiry}
+                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
+                                      />
+                                    );
+                                  }}
                                 />
                               </div>
                             </div>
@@ -1442,17 +1460,22 @@ export default function ClientFormModal({
                                 <Controller
                                   control={methods.control}
                                   name={`externalLinks.${index}.expiryTime`}
-                                  render={({ field: expiryField }) => (
-                                    <DateTimePicker
-                                      value={
-                                        Number(expiryField.value) > 0
-                                          ? dayjs(Number(expiryField.value))
-                                          : null
-                                      }
-                                      onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
-                                      placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
-                                    />
-                                  )}
+                                  render={({ field: expiryField }) => {
+                                    const displayedExpiry = resolveExternalLinkExpiry(
+                                      expiryField.value,
+                                      expiryDate,
+                                    );
+                                    const hasSpecificExpiry = Number(expiryField.value) > 0;
+                                    return (
+                                      <DateTimePicker
+                                        value={displayedExpiry > 0 ? dayjs(displayedExpiry) : null}
+                                        onChange={(v) => expiryField.onChange(v ? v.valueOf() : 0)}
+                                        placeholder={t('pages.inbounds.leaveBlankToNeverExpire')}
+                                        allowClear={hasSpecificExpiry}
+                                        maxDate={expiryDate > 0 ? dayjs(expiryDate) : undefined}
+                                      />
+                                    );
+                                  }}
                                 />
                               </div>
                               <Typography.Text

@@ -1,11 +1,14 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
+import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound';
 import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
 import { Wireguard } from '@/utils';
 import type { Sniffing, SniffingDest } from '@/schemas/primitives';
 import type { OutboundDomainStrategy } from '@/schemas/protocols/outbound';
 
 import type {
+  AmneziaWGOutboundFormSettings,
+  BlackholeOutboundFormSettings,
   DnsOutboundFormSettings,
   DnsRuleForm,
   FreedomFinalRuleForm,
@@ -243,6 +246,9 @@ function wireguardFromWire(raw: Raw): WireguardOutboundFormSettings {
       return (allowed.includes(s) ? s : '') as WireguardOutboundFormSettings['domainStrategy'];
     })(),
     reserved: reservedArr.join(','),
+    remoteDNS: asArray(raw.remoteDNS)
+      .map((x) => asString(x))
+      .join(','),
     peers,
     noKernelTun: asBool(raw.noKernelTun),
   };
@@ -322,10 +328,13 @@ function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
   };
 }
 
-function blackholeFromWire(raw: Raw) {
+function blackholeFromWire(raw: Raw): BlackholeOutboundFormSettings {
   const response = asObject(raw.response);
   const t = asString(response.type);
-  return { type: (t === 'none' || t === 'http' ? t : '') as '' | 'none' | 'http' };
+  return {
+    type: t === 'none' || t === 'http' || t === 'custom' ? t : '',
+    customResponseData: asString(response.customResponseData),
+  };
 }
 
 function dnsRuleFromWire(raw: unknown): DnsRuleForm {
@@ -368,6 +377,104 @@ function loopbackFromWire(raw: Raw): LoopbackOutboundFormSettings {
     inboundTag: asString(raw.inboundTag),
     sniffing: sniffingFromWire(raw.sniffing),
   };
+}
+
+function amneziawgPeerFromWire(p: unknown): AmneziaWGOutboundFormSettings['peers'][number] {
+  const pp = asObject(p);
+  const allowed = asArray(pp.allowedIPs).map((x) => asString(x));
+  return {
+    publicKey: asString(pp.publicKey),
+    presharedKey: asString(pp.presharedKey),
+    allowedIPs: allowed.length > 0 ? allowed : ['0.0.0.0/0', '::/0'],
+    endpoint: asString(pp.endpoint),
+    keepAlive: asNumber(pp.keepAlive, 0),
+  };
+}
+
+// The form state IS the wire shape; hydrate only to apply defaults for keys
+// an older template may omit.
+function amneziawgFromWire(raw: Raw): AmneziaWGOutboundFormSettings {
+  return AmneziaWGOutboundSettingsSchema.parse({
+    mtu: asNumber(raw.mtu, 0),
+    secretKey: asString(raw.secretKey),
+    address: asArray(raw.address).map((x) => asString(x)),
+    listenPort: asNumber(raw.listenPort, 0),
+    dns: asString(raw.dns),
+    jc: asNumber(raw.jc, 0),
+    jmin: asNumber(raw.jmin, 40),
+    jmax: asNumber(raw.jmax, 100),
+    s1: asNumber(raw.s1, 15),
+    s2: asNumber(raw.s2, 80),
+    s3: asNumber(raw.s3, 12),
+    s4: asNumber(raw.s4, 12),
+    h1: asString(raw.h1),
+    h2: asString(raw.h2),
+    h3: asString(raw.h3),
+    h4: asString(raw.h4),
+    i1: asString(raw.i1),
+    i2: asString(raw.i2),
+    i3: asString(raw.i3),
+    i4: asString(raw.i4),
+    i5: asString(raw.i5),
+    headerProtectionKey: asString(raw.headerProtectionKey),
+    contentPaddingAddition: asString(raw.contentPaddingAddition),
+    rekeyAfterTime: asString(raw.rekeyAfterTime),
+    rekeyTimeout: asString(raw.rekeyTimeout),
+    rejectAfterTime: asString(raw.rejectAfterTime),
+    keepaliveTimeout: asString(raw.keepaliveTimeout),
+    maxHandshakeAttempts: asString(raw.maxHandshakeAttempts),
+    randomTrailers: raw.randomTrailers === undefined ? false : asBool(raw.randomTrailers),
+    disableCookies: raw.disableCookies === undefined ? true : asBool(raw.disableCookies),
+    peers: asArray(raw.peers).map(amneziawgPeerFromWire),
+  });
+}
+
+function amneziawgToWire(s: AmneziaWGOutboundFormSettings): Raw {
+  const out: Raw = {
+    mtu: s.mtu || undefined,
+    secretKey: s.secretKey,
+    address: s.address,
+    jc: s.jc,
+    jmin: s.jmin,
+    jmax: s.jmax,
+    s1: s.s1,
+    s2: s.s2,
+    s3: s.s3,
+    s4: s.s4,
+    h1: s.h1,
+    h2: s.h2,
+    h3: s.h3,
+    h4: s.h4,
+    randomTrailers: s.randomTrailers,
+    disableCookies: s.disableCookies,
+    peers: s.peers.map((p) => ({
+      publicKey: p.publicKey,
+      presharedKey: p.presharedKey.length > 0 ? p.presharedKey : undefined,
+      allowedIPs: p.allowedIPs.length > 0 ? p.allowedIPs : undefined,
+      endpoint: p.endpoint,
+      keepAlive: p.keepAlive || undefined,
+    })),
+  };
+  if (s.listenPort > 0) out.listenPort = s.listenPort;
+  if (s.dns && s.dns.length > 0) out.dns = s.dns;
+  const optionalStrings = [
+    'i1',
+    'i2',
+    'i3',
+    'i4',
+    'i5',
+    'headerProtectionKey',
+    'contentPaddingAddition',
+    'rekeyAfterTime',
+    'rekeyTimeout',
+    'rejectAfterTime',
+    'keepaliveTimeout',
+    'maxHandshakeAttempts',
+  ] as const;
+  for (const k of optionalStrings) {
+    if (s[k].length > 0) out[k] = s[k];
+  }
+  return out;
 }
 
 function muxFromWire(raw: unknown): MuxForm {
@@ -449,6 +556,9 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
       break;
     case 'wireguard':
       typed = { protocol: 'wireguard', settings: wireguardFromWire(settings) };
+      break;
+    case 'amneziawg':
+      typed = { protocol: 'amneziawg', settings: amneziawgFromWire(settings) };
       break;
     case 'hysteria':
       typed = { protocol: 'hysteria', settings: hysteriaFromWire(settings) };
@@ -585,6 +695,12 @@ function wireguardToWire(s: WireguardOutboundFormSettings) {
           .map((x) => Number(x.trim()))
           .filter((n) => Number.isFinite(n))
       : undefined,
+    remoteDNS: s.remoteDNS
+      ? s.remoteDNS
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : undefined,
     peers: s.peers.map((p) => ({
       publicKey: p.publicKey,
       preSharedKey: p.psk.length > 0 ? p.psk : undefined,
@@ -631,8 +747,12 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
   };
 }
 
-function blackholeToWire(s: { type: '' | 'none' | 'http' }) {
-  return { response: s.type ? { type: s.type } : undefined };
+function blackholeToWire(s: BlackholeOutboundFormSettings) {
+  if (!s.type) return { response: undefined };
+  if (s.type === 'custom') {
+    return { response: { type: s.type, customResponseData: s.customResponseData } };
+  }
+  return { response: { type: s.type } };
 }
 
 function dnsRuleToWire(r: DnsRuleForm) {
@@ -735,6 +855,9 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
       break;
     case 'wireguard':
       settings = wireguardToWire(values.settings);
+      break;
+    case 'amneziawg':
+      settings = amneziawgToWire(values.settings);
       break;
     case 'hysteria':
       settings = hysteriaToWire(values.settings);
