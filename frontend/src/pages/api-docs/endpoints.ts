@@ -91,6 +91,14 @@ const outboundSubscriptionBodyParams: EndpointParam[] = [
     optional: true,
   },
   {
+    name: 'userAgent',
+    in: 'body (form)',
+    type: 'string',
+    desc: 'Custom User-Agent sent when fetching this subscription. Defaults to "3x-ui-outbound-sub/1.0".',
+    optional: true,
+    defaultValue: '3x-ui-outbound-sub/1.0',
+  },
+  {
     name: 'updateInterval',
     in: 'body (form)',
     type: 'integer',
@@ -2501,6 +2509,13 @@ export const sections: readonly Section[] = [
             in: 'body (form)',
             type: 'string',
             desc: 'Subscription URL to preview (required).',
+          },
+          {
+            name: 'userAgent',
+            in: 'body (form)',
+            type: 'string',
+            desc: 'Custom User-Agent sent while fetching the preview.',
+            optional: true,
           },
           {
             name: 'allowPrivate',

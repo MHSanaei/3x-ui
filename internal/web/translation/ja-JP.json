@@ -1788,6 +1788,7 @@
         "urlPlaceholder": "https://...（リンクのbase64リスト）",
         "tagPrefix": "タグのプレフィックス",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "更新間隔",
         "hours": "時間",
         "minutes": "分",

@@ -13569,6 +13569,11 @@
                     "type": "string",
                     "description": "Prefix for generated outbound tags. Defaults to the lowest free \"sub<N>-\" prefix."
                   },
+                  "userAgent": {
+                    "type": "string",
+                    "default": "3x-ui-outbound-sub/1.0",
+                    "description": "Custom User-Agent sent when fetching this subscription. Defaults to \"3x-ui-outbound-sub/1.0\"."
+                  },
                   "updateInterval": {
                     "type": "integer",
                     "default": 600,
@@ -13661,6 +13666,11 @@
                   "tagPrefix": {
                     "type": "string",
                     "description": "Prefix for generated outbound tags. Defaults to the lowest free \"sub<N>-\" prefix."
+                  },
+                  "userAgent": {
+                    "type": "string",
+                    "default": "3x-ui-outbound-sub/1.0",
+                    "description": "Custom User-Agent sent when fetching this subscription. Defaults to \"3x-ui-outbound-sub/1.0\"."
                   },
                   "updateInterval": {
                     "type": "integer",
@@ -13913,6 +13923,10 @@
                   "url": {
                     "type": "string",
                     "description": "Subscription URL to preview (required)."
+                  },
+                  "userAgent": {
+                    "type": "string",
+                    "description": "Custom User-Agent sent while fetching the preview."
                   },
                   "allowPrivate": {
                     "type": "boolean",
