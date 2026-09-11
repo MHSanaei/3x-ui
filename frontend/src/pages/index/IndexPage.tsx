@@ -357,7 +357,7 @@ export default function IndexPage() {
                 size={isMobile ? 'small' : 'middle'}
                 icon={<CloudDownloadOutlined />}
               >
-                {isMobile ? 'Download' : 'config.json'}
+                {isMobile ? t('download') : t('pages.index.configJson')}
               </Button>,
               <Button
                 key="copy"
@@ -366,7 +366,7 @@ export default function IndexPage() {
                 size={isMobile ? 'small' : 'middle'}
                 icon={<CopyOutlined />}
               >
-                Copy
+                {t('copy')}
               </Button>,
             ]}
           >

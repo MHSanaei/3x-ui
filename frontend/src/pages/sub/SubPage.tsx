@@ -203,7 +203,7 @@ export default function SubPage() {
     () => [
       {
         key: 'android-v2box',
-        label: 'V2Box',
+        label: t('subscription.apps.v2box'),
         onClick: () =>
           open(
             `v2box://install-sub?url=${encodeURIComponent(subUrl)}&name=${encodeURIComponent(sId)}`,
@@ -211,29 +211,61 @@ export default function SubPage() {
       },
       {
         key: 'android-v2rayng',
-        label: 'V2RayNG',
+        label: t('subscription.apps.v2rayng'),
         onClick: () => open(`v2rayng://install-config?url=${encodeURIComponent(subUrl)}`),
       },
-      { key: 'android-singbox', label: 'Sing-box', onClick: () => copy(subUrl) },
-      { key: 'android-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
-      { key: 'android-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
-      { key: 'android-happ', label: 'Happ', onClick: () => open(`happ://add/${subUrl}`) },
-      { key: 'android-incy', label: 'Incy', onClick: () => open(`incy://add/${subUrl}`) },
+      {
+        key: 'android-singbox',
+        label: t('subscription.apps.singbox'),
+        onClick: () => copy(subUrl),
+      },
+      {
+        key: 'android-v2raytun',
+        label: t('subscription.apps.v2raytun'),
+        onClick: () => copy(subUrl),
+      },
+      {
+        key: 'android-npvtunnel',
+        label: t('subscription.apps.npvTunnel'),
+        onClick: () => copy(subUrl),
+      },
+      {
+        key: 'android-happ',
+        label: t('subscription.apps.happ'),
+        onClick: () => open(`happ://add/${subUrl}`),
+      },
+      {
+        key: 'android-incy',
+        label: t('subscription.apps.incy'),
+        onClick: () => open(`incy://add/${subUrl}`),
+      },
     ],
-    [copy, open],
+    [copy, open, t],
   );
 
   const iosMenuItems = useMemo(
     () => [
-      { key: 'ios-shadowrocket', label: 'Shadowrocket', onClick: () => open(shadowrocketUrl) },
-      { key: 'ios-v2box', label: 'V2Box', onClick: () => open(v2boxUrl) },
-      { key: 'ios-streisand', label: 'Streisand', onClick: () => open(streisandUrl) },
-      { key: 'ios-v2raytun', label: 'V2RayTun', onClick: () => copy(subUrl) },
-      { key: 'ios-npvtunnel', label: 'NPV Tunnel', onClick: () => copy(subUrl) },
-      { key: 'ios-happ', label: 'Happ', onClick: () => open(happUrl) },
-      { key: 'ios-incy', label: 'Incy', onClick: () => open(incyUrl) },
+      {
+        key: 'ios-shadowrocket',
+        label: t('subscription.apps.shadowrocket'),
+        onClick: () => open(shadowrocketUrl),
+      },
+      { key: 'ios-v2box', label: t('subscription.apps.v2box'), onClick: () => open(v2boxUrl) },
+      {
+        key: 'ios-streisand',
+        label: t('subscription.apps.streisand'),
+        onClick: () => open(streisandUrl),
+      },
+      { key: 'ios-v2raytun', label: t('subscription.apps.v2raytun'), onClick: () => copy(subUrl) },
+      {
+        key: 'ios-npvtunnel',
+        label: t('subscription.apps.npvTunnel'),
+        onClick: () => copy(subUrl),
+      },
+      { key: 'ios-happ', label: t('subscription.apps.happ'), onClick: () => open(happUrl) },
+      { key: 'ios-incy', label: t('subscription.apps.incy'), onClick: () => open(incyUrl) },
     ],
-    [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl, incyUrl],
+    [copy, open, shadowrocketUrl, v2boxUrl, streisandUrl, happUrl, incyUrl, t],
   );
 
   const langMenuItems = useMemo(
@@ -338,7 +370,7 @@ export default function SubPage() {
                       {subUrl && (
                         <div className="sub-link-row">
                           <Tag color="green" className="sub-link-tag">
-                            SUB
+                            {t('subscription.tagSub')}
                           </Tag>
                           <a
                             href={subUrl}
@@ -380,8 +412,8 @@ export default function SubPage() {
                               <Button
                                 size="small"
                                 icon={<QrcodeOutlined />}
-                                aria-label="QR"
-                                title="QR"
+                                aria-label={t('subscription.qr')}
+                                title={t('subscription.qr')}
                               />
                             </Popover>
                           </div>
@@ -390,7 +422,7 @@ export default function SubPage() {
                       {subJsonUrl && (
                         <div className="sub-link-row">
                           <Tag color="purple" className="sub-link-tag">
-                            JSON
+                            {t('subscription.tagJson')}
                           </Tag>
                           <a
                             href={subJsonUrl}
@@ -441,8 +473,8 @@ export default function SubPage() {
                               <Button
                                 size="small"
                                 icon={<QrcodeOutlined />}
-                                aria-label="QR"
-                                title="QR"
+                                aria-label={t('subscription.qr')}
+                                title={t('subscription.qr')}
                               />
                             </Popover>
                           </div>
@@ -450,9 +482,9 @@ export default function SubPage() {
                       )}
                       {subClashUrl && (
                         <div className="sub-link-row">
-                          <Tooltip title="Clash / Mihomo">
+                          <Tooltip title={t('subscription.clashMihomo')}>
                             <Tag color="gold" className="sub-link-tag">
-                              CLASH
+                              {t('subscription.tagClash')}
                             </Tag>
                           </Tooltip>
                           <a
@@ -488,7 +520,7 @@ export default function SubPage() {
                               content={
                                 <div className="sub-link-qr-popover">
                                   <Tag color="gold" className="qr-tag">
-                                    Clash / Mihomo
+                                    {t('subscription.clashMihomo')}
                                   </Tag>
                                   <QRCode
                                     value={subClashUrl}
@@ -504,8 +536,8 @@ export default function SubPage() {
                               <Button
                                 size="small"
                                 icon={<QrcodeOutlined />}
-                                aria-label="QR"
-                                title="QR"
+                                aria-label={t('subscription.qr')}
+                                title={t('subscription.qr')}
                               />
                             </Popover>
                           </div>
@@ -581,8 +613,8 @@ export default function SubPage() {
                                     <Button
                                       size="small"
                                       icon={<QrcodeOutlined />}
-                                      aria-label="QR"
-                                      title="QR"
+                                      aria-label={t('subscription.qr')}
+                                      title={t('subscription.qr')}
                                     />
                                   </Popover>
                                 )}

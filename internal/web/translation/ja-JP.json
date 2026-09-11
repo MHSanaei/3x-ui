@@ -93,7 +93,23 @@
     "noExpiry": "期限なし",
     "copyAllConfigs": "すべての設定をコピー",
     "copyAllConfigsCopied": "すべての設定をコピーしました",
-    "email": "メール"
+    "email": "メール",
+    "tagSub": "SUB",
+    "tagJson": "JSON",
+    "tagClash": "CLASH",
+    "clashMihomo": "Clash / Mihomo",
+    "qr": "QR",
+    "apps": {
+      "v2box": "V2Box",
+      "v2rayng": "V2RayNG",
+      "singbox": "Sing-box",
+      "v2raytun": "V2RayTun",
+      "npvTunnel": "NPV Tunnel",
+      "happ": "Happ",
+      "incy": "Incy",
+      "shadowrocket": "Shadowrocket",
+      "streisand": "Streisand"
+    }
   },
   "menu": {
     "theme": "テーマ",
@@ -113,7 +129,8 @@
     "openMenu": "メニューを開く",
     "pinSidebar": "サイドバーを固定",
     "unpinSidebar": "サイドバーの固定を解除",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "dnsLabel": "DNS"
   },
   "pages": {
     "login": {
@@ -277,7 +294,19 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "このマシンの設定を保持する",
-      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。"
+      "importKeepHostSettingsDesc": "アップロードしたファイルの値ではなく、このパネルのリッスンアドレス、ポート、ベースパス、証明書、ノード ID を保持します。",
+      "os": "OS",
+      "tcp": "TCP",
+      "udp": "UDP",
+      "configJson": "config.json",
+      "sysLog": "SysLog",
+      "noRecord": "No Record...",
+      "accessDate": "Date",
+      "accessFrom": "From",
+      "accessTo": "To",
+      "accessInbound": "Inbound",
+      "accessOutbound": "Outbound",
+      "accessEmail": "Email"
     },
     "inbounds": {
       "totalDownUp": "総アップロード / ダウンロード",
@@ -675,7 +704,11 @@
           "node": "ノードアドレス",
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
-        }
+        },
+        "sni": "SNI",
+        "utls": "uTLS",
+        "alpn": "ALPN",
+        "ech": "ECH"
       },
       "info": {
         "mode": "モード",
@@ -694,7 +727,22 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "宛先のオーバーライド"
+      "sniffingDestOverride": "宛先のオーバーライド",
+      "inboundId": "ID",
+      "protocols": {
+        "vmess": "vmess",
+        "vless": "vless",
+        "trojan": "trojan",
+        "shadowsocks": "shadowsocks",
+        "wireguard": "wireguard",
+        "hysteria": "hysteria",
+        "http": "http",
+        "mixed": "mixed",
+        "tunnel": "tunnel",
+        "tun": "tun",
+        "mtproto": "mtproto",
+        "amneziawg": "amneziawg"
+      }
     },
     "clients": {
       "tabBasics": "基本",
@@ -1563,7 +1611,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "importRules": "ルールをインポート",
@@ -2381,5 +2428,6 @@
     "restartXray": "Xrayサービスを再起動",
     "restartXraySuccess": "Xrayサービスが正常に再起動されました",
     "settings": "設定"
-  }
+  },
+  "failed": "failed"
 }

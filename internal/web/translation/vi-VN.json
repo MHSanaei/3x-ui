@@ -93,7 +93,23 @@
     "noExpiry": "Không hết hạn",
     "copyAllConfigs": "Sao chép tất cả cấu hình",
     "copyAllConfigsCopied": "Đã sao chép tất cả cấu hình",
-    "email": "Email"
+    "email": "Email",
+    "tagSub": "SUB",
+    "tagJson": "JSON",
+    "tagClash": "CLASH",
+    "clashMihomo": "Clash / Mihomo",
+    "qr": "QR",
+    "apps": {
+      "v2box": "V2Box",
+      "v2rayng": "V2RayNG",
+      "singbox": "Sing-box",
+      "v2raytun": "V2RayTun",
+      "npvTunnel": "NPV Tunnel",
+      "happ": "Happ",
+      "incy": "Incy",
+      "shadowrocket": "Shadowrocket",
+      "streisand": "Streisand"
+    }
   },
   "menu": {
     "theme": "Chủ đề",
@@ -113,7 +129,8 @@
     "openMenu": "Mở menu",
     "pinSidebar": "Ghim thanh bên",
     "unpinSidebar": "Bỏ ghim thanh bên",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "dnsLabel": "DNS"
   },
   "pages": {
     "login": {
@@ -277,7 +294,19 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Giữ cài đặt của máy này",
-      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên."
+      "importKeepHostSettingsDesc": "Giữ nguyên địa chỉ lắng nghe, cổng, đường dẫn cơ sở, chứng chỉ và danh tính node của bảng điều khiển này thay vì lấy chúng từ tệp đã tải lên.",
+      "os": "OS",
+      "tcp": "TCP",
+      "udp": "UDP",
+      "configJson": "config.json",
+      "sysLog": "SysLog",
+      "noRecord": "No Record...",
+      "accessDate": "Date",
+      "accessFrom": "From",
+      "accessTo": "To",
+      "accessInbound": "Inbound",
+      "accessOutbound": "Outbound",
+      "accessEmail": "Email"
     },
     "inbounds": {
       "totalDownUp": "Tổng tải lên/tải xuống",
@@ -675,7 +704,11 @@
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",
           "custom": "Tùy chỉnh"
-        }
+        },
+        "sni": "SNI",
+        "utls": "uTLS",
+        "alpn": "ALPN",
+        "ech": "ECH"
       },
       "info": {
         "mode": "Chế độ",
@@ -694,7 +727,22 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Cấu hình Peer {n}"
       },
-      "sniffingDestOverride": "Ghi đè đích"
+      "sniffingDestOverride": "Ghi đè đích",
+      "inboundId": "ID",
+      "protocols": {
+        "vmess": "vmess",
+        "vless": "vless",
+        "trojan": "trojan",
+        "shadowsocks": "shadowsocks",
+        "wireguard": "wireguard",
+        "hysteria": "hysteria",
+        "http": "http",
+        "mixed": "mixed",
+        "tunnel": "tunnel",
+        "tun": "tun",
+        "mtproto": "mtproto",
+        "amneziawg": "amneziawg"
+      }
     },
     "clients": {
       "tabBasics": "Cơ bản",
@@ -1563,7 +1611,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "importRules": "Nhập quy tắc",
@@ -2381,5 +2428,6 @@
     "restartXray": "Khởi động lại dịch vụ Xray",
     "restartXraySuccess": "Dịch vụ Xray đã được khởi động lại thành công",
     "settings": "Cài đặt"
-  }
+  },
+  "failed": "failed"
 }

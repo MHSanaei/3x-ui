@@ -93,7 +93,23 @@
     "noExpiry": "بدون انتهاء",
     "copyAllConfigs": "نسخ جميع الإعدادات",
     "copyAllConfigsCopied": "تم نسخ جميع الإعدادات",
-    "email": "البريد"
+    "email": "البريد",
+    "tagSub": "SUB",
+    "tagJson": "JSON",
+    "tagClash": "CLASH",
+    "clashMihomo": "Clash / Mihomo",
+    "qr": "QR",
+    "apps": {
+      "v2box": "V2Box",
+      "v2rayng": "V2RayNG",
+      "singbox": "Sing-box",
+      "v2raytun": "V2RayTun",
+      "npvTunnel": "NPV Tunnel",
+      "happ": "Happ",
+      "incy": "Incy",
+      "shadowrocket": "Shadowrocket",
+      "streisand": "Streisand"
+    }
   },
   "menu": {
     "theme": "الثيم",
@@ -113,7 +129,8 @@
     "openMenu": "فتح القائمة",
     "pinSidebar": "تثبيت الشريط الجانبي",
     "unpinSidebar": "إلغاء تثبيت الشريط الجانبي",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "dnsLabel": "DNS"
   },
   "pages": {
     "login": {
@@ -277,7 +294,19 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "الاحتفاظ بإعدادات هذا الجهاز",
-      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع."
+      "importKeepHostSettingsDesc": "يحتفظ بعناوين الاستماع والمنافذ والمسار الأساسي والشهادات وهوية العقدة الخاصة بهذه اللوحة بدلًا من أخذها من الملف المرفوع.",
+      "os": "OS",
+      "tcp": "TCP",
+      "udp": "UDP",
+      "configJson": "config.json",
+      "sysLog": "SysLog",
+      "noRecord": "No Record...",
+      "accessDate": "Date",
+      "accessFrom": "From",
+      "accessTo": "To",
+      "accessInbound": "Inbound",
+      "accessOutbound": "Outbound",
+      "accessEmail": "Email"
     },
     "inbounds": {
       "totalDownUp": "إجمالي المرسل/المستقبل",
@@ -675,7 +704,11 @@
         "bytesPerSec": "بايت في الثانية",
         "bytesPerSecTip": "حد السرعة (بايت/ثانية) المطبّق على مرور الـ fallback بعد العتبة، عشان الفحوصات ماتقدرش تستخدم سيرفرك كنطاق ترددي مجاني للهدف. 0 = بلا حد (بيعطّل الاتجاه ده).",
         "burstBytesPerSec": "بايت في الثانية للدفقة",
-        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه."
+        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه.",
+        "sni": "SNI",
+        "utls": "uTLS",
+        "alpn": "ALPN",
+        "ech": "ECH"
       },
       "info": {
         "mode": "الوضع",
@@ -694,7 +727,22 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "تكوين Peer {n}"
       },
-      "sniffingDestOverride": "تجاوز الوجهة"
+      "sniffingDestOverride": "تجاوز الوجهة",
+      "inboundId": "ID",
+      "protocols": {
+        "vmess": "vmess",
+        "vless": "vless",
+        "trojan": "trojan",
+        "shadowsocks": "shadowsocks",
+        "wireguard": "wireguard",
+        "hysteria": "hysteria",
+        "http": "http",
+        "mixed": "mixed",
+        "tunnel": "tunnel",
+        "tun": "tun",
+        "mtproto": "mtproto",
+        "amneziawg": "amneziawg"
+      }
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -1563,7 +1611,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "احفظ",
@@ -2381,5 +2428,6 @@
     "restartXray": "إعادة تشغيل خدمة Xray",
     "restartXraySuccess": "تمت إعادة تشغيل خدمة Xray بنجاح",
     "settings": "الإعدادات"
-  }
+  },
+  "failed": "failed"
 }

@@ -93,7 +93,23 @@
     "noExpiry": "Tanpa kedaluwarsa",
     "copyAllConfigs": "Salin Semua Konfigurasi",
     "copyAllConfigsCopied": "Semua konfigurasi tersalin",
-    "email": "Email"
+    "email": "Email",
+    "tagSub": "SUB",
+    "tagJson": "JSON",
+    "tagClash": "CLASH",
+    "clashMihomo": "Clash / Mihomo",
+    "qr": "QR",
+    "apps": {
+      "v2box": "V2Box",
+      "v2rayng": "V2RayNG",
+      "singbox": "Sing-box",
+      "v2raytun": "V2RayTun",
+      "npvTunnel": "NPV Tunnel",
+      "happ": "Happ",
+      "incy": "Incy",
+      "shadowrocket": "Shadowrocket",
+      "streisand": "Streisand"
+    }
   },
   "menu": {
     "theme": "Tema",
@@ -113,7 +129,8 @@
     "openMenu": "Buka menu",
     "pinSidebar": "Sematkan bilah sisi",
     "unpinSidebar": "Lepas sematan bilah sisi",
-    "subFormats": "Sub Formats"
+    "subFormats": "Sub Formats",
+    "dnsLabel": "DNS"
   },
   "pages": {
     "login": {
@@ -277,7 +294,19 @@
       "accessBlocked": "BLOCKED",
       "accessProxy": "PROXY",
       "importKeepHostSettings": "Pertahankan pengaturan mesin ini",
-      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah."
+      "importKeepHostSettingsDesc": "Mempertahankan alamat dengar, port, path dasar, sertifikat, dan identitas node panel ini alih-alih mengambilnya dari berkas yang diunggah.",
+      "os": "OS",
+      "tcp": "TCP",
+      "udp": "UDP",
+      "configJson": "config.json",
+      "sysLog": "SysLog",
+      "noRecord": "No Record...",
+      "accessDate": "Date",
+      "accessFrom": "From",
+      "accessTo": "To",
+      "accessInbound": "Inbound",
+      "accessOutbound": "Outbound",
+      "accessEmail": "Email"
     },
     "inbounds": {
       "totalDownUp": "Total Terkirim/Diterima",
@@ -675,7 +704,11 @@
         "bytesPerSec": "Byte per detik",
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
-        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama."
+        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
+        "sni": "SNI",
+        "utls": "uTLS",
+        "alpn": "ALPN",
+        "ech": "ECH"
       },
       "info": {
         "mode": "Mode",
@@ -694,7 +727,22 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Konfig Peer {n}"
       },
-      "sniffingDestOverride": "Penggantian tujuan"
+      "sniffingDestOverride": "Penggantian tujuan",
+      "inboundId": "ID",
+      "protocols": {
+        "vmess": "vmess",
+        "vless": "vless",
+        "trojan": "trojan",
+        "shadowsocks": "shadowsocks",
+        "wireguard": "wireguard",
+        "hysteria": "hysteria",
+        "http": "http",
+        "mixed": "mixed",
+        "tunnel": "tunnel",
+        "tun": "tun",
+        "mtproto": "mtproto",
+        "amneziawg": "amneziawg"
+      }
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -1563,7 +1611,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "Simpan",
@@ -2381,5 +2428,6 @@
     "restartXray": "Mulai Ulang Layanan Xray",
     "restartXraySuccess": "Layanan Xray berhasil dimulai ulang",
     "settings": "Pengaturan"
-  }
+  },
+  "failed": "failed"
 }

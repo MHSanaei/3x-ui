@@ -93,7 +93,23 @@
     "noExpiry": "Без строку",
     "copyAllConfigs": "Копіювати всі конфігурації",
     "copyAllConfigsCopied": "Всі конфігурації скопійовано",
-    "email": "Email"
+    "email": "Email",
+    "tagSub": "SUB",
+    "tagJson": "JSON",
+    "tagClash": "CLASH",
+    "clashMihomo": "Clash / Mihomo",
+    "qr": "QR",
+    "apps": {
+      "v2box": "V2Box",
+      "v2rayng": "V2RayNG",
+      "singbox": "Sing-box",
+      "v2raytun": "V2RayTun",
+      "npvTunnel": "NPV Tunnel",
+      "happ": "Happ",
+      "incy": "Incy",
+      "shadowrocket": "Shadowrocket",
+      "streisand": "Streisand"
+    }
   },
   "menu": {
     "theme": "Тема",
@@ -113,7 +129,8 @@
     "openMenu": "Відкрити меню",
     "pinSidebar": "Закріпити бічну панель",
     "unpinSidebar": "Відкріпити бічну панель",
-    "subFormats": "Формати підписки"
+    "subFormats": "Формати підписки",
+    "dnsLabel": "DNS"
   },
   "pages": {
     "login": {
@@ -277,7 +294,19 @@
       "accessBlocked": "ЗАБЛОКОВАНО",
       "accessProxy": "ЧЕРЕЗ ПРОКСІ",
       "importKeepHostSettings": "Зберегти налаштування цієї машини",
-      "importKeepHostSettingsDesc": "Залишає адреси та порти цієї панелі, базовий шлях, сертифікати та посвідчення для вузлів замість тих, що у завантаженому файлі."
+      "importKeepHostSettingsDesc": "Залишає адреси та порти цієї панелі, базовий шлях, сертифікати та посвідчення для вузлів замість тих, що у завантаженому файлі.",
+      "os": "OS",
+      "tcp": "TCP",
+      "udp": "UDP",
+      "configJson": "config.json",
+      "sysLog": "SysLog",
+      "noRecord": "No Record...",
+      "accessDate": "Date",
+      "accessFrom": "From",
+      "accessTo": "To",
+      "accessInbound": "Inbound",
+      "accessOutbound": "Outbound",
+      "accessEmail": "Email"
     },
     "inbounds": {
       "totalDownUp": "Всього надісланих/отриманих",
@@ -675,7 +704,11 @@
           "node": "Адреса вузла",
           "listen": "Адреса прослуховування inbound",
           "custom": "Користувацька"
-        }
+        },
+        "sni": "SNI",
+        "utls": "uTLS",
+        "alpn": "ALPN",
+        "ech": "ECH"
       },
       "info": {
         "mode": "Режим",
@@ -694,7 +727,22 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Конфіг Peer {n}"
       },
-      "sniffingDestOverride": "Перевизначення призначення"
+      "sniffingDestOverride": "Перевизначення призначення",
+      "inboundId": "ID",
+      "protocols": {
+        "vmess": "vmess",
+        "vless": "vless",
+        "trojan": "trojan",
+        "shadowsocks": "shadowsocks",
+        "wireguard": "wireguard",
+        "hysteria": "hysteria",
+        "http": "http",
+        "mixed": "mixed",
+        "tunnel": "tunnel",
+        "tun": "tun",
+        "mtproto": "mtproto",
+        "amneziawg": "amneziawg"
+      }
     },
     "clients": {
       "tabBasics": "Основні",
@@ -1563,7 +1611,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "Зберегти",
@@ -2381,5 +2428,6 @@
     "restartXray": "Перезапустити службу Xray",
     "restartXraySuccess": "Службу Xray успішно перезапущено",
     "settings": "Налаштування"
-  }
+  },
+  "failed": "failed"
 }

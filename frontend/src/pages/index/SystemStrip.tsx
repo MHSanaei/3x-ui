@@ -31,14 +31,14 @@ export default function SystemStrip({ status, showIp, onToggleIp }: SystemStripP
           </div>
           <div className="ov-strip-split">
             <div>
-              <div className="ov-strip-sub">Xray</div>
+              <div className="ov-strip-sub">{t('pages.index.xrayStatus')}</div>
               <div className="ov-strip-value">
                 {TimeFormatter.formatSecond(status.appStats.uptime)}
               </div>
             </div>
             <span className="ov-strip-split-sep" />
             <div>
-              <div className="ov-strip-sub">OS</div>
+              <div className="ov-strip-sub">{t('pages.index.os')}</div>
               <div className="ov-strip-value">{TimeFormatter.formatSecond(status.uptime)}</div>
             </div>
           </div>

@@ -94,7 +94,7 @@ export default function RealityForm({
       </FormField>
       <FormField
         name={['streamSettings', 'realitySettings', 'settings', 'fingerprint']}
-        label="uTLS"
+        label={t('pages.inbounds.form.utls')}
       >
         <Select options={Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp }))} />
       </FormField>
@@ -147,7 +147,9 @@ export default function RealityForm({
                     {scanResult.host || '—'}
                   </Descriptions.Item>
                   <Descriptions.Item label="TLS">{scanResult.tlsVersion || '—'}</Descriptions.Item>
-                  <Descriptions.Item label="ALPN">{scanResult.alpn || '—'}</Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.alpn')}>
+                    {scanResult.alpn || '—'}
+                  </Descriptions.Item>
                   <Descriptions.Item label={t('pages.inbounds.form.scanCurve')}>
                     {scanResult.curveID || '—'}
                   </Descriptions.Item>
@@ -168,7 +170,10 @@ export default function RealityForm({
           />
         </Form.Item>
       )}
-      <FormField label="SNI" name={['streamSettings', 'realitySettings', 'serverNames']}>
+      <FormField
+        label={t('pages.inbounds.form.sni')}
+        name={['streamSettings', 'realitySettings', 'serverNames']}
+      >
         <Select mode="tags" tokenSeparators={[',']} style={{ width: '100%' }} />
       </FormField>
       <FormField
