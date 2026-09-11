@@ -1394,6 +1394,11 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	}); err != nil {
 		return needRestart, err
 	}
+	// Record deletion intent before the remote push so a selected-mode
+	// reconcile can finish the sweep if the node was unreachable (#6329).
+	if loadErr == nil && ib.NodeID != nil {
+		tombstoneNodeInboundTag(*ib.NodeID, ib.Tag)
+	}
 	if postCommitApply != nil {
 		postCommitApply()
 	}

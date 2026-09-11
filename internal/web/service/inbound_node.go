@@ -23,6 +23,75 @@ var reportedRemoteTagConflict sync.Map
 
 var reportedForeignClientClaim sync.Map
 
+// Short-lived tombstones for node inbound tags the panel just deleted. In
+// "selected" sync mode a selected tag with no central row is otherwise
+// ambiguous: either the operator just picked it for import, or DelInbound
+// removed the central row while the node was unreachable. Only the latter
+// leaves a tombstone, so ReconcileNode can finish the remote delete without
+// wiping a pending import (#6329).
+var (
+	recentlyDeletedNodeInboundMu sync.Mutex
+	recentlyDeletedNodeInbound   = map[string]time.Time{}
+)
+
+func nodeInboundTombstoneKey(nodeID int, tag string) string {
+	return fmt.Sprintf("%d\x00%s", nodeID, tag)
+}
+
+func tombstoneNodeInboundTag(nodeID int, tag string) {
+	if nodeID <= 0 || tag == "" {
+		return
+	}
+	now := time.Now()
+	cutoff := now.Add(-deleteTombstoneTTL)
+	recentlyDeletedNodeInboundMu.Lock()
+	defer recentlyDeletedNodeInboundMu.Unlock()
+	mark := func(t string) {
+		if t != "" {
+			recentlyDeletedNodeInbound[nodeInboundTombstoneKey(nodeID, t)] = now
+		}
+	}
+	mark(tag)
+	prefix := nodeTagPrefix(&nodeID)
+	if prefix != "" {
+		if stripped, found := strings.CutPrefix(tag, prefix); found {
+			mark(stripped)
+		} else {
+			mark(prefix + tag)
+		}
+	}
+	for k, ts := range recentlyDeletedNodeInbound {
+		if ts.Before(cutoff) {
+			delete(recentlyDeletedNodeInbound, k)
+		}
+	}
+}
+
+func isNodeInboundTagTombstoned(nodeID int, tag string) bool {
+	if nodeID <= 0 || tag == "" {
+		return false
+	}
+	recentlyDeletedNodeInboundMu.Lock()
+	defer recentlyDeletedNodeInboundMu.Unlock()
+	key := nodeInboundTombstoneKey(nodeID, tag)
+	ts, ok := recentlyDeletedNodeInbound[key]
+	if !ok {
+		return false
+	}
+	if time.Since(ts) > deleteTombstoneTTL {
+		delete(recentlyDeletedNodeInbound, key)
+		return false
+	}
+	return true
+}
+
+func clearNodeInboundTagTombstones() {
+	recentlyDeletedNodeInboundMu.Lock()
+	defer recentlyDeletedNodeInboundMu.Unlock()
+	recentlyDeletedNodeInbound = map[string]time.Time{}
+}
+
+
 // nodeBulkPushThreshold caps how many per-client RPCs a single operation will
 // stream to a remote node. Above it, the panel marks the node dirty instead and
 // lets one ReconcileNode push converge the whole inbound — far cheaper than M
@@ -179,8 +248,10 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 	}
 	// In "selected" sync mode the panel only manages the selected tags: the
 	// rest were never imported, so their absence from the local DB must not
-	// delete them from the node. Only a selected tag missing locally (the
-	// panel deleted it while the node was unreachable) may be swept.
+	// delete them from the node. A selected tag missing locally is either a
+	// pending import (just selected, never held a central row) or a real
+	// deletion (DelInbound left a tombstone while the node was unreachable);
+	// only the latter may be swept (#6329).
 	selected := nodeSelectedTagSet(n)
 	for _, tag := range remoteTags {
 		if _, want := desiredTags[tag]; want {
@@ -188,6 +259,9 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 		}
 		if selected != nil {
 			if _, managed := selected[tag]; !managed {
+				continue
+			}
+			if !isNodeInboundTagTombstoned(nodeID, tag) {
 				continue
 			}
 		}
