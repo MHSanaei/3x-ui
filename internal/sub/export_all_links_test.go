@@ -23,6 +23,16 @@ func TestInboundLinks_RemarkTemplateClientTokens(t *testing.T) {
 	if err := db.Create(ib).Error; err != nil {
 		t.Fatalf("seed inbound: %v", err)
 	}
+	client := &model.ClientRecord{
+		Email: "john@e", SubID: "subABC", UUID: "11111111-2222-4333-8444-000000000001",
+		Enable: true, Comment: "vip", TgID: 777,
+	}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbound: %v", err)
+	}
 
 	svc := NewSubService("{{INBOUND}}-{{EMAIL}}-{{COMMENT}}-{{SUB_ID}}-{{TELEGRAM_ID}}-{{SHORT_ID}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D")
 	svc.PrepareForRequest("req.example.com")
@@ -39,5 +49,43 @@ func TestInboundLinks_RemarkTemplateClientTokens(t *testing.T) {
 	}
 	if strings.Contains(frag, "GB") || strings.ContainsRune(frag, '⏳') {
 		t.Fatalf("display mode must drop the traffic/expiry segments: %s", frag)
+	}
+}
+
+// inboundLinks must use the clients-table UUID when the inbound settings JSON
+// still embeds a stale id (#6436).
+func TestInboundLinks_UsesClientsTableUUIDWhenSettingsStale(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+	stale := "11111111-1111-1111-1111-111111111111"
+	fresh := "22222222-2222-2222-2222-222222222222"
+	settings := `{"clients":[{"id":"` + stale + `","email":"stale@e","subId":"subStale","enable":true}],"decryption":"none"}`
+	ib := &model.Inbound{
+		UserId: 1, Tag: "stale-uuid", Enable: true, Listen: "203.0.113.5", Port: 4432,
+		Protocol: model.VLESS, Remark: "Stale", Settings: settings,
+		StreamSettings: `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	client := &model.ClientRecord{Email: "stale@e", SubID: "subStale", UUID: fresh, Enable: true}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbound: %v", err)
+	}
+
+	svc := NewSubService("{{EMAIL}}")
+	svc.PrepareForRequest("req.example.com")
+	links := svc.inboundLinks(ib)
+	if len(links) != 1 {
+		t.Fatalf("links = %d, want 1: %v", len(links), links)
+	}
+	if !strings.Contains(links[0], fresh) {
+		t.Fatalf("link missing fresh UUID %q: %s", fresh, links[0])
+	}
+	if strings.Contains(links[0], stale) {
+		t.Fatalf("link still carries stale settings UUID %q: %s", stale, links[0])
 	}
 }

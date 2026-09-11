@@ -460,10 +460,11 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 // inboundLinks builds the share links for every distinct client of one inbound
 // the same way getSubs does — managed Host endpoints win over the plain link so
 // {{HOST}} and per-host variants render — but across all clients rather than a
-// single subId. Dedups duplicate client JSON entries by email (#5134). Backs the
-// panel's "Export all inbound links" so it matches the client/QR pages.
+// single subId. Resolves clients from the clients table (not the embedded
+// settings JSON) so UUIDs match the running Xray config (#6436). Dedups by
+// email (#5134). Backs the panel's "Export all inbound links".
 func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
-	clients, err := s.inboundService.GetClients(inbound)
+	clients, err := s.inboundService.ListClientsForInbound(inbound.Id)
 	if err != nil {
 		return nil
 	}
