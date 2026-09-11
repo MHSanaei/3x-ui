@@ -386,8 +386,6 @@ install_tuic_server() {
     mkdir -p "${xui_folder}/bin"
     if curl -fLR --connect-timeout 15 --retry 3 -o "${xui_folder}/bin/tuic-server" "${tuic_url}" && [[ -s "${xui_folder}/bin/tuic-server" ]]; then
         chmod +x "${xui_folder}/bin/tuic-server"
-        cp -f "${xui_folder}/bin/tuic-server" /usr/local/bin/tuic-server 2>/dev/null || true
-        chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
         echo -e "${green}tuic-server installed successfully${plain}"
     else
         rm -f "${xui_folder}/bin/tuic-server"
