@@ -531,4 +531,3 @@ func TestSubJsonServiceSkipsTUIC(t *testing.T) {
 		t.Fatalf("getConfig emitted %d unsupported TUIC Xray config(s)", len(got))
 	}
 }
-

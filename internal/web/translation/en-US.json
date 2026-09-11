@@ -2088,6 +2088,7 @@
         "udpRelayMode": "UDP Relay Mode",
         "zeroRttHandshake": "Zero-RTT Handshake",
         "logLevel": "Log Level",
+        "logLevelHint": "Online status, last online and \"start after first use\" are read from the sidecar's Info lines; Warn or Error turns them off for this inbound.",
         "maxIdleTime": "Max Idle Time (s)",
         "authTimeout": "Auth Timeout (s)",
         "maxUdpRelayPacketSize": "Max UDP Packet Size",

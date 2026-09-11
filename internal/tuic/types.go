@@ -3,6 +3,7 @@ package tuic
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"slices"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ func (inst Instance) BindTo() string {
 	if listen == "" {
 		listen = "0.0.0.0"
 	}
-	return fmt.Sprintf("%s:%d", listen, inst.Port)
+	return net.JoinHostPort(listen, strconv.Itoa(inst.Port))
 }
 
 func (inst Instance) StructuralFingerprint() string {

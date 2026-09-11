@@ -1970,6 +1970,7 @@
         "udpRelayMode": "حالت رله UDP",
         "zeroRttHandshake": "دست دادن 0-RTT",
         "logLevel": "سطح گزارش",
+        "logLevelHint": "وضعیت آنلاین، آخرین اتصال و «شروع پس از اولین استفاده» از خطوط Info سایدکار خوانده می‌شوند؛ Warn یا Error آن‌ها را برای این اینباند غیرفعال می‌کند.",
         "maxIdleTime": "حداکثر زمان بیکاری (ثانیه)",
         "authTimeout": "مهلت زمانی احراز هویت (ثانیه)",
         "maxUdpRelayPacketSize": "حداکثر اندازه بسته UDP",

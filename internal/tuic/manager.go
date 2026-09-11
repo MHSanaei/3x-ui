@@ -2,6 +2,8 @@ package tuic
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 
 type managed struct {
 	proc         *Process
+	relay        *udpRelay
 	tag          string
 	configPath   string
 	structuralFP string
@@ -63,16 +66,6 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		return nil
 	}
 
-	configBytes, err := GenerateConfig(inst)
-	if err != nil {
-		return fmt.Errorf("tuic: generate config for %d: %w", inst.Id, err)
-	}
-
-	configPath, err := WriteConfigFile(inst.Id, configBytes)
-	if err != nil {
-		return fmt.Errorf("tuic: write config for %d: %w", inst.Id, err)
-	}
-
 	structuralFP := inst.StructuralFingerprint()
 	usersFP := inst.UsersFingerprint()
 
@@ -83,20 +76,20 @@ func (m *Manager) ensureLocked(inst Instance) error {
 		}
 	}
 
-	existing, ok := m.procs[inst.Id]
-	if ok && existing != nil && existing.proc != nil && existing.proc.IsRunning() {
-		if existing.structuralFP == structuralFP && existing.usersFP == usersFP {
+	if existing, ok := m.procs[inst.Id]; ok && existing != nil {
+		if existing.proc != nil && existing.proc.IsRunning() &&
+			existing.structuralFP == structuralFP && existing.usersFP == usersFP {
 			existing.proc.UpdateClients(uuidToEmail)
 			return nil
 		}
-		_ = existing.proc.Stop()
+		stopManaged(existing)
+		delete(m.procs, inst.Id)
 	}
 
-	proc := newProcess(configPath, inst.Tag, uuidToEmail)
-	if err := proc.Start(); err != nil {
-		errStr := err.Error()
-		if m.lastStartErr[inst.Id] != errStr {
-			m.lastStartErr[inst.Id] = errStr
+	proc, relay, configPath, err := m.startLocked(inst, uuidToEmail)
+	if err != nil {
+		if m.lastStartErr[inst.Id] != err.Error() {
+			m.lastStartErr[inst.Id] = err.Error()
 			logger.Warningf("tuic: failed to start tuic-server for inbound %d (%s): %v", inst.Id, inst.Tag, err)
 		}
 		return err
@@ -105,12 +98,46 @@ func (m *Manager) ensureLocked(inst Instance) error {
 
 	m.procs[inst.Id] = &managed{
 		proc:         proc,
+		relay:        relay,
 		tag:          inst.Tag,
 		configPath:   configPath,
 		structuralFP: structuralFP,
 		usersFP:      usersFP,
 	}
 	return nil
+}
+
+func (m *Manager) startLocked(inst Instance, uuidToEmail map[string]string) (*Process, *udpRelay, string, error) {
+	port, err := freeLoopbackUDPPort()
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("tuic: pick sidecar port for %d: %w", inst.Id, err)
+	}
+	upstream := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: port}
+	configBytes, err := GenerateConfig(inst, net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("tuic: generate config for %d: %w", inst.Id, err)
+	}
+	configPath, err := WriteConfigFile(inst.Id, configBytes)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("tuic: write config for %d: %w", inst.Id, err)
+	}
+	relay, err := startUDPRelay(inst.BindTo(), upstream, relayFlowIdle)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("tuic: listen on %s for %d: %w", inst.BindTo(), inst.Id, err)
+	}
+	proc := newProcess(configPath, inst.Tag, uuidToEmail)
+	if err := proc.Start(); err != nil {
+		relay.Close()
+		return nil, nil, "", err
+	}
+	return proc, relay, configPath, nil
+}
+
+func stopManaged(mg *managed) {
+	if mg.proc != nil && mg.proc.IsRunning() {
+		_ = mg.proc.Stop()
+	}
+	mg.relay.Close()
 }
 
 func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
@@ -141,8 +168,8 @@ func (m *Manager) CollectTraffic() []InboundTrafficDelta {
 	defer m.mu.Unlock()
 	var out []InboundTrafficDelta
 	for _, mg := range m.procs {
-		if mg.proc != nil && mg.proc.IsRunning() {
-			deltaUp, deltaDown := mg.proc.CollectTraffic()
+		if mg.relay != nil && mg.proc != nil && mg.proc.IsRunning() {
+			deltaUp, deltaDown := mg.relay.CollectTraffic()
 			if deltaUp > 0 || deltaDown > 0 {
 				out = append(out, InboundTrafficDelta{
 					Tag:  mg.tag,
@@ -163,9 +190,7 @@ func (m *Manager) Remove(id int) {
 
 func (m *Manager) removeLocked(id int) {
 	if existing, ok := m.procs[id]; ok && existing != nil {
-		if existing.proc != nil && existing.proc.IsRunning() {
-			_ = existing.proc.Stop()
-		}
+		stopManaged(existing)
 		_ = RemoveConfigFile(id)
 		delete(m.procs, id)
 		delete(m.lastStartErr, id)
@@ -196,9 +221,7 @@ func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, mg := range m.procs {
-		if mg.proc != nil && mg.proc.IsRunning() {
-			_ = mg.proc.Stop()
-		}
+		stopManaged(mg)
 		_ = RemoveConfigFile(id)
 	}
 	m.procs = make(map[int]*managed)

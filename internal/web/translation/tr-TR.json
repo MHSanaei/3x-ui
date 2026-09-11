@@ -1970,6 +1970,7 @@
         "udpRelayMode": "UDP İletim Modu",
         "zeroRttHandshake": "0-RTT El Sıkışması",
         "logLevel": "Günlük Seviyesi",
+        "logLevelHint": "Çevrimiçi durumu, son görülme ve \"ilk kullanımdan sonra başlat\" sidecar'ın Info satırlarından okunur; Warn veya Error bunları bu inbound için kapatır.",
         "maxIdleTime": "Maksimum Boşta Kalma Süresi (sn)",
         "authTimeout": "Kimlik Doğrulama Zaman Aşımı (sn)",
         "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",

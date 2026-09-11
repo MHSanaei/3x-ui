@@ -1970,6 +1970,7 @@
         "udpRelayMode": "Modo de retransmisión UDP",
         "zeroRttHandshake": "Apretón de manos 0-RTT",
         "logLevel": "Nivel de registro",
+        "logLevelHint": "El estado en línea, la última conexión y «iniciar tras el primer uso» se leen de las líneas Info del sidecar; Warn o Error los desactivan para este inbound.",
         "maxIdleTime": "Tiempo máx. de inactividad (s)",
         "authTimeout": "Tiempo de espera de autenticación (s)",
         "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",

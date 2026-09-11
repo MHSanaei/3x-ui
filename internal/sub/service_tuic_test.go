@@ -188,4 +188,3 @@ func TestBuildTuicProxy_ExternalProxyOverrides(t *testing.T) {
 		t.Fatalf("skip-cert-verify = %v, want true", proxy["skip-cert-verify"])
 	}
 }
-

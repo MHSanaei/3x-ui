@@ -23,7 +23,9 @@ type ServerConfig struct {
 	MaxExternalPacketSize int               `json:"max_external_packet_size,omitempty"`
 }
 
-func GenerateConfig(inst Instance) ([]byte, error) {
+// bind is where the sidecar itself listens: a loopback port behind the
+// panel's relay, never the inbound's public address (see udpRelay).
+func GenerateConfig(inst Instance, bind string) ([]byte, error) {
 	users := make(map[string]string, len(inst.Clients))
 	for _, c := range inst.Clients {
 		if c.UUID != "" && c.Password != "" {
@@ -47,7 +49,7 @@ func GenerateConfig(inst Instance) ([]byte, error) {
 	}
 
 	cfg := ServerConfig{
-		Server:                inst.BindTo(),
+		Server:                bind,
 		Users:                 users,
 		Certificate:           inst.Certificate,
 		PrivateKey:            inst.PrivateKey,

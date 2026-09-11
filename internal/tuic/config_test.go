@@ -26,7 +26,7 @@ func TestGenerateConfig(t *testing.T) {
 		},
 	}
 
-	data, err := GenerateConfig(inst)
+	data, err := GenerateConfig(inst, "127.0.0.1:4433")
 	if err != nil {
 		t.Fatalf("GenerateConfig error: %v", err)
 	}
@@ -36,8 +36,8 @@ func TestGenerateConfig(t *testing.T) {
 		t.Fatalf("Unmarshal error: %v", err)
 	}
 
-	if parsed["server"] != "0.0.0.0:8443" {
-		t.Fatalf("expected server 0.0.0.0:8443, got %v", parsed["server"])
+	if parsed["server"] != "127.0.0.1:4433" {
+		t.Fatalf("expected the sidecar bound to the relay's loopback port, got %v", parsed["server"])
 	}
 	if parsed["certificate"] != "/etc/ssl/cert.pem" || parsed["private_key"] != "/etc/ssl/key.pem" {
 		t.Fatalf("unexpected cert/key in json: %v", parsed)
@@ -72,7 +72,7 @@ func TestGenerateConfigLogLevel(t *testing.T) {
 			Listen:   "0.0.0.0",
 			LogLevel: tc.input,
 		}
-		data, err := GenerateConfig(inst)
+		data, err := GenerateConfig(inst, "127.0.0.1:4433")
 		if err != nil {
 			t.Fatalf("GenerateConfig error for %s: %v", tc.input, err)
 		}

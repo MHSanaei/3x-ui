@@ -1970,6 +1970,7 @@
         "udpRelayMode": "وضع ترحيل UDP",
         "zeroRttHandshake": "مصافحة 0-RTT",
         "logLevel": "مستوى السجل",
+        "logLevelHint": "يتم استنتاج حالة الاتصال وآخر ظهور و«البدء بعد أول استخدام» من سطور Info الخاصة بالعملية الجانبية؛ اختيار Warn أو Error يعطّلها لهذا الإنباوند.",
         "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
         "authTimeout": "مهلة المصادقة (ثوانٍ)",
         "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",

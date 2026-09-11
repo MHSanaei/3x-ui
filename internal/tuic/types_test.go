@@ -87,3 +87,23 @@ func TestFingerprints(t *testing.T) {
 		t.Fatalf("users fingerprint must be stable under reordering: %s vs %s", inst1.UsersFingerprint(), inst2.UsersFingerprint())
 	}
 }
+
+func TestBindTo(t *testing.T) {
+	tests := []struct {
+		listen string
+		want   string
+	}{
+		{"", "0.0.0.0:8443"},
+		{"127.0.0.1", "127.0.0.1:8443"},
+		{"::", "[::]:8443"},
+		{"2001:db8::1", "[2001:db8::1]:8443"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.listen, func(t *testing.T) {
+			got := Instance{Listen: tc.listen, Port: 8443}.BindTo()
+			if got != tc.want {
+				t.Fatalf("BindTo(%q) = %q, want %q", tc.listen, got, tc.want)
+			}
+		})
+	}
+}

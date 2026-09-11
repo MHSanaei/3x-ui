@@ -1970,6 +1970,7 @@
         "udpRelayMode": "Mode Relai UDP",
         "zeroRttHandshake": "Jabat Tangan 0-RTT",
         "logLevel": "Tingkat Log",
+        "logLevelHint": "Status online, terakhir online, dan \"mulai setelah penggunaan pertama\" dibaca dari baris Info sidecar; Warn atau Error menonaktifkannya untuk inbound ini.",
         "maxIdleTime": "Waktu Diam Maks (dtk)",
         "authTimeout": "Batas Waktu Otentikasi (dtk)",
         "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",

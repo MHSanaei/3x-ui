@@ -1970,6 +1970,7 @@
         "udpRelayMode": "UDP リレーモード",
         "zeroRttHandshake": "0-RTT ハンドシェイク",
         "logLevel": "ログレベル",
+        "logLevelHint": "オンライン状態、最終オンライン、「初回使用後に開始」はサイドカーの Info 行から検出されます。Warn または Error を選ぶとこのインバウンドでは無効になります。",
         "maxIdleTime": "最大アイドル時間 (秒)",
         "authTimeout": "認証タイムアウト (秒)",
         "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",

@@ -1970,6 +1970,7 @@
         "udpRelayMode": "Chế độ chuyển tiếp UDP",
         "zeroRttHandshake": "Bắt tay 0-RTT",
         "logLevel": "Mức ghi nhật ký",
+        "logLevelHint": "Trạng thái trực tuyến, lần trực tuyến cuối và \"bắt đầu sau lần dùng đầu tiên\" được đọc từ các dòng Info của sidecar; Warn hoặc Error sẽ tắt chúng cho inbound này.",
         "maxIdleTime": "Thời gian nhàn rỗi tối đa (giây)",
         "authTimeout": "Thời gian chờ xác thực (giây)",
         "maxUdpRelayPacketSize": "Kích thước gói UDP tối đa",

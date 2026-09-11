@@ -122,9 +122,6 @@ type Process struct {
 	logWriter       *procLogWriter
 	exitErr         error
 	intentionalStop atomic.Bool
-	ioInitialized   bool
-	lastRchar       int64
-	lastWchar       int64
 }
 
 func newProcess(configPath, label string, uuidToEmail map[string]string) *Process {
@@ -136,36 +133,6 @@ func newProcess(configPath, label string, uuidToEmail map[string]string) *Proces
 			lastActive:  make(map[string]int64),
 		},
 	}
-}
-
-func (p *Process) CollectTraffic() (int64, int64) {
-	p.mu.RLock()
-	cmd := p.cmd
-	p.mu.RUnlock()
-	if cmd == nil || cmd.Process == nil {
-		return 0, 0
-	}
-	rchar, wchar, err := readProcIO(cmd.Process.Pid)
-	if err != nil {
-		return 0, 0
-	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if !p.ioInitialized {
-		p.ioInitialized = true
-		p.lastRchar = rchar
-		p.lastWchar = wchar
-		return 0, 0
-	}
-	var delta int64
-	if rchar > p.lastRchar {
-		delta = rchar - p.lastRchar
-	}
-	p.lastRchar = rchar
-	p.lastWchar = wchar
-	up := delta / 2
-	down := delta - up
-	return up, down
 }
 
 func (p *Process) GetActiveEmails(window time.Duration) []string {

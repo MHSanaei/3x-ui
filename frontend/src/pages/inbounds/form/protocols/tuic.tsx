@@ -117,6 +117,7 @@ export default function TuicFields() {
           <FormField
             name={['settings', 'server', 'log_level']}
             label={t('pages.xray.tuic.logLevel')}
+            tooltip={t('pages.xray.tuic.logLevelHint')}
           >
             <Select
               options={[

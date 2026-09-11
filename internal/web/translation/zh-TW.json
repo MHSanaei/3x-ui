@@ -1970,6 +1970,7 @@
         "udpRelayMode": "UDP 轉發模式",
         "zeroRttHandshake": "0-RTT 握手",
         "logLevel": "日誌層級",
+        "logLevelHint": "線上狀態、最後上線時間和「首次使用後開始」來自 sidecar 的 Info 日誌行；選擇 Warn 或 Error 會使此入站失去這些功能。",
         "maxIdleTime": "最大閒置時間 (秒)",
         "authTimeout": "認證逾時時間 (秒)",
         "maxUdpRelayPacketSize": "最大 UDP 封包大小",
