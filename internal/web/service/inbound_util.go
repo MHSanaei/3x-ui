@@ -9,10 +9,8 @@ import "strings"
 // installs (>32k clients) where even modern SQLite would refuse a single IN.
 const sqliteMaxVars = 900
 
-// normalizeSubSortIndex maps omitted/zero (legacy clients that predate the
-// field bind an omitted form key to 0) to the default of 1. Explicit negatives
-// are preserved so a primary inbound can sort ahead of the default without
-// renumbering every other inbound.
+// normalizeSubSortIndex maps omitted/zero to 1; explicit negatives are kept
+// so a primary inbound can sort ahead of the default.
 func normalizeSubSortIndex(v int) int {
 	if v == 0 {
 		return 1

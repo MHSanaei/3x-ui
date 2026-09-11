@@ -1031,8 +1031,7 @@ func migrateTgIDIndex() error {
 	return db.Migrator().CreateIndex(&model.ClientRecord{}, "TgID")
 }
 
-// normalizeInboundSubSortIndex lifts legacy zero defaults (rows written by
-// builds that defaulted the column to 0, or by nodes predating the field) to 1.
+// normalizeInboundSubSortIndex lifts legacy zero defaults to 1.
 // Explicit negatives are left alone so primary inbounds can sort first.
 func normalizeInboundSubSortIndex() error {
 	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index = 0")
