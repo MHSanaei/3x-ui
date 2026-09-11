@@ -111,7 +111,9 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 				continue
 			}
 			client := *rec.ToClient()
-			client.Flow = flowsByEmail[rec.Email]
+			if flow, ok := flowsByEmail[rec.Email]; ok && flow != "" {
+				client.Flow = flow
+			}
 			client.UpdatedAt = time.Now().UnixMilli()
 			if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 				recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)

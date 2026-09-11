@@ -264,7 +264,6 @@ func TestAttach_PreservesVisionFlowWhenCanonicalColumnZeroed(t *testing.T) {
 	}
 }
 
-
 func TestBulkAttach_PreservesVisionFlowWhenCanonicalColumnZeroed(t *testing.T) {
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
