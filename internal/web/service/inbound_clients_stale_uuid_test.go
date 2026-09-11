@@ -19,7 +19,7 @@ func TestEnrichClientStats_UsesClientsTableUUIDWhenSettingsStale(t *testing.T) {
 	ib := &model.Inbound{
 		UserId: 1, Tag: "stale-uuid-list", Enable: true, Listen: "0.0.0.0", Port: 8443,
 		Protocol: model.VLESS, Remark: "stale",
-		Settings: `{"clients":[{"id":"` + stale + `","email":"stale@e","subId":"sub1","enable":true}],"decryption":"none"}`,
+		Settings:       `{"clients":[{"id":"` + stale + `","email":"stale@e","subId":"sub1","enable":true}],"decryption":"none"}`,
 		StreamSettings: `{"network":"tcp","security":"none"}`,
 	}
 	if err := db.Create(ib).Error; err != nil {
