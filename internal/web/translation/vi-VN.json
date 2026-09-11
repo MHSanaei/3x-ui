@@ -649,6 +649,8 @@
         "scanCert": "Chứng chỉ",
         "scanCertInvalid": "Không tin cậy",
         "scanCertExpiry": "Chứng chỉ hết hạn",
+        "scanCertChain": "Chuỗi chứng chỉ",
+        "scanMldsaCertChainTooSmall": "Chuỗi chứng chỉ của đích dài {length} byte, thấp hơn mức tối thiểu {min} byte mà ML-DSA-65 yêu cầu. Kết nối sẽ thất bại im lặng. Hãy chọn đích khác hoặc tắt ML-DSA-65.",
         "scanSniUsed": "SNI đã dùng",
         "scanPrivateNote": "Đã kiểm tra qua mạng riêng/nội bộ — địa chỉ này không truy cập được từ internet.",
         "scanPrivateConfirmTitle": "Đích trong mạng nội bộ",

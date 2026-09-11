@@ -628,6 +628,8 @@
         "scanCert": "憑證",
         "scanCertInvalid": "不受信任",
         "scanCertExpiry": "憑證有效期限",
+        "scanCertChain": "憑證鏈",
+        "scanMldsaCertChainTooSmall": "目標憑證鏈為 {length} 位元組，低於 ML-DSA-65 所需的 {min} 位元組下限。這會導致連線靜默失敗。請更換目標或關閉 ML-DSA-65。",
         "scanSniUsed": "使用的 SNI",
         "scanPrivateNote": "已透過內網/本機網路檢測 — 此位址無法從網際網路存取。",
         "scanPrivateConfirmTitle": "目標位於本機網路",

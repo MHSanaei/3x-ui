@@ -628,6 +628,8 @@
         "scanCert": "الشهادة",
         "scanCertInvalid": "غير موثوق",
         "scanCertExpiry": "انتهاء صلاحية الشهادة",
+        "scanCertChain": "سلسلة الشهادات",
+        "scanMldsaCertChainTooSmall": "سلسلة شهادات الهدف {length} بايت، وهي أقل من الحد الأدنى {min} بايت المطلوب لـ ML-DSA-65. سيؤدي ذلك إلى فشل الاتصال بصمت. يُرجى اختيار هدف مختلف أو تعطيل ML-DSA-65.",
         "scanSniUsed": "SNI المستخدم",
         "scanPrivateNote": "تم الفحص عبر شبكة خاصة/محلية — هذا العنوان غير قابل للوصول من الإنترنت.",
         "scanPrivateConfirmTitle": "الهدف في شبكة محلية",
