@@ -142,8 +142,9 @@ func (s *SubService) primeLinkClients(inboundId int, clients []model.Client, com
 
 // clientForLink resolves one client of an inbound by email for link
 // generation: from the per-request cache when primed, otherwise via
-// clientsForLinkExport (clients-table UUID identity for share-link protocols;
-// settings JSON for WireGuard/AmneziaWG tunnel fields) and caches the list.
+// clientsForLinkExport (clients-table UUID identity with settings-JSON
+// fallback for share-link protocols; settings JSON for WireGuard/AmneziaWG
+// tunnel fields) and caches the list.
 func (s *SubService) clientForLink(inbound *model.Inbound, email string) (model.Client, bool) {
 	if m, ok := s.clientsByInbound[inbound.Id]; ok {
 		if c, hit := m[email]; hit {
@@ -167,17 +168,26 @@ func (s *SubService) clientForLink(inbound *model.Inbound, email string) (model.
 }
 
 // clientsForLinkExport returns the clients used to build share / QR / allLinks
-// exports for one inbound. UUID-bearing protocols read the normalized clients
+// exports for one inbound. UUID-bearing protocols prefer the normalized clients
 // table so the link matches the running Xray identity when settings JSON is
-// stale (#6436). WireGuard and AmneziaWG keep the inbound's own settings JSON
-// instead: private key, AllowedIPs, and related tunnel fields are deliberately
-// per-inbound there, while the shared clients.wg_* columns collapse to whichever
-// tunnel inbound synced last (see TunnelAllowedIPsByInbound / amneziaWGClientAddresses).
+// stale (#6436). When that list is empty or unavailable (settings-only inbounds,
+// unsynced rows, unit tests without a DB), fall back to GetClients so links
+// still generate from the embedded settings JSON (#6458). WireGuard and
+// AmneziaWG always keep the inbound's own settings JSON: private key,
+// AllowedIPs, and related tunnel fields are deliberately per-inbound there,
+// while the shared clients.wg_* columns collapse to whichever tunnel inbound
+// synced last (see TunnelAllowedIPsByInbound / amneziaWGClientAddresses).
 func (s *SubService) clientsForLinkExport(inbound *model.Inbound) ([]model.Client, error) {
 	if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
 		return s.inboundService.GetClients(inbound)
 	}
-	return s.inboundService.ListClientsForInbound(inbound.Id)
+	if database.GetDB() != nil {
+		clients, err := s.inboundService.ListClientsForInbound(inbound.Id)
+		if err == nil && len(clients) > 0 {
+			return clients, nil
+		}
+	}
+	return s.inboundService.GetClients(inbound)
 }
 
 // linkSettings returns the inbound's settings decoded once per request with

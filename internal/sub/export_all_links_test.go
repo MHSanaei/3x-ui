@@ -93,6 +93,37 @@ func TestInboundLinks_UsesClientsTableUUIDWhenSettingsStale(t *testing.T) {
 	}
 }
 
+// inboundLinks must still emit a VLESS link when clients exist only in the
+// inbound settings JSON (no clients / client_inbounds rows) — ListClientsForInbound
+// returns empty and clientsForLinkExport falls back to GetClients (#6458).
+func TestInboundLinks_SettingsOnlyVLESSProducesLink(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+	uuid := "33333333-3333-3333-3333-333333333333"
+	settings := `{"clients":[{"id":"` + uuid + `","email":"settings@e","subId":"subSettings","enable":true}],"decryption":"none"}`
+	ib := &model.Inbound{
+		UserId: 1, Tag: "settings-only", Enable: true, Listen: "203.0.113.5", Port: 4434,
+		Protocol: model.VLESS, Remark: "SettingsOnly", Settings: settings,
+		StreamSettings: `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"none"}}}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+
+	svc := NewSubService("{{EMAIL}}")
+	svc.PrepareForRequest("req.example.com")
+	links := svc.inboundLinks(ib)
+	if len(links) != 1 {
+		t.Fatalf("links = %d, want 1: %v", len(links), links)
+	}
+	if !strings.Contains(links[0], "vless://") {
+		t.Fatalf("link = %q, want vless:// prefix", links[0])
+	}
+	if !strings.Contains(links[0], uuid) {
+		t.Fatalf("link missing settings UUID %q: %s", uuid, links[0])
+	}
+}
+
 // inboundLinks must keep each WireGuard/AmneziaWG inbound's own tunnel address
 // and private key when the same email is attached to both — those fields live
 // only in the per-inbound settings JSON, not the shared clients.wg_* columns.
