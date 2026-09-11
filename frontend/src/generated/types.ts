@@ -570,6 +570,14 @@ export interface HostGroup {
   vlessRoute: string;
 }
 
+export interface HwidSlotStatus {
+  active: boolean;
+  full: boolean;
+  limit: number;
+  registered: number;
+  remaining: number;
+}
+
 export interface Inbound {
   clientStats: ClientTraffic[];
   disableFlow: boolean;

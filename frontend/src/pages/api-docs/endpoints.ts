@@ -183,6 +183,11 @@ const subscriptionHeadResponses = {
   '500': { description: 'Subscription generation failed.' },
 };
 
+const hwidStatusErrorResponses = {
+  '404': { description: 'No enabled client matches the subscription ID. Empty body.' },
+  '500': { description: 'Database lookup failed. Empty body.' },
+};
+
 export const sections: readonly Section[] = [
   {
     id: 'authentication',
@@ -2617,6 +2622,35 @@ export const sections: readonly Section[] = [
           'Return the same status and subscription metadata headers as GET without a response body.',
         params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
         responses: subscriptionHeadResponses,
+      },
+      {
+        method: 'GET',
+        path: '/{subPath}:subid/hwid-status',
+        summary:
+          'Return aggregate HWID device-slot usage for the subscription: whether an HWID limit is active, the limit, how many devices are registered and how many slots remain. Read-only — it never registers a device, so asking does not consume a slot. Counters only: no HWID value, email or device metadata. The path prefix is configured by subPath.',
+        description:
+          'Responds with the bare HwidSlotStatus object, not the <code>{success,msg,obj}</code> panel envelope, like the other subscription-server routes. With no HWID limit configured, <code>active</code> is false and every counter is 0.',
+        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
+        responses: {
+          '200': {
+            description: 'Device-slot counters for the subscription.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/HwidSlotStatus' } },
+            },
+          },
+          ...hwidStatusErrorResponses,
+        },
+      },
+      {
+        method: 'HEAD',
+        path: '/{subPath}:subid/hwid-status',
+        summary:
+          'Return the HWID device-slot status code and headers as GET without a response body.',
+        params: [{ name: 'subid', in: 'path', type: 'string', desc: 'Client subscription ID.' }],
+        responses: {
+          '200': { description: 'Headers match GET; no response body.' },
+          ...hwidStatusErrorResponses,
+        },
       },
       {
         method: 'GET',

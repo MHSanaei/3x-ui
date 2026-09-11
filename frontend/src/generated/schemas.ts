@@ -2466,6 +2466,39 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "HwidSlotStatus": {
+    "description": "HwidSlotStatus is the aggregate device-slot view exposed to subscribers:\ncounters only, no hwid value or hash, no email, no device metadata.",
+    "properties": {
+      "active": {
+        "example": true,
+        "type": "boolean"
+      },
+      "full": {
+        "example": false,
+        "type": "boolean"
+      },
+      "limit": {
+        "example": 2,
+        "type": "integer"
+      },
+      "registered": {
+        "example": 1,
+        "type": "integer"
+      },
+      "remaining": {
+        "example": 1,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "active",
+      "full",
+      "limit",
+      "registered",
+      "remaining"
+    ],
+    "type": "object"
+  },
   "Inbound": {
     "description": "Inbound represents an Xray inbound configuration with traffic statistics and settings.",
     "properties": {
