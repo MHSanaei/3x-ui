@@ -1286,6 +1286,8 @@
       "muxSett": "Pengaturan Mux",
       "direct": "Koneksi langsung",
       "directDesc": "Secara langsung membuat koneksi dengan domain atau rentang IP negara tertentu.",
+      "block": "Blokir Koneksi",
+      "blockDesc": "Memblokir koneksi ke domain atau rentang IP yang dipilih menggunakan outbound blackhole.",
       "notifications": "Notifikasi",
       "certs": "Sertifikat",
       "externalTraffic": "Lalu Lintas Eksternal",

@@ -1286,6 +1286,8 @@
       "muxSett": "Mux Ayarları",
       "direct": "Doğrudan Bağlantı",
       "directDesc": "Belirli bir ülkenin alan adları veya IP aralıkları ile doğrudan bağlantı kurar.",
+      "block": "Bağlantıyı Engelle",
+      "blockDesc": "Seçilen alan adlarına veya IP aralıklarına giden bağlantıları blackhole outbound ile engeller.",
       "notifications": "Bildirimler",
       "certs": "Sertifikalar",
       "externalTraffic": "Harici Trafik",

@@ -1286,6 +1286,8 @@
       "muxSett": "Mux Cài đặt",
       "direct": "Kết nối trực tiếp",
       "directDesc": "Trực tiếp thiết lập kết nối với tên miền hoặc dải IP của một quốc gia cụ thể.",
+      "block": "Chặn kết nối",
+      "blockDesc": "Chặn kết nối tới các tên miền hoặc dải IP đã chọn bằng outbound blackhole.",
       "notifications": "Thông báo",
       "certs": "Chứng chỉ",
       "externalTraffic": "Lưu lượng bên ngoài",
