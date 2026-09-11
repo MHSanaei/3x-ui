@@ -304,6 +304,33 @@ describe('parseShadowsocksLink', () => {
     expect(settings.servers[0].password).toBe('legacypw');
   });
 
+
+  it('preserves Xray TLS query params on import (round-trip)', () => {
+    const userinfo = Base64.encode('chacha20-ietf-poly1305:secretpass', true);
+    const link =
+      `ss://${userinfo}@example.com:443` +
+      '?alpn=h2%2Chttp%2F1.1&fp=firefox&security=tls&sni=example.com&type=tcp#user';
+    const out = parseShadowsocksLink(link);
+    expect(out?.protocol).toBe('shadowsocks');
+    expect(out?.tag).toBe('user');
+    const settings = out?.settings as {
+      servers: Array<{ address: string; port: number; method: string; password: string }>;
+    };
+    expect(settings.servers[0]).toMatchObject({
+      address: 'example.com',
+      port: 443,
+      method: 'chacha20-ietf-poly1305',
+      password: 'secretpass',
+    });
+    const stream = out?.streamSettings as Record<string, unknown>;
+    expect(stream.network).toBe('tcp');
+    expect(stream.security).toBe('tls');
+    const tls = stream.tlsSettings as Record<string, unknown>;
+    expect(tls.serverName).toBe('example.com');
+    expect(tls.fingerprint).toBe('firefox');
+    expect(tls.alpn).toEqual(['h2', 'http/1.1']);
+  });
+
   it('decodes URL-safe base64 userinfo (as the emitter writes it)', () => {
     const method = 'aes-256-gcm';
     const password = '>>>';

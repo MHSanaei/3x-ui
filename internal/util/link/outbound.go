@@ -337,16 +337,23 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 	// Two shapes:
 	//   ss://base64(method:pass)@host:port#remark
 	//   ss://base64(method:pass@host:port)#remark
+	// Query may carry Xray-native stream params (type/security/sni/alpn/fp)
+	// emitted by genShadowsocksLink — preserve them like trojan/vless.
 	remark := ""
 	if i := strings.Index(link, "#"); i >= 0 {
 		remark, _ = url.QueryUnescape(link[i+1:])
 		link = link[:i]
 	}
+	rawQuery := ""
 	if i := strings.Index(link, "?"); i >= 0 {
+		rawQuery = link[i+1:]
 		link = link[:i]
 	}
+	params, _ := url.ParseQuery(rawQuery)
 	core := strings.TrimPrefix(link, "ss://")
 	at := strings.Index(core, "@")
+	var host, method, pass string
+	var port int
 	if at >= 0 {
 		// modern
 		userB64 := core[:at]
@@ -364,46 +371,48 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		if colon < 0 {
 			return nil, fmt.Errorf("bad ss host:port")
 		}
-		host := hp[:colon]
-		port, err := strconv.Atoi(hp[colon+1:])
+		host = hp[:colon]
+		port, err = strconv.Atoi(hp[colon+1:])
 		if err != nil {
 			return nil, fmt.Errorf("bad ss port %q: %w", hp[colon+1:], err)
 		}
-		method, pass := splitMethodPass(userInfo)
-		identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
-		ob := Outbound{
-			"protocol": "shadowsocks",
-			"tag":      remark,
-			"settings": map[string]any{
-				"servers": []any{
-					map[string]any{"address": host, "port": port, "password": pass, "method": method},
-				},
-			},
+		method, pass = splitMethodPass(userInfo)
+	} else {
+		// legacy: whole thing b64
+		dec, err := base64DecodeFlexible(core)
+		if err != nil {
+			return nil, err
 		}
-		return &ParseResult{Outbound: ob, Identity: identity}, nil
+		at = strings.Index(dec, "@")
+		if at < 0 {
+			return nil, fmt.Errorf("bad legacy ss")
+		}
+		userInfo := dec[:at]
+		hp := dec[at+1:]
+		colon := strings.LastIndex(hp, ":")
+		if colon < 0 {
+			return nil, fmt.Errorf("bad legacy ss hp")
+		}
+		host = hp[:colon]
+		port, err = strconv.Atoi(hp[colon+1:])
+		if err != nil {
+			return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
+		}
+		method, pass = splitMethodPass(userInfo)
 	}
-	// legacy: whole thing b64
-	dec, err := base64DecodeFlexible(core)
-	if err != nil {
-		return nil, err
-	}
-	at = strings.Index(dec, "@")
-	if at < 0 {
-		return nil, fmt.Errorf("bad legacy ss")
-	}
-	userInfo := dec[:at]
-	hp := dec[at+1:]
-	colon := strings.LastIndex(hp, ":")
-	if colon < 0 {
-		return nil, fmt.Errorf("bad legacy ss hp")
-	}
-	host := hp[:colon]
-	port, err := strconv.Atoi(hp[colon+1:])
-	if err != nil {
-		return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
-	}
-	method, pass := splitMethodPass(userInfo)
 	identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
+	network := params.Get("type")
+	if network == "" {
+		network = "tcp"
+	}
+	security := params.Get("security")
+	if security == "" {
+		security = "none"
+	}
+	stream := buildStream(network, security)
+	applyTransport(stream, params)
+	applySecurity(stream, params)
+	applyFinalMask(stream, params)
 	ob := Outbound{
 		"protocol": "shadowsocks",
 		"tag":      remark,
@@ -412,6 +421,7 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 				map[string]any{"address": host, "port": port, "password": pass, "method": method},
 			},
 		},
+		"streamSettings": stream,
 	}
 	return &ParseResult{Outbound: ob, Identity: identity}, nil
 }

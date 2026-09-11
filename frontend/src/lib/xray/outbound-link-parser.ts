@@ -547,6 +547,8 @@ export function parseShadowsocksLink(link: string): Raw | null {
   // Two link shapes coexist:
   //   modern:  ss://base64(method:password)@host:port#remark
   //   legacy:  ss://base64(method:password@host:port)#remark
+  // Query may carry Xray-native stream params (type/security/sni/alpn/fp)
+  // emitted by the SS share-link generator — preserve them like trojan/vless.
   // Try modern first; fall back to legacy decode of the whole userinfo+host.
   let userInfo: string;
   let host: string;
@@ -562,6 +564,7 @@ export function parseShadowsocksLink(link: string): Raw | null {
     }
   }
   const queryIndex = linkNoHash.indexOf('?');
+  const rawQuery = queryIndex >= 0 ? linkNoHash.slice(queryIndex + 1) : '';
   const core = queryIndex >= 0 ? linkNoHash.slice(0, queryIndex) : linkNoHash;
   const atIndex = core.indexOf('@');
   if (atIndex >= 0) {
@@ -581,7 +584,7 @@ export function parseShadowsocksLink(link: string): Raw | null {
         userInfo = rawUserInfo;
       }
     }
-    const hostPort = core.slice(atIndex + 1);
+    const hostPort = core.slice(atIndex + 1).replace(/\/+$/, '');
     const colon = hostPort.lastIndexOf(':');
     if (colon < 0) return null;
     host = hostPort.slice(0, colon);
@@ -605,12 +608,20 @@ export function parseShadowsocksLink(link: string): Raw | null {
   const sep = userInfo.indexOf(':');
   const method = sep < 0 ? '2022-blake3-aes-128-gcm' : userInfo.slice(0, sep);
   const password = sep < 0 ? userInfo : userInfo.slice(sep + 1);
+  const params = new URLSearchParams(rawQuery);
+  const network = params.get('type') ?? 'tcp';
+  const security = (params.get('security') ?? 'none') as string;
+  const stream = buildStream(network, security);
+  applyTransportParams(stream, params);
+  applySecurityParams(stream, params);
+  applyFinalMaskParam(stream, params);
   return {
     protocol: 'shadowsocks',
     tag: remark,
     settings: {
       servers: [{ address: host, port, password, method }],
     },
+    streamSettings: stream,
   };
 }
 
