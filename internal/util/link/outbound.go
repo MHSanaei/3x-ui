@@ -666,6 +666,7 @@ func applySecurity(stream map[string]any, p url.Values) {
 			tls["alpn"] = splitComma(alpn)
 		}
 		tls["echConfigList"] = p.Get("ech")
+		tls["verifyPeerCertByName"] = p.Get("vcn")
 		tls["pinnedPeerCertSha256"] = p.Get("pcs")
 	case "reality":
 		re := stream["realitySettings"].(map[string]any)
