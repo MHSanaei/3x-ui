@@ -1,6 +1,7 @@
 package amneziawgnet
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/netip"
@@ -36,7 +37,7 @@ func (b *pinnedBind) Open(uport uint16) ([]awgconn.ReceiveFunc, uint16, error) {
 	if b.addr.Is6() {
 		network = "udp6"
 	}
-	pc, err := net.ListenPacket(network, net.JoinHostPort(b.addr.String(), strconv.Itoa(int(uport))))
+	pc, err := (&net.ListenConfig{}).ListenPacket(context.Background(), network, net.JoinHostPort(b.addr.String(), strconv.Itoa(int(uport))))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -144,7 +145,7 @@ func listenBindable(addr netip.Addr) bool {
 	if addr.Is6() {
 		network = "udp6"
 	}
-	pc, err := net.ListenPacket(network, net.JoinHostPort(addr.String(), "0"))
+	pc, err := (&net.ListenConfig{}).ListenPacket(context.Background(), network, net.JoinHostPort(addr.String(), "0"))
 	if err != nil {
 		return false
 	}
