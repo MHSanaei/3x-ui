@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -492,10 +493,14 @@ func TestNodeBulk_LargeDeleteFoldsToDirty(t *testing.T) {
 func TestDelInbound_NodeSelectedModeDeletesRemoteImmediately(t *testing.T) {
 	setupBulkDB(t)
 	nodeID, fake := setupNodeRuntime(t)
+	tagsJSON, err := json.Marshal([]string{"other-tag"})
+	if err != nil {
+		t.Fatalf("marshal inbound tags: %v", err)
+	}
 	if err := database.GetDB().Model(&model.Node{}).Where("id = ?", nodeID).
 		Updates(map[string]any{
 			"inbound_sync_mode": "selected",
-			"inbound_tags":      []string{"other-tag"},
+			"inbound_tags":      string(tagsJSON),
 		}).Error; err != nil {
 		t.Fatalf("set selected mode: %v", err)
 	}
