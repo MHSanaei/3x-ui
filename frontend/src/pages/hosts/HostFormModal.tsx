@@ -91,8 +91,8 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
-  const showTls = security === 'tls' || security === 'reality';
-  const showTlsExtras = security === 'tls';
+  const showTls = security === 'tls' || security === 'reality' || security === 'same';
+  const showTlsExtras = security === 'tls' || security === 'same';
 
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
