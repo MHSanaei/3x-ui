@@ -125,6 +125,9 @@
           "panelOutbound": {
             "type": "string"
           },
+          "realityScanCandidates": {
+            "type": "string"
+          },
           "remarkTemplate": {
             "type": "string"
           },
@@ -487,6 +490,7 @@
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -711,6 +715,9 @@
             "type": "integer"
           },
           "panelOutbound": {
+            "type": "string"
+          },
+          "realityScanCandidates": {
             "type": "string"
           },
           "remarkTemplate": {
@@ -1082,6 +1089,7 @@
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",

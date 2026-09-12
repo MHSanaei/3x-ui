@@ -1235,6 +1235,8 @@
       "noisesSett": "Настройки Noises",
       "trustedProxyCidrs": "Доверенные CIDR прокси",
       "trustedProxyCidrsDesc": "IP/CIDR через запятую, которым разрешено устанавливать заголовки forwarded host, proto и client IP.",
+      "realityScanCandidates": "Кандидаты сканирования Reality",
+      "realityScanCandidatesDesc": "Список host:port (или CIDR) через запятую — используется по умолчанию в «Найти цели», если поиск пуст. Настройте под часто используемые цели.",
       "ldap": {
         "enable": "Включить LDAP-синхронизацию",
         "host": "LDAP-хост",
@@ -1567,7 +1569,6 @@
       "subHappGroupThemes": "Внешний вид и темы",
       "subHappGroupFailover": "Миграция и управление",
       "subHappGroupAndroid": "Прокси приложений Android"
-
     },
     "xray": {
       "importRules": "Импорт правил",

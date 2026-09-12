@@ -1235,6 +1235,8 @@
       "noisesSett": "Noises 設定",
       "trustedProxyCidrs": "信任代理 CIDR",
       "trustedProxyCidrsDesc": "允許設定轉發 host、proto 與客戶端 IP 標頭的 IP/CIDR(逗號分隔)。",
+      "realityScanCandidates": "Reality 掃描候選清單",
+      "realityScanCandidatesDesc": "以逗號分隔的 host:port 目標（或 CIDR），作為「尋找目標」在搜尋框為空時的預設清單。可依常用目標自訂。",
       "ldap": {
         "enable": "啟用 LDAP 同步",
         "host": "LDAP host",
@@ -1567,7 +1569,6 @@
       "subHappGroupThemes": "界面与主题外观",
       "subHappGroupFailover": "迁移与客户端管理",
       "subHappGroupAndroid": "Android 分应用代理"
-
     },
     "xray": {
       "save": "儲存",

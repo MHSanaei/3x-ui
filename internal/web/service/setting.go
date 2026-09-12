@@ -66,6 +66,7 @@ var defaultValueMap = map[string]string{
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
+	"realityScanCandidates":       DefaultRealityScanCandidatesCSV,
 	"ipLimitAllowlist":            "",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
@@ -686,6 +687,10 @@ func (s *SettingService) GetIpLimitAllowlist() (string, error) {
 
 func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
 	return s.getString("trustedProxyCIDRs")
+}
+
+func (s *SettingService) GetRealityScanCandidates() (string, error) {
+	return s.getString("realityScanCandidates")
 }
 
 func (s *SettingService) GetRemarkTemplate() (string, error) {

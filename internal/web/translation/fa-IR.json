@@ -1239,6 +1239,8 @@
       "noisesSett": "تنظیمات Noises",
       "trustedProxyCidrs": "CIDRهای پراکسی مورد اعتماد",
       "trustedProxyCidrsDesc": "IPها/CIDRها (با کاما) که مجازند هدرهای host، proto و client IP فوروارد را تنظیم کنند.",
+      "realityScanCandidates": "نامزدهای اسکن Reality",
+      "realityScanCandidatesDesc": "فهرست host:port (یا CIDR) جداشده با کاما که وقتی جستجو خالی است به‌عنوان فهرست پیش‌فرض «یافتن اهداف» استفاده می‌شود. برای مقاصد پرتکرار خود سفارشی کنید.",
       "ldap": {
         "enable": "فعال‌سازی همگام‌سازی LDAP",
         "host": "میزبان LDAP",
@@ -1567,7 +1569,6 @@
       "subHappGroupThemes": "ظاهر و پوسته برنامه",
       "subHappGroupFailover": "مهاجرت و مدیریت کلاینت",
       "subHappGroupAndroid": "پراکسی برنامه‌های اندروید"
-
     },
     "xray": {
       "save": "ذخیره",

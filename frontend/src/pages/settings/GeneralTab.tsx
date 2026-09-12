@@ -261,6 +261,25 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.realityScanCandidates')}
+                description={t('pages.settings.realityScanCandidatesDesc')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="realityScanCandidates"
+                    value={allSetting.realityScanCandidates}
+                  />
+                }
+              >
+                <Input.TextArea
+                  rows={3}
+                  value={allSetting.realityScanCandidates}
+                  placeholder="www.cloudflare.com:443,www.microsoft.com:443"
+                  onChange={(e) => updateSetting({ realityScanCandidates: e.target.value })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.ipLimitAllowlist')}
                 description={t('pages.settings.ipLimitAllowlistDesc')}
               >

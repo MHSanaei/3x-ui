@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -38,6 +39,10 @@ var defaultRealityScanCandidates = []string{
 	"www.sony.com:443",
 	"dl.google.com:443",
 }
+
+// DefaultRealityScanCandidatesCSV is the shipped default for the
+// realityScanCandidates setting (comma-separated host:port list).
+var DefaultRealityScanCandidatesCSV = strings.Join(defaultRealityScanCandidates, ",")
 
 type RealityScanResult struct {
 	Target   string `json:"target" example:"www.cloudflare.com:443"`
@@ -325,15 +330,34 @@ func (s *ServerService) ScanRealityTarget(target string, sni string, xver int, a
 	return s.probeRealityAddr(host, port, sni, realityScanTimeout, xver, allowPrivate), nil
 }
 
-func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanResult, error) {
+func parseRealityScanCandidateCSV(csv string) []string {
 	var tokens []string
-	for raw := range strings.SplitSeq(targetsCSV, ",") {
+	for raw := range strings.SplitSeq(csv, ",") {
 		if t := strings.TrimSpace(raw); t != "" {
 			tokens = append(tokens, t)
 		}
 	}
+	return tokens
+}
+
+// realityScanCandidateTokens returns the operator-configured candidate list,
+// falling back to the shipped defaults when the setting is empty or unreadable.
+func (s *ServerService) realityScanCandidateTokens() []string {
+	if s != nil && database.GetDB() != nil {
+		csv, err := s.settingService.GetRealityScanCandidates()
+		if err != nil {
+			logger.Warning("reality scan: reading candidates setting failed:", err)
+		} else if tokens := parseRealityScanCandidateCSV(csv); len(tokens) > 0 {
+			return tokens
+		}
+	}
+	return append([]string(nil), defaultRealityScanCandidates...)
+}
+
+func (s *ServerService) ScanRealityTargets(targetsCSV string) ([]*RealityScanResult, error) {
+	tokens := parseRealityScanCandidateCSV(targetsCSV)
 	if len(tokens) == 0 {
-		tokens = append(tokens, defaultRealityScanCandidates...)
+		tokens = s.realityScanCandidateTokens()
 	}
 
 	var tasks []realityProbeTask

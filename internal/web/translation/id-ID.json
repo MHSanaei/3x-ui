@@ -1235,6 +1235,8 @@
       "noisesSett": "Pengaturan Noises",
       "trustedProxyCidrs": "CIDR proxy tepercaya",
       "trustedProxyCidrsDesc": "IP/CIDR (dipisahkan koma) yang diizinkan mengatur header forwarded host, proto, dan client IP.",
+      "realityScanCandidates": "Kandidat pemindaian Reality",
+      "realityScanCandidatesDesc": "Daftar target host:port (atau CIDR) dipisahkan koma yang dipakai sebagai default saat Cari Target dijalankan dengan pencarian kosong. Sesuaikan dengan tujuan yang sering Anda gunakan.",
       "ldap": {
         "enable": "Aktifkan sinkronisasi LDAP",
         "host": "LDAP host",
@@ -1567,7 +1569,6 @@
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
-
     },
     "xray": {
       "save": "Simpan",
