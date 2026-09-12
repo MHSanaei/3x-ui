@@ -184,9 +184,17 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     }
     const so = streamRecord.sockopt;
     if (so && typeof so === 'object' && !Array.isArray(so)) {
-      const parsed = SockoptStreamSettingsSchema.safeParse(so);
+      const raw = { ...(so as Record<string, unknown>) };
+      // Imported/API configs may use lowercase v6only; the form key is V6Only.
+      if ('v6only' in raw) {
+        if (!('V6Only' in raw)) raw.V6Only = Boolean(raw.v6only);
+        delete raw.v6only;
+      }
+      const parsed = SockoptStreamSettingsSchema.safeParse(raw);
       if (parsed.success) {
-        streamRecord.sockopt = { ...(so as Record<string, unknown>), ...parsed.data };
+        streamRecord.sockopt = { ...raw, ...parsed.data };
+      } else {
+        streamRecord.sockopt = raw;
       }
     }
   }
