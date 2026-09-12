@@ -238,6 +238,41 @@ describe('parseVlessLink', () => {
   });
 });
 
+describe('parseVlessLink / parseTrojanLink — mKCP seed and headerType', () => {
+  // Share links emit type=kcp&headerType&seed; import restores mkcp-legacy finalmask.
+  it('restores seed, headerType, mtu, and tti on a vless:// kcp link', () => {
+    const link =
+      'vless://11111111-2222-4333-8444-555555555555@h.com:443' +
+      '?type=kcp&headerType=wechat-video&seed=secret-seed&mtu=1400&tti=50&security=none' +
+      '#kcp1';
+    const out = parseVlessLink(link);
+    expect(out).not.toBeNull();
+    const stream = out!.streamSettings as Record<string, unknown>;
+    expect(stream.network).toBe('kcp');
+    const kcp = stream.kcpSettings as Record<string, unknown>;
+    expect(kcp.mtu).toBe(1400);
+    expect(kcp.tti).toBe(50);
+    const finalmask = stream.finalmask as {
+      udp: Array<{ type: string; settings: Record<string, string> }>;
+    };
+    expect(finalmask.udp).toHaveLength(1);
+    expect(finalmask.udp[0].type).toBe('mkcp-legacy');
+    expect(finalmask.udp[0].settings).toEqual({ header: 'wechat', value: 'secret-seed' });
+  });
+
+  it('restores seed and headerType on a trojan:// kcp link', () => {
+    const link = 'trojan://pw@h.com:443?type=kcp&headerType=srtp&seed=abc123&security=none#kcp-tj';
+    const out = parseTrojanLink(link);
+    expect(out).not.toBeNull();
+    const stream = out!.streamSettings as Record<string, unknown>;
+    const finalmask = stream.finalmask as {
+      udp: Array<{ type: string; settings: Record<string, string> }>;
+    };
+    expect(finalmask.udp[0].type).toBe('mkcp-legacy');
+    expect(finalmask.udp[0].settings).toEqual({ header: 'srtp', value: 'abc123' });
+  });
+});
+
 describe('parseTrojanLink', () => {
   it('parses a trojan:// link with ws + tls', () => {
     const link =

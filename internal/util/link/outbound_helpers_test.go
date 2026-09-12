@@ -244,3 +244,55 @@ func TestParseTrojanAndSS_CoreFields(t *testing.T) {
 		t.Errorf("ss server = %#v", ssrv)
 	}
 }
+
+func TestParse_KcpSeedAndHeaderType(t *testing.T) {
+	// Share links emit type=kcp&headerType&seed; import restores live mkcp-legacy
+	// finalmask (kcpSettings.header/seed are inert in current Xray).
+	link := "vless://uuid@h.com:443?type=kcp&headerType=wechat-video&seed=secret-seed&mtu=1400&tti=50&security=none#kcp1"
+	res, err := ParseLink(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	ss, _ := res.Outbound["streamSettings"].(map[string]any)
+	if ss["network"] != "kcp" {
+		t.Fatalf("network = %v, want kcp", ss["network"])
+	}
+	kcp := streamSub(t, res, "kcpSettings")
+	if kcp["mtu"] != 1400 {
+		t.Fatalf("kcpSettings.mtu = %v (%T), want 1400", kcp["mtu"], kcp["mtu"])
+	}
+	if kcp["tti"] != 50 {
+		t.Fatalf("kcpSettings.tti = %v (%T), want 50", kcp["tti"], kcp["tti"])
+	}
+	finalmask, _ := ss["finalmask"].(map[string]any)
+	udp, _ := finalmask["udp"].([]any)
+	if len(udp) != 1 {
+		t.Fatalf("finalmask.udp len = %d, want 1: %#v", len(udp), finalmask)
+	}
+	mask, _ := udp[0].(map[string]any)
+	if mask["type"] != "mkcp-legacy" {
+		t.Fatalf("mask type = %v, want mkcp-legacy", mask["type"])
+	}
+	settings, _ := mask["settings"].(map[string]any)
+	if settings["header"] != "wechat" || settings["value"] != "secret-seed" {
+		t.Fatalf("mkcp-legacy settings = %#v, want header=wechat value=secret-seed", settings)
+	}
+}
+
+func TestParse_KcpSeedAndHeaderType_Trojan(t *testing.T) {
+	link := "trojan://pw@h.com:443?type=kcp&headerType=srtp&seed=abc123&security=none#kcp-tj"
+	res, err := ParseLink(link)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	ss, _ := res.Outbound["streamSettings"].(map[string]any)
+	finalmask, _ := ss["finalmask"].(map[string]any)
+	udp, _ := finalmask["udp"].([]any)
+	if len(udp) != 1 {
+		t.Fatalf("finalmask.udp len = %d, want 1", len(udp))
+	}
+	settings, _ := udp[0].(map[string]any)["settings"].(map[string]any)
+	if settings["header"] != "srtp" || settings["value"] != "abc123" {
+		t.Fatalf("mkcp-legacy settings = %#v", settings)
+	}
+}

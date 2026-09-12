@@ -638,6 +638,19 @@ func applyTransport(stream map[string]any, p url.Values) {
 				xh[k] = v
 			}
 		}
+	case "kcp":
+		// mtu/tti live on kcpSettings; header/seed are finalmask mkcp-legacy (see applyMkcpLegacyFromShare).
+		kcp := stream["kcpSettings"].(map[string]any)
+		if mtu := p.Get("mtu"); mtu != "" {
+			if n, err := strconv.Atoi(mtu); err == nil && n > 0 {
+				kcp["mtu"] = n
+			}
+		}
+		if tti := p.Get("tti"); tti != "" {
+			if n, err := strconv.Atoi(tti); err == nil && n > 0 {
+				kcp["tti"] = n
+			}
+		}
 	case "tcp":
 		if p.Get("headerType") == "http" || p.Get("type") == "http" {
 			stream["tcpSettings"] = map[string]any{
@@ -686,6 +699,64 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 			stream["finalmask"] = parsed
 		}
 	}
+	applyMkcpLegacyFromShare(stream, p)
+}
+
+// kcpHeaderTypeToMask maps share-link headerType to mkcp-legacy settings.header
+// (inverse of sub.kcpMaskToHeaderType).
+var kcpHeaderTypeToMask = map[string]string{
+	"dns":          "dns",
+	"dtls":         "dtls",
+	"srtp":         "srtp",
+	"utp":          "utp",
+	"wechat-video": "wechat",
+	"wireguard":    "wireguard",
+}
+
+// applyMkcpLegacyFromShare restores headerType/seed into finalmask.udp mkcp-legacy,
+// matching the shape InboundFormModal / FinalMaskForm emit. fm= mkcp-legacy wins.
+func applyMkcpLegacyFromShare(stream map[string]any, p url.Values) {
+	headerType := strings.TrimSpace(p.Get("headerType"))
+	seed := p.Get("seed")
+	if headerType == "" || headerType == "none" {
+		headerType = ""
+	}
+	if headerType == "" && seed == "" {
+		return
+	}
+	if network, _ := stream["network"].(string); network != "" && network != "kcp" {
+		return
+	}
+	maskHeader := ""
+	if headerType != "" {
+		mapped, ok := kcpHeaderTypeToMask[headerType]
+		if !ok {
+			return
+		}
+		maskHeader = mapped
+	}
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	if finalmask == nil {
+		finalmask = map[string]any{}
+	}
+	udp, _ := finalmask["udp"].([]any)
+	for _, raw := range udp {
+		m, _ := raw.(map[string]any)
+		if m != nil {
+			if t, _ := m["type"].(string); t == "mkcp-legacy" {
+				return // fm= (or prior) already carries the live mask
+			}
+		}
+	}
+	udp = append(udp, map[string]any{
+		"type": "mkcp-legacy",
+		"settings": map[string]any{
+			"header": maskHeader,
+			"value":  seed,
+		},
+	})
+	finalmask["udp"] = udp
+	stream["finalmask"] = finalmask
 }
 
 // gecko packetSize bounds mirror xray-core's salamander buffer cap.

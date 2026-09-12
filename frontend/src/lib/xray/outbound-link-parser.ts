@@ -219,6 +219,21 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
       applyXhttpStringFromParams(xhttp, params);
       break;
     }
+    case 'kcp': {
+      // mtu/tti on kcpSettings; header/seed via applyMkcpLegacyFromShare.
+      const kcp = stream.kcpSettings as Raw;
+      const mtu = params.get('mtu');
+      if (mtu) {
+        const n = Number(mtu);
+        if (Number.isFinite(n) && n > 0) kcp.mtu = n;
+      }
+      const tti = params.get('tti');
+      if (tti) {
+        const n = Number(tti);
+        if (Number.isFinite(n) && n > 0) kcp.tti = n;
+      }
+      break;
+    }
     case 'tcp':
       // vless/trojan TCP HTTP camouflage rides on header=http+host+path
       if (params.get('headerType') === 'http' || params.get('type') === 'http') {
@@ -239,18 +254,54 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
 // The inbound link emits the entire finalmask object as a JSON-encoded
 // `fm` query param. Decode and attach to streamSettings so udpHop /
 // quicParams / tcp+udp masks round-trip on outbound import.
+const kcpHeaderTypeToMask: Record<string, string> = {
+  dns: 'dns',
+  dtls: 'dtls',
+  srtp: 'srtp',
+  utp: 'utp',
+  'wechat-video': 'wechat',
+  wireguard: 'wireguard',
+};
+
 function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   const fm = params.get('fm');
-  if (!fm) return;
-  try {
-    const parsed = JSON.parse(fm) as Record<string, unknown>;
-    if (parsed && typeof parsed === 'object') {
-      sanitizeFinalMaskQuicParams(parsed);
-      stream.finalmask = parsed;
+  if (fm) {
+    try {
+      const parsed = JSON.parse(fm) as Record<string, unknown>;
+      if (parsed && typeof parsed === 'object') {
+        sanitizeFinalMaskQuicParams(parsed);
+        stream.finalmask = parsed;
+      }
+    } catch {
+      // malformed fm — leave streamSettings.finalmask absent
     }
-  } catch {
-    // malformed fm — leave streamSettings.finalmask absent
   }
+  applyMkcpLegacyFromShare(stream, params);
+}
+
+/** Restore headerType/seed into finalmask.udp mkcp-legacy; fm= mkcp-legacy wins. */
+function applyMkcpLegacyFromShare(stream: Raw, params: URLSearchParams): void {
+  let headerType = (params.get('headerType') ?? '').trim();
+  const seed = params.get('seed') ?? '';
+  if (headerType === 'none') headerType = '';
+  if (!headerType && !seed) return;
+  const network = stream.network;
+  if (typeof network === 'string' && network && network !== 'kcp') return;
+
+  let maskHeader = '';
+  if (headerType) {
+    const mapped = kcpHeaderTypeToMask[headerType];
+    if (!mapped) return;
+    maskHeader = mapped;
+  }
+
+  const finalmask = (stream.finalmask as Raw) ?? {};
+  const udp = Array.isArray(finalmask.udp) ? [...(finalmask.udp as unknown[])] : [];
+  if (udp.some((m) => (m as Raw)?.type === 'mkcp-legacy')) return;
+
+  udp.push({ type: 'mkcp-legacy', settings: { header: maskHeader, value: seed } });
+  finalmask.udp = udp;
+  stream.finalmask = finalmask;
 }
 
 function ensureFinalMask(stream: Raw): Raw {
