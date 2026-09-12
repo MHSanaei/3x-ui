@@ -25,14 +25,16 @@ func Parse(raw string) (map[string]any, error) {
 		return nil, fmt.Errorf("invalid DNS JSON: %w", err)
 	}
 
-	block := map[string]any{}
-	switch value := decoded.(type) {
-	case map[string]any:
-		block = value
-	case []any:
-		block = map[string]any{"servers": value}
-	default:
-		return nil, errors.New("DNS config must be a JSON object or an array of servers")
+	block := make(map[string]any)
+	servers, isList := decoded.([]any)
+	if isList {
+		block["servers"] = servers
+	} else {
+		object, isObject := decoded.(map[string]any)
+		if !isObject {
+			return nil, errors.New("DNS config must be a JSON object or an array of servers")
+		}
+		block = object
 	}
 
 	if err := validate(block); err != nil {
