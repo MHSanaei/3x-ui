@@ -234,6 +234,18 @@ export default function SubscriptionFormatsTab({
                       autoSize={{ minRows: 2, maxRows: 6 }}
                     />
                   </SettingListItem>
+                  <SettingListItem
+                    paddings="small"
+                    title={t('pages.settings.subJsonDns')}
+                    description={t('pages.settings.subJsonDnsDesc')}
+                  >
+                    <Input.TextArea
+                      value={allSetting.subJsonDns}
+                      placeholder='{"servers": ["https://dns.google/dns-query", "tls://1.1.1.1"]}'
+                      onChange={(e) => updateSetting({ subJsonDns: e.target.value })}
+                      autoSize={{ minRows: 2, maxRows: 6 }}
+                    />
+                  </SettingListItem>
                 </Card>
               )}
               {allSetting.subClashEnable && (
