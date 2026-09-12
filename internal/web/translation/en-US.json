@@ -762,6 +762,7 @@
       "noHwids": "No HWID devices yet",
       "firstSeen": "First seen",
       "lastSeen": "Last seen",
+      "hwidFingerprint": "HWID fingerprint",
       "deleteHwid": "Remove device",
       "deleteHwidConfirm": "Remove this device? It will need to re-register on its next subscription fetch.",
       "hwidDeleted": "Device removed.",

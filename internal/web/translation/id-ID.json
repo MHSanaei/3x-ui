@@ -762,6 +762,7 @@
       "noHwids": "Belum ada perangkat HWID",
       "firstSeen": "Pertama terlihat",
       "lastSeen": "Terakhir terlihat",
+      "hwidFingerprint": "Sidik jari HWID",
       "deleteHwid": "Hapus perangkat",
       "deleteHwidConfirm": "Hapus perangkat ini? Perangkat perlu mendaftar ulang pada pengambilan langganan berikutnya.",
       "hwidDeleted": "Perangkat dihapus.",

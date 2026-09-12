@@ -762,6 +762,7 @@
       "noHwids": "هنوز دستگاه HWID ثبت نشده است",
       "firstSeen": "اولین مشاهده",
       "lastSeen": "آخرین مشاهده",
+      "hwidFingerprint": "اثر انگشت HWID",
       "deleteHwid": "حذف دستگاه",
       "deleteHwidConfirm": "این دستگاه حذف شود؟ در دریافت بعدی اشتراک باید دوباره ثبت‌نام شود.",
       "hwidDeleted": "دستگاه حذف شد.",
