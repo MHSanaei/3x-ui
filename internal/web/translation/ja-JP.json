@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
-
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Discord Bot",
+      "discordBotEnable": "Discord通知を有効化",
+      "discordBotEnableDesc": "Botを介してDiscordチャンネルにシステムおよびイベント通知を送信します",
+      "discordBotToken": "Discord Botトークン",
+      "discordBotTokenDesc": "Discord Developer PortalからのBotトークン",
+      "discordTokenConfigured": "トークンは設定されています。新しいトークンを入力して置き換えます。",
+      "discordTokenPlaceholder": "Botトークンを入力",
+      "discordChannelId": "チャンネルID",
+      "discordChannelIdDesc": "通知が送信されるDiscordチャンネルID",
+      "discordEventBusNotify": "Discord通知",
+      "testDiscord": "テスト通知を送信",
+      "testDiscordDesc": "BotトークンとチャンネルIDを確認するためのテスト通知を送信します"
     },
     "xray": {
       "importRules": "ルールをインポート",

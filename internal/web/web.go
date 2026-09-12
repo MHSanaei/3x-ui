@@ -31,6 +31,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/discord"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
@@ -456,6 +457,13 @@ func (s *Server) cpuAlarmWanted() bool {
 			return true
 		}
 	}
+	if on, _ := s.settingService.GetDiscordBotEnable(); on {
+		events, _ := s.settingService.GetDiscordEnabledEvents()
+		cpu, _ := s.settingService.GetDiscordCpu()
+		if wants(events, cpu) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -482,6 +490,13 @@ func (s *Server) memoryAlarmWanted() bool {
 	if on, _ := s.settingService.GetSmtpEnable(); on {
 		events, _ := s.settingService.GetSmtpEnabledEvents()
 		mem, _ := s.settingService.GetSmtpMemory()
+		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetDiscordBotEnable(); on {
+		events, _ := s.settingService.GetDiscordEnabledEvents()
+		mem, _ := s.settingService.GetDiscordMemory()
 		if wants(events, mem) {
 			return true
 		}
@@ -640,6 +655,14 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 
 	// Wire email service to controller for test endpoint
 	controller.SetEmailService(emailService)
+
+	// Register discord subscriber (always — it checks discordBotEnable at runtime)
+	discordService := discord.NewDiscordService(s.settingService)
+	discordSub := discord.NewSubscriber(s.settingService, discordService)
+	s.bus.Subscribe("discord-notifier", discordSub.HandleEvent)
+
+	// Wire discord service to controller for test endpoint
+	controller.SetDiscordService(discordService)
 
 	// Wire Telegram test function to controller
 	controller.SetTestTgFunc(func() error {

@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
-
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Bot Discord",
+      "discordBotEnable": "Aktifkan Notifikasi Discord",
+      "discordBotEnableDesc": "Kirim peringatan sistem dan acara ke saluran Discord melalui bot",
+      "discordBotToken": "Token Bot Discord",
+      "discordBotTokenDesc": "Token bot dari Discord Developer Portal",
+      "discordTokenConfigured": "Token telah dikonfigurasi. Masukkan token baru untuk menggantinya.",
+      "discordTokenPlaceholder": "Masukkan token bot",
+      "discordChannelId": "ID Saluran",
+      "discordChannelIdDesc": "ID saluran Discord tempat notifikasi akan dikirim",
+      "discordEventBusNotify": "Notifikasi Discord",
+      "testDiscord": "Kirim Notifikasi Uji",
+      "testDiscordDesc": "Kirim notifikasi uji untuk memverifikasi token bot dan ID saluran Anda"
     },
     "xray": {
       "save": "Simpan",

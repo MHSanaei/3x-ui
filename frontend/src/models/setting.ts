@@ -145,6 +145,14 @@ export class AllSetting {
   clearTgBotToken = false;
   clearLdapPassword = false;
   clearSmtpPassword = false;
+  discordBotEnable = false;
+  discordBotToken = '';
+  discordChannelId = '';
+  discordEnabledEvents = 'login.attempt,cpu.high';
+  discordCpu = 80;
+  discordMemory = 80;
+  hasDiscordBotToken = false;
+  clearDiscordBotToken = false;
 
   constructor(data?: unknown) {
     if (data != null) {

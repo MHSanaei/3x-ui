@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "网络与 TUN 引擎",
       "subHappGroupThemes": "界面与主题外观",
       "subHappGroupFailover": "迁移与客户端管理",
-      "subHappGroupAndroid": "Android 分应用代理"
-
+      "subHappGroupAndroid": "Android 分应用代理",
+      "discordSettings": "Discord 機器人",
+      "discordBotEnable": "啟用 Discord 通知",
+      "discordBotEnableDesc": "透過機器人向 Discord 頻道發送系統與事件警報",
+      "discordBotToken": "Discord 機器人權杖",
+      "discordBotTokenDesc": "來自 Discord 開發者門戶的機器人權杖",
+      "discordTokenConfigured": "權杖已設定。輸入新權杖以取代。",
+      "discordTokenPlaceholder": "輸入機器人權杖",
+      "discordChannelId": "頻道 ID",
+      "discordChannelIdDesc": "接收通知的 Discord 頻道 ID",
+      "discordEventBusNotify": "Discord 通知",
+      "testDiscord": "傳送測試通知",
+      "testDiscordDesc": "傳送測試通知以驗證您的機器人權杖與頻道 ID"
     },
     "xray": {
       "save": "儲存",

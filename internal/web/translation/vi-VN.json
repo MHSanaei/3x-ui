@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
-
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Bot Discord",
+      "discordBotEnable": "Bật thông báo Discord",
+      "discordBotEnableDesc": "Gửi cảnh báo hệ thống và sự kiện đến kênh Discord qua bot",
+      "discordBotToken": "Token bot Discord",
+      "discordBotTokenDesc": "Token bot từ Discord Developer Portal",
+      "discordTokenConfigured": "Token đã được định cấu hình. Nhập token mới để thay thế.",
+      "discordTokenPlaceholder": "Nhập token bot",
+      "discordChannelId": "ID kênh",
+      "discordChannelIdDesc": "ID kênh Discord nơi thông báo sẽ được gửi",
+      "discordEventBusNotify": "Thông báo Discord",
+      "testDiscord": "Gửi thông báo thử nghiệm",
+      "testDiscordDesc": "Gửi thông báo thử nghiệm để xác minh token bot và ID kênh"
     },
     "xray": {
       "importRules": "Nhập quy tắc",

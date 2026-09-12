@@ -1910,6 +1910,12 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "msg": "Test message sent to Telegram"\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/setting/testDiscord',
+        summary: 'Test Discord bot connection by sending a test embed to the configured channel.',
+        response: '{\n  "success": true,\n  "msg": "Test notification sent successfully"\n}',
+      },
+      {
         method: 'GET',
         path: '/panel/api/setting/getDefaultJsonConfig',
         summary:

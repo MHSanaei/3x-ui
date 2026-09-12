@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/discord"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -35,9 +36,10 @@ type updateUserForm struct {
 type updateSettingForm struct {
 	entity.AllSetting
 	TwoFactorCode     string `json:"twoFactorCode" form:"twoFactorCode"`
-	ClearTgBotToken   bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
-	ClearLdapPassword bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
-	ClearSmtpPassword bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
+	ClearTgBotToken      bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
+	ClearLdapPassword    bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
+	ClearSmtpPassword    bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
+	ClearDiscordBotToken bool   `json:"clearDiscordBotToken" form:"clearDiscordBotToken"`
 }
 
 type validateRegexForm struct {
@@ -78,6 +80,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
 	g.POST("/testSmtp", a.testSmtp)
 	g.POST("/testTgBot", a.testTgBot)
+	g.POST("/testDiscord", a.testDiscord)
 }
 
 func (a *SettingController) validateRegex(c *gin.Context) {
@@ -144,9 +147,10 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		}
 	}
 	err := a.settingService.UpdateAllSetting(allSetting, service.SecretClears{
-		TgBotToken:   form.ClearTgBotToken,
-		LdapPassword: form.ClearLdapPassword,
-		SmtpPassword: form.ClearSmtpPassword,
+		TgBotToken:      form.ClearTgBotToken,
+		LdapPassword:    form.ClearLdapPassword,
+		SmtpPassword:    form.ClearSmtpPassword,
+		DiscordBotToken: form.ClearDiscordBotToken,
 	})
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
@@ -347,3 +351,26 @@ var emailService *email.EmailService
 
 // SetEmailService registers the email service for test endpoints.
 func SetEmailService(s *email.EmailService) { emailService = s }
+
+// discordService is set from web layer.
+var discordService *discord.DiscordService
+
+// SetDiscordService registers the Discord service for test endpoints.
+func SetDiscordService(s *discord.DiscordService) { discordService = s }
+
+func (a *SettingController) testDiscord(c *gin.Context) {
+	if discordService == nil {
+		jsonMsg(c, "Discord service not initialized", errors.New("discord service not available"))
+		return
+	}
+	enabled, err := a.settingService.GetDiscordBotEnable()
+	if err != nil || !enabled {
+		jsonMsg(c, "Discord bot disabled", errors.New("discord bot disabled"))
+		return
+	}
+	if err := discordService.SendTest(); err != nil {
+		jsonMsg(c, "Discord test failed: "+err.Error(), err)
+		return
+	}
+	jsonMsg(c, "Test notification sent successfully", nil)
+}

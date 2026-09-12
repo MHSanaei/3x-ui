@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
-
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "بوت ديسكورد",
+      "discordBotEnable": "تفعيل إشعارات ديسكورد",
+      "discordBotEnableDesc": "إرسال تنبيهات النظام والأحداث إلى قناة ديسكورد عبر البوت",
+      "discordBotToken": "رمز بوت ديسكورد",
+      "discordBotTokenDesc": "رمز البوت من بوابة مطوري ديسكورد",
+      "discordTokenConfigured": "تم تكوين الرمز. أدخل رمزاً جديداً لاستبداله.",
+      "discordTokenPlaceholder": "أدخل رمز البوت",
+      "discordChannelId": "معرّف القناة",
+      "discordChannelIdDesc": "معرّف قناة ديسكورد حيث سيتم إرسال الإشعارات",
+      "discordEventBusNotify": "إشعارات ديسكورد",
+      "testDiscord": "إرسال إشعار تجريبي",
+      "testDiscordDesc": "إرسال إشعار تجريبي للتحقق من رمز البوت ومعرّف القناة"
     },
     "xray": {
       "save": "احفظ",

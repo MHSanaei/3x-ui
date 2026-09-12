@@ -31,6 +31,28 @@
           "datepicker": {
             "type": "string"
           },
+          "discordBotEnable": {
+            "type": "boolean"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordEnabledEvents": {
+            "type": "string"
+          },
+          "discordMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "expireDiff": {
             "minimum": 0,
             "type": "integer"
@@ -459,6 +481,12 @@
         },
         "required": [
           "datepicker",
+          "discordBotEnable",
+          "discordBotToken",
+          "discordChannelId",
+          "discordCpu",
+          "discordEnabledEvents",
+          "discordMemory",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
@@ -598,6 +626,28 @@
           "datepicker": {
             "type": "string"
           },
+          "discordBotEnable": {
+            "type": "boolean"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordEnabledEvents": {
+            "type": "string"
+          },
+          "discordMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
           "expireDiff": {
             "minimum": 0,
             "type": "integer"
@@ -609,6 +659,9 @@
             "type": "string"
           },
           "hasApiToken": {
+            "type": "boolean"
+          },
+          "hasDiscordBotToken": {
             "type": "boolean"
           },
           "hasLdapPassword": {
@@ -1047,10 +1100,17 @@
         },
         "required": [
           "datepicker",
+          "discordBotEnable",
+          "discordBotToken",
+          "discordChannelId",
+          "discordCpu",
+          "discordEnabledEvents",
+          "discordMemory",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
           "hasApiToken",
+          "hasDiscordBotToken",
           "hasLdapPassword",
           "hasNordSecret",
           "hasSmtpPassword",
@@ -12298,6 +12358,40 @@
                 "example": {
                   "success": true,
                   "msg": "Test message sent to Telegram"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testDiscord": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Test Discord bot connection by sending a test embed to the configured channel.",
+        "operationId": "post_panel_api_setting_testDiscord",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Test notification sent successfully"
                 }
               }
             }

@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "网络与 TUN 引擎",
       "subHappGroupThemes": "界面与主题外观",
       "subHappGroupFailover": "迁移与客户端管理",
-      "subHappGroupAndroid": "Android 分应用代理"
-
+      "subHappGroupAndroid": "Android 分应用代理",
+      "discordSettings": "Discord 机器人",
+      "discordBotEnable": "启用 Discord 通知",
+      "discordBotEnableDesc": "通过机器人向 Discord 频道发送系统和事件警报",
+      "discordBotToken": "Discord 机器人令牌",
+      "discordBotTokenDesc": "来自 Discord 开发者门户的机器人令牌",
+      "discordTokenConfigured": "令牌已配置。输入新令牌以替换。",
+      "discordTokenPlaceholder": "输入机器人令牌",
+      "discordChannelId": "频道 ID",
+      "discordChannelIdDesc": "接收通知的 Discord 频道 ID",
+      "discordEventBusNotify": "Discord 通知",
+      "testDiscord": "发送测试通知",
+      "testDiscordDesc": "发送测试通知以验证您的机器人令牌和频道 ID"
     },
     "xray": {
       "importRules": "导入规则",

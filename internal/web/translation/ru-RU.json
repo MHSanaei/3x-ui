@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Сетевые настройки и TUN",
       "subHappGroupThemes": "Внешний вид и темы",
       "subHappGroupFailover": "Миграция и управление",
-      "subHappGroupAndroid": "Прокси приложений Android"
-
+      "subHappGroupAndroid": "Прокси приложений Android",
+      "discordSettings": "Discord бот",
+      "discordBotEnable": "Включить уведомления в Discord",
+      "discordBotEnableDesc": "Отправлять оповещения о событиях в канал Discord через бота",
+      "discordBotToken": "Токен Discord бота",
+      "discordBotTokenDesc": "Токен бота из Discord Developer Portal",
+      "discordTokenConfigured": "Токен настроен. Введите новый токен для замены.",
+      "discordTokenPlaceholder": "Введите токен бота",
+      "discordChannelId": "ID канала",
+      "discordChannelIdDesc": "ID канала Discord, куда будут отправляться уведомления",
+      "discordEventBusNotify": "Уведомления Discord",
+      "testDiscord": "Отправить тестовое уведомление",
+      "testDiscordDesc": "Отправить тестовое сообщение для проверки токена бота и ID канала"
     },
     "xray": {
       "importRules": "Импорт правил",

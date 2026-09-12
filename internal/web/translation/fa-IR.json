@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "تنظیمات شبکه و TUN",
       "subHappGroupThemes": "ظاهر و پوسته برنامه",
       "subHappGroupFailover": "مهاجرت و مدیریت کلاینت",
-      "subHappGroupAndroid": "پراکسی برنامه‌های اندروید"
-
+      "subHappGroupAndroid": "پراکسی برنامه‌های اندروید",
+      "discordSettings": "ربات دیسکورد",
+      "discordBotEnable": "فعال‌سازی اعلان‌های دیسکورد",
+      "discordBotEnableDesc": "ارسال هشدارهای سیستم و رویدادها به کانال دیسکورد از طریق ربات",
+      "discordBotToken": "توکن ربات دیسکورد",
+      "discordBotTokenDesc": "توکن ربات از پنل توسعه‌دهندگان دیسکورد",
+      "discordTokenConfigured": "توکن پیکربندی شده است. برای جایگزینی، توکن جدید را وارد کنید.",
+      "discordTokenPlaceholder": "توکن ربات را وارد کنید",
+      "discordChannelId": "شناسه کانال",
+      "discordChannelIdDesc": "شناسه کانال دیسکورد برای دریافت اعلان‌ها",
+      "discordEventBusNotify": "اعلان‌های دیسکورد",
+      "testDiscord": "ارسال اعلان آزمایشی",
+      "testDiscordDesc": "ارسال یک اعلان آزمایشی برای بررسی توکن ربات و شناسه کانال"
     },
     "xray": {
       "save": "ذخیره",

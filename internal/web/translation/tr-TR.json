@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
-
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Discord Botu",
+      "discordBotEnable": "Discord Bildirimlerini Etkinleştir",
+      "discordBotEnableDesc": "Sistem ve olay uyarılarını bot aracılığıyla bir Discord kanalına gönderin",
+      "discordBotToken": "Discord Bot Belirteci",
+      "discordBotTokenDesc": "Discord Geliştirici Portalından alınan bot belirteci",
+      "discordTokenConfigured": "Belirteç yapılandırıldı. Değiştirmek için yeni bir belirteç girin.",
+      "discordTokenPlaceholder": "Bot belirtecini girin",
+      "discordChannelId": "Kanal Kimliği",
+      "discordChannelIdDesc": "Bildirimlerin gönderileceği Discord kanal kimliği",
+      "discordEventBusNotify": "Discord Bildirimleri",
+      "testDiscord": "Test Bildirimi Gönder",
+      "testDiscordDesc": "Bot belirtecinizi ve kanal kimliğinizi doğrulamak için bir test bildirimi gönderin"
     },
     "xray": {
       "save": "Kaydet",

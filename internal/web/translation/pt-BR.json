@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
-
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Bot do Discord",
+      "discordBotEnable": "Ativar notificações do Discord",
+      "discordBotEnableDesc": "Enviar alertas de sistema e eventos para um canal do Discord via bot",
+      "discordBotToken": "Token do Bot do Discord",
+      "discordBotTokenDesc": "Token do bot do Portal de Desenvolvedores do Discord",
+      "discordTokenConfigured": "O token está configurado. Insira um novo token para substituí-lo.",
+      "discordTokenPlaceholder": "Insira o token do bot",
+      "discordChannelId": "ID do canal",
+      "discordChannelIdDesc": "ID do canal do Discord onde as notificações serão enviadas",
+      "discordEventBusNotify": "Notificações do Discord",
+      "testDiscord": "Enviar notificação de teste",
+      "testDiscordDesc": "Enviar uma notificação de teste para verificar o token do bot e o ID do canal"
     },
     "xray": {
       "importRules": "Importar regras",

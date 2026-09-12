@@ -1571,8 +1571,19 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
-
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Discord бот",
+      "discordBotEnable": "Увімкнути сповіщення Discord",
+      "discordBotEnableDesc": "Надсилати системні сповіщення та події в канал Discord через бота",
+      "discordBotToken": "Токен бота Discord",
+      "discordBotTokenDesc": "Токен бота з Discord Developer Portal",
+      "discordTokenConfigured": "Токен налаштовано. Введіть новий токен для заміни.",
+      "discordTokenPlaceholder": "Введіть токен бота",
+      "discordChannelId": "ID каналу",
+      "discordChannelIdDesc": "ID каналу Discord, куди надсилатимуться сповіщення",
+      "discordEventBusNotify": "Сповіщення Discord",
+      "testDiscord": "Надіслати тестове сповіщення",
+      "testDiscordDesc": "Надіслати тестове сповіщення для перевірки токена бота та ID каналу"
     },
     "xray": {
       "save": "Зберегти",

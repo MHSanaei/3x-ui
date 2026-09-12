@@ -15,6 +15,7 @@ import {
   CopyOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  DiscordOutlined,
   ExportOutlined,
   FileTextOutlined,
   GlobalOutlined,
@@ -463,6 +464,13 @@ export default function CommandPalette() {
         subtitle: t('pages.settings.emailSettings'),
         keywords: ['email', 'smtp', 'mail', 'crash alerts'],
         icon: <MailOutlined />,
+      },
+      {
+        path: '/settings#discord',
+        title: `${t('menu.settings')} · ${t('pages.settings.discordSettings')}`,
+        subtitle: t('pages.settings.discordSettings'),
+        keywords: ['discord', 'bot', 'channel', 'notifications', 'alerts'],
+        icon: <DiscordOutlined />,
       },
       {
         path: '/settings#subscription',

@@ -130,6 +130,13 @@ export const AllSettingSchema = z
     hasWarpSecret: z.boolean().optional(),
     hasNordSecret: z.boolean().optional(),
     hasSmtpPassword: z.boolean().optional(),
+    hasDiscordBotToken: z.boolean().optional(),
+    discordBotEnable: z.boolean().optional(),
+    discordBotToken: z.string().optional(),
+    discordChannelId: z.string().optional(),
+    discordEnabledEvents: z.string().optional(),
+    discordCpu: z.number().int().min(0).max(100).optional(),
+    discordMemory: z.number().int().min(0).max(100).optional(),
   })
   .loose();
 
