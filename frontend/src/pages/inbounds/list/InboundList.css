@@ -180,3 +180,34 @@
     padding: 4px;
   }
 }
+
+.inbound-remark-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inbound-remark {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbound-host-remarks {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.65;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.tag-name .inbound-host-remarks {
+  font-weight: 400;
+}
