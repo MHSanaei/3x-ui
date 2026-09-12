@@ -113,7 +113,7 @@ func (a *IndexController) login(c *gin.Context) {
 	}
 
 	defaultLoginLimiter.registerSuccess(remoteIP, form.Username)
-	logger.Infof("%s logged in successfully, Ip Address: %s\n", safeUser, remoteIP)
+	logger.Infof("logged in successfully: username=%q, IP=%q", safeUser, remoteIP)
 	a.tgbot.UserLoginNotify(tgbot.LoginAttempt{
 		Username: safeUser,
 		IP:       remoteIP,
@@ -139,7 +139,7 @@ func loginFailureReason(err error) string {
 func (a *IndexController) logout(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user != nil {
-		logger.Infof("%s logged out successfully", user.Username)
+		logger.Infof("logged out successfully: username=%q", user.Username)
 	}
 	if err := session.ClearSession(c); err != nil {
 		logger.Warning("Unable to clear session on logout:", err)
