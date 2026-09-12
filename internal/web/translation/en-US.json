@@ -410,6 +410,7 @@
         "stream": "Stream",
         "streamHelp": "Xray stream block wrapper:"
       },
+      "advancedTitle": "Advanced Settings",
       "subSortIndex": "Sub order",
       "inboundInfo": "Inbound Information",
       "exportInbound": "Export Inbound",
@@ -457,6 +458,7 @@
         "moreIssues": "{message}  (+{count} more)"
       },
       "form": {
+        "autoFill": "Auto Fill",
         "moveUp": "Move up",
         "moveDown": "Move down",
         "addAll": "Add all",
@@ -768,7 +770,7 @@
       "limitIpFail2banWindows": "Fail2ban is not available on Windows, so the IP limit cannot be enforced.",
       "limitIpDisabled": "The IP limit feature is disabled on this server.",
       "password": "Password",
-      "passwordDesc": "Only used by Trojan and Shadowsocks clients; ignored for VLESS, VMess, Hysteria, and WireGuard.",
+      "passwordDesc": "Used by Trojan, Shadowsocks, and TUIC clients; ignored for VLESS, VMess, Hysteria, and WireGuard.",
       "subId": "Subscription ID",
       "online": "Online",
       "email": "Email",
@@ -882,6 +884,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG config",
+      "tuicConfig": "TUIC config (Clash)",
       "mtprotoSecret": "MTProto secret",
       "mtprotoSecretHint": "The client's FakeTLS secret. Regenerate to rotate it.",
       "mtprotoAdTag": "Ad-tag (sponsored channel)",
@@ -915,6 +918,7 @@
       "renewOnDay": "Renew on day",
       "renewOnDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode.",
       "renewsUsed": "Renewals used",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds."
     },
     "groups": {
@@ -2077,6 +2081,19 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
+      },
+      "tuic": {
+        "congestionControl": "Congestion Control",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP Relay Mode",
+        "zeroRttHandshake": "Zero-RTT Handshake",
+        "logLevel": "Log Level",
+        "logLevelHint": "Online status, last online and \"start after first use\" are read from the sidecar's Info lines; Warn or Error turns them off for this inbound.",
+        "maxIdleTime": "Max Idle Time (s)",
+        "authTimeout": "Auth Timeout (s)",
+        "maxUdpRelayPacketSize": "Max UDP Packet Size",
+        "sni": "SNI",
+        "sniHint": "Server Name Indication override"
       },
       "tun": {
         "userLevel": "User Level"

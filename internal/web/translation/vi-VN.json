@@ -675,7 +675,8 @@
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",
           "custom": "Tùy chỉnh"
-        }
+        },
+        "autoFill": "Tự động điền"
       },
       "info": {
         "mode": "Chế độ",
@@ -694,7 +695,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Cấu hình Peer {n}"
       },
-      "sniffingDestOverride": "Ghi đè đích"
+      "sniffingDestOverride": "Ghi đè đích",
+      "advancedTitle": "Cài đặt nâng cao"
     },
     "clients": {
       "tabBasics": "Cơ bản",
@@ -882,6 +884,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Cấu hình AmneziaWG",
+      "tuicConfig": "Cấu hình TUIC (Clash)",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS của client. Tạo lại để thay đổi.",
       "mtprotoAdTag": "Ad-tag (kênh tài trợ)",
@@ -915,6 +918,7 @@
       "renewOnDay": "Gia hạn vào ngày",
       "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng. 0 giữ nguyên chế độ khoảng cách theo ngày.",
       "renewsUsed": "Số lần gia hạn đã dùng",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto."
     },
     "groups": {
@@ -1959,6 +1963,19 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
+      },
+      "tuic": {
+        "congestionControl": "Kiểm soát tắc nghẽn",
+        "alpn": "ALPN",
+        "udpRelayMode": "Chế độ chuyển tiếp UDP",
+        "zeroRttHandshake": "Bắt tay 0-RTT",
+        "logLevel": "Mức ghi nhật ký",
+        "logLevelHint": "Trạng thái trực tuyến, lần trực tuyến cuối và \"bắt đầu sau lần dùng đầu tiên\" được đọc từ các dòng Info của sidecar; Warn hoặc Error sẽ tắt chúng cho inbound này.",
+        "maxIdleTime": "Thời gian nhàn rỗi tối đa (giây)",
+        "authTimeout": "Thời gian chờ xác thực (giây)",
+        "maxUdpRelayPacketSize": "Kích thước gói UDP tối đa",
+        "sni": "SNI",
+        "sniHint": "Ghi đè Server Name Indication"
       },
       "tun": {
         "userLevel": "Mức Người Dùng"

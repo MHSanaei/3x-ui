@@ -26,5 +26,6 @@ export const ExternalProxyEntrySchema = z.object({
   verifyPeerCertByName: z.string().optional(),
   echConfigList: z.string().optional(),
   vlessRoute: z.string().optional(),
+  allowInsecure: z.boolean().optional(),
 });
 export type ExternalProxyEntry = z.infer<typeof ExternalProxyEntrySchema>;

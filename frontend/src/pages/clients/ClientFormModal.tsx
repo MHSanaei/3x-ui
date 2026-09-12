@@ -62,6 +62,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'wireguard',
   'mtproto',
   'amneziawg',
+  'tuic',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;
@@ -446,6 +447,19 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
+  const tuicIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const row of inbounds || []) {
+      if (row && row.protocol === 'tuic') ids.add(row.id);
+    }
+    return ids;
+  }, [inbounds]);
+
+  const hasTuic = useMemo(
+    () => (inboundIds || []).some((id) => tuicIds.has(id)),
+    [inboundIds, tuicIds],
+  );
+
   const mtprotoDomain = useMemo(() => {
     for (const id of inboundIds || []) {
       const ib = (inbounds || []).find((row) => row.id === id);
@@ -668,6 +682,7 @@ export default function ClientFormModal({
       email: values.email.trim(),
       subId: values.subId,
       id: values.uuid,
+      uuid: values.uuid,
       password: values.password,
       auth: values.auth,
       flow: showFlow ? values.flow || '' : '',
@@ -857,7 +872,11 @@ export default function ClientFormModal({
                           <FormField
                             name="totalGB"
                             label={t('pages.clients.totalGB')}
-                            tooltip={t('pages.clients.totalGBDesc')}
+                            tooltip={
+                              hasTuic
+                                ? t('pages.clients.tuicTotalGBDesc')
+                                : t('pages.clients.totalGBDesc')
+                            }
                             transform={{ output: (v) => Number(v) || 0 }}
                           >
                             <InputNumber min={0} step={1} style={{ width: '100%' }} />

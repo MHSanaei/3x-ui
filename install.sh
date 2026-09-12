@@ -367,6 +367,34 @@ install_acme() {
     return 0
 }
 
+install_tuic_server() {
+    local target_arch=""
+    case "$(arch)" in
+        amd64|x86_64) target_arch="x86_64-unknown-linux-musl" ;;
+        arm64|aarch64) target_arch="aarch64-unknown-linux-musl" ;;
+        armv7|armv7l) target_arch="armv7-unknown-linux-musleabihf" ;;
+        386|i386|i686) target_arch="i686-unknown-linux-musl" ;;
+        armv6|armv6l|armv5|armv5l|s390x)
+            echo -e "${yellow}tuic-server does not provide prebuilt binaries for $(arch); TUIC inbounds will be unavailable on this machine${plain}"
+            return 0
+            ;;
+        *) return 0 ;;
+    esac
+
+    local tuic_url="https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${target_arch}"
+    echo -e "${green}Installing tuic-server (${target_arch})...${plain}"
+    mkdir -p "${xui_folder}/bin"
+    if curl -fLR --connect-timeout 15 --retry 3 -o "${xui_folder}/bin/tuic-server" "${tuic_url}" && [[ -s "${xui_folder}/bin/tuic-server" ]]; then
+        chmod +x "${xui_folder}/bin/tuic-server"
+        cp -f "${xui_folder}/bin/tuic-server" /usr/local/bin/tuic-server 2>/dev/null || true
+        chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
+        echo -e "${green}tuic-server installed successfully${plain}"
+    else
+        rm -f "${xui_folder}/bin/tuic-server"
+        echo -e "${yellow}Failed to download tuic-server (optional), skipping${plain}"
+    fi
+}
+
 setup_ssl_certificate() {
     local domain="$1"
     local server_ip="$2"
@@ -1570,6 +1598,7 @@ install_x-ui() {
         # an inbound port with an outdated secret, silently breaking new clients.
         # The freshly installed panel respawns a clean mtg per inbound on start.
         pkill -f 'mtg-linux-[^ ]* run ' > /dev/null 2>&1 || true
+        pkill -f 'tuic-server.*-c .*bin/tuic/tuic_[0-9]+\.json' > /dev/null 2>&1 || true
 
         # bin/ is about to be wiped wholesale by the tar extraction below. The
         # release only ships known assets (xray/mtg binaries, the bundled
@@ -1634,6 +1663,11 @@ install_x-ui() {
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch)
     fi
+    if [[ -f bin/tuic-server ]]; then
+        chmod +x bin/tuic-server
+    else
+        install_tuic_server
+    fi
 
     # Restore anything from the old bin/ that the fresh release doesn't ship
     # (custom geoip/geosite files, or anything else an admin hand-placed
@@ -1652,7 +1686,7 @@ install_x-ui() {
         while IFS= read -r -d '' f; do
             local rel="${f#"${custom_bin_backup}"/}"
             case "${rel}" in
-                config.json | mtproto | mtproto/*) continue ;;
+                config.json | mtproto | mtproto/* | tuic | tuic/*) continue ;;
             esac
             if [[ ! -e "bin/${rel}" ]]; then
                 mkdir -p "bin/$(dirname "${rel}")"

@@ -675,7 +675,8 @@
           "node": "Endereço do nó",
           "listen": "Endereço de escuta do inbound",
           "custom": "Personalizada"
-        }
+        },
+        "autoFill": "Preenchimento automático"
       },
       "info": {
         "mode": "Modo",
@@ -694,7 +695,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Config Peer {n}"
       },
-      "sniffingDestOverride": "Substituição de destino"
+      "sniffingDestOverride": "Substituição de destino",
+      "advancedTitle": "Configurações avançadas"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -882,6 +884,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Configuração do AmneziaWG",
+      "tuicConfig": "Configuração do TUIC (Clash)",
       "mtprotoSecret": "Segredo MTProto",
       "mtprotoSecretHint": "O segredo FakeTLS do cliente. Gere novamente para trocá-lo.",
       "mtprotoAdTag": "Ad-tag (canal patrocinado)",
@@ -915,6 +918,7 @@
       "renewOnDay": "Renovar no dia",
       "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias.",
       "renewsUsed": "Renovações usadas",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto."
     },
     "groups": {
@@ -1959,6 +1963,19 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
+      },
+      "tuic": {
+        "congestionControl": "Controle de congestionamento",
+        "alpn": "ALPN",
+        "udpRelayMode": "Modo de retransmissão UDP",
+        "zeroRttHandshake": "Handshake 0-RTT",
+        "logLevel": "Nível de registro",
+        "logLevelHint": "Status online, último acesso e \"iniciar após o primeiro uso\" são lidos das linhas Info do sidecar; Warn ou Error os desativam para este inbound.",
+        "maxIdleTime": "Tempo máx. ocioso (s)",
+        "authTimeout": "Tempo limite de autenticação (s)",
+        "maxUdpRelayPacketSize": "Tamanho máx. do pacote UDP",
+        "sni": "SNI",
+        "sniHint": "Substituição do Server Name Indication"
       },
       "tun": {
         "userLevel": "Nível do Usuário"
