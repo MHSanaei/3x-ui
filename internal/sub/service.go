@@ -142,8 +142,10 @@ func (s *SubService) primeLinkClients(inboundId int, clients []model.Client, com
 }
 
 // clientForLink resolves one client of an inbound by email for link
-// generation: from the per-request cache when primed, otherwise by parsing
-// the settings JSON once and caching every client from it.
+// generation: from the per-request cache when primed, otherwise via
+// clientsForLinkExport (clients-table UUID identity with settings-JSON
+// fallback for share-link protocols; settings JSON for WireGuard/AmneziaWG
+// tunnel fields) and caches the list.
 func (s *SubService) clientForLink(inbound *model.Inbound, email string) (model.Client, bool) {
 	if m, ok := s.clientsByInbound[inbound.Id]; ok {
 		if c, hit := m[email]; hit {
@@ -153,7 +155,7 @@ func (s *SubService) clientForLink(inbound *model.Inbound, email string) (model.
 			return model.Client{}, false
 		}
 	}
-	clients, err := s.inboundService.GetClients(inbound)
+	clients, err := s.clientsForLinkExport(inbound)
 	if err != nil {
 		return model.Client{}, false
 	}
@@ -164,6 +166,29 @@ func (s *SubService) clientForLink(inbound *model.Inbound, email string) (model.
 		}
 	}
 	return model.Client{}, false
+}
+
+// clientsForLinkExport returns the clients used to build share / QR / allLinks
+// exports for one inbound. UUID-bearing protocols prefer the normalized clients
+// table so the link matches the running Xray identity when settings JSON is
+// stale (#6436). When that list is empty or unavailable (settings-only inbounds,
+// unsynced rows, unit tests without a DB), fall back to GetClients so links
+// still generate from the embedded settings JSON (#6458). WireGuard and
+// AmneziaWG always keep the inbound's own settings JSON: private key,
+// AllowedIPs, and related tunnel fields are deliberately per-inbound there,
+// while the shared clients.wg_* columns collapse to whichever tunnel inbound
+// synced last (see TunnelAllowedIPsByInbound / amneziaWGClientAddresses).
+func (s *SubService) clientsForLinkExport(inbound *model.Inbound) ([]model.Client, error) {
+	if inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG {
+		return s.inboundService.GetClients(inbound)
+	}
+	if database.GetDB() != nil {
+		clients, err := s.inboundService.ListClientsForInbound(inbound.Id)
+		if err == nil && len(clients) > 0 {
+			return clients, nil
+		}
+	}
+	return s.inboundService.GetClients(inbound)
 }
 
 // linkSettings returns the inbound's settings decoded once per request with
@@ -461,10 +486,12 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 // inboundLinks builds the share links for every distinct client of one inbound
 // the same way getSubs does — managed Host endpoints win over the plain link so
 // {{HOST}} and per-host variants render — but across all clients rather than a
-// single subId. Dedups duplicate client JSON entries by email (#5134). Backs the
-// panel's "Export all inbound links" so it matches the client/QR pages.
+// single subId. Resolves clients via clientsForLinkExport so UUID-bearing
+// protocols match the running Xray config (#6436) while WireGuard/AmneziaWG
+// keep per-inbound tunnel identity from settings. Dedups by email (#5134).
+// Backs the panel's "Export all inbound links" and matches client/QR pages.
 func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
-	clients, err := s.inboundService.GetClients(inbound)
+	clients, err := s.clientsForLinkExport(inbound)
 	if err != nil {
 		return nil
 	}
