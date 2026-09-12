@@ -1293,6 +1293,8 @@
       "muxSett": "複用器設定",
       "direct": "直接連線",
       "directDesc": "直接與特定國家的域或 IP 範圍建立連線",
+      "block": "封鎖連線",
+      "blockDesc": "使用 blackhole 出站封鎖對所選網域或 IP 範圍的連線。",
       "notifications": "通知",
       "certs": "證書",
       "externalTraffic": "外部流量",

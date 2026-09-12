@@ -1293,6 +1293,8 @@
       "muxSett": "Configuración Mux",
       "direct": "Conexión Directa",
       "directDesc": "Establece conexiones directas con dominios o rangos de IP de un país específico.",
+      "block": "Bloquear conexión",
+      "blockDesc": "Bloquea conexiones a dominios o rangos de IP seleccionados usando el outbound blackhole.",
       "notifications": "Notificaciones",
       "certs": "Certificados",
       "externalTraffic": "Tráfico Externo",

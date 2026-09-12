@@ -1415,6 +1415,8 @@
       "muxSett": "Mux Settings",
       "direct": "Direct Connection",
       "directDesc": "Directly establishes connections with domains or IP ranges of a specific country.",
+      "block": "Block Connection",
+      "blockDesc": "Block connections to selected domains or IP ranges using the blackhole outbound.",
       "notifications": "Notifications",
       "certs": "Certificates",
       "externalTraffic": "External Traffic",

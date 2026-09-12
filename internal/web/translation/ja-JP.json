@@ -1293,6 +1293,8 @@
       "muxSett": "マルチプレクサ設定",
       "direct": "直接接続",
       "directDesc": "特定の国のドメインまたはIP範囲に直接接続する",
+      "block": "接続をブロック",
+      "blockDesc": "blackholeアウトバウンドを使用して、選択したドメインまたはIP範囲への接続をブロックします。",
       "notifications": "通知",
       "certs": "証明書",
       "externalTraffic": "外部トラフィック",
