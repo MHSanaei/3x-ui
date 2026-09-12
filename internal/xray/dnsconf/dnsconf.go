@@ -1,6 +1,5 @@
-// Package dnsconf validates the panel's JSON-subscription DNS setting against
-// xray-core's own schema, so a block the client could not load is rejected at
-// the source instead of being baked into every emitted document.
+// Package dnsconf validates the JSON-subscription DNS setting against xray's own
+// schema, so a block the client could not load never reaches an emitted document.
 package dnsconf
 
 import (
@@ -43,10 +42,8 @@ func Parse(raw string) (map[string]any, error) {
 	return block, nil
 }
 
-// validate decodes the block into xray's own DNS schema, so every field type is
-// checked the way the client checks it. xray's Build() is deliberately not run:
-// it resolves geosite/geoip tokens from the geodata files and would reject valid
-// configs whenever those are absent from the panel's working directory.
+// validate decodes the block into xray's own schema. Build() is deliberately not
+// run: it resolves geosite tokens from geodata files the panel may not have.
 func validate(block map[string]any) (err error) {
 	// Third-party parser fed by a panel setting: a panic must degrade to
 	// "unusable value", never take the panel or sub server down.

@@ -938,8 +938,8 @@ func (a *SUBController) ApplyCommonHeaders(
 
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
 	if strings.TrimSpace(profileRoutingRules) == "" {
-		// Happ/INCY fetch the geo files the baked JSON rules reference through
-		// this header, so a blank Happ setting falls back to the JSON profile.
+		// Happ/INCY fetch the geo files the baked rules reference through this
+		// header; unlike the documents, it keeps the profile's own DNS servers.
 		rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
 	}
 	// The off values undo a previously pushed setting, so they ride the same

@@ -1172,7 +1172,7 @@
       "subJsonRoutingRules": "Hồ sơ định tuyến cho đăng ký JSON",
       "subJsonRoutingRulesDesc": "JSON định tuyến, deeplink happ:// hoặc incy://, hoặc URL https://. Khi được đặt, nó thay thế DNS và quy tắc định tuyến của đăng ký JSON (được nhúng vào cấu hình cho các client bỏ qua header, ví dụ Happ và INCY với bộ cân bằng phía client). Nếu cài đặt header của Happ để trống, chính hồ sơ đó sẽ được tự động gửi dưới dạng header Routing (JSON và URL thành deeplink happ://) để client tải các tệp geo khớp.",
       "subJsonDns": "Máy chủ DNS",
-      "subJsonDnsDesc": "Thay thế khối dns trong mọi cấu hình đăng ký JSON: đối tượng dns đầy đủ hoặc chỉ mảng servers. Khi được đặt, cũng thay thế DNS của hồ sơ định tuyến. Để trống sẽ giữ trình phân giải tích hợp.",
+      "subJsonDnsDesc": "Thay thế khối dns trong mọi cấu hình đăng ký JSON: đối tượng dns đầy đủ hoặc chỉ mảng servers. Cũng thay thế DNS của hồ sơ định tuyến trong các cấu hình đó; ứng dụng áp dụng tiêu đề Routing vẫn dùng bộ phân giải của hồ sơ. Để trống sẽ giữ trình phân giải tích hợp.",
       "subClashAutoDetect": "Tự động nhận diện ứng dụng Clash/Mihomo",
       "subClashAutoDetectDesc": "Khi bật, các ứng dụng Clash/Mihomo được nhận diện khi yêu cầu URL đăng ký tiêu chuẩn sẽ tự động nhận cấu hình Clash YAML. Trình duyệt vẫn hiển thị trang đăng ký, các ứng dụng khác tiếp tục nhận phản hồi thô/Base64, còn các URL JSON và Clash riêng vẫn khả dụng. Cần bật đăng ký Clash/Mihomo và khởi động lại bảng điều khiển để áp dụng thay đổi.",
       "subClashUserAgentRegex": "Biểu thức User-Agent Clash/Mihomo",

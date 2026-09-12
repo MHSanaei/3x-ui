@@ -1172,7 +1172,7 @@
       "subJsonRoutingRules": "JSON aboneliği yönlendirme profili",
       "subJsonRoutingRulesDesc": "Yönlendirme JSON'u, happ:// veya incy:// deeplink'i ya da https:// URL'si. Ayarlandığında JSON aboneliğinin DNS ve yönlendirme kurallarını değiştirir (başlıkları yok sayan istemciler için yapılandırmaya gömülür, örn. istemci tarafı dengeleyicileri olan Happ ve INCY). Happ yönlendirme başlığı ayarı boşsa, aynı profil otomatik olarak Routing başlığı olarak gönderilir (JSON ve URL'ler happ:// deeplink'i olarak) ve istemciler eşleşen geo dosyalarını indirir.",
       "subJsonDns": "DNS sunucuları",
-      "subJsonDnsDesc": "Tüm JSON abonelik yapılandırmalarındaki dns bloğunu değiştirir: tam bir dns nesnesi veya yalnızca servers dizisi. Ayarlanırsa yönlendirme profilinin DNS'ini de değiştirir. Boş bırakılırsa yerleşik çözümleyici kullanılır.",
+      "subJsonDnsDesc": "JSON abonelik yapılandırmalarındaki dns bloğunu değiştirir: tam bir dns nesnesi veya yalnızca servers dizisi. Bu yapılandırmalarda yönlendirme profilinin DNS'ini de değiştirir; Routing başlığını uygulayan istemciler ise profilin çözümleyicilerini kullanır. Boş bırakılırsa yerleşik çözümleyici kullanılır.",
       "subClashAutoDetect": "Clash/Mihomo istemcilerini otomatik algıla",
       "subClashAutoDetectDesc": "Etkinleştirildiğinde, standart abonelik URL'sini isteyen tanınmış Clash/Mihomo istemcileri otomatik olarak Clash YAML alır. Tarayıcılar abonelik sayfasını göstermeye devam eder, diğer istemciler ham/Base64 yanıtını almaya devam eder ve açık JSON ile Clash URL'leri kullanılabilir kalır. Uygulanması için Clash/Mihomo aboneliğinin etkinleştirilmesi ve panelin yeniden başlatılması gerekir.",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent düzenli ifadesi",
