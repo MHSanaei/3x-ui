@@ -24,6 +24,7 @@ var portConflictLoggerOnce sync.Once
 func setupConflictDB(t *testing.T) {
 	t.Helper()
 	portConflictLoggerOnce.Do(func() { xuilogger.InitLogger(logging.ERROR) })
+	clearNodeInboundTagTombstones()
 
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)

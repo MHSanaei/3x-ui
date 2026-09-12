@@ -23,6 +23,91 @@ var reportedRemoteTagConflict sync.Map
 
 var reportedForeignClientClaim sync.Map
 
+// Tombstones for node inbound tags DelInbound removed (#6329).
+// Selected+missing without a tombstone is treated as a pending import.
+var (
+	recentlyDeletedNodeInboundMu sync.Mutex
+	recentlyDeletedNodeInbound   = map[string]time.Time{}
+)
+
+func nodeInboundTombstoneKey(nodeID int, tag string) string {
+	return fmt.Sprintf("%d\x00%s", nodeID, tag)
+}
+
+func tombstoneNodeInboundTag(nodeID int, tag string) {
+	if nodeID <= 0 || tag == "" {
+		return
+	}
+	now := time.Now()
+	cutoff := now.Add(-deleteTombstoneTTL)
+	recentlyDeletedNodeInboundMu.Lock()
+	defer recentlyDeletedNodeInboundMu.Unlock()
+	mark := func(t string) {
+		if t != "" {
+			recentlyDeletedNodeInbound[nodeInboundTombstoneKey(nodeID, t)] = now
+		}
+	}
+	mark(tag)
+	prefix := nodeTagPrefix(&nodeID)
+	if prefix != "" {
+		if stripped, found := strings.CutPrefix(tag, prefix); found {
+			mark(stripped)
+		} else {
+			mark(prefix + tag)
+		}
+	}
+	for k, ts := range recentlyDeletedNodeInbound {
+		if ts.Before(cutoff) {
+			delete(recentlyDeletedNodeInbound, k)
+		}
+	}
+}
+
+func isNodeInboundTagTombstoned(nodeID int, tag string) bool {
+	if nodeID <= 0 || tag == "" {
+		return false
+	}
+	recentlyDeletedNodeInboundMu.Lock()
+	defer recentlyDeletedNodeInboundMu.Unlock()
+	key := nodeInboundTombstoneKey(nodeID, tag)
+	ts, ok := recentlyDeletedNodeInbound[key]
+	if !ok {
+		return false
+	}
+	if time.Since(ts) > deleteTombstoneTTL {
+		delete(recentlyDeletedNodeInbound, key)
+		return false
+	}
+	return true
+}
+
+func clearNodeInboundTagTombstones() {
+	recentlyDeletedNodeInboundMu.Lock()
+	defer recentlyDeletedNodeInboundMu.Unlock()
+	recentlyDeletedNodeInbound = map[string]time.Time{}
+}
+
+// selectedSnapTag reports whether a snapshot tag is in the node's selected set
+// (either spelling of the n<id>- prefix). Used to adopt pending imports while dirty.
+func selectedSnapTag(node model.Node, tag, prefix string) bool {
+	sel := nodeSelectedTagSet(&node)
+	if sel == nil {
+		return false
+	}
+	if _, ok := sel[tag]; ok {
+		return true
+	}
+	if prefix == "" {
+		return false
+	}
+	if stripped, found := strings.CutPrefix(tag, prefix); found {
+		_, ok := sel[stripped]
+		return ok
+	}
+	_, ok := sel[prefix+tag]
+	return ok
+}
+
 // nodeBulkPushThreshold caps how many per-client RPCs a single operation will
 // stream to a remote node. Above it, the panel marks the node dirty instead and
 // lets one ReconcileNode push converge the whole inbound — far cheaper than M
@@ -177,17 +262,17 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 	if n.InboundsAdoptedAt == 0 {
 		return errors.Join(errs...)
 	}
-	// In "selected" sync mode the panel only manages the selected tags: the
-	// rest were never imported, so their absence from the local DB must not
-	// delete them from the node. Only a selected tag missing locally (the
-	// panel deleted it while the node was unreachable) may be swept.
+	// Selected mode: skip unselected tags. Selected+missing is a pending import
+	// unless DelInbound left a tombstone — those are swept even if deselected (#6329).
 	selected := nodeSelectedTagSet(n)
 	for _, tag := range remoteTags {
 		if _, want := desiredTags[tag]; want {
 			continue
 		}
 		if selected != nil {
-			if _, managed := selected[tag]; !managed {
+			if isNodeInboundTagTombstoned(nodeID, tag) {
+				// fall through — finish offline/deslected deletes
+			} else {
 				continue
 			}
 		}
@@ -672,7 +757,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 		}
 		if !ok {
-			if dirty {
+			if dirty && !selectedSnapTag(nodeRow, snapIb.Tag, prefix) {
 				continue
 			}
 			// Try snap.Tag first; on collision fall back to the n<id>-

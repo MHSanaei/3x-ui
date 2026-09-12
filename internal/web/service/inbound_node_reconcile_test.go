@@ -96,9 +96,8 @@ func reconcileTestNode(t *testing.T, ts *httptest.Server, name, mode string, tag
 	return n
 }
 
-// In "selected" sync mode the panel never imports the unselected inbounds, so
-// reconcile must not treat their absence from the local DB as a deletion: only
-// a *selected* tag missing locally may be swept from the node.
+// Selected mode must not delete unselected remote inbounds.
+// A selected+missing tag is swept only when DelInbound left a tombstone.
 func TestReconcileNode_SelectedModeLeavesUnselectedRemoteInbounds(t *testing.T) {
 	setupConflictDB(t)
 
@@ -109,6 +108,7 @@ func TestReconcileNode_SelectedModeLeavesUnselectedRemoteInbounds(t *testing.T) 
 	})
 	node := reconcileTestNode(t, ts, "sel-node", "selected", []string{"keep", "selected-gone"})
 	seedInboundConflictNode(t, "keep", "", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+	tombstoneNodeInboundTag(node.Id, "selected-gone")
 
 	svc := InboundService{}
 	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
@@ -118,6 +118,29 @@ func TestReconcileNode_SelectedModeLeavesUnselectedRemoteInbounds(t *testing.T) 
 	got := deletedIDs()
 	if len(got) != 1 || got[0] != 2 {
 		t.Fatalf("deleted remote ids = %v, want [2] (unmanaged inbound 3 must survive)", got)
+	}
+}
+
+// Selecting a node inbound writes InboundTags before any central row exists.
+// Without a tombstone that is a pending import and must not be swept (#6329).
+func TestReconcileNode_SelectedModeSkipsPendingImport(t *testing.T) {
+	setupConflictDB(t)
+
+	ts, deletedIDs := fakeNodePanel(t, map[string]int{
+		"keep":           1,
+		"pending-import": 2,
+		"unmanaged":      3,
+	})
+	node := reconcileTestNode(t, ts, "sel-pending-node", "selected", []string{"keep", "pending-import"})
+	seedInboundConflictNode(t, "keep", "", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+
+	svc := InboundService{}
+	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
+		t.Fatalf("ReconcileNode: %v", err)
+	}
+
+	if got := deletedIDs(); len(got) != 0 {
+		t.Fatalf("deleted remote ids = %v, want none (pending-import must survive for snapshot adopt)", got)
 	}
 }
 
@@ -406,8 +429,8 @@ func TestEnsureInboundTagAllowed(t *testing.T) {
 	}
 }
 
-// A panel-created node inbound is stored as "n<id>-tag" and pushed to the node
-// with the prefix stripped, so the sweep's selected set must match both forms.
+// Panel-created node tags use n<id>- prefix centrally and stripped on the node.
+// Sweep selection and tombstones must match both forms.
 func TestReconcileNode_SelectedModeSweepsPrefixedSelectedTag(t *testing.T) {
 	setupConflictDB(t)
 
@@ -420,6 +443,8 @@ func TestReconcileNode_SelectedModeSweepsPrefixedSelectedTag(t *testing.T) {
 	prefix := fmt.Sprintf("n%d-", node.Id)
 	node.InboundTags = []string{prefix + "keep", prefix + "selected-gone"}
 	seedInboundConflictNode(t, prefix+"keep", "", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+	// Tombstone the central (prefixed) form; the remote reports the stripped tag.
+	tombstoneNodeInboundTag(node.Id, prefix+"selected-gone")
 
 	svc := InboundService{}
 	if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(node, nil), node); err != nil {
