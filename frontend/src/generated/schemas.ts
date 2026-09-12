@@ -3684,6 +3684,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "h2",
         "type": "string"
       },
+      "certChainBytes": {
+        "description": "CertChainBytes is the sum of DER lengths of the presented peer chain.\nxray-core ML-DSA-65 REALITY needs \u003e= 3500 bytes (constant lives in xray-core).",
+        "example": 3427,
+        "type": "integer"
+      },
       "certChainValid": {
         "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
         "example": true,
@@ -3766,6 +3771,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "alpn",
+      "certChainBytes",
       "certChainValid",
       "certIssuer",
       "certSubject",

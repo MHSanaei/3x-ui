@@ -628,6 +628,8 @@
         "scanCert": "Сертифікат",
         "scanCertInvalid": "Ненадійний",
         "scanCertExpiry": "Сертифікат діє до",
+        "scanCertChain": "Ланцюжок сертифікатів",
+        "scanMldsaCertChainTooSmall": "Ланцюжок сертифікатів цілі має {length} байт, що менше мінімуму {min} байт для ML-DSA-65. З’єднання мовчки потраплятимуть у fallback. Оберіть іншу ціль або вимкніть ML-DSA-65.",
         "scanSniUsed": "Використаний SNI",
         "scanPrivateNote": "Перевірено у внутрішній (локальній) мережі — ця адреса недоступна з інтернету.",
         "scanPrivateConfirmTitle": "Ціль у локальній мережі",

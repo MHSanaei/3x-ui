@@ -649,6 +649,8 @@
         "scanCert": "Certificado",
         "scanCertInvalid": "No confiable",
         "scanCertExpiry": "El certificado caduca",
+        "scanCertChain": "Cadena de certificados",
+        "scanMldsaCertChainTooSmall": "La cadena de certificados del destino mide {length} bytes, por debajo del mínimo de {min} bytes que requiere ML-DSA-65. Las conexiones fallarán en silencio. Elige otro destino o desactiva ML-DSA-65.",
         "scanSniUsed": "SNI utilizado",
         "scanPrivateNote": "Comprobado en una red privada/local: esta dirección no es accesible desde internet.",
         "scanPrivateConfirmTitle": "Destino en una red local",

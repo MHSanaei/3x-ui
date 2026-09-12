@@ -640,6 +640,8 @@
         "scanCert": "گواهی",
         "scanCertInvalid": "نامعتبر",
         "scanCertExpiry": "انقضای گواهی",
+        "scanCertChain": "زنجیره گواهی",
+        "scanMldsaCertChainTooSmall": "زنجیره گواهی هدف {length} بایت است که کمتر از حداقل {min} بایت مورد نیاز ML-DSA-65 است. این باعث شکست بی‌صدای اتصال می‌شود. هدف دیگری انتخاب کنید یا ML-DSA-65 را غیرفعال کنید.",
         "scanSniUsed": "SNI استفاده‌شده",
         "scanPrivateNote": "بررسی از طریق شبکهٔ خصوصی/محلی انجام شد — این نشانی از اینترنت قابل دسترسی نیست.",
         "scanPrivateConfirmTitle": "هدف در شبکهٔ محلی",

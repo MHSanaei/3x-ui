@@ -628,6 +628,8 @@
         "scanCert": "Sertifika",
         "scanCertInvalid": "Güvenilmez",
         "scanCertExpiry": "Sertifika bitiş tarihi",
+        "scanCertChain": "Sertifika zinciri",
+        "scanMldsaCertChainTooSmall": "Hedef sertifika zinciri {length} bayt; ML-DSA-65 için gereken {min} bayt minimumunun altında. Bu, bağlantıların sessizce başarısız olmasına yol açar. Farklı bir hedef seçin veya ML-DSA-65'i kapatın.",
         "scanSniUsed": "Kullanılan SNI",
         "scanPrivateNote": "Özel/yerel ağ üzerinden kontrol edildi — bu adrese internetten erişilemez.",
         "scanPrivateConfirmTitle": "Hedef yerel ağda",

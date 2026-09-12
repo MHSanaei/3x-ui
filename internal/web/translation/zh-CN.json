@@ -648,6 +648,8 @@
         "scanCert": "证书",
         "scanCertInvalid": "不受信任",
         "scanCertExpiry": "证书有效期至",
+        "scanCertChain": "证书链",
+        "scanMldsaCertChainTooSmall": "目标证书链为 {length} 字节，低于 ML-DSA-65 所需的 {min} 字节下限。这会导致连接静默失败。请更换目标或关闭 ML-DSA-65。",
         "scanSniUsed": "使用的 SNI",
         "scanPrivateNote": "已通过内网/本地网络检测 — 该地址无法从互联网访问。",
         "scanPrivateConfirmTitle": "目标位于本地网络",

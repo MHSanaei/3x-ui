@@ -628,6 +628,8 @@
         "scanCert": "Sertifikat",
         "scanCertInvalid": "Tidak tepercaya",
         "scanCertExpiry": "Sertifikat kedaluwarsa",
+        "scanCertChain": "Rantai sertifikat",
+        "scanMldsaCertChainTooSmall": "Rantai sertifikat target berukuran {length} byte, di bawah minimum {min} byte yang dibutuhkan ML-DSA-65. Ini akan menyebabkan koneksi gagal tanpa pesan error. Pilih target lain atau nonaktifkan ML-DSA-65.",
         "scanSniUsed": "SNI yang dipakai",
         "scanPrivateNote": "Diperiksa melalui jaringan privat/lokal — alamat ini tidak dapat dijangkau dari internet.",
         "scanPrivateConfirmTitle": "Target di jaringan lokal",
