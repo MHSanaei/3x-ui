@@ -2604,9 +2604,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "sniffing": {},
       "streamSettings": {},
       "subSortIndex": {
-        "description": "1-based sort order of this inbound's links in subscription output only (lower first; ties by id)",
+        "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
         "example": 1,
-        "minimum": 1,
         "type": "integer"
       },
       "tag": {
