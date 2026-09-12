@@ -522,6 +522,10 @@ export default function ClientFormModal({
     methods.setValue('wgPublicKey', kp.publicKey);
   }
 
+  function regenerateWireguardPresharedKey() {
+    methods.setValue('wgPreSharedKey', Wireguard.keyToBase64(Wireguard.generatePresharedKey()));
+  }
+
   function regenerateMtprotoSecret() {
     methods.setValue('secret', generateMtprotoSecret(mtprotoDomain));
   }
@@ -1251,16 +1255,24 @@ export default function ClientFormModal({
                           >
                             <Input disabled />
                           </FormField>
-                          <FormField
-                            name="wgPreSharedKey"
+                          <Form.Item
                             label={t(
                               showAmneziawg
                                 ? 'pages.clients.amneziaWgPreSharedKey'
                                 : 'pages.clients.wireguardPreSharedKey',
                             )}
                           >
-                            <Input />
-                          </FormField>
+                            <Space.Compact style={{ display: 'flex' }}>
+                              <FormField name="wgPreSharedKey" noStyle>
+                                <Input style={{ flex: 1 }} />
+                              </FormField>
+                              <Button
+                                aria-label={t('regenerate')}
+                                icon={<ReloadOutlined />}
+                                onClick={regenerateWireguardPresharedKey}
+                              />
+                            </Space.Compact>
+                          </Form.Item>
                           {showWireguard && showAmneziawg ? (
                             <>
                               <FormField
