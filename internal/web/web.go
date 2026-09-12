@@ -124,6 +124,7 @@ type Server struct {
 	settingService service.SettingService
 	tgbotService   tgbot.Tgbot
 	discordService *discord.DiscordService
+	discordGateway *discord.GatewayClient
 
 	wsHub *websocket.Hub
 
@@ -685,6 +686,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// Wire discord service to controller for test endpoint
 	controller.SetDiscordService(s.discordService)
 
+	serverService := &service.ServerService{}
+	inboundService := &service.InboundService{}
+	s.discordGateway = discord.NewGatewayClient(s.discordService, s.settingService, serverService, inboundService, &s.xrayService)
+
 	// Wire reload discord callback for settings updates
 	controller.SetReloadDiscordFunc(func() {
 		if s.discordNotifyEntryID != 0 {
@@ -693,6 +698,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 		enabled, err := s.settingService.GetDiscordBotEnable()
 		if err != nil || !enabled {
+			if s.discordGateway != nil && s.discordGateway.IsRunning() {
+				s.discordGateway.Stop()
+			}
 			return
 		}
 		runtime, err := s.settingService.GetDiscordRunTime()
@@ -705,6 +713,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		} else {
 			s.discordNotifyEntryID = entryID
 			logger.Infof("Discord notify rescheduled, run at %s", runtime)
+		}
+
+		if s.discordGateway != nil && !s.discordGateway.IsRunning() {
+			_ = s.discordGateway.Start(s.ctx)
 		}
 	})
 
@@ -754,6 +766,11 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	}
 
+	isDiscordEnabled, err := s.settingService.GetDiscordBotEnable()
+	if (err == nil) && isDiscordEnabled && s.discordGateway != nil {
+		_ = s.discordGateway.Start(s.ctx)
+	}
+
 	return nil
 }
 
@@ -789,6 +806,9 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	}
 	if stopTgBot && s.tgbotService.IsRunning() {
 		s.tgbotService.Stop()
+	}
+	if s.discordGateway != nil && s.discordGateway.IsRunning() {
+		s.discordGateway.Stop()
 	}
 	// Gracefully stop WebSocket hub
 	if s.wsHub != nil {
