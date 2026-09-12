@@ -61,7 +61,11 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 		}
 	}
 	if !session.IsLogin(c) {
-		if c.GetHeader("X-Requested-With") == "XMLHttpRequest" {
+		// A presented Bearer token is not an anonymous scan: return 401 so
+		// callers can distinguish a bad/disabled token from a wrong base path
+		// (NoRoute still 404s). XHR keeps 401; bare unauthenticated stays 404.
+		authHdr := c.GetHeader("Authorization")
+		if strings.HasPrefix(authHdr, "Bearer ") || c.GetHeader("X-Requested-With") == "XMLHttpRequest" {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		} else {
 			c.AbortWithStatus(http.StatusNotFound)
