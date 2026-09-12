@@ -104,13 +104,15 @@ type subControllerConfig struct {
 	remarkTemplate string
 	updateInterval string
 
-	subJsonMux            string
-	subJsonRules          string
-	subJsonRoutingRules   string
-	subJsonFinalMask      string
-	subJsonObservatory    string
-	subClashEnableRouting bool
-	subClashRules         string
+	subJsonMux              string
+	subJsonRules            string
+	subJsonRoutingRules     string
+	subJsonFinalMask        string
+	subJsonObservatory      string
+	subJsonDNSServers       string
+	subJsonDNSQueryStrategy string
+	subClashEnableRouting   bool
+	subClashRules           string
 
 	subTitle         string
 	subSupportURL    string
@@ -199,6 +201,14 @@ func WithSUBJsonObservatory(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonObservatory = value }
 }
 
+func WithSUBJsonDNSServers(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonDNSServers = value }
+}
+
+func WithSUBJsonDNSQueryStrategy(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonDNSQueryStrategy = value }
+}
+
 func WithSUBClashEnableRouting(value bool) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subClashEnableRouting = value }
 }
@@ -268,6 +278,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	sub := NewSubService(config.remarkTemplate)
 	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, config.subJsonRoutingRules, sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
+	subJsonSvc.SetDNSConfig(config.subJsonDNSServers, config.subJsonDNSQueryStrategy)
 	a := &SUBController{
 		subTitle:            config.subTitle,
 		subSupportUrl:       config.subSupportURL,

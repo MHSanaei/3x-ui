@@ -1283,7 +1283,12 @@
         "addNoise": "+ 雜訊",
         "concurrency": "並發",
         "xudpConcurrency": "xudp 並發",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "DNS 伺服器",
+        "dnsServersDesc": "寫入 JSON 訂閱設定的 DNS 位址（逗號分隔）。預設 8.8.8.8 維持目前行為。Happ/INCY 烘焙路由仍使用其自帶 DNS。",
+        "dnsQueryStrategy": "DNS 查詢策略",
+        "dnsQueryStrategyDesc": "產生的 JSON 訂閱設定中的 Xray dns.queryStrategy。"
       },
       "mux": "Mux",
       "muxDesc": "在已建立的資料流內傳輸多個獨立的資料流",

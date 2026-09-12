@@ -1283,7 +1283,12 @@
         "addNoise": "+ Шум",
         "concurrency": "Параллелизм",
         "xudpConcurrency": "Параллелизм xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "DNS-серверы",
+        "dnsServersDesc": "Адреса DNS через запятую для генерируемых JSON-подписок. По умолчанию 8.8.8.8 сохраняет текущее поведение. Профили Happ/INCY по-прежнему задают свой DNS.",
+        "dnsQueryStrategy": "Стратегия DNS-запросов",
+        "dnsQueryStrategyDesc": "Xray dns.queryStrategy для генерируемых JSON-подписок."
       },
       "mux": "Mux",
       "muxDesc": "Передача нескольких независимых потоков данных в одном соединении.",

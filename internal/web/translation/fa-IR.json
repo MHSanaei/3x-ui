@@ -1287,7 +1287,12 @@
         "addNoise": "+ نویز",
         "concurrency": "هم‌زمانی",
         "xudpConcurrency": "هم‌زمانی xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "سرورهای DNS",
+        "dnsServersDesc": "آدرس‌های DNS جداشده با ویرگول برای کانفیگ‌های JSON اشتراک. پیش‌فرض 8.8.8.8 رفتار فعلی را حفظ می‌کند.",
+        "dnsQueryStrategy": "استراتژی پرس‌وجوی DNS",
+        "dnsQueryStrategyDesc": "مقدار dns.queryStrategy در کانفیگ‌های JSON اشتراک."
       },
       "mux": "Mux",
       "muxDesc": "چندین جریان داده مستقل را در یک جریان داده ثابت منتقل می کند",

@@ -1283,7 +1283,12 @@
         "addNoise": "+ Gürültü",
         "concurrency": "Eşzamanlılık",
         "xudpConcurrency": "xudp eşzamanlılık",
-        "xudpUdp443": "UDP 443"
+        "xudpUdp443": "UDP 443",
+        "dns": "DNS",
+        "dnsServers": "DNS sunucuları",
+        "dnsServersDesc": "JSON abonelik yapılandırmalarına yazılan, virgülle ayrılmış DNS adresleri. Varsayılan 8.8.8.8 mevcut davranışı korur.",
+        "dnsQueryStrategy": "DNS sorgu stratejisi",
+        "dnsQueryStrategyDesc": "Oluşturulan JSON abonelikleri için Xray dns.queryStrategy."
       },
       "mux": "Ağız",
       "muxDesc": "Mevcut bir veri akışı üzerinden birden çok bağımsız veri akışını iletir.",

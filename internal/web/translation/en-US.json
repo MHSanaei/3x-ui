@@ -1405,7 +1405,12 @@
         "addNoise": "+ Noise",
         "concurrency": "Concurrency",
         "xudpConcurrency": "xudp concurrency",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "DNS servers",
+        "dnsServersDesc": "Comma-separated DNS addresses embedded in generated JSON subscription configs. Default 8.8.8.8 preserves current behavior. Baked Happ/INCY routing profiles still supply their own DNS.",
+        "dnsQueryStrategy": "DNS query strategy",
+        "dnsQueryStrategyDesc": "Xray dns.queryStrategy for generated JSON subscription configs."
       },
       "mux": "Mux",
       "muxDesc": "Transmit multiple independent data streams within an established data stream.",

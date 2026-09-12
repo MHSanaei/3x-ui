@@ -148,6 +148,8 @@ var defaultValueMap = map[string]string{
 	"subJsonRoutingRules":         "",
 	"subJsonFinalMask":            "",
 	"subJsonObservatory":          "",
+	"subJsonDNSServers":           "8.8.8.8",
+	"subJsonDNSQueryStrategy":     "UseIP",
 	"subThemeDir":                 "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
@@ -1029,6 +1031,14 @@ func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 
 func (s *SettingService) GetSubJsonObservatory() (string, error) {
 	return s.getString("subJsonObservatory")
+}
+
+func (s *SettingService) GetSubJsonDNSServers() (string, error) {
+	return s.getString("subJsonDNSServers")
+}
+
+func (s *SettingService) GetSubJsonDNSQueryStrategy() (string, error) {
+	return s.getString("subJsonDNSQueryStrategy")
 }
 
 func (s *SettingService) GetSubThemeDir() (string, error) {

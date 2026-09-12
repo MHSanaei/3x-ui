@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Input, InputNumber, Select, Switch, Tabs } from 'antd';
 import {
+  CloudServerOutlined,
   FileTextOutlined,
   NodeIndexOutlined,
   PartitionOutlined,
@@ -18,6 +19,7 @@ import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
 import { remoteSourceBadge } from './subscriptionShared';
 import SubJsonFinalMaskForm from './SubJsonFinalMaskForm';
+import { DnsQueryStrategySchema } from '@/schemas/dns';
 import './SubscriptionFormatsTab.css';
 
 interface SubscriptionFormatsTabProps {
@@ -377,6 +379,37 @@ export default function SubscriptionFormatsTab({
         },
         {
           key: '4',
+          label: catTabLabel(<CloudServerOutlined />, t('pages.settings.subFormats.dns'), isMobile),
+          children: (
+            <>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subFormats.dnsServers')}
+                description={t('pages.settings.subFormats.dnsServersDesc')}
+              >
+                <Input
+                  value={allSetting.subJsonDNSServers}
+                  placeholder="8.8.8.8"
+                  onChange={(e) => updateSetting({ subJsonDNSServers: e.target.value })}
+                />
+              </SettingListItem>
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.subFormats.dnsQueryStrategy')}
+                description={t('pages.settings.subFormats.dnsQueryStrategyDesc')}
+              >
+                <Select
+                  value={allSetting.subJsonDNSQueryStrategy || 'UseIP'}
+                  style={{ width: '100%' }}
+                  onChange={(v) => updateSetting({ subJsonDNSQueryStrategy: v })}
+                  options={DnsQueryStrategySchema.options.map((s) => ({ value: s, label: s }))}
+                />
+              </SettingListItem>
+            </>
+          ),
+        },
+        {
+          key: '5',
           label: catTabLabel(<SendOutlined />, t('pages.settings.direct'), isMobile),
           children: (
             <>

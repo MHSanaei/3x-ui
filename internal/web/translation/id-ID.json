@@ -1283,7 +1283,12 @@
         "addNoise": "+ Noise",
         "concurrency": "Konkurensi",
         "xudpConcurrency": "Konkurensi xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "Server DNS",
+        "dnsServersDesc": "Alamat DNS dipisah koma untuk konfigurasi langganan JSON. Default 8.8.8.8 mempertahankan perilaku saat ini.",
+        "dnsQueryStrategy": "Strategi kueri DNS",
+        "dnsQueryStrategyDesc": "dns.queryStrategy Xray untuk langganan JSON yang dihasilkan."
       },
       "mux": "Mux",
       "muxDesc": "Mengirimkan beberapa aliran data independen dalam aliran data yang sudah ada.",

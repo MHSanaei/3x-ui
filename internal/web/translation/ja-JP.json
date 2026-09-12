@@ -1283,7 +1283,12 @@
         "addNoise": "+ ノイズ",
         "concurrency": "並行数",
         "xudpConcurrency": "xudp 並行数",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "DNS サーバー",
+        "dnsServersDesc": "JSON サブスクリプション設定に埋め込む DNS アドレス（カンマ区切り）。デフォルトの 8.8.8.8 は現行動作を維持します。",
+        "dnsQueryStrategy": "DNS クエリ戦略",
+        "dnsQueryStrategyDesc": "生成される JSON サブスクリプションの Xray dns.queryStrategy。"
       },
       "mux": "Mux",
       "muxDesc": "確立されたストリーム内で複数の独立したストリームを伝送する",

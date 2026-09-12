@@ -282,6 +282,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonAutoDetect": {
         "type": "boolean"
       },
+      "subJsonDNSQueryStrategy": {
+        "type": "string"
+      },
+      "subJsonDNSServers": {
+        "type": "string"
+      },
       "subJsonEnable": {
         "type": "boolean"
       },
@@ -519,6 +525,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subInfoNodeEnable",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",
+      "subJsonDNSQueryStrategy",
+      "subJsonDNSServers",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",
@@ -870,6 +878,12 @@ export const SCHEMAS: Record<string, unknown> = {
       "subJsonAutoDetect": {
         "type": "boolean"
       },
+      "subJsonDNSQueryStrategy": {
+        "type": "string"
+      },
+      "subJsonDNSServers": {
+        "type": "string"
+      },
       "subJsonEnable": {
         "type": "boolean"
       },
@@ -1114,6 +1128,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subInfoNodeEnable",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",
+      "subJsonDNSQueryStrategy",
+      "subJsonDNSServers",
       "subJsonEnable",
       "subJsonFinalMask",
       "subJsonMux",

@@ -1283,7 +1283,12 @@
         "addNoise": "+ Шум",
         "concurrency": "Паралельність",
         "xudpConcurrency": "Паралельність xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "DNS-сервери",
+        "dnsServersDesc": "Адреси DNS через кому для згенерованих JSON-підписок. Типове значення 8.8.8.8 зберігає поточну поведінку.",
+        "dnsQueryStrategy": "Стратегія DNS-запитів",
+        "dnsQueryStrategyDesc": "Xray dns.queryStrategy для згенерованих JSON-підписок."
       },
       "mux": "Mux",
       "muxDesc": "Передавати кілька незалежних потоків даних у межах встановленого потоку даних.",

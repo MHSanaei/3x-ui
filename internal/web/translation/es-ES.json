@@ -1283,7 +1283,12 @@
         "addNoise": "+ Ruido",
         "concurrency": "Concurrencia",
         "xudpConcurrency": "Concurrencia xudp",
-        "xudpUdp443": "xudp UDP 443"
+        "xudpUdp443": "xudp UDP 443",
+        "dns": "DNS",
+        "dnsServers": "Servidores DNS",
+        "dnsServersDesc": "Direcciones DNS separadas por comas en las suscripciones JSON. El valor predeterminado 8.8.8.8 conserva el comportamiento actual.",
+        "dnsQueryStrategy": "Estrategia de consulta DNS",
+        "dnsQueryStrategyDesc": "dns.queryStrategy de Xray para las suscripciones JSON generadas."
       },
       "mux": "Mux",
       "muxDesc": "Transmite múltiples flujos de datos independientes dentro de un flujo de datos establecido.",

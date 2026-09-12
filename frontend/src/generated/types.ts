@@ -96,6 +96,8 @@ export interface AllSetting {
   subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
+  subJsonDNSQueryStrategy: string;
+  subJsonDNSServers: string;
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;
@@ -238,6 +240,8 @@ export interface AllSettingView {
   subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
+  subJsonDNSQueryStrategy: string;
+  subJsonDNSServers: string;
   subJsonEnable: boolean;
   subJsonFinalMask: string;
   subJsonMux: string;

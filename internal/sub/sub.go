@@ -165,6 +165,16 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonObservatory = ""
 	}
 
+	SubJsonDNSServers, err := s.settingService.GetSubJsonDNSServers()
+	if err != nil {
+		SubJsonDNSServers = "8.8.8.8"
+	}
+
+	SubJsonDNSQueryStrategy, err := s.settingService.GetSubJsonDNSQueryStrategy()
+	if err != nil {
+		SubJsonDNSQueryStrategy = "UseIP"
+	}
+
 	SubClashEnableRouting, err := s.settingService.GetSubClashEnableRouting()
 	if err != nil {
 		SubClashEnableRouting = false
@@ -318,6 +328,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBJsonRoutingRules(SubJsonRoutingRules),
 		WithSUBJsonFinalMask(SubJsonFinalMask),
 		WithSUBJsonObservatory(SubJsonObservatory),
+		WithSUBJsonDNSServers(SubJsonDNSServers),
+		WithSUBJsonDNSQueryStrategy(SubJsonDNSQueryStrategy),
 		WithSUBClashEnableRouting(SubClashEnableRouting),
 		WithSUBClashRules(SubClashRules),
 		WithSUBTitle(SubTitle),

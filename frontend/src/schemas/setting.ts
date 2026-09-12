@@ -77,6 +77,8 @@ export const AllSettingSchema = z
     subJsonRoutingRules: z.string().optional(),
     subJsonFinalMask: z.string().optional(),
     subJsonObservatory: z.string().optional(),
+    subJsonDNSServers: z.string().optional(),
+    subJsonDNSQueryStrategy: z.string().optional(),
     subHideSettings: z.boolean().optional(),
     subHappAutoDetect: z.boolean().optional(),
     subHappProviderId: z.string().optional(),
