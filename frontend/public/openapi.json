@@ -308,6 +308,9 @@
           "subJsonAutoDetect": {
             "type": "boolean"
           },
+          "subJsonDns": {
+            "type": "string"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -545,6 +548,7 @@
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDns",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -896,6 +900,9 @@
           "subJsonAutoDetect": {
             "type": "boolean"
           },
+          "subJsonDns": {
+            "type": "string"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -1140,6 +1147,7 @@
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDns",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
