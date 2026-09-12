@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Discord サービスが初期化されていません",
       "discordBotNotEnabled": "Discord ボットが有効になっていません",
       "discordTestFailed": "Discord テストに失敗しました",
-      "discordTestSuccess": "テスト通知が正常に送信されました"
+      "discordTestSuccess": "テスト通知が正常に送信されました",
+      "discordBotLanguage": "Discord Botの言語",
+      "discordNotifyTime": "通知時間",
+      "discordNotifyTimeDesc": "Discord ボットが定期レポートを送信する頻度です。プリセットの間隔を選ぶか、「カスタム」を選んで crontab 式を入力します。",
+      "discordNotifyBackup": "データベースバックアップ",
+      "discordNotifyBackupDesc": "レポート付きのデータベースバックアップファイルを送信",
+      "discordEventBusNotifyDesc": "Discord通知をトリガーするイベントを選択してください"
     },
     "xray": {
       "importRules": "ルールをインポート",

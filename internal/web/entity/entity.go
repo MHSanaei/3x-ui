@@ -68,9 +68,12 @@ type AllSetting struct {
 	DiscordBotEnable     bool   `json:"discordBotEnable" form:"discordBotEnable"`
 	DiscordBotToken      string `json:"discordBotToken" form:"discordBotToken"`
 	DiscordChannelId     string `json:"discordChannelId" form:"discordChannelId"`
-	DiscordEnabledEvents string `json:"discordEnabledEvents" form:"discordEnabledEvents"`
+	DiscordRunTime       string `json:"discordRunTime" form:"discordRunTime"`
+	DiscordBotBackup     bool   `json:"discordBotBackup" form:"discordBotBackup"`
 	DiscordCpu           int    `json:"discordCpu" form:"discordCpu" validate:"gte=0,lte=100"`
 	DiscordMemory        int    `json:"discordMemory" form:"discordMemory" validate:"gte=0,lte=100"`
+	DiscordLang          string `json:"discordLang" form:"discordLang"`
+	DiscordEnabledEvents string `json:"discordEnabledEvents" form:"discordEnabledEvents"`
 
 	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
 

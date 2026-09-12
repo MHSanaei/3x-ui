@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "سرویس دیسکورد راه‌اندازی نشده است",
       "discordBotNotEnabled": "ربات دیسکورد فعال نیست",
       "discordTestFailed": "آزمایش دیسکورد ناموفق بود",
-      "discordTestSuccess": "اعلان آزمایشی با موفقیت ارسال شد"
+      "discordTestSuccess": "اعلان آزمایشی با موفقیت ارسال شد",
+      "discordBotLanguage": "زبان ربات دیسکورد",
+      "discordNotifyTime": "زمان نوتیفیکیشن",
+      "discordNotifyTimeDesc": "هر چند وقت یک‌بار ربات دیسکورد گزارش دوره‌ای بفرستد. یک بازهٔ آماده انتخاب کنید یا گزینهٔ سفارشی را بزنید تا عبارت crontab وارد کنید.",
+      "discordNotifyBackup": "پشتیبان‌گیری از دیتابیس",
+      "discordNotifyBackupDesc": "فایل پشتیبان‌دیتابیس را به‌همراه گزارش ارسال می‌کند",
+      "discordEventBusNotifyDesc": "انتخاب کنید کدام رویدادها اعلان دیسکورد را فعال می‌کنند"
     },
     "xray": {
       "save": "ذخیره",

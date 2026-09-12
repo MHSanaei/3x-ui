@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Служба Discord не инициализирована",
       "discordBotNotEnabled": "Discord-бот не включен",
       "discordTestFailed": "Тест Discord не удался",
-      "discordTestSuccess": "Тестовое уведомление успешно отправлено"
+      "discordTestSuccess": "Тестовое уведомление успешно отправлено",
+      "discordBotLanguage": "Язык Discord-бота",
+      "discordNotifyTime": "Частота уведомлений от Discord-бота",
+      "discordNotifyTimeDesc": "Как часто бот Discord отправляет периодические отчёты. Выберите готовый интервал или «Произвольный», чтобы ввести выражение crontab.",
+      "discordNotifyBackup": "Резервное копирование базы данных",
+      "discordNotifyBackupDesc": "Отправлять уведомление с файлом резервной копии базы данных",
+      "discordEventBusNotifyDesc": "Выберите события для Discord уведомлений"
     },
     "xray": {
       "importRules": "Импорт правил",

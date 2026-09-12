@@ -1705,7 +1705,13 @@
       "discordNotInitialized": "Discord service not initialized",
       "discordBotNotEnabled": "Discord bot is not enabled",
       "discordTestFailed": "Discord test failed",
-      "discordTestSuccess": "Test notification sent successfully"
+      "discordTestSuccess": "Test notification sent successfully",
+      "discordBotLanguage": "Discord Bot Language",
+      "discordNotifyTime": "Notification Time",
+      "discordNotifyTimeDesc": "How often the Discord bot sends periodic reports. Pick a preset interval, or choose Custom to enter a raw crontab expression.",
+      "discordNotifyBackup": "Database Backup",
+      "discordNotifyBackupDesc": "Send a database backup file with a report.",
+      "discordEventBusNotifyDesc": "Select which events trigger Discord notifications"
     },
     "xray": {
       "save": "Save",

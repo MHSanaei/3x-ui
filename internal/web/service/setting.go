@@ -208,9 +208,12 @@ var defaultValueMap = map[string]string{
 	"discordBotEnable":     "false",
 	"discordBotToken":      "",
 	"discordChannelId":     "",
-	"discordEnabledEvents": "login.attempt,cpu.high",
+	"discordRunTime":       "@daily",
+	"discordBotBackup":     "false",
 	"discordCpu":           "80",
 	"discordMemory":        "80",
+	"discordLang":          "en-US",
+	"discordEnabledEvents": "login.attempt,cpu.high",
 }
 
 // SettingService provides business logic for application settings management.
@@ -1367,6 +1370,30 @@ func (s *SettingService) GetDiscordMemory() (int, error) {
 
 func (s *SettingService) SetDiscordMemory(value int) error {
 	return s.setInt("discordMemory", value)
+}
+
+func (s *SettingService) GetDiscordRunTime() (string, error) {
+	return s.getString("discordRunTime")
+}
+
+func (s *SettingService) SetDiscordRunTime(value string) error {
+	return s.setString("discordRunTime", value)
+}
+
+func (s *SettingService) GetDiscordBotBackup() (bool, error) {
+	return s.getBool("discordBotBackup")
+}
+
+func (s *SettingService) SetDiscordBotBackup(value bool) error {
+	return s.setBool("discordBotBackup", value)
+}
+
+func (s *SettingService) GetDiscordLang() (string, error) {
+	return s.getString("discordLang")
+}
+
+func (s *SettingService) SetDiscordLang(value string) error {
+	return s.setString("discordLang", value)
 }
 
 // GetOutboundDownThreshold returns how many consecutive failed observatory

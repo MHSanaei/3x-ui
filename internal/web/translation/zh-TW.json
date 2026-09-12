@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Discord 服務未初始化",
       "discordBotNotEnabled": "Discord 機器人未啟用",
       "discordTestFailed": "Discord 測試失敗",
-      "discordTestSuccess": "測試通知發送成功"
+      "discordTestSuccess": "測試通知發送成功",
+      "discordBotLanguage": "Discord 機器人語言",
+      "discordNotifyTime": "通知時間",
+      "discordNotifyTimeDesc": "Discord 機器人傳送週期性報告的頻率。選擇預設間隔，或選擇「自訂」以輸入 crontab 運算式。",
+      "discordNotifyBackup": "資料庫備份",
+      "discordNotifyBackupDesc": "傳送帶有報告的資料庫備份檔案",
+      "discordEventBusNotifyDesc": "選擇觸發 Discord 通知的事件"
     },
     "xray": {
       "save": "儲存",

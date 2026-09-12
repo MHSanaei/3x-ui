@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "خدمة ديسكورد غير مهيأة",
       "discordBotNotEnabled": "بوت ديسكورد غير مفعّل",
       "discordTestFailed": "فشل اختبار ديسكورد",
-      "discordTestSuccess": "تم إرسال الإشعار التجريبي بنجاح"
+      "discordTestSuccess": "تم إرسال الإشعار التجريبي بنجاح",
+      "discordBotLanguage": "لغة بوت Discord",
+      "discordNotifyTime": "وقت الإشعار",
+      "discordNotifyTimeDesc": "عدد مرات إرسال بوت ديسكورد للتقارير الدورية. اختر فترة جاهزة، أو اختر «مخصص» لإدخال تعبير crontab.",
+      "discordNotifyBackup": "نسخة احتياطية لقاعدة البيانات",
+      "discordNotifyBackupDesc": "ابعت ملف النسخة الاحتياطية لقاعدة البيانات مع التقرير.",
+      "discordEventBusNotifyDesc": "اختر الأحداث التي تُطلق إشعارات Discord"
     },
     "xray": {
       "save": "احفظ",

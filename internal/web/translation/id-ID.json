@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Layanan Discord belum diinisialisasi",
       "discordBotNotEnabled": "Bot Discord belum diaktifkan",
       "discordTestFailed": "Pengujian Discord gagal",
-      "discordTestSuccess": "Pemberitahuan uji coba berhasil dikirim"
+      "discordTestSuccess": "Pemberitahuan uji coba berhasil dikirim",
+      "discordBotLanguage": "Bahasa Bot Discord",
+      "discordNotifyTime": "Waktu Notifikasi",
+      "discordNotifyTimeDesc": "Seberapa sering bot Discord mengirim laporan berkala. Pilih interval siap pakai, atau pilih Kustom untuk memasukkan ekspresi crontab.",
+      "discordNotifyBackup": "Cadangan Database",
+      "discordNotifyBackupDesc": "Kirim berkas cadangan database dengan laporan.",
+      "discordEventBusNotifyDesc": "Pilih peristiwa yang memicu notifikasi Discord"
     },
     "xray": {
       "save": "Simpan",

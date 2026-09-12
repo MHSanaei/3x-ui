@@ -5,6 +5,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "datepicker": {
         "type": "string"
       },
+      "discordBotBackup": {
+        "type": "boolean"
+      },
       "discordBotEnable": {
         "type": "boolean"
       },
@@ -22,10 +25,16 @@ export const SCHEMAS: Record<string, unknown> = {
       "discordEnabledEvents": {
         "type": "string"
       },
+      "discordLang": {
+        "type": "string"
+      },
       "discordMemory": {
         "maximum": 100,
         "minimum": 0,
         "type": "integer"
+      },
+      "discordRunTime": {
+        "type": "string"
       },
       "expireDiff": {
         "minimum": 0,
@@ -455,12 +464,15 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "datepicker",
+      "discordBotBackup",
       "discordBotEnable",
       "discordBotToken",
       "discordChannelId",
       "discordCpu",
       "discordEnabledEvents",
+      "discordLang",
       "discordMemory",
+      "discordRunTime",
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",
@@ -600,6 +612,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "datepicker": {
         "type": "string"
       },
+      "discordBotBackup": {
+        "type": "boolean"
+      },
       "discordBotEnable": {
         "type": "boolean"
       },
@@ -617,10 +632,16 @@ export const SCHEMAS: Record<string, unknown> = {
       "discordEnabledEvents": {
         "type": "string"
       },
+      "discordLang": {
+        "type": "string"
+      },
       "discordMemory": {
         "maximum": 100,
         "minimum": 0,
         "type": "integer"
+      },
+      "discordRunTime": {
+        "type": "string"
       },
       "expireDiff": {
         "minimum": 0,
@@ -1074,12 +1095,15 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "datepicker",
+      "discordBotBackup",
       "discordBotEnable",
       "discordBotToken",
       "discordChannelId",
       "discordCpu",
       "discordEnabledEvents",
+      "discordLang",
       "discordMemory",
+      "discordRunTime",
       "expireDiff",
       "externalTrafficInformEnable",
       "externalTrafficInformURI",

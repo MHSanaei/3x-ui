@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Discord 服务未初始化",
       "discordBotNotEnabled": "Discord 机器人未启用",
       "discordTestFailed": "Discord 测试失败",
-      "discordTestSuccess": "测试通知发送成功"
+      "discordTestSuccess": "测试通知发送成功",
+      "discordBotLanguage": "Discord 机器人语言",
+      "discordNotifyTime": "通知时间",
+      "discordNotifyTimeDesc": "Discord 机器人发送周期性报告的频率。选择预设间隔，或选择“自定义”以输入 crontab 表达式。",
+      "discordNotifyBackup": "数据库备份",
+      "discordNotifyBackupDesc": "发送带有报告的数据库备份文件",
+      "discordEventBusNotifyDesc": "选择触发 Discord 通知的事件"
     },
     "xray": {
       "importRules": "导入规则",

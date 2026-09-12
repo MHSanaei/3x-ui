@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Servicio de Discord no inicializado",
       "discordBotNotEnabled": "El bot de Discord no está habilitado",
       "discordTestFailed": "Prueba de Discord fallida",
-      "discordTestSuccess": "Notificación de prueba enviada con éxito"
+      "discordTestSuccess": "Notificación de prueba enviada con éxito",
+      "discordBotLanguage": "Idioma del Bot de Discord",
+      "discordNotifyTime": "Hora de Notificación del Bot de Discord",
+      "discordNotifyTimeDesc": "Con qué frecuencia el bot de Discord envía informes periódicos. Elige un intervalo predefinido o selecciona Personalizado para introducir una expresión crontab.",
+      "discordNotifyBackup": "Respaldo de Base de Datos",
+      "discordNotifyBackupDesc": "Incluir archivo de respaldo de base de datos con notificación de informe.",
+      "discordEventBusNotifyDesc": "Seleccione qué eventos generan notificaciones de Discord"
     },
     "xray": {
       "save": "Guardar configuración",

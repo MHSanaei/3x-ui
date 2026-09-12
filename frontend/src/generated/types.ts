@@ -10,12 +10,15 @@ export type transportBits = number;
 
 export interface AllSetting {
   datepicker: string;
+  discordBotBackup: boolean;
   discordBotEnable: boolean;
   discordBotToken: string;
   discordChannelId: string;
   discordCpu: number;
   discordEnabledEvents: string;
+  discordLang: string;
   discordMemory: number;
+  discordRunTime: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
@@ -151,12 +154,15 @@ export interface AllSetting {
 
 export interface AllSettingView {
   datepicker: string;
+  discordBotBackup: boolean;
   discordBotEnable: boolean;
   discordBotToken: string;
   discordChannelId: string;
   discordCpu: number;
   discordEnabledEvents: string;
+  discordLang: string;
   discordMemory: number;
+  discordRunTime: string;
   expireDiff: number;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;

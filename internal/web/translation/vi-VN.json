@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Dịch vụ Discord chưa được khởi tạo",
       "discordBotNotEnabled": "Bot Discord chưa được bật",
       "discordTestFailed": "Kiểm tra Discord thất bại",
-      "discordTestSuccess": "Đã gửi thông báo thử nghiệm thành công"
+      "discordTestSuccess": "Đã gửi thông báo thử nghiệm thành công",
+      "discordBotLanguage": "Ngôn ngữ của Bot Discord",
+      "discordNotifyTime": "Thời gian thông báo của bot Discord",
+      "discordNotifyTimeDesc": "Tần suất bot Discord gửi báo cáo định kỳ. Chọn một khoảng thời gian có sẵn, hoặc chọn Tùy chỉnh để nhập biểu thức crontab.",
+      "discordNotifyBackup": "Sao lưu Cơ sở dữ liệu",
+      "discordNotifyBackupDesc": "Bao gồm tệp sao lưu cơ sở dữ liệu với thông báo báo cáo.",
+      "discordEventBusNotifyDesc": "Chọn những sự kiện nào sẽ kích hoạt thông báo qua Discord"
     },
     "xray": {
       "importRules": "Nhập quy tắc",

@@ -148,9 +148,12 @@ export class AllSetting {
   discordBotEnable = false;
   discordBotToken = '';
   discordChannelId = '';
-  discordEnabledEvents = 'login.attempt,cpu.high';
+  discordRunTime = '@daily';
+  discordBotBackup = false;
   discordCpu = 80;
   discordMemory = 80;
+  discordLang = 'en-US';
+  discordEnabledEvents = 'login.attempt,cpu.high';
   hasDiscordBotToken = false;
   clearDiscordBotToken = false;
 

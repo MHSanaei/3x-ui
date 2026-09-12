@@ -1587,7 +1587,13 @@
       "discordNotInitialized": "Discord servisi başlatılmadı",
       "discordBotNotEnabled": "Discord botu etkin değil",
       "discordTestFailed": "Discord testi başarısız oldu",
-      "discordTestSuccess": "Test bildirimi başarıyla gönderildi"
+      "discordTestSuccess": "Test bildirimi başarıyla gönderildi",
+      "discordBotLanguage": "Discord Bot Dili",
+      "discordNotifyTime": "Bildirim Zamanı",
+      "discordNotifyTimeDesc": "Discord botunun periyodik raporları gönderme sıklığı. Hazır bir aralık seçin veya bir crontab ifadesi girmek için Özel'i seçin.",
+      "discordNotifyBackup": "Veritabanı Yedeği",
+      "discordNotifyBackupDesc": "Bir rapor ile birlikte veritabanı yedek dosyasını gönderir.",
+      "discordEventBusNotifyDesc": "Hangi olayların Discord bildirimi tetikleyeceğini seçin"
     },
     "xray": {
       "save": "Kaydet",
