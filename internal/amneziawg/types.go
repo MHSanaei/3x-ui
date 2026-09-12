@@ -75,8 +75,11 @@ type Instance struct {
 	Tag           string
 	InterfaceName string
 	ListenPort    int
-	PrivateKey    string
-	PublicKey     string
+	// Listen is an optional host bind address (e.g. "203.0.113.10").
+	// Empty/wildcard keeps dual-stack StdNetBind; a real IP pins the UDP socket.
+	Listen     string
+	PrivateKey string
+	PublicKey  string
 	// Address holds the interface's own tunnel address(es), e.g. "10.8.1.1/24".
 	// Carries both the IPv4 and (when enabled) IPv6 server address.
 	Address []string
