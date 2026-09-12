@@ -5,10 +5,12 @@ import {
   amneziawgConfigFromLink,
   genAmneziaWGConfig,
   genAmneziaWGLink,
+  genAllLinks,
   genHysteriaLink,
   genInboundLinks,
   genShadowsocksLink,
   genTrojanLink,
+  genTuicLink,
   applyVlessRoute,
   genVlessLink,
   genVmessLink,
@@ -231,6 +233,37 @@ describe('genHysteriaLink', () => {
     expect(link).toContain(`@example.test:${typed.port}`);
     expect(link).toContain('mport=20000-50000');
     expect(link.endsWith('#hop-test')).toBe(true);
+  });
+
+  it('emits mport from the udphop mask xray-core 26.9.9 moved hopping to', () => {
+    const [, raw] = fixtures[0];
+    const withHop = {
+      ...raw,
+      settings: { ...(raw.settings as Record<string, unknown>), version: 2 },
+      streamSettings: {
+        ...(raw.streamSettings as Record<string, unknown>),
+        finalmask: {
+          udp: [
+            {
+              type: 'udphop',
+              settings: { mode: 'intervalremote', interval: '5-10', remotePorts: '30000-40000' },
+            },
+          ],
+        },
+      },
+    };
+    const typed = InboundSchema.parse(withHop);
+    const client = (raw.settings as { clients: Array<{ auth: string }> }).clients[0];
+
+    const link = genHysteriaLink({
+      inbound: typed,
+      address: 'example.test',
+      port: typed.port,
+      remark: 'hop-mask',
+      clientAuth: client.auth,
+    });
+
+    expect(link).toContain('mport=30000-40000');
   });
 
   it('normalizes pinSHA256 to hex for base64, raw-hex and colon-hex pins (issue #4818)', () => {
@@ -1054,5 +1087,155 @@ describe('genVlessLink XHTTP extra compatibility', () => {
     expect(extra.sessionIDKey).toBe('X-Session');
     expect(extra.sessionPlacement).toBe('header');
     expect(extra.sessionKey).toBe('X-Session');
+  });
+});
+
+describe('genTuicLink', () => {
+  it('builds a standard tuic share link with all parameters', () => {
+    const inbound = InboundSchema.parse({
+      id: 1,
+      tag: 'tuic-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        server: {
+          certificate: '/etc/cert.pem',
+          private_key: '/etc/key.pem',
+          congestion_control: 'bbr',
+          alpn: ['h3', 'spdy/3.1'],
+          udp_relay_mode: 'native',
+          zero_rtt_handshake: true,
+          sni: 'tuic.example.com',
+        },
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+    });
+
+    const link = genTuicLink({
+      inbound,
+      address: 'example.com',
+      port: 8443,
+      remark: 'TUIC-Node',
+      clientUuid: '11111111-2222-3333-4444-555555555555',
+      clientPassword: 'secretpassword',
+    });
+
+    expect(link).toContain(
+      'tuic://11111111-2222-3333-4444-555555555555:secretpassword@example.com:8443',
+    );
+    expect(link).toContain('congestion_control=bbr');
+    expect(link).toContain('alpn=h3%2Cspdy%2F3.1');
+    expect(link).toContain('sni=tuic.example.com');
+    expect(link).toContain('udp_relay_mode=native');
+    expect(link).toContain('allow_insecure=0');
+    expect(link).toContain('#TUIC-Node');
+  });
+
+  it('falls back to default alpn and udp_relay_mode when server settings are empty', () => {
+    const inbound = InboundSchema.parse({
+      id: 2,
+      tag: 'tuic-default-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+    });
+
+    const link = genTuicLink({
+      inbound,
+      address: 'example.com',
+      port: 8443,
+      remark: 'TUIC-Default',
+      clientUuid: '11111111-2222-3333-4444-555555555555',
+      clientPassword: 'secretpassword',
+    });
+
+    expect(link).toContain('congestion_control=bbr');
+    expect(link).toContain('alpn=h3%2Cspdy%2F3.1');
+    expect(link).toContain('udp_relay_mode=native');
+    expect(link).toContain('allow_insecure=0');
+  });
+
+  it('applies externalProxy overrides (sni, alpn, allow_insecure) and does not duplicate remark', () => {
+    const inbound = InboundSchema.parse({
+      id: 3,
+      tag: 'tuic-ep-test',
+      protocol: 'tuic',
+      port: 8443,
+      listen: '0.0.0.0',
+      enable: true,
+      settings: {
+        server: {
+          certificate: '/etc/cert.pem',
+          private_key: '/etc/key.pem',
+          congestion_control: 'bbr',
+          alpn: ['h3'],
+          sni: 'default.example.com',
+        },
+        clients: [
+          {
+            uuid: '11111111-2222-3333-4444-555555555555',
+            password: 'secretpassword',
+            email: 'user@tuic',
+            enable: true,
+          },
+        ],
+      },
+      streamSettings: {
+        externalProxy: [
+          {
+            dest: 'host-us.example.com',
+            port: 9443,
+            remark: 'US',
+            sni: 'override.example.com',
+            alpn: ['h3', 'h2'],
+            allowInsecure: true,
+          },
+        ],
+      },
+    });
+
+    const entries = genAllLinks({
+      inbound,
+      remark: 'TUIC-Node',
+      client: {
+        uuid: '11111111-2222-3333-4444-555555555555',
+        password: 'secretpassword',
+        email: 'user@tuic',
+      },
+      fallbackHostname: 'panel.example.com',
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].remark).toBe('TUIC-Node-US');
+
+    const link = entries[0].link;
+    expect(link).toContain(
+      'tuic://11111111-2222-3333-4444-555555555555:secretpassword@host-us.example.com:9443',
+    );
+    expect(link).toContain('sni=override.example.com');
+    expect(link).toContain('alpn=h3%2Ch2');
+    expect(link).toContain('allow_insecure=1');
+    expect(link).toContain('#TUIC-Node-US');
+    expect(link).not.toContain('#TUIC-Node-US-US');
   });
 });

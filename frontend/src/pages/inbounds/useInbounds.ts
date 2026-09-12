@@ -67,6 +67,7 @@ const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.WIREGUARD,
   Protocols.MTPROTO,
   Protocols.AMNEZIAWG,
+  Protocols.TUIC,
 ];
 
 async function fetchSlimInbounds(): Promise<unknown[]> {

@@ -154,9 +154,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if client.SubID == "" {
 		client.SubID = uuid.NewString()
 	}
-	if !client.Enable {
-		client.Enable = true
-	}
+	// Enable: omit defaults true via ClientCreatePayload.UnmarshalJSON; explicit false kept.
 	now := time.Now().UnixMilli()
 	if client.CreatedAt == 0 {
 		client.CreatedAt = now
@@ -236,6 +234,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		// already existed, and a create the panel reported as failed must not.
 		return needRestart, fanoutErr
 	}
+	// A re-created email is a live identity again: a delete tombstone left
+	// standing makes the next node merge prune the new client's inbound links.
+	withdrawClientTombstones(client.Email)
 	return needRestart, s.setClientLimitHwidByEmail(nil, client.Email, payload.LimitHwid)
 }
 
@@ -404,6 +405,13 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 	case model.MTProto:
 		if c.Secret == "" {
 			c.Secret = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(ib.Settings))
+		}
+	case model.TUIC:
+		if c.ID == "" {
+			c.ID = uuid.NewString()
+		}
+		if c.Password == "" {
+			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
 	}
 	return nil
@@ -665,6 +673,11 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		}
 	}
 
+	tunnelCount, tcErr := tunnelInboundCount(inboundIds)
+	if tcErr != nil {
+		return false, tcErr
+	}
+
 	// Built before any inbound is written, as in Create: fillProtocolDefaults
 	// mints the shared credentials on the first inbound, later ones reuse them.
 	applies := make([]inboundApply, 0, len(inboundIds))
@@ -690,6 +703,13 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		clientForInbound := updated
 		if ips, ok := updated.AllowedIPsByInbound[ibId]; ok {
 			clientForInbound.AllowedIPs = ips
+		} else if tunnelCount > 1 && (inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG) {
+			// One shared peer field set cannot describe several peers: broadcast
+			// it and they all end up with the same keys and tunnel address.
+			clientForInbound.AllowedIPs = nil
+			clientForInbound.PrivateKey = ""
+			clientForInbound.PublicKey = ""
+			clientForInbound.PreSharedKey = ""
 		} else if !addressesFitAmneziaWGInbound(clientForInbound.AllowedIPs, inbound) {
 			// A single shared AllowedIPs field (the common case for a caller
 			// that never sends AllowedIPsByInbound) must never overwrite an
@@ -921,6 +941,19 @@ func (s *ClientService) hasTunnelAttachment(inboundSvc *InboundService, inboundI
 		}
 	}
 	return false
+}
+
+// tunnelInboundCount reports how many of inboundIds are WireGuard/AmneziaWG,
+// i.e. how many independent peers one shared field set would be written to.
+func tunnelInboundCount(inboundIds []int) (int64, error) {
+	if len(inboundIds) == 0 {
+		return 0, nil
+	}
+	var n int64
+	err := database.GetDB().Model(&model.Inbound{}).
+		Where("id IN ? AND protocol IN ?", inboundIds, []model.Protocol{model.WireGuard, model.AmneziaWG}).
+		Count(&n).Error
+	return n, err
 }
 
 // addressesFitAmneziaWGInbound reports whether every entry in addrs falls

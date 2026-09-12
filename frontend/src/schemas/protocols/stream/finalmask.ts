@@ -19,6 +19,8 @@ export const TcpMaskSchema = z.object({
 });
 export type TcpMask = z.infer<typeof TcpMaskSchema>;
 
+// 'udphop' is client-only in xray-core (it refuses to wrap a server socket),
+// so it round-trips here but is deliberately absent from the mask dropdown.
 export const UdpMaskTypeSchema = z.enum([
   'salamander',
   'mkcp-legacy',
@@ -28,6 +30,7 @@ export const UdpMaskTypeSchema = z.enum([
   'noise',
   'sudoku',
   'realm',
+  'udphop',
 ]);
 export type UdpMaskType = z.infer<typeof UdpMaskTypeSchema>;
 
@@ -43,9 +46,9 @@ export type QuicCongestion = z.infer<typeof QuicCongestionSchema>;
 export const BbrProfileSchema = z.enum(['conservative', 'standard', 'aggressive']);
 export type BbrProfile = z.infer<typeof BbrProfileSchema>;
 
-// udpHop randomizes the QUIC port between a range every `interval` seconds
-// to dodge port-based blocking. Both fields are dash-range strings on the
-// wire (e.g. '20000-50000', '5-10'). preprocess coerces legacy DB rows
+// udpHop declares the hop range advertised to clients as `mport`. xray-core
+// 26.9.9 moved actual hopping to the 'udphop' UDP mask and ignores this key,
+// which was always inert server-side. preprocess coerces legacy DB rows
 // where interval was stored as a number (UI bug — see B19 in commit history).
 const StringRangeSchema = z.preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string());
 

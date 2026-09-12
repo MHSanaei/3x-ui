@@ -10,6 +10,7 @@ import {
   MtprotoClientSchema,
   ShadowsocksClientSchema,
   TrojanClientSchema,
+  TuicClientSchema,
   VlessClientSchema,
   VmessClientSchema,
   WireguardClientSchema,
@@ -183,9 +184,17 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     }
     const so = streamRecord.sockopt;
     if (so && typeof so === 'object' && !Array.isArray(so)) {
-      const parsed = SockoptStreamSettingsSchema.safeParse(so);
+      const raw = { ...(so as Record<string, unknown>) };
+      // Imported/API configs may use lowercase v6only; the form key is V6Only.
+      if ('v6only' in raw) {
+        if (!('V6Only' in raw)) raw.V6Only = Boolean(raw.v6only);
+        delete raw.v6only;
+      }
+      const parsed = SockoptStreamSettingsSchema.safeParse(raw);
       if (parsed.success) {
-        streamRecord.sockopt = { ...(so as Record<string, unknown>), ...parsed.data };
+        streamRecord.sockopt = { ...raw, ...parsed.data };
+      } else {
+        streamRecord.sockopt = raw;
       }
     }
   }
@@ -209,7 +218,7 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     nodeId: row.nodeId ?? null,
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
-    subSortIndex: Math.max(1, row.subSortIndex ?? 1),
+    subSortIndex: row.subSortIndex == null || row.subSortIndex === 0 ? 1 : row.subSortIndex,
     disableFlow: row.disableFlow ?? false,
     protocol,
     settings,
@@ -265,6 +274,8 @@ function clientSchemaForProtocol(protocol: string): z.ZodType | null {
       return MtprotoClientSchema;
     case 'amneziawg':
       return AmneziawgClientSchema;
+    case 'tuic':
+      return TuicClientSchema;
     default:
       return null;
   }

@@ -67,6 +67,29 @@ export interface AllSetting {
   subEnableRouting: boolean;
   subEncrypt: boolean;
   subExpiredTemplate: string;
+  subHappAlwaysHwid: boolean;
+  subHappAutoConnect: boolean;
+  subHappAutoConnectType: string;
+  subHappAutoDetect: boolean;
+  subHappColorProfile: string;
+  subHappExcludeApns: boolean;
+  subHappExcludeRoutes: string;
+  subHappFallbackUrl: string;
+  subHappNewUrl: string;
+  subHappNoLimit: boolean;
+  subHappNotificationExpire: boolean;
+  subHappPerAppList: string;
+  subHappPerAppMode: string;
+  subHappPingType: string;
+  subHappProviderId: string;
+  subHappSubExpire: boolean;
+  subHappSubExpireButtonLink: string;
+  subHappSubInfoButtonLink: string;
+  subHappSubInfoButtonText: string;
+  subHappSubInfoColor: string;
+  subHappSubInfoText: string;
+  subHappTunMode: string;
+  subHappTunType: string;
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
@@ -78,6 +101,7 @@ export interface AllSetting {
   subJsonMux: string;
   subJsonObservatory: string;
   subJsonPath: string;
+  subJsonRoutingRules: string;
   subJsonRules: string;
   subJsonURI: string;
   subJsonUserAgentRegex: string;
@@ -185,6 +209,29 @@ export interface AllSettingView {
   subEnableRouting: boolean;
   subEncrypt: boolean;
   subExpiredTemplate: string;
+  subHappAlwaysHwid: boolean;
+  subHappAutoConnect: boolean;
+  subHappAutoConnectType: string;
+  subHappAutoDetect: boolean;
+  subHappColorProfile: string;
+  subHappExcludeApns: boolean;
+  subHappExcludeRoutes: string;
+  subHappFallbackUrl: string;
+  subHappNewUrl: string;
+  subHappNoLimit: boolean;
+  subHappNotificationExpire: boolean;
+  subHappPerAppList: string;
+  subHappPerAppMode: string;
+  subHappPingType: string;
+  subHappProviderId: string;
+  subHappSubExpire: boolean;
+  subHappSubExpireButtonLink: string;
+  subHappSubInfoButtonLink: string;
+  subHappSubInfoButtonText: string;
+  subHappSubInfoColor: string;
+  subHappSubInfoText: string;
+  subHappTunMode: string;
+  subHappTunType: string;
   subHideSettings: boolean;
   subIncyEnableRouting: boolean;
   subIncyRoutingRules: string;
@@ -196,6 +243,7 @@ export interface AllSettingView {
   subJsonMux: string;
   subJsonObservatory: string;
   subJsonPath: string;
+  subJsonRoutingRules: string;
   subJsonRules: string;
   subJsonURI: string;
   subJsonUserAgentRegex: string;
@@ -277,7 +325,7 @@ export interface Client {
   forwardedPorts?: string;
   group?: string;
   id?: string;
-  keepAlive?: number;
+  keepAlive?: number | null;
   limitIp: number;
   password?: string;
   preSharedKey?: string;
@@ -522,6 +570,14 @@ export interface HostGroup {
   vlessRoute: string;
 }
 
+export interface HwidSlotStatus {
+  active: boolean;
+  full: boolean;
+  limit: number;
+  registered: number;
+  remaining: number;
+}
+
 export interface Inbound {
   clientStats: ClientTraffic[];
   disableFlow: boolean;
@@ -574,16 +630,19 @@ export interface InboundOption {
   id: number;
   listen?: string;
   mtprotoDomain?: string;
+  network?: string;
   nodeAddress?: string;
   nodeId?: number | null;
   port: number;
   protocol: string;
   remark: string;
+  security?: string;
   shareAddr?: string;
   shareAddrStrategy?: string;
   ssMethod: string;
   tag: string;
   tlsFlowCapable: boolean;
+  tuicServer?: TuicServerSettings | null;
   wgDns?: string;
   wgMtu?: number;
   wgPublicKey?: string;
@@ -776,6 +835,7 @@ export interface ProbeResultUI {
 
 export interface RealityScanResult {
   alpn: string;
+  certChainBytes: number;
   certChainValid: boolean;
   certIssuer: string;
   certSubject: string;
@@ -861,6 +921,26 @@ export interface Traffic {
   IsOutbound: boolean;
   Tag: string;
   Up: number;
+}
+
+export interface TuicClientSettings {
+  email: string;
+  password: string;
+  uuid: string;
+}
+
+export interface TuicServerSettings {
+  alpn: string[];
+  authentication_timeout: number;
+  certificate: string;
+  congestion_control: string;
+  log_level: string;
+  max_idle_time: number;
+  max_udp_relay_packet_size: number;
+  private_key: string;
+  sni?: string;
+  udp_relay_mode: string;
+  zero_rtt_handshake: boolean;
 }
 
 export interface User {

@@ -148,16 +148,25 @@ func finalmaskUDP(t *testing.T, res *ParseResult) []any {
 	return udp
 }
 
+func hopMask(t *testing.T, res *ParseResult) (map[string]any, bool) {
+	t.Helper()
+	for _, rawMask := range finalmaskUDP(t, res) {
+		mask, _ := rawMask.(map[string]any)
+		if maskType, _ := mask["type"].(string); maskType == "udphop" {
+			settings, _ := mask["settings"].(map[string]any)
+			return settings, true
+		}
+	}
+	return nil, false
+}
+
 func hopPorts(t *testing.T, res *ParseResult) (string, bool) {
 	t.Helper()
-	stream, _ := res.Outbound["streamSettings"].(map[string]any)
-	finalmask, _ := stream["finalmask"].(map[string]any)
-	quicParams, _ := finalmask["quicParams"].(map[string]any)
-	udpHop, ok := quicParams["udpHop"].(map[string]any)
+	settings, ok := hopMask(t, res)
 	if !ok {
 		return "", false
 	}
-	ports, _ := udpHop["ports"].(string)
+	ports, _ := settings["remotePorts"].(string)
 	return ports, true
 }
 
@@ -258,9 +267,15 @@ func TestParseHysteria2_Mport(t *testing.T) {
 		{"standard mport", "mport=20000-50000", "20000-50000", true},
 		{"no mport", "sni=ex.com", "", false},
 		{
-			name:      "fm udpHop wins over mport",
-			query:     "mport=1-2&fm=" + url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"30000-40000","interval":"7-9"}}}`),
+			name:      "fm udphop mask wins over mport",
+			query:     "mport=1-2&fm=" + url.QueryEscape(`{"udp":[{"type":"udphop","settings":{"mode":"intervalremote","interval":"7-9","remotePorts":"30000-40000"}}]}`),
 			wantPorts: "30000-40000",
+			wantHop:   true,
+		},
+		{
+			name:      "legacy fm quicParams.udpHop no longer suppresses mport",
+			query:     "mport=1-2&fm=" + url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"30000-40000","interval":"7-9"}}}`),
+			wantPorts: "1-2",
 			wantHop:   true,
 		},
 	}
@@ -278,6 +293,32 @@ func TestParseHysteria2_Mport(t *testing.T) {
 				t.Errorf("hop ports: got %q, want %q", ports, c.wantPorts)
 			}
 		})
+	}
+}
+
+// xray-core 26.9.9 rejects a udphop mask whose mode is empty or unknown, so
+// the mport importer must emit a mode the core's UDPHop.Build() accepts.
+func TestParseHysteria2_MportEmitsCoreAcceptedMask(t *testing.T) {
+	res, err := ParseLink("hysteria2://auth@1.2.3.4:443?security=tls&mport=20000-50000#node")
+	if err != nil {
+		t.Fatalf("parse hysteria2: %v", err)
+	}
+	settings, ok := hopMask(t, res)
+	if !ok {
+		t.Fatalf("no udphop mask (stream: %v)", res.Outbound["streamSettings"])
+	}
+	if got, _ := settings["mode"].(string); got != "intervalremote" {
+		t.Errorf("mode = %q, want %q", got, "intervalremote")
+	}
+	if got, _ := settings["interval"].(string); got != "5-10" {
+		t.Errorf("interval = %q, want %q", got, "5-10")
+	}
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	if quicParams, ok := finalmask["quicParams"].(map[string]any); ok {
+		if _, dead := quicParams["udpHop"]; dead {
+			t.Error("importer still writes the quicParams.udpHop key the core ignores")
+		}
 	}
 }
 
@@ -372,6 +413,46 @@ func TestParseShadowsocks(t *testing.T) {
 				t.Errorf("password = %v, want %v", srv["password"], c.pass)
 			}
 		})
+	}
+}
+
+func TestParseShadowsocksTLSQueryRoundTrip(t *testing.T) {
+	user := base64.RawURLEncoding.EncodeToString([]byte("chacha20-ietf-poly1305:secretpass"))
+	link := "ss://" + user + "@example.com:443?alpn=h2%2Chttp%2F1.1&fp=firefox&security=tls&sni=example.com&type=tcp#user"
+	res, err := ParseLink(link)
+	if err != nil {
+		t.Fatalf("parse ss tls: %v", err)
+	}
+	srv := res.Outbound["settings"].(map[string]any)["servers"].([]any)[0].(map[string]any)
+	if srv["address"] != "example.com" || srv["port"] != 443 {
+		t.Fatalf("server = %v", srv)
+	}
+	if srv["method"] != "chacha20-ietf-poly1305" || srv["password"] != "secretpass" {
+		t.Fatalf("creds = %v", srv)
+	}
+	stream, ok := res.Outbound["streamSettings"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing streamSettings: %v", res.Outbound)
+	}
+	if stream["network"] != "tcp" {
+		t.Errorf("network = %v, want tcp", stream["network"])
+	}
+	if stream["security"] != "tls" {
+		t.Errorf("security = %v, want tls", stream["security"])
+	}
+	tls, ok := stream["tlsSettings"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing tlsSettings: %v", stream)
+	}
+	if tls["serverName"] != "example.com" {
+		t.Errorf("sni = %v, want example.com", tls["serverName"])
+	}
+	if tls["fingerprint"] != "firefox" {
+		t.Errorf("fp = %v, want firefox", tls["fingerprint"])
+	}
+	alpn, _ := tls["alpn"].([]string)
+	if len(alpn) != 2 || alpn[0] != "h2" || alpn[1] != "http/1.1" {
+		t.Errorf("alpn = %v, want [h2 http/1.1]", alpn)
 	}
 }
 

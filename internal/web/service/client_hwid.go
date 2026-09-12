@@ -31,7 +31,20 @@ type HwidGateResult struct {
 	Registered        int
 }
 
-const minHwidLength = 6
+// HwidSlotStatus is the aggregate device-slot view exposed to subscribers:
+// counters only, no hwid value or hash, no email, no device metadata.
+type HwidSlotStatus struct {
+	Active     bool `json:"active" example:"true"`
+	Limit      int  `json:"limit" example:"2"`
+	Registered int  `json:"registered" example:"1"`
+	Remaining  int  `json:"remaining" example:"1"`
+	Full       bool `json:"full" example:"false"`
+}
+
+const (
+	minHwidLength         = 6
+	hwidFingerprintLength = 12
+)
 
 type ClientHwidInfo struct {
 	Id          int    `json:"id"`
@@ -41,11 +54,19 @@ type ClientHwidInfo struct {
 	DeviceOS    string `json:"deviceOs"`
 	OsVersion   string `json:"osVersion"`
 	DeviceModel string `json:"deviceModel"`
+	Fingerprint string `json:"fingerprint"`
 }
 
 func hashHwid(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+func shortHwidFingerprint(hash string) string {
+	if len(hash) <= hwidFingerprintLength {
+		return hash
+	}
+	return hash[:hwidFingerprintLength]
 }
 
 func trimHwidMeta(s string) string {
@@ -156,6 +177,45 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 	return res, err
 }
 
+// HwidSlotStatusForSubID is SELECT-only: it must never write client_hwids or
+// last_seen. Enabled-clients scope mirrors the gate, so limit == limit enforced.
+func (s *ClientService) HwidSlotStatusForSubID(subID string) (status HwidSlotStatus, found bool, err error) {
+	subID = strings.TrimSpace(subID)
+	if subID == "" {
+		return status, false, nil
+	}
+
+	db := database.GetDB()
+	var enabled int64
+	if err := db.Model(&model.ClientRecord{}).
+		Where("sub_id = ? AND enable = ?", subID, true).
+		Count(&enabled).Error; err != nil {
+		return status, false, err
+	}
+	if enabled == 0 {
+		return status, false, nil
+	}
+
+	limit, err := effectiveHwidLimitForSubID(db, subID)
+	if err != nil {
+		return status, false, err
+	}
+	if limit <= 0 {
+		return status, true, nil
+	}
+
+	var registered int64
+	if err := db.Model(&model.ClientHwid{}).Where("sub_id = ?", subID).Count(&registered).Error; err != nil {
+		return status, false, err
+	}
+	status.Active = true
+	status.Limit = limit
+	status.Registered = int(registered)
+	status.Remaining = max(limit-status.Registered, 0)
+	status.Full = status.Registered >= limit
+	return status, true, nil
+}
+
 func (s *ClientService) ListClientHwids(email string) ([]ClientHwidInfo, error) {
 	rec, err := s.GetRecordByEmail(nil, email)
 	if err != nil {
@@ -183,6 +243,7 @@ func (s *ClientService) ListClientHwids(email string) ([]ClientHwidInfo, error) 
 			DeviceOS:    r.DeviceOS,
 			OsVersion:   r.OsVersion,
 			DeviceModel: r.DeviceModel,
+			Fingerprint: shortHwidFingerprint(r.HwidHash),
 		})
 	}
 	return out, nil

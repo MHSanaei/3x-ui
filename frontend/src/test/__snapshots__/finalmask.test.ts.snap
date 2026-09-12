@@ -201,6 +201,25 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses tcp-mask byte-stably 1`
 }
 `;
 
+exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-hop byte-stably 1`] = `
+{
+  "tcp": [],
+  "udp": [
+    {
+      "settings": {
+        "interval": "5-10",
+        "mode": "intervalremote",
+        "remoteIPs": [
+          "203.0.113.0/24",
+        ],
+        "remotePorts": "20000-50000",
+      },
+      "type": "udphop",
+    },
+  ],
+}
+`;
+
 exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-mask byte-stably 1`] = `
 {
   "tcp": [],

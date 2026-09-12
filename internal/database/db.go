@@ -96,8 +96,19 @@ func migrateClientTrafficLastSubFetchColumn() error {
 	return migrator.AddColumn(&xray.ClientTraffic{}, "LastSubFetch")
 }
 
+func migrateOutboundSubscriptionUserAgentColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&model.OutboundSubscription{}) || migrator.HasColumn(&model.OutboundSubscription{}, "user_agent") {
+		return nil
+	}
+	return migrator.AddColumn(&model.OutboundSubscription{}, "UserAgent")
+}
+
 func initModels() error {
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
+		return err
+	}
+	if err := migrateOutboundSubscriptionUserAgentColumn(); err != nil {
 		return err
 	}
 	models := allModels()
@@ -1020,11 +1031,10 @@ func migrateTgIDIndex() error {
 	return db.Migrator().CreateIndex(&model.ClientRecord{}, "TgID")
 }
 
-// normalizeInboundSubSortIndex lifts sub_sort_index values below the 1-based
-// minimum (rows written by builds that defaulted the column to 0, or by nodes
-// predating the field) so they cannot sort ahead of explicitly ranked inbounds.
+// normalizeInboundSubSortIndex lifts legacy zero defaults to 1.
+// Explicit negatives are left alone so primary inbounds can sort first.
 func normalizeInboundSubSortIndex() error {
-	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index < 1")
+	res := db.Exec("UPDATE inbounds SET sub_sort_index = 1 WHERE sub_sort_index = 0")
 	if res.Error != nil {
 		log.Printf("Error normalizing inbound sub_sort_index: %v", res.Error)
 		return res.Error

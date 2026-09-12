@@ -337,16 +337,23 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 	// Two shapes:
 	//   ss://base64(method:pass)@host:port#remark
 	//   ss://base64(method:pass@host:port)#remark
+	// Query may carry Xray-native stream params (type/security/sni/alpn/fp)
+	// emitted by genShadowsocksLink — preserve them like trojan/vless.
 	remark := ""
 	if i := strings.Index(link, "#"); i >= 0 {
 		remark, _ = url.QueryUnescape(link[i+1:])
 		link = link[:i]
 	}
+	rawQuery := ""
 	if i := strings.Index(link, "?"); i >= 0 {
+		rawQuery = link[i+1:]
 		link = link[:i]
 	}
+	params, _ := url.ParseQuery(rawQuery)
 	core := strings.TrimPrefix(link, "ss://")
 	at := strings.Index(core, "@")
+	var host, method, pass string
+	var port int
 	if at >= 0 {
 		// modern
 		userB64 := core[:at]
@@ -364,46 +371,48 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		if colon < 0 {
 			return nil, fmt.Errorf("bad ss host:port")
 		}
-		host := hp[:colon]
-		port, err := strconv.Atoi(hp[colon+1:])
+		host = hp[:colon]
+		port, err = strconv.Atoi(hp[colon+1:])
 		if err != nil {
 			return nil, fmt.Errorf("bad ss port %q: %w", hp[colon+1:], err)
 		}
-		method, pass := splitMethodPass(userInfo)
-		identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
-		ob := Outbound{
-			"protocol": "shadowsocks",
-			"tag":      remark,
-			"settings": map[string]any{
-				"servers": []any{
-					map[string]any{"address": host, "port": port, "password": pass, "method": method},
-				},
-			},
+		method, pass = splitMethodPass(userInfo)
+	} else {
+		// legacy: whole thing b64
+		dec, err := base64DecodeFlexible(core)
+		if err != nil {
+			return nil, err
 		}
-		return &ParseResult{Outbound: ob, Identity: identity}, nil
+		at = strings.Index(dec, "@")
+		if at < 0 {
+			return nil, fmt.Errorf("bad legacy ss")
+		}
+		userInfo := dec[:at]
+		hp := dec[at+1:]
+		colon := strings.LastIndex(hp, ":")
+		if colon < 0 {
+			return nil, fmt.Errorf("bad legacy ss hp")
+		}
+		host = hp[:colon]
+		port, err = strconv.Atoi(hp[colon+1:])
+		if err != nil {
+			return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
+		}
+		method, pass = splitMethodPass(userInfo)
 	}
-	// legacy: whole thing b64
-	dec, err := base64DecodeFlexible(core)
-	if err != nil {
-		return nil, err
-	}
-	at = strings.Index(dec, "@")
-	if at < 0 {
-		return nil, fmt.Errorf("bad legacy ss")
-	}
-	userInfo := dec[:at]
-	hp := dec[at+1:]
-	colon := strings.LastIndex(hp, ":")
-	if colon < 0 {
-		return nil, fmt.Errorf("bad legacy ss hp")
-	}
-	host := hp[:colon]
-	port, err := strconv.Atoi(hp[colon+1:])
-	if err != nil {
-		return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
-	}
-	method, pass := splitMethodPass(userInfo)
 	identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
+	network := params.Get("type")
+	if network == "" {
+		network = "tcp"
+	}
+	security := params.Get("security")
+	if security == "" {
+		security = "none"
+	}
+	stream := buildStream(network, security)
+	applyTransport(stream, params)
+	applySecurity(stream, params)
+	applyFinalMask(stream, params)
 	ob := Outbound{
 		"protocol": "shadowsocks",
 		"tag":      remark,
@@ -412,6 +421,7 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 				map[string]any{"address": host, "port": port, "password": pass, "method": method},
 			},
 		},
+		"streamSettings": stream,
 	}
 	return &ParseResult{Outbound: ob, Identity: identity}, nil
 }
@@ -666,6 +676,7 @@ func applySecurity(stream map[string]any, p url.Values) {
 			tls["alpn"] = splitComma(alpn)
 		}
 		tls["echConfigList"] = p.Get("ech")
+		tls["verifyPeerCertByName"] = p.Get("vcn")
 		tls["pinnedPeerCertSha256"] = p.Get("pcs")
 	case "reality":
 		re := stream["realitySettings"].(map[string]any)
@@ -760,21 +771,30 @@ func applyHysteria2Obfs(stream map[string]any, p url.Values) {
 }
 
 // applyHysteria2Hop rebuilds the UDP port-hopping range from the standard mport
-// param, which the generator emits as finalmask.quicParams.udpHop.ports. A range
-// already supplied via fm= wins; the client-side interval falls back to the same
-// default the panel writes.
+// param. xray-core 26.9.9 replaced finalmask.quicParams.udpHop with a "udphop"
+// UDP mask, whose intervalremote mode is what the old key used to do; a mask
+// already supplied via fm= wins.
 func applyHysteria2Hop(stream map[string]any, p url.Values) {
 	ports := firstParam(p, "mport")
 	if ports == "" {
 		return
 	}
-	quicParams := ensureChildMap(ensureChildMap(stream, "finalmask"), "quicParams")
-	if udpHop, ok := quicParams["udpHop"].(map[string]any); ok {
-		if existing, _ := udpHop["ports"].(string); existing != "" {
+	finalmask := ensureChildMap(stream, "finalmask")
+	masks, _ := finalmask["udp"].([]any)
+	for _, rawMask := range masks {
+		mask, _ := rawMask.(map[string]any)
+		if maskType, _ := mask["type"].(string); maskType == "udphop" {
 			return
 		}
 	}
-	quicParams["udpHop"] = map[string]any{"ports": ports, "interval": "5-10"}
+	finalmask["udp"] = append(masks, map[string]any{
+		"type": "udphop",
+		"settings": map[string]any{
+			"mode":        "intervalremote",
+			"interval":    "5-10",
+			"remotePorts": ports,
+		},
+	})
 }
 
 func ensureChildMap(parent map[string]any, key string) map[string]any {

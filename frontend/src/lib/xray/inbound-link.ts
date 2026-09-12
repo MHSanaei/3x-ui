@@ -751,6 +751,18 @@ function hysteriaPinHex(pin: string): string {
   }
 }
 
+// Hysteria2 hop range advertised as `mport`. xray-core 26.9.9 moved hopping
+// from finalmask.quicParams.udpHop to a 'udphop' UDP mask; inbounds stored
+// before the upgrade still carry the old key.
+function udpHopPorts(stream: NonNullable<Inbound['streamSettings']>): string {
+  for (const mask of stream.finalmask?.udp ?? []) {
+    if (mask.type !== 'udphop') continue;
+    const ports = mask.settings?.remotePorts;
+    if (typeof ports === 'string' && ports.trim().length > 0) return ports.trim();
+  }
+  return stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+}
+
 // Hysteria share link: hysteria2://<auth>@<host>:<port>?<query>#<remark>.
 // The scheme is always hysteria2 — xray-core builds version 2 only, so the
 // settings schema pins it there and the subscription server emits the same
@@ -817,7 +829,7 @@ export function genHysteriaLink(input: GenHysteriaLinkInput): string {
     }
   }
 
-  const hopPorts = stream.finalmask?.quicParams?.udpHop?.ports?.trim() ?? '';
+  const hopPorts = udpHopPorts(stream);
   if (hopPorts.length > 0) {
     params.set('mport', hopPorts);
   }
@@ -848,6 +860,70 @@ export function genMtprotoLink(input: GenMtprotoLinkInput): string {
   url.searchParams.set('server', address);
   url.searchParams.set('port', String(port));
   url.searchParams.set('secret', clientSecret);
+  return url.toString();
+}
+
+export interface GenTuicLinkInput {
+  inbound: Inbound;
+  address: string;
+  port?: number;
+  remark?: string;
+  clientUuid?: string;
+  clientPassword?: string;
+  externalProxy?: ExternalProxyEntry | null;
+}
+
+export function genTuicLink(input: GenTuicLinkInput): string {
+  const {
+    inbound,
+    address,
+    port = inbound.port,
+    remark = '',
+    clientUuid = '',
+    clientPassword = '',
+    externalProxy = null,
+  } = input;
+  if (!clientUuid || !clientPassword) return '';
+
+  const rawSettings = inbound.settings as Record<string, unknown>;
+  const server = (rawSettings.server as Record<string, unknown>) ?? rawSettings;
+  const host = formatUrlHost(externalProxy?.dest || address);
+  const targetPort = externalProxy?.port || port;
+
+  const url = new URL(
+    `tuic://${encodeURIComponent(clientUuid)}:${encodeURIComponent(clientPassword)}@${host}:${targetPort}`,
+  );
+  const cc =
+    (server.congestion_control as string) || (rawSettings.congestion_control as string) || 'bbr';
+  url.searchParams.set('congestion_control', cc);
+
+  const epAlpn = externalProxyAlpn(externalProxy?.alpn);
+  const alpn =
+    epAlpn ||
+    (Array.isArray(server.alpn) && server.alpn.length > 0
+      ? (server.alpn as string[]).join(',')
+      : null) ||
+    (Array.isArray(rawSettings.alpn) && rawSettings.alpn.length > 0
+      ? (rawSettings.alpn as string[]).join(',')
+      : null) ||
+    'h3,spdy/3.1';
+  url.searchParams.set('alpn', alpn);
+
+  const sni = externalProxy?.sni || (server.sni as string) || (rawSettings.sni as string);
+  if (sni) {
+    url.searchParams.set('sni', sni);
+  }
+  const udpRelay =
+    (server.udp_relay_mode as string) || (rawSettings.udp_relay_mode as string) || 'native';
+  url.searchParams.set('udp_relay_mode', udpRelay);
+
+  const allowInsecure = externalProxy?.allowInsecure ? '1' : '0';
+  url.searchParams.set('allow_insecure', allowInsecure);
+
+  if (remark) {
+    url.hash = encodeURIComponent(remark);
+  }
+
   return url.toString();
 }
 
@@ -1294,6 +1370,7 @@ export function preferPublicHost(browserHost: string, publicHost: string): strin
 // clients, and any protocol without a clients array.
 type ClientShape = {
   id?: string;
+  uuid?: string;
   security?: VmessSecurity;
   flow?: VlessClient['flow'];
   password?: string;
@@ -1320,6 +1397,8 @@ export function getInboundClients(inbound: Inbound): ClientShape[] | null {
     case 'hysteria':
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'mtproto':
+      return (inbound.settings.clients ?? []) as ClientShape[];
+    case 'tuic':
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'shadowsocks': {
       const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
@@ -1412,6 +1491,16 @@ export function genLink(input: GenLinkInput): string {
       });
     case 'mtproto':
       return genMtprotoLink({ inbound, address, port, clientSecret: client.secret ?? '' });
+    case 'tuic':
+      return genTuicLink({
+        inbound,
+        address,
+        port,
+        remark,
+        clientUuid: client.uuid ?? client.id ?? '',
+        clientPassword: client.password ?? '',
+        externalProxy,
+      });
     default:
       return '';
   }

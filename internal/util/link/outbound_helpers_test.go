@@ -123,12 +123,12 @@ func TestParse_RealitySecurityMapped(t *testing.T) {
 }
 
 func TestParse_TLSSecurityMapped(t *testing.T) {
-	res, err := ParseLink("trojan://pw@h.com:443?type=tcp&security=tls&sni=SNI&fp=chrome&alpn=h2,http/1.1&ech=ECH&pcs=PCS")
+	res, err := ParseLink("trojan://pw@h.com:443?type=tcp&security=tls&sni=SNI&fp=chrome&alpn=h2,http/1.1&ech=ECH&vcn=VCN&pcs=PCS")
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
 	tls := streamSub(t, res, "tlsSettings")
-	if tls["serverName"] != "SNI" || tls["fingerprint"] != "chrome" || tls["echConfigList"] != "ECH" || tls["pinnedPeerCertSha256"] != "PCS" {
+	if tls["serverName"] != "SNI" || tls["fingerprint"] != "chrome" || tls["echConfigList"] != "ECH" || tls["verifyPeerCertByName"] != "VCN" || tls["pinnedPeerCertSha256"] != "PCS" {
 		t.Errorf("tlsSettings fields = %#v", tls)
 	}
 	if alpn, _ := tls["alpn"].([]string); !reflect.DeepEqual(alpn, []string{"h2", "http/1.1"}) {

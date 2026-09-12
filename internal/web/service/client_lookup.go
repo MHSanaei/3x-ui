@@ -306,3 +306,25 @@ func (s *ClientService) findInboundIdsByClientEmail(email string) ([]int, error)
 	}
 	return out, nil
 }
+
+// clientRecordsByEmail batch-loads client rows for emails, keyed by email.
+// Callers pass an already-deduplicated list; absent addresses are simply
+// missing from the map.
+func clientRecordsByEmail(tx *gorm.DB, emails []string) (map[string]*model.ClientRecord, error) {
+	if tx == nil {
+		tx = database.GetDB()
+	}
+	var records []model.ClientRecord
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var rows []model.ClientRecord
+		if err := tx.Where("email IN ?", batch).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		records = append(records, rows...)
+	}
+	byEmail := make(map[string]*model.ClientRecord, len(records))
+	for i := range records {
+		byEmail[records[i].Email] = &records[i]
+	}
+	return byEmail, nil
+}

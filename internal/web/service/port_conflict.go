@@ -24,7 +24,7 @@ const (
 func inboundTransports(protocol model.Protocol, streamSettings, settings string) transportBits {
 	// protocols that ignore streamSettings entirely.
 	switch protocol {
-	case model.Hysteria, model.WireGuard, model.AmneziaWG:
+	case model.Hysteria, model.WireGuard, model.AmneziaWG, model.TUIC:
 		return transportUDP
 	case model.MTProto:
 		return transportTCP
@@ -179,6 +179,18 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 		newBits&transportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
 		return &portConflictDetail{
 			Tag:        "api",
+			Listen:     "127.0.0.1",
+			Port:       inbound.Port,
+			Transports: transportTCP,
+		}, nil
+	}
+
+	// Egress SOCKS server holds loopback EgressBasePort when AWG outbounds are
+	// active; conflict check prevents inbounds from colliding with it.
+	if inbound.NodeID == nil && inbound.Port == int(amneziawgnet.EgressBasePort) &&
+		newBits&transportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
+		return &portConflictDetail{
+			Tag:        "amneziawg-egress",
 			Listen:     "127.0.0.1",
 			Port:       inbound.Port,
 			Transports: transportTCP,

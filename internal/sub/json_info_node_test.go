@@ -56,7 +56,7 @@ func TestSubJson_InfoNode_Active(t *testing.T) {
 
 	sub := NewSubService("{{EMAIL}}|📊{{TRAFFIC_LEFT}}")
 	sub.subInfoNodeEnable = true
-	jsonSvc := NewSubJsonService("", "", "", sub)
+	jsonSvc := NewSubJsonService("", "", "", "", sub)
 
 	out, _, err := jsonSvc.GetJson("sub-json", "sub.example.com", false)
 	if err != nil {
@@ -115,7 +115,7 @@ func TestSubJson_InfoNode_Expired(t *testing.T) {
 	sub := NewSubService("{{INBOUND}}")
 	sub.subInfoNodeEnable = true
 	sub.subExpiredTemplate = service.DefaultSubExpiredTemplate
-	jsonSvc := NewSubJsonService("", "", "", sub)
+	jsonSvc := NewSubJsonService("", "", "", "", sub)
 
 	out, _, err := jsonSvc.GetJson("sub-json-exp", "sub.example.com", false)
 	if err != nil {
@@ -175,7 +175,7 @@ func TestSubJson_InfoNode_Depleted(t *testing.T) {
 	sub := NewSubService("{{INBOUND}}")
 	sub.subInfoNodeEnable = true
 	sub.subTrafficDepletedTemplate = service.DefaultSubTrafficDepletedTemplate
-	jsonSvc := NewSubJsonService("", "", "", sub)
+	jsonSvc := NewSubJsonService("", "", "", "", sub)
 
 	out, _, err := jsonSvc.GetJson("sub-json-dep", "sub.example.com", false)
 	if err != nil {
@@ -234,7 +234,7 @@ func TestSubJson_InfoNode_StatusActive(t *testing.T) {
 
 	sub := NewSubService("{{EMAIL}}|{{STATUS_EMOJI}} {{STATUS}}")
 	sub.subInfoNodeEnable = true
-	jsonSvc := NewSubJsonService("", "", "", sub)
+	jsonSvc := NewSubJsonService("", "", "", "", sub)
 
 	out, _, err := jsonSvc.GetJson("sub-json-status", "sub.example.com", false)
 	if err != nil {

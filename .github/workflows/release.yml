@@ -124,7 +124,7 @@ jobs:
           cd x-ui/bin
 
           # Download dependencies
-          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.9.8/"
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.9.9/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             fetch ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
@@ -178,6 +178,28 @@ jobs:
               tar -xzf "${MTG_PKG}.tar.gz"
               mv "${MTG_PKG}/mtg-multi" "mtg-linux-${{ matrix.platform }}"
               rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
+              ;;
+          esac
+          case "${{ matrix.platform }}" in
+            amd64)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-unknown-linux-musl"
+              mv "tuic-server-1.0.0-x86_64-unknown-linux-musl" "tuic-server"
+              chmod +x "tuic-server"
+              ;;
+            arm64)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-aarch64-unknown-linux-musl"
+              mv "tuic-server-1.0.0-aarch64-unknown-linux-musl" "tuic-server"
+              chmod +x "tuic-server"
+              ;;
+            armv7)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-armv7-unknown-linux-musleabihf"
+              mv "tuic-server-1.0.0-armv7-unknown-linux-musleabihf" "tuic-server"
+              chmod +x "tuic-server"
+              ;;
+            386)
+              curl -sfLRO $CURL_RETRY "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-i686-unknown-linux-musl"
+              mv "tuic-server-1.0.0-i686-unknown-linux-musl" "tuic-server"
+              chmod +x "tuic-server"
               ;;
           esac
           cd ../..
@@ -287,7 +309,7 @@ jobs:
           cd x-ui\bin
 
           # Download Xray for Windows
-          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.9.8/"
+          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.9.9/"
           Invoke-WebRequest @retry -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"
@@ -311,6 +333,9 @@ jobs:
           Expand-Archive -Path "$MTG_PKG.zip" -DestinationPath "mtg-tmp" -Force
           Move-Item "mtg-tmp/$MTG_PKG/mtg-multi.exe" "mtg-windows-amd64.exe"
           Remove-Item -Recurse -Force "mtg-tmp", "$MTG_PKG.zip"
+
+          # TUIC sidecar for Windows
+          curl.exe -sfLRo "tuic-server-windows-amd64.exe" --retry 5 --retry-all-errors --retry-delay 3 "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-x86_64-pc-windows-msvc.exe"
 
           cd ..
           Copy-Item -Path ..\windows_files\* -Destination . -Recurse
