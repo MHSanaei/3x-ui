@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "ID каналу Discord, куди надсилатимуться сповіщення",
       "discordEventBusNotify": "Сповіщення Discord",
       "testDiscord": "Надіслати тестове сповіщення",
-      "testDiscordDesc": "Надіслати тестове сповіщення для перевірки токена бота та ID каналу"
+      "testDiscordDesc": "Надіслати тестове сповіщення для перевірки токена бота та ID каналу",
+      "discordNotInitialized": "Служба Discord не ініціалізована",
+      "discordBotNotEnabled": "Discord-бот не увімкнено",
+      "discordTestFailed": "Тест Discord не вдався",
+      "discordTestSuccess": "Тестове сповіщення успішно надіслано"
     },
     "xray": {
       "save": "Зберегти",

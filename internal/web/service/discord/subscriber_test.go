@@ -526,4 +526,3 @@ func TestHandleEvent_NilDiscordService(t *testing.T) {
 		},
 	})
 }
-

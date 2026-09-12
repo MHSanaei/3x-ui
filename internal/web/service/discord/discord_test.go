@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -66,7 +67,7 @@ func TestSendMessage_Success(t *testing.T) {
 		},
 	}
 
-	if err := svc.SendMessage(payload); err != nil {
+	if err := svc.SendMessage(context.Background(), payload); err != nil {
 		t.Fatalf("SendMessage failed: %v", err)
 	}
 
@@ -106,7 +107,7 @@ func TestSendMessage_CreatedStatus(t *testing.T) {
 	svc.SetBaseURL(server.URL)
 	svc.SetHTTPClient(server.Client())
 
-	if err := svc.SendEmbed(Embed{Title: "Title"}); err != nil {
+	if err := svc.SendEmbed(context.Background(), Embed{Title: "Title"}); err != nil {
 		t.Fatalf("SendEmbed failed: %v", err)
 	}
 }
@@ -142,7 +143,7 @@ func TestSendMessage_StatusCodes(t *testing.T) {
 			svc.SetBaseURL(server.URL)
 			svc.SetHTTPClient(server.Client())
 
-			err := svc.SendEmbed(Embed{Title: "Test"})
+			err := svc.SendEmbed(context.Background(), Embed{Title: "Test"})
 			if err == nil {
 				t.Fatalf("expected error for status %d, got nil", tc.statusCode)
 			}
@@ -158,14 +159,14 @@ func TestSendMessage_MissingConfig(t *testing.T) {
 	svc := NewDiscordService(settingService)
 
 	// Both empty
-	err := svc.SendMessage(MessagePayload{Content: "Hi"})
+	err := svc.SendMessage(context.Background(), MessagePayload{Content: "Hi"})
 	if err == nil || !strings.Contains(err.Error(), "token is not configured") {
 		t.Fatalf("expected token not configured error, got %v", err)
 	}
 
 	// Token set, channel empty
 	_ = settingService.SetDiscordBotToken("some-token")
-	err = svc.SendMessage(MessagePayload{Content: "Hi"})
+	err = svc.SendMessage(context.Background(), MessagePayload{Content: "Hi"})
 	if err == nil || !strings.Contains(err.Error(), "channel id is not configured") {
 		t.Fatalf("expected channel id not configured error, got %v", err)
 	}
@@ -188,7 +189,7 @@ func TestSendTest(t *testing.T) {
 	svc.SetBaseURL(server.URL)
 	svc.SetHTTPClient(server.Client())
 
-	if err := svc.SendTest(); err != nil {
+	if err := svc.SendTest(context.Background()); err != nil {
 		t.Fatalf("SendTest failed: %v", err)
 	}
 
@@ -233,7 +234,7 @@ func TestSendMessage_BotPrefixHandling(t *testing.T) {
 	svc.SetBaseURL(server.URL)
 	svc.SetHTTPClient(server.Client())
 
-	if err := svc.SendEmbed(Embed{Title: "Prefix Test"}); err != nil {
+	if err := svc.SendEmbed(context.Background(), Embed{Title: "Prefix Test"}); err != nil {
 		t.Fatalf("SendEmbed failed: %v", err)
 	}
 	if receivedAuth != "Bot prefixed-token" {
@@ -255,8 +256,31 @@ func TestSendMessage_NoContentStatus(t *testing.T) {
 	svc.SetBaseURL(server.URL)
 	svc.SetHTTPClient(server.Client())
 
-	if err := svc.SendEmbed(Embed{Title: "204 Test"}); err != nil {
+	if err := svc.SendEmbed(context.Background(), Embed{Title: "204 Test"}); err != nil {
 		t.Fatalf("SendEmbed failed for 204: %v", err)
 	}
 }
 
+func TestSendMessage_ContextCancelled(t *testing.T) {
+	settingService := setupTestDB(t)
+	_ = settingService.SetDiscordBotToken("token")
+	_ = settingService.SetDiscordChannelId("ch-1")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	svc := NewDiscordService(settingService)
+	svc.SetBaseURL(server.URL)
+	svc.SetHTTPClient(server.Client())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := svc.SendMessage(ctx, MessagePayload{Content: "Cancelled"})
+	if err == nil {
+		t.Fatal("expected error with cancelled context, got nil")
+	}
+}

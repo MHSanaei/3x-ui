@@ -2,6 +2,7 @@ package discord
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -84,7 +85,10 @@ func (s *DiscordService) getClient() *http.Client {
 }
 
 // SendMessage sends a Discord message payload to the configured channel.
-func (s *DiscordService) SendMessage(payload MessagePayload) error {
+func (s *DiscordService) SendMessage(ctx context.Context, payload MessagePayload) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	token, err := s.settingService.GetDiscordBotToken()
 	if err != nil || strings.TrimSpace(token) == "" {
 		return errors.New("discord bot token is not configured")
@@ -112,7 +116,7 @@ func (s *DiscordService) SendMessage(payload MessagePayload) error {
 	}
 	endpoint := fmt.Sprintf("%s/channels/%s/messages", baseURL, strings.TrimSpace(channelID))
 
-	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("create discord request: %w", err)
 	}
@@ -149,14 +153,14 @@ func (s *DiscordService) SendMessage(payload MessagePayload) error {
 }
 
 // SendEmbed is a helper to send an embed payload.
-func (s *DiscordService) SendEmbed(embed Embed) error {
-	return s.SendMessage(MessagePayload{
+func (s *DiscordService) SendEmbed(ctx context.Context, embed Embed) error {
+	return s.SendMessage(ctx, MessagePayload{
 		Embeds: []Embed{embed},
 	})
 }
 
 // SendTest sends a test embed to verify Discord bot configuration.
-func (s *DiscordService) SendTest() error {
+func (s *DiscordService) SendTest(ctx context.Context) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	hostname, _ := os.Hostname()
 	if hostname == "" {
@@ -174,5 +178,5 @@ func (s *DiscordService) SendTest() error {
 			Text: "3x-ui Panel",
 		},
 	}
-	return s.SendEmbed(embed)
+	return s.SendEmbed(ctx, embed)
 }

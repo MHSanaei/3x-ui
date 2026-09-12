@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "ID saluran Discord tempat notifikasi akan dikirim",
       "discordEventBusNotify": "Notifikasi Discord",
       "testDiscord": "Kirim Notifikasi Uji",
-      "testDiscordDesc": "Kirim notifikasi uji untuk memverifikasi token bot dan ID saluran Anda"
+      "testDiscordDesc": "Kirim notifikasi uji untuk memverifikasi token bot dan ID saluran Anda",
+      "discordNotInitialized": "Layanan Discord belum diinisialisasi",
+      "discordBotNotEnabled": "Bot Discord belum diaktifkan",
+      "discordTestFailed": "Pengujian Discord gagal",
+      "discordTestSuccess": "Pemberitahuan uji coba berhasil dikirim"
     },
     "xray": {
       "save": "Simpan",

@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "ID канала Discord, куда будут отправляться уведомления",
       "discordEventBusNotify": "Уведомления Discord",
       "testDiscord": "Отправить тестовое уведомление",
-      "testDiscordDesc": "Отправить тестовое сообщение для проверки токена бота и ID канала"
+      "testDiscordDesc": "Отправить тестовое сообщение для проверки токена бота и ID канала",
+      "discordNotInitialized": "Служба Discord не инициализирована",
+      "discordBotNotEnabled": "Discord-бот не включен",
+      "discordTestFailed": "Тест Discord не удался",
+      "discordTestSuccess": "Тестовое уведомление успешно отправлено"
     },
     "xray": {
       "importRules": "Импорт правил",

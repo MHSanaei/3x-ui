@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "ID do canal do Discord onde as notificações serão enviadas",
       "discordEventBusNotify": "Notificações do Discord",
       "testDiscord": "Enviar notificação de teste",
-      "testDiscordDesc": "Enviar uma notificação de teste para verificar o token do bot e o ID do canal"
+      "testDiscordDesc": "Enviar uma notificação de teste para verificar o token do bot e o ID do canal",
+      "discordNotInitialized": "Serviço Discord não inicializado",
+      "discordBotNotEnabled": "Bot do Discord não está ativado",
+      "discordTestFailed": "Teste do Discord falhou",
+      "discordTestSuccess": "Notificação de teste enviada com sucesso"
     },
     "xray": {
       "importRules": "Importar regras",

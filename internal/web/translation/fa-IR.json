@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "شناسه کانال دیسکورد برای دریافت اعلان‌ها",
       "discordEventBusNotify": "اعلان‌های دیسکورد",
       "testDiscord": "ارسال اعلان آزمایشی",
-      "testDiscordDesc": "ارسال یک اعلان آزمایشی برای بررسی توکن ربات و شناسه کانال"
+      "testDiscordDesc": "ارسال یک اعلان آزمایشی برای بررسی توکن ربات و شناسه کانال",
+      "discordNotInitialized": "سرویس دیسکورد راه‌اندازی نشده است",
+      "discordBotNotEnabled": "ربات دیسکورد فعال نیست",
+      "discordTestFailed": "آزمایش دیسکورد ناموفق بود",
+      "discordTestSuccess": "اعلان آزمایشی با موفقیت ارسال شد"
     },
     "xray": {
       "save": "ذخیره",

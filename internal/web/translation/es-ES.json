@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "ID del canal de Discord donde se enviarán las notificaciones",
       "discordEventBusNotify": "Notificaciones de Discord",
       "testDiscord": "Enviar notificación de prueba",
-      "testDiscordDesc": "Enviar una notificación de prueba para verificar el token del bot y el ID del canal"
+      "testDiscordDesc": "Enviar una notificación de prueba para verificar el token del bot y el ID del canal",
+      "discordNotInitialized": "Servicio de Discord no inicializado",
+      "discordBotNotEnabled": "El bot de Discord no está habilitado",
+      "discordTestFailed": "Prueba de Discord fallida",
+      "discordTestSuccess": "Notificación de prueba enviada con éxito"
     },
     "xray": {
       "save": "Guardar configuración",

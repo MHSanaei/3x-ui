@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "Bildirimlerin gönderileceği Discord kanal kimliği",
       "discordEventBusNotify": "Discord Bildirimleri",
       "testDiscord": "Test Bildirimi Gönder",
-      "testDiscordDesc": "Bot belirtecinizi ve kanal kimliğinizi doğrulamak için bir test bildirimi gönderin"
+      "testDiscordDesc": "Bot belirtecinizi ve kanal kimliğinizi doğrulamak için bir test bildirimi gönderin",
+      "discordNotInitialized": "Discord servisi başlatılmadı",
+      "discordBotNotEnabled": "Discord botu etkin değil",
+      "discordTestFailed": "Discord testi başarısız oldu",
+      "discordTestSuccess": "Test bildirimi başarıyla gönderildi"
     },
     "xray": {
       "save": "Kaydet",

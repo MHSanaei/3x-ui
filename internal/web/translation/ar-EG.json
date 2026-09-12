@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "معرّف قناة ديسكورد حيث سيتم إرسال الإشعارات",
       "discordEventBusNotify": "إشعارات ديسكورد",
       "testDiscord": "إرسال إشعار تجريبي",
-      "testDiscordDesc": "إرسال إشعار تجريبي للتحقق من رمز البوت ومعرّف القناة"
+      "testDiscordDesc": "إرسال إشعار تجريبي للتحقق من رمز البوت ومعرّف القناة",
+      "discordNotInitialized": "خدمة ديسكورد غير مهيأة",
+      "discordBotNotEnabled": "بوت ديسكورد غير مفعّل",
+      "discordTestFailed": "فشل اختبار ديسكورد",
+      "discordTestSuccess": "تم إرسال الإشعار التجريبي بنجاح"
     },
     "xray": {
       "save": "احفظ",

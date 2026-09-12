@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "接收通知的 Discord 频道 ID",
       "discordEventBusNotify": "Discord 通知",
       "testDiscord": "发送测试通知",
-      "testDiscordDesc": "发送测试通知以验证您的机器人令牌和频道 ID"
+      "testDiscordDesc": "发送测试通知以验证您的机器人令牌和频道 ID",
+      "discordNotInitialized": "Discord 服务未初始化",
+      "discordBotNotEnabled": "Discord 机器人未启用",
+      "discordTestFailed": "Discord 测试失败",
+      "discordTestSuccess": "测试通知发送成功"
     },
     "xray": {
       "importRules": "导入规则",

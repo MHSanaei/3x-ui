@@ -1701,7 +1701,11 @@
       "discordChannelIdDesc": "The Discord channel ID where notifications will be sent",
       "discordEventBusNotify": "Discord Notifications",
       "testDiscord": "Send Test Notification",
-      "testDiscordDesc": "Send a test notification to verify your bot token and channel ID"
+      "testDiscordDesc": "Send a test notification to verify your bot token and channel ID",
+      "discordNotInitialized": "Discord service not initialized",
+      "discordBotNotEnabled": "Discord bot is not enabled",
+      "discordTestFailed": "Discord test failed",
+      "discordTestSuccess": "Test notification sent successfully"
     },
     "xray": {
       "save": "Save",

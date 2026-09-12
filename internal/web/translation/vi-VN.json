@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "ID kênh Discord nơi thông báo sẽ được gửi",
       "discordEventBusNotify": "Thông báo Discord",
       "testDiscord": "Gửi thông báo thử nghiệm",
-      "testDiscordDesc": "Gửi thông báo thử nghiệm để xác minh token bot và ID kênh"
+      "testDiscordDesc": "Gửi thông báo thử nghiệm để xác minh token bot và ID kênh",
+      "discordNotInitialized": "Dịch vụ Discord chưa được khởi tạo",
+      "discordBotNotEnabled": "Bot Discord chưa được bật",
+      "discordTestFailed": "Kiểm tra Discord thất bại",
+      "discordTestSuccess": "Đã gửi thông báo thử nghiệm thành công"
     },
     "xray": {
       "importRules": "Nhập quy tắc",

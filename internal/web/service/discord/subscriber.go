@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -47,11 +48,11 @@ func (s *Subscriber) HandleEvent(e eventbus.Event) {
 			return
 		}
 	}
-	go func() {
-		if err := s.discordService.SendEmbed(embed); err != nil {
-			logger.Warning("discord subscriber: send failed:", err)
-		}
-	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := s.discordService.SendEmbed(ctx, embed); err != nil {
+		logger.Warning("discord subscriber: send failed:", err)
+	}
 }
 
 func (s *Subscriber) isEventEnabled(t eventbus.EventType) bool {

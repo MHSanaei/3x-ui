@@ -14,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/discord"
 )
@@ -178,13 +179,17 @@ func TestTestDiscordEndpoint(t *testing.T) {
 	// 1. Service not initialized
 	SetDiscordService(nil)
 	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("I18n", func(_ locale.I18nType, key string, _ ...string) string { return key })
+		c.Next()
+	})
 	NewSettingController(router.Group("/panel/api"))
 
 	req := httptest.NewRequest(http.MethodPost, "/panel/api/setting/testDiscord", nil)
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, req)
 
-	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "Discord service not initialized") {
+	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "pages.settings.discordNotInitialized") {
 		t.Fatalf("expected uninitialized error, got %s", resp.Body.String())
 	}
 
@@ -208,7 +213,7 @@ func TestTestDiscordEndpoint(t *testing.T) {
 	resp = httptest.NewRecorder()
 	router.ServeHTTP(resp, req)
 
-	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "Discord bot disabled") {
+	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "pages.settings.discordBotNotEnabled") {
 		t.Fatalf("expected disabled error, got %s", resp.Body.String())
 	}
 
@@ -218,7 +223,7 @@ func TestTestDiscordEndpoint(t *testing.T) {
 	resp = httptest.NewRecorder()
 	router.ServeHTTP(resp, req)
 
-	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "Discord test failed") {
+	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "pages.settings.discordTestFailed") {
 		t.Fatalf("expected send failure error, got %s", resp.Body.String())
 	}
 
@@ -238,8 +243,7 @@ func TestTestDiscordEndpoint(t *testing.T) {
 	resp = httptest.NewRecorder()
 	router.ServeHTTP(resp, req)
 
-	if !strings.Contains(resp.Body.String(), `"success":true`) || !strings.Contains(resp.Body.String(), "Test notification sent successfully") {
+	if !strings.Contains(resp.Body.String(), `"success":true`) || !strings.Contains(resp.Body.String(), "pages.settings.discordTestSuccess") {
 		t.Fatalf("expected success, got %s", resp.Body.String())
 	}
 }
-

@@ -1583,7 +1583,11 @@
       "discordChannelIdDesc": "接收通知的 Discord 頻道 ID",
       "discordEventBusNotify": "Discord 通知",
       "testDiscord": "傳送測試通知",
-      "testDiscordDesc": "傳送測試通知以驗證您的機器人權杖與頻道 ID"
+      "testDiscordDesc": "傳送測試通知以驗證您的機器人權杖與頻道 ID",
+      "discordNotInitialized": "Discord 服務未初始化",
+      "discordBotNotEnabled": "Discord 機器人未啟用",
+      "discordTestFailed": "Discord 測試失敗",
+      "discordTestSuccess": "測試通知發送成功"
     },
     "xray": {
       "save": "儲存",

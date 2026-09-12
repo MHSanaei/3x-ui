@@ -35,7 +35,7 @@ type updateUserForm struct {
 // "unchanged", so clearing needs its own signal — see #5724).
 type updateSettingForm struct {
 	entity.AllSetting
-	TwoFactorCode     string `json:"twoFactorCode" form:"twoFactorCode"`
+	TwoFactorCode        string `json:"twoFactorCode" form:"twoFactorCode"`
 	ClearTgBotToken      bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
 	ClearLdapPassword    bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
 	ClearSmtpPassword    bool   `json:"clearSmtpPassword" form:"clearSmtpPassword"`
@@ -360,17 +360,17 @@ func SetDiscordService(s *discord.DiscordService) { discordService = s }
 
 func (a *SettingController) testDiscord(c *gin.Context) {
 	if discordService == nil {
-		jsonMsg(c, "Discord service not initialized", errors.New("discord service not available"))
+		jsonMsg(c, I18nWeb(c, "pages.settings.discordNotInitialized"), errors.New("discord service not available"))
 		return
 	}
 	enabled, err := a.settingService.GetDiscordBotEnable()
 	if err != nil || !enabled {
-		jsonMsg(c, "Discord bot disabled", errors.New("discord bot disabled"))
+		jsonMsg(c, I18nWeb(c, "pages.settings.discordBotNotEnabled"), errors.New("discord bot disabled"))
 		return
 	}
-	if err := discordService.SendTest(); err != nil {
-		jsonMsg(c, "Discord test failed: "+err.Error(), err)
+	if err := discordService.SendTest(c.Request.Context()); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.discordTestFailed")+": "+err.Error(), err)
 		return
 	}
-	jsonMsg(c, "Test notification sent successfully", nil)
+	jsonMsg(c, I18nWeb(c, "pages.settings.discordTestSuccess"), nil)
 }
