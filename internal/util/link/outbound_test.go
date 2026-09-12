@@ -416,6 +416,46 @@ func TestParseShadowsocks(t *testing.T) {
 	}
 }
 
+func TestParseShadowsocksTLSQueryRoundTrip(t *testing.T) {
+	user := base64.RawURLEncoding.EncodeToString([]byte("chacha20-ietf-poly1305:secretpass"))
+	link := "ss://" + user + "@example.com:443?alpn=h2%2Chttp%2F1.1&fp=firefox&security=tls&sni=example.com&type=tcp#user"
+	res, err := ParseLink(link)
+	if err != nil {
+		t.Fatalf("parse ss tls: %v", err)
+	}
+	srv := res.Outbound["settings"].(map[string]any)["servers"].([]any)[0].(map[string]any)
+	if srv["address"] != "example.com" || srv["port"] != 443 {
+		t.Fatalf("server = %v", srv)
+	}
+	if srv["method"] != "chacha20-ietf-poly1305" || srv["password"] != "secretpass" {
+		t.Fatalf("creds = %v", srv)
+	}
+	stream, ok := res.Outbound["streamSettings"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing streamSettings: %v", res.Outbound)
+	}
+	if stream["network"] != "tcp" {
+		t.Errorf("network = %v, want tcp", stream["network"])
+	}
+	if stream["security"] != "tls" {
+		t.Errorf("security = %v, want tls", stream["security"])
+	}
+	tls, ok := stream["tlsSettings"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing tlsSettings: %v", stream)
+	}
+	if tls["serverName"] != "example.com" {
+		t.Errorf("sni = %v, want example.com", tls["serverName"])
+	}
+	if tls["fingerprint"] != "firefox" {
+		t.Errorf("fp = %v, want firefox", tls["fingerprint"])
+	}
+	alpn, _ := tls["alpn"].([]string)
+	if len(alpn) != 2 || alpn[0] != "h2" || alpn[1] != "http/1.1" {
+		t.Errorf("alpn = %v, want [h2 http/1.1]", alpn)
+	}
+}
+
 func TestParseShadowsocksBadPort(t *testing.T) {
 	user := base64.StdEncoding.EncodeToString([]byte("aes-256-gcm:secretpass"))
 	cases := map[string]string{
