@@ -1324,9 +1324,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		if client.SubID == "" {
 			client.SubID = uuid.NewString()
 		}
-		if !client.Enable {
-			client.Enable = true
-		}
+		// Preserve enable (omit→true in UnmarshalJSON; explicit false kept) (#6478).
 		now := time.Now().UnixMilli()
 		if client.CreatedAt == 0 {
 			client.CreatedAt = now
