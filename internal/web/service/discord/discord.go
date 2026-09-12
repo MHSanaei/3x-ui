@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
@@ -22,7 +23,14 @@ const (
 	ColorGreen  = 0x2ECC71
 	ColorRed    = 0xE74C3C
 	ColorOrange = 0xF39C12
+	ColorBlue   = 0x3498DB
 )
+
+// FileAttachment represents a file attachment to be uploaded with a Discord message.
+type FileAttachment struct {
+	Filename string
+	Data     []byte
+}
 
 // MessagePayload represents the Discord create message payload.
 type MessagePayload struct {
@@ -84,53 +92,33 @@ func (s *DiscordService) getClient() *http.Client {
 	return s.settingService.NewProxiedHTTPClient(10 * time.Second)
 }
 
-// SendMessage sends a Discord message payload to the configured channel.
-func (s *DiscordService) SendMessage(ctx context.Context, payload MessagePayload) error {
-	if ctx == nil {
-		ctx = context.Background()
+func (s *DiscordService) getBaseURL() string {
+	if s.baseURL != "" {
+		return s.baseURL
 	}
-	token, err := s.settingService.GetDiscordBotToken()
-	if err != nil || strings.TrimSpace(token) == "" {
-		return errors.New("discord bot token is not configured")
+	return defaultDiscordBaseURL
+}
+
+func (s *DiscordService) authCredentials() (token string, channelID string, err error) {
+	rawToken, err := s.settingService.GetDiscordBotToken()
+	if err != nil || strings.TrimSpace(rawToken) == "" {
+		return "", "", errors.New("discord bot token is not configured")
 	}
-	channelID, err := s.settingService.GetDiscordChannelId()
-	if err != nil || strings.TrimSpace(channelID) == "" {
-		return errors.New("discord channel id is not configured")
+	rawChannel, err := s.settingService.GetDiscordChannelId()
+	if err != nil || strings.TrimSpace(rawChannel) == "" {
+		return "", "", errors.New("discord channel id is not configured")
 	}
 
-	cleanToken := strings.TrimSpace(token)
+	cleanToken := strings.TrimSpace(rawToken)
 	cleanToken = strings.TrimPrefix(cleanToken, "Bot ")
 	cleanToken = strings.TrimSpace(cleanToken)
 	if cleanToken == "" {
-		return errors.New("discord bot token is not configured")
+		return "", "", errors.New("discord bot token is not configured")
 	}
+	return cleanToken, strings.TrimSpace(rawChannel), nil
+}
 
-	bodyBytes, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshal discord payload: %w", err)
-	}
-
-	baseURL := s.baseURL
-	if baseURL == "" {
-		baseURL = defaultDiscordBaseURL
-	}
-	endpoint := fmt.Sprintf("%s/channels/%s/messages", baseURL, strings.TrimSpace(channelID))
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return fmt.Errorf("create discord request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bot "+cleanToken)
-	req.Header.Set("User-Agent", discordUserAgent)
-
-	resp, err := s.getClient().Do(req)
-	if err != nil {
-		return fmt.Errorf("discord request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
+func parseDiscordResponse(resp *http.Response) error {
 	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	bodyStr := string(respBody)
 
@@ -150,6 +138,98 @@ func (s *DiscordService) SendMessage(ctx context.Context, payload MessagePayload
 	default:
 		return fmt.Errorf("discord API error (%d): %s", resp.StatusCode, bodyStr)
 	}
+}
+
+// SendMessage sends a Discord message payload to the configured channel.
+func (s *DiscordService) SendMessage(ctx context.Context, payload MessagePayload) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cleanToken, channelID, err := s.authCredentials()
+	if err != nil {
+		return err
+	}
+
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal discord payload: %w", err)
+	}
+
+	endpoint := fmt.Sprintf("%s/channels/%s/messages", s.getBaseURL(), channelID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return fmt.Errorf("create discord request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bot "+cleanToken)
+	req.Header.Set("User-Agent", discordUserAgent)
+
+	resp, err := s.getClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("discord request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return parseDiscordResponse(resp)
+}
+
+// SendMessageWithFiles sends a Discord message payload with optional file attachments using multipart/form-data.
+func (s *DiscordService) SendMessageWithFiles(ctx context.Context, payload MessagePayload, files ...FileAttachment) error {
+	if len(files) == 0 {
+		return s.SendMessage(ctx, payload)
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cleanToken, channelID, err := s.authCredentials()
+	if err != nil {
+		return err
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal discord payload: %w", err)
+	}
+
+	if err := writer.WriteField("payload_json", string(payloadBytes)); err != nil {
+		return fmt.Errorf("write payload_json: %w", err)
+	}
+
+	for i, file := range files {
+		part, err := writer.CreateFormFile(fmt.Sprintf("files[%d]", i), file.Filename)
+		if err != nil {
+			return fmt.Errorf("create form file part %d: %w", i, err)
+		}
+		if _, err := part.Write(file.Data); err != nil {
+			return fmt.Errorf("write form file part %d: %w", i, err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("close multipart writer: %w", err)
+	}
+
+	endpoint := fmt.Sprintf("%s/channels/%s/messages", s.getBaseURL(), channelID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, body)
+	if err != nil {
+		return fmt.Errorf("create discord request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bot "+cleanToken)
+	req.Header.Set("User-Agent", discordUserAgent)
+
+	resp, err := s.getClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("discord request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return parseDiscordResponse(resp)
 }
 
 // SendEmbed is a helper to send an embed payload.

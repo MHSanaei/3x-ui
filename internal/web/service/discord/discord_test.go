@@ -284,3 +284,72 @@ func TestSendMessage_ContextCancelled(t *testing.T) {
 		t.Fatal("expected error with cancelled context, got nil")
 	}
 }
+
+func TestSendMessageWithFiles_Success(t *testing.T) {
+	settingService := setupTestDB(t)
+	_ = settingService.SetDiscordBotToken("test-bot-token")
+	_ = settingService.SetDiscordChannelId("ch-multipart")
+
+	var receivedCT string
+	var receivedPayload MessagePayload
+	receivedFiles := make(map[string][]byte)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedCT = r.Header.Get("Content-Type")
+
+		mr, err := r.MultipartReader()
+		if err != nil {
+			t.Fatalf("MultipartReader error: %v", err)
+		}
+		for {
+			part, err := mr.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("NextPart error: %v", err)
+			}
+			data, _ := io.ReadAll(part)
+			formName := part.FormName()
+			if formName == "payload_json" {
+				_ = json.Unmarshal(data, &receivedPayload)
+			} else {
+				receivedFiles[part.FileName()] = data
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id": "msg-files"}`))
+	}))
+	defer server.Close()
+
+	svc := NewDiscordService(settingService)
+	svc.SetBaseURL(server.URL)
+	svc.SetHTTPClient(server.Client())
+
+	payload := MessagePayload{
+		Content: "Report message",
+		Embeds:  []Embed{{Title: "Report Embed"}},
+	}
+	files := []FileAttachment{
+		{Filename: "x-ui.db", Data: []byte("sqlite-db-binary")},
+		{Filename: "config.json", Data: []byte(`{"log":{}}`)},
+	}
+
+	if err := svc.SendMessageWithFiles(context.Background(), payload, files...); err != nil {
+		t.Fatalf("SendMessageWithFiles failed: %v", err)
+	}
+
+	if !strings.HasPrefix(receivedCT, "multipart/form-data; boundary=") {
+		t.Errorf("expected multipart/form-data content type, got %s", receivedCT)
+	}
+	if receivedPayload.Content != "Report message" || len(receivedPayload.Embeds) != 1 {
+		t.Errorf("payload mismatch: %+v", receivedPayload)
+	}
+	if string(receivedFiles["x-ui.db"]) != "sqlite-db-binary" {
+		t.Errorf("x-ui.db mismatch: %s", string(receivedFiles["x-ui.db"]))
+	}
+	if string(receivedFiles["config.json"]) != `{"log":{}}` {
+		t.Errorf("config.json mismatch: %s", string(receivedFiles["config.json"]))
+	}
+}

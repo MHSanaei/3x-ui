@@ -134,6 +134,10 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	oldTgToken, _ := a.settingService.GetTgBotToken()
 	oldTgChatId, _ := a.settingService.GetTgBotChatId()
 	oldTgAPIServer, _ := a.settingService.GetTgBotAPIServer()
+	oldDiscordEnable, _ := a.settingService.GetDiscordBotEnable()
+	oldDiscordToken, _ := a.settingService.GetDiscordBotToken()
+	oldDiscordChannelId, _ := a.settingService.GetDiscordChannelId()
+	oldDiscordRunTime, _ := a.settingService.GetDiscordRunTime()
 	if twoFactorErr == nil && oldTwoFactor {
 		// Rebinding the authenticator is the same class of change as turning 2FA
 		// off, so both need a current code. Blank still means "unchanged".
@@ -173,6 +177,15 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 				oldTgAPIServer != allSetting.TgBotAPIServer))
 		if tgChanged {
 			reloadTgbotFunc()
+		}
+	}
+	if err == nil && reloadDiscordFunc != nil {
+		discordChanged := oldDiscordEnable != allSetting.DiscordBotEnable ||
+			oldDiscordRunTime != allSetting.DiscordRunTime ||
+			(allSetting.DiscordBotEnable && (oldDiscordToken != allSetting.DiscordBotToken ||
+				oldDiscordChannelId != allSetting.DiscordChannelId))
+		if discordChanged {
+			reloadDiscordFunc()
 		}
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
@@ -351,6 +364,11 @@ var emailService *email.EmailService
 
 // SetEmailService registers the email service for test endpoints.
 func SetEmailService(s *email.EmailService) { emailService = s }
+
+// reloadDiscordFunc is wired from the web layer to reschedule or cancel Discord notify job.
+var reloadDiscordFunc func()
+
+func SetReloadDiscordFunc(fn func()) { reloadDiscordFunc = fn }
 
 // discordService is set from web layer.
 var discordService *discord.DiscordService

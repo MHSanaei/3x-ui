@@ -123,11 +123,13 @@ type Server struct {
 	xrayService    service.XrayService
 	settingService service.SettingService
 	tgbotService   tgbot.Tgbot
+	discordService *discord.DiscordService
 
 	wsHub *websocket.Hub
 
-	bus  *eventbus.Bus
-	cron *cron.Cron
+	bus                  *eventbus.Bus
+	cron                 *cron.Cron
+	discordNotifyEntryID cron.EntryID
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -410,6 +412,25 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		_, _ = s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
 	}
 
+	// Discord-bot-dependent jobs: periodic stats report + database backup.
+	isDiscordEnabled, err := s.settingService.GetDiscordBotEnable()
+	if (err == nil) && isDiscordEnabled {
+		runtime, err := s.settingService.GetDiscordRunTime()
+		if err != nil {
+			logger.Warningf("Add NewDiscordNotifyJob: failed to load runtime: %v; using default @daily", err)
+			runtime = "@daily"
+		} else if strings.TrimSpace(runtime) == "" {
+			logger.Warning("Add NewDiscordNotifyJob runtime is empty, using default @daily")
+			runtime = "@daily"
+		}
+		logger.Infof("Discord notify enabled, run at %s", runtime)
+		if entryID, err := s.cron.AddJob(runtime, job.NewDiscordNotifyJob(s.discordService)); err != nil {
+			logger.Warningf("Add NewDiscordNotifyJob: failed to schedule runtime %q: %v", runtime, err)
+		} else {
+			s.discordNotifyEntryID = entryID
+		}
+	}
+
 	// CPU monitor publishes cpu.high events; register it whenever any notifier
 	// (Telegram or Email) wants them, independent of the Telegram bot being on.
 	if s.cpuAlarmWanted() {
@@ -657,12 +678,35 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	controller.SetEmailService(emailService)
 
 	// Register discord subscriber (always — it checks discordBotEnable at runtime)
-	discordService := discord.NewDiscordService(s.settingService)
-	discordSub := discord.NewSubscriber(s.settingService, discordService)
+	s.discordService = discord.NewDiscordService(s.settingService)
+	discordSub := discord.NewSubscriber(s.settingService, s.discordService)
 	s.bus.Subscribe("discord-notifier", discordSub.HandleEvent)
 
 	// Wire discord service to controller for test endpoint
-	controller.SetDiscordService(discordService)
+	controller.SetDiscordService(s.discordService)
+
+	// Wire reload discord callback for settings updates
+	controller.SetReloadDiscordFunc(func() {
+		if s.discordNotifyEntryID != 0 {
+			s.cron.Remove(s.discordNotifyEntryID)
+			s.discordNotifyEntryID = 0
+		}
+		enabled, err := s.settingService.GetDiscordBotEnable()
+		if err != nil || !enabled {
+			return
+		}
+		runtime, err := s.settingService.GetDiscordRunTime()
+		if err != nil || strings.TrimSpace(runtime) == "" {
+			runtime = "@daily"
+		}
+		entryID, err := s.cron.AddJob(runtime, job.NewDiscordNotifyJob(s.discordService))
+		if err != nil {
+			logger.Warningf("Reload Discord notify: failed to schedule runtime %q: %v", runtime, err)
+		} else {
+			s.discordNotifyEntryID = entryID
+			logger.Infof("Discord notify rescheduled, run at %s", runtime)
+		}
+	})
 
 	// Wire Telegram test function to controller
 	controller.SetTestTgFunc(func() error {

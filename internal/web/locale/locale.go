@@ -105,6 +105,31 @@ func I18n(i18nType I18nType, key string, params ...string) string {
 	return msg
 }
 
+// LocalizerFor returns a new Localizer for the given language tag using the global bundle.
+func LocalizerFor(lang string) *i18n.Localizer {
+	if i18nBundle == nil {
+		return nil
+	}
+	return i18n.NewLocalizer(i18nBundle, lang)
+}
+
+// I18nForLang retrieves a localized message for a specific language tag with optional params.
+func I18nForLang(lang string, key string, params ...string) string {
+	loc := LocalizerFor(lang)
+	if loc == nil {
+		return key
+	}
+	templateData := createTemplateData(params)
+	msg, err := loc.Localize(&i18n.LocalizeConfig{
+		MessageID:    key,
+		TemplateData: templateData,
+	})
+	if err != nil {
+		return key
+	}
+	return msg
+}
+
 // initTGBotLocalizer initializes the bot localizer with the configured language.
 func initTGBotLocalizer(settingService SettingService) error {
 	botLang, err := settingService.GetTgLang()
