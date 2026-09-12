@@ -563,7 +563,7 @@ export default function HappSettingsContent({
         okText={t('pages.settings.subHappBuildDeeplink')}
         width={650}
       >
-        <Space direction="vertical" style={{ width: '100%', marginTop: 12 }} size="middle">
+        <Space orientation="vertical" style={{ width: '100%', marginTop: 12 }} size="middle">
           <div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>
               {t('pages.settings.subHappDirectDomains')}

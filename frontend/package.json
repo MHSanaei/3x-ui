@@ -49,12 +49,12 @@
     "persian-calendar-suite": "^1.5.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-hook-form": "^7.87.0",
+    "react-hook-form": "^7.88.0",
     "react-i18next": "^17.0.13",
     "react-router": "^8.3.1",
     "swagger-ui-react": "^5.32.15",
     "uplot": "^1.6.32",
-    "zod": "^4.6.1"
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.0",
@@ -71,7 +71,7 @@
     "@vitest/coverage-v8": "^5.0.0",
     "husky": "^9.1.7",
     "jsdom": "^30.0.1",
-    "lint-staged": "^17.5.0",
+    "lint-staged": "^17.5.1",
     "msw": "^2.15.0",
     "oxfmt": "0.67.0",
     "oxlint": "1.82.0",
@@ -79,7 +79,7 @@
     "playwright": "^1.63.0",
     "storybook": "^10.6.0",
     "typescript": "7.0.2",
-    "vite": "8.2.2",
+    "vite": "8.3.0",
     "vitest": "^5.0.0"
   },
   "overrides": {
