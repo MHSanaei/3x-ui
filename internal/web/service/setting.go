@@ -81,6 +81,21 @@ var defaultValueMap = map[string]string{
 	"tgBotProxy":                  "",
 	"tgBotAPIServer":              "",
 	"tgBotChatId":                 "",
+	"tgBotHelpText":               "",
+	"tgBotLadderRun":              "",
+	"tgBotNotifyServerUsage":      "true",
+	"tgBotNotifyDepleteSoon":      "true",
+	"tgBotNotifyNewClient":        "true",
+	"tgBotNotifyQuota":            "true",
+	"tgBotUserLangs":              "{}",
+	"tgBotDailyHour":              "8",
+	"tgBotSilentNotices":          "true",
+	"tgBotAllowSelfReset":         "false",
+	"tgBotMaxBindings":            "5",
+	"tgBotRenewOptOut":            "{}",
+	"tgBotRenewReqAt":             "{}",
+	"tgBotQuotaWarned":            "{}",
+	"tgBotSelfResetAt":            "{}",
 	"tgRunTime":                   "@daily",
 	"tgBotBackup":                 "false",
 	"tgCpu":                       "80",
@@ -572,6 +587,24 @@ func (s *SettingService) SetTgBotChatId(chatIds string) error {
 	return s.setString("tgBotChatId", chatIds)
 }
 
+func (s *SettingService) GetTgBotHelpText() (string, error) {
+	return s.getString("tgBotHelpText")
+}
+
+func (s *SettingService) SetTgBotHelpText(text string) error {
+	return s.setString("tgBotHelpText", text)
+}
+
+// Holds the date the renewal ladder last completed, so an hourly cron cannot
+// walk the same customers down the same rungs repeatedly.
+func (s *SettingService) GetTgBotLadderRun() (string, error) {
+	return s.getString("tgBotLadderRun")
+}
+
+func (s *SettingService) SetTgBotLadderRun(day string) error {
+	return s.setString("tgBotLadderRun", day)
+}
+
 func (s *SettingService) GetTgbotEnabled() (bool, error) {
 	return s.getBool("tgBotEnable")
 }
@@ -590,6 +623,126 @@ func (s *SettingService) SetTgbotRuntime(time string) error {
 
 func (s *SettingService) GetTgBotBackup() (bool, error) {
 	return s.getBool("tgBotBackup")
+}
+
+func (s *SettingService) SetTgBotBackup(value bool) error {
+	return s.setBool("tgBotBackup", value)
+}
+
+// The daily report is several independent notices sharing one cron. These gate
+// the admin-facing ones; customer notices are not an operator preference.
+func (s *SettingService) GetTgBotNotifyServerUsage() (bool, error) {
+	return s.getBool("tgBotNotifyServerUsage")
+}
+
+func (s *SettingService) SetTgBotNotifyServerUsage(value bool) error {
+	return s.setBool("tgBotNotifyServerUsage", value)
+}
+
+func (s *SettingService) GetTgBotNotifyDepleteSoon() (bool, error) {
+	return s.getBool("tgBotNotifyDepleteSoon")
+}
+
+func (s *SettingService) SetTgBotNotifyDepleteSoon(value bool) error {
+	return s.setBool("tgBotNotifyDepleteSoon", value)
+}
+
+func (s *SettingService) GetTgBotNotifyNewClient() (bool, error) {
+	return s.getBool("tgBotNotifyNewClient")
+}
+
+func (s *SettingService) SetTgBotNotifyNewClient(value bool) error {
+	return s.setBool("tgBotNotifyNewClient", value)
+}
+
+// Per-user bot languages live in one JSON row rather than a row per user, so a
+// growing user base does not grow the settings table.
+func (s *SettingService) GetTgBotUserLangs() (string, error) {
+	return s.getString("tgBotUserLangs")
+}
+
+func (s *SettingService) SetTgBotUserLangs(value string) error {
+	return s.setString("tgBotUserLangs", value)
+}
+
+func (s *SettingService) GetTgBotNotifyQuota() (bool, error) {
+	return s.getBool("tgBotNotifyQuota")
+}
+
+func (s *SettingService) SetTgBotNotifyQuota(value bool) error {
+	return s.setBool("tgBotNotifyQuota", value)
+}
+
+// Customers may reset their own configs only where an operator has opted in:
+// the reset knocks every one of that client's devices offline until re-import.
+func (s *SettingService) GetTgBotAllowSelfReset() (bool, error) {
+	return s.getBool("tgBotAllowSelfReset")
+}
+
+func (s *SettingService) SetTgBotAllowSelfReset(value bool) error {
+	return s.setBool("tgBotAllowSelfReset", value)
+}
+
+// How many subscriptions one Telegram account may hold. 1 is the original
+// one-config-per-account rule and 0 removes the ceiling entirely.
+func (s *SettingService) GetTgBotMaxBindings() (int, error) {
+	return s.getInt("tgBotMaxBindings")
+}
+
+func (s *SettingService) SetTgBotMaxBindings(limit int) error {
+	return s.setString("tgBotMaxBindings", strconv.Itoa(limit))
+}
+
+func (s *SettingService) GetTgBotSilentNotices() (bool, error) {
+	return s.getBool("tgBotSilentNotices")
+}
+
+func (s *SettingService) SetTgBotSilentNotices(value bool) error {
+	return s.setBool("tgBotSilentNotices", value)
+}
+
+// The hour of day the customer-facing daily pass runs, kept apart from
+// tgRunTime so an operator's report cadence and their customers' are separate.
+func (s *SettingService) GetTgBotDailyHour() (int, error) {
+	return s.getInt("tgBotDailyHour")
+}
+
+func (s *SettingService) SetTgBotDailyHour(hour int) error {
+	return s.setString("tgBotDailyHour", strconv.Itoa(hour))
+}
+
+// Four small per-client maps, each one JSON object in a single row rather than
+// a row per client, so tracking more about a client never grows the table.
+func (s *SettingService) GetTgBotRenewOptOut() (string, error) {
+	return s.getString("tgBotRenewOptOut")
+}
+
+func (s *SettingService) SetTgBotRenewOptOut(value string) error {
+	return s.setString("tgBotRenewOptOut", value)
+}
+
+func (s *SettingService) GetTgBotRenewReqAt() (string, error) {
+	return s.getString("tgBotRenewReqAt")
+}
+
+func (s *SettingService) SetTgBotRenewReqAt(value string) error {
+	return s.setString("tgBotRenewReqAt", value)
+}
+
+func (s *SettingService) GetTgBotQuotaWarned() (string, error) {
+	return s.getString("tgBotQuotaWarned")
+}
+
+func (s *SettingService) SetTgBotQuotaWarned(value string) error {
+	return s.setString("tgBotQuotaWarned", value)
+}
+
+func (s *SettingService) GetTgBotSelfResetAt() (string, error) {
+	return s.getString("tgBotSelfResetAt")
+}
+
+func (s *SettingService) SetTgBotSelfResetAt(value string) error {
+	return s.setString("tgBotSelfResetAt", value)
 }
 
 func (s *SettingService) GetTgCpu() (int, error) {

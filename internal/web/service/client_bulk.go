@@ -1506,17 +1506,15 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 	return result, needRestart, nil
 }
 
-func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {
+// depletedEmails names every client the sweep would remove: distinct, non-empty,
+// and matching the one clause, so a count and the delete cannot disagree.
+func (s *ClientService) depletedEmails() ([]string, error) {
 	db := database.GetDB()
 	now := time.Now().UnixMilli()
-	depletedClause := depletedClientsClause
 
 	var rows []xray.ClientTraffic
-	if err := db.Where(depletedClause, now).Find(&rows).Error; err != nil {
-		return 0, false, err
-	}
-	if len(rows) == 0 {
-		return 0, false, nil
+	if err := db.Where(depletedClientsClause, now).Find(&rows).Error; err != nil {
+		return nil, err
 	}
 
 	seen := make(map[string]struct{}, len(rows))
@@ -1530,6 +1528,21 @@ func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, erro
 		}
 		seen[r.Email] = struct{}{}
 		emails = append(emails, r.Email)
+	}
+	return emails, nil
+}
+
+// CountDepleted answers how many clients DelDepleted would remove, so a confirm
+// can name a number without deleting anything to find it out.
+func (s *ClientService) CountDepleted() (int, error) {
+	emails, err := s.depletedEmails()
+	return len(emails), err
+}
+
+func (s *ClientService) DelDepleted(inboundSvc *InboundService) (int, bool, error) {
+	emails, err := s.depletedEmails()
+	if err != nil {
+		return 0, false, err
 	}
 	if len(emails) == 0 {
 		return 0, false, nil

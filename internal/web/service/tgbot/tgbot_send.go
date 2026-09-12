@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,68 +14,143 @@ import (
 )
 
 // sendResponse sends the response message based on the onlyMessage flag.
-func (t *Tgbot) sendResponse(chatId int64, msg string, onlyMessage, isAdmin bool) {
+func (t *Tgbot) sendResponse(chatId int64, msg string, onlyMessage bool, level userLevel) {
 	if onlyMessage {
 		t.SendMsgToTgbot(chatId, msg)
 	} else {
-		t.SendAnswer(chatId, msg, isAdmin)
+		t.SendAnswer(chatId, msg, level)
 	}
 }
 
-// SendAnswer sends a response message with an inline keyboard to the specified chat.
-func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
-	numericKeyboard := tu.InlineKeyboard(
+// The console is a hub of five sections rather than one wall of buttons: the
+// top level says what the bot can do, and each section holds the detail.
+func (t *Tgbot) adminKeyboard() *telego.InlineKeyboardMarkup {
+	return tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.SortedTrafficUsageReport")).WithCallbackData(t.encodeQuery("get_sorted_traffic_usage_report")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.sectionClients")).WithCallbackData(t.encodeQuery("admin_clients")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.sectionReports")).WithCallbackData(t.encodeQuery("admin_reports")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.serverUsage")).WithCallbackData(t.encodeQuery("get_usage")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ResetAllTraffics")).WithCallbackData(t.encodeQuery("reset_all_traffics")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.serverMenu")).WithCallbackData(t.encodeQuery("server")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.sectionMessaging")).WithCallbackData(t.encodeQuery("admin_messaging")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.dbBackup")).WithCallbackData(t.encodeQuery("get_backup")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getBanLogs")).WithCallbackData(t.encodeQuery("get_banlogs")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.sectionSettings")).WithCallbackData(t.encodeQuery("admin_settings")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getInbounds")).WithCallbackData(t.encodeQuery("inbounds")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.depleteSoon")).WithCallbackData(t.encodeQuery("deplete_soon")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.backToUserPanel")).WithCallbackData(t.encodeQuery("user_panel")),
 		),
+	)
+}
+
+// Who the customers are. Every fleet-wide change lives behind Bulk actions, so
+// nothing here can touch more than the one client the admin picked.
+func (t *Tgbot) adminClientsKeyboard() *telego.InlineKeyboardMarkup {
+	return tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("commands")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.onlines")).WithCallbackData(t.encodeQuery("onlines")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clientRoster")).WithCallbackData(t.encodeQuery("client_roster")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.addClient")).WithCallbackData(t.encodeQuery("add_client")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("pages.settings.subSettings")).WithCallbackData(t.encodeQuery("admin_client_sub_links")),
-			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("admin_client_individual_links")),
-			tu.InlineKeyboardButton(t.I18nBot("qrCode")).WithCallbackData(t.encodeQuery("admin_client_qr_links")),
-		),
-		// TODOOOOOOOOOOOOOO: Add restart button here.
-	)
-	numericKeyboardClient := tu.InlineKeyboard(
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clientUsage")).WithCallbackData(t.encodeQuery("client_traffic")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("client_commands")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.onlines")).WithCallbackData(t.encodeQuery("onlines")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("pages.settings.subSettings")).WithCallbackData(t.encodeQuery("client_sub_links")),
-			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("client_individual_links")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.inviteLinks")).WithCallbackData(t.encodeQuery("invite_links")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.bulkActions")).WithCallbackData(t.encodeQuery("bulk_menu")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("qrCode")).WithCallbackData(t.encodeQuery("client_qr_links")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.backToAdminPanel")).WithCallbackData(t.encodeQuery("admin_panel")),
 		),
 	)
+}
 
-	var ReplyMarkup telego.ReplyMarkup
-	if isAdmin {
-		ReplyMarkup = numericKeyboard
-	} else {
-		ReplyMarkup = numericKeyboardClient
+// Read-only lists only. Anything that changes state belongs in Clients or
+// Server, and the bot's own switches belong in Bot Settings.
+func (t *Tgbot) adminReportsKeyboard() *telego.InlineKeyboardMarkup {
+	return tu.InlineKeyboard(
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.SortedTrafficUsageReport")).WithCallbackData(t.encodeQuery("get_sorted_traffic_usage_report")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getInbounds")).WithCallbackData(t.encodeQuery("inbounds")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.depleteSoon")).WithCallbackData(t.encodeQuery("deplete_soon")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getBanLogs")).WithCallbackData(t.encodeQuery("get_banlogs")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.backToAdminPanel")).WithCallbackData(t.encodeQuery("admin_panel")),
+		),
+	)
+}
+
+func (t *Tgbot) adminMessagingKeyboard() *telego.InlineKeyboardMarkup {
+	return tu.InlineKeyboard(
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.broadcast")).WithCallbackData(t.encodeQuery("broadcast")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.remindNow")).WithCallbackData(t.encodeQuery("remind_now")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.setHelpText")).WithCallbackData(t.encodeQuery("set_help")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.backToAdminPanel")).WithCallbackData(t.encodeQuery("admin_panel")),
+		),
+	)
+}
+
+// How the bot itself behaves, kept apart from the reports it produces.
+func (t *Tgbot) adminSettingsKeyboard() *telego.InlineKeyboardMarkup {
+	return tu.InlineKeyboard(
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.notifications")).WithCallbackData(t.encodeQuery("notify_settings")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.botFeatures")).WithCallbackData(t.encodeQuery("admin_features")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.dailyHour")).WithCallbackData(t.encodeQuery("settings_hour")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.bindLimit")).WithCallbackData(t.encodeQuery("settings_bindings")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("commands")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.backToAdminPanel")).WithCallbackData(t.encodeQuery("admin_panel")),
+		),
+	)
+}
+
+// clientKeyboard is what a customer sees, and what an admin sees first. Every way of
+// getting or rotating a config lives behind My Configs, so the grid never changes.
+func (t *Tgbot) clientKeyboard(level userLevel) *telego.InlineKeyboardMarkup {
+	rows := [][]telego.InlineKeyboardButton{
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.myConfigs")).WithCallbackData(t.encodeQuery("client_configs")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clientUsage")).WithCallbackData(t.encodeQuery("client_traffic")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.help")).WithCallbackData(t.encodeQuery("client_help")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.messageAdmin")).WithCallbackData(t.encodeQuery("client_pm")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.settings")).WithCallbackData(t.encodeQuery("client_settings")),
+		),
 	}
-	t.SendMsgToTgbot(chatId, msg, ReplyMarkup)
+	// The Admin row is appended only for admins, so nothing hints at a second
+	// panel to everyone else.
+	if level == levelAdmin {
+		rows = append(rows, tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.adminPanel")).WithCallbackData(t.encodeQuery("admin_panel")),
+		))
+	}
+	return tu.InlineKeyboardGrid(rows)
+}
+
+// SendAnswer sends a response message with the keyboard the caller's level earns.
+func (t *Tgbot) SendAnswer(chatId int64, msg string, level userLevel) {
+	if level == levelStranger {
+		t.SendMsgToTgbot(chatId, msg)
+		return
+	}
+	t.SendMsgToTgbot(chatId, msg, t.clientKeyboard(level))
 }
 
 const telegramPageLimit = 2000
@@ -133,9 +209,10 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	allMessages := pageMessage(msg, telegramPageLimit)
 	for n, message := range allMessages {
 		params := telego.SendMessageParams{
-			ChatID:    tu.ID(chatId),
-			Text:      message,
-			ParseMode: "HTML",
+			ChatID:              tu.ID(chatId),
+			Text:                message,
+			ParseMode:           "HTML",
+			DisableNotification: t.silent,
 		}
 		// only add replyMarkup to last message
 		if len(replyMarkup) > 0 && n == (len(allMessages)-1) {
@@ -176,6 +253,55 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
+}
+
+// Sends without a parse mode and surfaces the error, so relayed free-form text
+// cannot fail on stray markup and the sender learns when delivery was refused.
+func (t *Tgbot) sendDirect(chatId int64, text string) error {
+	if !isRunning {
+		return errors.New("telegram bot is not running")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err := bot.SendMessage(ctx, &telego.SendMessageParams{
+		ChatID: tu.ID(chatId),
+		Text:   text,
+	})
+	return err
+}
+
+// Sends with the same HTML parse mode the bot uses everywhere, but surfaces the
+// error so admin-authored markup can be rejected before it is stored.
+func (t *Tgbot) sendHTMLDirect(chatId int64, text string, replyMarkup ...telego.ReplyMarkup) error {
+	if !isRunning {
+		return errors.New("telegram bot is not running")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	params := &telego.SendMessageParams{
+		ChatID:              tu.ID(chatId),
+		Text:                text,
+		ParseMode:           "HTML",
+		DisableNotification: t.silent,
+	}
+	if len(replyMarkup) > 0 {
+		params.ReplyMarkup = replyMarkup[0]
+	}
+	_, err := bot.SendMessage(ctx, params)
+	return err
+}
+
+// quiet returns a copy of the bot whose sends carry no alert, reading the setting once
+// rather than per recipient. A lookup failure keeps the buzz rather than silencing it.
+func (t *Tgbot) quiet() *Tgbot {
+	silent, err := t.settingService.GetTgBotSilentNotices()
+	if err != nil {
+		logger.Warning("tgbot: silent notice setting lookup failed:", err)
+		silent = false
+	}
+	scoped := *t
+	scoped.silent = silent
+	return &scoped
 }
 
 // SendMsgToTgbotAdmins sends a message to all admin Telegram chats.

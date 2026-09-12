@@ -417,6 +417,26 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 	return nil
 }
 
+// Overwrites the client's protocol secret in an inbound's settings JSON.
+// fillProtocolDefaults only fills blanks, so rotation assigns unconditionally.
+func rotateClientSecret(c map[string]any, ib *model.Inbound) bool {
+	switch ib.Protocol {
+	case model.VMESS, model.VLESS:
+		c["id"] = uuid.NewString()
+	case model.Trojan:
+		c["password"] = strings.ReplaceAll(uuid.NewString(), "-", "")
+	case model.Shadowsocks:
+		c["password"] = randomShadowsocksClientKey(shadowsocksMethodFromSettings(ib.Settings))
+	case model.Hysteria:
+		c["auth"] = strings.ReplaceAll(uuid.NewString(), "-", "")
+	case model.MTProto:
+		c["secret"] = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(ib.Settings))
+	default:
+		return false
+	}
+	return true
+}
+
 // defaultMtprotoDomain is the FakeTLS fronting domain used when an mtproto
 // inbound carries no fakeTlsDomain of its own; it mirrors the frontend default.
 const defaultMtprotoDomain = "www.cloudflare.com"

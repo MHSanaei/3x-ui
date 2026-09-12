@@ -1,13 +1,9 @@
 package tgbot
 
 import (
-	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"slices"
 	"strconv"
 	"strings"
@@ -21,7 +17,6 @@ import (
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
-	"github.com/skip2/go-qrcode"
 )
 
 // BuildClientDraftMessage builds a protocol-neutral summary of the in-progress
@@ -57,7 +52,7 @@ func (t *Tgbot) BuildClientDraftMessage() string {
 		ipLimit = fmt.Sprint(client_LimitIP)
 	}
 
-	attached := t.describeAttachedInbounds(receiver_inbound_IDs)
+	attached := t.describeAttachedInbounds(receiver_inbound_IDs, false)
 	if attached == "" {
 		attached = "—"
 	}
@@ -86,7 +81,9 @@ func (t *Tgbot) BuildClientDraftMessage() string {
 
 // describeAttachedInbounds returns a short "remark1, remark2" list for the given
 // inbound ids, falling back to "#id" when an inbound can't be loaded.
-func (t *Tgbot) describeAttachedInbounds(ids []int) string {
+// A disabled inbound carries no traffic, so listing it on a customer's card offers a
+// dead route; admins keep seeing it marked, as attached-but-off explains a ticket.
+func (t *Tgbot) describeAttachedInbounds(ids []int, hideDisabled bool) string {
 	if len(ids) == 0 {
 		return ""
 	}
@@ -94,12 +91,21 @@ func (t *Tgbot) describeAttachedInbounds(ids []int) string {
 	for _, id := range ids {
 		ib, err := t.inboundService.GetInbound(id)
 		if err != nil || ib == nil {
+			if hideDisabled {
+				continue
+			}
 			parts = append(parts, fmt.Sprintf("#%d", id))
+			continue
+		}
+		if !ib.Enable && hideDisabled {
 			continue
 		}
 		label := ib.Remark
 		if label == "" {
 			label = fmt.Sprintf("#%d", id)
+		}
+		if !ib.Enable {
+			label += " ❌"
 		}
 		parts = append(parts, label)
 	}
@@ -164,10 +170,14 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 		scheme = "https"
 	}
 
-	// Fallbacks
+	// Fallbacks, most authoritative first. The OS hostname is last because it
+	// is the one candidate that is never reachable from a customer's device.
 	if subDomain == "" {
-		// try panel domain, otherwise OS hostname
 		if d, err := t.settingService.GetWebDomain(); err == nil && d != "" {
+			subDomain = d
+		} else if d := domainFromCertificate(subCertFile); d != "" {
+			subDomain = d
+		} else if d := t.panelCertDomain(); d != "" {
 			subDomain = d
 		} else if hostname != "" {
 			subDomain = hostname
@@ -225,6 +235,16 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 	return subURL, subJsonURL, nil
 }
 
+// The subscription server often reuses the panel's certificate, so it is worth
+// consulting when the subscription listener has none of its own.
+func (t *Tgbot) panelCertDomain() string {
+	certFile, err := t.settingService.GetCertFile()
+	if err != nil {
+		return ""
+	}
+	return domainFromCertificate(certFile)
+}
+
 // sendClientSubLinks sends the subscription links for the client to the chat.
 func (t *Tgbot) sendClientSubLinks(chatId int64, email string) {
 	subURL, subJsonURL, err := t.buildSubscriptionURLs(email)
@@ -232,198 +252,30 @@ func (t *Tgbot) sendClientSubLinks(chatId int64, email string) {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
 		return
 	}
-	msg := "Subscription URL:\r\n<code>" + subURL + "</code>"
+	msg := t.clientHeader(email) + "Subscription URL:\r\n<code>" + subURL + "</code>"
 	if subJsonURL != "" {
 		msg += "\r\n\r\nJSON URL:\r\n<code>" + subJsonURL + "</code>"
 	}
-	inlineKeyboard := tu.InlineKeyboard(
+	rows := [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("client_individual_links "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getAllConfigs")).WithCallbackData(t.encodeQuery("client_individual_links " + email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("qrCode")).WithCallbackData(t.encodeQuery("client_qr_links "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.qrSubscription")).WithCallbackData(t.encodeQuery("qr_sub " + email)),
 		),
-	)
+	}
+	// Offered only when the JSON subscription is actually enabled, so the
+	// keyboard never shows a button that resolves to nothing.
+	if subJsonURL != "" {
+		rows = append(rows, tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.qrSubJson")).WithCallbackData(t.encodeQuery("qr_subjson "+email)),
+		))
+	}
+	inlineKeyboard := tu.InlineKeyboardGrid(rows)
 	t.SendMsgToTgbot(chatId, msg, inlineKeyboard)
 }
 
 // sendClientIndividualLinks fetches the subscription content (individual links) and sends it to the user
-func (t *Tgbot) sendClientIndividualLinks(chatId int64, email string) {
-	// Build the HTML sub page URL; we'll call it with header Accept to get raw content
-	subURL, _, err := t.buildSubscriptionURLs(email)
-	if err != nil {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-		return
-	}
-
-	// Try to fetch raw subscription links. Prefer plain text response.
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, subURL, nil)
-	if err != nil {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-		return
-	}
-	// Force plain text to avoid HTML page; controller respects Accept header
-	req.Header.Set("Accept", "text/plain, */*;q=0.1")
-
-	// Use optimized client with connection pooling
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	req = req.WithContext(ctx)
-
-	resp, err := optimizedHTTPClient.Do(req)
-	if err != nil {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-		return
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-		return
-	}
-
-	// If service is configured to encode (Base64), decode it
-	encoded, _ := t.settingService.GetSubEncrypt()
-	var content string
-	if encoded {
-		decoded, err := base64.StdEncoding.DecodeString(string(bodyBytes))
-		if err != nil {
-			// fallback to raw text
-			content = string(bodyBytes)
-		} else {
-			content = string(decoded)
-		}
-	} else {
-		content = string(bodyBytes)
-	}
-
-	// Normalize line endings and trim
-	lines := strings.Split(strings.ReplaceAll(content, "\r\n", "\n"), "\n")
-	var cleaned []string
-	for _, l := range lines {
-		l = strings.TrimSpace(l)
-		if l != "" {
-			cleaned = append(cleaned, l)
-		}
-	}
-	if len(cleaned) == 0 {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.noResult"))
-		return
-	}
-
-	// Send in chunks to respect message length; use monospace formatting
-	const maxPerMessage = 50
-	for i := 0; i < len(cleaned); i += maxPerMessage {
-		j := min(i+maxPerMessage, len(cleaned))
-		chunk := cleaned[i:j]
-		var msg strings.Builder
-		msg.WriteString(t.I18nBot("subscription.individualLinks"))
-		msg.WriteString(":\r\n")
-		for _, link := range chunk {
-			// wrap each link in <code>
-			msg.WriteString("<code>")
-			msg.WriteString(link)
-			msg.WriteString("</code>\r\n")
-		}
-		t.SendMsgToTgbot(chatId, msg.String())
-	}
-}
-
-// sendClientQRLinks generates QR images for subscription URL, JSON URL, and a few individual links, then sends them
-func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
-	subURL, subJsonURL, err := t.buildSubscriptionURLs(email)
-	if err != nil {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-		return
-	}
-
-	// Helper to create QR PNG bytes from content
-	createQR := func(content string, size int) ([]byte, error) {
-		if size <= 0 {
-			size = 256
-		}
-		return qrcode.Encode(content, qrcode.Medium, size)
-	}
-
-	// Inform user
-	t.SendMsgToTgbot(chatId, "QRCode for client "+email+":")
-
-	// Send sub URL QR (filename: sub.png)
-	if png, err := createQR(subURL, 320); err == nil {
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.FileFromBytes(png, "sub.png"),
-		)
-		_, _ = bot.SendDocument(context.Background(), document)
-	} else {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-	}
-
-	// Send JSON URL QR (filename: subjson.png) when available
-	if subJsonURL != "" {
-		if png, err := createQR(subJsonURL, 320); err == nil {
-			document := tu.Document(
-				tu.ID(chatId),
-				tu.FileFromBytes(png, "subjson.png"),
-			)
-			_, _ = bot.SendDocument(context.Background(), document)
-		} else {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-		}
-	}
-
-	// Also generate a few individual links' QRs (first up to 5)
-	subPageURL := subURL
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, subPageURL, nil)
-	if err == nil {
-		req.Header.Set("Accept", "text/plain, */*;q=0.1")
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		req = req.WithContext(ctx)
-		if resp, err := optimizedHTTPClient.Do(req); err == nil {
-			body, _ := io.ReadAll(resp.Body)
-			_ = resp.Body.Close()
-			encoded, _ := t.settingService.GetSubEncrypt()
-			var content string
-			if encoded {
-				if dec, err := base64.StdEncoding.DecodeString(string(body)); err == nil {
-					content = string(dec)
-				} else {
-					content = string(body)
-				}
-			} else {
-				content = string(body)
-			}
-			lines := strings.Split(strings.ReplaceAll(content, "\r\n", "\n"), "\n")
-			var cleaned []string
-			for _, l := range lines {
-				l = strings.TrimSpace(l)
-				if l != "" {
-					cleaned = append(cleaned, l)
-				}
-			}
-			if len(cleaned) > 0 {
-				max := min(len(cleaned), 5)
-				for i := range max {
-					if png, err := createQR(cleaned[i], 320); err == nil {
-						// Use the email as filename for individual link QR
-						filename := email + ".png"
-						document := tu.Document(
-							tu.ID(chatId),
-							tu.FileFromBytes(png, filename),
-						)
-						_, _ = bot.SendDocument(context.Background(), document)
-						// Reduced delay for better performance
-						if i < max-1 { // Only delay between documents, not after the last one
-							time.Sleep(50 * time.Millisecond)
-						}
-					}
-				}
-			}
-		}
-	}
-}
 
 // clientInfoMsg formats client information message based on traffic and flags.
 func (t *Tgbot) clientInfoMsg(
@@ -434,6 +286,7 @@ func (t *Tgbot) clientInfoMsg(
 	printDate bool,
 	printTraffic bool,
 	printRefreshed bool,
+	hideDisabledInbounds bool,
 ) string {
 	now := time.Now().Unix()
 	expiryTime := ""
@@ -504,7 +357,9 @@ func (t *Tgbot) clientInfoMsg(
 	output := ""
 	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 	if attachIds, err := t.clientService.GetInboundIdsForEmail(nil, traffic.Email); err == nil && len(attachIds) > 0 {
-		output += fmt.Sprintf("🔗 Inbounds: %s\r\n", t.describeAttachedInbounds(attachIds))
+		if list := t.describeAttachedInbounds(attachIds, hideDisabledInbounds); list != "" {
+			output += fmt.Sprintf("🔗 Inbounds: %s\r\n", list)
+		}
 	}
 	if printEnabled {
 		output += t.I18nBot("tgbot.messages.enabled", "Enable=="+enabled)
@@ -537,8 +392,9 @@ func (t *Tgbot) clientInfoMsg(
 	return output
 }
 
-// getClientUsage retrieves and sends client usage information to the chat.
-func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
+// getClientUsage retrieves and sends client usage information to the chat. A
+// non-zero messageID re-renders an existing report instead of sending a new one.
+func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, messageID int, email ...string) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
 	if err != nil {
 		logger.Warning(err)
@@ -548,7 +404,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 	}
 
 	if len(traffics) == 0 {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
+		t.SendMsgToTgbot(chatId, t.noBoundClientMsg(t.levelOf(tgUserID)))
 		return
 	}
 
@@ -558,7 +414,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 		if len(email) > 0 {
 			for _, traffic := range traffics {
 				if traffic.Email == email[0] {
-					output := t.clientInfoMsg(traffic, true, true, true, true, true, true)
+					output := t.clientInfoMsg(traffic, true, true, true, true, true, true, true)
 					t.SendMsgToTgbot(chatId, output)
 					return
 				}
@@ -568,16 +424,25 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 			return
 		} else {
 			for _, traffic := range traffics {
-				output += t.clientInfoMsg(traffic, true, true, true, true, true, false)
+				output += t.clientInfoMsg(traffic, true, true, true, true, true, false, true)
 				output += "\r\n"
 			}
 		}
 	}
 
 	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
-	t.SendMsgToTgbot(chatId, output)
-	output = t.I18nBot("tgbot.commands.pleaseChoose")
-	t.SendAnswer(chatId, output, false)
+
+	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("client_usage_refresh")),
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.backToMenu")).WithCallbackData(t.encodeQuery("client_menu")),
+	))
+	// Refresh edits the report in place so checking twice does not push the rest
+	// of the conversation off screen; a report too long to edit is sent paged.
+	if messageID > 0 && len(output) <= telegramPageLimit {
+		t.editMessageTgBot(chatId, messageID, output, keyboard)
+		return
+	}
+	t.SendMsgToTgbot(chatId, output, keyboard)
 }
 
 // searchClientIps searches and sends client IP addresses for the given email.
@@ -708,18 +573,18 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 		return
 	}
 
-	output := t.clientInfoMsg(traffic, true, true, true, true, true, true)
+	output := t.clientInfoMsg(traffic, true, true, true, true, true, true, false)
 
-	inlineKeyboard := tu.InlineKeyboard(
+	rows := [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("client_refresh "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("client_refresh " + email)),
 		),
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetTraffic")).WithCallbackData(t.encodeQuery("reset_traffic "+email)),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.limitTraffic")).WithCallbackData(t.encodeQuery("limit_traffic "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData(t.encodeQuery("reset_exp "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData(t.encodeQuery("reset_exp " + email)),
 		),
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ipLog")).WithCallbackData(t.encodeQuery("ip_log "+email)),
@@ -727,16 +592,51 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 		),
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.setTGUser")).WithCallbackData(t.encodeQuery("tg_user "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.inviteLink")).WithCallbackData(t.encodeQuery("client_invite_link "+email)),
 		),
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.toggle")).WithCallbackData(t.encodeQuery("toggle_enable "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetCredentials")).WithCallbackData(t.encodeQuery("reset_cred "+email)),
 		),
-	)
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.editClient")).WithCallbackData(t.encodeQuery("client_edit "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.deleteClient")).WithCallbackData(t.encodeQuery("client_delete "+email)),
+		),
+	}
+
+	// Offered only once a client is bound: a customer moving to a new account cannot
+	// rebind until the old binding is cleared, so this is the admin's release valve.
+	if record, err := t.clientService.GetRecordByEmail(nil, email); err == nil && record.TgID != 0 {
+		rows = append(rows, tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.removeTGUser")).WithCallbackData(t.encodeQuery("tgid_remove "+email)),
+		))
+	}
+
+	inlineKeyboard := tu.InlineKeyboardGrid(rows)
 	if len(messageID) > 0 {
 		t.editMessageTgBot(chatId, messageID[0], output, inlineKeyboard)
 	} else {
 		t.SendMsgToTgbot(chatId, output, inlineKeyboard)
 	}
+}
+
+// Rotates the client's protocol secret so a shared config stops working, then
+// tells the owner to refresh: their subscription URL is unchanged by design.
+func (t *Tgbot) rotateClientCredentials(chatId int64, email string, messageID ...int) {
+	needRestart, err := t.clientService.RotateClientCredentialsByEmail(&t.inboundService, email)
+	if needRestart {
+		t.xrayService.SetToNeedRestart()
+	}
+	if err != nil {
+		logger.Warning("tgbot: credential rotation failed:", err)
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
+		return
+	}
+
+	if record, rErr := t.clientService.GetRecordByEmail(nil, email); rErr == nil && record.TgID != 0 && record.TgID != chatId {
+		t.SendMsgToTgbot(record.TgID, t.I18nBot("tgbot.messages.credentialsRotated", "Email=="+email))
+	}
+	t.searchClient(chatId, email, messageID...)
 }
 
 // getCommonClientButtons returns the shared inline keyboard rows for the

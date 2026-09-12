@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 
@@ -40,6 +41,8 @@ func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 	// set default bundle to English
 	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
 	i18nBundle.RegisterUnmarshalFunc("json", json.Unmarshal)
+	// Cached localizers hold the old bundle, so they cannot outlive it.
+	ResetLocalizerCache()
 
 	// parse files
 	if err := parseTranslationFiles(i18nFS, i18nBundle); err != nil {
@@ -86,8 +89,60 @@ func I18n(i18nType I18nType, key string, params ...string) string {
 		return ""
 	}
 
-	templateData := createTemplateData(params)
+	return localize(localizer, key, params)
+}
 
+// I18nLang localizes for one specific language rather than the panel-wide one.
+// An empty lang means "no particular user", so it falls back to the bot locale.
+func I18nLang(lang string, key string, params ...string) string {
+	if lang == "" {
+		return I18n(Bot, key, params...)
+	}
+
+	localizer := botLocalizerFor(lang)
+	if localizer == nil {
+		return I18n(Bot, key, params...)
+	}
+
+	return localize(localizer, key, params)
+}
+
+// Localizers are cached because every Telegram update resolves one, and building
+// one parses the bundle's whole tag list.
+var (
+	localizerCache   = map[string]*i18n.Localizer{}
+	localizerCacheMu sync.RWMutex
+)
+
+func botLocalizerFor(lang string) *i18n.Localizer {
+	localizerCacheMu.RLock()
+	localizer, ok := localizerCache[lang]
+	localizerCacheMu.RUnlock()
+	if ok {
+		return localizer
+	}
+
+	localizerCacheMu.Lock()
+	defer localizerCacheMu.Unlock()
+	if localizer, ok := localizerCache[lang]; ok {
+		return localizer
+	}
+	if i18nBundle == nil {
+		return nil
+	}
+	localizer = i18n.NewLocalizer(i18nBundle, lang)
+	localizerCache[lang] = localizer
+	return localizer
+}
+
+// ResetLocalizerCache drops cached localizers so a bundle reload is picked up.
+func ResetLocalizerCache() {
+	localizerCacheMu.Lock()
+	localizerCache = map[string]*i18n.Localizer{}
+	localizerCacheMu.Unlock()
+}
+
+func localize(localizer *i18n.Localizer, key string, params []string) string {
 	if localizer == nil {
 		// Fallback to key if localizer not ready; prevents nil panic on pages like sub
 		return key
@@ -95,7 +150,7 @@ func I18n(i18nType I18nType, key string, params ...string) string {
 
 	msg, err := localizer.Localize(&i18n.LocalizeConfig{
 		MessageID:    key,
-		TemplateData: templateData,
+		TemplateData: createTemplateData(params),
 	})
 	if err != nil {
 		logger.Errorf("Failed to localize message: %v", err)

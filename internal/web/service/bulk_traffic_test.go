@@ -95,12 +95,25 @@ func TestDelDepletedRemovesOnlyDepleted(t *testing.T) {
 	mkTraffic(t, ib.Id, "bob@x", 10, 10, 100, 0, true)
 	mkTraffic(t, ib.Id, "carol@x", 0, 0, 0, past, true)
 
+	// The confirm names a count before anything is deleted, so it must agree
+	// with what the delete then removes.
+	counted, err := svc.CountDepleted()
+	if err != nil {
+		t.Fatalf("CountDepleted: %v", err)
+	}
+	if counted != 2 {
+		t.Fatalf("expected 2 counted (alice traffic-depleted, carol expired), got %d", counted)
+	}
+
 	deleted, _, err := svc.DelDepleted(inboundSvc)
 	if err != nil {
 		t.Fatalf("DelDepleted: %v", err)
 	}
 	if deleted != 2 {
 		t.Fatalf("expected 2 deleted (alice traffic-depleted, carol expired), got %d", deleted)
+	}
+	if counted != deleted {
+		t.Fatalf("preview promised %d but the sweep removed %d", counted, deleted)
 	}
 
 	if _, err := svc.GetRecordByEmail(nil, "bob@x"); err != nil {

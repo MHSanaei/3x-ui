@@ -405,6 +405,10 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 			logger.Warningf("Add NewStatsNotifyJob: failed to schedule runtime %q: %v", runtime, err)
 		}
 
+		// Hourly rather than on tgRunTime: the pass gates itself on the hour an
+		// admin picked, so changing it needs no cron surgery and no restart.
+		_, _ = s.cron.AddJob("@hourly", job.NewDailyNotifyJob())
+
 		// check for Telegram bot callback query hash storage reset
 		_, _ = s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
 	}

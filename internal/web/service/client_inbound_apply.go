@@ -1358,6 +1358,14 @@ func (s *ClientService) SetClientEnableByEmail(inboundSvc *InboundService, clien
 // SyncInbound over a stale sibling would revert the edit in the normalized
 // records (#5039).
 func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any)) (bool, error) {
+	return s.applyClientFieldForInbound(inboundSvc, clientEmail, func(c map[string]any, _ *model.Inbound) {
+		mutate(c)
+	})
+}
+
+// Credential rotation needs the owning inbound to know which secret field the
+// protocol uses, so the per-inbound walk is shared with the simpler variant.
+func (s *ClientService) applyClientFieldForInbound(inboundSvc *InboundService, clientEmail string, mutate func(c map[string]any, ib *model.Inbound)) (bool, error) {
 	inboundIds, err := s.GetInboundIdsForEmail(database.GetDB(), clientEmail)
 	if err != nil {
 		return false, err
@@ -1401,7 +1409,7 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 				continue
 			}
 			if c["email"] == clientEmail {
-				mutate(c)
+				mutate(c, inbound)
 				c["updated_at"] = time.Now().Unix() * 1000
 				newClients = append(newClients, any(c))
 			}
@@ -1427,6 +1435,24 @@ func (s *ClientService) applyClientFieldByEmail(inboundSvc *InboundService, clie
 	}
 	nr, applyErr := fanoutInboundApplies(applies)
 	return needRestart || nr, applyErr
+}
+
+// Rotates the client's protocol secret on every inbound it is attached to,
+// deliberately leaving SubID intact so the subscription URL keeps working.
+func (s *ClientService) RotateClientCredentialsByEmail(inboundSvc *InboundService, clientEmail string) (bool, error) {
+	rotated := false
+	needRestart, err := s.applyClientFieldForInbound(inboundSvc, clientEmail, func(c map[string]any, ib *model.Inbound) {
+		if rotateClientSecret(c, ib) {
+			rotated = true
+		}
+	})
+	if err != nil {
+		return needRestart, err
+	}
+	if !rotated {
+		return needRestart, common.NewError("No rotatable credential for client:", clientEmail)
+	}
+	return needRestart, nil
 }
 
 func (s *ClientService) ResetClientIpLimitByEmail(inboundSvc *InboundService, clientEmail string, count int) (bool, error) {
