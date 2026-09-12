@@ -80,15 +80,28 @@ type clientPayloadWithHwid struct {
 
 func (p *ClientCreatePayload) UnmarshalJSON(data []byte) error {
 	var raw struct {
-		Client     clientPayloadWithHwid `json:"client"`
-		InboundIds []int                 `json:"inboundIds"`
+		Client     json.RawMessage `json:"client"`
+		InboundIds []int           `json:"inboundIds"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	p.Client = raw.Client.Client
+	var withHwid clientPayloadWithHwid
+	if len(raw.Client) > 0 {
+		if err := json.Unmarshal(raw.Client, &withHwid); err != nil {
+			return err
+		}
+	}
+	p.Client = withHwid.Client
 	p.InboundIds = raw.InboundIds
-	p.LimitHwid = raw.Client.LimitHwid
+	p.LimitHwid = withHwid.LimitHwid
+	// Omit enable → true (legacy API); explicit false is preserved (#6478).
+	var keys map[string]json.RawMessage
+	if len(raw.Client) > 0 && json.Unmarshal(raw.Client, &keys) == nil {
+		if _, ok := keys["enable"]; !ok {
+			p.Client.Enable = true
+		}
+	}
 	return nil
 }
 

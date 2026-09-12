@@ -2630,9 +2630,8 @@
           "sniffing": {},
           "streamSettings": {},
           "subSortIndex": {
-            "description": "1-based sort order of this inbound's links in subscription output only (lower first; ties by id)",
+            "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
             "example": 1,
-            "minimum": 1,
             "type": "integer"
           },
           "tag": {
@@ -3710,6 +3709,11 @@
             "example": "h2",
             "type": "string"
           },
+          "certChainBytes": {
+            "description": "CertChainBytes is the sum of DER lengths of the presented peer chain.\nxray-core ML-DSA-65 REALITY needs >= 3500 bytes (constant lives in xray-core).",
+            "example": 3427,
+            "type": "integer"
+          },
           "certChainValid": {
             "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
             "example": true,
@@ -3792,6 +3796,7 @@
         },
         "required": [
           "alpn",
+          "certChainBytes",
           "certChainValid",
           "certIssuer",
           "certSubject",
@@ -7240,6 +7245,7 @@
                   "success": true,
                   "obj": {
                     "alpn": "h2",
+                    "certChainBytes": 3427,
                     "certChainValid": true,
                     "certIssuer": "Google Trust Services",
                     "certSubject": "cloudflare.com",
@@ -7319,6 +7325,7 @@
                   "obj": [
                     {
                       "alpn": "h2",
+                      "certChainBytes": 3427,
                       "certChainValid": true,
                       "certIssuer": "Google Trust Services",
                       "certSubject": "cloudflare.com",
@@ -9604,7 +9611,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "List registered HWID devices for a client. Hashes are not exposed.",
+        "summary": "List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.",
         "operationId": "post_panel_api_clients_hwids_email",
         "parameters": [
           {
@@ -9644,7 +9651,8 @@
                       "userAgent": "Happ/1.0",
                       "deviceOs": "android",
                       "osVersion": "15",
-                      "deviceModel": "Pixel 9"
+                      "deviceModel": "Pixel 9",
+                      "fingerprint": "6ad17c93e821"
                     }
                   ]
                 }

@@ -617,6 +617,12 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			push = false
 		}
 		for _, client := range clients {
+			// /clients/add on the node historically coerced enable=true; skip live
+			// push for disabled clients and leave dirty so reconcile converges.
+			if !client.Enable {
+				push = false
+				continue
+			}
 			if push {
 				ctx, cancel := nodePushContext()
 				err1 := rt.AddClient(ctx, oldInbound, client)

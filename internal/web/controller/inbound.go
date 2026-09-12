@@ -274,7 +274,7 @@ func (a *InboundController) setInboundSubSortIndex(c *gin.Context) {
 		return
 	}
 	type form struct {
-		SubSortIndex int `json:"subSortIndex" form:"subSortIndex" binding:"required,min=1"`
+		SubSortIndex int `json:"subSortIndex" form:"subSortIndex" binding:"required"`
 	}
 	var f form
 	if err := c.ShouldBind(&f); err != nil {
