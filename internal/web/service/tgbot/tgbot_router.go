@@ -922,8 +922,15 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 	}
 
-	if !isAdmin && !isClientSelfCallback(callbackQuery.Data) {
-		return
+	if !isAdmin {
+		// encodeQuery hashes any payload past 64 chars, so a long email's button
+		// must be decoded before the gate can see which client it names.
+		if decoded, err := t.decodeQuery(callbackQuery.Data); err == nil {
+			callbackQuery.Data = decoded
+		}
+		if !isClientSelfCallback(callbackQuery.Data) {
+			return
+		}
 	}
 
 	switch callbackQuery.Data {
@@ -1302,20 +1309,23 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 		}
 	default:
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_sub_links "); ok {
-			email := after
+		action, email, ok := splitClientLinkCallback(callbackQuery.Data)
+		if !ok {
+			return
+		}
+		// The keyboard outlives the chat it was sent to, so the email in it
+		// cannot authorise itself: a non-admin only reaches their own clients.
+		if !isAdmin && !t.clientOwnedByTgUser(callbackQuery.From.ID, email) {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+			return
+		}
+		switch action {
+		case "client_sub_links":
 			t.sendClientSubLinks(chatId, email)
-			return
-		}
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_individual_links "); ok {
-			email := after
+		case "client_individual_links":
 			t.sendClientIndividualLinks(chatId, email)
-			return
-		}
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_qr_links "); ok {
-			email := after
+		case "client_qr_links":
 			t.sendClientQRLinks(chatId, email)
-			return
 		}
 	}
 }
@@ -1325,16 +1335,25 @@ func checkAdmin(tgId int64) bool {
 	return slices.Contains(adminIds, tgId)
 }
 
-// isClientSelfCallback reports whether a callback is one of the per-user client
-// actions that resolve their own data from the caller's Telegram id, and so are
-// safe to run for a non-admin. Every other callback is admin-only (default-deny).
+// isClientSelfCallback reports whether a callback is per-user rather than
+// admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
 	case "client_traffic", "client_commands", "client_sub_links",
 		"client_individual_links", "client_qr_links":
 		return true
 	}
-	return strings.HasPrefix(data, "client_sub_links ") ||
-		strings.HasPrefix(data, "client_individual_links ") ||
-		strings.HasPrefix(data, "client_qr_links ")
+	_, _, ok := splitClientLinkCallback(data)
+	return ok
+}
+
+// splitClientLinkCallback splits "<action> <email>" for the per-client link
+// callbacks; ok is false for every other data.
+func splitClientLinkCallback(data string) (action, email string, ok bool) {
+	for _, candidate := range []string{"client_sub_links", "client_individual_links", "client_qr_links"} {
+		if rest, found := strings.CutPrefix(data, candidate+" "); found && rest != "" {
+			return candidate, rest, true
+		}
+	}
+	return "", "", false
 }

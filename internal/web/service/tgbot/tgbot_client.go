@@ -537,6 +537,21 @@ func (t *Tgbot) clientInfoMsg(
 	return output
 }
 
+// clientOwnedByTgUser reports whether email belongs to a client bound to this
+// Telegram account, the same list the self-service usage command reads.
+func (t *Tgbot) clientOwnedByTgUser(tgUserID int64, email string) bool {
+	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
+	if err != nil {
+		return false
+	}
+	for _, traffic := range traffics {
+		if traffic.Email == email {
+			return true
+		}
+	}
+	return false
+}
+
 // getClientUsage retrieves and sends client usage information to the chat.
 func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
