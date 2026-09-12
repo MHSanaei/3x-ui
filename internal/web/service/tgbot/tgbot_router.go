@@ -316,6 +316,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		// get query from hash storage
 		decodedQuery, err := t.decodeQuery(callbackQuery.Data)
 		if err != nil {
+			// A button older than the 20-minute hash window is the common case
+			// here; the answer clears it, the message outlives a failed send.
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.noQuery"))
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.noQuery"))
 			return
 		}
@@ -884,6 +887,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				t.editMessageCallbackTgBot(callbackQuery.Message.GetChat().ID, callbackQuery.Message.GetMessageID(), picker)
+			default:
+				// An unknown action with arguments is still a tap, and an
+				// unanswered tap spins until Telegram times it out.
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 			}
 			return
 		} else {
@@ -1317,6 +1324,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.sendClientQRLinks(chatId, email)
 			return
 		}
+
+		// Nothing matched: an unknown button still has to be answered, or it
+		// keeps spinning until Telegram times the callback out.
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 	}
 }
 
