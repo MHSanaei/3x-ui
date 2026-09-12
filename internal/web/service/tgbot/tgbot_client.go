@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"slices"
@@ -73,14 +74,14 @@ func (t *Tgbot) BuildClientDraftMessage() string {
 	}
 
 	var b strings.Builder
-	b.WriteString("📝 *New client draft*\r\n")
-	fmt.Fprintf(&b, "📧 Email: `%s`\r\n", client_Email)
-	fmt.Fprintf(&b, "🔗 Attached: %s\r\n", attached)
+	b.WriteString("📝 <b>New client draft</b>\r\n")
+	fmt.Fprintf(&b, "📧 Email: <code>%s</code>\r\n", html.EscapeString(client_Email))
+	fmt.Fprintf(&b, "🔗 Attached: %s\r\n", html.EscapeString(attached))
 	fmt.Fprintf(&b, "📊 Traffic: %s\r\n", traffic)
 	fmt.Fprintf(&b, "📅 Expire: %s\r\n", expiry)
 	fmt.Fprintf(&b, "🔢 IP limit: %s\r\n", ipLimit)
-	fmt.Fprintf(&b, "👤 TG user: %s\r\n", tgID)
-	fmt.Fprintf(&b, "💬 Comment: %s\r\n", comment)
+	fmt.Fprintf(&b, "👤 TG user: %s\r\n", html.EscapeString(tgID))
+	fmt.Fprintf(&b, "💬 Comment: %s\r\n", html.EscapeString(comment))
 	return b.String()
 }
 
