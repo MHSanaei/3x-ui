@@ -628,6 +628,8 @@
         "scanCert": "Sertifika",
         "scanCertInvalid": "Güvenilmez",
         "scanCertExpiry": "Sertifika bitiş tarihi",
+        "scanCertChain": "Sertifika zinciri",
+        "scanMldsaCertChainTooSmall": "Hedef sertifika zinciri {length} bayt; ML-DSA-65 için gereken {min} bayt minimumunun altında. Bu, bağlantıların sessizce başarısız olmasına yol açar. Farklı bir hedef seçin veya ML-DSA-65'i kapatın.",
         "scanSniUsed": "Kullanılan SNI",
         "scanPrivateNote": "Özel/yerel ağ üzerinden kontrol edildi — bu adrese internetten erişilemez.",
         "scanPrivateConfirmTitle": "Hedef yerel ağda",
@@ -675,7 +677,8 @@
         "bytesPerSec": "Saniye Başına Bayt",
         "bytesPerSecTip": "Eşik aşıldıktan sonra fallback trafiğine uygulanan hız sınırı (bayt/sn); böylece sondalar sunucunuzu hedefe ücretsiz bant genişliği olarak kullanamaz. 0 = sınır yok (bu yönü devre dışı bırakır).",
         "burstBytesPerSec": "Saniye Başına Patlama Baytı",
-        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir."
+        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir.",
+        "autoFill": "Otomatik Doldur"
       },
       "info": {
         "mode": "Mod",
@@ -694,7 +697,8 @@
         "peerNumber": "Eş {n}",
         "peerNumberConfig": "Peer {n} Yapılandırması"
       },
-      "sniffingDestOverride": "Hedef geçersiz kılma"
+      "sniffingDestOverride": "Hedef geçersiz kılma",
+      "advancedTitle": "Gelişmiş Ayarlar"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -760,6 +764,7 @@
       "noHwids": "Henüz HWID cihazı yok",
       "firstSeen": "İlk görülme",
       "lastSeen": "Son görülme",
+      "hwidFingerprint": "HWID parmak izi",
       "deleteHwid": "Cihazı kaldır",
       "deleteHwidConfirm": "Bu cihaz kaldırılsın mı? Bir sonraki abonelik alımında yeniden kaydolması gerekecek.",
       "hwidDeleted": "Cihaz kaldırıldı.",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "Tümünü Temizle",
       "noSubId": "Bu kullanıcının subId'si yok, dolayısıyla paylaşılabilir bir bağlantısı bulunmuyor.",
       "noLinks": "Paylaşılabilir bağlantı yok — önce bu kullanıcıyı bir protokole sahip olan gelen bağlantıya bağlayın.",
+      "qrStandard": "Standart",
+      "happLinkRetry": "Yeniden dene",
+      "happLinkErrorHint": "Happ bağlantısı oluşturulamadı. Yeniden deneyin veya ayrıntılar için {dashboard} -> {logs} bölümünü kontrol edin.",
+      "happLinkSourceTooLong": "Abonelik URL’si panelin 8192 UTF-8 baytlık işleme sınırını aşıyor. Abonelik URL’sini kısaltın veya «Standart» seçeneğini kullanın.",
+      "happLinkQrTooLong": "Bu Happ bağlantısı geçerli, ancak QR kodu olarak görüntülenemeyecek kadar uzun. Bağlantının tamamını kullanmak için Kopyala'yı kullanın.",
+      "happLinkDisabledHint": "Happ'i kullanmadan önce Ayarlar'dan Happ bağlantısı oluşturmayı etkinleştirin.",
+      "happLinkDisabledTitle": "Happ şifreli bağlantı oluşturma etkin değil",
+      "happLinkDisabledDescription": "Şifreli Happ abonelik bağlantılarının yerel olarak oluşturulmasını etkinleştirin. (Yalnızca Happ için)",
+      "happLinkSettingsAction": "Ayarlara git",
+      "happLinkDisclosure": "Bağlantı yerel olarak oluşturulur. Bu bağlantıya sahip olan herkes abonelik URL’sini geri elde edebilir veya paylaşabilir.",
+      "happLinkOptionLabel": "Happ şifreli bağlantısı",
       "link": "Bağlantı",
       "resetNotPossible": "Önce bu kullanıcıyı bir gelen bağlantıya bağlayın.",
       "resetAllTraffics": "Tüm Kullanıcıların Trafiğini Sıfırla",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG Yapılandırması",
+      "tuicConfig": "TUIC Yapılandırması (Clash)",
       "mtprotoSecret": "MTProto sırrı",
       "mtprotoSecretHint": "İstemcinin FakeTLS sırrı. Değiştirmek için yeniden oluşturun.",
       "mtprotoAdTag": "Reklam etiketi (sponsorlu kanal)",
@@ -915,6 +932,7 @@
       "renewOnDay": "Yenileme günü",
       "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur.",
       "renewsUsed": "Kullanılan yenileme",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın."
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "Standart abonelik URL'sinde Xray JSON biçimini otomatik seçmek için istemcinin User-Agent değeriyle eşleştirilen Go RE2 düzenli ifadesi. Varsayılan olarak boştur; bu nedenle hizmet vermek istediğiniz istemciler için bir desen belirleyene kadar otomatik algılama kapalı kalır. Diğer istemciler ham/Base64 yanıtını almaya devam eder. Değişiklikten sonra paneli yeniden başlatın.",
       "subJsonRoutingRules": "JSON aboneliği yönlendirme profili",
       "subJsonRoutingRulesDesc": "Yönlendirme JSON'u, happ:// veya incy:// deeplink'i ya da https:// URL'si. Ayarlandığında JSON aboneliğinin DNS ve yönlendirme kurallarını değiştirir (başlıkları yok sayan istemciler için yapılandırmaya gömülür, örn. istemci tarafı dengeleyicileri olan Happ ve INCY). Happ yönlendirme başlığı ayarı boşsa, aynı profil otomatik olarak Routing başlığı olarak gönderilir (JSON ve URL'ler happ:// deeplink'i olarak) ve istemciler eşleşen geo dosyalarını indirir.",
+      "subJsonDns": "DNS sunucuları",
+      "subJsonDnsDesc": "JSON abonelik yapılandırmalarındaki dns bloğunu değiştirir: tam bir dns nesnesi veya yalnızca servers dizisi. Bu yapılandırmalarda yönlendirme profilinin DNS'ini de değiştirir; Routing başlığını uygulayan istemciler ise profilin çözümleyicilerini kullanır. Boş bırakılırsa yerleşik çözümleyici kullanılır.",
       "subClashAutoDetect": "Clash/Mihomo istemcilerini otomatik algıla",
       "subClashAutoDetectDesc": "Etkinleştirildiğinde, standart abonelik URL'sini isteyen tanınmış Clash/Mihomo istemcileri otomatik olarak Clash YAML alır. Tarayıcılar abonelik sayfasını göstermeye devam eder, diğer istemciler ham/Base64 yanıtını almaya devam eder ve açık JSON ile Clash URL'leri kullanılabilir kalır. Uygulanması için Clash/Mihomo aboneliğinin etkinleştirilmesi ve panelin yeniden başlatılması gerekir.",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent düzenli ifadesi",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "Abonelik sayfası için özel bir şablon (index.html/sub.html) içeren klasörün mutlak yolu (örn. /etc/3x-ui/sub_templates/my-theme/). Varsayılan sayfayı kullanmak için boş bırakın.",
       "subThemeDirDocs": "Şablon kılavuzu ↗",
       "subEnableRouting": "Yönlendirmeyi etkinleştir",
+      "happLinkEnable": "Şifreli abonelik bağlantıları",
+      "happLinkEnableDesc": "İstemcinin QR kodu penceresinde şifreli Happ bağlantıları oluşturulmasına izin verir. Abonelik URL’leri yerel olarak işlenir.",
       "subEnableRoutingDesc": "VPN istemcisinde yönlendirmeyi etkinleştirmek için genel ayar. (Yalnızca Happ için)",
       "subRoutingRules": "Yönlendirme kuralları",
       "subRoutingRulesDesc": "Hazır bir happ:// derin bağlantısı veya kalıcı bir HTTPS URL'si yapıştırın. Panel uzak kuralları arka planda yeniler ve son geçerli değeri saklar; abonelik istekleri kaynağı beklemez. (Yalnızca Happ için)",
@@ -1288,6 +1310,8 @@
       "muxSett": "Mux Ayarları",
       "direct": "Doğrudan Bağlantı",
       "directDesc": "Belirli bir ülkenin alan adları veya IP aralıkları ile doğrudan bağlantı kurar.",
+      "block": "Bağlantıyı Engelle",
+      "blockDesc": "Seçilen alan adlarına veya IP aralıklarına giden bağlantıları blackhole outbound ile engeller.",
       "notifications": "Bildirimler",
       "certs": "Sertifikalar",
       "externalTraffic": "Harici Trafik",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "Proxy IPs / CIDRs",
       "subHappBlockIPs": "Blocked IPs / CIDRs",
       "subHappDeeplinkGenerated": "Deeplink generated and applied to routing rules",
+      "subHappGroupLinks": "Abonelik Bağlantıları",
       "subHappGroupRouting": "Routing & Rules",
       "subHappGroupBanners": "Banners & Announcements",
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Discord Botu",
+      "discordBotEnable": "Discord Bildirimlerini Etkinleştir",
+      "discordBotEnableDesc": "Sistem ve olay uyarılarını bot aracılığıyla bir Discord kanalına gönderin",
+      "discordBotToken": "Discord Bot Belirteci",
+      "discordBotTokenDesc": "Discord Geliştirici Portalından alınan bot belirteci",
+      "discordTokenConfigured": "Belirteç yapılandırıldı. Değiştirmek için yeni bir belirteç girin.",
+      "discordTokenPlaceholder": "Bot belirtecini girin",
+      "discordChannelId": "Kanal Kimliği",
+      "discordChannelIdDesc": "Bildirimlerin gönderileceği Discord kanal kimliği",
+      "discordAdminIds": "Yönetici Kullanıcı Kimlikleri",
+      "discordAdminIdsDesc": "Bot komutlarını çalıştırmasına izin verilen, virgülle ayrılmış Discord kullanıcı kimlikleri. Diğer herkesin mesajları yok sayılır; liste boşsa komutlar kapalıdır.",
+      "discordEventBusNotify": "Discord Bildirimleri",
+      "testDiscord": "Test Bildirimi Gönder",
+      "testDiscordDesc": "Bot belirtecinizi ve kanal kimliğinizi doğrulamak için bir test bildirimi gönderin",
+      "discordNotInitialized": "Discord servisi başlatılmadı",
+      "discordBotNotEnabled": "Discord botu etkin değil",
+      "discordTestFailed": "Discord testi başarısız oldu",
+      "discordTestSuccess": "Test bildirimi başarıyla gönderildi",
+      "discordBotLanguage": "Discord Bot Dili",
+      "discordNotifyTime": "Bildirim Zamanı",
+      "discordNotifyTimeDesc": "Discord botunun periyodik raporları gönderme sıklığı. Hazır bir aralık seçin veya bir crontab ifadesi girmek için Özel'i seçin.",
+      "discordNotifyBackup": "Veritabanı Yedeği",
+      "discordNotifyBackupDesc": "Bir rapor ile birlikte veritabanı yedek dosyasını gönderir.",
+      "discordEventBusNotifyDesc": "Hangi olayların Discord bildirimi tetikleyeceğini seçin"
     },
     "xray": {
       "save": "Kaydet",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "Tıkanıklık Kontrolü",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP İletim Modu",
+        "zeroRttHandshake": "0-RTT El Sıkışması",
+        "logLevel": "Günlük Seviyesi",
+        "logLevelHint": "Çevrimiçi durumu, son görülme ve \"ilk kullanımdan sonra başlat\" sidecar'ın Info satırlarından okunur; Warn veya Error bunları bu inbound için kapatır.",
+        "maxIdleTime": "Maksimum Boşta Kalma Süresi (sn)",
+        "authTimeout": "Kimlik Doğrulama Zaman Aşımı (sn)",
+        "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",
+        "sni": "SNI",
+        "sniHint": "Sunucu Adı Belirtimi (SNI) geçersiz kılma"
+      },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden Telegram Chat ID'nizi yapılandırmanıza eklemesini isteyin.\r\n\r\nSizin Chat ID'niz: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Gelen Bağlantı {{ .Inbound }} için bir Kullanıcı Seçin",
       "chooseInbound": "Bir Gelen Bağlantı Seçin"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord Bildirim Testi",
+      "body": "Bu, Discord bildirimlerinin doğru yapılandırıldığını doğrulayan bir test bildirimidir."
+    },
+    "footer": "3x-ui Paneli",
+    "fields": {
+      "panelVersion": "Panel Sürümü",
+      "xrayCore": "Xray Çekirdeği",
+      "systemLoad": "Sistem Yükü",
+      "networkTraffic": "Ağ Trafiği",
+      "totalUsed": "Toplam Kullanım",
+      "quota": "Kota",
+      "error": "Hata",
+      "delay": "Gecikme",
+      "outbound": "Giden",
+      "node": "Düğüm",
+      "threshold": "Eşik",
+      "reason": "Neden",
+      "time": "Zaman",
+      "source": "Kaynak"
+    },
+    "values": {
+      "uptime": "{{ .Days }}g {{ .Hours }}s",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Toplam: {{ .Total }})",
+      "counts": "Toplam: {{ .Total }} | Tükenmek üzere: {{ .Depleting }} | Devre dışı: {{ .Disabled }}",
+      "inbound": "Protokol: `{{ .Protocol }}` | Port: `{{ .Port }}` | İstemciler: `{{ .Clients }}` | Trafik: `↑{{ .Up }} ↓{{ .Down }}` | Durum: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Giden Bağlantı Kesildi",
+      "outboundUp": "Giden Bağlantı Aktif",
+      "nodeDown": "Düğüm Çevrimdışı",
+      "nodeUp": "Düğüm Çevrimiçi",
+      "xrayCrash": "Xray Çekirdeği Çöktü",
+      "cpuHigh": "CPU Eşiği Aşıldı",
+      "memoryHigh": "Bellek Eşiği Aşıldı",
+      "loginSuccess": "Giriş Başarılı",
+      "loginFailed": "Giriş Başarısız"
+    },
+    "report": {
+      "title": "📊 3x-ui Durum Raporu",
+      "summary": "**{{ .Host }}** için periyodik sunucu ve proxy durum raporu",
+      "footer": "3x-ui Zamanlanmış Rapor • Zamanlama: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord Bot Komutları",
+      "helpDescription": "3x-ui sunucusunu izlemek ve yönetmek için kullanılabilir komutlar:",
+      "helpStatus": "Sistem yükünü, RAM'i, CPU'yu, bağlantıları ve çevrimiçi kullanıcıları gösterir",
+      "helpReport": "Tam durum raporu oluşturur (yapılandırıldıysa veritabanı yedeğiyle)",
+      "helpBackup": "Veritabanı yedek dosyasını hemen gönderir",
+      "helpUsage": "Bir istemcinin trafik kullanımını, kotasını ve bitiş tarihini sorgular",
+      "helpInbounds": "Yapılandırılmış tüm gelen bağlantıları portları ve istemci istatistikleriyle listeler",
+      "helpRestart": "Xray çekirdeğini yeniden başlatır",
+      "helpHelp": "Bu komut listesini gösterir",
+      "statusTitle": "⚡ 3x-ui Sunucu Durumu",
+      "statusDescription": "**{{ .Host }}** için güncel çalışma metrikleri",
+      "backupTitle": "🗄️ Veritabanı Yedeği",
+      "backupDescription": "`{{ .Time }}` tarihinde oluşturulan 3x-ui yedek arşivi",
+      "backupUnavailable": "❌ Yedekleme hizmeti kullanılamıyor",
+      "backupFailed": "❌ Veritabanı yedeği okunamadı: {{ .Error }}",
+      "usageHint": "⚠️ Kullanım: `!usage <email>` veya `/usage <email>`",
+      "usageTitle": "👤 İstemci Kullanımı: {{ .Email }}",
+      "usageDescription": "Gelen: **{{ .Remark }}** (Port {{ .Port }})",
+      "clientNotFound": "⚠️ `{{ .Email }}` istemcisi yapılandırılmış hiçbir gelen bağlantıda bulunamadı.",
+      "inboundsUnavailable": "❌ Gelen bağlantı hizmeti kullanılamıyor",
+      "inboundsFailed": "❌ Gelen bağlantılar yüklenemedi: {{ .Error }}",
+      "inboundsTitle": "🔌 Yapılandırılmış Gelen Bağlantılar",
+      "inboundsDescription": "Toplam gelen bağlantı: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Yapılandırılmış gelen bağlantı yok.",
+      "xrayUnavailable": "❌ Xray hizmeti kullanılamıyor",
+      "restarting": "🔄 Xray çekirdeği yeniden başlatılıyor...",
+      "restartFailed": "❌ Xray yeniden başlatılamadı: {{ .Error }}",
+      "restartSuccess": "✅ Xray çekirdeği başarıyla yeniden başlatıldı."
     }
   },
   "email": {

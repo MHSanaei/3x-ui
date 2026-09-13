@@ -628,6 +628,8 @@
         "scanCert": "憑證",
         "scanCertInvalid": "不受信任",
         "scanCertExpiry": "憑證有效期限",
+        "scanCertChain": "憑證鏈",
+        "scanMldsaCertChainTooSmall": "目標憑證鏈為 {length} 位元組，低於 ML-DSA-65 所需的 {min} 位元組下限。這會導致連線靜默失敗。請更換目標或關閉 ML-DSA-65。",
         "scanSniUsed": "使用的 SNI",
         "scanPrivateNote": "已透過內網/本機網路檢測 — 此位址無法從網際網路存取。",
         "scanPrivateConfirmTitle": "目標位於本機網路",
@@ -675,7 +677,8 @@
           "node": "節點地址",
           "listen": "入站監聽地址",
           "custom": "自訂"
-        }
+        },
+        "autoFill": "自動填入"
       },
       "info": {
         "mode": "模式",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "目標覆寫"
+      "sniffingDestOverride": "目標覆寫",
+      "advancedTitle": "進階設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -760,6 +764,7 @@
       "noHwids": "尚無 HWID 裝置",
       "firstSeen": "首次出現",
       "lastSeen": "最後出現",
+      "hwidFingerprint": "HWID 指紋",
       "deleteHwid": "移除裝置",
       "deleteHwidConfirm": "移除此裝置？下次取得訂閱時它將需要重新註冊。",
       "hwidDeleted": "裝置已移除。",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "全部清除",
       "noSubId": "此客戶端沒有 subId，無法產生共享連結。",
       "noLinks": "沒有可共享的連結 — 請先將此客戶端關聯至支援協定的入站。",
+      "qrStandard": "標準",
+      "happLinkRetry": "重試",
+      "happLinkErrorHint": "無法產生 Happ 連結。請重試，或前往 {dashboard} -> {logs} 查看詳細資訊。",
+      "happLinkSourceTooLong": "訂閱網址超過面板的 8192 位元組（UTF-8）處理上限。請縮短訂閱網址，或使用「標準」一般訂閱。",
+      "happLinkQrTooLong": "此 Happ 連結有效，但過長，無法顯示為二維碼。請點選「複製」以使用完整連結。",
+      "happLinkDisabledHint": "使用 Happ 前，請先在設定中啟用 Happ 連結產生功能。",
+      "happLinkDisabledTitle": "Happ 加密連結產生功能尚未啟用",
+      "happLinkDisabledDescription": "啟用後，可在本地產生加密的 Happ 訂閱連結。（僅限 Happ）",
+      "happLinkSettingsAction": "前往設定",
+      "happLinkDisclosure": "連結在本地產生。持有此連結的人可能還原或分享訂閱網址。",
+      "happLinkOptionLabel": "Happ 加密連結",
       "link": "連結",
       "resetNotPossible": "請先將此客戶端關聯至入站。",
       "resetAllTraffics": "重設所有客戶端流量",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 設定",
+      "tuicConfig": "TUIC 設定 (Clash)",
       "mtprotoSecret": "MTProto 金鑰",
       "mtprotoSecretHint": "該用戶端的 FakeTLS 金鑰。重新產生即可更換。",
       "mtprotoAdTag": "廣告標籤（贊助頻道）",
@@ -915,6 +932,7 @@
       "renewOnDay": "按日期續期",
       "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。填 0 保持按天間隔模式。",
       "renewsUsed": "已用續期次數",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "輸入 32 位十六進位標籤以設定，或輸入 'none' 清除 MTProto 贊助頻道。"
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "用於與用戶端 User-Agent 進行比對，以便在標準訂閱 URL 上自動選擇 Xray JSON 格式的 Go RE2 正規表示式。預設留空，因此在為要服務的用戶端設定規則之前，自動辨識會保持關閉。其他用戶端繼續取得原始/Base64 回應。變更後請重新啟動面板。",
       "subJsonRoutingRules": "JSON 訂閱路由設定檔",
       "subJsonRoutingRulesDesc": "路由 JSON、happ:// 或 incy:// 深層連結，或 https:// URL。設定後，將取代 JSON 訂閱的 DNS 與路由規則（為忽略回應標頭的用戶端直接內嵌至設定，例如使用用戶端負載平衡器的 Happ 與 INCY）。若 Happ 路由標頭設定為空，同一設定檔會自動作為 Routing 標頭傳送（內嵌 JSON 與 URL 轉換為 happ:// 深層連結），讓用戶端下載相符的 geo 檔案。",
+      "subJsonDns": "DNS 伺服器",
+      "subJsonDnsDesc": "替換寫入每個 JSON 訂閱設定的 dns 區塊：可以是完整的 dns 物件，也可以只是 servers 陣列。這些設定中路由設定檔的 DNS 也會被替換；但套用 Routing 標頭的用戶端仍使用設定檔中的解析器。留空則使用內建解析器。",
       "subClashAutoDetect": "自動識別 Clash/Mihomo 用戶端",
       "subClashAutoDetectDesc": "啟用後，使用標準訂閱 URL 的已識別 Clash/Mihomo 用戶端將自動取得 Clash YAML。瀏覽器仍會顯示訂閱頁面，其他用戶端繼續取得原始/Base64 回應，獨立的 JSON 和 Clash URL 仍可使用。需要啟用 Clash/Mihomo 訂閱並重新啟動面板才能生效。",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent 正規表示式",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "包含自訂訂閱頁面範本 (index.html/sub.html) 的資料夾的絕對路徑（例如 /etc/3x-ui/sub_templates/my-theme/）。留空則使用預設頁面。",
       "subThemeDirDocs": "範本指南 ↗",
       "subEnableRouting": "啟用路由",
+      "happLinkEnable": "加密訂閱連結",
+      "happLinkEnableDesc": "允許在客戶端 QR 碼視窗產生 Happ 加密連結，訂閱網址在本地處理。",
       "subEnableRoutingDesc": "在 VPN 用戶端中啟用路由的全域設定。（僅限 Happ）",
       "subRoutingRules": "路由規則",
       "subRoutingRulesDesc": "貼上現成的 happ:// 深層連結或一個固定 HTTPS URL。面板會在背景更新遠端規則並保留最後一個有效值，因此訂閱請求不需等待遠端來源。（僅限 Happ）",
@@ -1288,6 +1310,8 @@
       "muxSett": "複用器設定",
       "direct": "直接連線",
       "directDesc": "直接與特定國家的域或 IP 範圍建立連線",
+      "block": "封鎖連線",
+      "blockDesc": "使用 blackhole 出站封鎖對所選網域或 IP 範圍的連線。",
       "notifications": "通知",
       "certs": "證書",
       "externalTraffic": "外部流量",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "代理 IP / CIDR",
       "subHappBlockIPs": "阻止 IP / CIDR",
       "subHappDeeplinkGenerated": "DeepLink 已生成并填入路由规则",
+      "subHappGroupLinks": "訂閱連結",
       "subHappGroupRouting": "路由分流与规则",
       "subHappGroupBanners": "横幅公告与通知",
       "subHappGroupNetwork": "网络与 TUN 引擎",
       "subHappGroupThemes": "界面与主题外观",
       "subHappGroupFailover": "迁移与客户端管理",
       "subHappGroupAndroid": "Android 分应用代理"
+      "subHappGroupAndroid": "Android 分应用代理",
+      "discordSettings": "Discord 機器人",
+      "discordBotEnable": "啟用 Discord 通知",
+      "discordBotEnableDesc": "透過機器人向 Discord 頻道發送系統與事件警報",
+      "discordBotToken": "Discord 機器人權杖",
+      "discordBotTokenDesc": "來自 Discord 開發者門戶的機器人權杖",
+      "discordTokenConfigured": "權杖已設定。輸入新權杖以取代。",
+      "discordTokenPlaceholder": "輸入機器人權杖",
+      "discordChannelId": "頻道 ID",
+      "discordChannelIdDesc": "接收通知的 Discord 頻道 ID",
+      "discordAdminIds": "管理員使用者 ID",
+      "discordAdminIdsDesc": "允許執行機器人指令的 Discord 使用者 ID，以英文逗號分隔。其他人的訊息會被忽略，清單為空時指令將被停用。",
+      "discordEventBusNotify": "Discord 通知",
+      "testDiscord": "傳送測試通知",
+      "testDiscordDesc": "傳送測試通知以驗證您的機器人權杖與頻道 ID",
+      "discordNotInitialized": "Discord 服務未初始化",
+      "discordBotNotEnabled": "Discord 機器人未啟用",
+      "discordTestFailed": "Discord 測試失敗",
+      "discordTestSuccess": "測試通知發送成功",
+      "discordBotLanguage": "Discord 機器人語言",
+      "discordNotifyTime": "通知時間",
+      "discordNotifyTimeDesc": "Discord 機器人傳送週期性報告的頻率。選擇預設間隔，或選擇「自訂」以輸入 crontab 運算式。",
+      "discordNotifyBackup": "資料庫備份",
+      "discordNotifyBackupDesc": "傳送帶有報告的資料庫備份檔案",
+      "discordEventBusNotifyDesc": "選擇觸發 Discord 通知的事件"
     },
     "xray": {
       "save": "儲存",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "壅塞控制演算法",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 轉發模式",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日誌層級",
+        "logLevelHint": "線上狀態、最後上線時間和「首次使用後開始」來自 sidecar 的 Info 日誌行；選擇 Warn 或 Error 會使此入站失去這些功能。",
+        "maxIdleTime": "最大閒置時間 (秒)",
+        "authTimeout": "認證逾時時間 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 封包大小",
+        "sni": "SNI",
+        "sniHint": "伺服器名稱指示 (SNI) 覆蓋"
+      },
       "tun": {
         "userLevel": "用戶級別"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "未找到您的配置！\r\n請向管理員詢問，在您的配置中使用您的 Telegram 使用者 ChatID。\r\n\r\n您的使用者 ChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "為入站 {{ .Inbound }} 選擇一個客戶",
       "chooseInbound": "選擇一個入站"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord 通知測試",
+      "body": "這是一則測試通知，確認 Discord 通知已正確設定。"
+    },
+    "footer": "3x-ui 面板",
+    "fields": {
+      "panelVersion": "面板版本",
+      "xrayCore": "Xray 核心",
+      "systemLoad": "系統負載",
+      "networkTraffic": "網路流量",
+      "totalUsed": "已用總量",
+      "quota": "配額",
+      "error": "錯誤",
+      "delay": "延遲",
+      "outbound": "出站",
+      "node": "節點",
+      "threshold": "閾值",
+      "reason": "原因",
+      "time": "時間",
+      "source": "來源"
+    },
+    "values": {
+      "uptime": "{{ .Days }}天 {{ .Hours }}小時",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }}（總計：{{ .Total }}）",
+      "counts": "總計：{{ .Total }} | 即將耗盡：{{ .Depleting }} | 已停用：{{ .Disabled }}",
+      "inbound": "協定：`{{ .Protocol }}` | 連接埠：`{{ .Port }}` | 用戶端：`{{ .Clients }}` | 流量：`↑{{ .Up }} ↓{{ .Down }}` | 狀態：`{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "出站已中斷",
+      "outboundUp": "出站已恢復",
+      "nodeDown": "節點已離線",
+      "nodeUp": "節點已恢復",
+      "xrayCrash": "Xray 核心當機",
+      "cpuHigh": "CPU 超出閾值",
+      "memoryHigh": "記憶體超出閾值",
+      "loginSuccess": "登入成功",
+      "loginFailed": "登入失敗"
+    },
+    "report": {
+      "title": "📊 3x-ui 狀態報告",
+      "summary": "**{{ .Host }}** 的伺服器與代理定期狀態報告",
+      "footer": "3x-ui 排程報告 • 排程：{{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord 機器人指令",
+      "helpDescription": "用於監控和管理 3x-ui 伺服器的可用指令：",
+      "helpStatus": "顯示系統負載、記憶體、CPU、連線數和線上使用者",
+      "helpReport": "產生完整狀態報告（如已設定則附帶資料庫備份）",
+      "helpBackup": "立即傳送資料庫備份檔案",
+      "helpUsage": "查詢用戶端的流量使用、配額和到期時間",
+      "helpInbounds": "列出所有已設定的入站及其連接埠和用戶端統計",
+      "helpRestart": "重新啟動 Xray 核心",
+      "helpHelp": "顯示此可用指令清單",
+      "statusTitle": "⚡ 3x-ui 伺服器狀態",
+      "statusDescription": "**{{ .Host }}** 的目前運作指標",
+      "backupTitle": "🗄️ 資料庫備份",
+      "backupDescription": "3x-ui 備份產生於 `{{ .Time }}`",
+      "backupUnavailable": "❌ 備份服務無法使用",
+      "backupFailed": "❌ 讀取資料庫備份失敗：{{ .Error }}",
+      "usageHint": "⚠️ 用法：`!usage <email>` 或 `/usage <email>`",
+      "usageTitle": "👤 用戶端用量：{{ .Email }}",
+      "usageDescription": "入站：**{{ .Remark }}**（連接埠 {{ .Port }}）",
+      "clientNotFound": "⚠️ 在任何已設定的入站中均未找到用戶端 `{{ .Email }}`。",
+      "inboundsUnavailable": "❌ 入站服務無法使用",
+      "inboundsFailed": "❌ 載入入站失敗：{{ .Error }}",
+      "inboundsTitle": "🔌 已設定的入站",
+      "inboundsDescription": "入站總數：**{{ .Count }}**",
+      "noInbounds": "ℹ️ 尚未設定任何入站。",
+      "xrayUnavailable": "❌ Xray 服務無法使用",
+      "restarting": "🔄 正在重新啟動 Xray 核心...",
+      "restartFailed": "❌ 重新啟動 Xray 失敗：{{ .Error }}",
+      "restartSuccess": "✅ Xray 核心已成功重新啟動。"
     }
   },
   "email": {

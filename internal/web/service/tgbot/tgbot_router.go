@@ -316,6 +316,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		// get query from hash storage
 		decodedQuery, err := t.decodeQuery(callbackQuery.Data)
 		if err != nil {
+			// A button older than the 20-minute hash window is the common case
+			// here; the answer clears it, the message outlives a failed send.
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.noQuery"))
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.noQuery"))
 			return
 		}
@@ -884,6 +887,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				t.editMessageCallbackTgBot(callbackQuery.Message.GetChat().ID, callbackQuery.Message.GetMessageID(), picker)
+			default:
+				// An unknown action with arguments is still a tap, and an
+				// unanswered tap spins until Telegram times it out.
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 			}
 			return
 		} else {
@@ -922,8 +929,15 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 	}
 
-	if !isAdmin && !isClientSelfCallback(callbackQuery.Data) {
-		return
+	if !isAdmin {
+		// encodeQuery hashes any payload past 64 chars, so a long email's button
+		// must be decoded before the gate can see which client it names.
+		if decoded, err := t.decodeQuery(callbackQuery.Data); err == nil {
+			callbackQuery.Data = decoded
+		}
+		if !isClientSelfCallback(callbackQuery.Data) {
+			return
+		}
 	}
 
 	switch callbackQuery.Data {
@@ -1054,7 +1068,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
 			),
 		)
-		prompt_message := t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+client_Email)
+		prompt_message := t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+html.EscapeString(client_Email))
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_comment":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
@@ -1064,7 +1078,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
 			),
 		)
-		prompt_message := t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+client_Comment)
+		prompt_message := t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+html.EscapeString(client_Comment))
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_tg_id":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
@@ -1078,7 +1092,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		if current == "" {
 			current = "—"
 		}
-		t.SendMsgToTgbot(chatId, fmt.Sprintf("Send the Telegram user id (numeric) to attach to this client, or send `-` / `none` to clear.\nCurrent: `%s`", current), cancel_btn_markup)
+		t.SendMsgToTgbot(chatId, fmt.Sprintf("Send the Telegram user id (numeric) to attach to this client, or send <code>-</code> / <code>none</code> to clear.\nCurrent: <code>%s</code>", html.EscapeString(current)), cancel_btn_markup)
 	case "add_client_ch_default_traffic":
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
@@ -1254,18 +1268,22 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			return
 		}
 
+		// One report per tap, not one message per client: a large panel would
+		// otherwise burst past Telegram's rate limit. SendMsgToTgbot pages it.
+		var report strings.Builder
 		for _, email := range emails {
-			err := t.inboundService.ResetClientTrafficByEmail(email)
-			if err == nil {
-				msg := t.I18nBot("tgbot.messages.SuccessResetTraffic", "ClientEmail=="+email)
-				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
+			if err := t.inboundService.ResetClientTrafficByEmail(email); err == nil {
+				report.WriteString(t.I18nBot("tgbot.messages.SuccessResetTraffic", "ClientEmail=="+email))
 			} else {
-				msg := t.I18nBot("tgbot.messages.FailedResetTraffic", "ClientEmail=="+email, "ErrorMessage=="+err.Error())
-				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
+				report.WriteString(t.I18nBot("tgbot.messages.FailedResetTraffic", "ClientEmail=="+email, "ErrorMessage=="+err.Error()))
 			}
+			report.WriteString("\r\n\r\n")
 		}
+		report.WriteString(t.I18nBot("tgbot.messages.FinishProcess"))
 
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.FinishProcess"), tu.ReplyKeyboardRemove())
+		// Escaped whole: one stray "<" in a remark or email otherwise makes
+		// Telegram reject the page it landed on, losing ~15 clients at once.
+		t.SendMsgToTgbot(chatId, html.EscapeString(report.String()), tu.ReplyKeyboardRemove())
 	case "get_sorted_traffic_usage_report":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		emails, err := t.inboundService.GetAllEmails()
@@ -1273,68 +1291,86 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return
 		}
-		valid_emails, extra_emails, err := t.inboundService.FilterAndSortClientEmails(emails)
+		validEmails, missingEmails, err := t.inboundService.FilterAndSortClientEmails(emails)
 		if err != nil {
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return
 		}
 
-		for _, valid_emails := range valid_emails {
-			traffic, err := t.inboundService.GetClientTrafficByEmail(valid_emails)
+		// Batched for the same reason as the reset report above: one message
+		// per client hits Telegram's rate limit on a large panel.
+		var report strings.Builder
+		for _, email := range validEmails {
+			traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 			if err != nil {
 				logger.Warning(err)
-				msg := t.I18nBot("tgbot.wentWrong")
-				t.SendMsgToTgbot(chatId, msg)
+				report.WriteString(t.I18nBot("tgbot.wentWrong"))
+				report.WriteString("\r\n\r\n")
 				continue
 			}
 			if traffic == nil {
-				msg := t.I18nBot("tgbot.noResult")
-				t.SendMsgToTgbot(chatId, msg)
+				report.WriteString(t.I18nBot("tgbot.noResult"))
+				report.WriteString("\r\n\r\n")
 				continue
 			}
-
-			output := t.clientInfoMsg(traffic, false, false, false, false, true, false)
-			t.SendMsgToTgbot(chatId, output, tu.ReplyKeyboardRemove())
+			report.WriteString(t.clientInfoMsg(traffic, false, false, false, false, true, false))
+			report.WriteString("\r\n\r\n")
 		}
-		for _, extra_emails := range extra_emails {
-			msg := fmt.Sprintf("📧 %s\n%s", extra_emails, t.I18nBot("tgbot.noResult"))
-			t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
-
+		for _, email := range missingEmails {
+			fmt.Fprintf(&report, "📧 %s\r\n%s\r\n\r\n", email, t.I18nBot("tgbot.noResult"))
+		}
+		if report.Len() > 0 {
+			t.SendMsgToTgbot(chatId, html.EscapeString(report.String()), tu.ReplyKeyboardRemove())
 		}
 	default:
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_sub_links "); ok {
-			email := after
+		action, email, ok := splitClientLinkCallback(callbackQuery.Data)
+		if !ok {
+			// Nothing matched: an unknown button still has to be answered, or it
+			// keeps spinning until Telegram times the callback out.
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+			return
+		}
+		// The keyboard outlives the chat it was sent to, so the email in it
+		// cannot authorise itself: a non-admin only reaches their own clients.
+		if !isAdmin && !t.clientOwnedByTgUser(callbackQuery.From.ID, email) {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+			return
+		}
+		switch action {
+		case "client_sub_links":
 			t.sendClientSubLinks(chatId, email)
-			return
-		}
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_individual_links "); ok {
-			email := after
+		case "client_individual_links":
 			t.sendClientIndividualLinks(chatId, email)
-			return
-		}
-		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_qr_links "); ok {
-			email := after
+		case "client_qr_links":
 			t.sendClientQRLinks(chatId, email)
-			return
 		}
 	}
 }
 
 // checkAdmin checks if the given Telegram ID is an admin.
 func checkAdmin(tgId int64) bool {
-	return slices.Contains(adminIds, tgId)
+	return slices.Contains(adminSnapshot(), tgId)
 }
 
-// isClientSelfCallback reports whether a callback is one of the per-user client
-// actions that resolve their own data from the caller's Telegram id, and so are
-// safe to run for a non-admin. Every other callback is admin-only (default-deny).
+// isClientSelfCallback reports whether a callback is per-user rather than
+// admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
 	case "client_traffic", "client_commands", "client_sub_links",
 		"client_individual_links", "client_qr_links":
 		return true
 	}
-	return strings.HasPrefix(data, "client_sub_links ") ||
-		strings.HasPrefix(data, "client_individual_links ") ||
-		strings.HasPrefix(data, "client_qr_links ")
+	_, _, ok := splitClientLinkCallback(data)
+	return ok
+}
+
+// splitClientLinkCallback splits "<action> <email>" for the per-client link
+// callbacks; ok is false for every other data.
+func splitClientLinkCallback(data string) (action, email string, ok bool) {
+	for _, candidate := range []string{"client_sub_links", "client_individual_links", "client_qr_links"} {
+		if rest, found := strings.CutPrefix(data, candidate+" "); found && rest != "" {
+			return candidate, rest, true
+		}
+	}
+	return "", "", false
 }

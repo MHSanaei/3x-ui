@@ -121,8 +121,15 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	}
 	foundUpdated := false
 	for _, row := range list {
+		if len(row.Fingerprint) != hwidFingerprintLength {
+			t.Fatalf("fingerprint length = %d, want %d: %q", len(row.Fingerprint), hwidFingerprintLength, row.Fingerprint)
+		}
 		if row.DeviceModel == "updated-model" && row.UserAgent == "Karing/2.0" && row.DeviceOS == "ios" && row.OsVersion == "18" {
 			foundUpdated = true
+			want := hashHwid(firstRaw)[:hwidFingerprintLength]
+			if row.Fingerprint != want {
+				t.Fatalf("fingerprint = %q, want %q", row.Fingerprint, want)
+			}
 		}
 	}
 	if !foundUpdated {

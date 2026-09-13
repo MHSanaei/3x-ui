@@ -21,6 +21,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/controller"
@@ -30,6 +31,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/network"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/discord"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/email"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
@@ -121,11 +123,14 @@ type Server struct {
 	xrayService    service.XrayService
 	settingService service.SettingService
 	tgbotService   tgbot.Tgbot
+	discordService *discord.DiscordService
+	discordGateway *discord.GatewayClient
 
 	wsHub *websocket.Hub
 
-	bus  *eventbus.Bus
-	cron *cron.Cron
+	bus                  *eventbus.Bus
+	cron                 *cron.Cron
+	discordNotifyEntryID cron.EntryID
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -293,6 +298,7 @@ const (
 	cadenceXrayTraffic   = "@every 5s"
 	cadenceMtproto       = "@every 10s"
 	cadenceAmneziaWG     = "@every 10s"
+	cadenceTuic          = "@every 10s"
 	cadenceClientIPScan  = "@every 10s"
 	cadenceNodeHeartbeat = "@every 5s"
 	cadenceNodeTraffic   = "@every 5s"
@@ -338,6 +344,10 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	awgJob := job.NewAmneziaWGJob()
 	_, _ = s.cron.AddJob(cadenceAmneziaWG, awgJob)
 	go awgJob.Run()
+
+	tuicJob := job.NewTuicJob()
+	_, _ = s.cron.AddJob(cadenceTuic, tuicJob)
+	go tuicJob.Run()
 
 	// check client ips from log file every 10 sec
 	_, _ = s.cron.AddJob(cadenceClientIPScan, job.NewCheckClientIpJob())
@@ -403,6 +413,25 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		_, _ = s.cron.AddJob(cadenceCheckHash, job.NewCheckHashStorageJob())
 	}
 
+	// Discord-bot-dependent jobs: periodic stats report + database backup.
+	isDiscordEnabled, err := s.settingService.GetDiscordBotEnable()
+	if (err == nil) && isDiscordEnabled {
+		runtime, err := s.settingService.GetDiscordRunTime()
+		if err != nil {
+			logger.Warningf("Add NewDiscordNotifyJob: failed to load runtime: %v; using default @daily", err)
+			runtime = "@daily"
+		} else if strings.TrimSpace(runtime) == "" {
+			logger.Warning("Add NewDiscordNotifyJob runtime is empty, using default @daily")
+			runtime = "@daily"
+		}
+		logger.Infof("Discord notify enabled, run at %s", runtime)
+		if entryID, err := s.cron.AddJob(runtime, job.NewDiscordNotifyJob(s.discordService)); err != nil {
+			logger.Warningf("Add NewDiscordNotifyJob: failed to schedule runtime %q: %v", runtime, err)
+		} else {
+			s.discordNotifyEntryID = entryID
+		}
+	}
+
 	// CPU monitor publishes cpu.high events; register it whenever any notifier
 	// (Telegram or Email) wants them, independent of the Telegram bot being on.
 	if s.cpuAlarmWanted() {
@@ -450,6 +479,13 @@ func (s *Server) cpuAlarmWanted() bool {
 			return true
 		}
 	}
+	if on, _ := s.settingService.GetDiscordBotEnable(); on {
+		events, _ := s.settingService.GetDiscordEnabledEvents()
+		cpu, _ := s.settingService.GetDiscordCpu()
+		if wants(events, cpu) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -476,6 +512,13 @@ func (s *Server) memoryAlarmWanted() bool {
 	if on, _ := s.settingService.GetSmtpEnable(); on {
 		events, _ := s.settingService.GetSmtpEnabledEvents()
 		mem, _ := s.settingService.GetSmtpMemory()
+		if wants(events, mem) {
+			return true
+		}
+	}
+	if on, _ := s.settingService.GetDiscordBotEnable(); on {
+		events, _ := s.settingService.GetDiscordEnabledEvents()
+		mem, _ := s.settingService.GetDiscordMemory()
 		if wants(events, mem) {
 			return true
 		}
@@ -635,6 +678,48 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	// Wire email service to controller for test endpoint
 	controller.SetEmailService(emailService)
 
+	// Register discord subscriber (always — it checks discordBotEnable at runtime)
+	s.discordService = discord.NewDiscordService(s.settingService)
+	discordSub := discord.NewSubscriber(s.settingService, s.discordService)
+	s.bus.Subscribe("discord-notifier", discordSub.HandleEvent)
+
+	// Wire discord service to controller for test endpoint
+	controller.SetDiscordService(s.discordService)
+
+	serverService := &service.ServerService{}
+	inboundService := &service.InboundService{}
+	s.discordGateway = discord.NewGatewayClient(s.discordService, s.settingService, serverService, inboundService, &s.xrayService)
+
+	// Wire reload discord callback for settings updates
+	controller.SetReloadDiscordFunc(func() {
+		if s.discordNotifyEntryID != 0 {
+			s.cron.Remove(s.discordNotifyEntryID)
+			s.discordNotifyEntryID = 0
+		}
+		enabled, err := s.settingService.GetDiscordBotEnable()
+		if err != nil || !enabled {
+			if s.discordGateway != nil && s.discordGateway.IsRunning() {
+				s.discordGateway.Stop()
+			}
+			return
+		}
+		runtime, err := s.settingService.GetDiscordRunTime()
+		if err != nil || strings.TrimSpace(runtime) == "" {
+			runtime = "@daily"
+		}
+		entryID, err := s.cron.AddJob(runtime, job.NewDiscordNotifyJob(s.discordService))
+		if err != nil {
+			logger.Warningf("Reload Discord notify: failed to schedule runtime %q: %v", runtime, err)
+		} else {
+			s.discordNotifyEntryID = entryID
+			logger.Infof("Discord notify rescheduled, run at %s", runtime)
+		}
+
+		if s.discordGateway != nil && !s.discordGateway.IsRunning() {
+			_ = s.discordGateway.Start(s.ctx)
+		}
+	})
+
 	// Wire Telegram test function to controller
 	controller.SetTestTgFunc(func() error {
 		if !s.tgbotService.IsRunning() {
@@ -681,6 +766,11 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 	}
 
+	isDiscordEnabled, err := s.settingService.GetDiscordBotEnable()
+	if (err == nil) && isDiscordEnabled && s.discordGateway != nil {
+		_ = s.discordGateway.Start(s.ctx)
+	}
+
 	return nil
 }
 
@@ -699,6 +789,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 		_ = s.xrayService.StopXray()
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
+		tuic.GetManager().StopAll()
 		amneziawgnet.GetOutboundManager().StopAll()
 	}
 	if s.cron != nil {
@@ -715,6 +806,9 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	}
 	if stopTgBot && s.tgbotService.IsRunning() {
 		s.tgbotService.Stop()
+	}
+	if s.discordGateway != nil && s.discordGateway.IsRunning() {
+		s.discordGateway.Stop()
 	}
 	// Gracefully stop WebSocket hub
 	if s.wsHub != nil {

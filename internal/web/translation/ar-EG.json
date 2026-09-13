@@ -628,6 +628,8 @@
         "scanCert": "الشهادة",
         "scanCertInvalid": "غير موثوق",
         "scanCertExpiry": "انتهاء صلاحية الشهادة",
+        "scanCertChain": "سلسلة الشهادات",
+        "scanMldsaCertChainTooSmall": "سلسلة شهادات الهدف {length} بايت، وهي أقل من الحد الأدنى {min} بايت المطلوب لـ ML-DSA-65. سيؤدي ذلك إلى فشل الاتصال بصمت. يُرجى اختيار هدف مختلف أو تعطيل ML-DSA-65.",
         "scanSniUsed": "SNI المستخدم",
         "scanPrivateNote": "تم الفحص عبر شبكة خاصة/محلية — هذا العنوان غير قابل للوصول من الإنترنت.",
         "scanPrivateConfirmTitle": "الهدف في شبكة محلية",
@@ -675,7 +677,8 @@
         "bytesPerSec": "بايت في الثانية",
         "bytesPerSecTip": "حد السرعة (بايت/ثانية) المطبّق على مرور الـ fallback بعد العتبة، عشان الفحوصات ماتقدرش تستخدم سيرفرك كنطاق ترددي مجاني للهدف. 0 = بلا حد (بيعطّل الاتجاه ده).",
         "burstBytesPerSec": "بايت في الثانية للدفقة",
-        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه."
+        "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه.",
+        "autoFill": "الملء التلقائي"
       },
       "info": {
         "mode": "الوضع",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "تكوين Peer {n}"
       },
-      "sniffingDestOverride": "تجاوز الوجهة"
+      "sniffingDestOverride": "تجاوز الوجهة",
+      "advancedTitle": "الإعدادات المتقدمة"
     },
     "clients": {
       "tabBasics": "أساسي",
@@ -760,6 +764,7 @@
       "noHwids": "لا توجد أجهزة HWID بعد",
       "firstSeen": "أول ظهور",
       "lastSeen": "آخر ظهور",
+      "hwidFingerprint": "بصمة HWID",
       "deleteHwid": "إزالة الجهاز",
       "deleteHwidConfirm": "إزالة هذا الجهاز؟ سيحتاج إلى إعادة التسجيل عند جلب الاشتراك التالي.",
       "hwidDeleted": "تمت إزالة الجهاز.",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "مسح الكل",
       "noSubId": "هذا العميل ليس لديه subId، لا يوجد رابط قابل للمشاركة.",
       "noLinks": "لا توجد روابط للمشاركة — قم بإرفاق هذا العميل بأحد الاتصالات الواردة الداعمة للبروتوكول أولاً.",
+      "qrStandard": "قياسي",
+      "happLinkRetry": "إعادة المحاولة",
+      "happLinkErrorHint": "تعذر إنشاء رابط Happ. أعد المحاولة، أو راجع {dashboard} -> {logs} للاطلاع على التفاصيل.",
+      "happLinkSourceTooLong": "يتجاوز حجم عنوان الاشتراك بترميز UTF-8 حد المعالجة في لوحة التحكم البالغ 8192 بايت. اختصر عنوان الاشتراك أو استخدم الخيار «قياسي».",
+      "happLinkQrTooLong": "هذا الرابط من Happ صالح، لكنه طويل جدًا لعرضه كرمز QR. اضغط «نسخ» لاستخدام الرابط الكامل.",
+      "happLinkDisabledHint": "فعّل إنشاء رابط Happ من الإعدادات قبل استخدام Happ.",
+      "happLinkDisabledTitle": "إنشاء رابط Happ المشفّر غير مفعّل",
+      "happLinkDisabledDescription": "فعّل إنشاء روابط اشتراك Happ المشفّرة محليًا. (فقط لـ Happ)",
+      "happLinkSettingsAction": "الانتقال إلى الإعدادات",
+      "happLinkDisclosure": "يُنشأ الرابط محليًا. قد يتمكن أي شخص لديه هذا الرابط من استعادة عنوان الاشتراك أو مشاركته.",
+      "happLinkOptionLabel": "رابط Happ المشفّر",
       "link": "الرابط",
       "resetNotPossible": "قم بإرفاق هذا العميل بأحد الاتصالات الواردة أولاً.",
       "resetAllTraffics": "إعادة ضبط حركة مرور كل العملاء",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "إعدادات AmneziaWG",
+      "tuicConfig": "إعدادات TUIC (Clash)",
       "mtprotoSecret": "سر MTProto",
       "mtprotoSecretHint": "سر FakeTLS الخاص بالعميل. أعد التوليد لتغييره.",
       "mtprotoAdTag": "علامة إعلانية (قناة مموّلة)",
@@ -915,6 +932,7 @@
       "renewOnDay": "يوم التجديد",
       "renewOnDayDesc": "يتم التجديد في هذا اليوم من كل شهر ميلادي، عند منتصف الليل بتوقيت اللوحة، بدلاً من كل N يوم. إذا كان الشهر أقصر من اليوم المختار، يتم التجديد في آخر يوم منه. القيمة 0 تُبقي وضع الفاصل اليومي.",
       "renewsUsed": "التجديدات المستخدمة",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "أدخل علامة من 32 حرفًا ست عشريًا للتعيين، أو 'none' للمسح في منافذ MTProto."
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "تعبير Go RE2 منتظم يُطابَق مع وكيل المستخدم (User-Agent) لاختيار صيغة Xray JSON تلقائيًا على رابط الاشتراك القياسي. فارغ افتراضيًا، لذا يبقى الاكتشاف التلقائي معطلاً حتى تحدد نمطًا للعملاء الذين تريد خدمتهم. يحصل العملاء الآخرون على الاستجابة الخام/Base64. أعد تشغيل اللوحة بعد التغيير.",
       "subJsonRoutingRules": "ملف توجيه اشتراك JSON",
       "subJsonRoutingRulesDesc": "JSON لقواعد التوجيه، أو رابط happ:// أو incy://، أو رابط https://. عند تعيينه، يستبدل DNS وقواعد التوجيه لاشتراك JSON (تُدمج في الإعداد للعملاء الذين يتجاهلون الترويسات، مثل Happ وINCY مع الموازنات من جانب العميل). إذا كان إعداد ترويسة Happ فارغًا، يُرسَل نفس الملف تلقائيًا كترويسة Routing (يُحوَّل JSON والروابط إلى ديب‌لينك happ://) ليحمّل العملاء ملفات geo المطابقة.",
+      "subJsonDns": "خوادم DNS",
+      "subJsonDnsDesc": "يستبدل كتلة dns في جميع إعدادات اشتراك JSON: إما كائن dns كامل أو مصفوفة servers فقط. يستبدل أيضًا DNS ملف التوجيه داخل هذه الإعدادات؛ أما العملاء الذين يطبّقون ترويسة Routing فيُبقون على مُحلِّلات الملف. تركه فارغًا يُبقي المُحلِّل المدمج.",
       "subClashAutoDetect": "اكتشاف عملاء Clash/Mihomo تلقائيًا",
       "subClashAutoDetectDesc": "عند التفعيل، يتلقى عملاء Clash/Mihomo المعروفون الذين يطلبون رابط الاشتراك القياسي إعداد Clash بصيغة YAML تلقائيًا. تستمر المتصفحات في عرض صفحة الاشتراك، ويحصل العملاء الآخرون على الاستجابة الخام/Base64، وتبقى روابط JSON وClash الصريحة متاحة. يتطلب تفعيل اشتراك Clash/Mihomo وإعادة تشغيل اللوحة لتطبيق التغيير.",
       "subClashUserAgentRegex": "تعبير User-Agent لعملاء Clash/Mihomo",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "المسار المطلق لمجلد يحتوي على قالب مخصص (index.html/sub.html) لصفحة الاشتراك (مثل /etc/3x-ui/sub_templates/my-theme/). اتركه فارغًا لاستخدام الصفحة الافتراضية.",
       "subThemeDirDocs": "دليل القالب ↗",
       "subEnableRouting": "تفعيل التوجيه",
+      "happLinkEnable": "روابط اشتراك مشفّرة",
+      "happLinkEnableDesc": "السماح بإنشاء روابط Happ مشفّرة في نافذة رمز الاستجابة السريعة للعميل. تُعالج عناوين الاشتراك محليًا.",
       "subEnableRoutingDesc": "إعداد عام لتمكين التوجيه (Routing) في عميل VPN. (فقط لـ Happ)",
       "subRoutingRules": "قواعد التوجيه",
       "subRoutingRulesDesc": "ألصق رابط happ:// جاهزًا أو عنوان HTTPS دائمًا. تحدّث اللوحة القواعد البعيدة في الخلفية وتحتفظ بآخر قيمة صالحة، لذلك لا تنتظر طلبات الاشتراك المصدر. (فقط لـ Happ)",
@@ -1288,6 +1310,8 @@
       "muxSett": "إعدادات MUX",
       "direct": "اتصال مباشر",
       "directDesc": "ينشئ اتصال مباشر مع الدومينات أو نطاقات IP لدولة معينة.",
+      "block": "حظر الاتصال",
+      "blockDesc": "يحظر الاتصالات بالنطاقات أو نطاقات IP المحددة باستخدام مسار blackhole.",
       "notifications": "الإشعارات",
       "certs": "الشهادات",
       "externalTraffic": "الترافيك الخارجي",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "Proxy IPs / CIDRs",
       "subHappBlockIPs": "Blocked IPs / CIDRs",
       "subHappDeeplinkGenerated": "Deeplink generated and applied to routing rules",
+      "subHappGroupLinks": "روابط الاشتراك",
       "subHappGroupRouting": "Routing & Rules",
       "subHappGroupBanners": "Banners & Announcements",
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "بوت ديسكورد",
+      "discordBotEnable": "تفعيل إشعارات ديسكورد",
+      "discordBotEnableDesc": "إرسال تنبيهات النظام والأحداث إلى قناة ديسكورد عبر البوت",
+      "discordBotToken": "رمز بوت ديسكورد",
+      "discordBotTokenDesc": "رمز البوت من بوابة مطوري ديسكورد",
+      "discordTokenConfigured": "تم تكوين الرمز. أدخل رمزاً جديداً لاستبداله.",
+      "discordTokenPlaceholder": "أدخل رمز البوت",
+      "discordChannelId": "معرّف القناة",
+      "discordChannelIdDesc": "معرّف قناة ديسكورد حيث سيتم إرسال الإشعارات",
+      "discordAdminIds": "معرّفات المستخدمين المسؤولين",
+      "discordAdminIdsDesc": "معرّفات مستخدمي Discord المسموح لهم بتشغيل أوامر البوت، مفصولة بفواصل. تُتجاهل رسائل أي شخص آخر، والقائمة الفارغة تعطّل الأوامر.",
+      "discordEventBusNotify": "إشعارات ديسكورد",
+      "testDiscord": "إرسال إشعار تجريبي",
+      "testDiscordDesc": "إرسال إشعار تجريبي للتحقق من رمز البوت ومعرّف القناة",
+      "discordNotInitialized": "خدمة ديسكورد غير مهيأة",
+      "discordBotNotEnabled": "بوت ديسكورد غير مفعّل",
+      "discordTestFailed": "فشل اختبار ديسكورد",
+      "discordTestSuccess": "تم إرسال الإشعار التجريبي بنجاح",
+      "discordBotLanguage": "لغة بوت Discord",
+      "discordNotifyTime": "وقت الإشعار",
+      "discordNotifyTimeDesc": "عدد مرات إرسال بوت ديسكورد للتقارير الدورية. اختر فترة جاهزة، أو اختر «مخصص» لإدخال تعبير crontab.",
+      "discordNotifyBackup": "نسخة احتياطية لقاعدة البيانات",
+      "discordNotifyBackupDesc": "ابعت ملف النسخة الاحتياطية لقاعدة البيانات مع التقرير.",
+      "discordEventBusNotifyDesc": "اختر الأحداث التي تُطلق إشعارات Discord"
     },
     "xray": {
       "save": "احفظ",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "التحكم في الازدحام",
+        "alpn": "ALPN",
+        "udpRelayMode": "وضع ترحيل UDP",
+        "zeroRttHandshake": "مصافحة 0-RTT",
+        "logLevel": "مستوى السجل",
+        "logLevelHint": "يتم استنتاج حالة الاتصال وآخر ظهور و«البدء بعد أول استخدام» من سطور Info الخاصة بالعملية الجانبية؛ اختيار Warn أو Error يعطّلها لهذا الإنباوند.",
+        "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
+        "authTimeout": "مهلة المصادقة (ثوانٍ)",
+        "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
+        "sni": "SNI",
+        "sniHint": "تجاوز إشارة اسم الخادم"
+      },
       "tun": {
         "userLevel": "مستوى المستخدم"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "مافيش إعدادات ليك!\r\nاطلب من الأدمن يضيف الـ Telegram ChatID الخاص بيك في إعداداتك.\r\n\r\nالـ ChatID بتاعك: <code>{{ .TgUserID }}</code>",
       "chooseClient": "اختار عميل للإدخال {{ .Inbound }}",
       "chooseInbound": "اختار الإدخال"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "اختبار إشعارات Discord في 3x-ui",
+      "body": "هذا إشعار تجريبي يؤكد أن إشعارات Discord مُعدّة بشكل صحيح."
+    },
+    "footer": "لوحة 3x-ui",
+    "fields": {
+      "panelVersion": "إصدار اللوحة",
+      "xrayCore": "نواة Xray",
+      "systemLoad": "حمل النظام",
+      "networkTraffic": "حركة الشبكة",
+      "totalUsed": "إجمالي المستخدم",
+      "quota": "الحصة",
+      "error": "خطأ",
+      "delay": "زمن الاستجابة",
+      "outbound": "الصادر",
+      "node": "العقدة",
+      "threshold": "الحد",
+      "reason": "السبب",
+      "time": "الوقت",
+      "source": "المصدر"
+    },
+    "values": {
+      "uptime": "{{ .Days }} يوم {{ .Hours }} ساعة",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (الإجمالي: {{ .Total }})",
+      "counts": "الإجمالي: {{ .Total }} | قارب على النفاد: {{ .Depleting }} | معطّل: {{ .Disabled }}",
+      "inbound": "البروتوكول: `{{ .Protocol }}` | المنفذ: `{{ .Port }}` | العملاء: `{{ .Clients }}` | حركة المرور: `↑{{ .Up }} ↓{{ .Down }}` | الحالة: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "الصادر متوقف",
+      "outboundUp": "الصادر يعمل",
+      "nodeDown": "العقدة متوقفة",
+      "nodeUp": "العقدة تعمل",
+      "xrayCrash": "تعطّلت نواة Xray",
+      "cpuHigh": "تم تجاوز حد المعالج",
+      "memoryHigh": "تم تجاوز حد الذاكرة",
+      "loginSuccess": "تسجيل دخول ناجح",
+      "loginFailed": "فشل تسجيل الدخول"
+    },
+    "report": {
+      "title": "📊 تقرير حالة 3x-ui",
+      "summary": "تقرير دوري عن حالة الخادم والوكيل لـ **{{ .Host }}**",
+      "footer": "تقرير 3x-ui المجدول • الجدول: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 أوامر بوت Discord في 3x-ui",
+      "helpDescription": "الأوامر المتاحة لمراقبة خادم 3x-ui وإدارته:",
+      "helpStatus": "عرض حمل النظام والذاكرة والمعالج والاتصالات والمستخدمين المتصلين",
+      "helpReport": "إنشاء تقرير حالة كامل (مع نسخة احتياطية لقاعدة البيانات إن كانت مفعّلة)",
+      "helpBackup": "إرسال ملف النسخة الاحتياطية لقاعدة البيانات فورًا",
+      "helpUsage": "الاستعلام عن استهلاك حركة المرور والحصة وتاريخ الانتهاء لعميل",
+      "helpInbounds": "عرض كل الواردات المُعدّة مع المنافذ وإحصاءات العملاء",
+      "helpRestart": "إعادة تشغيل نواة Xray",
+      "helpHelp": "عرض قائمة الأوامر المتاحة هذه",
+      "statusTitle": "⚡ حالة خادم 3x-ui",
+      "statusDescription": "مقاييس التشغيل الحالية لـ **{{ .Host }}**",
+      "backupTitle": "🗄️ نسخة احتياطية لقاعدة البيانات",
+      "backupDescription": "أرشيف النسخة الاحتياطية لـ 3x-ui أُنشئ في `{{ .Time }}`",
+      "backupUnavailable": "❌ خدمة النسخ الاحتياطي غير متاحة",
+      "backupFailed": "❌ تعذّرت قراءة النسخة الاحتياطية لقاعدة البيانات: {{ .Error }}",
+      "usageHint": "⚠️ الاستخدام: `!usage <email>` أو `/usage <email>`",
+      "usageTitle": "👤 استخدام العميل: {{ .Email }}",
+      "usageDescription": "الوارد: **{{ .Remark }}** (المنفذ {{ .Port }})",
+      "clientNotFound": "⚠️ لم يُعثر على العميل `{{ .Email }}` في أي وارد مُعدّ.",
+      "inboundsUnavailable": "❌ خدمة الواردات غير متاحة",
+      "inboundsFailed": "❌ تعذّر تحميل الواردات: {{ .Error }}",
+      "inboundsTitle": "🔌 الواردات المُعدّة",
+      "inboundsDescription": "إجمالي الواردات: **{{ .Count }}**",
+      "noInbounds": "ℹ️ لا توجد واردات مُعدّة.",
+      "xrayUnavailable": "❌ خدمة Xray غير متاحة",
+      "restarting": "🔄 جارٍ إعادة تشغيل نواة Xray...",
+      "restartFailed": "❌ تعذّرت إعادة تشغيل Xray: {{ .Error }}",
+      "restartSuccess": "✅ أُعيد تشغيل نواة Xray بنجاح."
     }
   },
   "email": {

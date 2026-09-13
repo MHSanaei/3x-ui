@@ -24,10 +24,12 @@ type CopyClientsResult struct {
 	Errors  []string `json:"errors"`
 }
 
-// enrichClientStats parses each inbound's clients once, fills in the
-// UUID/SubId fields on the preloaded ClientStats, and tops up rows owned by
-// a sibling inbound (shared-email mode — the row is keyed on email so it
-// only preloads on its owning inbound).
+// enrichClientStats resolves each inbound's clients from the clients table
+// once, fills in the UUID/SubId fields on the preloaded ClientStats, and tops
+// up rows owned by a sibling inbound (shared-email mode — the row is keyed on
+// email so it only preloads on its owning inbound). Reading identity from the
+// clients table keeps /inbounds/list in sync with the running Xray config
+// when the embedded settings JSON is stale (#6436).
 func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inbound) {
 	if len(inbounds) == 0 {
 		return
@@ -55,13 +57,14 @@ func (s *InboundService) enrichClientStats(db *gorm.DB, inbounds []*model.Inboun
 // backfillClientStats tops up each inbound's preloaded ClientStats with rows
 // owned by a sibling inbound: client_traffics is keyed on email, so a client
 // attached to several inbounds has one row that only preloads on the inbound
-// it was created on. Returns the parsed clients per inbound for reuse.
+// it was created on. Returns the clients-table clients per inbound for reuse
+// (not the embedded settings JSON, which can lag the live UUID — #6436).
 func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbound) [][]model.Client {
 	clientsByInbound := make([][]model.Client, len(inbounds))
 	seenByInbound := make([]map[string]struct{}, len(inbounds))
 	missing := make(map[string]struct{})
 	for i, inbound := range inbounds {
-		clients, _ := s.GetClients(inbound)
+		clients, _ := s.clientService.ListForInbound(db, inbound.Id)
 		clientsByInbound[i] = clients
 		seen := make(map[string]struct{}, len(inbound.ClientStats))
 		for _, st := range inbound.ClientStats {
@@ -233,6 +236,9 @@ func (s *InboundService) buildTargetClientFromSource(source model.Client, target
 		target.Auth = s.generateRandomCredential(targetProtocol)
 	case model.MTProto:
 		target.Secret = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(targetInbound.Settings))
+	case model.TUIC:
+		target.ID = uuid.NewString()
+		target.Password = s.generateRandomCredential(targetProtocol)
 	default:
 		target.ID = s.generateRandomCredential(targetProtocol)
 	}

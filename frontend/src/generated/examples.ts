@@ -2,9 +2,20 @@
 export const EXAMPLES: Record<string, unknown> = {
   "AllSetting": {
     "datepicker": "",
+    "discordAdminIds": "",
+    "discordBotBackup": false,
+    "discordBotEnable": false,
+    "discordBotToken": "",
+    "discordChannelId": "",
+    "discordCpu": 0,
+    "discordEnabledEvents": "",
+    "discordLang": "",
+    "discordMemory": 0,
+    "discordRunTime": "",
     "expireDiff": 0,
     "externalTrafficInformEnable": false,
     "externalTrafficInformURI": "",
+    "happLinkEnable": false,
     "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
@@ -89,6 +100,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subInfoNodeEnable": false,
     "subJsonAlwaysArray": false,
     "subJsonAutoDetect": false,
+    "subJsonDns": "",
     "subJsonEnable": false,
     "subJsonFinalMask": "",
     "subJsonMux": "",
@@ -137,10 +149,22 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "AllSettingView": {
     "datepicker": "",
+    "discordAdminIds": "",
+    "discordBotBackup": false,
+    "discordBotEnable": false,
+    "discordBotToken": "",
+    "discordChannelId": "",
+    "discordCpu": 0,
+    "discordEnabledEvents": "",
+    "discordLang": "",
+    "discordMemory": 0,
+    "discordRunTime": "",
     "expireDiff": 0,
     "externalTrafficInformEnable": false,
     "externalTrafficInformURI": "",
+    "happLinkEnable": false,
     "hasApiToken": false,
+    "hasDiscordBotToken": false,
     "hasLdapPassword": false,
     "hasNordSecret": false,
     "hasSmtpPassword": false,
@@ -231,6 +255,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subInfoNodeEnable": false,
     "subJsonAlwaysArray": false,
     "subJsonAutoDetect": false,
+    "subJsonDns": "",
     "subJsonEnable": false,
     "subJsonFinalMask": "",
     "subJsonMux": "",
@@ -549,6 +574,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "reason": "categoryMissing",
     "token": "geosite:blabla"
   },
+  "HappLinkResult": {
+    "encryptedLink": "happ://crypt5/example"
+  },
   "HistoryOfSeeders": {
     "id": 0,
     "seederName": ""
@@ -733,6 +761,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "ssMethod": "",
     "tag": "in-443-tcp",
     "tlsFlowCapable": true,
+    "tuicServer": null,
     "wgDns": "",
     "wgMtu": 0,
     "wgPublicKey": ""
@@ -917,6 +946,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "RealityScanResult": {
     "alpn": "h2",
+    "certChainBytes": 3427,
     "certChainValid": true,
     "certIssuer": "Google Trust Services",
     "certSubject": "cloudflare.com",
@@ -1003,6 +1033,26 @@ export const EXAMPLES: Record<string, unknown> = {
     "IsOutbound": false,
     "Tag": "inbound-443",
     "Up": 1048576
+  },
+  "TuicClientSettings": {
+    "email": "",
+    "password": "",
+    "uuid": ""
+  },
+  "TuicServerSettings": {
+    "alpn": [
+      ""
+    ],
+    "authentication_timeout": 0,
+    "certificate": "",
+    "congestion_control": "",
+    "log_level": "",
+    "max_idle_time": 0,
+    "max_udp_relay_packet_size": 0,
+    "private_key": "",
+    "sni": "",
+    "udp_relay_mode": "",
+    "zero_rtt_handshake": false
   },
   "User": {
     "id": 0,

@@ -116,8 +116,8 @@ func TestBuildEndpointVmessLinks(t *testing.T) {
 	}
 }
 
-// happ.su documents serverDescription as a "#title?serverDescription=<base64>"
-// link parameter, never a key of the VMess object, so nothing may leak into it.
+// happ.su documents serverDescription for VMess as a JSON object key
+// {"add":"...","ps":"...","serverDescription":"Happ the best"}.
 func TestBuildEndpointVmessLinks_HostServerDescription(t *testing.T) {
 	s := &SubService{}
 	in := &model.Inbound{Remark: "ib"}
@@ -137,8 +137,8 @@ func TestBuildEndpointVmessLinks_HostServerDescription(t *testing.T) {
 	if obj["add"] != "a.example.com" {
 		t.Fatalf("host endpoint not applied: add = %v", obj["add"])
 	}
-	if value, ok := obj["serverDescription"]; ok {
-		t.Fatalf("VMess object carries serverDescription = %v; it is not a VMess object key", value)
+	if obj["serverDescription"] != "Berlin premium" {
+		t.Fatalf("VMess object missing serverDescription: got %v, want Berlin premium", obj["serverDescription"])
 	}
 }
 

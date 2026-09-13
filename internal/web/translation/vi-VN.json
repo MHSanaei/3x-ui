@@ -649,6 +649,8 @@
         "scanCert": "Chứng chỉ",
         "scanCertInvalid": "Không tin cậy",
         "scanCertExpiry": "Chứng chỉ hết hạn",
+        "scanCertChain": "Chuỗi chứng chỉ",
+        "scanMldsaCertChainTooSmall": "Chuỗi chứng chỉ của đích dài {length} byte, thấp hơn mức tối thiểu {min} byte mà ML-DSA-65 yêu cầu. Kết nối sẽ thất bại im lặng. Hãy chọn đích khác hoặc tắt ML-DSA-65.",
         "scanSniUsed": "SNI đã dùng",
         "scanPrivateNote": "Đã kiểm tra qua mạng riêng/nội bộ — địa chỉ này không truy cập được từ internet.",
         "scanPrivateConfirmTitle": "Đích trong mạng nội bộ",
@@ -675,7 +677,8 @@
           "node": "Địa chỉ node",
           "listen": "Địa chỉ listen inbound",
           "custom": "Tùy chỉnh"
-        }
+        },
+        "autoFill": "Tự động điền"
       },
       "info": {
         "mode": "Chế độ",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Cấu hình Peer {n}"
       },
-      "sniffingDestOverride": "Ghi đè đích"
+      "sniffingDestOverride": "Ghi đè đích",
+      "advancedTitle": "Cài đặt nâng cao"
     },
     "clients": {
       "tabBasics": "Cơ bản",
@@ -760,6 +764,7 @@
       "noHwids": "Chưa có thiết bị HWID",
       "firstSeen": "Lần đầu thấy",
       "lastSeen": "Lần cuối thấy",
+      "hwidFingerprint": "Dấu vân tay HWID",
       "deleteHwid": "Xóa thiết bị",
       "deleteHwidConfirm": "Xóa thiết bị này? Thiết bị sẽ cần đăng ký lại vào lần lấy gói đăng ký tiếp theo.",
       "hwidDeleted": "Đã xóa thiết bị.",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "Xóa tất cả",
       "noSubId": "Khách hàng này không có subId, không có liên kết chia sẻ.",
       "noLinks": "Không có liên kết chia sẻ — hãy gắn khách hàng này vào một inbound có giao thức tương thích trước.",
+      "qrStandard": "Tiêu chuẩn",
+      "happLinkRetry": "Thử lại",
+      "happLinkErrorHint": "Không thể tạo liên kết Happ. Hãy thử lại hoặc kiểm tra {dashboard} -> {logs} để biết chi tiết.",
+      "happLinkSourceTooLong": "URL đăng ký vượt quá giới hạn xử lý 8192 byte UTF-8 của bảng điều khiển. Hãy rút ngắn URL đăng ký hoặc sử dụng tùy chọn «Tiêu chuẩn».",
+      "happLinkQrTooLong": "Liên kết Happ này hợp lệ nhưng quá dài để hiển thị dưới dạng mã QR. Hãy dùng nút Sao chép để sử dụng liên kết đầy đủ.",
+      "happLinkDisabledHint": "Hãy bật tính năng tạo liên kết Happ trong Cài đặt trước khi sử dụng Happ.",
+      "happLinkDisabledTitle": "Tính năng tạo liên kết Happ được mã hóa chưa được bật",
+      "happLinkDisabledDescription": "Bật tính năng tạo liên kết đăng ký Happ được mã hóa ngay trên hệ thống cục bộ. (Chỉ dành cho Happ)",
+      "happLinkSettingsAction": "Đi tới Cài đặt",
+      "happLinkDisclosure": "Liên kết được tạo cục bộ. Bất kỳ ai có liên kết này đều có thể khôi phục hoặc chia sẻ URL đăng ký.",
+      "happLinkOptionLabel": "Liên kết Happ được mã hóa",
       "link": "Liên kết",
       "resetNotPossible": "Hãy gắn khách hàng này vào một inbound trước.",
       "resetAllTraffics": "Đặt lại lưu lượng của tất cả khách hàng",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Cấu hình AmneziaWG",
+      "tuicConfig": "Cấu hình TUIC (Clash)",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS của client. Tạo lại để thay đổi.",
       "mtprotoAdTag": "Ad-tag (kênh tài trợ)",
@@ -915,6 +932,7 @@
       "renewOnDay": "Gia hạn vào ngày",
       "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng. 0 giữ nguyên chế độ khoảng cách theo ngày.",
       "renewsUsed": "Số lần gia hạn đã dùng",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto."
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "Biểu thức chính quy Go RE2 được so khớp với User-Agent của ứng dụng để tự động chọn định dạng Xray JSON trên URL đăng ký tiêu chuẩn. Mặc định để trống, nên tính năng tự động nhận diện vẫn tắt cho đến khi bạn đặt mẫu cho các ứng dụng muốn phục vụ. Các ứng dụng khác tiếp tục nhận phản hồi thô/Base64. Khởi động lại bảng điều khiển sau khi thay đổi.",
       "subJsonRoutingRules": "Hồ sơ định tuyến cho đăng ký JSON",
       "subJsonRoutingRulesDesc": "JSON định tuyến, deeplink happ:// hoặc incy://, hoặc URL https://. Khi được đặt, nó thay thế DNS và quy tắc định tuyến của đăng ký JSON (được nhúng vào cấu hình cho các client bỏ qua header, ví dụ Happ và INCY với bộ cân bằng phía client). Nếu cài đặt header của Happ để trống, chính hồ sơ đó sẽ được tự động gửi dưới dạng header Routing (JSON và URL thành deeplink happ://) để client tải các tệp geo khớp.",
+      "subJsonDns": "Máy chủ DNS",
+      "subJsonDnsDesc": "Thay thế khối dns trong mọi cấu hình đăng ký JSON: đối tượng dns đầy đủ hoặc chỉ mảng servers. Cũng thay thế DNS của hồ sơ định tuyến trong các cấu hình đó; ứng dụng áp dụng tiêu đề Routing vẫn dùng bộ phân giải của hồ sơ. Để trống sẽ giữ trình phân giải tích hợp.",
       "subClashAutoDetect": "Tự động nhận diện ứng dụng Clash/Mihomo",
       "subClashAutoDetectDesc": "Khi bật, các ứng dụng Clash/Mihomo được nhận diện khi yêu cầu URL đăng ký tiêu chuẩn sẽ tự động nhận cấu hình Clash YAML. Trình duyệt vẫn hiển thị trang đăng ký, các ứng dụng khác tiếp tục nhận phản hồi thô/Base64, còn các URL JSON và Clash riêng vẫn khả dụng. Cần bật đăng ký Clash/Mihomo và khởi động lại bảng điều khiển để áp dụng thay đổi.",
       "subClashUserAgentRegex": "Biểu thức User-Agent Clash/Mihomo",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "Đường dẫn tuyệt đối đến thư mục chứa mẫu tùy chỉnh (index.html/sub.html) cho trang đăng ký (ví dụ: /etc/3x-ui/sub_templates/my-theme/). Để trống để dùng trang mặc định.",
       "subThemeDirDocs": "Hướng dẫn mẫu ↗",
       "subEnableRouting": "Bật định tuyến",
+      "happLinkEnable": "Liên kết đăng ký được mã hóa",
+      "happLinkEnableDesc": "Cho phép tạo liên kết Happ được mã hóa trong cửa sổ mã QR của khách hàng. URL đăng ký được xử lý cục bộ.",
       "subEnableRoutingDesc": "Cài đặt toàn cục để bật định tuyến trong ứng dụng khách VPN. (Chỉ dành cho Happ)",
       "subRoutingRules": "Quy tắc định tuyến",
       "subRoutingRulesDesc": "Dán deeplink happ:// có sẵn hoặc một URL HTTPS cố định. Bảng điều khiển cập nhật quy tắc từ xa trong nền và giữ giá trị hợp lệ gần nhất, nên yêu cầu đăng ký không phải chờ nguồn. (Chỉ dành cho Happ)",
@@ -1288,6 +1310,8 @@
       "muxSett": "Mux Cài đặt",
       "direct": "Kết nối trực tiếp",
       "directDesc": "Trực tiếp thiết lập kết nối với tên miền hoặc dải IP của một quốc gia cụ thể.",
+      "block": "Chặn kết nối",
+      "blockDesc": "Chặn kết nối tới các tên miền hoặc dải IP đã chọn bằng outbound blackhole.",
       "notifications": "Thông báo",
       "certs": "Chứng chỉ",
       "externalTraffic": "Lưu lượng bên ngoài",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "Proxy IPs / CIDRs",
       "subHappBlockIPs": "Blocked IPs / CIDRs",
       "subHappDeeplinkGenerated": "Deeplink generated and applied to routing rules",
+      "subHappGroupLinks": "Liên kết đăng ký",
       "subHappGroupRouting": "Routing & Rules",
       "subHappGroupBanners": "Banners & Announcements",
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Bot Discord",
+      "discordBotEnable": "Bật thông báo Discord",
+      "discordBotEnableDesc": "Gửi cảnh báo hệ thống và sự kiện đến kênh Discord qua bot",
+      "discordBotToken": "Token bot Discord",
+      "discordBotTokenDesc": "Token bot từ Discord Developer Portal",
+      "discordTokenConfigured": "Token đã được định cấu hình. Nhập token mới để thay thế.",
+      "discordTokenPlaceholder": "Nhập token bot",
+      "discordChannelId": "ID kênh",
+      "discordChannelIdDesc": "ID kênh Discord nơi thông báo sẽ được gửi",
+      "discordAdminIds": "ID người dùng quản trị",
+      "discordAdminIdsDesc": "ID người dùng Discord được phép chạy lệnh bot, phân tách bằng dấu phẩy. Tin nhắn của người khác bị bỏ qua, và danh sách trống sẽ tắt lệnh.",
+      "discordEventBusNotify": "Thông báo Discord",
+      "testDiscord": "Gửi thông báo thử nghiệm",
+      "testDiscordDesc": "Gửi thông báo thử nghiệm để xác minh token bot và ID kênh",
+      "discordNotInitialized": "Dịch vụ Discord chưa được khởi tạo",
+      "discordBotNotEnabled": "Bot Discord chưa được bật",
+      "discordTestFailed": "Kiểm tra Discord thất bại",
+      "discordTestSuccess": "Đã gửi thông báo thử nghiệm thành công",
+      "discordBotLanguage": "Ngôn ngữ của Bot Discord",
+      "discordNotifyTime": "Thời gian thông báo của bot Discord",
+      "discordNotifyTimeDesc": "Tần suất bot Discord gửi báo cáo định kỳ. Chọn một khoảng thời gian có sẵn, hoặc chọn Tùy chỉnh để nhập biểu thức crontab.",
+      "discordNotifyBackup": "Sao lưu Cơ sở dữ liệu",
+      "discordNotifyBackupDesc": "Bao gồm tệp sao lưu cơ sở dữ liệu với thông báo báo cáo.",
+      "discordEventBusNotifyDesc": "Chọn những sự kiện nào sẽ kích hoạt thông báo qua Discord"
     },
     "xray": {
       "importRules": "Nhập quy tắc",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "Kiểm soát tắc nghẽn",
+        "alpn": "ALPN",
+        "udpRelayMode": "Chế độ chuyển tiếp UDP",
+        "zeroRttHandshake": "Bắt tay 0-RTT",
+        "logLevel": "Mức ghi nhật ký",
+        "logLevelHint": "Trạng thái trực tuyến, lần trực tuyến cuối và \"bắt đầu sau lần dùng đầu tiên\" được đọc từ các dòng Info của sidecar; Warn hoặc Error sẽ tắt chúng cho inbound này.",
+        "maxIdleTime": "Thời gian nhàn rỗi tối đa (giây)",
+        "authTimeout": "Thời gian chờ xác thực (giây)",
+        "maxUdpRelayPacketSize": "Kích thước gói UDP tối đa",
+        "sni": "SNI",
+        "sniHint": "Ghi đè Server Name Indication"
+      },
       "tun": {
         "userLevel": "Mức Người Dùng"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "Cấu hình của bạn không được tìm thấy!\r\nVui lòng yêu cầu Quản trị viên sử dụng ID người dùng telegram của bạn trong cấu hình của bạn.\r\n\r\nID người dùng của bạn: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Chọn một Khách hàng cho Inbound {{ .Inbound }}",
       "chooseInbound": "Chọn một Inbound"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "Kiểm tra thông báo Discord của 3x-ui",
+      "body": "Đây là thông báo thử nghiệm xác nhận rằng thông báo Discord đã được cấu hình đúng."
+    },
+    "footer": "Bảng điều khiển 3x-ui",
+    "fields": {
+      "panelVersion": "Phiên bản bảng điều khiển",
+      "xrayCore": "Lõi Xray",
+      "systemLoad": "Tải hệ thống",
+      "networkTraffic": "Lưu lượng mạng",
+      "totalUsed": "Tổng đã dùng",
+      "quota": "Hạn mức",
+      "error": "Lỗi",
+      "delay": "Độ trễ",
+      "outbound": "Outbound",
+      "node": "Nút",
+      "threshold": "Ngưỡng",
+      "reason": "Lý do",
+      "time": "Thời gian",
+      "source": "Nguồn"
+    },
+    "values": {
+      "uptime": "{{ .Days }} ngày {{ .Hours }} giờ",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Tổng: {{ .Total }})",
+      "counts": "Tổng: {{ .Total }} | Sắp hết: {{ .Depleting }} | Đã tắt: {{ .Disabled }}",
+      "inbound": "Giao thức: `{{ .Protocol }}` | Cổng: `{{ .Port }}` | Máy khách: `{{ .Clients }}` | Lưu lượng: `↑{{ .Up }} ↓{{ .Down }}` | Trạng thái: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Outbound ngừng hoạt động",
+      "outboundUp": "Outbound hoạt động trở lại",
+      "nodeDown": "Nút ngừng hoạt động",
+      "nodeUp": "Nút hoạt động trở lại",
+      "xrayCrash": "Lõi Xray bị sập",
+      "cpuHigh": "Vượt ngưỡng CPU",
+      "memoryHigh": "Vượt ngưỡng bộ nhớ",
+      "loginSuccess": "Đăng nhập thành công",
+      "loginFailed": "Đăng nhập thất bại"
+    },
+    "report": {
+      "title": "📊 Báo cáo trạng thái 3x-ui",
+      "summary": "Báo cáo định kỳ trạng thái máy chủ và proxy của **{{ .Host }}**",
+      "footer": "Báo cáo định kỳ 3x-ui • Lịch: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 Lệnh bot Discord của 3x-ui",
+      "helpDescription": "Các lệnh có sẵn để giám sát và quản lý máy chủ 3x-ui:",
+      "helpStatus": "Hiển thị tải hệ thống, RAM, CPU, kết nối và người dùng trực tuyến",
+      "helpReport": "Tạo báo cáo trạng thái đầy đủ (kèm bản sao lưu CSDL nếu được cấu hình)",
+      "helpBackup": "Gửi ngay tệp sao lưu cơ sở dữ liệu",
+      "helpUsage": "Tra cứu lưu lượng đã dùng, hạn mức và thời hạn của một máy khách",
+      "helpInbounds": "Liệt kê tất cả inbound đã cấu hình kèm cổng và thống kê máy khách",
+      "helpRestart": "Khởi động lại lõi Xray",
+      "helpHelp": "Hiển thị danh sách lệnh này",
+      "statusTitle": "⚡ Trạng thái máy chủ 3x-ui",
+      "statusDescription": "Chỉ số vận hành hiện tại của **{{ .Host }}**",
+      "backupTitle": "🗄️ Sao lưu cơ sở dữ liệu",
+      "backupDescription": "Bản sao lưu 3x-ui được tạo lúc `{{ .Time }}`",
+      "backupUnavailable": "❌ Dịch vụ sao lưu không khả dụng",
+      "backupFailed": "❌ Không thể đọc bản sao lưu cơ sở dữ liệu: {{ .Error }}",
+      "usageHint": "⚠️ Cách dùng: `!usage <email>` hoặc `/usage <email>`",
+      "usageTitle": "👤 Mức dùng của máy khách: {{ .Email }}",
+      "usageDescription": "Inbound: **{{ .Remark }}** (Cổng {{ .Port }})",
+      "clientNotFound": "⚠️ Không tìm thấy máy khách `{{ .Email }}` trong bất kỳ inbound nào đã cấu hình.",
+      "inboundsUnavailable": "❌ Dịch vụ inbound không khả dụng",
+      "inboundsFailed": "❌ Không thể tải inbound: {{ .Error }}",
+      "inboundsTitle": "🔌 Các inbound đã cấu hình",
+      "inboundsDescription": "Tổng số inbound: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Chưa cấu hình inbound nào.",
+      "xrayUnavailable": "❌ Dịch vụ Xray không khả dụng",
+      "restarting": "🔄 Đang khởi động lại lõi Xray...",
+      "restartFailed": "❌ Không thể khởi động lại Xray: {{ .Error }}",
+      "restartSuccess": "✅ Đã khởi động lại lõi Xray thành công."
     }
   },
   "email": {

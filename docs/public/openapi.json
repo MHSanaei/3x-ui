@@ -31,6 +31,40 @@
           "datepicker": {
             "type": "string"
           },
+          "discordAdminIds": {
+            "type": "string"
+          },
+          "discordBotBackup": {
+            "type": "boolean"
+          },
+          "discordBotEnable": {
+            "type": "boolean"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordEnabledEvents": {
+            "type": "string"
+          },
+          "discordLang": {
+            "type": "string"
+          },
+          "discordMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordRunTime": {
+            "type": "string"
+          },
           "expireDiff": {
             "minimum": 0,
             "type": "integer"
@@ -40,6 +74,9 @@
           },
           "externalTrafficInformURI": {
             "type": "string"
+          },
+          "happLinkEnable": {
+            "type": "boolean"
           },
           "ipLimitAllowlist": {
             "type": "string"
@@ -308,6 +345,9 @@
           "subJsonAutoDetect": {
             "type": "boolean"
           },
+          "subJsonDns": {
+            "type": "string"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -459,9 +499,20 @@
         },
         "required": [
           "datepicker",
+          "discordAdminIds",
+          "discordBotBackup",
+          "discordBotEnable",
+          "discordBotToken",
+          "discordChannelId",
+          "discordCpu",
+          "discordEnabledEvents",
+          "discordLang",
+          "discordMemory",
+          "discordRunTime",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -545,6 +596,7 @@
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDns",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -598,6 +650,40 @@
           "datepicker": {
             "type": "string"
           },
+          "discordAdminIds": {
+            "type": "string"
+          },
+          "discordBotBackup": {
+            "type": "boolean"
+          },
+          "discordBotEnable": {
+            "type": "boolean"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordEnabledEvents": {
+            "type": "string"
+          },
+          "discordLang": {
+            "type": "string"
+          },
+          "discordMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordRunTime": {
+            "type": "string"
+          },
           "expireDiff": {
             "minimum": 0,
             "type": "integer"
@@ -608,7 +694,13 @@
           "externalTrafficInformURI": {
             "type": "string"
           },
+          "happLinkEnable": {
+            "type": "boolean"
+          },
           "hasApiToken": {
+            "type": "boolean"
+          },
+          "hasDiscordBotToken": {
             "type": "boolean"
           },
           "hasLdapPassword": {
@@ -896,6 +988,9 @@
           "subJsonAutoDetect": {
             "type": "boolean"
           },
+          "subJsonDns": {
+            "type": "string"
+          },
           "subJsonEnable": {
             "type": "boolean"
           },
@@ -1047,10 +1142,22 @@
         },
         "required": [
           "datepicker",
+          "discordAdminIds",
+          "discordBotBackup",
+          "discordBotEnable",
+          "discordBotToken",
+          "discordChannelId",
+          "discordCpu",
+          "discordEnabledEvents",
+          "discordLang",
+          "discordMemory",
+          "discordRunTime",
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "hasApiToken",
+          "hasDiscordBotToken",
           "hasLdapPassword",
           "hasNordSecret",
           "hasSmtpPassword",
@@ -1140,6 +1247,7 @@
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDns",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -2126,6 +2234,18 @@
         ],
         "type": "object"
       },
+      "HappLinkResult": {
+        "properties": {
+          "encryptedLink": {
+            "example": "happ://crypt5/example",
+            "type": "string"
+          }
+        },
+        "required": [
+          "encryptedLink"
+        ],
+        "type": "object"
+      },
       "HistoryOfSeeders": {
         "description": "HistoryOfSeeders tracks which database seeders have been executed to prevent re-running.",
         "properties": {
@@ -2604,7 +2724,8 @@
               "tunnel",
               "tun",
               "mtproto",
-              "amneziawg"
+              "amneziawg",
+              "tuic"
             ],
             "example": "vless",
             "type": "string"
@@ -2629,9 +2750,8 @@
           "sniffing": {},
           "streamSettings": {},
           "subSortIndex": {
-            "description": "1-based sort order of this inbound's links in subscription output only (lower first; ties by id)",
+            "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
             "example": 1,
-            "minimum": 1,
             "type": "integer"
           },
           "tag": {
@@ -2822,6 +2942,14 @@
           "tlsFlowCapable": {
             "example": true,
             "type": "boolean"
+          },
+          "tuicServer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TuicServerSettings"
+              }
+            ],
+            "nullable": true
           },
           "wgDns": {
             "type": "string"
@@ -3701,6 +3829,11 @@
             "example": "h2",
             "type": "string"
           },
+          "certChainBytes": {
+            "description": "CertChainBytes is the sum of DER lengths of the presented peer chain.\nxray-core ML-DSA-65 REALITY needs >= 3500 bytes (constant lives in xray-core).",
+            "example": 3427,
+            "type": "integer"
+          },
           "certChainValid": {
             "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
             "example": true,
@@ -3783,6 +3916,7 @@
         },
         "required": [
           "alpn",
+          "certChainBytes",
           "certChainValid",
           "certIssuer",
           "certSubject",
@@ -4073,6 +4207,78 @@
           "IsOutbound",
           "Tag",
           "Up"
+        ],
+        "type": "object"
+      },
+      "TuicClientSettings": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "TuicServerSettings": {
+        "properties": {
+          "alpn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "authentication_timeout": {
+            "type": "integer"
+          },
+          "certificate": {
+            "type": "string"
+          },
+          "congestion_control": {
+            "type": "string"
+          },
+          "log_level": {
+            "type": "string"
+          },
+          "max_idle_time": {
+            "type": "integer"
+          },
+          "max_udp_relay_packet_size": {
+            "type": "integer"
+          },
+          "private_key": {
+            "type": "string"
+          },
+          "sni": {
+            "type": "string"
+          },
+          "udp_relay_mode": {
+            "type": "string"
+          },
+          "zero_rtt_handshake": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "alpn",
+          "authentication_timeout",
+          "certificate",
+          "congestion_control",
+          "log_level",
+          "max_idle_time",
+          "max_udp_relay_packet_size",
+          "private_key",
+          "udp_relay_mode",
+          "zero_rtt_handshake"
         ],
         "type": "object"
       },
@@ -4568,6 +4774,7 @@
                       "ssMethod": "",
                       "tag": "in-443-tcp",
                       "tlsFlowCapable": true,
+                      "tuicServer": null,
                       "wgDns": "",
                       "wgMtu": 0,
                       "wgPublicKey": ""
@@ -7158,6 +7365,7 @@
                   "success": true,
                   "obj": {
                     "alpn": "h2",
+                    "certChainBytes": 3427,
                     "certChainValid": true,
                     "certIssuer": "Google Trust Services",
                     "certSubject": "cloudflare.com",
@@ -7237,6 +7445,7 @@
                   "obj": [
                     {
                       "alpn": "h2",
+                      "certChainBytes": 3427,
                       "certChainValid": true,
                       "certIssuer": "Google Trust Services",
                       "certSubject": "cloudflare.com",
@@ -9522,7 +9731,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "List registered HWID devices for a client. Hashes are not exposed.",
+        "summary": "List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.",
         "operationId": "post_panel_api_clients_hwids_email",
         "parameters": [
           {
@@ -9562,7 +9771,8 @@
                       "userAgent": "Happ/1.0",
                       "deviceOs": "android",
                       "osVersion": "15",
-                      "deviceModel": "Pixel 9"
+                      "deviceModel": "Pixel 9",
+                      "fingerprint": "6ad17c93e821"
                     }
                   ]
                 }
@@ -9964,6 +10174,55 @@
                     "vless://uuid@host:443?security=reality&...#user1",
                     "vmess://eyJ2IjoyLC..."
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/happLink/{id}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Generate a fresh Happ crypt5 link locally from the current client subscription URL when Happ link generation is enabled. The panel applies a resource limit of 8192 UTF-8 bytes to the source URL; this is not a Happ client maximum. Longer sources return success: false with msg: happ_source_too_long and obj: null. The source URL is not sent to a generation provider, and the result is not stored or reused.",
+        "operationId": "post_panel_api_clients_happLink_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Stable client record ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/HappLinkResult"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "encryptedLink": "happ://crypt5/example"
+                  }
                 }
               }
             }
@@ -12208,6 +12467,40 @@
                 "example": {
                   "success": true,
                   "msg": "Test message sent to Telegram"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testDiscord": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Test Discord bot connection by sending a test embed to the configured channel.",
+        "operationId": "post_panel_api_setting_testDiscord",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Test notification sent successfully"
                 }
               }
             }

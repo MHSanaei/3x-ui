@@ -69,4 +69,25 @@ describe('Happ TUN Mode select', () => {
     const select = selectFor('TUN Mode');
     expect(select.querySelector('.ant-select-content')?.textContent).toBe('Default');
   });
+
+  it('renders Auto-Detection master switch at the top and triggers update', () => {
+    const updateSetting = vi.fn();
+    const allSetting = new AllSetting();
+    allSetting.subHappAutoDetect = false;
+
+    renderWithProviders(
+      <HappSettingsContent
+        allSetting={allSetting}
+        updateSetting={updateSetting}
+        isMobile={false}
+        remoteSourceBadge={() => null}
+      />,
+    );
+
+    const switchBtn = document.querySelector('.ant-switch');
+    if (!switchBtn) throw new Error('switch not found');
+    fireEvent.click(switchBtn);
+
+    expect(updateSetting).toHaveBeenCalledWith({ subHappAutoDetect: true });
+  });
 });

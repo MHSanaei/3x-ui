@@ -628,6 +628,8 @@
         "scanCert": "Сертифікат",
         "scanCertInvalid": "Ненадійний",
         "scanCertExpiry": "Сертифікат діє до",
+        "scanCertChain": "Ланцюжок сертифікатів",
+        "scanMldsaCertChainTooSmall": "Ланцюжок сертифікатів цілі має {length} байт, що менше мінімуму {min} байт для ML-DSA-65. З’єднання мовчки потраплятимуть у fallback. Оберіть іншу ціль або вимкніть ML-DSA-65.",
         "scanSniUsed": "Використаний SNI",
         "scanPrivateNote": "Перевірено у внутрішній (локальній) мережі — ця адреса недоступна з інтернету.",
         "scanPrivateConfirmTitle": "Ціль у локальній мережі",
@@ -675,7 +677,8 @@
           "node": "Адреса вузла",
           "listen": "Адреса прослуховування inbound",
           "custom": "Користувацька"
-        }
+        },
+        "autoFill": "Автозаповнення"
       },
       "info": {
         "mode": "Режим",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Конфіг Peer {n}"
       },
-      "sniffingDestOverride": "Перевизначення призначення"
+      "sniffingDestOverride": "Перевизначення призначення",
+      "advancedTitle": "Додаткові налаштування"
     },
     "clients": {
       "tabBasics": "Основні",
@@ -760,6 +764,7 @@
       "noHwids": "Пристроїв HWID ще немає",
       "firstSeen": "Перша поява",
       "lastSeen": "Остання поява",
+      "hwidFingerprint": "Відбиток HWID",
       "deleteHwid": "Видалити пристрій",
       "deleteHwidConfirm": "Видалити цей пристрій? Йому потрібно буде зареєструватися знову під час наступного отримання підписки.",
       "hwidDeleted": "Пристрій видалено.",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "Очистити все",
       "noSubId": "У цього клієнта немає subId, посилання для спільного доступу відсутнє.",
       "noLinks": "Немає посилань для спільного доступу — спочатку прив'яжіть цього клієнта до вхідного з підтримкою протоколу.",
+      "qrStandard": "Стандартний",
+      "happLinkRetry": "Повторити",
+      "happLinkErrorHint": "Не вдалося створити посилання Happ. Повторіть спробу або відкрийте {dashboard} -> {logs}, щоб переглянути подробиці.",
+      "happLinkSourceTooLong": "URL-адреса підписки перевищує ліміт обробки панелі в 8192 байти UTF-8. Скоротіть URL-адресу підписки або використайте варіант «Стандартний».",
+      "happLinkQrTooLong": "Це посилання Happ дійсне, але воно надто довге для відображення у вигляді QR-коду. Натисніть «Копіювати», щоб скористатися повним посиланням.",
+      "happLinkDisabledHint": "Перш ніж використовувати Happ, увімкніть створення посилань Happ у налаштуваннях.",
+      "happLinkDisabledTitle": "Створення зашифрованих посилань Happ не ввімкнено",
+      "happLinkDisabledDescription": "Увімкніть локальне створення зашифрованих посилань на підписку Happ. (Тільки для Happ)",
+      "happLinkSettingsAction": "Перейти до налаштувань",
+      "happLinkDisclosure": "Посилання створюється локально. Кожен, хто має це посилання, може відновити URL-адресу підписки або поділитися нею.",
+      "happLinkOptionLabel": "Зашифроване посилання Happ",
       "link": "Посилання",
       "resetNotPossible": "Спочатку прив'яжіть цього клієнта до вхідного.",
       "resetAllTraffics": "Скинути трафік усіх клієнтів",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Конфігурація AmneziaWG",
+      "tuicConfig": "Конфігурація TUIC (Clash)",
       "mtprotoSecret": "Секрет MTProto",
       "mtprotoSecretHint": "Секрет FakeTLS клієнта. Згенеруйте заново, щоб змінити.",
       "mtprotoAdTag": "Рекламний тег (спонсорський канал)",
@@ -915,6 +932,7 @@
       "renewOnDay": "Подовжувати числа",
       "renewOnDayDesc": "Подовжувати цього числа кожного місяця, опівночі за часовим поясом панелі, замість інтервалу в днях. Якщо в місяці такого числа немає, подовження припаде на останній день. 0 — залишити режим інтервалу.",
       "renewsUsed": "Подовжень витрачено",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Введіть 32-значний hex-тег для встановлення або 'none' для очищення спонсорського каналу на MTProto."
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "Регулярний вираз Go RE2, який зіставляється з User-Agent клієнта для автоматичного вибору формату Xray JSON на стандартній URL-адресі підписки. Типово порожнє, тому автоматичне визначення вимкнено, доки ви не задасте шаблон для потрібних клієнтів. Інші клієнти отримують відповідь raw/Base64. Після зміни перезапустіть панель.",
       "subJsonRoutingRules": "Профіль маршрутизації для JSON-підписки",
       "subJsonRoutingRulesDesc": "JSON правил маршрутизації, діплінк happ:// або incy://, або https:// URL. Якщо задано, замінює DNS і правила маршрутизації JSON-підписки (вбудовуються в конфігурацію для клієнтів, що ігнорують заголовки, напр. Happ і INCY з клієнтськими балансувальниками). Якщо налаштування заголовка Happ порожнє, цей самий профіль автоматично надсилається в заголовку Routing (JSON і URL — у вигляді діплінка happ://), щоб клієнти завантажували відповідні geo-файли.",
+      "subJsonDns": "DNS-сервери",
+      "subJsonDnsDesc": "Замінює блок dns, що вбудовується в конфіги JSON-підписки: повний об'єкт dns або просто масив servers. Також замінює DNS профілю маршрутизації в цих конфігах; клієнти, які застосовують заголовок Routing, використовують резолвери з профілю. Порожнє — вбудований резолвер.",
       "subClashAutoDetect": "Автоматично визначати клієнтів Clash/Mihomo",
       "subClashAutoDetectDesc": "Якщо параметр увімкнено, розпізнані клієнти Clash/Mihomo під час запиту стандартної URL-адреси підписки автоматично отримують Clash YAML. Браузери й надалі показують сторінку підписки, інші клієнти отримують звичайну відповідь raw/Base64, а явні URL-адреси JSON і Clash залишаються доступними. Для застосування потрібно ввімкнути підписку Clash/Mihomo та перезапустити панель.",
       "subClashUserAgentRegex": "Регулярний вираз User-Agent Clash/Mihomo",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "Абсолютний шлях до теки з користувацьким шаблоном (index.html/sub.html) для сторінки підписки (наприклад, /etc/3x-ui/sub_templates/my-theme/). Залиште порожнім, щоб використовувати сторінку за замовчуванням.",
       "subThemeDirDocs": "Посібник із шаблонів ↗",
       "subEnableRouting": "Увімкнути маршрутизацію",
+      "happLinkEnable": "Зашифровані посилання на підписку",
+      "happLinkEnableDesc": "Дозволяє створювати зашифровані посилання Happ у вікні QR-коду клієнта. Адреси підписок обробляються локально.",
       "subEnableRoutingDesc": "Глобальне налаштування для увімкнення маршрутизації у VPN-клієнті. (Тільки для Happ)",
       "subRoutingRules": "Правила маршрутизації",
       "subRoutingRulesDesc": "Вставте готове посилання happ:// або одну постійну HTTPS-адресу. Панель оновлює віддалені правила у фоні та зберігає останнє коректне значення, тому запит підписки не чекає на джерело. (Тільки для Happ)",
@@ -1288,6 +1310,8 @@
       "muxSett": "Налаштування Mux",
       "direct": "Пряме підключення",
       "directDesc": "Безпосередньо встановлює з’єднання з доменами або діапазонами IP певної країни.",
+      "block": "Блокування з’єднань",
+      "blockDesc": "Блокує з’єднання з вибраними доменами або діапазонами IP через outbound blackhole.",
       "notifications": "Сповіщення",
       "certs": "Сертифікати",
       "externalTraffic": "Зовнішній трафік",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "Proxy IPs / CIDRs",
       "subHappBlockIPs": "Blocked IPs / CIDRs",
       "subHappDeeplinkGenerated": "Deeplink generated and applied to routing rules",
+      "subHappGroupLinks": "Посилання на підписку",
       "subHappGroupRouting": "Routing & Rules",
       "subHappGroupBanners": "Banners & Announcements",
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Discord бот",
+      "discordBotEnable": "Увімкнути сповіщення Discord",
+      "discordBotEnableDesc": "Надсилати системні сповіщення та події в канал Discord через бота",
+      "discordBotToken": "Токен бота Discord",
+      "discordBotTokenDesc": "Токен бота з Discord Developer Portal",
+      "discordTokenConfigured": "Токен налаштовано. Введіть новий токен для заміни.",
+      "discordTokenPlaceholder": "Введіть токен бота",
+      "discordChannelId": "ID каналу",
+      "discordChannelIdDesc": "ID каналу Discord, куди надсилатимуться сповіщення",
+      "discordAdminIds": "ID адміністраторів",
+      "discordAdminIdsDesc": "ID користувачів Discord через кому, яким дозволено виконувати команди бота. Повідомлення інших ігноруються, а порожній список вимикає команди.",
+      "discordEventBusNotify": "Сповіщення Discord",
+      "testDiscord": "Надіслати тестове сповіщення",
+      "testDiscordDesc": "Надіслати тестове сповіщення для перевірки токена бота та ID каналу",
+      "discordNotInitialized": "Служба Discord не ініціалізована",
+      "discordBotNotEnabled": "Discord-бот не увімкнено",
+      "discordTestFailed": "Тест Discord не вдався",
+      "discordTestSuccess": "Тестове сповіщення успішно надіслано",
+      "discordBotLanguage": "Мова Discord-бота",
+      "discordNotifyTime": "Час сповіщення",
+      "discordNotifyTimeDesc": "Як часто бот Discord надсилає періодичні звіти. Виберіть готовий інтервал або «Власний», щоб ввести вираз crontab.",
+      "discordNotifyBackup": "Резервне копіювання бази даних",
+      "discordNotifyBackupDesc": "Надіслати файл резервної копії бази даних зі звітом.",
+      "discordEventBusNotifyDesc": "Виберіть, які події спричиняють сповіщення в Discord"
     },
     "xray": {
       "save": "Зберегти",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "Контроль перевантаження",
+        "alpn": "ALPN",
+        "udpRelayMode": "Режим ретрансляції UDP",
+        "zeroRttHandshake": "0-RTT рукостискання",
+        "logLevel": "Рівень журналювання",
+        "logLevelHint": "Статус онлайн, «востаннє онлайн» і «старт після першого використання» читаються з рядків Info сайдкара; Warn або Error вимикають їх для цього інбаунда.",
+        "maxIdleTime": "Макс. час простою (сек)",
+        "authTimeout": "Таймаут автентифікації (сек)",
+        "maxUdpRelayPacketSize": "Макс. розмір пакета UDP",
+        "sni": "SNI",
+        "sniHint": "Перевизначення Server Name Indication"
+      },
       "tun": {
         "userLevel": "Рівень користувача"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "Вашу конфігурацію не знайдено!\r\nБудь ласка, попросіть свого адміністратора використовувати ваш ідентифікатор Telegram у вашій конфігурації.\r\n\r\nВаш ідентифікатор користувача: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Виберіть клієнта для Вхідного {{ .Inbound }}",
       "chooseInbound": "Виберіть Вхідний"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "Тестове сповіщення Discord від 3x-ui",
+      "body": "Це тестове сповіщення підтверджує, що сповіщення Discord налаштовано правильно."
+    },
+    "footer": "Панель 3x-ui",
+    "fields": {
+      "panelVersion": "Версія панелі",
+      "xrayCore": "Ядро Xray",
+      "systemLoad": "Навантаження системи",
+      "networkTraffic": "Мережевий трафік",
+      "totalUsed": "Всього використано",
+      "quota": "Ліміт",
+      "error": "Помилка",
+      "delay": "Затримка",
+      "outbound": "Вихідне",
+      "node": "Вузол",
+      "threshold": "Поріг",
+      "reason": "Причина",
+      "time": "Час",
+      "source": "Джерело"
+    },
+    "values": {
+      "uptime": "{{ .Days }} д {{ .Hours }} год",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Всього: {{ .Total }})",
+      "counts": "Всього: {{ .Total }} | Майже вичерпано: {{ .Depleting }} | Вимкнено: {{ .Disabled }}",
+      "inbound": "Протокол: `{{ .Protocol }}` | Порт: `{{ .Port }}` | Клієнти: `{{ .Clients }}` | Трафік: `↑{{ .Up }} ↓{{ .Down }}` | Стан: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Вихідне недоступне",
+      "outboundUp": "Вихідне відновлено",
+      "nodeDown": "Вузол недоступний",
+      "nodeUp": "Вузол знову в мережі",
+      "xrayCrash": "Збій ядра Xray",
+      "cpuHigh": "Перевищено поріг CPU",
+      "memoryHigh": "Перевищено поріг пам'яті",
+      "loginSuccess": "Успішний вхід",
+      "loginFailed": "Невдалий вхід"
+    },
+    "report": {
+      "title": "📊 Звіт про стан 3x-ui",
+      "summary": "Періодичний звіт про стан сервера та проксі для **{{ .Host }}**",
+      "footer": "Плановий звіт 3x-ui • Розклад: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 Команди Discord-бота 3x-ui",
+      "helpDescription": "Доступні команди для моніторингу та керування сервером 3x-ui:",
+      "helpStatus": "Показати навантаження системи, RAM, CPU, з'єднання та користувачів онлайн",
+      "helpReport": "Сформувати повний звіт про стан (з резервною копією БД, якщо увімкнено)",
+      "helpBackup": "Негайно надіслати файл резервної копії бази даних",
+      "helpUsage": "Дізнатися витрату трафіку, ліміт і термін дії клієнта",
+      "helpInbounds": "Список усіх налаштованих вхідних підключень із портами та статистикою клієнтів",
+      "helpRestart": "Перезапустити ядро Xray",
+      "helpHelp": "Показати цей список команд",
+      "statusTitle": "⚡ Стан сервера 3x-ui",
+      "statusDescription": "Поточні робочі показники **{{ .Host }}**",
+      "backupTitle": "🗄️ Резервна копія бази даних",
+      "backupDescription": "Резервну копію 3x-ui створено `{{ .Time }}`",
+      "backupUnavailable": "❌ Служба резервного копіювання недоступна",
+      "backupFailed": "❌ Не вдалося прочитати резервну копію бази даних: {{ .Error }}",
+      "usageHint": "⚠️ Використання: `!usage <email>` або `/usage <email>`",
+      "usageTitle": "👤 Використання клієнта: {{ .Email }}",
+      "usageDescription": "Вхідне: **{{ .Remark }}** (порт {{ .Port }})",
+      "clientNotFound": "⚠️ Клієнта `{{ .Email }}` не знайдено в жодному налаштованому вхідному підключенні.",
+      "inboundsUnavailable": "❌ Служба вхідних підключень недоступна",
+      "inboundsFailed": "❌ Не вдалося завантажити вхідні підключення: {{ .Error }}",
+      "inboundsTitle": "🔌 Налаштовані вхідні підключення",
+      "inboundsDescription": "Усього вхідних підключень: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Вхідні підключення не налаштовано.",
+      "xrayUnavailable": "❌ Служба Xray недоступна",
+      "restarting": "🔄 Перезапуск ядра Xray...",
+      "restartFailed": "❌ Не вдалося перезапустити Xray: {{ .Error }}",
+      "restartSuccess": "✅ Ядро Xray успішно перезапущено."
     }
   },
   "email": {

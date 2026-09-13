@@ -649,6 +649,8 @@
         "scanCert": "証明書",
         "scanCertInvalid": "信頼できません",
         "scanCertExpiry": "証明書の有効期限",
+        "scanCertChain": "証明書チェーン",
+        "scanMldsaCertChainTooSmall": "ターゲットの証明書チェーンは {length} バイトで、ML-DSA-65 に必要な下限 {min} バイトを下回っています。接続はエラーなく失敗します。別のターゲットを選ぶか ML-DSA-65 を無効にしてください。",
         "scanSniUsed": "使用した SNI",
         "scanPrivateNote": "プライベート/ローカルネットワーク経由で確認しました。このアドレスはインターネットからは到達できません。",
         "scanPrivateConfirmTitle": "ローカルネットワーク上のターゲット",
@@ -675,7 +677,8 @@
           "node": "ノードアドレス",
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
-        }
+        },
+        "autoFill": "自動入力"
       },
       "info": {
         "mode": "モード",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "宛先のオーバーライド"
+      "sniffingDestOverride": "宛先のオーバーライド",
+      "advancedTitle": "詳細設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -760,6 +764,7 @@
       "noHwids": "HWID デバイスはまだありません",
       "firstSeen": "初回確認",
       "lastSeen": "最終確認",
+      "hwidFingerprint": "HWID フィンガープリント",
       "deleteHwid": "デバイスを削除",
       "deleteHwidConfirm": "このデバイスを削除しますか?次回のサブスクリプション取得時に再登録が必要になります。",
       "hwidDeleted": "デバイスを削除しました。",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "すべてクリア",
       "noSubId": "このクライアントには subId がなく、共有可能なリンクはありません。",
       "noLinks": "共有可能なリンクがありません — まずこのクライアントを対応するプロトコルのインバウンドに関連付けてください。",
+      "qrStandard": "標準",
+      "happLinkRetry": "再試行",
+      "happLinkErrorHint": "Happ リンクを生成できませんでした。再試行するか、詳細は {dashboard} -> {logs} を確認してください。",
+      "happLinkSourceTooLong": "サブスクリプション URL がこのパネルの処理上限（UTF-8 で 8192 バイト）を超えています。URL を短くするか、「標準」を使用してください。",
+      "happLinkQrTooLong": "この Happ リンクは有効ですが、長すぎて QR コードとして表示できません。完全なリンクを使用するには、「コピー」を使ってください。",
+      "happLinkDisabledHint": "Happ を使用する前に、設定で Happ リンクの生成を有効にしてください。",
+      "happLinkDisabledTitle": "Happ 暗号化リンクの生成が有効になっていません",
+      "happLinkDisabledDescription": "暗号化された Happ のサブスクリプションリンクをローカルで生成する機能を有効にします。（Happ のみ）",
+      "happLinkSettingsAction": "設定を開く",
+      "happLinkDisclosure": "リンクはローカルで生成されます。このリンクを持つ人は、サブスクリプション URL を復元したり共有したりできる可能性があります。",
+      "happLinkOptionLabel": "Happ 暗号化リンク",
       "link": "リンク",
       "resetNotPossible": "まずこのクライアントをインバウンドに関連付けてください。",
       "resetAllTraffics": "すべてのクライアントのトラフィックをリセット",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 設定",
+      "tuicConfig": "TUIC 設定 (Clash)",
       "mtprotoSecret": "MTProto シークレット",
       "mtprotoSecretHint": "このクライアントの FakeTLS シークレット。変更するには再生成します。",
       "mtprotoAdTag": "広告タグ（スポンサーチャンネル）",
@@ -915,6 +932,7 @@
       "renewOnDay": "更新する日",
       "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
       "renewsUsed": "使用済み更新回数",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。"
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "標準サブスクリプション URL で Xray JSON 形式を自動選択するため、クライアントの User-Agent と照合する Go RE2 正規表現です。既定では空欄のため、対象とするクライアント向けのパターンを設定するまで自動判別は無効のままです。その他のクライアントには従来の raw/Base64 応答を返します。変更後にパネルを再起動してください。",
       "subJsonRoutingRules": "JSON サブスクリプションのルーティングプロファイル",
       "subJsonRoutingRulesDesc": "ルーティング JSON、happ:// または incy:// のディープリンク、もしくは https:// URL。設定すると JSON サブスクリプションの DNS とルーティングルールを置き換えます（ヘッダーを無視するクライアント、例えばクライアントサイドバランサーを使う Happ や INCY 向けに設定へ組み込まれます）。Happ のルーティングヘッダー設定が空の場合、同じプロファイルが自動的に Routing ヘッダーとして送信され（JSON と URL は happ:// ディープリンクに変換）、クライアントは対応する geo ファイルを取得します。",
+      "subJsonDns": "DNSサーバー",
+      "subJsonDnsDesc": "JSONサブスクリプションの各設定に埋め込まれる dns ブロックを置き換えます。完全な dns オブジェクトか servers 配列のみを指定できます。設定内のルーティングプロファイルのDNSも置き換えますが、Routing ヘッダーを適用するクライアントはプロファイルのリゾルバーを使います。空欄の場合は組み込みのリゾルバーを使用します。",
       "subClashAutoDetect": "Clash/Mihomo クライアントを自動検出",
       "subClashAutoDetectDesc": "有効にすると、標準サブスクリプション URL を要求する既知の Clash/Mihomo クライアントへ Clash YAML を自動的に返します。ブラウザには引き続きサブスクリプションページを表示し、その他のクライアントには従来の raw/Base64 応答を返します。明示的な JSON および Clash URL も引き続き利用できます。Clash/Mihomo サブスクリプションを有効にし、適用のためにパネルを再起動する必要があります。",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent 正規表現",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "サブスクリプションページのカスタムテンプレート (index.html/sub.html) を含むフォルダーの絶対パス（例: /etc/3x-ui/sub_templates/my-theme/）。空欄の場合はデフォルトのページを使用します。",
       "subThemeDirDocs": "テンプレートガイド ↗",
       "subEnableRouting": "ルーティングを有効化",
+      "happLinkEnable": "暗号化されたサブスクリプションリンク",
+      "happLinkEnableDesc": "クライアントの QR コード画面で、暗号化された Happ リンクを生成できるようにします。サブスクリプション URL はローカルで処理されます。",
       "subEnableRoutingDesc": "VPNクライアントでルーティングを有効にするためのグローバル設定。(Happのみ)",
       "subRoutingRules": "ルーティングルール",
       "subRoutingRulesDesc": "完成した happ:// ディープリンク、または永続的な HTTPS URL を入力します。パネルはリモートルールをバックグラウンドで更新し、最後の有効値を保持するため、サブスクリプション要求は取得を待ちません。(Happのみ)",
@@ -1288,6 +1310,8 @@
       "muxSett": "マルチプレクサ設定",
       "direct": "直接接続",
       "directDesc": "特定の国のドメインまたはIP範囲に直接接続する",
+      "block": "接続をブロック",
+      "blockDesc": "blackholeアウトバウンドを使用して、選択したドメインまたはIP範囲への接続をブロックします。",
       "notifications": "通知",
       "certs": "証明書",
       "externalTraffic": "外部トラフィック",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "Proxy IPs / CIDRs",
       "subHappBlockIPs": "Blocked IPs / CIDRs",
       "subHappDeeplinkGenerated": "Deeplink generated and applied to routing rules",
+      "subHappGroupLinks": "サブスクリプションリンク",
       "subHappGroupRouting": "Routing & Rules",
       "subHappGroupBanners": "Banners & Announcements",
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Discord Bot",
+      "discordBotEnable": "Discord通知を有効化",
+      "discordBotEnableDesc": "Botを介してDiscordチャンネルにシステムおよびイベント通知を送信します",
+      "discordBotToken": "Discord Botトークン",
+      "discordBotTokenDesc": "Discord Developer PortalからのBotトークン",
+      "discordTokenConfigured": "トークンは設定されています。新しいトークンを入力して置き換えます。",
+      "discordTokenPlaceholder": "Botトークンを入力",
+      "discordChannelId": "チャンネルID",
+      "discordChannelIdDesc": "通知が送信されるDiscordチャンネルID",
+      "discordAdminIds": "管理者ユーザーID",
+      "discordAdminIdsDesc": "ボットコマンドの実行を許可するDiscordユーザーID（カンマ区切り）。それ以外のユーザーのメッセージは無視され、空欄の場合はコマンドが無効になります。",
+      "discordEventBusNotify": "Discord通知",
+      "testDiscord": "テスト通知を送信",
+      "testDiscordDesc": "BotトークンとチャンネルIDを確認するためのテスト通知を送信します",
+      "discordNotInitialized": "Discord サービスが初期化されていません",
+      "discordBotNotEnabled": "Discord ボットが有効になっていません",
+      "discordTestFailed": "Discord テストに失敗しました",
+      "discordTestSuccess": "テスト通知が正常に送信されました",
+      "discordBotLanguage": "Discord Botの言語",
+      "discordNotifyTime": "通知時間",
+      "discordNotifyTimeDesc": "Discord ボットが定期レポートを送信する頻度です。プリセットの間隔を選ぶか、「カスタム」を選んで crontab 式を入力します。",
+      "discordNotifyBackup": "データベースバックアップ",
+      "discordNotifyBackupDesc": "レポート付きのデータベースバックアップファイルを送信",
+      "discordEventBusNotifyDesc": "Discord通知をトリガーするイベントを選択してください"
     },
     "xray": {
       "importRules": "ルールをインポート",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "輻輳制御",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP リレーモード",
+        "zeroRttHandshake": "0-RTT ハンドシェイク",
+        "logLevel": "ログレベル",
+        "logLevelHint": "オンライン状態、最終オンライン、「初回使用後に開始」はサイドカーの Info 行から検出されます。Warn または Error を選ぶとこのインバウンドでは無効になります。",
+        "maxIdleTime": "最大アイドル時間 (秒)",
+        "authTimeout": "認証タイムアウト (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",
+        "sni": "SNI",
+        "sniHint": "Server Name Indication の上書き"
+      },
       "tun": {
         "userLevel": "ユーザーレベル"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "設定が見つかりませんでした！\r\n管理者に問い合わせて、設定にTelegramユーザーのChatIDを使用してください。\r\n\r\nあなたのユーザーChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "インバウンド {{ .Inbound }} のクライアントを選択",
       "chooseInbound": "インバウンドを選択"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord通知テスト",
+      "body": "これはDiscord通知が正しく設定されていることを確認するためのテスト通知です。"
+    },
+    "footer": "3x-ui パネル",
+    "fields": {
+      "panelVersion": "パネルバージョン",
+      "xrayCore": "Xray コア",
+      "systemLoad": "システム負荷",
+      "networkTraffic": "ネットワークトラフィック",
+      "totalUsed": "合計使用量",
+      "quota": "クォータ",
+      "error": "エラー",
+      "delay": "遅延",
+      "outbound": "アウトバウンド",
+      "node": "ノード",
+      "threshold": "しきい値",
+      "reason": "理由",
+      "time": "時刻",
+      "source": "送信元"
+    },
+    "values": {
+      "uptime": "{{ .Days }}日 {{ .Hours }}時間",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }}（合計: {{ .Total }}）",
+      "counts": "合計: {{ .Total }} | 残りわずか: {{ .Depleting }} | 無効: {{ .Disabled }}",
+      "inbound": "プロトコル: `{{ .Protocol }}` | ポート: `{{ .Port }}` | クライアント: `{{ .Clients }}` | トラフィック: `↑{{ .Up }} ↓{{ .Down }}` | 状態: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "アウトバウンド停止",
+      "outboundUp": "アウトバウンド復旧",
+      "nodeDown": "ノード停止",
+      "nodeUp": "ノード復旧",
+      "xrayCrash": "Xray コアがクラッシュしました",
+      "cpuHigh": "CPU しきい値超過",
+      "memoryHigh": "メモリしきい値超過",
+      "loginSuccess": "ログイン成功",
+      "loginFailed": "ログイン失敗"
+    },
+    "report": {
+      "title": "📊 3x-ui ステータスレポート",
+      "summary": "**{{ .Host }}** のサーバーとプロキシの定期ステータスレポート",
+      "footer": "3x-ui 定期レポート • スケジュール: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord Bot コマンド",
+      "helpDescription": "3x-ui サーバーの監視と管理に使えるコマンド:",
+      "helpStatus": "システム負荷、RAM、CPU、接続数、オンラインユーザーを表示",
+      "helpReport": "完全なステータスレポートを生成（設定されていればDBバックアップ付き）",
+      "helpBackup": "データベースのバックアップファイルを今すぐ送信",
+      "helpUsage": "クライアントのトラフィック使用量、クォータ、有効期限を照会",
+      "helpInbounds": "設定済みのすべてのインバウンドをポートとクライアント統計付きで一覧表示",
+      "helpRestart": "Xray コアを再起動",
+      "helpHelp": "このコマンド一覧を表示",
+      "statusTitle": "⚡ 3x-ui サーバーステータス",
+      "statusDescription": "**{{ .Host }}** の現在の稼働メトリクス",
+      "backupTitle": "🗄️ データベースバックアップ",
+      "backupDescription": "`{{ .Time }}` に生成された 3x-ui のバックアップ",
+      "backupUnavailable": "❌ バックアップサービスを利用できません",
+      "backupFailed": "❌ データベースのバックアップを読み込めませんでした: {{ .Error }}",
+      "usageHint": "⚠️ 使い方: `!usage <email>` または `/usage <email>`",
+      "usageTitle": "👤 クライアント使用状況: {{ .Email }}",
+      "usageDescription": "インバウンド: **{{ .Remark }}**（ポート {{ .Port }}）",
+      "clientNotFound": "⚠️ クライアント `{{ .Email }}` は設定済みのどのインバウンドにも見つかりませんでした。",
+      "inboundsUnavailable": "❌ インバウンドサービスを利用できません",
+      "inboundsFailed": "❌ インバウンドを読み込めませんでした: {{ .Error }}",
+      "inboundsTitle": "🔌 設定済みインバウンド",
+      "inboundsDescription": "インバウンド総数: **{{ .Count }}**",
+      "noInbounds": "ℹ️ 設定済みのインバウンドはありません。",
+      "xrayUnavailable": "❌ Xray サービスを利用できません",
+      "restarting": "🔄 Xray コアを再起動しています...",
+      "restartFailed": "❌ Xray を再起動できませんでした: {{ .Error }}",
+      "restartSuccess": "✅ Xray コアを再起動しました。"
     }
   },
   "email": {

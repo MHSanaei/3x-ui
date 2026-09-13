@@ -39,6 +39,7 @@ export const AllSettingSchema = z
     twoFactorEnable: z.boolean().optional(),
     twoFactorToken: z.string().optional(),
     xrayTemplateConfig: z.string().optional(),
+    happLinkEnable: z.boolean().optional(),
     subEnable: z.boolean().optional(),
     subJsonEnable: z.boolean().optional(),
     subJsonAutoDetect: z.boolean().optional(),
@@ -76,6 +77,7 @@ export const AllSettingSchema = z
     subJsonMux: z.string().optional(),
     subJsonRules: z.string().optional(),
     subJsonRoutingRules: z.string().optional(),
+    subJsonDns: z.string().optional(),
     subJsonFinalMask: z.string().optional(),
     subJsonObservatory: z.string().optional(),
     subHideSettings: z.boolean().optional(),
@@ -131,6 +133,17 @@ export const AllSettingSchema = z
     hasWarpSecret: z.boolean().optional(),
     hasNordSecret: z.boolean().optional(),
     hasSmtpPassword: z.boolean().optional(),
+    hasDiscordBotToken: z.boolean().optional(),
+    discordBotEnable: z.boolean().optional(),
+    discordBotToken: z.string().optional(),
+    discordChannelId: z.string().optional(),
+    discordAdminIds: z.string().optional(),
+    discordRunTime: z.string().optional(),
+    discordBotBackup: z.boolean().optional(),
+    discordCpu: z.number().int().min(0).max(100).optional(),
+    discordMemory: z.number().int().min(0).max(100).optional(),
+    discordLang: z.string().optional(),
+    discordEnabledEvents: z.string().optional(),
   })
   .loose();
 

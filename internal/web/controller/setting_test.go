@@ -14,7 +14,9 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service/discord"
 )
 
 func TestValidateRegex(t *testing.T) {
@@ -169,4 +171,79 @@ func TestUpdateSettingRequiresCodeToReplaceTwoFactorToken(t *testing.T) {
 			t.Fatalf("stored 2FA secret = %q, want it preserved", stored)
 		}
 	})
+}
+
+func TestTestDiscordEndpoint(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// 1. Service not initialized
+	SetDiscordService(nil)
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("I18n", func(_ locale.I18nType, key string, _ ...string) string { return key })
+		c.Next()
+	})
+	NewSettingController(router.Group("/panel/api"))
+
+	req := httptest.NewRequest(http.MethodPost, "/panel/api/setting/testDiscord", nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "pages.settings.discordNotInitialized") {
+		t.Fatalf("expected uninitialized error, got %s", resp.Body.String())
+	}
+
+	// Setup DB
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = database.CloseDB()
+		SetDiscordService(nil)
+	})
+
+	settingService := service.SettingService{}
+	svc := discord.NewDiscordService(settingService)
+	SetDiscordService(svc)
+
+	// 2. Discord bot disabled
+	_ = settingService.SetDiscordBotEnable(false)
+	req = httptest.NewRequest(http.MethodPost, "/panel/api/setting/testDiscord", nil)
+	resp = httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "pages.settings.discordBotNotEnabled") {
+		t.Fatalf("expected disabled error, got %s", resp.Body.String())
+	}
+
+	// 3. Discord bot enabled but missing config
+	_ = settingService.SetDiscordBotEnable(true)
+	req = httptest.NewRequest(http.MethodPost, "/panel/api/setting/testDiscord", nil)
+	resp = httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if !strings.Contains(resp.Body.String(), `"success":false`) || !strings.Contains(resp.Body.String(), "pages.settings.discordTestFailed") {
+		t.Fatalf("expected send failure error, got %s", resp.Body.String())
+	}
+
+	// 4. Discord bot enabled with working server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id": "msg-1"}`))
+	}))
+	defer server.Close()
+
+	_ = settingService.SetDiscordBotToken("test-bot-token")
+	_ = settingService.SetDiscordChannelId("123456789")
+	svc.SetBaseURL(server.URL)
+	svc.SetHTTPClient(server.Client())
+
+	req = httptest.NewRequest(http.MethodPost, "/panel/api/setting/testDiscord", nil)
+	resp = httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if !strings.Contains(resp.Body.String(), `"success":true`) || !strings.Contains(resp.Body.String(), "pages.settings.discordTestSuccess") {
+		t.Fatalf("expected success, got %s", resp.Body.String())
+	}
 }

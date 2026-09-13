@@ -107,6 +107,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.VlessRoute != "" {
 		ep["vlessRoute"] = h.VlessRoute
 	}
+	if h.ServerDescription != "" {
+		ep["serverDescription"] = h.ServerDescription
+	}
 	return ep
 }
 

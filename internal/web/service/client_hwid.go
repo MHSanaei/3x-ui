@@ -41,7 +41,10 @@ type HwidSlotStatus struct {
 	Full       bool `json:"full" example:"false"`
 }
 
-const minHwidLength = 6
+const (
+	minHwidLength         = 6
+	hwidFingerprintLength = 12
+)
 
 type ClientHwidInfo struct {
 	Id          int    `json:"id"`
@@ -51,11 +54,19 @@ type ClientHwidInfo struct {
 	DeviceOS    string `json:"deviceOs"`
 	OsVersion   string `json:"osVersion"`
 	DeviceModel string `json:"deviceModel"`
+	Fingerprint string `json:"fingerprint"`
 }
 
 func hashHwid(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+func shortHwidFingerprint(hash string) string {
+	if len(hash) <= hwidFingerprintLength {
+		return hash
+	}
+	return hash[:hwidFingerprintLength]
 }
 
 func trimHwidMeta(s string) string {
@@ -232,6 +243,7 @@ func (s *ClientService) ListClientHwids(email string) ([]ClientHwidInfo, error) 
 			DeviceOS:    r.DeviceOS,
 			OsVersion:   r.OsVersion,
 			DeviceModel: r.DeviceModel,
+			Fingerprint: shortHwidFingerprint(r.HwidHash),
 		})
 	}
 	return out, nil

@@ -35,6 +35,7 @@ export class AllSetting {
   twoFactorEnable = false;
   twoFactorToken = '';
   xrayTemplateConfig = '';
+  happLinkEnable = false;
   subEnable = true;
   subJsonEnable = false;
   subJsonAutoDetect = false;
@@ -72,6 +73,7 @@ export class AllSetting {
   subJsonMux = '';
   subJsonRules = '';
   subJsonRoutingRules = '';
+  subJsonDns = '';
   subJsonFinalMask = '';
   subJsonObservatory = '';
   subThemeDir = '';
@@ -147,6 +149,18 @@ export class AllSetting {
   clearTgBotToken = false;
   clearLdapPassword = false;
   clearSmtpPassword = false;
+  discordBotEnable = false;
+  discordBotToken = '';
+  discordChannelId = '';
+  discordAdminIds = '';
+  discordRunTime = '@daily';
+  discordBotBackup = false;
+  discordCpu = 80;
+  discordMemory = 80;
+  discordLang = 'en-US';
+  discordEnabledEvents = 'login.attempt,cpu.high';
+  hasDiscordBotToken = false;
+  clearDiscordBotToken = false;
 
   constructor(data?: unknown) {
     if (data != null) {

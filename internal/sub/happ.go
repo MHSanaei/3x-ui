@@ -41,21 +41,25 @@ func IsHappClient(userAgent string) bool {
 	return happUserAgentRegex.MatchString(userAgent)
 }
 
+func sanitizeHeaderValue(v string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(v), "\r", ""), "\n", "")
+}
+
 // ApplyHappHeaders sets standard and advanced Happ subscription headers.
 func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 	if c == nil || c.Writer == nil || !cfg.AutoDetect || !isHapp {
 		return
 	}
 	if cfg.ProviderId != "" {
-		c.Writer.Header().Set("ProviderID", cfg.ProviderId)
+		c.Writer.Header().Set("ProviderID", strings.TrimSpace(cfg.ProviderId))
 	}
 	if cfg.NewUrl != "" {
-		c.Writer.Header().Set("New-Url", cfg.NewUrl)
+		c.Writer.Header().Set("New-Url", strings.TrimSpace(cfg.NewUrl))
 	}
 	if cfg.FallbackUrl != "" {
-		c.Writer.Header().Set("Fallback-Url", cfg.FallbackUrl)
+		c.Writer.Header().Set("Fallback-Url", strings.TrimSpace(cfg.FallbackUrl))
 	}
-	if text := strings.TrimSpace(cfg.SubInfoText); text != "" {
+	if text := sanitizeHeaderValue(cfg.SubInfoText); text != "" {
 		color := strings.TrimSpace(cfg.SubInfoColor)
 		switch strings.ToLower(color) {
 		case "primary", "info":
@@ -69,10 +73,10 @@ func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 		}
 		c.Writer.Header().Set("Sub-Info-Color", color)
 		c.Writer.Header().Set("Sub-Info-Text", text)
-		if btnText := strings.TrimSpace(cfg.SubInfoButtonText); btnText != "" {
+		if btnText := sanitizeHeaderValue(cfg.SubInfoButtonText); btnText != "" {
 			c.Writer.Header().Set("Sub-Info-Button-Text", btnText)
 		}
-		if btnLink := strings.TrimSpace(cfg.SubInfoButtonLink); btnLink != "" {
+		if btnLink := sanitizeHeaderValue(cfg.SubInfoButtonLink); btnLink != "" {
 			c.Writer.Header().Set("Sub-Info-Button-Link", btnLink)
 		}
 	}
@@ -103,8 +107,7 @@ func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 	if cfg.ExcludeApns {
 		c.Writer.Header().Set("Exclude-Apns-Enable", "true")
 	}
-	if profile := strings.TrimSpace(cfg.ColorProfile); profile != "" {
-		profile = strings.ReplaceAll(strings.ReplaceAll(profile, "\r", ""), "\n", "")
+	if profile := sanitizeHeaderValue(cfg.ColorProfile); profile != "" {
 		c.Writer.Header().Set("Color-Profile", profile)
 	}
 	if ping := strings.TrimSpace(cfg.PingType); ping != "" {

@@ -640,6 +640,8 @@
         "scanCert": "گواهی",
         "scanCertInvalid": "نامعتبر",
         "scanCertExpiry": "انقضای گواهی",
+        "scanCertChain": "زنجیره گواهی",
+        "scanMldsaCertChainTooSmall": "زنجیره گواهی هدف {length} بایت است که کمتر از حداقل {min} بایت مورد نیاز ML-DSA-65 است. این باعث شکست بی‌صدای اتصال می‌شود. هدف دیگری انتخاب کنید یا ML-DSA-65 را غیرفعال کنید.",
         "scanSniUsed": "SNI استفاده‌شده",
         "scanPrivateNote": "بررسی از طریق شبکهٔ خصوصی/محلی انجام شد — این نشانی از اینترنت قابل دسترسی نیست.",
         "scanPrivateConfirmTitle": "هدف در شبکهٔ محلی",
@@ -675,7 +677,8 @@
           "node": "آدرس نود",
           "listen": "آدرس شنود ورودی",
           "custom": "سفارشی"
-        }
+        },
+        "autoFill": "تکمیل خودکار"
       },
       "info": {
         "mode": "حالت",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "پیکربندی Peer {n}"
       },
-      "sniffingDestOverride": "بازنویسی مقصد"
+      "sniffingDestOverride": "بازنویسی مقصد",
+      "advancedTitle": "تنظیمات پیشرفته"
     },
     "clients": {
       "tabBasics": "پایه",
@@ -760,6 +764,7 @@
       "noHwids": "هنوز دستگاه HWID ثبت نشده است",
       "firstSeen": "اولین مشاهده",
       "lastSeen": "آخرین مشاهده",
+      "hwidFingerprint": "اثر انگشت HWID",
       "deleteHwid": "حذف دستگاه",
       "deleteHwidConfirm": "این دستگاه حذف شود؟ در دریافت بعدی اشتراک باید دوباره ثبت‌نام شود.",
       "hwidDeleted": "دستگاه حذف شد.",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "پاک کردن همه",
       "noSubId": "این کلاینت subId ندارد، لینک اشتراک‌گذاری وجود ندارد.",
       "noLinks": "لینکی برای اشتراک‌گذاری نیست — ابتدا این کلاینت را به یک اینباند با پروتکل سازگار متصل کنید.",
+      "qrStandard": "استاندارد",
+      "happLinkRetry": "تلاش مجدد",
+      "happLinkErrorHint": "لینک Happ ایجاد نشد. دوباره تلاش کنید یا برای جزئیات {dashboard} -> {logs} را بررسی کنید.",
+      "happLinkSourceTooLong": "حجم نشانی اشتراک با کدگذاری UTF-8 از سقف پردازش پنل، یعنی 8192 بایت، بیشتر است. نشانی اشتراک را کوتاه کنید یا از گزینه «استاندارد» استفاده کنید.",
+      "happLinkQrTooLong": "این لینک Happ معتبر است، اما برای نمایش به‌صورت کد QR بیش از حد طولانی است. برای استفاده از لینک کامل، «کپی» را انتخاب کنید.",
+      "happLinkDisabledHint": "قبل از استفاده از Happ، ایجاد لینک Happ را در تنظیمات فعال کنید.",
+      "happLinkDisabledTitle": "ایجاد لینک رمزگذاری‌شده Happ فعال نیست",
+      "happLinkDisabledDescription": "ایجاد محلی لینک‌های رمزگذاری‌شده اشتراک Happ را فعال کنید. (فقط برای Happ)",
+      "happLinkSettingsAction": "رفتن به تنظیمات",
+      "happLinkDisclosure": "لینک به‌صورت محلی ایجاد می‌شود. هر کسی که این لینک را داشته باشد ممکن است بتواند نشانی اشتراک را بازیابی کند یا به اشتراک بگذارد.",
+      "happLinkOptionLabel": "لینک رمزگذاری‌شده Happ",
       "link": "لینک",
       "resetNotPossible": "ابتدا این کلاینت را به یک اینباند متصل کنید.",
       "resetAllTraffics": "بازنشانی ترافیک همه کلاینت‌ها",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "پیکربندی AmneziaWG",
+      "tuicConfig": "پیکربندی TUIC (Clash)",
       "mtprotoSecret": "سکرت MTProto",
       "mtprotoSecretHint": "سکرت FakeTLS این کلاینت. برای تعویض، دوباره تولید کنید.",
       "mtprotoAdTag": "برچسب تبلیغاتی (کانال حامی)",
@@ -915,6 +932,7 @@
       "renewOnDay": "روز تمدید",
       "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود. مقدار ۰ حالت بازهٔ روزانه را حفظ می‌کند.",
       "renewsUsed": "تمدیدهای استفاده‌شده",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "یک برچسب هگز ۳۲ کاراکتری برای تنظیم وارد کنید، یا 'none' برای پاک کردن در MTProto."
     },
     "groups": {
@@ -1175,6 +1193,8 @@
       "subJsonUserAgentRegexDesc": "عبارت منظم Go RE2 که با عامل کاربر (User-Agent) کلاینت مطابقت داده می‌شود تا صیغه Xray JSON روی آدرس استاندارد اشتراک به‌طور خودکار انتخاب شود. به‌طور پیش‌فرض خالی است، بنابراین تشخیص خودکار غیرفعال می‌ماند تا زمانی که الگویی برای کلاینت‌های موردنظر خود تعیین کنید. سایر کلاینت‌ها پاسخ خام/Base64 را دریافت می‌کنند. پس از تغییر، پنل را راه‌اندازی مجدد کنید.",
       "subJsonRoutingRules": "پروفایل مسیریابی اشتراک JSON",
       "subJsonRoutingRulesDesc": "JSON قواعد مسیریابی، دیپ‌لینک happ:// یا incy://، یا آدرس https://. وقتی تنظیم شود، DNS و قواعد مسیریابی اشتراک JSON را جایگزین می‌کند (در پیکربندی برای کلاینت‌هایی که هدرها را نادیده می‌گیرند تعبیه می‌شود، مانند Happ و INCY با بالانسر سمت کلاینت). اگر تنظیم هدر Happ خالی باشد، همین پروفایل به‌صورت خودکار در هدر Routing ارسال می‌شود (JSON و آدرس‌ها به‌صورت دیپ‌لینک happ://) تا کلاینت‌ها فایل‌های geo منطبق را دانلود کنند.",
+      "subJsonDns": "سرورهای DNS",
+      "subJsonDnsDesc": "بلوک dns را که در کلاینت‌های اشتراک JSON جای می‌گیرد جایگزین می‌کند: یا یک شیء کامل dns یا فقط آرایهٔ servers. همچنین DNS پروفایل مسیریابی را در همان کلاینت‌ها جایگزین می‌کند؛ اما کلاینت‌هایی که هدر Routing را اعمال می‌کنند، ریزالورهای پروفایل را نگه می‌دارند. خالی یعنی ریزالور پیش‌فرض.",
       "subClashAutoDetect": "تشخیص خودکار کلاینت‌های Clash/Mihomo",
       "subClashAutoDetectDesc": "با فعال‌سازی، کلاینت‌های شناخته‌شده Clash/Mihomo که آدرس استاندارد اشتراک را درخواست می‌کنند، به‌طور خودکار پیکربندی Clash با فرمت YAML دریافت می‌کنند. مرورگرها همچنان صفحه اشتراک را نمایش می‌دهند، سایر کلاینت‌ها پاسخ خام/Base64 را دریافت می‌کنند و آدرس‌های صریح JSON و Clash در دسترس می‌مانند. برای اعمال تغییر، اشتراک Clash/Mihomo باید فعال باشد و پنل راه‌اندازی مجدد شود.",
       "subClashUserAgentRegex": "عبارت User-Agent برای Clash/Mihomo",
@@ -1191,6 +1211,8 @@
       "subThemeDirDesc": "مسیر مطلق پوشه‌ای که شامل یک قالب سفارشی (index.html/sub.html) برای صفحه اشتراک است (مثلاً /etc/3x-ui/sub_templates/my-theme/). برای استفاده از صفحه پیش‌فرض خالی بگذارید.",
       "subThemeDirDocs": "راهنمای قالب ↗",
       "subEnableRouting": "فعال‌سازی مسیریابی",
+      "happLinkEnable": "لینک‌های رمزگذاری‌شدهٔ اشتراک",
+      "happLinkEnableDesc": "امکان ایجاد لینک‌های رمزگذاری‌شدهٔ Happ در پنجرهٔ کد QR کلاینت را فراهم می‌کند. نشانی‌های اشتراک به‌صورت محلی پردازش می‌شوند.",
       "subEnableRoutingDesc": "تنظیمات سراسری برای فعال‌سازی مسیریابی در کلاینت VPN. (فقط برای Happ)",
       "subRoutingRules": "قوانین مسیریابی",
       "subRoutingRulesDesc": "یک پیوند آماده happ:// یا یک نشانی دائمی HTTPS وارد کنید. پنل قوانین راه‌دور را در پس‌زمینه به‌روزرسانی و آخرین مقدار معتبر را نگه می‌دارد، بنابراین درخواست اشتراک منتظر منبع نمی‌ماند. (فقط برای Happ)",
@@ -1292,6 +1314,8 @@
       "muxSett": "تنظیمات ماکس",
       "direct": "اتصال مستقیم",
       "directDesc": "به طور مستقیم با دامنه ها یا محدوده آی‌پی یک کشور خاص ارتباط برقرار می کند",
+      "block": "مسدود کردن اتصال",
+      "blockDesc": "اتصالات به دامنه‌ها یا محدوده‌های IP انتخاب‌شده را با outbound بلک‌هول مسدود می‌کند.",
       "notifications": "اعلان‌ها",
       "certs": "گواهی‌ها",
       "externalTraffic": "ترافیک خارجی",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "آی‌پی‌های پراکسی (Proxy CIDRs)",
       "subHappBlockIPs": "آی‌پی‌های مسدود (Block CIDRs)",
       "subHappDeeplinkGenerated": "دیپ‌لینک تولید و در قوانین روتینگ اعمال شد",
+      "subHappGroupLinks": "لینک‌های اشتراک",
       "subHappGroupRouting": "قوانین و روتینگ",
       "subHappGroupBanners": "اعلانات و بنرهای هوشمند",
       "subHappGroupNetwork": "تنظیمات شبکه و TUN",
       "subHappGroupThemes": "ظاهر و پوسته برنامه",
       "subHappGroupFailover": "مهاجرت و مدیریت کلاینت",
       "subHappGroupAndroid": "پراکسی برنامه‌های اندروید"
+      "subHappGroupAndroid": "پراکسی برنامه‌های اندروید",
+      "discordSettings": "ربات دیسکورد",
+      "discordBotEnable": "فعال‌سازی اعلان‌های دیسکورد",
+      "discordBotEnableDesc": "ارسال هشدارهای سیستم و رویدادها به کانال دیسکورد از طریق ربات",
+      "discordBotToken": "توکن ربات دیسکورد",
+      "discordBotTokenDesc": "توکن ربات از پنل توسعه‌دهندگان دیسکورد",
+      "discordTokenConfigured": "توکن پیکربندی شده است. برای جایگزینی، توکن جدید را وارد کنید.",
+      "discordTokenPlaceholder": "توکن ربات را وارد کنید",
+      "discordChannelId": "شناسه کانال",
+      "discordChannelIdDesc": "شناسه کانال دیسکورد برای دریافت اعلان‌ها",
+      "discordAdminIds": "شناسه کاربران ادمین",
+      "discordAdminIdsDesc": "شناسه کاربران دیسکورد که مجاز به اجرای دستورات ربات هستند، جداشده با کاما. پیام‌های سایر افراد نادیده گرفته می‌شوند و خالی گذاشتن فهرست، دستورات را غیرفعال می‌کند.",
+      "discordEventBusNotify": "اعلان‌های دیسکورد",
+      "testDiscord": "ارسال اعلان آزمایشی",
+      "testDiscordDesc": "ارسال یک اعلان آزمایشی برای بررسی توکن ربات و شناسه کانال",
+      "discordNotInitialized": "سرویس دیسکورد راه‌اندازی نشده است",
+      "discordBotNotEnabled": "ربات دیسکورد فعال نیست",
+      "discordTestFailed": "آزمایش دیسکورد ناموفق بود",
+      "discordTestSuccess": "اعلان آزمایشی با موفقیت ارسال شد",
+      "discordBotLanguage": "زبان ربات دیسکورد",
+      "discordNotifyTime": "زمان نوتیفیکیشن",
+      "discordNotifyTimeDesc": "هر چند وقت یک‌بار ربات دیسکورد گزارش دوره‌ای بفرستد. یک بازهٔ آماده انتخاب کنید یا گزینهٔ سفارشی را بزنید تا عبارت crontab وارد کنید.",
+      "discordNotifyBackup": "پشتیبان‌گیری از دیتابیس",
+      "discordNotifyBackupDesc": "فایل پشتیبان‌دیتابیس را به‌همراه گزارش ارسال می‌کند",
+      "discordEventBusNotifyDesc": "انتخاب کنید کدام رویدادها اعلان دیسکورد را فعال می‌کنند"
     },
     "xray": {
       "save": "ذخیره",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "کنترل ازدحام",
+        "alpn": "ALPN",
+        "udpRelayMode": "حالت رله UDP",
+        "zeroRttHandshake": "دست دادن 0-RTT",
+        "logLevel": "سطح گزارش",
+        "logLevelHint": "وضعیت آنلاین، آخرین اتصال و «شروع پس از اولین استفاده» از خطوط Info سایدکار خوانده می‌شوند؛ Warn یا Error آن‌ها را برای این اینباند غیرفعال می‌کند.",
+        "maxIdleTime": "حداکثر زمان بیکاری (ثانیه)",
+        "authTimeout": "مهلت زمانی احراز هویت (ثانیه)",
+        "maxUdpRelayPacketSize": "حداکثر اندازه بسته UDP",
+        "sni": "SNI",
+        "sniHint": "بازنویسی نشانگر نام سرور"
+      },
       "tun": {
         "userLevel": "سطح کاربر"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "پیکربندی شما یافت نشد!\r\nلطفاً از مدیر خود بخواهید که شناسه کاربر تلگرام خود را در پیکربندی (های) خود استفاده کند.\r\n\r\nشناسه کاربری شما: <code>{{ .TgUserID }}</code>",
       "chooseClient": "یک مشتری برای ورودی {{ .Inbound }} انتخاب کنید",
       "chooseInbound": "یک ورودی انتخاب کنید"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "آزمایش اعلان دیسکورد 3x-ui",
+      "body": "این یک اعلان آزمایشی است که تأیید می‌کند اعلان‌های دیسکورد به‌درستی پیکربندی شده‌اند."
+    },
+    "footer": "پنل 3x-ui",
+    "fields": {
+      "panelVersion": "نسخه پنل",
+      "xrayCore": "هسته Xray",
+      "systemLoad": "بار سیستم",
+      "networkTraffic": "ترافیک شبکه",
+      "totalUsed": "مجموع مصرف",
+      "quota": "سهمیه",
+      "error": "خطا",
+      "delay": "تأخیر",
+      "outbound": "خروجی",
+      "node": "نود",
+      "threshold": "آستانه",
+      "reason": "دلیل",
+      "time": "زمان",
+      "source": "منبع"
+    },
+    "values": {
+      "uptime": "{{ .Days }} روز {{ .Hours }} ساعت",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (مجموع: {{ .Total }})",
+      "counts": "مجموع: {{ .Total }} | در حال اتمام: {{ .Depleting }} | غیرفعال: {{ .Disabled }}",
+      "inbound": "پروتکل: `{{ .Protocol }}` | پورت: `{{ .Port }}` | کاربران: `{{ .Clients }}` | ترافیک: `↑{{ .Up }} ↓{{ .Down }}` | وضعیت: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "خروجی از دسترس خارج شد",
+      "outboundUp": "خروجی در دسترس است",
+      "nodeDown": "نود از دسترس خارج شد",
+      "nodeUp": "نود در دسترس است",
+      "xrayCrash": "هسته Xray از کار افتاد",
+      "cpuHigh": "عبور از آستانه پردازنده",
+      "memoryHigh": "عبور از آستانه حافظه",
+      "loginSuccess": "ورود موفق",
+      "loginFailed": "ورود ناموفق"
+    },
+    "report": {
+      "title": "📊 گزارش وضعیت 3x-ui",
+      "summary": "گزارش دوره‌ای وضعیت سرور و پراکسی برای **{{ .Host }}**",
+      "footer": "گزارش زمان‌بندی‌شده 3x-ui • زمان‌بندی: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 دستورات ربات دیسکورد 3x-ui",
+      "helpDescription": "دستورات موجود برای پایش و مدیریت سرور 3x-ui:",
+      "helpStatus": "نمایش بار سیستم، رم، پردازنده، اتصالات و کاربران آنلاین",
+      "helpReport": "ایجاد گزارش کامل وضعیت (همراه پشتیبان پایگاه داده در صورت فعال بودن)",
+      "helpBackup": "ارسال فوری فایل پشتیبان پایگاه داده",
+      "helpUsage": "نمایش مصرف ترافیک، سهمیه و تاریخ انقضای یک کاربر",
+      "helpInbounds": "فهرست همه ورودی‌های پیکربندی‌شده همراه پورت‌ها و آمار کاربران",
+      "helpRestart": "راه‌اندازی مجدد هسته Xray",
+      "helpHelp": "نمایش همین فهرست دستورات",
+      "statusTitle": "⚡ وضعیت سرور 3x-ui",
+      "statusDescription": "شاخص‌های عملکرد فعلی **{{ .Host }}**",
+      "backupTitle": "🗄️ پشتیبان پایگاه داده",
+      "backupDescription": "آرشیو پشتیبان 3x-ui ایجادشده در `{{ .Time }}`",
+      "backupUnavailable": "❌ سرویس پشتیبان‌گیری در دسترس نیست",
+      "backupFailed": "❌ خواندن پشتیبان پایگاه داده ناموفق بود: {{ .Error }}",
+      "usageHint": "⚠️ نحوه استفاده: `!usage <email>` یا `/usage <email>`",
+      "usageTitle": "👤 مصرف کاربر: {{ .Email }}",
+      "usageDescription": "ورودی: **{{ .Remark }}** (پورت {{ .Port }})",
+      "clientNotFound": "⚠️ کاربر `{{ .Email }}` در هیچ ورودی پیکربندی‌شده‌ای یافت نشد.",
+      "inboundsUnavailable": "❌ سرویس ورودی‌ها در دسترس نیست",
+      "inboundsFailed": "❌ بارگذاری ورودی‌ها ناموفق بود: {{ .Error }}",
+      "inboundsTitle": "🔌 ورودی‌های پیکربندی‌شده",
+      "inboundsDescription": "تعداد کل ورودی‌ها: **{{ .Count }}**",
+      "noInbounds": "ℹ️ هیچ ورودی‌ای پیکربندی نشده است.",
+      "xrayUnavailable": "❌ سرویس Xray در دسترس نیست",
+      "restarting": "🔄 در حال راه‌اندازی مجدد هسته Xray...",
+      "restartFailed": "❌ راه‌اندازی مجدد Xray ناموفق بود: {{ .Error }}",
+      "restartSuccess": "✅ هسته Xray با موفقیت راه‌اندازی مجدد شد."
     }
   },
   "email": {

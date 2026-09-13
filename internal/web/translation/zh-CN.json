@@ -648,6 +648,8 @@
         "scanCert": "证书",
         "scanCertInvalid": "不受信任",
         "scanCertExpiry": "证书有效期至",
+        "scanCertChain": "证书链",
+        "scanMldsaCertChainTooSmall": "目标证书链为 {length} 字节，低于 ML-DSA-65 所需的 {min} 字节下限。这会导致连接静默失败。请更换目标或关闭 ML-DSA-65。",
         "scanSniUsed": "使用的 SNI",
         "scanPrivateNote": "已通过内网/本地网络检测 — 该地址无法从互联网访问。",
         "scanPrivateConfirmTitle": "目标位于本地网络",
@@ -675,7 +677,8 @@
           "listen": "入站监听地址",
           "custom": "自定义"
         },
-        "verifyPeerCertByName": "按名称验证对端证书"
+        "verifyPeerCertByName": "按名称验证对端证书",
+        "autoFill": "自动填充"
       },
       "info": {
         "mode": "模式",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 配置"
       },
-      "sniffingDestOverride": "目标覆盖"
+      "sniffingDestOverride": "目标覆盖",
+      "advancedTitle": "高级设置"
     },
     "clients": {
       "tabBasics": "基本",
@@ -760,6 +764,7 @@
       "noHwids": "暂无 HWID 设备",
       "firstSeen": "首次出现",
       "lastSeen": "最后出现",
+      "hwidFingerprint": "HWID 指纹",
       "deleteHwid": "移除设备",
       "deleteHwidConfirm": "移除此设备？下次获取订阅时它将需要重新注册。",
       "hwidDeleted": "设备已移除。",
@@ -768,7 +773,7 @@
       "limitIpFail2banWindows": "Windows 上不支持 Fail2ban，无法实施 IP 限制。",
       "limitIpDisabled": "此服务器已禁用 IP 限制功能。",
       "password": "密码",
-      "passwordDesc": "仅 Trojan 和 Shadowsocks 客户端使用；VLESS、VMess、Hysteria 和 WireGuard 会忽略此项。",
+      "passwordDesc": "用于 Trojan、Shadowsocks 和 TUIC 客户端；对 VLESS、VMess、Hysteria 和 WireGuard 忽略。",
       "subId": "订阅 ID",
       "online": "在线",
       "email": "邮箱",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "全部清除",
       "noSubId": "该客户端没有 subId，无法生成共享链接。",
       "noLinks": "没有可共享的链接 — 请先将此客户端关联到支持协议的入站。",
+      "qrStandard": "标准",
+      "happLinkRetry": "重试",
+      "happLinkErrorHint": "无法生成 Happ 链接。请重试，或前往 {dashboard} -> {logs} 查看详情。",
+      "happLinkSourceTooLong": "订阅地址超过面板的 8192 字节（UTF-8）处理上限。请缩短订阅地址，或使用“标准”普通订阅。",
+      "happLinkQrTooLong": "此 Happ 链接有效，但过长，无法显示为二维码。请点击“复制”以使用完整链接。",
+      "happLinkDisabledHint": "请先在设置中启用 Happ 链接生成，然后再使用 Happ。",
+      "happLinkDisabledTitle": "Happ 加密链接生成未启用",
+      "happLinkDisabledDescription": "启用后，可在本地生成加密的 Happ 订阅链接。（仅限 Happ）",
+      "happLinkSettingsAction": "前往设置",
+      "happLinkDisclosure": "链接在本地生成。持有此链接的人可能还原或分享订阅地址。",
+      "happLinkOptionLabel": "Happ 加密链接",
       "link": "链接",
       "resetNotPossible": "请先将此客户端关联到入站。",
       "resetAllTraffics": "重置所有客户端流量",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 配置",
+      "tuicConfig": "TUIC 配置 (Clash)",
       "mtprotoSecret": "MTProto 密钥",
       "mtprotoSecretHint": "该客户端的 FakeTLS 密钥。重新生成即可更换。",
       "mtprotoAdTag": "广告标签（赞助频道）",
@@ -915,6 +932,7 @@
       "renewOnDay": "按日期续期",
       "renewOnDayDesc": "每个自然月的这一天午夜（按面板时区）续期，而不是每 N 天续期一次。若当月没有该日期，则在当月最后一天续期。填 0 保持按天间隔模式。",
       "renewsUsed": "已用续期次数",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。"
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "用于与客户端 User-Agent 进行匹配，从而在标准订阅 URL 上自动选择 Xray JSON 格式的 Go RE2 正则表达式。默认留空，因此在为需要服务的客户端设置规则之前，自动识别保持关闭。其他客户端继续获得原始/Base64 响应。更改后请重启面板。",
       "subJsonRoutingRules": "JSON 订阅路由配置",
       "subJsonRoutingRulesDesc": "路由 JSON、happ:// 或 incy:// 深度链接，或 https:// URL。设置后，将替换 JSON 订阅的 DNS 和路由规则（为忽略响应头的客户端直接嵌入配置，例如使用客户端侧负载均衡的 Happ 和 INCY）。若 Happ 路由响应头设置为空，同一配置会自动作为 Routing 响应头发送（内联 JSON 和 URL 转换为 happ:// 深度链接），以便客户端下载匹配的 geo 文件。",
+      "subJsonDns": "DNS 服务器",
+      "subJsonDnsDesc": "替换写入每个 JSON 订阅配置的 dns 块：可以是完整的 dns 对象，也可以只是 servers 数组。这些配置中路由配置文件的 DNS 也会被替换；但应用 Routing 头的客户端仍使用配置文件中的解析器。留空则使用内置解析器。",
       "subClashAutoDetect": "自动识别 Clash/Mihomo 客户端",
       "subClashAutoDetectDesc": "启用后，使用标准订阅 URL 的已识别 Clash/Mihomo 客户端将自动获得 Clash YAML。浏览器仍显示订阅页面，其他客户端继续获得原始/Base64 响应，独立的 JSON 和 Clash URL 仍然可用。需要启用 Clash/Mihomo 订阅并重启面板才能生效。",
       "subClashUserAgentRegex": "Clash/Mihomo User-Agent 正则表达式",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "包含自定义订阅页面模板 (index.html/sub.html) 的文件夹的绝对路径（例如 /etc/3x-ui/sub_templates/my-theme/）。留空则使用默认页面。",
       "subThemeDirDocs": "模板指南 ↗",
       "subEnableRouting": "启用路由",
+      "happLinkEnable": "加密订阅链接",
+      "happLinkEnableDesc": "允许在客户端二维码窗口生成 Happ 加密链接，订阅地址在本地处理。",
       "subEnableRoutingDesc": "在 VPN 客户端中启用路由的全局设置。（仅限 Happ）",
       "subRoutingRules": "路由规则",
       "subRoutingRulesDesc": "粘贴现成的 happ:// 深层链接或一个固定 HTTPS URL。面板会在后台更新远程规则并保留最后一个有效值，因此订阅请求无需等待远程源。（仅限 Happ）",
@@ -1288,6 +1310,8 @@
       "muxSett": "复用器设置",
       "direct": "直接连接",
       "directDesc": "直接与特定国家的域或 IP 范围建立连接",
+      "block": "阻止连接",
+      "blockDesc": "使用 blackhole 出站阻止对所选域名或 IP 范围的连接。",
       "notifications": "通知",
       "certs": "证书",
       "externalTraffic": "外部流量",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "代理 IP / CIDR",
       "subHappBlockIPs": "阻止 IP / CIDR",
       "subHappDeeplinkGenerated": "DeepLink 已生成并填入路由规则",
+      "subHappGroupLinks": "订阅链接",
       "subHappGroupRouting": "路由分流与规则",
       "subHappGroupBanners": "横幅公告与通知",
       "subHappGroupNetwork": "网络与 TUN 引擎",
       "subHappGroupThemes": "界面与主题外观",
       "subHappGroupFailover": "迁移与客户端管理",
       "subHappGroupAndroid": "Android 分应用代理"
+      "subHappGroupAndroid": "Android 分应用代理",
+      "discordSettings": "Discord 机器人",
+      "discordBotEnable": "启用 Discord 通知",
+      "discordBotEnableDesc": "通过机器人向 Discord 频道发送系统和事件警报",
+      "discordBotToken": "Discord 机器人令牌",
+      "discordBotTokenDesc": "来自 Discord 开发者门户的机器人令牌",
+      "discordTokenConfigured": "令牌已配置。输入新令牌以替换。",
+      "discordTokenPlaceholder": "输入机器人令牌",
+      "discordChannelId": "频道 ID",
+      "discordChannelIdDesc": "接收通知的 Discord 频道 ID",
+      "discordAdminIds": "管理员用户 ID",
+      "discordAdminIdsDesc": "允许运行机器人命令的 Discord 用户 ID，以英文逗号分隔。其他人的消息会被忽略，列表为空时命令将被关闭。",
+      "discordEventBusNotify": "Discord 通知",
+      "testDiscord": "发送测试通知",
+      "testDiscordDesc": "发送测试通知以验证您的机器人令牌和频道 ID",
+      "discordNotInitialized": "Discord 服务未初始化",
+      "discordBotNotEnabled": "Discord 机器人未启用",
+      "discordTestFailed": "Discord 测试失败",
+      "discordTestSuccess": "测试通知发送成功",
+      "discordBotLanguage": "Discord 机器人语言",
+      "discordNotifyTime": "通知时间",
+      "discordNotifyTimeDesc": "Discord 机器人发送周期性报告的频率。选择预设间隔，或选择“自定义”以输入 crontab 表达式。",
+      "discordNotifyBackup": "数据库备份",
+      "discordNotifyBackupDesc": "发送带有报告的数据库备份文件",
+      "discordEventBusNotifyDesc": "选择触发 Discord 通知的事件"
     },
     "xray": {
       "importRules": "导入规则",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "拥塞控制算法",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 转发模式",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日志级别",
+        "logLevelHint": "在线状态、最后在线时间和“首次使用后开始”来自 sidecar 的 Info 日志行；选择 Warn 或 Error 会使此入站失去这些功能。",
+        "maxIdleTime": "最大空闲时间 (秒)",
+        "authTimeout": "认证超时时间 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 数据包大小",
+        "sni": "SNI",
+        "sniHint": "服务器名称指示 (SNI) 覆盖"
+      },
       "tun": {
         "userLevel": "用户级别"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "未找到您的配置！\r\n请向管理员询问，在您的配置中使用您的 Telegram 用户 ChatID。\r\n\r\n您的用户 ChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "为入站 {{ .Inbound }} 选择一个客户",
       "chooseInbound": "选择一个入站"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord 通知测试",
+      "body": "这是一条测试通知，确认 Discord 通知已正确配置。"
+    },
+    "footer": "3x-ui 面板",
+    "fields": {
+      "panelVersion": "面板版本",
+      "xrayCore": "Xray 核心",
+      "systemLoad": "系统负载",
+      "networkTraffic": "网络流量",
+      "totalUsed": "已用总量",
+      "quota": "配额",
+      "error": "错误",
+      "delay": "延迟",
+      "outbound": "出站",
+      "node": "节点",
+      "threshold": "阈值",
+      "reason": "原因",
+      "time": "时间",
+      "source": "来源"
+    },
+    "values": {
+      "uptime": "{{ .Days }}天 {{ .Hours }}小时",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }}（总计：{{ .Total }}）",
+      "counts": "总计：{{ .Total }} | 即将耗尽：{{ .Depleting }} | 已禁用：{{ .Disabled }}",
+      "inbound": "协议：`{{ .Protocol }}` | 端口：`{{ .Port }}` | 客户端：`{{ .Clients }}` | 流量：`↑{{ .Up }} ↓{{ .Down }}` | 状态：`{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "出站已断开",
+      "outboundUp": "出站已恢复",
+      "nodeDown": "节点已离线",
+      "nodeUp": "节点已恢复",
+      "xrayCrash": "Xray 核心崩溃",
+      "cpuHigh": "CPU 超出阈值",
+      "memoryHigh": "内存超出阈值",
+      "loginSuccess": "登录成功",
+      "loginFailed": "登录失败"
+    },
+    "report": {
+      "title": "📊 3x-ui 状态报告",
+      "summary": "**{{ .Host }}** 的服务器与代理定期状态报告",
+      "footer": "3x-ui 定时报告 • 计划：{{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord 机器人命令",
+      "helpDescription": "用于监控和管理 3x-ui 服务器的可用命令：",
+      "helpStatus": "显示系统负载、内存、CPU、连接数和在线用户",
+      "helpReport": "生成完整状态报告（如已配置则附带数据库备份）",
+      "helpBackup": "立即发送数据库备份文件",
+      "helpUsage": "查询客户端的流量使用、配额和到期时间",
+      "helpInbounds": "列出所有已配置的入站及其端口和客户端统计",
+      "helpRestart": "重启 Xray 核心",
+      "helpHelp": "显示此可用命令列表",
+      "statusTitle": "⚡ 3x-ui 服务器状态",
+      "statusDescription": "**{{ .Host }}** 的当前运行指标",
+      "backupTitle": "🗄️ 数据库备份",
+      "backupDescription": "3x-ui 备份生成于 `{{ .Time }}`",
+      "backupUnavailable": "❌ 备份服务不可用",
+      "backupFailed": "❌ 读取数据库备份失败：{{ .Error }}",
+      "usageHint": "⚠️ 用法：`!usage <email>` 或 `/usage <email>`",
+      "usageTitle": "👤 客户端用量：{{ .Email }}",
+      "usageDescription": "入站：**{{ .Remark }}**（端口 {{ .Port }}）",
+      "clientNotFound": "⚠️ 在任何已配置的入站中均未找到客户端 `{{ .Email }}`。",
+      "inboundsUnavailable": "❌ 入站服务不可用",
+      "inboundsFailed": "❌ 加载入站失败：{{ .Error }}",
+      "inboundsTitle": "🔌 已配置的入站",
+      "inboundsDescription": "入站总数：**{{ .Count }}**",
+      "noInbounds": "ℹ️ 尚未配置任何入站。",
+      "xrayUnavailable": "❌ Xray 服务不可用",
+      "restarting": "🔄 正在重启 Xray 核心...",
+      "restartFailed": "❌ 重启 Xray 失败：{{ .Error }}",
+      "restartSuccess": "✅ Xray 核心已成功重启。"
     }
   },
   "email": {

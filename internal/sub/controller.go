@@ -107,6 +107,7 @@ type subControllerConfig struct {
 	subJsonMux            string
 	subJsonRules          string
 	subJsonRoutingRules   string
+	subJsonDns            string
 	subJsonFinalMask      string
 	subJsonObservatory    string
 	subClashEnableRouting bool
@@ -191,6 +192,10 @@ func WithSUBJsonRoutingRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonRoutingRules = value }
 }
 
+func WithSUBJsonDns(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonDns = value }
+}
+
 func WithSUBJsonFinalMask(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonFinalMask = value }
 }
@@ -268,6 +273,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	sub := NewSubService(config.remarkTemplate)
 	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, config.subJsonRoutingRules, sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
+	subJsonSvc.SetDnsConfig(config.subJsonDns)
 	a := &SUBController{
 		subTitle:            config.subTitle,
 		subSupportUrl:       config.subSupportURL,
@@ -932,8 +938,8 @@ func (a *SUBController) ApplyCommonHeaders(
 
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
 	if strings.TrimSpace(profileRoutingRules) == "" {
-		// Happ/INCY fetch the geo files the baked JSON rules reference through
-		// this header, so a blank Happ setting falls back to the JSON profile.
+		// Happ/INCY fetch the geo files the baked rules reference through this
+		// header; unlike the documents, it keeps the profile's own DNS servers.
 		rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
 	}
 	// The off values undo a previously pushed setting, so they ride the same

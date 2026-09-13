@@ -101,6 +101,14 @@ export default function ClientHwidListModal({
                     </Typography.Text>
                   </>
                 )}
+                {entry.fingerprint && (
+                  <>
+                    <br />
+                    <Typography.Text type="secondary" code>
+                      {t('pages.clients.hwidFingerprint')}: {entry.fingerprint}
+                    </Typography.Text>
+                  </>
+                )}
               </div>
               <Popconfirm
                 title={t('pages.clients.deleteHwidConfirm')}

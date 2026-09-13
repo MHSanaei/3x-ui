@@ -628,6 +628,8 @@
         "scanCert": "Sertifikat",
         "scanCertInvalid": "Tidak tepercaya",
         "scanCertExpiry": "Sertifikat kedaluwarsa",
+        "scanCertChain": "Rantai sertifikat",
+        "scanMldsaCertChainTooSmall": "Rantai sertifikat target berukuran {length} byte, di bawah minimum {min} byte yang dibutuhkan ML-DSA-65. Ini akan menyebabkan koneksi gagal tanpa pesan error. Pilih target lain atau nonaktifkan ML-DSA-65.",
         "scanSniUsed": "SNI yang dipakai",
         "scanPrivateNote": "Diperiksa melalui jaringan privat/lokal — alamat ini tidak dapat dijangkau dari internet.",
         "scanPrivateConfirmTitle": "Target di jaringan lokal",
@@ -675,7 +677,8 @@
         "bytesPerSec": "Byte per detik",
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
-        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama."
+        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
+        "autoFill": "Isi Otomatis"
       },
       "info": {
         "mode": "Mode",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Konfig Peer {n}"
       },
-      "sniffingDestOverride": "Penggantian tujuan"
+      "sniffingDestOverride": "Penggantian tujuan",
+      "advancedTitle": "Pengaturan Lanjutan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -760,6 +764,7 @@
       "noHwids": "Belum ada perangkat HWID",
       "firstSeen": "Pertama terlihat",
       "lastSeen": "Terakhir terlihat",
+      "hwidFingerprint": "Sidik jari HWID",
       "deleteHwid": "Hapus perangkat",
       "deleteHwidConfirm": "Hapus perangkat ini? Perangkat perlu mendaftar ulang pada pengambilan langganan berikutnya.",
       "hwidDeleted": "Perangkat dihapus.",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "Hapus semua",
       "noSubId": "Klien ini tidak punya subId, tidak ada tautan yang bisa dibagikan.",
       "noLinks": "Tidak ada tautan yang bisa dibagikan — lampirkan klien ini ke inbound yang mendukung protokol terlebih dahulu.",
+      "qrStandard": "Standar",
+      "happLinkRetry": "Coba lagi",
+      "happLinkErrorHint": "Tautan Happ tidak dapat dibuat. Coba lagi, atau periksa {dashboard} -> {logs} untuk detailnya.",
+      "happLinkSourceTooLong": "URL langganan melebihi batas pemrosesan panel sebesar 8192 byte UTF-8. Persingkat URL langganan atau gunakan opsi «Standar».",
+      "happLinkQrTooLong": "Tautan Happ ini valid, tetapi terlalu panjang untuk ditampilkan sebagai kode QR. Gunakan tombol Salin untuk memakai tautan lengkap.",
+      "happLinkDisabledHint": "Aktifkan pembuatan tautan Happ di Pengaturan sebelum menggunakan Happ.",
+      "happLinkDisabledTitle": "Pembuatan tautan terenkripsi Happ belum diaktifkan",
+      "happLinkDisabledDescription": "Aktifkan pembuatan tautan langganan Happ terenkripsi secara lokal. (Hanya untuk Happ)",
+      "happLinkSettingsAction": "Buka Pengaturan",
+      "happLinkDisclosure": "Tautan dibuat secara lokal. Siapa pun yang memiliki tautan ini mungkin dapat memulihkan atau membagikan URL langganan.",
+      "happLinkOptionLabel": "Tautan terenkripsi Happ",
       "link": "Tautan",
       "resetNotPossible": "Lampirkan klien ini ke inbound terlebih dahulu.",
       "resetAllTraffics": "Reset lalu lintas semua klien",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Konfigurasi AmneziaWG",
+      "tuicConfig": "Konfigurasi TUIC (Clash)",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
       "mtprotoAdTag": "Ad-tag (kanal bersponsor)",
@@ -915,6 +932,7 @@
       "renewOnDay": "Perpanjang pada tanggal",
       "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
       "renewsUsed": "Perpanjangan terpakai",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto."
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "Ekspresi reguler Go RE2 yang dicocokkan dengan User-Agent klien untuk memilih format Xray JSON secara otomatis pada URL langganan standar. Kosong secara bawaan, sehingga deteksi otomatis tetap nonaktif hingga Anda menetapkan pola untuk klien yang ingin dilayani. Klien lain tetap menerima respons mentah/Base64. Mulai ulang panel setelah mengubahnya.",
       "subJsonRoutingRules": "Profil routing langganan JSON",
       "subJsonRoutingRulesDesc": "JSON routing, deeplink happ:// atau incy://, atau URL https://. Jika diisi, menggantikan DNS dan aturan routing langganan JSON (dibake ke dalam konfigurasi untuk klien yang mengabaikan header, mis. Happ dan INCY dengan balancer sisi klien). Jika pengaturan header Happ kosong, profil yang sama otomatis dikirim sebagai header Routing (JSON dan URL sebagai deeplink happ://) agar klien mengunduh berkas geo yang cocok.",
+      "subJsonDns": "Server DNS",
+      "subJsonDnsDesc": "Mengganti blok dns di semua konfigurasi langganan JSON: objek dns lengkap atau hanya array servers. Juga menggantikan DNS profil perutean di konfigurasi tersebut; klien yang menerapkan header Routing tetap memakai resolver profil. Kosongkan untuk memakai resolver bawaan.",
       "subClashAutoDetect": "Deteksi otomatis klien Clash/Mihomo",
       "subClashAutoDetectDesc": "Jika diaktifkan, klien Clash/Mihomo yang dikenali dan meminta URL langganan standar akan otomatis menerima YAML Clash. Browser tetap menampilkan halaman langganan, klien lain tetap menerima respons mentah/Base64, dan URL JSON serta Clash eksplisit tetap tersedia. Langganan Clash/Mihomo harus diaktifkan dan panel harus dimulai ulang agar perubahan diterapkan.",
       "subClashUserAgentRegex": "Regex User-Agent Clash/Mihomo",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "Path absolut ke folder yang berisi template kustom (index.html/sub.html) untuk halaman langganan (mis. /etc/3x-ui/sub_templates/my-theme/). Biarkan kosong untuk menggunakan halaman default.",
       "subThemeDirDocs": "Panduan templat ↗",
       "subEnableRouting": "Aktifkan perutean",
+      "happLinkEnable": "Tautan langganan terenkripsi",
+      "happLinkEnableDesc": "Izinkan pembuatan tautan Happ terenkripsi di jendela kode QR klien. URL langganan diproses secara lokal.",
       "subEnableRoutingDesc": "Pengaturan global untuk mengaktifkan perutean (routing) di klien VPN. (Hanya untuk Happ)",
       "subRoutingRules": "Aturan routing",
       "subRoutingRulesDesc": "Tempel deeplink happ:// siap pakai atau satu URL HTTPS permanen. Panel memperbarui aturan jarak jauh di latar belakang dan menyimpan nilai valid terakhir, sehingga permintaan langganan tidak menunggu sumber. (Hanya untuk Happ)",
@@ -1288,6 +1310,8 @@
       "muxSett": "Pengaturan Mux",
       "direct": "Koneksi langsung",
       "directDesc": "Secara langsung membuat koneksi dengan domain atau rentang IP negara tertentu.",
+      "block": "Blokir Koneksi",
+      "blockDesc": "Memblokir koneksi ke domain atau rentang IP yang dipilih menggunakan outbound blackhole.",
       "notifications": "Notifikasi",
       "certs": "Sertifikat",
       "externalTraffic": "Lalu Lintas Eksternal",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "Proxy IPs / CIDRs",
       "subHappBlockIPs": "Blocked IPs / CIDRs",
       "subHappDeeplinkGenerated": "Deeplink generated and applied to routing rules",
+      "subHappGroupLinks": "Tautan Langganan",
       "subHappGroupRouting": "Routing & Rules",
       "subHappGroupBanners": "Banners & Announcements",
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Bot Discord",
+      "discordBotEnable": "Aktifkan Notifikasi Discord",
+      "discordBotEnableDesc": "Kirim peringatan sistem dan acara ke saluran Discord melalui bot",
+      "discordBotToken": "Token Bot Discord",
+      "discordBotTokenDesc": "Token bot dari Discord Developer Portal",
+      "discordTokenConfigured": "Token telah dikonfigurasi. Masukkan token baru untuk menggantinya.",
+      "discordTokenPlaceholder": "Masukkan token bot",
+      "discordChannelId": "ID Saluran",
+      "discordChannelIdDesc": "ID saluran Discord tempat notifikasi akan dikirim",
+      "discordAdminIds": "ID Pengguna Admin",
+      "discordAdminIdsDesc": "ID pengguna Discord yang boleh menjalankan perintah bot, dipisahkan koma. Pesan dari orang lain diabaikan, dan daftar kosong menonaktifkan perintah.",
+      "discordEventBusNotify": "Notifikasi Discord",
+      "testDiscord": "Kirim Notifikasi Uji",
+      "testDiscordDesc": "Kirim notifikasi uji untuk memverifikasi token bot dan ID saluran Anda",
+      "discordNotInitialized": "Layanan Discord belum diinisialisasi",
+      "discordBotNotEnabled": "Bot Discord belum diaktifkan",
+      "discordTestFailed": "Pengujian Discord gagal",
+      "discordTestSuccess": "Pemberitahuan uji coba berhasil dikirim",
+      "discordBotLanguage": "Bahasa Bot Discord",
+      "discordNotifyTime": "Waktu Notifikasi",
+      "discordNotifyTimeDesc": "Seberapa sering bot Discord mengirim laporan berkala. Pilih interval siap pakai, atau pilih Kustom untuk memasukkan ekspresi crontab.",
+      "discordNotifyBackup": "Cadangan Database",
+      "discordNotifyBackupDesc": "Kirim berkas cadangan database dengan laporan.",
+      "discordEventBusNotifyDesc": "Pilih peristiwa yang memicu notifikasi Discord"
     },
     "xray": {
       "save": "Simpan",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "Kontrol Kemacetan",
+        "alpn": "ALPN",
+        "udpRelayMode": "Mode Relai UDP",
+        "zeroRttHandshake": "Jabat Tangan 0-RTT",
+        "logLevel": "Tingkat Log",
+        "logLevelHint": "Status online, terakhir online, dan \"mulai setelah penggunaan pertama\" dibaca dari baris Info sidecar; Warn atau Error menonaktifkannya untuk inbound ini.",
+        "maxIdleTime": "Waktu Diam Maks (dtk)",
+        "authTimeout": "Batas Waktu Otentikasi (dtk)",
+        "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
+        "sni": "SNI",
+        "sniHint": "Penggantian Server Name Indication"
+      },
       "tun": {
         "userLevel": "Level Pengguna"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "Konfigurasi Anda tidak ditemukan!\r\nSilakan minta admin Anda untuk menggunakan ChatID Telegram Anda dalam konfigurasi Anda.\r\n\r\nChatID Pengguna Anda: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Pilih Klien untuk Inbound {{ .Inbound }}",
       "chooseInbound": "Pilih Inbound"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "Uji Notifikasi Discord 3x-ui",
+      "body": "Ini adalah notifikasi uji yang memastikan notifikasi Discord telah dikonfigurasi dengan benar."
+    },
+    "footer": "Panel 3x-ui",
+    "fields": {
+      "panelVersion": "Versi Panel",
+      "xrayCore": "Inti Xray",
+      "systemLoad": "Beban Sistem",
+      "networkTraffic": "Lalu Lintas Jaringan",
+      "totalUsed": "Total Terpakai",
+      "quota": "Kuota",
+      "error": "Galat",
+      "delay": "Latensi",
+      "outbound": "Outbound",
+      "node": "Node",
+      "threshold": "Ambang Batas",
+      "reason": "Alasan",
+      "time": "Waktu",
+      "source": "Sumber"
+    },
+    "values": {
+      "uptime": "{{ .Days }} hari {{ .Hours }} jam",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Total: {{ .Total }})",
+      "counts": "Total: {{ .Total }} | Hampir habis: {{ .Depleting }} | Nonaktif: {{ .Disabled }}",
+      "inbound": "Protokol: `{{ .Protocol }}` | Port: `{{ .Port }}` | Klien: `{{ .Clients }}` | Lalu lintas: `↑{{ .Up }} ↓{{ .Down }}` | Status: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Outbound Mati",
+      "outboundUp": "Outbound Aktif",
+      "nodeDown": "Node Mati",
+      "nodeUp": "Node Aktif",
+      "xrayCrash": "Inti Xray Mengalami Crash",
+      "cpuHigh": "Ambang Batas CPU Terlampaui",
+      "memoryHigh": "Ambang Batas Memori Terlampaui",
+      "loginSuccess": "Login Berhasil",
+      "loginFailed": "Login Gagal"
+    },
+    "report": {
+      "title": "📊 Laporan Status 3x-ui",
+      "summary": "Laporan berkala status server dan proxy untuk **{{ .Host }}**",
+      "footer": "Laporan Terjadwal 3x-ui • Jadwal: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 Perintah Bot Discord 3x-ui",
+      "helpDescription": "Perintah yang tersedia untuk memantau dan mengelola server 3x-ui:",
+      "helpStatus": "Tampilkan beban sistem, RAM, CPU, koneksi, dan pengguna online",
+      "helpReport": "Buat laporan status lengkap (dengan cadangan DB jika dikonfigurasi)",
+      "helpBackup": "Kirim file cadangan database sekarang juga",
+      "helpUsage": "Cek pemakaian lalu lintas, kuota, dan masa berlaku klien",
+      "helpInbounds": "Daftar semua inbound yang dikonfigurasi beserta port dan statistik klien",
+      "helpRestart": "Mulai ulang inti Xray",
+      "helpHelp": "Tampilkan daftar perintah ini",
+      "statusTitle": "⚡ Status Server 3x-ui",
+      "statusDescription": "Metrik operasional terkini untuk **{{ .Host }}**",
+      "backupTitle": "🗄️ Cadangan Database",
+      "backupDescription": "Arsip cadangan 3x-ui dibuat pada `{{ .Time }}`",
+      "backupUnavailable": "❌ Layanan cadangan tidak tersedia",
+      "backupFailed": "❌ Gagal membaca cadangan database: {{ .Error }}",
+      "usageHint": "⚠️ Penggunaan: `!usage <email>` atau `/usage <email>`",
+      "usageTitle": "👤 Pemakaian Klien: {{ .Email }}",
+      "usageDescription": "Inbound: **{{ .Remark }}** (Port {{ .Port }})",
+      "clientNotFound": "⚠️ Klien `{{ .Email }}` tidak ditemukan di inbound mana pun.",
+      "inboundsUnavailable": "❌ Layanan inbound tidak tersedia",
+      "inboundsFailed": "❌ Gagal memuat inbound: {{ .Error }}",
+      "inboundsTitle": "🔌 Inbound yang Dikonfigurasi",
+      "inboundsDescription": "Total inbound: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Belum ada inbound yang dikonfigurasi.",
+      "xrayUnavailable": "❌ Layanan Xray tidak tersedia",
+      "restarting": "🔄 Memulai ulang inti Xray...",
+      "restartFailed": "❌ Gagal memulai ulang Xray: {{ .Error }}",
+      "restartSuccess": "✅ Inti Xray berhasil dimulai ulang."
     }
   },
   "email": {

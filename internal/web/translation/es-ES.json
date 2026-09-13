@@ -649,6 +649,8 @@
         "scanCert": "Certificado",
         "scanCertInvalid": "No confiable",
         "scanCertExpiry": "El certificado caduca",
+        "scanCertChain": "Cadena de certificados",
+        "scanMldsaCertChainTooSmall": "La cadena de certificados del destino mide {length} bytes, por debajo del mínimo de {min} bytes que requiere ML-DSA-65. Las conexiones fallarán en silencio. Elige otro destino o desactiva ML-DSA-65.",
         "scanSniUsed": "SNI utilizado",
         "scanPrivateNote": "Comprobado en una red privada/local: esta dirección no es accesible desde internet.",
         "scanPrivateConfirmTitle": "Destino en una red local",
@@ -675,7 +677,8 @@
           "node": "Dirección del nodo",
           "listen": "Dirección de escucha del inbound",
           "custom": "Personalizada"
-        }
+        },
+        "autoFill": "Autocompletar"
       },
       "info": {
         "mode": "Modo",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Config Peer {n}"
       },
-      "sniffingDestOverride": "Anulación de destino"
+      "sniffingDestOverride": "Anulación de destino",
+      "advancedTitle": "Configuración avanzada"
     },
     "clients": {
       "tabBasics": "Básico",
@@ -760,6 +764,7 @@
       "noHwids": "Aún no hay dispositivos HWID",
       "firstSeen": "Visto por primera vez",
       "lastSeen": "Visto por última vez",
+      "hwidFingerprint": "Huella HWID",
       "deleteHwid": "Eliminar dispositivo",
       "deleteHwidConfirm": "¿Eliminar este dispositivo? Deberá volver a registrarse en la próxima obtención de la suscripción.",
       "hwidDeleted": "Dispositivo eliminado.",
@@ -795,6 +800,17 @@
       "clearAllInbounds": "Limpiar todo",
       "noSubId": "Este cliente no tiene subId, no hay enlace compartible.",
       "noLinks": "No hay enlaces compartibles — asocia primero este cliente a un inbound con protocolo válido.",
+      "qrStandard": "Estándar",
+      "happLinkRetry": "Reintentar",
+      "happLinkErrorHint": "No se pudo generar el enlace de Happ. Reinténtalo o consulta {dashboard} -> {logs} para obtener más detalles.",
+      "happLinkSourceTooLong": "La URL de suscripción supera el límite de procesamiento del panel de 8192 bytes UTF-8. Acorta la URL de suscripción o utiliza la opción «Estándar».",
+      "happLinkQrTooLong": "Este enlace de Happ es válido, pero es demasiado largo para mostrarlo como código QR. Pulsa «Copiar» para usar el enlace completo.",
+      "happLinkDisabledHint": "Activa la generación de enlaces de Happ en Configuración antes de usar Happ.",
+      "happLinkDisabledTitle": "La generación de enlaces cifrados de Happ no está activada",
+      "happLinkDisabledDescription": "Activa la generación local de enlaces cifrados de suscripción de Happ. (Solo para Happ)",
+      "happLinkSettingsAction": "Ir a Configuración",
+      "happLinkDisclosure": "El enlace se genera localmente. Cualquiera que lo tenga podría recuperar o compartir la URL de suscripción.",
+      "happLinkOptionLabel": "Enlace cifrado de Happ",
       "link": "Enlace",
       "resetNotPossible": "Asocia primero este cliente a un inbound.",
       "resetAllTraffics": "Restablecer tráfico de todos los clientes",
@@ -882,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Configuración de AmneziaWG",
+      "tuicConfig": "Configuración de TUIC (Clash)",
       "mtprotoSecret": "Secreto MTProto",
       "mtprotoSecretHint": "El secreto FakeTLS del cliente. Vuelve a generarlo para cambiarlo.",
       "mtprotoAdTag": "Ad-tag (canal patrocinado)",
@@ -915,6 +932,7 @@
       "renewOnDay": "Renovar el día",
       "renewOnDayDesc": "Renueva este día de cada mes natural, a medianoche en la zona horaria del panel, en lugar de cada N días. Si el mes es demasiado corto para el día elegido, renueva su último día. 0 mantiene el modo de intervalo en días.",
       "renewsUsed": "Renovaciones usadas",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Introduce una etiqueta hexadecimal de 32 caracteres para asignar, o 'none' para borrarla en MTProto."
     },
     "groups": {
@@ -1171,6 +1189,8 @@
       "subJsonUserAgentRegexDesc": "Expresión regular Go RE2 que se compara con el User-Agent del cliente para seleccionar automáticamente el formato Xray JSON en la URL de suscripción estándar. Vacía de forma predeterminada, por lo que la detección automática permanece desactivada hasta que definas un patrón para los clientes que quieras atender. Los demás clientes conservan la respuesta sin procesar/Base64. Reinicia el panel después de cambiarla.",
       "subJsonRoutingRules": "Perfil de enrutamiento para la suscripción JSON",
       "subJsonRoutingRulesDesc": "JSON de enrutamiento, deeplink happ:// o incy://, o URL https://. Si se establece, reemplaza el DNS y las reglas de enrutamiento de la suscripción JSON (integrados en la configuración para clientes que ignoran cabeceras, p. ej. Happ e INCY con balanceadores del lado cliente). Si el ajuste de cabecera de Happ está vacío, el mismo perfil se envía automáticamente como cabecera Routing (el JSON y las URL como deeplink happ://) para que los clientes descarguen los archivos geo coincidentes.",
+      "subJsonDns": "Servidores DNS",
+      "subJsonDnsDesc": "Reemplaza el bloque dns de todas las configuraciones de la suscripción JSON: un objeto dns completo o solo el array servers. También reemplaza el DNS del perfil de enrutamiento en esas configuraciones; los clientes que aplican la cabecera Routing conservan sus resolutores. Vacío mantiene el resolutor integrado.",
       "subClashAutoDetect": "Detectar automáticamente clientes Clash/Mihomo",
       "subClashAutoDetectDesc": "Al activarlo, los clientes Clash/Mihomo reconocidos que soliciten la URL de suscripción estándar recibirán automáticamente YAML de Clash. Los navegadores seguirán mostrando la página de suscripción, los demás clientes conservarán la respuesta sin procesar/Base64 y las URL explícitas de JSON y Clash seguirán disponibles. Requiere activar la suscripción Clash/Mihomo y reiniciar el panel para aplicar el cambio.",
       "subClashUserAgentRegex": "Expresión User-Agent de Clash/Mihomo",
@@ -1187,6 +1207,8 @@
       "subThemeDirDesc": "Ruta absoluta a una carpeta que contiene una plantilla personalizada (index.html/sub.html) para la página de suscripción (p. ej. /etc/3x-ui/sub_templates/my-theme/). Déjalo vacío para usar la página predeterminada.",
       "subThemeDirDocs": "Guía de plantillas ↗",
       "subEnableRouting": "Habilitar enrutamiento",
+      "happLinkEnable": "Enlaces de suscripción cifrados",
+      "happLinkEnableDesc": "Permite generar enlaces cifrados de Happ en la ventana del código QR del cliente. Las URL de suscripción se procesan localmente.",
       "subEnableRoutingDesc": "Configuración global para habilitar el enrutamiento en el cliente VPN. (Solo para Happ)",
       "subRoutingRules": "Reglas de enrutamiento",
       "subRoutingRulesDesc": "Pegue un enlace happ:// listo o una URL HTTPS permanente. El panel actualiza las reglas remotas en segundo plano y conserva el último valor válido, sin retrasar las solicitudes de suscripción. (Solo para Happ)",
@@ -1288,6 +1310,8 @@
       "muxSett": "Configuración Mux",
       "direct": "Conexión Directa",
       "directDesc": "Establece conexiones directas con dominios o rangos de IP de un país específico.",
+      "block": "Bloquear conexión",
+      "blockDesc": "Bloquea conexiones a dominios o rangos de IP seleccionados usando el outbound blackhole.",
       "notifications": "Notificaciones",
       "certs": "Certificados",
       "externalTraffic": "Tráfico Externo",
@@ -1559,12 +1583,38 @@
       "subHappProxyIPs": "Proxy IPs / CIDRs",
       "subHappBlockIPs": "Blocked IPs / CIDRs",
       "subHappDeeplinkGenerated": "Deeplink generated and applied to routing rules",
+      "subHappGroupLinks": "Enlaces de suscripción",
       "subHappGroupRouting": "Routing & Rules",
       "subHappGroupBanners": "Banners & Announcements",
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
       "subHappGroupAndroid": "Android Per-App Proxy"
+      "subHappGroupAndroid": "Android Per-App Proxy",
+      "discordSettings": "Bot de Discord",
+      "discordBotEnable": "Habilitar notificaciones de Discord",
+      "discordBotEnableDesc": "Enviar alertas del sistema y eventos a un canal de Discord a través del bot",
+      "discordBotToken": "Token del bot de Discord",
+      "discordBotTokenDesc": "Token del bot del Portal de Desarrolladores de Discord",
+      "discordTokenConfigured": "El token está configurado. Ingrese un nuevo token para reemplazarlo.",
+      "discordTokenPlaceholder": "Ingrese el token del bot",
+      "discordChannelId": "ID del canal",
+      "discordChannelIdDesc": "ID del canal de Discord donde se enviarán las notificaciones",
+      "discordAdminIds": "ID de usuarios administradores",
+      "discordAdminIdsDesc": "ID de usuarios de Discord, separados por comas, que pueden ejecutar comandos del bot. Los mensajes de cualquier otra persona se ignoran y una lista vacía desactiva los comandos.",
+      "discordEventBusNotify": "Notificaciones de Discord",
+      "testDiscord": "Enviar notificación de prueba",
+      "testDiscordDesc": "Enviar una notificación de prueba para verificar el token del bot y el ID del canal",
+      "discordNotInitialized": "Servicio de Discord no inicializado",
+      "discordBotNotEnabled": "El bot de Discord no está habilitado",
+      "discordTestFailed": "Prueba de Discord fallida",
+      "discordTestSuccess": "Notificación de prueba enviada con éxito",
+      "discordBotLanguage": "Idioma del Bot de Discord",
+      "discordNotifyTime": "Hora de Notificación del Bot de Discord",
+      "discordNotifyTimeDesc": "Con qué frecuencia el bot de Discord envía informes periódicos. Elige un intervalo predefinido o selecciona Personalizado para introducir una expresión crontab.",
+      "discordNotifyBackup": "Respaldo de Base de Datos",
+      "discordNotifyBackupDesc": "Incluir archivo de respaldo de base de datos con notificación de informe.",
+      "discordEventBusNotifyDesc": "Seleccione qué eventos generan notificaciones de Discord"
     },
     "xray": {
       "save": "Guardar configuración",
@@ -1961,6 +2011,19 @@
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
       },
+      "tuic": {
+        "congestionControl": "Control de congestión",
+        "alpn": "ALPN",
+        "udpRelayMode": "Modo de retransmisión UDP",
+        "zeroRttHandshake": "Apretón de manos 0-RTT",
+        "logLevel": "Nivel de registro",
+        "logLevelHint": "El estado en línea, la última conexión y «iniciar tras el primer uso» se leen de las líneas Info del sidecar; Warn o Error los desactivan para este inbound.",
+        "maxIdleTime": "Tiempo máx. de inactividad (s)",
+        "authTimeout": "Tiempo de espera de autenticación (s)",
+        "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",
+        "sni": "SNI",
+        "sniHint": "Sobrescritura de Server Name Indication"
+      },
       "tun": {
         "userLevel": "Nivel de Usuario"
       },
@@ -2351,6 +2414,81 @@
       "askToAddUserId": "¡No se encuentra su configuración!\r\nPor favor, pídale a su administrador que use su ChatID de usuario de Telegram en su(s) configuración(es).\r\n\r\nSu ChatID de usuario: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Elige un Cliente para Inbound {{ .Inbound }}",
       "chooseInbound": "Elige un Inbound"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "Prueba de notificación de Discord de 3x-ui",
+      "body": "Esta es una notificación de prueba que confirma que las notificaciones de Discord están configuradas correctamente."
+    },
+    "footer": "Panel 3x-ui",
+    "fields": {
+      "panelVersion": "Versión del panel",
+      "xrayCore": "Núcleo Xray",
+      "systemLoad": "Carga del sistema",
+      "networkTraffic": "Tráfico de red",
+      "totalUsed": "Total usado",
+      "quota": "Cuota",
+      "error": "Error",
+      "delay": "Retraso",
+      "outbound": "Salida",
+      "node": "Nodo",
+      "threshold": "Umbral",
+      "reason": "Motivo",
+      "time": "Hora",
+      "source": "Origen"
+    },
+    "values": {
+      "uptime": "{{ .Days }} d {{ .Hours }} h",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Total: {{ .Total }})",
+      "counts": "Total: {{ .Total }} | Por agotarse: {{ .Depleting }} | Deshabilitados: {{ .Disabled }}",
+      "inbound": "Protocolo: `{{ .Protocol }}` | Puerto: `{{ .Port }}` | Clientes: `{{ .Clients }}` | Tráfico: `↑{{ .Up }} ↓{{ .Down }}` | Estado: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Salida caída",
+      "outboundUp": "Salida restablecida",
+      "nodeDown": "Nodo caído",
+      "nodeUp": "Nodo restablecido",
+      "xrayCrash": "El núcleo Xray se bloqueó",
+      "cpuHigh": "Umbral de CPU superado",
+      "memoryHigh": "Umbral de memoria superado",
+      "loginSuccess": "Inicio de sesión correcto",
+      "loginFailed": "Inicio de sesión fallido"
+    },
+    "report": {
+      "title": "📊 Informe de estado de 3x-ui",
+      "summary": "Informe periódico del estado del servidor y del proxy de **{{ .Host }}**",
+      "footer": "Informe programado de 3x-ui • Programación: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 Comandos del bot de Discord de 3x-ui",
+      "helpDescription": "Comandos disponibles para supervisar y administrar el servidor 3x-ui:",
+      "helpStatus": "Muestra la carga del sistema, RAM, CPU, conexiones y usuarios en línea",
+      "helpReport": "Genera un informe de estado completo (con copia de seguridad de la BD si está configurada)",
+      "helpBackup": "Envía de inmediato el archivo de copia de seguridad de la base de datos",
+      "helpUsage": "Consulta el uso de tráfico, la cuota y la caducidad de un cliente",
+      "helpInbounds": "Lista todas las entradas configuradas con puertos y estadísticas de clientes",
+      "helpRestart": "Reinicia el núcleo Xray",
+      "helpHelp": "Muestra esta lista de comandos disponibles",
+      "statusTitle": "⚡ Estado del servidor 3x-ui",
+      "statusDescription": "Métricas operativas actuales de **{{ .Host }}**",
+      "backupTitle": "🗄️ Copia de seguridad de la base de datos",
+      "backupDescription": "Archivo de copia de seguridad de 3x-ui generado el `{{ .Time }}`",
+      "backupUnavailable": "❌ Servicio de copia de seguridad no disponible",
+      "backupFailed": "❌ No se pudo leer la copia de seguridad de la base de datos: {{ .Error }}",
+      "usageHint": "⚠️ Uso: `!usage <email>` o `/usage <email>`",
+      "usageTitle": "👤 Uso del cliente: {{ .Email }}",
+      "usageDescription": "Entrada: **{{ .Remark }}** (puerto {{ .Port }})",
+      "clientNotFound": "⚠️ No se encontró el cliente `{{ .Email }}` en ninguna entrada configurada.",
+      "inboundsUnavailable": "❌ Servicio de entradas no disponible",
+      "inboundsFailed": "❌ No se pudieron cargar las entradas: {{ .Error }}",
+      "inboundsTitle": "🔌 Entradas configuradas",
+      "inboundsDescription": "Total de entradas: **{{ .Count }}**",
+      "noInbounds": "ℹ️ No hay entradas configuradas.",
+      "xrayUnavailable": "❌ Servicio de Xray no disponible",
+      "restarting": "🔄 Reiniciando el núcleo Xray...",
+      "restartFailed": "❌ No se pudo reiniciar Xray: {{ .Error }}",
+      "restartSuccess": "✅ El núcleo Xray se reinició correctamente."
     }
   },
   "email": {
