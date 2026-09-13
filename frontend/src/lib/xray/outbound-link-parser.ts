@@ -458,6 +458,11 @@ export function parseVmessLink(link: string): Raw | null {
       tls.serverName = json.sni ?? '';
       tls.fingerprint = json.fp ?? '';
       if (json.alpn) tls.alpn = (json.alpn as string).split(',');
+      // The vmess object names the certificate checks the url-param protocols
+      // pass through applySecurityParams, under the same short names.
+      if (typeof json.ech === 'string') tls.echConfigList = json.ech;
+      if (typeof json.vcn === 'string') tls.verifyPeerCertByName = json.vcn;
+      if (typeof json.pcs === 'string') tls.pinnedPeerCertSha256 = json.pcs;
     }
 
     const port = Number(json.port) || 443;
