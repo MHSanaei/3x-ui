@@ -221,6 +221,7 @@
       "geodataOutbound": "Outbound üzerinden indir (isteğe bağlı)",
       "geodataFile": "Dosya adı",
       "geodataAddFile": "Dosya ekle",
+      "geodataUseStandardSources": "Standart kaynakları kullan",
       "geodataSaveRestart": "Kaydet ve Xray'i Yeniden Başlat",
       "geodataConfirmTitle": "Geodata ayarları kaydedilsin mi?",
       "geodataConfirmContent": "Xray yapılandırma şablonu güncellenecek ve Xray yeniden başlatılacak.",

@@ -221,6 +221,7 @@
       "geodataOutbound": "Завантажувати через outbound (необов’язково)",
       "geodataFile": "Ім’я файлу",
       "geodataAddFile": "Додати файл",
+      "geodataUseStandardSources": "Використати стандартні джерела",
       "geodataSaveRestart": "Зберегти та перезапустити Xray",
       "geodataConfirmTitle": "Зберегти налаштування geodata?",
       "geodataConfirmContent": "Шаблон конфігурації Xray буде оновлено, а Xray перезапущено.",

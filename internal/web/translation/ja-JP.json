@@ -221,6 +221,7 @@
       "geodataOutbound": "アウトバウンド経由でダウンロード（任意）",
       "geodataFile": "ファイル名",
       "geodataAddFile": "ファイルを追加",
+      "geodataUseStandardSources": "標準ソースを使用",
       "geodataSaveRestart": "保存して Xray を再起動",
       "geodataConfirmTitle": "geodata 設定を保存しますか？",
       "geodataConfirmContent": "Xray 設定テンプレートを更新し、Xray を再起動します。",

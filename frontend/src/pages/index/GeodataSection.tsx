@@ -37,6 +37,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
   const [cron, setCron] = useState(DEFAULT_CRON);
   const [outbound, setOutbound] = useState<string | undefined>(undefined);
   const [rows, setRows] = useState<GeodataAssetRow[]>([]);
+  const [standardSources, setStandardSources] = useState<GeodataAssetRow[]>([]);
   const [outboundTags, setOutboundTags] = useState<string[]>([]);
   const [template, setTemplate] = useState<Record<string, unknown> | null>(null);
   const outboundTestUrlRef = useRef('');
@@ -61,6 +62,15 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
       setCron(typeof geodata.cron === 'string' && geodata.cron ? geodata.cron : DEFAULT_CRON);
       setOutbound(
         typeof geodata.outbound === 'string' && geodata.outbound ? geodata.outbound : undefined,
+      );
+      const sources = Array.isArray(payload.geodataSources) ? payload.geodataSources : [];
+      setStandardSources(
+        sources
+          .filter(
+            (source): source is Record<string, unknown> => !!source && typeof source === 'object',
+          )
+          .map((source) => ({ url: String(source.url ?? ''), file: String(source.file ?? '') }))
+          .filter((source) => source.url && source.file),
       );
 
       // Download outbound candidates: template outbounds + subscription outbounds.
@@ -216,6 +226,12 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
               onClick={() => setRows((p) => [...p, { url: '', file: '' }])}
             >
               {t('pages.index.geodataAddFile')}
+            </Button>
+            <Button
+              onClick={() => setRows(standardSources)}
+              disabled={standardSources.length === 0}
+            >
+              {t('pages.index.geodataUseStandardSources')}
             </Button>
             <Button type="primary" onClick={save} disabled={loading || !template}>
               {t('pages.index.geodataSaveRestart')}

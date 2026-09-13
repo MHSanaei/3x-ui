@@ -221,6 +221,7 @@
       "geodataOutbound": "Descargar a través de outbound (opcional)",
       "geodataFile": "Nombre de archivo",
       "geodataAddFile": "Añadir archivo",
+      "geodataUseStandardSources": "Usar fuentes estándar",
       "geodataSaveRestart": "Guardar y reiniciar Xray",
       "geodataConfirmTitle": "¿Guardar la configuración de geodata?",
       "geodataConfirmContent": "Se actualizará la plantilla de configuración de Xray y se reiniciará Xray.",
