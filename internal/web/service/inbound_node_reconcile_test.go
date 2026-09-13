@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -429,5 +430,73 @@ func TestReconcileNode_SelectedModeSweepsPrefixedSelectedTag(t *testing.T) {
 	got := deletedIDs()
 	if len(got) != 1 || got[0] != 2 {
 		t.Fatalf("deleted remote ids = %v, want [2] (prefixed selected tag must be swept, unmanaged 3 must survive)", got)
+	}
+}
+
+// Saving the node form marks the node dirty in the same transaction that grows
+// its managed set, so reconcile would sweep a tag the panel has not imported yet.
+func TestReconcileNode_SaveGrowingSelectionRearmsSweepGuard(t *testing.T) {
+	cases := []struct {
+		name        string
+		storedTags  []string
+		mode        string
+		tags        []string
+		wantDeleted []int
+	}{
+		{
+			name:        "newly selected tag is imported, not swept",
+			storedTags:  []string{"keep"},
+			mode:        "selected",
+			tags:        []string{"keep", "fresh"},
+			wantDeleted: nil,
+		},
+		{
+			name:        "switch to all mode imports before sweeping",
+			storedTags:  []string{"keep"},
+			mode:        "all",
+			wantDeleted: nil,
+		},
+		{
+			name:        "unchanged selection still sweeps a deleted tag",
+			storedTags:  []string{"keep", "gone"},
+			mode:        "selected",
+			tags:        []string{"keep", "gone"},
+			wantDeleted: []int{3},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setupConflictDB(t)
+			ts, deletedIDs := fakeNodePanel(t, map[string]int{"keep": 1, "fresh": 2, "gone": 3})
+			node := reconcileTestNode(t, ts, "grow-node", "selected", tc.storedTags)
+			seedInboundConflictNode(t, "keep", "", 443, model.VLESS, `{"network":"tcp"}`, `{"clients":[]}`, &node.Id)
+
+			err := (&NodeService{}).UpdateFromRequest(node.Id, &NodeMutationRequest{
+				Name:                node.Name,
+				Scheme:              node.Scheme,
+				Address:             node.Address,
+				Port:                node.Port,
+				BasePath:            node.BasePath,
+				Enable:              true,
+				AllowPrivateAddress: true,
+				InboundSyncMode:     tc.mode,
+				InboundTags:         tc.tags,
+			})
+			if err != nil {
+				t.Fatalf("UpdateFromRequest: %v", err)
+			}
+			saved := &model.Node{}
+			if err := database.GetDB().First(saved, node.Id).Error; err != nil {
+				t.Fatalf("reload node: %v", err)
+			}
+
+			svc := InboundService{}
+			if err := svc.ReconcileNode(context.Background(), runtime.NewRemote(saved, nil), saved); err != nil {
+				t.Fatalf("ReconcileNode: %v", err)
+			}
+			if got := deletedIDs(); !slices.Equal(got, tc.wantDeleted) {
+				t.Fatalf("deleted remote ids = %v, want %v", got, tc.wantDeleted)
+			}
+		})
 	}
 }

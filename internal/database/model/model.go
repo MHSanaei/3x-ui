@@ -823,8 +823,8 @@ type Node struct {
 	ConfigDirty   bool  `json:"configDirty" gorm:"default:false"`
 	ConfigDirtyAt int64 `json:"configDirtyAt"`
 
-	// InboundsAdoptedAt records the first clean traffic sync that imported the
-	// node's pre-existing inbounds; reconcile must not sweep remote tags before it.
+	// InboundsAdoptedAt is the clean sync that imported the node's inbounds; a
+	// save that grows the selection zeroes it so reconcile waits before sweeping.
 	InboundsAdoptedAt int64 `json:"-" gorm:"column:inbounds_adopted_at;default:0"`
 
 	InboundCount  int `json:"inboundCount" gorm:"-" example:"5"`
