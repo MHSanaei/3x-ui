@@ -221,6 +221,7 @@
       "geodataOutbound": "透過出站下載（可選）",
       "geodataFile": "檔案名稱",
       "geodataAddFile": "新增檔案",
+      "geodataUseStandardSources": "使用標準來源",
       "geodataSaveRestart": "儲存並重啟 Xray",
       "geodataConfirmTitle": "儲存 geodata 設定？",
       "geodataConfirmContent": "將更新 Xray 設定範本並重啟 Xray。",

@@ -2200,6 +2200,22 @@ var geofileAllowlist = map[string]geofileEntry{
 	"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geosite.dat", "geosite_RU.dat"},
 }
 
+// GeodataSource identifies a file Xray downloads through its geodata configuration.
+type GeodataSource struct {
+	URL  string `json:"url"`
+	File string `json:"file"`
+}
+
+// StandardGeodataSources derives the panel presets from the geofile update allowlist.
+func StandardGeodataSources() []GeodataSource {
+	sources := make([]GeodataSource, 0, len(geofileAllowlist))
+	for _, entry := range geofileAllowlist {
+		sources = append(sources, GeodataSource{URL: entry.latestURL(), File: entry.FileName})
+	}
+	slices.SortFunc(sources, func(a, b GeodataSource) int { return strings.Compare(a.File, b.File) })
+	return sources
+}
+
 func (entry geofileEntry) latestURL() string {
 	return entry.Repo + "/releases/latest/download/" + entry.Asset
 }

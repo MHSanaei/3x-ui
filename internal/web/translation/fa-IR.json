@@ -221,6 +221,7 @@
       "geodataOutbound": "دانلود از طریق خروجی (اختیاری)",
       "geodataFile": "نام فایل",
       "geodataAddFile": "افزودن فایل",
+      "geodataUseStandardSources": "استفاده از منابع استاندارد",
       "geodataSaveRestart": "ذخیره و ری‌استارت Xray",
       "geodataConfirmTitle": "تنظیمات geodata ذخیره شود؟",
       "geodataConfirmContent": "قالب پیکربندی Xray به‌روزرسانی و Xray ری‌استارت می‌شود.",

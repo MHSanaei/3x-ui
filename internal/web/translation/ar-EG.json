@@ -221,6 +221,7 @@
       "geodataOutbound": "التنزيل عبر outbound (اختياري)",
       "geodataFile": "اسم الملف",
       "geodataAddFile": "إضافة ملف",
+      "geodataUseStandardSources": "استخدام المصادر القياسية",
       "geodataSaveRestart": "حفظ وإعادة تشغيل Xray",
       "geodataConfirmTitle": "حفظ إعدادات geodata؟",
       "geodataConfirmContent": "سيتم تحديث قالب إعدادات Xray وإعادة تشغيل Xray.",

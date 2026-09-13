@@ -392,3 +392,24 @@ func TestUpdateGeofileRejectsNameOutsideAllowlist(t *testing.T) {
 		t.Fatalf("error = %q, want it to name the allowlist", err)
 	}
 }
+
+func TestStandardGeodataSources(t *testing.T) {
+	want := []GeodataSource{
+		{URL: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", File: "geoip.dat"},
+		{URL: "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", File: "geoip_IR.dat"},
+		{URL: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", File: "geoip_RU.dat"},
+		{URL: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", File: "geosite.dat"},
+		{URL: "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", File: "geosite_IR.dat"},
+		{URL: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", File: "geosite_RU.dat"},
+	}
+
+	got := StandardGeodataSources()
+	if len(got) != len(want) {
+		t.Fatalf("sources = %d entries, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("source %d = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+}

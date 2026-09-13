@@ -221,6 +221,7 @@
       "geodataOutbound": "Tải qua outbound (tùy chọn)",
       "geodataFile": "Tên tệp",
       "geodataAddFile": "Thêm tệp",
+      "geodataUseStandardSources": "Dùng nguồn tiêu chuẩn",
       "geodataSaveRestart": "Lưu và khởi động lại Xray",
       "geodataConfirmTitle": "Lưu cài đặt geodata?",
       "geodataConfirmContent": "Mẫu cấu hình Xray sẽ được cập nhật và Xray sẽ khởi động lại.",

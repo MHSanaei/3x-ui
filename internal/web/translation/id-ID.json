@@ -221,6 +221,7 @@
       "geodataOutbound": "Unduh melalui outbound (opsional)",
       "geodataFile": "Nama berkas",
       "geodataAddFile": "Tambah berkas",
+      "geodataUseStandardSources": "Gunakan sumber standar",
       "geodataSaveRestart": "Simpan & Mulai Ulang Xray",
       "geodataConfirmTitle": "Simpan pengaturan geodata?",
       "geodataConfirmContent": "Templat konfigurasi Xray akan diperbarui dan Xray akan dimulai ulang.",
