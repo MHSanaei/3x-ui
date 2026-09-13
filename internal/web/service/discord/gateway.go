@@ -33,6 +33,16 @@ const (
 
 	// GUILDS (1<<0) | GUILD_MESSAGES (1<<9) | DIRECT_MESSAGES (1<<12) | MESSAGE_CONTENT (1<<15)
 	discordIntents = 37377
+
+	// Discord rejects a whole message past these caps: 25 fields per embed, ten
+	// embeds, 6000 counted characters.
+	discordEmbedFieldLimit  = 25
+	discordEmbedsPerMsg     = 10
+	discordMessageCharLimit = 6000
+
+	// How long a 429 may ask a paged reply to wait before it gives up on the
+	// page: longer than this and the operator is staring at a dead command.
+	discordRateLimitWait = 5 * time.Second
 )
 
 // GatewayPayload represents a Discord Gateway WebSocket frame.
@@ -644,22 +654,72 @@ func (g *GatewayClient) sendInbounds(ctx context.Context) {
 			"Down=="+common.FormatTraffic(in.Down),
 			"State=="+state,
 		)
-		fields = append(fields, EmbedField{
-			Name:   fmt.Sprintf("📍 %s", in.Remark),
-			Value:  val,
-			Inline: false,
-		})
+		fields = append(fields, cleanField(fmt.Sprintf("📍 %s", in.Remark), val, false))
 	}
 
-	embed := Embed{
-		Title:       tr("discord.commands.inboundsTitle"),
-		Description: tr("discord.commands.inboundsDescription", "Count=="+strconv.Itoa(len(inbounds))),
-		Color:       ColorBlue,
-		Timestamp:   time.Now().UTC().Format(time.RFC3339),
-		Fields:      fields,
-		Footer:      &EmbedFooter{Text: tr("discord.footer")},
+	title := tr("discord.commands.inboundsTitle")
+	description := tr("discord.commands.inboundsDescription", "Count=="+strconv.Itoa(len(inbounds)))
+	footer := tr("discord.footer")
+	overhead := discordCharLen(title) + discordCharLen(description) + discordCharLen(footer)
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	for _, group := range splitInboundFields(fields, overhead) {
+		embeds := make([]Embed, 0, len(group)/discordEmbedFieldLimit+1)
+		for start := 0; start < len(group); start += discordEmbedFieldLimit {
+			embed := Embed{
+				Color:     ColorBlue,
+				Timestamp: now,
+				Fields:    group[start:min(start+discordEmbedFieldLimit, len(group))],
+			}
+			// The header leads the reply only once per message; later embeds of a
+			// paged panel would otherwise repeat it for every 25 inbounds.
+			if len(embeds) == 0 {
+				embed.Title = title
+				embed.Description = description
+				embed.Footer = &EmbedFooter{Text: footer}
+			}
+			embeds = append(embeds, embed)
+		}
+
+		payload := MessagePayload{Embeds: embeds}
+		err := g.discordService.SendMessage(ctx, payload)
+		var limited *RateLimitedError
+		if errors.As(err, &limited) && limited.RetryAfter > 0 && limited.RetryAfter <= discordRateLimitWait {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(limited.RetryAfter):
+			}
+			err = g.discordService.SendMessage(ctx, payload)
+		}
+		// One page Discord refused must not take the pages behind it down: the
+		// operator is better served by a partial list than by nothing at all.
+		if err != nil {
+			logger.Warning("Discord inbounds command: send failed: ", err)
+		}
 	}
-	_ = g.discordService.SendEmbed(ctx, embed)
+}
+
+// splitInboundFields packs fields into groups that each fit one Discord message,
+// within the character count Discord counts across its embeds and its embed cap.
+func splitInboundFields(fields []EmbedField, overhead int) [][]EmbedField {
+	groups := make([][]EmbedField, 0, 1)
+	group := make([]EmbedField, 0, discordEmbedFieldLimit)
+	chars := overhead
+	for _, field := range fields {
+		size := discordCharLen(field.Name) + discordCharLen(field.Value)
+		if len(group) > 0 && (len(group) >= discordEmbedFieldLimit*discordEmbedsPerMsg || chars+size > discordMessageCharLimit) {
+			groups = append(groups, group)
+			group = make([]EmbedField, 0, discordEmbedFieldLimit)
+			chars = overhead
+		}
+		group = append(group, field)
+		chars += size
+	}
+	if len(group) > 0 {
+		groups = append(groups, group)
+	}
+	return groups
 }
 
 func (g *GatewayClient) restartXray(ctx context.Context) {

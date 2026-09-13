@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode/utf16"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -68,15 +69,33 @@ func (s *Subscriber) isEventEnabled(t eventbus.EventType) bool {
 	return false
 }
 
-func truncateRunes(s string, maxRunes int) string {
-	r := []rune(s)
-	if len(r) <= maxRunes {
+// truncateUnits cuts s to maxUnits of the length Discord measures its field
+// name, value and footer caps by: runes alone overrun them on astral text.
+func truncateUnits(s string, maxUnits int) string {
+	if discordCharLen(s) <= maxUnits {
 		return s
 	}
-	if maxRunes <= 3 {
-		return string(r[:maxRunes])
+	suffix := "..."
+	budget := maxUnits
+	if maxUnits <= len(suffix) {
+		suffix = ""
+	} else {
+		budget -= len(suffix)
 	}
-	return string(r[:maxRunes-3]) + "..."
+	var b strings.Builder
+	units := 0
+	for _, r := range s {
+		size := utf16.RuneLen(r)
+		if size < 1 {
+			size = 1
+		}
+		if units+size > budget {
+			break
+		}
+		b.WriteRune(r)
+		units += size
+	}
+	return b.String() + suffix
 }
 
 func cleanField(name, value string, inline bool) EmbedField {
@@ -84,13 +103,13 @@ func cleanField(name, value string, inline bool) EmbedField {
 	if name == "" {
 		name = "-"
 	} else {
-		name = truncateRunes(name, 256)
+		name = truncateUnits(name, 256)
 	}
 	value = strings.TrimSpace(value)
 	if value == "" {
 		value = "-"
 	} else {
-		value = truncateRunes(value, 1024)
+		value = truncateUnits(value, 1024)
 	}
 	return EmbedField{
 		Name:   name,
@@ -114,7 +133,7 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 	}
 
 	footer := &EmbedFooter{
-		Text: truncateRunes("3x-ui • "+h, 2048),
+		Text: truncateUnits("3x-ui • "+h, 2048),
 	}
 	tr := translator(s.settingService)
 
