@@ -28,6 +28,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray/dnsconf"
 )
 
 //go:embed config.json
@@ -147,6 +148,7 @@ var defaultValueMap = map[string]string{
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonRoutingRules":         "",
+	"subJsonDns":                  "",
 	"subJsonFinalMask":            "",
 	"subJsonObservatory":          "",
 	"subThemeDir":                 "",
@@ -1028,6 +1030,10 @@ func (s *SettingService) GetSubJsonRoutingRules() (string, error) {
 	return s.getString("subJsonRoutingRules")
 }
 
+func (s *SettingService) GetSubJsonDns() (string, error) {
+	return s.getString("subJsonDns")
+}
+
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
 	return s.getString("subJsonFinalMask")
 }
@@ -1344,6 +1350,9 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	if err := validateSubUserAgentRegexes(allSetting); err != nil {
 		return err
 	}
+	if err := validateSubJsonDnsSetting(allSetting); err != nil {
+		return err
+	}
 	if err := allSetting.CheckValid(); err != nil {
 		return err
 	}
@@ -1510,6 +1519,19 @@ func validateRemoteRoutingURLSetting(name string, value *string) error {
 	if remote {
 		*value = canonical
 	}
+	return nil
+}
+
+// The same parser the sub server uses, so a value can never be saved as valid
+// and then silently ignored at request time.
+func validateSubJsonDnsSetting(allSetting *entity.AllSetting) error {
+	value := strings.TrimSpace(allSetting.SubJsonDns)
+	if value != "" {
+		if _, err := dnsconf.Parse(value); err != nil {
+			return common.NewError("JSON subscription DNS is invalid:", err.Error())
+		}
+	}
+	allSetting.SubJsonDns = value
 	return nil
 }
 

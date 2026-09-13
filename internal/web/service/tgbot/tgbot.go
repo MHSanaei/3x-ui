@@ -440,6 +440,14 @@ func (t *Tgbot) IsRunning() bool {
 	return isRunning
 }
 
+// adminSnapshot returns the admin chat list under the mutex Start and Stop
+// replace it under: a torn slice header is not a harmless race.
+func adminSnapshot() []int64 {
+	tgBotMutex.Lock()
+	defer tgBotMutex.Unlock()
+	return slices.Clone(adminIds)
+}
+
 // SetHostname sets the hostname for the bot.
 func (t *Tgbot) SetHostname() {
 	host, err := os.Hostname()
