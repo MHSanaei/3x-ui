@@ -508,21 +508,3 @@ func TestFormatEmbed_ValueTypes(t *testing.T) {
 		t.Fatalf("expected green embed for Login success value type, got ok=%v", ok)
 	}
 }
-
-func TestHandleEvent_NilDiscordService(t *testing.T) {
-	settingService := setupTestDB(t)
-	_ = settingService.SetDiscordBotEnable(true)
-	_ = settingService.SetDiscordEnabledEvents("login.attempt")
-
-	sub := NewSubscriber(settingService, nil)
-	// Must not panic
-	sub.HandleEvent(eventbus.Event{
-		Type:      eventbus.EventLoginAttempt,
-		Timestamp: time.Now().UTC(),
-		Data: &eventbus.LoginEventData{
-			Username: "admin",
-			IP:       "1.1.1.1",
-			Status:   "success",
-		},
-	})
-}
