@@ -704,6 +704,15 @@ func applyTransport(stream map[string]any, p url.Values) {
 				xh[k] = v
 			}
 		}
+	case "kcp":
+		// mtu/tti live on kcpSettings; header/seed are finalmask mkcp-legacy (see applyMkcpLegacyFromShare).
+		kcp := stream["kcpSettings"].(map[string]any)
+		if n, ok := kcpParamInRange(p.Get("mtu"), kcpMinMTU, kcpMaxMTU); ok {
+			kcp["mtu"] = n
+		}
+		if n, ok := kcpParamInRange(p.Get("tti"), kcpMinTTI, kcpMaxTTI); ok {
+			kcp["tti"] = n
+		}
 	case "tcp":
 		if p.Get("headerType") == "http" || p.Get("type") == "http" {
 			stream["tcpSettings"] = map[string]any{
@@ -752,6 +761,87 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 			sanitizeFinalMaskQuicParams(parsed)
 			stream["finalmask"] = parsed
 		}
+	}
+	applyMkcpLegacyFromShare(stream, p)
+}
+
+// mKCP bounds mirror xray-core's KCPConfig.Build checks (a value outside them fails
+// the whole config load); mtu's ceiling is the int32 that fits its uint32 field everywhere.
+const (
+	kcpMinMTU = 21
+	kcpMaxMTU = math.MaxInt32
+	kcpMinTTI = 10
+	kcpMaxTTI = 1000
+)
+
+// kcpParamInRange rejects an out-of-range or malformed link value so buildStream's default stays.
+func kcpParamInRange(s string, minVal, maxVal int) (int, bool) {
+	n, err := strconv.Atoi(s)
+	return n, err == nil && n >= minVal && n <= maxVal
+}
+
+// kcpHeaderTypeToMask maps share-link headerType to mkcp-legacy settings.header
+// (inverse of sub.kcpMaskToHeaderType).
+var kcpHeaderTypeToMask = map[string]string{
+	"dns":          "dns",
+	"dtls":         "dtls",
+	"srtp":         "srtp",
+	"utp":          "utp",
+	"wechat-video": "wechat",
+	"wireguard":    "wireguard",
+}
+
+// applyMkcpLegacyFromShare restores headerType/seed into finalmask.udp mkcp-legacy,
+// matching the shape InboundFormModal / FinalMaskForm emit. fm= mkcp-legacy wins.
+func applyMkcpLegacyFromShare(stream map[string]any, p url.Values) {
+	headerType := strings.TrimSpace(p.Get("headerType"))
+	seed := p.Get("seed")
+	if headerType == "" || headerType == "none" {
+		headerType = ""
+	}
+	if headerType == "" && seed == "" {
+		return
+	}
+	if network, _ := stream["network"].(string); network != "" && network != "kcp" {
+		return
+	}
+	maskHeader := ""
+	if headerType != "" {
+		mapped, ok := kcpHeaderTypeToMask[headerType]
+		if !ok {
+			return
+		}
+		maskHeader = mapped
+	}
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	if finalmask == nil {
+		finalmask = map[string]any{}
+	}
+	udp, _ := finalmask["udp"].([]any)
+	for _, raw := range udp {
+		m, _ := raw.(map[string]any)
+		if m != nil {
+			if t, _ := m["type"].(string); t == "mkcp-legacy" {
+				return // fm= (or prior) already carries the live mask
+			}
+		}
+	}
+	// One mask per field, seed first: MkcpLegacy.Build ignores value once header is set,
+	// and the chain puts the last mask outermost on the wire (header around the cipher).
+	if seed != "" {
+		udp = append(udp, mkcpLegacyMask("", seed))
+	}
+	if maskHeader != "" {
+		udp = append(udp, mkcpLegacyMask(maskHeader, ""))
+	}
+	finalmask["udp"] = udp
+	stream["finalmask"] = finalmask
+}
+
+func mkcpLegacyMask(header, value string) map[string]any {
+	return map[string]any{
+		"type":     "mkcp-legacy",
+		"settings": map[string]any{"header": header, "value": value},
 	}
 }
 
