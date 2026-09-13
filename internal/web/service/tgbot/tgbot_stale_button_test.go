@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -17,11 +18,14 @@ import (
 // bot-dependent paths; the returned func reports per-method call counts.
 func staleButtonServer(t *testing.T, responses map[string]any) (*httptest.Server, func(string) int) {
 	t.Helper()
+	var mu sync.Mutex
 	counts := map[string]int{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for method, body := range responses {
 			if r.URL.Path == "/bot"+testBotToken+"/"+method {
+				mu.Lock()
 				counts[method]++
+				mu.Unlock()
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(body)
 				return
@@ -29,7 +33,11 @@ func staleButtonServer(t *testing.T, responses map[string]any) (*httptest.Server
 		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
-	return srv, func(method string) int { return counts[method] }
+	return srv, func(method string) int {
+		mu.Lock()
+		defer mu.Unlock()
+		return counts[method]
+	}
 }
 
 func swapTestBot(t *testing.T, url string) {

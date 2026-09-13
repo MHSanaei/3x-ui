@@ -37,6 +37,9 @@ type SubJsonService struct {
 	bakedRoutingMu sync.Mutex
 	bakedRouting   *bakedRoutingState
 
+	// dnsBlock is the panel DNS override, fixed for the service's lifetime.
+	dnsBlock map[string]any
+
 	SubService *SubService
 }
 
@@ -83,7 +86,7 @@ func NewSubJsonService(mux string, rules string, finalMask string, routingRules 
 // Re-resolved per call so an upstream edit reaches the documents without a
 // restart; a failed resolve keeps the last good template.
 func (s *SubJsonService) bakedTemplate() map[string]any {
-	if s.routingRules == "" {
+	if s.routingRules == "" && s.dnsBlock == nil {
 		return s.configJson
 	}
 	spec := resolveJsonRoutingSpec(s.routingRules)
@@ -93,12 +96,19 @@ func (s *SubJsonService) bakedTemplate() map[string]any {
 		if spec.empty() || spec.equal(s.bakedRouting.spec) {
 			return s.bakedRouting.configJson
 		}
-	} else if spec.empty() {
+	} else if spec.empty() && s.dnsBlock == nil {
 		return s.configJson
 	}
 	template := make(map[string]any, len(s.configJson)+2)
 	maps.Copy(template, s.configJson)
-	applyJsonRouting(template, spec)
+	if !spec.empty() {
+		applyJsonRouting(template, spec)
+	}
+	// The panel-level DNS block is an explicit choice, so it also replaces the
+	// dns subtree a routing profile would otherwise bake in.
+	if s.dnsBlock != nil {
+		template["dns"] = s.dnsBlock
+	}
 	s.bakedRouting = &bakedRoutingState{spec: spec, configJson: template}
 	return template
 }
@@ -1041,6 +1051,9 @@ func (s *SubJsonService) genDummySocksConfig(remark string) json_util.RawMessage
 
 	newConfigJson := make(map[string]any)
 	maps.Copy(newConfigJson, s.configJson)
+	if s.dnsBlock != nil {
+		newConfigJson["dns"] = s.dnsBlock
+	}
 	newConfigJson["outbounds"] = newOutbounds
 	newConfigJson["remarks"] = remark
 

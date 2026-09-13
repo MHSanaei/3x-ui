@@ -70,6 +70,7 @@ export class AllSetting {
   subJsonMux = '';
   subJsonRules = '';
   subJsonRoutingRules = '';
+  subJsonDns = '';
   subJsonFinalMask = '';
   subJsonObservatory = '';
   subThemeDir = '';
