@@ -205,6 +205,11 @@ func parseVmess(link string) (*ParseResult, error) {
 		if alpn := getString(j, "alpn", ""); alpn != "" {
 			tls["alpn"] = splitComma(alpn)
 		}
+		// The vmess object names the certificate checks v2rayN does the same way
+		// the url-param protocols name them in applySecurity.
+		tls["echConfigList"] = getString(j, "ech", "")
+		tls["verifyPeerCertByName"] = getString(j, "vcn", "")
+		tls["pinnedPeerCertSha256"] = getString(j, "pcs", "")
 	}
 
 	port := num(j["port"])
