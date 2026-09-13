@@ -111,10 +111,11 @@ export const HOST_REMARK_VISIBLE_LIMIT = 2;
 
 /** Join Host Group remarks onto inbound ids using existing /hosts/list fields. */
 export function buildHostRemarksByInboundId(
-  hosts: Pick<HostRecord, 'remark' | 'inboundIds' | 'hosts'>[],
+  hosts: Pick<HostRecord, 'remark' | 'inboundIds' | 'hosts' | 'isDisabled'>[],
 ): Map<number, string[]> {
   const map = new Map<number, string[]>();
   for (const host of hosts) {
+    if (host.isDisabled) continue;
     const addressFallback = Array.isArray(host.hosts)
       ? host.hosts.map((h) => (h || '').trim()).find(Boolean) || ''
       : '';
@@ -133,12 +134,12 @@ export function buildHostRemarksByInboundId(
 export function formatHostRemarksLabel(
   remarks: string[],
   visibleLimit = HOST_REMARK_VISIBLE_LIMIT,
-): { display: string; full: string; truncated: boolean } {
+): { display: string; full: string } {
   const full = remarks.join(', ');
   if (remarks.length <= visibleLimit) {
-    return { display: full, full, truncated: false };
+    return { display: full, full };
   }
   const visible = remarks.slice(0, visibleLimit).join(', ');
   const more = remarks.length - visibleLimit;
-  return { display: `${visible}, +${more}`, full, truncated: true };
+  return { display: `${visible}, +${more}`, full };
 }
