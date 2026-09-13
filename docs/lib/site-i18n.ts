@@ -218,7 +218,8 @@ const zh: SiteMessages = {
     },
     {
       title: 'Telegram 与 Discord 机器人',
-      description: '内置 Telegram 和 Discord 通知，覆盖流量上限、到期提醒和系统负载，并支持管理员操作。',
+      description:
+        '内置 Telegram 和 Discord 通知，覆盖流量上限、到期提醒和系统负载，并支持管理员操作。',
     },
     {
       title: '自托管且可脚本化',

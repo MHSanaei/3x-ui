@@ -33,7 +33,7 @@ cp /etc/x-ui/x-ui.db /root/x-ui-backup-$(date +%F).db
 
 ## پشتیبان‌گیری خودکار با ربات‌ها (Telegram و Discord)
 
-اگر [ربات Telegram](/docs/operations/telegram-bot) یا [ربات Discord](/docs/operations/discord-bot) را پیکربندی کرده‌اید، گزینه‌ی **`tgBotBackup`** یا **`discordBotBackup`** را فعال کنید تا یک نسخه‌ی پشتیبان به گزارش دوره‌ای ضمیمه شود (بر اساس زمان‌بندی `tgRunTime` / `discordRunTime`، به‌صورت پیش‌فرض روزانه). ربات هم **پایگاه‌داده** و هم **`config.json` مربوط به Xray** را مستقیماً به چت یا کانال ادمین شما می‌فرستد، بنابراین همیشه یک نسخه‌ی خارج از سرور در اختیار دارید. ادمین‌ها همچنین می‌توانند با دستور `/backup` در Telegram یا `!backup` در Discord در هر زمان درخواست نسخه‌ی پشتیبان ثبت کنند.
+اگر [ربات Telegram](/docs/operations/telegram-bot) یا [ربات Discord](/docs/operations/discord-bot) را پیکربندی کرده‌اید، گزینه‌ی **`tgBotBackup`** یا **`discordBotBackup`** را فعال کنید تا یک نسخه‌ی پشتیبان به گزارش دوره‌ای ضمیمه شود (بر اساس زمان‌بندی `tgRunTime` / `discordRunTime`، به‌صورت پیش‌فرض روزانه). ربات هم **پایگاه‌داده** و هم **`config.json` مربوط به Xray** را مستقیماً به چت یا کانال ادمین شما می‌فرستد، بنابراین همیشه یک نسخه‌ی خارج از سرور در اختیار دارید. ادمین‌ها همچنین می‌توانند به‌صورت درخواستی از منوی ربات Telegram یا با دستور `!backup` در Discord یک نسخه‌ی پشتیبان دریافت کنند.
 
 ## دامپ / بازیابی SQLite
 

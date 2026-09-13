@@ -30,7 +30,7 @@ cp /etc/x-ui/x-ui.db /root/x-ui-backup-$(date +%F).db
 
 ## 机器人自动备份（Telegram 与 Discord）
 
-如果你已配置 [Telegram 机器人](/docs/operations/telegram-bot) 或 [Discord 机器人](/docs/operations/discord-bot)，启用 **`tgBotBackup`** 或 **`discordBotBackup`** 即可在周期性报告中附带一份备份（按 `tgRunTime` / `discordRunTime` 计划执行，默认每天一次）。机器人会将**数据库**与 Xray 的 **`config.json`** 一并发送到你的管理员聊天或频道，从而让你始终拥有一份服务器之外的副本。管理员也可以随时使用 Telegram 的 `/backup` 或 Discord 的 `!backup` 命令按需请求备份。
+如果你已配置 [Telegram 机器人](/docs/operations/telegram-bot) 或 [Discord 机器人](/docs/operations/discord-bot)，启用 **`tgBotBackup`** 或 **`discordBotBackup`** 即可在周期性报告中附带一份备份（按 `tgRunTime` / `discordRunTime` 计划执行，默认每天一次）。机器人会将**数据库**与 Xray 的 **`config.json`** 一并发送到你的管理员聊天或频道，从而让你始终拥有一份服务器之外的副本。管理员也可以随时从 Telegram 机器人的菜单或使用 Discord 的 `!backup` 命令按需请求备份。
 
 ## SQLite 转储 / 恢复
 

@@ -35,7 +35,7 @@ cp /etc/x-ui/x-ui.db /root/x-ui-backup-$(date +%F).db
 
 ## Автоматические бэкапы ботов (Telegram и Discord)
 
-Если вы настроили [Telegram-бота](/docs/operations/telegram-bot) или [Discord-бота](/docs/operations/discord-bot), включите **`tgBotBackup`** или **`discordBotBackup`**, чтобы прикреплять резервную копию к периодическому отчёту (по расписанию `tgRunTime` / `discordRunTime`, по умолчанию ежедневно). Бот отправляет в чат или канал администратора как **базу данных**, так и **`config.json` Xray**, поэтому у вас всегда будет копия за пределами сервера. Администраторы также могут запросить резервную копию по требованию с помощью `/backup` в Telegram или `!backup` в Discord.
+Если вы настроили [Telegram-бота](/docs/operations/telegram-bot) или [Discord-бота](/docs/operations/discord-bot), включите **`tgBotBackup`** или **`discordBotBackup`**, чтобы прикреплять резервную копию к периодическому отчёту (по расписанию `tgRunTime` / `discordRunTime`, по умолчанию ежедневно). Бот отправляет в чат или канал администратора как **базу данных**, так и **`config.json` Xray**, поэтому у вас всегда будет копия за пределами сервера. Администраторы также могут запросить резервную копию по требованию через меню бота Telegram или с помощью команды `!backup` в Discord.
 
 ## Дамп / восстановление SQLite
 

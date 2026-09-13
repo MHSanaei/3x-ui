@@ -33,7 +33,7 @@ To restore, stop the panel, put the database back in place, and start it again.
 
 ## Automated bot backups (Telegram & Discord)
 
-If you've configured the [Telegram bot](/docs/operations/telegram-bot) or [Discord bot](/docs/operations/discord-bot), enable **`tgBotBackup`** or **`discordBotBackup`** to attach a backup to the periodic report (on the `tgRunTime` / `discordRunTime` schedule, default daily). The bot sends both the **database** and the **Xray `config.json`** directly to your admin chat or channel, ensuring an off-server copy. Admins can also request a backup on demand using `/backup` in Telegram or `!backup` in Discord.
+If you've configured the [Telegram bot](/docs/operations/telegram-bot) or [Discord bot](/docs/operations/discord-bot), enable **`tgBotBackup`** or **`discordBotBackup`** to attach a backup to the periodic report (on the `tgRunTime` / `discordRunTime` schedule, default daily). The bot sends both the **database** and the **Xray `config.json`** directly to your admin chat or channel, ensuring an off-server copy. Admins can also request a backup on demand from the Telegram bot's menu or using `!backup` in Discord.
 
 ## SQLite dump / restore
 

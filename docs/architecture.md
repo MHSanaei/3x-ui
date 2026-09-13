@@ -366,27 +366,28 @@ Periodic resets: `job/periodic_traffic_reset_job.go` (keyed off `Inbound.Traffic
 
 All registered in `web.go` → `startTask()`. Each is a struct with a `Run()` method in `internal/web/job/`:
 
-| Schedule            | Job                                                                                              | Purpose / condition                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `@every 1s`         | `check_xray_running_job`                                                                         | Restart Xray if it died (2 consecutive down checks)                             |
-| `@every 30s`        | (inline func in `startTask`)                                                                     | Debounced Xray restart — consumes the "need restart" flag (§5.1)                |
-| `@every 5s`         | `xray_traffic_job`                                                                               | Pull traffic stats from Xray (5s start delay)                                   |
-| `@every 5s`         | `node_heartbeat_job`                                                                             | Probe child nodes (online/offline)                                              |
-| `@every 5s`         | `node_traffic_sync_job`                                                                          | Pull + merge node traffic; push reconciliation                                  |
-| `@every 10s`        | `check_client_ip_job`                                                                            | Enforce per-client IP limits                                                    |
-| `@every 10s`        | `mtproto_job`                                                                                    | Reconcile `mtg` sidecars against enabled MTProto inbounds                       |
-| `@every 10s`        | `amneziawg_job`                                                                                  | Reconcile embedded AmneziaWG interfaces against enabled local inbounds          |
-| `@every 5m`         | `outbound_subscription_job`                                                                      | Refresh outbound provider configs                                               |
-| `@every 10m`        | `clear_logs_job` (`PruneXrayLogsJob`)                                                            | Truncate Xray access/error logs once either exceeds 64 MiB                      |
-| `@hourly`           | `warp_ip_job`, `periodic_traffic_reset_job("hourly")`                                            | WARP IP rotation; traffic resets                                                |
-| `@daily`            | `clear_logs_job`, `periodic_traffic_reset_job("daily")`, `periodic_traffic_reset_job("monthly")` | IP-limit and Xray access/error log cleanup; daily resets and due monthly resets |
-| `@weekly`           | `periodic_traffic_reset_job("weekly")`                                                           | Weekly traffic resets                                                           |
-| default `@every 1m` | `ldap_sync_job`                                                                                  | Only if LDAP enabled; schedule configurable                                     |
-| default `@daily`    | `stats_notify_job`                                                                               | Only if TG bot enabled; schedule configurable                                   |
-| `@every 2m`         | `check_hash_storage`                                                                             | Only if TG bot enabled; expires bot callback hashes                             |
-| `@every 1m`         | `check_cpu_usage`                                                                                | Only if a CPU alarm is configured (TG or email); publishes `cpu.high`           |
-| `@every 1m`         | `check_memory_usage`                                                                             | Only if a memory alarm is configured; publishes `memory.high`                   |
-| configurable        | `free_os_memory`                                                                                 | Only if `sys.MemoryReleaseIntervalMinutes() > 0`; returns heap to OS            |
+| Schedule            | Job                                                                                              | Purpose / condition                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `@every 1s`         | `check_xray_running_job`                                                                         | Restart Xray if it died (2 consecutive down checks)                                   |
+| `@every 30s`        | (inline func in `startTask`)                                                                     | Debounced Xray restart — consumes the "need restart" flag (§5.1)                      |
+| `@every 5s`         | `xray_traffic_job`                                                                               | Pull traffic stats from Xray (5s start delay)                                         |
+| `@every 5s`         | `node_heartbeat_job`                                                                             | Probe child nodes (online/offline)                                                    |
+| `@every 5s`         | `node_traffic_sync_job`                                                                          | Pull + merge node traffic; push reconciliation                                        |
+| `@every 10s`        | `check_client_ip_job`                                                                            | Enforce per-client IP limits                                                          |
+| `@every 10s`        | `mtproto_job`                                                                                    | Reconcile `mtg` sidecars against enabled MTProto inbounds                             |
+| `@every 10s`        | `amneziawg_job`                                                                                  | Reconcile embedded AmneziaWG interfaces against enabled local inbounds                |
+| `@every 5m`         | `outbound_subscription_job`                                                                      | Refresh outbound provider configs                                                     |
+| `@every 10m`        | `clear_logs_job` (`PruneXrayLogsJob`)                                                            | Truncate Xray access/error logs once either exceeds 64 MiB                            |
+| `@hourly`           | `warp_ip_job`, `periodic_traffic_reset_job("hourly")`                                            | WARP IP rotation; traffic resets                                                      |
+| `@daily`            | `clear_logs_job`, `periodic_traffic_reset_job("daily")`, `periodic_traffic_reset_job("monthly")` | IP-limit and Xray access/error log cleanup; daily resets and due monthly resets       |
+| `@weekly`           | `periodic_traffic_reset_job("weekly")`                                                           | Weekly traffic resets                                                                 |
+| default `@every 1m` | `ldap_sync_job`                                                                                  | Only if LDAP enabled; schedule configurable                                           |
+| default `@daily`    | `stats_notify_job`                                                                               | Only if TG bot enabled; schedule configurable                                         |
+| default `@daily`    | `discord_notify_job`                                                                             | Only if Discord bot enabled; schedule configurable                                    |
+| `@every 2m`         | `check_hash_storage`                                                                             | Only if TG bot enabled; expires bot callback hashes                                   |
+| `@every 1m`         | `check_cpu_usage`                                                                                | Only if a CPU alarm is configured (TG, Discord, or email); publishes `cpu.high`       |
+| `@every 1m`         | `check_memory_usage`                                                                             | Only if a memory alarm is configured (TG, Discord, or email); publishes `memory.high` |
+| configurable        | `free_os_memory`                                                                                 | Only if `sys.MemoryReleaseIntervalMinutes() > 0`; returns heap to OS                  |
 
 To change _when_ something runs, edit `startTask()`. To change _what_ it does, edit the job file.
 
