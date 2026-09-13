@@ -442,6 +442,11 @@ func (t *Tgbot) clientInfoMsg(
 	diff := traffic.ExpiryTime/1000 - now
 	if traffic.ExpiryTime == 0 {
 		expiryTime = t.I18nBot("tgbot.unlimited")
+	} else if traffic.ExpiryTime < 0 {
+		// A negative expiry counts days from first use, not a date; the disabled
+		// branch below would otherwise render it as a 1969 timestamp.
+		expiryTime = fmt.Sprintf("%d %s", traffic.ExpiryTime/-86400000, t.I18nBot("tgbot.days"))
+		flag = true
 	} else if diff > 172800 || !traffic.Enable {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 		if diff > 0 {
@@ -460,9 +465,6 @@ func (t *Tgbot) clientInfoMsg(
 			}
 			expiryTime += fmt.Sprintf(" (%s)", remainingTime)
 		}
-	} else if traffic.ExpiryTime < 0 {
-		expiryTime = fmt.Sprintf("%d %s", traffic.ExpiryTime/-86400000, t.I18nBot("tgbot.days"))
-		flag = true
 	} else {
 		expiryTime = fmt.Sprintf("%d %s", diff/3600, t.I18nBot("tgbot.hours"))
 		flag = true
