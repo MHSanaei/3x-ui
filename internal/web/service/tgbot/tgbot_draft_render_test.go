@@ -17,25 +17,23 @@ import (
 	"golang.org/x/text/language"
 )
 
+// clientDraftTestChatID is a chat id no other test drives, so the draft this
+// test fills cannot leak into them.
+const clientDraftTestChatID = -9001
+
 // Regression test: the draft is sent with ParseMode HTML, so Markdown markers
 // were rendered literally and an unescaped value could break the whole message.
 func TestClientDraftMessageRendersHTML(t *testing.T) {
-	origEmail, origComment, origTgID := client_Email, client_Comment, client_TgID
-	origTotalGB, origLimitIP, origExpiry := client_TotalGB, client_LimitIP, client_ExpiryTime
-	origInboundIDs := receiver_inbound_IDs
-	t.Cleanup(func() {
-		client_Email, client_Comment, client_TgID = origEmail, origComment, origTgID
-		client_TotalGB, client_LimitIP, client_ExpiryTime = origTotalGB, origLimitIP, origExpiry
-		receiver_inbound_IDs = origInboundIDs
-	})
+	draft := addClientDrafts.forChat(clientDraftTestChatID)
+	t.Cleanup(func() { addClientDrafts.reset(clientDraftTestChatID) })
 
-	client_Email = "a@b.c"
-	client_Comment = "<b>promo</b> & <10 GB>"
-	client_TgID = "42"
-	client_TotalGB, client_LimitIP, client_ExpiryTime = 0, 0, 0
-	receiver_inbound_IDs = nil
+	draft.email = "a@b.c"
+	draft.comment = "<b>promo</b> & <10 GB>"
+	draft.tgID = "42"
+	draft.totalGB, draft.limitIP, draft.expiryTime = 0, 0, 0
+	draft.receiverInboundIDs = nil
 
-	out := (&Tgbot{}).BuildClientDraftMessage()
+	out := (&Tgbot{}).BuildClientDraftMessage(draft)
 
 	if !strings.Contains(out, "<b>New client draft</b>") {
 		t.Errorf("draft title is not HTML markup: %q", out)
@@ -46,7 +44,7 @@ func TestClientDraftMessageRendersHTML(t *testing.T) {
 	if strings.Contains(out, "<b>promo</b>") {
 		t.Errorf("raw comment markup reached the message: %q", out)
 	}
-	if !strings.Contains(out, html.EscapeString(client_Comment)) {
+	if !strings.Contains(out, html.EscapeString(draft.comment)) {
 		t.Errorf("comment is not HTML-escaped: %q", out)
 	}
 }
@@ -104,10 +102,10 @@ func TestAddClientPromptsEscapeDraftValues(t *testing.T) {
 	url, texts := promptTexts(t)
 	swapTestBot(t, url)
 
-	origEmail, origComment := client_Email, client_Comment
+	draft := addClientDrafts.forChat(1)
 	origRunning := isRunning
 	t.Cleanup(func() {
-		client_Email, client_Comment = origEmail, origComment
+		addClientDrafts.reset(1)
 		isRunning = origRunning
 	})
 	isRunning = true
@@ -123,7 +121,7 @@ func TestAddClientPromptsEscapeDraftValues(t *testing.T) {
 	tb := &Tgbot{}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			client_Email, client_Comment = tc.value, tc.value
+			draft.email, draft.comment = tc.value, tc.value
 
 			tb.answerCallback(&telego.CallbackQuery{
 				ID:      "q1",
