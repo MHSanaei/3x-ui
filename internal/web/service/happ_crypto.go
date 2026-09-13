@@ -20,8 +20,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
-// https://github.com/Omegaplexx/hpwnr/blob/main/src/keys.rs
-// vdfzfoff public key from hpwnr 3745cb96e2551e003cb217ab7705b4d67f8ac006, src/keys.rs.
+// vdfzfoff public key from Omegaplexx/hpwnr 3745cb96e2551e003cb217ab7705b4d67f8ac006, src/keys.rs.
 // Salted Crypt5 with separator V passed Android 4.3.0 and Windows 4.1.2 import/update probes.
 const happPublicKeyPEM = `-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA9+umWSxp8coKnMONnI4u
