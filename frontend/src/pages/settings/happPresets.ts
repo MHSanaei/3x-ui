@@ -25,24 +25,15 @@ export function buildHappPresetDeeplink(preset: string): string {
         'happ://routing/onadd/' +
         toBase64Utf8(
           JSON.stringify({
-            rules: [
-              {
-                type: 'field',
-                outboundTag: 'direct',
-                domain: ['domain:ir', 'regexp:.*\\.ir$'],
-                ip: ['geoip:ir', 'geoip:private'],
-              },
-              {
-                type: 'field',
-                outboundTag: 'block',
-                domain: ['geosite:category-ads-all'],
-              },
-              {
-                type: 'field',
-                outboundTag: 'proxy',
-                network: 'tcp,udp',
-              },
-            ],
+            Name: 'Iran Bypass',
+            GlobalProxy: 'true',
+            DirectSites: ['domain:ir', 'regexp:.*\\.ir$'],
+            DirectIp: ['geoip:ir', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+            BlockSites: ['geosite:category-ads-all'],
+            BlockIp: [],
+            ProxySites: [],
+            ProxyIp: [],
+            DomainStrategy: 'IPIfNonMatch',
           }),
         )
       );
@@ -51,24 +42,15 @@ export function buildHappPresetDeeplink(preset: string): string {
         'happ://routing/onadd/' +
         toBase64Utf8(
           JSON.stringify({
-            rules: [
-              {
-                type: 'field',
-                outboundTag: 'direct',
-                domain: ['domain:cn', 'geosite:cn'],
-                ip: ['geoip:cn', 'geoip:private'],
-              },
-              {
-                type: 'field',
-                outboundTag: 'block',
-                domain: ['geosite:category-ads-all'],
-              },
-              {
-                type: 'field',
-                outboundTag: 'proxy',
-                network: 'tcp,udp',
-              },
-            ],
+            Name: 'China Direct',
+            GlobalProxy: 'true',
+            DirectSites: ['geosite:cn', 'geosite:geolocation-cn'],
+            DirectIp: ['geoip:cn', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+            BlockSites: ['geosite:category-ads-all'],
+            BlockIp: [],
+            ProxySites: [],
+            ProxyIp: [],
+            DomainStrategy: 'IPIfNonMatch',
           }),
         )
       );
@@ -77,23 +59,15 @@ export function buildHappPresetDeeplink(preset: string): string {
         'happ://routing/onadd/' +
         toBase64Utf8(
           JSON.stringify({
-            rules: [
-              {
-                type: 'field',
-                outboundTag: 'block',
-                domain: ['geosite:category-ads-all'],
-              },
-              {
-                type: 'field',
-                outboundTag: 'direct',
-                ip: ['geoip:private'],
-              },
-              {
-                type: 'field',
-                outboundTag: 'proxy',
-                network: 'tcp,udp',
-              },
-            ],
+            Name: 'AdBlock',
+            GlobalProxy: 'true',
+            DirectSites: [],
+            DirectIp: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+            BlockSites: ['geosite:category-ads-all'],
+            BlockIp: [],
+            ProxySites: [],
+            ProxyIp: [],
+            DomainStrategy: 'IPIfNonMatch',
           }),
         )
       );
@@ -102,13 +76,15 @@ export function buildHappPresetDeeplink(preset: string): string {
         'happ://routing/onadd/' +
         toBase64Utf8(
           JSON.stringify({
-            rules: [
-              {
-                type: 'field',
-                outboundTag: 'proxy',
-                network: 'tcp,udp',
-              },
-            ],
+            Name: 'Global Proxy',
+            GlobalProxy: 'true',
+            DirectSites: [],
+            DirectIp: [],
+            BlockSites: [],
+            BlockIp: [],
+            ProxySites: [],
+            ProxyIp: [],
+            DomainStrategy: 'AsIs',
           }),
         )
       );

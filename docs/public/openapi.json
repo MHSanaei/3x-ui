@@ -72,6 +72,9 @@
           "externalTrafficInformURI": {
             "type": "string"
           },
+          "happLinkEnable": {
+            "type": "boolean"
+          },
           "ipLimitAllowlist": {
             "type": "string"
           },
@@ -505,6 +508,7 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -682,6 +686,9 @@
           },
           "externalTrafficInformURI": {
             "type": "string"
+          },
+          "happLinkEnable": {
+            "type": "boolean"
           },
           "hasApiToken": {
             "type": "boolean"
@@ -1140,6 +1147,7 @@
           "expireDiff",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "hasApiToken",
           "hasDiscordBotToken",
           "hasLdapPassword",
@@ -2215,6 +2223,18 @@
         "required": [
           "reason",
           "token"
+        ],
+        "type": "object"
+      },
+      "HappLinkResult": {
+        "properties": {
+          "encryptedLink": {
+            "example": "happ://crypt5/example",
+            "type": "string"
+          }
+        },
+        "required": [
+          "encryptedLink"
         ],
         "type": "object"
       },
@@ -10146,6 +10166,55 @@
                     "vless://uuid@host:443?security=reality&...#user1",
                     "vmess://eyJ2IjoyLC..."
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/happLink/{id}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Generate a fresh Happ crypt5 link locally from the current client subscription URL when Happ link generation is enabled. The panel applies a resource limit of 8192 UTF-8 bytes to the source URL; this is not a Happ client maximum. Longer sources return success: false with msg: happ_source_too_long and obj: null. The source URL is not sent to a generation provider, and the result is not stored or reused.",
+        "operationId": "post_panel_api_clients_happLink_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Stable client record ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/HappLinkResult"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "encryptedLink": "happ://crypt5/example"
+                  }
                 }
               }
             }

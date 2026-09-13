@@ -33,6 +33,7 @@ export class AllSetting {
   twoFactorEnable = false;
   twoFactorToken = '';
   xrayTemplateConfig = '';
+  happLinkEnable = false;
   subEnable = true;
   subJsonEnable = false;
   subJsonAutoDetect = false;

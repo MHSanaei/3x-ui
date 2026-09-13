@@ -6,6 +6,7 @@ import {
   BuildOutlined,
   CloudSyncOutlined,
   DesktopOutlined,
+  LinkOutlined,
   MobileOutlined,
   NotificationOutlined,
   ThunderboltOutlined,
@@ -13,12 +14,14 @@ import {
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { buildHappPresetDeeplink, parseList, toBase64Utf8 } from './happPresets';
+import { catTabLabel } from './catTabLabel';
 
 interface HappSettingsContentProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
   isMobile: boolean;
   remoteSourceBadge: (val: string) => React.ReactNode;
+  defaultActiveTab?: 'routing' | 'links';
 }
 
 export default function HappSettingsContent({
@@ -26,6 +29,7 @@ export default function HappSettingsContent({
   updateSetting,
   isMobile,
   remoteSourceBadge,
+  defaultActiveTab = 'routing',
 }: HappSettingsContentProps) {
   const { t } = useTranslation();
   const [selectedPreset, setSelectedPreset] = useState<string>('iran-bypass');
@@ -47,55 +51,19 @@ export default function HappSettingsContent({
   };
 
   const handleBuildDeeplink = () => {
-    interface FieldRule {
-      type: string;
-      outboundTag: string;
-      domain?: string[];
-      ip?: string[];
-      network?: string;
-    }
-    const rules: FieldRule[] = [];
+    const profile = {
+      Name: 'Custom Rules',
+      GlobalProxy: 'true',
+      DirectSites: parseList(directDomains),
+      DirectIp: parseList(directIPs),
+      ProxySites: parseList(proxyDomains),
+      ProxyIp: parseList(proxyIPs),
+      BlockSites: parseList(blockDomains),
+      BlockIp: parseList(blockIPs),
+      DomainStrategy: 'IPIfNonMatch',
+    };
 
-    const bDom = parseList(blockDomains);
-    const bIp = parseList(blockIPs);
-    if (bDom.length > 0 || bIp.length > 0) {
-      rules.push({
-        type: 'field',
-        outboundTag: 'block',
-        ...(bDom.length > 0 ? { domain: bDom } : {}),
-        ...(bIp.length > 0 ? { ip: bIp } : {}),
-      });
-    }
-
-    const dDom = parseList(directDomains);
-    const dIp = parseList(directIPs);
-    if (dDom.length > 0 || dIp.length > 0) {
-      rules.push({
-        type: 'field',
-        outboundTag: 'direct',
-        ...(dDom.length > 0 ? { domain: dDom } : {}),
-        ...(dIp.length > 0 ? { ip: dIp } : {}),
-      });
-    }
-
-    const pDom = parseList(proxyDomains);
-    const pIp = parseList(proxyIPs);
-    if (pDom.length > 0 || pIp.length > 0) {
-      rules.push({
-        type: 'field',
-        outboundTag: 'proxy',
-        ...(pDom.length > 0 ? { domain: pDom } : {}),
-        ...(pIp.length > 0 ? { ip: pIp } : {}),
-      });
-    }
-
-    rules.push({
-      type: 'field',
-      outboundTag: 'proxy',
-      network: 'tcp,udp',
-    });
-
-    const deeplink = 'happ://routing/onadd/' + toBase64Utf8(JSON.stringify({ rules }));
+    const deeplink = 'happ://routing/onadd/' + toBase64Utf8(JSON.stringify(profile));
     updateSetting({ subRoutingRules: deeplink });
     setIsModalOpen(false);
     message.success(t('pages.settings.subHappDeeplinkGenerated'));
@@ -103,9 +71,21 @@ export default function HappSettingsContent({
 
   return (
     <>
+      <SettingListItem
+        paddings="small"
+        title={t('pages.settings.subHappAutoDetect')}
+        description={t('pages.settings.subHappAutoDetectDesc')}
+      >
+        <Switch
+          checked={allSetting.subHappAutoDetect}
+          onChange={(v) => updateSetting({ subHappAutoDetect: v })}
+        />
+      </SettingListItem>
+
       <Tabs
         type="card"
         size="small"
+        defaultActiveKey={defaultActiveTab}
         items={[
           {
             key: 'routing',
@@ -197,6 +177,22 @@ export default function HappSettingsContent({
                   />
                 </SettingListItem>
               </>
+            ),
+          },
+          {
+            key: 'links',
+            label: catTabLabel(<LinkOutlined />, t('pages.settings.subHappGroupLinks'), isMobile),
+            children: (
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.happLinkEnable')}
+                description={t('pages.settings.happLinkEnableDesc')}
+              >
+                <Switch
+                  checked={allSetting.happLinkEnable}
+                  onChange={(v) => updateSetting({ happLinkEnable: v })}
+                />
+              </SettingListItem>
             ),
           },
           {
@@ -433,11 +429,43 @@ export default function HappSettingsContent({
                   title={t('pages.settings.subHappColorProfile')}
                   description={t('pages.settings.subHappColorProfileDesc')}
                 >
-                  <Input
-                    value={allSetting.subHappColorProfile}
-                    placeholder="default, violet, turquoise, cyberpunk, or custom JSON"
-                    onChange={(e) => updateSetting({ subHappColorProfile: e.target.value })}
-                  />
+                  <Space orientation="vertical" style={{ width: '100%' }}>
+                    <Input
+                      value={allSetting.subHappColorProfile}
+                      placeholder='{"serverRowBackgroundColor":"#21003D67"} or resetcolors'
+                      onChange={(e) => updateSetting({ subHappColorProfile: e.target.value })}
+                    />
+                    <Space wrap size="small">
+                      <Button
+                        size="small"
+                        onClick={() => updateSetting({ subHappColorProfile: 'resetcolors' })}
+                      >
+                        {t('reset')}
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          updateSetting({
+                            subHappColorProfile:
+                              '{"serverRowBackgroundColor":"#21003D67","cardBackgroundColor":"#120023B3"}',
+                          })
+                        }
+                      >
+                        Violet
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          updateSetting({
+                            subHappColorProfile:
+                              '{"serverRowBackgroundColor":"#002B3667","cardBackgroundColor":"#001F27B3"}',
+                          })
+                        }
+                      >
+                        Turquoise
+                      </Button>
+                    </Space>
+                  </Space>
                 </SettingListItem>
               </>
             ),
@@ -451,17 +479,6 @@ export default function HappSettingsContent({
             ),
             children: (
               <>
-                <SettingListItem
-                  paddings="small"
-                  title={t('pages.settings.subHappAutoDetect')}
-                  description={t('pages.settings.subHappAutoDetectDesc')}
-                >
-                  <Switch
-                    checked={allSetting.subHappAutoDetect}
-                    onChange={(v) => updateSetting({ subHappAutoDetect: v })}
-                  />
-                </SettingListItem>
-
                 <SettingListItem
                   paddings="small"
                   title={t('pages.settings.subHappProviderId')}

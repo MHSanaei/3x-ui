@@ -14,6 +14,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "expireDiff": 0,
     "externalTrafficInformEnable": false,
     "externalTrafficInformURI": "",
+    "happLinkEnable": false,
     "ipLimitAllowlist": "",
     "ldapAutoCreate": false,
     "ldapAutoDelete": false,
@@ -158,6 +159,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "expireDiff": 0,
     "externalTrafficInformEnable": false,
     "externalTrafficInformURI": "",
+    "happLinkEnable": false,
     "hasApiToken": false,
     "hasDiscordBotToken": false,
     "hasLdapPassword": false,
@@ -567,6 +569,9 @@ export const EXAMPLES: Record<string, unknown> = {
     "file": "geosite.dat",
     "reason": "categoryMissing",
     "token": "geosite:blabla"
+  },
+  "HappLinkResult": {
+    "encryptedLink": "happ://crypt5/example"
   },
   "HistoryOfSeeders": {
     "id": 0,

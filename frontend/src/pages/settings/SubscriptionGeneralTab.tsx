@@ -9,7 +9,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import type { AllSetting } from '@/models/setting';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
@@ -25,17 +25,24 @@ interface SubscriptionGeneralTabProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
 }
 
+const PANEL_SETTINGS_TAB = '1';
+const HAPP_SETTINGS_TAB = '5';
+
 export default function SubscriptionGeneralTab({
   allSetting,
   updateSetting,
 }: SubscriptionGeneralTabProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isMobile } = useMediaQuery();
+  // Keep the URL semantic while mapping to the legacy numeric key used by these inner tabs.
+  const initialTab =
+    searchParams.get('subscriptionTab') === 'happ' ? HAPP_SETTINGS_TAB : PANEL_SETTINGS_TAB;
 
   return (
     <Tabs
-      defaultActiveKey="1"
+      defaultActiveKey={initialTab}
       items={[
         {
           key: '1',
@@ -346,6 +353,8 @@ export default function SubscriptionGeneralTab({
               updateSetting={updateSetting}
               isMobile={isMobile}
               remoteSourceBadge={remoteSourceBadge}
+              // QR settings links select the link control; ordinary Happ visits still start on routing.
+              defaultActiveTab={searchParams.get('happTab') === 'links' ? 'links' : 'routing'}
             />
           ),
         },

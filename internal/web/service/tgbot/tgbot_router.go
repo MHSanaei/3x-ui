@@ -1268,18 +1268,22 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			return
 		}
 
+		// One report per tap, not one message per client: a large panel would
+		// otherwise burst past Telegram's rate limit. SendMsgToTgbot pages it.
+		var report strings.Builder
 		for _, email := range emails {
-			err := t.inboundService.ResetClientTrafficByEmail(email)
-			if err == nil {
-				msg := t.I18nBot("tgbot.messages.SuccessResetTraffic", "ClientEmail=="+email)
-				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
+			if err := t.inboundService.ResetClientTrafficByEmail(email); err == nil {
+				report.WriteString(t.I18nBot("tgbot.messages.SuccessResetTraffic", "ClientEmail=="+email))
 			} else {
-				msg := t.I18nBot("tgbot.messages.FailedResetTraffic", "ClientEmail=="+email, "ErrorMessage=="+err.Error())
-				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
+				report.WriteString(t.I18nBot("tgbot.messages.FailedResetTraffic", "ClientEmail=="+email, "ErrorMessage=="+err.Error()))
 			}
+			report.WriteString("\r\n\r\n")
 		}
+		report.WriteString(t.I18nBot("tgbot.messages.FinishProcess"))
 
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.FinishProcess"), tu.ReplyKeyboardRemove())
+		// Escaped whole: one stray "<" in a remark or email otherwise makes
+		// Telegram reject the page it landed on, losing ~15 clients at once.
+		t.SendMsgToTgbot(chatId, html.EscapeString(report.String()), tu.ReplyKeyboardRemove())
 	case "get_sorted_traffic_usage_report":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		emails, err := t.inboundService.GetAllEmails()
@@ -1287,33 +1291,36 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return
 		}
-		valid_emails, extra_emails, err := t.inboundService.FilterAndSortClientEmails(emails)
+		validEmails, missingEmails, err := t.inboundService.FilterAndSortClientEmails(emails)
 		if err != nil {
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return
 		}
 
-		for _, valid_emails := range valid_emails {
-			traffic, err := t.inboundService.GetClientTrafficByEmail(valid_emails)
+		// Batched for the same reason as the reset report above: one message
+		// per client hits Telegram's rate limit on a large panel.
+		var report strings.Builder
+		for _, email := range validEmails {
+			traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 			if err != nil {
 				logger.Warning(err)
-				msg := t.I18nBot("tgbot.wentWrong")
-				t.SendMsgToTgbot(chatId, msg)
+				report.WriteString(t.I18nBot("tgbot.wentWrong"))
+				report.WriteString("\r\n\r\n")
 				continue
 			}
 			if traffic == nil {
-				msg := t.I18nBot("tgbot.noResult")
-				t.SendMsgToTgbot(chatId, msg)
+				report.WriteString(t.I18nBot("tgbot.noResult"))
+				report.WriteString("\r\n\r\n")
 				continue
 			}
-
-			output := t.clientInfoMsg(traffic, false, false, false, false, true, false)
-			t.SendMsgToTgbot(chatId, output, tu.ReplyKeyboardRemove())
+			report.WriteString(t.clientInfoMsg(traffic, false, false, false, false, true, false))
+			report.WriteString("\r\n\r\n")
 		}
-		for _, extra_emails := range extra_emails {
-			msg := fmt.Sprintf("📧 %s\n%s", extra_emails, t.I18nBot("tgbot.noResult"))
-			t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
-
+		for _, email := range missingEmails {
+			fmt.Fprintf(&report, "📧 %s\r\n%s\r\n\r\n", email, t.I18nBot("tgbot.noResult"))
+		}
+		if report.Len() > 0 {
+			t.SendMsgToTgbot(chatId, html.EscapeString(report.String()), tu.ReplyKeyboardRemove())
 		}
 	default:
 		action, email, ok := splitClientLinkCallback(callbackQuery.Data)

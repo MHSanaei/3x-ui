@@ -1575,6 +1575,14 @@ export const sections: readonly Section[] = [
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?security=reality&...#user1",\n    "vmess://eyJ2IjoyLC..."\n  ]\n}',
       },
       {
+        method: 'POST',
+        path: '/panel/api/clients/happLink/:id',
+        summary:
+          'Generate a fresh Happ crypt5 link locally from the current client subscription URL when Happ link generation is enabled. The panel applies a resource limit of 8192 UTF-8 bytes to the source URL; this is not a Happ client maximum. Longer sources return success: false with msg: happ_source_too_long and obj: null. The source URL is not sent to a generation provider, and the result is not stored or reused.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Stable client record ID.' }],
+        responseSchema: 'HappLinkResult',
+      },
+      {
         method: 'GET',
         path: '/panel/api/clients/links/:email',
         summary:

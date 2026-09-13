@@ -22,19 +22,11 @@ describe('Happ presets and helpers', () => {
     const jsonStr = atob(b64);
     const parsed = JSON.parse(jsonStr);
 
-    expect(parsed).toHaveProperty('rules');
-    expect(Array.isArray(parsed.rules)).toBe(true);
-
-    const directRule = parsed.rules.find(
-      (r: { outboundTag: string }) => r.outboundTag === 'direct',
-    );
-    expect(directRule).toBeDefined();
-    expect(directRule.domain).toContain('domain:ir');
-    expect(directRule.ip).toContain('geoip:ir');
-
-    const blockRule = parsed.rules.find((r: { outboundTag: string }) => r.outboundTag === 'block');
-    expect(blockRule).toBeDefined();
-    expect(blockRule.domain).toContain('geosite:category-ads-all');
+    expect(parsed.Name).toBe('Iran Bypass');
+    expect(parsed.GlobalProxy).toBe('true');
+    expect(parsed.DirectSites).toContain('domain:ir');
+    expect(parsed.DirectIp).toContain('geoip:ir');
+    expect(parsed.BlockSites).toContain('geosite:category-ads-all');
   });
 
   it('generates valid base64 payload for china-direct preset', () => {
@@ -45,11 +37,9 @@ describe('Happ presets and helpers', () => {
     const jsonStr = atob(b64);
     const parsed = JSON.parse(jsonStr);
 
-    const directRule = parsed.rules.find(
-      (r: { outboundTag: string }) => r.outboundTag === 'direct',
-    );
-    expect(directRule.domain).toContain('domain:cn');
-    expect(directRule.ip).toContain('geoip:cn');
+    expect(parsed.Name).toBe('China Direct');
+    expect(parsed.DirectSites).toContain('geosite:cn');
+    expect(parsed.DirectIp).toContain('geoip:cn');
   });
 
   it('generates valid base64 payload for adblock preset', () => {
@@ -58,8 +48,8 @@ describe('Happ presets and helpers', () => {
     const jsonStr = atob(b64);
     const parsed = JSON.parse(jsonStr);
 
-    const blockRule = parsed.rules.find((r: { outboundTag: string }) => r.outboundTag === 'block');
-    expect(blockRule.domain).toContain('geosite:category-ads-all');
+    expect(parsed.Name).toBe('AdBlock');
+    expect(parsed.BlockSites).toContain('geosite:category-ads-all');
   });
 
   it('generates valid base64 payload for global preset', () => {
@@ -68,8 +58,8 @@ describe('Happ presets and helpers', () => {
     const jsonStr = atob(b64);
     const parsed = JSON.parse(jsonStr);
 
-    expect(parsed.rules[0].outboundTag).toBe('proxy');
-    expect(parsed.rules[0].network).toBe('tcp,udp');
+    expect(parsed.Name).toBe('Global Proxy');
+    expect(parsed.DomainStrategy).toBe('AsIs');
   });
 
   it('encodes unicode properly via toBase64Utf8', () => {
