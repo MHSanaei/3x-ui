@@ -26,9 +26,10 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 
 ## Características
 
-- **Entradas multiprotocolo** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, Hysteria2, MTProto, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel y TUN.
+- **Entradas multiprotocolo** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, TUIC v5, Hysteria2, MTProto, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel y TUN.
 - **Transportes y seguridad modernos** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade y XHTTP, protegidos con TLS, XTLS y REALITY.
 - **AmneziaWG integrado** — WireGuard resistente al DPI se ejecuta dentro del panel sobre una pila de red en espacio de usuario, sin módulo del kernel, DKMS ni paquetes adicionales que instalar.
+- **TUIC v5 integrado** — Proxy de alto rendimiento basado en QUIC con medición de tráfico mediante retransmisión UDP nativa, handshakes 0-RTT, control de congestión BBR y enrutamiento fluido a través de Xray.
 - **Proxies MTProto** — secretos FakeTLS, ad-tags y cuotas por cliente, aplicados en caliente sin cortar las conexiones existentes.
 - **Fallbacks** — sirve varios protocolos en un solo puerto (p. ej. VLESS y Trojan en el 443) usando la función de fallback de Xray.
 - **Gestión por cliente** — cuotas de tráfico, fechas de caducidad, límites de IP con exenciones para direcciones de confianza, límites de dispositivos (HWID), ciclos de renovación programados, estado en línea en tiempo real y enlaces de compartición, códigos QR y suscripciones con un solo clic.
