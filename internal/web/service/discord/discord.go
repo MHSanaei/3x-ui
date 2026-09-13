@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode/utf16"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -119,6 +120,22 @@ func (s *DiscordService) authCredentials() (token string, channelID string, err 
 	return cleanToken, strings.TrimSpace(rawChannel), nil
 }
 
+// discordCharLen counts what Discord's caps count: a rune outside the BMP is
+// two units there, so a rune count understates an emoji-bearing field.
+func discordCharLen(s string) int {
+	return len(utf16.Encode([]rune(s)))
+}
+
+// RateLimitedError is a 429, carrying the wait Discord asks for so a caller
+// sending several messages can back off instead of losing the rest of them.
+type RateLimitedError struct {
+	RetryAfter time.Duration
+}
+
+func (e *RateLimitedError) Error() string {
+	return fmt.Sprintf("discord rate limited (429): retry after %s", e.RetryAfter)
+}
+
 func parseDiscordResponse(resp *http.Response) error {
 	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	bodyStr := string(respBody)
@@ -135,7 +152,11 @@ func parseDiscordResponse(resp *http.Response) error {
 	case http.StatusNotFound:
 		return errors.New("discord not found (404): channel not found")
 	case http.StatusTooManyRequests:
-		return fmt.Errorf("discord rate limited (429): %s", bodyStr)
+		var limited struct {
+			RetryAfter float64 `json:"retry_after"`
+		}
+		_ = json.Unmarshal(respBody, &limited)
+		return &RateLimitedError{RetryAfter: time.Duration(limited.RetryAfter * float64(time.Second))}
 	default:
 		return fmt.Errorf("discord API error (%d): %s", resp.StatusCode, bodyStr)
 	}
