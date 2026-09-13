@@ -649,6 +649,8 @@
         "scanCert": "証明書",
         "scanCertInvalid": "信頼できません",
         "scanCertExpiry": "証明書の有効期限",
+        "scanCertChain": "証明書チェーン",
+        "scanMldsaCertChainTooSmall": "ターゲットの証明書チェーンは {length} バイトで、ML-DSA-65 に必要な下限 {min} バイトを下回っています。接続はエラーなく失敗します。別のターゲットを選ぶか ML-DSA-65 を無効にしてください。",
         "scanSniUsed": "使用した SNI",
         "scanPrivateNote": "プライベート/ローカルネットワーク経由で確認しました。このアドレスはインターネットからは到達できません。",
         "scanPrivateConfirmTitle": "ローカルネットワーク上のターゲット",
@@ -675,7 +677,8 @@
           "node": "ノードアドレス",
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
-        }
+        },
+        "autoFill": "自動入力"
       },
       "info": {
         "mode": "モード",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 設定"
       },
-      "sniffingDestOverride": "宛先のオーバーライド"
+      "sniffingDestOverride": "宛先のオーバーライド",
+      "advancedTitle": "詳細設定"
     },
     "clients": {
       "tabBasics": "基本",
@@ -760,6 +764,7 @@
       "noHwids": "HWID デバイスはまだありません",
       "firstSeen": "初回確認",
       "lastSeen": "最終確認",
+      "hwidFingerprint": "HWID フィンガープリント",
       "deleteHwid": "デバイスを削除",
       "deleteHwidConfirm": "このデバイスを削除しますか?次回のサブスクリプション取得時に再登録が必要になります。",
       "hwidDeleted": "デバイスを削除しました。",
@@ -893,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 設定",
+      "tuicConfig": "TUIC 設定 (Clash)",
       "mtprotoSecret": "MTProto シークレット",
       "mtprotoSecretHint": "このクライアントの FakeTLS シークレット。変更するには再生成します。",
       "mtprotoAdTag": "広告タグ（スポンサーチャンネル）",
@@ -926,6 +932,7 @@
       "renewOnDay": "更新する日",
       "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
       "renewsUsed": "使用済み更新回数",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。"
     },
     "groups": {
@@ -1299,6 +1306,8 @@
       "muxSett": "マルチプレクサ設定",
       "direct": "直接接続",
       "directDesc": "特定の国のドメインまたはIP範囲に直接接続する",
+      "block": "接続をブロック",
+      "blockDesc": "blackholeアウトバウンドを使用して、選択したドメインまたはIP範囲への接続をブロックします。",
       "notifications": "通知",
       "certs": "証明書",
       "externalTraffic": "外部トラフィック",
@@ -1802,6 +1811,7 @@
         "urlPlaceholder": "https://...（リンクのbase64リスト）",
         "tagPrefix": "タグのプレフィックス",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "更新間隔",
         "hours": "時間",
         "minutes": "分",
@@ -1972,6 +1982,19 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
+      },
+      "tuic": {
+        "congestionControl": "輻輳制御",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP リレーモード",
+        "zeroRttHandshake": "0-RTT ハンドシェイク",
+        "logLevel": "ログレベル",
+        "logLevelHint": "オンライン状態、最終オンライン、「初回使用後に開始」はサイドカーの Info 行から検出されます。Warn または Error を選ぶとこのインバウンドでは無効になります。",
+        "maxIdleTime": "最大アイドル時間 (秒)",
+        "authTimeout": "認証タイムアウト (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",
+        "sni": "SNI",
+        "sniHint": "Server Name Indication の上書き"
       },
       "tun": {
         "userLevel": "ユーザーレベル"

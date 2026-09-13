@@ -119,7 +119,7 @@ export default function InboundList({
   );
 
   const hasAnySubSortIndex = useMemo(
-    () => dbInbounds.some((i) => (i.subSortIndex ?? 1) > 1),
+    () => dbInbounds.some((i) => (i.subSortIndex ?? 1) !== 1),
     [dbInbounds],
   );
 

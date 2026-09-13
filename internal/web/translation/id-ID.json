@@ -628,6 +628,8 @@
         "scanCert": "Sertifikat",
         "scanCertInvalid": "Tidak tepercaya",
         "scanCertExpiry": "Sertifikat kedaluwarsa",
+        "scanCertChain": "Rantai sertifikat",
+        "scanMldsaCertChainTooSmall": "Rantai sertifikat target berukuran {length} byte, di bawah minimum {min} byte yang dibutuhkan ML-DSA-65. Ini akan menyebabkan koneksi gagal tanpa pesan error. Pilih target lain atau nonaktifkan ML-DSA-65.",
         "scanSniUsed": "SNI yang dipakai",
         "scanPrivateNote": "Diperiksa melalui jaringan privat/lokal — alamat ini tidak dapat dijangkau dari internet.",
         "scanPrivateConfirmTitle": "Target di jaringan lokal",
@@ -675,7 +677,8 @@
         "bytesPerSec": "Byte per detik",
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
-        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama."
+        "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
+        "autoFill": "Isi Otomatis"
       },
       "info": {
         "mode": "Mode",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Konfig Peer {n}"
       },
-      "sniffingDestOverride": "Penggantian tujuan"
+      "sniffingDestOverride": "Penggantian tujuan",
+      "advancedTitle": "Pengaturan Lanjutan"
     },
     "clients": {
       "tabBasics": "Dasar",
@@ -760,6 +764,7 @@
       "noHwids": "Belum ada perangkat HWID",
       "firstSeen": "Pertama terlihat",
       "lastSeen": "Terakhir terlihat",
+      "hwidFingerprint": "Sidik jari HWID",
       "deleteHwid": "Hapus perangkat",
       "deleteHwidConfirm": "Hapus perangkat ini? Perangkat perlu mendaftar ulang pada pengambilan langganan berikutnya.",
       "hwidDeleted": "Perangkat dihapus.",
@@ -893,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "Konfigurasi AmneziaWG",
+      "tuicConfig": "Konfigurasi TUIC (Clash)",
       "mtprotoSecret": "Secret MTProto",
       "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
       "mtprotoAdTag": "Ad-tag (kanal bersponsor)",
@@ -926,6 +932,7 @@
       "renewOnDay": "Perpanjang pada tanggal",
       "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
       "renewsUsed": "Perpanjangan terpakai",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto."
     },
     "groups": {
@@ -1299,6 +1306,8 @@
       "muxSett": "Pengaturan Mux",
       "direct": "Koneksi langsung",
       "directDesc": "Secara langsung membuat koneksi dengan domain atau rentang IP negara tertentu.",
+      "block": "Blokir Koneksi",
+      "blockDesc": "Memblokir koneksi ke domain atau rentang IP yang dipilih menggunakan outbound blackhole.",
       "notifications": "Notifikasi",
       "certs": "Sertifikat",
       "externalTraffic": "Lalu Lintas Eksternal",
@@ -1802,6 +1811,7 @@
         "urlPlaceholder": "https://... (daftar tautan base64)",
         "tagPrefix": "Awalan tag",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Interval pembaruan",
         "hours": "j",
         "minutes": "mnt",
@@ -1972,6 +1982,19 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
+      },
+      "tuic": {
+        "congestionControl": "Kontrol Kemacetan",
+        "alpn": "ALPN",
+        "udpRelayMode": "Mode Relai UDP",
+        "zeroRttHandshake": "Jabat Tangan 0-RTT",
+        "logLevel": "Tingkat Log",
+        "logLevelHint": "Status online, terakhir online, dan \"mulai setelah penggunaan pertama\" dibaca dari baris Info sidecar; Warn atau Error menonaktifkannya untuk inbound ini.",
+        "maxIdleTime": "Waktu Diam Maks (dtk)",
+        "authTimeout": "Batas Waktu Otentikasi (dtk)",
+        "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
+        "sni": "SNI",
+        "sniHint": "Penggantian Server Name Indication"
       },
       "tun": {
         "userLevel": "Level Pengguna"

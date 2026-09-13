@@ -648,6 +648,8 @@
         "scanCert": "证书",
         "scanCertInvalid": "不受信任",
         "scanCertExpiry": "证书有效期至",
+        "scanCertChain": "证书链",
+        "scanMldsaCertChainTooSmall": "目标证书链为 {length} 字节，低于 ML-DSA-65 所需的 {min} 字节下限。这会导致连接静默失败。请更换目标或关闭 ML-DSA-65。",
         "scanSniUsed": "使用的 SNI",
         "scanPrivateNote": "已通过内网/本地网络检测 — 该地址无法从互联网访问。",
         "scanPrivateConfirmTitle": "目标位于本地网络",
@@ -675,7 +677,8 @@
           "listen": "入站监听地址",
           "custom": "自定义"
         },
-        "verifyPeerCertByName": "按名称验证对端证书"
+        "verifyPeerCertByName": "按名称验证对端证书",
+        "autoFill": "自动填充"
       },
       "info": {
         "mode": "模式",
@@ -694,7 +697,8 @@
         "peerNumber": "Peer {n}",
         "peerNumberConfig": "Peer {n} 配置"
       },
-      "sniffingDestOverride": "目标覆盖"
+      "sniffingDestOverride": "目标覆盖",
+      "advancedTitle": "高级设置"
     },
     "clients": {
       "tabBasics": "基本",
@@ -760,6 +764,7 @@
       "noHwids": "暂无 HWID 设备",
       "firstSeen": "首次出现",
       "lastSeen": "最后出现",
+      "hwidFingerprint": "HWID 指纹",
       "deleteHwid": "移除设备",
       "deleteHwidConfirm": "移除此设备？下次获取订阅时它将需要重新注册。",
       "hwidDeleted": "设备已移除。",
@@ -768,7 +773,7 @@
       "limitIpFail2banWindows": "Windows 上不支持 Fail2ban，无法实施 IP 限制。",
       "limitIpDisabled": "此服务器已禁用 IP 限制功能。",
       "password": "密码",
-      "passwordDesc": "仅 Trojan 和 Shadowsocks 客户端使用；VLESS、VMess、Hysteria 和 WireGuard 会忽略此项。",
+      "passwordDesc": "用于 Trojan、Shadowsocks 和 TUIC 客户端；对 VLESS、VMess、Hysteria 和 WireGuard 忽略。",
       "subId": "订阅 ID",
       "online": "在线",
       "email": "邮箱",
@@ -893,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG 配置",
+      "tuicConfig": "TUIC 配置 (Clash)",
       "mtprotoSecret": "MTProto 密钥",
       "mtprotoSecretHint": "该客户端的 FakeTLS 密钥。重新生成即可更换。",
       "mtprotoAdTag": "广告标签（赞助频道）",
@@ -926,6 +932,7 @@
       "renewOnDay": "按日期续期",
       "renewOnDayDesc": "每个自然月的这一天午夜（按面板时区）续期，而不是每 N 天续期一次。若当月没有该日期，则在当月最后一天续期。填 0 保持按天间隔模式。",
       "renewsUsed": "已用续期次数",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。"
     },
     "groups": {
@@ -1299,6 +1306,8 @@
       "muxSett": "复用器设置",
       "direct": "直接连接",
       "directDesc": "直接与特定国家的域或 IP 范围建立连接",
+      "block": "阻止连接",
+      "blockDesc": "使用 blackhole 出站阻止对所选域名或 IP 范围的连接。",
       "notifications": "通知",
       "certs": "证书",
       "externalTraffic": "外部流量",
@@ -1802,6 +1811,7 @@
         "urlPlaceholder": "https://...（base64 编码的链接列表）",
         "tagPrefix": "标签前缀",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "更新间隔",
         "hours": "时",
         "minutes": "分",
@@ -1972,6 +1982,19 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
+      },
+      "tuic": {
+        "congestionControl": "拥塞控制算法",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP 转发模式",
+        "zeroRttHandshake": "0-RTT 握手",
+        "logLevel": "日志级别",
+        "logLevelHint": "在线状态、最后在线时间和“首次使用后开始”来自 sidecar 的 Info 日志行；选择 Warn 或 Error 会使此入站失去这些功能。",
+        "maxIdleTime": "最大空闲时间 (秒)",
+        "authTimeout": "认证超时时间 (秒)",
+        "maxUdpRelayPacketSize": "最大 UDP 数据包大小",
+        "sni": "SNI",
+        "sniHint": "服务器名称指示 (SNI) 覆盖"
       },
       "tun": {
         "userLevel": "用户级别"

@@ -329,10 +329,10 @@ describe('subSortIndex', () => {
     expect(values.subSortIndex).toBe(1);
   });
 
-  it('rawInboundToFormValues preserves valid values and clamps below-minimum ones to 1', () => {
+  it('rawInboundToFormValues preserves positives and negatives; maps 0/absent to 1', () => {
     expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: 5 }).subSortIndex).toBe(5);
     expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: 0 }).subSortIndex).toBe(1);
-    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: -10 }).subSortIndex).toBe(1);
+    expect(rawInboundToFormValues({ ...vlessRow, subSortIndex: -10 }).subSortIndex).toBe(-10);
   });
 
   it('formValuesToWirePayload includes subSortIndex in the payload', () => {
@@ -348,18 +348,15 @@ describe('subSortIndex', () => {
     expect(replay.subSortIndex).toBe(42);
   });
 
-  it('InboundDbFieldsSchema enforces an integer minimum of 1 and defaults to 1', () => {
+  it('InboundDbFieldsSchema accepts integers including negatives and defaults to 1', () => {
     // Reject for the RIGHT reason: the issue must be about subSortIndex, not some
     // unrelated field — otherwise a schema that rejects everything would pass.
     const nonInt = InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 1.5 });
     expect(nonInt.success).toBe(false);
     if (!nonInt.success) expect(nonInt.error.issues[0]?.path).toContain('subSortIndex');
 
-    const belowMin = InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 0 });
-    expect(belowMin.success).toBe(false);
-    if (!belowMin.success) expect(belowMin.error.issues[0]?.path).toContain('subSortIndex');
-
-    // A valid integer >= 1 must pass (guards against a mutant rejecting all values).
+    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 0 }).success).toBe(true);
+    expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: -1 }).success).toBe(true);
     expect(InboundDbFieldsSchema.partial().safeParse({ subSortIndex: 5 }).success).toBe(true);
     expect(InboundDbFieldsSchema.parse({}).subSortIndex).toBe(1);
   });

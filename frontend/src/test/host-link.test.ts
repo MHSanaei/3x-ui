@@ -19,6 +19,7 @@ describe('hostToExternalProxyEntry', () => {
     overrideSniFromAddress: false,
     keepSniBlank: false,
     vlessRoute: '',
+    allowInsecure: false,
   };
 
   it('maps the overlapping fields onto an external-proxy entry', () => {
@@ -59,6 +60,13 @@ describe('hostToExternalProxyEntry', () => {
   it('carries a single vlessRoute value through to the entry', () => {
     expect(hostToExternalProxyEntry({ ...base, vlessRoute: '443' }).vlessRoute).toBe('443');
     expect(hostToExternalProxyEntry({ ...base, vlessRoute: '' }).vlessRoute).toBeUndefined();
+  });
+
+  it('carries allowInsecure through to the entry', () => {
+    expect(hostToExternalProxyEntry({ ...base, allowInsecure: true }).allowInsecure).toBe(true);
+    expect(
+      hostToExternalProxyEntry({ ...base, allowInsecure: false }).allowInsecure,
+    ).toBeUndefined();
   });
 });
 

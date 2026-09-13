@@ -32,7 +32,7 @@ func TestInstanceFromInboundParsesEnabledPeers(t *testing.T) {
 		{Email: "c@x", Enable: true, PublicKey: "", AllowedIPs: []string{"10.8.1.4/32"}}, // no key: skipped
 		{Email: "d@x", Enable: true, PublicKey: "pubD", AllowedIPs: nil},                 // no address: skipped
 	})
-	ib := &model.Inbound{Id: 7, Tag: "awg-tag", Protocol: model.AmneziaWG, Port: 51820, Settings: settings}
+	ib := &model.Inbound{Id: 7, Tag: "awg-tag", Protocol: model.AmneziaWG, Port: 51820, Listen: "203.0.113.10", Settings: settings}
 
 	inst, ok := InstanceFromInbound(ib)
 	if !ok {
@@ -40,6 +40,9 @@ func TestInstanceFromInboundParsesEnabledPeers(t *testing.T) {
 	}
 	if inst.Id != 7 || inst.Tag != "awg-tag" || inst.ListenPort != 51820 {
 		t.Fatalf("instance identity not carried over: %+v", inst)
+	}
+	if inst.Listen != "203.0.113.10" {
+		t.Fatalf("Listen = %q, want inbound listen carried through", inst.Listen)
 	}
 	if inst.InterfaceName != "awg7" {
 		t.Fatalf("InterfaceName = %q, want awg7", inst.InterfaceName)

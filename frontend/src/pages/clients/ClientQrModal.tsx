@@ -21,6 +21,7 @@ import {
   findAmneziaWGInbounds,
   isAmneziaWGClient,
 } from './amneziawgConfig';
+import { buildTuicClientConfig, findTuicInbound, isTuicClient } from './tuicConfig';
 
 interface SubSettings {
   enable: boolean;
@@ -361,8 +362,24 @@ function ClientQrModalContent({
       .filter((c) => !!c.text);
   }, [client, awgInbounds, tunnelAllowedIPs, subSettings.publicHost]);
 
+  const tuicInbound = useMemo(() => findTuicInbound(client, inboundsById), [client, inboundsById]);
+  const tuicConfigText = useMemo(() => {
+    if (!client || !tuicInbound || !isTuicClient(client)) return '';
+    return buildTuicClientConfig(
+      client,
+      tuicInbound,
+      window.location.hostname,
+      subSettings?.publicHost ?? '',
+    );
+  }, [client, tuicInbound, subSettings?.publicHost]);
+
   const hasAnything =
-    !!subLink || !!subJsonLink || wgConfigs.length > 0 || awgConfigs.length > 0 || links.length > 0;
+    !!subLink ||
+    !!subJsonLink ||
+    wgConfigs.length > 0 ||
+    awgConfigs.length > 0 ||
+    !!tuicConfigText ||
+    links.length > 0;
 
   // The reset runs during render so the effect only carries the request.
   const openSubId = open ? (client?.subId ?? '') : '';
@@ -483,6 +500,23 @@ function ClientQrModalContent({
         children: <QrPanel value={text} remark={meta.qrRemark} downloadName={meta.fileName} />,
       });
     });
+    if (tuicConfigText) {
+      out.push({
+        key: 'tuic-config',
+        label: (
+          <Tag color="orange" style={{ margin: 0 }}>
+            {t('pages.clients.tuicConfig')}
+          </Tag>
+        ),
+        children: (
+          <QrPanel
+            value={tuicConfigText}
+            remark={client?.email || 'tuic'}
+            downloadName={`${client?.email || 'tuic'}.yaml`}
+          />
+        ),
+      });
+    }
     return out;
   }, [
     subLink,
@@ -499,6 +533,7 @@ function ClientQrModalContent({
     selectVariant,
     regenerateHappLink,
     openHappSettings,
+    tuicConfigText,
     t,
   ]);
 

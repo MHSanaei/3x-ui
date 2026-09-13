@@ -628,6 +628,8 @@
         "scanCert": "Sertifika",
         "scanCertInvalid": "Güvenilmez",
         "scanCertExpiry": "Sertifika bitiş tarihi",
+        "scanCertChain": "Sertifika zinciri",
+        "scanMldsaCertChainTooSmall": "Hedef sertifika zinciri {length} bayt; ML-DSA-65 için gereken {min} bayt minimumunun altında. Bu, bağlantıların sessizce başarısız olmasına yol açar. Farklı bir hedef seçin veya ML-DSA-65'i kapatın.",
         "scanSniUsed": "Kullanılan SNI",
         "scanPrivateNote": "Özel/yerel ağ üzerinden kontrol edildi — bu adrese internetten erişilemez.",
         "scanPrivateConfirmTitle": "Hedef yerel ağda",
@@ -675,7 +677,8 @@
         "bytesPerSec": "Saniye Başına Bayt",
         "bytesPerSecTip": "Eşik aşıldıktan sonra fallback trafiğine uygulanan hız sınırı (bayt/sn); böylece sondalar sunucunuzu hedefe ücretsiz bant genişliği olarak kullanamaz. 0 = sınır yok (bu yönü devre dışı bırakır).",
         "burstBytesPerSec": "Saniye Başına Patlama Baytı",
-        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir."
+        "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir.",
+        "autoFill": "Otomatik Doldur"
       },
       "info": {
         "mode": "Mod",
@@ -694,7 +697,8 @@
         "peerNumber": "Eş {n}",
         "peerNumberConfig": "Peer {n} Yapılandırması"
       },
-      "sniffingDestOverride": "Hedef geçersiz kılma"
+      "sniffingDestOverride": "Hedef geçersiz kılma",
+      "advancedTitle": "Gelişmiş Ayarlar"
     },
     "clients": {
       "tabBasics": "Temel",
@@ -760,6 +764,7 @@
       "noHwids": "Henüz HWID cihazı yok",
       "firstSeen": "İlk görülme",
       "lastSeen": "Son görülme",
+      "hwidFingerprint": "HWID parmak izi",
       "deleteHwid": "Cihazı kaldır",
       "deleteHwidConfirm": "Bu cihaz kaldırılsın mı? Bir sonraki abonelik alımında yeniden kaydolması gerekecek.",
       "hwidDeleted": "Cihaz kaldırıldı.",
@@ -893,6 +898,7 @@
       "tunnelKeepAlive": "Keepalive (seconds)",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG Yapılandırması",
+      "tuicConfig": "TUIC Yapılandırması (Clash)",
       "mtprotoSecret": "MTProto sırrı",
       "mtprotoSecretHint": "İstemcinin FakeTLS sırrı. Değiştirmek için yeniden oluşturun.",
       "mtprotoAdTag": "Reklam etiketi (sponsorlu kanal)",
@@ -926,6 +932,7 @@
       "renewOnDay": "Yenileme günü",
       "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur.",
       "renewsUsed": "Kullanılan yenileme",
+      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın."
     },
     "groups": {
@@ -1299,6 +1306,8 @@
       "muxSett": "Mux Ayarları",
       "direct": "Doğrudan Bağlantı",
       "directDesc": "Belirli bir ülkenin alan adları veya IP aralıkları ile doğrudan bağlantı kurar.",
+      "block": "Bağlantıyı Engelle",
+      "blockDesc": "Seçilen alan adlarına veya IP aralıklarına giden bağlantıları blackhole outbound ile engeller.",
       "notifications": "Bildirimler",
       "certs": "Sertifikalar",
       "externalTraffic": "Harici Trafik",
@@ -1802,6 +1811,7 @@
         "urlPlaceholder": "https://... (bağlantıların base64 listesi)",
         "tagPrefix": "Etiket öneki",
         "tagPrefixPlaceholder": "hk-",
+        "userAgent": "User-Agent",
         "interval": "Güncelleme aralığı",
         "hours": "sa",
         "minutes": "dk",
@@ -1972,6 +1982,19 @@
         "listenPort": "Listen Port (optional)",
         "listenPortHint": "Fixed local UDP source port. Leave 0 to pick one automatically.",
         "outboundObfuscationHint": "Must exactly match the server side parameters."
+      },
+      "tuic": {
+        "congestionControl": "Tıkanıklık Kontrolü",
+        "alpn": "ALPN",
+        "udpRelayMode": "UDP İletim Modu",
+        "zeroRttHandshake": "0-RTT El Sıkışması",
+        "logLevel": "Günlük Seviyesi",
+        "logLevelHint": "Çevrimiçi durumu, son görülme ve \"ilk kullanımdan sonra başlat\" sidecar'ın Info satırlarından okunur; Warn veya Error bunları bu inbound için kapatır.",
+        "maxIdleTime": "Maksimum Boşta Kalma Süresi (sn)",
+        "authTimeout": "Kimlik Doğrulama Zaman Aşımı (sn)",
+        "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",
+        "sni": "SNI",
+        "sniHint": "Sunucu Adı Belirtimi (SNI) geçersiz kılma"
       },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"

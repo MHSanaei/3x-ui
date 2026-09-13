@@ -154,9 +154,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if client.SubID == "" {
 		client.SubID = uuid.NewString()
 	}
-	if !client.Enable {
-		client.Enable = true
-	}
+	// Enable: omit defaults true via ClientCreatePayload.UnmarshalJSON; explicit false kept.
 	now := time.Now().UnixMilli()
 	if client.CreatedAt == 0 {
 		client.CreatedAt = now
@@ -407,6 +405,13 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 	case model.MTProto:
 		if c.Secret == "" {
 			c.Secret = model.GenerateFakeTLSSecret(mtprotoDomainFromSettings(ib.Settings))
+		}
+	case model.TUIC:
+		if c.ID == "" {
+			c.ID = uuid.NewString()
+		}
+		if c.Password == "" {
+			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
 	}
 	return nil

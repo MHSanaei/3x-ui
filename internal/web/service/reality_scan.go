@@ -57,7 +57,10 @@ type RealityScanResult struct {
 	CertValid     bool   `json:"certValid" example:"true"`
 	// CertChainValid ignores the name: a trusted chain presented for other names
 	// still has serverNames the panel can offer instead of the failing SNI.
-	CertChainValid bool     `json:"certChainValid" example:"true"`
+	CertChainValid bool `json:"certChainValid" example:"true"`
+	// CertChainBytes is the sum of DER lengths of the presented peer chain.
+	// xray-core ML-DSA-65 REALITY needs >= 3500 bytes (constant lives in xray-core).
+	CertChainBytes int      `json:"certChainBytes" example:"3427"`
 	CertSubject    string   `json:"certSubject" example:"cloudflare.com"`
 	CertIssuer     string   `json:"certIssuer" example:"Google Trust Services"`
 	NotAfter       string   `json:"notAfter" example:"2026-08-01T00:00:00Z"`
@@ -253,6 +256,9 @@ func (s *ServerService) probeRealityAddr(dialHost string, port int, sni string, 
 	verifyHost := sni
 	if len(st.PeerCertificates) > 0 {
 		leaf := st.PeerCertificates[0]
+		for _, cert := range st.PeerCertificates {
+			res.CertChainBytes += len(cert.Raw)
+		}
 		res.CertSubject = leaf.Subject.CommonName
 		if res.CertSubject == "" && len(leaf.DNSNames) > 0 {
 			res.CertSubject = leaf.DNSNames[0]

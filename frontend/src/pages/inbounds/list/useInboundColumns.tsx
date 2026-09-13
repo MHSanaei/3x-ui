@@ -199,7 +199,7 @@ export function useInboundColumns({
               {record.protocol}
             </Tag>,
           ];
-          if (record.isWireguard || record.isAmneziawg || record.isHysteria) {
+          if (record.isWireguard || record.isAmneziawg || record.isHysteria || record.isTuic) {
             tags.push(
               <Tag key="n" color="green">
                 UDP
