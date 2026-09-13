@@ -1325,6 +1325,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	default:
 		action, email, ok := splitClientLinkCallback(callbackQuery.Data)
 		if !ok {
+			// Nothing matched: an unknown button still has to be answered, or it
+			// keeps spinning until Telegram times the callback out.
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 			return
 		}
 		// The keyboard outlives the chat it was sent to, so the email in it
@@ -1341,10 +1344,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		case "client_qr_links":
 			t.sendClientQRLinks(chatId, email)
 		}
-
-		// Nothing matched: an unknown button still has to be answered, or it
-		// keeps spinning until Telegram times the callback out.
-		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 	}
 }
 
