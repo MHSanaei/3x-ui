@@ -697,6 +697,8 @@ export function useClients(options: UseClientsOptions = {}) {
         reset: Number(base.reset) || 0,
         resetDay: Number(base.resetDay) || 0,
         resetMax: Number(base.resetMax) || 0,
+        trafficReset: base.trafficReset || 'never',
+        trafficResetDay: Number(base.trafficResetDay) || 1,
         group: base.group || '',
         comment: base.comment || '',
         enable: !!enable,
