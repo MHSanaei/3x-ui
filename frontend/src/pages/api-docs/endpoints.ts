@@ -914,14 +914,14 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/server/scanRealityTargets',
         summary:
-          'Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, a built-in seed list is probed.',
+          'Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).',
         params: [
           {
             name: 'targets',
             in: 'body (form)',
             type: 'string',
             optional: true,
-            desc: 'Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, a built-in seed list is probed.',
+            desc: 'Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).',
           },
         ],
         body: 'targets=104.16.0.0/24,www.apple.com:443',

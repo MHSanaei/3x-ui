@@ -485,9 +485,8 @@ func (a *ServerController) scanRealityTarget(c *gin.Context) {
 	jsonObj(c, res, nil)
 }
 
-// scanRealityTargets probes a batch of candidate REALITY targets (the supplied
-// comma-separated list, or the built-in seed set when empty) and returns each
-// verdict ranked by feasibility then latency.
+// scanRealityTargets probes the supplied comma-separated targets, or the
+// realityScanCandidates setting when empty, ranked by feasibility then latency.
 func (a *ServerController) scanRealityTargets(c *gin.Context) {
 	res, err := a.serverService.ScanRealityTargets(c.PostForm("targets"))
 	if err != nil {
