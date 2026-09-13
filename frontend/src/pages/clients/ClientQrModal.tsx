@@ -369,9 +369,9 @@ function ClientQrModalContent({
       client,
       tuicInbound,
       window.location.hostname,
-      subSettings?.publicHost ?? '',
+      subSettings.publicHost ?? '',
     );
-  }, [client, tuicInbound, subSettings?.publicHost]);
+  }, [client, tuicInbound, subSettings.publicHost]);
 
   const hasAnything =
     !!subLink ||
