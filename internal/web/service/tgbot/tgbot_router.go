@@ -599,19 +599,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 				t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 			case "add_client_reset_exp_c":
-				client_ExpiryTime = 0
+				// The wizard's presets and its custom keypad land in this one case, so a
+				// second tap replaces the term it set; 0 is the Unlimited button.
 				days, _ := strconv.ParseInt(dataArray[1], 10, 64)
-				var date int64
-				if client_ExpiryTime > 0 {
-					if client_ExpiryTime-time.Now().Unix()*1000 < 0 {
-						date = -(days * 24 * 60 * 60000)
-					} else {
-						date = client_ExpiryTime + days*24*60*60000
-					}
-				} else {
-					date = client_ExpiryTime - days*24*60*60000
-				}
-				client_ExpiryTime = date
+				client_ExpiryTime = -days * 24 * 60 * 60000
 
 				messageId := callbackQuery.Message.GetMessageID()
 				message_text := t.BuildClientDraftMessage()
