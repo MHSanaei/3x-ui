@@ -2,6 +2,7 @@ package link
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"net/url"
 	"strings"
 	"testing"
@@ -501,5 +502,46 @@ func TestSlugAndSuggest(t *testing.T) {
 	}
 	if got := SuggestTag("ru-", "Сервер 2", 0); got != "ru-сервер-2" {
 		t.Errorf("unicode suggest tag got %q", got)
+	}
+}
+
+// The obfs-local plugin the panel exports carries the only description of
+// shadowsocks tcp/http obfuscation, so it has to become that header.
+func TestParseShadowsocksObfsLocalPlugin(t *testing.T) {
+	user := base64.RawURLEncoding.EncodeToString([]byte("aes-256-gcm:secretpass"))
+	for _, tc := range []struct {
+		name, plugin, wantHeader, wantHost string
+	}{
+		{"http obfs becomes the tcp header", "obfs-local;obfs=http;obfs-host=obfs.example.com", "http", "obfs.example.com"},
+		{"tls obfs has no xray header", "obfs-local;obfs=tls", "none", ""},
+		{"an unrelated plugin is left alone", "v2ray-plugin", "none", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := ParseLink("ss://" + user + "@1.2.3.4:8388/?plugin=" + url.QueryEscape(tc.plugin) + "#node")
+			if err != nil {
+				t.Fatalf("parse ss: %v", err)
+			}
+			raw, err := json.Marshal(res.Outbound["streamSettings"])
+			if err != nil {
+				t.Fatalf("marshal stream: %v", err)
+			}
+			var stream map[string]any
+			_ = json.Unmarshal(raw, &stream)
+			tcp, _ := stream["tcpSettings"].(map[string]any)
+			header, _ := tcp["header"].(map[string]any)
+			if header == nil || header["type"] != tc.wantHeader {
+				t.Fatalf("header = %v, want type %q", header, tc.wantHeader)
+			}
+			request, _ := header["request"].(map[string]any)
+			headers, _ := request["headers"].(map[string]any)
+			hosts, _ := headers["Host"].([]any)
+			got := ""
+			if len(hosts) > 0 {
+				got, _ = hosts[0].(string)
+			}
+			if got != tc.wantHost {
+				t.Errorf("host = %q, want %q", got, tc.wantHost)
+			}
+		})
 	}
 }

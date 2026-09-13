@@ -401,6 +401,9 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		method, pass = splitMethodPass(userInfo)
 	}
 	identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
+	// The panel and v2rayN express shadowsocks tcp/http obfuscation only as the
+	// SIP002 plugin, so it has to become the header it stands for.
+	applyObfsLocalPlugin(params)
 	network := params.Get("type")
 	if network == "" {
 		network = "tcp"
@@ -432,6 +435,37 @@ func splitMethodPass(userInfo string) (string, string) {
 		return "2022-blake3-aes-128-gcm", userInfo // guess
 	}
 	return before, after
+}
+
+// applyObfsLocalPlugin maps a SIP002 obfs-local=http plugin onto the tcp/http
+// response header it stands for; the other plugin values have no Xray header.
+func applyObfsLocalPlugin(p url.Values) {
+	if p.Get("headerType") != "" || p.Get("type") == "http" {
+		return
+	}
+	parts := strings.Split(p.Get("plugin"), ";")
+	if len(parts) == 0 || parts[0] != "obfs-local" {
+		return
+	}
+	obfs, host := "", ""
+	for _, part := range parts[1:] {
+		if k, v, ok := strings.Cut(part, "="); ok {
+			switch k {
+			case "obfs":
+				obfs = v
+			case "obfs-host":
+				host = v
+			}
+		}
+	}
+	if obfs != "http" {
+		return
+	}
+	p.Set("type", "tcp")
+	p.Set("headerType", "http")
+	if host != "" {
+		p.Set("host", host)
+	}
 }
 
 // --- hysteria2 ---
