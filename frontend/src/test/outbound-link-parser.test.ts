@@ -57,6 +57,34 @@ describe('parseVmessLink', () => {
     expect((stream.tlsSettings as Record<string, unknown>).alpn).toEqual(['h2', 'http/1.1']);
   });
 
+  // The exporter writes ech/vcn/pcs into the vmess object, so the importer has
+  // to read them instead of leaving the tls checks it seeded empty.
+  it('keeps the ech, vcn and pcs certificate checks', () => {
+    const json = {
+      v: '2',
+      ps: 'pinned-vmess',
+      add: '1.2.3.4',
+      port: 8443,
+      id: '11111111-2222-4333-8444-555555555555',
+      scy: 'auto',
+      net: 'tcp',
+      tls: 'tls',
+      sni: 'vmess.example.com',
+      fp: 'chrome',
+      ech: 'AEX+DQBB',
+      vcn: 'vcn.example.com',
+      pcs: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+    };
+    const link = `vmess://${Base64.encode(JSON.stringify(json))}`;
+    const out = parseVmessLink(link);
+    expect(out).not.toBeNull();
+    const stream = out?.streamSettings as Record<string, unknown>;
+    const tls = stream.tlsSettings as Record<string, unknown>;
+    expect(tls.echConfigList).toBe('AEX+DQBB');
+    expect(tls.verifyPeerCertByName).toBe('vcn.example.com');
+    expect(tls.pinnedPeerCertSha256).toBe('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
+  });
+
   it('returns null for non-vmess links', () => {
     expect(parseVmessLink('vless://x@y:1')).toBeNull();
   });
