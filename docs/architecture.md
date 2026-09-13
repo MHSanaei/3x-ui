@@ -58,7 +58,7 @@ Two key ideas that explain most of the complexity:
 - Scheduler: **robfig/cron/v3** (seconds-precision) for all background jobs.
 - Xray: **xtls/xray-core** vendored as a library; the panel talks to the running core over
   its **gRPC API** and also shells out to manage the process.
-- Telegram bot: **mymmrac/telego**. i18n: **nicksnyder/go-i18n**.
+- Bots: Telegram bot (**mymmrac/telego**), Discord bot (Discord REST API v10 + **gorilla/websocket** Gateway v10). i18n: **nicksnyder/go-i18n**.
 - Misc: gorilla/websocket, gopsutil (system stats), go-qrcode, gotp (2FA TOTP).
 
 **Frontend (`frontend/`):**
@@ -210,6 +210,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 │   │   │   │   ├── user.go             #   admin user auth (bcrypt)
 │   │   │   │   ├── api_token.go        #   API token CRUD (SHA-256 hashed)
 │   │   │   │   └── websocket.go        #   WS hub / push service
+│   │   │   ├── discord/                # Discord bot client, Gateway v10, and subscriber
 │   │   │   └── tgbot/                  # Telegram bot command handlers
 │   │   ├── runtime/            # ⭐⭐ The Local/Remote node abstraction (see §5.2)
 │   │   │   ├── runtime.go      #   the Runtime interface (the contract)
@@ -426,7 +427,7 @@ also has protocol schemas under `frontend/src/schemas/protocols/` and `frontend/
 `xray.crash`, `node.down|up`, `cpu.high`, `memory.high`, `login.attempt`, with structured
 payloads (OutboundHealthData, NodeHealthData, LoginEventData, SystemMetricData). Producers
 include the CPU/memory jobs, node heartbeat, and login handling; consumers include the
-Telegram bot and the email notifier (`service/email/`). Use it for cross-cutting
+Telegram bot, the Discord bot (`service/discord/`), and the email notifier (`service/email/`). Use it for cross-cutting
 notifications instead of importing notification services into producers.
 
 ### 5.8 Tunnel health monitor
@@ -497,6 +498,7 @@ for AutoMigrate in `internal/database/db.go`.
 | **Geo category browser** empty / won't open                                       | `xray/geodata/` (`Store`, `reader.go`), `service/geodata.go`                 | `controller/xray_setting.go` (`/panel/api/xray/geodata/*`), asset dir = `config.GetBinFolderPath()` |
 | **`geosite:`/`geoip:` token** reported unknown in a routing rule                  | `xray/geodata/token.go`, `service/geodata.go` (`Validate`)                   | `frontend/src/lib/xray/geoTokens.ts`, `frontend/src/components/geodata/`                            |
 | **Telegram bot** commands                                                         | `service/tgbot/`                                                             | `job/stats_notify_job.go`                                                                           |
+| **Discord bot** commands & reports                                                | `service/discord/`                                                           | `job/discord_notify_job.go`                                                                         |
 | **Email notifications**                                                           | `service/email/`                                                             | `internal/eventbus/` (consumers)                                                                    |
 | **CPU / memory alerts** not firing                                                | `job/check_cpu_usage.go`, `job/check_memory_usage.go`                        | `internal/eventbus/`, notifier settings in `service/setting.go`                                     |
 | Xray auto-restart on **dead tunnel**                                              | `internal/tunnelmonitor/`                                                    | `XUI_TUNNEL_HEALTH_*` in `internal/config/`                                                         |
@@ -532,7 +534,7 @@ for AutoMigrate in `internal/database/db.go`.
 8. **Two servers, two concerns.** Admin features go in `internal/web`; anything an _end user_
    fetches goes in `internal/sub`. Don't blur them.
 9. **Cross-cutting notifications go through `internal/eventbus/`** — publish an event instead
-   of importing the Telegram/email services into producers.
+   of importing the Telegram/Discord/email services into producers.
 
 ---
 

@@ -1,0 +1,121 @@
+---
+title: Discord 机器人
+description: 将 Discord 机器人接入 3x-ui，在指定频道接收实时的面板事件 Embed 告警、周期性健康报告（含数据库备份）以及执行交互式控制命令。
+icon: Bot
+---
+
+3x-ui 提供了完整的 Discord 集成支持：通过事件总线（`EventBus`）实时推送事件告警、通过定时任务发送包含数据库备份的服务器状态报告，以及通过 Discord Gateway 执行交互式管理命令。
+
+<Callout type="info">
+  Discord 实时通知和周期性报告使用出站 HTTPS REST API v10 请求。交互式机器人命令则通过与 Discord Gateway 建立的后台安全 WebSocket 连接实现。
+</Callout>
+
+## 完成配置
+
+<Steps>
+
+<Step>
+### 创建 Discord 应用程序与机器人
+
+1. 打开 [Discord 开发者门户](https://discord.com/developers/applications) 并登录。
+2. 点击右上角的 **New Application**，输入名称（例如 `3x-ui Notifier`）并确认创建。
+3. 在左侧菜单中，进入 **Bot** 标签页。
+4. 点击 **Reset Token**（如果尚未创建机器人则点击 **Add Bot**），并复制生成的 **Bot Token**。请妥善保管该令牌。
+5. 在 **Privileged Gateway Intents** 区域，勾选启用 **Message Content Intent**（机器人读取 `!status` 等前缀命令所必需）。
+</Step>
+
+<Step>
+### 邀请机器人加入你的 Discord 服务器
+
+1. 在开发者门户左侧导航栏中，进入 **OAuth2** $\rightarrow$ **URL Generator**。
+2. 在 **Scopes** 中勾选 `bot`。
+3. 在下方展开的 **Bot Permissions** 中，勾选以下权限：
+   - **Send Messages**（发送消息）
+   - **Embed Links**（嵌入链接）
+   - **Attach Files**（附加文件 —— 发送数据库备份附件所必需）
+   - **Read Message History**（读取消息历史）
+4. 复制页面底部生成的邀请链接，在浏览器中打开并将机器人添加到你的目标服务器。
+</Step>
+
+<Step>
+### 复制频道 ID
+
+1. 在 Discord 客户端中开启开发者模式：**用户设置** $\rightarrow$ **高级** $\rightarrow$ **开发者模式**（开启）。
+2. 右键点击希望接收告警和执行命令的频道，选择**复制频道 ID**（Copy Channel ID）。
+3. 确保机器人拥有该频道的查看和发送消息权限。
+</Step>
+
+<Step>
+### 配置面板
+
+1. 在 3x-ui 面板中，打开**面板设置** $\rightarrow$ **Discord 机器人**（或直接访问 `/settings#discord`）。
+2. 在**通用**区域：
+   - 开启**启用 Discord 通知**。
+   - 填入你的 **Discord Bot Token** 和 **频道 ID**。
+   - 在**管理员用户 ID**中填入你自己的 Discord 用户数字 ID（右键你的个人头像 → **复制用户 ID**；多个 ID 请用英文逗号分隔）。
+   - 选择偏好的 **Discord 机器人语言**。
+3. 在**通知**区域：
+   - 设置**通知时间**（如 `@daily`、`@weekly` 或自定义 Cron 表达式）。
+   - 如需自动备份，可开启**数据库备份**，定时报告中将自动附带 `x-ui.db` 备份文件。
+   - 勾选需要触发告警的事件类型，并配置 CPU / 内存阈值。
+4. 点击**发送测试通知**以验证连通性。你的 Discord 频道应立刻收到一条测试 Embed 消息。
+5. 点击**保存**应用配置。
+</Step>
+
+</Steps>
+
+## 机器人命令
+
+启用后，机器人将在配置的 Discord 频道内监听命令（同时支持 `!` 和 `/` 前缀）。仅列在**管理员用户 ID**中的用户可以执行命令；来自其他用户的消息将被忽略，若未配置管理员 ID 则关闭命令响应。`!backup` 与定时备份会将数据库文件发送至频道中，因此请务必选择仅管理员可见的频道：
+
+| 命令 | 说明 |
+| ---- | ---- |
+| `!status` | 查看系统负载、内存占用、CPU 使用率、核心状态、TCP/UDP 连接数及当前在线用户。 |
+| `!report` | 立即生成并发送完整的服务器与代理状态报告 Embed。 |
+| `!backup` | 立即导出并发送当前数据库备份文件（`x-ui.db`）与 `config.json`。 |
+| `!usage <email>` | 查询指定客户端的流量用量（上传/下载）、配额上限及到期时间。 |
+| `!inbounds` | 列出所有活动的入站连接、监听端口、协议、已用流量及客户端数量。 |
+| `!restart` | 安全重启 Xray 核心，无需重启整个 Web 面板。 |
+| `!help` | 显示机器人可用命令列表及使用说明。 |
+
+## 事件告警
+
+告警以 Discord Embed 格式发送，带有颜色标识和关键诊断信息：
+
+| 事件类型 | 标识 | 说明 |
+| -------- | ---- | ---- |
+| `xray.crash` | 🔴 红色 | Xray 核心崩溃；包含崩溃原因及时间戳 |
+| `outbound.down` | 🔴 红色 | 出站连通性探测失败 |
+| `outbound.up` | 🟢 绿色 | 出站连通性已恢复 |
+| `node.down` | 🔴 红色 | 远程子节点离线或不可达 |
+| `node.up` | 🟢 绿色 | 远程子节点重新连接且健康 |
+| `cpu.high` | 🟠 橙色 | 服务器 CPU 使用率超过设定阈值（`discordCpu`） |
+| `memory.high` | 🟠 橙色 | 服务器内存使用率超过设定阈值（`discordMemory`） |
+| `login.attempt` | 🟢 / 🔴 | Web 面板登录尝试（包含用户名、客户端 IP 及登录结果） |
+
+<Callout type="warn">
+  登录告警仅包含尝试的用户名及客户端 IP 地址。系统绝不会记录或传输密码明文。
+</Callout>
+
+## 设置参考
+
+| 设置项 | 默认值 | 说明 |
+| ------ | ------ | ---- |
+| `discordBotEnable` | `false` | Discord 机器人与告警总开关。 |
+| `discordBotToken` | _(保密)_ | 从 Discord 开发者门户获取的 Bot Token。 |
+| `discordChannelId` | _(无)_ | 接收消息的目标 Discord 频道 Snowflake ID（17–20 位数字）。 |
+| `discordAdminIds` | _(无)_ | 允许执行命令的 Discord 用户数字 ID（逗号分隔）。留空则禁用命令交互。 |
+| `discordLang` | `en-US` | Discord 机器人消息与报告使用的语言。 |
+| `discordRunTime` | `@daily` | 发送周期性状态报告的 Cron 表达式或预设计划。 |
+| `discordBotBackup` | `false` | 是否在周期性报告中自动附带数据库备份文件（`x-ui.db`）。 |
+| `discordEnabledEvents` | `login.attempt,cpu.high` | 触发通知的事件类型列表（逗号分隔）。 |
+| `discordCpu` | `80` | 触发 CPU 告警的利用率百分比阈值（0–100）。 |
+| `discordMemory` | `80` | 触发内存告警的利用率百分比阈值（0–100）。 |
+
+## 故障排查
+
+- **测试报错 "invalid bot token (401)"**：请确认复制的是开发者门户 **Bot** 标签页中的 Bot Token，而非 Client Secret 或 Application ID。
+- **测试报错 "missing permissions (403)"**：请检查机器人角色在目标频道或对应分类目录中是否拥有 **Send Messages**、**Embed Links** 以及 **Attach Files** 权限。
+- **命令无响应**：请确认你的 Discord 用户 ID 已填入**管理员用户 ID**中。然后检查开发者门户中该机器人的 **Message Content Intent** 是否已开启，并重启面板（若缺少该意图，Discord 会直接关闭连接且不再重试）。
+- **测试报错 "channel not found (404)"**：请检查频道 ID 是否为纯数字，并确认机器人已加入拥有该频道的服务器。
+- **出站代理需求**：若你的服务器所在网络环境访问 Discord 需经过代理，请在面板设置中配置**面板出站代理**（Panel Outbound），Discord 的所有请求将自动经由该代理发出。
