@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -278,6 +279,11 @@ func (g *GatewayClient) connectAndListen(ctx context.Context) error {
 	hbStop := make(chan struct{})
 	defer close(hbStop)
 
+	// Discord answers every heartbeat with op 11; a half-open socket keeps taking
+	// writes and never answers, so a missing ACK means this one must be dropped.
+	var acked atomic.Bool
+	acked.Store(true)
+
 	go func() {
 		interval := time.Duration(helloData.HeartbeatInterval) * time.Millisecond
 		if interval <= 0 {
@@ -293,6 +299,11 @@ func (g *GatewayClient) connectAndListen(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				if !acked.Swap(false) {
+					logger.Warning("Discord heartbeats went unanswered; dropping the zombied gateway connection")
+					_ = conn.Close()
+					return
+				}
 				g.mu.Lock()
 				seq := g.lastSeq
 				c := g.conn
@@ -334,7 +345,7 @@ func (g *GatewayClient) connectAndListen(ctx context.Context) error {
 
 		switch payload.Op {
 		case opHeartbeatACK:
-			// Heartbeat acknowledged
+			acked.Store(true)
 		case opHeartbeat:
 			// Discord requested immediate heartbeat
 			g.mu.Lock()
