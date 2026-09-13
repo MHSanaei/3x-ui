@@ -641,15 +641,11 @@ func applyTransport(stream map[string]any, p url.Values) {
 	case "kcp":
 		// mtu/tti live on kcpSettings; header/seed are finalmask mkcp-legacy (see applyMkcpLegacyFromShare).
 		kcp := stream["kcpSettings"].(map[string]any)
-		if mtu := p.Get("mtu"); mtu != "" {
-			if n, err := strconv.Atoi(mtu); err == nil && n > 0 {
-				kcp["mtu"] = n
-			}
+		if n, ok := kcpParamInRange(p.Get("mtu"), kcpMinMTU, kcpMaxMTU); ok {
+			kcp["mtu"] = n
 		}
-		if tti := p.Get("tti"); tti != "" {
-			if n, err := strconv.Atoi(tti); err == nil && n > 0 {
-				kcp["tti"] = n
-			}
+		if n, ok := kcpParamInRange(p.Get("tti"), kcpMinTTI, kcpMaxTTI); ok {
+			kcp["tti"] = n
 		}
 	case "tcp":
 		if p.Get("headerType") == "http" || p.Get("type") == "http" {
@@ -702,6 +698,21 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 	applyMkcpLegacyFromShare(stream, p)
 }
 
+// mKCP bounds mirror xray-core's KCPConfig.Build checks (a value outside them fails
+// the whole config load); mtu's ceiling is the int32 that fits its uint32 field everywhere.
+const (
+	kcpMinMTU = 21
+	kcpMaxMTU = math.MaxInt32
+	kcpMinTTI = 10
+	kcpMaxTTI = 1000
+)
+
+// kcpParamInRange rejects an out-of-range or malformed link value so buildStream's default stays.
+func kcpParamInRange(s string, minVal, maxVal int) (int, bool) {
+	n, err := strconv.Atoi(s)
+	return n, err == nil && n >= minVal && n <= maxVal
+}
+
 // kcpHeaderTypeToMask maps share-link headerType to mkcp-legacy settings.header
 // (inverse of sub.kcpMaskToHeaderType).
 var kcpHeaderTypeToMask = map[string]string{
@@ -748,15 +759,23 @@ func applyMkcpLegacyFromShare(stream map[string]any, p url.Values) {
 			}
 		}
 	}
-	udp = append(udp, map[string]any{
-		"type": "mkcp-legacy",
-		"settings": map[string]any{
-			"header": maskHeader,
-			"value":  seed,
-		},
-	})
+	// One mask per field, seed first: MkcpLegacy.Build ignores value once header is set,
+	// and the chain puts the last mask outermost on the wire (header around the cipher).
+	if seed != "" {
+		udp = append(udp, mkcpLegacyMask("", seed))
+	}
+	if maskHeader != "" {
+		udp = append(udp, mkcpLegacyMask(maskHeader, ""))
+	}
 	finalmask["udp"] = udp
 	stream["finalmask"] = finalmask
+}
+
+func mkcpLegacyMask(header, value string) map[string]any {
+	return map[string]any{
+		"type":     "mkcp-legacy",
+		"settings": map[string]any{"header": header, "value": value},
+	}
 }
 
 // gecko packetSize bounds mirror xray-core's salamander buffer cap.

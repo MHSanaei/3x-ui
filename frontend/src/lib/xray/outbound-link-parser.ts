@@ -222,16 +222,10 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
     case 'kcp': {
       // mtu/tti on kcpSettings; header/seed via applyMkcpLegacyFromShare.
       const kcp = stream.kcpSettings as Raw;
-      const mtu = params.get('mtu');
-      if (mtu) {
-        const n = Number(mtu);
-        if (Number.isFinite(n) && n > 0) kcp.mtu = n;
-      }
-      const tti = params.get('tti');
-      if (tti) {
-        const n = Number(tti);
-        if (Number.isFinite(n) && n > 0) kcp.tti = n;
-      }
+      const mtu = kcpParamInRange(params.get('mtu'), KCP_MIN_MTU, KCP_MAX_MTU);
+      if (mtu !== null) kcp.mtu = mtu;
+      const tti = kcpParamInRange(params.get('tti'), KCP_MIN_TTI, KCP_MAX_TTI);
+      if (tti !== null) kcp.tti = tti;
       break;
     }
     case 'tcp':
@@ -251,9 +245,21 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
   }
 }
 
-// The inbound link emits the entire finalmask object as a JSON-encoded
-// `fm` query param. Decode and attach to streamSettings so udpHop /
-// quicParams / tcp+udp masks round-trip on outbound import.
+// mKCP bounds mirror xray-core's KCPConfig.Build checks (a value outside them fails
+// the whole config load); mtu's ceiling is the int32 that fits its uint32 field.
+const KCP_MIN_MTU = 21;
+const KCP_MAX_MTU = 0x7fffffff;
+const KCP_MIN_TTI = 10;
+const KCP_MAX_TTI = 1000;
+
+// Decimal digits only, like the Go importer's strconv.Atoi; anything else keeps
+// buildStream's default.
+function kcpParamInRange(raw: string | null, min: number, max: number): number | null {
+  if (raw === null || !/^\d+$/.test(raw)) return null;
+  const n = Number(raw);
+  return Number.isSafeInteger(n) && n >= min && n <= max ? n : null;
+}
+
 const kcpHeaderTypeToMask: Record<string, string> = {
   dns: 'dns',
   dtls: 'dtls',
@@ -263,6 +269,9 @@ const kcpHeaderTypeToMask: Record<string, string> = {
   wireguard: 'wireguard',
 };
 
+// The inbound link emits the entire finalmask object as a JSON-encoded
+// `fm` query param. Decode and attach to streamSettings so udpHop /
+// quicParams / tcp+udp masks round-trip on outbound import.
 function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   const fm = params.get('fm');
   if (fm) {
@@ -290,18 +299,24 @@ function applyMkcpLegacyFromShare(stream: Raw, params: URLSearchParams): void {
 
   let maskHeader = '';
   if (headerType) {
-    const mapped = kcpHeaderTypeToMask[headerType];
-    if (!mapped) return;
-    maskHeader = mapped;
+    if (!Object.hasOwn(kcpHeaderTypeToMask, headerType)) return;
+    maskHeader = kcpHeaderTypeToMask[headerType];
   }
 
   const finalmask = (stream.finalmask as Raw) ?? {};
   const udp = Array.isArray(finalmask.udp) ? [...(finalmask.udp as unknown[])] : [];
   if (udp.some((m) => (m as Raw)?.type === 'mkcp-legacy')) return;
 
-  udp.push({ type: 'mkcp-legacy', settings: { header: maskHeader, value: seed } });
+  // One mask per field, seed first: MkcpLegacy.Build ignores value once header is
+  // set, and the chain puts the last mask outermost on the wire (header around cipher).
+  if (seed) udp.push(mkcpLegacyMask('', seed));
+  if (maskHeader) udp.push(mkcpLegacyMask(maskHeader, ''));
   finalmask.udp = udp;
   stream.finalmask = finalmask;
+}
+
+function mkcpLegacyMask(header: string, value: string): Raw {
+  return { type: 'mkcp-legacy', settings: { header, value } };
 }
 
 function ensureFinalMask(stream: Raw): Raw {
