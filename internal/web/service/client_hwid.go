@@ -300,10 +300,18 @@ func (s *ClientService) DeleteClientHwid(email string, id int) error {
 	return nil
 }
 
+// The new limit and the trim it forces are two statements: without one
+// transaction a failure between them leaves more devices than the limit allows.
 func (s *ClientService) setClientLimitHwidByEmail(tx *gorm.DB, email string, limit int) error {
-	if tx == nil {
-		tx = database.GetDB()
+	if carriesOpenTx(tx) {
+		return s.setClientLimitHwidByEmailTx(tx, email, limit)
 	}
+	return database.GetDB().Transaction(func(ownTx *gorm.DB) error {
+		return s.setClientLimitHwidByEmailTx(ownTx, email, limit)
+	})
+}
+
+func (s *ClientService) setClientLimitHwidByEmailTx(tx *gorm.DB, email string, limit int) error {
 	if limit < 0 {
 		limit = 0
 	}

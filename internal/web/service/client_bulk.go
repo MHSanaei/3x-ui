@@ -553,7 +553,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 			}
 		}
 		if adjustHwid {
-			if err := s.setClientLimitHwidByEmail(db, email, *limitHwid); err != nil {
+			if err := s.setClientLimitHwidByEmail(nil, email, *limitHwid); err != nil {
 				if _, already := skippedReasons[email]; !already {
 					skippedReasons[email] = err.Error()
 				}
