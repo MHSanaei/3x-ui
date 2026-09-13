@@ -509,15 +509,17 @@ func TestSlugAndSuggest(t *testing.T) {
 // shadowsocks tcp/http obfuscation, so it has to become that header.
 func TestParseShadowsocksObfsLocalPlugin(t *testing.T) {
 	user := base64.RawURLEncoding.EncodeToString([]byte("aes-256-gcm:secretpass"))
+	const httpObfs = "obfs-local;obfs=http;obfs-host=obfs.example.com"
 	for _, tc := range []struct {
-		name, plugin, wantHeader, wantHost string
+		name, query, wantHeader, wantHost string
 	}{
-		{"http obfs becomes the tcp header", "obfs-local;obfs=http;obfs-host=obfs.example.com", "http", "obfs.example.com"},
-		{"tls obfs has no xray header", "obfs-local;obfs=tls", "none", ""},
-		{"an unrelated plugin is left alone", "v2ray-plugin", "none", ""},
+		{"http obfs becomes the tcp header", "plugin=" + url.QueryEscape(httpObfs), "http", "obfs.example.com"},
+		{"unencoded separators map the same way", "plugin=" + httpObfs, "http", "obfs.example.com"},
+		{"tls obfs has no xray header", "plugin=" + url.QueryEscape("obfs-local;obfs=tls"), "none", ""},
+		{"an unrelated plugin is left alone", "plugin=v2ray-plugin", "none", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := ParseLink("ss://" + user + "@1.2.3.4:8388/?plugin=" + url.QueryEscape(tc.plugin) + "#node")
+			res, err := ParseLink("ss://" + user + "@1.2.3.4:8388/?" + tc.query + "#node")
 			if err != nil {
 				t.Fatalf("parse ss: %v", err)
 			}

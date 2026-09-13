@@ -330,6 +330,27 @@ describe('parseShadowsocksLink', () => {
     expect(tls.alpn).toEqual(['h2', 'http/1.1']);
   });
 
+  // The panel exports tcp/http obfuscation as the SIP002 plugin only, so the
+  // importer has to rebuild the header it stands for.
+  it('rebuilds the tcp/http header from the obfs-local plugin', () => {
+    const userinfo = Base64.encode('aes-256-gcm:secretpass', true);
+    const plugin = encodeURIComponent('obfs-local;obfs=http;obfs-host=obfs.example.com');
+    const link = `ss://${userinfo}@example.com:8388?plugin=${plugin}#user`;
+    const stream = parseShadowsocksLink(link)?.streamSettings as Record<string, unknown>;
+    expect((stream.tcpSettings as Record<string, unknown>).header).toMatchObject({
+      type: 'http',
+      request: { headers: { Host: ['obfs.example.com'] } },
+    });
+  });
+
+  it('leaves a plugin without an xray header alone', () => {
+    const userinfo = Base64.encode('aes-256-gcm:secretpass', true);
+    const plugin = encodeURIComponent('obfs-local;obfs=tls');
+    const link = `ss://${userinfo}@example.com:8388?plugin=${plugin}#user`;
+    const stream = parseShadowsocksLink(link)?.streamSettings as Record<string, unknown>;
+    expect((stream.tcpSettings as Record<string, unknown>).header).toMatchObject({ type: 'none' });
+  });
+
   it('decodes URL-safe base64 userinfo (as the emitter writes it)', () => {
     const method = 'aes-256-gcm';
     const password = '>>>';

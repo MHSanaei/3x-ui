@@ -403,7 +403,7 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 	identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
 	// The panel and v2rayN express shadowsocks tcp/http obfuscation only as the
 	// SIP002 plugin, so it has to become the header it stands for.
-	applyObfsLocalPlugin(params)
+	applyObfsLocalPlugin(params, rawQuery)
 	network := params.Get("type")
 	if network == "" {
 		network = "tcp"
@@ -439,11 +439,15 @@ func splitMethodPass(userInfo string) (string, string) {
 
 // applyObfsLocalPlugin maps a SIP002 obfs-local=http plugin onto the tcp/http
 // response header it stands for; the other plugin values have no Xray header.
-func applyObfsLocalPlugin(p url.Values) {
+func applyObfsLocalPlugin(p url.Values, rawQuery string) {
 	if p.Get("headerType") != "" || p.Get("type") == "http" {
 		return
 	}
-	parts := strings.Split(p.Get("plugin"), ";")
+	plugin := p.Get("plugin")
+	if plugin == "" {
+		plugin = rawQueryPlugin(rawQuery)
+	}
+	parts := strings.Split(plugin, ";")
 	if len(parts) == 0 || parts[0] != "obfs-local" {
 		return
 	}
@@ -466,6 +470,19 @@ func applyObfsLocalPlugin(p url.Values) {
 	if host != "" {
 		p.Set("host", host)
 	}
+}
+
+// rawQueryPlugin reads the plugin parameter straight out of the query string for
+// the pair stdlib discards: a value holding an unencoded semicolon never parses.
+func rawQueryPlugin(rawQuery string) string {
+	for _, segment := range strings.Split(rawQuery, "&") {
+		if key, value, ok := strings.Cut(segment, "="); ok && key == "plugin" {
+			if decoded, err := url.QueryUnescape(value); err == nil {
+				return decoded
+			}
+		}
+	}
+	return ""
 }
 
 // --- hysteria2 ---
