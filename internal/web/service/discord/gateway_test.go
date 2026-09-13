@@ -3,6 +3,8 @@ package discord
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -282,5 +284,186 @@ func TestGatewayClient_EndToEndCommands(t *testing.T) {
 	}
 	if !mockXray.restarted {
 		t.Error("expected Xray core to be restarted")
+	}
+}
+
+func TestGatewayRequestedHeartbeatDoesNotRaceTicker(t *testing.T) {
+	settingService := setupTestDB(t)
+	_ = settingService.SetDiscordBotEnable(true)
+	_ = settingService.SetDiscordBotToken("test-gw-token")
+
+	var once sync.Once
+	flooded := make(chan struct{})
+	upgrader := websocket.Upgrader{}
+	wsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_ = conn.WriteJSON(GatewayPayload{Op: opHello, D: []byte(`{"heartbeat_interval": 1}`)})
+
+		readErr := make(chan error, 1)
+		go func() {
+			for {
+				if _, _, err := conn.ReadMessage(); err != nil {
+					readErr <- err
+					return
+				}
+			}
+		}()
+		// Op 1 from the server makes the read loop write while the 1ms ticker writes too.
+		for deadline := time.Now().Add(time.Second); time.Now().Before(deadline); {
+			if err := conn.WriteJSON(GatewayPayload{Op: opHeartbeat}); err != nil {
+				break
+			}
+		}
+		select {
+		case err := <-readErr:
+			t.Errorf("server read a broken client frame during the flood: %v", err)
+		default:
+		}
+		once.Do(func() { close(flooded) })
+	}))
+	defer wsServer.Close()
+
+	gw := NewGatewayClient(NewDiscordService(settingService), settingService, nil, nil, nil)
+	gw.SetGatewayURL("ws" + strings.TrimPrefix(wsServer.URL, "http"))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := gw.Start(ctx); err != nil {
+		t.Fatalf("gw.Start failed: %v", err)
+	}
+	defer gw.Stop()
+
+	select {
+	case <-flooded:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for the heartbeat flood to finish")
+	}
+}
+
+func TestGatewayStopsOnNonReconnectableCloseCode(t *testing.T) {
+	settingService := setupTestDB(t)
+	_ = settingService.SetDiscordBotEnable(true)
+	_ = settingService.SetDiscordBotToken("test-gw-token")
+
+	var mu sync.Mutex
+	dials := 0
+	upgrader := websocket.Upgrader{}
+	wsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		mu.Lock()
+		dials++
+		mu.Unlock()
+		_ = conn.WriteJSON(GatewayPayload{Op: opHello, D: []byte(`{"heartbeat_interval": 45000}`)})
+		var ident GatewayPayload
+		_ = conn.ReadJSON(&ident)
+		closeMsg := websocket.FormatCloseMessage(4014, "Disallowed intent(s).")
+		_ = conn.WriteControl(websocket.CloseMessage, closeMsg, time.Now().Add(time.Second))
+	}))
+	defer wsServer.Close()
+
+	gw := NewGatewayClient(NewDiscordService(settingService), settingService, nil, nil, nil)
+	gw.SetGatewayURL("ws" + strings.TrimPrefix(wsServer.URL, "http"))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := gw.Start(ctx); err != nil {
+		t.Fatalf("gw.Start failed: %v", err)
+	}
+	defer gw.Stop()
+
+	for deadline := time.Now().Add(2 * time.Second); gw.IsRunning() && time.Now().Before(deadline); {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if gw.IsRunning() {
+		t.Fatal("gateway still running after close code 4014, which Discord marks non-reconnectable")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if dials != 1 {
+		t.Fatalf("gateway dialed %d times, want 1", dials)
+	}
+}
+
+func TestGatewayDialsThroughPanelEgressProxy(t *testing.T) {
+	settingService := setupTestDB(t)
+	_ = settingService.SetDiscordBotEnable(true)
+	_ = settingService.SetDiscordBotToken("test-gw-token")
+
+	identified := make(chan struct{}, 1)
+	upgrader := websocket.Upgrader{}
+	wsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_ = conn.WriteJSON(GatewayPayload{Op: opHello, D: []byte(`{"heartbeat_interval": 45000}`)})
+		var ident GatewayPayload
+		if conn.ReadJSON(&ident) == nil {
+			select {
+			case identified <- struct{}{}:
+			default:
+			}
+		}
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer wsServer.Close()
+
+	var mu sync.Mutex
+	tunneledTo := ""
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			http.Error(w, "CONNECT only", http.StatusMethodNotAllowed)
+			return
+		}
+		mu.Lock()
+		tunneledTo = r.Host
+		mu.Unlock()
+		upstream, err := net.Dial("tcp", r.Host)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer upstream.Close()
+		client, _, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			return
+		}
+		defer client.Close()
+		_, _ = client.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n"))
+		go func() { _, _ = io.Copy(upstream, client) }()
+		_, _ = io.Copy(client, upstream)
+	}))
+	defer proxy.Close()
+
+	gw := NewGatewayClient(NewDiscordService(settingService), settingService, nil, nil, nil)
+	gw.SetGatewayURL("ws" + strings.TrimPrefix(wsServer.URL, "http"))
+	gw.egressProxyURL = func() string { return proxy.URL }
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := gw.Start(ctx); err != nil {
+		t.Fatalf("gw.Start failed: %v", err)
+	}
+	defer gw.Stop()
+
+	select {
+	case <-identified:
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for the gateway to identify")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if want := strings.TrimPrefix(wsServer.URL, "http://"); tunneledTo != want {
+		t.Fatalf("gateway tunneled to %q through the panel egress proxy, want %q", tunneledTo, want)
 	}
 }

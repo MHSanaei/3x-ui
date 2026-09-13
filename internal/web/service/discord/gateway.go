@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -85,8 +87,10 @@ type GatewayClient struct {
 	inboundService InboundProvider
 	xrayService    XrayRestartProvider
 	gatewayURL     string
+	egressProxyURL func() string
 
 	mu      sync.Mutex
+	writeMu sync.Mutex // gorilla panics on concurrent writes; the ticker and op 1 replies both write
 	conn    *websocket.Conn
 	cancel  context.CancelFunc
 	running bool
@@ -108,6 +112,7 @@ func NewGatewayClient(
 		inboundService: inbound,
 		xrayService:    xray,
 		gatewayURL:     defaultGatewayURL,
+		egressProxyURL: settingService.PanelEgressProxyURL,
 	}
 }
 
@@ -156,6 +161,11 @@ func (g *GatewayClient) Start(parentCtx context.Context) error {
 			}
 
 			err = g.connectAndListen(ctx)
+			// Discord marks these close codes non-reconnectable: a bad token or an intent not enabled in the portal.
+			if websocket.IsCloseError(err, 4004, 4010, 4011, 4012, 4013, 4014) {
+				logger.Warning("Discord Gateway closed for good: ", err, "; not reconnecting until the bot token changes, the bot is re-enabled or the panel restarts")
+				return
+			}
 			if err != nil && ctx.Err() == nil {
 				logger.Warning("Discord Gateway disconnected: ", err, "; reconnecting in 5s...")
 				select {
@@ -186,6 +196,12 @@ func (g *GatewayClient) Stop() {
 	g.running = false
 }
 
+func (g *GatewayClient) writeJSON(conn *websocket.Conn, v any) error {
+	g.writeMu.Lock()
+	defer g.writeMu.Unlock()
+	return conn.WriteJSON(v)
+}
+
 func (g *GatewayClient) connectAndListen(ctx context.Context) error {
 	token, err := g.settingService.GetDiscordBotToken()
 	if err != nil || strings.TrimSpace(token) == "" {
@@ -195,7 +211,14 @@ func (g *GatewayClient) connectAndListen(ctx context.Context) error {
 	cleanToken = strings.TrimPrefix(cleanToken, "Bot ")
 	cleanToken = strings.TrimSpace(cleanToken)
 
-	dialer := websocket.DefaultDialer
+	dialer := *websocket.DefaultDialer
+	if raw := g.egressProxyURL(); raw != "" {
+		proxyURL, err := url.Parse(raw)
+		if err != nil {
+			return fmt.Errorf("parse panel egress proxy: %w", err)
+		}
+		dialer.Proxy = http.ProxyURL(proxyURL)
+	}
 	conn, resp, err := dialer.DialContext(ctx, g.gatewayURL, nil)
 	if err != nil {
 		if resp != nil && resp.Body != nil {
@@ -282,7 +305,7 @@ func (g *GatewayClient) connectAndListen(ctx context.Context) error {
 					seqBytes, _ := json.Marshal(*seq)
 					hb.D = seqBytes
 				}
-				if err := c.WriteJSON(hb); err != nil {
+				if err := g.writeJSON(c, hb); err != nil {
 					logger.Warning("Discord heartbeat write failed: ", err)
 					return
 				}
@@ -322,7 +345,7 @@ func (g *GatewayClient) connectAndListen(ctx context.Context) error {
 				seqBytes, _ := json.Marshal(*seq)
 				hb.D = seqBytes
 			}
-			_ = conn.WriteJSON(hb)
+			_ = g.writeJSON(conn, hb)
 		case opDispatch:
 			if payload.T == "MESSAGE_CREATE" {
 				var msg MessageCreateData

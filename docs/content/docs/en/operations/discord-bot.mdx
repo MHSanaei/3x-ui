@@ -114,6 +114,6 @@ Alerts are sent as Discord Embeds with color coding and relevant diagnostics:
 
 - **Test fails with "invalid bot token (401)"**: Verify that you copied the full Bot Token from the **Bot** tab in Developer Portal, not the Client Secret or Application ID.
 - **Test fails with "missing permissions (403)"**: Ensure the bot role has **Send Messages**, **Embed Links**, and **Attach Files** permissions in the target channel or category.
-- **Commands do not respond**: Ensure **Message Content Intent** is enabled under the **Bot** tab in Discord Developer Portal.
+- **Commands do not respond**: Ensure **Message Content Intent** is enabled under the **Bot** tab in Discord Developer Portal, then restart the panel. Discord closes the connection for good when the intent is missing, so the bot does not retry on its own.
 - **Test fails with "channel not found (404)"**: Verify the numeric Channel ID. Ensure the bot is present in the server that owns the channel.
 - **Proxying outbound requests**: If your host requires a proxy to connect to Discord, configure **Panel Outbound** in Panel Settings. Discord requests automatically route through the configured panel outbound proxy.
