@@ -81,7 +81,8 @@ func (s *SubClashService) clashProxyFromExternal(rawLink, name string) map[strin
 		proxy["port"] = clashInt(server["port"])
 		proxy["cipher"] = method
 		proxy["password"] = fmt.Sprint(server["password"])
-		return proxy
+		// No early return: the shared transport/security tail is what drops an
+		// obfs node Clash cannot express, exactly as buildProxy does for inbounds.
 	case "hysteria":
 		return clashHysteriaFromExternal(settings, stream, name)
 	case "wireguard":
