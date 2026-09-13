@@ -3,11 +3,7 @@ package tgbot
 import (
 	"encoding/json"
 	"html"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -49,57 +45,26 @@ func TestClientDraftMessageRendersHTML(t *testing.T) {
 	}
 }
 
-// botPromptLocalizer renders the two prompts the callback tests drive, with the
+// draftLocalizer registers only the messages a wizard test drives, with the
 // templates the translation files carry; without it I18n returns the bare key.
-func botPromptLocalizer(t *testing.T) {
+func draftLocalizer(t *testing.T, msgs ...*i18n.Message) {
 	t.Helper()
 	bundle := i18n.NewBundle(language.MustParse("en-US"))
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
-	_ = bundle.AddMessages(language.MustParse("en-US"),
-		&i18n.Message{ID: "tgbot.messages.email_prompt", Other: "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email."},
-		&i18n.Message{ID: "tgbot.messages.comment_prompt", Other: "💬 Default Comment: {{ .ClientComment }}\n\nEnter your comment."},
-	)
+	_ = bundle.AddMessages(language.MustParse("en-US"), msgs...)
 	orig := locale.LocalizerBot
 	t.Cleanup(func() { locale.LocalizerBot = orig })
 	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en-US")
 }
 
-// promptTexts serves the methods these prompts touch and returns the text of
-// every sendMessage, so a test can check what Telegram would actually parse.
-func promptTexts(t *testing.T) (string, func() []string) {
-	t.Helper()
-	var mu sync.Mutex
-	var texts []string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		result := any(true)
-		if r.URL.Path == "/bot"+testBotToken+"/sendMessage" {
-			var payload struct {
-				Text string `json:"text"`
-			}
-			_ = json.Unmarshal(body, &payload)
-			mu.Lock()
-			texts = append(texts, payload.Text)
-			mu.Unlock()
-			result = map[string]any{"message_id": 1, "date": 0, "chat": map[string]any{"id": 1, "type": "private"}}
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": result})
-	}))
-	t.Cleanup(srv.Close)
-
-	return srv.URL, func() []string {
-		mu.Lock()
-		defer mu.Unlock()
-		return append([]string(nil), texts...)
-	}
-}
-
 // Regression test: the wizard's own prompts are HTML-parsed as well, so the
 // draft value they echo has to be escaped exactly like the draft card.
 func TestAddClientPromptsEscapeDraftValues(t *testing.T) {
-	botPromptLocalizer(t)
-	url, texts := promptTexts(t)
+	draftLocalizer(t,
+		&i18n.Message{ID: "tgbot.messages.email_prompt", Other: "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email."},
+		&i18n.Message{ID: "tgbot.messages.comment_prompt", Other: "💬 Default Comment: {{ .ClientComment }}\n\nEnter your comment."},
+	)
+	url, texts := draftTexts(t)
 	swapTestBot(t, url)
 
 	draft := addClientDrafts.forChat(1)
@@ -130,7 +95,7 @@ func TestAddClientPromptsEscapeDraftValues(t *testing.T) {
 				Message: &telego.Message{Chat: telego.Chat{ID: 1}},
 			}, true) // admin
 
-			sent := texts()
+			sent := texts(1)
 			if len(sent) == 0 {
 				t.Fatalf("no prompt was sent for %s", tc.data)
 			}
