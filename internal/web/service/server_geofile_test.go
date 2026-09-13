@@ -392,6 +392,7 @@ func TestUpdateGeofileRejectsNameOutsideAllowlist(t *testing.T) {
 		t.Fatalf("error = %q, want it to name the allowlist", err)
 	}
 }
+
 func TestStandardGeodataSources(t *testing.T) {
 	want := []GeodataSource{
 		{URL: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", File: "geoip.dat"},

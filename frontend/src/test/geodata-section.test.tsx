@@ -32,18 +32,23 @@ const STANDARD_SOURCES = [
   },
 ];
 
+const CUSTOM_SOURCE = {
+  url: 'https://example.com/geosite_custom.dat',
+  file: 'geosite_custom.dat',
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe('GeodataSection', () => {
-  it('fills the six standard sources supplied by the panel', async () => {
+  it('adds the standard sources without removing custom sources', async () => {
     vi.spyOn(HttpUtil, 'post').mockResolvedValue(
       new Msg(
         true,
         '',
         JSON.stringify({
-          xraySetting: { outbounds: [] },
+          xraySetting: { outbounds: [], geodata: { assets: [CUSTOM_SOURCE] } },
           geodataSources: STANDARD_SOURCES,
         }),
       ),
@@ -52,13 +57,19 @@ describe('GeodataSection', () => {
 
     render(<GeodataSection active onBusy={vi.fn()} onClose={vi.fn()} />);
 
-    const button = (await screen.findByRole('button', {
+    await screen.findByRole('button', {
       name: 'Use standard sources',
-    })) as HTMLButtonElement;
-    await waitFor(() => expect(button.disabled).toBe(false));
-    await user.click(button);
+    });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Use standard sources' }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(false),
+    );
+    await user.click(screen.getByRole('button', { name: 'Use standard sources' }));
 
     await waitFor(() => {
+      expect(screen.getByDisplayValue(CUSTOM_SOURCE.url)).toBeTruthy();
       for (const source of STANDARD_SOURCES) {
         expect(screen.getByDisplayValue(source.url)).toBeTruthy();
         expect(screen.getByDisplayValue(source.file)).toBeTruthy();
