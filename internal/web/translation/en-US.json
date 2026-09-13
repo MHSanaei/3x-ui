@@ -2279,6 +2279,7 @@
       "usageDesc": "Show client usage: /usage email",
       "inboundDesc": "Search inbounds: /inbound remark (admin)",
       "restartDesc": "Restart Xray core (admin)",
+      "broadcastDesc": "Broadcast a message to all clients (admin)",
       "clearallDesc": "Reset all clients' traffic (admin)"
     },
     "messages": {
@@ -2335,6 +2336,14 @@
       "error_add_client": "⚠️ Error:\n\n {{ .error }}",
       "using_default_value": "Okay, I'll stick with the default value. 😊",
       "incorrect_input": "Your input is not valid.\nThe phrases should be continuous without spaces.\nCorrect example: aaaaaa\nIncorrect example: aaa aaa 🚫",
+      "broadcastAskText": "📤 Broadcast: send me the message to deliver to your clients — text, photo, video, file or a whole album.",
+      "broadcastAlreadyRunning": "❗ A broadcast is already running, please wait for it to finish.",
+      "broadcastNoRecipients": "❗ No clients with a linked Telegram ID to deliver to.",
+      "broadcastPreview": "📤 This message will go to {{ .Count }} recipients. Send it?",
+      "broadcastNotCopyable": "❗ This message can't be copied for broadcast. Send another one.",
+      "broadcastProgress": "📤 Sent {{ .Sent }} of {{ .Total }} (failed: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ Broadcast finished.\r\n👥 Recipients: {{ .Total }}\r\n📨 Delivered: {{ .Sent }}\r\n🚫 Failed: {{ .Failed }}\r\n⏭ Skipped: {{ .Skipped }}\r\n⏱ Time: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 Broadcast canceled.\r\n👥 Recipients: {{ .Total }}\r\n📨 Delivered: {{ .Sent }}\r\n🚫 Failed: {{ .Failed }}\r\n⏭ Skipped: {{ .Skipped }}\r\n⏱ Time: {{ .Time }}\r\n",
       "AreYouSure": "Are you sure? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Result: ✅ Success",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Result: ❌ Failed \n\n🛠️ Error: [ {{ .ErrorMessage }} ]",
@@ -2353,6 +2362,7 @@
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
       "cancel": "❌ Cancel",
+      "broadcastSend": "📤 Send now",
       "cancelReset": "❌ Cancel Reset",
       "cancelIpLimit": "❌ Cancel IP Limit",
       "confirmResetTraffic": "✅ Confirm Reset Traffic?",
@@ -2393,6 +2403,9 @@
       "SortedTrafficUsageReport": "Sorted Traffic Usage Report"
     },
     "answers": {
+      "broadcastStarted": "🚀 Broadcast started.",
+      "broadcastCanceling": "🛑 The broadcast will stop after the current recipient.",
+      "broadcastCanceled": "❌ Broadcast canceled.",
       "successfulOperation": "✅ Operation successful!",
       "errorOperation": "❗ Error in operation.",
       "getInboundsFailed": "❌ Failed to get inbounds.",
