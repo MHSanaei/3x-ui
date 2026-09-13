@@ -488,6 +488,24 @@ func (s *NodeService) CreateFromRequest(req *NodeMutationRequest) (*NodeView, er
 	return toNodeView(n), nil
 }
 
+// nodeSelectionGrew reports a save that starts managing inbounds the panel has
+// not imported yet; the sweep must wait for the next clean sync to adopt them.
+func nodeSelectionGrew(existing, in *model.Node) bool {
+	if in.InboundSyncMode != "selected" {
+		return existing.InboundSyncMode == "selected"
+	}
+	old := make(map[string]struct{}, len(existing.InboundTags))
+	for _, tag := range existing.InboundTags {
+		old[tag] = struct{}{}
+	}
+	for _, tag := range in.InboundTags {
+		if _, ok := old[tag]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *NodeService) Update(id int, in *model.Node) error {
 	if err := s.normalize(in); err != nil {
 		return err
@@ -525,6 +543,9 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"inbound_sync_mode":     in.InboundSyncMode,
 		"inbound_tags":          string(inboundTagsJSON),
 		"outbound_tag":          in.OutboundTag,
+	}
+	if nodeSelectionGrew(existing, in) {
+		updates["inbounds_adopted_at"] = 0
 	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
@@ -585,6 +606,9 @@ func (s *NodeService) UpdateFromRequest(id int, req *NodeMutationRequest) error 
 		"inbound_sync_mode":     in.InboundSyncMode,
 		"inbound_tags":          string(inboundTagsJSON),
 		"outbound_tag":          in.OutboundTag,
+	}
+	if nodeSelectionGrew(existing, in) {
+		updates["inbounds_adopted_at"] = 0
 	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
