@@ -302,22 +302,45 @@ func TestGatewayRequestedHeartbeatDoesNotRaceTicker(t *testing.T) {
 			return
 		}
 		defer conn.Close()
-		_ = conn.WriteJSON(GatewayPayload{Op: opHello, D: []byte(`{"heartbeat_interval": 1}`)})
+		// 10ms, not 1ms: Discord answers every heartbeat and the client now drops a
+		// socket it hears nothing back on, so the ACK needs room to arrive.
+		_ = conn.WriteJSON(GatewayPayload{Op: opHello, D: []byte(`{"heartbeat_interval": 10}`)})
+
+		// Two server goroutines write, so they share one writer: gorilla panics on
+		// concurrent writes, and this test is about the CLIENT's two writers.
+		var writeMu sync.Mutex
+		writeJSON := func(v any) error {
+			writeMu.Lock()
+			defer writeMu.Unlock()
+			return conn.WriteJSON(v)
+		}
 
 		readErr := make(chan error, 1)
 		go func() {
 			for {
-				if _, _, err := conn.ReadMessage(); err != nil {
+				var payload GatewayPayload
+				if err := conn.ReadJSON(&payload); err != nil {
 					readErr <- err
 					return
 				}
+				// Discord answers every heartbeat; without this the zombie check
+				// closes the socket a millisecond into the flood below.
+				if payload.Op == opHeartbeat {
+					if err := writeJSON(GatewayPayload{Op: opHeartbeatACK}); err != nil {
+						readErr <- err
+						return
+					}
+				}
 			}
 		}()
-		// Op 1 from the server makes the read loop write while the 1ms ticker writes too.
+		// Op 1 from the server makes the read loop write while the ticker writes too.
 		for deadline := time.Now().Add(time.Second); time.Now().Before(deadline); {
-			if err := conn.WriteJSON(GatewayPayload{Op: opHeartbeat}); err != nil {
+			if err := writeJSON(GatewayPayload{Op: opHeartbeat}); err != nil {
 				break
 			}
+			// Leave the client room to drain the flood and answer: a saturated
+			// socket delays the ACK this test now depends on.
+			time.Sleep(time.Millisecond)
 		}
 		select {
 		case err := <-readErr:
