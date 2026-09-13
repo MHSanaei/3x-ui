@@ -78,8 +78,10 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		if ext.Enable {
 			hasEnabledClient = true
 		}
+		// Count the client even when no proxy comes out of this link, so the
+		// quota header does not shrink because a node is unrepresentable in Clash.
+		seenEmails[ext.Email] = struct{}{}
 		if !ext.Active {
-			seenEmails[ext.Email] = struct{}{}
 			hasInactiveExternal = true
 			continue
 		}
@@ -89,7 +91,6 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				name = ext.Email
 			}
 			if proxy := s.clashProxyFromExternal(el.Link, name); proxy != nil {
-				seenEmails[ext.Email] = struct{}{}
 				proxies = append(proxies, proxy)
 			}
 		}
