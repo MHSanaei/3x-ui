@@ -379,6 +379,33 @@ func updateSetting(port int, subPort int, username string, password string, webB
 	settingService := service.SettingService{}
 	userService := panel.UserService{}
 
+	if port != 0 && (port < 1 || port > 65535) {
+		err := fmt.Errorf("invalid panel port %d: must be between 1 and 65535", port)
+		fmt.Println(err)
+		return err
+	}
+	if subPort != 0 && (subPort < 1 || subPort > 65535) {
+		err := fmt.Errorf("invalid subscription port %d: must be between 1 and 65535", subPort)
+		fmt.Println(err)
+		return err
+	}
+
+	curWebPort, _ := settingService.GetPort()
+	curSubPort, _ := settingService.GetSubPort()
+	targetWebPort := curWebPort
+	if port > 0 {
+		targetWebPort = port
+	}
+	targetSubPort := curSubPort
+	if subPort > 0 {
+		targetSubPort = subPort
+	}
+	if targetWebPort > 0 && targetSubPort > 0 && targetWebPort == targetSubPort {
+		err := fmt.Errorf("subscription port %d cannot match panel port %d", targetSubPort, targetWebPort)
+		fmt.Println(err)
+		return err
+	}
+
 	if port > 0 {
 		err := settingService.SetPort(port)
 		if err != nil {

@@ -163,7 +163,7 @@ write_install_result() {
         printf 'XUI_USERNAME=%q\n' "$u"
         printf 'XUI_PASSWORD=%q\n' "$p"
         printf 'XUI_PANEL_PORT=%q\n' "$port"
-        [[ -n "$subport" ]] && printf 'XUI_SUB_PORT=%q\n' "$subport"
+        [[ -n "$subport" ]] && printf 'XUI_SUBSCRIPTION_PORT=%q\n' "$subport"
         printf 'XUI_WEB_BASE_PATH=%q\n' "$wbp"
         printf 'XUI_ACCESS_URL=%q\n' "${scheme}://${url_host}:${port}/${wbp}"
         printf 'XUI_API_TOKEN=%q\n' "$token"
@@ -1242,8 +1242,17 @@ EOF
                 fi
             fi
 
-            if [[ -n "${XUI_SUB_PORT:-}" ]]; then
-                config_subport="${XUI_SUB_PORT}"
+            local sub_port_in="${XUI_SUBSCRIPTION_PORT:-${XUI_SUB_PORT:-}}"
+            if [[ -n "${sub_port_in}" ]]; then
+                if [[ ! "${sub_port_in}" =~ ^[0-9]+$ ]] || (( sub_port_in < 1 || sub_port_in > 65535 )); then
+                    echo -e "${red}Invalid subscription port: '${sub_port_in}'. Must be 1-65535.${plain}"
+                    exit 1
+                fi
+                if [[ "${sub_port_in}" == "${config_port}" ]]; then
+                    echo -e "${red}Subscription port (${sub_port_in}) cannot match panel port (${config_port}).${plain}"
+                    exit 1
+                fi
+                config_subport="${sub_port_in}"
                 echo -e "${yellow}Your Subscription Port is: ${config_subport}${plain}"
             else
                 config_subport=$(shuf -i 1024-62000 -n 1)
@@ -1253,7 +1262,11 @@ EOF
                 echo -e "${yellow}Generated random subscription port: ${config_subport}${plain}"
             fi
 
-            ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -subport "${config_subport}" -webBasePath "${config_webBasePath}"
+            local setting_args=(-username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}")
+            if ${xui_folder}/x-ui setting -h 2>&1 | grep -q -- '-subport'; then
+                setting_args+=(-subport "${config_subport}")
+            fi
+            ${xui_folder}/x-ui setting "${setting_args[@]}"
 
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"

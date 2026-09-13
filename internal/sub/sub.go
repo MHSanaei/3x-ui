@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -379,9 +378,6 @@ func (s *Server) Start() (err error) {
 	port, err := s.settingService.GetSubPort()
 	if err != nil {
 		return err
-	}
-	if envPort, configured, envErr := config.GetSubPortOverride(); configured && envErr == nil {
-		logger.Info("Using XUI_SUB_PORT override for subscription port:", envPort)
 	}
 
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))

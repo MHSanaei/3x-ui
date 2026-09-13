@@ -65,7 +65,7 @@ docker run --rm \
         [ -n "${XUI_PASSWORD:-}" ] && [ "$XUI_PASSWORD" != "admin" ] \
             || { echo "FAIL: password missing or still admin"; exit 1; }
         [ -n "${XUI_PANEL_PORT:-}" ] || { echo "FAIL: port missing"; exit 1; }
-        [ -n "${XUI_SUB_PORT:-}" ] || { echo "FAIL: sub port missing"; exit 1; }
+        [ -n "${XUI_SUBSCRIPTION_PORT:-}" ] || { echo "FAIL: sub port missing"; exit 1; }
 
         # No default admin in the DB.
         /usr/local/x-ui/x-ui setting -show | grep -q "hasDefaultCredential: false" \
@@ -106,7 +106,7 @@ docker run --rm \
         [ "$geoip_sum_after" = "$geoip_sum_before" ] \
             || { echo "FAIL: bundled geoip.dat changed across a same-version reinstall"; exit 1; }
 
-        echo "SMOKE_PASS: user=$XUI_USERNAME port=$XUI_PANEL_PORT sub_port=$XUI_SUB_PORT path=$XUI_WEB_BASE_PATH"
+        echo "SMOKE_PASS: user=$XUI_USERNAME port=$XUI_PANEL_PORT sub_port=$XUI_SUBSCRIPTION_PORT path=$XUI_WEB_BASE_PATH"
     '
 
 echo "== non-interactive smoke test PASSED =="

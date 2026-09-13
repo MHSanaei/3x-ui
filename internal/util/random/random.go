@@ -74,15 +74,6 @@ func Num(n int) int {
 	return int(r.Int64())
 }
 
-// Port generates a cryptographically random port number in the range [min, max].
-// If min >= max, it returns min.
-func Port(min, max int) int {
-	if min >= max {
-		return min
-	}
-	return min + Num(max-min+1)
-}
-
 // Base64Bytes returns n cryptographically-random bytes encoded as standard
 // base64 (with padding). Used for ss2022 keys, which xray expects as a
 // base64-encoded key of a specific byte length per cipher.
