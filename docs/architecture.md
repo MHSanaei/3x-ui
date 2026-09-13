@@ -21,6 +21,7 @@ separate HTTP server serves **subscription links** to end users.
 
 The panel supervises **managed child processes**: Xray-core itself and — when MTProto or
 TUIC inbounds exist — dedicated child proxy binaries:
+
 - **`mtg-multi` for MTProto inbounds** (`github.com/mhsanaei/mtg-multi`, a multi-secret fork
   built from source; `internal/mtproto/`): One process per inbound serves every attached
   client's FakeTLS secret through the fork's `[secrets]` section, plus optional per-client
@@ -29,8 +30,8 @@ TUIC inbounds exist — dedicated child proxy binaries:
   process restart as the fallback on older binaries.
 - **`tuic-server` for TUIC v5 inbounds** (`internal/tuic/`): One process per inbound runs on
   loopback behind an in-process native Go UDP relay that owns the public port and meters
-  traffic deltas. Decrypted traffic is bridged into Xray via local SOCKS outbounds when
-  routing through Xray is enabled.
+  traffic deltas. The sidecar handles decrypted client traffic standalone, independent of
+  Xray routing and outbounds.
 
 Servers and processes, all launched from `main.go`:
 

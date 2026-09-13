@@ -44,7 +44,7 @@ https://<sub-host>:<sub-port>/<sub-path>/<sub-id>
 | **Mihomo（明确端点）**        | `/mihomo/`       | `subClashEnable` | 完整 `subClashPath` 配置的别名。                    |
 | **Clash for Windows（旧版）** | `/clash-legacy/` | `subClashEnable` | 仅包含旧 Clash 内核支持的代理类型、传输方式和加密算法。 |
 
-只有使用 **VLESS、VMess、Trojan、Shadowsocks 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列。使用 `Accept: text/html` 头（或 `?html=1`）请求 `subPath` 会返回一个人类可读的信息页面，而非原始内容。
+只有使用 **VLESS、VMess、Trojan、Shadowsocks、WireGuard、AmneziaWG、MTProto、TUIC 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列（TUIC 和 AmneziaWG 包含在原始链接和 Clash/Mihomo 配置中，但在 JSON 端点中被省略；MTProto 包含在原始链接中）。使用 `Accept: text/html` 头（或 `?html=1`）请求 `subPath` 会返回一个人类可读的信息页面，而非原始内容。
 
 Clash Verge Rev、Mihomo 及其他仍在维护的 Mihomo 客户端应使用
 `/mihomo/<sub-id>`。已经停止维护的 Clash for Windows 应使用

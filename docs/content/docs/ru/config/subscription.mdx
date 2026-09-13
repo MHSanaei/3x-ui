@@ -49,8 +49,8 @@ https://<sub-host>:<sub-port>/<sub-path>/<sub-id>
 | **Clash / Mihomo**    | `subClashPath` | `subClashEnable` | YAML-профиль.                                       |
 
 В подписке появляются только включённые входящие соединения, использующие
-**VLESS, VMess, Trojan, Shadowsocks, WireGuard, TUIC или Hysteria2**, упорядоченные по их индексу
-сортировки подписки (TUIC включается в raw-ссылки и профили Clash/Mihomo, но исключается из JSON-конфигов). Запрос `subPath` с заголовком `Accept: text/html` (или
+**VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, MTProto, TUIC или Hysteria2**, упорядоченные по их индексу
+сортировки подписки (TUIC и AmneziaWG включаются в raw-ссылки и профили Clash/Mihomo, но исключаются из JSON-конфигов; MTProto включается в raw-ссылки). Запрос `subPath` с заголовком `Accept: text/html` (или
 `?html=1`) возвращает удобочитаемую информационную страницу вместо
 необработанного тела.
 
