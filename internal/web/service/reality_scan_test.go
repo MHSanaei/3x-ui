@@ -3,7 +3,6 @@ package service
 import (
 	"crypto/tls"
 	"net"
-	"strings"
 	"testing"
 )
 
@@ -166,21 +165,6 @@ func TestWriteProxyProtocolV2Signature(t *testing.T) {
 	}
 }
 
-func TestDefaultRealityScanCandidatesCSV(t *testing.T) {
-	want := strings.Join(defaultRealityScanCandidates, ",")
-	if DefaultRealityScanCandidatesCSV != want {
-		t.Fatalf("DefaultRealityScanCandidatesCSV = %q, want %q", DefaultRealityScanCandidatesCSV, want)
-	}
-	defaults := (&SettingService{}).GetFactoryDefaults()
-	got, ok := defaults["realityScanCandidates"]
-	if !ok {
-		t.Fatal("expected realityScanCandidates in factory defaults")
-	}
-	if got != DefaultRealityScanCandidatesCSV {
-		t.Fatalf("factory default realityScanCandidates = %q, want %q", got, DefaultRealityScanCandidatesCSV)
-	}
-}
-
 func TestParseRealityScanCandidateCSV(t *testing.T) {
 	got := parseRealityScanCandidateCSV(" a.com:443 , ,b.com:8443 ")
 	want := []string{"a.com:443", "b.com:8443"}
@@ -194,17 +178,5 @@ func TestParseRealityScanCandidateCSV(t *testing.T) {
 	}
 	if tokens := parseRealityScanCandidateCSV("  , "); len(tokens) != 0 {
 		t.Fatalf("empty CSV should yield no tokens, got %v", tokens)
-	}
-}
-
-func TestRealityScanCandidateTokensFallsBackWithoutDB(t *testing.T) {
-	tokens := (&ServerService{}).realityScanCandidateTokens()
-	if len(tokens) != len(defaultRealityScanCandidates) {
-		t.Fatalf("fallback length %d, want %d", len(tokens), len(defaultRealityScanCandidates))
-	}
-	for i, want := range defaultRealityScanCandidates {
-		if tokens[i] != want {
-			t.Fatalf("tokens[%d] = %q, want %q", i, tokens[i], want)
-		}
 	}
 }

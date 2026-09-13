@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -349,13 +348,11 @@ func parseRealityScanCandidateCSV(csv string) []string {
 // realityScanCandidateTokens returns the operator-configured candidate list,
 // falling back to the shipped defaults when the setting is empty or unreadable.
 func (s *ServerService) realityScanCandidateTokens() []string {
-	if s != nil && database.GetDB() != nil {
-		csv, err := s.settingService.GetRealityScanCandidates()
-		if err != nil {
-			logger.Warning("reality scan: reading candidates setting failed:", err)
-		} else if tokens := parseRealityScanCandidateCSV(csv); len(tokens) > 0 {
-			return tokens
-		}
+	csv, err := s.settingService.GetRealityScanCandidates()
+	if err != nil {
+		logger.Warning("reality scan: reading candidates setting failed:", err)
+	} else if tokens := parseRealityScanCandidateCSV(csv); len(tokens) > 0 {
+		return tokens
 	}
 	return append([]string(nil), defaultRealityScanCandidates...)
 }
