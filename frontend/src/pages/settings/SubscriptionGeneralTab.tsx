@@ -348,24 +348,14 @@ export default function SubscriptionGeneralTab({
           key: '5',
           label: catTabLabel(<BranchesOutlined />, 'Happ', isMobile),
           children: (
-            <>
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.happLinkEnable')}
-                description={t('pages.settings.happLinkEnableDesc')}
-              >
-                <Switch
-                  checked={allSetting.happLinkEnable}
-                  onChange={(v) => updateSetting({ happLinkEnable: v })}
-                />
-              </SettingListItem>
-              <HappSettingsContent
-                allSetting={allSetting}
-                updateSetting={updateSetting}
-                isMobile={isMobile}
-                remoteSourceBadge={remoteSourceBadge}
-              />
-            </>
+            <HappSettingsContent
+              allSetting={allSetting}
+              updateSetting={updateSetting}
+              isMobile={isMobile}
+              remoteSourceBadge={remoteSourceBadge}
+              // QR settings links select the link control; ordinary Happ visits still start on routing.
+              defaultActiveTab={searchParams.get('happTab') === 'links' ? 'links' : 'routing'}
+            />
           ),
         },
         {

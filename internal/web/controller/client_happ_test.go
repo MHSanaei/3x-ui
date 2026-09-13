@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -111,6 +112,24 @@ func TestGenerateHappLinkDoesNotExposeProviderFailure(t *testing.T) {
 		t.Fatalf("Generate calls = %d", fake.calls)
 	}
 	assertHappFailureWithoutSecret(t, rec, "fake-provider-secret")
+}
+
+func TestGenerateHappLinkReturnsOnlySafeLengthCode(t *testing.T) {
+	fake := &fakeHappLinkGenerator{err: fmt.Errorf("%w: private-subscription-url", service.ErrHappSourceTooLong)}
+	rec := httptest.NewRecorder()
+	newHappClientTestRouter(fake).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/clients/happLink/42", nil))
+	assertHappFailureWithoutSecret(t, rec, "private-subscription-url")
+	var response struct {
+		Success bool   `json:"success"`
+		Msg     string `json:"msg"`
+		Obj     any    `json:"obj"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Success || response.Msg != "happ_source_too_long" || response.Obj != nil {
+		t.Fatalf("length failure envelope = %s", rec.Body.String())
+	}
 }
 
 func assertHappFailureWithoutSecret(t *testing.T, rec *httptest.ResponseRecorder, secret string) {

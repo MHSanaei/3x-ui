@@ -20,6 +20,8 @@ vi.mock('@/pages/inbounds/qr', () => ({
 const STANDARD_LINK = 'https://panel.example/sub/alpha';
 const HAPP_LINK = 'happ://crypt5/encrypted-alpha';
 const HAPP_OPTION_LABEL = 'Happ Encrypted Link';
+const SOURCE_TOO_LONG_HINT =
+  'The subscription URL exceeds the panel limit of 8192 UTF-8 bytes. Shorten the subscription URL or use Standard.';
 const CLIENT: ClientRecord = { id: 42, email: 'alice@example.com', subId: 'alpha' };
 const SUB_SETTINGS = {
   enable: true,
@@ -194,7 +196,7 @@ describe('ClientQrModal Happ presentation', () => {
       expect(screen.getByText('Happ encrypted link generation is not enabled')).toBeTruthy();
       expect(
         screen.getByText(
-          "Enabling it sends this client's complete current subscription URL to crypto.happ.su to generate an encrypted happ://crypt5/ subscription link.",
+          'Enable local generation of encrypted Happ subscription links. (Only for Happ)',
         ),
       ).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Go to Settings' })).toBeTruthy();
@@ -229,7 +231,7 @@ describe('ClientQrModal Happ presentation', () => {
     expect(view.onOpenChange).toHaveBeenCalledOnce();
     expect(view.onOpenChange).toHaveBeenCalledWith(false);
     expect(screen.getByTestId('location').textContent).toBe(
-      '/settings?subscriptionTab=happ#subscription',
+      '/settings?subscriptionTab=happ&happTab=links#subscription',
     );
     expect(HttpUtil.post).not.toHaveBeenCalled();
   });
@@ -251,13 +253,13 @@ describe('ClientQrModal Happ presentation', () => {
     );
     expect(
       screen.queryByText(
-        "Selecting Happ sends this client's complete current subscription URL to crypto.happ.su.",
+        'Generated locally. Anyone with this link may be able to recover or share the subscription URL.',
       ),
     ).toBeNull();
     expect(HttpUtil.post).not.toHaveBeenCalled();
   });
 
-  it('keeps provider disclosure out of Standard and shows it only in Happ', async () => {
+  it('keeps the local encryption notice out of Standard and shows it only in Happ', async () => {
     vi.mocked(HttpUtil.post).mockReturnValue(new Promise(() => {}));
     renderSubject();
 
@@ -266,7 +268,7 @@ describe('ClientQrModal Happ presentation', () => {
     );
     expect(
       screen.queryByText(
-        "Selecting Happ sends this client's complete current subscription URL to crypto.happ.su.",
+        'Generated locally. Anyone with this link may be able to recover or share the subscription URL.',
       ),
     ).toBeNull();
 
@@ -274,7 +276,7 @@ describe('ClientQrModal Happ presentation', () => {
 
     expect(
       await screen.findByText(
-        "Selecting Happ sends this client's complete current subscription URL to crypto.happ.su.",
+        'Generated locally. Anyone with this link may be able to recover or share the subscription URL.',
       ),
     ).toBeTruthy();
     expect(HttpUtil.post).toHaveBeenCalledOnce();
@@ -488,6 +490,72 @@ describe('ClientQrModal Happ presentation', () => {
     expect(HttpUtil.post).toHaveBeenCalledTimes(2);
   });
 
+  it('explains a source length failure without Retry and keeps Standard available', async () => {
+    vi.mocked(HttpUtil.post).mockResolvedValue(
+      new Msg<HappLinkResult>(false, 'happ_source_too_long', null),
+    );
+    renderSubject();
+    selectVariant('Happ');
+
+    expect(await screen.findByText(SOURCE_TOO_LONG_HINT)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Regenerate|Retry/ })).toBeNull();
+    expect(screen.queryByTestId('qr-panel-value')).toBeNull();
+    expect(screen.queryByText('happ_source_too_long')).toBeNull();
+
+    selectVariant('Standard');
+    expect(screen.getByTestId('qr-panel-value').textContent).toBe(STANDARD_LINK);
+    expect(screen.queryByText(SOURCE_TOO_LONG_HINT)).toBeNull();
+    expect(HttpUtil.post).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['non-exact error code', false, 'happ_source_too_long token=secret'],
+    ['successful malformed response', true, 'happ_source_too_long'],
+  ])('does not trust a %s as a source length failure', async (_name, successful, message) => {
+    vi.mocked(HttpUtil.post).mockResolvedValue(new Msg<HappLinkResult>(successful, message, null));
+    renderSubject();
+    selectVariant('Happ');
+
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.queryByText(SOURCE_TOO_LONG_HINT)).toBeNull();
+    expect(screen.queryByText(message)).toBeNull();
+  });
+
+  it('clears a source length failure when the subscription source changes', async () => {
+    vi.mocked(HttpUtil.post)
+      .mockResolvedValueOnce(new Msg<HappLinkResult>(false, 'happ_source_too_long', null))
+      .mockResolvedValueOnce(success());
+    const view = renderSubject();
+    selectVariant('Happ');
+    expect(await screen.findByText(SOURCE_TOO_LONG_HINT)).toBeTruthy();
+
+    view.update({ subSettings: { ...SUB_SETTINGS, subURI: 'https://short.example/sub/' } });
+    expect(screen.queryByText(SOURCE_TOO_LONG_HINT)).toBeNull();
+    expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+    selectVariant('Happ');
+    expect(await screen.findByText(HAPP_LINK)).toBeTruthy();
+    expect(screen.queryByText(SOURCE_TOO_LONG_HINT)).toBeNull();
+  });
+
+  it('ignores a source length failure from a retired request', async () => {
+    const retired = deferred<Msg<HappLinkResult>>();
+    vi.mocked(HttpUtil.post).mockReturnValueOnce(retired.promise).mockResolvedValueOnce(success());
+    renderSubject();
+    selectVariant('Happ');
+    selectVariant('Standard');
+    selectVariant('Happ');
+    expect(await screen.findByText(HAPP_LINK)).toBeTruthy();
+
+    await act(async () => {
+      retired.resolve(new Msg<HappLinkResult>(false, 'happ_source_too_long', null));
+      await retired.promise;
+    });
+    expect(screen.getByTestId('qr-panel-value').textContent).toBe(HAPP_LINK);
+    expect(screen.queryByText(SOURCE_TOO_LONG_HINT)).toBeNull();
+  });
+
   it.each([
     ['Retry', new Msg<HappLinkResult>(false, 'backend detail', null)],
     ['Regenerate', success()],
@@ -528,6 +596,7 @@ describe('ClientQrModal Happ presentation', () => {
 
   it.each([
     ['ordinary', 'happ://crypt5/AaBbCc-._~'],
+    ['standard Base64', 'happ://crypt5/AaBb+Cc/Dd=='],
     ['maximum-size QR', `happ://crypt5/${'a'.repeat(2939)}`],
   ])('passes a valid %s encryptedLink unchanged to QrPanel', async (_name, exactLink) => {
     vi.mocked(HttpUtil.post).mockResolvedValue(success(exactLink));
@@ -560,6 +629,7 @@ describe('ClientQrModal Happ presentation', () => {
 
   it.each([
     ['non-string', { encryptedLink: 7 }],
+    ['stale crypt4 format', { encryptedLink: 'happ://crypt4/old-format' }],
     ['empty payload', { encryptedLink: 'happ://crypt5/' }],
     ['wrong scheme', { encryptedLink: 'https://provider.example/link' }],
     ['whitespace', { encryptedLink: 'happ://crypt5/has space' }],

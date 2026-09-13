@@ -6,6 +6,7 @@ import {
   BuildOutlined,
   CloudSyncOutlined,
   DesktopOutlined,
+  LinkOutlined,
   MobileOutlined,
   NotificationOutlined,
   ThunderboltOutlined,
@@ -13,12 +14,14 @@ import {
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { buildHappPresetDeeplink, parseList, toBase64Utf8 } from './happPresets';
+import { catTabLabel } from './catTabLabel';
 
 interface HappSettingsContentProps {
   allSetting: AllSetting;
   updateSetting: (patch: Partial<AllSetting>) => void;
   isMobile: boolean;
   remoteSourceBadge: (val: string) => React.ReactNode;
+  defaultActiveTab?: 'routing' | 'links';
 }
 
 export default function HappSettingsContent({
@@ -26,6 +29,7 @@ export default function HappSettingsContent({
   updateSetting,
   isMobile,
   remoteSourceBadge,
+  defaultActiveTab = 'routing',
 }: HappSettingsContentProps) {
   const { t } = useTranslation();
   const [selectedPreset, setSelectedPreset] = useState<string>('iran-bypass');
@@ -106,6 +110,7 @@ export default function HappSettingsContent({
       <Tabs
         type="card"
         size="small"
+        defaultActiveKey={defaultActiveTab}
         items={[
           {
             key: 'routing',
@@ -197,6 +202,22 @@ export default function HappSettingsContent({
                   />
                 </SettingListItem>
               </>
+            ),
+          },
+          {
+            key: 'links',
+            label: catTabLabel(<LinkOutlined />, t('pages.settings.subHappGroupLinks'), isMobile),
+            children: (
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.happLinkEnable')}
+                description={t('pages.settings.happLinkEnableDesc')}
+              >
+                <Switch
+                  checked={allSetting.happLinkEnable}
+                  onChange={(v) => updateSetting({ happLinkEnable: v })}
+                />
+              </SettingListItem>
             ),
           },
           {

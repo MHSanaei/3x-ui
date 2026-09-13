@@ -46,9 +46,10 @@ interface ApiMsg<T = unknown> {
 }
 
 type QrVariant = 'standard' | 'happ';
+type HappError = 'too_long' | 'unavailable' | null;
 
 const HAPP_CRYPT5_PREFIX = 'happ://crypt5/';
-const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ#subscription';
+const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ&happTab=links#subscription';
 // QrPanel encodes at error level L; QR version 40 holds 2953 UTF-8 bytes at that level.
 const HAPP_QR_MAX_BYTES = 2953;
 const UTF8_ENCODER = new TextEncoder();
@@ -78,7 +79,7 @@ interface SubscriptionQrPresentationProps {
   remark: string;
   happLink: string;
   happLoading: boolean;
-  happError: boolean;
+  happError: HappError;
   happLinkEnabled: boolean;
   onVariantChange: (variant: QrVariant) => void;
   onRegenerate: () => void;
@@ -175,15 +176,19 @@ function SubscriptionQrPresentation({
                 <Alert
                   type="error"
                   showIcon
-                  title={t('pages.clients.happLinkErrorHint', {
-                    dashboard: t('menu.dashboard'),
-                    logs: t('pages.index.logs'),
-                  })}
+                  title={
+                    happError === 'too_long'
+                      ? t('pages.clients.happLinkSourceTooLong')
+                      : t('pages.clients.happLinkErrorHint', {
+                          dashboard: t('menu.dashboard'),
+                          logs: t('pages.index.logs'),
+                        })
+                  }
                 />
               ) : null}
             </div>
           </Spin>
-          {happLink || happError ? (
+          {happLink || happError === 'unavailable' ? (
             <Button style={{ marginTop: 12 }} onClick={onRegenerate}>
               {happError ? t('pages.clients.happLinkRetry') : t('regenerate')}
             </Button>
@@ -242,7 +247,7 @@ function ClientQrModalContent({
   const [happAttempt, setHappAttempt] = useState(0);
   const [happLink, setHappLink] = useState('');
   const [happLoading, setHappLoading] = useState(false);
-  const [happError, setHappError] = useState(false);
+  const [happError, setHappError] = useState<HappError>(null);
   const canGenerateHapp =
     happLinkEnabled &&
     typeof clientId === 'number' &&
@@ -269,10 +274,15 @@ function ClientQrModalContent({
         if (msg?.success && result.success && isValidHappCrypt5Link(result.data.encryptedLink)) {
           setHappLink(result.data.encryptedLink);
         } else {
-          setHappError(true);
+          // Only this fixed API code is safe to localize; arbitrary error messages stay hidden.
+          setHappError(
+            msg?.success === false && msg.msg === 'happ_source_too_long'
+              ? 'too_long'
+              : 'unavailable',
+          );
         }
       } catch {
-        if (!cancelled) setHappError(true);
+        if (!cancelled) setHappError('unavailable');
       } finally {
         if (!cancelled) setHappLoading(false);
       }
@@ -290,7 +300,7 @@ function ClientQrModalContent({
       setVariant(nextVariant);
       setHappLink('');
       setHappLoading(generateHapp && canGenerateHapp);
-      setHappError(generateHapp && !canGenerateHapp);
+      setHappError(generateHapp && !canGenerateHapp ? 'unavailable' : null);
     },
     [canGenerateHapp, happLinkEnabled],
   );
@@ -298,7 +308,7 @@ function ClientQrModalContent({
   const regenerateHappLink = useCallback(() => {
     setHappLink('');
     setHappLoading(canGenerateHapp);
-    setHappError(!canGenerateHapp);
+    setHappError(canGenerateHapp ? null : 'unavailable');
     if (!canGenerateHapp) return;
     setHappAttempt((attempt) => attempt + 1);
   }, [canGenerateHapp]);
@@ -364,7 +374,7 @@ function ClientQrModalContent({
     setVariant('standard');
     setHappLink('');
     setHappLoading(false);
-    setHappError(false);
+    setHappError(null);
   }
 
   useEffect(() => {

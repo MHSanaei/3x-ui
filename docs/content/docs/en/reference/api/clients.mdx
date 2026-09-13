@@ -275,9 +275,13 @@ _openapi:
         clients.
       url: '#return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients'
     - depth: 2
-      title: Generate a fresh Happ crypt5 representation of the current client
-        subscription URL. The result is not stored or reused.
-      url: '#generate-a-fresh-happ-crypt5-representation-of-the-current-client-subscription-url-the-result-is-not-stored-or-reused'
+      title: 'Generate a fresh Happ crypt5 link locally from the current client
+        subscription URL when Happ link generation is enabled. The panel applies
+        a resource limit of 8192 UTF-8 bytes to the source URL; this is not a
+        Happ client maximum. Longer sources return success: false with msg:
+        happ_source_too_long and obj: null. The source URL is not sent to a
+        generation provider, and the result is not stored or reused.'
+      url: '#generate-a-fresh-happ-crypt5-link-locally-from-the-current-client-subscription-url-when-happ-link-generation-is-enabled-the-panel-applies-a-resource-limit-of-8192-utf-8-bytes-to-the-source-url-this-is-not-a-happ-client-maximum-longer-sources-return-success-false-with-msg-happ_source_too_long-and-obj-null-the-source-url-is-not-sent-to-a-generation-provider-and-the-result-is-not-stored-or-reused'
     - depth: 2
       title: 'Return every URL for one client across all attached inbounds, one per
         advertised endpoint: the managed hosts of the inbound, else its
@@ -516,9 +520,14 @@ _openapi:
           URL is emitted per external proxy. Empty array when the subId has no
           enabled clients.
         id: return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
-      - content: Generate a fresh Happ crypt5 representation of the current client
-          subscription URL. The result is not stored or reused.
-        id: generate-a-fresh-happ-crypt5-representation-of-the-current-client-subscription-url-the-result-is-not-stored-or-reused
+      - content: 'Generate a fresh Happ crypt5 link locally from the current client
+          subscription URL when Happ link generation is enabled. The panel
+          applies a resource limit of 8192 UTF-8 bytes to the source URL; this
+          is not a Happ client maximum. Longer sources return success: false
+          with msg: happ_source_too_long and obj: null. The source URL is not
+          sent to a generation provider, and the result is not stored or
+          reused.'
+        id: generate-a-fresh-happ-crypt5-link-locally-from-the-current-client-subscription-url-when-happ-link-generation-is-enabled-the-panel-applies-a-resource-limit-of-8192-utf-8-bytes-to-the-source-url-this-is-not-a-happ-client-maximum-longer-sources-return-success-false-with-msg-happ_source_too_long-and-obj-null-the-source-url-is-not-sent-to-a-generation-provider-and-the-result-is-not-stored-or-reused
       - content: 'Return every URL for one client across all attached inbounds, one per
           advertised endpoint: the managed hosts of the inbound, else its
           streamSettings.externalProxy entries, else its own address. Supported

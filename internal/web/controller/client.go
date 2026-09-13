@@ -2,10 +2,13 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
+	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 
@@ -658,6 +661,11 @@ func (a *ClientController) generateHappLink(c *gin.Context) {
 	}
 	result, err := a.happGenerator.Generate(c.Request.Context(), clientID, c.Request.Host)
 	if err != nil {
+		if errors.Is(err, service.ErrHappSourceTooLong) {
+			// Keep the code exact so clients can localize it without exposing internal error details.
+			c.JSON(http.StatusOK, entity.Msg{Success: false, Msg: "happ_source_too_long", Obj: nil})
+			return
+		}
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), service.ErrHappLinkUnavailable)
 		return
 	}

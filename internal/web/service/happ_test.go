@@ -1,19 +1,21 @@
 package service
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
 	"errors"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"testing"
-	"time"
+
+	"golang.org/x/crypto/chacha20poly1305"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -69,503 +71,330 @@ func configureHappLinkGate(t *testing.T, enabled bool) {
 	}
 }
 
-type happRoundTripperFunc func(*http.Request) (*http.Response, error)
+var syntheticHappKey = sync.OnceValues(func() (*rsa.PrivateKey, error) {
+	return rsa.GenerateKey(rand.Reader, 4096)
+})
 
-func (f happRoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f(req)
+func newLocalHappTestService(t *testing.T) (*HappService, *rsa.PrivateKey) {
+	t.Helper()
+	key, err := syntheticHappKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := NewHappService(&ClientService{}, &SettingService{})
+	svc.encrypt = func(source string) (string, error) { return encryptHappSource(source, &key.PublicKey) }
+	return svc, key
 }
 
-func newHappTestService(server *httptest.Server, timeout time.Duration) *HappService {
-	return &HappService{
-		clientService:  &ClientService{},
-		settingService: &SettingService{},
-		endpoint:       server.URL,
-		newHTTPClient: func(time.Duration) *http.Client {
-			return &http.Client{Timeout: timeout}
-		},
-	}
+func decryptHappTestLink(t *testing.T, link string, key *rsa.PrivateKey) string {
+	t.Helper()
+	return decodeHappTestLink(t, link, key).source
 }
 
-func TestHappGenerateRejectsDisabledGateBeforeProviderSetup(t *testing.T) {
-	tests := []struct {
-		name      string
-		configure func(*testing.T)
-	}{
-		{name: "missing setting", configure: func(*testing.T) {}},
-		{name: "explicit false", configure: func(t *testing.T) { configureHappLinkGate(t, false) }},
-		{name: "invalid setting", configure: func(t *testing.T) {
-			if err := (&SettingService{}).saveSetting("happLinkEnable", "not-a-bool"); err != nil {
-				t.Fatalf("save invalid happLinkEnable: %v", err)
-			}
-		}},
+type happTestDecoded struct {
+	source string
+	key    []byte
+	nonce  []byte
+}
+
+func decodeHappTestLink(t *testing.T, link string, key *rsa.PrivateKey) happTestDecoded {
+	t.Helper()
+	const prefix = "happ://crypt5/"
+	if !strings.HasPrefix(link, prefix) {
+		t.Fatal("unexpected Happ protocol")
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	payload := []byte(link[len(prefix):])
+	// Independent inverse indexing catches encoder swap errors without sharing its helpers.
+	frame := append([]byte{}, payload...)
+	for i := 0; i+4 <= len(payload); i += 4 {
+		copy(frame[i:i+2], payload[i+2:i+4])
+		copy(frame[i+2:i+4], payload[i:i+2])
+	}
+	if len(frame) < 38 || string(frame[:4])+string(frame[len(frame)-4:]) != "vdfzfoff" {
+		t.Fatal("invalid marker or short Crypt5 frame")
+	}
+	body := frame[4 : len(frame)-4]
+	nonce, tag, salt := body[:12], body[12:14], body[14:22]
+	if !regexp.MustCompile(`^[a-zA-Z0-9]{12}$`).Match(nonce) ||
+		!regexp.MustCompile(`^[a-zA-Z]{2}$`).Match(tag) ||
+		!regexp.MustCompile(`^[a-zA-Z0-9]{8}$`).Match(salt) {
+		t.Fatal("incorrect salted field shape")
+	}
+	separatorIndex := 22
+	for separatorIndex < len(body) && body[separatorIndex] >= '0' && body[separatorIndex] <= '9' {
+		separatorIndex++
+	}
+	if separatorIndex == 22 || separatorIndex >= len(body) || body[separatorIndex] != 'V' {
+		t.Fatal("missing length or wrong tested separator")
+	}
+	segmentLength, err := strconv.Atoi(string(body[22:separatorIndex]))
+	if err != nil || segmentLength < 24 || segmentLength > len(body)-separatorIndex-1 {
+		t.Fatal("invalid ciphertext segment length")
+	}
+	cipherB64 := body[separatorIndex+1 : separatorIndex+1+segmentLength]
+	rsaB64 := body[separatorIndex+1+segmentLength:]
+	rsaCipher, err := base64.StdEncoding.Strict().DecodeString(string(rsaB64))
+	if err != nil || len(rsaCipher) != 512 || len(rsaB64) != 684 {
+		t.Fatalf("expected standard padded Base64 of a 512-byte RSA block: %v", err)
+	}
+	//nolint:staticcheck // Only an ephemeral test key decodes Happ's required PKCS#1 v1.5 wrapping.
+	rsaPlain, err := rsa.DecryptPKCS1v15(nil, key, rsaCipher)
+	if err != nil || len(rsaPlain) != 44 {
+		t.Fatalf("RSA wrapped key should contain 44 encoded bytes: %v", err)
+	}
+	keyB64 := make([]byte, len(rsaPlain))
+	for i := range rsaPlain {
+		keyB64[i] = rsaPlain[i^1]
+	}
+	wrappedKey, err := base64.StdEncoding.Strict().DecodeString(string(keyB64))
+	if err != nil || len(wrappedKey) != 32 {
+		t.Fatalf("wrapped key should decode to 32 bytes: %v", err)
+	}
+	sessionKey := make([]byte, 32)
+	for i := range sessionKey {
+		sessionKey[i] = wrappedKey[i] ^ salt[i%8]
+	}
+	ciphertext, err := base64.StdEncoding.Strict().DecodeString(string(cipherB64))
+	if err != nil || !bytes.Equal([]byte(base64.StdEncoding.EncodeToString(ciphertext)), cipherB64) {
+		t.Fatalf("noncanonical ciphertext Base64: %v", err)
+	}
+	aead, err := chacha20poly1305.New(sessionKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	swappedSource, err := aead.Open(nil, nonce, ciphertext, nil)
+	if err != nil || len(swappedSource)%4 != 0 {
+		t.Fatalf("AEAD authentication or source framing failed: %v", err)
+	}
+	sourceB64 := make([]byte, len(swappedSource))
+	for i := range swappedSource {
+		sourceB64[i] = swappedSource[i^1]
+	}
+	source, err := base64.StdEncoding.Strict().DecodeString(string(sourceB64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return happTestDecoded{string(source), sessionKey, append([]byte{}, nonce...)}
+}
+
+func TestHappGenerateRejectsDisabledGateBeforeEncryption(t *testing.T) {
+	for _, value := range []string{"", "false", "not-a-bool"} {
+		t.Run("setting="+value, func(t *testing.T) {
 			initHappTestDB(t)
 			client := seedHappClient(t, "current-sub-id")
 			configureHappSubscription(t, true, "https://sub.example/sub/")
-			tt.configure(t)
-
-			var providerCalls atomic.Int32
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				providerCalls.Add(1)
-				_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-			}))
-			defer server.Close()
-			svc := newHappTestService(server, time.Second)
-			baseFactory := svc.newHTTPClient
-			var clientSetups atomic.Int32
-			svc.newHTTPClient = func(timeout time.Duration) *http.Client {
-				clientSetups.Add(1)
-				return baseFactory(timeout)
+			if value != "" {
+				if err := (&SettingService{}).saveSetting("happLinkEnable", value); err != nil {
+					t.Fatal(err)
+				}
 			}
-
+			svc := NewHappService(&ClientService{}, &SettingService{})
+			svc.encrypt = func(string) (string, error) {
+				t.Fatal("disabled feature attempted encryption")
+				return "", nil
+			}
 			result, err := svc.Generate(context.Background(), client.Id, "panel.example")
-			if !errors.Is(err, ErrHappLinkUnavailable) {
-				t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", err)
-			}
-			if result != (HappLinkResult{}) {
-				t.Fatalf("Generate result = %#v, want empty", result)
-			}
-			if got := clientSetups.Load(); got != 0 {
-				t.Fatalf("HTTP client setups = %d, want 0", got)
-			}
-			if got := providerCalls.Load(); got != 0 {
-				t.Fatalf("provider calls = %d, want 0", got)
+			if !errors.Is(err, ErrHappLinkUnavailable) || result != (HappLinkResult{}) {
+				t.Fatalf("disabled generation = %#v, %v", result, err)
 			}
 		})
 	}
 }
 
-func TestHappGenerateDiscardsResultWhenGateDisabledInFlight(t *testing.T) {
+func TestHappGenerateUsesCurrentSourceAndFreshCiphertext(t *testing.T) {
 	initHappTestDB(t)
-	client := seedHappClient(t, "current-sub-id")
+	client := seedHappClient(t, "before")
 	configureHappSubscription(t, true, "https://sub.example/sub/")
 	configureHappLinkGate(t, true)
-
-	entered := make(chan struct{})
-	release := make(chan struct{})
-	var providerCalls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		providerCalls.Add(1)
-		close(entered)
-		<-release
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer server.Close()
-
-	type generateOutcome struct {
-		result HappLinkResult
-		err    error
-	}
-	outcome := make(chan generateOutcome, 1)
-	svc := newHappTestService(server, time.Second)
-	go func() {
+	svc, key := newLocalHappTestService(t)
+	var previous string
+	for range 2 {
 		result, err := svc.Generate(context.Background(), client.Id, "panel.example")
-		outcome <- generateOutcome{result: result, err: err}
-	}()
-
-	<-entered
-	configureHappLinkGate(t, false)
-	close(release)
-	got := <-outcome
-	if !errors.Is(got.err, ErrHappLinkUnavailable) {
-		t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", got.err)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := decryptHappTestLink(t, result.EncryptedLink, key); got != "https://sub.example/sub/before" {
+			t.Fatalf("source = %q", got)
+		}
+		if result.EncryptedLink == previous {
+			t.Fatal("generation reused cached ciphertext")
+		}
+		previous = result.EncryptedLink
 	}
-	if got.result != (HappLinkResult{}) {
-		t.Fatalf("Generate result = %#v, want empty", got.result)
+	if err := database.GetDB().Model(client).Update("sub_id", "after").Error; err != nil {
+		t.Fatal(err)
 	}
-	if calls := providerCalls.Load(); calls != 1 {
-		t.Fatalf("provider calls = %d, want 1", calls)
-	}
-}
-
-func TestHappGenerateSendsExplicitCurrentSource(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "current-sub-id")
-	configureHappSubscription(t, true, "https://sub.example/sub/")
-	configureHappLinkGate(t, true)
-
-	var calls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
-		if r.Method != http.MethodPost {
-			t.Fatalf("method = %s, want POST", r.Method)
-		}
-		if got := r.Header.Get("Content-Type"); got != "application/json" {
-			t.Fatalf("Content-Type = %q", got)
-		}
-		if got := r.Header.Get("Accept"); got != "application/json" {
-			t.Fatalf("Accept = %q", got)
-		}
-		var body struct {
-			URL string `json:"url"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("decode request: %v", err)
-		}
-		if body.URL != "https://sub.example/sub/current-sub-id" {
-			t.Fatalf("url = %q", body.URL)
-		}
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer server.Close()
-
-	result, err := newHappTestService(server, time.Second).Generate(context.Background(), client.Id, "panel.example")
+	configureHappSubscription(t, true, "https://next.example/中文?literal=%2F&token=")
+	result, err := svc.Generate(context.Background(), client.Id, "panel.example")
 	if err != nil {
-		t.Fatalf("Generate: %v", err)
+		t.Fatal(err)
 	}
-	if result.EncryptedLink != "happ://crypt5/example" {
-		t.Fatalf("EncryptedLink = %q", result.EncryptedLink)
+	if got := decryptHappTestLink(t, result.EncryptedLink, key); got != "https://next.example/中文?literal=%2F&token=after" {
+		t.Fatalf("updated source = %q", got)
 	}
-	if got := calls.Load(); got != 1 {
-		t.Fatalf("provider calls = %d, want 1", got)
-	}
-}
-
-func TestHappGenerateUsesDefaultSubscriptionSource(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "fallback-sub-id")
 	configureHappSubscription(t, true, "")
-	configureHappLinkGate(t, true)
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			URL string `json:"url"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("decode request: %v", err)
-		}
-		if body.URL != "http://panel.example/sub/fallback-sub-id" {
-			t.Fatalf("url = %q", body.URL)
-		}
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer server.Close()
-
-	if _, err := newHappTestService(server, time.Second).Generate(context.Background(), client.Id, "panel.example"); err != nil {
-		t.Fatalf("Generate: %v", err)
+	result, err = svc.Generate(context.Background(), client.Id, "panel.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := decryptHappTestLink(t, result.EncryptedLink, key); got != "http://panel.example/sub/after" {
+		t.Fatalf("default source = %q", got)
 	}
 }
 
-func TestHappGenerateUsesCurrentSubIDForEachAction(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "before")
-	configureHappSubscription(t, true, "https://sub.example/sub/")
-	configureHappLinkGate(t, true)
-
-	var gotURLs []string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			URL string `json:"url"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("decode request: %v", err)
-		}
-		gotURLs = append(gotURLs, body.URL)
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer server.Close()
-	svc := newHappTestService(server, time.Second)
-	if _, err := svc.Generate(context.Background(), client.Id, "panel.example"); err != nil {
-		t.Fatalf("first Generate: %v", err)
-	}
-	if err := database.GetDB().Model(client).Update("sub_id", "after").Error; err != nil {
-		t.Fatalf("update SubID: %v", err)
-	}
-	if _, err := svc.Generate(context.Background(), client.Id, "panel.example"); err != nil {
-		t.Fatalf("second Generate: %v", err)
-	}
-	if got := strings.Join(gotURLs, ","); got != "https://sub.example/sub/before,https://sub.example/sub/after" {
-		t.Fatalf("sent URLs = %q", got)
-	}
-}
-
-func TestHappGenerateDiscardsResultWhenSourceChangesInFlight(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "before")
-	configureHappSubscription(t, true, "https://sub.example/sub/")
-	configureHappLinkGate(t, true)
-	entered := make(chan struct{})
-	release := make(chan struct{})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		close(entered)
-		<-release
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer server.Close()
-
-	errCh := make(chan error, 1)
-	go func() {
-		_, err := newHappTestService(server, time.Second).Generate(context.Background(), client.Id, "panel.example")
-		errCh <- err
-	}()
-	<-entered
-	if err := database.GetDB().Model(client).Update("sub_id", "after").Error; err != nil {
-		t.Fatalf("update SubID: %v", err)
-	}
-	close(release)
-	if err := <-errCh; !errors.Is(err, ErrHappLinkUnavailable) {
-		t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", err)
+func TestHappGenerateDiscardsChangedSourceOrGate(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		reason string
+		change func(*testing.T, *model.ClientRecord)
+	}{
+		{"subscription ID", "source_changed", func(t *testing.T, c *model.ClientRecord) {
+			if err := database.GetDB().Model(c).Update("sub_id", "after").Error; err != nil {
+				t.Fatal(err)
+			}
+		}},
+		{"subscription URL", "source_changed", func(t *testing.T, _ *model.ClientRecord) {
+			configureHappSubscription(t, true, "https://next.example/sub/")
+		}},
+		{"subscription disabled", "source_changed", func(t *testing.T, _ *model.ClientRecord) {
+			configureHappSubscription(t, false, "https://sub.example/sub/")
+		}},
+		{"gate disabled", "integration_disabled", func(t *testing.T, _ *model.ClientRecord) {
+			configureHappLinkGate(t, false)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			initHappTestDB(t)
+			client := seedHappClient(t, "before")
+			configureHappSubscription(t, true, "https://sub.example/sub/")
+			configureHappLinkGate(t, true)
+			svc, _ := newLocalHappTestService(t)
+			encrypt := svc.encrypt
+			svc.encrypt = func(source string) (string, error) {
+				link, err := encrypt(source)
+				tc.change(t, client)
+				return link, err
+			}
+			result, err := svc.Generate(context.Background(), client.Id, "panel.example")
+			if !errors.Is(err, ErrHappLinkUnavailable) || result != (HappLinkResult{}) {
+				t.Fatalf("stale result = %#v, %v", result, err)
+			}
+			logs := logger.GetLogs(1, "WARNING")
+			if len(logs) != 1 || !strings.Contains(logs[0], "reason="+tc.reason) {
+				t.Fatalf("wrong stale-result diagnostic: %v", logs)
+			}
+		})
 	}
 }
 
 func TestHappGenerateSkipsUnavailableSources(t *testing.T) {
-	tests := []struct {
-		name     string
-		clientID func(*model.ClientRecord) int
-		enabled  bool
-		subID    string
+	for _, tc := range []struct {
+		name    string
+		enabled bool
+		subID   string
+		missing bool
 	}{
-		{name: "disabled subscription", clientID: func(c *model.ClientRecord) int { return c.Id }, enabled: false, subID: "current-sub-id"},
-		{name: "missing client", clientID: func(c *model.ClientRecord) int { return c.Id + 1 }, enabled: true, subID: "current-sub-id"},
-		{name: "empty subscription ID", clientID: func(c *model.ClientRecord) int { return c.Id }, enabled: true, subID: ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		{"disabled subscription", false, "current", false},
+		{"missing client", true, "current", true},
+		{"empty subscription ID", true, "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			initHappTestDB(t)
-			client := seedHappClient(t, tt.subID)
-			configureHappSubscription(t, tt.enabled, "https://sub.example/sub/")
+			client := seedHappClient(t, tc.subID)
+			configureHappSubscription(t, tc.enabled, "https://sub.example/sub/")
 			configureHappLinkGate(t, true)
-			var calls atomic.Int32
-			server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { calls.Add(1) }))
-			defer server.Close()
-			_, err := newHappTestService(server, time.Second).Generate(context.Background(), tt.clientID(client), "panel.example")
-			if !errors.Is(err, ErrHappLinkUnavailable) {
-				t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", err)
+			svc := NewHappService(&ClientService{}, &SettingService{})
+			svc.encrypt = func(string) (string, error) { t.Fatal("unavailable source was encrypted"); return "", nil }
+			id := client.Id
+			if tc.missing {
+				id++
 			}
-			if got := calls.Load(); got != 0 {
-				t.Fatalf("provider calls = %d, want 0", got)
+			result, err := svc.Generate(context.Background(), id, "panel.example")
+			if !errors.Is(err, ErrHappLinkUnavailable) || result != (HappLinkResult{}) {
+				t.Fatalf("unavailable result = %#v, %v", result, err)
 			}
 		})
 	}
 }
 
-func TestHappGenerateRejectsInvalidProviderResponses(t *testing.T) {
-	tests := []struct {
-		name       string
-		statusCode int
-		body       string
-	}{
-		{name: "provider error", statusCode: http.StatusOK, body: `{"error":"nope"}`},
-		{name: "both fields", statusCode: http.StatusOK, body: `{"encrypted_link":"happ://crypt5/example","error":"nope"}`},
-		{name: "duplicate encrypted link", statusCode: http.StatusOK, body: `{"encrypted_link":"happ://crypt5/first","encrypted_link":"happ://crypt5/second"}`},
-		{name: "duplicate error", statusCode: http.StatusOK, body: `{"error":"first","error":"second"}`},
-		{name: "missing fields", statusCode: http.StatusOK, body: `{}`},
-		{name: "null field", statusCode: http.StatusOK, body: `{"encrypted_link":null}`},
-		{name: "non-string field", statusCode: http.StatusOK, body: `{"encrypted_link":7}`},
-		{name: "null error", statusCode: http.StatusOK, body: `{"error":null}`},
-		{name: "non-string error", statusCode: http.StatusOK, body: `{"error":7}`},
-		{name: "empty payload", statusCode: http.StatusOK, body: `{"encrypted_link":""}`},
-		{name: "wrong scheme", statusCode: http.StatusOK, body: `{"encrypted_link":"https://provider.example/link"}`},
-		{name: "whitespace", statusCode: http.StatusOK, body: `{"encrypted_link":"happ://crypt5/has space"}`},
-		{name: "control character", statusCode: http.StatusOK, body: "{\"encrypted_link\":\"happ://crypt5/example\\n\"}"},
-		{name: "malformed JSON", statusCode: http.StatusOK, body: `{"encrypted_link":`},
-		{name: "trailing JSON", statusCode: http.StatusOK, body: `{"encrypted_link":"happ://crypt5/example"} {}`},
-		{name: "non-success response", statusCode: http.StatusBadGateway, body: `{"encrypted_link":"happ://crypt5/example"}`},
-		{name: "oversized response", statusCode: http.StatusOK, body: `{"encrypted_link":"happ://crypt5/` + strings.Repeat("a", (64<<10)+1) + `"}`},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+func TestHappGenerateDiscardsCancelledRequests(t *testing.T) {
+	for _, before := range []bool{true, false} {
+		t.Run(strconv.FormatBool(before), func(t *testing.T) {
 			initHappTestDB(t)
-			client := seedHappClient(t, "current-sub-id")
+			client := seedHappClient(t, "current")
 			configureHappSubscription(t, true, "https://sub.example/sub/")
 			configureHappLinkGate(t, true)
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(tt.statusCode)
-				_, _ = io.WriteString(w, tt.body)
-			}))
-			defer server.Close()
-			_, err := newHappTestService(server, time.Second).Generate(context.Background(), client.Id, "panel.example")
-			if !errors.Is(err, ErrHappLinkUnavailable) {
-				t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", err)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			svc, _ := newLocalHappTestService(t)
+			encrypt := svc.encrypt
+			svc.encrypt = func(source string) (string, error) {
+				if before {
+					t.Fatal("cancelled request attempted encryption")
+				}
+				link, err := encrypt(source)
+				cancel()
+				return link, err
+			}
+			if before {
+				cancel()
+			}
+			result, err := svc.Generate(ctx, client.Id, "panel.example")
+			if !errors.Is(err, ErrHappLinkUnavailable) || result != (HappLinkResult{}) {
+				t.Fatalf("cancelled result = %#v, %v", result, err)
+			}
+			logs := logger.GetLogs(1, "WARNING")
+			if len(logs) != 1 || !strings.Contains(logs[0], "reason=request_cancelled") {
+				t.Fatalf("wrong cancellation diagnostic: %v", logs)
 			}
 		})
 	}
 }
 
-func TestParseHappResponseRejectsDuplicateSupportedFields(t *testing.T) {
-	tests := []struct {
-		name string
-		body string
-	}{
-		{name: "encrypted link", body: `{"encrypted_link":"happ://crypt5/first","encrypted_link":"happ://crypt5/second"}`},
-		{name: "error", body: `{"error":"first","error":"second"}`},
+func TestHappGeneratePropagatesLengthErrorWithoutSecrets(t *testing.T) {
+	initHappTestDB(t)
+	client := seedHappClient(t, strings.Repeat("s", 8173))
+	configureHappSubscription(t, true, "https://example.com/")
+	configureHappLinkGate(t, true)
+	result, err := NewHappService(&ClientService{}, &SettingService{}).Generate(context.Background(), client.Id, "panel.example")
+	if !errors.Is(err, ErrHappSourceTooLong) || result != (HappLinkResult{}) {
+		t.Fatalf("length result = %#v, %v", result, err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if _, reason := parseHappResponse([]byte(tt.body)); reason != "response_shape" {
-				t.Fatalf("parseHappResponse reason = %q, want response_shape", reason)
-			}
-		})
+	logs := logger.GetLogs(1, "WARNING")
+	if len(logs) != 1 || !strings.Contains(logs[0], "reason=source_too_long") {
+		t.Fatalf("length diagnostic = %v", logs)
+	}
+	if strings.Contains(logs[0], client.SubID) || strings.Contains(logs[0], "example.com") {
+		t.Fatal("length diagnostic leaked source")
 	}
 }
 
-func TestHappGenerateRejectsRedirectAndTimeout(t *testing.T) {
+func TestHappGenerateLogsSanitizedEncryptionFailure(t *testing.T) {
 	initHappTestDB(t)
-	client := seedHappClient(t, "current-sub-id")
-	configureHappSubscription(t, true, "https://sub.example/sub/")
+	client := seedHappClient(t, "secret-sub-id")
+	configureHappSubscription(t, true, "https://sub.example/secret-source/")
 	configureHappLinkGate(t, true)
-
-	for _, status := range []int{http.StatusTemporaryRedirect, http.StatusPermanentRedirect} {
-		t.Run(http.StatusText(status), func(t *testing.T) {
-			var originCalls atomic.Int32
-			var targetCalls atomic.Int32
-			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				targetCalls.Add(1)
-				_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/followed"}`)
-			}))
-			defer target.Close()
-			origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				originCalls.Add(1)
-				http.Redirect(w, r, target.URL, status)
-			}))
-			defer origin.Close()
-
-			if _, err := newHappTestService(origin, time.Second).Generate(context.Background(), client.Id, "panel.example"); !errors.Is(err, ErrHappLinkUnavailable) {
-				t.Fatalf("redirect error = %v, want ErrHappLinkUnavailable", err)
-			}
-			if got := originCalls.Load(); got != 1 {
-				t.Fatalf("origin calls = %d, want 1", got)
-			}
-			if got := targetCalls.Load(); got != 0 {
-				t.Fatalf("target calls = %d, want 0", got)
-			}
-		})
+	svc := NewHappService(&ClientService{}, &SettingService{})
+	svc.encrypt = func(source string) (string, error) {
+		return "", errors.New("encryption failed " + source + " token=secret cookie=session authorization=Bearer-secret happ://crypt5/leak")
 	}
-
-	timeout := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		time.Sleep(50 * time.Millisecond)
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer timeout.Close()
-	if _, err := newHappTestService(timeout, time.Millisecond).Generate(context.Background(), client.Id, "panel.example"); !errors.Is(err, ErrHappLinkUnavailable) {
-		t.Fatalf("timeout error = %v, want ErrHappLinkUnavailable", err)
-	}
-}
-
-func TestHappGenerateUsesProductionTimeout(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "current-sub-id")
-	configureHappSubscription(t, true, "https://sub.example/sub/")
-	configureHappLinkGate(t, true)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer server.Close()
-
-	var gotTimeout time.Duration
-	svc := &HappService{
-		clientService:  &ClientService{},
-		settingService: &SettingService{},
-		endpoint:       server.URL,
-		newHTTPClient: func(timeout time.Duration) *http.Client {
-			gotTimeout = timeout
-			return &http.Client{Timeout: time.Second}
-		},
-	}
-	if _, err := svc.Generate(context.Background(), client.Id, "panel.example"); err != nil {
-		t.Fatalf("Generate: %v", err)
-	}
-	if gotTimeout != 10*time.Second {
-		t.Fatalf("HTTP client timeout = %s, want 10s", gotTimeout)
-	}
-}
-
-func TestHappGenerateLogsSanitizedFailure(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "current-sub-id")
-	configureHappSubscription(t, true, "https://sub.example/sub/seeded-source-and-secret/")
-	configureHappLinkGate(t, true)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadGateway)
-		_, _ = io.WriteString(w, `{"error":"https://secret.example/?token=leak"}`)
-	}))
-	defer server.Close()
-
-	if _, err := newHappTestService(server, time.Second).Generate(context.Background(), client.Id, "panel.example"); !errors.Is(err, ErrHappLinkUnavailable) {
-		t.Fatalf("Generate error = %v, want ErrHappLinkUnavailable", err)
+	result, err := svc.Generate(context.Background(), client.Id, "panel.example")
+	if !errors.Is(err, ErrHappLinkUnavailable) || err.Error() != "happ link unavailable" || result != (HappLinkResult{}) {
+		t.Fatalf("failure = %#v, %v", result, err)
 	}
 	logs := logger.GetLogs(1, "WARNING")
 	if len(logs) != 1 {
-		t.Fatalf("warning logs = %d, want 1", len(logs))
+		t.Fatalf("logs = %v", logs)
 	}
-	logLine := logs[0]
-	for _, want := range []string{"component=happ_link", "client_id=" + strconv.Itoa(client.Id), "reason=http_status", "status=502", "elapsed_ms=", "correlation_id="} {
-		if !strings.Contains(logLine, want) {
-			t.Fatalf("log %q does not contain %q", logLine, want)
+	for _, want := range []string{"component=happ_link", "client_id=" + strconv.Itoa(client.Id), "reason=encryption", "elapsed_ms=", "correlation_id=", "encryption failed"} {
+		if !strings.Contains(logs[0], want) {
+			t.Fatalf("diagnostic missing %q: %s", want, logs[0])
 		}
 	}
-	for _, secret := range []string{"seeded-source-and-secret", "current-sub-id", "happ://", "secret.example", "token=leak"} {
-		if strings.Contains(logLine, secret) {
-			t.Fatalf("log leaked %q: %q", secret, logLine)
+	for _, secret := range []string{"secret-sub-id", "secret-source", "token=secret", "cookie=session", "Bearer-secret", "happ://"} {
+		if strings.Contains(logs[0], secret) {
+			t.Fatalf("diagnostic leaked %q", secret)
 		}
-	}
-}
-
-func TestHappGenerateDoesNotExposeTransportErrors(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "transport-sub-id")
-	configureHappSubscription(t, true, "https://sub.example/sub/transport-source/")
-	configureHappLinkGate(t, true)
-
-	const reflectedError = "dial tcp: connection refused request https://crypto.happ.su/api-v3.php?source=https://sub.example/sub/transport-source/transport-sub-id token=secret cookie=session authorization=Bearer-secret happ://crypt5/leak"
-	var transportCalls atomic.Int32
-	svc := &HappService{
-		clientService:  &ClientService{},
-		settingService: &SettingService{},
-		endpoint:       happCryptoEndpoint,
-		newHTTPClient: func(time.Duration) *http.Client {
-			return &http.Client{Transport: happRoundTripperFunc(func(*http.Request) (*http.Response, error) {
-				transportCalls.Add(1)
-				return nil, errors.New(reflectedError)
-			})}
-		},
-	}
-
-	result, err := svc.Generate(context.Background(), client.Id, "panel.example")
-	if !errors.Is(err, ErrHappLinkUnavailable) || err.Error() != "happ link unavailable" {
-		t.Fatalf("Generate error = %v, want generic ErrHappLinkUnavailable", err)
-	}
-	if result != (HappLinkResult{}) {
-		t.Fatalf("Generate result = %#v, want empty", result)
-	}
-	if got := transportCalls.Load(); got != 1 {
-		t.Fatalf("transport calls = %d, want 1", got)
-	}
-	logs := logger.GetLogs(1, "WARNING")
-	if len(logs) != 1 || !strings.Contains(logs[0], "reason=transport") {
-		t.Fatalf("transport warning logs = %#v, want one sanitized transport failure", logs)
-	}
-	if !strings.Contains(logs[0], "dial tcp: connection refused") {
-		t.Fatalf("transport warning %q dropped the diagnostic the UI sends operators to the logs for", logs[0])
-	}
-	for _, secret := range []string{reflectedError, "transport-source", "transport-sub-id", "token=secret", "cookie=session", "authorization=Bearer-secret", "happ://"} {
-		if strings.Contains(logs[0], secret) || strings.Contains(err.Error(), secret) {
-			t.Fatalf("transport failure leaked %q: error=%q log=%q", secret, err, logs[0])
-		}
-	}
-}
-
-func TestHappGenerateDoesNotCacheResults(t *testing.T) {
-	initHappTestDB(t)
-	client := seedHappClient(t, "current-sub-id")
-	configureHappSubscription(t, true, "https://sub.example/sub/")
-	configureHappLinkGate(t, true)
-	var calls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		calls.Add(1)
-		_, _ = io.WriteString(w, `{"encrypted_link":"happ://crypt5/example"}`)
-	}))
-	defer server.Close()
-	svc := newHappTestService(server, time.Second)
-	for range 2 {
-		if _, err := svc.Generate(context.Background(), client.Id, "panel.example"); err != nil {
-			t.Fatalf("Generate: %v", err)
-		}
-	}
-	if got := calls.Load(); got != 2 {
-		t.Fatalf("provider calls = %d, want 2", got)
 	}
 }
 
