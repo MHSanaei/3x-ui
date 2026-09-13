@@ -63,25 +63,62 @@ var (
 		timestamp time.Time
 		mutex     sync.RWMutex
 	}
-
-	// clients data to adding new client. receiver_inbound_IDs is the set of
-	// inbounds the new client will be attached to; receiver_inbound_ID mirrors
-	// the primary pick for the legacy attach-picker entry point. Per-protocol
-	// secrets (UUID, password, flow, method) are filled per-inbound on submit
-	// by ClientService.fillProtocolDefaults, so the bot only tracks universal
-	// client fields here.
-	receiver_inbound_ID  int
-	receiver_inbound_IDs []int
-	client_Email         string
-	client_LimitIP       int
-	client_TotalGB       int64
-	client_ExpiryTime    int64
-	client_Enable        bool
-	client_TgID          string
-	client_SubID         string
-	client_Comment       string
-	client_Reset         int
 )
+
+// clientDraft is one chat's add-client wizard state. Per-protocol secrets are
+// filled per-inbound on submit, so only the universal fields live here.
+type clientDraft struct {
+	sync.Mutex
+	receiverInboundID  int
+	receiverInboundIDs []int
+	email              string
+	limitIP            int
+	totalGB            int64
+	expiryTime         int64
+	enable             bool
+	tgID               string
+	subID              string
+	comment            string
+	reset              int
+}
+
+// clientDrafts keys a draft by chat: the steps arrive on the worker pool, so a
+// single draft let two admins fill in one client between them.
+type clientDrafts struct {
+	mu     sync.Mutex
+	drafts map[int64]*clientDraft
+}
+
+var addClientDrafts = &clientDrafts{drafts: make(map[int64]*clientDraft)}
+
+func (s *clientDrafts) forChat(chatID int64) *clientDraft {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	draft, ok := s.drafts[chatID]
+	if !ok {
+		draft = &clientDraft{}
+		s.drafts[chatID] = draft
+	}
+	return draft
+}
+
+func (s *clientDrafts) reset(chatID int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.drafts, chatID)
+}
+
+// isAddClientStep reports whether callback data belongs to the add-client
+// wizard, the only flow that reads or writes a draft.
+func isAddClientStep(data string) bool {
+	return strings.HasPrefix(data, "add_client")
+}
+
+func (s *clientDrafts) resetAll() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.drafts = make(map[int64]*clientDraft)
+}
 
 // userStateStore guards the per-chat conversation states. The Telegram command
 // and callback handlers run on a worker-pool goroutine while the message handler
@@ -482,6 +519,7 @@ func StopBot() {
 	tgBotMutex.Unlock()
 
 	userStateMgr.reset()
+	addClientDrafts.resetAll()
 
 	if handler != nil {
 		_ = handler.Stop()
