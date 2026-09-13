@@ -351,6 +351,8 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
 			email := dataArray[1]
 			switch dataArray[0] {
+			case "broadcast_confirm":
+				t.confirmBroadcast(chatId, dataArray[1], callbackQuery.Message.GetMessageID(), callbackQuery.ID)
 			case "get_clients_for_sub":
 				inboundIdInt, err := strconv.Atoi(dataArray[1])
 				if err != nil {
@@ -910,9 +912,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			return
 		} else {
 			switch callbackQuery.Data {
-			case "broadcast_confirm":
-				t.confirmBroadcast(chatId, callbackQuery.Message.GetMessageID(), callbackQuery.ID)
-				return
 			case "broadcast_cancel":
 				t.cancelBroadcast(chatId, callbackQuery.Message.GetMessageID(), callbackQuery.ID)
 				return

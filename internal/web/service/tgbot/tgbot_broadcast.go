@@ -21,9 +21,8 @@ import (
 const (
 	broadcastAwaitingText = "awaiting_broadcast_text"
 
-	// Telegram allows roughly one message per second per chat, so a small
-	// pause between recipients keeps the run under the bot-wide ~30 msg/s
-	// ceiling.
+	// Pause per recipient, scaled by the number of copied messages, keeps the
+	// run around the bot-wide ~30 msg/s ceiling even for whole albums.
 	broadcastSendDelay = 60 * time.Millisecond
 	// Progress refreshes are throttled to keep the run under rate limits.
 	broadcastProgressEvery    = 25
@@ -37,10 +36,6 @@ const (
 type broadcastDraft struct {
 	FromChatID int64
 	MessageIDs []int
-}
-
-func (d broadcastDraft) empty() bool {
-	return len(d.MessageIDs) == 0
 }
 
 // broadcastResult is the end-of-run statistics shown to the admin.
@@ -76,63 +71,58 @@ func (r *broadcastRunner) getResult() broadcastResult {
 	return r.result
 }
 
+// broadcastCompose is one admin chat's composition: the collected message
+// ids, the media group still arriving (if any), and the card token tying the
+// pending preview to its own Send button.
+type broadcastCompose struct {
+	messageIDs []int
+	groupID    string
+	token      string
+	timer      *time.Timer
+}
+
 var (
-	broadcastMu        sync.Mutex
-	broadcastPending   broadcastDraft
-	broadcastPendingID int64
-	broadcastActive    *broadcastRunner
+	broadcastMu       sync.Mutex
+	broadcastComposes = make(map[int64]*broadcastCompose)
+	broadcastActive   *broadcastRunner
 )
 
 // broadcastAlbumDebounce waits out Telegram's stream of one media group: an
 // album reaches the bot as separate messages sharing a media_group_id.
 var broadcastAlbumDebounce = 900 * time.Millisecond
 
-// broadcastAlbumBuffer collects the message ids of one arriving media group.
-type broadcastAlbumBuffer struct {
-	chatID     int64
-	groupID    string
-	messageIDs []int
-	timer      *time.Timer
-}
-
-var (
-	broadcastBufMu sync.Mutex
-	broadcastBuf   *broadcastAlbumBuffer
-)
-
-func broadcastDropBuffer() {
-	broadcastBufMu.Lock()
-	defer broadcastBufMu.Unlock()
-	if broadcastBuf != nil {
-		broadcastBuf.timer.Stop()
-		broadcastBuf = nil
+func broadcastDropCompose(chatID int64) {
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+	if c := broadcastComposes[chatID]; c != nil && c.timer != nil {
+		c.timer.Stop()
 	}
+	delete(broadcastComposes, chatID)
 }
 
-func broadcastSetDraft(chatID int64, draft broadcastDraft) {
+// broadcastPendingDraft reports the ids awaiting confirmation for a chat;
+// ok is false while an album is still being collected.
+func broadcastPendingDraft(chatID int64) ([]int, string, bool) {
 	broadcastMu.Lock()
 	defer broadcastMu.Unlock()
-	broadcastPending = draft
-	broadcastPendingID = chatID
-}
-
-func broadcastTakeDraft(chatID int64) (broadcastDraft, bool) {
-	broadcastMu.Lock()
-	defer broadcastMu.Unlock()
-	if broadcastPending.empty() || broadcastPendingID != chatID {
-		return broadcastDraft{}, false
+	c := broadcastComposes[chatID]
+	if c == nil || c.groupID != "" || c.token == "" {
+		return nil, "", false
 	}
-	draft := broadcastPending
-	broadcastPending = broadcastDraft{}
-	broadcastPendingID = 0
-	return draft, true
+	return append([]int(nil), c.messageIDs...), c.token, true
 }
 
-func broadcastResetDraft() {
+// broadcastTakePending removes the pending draft only when its card token
+// matches; ok is false for stale taps or chats with no pending draft.
+func broadcastTakePending(chatID int64, token string) ([]int, bool) {
 	broadcastMu.Lock()
 	defer broadcastMu.Unlock()
-	broadcastPending = broadcastDraft{}
-	broadcastPendingID = 0
+	c := broadcastComposes[chatID]
+	if c == nil || c.token == "" || c.token != token {
+		return nil, false
+	}
+	delete(broadcastComposes, chatID)
+	return c.messageIDs, true
 }
 
 // broadcastRegisterRunner claims the single broadcast slot; nil means one is
@@ -176,21 +166,23 @@ func (t *Tgbot) startBroadcast(chatId int64) {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAlreadyRunning"))
 		return
 	}
-	broadcastResetDraft()
-	broadcastDropBuffer()
+	broadcastDropCompose(chatId)
 	userStateMgr.set(chatId, broadcastAwaitingText)
 	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAskText"), t.broadcastCancelKeyboard())
 }
 
 // handleBroadcastInput references the message the admin sent for the
-// broadcast and shows the confirmation preview. A media group is buffered
-// until its last item arrives, so one album produces one draft.
+// broadcast and shows the confirmation preview. Only the chat's admin may
+// fill it: the state lives under a chat id, which in a group is shared.
 func (t *Tgbot) handleBroadcastInput(message *telego.Message) {
 	chatId := message.Chat.ID
+	if message.From == nil || !checkAdmin(message.From.ID) {
+		return
+	}
 	logger.Debugf("broadcast: chat %d input (message_id=%d group=%q)", chatId, message.MessageID, message.MediaGroupID)
 	if message.MediaGroupID == "" {
-		broadcastDropBuffer()
-		t.acceptBroadcastDraft(chatId, broadcastDraft{FromChatID: chatId, MessageIDs: []int{message.MessageID}})
+		broadcastDropCompose(chatId)
+		t.acceptBroadcastDraft(chatId, []int{message.MessageID})
 		return
 	}
 	t.bufferBroadcastMedia(chatId, message.MediaGroupID, message.MessageID)
@@ -198,54 +190,63 @@ func (t *Tgbot) handleBroadcastInput(message *telego.Message) {
 
 // acceptBroadcastDraft validates the draft with a self-copy — the admin sees
 // exactly what recipients will get — and shows the confirmation preview.
-func (t *Tgbot) acceptBroadcastDraft(chatId int64, draft broadcastDraft) {
-	if err := broadcastSender(chatId, draft); err != nil {
-		broadcastResetDraft()
+func (t *Tgbot) acceptBroadcastDraft(chatId int64, ids []int) {
+	if err := broadcastSender(chatId, broadcastDraft{FromChatID: chatId, MessageIDs: ids}); err != nil {
+		broadcastDropCompose(chatId)
 		userStateMgr.clear(chatId)
-		logger.Warningf("broadcast: chat %d message %v cannot be copied: %v", chatId, draft.MessageIDs, err)
+		logger.Warningf("broadcast: chat %d message %v cannot be copied: %v", chatId, ids, err)
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastNotCopyable"))
 		return
 	}
 	recipients := t.collectBroadcastRecipients()
-	broadcastSetDraft(chatId, draft)
+	token := t.randomLowerAndNum(12)
+	broadcastMu.Lock()
+	broadcastComposes[chatId] = &broadcastCompose{messageIDs: ids, token: token}
+	broadcastMu.Unlock()
 	userStateMgr.clear(chatId)
-	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastPreview", "Count=="+strconv.Itoa(len(recipients))), t.broadcastConfirmKeyboard())
+	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.broadcastSend")).WithCallbackData("broadcast_confirm "+token),
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("broadcast_cancel"),
+	))
+	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastPreview", "Count=="+strconv.Itoa(len(recipients))), keyboard)
 }
 
 // bufferBroadcastMedia appends an album item; the debounce timer fires the
 // preview once the group stops growing.
 func (t *Tgbot) bufferBroadcastMedia(chatId int64, groupID string, messageID int) {
-	broadcastBufMu.Lock()
-	if broadcastBuf == nil || broadcastBuf.chatID != chatId || broadcastBuf.groupID != groupID {
-		if broadcastBuf != nil {
-			broadcastBuf.timer.Stop()
+	broadcastMu.Lock()
+	c := broadcastComposes[chatId]
+	if c == nil || c.groupID != groupID {
+		if c != nil && c.timer != nil {
+			c.timer.Stop()
 		}
-		buf := &broadcastAlbumBuffer{chatID: chatId, groupID: groupID}
-		buf.timer = time.AfterFunc(broadcastAlbumDebounce, func() {
+		c = &broadcastCompose{groupID: groupID}
+		c.timer = time.AfterFunc(broadcastAlbumDebounce, func() {
 			t.finalizeBroadcastAlbum(chatId, groupID)
 		})
-		broadcastBuf = buf
+		broadcastComposes[chatId] = c
 	}
-	broadcastBuf.messageIDs = append(broadcastBuf.messageIDs, messageID)
-	broadcastBuf.timer.Reset(broadcastAlbumDebounce)
-	broadcastBufMu.Unlock()
+	c.messageIDs = append(c.messageIDs, messageID)
+	c.timer.Reset(broadcastAlbumDebounce)
+	broadcastMu.Unlock()
 }
 
 func (t *Tgbot) finalizeBroadcastAlbum(chatId int64, groupID string) {
-	broadcastBufMu.Lock()
-	if broadcastBuf == nil || broadcastBuf.chatID != chatId || broadcastBuf.groupID != groupID {
-		broadcastBufMu.Unlock()
+	broadcastMu.Lock()
+	c := broadcastComposes[chatId]
+	if c == nil || c.groupID != groupID {
+		broadcastMu.Unlock()
 		return
 	}
 	// Album updates can arrive out of order, and copyMessages requires
 	// strictly increasing ids.
-	ids := append([]int(nil), broadcastBuf.messageIDs...)
+	ids := append([]int(nil), c.messageIDs...)
 	slices.Sort(ids)
-	draft := broadcastDraft{FromChatID: chatId, MessageIDs: slices.Compact(ids)}
-	broadcastBuf = nil
-	broadcastBufMu.Unlock()
+	ids = slices.Compact(ids)
+	delete(broadcastComposes, chatId)
+	broadcastMu.Unlock()
 
-	t.acceptBroadcastDraft(chatId, draft)
+	t.acceptBroadcastDraft(chatId, ids)
 }
 
 func (t *Tgbot) broadcastCancelKeyboard() *telego.InlineKeyboardMarkup {
@@ -254,28 +255,22 @@ func (t *Tgbot) broadcastCancelKeyboard() *telego.InlineKeyboardMarkup {
 	))
 }
 
-func (t *Tgbot) broadcastConfirmKeyboard() *telego.InlineKeyboardMarkup {
-	return tu.InlineKeyboard(tu.InlineKeyboardRow(
-		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.broadcastSend")).WithCallbackData("broadcast_confirm"),
-		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("broadcast_cancel"),
-	))
-}
-
 // confirmBroadcast turns the pending draft into a running broadcast: it claims
 // the single runner slot, replaces the preview with a progress card and hands
 // the delivery loop to a background goroutine.
-func (t *Tgbot) confirmBroadcast(chatId int64, messageID int, queryID string) {
+func (t *Tgbot) confirmBroadcast(chatId int64, token string, messageID int, queryID string) {
 	runner := broadcastRegisterRunner(chatId)
 	if runner == nil {
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.messages.broadcastAlreadyRunning"))
 		return
 	}
-	draft, ok := broadcastTakeDraft(chatId)
+	ids, ok := broadcastTakePending(chatId, token)
 	if !ok {
 		broadcastUnregisterRunner(runner)
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.wentWrong"))
 		return
 	}
+	draft := broadcastDraft{FromChatID: chatId, MessageIDs: ids}
 	recipients := t.collectBroadcastRecipients()
 	if len(recipients) == 0 {
 		broadcastUnregisterRunner(runner)
@@ -298,6 +293,9 @@ func (t *Tgbot) confirmBroadcast(chatId int64, messageID int, queryID string) {
 func (t *Tgbot) runBroadcast(runner *broadcastRunner, draft broadcastDraft, recipients []int64) {
 	defer broadcastUnregisterRunner(runner)
 	start := time.Now()
+	// One copyMessages call carries a whole album, so the pause scales with
+	// the batch size to stay under the same per-second ceiling.
+	pause := broadcastSendDelay * time.Duration(max(1, len(draft.MessageIDs)))
 	sent, failed := 0, 0
 	lastProgress := time.Now()
 	canceled := false
@@ -310,7 +308,7 @@ func (t *Tgbot) runBroadcast(runner *broadcastRunner, draft broadcastDraft, reci
 		if !t.IsRunning() {
 			break
 		}
-		if err := broadcastDeliverOne(chatID, draft); err != nil {
+		if err := broadcastDeliverOne(chatID, draft, runner.cancel.Load); err != nil {
 			failed++
 			logger.Warningf("broadcast: chat %d not delivered: %v", chatID, err)
 		} else {
@@ -322,7 +320,7 @@ func (t *Tgbot) runBroadcast(runner *broadcastRunner, draft broadcastDraft, reci
 			lastProgress = time.Now()
 		}
 		if i < len(recipients)-1 {
-			broadcastPause(broadcastSendDelay)
+			broadcastPause(pause)
 		}
 	}
 
@@ -391,8 +389,7 @@ func (t *Tgbot) cancelBroadcast(chatId int64, messageID int, queryID string) {
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceling"))
 		return
 	}
-	broadcastResetDraft()
-	broadcastDropBuffer()
+	broadcastDropCompose(chatId)
 	userStateMgr.clear(chatId)
 	t.deleteMessageTgBot(chatId, messageID)
 	t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceled"))
@@ -427,7 +424,8 @@ func (t *Tgbot) collectBroadcastRecipients() []int64 {
 
 // broadcastDeliverOne retries a recipient through flood-control waits so a 429
 // never drops them; after broadcastFloodRetries waits it gives up on them.
-func broadcastDeliverOne(chatID int64, draft broadcastDraft) error {
+// A cancel during a wait abandons the recipient immediately.
+func broadcastDeliverOne(chatID int64, draft broadcastDraft, canceled func() bool) error {
 	for attempt := 0; ; attempt++ {
 		err := broadcastSender(chatID, draft)
 		if err == nil {
@@ -435,6 +433,9 @@ func broadcastDeliverOne(chatID int64, draft broadcastDraft) error {
 		}
 		wait, flood := broadcastRetryAfter(err)
 		if !flood || attempt >= broadcastFloodRetries {
+			return err
+		}
+		if canceled != nil && canceled() {
 			return err
 		}
 		logger.Warningf("broadcast: chat %d is flood-limited, retrying in %s", chatID, wait)
