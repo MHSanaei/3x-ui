@@ -1589,7 +1589,6 @@
       "subHappGroupNetwork": "网络与 TUN 引擎",
       "subHappGroupThemes": "界面与主题外观",
       "subHappGroupFailover": "迁移与客户端管理",
-      "subHappGroupAndroid": "Android 分应用代理"
       "subHappGroupAndroid": "Android 分应用代理",
       "discordSettings": "Discord 机器人",
       "discordBotEnable": "启用 Discord 通知",

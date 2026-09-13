@@ -1589,7 +1589,6 @@
       "subHappGroupNetwork": "Network & TUN Engine",
       "subHappGroupThemes": "Appearance & Theme",
       "subHappGroupFailover": "Migration & App Management",
-      "subHappGroupAndroid": "Android Per-App Proxy"
       "subHappGroupAndroid": "Android Per-App Proxy",
       "discordSettings": "Discord бот",
       "discordBotEnable": "Увімкнути сповіщення Discord",

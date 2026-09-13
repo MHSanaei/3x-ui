@@ -1589,7 +1589,6 @@
       "subHappGroupNetwork": "Сетевые настройки и TUN",
       "subHappGroupThemes": "Внешний вид и темы",
       "subHappGroupFailover": "Миграция и управление",
-      "subHappGroupAndroid": "Прокси приложений Android"
       "subHappGroupAndroid": "Прокси приложений Android",
       "discordSettings": "Discord бот",
       "discordBotEnable": "Включить уведомления в Discord",
