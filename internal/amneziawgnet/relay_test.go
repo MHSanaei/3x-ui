@@ -1,9 +1,11 @@
 package amneziawgnet
 
 import (
+	"errors"
 	"io"
 	"net"
 	"net/netip"
+	"os"
 	"testing"
 	"time"
 )
@@ -253,5 +255,45 @@ func TestSocks5ReceiveRejectsTruncatedReplies(t *testing.T) {
 				t.Fatal("receive accepted a malformed datagram instead of returning an error")
 			}
 		})
+	}
+}
+
+// TestNewSocks5UDPSessionGivesUpOnSilentServer pins that a control connection
+// the kernel accepts but nobody answers returns within the associate deadline
+// instead of parking Handle -- and with it the tunnel's delivery path -- forever.
+func TestNewSocks5UDPSessionGivesUpOnSilentServer(t *testing.T) {
+	// Never accepted: the backlog completes the TCP handshake, the greeting
+	// lands in the socket buffer, and no reply ever comes -- a hung Xray.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	t.Cleanup(func() { _ = ln.Close() })
+
+	saved := socks5AssociateTimeout
+	socks5AssociateTimeout = 150 * time.Millisecond
+	t.Cleanup(func() { socks5AssociateTimeout = saved })
+
+	type result struct {
+		sess *socks5UDPSession
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		sess, err := newSocks5UDPSession(ln.Addr().String(), "peer@example", "x")
+		done <- result{sess, err}
+	}()
+
+	select {
+	case got := <-done:
+		if got.err == nil {
+			got.sess.Close()
+			t.Fatal("associate succeeded against a server that never answered")
+		}
+		if !errors.Is(got.err, os.ErrDeadlineExceeded) {
+			t.Fatalf("associate error = %v, want one wrapping os.ErrDeadlineExceeded", got.err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("newSocks5UDPSession still blocked 2s past the associate deadline: a silent SOCKS5 server parks the tunnel's delivery path")
 	}
 }
