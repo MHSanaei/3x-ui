@@ -101,15 +101,16 @@ func (s *DiscordService) BuildReport(ctx context.Context, server ServerProvider,
 		}
 	}
 
+	tr := translator(s.settingService)
 	days := status.Uptime / 86400
 	hours := (status.Uptime % 86400) / 3600
-	uptimeStr := fmt.Sprintf("%dd %dh", days, hours)
+	uptimeStr := tr("discord.values.uptime", "Days=="+fmt.Sprint(days), "Hours=="+fmt.Sprint(hours))
 
 	ramStr := fmt.Sprintf("%s / %s", common.FormatTraffic(int64(status.Mem.Current)), common.FormatTraffic(int64(status.Mem.Total)))
-	trafficStr := fmt.Sprintf("↑%s  ↓%s (Total: %s)",
-		common.FormatTraffic(int64(status.NetTraffic.Sent)),
-		common.FormatTraffic(int64(status.NetTraffic.Recv)),
-		common.FormatTraffic(int64(status.NetTraffic.Sent+status.NetTraffic.Recv)),
+	trafficStr := tr("discord.values.traffic",
+		"Up=="+common.FormatTraffic(int64(status.NetTraffic.Sent)),
+		"Down=="+common.FormatTraffic(int64(status.NetTraffic.Recv)),
+		"Total=="+common.FormatTraffic(int64(status.NetTraffic.Sent+status.NetTraffic.Recv)),
 	)
 	load1, load2, load3 := 0.0, 0.0, 0.0
 	if len(status.Loads) > 0 {
@@ -124,17 +125,17 @@ func (s *DiscordService) BuildReport(ctx context.Context, server ServerProvider,
 	loadStr := fmt.Sprintf("%.2f, %.2f, %.2f", load1, load2, load3)
 
 	fields := []EmbedField{
-		{Name: "Host", Value: hostname, Inline: true},
-		{Name: "Panel Version", Value: config.GetPanelVersion(), Inline: true},
-		{Name: "Xray Core", Value: fmt.Sprintf("%s (%s)", status.Xray.Version, status.Xray.State), Inline: true},
-		{Name: "Uptime", Value: uptimeStr, Inline: true},
-		{Name: "System Load", Value: loadStr, Inline: true},
-		{Name: "Memory (RAM)", Value: ramStr, Inline: true},
-		{Name: "Network Traffic", Value: trafficStr, Inline: false},
-		{Name: "Connections", Value: fmt.Sprintf("TCP: %d | UDP: %d", status.TcpCount, status.UdpCount), Inline: true},
-		{Name: "Online Clients", Value: strconv.Itoa(len(onlines)), Inline: true},
-		{Name: "Inbounds", Value: fmt.Sprintf("Total: %d | Depleting: %d | Disabled: %d", totalInbounds, exhaustedInbounds, disabledInbounds), Inline: false},
-		{Name: "Clients", Value: fmt.Sprintf("Total: %d | Depleting: %d | Disabled: %d", totalClients, exhaustedClients, disabledClients), Inline: false},
+		{Name: tr("host"), Value: hostname, Inline: true},
+		{Name: tr("discord.fields.panelVersion"), Value: config.GetPanelVersion(), Inline: true},
+		{Name: tr("discord.fields.xrayCore"), Value: fmt.Sprintf("%s (%s)", status.Xray.Version, status.Xray.State), Inline: true},
+		{Name: tr("pages.index.uptime"), Value: uptimeStr, Inline: true},
+		{Name: tr("discord.fields.systemLoad"), Value: loadStr, Inline: true},
+		{Name: tr("pages.index.memory"), Value: ramStr, Inline: true},
+		{Name: tr("discord.fields.networkTraffic"), Value: trafficStr, Inline: false},
+		{Name: tr("pages.index.historyTabConnections"), Value: fmt.Sprintf("TCP: %d | UDP: %d", status.TcpCount, status.UdpCount), Inline: true},
+		{Name: tr("pages.index.historyTitleOnline"), Value: strconv.Itoa(len(onlines)), Inline: true},
+		{Name: tr("tgbot.inbounds"), Value: tr("discord.values.counts", "Total=="+strconv.Itoa(totalInbounds), "Depleting=="+strconv.Itoa(exhaustedInbounds), "Disabled=="+strconv.Itoa(disabledInbounds)), Inline: false},
+		{Name: tr("clients"), Value: tr("discord.values.counts", "Total=="+strconv.Itoa(totalClients), "Depleting=="+strconv.Itoa(exhaustedClients), "Disabled=="+strconv.Itoa(disabledClients)), Inline: false},
 	}
 
 	ipv4, ipv6 := getInterfaceIPs()
@@ -151,13 +152,13 @@ func (s *DiscordService) BuildReport(ctx context.Context, server ServerProvider,
 	}
 
 	embed := Embed{
-		Title:       "📊 3x-ui Status Report",
-		Description: fmt.Sprintf("Periodic server and proxy status report for **%s**", hostname),
+		Title:       tr("discord.report.title"),
+		Description: tr("discord.report.summary", "Host=="+hostname),
 		Color:       ColorBlue,
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
 		Fields:      fields,
 		Footer: &EmbedFooter{
-			Text: fmt.Sprintf("3x-ui Scheduled Report • Schedule: %s", runTime),
+			Text: tr("discord.report.footer", "RunTime=="+runTime),
 		},
 	}
 

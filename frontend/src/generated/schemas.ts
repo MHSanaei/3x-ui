@@ -5,6 +5,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "datepicker": {
         "type": "string"
       },
+      "discordAdminIds": {
+        "type": "string"
+      },
       "discordBotBackup": {
         "type": "boolean"
       },
@@ -470,6 +473,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "datepicker",
+      "discordAdminIds",
       "discordBotBackup",
       "discordBotEnable",
       "discordBotToken",
@@ -618,6 +622,9 @@ export const SCHEMAS: Record<string, unknown> = {
   "AllSettingView": {
     "properties": {
       "datepicker": {
+        "type": "string"
+      },
+      "discordAdminIds": {
         "type": "string"
       },
       "discordBotBackup": {
@@ -1109,6 +1116,7 @@ export const SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "datepicker",
+      "discordAdminIds",
       "discordBotBackup",
       "discordBotEnable",
       "discordBotToken",

@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "输入机器人令牌",
       "discordChannelId": "频道 ID",
       "discordChannelIdDesc": "接收通知的 Discord 频道 ID",
+      "discordAdminIds": "管理员用户 ID",
+      "discordAdminIdsDesc": "允许运行机器人命令的 Discord 用户 ID，以英文逗号分隔。其他人的消息会被忽略，列表为空时命令将被关闭。",
       "discordEventBusNotify": "Discord 通知",
       "testDiscord": "发送测试通知",
       "testDiscordDesc": "发送测试通知以验证您的机器人令牌和频道 ID",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "未找到您的配置！\r\n请向管理员询问，在您的配置中使用您的 Telegram 用户 ChatID。\r\n\r\n您的用户 ChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "为入站 {{ .Inbound }} 选择一个客户",
       "chooseInbound": "选择一个入站"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord 通知测试",
+      "body": "这是一条测试通知，确认 Discord 通知已正确配置。"
+    },
+    "footer": "3x-ui 面板",
+    "fields": {
+      "panelVersion": "面板版本",
+      "xrayCore": "Xray 核心",
+      "systemLoad": "系统负载",
+      "networkTraffic": "网络流量",
+      "totalUsed": "已用总量",
+      "quota": "配额",
+      "error": "错误",
+      "delay": "延迟",
+      "outbound": "出站",
+      "node": "节点",
+      "threshold": "阈值",
+      "reason": "原因",
+      "time": "时间",
+      "source": "来源"
+    },
+    "values": {
+      "uptime": "{{ .Days }}天 {{ .Hours }}小时",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }}（总计：{{ .Total }}）",
+      "counts": "总计：{{ .Total }} | 即将耗尽：{{ .Depleting }} | 已禁用：{{ .Disabled }}",
+      "inbound": "协议：`{{ .Protocol }}` | 端口：`{{ .Port }}` | 客户端：`{{ .Clients }}` | 流量：`↑{{ .Up }} ↓{{ .Down }}` | 状态：`{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "出站已断开",
+      "outboundUp": "出站已恢复",
+      "nodeDown": "节点已离线",
+      "nodeUp": "节点已恢复",
+      "xrayCrash": "Xray 核心崩溃",
+      "cpuHigh": "CPU 超出阈值",
+      "memoryHigh": "内存超出阈值",
+      "loginSuccess": "登录成功",
+      "loginFailed": "登录失败"
+    },
+    "report": {
+      "title": "📊 3x-ui 状态报告",
+      "summary": "**{{ .Host }}** 的服务器与代理定期状态报告",
+      "footer": "3x-ui 定时报告 • 计划：{{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord 机器人命令",
+      "helpDescription": "用于监控和管理 3x-ui 服务器的可用命令：",
+      "helpStatus": "显示系统负载、内存、CPU、连接数和在线用户",
+      "helpReport": "生成完整状态报告（如已配置则附带数据库备份）",
+      "helpBackup": "立即发送数据库备份文件",
+      "helpUsage": "查询客户端的流量使用、配额和到期时间",
+      "helpInbounds": "列出所有已配置的入站及其端口和客户端统计",
+      "helpRestart": "重启 Xray 核心",
+      "helpHelp": "显示此可用命令列表",
+      "statusTitle": "⚡ 3x-ui 服务器状态",
+      "statusDescription": "**{{ .Host }}** 的当前运行指标",
+      "backupTitle": "🗄️ 数据库备份",
+      "backupDescription": "3x-ui 备份生成于 `{{ .Time }}`",
+      "backupUnavailable": "❌ 备份服务不可用",
+      "backupFailed": "❌ 读取数据库备份失败：{{ .Error }}",
+      "usageHint": "⚠️ 用法：`!usage <email>` 或 `/usage <email>`",
+      "usageTitle": "👤 客户端用量：{{ .Email }}",
+      "usageDescription": "入站：**{{ .Remark }}**（端口 {{ .Port }}）",
+      "clientNotFound": "⚠️ 在任何已配置的入站中均未找到客户端 `{{ .Email }}`。",
+      "inboundsUnavailable": "❌ 入站服务不可用",
+      "inboundsFailed": "❌ 加载入站失败：{{ .Error }}",
+      "inboundsTitle": "🔌 已配置的入站",
+      "inboundsDescription": "入站总数：**{{ .Count }}**",
+      "noInbounds": "ℹ️ 尚未配置任何入站。",
+      "xrayUnavailable": "❌ Xray 服务不可用",
+      "restarting": "🔄 正在重启 Xray 核心...",
+      "restartFailed": "❌ 重启 Xray 失败：{{ .Error }}",
+      "restartSuccess": "✅ Xray 核心已成功重启。"
     }
   },
   "email": {

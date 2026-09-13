@@ -1715,6 +1715,8 @@
       "discordTokenPlaceholder": "Enter bot token",
       "discordChannelId": "Channel ID",
       "discordChannelIdDesc": "The Discord channel ID where notifications will be sent",
+      "discordAdminIds": "Admin User IDs",
+      "discordAdminIdsDesc": "Comma-separated Discord user IDs allowed to run bot commands. Messages from anyone else are ignored, and an empty list turns commands off.",
       "discordEventBusNotify": "Discord Notifications",
       "testDiscord": "Send Test Notification",
       "testDiscordDesc": "Send a test notification to verify your bot token and channel ID",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "Your configuration is not found!\r\nPlease ask your admin to use your Telegram ChatID in your configuration(s).\r\n\r\nYour ChatID: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Choose a Client for Inbound {{ .Inbound }}",
       "chooseInbound": "Choose an Inbound"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord Notification Test",
+      "body": "This is a test notification confirming that Discord notifications are configured correctly."
+    },
+    "footer": "3x-ui Panel",
+    "fields": {
+      "panelVersion": "Panel Version",
+      "xrayCore": "Xray Core",
+      "systemLoad": "System Load",
+      "networkTraffic": "Network Traffic",
+      "totalUsed": "Total Used",
+      "quota": "Quota",
+      "error": "Error",
+      "delay": "Delay",
+      "outbound": "Outbound",
+      "node": "Node",
+      "threshold": "Threshold",
+      "reason": "Reason",
+      "time": "Time",
+      "source": "Source"
+    },
+    "values": {
+      "uptime": "{{ .Days }}d {{ .Hours }}h",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Total: {{ .Total }})",
+      "counts": "Total: {{ .Total }} | Depleting: {{ .Depleting }} | Disabled: {{ .Disabled }}",
+      "inbound": "Protocol: `{{ .Protocol }}` | Port: `{{ .Port }}` | Clients: `{{ .Clients }}` | Traffic: `↑{{ .Up }} ↓{{ .Down }}` | State: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Outbound Down",
+      "outboundUp": "Outbound Up",
+      "nodeDown": "Node Down",
+      "nodeUp": "Node Up",
+      "xrayCrash": "Xray Core Crashed",
+      "cpuHigh": "CPU Threshold Exceeded",
+      "memoryHigh": "Memory Threshold Exceeded",
+      "loginSuccess": "Login Success",
+      "loginFailed": "Login Failed"
+    },
+    "report": {
+      "title": "📊 3x-ui Status Report",
+      "summary": "Periodic server and proxy status report for **{{ .Host }}**",
+      "footer": "3x-ui Scheduled Report • Schedule: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord Bot Commands",
+      "helpDescription": "Available commands for monitoring and managing the 3x-ui server:",
+      "helpStatus": "Display system load, RAM, CPU, connections, and online users",
+      "helpReport": "Generate a full status report (with DB backup if configured)",
+      "helpBackup": "Send the database backup file immediately",
+      "helpUsage": "Query traffic usage, quota, and expiry for a client",
+      "helpInbounds": "List all configured inbounds with ports and client stats",
+      "helpRestart": "Restart the Xray core",
+      "helpHelp": "Display this list of available commands",
+      "statusTitle": "⚡ 3x-ui Server Status",
+      "statusDescription": "Current operational metrics for **{{ .Host }}**",
+      "backupTitle": "🗄️ Database Backup",
+      "backupDescription": "Backup archive for 3x-ui generated at `{{ .Time }}`",
+      "backupUnavailable": "❌ Backup service unavailable",
+      "backupFailed": "❌ Failed to read database backup: {{ .Error }}",
+      "usageHint": "⚠️ Usage: `!usage <email>` or `/usage <email>`",
+      "usageTitle": "👤 Client Usage: {{ .Email }}",
+      "usageDescription": "Inbound: **{{ .Remark }}** (Port {{ .Port }})",
+      "clientNotFound": "⚠️ Client `{{ .Email }}` was not found in any configured inbound.",
+      "inboundsUnavailable": "❌ Inbound service unavailable",
+      "inboundsFailed": "❌ Failed to load inbounds: {{ .Error }}",
+      "inboundsTitle": "🔌 Configured Inbounds",
+      "inboundsDescription": "Total inbounds: **{{ .Count }}**",
+      "noInbounds": "ℹ️ No inbounds configured.",
+      "xrayUnavailable": "❌ Xray service unavailable",
+      "restarting": "🔄 Restarting Xray core...",
+      "restartFailed": "❌ Failed to restart Xray: {{ .Error }}",
+      "restartSuccess": "✅ Xray core restarted successfully."
     }
   },
   "email": {

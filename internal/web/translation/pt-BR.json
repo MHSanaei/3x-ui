@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "Insira o token do bot",
       "discordChannelId": "ID do canal",
       "discordChannelIdDesc": "ID do canal do Discord onde as notificações serão enviadas",
+      "discordAdminIds": "IDs de usuários administradores",
+      "discordAdminIdsDesc": "IDs de usuários do Discord, separados por vírgulas, que podem executar comandos do bot. Mensagens de qualquer outra pessoa são ignoradas e uma lista vazia desativa os comandos.",
       "discordEventBusNotify": "Notificações do Discord",
       "testDiscord": "Enviar notificação de teste",
       "testDiscordDesc": "Enviar uma notificação de teste para verificar o token do bot e o ID do canal",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "Sua configuração não foi encontrada!\r\nPeça ao seu administrador para usar seu Telegram ChatID em suas configurações.\r\n\r\nSeu ChatID: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Escolha um cliente para Inbound {{ .Inbound }}",
       "chooseInbound": "Escolha um Inbound"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "Teste de notificação do Discord do 3x-ui",
+      "body": "Esta é uma notificação de teste confirmando que as notificações do Discord estão configuradas corretamente."
+    },
+    "footer": "Painel 3x-ui",
+    "fields": {
+      "panelVersion": "Versão do painel",
+      "xrayCore": "Núcleo Xray",
+      "systemLoad": "Carga do sistema",
+      "networkTraffic": "Tráfego de rede",
+      "totalUsed": "Total usado",
+      "quota": "Cota",
+      "error": "Erro",
+      "delay": "Atraso",
+      "outbound": "Saída",
+      "node": "Nó",
+      "threshold": "Limite",
+      "reason": "Motivo",
+      "time": "Horário",
+      "source": "Origem"
+    },
+    "values": {
+      "uptime": "{{ .Days }}d {{ .Hours }}h",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Total: {{ .Total }})",
+      "counts": "Total: {{ .Total }} | Esgotando: {{ .Depleting }} | Desativados: {{ .Disabled }}",
+      "inbound": "Protocolo: `{{ .Protocol }}` | Porta: `{{ .Port }}` | Clientes: `{{ .Clients }}` | Tráfego: `↑{{ .Up }} ↓{{ .Down }}` | Estado: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Saída fora do ar",
+      "outboundUp": "Saída restabelecida",
+      "nodeDown": "Nó fora do ar",
+      "nodeUp": "Nó restabelecido",
+      "xrayCrash": "O núcleo Xray travou",
+      "cpuHigh": "Limite de CPU excedido",
+      "memoryHigh": "Limite de memória excedido",
+      "loginSuccess": "Login bem-sucedido",
+      "loginFailed": "Falha no login"
+    },
+    "report": {
+      "title": "📊 Relatório de status do 3x-ui",
+      "summary": "Relatório periódico de status do servidor e do proxy de **{{ .Host }}**",
+      "footer": "Relatório agendado do 3x-ui • Agendamento: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 Comandos do bot do Discord do 3x-ui",
+      "helpDescription": "Comandos disponíveis para monitorar e gerenciar o servidor 3x-ui:",
+      "helpStatus": "Exibe carga do sistema, RAM, CPU, conexões e usuários online",
+      "helpReport": "Gera um relatório de status completo (com backup do BD, se configurado)",
+      "helpBackup": "Envia imediatamente o arquivo de backup do banco de dados",
+      "helpUsage": "Consulta uso de tráfego, cota e validade de um cliente",
+      "helpInbounds": "Lista todas as entradas configuradas com portas e estatísticas de clientes",
+      "helpRestart": "Reinicia o núcleo Xray",
+      "helpHelp": "Exibe esta lista de comandos disponíveis",
+      "statusTitle": "⚡ Status do servidor 3x-ui",
+      "statusDescription": "Métricas operacionais atuais de **{{ .Host }}**",
+      "backupTitle": "🗄️ Backup do banco de dados",
+      "backupDescription": "Arquivo de backup do 3x-ui gerado em `{{ .Time }}`",
+      "backupUnavailable": "❌ Serviço de backup indisponível",
+      "backupFailed": "❌ Falha ao ler o backup do banco de dados: {{ .Error }}",
+      "usageHint": "⚠️ Uso: `!usage <email>` ou `/usage <email>`",
+      "usageTitle": "👤 Uso do cliente: {{ .Email }}",
+      "usageDescription": "Entrada: **{{ .Remark }}** (porta {{ .Port }})",
+      "clientNotFound": "⚠️ O cliente `{{ .Email }}` não foi encontrado em nenhuma entrada configurada.",
+      "inboundsUnavailable": "❌ Serviço de entradas indisponível",
+      "inboundsFailed": "❌ Falha ao carregar as entradas: {{ .Error }}",
+      "inboundsTitle": "🔌 Entradas configuradas",
+      "inboundsDescription": "Total de entradas: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Nenhuma entrada configurada.",
+      "xrayUnavailable": "❌ Serviço do Xray indisponível",
+      "restarting": "🔄 Reiniciando o núcleo Xray...",
+      "restartFailed": "❌ Falha ao reiniciar o Xray: {{ .Error }}",
+      "restartSuccess": "✅ O núcleo Xray foi reiniciado com sucesso."
     }
   },
   "email": {

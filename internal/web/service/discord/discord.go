@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -239,23 +240,35 @@ func (s *DiscordService) SendEmbed(ctx context.Context, embed Embed) error {
 	})
 }
 
+// translator renders messages in the configured Discord bot language, read once per message.
+func translator(settingService service.SettingService) func(key string, params ...string) string {
+	lang, err := settingService.GetDiscordLang()
+	if err != nil || lang == "" {
+		lang = "en-US"
+	}
+	return func(key string, params ...string) string {
+		return locale.I18nForLang(lang, key, params...)
+	}
+}
+
 // SendTest sends a test embed to verify Discord bot configuration.
 func (s *DiscordService) SendTest(ctx context.Context) error {
+	tr := translator(s.settingService)
 	now := time.Now().UTC().Format(time.RFC3339)
 	hostname, _ := os.Hostname()
 	if hostname == "" {
 		hostname = "3x-ui"
 	}
 	embed := Embed{
-		Title:       "3x-ui Discord Notification Test",
-		Description: "This is a test notification confirming that Discord notifications are configured correctly.",
+		Title:       tr("discord.test.title"),
+		Description: tr("discord.test.body"),
 		Color:       ColorGreen,
 		Timestamp:   now,
 		Fields: []EmbedField{
-			{Name: "Host", Value: hostname, Inline: true},
+			{Name: tr("host"), Value: hostname, Inline: true},
 		},
 		Footer: &EmbedFooter{
-			Text: "3x-ui Panel",
+			Text: tr("discord.footer"),
 		},
 	}
 	return s.SendEmbed(ctx, embed)

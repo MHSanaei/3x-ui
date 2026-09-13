@@ -380,6 +380,9 @@ func (g *GatewayClient) handleMessage(ctx context.Context, msg MessageCreateData
 	if !strings.HasPrefix(content, "!") && !strings.HasPrefix(content, "/") {
 		return
 	}
+	if !g.isAdmin(msg.Author.ID) {
+		return
+	}
 
 	parts := strings.Fields(content)
 	if len(parts) == 0 {
@@ -402,7 +405,7 @@ func (g *GatewayClient) handleMessage(ctx context.Context, msg MessageCreateData
 	case "usage":
 		if len(args) == 0 {
 			_ = g.discordService.SendMessage(ctx, MessagePayload{
-				Content: "⚠️ Usage: `!usage <email>` or `/usage <email>`",
+				Content: translator(g.settingService)("discord.commands.usageHint"),
 			})
 			return
 		}
@@ -414,22 +417,37 @@ func (g *GatewayClient) handleMessage(ctx context.Context, msg MessageCreateData
 	}
 }
 
+// isAdmin reports whether a Discord user is listed in discordAdminIds; an empty list admits nobody.
+func (g *GatewayClient) isAdmin(userID string) bool {
+	ids, err := g.settingService.GetDiscordAdminIds()
+	if err != nil {
+		return false
+	}
+	for id := range strings.SplitSeq(ids, ",") {
+		if id = strings.TrimSpace(id); id != "" && id == userID {
+			return true
+		}
+	}
+	return false
+}
+
 func (g *GatewayClient) sendHelp(ctx context.Context) {
+	tr := translator(g.settingService)
 	embed := Embed{
-		Title:       "🤖 3x-ui Discord Bot Commands",
-		Description: "Available commands for monitoring and managing the 3x-ui server:",
+		Title:       tr("discord.commands.helpTitle"),
+		Description: tr("discord.commands.helpDescription"),
 		Color:       ColorBlue,
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
 		Fields: []EmbedField{
-			{Name: "!status", Value: "Display system load, RAM, CPU, connections, and online users", Inline: false},
-			{Name: "!report", Value: "Generate a full status report (with DB backup if configured)", Inline: false},
-			{Name: "!backup", Value: "Send the database backup file immediately", Inline: false},
-			{Name: "!usage <email>", Value: "Query traffic usage, quota, and expiry for a client", Inline: false},
-			{Name: "!inbounds", Value: "List all configured inbounds with ports and client stats", Inline: false},
-			{Name: "!restart", Value: "Restart the Xray core", Inline: false},
-			{Name: "!help", Value: "Display this list of available commands", Inline: false},
+			{Name: "!status", Value: tr("discord.commands.helpStatus"), Inline: false},
+			{Name: "!report", Value: tr("discord.commands.helpReport"), Inline: false},
+			{Name: "!backup", Value: tr("discord.commands.helpBackup"), Inline: false},
+			{Name: "!usage <email>", Value: tr("discord.commands.helpUsage"), Inline: false},
+			{Name: "!inbounds", Value: tr("discord.commands.helpInbounds"), Inline: false},
+			{Name: "!restart", Value: tr("discord.commands.helpRestart"), Inline: false},
+			{Name: "!help", Value: tr("discord.commands.helpHelp"), Inline: false},
 		},
-		Footer: &EmbedFooter{Text: "3x-ui Panel"},
+		Footer: &EmbedFooter{Text: tr("discord.footer")},
 	}
 	_ = g.discordService.SendEmbed(ctx, embed)
 }
@@ -467,36 +485,38 @@ func (g *GatewayClient) sendStatus(ctx context.Context) {
 		load3 = status.Loads[2]
 	}
 
+	tr := translator(g.settingService)
 	embed := Embed{
-		Title:       "⚡ 3x-ui Server Status",
-		Description: fmt.Sprintf("Current operational metrics for **%s**", hostname),
+		Title:       tr("discord.commands.statusTitle"),
+		Description: tr("discord.commands.statusDescription", "Host=="+hostname),
 		Color:       ColorGreen,
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
 		Fields: []EmbedField{
-			{Name: "Panel Version", Value: config.GetPanelVersion(), Inline: true},
-			{Name: "Xray State", Value: fmt.Sprintf("%s (%s)", status.Xray.Version, status.Xray.State), Inline: true},
-			{Name: "Uptime", Value: fmt.Sprintf("%dd %dh", days, hours), Inline: true},
-			{Name: "System Load", Value: fmt.Sprintf("%.2f, %.2f, %.2f", load1, load2, load3), Inline: true},
-			{Name: "RAM", Value: fmt.Sprintf("%s / %s", common.FormatTraffic(int64(status.Mem.Current)), common.FormatTraffic(int64(status.Mem.Total))), Inline: true},
-			{Name: "Online Clients", Value: strconv.Itoa(len(onlines)), Inline: true},
-			{Name: "Connections", Value: fmt.Sprintf("TCP: %d | UDP: %d", status.TcpCount, status.UdpCount), Inline: true},
-			{Name: "Traffic Sent", Value: common.FormatTraffic(int64(status.NetTraffic.Sent)), Inline: true},
-			{Name: "Traffic Recv", Value: common.FormatTraffic(int64(status.NetTraffic.Recv)), Inline: true},
+			{Name: tr("discord.fields.panelVersion"), Value: config.GetPanelVersion(), Inline: true},
+			{Name: tr("discord.fields.xrayCore"), Value: fmt.Sprintf("%s (%s)", status.Xray.Version, status.Xray.State), Inline: true},
+			{Name: tr("pages.index.uptime"), Value: tr("discord.values.uptime", "Days=="+fmt.Sprint(days), "Hours=="+fmt.Sprint(hours)), Inline: true},
+			{Name: tr("discord.fields.systemLoad"), Value: fmt.Sprintf("%.2f, %.2f, %.2f", load1, load2, load3), Inline: true},
+			{Name: tr("pages.index.memory"), Value: fmt.Sprintf("%s / %s", common.FormatTraffic(int64(status.Mem.Current)), common.FormatTraffic(int64(status.Mem.Total))), Inline: true},
+			{Name: tr("pages.index.historyTitleOnline"), Value: strconv.Itoa(len(onlines)), Inline: true},
+			{Name: tr("pages.index.historyTabConnections"), Value: fmt.Sprintf("TCP: %d | UDP: %d", status.TcpCount, status.UdpCount), Inline: true},
+			{Name: tr("pages.index.sent"), Value: common.FormatTraffic(int64(status.NetTraffic.Sent)), Inline: true},
+			{Name: tr("pages.index.received"), Value: common.FormatTraffic(int64(status.NetTraffic.Recv)), Inline: true},
 		},
-		Footer: &EmbedFooter{Text: "3x-ui Status"},
+		Footer: &EmbedFooter{Text: tr("discord.footer")},
 	}
 	_ = g.discordService.SendEmbed(ctx, embed)
 }
 
 func (g *GatewayClient) sendBackup(ctx context.Context) {
+	tr := translator(g.settingService)
 	if g.serverService == nil {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: "❌ Backup service unavailable"})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.backupUnavailable")})
 		return
 	}
 
 	dbData, err := g.serverService.GetDb()
 	if err != nil || len(dbData) == 0 {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: fmt.Sprintf("❌ Failed to read database backup: %v", err)})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.backupFailed", "Error=="+fmt.Sprint(err))})
 		return
 	}
 
@@ -520,11 +540,11 @@ func (g *GatewayClient) sendBackup(ctx context.Context) {
 	payload := MessagePayload{
 		Embeds: []Embed{
 			{
-				Title:       "🗄️ Database Backup",
-				Description: fmt.Sprintf("Backup archive for 3x-ui generated at `%s`", time.Now().UTC().Format(time.RFC3339)),
+				Title:       tr("discord.commands.backupTitle"),
+				Description: tr("discord.commands.backupDescription", "Time=="+time.Now().UTC().Format(time.RFC3339)),
 				Color:       ColorBlue,
 				Timestamp:   time.Now().UTC().Format(time.RFC3339),
-				Footer:      &EmbedFooter{Text: "3x-ui Backup"},
+				Footer:      &EmbedFooter{Text: tr("discord.footer")},
 			},
 		},
 	}
@@ -533,14 +553,15 @@ func (g *GatewayClient) sendBackup(ctx context.Context) {
 }
 
 func (g *GatewayClient) sendUsage(ctx context.Context, email string) {
+	tr := translator(g.settingService)
 	if g.inboundService == nil {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: "❌ Inbound service unavailable"})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.inboundsUnavailable")})
 		return
 	}
 
 	inbounds, err := g.inboundService.GetAllInbounds()
 	if err != nil {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: fmt.Sprintf("❌ Failed to load inbounds: %v", err)})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.inboundsFailed", "Error=="+err.Error())})
 		return
 	}
 
@@ -549,36 +570,36 @@ func (g *GatewayClient) sendUsage(ctx context.Context, email string) {
 		for _, client := range in.ClientStats {
 			if strings.ToLower(client.Email) == target {
 				color := ColorGreen
-				statusStr := "Active"
+				statusStr := tr("enabled")
 				if !client.Enable {
 					color = ColorRed
-					statusStr = "Disabled"
+					statusStr = tr("disabled")
 				}
 
-				expireStr := "Unlimited"
+				expireStr := tr("unlimited")
 				if client.ExpiryTime > 0 {
 					expireStr = time.Unix(client.ExpiryTime/1000, 0).Format("2006-01-02 15:04:05")
 				}
 
-				totalLimitStr := "Unlimited"
+				totalLimitStr := tr("unlimited")
 				if client.Total > 0 {
 					totalLimitStr = common.FormatTraffic(client.Total)
 				}
 
 				embed := Embed{
-					Title:       fmt.Sprintf("👤 Client Usage: %s", client.Email),
-					Description: fmt.Sprintf("Inbound: **%s** (Port %d)", in.Remark, in.Port),
+					Title:       tr("discord.commands.usageTitle", "Email=="+client.Email),
+					Description: tr("discord.commands.usageDescription", "Remark=="+in.Remark, "Port=="+strconv.Itoa(in.Port)),
 					Color:       color,
 					Timestamp:   time.Now().UTC().Format(time.RFC3339),
 					Fields: []EmbedField{
-						{Name: "Status", Value: statusStr, Inline: true},
-						{Name: "Upload", Value: common.FormatTraffic(client.Up), Inline: true},
-						{Name: "Download", Value: common.FormatTraffic(client.Down), Inline: true},
-						{Name: "Total Used", Value: common.FormatTraffic(client.Up + client.Down), Inline: true},
-						{Name: "Quota", Value: totalLimitStr, Inline: true},
-						{Name: "Expiry Date", Value: expireStr, Inline: true},
+						{Name: tr("status"), Value: statusStr, Inline: true},
+						{Name: tr("pages.index.upload"), Value: common.FormatTraffic(client.Up), Inline: true},
+						{Name: tr("pages.index.download"), Value: common.FormatTraffic(client.Down), Inline: true},
+						{Name: tr("discord.fields.totalUsed"), Value: common.FormatTraffic(client.Up + client.Down), Inline: true},
+						{Name: tr("discord.fields.quota"), Value: totalLimitStr, Inline: true},
+						{Name: tr("pages.clients.expiryTime"), Value: expireStr, Inline: true},
 					},
-					Footer: &EmbedFooter{Text: "3x-ui Client Traffic"},
+					Footer: &EmbedFooter{Text: tr("discord.footer")},
 				}
 				_ = g.discordService.SendEmbed(ctx, embed)
 				return
@@ -587,40 +608,41 @@ func (g *GatewayClient) sendUsage(ctx context.Context, email string) {
 	}
 
 	_ = g.discordService.SendMessage(ctx, MessagePayload{
-		Content: fmt.Sprintf("⚠️ Client `%s` was not found in any configured inbound.", email),
+		Content: tr("discord.commands.clientNotFound", "Email=="+email),
 	})
 }
 
 func (g *GatewayClient) sendInbounds(ctx context.Context) {
+	tr := translator(g.settingService)
 	if g.inboundService == nil {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: "❌ Inbound service unavailable"})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.inboundsUnavailable")})
 		return
 	}
 
 	inbounds, err := g.inboundService.GetAllInbounds()
 	if err != nil {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: fmt.Sprintf("❌ Failed to load inbounds: %v", err)})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.inboundsFailed", "Error=="+err.Error())})
 		return
 	}
 
 	if len(inbounds) == 0 {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: "ℹ️ No inbounds configured."})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.noInbounds")})
 		return
 	}
 
 	var fields []EmbedField
 	for _, in := range inbounds {
-		state := "Active"
+		state := tr("enabled")
 		if !in.Enable {
-			state = "Disabled"
+			state = tr("disabled")
 		}
-		val := fmt.Sprintf("Protocol: `%s` | Port: `%d` | Clients: `%d` | Traffic: `↑%s ↓%s` | State: `%s`",
-			in.Protocol,
-			in.Port,
-			len(in.ClientStats),
-			common.FormatTraffic(in.Up),
-			common.FormatTraffic(in.Down),
-			state,
+		val := tr("discord.values.inbound",
+			"Protocol=="+string(in.Protocol),
+			"Port=="+strconv.Itoa(in.Port),
+			"Clients=="+strconv.Itoa(len(in.ClientStats)),
+			"Up=="+common.FormatTraffic(in.Up),
+			"Down=="+common.FormatTraffic(in.Down),
+			"State=="+state,
 		)
 		fields = append(fields, EmbedField{
 			Name:   fmt.Sprintf("📍 %s", in.Remark),
@@ -630,26 +652,27 @@ func (g *GatewayClient) sendInbounds(ctx context.Context) {
 	}
 
 	embed := Embed{
-		Title:       "🔌 Configured Inbounds",
-		Description: fmt.Sprintf("Total inbounds: **%d**", len(inbounds)),
+		Title:       tr("discord.commands.inboundsTitle"),
+		Description: tr("discord.commands.inboundsDescription", "Count=="+strconv.Itoa(len(inbounds))),
 		Color:       ColorBlue,
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
 		Fields:      fields,
-		Footer:      &EmbedFooter{Text: "3x-ui Inbounds"},
+		Footer:      &EmbedFooter{Text: tr("discord.footer")},
 	}
 	_ = g.discordService.SendEmbed(ctx, embed)
 }
 
 func (g *GatewayClient) restartXray(ctx context.Context) {
+	tr := translator(g.settingService)
 	if g.xrayService == nil {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: "❌ Xray service unavailable"})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.xrayUnavailable")})
 		return
 	}
 
-	_ = g.discordService.SendMessage(ctx, MessagePayload{Content: "🔄 Restarting Xray core..."})
+	_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.restarting")})
 	if err := g.xrayService.RestartXray(false); err != nil {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: fmt.Sprintf("❌ Failed to restart Xray: %v", err)})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.restartFailed", "Error=="+err.Error())})
 	} else {
-		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: "✅ Xray core restarted successfully."})
+		_ = g.discordService.SendMessage(ctx, MessagePayload{Content: tr("discord.commands.restartSuccess")})
 	}
 }

@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "أدخل رمز البوت",
       "discordChannelId": "معرّف القناة",
       "discordChannelIdDesc": "معرّف قناة ديسكورد حيث سيتم إرسال الإشعارات",
+      "discordAdminIds": "معرّفات المستخدمين المسؤولين",
+      "discordAdminIdsDesc": "معرّفات مستخدمي Discord المسموح لهم بتشغيل أوامر البوت، مفصولة بفواصل. تُتجاهل رسائل أي شخص آخر، والقائمة الفارغة تعطّل الأوامر.",
       "discordEventBusNotify": "إشعارات ديسكورد",
       "testDiscord": "إرسال إشعار تجريبي",
       "testDiscordDesc": "إرسال إشعار تجريبي للتحقق من رمز البوت ومعرّف القناة",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "مافيش إعدادات ليك!\r\nاطلب من الأدمن يضيف الـ Telegram ChatID الخاص بيك في إعداداتك.\r\n\r\nالـ ChatID بتاعك: <code>{{ .TgUserID }}</code>",
       "chooseClient": "اختار عميل للإدخال {{ .Inbound }}",
       "chooseInbound": "اختار الإدخال"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "اختبار إشعارات Discord في 3x-ui",
+      "body": "هذا إشعار تجريبي يؤكد أن إشعارات Discord مُعدّة بشكل صحيح."
+    },
+    "footer": "لوحة 3x-ui",
+    "fields": {
+      "panelVersion": "إصدار اللوحة",
+      "xrayCore": "نواة Xray",
+      "systemLoad": "حمل النظام",
+      "networkTraffic": "حركة الشبكة",
+      "totalUsed": "إجمالي المستخدم",
+      "quota": "الحصة",
+      "error": "خطأ",
+      "delay": "زمن الاستجابة",
+      "outbound": "الصادر",
+      "node": "العقدة",
+      "threshold": "الحد",
+      "reason": "السبب",
+      "time": "الوقت",
+      "source": "المصدر"
+    },
+    "values": {
+      "uptime": "{{ .Days }} يوم {{ .Hours }} ساعة",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (الإجمالي: {{ .Total }})",
+      "counts": "الإجمالي: {{ .Total }} | قارب على النفاد: {{ .Depleting }} | معطّل: {{ .Disabled }}",
+      "inbound": "البروتوكول: `{{ .Protocol }}` | المنفذ: `{{ .Port }}` | العملاء: `{{ .Clients }}` | حركة المرور: `↑{{ .Up }} ↓{{ .Down }}` | الحالة: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "الصادر متوقف",
+      "outboundUp": "الصادر يعمل",
+      "nodeDown": "العقدة متوقفة",
+      "nodeUp": "العقدة تعمل",
+      "xrayCrash": "تعطّلت نواة Xray",
+      "cpuHigh": "تم تجاوز حد المعالج",
+      "memoryHigh": "تم تجاوز حد الذاكرة",
+      "loginSuccess": "تسجيل دخول ناجح",
+      "loginFailed": "فشل تسجيل الدخول"
+    },
+    "report": {
+      "title": "📊 تقرير حالة 3x-ui",
+      "summary": "تقرير دوري عن حالة الخادم والوكيل لـ **{{ .Host }}**",
+      "footer": "تقرير 3x-ui المجدول • الجدول: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 أوامر بوت Discord في 3x-ui",
+      "helpDescription": "الأوامر المتاحة لمراقبة خادم 3x-ui وإدارته:",
+      "helpStatus": "عرض حمل النظام والذاكرة والمعالج والاتصالات والمستخدمين المتصلين",
+      "helpReport": "إنشاء تقرير حالة كامل (مع نسخة احتياطية لقاعدة البيانات إن كانت مفعّلة)",
+      "helpBackup": "إرسال ملف النسخة الاحتياطية لقاعدة البيانات فورًا",
+      "helpUsage": "الاستعلام عن استهلاك حركة المرور والحصة وتاريخ الانتهاء لعميل",
+      "helpInbounds": "عرض كل الواردات المُعدّة مع المنافذ وإحصاءات العملاء",
+      "helpRestart": "إعادة تشغيل نواة Xray",
+      "helpHelp": "عرض قائمة الأوامر المتاحة هذه",
+      "statusTitle": "⚡ حالة خادم 3x-ui",
+      "statusDescription": "مقاييس التشغيل الحالية لـ **{{ .Host }}**",
+      "backupTitle": "🗄️ نسخة احتياطية لقاعدة البيانات",
+      "backupDescription": "أرشيف النسخة الاحتياطية لـ 3x-ui أُنشئ في `{{ .Time }}`",
+      "backupUnavailable": "❌ خدمة النسخ الاحتياطي غير متاحة",
+      "backupFailed": "❌ تعذّرت قراءة النسخة الاحتياطية لقاعدة البيانات: {{ .Error }}",
+      "usageHint": "⚠️ الاستخدام: `!usage <email>` أو `/usage <email>`",
+      "usageTitle": "👤 استخدام العميل: {{ .Email }}",
+      "usageDescription": "الوارد: **{{ .Remark }}** (المنفذ {{ .Port }})",
+      "clientNotFound": "⚠️ لم يُعثر على العميل `{{ .Email }}` في أي وارد مُعدّ.",
+      "inboundsUnavailable": "❌ خدمة الواردات غير متاحة",
+      "inboundsFailed": "❌ تعذّر تحميل الواردات: {{ .Error }}",
+      "inboundsTitle": "🔌 الواردات المُعدّة",
+      "inboundsDescription": "إجمالي الواردات: **{{ .Count }}**",
+      "noInbounds": "ℹ️ لا توجد واردات مُعدّة.",
+      "xrayUnavailable": "❌ خدمة Xray غير متاحة",
+      "restarting": "🔄 جارٍ إعادة تشغيل نواة Xray...",
+      "restartFailed": "❌ تعذّرت إعادة تشغيل Xray: {{ .Error }}",
+      "restartSuccess": "✅ أُعيد تشغيل نواة Xray بنجاح."
     }
   },
   "email": {

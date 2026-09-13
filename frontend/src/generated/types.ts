@@ -9,6 +9,7 @@ export type transportBits = number;
 
 export interface AllSetting {
   datepicker: string;
+  discordAdminIds: string;
   discordBotBackup: boolean;
   discordBotEnable: boolean;
   discordBotToken: string;
@@ -155,6 +156,7 @@ export interface AllSetting {
 
 export interface AllSettingView {
   datepicker: string;
+  discordAdminIds: string;
   discordBotBackup: boolean;
   discordBotEnable: boolean;
   discordBotToken: string;

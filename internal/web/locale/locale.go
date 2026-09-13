@@ -3,7 +3,6 @@
 package locale
 
 import (
-	"embed"
 	"encoding/json"
 	"io/fs"
 	"os"
@@ -36,7 +35,7 @@ type SettingService interface {
 }
 
 // InitLocalizer initializes the internationalization system with embedded translation files.
-func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
+func InitLocalizer(i18nFS fs.FS, settingService SettingService) error {
 	// set default bundle to English
 	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
 	i18nBundle.RegisterUnmarshalFunc("json", json.Unmarshal)
@@ -192,7 +191,7 @@ func loadTranslationsFromDisk(bundle *i18n.Bundle) error {
 }
 
 // parseTranslationFiles parses embedded translation files and adds them to the i18n bundle.
-func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
+func parseTranslationFiles(i18nFS fs.FS, i18nBundle *i18n.Bundle) error {
 	err := fs.WalkDir(i18nFS, "translation",
 		func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
@@ -203,7 +202,7 @@ func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
 				return nil
 			}
 
-			data, err := i18nFS.ReadFile(path)
+			data, err := fs.ReadFile(i18nFS, path)
 			if err != nil {
 				return err
 			}

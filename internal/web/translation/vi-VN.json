@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "Nhập token bot",
       "discordChannelId": "ID kênh",
       "discordChannelIdDesc": "ID kênh Discord nơi thông báo sẽ được gửi",
+      "discordAdminIds": "ID người dùng quản trị",
+      "discordAdminIdsDesc": "ID người dùng Discord được phép chạy lệnh bot, phân tách bằng dấu phẩy. Tin nhắn của người khác bị bỏ qua, và danh sách trống sẽ tắt lệnh.",
       "discordEventBusNotify": "Thông báo Discord",
       "testDiscord": "Gửi thông báo thử nghiệm",
       "testDiscordDesc": "Gửi thông báo thử nghiệm để xác minh token bot và ID kênh",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "Cấu hình của bạn không được tìm thấy!\r\nVui lòng yêu cầu Quản trị viên sử dụng ID người dùng telegram của bạn trong cấu hình của bạn.\r\n\r\nID người dùng của bạn: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Chọn một Khách hàng cho Inbound {{ .Inbound }}",
       "chooseInbound": "Chọn một Inbound"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "Kiểm tra thông báo Discord của 3x-ui",
+      "body": "Đây là thông báo thử nghiệm xác nhận rằng thông báo Discord đã được cấu hình đúng."
+    },
+    "footer": "Bảng điều khiển 3x-ui",
+    "fields": {
+      "panelVersion": "Phiên bản bảng điều khiển",
+      "xrayCore": "Lõi Xray",
+      "systemLoad": "Tải hệ thống",
+      "networkTraffic": "Lưu lượng mạng",
+      "totalUsed": "Tổng đã dùng",
+      "quota": "Hạn mức",
+      "error": "Lỗi",
+      "delay": "Độ trễ",
+      "outbound": "Outbound",
+      "node": "Nút",
+      "threshold": "Ngưỡng",
+      "reason": "Lý do",
+      "time": "Thời gian",
+      "source": "Nguồn"
+    },
+    "values": {
+      "uptime": "{{ .Days }} ngày {{ .Hours }} giờ",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Tổng: {{ .Total }})",
+      "counts": "Tổng: {{ .Total }} | Sắp hết: {{ .Depleting }} | Đã tắt: {{ .Disabled }}",
+      "inbound": "Giao thức: `{{ .Protocol }}` | Cổng: `{{ .Port }}` | Máy khách: `{{ .Clients }}` | Lưu lượng: `↑{{ .Up }} ↓{{ .Down }}` | Trạng thái: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Outbound ngừng hoạt động",
+      "outboundUp": "Outbound hoạt động trở lại",
+      "nodeDown": "Nút ngừng hoạt động",
+      "nodeUp": "Nút hoạt động trở lại",
+      "xrayCrash": "Lõi Xray bị sập",
+      "cpuHigh": "Vượt ngưỡng CPU",
+      "memoryHigh": "Vượt ngưỡng bộ nhớ",
+      "loginSuccess": "Đăng nhập thành công",
+      "loginFailed": "Đăng nhập thất bại"
+    },
+    "report": {
+      "title": "📊 Báo cáo trạng thái 3x-ui",
+      "summary": "Báo cáo định kỳ trạng thái máy chủ và proxy của **{{ .Host }}**",
+      "footer": "Báo cáo định kỳ 3x-ui • Lịch: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 Lệnh bot Discord của 3x-ui",
+      "helpDescription": "Các lệnh có sẵn để giám sát và quản lý máy chủ 3x-ui:",
+      "helpStatus": "Hiển thị tải hệ thống, RAM, CPU, kết nối và người dùng trực tuyến",
+      "helpReport": "Tạo báo cáo trạng thái đầy đủ (kèm bản sao lưu CSDL nếu được cấu hình)",
+      "helpBackup": "Gửi ngay tệp sao lưu cơ sở dữ liệu",
+      "helpUsage": "Tra cứu lưu lượng đã dùng, hạn mức và thời hạn của một máy khách",
+      "helpInbounds": "Liệt kê tất cả inbound đã cấu hình kèm cổng và thống kê máy khách",
+      "helpRestart": "Khởi động lại lõi Xray",
+      "helpHelp": "Hiển thị danh sách lệnh này",
+      "statusTitle": "⚡ Trạng thái máy chủ 3x-ui",
+      "statusDescription": "Chỉ số vận hành hiện tại của **{{ .Host }}**",
+      "backupTitle": "🗄️ Sao lưu cơ sở dữ liệu",
+      "backupDescription": "Bản sao lưu 3x-ui được tạo lúc `{{ .Time }}`",
+      "backupUnavailable": "❌ Dịch vụ sao lưu không khả dụng",
+      "backupFailed": "❌ Không thể đọc bản sao lưu cơ sở dữ liệu: {{ .Error }}",
+      "usageHint": "⚠️ Cách dùng: `!usage <email>` hoặc `/usage <email>`",
+      "usageTitle": "👤 Mức dùng của máy khách: {{ .Email }}",
+      "usageDescription": "Inbound: **{{ .Remark }}** (Cổng {{ .Port }})",
+      "clientNotFound": "⚠️ Không tìm thấy máy khách `{{ .Email }}` trong bất kỳ inbound nào đã cấu hình.",
+      "inboundsUnavailable": "❌ Dịch vụ inbound không khả dụng",
+      "inboundsFailed": "❌ Không thể tải inbound: {{ .Error }}",
+      "inboundsTitle": "🔌 Các inbound đã cấu hình",
+      "inboundsDescription": "Tổng số inbound: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Chưa cấu hình inbound nào.",
+      "xrayUnavailable": "❌ Dịch vụ Xray không khả dụng",
+      "restarting": "🔄 Đang khởi động lại lõi Xray...",
+      "restartFailed": "❌ Không thể khởi động lại Xray: {{ .Error }}",
+      "restartSuccess": "✅ Đã khởi động lại lõi Xray thành công."
     }
   },
   "email": {

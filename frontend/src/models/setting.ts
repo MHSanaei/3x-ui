@@ -150,6 +150,7 @@ export class AllSetting {
   discordBotEnable = false;
   discordBotToken = '';
   discordChannelId = '';
+  discordAdminIds = '';
   discordRunTime = '@daily';
   discordBotBackup = false;
   discordCpu = 80;

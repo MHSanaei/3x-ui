@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "Masukkan token bot",
       "discordChannelId": "ID Saluran",
       "discordChannelIdDesc": "ID saluran Discord tempat notifikasi akan dikirim",
+      "discordAdminIds": "ID Pengguna Admin",
+      "discordAdminIdsDesc": "ID pengguna Discord yang boleh menjalankan perintah bot, dipisahkan koma. Pesan dari orang lain diabaikan, dan daftar kosong menonaktifkan perintah.",
       "discordEventBusNotify": "Notifikasi Discord",
       "testDiscord": "Kirim Notifikasi Uji",
       "testDiscordDesc": "Kirim notifikasi uji untuk memverifikasi token bot dan ID saluran Anda",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "Konfigurasi Anda tidak ditemukan!\r\nSilakan minta admin Anda untuk menggunakan ChatID Telegram Anda dalam konfigurasi Anda.\r\n\r\nChatID Pengguna Anda: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Pilih Klien untuk Inbound {{ .Inbound }}",
       "chooseInbound": "Pilih Inbound"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "Uji Notifikasi Discord 3x-ui",
+      "body": "Ini adalah notifikasi uji yang memastikan notifikasi Discord telah dikonfigurasi dengan benar."
+    },
+    "footer": "Panel 3x-ui",
+    "fields": {
+      "panelVersion": "Versi Panel",
+      "xrayCore": "Inti Xray",
+      "systemLoad": "Beban Sistem",
+      "networkTraffic": "Lalu Lintas Jaringan",
+      "totalUsed": "Total Terpakai",
+      "quota": "Kuota",
+      "error": "Galat",
+      "delay": "Latensi",
+      "outbound": "Outbound",
+      "node": "Node",
+      "threshold": "Ambang Batas",
+      "reason": "Alasan",
+      "time": "Waktu",
+      "source": "Sumber"
+    },
+    "values": {
+      "uptime": "{{ .Days }} hari {{ .Hours }} jam",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Total: {{ .Total }})",
+      "counts": "Total: {{ .Total }} | Hampir habis: {{ .Depleting }} | Nonaktif: {{ .Disabled }}",
+      "inbound": "Protokol: `{{ .Protocol }}` | Port: `{{ .Port }}` | Klien: `{{ .Clients }}` | Lalu lintas: `↑{{ .Up }} ↓{{ .Down }}` | Status: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Outbound Mati",
+      "outboundUp": "Outbound Aktif",
+      "nodeDown": "Node Mati",
+      "nodeUp": "Node Aktif",
+      "xrayCrash": "Inti Xray Mengalami Crash",
+      "cpuHigh": "Ambang Batas CPU Terlampaui",
+      "memoryHigh": "Ambang Batas Memori Terlampaui",
+      "loginSuccess": "Login Berhasil",
+      "loginFailed": "Login Gagal"
+    },
+    "report": {
+      "title": "📊 Laporan Status 3x-ui",
+      "summary": "Laporan berkala status server dan proxy untuk **{{ .Host }}**",
+      "footer": "Laporan Terjadwal 3x-ui • Jadwal: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 Perintah Bot Discord 3x-ui",
+      "helpDescription": "Perintah yang tersedia untuk memantau dan mengelola server 3x-ui:",
+      "helpStatus": "Tampilkan beban sistem, RAM, CPU, koneksi, dan pengguna online",
+      "helpReport": "Buat laporan status lengkap (dengan cadangan DB jika dikonfigurasi)",
+      "helpBackup": "Kirim file cadangan database sekarang juga",
+      "helpUsage": "Cek pemakaian lalu lintas, kuota, dan masa berlaku klien",
+      "helpInbounds": "Daftar semua inbound yang dikonfigurasi beserta port dan statistik klien",
+      "helpRestart": "Mulai ulang inti Xray",
+      "helpHelp": "Tampilkan daftar perintah ini",
+      "statusTitle": "⚡ Status Server 3x-ui",
+      "statusDescription": "Metrik operasional terkini untuk **{{ .Host }}**",
+      "backupTitle": "🗄️ Cadangan Database",
+      "backupDescription": "Arsip cadangan 3x-ui dibuat pada `{{ .Time }}`",
+      "backupUnavailable": "❌ Layanan cadangan tidak tersedia",
+      "backupFailed": "❌ Gagal membaca cadangan database: {{ .Error }}",
+      "usageHint": "⚠️ Penggunaan: `!usage <email>` atau `/usage <email>`",
+      "usageTitle": "👤 Pemakaian Klien: {{ .Email }}",
+      "usageDescription": "Inbound: **{{ .Remark }}** (Port {{ .Port }})",
+      "clientNotFound": "⚠️ Klien `{{ .Email }}` tidak ditemukan di inbound mana pun.",
+      "inboundsUnavailable": "❌ Layanan inbound tidak tersedia",
+      "inboundsFailed": "❌ Gagal memuat inbound: {{ .Error }}",
+      "inboundsTitle": "🔌 Inbound yang Dikonfigurasi",
+      "inboundsDescription": "Total inbound: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Belum ada inbound yang dikonfigurasi.",
+      "xrayUnavailable": "❌ Layanan Xray tidak tersedia",
+      "restarting": "🔄 Memulai ulang inti Xray...",
+      "restartFailed": "❌ Gagal memulai ulang Xray: {{ .Error }}",
+      "restartSuccess": "✅ Inti Xray berhasil dimulai ulang."
     }
   },
   "email": {

@@ -34,6 +34,7 @@ func TestGatewayClient_EndToEndCommands(t *testing.T) {
 	_ = settingService.SetDiscordBotEnable(true)
 	_ = settingService.SetDiscordBotToken("test-gw-token")
 	_ = settingService.SetDiscordChannelId("ch-12345")
+	_ = settingService.SetDiscordAdminIds("u1")
 
 	var sentMessages []MessagePayload
 	var mu sync.Mutex
@@ -465,5 +466,43 @@ func TestGatewayDialsThroughPanelEgressProxy(t *testing.T) {
 	defer mu.Unlock()
 	if want := strings.TrimPrefix(wsServer.URL, "http://"); tunneledTo != want {
 		t.Fatalf("gateway tunneled to %q through the panel egress proxy, want %q", tunneledTo, want)
+	}
+}
+
+func TestGatewayCommandsRequireListedAdmin(t *testing.T) {
+	cases := []struct {
+		name        string
+		adminIDs    string
+		author      string
+		wantRestart bool
+	}{
+		{"listed admin", "111, 222", "222", true},
+		{"unlisted member", "111", "999", false},
+		{"empty list allows nobody", "", "111", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			settingService := setupTestDB(t)
+			_ = settingService.SetDiscordBotToken("token")
+			_ = settingService.SetDiscordChannelId("ch-1")
+			_ = settingService.SetDiscordAdminIds(tc.adminIDs)
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+			svc := NewDiscordService(settingService)
+			svc.SetBaseURL(server.URL)
+			svc.SetHTTPClient(server.Client())
+
+			restarter := &mockXrayRestart{}
+			msg := MessageCreateData{ChannelID: "ch-1", Content: "!restart"}
+			msg.Author.ID = tc.author
+			NewGatewayClient(svc, settingService, nil, nil, restarter).handleMessage(context.Background(), msg)
+
+			if restarter.restarted != tc.wantRestart {
+				t.Fatalf("author %q with admin list %q: restarted = %v, want %v", tc.author, tc.adminIDs, restarter.restarted, tc.wantRestart)
+			}
+		})
 	}
 }

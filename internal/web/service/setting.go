@@ -211,6 +211,7 @@ var defaultValueMap = map[string]string{
 	"discordBotEnable":     "false",
 	"discordBotToken":      "",
 	"discordChannelId":     "",
+	"discordAdminIds":      "",
 	"discordRunTime":       "@daily",
 	"discordBotBackup":     "false",
 	"discordCpu":           "80",
@@ -1357,6 +1358,14 @@ func (s *SettingService) GetDiscordChannelId() (string, error) {
 
 func (s *SettingService) SetDiscordChannelId(value string) error {
 	return s.setString("discordChannelId", value)
+}
+
+func (s *SettingService) GetDiscordAdminIds() (string, error) {
+	return s.getString("discordAdminIds")
+}
+
+func (s *SettingService) SetDiscordAdminIds(value string) error {
+	return s.setString("discordAdminIds", value)
 }
 
 func (s *SettingService) GetDiscordEnabledEvents() (string, error) {

@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "Botトークンを入力",
       "discordChannelId": "チャンネルID",
       "discordChannelIdDesc": "通知が送信されるDiscordチャンネルID",
+      "discordAdminIds": "管理者ユーザーID",
+      "discordAdminIdsDesc": "ボットコマンドの実行を許可するDiscordユーザーID（カンマ区切り）。それ以外のユーザーのメッセージは無視され、空欄の場合はコマンドが無効になります。",
       "discordEventBusNotify": "Discord通知",
       "testDiscord": "テスト通知を送信",
       "testDiscordDesc": "BotトークンとチャンネルIDを確認するためのテスト通知を送信します",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "設定が見つかりませんでした！\r\n管理者に問い合わせて、設定にTelegramユーザーのChatIDを使用してください。\r\n\r\nあなたのユーザーChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "インバウンド {{ .Inbound }} のクライアントを選択",
       "chooseInbound": "インバウンドを選択"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord通知テスト",
+      "body": "これはDiscord通知が正しく設定されていることを確認するためのテスト通知です。"
+    },
+    "footer": "3x-ui パネル",
+    "fields": {
+      "panelVersion": "パネルバージョン",
+      "xrayCore": "Xray コア",
+      "systemLoad": "システム負荷",
+      "networkTraffic": "ネットワークトラフィック",
+      "totalUsed": "合計使用量",
+      "quota": "クォータ",
+      "error": "エラー",
+      "delay": "遅延",
+      "outbound": "アウトバウンド",
+      "node": "ノード",
+      "threshold": "しきい値",
+      "reason": "理由",
+      "time": "時刻",
+      "source": "送信元"
+    },
+    "values": {
+      "uptime": "{{ .Days }}日 {{ .Hours }}時間",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }}（合計: {{ .Total }}）",
+      "counts": "合計: {{ .Total }} | 残りわずか: {{ .Depleting }} | 無効: {{ .Disabled }}",
+      "inbound": "プロトコル: `{{ .Protocol }}` | ポート: `{{ .Port }}` | クライアント: `{{ .Clients }}` | トラフィック: `↑{{ .Up }} ↓{{ .Down }}` | 状態: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "アウトバウンド停止",
+      "outboundUp": "アウトバウンド復旧",
+      "nodeDown": "ノード停止",
+      "nodeUp": "ノード復旧",
+      "xrayCrash": "Xray コアがクラッシュしました",
+      "cpuHigh": "CPU しきい値超過",
+      "memoryHigh": "メモリしきい値超過",
+      "loginSuccess": "ログイン成功",
+      "loginFailed": "ログイン失敗"
+    },
+    "report": {
+      "title": "📊 3x-ui ステータスレポート",
+      "summary": "**{{ .Host }}** のサーバーとプロキシの定期ステータスレポート",
+      "footer": "3x-ui 定期レポート • スケジュール: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord Bot コマンド",
+      "helpDescription": "3x-ui サーバーの監視と管理に使えるコマンド:",
+      "helpStatus": "システム負荷、RAM、CPU、接続数、オンラインユーザーを表示",
+      "helpReport": "完全なステータスレポートを生成（設定されていればDBバックアップ付き）",
+      "helpBackup": "データベースのバックアップファイルを今すぐ送信",
+      "helpUsage": "クライアントのトラフィック使用量、クォータ、有効期限を照会",
+      "helpInbounds": "設定済みのすべてのインバウンドをポートとクライアント統計付きで一覧表示",
+      "helpRestart": "Xray コアを再起動",
+      "helpHelp": "このコマンド一覧を表示",
+      "statusTitle": "⚡ 3x-ui サーバーステータス",
+      "statusDescription": "**{{ .Host }}** の現在の稼働メトリクス",
+      "backupTitle": "🗄️ データベースバックアップ",
+      "backupDescription": "`{{ .Time }}` に生成された 3x-ui のバックアップ",
+      "backupUnavailable": "❌ バックアップサービスを利用できません",
+      "backupFailed": "❌ データベースのバックアップを読み込めませんでした: {{ .Error }}",
+      "usageHint": "⚠️ 使い方: `!usage <email>` または `/usage <email>`",
+      "usageTitle": "👤 クライアント使用状況: {{ .Email }}",
+      "usageDescription": "インバウンド: **{{ .Remark }}**（ポート {{ .Port }}）",
+      "clientNotFound": "⚠️ クライアント `{{ .Email }}` は設定済みのどのインバウンドにも見つかりませんでした。",
+      "inboundsUnavailable": "❌ インバウンドサービスを利用できません",
+      "inboundsFailed": "❌ インバウンドを読み込めませんでした: {{ .Error }}",
+      "inboundsTitle": "🔌 設定済みインバウンド",
+      "inboundsDescription": "インバウンド総数: **{{ .Count }}**",
+      "noInbounds": "ℹ️ 設定済みのインバウンドはありません。",
+      "xrayUnavailable": "❌ Xray サービスを利用できません",
+      "restarting": "🔄 Xray コアを再起動しています...",
+      "restartFailed": "❌ Xray を再起動できませんでした: {{ .Error }}",
+      "restartSuccess": "✅ Xray コアを再起動しました。"
     }
   },
   "email": {

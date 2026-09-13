@@ -52,6 +52,7 @@ icon: Bot
 2. Under **General**:
    - Toggle **Enable Discord Notifications** on.
    - Enter your **Discord Bot Token** and **Channel ID**.
+   - Enter your own Discord user ID in **Admin User IDs** (right-click your name → **Copy User ID**; separate several IDs with commas).
    - Select your preferred **Discord Bot Language**.
 3. Under **Notifications**:
    - Set the **Notification Time** schedule (e.g., `@daily`, `@weekly`, or custom crontab).
@@ -65,7 +66,7 @@ icon: Bot
 
 ## Bot Commands
 
-When enabled, the bot listens to commands in the configured Discord channel (supporting both `!` and `/` prefixes):
+When enabled, the bot listens to commands in the configured Discord channel (supporting both `!` and `/` prefixes). Only users listed in **Admin User IDs** can run them; messages from anyone else are ignored, and an empty list turns commands off. `!backup` and scheduled backups post the database into the channel, so pick a channel only admins can read:
 
 | Command | Description |
 | ------- | ----------- |
@@ -103,6 +104,7 @@ Alerts are sent as Discord Embeds with color coding and relevant diagnostics:
 | `discordBotEnable` | `false` | Master toggle for Discord bot and notifications. |
 | `discordBotToken` | _(secret)_ | Discord Bot token from Developer Portal. |
 | `discordChannelId` | _(none)_ | Target Discord channel snowflake ID (17–20 digits). |
+| `discordAdminIds` | _(none)_ | Comma-separated Discord user IDs allowed to run bot commands. Empty turns commands off. |
 | `discordLang` | `en-US` | Language for Discord bot messages and reports. |
 | `discordRunTime` | `@daily` | Cron expression or interval for periodic status reports. |
 | `discordBotBackup` | `false` | Whether to attach database backup (`x-ui.db`) to reports. |
@@ -114,6 +116,6 @@ Alerts are sent as Discord Embeds with color coding and relevant diagnostics:
 
 - **Test fails with "invalid bot token (401)"**: Verify that you copied the full Bot Token from the **Bot** tab in Developer Portal, not the Client Secret or Application ID.
 - **Test fails with "missing permissions (403)"**: Ensure the bot role has **Send Messages**, **Embed Links**, and **Attach Files** permissions in the target channel or category.
-- **Commands do not respond**: Ensure **Message Content Intent** is enabled under the **Bot** tab in Discord Developer Portal, then restart the panel. Discord closes the connection for good when the intent is missing, so the bot does not retry on its own.
+- **Commands do not respond**: Check that your Discord user ID is listed in **Admin User IDs**. Then ensure **Message Content Intent** is enabled under the **Bot** tab in Discord Developer Portal and restart the panel: Discord closes the connection for good when the intent is missing, so the bot does not retry on its own.
 - **Test fails with "channel not found (404)"**: Verify the numeric Channel ID. Ensure the bot is present in the server that owns the channel.
 - **Proxying outbound requests**: If your host requires a proxy to connect to Discord, configure **Panel Outbound** in Panel Settings. Discord requests automatically route through the configured panel outbound proxy.

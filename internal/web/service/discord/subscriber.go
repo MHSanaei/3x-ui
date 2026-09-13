@@ -116,11 +116,12 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 	footer := &EmbedFooter{
 		Text: truncateRunes("3x-ui • "+h, 2048),
 	}
+	tr := translator(s.settingService)
 
 	switch e.Type {
 	case eventbus.EventOutboundDown:
 		fields := []EmbedField{
-			cleanField("Outbound", e.Source, true),
+			cleanField(tr("discord.fields.outbound"), e.Source, true),
 		}
 		var data *eventbus.OutboundHealthData
 		switch d := e.Data.(type) {
@@ -131,14 +132,14 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 		}
 		if data != nil {
 			if data.Error != "" {
-				fields = append(fields, cleanField("Error", data.Error, false))
+				fields = append(fields, cleanField(tr("discord.fields.error"), data.Error, false))
 			}
 			if data.Delay > 0 {
-				fields = append(fields, cleanField("Delay", fmt.Sprintf("%dms", data.Delay), true))
+				fields = append(fields, cleanField(tr("discord.fields.delay"), fmt.Sprintf("%dms", data.Delay), true))
 			}
 		}
 		return Embed{
-			Title:     "Outbound Down",
+			Title:     tr("discord.alerts.outboundDown"),
 			Color:     ColorRed,
 			Timestamp: ts,
 			Fields:    fields,
@@ -147,7 +148,7 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 
 	case eventbus.EventOutboundUp:
 		fields := []EmbedField{
-			cleanField("Outbound", e.Source, true),
+			cleanField(tr("discord.fields.outbound"), e.Source, true),
 		}
 		var data *eventbus.OutboundHealthData
 		switch d := e.Data.(type) {
@@ -157,10 +158,10 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 			data = &d
 		}
 		if data != nil && data.Delay > 0 {
-			fields = append(fields, cleanField("Delay", fmt.Sprintf("%dms", data.Delay), true))
+			fields = append(fields, cleanField(tr("discord.fields.delay"), fmt.Sprintf("%dms", data.Delay), true))
 		}
 		return Embed{
-			Title:     "Outbound Up",
+			Title:     tr("discord.alerts.outboundUp"),
 			Color:     ColorGreen,
 			Timestamp: ts,
 			Fields:    fields,
@@ -169,7 +170,7 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 
 	case eventbus.EventNodeDown:
 		fields := []EmbedField{
-			cleanField("Node", e.Source, true),
+			cleanField(tr("discord.fields.node"), e.Source, true),
 		}
 		var data *eventbus.NodeHealthData
 		switch d := e.Data.(type) {
@@ -179,10 +180,10 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 			data = &d
 		}
 		if data != nil && data.XrayError != "" {
-			fields = append(fields, cleanField("Error", data.XrayError, false))
+			fields = append(fields, cleanField(tr("discord.fields.error"), data.XrayError, false))
 		}
 		return Embed{
-			Title:     "Node Down",
+			Title:     tr("discord.alerts.nodeDown"),
 			Color:     ColorRed,
 			Timestamp: ts,
 			Fields:    fields,
@@ -191,7 +192,7 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 
 	case eventbus.EventNodeUp:
 		fields := []EmbedField{
-			cleanField("Node", e.Source, true),
+			cleanField(tr("discord.fields.node"), e.Source, true),
 		}
 		var data *eventbus.NodeHealthData
 		switch d := e.Data.(type) {
@@ -201,10 +202,10 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 			data = &d
 		}
 		if data != nil && data.LatencyMs > 0 {
-			fields = append(fields, cleanField("Delay", fmt.Sprintf("%dms", data.LatencyMs), true))
+			fields = append(fields, cleanField(tr("discord.fields.delay"), fmt.Sprintf("%dms", data.LatencyMs), true))
 		}
 		return Embed{
-			Title:     "Node Up",
+			Title:     tr("discord.alerts.nodeUp"),
 			Color:     ColorGreen,
 			Timestamp: ts,
 			Fields:    fields,
@@ -214,10 +215,10 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 	case eventbus.EventXrayCrash:
 		var fields []EmbedField
 		if e.Data != nil {
-			fields = append(fields, cleanField("Error", fmt.Sprint(e.Data), false))
+			fields = append(fields, cleanField(tr("discord.fields.error"), fmt.Sprint(e.Data), false))
 		}
 		return Embed{
-			Title:     "Xray Core Crashed",
+			Title:     tr("discord.alerts.xrayCrash"),
 			Color:     ColorRed,
 			Timestamp: ts,
 			Fields:    fields,
@@ -238,11 +239,11 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 				return Embed{}, false
 			}
 			fields := []EmbedField{
-				cleanField("Usage", fmt.Sprintf("%.2f%%", data.Percent), true),
-				cleanField("Threshold", fmt.Sprintf("%d%%", discordCpu), true),
+				cleanField(tr("usage"), fmt.Sprintf("%.2f%%", data.Percent), true),
+				cleanField(tr("discord.fields.threshold"), fmt.Sprintf("%d%%", discordCpu), true),
 			}
 			return Embed{
-				Title:     "CPU Threshold Exceeded",
+				Title:     tr("discord.alerts.cpuHigh"),
 				Color:     ColorOrange,
 				Timestamp: ts,
 				Fields:    fields,
@@ -265,11 +266,11 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 				return Embed{}, false
 			}
 			fields := []EmbedField{
-				cleanField("Usage", fmt.Sprintf("%.2f%%", data.Percent), true),
-				cleanField("Threshold", fmt.Sprintf("%d%%", discordMem), true),
+				cleanField(tr("usage"), fmt.Sprintf("%.2f%%", data.Percent), true),
+				cleanField(tr("discord.fields.threshold"), fmt.Sprintf("%d%%", discordMem), true),
 			}
 			return Embed{
-				Title:     "Memory Threshold Exceeded",
+				Title:     tr("discord.alerts.memoryHigh"),
 				Color:     ColorOrange,
 				Timestamp: ts,
 				Fields:    fields,
@@ -289,14 +290,14 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 		if data != nil {
 			if data.Status == "success" {
 				fields := []EmbedField{
-					cleanField("Username", data.Username, true),
+					cleanField(tr("username"), data.Username, true),
 					cleanField("IP", data.IP, true),
 				}
 				if data.Time != "" {
-					fields = append(fields, cleanField("Time", data.Time, true))
+					fields = append(fields, cleanField(tr("discord.fields.time"), data.Time, true))
 				}
 				return Embed{
-					Title:     "Login Success",
+					Title:     tr("discord.alerts.loginSuccess"),
 					Color:     ColorGreen,
 					Timestamp: ts,
 					Fields:    fields,
@@ -304,17 +305,17 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 				}, true
 			}
 			fields := []EmbedField{
-				cleanField("Username", data.Username, true),
+				cleanField(tr("username"), data.Username, true),
 				cleanField("IP", data.IP, true),
 			}
 			if data.Reason != "" {
-				fields = append(fields, cleanField("Reason", data.Reason, false))
+				fields = append(fields, cleanField(tr("discord.fields.reason"), data.Reason, false))
 			}
 			if data.Time != "" {
-				fields = append(fields, cleanField("Time", data.Time, true))
+				fields = append(fields, cleanField(tr("discord.fields.time"), data.Time, true))
 			}
 			return Embed{
-				Title:     "Login Failed",
+				Title:     tr("discord.alerts.loginFailed"),
 				Color:     ColorRed,
 				Timestamp: ts,
 				Fields:    fields,
@@ -322,10 +323,10 @@ func (s *Subscriber) FormatEmbed(e eventbus.Event) (Embed, bool) {
 			}, true
 		}
 		fields := []EmbedField{
-			cleanField("Source", e.Source, true),
+			cleanField(tr("discord.fields.source"), e.Source, true),
 		}
 		return Embed{
-			Title:     "Login Failed",
+			Title:     tr("discord.alerts.loginFailed"),
 			Color:     ColorRed,
 			Timestamp: ts,
 			Fields:    fields,

@@ -31,6 +31,9 @@
           "datepicker": {
             "type": "string"
           },
+          "discordAdminIds": {
+            "type": "string"
+          },
           "discordBotBackup": {
             "type": "boolean"
           },
@@ -496,6 +499,7 @@
         },
         "required": [
           "datepicker",
+          "discordAdminIds",
           "discordBotBackup",
           "discordBotEnable",
           "discordBotToken",
@@ -644,6 +648,9 @@
       "AllSettingView": {
         "properties": {
           "datepicker": {
+            "type": "string"
+          },
+          "discordAdminIds": {
             "type": "string"
           },
           "discordBotBackup": {
@@ -1135,6 +1142,7 @@
         },
         "required": [
           "datepicker",
+          "discordAdminIds",
           "discordBotBackup",
           "discordBotEnable",
           "discordBotToken",

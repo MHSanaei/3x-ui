@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "توکن ربات را وارد کنید",
       "discordChannelId": "شناسه کانال",
       "discordChannelIdDesc": "شناسه کانال دیسکورد برای دریافت اعلان‌ها",
+      "discordAdminIds": "شناسه کاربران ادمین",
+      "discordAdminIdsDesc": "شناسه کاربران دیسکورد که مجاز به اجرای دستورات ربات هستند، جداشده با کاما. پیام‌های سایر افراد نادیده گرفته می‌شوند و خالی گذاشتن فهرست، دستورات را غیرفعال می‌کند.",
       "discordEventBusNotify": "اعلان‌های دیسکورد",
       "testDiscord": "ارسال اعلان آزمایشی",
       "testDiscordDesc": "ارسال یک اعلان آزمایشی برای بررسی توکن ربات و شناسه کانال",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "پیکربندی شما یافت نشد!\r\nلطفاً از مدیر خود بخواهید که شناسه کاربر تلگرام خود را در پیکربندی (های) خود استفاده کند.\r\n\r\nشناسه کاربری شما: <code>{{ .TgUserID }}</code>",
       "chooseClient": "یک مشتری برای ورودی {{ .Inbound }} انتخاب کنید",
       "chooseInbound": "یک ورودی انتخاب کنید"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "آزمایش اعلان دیسکورد 3x-ui",
+      "body": "این یک اعلان آزمایشی است که تأیید می‌کند اعلان‌های دیسکورد به‌درستی پیکربندی شده‌اند."
+    },
+    "footer": "پنل 3x-ui",
+    "fields": {
+      "panelVersion": "نسخه پنل",
+      "xrayCore": "هسته Xray",
+      "systemLoad": "بار سیستم",
+      "networkTraffic": "ترافیک شبکه",
+      "totalUsed": "مجموع مصرف",
+      "quota": "سهمیه",
+      "error": "خطا",
+      "delay": "تأخیر",
+      "outbound": "خروجی",
+      "node": "نود",
+      "threshold": "آستانه",
+      "reason": "دلیل",
+      "time": "زمان",
+      "source": "منبع"
+    },
+    "values": {
+      "uptime": "{{ .Days }} روز {{ .Hours }} ساعت",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (مجموع: {{ .Total }})",
+      "counts": "مجموع: {{ .Total }} | در حال اتمام: {{ .Depleting }} | غیرفعال: {{ .Disabled }}",
+      "inbound": "پروتکل: `{{ .Protocol }}` | پورت: `{{ .Port }}` | کاربران: `{{ .Clients }}` | ترافیک: `↑{{ .Up }} ↓{{ .Down }}` | وضعیت: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "خروجی از دسترس خارج شد",
+      "outboundUp": "خروجی در دسترس است",
+      "nodeDown": "نود از دسترس خارج شد",
+      "nodeUp": "نود در دسترس است",
+      "xrayCrash": "هسته Xray از کار افتاد",
+      "cpuHigh": "عبور از آستانه پردازنده",
+      "memoryHigh": "عبور از آستانه حافظه",
+      "loginSuccess": "ورود موفق",
+      "loginFailed": "ورود ناموفق"
+    },
+    "report": {
+      "title": "📊 گزارش وضعیت 3x-ui",
+      "summary": "گزارش دوره‌ای وضعیت سرور و پراکسی برای **{{ .Host }}**",
+      "footer": "گزارش زمان‌بندی‌شده 3x-ui • زمان‌بندی: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 دستورات ربات دیسکورد 3x-ui",
+      "helpDescription": "دستورات موجود برای پایش و مدیریت سرور 3x-ui:",
+      "helpStatus": "نمایش بار سیستم، رم، پردازنده، اتصالات و کاربران آنلاین",
+      "helpReport": "ایجاد گزارش کامل وضعیت (همراه پشتیبان پایگاه داده در صورت فعال بودن)",
+      "helpBackup": "ارسال فوری فایل پشتیبان پایگاه داده",
+      "helpUsage": "نمایش مصرف ترافیک، سهمیه و تاریخ انقضای یک کاربر",
+      "helpInbounds": "فهرست همه ورودی‌های پیکربندی‌شده همراه پورت‌ها و آمار کاربران",
+      "helpRestart": "راه‌اندازی مجدد هسته Xray",
+      "helpHelp": "نمایش همین فهرست دستورات",
+      "statusTitle": "⚡ وضعیت سرور 3x-ui",
+      "statusDescription": "شاخص‌های عملکرد فعلی **{{ .Host }}**",
+      "backupTitle": "🗄️ پشتیبان پایگاه داده",
+      "backupDescription": "آرشیو پشتیبان 3x-ui ایجادشده در `{{ .Time }}`",
+      "backupUnavailable": "❌ سرویس پشتیبان‌گیری در دسترس نیست",
+      "backupFailed": "❌ خواندن پشتیبان پایگاه داده ناموفق بود: {{ .Error }}",
+      "usageHint": "⚠️ نحوه استفاده: `!usage <email>` یا `/usage <email>`",
+      "usageTitle": "👤 مصرف کاربر: {{ .Email }}",
+      "usageDescription": "ورودی: **{{ .Remark }}** (پورت {{ .Port }})",
+      "clientNotFound": "⚠️ کاربر `{{ .Email }}` در هیچ ورودی پیکربندی‌شده‌ای یافت نشد.",
+      "inboundsUnavailable": "❌ سرویس ورودی‌ها در دسترس نیست",
+      "inboundsFailed": "❌ بارگذاری ورودی‌ها ناموفق بود: {{ .Error }}",
+      "inboundsTitle": "🔌 ورودی‌های پیکربندی‌شده",
+      "inboundsDescription": "تعداد کل ورودی‌ها: **{{ .Count }}**",
+      "noInbounds": "ℹ️ هیچ ورودی‌ای پیکربندی نشده است.",
+      "xrayUnavailable": "❌ سرویس Xray در دسترس نیست",
+      "restarting": "🔄 در حال راه‌اندازی مجدد هسته Xray...",
+      "restartFailed": "❌ راه‌اندازی مجدد Xray ناموفق بود: {{ .Error }}",
+      "restartSuccess": "✅ هسته Xray با موفقیت راه‌اندازی مجدد شد."
     }
   },
   "email": {

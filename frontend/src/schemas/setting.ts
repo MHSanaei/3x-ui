@@ -136,6 +136,7 @@ export const AllSettingSchema = z
     discordBotEnable: z.boolean().optional(),
     discordBotToken: z.string().optional(),
     discordChannelId: z.string().optional(),
+    discordAdminIds: z.string().optional(),
     discordRunTime: z.string().optional(),
     discordBotBackup: z.boolean().optional(),
     discordCpu: z.number().int().min(0).max(100).optional(),

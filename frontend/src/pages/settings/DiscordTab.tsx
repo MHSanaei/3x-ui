@@ -113,6 +113,19 @@ export default function DiscordTab({ allSetting, updateSetting }: DiscordTabProp
                 />
               </SettingListItem>
 
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.discordAdminIds')}
+                description={t('pages.settings.discordAdminIdsDesc')}
+              >
+                <Input
+                  value={allSetting.discordAdminIds}
+                  placeholder="e.g. 123456789012345678"
+                  onChange={(e) => updateSetting({ discordAdminIds: e.target.value })}
+                  style={{ width: '100%' }}
+                />
+              </SettingListItem>
+
               <SettingListItem paddings="small" title={t('pages.settings.discordBotLanguage')}>
                 <Select
                   value={allSetting.discordLang}

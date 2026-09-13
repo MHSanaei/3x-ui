@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "Bot belirtecini girin",
       "discordChannelId": "Kanal Kimliği",
       "discordChannelIdDesc": "Bildirimlerin gönderileceği Discord kanal kimliği",
+      "discordAdminIds": "Yönetici Kullanıcı Kimlikleri",
+      "discordAdminIdsDesc": "Bot komutlarını çalıştırmasına izin verilen, virgülle ayrılmış Discord kullanıcı kimlikleri. Diğer herkesin mesajları yok sayılır; liste boşsa komutlar kapalıdır.",
       "discordEventBusNotify": "Discord Bildirimleri",
       "testDiscord": "Test Bildirimi Gönder",
       "testDiscordDesc": "Bot belirtecinizi ve kanal kimliğinizi doğrulamak için bir test bildirimi gönderin",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden Telegram Chat ID'nizi yapılandırmanıza eklemesini isteyin.\r\n\r\nSizin Chat ID'niz: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Gelen Bağlantı {{ .Inbound }} için bir Kullanıcı Seçin",
       "chooseInbound": "Bir Gelen Bağlantı Seçin"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord Bildirim Testi",
+      "body": "Bu, Discord bildirimlerinin doğru yapılandırıldığını doğrulayan bir test bildirimidir."
+    },
+    "footer": "3x-ui Paneli",
+    "fields": {
+      "panelVersion": "Panel Sürümü",
+      "xrayCore": "Xray Çekirdeği",
+      "systemLoad": "Sistem Yükü",
+      "networkTraffic": "Ağ Trafiği",
+      "totalUsed": "Toplam Kullanım",
+      "quota": "Kota",
+      "error": "Hata",
+      "delay": "Gecikme",
+      "outbound": "Giden",
+      "node": "Düğüm",
+      "threshold": "Eşik",
+      "reason": "Neden",
+      "time": "Zaman",
+      "source": "Kaynak"
+    },
+    "values": {
+      "uptime": "{{ .Days }}g {{ .Hours }}s",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }} (Toplam: {{ .Total }})",
+      "counts": "Toplam: {{ .Total }} | Tükenmek üzere: {{ .Depleting }} | Devre dışı: {{ .Disabled }}",
+      "inbound": "Protokol: `{{ .Protocol }}` | Port: `{{ .Port }}` | İstemciler: `{{ .Clients }}` | Trafik: `↑{{ .Up }} ↓{{ .Down }}` | Durum: `{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "Giden Bağlantı Kesildi",
+      "outboundUp": "Giden Bağlantı Aktif",
+      "nodeDown": "Düğüm Çevrimdışı",
+      "nodeUp": "Düğüm Çevrimiçi",
+      "xrayCrash": "Xray Çekirdeği Çöktü",
+      "cpuHigh": "CPU Eşiği Aşıldı",
+      "memoryHigh": "Bellek Eşiği Aşıldı",
+      "loginSuccess": "Giriş Başarılı",
+      "loginFailed": "Giriş Başarısız"
+    },
+    "report": {
+      "title": "📊 3x-ui Durum Raporu",
+      "summary": "**{{ .Host }}** için periyodik sunucu ve proxy durum raporu",
+      "footer": "3x-ui Zamanlanmış Rapor • Zamanlama: {{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord Bot Komutları",
+      "helpDescription": "3x-ui sunucusunu izlemek ve yönetmek için kullanılabilir komutlar:",
+      "helpStatus": "Sistem yükünü, RAM'i, CPU'yu, bağlantıları ve çevrimiçi kullanıcıları gösterir",
+      "helpReport": "Tam durum raporu oluşturur (yapılandırıldıysa veritabanı yedeğiyle)",
+      "helpBackup": "Veritabanı yedek dosyasını hemen gönderir",
+      "helpUsage": "Bir istemcinin trafik kullanımını, kotasını ve bitiş tarihini sorgular",
+      "helpInbounds": "Yapılandırılmış tüm gelen bağlantıları portları ve istemci istatistikleriyle listeler",
+      "helpRestart": "Xray çekirdeğini yeniden başlatır",
+      "helpHelp": "Bu komut listesini gösterir",
+      "statusTitle": "⚡ 3x-ui Sunucu Durumu",
+      "statusDescription": "**{{ .Host }}** için güncel çalışma metrikleri",
+      "backupTitle": "🗄️ Veritabanı Yedeği",
+      "backupDescription": "`{{ .Time }}` tarihinde oluşturulan 3x-ui yedek arşivi",
+      "backupUnavailable": "❌ Yedekleme hizmeti kullanılamıyor",
+      "backupFailed": "❌ Veritabanı yedeği okunamadı: {{ .Error }}",
+      "usageHint": "⚠️ Kullanım: `!usage <email>` veya `/usage <email>`",
+      "usageTitle": "👤 İstemci Kullanımı: {{ .Email }}",
+      "usageDescription": "Gelen: **{{ .Remark }}** (Port {{ .Port }})",
+      "clientNotFound": "⚠️ `{{ .Email }}` istemcisi yapılandırılmış hiçbir gelen bağlantıda bulunamadı.",
+      "inboundsUnavailable": "❌ Gelen bağlantı hizmeti kullanılamıyor",
+      "inboundsFailed": "❌ Gelen bağlantılar yüklenemedi: {{ .Error }}",
+      "inboundsTitle": "🔌 Yapılandırılmış Gelen Bağlantılar",
+      "inboundsDescription": "Toplam gelen bağlantı: **{{ .Count }}**",
+      "noInbounds": "ℹ️ Yapılandırılmış gelen bağlantı yok.",
+      "xrayUnavailable": "❌ Xray hizmeti kullanılamıyor",
+      "restarting": "🔄 Xray çekirdeği yeniden başlatılıyor...",
+      "restartFailed": "❌ Xray yeniden başlatılamadı: {{ .Error }}",
+      "restartSuccess": "✅ Xray çekirdeği başarıyla yeniden başlatıldı."
     }
   },
   "email": {

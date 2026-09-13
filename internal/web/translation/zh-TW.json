@@ -1597,6 +1597,8 @@
       "discordTokenPlaceholder": "輸入機器人權杖",
       "discordChannelId": "頻道 ID",
       "discordChannelIdDesc": "接收通知的 Discord 頻道 ID",
+      "discordAdminIds": "管理員使用者 ID",
+      "discordAdminIdsDesc": "允許執行機器人指令的 Discord 使用者 ID，以英文逗號分隔。其他人的訊息會被忽略，清單為空時指令將被停用。",
       "discordEventBusNotify": "Discord 通知",
       "testDiscord": "傳送測試通知",
       "testDiscordDesc": "傳送測試通知以驗證您的機器人權杖與頻道 ID",
@@ -2409,6 +2411,81 @@
       "askToAddUserId": "未找到您的配置！\r\n請向管理員詢問，在您的配置中使用您的 Telegram 使用者 ChatID。\r\n\r\n您的使用者 ChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "為入站 {{ .Inbound }} 選擇一個客戶",
       "chooseInbound": "選擇一個入站"
+    }
+  },
+  "discord": {
+    "test": {
+      "title": "3x-ui Discord 通知測試",
+      "body": "這是一則測試通知，確認 Discord 通知已正確設定。"
+    },
+    "footer": "3x-ui 面板",
+    "fields": {
+      "panelVersion": "面板版本",
+      "xrayCore": "Xray 核心",
+      "systemLoad": "系統負載",
+      "networkTraffic": "網路流量",
+      "totalUsed": "已用總量",
+      "quota": "配額",
+      "error": "錯誤",
+      "delay": "延遲",
+      "outbound": "出站",
+      "node": "節點",
+      "threshold": "閾值",
+      "reason": "原因",
+      "time": "時間",
+      "source": "來源"
+    },
+    "values": {
+      "uptime": "{{ .Days }}天 {{ .Hours }}小時",
+      "traffic": "↑{{ .Up }}  ↓{{ .Down }}（總計：{{ .Total }}）",
+      "counts": "總計：{{ .Total }} | 即將耗盡：{{ .Depleting }} | 已停用：{{ .Disabled }}",
+      "inbound": "協定：`{{ .Protocol }}` | 連接埠：`{{ .Port }}` | 用戶端：`{{ .Clients }}` | 流量：`↑{{ .Up }} ↓{{ .Down }}` | 狀態：`{{ .State }}`"
+    },
+    "alerts": {
+      "outboundDown": "出站已中斷",
+      "outboundUp": "出站已恢復",
+      "nodeDown": "節點已離線",
+      "nodeUp": "節點已恢復",
+      "xrayCrash": "Xray 核心當機",
+      "cpuHigh": "CPU 超出閾值",
+      "memoryHigh": "記憶體超出閾值",
+      "loginSuccess": "登入成功",
+      "loginFailed": "登入失敗"
+    },
+    "report": {
+      "title": "📊 3x-ui 狀態報告",
+      "summary": "**{{ .Host }}** 的伺服器與代理定期狀態報告",
+      "footer": "3x-ui 排程報告 • 排程：{{ .RunTime }}"
+    },
+    "commands": {
+      "helpTitle": "🤖 3x-ui Discord 機器人指令",
+      "helpDescription": "用於監控和管理 3x-ui 伺服器的可用指令：",
+      "helpStatus": "顯示系統負載、記憶體、CPU、連線數和線上使用者",
+      "helpReport": "產生完整狀態報告（如已設定則附帶資料庫備份）",
+      "helpBackup": "立即傳送資料庫備份檔案",
+      "helpUsage": "查詢用戶端的流量使用、配額和到期時間",
+      "helpInbounds": "列出所有已設定的入站及其連接埠和用戶端統計",
+      "helpRestart": "重新啟動 Xray 核心",
+      "helpHelp": "顯示此可用指令清單",
+      "statusTitle": "⚡ 3x-ui 伺服器狀態",
+      "statusDescription": "**{{ .Host }}** 的目前運作指標",
+      "backupTitle": "🗄️ 資料庫備份",
+      "backupDescription": "3x-ui 備份產生於 `{{ .Time }}`",
+      "backupUnavailable": "❌ 備份服務無法使用",
+      "backupFailed": "❌ 讀取資料庫備份失敗：{{ .Error }}",
+      "usageHint": "⚠️ 用法：`!usage <email>` 或 `/usage <email>`",
+      "usageTitle": "👤 用戶端用量：{{ .Email }}",
+      "usageDescription": "入站：**{{ .Remark }}**（連接埠 {{ .Port }}）",
+      "clientNotFound": "⚠️ 在任何已設定的入站中均未找到用戶端 `{{ .Email }}`。",
+      "inboundsUnavailable": "❌ 入站服務無法使用",
+      "inboundsFailed": "❌ 載入入站失敗：{{ .Error }}",
+      "inboundsTitle": "🔌 已設定的入站",
+      "inboundsDescription": "入站總數：**{{ .Count }}**",
+      "noInbounds": "ℹ️ 尚未設定任何入站。",
+      "xrayUnavailable": "❌ Xray 服務無法使用",
+      "restarting": "🔄 正在重新啟動 Xray 核心...",
+      "restartFailed": "❌ 重新啟動 Xray 失敗：{{ .Error }}",
+      "restartSuccess": "✅ Xray 核心已成功重新啟動。"
     }
   },
   "email": {

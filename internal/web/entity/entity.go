@@ -68,6 +68,7 @@ type AllSetting struct {
 	DiscordBotEnable     bool   `json:"discordBotEnable" form:"discordBotEnable"`
 	DiscordBotToken      string `json:"discordBotToken" form:"discordBotToken"`
 	DiscordChannelId     string `json:"discordChannelId" form:"discordChannelId"`
+	DiscordAdminIds      string `json:"discordAdminIds" form:"discordAdminIds"`
 	DiscordRunTime       string `json:"discordRunTime" form:"discordRunTime"`
 	DiscordBotBackup     bool   `json:"discordBotBackup" form:"discordBotBackup"`
 	DiscordCpu           int    `json:"discordCpu" form:"discordCpu" validate:"gte=0,lte=100"`

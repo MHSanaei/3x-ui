@@ -2,6 +2,7 @@
 export const EXAMPLES: Record<string, unknown> = {
   "AllSetting": {
     "datepicker": "",
+    "discordAdminIds": "",
     "discordBotBackup": false,
     "discordBotEnable": false,
     "discordBotToken": "",
@@ -147,6 +148,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "AllSettingView": {
     "datepicker": "",
+    "discordAdminIds": "",
     "discordBotBackup": false,
     "discordBotEnable": false,
     "discordBotToken": "",
