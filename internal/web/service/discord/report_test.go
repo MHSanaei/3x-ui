@@ -2,8 +2,10 @@ package discord
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -182,5 +184,48 @@ func TestSendReport_Integration(t *testing.T) {
 	}
 	if !receivedRequest {
 		t.Error("expected server to receive report request")
+	}
+}
+
+func TestSendReport_DeliversEmbedWhenBackupUploadIsRejected(t *testing.T) {
+	settingService := setupTestDB(t)
+	_ = settingService.SetDiscordBotToken("test-token")
+	_ = settingService.SetDiscordChannelId("998877")
+	_ = settingService.SetDiscordBotBackup(true)
+
+	embeds := make(chan int, 4)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/") {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+			_, _ = w.Write([]byte(`{"message": "Request entity too large", "code": 40005}`))
+			return
+		}
+		var p MessagePayload
+		_ = json.NewDecoder(r.Body).Decode(&p)
+		embeds <- len(p.Embeds)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	svc := NewDiscordService(settingService)
+	svc.SetBaseURL(server.URL)
+	svc.SetHTTPClient(server.Client())
+
+	mockServer := &mockServerProvider{
+		status: &service.Status{Uptime: 86400},
+		dbData: []byte("sqlite-data-over-the-upload-cap"),
+	}
+
+	err := svc.SendReport(context.Background(), mockServer, nil)
+	if err == nil || !strings.Contains(err.Error(), "(413)") {
+		t.Fatalf("SendReport error = %v, want the rejected backup upload (413)", err)
+	}
+	select {
+	case n := <-embeds:
+		if n != 1 {
+			t.Fatalf("report message carried %d embeds, want 1", n)
+		}
+	default:
+		t.Fatal("report embed was never delivered: it rode on the rejected backup upload")
 	}
 }

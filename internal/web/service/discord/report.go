@@ -200,7 +200,14 @@ func (s *DiscordService) SendReport(ctx context.Context, server ServerProvider, 
 	if err != nil {
 		return fmt.Errorf("build discord report: %w", err)
 	}
-	return s.SendMessageWithFiles(ctx, payload, files...)
+	// Separate messages: a backup over Discord's upload cap must not drop the report with it.
+	if err := s.SendMessage(ctx, payload); err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return nil
+	}
+	return s.SendMessageWithFiles(ctx, MessagePayload{}, files...)
 }
 
 func getInterfaceIPs() (ipv4, ipv6 string) {
