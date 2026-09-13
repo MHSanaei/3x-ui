@@ -788,8 +788,8 @@ func (t *Tgbot) getCommonClientButtons(draft *clientDraft) [][]telego.InlineKeyb
 }
 
 // addClient renders the draft message + shared client-first keyboard.
-func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
-	inlineKeyboard := tu.InlineKeyboard(t.getCommonClientButtons(addClientDrafts.forChat(chatId))...)
+func (t *Tgbot) addClient(chatId int64, draft *clientDraft, msg string, messageID ...int) {
+	inlineKeyboard := tu.InlineKeyboard(t.getCommonClientButtons(draft)...)
 	if len(messageID) > 0 {
 		t.editMessageTgBot(chatId, messageID[0], msg, inlineKeyboard)
 	} else {

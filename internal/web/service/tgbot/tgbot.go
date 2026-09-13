@@ -108,6 +108,18 @@ func (s *clientDrafts) reset(chatID int64) {
 	delete(s.drafts, chatID)
 }
 
+// isAddClientStep reports whether callback data belongs to the add-client
+// wizard, the only flow that reads or writes a draft.
+func isAddClientStep(data string) bool {
+	return strings.HasPrefix(data, "add_client")
+}
+
+func (s *clientDrafts) resetAll() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.drafts = make(map[int64]*clientDraft)
+}
+
 // userStateStore guards the per-chat conversation states. The Telegram command
 // and callback handlers run on a worker-pool goroutine while the message handler
 // runs on the dispatch goroutine, so a bare map would be a concurrent-map-write
@@ -507,6 +519,7 @@ func StopBot() {
 	tgBotMutex.Unlock()
 
 	userStateMgr.reset()
+	addClientDrafts.resetAll()
 
 	if handler != nil {
 		_ = handler.Stop()

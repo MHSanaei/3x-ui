@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 
@@ -126,5 +127,52 @@ func TestAddClientDraftIsPerChat(t *testing.T) {
 	}
 	if got := cardEmail(t, lastDraftCard(t, textsFor(chatB))); got != emailB {
 		t.Errorf("chat B's card shows email %q, want %q", got, emailB)
+	}
+}
+
+// Regression test: the draft's lock and map were reached before the admin gate, so
+// a report tap queued behind a wizard and any chat a tap came from got stored.
+func TestNonWizardCallbackTakesNoDraftLock(t *testing.T) {
+	const (
+		heldChat  = int64(7303)
+		spareChat = int64(7404)
+	)
+	decliningServer(t)
+
+	held := addClientDrafts.forChat(heldChat)
+	held.Lock()
+	defer held.Unlock()
+
+	tap := func(chatID int64, isAdmin bool, data string) {
+		(&Tgbot{}).answerCallback(&telego.CallbackQuery{
+			ID:      "q1",
+			From:    telego.User{ID: 1},
+			Data:    data,
+			Message: &telego.Message{Chat: telego.Chat{ID: chatID}},
+		}, isAdmin)
+	}
+	returns := func(what string, tap func()) {
+		t.Helper()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			tap()
+		}()
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatalf("%s waited on the draft lock it never reads", what)
+		}
+	}
+
+	returns("an admin report tap", func() { tap(heldChat, true, "no_such_admin_action 5") })
+	returns("a non-admin wizard tap", func() { tap(heldChat, false, "add_client_to 1") })
+	tap(spareChat, false, "add_client_to 1")
+
+	addClientDrafts.mu.Lock()
+	_, stored := addClientDrafts.drafts[spareChat]
+	addClientDrafts.mu.Unlock()
+	if stored {
+		t.Errorf("draft stored for chat %d, want none until its wizard starts", spareChat)
 	}
 }
