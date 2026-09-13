@@ -80,7 +80,7 @@ func (a *IndexController) login(c *gin.Context) {
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if blockedUntil, ok := defaultLoginLimiter.allow(remoteIP, form.Username); !ok {
 		reason := "too many failed attempts"
-		logger.Warningf("failed login: username=%q, IP=%q, reason=%q, blocked_until=%s", safeUser, remoteIP, reason, blockedUntil.Format(time.RFC3339))
+		logger.Warningf("failed login: username=%q, IP=%q, reason=%q, blocked_until=%s", form.Username, remoteIP, reason, blockedUntil.Format(time.RFC3339))
 		a.tgbot.UserLoginNotify(tgbot.LoginAttempt{
 			Username: safeUser,
 			IP:       remoteIP,
@@ -97,9 +97,9 @@ func (a *IndexController) login(c *gin.Context) {
 	if user == nil {
 		reason := loginFailureReason(checkErr)
 		if blockedUntil, blocked := defaultLoginLimiter.registerFailure(remoteIP, form.Username); blocked {
-			logger.Warningf("failed login: username=%q, IP=%q, reason=%q, blocked_until=%s", safeUser, remoteIP, reason, blockedUntil.Format(time.RFC3339))
+			logger.Warningf("failed login: username=%q, IP=%q, reason=%q, blocked_until=%s", form.Username, remoteIP, reason, blockedUntil.Format(time.RFC3339))
 		} else {
-			logger.Warningf("failed login: username=%q, IP=%q, reason=%q", safeUser, remoteIP, reason)
+			logger.Warningf("failed login: username=%q, IP=%q, reason=%q", form.Username, remoteIP, reason)
 		}
 		a.tgbot.UserLoginNotify(tgbot.LoginAttempt{
 			Username: safeUser,
@@ -113,7 +113,7 @@ func (a *IndexController) login(c *gin.Context) {
 	}
 
 	defaultLoginLimiter.registerSuccess(remoteIP, form.Username)
-	logger.Infof("logged in successfully: username=%q, IP=%q", safeUser, remoteIP)
+	logger.Infof("logged in successfully: username=%q, IP=%q", form.Username, remoteIP)
 	a.tgbot.UserLoginNotify(tgbot.LoginAttempt{
 		Username: safeUser,
 		IP:       remoteIP,
