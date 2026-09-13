@@ -577,8 +577,13 @@ func (g *GatewayClient) sendUsage(ctx context.Context, email string) {
 				}
 
 				expireStr := tr("unlimited")
-				if client.ExpiryTime > 0 {
+				switch {
+				case client.ExpiryTime > 0:
 					expireStr = time.Unix(client.ExpiryTime/1000, 0).Format("2006-01-02 15:04:05")
+				// Start After First Use stores the duration negated, so such a client is
+				// not unlimited: it starts counting down on its first connection.
+				case client.ExpiryTime < 0:
+					expireStr = fmt.Sprintf("%d %s", client.ExpiryTime/-86400000, tr("tgbot.days"))
 				}
 
 				totalLimitStr := tr("unlimited")
