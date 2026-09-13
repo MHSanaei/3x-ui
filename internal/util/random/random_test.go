@@ -61,3 +61,35 @@ func TestBase64Bytes_Random(t *testing.T) {
 		t.Fatalf("two consecutive Base64Bytes(32) calls produced identical output: %q", a)
 	}
 }
+
+func TestPort_InRange(t *testing.T) {
+	for _, tc := range []struct {
+		min, max int
+	}{
+		{1024, 62000},
+		{1, 10},
+		{8000, 8000},
+		{20000, 20005},
+	} {
+		for range 200 {
+			p := Port(tc.min, tc.max)
+			if tc.min >= tc.max {
+				if p != tc.min {
+					t.Fatalf("Port(%d, %d) = %d, want %d", tc.min, tc.max, p, tc.min)
+				}
+			} else if p < tc.min || p > tc.max {
+				t.Fatalf("Port(%d, %d) = %d, out of bounds", tc.min, tc.max, p)
+			}
+		}
+	}
+}
+
+func TestPort_Distribution(t *testing.T) {
+	seen := make(map[int]bool)
+	for range 100 {
+		seen[Port(1000, 2000)] = true
+	}
+	if len(seen) < 20 {
+		t.Fatalf("Port distribution too low: only %d distinct values in 100 samples", len(seen))
+	}
+}

@@ -1230,8 +1230,22 @@ func initUser() error {
 	return nil
 }
 
-func seedRandomSubscriptionPaths() error {
+func seedRandomSubscriptionSettings() error {
+	webPort := 2053
+	var webPortSetting model.Setting
+	if err := db.Where("key = ?", "webPort").First(&webPortSetting).Error; err == nil {
+		if p, err := strconv.Atoi(webPortSetting.Value); err == nil && p > 0 {
+			webPort = p
+		}
+	}
+
+	subPort := random.Port(1024, 62000)
+	for i := 0; i < 10 && subPort == webPort; i++ {
+		subPort = random.Port(1024, 62000)
+	}
+
 	settings := []model.Setting{
+		{Key: "subPort", Value: strconv.Itoa(subPort)},
 		{Key: "subPath", Value: "/" + random.NumLower(16) + "/"},
 		{Key: "subJsonPath", Value: "/" + random.NumLower(16) + "/"},
 		{Key: "subClashPath", Value: "/" + random.NumLower(16) + "/"},
@@ -1244,6 +1258,10 @@ func seedRandomSubscriptionPaths() error {
 		}
 		return nil
 	})
+}
+
+func seedRandomSubscriptionPaths() error {
+	return seedRandomSubscriptionSettings()
 }
 
 func runSeeders(isUsersEmpty bool) error {

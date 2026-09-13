@@ -1092,6 +1092,7 @@ config_after_install() {
             local config_username="${XUI_USERNAME:-$(gen_random_string 10)}"
             local config_password="${XUI_PASSWORD:-$(gen_random_string 10)}"
             local config_port=""
+            local config_subport=""
 
             local db_label="SQLite (/etc/x-ui/x-ui.db)"
             echo ""
@@ -1240,7 +1241,18 @@ EOF
                 fi
             fi
 
-            ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
+            if [[ -n "${XUI_SUB_PORT:-}" ]]; then
+                config_subport="${XUI_SUB_PORT}"
+                echo -e "${yellow}Your Subscription Port is: ${config_subport}${plain}"
+            else
+                config_subport=$(shuf -i 1024-62000 -n 1)
+                while [[ "${config_subport}" == "${config_port}" ]]; do
+                    config_subport=$(shuf -i 1024-62000 -n 1)
+                done
+                echo -e "${yellow}Generated random subscription port: ${config_subport}${plain}"
+            fi
+
+            ${xui_folder}/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -subport "${config_subport}" -webBasePath "${config_webBasePath}"
 
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -1261,13 +1273,14 @@ EOF
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${green}     Panel Installation Complete!         ${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
-            echo -e "${green}Username:    ${config_username}${plain}"
-            echo -e "${green}Password:    ${config_password}${plain}"
-            echo -e "${green}Port:        ${config_port}${plain}"
-            echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
-            echo -e "${green}Database:    ${db_label}${plain}"
-            echo -e "${green}Access URL:  ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
-            echo -e "${green}API Token:   ${config_apiToken}${plain}"
+            echo -e "${green}Username:          ${config_username}${plain}"
+            echo -e "${green}Password:          ${config_password}${plain}"
+            echo -e "${green}Port:              ${config_port}${plain}"
+            echo -e "${green}Subscription Port: ${config_subport}${plain}"
+            echo -e "${green}WebBasePath:       ${config_webBasePath}${plain}"
+            echo -e "${green}Database:          ${db_label}${plain}"
+            echo -e "${green}Access URL:        ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
+            echo -e "${green}API Token:         ${config_apiToken}${plain}"
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${yellow}⚠ IMPORTANT: Save these credentials securely!${plain}"
             if [[ "$SSL_SCHEME" == "https" ]]; then

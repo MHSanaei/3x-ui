@@ -1092,11 +1092,16 @@ install_firewall() {
     else
         echo "Activating firewall..."
         # Open the necessary ports
+        local current_webPort=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo '^port: .+' | awk '{print $2}')
+        local current_subPort=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo '^subPort: .+' | awk '{print $2}')
+        : "${current_webPort:=2053}"
+        : "${current_subPort:=2096}"
+
         ufw allow ssh
         ufw allow http
         ufw allow https
-        ufw allow 2053/tcp #webPort
-        ufw allow 2096/tcp #subport
+        ufw allow "${current_webPort}"/tcp #webPort
+        ufw allow "${current_subPort}"/tcp #subport
 
         # Enable the firewall
         ufw --force enable
