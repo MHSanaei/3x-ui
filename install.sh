@@ -144,7 +144,7 @@ prompt_or_default() {
     fi
 }
 
-# write_install_result <user> <pass> <port> <webpath> <scheme> <host> <token> <dbtype>
+# write_install_result <user> <pass> <port> <webpath> <scheme> <host> <token> <dbtype> [subport]
 # Persists a parseable, root-only credentials file consumed by cloud-init/MOTD.
 # Values are written with printf '%q' so a pinned password/username containing
 # spaces, quotes, $(...) or backticks is shell-escaped and the file stays safely
@@ -152,7 +152,7 @@ prompt_or_default() {
 # values gen_random_string emits, %q is a no-op. This is a DIFFERENT file from the
 # Postgres env file (/etc/default/x-ui).
 write_install_result() {
-    local u="$1" p="$2" port="$3" wbp="$4" scheme="$5" host="$6" token="$7" dbtype="$8"
+    local u="$1" p="$2" port="$3" wbp="$4" scheme="$5" host="$6" token="$7" dbtype="$8" subport="${9:-}"
     local result_file="/etc/x-ui/install-result.env"
     local url_host="${host:-SERVER_IP_UNKNOWN}"
     install -d -m 700 /etc/x-ui 2> /dev/null
@@ -163,6 +163,7 @@ write_install_result() {
         printf 'XUI_USERNAME=%q\n' "$u"
         printf 'XUI_PASSWORD=%q\n' "$p"
         printf 'XUI_PANEL_PORT=%q\n' "$port"
+        [[ -n "$subport" ]] && printf 'XUI_SUB_PORT=%q\n' "$subport"
         printf 'XUI_WEB_BASE_PATH=%q\n' "$wbp"
         printf 'XUI_ACCESS_URL=%q\n' "${scheme}://${url_host}:${port}/${wbp}"
         printf 'XUI_API_TOKEN=%q\n' "$token"
@@ -1324,7 +1325,7 @@ EOF
             local db_type_out="sqlite"
             [[ "$db_choice" == "2" ]] && db_type_out="postgres"
             write_install_result "${config_username}" "${config_password}" "${config_port}" \
-                "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${db_type_out}"
+                "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${db_type_out}" "${config_subport}"
         else
             local config_webBasePath=$(gen_random_string 18)
             echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
@@ -1362,10 +1363,12 @@ EOF
             # Persist a machine-parseable credentials file for cloud-init / MOTD.
             local config_apiToken
             config_apiToken=$(${xui_folder}/x-ui setting -getApiToken | grep -Eo 'apiToken: .+' | awk '{print $2}')
+            local existing_subport
+            existing_subport=$(${xui_folder}/x-ui setting -show true | grep -Eo 'subPort: .+' | awk '{print $2}')
             : "${SSL_SCHEME:=https}"
             : "${SSL_HOST:=${server_ip}}"
             write_install_result "${config_username}" "${config_password}" "${existing_port}" \
-                "${existing_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${XUI_DB_TYPE:-sqlite}"
+                "${existing_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${XUI_DB_TYPE:-sqlite}" "${existing_subport}"
         else
             echo -e "${green}Username, Password, and WebBasePath are properly set.${plain}"
         fi

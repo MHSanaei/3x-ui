@@ -21,7 +21,7 @@ Each instance installs and configures itself with random credentials. See
 `install.sh` reads these env vars in non-interactive mode (all optional; unset ⇒
 secure random / default):
 
-`XUI_USERNAME`, `XUI_PASSWORD`, `XUI_PANEL_PORT`, `XUI_WEB_BASE_PATH`,
+`XUI_USERNAME`, `XUI_PASSWORD`, `XUI_PANEL_PORT`, `XUI_SUB_PORT`, `XUI_WEB_BASE_PATH`,
 `XUI_SSL_MODE` (`none`|`ip`|`domain`, default `none`), `XUI_DOMAIN`,
 `XUI_ACME_EMAIL`, `XUI_ACME_HTTP_PORT` (ACME HTTP-01 listener port, default `80`),
 `XUI_SSL_IPV6` (optional IPv6 address to add to an `ip`-mode cert),

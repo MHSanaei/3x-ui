@@ -33,6 +33,7 @@ Edit the `export XUI_*` lines inside the `write_files` block of
 | `XUI_USERNAME` | random | Admin username |
 | `XUI_PASSWORD` | random | Admin password |
 | `XUI_PANEL_PORT` | random high port | Panel listen port |
+| `XUI_SUB_PORT` | random high port | Subscription server listen port |
 | `XUI_WEB_BASE_PATH` | random | Panel base path (obscures the URL) |
 | `XUI_DOMAIN` | — | Required when `XUI_SSL_MODE=domain` |
 | `XUI_ACME_EMAIL` | — | Let's Encrypt account email (domain mode) |

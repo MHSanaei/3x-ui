@@ -304,12 +304,13 @@ CI runs this for you nightly (and on demand) via `.github/workflows/mutation.yml
 | `XUI_BIN_FOLDER` | `bin` | Where the xray binary, geo files, and xray `config.json` live |
 | `XUI_INIT_WEB_BASE_PATH` | `/` | The initial URI path for the web panel |
 | `XUI_PORT` | persisted `webPort` | Runtime-only web panel listener port override (`1` through `65535`) |
+| `XUI_SUB_PORT` | persisted `subPort` | Runtime-only subscription listener port override (`1` through `65535`) |
 | `XUI_DB_TYPE` | `sqlite` | Set to `postgres` to use PostgreSQL via `XUI_DB_DSN` |
 | `XUI_DB_DSN` | — | PostgreSQL DSN when `XUI_DB_TYPE=postgres` |
 
-A valid `XUI_PORT` takes precedence over the database-backed `webPort` for the
-current process without changing the stored setting. Unset, empty, whitespace-only,
-malformed, or out-of-range values fall back to `webPort`; invalid configured values
+A valid `XUI_PORT` or `XUI_SUB_PORT` takes precedence over the database-backed `webPort` or `subPort`
+for the current process without changing the stored setting. Unset, empty, whitespace-only,
+malformed, or out-of-range values fall back to the persisted setting; invalid configured values
 also produce a warning. With Docker bridge networking, the published container port
 must match the override, for example `XUI_PORT: "8080"` with `ports: ["8080:8080"]`.
 

@@ -966,6 +966,13 @@ func (s *SettingService) GetSubListen() (string, error) {
 }
 
 func (s *SettingService) GetSubPort() (int, error) {
+	if envPort, configured, envErr := config.GetSubPortOverride(); configured {
+		if envErr != nil {
+			logger.Warning("Ignoring invalid XUI_SUB_PORT; using configured sub port:", envErr)
+		} else {
+			return envPort, nil
+		}
+	}
 	return s.getInt("subPort")
 }
 

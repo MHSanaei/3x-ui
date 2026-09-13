@@ -34,6 +34,7 @@ write_files:
       #   export XUI_USERNAME="admin2"
       #   export XUI_PASSWORD="change-me-please"
       #   export XUI_PANEL_PORT="2053"
+      #   export XUI_SUB_PORT="2096"
       #   export XUI_WEB_BASE_PATH="panel"
       # Let's Encrypt domain certificate instead of plain HTTP:
       #   export XUI_SSL_MODE="domain"
