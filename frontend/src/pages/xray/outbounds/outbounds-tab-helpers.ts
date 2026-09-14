@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 
-import { OutboundProtocols as Protocols } from '@/schemas/primitives';
+import { isOutboundProtocol, OutboundProtocols as Protocols } from '@/schemas/primitives';
 import { isUdpOutbound } from '@/hooks/useXraySetting';
 import type {
   OutboundTestMode,
@@ -57,15 +57,15 @@ export function outboundAddresses(o: OutboundRow): string[] {
 export function isUntestable(o: OutboundRow): boolean {
   if (!o) return true;
   if (
-    o.protocol === Protocols.Blackhole ||
-    o.protocol === Protocols.Loopback ||
+    isOutboundProtocol(o, Protocols.Blackhole) ||
+    isOutboundProtocol(o, Protocols.Loopback) ||
     o.tag === 'blocked'
   )
     return true;
   // freedom ("direct") and dns aren't proxies — a TCP dial has no endpoint and
   // an HTTP probe would only measure the host's own direct reachability, so
   // they're untestable in every mode.
-  if (o.protocol === Protocols.Freedom || o.protocol === Protocols.DNS) return true;
+  if (isOutboundProtocol(o, Protocols.Freedom) || isOutboundProtocol(o, Protocols.DNS)) return true;
   return false;
 }
 
