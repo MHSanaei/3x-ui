@@ -27,17 +27,25 @@ export function directFreedomStrategy(t: XraySettingsValue | null): string {
   return freedomDomainStrategyFromWire(outbound) || 'AsIs';
 }
 
-export function setDirectFreedomStrategy(t: XraySettingsValue, next: string): void {
+// The core refuses to load two outbounds sharing a tag, so a "direct" held by
+// a non-freedom egress keeps it and the Basics controls have nothing to edit.
+export function isDirectTagTaken(t: XraySettingsValue | null): boolean {
+  return !directFreedom(t) && !!t?.outbounds?.some((o) => o?.tag === 'direct');
+}
+
+export function ensureDirectFreedomOutbound(t: XraySettingsValue): Outbound | undefined {
   if (!Array.isArray(t.outbounds)) t.outbounds = [];
-  let idx = t.outbounds.findIndex((o) => isDirectFreedomOutbound(o));
-  if (idx < 0) {
-    // The core refuses to load two outbounds sharing a tag, so a "direct" held
-    // by a non-freedom egress keeps it and this edit is dropped instead.
-    if (t.outbounds.some((o) => o?.tag === 'direct')) return;
-    t.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: {} } as never);
-    idx = t.outbounds.length - 1;
-  }
-  const ob = t.outbounds[idx] as Outbound;
+  const found = directFreedom(t);
+  if (found) return found;
+  if (isDirectTagTaken(t)) return undefined;
+  const created: Outbound = { protocol: 'freedom', tag: 'direct', settings: {} };
+  t.outbounds.push(created as never);
+  return created;
+}
+
+export function setDirectFreedomStrategy(t: XraySettingsValue, next: string): void {
+  const ob = ensureDirectFreedomOutbound(t);
+  if (!ob) return;
   // Drop the legacy placements, or the loader keeps warning and the core keeps
   // preferring the root key it resets over the sockopt value set here.
   const settings = (ob.settings ?? {}) as Outbound;
