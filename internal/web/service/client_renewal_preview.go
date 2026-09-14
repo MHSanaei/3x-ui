@@ -48,6 +48,9 @@ func (s *ClientService) PreviewRenewal(request ClientRenewalPreviewRequest, sett
 	preview := &ClientRenewalPreview{TimeZone: loc.String(), DelayedStart: request.ExpiryTime < 0}
 	if request.ResetDay > 0 || request.ResetWeekday > 0 {
 		preview.SuggestedExpiryTime = nextClientRenewal(now, request.Reset, request.ResetDay, request.ResetWeekday, loc)
+		if preview.SuggestedExpiryTime <= now {
+			return nil, common.NewError("calendar renewal could not find a future expiry")
+		}
 		preview.SuggestedExpiry = time.UnixMilli(preview.SuggestedExpiryTime).In(loc).Format(time.RFC3339)
 	}
 	if request.ExpiryTime <= 0 || (request.Reset <= 0 && request.ResetDay <= 0 && request.ResetWeekday <= 0) {
@@ -63,6 +66,9 @@ func (s *ClientService) PreviewRenewal(request ClientRenewalPreviewRequest, sett
 		ResetWeekday: request.ResetWeekday, ResetMax: request.ResetMax, ResetCount: request.ResetCount,
 	}
 	expiry, renewals := catchUpClientRenewal(traffic, max(now, at+1), loc)
+	if renewals == 0 && request.ResetWeekday > 0 && (request.ResetMax == 0 || request.ResetCount < request.ResetMax) {
+		return nil, common.NewError("calendar renewal could not find a future expiry")
+	}
 	preview.Renewals = renewals
 	preview.CanRenew = renewals > 0 && expiry > max(now, at)
 	if renewals > 0 {

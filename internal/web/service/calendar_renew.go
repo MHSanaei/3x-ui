@@ -57,13 +57,16 @@ func nextWeeklyRenewal(from time.Time, weekday int, loc *time.Location) time.Tim
 		days = 7
 	}
 	date := time.Date(local.Year(), local.Month(), local.Day()+days, 0, 0, 0, 0, time.UTC)
-	for {
+	// A corrupt or unusual zone must not stall the single traffic writer.
+	// Returning from lets the catch-up forward-progress guard fail closed.
+	for range 8 {
 		candidate, exists := localCalendarDateStart(date, loc)
 		if exists && candidate.After(local) {
 			return candidate
 		}
 		date = date.AddDate(0, 0, 7)
 	}
+	return from
 }
 
 // Find the first valid instant of a local date: Date can pick a repeated
