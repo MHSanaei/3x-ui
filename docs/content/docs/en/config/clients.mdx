@@ -94,8 +94,14 @@ part of these modes.
 <Callout type="warn">
   Upgrade the main panel and every participating node before enabling weekly
   renewal. Older versions ignore `resetWeekday`; a weekly-only client would not
-  auto-renew. Disable or convert weekly schedules before downgrading. Database
-  upgrades default this new field to `0` and preserve existing limits and dates.
+  auto-renew and, after its expiry or quota is exhausted, can be deleted by
+  **delete depleted clients** because older versions lack the weekly protection.
+  Back up the database and convert weekly schedules to a renewal mode supported
+  by every participating version before downgrading. Merely disabling weekly
+  renewal does not protect a depleted client from deletion. Avoid depleted-client
+  cleanup while a mixed-version fleet or unconverted weekly clients remain.
+  Database upgrades default this new field to `0` and preserve existing limits
+  and dates.
 </Callout>
 
 ## Share links and external links
