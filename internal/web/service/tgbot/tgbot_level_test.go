@@ -32,15 +32,18 @@ func TestCommandAllowed(t *testing.T) {
 	}
 }
 
-func TestIsPrivateChat(t *testing.T) {
+func TestIgnoredChat(t *testing.T) {
 	for chatType, want := range map[string]bool{
-		telego.ChatTypePrivate:    true,
-		telego.ChatTypeGroup:      false,
-		telego.ChatTypeSupergroup: false,
-		telego.ChatTypeChannel:    false,
+		telego.ChatTypePrivate:    false,
+		telego.ChatTypeGroup:      true,
+		telego.ChatTypeSupergroup: true,
+		telego.ChatTypeChannel:    true,
 	} {
-		if got := isPrivateChat(telego.Chat{Type: chatType}); got != want {
-			t.Errorf("isPrivateChat(%q) = %v, want %v", chatType, got, want)
+		// Twice, so the log-once path is exercised without changing the verdict.
+		for range 2 {
+			if got := ignoredChat(telego.Chat{ID: -100, Type: chatType}); got != want {
+				t.Errorf("ignoredChat(%q) = %v, want %v", chatType, got, want)
+			}
 		}
 	}
 }
@@ -58,6 +61,16 @@ func withAdmins(t *testing.T, ids ...int64) {
 	})
 }
 
+// newLevelTgbot binds ownerMail to ownerTgID in both the inbound settings and
+// the clients table, and makes account 1 the only admin.
+func newLevelTgbot(t *testing.T) (*Tgbot, func(string) int) {
+	t.Helper()
+	tb, calls := newLinksCallbackTgbot(t, ownerMail)
+	seedClientRecord(t, ownerMail, "sub-owned", ownerTgID)
+	withAdmins(t, 1)
+	return tb, calls
+}
+
 func commandFrom(tgUserID int64, text string) *telego.Message {
 	return &telego.Message{
 		From: &telego.User{ID: tgUserID},
@@ -67,8 +80,7 @@ func commandFrom(tgUserID int64, text string) *telego.Message {
 }
 
 func TestLevelOfFollowsTheClientBinding(t *testing.T) {
-	tb, _ := newLinksCallbackTgbot(t, ownerMail)
-	withAdmins(t, 1)
+	tb, _ := newLevelTgbot(t)
 
 	for id, want := range map[int64]userLevel{1: levelAdmin, ownerTgID: levelClient, 777: levelStranger, 0: levelStranger} {
 		if got := tb.levelOf(id); got != want {
@@ -97,8 +109,7 @@ func TestGateCommand(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			tb, calls := newLinksCallbackTgbot(t, ownerMail)
-			withAdmins(t, 1)
+			tb, calls := newLevelTgbot(t)
 
 			isAdmin, ok := tb.gateCommand(commandFrom(c.from, c.text))
 			if ok != c.wantOK || isAdmin != c.wantAdmin {
@@ -114,8 +125,7 @@ func TestGateCommand(t *testing.T) {
 // Regression test: a stranger's forged callback must be answered, so the button
 // stops spinning, and must never reach answerCallback.
 func TestGateCallbackStopsStrangers(t *testing.T) {
-	tb, calls := newLinksCallbackTgbot(t, ownerMail)
-	withAdmins(t, 1)
+	tb, calls := newLevelTgbot(t)
 
 	query := &telego.CallbackQuery{ID: "q1", From: telego.User{ID: 777}, Data: "client_sub_links " + ownerMail}
 	if _, ok := tb.gateCallback(query); ok {

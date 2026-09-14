@@ -82,7 +82,7 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			if !isPrivateChat(message.Chat) {
+			if ignoredChat(message.Chat) {
 				return nil
 			}
 			userStateMgr.clear(message.Chat.ID)
@@ -92,7 +92,7 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			if !isPrivateChat(message.Chat) || !t.isCommandForCurrentBot(&message) {
+			if ignoredChat(message.Chat) || !t.isCommandForCurrentBot(&message) {
 				return nil
 			}
 
@@ -107,7 +107,9 @@ func (t *Tgbot) OnReceive() {
 		}, th.AnyCommand())
 
 		h.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
-			if !isPrivateChat(query.Message.GetChat()) {
+			if ignoredChat(query.Message.GetChat()) {
+				// Answered even so, or the tapped button spins until Telegram gives up.
+				go runBotHandler(func() { t.sendCallbackAnswerTgBot(query.ID, "") })
 				return nil
 			}
 			// Use goroutine with worker pool for concurrent callback processing
@@ -122,7 +124,7 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			if !isPrivateChat(message.Chat) {
+			if ignoredChat(message.Chat) {
 				return nil
 			}
 			userStateMgr.maybePrune(time.Hour)
@@ -236,6 +238,10 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
 		if len(commandArgs) > 0 {
+			if !isAdmin && !t.allowInviteAttempt(message.From) {
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.inviteRateLimited"))
+				return
+			}
 			t.claimInvite(chatId, message.From.ID, commandArgs[0])
 		}
 		// A stranger learns only its ChatID, which is what an admin needs to bind it.

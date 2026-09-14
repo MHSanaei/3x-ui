@@ -1,6 +1,10 @@
 package tgbot
 
 import (
+	"sync"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
@@ -15,8 +19,8 @@ const (
 	levelAdmin
 )
 
-// levelOf reads the same binding clientOwnedByTgUser checks, so "is a client"
-// and "owns this client" cannot disagree about who is bound.
+// levelOf runs on every update, a stranger's included, so it reads the indexed
+// tg_id column of the clients table rather than expanding every inbound's JSON.
 func (t *Tgbot) levelOf(tgUserID int64) userLevel {
 	if checkAdmin(tgUserID) {
 		return levelAdmin
@@ -24,8 +28,8 @@ func (t *Tgbot) levelOf(tgUserID int64) userLevel {
 	if tgUserID <= 0 {
 		return levelStranger
 	}
-	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-	if err != nil || len(traffics) == 0 {
+	records, err := t.clientService.GetRecordsByTgID(tgUserID)
+	if err != nil || len(records) == 0 {
 		return levelStranger
 	}
 	return levelClient
@@ -50,6 +54,20 @@ func commandAllowed(level userLevel, command string) bool {
 // those are the same identity only in a private chat.
 func isPrivateChat(chat telego.Chat) bool {
 	return chat.Type == telego.ChatTypePrivate
+}
+
+var loggedNonPrivateChats sync.Map
+
+// ignoredChat reports whether an update is dropped for its chat type. Each such
+// chat is logged once, so an admin used to a group can find why the bot is quiet.
+func ignoredChat(chat telego.Chat) bool {
+	if isPrivateChat(chat) {
+		return false
+	}
+	if _, seen := loggedNonPrivateChats.LoadOrStore(chat.ID, struct{}{}); !seen {
+		logger.Infof("tgbot: ignoring %s chat %d; the bot answers only in private chats", chat.Type, chat.ID)
+	}
+	return true
 }
 
 // gateCommand reports whether a command reaches answerCommand, and as whom. A
