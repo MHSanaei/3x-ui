@@ -1625,7 +1625,7 @@ func rewriteRemovedOutboundKeys(raw string) (string, bool, error) {
 			delete(obj, "proxySettings")
 			changed = true
 		}
-		if proto, _ := obj["protocol"].(string); proto == "freedom" {
+		if proto, _ := obj["protocol"].(string); strings.EqualFold(proto, "freedom") {
 			if sockopt := outboundSockopt(obj, false); sockopt != nil {
 				if _, present := sockopt["addressPortStrategy"]; present {
 					delete(sockopt, "addressPortStrategy")
@@ -2144,7 +2144,7 @@ func rewriteFreedomFinalRules(raw string) (string, bool, error) {
 		if !ok {
 			continue
 		}
-		if proto, _ := obj["protocol"].(string); proto != "freedom" {
+		if proto, _ := obj["protocol"].(string); !strings.EqualFold(proto, "freedom") {
 			continue
 		}
 		settings, ok := obj["settings"].(map[string]any)
@@ -2247,7 +2247,7 @@ func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
 		if !ok {
 			continue
 		}
-		if proto, _ := obj["protocol"].(string); proto != "freedom" {
+		if proto, _ := obj["protocol"].(string); !strings.EqualFold(proto, "freedom") {
 			continue
 		}
 		settings, ok := obj["settings"].(map[string]any)
