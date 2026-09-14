@@ -10,6 +10,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
+import { isOutboundProtocol } from '@/schemas/primitives';
 import { HttpUtil, LanguageManager } from '@/utils';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
@@ -86,7 +87,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         for (const o of outbounds) {
           if (!o || typeof o !== 'object') continue;
           const rec = o as Record<string, unknown>;
-          if (rec.protocol === 'blackhole') continue; // dropping traffic is never a useful egress
+          if (isOutboundProtocol(rec, 'blackhole')) continue; // never a useful egress
           const tag = rec.tag;
           if (typeof tag === 'string' && tag) tags.add(tag);
         }
