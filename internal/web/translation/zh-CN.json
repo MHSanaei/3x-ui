@@ -1493,6 +1493,8 @@
           "note": "leastPing/leastLoad 均衡器始终带有 burstObservatory。此开关自定义其探活参数 — 关闭以使用内置默认值。更改在面板重启后生效。"
         }
       },
+      "subCalendarExpireInclusive": "订阅到期日期显示为月底",
+      "subCalendarExpireInclusiveDesc": "默认关闭。对于按每月 1 日续期、且到期时间为面板时区午夜的客户端，订阅到期时间报告为上月最后一秒。真实截止时间和续期不变。客户端使用自身时区，可能提前一秒显示过期。",
       "subInfoNodeEnable": "独立信息配置 / 提示节点",
       "subInfoNodeEnableDesc": "启用后，备注及剩余流量/天数将作为单独的 SOCKS 提示配置显示在顶部；过期或流量耗尽时仅返回状态提示。",
       "subExpiredTemplate": "过期提示模板",

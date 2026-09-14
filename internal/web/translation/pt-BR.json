@@ -1493,6 +1493,8 @@
           "note": "Balanceadores leastPing/leastLoad sempre carregam um burstObservatory. Esta opção personaliza seus parâmetros de probe — desligue-a para usar os padrões integrados. As alterações se aplicam após reiniciar o painel."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "Configuração de informações separada / Nó fictício",
       "subInfoNodeEnableDesc": "Quando ativado, observações e tráfego/dias restantes são exibidos em uma configuração SOCKS fictícia no topo, e assinaturas expiradas/esgotadas retornam apenas o status.",
       "subExpiredTemplate": "Modelo expirado",

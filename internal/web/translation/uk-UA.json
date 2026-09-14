@@ -1493,6 +1493,8 @@
           "note": "Балансувальники leastPing/leastLoad завжди мають burstObservatory. Цей перемикач налаштовує її параметри probe — вимкніть, щоб використовувати вбудовані значення за замовчуванням. Зміни застосовуються після перезапуску панелі."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "Окремий інфо-конфіг / фіктивний вузол",
       "subInfoNodeEnableDesc": "Якщо увімкнено, примітка та залишок трафіку/днів відображаються окремим SOCKS-конфігом угорі, а після закінчення терміну/трафіку повертається лише статус.",
       "subExpiredTemplate": "Шаблон закінчення терміну",

@@ -199,6 +199,17 @@ export default function SubscriptionGeneralTab({
 
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.subCalendarExpireInclusive')}
+                description={t('pages.settings.subCalendarExpireInclusiveDesc')}
+              >
+                <Switch
+                  checked={allSetting.subCalendarExpireInclusive}
+                  onChange={(v) => updateSetting({ subCalendarExpireInclusive: v })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.subExpiredTemplate')}
                 description={t('pages.settings.subExpiredTemplateDesc')}
               >

@@ -484,7 +484,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		}
 
 		// Add headers
-		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+		header := subReq.subscriptionUserinfo(traffic)
 		profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 		metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, profileURL)
 		a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)

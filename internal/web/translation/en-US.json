@@ -1611,6 +1611,8 @@
           "note": "leastPing/leastLoad balancers always carry a burst observatory. This switch customises its probe parameters — turn it off to use the built-in defaults. Changes apply after a panel restart."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "Separate Info Config / Dummy Node",
       "subInfoNodeEnableDesc": "When enabled, remarks and remaining traffic/days are served as a separate dummy SOCKS config at the top, and expired/depleted subscriptions return only the status config.",
       "subExpiredTemplate": "Expired Template",

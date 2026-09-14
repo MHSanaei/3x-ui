@@ -1493,6 +1493,8 @@
           "note": "leastPing/leastLoad dengeleyicileri her zaman bir burstObservatory taşır. Bu anahtar probe parametrelerini özelleştirir — yerleşik varsayılanları kullanmak için kapatın. Değişiklikler panel yeniden başlatıldıktan sonra uygulanır."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "Ayrı Bilgi Yapılandırması / Sahte Düğüm",
       "subInfoNodeEnableDesc": "Etkinleştirildiğinde, notlar ve kalan trafik/günler en üstte ayrı bir sahte SOCKS yapılandırması olarak sunulur; süresi dolmuş veya kotası bitmiş abonelikler yalnızca durum yapılandırmasını alır.",
       "subExpiredTemplate": "Süresi Dolmuş Şablonu",

@@ -113,7 +113,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	slices.Sort(emails)
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
 	traffic.Enable = hasEnabledClient
-	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	header := subReq.subscriptionUserinfo(traffic)
 
 	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(proxies) > 0); mode != infoNodeNone {
 		dummyProxy := map[string]any{

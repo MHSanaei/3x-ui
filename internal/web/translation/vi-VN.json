@@ -1493,6 +1493,8 @@
           "note": "Các bộ cân bằng leastPing/leastLoad luôn mang một burstObservatory. Công tắc này tùy chỉnh các tham số probe — tắt nó để dùng mặc định tích hợp. Các thay đổi áp dụng sau khi khởi động lại bảng điều khiển."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "Cấu hình thông tin riêng / Nút ảo",
       "subInfoNodeEnableDesc": "Khi bật, ghi chú và lưu lượng/ngày còn lại sẽ hiển thị dưới dạng cấu hình SOCKS ảo riêng ở trên cùng, và đăng ký hết hạn/hết dung lượng chỉ trả về cấu hình trạng thái.",
       "subExpiredTemplate": "Mẫu hết hạn",
