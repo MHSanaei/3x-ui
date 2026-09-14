@@ -1,6 +1,7 @@
 package outbound
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -10,10 +11,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-// The core lowercases a protocol id (infra/conf/loader.go) and a transport name
-// (TransportProtocol.Build) before it resolves either, and resolves both "kcp"
-// and "mkcp" to mKCP. Both readers below have to agree, or a template the core
-// is running gets probed as if it were a different protocol.
+// The core lowercases a protocol id and a transport name before it resolves
+// either, so every reader here has to accept the spelling the core accepts.
 
 func TestTestOutboundsTCPModeForcesCoreSpelledUDPToHTTPProbe(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +66,47 @@ func TestOutboundTransportIsUDPMatchesTheCore(t *testing.T) {
 				t.Errorf("outboundTransportIsUDP(%v) = %v, want %v", tt.ob, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestBuildBatchTestConfigReadsTheProtocolIDLikeTheCore(t *testing.T) {
+	items := []*httpBatchItem{
+		{tag: "wg", outbound: map[string]any{"tag": "wg", "protocol": "WireGuard"}},
+		{tag: "awg", outbound: map[string]any{"tag": "awg", "protocol": "AmneziaWG"}},
+	}
+
+	cfg := buildBatchTestConfig(items, nil, []int{61011, 61012})
+	raw, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+
+	outbounds, _ := m["outbounds"].([]any)
+	byTag := make(map[string]map[string]any, len(outbounds))
+	for _, entry := range outbounds {
+		ob, _ := entry.(map[string]any)
+		tag, _ := ob["tag"].(string)
+		byTag[tag] = ob
+	}
+
+	wg := byTag["wg"]
+	if wg == nil {
+		t.Fatalf("wg outbound missing from the temp config: %v", outbounds)
+	}
+	if settings, _ := wg["settings"].(map[string]any); settings == nil || settings["noKernelTun"] != true {
+		t.Errorf(`"WireGuard" settings = %v, want noKernelTun: the probe instance must not create a kernel device`, wg["settings"])
+	}
+
+	awg := byTag["awg"]
+	if awg == nil {
+		t.Fatalf("awg outbound missing from the temp config: %v", outbounds)
+	}
+	if protocol, _ := awg["protocol"].(string); protocol != "socks" {
+		t.Errorf(`"AmneziaWG" protocol = %q, want %q: a raw amneziawg entry fails the whole temp config`, protocol, "socks")
 	}
 }
 
