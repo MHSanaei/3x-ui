@@ -178,6 +178,8 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 		r := &TestOutboundResult{Tag: tag, Mode: probeLabel}
 		results[i] = r
 		protocol, _ := ob["protocol"].(string)
+		// The core lowercases the id before it resolves the handler.
+		protocol = strings.ToLower(protocol)
 		switch {
 		case tag == "":
 			r.Error = "Outbound has no tag"
