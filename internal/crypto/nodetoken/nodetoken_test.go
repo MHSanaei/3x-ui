@@ -96,7 +96,7 @@ func TestEncryptedNeverFallsBackToPlaintext(t *testing.T) {
 	c, _ := NewCodec(ModeRequired, testRing(t, "k1", "k1"))
 	enc, _ := c.Encrypt(1, "tok")
 	// Corrupt the ciphertext body — must error, never return raw bytes.
-	bad := enc[:len(enc)-2] + "AA"
+	bad := flipLastCiphertextBit(t, enc)
 	if _, err := c.Decrypt(1, bad); err == nil {
 		t.Fatal("corrupted ciphertext must fail, not fall back to plaintext")
 	}
@@ -106,6 +106,20 @@ func TestEncryptedNeverFallsBackToPlaintext(t *testing.T) {
 	if _, err := c2.Decrypt(1, other); err == nil {
 		t.Fatal("unknown key id must fail")
 	}
+}
+
+// flipLastCiphertextBit rewrites the body through its decoded bytes. Editing
+// the trailing base64 characters can leave those bytes untouched: the last
+// character only carries 2 significant bits, so such an edit corrupts nothing.
+func flipLastCiphertextBit(t *testing.T, stored string) string {
+	t.Helper()
+	cut := strings.LastIndex(stored, ":") + 1
+	blob, err := base64.RawURLEncoding.DecodeString(stored[cut:])
+	if err != nil {
+		t.Fatalf("decode ciphertext body: %v", err)
+	}
+	blob[len(blob)-1] ^= 0x01
+	return stored[:cut] + base64.RawURLEncoding.EncodeToString(blob)
 }
 
 func TestEncryptionMarkerPassesThroughWhenDisabled(t *testing.T) {
