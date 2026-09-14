@@ -376,8 +376,9 @@ describe('outbound-form-adapter: round-trip', () => {
         },
       }),
     );
+    // The strategy no longer rides in settings; see freedom-strategy-placement.test.ts.
+    expect(filled.streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv4' } });
     expect(filled.settings).toMatchObject({
-      domainStrategy: 'UseIPv4',
       redirect: '1.1.1.1',
       userLevel: 3,
       proxyProtocol: 2,
@@ -556,7 +557,7 @@ describe('outbound-form-adapter: targetStrategy', () => {
 
   it('normalizes wire case to the canonical spelling (core matches case-insensitively)', () => {
     const form = rawOutboundToFormValues({
-      protocol: 'freedom',
+      protocol: 'vless',
       settings: {},
       targetStrategy: 'useipv4v6',
     });
@@ -582,7 +583,7 @@ describe('outbound-form-adapter: targetStrategy', () => {
     expect(invalid).not.toHaveProperty('targetStrategy');
   });
 
-  it('freedom prefers settings.targetStrategy over domainStrategy and emits the legacy key', () => {
+  it('freedom prefers settings.targetStrategy over domainStrategy and moves it to sockopt', () => {
     const form = rawOutboundToFormValues({
       protocol: 'freedom',
       settings: { targetStrategy: 'UseIPv6', domainStrategy: 'UseIPv4' },
@@ -591,8 +592,11 @@ describe('outbound-form-adapter: targetStrategy', () => {
       expect(form.settings.domainStrategy).toBe('UseIPv6');
     }
     const back = formValuesToWirePayload(form);
-    expect(back.settings).toMatchObject({ domainStrategy: 'UseIPv6' });
+    // Neither legacy key may survive: the core warns about both, and sockopt is
+    // the only placement freedom resolves with.
+    expect(back.settings).not.toHaveProperty('domainStrategy');
     expect(back.settings).not.toHaveProperty('targetStrategy');
+    expect(back.streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv6' } });
   });
 });
 

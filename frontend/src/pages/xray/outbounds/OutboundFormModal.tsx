@@ -417,13 +417,17 @@ export default function OutboundFormModal({
                         <Input placeholder={t('pages.xray.outboundForm.localIpPlaceholder')} />
                       </FormField>
 
-                      <FormField
-                        label={t('pages.xray.outbound.targetStrategy')}
-                        name="targetStrategy"
-                        tooltip={t('pages.xray.outboundForm.targetStrategyHint')}
-                      >
-                        <Select allowClear placeholder="AsIs" options={TARGET_STRATEGY_OPTIONS} />
-                      </FormField>
+                      {/* Freedom's own card owns the strategy — the core migrates this
+                          root key into the same sockopt value, so two knobs would race. */}
+                      {protocol !== 'freedom' && (
+                        <FormField
+                          label={t('pages.xray.outbound.targetStrategy')}
+                          name="targetStrategy"
+                          tooltip={t('pages.xray.outboundForm.targetStrategyHint')}
+                        >
+                          <Select allowClear placeholder="AsIs" options={TARGET_STRATEGY_OPTIONS} />
+                        </FormField>
+                      )}
 
                       {SERVER_PROTOCOLS.has(protocol) && <ServerTarget />}
                       {protocol === 'vmess' && <VmessFields />}
@@ -541,7 +545,10 @@ export default function OutboundFormModal({
                       {((streamAllowed && network) ||
                         !streamAllowed ||
                         protocol === 'wireguard') && (
-                        <SockoptForm outboundTags={dialerProxyTags ?? existingTags} />
+                        <SockoptForm
+                          outboundTags={dialerProxyTags ?? existingTags}
+                          showDomainStrategy={protocol !== 'freedom'}
+                        />
                       )}
 
                       <Controller
