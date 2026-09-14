@@ -1380,23 +1380,39 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 			existing.TgID = incoming.TgID
 		}
 	}
-	if existing.Reset != incoming.Reset && incoming.Reset != 0 {
-		if incomingNewer || existing.Reset == 0 {
-			keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
-			existing.Reset = incoming.Reset
+	if existing.ResetWeekday != 0 || incoming.ResetWeekday != 0 {
+		// A mode switch must carry its zeroes, not fill them from another mode.
+		// Empty snapshots still preserve the existing schedule during migration.
+		incomingSet := incoming.Reset != 0 || incoming.ResetDay != 0 || incoming.ResetWeekday != 0
+		existingSet := existing.Reset != 0 || existing.ResetDay != 0 || existing.ResetWeekday != 0
+		if incomingSet && (incomingNewer || !existingSet) {
+			for _, field := range []struct {
+				name    string
+				current *int
+				value   int
+			}{
+				{"reset", &existing.Reset, incoming.Reset},
+				{"resetDay", &existing.ResetDay, incoming.ResetDay},
+				{"resetWeekday", &existing.ResetWeekday, incoming.ResetWeekday},
+			} {
+				if *field.current != field.value {
+					keep(field.name, *field.current, field.value, field.value)
+					*field.current = field.value
+				}
+			}
 		}
-	}
-	if existing.ResetDay != incoming.ResetDay && incoming.ResetDay != 0 {
-		if incomingNewer || existing.ResetDay == 0 {
-			keep("resetDay", existing.ResetDay, incoming.ResetDay, incoming.ResetDay)
-			existing.ResetDay = incoming.ResetDay
+	} else {
+		if existing.Reset != incoming.Reset && incoming.Reset != 0 {
+			if incomingNewer || existing.Reset == 0 {
+				keep("reset", existing.Reset, incoming.Reset, incoming.Reset)
+				existing.Reset = incoming.Reset
+			}
 		}
-	}
-
-	if existing.ResetWeekday != incoming.ResetWeekday && incoming.ResetWeekday != 0 {
-		if incomingNewer || existing.ResetWeekday == 0 {
-			keep("resetWeekday", existing.ResetWeekday, incoming.ResetWeekday, incoming.ResetWeekday)
-			existing.ResetWeekday = incoming.ResetWeekday
+		if existing.ResetDay != incoming.ResetDay && incoming.ResetDay != 0 {
+			if incomingNewer || existing.ResetDay == 0 {
+				keep("resetDay", existing.ResetDay, incoming.ResetDay, incoming.ResetDay)
+				existing.ResetDay = incoming.ResetDay
+			}
 		}
 	}
 	if existing.ResetMax != incoming.ResetMax && incoming.ResetMax != 0 {

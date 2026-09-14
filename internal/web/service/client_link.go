@@ -95,6 +95,9 @@ func (s *ClientService) ApplyInboundClientDelta(tx *gorm.DB, inboundId int, chan
 }
 
 func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients []model.Client, detachEmails []string, prune bool) error {
+	if err := validateClientsRenewal(clients); err != nil {
+		return err
+	}
 	if tx == nil {
 		tx = database.GetDB()
 	}

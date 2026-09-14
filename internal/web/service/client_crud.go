@@ -94,6 +94,15 @@ func validateClientRenewal(client model.Client) error {
 	return nil
 }
 
+func validateClientsRenewal(clients []model.Client) error {
+	for _, client := range clients {
+		if err := validateClientRenewal(client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // normalizeClientTrafficReset stores what the inbound path would store, so the
 // day never reaches the DB as a 0 that three layers downstream each clamp to 1.
 func normalizeClientTrafficReset(c *model.Client) {
