@@ -37,6 +37,7 @@ import {
   ImportOutlined,
 } from '@ant-design/icons';
 
+import { isOutboundProtocol } from '@/schemas/primitives';
 import { HttpUtil } from '@/utils';
 import { onNumber } from '@/utils/onNumber';
 import PromptModal from '@/components/feedback/PromptModal';
@@ -183,7 +184,7 @@ export default function OutboundsTab({
     const tags = new Set<string>();
     (templateSettings?.outbounds || []).forEach((o, i) => {
       if (i === editingIndex) return;
-      if (o?.protocol === 'blackhole') return;
+      if (isOutboundProtocol(o, 'blackhole')) return;
       if (o?.tag) tags.add(o.tag);
     });
     for (const tag of subscriptionOutboundTags || []) {

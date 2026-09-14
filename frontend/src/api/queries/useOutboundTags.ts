@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { keys } from '@/api/queryKeys';
 import { fetchXrayConfig } from '@/hooks/useXraySetting';
+import { isOutboundProtocol } from '@/schemas/primitives';
 
 // Available outbound (and balancer-eligible) tags the user can route an mtproto
 // inbound's Telegram traffic to. Shares the cached xray config query so opening
@@ -18,7 +19,7 @@ export function useOutboundTags(opts?: { excludeBlackhole?: boolean }) {
       for (const o of data?.xraySetting?.outbounds ?? []) {
         const ob = o as { tag?: string; protocol?: string } | null;
         if (!ob?.tag) continue;
-        if (excludeBlackhole && ob.protocol === 'blackhole') continue;
+        if (excludeBlackhole && isOutboundProtocol(ob, 'blackhole')) continue;
         tags.add(ob.tag);
       }
       for (const t of data?.subscriptionOutboundTags ?? []) {
@@ -56,7 +57,7 @@ export function useOutboundTagGroups(opts?: { excludeBlackhole?: boolean }) {
       for (const o of data?.xraySetting?.outbounds ?? []) {
         const ob = o as { tag?: string; protocol?: string } | null;
         if (!ob?.tag) continue;
-        if (excludeBlackhole && ob.protocol === 'blackhole') continue;
+        if (excludeBlackhole && isOutboundProtocol(ob, 'blackhole')) continue;
         outbounds.add(ob.tag);
       }
       for (const t of data?.subscriptionOutboundTags ?? []) {
