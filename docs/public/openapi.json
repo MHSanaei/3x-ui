@@ -221,6 +221,9 @@
           "subAnnounce": {
             "type": "string"
           },
+          "subCalendarExpireInclusive": {
+            "type": "boolean"
+          },
           "subCertFile": {
             "type": "string"
           },
@@ -558,6 +561,7 @@
           "smtpTo",
           "smtpUsername",
           "subAnnounce",
+          "subCalendarExpireInclusive",
           "subCertFile",
           "subClashAutoDetect",
           "subClashEnable",
@@ -867,6 +871,9 @@
           },
           "subAnnounce": {
             "type": "string"
+          },
+          "subCalendarExpireInclusive": {
+            "type": "boolean"
           },
           "subCertFile": {
             "type": "string"
@@ -1213,6 +1220,7 @@
           "smtpTo",
           "smtpUsername",
           "subAnnounce",
+          "subCalendarExpireInclusive",
           "subCertFile",
           "subClashAutoDetect",
           "subClashEnable",

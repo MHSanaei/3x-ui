@@ -75,6 +75,7 @@ var defaultValueMap = map[string]string{
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
+	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
 	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
 	"timeLocation":                "Local",
@@ -720,6 +721,10 @@ func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 
 func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
 	return s.getBool("subInfoNodeEnable")
+}
+
+func (s *SettingService) GetSubCalendarExpireInclusive() (bool, error) {
+	return s.getBool("subCalendarExpireInclusive")
 }
 
 func (s *SettingService) GetSubExpiredTemplate() (string, error) {

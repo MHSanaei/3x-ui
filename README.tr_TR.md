@@ -26,9 +26,10 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 
 ## Özellikler
 
-- **Çoklu protokol destekli gelen bağlantılar (Inbounds)** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, Hysteria2, MTProto, HTTP, SOCKS (Karma), Dokodemo-door / Tunnel ve TUN.
+- **Çoklu protokol destekli gelen bağlantılar (Inbounds)** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, TUIC v5, Hysteria2, MTProto, HTTP, SOCKS (Karma), Dokodemo-door / Tunnel ve TUN.
 - **Modern aktarımlar (transports) ve güvenlik** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade ve XHTTP; TLS, XTLS ve REALITY ile güvene alınmıştır.
 - **Dahili AmneziaWG** — DPI'ya dayanıklı WireGuard, panelin içinde bir kullanıcı alanı ağ yığını üzerinde çalışır; çekirdek modülü, DKMS veya ek paket kurulumu gerektirmez.
+- **Dahili TUIC v5** — Yerel UDP geçişi trafik ölçümü, 0-RTT el sıkışmaları ve BBR tıkanıklık kontrolü ile QUIC tabanlı yüksek performanslı proxy.
 - **MTProto proxy'leri** — İstemci başına FakeTLS gizli anahtarları, reklam etiketleri (ad-tag) ve kotalar, mevcut bağlantılar kopmadan anlık olarak uygulanır.
 - **Geri Dönüş (Fallbacks)** — Xray'in fallback desteğini kullanarak tek bir port üzerinde birden fazla protokole (ör. 443 üzerinde hem VLESS hem Trojan) hizmet verin.
 - **Kullanıcı başına yönetim** — Trafik kotaları, bitiş tarihleri, güvenilir adreslere muafiyet tanınabilen IP sınırları, HWID cihaz sınırları, zamanlanmış yenileme döngüleri, canlı çevrimiçi (online) durumu ve tek tıkla paylaşım bağlantıları, QR kodları ve abonelikler.
@@ -36,7 +37,7 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 - **Çoklu düğüm (Multi-node) desteği** — Tek bir panel üzerinden birden fazla sunucuyu yönetin ve ölçeklendirin; gelen bağlantıları diğer düğümlere klonlayın.
 - **Giden bağlantı (Outbound) ve yönlendirme** — WARP, NordVPN, PIA, özel yönlendirme kuralları, dengeleyiciler arası yük devretme destekli yük dengeleyiciler (load balancers) ve giden bağlantı proxy zincirleme (proxy chaining). Pakete dahil geosite ve geoip kategorileri doğrudan kural düzenleyicisinden taranabilir.
 - **Dahili abonelik sunucusu** — İstemcinin User-Agent bilgisine göre otomatik seçilen raw, JSON ve Clash çıktısı ve [özel sayfa şablonları](docs/custom-subscription-templates.md).
-- Uzaktan izleme ve yönetim için **Telegram botu**.
+- Uzaktan izleme ve yönetim için **Telegram ve Discord botları**.
 - Kapsamı sınırlanmış, isteğe bağlı olarak süresi dolan token'lar ve panel içi API referansı sunan **RESTful API**.
 - **Kurulabilir panel (PWA)** — 3X-UI'yi masaüstüne veya telefon ana ekranına sabitleyin.
 - **Esnek depolama** — SQLite (varsayılan) veya PostgreSQL.

@@ -71,6 +71,24 @@ function targetStrategyFromWire(value: unknown): OutboundDomainStrategy | '' {
   );
 }
 
+// Mirrors the order the loader migrates freedom's legacy strategy keys in:
+// root targetStrategy, settings targetStrategy, settings domainStrategy, sockopt.
+export function freedomDomainStrategyFromWire(outbound: {
+  targetStrategy?: unknown;
+  settings?: unknown;
+  streamSettings?: unknown;
+}): OutboundDomainStrategy | '' {
+  const settings = asObject(outbound.settings);
+  const sockopt = asObject(asObject(outbound.streamSettings).sockopt);
+  const root = targetStrategyFromWire(outbound.targetStrategy);
+  const settingsKey = asString(settings.targetStrategy)
+    ? settings.targetStrategy
+    : settings.domainStrategy;
+  const legacy = root && root !== 'AsIs' ? root : targetStrategyFromWire(settingsKey);
+  if (legacy && legacy !== 'AsIs') return legacy;
+  return targetStrategyFromWire(sockopt.domainStrategy);
+}
+
 const SNIFFING_DEST_VALUES: readonly SniffingDest[] = ['http', 'tls', 'quic', 'fakedns'];
 
 const SNIFFING_DEFAULT: Sniffing = {
@@ -262,7 +280,10 @@ function hysteriaFromWire(raw: Raw): HysteriaOutboundFormSettings {
   };
 }
 
-function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
+function freedomFromWire(
+  raw: Raw,
+  domainStrategy: OutboundDomainStrategy | '',
+): FreedomOutboundFormSettings {
   const fragment = asObject(raw.fragment);
   const noises = asArray(raw.noises).map((n) => {
     const nn = asObject(n);
@@ -306,9 +327,7 @@ function freedomFromWire(raw: Raw): FreedomOutboundFormSettings {
   const wireHasFragment =
     raw.fragment != null && typeof raw.fragment === 'object' && Object.keys(fragment).length > 0;
   return {
-    domainStrategy: targetStrategyFromWire(
-      asString(raw.targetStrategy) || asString(raw.domainStrategy),
-    ),
+    domainStrategy,
     redirect: asString(raw.redirect),
     userLevel: asNumber(raw.userLevel, 0),
     proxyProtocol: ((): FreedomOutboundFormSettings['proxyProtocol'] => {
@@ -527,6 +546,7 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
   const tag = asString(raw.tag);
   const sendThrough = asString(raw.sendThrough);
   const targetStrategy = targetStrategyFromWire(raw.targetStrategy);
+  const freedomStrategy = freedomDomainStrategyFromWire(raw);
   const mux = muxFromWire(raw.mux);
   const hasStream =
     raw.streamSettings &&
@@ -564,7 +584,10 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
       typed = { protocol: 'hysteria', settings: hysteriaFromWire(settings) };
       break;
     case 'freedom':
-      typed = { protocol: 'freedom', settings: freedomFromWire(settings) };
+      typed = {
+        protocol: 'freedom',
+        settings: freedomFromWire(settings, freedomStrategy),
+      };
       break;
     case 'blackhole':
       typed = { protocol: 'blackhole', settings: blackholeFromWire(settings) };
@@ -583,7 +606,9 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     ...typed,
     tag,
     sendThrough,
-    targetStrategy,
+    // The freedom card owns the strategy for freedom, so the shared root field
+    // stays empty and cannot disagree with what the card is showing.
+    targetStrategy: protocol === 'freedom' ? '' : targetStrategy,
     mux,
     streamSettings,
   };
@@ -717,8 +742,6 @@ function hysteriaToWire(s: HysteriaOutboundFormSettings) {
 }
 
 function freedomToWire(s: FreedomOutboundFormSettings) {
-  // The strategy is emitted under the legacy domainStrategy key: new cores
-  // fall back to it when targetStrategy is absent, old cores only know it.
   // Legacy semantics: emit fragment only when the user actually populated
   // at least one of the four sub-fields. Defaults like packets='1-3' alone
   // are not enough — the modal's Fragment Switch sets all four together.
@@ -727,8 +750,9 @@ function freedomToWire(s: FreedomOutboundFormSettings) {
   const fragment: Partial<FreedomOutboundFormSettings['fragment']> = s.fragment ?? {};
   const fragmentEntries = Object.entries(fragment).filter(([, v]) => v !== '' && v != null);
   const fragmentEnabled = !!fragment.length || !!fragment.interval || !!fragment.maxSplit;
+  // domainStrategy is absent here on purpose: formValuesToWirePayload hoists it
+  // into streamSettings.sockopt, the only placement freedom resolves with.
   return {
-    domainStrategy: s.domainStrategy || undefined,
     redirect: s.redirect || undefined,
     userLevel: s.userLevel || undefined,
     proxyProtocol: s.proxyProtocol || undefined,
@@ -881,7 +905,9 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     settings,
   };
   if (values.tag) result.tag = values.tag;
-  if (values.targetStrategy) result.targetStrategy = values.targetStrategy;
+  if (values.targetStrategy && values.protocol !== 'freedom') {
+    result.targetStrategy = values.targetStrategy;
+  }
 
   // streamSettings emission gates on canEnableStream — non-stream protocols
   // still emit just `sockopt` if that key is present (legacy behavior).
@@ -892,6 +918,20 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
       const sockopt = (values.streamSettings as { sockopt?: unknown }).sockopt;
       if (sockopt) result.streamSettings = { sockopt };
     }
+  }
+
+  // Freedom only honours sockopt.domainStrategy; the root and settings keys are
+  // legacy aliases the loader warns about on every start (infra/conf/xray.go).
+  if (values.protocol === 'freedom') {
+    const stream = (result.streamSettings ?? {}) as Raw;
+    const sockopt = asObject(stream.sockopt);
+    const strategy = values.settings.domainStrategy || values.targetStrategy;
+    if (strategy && strategy !== 'AsIs') sockopt.domainStrategy = strategy;
+    else delete sockopt.domainStrategy;
+    if (Object.keys(sockopt).length > 0) stream.sockopt = sockopt;
+    else delete stream.sockopt;
+    if (Object.keys(stream).length > 0) result.streamSettings = stream;
+    else delete result.streamSettings;
   }
 
   if (values.sendThrough) result.sendThrough = values.sendThrough;

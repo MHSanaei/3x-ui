@@ -23,6 +23,7 @@ export const AllSettingSchema = z
     remarkTemplate: z.string().optional(),
     subShowIdentityOnAllLinks: z.boolean().optional(),
     subInfoNodeEnable: z.boolean().optional(),
+    subCalendarExpireInclusive: z.boolean().optional(),
     subExpiredTemplate: z.string().optional(),
     subTrafficDepletedTemplate: z.string().optional(),
     datepicker: z.enum(['gregorian', 'jalalian']).optional(),

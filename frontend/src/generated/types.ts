@@ -65,6 +65,7 @@ export interface AllSetting {
   smtpTo: string;
   smtpUsername: string;
   subAnnounce: string;
+  subCalendarExpireInclusive: boolean;
   subCertFile: string;
   subClashAutoDetect: boolean;
   subClashEnable: boolean;
@@ -221,6 +222,7 @@ export interface AllSettingView {
   smtpTo: string;
   smtpUsername: string;
   subAnnounce: string;
+  subCalendarExpireInclusive: boolean;
   subCertFile: string;
   subClashAutoDetect: boolean;
   subClashEnable: boolean;

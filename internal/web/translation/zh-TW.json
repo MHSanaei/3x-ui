@@ -1493,6 +1493,8 @@
           "note": "leastPing/leastLoad 平衡器始終帶有 burstObservatory。此開關自訂其探活參數 — 關閉以使用內建預設值。變更在面板重啟後生效。"
         }
       },
+      "subCalendarExpireInclusive": "訂閱到期日期顯示為月底",
+      "subCalendarExpireInclusiveDesc": "預設關閉。對於按每月 1 日續期、且到期時間為面板時區午夜的用戶端，訂閱到期時間回報為上月最後一秒。真實截止時間和續期不變。用戶端使用自身時區，可能提前一秒顯示過期。",
       "subInfoNodeEnable": "獨立資訊配置 / 提示節點",
       "subInfoNodeEnableDesc": "啟用後，備註及剩餘流量/天數將作為單獨的 SOCKS 提示配置顯示在頂部；過期或流量耗盡時僅返回狀態提示。",
       "subExpiredTemplate": "過期提示範本",

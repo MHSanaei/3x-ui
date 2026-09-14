@@ -41,6 +41,7 @@ file locations when it can answer in one hop.
 - `internal/xray/geodata/` — streaming geosite/geoip `.dat` reader (cached
   category index + paged entries) and `geosite:`/`geoip:`/`ext:` token parsing.
 - `internal/mtproto/` — MTProto inbounds via the bundled `mtg-multi` binary.
+- `internal/tuic/` — TUIC v5 inbounds: `tuic-server` sidecar supervisor, native Go UDP relay traffic metering.
 - `internal/amneziawg/` — AmneziaWG protocol shape: instance/peer derivation
   from an inbound, 3.1 obfuscation param generation + validation, port-forward
   spec parsing.
@@ -57,8 +58,8 @@ file locations when it can answer in one hop.
 - `internal/web/` — Gin server (embeds `dist/` + `translation/`).
   - `controller/` — panel + REST API handlers; OpenAPI at /panel/api/openapi.json.
   - `service/` — business logic (InboundService, SettingService, XrayService,
-    node sync); subpackages tgbot/, email/, outbound/, panel/, integration/.
-  - `job/` — 18 cron jobs (traffic, fail2ban IP-limit, node heartbeat/sync, LDAP,
+    node sync); subpackages tgbot/, discord/, email/, outbound/, panel/, integration/.
+  - `job/` — 19 cron jobs (traffic, fail2ban IP-limit, node heartbeat/sync, LDAP,
     CPU/memory watchdogs, …); full table in `docs/architecture.md` §5.4.
   - `middleware/`, `entity/`, `global/`, `session/` (CSRF), `network/`,
     `runtime/` (master/sub-node over mTLS), `websocket/`.

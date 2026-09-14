@@ -1493,6 +1493,8 @@
           "note": "موزان‌کننده‌های leastPing/leastLoad همیشه burstObservatory دارند. این کلید پارامترهای probe آن را سفارشی می‌کند — آن را خاموش کنید تا از پیش‌فرض‌های داخلی استفاده شود. تغییرات پس از راه‌اندازی مجدد پنل اعمال می‌شوند."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "کانفیگ جداگانه اطلاعات / نود نمایشی",
       "subInfoNodeEnableDesc": "در صورت فعال بودن، مشخصات و حجم/روزهای باقیمانده به عنوان یک کانفیگ مجزای ساکس در بالای لیست نمایش داده می‌شود و در صورت انقضا یا اتمام حجم فقط پیام وضعیت ارسال می‌شود.",
       "subExpiredTemplate": "قالب پیام انقضا",
