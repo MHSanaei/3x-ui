@@ -25,7 +25,9 @@ export function originalOutboundIndex(rows: OutboundRow[], positionalIndex: numb
 
 export function outboundAddresses(o: OutboundRow): string[] {
   const settings = o.settings as Record<string, unknown> | undefined;
-  switch (o.protocol) {
+  // The core lowercases the id before it resolves the handler.
+  const protocol = typeof o.protocol === 'string' ? o.protocol.toLowerCase() : '';
+  switch (protocol) {
     case Protocols.VMess: {
       const serverObj = settings?.vnext as Array<{ address: string; port: number }> | undefined;
       return serverObj ? serverObj.map((s) => `${s.address}:${s.port}`) : [];
