@@ -82,6 +82,9 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
+			if !isPrivateChat(message.Chat) {
+				return nil
+			}
 			userStateMgr.clear(message.Chat.ID)
 			t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
 			return nil
@@ -89,29 +92,39 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			if !t.isCommandForCurrentBot(&message) {
+			if !isPrivateChat(message.Chat) || !t.isCommandForCurrentBot(&message) {
 				return nil
 			}
 
 			// Use goroutine with worker pool for concurrent command processing
 			go runBotHandler(func() {
 				userStateMgr.clear(message.Chat.ID)
-				t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
+				if isAdmin, ok := t.gateCommand(&message); ok {
+					t.answerCommand(&message, message.Chat.ID, isAdmin)
+				}
 			})
 			return nil
 		}, th.AnyCommand())
 
 		h.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
+			if !isPrivateChat(query.Message.GetChat()) {
+				return nil
+			}
 			// Use goroutine with worker pool for concurrent callback processing
 			go runBotHandler(func() {
 				userStateMgr.clear(query.Message.GetChat().ID)
-				t.answerCallback(&query, checkAdmin(query.From.ID))
+				if isAdmin, ok := t.gateCallback(&query); ok {
+					t.answerCallback(&query, isAdmin)
+				}
 			})
 			return nil
 		}, th.AnyCallbackQueryWithMessage())
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
+			if !isPrivateChat(message.Chat) {
+				return nil
+			}
 			userStateMgr.maybePrune(time.Hour)
 			if userState, exists := userStateMgr.get(message.Chat.ID); exists {
 				// Only a wizard step touches the draft, so only it takes the lock.
@@ -222,6 +235,11 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.help")
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
+		// A stranger learns only its ChatID, which is what an admin needs to bind it.
+		if !isAdmin && t.levelOf(message.From.ID) == levelStranger {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(message.From.ID, 10)))
+			return
+		}
 		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
