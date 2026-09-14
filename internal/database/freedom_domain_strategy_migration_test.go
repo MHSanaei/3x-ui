@@ -230,10 +230,7 @@ func TestMigrateFreedomDomainStrategyRewritesStoredTemplate(t *testing.T) {
 	t.Cleanup(func() { _ = CloseDB() })
 
 	legacy := `{"outbounds":[{"protocol":"freedom","tag":"direct","settings":{"domainStrategy":"UseIPv4"}}]}`
-	if err := db.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
-		Update("value", legacy).Error; err != nil {
-		t.Fatalf("seed template: %v", err)
-	}
+	seedTemplate(t, legacy)
 	if err := db.Where("seeder_name = ?", "FreedomDomainStrategyFix").
 		Delete(&model.HistoryOfSeeders{}).Error; err != nil {
 		t.Fatalf("clear seeder history: %v", err)
@@ -243,29 +240,40 @@ func TestMigrateFreedomDomainStrategyRewritesStoredTemplate(t *testing.T) {
 		t.Fatalf("migrate: %v", err)
 	}
 
+	got := storedTemplate(t)
+	if !strings.Contains(got, `"sockopt"`) {
+		t.Fatalf("stored template = %s, want the strategy in sockopt", got)
+	}
+	if strings.Contains(got, `"domainStrategy"`) {
+		t.Fatalf("stored template = %s, want the deprecated key gone", got)
+	}
+
+	// The history gate is what keeps a hand-edited template from being rewritten
+	// again on every restart, so run the real seeder list over a fresh legacy one.
+	seedTemplate(t, legacy)
+	if err := runSeeders(false); err != nil {
+		t.Fatalf("runSeeders: %v", err)
+	}
+	if got := storedTemplate(t); got != legacy {
+		t.Errorf("a completed seeder rewrote the template again: %s", got)
+	}
+}
+
+func seedTemplate(t *testing.T, value string) {
+	t.Helper()
+	if err := db.Where("key = ?", "xrayTemplateConfig").Delete(&model.Setting{}).Error; err != nil {
+		t.Fatalf("clear template: %v", err)
+	}
+	if err := db.Create(&model.Setting{Key: "xrayTemplateConfig", Value: value}).Error; err != nil {
+		t.Fatalf("seed template: %v", err)
+	}
+}
+
+func storedTemplate(t *testing.T) string {
+	t.Helper()
 	var setting model.Setting
 	if err := db.Where("key = ?", "xrayTemplateConfig").First(&setting).Error; err != nil {
 		t.Fatalf("reload template: %v", err)
 	}
-	if !strings.Contains(setting.Value, `"sockopt"`) {
-		t.Fatalf("stored template = %s, want the strategy in sockopt", setting.Value)
-	}
-	if strings.Contains(setting.Value, `"domainStrategy":"UseIPv4","settings"`) {
-		t.Fatalf("stored template = %s, want the deprecated key gone", setting.Value)
-	}
-
-	// A second run must be a no-op: the seeder history gate is what keeps the
-	// template from being rewritten again on every restart.
-	if err := db.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
-		Update("value", legacy).Error; err != nil {
-		t.Fatalf("restore legacy template: %v", err)
-	}
-	var history int64
-	if err := db.Model(&model.HistoryOfSeeders{}).
-		Where("seeder_name = ?", "FreedomDomainStrategyFix").Count(&history).Error; err != nil {
-		t.Fatalf("count seeder history: %v", err)
-	}
-	if history != 1 {
-		t.Fatalf("seeder history rows = %d, want 1", history)
-	}
+	return setting.Value
 }
