@@ -169,6 +169,11 @@ func TestRewriteFreedomDomainStrategySatisfiesCore(t *testing.T) {
 			raw:       `{"protocol":"freedom","tag":"direct","targetStrategy":"ForceIPv6","settings":{}}`,
 			wantValue: `"domainStrategy": "ForceIPv6"`,
 		},
+		{
+			name:      "uppercase protocol spelling",
+			raw:       `{"protocol":"Freedom","tag":"direct","settings":{"domainStrategy":"UseIPv4","finalRules":[{"action":"allow"}]}}`,
+			wantValue: `"domainStrategy": "UseIPv4"`,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			capture := captureCoreLogs(t)
