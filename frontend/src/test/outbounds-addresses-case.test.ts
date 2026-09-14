@@ -51,8 +51,12 @@ describe('outboundAddresses', () => {
     expect(outboundAddresses(row('freedom', {}))).toEqual([]);
   });
 
-  it('returns no bare separator for a vless row whose servers sit in vnext', () => {
-    expect(outboundAddresses(row('VLESS', vnext))).toEqual([]);
+  it('reads the vnext server of a vless row', () => {
+    expect(outboundAddresses(row('VLESS', vnext))).toEqual(['a.example.com:443']);
+  });
+
+  it('returns no bare separator for a vless row that carries no server', () => {
+    expect(outboundAddresses(row('VLESS', {}))).toEqual([]);
   });
 
   it('reads the flat server of a hysteria id', () => {
