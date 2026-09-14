@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
+import { isOutboundProtocol } from '@/schemas/primitives';
 import {
   OutboundTrafficListSchema,
   OutboundTestResultListSchema,
@@ -386,10 +387,15 @@ export function useXraySetting(): UseXraySettingResult {
           index: number,
           tag: string,
         ) => {
-          const proto = ob?.protocol;
-          if (proto === 'blackhole' || proto === 'loopback' || ob?.tag === 'blocked') return;
+          if (
+            isOutboundProtocol(ob, 'blackhole') ||
+            isOutboundProtocol(ob, 'loopback') ||
+            ob?.tag === 'blocked'
+          ) {
+            return;
+          }
           // freedom ("direct") and dns aren't proxies — skip them in every mode.
-          if (proto === 'freedom' || proto === 'dns') return;
+          if (isOutboundProtocol(ob, 'freedom') || isOutboundProtocol(ob, 'dns')) return;
           if (kind === 'sub' && !tag) return;
           const toHttp = mode !== 'tcp' || isUdpOutbound(ob);
           if (kind === 'tpl') {
