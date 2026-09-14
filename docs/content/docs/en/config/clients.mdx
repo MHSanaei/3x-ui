@@ -17,7 +17,7 @@ inbounds** at once, with per-client traffic accounting.
 | **Password**   | Trojan, Shadowsocks, TUIC | The client credential.                                             |
 | **Auth**       | Hysteria2             | The client credential.                                             |
 | **Flow**       | VLESS                 | XTLS flow, e.g. `xtls-rprx-vision`.                                |
-| **Limit IP**   | all                   | Max simultaneous source IPs (enforced via Fail2ban).               |
+| **Limit IP**   | all (except TUIC)     | Max simultaneous source IPs (enforced via Fail2ban).               |
 | **Total (GB)** | all (except TUIC)     | Traffic quota; the client is disabled when exhausted (for TUIC, limits are set at the inbound level). |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
 | **Reset**      | all                   | Auto-renew period in **days** (rolls the quota over).              |

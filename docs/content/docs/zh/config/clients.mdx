@@ -16,7 +16,7 @@ icon: Users
 | **Password**   | Trojan、Shadowsocks、TUIC | 客户端凭据。                                                  |
 | **Auth**       | Hysteria2             | 客户端凭据。                                                      |
 | **Flow**       | VLESS                 | XTLS 流控，例如 `xtls-rprx-vision`。                              |
-| **Limit IP**   | 全部                  | 最大同时连接的源 IP 数量（通过 Fail2ban 强制执行）。             |
+| **Limit IP**   | 全部（TUIC 除外）      | 最大同时连接的源 IP 数量（通过 Fail2ban 强制执行）。             |
 | **Total (GB)** | 全部（TUIC 除外）      | 流量配额；用尽后客户端将被禁用（对于 TUIC，限制在入站级别设置）。 |
 | **Expiry**     | 全部                  | 该日期之后客户端停止工作。                                       |
 | **Reset**      | 全部                  | 以**天**为单位的自动续期周期（滚动重置配额）。                   |
