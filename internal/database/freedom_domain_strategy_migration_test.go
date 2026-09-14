@@ -241,11 +241,27 @@ func TestMigrateFreedomDomainStrategyRewritesStoredTemplate(t *testing.T) {
 	}
 
 	got := storedTemplate(t)
-	if !strings.Contains(got, `"sockopt"`) {
-		t.Fatalf("stored template = %s, want the strategy in sockopt", got)
+	var cfg struct {
+		Outbounds []map[string]any `json:"outbounds"`
 	}
-	if strings.Contains(got, `"domainStrategy"`) {
-		t.Fatalf("stored template = %s, want the deprecated key gone", got)
+	if err := json.Unmarshal([]byte(got), &cfg); err != nil {
+		t.Fatalf("stored template is not JSON: %v", err)
+	}
+	if len(cfg.Outbounds) != 1 {
+		t.Fatalf("stored outbounds = %d, want 1", len(cfg.Outbounds))
+	}
+	outbound := cfg.Outbounds[0]
+	if _, present := outbound["targetStrategy"]; present {
+		t.Errorf("stored outbound kept the root targetStrategy: %s", got)
+	}
+	settings, _ := outbound["settings"].(map[string]any)
+	if _, present := settings["domainStrategy"]; present {
+		t.Errorf("stored outbound kept the deprecated settings key: %s", got)
+	}
+	stream, _ := outbound["streamSettings"].(map[string]any)
+	sockopt, _ := stream["sockopt"].(map[string]any)
+	if sockopt["domainStrategy"] != "UseIPv4" {
+		t.Errorf("stored sockopt strategy = %v, want UseIPv4", sockopt["domainStrategy"])
 	}
 
 	// The history gate is what keeps a hand-edited template from being rewritten

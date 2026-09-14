@@ -545,7 +545,10 @@ export default function OutboundFormModal({
                       {((streamAllowed && network) ||
                         !streamAllowed ||
                         protocol === 'wireguard') && (
-                        <SockoptForm outboundTags={dialerProxyTags ?? existingTags} />
+                        <SockoptForm
+                          outboundTags={dialerProxyTags ?? existingTags}
+                          showDomainStrategy={protocol !== 'freedom'}
+                        />
                       )}
 
                       <Controller

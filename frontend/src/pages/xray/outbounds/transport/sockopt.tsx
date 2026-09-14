@@ -12,7 +12,17 @@ import {
 
 import { ADDRESS_PORT_STRATEGY_OPTIONS } from '../outbound-form-constants';
 
-export default function SockoptForm({ outboundTags = [] }: { outboundTags?: string[] }) {
+interface SockoptFormProps {
+  outboundTags?: string[];
+  showDomainStrategy?: boolean;
+}
+
+// Freedom's own card writes the strategy into this same sockopt key, so it hides
+// this field rather than letting two controls fight over one value.
+export default function SockoptForm({
+  outboundTags = [],
+  showDomainStrategy = true,
+}: SockoptFormProps) {
   const { t } = useTranslation();
   const { control, setValue } = useFormContext();
   const sockopt = useWatch({ control, name: 'streamSettings.sockopt' });
@@ -51,17 +61,19 @@ export default function SockoptForm({ outboundTags = [] }: { outboundTags?: stri
               options={dialerProxyOptions}
             />
           </FormField>
-          <FormField
-            label={t('pages.xray.wireguard.domainStrategy')}
-            name={['streamSettings', 'sockopt', 'domainStrategy']}
-          >
-            <Select
-              options={Object.values(DOMAIN_STRATEGY_OPTION).map((v) => ({
-                value: v,
-                label: v,
-              }))}
-            />
-          </FormField>
+          {showDomainStrategy && (
+            <FormField
+              label={t('pages.xray.wireguard.domainStrategy')}
+              name={['streamSettings', 'sockopt', 'domainStrategy']}
+            >
+              <Select
+                options={Object.values(DOMAIN_STRATEGY_OPTION).map((v) => ({
+                  value: v,
+                  label: v,
+                }))}
+              />
+            </FormField>
+          )}
           <FormField
             label={t('pages.inbounds.form.addressPortStrategy')}
             name={['streamSettings', 'sockopt', 'addressPortStrategy']}
