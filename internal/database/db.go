@@ -1365,6 +1365,12 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
+	if !slices.Contains(seedersHistory, "FreedomDomainStrategyFix") {
+		if err := migrateFreedomDomainStrategy(); err != nil {
+			return err
+		}
+	}
+
 	if !slices.Contains(seedersHistory, "NodeInboundsAdopted") {
 		if err := seedNodeInboundsAdopted(); err != nil {
 			return err
@@ -1650,6 +1656,119 @@ func outboundSockopt(obj map[string]any, create bool) map[string]any {
 		stream["sockopt"] = sockopt
 	}
 	return sockopt
+}
+
+func migrateFreedomDomainStrategy() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "FreedomDomainStrategyFix"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := rewriteFreedomDomainStrategy(setting.Value)
+	if rErr != nil {
+		log.Printf("FreedomDomainStrategyFix: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "FreedomDomainStrategyFix"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "FreedomDomainStrategyFix"}).Error
+	})
+}
+
+// rewriteFreedomDomainStrategy moves a freedom outbound's legacy strategy keys
+// into sockopt.domainStrategy, the placement the core's deprecation warning names.
+func rewriteFreedomDomainStrategy(raw string) (string, bool, error) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false, nil
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return raw, false, err
+	}
+	outbounds, ok := cfg["outbounds"].([]any)
+	if !ok {
+		return raw, false, nil
+	}
+	changed := false
+	for _, ob := range outbounds {
+		obj, ok := ob.(map[string]any)
+		if !ok {
+			continue
+		}
+		if proto, _ := obj["protocol"].(string); proto != "freedom" {
+			continue
+		}
+		settings, hasSettings := obj["settings"].(map[string]any)
+		_, hasRoot := obj["targetStrategy"]
+		_, hasSettingsTarget := settings["targetStrategy"]
+		_, hasSettingsDomain := settings["domainStrategy"]
+		if !hasRoot && !hasSettingsTarget && !hasSettingsDomain {
+			continue
+		}
+		strategy := freedomMigratedStrategy(obj, settings)
+		delete(obj, "targetStrategy")
+		if hasSettings {
+			delete(settings, "targetStrategy")
+			delete(settings, "domainStrategy")
+		}
+		if strategy != "" {
+			outboundSockopt(obj, true)["domainStrategy"] = strategy
+		}
+		changed = true
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return raw, false, err
+	}
+	return string(out), true, nil
+}
+
+// freedomMigratedStrategy clones the core's own resolution order for a freedom
+// outbound (infra/conf/freedom.go), returning "" when none of them holds one.
+func freedomMigratedStrategy(obj, settings map[string]any) string {
+	if s, ok := freedomStrategyValue(obj["targetStrategy"]); ok && !strings.EqualFold(s, "asis") {
+		return s
+	}
+	legacy := settings["targetStrategy"]
+	if s, ok := legacy.(string); !ok || s == "" {
+		legacy = settings["domainStrategy"]
+	}
+	if s, ok := freedomStrategyValue(legacy); ok && !strings.EqualFold(s, "asis") {
+		return s
+	}
+	return ""
+}
+
+// freedomStrategyValue reports a strategy the core accepts -- anything else is a
+// hard load error in freedom and sockopt alike, so it cannot be migrated.
+func freedomStrategyValue(value any) (string, bool) {
+	s, ok := value.(string)
+	if !ok || s == "" {
+		return "", false
+	}
+	if !freedomDomainStrategies[strings.ToLower(s)] {
+		return "", false
+	}
+	return s, true
+}
+
+var freedomDomainStrategies = map[string]bool{
+	"asis": true, "useip": true, "useipv4": true, "useipv6": true,
+	"useipv4v6": true, "useipv6v4": true, "forceip": true, "forceipv4": true,
+	"forceipv6": true, "forceipv4v6": true, "forceipv6v4": true,
 }
 
 func normalizeSettingPaths() error {

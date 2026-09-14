@@ -1,5 +1,47 @@
 import type { XraySettingsValue } from '@/hooks/useXraySetting';
+import { freedomDomainStrategyFromWire } from '@/lib/xray/outbound-form-adapter';
 import { blockedSettings, directSettings } from './constants';
+
+// Freedom resolves through the socket layer, so the outbound root and its own
+// settings only hold legacy aliases the core warns about (infra/conf/xray.go).
+const LEGACY_FREEDOM_STRATEGY_KEYS = ['domainStrategy', 'targetStrategy'] as const;
+
+type Outbound = Record<string, unknown>;
+
+function directFreedom(t: XraySettingsValue | null): Outbound | undefined {
+  return t?.outbounds?.find((o) => o?.protocol === 'freedom' && o?.tag === 'direct') as
+    | Outbound
+    | undefined;
+}
+
+export function directFreedomStrategy(t: XraySettingsValue | null): string {
+  const outbound = directFreedom(t);
+  if (!outbound) return 'AsIs';
+  return freedomDomainStrategyFromWire(outbound) || 'AsIs';
+}
+
+export function setDirectFreedomStrategy(t: XraySettingsValue, next: string): void {
+  if (!Array.isArray(t.outbounds)) t.outbounds = [];
+  let idx = t.outbounds.findIndex((o) => o?.protocol === 'freedom' && o?.tag === 'direct');
+  if (idx < 0) {
+    t.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: {} } as never);
+    idx = t.outbounds.length - 1;
+  }
+  const ob = t.outbounds[idx] as Outbound;
+  // Drop the legacy placements, or the loader keeps warning and the core keeps
+  // preferring the root key it resets over the sockopt value set here.
+  const settings = (ob.settings ?? {}) as Outbound;
+  for (const key of LEGACY_FREEDOM_STRATEGY_KEYS) delete settings[key];
+  ob.settings = settings;
+  const stream = (ob.streamSettings ?? {}) as Outbound;
+  const sockopt = (stream.sockopt ?? {}) as Outbound;
+  if (next === 'AsIs') delete sockopt.domainStrategy;
+  else sockopt.domainStrategy = next;
+  if (Object.keys(sockopt).length === 0) delete stream.sockopt;
+  else stream.sockopt = sockopt;
+  if (Object.keys(stream).length === 0) delete ob.streamSettings;
+  else ob.streamSettings = stream;
+}
 
 export function ruleGetter(
   t: XraySettingsValue | null,

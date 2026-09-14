@@ -25,6 +25,7 @@ import {
   MASK_ADDRESS,
   ROUTING_DOMAIN_STRATEGIES,
 } from './constants';
+import { directFreedomStrategy, setDirectFreedomStrategy } from './helpers';
 
 interface BasicsTabProps {
   templateSettings: XraySettingsValue | null;
@@ -109,11 +110,7 @@ export default function BasicsTab({
     });
   }
 
-  const freedomStrategy =
-    (
-      templateSettings?.outbounds?.find((o) => o?.protocol === 'freedom' && o?.tag === 'direct')
-        ?.settings as { domainStrategy?: string } | undefined
-    )?.domainStrategy ?? 'AsIs';
+  const freedomStrategy = directFreedomStrategy(templateSettings);
 
   const directFreedomOutbound = templateSettings?.outbounds?.find(
     (o) => o?.protocol === 'freedom' && o?.tag === 'direct',
@@ -186,25 +183,7 @@ export default function BasicsTab({
                 value={freedomStrategy}
                 style={{ width: '100%' }}
                 options={OutboundDomainStrategies.map((s) => ({ value: s, label: s }))}
-                onChange={(next) =>
-                  mutate((tt) => {
-                    if (!tt.outbounds) tt.outbounds = [];
-                    const idx = tt.outbounds.findIndex(
-                      (o) => o?.protocol === 'freedom' && o?.tag === 'direct',
-                    );
-                    if (idx < 0) {
-                      tt.outbounds.push({
-                        protocol: 'freedom',
-                        tag: 'direct',
-                        settings: { domainStrategy: next },
-                      });
-                    } else {
-                      const ob = tt.outbounds[idx];
-                      ob.settings = (ob.settings || {}) as Record<string, unknown>;
-                      (ob.settings as Record<string, unknown>).domainStrategy = next;
-                    }
-                  })
-                }
+                onChange={(next) => mutate((tt) => setDirectFreedomStrategy(tt, next))}
               />
             }
           />

@@ -57,6 +57,26 @@ describe('OutboundFormModal', () => {
     }
   }, 30000); // iterates every protocol, re-rendering a heavy modal each time — slow on CI runners
 
+  // The core migrates freedom's outbound-root targetStrategy into the very same
+  // sockopt.domainStrategy the card writes, so the modal must not offer both.
+  it('offers freedom one strategy knob and other protocols the root one', async () => {
+    renderModal(null);
+
+    chooseSelectOption('protocol', 'freedom');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const freedomLabels = fieldLabels();
+    expect(freedomLabels).toContain('Strategy');
+    expect(freedomLabels).not.toContain('Target Strategy');
+
+    chooseSelectOption('protocol', 'vless');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(fieldLabels()).toContain('Target Strategy');
+  });
+
   it('saves a vless reverse outbound while reverse sniffing stays disabled', async () => {
     const onConfirm = vi.fn();
     renderWithProviders(
