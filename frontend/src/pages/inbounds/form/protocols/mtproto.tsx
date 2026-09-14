@@ -89,6 +89,7 @@ export default function MtprotoFields() {
           tooltip={t('pages.inbounds.form.mtgRouteOutboundHint')}
         >
           <Select
+            id="mtprotoOutboundTag"
             allowClear
             showSearch
             placeholder={t('pages.inbounds.form.mtgRouteOutboundPlaceholder')}

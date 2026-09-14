@@ -41,6 +41,8 @@ export function isUdpOutbound(outbound: unknown): boolean {
     isOutboundProtocol(o, 'amneziawg') ||
     network === 'hysteria' ||
     network === 'kcp' ||
+    // The core resolves "kcp" and "mkcp" to the same mKCP transport.
+    network === 'mkcp' ||
     network === 'quic'
   );
 }

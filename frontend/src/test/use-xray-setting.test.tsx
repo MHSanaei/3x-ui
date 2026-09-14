@@ -83,6 +83,11 @@ describe('useXraySetting', () => {
       { protocol: 'vless', tag: 'kcp', streamSettings: { network: 'KCP' } },
       'http',
     ],
+    [
+      'probes an "mkcp" transport over HTTP',
+      { protocol: 'vless', tag: 'mkcp', streamSettings: { network: 'mkcp' } },
+      'http',
+    ],
     ['probes a plain vless outbound over TCP', { protocol: 'vless', tag: 'plain' }, 'tcp'],
   ])('%s', async (_name, outbound, want) => {
     const bodies: Array<Record<string, unknown>> = [];

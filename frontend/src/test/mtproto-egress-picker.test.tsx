@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 import { Form } from 'antd';
-import { fireEvent, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import MtprotoFields from '@/pages/inbounds/form/protocols/mtproto';
 import { HttpUtil, Msg } from '@/utils';
-import { renderWithProviders } from './test-utils';
+import { listSelectOptions, renderWithProviders } from './test-utils';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -36,25 +36,9 @@ function Harness({ children }: { children: ReactNode }) {
   );
 }
 
-// The egress picker is the form's only searchable select, so it can be found
-// without depending on the field id react-hook-form generates.
-function egressPicker(): HTMLElement {
-  const select = document.querySelector('.ant-select-show-search');
-  if (!select) throw new Error('egress picker not rendered');
-  return select as HTMLElement;
-}
-
-function egressOptions(): string[] {
-  const select = egressPicker();
-  fireEvent.mouseDown(select);
-  const options = Array.from(
-    document.querySelectorAll(
-      '.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option',
-    ),
-  ).map((o) => (o.getAttribute('title') ?? o.textContent ?? '').trim());
-  fireEvent.keyDown(select, { key: 'Escape' });
-  return options;
-}
+// The field carries an explicit id (like the inbound form's protocol select), so
+// the assertions can't drift onto another select that happens to be nearby.
+const EGRESS_FIELD = 'mtprotoOutboundTag';
 
 describe('mtproto egress picker', () => {
   it('offers the routable tags and not the block outbound', async () => {
@@ -65,10 +49,9 @@ describe('mtproto egress picker', () => {
       </Harness>,
     );
 
-    await waitFor(() => expect(egressOptions()).toContain('direct'));
+    await waitFor(() => expect(listSelectOptions(EGRESS_FIELD)).toContain('direct'));
 
-    const options = egressOptions();
-    expect(options).toContain('direct');
+    const options = listSelectOptions(EGRESS_FIELD);
     expect(options).toContain('warp');
     expect(options).not.toContain('blocked');
   });
