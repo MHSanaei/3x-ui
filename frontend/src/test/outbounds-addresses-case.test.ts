@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { outboundAddresses } from '@/pages/xray/outbounds/outbounds-tab-helpers';
 import type { OutboundRow } from '@/pages/xray/outbounds/outbounds-tab-types';
 
-// The core resolves "VMess" to vmess, so a row whose server settings are
-// populated must still show its address; the switch reads the id verbatim.
+// The core lowercases a protocol id before resolving the handler, so a row
+// spelled "VMess" must still show the address its settings carry.
 const row = (protocol: string, settings: Record<string, unknown>): OutboundRow => ({
   key: 0,
   tag: 'p',
@@ -31,11 +31,39 @@ describe('outboundAddresses', () => {
     ).toEqual(['c.example.com:51820']);
   });
 
+  it('reads a capitalised dns id', () => {
+    expect(outboundAddresses(row('DNS', { rewriteAddress: '1.1.1.1', rewritePort: 53 }))).toEqual([
+      '1.1.1.1:53',
+    ]);
+  });
+
+  it('reads the flat server of a capitalised vless id', () => {
+    expect(outboundAddresses(row('VLESS', { address: 'd.example.com', port: 443 }))).toEqual([
+      'd.example.com:443',
+    ]);
+  });
+
   it('leaves a canonical id unchanged', () => {
     expect(outboundAddresses(row('vmess', vnext))).toEqual(['a.example.com:443']);
   });
 
   it('still returns nothing for a protocol that carries no address', () => {
     expect(outboundAddresses(row('freedom', {}))).toEqual([]);
+  });
+
+  it('returns no bare separator for a vless row whose servers sit in vnext', () => {
+    expect(outboundAddresses(row('VLESS', vnext))).toEqual([]);
+  });
+
+  it('reads the flat server of a hysteria id', () => {
+    expect(outboundAddresses(row('hysteria', { address: 'e.example.com', port: 443 }))).toEqual([
+      'e.example.com:443',
+    ]);
+  });
+
+  it('reads the peer endpoint of an amneziawg id', () => {
+    expect(
+      outboundAddresses(row('amneziawg', { peers: [{ endpoint: 'f.example.com:51820' }] })),
+    ).toEqual(['f.example.com:51820']);
   });
 });

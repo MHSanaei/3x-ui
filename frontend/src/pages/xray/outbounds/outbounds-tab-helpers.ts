@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 
-import { OutboundProtocols as Protocols } from '@/schemas/primitives';
+import { isOutboundProtocol, OutboundProtocols as Protocols } from '@/schemas/primitives';
 import { isUdpOutbound } from '@/hooks/useXraySetting';
 import type {
   OutboundTestMode,
@@ -25,29 +25,32 @@ export function originalOutboundIndex(rows: OutboundRow[], positionalIndex: numb
 
 export function outboundAddresses(o: OutboundRow): string[] {
   const settings = o.settings as Record<string, unknown> | undefined;
-  // The core lowercases the id before it resolves the handler.
-  const protocol = typeof o.protocol === 'string' ? o.protocol.toLowerCase() : '';
-  switch (protocol) {
-    case Protocols.VMess: {
+  switch (true) {
+    case isOutboundProtocol(o, Protocols.VMess): {
       const serverObj = settings?.vnext as Array<{ address: string; port: number }> | undefined;
       return serverObj ? serverObj.map((s) => `${s.address}:${s.port}`) : [];
     }
-    case Protocols.VLESS:
-      return [`${settings?.address || ''}:${settings?.port || ''}`];
-    case Protocols.HTTP:
-    case Protocols.Socks:
-    case Protocols.Shadowsocks:
-    case Protocols.Trojan: {
+    case isOutboundProtocol(o, Protocols.VLESS):
+    case isOutboundProtocol(o, Protocols.Hysteria): {
+      const addr = settings?.address as string | undefined;
+      const port = settings?.port as string | number | undefined;
+      return addr || port ? [`${addr || ''}:${port || ''}`] : [];
+    }
+    case isOutboundProtocol(o, Protocols.HTTP):
+    case isOutboundProtocol(o, Protocols.Socks):
+    case isOutboundProtocol(o, Protocols.Shadowsocks):
+    case isOutboundProtocol(o, Protocols.Trojan): {
       const serverObj = settings?.servers as Array<{ address: string; port: number }> | undefined;
       return serverObj ? serverObj.map((s) => `${s.address}:${s.port}`) : [];
     }
-    case Protocols.DNS: {
+    case isOutboundProtocol(o, Protocols.DNS): {
       const addr = (settings?.rewriteAddress as string) || (settings?.address as string) || '';
       const port =
         (settings?.rewritePort as string | number) || (settings?.port as string | number) || '';
       return addr || port ? [`${addr}:${port}`] : [];
     }
-    case Protocols.Wireguard:
+    case isOutboundProtocol(o, Protocols.Wireguard):
+    case isOutboundProtocol(o, Protocols.AmneziaWG):
       return ((settings?.peers as Array<{ endpoint?: string }>) || [])
         .map((p) => p.endpoint || '')
         .filter(Boolean);
