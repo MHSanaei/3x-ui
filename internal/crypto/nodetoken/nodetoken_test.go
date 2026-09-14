@@ -108,9 +108,8 @@ func TestEncryptedNeverFallsBackToPlaintext(t *testing.T) {
 	}
 }
 
-// flipLastCiphertextBit rewrites the body through its decoded bytes. Editing
-// the trailing base64 characters can leave those bytes untouched: the last
-// character only carries 2 significant bits, so such an edit corrupts nothing.
+// flipLastCiphertextBit rewrites the body through its decoded bytes, because
+// editing the trailing base64 characters can leave those bytes untouched.
 func flipLastCiphertextBit(t *testing.T, stored string) string {
 	t.Helper()
 	cut := strings.LastIndex(stored, ":") + 1
