@@ -110,6 +110,37 @@ func TestBuildBatchTestConfigReadsTheProtocolIDLikeTheCore(t *testing.T) {
 	}
 }
 
+func TestTestOutboundsRejectsUntestableIDsInAnyCase(t *testing.T) {
+	tests := []struct {
+		name     string
+		protocol string
+	}{
+		{"canonical freedom", "freedom"},
+		{"capitalised freedom", "Freedom"},
+		{"upper freedom", "FREEDOM"},
+		{"canonical blackhole", "blackhole"},
+		{"capitalised blackhole", "Blackhole"},
+	}
+
+	const wantErr = "Outbound has no testable endpoint"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			batch := mustJSON(t, []any{map[string]any{"tag": "t1", "protocol": tt.protocol}})
+			results, err := (&OutboundService{}).TestOutbounds(batch, "", "", "tcp")
+			if err != nil {
+				t.Fatalf("TestOutbounds: %v", err)
+			}
+			r := results[0]
+			if r.Success {
+				t.Errorf("%q outbound = %+v, want a rejection", tt.protocol, r)
+			}
+			if r.Error != wantErr {
+				t.Errorf("%q error = %q, want %q", tt.protocol, r.Error, wantErr)
+			}
+		})
+	}
+}
+
 func TestTestOutboundsTCPLaneReadsProtocolIDCaseInsensitively(t *testing.T) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

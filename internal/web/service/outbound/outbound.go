@@ -157,7 +157,7 @@ func (s *OutboundService) testOutboundTCP(outboundJSON string) (*TestOutboundRes
 	}
 	tag, _ := ob["tag"].(string)
 	protocol, _ := ob["protocol"].(string)
-	if protocol == "blackhole" || protocol == "freedom" || tag == "blocked" {
+	if equalsAnyFold(protocol, "blackhole", "freedom") || tag == "blocked" {
 		return &TestOutboundResult{Tag: tag, Mode: "tcp", Success: false, Error: "Outbound has no testable endpoint"}, nil
 	}
 
