@@ -1254,7 +1254,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1343,6 +1343,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "FreedomFinalRulesPrivateEgressBlock") {
 		if err := hardenFreedomFinalRules(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "UppercaseFreedomFinalRulesFix") {
+		if err := fixUppercaseFreedomFinalRules(); err != nil {
 			return err
 		}
 	}
@@ -2274,6 +2280,77 @@ func rewriteFreedomFinalRulesPrivateEgress(raw string) (string, bool, error) {
 		return raw, false, err
 	}
 	return string(out), true, nil
+}
+
+func fixUppercaseFreedomFinalRules() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "UppercaseFreedomFinalRulesFix"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := rewriteUppercaseFreedomFinalRules(setting.Value)
+	if rErr != nil {
+		log.Printf("UppercaseFreedomFinalRulesFix: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "UppercaseFreedomFinalRulesFix"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "UppercaseFreedomFinalRulesFix"}).Error
+	})
+}
+
+// Re-runs both finalRules rewrites, because the rows of the two seeders above it
+// already exist on any panel that walked past a differently spelled outbound.
+func rewriteUppercaseFreedomFinalRules(raw string) (string, bool, error) {
+	if !hasNonLowercaseFreedomOutbound(raw) {
+		return raw, false, nil
+	}
+	reversed, reversedChanged, err := rewriteFreedomFinalRules(raw)
+	if err != nil {
+		return raw, false, err
+	}
+	hardened, hardenedChanged, err := rewriteFreedomFinalRulesPrivateEgress(reversed)
+	if err != nil {
+		return raw, false, err
+	}
+	if !reversedChanged && !hardenedChanged {
+		return raw, false, nil
+	}
+	return hardened, true, nil
+}
+
+func hasNonLowercaseFreedomOutbound(raw string) bool {
+	if strings.TrimSpace(raw) == "" {
+		return false
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return false
+	}
+	outbounds, ok := cfg["outbounds"].([]any)
+	if !ok {
+		return false
+	}
+	for _, ob := range outbounds {
+		obj, ok := ob.(map[string]any)
+		if !ok {
+			continue
+		}
+		if proto, _ := obj["protocol"].(string); strings.EqualFold(proto, "freedom") && proto != "freedom" {
+			return true
+		}
+	}
+	return false
 }
 
 func stripRealityFinalmaskTcp() error {
