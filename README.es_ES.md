@@ -37,7 +37,7 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 - **Soporte multinodo** — gestiona y escala a través de varios servidores desde un único panel, incluida la clonación de entradas en otros nodos.
 - **Salida y enrutamiento** — WARP, NordVPN, PIA, reglas de enrutamiento personalizadas, balanceadores de carga con conmutación por error entre balanceadores y encadenamiento de proxy de salida. Las categorías geosite y geoip incluidas se pueden explorar directamente desde el editor de reglas.
 - **Servidor de suscripción integrado** — salida raw, JSON y Clash, seleccionada automáticamente según el User-Agent del cliente, además de [plantillas de página personalizables](docs/custom-subscription-templates.md).
-- **Bot de Telegram** para monitorización y gestión remotas.
+- **Bots de Telegram y Discord** para monitorización y gestión remotas.
 - **API RESTful** con tokens de alcance limitado y caducidad opcional, y una referencia de la API dentro del panel.
 - **Panel instalable (PWA)** — ancla 3X-UI al escritorio o a la pantalla de inicio del móvil.
 - **Almacenamiento flexible** — SQLite (predeterminado) o PostgreSQL.

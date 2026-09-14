@@ -37,7 +37,7 @@
 - **多节点支持** — 从单一面板管理并扩展到多台服务器，并可将入站克隆到其他节点。
 - **出站与路由** — WARP、NordVPN、PIA、自定义路由规则、支持均衡器间回退的负载均衡器，以及出站代理链。内置的 geosite 与 geoip 分类可直接在规则编辑器中浏览。
 - **内置订阅服务器** — 提供 raw、JSON 和 Clash 输出，可依据客户端 User-Agent 自动选择，并支持[自定义页面模板](docs/custom-subscription-templates.md)。
-- **Telegram 机器人**，用于远程监控和管理。
+- **Telegram 和 Discord 机器人**，用于远程监控和管理。
 - **RESTful API**，支持带作用域、可设置有效期的令牌，并提供面板内置的 API 参考文档。
 - **可安装面板 (PWA)** — 将 3X-UI 固定到桌面或手机主屏幕。
 - **灵活的存储** — SQLite（默认）或 PostgreSQL。
