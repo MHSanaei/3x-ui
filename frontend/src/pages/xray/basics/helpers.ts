@@ -31,6 +31,9 @@ export function setDirectFreedomStrategy(t: XraySettingsValue, next: string): vo
   if (!Array.isArray(t.outbounds)) t.outbounds = [];
   let idx = t.outbounds.findIndex((o) => isDirectFreedomOutbound(o));
   if (idx < 0) {
+    // The core refuses to load two outbounds sharing a tag, so a "direct" held
+    // by a non-freedom egress keeps it and this edit is dropped instead.
+    if (t.outbounds.some((o) => o?.tag === 'direct')) return;
     t.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: {} } as never);
     idx = t.outbounds.length - 1;
   }

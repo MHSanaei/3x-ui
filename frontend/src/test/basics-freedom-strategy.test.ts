@@ -68,6 +68,21 @@ describe('BasicsTab freedom strategy', () => {
     expect(directOutbound(t).streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv4' } });
   });
 
+  it('never leaves a taken "direct" tag on two outbounds', () => {
+    const t = {
+      outbounds: [{ protocol: 'socks', tag: 'direct', settings: { servers: [] } }],
+    } as unknown as XraySettingsValue;
+
+    setDirectFreedomStrategy(t, 'UseIPv4');
+
+    expect(t.outbounds).toHaveLength(1);
+    expect(directOutbound(t)).toEqual({
+      protocol: 'socks',
+      tag: 'direct',
+      settings: { servers: [] },
+    });
+  });
+
   it('keeps other sockopt keys the transport form already set', () => {
     const t = settingsWithDirect({}, { sockopt: { tcpFastOpen: true } });
 

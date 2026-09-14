@@ -135,6 +135,9 @@ export default function BasicsTab({
         if (!tt.outbounds) tt.outbounds = [];
         let idx = tt.outbounds.findIndex((o) => isDirectFreedomOutbound(o));
         if (idx < 0) {
+          // Same guard as setDirectFreedomStrategy: a tag the core reads twice
+          // breaks the whole config, so a foreign holder of it is left alone.
+          if (tt.outbounds.some((o) => o?.tag === 'direct')) return;
           tt.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: {} });
           idx = tt.outbounds.length - 1;
         }
