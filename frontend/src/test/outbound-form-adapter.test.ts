@@ -535,6 +535,32 @@ describe('outbound-form-adapter: round-trip', () => {
     const form = rawOutboundToFormValues({ protocol: 'mysterious', settings: {} });
     expect(form.protocol).toBe('vless');
   });
+
+  it('reads a protocol id the way the core does, whatever its case', () => {
+    const freedom = rawOutboundToFormValues({
+      protocol: 'Freedom',
+      tag: 'direct',
+      settings: { redirect: '1.1.1.1' },
+      streamSettings: { sockopt: { domainStrategy: 'UseIPv4' } },
+    });
+    expect(freedom.protocol).toBe('freedom');
+    if (freedom.protocol === 'freedom') {
+      expect(freedom.settings.redirect).toBe('1.1.1.1');
+    }
+    const back = formValuesToWirePayload(freedom);
+    expect(back.protocol).toBe('freedom');
+    expect(back.tag).toBe('direct');
+    expect((back.settings as Record<string, unknown>).redirect).toBe('1.1.1.1');
+
+    const vless = rawOutboundToFormValues({
+      protocol: 'VLESS',
+      settings: { address: 'srv', port: 443, id: '11111111-2222-4333-8444-555555555555' },
+    });
+    expect(vless.protocol).toBe('vless');
+    if (vless.protocol === 'vless') {
+      expect(vless.settings.address).toBe('srv');
+    }
+  });
 });
 
 describe('outbound-form-adapter: targetStrategy', () => {
