@@ -83,12 +83,12 @@ jobs:
       - name: PostgreSQL schema and migration tests
         run: |
           set -o pipefail
-          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
-          # Both must pass. Counting, not SKIP-matching: renaming either test would
+          go test ./internal/database -run '^(TestHostAutoMigrateCreatesColumns_Postgres|TestMigrate_Postgres|TestClientWeeklyRenewMigration_Postgres)$' -count=1 -v | tee /tmp/postgres-schema.log
+          # All must pass. Counting, not SKIP-matching: renaming a test would
           # otherwise leave this step green while testing nothing.
-          passed=$(grep -c -- '--- PASS' /tmp/postgres-schema.log || true)
-          if [ "$passed" -lt 2 ]; then
-            echo "expected 2 passing PostgreSQL schema tests, got $passed" >&2
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-schema.log || true)
+          if [ "$passed" -lt 3 ]; then
+            echo "expected at least 3 passing PostgreSQL schema tests, got $passed" >&2
             exit 1
           fi
 

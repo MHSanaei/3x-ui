@@ -285,7 +285,7 @@ func applyMasterClientLifecycle(c *model.Client, master *xray.ClientTraffic, cs 
 // nodeClientRenewed reports a node-side auto-renew: an absolute deadline moved
 // forward, evidenced by a renewal-count bump or a drop below the stored baseline.
 func nodeClientRenewed(existing *xray.ClientTraffic, cs xray.ClientTraffic, canon, base nodeTrafficCounter) bool {
-	if (cs.Reset <= 0 && cs.ResetDay <= 0) || cs.ExpiryTime <= 0 || existing.ExpiryTime <= 0 {
+	if (cs.Reset <= 0 && cs.ResetDay <= 0 && cs.ResetWeekday <= 0) || cs.ExpiryTime <= 0 || existing.ExpiryTime <= 0 {
 		return false
 	}
 	if cs.ExpiryTime <= existing.ExpiryTime {
@@ -943,16 +943,19 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					seedUp, seedDown = canon.Up, canon.Down
 				}
 				row := &xray.ClientTraffic{
-					InboundId:  c.Id,
-					Email:      cs.Email,
-					Enable:     cs.Enable,
-					Total:      cs.Total,
-					ExpiryTime: cs.ExpiryTime,
-					Reset:      cs.Reset,
-					ResetDay:   cs.ResetDay,
-					Up:         seedUp,
-					Down:       seedDown,
-					LastOnline: cs.LastOnline,
+					InboundId:    c.Id,
+					Email:        cs.Email,
+					Enable:       cs.Enable,
+					Total:        cs.Total,
+					ExpiryTime:   cs.ExpiryTime,
+					Reset:        cs.Reset,
+					ResetDay:     cs.ResetDay,
+					ResetWeekday: cs.ResetWeekday,
+					ResetMax:     cs.ResetMax,
+					ResetCount:   cs.ResetCount,
+					Up:           seedUp,
+					Down:         seedDown,
+					LastOnline:   cs.LastOnline,
 				}
 				if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "email"}}, DoNothing: true}).
 					Create(row).Error; err != nil {
@@ -976,7 +979,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				// re-enables from the node.
 				enableChanged := !lifecycleFrozen && existing.Enable && !cs.Enable &&
 					!nodeDisableIsStale(existing, cs, now, deltaUp, deltaDown)
-				metaChanged := !lifecycleFrozen && (existing.Total != cs.Total || existing.Reset != cs.Reset)
+				metaChanged := !lifecycleFrozen && (existing.Total != cs.Total || existing.Reset != cs.Reset || existing.ResetWeekday != cs.ResetWeekday)
 				if enableChanged || metaChanged || expiryChanged {
 					structuralChange = true
 				}
@@ -1000,12 +1003,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					fmt.Sprintf(
 						`UPDATE client_traffics
 						 SET up = ?, down = ?, enable = ?, total = ?,
-						     expiry_time = ?, reset = ?, reset_day = ?, reset_count = ?, last_online = %s
+						     expiry_time = ?, reset = ?, reset_day = ?, reset_weekday = ?, reset_count = ?, last_online = %s
 						 WHERE email = ?`,
 						database.GreatestExpr("last_online", "?"),
 					),
 					canon.Up, canon.Down, cs.Enable, cs.Total,
-					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetCount,
+					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday, cs.ResetCount,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
 					return false, err
@@ -1019,6 +1022,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				existing.Total = cs.Total
 				existing.ExpiryTime = cs.ExpiryTime
 				existing.Reset = cs.Reset
+				existing.ResetWeekday = cs.ResetWeekday
 				existing.ResetCount = cs.ResetCount
 				structuralChange = true
 			} else if lifecycleFrozen {
@@ -1049,7 +1053,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 						`UPDATE client_traffics
 						 SET up = %s, down = %s, enable = %s, total = ?,
 						     expiry_time = %s,
-						     reset = ?, reset_day = ?, last_online = %s
+						     reset = ?, reset_day = ?, reset_weekday = ?, last_online = %s
 						 WHERE email = ?`,
 						database.ClampedAddExpr("up"),
 						database.ClampedAddExpr("down"),
@@ -1060,7 +1064,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					deltaUp, deltaDown,
 					cs.Enable, cs.ExpiryTime, cs.Total, now, deltaUp, deltaDown,
 					cs.Total,
-					cs.ExpiryTime, cs.Reset, cs.ResetDay,
+					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
 					return false, err
@@ -1075,6 +1079,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					existing.Down = clampTrafficCounter(existing.Down + deltaDown)
 					existing.Total = cs.Total
 					existing.Reset = cs.Reset
+					existing.ResetWeekday = cs.ResetWeekday
 				}
 			}
 			// A dip plus a lagging longer expiry mimics nodeClientRenewed and would

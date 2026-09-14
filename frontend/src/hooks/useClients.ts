@@ -696,6 +696,7 @@ export function useClients(options: UseClientsOptions = {}) {
         tgId: Number(base.tgId) || 0,
         reset: Number(base.reset) || 0,
         resetDay: Number(base.resetDay) || 0,
+        resetWeekday: Number(base.resetWeekday) || 0,
         resetMax: Number(base.resetMax) || 0,
         trafficReset: base.trafficReset || 'never',
         trafficResetDay: Number(base.trafficResetDay) || 1,

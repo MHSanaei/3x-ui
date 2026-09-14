@@ -20,7 +20,7 @@ inbounds** at once, with per-client traffic accounting.
 | **Limit IP**   | all (except TUIC)     | Max simultaneous source IPs (enforced via Fail2ban).               |
 | **Total (GB)** | all (except TUIC)     | Traffic quota; the client is disabled when exhausted (for TUIC, limits are set at the inbound level). |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
-| **Reset**      | all                   | Auto-renew period in **days** (rolls the quota over).              |
+| **Auto renewal** | all                 | Disabled, fixed interval in days, calendar weekly, or calendar monthly. |
 | **Telegram ID**| all                   | Links the client to a Telegram user for self-service/notifications.|
 | **Sub ID**     | all                   | Subscription identifier grouping this client's links.             |
 | **Group**      | all                   | Optional client group for organization and bulk filtering.        |
@@ -41,6 +41,62 @@ inbounds** at once, with per-client traffic accounting.
   and clear them from the client's actions.
 - **Online status** and **last-online** times are tracked per client (and per
   node in multi-node setups).
+
+## Automatic renewal
+
+The individual and bulk-create forms offer one renewal mode at a time:
+
+| Mode | API fields | Schedule |
+| --- | --- | --- |
+| Disabled | `reset=0`, `resetDay=0`, `resetWeekday=0` | The expiry is not renewed. |
+| Fixed interval | `reset=N`, other two fields `0` | Add exactly N × 24 hours to the previous cutoff. |
+| Calendar weekly | `resetWeekday=1..7`, other two fields `0` | Renew at panel-local midnight on Monday (1) through Sunday (7). |
+| Calendar monthly | `resetDay=1..31`, `resetWeekday=0` | Renew at panel-local midnight on that day; missing dates clamp to the month's last day without losing the configured day. |
+
+Calendar weeks stay on the selected weekday across daylight-saving changes;
+they are not equivalent to a fixed seven-day interval. A skipped midnight uses
+the first valid instant of that date; a repeated midnight uses the first one.
+If a timezone skips the entire selected date, the next matching week is used.
+Existing monthly clients
+that also have `reset` set retain monthly precedence. The API rejects weekly
+renewal combined with a positive `reset` or `resetDay`.
+
+For a full calendar month, select **monthly, day 1** and set the initial cutoff
+to the next month's first midnight. For example, `2030-09-01 00:00:00` is valid
+through `2030-08-31 23:59:59`. Day 31 renews at the **start** of the 31st and is
+not the same schedule. The existing optional month-end subscription-header
+display remains a separate setting and is not enabled by this form.
+
+The preview uses the panel's timezone and the same calendar/catch-up calculation
+as automatic renewal. It shows the cutoff, last valid second, next expiry, and
+allowances needed. It is informational: it does not save, activate, reserve, or
+guarantee a future renewal. When no expiry is set, auto-renewal cannot run; an
+explicit button can set the first calendar cutoff. Selecting a mode alone never
+rewrites an existing expiry. First-use clients keep their initial duration, and
+their calendar dates are available after activation.
+
+For legacy last-second calendar cutoffs, the renewal boundary includes the
+existing free alignment to the following midnight. The last-valid-second
+preview still uses the **stored expiry**, not that alignment: an exclusive
+`23:59:59` cutoff is valid through `23:59:58`. Use a next-midnight cutoff for
+full-day validity; the preview itself does not repair the initial expiry.
+
+`resetMax=0` means unlimited renewals. A positive limit counts **each elapsed
+period**, including offline catch-up, not each scheduler tick or attached inbound.
+If the remaining allowances cannot reach a future cutoff, the client stays
+expired and its traffic is not reset. Operator-disabled clients stay disabled.
+
+Renewal already resets client traffic. The separate **periodic traffic reset**
+does not move the expiry and is unchanged; keep it disabled unless you intend an
+additional reset. Quarterly, yearly, and every-N-week/month schedules are not
+part of these modes.
+
+<Callout type="warn">
+  Upgrade the main panel and every participating node before enabling weekly
+  renewal. Older versions ignore `resetWeekday`; a weekly-only client would not
+  auto-renew. Disable or convert weekly schedules before downgrading. Database
+  upgrades default this new field to `0` and preserve existing limits and dates.
+</Callout>
 
 ## Share links and external links
 

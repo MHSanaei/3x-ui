@@ -1164,6 +1164,52 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/renewalPreview',
+        summary: 'Preview client auto-renewal dates without saving or resetting anything.',
+        description:
+          'Uses the same calendar and catch-up calculation as auto-renew in the panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables weekly mode; it cannot be combined with positive reset or resetDay. Existing resetDay takes precedence over reset. With expiryTime=0, calendar modes suggest a first cutoff but do not activate renewal. Negative expiryTime waits for first-use activation. resetMax and resetCount simulate the existing per-period allowance limit; the preview is informational and does not reserve an allowance or guarantee node availability.',
+        params: [
+          {
+            name: 'expiryTime',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Current cutoff in Unix milliseconds; 0 unlimited, negative first-use duration.',
+          },
+          {
+            name: 'reset',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Fixed interval in days; 0 disabled.',
+          },
+          {
+            name: 'resetDay',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Monthly calendar day 1-31; 0 disabled.',
+          },
+          {
+            name: 'resetWeekday',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Weekly calendar day 1-7 (Monday-Sunday); 0 disabled.',
+          },
+          {
+            name: 'resetMax',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Maximum renewals; 0 unlimited.',
+          },
+          {
+            name: 'resetCount',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Renewals already consumed; defaults to 0.',
+          },
+        ],
+        responseSchema: 'ClientRenewalPreview',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/update/:email',
         summary:
           'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).',

@@ -15,8 +15,10 @@ type ClientTraffic struct {
 	Total      int64  `json:"total" form:"total" example:"10737418240"`
 	Reset      int    `json:"reset" form:"reset" gorm:"default:0;index:idx_client_traffics_renew,priority:2" example:"0"`
 	// ResetDay renews on that day of each calendar month instead of every
-	// Reset days; 0 keeps the interval behaviour.
+	// Reset days; 0 disables monthly renewal.
 	ResetDay int `json:"resetDay" form:"resetDay" gorm:"default:0" example:"0"`
+	// ResetWeekday renews weekly at panel-local midnight: 1 Monday through 7 Sunday.
+	ResetWeekday int `json:"resetWeekday" form:"resetWeekday" gorm:"default:0" example:"0"`
 	// ResetMax caps how many times auto-renew may fire; 0 means no cap.
 	ResetMax int `json:"resetMax" form:"resetMax" gorm:"default:0" example:"0"`
 	// ResetCount is how many have fired, so a prepaid plan stops on its own.
