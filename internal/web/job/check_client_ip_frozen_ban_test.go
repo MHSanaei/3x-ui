@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
 )
 
 func banLineCount(t *testing.T, email string) int {
@@ -41,14 +39,14 @@ func TestUpdateInboundClientIps_FrozenLastSeenBannedOnce(t *testing.T) {
 	}
 	row := seedClientIps(t, email, nil)
 
-	if _, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 1, live, true, true); !banned {
+	if banned, _ := j.enforceIpLimitForTest(t, row, inbound, email, 1, live, true); !banned {
 		t.Fatalf("first scan: the over-limit stale IP must be banned")
 	}
 	if got := banLineCount(t, email); got != 1 {
 		t.Fatalf("ban lines after first scan = %d, want 1", got)
 	}
 
-	if _, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 1, live, true, true); banned {
+	if banned, _ := j.enforceIpLimitForTest(t, row, inbound, email, 1, live, true); banned {
 		t.Fatalf("second scan with a frozen lastSeen must not re-ban a dead connection")
 	}
 	if got := banLineCount(t, email); got != 1 {
@@ -59,7 +57,7 @@ func TestUpdateInboundClientIps_FrozenLastSeenBannedOnce(t *testing.T) {
 		{IP: "10.2.0.1", Timestamp: now + 30},
 		{IP: "192.0.2.7", Timestamp: now + 60},
 	}
-	if _, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 1, reconnected, true, true); !banned {
+	if banned, _ := j.enforceIpLimitForTest(t, row, inbound, email, 1, reconnected, true); !banned {
 		t.Fatalf("a reconnect (advanced lastSeen) must be banned again")
 	}
 	if got := banLineCount(t, email); got != 2 {
