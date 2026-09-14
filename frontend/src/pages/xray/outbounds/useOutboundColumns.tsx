@@ -18,7 +18,7 @@ import type { ColumnsType } from 'antd/es/table';
 
 import { SizeFormatter } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
-import { OutboundProtocols as Protocols } from '@/schemas/primitives';
+import { isOutboundProtocol, OutboundProtocols as Protocols } from '@/schemas/primitives';
 import type {
   OutboundTestMode,
   OutboundTestState,
@@ -169,8 +169,8 @@ export function useOutboundColumns({
             </Tooltip>
             <div className="protocol-line">
               <Tag color="green">{record.protocol}</Tag>
-              {[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(
-                record.protocol as never,
+              {[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].some(
+                (id) => isOutboundProtocol(record, id),
               ) && (
                 <>
                   <Tag>{record.streamSettings?.network}</Tag>
