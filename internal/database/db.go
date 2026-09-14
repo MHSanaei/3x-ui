@@ -1826,7 +1826,7 @@ func rewriteDNSOutboundLegacyKeys(raw string) (string, bool, error) {
 		if !ok {
 			continue
 		}
-		if proto, _ := obj["protocol"].(string); proto != "dns" {
+		if proto, _ := obj["protocol"].(string); !strings.EqualFold(proto, "dns") {
 			continue
 		}
 		settings, _ := obj["settings"].(map[string]any)
@@ -1835,11 +1835,14 @@ func rewriteDNSOutboundLegacyKeys(raw string) (string, bool, error) {
 		}
 		nonIPQuery, hasMode := settings["nonIPQuery"]
 		blockTypes, hasTypes := settings["blockTypes"]
+		// JSON null is absent to the core, which decides on nil pointers.
+		hasMode = hasMode && nonIPQuery != nil
+		hasTypes = hasTypes && blockTypes != nil
 		if !hasMode && !hasTypes {
 			continue
 		}
-		// The core refuses legacy keys next to rules, so existing rules win.
-		if _, hasRules := settings["rules"]; !hasRules {
+		// The core refuses legacy keys next to real rules, so existing rules win.
+		if rules, hasRules := settings["rules"]; !hasRules || rules == nil {
 			settings["rules"] = legacyDNSOutboundRules(dnsNonIPQueryMode(nonIPQuery), legacyDNSBlockTypes(blockTypes))
 		}
 		delete(settings, "nonIPQuery")

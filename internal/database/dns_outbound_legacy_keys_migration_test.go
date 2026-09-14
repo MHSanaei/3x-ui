@@ -106,6 +106,44 @@ func TestRewriteDNSOutboundLegacyKeys(t *testing.T) {
 			},
 		},
 		{
+			name:        "a null legacy pair is not a legacy config, as in the core",
+			raw:         `{"outbounds":[{"protocol":"dns","tag":"dns-out","settings":{"nonIPQuery":null,"blockTypes":null}}]}`,
+			wantChanged: false,
+			wantOutbound: map[string]any{
+				"protocol": "dns", "tag": "dns-out",
+				"settings": map[string]any{"nonIPQuery": nil, "blockTypes": nil},
+			},
+		},
+		{
+			name:        "null rules leave the legacy pair authoritative",
+			raw:         `{"outbounds":[{"protocol":"dns","tag":"dns-out","settings":{"nonIPQuery":"drop","blockTypes":[28],"rules":null}}]}`,
+			wantChanged: true,
+			wantOutbound: map[string]any{
+				"protocol": "dns", "tag": "dns-out",
+				"settings": map[string]any{
+					"rules": []any{
+						map[string]any{"action": "drop", "qType": float64(28)},
+						map[string]any{"action": "hijack", "qType": "1,28"},
+						map[string]any{"action": "drop"},
+					},
+				},
+			},
+		},
+		{
+			name:        "the core lowercases the protocol id it dispatches on",
+			raw:         `{"outbounds":[{"protocol":"DNS","tag":"dns-out","settings":{"nonIPQuery":"drop","blockTypes":[]}}]}`,
+			wantChanged: true,
+			wantOutbound: map[string]any{
+				"protocol": "DNS", "tag": "dns-out",
+				"settings": map[string]any{
+					"rules": []any{
+						map[string]any{"action": "hijack", "qType": "1,28"},
+						map[string]any{"action": "drop"},
+					},
+				},
+			},
+		},
+		{
 			name:        "a dns outbound already on rules is left alone",
 			raw:         `{"outbounds":[{"protocol":"dns","tag":"dns-out","settings":{"rules":[{"action":"hijack","qType":1}]}}]}`,
 			wantChanged: false,
@@ -174,22 +212,43 @@ func captureDNSCoreLogs(t *testing.T) *dnsCoreLogCapture {
 	return capture
 }
 
-// Drives the real core: the legacy keys warn on every load, and rules next to
-// them are refused outright, so the rewrite has to end both.
+// Drives the real core: the legacy keys warn on every load, rules next to them
+// are refused outright, and it reads JSON null the way this rewrite has to.
 func TestRewriteDNSOutboundLegacyKeysSatisfiesCore(t *testing.T) {
 	for _, tc := range []struct {
-		name          string
-		raw           string
-		wantLoadError bool
+		name              string
+		raw               string
+		wantLoadError     bool
+		wantLegacyWarning bool
+		wantChanged       bool
 	}{
 		{
-			name: "deprecated keys",
-			raw:  `{"protocol":"dns","tag":"dns-out","settings":{"nonIPQuery":"reject","blockTypes":[65,28]}}`,
+			name:              "deprecated keys",
+			raw:               `{"protocol":"dns","tag":"dns-out","settings":{"nonIPQuery":"reject","blockTypes":[65,28]}}`,
+			wantLegacyWarning: true,
+			wantChanged:       true,
 		},
 		{
 			name:          "deprecated keys next to rules",
 			raw:           `{"protocol":"dns","tag":"dns-out","settings":{"nonIPQuery":"drop","blockTypes":[28],"rules":[{"action":"hijack","qType":1}]}}`,
 			wantLoadError: true,
+			wantChanged:   true,
+		},
+		{
+			name: "a null legacy pair warns about nothing and builds no policy",
+			raw:  `{"protocol":"dns","tag":"dns-out","settings":{"nonIPQuery":null,"blockTypes":null}}`,
+		},
+		{
+			name:              "null rules keep the legacy pair in charge, and it warns",
+			raw:               `{"protocol":"dns","tag":"dns-out","settings":{"nonIPQuery":"drop","blockTypes":[28],"rules":null}}`,
+			wantLegacyWarning: true,
+			wantChanged:       true,
+		},
+		{
+			name:              "an upper-case protocol id is a dns outbound to the core",
+			raw:               `{"protocol":"DNS","tag":"dns-out","settings":{"nonIPQuery":"drop","blockTypes":[]}}`,
+			wantLegacyWarning: true,
+			wantChanged:       true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -198,13 +257,19 @@ func TestRewriteDNSOutboundLegacyKeysSatisfiesCore(t *testing.T) {
 			if err := xray.ValidateOutboundConfig([]byte(tc.raw)); (err != nil) != tc.wantLoadError {
 				t.Fatalf("legacy outbound load error = %v, want error: %v", err, tc.wantLoadError)
 			}
-			if !tc.wantLoadError && !capture.has("nonIPQuery") {
-				t.Fatal("expected the core to warn about the legacy keys")
+			if capture.has("nonIPQuery") != tc.wantLegacyWarning {
+				t.Fatalf("legacy warning = %v, want %v: %v", capture.has("nonIPQuery"), tc.wantLegacyWarning, capture.msgs)
 			}
 
 			updated, changed, err := rewriteDNSOutboundLegacyKeys(`{"outbounds":[` + tc.raw + `]}`)
-			if err != nil || !changed {
-				t.Fatalf("rewrite: changed=%v err=%v", changed, err)
+			if err != nil || changed != tc.wantChanged {
+				t.Fatalf("rewrite: changed=%v want %v err=%v", changed, tc.wantChanged, err)
+			}
+			if !changed {
+				if !strings.Contains(updated, tc.raw) {
+					t.Fatalf("unchanged outbound was rewritten: %s", updated)
+				}
+				return
 			}
 			var after struct {
 				Outbounds []json.RawMessage `json:"outbounds"`
