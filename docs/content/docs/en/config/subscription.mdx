@@ -16,7 +16,7 @@ panel's subscription settings:
 
 | Setting       | Default | Meaning                                                         |
 | ------------- | ------- | --------------------------------------------------------------- |
-| `subPort`     | `2096` _(randomized on fresh script install)_ | Listen port (separate from the panel).                          |
+| `subPort`     | `2096` _(randomized on fresh script install)_ | Listen port (separate from the panel). The `XUI_SUB_PORT` env var overrides it at runtime. |
 | `subListen`   | _(all)_ | Bind address.                                                   |
 | `subPath`     | _(random per panel)_ | Base path for raw subscription URLs.                 |
 | `subDomain`   | _(none)_| Public host; if set, the server only answers for that Host.     |

@@ -1263,8 +1263,10 @@ EOF
             fi
 
             local setting_args=(-username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}")
+            local binary_supports_subport=0
             if ${xui_folder}/x-ui setting -h 2>&1 | grep -q -- '-subport'; then
                 setting_args+=(-subport "${config_subport}")
+                binary_supports_subport=1
             fi
             ${xui_folder}/x-ui setting "${setting_args[@]}"
 
@@ -1282,6 +1284,15 @@ EOF
             # Retrieve the API token for display
             local config_apiToken=$(${xui_folder}/x-ui setting -getApiToken | grep -Eo 'apiToken: .+' | awk '{print $2}')
 
+            # Resolve effective subscription port (if release binary lacks -subport, it kept factory default 2096)
+            local effective_subport
+            if [[ "$binary_supports_subport" -eq 1 ]]; then
+                effective_subport="${config_subport}"
+            else
+                effective_subport=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo '^subPort: [0-9]+' | awk '{print $2}')
+                : "${effective_subport:=2096}"
+            fi
+
             # Display final credentials and access information
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -1290,7 +1301,11 @@ EOF
             echo -e "${green}Username:          ${config_username}${plain}"
             echo -e "${green}Password:          ${config_password}${plain}"
             echo -e "${green}Port:              ${config_port}${plain}"
-            echo -e "${green}Subscription Port: ${config_subport}${plain}"
+            if [[ "$binary_supports_subport" -eq 1 ]]; then
+                echo -e "${green}Subscription Port: ${effective_subport}${plain}"
+            else
+                echo -e "${green}Subscription Port: ${effective_subport} (factory default)${plain}"
+            fi
             echo -e "${green}WebBasePath:       ${config_webBasePath}${plain}"
             echo -e "${green}Database:          ${db_label}${plain}"
             echo -e "${green}Access URL:        ${SSL_SCHEME}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
@@ -1338,7 +1353,7 @@ EOF
             local db_type_out="sqlite"
             [[ "$db_choice" == "2" ]] && db_type_out="postgres"
             write_install_result "${config_username}" "${config_password}" "${config_port}" \
-                "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${db_type_out}" "${config_subport}"
+                "${config_webBasePath}" "${SSL_SCHEME}" "${SSL_HOST}" "${config_apiToken}" "${db_type_out}" "${effective_subport}"
         else
             local config_webBasePath=$(gen_random_string 18)
             echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
@@ -1377,7 +1392,8 @@ EOF
             local config_apiToken
             config_apiToken=$(${xui_folder}/x-ui setting -getApiToken | grep -Eo 'apiToken: .+' | awk '{print $2}')
             local existing_subport
-            existing_subport=$(${xui_folder}/x-ui setting -show true | grep -Eo 'subPort: .+' | awk '{print $2}')
+            existing_subport=$(${xui_folder}/x-ui setting -show true 2>/dev/null | grep -Eo '^subPort: [0-9]+' | awk '{print $2}')
+            : "${existing_subport:=2096}"
             : "${SSL_SCHEME:=https}"
             : "${SSL_HOST:=${server_ip}}"
             write_install_result "${config_username}" "${config_password}" "${existing_port}" \

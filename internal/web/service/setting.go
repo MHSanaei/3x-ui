@@ -981,6 +981,10 @@ func (s *SettingService) GetSubPort() (int, error) {
 	return s.getInt("subPort")
 }
 
+func (s *SettingService) GetDBSubPort() (int, error) {
+	return s.getInt("subPort")
+}
+
 func (s *SettingService) SetSubPort(subPort int) error {
 	return s.setInt("subPort", subPort)
 }

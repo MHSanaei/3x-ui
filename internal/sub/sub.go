@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -378,6 +379,11 @@ func (s *Server) Start() (err error) {
 	port, err := s.settingService.GetSubPort()
 	if err != nil {
 		return err
+	}
+	if envPort, configured, envErr := config.GetSubPortOverride(); configured && envErr == nil {
+		if dbPort, _ := s.settingService.GetDBSubPort(); dbPort > 0 && dbPort != envPort {
+			logger.Warningf("XUI_SUB_PORT override (%d) is active and takes precedence over configured subPort (%d)", envPort, dbPort)
+		}
 	}
 
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
