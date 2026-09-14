@@ -19,13 +19,19 @@ Xray JSON config from that state, supervises the Xray child process, and exposes
 WebSocket API. A React SPA (built by Vite, embedded into the Go binary) is the UI. A second,
 separate HTTP server serves **subscription links** to end users.
 
-The panel supervises **two managed child processes**: Xray-core itself and — when MTProto
-inbounds exist — the `mtg-multi` Telegram-proxy binary (`github.com/mhsanaei/mtg-multi`, a
-multi-secret fork built from source; `internal/mtproto/`). One process per inbound serves
-every attached client's FakeTLS secret through the fork's `[secrets]` section, plus optional
-per-client sponsored-channel ad-tags via `[secret-ad-tags]`. A client or ad-tag edit is
-hot-applied via the fork's management API (`PUT /secrets`, guarded by a per-process bearer
-token), with a process restart as the fallback on older binaries.
+The panel supervises **managed child processes**: Xray-core itself and — when MTProto or
+TUIC inbounds exist — dedicated child proxy binaries:
+
+- **`mtg-multi` for MTProto inbounds** (`github.com/mhsanaei/mtg-multi`, a multi-secret fork
+  built from source; `internal/mtproto/`): One process per inbound serves every attached
+  client's FakeTLS secret through the fork's `[secrets]` section, plus optional per-client
+  sponsored-channel ad-tags via `[secret-ad-tags]`. A client or ad-tag edit is hot-applied via
+  the fork's management API (`PUT /secrets`, guarded by a per-process bearer token), with a
+  process restart as the fallback on older binaries.
+- **`tuic-server` for TUIC v5 inbounds** (`internal/tuic/`): One process per inbound runs on
+  loopback behind an in-process native Go UDP relay that owns the public port and meters
+  traffic deltas. The sidecar handles decrypted client traffic standalone, independent of
+  Xray routing and outbounds.
 
 Servers and processes, all launched from `main.go`:
 
@@ -35,6 +41,7 @@ Servers and processes, all launched from `main.go`:
 | **Subscription** | `internal/sub`                    | Public endpoint that hands out client configs (raw / JSON / Clash) | `subPort` setting |
 | **Xray-core**    | supervised via `internal/xray`    | The actual proxy engine; a child process, not Go code              | `inbounds[].port` |
 | **mtg-multi**    | supervised via `internal/mtproto` | MTProto proxy child process for MTProto inbounds (multi-secret)    | per inbound       |
+| **tuic-server**  | supervised via `internal/tuic`    | TUIC v5 proxy child process fronted by a Go UDP relay              | per inbound       |
 
 Two key ideas that explain most of the complexity:
 

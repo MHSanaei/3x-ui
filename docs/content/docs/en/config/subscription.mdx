@@ -50,8 +50,8 @@ The **format is chosen by path**, each with its own enable toggle:
 | **Mihomo (explicit)**          | `/mihomo/`       | `subClashEnable` | Alias for the full `subClashPath` profile.          |
 | **Clash for Windows (legacy)** | `/clash-legacy/` | `subClashEnable` | YAML limited to proxy types, transports, and ciphers supported by the legacy Clash core. |
 
-Only enabled inbounds using **VLESS, VMess, Trojan, Shadowsocks, or Hysteria2**
-appear in a subscription, ordered by their sub-sort index. Requesting `subPath`
+Only enabled inbounds using **VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, MTProto, TUIC, or Hysteria2**
+appear in a subscription, ordered by their sub-sort index (TUIC and AmneziaWG are included in raw links and Clash/Mihomo profiles, but omitted from JSON endpoints; MTProto is included in raw links). Requesting `subPath`
 with an `Accept: text/html` header (or `?html=1`) returns a human-readable info
 page instead of the raw body.
 

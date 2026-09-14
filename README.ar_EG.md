@@ -26,9 +26,10 @@
 
 ## الميزات
 
-- **اتصالات واردة متعددة البروتوكولات** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، AmneziaWG، Hysteria2، MTProto، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
+- **اتصالات واردة متعددة البروتوكولات** — VLESS، VMess، Trojan، Shadowsocks، WireGuard، AmneziaWG، TUIC v5، Hysteria2، MTProto، HTTP، SOCKS (Mixed)، Dokodemo-door / Tunnel و TUN.
 - **وسائل نقل وأمان حديثة** — TCP (Raw)، mKCP، WebSocket، gRPC، HTTPUpgrade و XHTTP، مؤمَّنة بـ TLS و XTLS و REALITY.
 - **AmneziaWG مدمج** — نسخة WireGuard المقاومة للفحص العميق للحزم (DPI) تعمل داخل اللوحة على مكدس شبكة في فضاء المستخدم، دون وحدة نواة أو DKMS أو حزم إضافية.
+- **TUIC v5 مدمج** — بروكسي عالي الأداء يعتمد على QUIC مع قياس حركة المرور عبر مرحل UDP أصلي، ومصافحات 0-RTT، والتحكم في الازدحام BBR.
 - **وكلاء MTProto** — أسرار FakeTLS وعلامات الإعلانات والحصص لكل عميل، تُطبَّق مباشرةً دون قطع الاتصالات القائمة.
 - **Fallback** — تقديم عدة بروتوكولات على منفذ واحد (مثل VLESS و Trojan على المنفذ 443) باستخدام ميزة fallback في Xray.
 - **إدارة لكل عميل** — حصص الترافيك، تواريخ انتهاء الصلاحية، حدود IP مع استثناء العناوين الموثوقة، حدود الأجهزة (HWID)، دورات تجديد مجدولة، حالة الاتصال المباشرة، وروابط مشاركة وأكواد QR واشتراكات بنقرة واحدة.
