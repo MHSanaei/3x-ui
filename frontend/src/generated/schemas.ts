@@ -195,6 +195,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subAnnounce": {
         "type": "string"
       },
+      "subCalendarExpireInclusive": {
+        "type": "boolean"
+      },
       "subCertFile": {
         "type": "string"
       },
@@ -532,6 +535,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
+      "subCalendarExpireInclusive",
       "subCertFile",
       "subClashAutoDetect",
       "subClashEnable",
@@ -841,6 +845,9 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "subAnnounce": {
         "type": "string"
+      },
+      "subCalendarExpireInclusive": {
+        "type": "boolean"
       },
       "subCertFile": {
         "type": "string"
@@ -1187,6 +1194,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
+      "subCalendarExpireInclusive",
       "subCertFile",
       "subClashAutoDetect",
       "subClashEnable",

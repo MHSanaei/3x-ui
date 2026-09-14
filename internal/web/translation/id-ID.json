@@ -1493,6 +1493,8 @@
           "note": "Penyeimbang leastPing/leastLoad selalu membawa burstObservatory. Sakelar ini menyesuaikan parameter probe-nya — matikan untuk memakai bawaan default. Perubahan berlaku setelah panel dimulai ulang."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "Konfigurasi Info Terpisah / Node Dummy",
       "subInfoNodeEnableDesc": "Saat diaktifkan, catatan dan sisa kuota/hari disajikan sebagai konfigurasi SOCKS dummy terpisah di bagian atas, dan langganan kedaluwarsa/habis hanya mengembalikan status.",
       "subExpiredTemplate": "Templat Kedaluwarsa",

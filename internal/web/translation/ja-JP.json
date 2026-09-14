@@ -1493,6 +1493,8 @@
           "note": "leastPing/leastLoad バランサーは常に burstObservatory を持ちます。このスイッチはプローブパラメータをカスタマイズします — オフにすると組み込みのデフォルトを使います。変更はパネルの再起動後に反映されます。"
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "個別情報設定 / ダミーノード",
       "subInfoNodeEnableDesc": "有効にすると、備考と残りの通信量/日数が上部の独立したSOCKSダミー構成として表示され、期限切れや通信量超過時はステータスのみが返されます。",
       "subExpiredTemplate": "期限切れテンプレート",
