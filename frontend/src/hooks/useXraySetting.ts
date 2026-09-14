@@ -26,20 +26,22 @@ function normalizeOutboundTestUrl(url: string) {
   return url || DEFAULT_TEST_URL;
 }
 
+// The core lowercases a protocol id and a transport name before resolving
+// either, so "WireGuard"/"KCP" still build a UDP handler a TCP dial misreports.
 export function isUdpOutbound(outbound: unknown): boolean {
   const o = outbound as
-    | { protocol?: string; streamSettings?: { network?: string } }
+    | { protocol?: unknown; streamSettings?: { network?: unknown } }
     | null
     | undefined;
-  const p = o?.protocol;
-  const n = o?.streamSettings?.network;
+  const rawNetwork = o?.streamSettings?.network;
+  const network = typeof rawNetwork === 'string' ? rawNetwork.toLowerCase() : '';
   return (
-    p === 'wireguard' ||
-    p === 'hysteria' ||
-    p === 'amneziawg' ||
-    n === 'hysteria' ||
-    n === 'kcp' ||
-    n === 'quic'
+    isOutboundProtocol(o, 'wireguard') ||
+    isOutboundProtocol(o, 'hysteria') ||
+    isOutboundProtocol(o, 'amneziawg') ||
+    network === 'hysteria' ||
+    network === 'kcp' ||
+    network === 'quic'
   );
 }
 
