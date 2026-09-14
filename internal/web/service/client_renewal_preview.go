@@ -44,7 +44,10 @@ func (s *ClientService) PreviewRenewal(request ClientRenewalPreviewRequest, sett
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now().UnixMilli()
+	return previewClientRenewal(request, time.Now().UnixMilli(), loc)
+}
+
+func previewClientRenewal(request ClientRenewalPreviewRequest, now int64, loc *time.Location) (*ClientRenewalPreview, error) {
 	preview := &ClientRenewalPreview{TimeZone: loc.String(), DelayedStart: request.ExpiryTime < 0}
 	if request.ResetDay > 0 || request.ResetWeekday > 0 {
 		preview.SuggestedExpiryTime = nextClientRenewal(now, request.Reset, request.ResetDay, request.ResetWeekday, loc)

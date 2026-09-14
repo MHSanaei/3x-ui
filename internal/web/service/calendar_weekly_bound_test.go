@@ -9,6 +9,24 @@ import (
 )
 
 func TestWeeklyRenewalSearchFailsClosed(t *testing.T) {
+	// Keep a background clock reader so -race catches global timezone writes.
+	started, stop, done := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = time.Now()
+		close(started)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				_ = time.Now()
+			}
+		}
+	}()
+	<-started
+	t.Cleanup(func() { close(stop); <-done })
+
 	// Fault injection: a valid TZif with twelve absent Sundays, not a claim
 	// about real IANA zones. Each following Monday repeats, so no Sunday returns.
 	const transitions = 24
@@ -41,14 +59,20 @@ func TestWeeklyRenewalSearchFailsClosed(t *testing.T) {
 	if expiry != before.ExpiryTime || renewals != 0 || *traffic != before {
 		t.Fatalf("exhausted search changed billing/traffic: expiry=%d renewals=%d traffic=%+v", expiry, renewals, traffic)
 	}
-	setupConflictDB(t)
-	previousLocal := time.Local
-	time.Local = loc
-	t.Cleanup(func() { time.Local = previousLocal })
-	preview, err := (&ClientService{}).PreviewRenewal(ClientRenewalPreviewRequest{
-		ExpiryTime: before.ExpiryTime, ResetWeekday: 7, ResetMax: 4, ResetCount: 2,
-	}, &SettingService{})
-	if err == nil || err.Error() != "calendar renewal could not find a future expiry\n" || preview != nil {
-		t.Fatalf("failed search preview/error = %+v/%v, want nil/calendar search error", preview, err)
+	for _, tt := range []struct {
+		name string
+		now  int64
+	}{
+		{"initial suggestion exhausted", from.UnixMilli()},
+		{"catch-up exhausted with allowances left", from.AddDate(0, 3, 0).UnixMilli()},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			preview, err := previewClientRenewal(ClientRenewalPreviewRequest{
+				ExpiryTime: before.ExpiryTime, ResetWeekday: 7, ResetMax: 4, ResetCount: 2,
+			}, tt.now, loc)
+			if err == nil || err.Error() != "calendar renewal could not find a future expiry\n" || preview != nil {
+				t.Fatalf("failed search preview/error = %+v/%v, want nil/calendar search error", preview, err)
+			}
+		})
 	}
 }
