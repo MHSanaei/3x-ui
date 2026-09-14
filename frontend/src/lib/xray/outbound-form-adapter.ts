@@ -541,7 +541,9 @@ function hydrateStreamForm(stream: Raw): OutboundStreamFormValues {
 }
 
 export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues {
-  const protocol = asString(raw.protocol, 'vless');
+  // The core lowercases a protocol id before it looks the handler up, so a
+  // template pasted as "Freedom" must not fall through to the vless default.
+  const protocol = asString(raw.protocol, 'vless').toLowerCase();
   const settings = asObject(raw.settings);
   const tag = asString(raw.tag);
   const sendThrough = asString(raw.sendThrough);

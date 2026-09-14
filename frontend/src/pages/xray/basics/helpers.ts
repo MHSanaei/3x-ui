@@ -8,10 +8,17 @@ const LEGACY_FREEDOM_STRATEGY_KEYS = ['domainStrategy', 'targetStrategy'] as con
 
 type Outbound = Record<string, unknown>;
 
+// The core lowercases a protocol id before it resolves the handler, so matching
+// it exactly would append a second "direct" the core refuses to load.
+export function isDirectFreedomOutbound(o: Outbound | undefined): boolean {
+  const protocol = o?.protocol;
+  return (
+    typeof protocol === 'string' && protocol.toLowerCase() === 'freedom' && o?.tag === 'direct'
+  );
+}
+
 function directFreedom(t: XraySettingsValue | null): Outbound | undefined {
-  return t?.outbounds?.find((o) => o?.protocol === 'freedom' && o?.tag === 'direct') as
-    | Outbound
-    | undefined;
+  return t?.outbounds?.find((o) => isDirectFreedomOutbound(o)) as Outbound | undefined;
 }
 
 export function directFreedomStrategy(t: XraySettingsValue | null): string {
@@ -22,7 +29,7 @@ export function directFreedomStrategy(t: XraySettingsValue | null): string {
 
 export function setDirectFreedomStrategy(t: XraySettingsValue, next: string): void {
   if (!Array.isArray(t.outbounds)) t.outbounds = [];
-  let idx = t.outbounds.findIndex((o) => o?.protocol === 'freedom' && o?.tag === 'direct');
+  let idx = t.outbounds.findIndex((o) => isDirectFreedomOutbound(o));
   if (idx < 0) {
     t.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: {} } as never);
     idx = t.outbounds.length - 1;

@@ -25,7 +25,11 @@ import {
   MASK_ADDRESS,
   ROUTING_DOMAIN_STRATEGIES,
 } from './constants';
-import { directFreedomStrategy, setDirectFreedomStrategy } from './helpers';
+import {
+  directFreedomStrategy,
+  isDirectFreedomOutbound,
+  setDirectFreedomStrategy,
+} from './helpers';
 
 interface BasicsTabProps {
   templateSettings: XraySettingsValue | null;
@@ -112,8 +116,8 @@ export default function BasicsTab({
 
   const freedomStrategy = directFreedomStrategy(templateSettings);
 
-  const directFreedomOutbound = templateSettings?.outbounds?.find(
-    (o) => o?.protocol === 'freedom' && o?.tag === 'direct',
+  const directFreedomOutbound = templateSettings?.outbounds?.find((o) =>
+    isDirectFreedomOutbound(o),
   );
   const directHappyEyeballs = (() => {
     const sockopt = (
@@ -129,7 +133,7 @@ export default function BasicsTab({
     (next: ReturnType<typeof HappyEyeballsSchema.parse> | null) => {
       mutate((tt) => {
         if (!tt.outbounds) tt.outbounds = [];
-        let idx = tt.outbounds.findIndex((o) => o?.protocol === 'freedom' && o?.tag === 'direct');
+        let idx = tt.outbounds.findIndex((o) => isDirectFreedomOutbound(o));
         if (idx < 0) {
           tt.outbounds.push({ protocol: 'freedom', tag: 'direct', settings: {} });
           idx = tt.outbounds.length - 1;

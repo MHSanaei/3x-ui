@@ -48,6 +48,26 @@ describe('BasicsTab freedom strategy', () => {
     });
   });
 
+  it('finds the direct outbound when the template spells it "Freedom"', () => {
+    const t = {
+      outbounds: [
+        {
+          protocol: 'Freedom',
+          tag: 'direct',
+          settings: {},
+          streamSettings: { sockopt: { domainStrategy: 'UseIPv6' } },
+        },
+      ],
+    } as unknown as XraySettingsValue;
+
+    expect(directFreedomStrategy(t)).toBe('UseIPv6');
+
+    setDirectFreedomStrategy(t, 'UseIPv4');
+
+    expect(t.outbounds).toHaveLength(1);
+    expect(directOutbound(t).streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv4' } });
+  });
+
   it('keeps other sockopt keys the transport form already set', () => {
     const t = settingsWithDirect({}, { sockopt: { tcpFastOpen: true } });
 
