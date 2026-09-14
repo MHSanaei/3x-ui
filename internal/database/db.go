@@ -1711,7 +1711,7 @@ func rewriteFreedomDomainStrategy(raw string) (string, bool, error) {
 		if !ok {
 			continue
 		}
-		if proto, _ := obj["protocol"].(string); proto != "freedom" {
+		if proto, _ := obj["protocol"].(string); !strings.EqualFold(proto, "freedom") {
 			continue
 		}
 		settings, hasSettings := obj["settings"].(map[string]any)
