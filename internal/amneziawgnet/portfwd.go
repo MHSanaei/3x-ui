@@ -151,9 +151,8 @@ func forwardingPeers(inst amneziawg.Instance) []amneziawg.Peer {
 	return out
 }
 
-// desiredPortForwardKeys returns the full set of listener keys inst wants
-// right now: one tcpForward and one udpForward key per forwarded port of every
-// forwarding peer, so Reconcile can always resolve a target for a key it opens.
+// desiredPortForwardKeys returns every listener key inst wants right now: one
+// tcpForward and one udpForward per forwarded port of the forwarding peers.
 func desiredPortForwardKeys(inst amneziawg.Instance) map[portForwardKey]struct{} {
 	out := map[portForwardKey]struct{}{}
 	for _, p := range forwardingPeers(inst) {
