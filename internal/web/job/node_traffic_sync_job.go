@@ -447,7 +447,7 @@ func (j *NodeTrafficSyncJob) syncOne(mgr *runtime.Manager, n *model.Node, doIpSy
 		logger.Warningf("node traffic sync: fetch client ips from %s failed: %v", n.Name, err)
 	}
 
-	masterIps, err := j.inboundService.GetAllInboundClientIps()
+	masterIps, err := j.inboundService.GetNodeInboundClientIps(n.Id)
 	if err != nil {
 		logger.Warningf("node traffic sync: load client ips for push to %s failed: %v", n.Name, err)
 		return active
