@@ -874,6 +874,9 @@ func TestCheckPortConflict_AmneziawgnetSocksRelayReservedBeforeTheFirstPeer(t *t
 	if got == nil {
 		t.Fatalf("an AmneziaWG inbound with no peer yet still owns relay port %d; the save must be refused", relayPort)
 	}
+	if !strings.Contains(got.String(), "awg-1") {
+		t.Fatalf("the conflict must name the inbound owning the port, got %q", got.String())
+	}
 }
 
 // An unrelated port never conflicts with the relay inbound.

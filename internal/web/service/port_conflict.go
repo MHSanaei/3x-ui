@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -276,7 +275,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 // checkAmneziawgnetSocksConflict reports whether inbound's own port
 // collides with an existing local AmneziaWG inbound's automatic
 // Xray SOCKS5 relay port. Unlike the retired kernel-module bridge this
-// checks every qualifying AmneziaWG inbound unconditionally: the embedded
+// checks every local AmneziaWG inbound unconditionally: the embedded
 // relay has no RouteThroughXray-style opt-in, every one of them gets a
 // relay inbound (see injectAmneziawgnetSocks). ignoreId excludes one inbound
 // id from the AmneziaWG candidates, the same way the general DB-backed
@@ -296,10 +295,9 @@ func checkAmneziawgnetSocksConflict(db *gorm.DB, inbound *model.Inbound, ignoreI
 	if err := q.Find(&candidates).Error; err != nil {
 		return nil, err
 	}
+	// Ownership does not depend on the peers: the relay appears when the first
+	// client is added, and the client paths run no port check at all.
 	for _, c := range candidates {
-		if _, ok := amneziawg.InstanceFromInbound(c); !ok {
-			continue
-		}
 		if amneziawgnet.SOCKSPortForInbound(c.Id) != inbound.Port {
 			continue
 		}
