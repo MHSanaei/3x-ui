@@ -1581,6 +1581,17 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 
 	db := database.GetDB()
+	// Enabling moves this row's ports into the running config, so it is checked
+	// like a save: the save-time guards skip a disabled row and never ran for it.
+	if enable && inbound.NodeID == nil {
+		conflict, err := checkPortConflictTx(db, inbound, inbound.Id)
+		if err != nil {
+			return false, err
+		}
+		if conflict != nil {
+			return false, common.NewError(conflict.String())
+		}
+	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
 			Update("enable", enable).Error; err != nil {
