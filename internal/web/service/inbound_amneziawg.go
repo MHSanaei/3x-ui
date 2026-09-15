@@ -313,41 +313,28 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 	return nil
 }
 
-// portConflictContext caches the state checkForwardedPortsConflict needs —
-// the panel's own port and this host's enabled inbound ports — so validating
-// N clients in one save (normalizeAmneziaWGSettings, or a bulk client add)
-// costs one query total instead of N. Load it once with
-// loadPortConflictContext and pass it to every checkForwardedPortsConflict
-// call in that batch.
+// portConflictContext caches what checkForwardedPortsConflict needs — the panel's
+// own port and this host's inbound rows — so one save costs one query, not N.
 type portConflictContext struct {
 	webPort  int
 	inbounds []*model.Inbound
 }
 
-// loadPortConflictContext loads the panel's own port and every enabled
-// inbound hosted on THIS panel (node_id IS NULL) — an inbound hosted on a
-// different node listens on that node's own host, never this one, so it can
-// never collide with a DNAT rule this process installs.
+// loadPortConflictContext loads the panel's own port and every inbound hosted on
+// THIS panel: a node-hosted one listens on that node's host, never on this one.
 func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictContext, error) {
 	var ctx portConflictContext
 	if webPort, err := (&SettingService{}).GetPort(); err == nil {
 		ctx.webPort = webPort
 	}
 	err := db.Model(model.Inbound{}).
-		Where("enable = ? AND node_id IS NULL", true).
+		Where("node_id IS NULL").
 		Find(&ctx.inbounds).Error
 	return ctx, err
 }
 
-// checkForwardedPortsConflict reports whether a client's ForwardedPorts spec
-// exceeds the cap, covers the panel's own web port, one of this host's own
-// enabled inbound listen ports, or an AmneziaWG inbound's own phantom SOCKS5
-// relay port (SOCKSPortForInbound -- never a real inbounds row, so the loop
-// below can't see it any other way). A collision on the SOCKS5 port would
-// let a port-forward listener race Xray's own relay for the bind and, if it
-// wins, take down that inbound's entire relay rather than just one forward.
-// Returns a human-readable description of the first collision found, or ""
-// when there is none.
+// checkForwardedPortsConflict names the panel, inbound or AmneziaWG relay port a
+// client's ForwardedPorts spec would collide with: a lost bind race kills the relay.
 func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, forwardedPorts string) string {
 	if forwardedPorts == "" {
 		return ""
@@ -359,7 +346,9 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 		return fmt.Sprintf("the panel's own port (%d)", ctx.webPort)
 	}
 	for _, ib := range ctx.inbounds {
-		if amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
+		// A disabled row's own port is free, but its relay slot is not: the relay
+		// appears with the first client, and no client path re-checks ports.
+		if ib.Enable && amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
 			name := ib.Remark
 			if name == "" {
 				name = ib.Tag

@@ -370,6 +370,34 @@ func TestCheckForwardedPortsConflict_CollidesWithAmneziawgnetSocksPort(t *testin
 	}
 }
 
+// A disabled AmneziaWG row still owns the relay port its id derives (#6540), so
+// a client's port-forward spec must not be able to claim that same bind.
+func TestCheckForwardedPortsConflict_DisabledAmneziawgRelayPortIsReserved(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-off", "0.0.0.0", 51820, model.AmneziaWG, ``, `{}`)
+
+	var off model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-off").First(&off).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	if err := database.GetDB().Model(model.Inbound{}).Where("id = ?", off.Id).
+		Update("enable", false).Error; err != nil {
+		t.Fatalf("disable the seeded row: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(off.Id)
+
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext(database.GetDB())
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	hit := svc.checkForwardedPortsConflict(ctx, fmt.Sprintf("%d", relayPort))
+	if !strings.Contains(hit, "SOCKS5") {
+		t.Fatalf("inbound #%d is disabled but still owns relay port %d; the spec must be refused, got %q",
+			off.Id, relayPort, hit)
+	}
+}
+
 // A cleared DNS field is meaningful (no DNS line in client configs) and must
 // survive the save round-trip instead of resurrecting the frontend defaults.
 func TestNormalizeAmneziaWGSettingsKeepsClearedDNS(t *testing.T) {
