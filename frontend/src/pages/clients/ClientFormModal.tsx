@@ -1162,7 +1162,10 @@ export default function ClientFormModal({
                         </Space.Compact>
                       </Form.Item>
 
-                      <Form.Item label={t('pages.clients.subId')}>
+                      <Form.Item
+                        label={t('pages.clients.subId')}
+                        tooltip={t('pages.clients.subIdDesc')}
+                      >
                         <Space.Compact style={{ display: 'flex' }}>
                           <Input
                             value={subId}
