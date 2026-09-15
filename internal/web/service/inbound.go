@@ -17,7 +17,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -1238,19 +1237,30 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := tx.Omit("ClientStats").Save(inbound).Error; err != nil {
 			return err
 		}
-		// The relay port is derived from the id, only known after Save; checkPortConflictTx
-		// ran the reverse-direction check above with ignoreId==0, so it couldn't yet.
-		if inbound.Protocol == model.AmneziaWG {
-			if amneziawgnet.SOCKSPortForInbound(inbound.Id) > 65535 {
-				return common.NewErrorf("amneziawg: inbound id %d exceeds the relay port window (ids above %d are not supported)",
-					inbound.Id, 65535-amneziawgnet.SOCKSBasePort)
+		// The relay port is derived from the id, only known after Save, and only a
+		// local row owns one: checkPortConflictTx ran no relay check with ignoreId==0.
+		if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG {
+			if self := amneziawgnetSocksSelfConflict(inbound, inbound.Id); self != "" {
+				return common.NewError(self)
 			}
-			conflict, cErr := checkAmneziawgnetSocksReverseConflict(tx, inbound.Id)
+			conflict, cErr := checkAmneziawgnetSocksRelayCollision(tx, inbound.Id)
 			if cErr != nil {
 				return cErr
 			}
 			if conflict != nil {
 				return common.NewError(conflict.String())
+			}
+			conflict, cErr = checkAmneziawgnetSocksReverseConflict(tx, inbound.Id)
+			if cErr != nil {
+				return cErr
+			}
+			if conflict != nil {
+				return common.NewError(conflict.String())
+			}
+			// The clients' forward specs were validated while this row had no id,
+			// so the ports it now derives were never in the guard's context.
+			if aErr := s.checkAmneziaWGForwardedPorts(tx, inbound.Settings); aErr != nil {
+				return aErr
 			}
 		}
 		// Emails seeded here (import's ClientStats, e.g. the controller's forced
@@ -1571,6 +1581,17 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 
 	db := database.GetDB()
+	// Enabling puts this row's ports into the running config, and the guards ran
+	// only if it was saved: a restored or hand-edited row reaches it unchecked.
+	if enable && inbound.NodeID == nil {
+		conflict, err := checkPortConflictTx(db, inbound, inbound.Id)
+		if err != nil {
+			return false, err
+		}
+		if conflict != nil {
+			return false, common.NewError(conflict.String())
+		}
+	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
 			Update("enable", enable).Error; err != nil {

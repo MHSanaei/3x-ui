@@ -112,7 +112,7 @@ func IsAmneziaWGOutbound(raw []byte) bool {
 	if err := json.Unmarshal(raw, &probe); err != nil {
 		return false
 	}
-	return probe.Protocol == "amneziawg"
+	return strings.EqualFold(probe.Protocol, "amneziawg")
 }
 
 // outboundSettingsOf extracts the nested "settings" block from a raw

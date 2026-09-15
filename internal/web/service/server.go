@@ -627,7 +627,9 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	// Xray status
 	if s.xrayService.IsXrayRunning() {
 		status.Xray.State = Running
-		status.Xray.ErrorMsg = ""
+		// A core that runs but was refused the new config is a fault the
+		// operator only ever sees here and in the node list.
+		status.Xray.ErrorMsg = s.xrayService.GetHeldBackConfig()
 	} else {
 		err := s.xrayService.GetXrayErr()
 		if err != nil {

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/xlzd/gotp"
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -26,6 +25,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/totp"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray/dnsconf"
@@ -655,7 +655,7 @@ func (s *SettingService) VerifyTwoFactorCode(code string) error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(token) == "" || !gotp.NewDefaultTOTP(token).Verify(strings.TrimSpace(code), time.Now().Unix()) {
+	if strings.TrimSpace(token) == "" || !totp.VerifyWithSkew(token, strings.TrimSpace(code), time.Now()) {
 		return common.NewError("invalid two factor code")
 	}
 	return nil
