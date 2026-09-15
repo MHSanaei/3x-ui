@@ -664,15 +664,16 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		}
 	}
 
-	// The core's RemoveUser only clears its validator: a session already up keeps
-	// running (vless, vmess, trojan, shadowsocks, hysteria alike).
+	// The core's RemoveUser clears its validator, so a session already up keeps
+	// running -- except vless, where it also drops a reverse handler.
 	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to remove user %s: %v", clientEmail, err)
 		return
 	}
 
-	// Keep the credential out long enough for the core to apply the removal.
+	// Nothing is pending here: AlterInbound applies the removal inline, so this
+	// only widens the window in which new handshakes fail.
 	time.Sleep(100 * time.Millisecond)
 
 	// Re-add user to allow new connections
