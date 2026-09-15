@@ -221,9 +221,9 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 		}
 	}
 
-	// The reverse direction, only meaningful once the id is known (create's
-	// ignoreId==0 means AddInbound must run this itself after Save assigns one).
-	if inbound.Protocol == model.AmneziaWG && ignoreId > 0 {
+	// The reverse direction, only meaningful once the id is known -- AddInbound
+	// runs it after Save. Only a local row owns a relay slot (#6537 review).
+	if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG && ignoreId > 0 {
 		conflict, err := checkAmneziawgnetSocksRelayCollision(db, ignoreId)
 		if err != nil {
 			return nil, err
