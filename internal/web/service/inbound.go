@@ -1238,8 +1238,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			return err
 		}
 		// The relay port is derived from the id, only known after Save, and only a
-		// local row owns one: checkPortConflictTx ran neither check with ignoreId==0.
+		// local row owns one: checkPortConflictTx ran no relay check with ignoreId==0.
 		if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG {
+			if self := amneziawgnetSocksSelfConflict(inbound, inbound.Id); self != "" {
+				return common.NewError(self)
+			}
 			conflict, cErr := checkAmneziawgnetSocksRelayCollision(tx, inbound.Id)
 			if cErr != nil {
 				return cErr
@@ -1253,6 +1256,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			}
 			if conflict != nil {
 				return common.NewError(conflict.String())
+			}
+			// The clients' forward specs were validated while this row had no id,
+			// so the ports it now derives were never in the guard's context.
+			if aErr := s.checkAmneziaWGForwardedPorts(tx, inbound.Settings); aErr != nil {
+				return aErr
 			}
 		}
 		// Emails seeded here (import's ClientStats, e.g. the controller's forced

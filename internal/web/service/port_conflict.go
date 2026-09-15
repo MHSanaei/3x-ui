@@ -223,6 +223,9 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 	// The reverse direction, only meaningful once the id is known -- AddInbound
 	// runs it after Save. Only a local row owns a relay slot (#6537 review).
 	if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG && ignoreId > 0 {
+		if self := amneziawgnetSocksSelfConflict(inbound, ignoreId); self != "" {
+			return nil, common.NewError(self)
+		}
 		conflict, err := checkAmneziawgnetSocksRelayCollision(db, ignoreId)
 		if err != nil {
 			return nil, err
@@ -328,6 +331,20 @@ func checkAmneziawgnetSocksRelayCollision(db *gorm.DB, id int) (*portConflictDet
 		}, nil
 	}
 	return nil, nil
+}
+
+// amneziawgnetSocksSelfConflict: a row's own WireGuard port vs the relay port its
+// own id derives -- all three checks below exclude that id, so nothing else does.
+func amneziawgnetSocksSelfConflict(inbound *model.Inbound, id int) string {
+	if id <= 0 || inbound.NodeID != nil || !listenOverlaps("127.0.0.1", inbound.Listen) {
+		return ""
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(id)
+	if inbound.Port != relayPort {
+		return ""
+	}
+	return fmt.Sprintf("WireGuard port %d is inbound #%d's own SOCKS5 relay port on 127.0.0.1; choose a different WireGuard port",
+		relayPort, id)
 }
 
 // checkAmneziawgnetSocksReverseConflict mirrors checkAmneziawgnetSocksConflict:
