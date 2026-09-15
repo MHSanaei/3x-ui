@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Modal, Select, Space, Switch, Tabs, message } from 'antd';
+import { Button, Input, Select, Space, Switch, Tabs, message } from 'antd';
 import {
   BranchesOutlined,
   BuildOutlined,
@@ -13,7 +13,8 @@ import {
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
-import { buildHappPresetDeeplink, parseList, toBase64Utf8 } from './happPresets';
+import { buildHappPresetDeeplink } from './happPresets';
+import HappRoutingEditorModal from './HappRoutingEditorModal';
 import { catTabLabel } from './catTabLabel';
 
 interface HappSettingsContentProps {
@@ -37,13 +38,6 @@ export default function HappSettingsContent({
   const [includeAdblock, setIncludeAdblock] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [directDomains, setDirectDomains] = useState('');
-  const [proxyDomains, setProxyDomains] = useState('');
-  const [blockDomains, setBlockDomains] = useState('');
-  const [directIPs, setDirectIPs] = useState('');
-  const [proxyIPs, setProxyIPs] = useState('');
-  const [blockIPs, setBlockIPs] = useState('');
-
   const applyPreset = () => {
     const payload = buildHappPresetDeeplink(selectedPreset, includeAdblock);
     if (payload) {
@@ -52,20 +46,7 @@ export default function HappSettingsContent({
     }
   };
 
-  const handleBuildDeeplink = () => {
-    const profile = {
-      Name: 'Custom Rules',
-      GlobalProxy: 'true',
-      DirectSites: parseList(directDomains),
-      DirectIp: parseList(directIPs),
-      ProxySites: parseList(proxyDomains),
-      ProxyIp: parseList(proxyIPs),
-      BlockSites: parseList(blockDomains),
-      BlockIp: parseList(blockIPs),
-      DomainStrategy: 'IPIfNonMatch',
-    };
-
-    const deeplink = 'happ://routing/onadd/' + toBase64Utf8(JSON.stringify(profile));
+  const handleBuildDeeplink = (deeplink: string) => {
     updateSetting({ subRoutingRules: deeplink });
     setIsModalOpen(false);
     message.success(t('pages.settings.subHappDeeplinkGenerated'));
@@ -124,6 +105,7 @@ export default function HappSettingsContent({
                         { value: 'iran-bypass', label: t('pages.settings.subHappPresetIran') },
                         { value: 'china-direct', label: t('pages.settings.subHappPresetChina') },
                         { value: 'global', label: t('pages.settings.subHappPresetGlobal') },
+                        { value: 'lan-bypass', label: t('pages.settings.subHappPresetLocal') },
                         { value: 'off', label: t('pages.settings.subHappPresetOff') },
                       ]}
                     />
@@ -583,83 +565,14 @@ export default function HappSettingsContent({
         ]}
       />
 
-      <Modal
-        title={t('pages.settings.subHappModalTitle')}
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onOk={handleBuildDeeplink}
-        okText={t('pages.settings.subHappBuildDeeplink')}
-        width={650}
-      >
-        <Space orientation="vertical" style={{ width: '100%', marginTop: 12 }} size="middle">
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {t('pages.settings.subHappDirectDomains')}
-            </div>
-            <Input.TextArea
-              rows={2}
-              value={directDomains}
-              placeholder="domain:ir, domain:cn, example.local"
-              onChange={(e) => setDirectDomains(e.target.value)}
-            />
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {t('pages.settings.subHappProxyDomains')}
-            </div>
-            <Input.TextArea
-              rows={2}
-              value={proxyDomains}
-              placeholder="geosite:google, youtube.com"
-              onChange={(e) => setProxyDomains(e.target.value)}
-            />
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {t('pages.settings.subHappBlockDomains')}
-            </div>
-            <Input.TextArea
-              rows={2}
-              value={blockDomains}
-              placeholder="geosite:category-ads-all, analytics.google.com"
-              onChange={(e) => setBlockDomains(e.target.value)}
-            />
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {t('pages.settings.subHappDirectIPs')}
-            </div>
-            <Input.TextArea
-              rows={2}
-              value={directIPs}
-              placeholder="geoip:ir, 192.168.0.0/16, 10.0.0.0/8"
-              onChange={(e) => setDirectIPs(e.target.value)}
-            />
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {t('pages.settings.subHappProxyIPs')}
-            </div>
-            <Input.TextArea
-              rows={2}
-              value={proxyIPs}
-              placeholder="1.1.1.1/32, 8.8.8.8/32"
-              onChange={(e) => setProxyIPs(e.target.value)}
-            />
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {t('pages.settings.subHappBlockIPs')}
-            </div>
-            <Input.TextArea
-              rows={2}
-              value={blockIPs}
-              placeholder="geoip:phishing, 0.0.0.0/8"
-              onChange={(e) => setBlockIPs(e.target.value)}
-            />
-          </div>
-        </Space>
-      </Modal>
+      {/* Mount per opening so canceled edits are discarded and the latest parent draft is loaded. */}
+      {isModalOpen ? (
+        <HappRoutingEditorModal
+          input={allSetting.subRoutingRules}
+          onCancel={() => setIsModalOpen(false)}
+          onGenerate={handleBuildDeeplink}
+        />
+      ) : null}
     </>
   );
 }

@@ -17,9 +17,6 @@ const chinaProfile = {
   DomesticDNSType: 'DoH',
   DomesticDNSDomain: 'https://dns.alidns.com/dns-query',
   DomesticDNSIP: '223.5.5.5',
-  Geoipurl: '',
-  Geositeurl: '',
-  LastUpdated: '1787658176',
   DnsHosts: {
     'cloudflare-dns.com': '1.1.1.1',
     'dns.alidns.com': '223.5.5.5',
@@ -27,6 +24,7 @@ const chinaProfile = {
   DirectSites: ['geosite:private', 'geosite:cn', 'geosite:geolocation-cn'],
   DirectIp: [
     'geoip:cn',
+    'geoip:private',
     '127.0.0.0/8',
     '10.0.0.0/8',
     '172.16.0.0/12',
@@ -122,6 +120,7 @@ describe('Happ routing preset controls', () => {
     ['Iran Bypass', 'Iran Bypass'],
     ['China Direct (Bypass-CN)', 'Bypass-CN'],
     ['Full Proxy', 'Global Proxy'],
+    ['Global Bypass Local Network', 'Global Bypass Local Network'],
   ])('applies %s without AdBlock by default', (label, profileName) => {
     renderSettings();
     choosePreset(label);
@@ -132,6 +131,32 @@ describe('Happ routing preset controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
 
     expect(routingProfile()).toMatchObject({ Name: profileName, BlockSites: [] });
+  });
+
+  it('keeps LAN bypass separate from Full Proxy when switching presets', () => {
+    renderSettings();
+    choosePreset('Global Bypass Local Network');
+    fireEvent.click(screen.getByRole('switch', { name: 'Include AdBlock' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
+
+    expect(routingProfile()).toMatchObject({
+      Name: 'Global Bypass Local Network',
+      GlobalProxy: 'true',
+      DirectSites: ['geosite:private'],
+      DirectIp: ['geoip:private'],
+      BlockSites: ['geosite:category-ads-all'],
+    });
+
+    choosePreset('Full Proxy');
+    fireEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
+
+    expect(routingProfile()).toMatchObject({
+      Name: 'Global Proxy',
+      GlobalProxy: 'true',
+      DirectSites: [],
+      DirectIp: [],
+      BlockSites: ['geosite:category-ads-all'],
+    });
   });
 
   it('preserves China routing when opting in and clears AdBlock when reapplied after opting out', () => {
@@ -163,6 +188,7 @@ describe('Happ routing preset controls', () => {
       'Iran Bypass',
       'China Direct (Bypass-CN)',
       'Full Proxy',
+      'Global Bypass Local Network',
       'Disable Routing (happ://routing/off)',
     ]);
   });
