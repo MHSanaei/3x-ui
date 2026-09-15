@@ -653,9 +653,8 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		return
 	}
 
-	// The remove/re-add below cannot be undone for a reverse client: RemoveUser
-	// drops its reverse outbound handler and the account re-added here carries no
-	// reverse, so the tunnel would stay down until Xray restarts.
+	// RemoveUser drops a reverse client's outbound handler and the re-add below
+	// cannot restore it, so its tunnel would stay down until Xray restarts.
 	if reverseClient {
 		logger.Warningf("[LIMIT_IP] Not disconnecting %s: its reverse proxy config does not survive a temporary removal", clientEmail)
 		return
