@@ -222,9 +222,8 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 		client.CloseIdleConnections()
 		return entry.client, nil
 	}
-	// Any other variant is dead weight: a previous identity's pool was built for
-	// a trust decision that no longer applies, and an ephemeral proxy URL (the
-	// bridge mints a fresh loopback port per call) can never be hit again.
+	// Any other variant is dead weight: a stale identity's pool fits no trust
+	// decision now, and an ephemeral proxy URL is never asked for twice.
 	dropNodeClients(n.Id, key)
 	nodeClientsCache[key] = nodeClientEntry{nodeID: n.Id, client: client}
 	nodeClientsMu.Unlock()
