@@ -17,7 +17,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -1238,14 +1237,17 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := tx.Omit("ClientStats").Save(inbound).Error; err != nil {
 			return err
 		}
-		// The relay port is derived from the id, only known after Save; checkPortConflictTx
-		// ran the reverse-direction check above with ignoreId==0, so it couldn't yet.
-		if inbound.Protocol == model.AmneziaWG {
-			if amneziawgnet.SOCKSPortForInbound(inbound.Id) > 65535 {
-				return common.NewErrorf("amneziawg: inbound id %d exceeds the relay port window (ids above %d are not supported)",
-					inbound.Id, 65535-amneziawgnet.SOCKSBasePort)
+		// The relay port is derived from the id, only known after Save, and only a
+		// local row owns one: checkPortConflictTx ran neither check with ignoreId==0.
+		if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG {
+			conflict, cErr := checkAmneziawgnetSocksRelayCollision(tx, inbound.Id)
+			if cErr != nil {
+				return cErr
 			}
-			conflict, cErr := checkAmneziawgnetSocksReverseConflict(tx, inbound.Id)
+			if conflict != nil {
+				return common.NewError(conflict.String())
+			}
+			conflict, cErr = checkAmneziawgnetSocksReverseConflict(tx, inbound.Id)
 			if cErr != nil {
 				return cErr
 			}
