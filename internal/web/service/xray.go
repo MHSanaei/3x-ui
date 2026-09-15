@@ -1373,11 +1373,24 @@ func (s *XrayService) RestartXray(isForce bool) error {
 			logger.Debug("It does not need to restart Xray")
 			return nil
 		}
+		// A config the core cannot bind must never replace a config that works:
+		// the failed start exits the core and the watchdog retries it every
+		// second, so the panel would loop instead of reporting the fault.
+		if conflicts := bindConflicts(xrayConfig, process.GetConfig()); len(conflicts) > 0 {
+			for _, conflict := range conflicts {
+				logger.Error("xray config refused:", conflict.String())
+			}
+			return fmt.Errorf("xray config refused: %s", conflicts[0])
+		}
 		if !isForce && !configUnchanged && s.tryHotApply(process, xrayConfig) {
 			logger.Info("Xray config changes applied through the core API, no restart needed")
 			return nil
 		}
 		_ = process.Stop()
+	} else if conflicts := bindConflicts(xrayConfig, nil); len(conflicts) > 0 {
+		// Nothing is running to protect and the core is the authority on what it
+		// can bind: start it and let its own error name the port it lost.
+		logger.Warning("xray config may not start:", conflicts[0].String())
 	}
 
 	process = xray.NewProcess(xrayConfig)
