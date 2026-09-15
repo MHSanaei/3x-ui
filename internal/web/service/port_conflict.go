@@ -252,7 +252,11 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 
 	// A forwarded port is not a column and not a relay slot, so the query below
 	// cannot see it either: the port is bound by the peer's forward listener.
-	if forwardedBy := amneziawgForwardedPortOwner(db, inbound, ignoreId); forwardedBy != nil {
+	forwardedBy, err := amneziawgForwardedPortOwner(db, inbound, ignoreId)
+	if err != nil {
+		return nil, err
+	}
+	if forwardedBy != nil {
 		forwardedBy.Transports = newBits
 		return forwardedBy, nil
 	}
@@ -292,14 +296,14 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 
 // amneziawgForwardedPortOwner names the AmneziaWG row on the same host whose peer
 // forwards inbound's port -- a bind on every interface that only the AWG side checked.
-func amneziawgForwardedPortOwner(db *gorm.DB, inbound *model.Inbound, ignoreId int) *portConflictDetail {
+func amneziawgForwardedPortOwner(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*portConflictDetail, error) {
 	var rows []*model.Inbound
 	q := db.Model(model.Inbound{}).Where("protocol = ?", model.AmneziaWG)
 	if ignoreId > 0 {
 		q = q.Where("id != ?", ignoreId)
 	}
 	if err := q.Find(&rows).Error; err != nil {
-		return nil
+		return nil, err
 	}
 	for _, row := range rows {
 		if !sameNode(row.NodeID, inbound.NodeID) {
@@ -309,21 +313,22 @@ func amneziawgForwardedPortOwner(db *gorm.DB, inbound *model.Inbound, ignoreId i
 		if !ok {
 			continue
 		}
-		for _, peer := range instance.Peers {
-			if !amneziawg.ForwardedPortsInclude(peer.ForwardedPorts, inbound.Port) {
-				continue
-			}
-			return &portConflictDetail{
-				InboundID:   row.Id,
-				Remark:      row.Remark,
-				Tag:         row.Tag,
-				Listen:      inbound.Listen,
-				Port:        inbound.Port,
-				ForwardedBy: peer.Email,
-			}
+		email, forwards := amneziawgnet.ForwardedPortOwner(instance, inbound.Port)
+		if !forwards {
+			continue
 		}
+		return &portConflictDetail{
+			InboundID: row.Id,
+			Remark:    row.Remark,
+			Tag:       row.Tag,
+			// the forward binds :port on every interface, wherever the
+			// candidate asked to listen.
+			Listen:      "",
+			Port:        inbound.Port,
+			ForwardedBy: email,
+		}, nil
 	}
-	return nil
+	return nil, nil
 }
 
 // checkAmneziawgnetSocksConflict: inbound's port vs the relay port every matching
