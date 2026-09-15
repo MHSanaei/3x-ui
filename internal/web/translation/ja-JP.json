@@ -1246,7 +1246,7 @@
       "externalTrafficInformURI": "外部トラフィック通知 URI",
       "externalTrafficInformURIDesc": "トラフィックの更新ごとに外部 API に通知します。",
       "restartXrayOnClientDisable": "自動無効化後に Xray を再起動",
-      "restartXrayOnClientDisableDesc": "有効期限切れまたはトラフィック上限でクライアントが自動的に無効化されたとき、Xray を再起動します。",
+      "restartXrayOnClientDisableDesc": "クライアントがサービス対象でなくなったとき（有効期限や通信量上限による自動無効化、または手動での無効化・削除）、接続を終わらせるため Xray を再起動します。",
       "fragment": "フラグメント",
       "fragmentDesc": "TLS helloパケットのフラグメントを有効にする",
       "fragmentSett": "設定",

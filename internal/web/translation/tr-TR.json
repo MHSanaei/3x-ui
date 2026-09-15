@@ -1246,7 +1246,7 @@
       "externalTrafficInformURI": "Harici Trafik Bilgisi URI'si",
       "externalTrafficInformURIDesc": "Trafik güncellemeleri bu URI'ye gönderilir.",
       "restartXrayOnClientDisable": "Otomatik Devre Dışı Sonrası Xray'i Yeniden Başlat",
-      "restartXrayOnClientDisableDesc": "Bir kullanıcı süre dolumu veya trafik limiti nedeniyle otomatik devre dışı bırakıldığında Xray'i yeniden başlatır.",
+      "restartXrayOnClientDisableDesc": "Bir istemci artık sunulmadığında — süre dolumu veya trafik limiti nedeniyle otomatik, ya da elle devre dışı bırakıldığında veya silindiğinde — açık bağlantıları bitsin diye Xray'i yeniden başlatır.",
       "fragment": "Parçalama",
       "fragmentDesc": "TLS merhaba paketinin parçalanmasını etkinleştirir.",
       "fragmentSett": "Parçalama Ayarları",
