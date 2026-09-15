@@ -12,15 +12,15 @@ import (
 )
 
 // awgRelayWindowSettings builds an AmneziaWG settings blob AddInbound accepts:
-// real X25519 keys plus the one enabled peer its validation insists on.
-func awgRelayWindowSettings(t *testing.T) string {
+// real X25519 keys, one enabled peer, and an email unique to tag.
+func awgRelayWindowSettings(t *testing.T, tag string) string {
 	t.Helper()
 	_, clientPub, err := wgutil.GenerateWireguardKeypair()
 	if err != nil {
 		t.Fatalf("generate client keypair: %v", err)
 	}
 	return `{"server":{"privateKey":"` + awgTestPrivateKey + `","publicKey":"` + awgTestPublicKey +
-		`","subnetIp":"10.8.1.0","subnetCidr":24},"clients":[{"email":"peer@relay-window","enable":true,"publicKey":"` +
+		`","subnetIp":"10.8.1.0","subnetCidr":24},"clients":[{"email":"` + tag + `@relay-window","enable":true,"publicKey":"` +
 		clientPub + `","allowedIPs":["10.8.1.2/32"]}]}`
 }
 
@@ -45,7 +45,7 @@ func addAmneziaWGInbound(t *testing.T, tag string, port int, enable bool) *model
 		Listen:   "0.0.0.0",
 		Port:     port,
 		Protocol: model.AmneziaWG,
-		Settings: awgRelayWindowSettings(t),
+		Settings: awgRelayWindowSettings(t, tag),
 	})
 	if err != nil {
 		t.Fatalf("AddInbound(%s): %v", tag, err)
@@ -90,7 +90,7 @@ func TestAddInbound_AmneziawgRefusesAClaimedRelayPort(t *testing.T) {
 				Listen:   "0.0.0.0",
 				Port:     51821,
 				Protocol: model.AmneziaWG,
-				Settings: awgRelayWindowSettings(t),
+				Settings: awgRelayWindowSettings(t, "awg-collides"),
 			})
 			if err == nil {
 				t.Fatalf("inbound %d derives relay port %d, already owned by %q; the create must be refused",
@@ -115,7 +115,7 @@ func TestCheckPortConflict_AmneziawgRelayCollisionBlocksAnAdoptedInbound(t *test
 		Listen:   "0.0.0.0",
 		Port:     51821,
 		Protocol: model.AmneziaWG,
-		Settings: awgRelayWindowSettings(t),
+		Settings: awgRelayWindowSettings(t, "awg-adopted"),
 	}
 	collidingID := blocker.Id + 435
 
