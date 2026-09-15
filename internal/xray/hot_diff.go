@@ -30,6 +30,24 @@ type UserOp struct {
 	User     map[string]any
 }
 
+// DropsUsers reports users removed without being re-added under the same tag:
+// a disable or a delete, where an edit re-adds the email with new values.
+func (d *HotDiff) DropsUsers() bool {
+	if len(d.RemovedUsers) == 0 {
+		return false
+	}
+	readded := make(map[string]struct{}, len(d.AddedUsers))
+	for _, u := range d.AddedUsers {
+		readded[u.Tag+"\x00"+u.Email] = struct{}{}
+	}
+	for _, u := range d.RemovedUsers {
+		if _, ok := readded[u.Tag+"\x00"+u.Email]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
 // Empty reports whether the diff contains no operations.
 func (d *HotDiff) Empty() bool {
 	return len(d.RemovedInboundTags) == 0 &&

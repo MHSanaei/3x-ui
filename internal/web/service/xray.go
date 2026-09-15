@@ -1391,6 +1391,20 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	return nil
 }
 
+// restartToDropClients reports whether a diff that strands clients must be
+// applied by restarting instead of through the API.
+func (s *XrayService) restartToDropClients(diff *xray.HotDiff) bool {
+	if diff == nil || !diff.DropsUsers() {
+		return false
+	}
+	restart, err := s.settingService.GetRestartXrayOnClientDisable()
+	if err != nil {
+		logger.Warning("get RestartXrayOnClientDisable failed:", err)
+		return false
+	}
+	return restart
+}
+
 // tryHotApply attempts to reconcile the running Xray instance with newCfg
 // through the core gRPC API (HandlerService for inbounds/outbounds,
 // RoutingService for rules/balancers). It returns true when the running
@@ -1407,6 +1421,13 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 	if diff.Empty() {
 		process.SetConfig(newCfg)
 		return true
+	}
+	// The core's RemoveUser drops the credential only: an established session
+	// keeps flowing until its process is replaced, so a disabled or deleted
+	// client needs the restart this setting already asks for.
+	if s.restartToDropClients(diff) {
+		logger.Info("hot apply: clients left the config, restarting to drop their live sessions")
+		return false
 	}
 
 	apiPort := process.GetAPIPort()

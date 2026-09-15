@@ -1368,7 +1368,7 @@
       "externalTrafficInformURI": "External Traffic Inform URI",
       "externalTrafficInformURIDesc": "Traffic updates are sent to this URI.",
       "restartXrayOnClientDisable": "Restart Xray After Auto Disable",
-      "restartXrayOnClientDisableDesc": "When a client is automatically disabled due to expiration or traffic limit, restart Xray.",
+      "restartXrayOnClientDisableDesc": "When a client stops being served - auto-disabled by expiration or traffic limit, or disabled or deleted by hand - restart Xray so its live connections end.",
       "fragment": "Fragmentation",
       "fragmentDesc": "Enable fragmentation for TLS hello packet.",
       "fragmentSett": "Fragmentation Settings",
