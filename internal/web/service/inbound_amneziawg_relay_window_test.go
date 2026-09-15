@@ -28,6 +28,10 @@ func awgRelayWindowSettings(t *testing.T, tag string) string {
 // in for a long-lived database whose AUTOINCREMENT counter has climbed there.
 func pushInboundIDSequence(t *testing.T, nextID int) {
 	t.Helper()
+	// The counter is a sqlite_sequence row, so this has no PostgreSQL equivalent.
+	if database.IsPostgres() {
+		t.Skip("the inbounds AUTOINCREMENT counter is a SQLite row")
+	}
 	res := database.GetDB().Exec("UPDATE sqlite_sequence SET seq = ? WHERE name = ?", nextID-1, "inbounds")
 	if res.Error != nil {
 		t.Fatalf("push the inbounds sequence to %d: %v", nextID, res.Error)
@@ -98,6 +102,11 @@ func TestAddInbound_AmneziawgRefusesAClaimedRelayPort(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), blocker.Tag) {
 				t.Fatalf("the conflict must name the inbound owning the port, got %v", err)
+			}
+			// The blocker's own port is its WireGuard one, so without this the
+			// message reads as if that inbound listened on an unrelated port.
+			if !strings.Contains(err.Error(), "relay port") {
+				t.Fatalf("the refusal must say the port is an automatic relay one, got %v", err)
 			}
 		})
 	}

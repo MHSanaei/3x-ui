@@ -103,11 +103,13 @@ func isAnyListen(s string) bool {
 }
 
 type portConflictDetail struct {
-	InboundID  int
-	Remark     string
-	Tag        string
-	Listen     string
-	Port       int
+	InboundID int
+	Remark    string
+	Tag       string
+	Listen    string
+	Port      int
+	// Relay marks Port as an automatic loopback relay port, not a configured one.
+	Relay      bool
 	Transports transportBits
 }
 
@@ -129,8 +131,12 @@ func (d *portConflictDetail) String() string {
 	if isAnyListen(listen) {
 		listen = "*"
 	}
-	return fmt.Sprintf("port %d (%s) already used by inbound %s on %s",
-		d.Port, transportTagSuffix(d.Transports), name, listen)
+	port := fmt.Sprintf("port %d", d.Port)
+	if d.Relay {
+		port = fmt.Sprintf("relay port %d", d.Port)
+	}
+	return fmt.Sprintf("%s (%s) already used by inbound %s on %s",
+		port, transportTagSuffix(d.Transports), name, listen)
 }
 
 // defaultXrayAPIPort is the loopback port of the internal Xray API inbound
@@ -327,6 +333,7 @@ func checkAmneziawgnetSocksRelayCollision(db *gorm.DB, id int) (*portConflictDet
 			Tag:        c.Tag,
 			Listen:     "127.0.0.1",
 			Port:       relayPort,
+			Relay:      true,
 			Transports: transportTCP,
 		}, nil
 	}
@@ -353,6 +360,7 @@ func checkAmneziawgnetSocksReverseConflict(db *gorm.DB, id int) (*portConflictDe
 			Tag:        c.Tag,
 			Listen:     c.Listen,
 			Port:       relayPort,
+			Relay:      true,
 			Transports: transportTCP,
 		}, nil
 	}
