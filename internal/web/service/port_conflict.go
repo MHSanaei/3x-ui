@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -273,18 +272,8 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 	return nil, nil
 }
 
-// checkAmneziawgnetSocksConflict reports whether inbound's own port
-// collides with an existing local AmneziaWG inbound's automatic
-// Xray SOCKS5 relay port. Unlike the retired kernel-module bridge this
-// checks every qualifying AmneziaWG inbound unconditionally: the embedded
-// relay has no RouteThroughXray-style opt-in, every one of them gets a
-// relay inbound (see injectAmneziawgnetSocks). ignoreId excludes one inbound
-// id from the AmneziaWG candidates, the same way the general DB-backed
-// conflict query above excludes the inbound being edited from matching
-// itself. Takes db rather than fetching its own handle so it runs inside the
-// same serialized transaction as the rest of checkPortConflictTx (#6225) --
-// otherwise two concurrent AmneziaWG creates could both pass this check
-// before either row commits.
+// checkAmneziawgnetSocksConflict: inbound's port vs the relay port every matching
+// local row reserves, emitted or not; db keeps it in the caller's transaction (#6225).
 func checkAmneziawgnetSocksConflict(db *gorm.DB, inbound *model.Inbound, ignoreId int, newBits transportBits) (*portConflictDetail, error) {
 	// A disabled row still owns the slot its id derives: SetInboundEnable flips
 	// the column with no port check, so enabling it later must not collide.
@@ -296,10 +285,9 @@ func checkAmneziawgnetSocksConflict(db *gorm.DB, inbound *model.Inbound, ignoreI
 	if err := q.Find(&candidates).Error; err != nil {
 		return nil, err
 	}
+	// Ownership does not depend on the peers: the relay appears when the first
+	// client is added, and the client paths run no port check at all.
 	for _, c := range candidates {
-		if _, ok := amneziawg.InstanceFromInbound(c); !ok {
-			continue
-		}
 		if amneziawgnet.SOCKSPortForInbound(c.Id) != inbound.Port {
 			continue
 		}
