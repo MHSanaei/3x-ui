@@ -141,6 +141,33 @@ func TestCheckPortConflict_LocalAmneziawgRelayCollisionBlocksTheEdit(t *testing.
 	}
 }
 
+// A disabled row still owns the relay slot its id derives: SetInboundEnable
+// flips the column with no port check, so enabling it later would break Xray.
+func TestCheckPortConflict_DisabledAmneziawgStillOwnsItsRelaySlot(t *testing.T) {
+	setupConflictDB(t)
+	owner := addAmneziaWGInbound(t, "awg-disabled", 51820, false)
+	relayPort := amneziawgnet.SOCKSPortForInbound(owner.Id)
+
+	got, err := (&InboundService{}).checkPortConflict(&model.Inbound{
+		Tag:      "takes-the-slot",
+		Enable:   true,
+		Listen:   "0.0.0.0",
+		Port:     relayPort,
+		Protocol: model.VLESS,
+		Settings: `{"clients":[]}`,
+	}, 0)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil {
+		t.Fatalf("inbound #%d is disabled but still owns relay port %d; the save must be refused",
+			owner.Id, relayPort)
+	}
+	if !strings.Contains(got.String(), owner.Tag) {
+		t.Fatalf("the conflict must name the inbound owning the port, got %q", got.String())
+	}
+}
+
 // A row adopted from a node keeps the protocol it arrived with and its central
 // id (inbound_node.go:737), but gets no relay -- so its slot can never be taken.
 func TestCheckPortConflict_NodeAssignedAmneziawgOwnsNoRelaySlot(t *testing.T) {
