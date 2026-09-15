@@ -274,7 +274,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 }
 
 // checkAmneziawgnetSocksConflict reports whether inbound's own port
-// collides with an existing, enabled local AmneziaWG inbound's automatic
+// collides with an existing local AmneziaWG inbound's automatic
 // Xray SOCKS5 relay port. Unlike the retired kernel-module bridge this
 // checks every qualifying AmneziaWG inbound unconditionally: the embedded
 // relay has no RouteThroughXray-style opt-in, every one of them gets a
@@ -286,8 +286,10 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 // otherwise two concurrent AmneziaWG creates could both pass this check
 // before either row commits.
 func checkAmneziawgnetSocksConflict(db *gorm.DB, inbound *model.Inbound, ignoreId int, newBits transportBits) (*portConflictDetail, error) {
+	// A disabled row still owns the slot its id derives: SetInboundEnable flips
+	// the column with no port check, so enabling it later must not collide.
 	var candidates []*model.Inbound
-	q := db.Model(model.Inbound{}).Where("protocol = ? AND enable = ? AND node_id IS NULL", model.AmneziaWG, true)
+	q := db.Model(model.Inbound{}).Where("protocol = ? AND node_id IS NULL", model.AmneziaWG)
 	if ignoreId > 0 {
 		q = q.Where("id != ?", ignoreId)
 	}
