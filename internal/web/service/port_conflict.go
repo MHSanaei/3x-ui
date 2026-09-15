@@ -218,7 +218,14 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 	// The reverse direction, only meaningful once the id is known (create's
 	// ignoreId==0 means AddInbound must run this itself after Save assigns one).
 	if inbound.Protocol == model.AmneziaWG && ignoreId > 0 {
-		conflict, err := checkAmneziawgnetSocksReverseConflict(db, ignoreId)
+		conflict, err := checkAmneziawgnetSocksRelayCollision(db, ignoreId)
+		if err != nil {
+			return nil, err
+		}
+		if conflict != nil {
+			return conflict, nil
+		}
+		conflict, err = checkAmneziawgnetSocksReverseConflict(db, ignoreId)
 		if err != nil {
 			return nil, err
 		}
@@ -295,6 +302,32 @@ func checkAmneziawgnetSocksConflict(db *gorm.DB, inbound *model.Inbound, ignoreI
 			Listen:     "127.0.0.1",
 			Port:       inbound.Port,
 			Transports: newBits,
+		}, nil
+	}
+	return nil, nil
+}
+
+// checkAmneziawgnetSocksRelayCollision reports whether id's derived relay port
+// is already claimed by another local AmneziaWG inbound, disabled rows included.
+func checkAmneziawgnetSocksRelayCollision(db *gorm.DB, id int) (*portConflictDetail, error) {
+	relayPort := amneziawgnet.SOCKSPortForInbound(id)
+	var candidates []*model.Inbound
+	if err := db.Model(model.Inbound{}).
+		Where("protocol = ? AND node_id IS NULL AND id != ?", model.AmneziaWG, id).
+		Find(&candidates).Error; err != nil {
+		return nil, err
+	}
+	for _, c := range candidates {
+		if amneziawgnet.SOCKSPortForInbound(c.Id) != relayPort {
+			continue
+		}
+		return &portConflictDetail{
+			InboundID:  c.Id,
+			Remark:     c.Remark,
+			Tag:        c.Tag,
+			Listen:     "127.0.0.1",
+			Port:       relayPort,
+			Transports: transportTCP,
 		}, nil
 	}
 	return nil, nil
