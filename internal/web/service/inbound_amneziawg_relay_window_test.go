@@ -112,23 +112,23 @@ func TestAddInbound_AmneziawgRefusesAClaimedRelayPort(t *testing.T) {
 	}
 }
 
-// An inbound adopted from a node keeps its id, so the create-time guard never
-// sees it; the update path is the only place that can re-check its slot.
-func TestCheckPortConflict_AmneziawgRelayCollisionBlocksAnAdoptedInbound(t *testing.T) {
+// Wrapping makes id -> relay port non-injective, so an edit landing on a slot a
+// local inbound already owns has to be refused: the create guard never sees it.
+func TestCheckPortConflict_LocalAmneziawgRelayCollisionBlocksTheEdit(t *testing.T) {
 	setupConflictDB(t)
 	blocker := addAmneziaWGInbound(t, "awg-blocker", 51820, true)
 
-	adopted := &model.Inbound{
-		Tag:      "awg-adopted",
+	local := &model.Inbound{
+		Tag:      "awg-edited",
 		Enable:   true,
 		Listen:   "0.0.0.0",
 		Port:     51821,
 		Protocol: model.AmneziaWG,
-		Settings: awgRelayWindowSettings(t, "awg-adopted"),
+		Settings: awgRelayWindowSettings(t, "awg-edited"),
 	}
 	collidingID := blocker.Id + 435
 
-	got, err := (&InboundService{}).checkPortConflict(adopted, collidingID)
+	got, err := (&InboundService{}).checkPortConflict(local, collidingID)
 	if err != nil {
 		t.Fatalf("checkPortConflict: %v", err)
 	}
@@ -138,5 +138,36 @@ func TestCheckPortConflict_AmneziawgRelayCollisionBlocksAnAdoptedInbound(t *test
 	}
 	if !strings.Contains(got.String(), blocker.Tag) {
 		t.Fatalf("the conflict must name the inbound owning the port, got %q", got.String())
+	}
+}
+
+// A row adopted from a node keeps the protocol it arrived with and its central
+// id (inbound_node.go:737), but gets no relay -- so its slot can never be taken.
+func TestCheckPortConflict_NodeAssignedAmneziawgOwnsNoRelaySlot(t *testing.T) {
+	setupConflictDB(t)
+	blocker := addAmneziaWGInbound(t, "awg-blocker", 51820, true)
+
+	nodeID := 7
+	adopted := &model.Inbound{
+		Tag:      "awg-adopted",
+		Enable:   true,
+		Listen:   "0.0.0.0",
+		Port:     51821,
+		Protocol: model.AmneziaWG,
+		Settings: awgRelayWindowSettings(t, "awg-adopted"),
+		NodeID:   &nodeID,
+	}
+	collidingID := blocker.Id + 435
+	if amneziawgnet.SOCKSPortForInbound(collidingID) != amneziawgnet.SOCKSPortForInbound(blocker.Id) {
+		t.Fatalf("fixture: id %d does not derive the blocker's relay port", collidingID)
+	}
+
+	got, err := (&InboundService{}).checkPortConflict(adopted, collidingID)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got != nil {
+		t.Fatalf("id %d is node-assigned and binds no relay, so it cannot collide; got %q",
+			collidingID, got.String())
 	}
 }
