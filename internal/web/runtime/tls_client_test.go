@@ -6,6 +6,8 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -17,6 +19,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 )
 
 type generationProbeTransport struct {
@@ -74,6 +77,91 @@ func TestCredentialRotatingTransportDropsOldPoolBeforeNextRequest(t *testing.T) 
 	}
 	if got := oldTransport.closed.Load(); got != 1 {
 		t.Fatalf("old transport CloseIdleConnections calls = %d, want 1", got)
+	}
+}
+
+// Heartbeat and traffic sync ask for a client every few seconds; a rebuilt one
+// owns an empty pool, so each tick paid a fresh TCP+TLS handshake per node.
+func TestHTTPClientForNodeReusesOneConnectionAcrossCalls(t *testing.T) {
+	var handshakes atomic.Int32
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			handshakes.Add(1)
+		}
+	}
+	server.StartTLS()
+	defer server.Close()
+
+	u, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("parse test server url: %v", err)
+	}
+	port, err := strconv.Atoi(u.Port())
+	if err != nil {
+		t.Fatalf("test server port: %v", err)
+	}
+	node := &model.Node{
+		Id: 31, Address: u.Hostname(), Port: port, Scheme: "https",
+		TlsVerifyMode: "skip", AllowPrivateAddress: true,
+	}
+
+	for tick := range 2 {
+		client, err := HTTPClientForNode(node, "")
+		if err != nil {
+			t.Fatalf("tick %d: HTTPClientForNode: %v", tick, err)
+		}
+		req, err := http.NewRequestWithContext(
+			netsafe.ContextWithAllowPrivate(context.Background(), true), http.MethodGet, server.URL, nil)
+		if err != nil {
+			t.Fatalf("tick %d: new request: %v", tick, err)
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("tick %d: request: %v", tick, err)
+		}
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}
+
+	if got := handshakes.Load(); got != 1 {
+		t.Fatalf("TLS handshakes = %d, want 1: a rebuilt client re-handshakes on every tick", got)
+	}
+}
+
+// A node that switches to pinning (or gains a proxy) must not be served by the
+// client built for its previous trust decision.
+func TestHTTPClientForNodeRebuildsWhenNodeIdentityChanges(t *testing.T) {
+	pin := base64.StdEncoding.EncodeToString(make([]byte, sha256.Size))
+	node := &model.Node{Id: 32, Address: "node.example.test", Port: 443, Scheme: "https", TlsVerifyMode: "skip"}
+	skipped, err := HTTPClientForNode(node, "")
+	if err != nil {
+		t.Fatalf("skip client: %v", err)
+	}
+
+	pinned := *node
+	pinned.TlsVerifyMode = "pin"
+	pinned.PinnedCertSha256 = pin
+	pinnedClient, err := HTTPClientForNode(&pinned, "")
+	if err != nil {
+		t.Fatalf("pin client: %v", err)
+	}
+	if skipped == pinnedClient {
+		t.Fatal("a pinned node must not reuse the client built to skip verification")
+	}
+
+	proxied, err := HTTPClientForNode(node, "socks5://127.0.0.1:1080")
+	if err != nil {
+		t.Fatalf("proxied client: %v", err)
+	}
+	if skipped == proxied {
+		t.Fatal("a proxied node must not reuse the direct client")
+	}
+
+	if again, err := HTTPClientForNode(node, ""); err != nil || again == pinnedClient {
+		t.Fatalf("a skip request must never be served the pinned client; again=%p err=%v", again, err)
 	}
 }
 
