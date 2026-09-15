@@ -32,7 +32,9 @@ export default function HappSettingsContent({
   defaultActiveTab = 'routing',
 }: HappSettingsContentProps) {
   const { t } = useTranslation();
+  // Generator choices stay local until Apply updates the draft; page Save persists it.
   const [selectedPreset, setSelectedPreset] = useState<string>('iran-bypass');
+  const [includeAdblock, setIncludeAdblock] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [directDomains, setDirectDomains] = useState('');
@@ -43,7 +45,7 @@ export default function HappSettingsContent({
   const [blockIPs, setBlockIPs] = useState('');
 
   const applyPreset = () => {
-    const payload = buildHappPresetDeeplink(selectedPreset);
+    const payload = buildHappPresetDeeplink(selectedPreset, includeAdblock);
     if (payload) {
       updateSetting({ subRoutingRules: payload });
       message.success(t('pages.settings.subHappPresetApplied'));
@@ -112,21 +114,30 @@ export default function HappSettingsContent({
                   title={t('pages.settings.subHappPresets')}
                   description={t('pages.settings.subHappPresetsDesc')}
                 >
-                  <Space orientation="horizontal" style={{ width: '100%' }}>
+                  <Space orientation="horizontal" wrap style={{ width: '100%' }}>
                     <Select
+                      aria-label={t('pages.settings.subHappPresets')}
                       value={selectedPreset}
                       style={{ minWidth: 170 }}
                       onChange={setSelectedPreset}
                       options={[
                         { value: 'iran-bypass', label: t('pages.settings.subHappPresetIran') },
                         { value: 'china-direct', label: t('pages.settings.subHappPresetChina') },
-                        { value: 'adblock', label: t('pages.settings.subHappPresetAdblock') },
                         { value: 'global', label: t('pages.settings.subHappPresetGlobal') },
                         { value: 'off', label: t('pages.settings.subHappPresetOff') },
                       ]}
                     />
+                    <Space size="small">
+                      <Switch
+                        aria-label={t('pages.settings.subHappIncludeAdblock')}
+                        checked={includeAdblock}
+                        disabled={selectedPreset === 'off'}
+                        onChange={setIncludeAdblock}
+                      />
+                      <span>{t('pages.settings.subHappIncludeAdblock')}</span>
+                    </Space>
                     <Button type="primary" onClick={applyPreset}>
-                      {t('pages.settings.subHappPresets')}
+                      {t('pages.settings.subHappApplyPreset')}
                     </Button>
                   </Space>
                 </SettingListItem>

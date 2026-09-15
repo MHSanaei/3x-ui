@@ -26,7 +26,7 @@ describe('Happ presets and helpers', () => {
     expect(parsed.GlobalProxy).toBe('true');
     expect(parsed.DirectSites).toContain('domain:ir');
     expect(parsed.DirectIp).toContain('geoip:ir');
-    expect(parsed.BlockSites).toContain('geosite:category-ads-all');
+    expect(parsed.BlockSites).toEqual([]);
   });
 
   it('generates valid base64 payload for china-direct preset', () => {
@@ -37,20 +37,69 @@ describe('Happ presets and helpers', () => {
     const jsonStr = atob(b64);
     const parsed = JSON.parse(jsonStr);
 
-    expect(parsed.Name).toBe('China Direct');
-    expect(parsed.DirectSites).toContain('geosite:cn');
-    expect(parsed.DirectIp).toContain('geoip:cn');
+    expect(parsed).toEqual({
+      Name: 'Bypass-CN',
+      GlobalProxy: 'true',
+      RouteOrder: 'block-proxy-direct',
+      RemoteDNSType: 'DoH',
+      RemoteDNSDomain: 'https://cloudflare-dns.com/dns-query',
+      RemoteDNSIP: '1.1.1.1',
+      DomesticDNSType: 'DoH',
+      DomesticDNSDomain: 'https://dns.alidns.com/dns-query',
+      DomesticDNSIP: '223.5.5.5',
+      Geoipurl: '',
+      Geositeurl: '',
+      LastUpdated: '1787658176',
+      DnsHosts: {
+        'cloudflare-dns.com': '1.1.1.1',
+        'dns.alidns.com': '223.5.5.5',
+      },
+      DirectSites: ['geosite:private', 'geosite:cn', 'geosite:geolocation-cn'],
+      DirectIp: [
+        'geoip:cn',
+        '127.0.0.0/8',
+        '10.0.0.0/8',
+        '172.16.0.0/12',
+        '192.168.0.0/16',
+        '169.254.0.0/16',
+        '224.0.0.0/4',
+        '255.255.255.255',
+      ],
+      ProxySites: [],
+      ProxyIp: [],
+      BlockSites: [],
+      BlockIp: [],
+      DomainStrategy: 'IPIfNonMatch',
+      FakeDNS: 'false',
+      UseChunkFiles: 'true',
+    });
   });
 
-  it('generates valid base64 payload for adblock preset', () => {
-    const link = buildHappPresetDeeplink('adblock');
-    const b64 = link.replace('happ://routing/onadd/', '');
-    const jsonStr = atob(b64);
-    const parsed = JSON.parse(jsonStr);
+  it.each(['iran-bypass', 'china-direct', 'global'])(
+    'adds ad blocking only when opted in for %s without changing its routing',
+    (preset) => {
+      const decode = (link: string) => JSON.parse(atob(link.replace('happ://routing/onadd/', '')));
+      const base = decode(buildHappPresetDeeplink(preset));
+      const withAds = decode(buildHappPresetDeeplink(preset, true));
+      const withoutAds = decode(buildHappPresetDeeplink(preset, false));
 
-    expect(parsed.Name).toBe('AdBlock');
-    expect(parsed.BlockSites).toContain('geosite:category-ads-all');
+      expect(base.BlockSites).toEqual([]);
+      expect(withAds.BlockSites).toEqual(['geosite:category-ads-all']);
+      expect({ ...withAds, BlockSites: [] }).toEqual(base);
+      expect(withoutAds).toEqual(base);
+    },
+  );
+
+  it('keeps routing disabled even when ad blocking is selected', () => {
+    expect(buildHappPresetDeeplink('off', true)).toBe('happ://routing/off');
   });
+
+  it.each(['adblock', 'unknown'])(
+    'does not generate a profile for unsupported preset %s',
+    (preset) => {
+      expect(buildHappPresetDeeplink(preset)).toBe('');
+    },
+  );
 
   it('generates valid base64 payload for global preset', () => {
     const link = buildHappPresetDeeplink('global');

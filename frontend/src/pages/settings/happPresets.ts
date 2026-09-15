@@ -16,7 +16,10 @@ export function parseList(input: string): string[] {
 }
 
 // Build standard Happ routing deeplink or special state for curated presets.
-export function buildHappPresetDeeplink(preset: string): string {
+export function buildHappPresetDeeplink(preset: string, includeAdblock = false): string {
+  // Ad blocking is opt-in for each generated profile, independent of the base routing rules.
+  const blockSites = includeAdblock ? ['geosite:category-ads-all'] : [];
+
   switch (preset) {
     case 'off':
       return 'happ://routing/off';
@@ -29,7 +32,7 @@ export function buildHappPresetDeeplink(preset: string): string {
             GlobalProxy: 'true',
             DirectSites: ['domain:ir', 'regexp:.*\\.ir$'],
             DirectIp: ['geoip:ir', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
-            BlockSites: ['geosite:category-ads-all'],
+            BlockSites: blockSites,
             BlockIp: [],
             ProxySites: [],
             ProxyIp: [],
@@ -42,32 +45,40 @@ export function buildHappPresetDeeplink(preset: string): string {
         'happ://routing/onadd/' +
         toBase64Utf8(
           JSON.stringify({
-            Name: 'China Direct',
+            Name: 'Bypass-CN',
             GlobalProxy: 'true',
-            DirectSites: ['geosite:cn', 'geosite:geolocation-cn'],
-            DirectIp: ['geoip:cn', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
-            BlockSites: ['geosite:category-ads-all'],
-            BlockIp: [],
+            RouteOrder: 'block-proxy-direct',
+            RemoteDNSType: 'DoH',
+            RemoteDNSDomain: 'https://cloudflare-dns.com/dns-query',
+            RemoteDNSIP: '1.1.1.1',
+            DomesticDNSType: 'DoH',
+            DomesticDNSDomain: 'https://dns.alidns.com/dns-query',
+            DomesticDNSIP: '223.5.5.5',
+            Geoipurl: '',
+            Geositeurl: '',
+            LastUpdated: '1787658176',
+            DnsHosts: {
+              'cloudflare-dns.com': '1.1.1.1',
+              'dns.alidns.com': '223.5.5.5',
+            },
+            DirectSites: ['geosite:private', 'geosite:cn', 'geosite:geolocation-cn'],
+            DirectIp: [
+              'geoip:cn',
+              '127.0.0.0/8',
+              '10.0.0.0/8',
+              '172.16.0.0/12',
+              '192.168.0.0/16',
+              '169.254.0.0/16',
+              '224.0.0.0/4',
+              '255.255.255.255',
+            ],
             ProxySites: [],
             ProxyIp: [],
-            DomainStrategy: 'IPIfNonMatch',
-          }),
-        )
-      );
-    case 'adblock':
-      return (
-        'happ://routing/onadd/' +
-        toBase64Utf8(
-          JSON.stringify({
-            Name: 'AdBlock',
-            GlobalProxy: 'true',
-            DirectSites: [],
-            DirectIp: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
-            BlockSites: ['geosite:category-ads-all'],
+            BlockSites: blockSites,
             BlockIp: [],
-            ProxySites: [],
-            ProxyIp: [],
             DomainStrategy: 'IPIfNonMatch',
+            FakeDNS: 'false',
+            UseChunkFiles: 'true',
           }),
         )
       );
@@ -80,7 +91,7 @@ export function buildHappPresetDeeplink(preset: string): string {
             GlobalProxy: 'true',
             DirectSites: [],
             DirectIp: [],
-            BlockSites: [],
+            BlockSites: blockSites,
             BlockIp: [],
             ProxySites: [],
             ProxyIp: [],
