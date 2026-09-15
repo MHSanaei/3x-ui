@@ -24,6 +24,14 @@ func awgRelayWindowSettings(t *testing.T, tag string) string {
 		clientPub + `","allowedIPs":["10.8.1.2/32"]}]}`
 }
 
+// awgRelayWindowSettingsWithForward is awgRelayWindowSettings with one client's
+// forwardedPorts set, the field the create-time guard validates.
+func awgRelayWindowSettingsWithForward(t *testing.T, tag, forwardedPorts string) string {
+	t.Helper()
+	settings := awgRelayWindowSettings(t, tag)
+	return strings.Replace(settings, `"enable":true`, `"enable":true,"forwardedPorts":"`+forwardedPorts+`"`, 1)
+}
+
 // pushInboundIDSequence makes the next inbounds insert land on nextID, standing
 // in for a long-lived database whose AUTOINCREMENT counter has climbed there.
 func pushInboundIDSequence(t *testing.T, nextID int) {
@@ -165,6 +173,31 @@ func TestCheckPortConflict_DisabledAmneziawgStillOwnsItsRelaySlot(t *testing.T) 
 	}
 	if !strings.Contains(got.String(), owner.Tag) {
 		t.Fatalf("the conflict must name the inbound owning the port, got %q", got.String())
+	}
+}
+
+// The forwarded-ports guard runs before Save, when the row has no id yet, so a
+// client's spec never saw the relay port the row itself derives.
+func TestAddInbound_AmneziawgRefusesAClientForwardingItsOwnRelayPort(t *testing.T) {
+	setupConflictDB(t)
+
+	placeholder := addAmneziaWGInbound(t, "awg-placeholder", 51820, true)
+	ownPort := amneziawgnet.SOCKSPortForInbound(placeholder.Id + 1)
+
+	_, _, err := (&InboundService{}).AddInbound(&model.Inbound{
+		Tag:      "awg-forward",
+		Enable:   true,
+		Listen:   "0.0.0.0",
+		Port:     51821,
+		Protocol: model.AmneziaWG,
+		Settings: awgRelayWindowSettingsWithForward(t, "awg-forward", fmt.Sprintf("%d", ownPort)),
+	})
+	if err == nil {
+		t.Fatalf("inbound #%d derives relay port %d and its own client forwards that port; the create must be refused",
+			placeholder.Id+1, ownPort)
+	}
+	if !strings.Contains(err.Error(), "forwardedPorts") {
+		t.Fatalf("the refusal must come from the forwarded-ports guard, got %v", err)
 	}
 }
 

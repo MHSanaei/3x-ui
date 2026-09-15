@@ -278,8 +278,8 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 	}
 	for i := range parsed.Clients {
 		c := &parsed.Clients[i]
-		if hit := s.checkForwardedPortsConflict(portCtx, c.ForwardedPorts); hit != "" {
-			return fmt.Errorf("amneziawg: client %q forwardedPorts collides with %s", c.Email, hit)
+		if err := s.amneziaWGForwardedPortsConflict(portCtx, c); err != nil {
+			return err
 		}
 		if err := amneziawg.ValidateConfigValue("email", c.Email); err != nil {
 			return fmt.Errorf("amneziawg: %w", err)
@@ -331,6 +331,35 @@ func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictConte
 		Where("node_id IS NULL").
 		Find(&ctx.inbounds).Error
 	return ctx, err
+}
+
+// amneziaWGForwardedPortsConflict renders one client's ForwardedPorts collision,
+// or nil: the single copy both the pre-Save pass and the post-Save re-run use.
+func (s *InboundService) amneziaWGForwardedPortsConflict(ctx portConflictContext, c *model.Client) error {
+	hit := s.checkForwardedPortsConflict(ctx, c.ForwardedPorts)
+	if hit == "" {
+		return nil
+	}
+	return fmt.Errorf("amneziawg: client %q forwardedPorts collides with %s", c.Email, hit)
+}
+
+// checkAmneziaWGForwardedPorts re-runs the guard over one row's stored clients:
+// on create it ran before Save, when the row's own ports were not in the context.
+func (s *InboundService) checkAmneziaWGForwardedPorts(db *gorm.DB, settings string) error {
+	var parsed amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
+		return nil
+	}
+	ctx, err := s.loadPortConflictContext(db)
+	if err != nil {
+		return err
+	}
+	for i := range parsed.Clients {
+		if err := s.amneziaWGForwardedPortsConflict(ctx, &parsed.Clients[i]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // checkForwardedPortsConflict names the panel, inbound or AmneziaWG relay port a
