@@ -2281,6 +2281,7 @@
       "usageDesc": "查看客戶端用量：/usage 郵箱",
       "inboundDesc": "搜尋入站：/inbound 備註（管理員）",
       "restartDesc": "重啟 Xray 核心（管理員）",
+      "broadcastDesc": "向所有客戶端群發訊息（管理員）",
       "clearallDesc": "重置所有客戶端流量（管理員）"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ 錯誤:\n\n {{ .error }}",
       "using_default_value": "好的，我會使用預設值。 😊",
       "incorrect_input": "您的輸入無效。\n短語應連續輸入，不能有空格。\n正確示例: aaaaaa\n錯誤示例: aaa aaa 🚫",
+      "broadcastAskText": "📤 群發：請把要發給客戶的訊息傳給我 — 文字、照片、影片、檔案或整個相簿都可以。",
+      "broadcastAlreadyRunning": "❗ 已有群發正在進行，請等待其完成。",
+      "broadcastNoRecipients": "❗ 沒有綁定 Telegram ID 的客戶端。",
+      "broadcastPreview": "📤 此訊息將傳送給 {{ .Count }} 位收件人。要傳送嗎？",
+      "broadcastNotCopyable": "❗ 此訊息無法複製用於群發，請傳送其他訊息。",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} 位收件人從未啟動過機器人（或已將其封鎖），無法傳送訊息 — 請請他們按下 Start。",
+      "broadcastProgress": "📤 已傳送 {{ .Sent }}/{{ .Total }}（失敗：{{ .Failed }}）\r\n",
+      "broadcastFinished": "✅ 群發完成。\r\n👥 收件人：{{ .Total }}\r\n📨 已送達：{{ .Sent }}\r\n🚫 失敗：{{ .Failed }}\r\n⏭ 已跳過：{{ .Skipped }}\r\n⏱ 費時：{{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 群發已取消。\r\n👥 收件人：{{ .Total }}\r\n📨 已送達：{{ .Sent }}\r\n🚫 失敗：{{ .Failed }}\r\n⏭ 已跳過：{{ .Skipped }}\r\n⏱ 費時：{{ .Time }}\r\n",
       "AreYouSure": "你確定嗎？🤔",
       "SuccessResetTraffic": "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ✅ 成功",
       "FailedResetTraffic": "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ 錯誤: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",
       "cancel": "❌ 取消",
+      "broadcastSend": "📤 立即傳送",
       "cancelReset": "❌ 取消重置",
       "cancelIpLimit": "❌ 取消 IP 限制",
       "confirmResetTraffic": "✅ 確認重置流量？",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "排序過的流量使用報告"
     },
     "answers": {
+      "broadcastStarted": "🚀 群發已開始。",
+      "broadcastCanceling": "🛑 群發將在目前收件人之後停止。",
+      "broadcastCanceled": "❌ 群發已取消。",
       "successfulOperation": "✅ 成功！",
       "errorOperation": "❗ 操作錯誤。",
       "getInboundsFailed": "❌ 獲取入站資訊失敗。",

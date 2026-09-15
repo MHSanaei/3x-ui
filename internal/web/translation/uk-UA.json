@@ -2281,6 +2281,7 @@
       "usageDesc": "Показати трафік клієнта: /usage email",
       "inboundDesc": "Пошук вхідних: /inbound назва (адмін)",
       "restartDesc": "Перезапустити ядро Xray (адмін)",
+      "broadcastDesc": "Масове розсилання всім клієнтам (адмін)",
       "clearallDesc": "Скинути трафік усіх клієнтів (адмін)"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ Помилка:\n\n {{ .error }}",
       "using_default_value": "Гаразд, залишу значення за замовчуванням. 😊",
       "incorrect_input": "Ваш ввід невірний.\nФрази повинні бути без пробілів.\nПравильний приклад: aaaaaa\nНеправильний приклад: aaa aaa 🚫",
+      "broadcastAskText": "📤 Розсилка: надішліть повідомлення для ваших клієнтів — текст, фото, відео, файл або цілий альбом.",
+      "broadcastAlreadyRunning": "❗ Розсилка вже триває, зачекайте її завершення.",
+      "broadcastNoRecipients": "❗ Немає клієнтів із прив'язаним Telegram ID.",
+      "broadcastPreview": "📤 Це повідомлення отримають {{ .Count }} отримувачів. Надіслати?",
+      "broadcastNotCopyable": "❗ Це повідомлення не можна скопіювати для розсилки. Надішліть інше.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} отримувачів жодного разу не починали діалог із ботом (або заблокували його) — їм не можна написати. Попросіть їх натиснути Start.",
+      "broadcastProgress": "📤 Надіслано {{ .Sent }} із {{ .Total }} (не доставлено: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ Розсилку завершено.\r\n👥 Отримувачів: {{ .Total }}\r\n📨 Доставлено: {{ .Sent }}\r\n🚫 Не доставлено: {{ .Failed }}\r\n⏭ Пропущено: {{ .Skipped }}\r\n⏱ Час: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 Розсилку скасовано.\r\n👥 Отримувачів: {{ .Total }}\r\n📨 Доставлено: {{ .Sent }}\r\n🚫 Не доставлено: {{ .Failed }}\r\n⏭ Пропущено: {{ .Skipped }}\r\n⏱ Час: {{ .Time }}\r\n",
       "AreYouSure": "Ви впевнені? 🤔",
       "SuccessResetTraffic": "📧 Електронна пошта: {{ .ClientEmail }}\n🏁 Результат: ✅ Успішно",
       "FailedResetTraffic": "📧 Електронна пошта: {{ .ClientEmail }}\n🏁 Результат: ❌ Невдача \n\n🛠️ Помилка: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
       "cancel": "❌ Скасувати",
+      "broadcastSend": "📤 Надіслати",
       "cancelReset": "❌ Скасувати скидання",
       "cancelIpLimit": "❌ Скасувати обмеження IP",
       "confirmResetTraffic": "✅ Підтвердити скидання трафіку?",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку"
     },
     "answers": {
+      "broadcastStarted": "🚀 Розсилку запущено.",
+      "broadcastCanceling": "🛑 Розсилка зупиниться після поточного отримувача.",
+      "broadcastCanceled": "❌ Розсилку скасовано.",
       "successfulOperation": "✅ Операція успішна!",
       "errorOperation": "❗ Помилка в роботі.",
       "getInboundsFailed": "❌ Не вдалося отримати вхідні повідомлення.",

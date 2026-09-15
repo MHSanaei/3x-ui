@@ -2281,6 +2281,7 @@
       "usageDesc": "مشاهده مصرف کاربر: /usage ایمیل",
       "inboundDesc": "جستجوی ورودی‌ها: /inbound نام (مدیر)",
       "restartDesc": "راه‌اندازی مجدد هسته Xray (مدیر)",
+      "broadcastDesc": "ارسال پیام به همه کاربران (مدیر)",
       "clearallDesc": "صفر کردن ترافیک همه کاربران (مدیر)"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ خطا:\n\n {{ .error }}",
       "using_default_value": "باشه، از مقدار پیش‌فرض استفاده می‌کنم. 😊",
       "incorrect_input": "ورودی شما معتبر نیست.\nعبارت‌ها باید بدون فاصله باشند.\nمثال صحیح: aaaaaa\nمثال نادرست: aaa aaa 🚫",
+      "broadcastAskText": "📤 ارسال گروهی: پیام خود را برای ارسال به کاربران بفرستید — متن، عکس، ویدیو، فایل یا یک آلبوم کامل.",
+      "broadcastAlreadyRunning": "❗ یک ارسال گروهی در حال اجراست، تا پایان آن صبر کنید.",
+      "broadcastNoRecipients": "❗ هیچ کاربری با شناسه تلگرام متصل یافت نشد.",
+      "broadcastPreview": "📤 این پیام برای {{ .Count }} دریافت‌کننده ارسال می‌شود. ارسال شود؟",
+      "broadcastNotCopyable": "❗ این پیام برای ارسال گروهی قابل کپی نیست. پیام دیگری بفرستید.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} دریافت‌کننده هرگز با ربات گفتگو را شروع نکرده‌اند (یا آن را بلاک کرده‌اند) و به آن‌ها پیام فرستاده نمی‌شود — از آن‌ها بخواهید Start را بزنند.",
+      "broadcastProgress": "📤 ارسال‌شده {{ .Sent }} از {{ .Total }} (ناموفق: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ ارسال گروهی پایان یافت.\r\n👥 دریافت‌کنندگان: {{ .Total }}\r\n📨 تحویل‌شده: {{ .Sent }}\r\n🚫 ناموفق: {{ .Failed }}\r\n⏭ ردشده: {{ .Skipped }}\r\n⏱ زمان: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 ارسال گروهی لغو شد.\r\n👥 دریافت‌کنندگان: {{ .Total }}\r\n📨 تحویل‌شده: {{ .Sent }}\r\n🚫 ناموفق: {{ .Failed }}\r\n⏭ ردشده: {{ .Skipped }}\r\n⏱ زمان: {{ .Time }}\r\n",
       "AreYouSure": "مطمئنی؟ 🤔",
       "SuccessResetTraffic": "📧 ایمیل: {{ .ClientEmail }}\n🏁 نتیجه: ✅ موفقیت‌آمیز",
       "FailedResetTraffic": "📧 ایمیل: {{ .ClientEmail }}\n🏁 نتیجه: ❌ ناموفق \n\n🛠️ خطا: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",
       "cancel": "❌ لغو",
+      "broadcastSend": "📤 ارسال",
       "cancelReset": "❌ لغو تنظیم مجدد",
       "cancelIpLimit": "❌ لغو محدودیت آی‌پی",
       "confirmResetTraffic": "✅ تأیید تنظیم مجدد ترافیک؟",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده"
     },
     "answers": {
+      "broadcastStarted": "🚀 ارسال گروهی آغاز شد.",
+      "broadcastCanceling": "🛑 ارسال گروهی پس از دریافت‌کننده فعلی متوقف می‌شود.",
+      "broadcastCanceled": "❌ ارسال گروهی لغو شد.",
       "successfulOperation": "✅ انجام شد!",
       "errorOperation": "❗ خطا در عملیات.",
       "getInboundsFailed": "❌ دریافت ورودی‌ها با خطا مواجه شد.",

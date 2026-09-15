@@ -2281,6 +2281,7 @@
       "usageDesc": "İstemci kullanımını göster: /usage e-posta",
       "inboundDesc": "Gelenleri ara: /inbound ad (yönetici)",
       "restartDesc": "Xray çekirdeğini yeniden başlat (yönetici)",
+      "broadcastDesc": "Tüm istemcilere mesaj gönder (yönetici)",
       "clearallDesc": "Tüm istemcilerin trafiğini sıfırla (yönetici)"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ Hata:\n\n {{ .error }}",
       "using_default_value": "Tamam, varsayılan değeri kullanacağım. 😊",
       "incorrect_input": "Geçersiz değer girdiniz.\nİfadeler arasında boşluk olmamalıdır.\nDoğru örnek: aaaaaa\nYanlış örnek: aaa aaa 🚫",
+      "broadcastAskText": "📤 Toplu gönderim: istemcilerinize iletmek istediğiniz mesajı bana gönderin — metin, fotoğraf, video, dosya veya bir albüm.",
+      "broadcastAlreadyRunning": "❗ Zaten devam eden bir toplu gönderim var, bitmesini bekleyin.",
+      "broadcastNoRecipients": "❗ Bağlı bir Telegram ID'si olan istemci yok.",
+      "broadcastPreview": "📤 Bu mesaj {{ .Count }} alıcıya gönderilecek. Gönderilsin mi?",
+      "broadcastNotCopyable": "❗ Bu mesaj toplu gönderim için kopyalanamıyor. Başka bir mesaj gönderin.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} alıcı botu hiç başlatmamış (veya engellemiş) ve mesaj gönderilemiyor — Start'a basmalarını isteyin.",
+      "broadcastProgress": "📤 {{ .Total }} alıcıdan {{ .Sent }} gönderildi (başarısız: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ Toplu gönderim tamamlandı.\r\n👥 Alıcılar: {{ .Total }}\r\n📨 İletilen: {{ .Sent }}\r\n🚫 Başarısız: {{ .Failed }}\r\n⏭ Atlanan: {{ .Skipped }}\r\n⏱ Süre: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 Toplu gönderim iptal edildi.\r\n👥 Alıcılar: {{ .Total }}\r\n📨 İletilen: {{ .Sent }}\r\n🚫 Başarısız: {{ .Failed }}\r\n⏭ Atlanan: {{ .Skipped }}\r\n⏱ Süre: {{ .Time }}\r\n",
       "AreYouSure": "Emin misiniz? 🤔",
       "SuccessResetTraffic": "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ✅ Başarılı",
       "FailedResetTraffic": "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ❌ Başarısız \n\n🛠️ Hata: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
       "cancel": "❌ İptal",
+      "broadcastSend": "📤 Gönder",
       "cancelReset": "❌ Sıfırlamayı İptal Et",
       "cancelIpLimit": "❌ IP Limitini İptal Et",
       "confirmResetTraffic": "✅ Trafiği Sıfırlamayı Onayla?",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu"
     },
     "answers": {
+      "broadcastStarted": "🚀 Toplu gönderim başladı.",
+      "broadcastCanceling": "🛑 Gönderim mevcut alıcıdan sonra duracak.",
+      "broadcastCanceled": "❌ Toplu gönderim iptal edildi.",
       "successfulOperation": "✅ İşlem başarılı!",
       "errorOperation": "❗ İşlemde hata.",
       "getInboundsFailed": "❌ Gelen Bağlantılar alınamadı.",

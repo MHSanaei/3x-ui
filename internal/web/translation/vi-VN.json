@@ -2281,6 +2281,7 @@
       "usageDesc": "Xem mức dùng của khách: /usage email",
       "inboundDesc": "Tìm inbound: /inbound tên (quản trị)",
       "restartDesc": "Khởi động lại lõi Xray (quản trị)",
+      "broadcastDesc": "Gửi tin nhắn tới tất cả khách hàng (quản trị)",
       "clearallDesc": "Đặt lại lưu lượng mọi khách hàng (quản trị)"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ Lỗi:\n\n {{ .error }}",
       "using_default_value": "Được rồi, tôi sẽ sử dụng giá trị mặc định. 😊",
       "incorrect_input": "Dữ liệu bạn nhập không hợp lệ.\nCác chuỗi phải liền mạch và không có dấu cách.\nVí dụ đúng: aaaaaa\nVí dụ sai: aaa aaa 🚫",
+      "broadcastAskText": "📤 Phát tin: gửi cho tôi tin nhắn để chuyển tới khách hàng của bạn — văn bản, ảnh, video, tệp hoặc cả bộ ảnh.",
+      "broadcastAlreadyRunning": "❗ Một bản phát đang chạy, hãy đợi nó hoàn tất.",
+      "broadcastNoRecipients": "❗ Không có khách hàng nào gắn Telegram ID.",
+      "broadcastPreview": "📤 Tin nhắn này sẽ được gửi tới {{ .Count }} người nhận. Gửi chứ?",
+      "broadcastNotCopyable": "❗ Không thể sao chép tin nhắn này để phát. Hãy gửi tin nhắn khác.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} người nhận chưa từng bắt đầu bot (hoặc đã chặn nó) nên không thể nhắn tin — hãy đề nghị họ nhấn Start.",
+      "broadcastProgress": "📤 Đã gửi {{ .Sent }}/{{ .Total }} (thất bại: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ Phát tin hoàn tất.\r\n👥 Người nhận: {{ .Total }}\r\n📨 Đã gửi: {{ .Sent }}\r\n🚫 Thất bại: {{ .Failed }}\r\n⏭ Bỏ qua: {{ .Skipped }}\r\n⏱ Thời gian: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 Đã hủy phát tin.\r\n👥 Người nhận: {{ .Total }}\r\n📨 Đã gửi: {{ .Sent }}\r\n🚫 Thất bại: {{ .Failed }}\r\n⏭ Bỏ qua: {{ .Skipped }}\r\n⏱ Thời gian: {{ .Time }}\r\n",
       "AreYouSure": "Bạn có chắc không? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ✅ Thành công",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ❌ Thất bại \n\n🛠️ Lỗi: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
       "cancel": "❌ Hủy",
+      "broadcastSend": "📤 Gửi ngay",
       "cancelReset": "❌ Hủy Đặt Lại",
       "cancelIpLimit": "❌ Hủy Giới Hạn IP",
       "confirmResetTraffic": "✅ Xác Nhận Đặt Lại Lưu Lượng?",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp"
     },
     "answers": {
+      "broadcastStarted": "🚀 Đã bắt đầu phát tin.",
+      "broadcastCanceling": "🛑 Bản phát sẽ dừng sau người nhận hiện tại.",
+      "broadcastCanceled": "❌ Đã hủy phát tin.",
       "successfulOperation": "✅ Thành công!",
       "errorOperation": "❗ Lỗi Trong Quá Trình Thực Hiện.",
       "getInboundsFailed": "❌ Không Thể Lấy Được Inbounds",

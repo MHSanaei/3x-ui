@@ -2281,6 +2281,7 @@
       "usageDesc": "عرض استهلاك العميل: /usage البريد",
       "inboundDesc": "البحث في الواردات: /inbound الاسم (مشرف)",
       "restartDesc": "إعادة تشغيل نواة Xray (مشرف)",
+      "broadcastDesc": "إرسال رسالة لجميع العملاء (مسؤول)",
       "clearallDesc": "تصفير استهلاك جميع العملاء (مشرف)"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ خطأ:\n\n {{ .error }}",
       "using_default_value": "تمام، هشيل على القيمة الافتراضية. 😊",
       "incorrect_input": "المدخلات مش صحيحة.\nالكلمات لازم تكون متصلة من غير فراغات.\nمثال صحيح: aaaaaa\nمثال غلط: aaa aaa 🚫",
+      "broadcastAskText": "📤 بث جماعي: أرسل لي الرسالة لتوصيلها إلى عملائك — نص أو صورة أو فيديو أو ملفًا أو ألبومًا كاملًا.",
+      "broadcastAlreadyRunning": "❗ هناك بث جارٍ بالفعل، انتظر حتى ينتهي.",
+      "broadcastNoRecipients": "❗ لا يوجد عملاء بمعرّف تلجرام مرتبط.",
+      "broadcastPreview": "📤 ستُرسل هذه الرسالة إلى {{ .Count }} مستلمًا. أرسل؟",
+      "broadcastNotCopyable": "❗ لا يمكن نسخ هذه الرسالة للبث. أرسل رسالة أخرى.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} مستلمًا لم يبدؤوا محادثة مع البوت (أو حجبوه) ولا يمكن مراسلتهم — اطلب منهم الضغط على Start.",
+      "broadcastProgress": "📤 تم إرسال {{ .Sent }} من {{ .Total }} (فاشلة: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ انتهى البث.\r\n👥 المستلمون: {{ .Total }}\r\n📨 تم توصيلها: {{ .Sent }}\r\n🚫 فاشلة: {{ .Failed }}\r\n⏭ تم تخطيها: {{ .Skipped }}\r\n⏱ الوقت: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 تم إلغاء البث.\r\n👥 المستلمون: {{ .Total }}\r\n📨 تم توصيلها: {{ .Sent }}\r\n🚫 فاشلة: {{ .Failed }}\r\n⏭ تم تخطيها: {{ .Skipped }}\r\n⏱ الوقت: {{ .Time }}\r\n",
       "AreYouSure": "إنت متأكد؟ 🤔",
       "SuccessResetTraffic": "📧 البريد الإلكتروني: {{ .ClientEmail }}\n🏁 النتيجة: ✅ تم بنجاح",
       "FailedResetTraffic": "📧 البريد الإلكتروني: {{ .ClientEmail }}\n🏁 النتيجة: ❌ فشل \n\n🛠️ الخطأ: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
       "cancel": "❌ إلغاء",
+      "broadcastSend": "📤 إرسال",
       "cancelReset": "❌ إلغاء إعادة الضبط",
       "cancelIpLimit": "❌ إلغاء حد الـ IP",
       "confirmResetTraffic": "✅ تأكيد إعادة ضبط الترافيك؟",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب"
     },
     "answers": {
+      "broadcastStarted": "🚀 بدأ البث.",
+      "broadcastCanceling": "🛑 سيتوقف البث بعد المستلم الحالي.",
+      "broadcastCanceled": "❌ تم إلغاء البث.",
       "successfulOperation": "✅ العملية نجحت!",
       "errorOperation": "❗ حصل خطأ في العملية.",
       "getInboundsFailed": "❌ فشل الحصول على الإدخالات.",

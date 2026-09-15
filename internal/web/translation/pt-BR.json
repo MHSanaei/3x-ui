@@ -2281,6 +2281,7 @@
       "usageDesc": "Ver o uso do cliente: /usage email",
       "inboundDesc": "Buscar entradas: /inbound nome (admin)",
       "restartDesc": "Reiniciar o núcleo Xray (admin)",
+      "broadcastDesc": "Enviar uma mensagem para todos os clientes (admin)",
       "clearallDesc": "Zerar o tráfego de todos os clientes (admin)"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ Erro:\n\n {{ .error }}",
       "using_default_value": "Tudo bem, vou manter o valor padrão. 😊",
       "incorrect_input": "Sua entrada não é válida.\nAs frases devem ser contínuas, sem espaços.\nExemplo correto: aaaaaa\nExemplo incorreto: aaa aaa 🚫",
+      "broadcastAskText": "📤 Transmissão: envie-me a mensagem para entregar aos seus clientes — texto, foto, vídeo, arquivo ou um álbum inteiro.",
+      "broadcastAlreadyRunning": "❗ Já existe uma transmissão em andamento, aguarde a conclusão.",
+      "broadcastNoRecipients": "❗ Nenhum cliente com ID do Telegram vinculado.",
+      "broadcastPreview": "📤 Esta mensagem irá para {{ .Count }} destinatários. Enviar?",
+      "broadcastNotCopyable": "❗ Não é possível copiar esta mensagem para a transmissão. Envie outra.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} destinatários nunca iniciaram o bot (ou o bloquearam) e não podem receber mensagens — peça que pressionem Start.",
+      "broadcastProgress": "📤 Enviados {{ .Sent }} de {{ .Total }} (falhas: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ Transmissão concluída.\r\n👥 Destinatários: {{ .Total }}\r\n📨 Entregues: {{ .Sent }}\r\n🚫 Falhas: {{ .Failed }}\r\n⏭ Ignorados: {{ .Skipped }}\r\n⏱ Tempo: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 Transmissão cancelada.\r\n👥 Destinatários: {{ .Total }}\r\n📨 Entregues: {{ .Sent }}\r\n🚫 Falhas: {{ .Failed }}\r\n⏭ Ignorados: {{ .Skipped }}\r\n⏱ Tempo: {{ .Time }}\r\n",
       "AreYouSure": "Você tem certeza? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Resultado: ✅ Sucesso",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Resultado: ❌ Falhou \n\n🛠️ Erro: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",
       "cancel": "❌ Cancelar",
+      "broadcastSend": "📤 Enviar",
       "cancelReset": "❌ Cancelar redefinição",
       "cancelIpLimit": "❌ Cancelar limite de IP",
       "confirmResetTraffic": "✅ Confirmar redefinição de tráfego?",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "Relatório de Uso de Tráfego Ordenado"
     },
     "answers": {
+      "broadcastStarted": "🚀 Transmissão iniciada.",
+      "broadcastCanceling": "🛑 A transmissão parará após o destinatário atual.",
+      "broadcastCanceled": "❌ Transmissão cancelada.",
       "successfulOperation": "✅ Operação bem-sucedida!",
       "errorOperation": "❗ Erro na operação.",
       "getInboundsFailed": "❌ Falha ao obter inbounds.",

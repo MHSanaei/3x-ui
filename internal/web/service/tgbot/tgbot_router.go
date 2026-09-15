@@ -114,6 +114,10 @@ func (t *Tgbot) OnReceive() {
 			defer recoverBotPanic()
 			userStateMgr.maybePrune(time.Hour)
 			if userState, exists := userStateMgr.get(message.Chat.ID); exists {
+				if userState == broadcastAwaitingText {
+					t.handleBroadcastInput(&message)
+					return nil
+				}
 				// Only a wizard step touches the draft, so only it takes the lock.
 				draft := addClientDrafts.forChat(message.Chat.ID)
 				draft.Lock()
@@ -287,6 +291,13 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		} else {
 			handleUnknownCommand()
 		}
+	case "broadcast":
+		onlyMessage = true
+		if isAdmin {
+			t.startBroadcast(chatId)
+		} else {
+			handleUnknownCommand()
+		}
 	default:
 		handleUnknownCommand()
 	}
@@ -340,6 +351,8 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
 			email := dataArray[1]
 			switch dataArray[0] {
+			case "broadcast_confirm":
+				t.confirmBroadcast(chatId, dataArray[1], callbackQuery.Message.GetMessageID(), callbackQuery.ID)
 			case "get_clients_for_sub":
 				inboundIdInt, err := strconv.Atoi(dataArray[1])
 				if err != nil {
@@ -899,6 +912,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			return
 		} else {
 			switch callbackQuery.Data {
+			case "broadcast_cancel":
+				t.cancelBroadcast(chatId, callbackQuery.Message.GetMessageID(), callbackQuery.ID)
+				return
 			case "get_inbounds":
 				inbounds, err := t.getInbounds()
 				if err != nil {

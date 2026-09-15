@@ -2281,6 +2281,7 @@
       "usageDesc": "查看客户端用量：/usage 邮箱",
       "inboundDesc": "搜索入站：/inbound 备注（管理员）",
       "restartDesc": "重启 Xray 内核（管理员）",
+      "broadcastDesc": "向所有客户端群发消息（管理员）",
       "clearallDesc": "重置所有客户端流量（管理员）"
     },
     "messages": {
@@ -2337,6 +2338,15 @@
       "error_add_client": "⚠️ 错误:\n\n {{ .error }}",
       "using_default_value": "好的，我会使用默认值。 😊",
       "incorrect_input": "您的输入无效。\n短语应连续输入，不能有空格。\n正确示例: aaaaaa\n错误示例: aaa aaa 🚫",
+      "broadcastAskText": "📤 群发：请把要发给客户的消息发给我 — 文本、照片、视频、文件或整个相册都可以。",
+      "broadcastAlreadyRunning": "❗ 已有群发正在进行，请等待其完成。",
+      "broadcastNoRecipients": "❗ 没有绑定 Telegram ID 的客户端。",
+      "broadcastPreview": "📤 该消息将发送给 {{ .Count }} 位接收者。发送吗？",
+      "broadcastNotCopyable": "❗ 该消息无法复制用于群发，请发送其他消息。",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} 位接收者从未启动过机器人（或已将其拉黑），无法发送消息 — 请让他们点击 Start。",
+      "broadcastProgress": "📤 已发送 {{ .Sent }}/{{ .Total }}（失败：{{ .Failed }}）\r\n",
+      "broadcastFinished": "✅ 群发完成。\r\n👥 接收者：{{ .Total }}\r\n📨 已送达：{{ .Sent }}\r\n🚫 失败：{{ .Failed }}\r\n⏭ 已跳过：{{ .Skipped }}\r\n⏱ 耗时：{{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 群发已取消。\r\n👥 接收者：{{ .Total }}\r\n📨 已送达：{{ .Sent }}\r\n🚫 失败：{{ .Failed }}\r\n⏭ 已跳过：{{ .Skipped }}\r\n⏱ 耗时：{{ .Time }}\r\n",
       "AreYouSure": "你确定吗？🤔",
       "SuccessResetTraffic": "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ✅ 成功",
       "FailedResetTraffic": "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ❌ 失败 \n\n🛠️ 错误: [ {{ .ErrorMessage }} ]",
@@ -2355,6 +2365,7 @@
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
       "cancel": "❌ 取消",
+      "broadcastSend": "📤 立即发送",
       "cancelReset": "❌ 取消重置",
       "cancelIpLimit": "❌ 取消 IP 限制",
       "confirmResetTraffic": "✅ 确认重置流量？",
@@ -2395,6 +2406,9 @@
       "SortedTrafficUsageReport": "排序的流量使用报告"
     },
     "answers": {
+      "broadcastStarted": "🚀 群发已开始。",
+      "broadcastCanceling": "🛑 群发将在当前接收者之后停止。",
+      "broadcastCanceled": "❌ 群发已取消。",
       "successfulOperation": "✅ 成功！",
       "errorOperation": "❗ 操作错误。",
       "getInboundsFailed": "❌ 获取入站信息失败。",
