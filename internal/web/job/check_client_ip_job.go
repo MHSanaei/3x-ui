@@ -612,7 +612,8 @@ func (j *CheckClientIpJob) filterAdvancedSinceLastBan(email string, banned []IPW
 	return actionable
 }
 
-// disconnectClientTemporarily removes and re-adds a client to force disconnect banned connections
+// disconnectClientTemporarily drops a client's credential for a moment, so new
+// handshakes are refused; the fail2ban ban is what ends live traffic.
 func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, clientEmail string, clients []model.Client) {
 	var xrayAPI xray.XrayAPI
 	apiPort := j.resolveXrayAPIPort()
@@ -663,14 +664,15 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		}
 	}
 
-	// Remove user to disconnect all connections
+	// The core's RemoveUser only clears its validator: a session already up keeps
+	// running (vless, vmess, trojan, shadowsocks, hysteria alike).
 	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to remove user %s: %v", clientEmail, err)
 		return
 	}
 
-	// Wait a moment for disconnection to take effect
+	// Keep the credential out long enough for the core to apply the removal.
 	time.Sleep(100 * time.Millisecond)
 
 	// Re-add user to allow new connections
