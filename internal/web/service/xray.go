@@ -33,6 +33,8 @@ type xrayLifecycle struct {
 	mu      sync.RWMutex
 	process *xray.Process
 	result  string
+	// heldBack is why the running core still serves the previous config.
+	heldBack string
 }
 
 func (s *xrayLifecycle) snapshot() (*xray.Process, string) {
@@ -45,7 +47,20 @@ func (s *xrayLifecycle) replace(process *xray.Process) {
 	s.mu.Lock()
 	s.process = process
 	s.result = ""
+	s.heldBack = ""
 	s.mu.Unlock()
+}
+
+func (s *xrayLifecycle) holdBack(reason string) {
+	s.mu.Lock()
+	s.heldBack = reason
+	s.mu.Unlock()
+}
+
+func (s *xrayLifecycle) heldBackReason() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.heldBack
 }
 
 func (s *xrayLifecycle) storeResult(process *xray.Process, result string) {
@@ -102,6 +117,12 @@ func (s *XrayService) GetXrayErr() error {
 	}
 
 	return err
+}
+
+// GetHeldBackConfig returns why the running core still serves its previous
+// config, or "" when the pending config was applied.
+func (s *XrayService) GetHeldBackConfig() string {
+	return xrayState.heldBackReason()
 }
 
 // GetXrayResult returns the result string from the Xray process.
@@ -1373,14 +1394,17 @@ func (s *XrayService) RestartXray(isForce bool) error {
 			logger.Debug("It does not need to restart Xray")
 			return nil
 		}
-		// A config the core cannot bind must never replace a config that works:
-		// the failed start exits the core and the watchdog retries it every
-		// second, so the panel would loop instead of reporting the fault.
+		// A config the core cannot bind never replaces one that works: its failed
+		// start exits the core, and the watchdog would then loop on it forever.
 		if conflicts := bindConflicts(xrayConfig, process.GetConfig()); len(conflicts) > 0 {
+			refused := fmt.Sprintf("config refused: %s", conflicts[0])
 			for _, conflict := range conflicts {
 				logger.Error("xray config refused:", conflict.String())
 			}
-			return fmt.Errorf("xray config refused: %s", conflicts[0])
+			// The refusal is otherwise invisible: the operator's request
+			// succeeded, so the status page has to carry the stale state.
+			xrayState.holdBack(refused)
+			return fmt.Errorf("xray %s", refused)
 		}
 		if !isForce && !configUnchanged && s.tryHotApply(process, xrayConfig) {
 			logger.Info("Xray config changes applied through the core API, no restart needed")

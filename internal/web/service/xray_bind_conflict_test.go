@@ -120,6 +120,26 @@ func TestBindConflicts(t *testing.T) {
 			relay + "," + user, user, 1,
 		},
 		{
+			// `::` and `0.0.0.0` on one port is what bindv6only=1 makes legal, so the
+			// running config excuses it -- but moving one onto the other is not it.
+			"excused pair whose listen changed into a real collision",
+			`{"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"a"},
+			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"b"}`,
+			`{"listen":"::","port":443,"protocol":"vless","tag":"a"},
+			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"b"}`,
+			1,
+		},
+		{
+			// The same pair of sockets is the same evidence, whichever order the
+			// generator happened to emit them in.
+			"excused pair with its listens swapped stays excused",
+			`{"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"a"},
+			 {"listen":"::","port":443,"protocol":"vless","tag":"b"}`,
+			`{"listen":"::","port":443,"protocol":"vless","tag":"a"},
+			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"b"}`,
+			0,
+		},
+		{
 			"same pair on another port is still new",
 			`{"listen":"127.0.0.1","port":65102,"protocol":"socks","tag":"relay","settings":{"auth":"password","udp":true,"accounts":[]}},
 			 {"listen":"0.0.0.0","port":65102,"protocol":"vless","tag":"user","streamSettings":{"network":"tcp"}}`,
@@ -161,11 +181,8 @@ func TestBindConflicts_MessageNamesBothSides(t *testing.T) {
 	}
 }
 
-// The probe is only worth anything if it reads the inbounds the panel really
-// emits: the AmneziaWG relay is written as a loopback "socks" inbound whose udp
-// flag lives in settings, which is the one shape a modelled rule misses. The
-// user inbound is written straight to the DB because the save-time guards exist
-// to refuse it through the API -- this is the path they cannot see.
+// The probe must read what the panel really emits: the AmneziaWG relay is a
+// loopback "socks" inbound whose udp flag lives in settings, not streamSettings.
 func TestBindConflicts_GeneratedConfig(t *testing.T) {
 	cases := []struct {
 		name    string

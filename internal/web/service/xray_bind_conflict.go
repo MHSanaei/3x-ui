@@ -13,11 +13,12 @@ import (
 
 // bindConflict names two generated inbounds whose listens cannot coexist.
 type bindConflict struct {
-	tagA   string
-	tagB   string
-	listen string
-	port   int
-	shared transportBits
+	tagA    string
+	tagB    string
+	listen  string
+	listenB string
+	port    int
+	shared  transportBits
 }
 
 func (c bindConflict) String() string {
@@ -25,9 +26,8 @@ func (c bindConflict) String() string {
 		c.tagA, c.tagB, displayListen(c.listen), c.port, transportTagSuffix(c.shared))
 }
 
-// bindConflicts reports inbounds of newCfg whose sockets collide. Running configs
-// are the authority on what the core can bind, so a collision runningCfg already
-// serves is excused and an established setup can never be refused.
+// bindConflicts reports inbounds of newCfg whose sockets collide. A collision the
+// running config already serves is excused: it is demonstration, not a guess.
 func bindConflicts(newCfg, runningCfg *xray.Config) []bindConflict {
 	conflicts := rawBindConflicts(newCfg)
 	if len(conflicts) == 0 {
@@ -76,11 +76,12 @@ func rawBindConflicts(cfg *xray.Config) []bindConflict {
 					continue
 				}
 				conflicts = append(conflicts, bindConflict{
-					tagA:   left.Tag,
-					tagB:   right.Tag,
-					listen: listenLeft,
-					port:   port,
-					shared: shared,
+					tagA:    left.Tag,
+					tagB:    right.Tag,
+					listen:  listenLeft,
+					listenB: listenRight,
+					port:    port,
+					shared:  shared,
 				})
 			}
 		}
@@ -93,8 +94,8 @@ func rawBindConflicts(cfg *xray.Config) []bindConflict {
 	return conflicts
 }
 
-// runningBindPairs is the pair set of a config the core is already running: each
-// pair there is demonstrated to bind, whatever a static read of it concludes.
+// runningBindPairs is what the core is demonstrably binding right now, keyed the
+// way a new config's conflicts are, so only the identical one is excused.
 func runningBindPairs(cfg *xray.Config) map[string]struct{} {
 	conflicts := rawBindConflicts(cfg)
 	if len(conflicts) == 0 {
@@ -107,12 +108,14 @@ func runningBindPairs(cfg *xray.Config) map[string]struct{} {
 	return pairs
 }
 
+// bindPairKey is the socket set an excuse was granted for: the two listens, the
+// port and the shared transports, never the tags, which the generator reorders.
 func bindPairKey(c bindConflict) string {
-	tagA, tagB := c.tagA, c.tagB
-	if tagA > tagB {
-		tagA, tagB = tagB, tagA
+	left, right := c.listen, c.listenB
+	if left > right {
+		left, right = right, left
 	}
-	return fmt.Sprintf("%d\x00%s\x00%s", c.port, tagA, tagB)
+	return fmt.Sprintf("%d\x00%s\x00%s\x00%d", c.port, left, right, c.shared)
 }
 
 func displayListen(listen string) string {
