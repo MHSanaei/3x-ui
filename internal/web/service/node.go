@@ -878,8 +878,9 @@ func (s *NodeService) Delete(id int) error {
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
 	}
-	nodeMetrics.drop(nodeMetricKey(id, "cpu"))
-	nodeMetrics.drop(nodeMetricKey(id, "mem"))
+	for _, metric := range NodeMetricKeys {
+		nodeMetrics.drop(nodeMetricKey(id, metric))
+	}
 	return nil
 }
 
