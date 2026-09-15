@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -1376,17 +1377,20 @@ func (s *InboundService) restartRemoteNodesOnDisable(nodeIDs []int) {
 	if !restartOnDisable {
 		return
 	}
-	for _, nodeID := range nodeIDs {
-		nodeIDCopy := nodeID
-		rt, rtErr := runtime.GetManager().RuntimeFor(&nodeIDCopy)
-		if rtErr != nil {
-			logger.Warning("disableInvalidClients: get runtime for node", nodeID, "failed:", rtErr)
-			continue
+	// Best-effort and never replayed: a hanging node must not hold the traffic poll.
+	common.GoRecover("restart-nodes-on-client-disable", func() {
+		for _, nodeID := range nodeIDs {
+			nodeIDCopy := nodeID
+			rt, rtErr := runtime.GetManager().RuntimeFor(&nodeIDCopy)
+			if rtErr != nil {
+				logger.Warning("disableInvalidClients: get runtime for node", nodeID, "failed:", rtErr)
+				continue
+			}
+			if rtErr = rt.RestartXray(context.Background()); rtErr != nil {
+				logger.Warning("disableInvalidClients: restart xray on node", nodeID, "failed:", rtErr)
+			}
 		}
-		if rtErr = rt.RestartXray(context.Background()); rtErr != nil {
-			logger.Warning("disableInvalidClients: restart xray on node", nodeID, "failed:", rtErr)
-		}
-	}
+	})
 }
 
 func (s *InboundService) GetOnlineClients() []string {
