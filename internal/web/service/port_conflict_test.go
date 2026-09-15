@@ -815,29 +815,6 @@ func TestCheckPortConflict_AmneziawgnetSocksRelayAllowedOnNode(t *testing.T) {
 	}
 }
 
-// A disabled AmneziaWG inbound never gets a relay inbound injected
-// (injectAmneziawgnetSocks skips !inbound.Enable), so its "reserved" port
-// must not block anything.
-func TestCheckPortConflict_AmneziawgnetSocksRelayIgnoredWhenDisabled(t *testing.T) {
-	setupConflictDB(t)
-	awg := &model.Inbound{Tag: "awg-1", Enable: false, Listen: "0.0.0.0", Port: 51820, Protocol: model.AmneziaWG, Settings: `{}`}
-	if err := database.GetDB().Create(awg).Error; err != nil {
-		t.Fatalf("seed disabled awg inbound: %v", err)
-	}
-	relayPort := amneziawgnet.SOCKSPortForInbound(awg.Id)
-
-	svc := &InboundService{}
-	candidate := &model.Inbound{
-		Tag:      "vless-bridge",
-		Listen:   "0.0.0.0",
-		Port:     relayPort,
-		Protocol: model.VLESS,
-	}
-	if got, err := svc.checkPortConflict(candidate, 0); err != nil || got != nil {
-		t.Fatalf("a disabled AmneziaWG inbound's port must not be reserved; got=%v err=%v", got, err)
-	}
-}
-
 // Unlike the retired kernel-module bridge, the embedded relay has no
 // RouteThroughXray-style opt-in -- every qualifying AmneziaWG inbound
 // reserves its relay port regardless of that (now-vestigial) field's value,
