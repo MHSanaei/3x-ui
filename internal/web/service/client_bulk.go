@@ -1802,6 +1802,7 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 						"auth":     ch.client.Auth,
 						"password": ch.client.Password,
 						"cipher":   cipher,
+						"reverse":  ch.client.Reverse,
 					})
 					if err1 != nil {
 						logger.Debug("Error in adding client on", rt.Name(), ":", err1)

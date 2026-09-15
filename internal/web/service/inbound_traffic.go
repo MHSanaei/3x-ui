@@ -728,6 +728,7 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 					"flow":     client.Flow,
 					"password": client.Password,
 					"cipher":   cipher,
+					"reverse":  client.Reverse,
 				}
 				if inbound.NodeID != nil {
 					reenableNodeID = inbound.NodeID
