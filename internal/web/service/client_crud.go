@@ -81,6 +81,28 @@ func validateClientResetMax(resetMax int) error {
 	return nil
 }
 
+func validateClientRenewal(client model.Client) error {
+	if err := validateClientResetDay(client.ResetDay); err != nil {
+		return err
+	}
+	if client.ResetWeekday < 0 || client.ResetWeekday > 7 {
+		return common.NewError("client resetWeekday must be between 0 and 7, got:", client.ResetWeekday)
+	}
+	if client.ResetWeekday > 0 && (client.Reset > 0 || client.ResetDay > 0) {
+		return common.NewError("client weekly renewal cannot be combined with reset or resetDay")
+	}
+	return nil
+}
+
+func validateClientsRenewal(clients []model.Client) error {
+	for _, client := range clients {
+		if err := validateClientRenewal(client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // normalizeClientTrafficReset stores what the inbound path would store, so the
 // day never reaches the DB as a 0 that three layers downstream each clamp to 1.
 func normalizeClientTrafficReset(c *model.Client) {
@@ -137,7 +159,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if err := validateClientSubID(client.SubID); err != nil {
 		return false, err
 	}
-	if err := validateClientResetDay(client.ResetDay); err != nil {
+	if err := validateClientRenewal(client); err != nil {
 		return false, err
 	}
 	if err := validateClientResetMax(client.ResetMax); err != nil {
@@ -591,7 +613,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
 	}
-	if err := validateClientResetDay(updated.ResetDay); err != nil {
+	if err := validateClientRenewal(updated); err != nil {
 		return false, err
 	}
 	if err := validateClientResetMax(updated.ResetMax); err != nil {
@@ -756,6 +778,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"comment":           merged.Comment,
 				"reset":             merged.Reset,
 				"reset_day":         merged.ResetDay,
+				"reset_weekday":     merged.ResetWeekday,
 				"reset_max":         merged.ResetMax,
 				"traffic_reset":     merged.TrafficReset,
 				"traffic_reset_day": merged.TrafficResetDay,

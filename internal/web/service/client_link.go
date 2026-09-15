@@ -65,6 +65,7 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	row.Comment = incoming.Comment
 	row.Reset = incoming.Reset
 	row.ResetDay = incoming.ResetDay
+	row.ResetWeekday = incoming.ResetWeekday
 	row.ResetMax = incoming.ResetMax
 	// Guarded like Group and AdTag: a node snapshot rebuilt from settings that
 	// predate the cycle would otherwise silently erase it.
@@ -94,6 +95,9 @@ func (s *ClientService) ApplyInboundClientDelta(tx *gorm.DB, inboundId int, chan
 }
 
 func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients []model.Client, detachEmails []string, prune bool) error {
+	if err := validateClientsRenewal(clients); err != nil {
+		return err
+	}
 	if tx == nil {
 		tx = database.GetDB()
 	}

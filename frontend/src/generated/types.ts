@@ -362,6 +362,7 @@ export interface Client {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   reverse?: ClientReverse | null;
   secret?: string;
   security: string;
@@ -413,6 +414,7 @@ export interface ClientRecord {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   reverse: unknown;
   secret: string;
   security: string;
@@ -423,6 +425,27 @@ export interface ClientRecord {
   trafficResetDay: number;
   updatedAt: number;
   uuid: string;
+}
+
+export interface ClientRenewalPreview {
+  canRenew: boolean;
+  delayedStart: boolean;
+  nextExpiry: string;
+  renewAt: string;
+  renewals: number;
+  suggestedExpiry: string;
+  suggestedExpiryTime: number;
+  timeZone: string;
+  validThrough: string;
+}
+
+export interface ClientRenewalPreviewRequest {
+  expiryTime: number;
+  reset: number;
+  resetCount: number;
+  resetDay: number;
+  resetMax: number;
+  resetWeekday: number;
 }
 
 export interface ClientReverse {
@@ -442,6 +465,7 @@ export interface ClientSlim {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   subId: string;
   totalGB: number;
   traffic?: ClientTraffic | null;
@@ -461,6 +485,7 @@ export interface ClientTraffic {
   resetCount: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   subId: string;
   total: number;
   up: number;

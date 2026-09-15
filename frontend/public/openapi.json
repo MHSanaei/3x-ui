@@ -1515,11 +1515,15 @@
             "type": "integer"
           },
           "resetDay": {
-            "description": "Calendar renewal day 1-31, 0 = interval mode",
+            "description": "Calendar renewal day 1-31, 0 disables monthly renewal",
             "type": "integer"
           },
           "resetMax": {
             "description": "Max auto-renew count, 0 = unlimited",
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "description": "Calendar weekday 1-7 (Mon-Sun), 0 disables weekly renewal",
             "type": "integer"
           },
           "reverse": {
@@ -1584,6 +1588,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "security",
           "subId",
           "tgId",
@@ -1735,6 +1740,9 @@
           "resetMax": {
             "type": "integer"
           },
+          "resetWeekday": {
+            "type": "integer"
+          },
           "reverse": {},
           "secret": {
             "type": "string"
@@ -1790,6 +1798,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "reverse",
           "secret",
           "security",
@@ -1800,6 +1809,97 @@
           "trafficResetDay",
           "updatedAt",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "ClientRenewalPreview": {
+        "properties": {
+          "canRenew": {
+            "example": true,
+            "type": "boolean"
+          },
+          "delayedStart": {
+            "example": false,
+            "type": "boolean"
+          },
+          "nextExpiry": {
+            "example": "2030-02-01T00:00:00Z",
+            "type": "string"
+          },
+          "renewAt": {
+            "example": "2030-01-01T00:00:00Z",
+            "type": "string"
+          },
+          "renewals": {
+            "example": 1,
+            "type": "integer"
+          },
+          "suggestedExpiry": {
+            "example": "2030-01-01T00:00:00Z",
+            "type": "string"
+          },
+          "suggestedExpiryTime": {
+            "example": 1893456000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "timeZone": {
+            "example": "UTC",
+            "type": "string"
+          },
+          "validThrough": {
+            "example": "2029-12-31T23:59:59Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRenew",
+          "delayedStart",
+          "nextExpiry",
+          "renewAt",
+          "renewals",
+          "suggestedExpiry",
+          "suggestedExpiryTime",
+          "timeZone",
+          "validThrough"
+        ],
+        "type": "object"
+      },
+      "ClientRenewalPreviewRequest": {
+        "properties": {
+          "expiryTime": {
+            "example": 1893456000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "reset": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetCount": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetDay": {
+            "example": 1,
+            "type": "integer"
+          },
+          "resetMax": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expiryTime",
+          "reset",
+          "resetCount",
+          "resetDay",
+          "resetMax",
+          "resetWeekday"
         ],
         "type": "object"
       },
@@ -1873,6 +1973,10 @@
             "example": 0,
             "type": "integer"
           },
+          "resetWeekday": {
+            "example": 0,
+            "type": "integer"
+          },
           "subId": {
             "example": "abcd1234",
             "type": "string"
@@ -1907,6 +2011,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "subId",
           "totalGB",
           "updatedAt"
@@ -1962,12 +2067,17 @@
             "type": "integer"
           },
           "resetDay": {
-            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 disables monthly renewal.",
             "example": 0,
             "type": "integer"
           },
           "resetMax": {
             "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "description": "ResetWeekday renews weekly at panel-local midnight: 1 Monday through 7 Sunday.",
             "example": 0,
             "type": "integer"
           },
@@ -2003,6 +2113,7 @@
           "resetCount",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "subId",
           "total",
           "up",
@@ -4652,6 +4763,7 @@
                           "resetCount": 0,
                           "resetDay": 0,
                           "resetMax": 0,
+                          "resetWeekday": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
                           "up": 1048576,
@@ -7886,6 +7998,7 @@
                         "reset": 0,
                         "resetDay": 0,
                         "resetMax": 0,
+                        "resetWeekday": 0,
                         "subId": "abcd1234",
                         "totalGB": 53687091200,
                         "traffic": null,
@@ -8071,6 +8184,97 @@
                 "example": {
                   "success": true,
                   "msg": "Client added"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/renewalPreview": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Preview client auto-renewal dates without saving or resetting anything.",
+        "operationId": "post_panel_api_clients_renewalPreview",
+        "description": "Uses the same calendar and catch-up calculation as auto-renew in the panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables weekly mode; it cannot be combined with positive reset or resetDay. Existing resetDay takes precedence over reset. With expiryTime=0, calendar modes suggest a first cutoff but do not activate renewal. Negative expiryTime waits for first-use activation. resetMax and resetCount simulate the existing per-period allowance limit; the preview is informational and does not reserve an allowance or guarantee node availability.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiryTime": {
+                    "type": "integer",
+                    "description": "Current cutoff in Unix milliseconds; 0 unlimited, negative first-use duration."
+                  },
+                  "reset": {
+                    "type": "integer",
+                    "description": "Fixed interval in days; 0 disabled."
+                  },
+                  "resetDay": {
+                    "type": "integer",
+                    "description": "Monthly calendar day 1-31; 0 disabled."
+                  },
+                  "resetWeekday": {
+                    "type": "integer",
+                    "description": "Weekly calendar day 1-7 (Monday-Sunday); 0 disabled."
+                  },
+                  "resetMax": {
+                    "type": "integer",
+                    "description": "Maximum renewals; 0 unlimited."
+                  },
+                  "resetCount": {
+                    "type": "integer",
+                    "description": "Renewals already consumed; defaults to 0."
+                  }
+                },
+                "required": [
+                  "expiryTime",
+                  "reset",
+                  "resetDay",
+                  "resetWeekday",
+                  "resetMax",
+                  "resetCount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/ClientRenewalPreview"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "canRenew": true,
+                    "delayedStart": false,
+                    "nextExpiry": "2030-02-01T00:00:00Z",
+                    "renewAt": "2030-01-01T00:00:00Z",
+                    "renewals": 1,
+                    "suggestedExpiry": "2030-01-01T00:00:00Z",
+                    "suggestedExpiryTime": 1893456000000,
+                    "timeZone": "UTC",
+                    "validThrough": "2029-12-31T23:59:59Z"
+                  }
                 }
               }
             }
@@ -10137,6 +10341,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15504,6 +15709,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15586,6 +15792,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15632,6 +15839,7 @@
                       "resetCount": 0,
                       "resetDay": 0,
                       "resetMax": 0,
+                      "resetWeekday": 0,
                       "subId": "i7tvdpeffi0hvvf1",
                       "total": 10737418240,
                       "up": 1048576,

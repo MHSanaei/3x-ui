@@ -93,6 +93,8 @@ func run(root, outDir string) error {
 				"InboundOption",
 				"HappLinkResult",
 				"ClientSlim",
+				"ClientRenewalPreviewRequest",
+				"ClientRenewalPreview",
 				"ClientPageResponse",
 				"ClientsSummary",
 				"InboundTrafficSummary",

@@ -381,6 +381,7 @@ export const ClientSchema = z.object({
   reset: z.number().int(),
   resetDay: z.number().int(),
   resetMax: z.number().int(),
+  resetWeekday: z.number().int(),
   reverse: z.lazy(() => ClientReverseSchema).nullable().optional(),
   secret: z.string().optional(),
   security: z.string(),
@@ -435,6 +436,7 @@ export const ClientRecordSchema = z.object({
   reset: z.number().int(),
   resetDay: z.number().int(),
   resetMax: z.number().int(),
+  resetWeekday: z.number().int(),
   reverse: z.unknown(),
   secret: z.string(),
   security: z.string(),
@@ -447,6 +449,29 @@ export const ClientRecordSchema = z.object({
   uuid: z.string(),
 });
 export type ClientRecord = z.infer<typeof ClientRecordSchema>;
+
+export const ClientRenewalPreviewSchema = z.object({
+  canRenew: z.boolean(),
+  delayedStart: z.boolean(),
+  nextExpiry: z.string(),
+  renewAt: z.string(),
+  renewals: z.number().int(),
+  suggestedExpiry: z.string(),
+  suggestedExpiryTime: z.number().int(),
+  timeZone: z.string(),
+  validThrough: z.string(),
+});
+export type ClientRenewalPreview = z.infer<typeof ClientRenewalPreviewSchema>;
+
+export const ClientRenewalPreviewRequestSchema = z.object({
+  expiryTime: z.number().int(),
+  reset: z.number().int(),
+  resetCount: z.number().int(),
+  resetDay: z.number().int(),
+  resetMax: z.number().int(),
+  resetWeekday: z.number().int(),
+});
+export type ClientRenewalPreviewRequest = z.infer<typeof ClientRenewalPreviewRequestSchema>;
 
 export const ClientReverseSchema = z.object({
   tag: z.string(),
@@ -466,6 +491,7 @@ export const ClientSlimSchema = z.object({
   reset: z.number().int(),
   resetDay: z.number().int(),
   resetMax: z.number().int(),
+  resetWeekday: z.number().int(),
   subId: z.string(),
   totalGB: z.number().int(),
   traffic: z.lazy(() => ClientTrafficSchema).nullable().optional(),
@@ -486,6 +512,7 @@ export const ClientTrafficSchema = z.object({
   resetCount: z.number().int(),
   resetDay: z.number().int(),
   resetMax: z.number().int(),
+  resetWeekday: z.number().int(),
   subId: z.string(),
   total: z.number().int(),
   up: z.number().int(),

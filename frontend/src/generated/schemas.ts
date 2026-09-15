@@ -1489,11 +1489,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "resetDay": {
-        "description": "Calendar renewal day 1-31, 0 = interval mode",
+        "description": "Calendar renewal day 1-31, 0 disables monthly renewal",
         "type": "integer"
       },
       "resetMax": {
         "description": "Max auto-renew count, 0 = unlimited",
+        "type": "integer"
+      },
+      "resetWeekday": {
+        "description": "Calendar weekday 1-7 (Mon-Sun), 0 disables weekly renewal",
         "type": "integer"
       },
       "reverse": {
@@ -1558,6 +1562,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "reset",
       "resetDay",
       "resetMax",
+      "resetWeekday",
       "security",
       "subId",
       "tgId",
@@ -1709,6 +1714,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "resetMax": {
         "type": "integer"
       },
+      "resetWeekday": {
+        "type": "integer"
+      },
       "reverse": {},
       "secret": {
         "type": "string"
@@ -1764,6 +1772,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "reset",
       "resetDay",
       "resetMax",
+      "resetWeekday",
       "reverse",
       "secret",
       "security",
@@ -1774,6 +1783,97 @@ export const SCHEMAS: Record<string, unknown> = {
       "trafficResetDay",
       "updatedAt",
       "uuid"
+    ],
+    "type": "object"
+  },
+  "ClientRenewalPreview": {
+    "properties": {
+      "canRenew": {
+        "example": true,
+        "type": "boolean"
+      },
+      "delayedStart": {
+        "example": false,
+        "type": "boolean"
+      },
+      "nextExpiry": {
+        "example": "2030-02-01T00:00:00Z",
+        "type": "string"
+      },
+      "renewAt": {
+        "example": "2030-01-01T00:00:00Z",
+        "type": "string"
+      },
+      "renewals": {
+        "example": 1,
+        "type": "integer"
+      },
+      "suggestedExpiry": {
+        "example": "2030-01-01T00:00:00Z",
+        "type": "string"
+      },
+      "suggestedExpiryTime": {
+        "example": 1893456000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "timeZone": {
+        "example": "UTC",
+        "type": "string"
+      },
+      "validThrough": {
+        "example": "2029-12-31T23:59:59Z",
+        "type": "string"
+      }
+    },
+    "required": [
+      "canRenew",
+      "delayedStart",
+      "nextExpiry",
+      "renewAt",
+      "renewals",
+      "suggestedExpiry",
+      "suggestedExpiryTime",
+      "timeZone",
+      "validThrough"
+    ],
+    "type": "object"
+  },
+  "ClientRenewalPreviewRequest": {
+    "properties": {
+      "expiryTime": {
+        "example": 1893456000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "reset": {
+        "example": 0,
+        "type": "integer"
+      },
+      "resetCount": {
+        "example": 0,
+        "type": "integer"
+      },
+      "resetDay": {
+        "example": 1,
+        "type": "integer"
+      },
+      "resetMax": {
+        "example": 0,
+        "type": "integer"
+      },
+      "resetWeekday": {
+        "example": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "expiryTime",
+      "reset",
+      "resetCount",
+      "resetDay",
+      "resetMax",
+      "resetWeekday"
     ],
     "type": "object"
   },
@@ -1847,6 +1947,10 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 0,
         "type": "integer"
       },
+      "resetWeekday": {
+        "example": 0,
+        "type": "integer"
+      },
       "subId": {
         "example": "abcd1234",
         "type": "string"
@@ -1881,6 +1985,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "reset",
       "resetDay",
       "resetMax",
+      "resetWeekday",
       "subId",
       "totalGB",
       "updatedAt"
@@ -1936,12 +2041,17 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "resetDay": {
-        "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+        "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 disables monthly renewal.",
         "example": 0,
         "type": "integer"
       },
       "resetMax": {
         "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+        "example": 0,
+        "type": "integer"
+      },
+      "resetWeekday": {
+        "description": "ResetWeekday renews weekly at panel-local midnight: 1 Monday through 7 Sunday.",
         "example": 0,
         "type": "integer"
       },
@@ -1977,6 +2087,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "resetCount",
       "resetDay",
       "resetMax",
+      "resetWeekday",
       "subId",
       "total",
       "up",
