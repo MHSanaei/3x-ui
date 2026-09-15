@@ -266,10 +266,11 @@ func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) e
 	})
 }
 
-// clientUserMap is the account map every local per-client apply sends: a field
-// missing here is a field the running core never learns about.
-func clientUserMap(client model.Client) map[string]any {
-	return map[string]any{
+func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.Client) error {
+	if !client.Enable {
+		return nil
+	}
+	user := map[string]any{
 		"email":        client.Email,
 		"id":           client.ID,
 		"security":     client.Security,
@@ -280,15 +281,8 @@ func clientUserMap(client model.Client) map[string]any {
 		"allowedIPs":   client.AllowedIPs,
 		"preSharedKey": client.PreSharedKey,
 		"keepAlive":    wgKeepAlive(client.KeepAliveSeconds()),
-		"reverse":      client.Reverse,
 	}
-}
-
-func (l *Local) AddClient(ctx context.Context, ib *model.Inbound, client model.Client) error {
-	if !client.Enable {
-		return nil
-	}
-	return l.AddUser(ctx, ib, clientUserMap(client))
+	return l.AddUser(ctx, ib, user)
 }
 
 func (l *Local) DeleteUser(ctx context.Context, ib *model.Inbound, email string) error {
@@ -317,7 +311,19 @@ func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail stri
 	if !payload.Enable {
 		return nil
 	}
-	return l.AddUser(ctx, ib, clientUserMap(payload))
+	user := map[string]any{
+		"email":        payload.Email,
+		"id":           payload.ID,
+		"security":     payload.Security,
+		"flow":         payload.Flow,
+		"auth":         payload.Auth,
+		"password":     payload.Password,
+		"publicKey":    payload.PublicKey,
+		"allowedIPs":   payload.AllowedIPs,
+		"preSharedKey": payload.PreSharedKey,
+		"keepAlive":    wgKeepAlive(payload.KeepAliveSeconds()),
+	}
+	return l.AddUser(ctx, ib, user)
 }
 
 func wgKeepAlive(seconds int) string {
