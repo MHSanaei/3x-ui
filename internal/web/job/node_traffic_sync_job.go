@@ -16,7 +16,9 @@ import (
 )
 
 const (
-	nodeTrafficSyncConcurrency    = 8
+	// The heartbeat's bound: at 8, 300 nodes 80ms away took 25-30s per 5s tick on SQLite
+	// and 6-9s at 32; neither SQLite nor Postgres raised lock or pool errors.
+	nodeTrafficSyncConcurrency    = 32
 	nodeTrafficSyncRequestTimeout = 4 * time.Second
 	nodeReconcileTimeout          = 30 * time.Second
 	nodeClientIpSyncInterval      = 10 * time.Second
