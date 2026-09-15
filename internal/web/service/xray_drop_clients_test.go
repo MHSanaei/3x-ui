@@ -13,9 +13,8 @@ func setRestartOnClientDisable(t *testing.T, value bool) {
 	}
 }
 
-// A dropped client cannot be disconnected through the core API -- RemoveUser
-// only drops the credential -- so the hot path must step aside for the restart
-// the operator asked for. An edit re-adds the email and needs no restart.
+// RemoveUser drops the credential only, so a dropped client needs the restart the
+// setting asks for; an edit re-adds the email and needs none.
 func TestRestartToDropClients(t *testing.T) {
 	cases := []struct {
 		name        string

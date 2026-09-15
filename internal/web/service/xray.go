@@ -1422,9 +1422,8 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 		process.SetConfig(newCfg)
 		return true
 	}
-	// The core's RemoveUser drops the credential only: an established session
-	// keeps flowing until its process is replaced, so a disabled or deleted
-	// client needs the restart this setting already asks for.
+	// The core's RemoveUser drops the credential only, so a disabled or deleted
+	// client needs the restart this setting asks for.
 	if s.restartToDropClients(diff) {
 		logger.Info("hot apply: clients left the config, restarting to drop their live sessions")
 		return false

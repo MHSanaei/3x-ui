@@ -16,6 +16,41 @@ func hotConfigWithClients(clients string) *Config {
 	return cfg
 }
 
+// diffInboundUsers refuses shadowsocks and hysteria, so their dropped clients
+// reach the guard through the inbound instead of through a per-user op.
+func TestHotDiffDropsUsersOnProtocolsItCannotDiff(t *testing.T) {
+	for _, protocol := range []string{"shadowsocks", "hysteria"} {
+		t.Run(protocol, func(t *testing.T) {
+			withClients := func(clients string) *Config {
+				cfg := makeHotConfig()
+				ib := &cfg.InboundConfigs[1]
+				ib.Protocol = protocol
+				ib.Settings = json_util.RawMessage(`{"clients":` + clients + `}`)
+				return cfg
+			}
+			both := `[{"email":"a@x","password":"pa"},{"email":"b@x","password":"pb"}]`
+			onlyA := `[{"email":"a@x","password":"pa"}]`
+
+			diff, ok := ComputeHotDiff(withClients(both), withClients(onlyA))
+			if !ok {
+				t.Fatal("a dropped client must stay API-applicable")
+			}
+			if !diff.DropsUsers() {
+				t.Fatalf("DropsUsers = false for a dropped %s client (removed=%+v added=%+v dropped=%+v)",
+					protocol, diff.RemovedUsers, diff.AddedUsers, diff.DroppedClients)
+			}
+
+			edited, ok := ComputeHotDiff(withClients(both), withClients(`[{"email":"a@x","password":"pa"},{"email":"b@x","password":"pb","level":1}]`))
+			if !ok {
+				t.Fatal("a client edit must stay API-applicable")
+			}
+			if edited.DropsUsers() {
+				t.Fatal("an edited client is still served")
+			}
+		})
+	}
+}
+
 // A disable or a delete takes the client out of the generated config; an edit
 // keeps the email and re-adds it. Only the first leaves sessions running.
 func TestHotDiffDropsUsers(t *testing.T) {
