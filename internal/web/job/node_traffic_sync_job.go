@@ -94,6 +94,7 @@ func (j *NodeTrafficSyncJob) Run() {
 		logger.Warning("node traffic sync: load nodes failed:", err)
 		return
 	}
+	j.inboundService.RetainSyncedNodeOnlineClients(nodes)
 	if len(nodes) == 0 {
 		return
 	}

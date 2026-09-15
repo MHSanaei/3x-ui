@@ -39,6 +39,7 @@ func (j *NodeHeartbeatJob) Run() {
 		logger.Warning("node heartbeat: load nodes failed:", err)
 		return
 	}
+	j.nodeService.RetainEnabledNodeDescendants(nodes)
 	if len(nodes) == 0 {
 		return
 	}

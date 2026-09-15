@@ -355,6 +355,10 @@ func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnaps
 		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap, dirty, justPushed)
 		return inner
 	})
+	if err != nil {
+		// As on a failed fetch: a node whose snapshot did not merge keeps no online set.
+		s.ClearNodeOnlineClients(nodeID)
+	}
 	return structuralChange, err
 }
 
@@ -1452,6 +1456,20 @@ func (s *InboundService) ClearNodeOnlineClients(nodeID int) {
 	if process := currentXrayProcess(); process != nil {
 		process.ClearNodeOnlineClients(nodeID)
 	}
+}
+
+// RetainSyncedNodeOnlineClients keeps online clients only for nodes the traffic
+// sync still fetches; a node missing from nodes was deleted.
+func (s *InboundService) RetainSyncedNodeOnlineClients(nodes []*model.Node) {
+	process := currentXrayProcess()
+	if process == nil {
+		return
+	}
+	synced := make(map[int]bool, len(nodes))
+	for _, n := range nodes {
+		synced[n.Id] = n.Enable && n.Status == "online"
+	}
+	process.RetainNodeOnlineClients(func(nodeID int) bool { return synced[nodeID] })
 }
 
 // panelGuid returns this panel's stable self-identifier, used to key the local
