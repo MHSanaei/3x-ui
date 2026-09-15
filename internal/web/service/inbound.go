@@ -1238,8 +1238,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			return err
 		}
 		// The relay port is derived from the id, only known after Save, and only a
-		// local row owns one: checkPortConflictTx ran neither check with ignoreId==0.
+		// local row owns one: checkPortConflictTx ran no relay check with ignoreId==0.
 		if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG {
+			if self := amneziawgnetSocksSelfConflict(inbound, inbound.Id); self != "" {
+				return common.NewError(self)
+			}
 			conflict, cErr := checkAmneziawgnetSocksRelayCollision(tx, inbound.Id)
 			if cErr != nil {
 				return cErr

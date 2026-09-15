@@ -168,6 +168,55 @@ func TestCheckPortConflict_DisabledAmneziawgStillOwnsItsRelaySlot(t *testing.T) 
 	}
 }
 
+// The row's own WireGuard port can be the relay port its own id derives, and
+// every relay check excludes that id, so nothing else compares the two.
+func TestAddInbound_AmneziawgRefusesItsOwnRelayPort(t *testing.T) {
+	setupConflictDB(t)
+
+	// Read the sequence instead of assuming id 1: the victim's own derived port
+	// has to be known before it is created.
+	placeholder := addAmneziaWGInbound(t, "awg-placeholder", 51820, true)
+	selfPort := amneziawgnet.SOCKSPortForInbound(placeholder.Id + 1)
+
+	_, _, err := (&InboundService{}).AddInbound(&model.Inbound{
+		Tag:      "awg-self",
+		Enable:   true,
+		Listen:   "0.0.0.0",
+		Port:     selfPort,
+		Protocol: model.AmneziaWG,
+		Settings: awgRelayWindowSettings(t, "awg-self"),
+	})
+	if err == nil {
+		t.Fatalf("WireGuard port %d is inbound #%d's own relay port; the create must be refused",
+			selfPort, placeholder.Id+1)
+	}
+	if !strings.Contains(err.Error(), "relay port") {
+		t.Fatalf("the refusal must say the port is an automatic relay one, got %v", err)
+	}
+}
+
+// The edit path knows the id the relay port comes from, so it has to refuse the
+// same self-collision -- the reverse check skips the row it computes for.
+func TestUpdateInbound_AmneziawgRefusesItsOwnRelayPort(t *testing.T) {
+	setupConflictDB(t)
+	created := addAmneziaWGInbound(t, "awg-self-edit", 51820, true)
+
+	edit := *created
+	edit.Port = amneziawgnet.SOCKSPortForInbound(created.Id)
+	if edit.Port == created.Port {
+		t.Fatalf("fixture: inbound #%d already listens on its derived relay port", created.Id)
+	}
+
+	_, _, err := (&InboundService{}).UpdateInbound(&edit)
+	if err == nil {
+		t.Fatalf("WireGuard port %d is inbound #%d's own relay port; the save must be refused",
+			edit.Port, created.Id)
+	}
+	if !strings.Contains(err.Error(), "relay port") {
+		t.Fatalf("the refusal must say the port is an automatic relay one, got %v", err)
+	}
+}
+
 // A row adopted from a node keeps the protocol it arrived with and its central
 // id (inbound_node.go:737), but gets no relay -- so its slot can never be taken.
 func TestCheckPortConflict_NodeAssignedAmneziawgOwnsNoRelaySlot(t *testing.T) {
@@ -195,6 +244,18 @@ func TestCheckPortConflict_NodeAssignedAmneziawgOwnsNoRelaySlot(t *testing.T) {
 	}
 	if got != nil {
 		t.Fatalf("id %d is node-assigned and binds no relay, so it cannot collide; got %q",
+			collidingID, got.String())
+	}
+
+	// The same rule covers the row's own port: with no relay on this host, its
+	// WireGuard port may legitimately BE the port its id would derive.
+	adopted.Port = amneziawgnet.SOCKSPortForInbound(collidingID)
+	got, err = (&InboundService{}).checkPortConflict(adopted, collidingID)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got != nil {
+		t.Fatalf("id %d is node-assigned and binds no relay, so its own port is not a conflict; got %q",
 			collidingID, got.String())
 	}
 }
