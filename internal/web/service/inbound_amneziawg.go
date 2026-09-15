@@ -314,21 +314,21 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 }
 
 // portConflictContext caches what checkForwardedPortsConflict needs — the panel's
-// own port and this host's inbound rows — so one save costs one query, not N.
+// own port and this host's enabled rows — so one save costs one query, not N.
 type portConflictContext struct {
 	webPort  int
 	inbounds []*model.Inbound
 }
 
-// loadPortConflictContext loads the panel's own port and every inbound hosted on
-// THIS panel: a node-hosted one listens on that node's host, never on this one.
+// loadPortConflictContext loads the panel's own port and every enabled inbound
+// hosted on THIS panel: a node-hosted one listens on that node's host, not here.
 func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictContext, error) {
 	var ctx portConflictContext
 	if webPort, err := (&SettingService{}).GetPort(); err == nil {
 		ctx.webPort = webPort
 	}
 	err := db.Model(model.Inbound{}).
-		Where("node_id IS NULL").
+		Where("enable = ? AND node_id IS NULL", true).
 		Find(&ctx.inbounds).Error
 	return ctx, err
 }
@@ -375,9 +375,7 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 		return fmt.Sprintf("the panel's own port (%d)", ctx.webPort)
 	}
 	for _, ib := range ctx.inbounds {
-		// A disabled row's own port is free, but its relay slot is not: the relay
-		// appears with the first client, and no client path re-checks ports.
-		if ib.Enable && amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
+		if amneziawg.ForwardedPortsInclude(forwardedPorts, ib.Port) {
 			name := ib.Remark
 			if name == "" {
 				name = ib.Tag
