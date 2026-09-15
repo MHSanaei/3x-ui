@@ -122,6 +122,7 @@ export interface AllSetting {
   subListen: string;
   subPath: string;
   subPort: number;
+  subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
@@ -279,6 +280,7 @@ export interface AllSettingView {
   subListen: string;
   subPath: string;
   subPort: number;
+  subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;

@@ -94,6 +94,25 @@ Subscriptions return standard headers that compatible apps read:
 - **`Profile-Title`**, **`Support-Url`**, **`Profile-Web-Page-Url`**,
   **`Announce`** — optional branding shown by some clients.
 
+### Profile page links and upgrades
+
+In **Subscription → Profile → Profile page**, choose `subProfileMode` for all
+subscription clients:
+
+- **No link** (`none`, default): omit `Profile-Web-Page-Url`.
+- **Built-in subscription page** (`builtin`): link to the client's built-in page.
+- **Custom website** (`custom`): use `subProfileUrl`; a blank URL omits the header.
+
+**Upgrade note:** previously, an empty `subProfileUrl` automatically linked to
+the built-in page. After upgrading, an unset mode with an empty or whitespace-only
+URL becomes **No link**; an existing nonempty URL remains a **Custom website**.
+To restore the built-in link, select **Built-in subscription page** above and
+save the settings.
+
+The built-in page exposes subscription URLs and node configurations, including
+for Happ encrypted subscriptions. Enable it only if you intend to provide that
+access.
+
 ### Optional month-end expiry display
 
 Under **Subscription → Information**, **Month-end subscription expiry display**

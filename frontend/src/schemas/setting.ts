@@ -4,6 +4,9 @@ const port = z.number().int().min(1).max(65535);
 const nonNegativeInt = z.number().int().min(0);
 const absolutePath = z.string().regex(/^\//, 'pages.settings.validation.pathLeadingSlash');
 
+export const SubProfileModeSchema = z.enum(['none', 'builtin', 'custom']);
+export type SubProfileMode = z.infer<typeof SubProfileModeSchema>;
+
 export const AllSettingSchema = z
   .object({
     webListen: z.string().optional(),
@@ -50,6 +53,7 @@ export const AllSettingSchema = z
     subClashUserAgentRegex: z.string().max(2048).optional(),
     subTitle: z.string().optional(),
     subSupportUrl: z.string().optional(),
+    subProfileMode: SubProfileModeSchema.optional(),
     subProfileUrl: z.string().optional(),
     subAnnounce: z.string().optional(),
     subEnableRouting: z.boolean().optional(),
