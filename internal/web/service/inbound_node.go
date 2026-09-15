@@ -34,6 +34,10 @@ const nodeBulkPushThreshold = 32
 // committed and the node flagged dirty, so a slow node defers to the reconcile.
 const nodeClientPushTimeout = 4 * time.Second
 
+// nodeFanoutConcurrency bounds an operation that calls every node, as the heartbeat
+// does: one at a time, a few hanging nodes outlast the request's write timeout.
+const nodeFanoutConcurrency = 32
+
 func nodePushContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), nodeClientPushTimeout)
 }
