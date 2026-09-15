@@ -31,9 +31,8 @@ func makeAWGOutboundConfig(t *testing.T) *xray.Config {
 	return cfg
 }
 
-// The core lowercases a protocol id before resolving the handler, and the probe
-// lane already reads this one that way (probe_http.go), so the same spelling
-// must reach the same bridge here or the raw id goes to the core unbridged.
+// The core folds the protocol id's case before resolving it, so a mixed-case
+// spelling must bridge here too or the raw pseudo-protocol reaches the core.
 func TestTransformAmneziaWGOutbounds_ReadsTheProtocolIDLikeTheCore(t *testing.T) {
 	for _, protocol := range []string{"amneziawg", "AmneziaWG", "AMNEZIAWG"} {
 		t.Run(protocol, func(t *testing.T) {
