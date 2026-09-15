@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ Tidak ada klien dengan ID Telegram yang terhubung.",
       "broadcastPreview": "📤 Pesan ini akan dikirim ke {{ .Count }} penerima. Kirim?",
       "broadcastNotCopyable": "❗ Pesan ini tidak bisa disalin untuk siaran. Kirim pesan lain.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} penerima belum pernah memulai bot (atau memblokirnya) dan tidak bisa dikirimi pesan — minta mereka menekan Start.",
       "broadcastProgress": "📤 Terkirim {{ .Sent }} dari {{ .Total }} (gagal: {{ .Failed }})\r\n",
       "broadcastFinished": "✅ Siaran selesai.\r\n👥 Penerima: {{ .Total }}\r\n📨 Terkirim: {{ .Sent }}\r\n🚫 Gagal: {{ .Failed }}\r\n⏭ Dilewati: {{ .Skipped }}\r\n⏱ Waktu: {{ .Time }}\r\n",
       "broadcastCanceled": "🛑 Siaran dibatalkan.\r\n👥 Penerima: {{ .Total }}\r\n📨 Terkirim: {{ .Sent }}\r\n🚫 Gagal: {{ .Failed }}\r\n⏭ Dilewati: {{ .Skipped }}\r\n⏱ Waktu: {{ .Time }}\r\n",

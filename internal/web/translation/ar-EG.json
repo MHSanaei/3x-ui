@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ لا يوجد عملاء بمعرّف تلجرام مرتبط.",
       "broadcastPreview": "📤 ستُرسل هذه الرسالة إلى {{ .Count }} مستلمًا. أرسل؟",
       "broadcastNotCopyable": "❗ لا يمكن نسخ هذه الرسالة للبث. أرسل رسالة أخرى.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} مستلمًا لم يبدؤوا محادثة مع البوت (أو حجبوه) ولا يمكن مراسلتهم — اطلب منهم الضغط على Start.",
       "broadcastProgress": "📤 تم إرسال {{ .Sent }} من {{ .Total }} (فاشلة: {{ .Failed }})\r\n",
       "broadcastFinished": "✅ انتهى البث.\r\n👥 المستلمون: {{ .Total }}\r\n📨 تم توصيلها: {{ .Sent }}\r\n🚫 فاشلة: {{ .Failed }}\r\n⏭ تم تخطيها: {{ .Skipped }}\r\n⏱ الوقت: {{ .Time }}\r\n",
       "broadcastCanceled": "🛑 تم إلغاء البث.\r\n👥 المستلمون: {{ .Total }}\r\n📨 تم توصيلها: {{ .Sent }}\r\n🚫 فاشلة: {{ .Failed }}\r\n⏭ تم تخطيها: {{ .Skipped }}\r\n⏱ الوقت: {{ .Time }}\r\n",

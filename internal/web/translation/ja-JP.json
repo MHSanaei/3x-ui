@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ Telegram ID が紐付いたクライアントがいません。",
       "broadcastPreview": "📤 このメッセージは {{ .Count }} 人の受信者に送信されます。送信しますか？",
       "broadcastNotCopyable": "❗ このメッセージは一括送信にコピーできません。別のメッセージを送ってください。",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} 人の受信者はボットとの会話を開始していない（またはブロックしている）ため送信できません — Start を押すよう案内してください。",
       "broadcastProgress": "📤 {{ .Total }} 人中 {{ .Sent }} 人に送信済み（失敗：{{ .Failed }}）\r\n",
       "broadcastFinished": "✅ 一括送信が完了しました。\r\n👥 受信者：{{ .Total }}\r\n📨 送信済み：{{ .Sent }}\r\n🚫 失敗：{{ .Failed }}\r\n⏭ スキップ：{{ .Skipped }}\r\n⏱ 時間：{{ .Time }}\r\n",
       "broadcastCanceled": "🛑 一括送信をキャンセルしました。\r\n👥 受信者：{{ .Total }}\r\n📨 送信済み：{{ .Sent }}\r\n🚫 失敗：{{ .Failed }}\r\n⏭ スキップ：{{ .Skipped }}\r\n⏱ 時間：{{ .Time }}\r\n",

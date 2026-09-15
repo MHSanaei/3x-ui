@@ -521,6 +521,7 @@ func StopBot() {
 
 	userStateMgr.reset()
 	addClientDrafts.resetAll()
+	broadcastResetAll()
 
 	if handler != nil {
 		_ = handler.Stop()

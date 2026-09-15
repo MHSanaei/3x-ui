@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ Нет клиентов с привязанным Telegram ID.",
       "broadcastPreview": "📤 Это сообщение уйдёт {{ .Count }} получателям. Отправить?",
       "broadcastNotCopyable": "❗ Это сообщение нельзя скопировать для рассылки. Пришлите другое.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} получателей ни разу не начинали диалог с ботом (или заблокировали его) — им нельзя написать. Попросите их нажать Start.",
       "broadcastProgress": "📤 Отправлено {{ .Sent }} из {{ .Total }} (не доставлено: {{ .Failed }})\r\n",
       "broadcastFinished": "✅ Рассылка завершена.\r\n👥 Получателей: {{ .Total }}\r\n📨 Доставлено: {{ .Sent }}\r\n🚫 Не доставлено: {{ .Failed }}\r\n⏭ Пропущено: {{ .Skipped }}\r\n⏱ Время: {{ .Time }}\r\n",
       "broadcastCanceled": "🛑 Рассылка отменена.\r\n👥 Получателей: {{ .Total }}\r\n📨 Доставлено: {{ .Sent }}\r\n🚫 Не доставлено: {{ .Failed }}\r\n⏭ Пропущено: {{ .Skipped }}\r\n⏱ Время: {{ .Time }}\r\n",

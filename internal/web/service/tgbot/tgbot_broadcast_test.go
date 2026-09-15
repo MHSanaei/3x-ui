@@ -24,10 +24,8 @@ import (
 	"golang.org/x/text/language"
 )
 
-// newBroadcastMock serves ok:true for every Telegram method and records the
-// per-method call counts and request bodies, so tests can assert what the
-// broadcast actually put on the wire. copyMessages answers with an array of
-// message ids, mirroring the real API.
+// newBroadcastMock serves ok:true and records per-method call counts and
+// bodies; copyMessages answers with an array of ids, as the real API does.
 func newBroadcastMock(t *testing.T) (url string, calls func(string) int, bodies func(string) []map[string]any) {
 	t.Helper()
 	var mu sync.Mutex
@@ -116,6 +114,7 @@ func broadcastLocalizer(t *testing.T) {
 		&i18n.Message{ID: "tgbot.messages.broadcastProgress", Other: "progress {{ .Sent }}/{{ .Total }} failed {{ .Failed }}"},
 		&i18n.Message{ID: "tgbot.messages.broadcastFinished", Other: "finished"},
 		&i18n.Message{ID: "tgbot.messages.broadcastCanceled", Other: "canceled"},
+		&i18n.Message{ID: "tgbot.messages.broadcastUnreachable", Other: "ℹ️ {{ .Count }} recipients cannot be messaged — ask them to press Start."},
 	)
 	orig := locale.LocalizerBot
 	t.Cleanup(func() { locale.LocalizerBot = orig })
@@ -197,24 +196,27 @@ func assertBroadcastResult(t *testing.T, got, want broadcastResult) {
 }
 
 func TestRunBroadcastCounters(t *testing.T) {
+	broadcastLocalizer(t)
 	url, _, _ := newBroadcastMock(t)
 	swapTestBot(t, url)
 	setBroadcastRunning(t, true)
 	blocked := &telegoapi.Error{ErrorCode: 403, Description: "Forbidden: bot was blocked by the user"}
 
 	tests := []struct {
-		name       string
-		recipients []int64
-		outcomes   map[int64]error
-		delivered  int
-		failed     int
+		name        string
+		recipients  []int64
+		outcomes    map[int64]error
+		delivered   int
+		failed      int
+		skipped     int
+		unreachable int
 	}{
-		{"all delivered", []int64{1, 2, 3}, map[int64]error{1: nil, 2: nil, 3: nil}, 3, 0},
+		{"all delivered", []int64{1, 2, 3}, map[int64]error{1: nil, 2: nil, 3: nil}, 3, 0, 0, 0},
 		{
-			"blocked and transient errors count as failed",
+			"a blocked chat is skipped and a transient error fails",
 			[]int64{1, 2, 3, 4},
 			map[int64]error{1: nil, 2: blocked, 3: nil, 4: errors.New("connection reset")},
-			2, 2,
+			2, 1, 1, 1,
 		},
 	}
 	for _, tt := range tests {
@@ -224,14 +226,24 @@ func TestRunBroadcastCounters(t *testing.T) {
 			}, func(time.Duration) {})
 
 			runner := &broadcastRunner{chatID: 100, messageID: 5}
-			(&Tgbot{}).runBroadcast(runner, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, tt.recipients)
+			tb := &Tgbot{}
+			tb.runBroadcast(runner, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, tt.recipients)
 
 			assertBroadcastResult(t, runner.getResult(), broadcastResult{
-				Total:     len(tt.recipients),
-				Delivered: tt.delivered,
-				Failed:    tt.failed,
-				Skipped:   0,
+				Total:       len(tt.recipients),
+				Delivered:   tt.delivered,
+				Failed:      tt.failed,
+				Skipped:     tt.skipped,
+				Unreachable: tt.unreachable,
 			})
+			summary := tb.broadcastSummaryText(runner.getResult())
+			if tt.unreachable == 0 {
+				if strings.Contains(summary, "press Start") {
+					t.Errorf("summary = %q, want no unreachable note", summary)
+				}
+			} else if !strings.Contains(summary, "1 recipients cannot be messaged") {
+				t.Errorf("summary = %q, want the unreachable note with the count", summary)
+			}
 		})
 	}
 }
@@ -260,6 +272,108 @@ func TestRunBroadcastCancelsMidway(t *testing.T) {
 	})
 	if broadcastCurrentRunner() != nil {
 		t.Errorf("broadcast slot still registered after the run finished")
+	}
+}
+
+// A long retry_after must not park the runner slot: the wait is slept in
+// slices and an abort between them ends the recipient immediately.
+func TestBroadcastFloodWaitSlicesLongWaits(t *testing.T) {
+	flood := &telegoapi.Error{
+		ErrorCode:   429,
+		Description: "Too Many Requests: retry after 30",
+		Parameters:  &telegoapi.ResponseParameters{RetryAfter: 30},
+	}
+
+	tests := []struct {
+		name       string
+		abortAfter int // abort checks answered false before aborting; -1 never aborts
+		wantPauses int
+		wantErr    string
+	}{
+		{"a 30 s wait becomes six 5 s slices", -1, 30, `429 "Too Many Requests: retry after 30", migrate to chat ID: 0, retry after: 30`},
+		{"an abort between slices ends the wait", 1, 1, errBroadcastAborted.Error()},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var mu sync.Mutex
+			var pauses []time.Duration
+			swapBroadcastSender(t, func(int64, broadcastDraft) error { return flood }, func(d time.Duration) {
+				mu.Lock()
+				defer mu.Unlock()
+				pauses = append(pauses, d)
+			})
+			checks := 0
+			aborted := func() bool {
+				if tt.abortAfter < 0 {
+					return false
+				}
+				checks++
+				return checks > tt.abortAfter
+			}
+
+			err := broadcastDeliverOne(9, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, aborted)
+
+			mu.Lock()
+			defer mu.Unlock()
+			if err == nil || err.Error() != tt.wantErr {
+				t.Errorf("broadcastDeliverOne() error = %v, want %q", err, tt.wantErr)
+			}
+			if len(pauses) != tt.wantPauses {
+				t.Fatalf("pauses = %d slices, want %d", len(pauses), tt.wantPauses)
+			}
+			for i, p := range pauses {
+				if p != broadcastFloodWaitSlice {
+					t.Errorf("pauses[%d] = %v, want %v", i, p, broadcastFloodWaitSlice)
+				}
+			}
+		})
+	}
+}
+
+// Regression: broadcast state used to survive a stop, leaving an armed album
+// timer, a confirmable token and a held runner slot behind.
+func TestStopBotResetsBroadcastState(t *testing.T) {
+	broadcastLocalizer(t)
+	url, calls, _ := newBroadcastMock(t)
+	swapTestBot(t, url)
+	swapAlbumDebounce(t, 20*time.Millisecond)
+	setBroadcastAdmins(t, []int64{5000})
+
+	const chatID = int64(9116)
+	resetBroadcastState(t, chatID)
+	origRunning := isRunning
+	t.Cleanup(func() {
+		tgBotMutex.Lock()
+		isRunning = origRunning
+		tgBotMutex.Unlock()
+	})
+
+	userStateMgr.set(chatID, broadcastAwaitingText)
+	(&Tgbot{}).handleBroadcastInput(&telego.Message{
+		Chat:         telego.Chat{ID: chatID},
+		From:         &telego.User{ID: 5000},
+		MessageID:    1,
+		MediaGroupID: "grpR",
+	})
+	runner := broadcastRegisterRunner(chatID)
+	if runner == nil {
+		t.Fatal("broadcastRegisterRunner() = nil before the stop")
+	}
+
+	StopBot()
+
+	if broadcastCurrentRunner() != nil {
+		t.Errorf("broadcast slot survived StopBot")
+	}
+	if !runner.cancel.Load() {
+		t.Errorf("the active run was not cancelled on stop")
+	}
+	if _, _, ok := broadcastPendingDraft(chatID); ok {
+		t.Errorf("a composition survived StopBot")
+	}
+	time.Sleep(60 * time.Millisecond)
+	if got := calls("copyMessage") + calls("sendMessage"); got != 0 {
+		t.Errorf("an armed album timer fired after StopBot (%d calls)", got)
 	}
 }
 
@@ -323,7 +437,7 @@ func TestBroadcastDeliverOneRetries429(t *testing.T) {
 			name:      "a cancel during a flood wait abandons the recipient",
 			responses: []error{flood(2), nil},
 			canceled:  true,
-			wantErr:   `429 "Too Many Requests: retry after 2", migrate to chat ID: 0, retry after: 2`,
+			wantErr:   errBroadcastAborted.Error(),
 			wantCalls: 1,
 		},
 	}

@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ No clients with a linked Telegram ID to deliver to.",
       "broadcastPreview": "📤 This message will go to {{ .Count }} recipients. Send it?",
       "broadcastNotCopyable": "❗ This message can't be copied for broadcast. Send another one.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} recipients never started the bot (or blocked it) and cannot be messaged — ask them to press Start.",
       "broadcastProgress": "📤 Sent {{ .Sent }} of {{ .Total }} (failed: {{ .Failed }})\r\n",
       "broadcastFinished": "✅ Broadcast finished.\r\n👥 Recipients: {{ .Total }}\r\n📨 Delivered: {{ .Sent }}\r\n🚫 Failed: {{ .Failed }}\r\n⏭ Skipped: {{ .Skipped }}\r\n⏱ Time: {{ .Time }}\r\n",
       "broadcastCanceled": "🛑 Broadcast canceled.\r\n👥 Recipients: {{ .Total }}\r\n📨 Delivered: {{ .Sent }}\r\n🚫 Failed: {{ .Failed }}\r\n⏭ Skipped: {{ .Skipped }}\r\n⏱ Time: {{ .Time }}\r\n",

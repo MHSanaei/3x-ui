@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ Không có khách hàng nào gắn Telegram ID.",
       "broadcastPreview": "📤 Tin nhắn này sẽ được gửi tới {{ .Count }} người nhận. Gửi chứ?",
       "broadcastNotCopyable": "❗ Không thể sao chép tin nhắn này để phát. Hãy gửi tin nhắn khác.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} người nhận chưa từng bắt đầu bot (hoặc đã chặn nó) nên không thể nhắn tin — hãy đề nghị họ nhấn Start.",
       "broadcastProgress": "📤 Đã gửi {{ .Sent }}/{{ .Total }} (thất bại: {{ .Failed }})\r\n",
       "broadcastFinished": "✅ Phát tin hoàn tất.\r\n👥 Người nhận: {{ .Total }}\r\n📨 Đã gửi: {{ .Sent }}\r\n🚫 Thất bại: {{ .Failed }}\r\n⏭ Bỏ qua: {{ .Skipped }}\r\n⏱ Thời gian: {{ .Time }}\r\n",
       "broadcastCanceled": "🛑 Đã hủy phát tin.\r\n👥 Người nhận: {{ .Total }}\r\n📨 Đã gửi: {{ .Sent }}\r\n🚫 Thất bại: {{ .Failed }}\r\n⏭ Bỏ qua: {{ .Skipped }}\r\n⏱ Thời gian: {{ .Time }}\r\n",

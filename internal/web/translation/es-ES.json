@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ No hay clientes con un ID de Telegram vinculado.",
       "broadcastPreview": "📤 Este mensaje se enviará a {{ .Count }} destinatarios. ¿Enviar?",
       "broadcastNotCopyable": "❗ Este mensaje no se puede copiar para la difusión. Envía otro.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} destinatarios nunca iniciaron el bot (o lo bloquearon) y no se les puede escribir; pídeles que pulsen Start.",
       "broadcastProgress": "📤 Enviados {{ .Sent }} de {{ .Total }} (fallidos: {{ .Failed }})\r\n",
       "broadcastFinished": "✅ Difusión terminada.\r\n👥 Destinatarios: {{ .Total }}\r\n📨 Entregados: {{ .Sent }}\r\n🚫 Fallidos: {{ .Failed }}\r\n⏭ Omitidos: {{ .Skipped }}\r\n⏱ Tiempo: {{ .Time }}\r\n",
       "broadcastCanceled": "🛑 Difusión cancelada.\r\n👥 Destinatarios: {{ .Total }}\r\n📨 Entregados: {{ .Sent }}\r\n🚫 Fallidos: {{ .Failed }}\r\n⏭ Omitidos: {{ .Skipped }}\r\n⏱ Tiempo: {{ .Time }}\r\n",

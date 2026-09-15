@@ -21,18 +21,19 @@ import (
 const (
 	broadcastAwaitingText = "awaiting_broadcast_text"
 
-	// Pause per recipient, scaled by the number of copied messages, keeps the
-	// run around the bot-wide ~30 msg/s ceiling even for whole albums.
+	// Pause per recipient, scaled by the copied message count, keeps the run
+	// around the bot-wide ~30 msg/s ceiling even for whole albums.
 	broadcastSendDelay = 60 * time.Millisecond
 	// Progress refreshes are throttled to keep the run under rate limits.
 	broadcastProgressEvery    = 25
 	broadcastProgressInterval = 3 * time.Second
 	broadcastFloodRetries     = 5
+	// A long retry_after is slept in slices so cancel and bot state stay checked.
+	broadcastFloodWaitSlice = 5 * time.Second
 )
 
-// broadcastDraft references the admin's original message instead of parsing
-// its content: copyMessage delivers any message type 1:1 on behalf of the
-// bot, formatting and media included. An album is the list of its messages.
+// broadcastDraft references the admin's original message: copyMessage relays
+// any message type 1:1 on behalf of the bot. An album lists its messages.
 type broadcastDraft struct {
 	FromChatID int64
 	MessageIDs []int
@@ -40,12 +41,13 @@ type broadcastDraft struct {
 
 // broadcastResult is the end-of-run statistics shown to the admin.
 type broadcastResult struct {
-	Total     int
-	Delivered int
-	Failed    int
-	Skipped   int
-	Canceled  bool
-	Elapsed   time.Duration
+	Total       int
+	Delivered   int
+	Failed      int
+	Skipped     int
+	Unreachable int
+	Canceled    bool
+	Elapsed     time.Duration
 }
 
 // broadcastRunner tracks the single in-flight broadcast: where to report
@@ -71,9 +73,8 @@ func (r *broadcastRunner) getResult() broadcastResult {
 	return r.result
 }
 
-// broadcastCompose is one admin chat's composition: the collected message
-// ids, the media group still arriving (if any), and the card token tying the
-// pending preview to its own Send button.
+// broadcastCompose is one chat's composition: collected message ids, the
+// album group still arriving, and the token binding the preview to its card.
 type broadcastCompose struct {
 	messageIDs []int
 	groupID    string
@@ -90,6 +91,27 @@ var (
 // broadcastAlbumDebounce waits out Telegram's stream of one media group: an
 // album reaches the bot as separate messages sharing a media_group_id.
 var broadcastAlbumDebounce = 900 * time.Millisecond
+
+// errBroadcastAborted reports a recipient abandoned because the run was
+// cancelled or the bot stopped, which is not a delivery failure.
+var errBroadcastAborted = errors.New("broadcast aborted")
+
+// broadcastResetAll drops every composition and cancels the active run; the
+// bot calls it on stop so no timer, token or runner slot outlives the receiver.
+func broadcastResetAll() {
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+	for _, c := range broadcastComposes {
+		if c.timer != nil {
+			c.timer.Stop()
+		}
+	}
+	broadcastComposes = make(map[int64]*broadcastCompose)
+	if broadcastActive != nil {
+		broadcastActive.cancel.Store(true)
+		broadcastActive = nil
+	}
+}
 
 func broadcastDropCompose(chatID int64) {
 	broadcastMu.Lock()
@@ -171,9 +193,8 @@ func (t *Tgbot) startBroadcast(chatId int64) {
 	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAskText"), t.broadcastCancelKeyboard())
 }
 
-// handleBroadcastInput references the message the admin sent for the
-// broadcast and shows the confirmation preview. Only the chat's admin may
-// fill it: the state lives under a chat id, which in a group is shared.
+// handleBroadcastInput references the message the admin sent and shows the
+// confirmation preview. Only the chat's admin may fill the shared state.
 func (t *Tgbot) handleBroadcastInput(message *telego.Message) {
 	chatId := message.Chat.ID
 	if message.From == nil || !checkAdmin(message.From.ID) {
@@ -255,9 +276,8 @@ func (t *Tgbot) broadcastCancelKeyboard() *telego.InlineKeyboardMarkup {
 	))
 }
 
-// confirmBroadcast turns the pending draft into a running broadcast: it claims
-// the single runner slot, replaces the preview with a progress card and hands
-// the delivery loop to a background goroutine.
+// confirmBroadcast turns the pending draft into a run: it claims the single
+// runner slot, replaces the preview with a progress card, and starts delivery.
 func (t *Tgbot) confirmBroadcast(chatId int64, token string, messageID int, queryID string) {
 	runner := broadcastRegisterRunner(chatId)
 	if runner == nil {
@@ -287,32 +307,39 @@ func (t *Tgbot) confirmBroadcast(chatId int64, token string, messageID int, quer
 }
 
 // runBroadcast walks the recipients sequentially, honoring rate limits, and
-// reports progress on the runner's message until done, canceled or the bot
-// stops. The result is published last so observers of the released slot see
-// the final stats.
+// reports the final summary on the runner's card.
 func (t *Tgbot) runBroadcast(runner *broadcastRunner, draft broadcastDraft, recipients []int64) {
 	defer broadcastUnregisterRunner(runner)
 	start := time.Now()
 	// One copyMessages call carries a whole album, so the pause scales with
 	// the batch size to stay under the same per-second ceiling.
 	pause := broadcastSendDelay * time.Duration(max(1, len(draft.MessageIDs)))
-	sent, failed := 0, 0
+	aborted := func() bool { return runner.cancel.Load() || !t.IsRunning() }
+	sent, failed, unreachable := 0, 0, 0
 	lastProgress := time.Now()
 	canceled := false
 
 	for i, chatID := range recipients {
-		if runner.cancel.Load() {
-			canceled = true
+		if aborted() {
+			canceled = runner.cancel.Load()
 			break
 		}
-		if !t.IsRunning() {
+		err := broadcastDeliverOne(chatID, draft, aborted)
+		if errors.Is(err, errBroadcastAborted) {
+			canceled = runner.cancel.Load()
 			break
 		}
-		if err := broadcastDeliverOne(chatID, draft, runner.cancel.Load); err != nil {
+		switch {
+		case err == nil:
+			sent++
+		case broadcastChatUnreachable(err):
+			// 403 means the chat never started the bot or blocked it; a long
+			// recipient list would turn these into log spam at warning level.
+			unreachable++
+			logger.Debugf("broadcast: chat %d cannot receive bot messages: %v", chatID, err)
+		default:
 			failed++
 			logger.Warningf("broadcast: chat %d not delivered: %v", chatID, err)
-		} else {
-			sent++
 		}
 		done := sent + failed
 		if done%broadcastProgressEvery == 0 || time.Since(lastProgress) >= broadcastProgressInterval {
@@ -325,12 +352,13 @@ func (t *Tgbot) runBroadcast(runner *broadcastRunner, draft broadcastDraft, reci
 	}
 
 	result := broadcastResult{
-		Total:     len(recipients),
-		Delivered: sent,
-		Failed:    failed,
-		Skipped:   len(recipients) - sent - failed,
-		Canceled:  canceled,
-		Elapsed:   time.Since(start).Round(time.Second),
+		Total:       len(recipients),
+		Delivered:   sent,
+		Failed:      failed,
+		Skipped:     len(recipients) - sent - failed,
+		Unreachable: unreachable,
+		Canceled:    canceled,
+		Elapsed:     time.Since(start).Round(time.Second),
 	}
 	summary := t.broadcastSummaryText(result)
 	if !t.finalizeBroadcastCard(runner, summary) {
@@ -356,15 +384,18 @@ func (t *Tgbot) broadcastSummaryText(result broadcastResult) string {
 		"Skipped==" + strconv.Itoa(result.Skipped),
 		"Time==" + result.Elapsed.String(),
 	}
+	summary := t.I18nBot("tgbot.messages.broadcastFinished", params...)
 	if result.Canceled {
-		return t.I18nBot("tgbot.messages.broadcastCanceled", params...)
+		summary = t.I18nBot("tgbot.messages.broadcastCanceled", params...)
 	}
-	return t.I18nBot("tgbot.messages.broadcastFinished", params...)
+	if result.Unreachable > 0 {
+		summary += t.I18nBot("tgbot.messages.broadcastUnreachable", "Count=="+strconv.Itoa(result.Unreachable))
+	}
+	return summary
 }
 
-// finalizeBroadcastCard turns the progress card into the summary and drops its
-// cancel button; false means the card is gone and the summary needs its own
-// message to be seen at all.
+// finalizeBroadcastCard turns the progress card into the summary; false means
+// the card is gone and the summary needs its own message to be seen at all.
 func (t *Tgbot) finalizeBroadcastCard(runner *broadcastRunner, summary string) bool {
 	params := telego.EditMessageTextParams{
 		ChatID:      tu.ID(runner.chatID),
@@ -396,8 +427,7 @@ func (t *Tgbot) cancelBroadcast(chatId int64, messageID int, queryID string) {
 }
 
 // collectBroadcastRecipients returns the distinct client Telegram IDs to
-// deliver to: clients with a linked tg_id, admins excluded — they already
-// receive the reports.
+// deliver to: clients with a linked tg_id, admins excluded.
 func (t *Tgbot) collectBroadcastRecipients() []int64 {
 	inbounds, err := t.inboundService.GetAllInbounds()
 	if err != nil {
@@ -424,8 +454,7 @@ func (t *Tgbot) collectBroadcastRecipients() []int64 {
 
 // broadcastDeliverOne retries a recipient through flood-control waits so a 429
 // never drops them; after broadcastFloodRetries waits it gives up on them.
-// A cancel during a wait abandons the recipient immediately.
-func broadcastDeliverOne(chatID int64, draft broadcastDraft, canceled func() bool) error {
+func broadcastDeliverOne(chatID int64, draft broadcastDraft, aborted func() bool) error {
 	for attempt := 0; ; attempt++ {
 		err := broadcastSender(chatID, draft)
 		if err == nil {
@@ -435,12 +464,30 @@ func broadcastDeliverOne(chatID int64, draft broadcastDraft, canceled func() boo
 		if !flood || attempt >= broadcastFloodRetries {
 			return err
 		}
-		if canceled != nil && canceled() {
-			return err
-		}
 		logger.Warningf("broadcast: chat %d is flood-limited, retrying in %s", chatID, wait)
-		broadcastPause(wait)
+		if !broadcastFloodWait(wait, aborted) {
+			return errBroadcastAborted
+		}
 	}
+}
+
+// broadcastFloodWait sleeps out a flood-control delay in slices so a cancel or
+// a bot stop ends the wait instead of parking the runner slot for minutes.
+func broadcastFloodWait(wait time.Duration, aborted func() bool) bool {
+	for remaining := wait; remaining > 0; remaining -= broadcastFloodWaitSlice {
+		if aborted != nil && aborted() {
+			return false
+		}
+		broadcastPause(min(broadcastFloodWaitSlice, remaining))
+	}
+	return aborted == nil || !aborted()
+}
+
+// broadcastChatUnreachable reports a Telegram 403: the chat never started the
+// bot or has blocked it, which no retry can fix.
+func broadcastChatUnreachable(err error) bool {
+	var apiErr *telegoapi.Error
+	return errors.As(err, &apiErr) && apiErr.ErrorCode == 403
 }
 
 // broadcastRetryAfter reports the flood-control wait a 429 response asks for.
@@ -455,9 +502,8 @@ func broadcastRetryAfter(err error) (time.Duration, bool) {
 	return time.Duration(apiErr.Parameters.RetryAfter) * time.Second, true
 }
 
-// deliverBroadcastCopy copies the admin's original message to one recipient
-// chat; an album rides one copyMessages call. Content arrives 1:1 on behalf
-// of the bot, with no forward header.
+// deliverBroadcastCopy copies the admin's message to one recipient chat; an
+// album rides one copyMessages call and arrives with no forward header.
 func deliverBroadcastCopy(chatID int64, draft broadcastDraft) error {
 	from := tu.ID(draft.FromChatID)
 	return callTelegramAPI(func(ctx context.Context) error {

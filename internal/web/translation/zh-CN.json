@@ -2341,6 +2341,7 @@
       "broadcastNoRecipients": "❗ 没有绑定 Telegram ID 的客户端。",
       "broadcastPreview": "📤 该消息将发送给 {{ .Count }} 位接收者。发送吗？",
       "broadcastNotCopyable": "❗ 该消息无法复制用于群发，请发送其他消息。",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} 位接收者从未启动过机器人（或已将其拉黑），无法发送消息 — 请让他们点击 Start。",
       "broadcastProgress": "📤 已发送 {{ .Sent }}/{{ .Total }}（失败：{{ .Failed }}）\r\n",
       "broadcastFinished": "✅ 群发完成。\r\n👥 接收者：{{ .Total }}\r\n📨 已送达：{{ .Sent }}\r\n🚫 失败：{{ .Failed }}\r\n⏭ 已跳过：{{ .Skipped }}\r\n⏱ 耗时：{{ .Time }}\r\n",
       "broadcastCanceled": "🛑 群发已取消。\r\n👥 接收者：{{ .Total }}\r\n📨 已送达：{{ .Sent }}\r\n🚫 失败：{{ .Failed }}\r\n⏭ 已跳过：{{ .Skipped }}\r\n⏱ 耗时：{{ .Time }}\r\n",
