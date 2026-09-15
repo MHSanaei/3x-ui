@@ -133,9 +133,8 @@ func (t *credentialRotatingTransport) CloseIdleConnections() {
 	current.CloseIdleConnections()
 }
 
-// Idle connections are one per node host, so the global cap must exceed the
-// fleet size: below it Go closes a node's connection before its next heartbeat
-// reaches it and the panel pays a fresh TLS handshake every tick.
+// The global cap must exceed the fleet size: below it Go closes a node's
+// connection before its next heartbeat, costing a handshake every tick.
 const (
 	maxIdleNodeConns        = 512
 	maxIdleNodeConnsPerHost = 8
@@ -155,9 +154,8 @@ func newNodeTransport(tlsCfg *tls.Config) *http.Transport {
 // mode or plain http); shared so connections pool across nodes.
 var defaultNodeHTTPClient = &http.Client{Transport: newNodeTransport(nil)}
 
-// nodeClients caches one client per node identity. Heartbeat and traffic sync
-// reach this every few seconds and a rebuilt client would open its own pool,
-// so each tick paid a fresh TCP+TLS handshake per node.
+// nodeClients caches one client per node: heartbeat and traffic sync reach it
+// every few seconds, and a rebuilt client would open its own empty pool.
 type nodeClientEntry struct {
 	nodeID int
 	client *http.Client
@@ -168,11 +166,22 @@ var (
 	nodeClientsCache = map[string]nodeClientEntry{}
 )
 
-// nodeClientIdentity covers everything that decides how the node is trusted;
-// the proxy URL is a variant of it, not part of it, because the same node is
-// reached directly by the heartbeat and through its egress by the sync path.
+// nodeClientIdentity covers everything that decides how the node is trusted; the
+// proxy URL is a variant of it, so it stays out of the identity itself.
 func nodeClientIdentity(n *model.Node, mode string) string {
 	return fmt.Sprintf("%d|%s|%s|%s|%d|%s", n.Id, mode, n.Scheme, n.Address, n.Port, n.PinnedCertSha256)
+}
+
+// dropNodeClients discards every cached client of one node except keep, so a
+// node never holds more than the variant it is using now. Callers hold the lock.
+func dropNodeClients(nodeID int, keep string) {
+	for key, entry := range nodeClientsCache {
+		if entry.nodeID != nodeID || key == keep {
+			continue
+		}
+		entry.client.CloseIdleConnections()
+		delete(nodeClientsCache, key)
+	}
 }
 
 // HTTPClientForNode returns the pooled client for n, building it on first use
@@ -185,6 +194,9 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 	if mode == "verify" || n.Scheme == "http" {
 		// Shared across nodes and not node-specific: nothing to key on.
 		if proxyURL == "" {
+			nodeClientsMu.Lock()
+			dropNodeClients(n.Id, "")
+			nodeClientsMu.Unlock()
 			return defaultNodeHTTPClient, nil
 		}
 	}
@@ -210,14 +222,10 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 		client.CloseIdleConnections()
 		return entry.client, nil
 	}
-	// Drop this node's previous identity (an edited address, pin or mode): its
-	// pool was built for a trust decision that no longer applies.
-	for other, entry := range nodeClientsCache {
-		if entry.nodeID == n.Id && !strings.HasPrefix(other, identity+"|") {
-			entry.client.CloseIdleConnections()
-			delete(nodeClientsCache, other)
-		}
-	}
+	// Any other variant is dead weight: a previous identity's pool was built for
+	// a trust decision that no longer applies, and an ephemeral proxy URL (the
+	// bridge mints a fresh loopback port per call) can never be hit again.
+	dropNodeClients(n.Id, key)
 	nodeClientsCache[key] = nodeClientEntry{nodeID: n.Id, client: client}
 	nodeClientsMu.Unlock()
 	return client, nil

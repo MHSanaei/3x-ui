@@ -165,6 +165,45 @@ func TestHTTPClientForNodeRebuildsWhenNodeIdentityChanges(t *testing.T) {
 	}
 }
 
+func nodeClientEntries(id int) int {
+	nodeClientsMu.Lock()
+	defer nodeClientsMu.Unlock()
+	count := 0
+	for _, entry := range nodeClientsCache {
+		if entry.nodeID == id {
+			count++
+		}
+	}
+	return count
+}
+
+// withOutboundBridge mints a fresh loopback port per call, so the variant it
+// asks for can never be hit again; only the variant in use may stay cached.
+func TestHTTPClientForNodeKeepsOneClientPerNode(t *testing.T) {
+	node := &model.Node{Id: 77, Address: "node.example.test", Port: 443, Scheme: "https", TlsVerifyMode: "skip"}
+	variants := []string{"socks5://127.0.0.1:41001", "socks5://127.0.0.1:41002", ""}
+	for _, variant := range variants {
+		if _, err := HTTPClientForNode(node, variant); err != nil {
+			t.Fatalf("HTTPClientForNode(%q): %v", variant, err)
+		}
+		if got := nodeClientEntries(node.Id); got != 1 {
+			t.Fatalf("cached clients for the node after %q = %d, want 1", variant, got)
+		}
+		if client, err := HTTPClientForNode(node, variant); err != nil || client == nil {
+			t.Fatalf("repeat HTTPClientForNode(%q): client=%p err=%v", variant, client, err)
+		}
+	}
+
+	verify := *node
+	verify.TlsVerifyMode = "verify"
+	if client, err := HTTPClientForNode(&verify, ""); err != nil || client != defaultNodeHTTPClient {
+		t.Fatalf("verify client = %p, want the shared one (%p); err=%v", client, defaultNodeHTTPClient, err)
+	}
+	if got := nodeClientEntries(node.Id); got != 0 {
+		t.Fatalf("cached clients for a node now on verify = %d, want 0", got)
+	}
+}
+
 func TestReloadMasterClientConnectionsValidatesProviderBeforeInvalidation(t *testing.T) {
 	before := masterCertEpoch.Load()
 	SetMasterClientCertProvider(func() (tls.Certificate, error) {
