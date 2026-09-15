@@ -1254,7 +1254,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1379,6 +1379,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "DNSOutboundLegacyKeysFix") {
 		if err := migrateDNSOutboundLegacyKeys(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "DNSOutboundQTypeZeroFix") {
+		if err := migrateDNSOutboundQTypeZero(); err != nil {
 			return err
 		}
 	}
@@ -1920,9 +1926,10 @@ func legacyDNSOutboundRules(mode string, blockTypes []int) []any {
 	return append(rules, fallback)
 }
 
-// dnsQTypeValue keeps a lone qType a number, the way the core marshals one.
+// dnsQTypeValue keeps a lone qType a number the way the core marshals one, except
+// 0: the core drops a numeric 0, and a rule with no qTypes matches every query.
 func dnsQTypeValue(blockTypes []int) any {
-	if len(blockTypes) == 1 {
+	if len(blockTypes) == 1 && blockTypes[0] != 0 {
 		return blockTypes[0]
 	}
 	parts := make([]string, 0, len(blockTypes))
@@ -1930,6 +1937,72 @@ func dnsQTypeValue(blockTypes []int) any {
 		parts = append(parts, strconv.Itoa(qType))
 	}
 	return strings.Join(parts, ",")
+}
+
+// migrateDNSOutboundQTypeZero repairs the numeric qType 0 that 3.8.0's legacy-keys
+// seeder stored, which that seeder's own history row keeps it from revisiting.
+func migrateDNSOutboundQTypeZero() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "DNSOutboundQTypeZeroFix"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := RewriteDNSOutboundQTypeZero(setting.Value)
+	if rErr != nil {
+		log.Printf("DNSOutboundQTypeZeroFix: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "DNSOutboundQTypeZeroFix"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "DNSOutboundQTypeZeroFix"}).Error
+	})
+}
+
+// RewriteDNSOutboundQTypeZero spells a dns rule's numeric qType 0 as "0", the one
+// form the core reads as query type 0 rather than as every query.
+func RewriteDNSOutboundQTypeZero(raw string) (string, bool, error) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false, nil
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return raw, false, err
+	}
+	outbounds, _ := cfg["outbounds"].([]any)
+	changed := false
+	for _, ob := range outbounds {
+		obj, _ := ob.(map[string]any)
+		if proto, _ := obj["protocol"].(string); !strings.EqualFold(proto, "dns") {
+			continue
+		}
+		settings, _ := obj["settings"].(map[string]any)
+		rules, _ := settings["rules"].([]any)
+		for _, r := range rules {
+			rule, _ := r.(map[string]any)
+			if qType, ok := rule["qType"].(float64); ok && qType == 0 {
+				rule["qType"] = "0"
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return raw, false, err
+	}
+	return string(out), true, nil
 }
 
 func normalizeSettingPaths() error {

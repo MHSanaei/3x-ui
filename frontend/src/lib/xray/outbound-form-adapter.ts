@@ -786,7 +786,8 @@ function dnsRuleToWire(r: DnsRuleForm) {
   const result: Raw = { action };
   const qType = r.qType.trim();
   if (qType) {
-    result.qType = /^\d+$/.test(qType) ? Number(qType) : qType;
+    // The core reads a numeric 0 as no qType at all, which matches every query.
+    result.qType = /^\d+$/.test(qType) && Number(qType) > 0 ? Number(qType) : qType;
   }
   const domains = r.domain
     .split(',')
