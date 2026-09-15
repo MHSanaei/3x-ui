@@ -1581,8 +1581,8 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 
 	db := database.GetDB()
-	// Enabling moves this row's ports into the running config, so it is checked
-	// like a save: the save-time guards skip a disabled row and never ran for it.
+	// Enabling puts this row's ports into the running config, and the guards ran
+	// only if it was saved: a restored or hand-edited row reaches it unchecked.
 	if enable && inbound.NodeID == nil {
 		conflict, err := checkPortConflictTx(db, inbound, inbound.Id)
 		if err != nil {
