@@ -1245,7 +1245,7 @@
       "externalTrafficInformEnableDesc": "إخطار واجهة API خارجية بكل تحديث لحركة المرور.",
       "externalTrafficInformURI": "مسار تنبيه الترافيك الخارجي",
       "externalTrafficInformURIDesc": "تحديثات الترافيك هتتبعت للمسار ده.",
-      "restartXrayOnClientDisable": "إعادة تشغيل Xray بعد التعطيل التلقائي",
+      "restartXrayOnClientDisable": "إعادة تشغيل Xray بعد تعطيل العميل",
       "restartXrayOnClientDisableDesc": "عندما يتوقف تقديم الخدمة للعميل — بتعطيل تلقائي بسبب انتهاء الصلاحية أو حد حركة المرور، أو بتعطيل أو حذف يدوي — أعد تشغيل Xray لإنهاء اتصالاته النشطة.",
       "fragment": "تجزئة",
       "fragmentDesc": "يفعل تجزئة لحزمة TLS hello.",

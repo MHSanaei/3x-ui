@@ -27,8 +27,8 @@ inbounds** at once, with per-client traffic accounting.
 | **Comment**    | all                   | Free-text note.                                                   |
 
 <Callout type="info">
-  Reaching the **traffic** or **expiry** limit disables the client; the panel can
-  restart Xray automatically when clients are auto-disabled
+  Reaching the **traffic** or **expiry** limit disables the client, and a client
+  disabled or deleted by hand counts too; the panel restarts Xray then
   (`restartXrayOnClientDisable`, on by default).
 </Callout>
 
