@@ -80,8 +80,6 @@
   "somethingWentWrong": "Something went wrong",
   "subscription": {
     "title": "Subscription info",
-    "subId": "Subscription ID",
-    "email": "Email",
     "status": "Status",
     "downloaded": "Downloaded",
     "uploaded": "Uploaded",
@@ -93,7 +91,21 @@
     "unlimited": "Unlimited",
     "noExpiry": "No expiry",
     "copyAllConfigs": "Copy All Configs",
-    "copyAllConfigsCopied": "All configs copied"
+    "copyAllConfigsCopied": "All configs copied",
+    "daysLeft": "Days left",
+    "expired": "Expired",
+    "depleted": "Data used up",
+    "ofTotal": "of {total}",
+    "tabLinks": "Subscription",
+    "tabApps": "Apps",
+    "tabConfigs": "Configs",
+    "scanTitle": "Scan with your phone",
+    "scanHint": "Scan this code in your VPN app to add the subscription without copying the link.",
+    "updateInterval": "Auto-updates every {hours} hours",
+    "support": "Support",
+    "qrTitle": "Scan. Import. Connect.",
+    "qrHint": "Scan with your client app. Keep this code private.",
+    "saveQr": "Save QR"
   },
   "menu": {
     "theme": "Theme",

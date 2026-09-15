@@ -80,7 +80,6 @@
   "somethingWentWrong": "Algo salió mal",
   "subscription": {
     "title": "Información de suscripción",
-    "subId": "ID de suscripción",
     "status": "Estado",
     "downloaded": "Descargado",
     "uploaded": "Subido",
@@ -93,7 +92,20 @@
     "noExpiry": "Sin caducidad",
     "copyAllConfigs": "Copiar Todas las Configuraciones",
     "copyAllConfigsCopied": "Todas las configuraciones copiadas",
-    "email": "Email"
+    "daysLeft": "Días restantes",
+    "expired": "Caducada",
+    "depleted": "Datos agotados",
+    "ofTotal": "de {total}",
+    "tabLinks": "Suscripción",
+    "tabApps": "Aplicaciones",
+    "tabConfigs": "Configuraciones",
+    "scanTitle": "Escanea con tu teléfono",
+    "scanHint": "Escanea este código en tu aplicación VPN para añadir la suscripción sin copiar el enlace.",
+    "updateInterval": "Se actualiza automáticamente cada {hours} horas",
+    "support": "Soporte",
+    "qrTitle": "Escanea. Importa. Conéctate.",
+    "qrHint": "Escanéalo con tu aplicación cliente. Mantén este código en privado.",
+    "saveQr": "Guardar QR"
   },
   "menu": {
     "theme": "Tema",

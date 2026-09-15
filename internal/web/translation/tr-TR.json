@@ -80,7 +80,6 @@
   "somethingWentWrong": "Bir hata oluştu",
   "subscription": {
     "title": "Abonelik Bilgisi",
-    "subId": "Abonelik Kimliği",
     "status": "Durum",
     "downloaded": "İndirilen",
     "uploaded": "Yüklenen",
@@ -93,7 +92,20 @@
     "noExpiry": "Süresiz",
     "copyAllConfigs": "Tüm Yapılandırmaları Kopyala",
     "copyAllConfigsCopied": "Tüm yapılandırmalar kopyalandı",
-    "email": "E-posta"
+    "daysLeft": "Kalan gün",
+    "expired": "Süresi doldu",
+    "depleted": "Kota doldu",
+    "ofTotal": "/ {total}",
+    "tabLinks": "Abonelik",
+    "tabApps": "Uygulamalar",
+    "tabConfigs": "Yapılandırmalar",
+    "scanTitle": "Telefonunuzla tarayın",
+    "scanHint": "Bağlantıyı kopyalamadan aboneliği eklemek için bu kodu VPN uygulamanızda tarayın.",
+    "updateInterval": "Her {hours} saatte bir otomatik güncellenir",
+    "support": "Destek",
+    "qrTitle": "Tara. İçe aktar. Bağlan.",
+    "qrHint": "İstemci uygulamanızla tarayın. Bu kodu kimseyle paylaşmayın.",
+    "saveQr": "QR'ı kaydet"
   },
   "menu": {
     "theme": "Tema",

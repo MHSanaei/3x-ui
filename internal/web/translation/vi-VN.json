@@ -80,7 +80,6 @@
   "somethingWentWrong": "Đã xảy ra lỗi",
   "subscription": {
     "title": "Thông tin đăng ký",
-    "subId": "ID đăng ký",
     "status": "Trạng thái",
     "downloaded": "Đã tải xuống",
     "uploaded": "Đã tải lên",
@@ -93,7 +92,20 @@
     "noExpiry": "Không hết hạn",
     "copyAllConfigs": "Sao chép tất cả cấu hình",
     "copyAllConfigsCopied": "Đã sao chép tất cả cấu hình",
-    "email": "Email"
+    "daysLeft": "Số ngày còn lại",
+    "expired": "Đã hết hạn",
+    "depleted": "Hết dung lượng",
+    "ofTotal": "trên {total}",
+    "tabLinks": "Gói đăng ký",
+    "tabApps": "Ứng dụng",
+    "tabConfigs": "Cấu hình",
+    "scanTitle": "Quét bằng điện thoại",
+    "scanHint": "Quét mã này trong ứng dụng VPN để thêm gói đăng ký mà không cần sao chép liên kết.",
+    "updateInterval": "Tự động cập nhật mỗi {hours} giờ",
+    "support": "Hỗ trợ",
+    "qrTitle": "Quét. Nhập. Kết nối.",
+    "qrHint": "Quét bằng ứng dụng khách. Không chia sẻ mã này cho người khác.",
+    "saveQr": "Lưu QR"
   },
   "menu": {
     "theme": "Chủ đề",

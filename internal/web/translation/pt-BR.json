@@ -80,7 +80,6 @@
   "somethingWentWrong": "Algo deu errado",
   "subscription": {
     "title": "Informações da assinatura",
-    "subId": "ID da assinatura",
     "status": "Status",
     "downloaded": "Baixado",
     "uploaded": "Enviado",
@@ -93,7 +92,20 @@
     "noExpiry": "Sem validade",
     "copyAllConfigs": "Copiar Todas as Configurações",
     "copyAllConfigsCopied": "Todas as configurações copiadas",
-    "email": "Email"
+    "daysLeft": "Dias restantes",
+    "expired": "Expirada",
+    "depleted": "Dados esgotados",
+    "ofTotal": "de {total}",
+    "tabLinks": "Assinatura",
+    "tabApps": "Aplicativos",
+    "tabConfigs": "Configurações",
+    "scanTitle": "Escaneie com o celular",
+    "scanHint": "Escaneie este código no seu aplicativo de VPN para adicionar a assinatura sem copiar o link.",
+    "updateInterval": "Atualiza automaticamente a cada {hours} horas",
+    "support": "Suporte",
+    "qrTitle": "Escaneie. Importe. Conecte.",
+    "qrHint": "Escaneie com seu aplicativo cliente. Mantenha este código em sigilo.",
+    "saveQr": "Salvar QR"
   },
   "menu": {
     "theme": "Tema",

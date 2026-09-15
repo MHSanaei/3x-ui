@@ -80,8 +80,6 @@
   "somethingWentWrong": "مشکلی پیش آمد",
   "subscription": {
     "title": "اطلاعات سابسکریپشن",
-    "subId": "شناسه اشتراک",
-    "email": "ایمیل",
     "status": "وضعیت",
     "downloaded": "دانلود",
     "uploaded": "آپلود",
@@ -93,7 +91,21 @@
     "unlimited": "نامحدود",
     "noExpiry": "بدون انقضا",
     "copyAllConfigs": "کپی همه کانفیگ‌ها",
-    "copyAllConfigsCopied": "همه کانفیگ‌ها کپی شدند"
+    "copyAllConfigsCopied": "همه کانفیگ‌ها کپی شدند",
+    "daysLeft": "روز باقی‌مانده",
+    "expired": "منقضی شده",
+    "depleted": "حجم تمام شده",
+    "ofTotal": "از {total}",
+    "tabLinks": "اشتراک",
+    "tabApps": "اپلیکیشن‌ها",
+    "tabConfigs": "کانفیگ‌ها",
+    "scanTitle": "اسکن با گوشی",
+    "scanHint": "این کد را در اپلیکیشن VPN اسکن کنید تا اشتراک بدون کپی‌کردن لینک اضافه شود.",
+    "updateInterval": "به‌روزرسانی خودکار هر {hours} ساعت",
+    "support": "پشتیبانی",
+    "qrTitle": "اسکن. افزودن. اتصال.",
+    "qrHint": "با اپلیکیشن کلاینت اسکن کنید. این کد را به کسی ندهید.",
+    "saveQr": "ذخیره QR"
   },
   "menu": {
     "theme": "تم",

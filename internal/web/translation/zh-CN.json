@@ -80,7 +80,6 @@
   "somethingWentWrong": "出了点问题",
   "subscription": {
     "title": "订阅信息",
-    "subId": "订阅 ID",
     "status": "状态",
     "downloaded": "已下载",
     "uploaded": "已上传",
@@ -93,7 +92,20 @@
     "noExpiry": "无到期",
     "copyAllConfigs": "复制全部配置",
     "copyAllConfigsCopied": "已复制全部配置",
-    "email": "邮箱"
+    "daysLeft": "剩余天数",
+    "expired": "已过期",
+    "depleted": "流量已用完",
+    "ofTotal": "共 {total}",
+    "tabLinks": "订阅",
+    "tabApps": "应用",
+    "tabConfigs": "配置",
+    "scanTitle": "用手机扫码",
+    "scanHint": "在 VPN 应用中扫描此二维码，无需复制链接即可添加订阅。",
+    "updateInterval": "每 {hours} 小时自动更新",
+    "support": "支持",
+    "qrTitle": "扫码。导入。连接。",
+    "qrHint": "使用客户端应用扫描。请勿泄露此二维码。",
+    "saveQr": "保存二维码"
   },
   "menu": {
     "theme": "主题",

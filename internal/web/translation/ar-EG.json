@@ -80,7 +80,6 @@
   "somethingWentWrong": "حدث خطأ ما",
   "subscription": {
     "title": "معلومات الاشتراك",
-    "subId": "معرّف الاشتراك",
     "status": "الحالة",
     "downloaded": "التنزيل",
     "uploaded": "الرفع",
@@ -93,7 +92,20 @@
     "noExpiry": "بدون انتهاء",
     "copyAllConfigs": "نسخ جميع الإعدادات",
     "copyAllConfigsCopied": "تم نسخ جميع الإعدادات",
-    "email": "البريد"
+    "daysLeft": "الأيام المتبقية",
+    "expired": "منتهي الصلاحية",
+    "depleted": "نفدت البيانات",
+    "ofTotal": "من {total}",
+    "tabLinks": "الاشتراك",
+    "tabApps": "التطبيقات",
+    "tabConfigs": "الكونفيجات",
+    "scanTitle": "امسح بهاتفك",
+    "scanHint": "امسح هذا الرمز في تطبيق VPN لإضافة الاشتراك دون نسخ الرابط.",
+    "updateInterval": "تحديث تلقائي كل {hours} ساعة",
+    "support": "الدعم",
+    "qrTitle": "امسح. استورد. اتصل.",
+    "qrHint": "امسح الرمز بتطبيق العميل. لا تشارك هذا الرمز مع أحد.",
+    "saveQr": "حفظ QR"
   },
   "menu": {
     "theme": "الثيم",

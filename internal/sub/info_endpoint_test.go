@@ -76,6 +76,9 @@ func TestSubInfoEndpoint_ServesStatusJSONEvenForBrowsers(t *testing.T) {
 			t.Fatalf("info payload missing %q; body=%s", key, w.Body.String())
 		}
 	}
+	if info["subUpdates"] != float64(12) {
+		t.Fatalf("subUpdates = %v, want the default 12-hour interval", info["subUpdates"])
+	}
 }
 
 func TestSubInfoEndpoint_UnknownSubIs404(t *testing.T) {

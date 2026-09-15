@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -660,6 +661,8 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 	if datepicker == "" {
 		datepicker = "gregorian"
 	}
+	subUpdates, _ := a.settingService.GetSubUpdates()
+	updateHours, _ := strconv.Atoi(subUpdates)
 
 	return map[string]any{
 		"sId":           page.SId,
@@ -680,6 +683,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 		"subClashUrl":   page.SubClashUrl,
 		"subTitle":      page.SubTitle,
 		"subSupportUrl": page.SubSupportUrl,
+		"subUpdates":    updateHours,
 		"links":         page.Result,
 		"emails":        page.Emails,
 		"datepicker":    datepicker,
