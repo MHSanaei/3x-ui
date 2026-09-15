@@ -395,6 +395,9 @@
             "minimum": 1,
             "type": "integer"
           },
+          "subProfileMode": {
+            "type": "string"
+          },
           "subProfileUrl": {
             "type": "string"
           },
@@ -618,6 +621,7 @@
           "subListen",
           "subPath",
           "subPort",
+          "subProfileMode",
           "subProfileUrl",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",
@@ -1046,6 +1050,9 @@
             "minimum": 1,
             "type": "integer"
           },
+          "subProfileMode": {
+            "type": "string"
+          },
           "subProfileUrl": {
             "type": "string"
           },
@@ -1277,6 +1284,7 @@
           "subListen",
           "subPath",
           "subPort",
+          "subProfileMode",
           "subProfileUrl",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",

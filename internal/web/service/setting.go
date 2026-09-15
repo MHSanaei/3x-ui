@@ -44,6 +44,13 @@ const (
 	maxRegexLength                    = 2048
 )
 
+// Built-in profile links expose the subscription URL and require an explicit opt-in.
+const (
+	SubProfileModeNone    = "none"
+	SubProfileModeBuiltin = "builtin"
+	SubProfileModeCustom  = "custom"
+)
+
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
 	"webListen":          "",
@@ -101,6 +108,7 @@ var defaultValueMap = map[string]string{
 	"subClashUserAgentRegex":      "",
 	"subTitle":                    "",
 	"subSupportUrl":               "",
+	"subProfileMode":              SubProfileModeNone,
 	"subProfileUrl":               "",
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
@@ -298,6 +306,11 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		}
 	}
 
+	// A missing mode must still preserve URLs configured before modes existed.
+	if !keyMap["subProfileMode"] {
+		allSetting.SubProfileMode = ""
+	}
+	allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
 	return allSetting, nil
 }
 
@@ -848,6 +861,34 @@ func (s *SettingService) GetSubSupportUrl() (string, error) {
 func (s *SettingService) GetSubProfileUrl() (string, error) {
 	value, err := s.getString("subProfileUrl")
 	return common.EnsureURLScheme(value), err
+}
+
+func (s *SettingService) GetSubProfileMode() (string, error) {
+	setting, err := s.getSetting("subProfileMode")
+	if err != nil && !database.IsNotFound(err) {
+		return SubProfileModeNone, err
+	}
+	if err == nil && setting.Value != "" {
+		return effectiveSubProfileMode(setting.Value, ""), nil
+	}
+	profileURL, err := s.getString("subProfileUrl")
+	if err != nil {
+		return SubProfileModeNone, err
+	}
+	return effectiveSubProfileMode("", profileURL), nil
+}
+
+func effectiveSubProfileMode(mode, profileURL string) string {
+	switch mode {
+	case SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
+		return mode
+	case "":
+		// Older settings have no mode; only an existing custom URL opts them in.
+		if strings.TrimSpace(profileURL) != "" {
+			return SubProfileModeCustom
+		}
+	}
+	return SubProfileModeNone
 }
 
 func (s *SettingService) GetSubAnnounce() (string, error) {
@@ -1448,6 +1489,12 @@ type SecretClears struct {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	switch allSetting.SubProfileMode {
+	case "", SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
+		allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
+	default:
+		return errors.New("subscription profile mode must be none, builtin, or custom")
+	}
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}
