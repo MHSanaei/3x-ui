@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/xlzd/gotp"
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -12,6 +11,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	ldaputil "github.com/mhsanaei/3x-ui/v3/internal/util/ldap"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/totp"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
@@ -98,32 +98,12 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 			return nil, err
 		}
 
-		if !verifyTOTPWithSkew(twoFactorToken, twoFactorCode) {
+		if !totp.VerifyWithSkew(twoFactorToken, twoFactorCode, time.Now()) {
 			return nil, errors.New("invalid 2fa code")
 		}
 	}
 
 	return user, nil
-}
-
-// totpSkewWindows is how many 30s steps around now are accepted. Client and
-// server clocks are rarely perfectly in sync, and a code submitted at the end
-// of its window may arrive after the server has rolled over — without skew
-// the first attempt fails and the immediate retry (in the next window)
-// succeeds, see #6535.
-const totpSkewWindows = 1
-
-// verifyTOTPWithSkew accepts the code for the current step plus/minus
-// totpSkewWindows steps, the standard tolerance for TOTP clock drift.
-func verifyTOTPWithSkew(secret, code string) bool {
-	totp := gotp.NewDefaultTOTP(secret)
-	now := time.Now()
-	for i := -totpSkewWindows; i <= totpSkewWindows; i++ {
-		if totp.AtTime(now.Add(time.Duration(i*30)*time.Second)) == code {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *UserService) BumpLoginEpoch() error {
