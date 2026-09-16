@@ -122,6 +122,7 @@ export interface AllSetting {
   subListen: string;
   subPath: string;
   subPort: number;
+  subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
@@ -279,6 +280,7 @@ export interface AllSettingView {
   subListen: string;
   subPath: string;
   subPort: number;
+  subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
@@ -535,6 +537,7 @@ export interface Host {
   address: string;
   allowInsecure: boolean;
   alpn: string[];
+  cipherSuites: string;
   createdAt: number;
   echConfigList: string;
   excludeFromSubTypes: string[];
@@ -571,6 +574,7 @@ export interface Host {
 export interface HostGroup {
   allowInsecure: boolean;
   alpn: string[];
+  cipherSuites: string;
   echConfigList: string;
   excludeFromSubTypes: string[];
   finalMask: string;

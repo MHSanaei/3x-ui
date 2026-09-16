@@ -131,8 +131,7 @@ func (j *LdapSyncJob) Run() {
 	}
 
 	clientsToCreate := []model.Client{}
-	clientsToEnable := map[string][]string{}  // tag -> []email
-	clientsToDisable := map[string][]string{} // tag -> []email
+	var clientsToEnable, clientsToDisable []string
 
 	for email, allowed := range flags {
 		existing := allClients[email]
@@ -142,24 +141,21 @@ func (j *LdapSyncJob) Run() {
 			}
 			continue
 		}
-		for _, tag := range resolvedTags {
-			if allowed && !existing.Enable {
-				clientsToEnable[tag] = append(clientsToEnable[tag], email)
-			} else if !allowed && existing.Enable {
-				clientsToDisable[tag] = append(clientsToDisable[tag], email)
-			}
+		if len(resolvedTags) == 0 {
+			continue
+		}
+		if allowed && !existing.Enable {
+			clientsToEnable = append(clientsToEnable, email)
+		} else if !allowed && existing.Enable {
+			clientsToDisable = append(clientsToDisable, email)
 		}
 	}
 
 	j.createClients(clientsToCreate, resolvedInboundIds, resolvedTags)
 
 	// --- Execute enable/disable batch ---
-	for tag, emails := range clientsToEnable {
-		j.batchSetEnable(inboundMap[tag], emails, true)
-	}
-	for tag, emails := range clientsToDisable {
-		j.batchSetEnable(inboundMap[tag], emails, false)
-	}
+	j.batchSetEnable(clientsToEnable, true)
+	j.batchSetEnable(clientsToDisable, false)
 
 	// --- Auto delete clients not in LDAP ---
 	autoDelete := mustGetBool(j.settingService.GetLdapAutoDelete)
@@ -257,34 +253,28 @@ func (j *LdapSyncJob) createClients(newClients []model.Client, inboundIds []int,
 	logger.Infof("LDAP auto-create: %d clients for %s", created, tagList)
 }
 
-func (j *LdapSyncJob) batchSetEnable(ib *model.Inbound, emails []string, enable bool) {
+// batchSetEnable takes the bulk path: per-user calls held each inbound's lock through
+// its node push, so users sharing a hung node inbound queued one push timeout apiece.
+func (j *LdapSyncJob) batchSetEnable(emails []string, enable bool) {
 	if len(emails) == 0 {
 		return
 	}
-	restartNeeded := false
-	changed := 0
-	for _, email := range emails {
-		ok, needRestart, err := j.clientService.SetClientEnableByEmail(&j.inboundService, email, enable)
-		if err != nil {
-			logger.Warningf("Batch set enable failed for %s in inbound %s: %v", email, ib.Tag, err)
-			continue
-		}
-		if ok {
-			changed++
-		}
-		if needRestart {
-			restartNeeded = true
-		}
+	result, needRestart, err := j.clientService.BulkSetEnable(&j.inboundService, emails, enable)
+	if err != nil {
+		logger.Warningf("Batch set enable=%v failed: %v", enable, err)
 	}
-	if changed > 0 {
-		logger.Infof("Batch set enable=%v for %d clients in inbound %s", enable, changed, ib.Tag)
+	for _, skipped := range result.Skipped {
+		logger.Warningf("Batch set enable failed for %s: %s", skipped.Email, skipped.Reason)
 	}
-	if restartNeeded {
+	if result.Changed > 0 {
+		logger.Infof("Batch set enable=%v for %d clients", enable, result.Changed)
+	}
+	if needRestart {
 		j.xrayService.SetToNeedRestart()
 	}
 }
 
-// deleteClientsNotInLDAP deletes clients not in LDAP using batches and a single restart
+// deleteClientsNotInLDAP detaches clients not in LDAP, one bulk detach per inbound
 func (j *LdapSyncJob) deleteClientsNotInLDAP(inboundTag string, ldapEmails map[string]struct{}) {
 	inbounds, err := j.inboundService.GetAllInbounds()
 	if err != nil {
@@ -292,7 +282,6 @@ func (j *LdapSyncJob) deleteClientsNotInLDAP(inboundTag string, ldapEmails map[s
 		return
 	}
 
-	batchSize := 50 //  clients in 1 batch
 	restartNeeded := false
 
 	for _, ib := range inbounds {
@@ -317,23 +306,23 @@ func (j *LdapSyncJob) deleteClientsNotInLDAP(inboundTag string, ldapEmails map[s
 			continue
 		}
 
-		for i := 0; i < len(toDelete); i += batchSize {
-			end := min(i+batchSize, len(toDelete))
-			batch := toDelete[i:end]
-
-			for _, c := range batch {
-				nr, err := j.clientService.DetachByEmail(&j.inboundService, ib.Id, c.Email)
-				if err != nil {
-					logger.Warningf("Failed to delete client %s from inbound id=%d(tag=%s): %v",
-						c.Email, ib.Id, ib.Tag, err)
-					continue
-				}
-				logger.Infof("Deleted client %s from inbound id=%d(tag=%s)",
-					c.Email, ib.Id, ib.Tag)
-				if nr {
-					restartNeeded = true
-				}
-			}
+		emails := make([]string, len(toDelete))
+		for i, c := range toDelete {
+			emails[i] = c.Email
+		}
+		result, nr, err := j.clientService.BulkDetach(&j.inboundService, emails, []int{ib.Id})
+		if err != nil {
+			logger.Warningf("Failed to delete clients from inbound id=%d(tag=%s): %v", ib.Id, ib.Tag, err)
+			continue
+		}
+		for _, msg := range result.Errors {
+			logger.Warningf("Failed to delete client from inbound id=%d(tag=%s): %s", ib.Id, ib.Tag, msg)
+		}
+		for _, email := range result.Detached {
+			logger.Infof("Deleted client %s from inbound id=%d(tag=%s)", email, ib.Id, ib.Tag)
+		}
+		if nr {
+			restartNeeded = true
 		}
 	}
 

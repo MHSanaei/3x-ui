@@ -48,6 +48,7 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 	lines := splitLines(text)
 	var outbounds []Outbound
 	var identities []string
+	seen := map[string]int{}
 
 	for _, ln := range lines {
 		ln = strings.TrimSpace(ln)
@@ -59,8 +60,14 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 			// Ignore unparseable lines (comments, unsupported protocols, etc.)
 			continue
 		}
+		identity := res.Identity
+		// A repeated identity would share one stored tag, shifting both tags on every refresh.
+		if n := seen[res.Identity]; n > 0 {
+			identity = fmt.Sprintf("%s#%d", res.Identity, n)
+		}
+		seen[res.Identity]++
 		outbounds = append(outbounds, res.Outbound)
-		identities = append(identities, res.Identity)
+		identities = append(identities, identity)
 	}
 	return outbounds, identities, nil
 }
@@ -1047,10 +1054,18 @@ func firstParam(p url.Values, keys ...string) string {
 	return ""
 }
 
+// realityPerRequestParams are picked per request by subscription servers (3x-ui randomizes
+// sid/sni, older releases spx too), so they must not split one server into new identities.
+var realityPerRequestParams = map[string]bool{"sid": true, "sni": true, "spx": true}
+
 func canonicalQuery(p url.Values) string {
 	// Sort keys for stable identity
+	reality := p.Get("security") == "reality"
 	keys := make([]string, 0, len(p))
 	for k := range p {
+		if reality && realityPerRequestParams[k] {
+			continue
+		}
 		keys = append(keys, k)
 	}
 	// simple sort

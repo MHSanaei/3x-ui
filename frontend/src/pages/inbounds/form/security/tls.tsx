@@ -8,11 +8,11 @@ import {
 } from '@ant-design/icons';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
+import { CipherSuitesSelect } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import {
   ALPN_OPTION,
   DOMAIN_STRATEGY_OPTION,
-  TLS_CIPHER_OPTION,
   TLS_VERSION_OPTION,
   USAGE_OPTION,
   UTLS_FINGERPRINT,
@@ -240,12 +240,7 @@ export default function TlsForm({
         name={['streamSettings', 'tlsSettings', 'cipherSuites']}
         label={t('pages.inbounds.form.cipherSuites')}
       >
-        <Select
-          options={[
-            { value: '', label: t('pages.inbounds.form.autoOption') },
-            ...Object.entries(TLS_CIPHER_OPTION).map(([k, v]) => ({ value: v, label: k })),
-          ]}
-        />
+        <CipherSuitesSelect placeholder={t('pages.inbounds.form.autoOption')} />
       </FormField>
       <Form.Item label={t('pages.inbounds.form.minMaxVersion')}>
         <Space.Compact block>
