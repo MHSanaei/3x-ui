@@ -4,6 +4,9 @@ const port = z.number().int().min(1).max(65535);
 const nonNegativeInt = z.number().int().min(0);
 const absolutePath = z.string().regex(/^\//, 'pages.settings.validation.pathLeadingSlash');
 
+export const SubProfileModeSchema = z.enum(['none', 'builtin', 'custom']);
+export type SubProfileMode = z.infer<typeof SubProfileModeSchema>;
+
 export const AllSettingSchema = z
   .object({
     webListen: z.string().optional(),
@@ -14,6 +17,7 @@ export const AllSettingSchema = z
     webBasePath: absolutePath.optional(),
     sessionMaxAge: z.number().int().min(1).max(525600).optional(),
     trustedProxyCIDRs: z.string().optional(),
+    realityScanCandidates: z.string().optional(),
     ipLimitAllowlist: z.string().optional(),
     panelOutbound: z.string().optional(),
     pageSize: z.number().int().min(0).max(1000).optional(),
@@ -22,6 +26,7 @@ export const AllSettingSchema = z
     remarkTemplate: z.string().optional(),
     subShowIdentityOnAllLinks: z.boolean().optional(),
     subInfoNodeEnable: z.boolean().optional(),
+    subCalendarExpireInclusive: z.boolean().optional(),
     subExpiredTemplate: z.string().optional(),
     subTrafficDepletedTemplate: z.string().optional(),
     datepicker: z.enum(['gregorian', 'jalalian']).optional(),
@@ -38,6 +43,7 @@ export const AllSettingSchema = z
     twoFactorEnable: z.boolean().optional(),
     twoFactorToken: z.string().optional(),
     xrayTemplateConfig: z.string().optional(),
+    happLinkEnable: z.boolean().optional(),
     subEnable: z.boolean().optional(),
     subJsonEnable: z.boolean().optional(),
     subJsonAutoDetect: z.boolean().optional(),
@@ -47,6 +53,7 @@ export const AllSettingSchema = z
     subClashUserAgentRegex: z.string().max(2048).optional(),
     subTitle: z.string().optional(),
     subSupportUrl: z.string().optional(),
+    subProfileMode: SubProfileModeSchema.optional(),
     subProfileUrl: z.string().optional(),
     subAnnounce: z.string().optional(),
     subEnableRouting: z.boolean().optional(),
@@ -75,6 +82,7 @@ export const AllSettingSchema = z
     subJsonMux: z.string().optional(),
     subJsonRules: z.string().optional(),
     subJsonRoutingRules: z.string().optional(),
+    subJsonDns: z.string().optional(),
     subJsonFinalMask: z.string().optional(),
     subJsonObservatory: z.string().optional(),
     subHideSettings: z.boolean().optional(),
@@ -130,6 +138,17 @@ export const AllSettingSchema = z
     hasWarpSecret: z.boolean().optional(),
     hasNordSecret: z.boolean().optional(),
     hasSmtpPassword: z.boolean().optional(),
+    hasDiscordBotToken: z.boolean().optional(),
+    discordBotEnable: z.boolean().optional(),
+    discordBotToken: z.string().optional(),
+    discordChannelId: z.string().optional(),
+    discordAdminIds: z.string().optional(),
+    discordRunTime: z.string().optional(),
+    discordBotBackup: z.boolean().optional(),
+    discordCpu: z.number().int().min(0).max(100).optional(),
+    discordMemory: z.number().int().min(0).max(100).optional(),
+    discordLang: z.string().optional(),
+    discordEnabledEvents: z.string().optional(),
   })
   .loose();
 

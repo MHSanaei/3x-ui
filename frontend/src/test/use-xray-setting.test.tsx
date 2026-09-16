@@ -67,4 +67,49 @@ describe('useXraySetting', () => {
     expect(result.current.outboundTestUrl).toBe('');
     expect(result.current.saveDisabled).toBe(true);
   });
+
+  // The core lowercases a protocol id and a transport name before resolving
+  // either, so a differently spelled UDP outbound must still skip the TCP dial.
+  it.each<[string, Record<string, unknown>, string]>([
+    ['probes a canonical UDP outbound over HTTP', { protocol: 'wireguard', tag: 'wg' }, 'http'],
+    [
+      'probes a "WireGuard"-spelled outbound over HTTP',
+      { protocol: 'WireGuard', tag: 'wg' },
+      'http',
+    ],
+    ['probes a "HyStErIa"-spelled outbound over HTTP', { protocol: 'HyStErIa', tag: 'hy' }, 'http'],
+    [
+      'probes a "KCP" transport over HTTP',
+      { protocol: 'vless', tag: 'kcp', streamSettings: { network: 'KCP' } },
+      'http',
+    ],
+    [
+      'probes an "mkcp" transport over HTTP',
+      { protocol: 'vless', tag: 'mkcp', streamSettings: { network: 'mkcp' } },
+      'http',
+    ],
+    ['probes a plain vless outbound over TCP', { protocol: 'vless', tag: 'plain' }, 'tcp'],
+  ])('%s', async (_name, outbound, want) => {
+    const bodies: Array<Record<string, unknown>> = [];
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url, data) => {
+      if (url === '/panel/api/xray/') {
+        return new Msg(true, '', JSON.stringify(xrayPayload()));
+      }
+      bodies.push(data as Record<string, unknown>);
+      return new Msg(true, '', [{ success: true, mode: 'http' }]);
+    });
+    const queryClient = makeTestQueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useXraySetting(), { wrapper });
+
+    await waitFor(() => expect(result.current.fetched).toBe(true));
+    await act(async () => {
+      await result.current.testOutbound(0, outbound, 'tcp');
+    });
+
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].mode).toBe(want);
+  });
 });

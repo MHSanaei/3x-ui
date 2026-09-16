@@ -1,5 +1,6 @@
 import { isSSMultiUser } from '@/lib/xray/protocol-capabilities';
 import { coerceInboundJsonField } from '@/models/dbinbound';
+import type { HostRecord } from '@/schemas/api/host';
 
 import type { DBInboundRecord, StreamHints } from './types';
 
@@ -90,6 +91,7 @@ export function isInboundMultiUser(record: { protocol: string; settings: unknown
     case 'mtproto':
     case 'wireguard':
     case 'amneziawg':
+    case 'tuic':
       return true;
     case 'shadowsocks':
       return isSSMultiUser({ protocol: 'shadowsocks', settings: readSettings(record.settings) });
@@ -103,4 +105,42 @@ export function showQrCodeMenu(dbInbound: DBInboundRecord): boolean {
     return !isSSMultiUser({ protocol: 'shadowsocks', settings: readSettings(dbInbound.settings) });
   }
   return false;
+}
+
+/** Max host remarks shown inline before truncating with "+N". */
+export const HOST_REMARK_VISIBLE_LIMIT = 2;
+
+/** Join Host Group remarks onto inbound ids using existing /hosts/list fields. */
+export function buildHostRemarksByInboundId(
+  hosts: Pick<HostRecord, 'remark' | 'inboundIds' | 'hosts' | 'isDisabled'>[],
+): Map<number, string[]> {
+  const map = new Map<number, string[]>();
+  for (const host of hosts) {
+    if (host.isDisabled) continue;
+    const addressFallback = Array.isArray(host.hosts)
+      ? host.hosts.map((h) => (h || '').trim()).find(Boolean) || ''
+      : '';
+    const label = (host.remark || '').trim() || addressFallback;
+    if (!label) continue;
+    for (const inboundId of host.inboundIds || []) {
+      if (!Number.isFinite(inboundId)) continue;
+      const list = map.get(inboundId) ?? [];
+      if (!list.includes(label)) list.push(label);
+      map.set(inboundId, list);
+    }
+  }
+  return map;
+}
+
+export function formatHostRemarksLabel(
+  remarks: string[],
+  visibleLimit = HOST_REMARK_VISIBLE_LIMIT,
+): { display: string; full: string } {
+  const full = remarks.join(', ');
+  if (remarks.length <= visibleLimit) {
+    return { display: full, full };
+  }
+  const visible = remarks.slice(0, visibleLimit).join(', ');
+  const more = remarks.length - visibleLimit;
+  return { display: `${visible}, +${more}`, full };
 }

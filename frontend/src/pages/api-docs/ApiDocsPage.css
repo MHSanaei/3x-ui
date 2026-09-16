@@ -45,15 +45,14 @@
 }
 
 .api-docs-page .websocket-events {
-  margin-bottom: 16px;
   padding: 20px;
   background: var(--bg-card);
   border: 1px solid var(--ant-color-border-secondary);
   border-radius: 8px;
 }
 
-.api-docs-page .websocket-events h2 {
-  margin-top: 0;
+.api-docs-page .swagger-ui .section-tabs {
+  margin-top: 20px;
 }
 
 .api-docs-page .websocket-events pre {

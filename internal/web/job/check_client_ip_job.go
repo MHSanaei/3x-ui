@@ -612,7 +612,8 @@ func (j *CheckClientIpJob) filterAdvancedSinceLastBan(email string, banned []IPW
 	return actionable
 }
 
-// disconnectClientTemporarily removes and re-adds a client to force disconnect banned connections
+// disconnectClientTemporarily drops a client's credential for a moment, so new
+// handshakes are refused; the fail2ban ban is what ends live traffic.
 func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, clientEmail string, clients []model.Client) {
 	var xrayAPI xray.XrayAPI
 	apiPort := j.resolveXrayAPIPort()
@@ -626,11 +627,13 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 
 	// Find the client config
 	var clientConfig map[string]any
+	var reverseClient bool
 	for _, client := range clients {
 		if client.Email == clientEmail {
 			// Convert client to map for API
 			clientBytes, _ := json.Marshal(client)
 			_ = json.Unmarshal(clientBytes, &clientConfig)
+			reverseClient = client.Reverse != nil
 			break
 		}
 	}
@@ -650,6 +653,13 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		return
 	}
 
+	// RemoveUser drops a reverse client's outbound handler and the re-add below
+	// cannot restore it, so its tunnel would stay down until Xray restarts.
+	if reverseClient {
+		logger.Warningf("[LIMIT_IP] Not disconnecting %s: its reverse proxy config does not survive a temporary removal", clientEmail)
+		return
+	}
+
 	// For Shadowsocks, ensure the required "cipher" field is present by
 	// reading it from the inbound settings (e.g., settings["method"]).
 	if string(inbound.Protocol) == "shadowsocks" {
@@ -663,14 +673,16 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		}
 	}
 
-	// Remove user to disconnect all connections
+	// The core's RemoveUser clears its validator: a session already up keeps
+	// running, except a reverse vless client, which is skipped above.
 	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to remove user %s: %v", clientEmail, err)
 		return
 	}
 
-	// Wait a moment for disconnection to take effect
+	// Nothing is pending here: AlterInbound applies the removal inline, so this
+	// only widens the window in which new handshakes fail.
 	time.Sleep(100 * time.Millisecond)
 
 	// Re-add user to allow new connections

@@ -60,6 +60,17 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 		records = append(records, rec)
 	}
 
+	// Same rule as Attach (#4834): clients.flow is unreliable when a non-flow
+	// inbound synced last, so seed from EffectiveFlow before clientWithInboundFlow.
+	emailsForFlow := make([]string, 0, len(records))
+	for _, rec := range records {
+		emailsForFlow = append(emailsForFlow, rec.Email)
+	}
+	flowsByEmail, err := s.EffectiveFlowsByEmails(nil, emailsForFlow)
+	if err != nil {
+		return result, false, err
+	}
+
 	needRestart := false
 	// Prepared in order first, as in Create: fillProtocolDefaults mints the
 	// shared credentials, so only the node pushes below may overlap.
@@ -100,6 +111,9 @@ func (s *ClientService) BulkAttach(inboundSvc *InboundService, emails []string, 
 				continue
 			}
 			client := *rec.ToClient()
+			if flow, ok := flowsByEmail[rec.Email]; ok && flow != "" {
+				client.Flow = flow
+			}
 			client.UpdatedAt = time.Now().UnixMilli()
 			if err := s.fillProtocolDefaults(&client, inbound); err != nil {
 				recordErr("%s -> inbound %d: %v", rec.Email, ibId, err)
@@ -1310,9 +1324,7 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		if client.SubID == "" {
 			client.SubID = uuid.NewString()
 		}
-		if !client.Enable {
-			client.Enable = true
-		}
+		// Preserve enable (omit→true in UnmarshalJSON; explicit false kept) (#6478).
 		now := time.Now().UnixMilli()
 		if client.CreatedAt == 0 {
 			client.CreatedAt = now
@@ -1790,6 +1802,7 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 						"auth":     ch.client.Auth,
 						"password": ch.client.Password,
 						"cipher":   cipher,
+						"reverse":  ch.client.Reverse,
 					})
 					if err1 != nil {
 						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
@@ -1799,6 +1812,9 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 					err1 := rt.RemoveUser(context.Background(), oldInbound, ch.email)
 					if err1 != nil && !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", ch.email)) {
 						logger.Debug("Error in removing client on", rt.Name(), ":", err1)
+						res.needRestart = true
+					} else if err1 == nil && droppedClientNeedsRestart() {
+						// A removed credential does not end the session it was serving.
 						res.needRestart = true
 					}
 				}

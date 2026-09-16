@@ -13,6 +13,7 @@ import {
   CodeOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  DiscordOutlined,
   ExportOutlined,
   GithubOutlined,
   GlobalOutlined,
@@ -257,6 +258,11 @@ export default function AppSidebar() {
         label: t('pages.settings.TGBotSettings'),
       },
       { key: '/settings#email', icon: <MailOutlined />, label: t('pages.settings.emailSettings') },
+      {
+        key: '/settings#discord',
+        icon: <DiscordOutlined />,
+        label: t('pages.settings.discordSettings'),
+      },
       {
         key: '/settings#subscription',
         icon: <CloudServerOutlined />,

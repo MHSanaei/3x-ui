@@ -17,6 +17,7 @@ import type { HostRecord } from '@/api/queries/useHostsQuery';
 import { BulkAddHostSchema, type BulkAddHostValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
+import { CipherSuitesSelect } from '@/components/form';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -56,6 +57,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     path: host?.path ?? '',
     alpn: (host?.alpn as BulkAddHostValues['alpn']) ?? [],
     fingerprint: host?.fingerprint as BulkAddHostValues['fingerprint'],
+    cipherSuites: host?.cipherSuites ?? '',
     overrideSniFromAddress: host?.overrideSniFromAddress ?? false,
     keepSniBlank: host?.keepSniBlank ?? false,
     pinnedPeerCertSha256: host?.pinnedPeerCertSha256 ?? [],
@@ -91,8 +93,8 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
-  const showTls = security === 'tls' || security === 'reality';
-  const showTlsExtras = security === 'tls';
+  const showTls = security === 'tls' || security === 'reality' || security === 'same';
+  const showTlsExtras = security === 'tls' || security === 'same';
 
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
@@ -331,6 +333,12 @@ export default function HostFormModal({
                       <>
                         <FormField name="alpn" label={t('pages.hosts.fields.alpn')}>
                           <Select mode="multiple" allowClear options={alpnOptions} />
+                        </FormField>
+                        <FormField
+                          name="cipherSuites"
+                          label={t('pages.inbounds.form.cipherSuites')}
+                        >
+                          <CipherSuitesSelect />
                         </FormField>
                         <FormField name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
                           <Select mode="tags" allowClear tokenSeparators={[',']} />

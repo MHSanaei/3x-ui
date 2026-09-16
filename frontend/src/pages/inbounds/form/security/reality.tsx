@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -25,7 +25,9 @@ import {
   validateRealityTarget,
 } from '@/lib/xray/stream-wire-normalize';
 import type { RealityScanResult } from '@/generated/types';
-import RealityTargetScannerModal from './RealityTargetScannerModal';
+import RealityTargetScannerModal, {
+  MLDSA65_MIN_CERT_CHAIN_BYTES,
+} from './RealityTargetScannerModal';
 
 interface RealityFormProps {
   saving: boolean;
@@ -59,6 +61,18 @@ export default function RealityForm({
   const { t } = useTranslation();
   const { getFieldState, trigger } = useFormContext();
   const [scannerOpen, setScannerOpen] = useState(false);
+  const mldsa65Seed = useWatch({ name: 'streamSettings.realitySettings.mldsa65Seed' });
+  const mldsa65Verify = useWatch({
+    name: 'streamSettings.realitySettings.settings.mldsa65Verify',
+  });
+  const mldsa65Enabled =
+    (typeof mldsa65Seed === 'string' && mldsa65Seed.trim() !== '') ||
+    (typeof mldsa65Verify === 'string' && mldsa65Verify.trim() !== '');
+  const mldsaChainTooSmall =
+    !!scanResult &&
+    mldsa65Enabled &&
+    scanResult.certChainBytes > 0 &&
+    scanResult.certChainBytes < MLDSA65_MIN_CERT_CHAIN_BYTES;
   /*
    * An untrusted certificate (self-signed fronting service on the LAN) is still
    * worth reading, so subject/issuer stay visible and only the verdict is added.
@@ -130,7 +144,11 @@ export default function RealityForm({
       {scanResult && (
         <Form.Item label=" " colon={false}>
           <Alert
-            type={scanResult.feasible && !scanResult.privateTarget ? 'success' : 'warning'}
+            type={
+              scanResult.feasible && !scanResult.privateTarget && !mldsaChainTooSmall
+                ? 'success'
+                : 'warning'
+            }
             showIcon
             title={
               scanResult.feasible
@@ -139,6 +157,14 @@ export default function RealityForm({
             }
             description={
               <>
+                {mldsaChainTooSmall && (
+                  <div style={{ marginBottom: 8 }}>
+                    {t('pages.inbounds.form.scanMldsaCertChainTooSmall', {
+                      length: scanResult.certChainBytes,
+                      min: MLDSA65_MIN_CERT_CHAIN_BYTES,
+                    })}
+                  </div>
+                )}
                 {scanResult.privateTarget && (
                   <div style={{ marginBottom: 8 }}>{t('pages.inbounds.form.scanPrivateNote')}</div>
                 )}
@@ -158,6 +184,9 @@ export default function RealityForm({
                     {scanResult.notAfter
                       ? dayjs(scanResult.notAfter).format('YYYY-MM-DD HH:mm')
                       : '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('pages.inbounds.form.scanCertChain')}>
+                    {scanResult.certChainBytes > 0 ? `${scanResult.certChainBytes} B` : '—'}
                   </Descriptions.Item>
                   <Descriptions.Item label={t('pages.inbounds.form.scanLatency')}>
                     {scanResult.latencyMs > 0 ? `${scanResult.latencyMs} ms` : '—'}
@@ -330,6 +359,7 @@ export default function RealityForm({
         onClose={() => setScannerOpen(false)}
         scanRealityCandidates={scanRealityCandidates}
         onPick={(r) => applyRealityScanResult(r, true)}
+        mldsa65Enabled={mldsa65Enabled}
       />
     </>
   );

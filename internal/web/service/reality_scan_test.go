@@ -164,3 +164,19 @@ func TestWriteProxyProtocolV2Signature(t *testing.T) {
 		t.Fatalf("v2 family/protocol byte = 0x%02x, want 0x11 (TCP over IPv4)", hdr[13])
 	}
 }
+
+func TestParseRealityScanCandidateCSV(t *testing.T) {
+	got := parseRealityScanCandidateCSV(" a.com:443 , ,b.com:8443 ")
+	want := []string{"a.com:443", "b.com:8443"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	}
+	if tokens := parseRealityScanCandidateCSV("  , "); len(tokens) != 0 {
+		t.Fatalf("empty CSV should yield no tokens, got %v", tokens)
+	}
+}

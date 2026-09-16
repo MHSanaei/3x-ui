@@ -27,18 +27,24 @@ const depletedClientsClause = "reset = 0 and reset_day = 0 and ((total > 0 and u
 
 func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (needRestart bool, clientsDisabled bool, err error) {
 	var disabledNodeIDs []int
+	var remotePlans []trafficInboundUpdatePlan
 	err = submitTrafficWrite(func() error {
 		var inner error
-		needRestart, clientsDisabled, disabledNodeIDs, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
+		needRestart, clientsDisabled, disabledNodeIDs, remotePlans, inner = s.addTrafficLocked(inboundTraffics, clientTraffics)
 		return inner
 	})
-	if err == nil && len(disabledNodeIDs) > 0 {
+	if err != nil {
+		return
+	}
+	// Off the serial writer: a hanging node must not stall traffic accounting.
+	needRestart = s.applyTrafficRemotePlans(remotePlans) || needRestart
+	if len(disabledNodeIDs) > 0 {
 		s.restartRemoteNodesOnDisable(disabledNodeIDs)
 	}
 	return
 }
 
-func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, []int, error) {
+func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, []int, []trafficInboundUpdatePlan, error) {
 	db := database.GetDB()
 	// Commit durable traffic before best-effort lifecycle maintenance so helper
 	// failures cannot discard usage already reported by Xray.
@@ -48,7 +54,7 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 		}
 		return s.addClientTraffic(tx, clientTraffics)
 	}); err != nil {
-		return false, false, nil, err
+		return false, false, nil, nil, err
 	}
 
 	var (
@@ -93,10 +99,10 @@ func (s *InboundService) addTrafficLocked(inboundTraffics []*xray.Traffic, clien
 	})
 	if err != nil {
 		logger.Warning("traffic lifecycle maintenance failed after traffic commit:", err)
-		return false, false, nil, nil
+		return false, false, nil, nil, nil
 	}
 	needRestart = needRestart || s.applyTrafficMutationBatch(batch)
-	return needRestart, clientsDisabled, disabledNodeIDs, nil
+	return needRestart, clientsDisabled, disabledNodeIDs, batch.remotePlans, nil
 }
 
 func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic) error {
@@ -448,6 +454,15 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB, mutationBatch *trafficMut
 				continue
 			}
 			at := time.UnixMilli(newExpiryTime)
+			// Inclusive end-of-day expiries share the next billing midnight; snap without
+			// spending an allowance so the first charged step is a full month (#6300).
+			if traffic.ResetDay > 0 {
+				boundary := nextCalendarRenewal(at, traffic.ResetDay, renewLocation)
+				if !at.Before(boundary.Add(-time.Second)) && at.Before(boundary) {
+					at = boundary
+					newExpiryTime = at.UnixMilli()
+				}
+			}
 			renewals := 0
 			for newExpiryTime < now {
 				if traffic.ResetMax > 0 && traffic.ResetCount+renewals >= traffic.ResetMax {
@@ -719,6 +734,7 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 					"flow":     client.Flow,
 					"password": client.Password,
 					"cipher":   cipher,
+					"reverse":  client.Reverse,
 				}
 				if inbound.NodeID != nil {
 					reenableNodeID = inbound.NodeID
@@ -817,13 +833,18 @@ func (s *InboundService) propagateResetAllTrafficsToNodes() {
 	if err != nil {
 		return
 	}
-	for _, node := range nodes {
-		if rt, err := runtime.GetManager().RuntimeFor(&node.Id); err == nil {
+	ids := make([]int, len(nodes))
+	for i, node := range nodes {
+		ids[i] = node.Id
+	}
+	fanoutInboundResults(ids, nodeFanoutConcurrency, func(i int) struct{} {
+		if rt, err := runtime.GetManager().RuntimeFor(&ids[i]); err == nil {
 			if e := rt.ResetAllTraffics(context.Background()); e != nil {
 				logger.Warning("ResetAllTraffics: remote propagation to", rt.Name(), "failed:", e)
 			}
 		}
-	}
+		return struct{}{}
+	})
 }
 
 func (s *InboundService) ResetInboundTraffic(id int) error {

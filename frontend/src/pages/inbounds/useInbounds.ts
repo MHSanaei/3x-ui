@@ -67,6 +67,7 @@ const TRACKED_PROTOCOLS: readonly string[] = [
   Protocols.WIREGUARD,
   Protocols.MTPROTO,
   Protocols.AMNEZIAWG,
+  Protocols.TUIC,
 ];
 
 async function fetchSlimInbounds(): Promise<unknown[]> {
@@ -116,6 +117,18 @@ function toGuidOnlineMap(data: Record<string, string[]>): Map<string, Set<string
     map.set(key, new Set(emails));
   }
   return map;
+}
+
+// Most pushes repeat the previous online sets; handing back a new Map anyway
+// re-ran the client rollup over every inbound on each traffic event.
+function sameGuidSets(a: Map<string, Set<string>>, b: Map<string, Set<string>>): boolean {
+  if (a.size !== b.size) return false;
+  for (const [key, set] of b) {
+    const prev = a.get(key);
+    if (!prev || prev.size !== set.size) return false;
+    for (const value of set) if (!prev.has(value)) return false;
+  }
+  return true;
 }
 
 async function fetchLastOnlineMap(): Promise<Record<string, number>> {
@@ -439,10 +452,12 @@ export function useInbounds() {
       setOnlineClients(p.onlineClients);
     }
     if (p.onlineByGuid && typeof p.onlineByGuid === 'object') {
-      setOnlineByGuid(toGuidOnlineMap(p.onlineByGuid));
+      const next = toGuidOnlineMap(p.onlineByGuid);
+      setOnlineByGuid((prev) => (sameGuidSets(prev, next) ? prev : next));
     }
     if (p.activeInbounds && typeof p.activeInbounds === 'object') {
-      setActiveByGuid(toGuidOnlineMap(p.activeInbounds));
+      const next = toGuidOnlineMap(p.activeInbounds);
+      setActiveByGuid((prev) => (sameGuidSets(prev, next) ? prev : next));
     }
     if (p.lastOnlineMap && typeof p.lastOnlineMap === 'object') {
       setLastOnlineMap((prev) => ({ ...prev, ...p.lastOnlineMap! }));
@@ -536,8 +551,7 @@ export function useInbounds() {
           ? stats.map((stat) => {
               const su = byEmail.get(stat.email);
               if (!su) return stat;
-              statsTouched = true;
-              return {
+              const merged = {
                 ...stat,
                 up: typeof su.up === 'number' ? su.up : stat.up,
                 down: typeof su.down === 'number' ? su.down : stat.down,
@@ -545,9 +559,27 @@ export function useInbounds() {
                 expiryTime: typeof su.expiryTime === 'number' ? su.expiryTime : stat.expiryTime,
                 enable: typeof su.enable === 'boolean' ? su.enable : stat.enable,
               } as ClientStats;
+              if (
+                merged.up === stat.up &&
+                merged.down === stat.down &&
+                merged.total === stat.total &&
+                merged.expiryTime === stat.expiryTime &&
+                merged.enable === stat.enable
+              ) {
+                return stat;
+              }
+              statsTouched = true;
+              return merged;
             })
           : null;
-      if (!upd && !statsTouched) return ib;
+      // Every push lists all inbounds' totals, so only a row whose numbers moved counts.
+      const inboundMoved =
+        !!upd &&
+        ((typeof upd.up === 'number' && upd.up !== ib.up) ||
+          (typeof upd.down === 'number' && upd.down !== ib.down) ||
+          (typeof upd.total === 'number' && upd.total !== ib.total) ||
+          (typeof upd.enable === 'boolean' && upd.enable !== ib.enable));
+      if (!inboundMoved && !statsTouched) return ib;
       touched = true;
       const row = new DBInbound(ib as DBInboundInit) as DBInboundInstance;
       if (upd) {

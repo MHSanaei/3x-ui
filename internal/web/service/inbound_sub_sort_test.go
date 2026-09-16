@@ -52,10 +52,9 @@ func TestUpdateInbound_PersistsSubSortIndex(t *testing.T) {
 	}
 }
 
-// TestUpdateInbound_SubSortIndexClampedToMinimum verifies that values below
-// the 1-based minimum (0 from clients that predate the field, or negatives)
-// are clamped to 1 instead of being stored.
-func TestUpdateInbound_SubSortIndexClampedToMinimum(t *testing.T) {
+// TestUpdateInbound_SubSortIndexZeroMapsToDefault verifies that 0 from clients
+// that predate the field is normalized to 1 instead of being stored.
+func TestUpdateInbound_SubSortIndexZeroMapsToDefault(t *testing.T) {
 	setupConflictDB(t)
 
 	ib := makeInboundWithSubSortIndex("in-7002-tcp", 7002, 5)
@@ -64,25 +63,54 @@ func TestUpdateInbound_SubSortIndexClampedToMinimum(t *testing.T) {
 	}
 
 	svc := &InboundService{}
-	for _, below := range []int{0, -3} {
-		update := *ib
-		update.SubSortIndex = below
+	update := *ib
+	update.SubSortIndex = 0
 
-		got, _, err := svc.UpdateInbound(&update)
-		if err != nil {
-			t.Fatalf("UpdateInbound(%d): %v", below, err)
-		}
-		if got.SubSortIndex != 1 {
-			t.Fatalf("returned SubSortIndex = %d for input %d, want 1", got.SubSortIndex, below)
-		}
+	got, _, err := svc.UpdateInbound(&update)
+	if err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+	if got.SubSortIndex != 1 {
+		t.Fatalf("returned SubSortIndex = %d, want 1", got.SubSortIndex)
+	}
 
-		var reloaded model.Inbound
-		if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
-			t.Fatalf("reload: %v", err)
-		}
-		if reloaded.SubSortIndex != 1 {
-			t.Fatalf("persisted SubSortIndex = %d for input %d, want 1", reloaded.SubSortIndex, below)
-		}
+	var reloaded model.Inbound
+	if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if reloaded.SubSortIndex != 1 {
+		t.Fatalf("persisted SubSortIndex = %d, want 1", reloaded.SubSortIndex)
+	}
+}
+
+// TestUpdateInbound_PreservesNegativeSubSortIndex verifies that an explicitly
+// set negative index is stored (so it can sort ahead of the default of 1).
+func TestUpdateInbound_PreservesNegativeSubSortIndex(t *testing.T) {
+	setupConflictDB(t)
+
+	ib := makeInboundWithSubSortIndex("in-7004-tcp", 7004, 5)
+	if err := database.GetDB().Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+
+	svc := &InboundService{}
+	update := *ib
+	update.SubSortIndex = -1
+
+	got, _, err := svc.UpdateInbound(&update)
+	if err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+	if got.SubSortIndex != -1 {
+		t.Fatalf("returned SubSortIndex = %d, want -1", got.SubSortIndex)
+	}
+
+	var reloaded model.Inbound
+	if err := database.GetDB().First(&reloaded, ib.Id).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if reloaded.SubSortIndex != -1 {
+		t.Fatalf("persisted SubSortIndex = %d, want -1", reloaded.SubSortIndex)
 	}
 }
 

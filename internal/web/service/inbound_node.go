@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -32,6 +33,10 @@ const nodeBulkPushThreshold = 32
 // nodeClientPushTimeout bounds the synchronous per-client push: the change is
 // committed and the node flagged dirty, so a slow node defers to the reconcile.
 const nodeClientPushTimeout = 4 * time.Second
+
+// nodeFanoutConcurrency bounds an operation that calls every node, as the heartbeat
+// does: one at a time, a few hanging nodes outlast the request's write timeout.
+const nodeFanoutConcurrency = 32
 
 func nodePushContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), nodeClientPushTimeout)
@@ -172,7 +177,7 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 			errs = append(errs, fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err))
 		}
 	}
-	// Before the first clean sync adopts the node's inbounds, "absent locally"
+	// Before the next clean sync adopts the node's inbounds, "absent locally"
 	// means "not imported yet" — sweeping now would wipe the node at onboarding.
 	if n.InboundsAdoptedAt == 0 {
 		return errors.Join(errs...)
@@ -354,6 +359,10 @@ func (s *InboundService) SetRemoteTraffic(nodeID int, snap *runtime.TrafficSnaps
 		structuralChange, inner = s.setRemoteTrafficLocked(nodeID, snap, dirty, justPushed)
 		return inner
 	})
+	if err != nil {
+		// As on a failed fetch: a node whose snapshot did not merge keeps no online set.
+		s.ClearNodeOnlineClients(nodeID)
+	}
 	return structuralChange, err
 }
 
@@ -1376,17 +1385,20 @@ func (s *InboundService) restartRemoteNodesOnDisable(nodeIDs []int) {
 	if !restartOnDisable {
 		return
 	}
-	for _, nodeID := range nodeIDs {
-		nodeIDCopy := nodeID
-		rt, rtErr := runtime.GetManager().RuntimeFor(&nodeIDCopy)
-		if rtErr != nil {
-			logger.Warning("disableInvalidClients: get runtime for node", nodeID, "failed:", rtErr)
-			continue
+	// Best-effort and never replayed: a hanging node must not hold the traffic poll.
+	common.GoRecover("restart-nodes-on-client-disable", func() {
+		for _, nodeID := range nodeIDs {
+			nodeIDCopy := nodeID
+			rt, rtErr := runtime.GetManager().RuntimeFor(&nodeIDCopy)
+			if rtErr != nil {
+				logger.Warning("disableInvalidClients: get runtime for node", nodeID, "failed:", rtErr)
+				continue
+			}
+			if rtErr = rt.RestartXray(context.Background()); rtErr != nil {
+				logger.Warning("disableInvalidClients: restart xray on node", nodeID, "failed:", rtErr)
+			}
 		}
-		if rtErr = rt.RestartXray(context.Background()); rtErr != nil {
-			logger.Warning("disableInvalidClients: restart xray on node", nodeID, "failed:", rtErr)
-		}
-	}
+	})
 }
 
 func (s *InboundService) GetOnlineClients() []string {
@@ -1448,6 +1460,20 @@ func (s *InboundService) ClearNodeOnlineClients(nodeID int) {
 	if process := currentXrayProcess(); process != nil {
 		process.ClearNodeOnlineClients(nodeID)
 	}
+}
+
+// RetainSyncedNodeOnlineClients keeps online clients only for nodes the traffic
+// sync still fetches; a node missing from nodes was deleted.
+func (s *InboundService) RetainSyncedNodeOnlineClients(nodes []*model.Node) {
+	process := currentXrayProcess()
+	if process == nil {
+		return
+	}
+	synced := make(map[int]bool, len(nodes))
+	for _, n := range nodes {
+		synced[n.Id] = n.Enable && n.Status == "online"
+	}
+	process.RetainNodeOnlineClients(func(nodeID int) bool { return synced[nodeID] })
 }
 
 // panelGuid returns this panel's stable self-identifier, used to key the local

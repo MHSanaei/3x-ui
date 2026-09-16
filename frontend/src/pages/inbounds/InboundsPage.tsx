@@ -803,6 +803,7 @@ export default function InboundsPage() {
                       subEnable={subSettings.enable}
                       nodesById={nodesById}
                       hasActiveNode={showNodeInfo}
+                      hosts={hosts}
                       onAddInbound={onAddInbound}
                       onGeneralAction={onGeneralAction}
                       onRowAction={({ key, dbInbound }) =>

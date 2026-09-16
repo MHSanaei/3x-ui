@@ -50,8 +50,8 @@ The **format is chosen by path**, each with its own enable toggle:
 | **Mihomo (explicit)**          | `/mihomo/`       | `subClashEnable` | Alias for the full `subClashPath` profile.          |
 | **Clash for Windows (legacy)** | `/clash-legacy/` | `subClashEnable` | YAML limited to proxy types, transports, and ciphers supported by the legacy Clash core. |
 
-Only enabled inbounds using **VLESS, VMess, Trojan, Shadowsocks, or Hysteria2**
-appear in a subscription, ordered by their sub-sort index. Requesting `subPath`
+Only enabled inbounds using **VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, MTProto, TUIC, or Hysteria2**
+appear in a subscription, ordered by their sub-sort index (TUIC and AmneziaWG are included in raw links and Clash/Mihomo profiles, but omitted from JSON endpoints; MTProto is included in raw links). Requesting `subPath`
 with an `Accept: text/html` header (or `?html=1`) returns a human-readable info
 page instead of the raw body.
 
@@ -93,6 +93,50 @@ Subscriptions return standard headers that compatible apps read:
 - **`Profile-Update-Interval`** — refresh interval in hours (`subUpdates`).
 - **`Profile-Title`**, **`Support-Url`**, **`Profile-Web-Page-Url`**,
   **`Announce`** — optional branding shown by some clients.
+
+### Profile page links and upgrades
+
+In **Subscription → Profile → Profile page**, choose `subProfileMode` for all
+subscription clients:
+
+- **No link** (`none`, default): omit `Profile-Web-Page-Url`.
+- **Built-in subscription page** (`builtin`): link to the client's built-in page.
+- **Custom website** (`custom`): use `subProfileUrl`; a blank URL omits the header.
+
+**Upgrade note:** previously, an empty `subProfileUrl` automatically linked to
+the built-in page. After upgrading, an unset mode with an empty or whitespace-only
+URL becomes **No link**; an existing nonempty URL remains a **Custom website**.
+To restore the built-in link, select **Built-in subscription page** above and
+save the settings.
+
+The built-in page exposes subscription URLs and node configurations, including
+for Happ encrypted subscriptions. Enable it only if you intend to provide that
+access.
+
+### Optional month-end expiry display
+
+Under **Subscription → Information**, **Month-end subscription expiry display**
+(`subCalendarExpireInclusive`, default `false`) reports the last valid second
+of the month in `Subscription-Userinfo` instead of the next month's midnight.
+It applies only when every client contributing to the subscription has calendar
+renewal day `1`, shares the same fixed expiry, and that expiry is exactly day `1`
+at `00:00:00` in the configured panel timezone, immediately after the previous
+month's last second. A later repeated midnight during a DST rollback is not
+converted. Raw, JSON, Mihomo, and legacy
+Clash subscriptions use the same conversion.
+
+For example, the real cutoff `2030-10-01 00:00:00` is presented as
+`2030-09-30 23:59:59`. The stored expiry, access cutoff, traffic accounting,
+renewal schedule, remark expiry variables, and HTML/JSON info-page cutoff stay
+unchanged. Arbitrary times, other renewal days, interval renewal, first-use
+durations, unlimited expiries, mixed renewal modes, and different cutoffs are
+not converted.
+
+This is an opt-in compatibility tradeoff, not a change to expiry semantics by
+default: apps receive a timestamp one second before the real cutoff and may
+consider the subscription expired one second early. Apps format it in their own
+timezone; matching the panel timezone is needed to display the same month-end
+date. Cached subscription information changes only after the app refreshes it.
 
 ## Custom page templates
 

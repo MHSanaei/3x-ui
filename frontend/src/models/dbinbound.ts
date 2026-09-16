@@ -177,6 +177,10 @@ export class DBInbound {
     return this.protocol === Protocols.HYSTERIA;
   }
 
+  get isTuic() {
+    return this.protocol === Protocols.TUIC;
+  }
+
   get isTunnel() {
     return this.protocol === Protocols.TUNNEL;
   }

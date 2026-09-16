@@ -914,14 +914,14 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/server/scanRealityTargets',
         summary:
-          'Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, a built-in seed list is probed.',
+          'Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).',
         params: [
           {
             name: 'targets',
             in: 'body (form)',
             type: 'string',
             optional: true,
-            desc: 'Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, a built-in seed list is probed.',
+            desc: 'Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).',
           },
         ],
         body: 'targets=104.16.0.0/24,www.apple.com:443',
@@ -1483,10 +1483,11 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/hwids/:email',
-        summary: 'List registered HWID devices for a client. Hashes are not exposed.',
+        summary:
+          'List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.',
         params: [{ name: 'email', in: 'path', type: 'string', desc: 'Client email.' }],
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9"\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "firstSeen": 1735000000000,\n      "lastSeen": 1735100000000,\n      "userAgent": "Happ/1.0",\n      "deviceOs": "android",\n      "osVersion": "15",\n      "deviceModel": "Pixel 9",\n      "fingerprint": "6ad17c93e821"\n    }\n  ]\n}',
       },
       {
         method: 'DELETE',
@@ -1572,6 +1573,14 @@ export const sections: readonly Section[] = [
         ],
         response:
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?security=reality&...#user1",\n    "vmess://eyJ2IjoyLC..."\n  ]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/happLink/:id',
+        summary:
+          'Generate a fresh Happ crypt5 link locally from the current client subscription URL when Happ link generation is enabled. The panel applies a resource limit of 8192 UTF-8 bytes to the source URL; this is not a Happ client maximum. Longer sources return success: false with msg: happ_source_too_long and obj: null. The source URL is not sent to a generation provider, and the result is not stored or reused.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Stable client record ID.' }],
+        responseSchema: 'HappLinkResult',
       },
       {
         method: 'GET',
@@ -1907,6 +1916,12 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/testTgBot',
         summary: 'Test Telegram bot connection by sending a test message to the configured chat.',
         response: '{\n  "success": true,\n  "msg": "Test message sent to Telegram"\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/testDiscord',
+        summary: 'Test Discord bot connection by sending a test embed to the configured channel.',
+        response: '{\n  "success": true,\n  "msg": "Test notification sent successfully"\n}',
       },
       {
         method: 'GET',

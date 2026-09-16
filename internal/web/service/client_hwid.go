@@ -9,8 +9,10 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type HwidRequest struct {
@@ -41,7 +43,10 @@ type HwidSlotStatus struct {
 	Full       bool `json:"full" example:"false"`
 }
 
-const minHwidLength = 6
+const (
+	minHwidLength         = 6
+	hwidFingerprintLength = 12
+)
 
 type ClientHwidInfo struct {
 	Id          int    `json:"id"`
@@ -51,11 +56,19 @@ type ClientHwidInfo struct {
 	DeviceOS    string `json:"deviceOs"`
 	OsVersion   string `json:"osVersion"`
 	DeviceModel string `json:"deviceModel"`
+	Fingerprint string `json:"fingerprint"`
 }
 
 func hashHwid(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+func shortHwidFingerprint(hash string) string {
+	if len(hash) <= hwidFingerprintLength {
+		return hash
+	}
+	return hash[:hwidFingerprintLength]
 }
 
 func trimHwidMeta(s string) string {
@@ -99,12 +112,15 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 	if err != nil {
 		return res, err
 	}
+	req = normalizeHwidRequest(req)
 	if limit <= 0 {
 		res.Allowed = true
+		if len(req.Hwid) >= minHwidLength {
+			trackUnlimitedHwid(db, subID, req)
+		}
 		return res, nil
 	}
 
-	req = normalizeHwidRequest(req)
 	res.Active = true
 	res.Limit = limit
 	if len(req.Hwid) < minHwidLength {
@@ -164,6 +180,19 @@ func (s *ClientService) EnforceHwidForSubID(subID string, req HwidRequest) (Hwid
 		return nil
 	})
 	return res, err
+}
+
+// trackUnlimitedHwid lists devices of a sub with no HWID limit in the panel. It is
+// best-effort: a failed write must not deny a subscription nothing restricts.
+func trackUnlimitedHwid(db *gorm.DB, subID string, req HwidRequest) {
+	now := time.Now().UnixMilli()
+	err := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "sub_id"}, {Name: "hwid_hash"}},
+		DoUpdates: clause.AssignmentColumns([]string{"last_seen", "user_agent", "device_os", "os_version", "device_model"}),
+	}).Create(&model.ClientHwid{SubID: subID, HwidHash: hashHwid(req.Hwid), FirstSeen: now, LastSeen: now, UserAgent: req.UserAgent, DeviceOS: req.DeviceOS, OsVersion: req.OsVersion, DeviceModel: req.DeviceModel}).Error
+	if err != nil {
+		logger.Warning("track HWID for unlimited subscription failed:", err)
+	}
 }
 
 // HwidSlotStatusForSubID is SELECT-only: it must never write client_hwids or
@@ -232,6 +261,7 @@ func (s *ClientService) ListClientHwids(email string) ([]ClientHwidInfo, error) 
 			DeviceOS:    r.DeviceOS,
 			OsVersion:   r.OsVersion,
 			DeviceModel: r.DeviceModel,
+			Fingerprint: shortHwidFingerprint(r.HwidHash),
 		})
 	}
 	return out, nil

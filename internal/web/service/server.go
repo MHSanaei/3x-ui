@@ -627,7 +627,9 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	// Xray status
 	if s.xrayService.IsXrayRunning() {
 		status.Xray.State = Running
-		status.Xray.ErrorMsg = ""
+		// A core that runs but was refused the new config is a fault the
+		// operator only ever sees here and in the node list.
+		status.Xray.ErrorMsg = s.xrayService.GetHeldBackConfig()
 	} else {
 		err := s.xrayService.GetXrayErr()
 		if err != nil {
@@ -2198,6 +2200,22 @@ var geofileAllowlist = map[string]geofileEntry{
 	"geosite_IR.dat": {"https://github.com/chocolate4u/Iran-v2ray-rules", "geosite.dat", "geosite_IR.dat"},
 	"geoip_RU.dat":   {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geoip.dat", "geoip_RU.dat"},
 	"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geosite.dat", "geosite_RU.dat"},
+}
+
+// GeodataSource identifies a file Xray downloads through its geodata configuration.
+type GeodataSource struct {
+	URL  string `json:"url"`
+	File string `json:"file"`
+}
+
+// StandardGeodataSources derives the panel presets from the geofile update allowlist.
+func StandardGeodataSources() []GeodataSource {
+	sources := make([]GeodataSource, 0, len(geofileAllowlist))
+	for _, entry := range geofileAllowlist {
+		sources = append(sources, GeodataSource{URL: entry.latestURL(), File: entry.FileName})
+	}
+	slices.SortFunc(sources, func(a, b GeodataSource) int { return strings.Compare(a.File, b.File) })
+	return sources
 }
 
 func (entry geofileEntry) latestURL() string {

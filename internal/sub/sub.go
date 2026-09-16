@@ -155,6 +155,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonRoutingRules = ""
 	}
 
+	SubJsonDns, err := s.settingService.GetSubJsonDns()
+	if err != nil {
+		SubJsonDns = ""
+	}
+
 	SubJsonFinalMask, err := s.settingService.GetSubJsonFinalMask()
 	if err != nil {
 		SubJsonFinalMask = ""
@@ -188,6 +193,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	SubProfileUrl, err := s.settingService.GetSubProfileUrl()
 	if err != nil {
 		SubProfileUrl = ""
+	}
+	SubProfileMode, err := s.settingService.GetSubProfileMode()
+	if err != nil {
+		SubProfileMode = service.SubProfileModeNone
 	}
 
 	SubAnnounce, err := s.settingService.GetSubAnnounce()
@@ -316,6 +325,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBJsonMux(SubJsonMux),
 		WithSUBJsonRules(SubJsonRules),
 		WithSUBJsonRoutingRules(SubJsonRoutingRules),
+		WithSUBJsonDns(SubJsonDns),
 		WithSUBJsonFinalMask(SubJsonFinalMask),
 		WithSUBJsonObservatory(SubJsonObservatory),
 		WithSUBClashEnableRouting(SubClashEnableRouting),
@@ -323,6 +333,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBTitle(SubTitle),
 		WithSUBSupportURL(SubSupportUrl),
 		WithSUBProfileURL(SubProfileUrl),
+		WithSUBProfileMode(SubProfileMode),
 		WithSUBAnnounce(SubAnnounce),
 		WithSUBEnableRouting(SubEnableRouting),
 		WithSUBRoutingRules(SubRoutingRules),

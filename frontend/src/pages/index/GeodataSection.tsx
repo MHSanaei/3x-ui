@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Form, Input, Modal, Select, Space, Spin, Typography, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 
+import { XrayConfigPayloadSchema } from '@/schemas/xray';
+import { isOutboundProtocol } from '@/schemas/primitives';
 import { HttpUtil } from '@/utils';
 
 interface GeodataAssetRow {
@@ -37,6 +39,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
   const [cron, setCron] = useState(DEFAULT_CRON);
   const [outbound, setOutbound] = useState<string | undefined>(undefined);
   const [rows, setRows] = useState<GeodataAssetRow[]>([]);
+  const [standardSources, setStandardSources] = useState<GeodataAssetRow[]>([]);
   const [outboundTags, setOutboundTags] = useState<string[]>([]);
   const [template, setTemplate] = useState<Record<string, unknown> | null>(null);
   const outboundTestUrlRef = useRef('');
@@ -45,8 +48,10 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
     try {
       const msg = await HttpUtil.post('/panel/api/xray/', undefined, { silent: true });
       if (!msg?.success || typeof msg.obj !== 'string') return;
-      const payload = JSON.parse(msg.obj) as Record<string, unknown>;
-      const next = (payload.xraySetting || {}) as Record<string, unknown>;
+      const parsed = XrayConfigPayloadSchema.safeParse(JSON.parse(msg.obj));
+      if (!parsed.success) return;
+      const payload = parsed.data;
+      const next = payload.xraySetting as Record<string, unknown>;
       setTemplate(next);
       outboundTestUrlRef.current =
         typeof payload.outboundTestUrl === 'string' ? payload.outboundTestUrl : '';
@@ -62,6 +67,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
       setOutbound(
         typeof geodata.outbound === 'string' && geodata.outbound ? geodata.outbound : undefined,
       );
+      setStandardSources(payload.geodataSources ?? []);
 
       // Download outbound candidates: template outbounds + subscription outbounds.
       // Skip blackhole outbounds — routing a download through one just drops it.
@@ -70,7 +76,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
       for (const o of outbounds) {
         if (!o || typeof o !== 'object') continue;
         const rec = o as Record<string, unknown>;
-        if (rec.protocol === 'blackhole') continue;
+        if (isOutboundProtocol(rec, 'blackhole')) continue;
         const tag = rec.tag;
         if (typeof tag === 'string' && tag) tags.add(tag);
       }
@@ -104,6 +110,13 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
     setRows((prev) =>
       prev.map((r, i) => (i === index && !r.file ? { ...r, file: fileNameFromUrl(r.url) } : r)),
     );
+  }
+
+  function addStandardSources() {
+    setRows((prev) => {
+      const files = new Set(prev.map((row) => row.file));
+      return [...prev, ...standardSources.filter((source) => !files.has(source.file))];
+    });
   }
 
   function save() {
@@ -216,6 +229,9 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
               onClick={() => setRows((p) => [...p, { url: '', file: '' }])}
             >
               {t('pages.index.geodataAddFile')}
+            </Button>
+            <Button onClick={addStandardSources} disabled={standardSources.length === 0}>
+              {t('pages.index.geodataUseStandardSources')}
             </Button>
             <Button type="primary" onClick={save} disabled={loading || !template}>
               {t('pages.index.geodataSaveRestart')}

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -53,6 +54,7 @@ type cachedSubTemplate struct {
 type SUBController struct {
 	subTitle            string
 	subSupportUrl       string
+	subProfileMode      string
 	subProfileUrl       string
 	subAnnounce         string
 	subEnableRouting    bool
@@ -107,6 +109,7 @@ type subControllerConfig struct {
 	subJsonMux            string
 	subJsonRules          string
 	subJsonRoutingRules   string
+	subJsonDns            string
 	subJsonFinalMask      string
 	subJsonObservatory    string
 	subClashEnableRouting bool
@@ -114,6 +117,7 @@ type subControllerConfig struct {
 
 	subTitle         string
 	subSupportURL    string
+	subProfileMode   string
 	subProfileURL    string
 	subAnnounce      string
 	subEnableRouting bool
@@ -191,6 +195,10 @@ func WithSUBJsonRoutingRules(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonRoutingRules = value }
 }
 
+func WithSUBJsonDns(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subJsonDns = value }
+}
+
 func WithSUBJsonFinalMask(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subJsonFinalMask = value }
 }
@@ -217,6 +225,10 @@ func WithSUBSupportURL(value string) SUBControllerOption {
 
 func WithSUBProfileURL(value string) SUBControllerOption {
 	return func(config *subControllerConfig) { config.subProfileURL = value }
+}
+
+func WithSUBProfileMode(value string) SUBControllerOption {
+	return func(config *subControllerConfig) { config.subProfileMode = value }
 }
 
 func WithSUBAnnounce(value string) SUBControllerOption {
@@ -255,6 +267,7 @@ func defaultSUBControllerConfig() subControllerConfig {
 		subEncrypt:     true,
 		remarkTemplate: service.DefaultRemarkTemplate,
 		updateInterval: "12",
+		subProfileMode: service.SubProfileModeNone,
 	}
 }
 
@@ -268,9 +281,11 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 	sub := NewSubService(config.remarkTemplate)
 	subJsonSvc := NewSubJsonService(config.subJsonMux, config.subJsonRules, config.subJsonFinalMask, config.subJsonRoutingRules, sub)
 	subJsonSvc.SetObservatoryConfig(config.subJsonObservatory)
+	subJsonSvc.SetDnsConfig(config.subJsonDns)
 	a := &SUBController{
 		subTitle:            config.subTitle,
 		subSupportUrl:       config.subSupportURL,
+		subProfileMode:      config.subProfileMode,
 		subProfileUrl:       config.subProfileURL,
 		subAnnounce:         config.subAnnounce,
 		subEnableRouting:    config.subEnableRouting,
@@ -478,9 +493,8 @@ func (a *SUBController) subs(c *gin.Context) {
 		}
 
 		// Add headers
-		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
-		metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, profileURL)
+		header := subReq.subscriptionUserinfo(traffic)
+		metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, builtinProfileURL(c, scheme, hostWithPort))
 		a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
 		if a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
@@ -647,6 +661,8 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 	if datepicker == "" {
 		datepicker = "gregorian"
 	}
+	subUpdates, _ := a.settingService.GetSubUpdates()
+	updateHours, _ := strconv.Atoi(subUpdates)
 
 	return map[string]any{
 		"sId":           page.SId,
@@ -667,6 +683,7 @@ func (a *SUBController) subPageContext(page PageData) map[string]any {
 		"subClashUrl":   page.SubClashUrl,
 		"subTitle":      page.SubTitle,
 		"subSupportUrl": page.SubSupportUrl,
+		"subUpdates":    updateHours,
 		"links":         page.Result,
 		"emails":        page.Emails,
 		"datepicker":    datepicker,
@@ -812,14 +829,13 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 	if len(jsonSub) == 0 && header == "" {
 		return false
 	}
-	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 	var subReq *SubService
 	metadata := a.metadataForSubRequest(func() *SubService {
 		if subReq == nil {
 			subReq = a.subService.ForRequest(host)
 		}
 		return subReq
-	}, subId, profileURL)
+	}, subId, builtinProfileURL(c, scheme, hostWithPort))
 	a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.json"`)
@@ -881,14 +897,13 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool, legacy 
 	if len(clashSub) == 0 && header == "" {
 		return false
 	}
-	profileURL := fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
 	var subReq *SubService
 	metadata := a.metadataForSubRequest(func() *SubService {
 		if subReq == nil {
 			subReq = a.subService.ForRequest(host)
 		}
 		return subReq
-	}, subId, profileURL)
+	}, subId, builtinProfileURL(c, scheme, hostWithPort))
 	a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 	if rawDownload {
 		c.Writer.Header().Set("Content-Disposition", `attachment; filename="subscription.yaml"`)
@@ -898,6 +913,11 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool, legacy 
 	}
 	c.Data(200, "application/yaml; charset=utf-8", []byte(clashSub))
 	return true
+}
+
+func builtinProfileURL(c *gin.Context, scheme, hostWithPort string) string {
+	// Drop download/format selectors so the opt-in link always opens the HTML page.
+	return fmt.Sprintf("%s://%s%s?html=1", scheme, hostWithPort, c.Request.URL.EscapedPath())
 }
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.
@@ -932,8 +952,8 @@ func (a *SUBController) ApplyCommonHeaders(
 
 	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
 	if strings.TrimSpace(profileRoutingRules) == "" {
-		// Happ/INCY fetch the geo files the baked JSON rules reference through
-		// this header, so a blank Happ setting falls back to the JSON profile.
+		// Happ/INCY fetch the geo files the baked rules reference through this
+		// header; unlike the documents, it keeps the profile's own DNS servers.
 		rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
 	}
 	// The off values undo a previously pushed setting, so they ride the same

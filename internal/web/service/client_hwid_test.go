@@ -45,6 +45,23 @@ func TestClientHwidGate(t *testing.T) {
 	if !res.Allowed || res.Active {
 		t.Fatalf("no limit should allow missing HWID without active headers: %+v", res)
 	}
+
+	for _, ua := range []string{"Happ/1.0", "Happ/2.0"} {
+		res, err = svc.EnforceHwidForSubID("sub-hwid", HwidRequest{Hwid: "device-one", UserAgent: ua})
+		if err != nil {
+			t.Fatalf("no-limit gate with HWID: %v", err)
+		}
+		if res != (HwidGateResult{Allowed: true}) {
+			t.Fatalf("no limit should allow HWID without active headers: %+v", res)
+		}
+	}
+	list, err := svc.ListClientHwids("hwid@example.com")
+	if err != nil {
+		t.Fatalf("list HWIDs: %v", err)
+	}
+	if len(list) != 1 || list[0].UserAgent != "Happ/2.0" {
+		t.Fatalf("no limit should still track one device with fresh metadata, got %+v", list)
+	}
 }
 
 func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
@@ -121,8 +138,15 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 	}
 	foundUpdated := false
 	for _, row := range list {
+		if len(row.Fingerprint) != hwidFingerprintLength {
+			t.Fatalf("fingerprint length = %d, want %d: %q", len(row.Fingerprint), hwidFingerprintLength, row.Fingerprint)
+		}
 		if row.DeviceModel == "updated-model" && row.UserAgent == "Karing/2.0" && row.DeviceOS == "ios" && row.OsVersion == "18" {
 			foundUpdated = true
+			want := hashHwid(firstRaw)[:hwidFingerprintLength]
+			if row.Fingerprint != want {
+				t.Fatalf("fingerprint = %q, want %q", row.Fingerprint, want)
+			}
 		}
 	}
 	if !foundUpdated {
