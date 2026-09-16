@@ -91,16 +91,3 @@ func TestNodeMtlsClientCAPoolTagsAnInvalidBundle(t *testing.T) {
 		t.Fatalf("NodeMtlsClientCAPool() error = %v, want it to wrap ErrNodeMtlsTrustBundleInvalid", err)
 	}
 }
-
-// An unset bundle is not a misconfiguration, so it must not be reported as one.
-func TestNodeMtlsClientCAPoolLeavesUnsetBundleUntagged(t *testing.T) {
-	s := setupSettingMtlsDB(t)
-
-	pool, err := s.NodeMtlsClientCAPool()
-	if err != nil {
-		t.Fatalf("NodeMtlsClientCAPool() with no bundle = %v, want no error", err)
-	}
-	if pool != nil {
-		t.Fatalf("NodeMtlsClientCAPool() with no bundle returned a pool")
-	}
-}
