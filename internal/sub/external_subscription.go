@@ -150,12 +150,9 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	}
 	// Some providers gate the link body on a known client User-Agent.
 	req.Header.Set("User-Agent", "v2rayNG/1.8.5")
-	// A 3x-ui donor with an HWID limit answers 404 when the header is
-	// empty (#6559). Send our stable id unless the operator opted out.
-	if sendServerHwid() {
-		if hwid := serverHwid(); hwid != "" {
-			req.Header.Set("X-HWID", hwid)
-		}
+	// A 3x-ui donor with an HWID limit answers 404 when the header is empty (#6559).
+	if hwid := serverHwid(); hwid != "" {
+		req.Header.Set("X-HWID", hwid)
 	}
 	resp, err := subscriptionHTTPClient.Do(req)
 	if err != nil {
@@ -183,25 +180,6 @@ var (
 // serverHwidKey is the settings row holding this panel's stable identity
 // for outbound external-subscription fetches.
 const serverHwidKey = "externalSubHwid"
-
-// sendHwidKey toggles the X-HWID header on external fetches. Default on;
-// set to "false" to stop identifying this panel to third-party providers.
-const sendHwidKey = "externalSubSendHwid"
-
-// sendServerHwid reports whether to attach our stable id. Missing row or
-// parse failure keeps the default (send) so donor sync works out of box.
-func sendServerHwid() bool {
-	db := database.GetDB()
-	if db == nil {
-		return true
-	}
-	var row model.Setting
-	if err := db.Where("key = ?", sendHwidKey).First(&row).Error; err != nil {
-		return true
-	}
-	v := strings.TrimSpace(strings.ToLower(row.Value))
-	return v != "false" && v != "0" && v != "no" && v != "off"
-}
 
 // serverHwidMu serializes first-time creation: without it, concurrent first
 // fetches of different URLs each mint and persist their own UUID.

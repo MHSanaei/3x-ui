@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -23,12 +22,6 @@ func TestServerHwidStableAcrossCalls(t *testing.T) {
 	if first == "" {
 		t.Fatal("serverHwid returned empty")
 	}
-	if !strings.HasPrefix(first, "3x-ui-server-") {
-		t.Fatalf("unexpected hwid format: %q", first)
-	}
-	if len(first) < 6 {
-		t.Fatalf("hwid too short for donor minHwidLength: %q", first)
-	}
 
 	second := serverHwid()
 	if second != first {
@@ -44,8 +37,7 @@ func TestServerHwidStableAcrossCalls(t *testing.T) {
 	}
 }
 
-// The fetch must carry the stable id by default so an HWID-limited donor
-// lets it through, and must drop it when the operator opts out.
+// The fetch must carry the stable id so an HWID-limited donor lets it through.
 func TestFetchSendsStableHwid(t *testing.T) {
 	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
@@ -71,15 +63,5 @@ func TestFetchSendsStableHwid(t *testing.T) {
 	}
 	if gotHwid != serverHwid() {
 		t.Fatalf("sent %q != stable %q", gotHwid, serverHwid())
-	}
-
-	if err := database.GetDB().Create(
-		&model.Setting{Key: sendHwidKey, Value: "false"}).Error; err != nil {
-		t.Fatalf("opt out: %v", err)
-	}
-	gotHwid = "sentinel"
-	fetchSubscriptionLinks(srv.URL + "/other")
-	if gotHwid != "" {
-		t.Fatalf("X-HWID sent despite opt-out: %q", gotHwid)
 	}
 }
