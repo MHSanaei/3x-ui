@@ -52,15 +52,28 @@ func (j *TuicJob) Run() {
 		})
 	}
 
-	// Build zero-byte client traffic entries for active clients so adjustTraffics can
-	// activate delayed-start expiryTime for TUIC clients without inflating traffic.
-	clientTraffics := make([]*xray.ClientTraffic, 0, len(onlineEmails))
+	clientDeltas := mgr.CollectClientTraffic()
+	clientTrafficMap := make(map[string]*xray.ClientTraffic, len(clientDeltas)+len(onlineEmails))
+	for _, cd := range clientDeltas {
+		clientTrafficMap[cd.Email] = &xray.ClientTraffic{
+			Email: cd.Email,
+			Up:    cd.Up,
+			Down:  cd.Down,
+		}
+	}
 	for _, email := range onlineEmails {
-		clientTraffics = append(clientTraffics, &xray.ClientTraffic{
-			Email: email,
-			Up:    0,
-			Down:  0,
-		})
+		if _, exists := clientTrafficMap[email]; !exists {
+			clientTrafficMap[email] = &xray.ClientTraffic{
+				Email: email,
+				Up:    0,
+				Down:  0,
+			}
+		}
+	}
+
+	clientTraffics := make([]*xray.ClientTraffic, 0, len(clientTrafficMap))
+	for _, ct := range clientTrafficMap {
+		clientTraffics = append(clientTraffics, ct)
 	}
 
 	if len(traffics) > 0 || len(clientTraffics) > 0 {

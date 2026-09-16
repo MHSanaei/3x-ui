@@ -1,93 +1,147 @@
 package tuic
 
 import (
-	"encoding/json"
 	"net"
-	"os"
-	"path/filepath"
-	"runtime"
 	"testing"
 )
 
-func TestEnsureFrontsSidecarWithRelayAndRemoveReleasesPort(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("uses a shell script as the sidecar binary")
-	}
-	bin := t.TempDir()
-	t.Setenv("XUI_BIN_FOLDER", bin)
-	if err := os.WriteFile(filepath.Join(bin, GetBinaryName()), []byte("#!/bin/sh\nexec sleep 300\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	port, err := freeLoopbackUDPPort()
+func TestEnsureStartsServerAndReconciles(t *testing.T) {
+	certPEM, keyPEM := generateTestCert(t)
+
+	// Find free UDP port
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
+	port := pc.LocalAddr().(*net.UDPAddr).Port
+	_ = pc.Close()
+
 	inst := Instance{
-		Id: 7, Tag: "tuic-7", Listen: "127.0.0.1", Port: port,
-		Clients: []TuicClientSettings{{UUID: "u", Password: "p", Email: "e"}},
+		Id:          11,
+		Tag:         "tuic-11",
+		Listen:      "127.0.0.1",
+		Port:        port,
+		Certificate: string(certPEM),
+		PrivateKey:  string(keyPEM),
+		Clients:     []TuicClientSettings{{UUID: "a0000000-0000-0000-0000-000000000001", Password: "p", Email: "e1"}},
 	}
-	m := &Manager{procs: map[int]*managed{}, lastStartErr: map[int]string{}}
+
+	m := &Manager{servers: map[int]*managed{}, lastStartErr: map[int]string{}}
 	t.Cleanup(m.StopAll)
 
 	if err := m.Ensure(inst); err != nil {
-		t.Fatalf("Ensure: %v", err)
-	}
-	if c, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: port}); err == nil {
-		_ = c.Close()
-		t.Fatal("the relay must own the inbound's public port while the sidecar runs")
-	}
-	raw, err := os.ReadFile(ConfigPathForID(7))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cfg struct {
-		Server string `json:"server"`
-	}
-	if err := json.Unmarshal(raw, &cfg); err != nil {
-		t.Fatal(err)
-	}
-	host, sidecarPort, err := net.SplitHostPort(cfg.Server)
-	if err != nil || host != "127.0.0.1" || sidecarPort == "" || cfg.Server == inst.BindTo() {
-		t.Fatalf("sidecar bound to %q, want a loopback port other than the public %q", cfg.Server, inst.BindTo())
+		t.Fatalf("Ensure failed: %v", err)
 	}
 
-	m.Remove(7)
-	c, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: port})
+	if !m.HasRunning() {
+		t.Fatal("expected manager to have running server")
+	}
+
+	// Port should be taken by the server
+	if c, err := net.ListenPacket("udp", inst.BindTo()); err == nil {
+		_ = c.Close()
+		t.Fatal("expected server to be listening on port")
+	}
+
+	// Reconcile with empty list should remove it
+	m.Reconcile([]Instance{})
+	if m.HasRunning() {
+		t.Fatal("expected no running servers after reconcile empty")
+	}
+
+	// Port should now be released
+	c, err := net.ListenPacket("udp", inst.BindTo())
 	if err != nil {
-		t.Fatalf("public port still held after Remove: %v", err)
+		t.Fatalf("expected port to be free after reconcile: %v", err)
 	}
 	_ = c.Close()
 }
 
-func TestEnsureUpdatesTagWithoutRestart(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("uses a shell script as the sidecar binary")
-	}
-	bin := t.TempDir()
-	t.Setenv("XUI_BIN_FOLDER", bin)
-	if err := os.WriteFile(filepath.Join(bin, GetBinaryName()), []byte("#!/bin/sh\nexec sleep 300\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	port, err := freeLoopbackUDPPort()
+func TestEnsureHotUpdatesUsersWithoutRestart(t *testing.T) {
+	certPEM, keyPEM := generateTestCert(t)
+
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
+	port := pc.LocalAddr().(*net.UDPAddr).Port
+	_ = pc.Close()
+
 	inst := Instance{
-		Id: 8, Tag: "old-tag", Listen: "127.0.0.1", Port: port,
-		Clients: []TuicClientSettings{{UUID: "u", Password: "p", Email: "e"}},
+		Id:          12,
+		Tag:         "tuic-12",
+		Listen:      "127.0.0.1",
+		Port:        port,
+		Certificate: string(certPEM),
+		PrivateKey:  string(keyPEM),
+		Clients:     []TuicClientSettings{{UUID: "a0000000-0000-0000-0000-000000000001", Password: "p1", Email: "e1"}},
 	}
-	m := &Manager{procs: map[int]*managed{}, lastStartErr: map[int]string{}}
+
+	m := &Manager{servers: map[int]*managed{}, lastStartErr: map[int]string{}}
 	t.Cleanup(m.StopAll)
 
 	if err := m.Ensure(inst); err != nil {
-		t.Fatalf("Ensure: %v", err)
+		t.Fatalf("Ensure failed: %v", err)
 	}
+
+	server1 := m.servers[12].server
+
+	// Update user list without changing port or certs
+	inst.Clients = append(inst.Clients, TuicClientSettings{
+		UUID:     "a0000000-0000-0000-0000-000000000002",
+		Password: "p2",
+		Email:    "e2",
+	})
+
+	if err := m.Ensure(inst); err != nil {
+		t.Fatalf("Ensure with updated clients failed: %v", err)
+	}
+
+	server2 := m.servers[12].server
+	if server1 != server2 {
+		t.Fatal("expected server instance to be reused across user updates (zero-downtime hot update)")
+	}
+
+	// Verify both users are now in user registry
+	if len(server2.users.users) != 2 {
+		t.Fatalf("expected 2 users in registry, got %d", len(server2.users.users))
+	}
+}
+
+func TestEnsureUpdatesTagWithoutRestart(t *testing.T) {
+	certPEM, keyPEM := generateTestCert(t)
+
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := pc.LocalAddr().(*net.UDPAddr).Port
+	_ = pc.Close()
+
+	inst := Instance{
+		Id:          13,
+		Tag:         "old-tag",
+		Listen:      "127.0.0.1",
+		Port:        port,
+		Certificate: string(certPEM),
+		PrivateKey:  string(keyPEM),
+		Clients:     []TuicClientSettings{{UUID: "a0000000-0000-0000-0000-000000000001", Password: "p", Email: "e"}},
+	}
+
+	m := &Manager{servers: map[int]*managed{}, lastStartErr: map[int]string{}}
+	t.Cleanup(m.StopAll)
+
+	if err := m.Ensure(inst); err != nil {
+		t.Fatalf("Ensure failed: %v", err)
+	}
+
 	inst.Tag = "new-tag"
 	if err := m.Ensure(inst); err != nil {
-		t.Fatalf("Ensure updated tag: %v", err)
+		t.Fatalf("Ensure updated tag failed: %v", err)
 	}
+
 	m.mu.Lock()
-	gotTag := m.procs[8].tag
+	gotTag := m.servers[13].tag
 	m.mu.Unlock()
 	if gotTag != "new-tag" {
 		t.Fatalf("manager tag = %q, want %q", gotTag, "new-tag")

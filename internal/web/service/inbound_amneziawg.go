@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -366,16 +367,25 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 			}
 			return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
 		}
-		if ib.Protocol != model.AmneziaWG {
-			continue
-		}
-		socksPort := amneziawgnet.SOCKSPortForInbound(ib.Id)
-		if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
-			name := ib.Remark
-			if name == "" {
-				name = ib.Tag
+		if ib.Protocol == model.AmneziaWG {
+			socksPort := amneziawgnet.SOCKSPortForInbound(ib.Id)
+			if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
+				name := ib.Remark
+				if name == "" {
+					name = ib.Tag
+				}
+				return fmt.Sprintf("inbound '%s' (#%d)'s own SOCKS5 relay port (%d)", name, ib.Id, socksPort)
 			}
-			return fmt.Sprintf("inbound '%s' (#%d)'s own SOCKS5 relay port (%d)", name, ib.Id, socksPort)
+		}
+		if ib.Protocol == model.TUIC {
+			socksPort := tuic.SOCKSPortForInbound(ib.Id)
+			if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
+				name := ib.Remark
+				if name == "" {
+					name = ib.Tag
+				}
+				return fmt.Sprintf("inbound '%s' (#%d)'s own SOCKS5 relay port (%d)", name, ib.Id, socksPort)
+			}
 		}
 	}
 	return ""
