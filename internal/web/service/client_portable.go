@@ -11,19 +11,33 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
+
+// ClientPortable is one entry of the export file: the {client, inboundIds} payload
+// /add accepts plus the links the client owns, which are panel-local.
+type ClientPortable struct {
+	Client        model.Client        `json:"client"`
+	InboundIds    []int               `json:"inboundIds"`
+	LimitHwid     int                 `json:"limitHwid,omitempty"`
+	ExternalLinks []ExternalLinkInput `json:"externalLinks,omitempty"`
+}
+
+func (p ClientPortable) payload() ClientCreatePayload {
+	return ClientCreatePayload{Client: p.Client, InboundIds: p.InboundIds, LimitHwid: p.LimitHwid}
+}
 
 // ExportAll returns every client in the same {client, inboundIds} shape that
 // /add and /bulkCreate accept, so an exported file round-trips straight back
 // through Import. Clients with no inbound attachment are included with an empty
 // inboundIds list so an export taken before DeleteOrphans can restore them.
-func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
+func (s *ClientService) ExportAll() ([]ClientPortable, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
 	if err := db.Order("id ASC").Find(&rows).Error; err != nil {
 		return nil, err
 	}
-	out := make([]ClientCreatePayload, 0, len(rows))
+	out := make([]ClientPortable, 0, len(rows))
 	if len(rows) == 0 {
 		return out, nil
 	}
@@ -51,11 +65,18 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 		if flow, err := s.EffectiveFlow(db, rows[i].Id); err == nil && flow != "" {
 			client.Flow = flow
 		}
-		out = append(out, ClientCreatePayload{
+		out = append(out, ClientPortable{
 			Client:     *client,
 			InboundIds: attachments[rows[i].Id],
 			LimitHwid:  rows[i].LimitHwid,
 		})
+	}
+	links, err := clientOwnExternalLinks(db, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		out[i].ExternalLinks = links[rows[i].Id]
 	}
 	return out, nil
 }
@@ -65,17 +86,17 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 // pushed to xray); items with no inboundIds are restored as bare records so an
 // orphan-inclusive export round-trips. Existing emails are never overwritten —
 // they are reported in Skipped. The boolean reports whether xray needs a restart.
-func (s *ClientService) ImportClients(inboundSvc *InboundService, items []ClientCreatePayload) (BulkCreateResult, bool, error) {
+func (s *ClientService) ImportClients(inboundSvc *InboundService, items []ClientPortable) (BulkCreateResult, bool, error) {
 	result := BulkCreateResult{}
 	if len(items) == 0 {
 		return result, false, nil
 	}
 
 	attached := make([]ClientCreatePayload, 0, len(items))
-	orphans := make([]ClientCreatePayload, 0)
+	orphans := make([]ClientPortable, 0)
 	for i := range items {
 		if len(items[i].InboundIds) > 0 {
-			attached = append(attached, items[i])
+			attached = append(attached, items[i].payload())
 		} else {
 			orphans = append(orphans, items[i])
 		}
@@ -178,7 +199,131 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 		result.Created++
 	}
 
+	if err := applyImportedClientExternalLinks(db, items, result.Skipped); err != nil {
+		return result, needRestart, err
+	}
 	return result, needRestart, nil
+}
+
+// clientOwnExternalLinks returns the links each client owns directly, in the
+// order the operator set them, for the export file.
+func clientOwnExternalLinks(db *gorm.DB, clientIds []int) (map[int][]ExternalLinkInput, error) {
+	out := map[int][]ExternalLinkInput{}
+	for _, batch := range chunkInts(clientIds, sqlInChunk) {
+		var rows []externalLinkAssignmentRow
+		if err := db.Model(&model.ExternalLinkAssignment{}).
+			Select(externalLinkAssignmentColumns).
+			Joins("JOIN external_links ON external_links.id = external_link_assignments.link_id").
+			Where("external_link_assignments.target_type = ? AND external_link_assignments.target_id IN ?",
+				model.ExternalLinkTargetClient, batch).
+			Order("external_link_assignments.target_id ASC, external_link_assignments.sort_index ASC, external_link_assignments.id ASC").
+			Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			link := row.toClientExternalLink(row.TargetId)
+			out[row.TargetId] = append(out[row.TargetId], ExternalLinkInput{
+				Kind:       link.Kind,
+				Value:      link.Value,
+				Remark:     link.Remark,
+				Enable:     link.Enable,
+				ExpiryTime: link.ExpiryTime,
+				NamePrefix: link.NamePrefix,
+			})
+		}
+	}
+	return out, nil
+}
+
+// applyImportedClientExternalLinks restores the links an export carried, reading
+// the library once and creating missing entries through the client-form helper.
+func applyImportedClientExternalLinks(db *gorm.DB, items []ClientPortable, skipped []BulkCreateReport) error {
+	byEmail := map[string][]ExternalLinkInput{}
+	emails := []string{}
+	for i := range items {
+		email := strings.TrimSpace(items[i].Client.Email)
+		if email == "" || len(items[i].ExternalLinks) == 0 {
+			continue
+		}
+		if _, seen := byEmail[email]; seen {
+			continue
+		}
+		byEmail[email] = items[i].ExternalLinks
+		emails = append(emails, email)
+	}
+	if len(emails) == 0 {
+		return nil
+	}
+
+	// A skipped email is a client the import refused; its links stay out too.
+	// Emails are unique, so a client claimed by an earlier entry is skipped.
+	skippedEmails := make(map[string]struct{}, len(skipped))
+	for _, report := range skipped {
+		skippedEmails[report.Email] = struct{}{}
+	}
+
+	idByEmail := map[string]int{}
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var rows []model.ClientRecord
+		if err := db.Select("id", "email").Where("email IN ?", batch).Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, row := range rows {
+			idByEmail[row.Email] = row.Id
+		}
+	}
+
+	var library []model.ExternalLink
+	if err := db.Select("id", "kind", "value").Find(&library).Error; err != nil {
+		return err
+	}
+	linkIdByValue := make(map[string]int, len(library))
+	for _, link := range library {
+		linkIdByValue[model.ExternalLinkIdentity(link.Kind, link.Value)] = link.Id
+	}
+
+	assignments := []model.ExternalLinkAssignment{}
+	for _, email := range emails {
+		if _, refused := skippedEmails[email]; refused {
+			continue
+		}
+		clientId, ok := idByEmail[email]
+		if !ok {
+			continue
+		}
+		rows, err := normalizeExternalLinks(byEmail[email])
+		if err != nil {
+			return err
+		}
+		for index := range rows {
+			key := model.ExternalLinkIdentity(rows[index].Kind, rows[index].Value)
+			linkId, ok := linkIdByValue[key]
+			if !ok {
+				linkRow, err := upsertExternalLinkTx(db, rows[index])
+				if err != nil {
+					return err
+				}
+				linkId = linkRow.Id
+				linkIdByValue[key] = linkId
+			}
+			assignments = append(assignments, model.ExternalLinkAssignment{
+				LinkId:     linkId,
+				TargetType: model.ExternalLinkTargetClient,
+				TargetId:   clientId,
+				Enable:     rows[index].Enable,
+				// An imported 0 means "never" in the export it came from.
+				ExpiryTime: model.AssignmentExpiry(rows[index].ExpiryTime),
+				Remark:     rows[index].Remark,
+				NamePrefix: rows[index].NamePrefix,
+				SortIndex:  rows[index].SortIndex,
+				Origin:     model.ExternalLinkOriginPanel,
+			})
+		}
+	}
+	if len(assignments) == 0 {
+		return nil
+	}
+	return db.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(assignments, 200).Error
 }
 
 // DeleteOrphans removes every client that is not attached to any inbound,
@@ -219,7 +364,7 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 			if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientInbound{}).Error; e != nil {
 				return e
 			}
-			if e := tx.Where("client_id IN ?", batch).Delete(&model.ClientExternalLink{}).Error; e != nil {
+			if e := dropExternalLinkAssignmentsTx(tx, model.ExternalLinkTargetClient, batch...); e != nil {
 				return e
 			}
 		}

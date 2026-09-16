@@ -21,9 +21,7 @@ func seedInfoEndpointSub(t *testing.T, subId, email string) {
 		t.Fatalf("seed client: %v", err)
 	}
 	link := "vless://11111111-1111-1111-1111-111111111111@example.com:443?type=tcp&security=reality&pbk=abc&sid=12&fp=chrome#orig"
-	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: link, Remark: "DE-Provider", SortIndex: 1}).Error; err != nil {
-		t.Fatalf("seed external link: %v", err)
-	}
+	seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: link, Remark: "DE-Provider", SortIndex: 1})
 }
 
 func TestSubInfoEndpoint_ServesStatusJSONEvenForBrowsers(t *testing.T) {

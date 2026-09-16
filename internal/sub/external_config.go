@@ -12,10 +12,12 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/link"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 // externalLinkEntry is one client × external-link row resolved for a request.
-// Active applies the owning client's enabled and expiry state.
+// Active applies the owning client's enabled and expiry state; the fetch fields
+// travel with the library row the link came from.
 type externalLinkEntry struct {
 	Kind       string
 	Value      string
@@ -24,6 +26,20 @@ type externalLinkEntry struct {
 	Email      string
 	Enable     bool
 	Active     bool
+	Scope      string
+	UserAgent  string
+	Headers    map[string]string
+	CacheTTL   int
+}
+
+// fetchRequest carries the library row's fetch settings into the fetch layer.
+func (e externalLinkEntry) fetchRequest() subscriptionRequest {
+	return subscriptionRequest{
+		URL:       e.Value,
+		UserAgent: e.UserAgent,
+		Headers:   e.Headers,
+		CacheTTL:  time.Duration(e.CacheTTL) * time.Second,
+	}
 }
 
 // expandedLink is a single share link contributed by an entry, with the display
@@ -33,49 +49,49 @@ type expandedLink struct {
 	Name string
 }
 
-// getClientExternalLinksBySubId returns active rows with owner state attached.
-// Consumers keep inactive owners as metadata but omit their link values.
+// getClientExternalLinksBySubId resolves every link the clients of this sub id
+// receive: their own plus the inherited ones. An inactive owner stays metadata.
 func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLinkEntry, error) {
 	db := database.GetDB()
 	var recs []model.ClientRecord
-	if err := db.Where("sub_id = ?", subId).Find(&recs).Error; err != nil {
+	if err := db.Select("id", "email", "enable", "expiry_time").
+		Where("sub_id = ?", subId).Order("id ASC").Find(&recs).Error; err != nil {
 		return nil, err
 	}
 	if len(recs) == 0 {
 		return nil, nil
 	}
 	clientIds := make([]int, 0, len(recs))
-	byId := make(map[int]model.ClientRecord, len(recs))
 	for _, rec := range recs {
 		clientIds = append(clientIds, rec.Id)
-		byId[rec.Id] = rec
 	}
-
-	var rows []model.ClientExternalLink
-	now := time.Now().UnixMilli()
-	if err := db.Where("client_id IN ?", clientIds).
-		Where("(enable IS NULL OR enable = ?)", true).
-		Where("(expiry_time IS NULL OR expiry_time <= 0 OR expiry_time > ?)", now).
-		Order("client_id ASC, sort_index ASC, id ASC").
-		Find(&rows).Error; err != nil {
+	resolved, err := service.ResolveEffectiveExternalLinks(clientIds)
+	if err != nil {
 		return nil, err
 	}
-	if len(rows) == 0 {
-		return nil, nil
-	}
 
-	out := make([]externalLinkEntry, 0, len(rows))
-	for _, r := range rows {
-		rec := byId[r.ClientId]
-		out = append(out, externalLinkEntry{
-			Kind:       r.Kind,
-			Value:      r.Value,
-			Remark:     r.Remark,
-			NamePrefix: r.NamePrefix,
-			Email:      rec.Email,
-			Enable:     rec.Enable,
-			Active:     rec.Enable && (rec.ExpiryTime <= 0 || rec.ExpiryTime > now),
-		})
+	now := time.Now().UnixMilli()
+	out := []externalLinkEntry{}
+	for _, rec := range recs {
+		active := rec.Enable && (rec.ExpiryTime <= 0 || rec.ExpiryTime > now)
+		for _, link := range resolved[rec.Id] {
+			out = append(out, externalLinkEntry{
+				Kind:       link.Kind,
+				Value:      link.Value,
+				Remark:     link.Remark,
+				NamePrefix: link.NamePrefix,
+				Email:      rec.Email,
+				Enable:     rec.Enable,
+				Active:     active,
+				Scope:      link.Scope,
+				UserAgent:  link.UserAgent,
+				Headers:    link.Headers,
+				CacheTTL:   link.CacheTTL,
+			})
+		}
+	}
+	if len(out) == 0 {
+		return nil, nil
 	}
 	return out, nil
 }
@@ -84,12 +100,15 @@ func (s *SubService) getClientExternalLinksBySubId(subId string) ([]externalLink
 // Names are never blank, so Clash/JSON do not fall back to the client email.
 func expandEntry(e externalLinkEntry) []expandedLink {
 	if e.Kind == model.ExternalLinkKindSubscription {
-		res := fetchSubscriptionLinks(e.Value)
-		if res.fetched {
-			recordExternalSubscriptionFetch(e.Value, res.err)
+		res := fetchSubscriptionLinksFor(e.fetchRequest())
+		links := res.links
+		if len(links) == 0 {
+			// Cold cache during a provider outage: the stored expansion is the
+			// only thing standing between the client and an empty subscription.
+			links = service.LastExternalLinkLinksByValue(e.Value)
 		}
-		out := make([]expandedLink, 0, len(res.links))
-		for _, l := range res.links {
+		out := make([]expandedLink, 0, len(links))
+		for _, l := range links {
 			out = append(out, expandedLink{Link: l, Name: prefixedLinkName(linkDisplayName(l), e.NamePrefix, e.Email)})
 		}
 		return out

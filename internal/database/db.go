@@ -30,6 +30,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -76,7 +77,8 @@ func allModels() []any {
 		&model.ClientRecord{},
 		&model.ClientInbound{},
 		&model.ClientHwid{},
-		&model.ClientExternalLink{},
+		&model.ExternalLink{},
+		&model.ExternalLinkAssignment{},
 		&model.ClientGroup{},
 		&model.InboundFallback{},
 		&model.Host{},
@@ -149,10 +151,7 @@ func initModels() error {
 	if err := normalizeInboundSubSortIndex(); err != nil {
 		return err
 	}
-	if err := normalizeClientExternalLinkEnable(); err != nil {
-		return err
-	}
-	if err := normalizeClientExternalLinkTimestamps(); err != nil {
+	if err := migrateClientExternalLinksToLibrary(); err != nil {
 		return err
 	}
 	if err := repairOverflowedTrafficCounters(); err != nil {
@@ -1045,38 +1044,99 @@ func normalizeInboundSubSortIndex() error {
 	return nil
 }
 
-// normalizeClientExternalLinkEnable keeps external-link rows written before the
-// enable column existed enabled; disabled rows from newer builds stay false.
-func normalizeClientExternalLinkEnable() error {
-	res := db.Exec("UPDATE client_external_links SET enable = ? WHERE enable IS NULL", true)
-	if res.Error != nil {
-		log.Printf("Error normalizing client external link enable: %v", res.Error)
-		return res.Error
+// migrateClientExternalLinksToLibrary moves the per-client rows into the shared
+// library, then renames the legacy table so the pass runs exactly once.
+func migrateClientExternalLinksToLibrary() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable("client_external_links") {
+		return nil
 	}
-	if res.RowsAffected > 0 {
-		log.Printf("Normalized enable on %d client external link(s)", res.RowsAffected)
+	if err := migrateClientExternalLinkRows(); err != nil {
+		return err
 	}
+	if migrator.HasTable(clientExternalLinkLegacyTable) {
+		return nil
+	}
+	if err := migrator.RenameTable("client_external_links", clientExternalLinkLegacyTable); err != nil {
+		return err
+	}
+	log.Printf("Retired the per-client external link table as %s", clientExternalLinkLegacyTable)
 	return nil
 }
 
-// normalizeClientExternalLinkTimestamps zeroes the NULLs an older build could
-// leave behind, so the sub-side expiry predicate never drops a legacy row.
-func normalizeClientExternalLinkTimestamps() error {
-	res := db.Exec("UPDATE client_external_links SET expiry_time = 0 WHERE expiry_time IS NULL")
-	if res.Error != nil {
-		log.Printf("Error normalizing client external link expiry_time: %v", res.Error)
-		return res.Error
+// clientExternalLinkLegacyTable is where the pre-library table is parked.
+const clientExternalLinkLegacyTable = "client_external_links_legacy"
+
+// migrateClientExternalLinkRows creates one library row per distinct
+// (kind, value) and one assignment per legacy row, keeping its own overrides.
+func migrateClientExternalLinkRows() error {
+	var rows []model.ClientExternalLink
+	if err := db.Order("client_id ASC, sort_index ASC, id ASC").Find(&rows).Error; err != nil {
+		return err
 	}
-	expiryRows := res.RowsAffected
-	res = db.Exec("UPDATE client_external_links SET last_fetch_at = 0 WHERE last_fetch_at IS NULL")
-	if res.Error != nil {
-		log.Printf("Error normalizing client external link last_fetch_at: %v", res.Error)
-		return res.Error
+	if len(rows) == 0 {
+		return nil
 	}
-	if expiryRows+res.RowsAffected > 0 {
-		log.Printf("Normalized timestamps on %d client external link(s)", expiryRows+res.RowsAffected)
+	byKindValue := map[string]int{}
+	var existing []model.ExternalLink
+	if err := db.Find(&existing).Error; err != nil {
+		return err
 	}
+	for _, l := range existing {
+		byKindValue[externalLinkLibraryKey(l.Kind, l.Value)] = l.Id
+	}
+	created, reused := 0, 0
+	for _, r := range rows {
+		key := externalLinkLibraryKey(r.Kind, r.Value)
+		linkId, ok := byKindValue[key]
+		if !ok {
+			link := model.ExternalLink{
+				Kind:           r.Kind,
+				Value:          r.Value,
+				Remark:         r.Remark,
+				NamePrefix:     r.NamePrefix,
+				Enable:         r.Enable,
+				SortIndex:      r.SortIndex,
+				LastFetchAt:    r.LastFetchAt,
+				LastFetchError: r.LastFetchError,
+			}
+			if err := db.Create(&link).Error; err != nil {
+				return err
+			}
+			linkId = link.Id
+			byKindValue[key] = linkId
+			created++
+		} else {
+			reused++
+		}
+		// Expiry was per-client before the library, so it stays on the
+		// assignment: a sibling's timestamp must not become this client's.
+		assignment := model.ExternalLinkAssignment{
+			LinkId:     linkId,
+			TargetType: model.ExternalLinkTargetClient,
+			TargetId:   r.ClientId,
+			Enable:     r.Enable,
+			ExpiryTime: model.AssignmentExpiry(r.ExpiryTime),
+			SortIndex:  r.SortIndex,
+			Origin:     model.ExternalLinkOriginPanel,
+		}
+		// Empty naming inherits the library row, so only overrides are stored.
+		if r.Remark != "" {
+			assignment.Remark = r.Remark
+		}
+		if r.NamePrefix != "" {
+			assignment.NamePrefix = r.NamePrefix
+		}
+		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&assignment).Error; err != nil {
+			return err
+		}
+	}
+	log.Printf("Migrated %d external link row(s) into the library (%d new, %d shared)", len(rows), created, reused)
 	return nil
+}
+
+func externalLinkLibraryKey(kind, value string) string {
+	return model.ExternalLinkIdentity(kind, value)
 }
 
 // repairOverflowedTrafficCounters heals traffic counters that historic
