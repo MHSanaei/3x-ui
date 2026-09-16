@@ -157,9 +157,9 @@ func TestListPagedFilters(t *testing.T) {
 			want:   []string{"charlie@x", "delta@x", "foxtrot@x"},
 		},
 		{
-			name:   "deactive bucket is every disabled client",
+			name:   "deactive bucket leaves a disabled client that ran out to depleted",
 			params: ClientPageParams{PageSize: 50, Filter: "deactive"},
-			want:   []string{"echo@x", "foxtrot@x"},
+			want:   []string{"echo@x"},
 		},
 		{
 			name:   "expiring bucket covers near expiry and near quota",
@@ -167,9 +167,9 @@ func TestListPagedFilters(t *testing.T) {
 			want:   []string{"golf@x", "hotel@x"},
 		},
 		{
-			name:   "active bucket keeps enabled clients that still have room",
+			name:   "active bucket leaves clients near depletion to expiring",
 			params: ClientPageParams{PageSize: 50, Filter: "active"},
-			want:   []string{"alpha@x", "bravo@x", "golf@x", "hotel@x", "india@x", "juliet@x", "kilo_1@x", "kilo1@x"},
+			want:   []string{"alpha@x", "bravo@x", "india@x", "juliet@x", "kilo_1@x", "kilo1@x"},
 		},
 		{
 			name:   "buckets are ORed",
@@ -474,6 +474,19 @@ func TestListPagedSummary(t *testing.T) {
 	t.Run("every client lands in exactly one counter", func(t *testing.T) {
 		if sum := s.Active + s.DepletedCount + s.ExpiringCount + s.DeactiveCount; sum != s.Total {
 			t.Fatalf("buckets sum to %d, want %d", sum, s.Total)
+		}
+	})
+
+	t.Run("clicking a stat card filters to exactly the clients it counts", func(t *testing.T) {
+		cards := map[string]int{"active": s.Active, "depleted": s.DepletedCount, "expiring": s.ExpiringCount, "deactive": s.DeactiveCount}
+		for bucket, count := range cards {
+			page, err := svc.ListPaged(inboundSvc, settingSvc, ClientPageParams{PageSize: 50, Filter: bucket})
+			if err != nil {
+				t.Fatalf("ListPaged(%s): %v", bucket, err)
+			}
+			if page.Filtered != count {
+				t.Fatalf("filter %q matched %d clients, card counts %d", bucket, page.Filtered, count)
+			}
 		}
 	})
 

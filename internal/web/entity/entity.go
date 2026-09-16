@@ -94,6 +94,7 @@ type AllSetting struct {
 	SubClashUserAgentRegex      string `json:"subClashUserAgentRegex" form:"subClashUserAgentRegex"`
 	SubTitle                    string `json:"subTitle" form:"subTitle"`
 	SubSupportUrl               string `json:"subSupportUrl" form:"subSupportUrl"`
+	SubProfileMode              string `json:"subProfileMode" form:"subProfileMode"`
 	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`
 	SubAnnounce                 string `json:"subAnnounce" form:"subAnnounce"`
 	SubEnableRouting            bool   `json:"subEnableRouting" form:"subEnableRouting"`
@@ -381,6 +382,7 @@ type HostGroup struct {
 	Path                   string   `json:"path"`
 	Alpn                   []string `json:"alpn"`
 	Fingerprint            string   `json:"fingerprint"`
+	CipherSuites           string   `json:"cipherSuites"`
 	OverrideSniFromAddress bool     `json:"overrideSniFromAddress"`
 	KeepSniBlank           bool     `json:"keepSniBlank"`
 	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256"`

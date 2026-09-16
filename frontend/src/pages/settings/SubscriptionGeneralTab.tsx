@@ -1,4 +1,4 @@
-import { Alert, Button, Input, InputNumber, Switch, Tabs } from 'antd';
+import { Alert, Button, Input, InputNumber, Select, Switch, Tabs } from 'antd';
 import {
   BranchesOutlined,
   CompassOutlined,
@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 import type { AllSetting } from '@/models/setting';
+import type { SubProfileMode } from '@/schemas/setting';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
@@ -279,16 +280,44 @@ export default function SubscriptionGeneralTab({
               </SettingListItem>
               <SettingListItem
                 paddings="small"
-                title={t('pages.settings.subProfileUrl')}
-                description={t('pages.settings.subProfileUrlDesc')}
+                title={t('pages.settings.subProfileMode')}
+                description={t('pages.settings.subProfileModeDesc')}
               >
-                <RemarkTemplateField
-                  value={allSetting.subProfileUrl}
-                  placeholder="https://example.com"
-                  onChange={(v) => updateSetting({ subProfileUrl: v })}
-                  metadataOnly
+                <Select<SubProfileMode>
+                  id="sub-profile-mode"
+                  aria-label={t('pages.settings.subProfileMode')}
+                  value={allSetting.subProfileMode}
+                  style={{ width: '100%' }}
+                  onChange={(value) => updateSetting({ subProfileMode: value })}
+                  options={[
+                    { value: 'none', label: t('pages.settings.subProfileModeNone') },
+                    { value: 'builtin', label: t('pages.settings.subProfileModeBuiltin') },
+                    { value: 'custom', label: t('pages.settings.subProfileModeCustom') },
+                  ]}
                 />
               </SettingListItem>
+              {allSetting.subProfileMode === 'builtin' ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ margin: '12px 20px' }}
+                  title={t('pages.settings.subProfileBuiltinWarning')}
+                />
+              ) : null}
+              {allSetting.subProfileMode === 'custom' ? (
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subProfileUrl')}
+                  description={t('pages.settings.subProfileUrlDesc')}
+                >
+                  <RemarkTemplateField
+                    value={allSetting.subProfileUrl}
+                    placeholder="https://example.com"
+                    onChange={(v) => updateSetting({ subProfileUrl: v })}
+                    metadataOnly
+                  />
+                </SettingListItem>
+              ) : null}
               <SettingListItem
                 paddings="small"
                 title={t('pages.settings.subAnnounce')}

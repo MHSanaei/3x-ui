@@ -168,10 +168,8 @@ func overlayGlobalTrafficValues(db *gorm.DB, rows []xray.ClientTraffic) {
 // its own aggregate.
 func (s *InboundService) GetNodeClientTraffics(nodeID int) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
-	var emails []string
-	if err := db.Model(&model.NodeClientTraffic{}).
-		Where("node_id = ?", nodeID).
-		Pluck("email", &emails).Error; err != nil {
+	emails, err := nodeHostedEmails(db, nodeID)
+	if err != nil {
 		return nil, err
 	}
 	if len(emails) == 0 {

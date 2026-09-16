@@ -86,6 +86,22 @@ func (s *NodeService) ClearDescendants(nodeID int) {
 	nodeDescendantsMu.Unlock()
 }
 
+// RetainEnabledNodeDescendants drops sub-nodes learned from nodes the heartbeat no
+// longer probes: disabled ones it skips, deleted ones missing from nodes.
+func (s *NodeService) RetainEnabledNodeDescendants(nodes []*model.Node) {
+	enabled := make(map[int]bool, len(nodes))
+	for _, n := range nodes {
+		enabled[n.Id] = n.Enable
+	}
+	nodeDescendantsMu.Lock()
+	for nodeID := range nodeDescendantsCache {
+		if !enabled[nodeID] {
+			delete(nodeDescendantsCache, nodeID)
+		}
+	}
+	nodeDescendantsMu.Unlock()
+}
+
 func cachedDescendants() []model.NodeSummary {
 	nodeDescendantsMu.RLock()
 	defer nodeDescendantsMu.RUnlock()

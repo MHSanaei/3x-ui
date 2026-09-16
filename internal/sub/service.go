@@ -2088,6 +2088,9 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
 		tlsSettings["alpn"] = alpn
 	}
+	if cs, ok := ep["cipherSuites"].(string); ok && cs != "" {
+		tlsSettings["cipherSuites"] = cs
+	}
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		settings, _ := tlsSettings["settings"].(map[string]any)
 		if settings == nil {

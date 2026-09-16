@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -39,6 +40,9 @@ func (s *XraySettingService) SaveXraySetting(newXraySettings string) error {
 	}
 	if synced, err := EnsureDnsServerRouting(newXraySettings); err == nil {
 		newXraySettings = synced
+	}
+	if spelled, changed, err := database.RewriteDNSOutboundQTypeZero(newXraySettings); err == nil && changed {
+		newXraySettings = spelled
 	}
 	return s.saveSetting("xrayTemplateConfig", newXraySettings)
 }

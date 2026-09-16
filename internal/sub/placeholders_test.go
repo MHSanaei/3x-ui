@@ -1,10 +1,15 @@
 package sub
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 func TestRenderSubPlaceholders(t *testing.T) {
@@ -68,20 +73,75 @@ func TestRenderSubPlaceholders(t *testing.T) {
 	}
 }
 
-func TestMetadataForSubRequestDoesNotExpandFallbackProfileURL(t *testing.T) {
+func TestMetadataForSubRequestOmitsUnconfiguredProfileURL(t *testing.T) {
 	a := &SUBController{
 		subTitle:      "isVPN",
 		subSupportUrl: "https://support.example/",
 	}
-	fallback := "https://sub.example.com/sub/sub-123?x={{EMAIL}}"
-
 	metadata := a.metadataForSubRequest(func() *SubService {
 		t.Fatal("metadataForSubRequest loaded a subscription context without configured placeholders")
 		return nil
-	}, "sub-123", fallback)
+	}, "sub-123", "https://sub.example/sub-123")
 
-	if metadata.ProfileURL != fallback {
-		t.Fatalf("ProfileURL = %q, want untouched fallback %q", metadata.ProfileURL, fallback)
+	if metadata.ProfileURL != "" {
+		t.Fatalf("ProfileURL = %q, want no link when unconfigured", metadata.ProfileURL)
+	}
+}
+
+func TestSubscriptionProfileURLRequiresExplicitConfiguration(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	initSubDB(t)
+	seedInfoEndpointSub(t, "profile-sub", "profile@example.com")
+
+	for _, config := range []struct {
+		name, profileURL, want string
+	}{
+		{name: "empty"},
+		{name: "whitespace", profileURL: "   "},
+		{name: "explicit", profileURL: "https://portal.example.com/account", want: "https://portal.example.com/account"},
+		{name: "template", profileURL: "https://portal.example.com/account?sub={{SUB_ID}}", want: "https://portal.example.com/account?sub=profile-sub"},
+	} {
+		t.Run(config.name, func(t *testing.T) {
+			for _, client := range []struct {
+				name, userAgent string
+				happAutoDetect  bool
+			}{
+				{name: "Happ", userAgent: "Happ/3.22.0 (Android)", happAutoDetect: true},
+				{name: "Happ without auto-detection", userAgent: "Happ/3.22.0 (Android)"},
+				{name: "standard", userAgent: "v2rayNG/1.8.5", happAutoDetect: true},
+			} {
+				t.Run(client.name, func(t *testing.T) {
+					// All formats must honor the opt-in, independently of Happ customization.
+					router := gin.New()
+					NewSUBController(router.Group("/"),
+						WithSUBJsonEnabled(true), WithSUBClashEnabled(true),
+						WithSUBProfileURL(config.profileURL),
+						WithSUBProfileMode(service.SubProfileModeCustom),
+						WithSUBHappConfig(HappConfig{AutoDetect: client.happAutoDetect}),
+					)
+					for _, path := range []string{"/sub/profile-sub", "/json/profile-sub", "/clash/profile-sub"} {
+						t.Run(path, func(t *testing.T) {
+							req := httptest.NewRequest(http.MethodGet, path, nil)
+							req.Host = "sub.example.com"
+							req.Header.Set("User-Agent", client.userAgent)
+							resp := httptest.NewRecorder()
+							router.ServeHTTP(resp, req)
+							if resp.Code != http.StatusOK {
+								t.Fatalf("status = %d, want 200; body=%s", resp.Code, resp.Body.String())
+							}
+							if got := resp.Header().Get("Profile-Web-Page-Url"); got != config.want {
+								t.Fatalf("Profile-Web-Page-Url = %q, want %q", got, config.want)
+							}
+							if config.want == "" {
+								if _, present := resp.Header()["Profile-Web-Page-Url"]; present {
+									t.Fatal("unconfigured profile header must be omitted")
+								}
+							}
+						})
+					}
+				})
+			}
+		})
 	}
 }
 
@@ -110,12 +170,13 @@ func TestMetadataForSubRequestUsesStableClientIdentity(t *testing.T) {
 	}
 
 	a := &SUBController{
-		subTitle:      "isVPN — {{EMAIL}}",
-		subSupportUrl: "https://support.example/?email={{EMAIL}}&tg={{TELEGRAM_ID}}",
-		subProfileUrl: "https://profile.example/account/{{ID}}",
-		subAnnounce:   "Subscription {{SUB_ID}}",
+		subTitle:       "isVPN — {{EMAIL}}",
+		subSupportUrl:  "https://support.example/?email={{EMAIL}}&tg={{TELEGRAM_ID}}",
+		subProfileUrl:  "https://profile.example/account/{{ID}}",
+		subProfileMode: service.SubProfileModeCustom,
+		subAnnounce:    "Subscription {{SUB_ID}}",
 	}
-	metadata := a.metadataForSubRequest(func() *SubService { return &SubService{} }, "sub-123", "https://fallback.example/{{EMAIL}}")
+	metadata := a.metadataForSubRequest(func() *SubService { return &SubService{} }, "sub-123", "https://sub.example/sub-123")
 
 	if metadata.Title != "isVPN — john doe@example.com" {
 		t.Fatalf("Title = %q", metadata.Title)

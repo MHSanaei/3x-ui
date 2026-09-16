@@ -194,6 +194,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if err != nil {
 		SubProfileUrl = ""
 	}
+	SubProfileMode, err := s.settingService.GetSubProfileMode()
+	if err != nil {
+		SubProfileMode = service.SubProfileModeNone
+	}
 
 	SubAnnounce, err := s.settingService.GetSubAnnounce()
 	if err != nil {
@@ -329,6 +333,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBTitle(SubTitle),
 		WithSUBSupportURL(SubSupportUrl),
 		WithSUBProfileURL(SubProfileUrl),
+		WithSUBProfileMode(SubProfileMode),
 		WithSUBAnnounce(SubAnnounce),
 		WithSUBEnableRouting(SubEnableRouting),
 		WithSUBRoutingRules(SubRoutingRules),

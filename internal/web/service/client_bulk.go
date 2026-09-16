@@ -1802,6 +1802,7 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 						"auth":     ch.client.Auth,
 						"password": ch.client.Password,
 						"cipher":   cipher,
+						"reverse":  ch.client.Reverse,
 					})
 					if err1 != nil {
 						logger.Debug("Error in adding client on", rt.Name(), ":", err1)
@@ -1811,6 +1812,9 @@ func (s *ClientService) bulkSetEnableInboundClients(inboundSvc *InboundService, 
 					err1 := rt.RemoveUser(context.Background(), oldInbound, ch.email)
 					if err1 != nil && !strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", ch.email)) {
 						logger.Debug("Error in removing client on", rt.Name(), ":", err1)
+						res.needRestart = true
+					} else if err1 == nil && droppedClientNeedsRestart() {
+						// A removed credential does not end the session it was serving.
 						res.needRestart = true
 					}
 				}

@@ -168,10 +168,15 @@ func sameRemoteIdentity(a, b *model.Node) bool {
 		a.OutboundTag == b.OutboundTag
 }
 
+// InvalidateNode forgets everything cached for a node, its pooled HTTP client too:
+// only a later call for that node would prune it, and a deleted node never makes one.
 func (m *Manager) InvalidateNode(nodeID int) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	delete(m.remotes, nodeID)
+	m.mu.Unlock()
+	nodeClientsMu.Lock()
+	dropNodeClients(nodeID, "")
+	nodeClientsMu.Unlock()
 }
 
 func loadNode(id int) (*model.Node, error) {

@@ -1,0 +1,5 @@
+/* The body is capped at the viewport and scrolls; a trailing item margin
+   alone must not push it past the cap and summon a scrollbar. */
+.client-form-modal .ant-tabs-content > .ant-form-item:last-child {
+  margin-bottom: 0;
+}

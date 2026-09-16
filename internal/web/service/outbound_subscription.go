@@ -419,24 +419,36 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		}
 	}
 
+	// Drop core-rejected links before tagging: prevTagByIndex indexes the persisted
+	// (filtered) list, so positions must be counted in that same list.
+	var droppedByCore []string
+	keptLinks, keptIdentities := parsed[:0], identities[:0]
+	for i, ob := range parsed {
+		if _, dropped := filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), []any{map[string]any(ob)}); len(dropped) > 0 {
+			droppedByCore = append(droppedByCore, dropped...)
+			continue
+		}
+		keptLinks = append(keptLinks, ob)
+		keptIdentities = append(keptIdentities, identities[i])
+	}
+
 	// Assign tags with stability (identity reuse, positional fallback, then a
 	// fresh allocation), keeping tags unique within this batch. Extracted into a
 	// pure function so it can be unit-tested without network/DB. Tags are written
 	// back into the parsed outbounds in place.
-	assigned := assignStableTags(parsed, identities, prev, prevTagByIndex, sub.Id, sub.TagPrefix)
+	assigned := assignStableTags(keptLinks, keptIdentities, prev, prevTagByIndex, sub.Id, sub.TagPrefix)
 
 	// Persist identities for next time
 	newIdent := map[string]string{}
-	for i, id := range identities {
+	for i, id := range keptIdentities {
 		newIdent[id] = assigned[i]
 	}
 	identJSON, _ := json.Marshal(newIdent)
 
-	asAny := make([]any, len(parsed))
-	for i := range parsed {
-		asAny[i] = map[string]any(parsed[i])
+	kept := make([]any, len(keptLinks))
+	for i := range keptLinks {
+		kept[i] = map[string]any(keptLinks[i])
 	}
-	kept, droppedByCore := filterOutboundsRejectedByCore(fmt.Sprintf("outbound sub %d", sub.Id), asAny)
 
 	// Persist the outbounds (as compact JSON array)
 	obsJSON, _ := json.Marshal(kept)
