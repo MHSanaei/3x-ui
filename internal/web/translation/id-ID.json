@@ -2433,7 +2433,8 @@
       "disableSuccess": "✅ {{ .Email }}: Dinonaktifkan dengan berhasil.",
       "askToAddUserId": "Konfigurasi Anda tidak ditemukan!\r\nSilakan minta admin Anda untuk menggunakan ChatID Telegram Anda dalam konfigurasi Anda.\r\n\r\nChatID Pengguna Anda: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Pilih Klien untuk Inbound {{ .Inbound }}",
-      "chooseInbound": "Pilih Inbound"
+      "chooseInbound": "Pilih Inbound",
+      "qrCodeForClient": "Kode QR untuk klien {{ .Email }}:"
     }
   },
   "discord": {

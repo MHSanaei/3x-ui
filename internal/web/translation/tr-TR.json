@@ -2433,7 +2433,8 @@
       "disableSuccess": "✅ {{ .Email }}: Başarıyla devre dışı bırakıldı.",
       "askToAddUserId": "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden Telegram Chat ID'nizi yapılandırmanıza eklemesini isteyin.\r\n\r\nSizin Chat ID'niz: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Gelen Bağlantı {{ .Inbound }} için bir Kullanıcı Seçin",
-      "chooseInbound": "Bir Gelen Bağlantı Seçin"
+      "chooseInbound": "Bir Gelen Bağlantı Seçin",
+      "qrCodeForClient": "{{ .Email }} istemcisi için QR Kodu:"
     }
   },
   "discord": {

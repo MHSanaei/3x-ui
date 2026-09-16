@@ -2433,7 +2433,8 @@
       "disableSuccess": "✅ {{ .Email }}: اتعطل بنجاح.",
       "askToAddUserId": "مافيش إعدادات ليك!\r\nاطلب من الأدمن يضيف الـ Telegram ChatID الخاص بيك في إعداداتك.\r\n\r\nالـ ChatID بتاعك: <code>{{ .TgUserID }}</code>",
       "chooseClient": "اختار عميل للإدخال {{ .Inbound }}",
-      "chooseInbound": "اختار الإدخال"
+      "chooseInbound": "اختار الإدخال",
+      "qrCodeForClient": "رمز QR للعميل {{ .Email }}:"
     }
   },
   "discord": {
