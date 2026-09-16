@@ -10,15 +10,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// External subscription fetching: a "subscription" external link is a remote
-// URL whose body is a (often base64-encoded) newline list of share links. We
-// fetch it on demand, cache the decoded links briefly, and bound the request
-// with a short timeout so a slow/dead provider can't stall a client's sub.
+// External subscription fetching: a remote URL whose body is a share-link
+// list. Fetches are cached briefly and bounded so a dead provider can't stall.
 
 const (
 	subscriptionCacheTTL      = 5 * time.Minute
@@ -151,11 +150,12 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 	}
 	// Some providers gate the link body on a known client User-Agent.
 	req.Header.Set("User-Agent", "v2rayNG/1.8.5")
-	// A 3x-ui donor with an HWID limit answers 404 when the header is empty
-	// (#6559). Identify this panel with a stable per-installation id so the
-	// donor registers exactly one device slot for it.
-	if hwid := serverHwid(); hwid != "" {
-		req.Header.Set("X-HWID", hwid)
+	// A 3x-ui donor with an HWID limit answers 404 when the header is
+	// empty (#6559). Send our stable id unless the operator opted out.
+	if sendServerHwid() {
+		if hwid := serverHwid(); hwid != "" {
+			req.Header.Set("X-HWID", hwid)
+		}
 	}
 	resp, err := subscriptionHTTPClient.Do(req)
 	if err != nil {
@@ -180,14 +180,38 @@ var (
 	errSubscriptionBodyTooLarge = &subError{"subscription response body exceeds size limit"}
 )
 
-// serverHwidKey is the settings row holding this panel's stable identity for
-// outbound external-subscription fetches.
+// serverHwidKey is the settings row holding this panel's stable identity
+// for outbound external-subscription fetches.
 const serverHwidKey = "externalSubHwid"
 
-// serverHwid returns a stable per-installation id, creating and persisting it
-// on first use. A random-per-request value would burn one donor HWID slot per
-// fetch; empty means the DB is unreachable, in which case no header is sent.
+// sendHwidKey toggles the X-HWID header on external fetches. Default on;
+// set to "false" to stop identifying this panel to third-party providers.
+const sendHwidKey = "externalSubSendHwid"
+
+// sendServerHwid reports whether to attach our stable id. Missing row or
+// parse failure keeps the default (send) so donor sync works out of box.
+func sendServerHwid() bool {
+	db := database.GetDB()
+	if db == nil {
+		return true
+	}
+	var row model.Setting
+	if err := db.Where("key = ?", sendHwidKey).First(&row).Error; err != nil {
+		return true
+	}
+	v := strings.TrimSpace(strings.ToLower(row.Value))
+	return v != "false" && v != "0" && v != "no" && v != "off"
+}
+
+// serverHwidMu serializes first-time creation: without it, concurrent first
+// fetches of different URLs each mint and persist their own UUID.
+var serverHwidMu sync.Mutex
+
+// serverHwid returns a stable per-installation id, creating and persisting
+// it on first use. Empty means the DB is unreachable: send no header then.
 func serverHwid() string {
+	serverHwidMu.Lock()
+	defer serverHwidMu.Unlock()
 	db := database.GetDB()
 	if db == nil {
 		return ""
