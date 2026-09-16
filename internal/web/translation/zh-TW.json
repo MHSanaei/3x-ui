@@ -2416,6 +2416,7 @@
       "askToAddUserId": "未找到您的配置！\r\n請向管理員詢問，在您的配置中使用您的 Telegram 使用者 ChatID。\r\n\r\n您的使用者 ChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "為入站 {{ .Inbound }} 選擇一個客戶",
       "chooseInbound": "選擇一個入站"
+      "qrCodeForClient": "客戶端 {{ .Email }} 的二維碼：",
     }
   },
   "discord": {
