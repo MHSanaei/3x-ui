@@ -596,7 +596,7 @@
         "customSockopt": "sockopt مخصص",
         "addCustomOption": "إضافة خيار مخصص",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "مجموعات التشفير",
         "autoOption": "تلقائي",
         "minMaxVersion": "إصدار أدنى/أقصى",
         "rejectUnknownSni": "رفض SNI غير معروف",

@@ -617,7 +617,7 @@
         "customSockopt": "Sockopt tùy chỉnh",
         "addCustomOption": "Thêm tùy chọn",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "Bộ mật mã",
         "autoOption": "Tự động",
         "minMaxVersion": "Phiên bản Min/Max",
         "rejectUnknownSni": "Từ chối SNI lạ",

@@ -596,7 +596,7 @@
         "customSockopt": "Sockopt kustom",
         "addCustomOption": "Tambah opsi kustom",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "Rangkaian Sandi",
         "autoOption": "Otomatis",
         "minMaxVersion": "Versi Min/Maks",
         "rejectUnknownSni": "Tolak SNI tidak dikenal",

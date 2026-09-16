@@ -616,7 +616,7 @@
         "customSockopt": "自定义 sockopt",
         "addCustomOption": "添加自定义选项",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "密码套件",
         "autoOption": "自动",
         "minMaxVersion": "最小/最大版本",
         "rejectUnknownSni": "拒绝未知 SNI",
