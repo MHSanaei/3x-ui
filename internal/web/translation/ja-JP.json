@@ -617,7 +617,7 @@
         "customSockopt": "カスタム sockopt",
         "addCustomOption": "カスタムオプション追加",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "暗号スイート",
         "autoOption": "自動",
         "minMaxVersion": "最小/最大バージョン",
         "rejectUnknownSni": "未知の SNI を拒否",

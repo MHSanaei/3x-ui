@@ -596,7 +596,7 @@
         "customSockopt": "自訂 sockopt",
         "addCustomOption": "新增自訂選項",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "加密套件",
         "autoOption": "自動",
         "minMaxVersion": "最小/最大版本",
         "rejectUnknownSni": "拒絕未知 SNI",

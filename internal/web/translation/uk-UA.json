@@ -596,7 +596,7 @@
         "customSockopt": "Користувацький sockopt",
         "addCustomOption": "Додати опцію",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "Набори шифрів",
         "autoOption": "Авто",
         "minMaxVersion": "Мін/Макс версія",
         "rejectUnknownSni": "Відхиляти невідомий SNI",

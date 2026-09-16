@@ -573,6 +573,7 @@ export const HostSchema = z.object({
   address: z.string(),
   allowInsecure: z.boolean(),
   alpn: z.array(z.string()),
+  cipherSuites: z.string(),
   createdAt: z.number().int(),
   echConfigList: z.string(),
   excludeFromSubTypes: z.array(z.string()),
@@ -610,6 +611,7 @@ export type Host = z.infer<typeof HostSchema>;
 export const HostGroupSchema = z.object({
   allowInsecure: z.boolean(),
   alpn: z.array(z.string()),
+  cipherSuites: z.string(),
   echConfigList: z.string(),
   excludeFromSubTypes: z.array(z.string()),
   finalMask: z.string(),

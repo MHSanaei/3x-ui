@@ -71,6 +71,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.Fingerprint != "" {
 		ep["fingerprint"] = h.Fingerprint
 	}
+	if h.CipherSuites != "" {
+		ep["cipherSuites"] = h.CipherSuites
+	}
 	if len(h.Alpn) > 0 {
 		ep["alpn"] = stringsToAnySlice(h.Alpn)
 	}

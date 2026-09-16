@@ -2275,6 +2275,9 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "cipherSuites": {
+        "type": "string"
+      },
       "createdAt": {
         "format": "int64",
         "type": "integer"
@@ -2408,6 +2411,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "address",
       "allowInsecure",
       "alpn",
+      "cipherSuites",
       "createdAt",
       "echConfigList",
       "excludeFromSubTypes",
@@ -2451,6 +2455,9 @@ export const SCHEMAS: Record<string, unknown> = {
           "type": "string"
         },
         "type": "array"
+      },
+      "cipherSuites": {
+        "type": "string"
       },
       "echConfigList": {
         "type": "string"
@@ -2578,6 +2585,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "allowInsecure",
       "alpn",
+      "cipherSuites",
       "echConfigList",
       "excludeFromSubTypes",
       "finalMask",
