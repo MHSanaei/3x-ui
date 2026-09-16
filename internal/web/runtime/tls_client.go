@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -132,22 +133,104 @@ func (t *credentialRotatingTransport) CloseIdleConnections() {
 	current.CloseIdleConnections()
 }
 
-// defaultNodeHTTPClient reaches nodes trusting the system CA store ("verify"
-// mode or plain http); shared so connections pool across nodes.
-var defaultNodeHTTPClient = &http.Client{
-	Transport: &http.Transport{
-		MaxIdleConns:        64,
-		MaxIdleConnsPerHost: 4,
+// The global cap must exceed the fleet size: below it Go closes a node's
+// connection before its next heartbeat, costing a handshake every tick.
+const (
+	maxIdleNodeConns        = 512
+	maxIdleNodeConnsPerHost = 8
+)
+
+func newNodeTransport(tlsCfg *tls.Config) *http.Transport {
+	return &http.Transport{
+		MaxIdleConns:        maxIdleNodeConns,
+		MaxIdleConnsPerHost: maxIdleNodeConnsPerHost,
 		IdleConnTimeout:     60 * time.Second,
 		DialContext:         netsafe.SSRFGuardedDialContext,
-	},
+		TLSClientConfig:     tlsCfg,
+	}
 }
 
+// defaultNodeHTTPClient reaches nodes trusting the system CA store ("verify"
+// mode or plain http); shared so connections pool across nodes.
+var defaultNodeHTTPClient = &http.Client{Transport: newNodeTransport(nil)}
+
+// nodeClients caches one client per node: heartbeat and traffic sync reach it
+// every few seconds, and a rebuilt client would open its own empty pool.
+type nodeClientEntry struct {
+	nodeID int
+	client *http.Client
+}
+
+var (
+	nodeClientsMu    sync.Mutex
+	nodeClientsCache = map[string]nodeClientEntry{}
+)
+
+// nodeClientIdentity covers everything that decides how the node is trusted; the
+// proxy URL is a variant of it, so it stays out of the identity itself.
+func nodeClientIdentity(n *model.Node, mode string) string {
+	return fmt.Sprintf("%d|%s|%s|%s|%d|%s", n.Id, mode, n.Scheme, n.Address, n.Port, n.PinnedCertSha256)
+}
+
+// dropNodeClients discards every cached client of one node except keep, so a
+// node never holds more than the variant it is using now. Callers hold the lock.
+func dropNodeClients(nodeID int, keep string) {
+	for key, entry := range nodeClientsCache {
+		if entry.nodeID != nodeID || key == keep {
+			continue
+		}
+		entry.client.CloseIdleConnections()
+		delete(nodeClientsCache, key)
+	}
+}
+
+// HTTPClientForNode returns the pooled client for n, building it on first use
+// and whenever the node's identity or TLS material changes.
 func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 	mode := n.TlsVerifyMode
 	if mode == "" {
 		mode = "verify"
 	}
+	if mode == "verify" || n.Scheme == "http" {
+		// Shared across nodes and not node-specific: nothing to key on.
+		if proxyURL == "" {
+			nodeClientsMu.Lock()
+			dropNodeClients(n.Id, "")
+			nodeClientsMu.Unlock()
+			return defaultNodeHTTPClient, nil
+		}
+	}
+
+	identity := nodeClientIdentity(n, mode)
+	key := identity + "|" + proxyURL
+	nodeClientsMu.Lock()
+	if entry, ok := nodeClientsCache[key]; ok {
+		nodeClientsMu.Unlock()
+		return entry.client, nil
+	}
+	nodeClientsMu.Unlock()
+
+	client, err := buildNodeHTTPClient(n, mode, proxyURL)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeClientsMu.Lock()
+	if entry, ok := nodeClientsCache[key]; ok {
+		// A concurrent caller won the race; keep its client and drop ours.
+		nodeClientsMu.Unlock()
+		client.CloseIdleConnections()
+		return entry.client, nil
+	}
+	// Any other variant is dead weight: a stale identity's pool fits no trust
+	// decision now, and an ephemeral proxy URL is never asked for twice.
+	dropNodeClients(n.Id, key)
+	nodeClientsCache[key] = nodeClientEntry{nodeID: n.Id, client: client}
+	nodeClientsMu.Unlock()
+	return client, nil
+}
+
+func buildNodeHTTPClient(n *model.Node, mode, proxyURL string) (*http.Client, error) {
 	if proxyURL != "" {
 		if mode == "mtls" && n.Scheme != "http" {
 			timeout := remoteHTTPTimeout
@@ -191,22 +274,13 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 		transport.TLSClientConfig = tlsCfg
 		return client, nil
 	}
-	if mode == "verify" || n.Scheme == "http" {
-		return defaultNodeHTTPClient, nil
-	}
 	if mode == "mtls" {
 		build := func() (idleClosingRoundTripper, error) {
 			tlsCfg, err := tlsConfigForNode(n)
 			if err != nil {
 				return nil, err
 			}
-			return &http.Transport{
-				MaxIdleConns:        64,
-				MaxIdleConnsPerHost: 4,
-				IdleConnTimeout:     60 * time.Second,
-				DialContext:         netsafe.SSRFGuardedDialContext,
-				TLSClientConfig:     tlsCfg,
-			}, nil
+			return newNodeTransport(tlsCfg), nil
 		}
 		transport, err := newCredentialRotatingTransport(build)
 		if err != nil {
@@ -218,15 +292,7 @@ func HTTPClientForNode(n *model.Node, proxyURL string) (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:        64,
-			MaxIdleConnsPerHost: 4,
-			IdleConnTimeout:     60 * time.Second,
-			DialContext:         netsafe.SSRFGuardedDialContext,
-			TLSClientConfig:     tlsCfg,
-		},
-	}, nil
+	return &http.Client{Transport: newNodeTransport(tlsCfg)}, nil
 }
 
 func tlsConfigForNode(n *model.Node) (*tls.Config, error) {

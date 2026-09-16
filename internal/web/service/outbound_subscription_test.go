@@ -2,10 +2,14 @@ package service
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
@@ -125,6 +129,115 @@ func TestOutboundSubscriptionRefreshUsesCustomUserAgent(t *testing.T) {
 	}
 	if gotUserAgent != wantUserAgent {
 		t.Fatalf("User-Agent = %q, want %q", gotUserAgent, wantUserAgent)
+	}
+}
+
+// serveOutboundSubscription seeds a subscription whose URL returns body(n) for the n-th fetch.
+func serveOutboundSubscription(t *testing.T, tagPrefix string, body func(n int) string) int {
+	t.Helper()
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		_, _ = w.Write([]byte(body(requests)))
+	}))
+	t.Cleanup(server.Close)
+	sub := &model.OutboundSubscription{Url: server.URL, AllowPrivate: true, TagPrefix: tagPrefix}
+	if err := database.GetDB().Create(sub).Error; err != nil {
+		t.Fatalf("seed subscription: %v", err)
+	}
+	return sub.Id
+}
+
+func refreshOutboundTags(t *testing.T, subID int) (tags []string, byAddress map[string]string) {
+	t.Helper()
+	obs, err := (&OutboundSubscriptionService{}).Refresh(subID)
+	if err != nil {
+		t.Fatalf("Refresh: %v", err)
+	}
+	byAddress = map[string]string{}
+	for _, ob := range obs {
+		m := ob.(map[string]any)
+		tag, _ := m["tag"].(string)
+		address, _ := m["settings"].(map[string]any)["address"].(string)
+		tags = append(tags, tag)
+		byAddress[address] = tag
+	}
+	return tags, byAddress
+}
+
+func TestOutboundSubscriptionRefreshKeepsTagsWhenRealityParamsRotate(t *testing.T) {
+	setupSettingTestDB(t)
+	pbk := base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{7}, 32))
+	type server struct{ remark, address string }
+	var servers []server
+	// A 3x-ui upstream picks sid and sni at random per request, and older releases spx too (#6556).
+	subID := serveOutboundSubscription(t, "sub", func(n int) string {
+		lines := make([]string, 0, len(servers))
+		for _, s := range servers {
+			lines = append(lines, fmt.Sprintf(
+				"vless://00000000-0000-4000-8000-000000000000@%s:443?type=tcp&security=reality&pbk=%s&fp=chrome&sni=sni%d.example.com&sid=%02x&spx=%%2F%d#%s",
+				s.address, pbk, n, n, n, s.remark))
+		}
+		return strings.Join(lines, "\n")
+	})
+
+	steps := []struct {
+		name    string
+		servers []server
+		want    map[string]string
+	}{
+		{
+			"initial fetch",
+			[]server{{"France", "1.1.1.1"}, {"Germany", "8.8.8.8"}, {"Sweden", "9.9.9.9"}},
+			map[string]string{"1.1.1.1": "sub-france", "8.8.8.8": "sub-germany", "9.9.9.9": "sub-sweden"},
+		},
+		{
+			"France removed",
+			[]server{{"Germany", "8.8.8.8"}, {"Sweden", "9.9.9.9"}},
+			map[string]string{"8.8.8.8": "sub-germany", "9.9.9.9": "sub-sweden"},
+		},
+		{
+			"new France added first",
+			[]server{{"France", "1.0.0.1"}, {"Germany", "8.8.8.8"}, {"Sweden", "9.9.9.9"}},
+			map[string]string{"1.0.0.1": "sub-france", "8.8.8.8": "sub-germany", "9.9.9.9": "sub-sweden"},
+		},
+	}
+	for _, step := range steps {
+		servers = step.servers
+		if _, got := refreshOutboundTags(t, subID); !maps.Equal(got, step.want) {
+			t.Fatalf("%s: tags by address = %v, want %v", step.name, got, step.want)
+		}
+	}
+}
+
+func TestOutboundSubscriptionRefreshKeepsTagsOfRepeatedLink(t *testing.T) {
+	setupSettingTestDB(t)
+	const link = "vless://00000000-0000-4000-8000-000000000000@1.1.1.1:443?security=tls&type=tcp"
+	subID := serveOutboundSubscription(t, "p-", func(int) string { return link + "#A\n" + link + "#B" })
+
+	want := []string{"p-a", "p-b"}
+	for refresh := 1; refresh <= 3; refresh++ {
+		if got, _ := refreshOutboundTags(t, subID); !slices.Equal(got, want) {
+			t.Fatalf("refresh %d: tags = %v, want %v", refresh, got, want)
+		}
+	}
+}
+
+func TestOutboundSubscriptionRefreshAlignsPositionsPastCoreRejectedLink(t *testing.T) {
+	setupSettingTestDB(t)
+	// The unencrypted first link is dropped by the core; B and C then rotate their UUID.
+	subID := serveOutboundSubscription(t, "p-", func(n int) string {
+		uuid := fmt.Sprintf("00000000-0000-4000-8000-%012d", n)
+		return "vless://00000000-0000-4000-8000-000000000000@1.1.1.1:443?security=none&type=tcp#Plain\n" +
+			"vless://" + uuid + "@8.8.8.8:443?security=tls&type=tcp#B\n" +
+			"vless://" + uuid + "@9.9.9.9:443?security=tls&type=tcp#C"
+	})
+
+	want := map[string]string{"8.8.8.8": "p-b", "9.9.9.9": "p-c"}
+	for refresh := 1; refresh <= 2; refresh++ {
+		if _, got := refreshOutboundTags(t, subID); !maps.Equal(got, want) {
+			t.Fatalf("refresh %d: tags by address = %v, want %v", refresh, got, want)
+		}
 	}
 }
 

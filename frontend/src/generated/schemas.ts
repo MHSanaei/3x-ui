@@ -369,6 +369,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 1,
         "type": "integer"
       },
+      "subProfileMode": {
+        "type": "string"
+      },
       "subProfileUrl": {
         "type": "string"
       },
@@ -592,6 +595,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subListen",
       "subPath",
       "subPort",
+      "subProfileMode",
       "subProfileUrl",
       "subRoutingRules",
       "subShowIdentityOnAllLinks",
@@ -1020,6 +1024,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 1,
         "type": "integer"
       },
+      "subProfileMode": {
+        "type": "string"
+      },
       "subProfileUrl": {
         "type": "string"
       },
@@ -1251,6 +1258,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subListen",
       "subPath",
       "subPort",
+      "subProfileMode",
       "subProfileUrl",
       "subRoutingRules",
       "subShowIdentityOnAllLinks",

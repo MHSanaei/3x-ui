@@ -878,8 +878,9 @@ func (s *NodeService) Delete(id int) error {
 	if mgr := runtime.GetManager(); mgr != nil {
 		mgr.InvalidateNode(id)
 	}
-	nodeMetrics.drop(nodeMetricKey(id, "cpu"))
-	nodeMetrics.drop(nodeMetricKey(id, "mem"))
+	for _, metric := range NodeMetricKeys {
+		nodeMetrics.drop(nodeMetricKey(id, metric))
+	}
 	return nil
 }
 
@@ -935,12 +936,11 @@ func (s *NodeService) UpdatePanels(ids []int, dev bool) ([]NodeUpdateResult, err
 	if mgr == nil {
 		return nil, fmt.Errorf("runtime manager unavailable")
 	}
-	results := make([]NodeUpdateResult, 0, len(ids))
-	for _, id := range ids {
+	results, panics := fanoutInboundResults(ids, nodeFanoutConcurrency, func(i int) NodeUpdateResult {
+		id := ids[i]
 		n, err := s.GetById(id)
 		if err != nil || n == nil {
-			results = append(results, NodeUpdateResult{Id: id, OK: false, Error: "node not found"})
-			continue
+			return NodeUpdateResult{Id: id, OK: false, Error: "node not found"}
 		}
 		res := NodeUpdateResult{Id: id, Name: n.Name}
 		switch {
@@ -963,7 +963,12 @@ func (s *NodeService) UpdatePanels(ids []int, dev bool) ([]NodeUpdateResult, err
 				res.OK = true
 			}
 		}
-		results = append(results, res)
+		return res
+	})
+	for i, panicErr := range panics {
+		if panicErr != nil {
+			results[i] = NodeUpdateResult{Id: ids[i], Error: panicErr.Error()}
+		}
 	}
 	return results, nil
 }
