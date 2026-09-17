@@ -2279,6 +2279,16 @@ setup_fail2ban_iplimit() {
     if ! command -v fail2ban-client &> /dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
 
+        # Snapshot firewalld presence first: on RHEL-family systems the
+        # fail2ban package can pull firewalld in as a dependency, and it
+        # arrives enabled — after the next reboot its default zone blocks
+        # every 3x-ui port (#6569). Only neutralize it when WE installed it.
+        local had_firewalld=0
+        if [[ "${release}" =~ ^(fedora|amzn|virtuozzo|rhel|almalinux|rocky|ol|centos)$ ]] \
+            && rpm -q firewalld &> /dev/null; then
+            had_firewalld=1
+        fi
+
         # Install fail2ban together with nftables. Recent fail2ban packages
         # default to `banaction = nftables-multiport` in /etc/fail2ban/jail.conf,
         # but the `nftables` package isn't pulled in as a dependency on most
@@ -2337,6 +2347,14 @@ setup_fail2ban_iplimit() {
         if ! command -v fail2ban-client &> /dev/null; then
             echo -e "${red}Fail2ban installation failed.${plain}\n"
             return 1
+        fi
+
+        # If the transaction above dragged firewalld in on a host that never
+        # had it, stop it and remove it from boot (#6569). Hosts that already
+        # used firewalld are left untouched.
+        if [[ "${had_firewalld}" == "0" ]] && rpm -q firewalld &> /dev/null; then
+            echo -e "${yellow}firewalld was pulled in as a dependency; disabling it so it cannot block 3x-ui ports after reboot. Re-enable with: systemctl unmask firewalld && systemctl enable --now firewalld${plain}\n"
+            systemctl disable --now firewalld &> /dev/null || true
         fi
 
         echo -e "${green}Fail2ban installed successfully!${plain}\n"
