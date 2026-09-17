@@ -2,7 +2,10 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/testpg"
 	"strings"
 	"testing"
 
@@ -25,7 +28,16 @@ func TestMain(m *testing.M) {
 	// injectPanelEgress logs when it skips injection; the package logger must
 	// exist before any test exercises a skipped path.
 	xuilogger.InitLogger(logging.ERROR)
-	os.Exit(m.Run())
+	// Against PostgreSQL every package shares one database; give this one its
+	// own schema so a parallel package and a previous run cannot reach it.
+	cleanup, err := testpg.IsolatePackage("internal_web_service")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	code := m.Run()
+	cleanup()
+	os.Exit(code)
 }
 
 func TestEnsureAPIServices(t *testing.T) {
