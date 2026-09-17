@@ -163,7 +163,20 @@ func applyRemarkToLink(rawLink, remark string) string {
 	if i := strings.IndexByte(rawLink, '#'); i >= 0 {
 		rawLink = rawLink[:i]
 	}
-	return rawLink + "#" + url.PathEscape(remark)
+	return rawLink + "#" + escapeRemarkFragment(remark)
+}
+
+// escapeRemarkFragment escapes a display name for the URL fragment, keeping
+// a trailing ?serverDescription=<base64> literal so Happ renders its
+// subtitle (#6575, same split as appendQueryAndFragment since #6488). A
+// malformed tail falls back to full escaping.
+func escapeRemarkFragment(remark string) string {
+	if before, after, ok := strings.Cut(remark, "?serverDescription="); ok {
+		if _, err := base64.StdEncoding.DecodeString(after); err == nil && len(after) > 0 && !strings.ContainsAny(after, " \r\n\t#&") {
+			return url.PathEscape(before) + "?serverDescription=" + after
+		}
+	}
+	return url.PathEscape(remark)
 }
 
 func applyVmessRemark(rawLink, remark string) string {
