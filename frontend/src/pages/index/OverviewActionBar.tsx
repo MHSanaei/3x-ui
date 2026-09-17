@@ -159,13 +159,19 @@ export default function OverviewActionBar({
 
   return (
     <div className="ov-bar">
-      {status.xray.state === 'error' && status.xray.errorMsg ? (
+      {status.xray.errorMsg ? (
         <Tooltip title={<span className="ov-error-detail">{status.xray.errorMsg}</span>}>
           {statePill}
         </Tooltip>
       ) : (
         statePill
       )}
+
+      {status.xray.state === 'running' && status.xray.errorMsg ? (
+        <Tooltip title={<span className="ov-error-detail">{status.xray.errorMsg}</span>}>
+          <Tag color="error">{t('pages.index.xrayStatusError')}</Tag>
+        </Tooltip>
+      ) : null}
 
       {updateAvailable ? (
         <Tag

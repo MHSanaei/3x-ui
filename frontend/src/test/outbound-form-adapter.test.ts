@@ -336,6 +336,19 @@ describe('outbound-form-adapter: round-trip', () => {
     expect(rules[1]).toEqual({ action: 'return', qType: 28, domain: ['blocked.com'], rCode: 3 });
   });
 
+  it('dns rules keep qType 0 a string, since the core reads a numeric 0 as every query', () => {
+    const back = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'dns',
+        settings: { rules: [{ action: 'drop', qType: 0 }] },
+      }),
+    );
+    const rules = (back.settings as Record<string, unknown>).rules as Array<
+      Record<string, unknown>
+    >;
+    expect(rules[0]).toEqual({ action: 'drop', qType: '0' });
+  });
+
   it('dns rules read the legacy qtype wire key for back-compat', () => {
     const wire = {
       protocol: 'dns',

@@ -194,7 +194,7 @@ func (s *SettingService) NodeMtlsClientCAPool() (*x509.CertPool, error) {
 	}
 	certs, err := parseCertificateBundlePEM([]byte(caPem))
 	if err != nil {
-		return nil, fmt.Errorf("nodeMtlsClientCAPem is not a valid certificate bundle: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrNodeMtlsTrustBundleInvalid, err)
 	}
 	pool := x509.NewCertPool()
 	for _, cert := range certs {
@@ -202,6 +202,10 @@ func (s *SettingService) NodeMtlsClientCAPool() (*x509.CertPool, error) {
 	}
 	return pool, nil
 }
+
+// ErrNodeMtlsTrustBundleInvalid separates a stored bundle that will not parse
+// from a settings read that failed, which callers report differently.
+var ErrNodeMtlsTrustBundleInvalid = errors.New("nodeMtlsClientCAPem is not a valid certificate bundle")
 
 // parseCertificateBundlePEM avoids AppendCertsFromPEM because that helper can
 // silently accept a bundle after parsing only its first certificate.

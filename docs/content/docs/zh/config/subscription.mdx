@@ -73,6 +73,18 @@ Clash 格式自动识别保留原有的 `(?i)(clash|mihomo)` 默认匹配器，�
 - **`Profile-Update-Interval`** —— 刷新间隔，以小时为单位（`subUpdates`）。
 - **`Profile-Title`**、**`Support-Url`**、**`Profile-Web-Page-Url`**、**`Announce`** —— 部分客户端会显示的可选品牌信息。
 
+### 资料页链接与升级说明
+
+在 **订阅 → 资料 → 资料页方式** 中选择 `subProfileMode`，对所有订阅客户端生效：
+
+- **不提供**（`none`，默认）：不发送 `Profile-Web-Page-Url`。
+- **内置订阅页**（`builtin`）：提供该客户端的内置订阅页链接。
+- **自定义网站**（`custom`）：使用 `subProfileUrl`；地址留空时不发送该响应头。
+
+**升级提示：** 旧版在 `subProfileUrl` 留空时会自动提供内置订阅页链接。升级后，尚未设置模式且地址为空或仅含空白字符的配置会使用 **不提供**；已有非空地址继续使用 **自定义网站**。需要恢复内置入口时，在上述位置选择 **内置订阅页** 并保存设置。
+
+内置订阅页会公开订阅地址和节点配置，Happ 加密订阅也不例外；请在确定需要提供这些内容时开启。
+
 ## 自定义页面模板
 
 将 `subThemeDir` 指向一个包含自定义信息页模板的文件夹，即可为 HTML 订阅页面定制品牌。每条链接上的客户端备注完全支持模板化 —— 参见[分享链接 → 备注变量](/docs/config/share-links#remark-template-variables)。

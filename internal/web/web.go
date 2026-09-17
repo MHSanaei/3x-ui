@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -626,9 +627,14 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 			// Opt-in node mTLS: when a trust CA is configured, request and verify
 			// client certs (VerifyClientCertIfGiven keeps browsers working). With
 			// no CA the listener is unchanged.
-			if pool, perr := s.settingService.NodeMtlsClientCAPool(); perr != nil {
-				logger.Warning("node mTLS: failed to build client CA trust pool:", perr)
-			} else if pool != nil {
+			pool, perr := s.settingService.NodeMtlsClientCAPool()
+			switch {
+			case errors.Is(perr, service.ErrNodeMtlsTrustBundleInvalid):
+				logger.Error("Node mTLS is configured but its trust bundle will not parse, so client certificates are not accepted:", perr)
+			case perr != nil:
+				logger.Error("Node mTLS trust bundle could not be read, so client certificates are not accepted:", perr)
+			}
+			if pool != nil {
 				applyNodeMtls(c, pool)
 				logger.Info("Node mTLS enabled: verifying client certificates for the node API")
 			}

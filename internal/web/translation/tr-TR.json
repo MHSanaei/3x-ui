@@ -80,7 +80,6 @@
   "somethingWentWrong": "Bir hata oluştu",
   "subscription": {
     "title": "Abonelik Bilgisi",
-    "subId": "Abonelik Kimliği",
     "status": "Durum",
     "downloaded": "İndirilen",
     "uploaded": "Yüklenen",
@@ -93,7 +92,20 @@
     "noExpiry": "Süresiz",
     "copyAllConfigs": "Tüm Yapılandırmaları Kopyala",
     "copyAllConfigsCopied": "Tüm yapılandırmalar kopyalandı",
-    "email": "E-posta"
+    "daysLeft": "Kalan gün",
+    "expired": "Süresi doldu",
+    "depleted": "Kota doldu",
+    "ofTotal": "/ {total}",
+    "tabLinks": "Abonelik",
+    "tabApps": "Uygulamalar",
+    "tabConfigs": "Yapılandırmalar",
+    "scanTitle": "Telefonunuzla tarayın",
+    "scanHint": "Bağlantıyı kopyalamadan aboneliği eklemek için bu kodu VPN uygulamanızda tarayın.",
+    "updateInterval": "Her {hours} saatte bir otomatik güncellenir",
+    "support": "Destek",
+    "qrTitle": "Tara. İçe aktar. Bağlan.",
+    "qrHint": "İstemci uygulamanızla tarayın. Bu kodu kimseyle paylaşmayın.",
+    "saveQr": "QR'ı kaydet"
   },
   "menu": {
     "theme": "Tema",
@@ -1200,8 +1212,14 @@
       "subTitleDesc": "VPN istemcisinde gösterilen başlık. İstemci kimlik tokenlarını destekler: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subSupportUrl": "Destek URL'si",
       "subSupportUrlDesc": "VPN istemcisinde gösterilen teknik destek bağlantısı. İstemci kimlik tokenlarını destekler: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileMode": "Profil sayfası",
+      "subProfileModeDesc": "VPN istemcisinde hangi web sitesi bağlantısının gösterileceğini seçin.",
+      "subProfileModeNone": "Bağlantı yok",
+      "subProfileModeBuiltin": "Yerleşik abonelik sayfası",
+      "subProfileModeCustom": "Özel web sitesi",
+      "subProfileBuiltinWarning": "Bu sayfa, Happ ile şifrelenmiş abonelikler dahil olmak üzere abonelik URL'lerini ve düğüm yapılandırmalarını açığa çıkarır.",
       "subProfileUrl": "Profil URL'si",
-      "subProfileUrlDesc": "VPN istemcisinde görüntülenen web sitenize giden bağlantı. İstemci kimlik tokenlarını destekler: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileUrlDesc": "VPN istemcisinde görüntülenen web sitenize giden bağlantı. İstemci kimlik tokenlarını destekler: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}. Web sitesi bağlantısının VPN istemcisinde gösterilmemesi için boş bırakın.",
       "subAnnounce": "Duyuru",
       "subAnnounceDesc": "VPN istemcisinde görüntülenen duyuru metni. İstemci kimlik tokenlarını destekler: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subThemeDir": "Abonelik Tema Dizini",
@@ -1245,8 +1263,8 @@
       "externalTrafficInformEnableDesc": "Her trafik güncellemesinde harici API'yi bilgilendirir.",
       "externalTrafficInformURI": "Harici Trafik Bilgisi URI'si",
       "externalTrafficInformURIDesc": "Trafik güncellemeleri bu URI'ye gönderilir.",
-      "restartXrayOnClientDisable": "Otomatik Devre Dışı Sonrası Xray'i Yeniden Başlat",
-      "restartXrayOnClientDisableDesc": "Bir kullanıcı süre dolumu veya trafik limiti nedeniyle otomatik devre dışı bırakıldığında Xray'i yeniden başlatır.",
+      "restartXrayOnClientDisable": "İstemci Devre Dışı Bırakıldığında Xray'i Yeniden Başlat",
+      "restartXrayOnClientDisableDesc": "Bir istemci artık sunulmadığında — süre dolumu veya trafik limiti nedeniyle otomatik, ya da elle devre dışı bırakıldığında veya silindiğinde — açık bağlantıları bitsin diye Xray'i yeniden başlatır.",
       "fragment": "Parçalama",
       "fragmentDesc": "TLS merhaba paketinin parçalanmasını etkinleştirir.",
       "fragmentSett": "Parçalama Ayarları",
@@ -2426,7 +2444,8 @@
       "disableSuccess": "✅ {{ .Email }}: Başarıyla devre dışı bırakıldı.",
       "askToAddUserId": "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden Telegram Chat ID'nizi yapılandırmanıza eklemesini isteyin.\r\n\r\nSizin Chat ID'niz: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Gelen Bağlantı {{ .Inbound }} için bir Kullanıcı Seçin",
-      "chooseInbound": "Bir Gelen Bağlantı Seçin"
+      "chooseInbound": "Bir Gelen Bağlantı Seçin",
+      "qrCodeForClient": "{{ .Email }} istemcisi için QR Kodu:"
     }
   },
   "discord": {

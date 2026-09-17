@@ -195,10 +195,9 @@ func (q clientQuery) activeExpr() string {
 	return "(" + sqlClientEnabled + " AND NOT " + q.depletedExpr() + " AND NOT " + q.nearDepletionExpr() + ")"
 }
 
-// summaryDeactiveExpr is narrower than the "deactive" bucket filter: a disabled
-// client that also ran out counts once, under depleted, so the stat cards add
-// up to the client total.
-func (q clientQuery) summaryDeactiveExpr() string {
+// deactiveExpr leaves a disabled client that also ran out to depleted, so the
+// stat cards add up to the total and each card's filter lists what it counts.
+func (q clientQuery) deactiveExpr() string {
 	return "(NOT " + sqlClientEnabled + " AND NOT " + q.depletedExpr() + ")"
 }
 
@@ -275,9 +274,9 @@ func (q clientQuery) bucketCond(buckets, onlines []string) (string, []any) {
 	for _, b := range buckets {
 		switch b {
 		case "active":
-			conds = append(conds, "("+sqlClientEnabled+" AND NOT "+q.depletedExpr()+")")
+			conds = append(conds, q.activeExpr())
 		case "deactive":
-			conds = append(conds, "(NOT "+sqlClientEnabled+")")
+			conds = append(conds, q.deactiveExpr())
 		case "depleted":
 			conds = append(conds, q.depletedExpr())
 		case "expiring":
@@ -490,7 +489,7 @@ func (q clientQuery) summary(onlines []string, total int) (ClientsSummary, error
 		"COALESCE(SUM(CASE WHEN " + q.activeExpr() + " THEN 1 ELSE 0 END), 0) AS active," +
 			" COALESCE(SUM(CASE WHEN " + q.depletedExpr() + " THEN 1 ELSE 0 END), 0) AS depleted," +
 			" COALESCE(SUM(CASE WHEN " + q.expiringExpr() + " THEN 1 ELSE 0 END), 0) AS expiring," +
-			" COALESCE(SUM(CASE WHEN " + q.summaryDeactiveExpr() + " THEN 1 ELSE 0 END), 0) AS deactive",
+			" COALESCE(SUM(CASE WHEN " + q.deactiveExpr() + " THEN 1 ELSE 0 END), 0) AS deactive",
 	).Scan(&counts).Error; err != nil {
 		return s, err
 	}
@@ -506,7 +505,7 @@ func (q clientQuery) summary(onlines []string, total int) (ClientsSummary, error
 	}{
 		{q.depletedExpr(), s.DepletedCount, &s.Depleted},
 		{q.expiringExpr(), s.ExpiringCount, &s.Expiring},
-		{q.summaryDeactiveExpr(), s.DeactiveCount, &s.Deactive},
+		{q.deactiveExpr(), s.DeactiveCount, &s.Deactive},
 	}
 	for _, b := range buckets {
 		// The counter already says the bucket is empty, so skip the scan that

@@ -80,8 +80,6 @@
   "somethingWentWrong": "مشکلی پیش آمد",
   "subscription": {
     "title": "اطلاعات سابسکریپشن",
-    "subId": "شناسه اشتراک",
-    "email": "ایمیل",
     "status": "وضعیت",
     "downloaded": "دانلود",
     "uploaded": "آپلود",
@@ -93,7 +91,21 @@
     "unlimited": "نامحدود",
     "noExpiry": "بدون انقضا",
     "copyAllConfigs": "کپی همه کانفیگ‌ها",
-    "copyAllConfigsCopied": "همه کانفیگ‌ها کپی شدند"
+    "copyAllConfigsCopied": "همه کانفیگ‌ها کپی شدند",
+    "daysLeft": "روز باقی‌مانده",
+    "expired": "منقضی شده",
+    "depleted": "حجم تمام شده",
+    "ofTotal": "از {total}",
+    "tabLinks": "اشتراک",
+    "tabApps": "اپلیکیشن‌ها",
+    "tabConfigs": "کانفیگ‌ها",
+    "scanTitle": "اسکن با گوشی",
+    "scanHint": "این کد را در اپلیکیشن VPN اسکن کنید تا اشتراک بدون کپی‌کردن لینک اضافه شود.",
+    "updateInterval": "به‌روزرسانی خودکار هر {hours} ساعت",
+    "support": "پشتیبانی",
+    "qrTitle": "اسکن. افزودن. اتصال.",
+    "qrHint": "با اپلیکیشن کلاینت اسکن کنید. این کد را به کسی ندهید.",
+    "saveQr": "ذخیره QR"
   },
   "menu": {
     "theme": "تم",
@@ -1204,8 +1216,14 @@
       "subTitleDesc": "عنوان نمایش داده شده در کلاینت VPN. از توکن‌های هویت کلاینت پشتیبانی می‌کند: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subSupportUrl": "آدرس پشتیبانی",
       "subSupportUrlDesc": "لینک پشتیبانی فنی که در کلاینت VPN نمایش داده می‌شود. از توکن‌های هویت کلاینت پشتیبانی می‌کند: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileMode": "صفحه پروفایل",
+      "subProfileModeDesc": "انتخاب کنید کدام لینک وب‌سایت در کلاینت VPN نمایش داده شود.",
+      "subProfileModeNone": "بدون لینک",
+      "subProfileModeBuiltin": "صفحه اشتراک داخلی",
+      "subProfileModeCustom": "وب‌سایت سفارشی",
+      "subProfileBuiltinWarning": "این صفحه آدرس‌های اشتراک و پیکربندی گره‌ها را آشکار می‌کند، حتی برای اشتراک‌های رمزگذاری‌شده Happ.",
       "subProfileUrl": "آدرس پروفایل",
-      "subProfileUrlDesc": "لینک وب‌سایت شما که در کلاینت VPN نمایش داده می‌شود. از توکن‌های هویت کلاینت پشتیبانی می‌کند: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileUrlDesc": "لینک وب‌سایت شما که در کلاینت VPN نمایش داده می‌شود. از توکن‌های هویت کلاینت پشتیبانی می‌کند: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}. برای عدم نمایش لینک وب‌سایت در کلاینت VPN، این فیلد را خالی بگذارید.",
       "subAnnounce": "اعلان",
       "subAnnounceDesc": "متن اعلانی که در کلاینت VPN نمایش داده می‌شود. از توکن‌های هویت کلاینت پشتیبانی می‌کند: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subThemeDir": "پوشه قالب صفحه اشتراک",
@@ -1249,8 +1267,8 @@
       "externalTrafficInformEnableDesc": "به API خارجی در هر به‌روزرسانی ترافیک اطلاع بده.",
       "externalTrafficInformURI": "لینک اطلاع رسانی خارجی مصرف ترافیک",
       "externalTrafficInformURIDesc": "ترافیک های مصرفی به این لینک هم ارسال می شود",
-      "restartXrayOnClientDisable": "ری‌استارت Xray بعد از غیرفعال‌سازی خودکار",
-      "restartXrayOnClientDisableDesc": "وقتی کاربر به‌صورت خودکار به‌دلیل اتمام زمان یا ترافیک غیرفعال می‌شود، Xray ری‌استارت شود.",
+      "restartXrayOnClientDisable": "ری‌استارت Xray پس از غیرفعال‌سازی کلاینت",
+      "restartXrayOnClientDisableDesc": "وقتی دیگر به کاربر سرویس داده نمی‌شود — غیرفعال شدن خودکار به‌خاطر اتمام زمان یا محدودیت ترافیک، یا غیرفعال/حذف دستی — Xray ری‌استارت شود تا اتصال‌های فعالش بسته شوند.",
       "fragment": "فرگمنت",
       "fragmentDesc": "فعال کردن فرگمنت برای بسته‌ی نخست تی‌ال‌اس",
       "fragmentSett": "تنظیمات فرگمنت",
@@ -2426,7 +2444,8 @@
       "disableSuccess": "✅ {{ .Email }} : با موفقیت غیرفعال شد.",
       "askToAddUserId": "پیکربندی شما یافت نشد!\r\nلطفاً از مدیر خود بخواهید که شناسه کاربر تلگرام خود را در پیکربندی (های) خود استفاده کند.\r\n\r\nشناسه کاربری شما: <code>{{ .TgUserID }}</code>",
       "chooseClient": "یک مشتری برای ورودی {{ .Inbound }} انتخاب کنید",
-      "chooseInbound": "یک ورودی انتخاب کنید"
+      "chooseInbound": "یک ورودی انتخاب کنید",
+      "qrCodeForClient": "کد QR برای کاربر {{ .Email }}:"
     }
   },
   "discord": {

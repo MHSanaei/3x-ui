@@ -13,10 +13,13 @@ import (
 // process. It only covers the sections Xray can reload at runtime: inbounds,
 // outbounds and routing rules/balancers.
 type HotDiff struct {
-	RemovedInboundTags  []string
-	AddedInbounds       [][]byte
-	RemovedUsers        []UserOp
-	AddedUsers          []UserOp
+	RemovedInboundTags []string
+	AddedInbounds      [][]byte
+	RemovedUsers       []UserOp
+	AddedUsers         []UserOp
+	// DroppedClients are emails an inbound that survives the change stopped
+	// serving, including the protocols diffInboundUsers will not diff.
+	DroppedClients      []UserOp
 	RemovedOutboundTags []string
 	AddedOutbounds      [][]byte
 	RoutingConfig       []byte // full new routing section; nil when unchanged
@@ -28,6 +31,27 @@ type UserOp struct {
 	Protocol string
 	Email    string
 	User     map[string]any
+}
+
+// DropsUsers reports users removed without being re-added under the same tag:
+// a disable or a delete, where an edit re-adds the email with new values.
+func (d *HotDiff) DropsUsers() bool {
+	if len(d.DroppedClients) > 0 {
+		return true
+	}
+	if len(d.RemovedUsers) == 0 {
+		return false
+	}
+	readded := make(map[string]struct{}, len(d.AddedUsers))
+	for _, u := range d.AddedUsers {
+		readded[u.Tag+"\x00"+u.Email] = struct{}{}
+	}
+	for _, u := range d.RemovedUsers {
+		if _, ok := readded[u.Tag+"\x00"+u.Email]; !ok {
+			return true
+		}
+	}
+	return false
 }
 
 // Empty reports whether the diff contains no operations.
@@ -125,6 +149,9 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			logger.Debug("hot diff: inbound [", oldIb.Tag, "] carries a reverse-tagged client, forcing a full restart instead of a hot swap")
 			return false
 		}
+		if exists {
+			diff.DroppedClients = append(diff.DroppedClients, droppedClients(oldIb, newIb)...)
+		}
 		if exists && diffInboundUsers(oldIb, newIb, diff) {
 			continue
 		}
@@ -172,6 +199,26 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 		diff.AddedInbounds = append(diff.AddedInbounds, raw)
 	}
 	return true
+}
+
+// droppedClients lists the emails an inbound present in both configs stopped
+// serving, whatever its protocol: settings.clients is the shape they all share.
+func droppedClients(oldIb, newIb *InboundConfig) []UserOp {
+	oldClients, _, ok := splitSettingsClients(oldIb.Settings)
+	if !ok {
+		return nil
+	}
+	newClients, _, ok := splitSettingsClients(newIb.Settings)
+	if !ok {
+		return nil
+	}
+	var dropped []UserOp
+	for email := range oldClients {
+		if _, still := newClients[email]; !still {
+			dropped = append(dropped, UserOp{Tag: newIb.Tag, Protocol: newIb.Protocol, Email: email})
+		}
+	}
+	return dropped
 }
 
 var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}}
