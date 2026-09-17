@@ -437,8 +437,24 @@ jobs:
           path: ${{ runner.temp }}/claude-execution-output.json
           if-no-files-found: ignore
           retention-days: 7
-      - name: Fail if the analysis posted no reply
+      # A refused credential ends the action with exit 0, so the step below cannot
+      # tell it from a reply that landed: the transcript is the only place it appears.
+      - name: Report an analysis the credential refused
+        id: refused
         if: ${{ !cancelled() }}
+        env:
+          TRANSCRIPT: ${{ runner.temp }}/claude-execution-output.json
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          [ -f "$TRANSCRIPT" ] || exit 0
+          jq -e 'any(.[]; .type == "result" and ((.api_error_status // 0) == 401 or (.api_error_status // 0) == 403))' "$TRANSCRIPT" >/dev/null 2>&1 \
+            || jq -e 'any(.[]; ((.error // "") | test("^(oauth_|authentication_|invalid_api_key)")))' "$TRANSCRIPT" >/dev/null 2>&1 \
+            || exit 0
+          echo "skipped=true" >> "$GITHUB_OUTPUT"
+          echo "::warning::No analysis of #${ISSUE}: the Claude credential was refused, so this issue was not examined."
+      - name: Fail if the analysis posted no reply
+        if: ${{ !cancelled() && steps.refused.outputs.skipped != 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
