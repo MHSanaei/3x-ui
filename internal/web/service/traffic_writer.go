@@ -23,6 +23,8 @@ type trafficWriteRequest struct {
 	done  chan error
 }
 
+type serializedTxContextKey struct{}
+
 var (
 	twMu     sync.Mutex
 	twQueue  chan *trafficWriteRequest
@@ -125,8 +127,19 @@ func runTrafficWriter(ctx context.Context, queue chan *trafficWriteRequest, done
 // timeout. Apply runtime changes after this returns.
 func runSerializedTx(fn func(tx *gorm.DB) error) error {
 	return submitTrafficWrite(func() error {
-		return database.GetDB().Transaction(fn)
+		return database.GetDB().Transaction(func(tx *gorm.DB) error {
+			ctx := context.WithValue(tx.Statement.Context, serializedTxContextKey{}, true)
+			return fn(tx.WithContext(ctx))
+		})
 	})
+}
+
+func isSerializedTx(tx *gorm.DB) bool {
+	if tx == nil || tx.Statement == nil || tx.Statement.Context == nil {
+		return false
+	}
+	active, _ := tx.Statement.Context.Value(serializedTxContextKey{}).(bool)
+	return active
 }
 
 func safeApply(fn func() error) (err error) {

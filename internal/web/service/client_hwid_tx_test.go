@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,8 +15,6 @@ import (
 
 var errInjectedHwidDelete = errors.New("injected client_hwids delete failure")
 
-// Only the trim is poisoned, so the limit update that precedes it still lands
-// and the rollback has something to undo.
 func failHwidDeletes(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	if err := db.Callback().Delete().Before("gorm:delete").Register("t:hwid:fail", func(tx *gorm.DB) {
@@ -38,10 +37,8 @@ func seedHwids(t *testing.T, db *gorm.DB, subID string, n int) {
 	rows := make([]model.ClientHwid, 0, n)
 	for i := range n {
 		rows = append(rows, model.ClientHwid{
-			SubID:     subID,
-			HwidHash:  fmt.Sprintf("%s-hash-%d", subID, i),
-			FirstSeen: now,
-			LastSeen:  now + int64(i),
+			SubID: subID, HwidHash: fmt.Sprintf("%s-hash-%d", subID, i),
+			FirstSeen: now, LastSeen: now + int64(i),
 		})
 	}
 	if err := db.Create(&rows).Error; err != nil {
@@ -49,89 +46,173 @@ func seedHwids(t *testing.T, db *gorm.DB, subID string, n int) {
 	}
 }
 
-func assertLimitUnchanged(t *testing.T, db *gorm.DB, email string, want int) {
+func assertHwidState(t *testing.T, db *gorm.DB, email string, limit, devices int) {
 	t.Helper()
 	var rec model.ClientRecord
 	if err := db.Where("email = ?", email).First(&rec).Error; err != nil {
 		t.Fatalf("reload client: %v", err)
 	}
-	if rec.LimitHwid != want {
-		t.Fatalf("limit_hwid = %d, want %d: the limit update was not rolled back", rec.LimitHwid, want)
+	if rec.LimitHwid != limit {
+		t.Fatalf("limit_hwid = %d, want %d", rec.LimitHwid, limit)
+	}
+	var n int64
+	if err := db.Model(&model.ClientHwid{}).Where("sub_id = ?", rec.SubID).Count(&n).Error; err != nil {
+		t.Fatalf("count client_hwids: %v", err)
+	}
+	if n != int64(devices) {
+		t.Fatalf("client_hwids = %d, want %d", n, devices)
 	}
 }
 
-// Create, Update and BulkCreate all pass nil, so a failed trim used to commit
-// the new limit anyway and leave the subscription over it.
 func TestSetClientLimitHwidRollsBackFailedTrim(t *testing.T) {
 	initClientHwidTestDB(t)
 	db := database.GetDB()
-
 	rec := seedHwidClient(t, 5)
 	seedHwids(t, db, rec.SubID, 3)
 	failHwidDeletes(t, db)
 
-	svc := &ClientService{}
-	if err := svc.setClientLimitHwidByEmail(nil, rec.Email, 1); !errors.Is(err, errInjectedHwidDelete) {
+	err := (&ClientService{}).setClientLimitHwidByEmail(rec.Email, 1)
+	if !errors.Is(err, errInjectedHwidDelete) {
 		t.Fatalf("want errInjectedHwidDelete, got: %v", err)
 	}
-
-	assertLimitUnchanged(t, db, rec.Email, 5)
-
-	var n int64
-	if err := db.Model(&model.ClientHwid{}).Count(&n).Error; err != nil {
-		t.Fatalf("count client_hwids: %v", err)
-	}
-	if n != 3 {
-		t.Fatalf("client_hwids = %d, want 3", n)
-	}
+	assertHwidState(t, db, rec.Email, 5, 3)
 }
 
-// BulkAdjust used to hand down a bare handle, which commits per statement just
-// as nil did, so the guard cannot key on nil alone.
-func TestSetClientLimitHwidRollsBackWithBareHandle(t *testing.T) {
+func TestClientHwidTxRejectsUnserializedHandle(t *testing.T) {
 	initClientHwidTestDB(t)
 	db := database.GetDB()
-
-	if carriesOpenTx(db) {
-		t.Fatal("a bare handle was reported as an open transaction")
-	}
-
 	rec := seedHwidClient(t, 5)
-	seedHwids(t, db, rec.SubID, 3)
-	failHwidDeletes(t, db)
-
 	svc := &ClientService{}
-	if err := svc.setClientLimitHwidByEmail(db, rec.Email, 1); !errors.Is(err, errInjectedHwidDelete) {
-		t.Fatalf("want errInjectedHwidDelete, got: %v", err)
-	}
 
-	assertLimitUnchanged(t, db, rec.Email, 5)
-}
-
-// The whole guard hangs on this predicate, so pin the shapes it must tell
-// apart: no handle, a shared handle, and a handle that has begun work.
-func TestCarriesOpenTx(t *testing.T) {
-	initClientHwidTestDB(t)
-	db := database.GetDB()
-
-	if carriesOpenTx(nil) {
-		t.Fatal("nil was reported as an open transaction")
+	if err := svc.setClientLimitHwidByEmailTx(db, rec.Email, 1); !errors.Is(err, errClientHwidWriteNotSerialized) {
+		t.Fatalf("bare handle error = %v, want errClientHwidWriteNotSerialized", err)
 	}
-	if carriesOpenTx(db) {
-		t.Fatal("a bare handle was reported as an open transaction")
-	}
-	if carriesOpenTx(db.Session(&gorm.Session{})) {
-		t.Fatal("a session over a bare handle was reported as an open transaction")
-	}
-
-	seen := false
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		seen = carriesOpenTx(tx)
-		return nil
+	if err := runSerializedTx(func(tx *gorm.DB) error {
+		return svc.setClientLimitHwidByEmailTx(tx, rec.Email, 1)
 	}); err != nil {
-		t.Fatalf("transaction: %v", err)
+		t.Fatalf("serialized update: %v", err)
 	}
-	if !seen {
-		t.Fatal("inside a transaction the predicate returned false")
+	assertHwidState(t, db, rec.Email, 1, 0)
+}
+
+func TestBulkAdjustHwidRollsBackFailedTrim(t *testing.T) {
+	setupBulkDB(t)
+	db := database.GetDB()
+	rec := &model.ClientRecord{Email: "bulk-hwid@x", SubID: "bulk-sub", Enable: true, LimitHwid: 5}
+	if err := db.Create(rec).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	seedHwids(t, db, rec.SubID, 3)
+	failHwidDeletes(t, db)
+
+	limit := 1
+	res, _, err := (&ClientService{}).BulkAdjust(&InboundService{}, []string{rec.Email}, 0, 0, "", &limit, "")
+	if err != nil {
+		t.Fatalf("BulkAdjust: %v", err)
+	}
+	if len(res.Skipped) != 1 || res.Skipped[0].Reason != errInjectedHwidDelete.Error() {
+		t.Fatalf("skipped = %+v, want injected failure", res.Skipped)
+	}
+	assertHwidState(t, db, rec.Email, 5, 3)
+}
+
+func TestBulkCreateWithdrawsTombstoneWhenHwidTrimFails(t *testing.T) {
+	setupBulkDB(t)
+	StartTrafficWriter()
+	t.Cleanup(StopTrafficWriter)
+	db := database.GetDB()
+	const email = "reborn-bulk@x"
+	const subID = "reborn-bulk-sub"
+	tombstoneClientEmail(email)
+	t.Cleanup(func() { withdrawClientTombstones(email) })
+	seedHwids(t, db, subID, 3)
+	failHwidDeletes(t, db)
+	ib := mkInbound(t, 30441, model.VLESS, `{"clients":[]}`)
+
+	res, _, err := (&ClientService{}).BulkCreate(&InboundService{}, []ClientCreatePayload{{
+		Client: model.Client{
+			Email: email, SubID: subID, ID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", Enable: true,
+		},
+		InboundIds: []int{ib.Id}, LimitHwid: 1,
+	}})
+	if err != nil {
+		t.Fatalf("BulkCreate: %v", err)
+	}
+	if len(res.Skipped) != 1 || res.Skipped[0].Reason != errInjectedHwidDelete.Error() {
+		t.Fatalf("skipped = %+v, want injected HWID failure", res.Skipped)
+	}
+	if isClientEmailTombstoned(email) {
+		t.Fatal("live bulk-created client retained a delete tombstone")
+	}
+}
+
+func TestSetClientLimitHwidIsSerializedWithSyncInbound(t *testing.T) {
+	db := durablePostgresDB(t)
+	if err := db.Exec("TRUNCATE client_hwids, clients RESTART IDENTITY CASCADE").Error; err != nil {
+		t.Fatalf("reset tables: %v", err)
+	}
+	rec := seedHwidClient(t, 5)
+	seedHwids(t, db, rec.SubID, 3)
+	StartTrafficWriter()
+	t.Cleanup(StopTrafficWriter)
+
+	read := make(chan struct{})
+	release := make(chan struct{})
+	staleDone := make(chan error, 1)
+	go func() {
+		staleDone <- runSerializedTx(func(tx *gorm.DB) error {
+			var stale model.ClientRecord
+			if err := tx.Where("email = ?", rec.Email).First(&stale).Error; err != nil {
+				return err
+			}
+			close(read)
+			<-release
+			return tx.Save(&stale).Error
+		})
+	}()
+	<-read
+
+	limitDone := make(chan error, 1)
+	go func() { limitDone <- (&ClientService{}).setClientLimitHwidByEmail(rec.Email, 1) }()
+	time.Sleep(100 * time.Millisecond)
+	close(release)
+	if err := <-staleDone; err != nil {
+		t.Fatalf("stale SyncInbound write: %v", err)
+	}
+	if err := <-limitDone; err != nil {
+		t.Fatalf("set limit: %v", err)
+	}
+	assertHwidState(t, db, rec.Email, 1, 1)
+}
+
+func BenchmarkSetClientLimitHwidSerialized(b *testing.B) {
+	dbDir := b.TempDir()
+	b.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		b.Fatalf("InitDB: %v", err)
+	}
+	b.Cleanup(func() { _ = database.CloseDB() })
+	StartTrafficWriter()
+	b.Cleanup(StopTrafficWriter)
+	db := database.GetDB()
+	emails := make([]string, 100)
+	for i := range emails {
+		emails[i] = fmt.Sprintf("bench-%03d@x", i)
+		rec := &model.ClientRecord{Email: emails[i], SubID: fmt.Sprintf("bench-sub-%03d", i), Enable: true}
+		if err := db.Create(rec).Error; err != nil {
+			b.Fatalf("seed client: %v", err)
+		}
+	}
+	svc := &ClientService{}
+	for _, count := range []int{1, 100} {
+		b.Run(fmt.Sprintf("clients_%d", count), func(b *testing.B) {
+			for range b.N {
+				for i := range count {
+					if err := svc.setClientLimitHwidByEmail(emails[i], 2); err != nil {
+						b.Fatal(err)
+					}
+				}
+			}
+		})
 	}
 }

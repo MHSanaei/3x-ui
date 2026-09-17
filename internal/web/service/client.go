@@ -13,12 +13,9 @@ package service
 import (
 	"encoding/json"
 	"errors"
-	"reflect"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-
-	"gorm.io/gorm"
 )
 
 type ClientWithAttachments struct {
@@ -75,17 +72,6 @@ type ClientCreatePayload struct {
 }
 
 const sqlInChunk = 400
-
-// Reports a handle that already began a transaction, which a bare
-// database.GetDB() has not. gorm leaves a typed-nil committer behind a failed
-// Begin, so the nil check mirrors gorm's own in Commit/Rollback.
-func carriesOpenTx(tx *gorm.DB) bool {
-	if tx == nil || tx.Statement == nil || tx.Statement.ConnPool == nil {
-		return false
-	}
-	committer, ok := tx.Statement.ConnPool.(gorm.TxCommitter)
-	return ok && !reflect.ValueOf(committer).IsNil()
-}
 
 type clientPayloadWithHwid struct {
 	model.Client
