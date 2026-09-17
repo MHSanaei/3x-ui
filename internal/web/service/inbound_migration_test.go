@@ -197,7 +197,11 @@ func TestMigrationRequirements_SkipsLegacyZeroAddrTagCollision(t *testing.T) {
 	}
 
 	svc := InboundService{}
-	svc.MigrationRequirements()
+	// The cleanup shares a transaction with every other requirement, so a unique
+	// violation here rolls all of them back and only reaches the log.
+	if err := svc.MigrationRequirements(); err != nil {
+		t.Fatalf("MigrationRequirements: %v", err)
+	}
 
 	var got model.Inbound
 	if err := db.First(&got, legacy.Id).Error; err != nil {
