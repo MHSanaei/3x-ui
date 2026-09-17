@@ -300,6 +300,22 @@ func (s *OutboundSubscriptionService) RefreshAllEnabled() (int, error) {
 	return refreshed, nil
 }
 
+// sendServerHwid reports whether to attach our stable panel id to outbound
+// fetches. Shares the externalSubSendHwid opt-out with client external
+// links; missing row keeps the default (send) so donor sync works out box.
+func (s *OutboundSubscriptionService) sendServerHwid() bool {
+	db := database.GetDB()
+	if db == nil {
+		return true
+	}
+	var row model.Setting
+	if err := db.Where("key = ?", "externalSubSendHwid").First(&row).Error; err != nil {
+		return true
+	}
+	v := strings.TrimSpace(strings.ToLower(row.Value))
+	return v != "false" && v != "0" && v != "no" && v != "off"
+}
+
 // subscriptionFetchClient builds the HTTP client used to fetch a subscription.
 // A configured panel egress proxy dials the loopback SOCKS bridge (xray handles
 // the real egress), so its localhost dial must not be SSRF-blocked. A direct
@@ -372,6 +388,15 @@ func (s *OutboundSubscriptionService) fetchAndStore(sub *model.OutboundSubscript
 		userAgent = defaultOutboundSubscriptionUserAgent
 	}
 	req.Header.Set("User-Agent", userAgent)
+	// A 3x-ui donor with an HWID limit answers 404 when the header is
+	// empty (#6574, same as #6559 for client external links). Identify
+	// this panel with its stable guid unless the operator opted out.
+	if s.sendServerHwid() {
+		if guid, err := s.settingService.GetPanelGuid(); err == nil && guid != "" {
+			req.Header.Set("X-HWID", guid)
+			req.Header.Set("X-Device-OS", "3x-ui")
+		}
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
