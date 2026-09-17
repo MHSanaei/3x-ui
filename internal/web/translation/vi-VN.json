@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "Trình chỉnh sửa nâng cao",
       "subHappEditorListHint": "Mỗi dòng một quy tắc. Các trường khác của cấu hình được giữ nguyên.",
       "subHappEditorAdvancedHint": "Chỉnh sửa toàn bộ cấu hình JSON. Các thay đổi được đồng bộ với thẻ quy tắc cơ bản.",
-      "subHappEditorInvalidJson": "Nhập một đối tượng JSON. Các danh sách định tuyến, nếu có, phải là mảng chuỗi.",
+      "subHappEditorInvalidJson": "Nhập một đối tượng JSON. Các danh sách định tuyến, nếu có, phải là mảng chuỗi hoặc null.",
       "subHappEditorLoadInvalid": "Các quy tắc hiện tại không phải là liên kết định tuyến Happ hoặc cấu hình JSON hợp lệ.",
       "subHappEditorLoadRemote": "Không thể tải URL từ xa tại đây. Hãy dán liên kết định tuyến Happ hoặc cấu hình JSON trước.",
       "subHappEditorLoadOff": "Định tuyến đã bị tắt. Áp dụng một mẫu hoặc xóa các quy tắc định tuyến để tạo cấu hình.",

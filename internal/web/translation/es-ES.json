@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "Editor avanzado",
       "subHappEditorListHint": "Una regla por línea. Se conservan los demás campos del perfil.",
       "subHappEditorAdvancedHint": "Edita el perfil JSON completo. Los cambios se sincronizan con la pestaña de reglas básicas.",
-      "subHappEditorInvalidJson": "Introduce un objeto JSON. Las listas de enrutamiento, si existen, deben ser matrices de cadenas de texto.",
+      "subHappEditorInvalidJson": "Introduce un objeto JSON. Las listas de enrutamiento, si existen, deben ser matrices de cadenas de texto o null.",
       "subHappEditorLoadInvalid": "Las reglas actuales no son un enlace de enrutamiento de Happ ni un perfil JSON válidos.",
       "subHappEditorLoadRemote": "No se pueden cargar URL remotas aquí. Primero pega un enlace de enrutamiento de Happ o un perfil JSON.",
       "subHappEditorLoadOff": "El enrutamiento está desactivado. Aplica un preajuste o vacía las reglas de enrutamiento para crear un perfil.",

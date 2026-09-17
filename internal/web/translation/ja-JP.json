@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "詳細エディター",
       "subHappEditorListHint": "1 行に 1 つのルールを入力します。プロファイルのほかの項目は保持されます。",
       "subHappEditorAdvancedHint": "JSON プロファイル全体を編集します。変更は基本ルールタブと同期されます。",
-      "subHappEditorInvalidJson": "JSON オブジェクトを入力してください。ルーティングリストがある場合は、文字列の配列にする必要があります。",
+      "subHappEditorInvalidJson": "JSON オブジェクトを入力してください。ルーティングリストがある場合は、文字列の配列または null にする必要があります。",
       "subHappEditorLoadInvalid": "現在のルールは、有効な Happ ルーティングリンクまたは JSON プロファイルではありません。",
       "subHappEditorLoadRemote": "ここではリモート URL を読み込めません。先に Happ ルーティングリンクまたは JSON プロファイルを貼り付けてください。",
       "subHappEditorLoadOff": "ルーティングは無効です。プリセットを適用するか、ルーティングルールを空にしてプロファイルを作成してください。",

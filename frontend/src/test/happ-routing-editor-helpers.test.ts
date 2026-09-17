@@ -54,6 +54,30 @@ describe('Happ routing editor profile loading', () => {
     });
   });
 
+  it.each(['json', 'add', 'onadd'] as const)('preserves null lists in a %s profile', (format) => {
+    const nullableProfile = {
+      ...profile,
+      DirectSites: null,
+      DirectIp: null,
+      ProxySites: null,
+      ProxyIp: null,
+      BlockSites: null,
+      BlockIp: null,
+    };
+    const json = JSON.stringify(nullableProfile);
+    const source =
+      format === 'json'
+        ? json
+        : `happ://routing/${format}/${Buffer.from(json, 'utf8').toString('base64')}`;
+
+    expect(loadHappRouting(source)).toEqual({
+      success: true,
+      profile: nullableProfile,
+      mode: format === 'json' ? 'onadd' : format,
+      isNew: false,
+    });
+  });
+
   it('retains the existing new-profile flow only for an empty source', () => {
     expect(loadHappRouting(' \n ')).toEqual({
       success: true,
@@ -76,7 +100,11 @@ describe('Happ routing editor profile loading', () => {
   it.each([
     ['happ://routing/off', 'off'],
     ['https://example.com/rules', 'remote'],
-    ['http://example.com/rules', 'remote'],
+    [' \nHTTPS://example.com/rules\t ', 'remote'],
+    ['http://example.com/rules', 'invalid'],
+    ['https://', 'invalid'],
+    ['https://example.com/rules with spaces', 'invalid'],
+    ['https://example.com/rules\nsecond-line', 'invalid'],
     ['happ://routing/onadd/', 'invalid'],
     ['happ://routing/onadd/%invalid', 'invalid'],
     ['happ://routing/onadd/e3\n0=', 'invalid'],
@@ -107,7 +135,7 @@ describe('Happ routing editor JSON and output', () => {
     expect(Object.getPrototypeOf(parsed)).toBe(Object.prototype);
   });
 
-  it.each(['', '{', '[]', 'null', 'true', '42', '{"BlockIp":null}', '{"ProxySites":[{}]}'])(
+  it.each(['', '{', '[]', 'null', 'true', '42', '{"BlockIp":[null]}', '{"ProxySites":[{}]}'])(
     'rejects an invalid profile %s',
     (source) => {
       expect(parseHappRoutingJson(source)).toBeNull();

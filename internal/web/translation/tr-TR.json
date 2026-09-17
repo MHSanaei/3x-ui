@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "Gelişmiş düzenleyici",
       "subHappEditorListHint": "Her satıra bir kural yazın. Profilin diğer alanları korunur.",
       "subHappEditorAdvancedHint": "JSON profilinin tamamını düzenleyin. Değişiklikler temel kurallar sekmesiyle eşitlenir.",
-      "subHappEditorInvalidJson": "Bir JSON nesnesi girin. Yönlendirme listeleri varsa metin dizileri olmalıdır.",
+      "subHappEditorInvalidJson": "Bir JSON nesnesi girin. Yönlendirme listeleri varsa metin dizileri veya null olmalıdır.",
       "subHappEditorLoadInvalid": "Mevcut kurallar geçerli bir Happ yönlendirme bağlantısı veya JSON profili değil.",
       "subHappEditorLoadRemote": "Uzak URL'ler burada yüklenemez. Önce bir Happ yönlendirme bağlantısı veya JSON profili yapıştırın.",
       "subHappEditorLoadOff": "Yönlendirme devre dışı. Profil oluşturmak için bir hazır ayar uygulayın veya yönlendirme kurallarını temizleyin.",

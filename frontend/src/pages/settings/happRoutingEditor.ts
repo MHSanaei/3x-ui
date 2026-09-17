@@ -1,5 +1,6 @@
 import { HappRoutingProfileSchema, type HappRoutingProfile } from '@/schemas/happRouting';
 import { toBase64Utf8 } from './happPresets';
+import { isRemoteRoutingSource } from './subscriptionShared';
 
 export type HappRoutingMode = 'add' | 'onadd';
 export type HappRoutingListKey =
@@ -46,7 +47,7 @@ export function loadHappRouting(input: string): HappRoutingLoadResult {
     };
   }
   if (source === 'happ://routing/off') return { success: false, error: 'off' };
-  if (/^https?:\/\//i.test(source)) return { success: false, error: 'remote' };
+  if (isRemoteRoutingSource(source)) return { success: false, error: 'remote' };
 
   if (source.startsWith('{')) {
     const profile = parseHappRoutingJson(source);

@@ -25,6 +25,16 @@ const profile = {
   FutureSetting: { nested: [{ enabled: false, count: 0, text: '保留' }] },
 };
 
+const nullableProfile = {
+  ...profile,
+  DirectSites: null,
+  DirectIp: null,
+  ProxySites: null,
+  ProxyIp: null,
+  BlockSites: null,
+  BlockIp: null,
+};
+
 function routingLink(value: Record<string, unknown>, mode = 'onadd') {
   return `happ://routing/${mode}/${toBase64Utf8(JSON.stringify(value))}`;
 }
@@ -152,6 +162,54 @@ describe('Happ routing editor', () => {
     expect(generatedProfile()).toEqual(next);
   });
 
+  it.each(['Basic rules', 'Advanced editor'])(
+    'preserves untouched null lists when generating from %s',
+    (tab) => {
+      renderSettings(JSON.stringify(nullableProfile));
+      const dialog = openEditor();
+      expect(dialog.queryByRole('alert')).toBeNull();
+      expect(
+        dialog.getAllByRole('textbox').map((field) => (field as HTMLTextAreaElement).value),
+      ).toEqual(['', '', '', '', '', '']);
+
+      fireEvent.click(screen.getByRole('tab', { name: 'Advanced editor' }));
+      expect(JSON.parse(jsonEditor().state.doc.toString())).toEqual(nullableProfile);
+      fireEvent.click(screen.getByRole('tab', { name: tab }));
+      fireEvent.click(screen.getByRole('button', { name: 'Generate Deeplink' }));
+
+      expect(generatedProfile()).toEqual(nullableProfile);
+      expect(screen.queryByRole('dialog')).toBeNull();
+    },
+  );
+
+  it('replaces only the edited null list with rules', () => {
+    renderSettings(routingLink(nullableProfile, 'add'));
+    openEditor();
+    fireEvent.change(basicField('Direct Domains (Bypass)'), {
+      target: { value: 'domain:local.example\n' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Deeplink' }));
+
+    expect(routingRules().startsWith('happ://routing/add/')).toBe(true);
+    expect(generatedProfile()).toEqual({
+      ...nullableProfile,
+      DirectSites: ['domain:local.example'],
+    });
+  });
+
+  it('accepts setting a list to null in the advanced editor', () => {
+    renderSettings();
+    openEditor();
+    fireEvent.click(screen.getByRole('tab', { name: 'Advanced editor' }));
+    const next = { ...profile, DirectSites: null };
+    changeJson(JSON.stringify(next));
+    fireEvent.click(screen.getByRole('tab', { name: 'Basic rules' }));
+    expect(basicField('Direct Domains (Bypass)').value).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Deeplink' }));
+
+    expect(generatedProfile()).toEqual(next);
+  });
+
   it.each(['{"Name":', '{"DirectSites": [42]}'])(
     'retains invalid JSON %s until repaired',
     (invalid) => {
@@ -213,6 +271,7 @@ describe('Happ routing editor', () => {
 
   it.each([
     ['https://example.com/DEFAULT.DEEPLINK', 'Remote URLs cannot be loaded here'],
+    ['http://example.com/rules', 'not a valid Happ routing link'],
     ['happ://routing/off', 'Routing is disabled'],
     ['happ://routing/onadd/not-base64', 'not a valid Happ routing link'],
     ['{"BlockIp":42}', 'not a valid Happ routing link'],

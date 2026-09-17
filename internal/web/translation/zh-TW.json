@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "進階編輯器",
       "subHappEditorListHint": "每行一條規則。設定檔中的其他欄位會保留。",
       "subHappEditorAdvancedHint": "編輯完整的 JSON 設定檔。變更會與基礎規則分頁同步。",
-      "subHappEditorInvalidJson": "請輸入 JSON 物件。路由清單欄位（若存在）必須為字串陣列。",
+      "subHappEditorInvalidJson": "請輸入 JSON 物件。路由清單欄位（若存在）必須為字串陣列或 null。",
       "subHappEditorLoadInvalid": "目前的規則不是有效的 Happ 路由連結或 JSON 設定檔。",
       "subHappEditorLoadRemote": "此處無法載入遠端 URL。請先貼上 Happ 路由連結或 JSON 設定檔。",
       "subHappEditorLoadOff": "路由已停用。請套用預設或清空路由規則，以建立設定檔。",

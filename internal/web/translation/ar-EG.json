@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "المحرر المتقدم",
       "subHappEditorListHint": "قاعدة واحدة في كل سطر. تُحفظ حقول ملف التعريف الأخرى.",
       "subHappEditorAdvancedHint": "عدّل ملف تعريف JSON بالكامل. تتم مزامنة التغييرات مع علامة تبويب القواعد الأساسية.",
-      "subHappEditorInvalidJson": "أدخل كائن JSON. يجب أن تكون قوائم التوجيه، إن وُجدت، مصفوفات من السلاسل النصية.",
+      "subHappEditorInvalidJson": "أدخل كائن JSON. يجب أن تكون قوائم التوجيه، إن وُجدت، مصفوفات من السلاسل النصية أو null.",
       "subHappEditorLoadInvalid": "القواعد الحالية ليست رابط توجيه Happ صالحًا أو ملف تعريف JSON صالحًا.",
       "subHappEditorLoadRemote": "لا يمكن تحميل عناوين URL البعيدة هنا. الصق رابط توجيه Happ أو ملف تعريف JSON أولًا.",
       "subHappEditorLoadOff": "التوجيه معطّل. طبّق إعدادًا مسبقًا أو امسح قواعد التوجيه لإنشاء ملف تعريف.",

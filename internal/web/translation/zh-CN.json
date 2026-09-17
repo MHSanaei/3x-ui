@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "扩展编辑器",
       "subHappEditorListHint": "每行一条规则。配置中的其他字段会保留。",
       "subHappEditorAdvancedHint": "编辑完整的 JSON 配置。更改会与基础规则选项卡同步。",
-      "subHappEditorInvalidJson": "请输入 JSON 对象。路由列表字段（如存在）必须为字符串数组。",
+      "subHappEditorInvalidJson": "请输入 JSON 对象。路由列表字段（如存在）必须为字符串数组或 null。",
       "subHappEditorLoadInvalid": "当前规则不是有效的 Happ 路由链接或 JSON 配置。",
       "subHappEditorLoadRemote": "此处无法加载远程 URL。请先粘贴 Happ 路由链接或 JSON 配置。",
       "subHappEditorLoadOff": "路由已禁用。请应用预设或清空路由规则，以创建配置。",

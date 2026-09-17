@@ -1583,7 +1583,7 @@
       "subHappEditorAdvanced": "Editor avançado",
       "subHappEditorListHint": "Uma regra por linha. Os demais campos do perfil são preservados.",
       "subHappEditorAdvancedHint": "Edite o perfil JSON completo. As alterações são sincronizadas com a aba de regras básicas.",
-      "subHappEditorInvalidJson": "Insira um objeto JSON. As listas de roteamento, quando presentes, devem ser arrays de strings.",
+      "subHappEditorInvalidJson": "Insira um objeto JSON. As listas de roteamento, quando presentes, devem ser arrays de strings ou null.",
       "subHappEditorLoadInvalid": "As regras atuais não são um link de roteamento do Happ nem um perfil JSON válidos.",
       "subHappEditorLoadRemote": "URLs remotas não podem ser carregadas aqui. Primeiro cole um link de roteamento do Happ ou um perfil JSON.",
       "subHappEditorLoadOff": "O roteamento está desativado. Aplique uma predefinição ou limpe as regras de roteamento para criar um perfil.",
