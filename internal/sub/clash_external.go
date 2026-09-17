@@ -55,6 +55,12 @@ func (s *SubClashService) clashProxyFromExternal(rawLink, name string) map[strin
 		if flow, _ := settings["flow"].(string); flow != "" {
 			proxy["flow"] = flow
 		}
+		// Same gate as buildProxy for inbounds: without it a merged node
+		// carrying VLESS encryption (e.g. mlkem768 native) silently loses
+		// the field and times out (#6572).
+		if encryption, _ := settings["encryption"].(string); encryption != "" && encryption != "none" {
+			proxy["encryption"] = strings.TrimSpace(encryption)
+		}
 	case "trojan":
 		server := firstServer(settings)
 		if server == nil {
