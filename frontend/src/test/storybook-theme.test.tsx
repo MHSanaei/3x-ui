@@ -1,8 +1,8 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { afterEach, expect, test } from 'vitest';
 
 import { withTheme } from '../../.storybook/preview';
-import { ThemeProvider } from '@/hooks/useTheme';
+import { ThemeProvider, useTheme } from '@/hooks/useTheme';
 
 function Story() {
   return <div>Story</div>;
@@ -14,9 +14,37 @@ function StorybookTheme({ theme }: { theme: 'light' | 'dark' }) {
   > as Parameters<typeof withTheme>[1]);
 }
 
+function ThemeToggle() {
+  const { toggleTheme } = useTheme();
+  return <button onClick={toggleTheme}>toggle</button>;
+}
+
 afterEach(() => {
   document.body.className = '';
   document.documentElement.removeAttribute('data-theme');
+  document.documentElement.style.colorScheme = '';
+});
+
+// Without color-scheme the browser paints native scrollbars light inside dark
+// modals, e.g. the Edit Client body.
+test('native scrollbars follow the panel theme', () => {
+  const { getByRole } = render(
+    <ThemeProvider>
+      <ThemeToggle />
+    </ThemeProvider>,
+  );
+  expect(document.documentElement.style.colorScheme).toBe('dark');
+
+  fireEvent.click(getByRole('button'));
+  expect(document.documentElement.style.colorScheme).toBe('light');
+});
+
+test('native scrollbars follow the Storybook theme', () => {
+  const { rerender } = render(<StorybookTheme theme="light" />);
+  expect(document.documentElement.style.colorScheme).toBe('light');
+
+  rerender(<StorybookTheme theme="dark" />);
+  expect(document.documentElement.style.colorScheme).toBe('dark');
 });
 
 test('preserves unrelated body classes when applying the Storybook theme', () => {

@@ -58,6 +58,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "smtpTo": "",
     "smtpUsername": "",
     "subAnnounce": "",
+    "subCalendarExpireInclusive": false,
     "subCertFile": "",
     "subClashAutoDetect": false,
     "subClashEnable": false,
@@ -114,6 +115,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subListen": "",
     "subPath": "",
     "subPort": 1,
+    "subProfileMode": "",
     "subProfileUrl": "",
     "subRoutingRules": "",
     "subShowIdentityOnAllLinks": false,
@@ -213,6 +215,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "smtpTo": "",
     "smtpUsername": "",
     "subAnnounce": "",
+    "subCalendarExpireInclusive": false,
     "subCertFile": "",
     "subClashAutoDetect": false,
     "subClashEnable": false,
@@ -269,6 +272,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "subListen": "",
     "subPath": "",
     "subPort": 1,
+    "subProfileMode": "",
     "subProfileUrl": "",
     "subRoutingRules": "",
     "subShowIdentityOnAllLinks": false,
@@ -587,6 +591,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "alpn": [
       ""
     ],
+    "cipherSuites": "",
     "createdAt": 0,
     "echConfigList": "",
     "excludeFromSubTypes": [
@@ -632,6 +637,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "alpn": [
       ""
     ],
+    "cipherSuites": "",
     "echConfigList": "",
     "excludeFromSubTypes": [
       ""

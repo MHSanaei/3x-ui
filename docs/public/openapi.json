@@ -221,6 +221,9 @@
           "subAnnounce": {
             "type": "string"
           },
+          "subCalendarExpireInclusive": {
+            "type": "boolean"
+          },
           "subCertFile": {
             "type": "string"
           },
@@ -392,6 +395,9 @@
             "minimum": 1,
             "type": "integer"
           },
+          "subProfileMode": {
+            "type": "string"
+          },
           "subProfileUrl": {
             "type": "string"
           },
@@ -558,6 +564,7 @@
           "smtpTo",
           "smtpUsername",
           "subAnnounce",
+          "subCalendarExpireInclusive",
           "subCertFile",
           "subClashAutoDetect",
           "subClashEnable",
@@ -614,6 +621,7 @@
           "subListen",
           "subPath",
           "subPort",
+          "subProfileMode",
           "subProfileUrl",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",
@@ -868,6 +876,9 @@
           "subAnnounce": {
             "type": "string"
           },
+          "subCalendarExpireInclusive": {
+            "type": "boolean"
+          },
           "subCertFile": {
             "type": "string"
           },
@@ -1038,6 +1049,9 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "subProfileMode": {
+            "type": "string"
           },
           "subProfileUrl": {
             "type": "string"
@@ -1213,6 +1227,7 @@
           "smtpTo",
           "smtpUsername",
           "subAnnounce",
+          "subCalendarExpireInclusive",
           "subCertFile",
           "subClashAutoDetect",
           "subClashEnable",
@@ -1269,6 +1284,7 @@
           "subListen",
           "subPath",
           "subPort",
+          "subProfileMode",
           "subProfileUrl",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",
@@ -2285,6 +2301,9 @@
             },
             "type": "array"
           },
+          "cipherSuites": {
+            "type": "string"
+          },
           "createdAt": {
             "format": "int64",
             "type": "integer"
@@ -2418,6 +2437,7 @@
           "address",
           "allowInsecure",
           "alpn",
+          "cipherSuites",
           "createdAt",
           "echConfigList",
           "excludeFromSubTypes",
@@ -2461,6 +2481,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "cipherSuites": {
+            "type": "string"
           },
           "echConfigList": {
             "type": "string"
@@ -2588,6 +2611,7 @@
         "required": [
           "allowInsecure",
           "alpn",
+          "cipherSuites",
           "echConfigList",
           "excludeFromSubTypes",
           "finalMask",
@@ -11252,6 +11276,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -11346,6 +11371,7 @@
                     "alpn": [
                       ""
                     ],
+                    "cipherSuites": "",
                     "echConfigList": "",
                     "excludeFromSubTypes": [
                       ""
@@ -11443,6 +11469,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -11593,6 +11620,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "createdAt": 0,
                       "echConfigList": "",
                       "excludeFromSubTypes": [
@@ -11714,6 +11742,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "createdAt": 0,
                       "echConfigList": "",
                       "excludeFromSubTypes": [
@@ -11965,6 +11994,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "createdAt": 0,
                       "echConfigList": "",
                       "excludeFromSubTypes": [

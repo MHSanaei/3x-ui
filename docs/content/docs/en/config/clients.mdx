@@ -13,12 +13,12 @@ inbounds** at once, with per-client traffic accounting.
 | Field          | Applies to            | Meaning                                                            |
 | -------------- | --------------------- | ------------------------------------------------------------------ |
 | **Email**      | all                   | Unique identifier used for accounting and lookups.                 |
-| **ID (UUID)**  | VLESS, VMess          | The client credential.                                             |
-| **Password**   | Trojan, Shadowsocks   | The client credential.                                             |
+| **ID (UUID)**  | VLESS, VMess, TUIC    | The client credential.                                             |
+| **Password**   | Trojan, Shadowsocks, TUIC | The client credential.                                             |
 | **Auth**       | Hysteria2             | The client credential.                                             |
 | **Flow**       | VLESS                 | XTLS flow, e.g. `xtls-rprx-vision`.                                |
-| **Limit IP**   | all                   | Max simultaneous source IPs (enforced via Fail2ban).               |
-| **Total (GB)** | all                   | Traffic quota; the client is disabled when exhausted.              |
+| **Limit IP**   | all (except TUIC)     | Max simultaneous source IPs (enforced via Fail2ban).               |
+| **Total (GB)** | all (except TUIC)     | Traffic quota; the client is disabled when exhausted (for TUIC, limits are set at the inbound level). |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
 | **Reset**      | all                   | Auto-renew period in **days** (rolls the quota over).              |
 | **Telegram ID**| all                   | Links the client to a Telegram user for self-service/notifications.|
@@ -27,8 +27,8 @@ inbounds** at once, with per-client traffic accounting.
 | **Comment**    | all                   | Free-text note.                                                   |
 
 <Callout type="info">
-  Reaching the **traffic** or **expiry** limit disables the client; the panel can
-  restart Xray automatically when clients are auto-disabled
+  Reaching the **traffic** or **expiry** limit disables the client, and a client
+  disabled or deleted by hand counts too; the panel restarts Xray then
   (`restartXrayOnClientDisable`, on by default).
 </Callout>
 

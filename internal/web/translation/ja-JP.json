@@ -80,7 +80,6 @@
   "somethingWentWrong": "エラーが発生しました",
   "subscription": {
     "title": "サブスクリプション情報",
-    "subId": "サブスクリプションID",
     "status": "ステータス",
     "downloaded": "ダウンロード",
     "uploaded": "アップロード",
@@ -93,7 +92,20 @@
     "noExpiry": "期限なし",
     "copyAllConfigs": "すべての設定をコピー",
     "copyAllConfigsCopied": "すべての設定をコピーしました",
-    "email": "メール"
+    "daysLeft": "残り日数",
+    "expired": "期限切れ",
+    "depleted": "データ上限到達",
+    "ofTotal": "/ {total}",
+    "tabLinks": "サブスクリプション",
+    "tabApps": "アプリ",
+    "tabConfigs": "設定",
+    "scanTitle": "スマートフォンでスキャン",
+    "scanHint": "VPN アプリでこのコードをスキャンすると、リンクをコピーせずにサブスクリプションを追加できます。",
+    "updateInterval": "{hours} 時間ごとに自動更新",
+    "support": "サポート",
+    "qrTitle": "スキャン。インポート。接続。",
+    "qrHint": "クライアントアプリでスキャンしてください。このコードは他人に見せないでください。",
+    "saveQr": "QR を保存"
   },
   "menu": {
     "theme": "テーマ",
@@ -605,7 +617,7 @@
         "customSockopt": "カスタム sockopt",
         "addCustomOption": "カスタムオプション追加",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "暗号スイート",
         "autoOption": "自動",
         "minMaxVersion": "最小/最大バージョン",
         "rejectUnknownSni": "未知の SNI を拒否",
@@ -1199,8 +1211,14 @@
       "subTitleDesc": "VPNクライアントに表示されるタイトル。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
       "subSupportUrl": "サポートURL",
       "subSupportUrlDesc": "VPNクライアントに表示されるテクニカルサポートへのリンク。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
+      "subProfileMode": "プロフィールページ",
+      "subProfileModeDesc": "VPNクライアントに表示するWebサイトへのリンクを選択します。",
+      "subProfileModeNone": "リンクなし",
+      "subProfileModeBuiltin": "組み込みのサブスクリプションページ",
+      "subProfileModeCustom": "カスタムWebサイト",
+      "subProfileBuiltinWarning": "このページでは、Happで暗号化されたサブスクリプションも含め、サブスクリプションURLとノード設定が公開されます。",
       "subProfileUrl": "プロフィールURL",
-      "subProfileUrlDesc": "VPNクライアントに表示されるWebサイトへのリンク。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
+      "subProfileUrlDesc": "VPNクライアントに表示されるWebサイトへのリンク。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。空欄にすると、VPNクライアントにWebサイトへのリンクを表示しません。",
       "subAnnounce": "お知らせ",
       "subAnnounceDesc": "VPNクライアントに表示されるお知らせのテキスト。クライアント識別トークンをサポートします: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}。",
       "subThemeDir": "サブスクリプションテーマディレクトリ",
@@ -1244,8 +1262,8 @@
       "externalTrafficInformEnableDesc": "トラフィック更新ごとに外部 API に通知。",
       "externalTrafficInformURI": "外部トラフィック通知 URI",
       "externalTrafficInformURIDesc": "トラフィックの更新ごとに外部 API に通知します。",
-      "restartXrayOnClientDisable": "自動無効化後に Xray を再起動",
-      "restartXrayOnClientDisableDesc": "有効期限切れまたはトラフィック上限でクライアントが自動的に無効化されたとき、Xray を再起動します。",
+      "restartXrayOnClientDisable": "クライアント無効化後に Xray を再起動",
+      "restartXrayOnClientDisableDesc": "クライアントがサービス対象でなくなったとき（有効期限や通信量上限による自動無効化、または手動での無効化・削除）、接続を終わらせるため Xray を再起動します。",
       "fragment": "フラグメント",
       "fragmentDesc": "TLS helloパケットのフラグメントを有効にする",
       "fragmentSett": "設定",
@@ -1492,6 +1510,8 @@
           "note": "leastPing/leastLoad バランサーは常に burstObservatory を持ちます。このスイッチはプローブパラメータをカスタマイズします — オフにすると組み込みのデフォルトを使います。変更はパネルの再起動後に反映されます。"
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "個別情報設定 / ダミーノード",
       "subInfoNodeEnableDesc": "有効にすると、備考と残りの通信量/日数が上部の独立したSOCKSダミー構成として表示され、期限切れや通信量超過時はステータスのみが返されます。",
       "subExpiredTemplate": "期限切れテンプレート",
@@ -2412,7 +2432,8 @@
       "disableSuccess": "✅ {{ .Email }}：正常に無効化されました。",
       "askToAddUserId": "設定が見つかりませんでした！\r\n管理者に問い合わせて、設定にTelegramユーザーのChatIDを使用してください。\r\n\r\nあなたのユーザーChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "インバウンド {{ .Inbound }} のクライアントを選択",
-      "chooseInbound": "インバウンドを選択"
+      "chooseInbound": "インバウンドを選択",
+      "qrCodeForClient": "クライアント {{ .Email }} のQRコード:"
     }
   },
   "discord": {

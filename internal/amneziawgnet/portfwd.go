@@ -134,14 +134,11 @@ func desiredPeerTargets(inst amneziawg.Instance) map[string]netip.Addr {
 	return out
 }
 
-// desiredPortForwardKeys returns the full set of listener keys inst wants
-// right now: one tcpForward and one udpForward key per port in every peer's
-// ForwardedPorts spec, for every peer that also has a resolvable target
-// (see desiredPeerTargets) -- a key never exists without a target, so
-// Reconcile can always resolve one for any key it opens.
-func desiredPortForwardKeys(inst amneziawg.Instance) map[portForwardKey]struct{} {
-	out := map[portForwardKey]struct{}{}
+// forwardingPeers is the one gate a host listener comes from: no email, port
+// spec and resolvable target (see desiredPeerTargets), no socket.
+func forwardingPeers(inst amneziawg.Instance) []amneziawg.Peer {
 	targets := desiredPeerTargets(inst)
+	out := make([]amneziawg.Peer, 0, len(inst.Peers))
 	for _, p := range inst.Peers {
 		if p.Email == "" || p.ForwardedPorts == "" {
 			continue
@@ -149,12 +146,35 @@ func desiredPortForwardKeys(inst amneziawg.Instance) map[portForwardKey]struct{}
 		if _, ok := targets[p.Email]; !ok {
 			continue
 		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// desiredPortForwardKeys returns every listener key inst wants right now: one
+// tcpForward and one udpForward per forwarded port of the forwarding peers.
+func desiredPortForwardKeys(inst amneziawg.Instance) map[portForwardKey]struct{} {
+	out := map[portForwardKey]struct{}{}
+	for _, p := range forwardingPeers(inst) {
 		for _, port := range amneziawg.ExpandForwardedPorts(p.ForwardedPorts) {
 			out[portForwardKey{email: p.Email, port: port, proto: tcpForward}] = struct{}{}
 			out[portForwardKey{email: p.Email, port: port, proto: udpForward}] = struct{}{}
 		}
 	}
 	return out
+}
+
+// ForwardedPortOwner names the peer Reconcile opens a listener on port for --
+// the same peers and expansion as desiredPortForwardKeys, never a silent one.
+func ForwardedPortOwner(inst amneziawg.Instance, port int) (string, bool) {
+	for _, p := range forwardingPeers(inst) {
+		for _, candidate := range amneziawg.ExpandForwardedPorts(p.ForwardedPorts) {
+			if candidate == port {
+				return p.Email, true
+			}
+		}
+	}
+	return "", false
 }
 
 // Reconcile brings the supervisor's open listeners in line with what inst

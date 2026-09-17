@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { HttpUtil, Msg } from '@/utils';
 import { parseMsg } from '@/utils/zodValidate';
 import { keys } from '@/api/queryKeys';
+import { isOutboundProtocol } from '@/schemas/primitives';
 import {
   OutboundTrafficListSchema,
   OutboundTestResultListSchema,
@@ -25,20 +26,24 @@ function normalizeOutboundTestUrl(url: string) {
   return url || DEFAULT_TEST_URL;
 }
 
+// The core lowercases a protocol id and a transport name before resolving
+// either, so "WireGuard"/"KCP" still build a UDP handler a TCP dial misreports.
 export function isUdpOutbound(outbound: unknown): boolean {
   const o = outbound as
-    | { protocol?: string; streamSettings?: { network?: string } }
+    | { protocol?: unknown; streamSettings?: { network?: unknown } }
     | null
     | undefined;
-  const p = o?.protocol;
-  const n = o?.streamSettings?.network;
+  const rawNetwork = o?.streamSettings?.network;
+  const network = typeof rawNetwork === 'string' ? rawNetwork.toLowerCase() : '';
   return (
-    p === 'wireguard' ||
-    p === 'hysteria' ||
-    p === 'amneziawg' ||
-    n === 'hysteria' ||
-    n === 'kcp' ||
-    n === 'quic'
+    isOutboundProtocol(o, 'wireguard') ||
+    isOutboundProtocol(o, 'hysteria') ||
+    isOutboundProtocol(o, 'amneziawg') ||
+    network === 'hysteria' ||
+    network === 'kcp' ||
+    // The core resolves "kcp" and "mkcp" to the same mKCP transport.
+    network === 'mkcp' ||
+    network === 'quic'
   );
 }
 
@@ -386,10 +391,15 @@ export function useXraySetting(): UseXraySettingResult {
           index: number,
           tag: string,
         ) => {
-          const proto = ob?.protocol;
-          if (proto === 'blackhole' || proto === 'loopback' || ob?.tag === 'blocked') return;
+          if (
+            isOutboundProtocol(ob, 'blackhole') ||
+            isOutboundProtocol(ob, 'loopback') ||
+            ob?.tag === 'blocked'
+          ) {
+            return;
+          }
           // freedom ("direct") and dns aren't proxies — skip them in every mode.
-          if (proto === 'freedom' || proto === 'dns') return;
+          if (isOutboundProtocol(ob, 'freedom') || isOutboundProtocol(ob, 'dns')) return;
           if (kind === 'sub' && !tag) return;
           const toHttp = mode !== 'tcp' || isUdpOutbound(ob);
           if (kind === 'tpl') {

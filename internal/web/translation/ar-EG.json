@@ -80,7 +80,6 @@
   "somethingWentWrong": "حدث خطأ ما",
   "subscription": {
     "title": "معلومات الاشتراك",
-    "subId": "معرّف الاشتراك",
     "status": "الحالة",
     "downloaded": "التنزيل",
     "uploaded": "الرفع",
@@ -93,7 +92,20 @@
     "noExpiry": "بدون انتهاء",
     "copyAllConfigs": "نسخ جميع الإعدادات",
     "copyAllConfigsCopied": "تم نسخ جميع الإعدادات",
-    "email": "البريد"
+    "daysLeft": "الأيام المتبقية",
+    "expired": "منتهي الصلاحية",
+    "depleted": "نفدت البيانات",
+    "ofTotal": "من {total}",
+    "tabLinks": "الاشتراك",
+    "tabApps": "التطبيقات",
+    "tabConfigs": "الكونفيجات",
+    "scanTitle": "امسح بهاتفك",
+    "scanHint": "امسح هذا الرمز في تطبيق VPN لإضافة الاشتراك دون نسخ الرابط.",
+    "updateInterval": "تحديث تلقائي كل {hours} ساعة",
+    "support": "الدعم",
+    "qrTitle": "امسح. استورد. اتصل.",
+    "qrHint": "امسح الرمز بتطبيق العميل. لا تشارك هذا الرمز مع أحد.",
+    "saveQr": "حفظ QR"
   },
   "menu": {
     "theme": "الثيم",
@@ -584,7 +596,7 @@
         "customSockopt": "sockopt مخصص",
         "addCustomOption": "إضافة خيار مخصص",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "مجموعات التشفير",
         "autoOption": "تلقائي",
         "minMaxVersion": "إصدار أدنى/أقصى",
         "rejectUnknownSni": "رفض SNI غير معروف",
@@ -1199,8 +1211,14 @@
       "subTitleDesc": "العنوان اللي هيظهر في عميل VPN. يدعم رموز هوية العميل: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subSupportUrl": "رابط الدعم",
       "subSupportUrlDesc": "رابط الدعم الفني المعروض في عميل VPN. يدعم رموز هوية العميل: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileMode": "صفحة الملف الشخصي",
+      "subProfileModeDesc": "اختر رابط الموقع الإلكتروني الذي يظهر في عميل VPN.",
+      "subProfileModeNone": "بدون رابط",
+      "subProfileModeBuiltin": "صفحة الاشتراك المدمجة",
+      "subProfileModeCustom": "موقع إلكتروني مخصص",
+      "subProfileBuiltinWarning": "تكشف هذه الصفحة روابط الاشتراك وإعدادات العقد، بما في ذلك اشتراكات Happ المشفرة.",
       "subProfileUrl": "رابط الملف الشخصي",
-      "subProfileUrlDesc": "رابط لموقعك الإلكتروني يظهر في عميل VPN. يدعم رموز هوية العميل: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileUrlDesc": "رابط لموقعك الإلكتروني يظهر في عميل VPN. يدعم رموز هوية العميل: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}. اتركه فارغًا لعدم عرض رابط الموقع في عميل VPN.",
       "subAnnounce": "إعلان",
       "subAnnounceDesc": "نص الإعلان المعروض في عميل VPN. يدعم رموز هوية العميل: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subThemeDir": "مجلد قالب الاشتراك",
@@ -1244,8 +1262,8 @@
       "externalTrafficInformEnableDesc": "إخطار واجهة API خارجية بكل تحديث لحركة المرور.",
       "externalTrafficInformURI": "مسار تنبيه الترافيك الخارجي",
       "externalTrafficInformURIDesc": "تحديثات الترافيك هتتبعت للمسار ده.",
-      "restartXrayOnClientDisable": "إعادة تشغيل Xray بعد التعطيل التلقائي",
-      "restartXrayOnClientDisableDesc": "عند تعطيل العميل تلقائيا بسبب انتهاء الصلاحية أو حد حركة المرور، أعد تشغيل Xray.",
+      "restartXrayOnClientDisable": "إعادة تشغيل Xray بعد تعطيل العميل",
+      "restartXrayOnClientDisableDesc": "عندما يتوقف تقديم الخدمة للعميل — بتعطيل تلقائي بسبب انتهاء الصلاحية أو حد حركة المرور، أو بتعطيل أو حذف يدوي — أعد تشغيل Xray لإنهاء اتصالاته النشطة.",
       "fragment": "تجزئة",
       "fragmentDesc": "يفعل تجزئة لحزمة TLS hello.",
       "fragmentSett": "إعدادات التجزئة",
@@ -1492,6 +1510,8 @@
           "note": "تحمل موزّعات leastPing/leastLoad دائمًا burstObservatory. يخصّص هذا المفتاح معاملات probe — أوقفه لاستخدام الإعدادات الافتراضية المدمجة. تُطبَّق التغييرات بعد إعادة تشغيل اللوحة."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "تكوين معلومات منفصل / عقدة وهمية",
       "subInfoNodeEnableDesc": "عند التفعيل، يتم عرض الملاحظات وحركة المرور/الأيام المتبقية كتكوين SOCKS منفصل في الأعلى، وعند انتهاء الصلاحية أو نفاد البيانات يتم إرجاع تكوين الحالة فقط.",
       "subExpiredTemplate": "قالب انتهاء الصلاحية",
@@ -2412,7 +2432,8 @@
       "disableSuccess": "✅ {{ .Email }}: اتعطل بنجاح.",
       "askToAddUserId": "مافيش إعدادات ليك!\r\nاطلب من الأدمن يضيف الـ Telegram ChatID الخاص بيك في إعداداتك.\r\n\r\nالـ ChatID بتاعك: <code>{{ .TgUserID }}</code>",
       "chooseClient": "اختار عميل للإدخال {{ .Inbound }}",
-      "chooseInbound": "اختار الإدخال"
+      "chooseInbound": "اختار الإدخال",
+      "qrCodeForClient": "رمز QR للعميل {{ .Email }}:"
     }
   },
   "discord": {

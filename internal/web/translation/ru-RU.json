@@ -80,7 +80,6 @@
   "somethingWentWrong": "Что-то пошло не так",
   "subscription": {
     "title": "Информация о подписке",
-    "subId": "ID подписки",
     "status": "Статус",
     "downloaded": "Загружено",
     "uploaded": "Отправлено",
@@ -93,7 +92,20 @@
     "noExpiry": "Бессрочно",
     "copyAllConfigs": "Копировать все конфигурации",
     "copyAllConfigsCopied": "Все конфигурации скопированы",
-    "email": "Email"
+    "daysLeft": "Осталось дней",
+    "expired": "Истёк",
+    "depleted": "Трафик исчерпан",
+    "ofTotal": "из {total}",
+    "tabLinks": "Подписка",
+    "tabApps": "Приложения",
+    "tabConfigs": "Конфиги",
+    "scanTitle": "Сканируйте телефоном",
+    "scanHint": "Отсканируйте этот код в VPN-приложении, чтобы добавить подписку без копирования ссылки.",
+    "updateInterval": "Автообновление каждые {hours} ч",
+    "support": "Поддержка",
+    "qrTitle": "Сканируйте. Импортируйте. Подключайтесь.",
+    "qrHint": "Отсканируйте в клиентском приложении. Никому не показывайте этот код.",
+    "saveQr": "Сохранить QR"
   },
   "menu": {
     "theme": "Тема",
@@ -607,7 +619,7 @@
         "customSockopt": "Пользовательский sockopt",
         "addCustomOption": "Добавить опцию",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "Наборы шифров",
         "autoOption": "Авто",
         "minMaxVersion": "Мин/Макс версия",
         "rejectUnknownSni": "Отклонить неизвестный SNI",
@@ -1199,8 +1211,14 @@
       "subTitleDesc": "Название подписки, которое видит клиент в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subSupportUrl": "URL поддержки",
       "subSupportUrlDesc": "Ссылка на техническую поддержку, отображаемая в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileMode": "Страница профиля",
+      "subProfileModeDesc": "Выберите, какая ссылка на сайт будет отображаться в VPN-клиенте.",
+      "subProfileModeNone": "Без ссылки",
+      "subProfileModeBuiltin": "Встроенная страница подписки",
+      "subProfileModeCustom": "Свой сайт",
+      "subProfileBuiltinWarning": "Эта страница раскрывает URL-адреса подписок и конфигурации узлов, в том числе для зашифрованных подписок Happ.",
       "subProfileUrl": "URL профиля",
-      "subProfileUrlDesc": "Ссылка на ваш сайт, отображаемая в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
+      "subProfileUrlDesc": "Ссылка на ваш сайт, отображаемая в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}. Оставьте поле пустым, чтобы не отображать ссылку на сайт в VPN-клиенте.",
       "subAnnounce": "Объявление",
       "subAnnounceDesc": "Текст объявления, отображаемый в VPN-клиенте. Поддерживает токены идентификации клиента: {{EMAIL}}, {{ID}}, {{SHORT_ID}}, {{SUB_ID}}, {{TELEGRAM_ID}}.",
       "subThemeDir": "Каталог темы подписки",
@@ -1244,8 +1262,8 @@
       "externalTrafficInformEnableDesc": "Уведомлять внешний API при каждом обновлении трафика.",
       "externalTrafficInformURI": "URI информации о внешнем трафике",
       "externalTrafficInformURIDesc": "Обновления трафика отправляются на этот URI",
-      "restartXrayOnClientDisable": "Перезапускать Xray после автоотключения",
-      "restartXrayOnClientDisableDesc": "Когда клиент автоматически отключается из-за окончания срока действия или лимита трафика, перезапускать Xray.",
+      "restartXrayOnClientDisable": "Перезапускать Xray после отключения клиента",
+      "restartXrayOnClientDisableDesc": "Когда клиент перестаёт обслуживаться — автоматически (по сроку или лимиту трафика) или вручную — перезапускать Xray, чтобы его активные соединения оборвались.",
       "fragment": "Фрагментация",
       "fragmentDesc": "Включить фрагментацию TLS-хэндшейка",
       "fragmentSett": "Настройки фрагментации",
@@ -1492,6 +1510,8 @@
           "note": "Балансировщики leastPing/leastLoad всегда содержат burst-обсерваторию. Этот переключатель настраивает её параметры проб — выключите, чтобы использовать встроенные значения по умолчанию. Изменения применяются после перезапуска панели."
         }
       },
+      "subCalendarExpireInclusive": "Month-end subscription expiry display",
+      "subCalendarExpireInclusiveDesc": "Default off. For clients renewing on day 1 with a midnight cutoff in the panel timezone, report the previous month's last second in subscription expiry headers. Actual cutoff and renewals are unchanged. Clients use their own timezone and may consider the subscription expired one second early.",
       "subInfoNodeEnable": "Отдельный инфо-конфиг / фиктивный узел",
       "subInfoNodeEnableDesc": "Если включено, примечание и остаток трафика/дней отображаются отдельным SOCKS-конфигом вверху, а при истечении срока/трафика возвращается только статус.",
       "subExpiredTemplate": "Шаблон истекшей подписки",
@@ -2412,7 +2432,8 @@
       "disableSuccess": "✅ {{ .Email }}: Отключено успешно.",
       "askToAddUserId": "❌ Ваша конфигурация не найдена!\r\n💭 Пожалуйста, попросите администратора использовать ваш Telegram User ID в конфигурации.\r\n\r\n🆔 Ваш User ID: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Выберите клиента для входящего подключения {{ .Inbound }}",
-      "chooseInbound": "Выберите входящее подключение"
+      "chooseInbound": "Выберите входящее подключение",
+      "qrCodeForClient": "QR-код для клиента {{ .Email }}:"
     }
   },
   "discord": {

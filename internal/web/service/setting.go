@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/xlzd/gotp"
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -26,6 +25,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/totp"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray/dnsconf"
@@ -42,6 +42,13 @@ const (
 	DefaultSubTrafficDepletedTemplate = "🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}"
 	DefaultTrustedProxyCIDRs          = "127.0.0.1/32,::1/128"
 	maxRegexLength                    = 2048
+)
+
+// Built-in profile links expose the subscription URL and require an explicit opt-in.
+const (
+	SubProfileModeNone    = "none"
+	SubProfileModeBuiltin = "builtin"
+	SubProfileModeCustom  = "custom"
 )
 
 var defaultValueMap = map[string]string{
@@ -75,6 +82,7 @@ var defaultValueMap = map[string]string{
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
+	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
 	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
 	"timeLocation":                "Local",
@@ -100,6 +108,7 @@ var defaultValueMap = map[string]string{
 	"subClashUserAgentRegex":      "",
 	"subTitle":                    "",
 	"subSupportUrl":               "",
+	"subProfileMode":              SubProfileModeNone,
 	"subProfileUrl":               "",
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
@@ -297,6 +306,11 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		}
 	}
 
+	// A missing mode must still preserve URLs configured before modes existed.
+	if !keyMap["subProfileMode"] {
+		allSetting.SubProfileMode = ""
+	}
+	allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
 	return allSetting, nil
 }
 
@@ -654,7 +668,7 @@ func (s *SettingService) VerifyTwoFactorCode(code string) error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(token) == "" || !gotp.NewDefaultTOTP(token).Verify(strings.TrimSpace(code), time.Now().Unix()) {
+	if strings.TrimSpace(token) == "" || !totp.VerifyWithSkew(token, strings.TrimSpace(code), time.Now()) {
 		return common.NewError("invalid two factor code")
 	}
 	return nil
@@ -720,6 +734,10 @@ func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 
 func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
 	return s.getBool("subInfoNodeEnable")
+}
+
+func (s *SettingService) GetSubCalendarExpireInclusive() (bool, error) {
+	return s.getBool("subCalendarExpireInclusive")
 }
 
 func (s *SettingService) GetSubExpiredTemplate() (string, error) {
@@ -843,6 +861,34 @@ func (s *SettingService) GetSubSupportUrl() (string, error) {
 func (s *SettingService) GetSubProfileUrl() (string, error) {
 	value, err := s.getString("subProfileUrl")
 	return common.EnsureURLScheme(value), err
+}
+
+func (s *SettingService) GetSubProfileMode() (string, error) {
+	setting, err := s.getSetting("subProfileMode")
+	if err != nil && !database.IsNotFound(err) {
+		return SubProfileModeNone, err
+	}
+	if err == nil && setting.Value != "" {
+		return effectiveSubProfileMode(setting.Value, ""), nil
+	}
+	profileURL, err := s.getString("subProfileUrl")
+	if err != nil {
+		return SubProfileModeNone, err
+	}
+	return effectiveSubProfileMode("", profileURL), nil
+}
+
+func effectiveSubProfileMode(mode, profileURL string) string {
+	switch mode {
+	case SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
+		return mode
+	case "":
+		// Older settings have no mode; only an existing custom URL opts them in.
+		if strings.TrimSpace(profileURL) != "" {
+			return SubProfileModeCustom
+		}
+	}
+	return SubProfileModeNone
 }
 
 func (s *SettingService) GetSubAnnounce() (string, error) {
@@ -1443,6 +1489,12 @@ type SecretClears struct {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	switch allSetting.SubProfileMode {
+	case "", SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
+		allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
+	default:
+		return errors.New("subscription profile mode must be none, builtin, or custom")
+	}
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}

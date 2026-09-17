@@ -195,6 +195,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subAnnounce": {
         "type": "string"
       },
+      "subCalendarExpireInclusive": {
+        "type": "boolean"
+      },
       "subCertFile": {
         "type": "string"
       },
@@ -366,6 +369,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 1,
         "type": "integer"
       },
+      "subProfileMode": {
+        "type": "string"
+      },
       "subProfileUrl": {
         "type": "string"
       },
@@ -532,6 +538,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
+      "subCalendarExpireInclusive",
       "subCertFile",
       "subClashAutoDetect",
       "subClashEnable",
@@ -588,6 +595,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subListen",
       "subPath",
       "subPort",
+      "subProfileMode",
       "subProfileUrl",
       "subRoutingRules",
       "subShowIdentityOnAllLinks",
@@ -842,6 +850,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subAnnounce": {
         "type": "string"
       },
+      "subCalendarExpireInclusive": {
+        "type": "boolean"
+      },
       "subCertFile": {
         "type": "string"
       },
@@ -1012,6 +1023,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 65535,
         "minimum": 1,
         "type": "integer"
+      },
+      "subProfileMode": {
+        "type": "string"
       },
       "subProfileUrl": {
         "type": "string"
@@ -1187,6 +1201,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "smtpTo",
       "smtpUsername",
       "subAnnounce",
+      "subCalendarExpireInclusive",
       "subCertFile",
       "subClashAutoDetect",
       "subClashEnable",
@@ -1243,6 +1258,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subListen",
       "subPath",
       "subPort",
+      "subProfileMode",
       "subProfileUrl",
       "subRoutingRules",
       "subShowIdentityOnAllLinks",
@@ -2259,6 +2275,9 @@ export const SCHEMAS: Record<string, unknown> = {
         },
         "type": "array"
       },
+      "cipherSuites": {
+        "type": "string"
+      },
       "createdAt": {
         "format": "int64",
         "type": "integer"
@@ -2392,6 +2411,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "address",
       "allowInsecure",
       "alpn",
+      "cipherSuites",
       "createdAt",
       "echConfigList",
       "excludeFromSubTypes",
@@ -2435,6 +2455,9 @@ export const SCHEMAS: Record<string, unknown> = {
           "type": "string"
         },
         "type": "array"
+      },
+      "cipherSuites": {
+        "type": "string"
       },
       "echConfigList": {
         "type": "string"
@@ -2562,6 +2585,7 @@ export const SCHEMAS: Record<string, unknown> = {
     "required": [
       "allowInsecure",
       "alpn",
+      "cipherSuites",
       "echConfigList",
       "excludeFromSubTypes",
       "finalMask",
