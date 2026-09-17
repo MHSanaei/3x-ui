@@ -228,10 +228,25 @@ jobs:
           echo "skipped=true" >> "$GITHUB_OUTPUT"
           echo "::notice::No review of #${PR}: ${reason}."
           gh pr comment "$PR" --repo "$REPO" --body "No review ran on this head: ${reason}. Nothing in this pull request was examined. A maintainer can ask for one with \`@claude review\`."
+      # A refused credential ends the action with exit 0, so the step above never
+      # sees it: the transcript is the only place that refusal appears.
+      - name: Report a review the credential refused
+        id: refused
+        if: ${{ !cancelled() }}
+        env:
+          TRANSCRIPT: ${{ runner.temp }}/claude-execution-output.json
+        run: |
+          set -euo pipefail
+          [ -f "$TRANSCRIPT" ] || exit 0
+          jq -e 'any(.[]; .type == "result" and ((.api_error_status // 0) == 401 or (.api_error_status // 0) == 403))' "$TRANSCRIPT" >/dev/null 2>&1 \
+            || jq -e 'any(.[]; ((.error // "") | test("^(oauth_|authentication_|invalid_api_key)")))' "$TRANSCRIPT" >/dev/null 2>&1 \
+            || exit 0
+          echo "skipped=true" >> "$GITHUB_OUTPUT"
+          echo "::warning::No review of #${PR}: the Claude credential was refused, so nothing in this pull request was examined."
       # updated_at, not created_at: a re-review may edit its earlier comment.
       # --paginate prints one jq count per page, so the pages are summed.
       - name: Fail if the review posted nothing
-        if: ${{ !cancelled() && steps.pinned-sha.outcome == 'success' && steps.reviewed.outputs.done != 'true' && steps.throttled.outputs.skipped != 'true' }}
+        if: ${{ !cancelled() && steps.pinned-sha.outcome == 'success' && steps.reviewed.outputs.done != 'true' && steps.throttled.outputs.skipped != 'true' && steps.refused.outputs.skipped != 'true' }}
         env:
           HEAD_SHA: ${{ steps.pinned-sha.outputs.sha }}
           STARTED_AT: ${{ steps.started.outputs.at }}
