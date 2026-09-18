@@ -693,3 +693,111 @@ body.dark .ant-card:hover {
   .ant-tag:hover { transform: none; }
   .sidebar-command-trigger::after { display: none; }
 }
+
+
+/* ── Additional palettes ─────────────────────────────────────────────────── */
+
+/* Colorful: vivid violet + cyan + warm accent, while keeping M3 contrast. */
+body.theme-colorful {
+  --xui-primary: #7c3aed;
+  --xui-on-primary: #ffffff;
+  --xui-primary-container: #eadcff;
+  --xui-on-primary-container: #2d075e;
+  --xui-secondary: #0891b2;
+  --xui-surface: #fffaff;
+  --xui-surface-container-low: #faf5ff;
+  --xui-surface-container: #f3edff;
+  --xui-surface-container-high: #ebe3ff;
+  --xui-surface-container-highest: #e2d8ff;
+  --xui-on-surface: #21172f;
+  --xui-on-surface-variant: #574968;
+  --xui-outline: #817493;
+  --xui-outline-variant: #d0c4df;
+  --xui-state-hover: rgba(124,58,237,.08);
+  --xui-state-focus: rgba(8,145,178,.14);
+}
+
+body.theme-colorful::before {
+  background:
+    radial-gradient(circle at 8% 10%, rgba(124,58,237,.16), transparent 30%),
+    radial-gradient(circle at 92% 12%, rgba(6,182,212,.14), transparent 28%),
+    radial-gradient(circle at 52% 100%, rgba(245,158,11,.10), transparent 34%);
+}
+
+body.theme-colorful .ant-btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #0891b2) !important;
+  border-color: transparent !important;
+}
+
+body.theme-colorful .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4) !important;
+}
+
+body.theme-colorful .ant-progress-bg {
+  background: linear-gradient(90deg, #7c3aed, #06b6d4) !important;
+}
+
+body.theme-colorful .ant-tabs-tab-active {
+  background: linear-gradient(135deg, #eadcff, #dff8ff);
+}
+
+body.theme-colorful .ant-card:hover {
+  box-shadow:
+    0 4px 10px rgba(124,58,237,.10),
+    0 16px 38px rgba(8,145,178,.12) !important;
+}
+
+/* Blue-gray: calm slate surfaces with cool blue M3 accents. */
+body.theme-blue-gray {
+  --xui-primary: #8ab4f8;
+  --xui-on-primary: #08213f;
+  --xui-primary-container: #25476f;
+  --xui-on-primary-container: #d9e8ff;
+  --xui-secondary: #a9b8ca;
+  --xui-surface: #101722;
+  --xui-surface-container-low: #141e2b;
+  --xui-surface-container: #182333;
+  --xui-surface-container-high: #1e2c3f;
+  --xui-surface-container-highest: #26364b;
+  --xui-on-surface: #e8eef6;
+  --xui-on-surface-variant: #bac6d6;
+  --xui-outline: #8292a8;
+  --xui-outline-variant: #3c4b60;
+  --xui-error: #ffb4ab;
+  --xui-state-hover: rgba(138,180,248,.09);
+  --xui-state-focus: rgba(138,180,248,.14);
+}
+
+body.theme-blue-gray::before {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(96,165,250,.13), transparent 32%),
+    radial-gradient(circle at 92% 14%, rgba(129,140,248,.10), transparent 28%),
+    radial-gradient(circle at 50% 100%, rgba(148,163,184,.08), transparent 34%);
+  opacity: .7;
+}
+
+body.theme-blue-gray .ant-card,
+body.theme-blue-gray .ant-table,
+body.theme-blue-gray .ant-input,
+body.theme-blue-gray .ant-input-affix-wrapper,
+body.theme-blue-gray .ant-input-number,
+body.theme-blue-gray .ant-input-number-affix-wrapper,
+body.theme-blue-gray .ant-picker,
+body.theme-blue-gray .ant-select-selector,
+body.theme-blue-gray .ant-tree-select-selector {
+  background: var(--xui-surface-container) !important;
+}
+
+body.theme-blue-gray .ant-table-thead > tr > th {
+  background: var(--xui-surface-container-high) !important;
+}
+
+body.theme-blue-gray .ant-btn-primary {
+  color: #08213f !important;
+}
+
+body.theme-blue-gray .ant-card:hover {
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.24),
+    0 16px 38px rgba(28,65,105,.26) !important;
+}
