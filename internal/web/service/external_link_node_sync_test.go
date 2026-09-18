@@ -357,6 +357,41 @@ func TestPushExternalLinksHonoursTheCallersDeadline(t *testing.T) {
 	}
 }
 
+// TestApplyExternalLinkSyncKeepsAPositiveExpiryAndZeroMeansNever pins the one
+// field the wire cannot carry implicitly: 0 here means never, so it must not be
+// stored as the shared row's own value, and a real deadline must survive.
+func TestApplyExternalLinkSyncKeepsAPositiveExpiryAndZeroMeansNever(t *testing.T) {
+	_, ids := seedLibraryInbound(t, "assign-in-10", 22110, []model.Client{libraryClient("assign-l@x", "")})
+	clientId := ids["assign-l@x"]
+	payload := &runtime.ExternalLinkSync{
+		Links: []runtime.ExternalLinkSyncLink{
+			{Kind: model.ExternalLinkKindLink, Value: "trojan://assign-exp", Enable: true, ExpiryTime: 1893456000000},
+		},
+		Clients: []runtime.ExternalLinkSyncClient{{
+			Email: "assign-l@x",
+			Links: []runtime.ExternalLinkSyncAssignment{
+				{Kind: model.ExternalLinkKindLink, Value: "trojan://assign-exp", Enable: true, ExpiryTime: 1893456000000},
+			},
+		}},
+	}
+	if err := (&ClientService{}).ApplyExternalLinkSync(payload); err != nil {
+		t.Fatalf("apply a push with a deadline: %v", err)
+	}
+	resolved := resolveOneClient(t, clientId)
+	if len(resolved) != 1 || resolved[0].ExpiryTime != 1893456000000 {
+		t.Fatalf("resolved = %+v, want the pushed deadline preserved", resolved)
+	}
+
+	payload.Clients[0].Links[0].ExpiryTime = 0
+	if err := (&ClientService{}).ApplyExternalLinkSync(payload); err != nil {
+		t.Fatalf("re-apply a push with never: %v", err)
+	}
+	resolved = resolveOneClient(t, clientId)
+	if len(resolved) != 1 || resolved[0].ExpiryTime != 0 {
+		t.Fatalf("resolved = %+v, want never (0) preserved over the row's own deadline", resolved)
+	}
+}
+
 func countRows(t *testing.T, mdl any) int64 {
 	t.Helper()
 	var count int64
