@@ -17,6 +17,12 @@ export const keys = {
     root: () => ['sub-balancers'] as const,
     list: () => ['sub-balancers', 'list'] as const,
   },
+  links: {
+    root: () => ['links'] as const,
+    list: () => ['links', 'list'] as const,
+    targets: (linkId: number) => ['links', 'targets', linkId] as const,
+    client: (clientId: number) => ['links', 'client', clientId] as const,
+  },
   settings: {
     root: () => ['settings'] as const,
     all: () => ['settings', 'all'] as const,
