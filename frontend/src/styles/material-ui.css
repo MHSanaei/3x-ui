@@ -436,3 +436,260 @@ html[data-theme='ultra-dark'] body.dark {
   .ant-tabs-tab,
   .sidebar-command-trigger { transition: none; }
 }
+
+
+/* ── Premium motion / glass / ambient depth ─────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 8% 8%, color-mix(in srgb, var(--xui-primary) 10%, transparent), transparent 32%),
+    radial-gradient(circle at 92% 14%, color-mix(in srgb, #7c4dff 8%, transparent), transparent 28%),
+    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--xui-secondary) 7%, transparent), transparent 34%);
+  opacity: .9;
+}
+
+body.dark::before {
+  opacity: .55;
+}
+
+.ant-layout-content {
+  position: relative;
+  isolation: isolate;
+}
+
+.content-area {
+  position: relative;
+}
+
+.content-area::before {
+  content: "";
+  position: absolute;
+  inset: 8px 8px auto;
+  height: 180px;
+  pointer-events: none;
+  z-index: -1;
+  border-radius: 40px;
+  background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--xui-primary) 7%, transparent), transparent 70%);
+  filter: blur(18px);
+}
+
+.ant-card {
+  position: relative;
+  transition:
+    transform .28s cubic-bezier(.2,.8,.2,1),
+    box-shadow .28s cubic-bezier(.2,.8,.2,1),
+    border-color .2s ease,
+    background-color .2s ease !important;
+}
+
+.ant-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(120deg, rgba(255,255,255,.10), transparent 32%);
+  opacity: .45;
+}
+
+.ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,.08),
+    0 12px 30px rgba(0,0,0,.10) !important;
+  border-color: color-mix(in srgb, var(--xui-primary) 25%, var(--xui-outline-variant)) !important;
+}
+
+body.dark .ant-card:hover {
+  box-shadow:
+    0 4px 8px rgba(0,0,0,.24),
+    0 18px 42px rgba(0,0,0,.30) !important;
+}
+
+.ant-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.ant-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+}
+
+.ant-btn:hover::before { opacity: .06; }
+.ant-btn:active::before { opacity: .12; }
+
+.ant-btn-primary {
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--xui-primary) 25%, transparent) !important;
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--xui-primary) 30%, transparent) !important;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-input-number-affix-wrapper,
+.ant-picker,
+.ant-select-selector {
+  transition:
+    border-color .18s ease,
+    box-shadow .18s ease,
+    background-color .18s ease,
+    transform .18s ease !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-input-number-focused,
+.ant-picker-focused,
+.ant-select-focused .ant-select-selector {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--xui-primary) 14%, transparent),
+    0 4px 12px color-mix(in srgb, var(--xui-primary) 8%, transparent) !important;
+}
+
+.ant-table-wrapper {
+  border: 1px solid var(--xui-outline-variant);
+  box-shadow: var(--xui-elevation-1);
+}
+
+.ant-table-tbody > tr {
+  transition: background-color .16s ease, transform .16s ease;
+}
+
+.ant-table-tbody > tr:hover {
+  transform: translateX(2px);
+}
+
+.ant-dropdown,
+.ant-select-dropdown,
+.ant-picker-dropdown,
+.ant-popover,
+.ant-modal-wrap,
+.ant-drawer {
+  backdrop-filter: blur(14px);
+}
+
+.ant-dropdown-menu,
+.ant-select-dropdown,
+.ant-picker-panel-container,
+.ant-popover-inner {
+  border: 1px solid color-mix(in srgb, var(--xui-outline-variant) 80%, transparent);
+}
+
+.ant-modal-mask,
+.ant-drawer-mask {
+  backdrop-filter: blur(4px);
+  background: rgba(10, 8, 14, .32) !important;
+}
+
+.ant-modal .ant-modal-content,
+.ant-drawer .ant-drawer-content {
+  border: 1px solid color-mix(in srgb, var(--xui-outline-variant) 75%, transparent);
+}
+
+.ant-alert,
+.ant-notification-notice,
+.ant-message-notice-content {
+  box-shadow: var(--xui-elevation-2) !important;
+  border: 1px solid var(--xui-outline-variant);
+}
+
+.ant-tag {
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.ant-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,.08);
+}
+
+.ant-menu-item,
+.ant-menu-submenu-title {
+  transition:
+    background-color .18s ease,
+    color .18s ease,
+    transform .18s ease !important;
+}
+
+.ant-menu-item:hover,
+.ant-menu-submenu-title:hover {
+  transform: translateX(2px);
+}
+
+.sidebar-command-trigger {
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.04),
+    inset 0 1px 0 rgba(255,255,255,.16);
+}
+
+.sidebar-command-trigger::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -30%;
+  width: 35%;
+  height: 200%;
+  transform: rotate(20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.20), transparent);
+  opacity: 0;
+  transition: left .6s ease, opacity .2s ease;
+  pointer-events: none;
+}
+
+.sidebar-command-trigger:hover::after {
+  left: 105%;
+  opacity: 1;
+}
+
+.ant-tabs-ink-bar {
+  height: 3px !important;
+  border-radius: 999px;
+}
+
+.ant-progress-bg {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--xui-primary) 28%, transparent);
+}
+
+@keyframes xui-float-in {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ant-card,
+.ant-alert,
+.ant-table-wrapper {
+  animation: xui-float-in .28s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .ant-card,
+  .ant-alert,
+  .ant-table-wrapper { animation: none; }
+  .ant-card:hover,
+  .ant-btn-primary:hover,
+  .ant-table-tbody > tr:hover,
+  .ant-menu-item:hover,
+  .ant-menu-submenu-title:hover,
+  .ant-tag:hover { transform: none; }
+  .sidebar-command-trigger::after { display: none; }
+}
