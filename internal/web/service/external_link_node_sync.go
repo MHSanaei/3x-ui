@@ -144,9 +144,10 @@ func (s *ClientService) externalLinkSyncForClients(nodeID int, ids []int) (*runt
 	return sync, nil
 }
 
-// PushExternalLinksToNode hands one node the links its clients inherit. A
-// failure is logged, never returned: the next edit or reconcile re-pushes.
-func (s *ClientService) PushExternalLinksToNode(n *model.Node) {
+// PushExternalLinksToNode hands one node the links its clients inherit, bounded
+// by the caller's context: a reconcile that has already given up leaves the node
+// to its next sweep. A failure is logged, never returned for the same reason.
+func (s *ClientService) PushExternalLinksToNode(ctx context.Context, n *model.Node) {
 	if n == nil || n.Id <= 0 || !n.Enable {
 		return
 	}
@@ -159,7 +160,7 @@ func (s *ClientService) PushExternalLinksToNode(n *model.Node) {
 		logger.Warningf("external link sync: snapshot for node %s failed: %v", n.Name, err)
 		return
 	}
-	s.pushExternalLinkSync(mgr, n, payload)
+	s.pushExternalLinkSync(ctx, mgr, n, payload)
 }
 
 // PushExternalLinksToNodes fans out to every enabled node, a few at a time so
@@ -190,7 +191,7 @@ func (s *ClientService) PushExternalLinksToNodes() {
 		go func(node *model.Node, snapshot *runtime.ExternalLinkSync) {
 			defer wg.Done()
 			defer func() { <-gate }()
-			s.pushExternalLinkSync(mgr, node, snapshot)
+			s.pushExternalLinkSync(context.Background(), mgr, node, snapshot)
 		}(n, payload)
 	}
 	wg.Wait()
@@ -225,10 +226,10 @@ func (s *ClientService) PushExternalLinksForEmails(nodeID int, emails []string) 
 		logger.Warningf("external link sync: snapshot for node %s failed: %v", node.Name, err)
 		return
 	}
-	s.pushExternalLinkSync(mgr, node, payload)
+	s.pushExternalLinkSync(context.Background(), mgr, node, payload)
 }
 
-func (s *ClientService) pushExternalLinkSync(mgr *runtime.Manager, n *model.Node, payload *runtime.ExternalLinkSync) {
+func (s *ClientService) pushExternalLinkSync(ctx context.Context, mgr *runtime.Manager, n *model.Node, payload *runtime.ExternalLinkSync) {
 	// An offline node is not reachable now: its next reconcile pushes the set,
 	// and waiting here would only make the operator's edit slow.
 	if n.Status != "online" {
@@ -239,9 +240,12 @@ func (s *ClientService) pushExternalLinkSync(mgr *runtime.Manager, n *model.Node
 		logger.Warningf("external link sync: remote lookup failed for %s: %v", n.Name, err)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), nodeClientPushTimeout)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	pushCtx, cancel := context.WithTimeout(ctx, nodeClientPushTimeout)
 	defer cancel()
-	if err := remote.PushExternalLinks(ctx, *payload); err != nil {
+	if err := remote.PushExternalLinks(pushCtx, *payload); err != nil {
 		logger.Warningf("external link sync: push to %s failed: %v", n.Name, err)
 	}
 }

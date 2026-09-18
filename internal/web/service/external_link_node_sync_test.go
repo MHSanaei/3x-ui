@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -277,6 +278,31 @@ func TestApplyExternalLinkSyncIgnoresAnEmptySnapshot(t *testing.T) {
 	}
 	if rows := countRows(t, &model.ExternalLink{}); rows != 1 {
 		t.Errorf("library rows after an empty push = %d, want 1", rows)
+	}
+}
+
+// TestPushExternalLinksHonoursTheCallersDeadline pins that a reconcile which has
+// already given up leaves the node to its next sweep instead of spending a fresh
+// push deadline of its own.
+func TestPushExternalLinksHonoursTheCallersDeadline(t *testing.T) {
+	setupBulkDB(t)
+	startSerializedWriter(t)
+	useTestRuntimeManager(t)
+	f := newFakeNodeHTTP(t)
+	ib := realNodeInbound(t, f, 53401, []model.Client{
+		{Email: "late@x", ID: "55555555-1111-2222-3333-444444444444", SubID: "sub-late", Enable: true},
+	})
+	node, err := (&NodeService{}).GetById(*ib.NodeID)
+	if err != nil || node == nil {
+		t.Fatalf("load the node behind inbound %d: %v", ib.Id, err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	(&ClientService{}).PushExternalLinksToNode(ctx, node)
+
+	if got := f.hitCount("/panel/api/links/sync"); got != 0 {
+		t.Fatalf("links/sync requests after the caller's deadline passed = %d, want 0", got)
 	}
 }
 
