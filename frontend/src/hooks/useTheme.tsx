@@ -7,7 +7,7 @@ const STORAGE_DARK = 'dark-mode';
 const STORAGE_ULTRA = 'isUltraDarkThemeEnabled';
 const STORAGE_THEME = 'xui-theme';
 
-export type ThemeMode = 'light' | 'dark' | 'colorful' | 'blue-gray';
+export type ThemeMode = 'light' | 'dark' | 'ultra-dark' | 'colorful' | 'blue-gray';
 
 function readBool(key: string, fallback: boolean): boolean {
   const raw = localStorage.getItem(key);
@@ -17,14 +17,14 @@ function readBool(key: string, fallback: boolean): boolean {
 
 function readThemeMode(): ThemeMode {
   const saved = localStorage.getItem(STORAGE_THEME);
-  if (saved === 'light' || saved === 'dark' || saved === 'colorful' || saved === 'blue-gray') return saved;
-  if (readBool(STORAGE_ULTRA, false)) return 'dark';
+  if (saved === 'light' || saved === 'dark' || saved === 'ultra-dark' || saved === 'colorful' || saved === 'blue-gray') return saved;
+  if (readBool(STORAGE_ULTRA, false)) return 'ultra-dark';
   return readBool(STORAGE_DARK, true) ? 'dark' : 'light';
 }
 
 function applyDom(mode: ThemeMode) {
-  const isDark = mode === 'dark' || mode === 'blue-gray';
-  document.body.classList.remove('dark', 'light', 'theme-colorful', 'theme-blue-gray');
+  const isDark = mode === 'dark' || mode === 'ultra-dark' || mode === 'blue-gray';
+  document.body.classList.remove('dark', 'light', 'theme-ultra-dark', 'theme-colorful', 'theme-blue-gray');
   document.body.classList.add(isDark ? 'dark' : 'light', 'theme-' + mode);
   document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', mode);
@@ -38,6 +38,26 @@ function applyDom(mode: ThemeMode) {
 const initialMode = readThemeMode();
 applyDom(initialMode);
 
+const ULTRA_DARK_TOKENS = {
+  colorBgBase: '#000000',
+  colorBgLayout: '#000000',
+  colorBgContainer: '#08090c',
+  colorBgElevated: '#111318',
+};
+const ULTRA_DARK_LAYOUT_TOKENS = {
+  bodyBg: '#000000',
+  headerBg: '#050507',
+  headerColor: '#ffffff',
+  footerBg: '#000000',
+  siderBg: '#050507',
+  triggerBg: '#1a1a1e',
+  triggerColor: '#ffffff',
+};
+const ULTRA_DARK_MENU_TOKENS = {
+  darkItemBg: '#050507',
+  darkSubMenuItemBg: '#0a0b0e',
+  darkPopupBg: '#111318',
+};
 const DARK_TOKENS = {
   colorBgBase: '#1a1b1f',
   colorBgLayout: '#1a1b1f',
@@ -119,6 +139,18 @@ const SHARED_STYLE_CONFIG = {
 } as const;
 
 export function buildAntdThemeConfig(mode: ThemeMode): ThemeConfig {
+  if (mode === 'ultra-dark') {
+    return {
+      ...SHARED_STYLE_CONFIG,
+      algorithm: antdTheme.darkAlgorithm,
+      token: { ...ULTRA_DARK_TOKENS, ...MATERIAL_TOKENS },
+      components: {
+        Layout: ULTRA_DARK_LAYOUT_TOKENS,
+        Menu: ULTRA_DARK_MENU_TOKENS,
+        Statistic: STATISTIC_TOKENS,
+      },
+    };
+  }
   if (mode === 'colorful') {
     return {
       ...SHARED_STYLE_CONFIG,
@@ -202,18 +234,18 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>(initialMode);
-  const isDark = mode === 'dark' || mode === 'blue-gray';
-  const isUltra = false;
+  const isDark = mode === 'dark' || mode === 'ultra-dark' || mode === 'blue-gray';
+  const isUltra = mode === 'ultra-dark';
 
   useLayoutEffect(() => {
     applyDom(mode);
     localStorage.setItem(STORAGE_THEME, mode);
     localStorage.setItem(STORAGE_DARK, String(isDark));
-    localStorage.setItem(STORAGE_ULTRA, 'false');
+    localStorage.setItem(STORAGE_ULTRA, String(isUltra));
   }, [mode, isDark]);
 
-  const toggleTheme = useCallback(() => setMode((v) => (v === 'light' ? 'dark' : 'light')), []);
-  const toggleUltra = useCallback(() => setMode((v) => (v === 'dark' ? 'blue-gray' : v)), []);
+  const toggleTheme = useCallback(() => setMode((v) => (v === 'light' ? 'dark' : v === 'dark' || v === 'ultra-dark' ? 'light' : v)), []);
+  const toggleUltra = useCallback(() => setMode((v) => (v === 'dark' ? 'ultra-dark' : v === 'ultra-dark' ? 'dark' : v)), []);
   const setThemeMode = useCallback((next: ThemeMode) => setMode(next), []);
 
   const antdThemeConfig = useMemo(() => buildAntdThemeConfig(mode), [mode]);
