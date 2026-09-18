@@ -153,7 +153,7 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 		t.Fatalf("updated HWID metadata missing: %#v", list)
 	}
 
-	if err := svc.setClientLimitHwidByEmail(nil, rec.Email, 1); err != nil {
+	if err := svc.setClientLimitHwidByEmail(rec.Email, 1); err != nil {
 		t.Fatalf("lower limit: %v", err)
 	}
 	var count int64
