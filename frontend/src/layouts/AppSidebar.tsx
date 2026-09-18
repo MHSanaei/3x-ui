@@ -22,6 +22,7 @@ import {
   MailOutlined,
   MenuOutlined,
   MessageOutlined,
+  MoonFilled,
   MoonOutlined,
   PushpinFilled,
   PushpinOutlined,
@@ -129,7 +130,7 @@ function ThemeCycleButton({
   onCycle: () => void;
   ariaLabel: string;
 }) {
-  const icon = mode === 'light' ? <SunOutlined /> : mode === 'dark' ? <MoonOutlined /> : mode === 'colorful' ? <TagsOutlined /> : <CloudServerOutlined />;
+  const icon = mode === 'light' ? <SunOutlined /> : mode === 'dark' ? <MoonOutlined /> : mode === 'ultra-dark' ? <MoonFilled /> : mode === 'colorful' ? <TagsOutlined /> : <CloudServerOutlined />;
   return (
     <button
       id={id}
@@ -197,7 +198,7 @@ export default function AppSidebar() {
     return () => window.clearTimeout(timer);
   }, [updateHovered]);
 
-  const currentTheme: 'light' | 'dark' = mode === 'dark' || mode === 'blue-gray' ? 'dark' : 'light';
+  const currentTheme: 'light' | 'dark' = mode === 'dark' || mode === 'ultra-dark' || mode === 'blue-gray' ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(
@@ -332,7 +333,8 @@ export default function AppSidebar() {
       pauseAnimationsUntilLeave(id);
       const next: Record<ThemeMode, ThemeMode> = {
         light: 'dark',
-        dark: 'colorful',
+        dark: 'ultra-dark',
+        'ultra-dark': 'colorful',
         colorful: 'blue-gray',
         'blue-gray': 'light',
       };
