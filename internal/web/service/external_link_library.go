@@ -152,26 +152,30 @@ func (s *ClientService) ExternalLinkLibrarySave(link *model.ExternalLink) error 
 		if link.CacheTTL > 0 {
 			fields["cache_ttl"] = link.CacheTTL
 		}
-		res := db.Model(&model.ExternalLink{}).Where("id = ?", link.Id).Updates(fields)
-		if res.Error != nil {
-			return res.Error
-		}
-		if res.RowsAffected == 0 {
-			return common.NewError("link not found")
-		}
-		s.PushExternalLinksToNodes()
-		return nil
+		// The marker rides the write's own transaction: a crash between the two
+		// would leave every node serving the library this edit replaced.
+		return db.Transaction(func(tx *gorm.DB) error {
+			res := tx.Model(&model.ExternalLink{}).Where("id = ?", link.Id).Updates(fields)
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected == 0 {
+				return common.NewError("link not found")
+			}
+			return (&NodeService{}).MarkAllNodesDirtyTx(tx)
+		})
 	}
 	var maxIndex int
 	if err := db.Model(&model.ExternalLink{}).Select("COALESCE(MAX(sort_index), -1)").Scan(&maxIndex).Error; err != nil {
 		return err
 	}
 	link.SortIndex = maxIndex + 1
-	if err := db.Create(link).Error; err != nil {
-		return err
-	}
-	s.PushExternalLinksToNodes()
-	return nil
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(link).Error; err != nil {
+			return err
+		}
+		return (&NodeService{}).MarkAllNodesDirtyTx(tx)
+	})
 }
 
 // ensureLinkEditable refuses to touch a row a master pushed: the next sync would
@@ -195,32 +199,32 @@ func (s *ClientService) ExternalLinkLibraryDelete(id int) error {
 	if err := ensureLinkEditable(database.GetDB(), id); err != nil {
 		return err
 	}
-	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("link_id = ?", id).Delete(&model.ExternalLinkAssignment{}).Error; err != nil {
 			return err
 		}
-		return tx.Where("id = ?", id).Delete(&model.ExternalLink{}).Error
+		if err := tx.Where("id = ?", id).Delete(&model.ExternalLink{}).Error; err != nil {
+			return err
+		}
+		return (&NodeService{}).MarkAllNodesDirtyTx(tx)
 	})
-	if err == nil {
-		s.PushExternalLinksToNodes()
-	}
-	return err
 }
 
 func (s *ClientService) ExternalLinkLibrarySetEnable(id int, enable bool) error {
 	if err := ensureLinkEditable(database.GetDB(), id); err != nil {
 		return err
 	}
-	res := database.GetDB().Model(&model.ExternalLink{}).Where("id = ?", id).
-		UpdateColumn("enable", enable)
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected == 0 {
-		return common.NewError("link not found")
-	}
-	s.PushExternalLinksToNodes()
-	return nil
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&model.ExternalLink{}).Where("id = ?", id).
+			UpdateColumn("enable", enable)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return common.NewError("link not found")
+		}
+		return (&NodeService{}).MarkAllNodesDirtyTx(tx)
+	})
 }
 
 // ExternalLinkLibraryReorder stores the given ids in the order they arrive.
@@ -234,19 +238,15 @@ func (s *ClientService) ExternalLinkLibraryReorder(ids []int) error {
 			return err
 		}
 	}
-	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+	return database.GetDB().Transaction(func(tx *gorm.DB) error {
 		for index, id := range ids {
 			if err := tx.Model(&model.ExternalLink{}).Where("id = ?", id).
 				UpdateColumn("sort_index", index).Error; err != nil {
 				return err
 			}
 		}
-		return nil
+		return (&NodeService{}).MarkAllNodesDirtyTx(tx)
 	})
-	if err == nil {
-		s.PushExternalLinksToNodes()
-	}
-	return err
 }
 
 // ExternalLinkAssign binds a library entry to every named target and returns
@@ -281,11 +281,8 @@ func (s *ClientService) ExternalLinkAssign(linkId int, req ExternalLinkAssignReq
 			}
 			affected++
 		}
-		return nil
+		return (&NodeService{}).MarkAllNodesDirtyTx(tx)
 	})
-	if err == nil {
-		s.PushExternalLinksToNodes()
-	}
 	return affected, err
 }
 
@@ -307,11 +304,8 @@ func (s *ClientService) ExternalLinkUnassign(linkId int, req ExternalLinkAssignR
 			}
 			deleted += int(res.RowsAffected)
 		}
-		return nil
+		return (&NodeService{}).MarkAllNodesDirtyTx(tx)
 	})
-	if err == nil {
-		s.PushExternalLinksToNodes()
-	}
 	return deleted, err
 }
 

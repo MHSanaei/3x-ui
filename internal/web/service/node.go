@@ -1037,6 +1037,25 @@ func (s *NodeService) MarkNodeDirty(id int) error {
 	return s.MarkNodeDirtyTx(database.GetDB(), id)
 }
 
+func (s *NodeService) MarkAllNodesDirty() error {
+	return s.MarkAllNodesDirtyTx(database.GetDB())
+}
+
+// MarkAllNodesDirtyTx is the whole-fleet form of the self-heal marker: a change
+// no inbound owns (the shared link library) has no per-inbound transaction to
+// ride, and a node that is down only converges because it was marked while down.
+func (s *NodeService) MarkAllNodesDirtyTx(tx *gorm.DB) error {
+	if tx == nil {
+		return errors.New("nil db transaction")
+	}
+	return tx.Model(model.Node{}).
+		Where("enable = ?", true).
+		Updates(map[string]any{
+			"config_dirty":    true,
+			"config_dirty_at": time.Now().UnixMilli(),
+		}).Error
+}
+
 func (s *NodeService) MarkNodeDirtyTx(tx *gorm.DB, id int) error {
 	if id <= 0 {
 		return nil

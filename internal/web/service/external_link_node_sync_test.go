@@ -281,6 +281,57 @@ func TestApplyExternalLinkSyncIgnoresAnEmptySnapshot(t *testing.T) {
 	}
 }
 
+// TestLibraryEditsDeferToTheReconcileSweep pins the propagation contract of a
+// library edit: it flags the nodes and returns, and the 5s sweep is what carries
+// the new set — the one path that also reaches a node that is down right now.
+func TestLibraryEditsDeferToTheReconcileSweep(t *testing.T) {
+	setupBulkDB(t)
+	startSerializedWriter(t)
+	useTestRuntimeManager(t)
+	f := newFakeNodeHTTP(t)
+	ib := realNodeInbound(t, f, 53501, []model.Client{
+		{Email: "defer@x", ID: "44444444-1111-2222-3333-444444444444", SubID: "sub-defer", Enable: true},
+	})
+	node, err := (&NodeService{}).GetById(*ib.NodeID)
+	if err != nil || node == nil {
+		t.Fatalf("load the node behind inbound %d: %v", ib.Id, err)
+	}
+	link := seedLibraryLink(t, model.ExternalLinkKindLink, "trojan://defer", "defer")
+
+	// The node hangs: an edit that waits for it is exactly what this defers.
+	f.setHold(true)
+	start := time.Now()
+	if err := (&ClientService{}).ExternalLinkLibrarySetEnable(link.Id, false); err != nil {
+		t.Fatalf("disable the link: %v", err)
+	}
+	if elapsed := time.Since(start); elapsed >= nodeClientPushTimeout {
+		t.Fatalf("the edit took %v against a hanging node: it waited instead of marking", elapsed)
+	}
+	if got := f.hitCount("/panel/api/links/sync"); got != 0 {
+		t.Fatalf("links/sync requests made by the edit = %d, want 0: the sweep carries it", got)
+	}
+	fresh, err := (&NodeService{}).GetById(node.Id)
+	if err != nil {
+		t.Fatalf("reload node: %v", err)
+	}
+	if !fresh.ConfigDirty {
+		t.Fatal("the edit left the node clean: nothing would ever converge it")
+	}
+
+	// The sweep, on the node's next tick, is what the edit is deferring to.
+	f.setHold(false)
+	rt, err := runtime.GetManager().RemoteFor(fresh)
+	if err != nil {
+		t.Fatalf("remote for node: %v", err)
+	}
+	if err := (&InboundService{}).ReconcileNode(context.Background(), rt, fresh); err != nil {
+		t.Fatalf("reconcile node: %v", err)
+	}
+	if got := f.hitCount("/panel/api/links/sync"); got != 1 {
+		t.Fatalf("links/sync requests during the reconcile = %d, want 1", got)
+	}
+}
+
 // TestPushExternalLinksHonoursTheCallersDeadline pins that a reconcile which has
 // already given up leaves the node to its next sweep instead of spending a fresh
 // push deadline of its own.

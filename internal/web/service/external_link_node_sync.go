@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"strings"
-	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -161,40 +160,6 @@ func (s *ClientService) PushExternalLinksToNode(ctx context.Context, n *model.No
 		return
 	}
 	s.pushExternalLinkSync(ctx, mgr, n, payload)
-}
-
-// PushExternalLinksToNodes fans out to every enabled node, a few at a time so
-// one hanging node cannot outlast an operator's request.
-func (s *ClientService) PushExternalLinksToNodes() {
-	mgr := runtime.GetManager()
-	if mgr == nil {
-		return
-	}
-	nodes, err := (&NodeService{}).GetAll()
-	if err != nil {
-		logger.Warningf("external link sync: node list failed: %v", err)
-		return
-	}
-	var wg sync.WaitGroup
-	gate := make(chan struct{}, nodeFanoutConcurrency)
-	for _, n := range nodes {
-		if n == nil || !n.Enable {
-			continue
-		}
-		payload, err := s.ExternalLinkSyncForNode(n.Id)
-		if err != nil {
-			logger.Warningf("external link sync: snapshot for node %s failed: %v", n.Name, err)
-			continue
-		}
-		wg.Add(1)
-		gate <- struct{}{}
-		go func(node *model.Node, snapshot *runtime.ExternalLinkSync) {
-			defer wg.Done()
-			defer func() { <-gate }()
-			s.pushExternalLinkSync(context.Background(), mgr, node, snapshot)
-		}(n, payload)
-	}
-	wg.Wait()
 }
 
 // PushExternalLinksForEmails re-pushes just the clients one operation touched,
