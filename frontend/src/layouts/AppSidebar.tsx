@@ -22,7 +22,6 @@ import {
   MailOutlined,
   MenuOutlined,
   MessageOutlined,
-  MoonFilled,
   MoonOutlined,
   PushpinFilled,
   PushpinOutlined,
