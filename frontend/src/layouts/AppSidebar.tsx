@@ -40,6 +40,7 @@ import {
 import { HttpUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import type { ThemeMode } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
 import './AppSidebar.css';
@@ -120,18 +121,16 @@ function VersionBadge({ version, collapsed }: { version: string; collapsed?: boo
 
 function ThemeCycleButton({
   id,
-  isDark,
-  isUltra,
+  mode,
   onCycle,
   ariaLabel,
 }: {
   id: string;
-  isDark: boolean;
-  isUltra: boolean;
+  mode: ThemeMode;
   onCycle: () => void;
   ariaLabel: string;
 }) {
-  const icon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
+  const icon = mode === 'light' ? <SunOutlined /> : mode === 'dark' ? <MoonOutlined /> : mode === 'colorful' ? <TagsOutlined /> : <CloudServerOutlined />;
   return (
     <button
       id={id}
@@ -162,7 +161,7 @@ function saveSidebarPinned(pinned: boolean) {
 
 export default function AppSidebar() {
   const { t } = useTranslation();
-  const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
+  const { mode, setThemeMode } = useTheme();
   const { open: openCommandPalette } = useCommandPalette();
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
@@ -199,7 +198,7 @@ export default function AppSidebar() {
     return () => window.clearTimeout(timer);
   }, [updateHovered]);
 
-  const currentTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
+  const currentTheme: 'light' | 'dark' = mode === 'dark' || mode === 'blue-gray' ? 'dark' : 'light';
   const panelVersion = window.X_UI_CUR_VER || '';
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(
@@ -332,17 +331,15 @@ export default function AppSidebar() {
   const cycleTheme = useCallback(
     (id: string) => {
       pauseAnimationsUntilLeave(id);
-      if (!isDark) {
-        toggleTheme();
-        if (isUltra) toggleUltra();
-      } else if (!isUltra) {
-        toggleUltra();
-      } else {
-        toggleUltra();
-        toggleTheme();
-      }
+      const next: Record<ThemeMode, ThemeMode> = {
+        light: 'dark',
+        dark: 'colorful',
+        colorful: 'blue-gray',
+        'blue-gray': 'light',
+      };
+      setThemeMode(next[mode]);
     },
-    [isDark, isUltra, toggleTheme, toggleUltra],
+    [mode, setThemeMode],
   );
 
   return (
@@ -378,8 +375,7 @@ export default function AppSidebar() {
               <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
               <ThemeCycleButton
                 id="theme-cycle"
-                isDark={isDark}
-                isUltra={isUltra}
+                mode={mode}
                 onCycle={() => cycleTheme('theme-cycle')}
                 ariaLabel={t('menu.theme')}
               />
@@ -454,8 +450,7 @@ export default function AppSidebar() {
             <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
             <ThemeCycleButton
               id="theme-cycle-drawer"
-              isDark={isDark}
-              isUltra={isUltra}
+              mode={mode}
               onCycle={() => cycleTheme('theme-cycle-drawer')}
               ariaLabel={t('menu.theme')}
             />
