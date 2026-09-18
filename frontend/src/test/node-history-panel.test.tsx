@@ -44,11 +44,15 @@ describe('NodeHistoryPanel', () => {
       '512',
       '200',
     ]);
-    expect(plots.map((p) => p.scales.y.range())).toEqual([
-      [0, 100],
-      [0, 100],
-      [0, 512 * 1.1],
-      [0, 200 * 1.1],
-    ]);
+    // The plotted scale is published by an effect, so it lands a tick after the
+    // series render: assert it once it is there, not on the empty-data fallback.
+    await waitFor(() =>
+      expect(plots.map((p) => p.scales.y.range())).toEqual([
+        [0, 100],
+        [0, 100],
+        [0, 512 * 1.1],
+        [0, 200 * 1.1],
+      ]),
+    );
   });
 });
