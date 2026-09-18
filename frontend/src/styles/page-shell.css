@@ -6,8 +6,8 @@
 .nodes-page,
 .groups-page,
 .api-docs-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
+  --bg-page: var(--xui-surface);
+  --bg-card: var(--xui-surface-container);
   min-height: 100vh;
   background: var(--bg-page);
 }
@@ -20,8 +20,8 @@
 .nodes-page.is-dark,
 .groups-page.is-dark,
 .api-docs-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
+  --bg-page: var(--xui-surface);
+  --bg-card: var(--xui-surface-container);
 }
 
 .index-page.is-dark.is-ultra,
@@ -32,8 +32,8 @@
 .nodes-page.is-dark.is-ultra,
 .groups-page.is-dark.is-ultra,
 .api-docs-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
+  --bg-page: var(--xui-surface);
+  --bg-card: var(--xui-surface-container);
 }
 
 .index-page .ant-layout,
@@ -190,20 +190,20 @@ body.dark .ant-dropdown-menu-item-divider {
 /* Hosts page shares the standard panel page shell (background, transparent
    layout, content padding, summary-card padding). */
 .hosts-page {
-  --bg-page: #e6e8ec;
-  --bg-card: #ffffff;
+  --bg-page: var(--xui-surface);
+  --bg-card: var(--xui-surface-container);
   min-height: 100vh;
   background: var(--bg-page);
 }
 
 .hosts-page.is-dark {
-  --bg-page: #1a1b1f;
-  --bg-card: #23252b;
+  --bg-page: var(--xui-surface);
+  --bg-card: var(--xui-surface-container);
 }
 
 .hosts-page.is-dark.is-ultra {
-  --bg-page: #000;
-  --bg-card: #101013;
+  --bg-page: var(--xui-surface);
+  --bg-card: var(--xui-surface-container);
 }
 
 .hosts-page .ant-layout,
