@@ -1037,10 +1037,6 @@ func (s *NodeService) MarkNodeDirty(id int) error {
 	return s.MarkNodeDirtyTx(database.GetDB(), id)
 }
 
-func (s *NodeService) MarkAllNodesDirty() error {
-	return s.MarkAllNodesDirtyTx(database.GetDB())
-}
-
 // MarkAllNodesDirtyTx is the whole-fleet form of the self-heal marker: a change
 // no inbound owns (the shared link library) has no per-inbound transaction to
 // ride, and a node that is down only converges because it was marked while down.
