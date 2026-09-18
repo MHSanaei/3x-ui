@@ -57,43 +57,7 @@
   flex-shrink: 0;
 }
 
-.brand-actions .sidebar-pin,
-.brand-actions .sidebar-docs,
-.brand-actions .sidebar-donate,
-.brand-actions .sidebar-theme-cycle {
-  width: 26px;
-  height: 26px;
-}
 
-.sidebar-donate {
-  background: transparent;
-  border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ant-color-text-secondary);
-  text-decoration: none;
-  flex-shrink: 0;
-  transition:
-    background-color 0.2s,
-    transform 0.15s,
-    color 0.2s;
-}
-
-.sidebar-donate:hover,
-.sidebar-donate:focus-visible {
-  background-color: rgba(236, 72, 153, 0.12);
-  color: #ec4899;
-  transform: scale(1.08);
-  outline: none;
-}
-
-.sidebar-donate .anticon {
-  font-size: 16px;
-}
 
 .sidebar-docs {
   background: transparent;
@@ -167,7 +131,7 @@
   top: 12px;
   left: 12px;
   z-index: 1100;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--ant-color-primary);
   color: #fff;
   border: none;
   width: 40px;
