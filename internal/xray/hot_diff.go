@@ -221,7 +221,7 @@ func droppedClients(oldIb, newIb *InboundConfig) []UserOp {
 	return dropped
 }
 
-var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}}
+var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}}
 
 // diffInboundUsers emits per-user AlterInbound ops when two same-tag inbounds
 // differ only in settings.clients, so the handler (and its listener) survives.
