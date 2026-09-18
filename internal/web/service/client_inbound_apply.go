@@ -329,6 +329,9 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	if err != nil {
 		return false, err
 	}
+	if err := validateClientsRenewal(clients); err != nil {
+		return false, err
+	}
 
 	var settings map[string]any
 	err = json.Unmarshal([]byte(data.Settings), &settings)
@@ -657,6 +660,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 
 	clients, err := inboundSvc.GetClients(data)
 	if err != nil {
+		return false, err
+	}
+	if err := validateClientsRenewal(clients); err != nil {
 		return false, err
 	}
 
