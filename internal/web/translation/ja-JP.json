@@ -2299,6 +2299,7 @@
       "usageDesc": "クライアント使用量を表示: /usage メール",
       "inboundDesc": "インバウンド検索: /inbound 備考（管理者）",
       "restartDesc": "Xray コアを再起動（管理者）",
+      "broadcastDesc": "全クライアントへ一括送信（管理者）",
       "clearallDesc": "全クライアントのトラフィックをリセット（管理者）"
     },
     "messages": {
@@ -2355,6 +2356,15 @@
       "error_add_client": "⚠️ エラー:\n\n {{ .error }}",
       "using_default_value": "わかりました、デフォルト値を使用します。 😊",
       "incorrect_input": "入力が無効です。\nフレーズはスペースなしで続けて入力してください。\n正しい例: aaaaaa\n間違った例: aaa aaa 🚫",
+      "broadcastAskText": "📤 一括送信：クライアントに配信するメッセージを送ってください — テキスト、写真、動画、ファイル、アルバム全体も OK。",
+      "broadcastAlreadyRunning": "❗ 一括送信はすでに実行中です。完了までお待ちください。",
+      "broadcastNoRecipients": "❗ Telegram ID が紐付いたクライアントがいません。",
+      "broadcastPreview": "📤 このメッセージは {{ .Count }} 人の受信者に送信されます。送信しますか？",
+      "broadcastNotCopyable": "❗ このメッセージは一括送信にコピーできません。別のメッセージを送ってください。",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} 人の受信者はボットとの会話を開始していない（またはブロックしている）ため送信できません — Start を押すよう案内してください。",
+      "broadcastProgress": "📤 {{ .Total }} 人中 {{ .Sent }} 人に送信済み（失敗：{{ .Failed }}）\r\n",
+      "broadcastFinished": "✅ 一括送信が完了しました。\r\n👥 受信者：{{ .Total }}\r\n📨 送信済み：{{ .Sent }}\r\n🚫 失敗：{{ .Failed }}\r\n⏭ スキップ：{{ .Skipped }}\r\n⏱ 時間：{{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 一括送信をキャンセルしました。\r\n👥 受信者：{{ .Total }}\r\n📨 送信済み：{{ .Sent }}\r\n🚫 失敗：{{ .Failed }}\r\n⏭ スキップ：{{ .Skipped }}\r\n⏱ 時間：{{ .Time }}\r\n",
       "AreYouSure": "本当にいいですか？🤔",
       "SuccessResetTraffic": "📧 メール: {{ .ClientEmail }}\n🏁 結果: ✅ 成功",
       "FailedResetTraffic": "📧 メール: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ エラー: [ {{ .ErrorMessage }} ]",
@@ -2373,6 +2383,7 @@
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",
       "cancel": "❌ キャンセル",
+      "broadcastSend": "📤 送信",
       "cancelReset": "❌ リセットをキャンセル",
       "cancelIpLimit": "❌ IP制限をキャンセル",
       "confirmResetTraffic": "✅ トラフィックをリセットしますか？",
@@ -2413,6 +2424,9 @@
       "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート"
     },
     "answers": {
+      "broadcastStarted": "🚀 一括送信を開始しました。",
+      "broadcastCanceling": "🛑 現在の受信者の後に一括送信を停止します。",
+      "broadcastCanceled": "❌ 一括送信をキャンセルしました。",
       "successfulOperation": "✅ 成功！",
       "errorOperation": "❗ 操作エラー。",
       "getInboundsFailed": "❌ インバウンド情報の取得に失敗しました。",

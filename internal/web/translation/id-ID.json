@@ -2299,6 +2299,7 @@
       "usageDesc": "Lihat pemakaian klien: /usage email",
       "inboundDesc": "Cari inbound: /inbound nama (admin)",
       "restartDesc": "Mulai ulang inti Xray (admin)",
+      "broadcastDesc": "Kirim pesan ke semua klien (admin)",
       "clearallDesc": "Reset trafik semua klien (admin)"
     },
     "messages": {
@@ -2355,6 +2356,15 @@
       "error_add_client": "⚠️ Error:\n\n {{ .error }}",
       "using_default_value": "Oke, saya akan tetap menggunakan nilai default. 😊",
       "incorrect_input": "Masukan Anda tidak valid.\nFrasa harus berlanjut tanpa spasi.\nContoh benar: aaaaaa\nContoh salah: aaa aaa 🚫",
+      "broadcastAskText": "📡 Siaran: kirimkan pesan untuk dikirimkan ke klien Anda — teks, foto, video, file, atau satu album lengkap.",
+      "broadcastAlreadyRunning": "❗ Siaran sedang berjalan, tunggu hingga selesai.",
+      "broadcastNoRecipients": "❗ Tidak ada klien dengan ID Telegram yang terhubung.",
+      "broadcastPreview": "📤 Pesan ini akan dikirim ke {{ .Count }} penerima. Kirim?",
+      "broadcastNotCopyable": "❗ Pesan ini tidak bisa disalin untuk siaran. Kirim pesan lain.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} penerima belum pernah memulai bot (atau memblokirnya) dan tidak bisa dikirimi pesan — minta mereka menekan Start.",
+      "broadcastProgress": "📤 Terkirim {{ .Sent }} dari {{ .Total }} (gagal: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ Siaran selesai.\r\n👥 Penerima: {{ .Total }}\r\n📨 Terkirim: {{ .Sent }}\r\n🚫 Gagal: {{ .Failed }}\r\n⏭ Dilewati: {{ .Skipped }}\r\n⏱ Waktu: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 Siaran dibatalkan.\r\n👥 Penerima: {{ .Total }}\r\n📨 Terkirim: {{ .Sent }}\r\n🚫 Gagal: {{ .Failed }}\r\n⏭ Dilewati: {{ .Skipped }}\r\n⏱ Waktu: {{ .Time }}\r\n",
       "AreYouSure": "Apakah kamu yakin? 🤔",
       "SuccessResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ✅ Berhasil",
       "FailedResetTraffic": "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ❌ Gagal \n\n🛠️ Kesalahan: [ {{ .ErrorMessage }} ]",
@@ -2373,6 +2383,7 @@
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
       "cancel": "❌ Batal",
+      "broadcastSend": "📤 Kirim",
       "cancelReset": "❌ Batal Reset",
       "cancelIpLimit": "❌ Batal Batas IP",
       "confirmResetTraffic": "✅ Konfirmasi Reset Lalu Lintas?",
@@ -2413,6 +2424,9 @@
       "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut"
     },
     "answers": {
+      "broadcastStarted": "🚀 Siaran dimulai.",
+      "broadcastCanceling": "🛑 Siaran akan berhenti setelah penerima saat ini.",
+      "broadcastCanceled": "❌ Siaran dibatalkan.",
       "successfulOperation": "✅ Operasi berhasil!",
       "errorOperation": "❗ Kesalahan dalam operasi.",
       "getInboundsFailed": "❌ Gagal mendapatkan inbounds.",

@@ -2299,6 +2299,7 @@
       "usageDesc": "Показать трафик клиента: /usage email",
       "inboundDesc": "Поиск входящих: /inbound имя (админ)",
       "restartDesc": "Перезапустить ядро Xray (админ)",
+      "broadcastDesc": "Массовая рассылка всем клиентам (админ)",
       "clearallDesc": "Сбросить трафик всех клиентов (админ)"
     },
     "messages": {
@@ -2355,6 +2356,15 @@
       "error_add_client": "⚠️ Ошибка:\n\n {{ .error }}",
       "using_default_value": "Используется значение по умолчанию👌",
       "incorrect_input": "Ваш ввод недействителен.\nФразы должны быть непрерывными без пробелов.\nПравильный пример: aaaaaa\nНеправильный пример: aaa aaa 🚫",
+      "broadcastAskText": "📤 Рассылка: пришлите сообщение для ваших клиентов — текст, фото, видео, файл или целый альбом.",
+      "broadcastAlreadyRunning": "❗ Рассылка уже идёт, дождитесь её завершения.",
+      "broadcastNoRecipients": "❗ Нет клиентов с привязанным Telegram ID.",
+      "broadcastPreview": "📤 Это сообщение уйдёт {{ .Count }} получателям. Отправить?",
+      "broadcastNotCopyable": "❗ Это сообщение нельзя скопировать для рассылки. Пришлите другое.",
+      "broadcastUnreachable": "ℹ️ {{ .Count }} получателей ни разу не начинали диалог с ботом (или заблокировали его) — им нельзя написать. Попросите их нажать Start.",
+      "broadcastProgress": "📤 Отправлено {{ .Sent }} из {{ .Total }} (не доставлено: {{ .Failed }})\r\n",
+      "broadcastFinished": "✅ Рассылка завершена.\r\n👥 Получателей: {{ .Total }}\r\n📨 Доставлено: {{ .Sent }}\r\n🚫 Не доставлено: {{ .Failed }}\r\n⏭ Пропущено: {{ .Skipped }}\r\n⏱ Время: {{ .Time }}\r\n",
+      "broadcastCanceled": "🛑 Рассылка отменена.\r\n👥 Получателей: {{ .Total }}\r\n📨 Доставлено: {{ .Sent }}\r\n🚫 Не доставлено: {{ .Failed }}\r\n⏭ Пропущено: {{ .Skipped }}\r\n⏱ Время: {{ .Time }}\r\n",
       "AreYouSure": "Вы уверены? 🤔",
       "SuccessResetTraffic": "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ✅ Успешно",
       "FailedResetTraffic": "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ❌ Неудача \n\n🛠️ Ошибка: [ {{ .ErrorMessage }} ]",
@@ -2373,6 +2383,7 @@
     "buttons": {
       "closeKeyboard": "❌ Закрыть клавиатуру",
       "cancel": "❌ Отмена",
+      "broadcastSend": "📤 Отправить",
       "cancelReset": "❌ Отменить сброс",
       "cancelIpLimit": "❌ Отменить лимит IP",
       "confirmResetTraffic": "✅ Подтвердить сброс трафика?",
@@ -2413,6 +2424,9 @@
       "SortedTrafficUsageReport": "Отсортированный отчет об использовании трафика"
     },
     "answers": {
+      "broadcastStarted": "🚀 Рассылка запущена.",
+      "broadcastCanceling": "🛑 Рассылка остановится после текущего получателя.",
+      "broadcastCanceled": "❌ Рассылка отменена.",
       "successfulOperation": "✅ Успешно!",
       "errorOperation": "❗ Ошибка в операции.",
       "getInboundsFailed": "❌ Не удалось получить входящие подключения.",
