@@ -226,3 +226,30 @@ body.dark .ant-dropdown-menu-item-divider {
     padding: 8px;
   }
 }
+
+
+/* Material 3 page canvas */
+.content-area {
+  max-width: 1680px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.ov-page {
+  animation: xui-page-enter .22s ease-out;
+}
+
+@keyframes xui-page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ov-page { animation: none; }
+}
+
+.ov-rule {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--ant-color-border) 65%, transparent);
+  margin: 20px 0;
+}

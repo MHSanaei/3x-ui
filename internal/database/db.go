@@ -2708,13 +2708,24 @@ func InitDB(dbPath string) error {
 			return err
 		}
 
+		cacheMB := envInt("XUI_DB_CACHE_MB", 32)
+		mmapMB := envInt("XUI_DB_MMAP_MB", 256)
+		tempStore := "MEMORY"
+		if isLowResourceMode() {
+			// SQLite cache and mmap settings are per connection. Keeping them small
+			// prevents several concurrent panel requests from multiplying the
+			// process RSS on tiny VPS instances.
+			cacheMB = envInt("XUI_DB_CACHE_MB", 8)
+			mmapMB = envInt("XUI_DB_MMAP_MB", 64)
+			tempStore = "FILE"
+		}
 		pragmas := []string{
 			"PRAGMA journal_mode=" + journal,
 			"PRAGMA busy_timeout=10000",
 			"PRAGMA synchronous=" + sync,
-			fmt.Sprintf("PRAGMA cache_size=-%d", envInt("XUI_DB_CACHE_MB", 32)*1024),
-			fmt.Sprintf("PRAGMA mmap_size=%d", int64(envInt("XUI_DB_MMAP_MB", 256))*1024*1024),
-			"PRAGMA temp_store=MEMORY",
+			fmt.Sprintf("PRAGMA cache_size=-%d", cacheMB*1024),
+			fmt.Sprintf("PRAGMA mmap_size=%d", int64(mmapMB)*1024*1024),
+			"PRAGMA temp_store=" + tempStore,
 		}
 		for _, p := range pragmas {
 			if _, err := sqlDB.ExecContext(context.Background(), p); err != nil {
@@ -2735,6 +2746,10 @@ func InitDB(dbPath string) error {
 	default:
 		maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 8)
 		maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 4)
+		if isLowResourceMode() {
+			maxOpen = envInt("XUI_DB_MAX_OPEN_CONNS", 2)
+			maxIdle = envInt("XUI_DB_MAX_IDLE_CONNS", 1)
+		}
 	}
 	sqlDB.SetMaxOpenConns(maxOpen)
 	sqlDB.SetMaxIdleConns(maxIdle)
@@ -2864,6 +2879,11 @@ func sqliteSynchronous() string {
 	default:
 		return "FULL"
 	}
+}
+
+func isLowResourceMode() bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv("XUI_LOW_RESOURCE")))
+	return value == "1" || value == "true" || value == "yes" || value == "on"
 }
 
 func envInt(key string, def int) int {

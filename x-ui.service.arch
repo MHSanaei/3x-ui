@@ -1,7 +1,7 @@
 [Unit]
 Description=x-ui Service
-After=network.target
-Wants=network.target
+After=network-online.target
+Wants=network-online.target
 StartLimitIntervalSec=180
 StartLimitBurst=10
 
@@ -14,6 +14,22 @@ ExecStart=/usr/local/x-ui/x-ui
 ExecReload=/bin/kill -USR1 $MAINPID
 Restart=on-failure
 RestartSec=5s
+
+# Low-resource defaults: keep the Go runtime to one worker thread and
+# encourage earlier GC without imposing a hard memory OOM limit.
+Environment="GOMAXPROCS=1"
+Environment="GOMEMLIMIT=256MiB"
+Environment="GOGC=80"
+Environment="XUI_LOW_RESOURCE=true"
+CPUQuota=100%
+MemoryHigh=384M
+
+# Arch Linux/systemd tuning for a proxy panel with many concurrent connections.
+LimitNOFILE=1048576
+TasksMax=infinity
+OOMScoreAdjust=-100
+UMask=0027
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target

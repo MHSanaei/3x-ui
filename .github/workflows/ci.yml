@@ -173,6 +173,29 @@ jobs:
         with:
           version: latest
 
+  arch-linux:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Full Arch package upgrade
+        run: pacman -Syu --noconfirm
+      - name: Install Arch validation tools
+        run: pacman -S --noconfirm --needed bash shellcheck systemd
+      - name: Validate Arch installer scripts
+        run: |
+          bash -n install.sh
+          bash -n x-ui.sh
+          shellcheck --shell=bash --severity=error install.sh x-ui.sh
+      - name: Validate Arch systemd unit
+        run: systemd-analyze verify x-ui.service.arch
+      - name: Guard against pacman partial upgrades
+        run: |
+          if grep -nE 'pacman[[:space:]]+-S(y|yy)([[:space:]]|$)' install.sh; then
+            echo "Unsupported pacman partial-upgrade command found in install.sh" >&2
+            exit 1
+          fi
+
   frontend:
     runs-on: ubuntu-latest
     steps:

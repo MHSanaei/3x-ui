@@ -109,7 +109,7 @@ install_base() {
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Sy --noconfirm cronie curl tar tzdata socat ca-certificates openssl
+            pacman -Syu --noconfirm --needed cronie curl tar tzdata socat ca-certificates openssl
             ;;
         opensuse-tumbleweed | opensuse-leap)
             zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl
@@ -232,7 +232,7 @@ install_postgres_local() {
             [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
             ;;
         arch | manjaro | parch)
-            pacman -Sy --noconfirm postgresql >&2 || return 1
+            pacman -Syu --noconfirm --needed postgresql >&2 || return 1
             if [[ ! -f /var/lib/postgres/data/PG_VERSION ]]; then
                 sudo -u postgres initdb -D /var/lib/postgres/data >&2 || return 1
             fi
@@ -339,7 +339,7 @@ ensure_pg_client() {
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Sy --noconfirm postgresql >&2 || return 1
+            pacman -Syu --noconfirm --needed postgresql >&2 || return 1
             ;;
         opensuse-tumbleweed | opensuse-leap)
             zypper -q install -y postgresql >&2 || return 1

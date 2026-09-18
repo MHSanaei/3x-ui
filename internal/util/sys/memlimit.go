@@ -2,6 +2,7 @@ package sys
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"runtime/debug"
 	"strconv"
@@ -12,6 +13,7 @@ const (
 	memLimitHeadroomPercent = 90
 	defaultGCPercent        = 75
 	defaultReleaseMinutes   = 10
+	bytesPerMiB             = int64(1 << 20)
 )
 
 // ApplyMemoryTuning configures the Go runtime for a lower, steadier footprint and
@@ -59,8 +61,8 @@ func applyMemoryLimit() (int64, string) {
 	}
 
 	if v := strings.TrimSpace(os.Getenv("XUI_MEMORY_LIMIT")); v != "" {
-		if mb, err := strconv.ParseInt(v, 10, 64); err == nil && mb > 0 {
-			limit := mb << 20
+		if mb, err := strconv.ParseInt(v, 10, 64); err == nil && mb > 0 && mb <= math.MaxInt64/bytesPerMiB {
+			limit := mb * bytesPerMiB
 			debug.SetMemoryLimit(limit)
 			return limit, "XUI_MEMORY_LIMIT=" + v + "MiB"
 		}

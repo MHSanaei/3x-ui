@@ -19,13 +19,14 @@ import (
 //
 // An empty proxyURL yields a plain client (unchanged behavior). socks5/socks5h
 // URLs are dialed through golang.org/x/net/proxy; http/https URLs use the
-// standard library proxy support. Any other scheme returns an error so callers
-// can log it and fall back to a direct connection.
+// standard library proxy support. Any other scheme or URL without a host
+// returns an error so callers can log it and fall back to a direct connection.
 //
 // The proxy address is intentionally not subjected to SSRF filtering: it is
 // admin-configured and is commonly a loopback/private address (for example a
 // local Xray SOCKS inbound).
 func NewHTTPClient(proxyURL string, timeout time.Duration) (*http.Client, error) {
+	proxyURL = strings.TrimSpace(proxyURL)
 	if proxyURL == "" {
 		return &http.Client{Timeout: timeout}, nil
 	}
@@ -35,9 +36,19 @@ func NewHTTPClient(proxyURL string, timeout time.Duration) (*http.Client, error)
 		return nil, fmt.Errorf("parse proxy url: %w", err)
 	}
 
+	scheme := strings.ToLower(parsed.Scheme)
+	switch scheme {
+	case "socks5", "socks5h", "http", "https":
+		if parsed.Host == "" {
+			return nil, fmt.Errorf("proxy url %q has no host", proxyURL)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported proxy scheme %q", parsed.Scheme)
+	}
+
 	transport := baseTransport()
 
-	switch strings.ToLower(parsed.Scheme) {
+	switch scheme {
 	case "socks5", "socks5h":
 		var auth *proxy.Auth
 		if parsed.User != nil {
@@ -57,8 +68,6 @@ func NewHTTPClient(proxyURL string, timeout time.Duration) (*http.Client, error)
 		}
 	case "http", "https":
 		transport.Proxy = http.ProxyURL(parsed)
-	default:
-		return nil, fmt.Errorf("unsupported proxy scheme %q", parsed.Scheme)
 	}
 
 	return &http.Client{Timeout: timeout, Transport: transport}, nil

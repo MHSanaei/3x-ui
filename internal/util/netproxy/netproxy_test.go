@@ -22,6 +22,10 @@ func TestNewHTTPClient(t *testing.T) {
 		{name: "http sets transport proxy", proxyURL: "http://127.0.0.1:8080", wantProxy: true},
 		{name: "https sets transport proxy", proxyURL: "https://127.0.0.1:8080", wantProxy: true},
 		{name: "unsupported scheme errors", proxyURL: "ftp://127.0.0.1:21", wantErr: true},
+		{name: "http without host errors", proxyURL: "http://", wantErr: true},
+		{name: "https without host errors", proxyURL: "https://", wantErr: true},
+		{name: "socks5 without host errors", proxyURL: "socks5://", wantErr: true},
+		{name: "socks5h without host errors", proxyURL: "socks5h://", wantErr: true},
 	}
 
 	// baseTransport clones http.DefaultTransport, whose Proxy and DialContext are already
