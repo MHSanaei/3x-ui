@@ -2,8 +2,6 @@ package tuic
 
 import (
 	"fmt"
-	"net"
-	"strconv"
 	"sync"
 	"time"
 
@@ -11,17 +9,15 @@ import (
 )
 
 type managed struct {
-	proc         *Process
-	relay        *udpRelay
+	server       *Server
 	tag          string
-	configPath   string
 	structuralFP string
 	usersFP      string
 }
 
 type Manager struct {
 	mu           sync.Mutex
-	procs        map[int]*managed
+	servers      map[int]*managed
 	lastStartErr map[int]string
 }
 
@@ -32,12 +28,10 @@ var (
 
 func GetManager() *Manager {
 	managerOnce.Do(func() {
+		cleanupLegacySidecar()
 		managerInstance = &Manager{
-			procs:        make(map[int]*managed),
+			servers:      make(map[int]*managed),
 			lastStartErr: make(map[int]string),
-		}
-		if n := killStrayTuicProcesses(GetBinaryPath()); n > 0 {
-			logger.Warningf("tuic: terminated %d orphaned tuic-server process(es) from a previous run", n)
 		}
 	})
 	return managerInstance
@@ -46,8 +40,8 @@ func GetManager() *Manager {
 func (m *Manager) HasRunning() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	for _, mg := range m.procs {
-		if mg.proc != nil && mg.proc.IsRunning() {
+	for _, mg := range m.servers {
+		if mg.server != nil && mg.server.IsRunning() {
 			return true
 		}
 	}
@@ -69,78 +63,57 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	structuralFP := inst.StructuralFingerprint()
 	usersFP := inst.UsersFingerprint()
 
-	uuidToEmail := make(map[string]string, len(inst.Clients))
-	for _, c := range inst.Clients {
-		if c.UUID != "" && c.Email != "" {
-			uuidToEmail[c.UUID] = c.Email
-		}
-	}
-
-	if existing, ok := m.procs[inst.Id]; ok && existing != nil {
-		if existing.proc != nil && existing.proc.IsRunning() &&
-			existing.structuralFP == structuralFP && existing.usersFP == usersFP {
+	if existing, ok := m.servers[inst.Id]; ok && existing != nil {
+		if existing.server != nil && existing.server.IsRunning() && existing.structuralFP == structuralFP {
 			existing.tag = inst.Tag
-			existing.proc.UpdateClients(uuidToEmail)
+			if existing.usersFP != usersFP {
+				existing.usersFP = usersFP
+				existing.server.UpdateUsers(inst.Clients)
+			}
 			return nil
 		}
 		stopManaged(existing)
-		delete(m.procs, inst.Id)
+		delete(m.servers, inst.Id)
 	}
 
-	proc, relay, configPath, err := m.startLocked(inst, uuidToEmail)
+	server, err := m.startLocked(inst)
 	if err != nil {
 		if m.lastStartErr[inst.Id] != err.Error() {
 			m.lastStartErr[inst.Id] = err.Error()
-			logger.Warningf("tuic: failed to start tuic-server for inbound %d (%s): %v", inst.Id, inst.Tag, err)
+			logger.Warningf("tuic: failed to start tuic server for inbound %d (%s): %v", inst.Id, inst.Tag, err)
 		}
 		return err
 	}
 	delete(m.lastStartErr, inst.Id)
 
-	m.procs[inst.Id] = &managed{
-		proc:         proc,
-		relay:        relay,
+	m.servers[inst.Id] = &managed{
+		server:       server,
 		tag:          inst.Tag,
-		configPath:   configPath,
 		structuralFP: structuralFP,
 		usersFP:      usersFP,
 	}
 	return nil
 }
 
-func (m *Manager) startLocked(inst Instance, uuidToEmail map[string]string) (*Process, *udpRelay, string, error) {
-	port, err := freeLoopbackUDPPort()
+func (m *Manager) startLocked(inst Instance) (*Server, error) {
+	relay := &SocksRelay{
+		Addr:     fmt.Sprintf("127.0.0.1:%d", SOCKSPortForInbound(inst.Id)),
+		Password: SocksPassword(),
+	}
+	server, err := NewServer(inst, relay)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("tuic: pick sidecar port for %d: %w", inst.Id, err)
+		return nil, fmt.Errorf("tuic: init server for %d: %w", inst.Id, err)
 	}
-	upstream := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: port}
-	configBytes, err := GenerateConfig(inst, net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
-	if err != nil {
-		return nil, nil, "", fmt.Errorf("tuic: generate config for %d: %w", inst.Id, err)
+	if err := server.Start(); err != nil {
+		return nil, fmt.Errorf("tuic: start server on %s for %d: %w", inst.BindTo(), inst.Id, err)
 	}
-	configPath, err := WriteConfigFile(inst.Id, configBytes)
-	if err != nil {
-		return nil, nil, "", fmt.Errorf("tuic: write config for %d: %w", inst.Id, err)
-	}
-	relay, err := startUDPRelay(inst.BindTo(), upstream, relayFlowIdle)
-	if err != nil {
-		_ = RemoveConfigFile(inst.Id)
-		return nil, nil, "", fmt.Errorf("tuic: listen on %s for %d: %w", inst.BindTo(), inst.Id, err)
-	}
-	proc := newProcess(configPath, inst.Tag, uuidToEmail)
-	if err := proc.Start(); err != nil {
-		relay.Close()
-		_ = RemoveConfigFile(inst.Id)
-		return nil, nil, "", err
-	}
-	return proc, relay, configPath, nil
+	return server, nil
 }
 
 func stopManaged(mg *managed) {
-	if mg.proc != nil && mg.proc.IsRunning() {
-		_ = mg.proc.Stop()
+	if mg.server != nil {
+		_ = mg.server.Close()
 	}
-	mg.relay.Close()
 }
 
 func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
@@ -148,9 +121,9 @@ func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
 	defer m.mu.Unlock()
 	var emails []string
 	var tags []string
-	for _, mg := range m.procs {
-		if mg.proc != nil && mg.proc.IsRunning() {
-			active := mg.proc.GetActiveEmails(window)
+	for _, mg := range m.servers {
+		if mg.server != nil && mg.server.IsRunning() {
+			active := mg.server.GetActiveEmails(window)
 			if len(active) > 0 {
 				emails = append(emails, active...)
 				tags = append(tags, mg.tag)
@@ -170,19 +143,32 @@ func (m *Manager) CollectTraffic() []InboundTrafficDelta {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var out []InboundTrafficDelta
-	for _, mg := range m.procs {
-		if mg.relay != nil && mg.proc != nil && mg.proc.IsRunning() {
-			deltaUp, deltaDown := mg.relay.CollectTraffic()
-			if deltaUp > 0 || deltaDown > 0 {
+	for _, mg := range m.servers {
+		if mg.server != nil && mg.server.IsRunning() {
+			up, down := mg.server.CollectTotalTraffic()
+			if up > 0 || down > 0 {
 				out = append(out, InboundTrafficDelta{
 					Tag:  mg.tag,
-					Up:   deltaUp,
-					Down: deltaDown,
+					Up:   up,
+					Down: down,
 				})
 			}
 		}
 	}
 	return out
+}
+
+func (m *Manager) CollectClientTraffic() []ClientTrafficDelta {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var allDeltas []ClientTrafficDelta
+	for _, mg := range m.servers {
+		if mg.server != nil && mg.server.IsRunning() {
+			deltas := mg.server.CollectClientTraffic()
+			allDeltas = append(allDeltas, deltas...)
+		}
+	}
+	return allDeltas
 }
 
 func (m *Manager) Remove(id int) {
@@ -192,10 +178,9 @@ func (m *Manager) Remove(id int) {
 }
 
 func (m *Manager) removeLocked(id int) {
-	if existing, ok := m.procs[id]; ok && existing != nil {
+	if existing, ok := m.servers[id]; ok && existing != nil {
 		stopManaged(existing)
-		_ = RemoveConfigFile(id)
-		delete(m.procs, id)
+		delete(m.servers, id)
 		delete(m.lastStartErr, id)
 	}
 }
@@ -209,7 +194,7 @@ func (m *Manager) Reconcile(desired []Instance) {
 		desiredMap[inst.Id] = inst
 	}
 
-	for id := range m.procs {
+	for id := range m.servers {
 		if _, ok := desiredMap[id]; !ok {
 			m.removeLocked(id)
 		}
@@ -223,9 +208,8 @@ func (m *Manager) Reconcile(desired []Instance) {
 func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	for id, mg := range m.procs {
+	for _, mg := range m.servers {
 		stopManaged(mg)
-		_ = RemoveConfigFile(id)
 	}
-	m.procs = make(map[int]*managed)
+	m.servers = make(map[int]*managed)
 }
