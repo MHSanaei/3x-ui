@@ -54,6 +54,24 @@ func TestBindConflicts(t *testing.T) {
 			``, 0,
 		},
 		{
+			"ipv4 and ipv6 wildcards are separate sockets",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6"},
+			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"ipv4"}`,
+			``, 0,
+		},
+		{
+			"ipv4 wildcard still overlaps an ipv4 specific listen",
+			`{"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"wildcard"},
+			 {"listen":"192.0.2.10","port":443,"protocol":"vless","tag":"specific"}`,
+			``, 1,
+		},
+		{
+			"ipv6 wildcard still overlaps an ipv6 specific listen",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"wildcard"},
+			 {"listen":"2001:db8::10","port":443,"protocol":"vless","tag":"specific"}`,
+			``, 1,
+		},
+		{
 			"wildcard listen overlaps a loopback one",
 			`{"listen":"0.0.0.0","port":8443,"protocol":"vless","tag":"a"},
 			 {"listen":"127.0.0.1","port":8443,"protocol":"trojan","tag":"b"}`,

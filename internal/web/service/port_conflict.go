@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -92,10 +93,48 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 }
 
 func listenOverlaps(a, b string) bool {
-	if isAnyListen(a) || isAnyListen(b) {
+	if a == b {
 		return true
 	}
-	return a == b
+	fa, wa, oka := listenFamilyOf(a)
+	fb, wb, okb := listenFamilyOf(b)
+	if !oka || !okb || fa&fb == 0 {
+		return false
+	}
+	// A wildcard reserves every address in its own family, but an IPv6
+	// wildcard is not an IPv4 wildcard. Linux commonly runs with
+	// IPV6_V6ONLY enabled, which permits ::443 and 0.0.0.0:443 together.
+	return wa || wb
+}
+
+// listenFamily is deliberately separate from net.IP's representation: the
+// conflict guard must preserve the kernel's IPv4/IPv6 socket boundary.
+type listenFamily uint8
+
+const (
+	listenFamilyIPv4 listenFamily = 1 << iota
+	listenFamilyIPv6
+)
+
+func listenFamilyOf(s string) (listenFamily, bool, bool) {
+	switch s {
+	case "":
+		// An omitted listen lets the core choose all families; retain the
+		// conservative legacy behavior for this ambiguous form.
+		return listenFamilyIPv4 | listenFamilyIPv6, true, true
+	case "0.0.0.0":
+		return listenFamilyIPv4, true, true
+	case "::", "::0":
+		return listenFamilyIPv6, true, true
+	}
+	ip := net.ParseIP(s)
+	if ip == nil {
+		return 0, false, false
+	}
+	if ip.To4() != nil {
+		return listenFamilyIPv4, false, true
+	}
+	return listenFamilyIPv6, false, true
 }
 
 func isAnyListen(s string) bool {
