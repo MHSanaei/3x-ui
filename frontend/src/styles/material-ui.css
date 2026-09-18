@@ -1,15 +1,35 @@
+/* Material 3 visual system layered over Ant Design primitives. */
 :root {
   --xui-primary: #6750a4;
-  --xui-primary-hover: #7f67be;
+  --xui-on-primary: #ffffff;
+  --xui-primary-container: #eaddff;
+  --xui-on-primary-container: #21005d;
+  --xui-secondary: #625b71;
   --xui-surface: #fffbfe;
+  --xui-surface-container-low: #f7f2fa;
   --xui-surface-container: #f3edf7;
-  --xui-outline: #79747e;
+  --xui-surface-container-high: #ece6f0;
+  --xui-surface-container-highest: #e6e0e9;
   --xui-on-surface: #1d1b20;
+  --xui-on-surface-variant: #49454f;
+  --xui-outline: #79747e;
+  --xui-outline-variant: #cac4d0;
+  --xui-error: #ba1a1a;
+  --xui-radius-xs: 4px;
   --xui-radius-sm: 8px;
   --xui-radius-md: 12px;
   --xui-radius-lg: 16px;
-  --xui-elevation-1: 0 1px 2px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.06);
-  --xui-elevation-2: 0 3px 8px rgba(0,0,0,.12), 0 6px 16px rgba(0,0,0,.08);
+  --xui-radius-xl: 28px;
+  --xui-elevation-1: 0 1px 2px rgba(0,0,0,.08);
+  --xui-elevation-2: 0 1px 3px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.08);
+  --xui-state-hover: rgba(29,27,32,.08);
+  --xui-state-focus: rgba(103,80,164,.12);
+}
+
+html,
+body,
+#app {
+  font-family: Roboto, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
@@ -17,127 +37,402 @@ body {
   color: var(--xui-on-surface);
 }
 
-.ant-layout-sider,
-.ant-layout-header {
-  border-color: color-mix(in srgb, var(--ant-color-border) 72%, transparent);
+/* App surfaces */
+.ant-layout,
+.ant-layout-content {
+  color: var(--xui-on-surface);
 }
 
 .ant-card {
+  border: 1px solid var(--xui-outline-variant) !important;
   border-radius: var(--xui-radius-lg) !important;
-  border: 1px solid color-mix(in srgb, var(--ant-color-border) 72%, transparent);
-  box-shadow: var(--xui-elevation-1);
+  background: var(--xui-surface) !important;
+  box-shadow: var(--xui-elevation-1) !important;
+  overflow: hidden;
 }
 
 .ant-card-head {
   min-height: 56px;
   padding-inline: 20px;
-  border-bottom-color: color-mix(in srgb, var(--ant-color-border) 72%, transparent);
+  background: transparent;
+  border-bottom: 1px solid var(--xui-outline-variant) !important;
+}
+
+.ant-card-head-title {
+  font-size: 16px;
+  font-weight: 650;
 }
 
 .ant-card-body {
   padding: 20px;
 }
 
+.ant-card-actions {
+  border-top-color: var(--xui-outline-variant) !important;
+}
+
+/* Buttons: M3 filled / tonal / outlined / text behavior. */
 .ant-btn {
   min-height: 40px;
-  border-radius: 999px;
-  font-weight: 600;
-  box-shadow: none;
-  transition: box-shadow .18s ease, transform .18s ease, background-color .18s ease;
+  padding-inline: 20px;
+  border-radius: 999px !important;
+  border-width: 1px;
+  font-weight: 650;
+  box-shadow: none !important;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+.ant-btn:not(.ant-btn-link):not(.ant-btn-text):not(.ant-btn-primary) {
+  border-color: var(--xui-outline);
+  background: transparent;
+  color: var(--xui-on-surface);
+}
+
+.ant-btn:not(.ant-btn-link):not(.ant-btn-text):not(.ant-btn-primary):hover {
+  border-color: var(--xui-outline);
+  background: var(--xui-state-hover);
+  color: var(--xui-on-surface);
 }
 
 .ant-btn-primary {
-  box-shadow: none;
+  border-color: var(--xui-primary) !important;
+  background: var(--xui-primary) !important;
+  color: var(--xui-on-primary) !important;
 }
 
 .ant-btn-primary:hover {
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--ant-color-primary) 28%, transparent);
-  transform: translateY(-1px);
+  border-color: var(--xui-primary) !important;
+  background: #5b4391 !important;
 }
 
+.ant-btn-text:hover,
+.ant-btn-link:hover {
+  background: var(--xui-state-hover) !important;
+}
+
+.ant-btn-dangerous:not(.ant-btn-text) {
+  color: var(--xui-error) !important;
+  border-color: var(--xui-error) !important;
+}
+
+/* Text fields and selectors: outlined M3 fields. */
 .ant-input,
 .ant-input-affix-wrapper,
-.ant-select-selector,
-.ant-picker,
 .ant-input-number,
-.ant-input-number-affix-wrapper {
+.ant-input-number-affix-wrapper,
+.ant-picker,
+.ant-select-selector,
+.ant-tree-select-selector,
+.ant-cascader-picker {
+  min-height: 40px !important;
   border-radius: var(--xui-radius-sm) !important;
+  border: 1px solid var(--xui-outline) !important;
+  background: var(--xui-surface) !important;
+  box-shadow: none !important;
 }
 
-.ant-input,
-.ant-input-affix-wrapper,
-.ant-select-selector,
-.ant-picker,
-.ant-input-number,
-.ant-input-number-affix-wrapper {
-  min-height: 40px;
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-input-number:hover,
+.ant-input-number-affix-wrapper:hover,
+.ant-picker:hover,
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: var(--xui-on-surface) !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper-focused,
+.ant-input-number-focused,
+.ant-picker-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--xui-primary) !important;
+  box-shadow: 0 0 0 1px var(--xui-primary) !important;
+}
+
+.ant-input::placeholder,
+.ant-select-selection-placeholder {
+  color: var(--xui-on-surface-variant) !important;
+}
+
+/* Menus, tabs and navigation use M3 state layers instead of pill-everything. */
+.ant-menu-item,
+.ant-menu-submenu-title {
+  border-radius: 999px !important;
+}
+
+.ant-menu-item-selected {
+  font-weight: 650;
+}
+
+.ant-tabs-nav {
+  margin-bottom: 16px !important;
 }
 
 .ant-tabs-tab {
   border-radius: 999px;
-  margin-inline-end: 4px !important;
   padding: 9px 16px !important;
+  margin-inline-end: 4px !important;
+  transition: background-color .18s ease, color .18s ease;
+}
+
+.ant-tabs-tab:hover {
+  color: var(--xui-primary);
+  background: var(--xui-state-hover);
 }
 
 .ant-tabs-tab-active {
-  background: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  background: var(--xui-primary-container);
 }
 
-.ant-menu-item,
-.ant-menu-submenu-title {
-  border-radius: 999px !important;
-  margin-inline: 8px !important;
-  width: calc(100% - 16px) !important;
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--xui-on-primary-container) !important;
 }
 
-.ant-tag {
-  border-radius: 999px;
-  padding-inline: 9px;
-}
-
-.ant-table {
+/* Data surfaces */
+.ant-table-wrapper {
   border-radius: var(--xui-radius-lg);
   overflow: hidden;
 }
 
+.ant-table {
+  background: var(--xui-surface) !important;
+}
+
 .ant-table-thead > tr > th {
+  background: var(--xui-surface-container) !important;
+  color: var(--xui-on-surface-variant);
   font-weight: 700;
-  background: color-mix(in srgb, var(--ant-color-primary) 5%, var(--ant-color-bg-container));
+  border-bottom-color: var(--xui-outline-variant) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom-color: color-mix(in srgb, var(--xui-outline-variant) 65%, transparent) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: color-mix(in srgb, var(--xui-primary) 5%, var(--xui-surface)) !important;
+}
+
+/* Menus, popovers and dialogs */
+.ant-dropdown,
+.ant-dropdown-menu,
+.ant-select-dropdown,
+.ant-picker-dropdown,
+.ant-popover-inner,
+.ant-tooltip-inner {
+  border-radius: var(--xui-radius-md) !important;
+}
+
+.ant-dropdown-menu,
+.ant-select-dropdown,
+.ant-picker-panel-container,
+.ant-popover-inner {
+  padding: 8px !important;
+  background: var(--xui-surface-container-low) !important;
+  box-shadow: var(--xui-elevation-2) !important;
+}
+
+.ant-dropdown-menu-item,
+.ant-select-item {
+  min-height: 40px;
+  border-radius: var(--xui-radius-sm) !important;
+}
+
+.ant-dropdown-menu-item:hover,
+.ant-select-item-option-active {
+  background: var(--xui-state-hover) !important;
 }
 
 .ant-modal .ant-modal-content,
 .ant-drawer .ant-drawer-content {
-  border-radius: var(--xui-radius-lg);
-  box-shadow: var(--xui-elevation-2);
+  border-radius: var(--xui-radius-xl) !important;
+  background: var(--xui-surface) !important;
+  box-shadow: var(--xui-elevation-2) !important;
+  overflow: hidden;
 }
 
+.ant-modal-header,
+.ant-drawer-header {
+  background: transparent !important;
+  border-bottom-color: var(--xui-outline-variant) !important;
+}
+
+.ant-modal-footer {
+  border-top-color: var(--xui-outline-variant) !important;
+}
+
+.ant-drawer-body {
+  background: var(--xui-surface) !important;
+}
+
+/* Feedback components */
 .ant-alert,
 .ant-notification-notice,
-.ant-message-notice-content {
+.ant-message-notice-content,
+.ant-popconfirm {
+  border-radius: var(--xui-radius-md) !important;
+}
+
+.ant-tag {
+  min-height: 24px;
+  padding-inline: 10px;
+  border-radius: 999px !important;
+  border-color: var(--xui-outline-variant);
+}
+
+/* Pagination / segmented controls */
+.ant-pagination-item,
+.ant-pagination-prev,
+.ant-pagination-next {
+  border-radius: 999px !important;
+}
+
+.ant-pagination-item-active {
+  border-color: var(--xui-primary) !important;
+  background: var(--xui-primary-container) !important;
+}
+
+.ant-segmented {
+  border-radius: 999px !important;
+  background: var(--xui-surface-container) !important;
+  padding: 4px !important;
+}
+
+.ant-segmented-item {
+  border-radius: 999px !important;
+}
+
+/* Sidebar command/search surface. */
+.sidebar-command-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--xui-outline-variant);
   border-radius: var(--xui-radius-md);
+  background: var(--xui-surface-container-low);
+  color: var(--xui-on-surface-variant);
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color .18s ease, border-color .18s ease;
 }
 
+.sidebar-command-trigger:hover,
+.sidebar-command-trigger:focus-visible {
+  border-color: var(--xui-primary);
+  background: var(--xui-surface-container);
+  color: var(--xui-on-surface);
+  outline: none;
+}
+
+.sidebar-command-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sidebar-command-icon {
+  color: var(--xui-primary);
+}
+
+.sidebar-command-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-command-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.kbd-cmd,
+.kbd-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--xui-outline-variant);
+  border-radius: 6px;
+  background: var(--xui-surface-container);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Dark M3 tonal palette. */
 body.dark {
+  --xui-primary: #d0bcff;
+  --xui-on-primary: #381e72;
+  --xui-primary-container: #4f378b;
+  --xui-on-primary-container: #eaddff;
+  --xui-secondary: #cbc2d0;
   --xui-surface: #141218;
+  --xui-surface-container-low: #1d1b20;
   --xui-surface-container: #211f26;
+  --xui-surface-container-high: #2b2930;
+  --xui-surface-container-highest: #36343b;
   --xui-on-surface: #e6e0e9;
+  --xui-on-surface-variant: #cac4d0;
   --xui-outline: #938f99;
+  --xui-outline-variant: #49454f;
+  --xui-error: #ffb4ab;
+  --xui-state-hover: rgba(230,224,233,.08);
+  --xui-state-focus: rgba(208,188,255,.12);
 }
 
-body.dark .ant-card {
-  border-color: rgba(255,255,255,.08);
+body.dark .ant-card,
+body.dark .ant-table,
+body.dark .ant-input,
+body.dark .ant-input-affix-wrapper,
+body.dark .ant-input-number,
+body.dark .ant-input-number-affix-wrapper,
+body.dark .ant-picker,
+body.dark .ant-select-selector,
+body.dark .ant-tree-select-selector {
+  background: var(--xui-surface-container) !important;
+}
+
+body.dark .ant-card,
+body.dark .ant-table-thead > tr > th,
+body.dark .ant-card-head {
+  border-color: var(--xui-outline-variant) !important;
 }
 
 body.dark .ant-table-thead > tr > th {
-  background: rgba(103,80,164,.10);
+  background: var(--xui-surface-container-high) !important;
 }
 
+body.dark .ant-modal .ant-modal-content,
+body.dark .ant-drawer .ant-drawer-content,
+body.dark .ant-drawer-body {
+  background: var(--xui-surface-container) !important;
+}
+
+html[data-theme='ultra-dark'] body.dark {
+  --xui-surface: #000000;
+  --xui-surface-container-low: #08080a;
+  --xui-surface-container: #101013;
+  --xui-surface-container-high: #18181c;
+  --xui-surface-container-highest: #202024;
+}
+
+/* Mobile density. */
 @media (max-width: 768px) {
   .ant-card-head { padding-inline: 16px; }
   .ant-card-body { padding: 16px; }
-  .ant-btn { min-height: 38px; }
+  .ant-btn { min-height: 40px; padding-inline: 16px; }
 }
 
+/* Respect accessibility settings. */
 @media (prefers-reduced-motion: reduce) {
-  .ant-btn { transition: none; }
+  .ant-btn,
+  .ant-tabs-tab,
+  .sidebar-command-trigger { transition: none; }
 }
