@@ -1070,8 +1070,11 @@ type ExternalLink struct {
 	// LastLinks keeps the last successful expansion so a restart during a
 	// provider outage serves the subscription instead of dropping it.
 	LastLinks []string `json:"-" gorm:"serializer:json;column:last_links;type:text"`
-	CreatedAt int64    `json:"createdAt" gorm:"autoCreateTime:milli" example:"1710000000000"`
-	UpdatedAt int64    `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1710000000000"`
+	// Origin marks a row a master pushed: this panel keeps it read-only, and a
+	// local edit must not fight the next push. Empty is the panel's own row.
+	Origin    string `json:"origin" form:"origin" gorm:"column:origin;size:16;default:'panel'" example:"panel"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli" example:"1710000000000"`
+	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1710000000000"`
 	// Usage is derived per read, never stored on the row.
 	AssignedClients int `json:"assignedClients" gorm:"-" example:"3"`
 }

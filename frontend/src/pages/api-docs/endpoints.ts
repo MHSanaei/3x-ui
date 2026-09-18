@@ -1865,6 +1865,14 @@ export const sections: readonly Section[] = [
         params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Library row id.' }],
         response: '{\n  "success": true,\n  "obj": {\n    "count": 12\n  }\n}',
       },
+      {
+        method: 'POST',
+        path: '/panel/api/links/sync',
+        summary:
+          'Internal, called by a master panel: store the link set it resolved for this node. Groups and inbound scopes arrive flattened into client bindings because a node holds neither, and the stored rows are marked as pushed so this panel shows them read-only.',
+        body: '{\n  "links": [\n    { "kind": "link", "value": "trojan://uuid@example.com:443#node", "remark": "", "enable": true, "expiryTime": 0, "sortIndex": 0 }\n  ],\n  "clients": [\n    {\n      "email": "alice",\n      "links": [\n        { "kind": "link", "value": "trojan://uuid@example.com:443#node", "enable": true, "expiryTime": 0, "sortIndex": 0 }\n      ]\n    }\n  ]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "links": 2,\n    "clients": 3\n  }\n}',
+      },
     ],
   },
 

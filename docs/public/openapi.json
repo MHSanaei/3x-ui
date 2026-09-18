@@ -2218,6 +2218,11 @@
             "example": "[backup] ",
             "type": "string"
           },
+          "origin": {
+            "description": "Origin marks a row a master pushed: this panel keeps it read-only, and a\nlocal edit must not fight the next push. Empty is the panel's own row.",
+            "example": "panel",
+            "type": "string"
+          },
           "remark": {
             "example": "Backup provider",
             "type": "string"
@@ -2250,6 +2255,7 @@
           "lastFetchAt",
           "lastFetchError",
           "namePrefix",
+          "origin",
           "remark",
           "sortIndex",
           "updatedAt",
@@ -2322,6 +2328,128 @@
           "origin",
           "targetId",
           "targetType"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkSync": {
+        "description": "ExternalLinkSync is the link set one node's clients receive, already resolved\nby the master: a node holds no groups, so scopes are flattened before the\npush and the node only has to materialize rows.",
+        "properties": {
+          "clients": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalLinkSyncClient"
+            },
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalLinkSyncLink"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "clients",
+          "links"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkSyncAssignment": {
+        "description": "ExternalLinkSyncAssignment is a scope's resolved overrides over a library\nrow; expiry 0 means never, matching what the master would have served.",
+        "properties": {
+          "enable": {
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "sortIndex": {
+            "type": "integer"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enable",
+          "expiryTime",
+          "kind",
+          "sortIndex",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkSyncClient": {
+        "description": "ExternalLinkSyncClient is one client's effective links in served order.",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/ExternalLinkSyncAssignment"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "email",
+          "links"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkSyncLink": {
+        "description": "ExternalLinkSyncLink is one library row the node stores, keyed by kind+value.",
+        "properties": {
+          "cacheTtl": {
+            "type": "integer"
+          },
+          "enable": {
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "sortIndex": {
+            "type": "integer"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enable",
+          "kind",
+          "sortIndex",
+          "value"
         ],
         "type": "object"
       },
@@ -10701,6 +10829,7 @@
                       "lastFetchAt": 0,
                       "lastFetchError": "",
                       "namePrefix": "[backup] ",
+                      "origin": "panel",
                       "remark": "Backup provider",
                       "sortIndex": 0,
                       "updatedAt": 1710000000000,
@@ -10817,6 +10946,7 @@
                     "lastFetchAt": 0,
                     "lastFetchError": "",
                     "namePrefix": "[backup] ",
+                    "origin": "panel",
                     "remark": "Backup provider",
                     "sortIndex": 0,
                     "updatedAt": 1710000000000,
@@ -11368,6 +11498,79 @@
                   "success": true,
                   "obj": {
                     "count": 12
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/sync": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Internal, called by a master panel: store the link set it resolved for this node. Groups and inbound scopes arrive flattened into client bindings because a node holds neither, and the stored rows are marked as pushed so this panel shows them read-only.",
+        "operationId": "post_panel_api_links_sync",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "links": [
+                  {
+                    "kind": "link",
+                    "value": "trojan://uuid@example.com:443#node",
+                    "remark": "",
+                    "enable": true,
+                    "expiryTime": 0,
+                    "sortIndex": 0
+                  }
+                ],
+                "clients": [
+                  {
+                    "email": "alice",
+                    "links": [
+                      {
+                        "kind": "link",
+                        "value": "trojan://uuid@example.com:443#node",
+                        "enable": true,
+                        "expiryTime": 0,
+                        "sortIndex": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "links": 2,
+                    "clients": 3
                   }
                 }
               }

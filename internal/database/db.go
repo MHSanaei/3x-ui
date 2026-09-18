@@ -106,11 +106,25 @@ func migrateOutboundSubscriptionUserAgentColumn() error {
 	return migrator.AddColumn(&model.OutboundSubscription{}, "UserAgent")
 }
 
+// The default matters more than the column: a library row that predates the
+// push protocol must stay editable, so it lands as the panel's own ('panel'),
+// never as a master-pushed ('node') row this panel would refuse to change.
+func migrateExternalLinkOriginColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&model.ExternalLink{}) || migrator.HasColumn(&model.ExternalLink{}, "origin") {
+		return nil
+	}
+	return migrator.AddColumn(&model.ExternalLink{}, "Origin")
+}
+
 func initModels() error {
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
 		return err
 	}
 	if err := migrateOutboundSubscriptionUserAgentColumn(); err != nil {
+		return err
+	}
+	if err := migrateExternalLinkOriginColumn(); err != nil {
 		return err
 	}
 	models := allModels()

@@ -72,6 +72,15 @@ func run(root, outDir string) error {
 			),
 		},
 		{
+			Path: resolveRel(root, "internal/web/runtime"),
+			StructAllow: setOf(
+				"ExternalLinkSync",
+				"ExternalLinkSyncLink",
+				"ExternalLinkSyncClient",
+				"ExternalLinkSyncAssignment",
+			),
+		},
+		{
 			Path: resolveRel(root, "internal/xray"),
 			StructAllow: setOf(
 				"ClientTraffic",

@@ -2192,6 +2192,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "[backup] ",
         "type": "string"
       },
+      "origin": {
+        "description": "Origin marks a row a master pushed: this panel keeps it read-only, and a\nlocal edit must not fight the next push. Empty is the panel's own row.",
+        "example": "panel",
+        "type": "string"
+      },
       "remark": {
         "example": "Backup provider",
         "type": "string"
@@ -2224,6 +2229,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "lastFetchAt",
       "lastFetchError",
       "namePrefix",
+      "origin",
       "remark",
       "sortIndex",
       "updatedAt",
@@ -2296,6 +2302,128 @@ export const SCHEMAS: Record<string, unknown> = {
       "origin",
       "targetId",
       "targetType"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkSync": {
+    "description": "ExternalLinkSync is the link set one node's clients receive, already resolved\nby the master: a node holds no groups, so scopes are flattened before the\npush and the node only has to materialize rows.",
+    "properties": {
+      "clients": {
+        "items": {
+          "$ref": "#/components/schemas/ExternalLinkSyncClient"
+        },
+        "type": "array"
+      },
+      "links": {
+        "items": {
+          "$ref": "#/components/schemas/ExternalLinkSyncLink"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "clients",
+      "links"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkSyncAssignment": {
+    "description": "ExternalLinkSyncAssignment is a scope's resolved overrides over a library\nrow; expiry 0 means never, matching what the master would have served.",
+    "properties": {
+      "enable": {
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "sortIndex": {
+        "type": "integer"
+      },
+      "value": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "enable",
+      "expiryTime",
+      "kind",
+      "sortIndex",
+      "value"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkSyncClient": {
+    "description": "ExternalLinkSyncClient is one client's effective links in served order.",
+    "properties": {
+      "email": {
+        "type": "string"
+      },
+      "links": {
+        "items": {
+          "$ref": "#/components/schemas/ExternalLinkSyncAssignment"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "email",
+      "links"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkSyncLink": {
+    "description": "ExternalLinkSyncLink is one library row the node stores, keyed by kind+value.",
+    "properties": {
+      "cacheTtl": {
+        "type": "integer"
+      },
+      "enable": {
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "headers": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "sortIndex": {
+        "type": "integer"
+      },
+      "userAgent": {
+        "type": "string"
+      },
+      "value": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "enable",
+      "kind",
+      "sortIndex",
+      "value"
     ],
     "type": "object"
   },

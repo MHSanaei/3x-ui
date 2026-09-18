@@ -177,6 +177,9 @@ func (s *InboundService) ReconcileNode(ctx context.Context, rt *runtime.Remote, 
 			errs = append(errs, fmt.Errorf("reconcile inbound %q: %w", ib.Tag, err))
 		}
 	}
+	// A node serves subscriptions from its own store, so the link set it must
+	// serve converges on the same pass that just converged its inbounds.
+	(&ClientService{}).PushExternalLinksToNode(n)
 	// Before the next clean sync adopts the node's inbounds, "absent locally"
 	// means "not imported yet" — sweeping now would wipe the node at onboarding.
 	if n.InboundsAdoptedAt == 0 {

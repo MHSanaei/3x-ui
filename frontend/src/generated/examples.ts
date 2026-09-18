@@ -554,6 +554,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "lastFetchAt": 0,
     "lastFetchError": "",
     "namePrefix": "[backup] ",
+    "origin": "panel",
     "remark": "Backup provider",
     "sortIndex": 0,
     "updatedAt": 1710000000000,
@@ -572,6 +573,73 @@ export const EXAMPLES: Record<string, unknown> = {
     "sortIndex": 0,
     "targetId": 7,
     "targetType": "client"
+  },
+  "ExternalLinkSync": {
+    "clients": [
+      {
+        "email": "",
+        "links": [
+          {
+            "enable": false,
+            "expiryTime": 0,
+            "kind": "",
+            "namePrefix": "",
+            "remark": "",
+            "sortIndex": 0,
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "cacheTtl": 0,
+        "enable": false,
+        "expiryTime": 0,
+        "headers": {},
+        "kind": "",
+        "namePrefix": "",
+        "remark": "",
+        "sortIndex": 0,
+        "userAgent": "",
+        "value": ""
+      }
+    ]
+  },
+  "ExternalLinkSyncAssignment": {
+    "enable": false,
+    "expiryTime": 0,
+    "kind": "",
+    "namePrefix": "",
+    "remark": "",
+    "sortIndex": 0,
+    "value": ""
+  },
+  "ExternalLinkSyncClient": {
+    "email": "",
+    "links": [
+      {
+        "enable": false,
+        "expiryTime": 0,
+        "kind": "",
+        "namePrefix": "",
+        "remark": "",
+        "sortIndex": 0,
+        "value": ""
+      }
+    ]
+  },
+  "ExternalLinkSyncLink": {
+    "cacheTtl": 0,
+    "enable": false,
+    "expiryTime": 0,
+    "headers": {},
+    "kind": "",
+    "namePrefix": "",
+    "remark": "",
+    "sortIndex": 0,
+    "userAgent": "",
+    "value": ""
   },
   "ExternalLinkTargetView": {
     "name": "user@example.com",

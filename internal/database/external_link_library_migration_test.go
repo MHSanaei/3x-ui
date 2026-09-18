@@ -7,6 +7,41 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
+// A library row that predates the push protocol must come out editable: the
+// column default decides whether an upgraded panel would treat its own links as
+// master-pushed and refuse to change them.
+func TestMigrateExternalLinkOriginColumnKeepsExistingRowsEditable(t *testing.T) {
+	if err := InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	// A fresh install already has the column, so the upgrade path is reproduced
+	// by dropping it from the table a pre-push build shipped.
+	if err := db.Migrator().DropColumn(&model.ExternalLink{}, "Origin"); err != nil {
+		t.Fatalf("drop origin column: %v", err)
+	}
+	if err := db.Exec("INSERT INTO external_links (kind, value, remark) VALUES (?, ?, ?)",
+		model.ExternalLinkKindLink, "trojan://old", "old row").Error; err != nil {
+		t.Fatalf("seed pre-migration row: %v", err)
+	}
+
+	if err := migrateExternalLinkOriginColumn(); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	if !db.Migrator().HasColumn(&model.ExternalLink{}, "origin") {
+		t.Fatal("origin column missing after the migration")
+	}
+
+	var link model.ExternalLink
+	if err := db.Where("value = ?", "trojan://old").First(&link).Error; err != nil {
+		t.Fatalf("read migrated row: %v", err)
+	}
+	if link.Origin != model.ExternalLinkOriginPanel {
+		t.Errorf("origin = %q, want %q", link.Origin, model.ExternalLinkOriginPanel)
+	}
+}
+
 // The legacy table holds one row per client, so the same URL can carry its own
 // enable, expiry and order per client — the migration must not lose any of it.
 func TestMigrateClientExternalLinksToLibraryPreservesPerClientState(t *testing.T) {

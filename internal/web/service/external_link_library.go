@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -88,6 +89,11 @@ func (s *ClientService) ExternalLinkLibrarySave(link *model.ExternalLink) error 
 	if link == nil {
 		return common.NewError("link is required")
 	}
+	if link.Id > 0 {
+		if err := ensureLinkEditable(database.GetDB(), link.Id); err != nil {
+			return err
+		}
+	}
 	rows, err := normalizeExternalLinks([]ExternalLinkInput{{
 		Kind:       link.Kind,
 		Value:      link.Value,
@@ -153,6 +159,7 @@ func (s *ClientService) ExternalLinkLibrarySave(link *model.ExternalLink) error 
 		if res.RowsAffected == 0 {
 			return common.NewError("link not found")
 		}
+		s.PushExternalLinksToNodes()
 		return nil
 	}
 	var maxIndex int
@@ -160,19 +167,50 @@ func (s *ClientService) ExternalLinkLibrarySave(link *model.ExternalLink) error 
 		return err
 	}
 	link.SortIndex = maxIndex + 1
-	return db.Create(link).Error
+	if err := db.Create(link).Error; err != nil {
+		return err
+	}
+	s.PushExternalLinksToNodes()
+	return nil
+}
+
+// ensureLinkEditable refuses to touch a row a master pushed: the next sync would
+// overwrite the change, so the operator has to edit it where it came from.
+func ensureLinkEditable(db *gorm.DB, id int) error {
+	var row model.ExternalLink
+	err := db.Select("id", "origin", "value").Where("id = ?", id).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return common.NewError("link not found")
+	}
+	if err != nil {
+		return err
+	}
+	if row.Origin == model.ExternalLinkOriginNode {
+		return common.NewError("this link is managed by the master panel: " + row.Value)
+	}
+	return nil
 }
 
 func (s *ClientService) ExternalLinkLibraryDelete(id int) error {
-	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+	if err := ensureLinkEditable(database.GetDB(), id); err != nil {
+		return err
+	}
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("link_id = ?", id).Delete(&model.ExternalLinkAssignment{}).Error; err != nil {
 			return err
 		}
 		return tx.Where("id = ?", id).Delete(&model.ExternalLink{}).Error
 	})
+	if err == nil {
+		s.PushExternalLinksToNodes()
+	}
+	return err
 }
 
 func (s *ClientService) ExternalLinkLibrarySetEnable(id int, enable bool) error {
+	if err := ensureLinkEditable(database.GetDB(), id); err != nil {
+		return err
+	}
 	res := database.GetDB().Model(&model.ExternalLink{}).Where("id = ?", id).
 		UpdateColumn("enable", enable)
 	if res.Error != nil {
@@ -181,6 +219,7 @@ func (s *ClientService) ExternalLinkLibrarySetEnable(id int, enable bool) error 
 	if res.RowsAffected == 0 {
 		return common.NewError("link not found")
 	}
+	s.PushExternalLinksToNodes()
 	return nil
 }
 
@@ -190,7 +229,12 @@ func (s *ClientService) ExternalLinkLibraryReorder(ids []int) error {
 	if len(ids) == 0 {
 		return common.NewError("ids are required")
 	}
-	return database.GetDB().Transaction(func(tx *gorm.DB) error {
+	for _, id := range ids {
+		if err := ensureLinkEditable(database.GetDB(), id); err != nil {
+			return err
+		}
+	}
+	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
 		for index, id := range ids {
 			if err := tx.Model(&model.ExternalLink{}).Where("id = ?", id).
 				UpdateColumn("sort_index", index).Error; err != nil {
@@ -199,6 +243,10 @@ func (s *ClientService) ExternalLinkLibraryReorder(ids []int) error {
 		}
 		return nil
 	})
+	if err == nil {
+		s.PushExternalLinksToNodes()
+	}
+	return err
 }
 
 // ExternalLinkAssign binds a library entry to every named target and returns
@@ -235,6 +283,9 @@ func (s *ClientService) ExternalLinkAssign(linkId int, req ExternalLinkAssignReq
 		}
 		return nil
 	})
+	if err == nil {
+		s.PushExternalLinksToNodes()
+	}
 	return affected, err
 }
 
@@ -258,6 +309,9 @@ func (s *ClientService) ExternalLinkUnassign(linkId int, req ExternalLinkAssignR
 		}
 		return nil
 	})
+	if err == nil {
+		s.PushExternalLinksToNodes()
+	}
 	return deleted, err
 }
 

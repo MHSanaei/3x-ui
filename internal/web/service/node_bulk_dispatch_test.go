@@ -79,6 +79,9 @@ func (f *fakeNodeRuntime) ResetClientTraffic(context.Context, *model.Inbound, st
 }
 func (f *fakeNodeRuntime) ResetInboundTraffic(context.Context, *model.Inbound) error { return nil }
 func (f *fakeNodeRuntime) ResetAllTraffics(context.Context) error                    { return nil }
+func (f *fakeNodeRuntime) PushExternalLinks(context.Context, runtime.ExternalLinkSync) error {
+	return nil
+}
 
 // startSerializedWriter runs the single traffic-writer goroutine for the test, so
 // concurrent service writes take the serialized path production uses.

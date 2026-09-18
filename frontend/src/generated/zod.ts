@@ -3,6 +3,9 @@ import { z } from 'zod';
 export const GeoKindSchema = z.string();
 export type GeoKind = z.infer<typeof GeoKindSchema>;
 
+export const MasterClientCertProviderSchema = z.unknown();
+export type MasterClientCertProvider = z.infer<typeof MasterClientCertProviderSchema>;
+
 export const OnlineAPISupportSchema = z.number().int();
 export type OnlineAPISupport = z.infer<typeof OnlineAPISupportSchema>;
 
@@ -539,6 +542,7 @@ export const ExternalLinkSchema = z.object({
   lastFetchAt: z.number().int(),
   lastFetchError: z.string(),
   namePrefix: z.string(),
+  origin: z.string(),
   remark: z.string(),
   sortIndex: z.number().int(),
   updatedAt: z.number().int(),
@@ -561,6 +565,43 @@ export const ExternalLinkAssignmentSchema = z.object({
   targetType: z.enum(['client', 'group', 'inbound', 'global', 'new_clients']),
 });
 export type ExternalLinkAssignment = z.infer<typeof ExternalLinkAssignmentSchema>;
+
+export const ExternalLinkSyncSchema = z.object({
+  clients: z.array(z.lazy(() => ExternalLinkSyncClientSchema)),
+  links: z.array(z.lazy(() => ExternalLinkSyncLinkSchema)),
+});
+export type ExternalLinkSync = z.infer<typeof ExternalLinkSyncSchema>;
+
+export const ExternalLinkSyncAssignmentSchema = z.object({
+  enable: z.boolean(),
+  expiryTime: z.number().int(),
+  kind: z.string(),
+  namePrefix: z.string().optional(),
+  remark: z.string().optional(),
+  sortIndex: z.number().int(),
+  value: z.string(),
+});
+export type ExternalLinkSyncAssignment = z.infer<typeof ExternalLinkSyncAssignmentSchema>;
+
+export const ExternalLinkSyncClientSchema = z.object({
+  email: z.string(),
+  links: z.array(z.lazy(() => ExternalLinkSyncAssignmentSchema)),
+});
+export type ExternalLinkSyncClient = z.infer<typeof ExternalLinkSyncClientSchema>;
+
+export const ExternalLinkSyncLinkSchema = z.object({
+  cacheTtl: z.number().int().optional(),
+  enable: z.boolean(),
+  expiryTime: z.number().int().optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+  kind: z.string(),
+  namePrefix: z.string().optional(),
+  remark: z.string().optional(),
+  sortIndex: z.number().int(),
+  userAgent: z.string().optional(),
+  value: z.string(),
+});
+export type ExternalLinkSyncLink = z.infer<typeof ExternalLinkSyncLinkSchema>;
 
 export const ExternalLinkTargetViewSchema = z.object({
   name: z.string(),

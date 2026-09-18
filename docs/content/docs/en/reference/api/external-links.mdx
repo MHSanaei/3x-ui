@@ -62,6 +62,12 @@ _openapi:
         revalidates it in the background and serves the last good body, so a
         failing provider never empties a subscription.
       url: '#fetch-one-subscription-entry-again-right-now-bypassing-the-cached-copy-and-report-how-many-share-links-came-back-the-panel-otherwise-revalidates-it-in-the-background-and-serves-the-last-good-body-so-a-failing-provider-never-empties-a-subscription'
+    - depth: 2
+      title: 'Internal, called by a master panel: store the link set it resolved for
+        this node. Groups and inbound scopes arrive flattened into client
+        bindings because a node holds neither, and the stored rows are marked as
+        pushed so this panel shows them read-only.'
+      url: '#internal-called-by-a-master-panel-store-the-link-set-it-resolved-for-this-node-groups-and-inbound-scopes-arrive-flattened-into-client-bindings-because-a-node-holds-neither-and-the-stored-rows-are-marked-as-pushed-so-this-panel-shows-them-read-only'
   structuredData:
     headings:
       - content: List the link library in display order. Each row carries
@@ -104,6 +110,11 @@ _openapi:
           revalidates it in the background and serves the last good body, so a
           failing provider never empties a subscription.
         id: fetch-one-subscription-entry-again-right-now-bypassing-the-cached-copy-and-report-how-many-share-links-came-back-the-panel-otherwise-revalidates-it-in-the-background-and-serves-the-last-good-body-so-a-failing-provider-never-empties-a-subscription
+      - content: 'Internal, called by a master panel: store the link set it resolved for
+          this node. Groups and inbound scopes arrive flattened into client
+          bindings because a node holds neither, and the stored rows are marked
+          as pushed so this panel shows them read-only.'
+        id: internal-called-by-a-master-panel-store-the-link-set-it-resolved-for-this-node-groups-and-inbound-scopes-arrive-flattened-into-client-bindings-because-a-node-holds-neither-and-the-stored-rows-are-marked-as-pushed-so-this-panel-shows-them-read-only
     contents: []
 ---
 
@@ -116,7 +127,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/links/list","method":"get"},{"path":"/panel/api/links/add","method":"post"},{"path":"/panel/api/links/del/{id}","method":"post"},{"path":"/panel/api/links/enable/{id}","method":"post"},{"path":"/panel/api/links/reorder","method":"post"},{"path":"/panel/api/links/targets/{id}","method":"get"},{"path":"/panel/api/links/assign/{id}","method":"post"},{"path":"/panel/api/links/unassign/{id}","method":"post"},{"path":"/panel/api/links/client/{clientId}","method":"get"},{"path":"/panel/api/links/refresh/{id}","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/links/list","method":"get"},{"path":"/panel/api/links/add","method":"post"},{"path":"/panel/api/links/del/{id}","method":"post"},{"path":"/panel/api/links/enable/{id}","method":"post"},{"path":"/panel/api/links/reorder","method":"post"},{"path":"/panel/api/links/targets/{id}","method":"get"},{"path":"/panel/api/links/assign/{id}","method":"post"},{"path":"/panel/api/links/unassign/{id}","method":"post"},{"path":"/panel/api/links/client/{clientId}","method":"get"},{"path":"/panel/api/links/refresh/{id}","method":"post"},{"path":"/panel/api/links/sync","method":"post"}]} showTitle />
     </>
   );
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/sub"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,9 @@ func (a *LinkController) initRouter(g *gin.RouterGroup) {
 	g.POST("/unassign/:id", a.unassign)
 	g.GET("/client/:clientId", a.clientLinks)
 	g.POST("/refresh/:id", a.refresh)
+	// Master-to-node: the panel that owns a node pushes the link set it resolved
+	// for that node's clients, because a node holds neither groups nor scopes.
+	g.POST("/sync", a.syncExternalLinks)
 }
 
 func (a *LinkController) list(c *gin.Context) {
@@ -175,6 +179,28 @@ func (a *LinkController) clientLinks(c *gin.Context) {
 		return
 	}
 	jsonObj(c, rows, nil)
+}
+
+type externalLinkSyncBody struct {
+	Links   []runtime.ExternalLinkSyncLink   `json:"links"`
+	Clients []runtime.ExternalLinkSyncClient `json:"clients"`
+}
+
+// syncExternalLinks stores the snapshot a master resolved for this node. Rows
+// land with origin "node", so a local edit here cannot shadow them.
+func (a *LinkController) syncExternalLinks(c *gin.Context) {
+	var body externalLinkSyncBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	payload := &runtime.ExternalLinkSync{Links: body.Links, Clients: body.Clients}
+	if err := a.clientService.ApplyExternalLinkSync(payload); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, gin.H{"links": len(body.Links), "clients": len(body.Clients)}, nil)
+	notifyClientsChanged()
 }
 
 var (
