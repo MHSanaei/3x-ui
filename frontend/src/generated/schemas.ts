@@ -2066,6 +2066,344 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "EffectiveExternalLink": {
+    "description": "EffectiveExternalLink is one library link as a single client receives it: the\nscope that granted it plus that scope's overrides over the shared row.",
+    "properties": {
+      "cacheTTL": {
+        "type": "integer"
+      },
+      "enable": {
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "headers": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "kind": {
+        "type": "string"
+      },
+      "linkId": {
+        "type": "integer"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "origin": {
+        "type": "string"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "scope": {
+        "type": "string"
+      },
+      "scopeTarget": {
+        "type": "integer"
+      },
+      "sortIndex": {
+        "type": "integer"
+      },
+      "userAgent": {
+        "type": "string"
+      },
+      "value": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "cacheTTL",
+      "enable",
+      "expiryTime",
+      "headers",
+      "kind",
+      "linkId",
+      "namePrefix",
+      "origin",
+      "remark",
+      "scope",
+      "scopeTarget",
+      "sortIndex",
+      "userAgent",
+      "value"
+    ],
+    "type": "object"
+  },
+  "ExternalLink": {
+    "description": "ExternalLink is one reusable entry of the panel-wide link library: the row is\nshared and assignments decide who receives it, so one edit reaches them all.",
+    "properties": {
+      "assignedClients": {
+        "description": "Usage is derived per read, never stored on the row.",
+        "example": 3,
+        "type": "integer"
+      },
+      "cacheTtl": {
+        "example": 0,
+        "type": "integer"
+      },
+      "createdAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "enable": {
+        "description": "Pointer so an explicit false survives: a bool with default:true collapses\nback to the column default (zero values are skipped on insert).",
+        "example": true,
+        "nullable": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "headers": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "id": {
+        "example": 1,
+        "type": "integer"
+      },
+      "kind": {
+        "enum": [
+          "link",
+          "subscription"
+        ],
+        "example": "link",
+        "type": "string"
+      },
+      "lastFetchAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "lastFetchError": {
+        "type": "string"
+      },
+      "namePrefix": {
+        "example": "[backup] ",
+        "type": "string"
+      },
+      "remark": {
+        "example": "Backup provider",
+        "type": "string"
+      },
+      "sortIndex": {
+        "example": 0,
+        "type": "integer"
+      },
+      "updatedAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "userAgent": {
+        "type": "string"
+      },
+      "value": {
+        "example": "vless://uuid@example.com:443?type=tcp#node",
+        "type": "string"
+      }
+    },
+    "required": [
+      "assignedClients",
+      "cacheTtl",
+      "createdAt",
+      "expiryTime",
+      "headers",
+      "id",
+      "kind",
+      "lastFetchAt",
+      "lastFetchError",
+      "namePrefix",
+      "remark",
+      "sortIndex",
+      "updatedAt",
+      "userAgent",
+      "value"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkAssignment": {
+    "description": "ExternalLinkAssignment binds one library link to a target. A client receives\nthe union over its own, group, inbound and panel scopes; overrides win here.",
+    "properties": {
+      "createdAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "enable": {
+        "example": true,
+        "nullable": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "description": "0 inherits the library row; ExternalLinkExpiryNever outlives it. A client's\nown 0 must not mean \"inherit\", or a shared expiry would silently drop it.",
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "id": {
+        "example": 1,
+        "type": "integer"
+      },
+      "linkId": {
+        "example": 1,
+        "type": "integer"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "origin": {
+        "example": "panel",
+        "type": "string"
+      },
+      "remark": {
+        "type": "string"
+      },
+      "sortIndex": {
+        "example": 0,
+        "type": "integer"
+      },
+      "targetId": {
+        "example": 7,
+        "type": "integer"
+      },
+      "targetType": {
+        "enum": [
+          "client",
+          "group",
+          "inbound",
+          "global",
+          "new_clients"
+        ],
+        "example": "client",
+        "type": "string"
+      }
+    },
+    "required": [
+      "createdAt",
+      "id",
+      "linkId",
+      "origin",
+      "targetId",
+      "targetType"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkTargetView": {
+    "description": "ExternalLinkTargetView is one target a library entry is assigned to.",
+    "properties": {
+      "name": {
+        "example": "user@example.com",
+        "type": "string"
+      },
+      "targetId": {
+        "example": 7,
+        "type": "integer"
+      },
+      "targetType": {
+        "example": "client",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "targetId",
+      "targetType"
+    ],
+    "type": "object"
+  },
+  "ExternalLinkView": {
+    "description": "ExternalLinkView is one row of a client's Links tab: the library entry, the\noverrides of the scope that granted it, and the fetch status to show.",
+    "properties": {
+      "assignmentId": {
+        "example": 4,
+        "type": "integer"
+      },
+      "cacheTtl": {
+        "example": 0,
+        "type": "integer"
+      },
+      "enable": {
+        "example": true,
+        "type": "boolean"
+      },
+      "expiryTime": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "kind": {
+        "example": "link",
+        "type": "string"
+      },
+      "lastFetchAt": {
+        "example": 0,
+        "format": "int64",
+        "type": "integer"
+      },
+      "lastFetchError": {
+        "type": "string"
+      },
+      "linkId": {
+        "example": 1,
+        "type": "integer"
+      },
+      "namePrefix": {
+        "type": "string"
+      },
+      "own": {
+        "example": true,
+        "type": "boolean"
+      },
+      "remark": {
+        "example": "Backup provider",
+        "type": "string"
+      },
+      "scope": {
+        "example": "client",
+        "type": "string"
+      },
+      "scopeTarget": {
+        "example": 7,
+        "type": "integer"
+      },
+      "userAgent": {
+        "type": "string"
+      },
+      "value": {
+        "example": "vless://uuid@example.com:443#node",
+        "type": "string"
+      }
+    },
+    "required": [
+      "assignmentId",
+      "cacheTtl",
+      "enable",
+      "expiryTime",
+      "kind",
+      "lastFetchAt",
+      "lastFetchError",
+      "linkId",
+      "namePrefix",
+      "own",
+      "remark",
+      "scope",
+      "scopeTarget",
+      "userAgent",
+      "value"
+    ],
+    "type": "object"
+  },
   "FallbackParentInfo": {
     "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
     "properties": {

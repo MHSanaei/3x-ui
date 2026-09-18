@@ -500,7 +500,7 @@ func (a *ClientController) importClients(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	var items []service.ClientCreatePayload
+	var items []service.ClientPortable
 	if err := json.Unmarshal([]byte(req.Data), &items); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

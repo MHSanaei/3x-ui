@@ -37,6 +37,8 @@ func run(root, outDir string) error {
 				"Client",
 				"ClientRecord",
 				"ClientInbound",
+				"ExternalLink",
+				"ExternalLinkAssignment",
 				"InboundFallback",
 				"Host",
 				"SubBalancer",
@@ -108,6 +110,9 @@ func run(root, outDir string) error {
 				"AmneziaWGLogs",
 				"PeerActivity",
 				"HwidSlotStatus",
+				"ExternalLinkView",
+				"ExternalLinkTargetView",
+				"EffectiveExternalLink",
 			),
 		},
 		{

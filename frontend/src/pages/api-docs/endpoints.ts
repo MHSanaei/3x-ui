@@ -1276,15 +1276,15 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/export',
         summary:
-          'Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
+          'Return every client as a {client, inboundIds, externalLinks} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list, and a client\u2019s own external links travel in externalLinks, which is panel-local state (it is not pushed to nodes). The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "limitHwid": 2,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "limitHwid": 2,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9],\n      "externalLinks": [\n        { "kind": "link", "value": "vless://...@backup.example:443#backup" }\n      ]\n    }\n  ]\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/clients/import',
         summary:
-          'Import clients from a JSON body { "data": "<json>" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.',
+          'Import clients from a JSON body { "data": "<json>" }, where data is a string-encoded array produced by /export ([{client, inboundIds, externalLinks}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. externalLinks entries become the client\u2019s own library assignments; nothing is imported for an email that was skipped. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.',
         body: '{\n  "data": "[{\\"client\\":{\\"email\\":\\"alice@example.com\\",\\"enable\\":true},\\"inboundIds\\":[7]}]"\n}',
         response:
           '{\n  "success": true,\n  "obj": {\n    "created": 2,\n    "skipped": [\n      { "email": "alice@example.com", "reason": "email already in use: alice@example.com" }\n    ]\n  }\n}',
@@ -1592,6 +1592,278 @@ export const sections: readonly Section[] = [
         ],
         response:
           '{\n  "success": true,\n  "obj": [\n    "vless://uuid@host:443?...#user1"\n  ]\n}',
+      },
+    ],
+  },
+
+  {
+    id: 'external-links',
+    title: 'External Links',
+    description:
+      'The panel-wide library of external links and external subscriptions, plus the targets each entry is assigned to. All endpoints under /panel/api/links. A client receives the union of the entries assigned to it directly, to its group, to the inbounds it sits on and to the panel as a whole; the most specific scope wins for overrides, and the library row itself is shared so one edit reaches every client that inherits it. Subscription entries are fetched by the panel, revalidated conditionally and never allowed to empty a client subscription when the provider is down.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/links/list',
+        summary:
+          'List the link library in display order. Each row carries assignedClients, the number of distinct clients it reaches through every scope.',
+        responseSchema: 'ExternalLink',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/add',
+        summary:
+          'Create a library entry, or update the one named by id in place. Editing a shared row changes what every client inheriting it receives, so name and lifecycle overrides that belong to one client are stored on the assignment instead (see assign).',
+        params: [
+          {
+            name: 'id',
+            in: 'body',
+            type: 'integer',
+            desc: 'Existing library row to update. Omit or send 0 to create.',
+            optional: true,
+          },
+          {
+            name: 'kind',
+            in: 'body',
+            type: 'string',
+            desc: 'link for a single share link emitted verbatim, subscription for an http(s) URL the panel fetches and expands.',
+            enum: ['link', 'subscription'],
+          },
+          {
+            name: 'value',
+            in: 'body',
+            type: 'string',
+            desc: 'The share link or the subscription URL. A (kind, value) pair is unique: saving a pair that already exists is rejected and names the duplicate.',
+          },
+          {
+            name: 'remark',
+            in: 'body',
+            type: 'string',
+            desc: 'Display name, overridable per assignment.',
+            optional: true,
+          },
+          {
+            name: 'namePrefix',
+            in: 'body',
+            type: 'string',
+            desc: 'Prefix for the fetched node names, overridable per assignment.',
+            optional: true,
+          },
+          {
+            name: 'enable',
+            in: 'body',
+            type: 'boolean',
+            desc: 'Defaults to true. A disabled row stays stored and keeps its assignments but is not emitted.',
+            optional: true,
+          },
+          {
+            name: 'expiryTime',
+            in: 'body',
+            type: 'integer',
+            desc: 'Unix millisecond timestamp after which the row stops being emitted; 0 means it never expires. Negative is rejected.',
+            optional: true,
+            defaultValue: 0,
+          },
+          {
+            name: 'userAgent',
+            in: 'body',
+            type: 'string',
+            desc: 'User-Agent for the outgoing fetch of a subscription; empty sends v2rayNG/1.8.5.',
+            optional: true,
+          },
+          {
+            name: 'headers',
+            in: 'body',
+            type: 'object',
+            desc: 'Extra request headers for the outgoing fetch, on top of the X-HWID / X-Device-Os identity the panel always sends.',
+            optional: true,
+          },
+          {
+            name: 'cacheTtl',
+            in: 'body',
+            type: 'integer',
+            desc: 'Seconds the fetched body stays fresh; 0 uses the built-in 5 minutes.',
+            optional: true,
+            defaultValue: 0,
+          },
+        ],
+        responseSchema: 'ExternalLink',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/del/:id',
+        summary:
+          'Delete a library entry together with every assignment to it. Clients that inherited it stop receiving it immediately.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Library row id.' }],
+        response: '{\n  "success": true,\n  "obj": {\n    "id": 4\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/enable/:id',
+        summary:
+          'Enable or disable one library entry without dropping its assignments. A disabled entry stays listed and editable but is not emitted to any subscription.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Library row id.' },
+          { name: 'enable', in: 'body', type: 'boolean', desc: 'New state.' },
+        ],
+        body: '{\n  "enable": false\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "id": 4,\n    "enable": false\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/reorder',
+        summary:
+          'Store the library order. It is the order inherited entries appear in a client subscription; a client\u2019s own entries keep their own order and stay first.',
+        params: [
+          {
+            name: 'ids',
+            in: 'body',
+            type: 'integer[]',
+            desc: 'Every library id, in the wanted order. Ids absent from the list keep their current rank.',
+          },
+        ],
+        body: '{\n  "ids": [3, 1, 2]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "ids": [3, 1, 2]\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/links/targets/:id',
+        summary:
+          'List what one library entry is assigned to, with a display name per target: client emails, group names, inbound tags, and the special all-clients and new-clients scopes.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Library row id.' }],
+        responseSchema: 'ExternalLinkTargetView',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/assign/:id',
+        summary:
+          'Assign a library entry to every named target in one call. Assigning the same target twice refreshes its overrides instead of duplicating the row.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Library row id.' },
+          {
+            name: 'emails',
+            in: 'body',
+            type: 'string[]',
+            desc: 'Client emails to bind directly. An unknown email rejects the whole call.',
+            optional: true,
+          },
+          {
+            name: 'group',
+            in: 'body',
+            type: 'string',
+            desc: 'Client group name. A name with no stored group is created, like the group bulk endpoints do.',
+            optional: true,
+          },
+          {
+            name: 'inboundId',
+            in: 'body',
+            type: 'integer',
+            desc: 'Bind to every client attached to this inbound.',
+            optional: true,
+          },
+          {
+            name: 'global',
+            in: 'body',
+            type: 'boolean',
+            desc: 'Bind to every client of the panel, including ones created later.',
+            optional: true,
+          },
+          {
+            name: 'newClients',
+            in: 'body',
+            type: 'boolean',
+            desc: 'Bind to clients created from now on. The default is copied onto each new client at creation, so it is visible and editable per client.',
+            optional: true,
+          },
+          {
+            name: 'enable',
+            in: 'body',
+            type: 'boolean',
+            desc: 'Per-target override. Omitted inherits the library row; false excludes the link for these targets only.',
+            optional: true,
+          },
+          {
+            name: 'expiryTime',
+            in: 'body',
+            type: 'integer',
+            desc: 'Per-target expiry override. Omitted inherits the library row; 0 means no expiry.',
+            optional: true,
+          },
+          {
+            name: 'namePrefix',
+            in: 'body',
+            type: 'string',
+            desc: 'Per-target name prefix override.',
+            optional: true,
+          },
+        ],
+        body: '{\n  "emails": ["alice@example.com"],\n  "group": "friends",\n  "global": false,\n  "newClients": true\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 3\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/unassign/:id',
+        summary:
+          'Remove the named targets from one library entry. The entry itself stays in the library, and targets not listed keep their assignment.',
+        params: [
+          { name: 'id', in: 'path', type: 'integer', desc: 'Library row id.' },
+          {
+            name: 'emails',
+            in: 'body',
+            type: 'string[]',
+            desc: 'Client emails to unbind.',
+            optional: true,
+          },
+          {
+            name: 'group',
+            in: 'body',
+            type: 'string',
+            desc: 'Group name to unbind. Unlike assign, an unknown group is rejected.',
+            optional: true,
+          },
+          {
+            name: 'inboundId',
+            in: 'body',
+            type: 'integer',
+            desc: 'Inbound to unbind.',
+            optional: true,
+          },
+          {
+            name: 'global',
+            in: 'body',
+            type: 'boolean',
+            desc: 'Drop the panel-wide binding.',
+            optional: true,
+          },
+          {
+            name: 'newClients',
+            in: 'body',
+            type: 'boolean',
+            desc: 'Drop the default applied to newly created clients. Clients created earlier keep the copy they already received.',
+            optional: true,
+          },
+        ],
+        body: '{\n  "emails": ["alice@example.com"]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 1\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/links/client/:clientId',
+        summary:
+          'List what one client actually receives: the entries it owns first, then the inherited ones with the scope that granted them. Disabled and expired entries are excluded.',
+        params: [{ name: 'clientId', in: 'path', type: 'integer', desc: 'Client record id.' }],
+        responseSchema: 'ExternalLinkView',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/links/refresh/:id',
+        summary:
+          'Fetch one subscription entry again right now, bypassing the cached copy, and report how many share links came back. The panel otherwise revalidates it in the background and serves the last good body, so a failing provider never empties a subscription.',
+        params: [{ name: 'id', in: 'path', type: 'integer', desc: 'Library row id.' }],
+        response: '{\n  "success": true,\n  "obj": {\n    "count": 12\n  }\n}',
       },
     ],
   },

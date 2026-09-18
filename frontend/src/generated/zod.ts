@@ -509,6 +509,85 @@ export const ClientsSummarySchema = z.object({
 });
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
 
+export const EffectiveExternalLinkSchema = z.object({
+  cacheTTL: z.number().int(),
+  enable: z.boolean(),
+  expiryTime: z.number().int(),
+  headers: z.record(z.string(), z.string()),
+  kind: z.string(),
+  linkId: z.number().int(),
+  namePrefix: z.string(),
+  origin: z.string(),
+  remark: z.string(),
+  scope: z.string(),
+  scopeTarget: z.number().int(),
+  sortIndex: z.number().int(),
+  userAgent: z.string(),
+  value: z.string(),
+});
+export type EffectiveExternalLink = z.infer<typeof EffectiveExternalLinkSchema>;
+
+export const ExternalLinkSchema = z.object({
+  assignedClients: z.number().int(),
+  cacheTtl: z.number().int(),
+  createdAt: z.number().int(),
+  enable: z.boolean().nullable().optional(),
+  expiryTime: z.number().int(),
+  headers: z.record(z.string(), z.string()),
+  id: z.number().int(),
+  kind: z.enum(['link', 'subscription']),
+  lastFetchAt: z.number().int(),
+  lastFetchError: z.string(),
+  namePrefix: z.string(),
+  remark: z.string(),
+  sortIndex: z.number().int(),
+  updatedAt: z.number().int(),
+  userAgent: z.string(),
+  value: z.string(),
+});
+export type ExternalLink = z.infer<typeof ExternalLinkSchema>;
+
+export const ExternalLinkAssignmentSchema = z.object({
+  createdAt: z.number().int(),
+  enable: z.boolean().nullable().optional(),
+  expiryTime: z.number().int().optional(),
+  id: z.number().int(),
+  linkId: z.number().int(),
+  namePrefix: z.string().optional(),
+  origin: z.string(),
+  remark: z.string().optional(),
+  sortIndex: z.number().int().optional(),
+  targetId: z.number().int(),
+  targetType: z.enum(['client', 'group', 'inbound', 'global', 'new_clients']),
+});
+export type ExternalLinkAssignment = z.infer<typeof ExternalLinkAssignmentSchema>;
+
+export const ExternalLinkTargetViewSchema = z.object({
+  name: z.string(),
+  targetId: z.number().int(),
+  targetType: z.string(),
+});
+export type ExternalLinkTargetView = z.infer<typeof ExternalLinkTargetViewSchema>;
+
+export const ExternalLinkViewSchema = z.object({
+  assignmentId: z.number().int(),
+  cacheTtl: z.number().int(),
+  enable: z.boolean(),
+  expiryTime: z.number().int(),
+  kind: z.string(),
+  lastFetchAt: z.number().int(),
+  lastFetchError: z.string(),
+  linkId: z.number().int(),
+  namePrefix: z.string(),
+  own: z.boolean(),
+  remark: z.string(),
+  scope: z.string(),
+  scopeTarget: z.number().int(),
+  userAgent: z.string(),
+  value: z.string(),
+});
+export type ExternalLinkView = z.infer<typeof ExternalLinkViewSchema>;
+
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),
   path: z.string().optional(),

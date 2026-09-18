@@ -205,6 +205,10 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	a.settingController = NewSettingController(api)
 	a.xraySettingController = NewXraySettingController(api)
 
+	// Link library — the shared external links every client can inherit
+	links := api.Group("/links")
+	NewLinkController(links)
+
 	// Subscription balancers — client-side balancers for the JSON sub output
 	NewSubBalancerController(api)
 

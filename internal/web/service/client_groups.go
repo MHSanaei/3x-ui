@@ -343,6 +343,15 @@ func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
 func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) {
 	db := database.GetDB()
 	if newName == "" {
+		// Assignments are keyed by group id, so read the id while the row that
+		// carries it still exists.
+		var groupIds []int
+		if err := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Pluck("id", &groupIds).Error; err != nil {
+			return 0, err
+		}
+		if err := dropExternalLinkAssignmentsTx(db, model.ExternalLinkTargetGroup, groupIds...); err != nil {
+			return 0, err
+		}
 		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
 			return 0, err
 		}

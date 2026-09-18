@@ -302,18 +302,10 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if err := db.Create(rec).Error; err != nil {
 		t.Fatalf("seed client: %v", err)
 	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://b", Remark: "second", SortIndex: 5}).Error; err != nil {
-		t.Fatalf("seed link b: %v", err)
-	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://a", Remark: "first", SortIndex: 1}).Error; err != nil {
-		t.Fatalf("seed link a: %v", err)
-	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://disabled", Remark: "disabled", Enable: new(false), SortIndex: 3}).Error; err != nil {
-		t.Fatalf("seed disabled link: %v", err)
-	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://expired", Remark: "expired", ExpiryTime: time.Now().Add(-time.Hour).UnixMilli(), SortIndex: 4}).Error; err != nil {
-		t.Fatalf("seed expired link: %v", err)
-	}
+	seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: "trojan://b", Remark: "second", SortIndex: 5})
+	seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: "trojan://a", Remark: "first", SortIndex: 1})
+	seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: "trojan://disabled", Remark: "disabled", Enable: new(false), SortIndex: 3})
+	seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: "trojan://expired", Remark: "expired", ExpiryTime: time.Now().Add(-time.Hour).UnixMilli(), SortIndex: 4})
 
 	out, err = s.getClientExternalLinksBySubId("sub-ok")
 	if err != nil {
@@ -344,9 +336,7 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if err := db.Model(&model.ClientRecord{}).Where("id = ?", dis.Id).Update("enable", false).Error; err != nil {
 		t.Fatalf("disable client: %v", err)
 	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: dis.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://c", SortIndex: 1}).Error; err != nil {
-		t.Fatalf("seed link c: %v", err)
-	}
+	seedClientExternalLink(t, dis.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: "trojan://c", SortIndex: 1})
 	offOut, err := s.getClientExternalLinksBySubId("sub-off")
 	if err != nil {
 		t.Fatalf("off subId err = %v", err)
@@ -362,9 +352,7 @@ func TestGetClientExternalLinksBySubId(t *testing.T) {
 	if err := db.Create(expired).Error; err != nil {
 		t.Fatalf("seed expired client: %v", err)
 	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: expired.Id, Kind: model.ExternalLinkKindLink, Value: "trojan://d", SortIndex: 1}).Error; err != nil {
-		t.Fatalf("seed expired client link: %v", err)
-	}
+	seedClientExternalLink(t, expired.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: "trojan://d", SortIndex: 1})
 	expiredOut, err := s.getClientExternalLinksBySubId("sub-expired")
 	if err != nil {
 		t.Fatalf("expired subId err = %v", err)
