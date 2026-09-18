@@ -49,8 +49,10 @@ interface PanelState {
 
 function mockPanel(panel: PanelState = {}) {
   const posts: { url: string; payload?: unknown }[] = [];
+  const gets: string[] = [];
 
   vi.spyOn(HttpUtil, 'get').mockImplementation(async (url: string) => {
+    gets.push(url);
     if (url.includes('/panel/api/links/list')) {
       return panel.listError
         ? new Msg(false, panel.listError, null)
@@ -71,7 +73,7 @@ function mockPanel(panel: PanelState = {}) {
     return new Msg(true, '', {});
   });
 
-  return posts;
+  return { posts, gets };
 }
 
 afterEach(() => {
@@ -218,11 +220,29 @@ describe('LinksPage list', () => {
     expect(screen.getByText('links/list response failed validation')).toBeTruthy();
     expect(screen.queryByText('The library is empty. Add the first entry.')).toBeNull();
   });
+
+  it('asks for the targets of the row that was opened, and of no other', async () => {
+    const { gets } = mockPanel({
+      links: [link({ id: 7, value: LINK_VALUE }), link({ id: 9, value: OTHER_VALUE })],
+    });
+    renderPage();
+
+    await screen.findByText(LINK_VALUE);
+    expect(gets.filter((url) => url.includes('/links/targets/'))).toEqual([]);
+
+    fireEvent.click(rowButton(OTHER_VALUE, 'Assigned to'));
+
+    await waitFor(() =>
+      expect(gets.filter((url) => url.includes('/links/targets/'))).toEqual([
+        '/panel/api/links/targets/9',
+      ]),
+    );
+  });
 });
 
 describe('LinksPage row actions', () => {
   it('toggles just the row whose own button was clicked', async () => {
-    const posts = mockPanel({
+    const { posts } = mockPanel({
       links: [
         link({ id: 7, value: LINK_VALUE }),
         link({ id: 9, value: OTHER_VALUE, enable: false }),
@@ -239,7 +259,7 @@ describe('LinksPage row actions', () => {
   });
 
   it('posts the reordered ids and refuses to move a row past the ends', async () => {
-    const posts = mockPanel({
+    const { posts } = mockPanel({
       links: [link({ id: 7, value: LINK_VALUE }), link({ id: 9, value: OTHER_VALUE })],
     });
     renderPage();
@@ -255,7 +275,7 @@ describe('LinksPage row actions', () => {
   });
 
   it('names the row in the delete confirmation and deletes by id', async () => {
-    const posts = mockPanel({ links: [link({ id: 7, value: LINK_VALUE, remark: 'fast' })] });
+    const { posts } = mockPanel({ links: [link({ id: 7, value: LINK_VALUE, remark: 'fast' })] });
     renderPage();
 
     await screen.findByText(LINK_VALUE);
@@ -272,7 +292,7 @@ describe('LinksPage row actions', () => {
 
 describe('LinksPage form', () => {
   it('prefills the edit form from the row and sends its id back on save', async () => {
-    const posts = mockPanel({
+    const { posts } = mockPanel({
       links: [
         link({
           id: 7,
@@ -313,7 +333,7 @@ describe('LinksPage form', () => {
   });
 
   it('opens a blank create form and reveals the fetch fields only for a subscription', async () => {
-    const posts = mockPanel({ links: [link({ id: 7, value: LINK_VALUE })] });
+    const { posts } = mockPanel({ links: [link({ id: 7, value: LINK_VALUE })] });
     renderPage();
 
     await screen.findByText(LINK_VALUE);
@@ -365,7 +385,7 @@ describe('LinksPage assignment targets', () => {
   });
 
   it('sends the picked client and clears the form for the next assignment', async () => {
-    const posts = mockPanel({
+    const { posts } = mockPanel({
       links: [link({ id: 7, value: LINK_VALUE })],
       clients: [{ email: 'b@x' }, { email: 'a@x' }],
     });
@@ -395,7 +415,7 @@ describe('LinksPage assignment targets', () => {
   });
 
   it('sends the scope flag alone for a group, an inbound and every client', async () => {
-    const posts = mockPanel({
+    const { posts } = mockPanel({
       links: [link({ id: 7, value: LINK_VALUE })],
       groups: [{ name: 'paid', clientCount: 0, trafficUsed: 0, up: 0, down: 0 }],
       inbounds: [{ id: 12, remark: 'in-12' }],
@@ -451,7 +471,7 @@ describe('LinksPage assignment targets', () => {
   });
 
   it('unassigns the exact target the tag names', async () => {
-    const posts = mockPanel({
+    const { posts } = mockPanel({
       links: [link({ id: 7, value: LINK_VALUE })],
       targets: [
         { targetType: 'client', targetId: 0, name: 'a@x' },

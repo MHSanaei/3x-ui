@@ -50,13 +50,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderModal() {
+function renderModal(client: ClientRecord | null = CLIENT) {
   return renderWithProviders(
     <MemoryRouter initialEntries={['/clients']}>
       <ClientFormModal
         open
-        mode="edit"
-        client={CLIENT}
+        mode={client ? 'edit' : 'add'}
+        client={client}
         inbounds={[] as InboundOption[]}
         save={vi.fn().mockResolvedValue(null)}
         onOpenChange={() => {}}
@@ -139,5 +139,19 @@ describe('ClientFormModal inherited links', () => {
 
     expect(screen.queryByText('Inherited links')).toBeNull();
     expect(document.body.textContent).not.toContain(OWN_VALUE);
+  });
+
+  it('does not look up the links of a client that has no id yet', async () => {
+    const gets = mockClientLinks([]);
+    renderModal(null);
+    openLinksTab();
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(gets.filter((url) => url.includes('/panel/api/links/client/'))).toEqual([]);
+    expect(screen.queryByText('Inherited links')).toBeNull();
   });
 });
