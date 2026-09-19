@@ -6,6 +6,8 @@ import (
 	"io"
 	"time"
 
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -14,6 +16,10 @@ const singBoxAPIAddress = "127.0.0.1:10091"
 
 type connectionSubscribeRequest struct {
 	Interval int64
+}
+
+type closeConnectionRequest struct {
+	ID string
 }
 
 type singBoxConnection struct {
@@ -49,20 +55,26 @@ type connectionAPIProtoCodec struct{}
 func (connectionAPIProtoCodec) Name() string { return "singbox-api" }
 
 func (connectionAPIProtoCodec) Marshal(v any) ([]byte, error) {
-	req, ok := v.(*connectionSubscribeRequest)
-	if !ok {
+	switch req := v.(type) {
+	case *connectionSubscribeRequest:
+		var out []byte
+		if req.Interval != 0 {
+			out = appendVarintField(out, 1, uint64(req.Interval))
+		}
+		return out, nil
+	case *closeConnectionRequest:
+		return appendStringField(nil, 1, req.ID), nil
+	default:
 		return nil, fmt.Errorf("unsupported sing-box API request type %T", v)
 	}
-	var out []byte
-	if req.Interval != 0 {
-		out = appendVarintField(out, 1, uint64(req.Interval))
-	}
-	return out, nil
 }
 
 func (connectionAPIProtoCodec) Unmarshal(data []byte, v any) error {
 	resp, ok := v.(*connectionEvents)
 	if !ok {
+		if _, empty := v.(*emptypb.Empty); empty {
+			return nil
+		}
 		return fmt.Errorf("unsupported sing-box API response type %T", v)
 	}
 	resp.Events = resp.Events[:0]
@@ -231,6 +243,27 @@ func (c *ConnectionAPIClient) connFor(ctx context.Context) error {
 	)
 	if err != nil { return err }
 	c.conn = conn
+	return nil
+}
+
+func (c *ConnectionAPIClient) CloseConnection(ctx context.Context, id string) error {
+	if id == "" {
+		return nil
+	}
+	if err := c.connFor(ctx); err != nil {
+		return err
+	}
+	var response emptypb.Empty
+	if err := c.conn.Invoke(
+		ctx,
+		"/daemon.StartedService/CloseConnection",
+		&closeConnectionRequest{ID: id},
+		&response,
+		grpc.ForceCodec(connectionAPIProtoCodec{}),
+	); err != nil {
+		c.Close()
+		return err
+	}
 	return nil
 }
 
