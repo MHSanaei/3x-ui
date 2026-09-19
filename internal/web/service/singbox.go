@@ -236,6 +236,14 @@ func (s *SingBoxService) Validate(ctx context.Context) error {
 
 
 
+func (s *SingBoxService) ConnectionCount(ctx context.Context) (int, error) {
+	connections, err := singbox.NewClashStatsClient().Connections(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return len(connections), nil
+}
+
 func (s *SingBoxService) PollTraffic(ctx context.Context) error {
 	inbounds, err := singBoxInboundService.GetAllInbounds()
 	if err != nil {
