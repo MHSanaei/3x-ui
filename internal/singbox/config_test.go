@@ -268,6 +268,47 @@ func TestTranslateTUICOutbound(t *testing.T) {
 	}
 }
 
+func TestTranslateXrayDNSModernServers(t *testing.T) {
+	raw := map[string]any{
+		"queryStrategy": "UseIPv4",
+		"servers": []any{"8.8.8.8", "https://dns.google/dns-query", "tls://1.1.1.1:853"},
+	}
+	got, err := TranslateXrayDNS(raw)
+	if err != nil { t.Fatal(err) }
+	servers, ok := got["servers"].([]map[string]any)
+	if !ok || len(servers) != 3 { t.Fatalf("servers = %#v", got["servers"]) }
+	if servers[0]["type"] != "udp" || servers[0]["server"] != "8.8.8.8" || servers[0]["server_port"] != 53 {
+		t.Fatalf("unexpected UDP DNS server: %#v", servers[0])
+	}
+	if servers[1]["type"] != "https" || servers[1]["server"] != "dns.google" || servers[1]["path"] != "/dns-query" {
+		t.Fatalf("unexpected DoH server: %#v", servers[1])
+	}
+	if servers[2]["type"] != "tls" || servers[2]["server_port"] != 853 {
+		t.Fatalf("unexpected DoT server: %#v", servers[2])
+	}
+	if got["final"] != "dns-1" || got["strategy"] != "ipv4_only" {
+		t.Fatalf("unexpected DNS defaults: %#v", got)
+	}
+}
+
+func TestTranslateXrayRoutingUsesModernDomainStrategy(t *testing.T) {
+	raw := map[string]any{
+		"domainStrategy": "IPIfNonMatch",
+		"rules": []any{
+			map[string]any{"type":"field","domain":[]any{"example.com"},"outboundTag":"proxy"},
+		},
+	}
+	got, err := TranslateXrayRouting(raw)
+	if err != nil { t.Fatal(err) }
+	if got["default_domain_strategy"] != "prefer_ipv4" {
+		t.Fatalf("unexpected domain strategy: %#v", got["default_domain_strategy"])
+	}
+	rules, ok := got["rules"].([]map[string]any)
+	if !ok || len(rules) != 1 || rules[0]["outbound"] != "proxy" {
+		t.Fatalf("unexpected rules: %#v", got["rules"])
+	}
+}
+
 func TestTranslateHysteriaUsers(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "hysteria",
