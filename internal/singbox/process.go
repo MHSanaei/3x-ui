@@ -44,6 +44,7 @@ func GetConfigPath() string {
 // Process manages one panel-owned sing-box process.
 type Process struct {
 	mu        sync.RWMutex
+	lifecycle sync.Mutex
 	cmd       *exec.Cmd
 	done      chan struct{}
 	exitErr   error
@@ -130,16 +131,23 @@ func (p *Process) Version(ctx context.Context) (string, error) {
 }
 
 func (p *Process) Start(ctx context.Context) error {
-	p.mu.Lock()
-	if p.cmd != nil && p.cmd.Process != nil {
+	p.lifecycle.Lock()
+	defer p.lifecycle.Unlock()
+	return p.startLocked(ctx)
+}
+
+func (p *Process) startLocked(ctx context.Context) error {
+	p.mu.RLock()
+	running := p.cmd != nil && p.cmd.Process != nil
+	done := p.done
+	p.mu.RUnlock()
+	if running {
 		select {
-		case <-p.done:
+		case <-done:
 		default:
-			p.mu.Unlock()
 			return nil
 		}
 	}
-	p.mu.Unlock()
 
 	if err := p.Validate(ctx); err != nil {
 		return err
@@ -158,7 +166,7 @@ func (p *Process) Start(ctx context.Context) error {
 	p.done = make(chan struct{})
 	p.exitErr = nil
 	p.startTime = time.Now()
-	done := p.done
+	done = p.done
 	p.mu.Unlock()
 
 	go func() {
@@ -172,6 +180,12 @@ func (p *Process) Start(ctx context.Context) error {
 }
 
 func (p *Process) Stop() error {
+	p.lifecycle.Lock()
+	defer p.lifecycle.Unlock()
+	return p.stopLocked()
+}
+
+func (p *Process) stopLocked() error {
 	p.mu.RLock()
 	cmd, done := p.cmd, p.done
 	p.mu.RUnlock()
@@ -205,10 +219,12 @@ func (p *Process) Stop() error {
 }
 
 func (p *Process) Restart(ctx context.Context) error {
-	if err := p.Stop(); err != nil {
+	p.lifecycle.Lock()
+	defer p.lifecycle.Unlock()
+	if err := p.stopLocked(); err != nil {
 		return err
 	}
-	return p.Start(ctx)
+	return p.startLocked(ctx)
 }
 
 type processOutput struct {
