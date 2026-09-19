@@ -1,7 +1,6 @@
 package singbox
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -217,9 +216,9 @@ type processOutput struct {
 }
 
 func (w *processOutput) Write(b []byte) (int, error) {
-	// Keep stderr/stdout available to the process manager without introducing
-	// a second logging dependency. The lifecycle error is captured by Wait.
-	return len(bytes.TrimSpace(b)), nil
+	// Keep stdout/stderr drained so the child process cannot block on a full pipe.
+	// The lifecycle error is captured by Wait.
+	return len(b), nil
 }
 
 var _ corepkg.Runtime = (*Runtime)(nil)
