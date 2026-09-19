@@ -98,7 +98,9 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 			return nil, fmt.Errorf("outbound %q has incomplete Shadowsocks server settings", tag)
 		}
 		for _, key := range []string{"plugin", "plugin_opts", "network"} {
-			copyString(server, out, key)
+			if value := rawString(server, key); value != "" {
+				out[key] = value
+			}
 		}
 	case "vmess", "vless", "trojan":
 		vnext, _ := settings["vnext"].([]any)
@@ -118,8 +120,12 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 				case "vless", "vmess":
 					out["uuid"] = rawString(u, "id")
 					if protocol == "vmess" {
-						copyString(u, out, "security")
-						copyInt(u, out, "alterId")
+						if value := rawString(u, "security"); value != "" {
+							out["security"] = value
+						}
+						if value := rawInt(u, "alterId"); value > 0 {
+							out["alter_id"] = value
+						}
 					}
 				case "trojan":
 					out["password"] = rawString(u, "password")
