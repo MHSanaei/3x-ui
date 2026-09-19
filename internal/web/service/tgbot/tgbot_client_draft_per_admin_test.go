@@ -66,3 +66,37 @@ func TestAddClientDraftIsPerAdminInGroupChat(t *testing.T) {
 		t.Errorf("admin B's step = %q, want none: only the tapper's step may change", st)
 	}
 }
+
+// The wizard's typed steps arrive as messages, and that handler is a closure no
+// test can drive, so pin the key it takes there: sender, not chat.
+func TestMessageActorSeparatesAdminsInOneChat(t *testing.T) {
+	const (
+		groupChat = int64(-1001234567890)
+		adminA    = int64(8101)
+		adminB    = int64(8202)
+	)
+	t.Cleanup(userStateMgr.reset)
+
+	fromA := messageActor(telego.Message{Chat: telego.Chat{ID: groupChat}, From: &telego.User{ID: adminA}})
+	fromB := messageActor(telego.Message{Chat: telego.Chat{ID: groupChat}, From: &telego.User{ID: adminB}})
+	// A channel post carries no sender and must not land on an admin's step.
+	fromChannel := messageActor(telego.Message{Chat: telego.Chat{ID: groupChat}})
+
+	if want := (chatUser{chatID: groupChat, userID: adminA}); fromA != want {
+		t.Errorf("message from admin A keyed as %+v, want %+v", fromA, want)
+	}
+	if fromA == fromB || fromA == fromChannel || fromB == fromChannel {
+		t.Fatalf("keys collide: %+v, %+v, %+v", fromA, fromB, fromChannel)
+	}
+
+	userStateMgr.set(fromA, "awaiting_email")
+	if st, ok := userStateMgr.get(fromB); ok {
+		t.Errorf("admin B sees step %q: admin A's answer would land in B's wizard", st)
+	}
+	if st, ok := userStateMgr.get(fromChannel); ok {
+		t.Errorf("a senderless post sees step %q", st)
+	}
+	if st, ok := userStateMgr.get(fromA); !ok || st != "awaiting_email" {
+		t.Errorf("admin A's step = %q (set: %v), want awaiting_email", st, ok)
+	}
+}
