@@ -21,10 +21,7 @@ func NewConfig() *Config {
 	return &Config{
 		Log: map[string]any{"level": "info"},
 		Inbounds: []map[string]any{},
-		Outbounds: []map[string]any{
-			{"type": "direct", "tag": "direct"},
-			{"type": "block", "tag": "block"},
-		},
+		Outbounds: []map[string]any{},
 		Route: map[string]any{"final": "direct"},
 	}
 }
