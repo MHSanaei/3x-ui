@@ -565,7 +565,11 @@ func translateUsers(out map[string]any, protocol string, settings map[string]any
 				user["auth_str"] = auth
 			}
 		case "tuic":
-			if id, ok := client["id"].(string); ok && id != "" { user["uuid"] = id }
+			id := rawString(client, "id")
+			if id == "" {
+				id = rawString(client, "uuid")
+			}
+			if id != "" { user["uuid"] = id }
 			if password, ok := client["password"].(string); ok && password != "" { user["password"] = password }
 		}
 		users = append(users, user)
