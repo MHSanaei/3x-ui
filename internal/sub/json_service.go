@@ -843,12 +843,11 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 				newOutbounds = append(newOutbounds, native)
 			}
 		case "wireguard":
-			wgOutbound := s.genWireguard(inbound, client)
-			if wgOutbound == nil {
-				continue
-			}
-			newOutbounds = append(newOutbounds, wgOutbound)
-		case "amneziawg", "tuic":
+			// Native sing-box WireGuard is an endpoint since 1.11. The legacy
+			// JSON generator still emits the Xray-compatible outbound; native
+			// subscription assembly handles WireGuard separately.
+			continue
+		case "amneziawg":
 			continue
 		}
 
