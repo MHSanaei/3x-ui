@@ -224,11 +224,19 @@ func translateUsers(out map[string]any, protocol string, settings map[string]any
 		case "vless", "vmess":
 			if id, ok := client["id"].(string); ok && id != "" { user["uuid"] = id }
 			if flow, ok := client["flow"].(string); ok && flow != "" && protocol == "vless" { user["flow"] = flow }
-		case "trojan", "shadowsocks", "hysteria2":
+		case "trojan", "shadowsocks":
 			if password, ok := client["password"].(string); ok && password != "" {
 				user["password"] = password
-			} else if auth, ok := client["auth"].(string); ok && auth != "" && protocol == "hysteria2" {
+			}
+		case "hysteria2":
+			if password, ok := client["password"].(string); ok && password != "" {
+				user["password"] = password
+			} else if auth, ok := client["auth"].(string); ok && auth != "" {
 				user["password"] = auth
+			}
+		case "hysteria":
+			if auth, ok := client["auth"].(string); ok && auth != "" {
+				user["auth_str"] = auth
 			}
 		case "tuic":
 			if id, ok := client["id"].(string); ok && id != "" { user["uuid"] = id }
