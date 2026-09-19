@@ -2,6 +2,7 @@ package singbox
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -101,6 +102,66 @@ func TestTranslateXrayInboundHTTPAndQUIC(t *testing.T) {
 	transport = got["transport"].(map[string]any)
 	if transport["type"] != "quic" { t.Fatalf("unexpected QUIC transport: %#v", transport) }
 }
+func TestTranslateXrayInboundShadowsocksMethod(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "shadowsocks", "tag": "ss-in",
+		"settings": map[string]any{
+			"method": "aes-256-gcm",
+			"clients": []any{map[string]any{"email": "alice", "password": "secret"}},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	if got["method"] != "aes-256-gcm" { t.Fatalf("method = %#v", got["method"]) }
+	if _, err := TranslateXrayInbound(map[string]any{"protocol":"shadowsocks","tag":"bad","settings":map[string]any{"clients":[]any{map[string]any{"password":"secret"}}}}); err == nil || !strings.Contains(err.Error(), "Shadowsocks method") {
+		t.Fatalf("expected missing method error, got %v", err)
+	}
+}
+
+func TestTranslateXrayRoutingMatchers(t *testing.T) {
+	got, err := TranslateXrayRouting(map[string]any{
+		"domainStrategy": "AsIs",
+		"rules": []any{map[string]any{
+			"domain": []any{"example.com", "domain:example.org", "keyword:ads", "regexp:^cdn\\.", "full:exact.example"},
+			"ip": []any{"1.2.3.4", "10.0.0.0/8"},
+			"network": "tcp", "outboundTag": "direct",
+		}},
+	})
+	if err != nil { t.Fatal(err) }
+	rule := got["rules"].([]map[string]any)[0]
+	if rule["action"] != "route" || rule["outbound"] != "direct" { t.Fatalf("unexpected action: %#v", rule) }
+	if len(rule["domain"].([]string)) != 2 || len(rule["domain_suffix"].([]string)) != 1 || len(rule["domain_keyword"].([]string)) != 1 || len(rule["domain_regex"].([]string)) != 1 {
+		t.Fatalf("unexpected domain translation: %#v", rule)
+	}
+	if len(rule["ip_cidr"].([]string)) != 2 { t.Fatalf("unexpected IP translation: %#v", rule["ip_cidr"]) }
+}
+
+func TestTranslateXrayRoutingRejectsUnrepresentableMatchers(t *testing.T) {
+	for _, rule := range []map[string]any{
+		{"domain": []any{"geosite:cn"}, "outboundTag": "direct"},
+		{"ip": []any{"geoip:private"}, "outboundTag": "direct"},
+		{"domain": []any{"example.com"}, "sourceIP": []any{"10.0.0.0/8"}, "outboundTag": "direct"},
+	} {
+		if _, err := TranslateXrayRouting(map[string]any{"rules": []any{rule}}); err == nil {
+			t.Fatalf("expected unsupported matcher error for %#v", rule)
+		}
+	}
+}
+
+func TestTranslateXrayRoutingRejectsNonAsIsStrategy(t *testing.T) {
+	for _, strategy := range []string{"IPIfNonMatch", "IPOnDemand"} {
+		if _, err := TranslateXrayRouting(map[string]any{"domainStrategy": strategy}); err == nil {
+			t.Fatalf("expected unsupported domainStrategy error for %s", strategy)
+		}
+	}
+}
+
+func TestTranslateXrayDNSClientIP(t *testing.T) {
+	got, err := TranslateXrayDNS(map[string]any{"clientIp":"1.2.3.4","servers":[]any{"1.1.1.1"}})
+	if err != nil { t.Fatal(err) }
+	if got["client_subnet"] != "1.2.3.4" { t.Fatalf("client_subnet = %#v", got["client_subnet"]) }
+}
+
 func TestTranslateHysteriaProtocolSettings(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "hysteria", "tag": "hy", "port": 443,
