@@ -2953,6 +2953,9 @@ type PageData struct {
 
 // ResolveRequest extracts scheme and host info from request/headers consistently.
 // ResolveRequest extracts scheme, host, and header information from an HTTP request.
+//
+// X-Real-IP is never used as a host: it names the visitor, not the panel. Prefer
+// X-Forwarded-Host when a trusted proxy sent it, otherwise the request Host.
 func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
 	trusted := s.forwardedHeadersTrusted(c)
 	if !trusted {
@@ -2971,12 +2974,12 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 		scheme = "https"
 	}
 
-	// base host (no port)
+	// base host (no port): X-Forwarded-Host, then the dialed request Host.
+	// Do not fall back to X-Real-IP — that is a client address, not a hostname
+	// (see #6589; behind nginx/openresty with only X-Real-IP set, using it made
+	// subscription "server" fields advertise the subscriber's public IP).
 	if h, err := getHostFromXFH(forwarded("X-Forwarded-Host")); err == nil && h != "" {
 		host = h
-	}
-	if host == "" {
-		host = forwarded("X-Real-IP")
 	}
 	if host == "" {
 		var err error
@@ -2997,9 +3000,6 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 
 	// header display host
 	hostHeader = forwarded("X-Forwarded-Host")
-	if hostHeader == "" {
-		hostHeader = forwarded("X-Real-IP")
-	}
 	if hostHeader == "" {
 		hostHeader = host
 	}
