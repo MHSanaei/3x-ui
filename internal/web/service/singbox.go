@@ -161,9 +161,6 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 		}
 		cfg.Inbounds = append(cfg.Inbounds, translated)
 	}
-	stats["inbounds"] = statInbounds
-	stats["users"] = statUsers
-
 	if len(unsupported) > 0 {
 		return nil, fmt.Errorf("sing-box cannot represent enabled inbounds: %s", strings.Join(unsupported, "; "))
 	}
