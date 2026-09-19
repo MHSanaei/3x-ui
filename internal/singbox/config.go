@@ -30,15 +30,6 @@ func NewConfig() *Config {
 			"clash_api": map[string]any{
 				"external_controller": "127.0.0.1:10090",
 			},
-			"v2ray_api": map[string]any{
-				"listen": "127.0.0.1:10086",
-				"stats": map[string]any{
-					"enabled": true,
-					"inbounds": []string{},
-					"outbounds": []string{},
-					"users": []string{},
-				},
-			},
 		},
 		Services: []map[string]any{
 			{
