@@ -305,6 +305,7 @@ function AppSidebar() {
         open={drawerOpen}
         rootClassName={currentTheme}
         size="min(82vw, 320px)"
+        mask={{ enabled: true, blur: false }}
         styles={{
           wrapper: { padding: 0 },
           body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
