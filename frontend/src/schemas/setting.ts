@@ -9,6 +9,7 @@ export type SubProfileMode = z.infer<typeof SubProfileModeSchema>;
 
 export const AllSettingSchema = z
   .object({
+    coreType: z.enum(['xray', 'sing-box']).optional(),
     webListen: z.string().optional(),
     webDomain: z.string().optional(),
     webPort: port.optional(),
