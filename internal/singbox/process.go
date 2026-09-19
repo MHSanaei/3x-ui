@@ -221,6 +221,13 @@ func (p *Process) stopLocked() error {
 func (p *Process) Restart(ctx context.Context) error {
 	p.lifecycle.Lock()
 	defer p.lifecycle.Unlock()
+
+	// Validate before stopping a healthy process. A malformed generated config
+	// must not turn a live core into avoidable downtime; startLocked validates
+	// again after the stop to close the small check-to-start race.
+	if err := p.Validate(ctx); err != nil {
+		return err
+	}
 	if err := p.stopLocked(); err != nil {
 		return err
 	}
