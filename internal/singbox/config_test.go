@@ -101,6 +101,60 @@ func TestTranslateXrayInboundHTTPAndQUIC(t *testing.T) {
 	transport = got["transport"].(map[string]any)
 	if transport["type"] != "quic" { t.Fatalf("unexpected QUIC transport: %#v", transport) }
 }
+func TestTranslateHysteriaProtocolSettings(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria", "tag": "hy", "port": 443,
+		"settings": map[string]any{
+			"up_mbps": float64(100), "down_mbps": float64(200),
+			"obfs": "secret",
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	if got["up_mbps"] != 100 || got["down_mbps"] != 200 || got["obfs"] != "secret" {
+		t.Fatalf("unexpected Hysteria settings: %#v", got)
+	}
+}
+
+func TestTranslateHysteria2ProtocolSettings(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria2", "tag": "hy2", "port": 443,
+		"settings": map[string]any{
+			"up_mbps": float64(100), "down_mbps": float64(200),
+			"ignore_client_bandwidth": true,
+			"masquerade": "https://example.com",
+			"bbr_profile": "aggressive",
+			"obfs": map[string]any{"type": "salamander", "password": "secret"},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	if got["up_mbps"] != 100 || got["down_mbps"] != 200 || got["ignore_client_bandwidth"] != true ||
+		got["masquerade"] != "https://example.com" || got["bbr_profile"] != "aggressive" {
+		t.Fatalf("unexpected Hysteria2 settings: %#v", got)
+	}
+	obfs, ok := got["obfs"].(map[string]any)
+	if !ok || obfs["type"] != "salamander" || obfs["password"] != "secret" {
+		t.Fatalf("unexpected Hysteria2 obfs: %#v", got["obfs"])
+	}
+}
+
+func TestTranslateTUICProtocolSettings(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "tuic", "tag": "tuic", "port": 443,
+		"settings": map[string]any{
+			"congestion_control": "bbr", "auth_timeout": "5s",
+			"zero_rtt_handshake": true, "heartbeat": "15s",
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	if got["congestion_control"] != "bbr" || got["auth_timeout"] != "5s" ||
+		got["zero_rtt_handshake"] != true || got["heartbeat"] != "15s" {
+		t.Fatalf("unexpected TUIC settings: %#v", got)
+	}
+}
+
 func TestTranslateHysteriaUsers(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "hysteria",
