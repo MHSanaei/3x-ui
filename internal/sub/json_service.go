@@ -250,108 +250,164 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 // The existing /json/ format remains Xray-compatible; callers opt into this format
 // explicitly with ?format=sing-box so existing subscriptions are not changed.
 func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnArray bool) (string, string, error) {
-	raw, header, err := s.GetJson(subId, host, true)
-	if err != nil || raw == "" {
-		return raw, header, err
+	// Native subscriptions intentionally do not call GetJson(). We still reuse
+	// the panel's mature per-client endpoint generation helpers internally, but
+	// collect and translate the model-backed entries before an Xray document is
+	// assembled. This keeps subscription filtering, node fallback, external
+	// proxy handling and client eligibility identical to the panel's source of
+	// truth without depending on serialized Xray subscription documents.
+	subReq := s.SubService.ForRequest(host)
+	subReq.subscriptionBody = true
+	inbounds, err := subReq.getInboundsBySubId(subId)
+	if err != nil {
+		return "", "", err
 	}
-	var docs []json.RawMessage
-	if err := json.Unmarshal([]byte(raw), &docs); err != nil {
-		docs = []json.RawMessage{json.RawMessage(raw)}
+	externalLinks, err := subReq.getClientExternalLinksBySubId(subId)
+	if err != nil {
+		return "", "", err
 	}
-	outDocs := make([]json.RawMessage, 0, len(docs))
-	for _, doc := range docs {
-		var xrayCfg map[string]any
-		if err := json.Unmarshal(doc, &xrayCfg); err != nil {
-			return "", header, err
-		}
-		rawOutbounds, _ := xrayCfg["outbounds"].([]any)
-		if len(rawOutbounds) == 0 {
+	if len(inbounds) == 0 && len(externalLinks) == 0 {
+		return "", "", nil
+	}
+
+	type nativeOutbound struct {
+		tag string
+		out map[string]any
+	}
+	var proxies []nativeOutbound
+	seenEmails := make(map[string]struct{})
+	hasEnabledClient := false
+	hasInactiveExternal := false
+
+	for _, inbound := range inbounds {
+		clients := subReq.matchingClients(inbound, subId)
+		if len(clients) == 0 {
 			continue
 		}
+		subReq.projectThroughFallbackMaster(inbound)
+		if hostEps := subReq.hostEndpoints(inbound, "json"); len(hostEps) > 0 {
+			injectExternalProxy(inbound, hostEps)
+		}
+		for _, client := range clients {
+			seenEmails[client.Email] = struct{}{}
+			if client.Enable {
+				hasEnabledClient = true
+			}
+			for _, raw := range s.getConfig(subReq, inbound, client, host) {
+				var xrayCfg map[string]any
+				if err := json.Unmarshal(raw, &xrayCfg); err != nil {
+					return "", "", err
+				}
+				outs, _ := xrayCfg["outbounds"].([]any)
+				if len(outs) == 0 {
+					continue
+				}
+				proxy, ok := outs[0].(map[string]any)
+				if !ok {
+					continue
+				}
+				native, err := singbox.TranslateXrayOutbound(proxy)
+				if err != nil {
+					return "", "", fmt.Errorf("client %q: %w", client.Email, err)
+				}
+				tag := client.Email
+				if tag == "" {
+					tag = fmt.Sprintf("proxy-%d", len(proxies)+1)
+				}
+				if len(proxies) > 0 {
+					tag = fmt.Sprintf("%s-%d", tag, len(proxies)+1)
+				}
+				native["tag"] = tag
+				proxies = append(proxies, nativeOutbound{tag: tag, out: native})
+			}
+		}
+	}
 
-		nativeOutbounds := make([]any, 0, len(rawOutbounds)+2)
-		proxyTags := make([]string, 0, len(rawOutbounds))
-		for _, raw := range rawOutbounds {
-			proxy, ok := raw.(map[string]any)
-			if !ok { continue }
-			translated, err := singbox.TranslateXrayOutbound(proxy)
+	for _, ext := range externalLinks {
+		if ext.Enable {
+			hasEnabledClient = true
+		}
+		if !ext.Active {
+			seenEmails[ext.Email] = struct{}{}
+			hasInactiveExternal = true
+			continue
+		}
+		for _, el := range expandEntry(ext) {
+			outbound := parsedExternalOutbound(el.Link)
+			if outbound == nil {
+				continue
+			}
+			native, err := singbox.TranslateXrayOutboundMap(outbound)
 			if err != nil {
-				return "", header, err
+				return "", "", err
 			}
-			nativeOutbounds = append(nativeOutbounds, translated)
-			if typ, _ := translated["type"].(string); typ != "direct" && typ != "block" {
-				if tag, _ := translated["tag"].(string); tag != "" {
-					proxyTags = append(proxyTags, tag)
-				}
+			seenEmails[ext.Email] = struct{}{}
+			tag := el.Name
+			if tag == "" {
+				tag = ext.Email
 			}
-		}
-
-		// Keep the profile usable even when the Xray template has no explicit
-		// direct/block outbounds.
-		hasDirect, hasBlock := false, false
-		for _, item := range nativeOutbounds {
-			if ob, ok := item.(map[string]any); ok {
-				switch ob["type"] {
-				case "direct": hasDirect = true
-				case "block": hasBlock = true
-				}
+			if tag == "" {
+				tag = fmt.Sprintf("external-%d", len(proxies)+1)
 			}
+			native["tag"] = tag
+			proxies = append(proxies, nativeOutbound{tag: tag, out: native})
 		}
-		if !hasDirect { nativeOutbounds = append(nativeOutbounds, map[string]any{"type":"direct","tag":"direct"}) }
-		if !hasBlock { nativeOutbounds = append(nativeOutbounds, map[string]any{"type":"block","tag":"blocked"}) }
-
-		sbCfg := map[string]any{
-			"$schema": "https://sing-box.sagernet.org/schema.json",
-			"outbounds": nativeOutbounds,
-		}
-
-		if rawDNS := xrayCfg["dns"]; rawDNS != nil {
-			if dnsMap, ok := rawDNS.(map[string]any); ok {
-				if dns, err := singbox.TranslateXrayDNS(dnsMap); err != nil {
-					return "", header, err
-				} else if len(dns) > 0 {
-					sbCfg["dns"] = dns
-				}
-			}
-		}
-		if rawRouting := xrayCfg["routing"]; rawRouting != nil {
-			if routeMap, ok := rawRouting.(map[string]any); ok {
-				if route, err := singbox.TranslateXrayRouting(routeMap); err != nil {
-					return "", header, err
-				} else if len(route) > 0 {
-					sbCfg["route"] = route
-				}
-			}
-		}
-
-		// If the template exposes several proxy outbounds, provide both a
-		// manually controllable selector and an automatic URL-test group.
-		// The selector is intentionally not made the route final: existing
-		// Xray routing remains authoritative.
-		if len(proxyTags) > 1 {
-			nativeOutbounds = append(nativeOutbounds,
-				map[string]any{"type":"urltest","tag":"auto","outbounds":proxyTags},
-				map[string]any{"type":"selector","tag":"select","outbounds":proxyTags,"default":proxyTags[0]},
-			)
-			sbCfg["outbounds"] = nativeOutbounds
-		}
-
-		outDocs = append(outDocs, func() json.RawMessage {
-			encoded, _ := json.MarshalIndent(sbCfg, "", "  ")
-			return encoded
-		}())
 	}
-	if len(outDocs) == 0 {
-		return "", header, nil
+
+	if len(proxies) == 0 && !hasInactiveExternal {
+		return "", "", nil
 	}
-	if len(outDocs) == 1 && !alwaysReturnArray {
-		return string(outDocs[0]), header, nil
+
+	outbounds := make([]any, 0, len(proxies)+4)
+	proxyTags := make([]string, 0, len(proxies))
+	for _, proxy := range proxies {
+		outbounds = append(outbounds, proxy.out)
+		proxyTags = append(proxyTags, proxy.tag)
 	}
-	final, err := json.MarshalIndent(outDocs, "", "  ")
+	outbounds = append(outbounds, map[string]any{"type":"direct","tag":"direct"})
+	outbounds = append(outbounds, map[string]any{"type":"block","tag":"blocked"})
+	if len(proxyTags) > 1 {
+		outbounds = append(outbounds,
+			map[string]any{"type":"urltest","tag":"auto","outbounds":proxyTags},
+			map[string]any{"type":"selector","tag":"select","outbounds":proxyTags,"default":proxyTags[0]},
+		)
+	}
+
+	sbCfg := map[string]any{
+		"$schema": "https://sing-box.sagernet.org/schema.json",
+		"outbounds": outbounds,
+	}
+	if template := s.bakedTemplate(); template != nil {
+		if rawDNS, ok := template["dns"].(map[string]any); ok {
+			if dns, err := singbox.TranslateXrayDNS(rawDNS); err == nil && len(dns) > 0 {
+				sbCfg["dns"] = dns
+			}
+		}
+		if rawRouting, ok := template["routing"].(map[string]any); ok {
+			if route, err := singbox.TranslateXrayRouting(rawRouting); err == nil && len(route) > 0 {
+				sbCfg["route"] = route
+			}
+		}
+	}
+
+	emails := make([]string, 0, len(seenEmails))
+	for email := range seenEmails {
+		emails = append(emails, email)
+	}
+	slices.Sort(emails)
+	traffic, _ := subReq.AggregateTrafficByEmails(emails)
+	traffic.Enable = hasEnabledClient
+	header := subReq.subscriptionUserinfo(traffic)
+
+	encoded, err := json.MarshalIndent(sbCfg, "", "  ")
 	if err != nil {
 		return "", header, err
 	}
-	return string(final), header, nil
+	if alwaysReturnArray {
+		arr, _ := json.MarshalIndent([]json.RawMessage{encoded}, "", "  ")
+		return string(arr), header, nil
+	}
+	return string(encoded), header, nil
 }
 
 // subConfigEntry is one ordered block of the JSON subscription: an inbound's
