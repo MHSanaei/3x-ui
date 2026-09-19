@@ -331,11 +331,27 @@ func (s *SingBoxService) PollTraffic(ctx context.Context) error {
 		})
 	}
 
-	if len(inboundTraffic) == 0 && len(clientTraffic) == 0 {
-		return nil
+	if len(inboundTraffic) > 0 || len(clientTraffic) > 0 {
+		if _, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic); err != nil {
+			return err
+		}
 	}
-	_, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic)
-	return err
+
+	// The native API includes the authenticated inbound user, unlike the
+	// generic Clash connection endpoint. Use it to keep last_online fresh
+	// even when the connection has produced no traffic in this poll.
+	if online, onlineErr := s.OnlineClientIPs(ctx); onlineErr == nil {
+		emails := make([]string, 0, len(online))
+		for email := range online {
+			emails = append(emails, email)
+		}
+		if len(emails) > 0 {
+			return singBoxInboundService.BumpClientsLastOnline(emails)
+		}
+	} else {
+		logger.Debug("sing-box native connection API unavailable:", onlineErr)
+	}
+	return nil
 }
 
 func (s *SingBoxService) InstallLatest(ctx context.Context) (string, error) {
