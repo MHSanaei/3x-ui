@@ -268,27 +268,78 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 		if len(rawOutbounds) == 0 {
 			continue
 		}
-		proxy, ok := rawOutbounds[0].(map[string]any)
-		if !ok {
-			return "", header, fmt.Errorf("sing-box conversion: invalid proxy outbound")
+
+		nativeOutbounds := make([]any, 0, len(rawOutbounds)+2)
+		proxyTags := make([]string, 0, len(rawOutbounds))
+		for _, raw := range rawOutbounds {
+			proxy, ok := raw.(map[string]any)
+			if !ok { continue }
+			translated, err := singbox.TranslateXrayOutbound(proxy)
+			if err != nil {
+				return "", header, err
+			}
+			nativeOutbounds = append(nativeOutbounds, translated)
+			if typ, _ := translated["type"].(string); typ != "direct" && typ != "block" {
+				if tag, _ := translated["tag"].(string); tag != "" {
+					proxyTags = append(proxyTags, tag)
+				}
+			}
 		}
-		translated, err := singbox.TranslateXrayOutbound(proxy)
-		if err != nil {
-			return "", header, err
+
+		// Keep the profile usable even when the Xray template has no explicit
+		// direct/block outbounds.
+		hasDirect, hasBlock := false, false
+		for _, item := range nativeOutbounds {
+			if ob, ok := item.(map[string]any); ok {
+				switch ob["type"] {
+				case "direct": hasDirect = true
+				case "block": hasBlock = true
+				}
+			}
 		}
+		if !hasDirect { nativeOutbounds = append(nativeOutbounds, map[string]any{"type":"direct","tag":"direct"}) }
+		if !hasBlock { nativeOutbounds = append(nativeOutbounds, map[string]any{"type":"block","tag":"blocked"}) }
+
 		sbCfg := map[string]any{
 			"$schema": "https://sing-box.sagernet.org/schema.json",
-			"outbounds": []any{
-				translated,
-				map[string]any{"type": "direct", "tag": "direct"},
-				map[string]any{"type": "block", "tag": "blocked"},
-			},
+			"outbounds": nativeOutbounds,
 		}
-		encoded, err := json.MarshalIndent(sbCfg, "", "  ")
-		if err != nil {
-			return "", header, err
+
+		if rawDNS := xrayCfg["dns"]; rawDNS != nil {
+			if dnsMap, ok := rawDNS.(map[string]any); ok {
+				if dns, err := singbox.TranslateXrayDNS(dnsMap); err != nil {
+					return "", header, err
+				} else if len(dns) > 0 {
+					sbCfg["dns"] = dns
+				}
+			}
 		}
-		outDocs = append(outDocs, encoded)
+		if rawRouting := xrayCfg["routing"]; rawRouting != nil {
+			if routeMap, ok := rawRouting.(map[string]any); ok {
+				if route, err := singbox.TranslateXrayRouting(routeMap); err != nil {
+					return "", header, err
+				} else if len(route) > 0 {
+					sbCfg["route"] = route
+				}
+			}
+		}
+
+		// If the template exposes several proxy outbounds, provide both a
+		// manually controllable selector and an automatic URL-test group.
+		// The selector is intentionally not made the route final: existing
+		// Xray routing remains authoritative.
+		if len(proxyTags) > 1 {
+			nativeOutbounds = append(nativeOutbounds,
+				map[string]any{"type":"urltest","tag":"auto","outbounds":proxyTags},
+				map[string]any{"type":"selector","tag":"select","outbounds":proxyTags,"default":proxyTags[0]},
+			)
+			sbCfg["outbounds"] = nativeOutbounds
+		}
+
+		outDocs = append(outDocs, func() json.RawMessage {
+			encoded, _ := json.MarshalIndent(sbCfg, "", "  ")
+			return encoded
+		}())
 	}
 	if len(outDocs) == 0 {
 		return "", header, nil
