@@ -203,10 +203,62 @@ func TranslateXrayInbound(raw map[string]any) (map[string]any, error) {
 	if err := translateUsers(out, protocol, settings); err != nil {
 		return nil, err
 	}
+	if err := translateProtocolSettings(out, protocol, settings); err != nil {
+		return nil, err
+	}
 	if err := translateStream(out, protocol, rawObject(raw, "streamSettings")); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+func translateProtocolSettings(out map[string]any, protocol string, settings map[string]any) error {
+	if protocol == "hysteria" {
+		copyString(settings, out, "obfs")
+		copyString(settings, out, "up")
+		copyString(settings, out, "down")
+		copyInt(settings, out, "up_mbps")
+		copyInt(settings, out, "down_mbps")
+	}
+	if protocol == "hysteria2" {
+		copyInt(settings, out, "up_mbps")
+		copyInt(settings, out, "down_mbps")
+		copyBool(settings, out, "ignore_client_bandwidth")
+		copyString(settings, out, "masquerade")
+		copyString(settings, out, "bbr_profile")
+		if obfs := rawObject(settings, "obfs"); len(obfs) > 0 {
+			out["obfs"] = obfs
+		}
+	}
+	if protocol == "tuic" {
+		copyString(settings, out, "congestion_control")
+		copyString(settings, out, "auth_timeout")
+		copyBool(settings, out, "zero_rtt_handshake")
+		copyString(settings, out, "heartbeat")
+	}
+	return nil
+}
+
+func copyString(src, dst map[string]any, key string) {
+	if value := rawString(src, key); value != "" {
+		dst[key] = value
+	}
+}
+
+func copyInt(src, dst map[string]any, key string) {
+	if value, ok := src[key].(float64); ok {
+		dst[key] = int(value)
+		return
+	}
+	if value, ok := src[key].(int); ok {
+		dst[key] = value
+	}
+}
+
+func copyBool(src, dst map[string]any, key string) {
+	if value, ok := src[key].(bool); ok {
+		dst[key] = value
+	}
 }
 
 func translateUsers(out map[string]any, protocol string, settings map[string]any) error {
