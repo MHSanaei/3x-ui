@@ -10,15 +10,27 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 )
 
-type SingBoxService struct {
-	inboundService InboundService
-	settingService SettingService
+var (
+	singBoxInboundService InboundService
+	singBoxSettingService SettingService
+	singBoxProcess = singbox.NewProcess(singbox.GetConfigPath())
+)
+
+// SetSingBoxDependencies wires the panel services used by the sing-box
+// config generator. It mirrors the existing Xray service lifecycle wiring.
+func SetSingBoxDependencies(inbound *InboundService, settings *SettingService) {
+	if inbound != nil {
+		singBoxInboundService = *inbound
+	}
+	if settings != nil {
+		singBoxSettingService = *settings
+	}
 }
 
-var singBoxProcess = singbox.NewProcess(singbox.GetConfigPath())
+type SingBoxService struct{} = singbox.NewProcess(singbox.GetConfigPath())
 
 func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
-	inbounds, err := s.inboundService.GetAllInbounds()
+	inbounds, err := singBoxInboundService.GetAllInbounds()
 	if err != nil {
 		return nil, err
 	}
