@@ -115,3 +115,33 @@ func TestTranslateXrayOutboundFreedomAndVLESS(t *testing.T) {
 		t.Fatalf("unexpected vless outbound: %#v", vless)
 	}
 }
+
+
+func TestTranslateXrayRoutingAndDNS(t *testing.T) {
+	route, err := TranslateXrayRouting(map[string]any{
+		"domainStrategy": "AsIs",
+		"rules": []any{map[string]any{
+			"inboundTag": []any{"vless-in"},
+			"domain": []any{"domain:example.com"},
+			"outboundTag": "proxy",
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules, ok := route["rules"].([]map[string]any)
+	if !ok || len(rules) != 1 || rules[0]["outbound"] != "proxy" {
+		t.Fatalf("unexpected routing translation: %#v", route)
+	}
+
+	dns, err := TranslateXrayDNS(map[string]any{
+		"servers": []any{"1.1.1.1", map[string]any{"address": "8.8.8.8"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	servers, ok := dns["servers"].([]map[string]any)
+	if !ok || len(servers) != 2 {
+		t.Fatalf("unexpected DNS translation: %#v", dns)
+	}
+}
