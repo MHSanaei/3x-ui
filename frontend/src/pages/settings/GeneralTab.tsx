@@ -251,8 +251,8 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
               <SettingListItem
                 paddings="small"
-                title="Ядро прокси"
-                description="Выберите движок, которым панель будет управлять. Xray остаётся ядром по умолчанию; sing-box подключается через отдельный runtime."
+                title={t('pages.settings.coreType')}
+                description={t('pages.settings.coreTypeDesc')}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
                   <Select
@@ -274,7 +274,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                       disabled={singBoxInstalled === true}
                       onClick={installSingBox}
                     >
-                      {singBoxInstalled ? 'sing-box установлен' : 'Установить sing-box'}
+                      {singBoxInstalled ? t('pages.settings.singBoxInstalled') : t('pages.settings.installSingBox')}
                     </Button>
                   )}
                 </div>
@@ -350,23 +350,25 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 />
               </SettingListItem>
 
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.panelOutbound')}
-                description={t('pages.settings.panelOutboundDesc')}
-              >
-                <Select
-                  style={{ width: '100%' }}
-                  allowClear
-                  showSearch
-                  value={allSetting.panelOutbound || undefined}
-                  placeholder={t('pages.settings.panelOutboundPh')}
-                  options={outboundOptions}
-                  onChange={(v) =>
-                    updateSetting({ panelOutbound: (v as string | undefined) || '' })
-                  }
-                />
-              </SettingListItem>
+              {allSetting.coreType !== 'sing-box' && (
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.panelOutbound')}
+                  description={t('pages.settings.panelOutboundDesc')}
+                >
+                  <Select
+                    style={{ width: '100%' }}
+                    allowClear
+                    showSearch
+                    value={allSetting.panelOutbound || undefined}
+                    placeholder={t('pages.settings.panelOutboundPh')}
+                    options={outboundOptions}
+                    onChange={(v) =>
+                      updateSetting({ panelOutbound: (v as string | undefined) || '' })
+                    }
+                  />
+                </SettingListItem>
+              )}
 
               <SettingListItem
                 paddings="small"
@@ -384,16 +386,18 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 />
               </SettingListItem>
 
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.restartXrayOnClientDisable')}
-                description={t('pages.settings.restartXrayOnClientDisableDesc')}
-              >
-                <Switch
-                  checked={allSetting.restartXrayOnClientDisable}
-                  onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })}
-                />
-              </SettingListItem>
+              {allSetting.coreType !== 'sing-box' && (
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.restartXrayOnClientDisable')}
+                  description={t('pages.settings.restartXrayOnClientDisableDesc')}
+                >
+                  <Switch
+                    checked={allSetting.restartXrayOnClientDisable}
+                    onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })}
+                  />
+                </SettingListItem>
+              )}
 
               <SettingListItem paddings="small" title={t('pages.settings.language')}>
                 <Select
