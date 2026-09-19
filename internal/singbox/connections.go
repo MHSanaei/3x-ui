@@ -26,7 +26,7 @@ type singBoxConnection struct {
 	Domain      string
 	Protocol    string
 	User        string
-	Outbound    string
+	FromOutbound string
 	CreatedAt   int64
 	Uplink      int64
 	Downlink    int64
@@ -173,7 +173,7 @@ func decodeConnection(data []byte) (*singBoxConnection, error) {
 			case 8: connection.Domain = text
 			case 9: connection.Protocol = text
 			case 10: connection.User = text
-			case 11: connection.Outbound = text
+			case 11: connection.FromOutbound = text
 			case 19: connection.Outbound = text
 			}
 			data = data[used:]
