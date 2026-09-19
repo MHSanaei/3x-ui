@@ -302,6 +302,52 @@ func TestLinkControllerSyncStoresTheMastersSnapshot(t *testing.T) {
 	if bad.Success {
 		t.Fatal("a push carrying an unknown kind was accepted")
 	}
+
+	// A later push of the same identity is taken over, not duplicated: the
+	// master owns that row from here on, and a node keeps serving the newest
+	// resolution instead of two rows for one link.
+	repush := doHostReq(t, engine, http.MethodPost, "/panel/api/links/sync", map[string]any{
+		"links": []map[string]any{{
+			"kind": model.ExternalLinkKindLink, "value": value, "remark": "re-pushed",
+			"enable": false, "userAgent": "second-ua",
+		}},
+		"clients": []map[string]any{{
+			"email": email,
+			"links": []map[string]any{{
+				"kind": model.ExternalLinkKindLink, "value": value, "enable": false,
+				"expiryTime": 1893456000000, "remark": "resolved-again",
+			}},
+		}},
+	})
+	if !repush.Success {
+		t.Fatalf("re-push not successful: %s", repush.Msg)
+	}
+	var after model.ExternalLink
+	if err := db.Where("value = ?", value).First(&after).Error; err != nil {
+		t.Fatalf("reload the pushed row: %v", err)
+	}
+	if after.Id != row.Id {
+		t.Fatalf("re-push created a second row (%d beside %d) instead of taking the first over", after.Id, row.Id)
+	}
+	if after.Remark != "re-pushed" || after.UserAgent != "second-ua" || after.Enable == nil || *after.Enable {
+		t.Fatalf("re-pushed row = %+v, want the master's newest fields", after)
+	}
+	var reAssignment model.ExternalLinkAssignment
+	if err := db.Where("link_id = ? AND target_type = ? AND target_id = ?",
+		row.Id, model.ExternalLinkTargetClient, client.Id).First(&reAssignment).Error; err != nil {
+		t.Fatalf("the re-pushed assignment was not stored: %v", err)
+	}
+	if reAssignment.ExpiryTime != 1893456000000 || reAssignment.Remark != "resolved-again" {
+		t.Fatalf("re-pushed assignment = %+v, want the newest resolution", reAssignment)
+	}
+	var assignments int64
+	if err := db.Model(&model.ExternalLinkAssignment{}).
+		Where("link_id = ? AND target_id = ?", row.Id, client.Id).Count(&assignments).Error; err != nil {
+		t.Fatalf("count assignments: %v", err)
+	}
+	if assignments != 1 {
+		t.Fatalf("assignments after the re-push = %d, want one", assignments)
+	}
 }
 
 // TestLinkControllerRejectsIdsItCannotUse pins the failure envelope the page

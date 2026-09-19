@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -88,6 +89,91 @@ func TestSetExternalLinksPreservesFetchStatus(t *testing.T) {
 	}
 	if rows[0].Remark != "new" {
 		t.Fatalf("editable fields not updated: %#v", rows[0])
+	}
+}
+
+// TestSetExternalLinksRefusesInvalidRowsAndDropsBlankOnes pins the bar the client
+// form saves through: a blank row is nothing to store, a repeated pair is one
+// link, and a row the panel cannot serve is refused whole - the client keeps the
+// links it already had instead of a half-applied save.
+func TestSetExternalLinksRefusesInvalidRowsAndDropsBlankOnes(t *testing.T) {
+	setupBulkDB(t)
+	db := database.GetDB()
+	svc := &ClientService{}
+
+	rec := model.ClientRecord{Email: "invalid@example.com", SubID: "sub-invalid", UUID: "uuid", Enable: true}
+	if err := db.Create(&rec).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
+		{Kind: model.ExternalLinkKindLink, Value: "trojan://kept@example.com:443#kept", Remark: "kept"},
+	}); err != nil {
+		t.Fatalf("seed the client's own link: %v", err)
+	}
+
+	if err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
+		{Kind: model.ExternalLinkKindLink, Value: "   "},
+		{Kind: model.ExternalLinkKindLink, Value: "trojan://dup@example.com:443#dup"},
+		{Kind: "", Value: "trojan://dup@example.com:443#dup"},
+		{Kind: model.ExternalLinkKindLink, Value: "trojan://blank@example.com:443#blank", Remark: "  spaced  "},
+	}); err != nil {
+		t.Fatalf("save with a blank and a duplicate: %v", err)
+	}
+	rows, err := svc.GetExternalLinksForRecord(rec.Id)
+	if err != nil {
+		t.Fatalf("get external links: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("rows = %d, want 2: the blank is dropped and the repeated (kind, value) is one link", len(rows))
+	}
+	if rows[1].Remark != "spaced" {
+		t.Fatalf("remark = %q, want the trimmed one", rows[1].Remark)
+	}
+
+	refusals := []struct {
+		name  string
+		input ExternalLinkInput
+		want  string
+	}{
+		{
+			name:  "link that does not parse",
+			input: ExternalLinkInput{Kind: model.ExternalLinkKindLink, Value: "not-a-link"},
+			want:  "unsupported or invalid share link: not-a-link",
+		},
+		{
+			name:  "subscription over ftp",
+			input: ExternalLinkInput{Kind: model.ExternalLinkKindSubscription, Value: "ftp://provider.example/sub"},
+			want:  "external subscription must be an http(s) URL: ftp://provider.example/sub",
+		},
+		{
+			name:  "unknown kind",
+			input: ExternalLinkInput{Kind: "bogus", Value: "trojan://pw@example.com:443#x"},
+			want:  "unknown external link kind: bogus",
+		},
+	}
+	for _, tc := range refusals {
+		t.Run(tc.name, func(t *testing.T) {
+			// The refused row rides beside a valid one: the save must land neither.
+			err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
+				{Kind: model.ExternalLinkKindLink, Value: "trojan://new@example.com:443#new"},
+				tc.input,
+			})
+			if err == nil || strings.TrimSpace(err.Error()) != tc.want {
+				t.Fatalf("err = %v, want %q", err, tc.want)
+			}
+			rows, err := svc.GetExternalLinksForRecord(rec.Id)
+			if err != nil {
+				t.Fatalf("get external links: %v", err)
+			}
+			if len(rows) != 2 {
+				t.Fatalf("rows after the refused save = %d, want the client's two previous links", len(rows))
+			}
+			for _, row := range rows {
+				if strings.Contains(row.Value, "new@example.com") {
+					t.Fatalf("the refused save stored %q: the valid row beside it must not land either", row.Value)
+				}
+			}
+		})
 	}
 }
 
