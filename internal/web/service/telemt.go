@@ -295,7 +295,7 @@ func (TelemtService) GetConfig() (TelemtConfig, error) {
 	c.TLS = raw.General.Modes.TLS
 	c.SNI = strings.TrimSpace(raw.Censorship.TLSDomain)
 	if c.SNI == "" && c.TLS {
-	\tc.SNI = defaultTelemtSNI
+		c.SNI = defaultTelemtSNI
 	}
 	c.Secret = strings.TrimSpace(raw.Access.Users["xui"])
 	// Upstream selection is not exposed by the panel; always report the supported direct mode.
