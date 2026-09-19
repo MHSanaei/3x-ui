@@ -28,6 +28,8 @@ var telemtLatestCache struct {
 }
 
 const (
+	defaultTelemtSNI = "petrovich.ru"
+
 	telemtConfigPath      = "/etc/x-ui/telemt.toml"
 	telemtServiceName     = "telemt.service"
 	telemtMekoServiceName = "telemt-meko-fix.service"
@@ -120,12 +122,55 @@ func renderTelemtConfig(c TelemtConfig) (string, error) {
 	return fmt.Sprintf("[general]\nfast_mode = %t\nuse_middle_proxy = false\nlog_level = \"normal\"\n\n[general.modes]\nclassic = %t\nsecure = %t\ntls = %t\n\n[general.links]\nshow = \"*\"\n\n[server.api]\nenabled = true\nlisten = \"127.0.0.1:9091\"\nwhitelist = [\"127.0.0.1/32\", \"::1/128\"]\nread_only = false\n\n[network]\nipv4 = %t\nipv6 = %t\n\n[server]\nport = %d\n\n%s%s[access]\nreplay_check_len = 65536\nignore_time_skew = false\n\n[access.users]\nxui = \"%s\"\n\n[[upstreams]]\ntype = \"direct\"\nweight = 1\nenabled = true\n", c.FastMode, c.Classic, c.Secure, c.TLS, c.IPv4, c.IPv6, c.Port, listeners, censorship, strings.ToLower(c.Secret)), nil
 }
 
-func ensureTelemtSNI() error {\n\tb, err := os.ReadFile(telemtConfigPath)\n\tif err != nil {\n\t\treturn err\n\t}\n\n\tvar raw struct {\n\t\tGeneral struct {\n\t\t\tModes struct {\n\t\t\t\tTLS bool `toml:"tls"`\n\t\t\t} `toml:"modes"`\n\t\t} `toml:"general"`\n\t\tCensorship struct {\n\t\t\tTLSDomain string `toml:"tls_domain"`\n\t\t} `toml:"censorship"`\n\t}\n\tif err := toml.Unmarshal(b, &raw); err != nil {\n\t\treturn fmt.Errorf("telemt: parse config: %w", err)\n\t}\n\tif !raw.General.Modes.TLS || strings.TrimSpace(raw.Censorship.TLSDomain) != "" {\n\t\treturn nil\n\t}\n\n\ttext := string(b)\n\tconst section = "[censorship]"\n\tif idx := strings.Index(text, section); idx >= 0 {\n\t\tsectionStart := idx + len(section)\n\t\tnext := strings.Index(text[sectionStart:], "\\n[")\n\t\tinsertAt := len(text)\n\t\tif next >= 0 {\n\t\t\tinsertAt = sectionStart + next + 1\n\t\t}\n\t\tentry := fmt.Sprintf("\\ntls_domain = \\"%s\\"\\n", defaultTelemtSNI)\n\t\ttext = text[:insertAt] + entry + text[insertAt:]\n\t} else {\n\t\ttext = strings.TrimRight(text, "\\n") + fmt.Sprintf("\\n\\n[censorship]\\ntls_domain = \\"%s\\"\\nmask = true\\ntls_emulation = true\\ntls_front_dir = \\"tlsfront\\"\\n", defaultTelemtSNI)\n\t}\n\tif err := os.WriteFile(telemtConfigPath, []byte(text), 0600); err != nil {\n\t\treturn fmt.Errorf("telemt: apply default SNI: %w", err)\n\t}\n\treturn nil\n}\n\nfunc ensureTelemtConfig() error {
+func ensureTelemtSNI() error {
+	b, err := os.ReadFile(telemtConfigPath)
+	if err != nil {
+		return err
+	}
+
+	var raw struct {
+		General struct {
+			Modes struct {
+				TLS bool `toml:"tls"`
+			} `toml:"modes"`
+		} `toml:"general"`
+		Censorship struct {
+			TLSDomain string `toml:"tls_domain"`
+		} `toml:"censorship"`
+	}
+	if err := toml.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("telemt: parse config: %w", err)
+	}
+	if !raw.General.Modes.TLS || strings.TrimSpace(raw.Censorship.TLSDomain) != "" {
+		return nil
+	}
+
+	text := string(b)
+	const section = "[censorship]"
+	if idx := strings.Index(text, section); idx >= 0 {
+		sectionStart := idx + len(section)
+		next := strings.Index(text[sectionStart:], "\n[")
+		insertAt := len(text)
+		if next >= 0 {
+			insertAt = sectionStart + next + 1
+		}
+		entry := fmt.Sprintf("\ntls_domain = \"%s\"\n", defaultTelemtSNI)
+		text = text[:insertAt] + entry + text[insertAt:]
+	} else {
+		text = strings.TrimRight(text, "\n") + fmt.Sprintf("\n\n[censorship]\ntls_domain = \"%s\"\nmask = true\ntls_emulation = true\ntls_front_dir = \"tlsfront\"\n", defaultTelemtSNI)
+	}
+	if err := os.WriteFile(telemtConfigPath, []byte(text), 0600); err != nil {
+		return fmt.Errorf("telemt: apply default SNI: %w", err)
+	}
+	return nil
+}
+
+func ensureTelemtConfig() error {
 	if err := os.MkdirAll(filepath.Dir(telemtConfigPath), 0700); err != nil {
 		return fmt.Errorf("telemt: create config directory: %w", err)
 	}
 	if _, err := os.Stat(telemtConfigPath); err == nil {
-		return nil
+		return ensureTelemtSNI()
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
