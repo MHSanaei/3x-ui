@@ -82,19 +82,38 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 		if listErr != nil {
 			return nil, listErr
 		}
+
+		// Match XrayService's effective-client reconciliation: ClientStats is
+		// the panel's source of truth for expiry/traffic enforcement, while the
+		// client row itself controls the explicit enable flag.
+		enableMap := make(map[string]bool, len(inbound.ClientStats))
+		for _, stat := range inbound.ClientStats {
+			enableMap[stat.Email] = stat.Enable
+		}
+
 		clients := make([]any, 0, len(dbClients))
 		for _, client := range dbClients {
+			if enabled, exists := enableMap[client.Email]; exists && !enabled {
+				continue
+			}
 			if !client.Enable {
 				continue
 			}
 			entry := map[string]any{"email": client.Email}
 			switch inbound.Protocol {
-			case model.VLESS, model.VMESS:
+			case model.VLESS:
 				if client.ID != "" { entry["id"] = client.ID }
-			case model.Trojan, model.Shadowsocks:
+				if client.Flow != "" && !inbound.DisableFlow { entry["flow"] = client.Flow }
+			case model.VMESS:
+				if client.ID != "" { entry["id"] = client.ID }
+				if client.Security != "" { entry["security"] = client.Security }
+			case model.Trojan:
+				if client.Password != "" { entry["password"] = client.Password }
+				if client.Flow != "" && !inbound.DisableFlow { entry["flow"] = client.Flow }
+			case model.Shadowsocks:
 				if client.Password != "" { entry["password"] = client.Password }
 			case model.Hysteria:
-				if client.Auth != "" { entry["password"] = client.Auth }
+				if client.Auth != "" { entry["auth"] = client.Auth }
 			case model.TUIC:
 				if client.ID != "" { entry["uuid"] = client.ID }
 				if client.Password != "" { entry["password"] = client.Password }
