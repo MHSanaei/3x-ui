@@ -177,6 +177,33 @@ function migrateFragmentSettings(settings: Record<string, unknown>): {
   return { next: out, changed };
 }
 
+
+type SudokuPreset = 'balanced' | 'low_overhead' | 'strong_padding' | 'custom';
+
+function applySudokuPreset(
+  form: FormInstance,
+  settingsPath: (string | number)[],
+  preset: SudokuPreset,
+): void {
+  if (preset === 'custom') return;
+
+  const settings = form.getFieldValue(settingsPath) || {};
+  const padding =
+    preset === 'low_overhead'
+      ? { paddingMin: 0, paddingMax: 3 }
+      : preset === 'strong_padding'
+        ? { paddingMin: 20, paddingMax: 40 }
+        : { paddingMin: 7, paddingMax: 17 };
+
+  form.setFieldValue(settingsPath, {
+    ...settings,
+    ascii: 'prefer_entropy',
+    customTable: '',
+    customTables: [],
+    ...padding,
+  });
+}
+
 function defaultUdpMaskSettings(type: string): Record<string, unknown> {
   switch (type) {
     case 'salamander':
@@ -477,41 +504,20 @@ function TcpMaskItem({
                 </Form.Item>
 
                 <Form.Item
-                  label="Quick Profile"
-                  extra="Shortcut for common output styles; this selector is not saved to Xray."
+                  label="Sudoku Preset"
+                  extra="UI preset: it writes ASCII mode and padding values to the mask. Custom keeps the current manual settings."
                 >
                   <Select
                     allowClear
-                    placeholder="Choose a profile"
+                    placeholder="Choose a preset"
                     options={[
-                      { value: 'entropy', label: 'Low entropy — prefer_entropy' },
-                      { value: 'ascii', label: 'Printable — prefer_ascii' },
-                      { value: 'up_ascii_down_entropy', label: 'Up ASCII / Down entropy' },
-                      { value: 'up_entropy_down_ascii', label: 'Up entropy / Down ASCII' },
+                      { value: 'balanced', label: 'Balanced — 7–17% padding' },
+                      { value: 'low_overhead', label: 'Low overhead — 0–3% padding' },
+                      { value: 'strong_padding', label: 'Strong padding — 20–40% padding' },
                       { value: 'custom', label: 'Custom — keep manual settings' },
                     ]}
-                    onChange={(profile: string | undefined) => {
-                      if (
-                        profile === 'entropy' ||
-                        profile === 'ascii' ||
-                        profile === 'up_ascii_down_entropy' ||
-                        profile === 'up_entropy_down_ascii'
-                      ) {
-                        const settings = form.getFieldValue(sudokuSettingsPath) || {};
-                        form.setFieldValue(sudokuSettingsPath, {
-                          ...settings,
-                          ascii:
-                            profile === 'ascii'
-                              ? 'prefer_ascii'
-                              : profile === 'up_ascii_down_entropy'
-                                ? 'up_ascii_down_entropy'
-                                : profile === 'up_entropy_down_ascii'
-                                  ? 'up_entropy_down_ascii'
-                                  : 'prefer_entropy',
-                          customTable: '',
-                          customTables: [],
-                        });
-                      }
+                    onChange={(preset: SudokuPreset | undefined) => {
+                      if (preset) applySudokuPreset(form, sudokuSettingsPath, preset);
                     }}
                   />
                 </Form.Item>
@@ -1165,27 +1171,20 @@ function UdpMaskItem({
                 </Form.Item>
 
                 <Form.Item
-                  label="Quick Profile"
-                  extra="Convenience preset; it is not saved to Xray."
+                  label="Sudoku Preset"
+                  extra="UI preset: it writes ASCII mode and padding values to the mask. Custom keeps the current manual settings."
                 >
                   <Select
                     allowClear
-                    placeholder="Choose a profile"
+                    placeholder="Choose a preset"
                     options={[
-                      { value: 'entropy', label: 'Entropy — prefer_entropy' },
-                      { value: 'ascii', label: 'Printable — prefer_ascii' },
+                      { value: 'balanced', label: 'Balanced — 7–17% padding' },
+                      { value: 'low_overhead', label: 'Low overhead — 0–3% padding' },
+                      { value: 'strong_padding', label: 'Strong padding — 20–40% padding' },
                       { value: 'custom', label: 'Custom — keep manual settings' },
                     ]}
-                    onChange={(profile: string | undefined) => {
-                      if (profile === 'entropy' || profile === 'ascii') {
-                        const settings = form.getFieldValue(sudokuSettingsPath) || {};
-                        form.setFieldValue(sudokuSettingsPath, {
-                          ...settings,
-                          ascii: profile === 'ascii' ? 'prefer_ascii' : 'prefer_entropy',
-                          customTable: '',
-                          customTables: [],
-                        });
-                      }
+                    onChange={(preset: SudokuPreset | undefined) => {
+                      if (preset) applySudokuPreset(form, sudokuSettingsPath, preset);
                     }}
                   />
                 </Form.Item>
