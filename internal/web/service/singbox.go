@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
-	"net"
-	"sort"
-	"sync"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
+	"sort"
 	"strings"
+	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
