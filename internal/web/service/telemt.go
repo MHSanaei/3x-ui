@@ -94,13 +94,13 @@ func renderTelemtConfig(c TelemtConfig) (string, error) {
 	if _, err := hex.DecodeString(c.Secret); err != nil {
 		return "", errors.New("telemt: secret must be hexadecimal")
 	}
-	if c.UpstreamType != "direct" {
-		return "", errors.New("telemt: only direct upstream is supported by the panel")
-	}
+	// The panel only manages direct upstreams. Normalize legacy values instead
+	// of rejecting an otherwise valid SNI/settings update.
+	c.UpstreamType = "direct"
 
 	sni := strings.TrimSpace(c.SNI)
 	if c.TLS && sni == "" {
-		return "", errors.New("telemt: SNI is required when Fake-TLS is enabled")
+		sni = defaultTelemtSNI
 	}
 	if strings.ContainsAny(sni, "\"\r\n\t ") {
 		return "", errors.New("telemt: invalid SNI")
