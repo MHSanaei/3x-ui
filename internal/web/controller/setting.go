@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -74,6 +75,8 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/validateRegex", a.validateRegex)
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
+	g.GET("/singbox/status", a.singBoxStatus)
+	g.POST("/singbox/install", a.installSingBox)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 	g.GET("/apiTokens", a.listApiTokens)
 	g.POST("/apiTokens/create", a.createApiToken)
@@ -404,4 +407,39 @@ func (a *SettingController) testDiscord(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.discordTestSuccess"), nil)
+}
+
+
+func (a *SettingController) singBoxStatus(c *gin.Context) {
+	svc := &a.singBoxService
+	_, statErr := os.Stat(svc.BinaryPath())
+	running := svc.IsRunning()
+	version := "Unknown"
+	if running {
+		if v, err := svc.Version(c.Request.Context()); err == nil {
+			version = v
+		}
+	}
+	jsonObj(c, gin.H{
+		"installed": statErr == nil,
+		"running":   running,
+		"version":   version,
+		"binary":    svc.BinaryPath(),
+		"config":    svc.ProcessConfigPath(),
+	}, nil)
+}
+
+func (a *SettingController) installSingBox(c *gin.Context) {
+	version, err := a.singBoxService.InstallLatest(c.Request.Context())
+	if err == nil {
+		// Generate and validate the current configuration immediately. The
+		// service is not started here; selecting the core/start lifecycle does
+		// that explicitly and avoids unexpectedly binding ports during install.
+		err = a.singBoxService.WriteConfig()
+	}
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	jsonObj(c, gin.H{"version": version}, nil)
 }
