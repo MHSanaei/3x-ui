@@ -9,6 +9,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 var (
@@ -234,6 +235,65 @@ func (s *SingBoxService) Validate(ctx context.Context) error {
 }
 
 
+
+func (s *SingBoxService) PollTraffic(ctx context.Context) error {
+	inbounds, err := singBoxInboundService.GetAllInbounds()
+	if err != nil {
+		return err
+	}
+	statsClient := &singbox.V2RayStatsClient{}
+	inboundTraffic := make([]*xray.Traffic, 0, len(inbounds))
+	seenEmails := make(map[string]struct{})
+	clientEmails := make([]string, 0)
+
+	for _, inbound := range inbounds {
+		if inbound == nil || !inbound.Enable || inbound.NodeId != nil {
+			continue
+		}
+		up, down, queryErr := statsClient.QueryInbound(ctx, inbound.Tag, true)
+		if queryErr != nil {
+			continue
+		}
+		if up != 0 || down != 0 {
+			inboundTraffic = append(inboundTraffic, &xray.Traffic{
+				Tag: inbound.Tag, Up: up, Down: down, IsInbound: true,
+			})
+		}
+		clients, listErr := singBoxInboundService.clientService.ListForInbound(nil, inbound.Id)
+		if listErr != nil {
+			continue
+		}
+		for _, client := range clients {
+			if client == nil || !client.Enable || client.Email == "" {
+				continue
+			}
+			if _, exists := seenEmails[client.Email]; !exists {
+				seenEmails[client.Email] = struct{}{}
+				clientEmails = append(clientEmails, client.Email)
+			}
+		}
+	}
+
+	clientTraffic := make([]*xray.ClientTraffic, 0, len(clientEmails))
+	for _, email := range clientEmails {
+		up, down, queryErr := statsClient.QueryUser(ctx, email, true)
+		if queryErr != nil {
+			continue
+		}
+		if up == 0 && down == 0 {
+			continue
+		}
+		clientTraffic = append(clientTraffic, &xray.ClientTraffic{
+			Email: email, Up: up, Down: down,
+		})
+	}
+
+	if len(inboundTraffic) == 0 && len(clientTraffic) == 0 {
+		return nil
+	}
+	_, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic)
+	return err
+}
 
 func (s *SingBoxService) InstallLatest(ctx context.Context) (string, error) {
 	return singbox.InstallLatest(ctx)
