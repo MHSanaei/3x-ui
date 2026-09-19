@@ -323,15 +323,15 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		coreType = service.CoreTypeXray
 	}
 	useXray := coreType != service.CoreTypeSingBox
-	if !useXray && restartXray {
+	if useXray {
+		if restartXray {
+			if err := s.xrayService.RestartXray(true); err != nil {
+				logger.Warning("start xray failed:", err)
+			}
+		}
+	} else if restartXray {
 		if err := (&service.SingBoxService{}).Restart(s.ctx); err != nil {
 			logger.Warning("start sing-box failed:", err)
-		}
-	}
-	if restartXray {
-		err := s.xrayService.RestartXray(true)
-		if err != nil {
-			logger.Warning("start xray failed:", err)
 		}
 	}
 	if useXray {
