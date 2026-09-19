@@ -186,3 +186,35 @@ func TestClashConnectionDecode(t *testing.T) {
 		t.Fatalf("unexpected source IP: %q", payload.Connections[0].Metadata.SourceIP)
 	}
 }
+
+
+func TestConnectionAPIProtoDecode(t *testing.T) {
+	connection := []byte{}
+	connection = appendStringField(connection, 1, "conn-1")
+	connection = appendStringField(connection, 2, "vless-in")
+	connection = appendStringField(connection, 6, "203.0.113.10:54321")
+	connection = appendStringField(connection, 10, "alice@example")
+	connection = appendVarintField(connection, 12, uint64(1700000000))
+	connection = appendStringField(connection, 21, "direct")
+
+	event := []byte{}
+	event = appendVarintField(event, 1, 0)
+	event = appendStringField(event, 2, "conn-1")
+	event = appendStringField(event, 3, string(connection))
+
+	payload := []byte{}
+	payload = appendStringField(payload, 1, string(event))
+	payload = appendVarintField(payload, 2, 1)
+
+	var response connectionEvents
+	if err := (connectionAPIProtoCodec{}).Unmarshal(payload, &response); err != nil {
+		t.Fatal(err)
+	}
+	if !response.Reset || len(response.Events) != 1 {
+		t.Fatalf("unexpected response: reset=%v events=%d", response.Reset, len(response.Events))
+	}
+	got := response.Events[0].Connection
+	if got == nil || got.User != "alice@example" || got.Source != "203.0.113.10:54321" {
+		t.Fatalf("unexpected connection: %+v", got)
+	}
+}
