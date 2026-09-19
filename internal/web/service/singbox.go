@@ -58,6 +58,13 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 		}
 	}
 
+	if len(cfg.Outbounds) == 0 {
+		cfg.Outbounds = append(cfg.Outbounds,
+			map[string]any{"type": "direct", "tag": "direct"},
+			map[string]any{"type": "block", "tag": "blocked"},
+		)
+	}
+
 	var unsupported []string
 	for _, inbound := range inbounds {
 		if inbound == nil || !inbound.Enable || inbound.NodeID != nil {
