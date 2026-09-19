@@ -317,6 +317,19 @@ const (
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask(restartXray bool, loc *time.Location) {
+	coreType, coreErr := s.settingService.GetCoreType()
+	if coreErr != nil {
+		logger.Warning("get selected core failed, falling back to Xray:", coreErr)
+		coreType = service.CoreTypeXray
+	}
+	if coreType == service.CoreTypeSingBox {
+		if restartXray {
+			if err := (&service.SingBoxService{}).Restart(s.ctx); err != nil {
+				logger.Warning("start sing-box failed:", err)
+			}
+		}
+		return
+	}
 	if restartXray {
 		err := s.xrayService.RestartXray(true)
 		if err != nil {
@@ -565,6 +578,9 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	)
 	s.cron.Start()
 
+	// Wire the sing-box config generator before controllers/background jobs are created.
+	service.SetSingBoxDependencies(&service.InboundService{}, &s.settingService)
+
 	// Wire the inbound-runtime manager once so InboundService can route
 	// add/update/delete to either the local xray or a remote node panel.
 	// The closures bridge into XrayService (which owns the running xray
@@ -792,7 +808,11 @@ func (s *Server) StopPanelOnly() error {
 func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	s.cancel()
 	if stopXray {
-		_ = s.xrayService.StopXray()
+		if coreType, _ := s.settingService.GetCoreType(); coreType == service.CoreTypeSingBox {
+			_ = (&service.SingBoxService{}).Stop(s.ctx)
+		} else {
+			_ = s.xrayService.StopXray()
+		}
 		mtproto.GetManager().StopAll()
 		amneziawgnet.GetManager().StopAll()
 		tuic.GetManager().StopAll()
