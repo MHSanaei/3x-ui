@@ -1,0 +1,14 @@
+[Unit]
+Description=Telemt MEKO V3 TCP SYN fix
+Requires=telemt.service
+After=telemt.service
+PartOf=telemt.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/x-ui/telemt-meko-fix.sh apply
+ExecStop=/usr/local/x-ui/telemt-meko-fix.sh remove
+
+[Install]
+WantedBy=telemt.service
