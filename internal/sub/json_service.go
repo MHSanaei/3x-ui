@@ -337,7 +337,15 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 			if outbound == nil {
 				continue
 			}
-			native, err := singbox.TranslateXrayOutboundMap(outbound)
+			rawOutbound, err := json.Marshal(outbound)
+			if err != nil {
+				return "", "", err
+			}
+			var xrayOutbound map[string]any
+			if err := json.Unmarshal(rawOutbound, &xrayOutbound); err != nil {
+				return "", "", err
+			}
+			native, err := singbox.TranslateXrayOutbound(xrayOutbound)
 			if err != nil {
 				return "", "", err
 			}
