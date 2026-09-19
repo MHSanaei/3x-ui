@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
@@ -59,12 +58,12 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 	if template, err := singBoxSettingService.GetXrayConfigTemplate(); err == nil {
 		var xrayCfg map[string]any
 		if json.Unmarshal([]byte(template), &xrayCfg) == nil {
-			if rawDNS := rawObject(xrayCfg, "dns"); len(rawDNS) > 0 {
+			if rawDNS, ok := xrayCfg["dns"].(map[string]any); ok && len(rawDNS) > 0 {
 				if dns, err := singbox.TranslateXrayDNS(rawDNS); err == nil && len(dns) > 0 {
 					cfg.DNS = dns
 				}
 			}
-			if rawRouting := rawObject(xrayCfg, "routing"); len(rawRouting) > 0 {
+			if rawRouting, ok := xrayCfg["routing"].(map[string]any); ok && len(rawRouting) > 0 {
 				if route, err := singbox.TranslateXrayRouting(rawRouting); err != nil {
 					return nil, err
 				} else if len(route) > 0 {
@@ -232,7 +231,7 @@ func (s *SingBoxService) ConnectionCount(ctx context.Context) (int, error) {
 	if err == nil {
 		return len(connections), nil
 	}
-	connections, err = singbox.NewClashStatsClient().Connections(ctx)
+	connections, err := singbox.NewClashStatsClient().Connections(ctx)
 	if err != nil {
 		return 0, err
 	}
