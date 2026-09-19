@@ -16,11 +16,11 @@ on:
       - "x-ui.service.debian"
       - "x-ui.service.arch"
       - "x-ui.service.rhel"
-      - "telemt.service"
-      - "telemt-update.service"
-      - "telemt-update.timer"
-      - "telemt-update.sh"
-      - "telemt.toml.example"
+      - "internal/Telemt/telemt.service"
+      - "internal/Telemt/telemt-update.service"
+      - "internal/Telemt/telemt-update.timer"
+      - "internal/Telemt/telemt-update.sh"
+      - "internal/Telemt/telemt.toml.example"
       - ".github/workflows/release.yml"
   pull_request:
     paths:
@@ -142,13 +142,13 @@ jobs:
           cp x-ui.service.debian x-ui/
           cp x-ui.service.arch x-ui/
           cp x-ui.service.rhel x-ui/
-          cp telemt.service x-ui/
-          cp telemt-update.service x-ui/
-          cp telemt-update.timer x-ui/
-          cp telemt-update.sh x-ui/
-          cp telemt.toml.example x-ui/
-          cp telemt-meko-fix.sh x-ui/
-          cp telemt-meko-fix.service x-ui/
+          cp internal/Telemt/telemt.service x-ui/
+          cp internal/Telemt/telemt-update.service x-ui/
+          cp internal/Telemt/telemt-update.timer x-ui/
+          cp internal/Telemt/telemt-update.sh x-ui/
+          cp internal/Telemt/telemt.toml.example x-ui/
+          cp internal/Telemt/telemt-meko-fix.sh x-ui/
+          cp internal/Telemt/telemt-meko-fix.service x-ui/
           cp x-ui.sh x-ui/
           cd x-ui/bin
 
