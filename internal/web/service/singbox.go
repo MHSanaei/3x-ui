@@ -268,6 +268,40 @@ func (s *SingBoxService) OnlineClientIPs(ctx context.Context) (map[string]map[st
 	}
 	return online, nil
 }
+func (s *SingBoxService) DisconnectClientIPs(ctx context.Context, email string, ips []string) error {
+	if email == "" || len(ips) == 0 {
+		return nil
+	}
+	api := singbox.NewConnectionAPIClient()
+	defer api.Close()
+	connections, err := api.Snapshot(ctx)
+	if err != nil {
+		return err
+	}
+	wanted := make(map[string]struct{}, len(ips))
+	for _, ip := range ips {
+		if ip != "" {
+			wanted[ip] = struct{}{}
+		}
+	}
+	for _, connection := range connections {
+		if connection == nil || connection.User != email || connection.Source == "" {
+			continue
+		}
+		ip := connection.Source
+		if host, _, splitErr := net.SplitHostPort(ip); splitErr == nil {
+			ip = host
+		}
+		if _, ok := wanted[ip]; !ok {
+			continue
+		}
+		if err := api.CloseConnection(ctx, connection.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 
 func (s *SingBoxService) PollTraffic(ctx context.Context) error {
 	api := singbox.NewConnectionAPIClient()
