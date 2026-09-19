@@ -1,9 +1,10 @@
 package service
 
 import (
+	"context"
 	"net"
 	"sort"
-	"context"
+	"sync"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -33,6 +34,16 @@ func SetSingBoxDependencies(inbound *InboundService, settings *SettingService) {
 }
 
 type SingBoxService struct{}
+
+type singBoxConnectionTrafficState struct {
+	Uplink   int64
+	Downlink int64
+}
+
+var (
+	singBoxTrafficMu    sync.Mutex
+	singBoxTrafficState = make(map[string]singBoxConnectionTrafficState)
+)
 
 func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 	inbounds, err := singBoxInboundService.GetAllInbounds()
@@ -79,18 +90,6 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 			map[string]any{"type": "direct", "tag": "direct"},
 			map[string]any{"type": "block", "tag": "blocked"},
 		)
-	}
-
-	v2rayAPI, _ := cfg.Experimental["v2ray_api"].(map[string]any)
-	stats, _ := v2rayAPI["stats"].(map[string]any)
-	var statInbounds []string
-	var statUsers []string
-	for _, outbound := range cfg.Outbounds {
-		if tag, ok := outbound["tag"].(string); ok && tag != "" {
-			if list, ok := stats["outbounds"].([]string); ok {
-				stats["outbounds"] = append(list, tag)
-			}
-		}
 	}
 
 	var unsupported []string
@@ -161,16 +160,6 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 			continue
 		}
 		cfg.Inbounds = append(cfg.Inbounds, translated)
-		if tag, ok := translated["tag"].(string); ok && tag != "" {
-			statInbounds = append(statInbounds, tag)
-		}
-		if users, ok := translated["users"].([]map[string]any); ok {
-			for _, user := range users {
-				if name, ok := user["name"].(string); ok && name != "" {
-					statUsers = append(statUsers, name)
-				}
-			}
-		}
 	}
 	stats["inbounds"] = statInbounds
 	stats["users"] = statUsers
@@ -281,76 +270,95 @@ func (s *SingBoxService) OnlineClientIPs(ctx context.Context) (map[string]map[st
 }
 
 func (s *SingBoxService) PollTraffic(ctx context.Context) error {
-	inbounds, err := singBoxInboundService.GetAllInbounds()
+	api := singbox.NewConnectionAPIClient()
+	defer api.Close()
+	connections, err := api.Snapshot(ctx)
 	if err != nil {
 		return err
 	}
-	statsClient := &singbox.V2RayStatsClient{}
-	inboundTraffic := make([]*xray.Traffic, 0, len(inbounds))
-	seenEmails := make(map[string]struct{})
-	clientEmails := make([]string, 0)
 
-	for _, inbound := range inbounds {
-		if inbound == nil || !inbound.Enable || inbound.NodeId != nil {
+	inboundDeltas := make(map[string]*xray.Traffic)
+	clientDeltas := make(map[string]*xray.ClientTraffic)
+	onlineEmails := make(map[string]struct{})
+	currentIDs := make(map[string]struct{}, len(connections))
+
+	singBoxTrafficMu.Lock()
+	for _, connection := range connections {
+		if connection == nil || connection.ID == "" {
 			continue
 		}
-		up, down, queryErr := statsClient.QueryInbound(ctx, inbound.Tag, true)
-		if queryErr != nil {
-			continue
-		}
-		if up != 0 || down != 0 {
-			inboundTraffic = append(inboundTraffic, &xray.Traffic{
-				Tag: inbound.Tag, Up: up, Down: down, IsInbound: true,
-			})
-		}
-		clients, listErr := singBoxInboundService.clientService.ListForInbound(nil, inbound.Id)
-		if listErr != nil {
-			continue
-		}
-		for _, client := range clients {
-			if client == nil || !client.Enable || client.Email == "" {
-				continue
+		currentIDs[connection.ID] = struct{}{}
+		previous, existed := singBoxTrafficState[connection.ID]
+		uplinkDelta := connection.Uplink
+		downlinkDelta := connection.Downlink
+		if existed {
+			uplinkDelta -= previous.Uplink
+			downlinkDelta -= previous.Downlink
+			if uplinkDelta < 0 {
+				uplinkDelta = connection.Uplink
 			}
-			if _, exists := seenEmails[client.Email]; !exists {
-				seenEmails[client.Email] = struct{}{}
-				clientEmails = append(clientEmails, client.Email)
+			if downlinkDelta < 0 {
+				downlinkDelta = connection.Downlink
 			}
 		}
-	}
+		singBoxTrafficState[connection.ID] = singBoxConnectionTrafficState{
+			Uplink: connection.Uplink,
+			Downlink: connection.Downlink,
+		}
 
-	clientTraffic := make([]*xray.ClientTraffic, 0, len(clientEmails))
-	for _, email := range clientEmails {
-		up, down, queryErr := statsClient.QueryUser(ctx, email, true)
-		if queryErr != nil {
+		if connection.User != "" {
+			onlineEmails[connection.User] = struct{}{}
+		}
+		if uplinkDelta == 0 && downlinkDelta == 0 {
 			continue
 		}
-		if up == 0 && down == 0 {
-			continue
+		if connection.Inbound != "" {
+			traffic := inboundDeltas[connection.Inbound]
+			if traffic == nil {
+				traffic = &xray.Traffic{Tag: connection.Inbound, IsInbound: true}
+				inboundDeltas[connection.Inbound] = traffic
+			}
+			traffic.Up += uplinkDelta
+			traffic.Down += downlinkDelta
 		}
-		clientTraffic = append(clientTraffic, &xray.ClientTraffic{
-			Email: email, Up: up, Down: down,
-		})
+		if connection.User != "" {
+			traffic := clientDeltas[connection.User]
+			if traffic == nil {
+				traffic = &xray.ClientTraffic{Email: connection.User}
+				clientDeltas[connection.User] = traffic
+			}
+			traffic.Up += uplinkDelta
+			traffic.Down += downlinkDelta
+		}
 	}
+	for id := range singBoxTrafficState {
+		if _, active := currentIDs[id]; !active {
+			delete(singBoxTrafficState, id)
+		}
+	}
+	singBoxTrafficMu.Unlock()
 
+	inboundTraffic := make([]*xray.Traffic, 0, len(inboundDeltas))
+	for _, traffic := range inboundDeltas {
+		inboundTraffic = append(inboundTraffic, traffic)
+	}
+	clientTraffic := make([]*xray.ClientTraffic, 0, len(clientDeltas))
+	for _, traffic := range clientDeltas {
+		clientTraffic = append(clientTraffic, traffic)
+	}
 	if len(inboundTraffic) > 0 || len(clientTraffic) > 0 {
 		if _, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic); err != nil {
 			return err
 		}
 	}
 
-	// The native API includes the authenticated inbound user, unlike the
-	// generic Clash connection endpoint. Use it to keep last_online fresh
-	// even when the connection has produced no traffic in this poll.
-	if online, onlineErr := s.OnlineClientIPs(ctx); onlineErr == nil {
-		emails := make([]string, 0, len(online))
-		for email := range online {
-			emails = append(emails, email)
-		}
-		if len(emails) > 0 {
-			return singBoxInboundService.BumpClientsLastOnline(emails)
-		}
-	} else {
-		logger.Debug("sing-box native connection API unavailable:", onlineErr)
+	emails := make([]string, 0, len(onlineEmails))
+	for email := range onlineEmails {
+		emails = append(emails, email)
+	}
+	sort.Strings(emails)
+	if len(emails) > 0 {
+		return singBoxInboundService.BumpClientsLastOnline(emails)
 	}
 	return nil
 }
