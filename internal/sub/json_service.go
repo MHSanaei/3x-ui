@@ -330,7 +330,12 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 		}
 		encoded, err := json.MarshalIndent(cfg, "", "  ")
 		if err != nil { return "", "", err }
-		header := subReq.subscriptionUserinfo(trafficInfoForWireGuard(subReq, seenEmails))
+		emails := make([]string, 0, len(seenEmails))
+		for email := range seenEmails { emails = append(emails, email) }
+		slices.Sort(emails)
+		traffic, _ := subReq.AggregateTrafficByEmails(emails)
+		traffic.Enable = hasEnabledClient
+		header := subReq.subscriptionUserinfo(traffic)
 		if alwaysReturnArray { arr,_:=json.MarshalIndent([]json.RawMessage{encoded},"","  "); return string(arr),header,nil }
 		return string(encoded),header,nil
 	}
@@ -480,11 +485,6 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 	return string(encoded), header, nil
 }
 
-
-func trafficInfoForWireGuard(subReq *SubService, emails map[string]struct{}) model.TrafficInfo {
-	list := make([]string,0,len(emails)); for email := range emails { list=append(list,email) }; slices.Sort(list)
-	traffic,_ := subReq.AggregateTrafficByEmails(list); return traffic
-}
 
 // subConfigEntry is one ordered block of the JSON subscription: an inbound's
 // configs (kind 0) or a balancer config (kind 1).
