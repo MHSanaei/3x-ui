@@ -26,6 +26,9 @@ func NewConfig() *Config {
 		Outbounds: []map[string]any{},
 		Route: map[string]any{"final": "direct"},
 		Experimental: map[string]any{
+			"clash_api": map[string]any{
+				"external_controller": "127.0.0.1:10090",
+			},
 			"v2ray_api": map[string]any{
 				"listen": "127.0.0.1:10086",
 				"stats": map[string]any{
