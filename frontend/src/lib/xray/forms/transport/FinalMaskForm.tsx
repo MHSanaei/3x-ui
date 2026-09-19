@@ -228,6 +228,15 @@ function defaultUdpMaskSettings(type: string): Record<string, unknown> {
       return { client: [], server: [] };
     case 'noise':
       return { reset: 0, noise: [] };
+    case 'sudoku':
+      return {
+        password: '',
+        ascii: '',
+        customTable: '',
+        customTables: [],
+        paddingMin: 0,
+        paddingMax: 0,
+      };
     default:
       return {};
   }
@@ -1103,6 +1112,7 @@ function UdpMaskItem({
         { value: 'realm', label: 'Realm' },
         { value: 'header-custom', label: 'Header Custom' },
         { value: 'noise', label: 'Noise' },
+        { value: 'sudoku', label: 'Sudoku' },
       ];
 
   return (
@@ -1428,6 +1438,30 @@ function UdpMaskItem({
                 form={form}
                 absoluteSettingsPath={[...absolutePath, 'settings']}
               />
+            );
+          }
+          if (type === 'sudoku') {
+            return (
+              <>
+                <Form.Item label="Password" name={[fieldName, 'settings', 'password']}>
+                  <Input />
+                </Form.Item>
+                <Form.Item label="ASCII" name={[fieldName, 'settings', 'ascii']}>
+                  <Input />
+                </Form.Item>
+                <Form.Item label="Custom Table" name={[fieldName, 'settings', 'customTable']}>
+                  <Input />
+                </Form.Item>
+                <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}>
+                  <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+                </Form.Item>
+                <Form.Item label="Padding Min" name={[fieldName, 'settings', 'paddingMin']}>
+                  <InputNumber min={0} />
+                </Form.Item>
+                <Form.Item label="Padding Max" name={[fieldName, 'settings', 'paddingMax']}>
+                  <InputNumber min={0} />
+                </Form.Item>
+              </>
             );
           }
           if (type === 'noise') {
