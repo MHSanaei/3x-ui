@@ -33,6 +33,75 @@ func (c *Config) Marshal() ([]byte, error) {
 	return json.MarshalIndent(c, "", "  ")
 }
 
+func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
+	protocol, _ := raw["protocol"].(string)
+	protocol = strings.ToLower(strings.TrimSpace(protocol))
+	tag := rawString(raw, "tag")
+	if tag == "" { return nil, fmt.Errorf("outbound tag is empty") }
+
+	out := map[string]any{"tag": tag}
+	switch protocol {
+	case "freedom":
+		out["type"] = "direct"
+	case "blackhole":
+		out["type"] = "block"
+	case "socks", "http", "shadowsocks", "vmess", "vless", "trojan":
+		out["type"] = protocol
+	default:
+		return nil, fmt.Errorf("sing-box does not support Xray outbound protocol %q through the compatibility translator", protocol)
+	}
+
+	settings := rawObject(raw, "settings")
+	switch protocol {
+	case "socks", "http":
+		servers, _ := settings["servers"].([]any)
+		if len(servers) == 0 { return nil, fmt.Errorf("outbound %q has no server", tag) }
+		server, _ := servers[0].(map[string]any)
+		if address := rawString(server, "address"); address != "" { out["server"] = address }
+		out["server_port"] = rawInt(server, "port")
+		if users, ok := server["users"].([]any); ok && len(users) > 0 {
+			if u, ok := users[0].(map[string]any); ok {
+				if username := rawString(u, "user"); username != "" { out["username"] = username }
+				if password := rawString(u, "pass"); password != "" { out["password"] = password }
+			}
+		}
+	case "shadowsocks":
+		servers, _ := settings["servers"].([]any)
+		if len(servers) == 0 { return nil, fmt.Errorf("outbound %q has no server", tag) }
+		server, _ := servers[0].(map[string]any)
+		out["server"] = rawString(server, "address")
+		out["server_port"] = rawInt(server, "port")
+		out["method"] = rawString(server, "method")
+		out["password"] = rawString(server, "password")
+	case "vmess", "vless", "trojan":
+		vnext, _ := settings["vnext"].([]any)
+		if len(vnext) == 0 {
+			servers, _ := settings["servers"].([]any)
+			if len(servers) > 0 {
+				vnext = servers
+			}
+		}
+		if len(vnext) == 0 { return nil, fmt.Errorf("outbound %q has no server", tag) }
+		server, _ := vnext[0].(map[string]any)
+		out["server"] = rawString(server, "address")
+		out["server_port"] = rawInt(server, "port")
+		if users, ok := server["users"].([]any); ok && len(users) > 0 {
+			if u, ok := users[0].(map[string]any); ok {
+				switch protocol {
+				case "vless", "vmess":
+					out["uuid"] = rawString(u, "id")
+				case "trojan":
+					out["password"] = rawString(u, "password")
+				}
+			}
+		}
+	}
+	if stream := rawObject(raw, "streamSettings"); len(stream) > 0 {
+		if err := translateStream(out, protocol, stream); err != nil { return nil, err }
+	}
+	return out, nil
+}
+
 func TranslateXrayInbound(raw map[string]any) (map[string]any, error) {
 	protocol, _ := raw["protocol"].(string)
 	protocol = strings.ToLower(strings.TrimSpace(protocol))
