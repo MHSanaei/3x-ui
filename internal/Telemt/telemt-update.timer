@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Telemt update check
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=24h
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
