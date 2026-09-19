@@ -125,6 +125,78 @@ func TestClashExternalProxyFromHysteriaAndWireguard(t *testing.T) {
 	})
 }
 
+// TestClashExternalProxyFromShareLinks drives the dispatcher on the kinds that
+// borrow the inbound builder: a library row of any of these has to render the
+// same proxy an inbound client of that protocol would, and one carrying a
+// transport Clash cannot express has to render none rather than a wrong entry.
+func TestClashExternalProxyFromShareLinks(t *testing.T) {
+	svc := &SubClashService{}
+	cases := []struct {
+		name  string
+		link  string
+		want  map[string]any
+		empty bool
+	}{
+		{
+			name: "trojan over tls",
+			link: "trojan://tpass@t.example.com:443?security=tls&type=tcp#node",
+			want: map[string]any{
+				"type": "trojan", "server": "t.example.com", "port": 443,
+				"password": "tpass", "tls": true, "network": "tcp",
+			},
+		},
+		{
+			name: "shadowsocks",
+			link: "ss://YWVzLTI1Ni1nY206c2VjcmV0@ss.example.com:8388#node",
+			want: map[string]any{
+				"type": "ss", "server": "ss.example.com", "port": 8388,
+				"cipher": "aes-256-gcm", "password": "secret",
+			},
+		},
+		{
+			name: "vless over websocket",
+			link: "vless://11111111-2222-3333-4444-555555555555@ws.example.com:8443" +
+				"?security=tls&type=ws&path=%2Fws&host=cdn.example.com#node",
+			want: map[string]any{
+				"type": "vless", "server": "ws.example.com", "port": 8443,
+				"uuid": "11111111-2222-3333-4444-555555555555", "network": "ws", "tls": true,
+			},
+		},
+		{
+			name:  "a link Clash cannot express",
+			link:  "vless://11111111-2222-3333-4444-555555555555@obfs.example.com:443?security=tls&type=tcp&headerType=http",
+			empty: true,
+		},
+		{
+			name:  "not a share link at all",
+			link:  "just-some-text",
+			empty: true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			proxy := svc.clashProxyFromExternal(tc.link, "row-name")
+			if tc.empty {
+				if proxy != nil {
+					t.Fatalf("a link Clash cannot represent rendered %v", proxy)
+				}
+				return
+			}
+			if proxy == nil {
+				t.Fatalf("clashProxyFromExternal(%q) rendered nothing", tc.link)
+			}
+			if proxy["name"] != "row-name" || proxy["udp"] != true {
+				t.Fatalf("proxy name/udp = %v/%v, want the row name and udp", proxy["name"], proxy["udp"])
+			}
+			for key, value := range tc.want {
+				if proxy[key] != value {
+					t.Errorf("proxy[%q] = %v, want %v", key, proxy[key], value)
+				}
+			}
+		})
+	}
+}
+
 // TestParseRetryAfter covers what a provider can actually send: a delay in
 // seconds or an HTTP date, anything else ignored rather than turned into a
 // negative or absurd wait.

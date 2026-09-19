@@ -281,6 +281,47 @@ func TestApplyExternalLinkSyncIgnoresAnEmptySnapshot(t *testing.T) {
 	}
 }
 
+// TestApplyExternalLinkSyncIgnoresAClientBindingWithoutALibraryRow: the master
+// sends the library and its clients in one payload, but a client block naming a
+// value the library does not carry must be dropped - storing it would leave an
+// assignment pointing at nothing, and failing the push would lose the rest.
+func TestApplyExternalLinkSyncIgnoresAClientBindingWithoutALibraryRow(t *testing.T) {
+	nodeInbound, ids := seedLibraryInbound(t, "node-in-5", 21106, []model.Client{
+		libraryClient("node-g@x", ""),
+	})
+	nodeInboundFor(t, nodeInbound.Id, 17)
+	clientId := ids["node-g@x"]
+
+	payload := &runtime.ExternalLinkSync{
+		Links: []runtime.ExternalLinkSyncLink{
+			{Kind: model.ExternalLinkKindLink, Value: "trojan://known", Enable: true},
+		},
+		Clients: []runtime.ExternalLinkSyncClient{{
+			Email: "node-g@x",
+			Links: []runtime.ExternalLinkSyncAssignment{
+				{Kind: model.ExternalLinkKindLink, Value: "trojan://known", Enable: true},
+				{Kind: model.ExternalLinkKindLink, Value: "trojan://not-in-payload", Enable: true},
+			},
+		}},
+	}
+	if err := (&ClientService{}).ApplyExternalLinkSync(payload); err != nil {
+		t.Fatalf("apply push: %v", err)
+	}
+
+	var known model.ExternalLink
+	if err := database.GetDB().Where("value = ?", "trojan://known").First(&known).Error; err != nil {
+		t.Fatalf("the pushed library row was not stored: %v", err)
+	}
+	assertAssignmentCount(t, known.Id, model.ExternalLinkTargetClient, clientId, 1)
+	if rows := countRows(t, &model.ExternalLinkAssignment{}); rows != 1 {
+		t.Fatalf("assignments = %d, want only the one the payload carried a library row for", rows)
+	}
+	resolved := servedOf(resolveOneClient(t, clientId))
+	if len(resolved) != 1 || resolved[0].Value != "trojan://known" {
+		t.Fatalf("the client resolves %+v, want only trojan://known", resolved)
+	}
+}
+
 // TestLibraryEditsDeferToTheReconcileSweep pins the propagation contract of a
 // library edit: it flags the nodes and returns, and the 5s sweep is what carries
 // the new set — the one path that also reaches a node that is down right now.

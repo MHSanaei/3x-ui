@@ -346,6 +346,34 @@ func TestPushExternalLinksSkipsANodeThatCannotTakeIt(t *testing.T) {
 	}
 }
 
+// TestSetExternalLinksByEmailGuardsTheClientItNames: the client form posts an
+// email rather than a row id, so a typo has to fail loudly instead of reporting
+// success for links that were stored against nobody.
+func TestSetExternalLinksByEmailGuardsTheClientItNames(t *testing.T) {
+	seedLibraryInbound(t, "assign-in-9", 22109, []model.Client{libraryClient("assign-l@x", "")})
+	svc := &ClientService{}
+	inputs := []ExternalLinkInput{{Kind: model.ExternalLinkKindLink, Value: "trojan://assign-by-email", Enable: boolPtr(true)}}
+
+	err := svc.SetExternalLinksByEmail("   ", inputs)
+	if err == nil || strings.TrimSpace(err.Error()) != "client email is required" {
+		t.Fatalf("empty email error = %v, want client email is required", err)
+	}
+	if err := svc.SetExternalLinksByEmail("ghost@x", inputs); err == nil {
+		t.Fatal("saving links for an email no client has succeeded")
+	}
+	if rows := countRows(t, &model.ExternalLink{}); rows != 0 {
+		t.Fatalf("library rows after the rejected saves = %d, want 0", rows)
+	}
+
+	if err := svc.SetExternalLinksByEmail("assign-l@x", inputs); err != nil {
+		t.Fatalf("save links by email: %v", err)
+	}
+	resolved := resolveOneClient(t, lookupClientRecord(t, "assign-l@x").Id)
+	if len(resolved) != 1 || resolved[0].Value != "trojan://assign-by-email" {
+		t.Fatalf("the client resolves %+v, want the link saved under its own email", resolved)
+	}
+}
+
 // TestExternalLinkLibraryDeleteTakesOnlyItsOwnBindings: deleting a library row
 // must take its own bindings and nothing else.
 func TestExternalLinkLibraryDeleteTakesOnlyItsOwnBindings(t *testing.T) {
