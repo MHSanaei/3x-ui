@@ -13,7 +13,7 @@ import (
 // EventBus is set from web layer to publish events.
 var EventBus *eventbus.Bus
 
-// CheckXrayRunningJob monitors Xray process health and restarts it if it crashes.
+// CheckXrayRunningJob monitors the selected proxy core and restarts it if it crashes.
 type CheckXrayRunningJob struct {
 	xrayService  service.XrayService
 	singBox      service.SingBoxService
@@ -21,12 +21,12 @@ type CheckXrayRunningJob struct {
 	checkTime    int
 }
 
-// NewCheckXrayRunningJob creates a new Xray health check job instance.
+// NewCheckXrayRunningJob creates the core health check job instance.
 func NewCheckXrayRunningJob() *CheckXrayRunningJob {
 	return new(CheckXrayRunningJob)
 }
 
-// Run checks if Xray has crashed and restarts it after confirming it's down for 2 consecutive checks.
+// Run checks the selected core and restarts it after it is down for 2 consecutive checks.
 func (j *CheckXrayRunningJob) Run() {
 	coreType, err := j.setting.GetCoreType()
 	if err != nil {
