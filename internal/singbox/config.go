@@ -243,14 +243,38 @@ func translateUsers(out map[string]any, protocol string, settings map[string]any
 func translateStream(out map[string]any, protocol string, stream map[string]any) error {
 	if len(stream) == 0 { return nil }
 	security, _ := stream["security"].(string)
-	if security == "tls" {
+	if security == "tls" || security == "reality" {
 		tls := rawObject(stream, "tlsSettings")
 		t := map[string]any{"enabled": true}
 		if serverName, ok := tls["serverName"].(string); ok && serverName != "" { t["server_name"] = serverName }
+		if alpn := stringSlice(tls["alpn"]); len(alpn) > 0 { t["alpn"] = alpn }
 		if certs, ok := tls["certificates"].([]any); ok && len(certs) > 0 { t["certificate"] = certs }
+		if security == "reality" {
+			reality := rawObject(tls, "realitySettings")
+			if len(reality) == 0 {
+				return fmt.Errorf("inbound %q uses Xray REALITY without realitySettings", rawString(out, "tag"))
+			}
+			r := map[string]any{"enabled": true}
+			if privateKey := rawString(reality, "privateKey"); privateKey != "" {
+				dest := rawString(reality, "dest")
+				host, port := splitRealityDestination(dest)
+				if host == "" || port == 0 {
+					return fmt.Errorf("inbound %q has invalid Xray REALITY destination %q", rawString(out, "tag"), dest)
+				}
+				r["handshake"] = map[string]any{"server": host, "server_port": port}
+				r["private_key"] = privateKey
+				if ids := stringSlice(reality["shortIds"]); len(ids) > 0 { r["short_id"] = ids }
+				if maxDiff := rawDurationMillis(reality["maxTimeDiff"]); maxDiff != "" { r["max_time_difference"] = maxDiff }
+			} else if publicKey := rawString(reality, "publicKey"); publicKey != "" {
+				r["public_key"] = publicKey
+				if shortID := rawString(reality, "shortId"); shortID != "" { r["short_id"] = shortID }
+				if ids := stringSlice(reality["shortIds"]); len(ids) > 0 && r["short_id"] == nil { r["short_id"] = ids[0] }
+			} else {
+				return fmt.Errorf("inbound %q has unsupported Xray REALITY settings", rawString(out, "tag"))
+			}
+			t["reality"] = r
+		}
 		out["tls"] = t
-	} else if security == "reality" {
-		return fmt.Errorf("inbound %q uses Xray REALITY; configure a sing-box-native TLS/Reality profile before switching cores", rawString(out, "tag"))
 	}
 	network, _ := stream["network"].(string)
 	switch network {
@@ -272,6 +296,41 @@ func translateStream(out map[string]any, protocol string, stream map[string]any)
 	}
 	_ = protocol
 	return nil
+}
+
+func splitRealityDestination(value string) (string, int) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", 0
+	}
+	if host, port, err := net.SplitHostPort(value); err == nil {
+		n, _ := strconv.Atoi(port)
+		return host, n
+	}
+	return value, 443
+}
+
+func rawDurationMillis(v any) string {
+	var millis int64
+	switch value := v.(type) {
+	case int:
+		millis = int64(value)
+	case int64:
+		millis = value
+	case float64:
+		millis = int64(value)
+	case string:
+		millis, _ = strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+	}
+	if millis <= 0 {
+		return ""
+	}
+	seconds := millis / 1000
+	remaining := millis % 1000
+	if remaining == 0 {
+		return fmt.Sprintf("%ds", seconds)
+	}
+	return fmt.Sprintf("%dms", millis)
 }
 
 func normalizeListen(value string) string {
