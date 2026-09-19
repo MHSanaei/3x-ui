@@ -33,6 +33,7 @@ type singBoxConnection struct {
 	Protocol    string
 	User        string
 	FromOutbound string
+	Outbound     string
 	CreatedAt   int64
 	Uplink      int64
 	Downlink    int64
