@@ -291,6 +291,30 @@ func translateStream(out map[string]any, protocol string, stream map[string]any)
 		transport := map[string]any{"type": "grpc"}
 		if name, ok := grpc["serviceName"].(string); ok && name != "" { transport["service_name"] = name }
 		out["transport"] = transport
+	case "http", "h2":
+		httpSettings := rawObject(stream, "httpSettings")
+		transport := map[string]any{"type": "http"}
+		if hosts := stringSlice(httpSettings["host"]); len(hosts) > 0 { transport["host"] = hosts }
+		if path, ok := httpSettings["path"].(string); ok && path != "" { transport["path"] = path }
+		if method, ok := httpSettings["method"].(string); ok && method != "" { transport["method"] = method }
+		if headers, ok := httpSettings["headers"].(map[string]any); ok && len(headers) > 0 { transport["headers"] = headers }
+		out["transport"] = transport
+	case "httpupgrade":
+		settings := rawObject(stream, "httpupgradeSettings")
+		transport := map[string]any{"type": "httpupgrade"}
+		if host, ok := settings["host"].(string); ok && host != "" { transport["host"] = host }
+		if path, ok := settings["path"].(string); ok && path != "" { transport["path"] = path }
+		if headers, ok := settings["headers"].(map[string]any); ok && len(headers) > 0 { transport["headers"] = headers }
+		out["transport"] = transport
+	case "quic":
+		settings := rawObject(stream, "quicSettings")
+		transport := map[string]any{"type": "quic"}
+		if security, ok := settings["security"].(string); ok && security != "" {
+			return fmt.Errorf("inbound %q uses Xray QUIC encryption %q; sing-box QUIC transport has no additional encryption", rawString(out, "tag"), security)
+		}
+		out["transport"] = transport
+	case "splithttp", "xhttp":
+		return fmt.Errorf("inbound %q uses Xray XHTTP/SplitHTTP; configure a sing-box-native HTTP transport before switching cores", rawString(out, "tag"))
 	default:
 		return fmt.Errorf("inbound %q uses unsupported Xray transport %q", rawString(out, "tag"), network)
 	}
