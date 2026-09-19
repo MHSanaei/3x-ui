@@ -356,11 +356,19 @@ func (s *SingBoxService) PollTraffic(ctx context.Context) error {
 		})
 	}
 
-	if len(inboundTraffic) == 0 && len(clientTraffic) == 0 {
-		return nil
+	if len(inboundTraffic) > 0 || len(clientTraffic) > 0 {
+		if _, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic); err != nil {
+			return err
+		}
 	}
-	_, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic)
-	return err
+
+	// Refresh last_online independently of byte deltas so an idle but open
+	// sing-box connection remains online in the panel.
+	emails, err := s.OnlineClientEmails(ctx)
+	if err != nil {
+		return err
+	}
+	return singBoxInboundService.BumpClientsLastOnline(emails)
 }
 
 func (s *SingBoxService) InstallLatest(ctx context.Context) (string, error) {
