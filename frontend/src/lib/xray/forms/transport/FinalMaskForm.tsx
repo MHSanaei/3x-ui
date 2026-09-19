@@ -177,7 +177,6 @@ function migrateFragmentSettings(settings: Record<string, unknown>): {
   return { next: out, changed };
 }
 
-
 type SudokuPreset = 'balanced' | 'low_overhead' | 'strong_padding' | 'custom';
 
 function applySudokuPreset(
