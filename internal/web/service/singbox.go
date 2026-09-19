@@ -37,6 +37,27 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 	}
 
 	cfg := singbox.NewConfig()
+
+	// Translate the panel's Xray outbound template as well. This keeps the
+	// operator's egress/routing choices intact instead of silently forcing
+	// every sing-box inbound to direct.
+	if template, err := singBoxSettingService.GetXrayConfigTemplate(); err == nil {
+		var xrayCfg map[string]any
+		if json.Unmarshal([]byte(template), &xrayCfg) == nil {
+			if rawOutbounds, ok := xrayCfg["outbounds"].([]any); ok {
+				for _, raw := range rawOutbounds {
+					ob, ok := raw.(map[string]any)
+					if !ok { continue }
+					translated, err := singbox.TranslateXrayOutbound(ob)
+					if err != nil {
+						return nil, err
+					}
+					cfg.Outbounds = append(cfg.Outbounds, translated)
+				}
+			}
+		}
+	}
+
 	var unsupported []string
 	for _, inbound := range inbounds {
 		if inbound == nil || !inbound.Enable || inbound.NodeID != nil {
