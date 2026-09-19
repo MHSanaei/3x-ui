@@ -58,7 +58,7 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 		out["type"] = "direct"
 	case "blackhole":
 		out["type"] = "block"
-	case "socks", "http", "shadowsocks", "vmess", "vless", "trojan":
+	case "socks", "http", "shadowsocks", "vmess", "vless", "trojan", "hysteria", "hysteria2", "tuic":
 		out["type"] = protocol
 	default:
 		return nil, fmt.Errorf("sing-box does not support Xray outbound protocol %q through the compatibility translator", protocol)
@@ -107,6 +107,43 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 					out["password"] = rawString(u, "password")
 				}
 			}
+		}
+	}
+	case "hysteria", "hysteria2", "tuic":
+		servers, _ := settings["servers"].([]any)
+		if len(servers) == 0 {
+			if server := rawObject(settings, "server"); len(server) > 0 {
+				servers = []any{server}
+			}
+		}
+		if len(servers) == 0 { return nil, fmt.Errorf("outbound %q has no server", tag) }
+		server, _ := servers[0].(map[string]any)
+		out["server"] = rawString(server, "address")
+		out["server_port"] = rawInt(server, "port")
+		if out["server"] == "" || rawInt(server, "port") == 0 {
+			return nil, fmt.Errorf("outbound %q has invalid server", tag)
+		}
+		if auth := rawString(server, "auth"); auth != "" {
+			if protocol == "hysteria" { out["auth_str"] = auth } else if protocol == "hysteria2" { out["password"] = auth }
+		}
+		if password := rawString(server, "password"); password != "" {
+			out["password"] = password
+		}
+		if protocol == "tuic" {
+			if uuid := rawString(server, "id"); uuid != "" { out["uuid"] = uuid }
+			if uuid := rawString(server, "uuid"); uuid != "" { out["uuid"] = uuid }
+		}
+		for _, key := range []string{"up_mbps", "down_mbps", "hop_interval", "hop_interval_max", "bbr_profile", "congestion_control", "auth_timeout", "heartbeat"} {
+			copyStringOrInt(settings, server, out, key)
+		}
+		if protocol == "hysteria2" {
+			if obfs := rawObject(settings, "obfs"); len(obfs) > 0 { out["obfs"] = obfs }
+			copyBool(settings, out, "disable_chrome_parrot")
+		}
+		if protocol == "tuic" {
+			copyString(settings, out, "udp_relay_mode")
+			copyBool(settings, out, "udp_over_stream")
+			copyBool(settings, out, "zero_rtt_handshake")
 		}
 	}
 	if stream := rawObject(raw, "streamSettings"); len(stream) > 0 {
@@ -251,6 +288,24 @@ func copyInt(src, dst map[string]any, key string) {
 		return
 	}
 	if value, ok := src[key].(int); ok {
+		dst[key] = value
+	}
+}
+
+func copyStringOrInt(src, server, dst map[string]any, key string) {
+	if value := rawString(src, key); value != "" {
+		dst[key] = value
+		return
+	}
+	if value := rawInt(src, key); value != 0 {
+		dst[key] = value
+		return
+	}
+	if value := rawString(server, key); value != "" {
+		dst[key] = value
+		return
+	}
+	if value := rawInt(server, key); value != 0 {
 		dst[key] = value
 	}
 }
