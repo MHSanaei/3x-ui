@@ -53,6 +53,7 @@ const (
 
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
+	"coreType":            "xray",
 	"webListen":          "",
 	"webDomain":          "",
 	"webPort":            "2053",
@@ -471,6 +472,29 @@ func (s *SettingService) SetWarpLastUpdate(val int64) error {
 
 func (s *SettingService) SetWarpUpdateInterval(val int) error {
 	return s.setInt("warpUpdateInterval", val)
+}
+
+const (
+	CoreTypeXray    = "xray"
+	CoreTypeSingBox = "sing-box"
+)
+
+func (s *SettingService) GetCoreType() (string, error) {
+	coreType, err := s.getString("coreType")
+	if err != nil {
+		return "", err
+	}
+	if coreType != CoreTypeXray && coreType != CoreTypeSingBox {
+		return CoreTypeXray, nil
+	}
+	return coreType, nil
+}
+
+func (s *SettingService) SetCoreType(coreType string) error {
+	if coreType != CoreTypeXray && coreType != CoreTypeSingBox {
+		return common.NewError("core type is not supported:", coreType)
+	}
+	return s.setString("coreType", coreType)
 }
 
 func (s *SettingService) GetXrayConfigTemplate() (string, error) {
