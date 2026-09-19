@@ -28,7 +28,7 @@ func SetSingBoxDependencies(inbound *InboundService, settings *SettingService) {
 	}
 }
 
-type SingBoxService struct{} = singbox.NewProcess(singbox.GetConfigPath())
+type SingBoxService struct{}
 
 func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 	inbounds, err := singBoxInboundService.GetAllInbounds()
