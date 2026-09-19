@@ -84,15 +84,24 @@ func (v2rayProtoCodec) Unmarshal(data []byte, v any) error {
 }
 
 func appendStringField(dst []byte, field int, value string) []byte {
-	dst = appendVarintField(dst, field<<3|2, uint64(len(value)))
+	dst = appendKey(dst, field, 2)
+	dst = appendUvarint(dst, uint64(len(value)))
 	return append(dst, value...)
 }
 
-func appendVarintField(dst []byte, field int, value uint64) []byte {
+func appendKey(dst []byte, field, wire int) []byte {
+	return appendUvarint(dst, uint64(field<<3|wire))
+}
+
+func appendUvarint(dst []byte, value uint64) []byte {
 	var buf [10]byte
 	n := binary.PutUvarint(buf[:], value)
-	dst = append(dst, buf[:n]...)
-	return dst
+	return append(dst, buf[:n]...)
+}
+
+func appendVarintField(dst []byte, field int, value uint64) []byte {
+	dst = appendKey(dst, field, 0)
+	return appendUvarint(dst, value)
 }
 
 func consumeKey(data []byte) (field, wire, used int, err error) {
