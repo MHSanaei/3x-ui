@@ -348,6 +348,19 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 			_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
 		}()
 	}
+	else {
+		// sing-box exposes the compatible V2Ray StatsService on loopback.
+		// Feed resettable counters into the same traffic writer used by Xray.
+		singTraffic := &service.SingBoxService{}
+		_, _ = s.cron.AddFunc(cadenceXrayTraffic, func() {
+			ctx, cancel := context.WithTimeout(s.ctx, 4*time.Second)
+			defer cancel()
+			if err := singTraffic.PollTraffic(ctx); err != nil {
+				logger.Debug("sing-box traffic poll failed:", err)
+			}
+		})
+	}
+
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
 	mtJob := job.NewMtprotoJob()
