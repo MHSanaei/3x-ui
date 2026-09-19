@@ -311,7 +311,7 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 			}
 			peer := map[string]any{"address": inbound.Listen, "port": inbound.Port, "public_key": serverPublicKey, "allowed_ips": []string{"0.0.0.0/0", "::/0"}}
 			if client.PreSharedKey != "" { peer["pre_shared_key"] = client.PreSharedKey }
-			if ka := client.KeepAliveSeconds(); ka > 0 { peer["persistent_keepalive_interval"] = ka }
+			if client.KeepAlive != nil && *client.KeepAlive > 0 { peer["persistent_keepalive_interval"] = *client.KeepAlive }
 			wireguardEndpoint = map[string]any{"type":"wireguard","tag":"wg-endpoint","address":addresses,"private_key":client.PrivateKey,"peers":[]any{peer}}
 			if mtu, ok := settings["mtu"].(float64); ok && mtu > 0 { wireguardEndpoint["mtu"] = int(mtu) }
 			wireguardAddresses = addresses
