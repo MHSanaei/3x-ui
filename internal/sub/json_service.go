@@ -810,7 +810,9 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 
 		switch inbound.Protocol {
 		case "vmess":
-			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, jsonMux(mux, hostMux)))
+			if native := nativeVMessOutbound(inbound, newStream, client); native != nil {
+				newOutbounds = append(newOutbounds, native)
+			}
 		case "vless":
 			vc := client
 			vc.ID = applyVlessRoute(client.ID, hostVlessRoute(extPrxy))
@@ -821,9 +823,13 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 			if vc.Flow != "" && !vlessFlowAllowed(newNetwork, security, subReq.linkSettings(inbound)) {
 				vc.Flow = ""
 			}
-			newOutbounds = append(newOutbounds, s.genVless(subReq, inbound, streamSettings, vc, jsonMux(mux, hostMux)))
+			if native := nativeVLESSOutbound(inbound, newStream, vc, subReq); native != nil {
+				newOutbounds = append(newOutbounds, native)
+			}
 		case "trojan", "shadowsocks":
-			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
+			if native := nativeServerOutbound(inbound, newStream, client, subReq); native != nil {
+				newOutbounds = append(newOutbounds, native)
+			}
 		case "hysteria":
 			if version := hysteriaVersion(inbound.Settings, newStream); version == 2 {
 				if native := s.genNativeHysteria2(inbound, newStream, client); native != nil {
@@ -1118,6 +1124,104 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+func nativeTLSAndTransport(stream map[string]any) map[string]any {
+	out := map[string]any{}
+	security, _ := stream["security"].(string)
+	if security == "tls" || security == "reality" {
+		tlsSettings, _ := stream["tlsSettings"].(map[string]any)
+		tls := map[string]any{"enabled": true}
+		if v, _ := tlsSettings["serverName"].(string); v != "" { tls["server_name"] = v }
+		if v, ok := tlsSettings["alpn"].([]any); ok && len(v) > 0 { tls["alpn"] = v }
+		if v, ok := tlsSettings["allowInsecure"].(bool); ok { tls["insecure"] = v }
+		if v, _ := tlsSettings["fingerprint"].(string); v != "" { tls["utls"] = map[string]any{"enabled": true, "fingerprint": v} }
+		if security == "reality" {
+			realitySettings, _ := tlsSettings["realitySettings"].(map[string]any)
+			reality := map[string]any{"enabled": true}
+			if v, _ := realitySettings["publicKey"].(string); v != "" { reality["public_key"] = v }
+			if v, _ := realitySettings["shortId"].(string); v != "" { reality["short_id"] = v }
+			if reality["public_key"] != nil { tls["reality"] = reality }
+		}
+		out["tls"] = tls
+	}
+	network, _ := stream["network"].(string)
+	switch network {
+	case "ws":
+		ws, _ := stream["wsSettings"].(map[string]any)
+		tr := map[string]any{"type":"ws"}
+		if v, _ := ws["path"].(string); v != "" { tr["path"] = v }
+		if v, ok := ws["headers"].(map[string]any); ok && len(v) > 0 { tr["headers"] = v }
+		out["transport"] = tr
+	case "grpc":
+		grpc, _ := stream["grpcSettings"].(map[string]any)
+		tr := map[string]any{"type":"grpc"}
+		if v, _ := grpc["serviceName"].(string); v != "" { tr["service_name"] = v }
+		out["transport"] = tr
+	case "http", "h2":
+		httpSettings, _ := stream["httpSettings"].(map[string]any)
+		tr := map[string]any{"type":"http"}
+		if v, ok := httpSettings["host"].([]any); ok && len(v)>0 { tr["host"] = v }
+		if v, _ := httpSettings["path"].(string); v != "" { tr["path"] = v }
+		if v, _ := httpSettings["method"].(string); v != "" { tr["method"] = v }
+		if v, ok := httpSettings["headers"].(map[string]any); ok && len(v)>0 { tr["headers"] = v }
+		out["transport"] = tr
+	case "httpupgrade":
+		settings, _ := stream["httpupgradeSettings"].(map[string]any)
+		tr := map[string]any{"type":"httpupgrade"}
+		if v, _ := settings["host"].(string); v != "" { tr["host"] = v }
+		if v, _ := settings["path"].(string); v != "" { tr["path"] = v }
+		if v, ok := settings["headers"].(map[string]any); ok && len(v)>0 { tr["headers"] = v }
+		out["transport"] = tr
+	case "quic":
+		settings, _ := stream["quicSettings"].(map[string]any)
+		tr := map[string]any{"type":"quic"}
+		if v, ok := settings["initial_packet_size"]; ok { tr["initial_packet_size"] = v }
+		if v, ok := settings["disable_path_mtu_discovery"]; ok { tr["disable_path_mtu_discovery"] = v }
+		out["transport"] = tr
+	}
+	return out
+}
+
+func nativeVMessOutbound(inbound *model.Inbound, stream map[string]any, client model.Client) json_util.RawMessage {
+	security := normalizeVmessSecurity(client.Security)
+	out := map[string]any{"type":"vmess","tag":"proxy","server":inbound.Listen,"server_port":inbound.Port,"uuid":client.ID,"security":security}
+	for k,v := range nativeTLSAndTransport(stream) { out[k]=v }
+	b,_:=json.MarshalIndent(out,"","  "); return b
+}
+
+func nativeVLESSOutbound(inbound *model.Inbound, stream map[string]any, client model.Client, subReq *SubService) json_util.RawMessage {
+	out := map[string]any{"type":"vless","tag":"proxy","server":inbound.Listen,"server_port":inbound.Port,"uuid":client.ID}
+	if client.Flow != "" && !inbound.DisableFlow { out["flow"] = client.Flow }
+	for k,v := range nativeTLSAndTransport(stream) { out[k]=v }
+	if settings := subReq.linkSettings(inbound); settings != nil {
+		if encryption, _ := settings["encryption"].(string); encryption != "" && encryption != "none" {
+			// sing-box VLESS has no Xray-style encryption field; TLS/Reality
+			// carries the transport security instead.
+		}
+	}
+	b,_:=json.MarshalIndent(out,"","  "); return b
+}
+
+func nativeServerOutbound(inbound *model.Inbound, stream map[string]any, client model.Client, subReq *SubService) json_util.RawMessage {
+	out := map[string]any{"tag":"proxy","server":inbound.Listen,"server_port":inbound.Port}
+	settings := subReq.linkSettings(inbound)
+	switch inbound.Protocol {
+	case model.Trojan:
+		out["type"]="trojan"; out["password"]=client.Password
+	case model.Shadowsocks:
+		out["type"]="shadowsocks"
+		method,_:=settings["method"].(string)
+		password:=client.Password
+		if strings.HasPrefix(method,"2022") {
+			if master,_:=settings["password"].(string); master!="" { password=fmt.Sprintf("%s:%s",master,password) }
+		}
+		out["method"]=method; out["password"]=password
+	default:
+		return nil
+	}
+	for k,v := range nativeTLSAndTransport(stream) { out[k]=v }
+	b,_:=json.MarshalIndent(out,"","  "); return b
 }
 
 func hysteriaVersion(settingsJSON string, stream map[string]any) int {
