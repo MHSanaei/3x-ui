@@ -79,3 +79,39 @@ func TestTranslateXrayInboundRejectsUnknownTransport(t *testing.T) {
 		t.Fatal("expected unsupported transport error")
 	}
 }
+
+
+func TestTranslateXrayOutboundFreedomAndVLESS(t *testing.T) {
+	direct, err := TranslateXrayOutbound(map[string]any{
+		"protocol": "freedom",
+		"tag": "direct",
+		"settings": map[string]any{},
+	})
+	if err != nil || direct["type"] != "direct" {
+		t.Fatalf("unexpected direct outbound: %#v, err=%v", direct, err)
+	}
+
+	vless, err := TranslateXrayOutbound(map[string]any{
+		"protocol": "vless",
+		"tag": "proxy",
+		"settings": map[string]any{
+			"vnext": []any{map[string]any{
+				"address": "example.com",
+				"port": 443,
+				"users": []any{map[string]any{"id": "11111111-1111-1111-1111-111111111111"}},
+			}},
+		},
+		"streamSettings": map[string]any{
+			"network": "grpc",
+			"security": "tls",
+			"tlsSettings": map[string]any{"serverName": "example.com"},
+			"grpcSettings": map[string]any{"serviceName": "proxy"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vless["type"] != "vless" || vless["server"] != "example.com" || vless["server_port"] != 443 {
+		t.Fatalf("unexpected vless outbound: %#v", vless)
+	}
+}
