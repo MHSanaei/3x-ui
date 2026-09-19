@@ -222,6 +222,52 @@ func TestTranslateHysteriaTLSCertificatePEM(t *testing.T) {
 	}
 }
 
+func TestTranslateHysteriaOutbound(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria", "tag": "hy-out",
+		"settings": map[string]any{
+			"servers": []any{map[string]any{"address": "example.com", "port": 443, "auth": "secret"}},
+		},
+	}
+	got, err := TranslateXrayOutbound(raw)
+	if err != nil { t.Fatal(err) }
+	if got["type"] != "hysteria" || got["server"] != "example.com" || got["server_port"] != 443 || got["auth_str"] != "secret" {
+		t.Fatalf("unexpected Hysteria outbound: %#v", got)
+	}
+}
+
+func TestTranslateHysteria2Outbound(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria2", "tag": "hy2-out",
+		"settings": map[string]any{
+			"servers": []any{map[string]any{"address": "example.com", "port": 443, "password": "secret"}},
+			"obfs": map[string]any{"type": "salamander", "password": "obfs"},
+			"up_mbps": float64(100), "down_mbps": float64(200),
+			"bbr_profile": "aggressive",
+		},
+	}
+	got, err := TranslateXrayOutbound(raw)
+	if err != nil { t.Fatal(err) }
+	if got["type"] != "hysteria2" || got["password"] != "secret" || got["up_mbps"] != 100 || got["down_mbps"] != 200 || got["bbr_profile"] != "aggressive" {
+		t.Fatalf("unexpected Hysteria2 outbound: %#v", got)
+	}
+}
+
+func TestTranslateTUICOutbound(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "tuic", "tag": "tuic-out",
+		"settings": map[string]any{
+			"servers": []any{map[string]any{"address": "example.com", "port": 443, "uuid": "u", "password": "p"}},
+			"congestion_control": "bbr", "udp_relay_mode": "quic", "zero_rtt_handshake": false,
+		},
+	}
+	got, err := TranslateXrayOutbound(raw)
+	if err != nil { t.Fatal(err) }
+	if got["type"] != "tuic" || got["uuid"] != "u" || got["password"] != "p" || got["congestion_control"] != "bbr" || got["udp_relay_mode"] != "quic" {
+		t.Fatalf("unexpected TUIC outbound: %#v", got)
+	}
+}
+
 func TestTranslateHysteriaUsers(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "hysteria",
