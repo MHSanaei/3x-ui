@@ -98,10 +98,15 @@ function AppSidebar() {
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
   const [pinned, setPinned] = useState(readSidebarPinned);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMounted, setDrawerMounted] = useState(false);
   const resetDrawerSideEffects = useCallback(() => {
     document.documentElement.style.removeProperty('overflow');
     document.body.style.removeProperty('overflow');
     document.body.style.removeProperty('touch-action');
+  }, []);
+  const openDrawer = useCallback(() => {
+    setDrawerMounted(true);
+    setDrawerOpen(true);
   }, []);
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
@@ -302,7 +307,8 @@ function AppSidebar() {
           onClick={onMenuClick}
         />
       </Layout.Sider>
-      <Drawer
+      {drawerMounted && (
+        <Drawer
         placement="left"
         closable={false}
         open={drawerOpen}
@@ -319,9 +325,12 @@ function AppSidebar() {
             filter: 'none',
           },
         }}
-        afterOpenChange={(open) => {
-          if (!open) resetDrawerSideEffects();
-        }}
+          afterOpenChange={(open) => {
+            if (!open) {
+              resetDrawerSideEffects();
+              setDrawerMounted(false);
+            }
+          }}
         onClose={closeDrawer}
       >
         <div className="drawer-header">
@@ -363,13 +372,14 @@ function AppSidebar() {
             closeDrawer();
           }}
         />
-      </Drawer>
-      {!drawerOpen && (
+        </Drawer>
+      )}
+      {!drawerMounted && (
         <button
           className="drawer-handle"
           type="button"
           aria-label={t('menu.openMenu')}
-          onClick={() => setDrawerOpen(true)}
+          onClick={openDrawer}
         >
           <MenuOutlined />
         </button>
