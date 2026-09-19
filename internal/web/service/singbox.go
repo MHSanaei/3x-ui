@@ -84,11 +84,23 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 		}
 	}
 
-	if len(cfg.Outbounds) == 0 {
-		cfg.Outbounds = append(cfg.Outbounds,
-			map[string]any{"type": "direct", "tag": "direct"},
-			map[string]any{"type": "block", "tag": "blocked"},
-		)
+	// Keep the implicit direct/blocked targets available even when the
+	// operator supplied a custom Xray outbound list. Route rules generated from
+	// the panel may legitimately refer to either tag.
+	hasDirect, hasBlocked := false, false
+	for _, outbound := range cfg.Outbounds {
+		switch rawString(outbound, "tag") {
+		case "direct":
+			hasDirect = true
+		case "blocked":
+			hasBlocked = true
+		}
+	}
+	if !hasDirect {
+		cfg.Outbounds = append(cfg.Outbounds, map[string]any{"type": "direct", "tag": "direct"})
+	}
+	if !hasBlocked {
+		cfg.Outbounds = append(cfg.Outbounds, map[string]any{"type": "block", "tag": "blocked"})
 	}
 
 	var unsupported []string
