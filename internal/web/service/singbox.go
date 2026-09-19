@@ -150,3 +150,12 @@ func (s *SingBoxService) Validate(ctx context.Context) error {
 	return singBoxProcess.Validate(ctx)
 }
 
+
+
+func (s *SingBoxService) InstallLatest(ctx context.Context) (string, error) {
+	return singbox.InstallLatest(ctx)
+}
+
+func (s *SingBoxService) BinaryPath() string {
+	return singbox.GetBinaryPath()
+}
