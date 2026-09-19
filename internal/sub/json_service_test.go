@@ -534,6 +534,15 @@ func TestSubJsonServiceSkipsTUIC(t *testing.T) {
 	}
 }
 
+func TestNativeRealityTLS(t *testing.T) {
+	stream := map[string]any{"network":"tcp","security":"reality","tlsSettings":map[string]any{"serverName":"www.example.com","alpn":[]any{"h2","http/1.1"},"fingerprint":"chrome","realitySettings":map[string]any{"publicKey":"public-key","shortId":"0123456789abcdef"}}}
+	got := nativeTLSAndTransport(stream)
+	tls, ok := got["tls"].(map[string]any); if !ok { t.Fatalf("missing TLS: %#v",got) }
+	if tls["enabled"] != true || tls["server_name"] != "www.example.com" { t.Fatalf("unexpected TLS: %#v",tls) }
+	utls,_ := tls["utls"].(map[string]any); if utls["fingerprint"] != "chrome" { t.Fatalf("unexpected uTLS: %#v",utls) }
+	reality,_ := tls["reality"].(map[string]any); if reality["enabled"] != true || reality["public_key"] != "public-key" || reality["short_id"] != "0123456789abcdef" { t.Fatalf("unexpected Reality: %#v",reality) }
+}
+
 func TestNativeVLESSOutbound(t *testing.T) {
 	inbound := &model.Inbound{Listen:"example.com",Port:443,Protocol:model.VLESS}
 	client := model.Client{ID:"11111111-1111-1111-1111-111111111111",Flow:"xtls-rprx-vision"}
