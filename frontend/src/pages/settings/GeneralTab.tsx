@@ -222,6 +222,24 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
 
               <SettingListItem
                 paddings="small"
+                title="Ядро прокси"
+                description="Выберите движок, которым панель будет управлять. Xray остаётся ядром по умолчанию; sing-box подключается через отдельный runtime."
+              >
+                <Select
+                  style={{ width: '100%' }}
+                  value={allSetting.coreType || 'xray'}
+                  options={[
+                    { value: 'xray', label: 'Xray' },
+                    { value: 'sing-box', label: 'sing-box' },
+                  ]}
+                  onChange={(value) =>
+                    updateSetting({ coreType: value as 'xray' | 'sing-box' })
+                  }
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.panelUrlPath')}
                 description={t('pages.settings.panelUrlPathDesc')}
               >
