@@ -94,6 +94,12 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 		out["server_port"] = rawInt(server, "port")
 		out["method"] = rawString(server, "method")
 		out["password"] = rawString(server, "password")
+		if out["server"] == "" || rawInt(server, "port") == 0 || rawString(server, "method") == "" || rawString(server, "password") == "" {
+			return nil, fmt.Errorf("outbound %q has incomplete Shadowsocks server settings", tag)
+		}
+		for _, key := range []string{"plugin", "plugin_opts", "network"} {
+			copyString(server, out, key)
+		}
 	case "vmess", "vless", "trojan":
 		vnext, _ := settings["vnext"].([]any)
 		if len(vnext) == 0 {
@@ -111,6 +117,10 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 				switch protocol {
 				case "vless", "vmess":
 					out["uuid"] = rawString(u, "id")
+					if protocol == "vmess" {
+						copyString(u, out, "security")
+						copyInt(u, out, "alterId")
+					}
 				case "trojan":
 					out["password"] = rawString(u, "password")
 				}
@@ -143,7 +153,12 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 		for _, key := range []string{"up_mbps", "down_mbps", "hop_interval", "hop_interval_max", "bbr_profile", "congestion_control", "auth_timeout", "heartbeat"} {
 			copyStringOrInt(settings, server, out, key)
 		}
-		if protocol == "hysteria2" {
+		if protocol == "shadowsocks" {
+		method := rawString(settings, "method")
+		if method == "" { return fmt.Errorf("inbound %q has no Shadowsocks method", rawString(out, "tag")) }
+		out["method"] = method
+	}
+	if protocol == "hysteria2" {
 			if obfs := rawObject(settings, "obfs"); len(obfs) > 0 { out["obfs"] = obfs }
 			copyBool(settings, out, "disable_chrome_parrot")
 		}
@@ -163,46 +178,155 @@ func TranslateXrayRouting(raw map[string]any) (map[string]any, error) {
 	out := map[string]any{}
 	rulesRaw, _ := raw["rules"].([]any)
 	rules := make([]map[string]any, 0, len(rulesRaw))
-	for _, item := range rulesRaw {
+	for i, item := range rulesRaw {
 		xr, ok := item.(map[string]any)
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 		r := map[string]any{}
-		if tags := stringSlice(xr["inboundTag"]); len(tags) > 0 { r["inbound"] = tags }
-		if domains := stringSlice(xr["domain"]); len(domains) > 0 { r["domain"] = domains }
-		if ips := stringSlice(xr["ip"]); len(ips) > 0 { r["ip_cidr"] = ips }
-		if ports := rawString(xr, "port"); ports != "" { r["port"] = ports }
-		if network := rawString(xr, "network"); network != "" {
-			switch network {
-			case "tcp": r["network"] = "tcp"
-			case "udp": r["network"] = "udp"
+		if tags := stringSlice(xr["inboundTag"]); len(tags) > 0 {
+			r["inbound"] = tags
+		}
+		if domains := stringSlice(xr["domain"]); len(domains) > 0 {
+			if err := translateXrayDomains(r, domains); err != nil {
+				return nil, fmt.Errorf("routing rule %d: %w", i, err)
 			}
 		}
-		if outbound := rawString(xr, "outboundTag"); outbound != "" { r["outbound"] = outbound }
-		if len(r) > 0 { rules = append(rules, r) }
-	}
-	if len(rules) > 0 { out["rules"] = rules }
-	if ds := rawString(raw, "domainStrategy"); ds != "" {
-		switch ds {
-		case "AsIs": out["default_domain_strategy"] = "prefer_ipv4"
-		case "IPIfNonMatch", "IPOnDemand": out["default_domain_strategy"] = "prefer_ipv4"
+		if ips := stringSlice(xr["ip"]); len(ips) > 0 {
+			if err := translateXrayIPs(r, ips); err != nil {
+				return nil, fmt.Errorf("routing rule %d: %w", i, err)
+			}
 		}
+		if ports := rawString(xr, "port"); ports != "" {
+			r["port"] = ports
+		}
+		if sourcePorts := rawString(xr, "sourcePort"); sourcePorts != "" {
+			r["source_port"] = sourcePorts
+		}
+		if network := rawString(xr, "network"); network != "" {
+			switch network {
+			case "tcp", "udp":
+				r["network"] = network
+			default:
+				return nil, fmt.Errorf("routing rule %d: unsupported network %q", i, network)
+			}
+		}
+		if users := stringSlice(xr["user"]); len(users) > 0 {
+			r["user"] = users
+		}
+		if protocols := stringSlice(xr["protocol"]); len(protocols) > 0 {
+			r["protocol"] = protocols
+		}
+		if outbound := rawString(xr, "outboundTag"); outbound != "" {
+			r["action"] = "route"
+			r["outbound"] = outbound
+		} else if balancer := rawString(xr, "balancerTag"); balancer != "" {
+			return nil, fmt.Errorf("routing rule %d uses unsupported balancerTag %q", i, balancer)
+		} else {
+			return nil, fmt.Errorf("routing rule %d has no outboundTag", i)
+		}
+		// These Xray matchers have no safe 1:1 representation in the current
+		// sing-box route rule model. Do not silently discard them.
+		for _, key := range []string{"sourceIP", "localIP", "attrs", "process", "vlessRoute", "ruleTag", "webhook"} {
+			if value, exists := xr[key]; exists && value != nil {
+				return nil, fmt.Errorf("routing rule %d uses unsupported Xray field %q", i, key)
+			}
+		}
+		rules = append(rules, r)
+	}
+	if len(rules) > 0 {
+		out["rules"] = rules
+	}
+	if ds := rawString(raw, "domainStrategy"); ds != "" && ds != "AsIs" {
+		return nil, fmt.Errorf("Xray routing domainStrategy %q cannot be represented faithfully by sing-box", ds)
 	}
 	return out, nil
+}
+
+func translateXrayDomains(dst map[string]any, domains []string) error {
+	var exact, suffix, keyword, regex []string
+	for _, value := range domains {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if strings.HasPrefix(value, "!") {
+			return fmt.Errorf("negated domain matcher %q is not safely representable", value)
+		}
+		switch {
+		case strings.HasPrefix(value, "regexp:"):
+			regex = append(regex, strings.TrimPrefix(value, "regexp:"))
+		case strings.HasPrefix(value, "domain:"):
+			suffix = append(suffix, strings.TrimPrefix(value, "domain:"))
+		case strings.HasPrefix(value, "keyword:"):
+			keyword = append(keyword, strings.TrimPrefix(value, "keyword:"))
+		case strings.HasPrefix(value, "full:"):
+			exact = append(exact, strings.TrimPrefix(value, "full:"))
+		case strings.HasPrefix(value, "geosite:"), strings.HasPrefix(value, "ext:"):
+			return fmt.Errorf("domain matcher %q requires an external rule-set/resource and cannot be translated automatically", value)
+		case strings.HasPrefix(value, "dotless:"):
+			return fmt.Errorf("dotless domain matcher %q is not supported by sing-box route rules", value)
+		default:
+			// Xray's unprefixed domain matcher is full-match.
+			exact = append(exact, value)
+		}
+	}
+	if len(exact) > 0 { dst["domain"] = exact }
+	if len(suffix) > 0 { dst["domain_suffix"] = suffix }
+	if len(keyword) > 0 { dst["domain_keyword"] = keyword }
+	if len(regex) > 0 { dst["domain_regex"] = regex }
+	return nil
+}
+
+func translateXrayIPs(dst map[string]any, ips []string) error {
+	var cidrs []string
+	var geoip []string
+	for _, value := range ips {
+		value = strings.TrimSpace(value)
+		if value == "" { continue }
+		if strings.HasPrefix(value, "!") || strings.HasPrefix(value, "geoip:") || strings.HasPrefix(value, "ext:") {
+			geoip = append(geoip, value)
+			continue
+		}
+		if net.ParseIP(value) != nil {
+			cidrs = append(cidrs, value)
+			continue
+		}
+		if _, _, err := net.ParseCIDR(value); err == nil {
+			cidrs = append(cidrs, value)
+			continue
+		}
+		return fmt.Errorf("unsupported IP matcher %q", value)
+	}
+	if len(geoip) > 0 {
+		return fmt.Errorf("IP matcher(s) %v require Xray geoip/ext resources and cannot be translated automatically", geoip)
+	}
+	if len(cidrs) > 0 { dst["ip_cidr"] = cidrs }
+	return nil
 }
 
 func TranslateXrayDNS(raw map[string]any) (map[string]any, error) {
 	out := map[string]any{}
 	serversRaw, _ := raw["servers"].([]any)
 	servers := make([]map[string]any, 0, len(serversRaw))
+	var globalClientSubnet string
 	for i, item := range serversRaw {
 		var addr string
-		var resolver string
+		var clientIP string
 		switch v := item.(type) {
 		case string:
 			addr = strings.TrimSpace(v)
 		case map[string]any:
 			addr = strings.TrimSpace(rawString(v, "address"))
-			resolver = strings.TrimSpace(rawString(v, "clientIp"))
+			clientIP = strings.TrimSpace(rawString(v, "clientIp"))
+			if clientIP == "" {
+				clientIP = strings.TrimSpace(rawString(v, "clientIP"))
+			}
+			for _, key := range []string{"domains", "expectedIPs", "unexpectedIPs", "skipFallback", "finalQuery", "timeoutMs", "disableCache", "serveStale", "serveExpiredTTL"} {
+				if value, exists := v[key]; exists && value != nil {
+					return nil, fmt.Errorf("DNS server %d uses unsupported per-server Xray field %q", i, key)
+				}
+			}
 		}
 		if addr == "" { continue }
 		server := map[string]any{"tag": fmt.Sprintf("dns-%d", i+1)}
@@ -217,42 +341,60 @@ func TranslateXrayDNS(raw map[string]any) (map[string]any, error) {
 					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 443) } else { server["server_port"] = 443 }
 					server["path"] = u.EscapedPath()
 					if server["path"] == "" { server["path"] = "/dns-query" }
+				} else {
+					return nil, fmt.Errorf("DNS server %d has invalid HTTPS address %q", i, addr)
 				}
 			case strings.HasPrefix(addr, "tls://"):
 				server["type"] = "tls"
 				if u, err := url.Parse(addr); err == nil {
 					server["server"] = u.Hostname()
 					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 853) } else { server["server_port"] = 853 }
-				}
+				} else { return nil, fmt.Errorf("DNS server %d has invalid TLS address %q", i, addr) }
 			case strings.HasPrefix(addr, "quic://"):
 				server["type"] = "quic"
 				if u, err := url.Parse(addr); err == nil {
 					server["server"] = u.Hostname()
 					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 853) } else { server["server_port"] = 853 }
-				}
+				} else { return nil, fmt.Errorf("DNS server %d has invalid QUIC address %q", i, addr) }
+			case strings.HasPrefix(addr, "h3://"):
+				server["type"] = "h3"
+				if u, err := url.Parse(addr); err == nil {
+					server["server"] = u.Hostname()
+					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 443) } else { server["server_port"] = 443 }
+					server["path"] = u.EscapedPath()
+					if server["path"] == "" { server["path"] = "/dns-query" }
+				} else { return nil, fmt.Errorf("DNS server %d has invalid H3 address %q", i, addr) }
 			default:
 				server["type"] = "udp"
-				if u, err := url.Parse(addr); err == nil && u.Hostname() != "" {
+				clean := strings.TrimPrefix(addr, "udp://")
+				if u, err := url.Parse("udp://"+clean); err == nil && u.Hostname() != "" {
 					server["server"] = u.Hostname()
 					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 53) } else { server["server_port"] = 53 }
 				} else {
-					server["server"] = strings.TrimPrefix(addr, "udp://")
-					server["server_port"] = 53
+					return nil, fmt.Errorf("DNS server %d has invalid UDP address %q", i, addr)
 				}
 			}
 		}
-		if resolver != "" && server["type"] != "local" { server["domain_resolver"] = resolver }
+		if clientIP != "" {
+			if net.ParseIP(clientIP) == nil { return nil, fmt.Errorf("DNS server %d has invalid clientIp %q", i, clientIP) }
+			if globalClientSubnet == "" { globalClientSubnet = clientIP } else if globalClientSubnet != clientIP {
+				return nil, fmt.Errorf("Xray uses different per-server clientIp values; sing-box cannot represent them safely in this translator")
+			}
+		}
 		servers = append(servers, server)
 	}
 	if len(servers) > 0 {
 		out["servers"] = servers
 		out["final"] = servers[0]["tag"]
 	}
+	if globalClientSubnet != "" { out["client_subnet"] = globalClientSubnet }
 	if strategy := rawString(raw, "queryStrategy"); strategy != "" {
 		switch strategy {
 		case "UseIPv4": out["strategy"] = "ipv4_only"
 		case "UseIPv6": out["strategy"] = "ipv6_only"
-		case "UseIP", "UseIPV4AndIPv6": out["strategy"] = "prefer_ipv4"
+		case "UseIP": out["strategy"] = "prefer_ipv4"
+		case "UseSystem": return nil, fmt.Errorf("Xray DNS queryStrategy UseSystem has no faithful sing-box equivalent")
+		default: return nil, fmt.Errorf("unsupported Xray DNS queryStrategy %q", strategy)
 		}
 	}
 	return out, nil
@@ -333,6 +475,15 @@ func translateProtocolSettings(out map[string]any, protocol string, settings map
 		copyString(settings, out, "auth_timeout")
 		copyBool(settings, out, "zero_rtt_handshake")
 		copyString(settings, out, "heartbeat")
+		if relay := rawString(settings, "udp_relay_mode"); relay != "" {
+			out["udp_relay_mode"] = relay
+		}
+		if udpOverStream, ok := settings["udp_over_stream"].(bool); ok {
+			if udpOverStream && rawString(settings, "udp_relay_mode") != "" {
+				return fmt.Errorf("inbound %q has conflicting TUIC udp_relay_mode and udp_over_stream", rawString(out, "tag"))
+			}
+			out["udp_over_stream"] = udpOverStream
+		}
 	}
 	return nil
 }
@@ -392,6 +543,7 @@ func translateUsers(out map[string]any, protocol string, settings map[string]any
 		case "vless", "vmess":
 			if id, ok := client["id"].(string); ok && id != "" { user["uuid"] = id }
 			if flow, ok := client["flow"].(string); ok && flow != "" && protocol == "vless" { user["flow"] = flow }
+			if alterID := rawInt(client, "alterId"); alterID > 0 && protocol == "vmess" { user["alter_id"] = alterID }
 		case "trojan", "shadowsocks":
 			if password, ok := client["password"].(string); ok && password != "" {
 				user["password"] = password
