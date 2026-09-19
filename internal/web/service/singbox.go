@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 var (
@@ -49,6 +50,36 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 		if err := json.Unmarshal(rawBytes, &raw); err != nil {
 			return nil, err
 		}
+		dbClients, listErr := singBoxInboundService.clientService.ListForInbound(nil, inbound.Id)
+		if listErr != nil {
+			return nil, listErr
+		}
+		clients := make([]any, 0, len(dbClients))
+		for _, client := range dbClients {
+			if !client.Enable {
+				continue
+			}
+			entry := map[string]any{"email": client.Email}
+			switch inbound.Protocol {
+			case model.VLESS, model.VMESS:
+				if client.ID != "" { entry["id"] = client.ID }
+			case model.Trojan, model.Shadowsocks:
+				if client.Password != "" { entry["password"] = client.Password }
+			case model.Hysteria:
+				if client.Auth != "" { entry["password"] = client.Auth }
+			case model.TUIC:
+				if client.ID != "" { entry["uuid"] = client.ID }
+				if client.Password != "" { entry["password"] = client.Password }
+			}
+			clients = append(clients, entry)
+		}
+		settings, _ := raw["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+		}
+		settings["clients"] = clients
+		raw["settings"] = settings
+
 		translated, err := singbox.TranslateXrayInbound(raw)
 		if err != nil {
 			unsupported = append(unsupported, fmt.Sprintf("%s: %v", inbound.Tag, err))
