@@ -150,6 +150,7 @@
       "moveUp": "Yukarı taşı",
       "moveDown": "Aşağı taşı",
       "reordered": "Sıra kaydedildi",
+      "refreshed": "{count} bağlantı alındı",
       "empty": "Kitaplık boş. İlk kaydı ekleyin.",
       "targets": "Atandığı yer",
       "targetsEmpty": "Henüz hiçbir yere atanmadı.",

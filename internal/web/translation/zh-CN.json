@@ -150,6 +150,7 @@
       "moveUp": "上移",
       "moveDown": "下移",
       "reordered": "顺序已保存",
+      "refreshed": "已获取 {count} 条链接",
       "empty": "链接库为空。请添加第一个条目。",
       "targets": "已分配给",
       "targetsEmpty": "尚未分配给任何对象。",

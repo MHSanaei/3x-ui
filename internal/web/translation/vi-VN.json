@@ -150,6 +150,7 @@
       "moveUp": "Di chuyển lên",
       "moveDown": "Di chuyển xuống",
       "reordered": "Đã lưu thứ tự",
+      "refreshed": "Đã tải {count} liên kết",
       "empty": "Thư viện trống. Hãy thêm mục đầu tiên.",
       "targets": "Được gán cho",
       "targetsEmpty": "Chưa được gán cho gì.",

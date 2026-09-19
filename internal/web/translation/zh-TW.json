@@ -150,6 +150,7 @@
       "moveUp": "上移",
       "moveDown": "下移",
       "reordered": "順序已儲存",
+      "refreshed": "已取得 {count} 個連結",
       "empty": "連結庫是空的。請新增第一個項目。",
       "targets": "已指派給",
       "targetsEmpty": "尚未指派給任何對象。",

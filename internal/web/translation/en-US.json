@@ -150,6 +150,7 @@
       "moveUp": "Move up",
       "moveDown": "Move down",
       "reordered": "Order saved",
+      "refreshed": "Fetched {count} links",
       "empty": "The library is empty. Add the first entry.",
       "targets": "Assigned to",
       "targetsEmpty": "Assigned to nothing yet.",

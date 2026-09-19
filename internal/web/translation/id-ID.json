@@ -150,6 +150,7 @@
       "moveUp": "Naikkan",
       "moveDown": "Turunkan",
       "reordered": "Urutan disimpan",
+      "refreshed": "{count} tautan diambil",
       "empty": "Pustaka kosong. Tambahkan entri pertama.",
       "targets": "Ditetapkan ke",
       "targetsEmpty": "Belum ditetapkan ke apa pun.",

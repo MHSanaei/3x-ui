@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -153,5 +153,82 @@ describe('ClientFormModal inherited links', () => {
 
     expect(gets.filter((url) => url.includes('/panel/api/links/client/'))).toEqual([]);
     expect(screen.queryByText('Inherited links')).toBeNull();
+  });
+});
+
+const LINK_INPUT_LABEL = 'vless:// · vmess:// · trojan:// · ss:// · hysteria2:// · wireguard://';
+
+function linkCards(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>('.external-link-card'));
+}
+
+// TestClientFormModalOwnLinksPayload drives the editor's own rows into the save
+// call: what the operator typed is what the endpoint receives, and a row left
+// blank must not turn into an empty link on the client.
+describe('ClientFormModal own links', () => {
+  it('sends the rows it holds, trimmed, and drops the blank ones', async () => {
+    mockClientLinks([]);
+    const save = vi.fn().mockResolvedValue({ success: true });
+    renderWithProviders(
+      <MemoryRouter initialEntries={['/clients']}>
+        <ClientFormModal
+          open
+          mode="edit"
+          client={CLIENT}
+          inbounds={[] as InboundOption[]}
+          save={save}
+          onOpenChange={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    openLinksTab();
+
+    // The tab panel mounts on the click, so wait for the tab's own hint before
+    // reaching for its controls.
+    await screen.findByText(
+      "Add third-party share links and remote subscription URLs to include in this client's subscription.",
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Add External Link/ }));
+    const linkCard = linkCards()[0];
+    fireEvent.change(within(linkCard).getByLabelText(LINK_INPUT_LABEL), {
+      target: { value: `  ${OWN_VALUE}  ` },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Add External Subscription/ }));
+    const subCard = linkCards()[1];
+    fireEvent.change(within(subCard).getByLabelText('https://provider.example/sub/…'), {
+      target: { value: 'https://provider.example/sub' },
+    });
+    fireEvent.change(within(subCard).getByLabelText('Name prefix'), {
+      target: { value: '  pref-  ' },
+    });
+    fireEvent.change(within(subCard).getByLabelText('Remark'), { target: { value: 'pool' } });
+    fireEvent.click(within(subCard).getByRole('switch'));
+
+    // A row the operator opened and left empty is not a link.
+    fireEvent.click(screen.getByRole('button', { name: /Add External Link/ }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+
+    const options = save.mock.calls[0][1] as { externalLinks: unknown[] };
+    expect(options.externalLinks).toEqual([
+      {
+        kind: 'link',
+        value: OWN_VALUE,
+        remark: '',
+        enable: true,
+        expiryTime: 0,
+        namePrefix: '',
+      },
+      {
+        kind: 'subscription',
+        value: 'https://provider.example/sub',
+        remark: 'pool',
+        enable: false,
+        expiryTime: 0,
+        namePrefix: 'pref-',
+      },
+    ]);
   });
 });

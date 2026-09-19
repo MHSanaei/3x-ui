@@ -150,6 +150,7 @@
       "moveUp": "Subir",
       "moveDown": "Bajar",
       "reordered": "Orden guardado",
+      "refreshed": "Se obtuvieron {count} enlaces",
       "empty": "La biblioteca está vacía. Añade la primera entrada.",
       "targets": "Asignado a",
       "targetsEmpty": "Aún no está asignado a nada.",

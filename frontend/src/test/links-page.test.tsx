@@ -45,6 +45,8 @@ interface PanelState {
   groups?: unknown[];
   inbounds?: unknown[];
   listError?: string;
+  refreshCount?: number;
+  refreshError?: string;
 }
 
 function mockPanel(panel: PanelState = {}) {
@@ -69,6 +71,11 @@ function mockPanel(panel: PanelState = {}) {
     posts.push({ url, payload });
     if (url.includes('/links/assign/') || url.includes('/links/unassign/')) {
       return new Msg(true, '', { affected: 2 });
+    }
+    if (url.includes('/links/refresh/')) {
+      return panel.refreshError
+        ? new Msg(false, panel.refreshError, null)
+        : new Msg(true, '', { count: panel.refreshCount ?? 0 });
     }
     return new Msg(true, '', {});
   });
@@ -272,6 +279,39 @@ describe('LinksPage row actions', () => {
 
     await waitFor(() => expect(posts).toHaveLength(1));
     expect(posts[0]).toEqual({ url: '/panel/api/links/reorder', payload: { ids: [9, 7] } });
+  });
+
+  it('fetches a subscription again and reports how many links came back', async () => {
+    const { posts } = mockPanel({
+      links: [link({ id: 7, value: SUB_VALUE, kind: 'subscription' })],
+      refreshCount: 4,
+    });
+    renderPage();
+
+    await screen.findByText(SUB_VALUE);
+    fireEvent.click(rowButton(SUB_VALUE, 'Refresh'));
+
+    await waitFor(() => expect(posts).toHaveLength(1));
+    expect(posts[0]).toEqual({ url: '/panel/api/links/refresh/7', payload: undefined });
+    // The count comes from the response, and a translation must exist for the
+    // key the page asks for: an untranslated key renders as its own dotted name.
+    await screen.findByText('Fetched 4 links');
+    expect(screen.queryByText('pages.links.refreshed')).toBeNull();
+  });
+
+  it('reports a provider that answered with an error instead of a link set', async () => {
+    const { posts } = mockPanel({
+      links: [link({ id: 7, value: FAILED_VALUE, kind: 'subscription' })],
+      refreshError: 'non-2xx subscription response',
+    });
+    renderPage();
+
+    await screen.findByText(FAILED_VALUE);
+    fireEvent.click(rowButton(FAILED_VALUE, 'Refresh'));
+
+    await waitFor(() => expect(posts).toHaveLength(1));
+    await screen.findByText('non-2xx subscription response');
+    expect(screen.queryByText('Fetched 0 links')).toBeNull();
   });
 
   it('names the row in the delete confirmation and deletes by id', async () => {
