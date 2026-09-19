@@ -101,6 +101,44 @@ func TestTranslateXrayInboundHTTPAndQUIC(t *testing.T) {
 	transport = got["transport"].(map[string]any)
 	if transport["type"] != "quic" { t.Fatalf("unexpected QUIC transport: %#v", transport) }
 }
+func TestTranslateHysteriaUsers(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria",
+		"tag": "hy",
+		"port": 443,
+		"settings": map[string]any{
+			"clients": []any{
+				map[string]any{"email": "alice", "auth": "secret"},
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	users, ok := got["users"].([]map[string]any)
+	if !ok || len(users) != 1 || users[0]["name"] != "alice" || users[0]["auth_str"] != "secret" {
+		t.Fatalf("unexpected Hysteria users: %#v", got["users"])
+	}
+}
+
+func TestTranslateHysteria2Users(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria2",
+		"tag": "hy2",
+		"port": 443,
+		"settings": map[string]any{
+			"clients": []any{
+				map[string]any{"email": "alice", "password": "secret"},
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	users, ok := got["users"].([]map[string]any)
+	if !ok || len(users) != 1 || users[0]["name"] != "alice" || users[0]["password"] != "secret" {
+		t.Fatalf("unexpected Hysteria2 users: %#v", got["users"])
+	}
+}
+
 func TestTranslateXrayInboundReality(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "vless",
