@@ -1,6 +1,7 @@
 package service
 
 import (
+	"net"
 	"sort"
 	"context"
 	"encoding/json"
@@ -238,11 +239,44 @@ func (s *SingBoxService) Validate(ctx context.Context) error {
 
 
 func (s *SingBoxService) ConnectionCount(ctx context.Context) (int, error) {
-	connections, err := singbox.NewClashStatsClient().Connections(ctx)
+	api := singbox.NewConnectionAPIClient()
+	defer api.Close()
+	connections, err := api.Snapshot(ctx)
+	if err == nil {
+		return len(connections), nil
+	}
+	connections, err = singbox.NewClashStatsClient().Connections(ctx)
 	if err != nil {
 		return 0, err
 	}
 	return len(connections), nil
+}
+
+func (s *SingBoxService) OnlineClientIPs(ctx context.Context) (map[string]map[string]struct{}, error) {
+	api := singbox.NewConnectionAPIClient()
+	defer api.Close()
+	connections, err := api.Snapshot(ctx)
+	if err != nil {
+		return nil, err
+	}
+	online := make(map[string]map[string]struct{})
+	for _, connection := range connections {
+		if connection == nil || connection.User == "" || connection.Source == "" {
+			continue
+		}
+		ip := connection.Source
+		if host, _, splitErr := net.SplitHostPort(ip); splitErr == nil {
+			ip = host
+		}
+		if ip == "" {
+			continue
+		}
+		if online[connection.User] == nil {
+			online[connection.User] = make(map[string]struct{})
+		}
+		online[connection.User][ip] = struct{}{}
+	}
+	return online, nil
 }
 
 func (s *SingBoxService) PollTraffic(ctx context.Context) error {
