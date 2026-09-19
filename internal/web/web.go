@@ -352,19 +352,11 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	})
 
 	// Xray has a separate pending-restart flag used by hot-apply paths.
-	// sing-box writes its generated config on every explicit restart, so it
-	// does not need this Xray-only reconciler.
-	if useXray {
-		_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
-			s.xrayService.ApplyPendingRestart()
-		})
-	}
-
-	go func() {
-		time.Sleep(time.Second * 5)
-		// The Xray traffic job itself checks the selected core before polling.
-		// Keep the delayed warm-up to avoid hammering a just-started API.
-	}()
+	// This can remain scheduled even while sing-box is selected: ApplyPendingRestart
+	// is inert unless an Xray mutation has explicitly armed the flag.
+	_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
+		s.xrayService.ApplyPendingRestart()
+	})
 
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
