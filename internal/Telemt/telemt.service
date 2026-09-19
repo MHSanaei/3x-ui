@@ -1,0 +1,20 @@
+[Unit]
+Description=Telemt MTProto Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/x-ui
+ExecStart=/usr/local/x-ui/bin/telemt /etc/x-ui/telemt.toml
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/x-ui
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
