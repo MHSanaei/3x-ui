@@ -52,6 +52,55 @@ func TestTranslateXrayVLESSWebSocketTLS(t *testing.T) {
 	}
 }
 
+func TestTranslateXrayInboundHTTPUpgrade(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "vless",
+		"tag": "httpupgrade",
+		"port": 443,
+		"streamSettings": map[string]any{
+			"network": "httpupgrade",
+			"httpupgradeSettings": map[string]any{
+				"host": "example.com",
+				"path": "/upgrade",
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	transport, ok := got["transport"].(map[string]any)
+	if !ok || transport["type"] != "httpupgrade" || transport["host"] != "example.com" || transport["path"] != "/upgrade" {
+		t.Fatalf("unexpected transport: %#v", got["transport"])
+	}
+}
+
+func TestTranslateXrayInboundHTTPAndQUIC(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "vless",
+		"tag": "http",
+		"port": 443,
+		"streamSettings": map[string]any{
+			"network": "http",
+			"httpSettings": map[string]any{
+				"host": []any{"example.com"},
+				"path": "/",
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	transport := got["transport"].(map[string]any)
+	if transport["type"] != "http" { t.Fatalf("unexpected HTTP transport: %#v", transport) }
+
+	raw["tag"] = "quic"
+	raw["streamSettings"] = map[string]any{
+		"network": "quic",
+		"quicSettings": map[string]any{},
+	}
+	got, err = TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	transport = got["transport"].(map[string]any)
+	if transport["type"] != "quic" { t.Fatalf("unexpected QUIC transport: %#v", transport) }
+}
 func TestTranslateXrayInboundReality(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "vless",
