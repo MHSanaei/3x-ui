@@ -7,6 +7,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"path/filepath"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/config"
 )
 
 type Config struct {
@@ -23,7 +26,11 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		Schema: "https://sing-box.sagernet.org/schema.json",
-		Log: map[string]any{"level": "info"},
+		Log: map[string]any{
+			"level": "info",
+			"output": filepath.Join(config.GetBinFolderPath(), "sing-box.log"),
+			"timestamp": true,
+		},
 		Inbounds: []map[string]any{},
 		Outbounds: []map[string]any{},
 		Route: map[string]any{"final": "direct"},
