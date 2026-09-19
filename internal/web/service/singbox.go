@@ -89,7 +89,8 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 	// the panel may legitimately refer to either tag.
 	hasDirect, hasBlocked := false, false
 	for _, outbound := range cfg.Outbounds {
-		switch rawString(outbound, "tag") {
+		tag, _ := outbound["tag"].(string)
+		switch tag {
 		case "direct":
 			hasDirect = true
 		case "blocked":
