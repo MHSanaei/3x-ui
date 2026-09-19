@@ -120,7 +120,7 @@ func renderTelemtConfig(c TelemtConfig) (string, error) {
 	return fmt.Sprintf("[general]\nfast_mode = %t\nuse_middle_proxy = false\nlog_level = \"normal\"\n\n[general.modes]\nclassic = %t\nsecure = %t\ntls = %t\n\n[general.links]\nshow = \"*\"\n\n[server.api]\nenabled = true\nlisten = \"127.0.0.1:9091\"\nwhitelist = [\"127.0.0.1/32\", \"::1/128\"]\nread_only = false\n\n[network]\nipv4 = %t\nipv6 = %t\n\n[server]\nport = %d\n\n%s%s[access]\nreplay_check_len = 65536\nignore_time_skew = false\n\n[access.users]\nxui = \"%s\"\n\n[[upstreams]]\ntype = \"direct\"\nweight = 1\nenabled = true\n", c.FastMode, c.Classic, c.Secure, c.TLS, c.IPv4, c.IPv6, c.Port, listeners, censorship, strings.ToLower(c.Secret)), nil
 }
 
-func ensureTelemtConfig() error {
+func ensureTelemtSNI() error {\n\tb, err := os.ReadFile(telemtConfigPath)\n\tif err != nil {\n\t\treturn err\n\t}\n\n\tvar raw struct {\n\t\tGeneral struct {\n\t\t\tModes struct {\n\t\t\t\tTLS bool `toml:"tls"`\n\t\t\t} `toml:"modes"`\n\t\t} `toml:"general"`\n\t\tCensorship struct {\n\t\t\tTLSDomain string `toml:"tls_domain"`\n\t\t} `toml:"censorship"`\n\t}\n\tif err := toml.Unmarshal(b, &raw); err != nil {\n\t\treturn fmt.Errorf("telemt: parse config: %w", err)\n\t}\n\tif !raw.General.Modes.TLS || strings.TrimSpace(raw.Censorship.TLSDomain) != "" {\n\t\treturn nil\n\t}\n\n\ttext := string(b)\n\tconst section = "[censorship]"\n\tif idx := strings.Index(text, section); idx >= 0 {\n\t\tsectionStart := idx + len(section)\n\t\tnext := strings.Index(text[sectionStart:], "\\n[")\n\t\tinsertAt := len(text)\n\t\tif next >= 0 {\n\t\t\tinsertAt = sectionStart + next + 1\n\t\t}\n\t\tentry := fmt.Sprintf("\\ntls_domain = \\"%s\\"\\n", defaultTelemtSNI)\n\t\ttext = text[:insertAt] + entry + text[insertAt:]\n\t} else {\n\t\ttext = strings.TrimRight(text, "\\n") + fmt.Sprintf("\\n\\n[censorship]\\ntls_domain = \\"%s\\"\\nmask = true\\ntls_emulation = true\\ntls_front_dir = \\"tlsfront\\"\\n", defaultTelemtSNI)\n\t}\n\tif err := os.WriteFile(telemtConfigPath, []byte(text), 0600); err != nil {\n\t\treturn fmt.Errorf("telemt: apply default SNI: %w", err)\n\t}\n\treturn nil\n}\n\nfunc ensureTelemtConfig() error {
 	if err := os.MkdirAll(filepath.Dir(telemtConfigPath), 0700); err != nil {
 		return fmt.Errorf("telemt: create config directory: %w", err)
 	}
@@ -135,7 +135,7 @@ func ensureTelemtConfig() error {
 	}
 	c := defaultTelemtConfig()
 	c.Secret = hex.EncodeToString(secretBytes)
-	c.SNI = "petrovich.ru"
+	c.SNI = defaultTelemtSNI
 	data, err := renderTelemtConfig(c)
 	if err != nil {
 		return err
@@ -249,7 +249,7 @@ func (TelemtService) GetConfig() (TelemtConfig, error) {
 	c.TLS = raw.General.Modes.TLS
 	c.SNI = raw.Censorship.TLSDomain
 	c.Secret = strings.TrimSpace(raw.Access.Users["xui"])
-	if len(raw.Upstreams) > 0 && raw.Upstreams[0].Type != "" { c.UpstreamType = raw.Upstreams[0].Type } else { c.UpstreamType = "direct" }
+	// Upstream selection is not exposed by the panel; always report the supported direct mode.\n\tc.UpstreamType = "direct"
 	c.Enabled = systemctl("is-enabled", "--quiet", telemtServiceName) == nil
 
 	// Prefer Telemt live configuration while the service is running. The TOML
