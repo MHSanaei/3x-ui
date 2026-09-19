@@ -254,22 +254,21 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 title="Ядро прокси"
                 description="Выберите движок, которым панель будет управлять. Xray остаётся ядром по умолчанию; sing-box подключается через отдельный runtime."
               >
-                <Select
-                  style={{ width: '100%' }}
-                  value={allSetting.coreType || 'xray'}
-                  options={[
-                    { value: 'xray', label: 'Xray' },
-                    { value: 'sing-box', label: 'sing-box' },
-                  ]}
-                  onChange={(value) =>
-                    updateSetting({ coreType: value as 'xray' | 'sing-box' })
-                  }
-                />
-              </SettingListItem>
-
-                {allSetting.coreType === 'sing-box' && (
-                  <div style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <Select
+                    style={{ width: '100%' }}
+                    value={allSetting.coreType || 'xray'}
+                    options={[
+                      { value: 'xray', label: 'Xray' },
+                      { value: 'sing-box', label: 'sing-box' },
+                    ]}
+                    onChange={(value) =>
+                      updateSetting({ coreType: value as 'xray' | 'sing-box' })
+                    }
+                  />
+                  {allSetting.coreType === 'sing-box' && (
                     <Button
+                      block
                       size="small"
                       loading={singBoxInstalling}
                       disabled={singBoxInstalled === true}
@@ -277,8 +276,9 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                     >
                       {singBoxInstalled ? 'sing-box установлен' : 'Установить sing-box'}
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
+              </SettingListItem>
               <SettingListItem
                 paddings="small"
                 title={t('pages.settings.panelUrlPath')}
