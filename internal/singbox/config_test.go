@@ -1,6 +1,7 @@
 package singbox
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -168,5 +169,20 @@ func TestV2RayStatsCodecRoundTrip(t *testing.T) {
 	}
 	if len(decoded.Stats) != 1 || decoded.Stats[0].Name != "user>>>alice>>>traffic>>>uplink" || decoded.Stats[0].Value != 123 {
 		t.Fatalf("unexpected decoded response: %#v", decoded.Stats)
+	}
+}
+
+
+func TestClashConnectionDecode(t *testing.T) {
+	raw := []byte(`{"connections":[{"id":"1","upload":10,"download":20,"chains":["direct"],"metadata":{"network":"tcp","type":"vless/vless-in","sourceIP":"203.0.113.10","sourcePort":"1234","destinationIP":"1.1.1.1","destinationPort":"443","host":"example.com"}}]}`)
+	var payload clashConnectionsResponse
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Connections) != 1 {
+		t.Fatalf("expected one connection, got %d", len(payload.Connections))
+	}
+	if payload.Connections[0].Metadata.SourceIP != "203.0.113.10" {
+		t.Fatalf("unexpected source IP: %q", payload.Connections[0].Metadata.SourceIP)
 	}
 }
