@@ -322,13 +322,11 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 		logger.Warning("get selected core failed, falling back to Xray:", coreErr)
 		coreType = service.CoreTypeXray
 	}
-	if coreType == service.CoreTypeSingBox {
-		if restartXray {
-			if err := (&service.SingBoxService{}).Restart(s.ctx); err != nil {
-				logger.Warning("start sing-box failed:", err)
-			}
+	useXray := coreType != service.CoreTypeSingBox
+	if !useXray && restartXray {
+		if err := (&service.SingBoxService{}).Restart(s.ctx); err != nil {
+			logger.Warning("start sing-box failed:", err)
 		}
-		return
 	}
 	if restartXray {
 		err := s.xrayService.RestartXray(true)
@@ -336,18 +334,20 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 			logger.Warning("start xray failed:", err)
 		}
 	}
-	// Check whether xray is running every second
-	_, _ = s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
+	if useXray {
+		// Check whether xray is running every second.
+		_, _ = s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
 
-	// Check if xray needs to be restarted every 30 seconds
-	_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
-		s.xrayService.ApplyPendingRestart()
-	})
+		// Check if xray needs to be restarted every 30 seconds.
+		_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
+			s.xrayService.ApplyPendingRestart()
+		})
 
-	go func() {
-		time.Sleep(time.Second * 5)
-		_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
-	}()
+		go func() {
+			time.Sleep(time.Second * 5)
+			_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
+		}()
+	}
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
 	mtJob := job.NewMtprotoJob()
