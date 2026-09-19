@@ -245,65 +245,6 @@ func (s *SingBoxService) ConnectionCount(ctx context.Context) (int, error) {
 	return len(connections), nil
 }
 
-func (s *SingBoxService) OnlineClientEmails(ctx context.Context) ([]string, error) {
-	connections, err := singbox.NewClashStatsClient().Connections(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Clash API exposes source IP and inbound tag, but not the authenticated
-	// sing-box username/email. Attribute an IP to a panel client only when the
-	// panel's existing IP history maps that IP to exactly one email. This avoids
-	// inventing an identity when several users share the same address.
-	ips, err := singBoxInboundService.GetAllInboundClientIps()
-	if err != nil {
-		return nil, err
-	}
-
-	type ipEntry struct {
-		IP string `json:"ip"`
-	}
-	owners := make(map[string]map[string]struct{})
-	for _, row := range ips {
-		if row.ClientEmail == "" || row.Ips == "" {
-			continue
-		}
-		var entries []ipEntry
-		if err := json.Unmarshal([]byte(row.Ips), &entries); err != nil {
-			continue
-		}
-		for _, entry := range entries {
-			if entry.IP == "" {
-				continue
-			}
-			if owners[entry.IP] == nil {
-				owners[entry.IP] = make(map[string]struct{})
-			}
-			owners[entry.IP][row.ClientEmail] = struct{}{}
-		}
-	}
-
-	online := make(map[string]struct{})
-	for _, connection := range connections {
-		ip := connection.Metadata.SourceIP
-		if ip == "" {
-			continue
-		}
-		if emails := owners[ip]; len(emails) == 1 {
-			for email := range emails {
-				online[email] = struct{}{}
-			}
-		}
-	}
-
-	result := make([]string, 0, len(online))
-	for email := range online {
-		result = append(result, email)
-	}
-	sort.Strings(result)
-	return result, nil
-}
-
 func (s *SingBoxService) PollTraffic(ctx context.Context) error {
 	inbounds, err := singBoxInboundService.GetAllInbounds()
 	if err != nil {
@@ -356,19 +297,11 @@ func (s *SingBoxService) PollTraffic(ctx context.Context) error {
 		})
 	}
 
-	if len(inboundTraffic) > 0 || len(clientTraffic) > 0 {
-		if _, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic); err != nil {
-			return err
-		}
+	if len(inboundTraffic) == 0 && len(clientTraffic) == 0 {
+		return nil
 	}
-
-	// Refresh last_online independently of byte deltas so an idle but open
-	// sing-box connection remains online in the panel.
-	emails, err := s.OnlineClientEmails(ctx)
-	if err != nil {
-		return err
-	}
-	return singBoxInboundService.BumpClientsLastOnline(emails)
+	_, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic)
+	return err
 }
 
 func (s *SingBoxService) InstallLatest(ctx context.Context) (string, error) {
