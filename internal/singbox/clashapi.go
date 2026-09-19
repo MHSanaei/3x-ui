@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"sort"
 )
 
 const clashAPIAddress = "http://127.0.0.1:10090"
@@ -29,6 +30,7 @@ type ClashMetadata struct {
 	Host string `json:"host"`
 	DNSMode string `json:"dnsMode"`
 	ProcessPath string `json:"processPath"`
+	User string `json:"user"`
 }
 
 type clashConnectionsResponse struct {
@@ -57,6 +59,25 @@ func (c *ClashStatsClient) Connections(ctx context.Context) ([]ClashConnection, 
 	var payload clashConnectionsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil { return nil, err }
 	return payload.Connections, nil
+}
+
+func (c *ClashStatsClient) UserEmails(ctx context.Context) ([]string, error) {
+	connections, err := c.Connections(ctx)
+	if err != nil {
+		return nil, err
+	}
+	users := make(map[string]struct{})
+	for _, connection := range connections {
+		if connection.Metadata.User != "" {
+			users[connection.Metadata.User] = struct{}{}
+		}
+	}
+	result := make([]string, 0, len(users))
+	for user := range users {
+		result = append(result, user)
+	}
+	sort.Strings(result)
+	return result, nil
 }
 
 func (c *ClashStatsClient) OnlineIPSet(ctx context.Context) (map[string]map[string]struct{}, int, error) {
