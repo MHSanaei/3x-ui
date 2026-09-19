@@ -67,7 +67,11 @@ func InstallLatest(ctx context.Context) (string, error) {
 }
 
 func selectAssets(rel releaseInfo) (struct{ Name, URL string }, map[string]string, error) {
-	target := runtime.GOOS + "-" + runtime.GOARCH
+	arch := runtime.GOARCH
+	if arch == "arm" {
+		arch = "armv7"
+	}
+	target := runtime.GOOS + "-" + arch
 	var archive struct{ Name, URL string }
 	sums := map[string]string{}
 	for _, a := range rel.Assets {
@@ -99,7 +103,7 @@ func selectAssets(rel releaseInfo) (struct{ Name, URL string }, map[string]strin
 	// intentionally not required: releases without one remain installable.
 	for _, a := range rel.Assets {
 		if strings.Contains(strings.ToLower(a.Name), "sha256") && strings.Contains(strings.ToLower(a.Name), "sum") {
-			if body, err := fetchText(context.Background(), a.URL); err == nil {
+			if body, err := fetchText(ctx, a.URL); err == nil {
 				for _, line := range strings.Split(body, "
 ") {
 					fields := strings.Fields(line)
