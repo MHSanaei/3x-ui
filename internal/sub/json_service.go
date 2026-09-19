@@ -825,7 +825,17 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
-			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+			if version := hysteriaVersion(inbound.Settings, newStream); version == 2 {
+				if native := s.genNativeHysteria2(inbound, newStream, client); native != nil {
+					newOutbounds = append(newOutbounds, native)
+				}
+			} else {
+				newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+			}
+		case "tuic":
+			if native := s.genNativeTUIC(inbound, newStream, client); native != nil {
+				newOutbounds = append(newOutbounds, native)
+			}
 		case "wireguard":
 			wgOutbound := s.genWireguard(inbound, client)
 			if wgOutbound == nil {
@@ -1108,6 +1118,77 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
+}
+
+func hysteriaVersion(settingsJSON string, stream map[string]any) int {
+	var settings map[string]any
+	_ = json.Unmarshal([]byte(settingsJSON), &settings)
+	if version, ok := settings["version"].(float64); ok && int(version) == 2 {
+		return 2
+	}
+	if version, ok := stream["version"].(float64); ok && int(version) == 2 {
+		return 2
+	}
+	return 1
+}
+
+func (s *SubJsonService) genNativeHysteria2(inbound *model.Inbound, stream map[string]any, client model.Client) json_util.RawMessage {
+	var settings map[string]any
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+	var hy map[string]any
+	if v, ok := stream["hysteriaSettings"].(map[string]any); ok {
+		hy = v
+	}
+	raw := map[string]any{
+		"protocol": "hysteria2",
+		"tag": "proxy",
+		"settings": map[string]any{
+			"servers": []any{map[string]any{
+				"address": inbound.Listen,
+				"port": inbound.Port,
+				"password": client.Auth,
+			}},
+		},
+		"streamSettings": stream,
+	}
+	if rawSettings, ok := raw["settings"].(map[string]any); ok {
+		for _, key := range []string{"up_mbps", "down_mbps"} {
+			if v, exists := hy[key]; exists { rawSettings["servers"].([]any)[0].(map[string]any)[key] = v }
+		}
+		if obfs, ok := hy["obfs"].(map[string]any); ok { rawSettings["obfs"] = obfs }
+		if v, ok := hy["masquerade"]; ok { rawSettings["masquerade"] = v }
+		if v, ok := hy["ignoreClientBandwidth"]; ok { rawSettings["ignore_client_bandwidth"] = v }
+		if v, ok := hy["ignore_client_bandwidth"]; ok { rawSettings["ignore_client_bandwidth"] = v }
+		if v, ok := hy["bbr_profile"]; ok { rawSettings["bbr_profile"] = v }
+		if v, ok := hy["disable_chrome_parrot"]; ok { rawSettings["disable_chrome_parrot"] = v }
+	}
+	translated, err := singbox.TranslateXrayOutbound(raw)
+	if err != nil { return nil }
+	translated["tag"] = "proxy"
+	b, _ := json.MarshalIndent(translated, "", "  ")
+	return b
+}
+
+func (s *SubJsonService) genNativeTUIC(inbound *model.Inbound, stream map[string]any, client model.Client) json_util.RawMessage {
+	raw := map[string]any{
+		"protocol": "tuic",
+		"tag": "proxy",
+		"settings": map[string]any{
+			"servers": []any{map[string]any{
+				"address": inbound.Listen,
+				"port": inbound.Port,
+				"id": client.ID,
+				"uuid": client.ID,
+				"password": client.Password,
+			}},
+		},
+		"streamSettings": stream,
+	}
+	translated, err := singbox.TranslateXrayOutbound(raw)
+	if err != nil { return nil }
+	translated["tag"] = "proxy"
+	b, _ := json.MarshalIndent(translated, "", "  ")
+	return b
 }
 
 func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any, client model.Client, mux string) json_util.RawMessage {
