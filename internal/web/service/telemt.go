@@ -292,7 +292,7 @@ func (TelemtService) GetConfig() (TelemtConfig, error) {
 	c.Classic = raw.General.Modes.Classic
 	c.Secure = raw.General.Modes.Secure
 	c.TLS = raw.General.Modes.TLS
-	c.SNI = raw.Censorship.TLSDomain
+	c.SNI = strings.TrimSpace(raw.Censorship.TLSDomain)\n\tif c.SNI == "" && c.TLS {\n\t\tc.SNI = defaultTelemtSNI\n\t}
 	c.Secret = strings.TrimSpace(raw.Access.Users["xui"])
 	// Upstream selection is not exposed by the panel; always report the supported direct mode.\n\tc.UpstreamType = "direct"
 	c.Enabled = systemctl("is-enabled", "--quiet", telemtServiceName) == nil
