@@ -352,21 +352,15 @@ func TestTranslateXrayDNSModernServers(t *testing.T) {
 	}
 }
 
-func TestTranslateXrayRoutingUsesModernDomainStrategy(t *testing.T) {
+func TestTranslateXrayRoutingRejectsLegacyDomainStrategy(t *testing.T) {
 	raw := map[string]any{
 		"domainStrategy": "IPIfNonMatch",
 		"rules": []any{
-			map[string]any{"type":"field","domain":[]any{"example.com"},"outboundTag":"proxy"},
+			map[string]any{"type": "field", "domain": []any{"example.com"}, "outboundTag": "proxy"},
 		},
 	}
-	got, err := TranslateXrayRouting(raw)
-	if err != nil { t.Fatal(err) }
-	if got["default_domain_strategy"] != "prefer_ipv4" {
-		t.Fatalf("unexpected domain strategy: %#v", got["default_domain_strategy"])
-	}
-	rules, ok := got["rules"].([]map[string]any)
-	if !ok || len(rules) != 1 || rules[0]["outbound"] != "proxy" {
-		t.Fatalf("unexpected rules: %#v", got["rules"])
+	if _, err := TranslateXrayRouting(raw); err == nil {
+		t.Fatal("expected legacy Xray domainStrategy to be rejected")
 	}
 }
 
