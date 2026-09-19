@@ -104,8 +104,7 @@ func selectAssets(rel releaseInfo) (struct{ Name, URL string }, map[string]strin
 	for _, a := range rel.Assets {
 		if strings.Contains(strings.ToLower(a.Name), "sha256") && strings.Contains(strings.ToLower(a.Name), "sum") {
 			if body, err := fetchText(ctx, a.URL); err == nil {
-				for _, line := range strings.Split(body, "
-") {
+				for _, line := range strings.Split(body, "\n") {
 					fields := strings.Fields(line)
 					if len(fields) >= 2 { sums[strings.TrimPrefix(fields[1], "*")] = fields[0] }
 				}
