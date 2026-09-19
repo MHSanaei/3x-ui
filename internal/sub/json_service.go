@@ -1141,7 +1141,7 @@ func nativeTLSAndTransport(stream map[string]any) map[string]any {
 			reality := map[string]any{"enabled": true}
 			if v, _ := realitySettings["publicKey"].(string); v != "" { reality["public_key"] = v }
 			if v, _ := realitySettings["shortId"].(string); v != "" { reality["short_id"] = v }
-			if reality["public_key"] != nil { tls["reality"] = reality }
+			if len(reality) > 1 { tls["reality"] = reality }
 		}
 		out["tls"] = tls
 	}
@@ -1183,45 +1183,28 @@ func nativeTLSAndTransport(stream map[string]any) map[string]any {
 	return out
 }
 
-func nativeVMessOutbound(inbound *model.Inbound, stream map[string]any, client model.Client) json_util.RawMessage {
-	security := normalizeVmessSecurity(client.Security)
-	out := map[string]any{"type":"vmess","tag":"proxy","server":inbound.Listen,"server_port":inbound.Port,"uuid":client.ID,"security":security}
-	for k,v := range nativeTLSAndTransport(stream) { out[k]=v }
-	b,_:=json.MarshalIndent(out,"","  "); return b
-}
-
-func nativeVLESSOutbound(inbound *model.Inbound, stream map[string]any, client model.Client, subReq *SubService) json_util.RawMessage {
-	out := map[string]any{"type":"vless","tag":"proxy","server":inbound.Listen,"server_port":inbound.Port,"uuid":client.ID}
-	if client.Flow != "" && !inbound.DisableFlow { out["flow"] = client.Flow }
-	for k,v := range nativeTLSAndTransport(stream) { out[k]=v }
-	if settings := subReq.linkSettings(inbound); settings != nil {
-		if encryption, _ := settings["encryption"].(string); encryption != "" && encryption != "none" {
-			// sing-box VLESS has no Xray-style encryption field; TLS/Reality
-			// carries the transport security instead.
-		}
+func nativeWireGuardEndpoint(inbound *model.Inbound, client model.Client, settings map[string]any) map[string]any {
+	ep := map[string]any{
+		"type": "wireguard",
+		"tag": "wg-endpoint",
+		"address": []any{},
+		"private_key": "",
+		"peers": []any{},
 	}
-	b,_:=json.MarshalIndent(out,"","  "); return b
-}
-
-func nativeServerOutbound(inbound *model.Inbound, stream map[string]any, client model.Client, subReq *SubService) json_util.RawMessage {
-	out := map[string]any{"tag":"proxy","server":inbound.Listen,"server_port":inbound.Port}
-	settings := subReq.linkSettings(inbound)
-	switch inbound.Protocol {
-	case model.Trojan:
-		out["type"]="trojan"; out["password"]=client.Password
-	case model.Shadowsocks:
-		out["type"]="shadowsocks"
-		method,_:=settings["method"].(string)
-		password:=client.Password
-		if strings.HasPrefix(method,"2022") {
-			if master,_:=settings["password"].(string); master!="" { password=fmt.Sprintf("%s:%s",master,password) }
-		}
-		out["method"]=method; out["password"]=password
-	default:
-		return nil
+	if v, _ := settings["address"].([]any); len(v) > 0 { ep["address"] = v }
+	if v, _ := settings["privateKey"].(string); v != "" { ep["private_key"] = v }
+	peer := map[string]any{
+		"address": inbound.Listen,
+		"port": inbound.Port,
+		"public_key": client.PublicKey,
+		"allowed_ips": []any{"0.0.0.0/0", "::/0"},
 	}
-	for k,v := range nativeTLSAndTransport(stream) { out[k]=v }
-	b,_:=json.MarshalIndent(out,"","  "); return b
+	if v, _ := settings["mtu"].(float64); v > 0 { ep["mtu"] = int(v) }
+	if v, _ := settings["reserved"].([]any); len(v) == 3 { peer["reserved"] = v }
+	if v, _ := settings["preSharedKey"].(string); v != "" { peer["pre_shared_key"] = v }
+	if v, _ := settings["persistentKeepalive"].(float64); v > 0 { peer["persistent_keepalive_interval"] = int(v) }
+	ep["peers"] = []any{peer}
+	return ep
 }
 
 func hysteriaVersion(settingsJSON string, stream map[string]any) int {
