@@ -385,6 +385,7 @@ func translateStream(out map[string]any, protocol string, stream map[string]any)
 		if security, ok := settings["security"].(string); ok && security != "" {
 			return fmt.Errorf("inbound %q uses Xray QUIC encryption %q; sing-box QUIC transport has no additional encryption", rawString(out, "tag"), security)
 		}
+		translateQUICSettings(transport, settings)
 		out["transport"] = transport
 	case "splithttp", "xhttp":
 		return fmt.Errorf("inbound %q uses Xray XHTTP/SplitHTTP; configure a sing-box-native HTTP transport before switching cores", rawString(out, "tag"))
@@ -393,6 +394,22 @@ func translateStream(out map[string]any, protocol string, stream map[string]any)
 	}
 	_ = protocol
 	return nil
+}
+
+func translateQUICSettings(dst, settings map[string]any) {
+	// sing-box 1.14 shares these QUIC fields across Hysteria/Hysteria2/TUIC.
+	// Accept both native sing-box names and the camelCase spelling commonly
+	// used by Xray-derived templates.
+	if value := rawInt(settings, "initial_packet_size"); value > 0 {
+		dst["initial_packet_size"] = value
+	} else if value := rawInt(settings, "initialPacketSize"); value > 0 {
+		dst["initial_packet_size"] = value
+	}
+	if value, ok := settings["disable_path_mtu_discovery"].(bool); ok {
+		dst["disable_path_mtu_discovery"] = value
+	} else if value, ok := settings["disablePathMTUDiscovery"].(bool); ok {
+		dst["disable_path_mtu_discovery"] = value
+	}
 }
 
 func translateXrayCertificate(value any) (string, string) {
