@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
