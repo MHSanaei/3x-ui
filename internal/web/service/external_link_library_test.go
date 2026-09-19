@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
@@ -373,6 +374,81 @@ func TestLibrarySaveKeepsOrderAndIdentityOnPartialEdit(t *testing.T) {
 	}
 	if got.UserAgent != "Happ/2.5.1" || got.CacheTTL != 600 {
 		t.Fatalf("userAgent/cacheTtl = %q/%d, want the row's fetch identity kept", got.UserAgent, got.CacheTTL)
+	}
+}
+
+// TestLibrarySaveAppliesTheFetchIdentityItIsGiven is the other half of the
+// partial edit: the columns a request does carry must land, or editing a
+// subscription's User-Agent, headers or cache TTL from the library page would
+// silently keep the old ones.
+func TestLibrarySaveAppliesTheFetchIdentityItIsGiven(t *testing.T) {
+	setupConflictDB(t)
+	svc := &ClientService{}
+
+	row := &model.ExternalLink{
+		Kind:      model.ExternalLinkKindSubscription,
+		Value:     "https://identity.example/sub",
+		Remark:    "before",
+		UserAgent: "Happ/2.5.1",
+		Headers:   map[string]string{"X-Device-Model": "Pixel 9"},
+		CacheTTL:  600,
+	}
+	if err := svc.ExternalLinkLibrarySave(row); err != nil {
+		t.Fatalf("create subscription: %v", err)
+	}
+	edit := &model.ExternalLink{
+		Id:         row.Id,
+		Kind:       model.ExternalLinkKindSubscription,
+		Value:      row.Value,
+		Remark:     "after",
+		NamePrefix: "[zjh] ",
+		Enable:     boolPtr(true),
+		ExpiryTime: 1893456000000,
+		UserAgent:  "Happ/2.6.0",
+		Headers:    map[string]string{"X-Device-Model": "iPhone 17"},
+		CacheTTL:   1200,
+	}
+	if err := svc.ExternalLinkLibrarySave(edit); err != nil {
+		t.Fatalf("edit subscription: %v", err)
+	}
+
+	got, err := svc.ExternalLinkLibraryGet(row.Id)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.UserAgent != "Happ/2.6.0" || got.Headers["X-Device-Model"] != "iPhone 17" || got.CacheTTL != 1200 {
+		t.Fatalf("fetch identity = %q %v %d, want the edit's values", got.UserAgent, got.Headers, got.CacheTTL)
+	}
+	if got.Remark != "after" || got.NamePrefix != "[zjh] " || got.ExpiryTime != 1893456000000 {
+		t.Fatalf("edited row = %+v, want the request's remark, prefix and expiry", got)
+	}
+	if got.Enable == nil || !*got.Enable {
+		t.Fatalf("enable = %v, want the request's true", got.Enable)
+	}
+}
+
+// TestLibrarySaveRefusesToMergeTwoRowsIdentity: renaming one row onto another
+// row's (kind, value) has to be refused with a message the operator can act on,
+// not by letting the unique index fail the write.
+func TestLibrarySaveRefusesToMergeTwoRowsIdentity(t *testing.T) {
+	setupConflictDB(t)
+	svc := &ClientService{}
+
+	first := seedLibraryLink(t, model.ExternalLinkKindLink, "trojan://identity-taken", "first")
+	second := seedLibraryLink(t, model.ExternalLinkKindLink, "trojan://identity-mine", "second")
+
+	err := svc.ExternalLinkLibrarySave(&model.ExternalLink{
+		Id: second.Id, Kind: model.ExternalLinkKindLink, Value: first.Value, Remark: "renamed",
+	})
+	if err == nil || strings.TrimSpace(err.Error()) != "this link is already in the library: "+first.Value {
+		t.Fatalf("err = %v, want the duplicate-identity refusal", err)
+	}
+	got, err := svc.ExternalLinkLibraryGet(second.Id)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.Value != "trojan://identity-mine" || got.Remark != "second" {
+		t.Fatalf("refused edit changed the row: %+v", got)
 	}
 }
 

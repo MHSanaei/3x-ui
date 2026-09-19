@@ -147,7 +147,12 @@ func (s *ClientService) ExternalLinkLibrarySave(link *model.ExternalLink) error 
 			fields["user_agent"] = link.UserAgent
 		}
 		if len(link.Headers) > 0 {
-			fields["headers"] = link.Headers
+			// A map update bypasses the field's serializer: store its JSON text.
+			encoded, err := json.Marshal(link.Headers)
+			if err != nil {
+				return err
+			}
+			fields["headers"] = string(encoded)
 		}
 		if link.CacheTTL > 0 {
 			fields["cache_ttl"] = link.CacheTTL
