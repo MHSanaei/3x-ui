@@ -281,8 +281,12 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 
 	var wireguardEndpoint map[string]any
 	var wireguardAddresses []string
+	wireguardOnly := len(externalLinks) == 0
 	for _, inbound := range inbounds {
 		if inbound.Protocol != model.WireGuard {
+			if len(subReq.matchingClients(inbound, subId)) > 0 {
+				wireguardOnly = false
+			}
 			continue
 		}
 		clients := subReq.matchingClients(inbound, subId)
@@ -320,7 +324,7 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 		}
 		if wireguardEndpoint != nil { break }
 	}
-	if wireguardEndpoint != nil {
+	if wireguardEndpoint != nil && wireguardOnly {
 		cfg := map[string]any{
 			"$schema":"https://sing-box.sagernet.org/schema.json",
 			"endpoints":[]any{wireguardEndpoint},
