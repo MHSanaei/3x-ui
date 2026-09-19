@@ -16,6 +16,7 @@ type Config struct {
 	Outbounds []map[string]any `json:"outbounds,omitempty"`
 	Route map[string]any `json:"route,omitempty"`
 	Experimental map[string]any `json:"experimental,omitempty"`
+	Services []map[string]any `json:"services,omitempty"`
 }
 
 func NewConfig() *Config {
@@ -37,6 +38,14 @@ func NewConfig() *Config {
 					"outbounds": []string{},
 					"users": []string{},
 				},
+			},
+		},
+		Services: []map[string]any{
+			{
+				"type": "api",
+				"tag": "panel-api",
+				"listen": "127.0.0.1",
+				"listen_port": 10091,
 			},
 		},
 	}
