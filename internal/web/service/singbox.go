@@ -77,6 +77,18 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 		)
 	}
 
+	v2rayAPI, _ := cfg.Experimental["v2ray_api"].(map[string]any)
+	stats, _ := v2rayAPI["stats"].(map[string]any)
+	var statInbounds []string
+	var statUsers []string
+	for _, outbound := range cfg.Outbounds {
+		if tag, ok := outbound["tag"].(string); ok && tag != "" {
+			if list, ok := stats["outbounds"].([]string); ok {
+				stats["outbounds"] = append(list, tag)
+			}
+		}
+	}
+
 	var unsupported []string
 	for _, inbound := range inbounds {
 		if inbound == nil || !inbound.Enable || inbound.NodeID != nil {
@@ -145,7 +157,19 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 			continue
 		}
 		cfg.Inbounds = append(cfg.Inbounds, translated)
+		if tag, ok := translated["tag"].(string); ok && tag != "" {
+			statInbounds = append(statInbounds, tag)
+		}
+		if users, ok := translated["users"].([]map[string]any); ok {
+			for _, user := range users {
+				if name, ok := user["name"].(string); ok && name != "" {
+					statUsers = append(statUsers, name)
+				}
+			}
+		}
 	}
+	stats["inbounds"] = statInbounds
+	stats["users"] = statUsers
 
 	if len(unsupported) > 0 {
 		return nil, fmt.Errorf("sing-box cannot represent enabled inbounds: %s", strings.Join(unsupported, "; "))
