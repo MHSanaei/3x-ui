@@ -44,6 +44,18 @@ func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 	if template, err := singBoxSettingService.GetXrayConfigTemplate(); err == nil {
 		var xrayCfg map[string]any
 		if json.Unmarshal([]byte(template), &xrayCfg) == nil {
+			if rawDNS := rawObject(xrayCfg, "dns"); len(rawDNS) > 0 {
+				if dns, err := singbox.TranslateXrayDNS(rawDNS); err == nil && len(dns) > 0 {
+					cfg.DNS = dns
+				}
+			}
+			if rawRouting := rawObject(xrayCfg, "routing"); len(rawRouting) > 0 {
+				if route, err := singbox.TranslateXrayRouting(rawRouting); err != nil {
+					return nil, err
+				} else if len(route) > 0 {
+					cfg.Route = route
+				}
+			}
 			if rawOutbounds, ok := xrayCfg["outbounds"].([]any); ok {
 				for _, raw := range rawOutbounds {
 					ob, ok := raw.(map[string]any)
