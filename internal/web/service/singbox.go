@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -11,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
