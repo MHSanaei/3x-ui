@@ -155,6 +155,26 @@ func TestTranslateTUICProtocolSettings(t *testing.T) {
 	}
 }
 
+func TestTranslateQUICSettings(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria2", "tag": "hy2", "port": 443,
+		"settings": map[string]any{},
+		"streamSettings": map[string]any{
+			"network": "quic",
+			"quicSettings": map[string]any{
+				"initialPacketSize": float64(1200),
+				"disablePathMTUDiscovery": true,
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	transport, ok := got["transport"].(map[string]any)
+	if !ok || transport["type"] != "quic" || transport["initial_packet_size"] != 1200 || transport["disable_path_mtu_discovery"] != true {
+		t.Fatalf("unexpected QUIC settings: %#v", got["transport"])
+	}
+}
+
 func TestTranslateHysteriaTLSCertificateFiles(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "hysteria2", "tag": "hy2", "port": 443,
