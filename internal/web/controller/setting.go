@@ -53,6 +53,7 @@ type SettingController struct {
 	panelService    panel.PanelService
 	apiTokenService panel.ApiTokenService
 	xrayService     service.XrayService
+	singBoxService  service.SingBoxService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -130,6 +131,7 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	allSetting := &form.AllSetting
 	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
 	oldPanelOutbound, _ := a.settingService.GetPanelOutbound()
+	oldCoreType, _ := a.settingService.GetCoreType()
 	oldTgEnable, _ := a.settingService.GetTgbotEnabled()
 	oldTgToken, _ := a.settingService.GetTgBotToken()
 	oldTgChatId, _ := a.settingService.GetTgBotChatId()
@@ -159,6 +161,17 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	if err == nil && twoFactorErr == nil && !oldTwoFactor && allSetting.TwoFactorEnable {
 		if bumpErr := a.userService.BumpLoginEpoch(); bumpErr != nil {
 			err = bumpErr
+		}
+	}
+	if err == nil && oldCoreType != allSetting.CoreType {
+		if allSetting.CoreType == service.CoreTypeSingBox {
+			if restartErr := a.singBoxService.Restart(c.Request.Context()); restartErr != nil {
+				err = restartErr
+			}
+		} else {
+			if restartErr := a.xrayService.RestartXray(true); restartErr != nil {
+				err = restartErr
+			}
 		}
 	}
 	if err == nil && form.PanelOutbound != oldPanelOutbound {
