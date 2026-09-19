@@ -145,3 +145,28 @@ func TestTranslateXrayRoutingAndDNS(t *testing.T) {
 		t.Fatalf("unexpected DNS translation: %#v", dns)
 	}
 }
+
+
+func TestV2RayStatsCodecRoundTrip(t *testing.T) {
+	codec := v2rayProtoCodec{}
+	req := &v2rayQueryRequest{
+		Patterns: []string{"user>>>alice>>>traffic>>>uplink", "user>>>alice>>>traffic>>>downlink"},
+		Reset:    true,
+	}
+	raw, err := codec.Marshal(req)
+	if err != nil { t.Fatal(err) }
+	if len(raw) == 0 || raw[0] != 0x12 {
+		t.Fatalf("unexpected protobuf request: %x", raw)
+	}
+
+	statPayload := appendStringField(nil, 1, "user>>>alice>>>traffic>>>uplink")
+	statPayload = appendVarintField(statPayload, 2, uint64(123))
+	response := appendStringField(nil, 1, string(statPayload))
+	var decoded v2rayQueryResponse
+	if err := codec.Unmarshal(response, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if len(decoded.Stats) != 1 || decoded.Stats[0].Name != "user>>>alice>>>traffic>>>uplink" || decoded.Stats[0].Value != 123 {
+		t.Fatalf("unexpected decoded response: %#v", decoded.Stats)
+	}
+}
