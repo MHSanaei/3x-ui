@@ -167,6 +167,13 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		}
 	}
 	if err == nil && oldCoreType != allSetting.CoreType {
+		// Never start the new engine while the previous one still owns its
+		// listening sockets. Switch is an explicit stop -> start transaction.
+		if oldCoreType == service.CoreTypeSingBox {
+			_ = a.singBoxService.Stop(c.Request.Context())
+		} else {
+			_ = a.xrayService.StopXray()
+		}
 		if allSetting.CoreType == service.CoreTypeSingBox {
 			if restartErr := a.singBoxService.Restart(c.Request.Context()); restartErr != nil {
 				err = restartErr
