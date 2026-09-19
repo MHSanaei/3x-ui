@@ -1,0 +1,13 @@
+[Unit]
+Description=Check and update Telemt
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/x-ui/telemt-update.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/usr/local/x-ui/bin /etc/x-ui /tmp
