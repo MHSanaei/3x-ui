@@ -306,9 +306,15 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 				if !ok {
 					continue
 				}
-				native, err := singbox.TranslateXrayOutbound(proxy)
-				if err != nil {
-					return "", "", fmt.Errorf("client %q: %w", client.Email, err)
+				var native map[string]any
+				if nativeType, ok := proxy["type"].(string); ok && nativeType != "" {
+					native = proxy
+				} else {
+					translated, err := singbox.TranslateXrayOutbound(proxy)
+					if err != nil {
+						return "", "", fmt.Errorf("client %q: %w", client.Email, err)
+					}
+					native = translated
 				}
 				tag := client.Email
 				if tag == "" {
