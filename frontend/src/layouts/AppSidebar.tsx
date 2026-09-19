@@ -98,12 +98,15 @@ function AppSidebar() {
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
   const [pinned, setPinned] = useState(readSidebarPinned);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const closeDrawer = useCallback(() => {
-    setDrawerOpen(false);
+  const resetDrawerSideEffects = useCallback(() => {
     document.documentElement.style.removeProperty('overflow');
     document.body.style.removeProperty('overflow');
     document.body.style.removeProperty('touch-action');
   }, []);
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    resetDrawerSideEffects();
+  }, [resetDrawerSideEffects]);
   const railCollapsed = !hovered && !pinned;
   const railStyle = useMemo(
     () => ({ '--sider-rail': `${pinned ? SIDER_WIDTH : RAIL_WIDTH}px` }) as CSSProperties,
@@ -310,6 +313,14 @@ function AppSidebar() {
           wrapper: { padding: 0 },
           body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
           header: { display: 'none' },
+          mask: {
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+            filter: 'none',
+          },
+        }}
+        afterOpenChange={(open) => {
+          if (!open) resetDrawerSideEffects();
         }}
         onClose={closeDrawer}
       >
@@ -349,7 +360,7 @@ function AppSidebar() {
           items={toMenuItems(utilItems)}
           onClick={(info) => {
             onMenuClick(info);
-            setDrawerOpen(false);
+            closeDrawer();
           }}
         />
       </Drawer>
