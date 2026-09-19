@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Input, InputNumber, Select, Switch, Tabs } from 'antd';
+import { Button, Input, InputNumber, Select, Switch, Tabs } from 'antd';
 import {
   ApartmentOutlined,
   BellOutlined,
@@ -37,6 +37,35 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
   const [inboundOptions, setInboundOptions] = useState<{ label: string; value: string }[]>([]);
   const [outboundTagList, setOutboundTagList] = useState<string[]>([]);
   const [balancerTagList, setBalancerTagList] = useState<string[]>([]);
+  const [singBoxInstalled, setSingBoxInstalled] = useState<boolean | null>(null);
+  const [singBoxInstalling, setSingBoxInstalling] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const msg = (await HttpUtil.get('/panel/api/setting/singbox/status')) as ApiMsg<{
+        installed: boolean;
+      }>;
+      if (!cancelled && msg?.success) {
+        setSingBoxInstalled(Boolean(msg.obj?.installed));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [allSetting.coreType]);
+
+  const installSingBox = async () => {
+    setSingBoxInstalling(true);
+    try {
+      const msg = (await HttpUtil.post('/panel/api/setting/singbox/install')) as ApiMsg;
+      if (msg?.success) {
+        setSingBoxInstalled(true);
+      }
+    } finally {
+      setSingBoxInstalling(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -238,6 +267,18 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 />
               </SettingListItem>
 
+                {allSetting.coreType === 'sing-box' && (
+                  <div style={{ marginTop: 8 }}>
+                    <Button
+                      size="small"
+                      loading={singBoxInstalling}
+                      disabled={singBoxInstalled === true}
+                      onClick={installSingBox}
+                    >
+                      {singBoxInstalled ? 'sing-box установлен' : 'Установить sing-box'}
+                    </Button>
+                  </div>
+                )}
               <SettingListItem
                 paddings="small"
                 title={t('pages.settings.panelUrlPath')}
