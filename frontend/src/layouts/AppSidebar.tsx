@@ -309,69 +309,69 @@ function AppSidebar() {
       </Layout.Sider>
       {drawerMounted && (
         <Drawer
-        placement="left"
-        closable={false}
-        open={drawerOpen}
-        rootClassName={currentTheme}
-        size="min(82vw, 320px)"
-        mask={{ enabled: true, blur: false }}
-        styles={{
-          wrapper: { padding: 0 },
-          body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
-          header: { display: 'none' },
-          mask: {
-            backdropFilter: 'none',
-            WebkitBackdropFilter: 'none',
-            filter: 'none',
-          },
-        }}
+          placement="left"
+          closable={false}
+          open={drawerOpen}
+          rootClassName={currentTheme}
+          size="min(82vw, 320px)"
+          mask={{ enabled: true, blur: false }}
+          styles={{
+            wrapper: { padding: 0 },
+            body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
+            header: { display: 'none' },
+            mask: {
+              backdropFilter: 'none',
+              WebkitBackdropFilter: 'none',
+              filter: 'none',
+            },
+          }}
           afterOpenChange={(open) => {
             if (!open) {
               resetDrawerSideEffects();
               setDrawerMounted(false);
             }
           }}
-        onClose={closeDrawer}
-      >
-        <div className="drawer-header">
-          <div className="brand-block">
-            <span className="drawer-brand">3X-UI</span>
+          onClose={closeDrawer}
+        >
+          <div className="drawer-header">
+            <div className="brand-block">
+              <span className="drawer-brand">3X-UI</span>
+            </div>
+            <div className="drawer-header-actions">
+              <button
+                className="drawer-close"
+                type="button"
+                aria-label={t('close')}
+                onClick={closeDrawer}
+              >
+                <CloseOutlined />
+              </button>
+            </div>
           </div>
-          <div className="drawer-header-actions">
-            <button
-              className="drawer-close"
-              type="button"
-              aria-label={t('close')}
-              onClick={closeDrawer}
-            >
-              <CloseOutlined />
-            </button>
-          </div>
-        </div>
-        <Menu
-          theme={currentTheme}
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          openKeys={visibleOpenKeys}
-          onOpenChange={(keys) => setOpenKeys(keys as string[])}
-          className="drawer-menu drawer-nav"
-          items={toMenuItems(navItems)}
-          onClick={(info) => {
-            onMenuClick(info);
-            closeDrawer();
-          }}
-        />
-        <Menu
-          theme={currentTheme}
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          className="drawer-menu drawer-utility"
-          items={toMenuItems(utilItems)}
-          onClick={(info) => {
-            onMenuClick(info);
-            closeDrawer();
-          }}
-        />
+          <Menu
+            theme={currentTheme}
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            openKeys={visibleOpenKeys}
+            onOpenChange={(keys) => setOpenKeys(keys as string[])}
+            className="drawer-menu drawer-nav"
+            items={toMenuItems(navItems)}
+            onClick={(info) => {
+              onMenuClick(info);
+              closeDrawer();
+            }}
+          />
+          <Menu
+            theme={currentTheme}
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            className="drawer-menu drawer-utility"
+            items={toMenuItems(utilItems)}
+            onClick={(info) => {
+              onMenuClick(info);
+              closeDrawer();
+            }}
+          />
         </Drawer>
       )}
       {!drawerMounted && (
