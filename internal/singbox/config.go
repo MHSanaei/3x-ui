@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
-	"path/filepath"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 )
@@ -310,6 +310,12 @@ func TranslateXrayDNS(raw map[string]any) (map[string]any, error) {
 	serversRaw, _ := raw["servers"].([]any)
 	servers := make([]map[string]any, 0, len(serversRaw))
 	var globalClientSubnet string
+	if clientIP := strings.TrimSpace(rawString(raw, "clientIp")); clientIP != "" {
+		if net.ParseIP(clientIP) == nil {
+			return nil, fmt.Errorf("DNS has invalid clientIp %q", clientIP)
+		}
+		globalClientSubnet = clientIP
+	}
 	for i, item := range serversRaw {
 		var addr string
 		var clientIP string
