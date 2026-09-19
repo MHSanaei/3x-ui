@@ -1152,8 +1152,8 @@ func (s *SubJsonService) genNativeHysteria2(inbound *model.Inbound, stream map[s
 		"streamSettings": stream,
 	}
 	if rawSettings, ok := raw["settings"].(map[string]any); ok {
-		for _, key := range []string{"up_mbps", "down_mbps"} {
-			if v, exists := hy[key]; exists { rawSettings["servers"].([]any)[0].(map[string]any)[key] = v }
+		for _, key := range []string{"up_mbps", "down_mbps", "hop_interval", "hop_interval_max", "bbr_profile", "disable_chrome_parrot"} {
+			if v, exists := hy[key]; exists { rawSettings[key] = v }
 		}
 		if obfs, ok := hy["obfs"].(map[string]any); ok { rawSettings["obfs"] = obfs }
 		if v, ok := hy["masquerade"]; ok { rawSettings["masquerade"] = v }
