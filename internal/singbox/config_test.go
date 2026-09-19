@@ -52,7 +52,49 @@ func TestTranslateXrayVLESSWebSocketTLS(t *testing.T) {
 	}
 }
 
-func TestTranslateXrayInboundRejectsRealityUntilMapped(t *testing.T) {
+func TestTranslateXrayInboundReality(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "vless",
+		"tag": "reality",
+		"port": 443,
+		"settings": map[string]any{
+			"clients": []any{map[string]any{
+				"id": "11111111-1111-1111-1111-111111111111",
+				"email": "alice",
+			}},
+		},
+		"streamSettings": map[string]any{
+			"network": "tcp",
+			"security": "reality",
+			"tlsSettings": map[string]any{
+				"serverName": "www.example.com",
+				"realitySettings": map[string]any{
+					"dest": "www.example.com:443",
+					"privateKey": "private-key",
+					"shortIds": []any{"0123456789abcdef"},
+				},
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tls, ok := got["tls"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing tls: %#v", got)
+	}
+	reality, ok := tls["reality"].(map[string]any)
+	if !ok || reality["enabled"] != true || reality["private_key"] != "private-key" {
+		t.Fatalf("unexpected reality: %#v", tls["reality"])
+	}
+	handshake, ok := reality["handshake"].(map[string]any)
+	if !ok || handshake["server"] != "www.example.com" || handshake["server_port"] != 443 {
+		t.Fatalf("unexpected reality handshake: %#v", reality["handshake"])
+	}
+}
+
+func TestTranslateXrayInboundRejectsRealityWithoutSettings(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "vless",
 		"tag": "reality",
@@ -63,7 +105,7 @@ func TestTranslateXrayInboundRejectsRealityUntilMapped(t *testing.T) {
 		},
 	}
 	if _, err := TranslateXrayInbound(raw); err == nil {
-		t.Fatal("expected REALITY compatibility guard")
+		t.Fatal("expected REALITY settings error")
 	}
 }
 
