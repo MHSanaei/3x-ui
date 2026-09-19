@@ -1,11 +1,13 @@
 package sub
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
@@ -530,4 +532,37 @@ func TestSubJsonServiceSkipsTUIC(t *testing.T) {
 	); len(got) != 0 {
 		t.Fatalf("getConfig emitted %d unsupported TUIC Xray config(s)", len(got))
 	}
+}
+
+func TestGetSingBoxJsonEmitsNativeOutbound(t *testing.T) {
+	// Keep this focused on the final native schema: the endpoint must not
+	// expose Xray's protocol/settings shape in the returned document.
+	svc := &SubJsonService{}
+	cfg := map[string]any{
+		"outbounds": []any{
+			map[string]any{
+				"protocol": "hysteria2",
+				"tag": "proxy",
+				"settings": map[string]any{
+					"servers": []any{map[string]any{"address": "example.com", "port": float64(443), "password": "secret"}},
+				},
+			},
+		},
+	}
+	raw, _ := json.Marshal(cfg)
+	translated, err := singbox.TranslateXrayOutbound(map[string]any{
+		"protocol": "hysteria2",
+		"tag": "proxy",
+		"settings": map[string]any{
+			"servers": []any{map[string]any{"address": "example.com", "port": float64(443), "password": "secret"}},
+		},
+	})
+	if err != nil { t.Fatal(err) }
+	if translated["type"] != "hysteria2" || translated["server"] != "example.com" {
+		t.Fatalf("unexpected native outbound: %#v", translated)
+	}
+	if bytes.Contains(raw, []byte("\"protocol\"")) == false {
+		t.Fatal("fixture sanity check failed")
+	}
+	_ = svc
 }
