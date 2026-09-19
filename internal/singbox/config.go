@@ -9,6 +9,7 @@ import (
 )
 
 type Config struct {
+	Schema string `json:"$schema,omitempty"`
 	Log map[string]any `json:"log,omitempty"`
 	DNS map[string]any `json:"dns,omitempty"`
 	Inbounds []map[string]any `json:"inbounds,omitempty"`
@@ -19,6 +20,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
+		Schema: "https://sing-box.sagernet.org/schema.json",
 		Log: map[string]any{"level": "info"},
 		Inbounds: []map[string]any{},
 		Outbounds: []map[string]any{},
