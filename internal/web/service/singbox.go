@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 )
 
@@ -15,6 +14,8 @@ type SingBoxService struct {
 	inboundService InboundService
 	settingService SettingService
 }
+
+var singBoxProcess = singbox.NewProcess(singbox.GetConfigPath())
 
 func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
 	inbounds, err := s.inboundService.GetAllInbounds()
@@ -80,30 +81,29 @@ func (s *SingBoxService) Restart(ctx context.Context) error {
 	if err := s.WriteConfig(); err != nil {
 		return err
 	}
-	return singbox.NewRuntime(singbox.GetConfigPath()).Restart(ctx)
+	return singBoxProcess.Restart(ctx)
 }
 
 func (s *SingBoxService) Start(ctx context.Context) error {
 	if err := s.WriteConfig(); err != nil {
 		return err
 	}
-	return singbox.NewRuntime(singbox.GetConfigPath()).Start(ctx)
+	return singBoxProcess.Start(ctx)
 }
 
 func (s *SingBoxService) Stop(ctx context.Context) error {
-	return singbox.NewRuntime(singbox.GetConfigPath()).Stop(ctx)
+	return singBoxProcess.Stop()
 }
 
 func (s *SingBoxService) IsRunning() bool {
-	return singbox.NewRuntime(singbox.GetConfigPath()).IsRunning()
+	return singBoxProcess.IsRunning()
 }
 
 func (s *SingBoxService) Version(ctx context.Context) (string, error) {
-	return singbox.NewRuntime(singbox.GetConfigPath()).Version(ctx)
+	return singBoxProcess.Version(ctx)
 }
 
 func (s *SingBoxService) Validate(ctx context.Context) error {
-	return singbox.NewRuntime(singbox.GetConfigPath()).ValidateConfig(ctx)
+	return singBoxProcess.Validate(ctx)
 }
 
-var _ = model.VLESS
