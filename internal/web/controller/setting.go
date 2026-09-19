@@ -167,27 +167,41 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		}
 	}
 	if err == nil && oldCoreType != allSetting.CoreType {
-		// Never start the new engine while the previous one still owns its
-		// listening sockets. Switch is an explicit stop -> start transaction.
+		// Switching cores is a transaction: never let two engines own the same
+		// listener, and never leave the panel configured for a core that failed
+		// to start. UpdateAllSetting already persisted the requested value, so
+		// restore the old value if the new runtime cannot start.
+		ctx := c.Request.Context()
 		if oldCoreType == service.CoreTypeSingBox {
-			_ = a.singBoxService.Stop(c.Request.Context())
+			_ = a.singBoxService.Stop(ctx)
 		} else {
 			_ = a.xrayService.StopXray()
 		}
+		var restartErr error
 		if allSetting.CoreType == service.CoreTypeSingBox {
-			if restartErr := a.singBoxService.Restart(c.Request.Context()); restartErr != nil {
-				err = restartErr
-			}
+			restartErr = a.singBoxService.Restart(ctx)
 		} else {
-			if restartErr := a.xrayService.RestartXray(true); restartErr != nil {
-				err = restartErr
+			restartErr = a.xrayService.RestartXray(true)
+		}
+		if restartErr != nil {
+			err = restartErr
+			if rollbackErr := a.settingService.SetCoreType(oldCoreType); rollbackErr != nil {
+				logger.Error("core switch failed and rollback could not be persisted:", rollbackErr)
+			} else {
+				// Best effort: bring the previously working engine back.
+				if oldCoreType == service.CoreTypeSingBox {
+					if startErr := a.singBoxService.Restart(ctx); startErr != nil {
+						logger.Error("failed to restore sing-box after core switch failure:", startErr)
+					}
+				} else if startErr := a.xrayService.RestartXray(true); startErr != nil {
+					logger.Error("failed to restore xray after core switch failure:", startErr)
+				}
 			}
 		}
 	}
-	if err == nil && form.PanelOutbound != oldPanelOutbound {
-		// The egress bridge lives in the generated config; reconcile the
-		// running core. One SOCKS inbound plus one routing rule — both
-		// hot-appliable, so this normally does not restart Xray.
+	if err == nil && form.PanelOutbound != oldPanelOutbound && allSetting.CoreType == service.CoreTypeXray {
+		// Panel egress is currently implemented by an Xray loopback bridge.
+		// Do not restart/touch Xray while sing-box is selected.
 		if applyErr := a.xrayService.RestartXray(false); applyErr != nil {
 			logger.Warning("apply panel outbound change failed:", applyErr)
 		}
