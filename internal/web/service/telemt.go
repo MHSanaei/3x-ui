@@ -102,8 +102,7 @@ func renderTelemtConfig(c TelemtConfig) (string, error) {
 	if c.TLS && sni == "" {
 		sni = defaultTelemtSNI
 	}
-	if strings.ContainsAny(sni, "\"\r
-	 ") {
+	if strings.ContainsAny(sni, "\"\r\n\t ") {
 		return "", errors.New("telemt: invalid SNI")
 	}
 
