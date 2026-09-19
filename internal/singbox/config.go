@@ -108,7 +108,6 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 				}
 			}
 		}
-	}
 	case "hysteria", "hysteria2", "tuic":
 		servers, _ := settings["servers"].([]any)
 		if len(servers) == 0 {
@@ -363,6 +362,8 @@ func translateStream(out map[string]any, protocol string, stream map[string]any)
 		t := map[string]any{"enabled": true}
 		if serverName, ok := tls["serverName"].(string); ok && serverName != "" { t["server_name"] = serverName }
 		if alpn := stringSlice(tls["alpn"]); len(alpn) > 0 { t["alpn"] = alpn }
+		if allow, ok := tls["allowInsecure"].(bool); ok { t["insecure"] = allow }
+		if fingerprint := rawString(tls, "fingerprint"); fingerprint != "" { t["utls"] = map[string]any{"enabled": true, "fingerprint": fingerprint} }
 		if certs, ok := tls["certificates"].([]any); ok && len(certs) > 0 {
 			if certificate, key := translateXrayCertificate(certs[0]); certificate != "" || key != "" {
 				if strings.HasPrefix(certificate, "-----BEGIN") {
