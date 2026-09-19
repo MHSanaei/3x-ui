@@ -58,18 +58,17 @@ func TestSetExternalLinksPreservesFetchStatus(t *testing.T) {
 	if err := db.Create(&rec).Error; err != nil {
 		t.Fatalf("create client: %v", err)
 	}
-	row := model.ClientExternalLink{
-		ClientId:       rec.Id,
+	row := model.ExternalLink{
 		Kind:           model.ExternalLinkKindSubscription,
 		Value:          "https://provider.example/sub",
 		Remark:         "old",
 		LastFetchAt:    1767220000000,
 		LastFetchError: "timeout",
-		SortIndex:      0,
 	}
 	if err := db.Create(&row).Error; err != nil {
-		t.Fatalf("create external link: %v", err)
+		t.Fatalf("create library link: %v", err)
 	}
+	assignLibraryLink(t, row.Id, model.ExternalLinkTargetClient, rec.Id, "old")
 
 	if err := svc.SetExternalLinksForRecord(rec.Id, []ExternalLinkInput{
 		{Kind: row.Kind, Value: row.Value, Remark: "new", Enable: new(true)},

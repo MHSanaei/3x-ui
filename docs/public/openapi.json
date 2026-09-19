@@ -2092,6 +2092,344 @@
         ],
         "type": "object"
       },
+      "EffectiveExternalLink": {
+        "description": "EffectiveExternalLink is one library link as a single client receives it: the\nscope that granted it plus that scope's overrides over the shared row.",
+        "properties": {
+          "cacheTTL": {
+            "type": "integer"
+          },
+          "enable": {
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "linkId": {
+            "type": "integer"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "scopeTarget": {
+            "type": "integer"
+          },
+          "sortIndex": {
+            "type": "integer"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cacheTTL",
+          "enable",
+          "expiryTime",
+          "headers",
+          "kind",
+          "linkId",
+          "namePrefix",
+          "origin",
+          "remark",
+          "scope",
+          "scopeTarget",
+          "sortIndex",
+          "userAgent",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExternalLink": {
+        "description": "ExternalLink is one reusable entry of the panel-wide link library: the row is\nshared and assignments decide who receives it, so one edit reaches them all.",
+        "properties": {
+          "assignedClients": {
+            "description": "Usage is derived per read, never stored on the row.",
+            "example": 3,
+            "type": "integer"
+          },
+          "cacheTtl": {
+            "example": 0,
+            "type": "integer"
+          },
+          "createdAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "enable": {
+            "description": "Pointer so an explicit false survives: a bool with default:true collapses\nback to the column default (zero values are skipped on insert).",
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "link",
+              "subscription"
+            ],
+            "example": "link",
+            "type": "string"
+          },
+          "lastFetchAt": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastFetchError": {
+            "type": "string"
+          },
+          "namePrefix": {
+            "example": "[backup] ",
+            "type": "string"
+          },
+          "remark": {
+            "example": "Backup provider",
+            "type": "string"
+          },
+          "sortIndex": {
+            "example": 0,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "value": {
+            "example": "vless://uuid@example.com:443?type=tcp#node",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignedClients",
+          "cacheTtl",
+          "createdAt",
+          "expiryTime",
+          "headers",
+          "id",
+          "kind",
+          "lastFetchAt",
+          "lastFetchError",
+          "namePrefix",
+          "remark",
+          "sortIndex",
+          "updatedAt",
+          "userAgent",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkAssignment": {
+        "description": "ExternalLinkAssignment binds one library link to a target. A client receives\nthe union over its own, group, inbound and panel scopes; overrides win here.",
+        "properties": {
+          "createdAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "enable": {
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "description": "0 inherits the library row; ExternalLinkExpiryNever outlives it. A client's\nown 0 must not mean \"inherit\", or a shared expiry would silently drop it.",
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "example": 1,
+            "type": "integer"
+          },
+          "linkId": {
+            "example": 1,
+            "type": "integer"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "origin": {
+            "example": "panel",
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "sortIndex": {
+            "example": 0,
+            "type": "integer"
+          },
+          "targetId": {
+            "example": 7,
+            "type": "integer"
+          },
+          "targetType": {
+            "enum": [
+              "client",
+              "group",
+              "inbound",
+              "global",
+              "new_clients"
+            ],
+            "example": "client",
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdAt",
+          "id",
+          "linkId",
+          "origin",
+          "targetId",
+          "targetType"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkTargetView": {
+        "description": "ExternalLinkTargetView is one target a library entry is assigned to.",
+        "properties": {
+          "name": {
+            "example": "user@example.com",
+            "type": "string"
+          },
+          "targetId": {
+            "example": 7,
+            "type": "integer"
+          },
+          "targetType": {
+            "example": "client",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "targetId",
+          "targetType"
+        ],
+        "type": "object"
+      },
+      "ExternalLinkView": {
+        "description": "ExternalLinkView is one row of a client's Links tab: the library entry, the\noverrides of the scope that granted it, and the fetch status to show.",
+        "properties": {
+          "assignmentId": {
+            "example": 4,
+            "type": "integer"
+          },
+          "cacheTtl": {
+            "example": 0,
+            "type": "integer"
+          },
+          "enable": {
+            "example": true,
+            "type": "boolean"
+          },
+          "expiryTime": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "example": "link",
+            "type": "string"
+          },
+          "lastFetchAt": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastFetchError": {
+            "type": "string"
+          },
+          "linkId": {
+            "example": 1,
+            "type": "integer"
+          },
+          "namePrefix": {
+            "type": "string"
+          },
+          "own": {
+            "example": true,
+            "type": "boolean"
+          },
+          "remark": {
+            "example": "Backup provider",
+            "type": "string"
+          },
+          "scope": {
+            "example": "client",
+            "type": "string"
+          },
+          "scopeTarget": {
+            "example": 7,
+            "type": "integer"
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "value": {
+            "example": "vless://uuid@example.com:443#node",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignmentId",
+          "cacheTtl",
+          "enable",
+          "expiryTime",
+          "kind",
+          "lastFetchAt",
+          "lastFetchError",
+          "linkId",
+          "namePrefix",
+          "own",
+          "remark",
+          "scope",
+          "scopeTarget",
+          "userAgent",
+          "value"
+        ],
+        "type": "object"
+      },
       "FallbackParentInfo": {
         "description": "FallbackParentInfo carries everything the frontend needs to rewrite a\nchild inbound's client link: where to connect (the master's address\nand port) and which path matched on the master's fallbacks array.\nThe frontend already has the master inbound in its dbInbounds list,\nso we only ship identifiers + the match path here.",
         "properties": {
@@ -4392,6 +4730,10 @@
     {
       "name": "Clients",
       "description": "Manage clients as first-class entities that can be attached to one or more inbounds. A single client row drives the settings.clients entry in every inbound it belongs to. Endpoints live under /panel/api/clients."
+    },
+    {
+      "name": "External Links",
+      "description": "The panel-wide library of external links and external subscriptions, plus the targets each entry is assigned to. All endpoints under /panel/api/links. A client receives the union of the entries assigned to it directly, to its group, to the inbounds it sits on and to the panel as a whole; the most specific scope wins for overrides, and the library row itself is shared so one edit reaches every client that inherits it. Subscription entries are fetched by the panel, revalidated conditionally and never allowed to empty a client subscription when the provider is down."
     },
     {
       "name": "Nodes",
@@ -8553,7 +8895,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
+        "summary": "Return every client as a {client, inboundIds, externalLinks} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list, and a client’s own external links travel in externalLinks, which is panel-local state (it is not pushed to nodes). The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
         "operationId": "get_panel_api_clients_export",
         "responses": {
           "200": {
@@ -8588,6 +8930,12 @@
                       "inboundIds": [
                         7,
                         9
+                      ],
+                      "externalLinks": [
+                        {
+                          "kind": "link",
+                          "value": "vless://...@backup.example:443#backup"
+                        }
                       ]
                     }
                   ]
@@ -8603,7 +8951,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.",
+        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds, externalLinks}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. externalLinks entries become the client’s own library assignments; nothing is imported for an email that was skipped. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.",
         "operationId": "post_panel_api_clients_import",
         "requestBody": {
           "required": true,
@@ -10302,6 +10650,725 @@
                   "obj": [
                     "vless://uuid@host:443?...#user1"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/list": {
+      "get": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "List the link library in display order. Each row carries assignedClients, the number of distinct clients it reaches through every scope.",
+        "operationId": "get_panel_api_links_list",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExternalLink"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "assignedClients": 3,
+                      "cacheTtl": 0,
+                      "createdAt": 1710000000000,
+                      "enable": true,
+                      "expiryTime": 0,
+                      "headers": {},
+                      "id": 1,
+                      "kind": "link",
+                      "lastFetchAt": 0,
+                      "lastFetchError": "",
+                      "namePrefix": "[backup] ",
+                      "remark": "Backup provider",
+                      "sortIndex": 0,
+                      "updatedAt": 1710000000000,
+                      "userAgent": "",
+                      "value": "vless://uuid@example.com:443?type=tcp#node"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/add": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Create a library entry, or update the one named by id in place. Editing a shared row changes what every client inheriting it receives, so name and lifecycle overrides that belong to one client are stored on the assignment instead (see assign).",
+        "operationId": "post_panel_api_links_add",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "Existing library row to update. Omit or send 0 to create."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "link",
+                      "subscription"
+                    ],
+                    "description": "link for a single share link emitted verbatim, subscription for an http(s) URL the panel fetches and expands."
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "The share link or the subscription URL. A (kind, value) pair is unique: saving a pair that already exists is rejected and names the duplicate."
+                  },
+                  "remark": {
+                    "type": "string",
+                    "description": "Display name, overridable per assignment."
+                  },
+                  "namePrefix": {
+                    "type": "string",
+                    "description": "Prefix for the fetched node names, overridable per assignment."
+                  },
+                  "enable": {
+                    "type": "boolean",
+                    "description": "Defaults to true. A disabled row stays stored and keeps its assignments but is not emitted."
+                  },
+                  "expiryTime": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Unix millisecond timestamp after which the row stops being emitted; 0 means it never expires. Negative is rejected."
+                  },
+                  "userAgent": {
+                    "type": "string",
+                    "description": "User-Agent for the outgoing fetch of a subscription; empty sends v2rayNG/1.8.5."
+                  },
+                  "headers": {
+                    "type": "object",
+                    "description": "Extra request headers for the outgoing fetch, on top of the X-HWID / X-Device-Os identity the panel always sends."
+                  },
+                  "cacheTtl": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Seconds the fetched body stays fresh; 0 uses the built-in 5 minutes."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "value"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/ExternalLink"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "assignedClients": 3,
+                    "cacheTtl": 0,
+                    "createdAt": 1710000000000,
+                    "enable": true,
+                    "expiryTime": 0,
+                    "headers": {},
+                    "id": 1,
+                    "kind": "link",
+                    "lastFetchAt": 0,
+                    "lastFetchError": "",
+                    "namePrefix": "[backup] ",
+                    "remark": "Backup provider",
+                    "sortIndex": 0,
+                    "updatedAt": 1710000000000,
+                    "userAgent": "",
+                    "value": "vless://uuid@example.com:443?type=tcp#node"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/del/{id}": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Delete a library entry together with every assignment to it. Clients that inherited it stop receiving it immediately.",
+        "operationId": "post_panel_api_links_del_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Library row id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "id": 4
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/enable/{id}": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Enable or disable one library entry without dropping its assignments. A disabled entry stays listed and editable but is not emitted to any subscription.",
+        "operationId": "post_panel_api_links_enable_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Library row id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enable": {
+                    "type": "boolean",
+                    "description": "New state."
+                  }
+                },
+                "required": [
+                  "enable"
+                ]
+              },
+              "example": {
+                "enable": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "id": 4,
+                    "enable": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/reorder": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Store the library order. It is the order inherited entries appear in a client subscription; a client’s own entries keep their own order and stay first.",
+        "operationId": "post_panel_api_links_reorder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Every library id, in the wanted order. Ids absent from the list keep their current rank."
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              },
+              "example": {
+                "ids": [
+                  3,
+                  1,
+                  2
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "ids": [
+                      3,
+                      1,
+                      2
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/targets/{id}": {
+      "get": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "List what one library entry is assigned to, with a display name per target: client emails, group names, inbound tags, and the special all-clients and new-clients scopes.",
+        "operationId": "get_panel_api_links_targets_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Library row id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExternalLinkTargetView"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "name": "user@example.com",
+                      "targetId": 7,
+                      "targetType": "client"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/assign/{id}": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Assign a library entry to every named target in one call. Assigning the same target twice refreshes its overrides instead of duplicating the row.",
+        "operationId": "post_panel_api_links_assign_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Library row id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Client emails to bind directly. An unknown email rejects the whole call."
+                  },
+                  "group": {
+                    "type": "string",
+                    "description": "Client group name. A name with no stored group is created, like the group bulk endpoints do."
+                  },
+                  "inboundId": {
+                    "type": "integer",
+                    "description": "Bind to every client attached to this inbound."
+                  },
+                  "global": {
+                    "type": "boolean",
+                    "description": "Bind to every client of the panel, including ones created later."
+                  },
+                  "newClients": {
+                    "type": "boolean",
+                    "description": "Bind to clients created from now on. The default is copied onto each new client at creation, so it is visible and editable per client."
+                  },
+                  "enable": {
+                    "type": "boolean",
+                    "description": "Per-target override. Omitted inherits the library row; false excludes the link for these targets only."
+                  },
+                  "expiryTime": {
+                    "type": "integer",
+                    "description": "Per-target expiry override. Omitted inherits the library row; 0 means no expiry."
+                  },
+                  "namePrefix": {
+                    "type": "string",
+                    "description": "Per-target name prefix override."
+                  }
+                }
+              },
+              "example": {
+                "emails": [
+                  "alice@example.com"
+                ],
+                "group": "friends",
+                "global": false,
+                "newClients": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "affected": 3
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/unassign/{id}": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Remove the named targets from one library entry. The entry itself stays in the library, and targets not listed keep their assignment.",
+        "operationId": "post_panel_api_links_unassign_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Library row id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Client emails to unbind."
+                  },
+                  "group": {
+                    "type": "string",
+                    "description": "Group name to unbind. Unlike assign, an unknown group is rejected."
+                  },
+                  "inboundId": {
+                    "type": "integer",
+                    "description": "Inbound to unbind."
+                  },
+                  "global": {
+                    "type": "boolean",
+                    "description": "Drop the panel-wide binding."
+                  },
+                  "newClients": {
+                    "type": "boolean",
+                    "description": "Drop the default applied to newly created clients. Clients created earlier keep the copy they already received."
+                  }
+                }
+              },
+              "example": {
+                "emails": [
+                  "alice@example.com"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "affected": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/client/{clientId}": {
+      "get": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "List what one client actually receives: the entries it owns first, then the inherited ones with the scope that granted them. Disabled and expired entries are excluded.",
+        "operationId": "get_panel_api_links_client_clientId",
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "path",
+            "required": true,
+            "description": "Client record id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExternalLinkView"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "assignmentId": 4,
+                      "cacheTtl": 0,
+                      "enable": true,
+                      "expiryTime": 0,
+                      "kind": "link",
+                      "lastFetchAt": 0,
+                      "lastFetchError": "",
+                      "linkId": 1,
+                      "namePrefix": "",
+                      "own": true,
+                      "remark": "Backup provider",
+                      "scope": "client",
+                      "scopeTarget": 7,
+                      "userAgent": "",
+                      "value": "vless://uuid@example.com:443#node"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/links/refresh/{id}": {
+      "post": {
+        "tags": [
+          "External Links"
+        ],
+        "summary": "Fetch one subscription entry again right now, bypassing the cached copy, and report how many share links came back. The panel otherwise revalidates it in the background and serves the last good body, so a failing provider never empties a subscription.",
+        "operationId": "post_panel_api_links_refresh_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Library row id.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "count": 12
+                  }
                 }
               }
             }
