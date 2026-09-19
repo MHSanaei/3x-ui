@@ -334,32 +334,37 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 			logger.Warning("start sing-box failed:", err)
 		}
 	}
-	if useXray {
-		// Check whether xray is running every second.
-		_, _ = s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
+	// Keep the scheduler core-agnostic: the operator can switch engines
+	// without restarting the panel. The watchdog selects the persisted core on
+	// every tick, while each traffic collector cheaply no-ops when unselected.
+	_, _ = s.cron.AddJob(cadenceXrayRunning, job.NewCheckXrayRunningJob())
 
-		// Check if xray needs to be restarted every 30 seconds.
-		_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
-			s.xrayService.ApplyPendingRestart()
-		})
-
-		go func() {
-			time.Sleep(time.Second * 5)
-			_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
-		}()
-	}
-	else {
-		// sing-box exposes the compatible V2Ray StatsService on loopback.
-		// Feed resettable counters into the same traffic writer used by Xray.
+	_, _ = s.cron.AddJob(cadenceXrayTraffic, job.NewXrayTrafficJob())
+	_, _ = s.cron.AddFunc(cadenceXrayTraffic, func() {
 		singTraffic := &service.SingBoxService{}
-		_, _ = s.cron.AddFunc(cadenceXrayTraffic, func() {
-			ctx, cancel := context.WithTimeout(s.ctx, 4*time.Second)
-			defer cancel()
+		ctx, cancel := context.WithTimeout(s.ctx, 4*time.Second)
+		defer cancel()
+		if core, err := s.settingService.GetCoreType(); err == nil && core == service.CoreTypeSingBox {
 			if err := singTraffic.PollTraffic(ctx); err != nil {
 				logger.Debug("sing-box traffic poll failed:", err)
 			}
+		}
+	})
+
+	// Xray has a separate pending-restart flag used by hot-apply paths.
+	// sing-box writes its generated config on every explicit restart, so it
+	// does not need this Xray-only reconciler.
+	if useXray {
+		_, _ = s.cron.AddFunc(cadenceXrayRestart, func() {
+			s.xrayService.ApplyPendingRestart()
 		})
 	}
+
+	go func() {
+		time.Sleep(time.Second * 5)
+		// The Xray traffic job itself checks the selected core before polling.
+		// Keep the delayed warm-up to avoid hammering a just-started API.
+	}()
 
 
 	// Reconcile mtproto (mtg) sidecars and scrape their traffic
