@@ -1331,44 +1331,29 @@ func (s *SubJsonService) genWireguard(inbound *model.Inbound, client model.Clien
 	if client.PrivateKey == "" {
 		return nil
 	}
-
-	var inboundSettings map[string]any
-	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
-	secretKey, _ := inboundSettings["secretKey"].(string)
-
+	var settings map[string]any
+	_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+	addresses := append([]string(nil), client.AllowedIPs...)
+	if len(addresses) == 0 {
+		addresses = []string{"10.0.0.2/32"}
+	}
 	peer := map[string]any{
-		"endpoint":   joinHostPort(inbound.Listen, inbound.Port),
-		"allowedIPs": []string{"0.0.0.0/0", "::/0"},
+		"address": inbound.Listen,
+		"port": inbound.Port,
+		"public_key": client.PublicKey,
+		"allowed_ips": []string{"0.0.0.0/0", "::/0"},
 	}
-	if secretKey != "" {
-		if pub, err := wgutil.PublicKeyFromPrivate(secretKey); err == nil {
-			peer["publicKey"] = pub
-		}
+	if client.PreSharedKey != "" { peer["pre_shared_key"] = client.PreSharedKey }
+	if ka := client.KeepAliveSeconds(); ka > 0 { peer["persistent_keepalive_interval"] = ka }
+	endpoint := map[string]any{
+		"type": "wireguard",
+		"tag": "wg-endpoint",
+		"address": addresses,
+		"private_key": client.PrivateKey,
+		"peers": []any{peer},
 	}
-	if client.PreSharedKey != "" {
-		peer["preSharedKey"] = client.PreSharedKey
-	}
-	if ka := client.KeepAliveSeconds(); ka > 0 {
-		peer["keepAlive"] = ka
-	}
-
-	settings := map[string]any{
-		"secretKey": client.PrivateKey,
-		"peers":     []any{peer},
-	}
-	if len(client.AllowedIPs) > 0 {
-		settings["address"] = client.AllowedIPs
-	}
-	if mtu, ok := inboundSettings["mtu"].(float64); ok && mtu > 0 {
-		settings["mtu"] = int(mtu)
-	}
-
-	outbound := map[string]any{
-		"protocol": string(inbound.Protocol),
-		"tag":      "proxy",
-		"settings": settings,
-	}
-	result, _ := json.MarshalIndent(outbound, "", "  ")
+	if mtu, ok := settings["mtu"].(float64); ok && mtu > 0 { endpoint["mtu"] = int(mtu) }
+	result, _ := json.MarshalIndent(map[string]any{"endpoint": endpoint, "outbound": map[string]any{"type":"direct","tag":"proxy"}}, "", "  ")
 	return result
 }
 
