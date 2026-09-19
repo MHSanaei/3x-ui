@@ -591,9 +591,6 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 	)
 	s.cron.Start()
 
-	// Wire the sing-box config generator before controllers/background jobs are created.
-	service.SetSingBoxDependencies(&service.InboundService{}, &s.settingService)
-
 	// Wire the inbound-runtime manager once so InboundService can route
 	// add/update/delete to either the local xray or a remote node panel.
 	// The closures bridge into XrayService (which owns the running xray
@@ -723,6 +720,10 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 
 	serverService := &service.ServerService{}
 	inboundService := &service.InboundService{}
+	// Wire sing-box to the same initialized inbound service used by the panel.
+	// Do not construct a second empty InboundService: it would lose the panel's
+	// client/runtime state and make generated sing-box configs incomplete.
+	service.SetSingBoxDependencies(inboundService, &s.settingService)
 	s.discordGateway = discord.NewGatewayClient(s.discordService, s.settingService, serverService, inboundService, &s.xrayService)
 
 	// Wire reload discord callback for settings updates
