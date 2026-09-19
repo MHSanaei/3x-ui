@@ -39,7 +39,7 @@ func InstallLatest(ctx context.Context) (string, error) {
 
 	var rel releaseInfo
 	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil { return "", err }
-	asset, sums, err := selectAssets(rel)
+	asset, sums, err := selectAssets(ctx, rel)
 	if err != nil { return "", err }
 
 	tmpDir, err := os.MkdirTemp("", "3x-ui-singbox-*")
@@ -66,7 +66,7 @@ func InstallLatest(ctx context.Context) (string, error) {
 	return rel.TagName, nil
 }
 
-func selectAssets(rel releaseInfo) (struct{ Name, URL string }, map[string]string, error) {
+func selectAssets(ctx context.Context, rel releaseInfo) (struct{ Name, URL string }, map[string]string, error) {
 	arch := runtime.GOARCH
 	if arch == "arm" {
 		arch = "armv7"
@@ -199,4 +199,17 @@ func extractZipFile(f *zip.File, dst string) error {
 	defer out.Close()
 	_, err = io.Copy(out, r)
 	return err
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil { return err }
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil { return err }
+	if _, err = io.Copy(out, in); err != nil {
+		_ = out.Close()
+		return err
+	}
+	return out.Close()
 }
