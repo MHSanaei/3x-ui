@@ -308,7 +308,20 @@ func translateStream(out map[string]any, protocol string, stream map[string]any)
 		t := map[string]any{"enabled": true}
 		if serverName, ok := tls["serverName"].(string); ok && serverName != "" { t["server_name"] = serverName }
 		if alpn := stringSlice(tls["alpn"]); len(alpn) > 0 { t["alpn"] = alpn }
-		if certs, ok := tls["certificates"].([]any); ok && len(certs) > 0 { t["certificate"] = certs }
+		if certs, ok := tls["certificates"].([]any); ok && len(certs) > 0 {
+			if certificate, key := translateXrayCertificate(certs[0]); certificate != "" || key != "" {
+				if strings.HasPrefix(certificate, "-----BEGIN") {
+					t["certificate"] = []string{certificate}
+				} else if certificate != "" {
+					t["certificate_path"] = certificate
+				}
+				if strings.HasPrefix(key, "-----BEGIN") {
+					t["key"] = []string{key}
+				} else if key != "" {
+					t["key_path"] = key
+				}
+			}
+		}
 		if security == "reality" {
 			reality := rawObject(tls, "realitySettings")
 			if len(reality) == 0 {
@@ -380,6 +393,22 @@ func translateStream(out map[string]any, protocol string, stream map[string]any)
 	}
 	_ = protocol
 	return nil
+}
+
+func translateXrayCertificate(value any) (string, string) {
+	cert, ok := value.(map[string]any)
+	if !ok {
+		return "", ""
+	}
+	certificate := rawString(cert, "certificateFile")
+	key := rawString(cert, "keyFile")
+	if certificate == "" {
+		certificate = rawString(cert, "certificate")
+	}
+	if key == "" {
+		key = rawString(cert, "key")
+	}
+	return certificate, key
 }
 
 func splitRealityDestination(value string) (string, int) {
