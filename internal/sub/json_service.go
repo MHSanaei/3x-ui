@@ -284,9 +284,6 @@ func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnA
 				map[string]any{"type": "block", "tag": "blocked"},
 			},
 		}
-		if remarks, ok := xrayCfg["remarks"].(string); ok && remarks != "" {
-			sbCfg["profile"] = map[string]any{"name": remarks}
-		}
 		encoded, err := json.MarshalIndent(sbCfg, "", "  ")
 		if err != nil {
 			return "", header, err
