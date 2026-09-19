@@ -155,6 +155,53 @@ func TestTranslateTUICProtocolSettings(t *testing.T) {
 	}
 }
 
+func TestTranslateHysteriaTLSCertificateFiles(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria2", "tag": "hy2", "port": 443,
+		"settings": map[string]any{},
+		"streamSettings": map[string]any{
+			"security": "tls",
+			"tlsSettings": map[string]any{
+				"serverName": "example.com",
+				"alpn": []any{"h3"},
+				"certificates": []any{
+					map[string]any{"certificateFile": "/etc/cert.pem", "keyFile": "/etc/key.pem"},
+				},
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	tls, ok := got["tls"].(map[string]any)
+	if !ok || tls["server_name"] != "example.com" || tls["certificate_path"] != "/etc/cert.pem" || tls["key_path"] != "/etc/key.pem" {
+		t.Fatalf("unexpected TLS: %#v", got["tls"])
+	}
+}
+
+func TestTranslateHysteriaTLSCertificatePEM(t *testing.T) {
+	raw := map[string]any{
+		"protocol": "hysteria", "tag": "hy", "port": 443,
+		"settings": map[string]any{},
+		"streamSettings": map[string]any{
+			"security": "tls",
+			"tlsSettings": map[string]any{
+				"certificates": []any{
+					map[string]any{"certificate": "-----BEGIN CERTIFICATE-----\nabc\n-----END CERTIFICATE-----", "key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"},
+				},
+			},
+		},
+	}
+	got, err := TranslateXrayInbound(raw)
+	if err != nil { t.Fatal(err) }
+	tls := got["tls"].(map[string]any)
+	if _, ok := tls["certificate"].([]string); !ok {
+		t.Fatalf("expected PEM certificate: %#v", tls["certificate"])
+	}
+	if _, ok := tls["key"].([]string); !ok {
+		t.Fatalf("expected PEM key: %#v", tls["key"])
+	}
+}
+
 func TestTranslateHysteriaUsers(t *testing.T) {
 	raw := map[string]any{
 		"protocol": "hysteria",
