@@ -222,6 +222,23 @@ func (c *V2RayStatsClient) Query(ctx context.Context, patterns []string, reset b
 	return resp.Stats, nil
 }
 
+func (c *V2RayStatsClient) QueryInbound(ctx context.Context, tag string, reset bool) (up, down int64, err error) {
+	stats, err := c.Query(ctx, []string{
+		"inbound>>>" + tag + ">>>traffic>>>uplink",
+		"inbound>>>" + tag + ">>>traffic>>>downlink",
+	}, reset)
+	if err != nil { return 0, 0, err }
+	for _, stat := range stats {
+		switch stat.Name {
+		case "inbound>>>" + tag + ">>>traffic>>>uplink":
+			up += stat.Value
+		case "inbound>>>" + tag + ">>>traffic>>>downlink":
+			down += stat.Value
+		}
+	}
+	return up, down, nil
+}
+
 func (c *V2RayStatsClient) QueryUser(ctx context.Context, email string, reset bool) (up, down int64, err error) {
 	stats, err := c.Query(ctx, []string{
 		"user>>>" + email + ">>>traffic>>>uplink",
