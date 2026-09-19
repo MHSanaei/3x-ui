@@ -28,9 +28,9 @@ type IPWithTimestamp struct {
 }
 
 // CheckClientIpJob monitors client IP addresses and manages IP blocking based
-// on configured limits. The per-client IPs come from the core's online-stats
-// API; no access log is involved. On a core too old to expose that API the job
-// simply skips the run (the bundled core always supports it).
+// on configured limits. Client IPs come from the active core API; no access log
+// is involved. sing-box uses its native connection API, while Xray uses the
+// existing online-stats API.
 type CheckClientIpJob struct {
 	disAllowedIps []string
 	bannedSeen    map[string]int64
@@ -58,34 +58,30 @@ func (j *CheckClientIpJob) Run() {
 	j.pruneStaleIpRows()
 	observed, apiMode := j.collectFromOnlineAPI()
 	if !apiMode {
-		// xray is down or predates the online-stats API. There is no access-log
-		// fallback anymore, so there is nothing to do this run.
-		logger.Debug("[LimitIP] online-stats API unavailable this run; skipping")
+		logger.Debug("[LimitIP] active-core online API unavailable this run; skipping")
 		return
 	}
 
-	if !isFail2BanEnabled() {
+	coreType, _ := (&service.SettingService{}).GetCoreType()
+	singBox := coreType == service.CoreTypeSingBox
+	if !singBox && !isFail2BanEnabled() {
 		return
 	}
 
 	hasLimit := j.hasLimitIp()
 	f2bInstalled := false
-	if hasLimit {
+	if hasLimit && !singBox {
 		f2bInstalled = j.checkFail2BanInstalled()
 	}
-	// Read only when the limit is actually applied: this runs every 10s and
-	// most panels carry no IP limit at all.
-	enforce := j.resolveEnforce(hasLimit, f2bInstalled)
+	enforce := hasLimit
+	if !singBox {
+		enforce = j.resolveEnforce(hasLimit, f2bInstalled)
+	}
 	if enforce {
 		j.allowlist = j.loadAllowlist()
 	}
 	j.processObserved(observed, enforce, true)
 }
-
-// resolveEnforce decides whether limits can actually be enforced this run.
-// Without fail2ban on a platform that needs it the limit can't be applied, so
-// enforcement is skipped (the panel resets these limits to 0 on upgrade and
-// disables the field, so this is normally a no-op).
 func (j *CheckClientIpJob) resolveEnforce(hasLimit, f2bInstalled bool) bool {
 	if hasLimit && runtime.GOOS != "windows" && !f2bInstalled {
 		return false
@@ -98,9 +94,34 @@ func (j *CheckClientIpJob) resolveEnforce(hasLimit, f2bInstalled bool) bool {
 // API is unavailable — xray not running, an older core, or a transient gRPC
 // failure — and the caller skips the run (there is no access-log fallback).
 func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, bool) {
+	coreType, _ := (&service.SettingService{}).GetCoreType()
+	if coreType == service.CoreTypeSingBox {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		online, err := (&service.SingBoxService{}).OnlineClientIPs(ctx)
+		if err != nil {
+			logger.Debug("[LimitIP] sing-box native connection API unavailable this run:", err)
+			return nil, false
+		}
+		now := time.Now().Unix()
+		observed := make(map[string]map[string]int64, len(online))
+		for email, ips := range online {
+			if email == "" || len(ips) == 0 {
+				continue
+			}
+			observed[email] = make(map[string]int64, len(ips))
+			for ip := range ips {
+				if ip != "" {
+					observed[email][ip] = now
+				}
+			}
+		}
+		return observed, true
+	}
+
 	onlineUsers, ok, err := j.xrayService.GetOnlineUsers()
 	if err != nil {
-		logger.Debug("[LimitIP] online-stats API unavailable this run:", err)
+		logger.Debug("[LimitIP] Xray online-stats API unavailable this run:", err)
 		return nil, false
 	}
 	if !ok {
@@ -110,8 +131,6 @@ func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, 
 	observed := make(map[string]map[string]int64, len(onlineUsers))
 	for _, user := range onlineUsers {
 		for _, entry := range user.IPs {
-			// No localhost guard needed here: the core's OnlineMap.AddIP drops
-			// 127.0.0.1/[::1] itself, so they never reach this list.
 			ts := entry.LastSeen
 			if ts <= 0 {
 				ts = now
@@ -127,10 +146,6 @@ func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, 
 	return observed, true
 }
 
-// hasLimitIp reports whether any client carries an IP limit. It probes the
-// normalized clients table (limit_ip is synced there by SyncInbound and the
-// legacy seeder), replacing the old `settings LIKE '%limitIp%'` scan that
-// loaded and JSON-parsed every inbound's settings blob on each 10s run.
 func (j *CheckClientIpJob) hasLimitIp() bool {
 	db := database.GetDB()
 	var probe int64
@@ -615,6 +630,16 @@ func (j *CheckClientIpJob) filterAdvancedSinceLastBan(email string, banned []IPW
 // disconnectClientTemporarily drops a client's credential for a moment, so new
 // handshakes are refused; the fail2ban ban is what ends live traffic.
 func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, clientEmail string, clients []model.Client) {
+	coreType, _ := (&service.SettingService{}).GetCoreType()
+	if coreType == service.CoreTypeSingBox {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := (&service.SingBoxService{}).DisconnectClientIPs(ctx, clientEmail, j.disAllowedIps); err != nil {
+			logger.Warningf("[LIMIT_IP] Failed to disconnect sing-box client %s: %v", clientEmail, err)
+		}
+		return
+	}
+
 	var xrayAPI xray.XrayAPI
 	apiPort := j.resolveXrayAPIPort()
 
