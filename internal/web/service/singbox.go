@@ -159,3 +159,8 @@ func (s *SingBoxService) InstallLatest(ctx context.Context) (string, error) {
 func (s *SingBoxService) BinaryPath() string {
 	return singbox.GetBinaryPath()
 }
+
+
+func (s *SingBoxService) ProcessConfigPath() string {
+	return singbox.GetConfigPath()
+}
