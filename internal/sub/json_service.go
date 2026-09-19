@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
@@ -243,6 +244,66 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	}
 
 	return string(finalJson), header, nil
+}
+
+// GetSingBoxJson converts the panel's per-client JSON profiles to native sing-box configs.
+// The existing /json/ format remains Xray-compatible; callers opt into this format
+// explicitly with ?format=sing-box so existing subscriptions are not changed.
+func (s *SubJsonService) GetSingBoxJson(subId string, host string, alwaysReturnArray bool) (string, string, error) {
+	raw, header, err := s.GetJson(subId, host, true)
+	if err != nil || raw == "" {
+		return raw, header, err
+	}
+	var docs []json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &docs); err != nil {
+		docs = []json.RawMessage{json.RawMessage(raw)}
+	}
+	outDocs := make([]json.RawMessage, 0, len(docs))
+	for _, doc := range docs {
+		var xrayCfg map[string]any
+		if err := json.Unmarshal(doc, &xrayCfg); err != nil {
+			return "", header, err
+		}
+		rawOutbounds, _ := xrayCfg["outbounds"].([]any)
+		if len(rawOutbounds) == 0 {
+			continue
+		}
+		proxy, ok := rawOutbounds[0].(map[string]any)
+		if !ok {
+			return "", header, fmt.Errorf("sing-box conversion: invalid proxy outbound")
+		}
+		translated, err := singbox.TranslateXrayOutbound(proxy)
+		if err != nil {
+			return "", header, err
+		}
+		sbCfg := map[string]any{
+			"$schema": "https://sing-box.sagernet.org/schema.json",
+			"outbounds": []any{
+				translated,
+				map[string]any{"type": "direct", "tag": "direct"},
+				map[string]any{"type": "block", "tag": "blocked"},
+			},
+		}
+		if remarks, ok := xrayCfg["remarks"].(string); ok && remarks != "" {
+			sbCfg["profile"] = map[string]any{"name": remarks}
+		}
+		encoded, err := json.MarshalIndent(sbCfg, "", "  ")
+		if err != nil {
+			return "", header, err
+		}
+		outDocs = append(outDocs, encoded)
+	}
+	if len(outDocs) == 0 {
+		return "", header, nil
+	}
+	if len(outDocs) == 1 && !alwaysReturnArray {
+		return string(outDocs[0]), header, nil
+	}
+	final, err := json.MarshalIndent(outDocs, "", "  ")
+	if err != nil {
+		return "", header, err
+	}
+	return string(final), header, nil
 }
 
 // subConfigEntry is one ordered block of the JSON subscription: an inbound's
