@@ -534,6 +534,38 @@ func TestSubJsonServiceSkipsTUIC(t *testing.T) {
 	}
 }
 
+func TestNativeVLESSOutbound(t *testing.T) {
+	inbound := &model.Inbound{Listen:"example.com",Port:443,Protocol:model.VLESS}
+	client := model.Client{ID:"11111111-1111-1111-1111-111111111111",Flow:"xtls-rprx-vision"}
+	stream := map[string]any{"network":"ws","security":"tls","tlsSettings":map[string]any{"serverName":"example.com"},"wsSettings":map[string]any{"path":"/ws","headers":map[string]any{"Host":"example.com"}}}
+	raw := nativeVLESSOutbound(inbound,stream,client,&SubService{})
+	var got map[string]any; if err:=json.Unmarshal(raw,&got); err!=nil { t.Fatal(err) }
+	if got["type"]!="vless" || got["uuid"]!=client.ID || got["flow"]!=client.Flow { t.Fatalf("unexpected VLESS: %#v",got) }
+	transport,_:=got["transport"].(map[string]any); if transport["type"]!="ws" || transport["path"]!="/ws" { t.Fatalf("unexpected transport: %#v",transport) }
+	tls,_:=got["tls"].(map[string]any); if tls["server_name"]!="example.com" { t.Fatalf("unexpected TLS: %#v",tls) }
+}
+
+func TestNativeVMessOutbound(t *testing.T) {
+	inbound := &model.Inbound{Listen:"vmess.example.com",Port:443,Protocol:model.VMESS}; client := model.Client{ID:"11111111-1111-1111-1111-111111111111",Security:"auto"}
+	raw := nativeVMessOutbound(inbound,map[string]any{"network":"grpc","security":"tls","tlsSettings":map[string]any{"serverName":"vmess.example.com"},"grpcSettings":map[string]any{"serviceName":"proxy"}},client)
+	var got map[string]any; if err:=json.Unmarshal(raw,&got); err!=nil { t.Fatal(err) }
+	if got["type"]!="vmess" || got["uuid"]!=client.ID || got["security"]!="auto" { t.Fatalf("unexpected VMess: %#v",got) }
+	transport,_:=got["transport"].(map[string]any); if transport["type"]!="grpc" || transport["service_name"]!="proxy" { t.Fatalf("unexpected transport: %#v",transport) }
+}
+
+func TestNativeShadowsocksOutbound(t *testing.T) {
+	inbound := &model.Inbound{Listen:"ss.example.com",Port:8388,Protocol:model.Shadowsocks,Settings:"{\"method\":\"aes-256-gcm\"}"}; client := model.Client{Password:"secret"}
+	raw := nativeServerOutbound(inbound,map[string]any{},client,&SubService{}); var got map[string]any; if err:=json.Unmarshal(raw,&got); err!=nil { t.Fatal(err) }
+	if got["type"]!="shadowsocks" || got["method"]!="aes-256-gcm" || got["password"]!="secret" { t.Fatalf("unexpected SS: %#v",got) }
+}
+
+func TestNativeTrojanOutbound(t *testing.T) {
+	inbound := &model.Inbound{Listen:"trojan.example.com",Port:443,Protocol:model.Trojan}; client := model.Client{Password:"secret"}
+	raw := nativeServerOutbound(inbound,map[string]any{"security":"tls","tlsSettings":map[string]any{"serverName":"trojan.example.com"}},client,&SubService{}); var got map[string]any; if err:=json.Unmarshal(raw,&got); err!=nil { t.Fatal(err) }
+	if got["type"]!="trojan" || got["password"]!="secret" { t.Fatalf("unexpected Trojan: %#v",got) }
+	tls,_:=got["tls"].(map[string]any); if tls["server_name"]!="trojan.example.com" { t.Fatalf("unexpected TLS: %#v",tls) }
+}
+
 func TestNativeHysteria2Outbound(t *testing.T) {
 	inbound := &model.Inbound{
 		Listen: "hy2.example.com", Port: 443, Protocol: model.Hysteria,
