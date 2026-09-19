@@ -421,6 +421,12 @@ func (a *SettingController) singBoxStatus(c *gin.Context) {
 	svc := &a.singBoxService
 	_, statErr := os.Stat(svc.BinaryPath())
 	running := svc.IsRunning()
+	connections := 0
+	if running {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		connections, _ = svc.ConnectionCount(ctx)
+	}
 	version := "Unknown"
 	if running {
 		if v, err := svc.Version(c.Request.Context()); err == nil {
@@ -432,7 +438,8 @@ func (a *SettingController) singBoxStatus(c *gin.Context) {
 		"running":   running,
 		"version":   version,
 		"binary":    svc.BinaryPath(),
-		"config":    svc.ProcessConfigPath(),
+		"config":      svc.ProcessConfigPath(),
+		"connections": connections,
 	}, nil)
 }
 
