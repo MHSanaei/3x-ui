@@ -1049,6 +1049,91 @@ const (
 	ExternalLinkKindSubscription = "subscription"
 )
 
+// ExternalLink is one reusable entry of the panel-wide link library: the row is
+// shared and assignments decide who receives it, so one edit reaches them all.
+type ExternalLink struct {
+	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	Kind       string `json:"kind" form:"kind" gorm:"column:kind;size:16;not null;uniqueIndex:idx_external_links_kind_value,priority:1" validate:"required,oneof=link subscription" example:"link"`
+	Value      string `json:"value" form:"value" gorm:"column:value;not null;uniqueIndex:idx_external_links_kind_value,priority:2" validate:"required" example:"vless://uuid@example.com:443?type=tcp#node"`
+	Remark     string `json:"remark" form:"remark" gorm:"column:remark" example:"Backup provider"`
+	NamePrefix string `json:"namePrefix" form:"namePrefix" gorm:"column:name_prefix" example:"[backup] "`
+	// Pointer so an explicit false survives: a bool with default:true collapses
+	// back to the column default (zero values are skipped on insert).
+	Enable         *bool             `json:"enable" form:"enable" gorm:"column:enable;default:true" example:"true"`
+	ExpiryTime     int64             `json:"expiryTime" form:"expiryTime" gorm:"column:expiry_time;default:0" example:"0"`
+	SortIndex      int               `json:"sortIndex" form:"sortIndex" gorm:"column:sort_index" example:"0"`
+	UserAgent      string            `json:"userAgent" form:"userAgent" gorm:"column:user_agent" example:""`
+	Headers        map[string]string `json:"headers" form:"headers" gorm:"serializer:json;column:headers;type:text"`
+	CacheTTL       int               `json:"cacheTtl" form:"cacheTtl" gorm:"column:cache_ttl;default:0" example:"0"`
+	LastFetchAt    int64             `json:"lastFetchAt" form:"lastFetchAt" gorm:"column:last_fetch_at;default:0" example:"0"`
+	LastFetchError string            `json:"lastFetchError" form:"lastFetchError" gorm:"column:last_fetch_error" example:""`
+	// LastLinks keeps the last successful expansion so a restart during a
+	// provider outage serves the subscription instead of dropping it.
+	LastLinks []string `json:"-" gorm:"serializer:json;column:last_links;type:text"`
+	// Origin marks a row a master pushed: this panel keeps it read-only, and a
+	// local edit must not fight the next push. Empty is the panel's own row.
+	Origin    string `json:"origin" form:"origin" gorm:"column:origin;size:16;default:'panel'" example:"panel"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli" example:"1710000000000"`
+	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli" example:"1710000000000"`
+	// Usage is derived per read, never stored on the row.
+	AssignedClients int `json:"assignedClients" gorm:"-" example:"3"`
+}
+
+func (ExternalLink) TableName() string { return "external_links" }
+
+// ExternalLinkAssignment binds one library link to a target. A client receives
+// the union over its own, group, inbound and panel scopes; overrides win here.
+type ExternalLinkAssignment struct {
+	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`
+	LinkId     int    `json:"linkId" form:"linkId" gorm:"column:link_id;not null;index;uniqueIndex:idx_external_link_assignments_target,priority:1" example:"1"`
+	TargetType string `json:"targetType" form:"targetType" gorm:"column:target_type;size:16;not null;uniqueIndex:idx_external_link_assignments_target,priority:2" validate:"required,oneof=client group inbound global new_clients" example:"client"`
+	TargetId   int    `json:"targetId" form:"targetId" gorm:"column:target_id;not null;default:0;uniqueIndex:idx_external_link_assignments_target,priority:3" example:"7"`
+	Enable     *bool  `json:"enable,omitempty" form:"enable" gorm:"column:enable" example:"true"`
+	// 0 inherits the library row; ExternalLinkExpiryNever outlives it. A client's
+	// own 0 must not mean "inherit", or a shared expiry would silently drop it.
+	ExpiryTime int64  `json:"expiryTime,omitempty" form:"expiryTime" gorm:"column:expiry_time;default:0" example:"0"`
+	Remark     string `json:"remark,omitempty" form:"remark" gorm:"column:remark" example:""`
+	NamePrefix string `json:"namePrefix,omitempty" form:"namePrefix" gorm:"column:name_prefix" example:""`
+	SortIndex  int    `json:"sortIndex,omitempty" form:"sortIndex" gorm:"column:sort_index" example:"0"`
+	Origin     string `json:"origin" form:"origin" gorm:"column:origin;size:16;default:''" example:"panel"`
+	CreatedAt  int64  `json:"createdAt" gorm:"autoCreateTime:milli" example:"1710000000000"`
+}
+
+func (ExternalLinkAssignment) TableName() string { return "external_link_assignments" }
+
+// ExternalLinkExpiryNever marks an assignment that never expires. The column
+// needs the sentinel because 0 there already means "inherit the library row".
+const ExternalLinkExpiryNever int64 = -1
+
+// AssignmentExpiry converts the client form's "0 means never" into the
+// sentinel, so a row a client owns never inherits a sibling's expiry.
+func AssignmentExpiry(expiryTime int64) int64 {
+	if expiryTime <= 0 {
+		return ExternalLinkExpiryNever
+	}
+	return expiryTime
+}
+
+// ExternalLinkIdentity is the (kind, value) pair that makes a library row
+// unique: the panel dedupes reads and writes by this key, not by id.
+func ExternalLinkIdentity(kind, value string) string { return kind + "\x00" + value }
+
+// Assignment targets. "global" is resolved for every client on demand, while
+// "new_clients" is materialized into client assignments at creation time.
+const (
+	ExternalLinkTargetClient     = "client"
+	ExternalLinkTargetGroup      = "group"
+	ExternalLinkTargetInbound    = "inbound"
+	ExternalLinkTargetGlobal     = "global"
+	ExternalLinkTargetNewClients = "new_clients"
+)
+
+// Assignment origins: a node row is pushed by the master and is read-only there.
+const (
+	ExternalLinkOriginPanel = "panel"
+	ExternalLinkOriginNode  = "node"
+)
+
 type InboundFallback struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	MasterId  int    `json:"masterId" gorm:"index;not null;column:master_id"`

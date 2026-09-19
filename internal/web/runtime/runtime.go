@@ -6,6 +6,46 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
+// ExternalLinkSync is the link set one node's clients receive, already resolved
+// by the master: a node holds no groups, so scopes are flattened before the
+// push and the node only has to materialize rows.
+type ExternalLinkSync struct {
+	Links   []ExternalLinkSyncLink   `json:"links"`
+	Clients []ExternalLinkSyncClient `json:"clients"`
+}
+
+// ExternalLinkSyncLink is one library row the node stores, keyed by kind+value.
+type ExternalLinkSyncLink struct {
+	Kind       string            `json:"kind"`
+	Value      string            `json:"value"`
+	Remark     string            `json:"remark,omitempty"`
+	NamePrefix string            `json:"namePrefix,omitempty"`
+	Enable     bool              `json:"enable"`
+	ExpiryTime int64             `json:"expiryTime,omitempty"`
+	SortIndex  int               `json:"sortIndex"`
+	UserAgent  string            `json:"userAgent,omitempty"`
+	Headers    map[string]string `json:"headers,omitempty"`
+	CacheTtl   int               `json:"cacheTtl,omitempty"`
+}
+
+// ExternalLinkSyncClient is one client's effective links in served order.
+type ExternalLinkSyncClient struct {
+	Email string                       `json:"email"`
+	Links []ExternalLinkSyncAssignment `json:"links"`
+}
+
+// ExternalLinkSyncAssignment is a scope's resolved overrides over a library
+// row; expiry 0 means never, matching what the master would have served.
+type ExternalLinkSyncAssignment struct {
+	Kind       string `json:"kind"`
+	Value      string `json:"value"`
+	Enable     bool   `json:"enable"`
+	ExpiryTime int64  `json:"expiryTime"`
+	Remark     string `json:"remark,omitempty"`
+	NamePrefix string `json:"namePrefix,omitempty"`
+	SortIndex  int    `json:"sortIndex"`
+}
+
 type Runtime interface {
 	Name() string
 
@@ -29,6 +69,11 @@ type Runtime interface {
 	// from one inbound and leaves the node's client record behind. Local has
 	// no client store of its own, so it is a no-op there.
 	DeleteClient(ctx context.Context, email string) error
+
+	// PushExternalLinks hands a Remote the panel's resolved link set so a
+	// subscription served off that node carries the same library. Local is a
+	// no-op: the panel's own store is already the source.
+	PushExternalLinks(ctx context.Context, sync ExternalLinkSync) error
 
 	RestartXray(ctx context.Context) error
 
