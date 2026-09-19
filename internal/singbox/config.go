@@ -175,8 +175,8 @@ func TranslateXrayRouting(raw map[string]any) (map[string]any, error) {
 	if len(rules) > 0 { out["rules"] = rules }
 	if ds := rawString(raw, "domainStrategy"); ds != "" {
 		switch ds {
-		case "AsIs": out["domain_strategy"] = "prefer_ipv4"
-		case "IPIfNonMatch", "IPOnDemand": out["domain_strategy"] = "prefer_ipv4"
+		case "AsIs": out["default_domain_strategy"] = "prefer_ipv4"
+		case "IPIfNonMatch", "IPOnDemand": out["default_domain_strategy"] = "prefer_ipv4"
 		}
 	}
 	return out, nil
@@ -186,20 +186,74 @@ func TranslateXrayDNS(raw map[string]any) (map[string]any, error) {
 	out := map[string]any{}
 	serversRaw, _ := raw["servers"].([]any)
 	servers := make([]map[string]any, 0, len(serversRaw))
-	for _, item := range serversRaw {
+	for i, item := range serversRaw {
+		var addr string
+		var resolver string
 		switch v := item.(type) {
 		case string:
-			if v != "" { servers = append(servers, map[string]any{"address": v}) }
+			addr = strings.TrimSpace(v)
 		case map[string]any:
-			addr := rawString(v, "address")
-			if addr == "" { continue }
-			s := map[string]any{"address": addr}
-			if clientIP := rawString(v, "clientIp"); clientIP != "" { s["address_resolver"] = clientIP }
-			servers = append(servers, s)
+			addr = strings.TrimSpace(rawString(v, "address"))
+			resolver = strings.TrimSpace(rawString(v, "clientIp"))
+		}
+		if addr == "" { continue }
+		server := map[string]any{"tag": fmt.Sprintf("dns-%d", i+1)}
+		if strings.EqualFold(addr, "localhost") || strings.EqualFold(addr, "local") {
+			server["type"] = "local"
+		} else {
+			switch {
+			case strings.HasPrefix(addr, "https://"):
+				server["type"] = "https"
+				if u, err := url.Parse(addr); err == nil {
+					server["server"] = u.Hostname()
+					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 443) } else { server["server_port"] = 443 }
+					server["path"] = u.EscapedPath()
+					if server["path"] == "" { server["path"] = "/dns-query" }
+				}
+			case strings.HasPrefix(addr, "tls://"):
+				server["type"] = "tls"
+				if u, err := url.Parse(addr); err == nil {
+					server["server"] = u.Hostname()
+					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 853) } else { server["server_port"] = 853 }
+				}
+			case strings.HasPrefix(addr, "quic://"):
+				server["type"] = "quic"
+				if u, err := url.Parse(addr); err == nil {
+					server["server"] = u.Hostname()
+					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 853) } else { server["server_port"] = 853 }
+				}
+			default:
+				server["type"] = "udp"
+				if u, err := url.Parse(addr); err == nil && u.Hostname() != "" {
+					server["server"] = u.Hostname()
+					if p := u.Port(); p != "" { server["server_port"] = atoiOr(p, 53) } else { server["server_port"] = 53 }
+				} else {
+					server["server"] = strings.TrimPrefix(addr, "udp://")
+					server["server_port"] = 53
+				}
+			}
+		}
+		if resolver != "" && server["type"] != "local" { server["domain_resolver"] = resolver }
+		servers = append(servers, server)
+	}
+	if len(servers) > 0 {
+		out["servers"] = servers
+		out["final"] = servers[0]["tag"]
+	}
+	if strategy := rawString(raw, "queryStrategy"); strategy != "" {
+		switch strategy {
+		case "UseIPv4": out["strategy"] = "ipv4_only"
+		case "UseIPv6": out["strategy"] = "ipv6_only"
+		case "UseIP", "UseIPV4AndIPv6": out["strategy"] = "prefer_ipv4"
 		}
 	}
-	if len(servers) > 0 { out["servers"] = servers }
 	return out, nil
+}
+
+func atoiOr(value string, fallback int) int {
+	var n int
+	if _, err := fmt.Sscanf(value, "%d", &n); err != nil || n <= 0 { return fallback }
+	return n
 }
 
 func stringSlice(v any) []string {
