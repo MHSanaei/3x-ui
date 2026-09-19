@@ -534,6 +534,43 @@ func TestSubJsonServiceSkipsTUIC(t *testing.T) {
 	}
 }
 
+func TestNativeHysteria2Outbound(t *testing.T) {
+	inbound := &model.Inbound{
+		Listen: "hy2.example.com", Port: 443, Protocol: model.Hysteria,
+		Settings: `{"version":2}`,
+		StreamSettings: `{"network":"hysteria","security":"tls","tlsSettings":{"serverName":"hy2.example.com"},"hysteriaSettings":{"up_mbps":100,"down_mbps":50,"obfs":{"type":"salamander","password":"obfs"}}}`,
+	}
+	client := model.Client{Auth:"secret"}
+	raw := NewSubJsonService("", "", "", "", nil).genNativeHysteria2(inbound, map[string]any{
+		"network":"hysteria","security":"tls","tlsSettings":map[string]any{"serverName":"hy2.example.com"},
+		"hysteriaSettings":map[string]any{"up_mbps":100,"down_mbps":50,"obfs":map[string]any{"type":"salamander","password":"obfs"}},
+	}, client)
+	if raw == nil { t.Fatal("nil native hysteria2 outbound") }
+	var got map[string]any
+	if err := json.Unmarshal(raw, &got); err != nil { t.Fatal(err) }
+	if got["type"] != "hysteria2" || got["server"] != "hy2.example.com" || got["server_port"] != float64(443) || got["password"] != "secret" {
+		t.Fatalf("unexpected hysteria2 outbound: %#v", got)
+	}
+	if got["up_mbps"] != float64(100) || got["down_mbps"] != float64(50) { t.Fatalf("bandwidth lost: %#v", got) }
+}
+
+func TestNativeTUICOutbound(t *testing.T) {
+	inbound := &model.Inbound{Listen:"tuic.example.com", Port:443, Protocol:model.TUIC}
+	client := model.Client{ID:"11111111-1111-1111-1111-111111111111", Password:"secret"}
+	stream := map[string]any{
+		"network":"tcp","security":"tls","tlsSettings":map[string]any{"serverName":"tuic.example.com"},
+	}
+	raw := NewSubJsonService("", "", "", "", nil).genNativeTUIC(inbound, stream, client)
+	if raw == nil { t.Fatal("nil native tuic outbound") }
+	var got map[string]any
+	if err := json.Unmarshal(raw, &got); err != nil { t.Fatal(err) }
+	if got["type"] != "tuic" || got["server"] != "tuic.example.com" || got["uuid"] != client.ID || got["password"] != client.Password {
+		t.Fatalf("unexpected tuic outbound: %#v", got)
+	}
+	tls, _ := got["tls"].(map[string]any)
+	if tls["server_name"] != "tuic.example.com" { t.Fatalf("TLS SNI lost: %#v", tls) }
+}
+
 func TestGetSingBoxJsonEmitsNativeOutbound(t *testing.T) {
 	// Keep this focused on the final native schema: the endpoint must not
 	// expose Xray's protocol/settings shape in the returned document.
