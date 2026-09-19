@@ -25,6 +25,17 @@ func NewConfig() *Config {
 		Inbounds: []map[string]any{},
 		Outbounds: []map[string]any{},
 		Route: map[string]any{"final": "direct"},
+		Experimental: map[string]any{
+			"v2ray_api": map[string]any{
+				"listen": "127.0.0.1:10086",
+				"stats": map[string]any{
+					"enabled": true,
+					"inbounds": []string{},
+					"outbounds": []string{},
+					"users": []string{},
+				},
+			},
+		},
 	}
 }
 
