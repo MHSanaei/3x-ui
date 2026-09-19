@@ -101,6 +101,73 @@ func TranslateXrayOutbound(raw map[string]any) (map[string]any, error) {
 	return out, nil
 }
 
+func TranslateXrayRouting(raw map[string]any) (map[string]any, error) {
+	out := map[string]any{}
+	rulesRaw, _ := raw["rules"].([]any)
+	rules := make([]map[string]any, 0, len(rulesRaw))
+	for _, item := range rulesRaw {
+		xr, ok := item.(map[string]any)
+		if !ok { continue }
+		r := map[string]any{}
+		if tags := stringSlice(xr["inboundTag"]); len(tags) > 0 { r["inbound"] = tags }
+		if domains := stringSlice(xr["domain"]); len(domains) > 0 { r["domain"] = domains }
+		if ips := stringSlice(xr["ip"]); len(ips) > 0 { r["ip_cidr"] = ips }
+		if ports := rawString(xr, "port"); ports != "" { r["port"] = ports }
+		if network := rawString(xr, "network"); network != "" {
+			switch network {
+			case "tcp": r["network"] = "tcp"
+			case "udp": r["network"] = "udp"
+			}
+		}
+		if outbound := rawString(xr, "outboundTag"); outbound != "" { r["outbound"] = outbound }
+		if len(r) > 0 { rules = append(rules, r) }
+	}
+	if len(rules) > 0 { out["rules"] = rules }
+	if ds := rawString(raw, "domainStrategy"); ds != "" {
+		switch ds {
+		case "AsIs": out["domain_strategy"] = "prefer_ipv4"
+		case "IPIfNonMatch", "IPOnDemand": out["domain_strategy"] = "prefer_ipv4"
+		}
+	}
+	return out, nil
+}
+
+func TranslateXrayDNS(raw map[string]any) (map[string]any, error) {
+	out := map[string]any{}
+	serversRaw, _ := raw["servers"].([]any)
+	servers := make([]map[string]any, 0, len(serversRaw))
+	for _, item := range serversRaw {
+		switch v := item.(type) {
+		case string:
+			if v != "" { servers = append(servers, map[string]any{"address": v}) }
+		case map[string]any:
+			addr := rawString(v, "address")
+			if addr == "" { continue }
+			s := map[string]any{"address": addr}
+			if clientIP := rawString(v, "clientIp"); clientIP != "" { s["address_resolver"] = clientIP }
+			servers = append(servers, s)
+		}
+	}
+	if len(servers) > 0 { out["servers"] = servers }
+	return out, nil
+}
+
+func stringSlice(v any) []string {
+	switch values := v.(type) {
+	case []any:
+		out := make([]string, 0, len(values))
+		for _, value := range values {
+			if s, ok := value.(string); ok && s != "" { out = append(out, s) }
+		}
+		return out
+	case []string:
+		return values
+	case string:
+		if value := strings.TrimSpace(values); value != "" { return []string{value} }
+	}
+	return nil
+}
+
 func TranslateXrayInbound(raw map[string]any) (map[string]any, error) {
 	protocol, _ := raw["protocol"].(string)
 	protocol = strings.ToLower(strings.TrimSpace(protocol))
