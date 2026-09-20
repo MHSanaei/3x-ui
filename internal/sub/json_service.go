@@ -875,7 +875,6 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 			applyExternalProxyTLSToStream(extPrxy, newStream, security)
 		}
 		applyHostStreamOverrides(extPrxy, newStream)
-		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
 		hostMux := hostMuxOverride(extPrxy)
 
 		var newOutbounds []json_util.RawMessage
@@ -1194,6 +1193,71 @@ func (s *SubJsonService) genServer(subReq *SubService, inbound *model.Inbound, s
 	}
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
+	return result
+}
+
+func nativeVMessOutbound(inbound *model.Inbound, stream map[string]any, client model.Client) json_util.RawMessage {
+	out := map[string]any{
+		"type": "vmess",
+		"tag": "proxy",
+		"server": inbound.Listen,
+		"server_port": inbound.Port,
+		"uuid": client.ID,
+	}
+	if security := normalizeVmessSecurity(client.Security); security != "" {
+		out["security"] = security
+	}
+	for key, value := range nativeTLSAndTransport(stream) {
+		out[key] = value
+	}
+	result, _ := json.MarshalIndent(out, "", "  ")
+	return result
+}
+
+func nativeVLESSOutbound(inbound *model.Inbound, stream map[string]any, client model.Client, subReq *SubService) json_util.RawMessage {
+	out := map[string]any{
+		"type": "vless",
+		"tag": "proxy",
+		"server": inbound.Listen,
+		"server_port": inbound.Port,
+		"uuid": client.ID,
+	}
+	if client.Flow != "" && !inbound.DisableFlow {
+		out["flow"] = client.Flow
+	}
+	for key, value := range nativeTLSAndTransport(stream) {
+		out[key] = value
+	}
+	_ = subReq
+	result, _ := json.MarshalIndent(out, "", "  ")
+	return result
+}
+
+func nativeServerOutbound(inbound *model.Inbound, stream map[string]any, client model.Client, subReq *SubService) json_util.RawMessage {
+	protocol := strings.ToLower(string(inbound.Protocol))
+	out := map[string]any{
+		"type": protocol,
+		"tag": "proxy",
+		"server": inbound.Listen,
+		"server_port": inbound.Port,
+	}
+	if protocol == "trojan" {
+		out["password"] = client.Password
+	} else if protocol == "shadowsocks" {
+		settings := subReq.linkSettings(inbound)
+		method, _ := settings["method"].(string)
+		out["method"] = method
+		out["password"] = client.Password
+		if strings.HasPrefix(method, "2022") {
+			if serverPassword, ok := settings["password"].(string); ok && serverPassword != "" {
+				out["password"] = fmt.Sprintf("%s:%s", serverPassword, client.Password)
+			}
+		}
+	}
+	for key, value := range nativeTLSAndTransport(stream) {
+		out[key] = value
+	}
+	result, _ := json.MarshalIndent(out, "", "  ")
 	return result
 }
 
