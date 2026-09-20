@@ -3,27 +3,215 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
+	"net"
 	"os"
-	"strconv"
+	"sort"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-var singBoxProcess = singbox.NewProcess()
+var (
+	singBoxInboundService InboundService
+	singBoxSettingService SettingService
+	singBoxProcess = singbox.NewProcess(singbox.GetConfigPath())
+)
 
-type SingBoxService struct {
-	settingService SettingService
-	xrayService    XrayService
+// SetSingBoxDependencies wires the panel services used by the sing-box
+// config generator. It mirrors the existing Xray service lifecycle wiring.
+func SetSingBoxDependencies(inbound *InboundService, settings *SettingService) {
+	if inbound != nil {
+		singBoxInboundService = *inbound
+	}
+	if settings != nil {
+		singBoxSettingService = *settings
+	}
 }
 
-func NewSingBoxService(settingService SettingService, xrayService XrayService) *SingBoxService {
-	return &SingBoxService{settingService: settingService, xrayService: xrayService}
+type SingBoxService struct{}
+
+type singBoxConnectionTrafficState struct {
+	Uplink   int64
+	Downlink int64
+}
+
+var (
+	singBoxTrafficMu    sync.Mutex
+	singBoxTrafficState = make(map[string]singBoxConnectionTrafficState)
+)
+
+func (s *SingBoxService) GetConfig() (*singbox.Config, error) {
+	inbounds, err := singBoxInboundService.GetAllInbounds()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := singbox.NewConfig()
+
+	if template, err := singBoxSettingService.GetXrayConfigTemplate(); err == nil {
+		var xrayCfg map[string]any
+		if json.Unmarshal([]byte(template), &xrayCfg) == nil {
+			if rawDNS, ok := xrayCfg["dns"].(map[string]any); ok && len(rawDNS) > 0 {
+				if dns, err := singbox.TranslateXrayDNS(rawDNS); err == nil && len(dns) > 0 {
+					cfg.DNS = dns
+				}
+			}
+			if rawRouting, ok := xrayCfg["routing"].(map[string]any); ok && len(rawRouting) > 0 {
+				if route, err := singbox.TranslateXrayRouting(rawRouting); err != nil {
+					return nil, err
+				} else if len(route) > 0 {
+					cfg.Route = route
+				}
+			}
+			if rawOutbounds, ok := xrayCfg["outbounds"].([]any); ok {
+				for _, raw := range rawOutbounds {
+					ob, ok := raw.(map[string]any)
+					if !ok { continue }
+					translated, err := singbox.TranslateXrayOutbound(ob)
+					if err != nil {
+						return nil, err
+					}
+					cfg.Outbounds = append(cfg.Outbounds, translated)
+				}
+			}
+		}
+	}
+
+	hasDirect, hasBlocked := false, false
+	for _, outbound := range cfg.Outbounds {
+		tag, _ := outbound["tag"].(string)
+		switch tag {
+		case "direct":
+			hasDirect = true
+		case "blocked":
+			hasBlocked = true
+		}
+	}
+	if !hasDirect {
+		cfg.Outbounds = append(cfg.Outbounds, map[string]any{"type": "direct", "tag": "direct"})
+	}
+	if !hasBlocked {
+		cfg.Outbounds = append(cfg.Outbounds, map[string]any{"type": "block", "tag": "blocked"})
+	}
+
+	var unsupported []string
+	for _, inbound := range inbounds {
+		if inbound == nil || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		rawBytes, err := json.Marshal(inbound)
+		if err != nil {
+			return nil, err
+		}
+		var raw map[string]any
+		if err := json.Unmarshal(rawBytes, &raw); err != nil {
+			return nil, err
+		}
+		dbClients, listErr := singBoxInboundService.clientService.ListForInbound(nil, inbound.Id)
+		if listErr != nil {
+			return nil, listErr
+		}
+
+		enableMap := make(map[string]bool, len(inbound.ClientStats))
+		for _, stat := range inbound.ClientStats {
+			enableMap[stat.Email] = stat.Enable
+		}
+
+		clients := make([]any, 0, len(dbClients))
+		for _, client := range dbClients {
+			if enabled, exists := enableMap[client.Email]; exists && !enabled {
+				continue
+			}
+			if !client.Enable {
+				continue
+			}
+			entry := map[string]any{"email": client.Email}
+			switch inbound.Protocol {
+			case model.VLESS:
+				if client.ID != "" { entry["id"] = client.ID }
+				if client.Flow != "" && !inbound.DisableFlow { entry["flow"] = client.Flow }
+			case model.VMESS:
+				if client.ID != "" { entry["id"] = client.ID }
+				if client.Security != "" { entry["security"] = client.Security }
+			case model.Trojan:
+				if client.Password != "" { entry["password"] = client.Password }
+				if client.Flow != "" && !inbound.DisableFlow { entry["flow"] = client.Flow }
+			case model.Shadowsocks:
+				if client.Password != "" { entry["password"] = client.Password }
+			case model.Hysteria:
+				if client.Auth != "" { entry["auth"] = client.Auth }
+			case model.TUIC:
+				if client.ID != "" { entry["uuid"] = client.ID }
+				if client.Password != "" { entry["password"] = client.Password }
+			}
+			clients = append(clients, entry)
+		}
+		settings, _ := raw["settings"].(map[string]any)
+		if settings == nil {
+			settings = map[string]any{}
+		}
+		settings["clients"] = clients
+		raw["settings"] = settings
+
+		translated, err := singbox.TranslateXrayInbound(raw)
+		if err != nil {
+			unsupported = append(unsupported, fmt.Sprintf("%s: %v", inbound.Tag, err))
+			continue
+		}
+		cfg.Inbounds = append(cfg.Inbounds, translated)
+	}
+	if len(unsupported) > 0 {
+		return nil, fmt.Errorf("sing-box cannot represent enabled inbounds: %s", strings.Join(unsupported, "; "))
+	}
+	return cfg, nil
+}
+
+func (s *SingBoxService) WriteConfig() error {
+	cfg, err := s.GetConfig()
+	if err != nil {
+		return err
+	}
+	data, err := cfg.Marshal()
+	if err != nil {
+		return err
+	}
+	path := singbox.GetConfigPath()
+	if err := os.MkdirAll(singBoxConfigDir(), 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0600)
+}
+
+func singBoxConfigDir() string {
+	path := singbox.GetConfigPath()
+	for i := len(path) - 1; i >= 0; i-- {
+		if path[i] == '/' || path[i] == '\\' {
+			return path[:i]
+		}
+	}
+	return "."
+}
+
+func (s *SingBoxService) Restart(ctx context.Context) error {
+	if err := s.WriteConfig(); err != nil {
+		return err
+	}
+	return singBoxProcess.Restart(ctx)
+}
+
+func (s *SingBoxService) Start(ctx context.Context) error {
+	if err := s.WriteConfig(); err != nil {
+		return err
+	}
+	return singBoxProcess.Start(ctx)
+}
+
+func (s *SingBoxService) Stop(ctx context.Context) error {
+	return singBoxProcess.Stop()
 }
 
 func (s *SingBoxService) IsRunning() bool {
@@ -64,259 +252,154 @@ func (s *SingBoxService) OnlineClientIPs(ctx context.Context) (map[string]map[st
 		if connection == nil || connection.User == "" || connection.Source == "" {
 			continue
 		}
-		if _, ok := online[connection.User]; !ok {
+		ip := connection.Source
+		if host, _, splitErr := net.SplitHostPort(ip); splitErr == nil {
+			ip = host
+		}
+		if ip == "" {
+			continue
+		}
+		if online[connection.User] == nil {
 			online[connection.User] = make(map[string]struct{})
 		}
-		online[connection.User][connection.Source] = struct{}{}
+		online[connection.User][ip] = struct{}{}
 	}
 	return online, nil
 }
 
-func (s *SingBoxService) GetConnectionStats(ctx context.Context) (map[string]any, error) {
+func (s *SingBoxService) DisconnectClientIPs(ctx context.Context, email string, ips []string) error {
+	if email == "" || len(ips) == 0 {
+		return nil
+	}
 	api := singbox.NewConnectionAPIClient()
 	defer api.Close()
 	connections, err := api.Snapshot(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return map[string]any{"connections": connections}, nil
-}
-
-func (s *SingBoxService) Close() error {
-	return singBoxProcess.Close()
-}
-
-func (s *SingBoxService) Restart(ctx context.Context) error {
-	return singBoxProcess.Restart(ctx)
-}
-
-func (s *SingBoxService) Start(ctx context.Context) error {
-	return singBoxProcess.Start(ctx)
-}
-
-func (s *SingBoxService) Stop() error {
-	return singBoxProcess.Stop()
-}
-
-func (s *SingBoxService) GetProcessInfo() map[string]any {
-	return singBoxProcess.GetProcessInfo()
-}
-
-func (s *SingBoxService) GetConfig(ctx context.Context) (map[string]any, error) {
-	return singBoxProcess.GetConfig(ctx)
-}
-
-func (s *SingBoxService) GenerateConfig(ctx context.Context) error {
-	return singBoxProcess.GenerateConfig(ctx)
-}
-
-func (s *SingBoxService) GetLog(ctx context.Context) (string, error) {
-	return singBoxProcess.GetLog(ctx)
-}
-
-func (s *SingBoxService) SetLogLevel(level string) error {
-	return singBoxProcess.SetLogLevel(level)
-}
-
-func (s *SingBoxService) GetStatus(ctx context.Context) (map[string]any, error) {
-	return singBoxProcess.GetStatus(ctx)
-}
-
-func (s *SingBoxService) TestConfig(ctx context.Context, config string) error {
-	return singBoxProcess.TestConfig(ctx, config)
-}
-
-func (s *SingBoxService) GetMetrics(ctx context.Context) (map[string]any, error) {
-	return singBoxProcess.GetMetrics(ctx)
-}
-
-func (s *SingBoxService) GetMemory(ctx context.Context) (map[string]any, error) {
-	return singBoxProcess.GetMemory(ctx)
-}
-
-func (s *SingBoxService) GetConnections(ctx context.Context) ([]singbox.ClashConnection, error) {
-	return singbox.NewClashStatsClient().Connections(ctx)
-}
-
-func (s *SingBoxService) GetConnection(ctx context.Context, id string) (singbox.ClashConnection, error) {
-	return singbox.NewClashStatsClient().Connection(ctx, id)
-}
-
-func (s *SingBoxService) CloseConnection(ctx context.Context, id string) error {
-	return singbox.NewClashStatsClient().CloseConnection(ctx, id)
-}
-
-func (s *SingBoxService) getXraySettings() (*model.XraySetting, error) {
-	setting, err := s.settingService.GetXraySetting()
-	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, errors.New("xray setting is nil")
-	}
-	return setting, nil
-}
-
-func (s *SingBoxService) GenerateXrayConfig(ctx context.Context) (string, error) {
-	_ = ctx
-	setting, err := s.getXraySettings()
-	if err != nil {
-		return "", err
-	}
-	config := singbox.NewConfig()
-	if setting.Log != "" {
-		config.Log = map[string]any{"level": setting.Log}
-	}
-	if setting.Dns != "" {
-		var dns map[string]any
-		if err := json.Unmarshal([]byte(setting.Dns), &dns); err != nil {
-			return "", fmt.Errorf("parse DNS: %w", err)
+	wanted := make(map[string]struct{}, len(ips))
+	for _, ip := range ips {
+		if ip != "" {
+			wanted[ip] = struct{}{}
 		}
-		translated, err := singbox.TranslateXrayDNS(dns)
-		if err != nil {
-			return "", err
+	}
+	for _, connection := range connections {
+		if connection == nil || connection.User != email || connection.Source == "" {
+			continue
 		}
-		config.DNS = translated
-	}
-	if setting.Routing != "" {
-		var routing map[string]any
-		if err := json.Unmarshal([]byte(setting.Routing), &routing); err != nil {
-			return "", fmt.Errorf("parse routing: %w", err)
+		ip := connection.Source
+		if host, _, splitErr := net.SplitHostPort(ip); splitErr == nil {
+			ip = host
 		}
-		translated, err := singbox.TranslateXrayRouting(routing)
-		if err != nil {
-			return "", err
+		if _, ok := wanted[ip]; !ok {
+			continue
 		}
-		config.Route = translated
-	}
-	if setting.Api != "" {
-		var api map[string]any
-		if err := json.Unmarshal([]byte(setting.Api), &api); err != nil {
-			return "", fmt.Errorf("parse API: %w", err)
-		}
-		config.Experimental = api
-	}
-	return config.Marshal()
-}
-
-func (s *SingBoxService) GenerateInboundConfig(inbound *model.XrayInbound) (map[string]any, error) {
-	if inbound == nil {
-		return nil, errors.New("inbound is nil")
-	}
-	return singbox.TranslateXrayInbound(inbound)
-}
-
-func (s *SingBoxService) GenerateOutboundConfig(outbound *model.XrayOutbound) (map[string]any, error) {
-	if outbound == nil {
-		return nil, errors.New("outbound is nil")
-	}
-	return singbox.TranslateXrayOutbound(outbound)
-}
-
-func (s *SingBoxService) GenerateConfigForInbound(ctx context.Context, inbound *model.XrayInbound) (string, error) {
-	_ = ctx
-	config := singbox.NewConfig()
-	translated, err := s.GenerateInboundConfig(inbound)
-	if err != nil {
-		return "", err
-	}
-	config.Inbounds = []map[string]any{translated}
-	return config.Marshal()
-}
-
-func (s *SingBoxService) GenerateConfigForOutbound(ctx context.Context, outbound *model.XrayOutbound) (string, error) {
-	_ = ctx
-	config := singbox.NewConfig()
-	translated, err := s.GenerateOutboundConfig(outbound)
-	if err != nil {
-		return "", err
-	}
-	config.Outbounds = append(config.Outbounds, translated)
-	return config.Marshal()
-}
-
-func (s *SingBoxService) UpdateConnectionStats(ctx context.Context) error {
-	_, err := s.GetConnections(ctx)
-	return err
-}
-
-func (s *SingBoxService) HealthCheck(ctx context.Context) error {
-	if !s.IsRunning() {
-		return errors.New("sing-box is not running")
-	}
-	_, err := s.Version(ctx)
-	return err
-}
-
-func (s *SingBoxService) Reload(ctx context.Context) error {
-	return s.Restart(ctx)
-}
-
-func (s *SingBoxService) ListenPort() int {
-	return singBoxProcess.ListenPort()
-}
-
-func (s *SingBoxService) APIAddress() string {
-	return singBoxProcess.APIAddress()
-}
-
-func (s *SingBoxService) SetAPIAddress(address string) error {
-	return singBoxProcess.SetAPIAddress(address)
-}
-
-func (s *SingBoxService) SetListenPort(port int) error {
-	return singBoxProcess.SetListenPort(port)
-}
-
-func (s *SingBoxService) SetBinaryPath(path string) error {
-	return singBoxProcess.SetBinaryPath(path)
-}
-
-func (s *SingBoxService) BinaryPath() string {
-	return singBoxProcess.BinaryPath()
-}
-
-func (s *SingBoxService) IsInstalled() bool {
-	return singBoxProcess.IsInstalled()
-}
-
-func (s *SingBoxService) Install(ctx context.Context) error {
-	return singBoxProcess.Install(ctx)
-}
-
-func (s *SingBoxService) Uninstall(ctx context.Context) error {
-	return singBoxProcess.Uninstall(ctx)
-}
-
-func (s *SingBoxService) Upgrade(ctx context.Context) error {
-	return singBoxProcess.Upgrade(ctx)
-}
-
-func (s *SingBoxService) HTTPClient() *http.Client {
-	return &http.Client{Timeout: 10 * time.Second}
-}
-
-func (s *SingBoxService) SetEnvironment(env map[string]string) error {
-	for key, value := range env {
-		if err := os.Setenv(key, value); err != nil {
+		if err := api.CloseConnection(ctx, connection.ID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *SingBoxService) GetEnvironment(keys []string) map[string]string {
-	result := make(map[string]string, len(keys))
-	for _, key := range keys {
-		result[key] = os.Getenv(key)
+func (s *SingBoxService) PollTraffic(ctx context.Context) error {
+	api := singbox.NewConnectionAPIClient()
+	defer api.Close()
+	connections, err := api.Snapshot(ctx)
+	if err != nil {
+		return err
 	}
-	return result
+
+	inboundDeltas := make(map[string]*xray.Traffic)
+	clientDeltas := make(map[string]*xray.ClientTraffic)
+	onlineEmails := make(map[string]struct{})
+	currentIDs := make(map[string]struct{}, len(connections))
+
+	singBoxTrafficMu.Lock()
+	for _, connection := range connections {
+		if connection == nil || connection.ID == "" {
+			continue
+		}
+		currentIDs[connection.ID] = struct{}{}
+		previous, existed := singBoxTrafficState[connection.ID]
+		uplinkDelta := connection.Uplink
+		downlinkDelta := connection.Downlink
+		if existed {
+			uplinkDelta -= previous.Uplink
+			downlinkDelta -= previous.Downlink
+			if uplinkDelta < 0 {
+				uplinkDelta = connection.Uplink
+			}
+			if downlinkDelta < 0 {
+				downlinkDelta = connection.Downlink
+			}
+		}
+		singBoxTrafficState[connection.ID] = singBoxConnectionTrafficState{Uplink: connection.Uplink, Downlink: connection.Downlink}
+
+		if connection.User != "" {
+			onlineEmails[connection.User] = struct{}{}
+		}
+		if uplinkDelta == 0 && downlinkDelta == 0 {
+			continue
+		}
+		if connection.Inbound != "" {
+			traffic := inboundDeltas[connection.Inbound]
+			if traffic == nil {
+				traffic = &xray.Traffic{Tag: connection.Inbound, IsInbound: true}
+				inboundDeltas[connection.Inbound] = traffic
+			}
+			traffic.Up += uplinkDelta
+			traffic.Down += downlinkDelta
+		}
+		if connection.User != "" {
+			traffic := clientDeltas[connection.User]
+			if traffic == nil {
+				traffic = &xray.ClientTraffic{Email: connection.User}
+				clientDeltas[connection.User] = traffic
+			}
+			traffic.Up += uplinkDelta
+			traffic.Down += downlinkDelta
+		}
+	}
+	for id := range singBoxTrafficState {
+		if _, active := currentIDs[id]; !active {
+			delete(singBoxTrafficState, id)
+		}
+	}
+	singBoxTrafficMu.Unlock()
+
+	inboundTraffic := make([]*xray.Traffic, 0, len(inboundDeltas))
+	for _, traffic := range inboundDeltas {
+		inboundTraffic = append(inboundTraffic, traffic)
+	}
+	clientTraffic := make([]*xray.ClientTraffic, 0, len(clientDeltas))
+	for _, traffic := range clientDeltas {
+		clientTraffic = append(clientTraffic, traffic)
+	}
+	if len(inboundTraffic) > 0 || len(clientTraffic) > 0 {
+		if _, _, err = singBoxInboundService.AddTraffic(inboundTraffic, clientTraffic); err != nil {
+			return err
+		}
+	}
+
+	emails := make([]string, 0, len(onlineEmails))
+	for email := range onlineEmails {
+		emails = append(emails, email)
+	}
+	sort.Strings(emails)
+	if len(emails) > 0 {
+		return singBoxInboundService.BumpClientsLastOnline(emails)
+	}
+	return nil
 }
 
-func (s *SingBoxService) ParsePort(value string) int {
-	port, err := strconv.Atoi(strings.TrimSpace(value))
-	if err != nil {
-		return 0
-	}
-	return port
+func (s *SingBoxService) InstallLatest(ctx context.Context) (string, error) {
+	return singbox.InstallLatest(ctx)
+}
+
+func (s *SingBoxService) BinaryPath() string {
+	return singbox.GetBinaryPath()
+}
+
+func (s *SingBoxService) ProcessConfigPath() string {
+	return singbox.GetConfigPath()
 }
