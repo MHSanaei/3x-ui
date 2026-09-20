@@ -2,19 +2,17 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/singbox"
-	"github.com/mhsanaei/3x-ui/v3/internal/util"
-	"github.com/mhsanaei/3x-ui/v3/model"
 )
 
 var singBoxProcess = singbox.NewProcess()
@@ -160,6 +158,7 @@ func (s *SingBoxService) getXraySettings() (*model.XraySetting, error) {
 }
 
 func (s *SingBoxService) GenerateXrayConfig(ctx context.Context) (string, error) {
+	_ = ctx
 	setting, err := s.getXraySettings()
 	if err != nil {
 		return "", err
@@ -170,7 +169,7 @@ func (s *SingBoxService) GenerateXrayConfig(ctx context.Context) (string, error)
 	}
 	if setting.Dns != "" {
 		var dns map[string]any
-		if err := util.UnmarshalJSON([]byte(setting.Dns), &dns); err != nil {
+		if err := json.Unmarshal([]byte(setting.Dns), &dns); err != nil {
 			return "", fmt.Errorf("parse DNS: %w", err)
 		}
 		translated, err := singbox.TranslateXrayDNS(dns)
@@ -181,7 +180,7 @@ func (s *SingBoxService) GenerateXrayConfig(ctx context.Context) (string, error)
 	}
 	if setting.Routing != "" {
 		var routing map[string]any
-		if err := util.UnmarshalJSON([]byte(setting.Routing), &routing); err != nil {
+		if err := json.Unmarshal([]byte(setting.Routing), &routing); err != nil {
 			return "", fmt.Errorf("parse routing: %w", err)
 		}
 		translated, err := singbox.TranslateXrayRouting(routing)
@@ -192,7 +191,7 @@ func (s *SingBoxService) GenerateXrayConfig(ctx context.Context) (string, error)
 	}
 	if setting.Api != "" {
 		var api map[string]any
-		if err := util.UnmarshalJSON([]byte(setting.Api), &api); err != nil {
+		if err := json.Unmarshal([]byte(setting.Api), &api); err != nil {
 			return "", fmt.Errorf("parse API: %w", err)
 		}
 		config.Experimental = api
@@ -321,6 +320,3 @@ func (s *SingBoxService) ParsePort(value string) int {
 	}
 	return port
 }
-
-var _ = sync.Mutex{}
-var _ = logger.GetLogger("singbox")
