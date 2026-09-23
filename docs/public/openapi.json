@@ -288,6 +288,9 @@
           "subHappFallbackUrl": {
             "type": "string"
           },
+          "subHappLocalProxyAuth": {
+            "type": "string"
+          },
           "subHappNewUrl": {
             "type": "string"
           },
@@ -586,6 +589,7 @@
           "subHappExcludeApns",
           "subHappExcludeRoutes",
           "subHappFallbackUrl",
+          "subHappLocalProxyAuth",
           "subHappNewUrl",
           "subHappNoLimit",
           "subHappNotificationExpire",
@@ -943,6 +947,9 @@
           "subHappFallbackUrl": {
             "type": "string"
           },
+          "subHappLocalProxyAuth": {
+            "type": "string"
+          },
           "subHappNewUrl": {
             "type": "string"
           },
@@ -1249,6 +1256,7 @@
           "subHappExcludeApns",
           "subHappExcludeRoutes",
           "subHappFallbackUrl",
+          "subHappLocalProxyAuth",
           "subHappNewUrl",
           "subHappNoLimit",
           "subHappNotificationExpire",

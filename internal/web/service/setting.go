@@ -137,6 +137,7 @@ var defaultValueMap = map[string]string{
 	"subHappAutoConnectType":      "lowestdelay",
 	"subHappPerAppMode":           "off",
 	"subHappPerAppList":           "",
+	"subHappLocalProxyAuth":       "auto",
 	"subIncyEnableRouting":        "false",
 	"subIncyRoutingRules":         "",
 	"subListen":                   "",
@@ -997,6 +998,10 @@ func (s *SettingService) GetSubHappPerAppMode() (string, error) {
 
 func (s *SettingService) GetSubHappPerAppList() (string, error) {
 	return s.getString("subHappPerAppList")
+}
+
+func (s *SettingService) GetSubHappLocalProxyAuth() (string, error) {
+	return s.getString("subHappLocalProxyAuth")
 }
 
 func (s *SettingService) GetSubIncyEnableRouting() (bool, error) {

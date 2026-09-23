@@ -384,6 +384,23 @@ export default function HappSettingsContent({
 
                 <SettingListItem
                   paddings="small"
+                  title={t('pages.settings.subHappLocalProxyAuth')}
+                  description={t('pages.settings.subHappLocalProxyAuthDesc')}
+                >
+                  <Select
+                    value={allSetting.subHappLocalProxyAuth ?? 'auto'}
+                    style={{ width: '100%' }}
+                    onChange={(v) => updateSetting({ subHappLocalProxyAuth: v })}
+                    options={[
+                      { value: 'auto', label: t('pages.settings.subHappLocalProxyAuthAuto') },
+                      { value: 'disable', label: t('pages.settings.subHappLocalProxyAuthDisable') },
+                      { value: '', label: t('pages.settings.subHappLocalProxyAuthUnset') },
+                    ]}
+                  />
+                </SettingListItem>
+
+                <SettingListItem
+                  paddings="small"
                   title={t('pages.settings.subHappAutoConnect')}
                   description={t('pages.settings.subHappAutoConnectDesc')}
                 >

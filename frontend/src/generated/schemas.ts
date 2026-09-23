@@ -262,6 +262,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappFallbackUrl": {
         "type": "string"
       },
+      "subHappLocalProxyAuth": {
+        "type": "string"
+      },
       "subHappNewUrl": {
         "type": "string"
       },
@@ -560,6 +563,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappExcludeApns",
       "subHappExcludeRoutes",
       "subHappFallbackUrl",
+      "subHappLocalProxyAuth",
       "subHappNewUrl",
       "subHappNoLimit",
       "subHappNotificationExpire",
@@ -917,6 +921,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappFallbackUrl": {
         "type": "string"
       },
+      "subHappLocalProxyAuth": {
+        "type": "string"
+      },
       "subHappNewUrl": {
         "type": "string"
       },
@@ -1223,6 +1230,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappExcludeApns",
       "subHappExcludeRoutes",
       "subHappFallbackUrl",
+      "subHappLocalProxyAuth",
       "subHappNewUrl",
       "subHappNoLimit",
       "subHappNotificationExpire",

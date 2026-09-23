@@ -109,6 +109,7 @@ export const AllSettingSchema = z
     subHappAutoConnectType: z.string().optional(),
     subHappPerAppMode: z.string().optional(),
     subHappPerAppList: z.string().optional(),
+    subHappLocalProxyAuth: z.string().optional(),
     timeLocation: z.string().optional(),
     ldapEnable: z.boolean().optional(),
     ldapHost: z.string().optional(),

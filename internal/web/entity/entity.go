@@ -153,6 +153,7 @@ type AllSetting struct {
 	SubHappAutoConnectType     string `json:"subHappAutoConnectType" form:"subHappAutoConnectType"`
 	SubHappPerAppMode          string `json:"subHappPerAppMode" form:"subHappPerAppMode"`
 	SubHappPerAppList          string `json:"subHappPerAppList" form:"subHappPerAppList"`
+	SubHappLocalProxyAuth      string `json:"subHappLocalProxyAuth" form:"subHappLocalProxyAuth"`
 
 	LdapEnable             bool   `json:"ldapEnable" form:"ldapEnable"`
 	LdapHost               string `json:"ldapHost" form:"ldapHost"`

@@ -253,6 +253,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	happCfg.AutoConnectType, _ = s.settingService.GetSubHappAutoConnectType()
 	happCfg.PerAppMode, _ = s.settingService.GetSubHappPerAppMode()
 	happCfg.PerAppList, _ = s.settingService.GetSubHappPerAppList()
+	happCfg.LocalProxyAuth, _ = s.settingService.GetSubHappLocalProxyAuth()
 
 	// set per-request localizer from headers/cookies
 	engine.Use(locale.LocalizerMiddleware())
