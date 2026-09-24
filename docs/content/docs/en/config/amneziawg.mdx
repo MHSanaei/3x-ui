@@ -43,10 +43,10 @@ value defeats the point, since DPI can fingerprint it over time.
 | ------------ | ---------------------------------------------------------------------------- |
 | **Jc**       | Number of junk packets sent before the handshake.                            |
 | **Jmin/Jmax** | Size range (bytes) for those junk packets. `Jmin` must not exceed `Jmax`.     |
-| **S1/S2**    | Padding added to the handshake init/response packets. `S1 + 56` must not equal `S2` — amneziawg-go rejects a value that would make both packets the same size. |
-| **S3**       | Cookie-reply padding, `0`-`64`.                                               |
+| **S1/S2**    | Padding added to the handshake init/response packets, `0`-`1552` / `0`-`1608`: the packets are `148 + S1` and `92 + S2` bytes and must fit the 1700-byte receive buffer amneziawg-go uses on iOS. The panel also rejects `S1 + 56 = S2`, which would give both packets the same size on the wire (amneziawg-go itself accepts it). |
+| **S3**       | Cookie-reply padding, `0`-`1636`: the reply is `64 + S3` bytes and must fit the 1700-byte receive buffer amneziawg-go uses on iOS. |
 | **S4**       | Transport (data) packet padding, `0`-`32`.                                    |
-| **H1-H4**    | Magic header values that replace WireGuard's standard message-type bytes. Each is a single integer or a `low-high` range; `1`-`4` are reserved (real WireGuard message types) and must not be used. |
+| **H1-H4**    | Header values that replace WireGuard's message-type field. Each is a single integer or a `low-high` range, and the four must not overlap — amneziawg-go and the kernel module refuse the whole device otherwise. `1`-`4` are WireGuard's own types and the engine default for a blank field: valid, but without a HeaderProtectionKey the type field then reads like plain WireGuard. |
 | **I1-I5**    | Optional signature packets — random bytes prepended before the handshake, e.g. `<r 148>`. Generated sets fill `I1` only, matching Amnezia's own generator. |
 | **HeaderProtectionKey** | A base64 32-byte key for the 3.0 header-protection mechanism. Must match on every client config; blank disables it. |
 | **ContentPaddingAddition** | A single integer or `low-high` byte range of extra padding on content packets. Kept `<= 64` by the generator so a 1420-MTU tunnel doesn't fragment. |

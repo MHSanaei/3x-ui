@@ -584,6 +584,17 @@ func TestValidatedObfuscationAlwaysApplies(t *testing.T) {
 		{"I1 chained tags", func(o *amneziawg.Obfuscation31) { o.I1 = "<b ff00><r 10>" }},
 		{"I1 valueless tag", func(o *amneziawg.Obfuscation31) { o.I1 = "<t><rc 5>" }},
 		{"I1 no tags at all", func(o *amneziawg.Obfuscation31) { o.I1 = "plain text" }},
+		{"H ranges overlap", func(o *amneziawg.Obfuscation31) { o.H1, o.H2 = "100-200", "150-300" }},
+		{"H1 equals the blank H3 default", func(o *amneziawg.Obfuscation31) { o.H1 = "3" }},
+		{"H1-H4 = WireGuard's 1-4", func(o *amneziawg.Obfuscation31) { o.H1, o.H2, o.H3, o.H4 = "1", "2", "3", "4" }},
+		// Separate cases: 1552+56 == 1608, so both maxima together trip the S1/S2 size rule.
+		{"S1 and S3 at the 1700-byte bound", func(o *amneziawg.Obfuscation31) { o.S1, o.S3 = 1552, 1636 }},
+		{"S2 at the 1700-byte bound", func(o *amneziawg.Obfuscation31) { o.S2 = 1608 }},
+		{"Amnezia Premium set", func(o *amneziawg.Obfuscation31) {
+			o.S1, o.S2, o.S3, o.S4 = 284, 659, 1045, 12
+			o.H1, o.H2, o.H3, o.H4 = "1", "2", "3", "4"
+			o.HeaderProtectionKey = "A2lG0Jm3m8u1WJt0qg3d7V6Qx8cFvH9pL1nR4sT6yZ0="
+		}},
 	}
 
 	for i, tc := range cases {

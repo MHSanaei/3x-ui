@@ -33,27 +33,27 @@ describe('AmneziawgServerSchema cleared numeric fields', () => {
   });
 });
 
-// The form must reject what amneziawg-go's UAPI parsers reject (device/uapi.go:
-// jc/jmin/jmax uint32, s1-s4 uint16), or the save silently outlives the apply.
+// The form must reject what cannot apply or be received: jc/jmin/jmax past uint32 (device/uapi.go),
+// S1-S3 past amneziawg-go's 1700-byte iOS receive buffer, S4 past 32 (MTU headroom).
 describe('AmneziawgServerSchema obfuscation bounds', () => {
   const overWidth: Array<[string, number]> = [
-    ['s1', 65536],
-    ['s2', 70000],
-    ['s3', 65],
+    ['s1', 1553],
+    ['s2', 1609],
+    ['s3', 1637],
     ['s4', 33],
     ['jc', 4294967296],
     ['jmin', 4294967296],
     ['jmax', 5000000000],
   ];
 
-  it.each(overWidth)('rejects %s above the width amneziawg-go parses', (field, value) => {
+  it.each(overWidth)('rejects %s past what amneziawg-go can apply or receive', (field, value) => {
     expect(AmneziawgServerSchema.safeParse({ [field]: value }).success).toBe(false);
   });
 
   const atLimit: Array<[string, number]> = [
-    ['s1', 65535],
-    ['s2', 65535],
-    ['s3', 64],
+    ['s1', 1552],
+    ['s2', 1608],
+    ['s3', 1636],
     ['s4', 32],
     ['jc', 4294967295],
   ];
