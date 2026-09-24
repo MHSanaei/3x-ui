@@ -12,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/traffic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -482,7 +483,15 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// origin (an inbound the node forwards from its own sub-node) is kept as-is,
 	// so a chained Node1->Node2->Node3 still attributes Node3's inbounds to Node3.
 	var nodeRow model.Node
-	db.Select("guid", "config_dirty", "inbound_sync_mode", "inbound_tags").Where("id = ?", nodeID).First(&nodeRow)
+	db.Select("guid", "config_dirty", "inbound_sync_mode", "inbound_tags", "traffic_multiplier").Where("id = ?", nodeID).First(&nodeRow)
+	// Billed-delta scale for this node (100 = 1x). Baselines and snapshot
+	// counters stay raw; only the deltas written into client_traffics — and
+	// the quota-projection expressions built from them — are multiplied.
+	// The multiplier always belongs to the DIRECTLY connected node, even for
+	// inbounds attributed to a transitive sub-node via originNodeGuid (#4983):
+	// the billing relationship is with the direct peer, and a chain's internal
+	// topology is that peer's own business — the master does not price hops.
+	multiplier := traffic.Normalize(nodeRow.TrafficMultiplier)
 	// Re-read inside the serialized writer: a client added while this snapshot
 	// was in flight marks the node dirty after the caller sampled the flag.
 	dirty = dirty || nodeRow.ConfigDirty
@@ -932,6 +941,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				if deltaDown = canon.Down - base.Down; deltaDown < 0 {
 					deltaDown = 0
 				}
+				// Bill the raw delta at the node's multiplier; the baseline
+				// keeps tracking the raw canon counters, so re-syncs never
+				// double-bill and a multiplier change only scales future deltas.
+				deltaUp = traffic.Apply(deltaUp, multiplier)
+				deltaDown = traffic.Apply(deltaDown, multiplier)
 			}
 
 			if _, rowExists := existingEmails[cs.Email]; !rowExists {
@@ -949,6 +963,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 				var seedUp, seedDown int64
 				if isNewInbound && !isClientEmailTombstoned(cs.Email) {
+					// Adopted inbounds seed their displayed usage from the node's
+					// raw counters. The seed is deliberately RAW, not multiplied:
+					// it is pre-adoption history, and history is never re-billed —
+					// the multiplier only scales deltas produced after this point.
+					// The baseline below is set to the same raw counters, so the
+					// seeded amount can never be billed again on later ticks.
 					seedUp, seedDown = canon.Up, canon.Down
 				}
 				row := &xray.ClientTraffic{
@@ -1005,6 +1025,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if renewed {
 				// A renewal starts a fresh quota window: adopt the node's counters
 				// and enable state, drop stale pushes (mirrors autoRenewClients).
+				// The adopted counters are the new window's traffic so far, billed
+				// at the node's multiplier just like any later delta.
+				billedUp := traffic.Apply(canon.Up, multiplier)
+				billedDown := traffic.Apply(canon.Down, multiplier)
 				if err := tx.Exec(
 					fmt.Sprintf(
 						`UPDATE client_traffics
@@ -1013,7 +1037,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 						 WHERE email = ?`,
 						database.GreatestExpr("last_online", "?"),
 					),
-					canon.Up, canon.Down, cs.Enable, cs.Total,
+					billedUp, billedDown, cs.Enable, cs.Total,
 					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetCount,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
@@ -1022,8 +1046,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				if err := clearGlobalTraffic(tx, cs.Email); err != nil {
 					return false, err
 				}
-				existing.Up = canon.Up
-				existing.Down = canon.Down
+				existing.Up = billedUp
+				existing.Down = billedDown
 				existing.Enable = cs.Enable
 				existing.Total = cs.Total
 				existing.ExpiryTime = cs.ExpiryTime

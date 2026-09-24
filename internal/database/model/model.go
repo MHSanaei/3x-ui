@@ -792,6 +792,12 @@ type Node struct {
 	InboundTags         []string `json:"inboundTags" form:"inboundTags" gorm:"serializer:json;column:inbound_tags"`
 	OutboundTag         string   `json:"outboundTag" form:"outboundTag" gorm:"column:outbound_tag"`
 
+	// TrafficMultiplier scales billed traffic for this node in hundredths:
+	// 100 = 1x, 150 = 1.5x, 200 = 2x. Only per-sync deltas are multiplied,
+	// never historical totals. Valid range is 100-10000 (sub-1x is not
+	// supported); default 100 (1x).
+	TrafficMultiplier int64 `json:"trafficMultiplier" form:"trafficMultiplier" gorm:"column:traffic_multiplier;default:100" validate:"omitempty,gte=100,lte=10000" example:"100"`
+
 	// Guid is the remote panel's stable self-identifier (its panelGuid),
 	// learned from each heartbeat. It is the globally stable node identity used
 	// to attribute online clients/inbounds to the physical node across a chain
