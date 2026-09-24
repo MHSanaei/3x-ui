@@ -139,6 +139,34 @@ var defaultValueMap = map[string]string{
 	"subHappPerAppList":           "",
 	"subIncyEnableRouting":        "false",
 	"subIncyRoutingRules":         "",
+	"subIncyAppAutoDetect":        "false",
+	"subIncyProfileDescription":   "",
+	"subIncySortOrder":            "",
+	"subIncySupportEmail":         "",
+	"subIncyAnnounceUrl":          "",
+	"subIncyPremiumUrl":           "",
+	"subIncyBannerText":           "",
+	"subIncyBannerButtonText":     "",
+	"subIncyBannerButtonUrl":      "",
+	"subIncyBannerBgColor":        "",
+	"subIncyBannerButtonColor":    "",
+	"subIncyHideUrl":              "",
+	"subIncyHideCheck":            "",
+	"subIncyNoLimitEnabled":       "",
+	"subIncyPerAppEnable":         "",
+	"subIncyPerAppMode":           "",
+	"subIncyPerAppList":           "",
+	"subIncyFragmentationEnable":  "",
+	"subIncyFragmentLength":       "",
+	"subIncyFragmentInterval":     "",
+	"subIncyFragmentPackets":      "",
+	"subIncyNoisesEnable":         "",
+	"subIncyNoisesType":           "",
+	"subIncyNoisesPacket":         "",
+	"subIncyNoisesDelay":          "",
+	"subIncyResolveEnable":        "",
+	"subIncyResolveDnsDomain":     "",
+	"subIncyResolveDnsIp":         "",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
@@ -1007,6 +1035,118 @@ func (s *SettingService) GetSubIncyRoutingRules() (string, error) {
 	return s.getString("subIncyRoutingRules")
 }
 
+func (s *SettingService) GetSubIncyAppAutoDetect() (bool, error) {
+	return s.getBool("subIncyAppAutoDetect")
+}
+
+func (s *SettingService) GetSubIncyProfileDescription() (string, error) {
+	return s.getString("subIncyProfileDescription")
+}
+
+func (s *SettingService) GetSubIncySortOrder() (string, error) {
+	return s.getString("subIncySortOrder")
+}
+
+func (s *SettingService) GetSubIncySupportEmail() (string, error) {
+	return s.getString("subIncySupportEmail")
+}
+
+func (s *SettingService) GetSubIncyAnnounceUrl() (string, error) {
+	return s.getString("subIncyAnnounceUrl")
+}
+
+func (s *SettingService) GetSubIncyPremiumUrl() (string, error) {
+	return s.getString("subIncyPremiumUrl")
+}
+
+func (s *SettingService) GetSubIncyBannerText() (string, error) {
+	return s.getString("subIncyBannerText")
+}
+
+func (s *SettingService) GetSubIncyBannerButtonText() (string, error) {
+	return s.getString("subIncyBannerButtonText")
+}
+
+func (s *SettingService) GetSubIncyBannerButtonUrl() (string, error) {
+	return s.getString("subIncyBannerButtonUrl")
+}
+
+func (s *SettingService) GetSubIncyBannerBgColor() (string, error) {
+	return s.getString("subIncyBannerBgColor")
+}
+
+func (s *SettingService) GetSubIncyBannerButtonColor() (string, error) {
+	return s.getString("subIncyBannerButtonColor")
+}
+
+func (s *SettingService) GetSubIncyHideUrl() (string, error) {
+	return s.getString("subIncyHideUrl")
+}
+
+func (s *SettingService) GetSubIncyHideCheck() (string, error) {
+	return s.getString("subIncyHideCheck")
+}
+
+func (s *SettingService) GetSubIncyNoLimitEnabled() (string, error) {
+	return s.getString("subIncyNoLimitEnabled")
+}
+
+func (s *SettingService) GetSubIncyPerAppEnable() (string, error) {
+	return s.getString("subIncyPerAppEnable")
+}
+
+func (s *SettingService) GetSubIncyPerAppMode() (string, error) {
+	return s.getString("subIncyPerAppMode")
+}
+
+func (s *SettingService) GetSubIncyPerAppList() (string, error) {
+	return s.getString("subIncyPerAppList")
+}
+
+func (s *SettingService) GetSubIncyFragmentationEnable() (string, error) {
+	return s.getString("subIncyFragmentationEnable")
+}
+
+func (s *SettingService) GetSubIncyFragmentLength() (string, error) {
+	return s.getString("subIncyFragmentLength")
+}
+
+func (s *SettingService) GetSubIncyFragmentInterval() (string, error) {
+	return s.getString("subIncyFragmentInterval")
+}
+
+func (s *SettingService) GetSubIncyFragmentPackets() (string, error) {
+	return s.getString("subIncyFragmentPackets")
+}
+
+func (s *SettingService) GetSubIncyNoisesEnable() (string, error) {
+	return s.getString("subIncyNoisesEnable")
+}
+
+func (s *SettingService) GetSubIncyNoisesType() (string, error) {
+	return s.getString("subIncyNoisesType")
+}
+
+func (s *SettingService) GetSubIncyNoisesPacket() (string, error) {
+	return s.getString("subIncyNoisesPacket")
+}
+
+func (s *SettingService) GetSubIncyNoisesDelay() (string, error) {
+	return s.getString("subIncyNoisesDelay")
+}
+
+func (s *SettingService) GetSubIncyResolveEnable() (string, error) {
+	return s.getString("subIncyResolveEnable")
+}
+
+func (s *SettingService) GetSubIncyResolveDnsDomain() (string, error) {
+	return s.getString("subIncyResolveDnsDomain")
+}
+
+func (s *SettingService) GetSubIncyResolveDnsIp() (string, error) {
+	return s.getString("subIncyResolveDnsIp")
+}
+
 func (s *SettingService) GetSubListen() (string, error) {
 	return s.getString("subListen")
 }
@@ -1654,6 +1794,10 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		&allSetting.SubHappFallbackUrl,
 		&allSetting.SubHappSubInfoButtonLink,
 		&allSetting.SubHappSubExpireButtonLink,
+		&allSetting.SubIncyAnnounceUrl,
+		&allSetting.SubIncyPremiumUrl,
+		&allSetting.SubIncyBannerButtonUrl,
+		&allSetting.SubIncyResolveDnsDomain,
 	} {
 		if strings.TrimSpace(*ptr) != "" {
 			*ptr = common.EnsureURLScheme(strings.TrimSpace(*ptr))
