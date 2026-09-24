@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/traffic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
@@ -521,7 +522,8 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 	}
 	// Blank means keep the hidden stored token; non-blank values are encrypted.
 	apiToken := existing.ApiToken
-	if in.ApiToken != "" {
+	apiTokenChanged := in.ApiToken != ""
+	if apiTokenChanged {
 		enc, eerr := nodetoken.Encrypt(id, in.ApiToken)
 		if eerr != nil {
 			return eerr
@@ -543,20 +545,27 @@ func (s *NodeService) Update(id int, in *model.Node) error {
 		"inbound_sync_mode":     in.InboundSyncMode,
 		"inbound_tags":          string(inboundTagsJSON),
 		"outbound_tag":          in.OutboundTag,
+		"traffic_multiplier":    traffic.Normalize(in.TrafficMultiplier),
 	}
 	if nodeSelectionGrew(existing, in) {
 		updates["inbounds_adopted_at"] = 0
 	}
+	configChanged := nodeConfigChanged(existing, in, apiTokenChanged, string(inboundTagsJSON))
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 			return err
+		}
+		if !configChanged {
+			return nil
 		}
 		return s.MarkNodeDirtyTx(tx, id)
 	}); err != nil {
 		return err
 	}
-	if mgr := runtime.GetManager(); mgr != nil {
-		mgr.InvalidateNode(id)
+	if configChanged {
+		if mgr := runtime.GetManager(); mgr != nil {
+			mgr.InvalidateNode(id)
+		}
 	}
 	return nil
 }
@@ -579,6 +588,7 @@ func (s *NodeService) UpdateFromRequest(id int, req *NodeMutationRequest) error 
 		return err
 	}
 	apiToken := existing.ApiToken
+	apiTokenChanged := req.ClearApiToken || req.ApiToken != nil
 	switch {
 	case req.ClearApiToken:
 		apiToken = ""
@@ -610,18 +620,62 @@ func (s *NodeService) UpdateFromRequest(id int, req *NodeMutationRequest) error 
 	if nodeSelectionGrew(existing, in) {
 		updates["inbounds_adopted_at"] = 0
 	}
+	// nil means "keep the stored multiplier"; only an explicit, already
+	// validated value overwrites it.
+	if req.TrafficMultiplier != nil {
+		updates["traffic_multiplier"] = *req.TrafficMultiplier
+	}
+	configChanged := nodeConfigChanged(existing, in, apiTokenChanged, string(inboundTagsJSON))
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Node{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 			return err
+		}
+		if !configChanged {
+			return nil
 		}
 		return s.MarkNodeDirtyTx(tx, id)
 	}); err != nil {
 		return err
 	}
-	if mgr := runtime.GetManager(); mgr != nil {
-		mgr.InvalidateNode(id)
+	if configChanged {
+		if mgr := runtime.GetManager(); mgr != nil {
+			mgr.InvalidateNode(id)
+		}
 	}
 	return nil
+}
+
+// nodeConfigChanged reports whether an update touches any field the node
+// config sync cares about. The traffic multiplier is master-side billing
+// state read from the DB on every sync tick, so a pure multiplier change
+// must not flag the node dirty or invalidate its runtime entry — that would
+// trigger a pointless config re-push and reconnect.
+//
+// Maintenance: the comparisons below mirror the column list the two Update
+// paths write. A new node field that reaches the node config must be added
+// here too — the mirror is deliberately conservative in the other direction,
+// and values it cannot compare (a marshal failure) report "changed".
+func nodeConfigChanged(existing, in *model.Node, apiTokenChanged bool, inboundTagsJSON string) bool {
+	if apiTokenChanged {
+		return true
+	}
+	existingTagsJSON, err := json.Marshal(existing.InboundTags)
+	if err != nil {
+		return true // fail safe: treat an uncomparable value as changed
+	}
+	return existing.Name != in.Name ||
+		existing.Remark != in.Remark ||
+		existing.Scheme != in.Scheme ||
+		existing.Address != in.Address ||
+		existing.Port != in.Port ||
+		existing.BasePath != in.BasePath ||
+		existing.Enable != in.Enable ||
+		existing.AllowPrivateAddress != in.AllowPrivateAddress ||
+		existing.TlsVerifyMode != in.TlsVerifyMode ||
+		existing.PinnedCertSha256 != in.PinnedCertSha256 ||
+		existing.InboundSyncMode != in.InboundSyncMode ||
+		existing.OutboundTag != in.OutboundTag ||
+		string(existingTagsJSON) != inboundTagsJSON
 }
 
 func (s *NodeService) RuntimeNodeFromRequest(id int, req *NodeMutationRequest) (*model.Node, error) {

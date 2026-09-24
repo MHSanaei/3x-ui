@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/traffic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
@@ -25,6 +26,7 @@ type NodeView struct {
 	InboundSyncMode     string   `json:"inboundSyncMode" example:"all"`
 	InboundTags         []string `json:"inboundTags" example:"[\"in-443-tcp\"]"`
 	OutboundTag         string   `json:"outboundTag" example:"direct"`
+	TrafficMultiplier   int64    `json:"trafficMultiplier" example:"100"`
 	Guid                string   `json:"guid" example:"node-guid"`
 	Status              string   `json:"status" example:"online"`
 	LastHeartbeat       int64    `json:"lastHeartbeat" example:"1700000000"`
@@ -73,6 +75,7 @@ func toNodeView(n *model.Node) *NodeView {
 		InboundSyncMode:     n.InboundSyncMode,
 		InboundTags:         n.InboundTags,
 		OutboundTag:         n.OutboundTag,
+		TrafficMultiplier:   traffic.Normalize(n.TrafficMultiplier),
 		Guid:                n.Guid,
 		Status:              n.Status,
 		LastHeartbeat:       n.LastHeartbeat,
@@ -130,6 +133,10 @@ type NodeMutationRequest struct {
 	InboundSyncMode     string   `json:"inboundSyncMode" form:"inboundSyncMode" validate:"omitempty,oneof=all selected"`
 	InboundTags         []string `json:"inboundTags" form:"inboundTags"`
 	OutboundTag         string   `json:"outboundTag" form:"outboundTag"`
+	// TrafficMultiplier is optional input in hundredths (100 = 1x). nil means
+	// "default 100 on create / keep stored value on update"; an explicit value
+	// outside 100-10000 is rejected by validation (sub-1x is not supported).
+	TrafficMultiplier *int64 `json:"trafficMultiplier,omitempty" form:"trafficMultiplier" validate:"omitempty,gte=100,lte=10000"`
 }
 
 func (r *NodeMutationRequest) validateCredentials(create bool) error {
@@ -181,6 +188,9 @@ func (r *NodeMutationRequest) toNode() *model.Node {
 	}
 	if r.ApiToken != nil {
 		n.ApiToken = *r.ApiToken
+	}
+	if r.TrafficMultiplier != nil {
+		n.TrafficMultiplier = *r.TrafficMultiplier
 	}
 	return n
 }
