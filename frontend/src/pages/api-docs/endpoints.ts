@@ -1651,8 +1651,8 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/nodes/add',
         summary:
-          'Register a new remote node. Provide its URL, write-only apiToken, and optional remark / allowPrivateAddress flag. Responses expose hasApiToken only.',
-        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false\n}',
+          'Register a new remote node. Provide its URL, write-only apiToken, and optional remark / allowPrivateAddress flag. trafficMultiplier (hundredths, 100 = 1x) is optional and defaults to 100. Responses expose hasApiToken only.',
+        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "abcdef...",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false,\n  "trafficMultiplier": 150\n}',
         responseSchema: 'NodeView',
       },
       {
@@ -1661,7 +1661,7 @@ export const sections: readonly Section[] = [
         summary:
           'Replace a node\u2019s connection details. apiToken is write-only: omit it or send an empty string to keep the stored token; set clearApiToken=true to clear it.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Node ID.' }],
-        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false\n}',
+        body: '{\n  "name": "de-fra-1",\n  "remark": "",\n  "scheme": "https",\n  "address": "node1.example.com",\n  "port": 2053,\n  "basePath": "/",\n  "apiToken": "",\n  "clearApiToken": false,\n  "enable": true,\n  "allowPrivateAddress": false,\n  "trafficMultiplier": 150\n}',
       },
       {
         method: 'POST',

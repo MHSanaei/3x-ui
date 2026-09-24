@@ -3275,6 +3275,14 @@ export const SCHEMAS: Record<string, unknown> = {
         ],
         "type": "string"
       },
+      "trafficMultiplier": {
+        "description": "TrafficMultiplier scales billed traffic for this node in hundredths:\n100 = 1x, 150 = 1.5x, 200 = 2x. Only per-sync deltas are multiplied,\nnever historical totals. Valid range is 100-10000 (sub-1x is not\nsupported); default 100 (1x).",
+        "example": 100,
+        "format": "int64",
+        "maximum": 10000,
+        "minimum": 100,
+        "type": "integer"
+      },
       "transitive": {
         "type": "boolean"
       },
@@ -3334,6 +3342,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "scheme",
       "status",
       "tlsVerifyMode",
+      "trafficMultiplier",
       "updatedAt",
       "uptimeSecs",
       "xrayError",
@@ -3412,6 +3421,14 @@ export const SCHEMAS: Record<string, unknown> = {
           "mtls"
         ],
         "type": "string"
+      },
+      "trafficMultiplier": {
+        "description": "TrafficMultiplier is optional input in hundredths (100 = 1x). nil means\n\"default 100 on create / keep stored value on update\"; an explicit value\noutside 100-10000 is rejected by validation (sub-1x is not supported).",
+        "format": "int64",
+        "maximum": 10000,
+        "minimum": 100,
+        "nullable": true,
+        "type": "integer"
       }
     },
     "required": [
@@ -3582,6 +3599,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "verify",
         "type": "string"
       },
+      "trafficMultiplier": {
+        "example": 100,
+        "format": "int64",
+        "type": "integer"
+      },
       "transitive": {
         "example": false,
         "type": "boolean"
@@ -3643,6 +3665,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "scheme",
       "status",
       "tlsVerifyMode",
+      "trafficMultiplier",
       "updatedAt",
       "uptimeSecs",
       "xrayError",
