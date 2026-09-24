@@ -64,6 +64,25 @@ function badgeStatus(status?: string): BadgeProps['status'] {
   }
 }
 
+/**
+ * Billing-multiplier badge shown next to a node name. Hidden at the 1.00x
+ * default so un-multiplied nodes keep their original look.
+ */
+function MultiplierTag({ value }: { value?: number }) {
+  const { t } = useTranslation();
+  const m = value ?? 100;
+  if (m === 100) return null;
+  return (
+    <Tooltip
+      title={`${t('pages.nodes.trafficMultiplier')}: ${(m / 100).toFixed(2)}x — ${t('pages.nodes.trafficMultiplierHint')}`}
+    >
+      <Tag color="gold" style={{ marginInlineStart: 6 }}>
+        {(m / 100).toFixed(2)}x
+      </Tag>
+    </Tooltip>
+  );
+}
+
 interface HealthProps {
   status?: string;
   xrayState?: string;
@@ -335,6 +354,7 @@ export default function NodeList({
               )}
               {record.name}
             </span>
+            {!record.transitive && <MultiplierTag value={record.trafficMultiplier} />}
             {record.remark && <span className="remark">{record.remark}</span>}
           </div>
         ),
@@ -639,6 +659,7 @@ export default function NodeList({
                       />
                       <StatusDot status={record.status} xrayState={record.xrayState} />
                       <span className="node-name">{record.name}</span>
+                      <MultiplierTag value={record.trafficMultiplier} />
                       <div className="card-actions">
                         <Tooltip title={t('info')}>
                           <InfoCircleOutlined
@@ -816,6 +837,14 @@ export default function NodeList({
                       ? `${statsNode.latencyMs} ms`
                       : '-'}
                   </Tag>
+                </div>
+                <div className="stat-row">
+                  <span className="stat-label">{t('pages.nodes.trafficMultiplier')}</span>
+                  <Tooltip title={t('pages.nodes.trafficMultiplierHint')}>
+                    <Tag color={(statsNode.trafficMultiplier ?? 100) === 100 ? undefined : 'gold'}>
+                      {((statsNode.trafficMultiplier ?? 100) / 100).toFixed(2)}x
+                    </Tag>
+                  </Tooltip>
                 </div>
                 <div className="stat-row">
                   <span className="stat-label">{t('clients')}</span>

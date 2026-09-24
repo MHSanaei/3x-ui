@@ -39,6 +39,8 @@ export const NodeRecordSchema = z
     // Backend serializes a nil []string as null for nodes saved before #5178.
     inboundTags: z.array(z.string()).nullish(),
     outboundTag: z.string().optional(),
+    // Billed-traffic multiplier in hundredths: 100 = 1x, 150 = 1.5x, 200 = 2x.
+    trafficMultiplier: z.number().optional(),
     // Multi-hop node tree (#4983): a node's stable GUID, its parent's GUID, and
     // whether it's a read-only transitive sub-node surfaced from a downstream node.
     guid: z.string().optional(),
@@ -86,6 +88,9 @@ export const NodeFormSchema = z
       .nullish()
       .transform((tags) => tags ?? []),
     outboundTag: z.string().optional(),
+    // Billed-traffic multiplier in hundredths: 100 = 1x, 150 = 1.5x, 200 = 2x.
+    // Range mirrors the backend (100-10000); sub-1x, 0 and negatives are invalid.
+    trafficMultiplier: z.number().int().min(100).max(10000).default(100),
   })
   .superRefine((val, ctx) => {
     if (val.tlsVerifyMode !== 'mtls' && val.apiToken.length === 0 && !val.hasStoredToken) {

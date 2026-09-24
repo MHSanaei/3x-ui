@@ -1013,6 +1013,8 @@
       "outboundTag": "Outbound koneksi",
       "outboundTagHint": "Rutekan lalu lintas API panel node ini melalui outbound Xray yang dipilih. Sebuah inbound jembatan loopback ditambahkan secara otomatis ke konfigurasi yang berjalan dan diterapkan secara langsung. Biarkan kosong untuk koneksi langsung.",
       "outboundTagPlaceholder": "Koneksi langsung",
+      "trafficMultiplier": "Pengali lalu lintas",
+      "trafficMultiplierHint": "Lalu lintas tertagih = kenaikan aktual per sinkronisasi × pengali (1.00x ditagih apa adanya, 1.50x menambah 50%). Hanya berlaku untuk lalu lintas setelah perubahan; riwayat tidak pernah dihitung ulang.",
       "inboundSyncMode": "Impor inbound",
       "inboundSyncModeHint": "Pilih inbound yang diimpor dari node ini. Node yang sudah ada mengimpor semua inbound secara default.",
       "allInbounds": "Semua inbound",

@@ -1013,6 +1013,8 @@
       "outboundTag": "Outbound kết nối",
       "outboundTagHint": "Định tuyến lưu lượng API panel của node này qua outbound Xray đã chọn. Một inbound cầu nối loopback được tự động thêm vào cấu hình đang chạy và áp dụng trực tiếp. Để trống để kết nối trực tiếp.",
       "outboundTagPlaceholder": "Kết nối trực tiếp",
+      "trafficMultiplier": "Hệ số lưu lượng",
+      "trafficMultiplierHint": "Lưu lượng tính phí = phần tăng thực tế mỗi lần đồng bộ × hệ số (1.00x tính như thực tế, 1.50x tính thêm 50%). Chỉ áp dụng cho lưu lượng phát sinh sau thay đổi; lưu lượng cũ không tính lại.",
       "inboundSyncMode": "Nhập inbound",
       "inboundSyncModeHint": "Chọn các inbound được nhập từ nút này. Các nút hiện có mặc định nhập tất cả.",
       "allInbounds": "Tất cả inbound",

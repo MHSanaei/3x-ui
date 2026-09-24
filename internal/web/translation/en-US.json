@@ -1131,6 +1131,8 @@
       "outboundTag": "Connection outbound",
       "outboundTagHint": "Route this node's panel API traffic through the selected Xray outbound. A loopback bridge inbound is added to the running config automatically and applied live. Leave empty for a direct connection.",
       "outboundTagPlaceholder": "Direct connection",
+      "trafficMultiplier": "Traffic multiplier",
+      "trafficMultiplierHint": "Billed traffic = actual per-sync delta × multiplier (1.00x bills traffic as-is, 1.50x bills 50% extra). Only applies to traffic generated after the change; historical traffic is never recalculated.",
       "inboundSyncMode": "Inbound import",
       "inboundSyncModeHint": "Choose which inbounds are imported from this node. Existing nodes default to all inbounds.",
       "allInbounds": "All inbounds",

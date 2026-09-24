@@ -1013,6 +1013,8 @@
       "outboundTag": "Outbound de conexión",
       "outboundTagHint": "Enruta el tráfico de la API del panel de este nodo a través del outbound Xray seleccionado. Un inbound de puente loopback se agrega automáticamente a la configuración en ejecución y se aplica en vivo. Déjelo vacío para una conexión directa.",
       "outboundTagPlaceholder": "Conexión directa",
+      "trafficMultiplier": "Multiplicador de tráfico",
+      "trafficMultiplierHint": "Tráfico facturado = incremento real por sincronización × multiplicador (1.00x factura tal cual, 1.50x añade un 50%). Solo se aplica al tráfico generado después del cambio; el histórico nunca se recalcula.",
       "inboundSyncMode": "Importación de inbounds",
       "inboundSyncModeHint": "Elige qué inbounds importar desde este nodo. Los nodos existentes importan todos de forma predeterminada.",
       "allInbounds": "Todos los inbounds",

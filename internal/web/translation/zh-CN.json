@@ -1013,6 +1013,8 @@
       "outboundTag": "连接出站",
       "outboundTagHint": "通过选定的 Xray 出站路由此节点的面板 API 流量。系统会自动将回环桥接入站添加到运行配置并实时应用。留空表示直接连接。",
       "outboundTagPlaceholder": "直接连接",
+      "trafficMultiplier": "流量倍率",
+      "trafficMultiplierHint": "计费流量 = 每次同步的实际增量 × 倍率（1.00x 按原值计费，1.50x 多计 50%）。仅影响修改之后产生的流量，历史流量不会重算。",
       "inboundSyncMode": "入站导入",
       "inboundSyncModeHint": "选择要从此节点导入的入站。现有节点默认导入全部入站。",
       "allInbounds": "全部入站",

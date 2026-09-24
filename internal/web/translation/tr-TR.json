@@ -1013,6 +1013,8 @@
       "outboundTag": "Bağlantı gideni",
       "outboundTagHint": "Bu düğümün panel API trafiğini seçilen Xray gideni üzerinden yönlendirin. Geri döngü köprüsü inbound'ı çalışan yapılandırmaya otomatik olarak eklenir ve canlı uygulanır. Doğrudan bağlantı için boş bırakın.",
       "outboundTagPlaceholder": "Doğrudan bağlantı",
+      "trafficMultiplier": "Trafik çarpanı",
+      "trafficMultiplierHint": "Faturalandırılan trafik = senkronizasyon başına gerçek artış × çarpan (1.00x aynen faturalandırır, 1.50x %50 ekler). Yalnızca değişiklikten sonra oluşan trafiğe uygulanır; geçmiş trafik yeniden hesaplanmaz.",
       "inboundSyncMode": "Inbound içe aktarma",
       "inboundSyncModeHint": "Bu düğümden içe aktarılacak inbound'ları seçin. Mevcut düğümler varsayılan olarak tümünü içe aktarır.",
       "allInbounds": "Tüm inbound'lar",

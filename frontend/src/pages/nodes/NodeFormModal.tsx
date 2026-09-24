@@ -53,6 +53,7 @@ function defaultValues(): NodeFormValues {
     inboundSyncMode: 'all',
     inboundTags: [],
     outboundTag: '',
+    trafficMultiplier: 100,
   };
 }
 
@@ -119,6 +120,8 @@ export default function NodeFormModal({
             scheme: (node.scheme as 'http' | 'https') || base.scheme,
             inboundSyncMode: (node.inboundSyncMode as 'all' | 'selected') || base.inboundSyncMode,
             inboundTags: node.inboundTags ?? [],
+            // Nodes saved before the multiplier existed report nothing; 100 = 1x.
+            trafficMultiplier: node.trafficMultiplier ?? 100,
             apiToken: '',
             hasStoredToken: node.hasApiToken ?? false,
           }
@@ -153,6 +156,7 @@ export default function NodeFormModal({
       inboundSyncMode: values.inboundSyncMode,
       inboundTags: values.inboundSyncMode === 'selected' ? values.inboundTags : [],
       outboundTag: values.outboundTag || '',
+      trafficMultiplier: values.trafficMultiplier ?? 100,
     };
     if (token) payload.apiToken = token;
     return payload;
@@ -407,6 +411,28 @@ export default function NodeFormModal({
                 showSearch
                 placeholder={t('pages.nodes.outboundTagPlaceholder')}
                 options={outboundOptions}
+              />
+            </FormField>
+
+            <FormField
+              label={t('pages.nodes.trafficMultiplier')}
+              name="trafficMultiplier"
+              tooltip={t('pages.nodes.trafficMultiplierHint')}
+              rules={{ validate: rhfZodValidate(NodeFormSchema.shape.trafficMultiplier) }}
+            >
+              <InputNumber<number>
+                min={100}
+                max={10000}
+                step={50}
+                style={{ width: '100%' }}
+                formatter={(v) => {
+                  const n = Number(v);
+                  return Number.isFinite(n) ? `${(n / 100).toFixed(2)}x` : '';
+                }}
+                parser={(v) => {
+                  const n = parseFloat((v ?? '').replace(/x$/i, '').trim());
+                  return Number.isFinite(n) ? Math.round(n * 100) : 100;
+                }}
               />
             </FormField>
 
