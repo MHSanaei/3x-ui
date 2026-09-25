@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -58,8 +58,9 @@ describe('clients table row cells', () => {
     expect(afterFirstRender).toBeGreaterThan(0);
 
     // Three simulated traffic pushes: the parent re-renders, the props do not change.
-    for (let i = 0; i < 3; i++) bump();
-    await Promise.resolve();
+    act(() => {
+      for (let i = 0; i < 3; i++) bump();
+    });
 
     expect(reads.count).toBe(afterFirstRender);
   });
@@ -113,7 +114,9 @@ describe('clients table row cells', () => {
       </Harness>,
     );
 
-    for (let i = 0; i < 3; i++) bump();
+    act(() => {
+      for (let i = 0; i < 3; i++) bump();
+    });
 
     // Queried by position rather than label: the suite loads the real en-US
     // bundle, so the aria-labels are translated strings, not keys. Order is

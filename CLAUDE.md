@@ -136,7 +136,7 @@ file locations when it can answer in one hop.
 - TS strict; `@typescript-eslint/no-explicit-any` is an error. Zod schemas in
   `src/schemas/` are the source of truth; infer types with `z.infer`, never
   hand-write. Do not edit `src/generated/`.
-- Node 24 (`.nvmrc`) — `make gen` imports `.ts` directly and needs its type
+- Node 26 (`.nvmrc`) — `make gen` imports `.ts` directly and needs its type
   stripping; Node 22 dies with `ERR_UNKNOWN_FILE_EXTENSION`. `npm test` includes
   a headless-Chromium Storybook project, so run
   `npx playwright install --with-deps chromium` once or `make verify` fails.
