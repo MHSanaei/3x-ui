@@ -4,6 +4,7 @@ import { Alert, Button, Form, Input, Modal, Select, Space, Spin, Typography, mes
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 
 import { XrayConfigPayloadSchema } from '@/schemas/xray';
+import { isOutboundProtocol } from '@/schemas/primitives';
 import { HttpUtil } from '@/utils';
 
 interface GeodataAssetRow {
@@ -75,7 +76,7 @@ export default function GeodataSection({ active, onBusy, onClose }: GeodataSecti
       for (const o of outbounds) {
         if (!o || typeof o !== 'object') continue;
         const rec = o as Record<string, unknown>;
-        if (rec.protocol === 'blackhole') continue;
+        if (isOutboundProtocol(rec, 'blackhole')) continue;
         const tag = rec.tag;
         if (typeof tag === 'string' && tag) tags.add(tag);
       }

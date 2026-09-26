@@ -1,4 +1,5 @@
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -150,6 +151,40 @@ function ClientEmailList({ emails, total }: { emails: string[]; total: number })
       ))}
       {hidden > 0 && <div className="client-email-more">+{hidden}</div>}
     </div>
+  );
+}
+
+interface SummaryStatProps {
+  title: string;
+  value: number;
+  prefix: ReactNode;
+  emails?: string[];
+  selected?: boolean;
+  onSelect: () => void;
+}
+
+function SummaryStat({ title, value, prefix, emails, selected, onSelect }: SummaryStatProps) {
+  const stat = (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      className={selected ? 'summary-stat selected' : 'summary-stat'}
+      onClick={onSelect}
+      onKeyDown={activateOnKey(onSelect)}
+    >
+      <Statistic title={title} value={String(value)} prefix={prefix} />
+    </div>
+  );
+  if (!emails) return stat;
+  return (
+    <Popover
+      title={title}
+      open={value ? undefined : false}
+      content={<ClientEmailList emails={emails} total={value} />}
+    >
+      {stat}
+    </Popover>
   );
 }
 
@@ -1224,6 +1259,15 @@ export default function ClientsPage() {
   const someSelected =
     selectedRowKeys.length > 0 && selectedRowKeys.length < filteredClients.length;
 
+  const isOnlyBucket = (bucket: string) =>
+    filters.buckets.length === 1 && filters.buckets[0] === bucket;
+
+  // Clicking the card that is already the sole status filter clears it again.
+  function selectBucket(bucket: string | null) {
+    const buckets = bucket && !isOnlyBucket(bucket) ? [bucket] : [];
+    setFilters({ ...filters, buckets });
+  }
+
   function clearOneFilter<K extends keyof ClientFilters>(key: K) {
     if (key === 'expiryFrom' || key === 'expiryTo') {
       setFilters({ ...filters, expiryFrom: undefined, expiryTo: undefined });
@@ -1265,89 +1309,60 @@ export default function ClientsPage() {
                     <Card size="small" hoverable className="summary-card">
                       <Row gutter={[16, 12]}>
                         <Col xs={12} sm={8} md={4}>
-                          <Statistic
+                          <SummaryStat
                             title={t('clients')}
-                            value={String(summary.total)}
+                            value={summary.total}
                             prefix={<TeamOutlined />}
+                            onSelect={() => selectBucket(null)}
                           />
                         </Col>
                         <Col xs={12} sm={8} md={4}>
-                          <Popover
+                          <SummaryStat
                             title={t('online')}
-                            open={summary.onlineCount ? undefined : false}
-                            content={
-                              <ClientEmailList
-                                emails={summary.online}
-                                total={summary.onlineCount}
-                              />
-                            }
-                          >
-                            <Statistic
-                              title={t('online')}
-                              value={String(summary.onlineCount)}
-                              prefix={<span className="dot dot-blue" />}
-                            />
-                          </Popover>
+                            value={summary.onlineCount}
+                            emails={summary.online}
+                            prefix={<span className="dot dot-blue" />}
+                            selected={isOnlyBucket('online')}
+                            onSelect={() => selectBucket('online')}
+                          />
                         </Col>
                         <Col xs={12} sm={8} md={4}>
-                          <Popover
+                          <SummaryStat
                             title={t('depleted')}
-                            open={summary.depletedCount ? undefined : false}
-                            content={
-                              <ClientEmailList
-                                emails={summary.depleted}
-                                total={summary.depletedCount}
-                              />
-                            }
-                          >
-                            <Statistic
-                              title={t('depleted')}
-                              value={String(summary.depletedCount)}
-                              prefix={<span className="dot dot-red" />}
-                            />
-                          </Popover>
+                            value={summary.depletedCount}
+                            emails={summary.depleted}
+                            prefix={<span className="dot dot-red" />}
+                            selected={isOnlyBucket('depleted')}
+                            onSelect={() => selectBucket('depleted')}
+                          />
                         </Col>
                         <Col xs={12} sm={8} md={4}>
-                          <Popover
+                          <SummaryStat
                             title={t('depletingSoon')}
-                            open={summary.expiringCount ? undefined : false}
-                            content={
-                              <ClientEmailList
-                                emails={summary.expiring}
-                                total={summary.expiringCount}
-                              />
-                            }
-                          >
-                            <Statistic
-                              title={t('depletingSoon')}
-                              value={String(summary.expiringCount)}
-                              prefix={<span className="dot dot-orange" />}
-                            />
-                          </Popover>
+                            value={summary.expiringCount}
+                            emails={summary.expiring}
+                            prefix={<span className="dot dot-orange" />}
+                            selected={isOnlyBucket('expiring')}
+                            onSelect={() => selectBucket('expiring')}
+                          />
                         </Col>
                         <Col xs={12} sm={8} md={4}>
-                          <Popover
+                          <SummaryStat
                             title={t('disabled')}
-                            open={summary.deactiveCount ? undefined : false}
-                            content={
-                              <ClientEmailList
-                                emails={summary.deactive}
-                                total={summary.deactiveCount}
-                              />
-                            }
-                          >
-                            <Statistic
-                              title={t('disabled')}
-                              value={String(summary.deactiveCount)}
-                              prefix={<span className="dot dot-gray" />}
-                            />
-                          </Popover>
+                            value={summary.deactiveCount}
+                            emails={summary.deactive}
+                            prefix={<span className="dot dot-gray" />}
+                            selected={isOnlyBucket('deactive')}
+                            onSelect={() => selectBucket('deactive')}
+                          />
                         </Col>
                         <Col xs={12} sm={8} md={4}>
-                          <Statistic
+                          <SummaryStat
                             title={t('subscription.active')}
-                            value={String(summary.active)}
+                            value={summary.active}
                             prefix={<span className="dot dot-green" />}
+                            selected={isOnlyBucket('active')}
+                            onSelect={() => selectBucket('active')}
                           />
                         </Col>
                       </Row>

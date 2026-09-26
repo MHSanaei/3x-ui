@@ -219,6 +219,15 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
       applyXhttpStringFromParams(xhttp, params);
       break;
     }
+    case 'kcp': {
+      // mtu/tti on kcpSettings; header/seed via applyMkcpLegacyFromShare.
+      const kcp = stream.kcpSettings as Raw;
+      const mtu = kcpParamInRange(params.get('mtu'), KCP_MIN_MTU, KCP_MAX_MTU);
+      if (mtu !== null) kcp.mtu = mtu;
+      const tti = kcpParamInRange(params.get('tti'), KCP_MIN_TTI, KCP_MAX_TTI);
+      if (tti !== null) kcp.tti = tti;
+      break;
+    }
     case 'tcp':
       // vless/trojan TCP HTTP camouflage rides on header=http+host+path
       if (params.get('headerType') === 'http' || params.get('type') === 'http') {
@@ -236,21 +245,78 @@ function applyTransportParams(stream: Raw, params: URLSearchParams): void {
   }
 }
 
+// mKCP bounds mirror xray-core's KCPConfig.Build checks (a value outside them fails
+// the whole config load); mtu's ceiling is the int32 that fits its uint32 field.
+const KCP_MIN_MTU = 21;
+const KCP_MAX_MTU = 0x7fffffff;
+const KCP_MIN_TTI = 10;
+const KCP_MAX_TTI = 1000;
+
+// Decimal digits only, like the Go importer's strconv.Atoi; anything else keeps
+// buildStream's default.
+function kcpParamInRange(raw: string | null, min: number, max: number): number | null {
+  if (raw === null || !/^\d+$/.test(raw)) return null;
+  const n = Number(raw);
+  return Number.isSafeInteger(n) && n >= min && n <= max ? n : null;
+}
+
+const kcpHeaderTypeToMask: Record<string, string> = {
+  dns: 'dns',
+  dtls: 'dtls',
+  srtp: 'srtp',
+  utp: 'utp',
+  'wechat-video': 'wechat',
+  wireguard: 'wireguard',
+};
+
 // The inbound link emits the entire finalmask object as a JSON-encoded
 // `fm` query param. Decode and attach to streamSettings so udpHop /
 // quicParams / tcp+udp masks round-trip on outbound import.
 function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   const fm = params.get('fm');
-  if (!fm) return;
-  try {
-    const parsed = JSON.parse(fm) as Record<string, unknown>;
-    if (parsed && typeof parsed === 'object') {
-      sanitizeFinalMaskQuicParams(parsed);
-      stream.finalmask = parsed;
+  if (fm) {
+    try {
+      const parsed = JSON.parse(fm) as Record<string, unknown>;
+      if (parsed && typeof parsed === 'object') {
+        sanitizeFinalMaskQuicParams(parsed);
+        stream.finalmask = parsed;
+      }
+    } catch {
+      // malformed fm — leave streamSettings.finalmask absent
     }
-  } catch {
-    // malformed fm — leave streamSettings.finalmask absent
   }
+  applyMkcpLegacyFromShare(stream, params);
+}
+
+/** Restore headerType/seed into finalmask.udp mkcp-legacy; fm= mkcp-legacy wins. */
+function applyMkcpLegacyFromShare(stream: Raw, params: URLSearchParams): void {
+  let headerType = (params.get('headerType') ?? '').trim();
+  const seed = params.get('seed') ?? '';
+  if (headerType === 'none') headerType = '';
+  if (!headerType && !seed) return;
+  const network = stream.network;
+  if (typeof network === 'string' && network && network !== 'kcp') return;
+
+  let maskHeader = '';
+  if (headerType) {
+    if (!Object.hasOwn(kcpHeaderTypeToMask, headerType)) return;
+    maskHeader = kcpHeaderTypeToMask[headerType];
+  }
+
+  const finalmask = (stream.finalmask as Raw) ?? {};
+  const udp = Array.isArray(finalmask.udp) ? [...(finalmask.udp as unknown[])] : [];
+  if (udp.some((m) => (m as Raw)?.type === 'mkcp-legacy')) return;
+
+  // One mask per field, seed first: MkcpLegacy.Build ignores value once header is
+  // set, and the chain puts the last mask outermost on the wire (header around cipher).
+  if (seed) udp.push(mkcpLegacyMask('', seed));
+  if (maskHeader) udp.push(mkcpLegacyMask(maskHeader, ''));
+  finalmask.udp = udp;
+  stream.finalmask = finalmask;
+}
+
+function mkcpLegacyMask(header: string, value: string): Raw {
+  return { type: 'mkcp-legacy', settings: { header, value } };
 }
 
 function ensureFinalMask(stream: Raw): Raw {

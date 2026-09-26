@@ -178,6 +178,8 @@ func (s *OutboundService) testOutboundsParsed(items []map[string]any, testURL st
 		r := &TestOutboundResult{Tag: tag, Mode: probeLabel}
 		results[i] = r
 		protocol, _ := ob["protocol"].(string)
+		// The core lowercases the id before it resolves the handler.
+		protocol = strings.ToLower(protocol)
 		switch {
 		case tag == "":
 			r.Error = "Outbound has no tag"
@@ -394,7 +396,7 @@ func buildBatchTestConfig(items []*httpBatchItem, allOutbounds []any, ports []in
 			bridged = append(bridged, ob)
 			continue
 		}
-		if p, _ := m["protocol"].(string); p != "amneziawg" {
+		if p, _ := m["protocol"].(string); !strings.EqualFold(p, "amneziawg") {
 			bridged = append(bridged, ob)
 			continue
 		}
@@ -418,7 +420,7 @@ func buildBatchTestConfig(items []*httpBatchItem, allOutbounds []any, ports []in
 			continue
 		}
 		// The temp instance must not touch kernel WireGuard devices.
-		if protocol, ok := outbound["protocol"].(string); ok && protocol == "wireguard" {
+		if protocol, ok := outbound["protocol"].(string); ok && strings.EqualFold(protocol, "wireguard") {
 			if settings, ok := outbound["settings"].(map[string]any); ok {
 				settings["noKernelTun"] = true
 			} else {

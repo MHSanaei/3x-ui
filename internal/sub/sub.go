@@ -194,6 +194,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if err != nil {
 		SubProfileUrl = ""
 	}
+	SubProfileMode, err := s.settingService.GetSubProfileMode()
+	if err != nil {
+		SubProfileMode = service.SubProfileModeNone
+	}
 
 	SubAnnounce, err := s.settingService.GetSubAnnounce()
 	if err != nil {
@@ -249,6 +253,37 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	happCfg.AutoConnectType, _ = s.settingService.GetSubHappAutoConnectType()
 	happCfg.PerAppMode, _ = s.settingService.GetSubHappPerAppMode()
 	happCfg.PerAppList, _ = s.settingService.GetSubHappPerAppList()
+	happCfg.LocalProxyAuth, _ = s.settingService.GetSubHappLocalProxyAuth()
+
+	incyCfg := IncyConfig{}
+	incyCfg.AutoDetect, _ = s.settingService.GetSubIncyAppAutoDetect()
+	incyCfg.ProfileDescription, _ = s.settingService.GetSubIncyProfileDescription()
+	incyCfg.SortOrder, _ = s.settingService.GetSubIncySortOrder()
+	incyCfg.SupportEmail, _ = s.settingService.GetSubIncySupportEmail()
+	incyCfg.AnnounceUrl, _ = s.settingService.GetSubIncyAnnounceUrl()
+	incyCfg.PremiumUrl, _ = s.settingService.GetSubIncyPremiumUrl()
+	incyCfg.BannerText, _ = s.settingService.GetSubIncyBannerText()
+	incyCfg.BannerButtonText, _ = s.settingService.GetSubIncyBannerButtonText()
+	incyCfg.BannerButtonUrl, _ = s.settingService.GetSubIncyBannerButtonUrl()
+	incyCfg.BannerBgColor, _ = s.settingService.GetSubIncyBannerBgColor()
+	incyCfg.BannerButtonColor, _ = s.settingService.GetSubIncyBannerButtonColor()
+	incyCfg.HideUrl, _ = s.settingService.GetSubIncyHideUrl()
+	incyCfg.HideCheck, _ = s.settingService.GetSubIncyHideCheck()
+	incyCfg.NoLimitEnabled, _ = s.settingService.GetSubIncyNoLimitEnabled()
+	incyCfg.PerAppProxyEnable, _ = s.settingService.GetSubIncyPerAppEnable()
+	incyCfg.PerAppProxyMode, _ = s.settingService.GetSubIncyPerAppMode()
+	incyCfg.PerAppProxyList, _ = s.settingService.GetSubIncyPerAppList()
+	incyCfg.FragmentationEnable, _ = s.settingService.GetSubIncyFragmentationEnable()
+	incyCfg.FragmentationLength, _ = s.settingService.GetSubIncyFragmentLength()
+	incyCfg.FragmentationInterval, _ = s.settingService.GetSubIncyFragmentInterval()
+	incyCfg.FragmentationPackets, _ = s.settingService.GetSubIncyFragmentPackets()
+	incyCfg.NoisesEnable, _ = s.settingService.GetSubIncyNoisesEnable()
+	incyCfg.NoisesType, _ = s.settingService.GetSubIncyNoisesType()
+	incyCfg.NoisesPacket, _ = s.settingService.GetSubIncyNoisesPacket()
+	incyCfg.NoisesDelay, _ = s.settingService.GetSubIncyNoisesDelay()
+	incyCfg.ServerAddressResolveEnable, _ = s.settingService.GetSubIncyResolveEnable()
+	incyCfg.ServerAddressResolveDnsDomain, _ = s.settingService.GetSubIncyResolveDnsDomain()
+	incyCfg.ServerAddressResolveDnsIp, _ = s.settingService.GetSubIncyResolveDnsIp()
 
 	// set per-request localizer from headers/cookies
 	engine.Use(locale.LocalizerMiddleware())
@@ -329,11 +364,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		WithSUBTitle(SubTitle),
 		WithSUBSupportURL(SubSupportUrl),
 		WithSUBProfileURL(SubProfileUrl),
+		WithSUBProfileMode(SubProfileMode),
 		WithSUBAnnounce(SubAnnounce),
 		WithSUBEnableRouting(SubEnableRouting),
 		WithSUBRoutingRules(SubRoutingRules),
 		WithSUBHideSettings(SubHideSettings),
 		WithSUBHappConfig(happCfg),
+		WithSUBIncyConfig(incyCfg),
 		WithSUBIncyEnableRouting(SubIncyEnableRouting),
 		WithSUBIncyRoutingRules(SubIncyRoutingRules),
 	)

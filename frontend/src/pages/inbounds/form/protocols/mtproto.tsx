@@ -11,7 +11,7 @@ export default function MtprotoFields() {
   const routeThroughXray = useWatch({ control, name: 'settings.routeThroughXray' }) as
     | boolean
     | undefined;
-  const { data: outboundTags } = useOutboundTags();
+  const { data: outboundTags } = useOutboundTags({ excludeBlackhole: true });
   return (
     <>
       <FormField
@@ -89,6 +89,7 @@ export default function MtprotoFields() {
           tooltip={t('pages.inbounds.form.mtgRouteOutboundHint')}
         >
           <Select
+            id="mtprotoOutboundTag"
             allowClear
             showSearch
             placeholder={t('pages.inbounds.form.mtgRouteOutboundPlaceholder')}

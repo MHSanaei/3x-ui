@@ -221,6 +221,73 @@ func TestRemoveInboundTagReferences_RemovesOneTagFromMultiInboundRule(t *testing
 	}
 }
 
+// The core lowercases a protocol id before resolving the handler, so "Loopback"
+// is the loopback outbound whose inboundTag has to follow the inbound it names.
+func TestReplaceInboundTagInOutbounds_ReadsTheProtocolIDLikeTheCore(t *testing.T) {
+	tests := []struct {
+		name     string
+		protocol any
+		want     bool
+		wantTag  any
+	}{
+		{"canonical loopback is rewritten", "loopback", true, "new-tag"},
+		{"capitalised loopback is rewritten", "Loopback", true, "new-tag"},
+		{"uppercase loopback is rewritten", "LOOPBACK", true, "new-tag"},
+		{"another protocol keeps its tag", "vmess", false, "old-tag"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			outbounds := []any{map[string]any{
+				"protocol": tt.protocol,
+				"settings": map[string]any{"inboundTag": "old-tag"},
+			}}
+			if got := replaceInboundTagInOutbounds(outbounds, "old-tag", "new-tag"); got != tt.want {
+				t.Errorf("changed = %v, want %v", got, tt.want)
+			}
+			settings := outbounds[0].(map[string]any)["settings"].(map[string]any)
+			if got := settings["inboundTag"]; got != tt.wantTag {
+				t.Errorf("inboundTag = %v, want %v", got, tt.wantTag)
+			}
+		})
+	}
+}
+
+func TestRemoveInboundTagFromOutbounds_ReadsTheProtocolIDLikeTheCore(t *testing.T) {
+	tests := []struct {
+		name     string
+		protocol any
+		want     bool
+		wantTag  any
+	}{
+		{"canonical loopback is cleared", "loopback", true, nil},
+		{"capitalised loopback is cleared", "Loopback", true, nil},
+		{"uppercase loopback is cleared", "LOOPBACK", true, nil},
+		{"another protocol keeps its tag", "vmess", false, "gone-tag"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			outbounds := []any{map[string]any{
+				"protocol": tt.protocol,
+				"settings": map[string]any{"inboundTag": "gone-tag"},
+			}}
+			if got := removeInboundTagFromOutbounds(outbounds, "gone-tag"); got != tt.want {
+				t.Errorf("changed = %v, want %v", got, tt.want)
+			}
+			settings := outbounds[0].(map[string]any)["settings"].(map[string]any)
+			got, ok := settings["inboundTag"]
+			if tt.wantTag == nil {
+				if ok {
+					t.Errorf("inboundTag = %v, want the key gone", got)
+				}
+				return
+			}
+			if !ok || got != tt.wantTag {
+				t.Errorf("inboundTag = %v (present=%v), want %v", got, ok, tt.wantTag)
+			}
+		})
+	}
+}
+
 func findRuleByOutbound(t *testing.T, template, outbound string) map[string]any {
 	t.Helper()
 	for _, rule := range routingRulesFromTemplate(t, template) {

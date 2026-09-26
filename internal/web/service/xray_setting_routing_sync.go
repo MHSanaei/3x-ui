@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 )
 
 var routingMatcherKeys = []string{
@@ -142,7 +143,7 @@ func replaceInboundTagInOutbounds(outbounds []any, oldTag, newTag string) bool {
 			continue
 		}
 		proto, _ := out["protocol"].(string)
-		if proto != "loopback" {
+		if !strings.EqualFold(proto, "loopback") {
 			continue
 		}
 		settings, ok := out["settings"].(map[string]any)
@@ -167,7 +168,7 @@ func removeInboundTagFromOutbounds(outbounds []any, deletedTag string) bool {
 			continue
 		}
 		proto, _ := out["protocol"].(string)
-		if proto != "loopback" {
+		if !strings.EqualFold(proto, "loopback") {
 			continue
 		}
 		settings, ok := out["settings"].(map[string]any)

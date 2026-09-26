@@ -266,6 +266,67 @@ describe('parseVlessLink', () => {
   });
 });
 
+describe('mKCP share params', () => {
+  // The emitter flattens one mkcp-legacy mask per field into headerType/seed; a merged
+  // mask drops the seed in xray-core (MkcpLegacy.Build), so import rebuilds them separately.
+  type Mask = { type: string; settings: { header: string; value: string } };
+  const parse = (link: string) => {
+    const out = link.startsWith('trojan://') ? parseTrojanLink(link) : parseVlessLink(link);
+    expect(out).not.toBeNull();
+    const stream = out!.streamSettings as Record<string, unknown>;
+    const kcp = stream.kcpSettings as { mtu: number; tti: number };
+    const udp = (stream.finalmask as { udp?: Mask[] } | undefined)?.udp ?? [];
+    return {
+      kcp: { mtu: kcp.mtu, tti: kcp.tti },
+      masks: udp.map((m) => [m.type, m.settings.header, m.settings.value]),
+    };
+  };
+
+  it.each([
+    [
+      'vless header and seed become two masks, seed first',
+      'vless://11111111-2222-4333-8444-555555555555@h.com:443?type=kcp&headerType=wechat-video&seed=secret-seed&mtu=1400&tti=50&security=none#kcp1',
+      { mtu: 1400, tti: 50 },
+      [
+        ['mkcp-legacy', '', 'secret-seed'],
+        ['mkcp-legacy', 'wechat', ''],
+      ],
+    ],
+    [
+      'trojan header only adds no seed mask',
+      'trojan://pw@h.com:443?type=kcp&headerType=srtp&security=none#kcp-tj',
+      { mtu: 1350, tti: 20 },
+      [['mkcp-legacy', 'srtp', '']],
+    ],
+    [
+      'seed only adds no header mask',
+      'vless://uuid@h.com:443?type=kcp&headerType=none&seed=abc123&security=none',
+      { mtu: 1350, tti: 20 },
+      [['mkcp-legacy', '', 'abc123']],
+    ],
+    [
+      'mtu/tti outside KCPConfig.Build bounds keep the defaults',
+      'vless://uuid@h.com:443?type=kcp&mtu=10&tti=5000&security=none',
+      { mtu: 1350, tti: 20 },
+      [],
+    ],
+    [
+      'non-decimal mtu keeps the default like the Go importer',
+      'vless://uuid@h.com:443?type=kcp&mtu=1.5&tti=1e2&security=none',
+      { mtu: 1350, tti: 20 },
+      [],
+    ],
+    [
+      'a prototype key is not a header type',
+      'vless://uuid@h.com:443?type=kcp&headerType=constructor&seed=abc&security=none',
+      { mtu: 1350, tti: 20 },
+      [],
+    ],
+  ])('%s', (_name, link, kcp, masks) => {
+    expect(parse(link)).toEqual({ kcp, masks });
+  });
+});
+
 describe('parseTrojanLink', () => {
   it('parses a trojan:// link with ws + tls', () => {
     const link =

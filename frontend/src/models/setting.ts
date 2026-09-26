@@ -1,4 +1,5 @@
 import { ObjectUtil } from '@/utils';
+import type { SubProfileMode } from '@/schemas/setting';
 
 export class AllSetting {
   webListen = '';
@@ -19,6 +20,7 @@ export class AllSetting {
   remarkTemplate = '{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   subShowIdentityOnAllLinks = false;
   subInfoNodeEnable = false;
+  subCalendarExpireInclusive = false;
   subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';
   subTrafficDepletedTemplate =
     '🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}';
@@ -45,6 +47,7 @@ export class AllSetting {
   subClashUserAgentRegex = '';
   subTitle = '';
   subSupportUrl = '';
+  subProfileMode: SubProfileMode = 'none';
   subProfileUrl = '';
   subAnnounce = '';
   subEnableRouting = false;
@@ -63,6 +66,7 @@ export class AllSetting {
   restartXrayOnClientDisable = true;
   subCertFile = '';
   subKeyFile = '';
+  externalSubUserAgent = 'v2rayNG/1.8.5';
   subUpdates = 12;
   subEncrypt = true;
   subURI = '';
@@ -101,6 +105,36 @@ export class AllSetting {
   subHappAutoConnectType = 'lowestdelay';
   subHappPerAppMode = 'off';
   subHappPerAppList = '';
+  subHappLocalProxyAuth = 'auto';
+
+  subIncyAppAutoDetect = false;
+  subIncyProfileDescription = '';
+  subIncySortOrder = '';
+  subIncySupportEmail = '';
+  subIncyAnnounceUrl = '';
+  subIncyPremiumUrl = '';
+  subIncyBannerText = '';
+  subIncyBannerButtonText = '';
+  subIncyBannerButtonUrl = '';
+  subIncyBannerBgColor = '';
+  subIncyBannerButtonColor = '';
+  subIncyHideUrl = '';
+  subIncyHideCheck = '';
+  subIncyNoLimitEnabled = '';
+  subIncyPerAppEnable = '';
+  subIncyPerAppMode = '';
+  subIncyPerAppList = '';
+  subIncyFragmentationEnable = '';
+  subIncyFragmentLength = '';
+  subIncyFragmentInterval = '';
+  subIncyFragmentPackets = '';
+  subIncyNoisesEnable = '';
+  subIncyNoisesType = '';
+  subIncyNoisesPacket = '';
+  subIncyNoisesDelay = '';
+  subIncyResolveEnable = '';
+  subIncyResolveDnsDomain = '';
+  subIncyResolveDnsIp = '';
 
   timeLocation = 'Local';
 
@@ -165,6 +199,15 @@ export class AllSetting {
   constructor(data?: unknown) {
     if (data != null) {
       ObjectUtil.cloneProps(this, data);
+    }
+    // Legacy settings with a custom URL retain it until an explicit mode is saved.
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      (!('subProfileMode' in data) || data.subProfileMode === undefined) &&
+      this.subProfileUrl.trim() !== ''
+    ) {
+      this.subProfileMode = 'custom';
     }
     const cpu = Math.round(Number(this.tgCpu));
     this.tgCpu = Number.isFinite(cpu) ? Math.min(100, Math.max(0, cpu)) : 80;

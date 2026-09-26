@@ -17,7 +17,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -1134,6 +1133,14 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err != nil {
 		return inbound, false, err
 	}
+	if err := validateClientsRenewal(clients); err != nil {
+		return inbound, false, err
+	}
+	for _, traffic := range inbound.ClientStats {
+		if err := validateClientRenewal(model.Client{Reset: traffic.Reset, ResetDay: traffic.ResetDay, ResetWeekday: traffic.ResetWeekday}); err != nil {
+			return inbound, false, err
+		}
+	}
 	existEmail, err := s.clientService.checkEmailsExistForClients(s, clients)
 	if err != nil {
 		return inbound, false, err
@@ -1238,19 +1245,30 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		if err := tx.Omit("ClientStats").Save(inbound).Error; err != nil {
 			return err
 		}
-		// The relay port is derived from the id, only known after Save; checkPortConflictTx
-		// ran the reverse-direction check above with ignoreId==0, so it couldn't yet.
-		if inbound.Protocol == model.AmneziaWG {
-			if amneziawgnet.SOCKSPortForInbound(inbound.Id) > 65535 {
-				return common.NewErrorf("amneziawg: inbound id %d exceeds the relay port window (ids above %d are not supported)",
-					inbound.Id, 65535-amneziawgnet.SOCKSBasePort)
+		// The relay port is derived from the id, only known after Save, and only a
+		// local row owns one: checkPortConflictTx ran no relay check with ignoreId==0.
+		if inbound.NodeID == nil && inbound.Protocol == model.AmneziaWG {
+			if self := amneziawgnetSocksSelfConflict(inbound, inbound.Id); self != "" {
+				return common.NewError(self)
 			}
-			conflict, cErr := checkAmneziawgnetSocksReverseConflict(tx, inbound.Id)
+			conflict, cErr := checkAmneziawgnetSocksRelayCollision(tx, inbound.Id)
 			if cErr != nil {
 				return cErr
 			}
 			if conflict != nil {
 				return common.NewError(conflict.String())
+			}
+			conflict, cErr = checkAmneziawgnetSocksReverseConflict(tx, inbound.Id)
+			if cErr != nil {
+				return cErr
+			}
+			if conflict != nil {
+				return common.NewError(conflict.String())
+			}
+			// The clients' forward specs were validated while this row had no id,
+			// so the ports it now derives were never in the guard's context.
+			if aErr := s.checkAmneziaWGForwardedPorts(tx, inbound.Settings); aErr != nil {
+				return aErr
 			}
 		}
 		// Emails seeded here (import's ClientStats, e.g. the controller's forced
@@ -1353,10 +1371,20 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 }
 
 func (s *InboundService) DelInbound(id int) (bool, error) {
+	needRestart, nodePush, err := s.delInbound(id)
+	if nodePush != nil {
+		nodePush()
+	}
+	return needRestart, err
+}
+
+// delInbound deletes the central row and returns the node push instead of running
+// it, so a bulk delete can fan the pushes out once every row is gone.
+func (s *InboundService) delInbound(id int) (bool, func(), error) {
 	db := database.GetDB()
 
 	needRestart := false
-	var postCommitApply func()
+	var postCommitApply, nodePush func()
 	var ib model.Inbound
 	loadErr := db.Model(model.Inbound{}).Where("id = ?", id).First(&ib).Error
 	if loadErr == nil {
@@ -1367,7 +1395,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 				if perr != nil {
 					logger.Warning("DelInbound: node runtime lookup failed, deleting central row anyway:", perr)
 				} else if push {
-					postCommitApply = func() {
+					nodePush = func() {
 						if err1 := rt.DelInbound(context.Background(), &ib); err1 == nil {
 							logger.Debug("Inbound deleted on", rt.Name(), ":", ib.Tag)
 						} else {
@@ -1430,7 +1458,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		}
 		return nil
 	}); err != nil {
-		return needRestart, err
+		return needRestart, nil, err
 	}
 	if postCommitApply != nil {
 		postCommitApply()
@@ -1445,11 +1473,11 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if !database.IsPostgres() {
 		var count int64
 		if err := db.Model(&model.Inbound{}).Count(&count).Error; err != nil {
-			return needRestart, err
+			return needRestart, nodePush, err
 		}
 		if count == 0 {
 			if err := db.Exec("DELETE FROM sqlite_sequence WHERE name = ?", "inbounds").Error; err != nil {
-				return needRestart, err
+				return needRestart, nodePush, err
 			}
 		}
 	}
@@ -1457,7 +1485,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if mtprotoRoutesThroughXray(&ib) {
 		needRestart = true
 	}
-	return needRestart, nil
+	return needRestart, nodePush, nil
 }
 
 type BulkDelInboundResult struct {
@@ -1477,8 +1505,14 @@ type BulkDelInboundReport struct {
 func (s *InboundService) DelInbounds(ids []int) (BulkDelInboundResult, bool, error) {
 	result := BulkDelInboundResult{}
 	needRestart := false
+	var pushIDs []int
+	var nodePushes []func()
 	for _, id := range ids {
-		r, err := s.DelInbound(id)
+		r, nodePush, err := s.delInbound(id)
+		if nodePush != nil {
+			pushIDs = append(pushIDs, id)
+			nodePushes = append(nodePushes, nodePush)
+		}
 		if err != nil {
 			result.Skipped = append(result.Skipped, BulkDelInboundReport{Id: id, Reason: err.Error()})
 			continue
@@ -1488,6 +1522,11 @@ func (s *InboundService) DelInbounds(ids []int) (BulkDelInboundResult, bool, err
 			needRestart = true
 		}
 	}
+	// Rows go one at a time for the shared routing rewrite; only node pushes fan out.
+	fanoutInboundResults(pushIDs, nodeFanoutConcurrency, func(i int) struct{} {
+		nodePushes[i]()
+		return struct{}{}
+	})
 	return result, needRestart, nil
 }
 
@@ -1571,6 +1610,17 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	}
 
 	db := database.GetDB()
+	// Enabling puts this row's ports into the running config, and the guards ran
+	// only if it was saved: a restored or hand-edited row reaches it unchecked.
+	if enable && inbound.NodeID == nil {
+		conflict, err := checkPortConflictTx(db, inbound, inbound.Id)
+		if err != nil {
+			return false, err
+		}
+		if conflict != nil {
+			return false, common.NewError(conflict.String())
+		}
+	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(model.Inbound{}).Where("id = ?", id).
 			Update("enable", enable).Error; err != nil {
@@ -1658,6 +1708,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 
 	clients, err := s.GetClients(inbound)
 	if err != nil {
+		return inbound, false, err
+	}
+	if err := validateClientsRenewal(clients); err != nil {
 		return inbound, false, err
 	}
 	if inbound.Protocol == model.Hysteria {

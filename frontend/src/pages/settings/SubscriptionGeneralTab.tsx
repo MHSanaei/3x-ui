@@ -1,4 +1,4 @@
-import { Alert, Button, Input, InputNumber, Switch, Tabs } from 'antd';
+import { Alert, Button, Input, InputNumber, Select, Switch, Tabs } from 'antd';
 import {
   BranchesOutlined,
   CompassOutlined,
@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 import type { AllSetting } from '@/models/setting';
+import type { SubProfileMode } from '@/schemas/setting';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
 import { RemarkTemplateField } from '@/components/form';
@@ -18,6 +19,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import { sanitizePath, normalizePath } from './uriPath';
 import HappSettingsContent from './HappSettingsContent';
+import IncySettingsContent from './IncySettingsContent';
 import { remoteSourceBadge } from './subscriptionShared';
 
 interface SubscriptionGeneralTabProps {
@@ -199,6 +201,17 @@ export default function SubscriptionGeneralTab({
 
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.subCalendarExpireInclusive')}
+                description={t('pages.settings.subCalendarExpireInclusiveDesc')}
+              >
+                <Switch
+                  checked={allSetting.subCalendarExpireInclusive}
+                  onChange={(v) => updateSetting({ subCalendarExpireInclusive: v })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.subExpiredTemplate')}
                 description={t('pages.settings.subExpiredTemplateDesc')}
               >
@@ -235,6 +248,26 @@ export default function SubscriptionGeneralTab({
                   onChange={onNumber((v) => updateSetting({ subUpdates: v }))}
                 />
               </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.externalSubUserAgent')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="externalSubUserAgent"
+                    value={allSetting.externalSubUserAgent}
+                  />
+                }
+                description={t('pages.settings.externalSubUserAgentDesc')}
+              >
+                <Input
+                  value={allSetting.externalSubUserAgent}
+                  placeholder="v2rayNG/1.8.5"
+                  maxLength={512}
+                  allowClear
+                  onChange={(e) => updateSetting({ externalSubUserAgent: e.target.value })}
+                />
+              </SettingListItem>
             </>
           ),
         },
@@ -268,16 +301,44 @@ export default function SubscriptionGeneralTab({
               </SettingListItem>
               <SettingListItem
                 paddings="small"
-                title={t('pages.settings.subProfileUrl')}
-                description={t('pages.settings.subProfileUrlDesc')}
+                title={t('pages.settings.subProfileMode')}
+                description={t('pages.settings.subProfileModeDesc')}
               >
-                <RemarkTemplateField
-                  value={allSetting.subProfileUrl}
-                  placeholder="https://example.com"
-                  onChange={(v) => updateSetting({ subProfileUrl: v })}
-                  metadataOnly
+                <Select<SubProfileMode>
+                  id="sub-profile-mode"
+                  aria-label={t('pages.settings.subProfileMode')}
+                  value={allSetting.subProfileMode}
+                  style={{ width: '100%' }}
+                  onChange={(value) => updateSetting({ subProfileMode: value })}
+                  options={[
+                    { value: 'none', label: t('pages.settings.subProfileModeNone') },
+                    { value: 'builtin', label: t('pages.settings.subProfileModeBuiltin') },
+                    { value: 'custom', label: t('pages.settings.subProfileModeCustom') },
+                  ]}
                 />
               </SettingListItem>
+              {allSetting.subProfileMode === 'builtin' ? (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ margin: '12px 20px' }}
+                  title={t('pages.settings.subProfileBuiltinWarning')}
+                />
+              ) : null}
+              {allSetting.subProfileMode === 'custom' ? (
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subProfileUrl')}
+                  description={t('pages.settings.subProfileUrlDesc')}
+                >
+                  <RemarkTemplateField
+                    value={allSetting.subProfileUrl}
+                    placeholder="https://example.com"
+                    onChange={(v) => updateSetting({ subProfileUrl: v })}
+                    metadataOnly
+                  />
+                </SettingListItem>
+              ) : null}
               <SettingListItem
                 paddings="small"
                 title={t('pages.settings.subAnnounce')}
@@ -395,30 +456,12 @@ export default function SubscriptionGeneralTab({
           key: '7',
           label: catTabLabel(<CompassOutlined />, 'Incy', isMobile),
           children: (
-            <>
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.subIncyEnableRouting')}
-                description={t('pages.settings.subIncyEnableRoutingDesc')}
-              >
-                <Switch
-                  checked={allSetting.subIncyEnableRouting}
-                  onChange={(v) => updateSetting({ subIncyEnableRouting: v })}
-                />
-              </SettingListItem>
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.subIncyRoutingRules')}
-                badge={remoteSourceBadge(allSetting.subIncyRoutingRules)}
-                description={t('pages.settings.subIncyRoutingRulesDesc')}
-              >
-                <Input.TextArea
-                  value={allSetting.subIncyRoutingRules}
-                  placeholder="incy://routing/onadd/... or https://.../DEFAULT.JSON"
-                  onChange={(e) => updateSetting({ subIncyRoutingRules: e.target.value })}
-                />
-              </SettingListItem>
-            </>
+            <IncySettingsContent
+              allSetting={allSetting}
+              updateSetting={updateSetting}
+              isMobile={isMobile}
+              remoteSourceBadge={remoteSourceBadge}
+            />
           ),
         },
       ]}

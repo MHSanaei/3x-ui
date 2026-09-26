@@ -1,10 +1,29 @@
+import { useState } from 'react';
 import { fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AllSetting } from '@/models/setting';
 import SubscriptionGeneralTab from '@/pages/settings/SubscriptionGeneralTab';
-import { renderWithProviders } from './test-utils';
+import { chooseSelectOption, renderWithProviders } from './test-utils';
+
+function ProfileSettingsHarness({ initial }: { initial?: unknown }) {
+  const [allSetting, setAllSetting] = useState(() => new AllSetting(initial));
+
+  return (
+    <>
+      <SubscriptionGeneralTab
+        allSetting={allSetting}
+        updateSetting={(patch) =>
+          setAllSetting((current) => new AllSetting({ ...current, ...patch }))
+        }
+      />
+      <output data-testid="profile-settings">
+        {allSetting.subProfileMode}|{allSetting.subProfileUrl}
+      </output>
+    </>
+  );
+}
 
 function LocationProbe() {
   const location = useLocation();
@@ -18,6 +37,60 @@ function LocationProbe() {
 }
 
 describe('SubscriptionGeneralTab', () => {
+  it('switches profile modes without losing the custom URL and warns only for the built-in page', () => {
+    const storedUrl = 'https://example.com/profile/{{SUB_ID}}';
+    const editedUrl = 'https://example.com/account/{{SUB_ID}}';
+    const warning =
+      'This page exposes subscription URLs and node configurations, including for Happ encrypted subscriptions.';
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={['/settings#subscription']}>
+        <ProfileSettingsHarness initial={{ subProfileMode: 'none', subProfileUrl: storedUrl }} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: /Profile/ }));
+    expect(screen.getByRole('combobox', { name: 'Profile page' })).toBeTruthy();
+    expect(screen.getByTestId('profile-settings').textContent).toBe(`none|${storedUrl}`);
+    expect(screen.queryByDisplayValue(storedUrl)).toBeNull();
+    expect(screen.queryByText(warning)).toBeNull();
+
+    chooseSelectOption('sub-profile-mode', 'Built-in subscription page');
+    expect(screen.getByTestId('profile-settings').textContent).toBe(`builtin|${storedUrl}`);
+    expect(screen.getByRole('alert').textContent).toContain(warning);
+    expect(screen.queryByDisplayValue(storedUrl)).toBeNull();
+
+    chooseSelectOption('sub-profile-mode', 'Custom website');
+    expect(screen.queryByText(warning)).toBeNull();
+    fireEvent.change(screen.getByDisplayValue(storedUrl), { target: { value: editedUrl } });
+    expect(screen.getByTestId('profile-settings').textContent).toBe(`custom|${editedUrl}`);
+
+    chooseSelectOption('sub-profile-mode', 'No link');
+    expect(screen.getByTestId('profile-settings').textContent).toBe(`none|${editedUrl}`);
+    expect(screen.queryByDisplayValue(editedUrl)).toBeNull();
+    expect(screen.queryByText(warning)).toBeNull();
+
+    chooseSelectOption('sub-profile-mode', 'Custom website');
+    expect(screen.getByTestId('profile-settings').textContent).toBe(`custom|${editedUrl}`);
+    expect(screen.getByDisplayValue(editedUrl)).toBeTruthy();
+  });
+
+  it('opens a legacy custom profile URL with custom mode selected', () => {
+    const storedUrl = 'https://example.com/profile/{{SUB_ID}}';
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={['/settings#subscription']}>
+        <ProfileSettingsHarness initial={{ subProfileUrl: storedUrl }} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: /Profile/ }));
+    expect(screen.getByRole('combobox', { name: 'Profile page' })).toBeTruthy();
+    expect(screen.getByText('Custom website')).toBeTruthy();
+    expect(screen.getByDisplayValue(storedUrl)).toBeTruthy();
+    expect(screen.getByTestId('profile-settings').textContent).toBe(`custom|${storedUrl}`);
+  });
+
   it('keeps the stored subscription port when the field is cleared', () => {
     const updateSetting = vi.fn();
 

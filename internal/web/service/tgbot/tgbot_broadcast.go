@@ -183,38 +183,40 @@ var broadcastPause = time.Sleep
 
 // startBroadcast answers /broadcast: one broadcast at a time, so a second
 // command while one is running is refused instead of queued.
-func (t *Tgbot) startBroadcast(chatId int64) {
+func (t *Tgbot) startBroadcast(actor chatUser) {
+	chatId := actor.chatID
 	if broadcastCurrentRunner() != nil {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAlreadyRunning"))
 		return
 	}
 	broadcastDropCompose(chatId)
-	userStateMgr.set(chatId, broadcastAwaitingText)
+	userStateMgr.set(actor, broadcastAwaitingText)
 	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAskText"), t.broadcastCancelKeyboard())
 }
 
 // handleBroadcastInput references the message the admin sent and shows the
 // confirmation preview. Only the chat's admin may fill the shared state.
-func (t *Tgbot) handleBroadcastInput(message *telego.Message) {
-	chatId := message.Chat.ID
+func (t *Tgbot) handleBroadcastInput(message *telego.Message, actor chatUser) {
+	chatId := actor.chatID
 	if message.From == nil || !checkAdmin(message.From.ID) {
 		return
 	}
 	logger.Debugf("broadcast: chat %d input (message_id=%d group=%q)", chatId, message.MessageID, message.MediaGroupID)
 	if message.MediaGroupID == "" {
 		broadcastDropCompose(chatId)
-		t.acceptBroadcastDraft(chatId, []int{message.MessageID})
+		t.acceptBroadcastDraft(actor, []int{message.MessageID})
 		return
 	}
-	t.bufferBroadcastMedia(chatId, message.MediaGroupID, message.MessageID)
+	t.bufferBroadcastMedia(actor, message.MediaGroupID, message.MessageID)
 }
 
 // acceptBroadcastDraft validates the draft with a self-copy — the admin sees
 // exactly what recipients will get — and shows the confirmation preview.
-func (t *Tgbot) acceptBroadcastDraft(chatId int64, ids []int) {
+func (t *Tgbot) acceptBroadcastDraft(actor chatUser, ids []int) {
+	chatId := actor.chatID
 	if err := broadcastSender(chatId, broadcastDraft{FromChatID: chatId, MessageIDs: ids}); err != nil {
 		broadcastDropCompose(chatId)
-		userStateMgr.clear(chatId)
+		userStateMgr.clear(actor)
 		logger.Warningf("broadcast: chat %d message %v cannot be copied: %v", chatId, ids, err)
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastNotCopyable"))
 		return
@@ -224,7 +226,7 @@ func (t *Tgbot) acceptBroadcastDraft(chatId int64, ids []int) {
 	broadcastMu.Lock()
 	broadcastComposes[chatId] = &broadcastCompose{messageIDs: ids, token: token}
 	broadcastMu.Unlock()
-	userStateMgr.clear(chatId)
+	userStateMgr.clear(actor)
 	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.broadcastSend")).WithCallbackData("broadcast_confirm "+token),
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("broadcast_cancel"),
@@ -234,7 +236,8 @@ func (t *Tgbot) acceptBroadcastDraft(chatId int64, ids []int) {
 
 // bufferBroadcastMedia appends an album item; the debounce timer fires the
 // preview once the group stops growing.
-func (t *Tgbot) bufferBroadcastMedia(chatId int64, groupID string, messageID int) {
+func (t *Tgbot) bufferBroadcastMedia(actor chatUser, groupID string, messageID int) {
+	chatId := actor.chatID
 	broadcastMu.Lock()
 	c := broadcastComposes[chatId]
 	if c == nil || c.groupID != groupID {
@@ -243,7 +246,7 @@ func (t *Tgbot) bufferBroadcastMedia(chatId int64, groupID string, messageID int
 		}
 		c = &broadcastCompose{groupID: groupID}
 		c.timer = time.AfterFunc(broadcastAlbumDebounce, func() {
-			t.finalizeBroadcastAlbum(chatId, groupID)
+			t.finalizeBroadcastAlbum(actor, groupID)
 		})
 		broadcastComposes[chatId] = c
 	}
@@ -252,7 +255,8 @@ func (t *Tgbot) bufferBroadcastMedia(chatId int64, groupID string, messageID int
 	broadcastMu.Unlock()
 }
 
-func (t *Tgbot) finalizeBroadcastAlbum(chatId int64, groupID string) {
+func (t *Tgbot) finalizeBroadcastAlbum(actor chatUser, groupID string) {
+	chatId := actor.chatID
 	broadcastMu.Lock()
 	c := broadcastComposes[chatId]
 	if c == nil || c.groupID != groupID {
@@ -267,7 +271,7 @@ func (t *Tgbot) finalizeBroadcastAlbum(chatId int64, groupID string) {
 	delete(broadcastComposes, chatId)
 	broadcastMu.Unlock()
 
-	t.acceptBroadcastDraft(chatId, ids)
+	t.acceptBroadcastDraft(actor, ids)
 }
 
 func (t *Tgbot) broadcastCancelKeyboard() *telego.InlineKeyboardMarkup {
@@ -278,7 +282,8 @@ func (t *Tgbot) broadcastCancelKeyboard() *telego.InlineKeyboardMarkup {
 
 // confirmBroadcast turns the pending draft into a run: it claims the single
 // runner slot, replaces the preview with a progress card, and starts delivery.
-func (t *Tgbot) confirmBroadcast(chatId int64, token string, messageID int, queryID string) {
+func (t *Tgbot) confirmBroadcast(actor chatUser, token string, messageID int, queryID string) {
+	chatId := actor.chatID
 	runner := broadcastRegisterRunner(chatId)
 	if runner == nil {
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.messages.broadcastAlreadyRunning"))
@@ -414,14 +419,15 @@ func (t *Tgbot) finalizeBroadcastCard(runner *broadcastRunner, summary string) b
 
 // cancelBroadcast handles the inline cancel button: while composing it drops
 // the draft, while running it stops the loop after the current recipient.
-func (t *Tgbot) cancelBroadcast(chatId int64, messageID int, queryID string) {
+func (t *Tgbot) cancelBroadcast(actor chatUser, messageID int, queryID string) {
+	chatId := actor.chatID
 	if runner := broadcastCurrentRunner(); runner != nil && runner.chatID == chatId {
 		runner.cancel.Store(true)
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceling"))
 		return
 	}
 	broadcastDropCompose(chatId)
-	userStateMgr.clear(chatId)
+	userStateMgr.clear(actor)
 	t.deleteMessageTgBot(chatId, messageID)
 	t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceled"))
 }

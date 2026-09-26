@@ -48,6 +48,8 @@ type SubService struct {
 	usageShown                 map[string]bool
 	showIdentityOnAllLinks     bool
 	subInfoNodeEnable          bool
+	subCalendarExpireInclusive bool
+	calendarExpireLocation     *time.Location
 	subExpiredTemplate         string
 	subTrafficDepletedTemplate string
 	inboundService             service.InboundService
@@ -111,6 +113,11 @@ func (s *SubService) PrepareForRequest(host string) {
 	s.settingsByInbound = map[int]map[string]any{}
 	s.loadNodes()
 	s.loadRemarkSettings()
+	s.subCalendarExpireInclusive, _ = s.settingService.GetSubCalendarExpireInclusive()
+	s.calendarExpireLocation = nil
+	if s.subCalendarExpireInclusive {
+		s.calendarExpireLocation, _ = s.settingService.GetTimeLocation()
+	}
 }
 
 // primeLinkClients caches clients (first occurrence per email, matching the
@@ -293,15 +300,8 @@ func listenIsInternalOnly(listen string) bool {
 	return isLoopbackHost(listen)
 }
 
-// matchingClients returns the inbound's clients whose SubID equals subId,
-// resolved from the normalized clients/client_inbounds tables (both filter
-// columns indexed) instead of parsing the settings JSON — at large client
-// counts that parse made every subscription fetch cost seconds. The
-// case-insensitive email dedupe stays as cheap insurance even though
-// clients.email is unique, preserving the #5134 guarantee that duplicate
-// settings entries never fan out into duplicate profiles. Resolved clients
-// are primed into the per-request cache so the link generators don't parse
-// settings either.
+// matchingClients selects normalized subId members (email-deduped, #5134).
+// WG/AWG copy this inbound's settings tunnel identity first so shared wg_* columns cannot leak (#6641).
 func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []model.Client {
 	clients, err := s.inboundService.GetClientsBySubId(inbound.Id, subId)
 	if err != nil {
@@ -318,8 +318,56 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 		seen[key] = struct{}{}
 		out = append(out, client)
 	}
+	if len(out) > 0 && (inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG) {
+		overlaid, settingsErr := s.overlayInboundTunnelIdentity(inbound, out)
+		if settingsErr != nil {
+			logger.Errorf("SubService - matchingClients: inbound %d tunnel settings: %v", inbound.Id, settingsErr)
+			return nil
+		}
+		out = overlaid
+	}
 	s.primeLinkClients(inbound.Id, out, false)
 	return out
+}
+
+// overlayInboundTunnelIdentity copies per-inbound tunnel fields from settings.
+// An unmatched peer is dropped, malformed settings yield nothing, and empty optional secrets replace shared values (#6641).
+func (s *SubService) overlayInboundTunnelIdentity(inbound *model.Inbound, clients []model.Client) ([]model.Client, error) {
+	embedded, err := s.inboundService.GetClients(inbound)
+	if err != nil {
+		return nil, err
+	}
+	byEmail := make(map[string]model.Client, len(embedded))
+	for i := range embedded {
+		key := strings.ToLower(embedded[i].Email)
+		if key == "" {
+			continue
+		}
+		if _, exists := byEmail[key]; exists {
+			continue
+		}
+		byEmail[key] = embedded[i]
+	}
+	out := make([]model.Client, 0, len(clients))
+	for _, client := range clients {
+		peer, ok := byEmail[strings.ToLower(client.Email)]
+		if !ok {
+			continue
+		}
+		client.PrivateKey = peer.PrivateKey
+		client.PublicKey = peer.PublicKey
+		client.PreSharedKey = peer.PreSharedKey
+		// append onto nil copies a non-empty list and clears a shared address when settings omit one.
+		client.AllowedIPs = append([]string(nil), peer.AllowedIPs...)
+		if peer.KeepAlive == nil {
+			client.KeepAlive = nil
+		} else {
+			keepalive := *peer.KeepAlive
+			client.KeepAlive = &keepalive
+		}
+		out = append(out, client)
+	}
+	return out, nil
 }
 
 // RecordSubscriptionFetch records a successful subscription response for all clients sharing subId.
@@ -544,13 +592,13 @@ func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraff
 	// runtime traffic rows. In a multi-node setup the node snapshot can reset
 	// client_traffics.total/expiry_time to 0, so fall back to the clients
 	// table to keep the Subscription-Userinfo header in sync with the UI (#4645).
-	limits := make(map[string][2]int64, len(emails))
+	limits := make(map[string]model.ClientRecord, len(emails))
 	var records []model.ClientRecord
 	if err := db.Model(&model.ClientRecord{}).Where("email IN ?", emails).Find(&records).Error; err != nil {
 		logger.Warning("SubService - AggregateTrafficByEmails: load client limits:", err)
 	} else {
 		for _, r := range records {
-			limits[r.Email] = [2]int64{r.TotalGB, r.ExpiryTime}
+			limits[r.Email] = r
 		}
 	}
 
@@ -560,25 +608,33 @@ func (s *SubService) AggregateTrafficByEmails(emails []string) (xray.ClientTraff
 		if ct.LastOnline > lastOnline {
 			lastOnline = ct.LastOnline
 		}
-		total, expiry := ct.Total, ct.ExpiryTime
+		total, expiry, resetDay := ct.Total, ct.ExpiryTime, ct.ResetDay
 		if lim, ok := limits[ct.Email]; ok {
+			resetDay = lim.ResetDay
 			if total == 0 {
-				total = lim[0]
+				total = lim.TotalGB
 			}
 			if expiry == 0 {
-				expiry = lim[1]
+				expiry = lim.ExpiryTime
 			}
+		}
+		if expiry <= 0 {
+			resetDay = 0
 		}
 		if first {
 			agg.Up = ct.Up
 			agg.Down = ct.Down
 			agg.Total = total
 			agg.ExpiryTime = subscriptionExpiryFromClient(now, expiry)
+			agg.ResetDay = resetDay
 			first = false
 			continue
 		}
 		agg.Up += ct.Up
 		agg.Down += ct.Down
+		if resetDay != agg.ResetDay {
+			agg.ResetDay = 0
+		}
 		if agg.Total == 0 || total == 0 {
 			agg.Total = 0
 		} else {
@@ -2073,6 +2129,9 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 	if alpn, ok := externalProxyALPNList(ep["alpn"]); ok {
 		tlsSettings["alpn"] = alpn
 	}
+	if cs, ok := ep["cipherSuites"].(string); ok && cs != "" {
+		tlsSettings["cipherSuites"] = cs
+	}
 	if pins, ok := externalProxyPins(ep["pinnedPeerCertSha256"]); ok {
 		settings, _ := tlsSettings["settings"].(map[string]any)
 		if settings == nil {
@@ -2271,20 +2330,27 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 
 	if fragment != "" {
 		sb.WriteByte('#')
-		if before, after, ok := strings.Cut(fragment, "?serverDescription="); ok {
-			if _, err := base64.StdEncoding.DecodeString(after); err == nil && len(after) > 0 && !strings.ContainsAny(after, " \r\n\t#&") {
-				sb.WriteString(strings.ReplaceAll(url.QueryEscape(before), "+", "%20"))
-				sb.WriteString("?serverDescription=")
-				sb.WriteString(after)
-			} else {
-				sb.WriteString(strings.ReplaceAll(url.QueryEscape(fragment), "+", "%20"))
-			}
-		} else {
-			// Match the frontend's encodeURIComponent(remark): spaces become %20.
-			sb.WriteString(strings.ReplaceAll(url.QueryEscape(fragment), "+", "%20"))
-		}
+		sb.WriteString(escapeLinkFragment(fragment, encodeURIComponent))
 	}
 	return sb.String()
+}
+
+// encodeURIComponent matches the frontend's escaping of a remark: spaces become %20.
+func encodeURIComponent(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+}
+
+// escapeLinkFragment escapes a remark but keeps a valid ?serverDescription=<base64>
+// tail literal, which Happ reads as the subtitle (#6488, #6575).
+func escapeLinkFragment(fragment string, escape func(string) string) string {
+	before, after, ok := strings.Cut(fragment, "?serverDescription=")
+	if !ok || after == "" || strings.ContainsAny(after, " \r\n\t#&") {
+		return escape(fragment)
+	}
+	if _, err := base64.StdEncoding.DecodeString(after); err != nil {
+		return escape(fragment)
+	}
+	return escape(before) + "?serverDescription=" + after
 }
 
 // buildExternalProxyURLLinks is a thin adapter: it maps the legacy externalProxy
@@ -2933,8 +2999,8 @@ type PageData struct {
 	Emails        []string
 }
 
-// ResolveRequest extracts scheme and host info from request/headers consistently.
 // ResolveRequest extracts scheme, host, and header information from an HTTP request.
+// X-Real-IP names the visitor, never the panel, so it is no host source (#6589).
 func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
 	trusted := s.forwardedHeadersTrusted(c)
 	if !trusted {
@@ -2953,12 +3019,9 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 		scheme = "https"
 	}
 
-	// base host (no port)
+	// base host (no port): trusted X-Forwarded-Host, then the dialed request Host.
 	if h, err := getHostFromXFH(forwarded("X-Forwarded-Host")); err == nil && h != "" {
 		host = h
-	}
-	if host == "" {
-		host = forwarded("X-Real-IP")
 	}
 	if host == "" {
 		var err error
@@ -2979,9 +3042,6 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 
 	// header display host
 	hostHeader = forwarded("X-Forwarded-Host")
-	if hostHeader == "" {
-		hostHeader = forwarded("X-Real-IP")
-	}
 	if hostHeader == "" {
 		hostHeader = host
 	}

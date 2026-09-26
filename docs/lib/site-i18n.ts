@@ -65,9 +65,9 @@ const en: SiteMessages = {
         'Coordinate multiple servers, managed hosts and external proxies, and serve VLESS / Clash / JSON subscriptions.',
     },
     {
-      title: 'Telegram bot & alerts',
+      title: 'Telegram & Discord bots',
       description:
-        'Built-in Telegram notifications for traffic caps, expiry warnings and system load, plus admin actions.',
+        'Built-in Telegram and Discord notifications for traffic caps, expiry warnings and system load, plus admin actions.',
     },
     {
       title: 'Self-hosted & scriptable',
@@ -116,9 +116,9 @@ const fa: SiteMessages = {
         'هماهنگ‌سازی چند سرور، هاست‌های مدیریت‌شده و پروکسی‌های خارجی، و ارائه‌ی سابسکریپشن‌های VLESS / Clash / JSON.',
     },
     {
-      title: 'ربات Telegram و هشدارها',
+      title: 'ربات‌های Telegram و Discord',
       description:
-        'اعلان‌های داخلیِ Telegram برای سقف ترافیک، هشدار انقضا و بار سیستم، به‌علاوه‌ی کنش‌های مدیریتی.',
+        'اعلان‌های داخلیِ Telegram و Discord برای سقف ترافیک، هشدار انقضا و بار سیستم، به‌علاوه‌ی کنش‌های مدیریتی.',
     },
     {
       title: 'خودمیزبان و قابل‌اسکریپت',
@@ -167,9 +167,9 @@ const ru: SiteMessages = {
         'Координация нескольких серверов, управляемых хостов и внешних прокси, а также выдача подписок VLESS / Clash / JSON.',
     },
     {
-      title: 'Telegram-бот и оповещения',
+      title: 'Telegram- и Discord-боты',
       description:
-        'Встроенные уведомления Telegram о лимитах трафика, истечении срока и нагрузке системы, а также действия администратора.',
+        'Встроенные уведомления Telegram и Discord о лимитах трафика, истечении срока и нагрузке системы, а также действия администратора.',
     },
     {
       title: 'Свой хостинг и скрипты',
@@ -217,8 +217,9 @@ const zh: SiteMessages = {
       description: '协调多台服务器、托管主机和外部代理，并提供 VLESS / Clash / JSON 订阅。',
     },
     {
-      title: 'Telegram 机器人与告警',
-      description: '内置 Telegram 通知，覆盖流量上限、到期提醒和系统负载，并支持管理员操作。',
+      title: 'Telegram 与 Discord 机器人',
+      description:
+        '内置 Telegram 和 Discord 通知，覆盖流量上限、到期提醒和系统负载，并支持管理员操作。',
     },
     {
       title: '自托管且可脚本化',

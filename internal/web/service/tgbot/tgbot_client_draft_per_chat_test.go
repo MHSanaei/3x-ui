@@ -139,7 +139,7 @@ func TestNonWizardCallbackTakesNoDraftLock(t *testing.T) {
 	)
 	decliningServer(t)
 
-	held := addClientDrafts.forChat(heldChat)
+	held := addClientDrafts.forActor(chatUser{chatID: heldChat, userID: 1})
 	held.Lock()
 	defer held.Unlock()
 
@@ -170,7 +170,7 @@ func TestNonWizardCallbackTakesNoDraftLock(t *testing.T) {
 	tap(spareChat, false, "add_client_to 1")
 
 	addClientDrafts.mu.Lock()
-	_, stored := addClientDrafts.drafts[spareChat]
+	_, stored := addClientDrafts.drafts[chatUser{chatID: spareChat, userID: 1}]
 	addClientDrafts.mu.Unlock()
 	if stored {
 		t.Errorf("draft stored for chat %d, want none until its wizard starts", spareChat)

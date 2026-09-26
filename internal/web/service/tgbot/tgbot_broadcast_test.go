@@ -147,7 +147,15 @@ func resetBroadcastState(t *testing.T, chatID int64) {
 		broadcastUnregisterRunner(runner)
 	}
 	broadcastDropCompose(chatID)
-	userStateMgr.clear(chatID)
+	userStateMgr.reset()
+}
+
+// composeBroadcast hands a message to the composition step the way the router
+// does: keyed by its sender, who is awaiting broadcast input.
+func composeBroadcast(tb *Tgbot, message telego.Message) {
+	actor := messageActor(message)
+	userStateMgr.set(actor, broadcastAwaitingText)
+	tb.handleBroadcastInput(&message, actor)
 }
 
 func swapAlbumDebounce(t *testing.T, d time.Duration) {
@@ -367,8 +375,7 @@ func TestStopBotResetsBroadcastState(t *testing.T) {
 		tgBotMutex.Unlock()
 	})
 
-	userStateMgr.set(chatID, broadcastAwaitingText)
-	(&Tgbot{}).handleBroadcastInput(&telego.Message{
+	composeBroadcast(&Tgbot{}, telego.Message{
 		Chat:         telego.Chat{ID: chatID},
 		From:         &telego.User{ID: 5000},
 		MessageID:    1,
@@ -531,12 +538,12 @@ func TestStartBroadcastRefusesWhileRunning(t *testing.T) {
 	runner := broadcastRegisterRunner(chatID)
 	t.Cleanup(func() {
 		broadcastUnregisterRunner(runner)
-		userStateMgr.clear(chatID)
 	})
+	admin := chatUser{chatID: chatID, userID: chatID}
 
-	(&Tgbot{}).startBroadcast(chatID)
+	(&Tgbot{}).startBroadcast(admin)
 
-	if state, ok := userStateMgr.get(chatID); ok {
+	if state, ok := userStateMgr.get(admin); ok {
 		t.Fatalf("state = %q while a broadcast is running, want none", state)
 	}
 }
@@ -545,10 +552,10 @@ func TestBroadcastCommandRequiresAdmin(t *testing.T) {
 	const chatID = int64(9101)
 	resetBroadcastState(t, chatID)
 
-	message := &telego.Message{Chat: telego.Chat{ID: chatID}, Text: "/broadcast"}
+	message := &telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: chatID}, Text: "/broadcast"}
 	(&Tgbot{}).answerCommand(message, chatID, false)
 
-	if state, ok := userStateMgr.get(chatID); ok {
+	if state, ok := userStateMgr.get(messageActor(*message)); ok {
 		t.Fatalf("non-admin /broadcast set state %q", state)
 	}
 	if _, _, ok := broadcastPendingDraft(chatID); ok {
@@ -564,13 +571,13 @@ func TestBroadcastStartCommandSetsState(t *testing.T) {
 	const chatID = int64(9103)
 	resetBroadcastState(t, chatID)
 	defer func() {
-		userStateMgr.clear(chatID)
+		userStateMgr.reset()
 		broadcastDropCompose(chatID)
 	}()
 
-	(&Tgbot{}).answerCommand(&telego.Message{Chat: telego.Chat{ID: chatID}, Text: "/broadcast"}, chatID, true)
+	(&Tgbot{}).answerCommand(&telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: chatID}, Text: "/broadcast"}, chatID, true)
 
-	state, ok := userStateMgr.get(chatID)
+	state, ok := userStateMgr.get(chatUser{chatID: chatID, userID: chatID})
 	if !ok || state != broadcastAwaitingText {
 		t.Fatalf("state = %q (ok=%v), want %q", state, ok, broadcastAwaitingText)
 	}
@@ -641,11 +648,10 @@ func TestHandleBroadcastInputMediaGroup(t *testing.T) {
 	resetBroadcastState(t, chatID)
 	createBroadcastInbound(t, "in-1", broadcastClientsJSON(t, 601))
 
-	userStateMgr.set(chatID, broadcastAwaitingText)
 	// Updates of one album arrive out of order and copyMessages demands
 	// strictly increasing ids, so the draft must sort them.
 	for _, id := range []int{103, 101, 102} {
-		tb.handleBroadcastInput(&telego.Message{
+		composeBroadcast(tb, telego.Message{
 			Chat:         telego.Chat{ID: chatID},
 			From:         &telego.User{ID: 5000},
 			MessageID:    id,
@@ -661,7 +667,7 @@ func TestHandleBroadcastInputMediaGroup(t *testing.T) {
 	if token == "" {
 		t.Fatalf("album draft has no confirmation token")
 	}
-	if state, ok := userStateMgr.get(chatID); ok {
+	if state, ok := userStateMgr.get(chatUser{chatID: chatID, userID: 5000}); ok {
 		t.Errorf("state = %q after the album was accepted, want cleared", state)
 	}
 	if got := calls("copyMessages"); got != 1 {
@@ -692,8 +698,7 @@ func TestHandleBroadcastInputSingleMessage(t *testing.T) {
 	resetBroadcastState(t, chatID)
 	createBroadcastInbound(t, "in-1", broadcastClientsJSON(t, 602))
 
-	userStateMgr.set(chatID, broadcastAwaitingText)
-	tb.handleBroadcastInput(&telego.Message{
+	composeBroadcast(tb, telego.Message{
 		Chat:      telego.Chat{ID: chatID},
 		From:      &telego.User{ID: 5000},
 		MessageID: 42,
@@ -727,8 +732,7 @@ func TestHandleBroadcastInputIgnoresNonAdmin(t *testing.T) {
 	const chatID = int64(9111)
 	resetBroadcastState(t, chatID)
 
-	userStateMgr.set(chatID, broadcastAwaitingText)
-	tb.handleBroadcastInput(&telego.Message{
+	composeBroadcast(tb, telego.Message{
 		Chat:      telego.Chat{ID: chatID},
 		From:      &telego.User{ID: 777},
 		MessageID: 43,
@@ -757,13 +761,11 @@ func TestBroadcastConfirmStaleTokenRejected(t *testing.T) {
 	resetBroadcastState(t, chatID)
 	createBroadcastInbound(t, "in-1", broadcastClientsJSON(t, 603))
 
-	userStateMgr.set(chatID, broadcastAwaitingText)
-	tb.handleBroadcastInput(&telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: 5000}, MessageID: 11, Text: "first"})
+	composeBroadcast(tb, telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: 5000}, MessageID: 11, Text: "first"})
 	_, staleToken := waitBroadcastPending(t, chatID)
 
 	// A second composition replaces the first, so the first card goes stale.
-	userStateMgr.set(chatID, broadcastAwaitingText)
-	tb.handleBroadcastInput(&telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: 5000}, MessageID: 12, Text: "second"})
+	composeBroadcast(tb, telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: 5000}, MessageID: 12, Text: "second"})
 	ids, liveToken := waitBroadcastPending(t, chatID)
 	if !slices.Equal(ids, []int{12}) {
 		t.Fatalf("draft ids = %v, want only the second message", ids)
@@ -811,8 +813,7 @@ func TestBroadcastComposesArePerChat(t *testing.T) {
 	createBroadcastInbound(t, "in-1", broadcastClientsJSON(t, 604, 605))
 
 	for _, chat := range []int64{chatA, chatB} {
-		userStateMgr.set(chat, broadcastAwaitingText)
-		tb.handleBroadcastInput(&telego.Message{Chat: telego.Chat{ID: chat}, From: &telego.User{ID: 5000}, MessageID: int(chat), Text: "mine"})
+		composeBroadcast(tb, telego.Message{Chat: telego.Chat{ID: chat}, From: &telego.User{ID: 5000}, MessageID: int(chat), Text: "mine"})
 	}
 
 	idsA, tokenA := waitBroadcastPending(t, chatA)
@@ -855,8 +856,7 @@ func TestConfirmBroadcastEndToEnd(t *testing.T) {
 	resetBroadcastState(t, chatID)
 
 	createBroadcastInbound(t, "in-1", broadcastClientsJSON(t, 501, 502))
-	userStateMgr.set(chatID, broadcastAwaitingText)
-	tb.handleBroadcastInput(&telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: 5000}, MessageID: 9, Text: "hi"})
+	composeBroadcast(tb, telego.Message{Chat: telego.Chat{ID: chatID}, From: &telego.User{ID: 5000}, MessageID: 9, Text: "hi"})
 	_, token := waitBroadcastPending(t, chatID)
 
 	tb.answerCallback(&telego.CallbackQuery{
@@ -914,7 +914,8 @@ func TestBroadcastCancelCallbackClearsDraft(t *testing.T) {
 	const chatID = int64(9107)
 	resetBroadcastState(t, chatID)
 
-	userStateMgr.set(chatID, broadcastAwaitingText)
+	admin := chatUser{chatID: chatID, userID: chatID}
+	userStateMgr.set(admin, broadcastAwaitingText)
 	broadcastComposes[chatID] = &broadcastCompose{messageIDs: []int{9}, token: "tok9"}
 
 	tb.answerCallback(&telego.CallbackQuery{
@@ -924,7 +925,7 @@ func TestBroadcastCancelCallbackClearsDraft(t *testing.T) {
 		Message: &telego.Message{Chat: telego.Chat{ID: chatID}, MessageID: 9},
 	}, true)
 
-	if _, ok := userStateMgr.get(chatID); ok {
+	if _, ok := userStateMgr.get(admin); ok {
 		t.Errorf("state survived the cancel tap")
 	}
 	if _, _, ok := broadcastPendingDraft(chatID); ok {

@@ -3,6 +3,7 @@ export type GeoKind = string;
 export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
+export type addrFamily = number;
 export type staticEgressResolver = string;
 export type trafficLocalApplyAction = number;
 export type transportBits = number;
@@ -20,6 +21,7 @@ export interface AllSetting {
   discordMemory: number;
   discordRunTime: string;
   expireDiff: number;
+  externalSubUserAgent: string;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
   happLinkEnable: boolean;
@@ -65,6 +67,7 @@ export interface AllSetting {
   smtpTo: string;
   smtpUsername: string;
   subAnnounce: string;
+  subCalendarExpireInclusive: boolean;
   subCertFile: string;
   subClashAutoDetect: boolean;
   subClashEnable: boolean;
@@ -86,6 +89,7 @@ export interface AllSetting {
   subHappExcludeApns: boolean;
   subHappExcludeRoutes: string;
   subHappFallbackUrl: string;
+  subHappLocalProxyAuth: string;
   subHappNewUrl: string;
   subHappNoLimit: boolean;
   subHappNotificationExpire: boolean;
@@ -102,8 +106,36 @@ export interface AllSetting {
   subHappTunMode: string;
   subHappTunType: string;
   subHideSettings: boolean;
+  subIncyAnnounceUrl: string;
+  subIncyAppAutoDetect: boolean;
+  subIncyBannerBgColor: string;
+  subIncyBannerButtonColor: string;
+  subIncyBannerButtonText: string;
+  subIncyBannerButtonUrl: string;
+  subIncyBannerText: string;
   subIncyEnableRouting: boolean;
+  subIncyFragmentInterval: string;
+  subIncyFragmentLength: string;
+  subIncyFragmentPackets: string;
+  subIncyFragmentationEnable: string;
+  subIncyHideCheck: string;
+  subIncyHideUrl: string;
+  subIncyNoLimitEnabled: string;
+  subIncyNoisesDelay: string;
+  subIncyNoisesEnable: string;
+  subIncyNoisesPacket: string;
+  subIncyNoisesType: string;
+  subIncyPerAppEnable: string;
+  subIncyPerAppList: string;
+  subIncyPerAppMode: string;
+  subIncyPremiumUrl: string;
+  subIncyProfileDescription: string;
+  subIncyResolveDnsDomain: string;
+  subIncyResolveDnsIp: string;
+  subIncyResolveEnable: string;
   subIncyRoutingRules: string;
+  subIncySortOrder: string;
+  subIncySupportEmail: string;
   subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
@@ -121,6 +153,7 @@ export interface AllSetting {
   subListen: string;
   subPath: string;
   subPort: number;
+  subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
@@ -168,6 +201,7 @@ export interface AllSettingView {
   discordMemory: number;
   discordRunTime: string;
   expireDiff: number;
+  externalSubUserAgent: string;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
   happLinkEnable: boolean;
@@ -221,6 +255,7 @@ export interface AllSettingView {
   smtpTo: string;
   smtpUsername: string;
   subAnnounce: string;
+  subCalendarExpireInclusive: boolean;
   subCertFile: string;
   subClashAutoDetect: boolean;
   subClashEnable: boolean;
@@ -242,6 +277,7 @@ export interface AllSettingView {
   subHappExcludeApns: boolean;
   subHappExcludeRoutes: string;
   subHappFallbackUrl: string;
+  subHappLocalProxyAuth: string;
   subHappNewUrl: string;
   subHappNoLimit: boolean;
   subHappNotificationExpire: boolean;
@@ -258,8 +294,36 @@ export interface AllSettingView {
   subHappTunMode: string;
   subHappTunType: string;
   subHideSettings: boolean;
+  subIncyAnnounceUrl: string;
+  subIncyAppAutoDetect: boolean;
+  subIncyBannerBgColor: string;
+  subIncyBannerButtonColor: string;
+  subIncyBannerButtonText: string;
+  subIncyBannerButtonUrl: string;
+  subIncyBannerText: string;
   subIncyEnableRouting: boolean;
+  subIncyFragmentInterval: string;
+  subIncyFragmentLength: string;
+  subIncyFragmentPackets: string;
+  subIncyFragmentationEnable: string;
+  subIncyHideCheck: string;
+  subIncyHideUrl: string;
+  subIncyNoLimitEnabled: string;
+  subIncyNoisesDelay: string;
+  subIncyNoisesEnable: string;
+  subIncyNoisesPacket: string;
+  subIncyNoisesType: string;
+  subIncyPerAppEnable: string;
+  subIncyPerAppList: string;
+  subIncyPerAppMode: string;
+  subIncyPremiumUrl: string;
+  subIncyProfileDescription: string;
+  subIncyResolveDnsDomain: string;
+  subIncyResolveDnsIp: string;
+  subIncyResolveEnable: string;
   subIncyRoutingRules: string;
+  subIncySortOrder: string;
+  subIncySupportEmail: string;
   subInfoNodeEnable: boolean;
   subJsonAlwaysArray: boolean;
   subJsonAutoDetect: boolean;
@@ -277,6 +341,7 @@ export interface AllSettingView {
   subListen: string;
   subPath: string;
   subPort: number;
+  subProfileMode: string;
   subProfileUrl: string;
   subRoutingRules: string;
   subShowIdentityOnAllLinks: boolean;
@@ -360,6 +425,7 @@ export interface Client {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   reverse?: ClientReverse | null;
   secret?: string;
   security: string;
@@ -411,6 +477,7 @@ export interface ClientRecord {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   reverse: unknown;
   secret: string;
   security: string;
@@ -421,6 +488,27 @@ export interface ClientRecord {
   trafficResetDay: number;
   updatedAt: number;
   uuid: string;
+}
+
+export interface ClientRenewalPreview {
+  canRenew: boolean;
+  delayedStart: boolean;
+  nextExpiry: string;
+  renewAt: string;
+  renewals: number;
+  suggestedExpiry: string;
+  suggestedExpiryTime: number;
+  timeZone: string;
+  validThrough: string;
+}
+
+export interface ClientRenewalPreviewRequest {
+  expiryTime: number;
+  reset: number;
+  resetCount: number;
+  resetDay: number;
+  resetMax: number;
+  resetWeekday: number;
 }
 
 export interface ClientReverse {
@@ -440,6 +528,7 @@ export interface ClientSlim {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   subId: string;
   totalGB: number;
   traffic?: ClientTraffic | null;
@@ -459,6 +548,7 @@ export interface ClientTraffic {
   resetCount: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   subId: string;
   total: number;
   up: number;
@@ -533,6 +623,7 @@ export interface Host {
   address: string;
   allowInsecure: boolean;
   alpn: string[];
+  cipherSuites: string;
   createdAt: number;
   echConfigList: string;
   excludeFromSubTypes: string[];
@@ -569,6 +660,7 @@ export interface Host {
 export interface HostGroup {
   allowInsecure: boolean;
   alpn: string[];
+  cipherSuites: string;
   echConfigList: string;
   excludeFromSubTypes: string[];
   finalMask: string;
@@ -931,6 +1023,23 @@ export interface Setting {
   id: number;
   key: string;
   value: string;
+}
+
+export interface Sponsor {
+  enable?: boolean | null;
+  id: string;
+  link: string;
+  logo?: string;
+  name: string;
+  slots: string[];
+  text: Record<string, string>;
+  title: Record<string, string>;
+  until: string;
+}
+
+export interface SponsorList {
+  contact?: string;
+  sponsors: Sponsor[];
 }
 
 export interface SubBalancer {

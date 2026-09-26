@@ -336,6 +336,19 @@ describe('outbound-form-adapter: round-trip', () => {
     expect(rules[1]).toEqual({ action: 'return', qType: 28, domain: ['blocked.com'], rCode: 3 });
   });
 
+  it('dns rules keep qType 0 a string, since the core reads a numeric 0 as every query', () => {
+    const back = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'dns',
+        settings: { rules: [{ action: 'drop', qType: 0 }] },
+      }),
+    );
+    const rules = (back.settings as Record<string, unknown>).rules as Array<
+      Record<string, unknown>
+    >;
+    expect(rules[0]).toEqual({ action: 'drop', qType: '0' });
+  });
+
   it('dns rules read the legacy qtype wire key for back-compat', () => {
     const wire = {
       protocol: 'dns',
@@ -376,8 +389,9 @@ describe('outbound-form-adapter: round-trip', () => {
         },
       }),
     );
+    // The strategy no longer rides in settings; see freedom-strategy-placement.test.ts.
+    expect(filled.streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv4' } });
     expect(filled.settings).toMatchObject({
-      domainStrategy: 'UseIPv4',
       redirect: '1.1.1.1',
       userLevel: 3,
       proxyProtocol: 2,
@@ -534,6 +548,32 @@ describe('outbound-form-adapter: round-trip', () => {
     const form = rawOutboundToFormValues({ protocol: 'mysterious', settings: {} });
     expect(form.protocol).toBe('vless');
   });
+
+  it('reads a protocol id the way the core does, whatever its case', () => {
+    const freedom = rawOutboundToFormValues({
+      protocol: 'Freedom',
+      tag: 'direct',
+      settings: { redirect: '1.1.1.1' },
+      streamSettings: { sockopt: { domainStrategy: 'UseIPv4' } },
+    });
+    expect(freedom.protocol).toBe('freedom');
+    if (freedom.protocol === 'freedom') {
+      expect(freedom.settings.redirect).toBe('1.1.1.1');
+    }
+    const back = formValuesToWirePayload(freedom);
+    expect(back.protocol).toBe('freedom');
+    expect(back.tag).toBe('direct');
+    expect((back.settings as Record<string, unknown>).redirect).toBe('1.1.1.1');
+
+    const vless = rawOutboundToFormValues({
+      protocol: 'VLESS',
+      settings: { address: 'srv', port: 443, id: '11111111-2222-4333-8444-555555555555' },
+    });
+    expect(vless.protocol).toBe('vless');
+    if (vless.protocol === 'vless') {
+      expect(vless.settings.address).toBe('srv');
+    }
+  });
 });
 
 describe('outbound-form-adapter: targetStrategy', () => {
@@ -556,7 +596,7 @@ describe('outbound-form-adapter: targetStrategy', () => {
 
   it('normalizes wire case to the canonical spelling (core matches case-insensitively)', () => {
     const form = rawOutboundToFormValues({
-      protocol: 'freedom',
+      protocol: 'vless',
       settings: {},
       targetStrategy: 'useipv4v6',
     });
@@ -582,7 +622,7 @@ describe('outbound-form-adapter: targetStrategy', () => {
     expect(invalid).not.toHaveProperty('targetStrategy');
   });
 
-  it('freedom prefers settings.targetStrategy over domainStrategy and emits the legacy key', () => {
+  it('freedom prefers settings.targetStrategy over domainStrategy and moves it to sockopt', () => {
     const form = rawOutboundToFormValues({
       protocol: 'freedom',
       settings: { targetStrategy: 'UseIPv6', domainStrategy: 'UseIPv4' },
@@ -591,8 +631,11 @@ describe('outbound-form-adapter: targetStrategy', () => {
       expect(form.settings.domainStrategy).toBe('UseIPv6');
     }
     const back = formValuesToWirePayload(form);
-    expect(back.settings).toMatchObject({ domainStrategy: 'UseIPv6' });
+    // Neither legacy key may survive: the core warns about both, and sockopt is
+    // the only placement freedom resolves with.
+    expect(back.settings).not.toHaveProperty('domainStrategy');
     expect(back.settings).not.toHaveProperty('targetStrategy');
+    expect(back.streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv6' } });
   });
 });
 

@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/xlzd/gotp"
 
@@ -229,6 +230,9 @@ func TestVerifyTwoFactorCode(t *testing.T) {
 
 	if err := s.VerifyTwoFactorCode(gotp.NewDefaultTOTP(token).Now()); err != nil {
 		t.Fatalf("valid code rejected: %v", err)
+	}
+	if err := s.VerifyTwoFactorCode(gotp.NewDefaultTOTP(token).AtTime(time.Now().Add(-30 * time.Second))); err != nil {
+		t.Fatalf("previous window code rejected: %v", err)
 	}
 	if err := s.VerifyTwoFactorCode("000000"); err == nil {
 		t.Fatal("invalid code accepted")

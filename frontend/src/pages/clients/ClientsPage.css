@@ -61,6 +61,23 @@
   margin: 0;
 }
 
+.summary-stat {
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.summary-stat:hover,
+.summary-stat:focus-visible {
+  background: var(--ant-color-fill-tertiary);
+}
+
+.summary-stat.selected {
+  background: var(--ant-color-primary-bg);
+}
+
 .dot {
   display: inline-block;
   width: 8px;

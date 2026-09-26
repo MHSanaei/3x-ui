@@ -24,6 +24,17 @@ func TestParseVmessLink(t *testing.T) {
 	}
 }
 
+func TestLinkIdentityKeepsTLSServerName(t *testing.T) {
+	a, errA := ParseLink("vless://uuid@1.2.3.4:443?type=ws&security=tls&sni=a.example.com#node")
+	b, errB := ParseLink("vless://uuid@1.2.3.4:443?type=ws&security=tls&sni=b.example.com#node")
+	if errA != nil || errB != nil {
+		t.Fatalf("parse vless: %v, %v", errA, errB)
+	}
+	if a.Identity == b.Identity {
+		t.Fatalf("TLS links for different SNIs share identity %q", a.Identity)
+	}
+}
+
 func TestParseVlessLink(t *testing.T) {
 	link := "vless://uuid@1.2.3.4:443?type=ws&security=tls&path=/&host=ex.com#node1"
 	res, err := ParseLink(link)
