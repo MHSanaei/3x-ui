@@ -110,6 +110,10 @@ func cachedSponsors() (*SponsorList, error) {
 
 // GetSponsorLogo returns the image bytes for a logo of a currently active sponsor.
 func (s *PanelService) GetSponsorLogo(name string) ([]byte, string, error) {
+	// Validated here, not only via list membership, so name can never carry a path or URL.
+	if !sponsorLogoRe.MatchString(name) {
+		return nil, "", ErrSponsorLogoUnknown
+	}
 	sponsors, err := s.GetSponsors()
 	if err != nil {
 		return nil, "", err
