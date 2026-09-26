@@ -48,6 +48,8 @@ const (
 	hwidFingerprintLength = 12
 )
 
+var errClientHwidWriteNotSerialized = errors.New("client HWID write requires the serialized transaction")
+
 type ClientHwidInfo struct {
 	Id          int    `json:"id"`
 	FirstSeen   int64  `json:"firstSeen"`
@@ -300,9 +302,16 @@ func (s *ClientService) DeleteClientHwid(email string, id int) error {
 	return nil
 }
 
-func (s *ClientService) setClientLimitHwidByEmail(tx *gorm.DB, email string, limit int) error {
-	if tx == nil {
-		tx = database.GetDB()
+// Serialize the limit write and trim with SyncInbound and client deletion.
+func (s *ClientService) setClientLimitHwidByEmail(email string, limit int) error {
+	return runSerializedTx(func(tx *gorm.DB) error {
+		return s.setClientLimitHwidByEmailTx(tx, email, limit)
+	})
+}
+
+func (s *ClientService) setClientLimitHwidByEmailTx(tx *gorm.DB, email string, limit int) error {
+	if !isSerializedTx(tx) {
+		return errClientHwidWriteNotSerialized
 	}
 	if limit < 0 {
 		limit = 0
@@ -346,8 +355,8 @@ func trimClientHwidsForSubID(tx *gorm.DB, subID string, limit int) error {
 }
 
 func clearClientHwidsBySubIDTx(tx *gorm.DB, subIDs ...string) error {
-	if tx == nil {
-		tx = database.GetDB()
+	if !isSerializedTx(tx) {
+		return errClientHwidWriteNotSerialized
 	}
 	clean := make([]string, 0, len(subIDs))
 	seen := map[string]struct{}{}

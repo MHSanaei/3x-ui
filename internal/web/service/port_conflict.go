@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -91,11 +92,68 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 	return bits
 }
 
-func listenOverlaps(a, b string) bool {
-	if isAnyListen(a) || isAnyListen(b) {
+// bindAddr is a listen address plus sockopt.v6only. xray listens on "tcp"/"udp",
+// so Go opens every wildcard, 0.0.0.0 included, dual-stack unless v6only is set.
+type bindAddr struct {
+	listen string
+	v6only bool
+}
+
+var loopbackBind = bindAddr{listen: "127.0.0.1"}
+
+func inboundBindAddr(ib *model.Inbound) bindAddr {
+	return bindAddr{listen: ib.Listen, v6only: streamV6Only(ib.StreamSettings)}
+}
+
+func streamV6Only(streamSettings string) bool {
+	if !strings.Contains(streamSettings, "v6only") {
+		return false
+	}
+	var stream struct {
+		Sockopt struct {
+			V6Only bool `json:"v6only"`
+		} `json:"sockopt"`
+	}
+	_ = json.Unmarshal([]byte(streamSettings), &stream)
+	return stream.Sockopt.V6Only
+}
+
+func listenOverlaps(a, b bindAddr) bool {
+	if a.listen == b.listen {
 		return true
 	}
-	return a == b
+	familiesA, wildcardA, okA := bindFamilies(a)
+	familiesB, wildcardB, okB := bindFamilies(b)
+	if !okA || !okB {
+		return wildcardA || wildcardB
+	}
+	return (wildcardA || wildcardB) && familiesA&familiesB != 0
+}
+
+type addrFamily uint8
+
+const (
+	familyIPv4 addrFamily = 1 << iota
+	familyIPv6
+)
+
+// bindFamilies reports the address families a listen claims; ok is false for a
+// listen that is not an IP, such as a unix socket path.
+func bindFamilies(a bindAddr) (families addrFamily, wildcard, ok bool) {
+	if isAnyListen(a.listen) {
+		if a.v6only {
+			return familyIPv6, true, true
+		}
+		return familyIPv4 | familyIPv6, true, true
+	}
+	ip := net.ParseIP(a.listen)
+	if ip == nil {
+		return 0, false, false
+	}
+	if ip.To4() != nil {
+		return familyIPv4, false, true
+	}
+	return familyIPv6, false, true
 }
 
 func isAnyListen(s string) bool {
@@ -189,7 +247,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 	// port twice (#5304). Nodes run their own Xray, so this only applies to
 	// the local panel.
 	if inbound.NodeID == nil && inbound.Port == reservedAPIPort() &&
-		newBits&transportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
+		newBits&transportTCP != 0 && listenOverlaps(loopbackBind, inboundBindAddr(inbound)) {
 		return &portConflictDetail{
 			Tag:        "api",
 			Listen:     "127.0.0.1",
@@ -201,7 +259,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 	// Egress SOCKS server holds loopback EgressBasePort when AWG outbounds are
 	// active; conflict check prevents inbounds from colliding with it.
 	if inbound.NodeID == nil && inbound.Port == int(amneziawgnet.EgressBasePort) &&
-		newBits&transportTCP != 0 && listenOverlaps("127.0.0.1", inbound.Listen) {
+		newBits&transportTCP != 0 && listenOverlaps(loopbackBind, inboundBindAddr(inbound)) {
 		return &portConflictDetail{
 			Tag:        "amneziawg-egress",
 			Listen:     "127.0.0.1",
@@ -218,7 +276,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 	// see it. Without this check, an unrelated inbound saved onto that exact
 	// port silently fails at the next Xray start, taking every other
 	// protocol down with it, not just AmneziaWG.
-	if inbound.NodeID == nil && listenOverlaps("127.0.0.1", inbound.Listen) {
+	if inbound.NodeID == nil && listenOverlaps(loopbackBind, inboundBindAddr(inbound)) {
 		conflict, err := checkAmneziawgnetSocksConflict(db, inbound, ignoreId, newBits)
 		if err != nil {
 			return nil, err
@@ -274,7 +332,7 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 		if !sameNode(c.NodeID, inbound.NodeID) {
 			continue
 		}
-		if !listenOverlaps(c.Listen, inbound.Listen) {
+		if !listenOverlaps(inboundBindAddr(c), inboundBindAddr(inbound)) {
 			continue
 		}
 		existingBits := inboundTransports(c.Protocol, c.StreamSettings, c.Settings)
@@ -392,7 +450,7 @@ func checkAmneziawgnetSocksRelayCollision(db *gorm.DB, id int) (*portConflictDet
 // amneziawgnetSocksSelfConflict: a row's own WireGuard port vs the relay port its
 // own id derives -- all three checks below exclude that id, so nothing else does.
 func amneziawgnetSocksSelfConflict(inbound *model.Inbound, id int) string {
-	if id <= 0 || inbound.NodeID != nil || !listenOverlaps("127.0.0.1", inbound.Listen) {
+	if id <= 0 || inbound.NodeID != nil || !listenOverlaps(loopbackBind, inboundBindAddr(inbound)) {
 		return ""
 	}
 	relayPort := amneziawgnet.SOCKSPortForInbound(id)
@@ -414,7 +472,7 @@ func checkAmneziawgnetSocksReverseConflict(db *gorm.DB, id int) (*portConflictDe
 		return nil, err
 	}
 	for _, c := range candidates {
-		if !listenOverlaps("127.0.0.1", c.Listen) {
+		if !listenOverlaps(loopbackBind, inboundBindAddr(c)) {
 			continue
 		}
 		return &portConflictDetail{

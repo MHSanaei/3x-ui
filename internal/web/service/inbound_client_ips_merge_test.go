@@ -8,6 +8,8 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+
+	"gorm.io/gorm"
 )
 
 // setupClientIpTestDB spins up a throwaway SQLite database (migrations + seeders)
@@ -207,5 +209,112 @@ func TestMergeInboundClientIps_SkipsBlankRows(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("blank rows should be skipped, but %d row(s) created", count)
+	}
+}
+
+func TestCasUpdateInboundClientIps_MatchAndMismatch(t *testing.T) {
+	setupClientIpTestDB(t)
+	db := database.GetDB()
+	now := time.Now().Unix()
+
+	seed := &model.InboundClientIps{
+		ClientEmail: "cas@x",
+		Ips:         marshalIps(t, clientIpEntry{IP: "1.1.1.1", Timestamp: now}),
+	}
+	if err := db.Create(seed).Error; err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	next := marshalIps(t, clientIpEntry{IP: "2.2.2.2", Timestamp: now})
+	ok, err := CasUpdateInboundClientIps(db, seed.Id, "not-the-blob", next)
+	if err != nil {
+		t.Fatalf("stale CAS: %v", err)
+	}
+	if ok {
+		t.Fatalf("CAS with wrong expected must not update")
+	}
+	ips, _ := readClientIps(t, "cas@x")
+	if ips["1.1.1.1"] != now || len(ips) != 1 {
+		t.Fatalf("row changed on stale CAS: %v", ips)
+	}
+
+	ok, err = CasUpdateInboundClientIps(db, seed.Id, seed.Ips, next)
+	if err != nil {
+		t.Fatalf("fresh CAS: %v", err)
+	}
+	if !ok {
+		t.Fatalf("CAS with matching expected must update")
+	}
+	ips, _ = readClientIps(t, "cas@x")
+	if ips["2.2.2.2"] != now || len(ips) != 1 {
+		t.Fatalf("fresh CAS did not land: %v", ips)
+	}
+}
+
+// A job write landing between the merge's read and its Update must not drop the
+// node's report (#6587); a Before(update) hook injects it, since SQLite serializes writers.
+func TestMergeInboundClientIps_RetriesAfterConcurrentWriter(t *testing.T) {
+	setupClientIpTestDB(t)
+	db := database.GetDB()
+	now := time.Now().Unix()
+
+	seed := &model.InboundClientIps{
+		ClientEmail: "race@x",
+		Ips:         marshalIps(t, clientIpEntry{IP: "10.0.0.1", Timestamp: now - 30}),
+	}
+	if err := db.Create(seed).Error; err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	jobBlob := marshalIps(t, clientIpEntry{IP: "10.0.0.2", Timestamp: now - 10})
+	const callback = "test:inbound_client_ips_cas_inject"
+	injected := false
+	if err := db.Callback().Update().Before("gorm:update").Register(callback, func(tx *gorm.DB) {
+		if injected {
+			return
+		}
+		table := tx.Statement.Table
+		if table == "" && tx.Statement.Schema != nil {
+			table = tx.Statement.Schema.Table
+		}
+		if table != "inbound_client_ips" {
+			return
+		}
+		injected = true
+		// Same connection, SkipHooks: simulate the job committing a different
+		// blob before this merge's CAS Update runs.
+		if err := tx.Session(&gorm.Session{SkipHooks: true}).
+			Model(&model.InboundClientIps{}).
+			Where("id = ?", seed.Id).
+			Update("ips", jobBlob).Error; err != nil {
+			tx.AddError(err)
+		}
+	}); err != nil {
+		t.Fatalf("register callback: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Callback().Update().Remove(callback) })
+
+	incoming := []model.InboundClientIps{{
+		ClientEmail: "race@x",
+		Ips:         marshalIps(t, clientIpEntry{IP: "10.0.0.3", Timestamp: now}),
+	}}
+	if err := (&InboundService{}).MergeInboundClientIps(incoming); err != nil {
+		t.Fatalf("merge: %v", err)
+	}
+	if !injected {
+		t.Fatalf("inject callback never fired; CAS path untested")
+	}
+
+	ips, _ := readClientIps(t, "race@x")
+	// After the injected job write (only .2) and the node's .3 report, both
+	// must survive. .1 was only in the pre-job snapshot and is correctly gone.
+	if _, ok := ips["10.0.0.2"]; !ok {
+		t.Fatalf("job IP lost after merge retry: %v", ips)
+	}
+	if _, ok := ips["10.0.0.3"]; !ok {
+		t.Fatalf("node IP lost (the #6587 failure mode): %v", ips)
+	}
+	if _, ok := ips["10.0.0.1"]; ok {
+		t.Fatalf("pre-job IP should not resurrect after job replaced the blob: %v", ips)
 	}
 }

@@ -7,37 +7,11 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 // #6559: the Master panel must send a stable X-HWID when fetching external
 // subscriptions, otherwise an HWID-limited donor answers 404.
-func TestServerHwidStableAcrossCalls(t *testing.T) {
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
-
-	first := serverHwid()
-	if first == "" {
-		t.Fatal("serverHwid returned empty")
-	}
-
-	second := serverHwid()
-	if second != first {
-		t.Fatalf("hwid not stable: %q vs %q", first, second)
-	}
-
-	var row model.Setting
-	if err := database.GetDB().Where("key = ?", serverHwidKey).First(&row).Error; err != nil {
-		t.Fatalf("hwid not persisted: %v", err)
-	}
-	if row.Value != first {
-		t.Fatalf("persisted hwid %q != returned %q", row.Value, first)
-	}
-}
-
-// The fetch must carry the stable id so an HWID-limited donor lets it through.
 func TestFetchSendsStableHwid(t *testing.T) {
 	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
 		t.Fatalf("InitDB: %v", err)
@@ -58,10 +32,7 @@ func TestFetchSendsStableHwid(t *testing.T) {
 	if len(res.links) != 1 {
 		t.Fatalf("links = %v", res.links)
 	}
-	if gotHwid == "" {
-		t.Fatal("X-HWID header missing on fetch")
-	}
-	if gotHwid != serverHwid() {
-		t.Fatalf("sent %q != stable %q", gotHwid, serverHwid())
+	if want := service.ExternalSubscriptionHwid(); gotHwid == "" || gotHwid != want {
+		t.Fatalf("X-HWID = %q, want the panel's stable %q", gotHwid, want)
 	}
 }

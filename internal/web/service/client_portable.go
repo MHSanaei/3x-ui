@@ -150,7 +150,7 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 			skip(email, verr.Error())
 			continue
 		}
-		if verr := validateClientResetDay(client.ResetDay); verr != nil {
+		if verr := validateClientRenewal(client); verr != nil {
 			skip(email, verr.Error())
 			continue
 		}

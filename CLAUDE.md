@@ -75,11 +75,18 @@ file locations when it can answer in one hop.
   share-link or install-command output changes.
 
 ## Hard rules (non-negotiable)
-- Fix size must match bug size. Find the root cause, then make the SMALLEST
-  change that removes it — a one-line guard beats a new subsystem. A small bug
-  does not earn new columns, jobs, abstractions, config knobs or helper layers.
-  If a fix genuinely needs new architecture, say so and get agreement first;
-  never ship it unasked next to the fix.
+- Correct fix over small fix. Find the root cause and fix it the right way, however
+  much code that takes. Size the change by what the correct fix needs, never by
+  line count: when the right fix spans many files, or needs a migration, a shared
+  helper or a new abstraction, write it. A guard that hides the symptom while the
+  cause survives is the wrong fix, however small. Two limits remain:
+  - Everything added must be something the correct fix needs. No speculative
+    knobs, unused extension points or "while I was here" rewrites. Unrelated
+    refactors and cleanups go in their own commit.
+  - Stop and ask only when the right fix needs a decision the code cannot answer:
+    a deliberate user-visible behaviour change, or two sound designs with a real
+    trade-off. Ask with a recommendation. Size alone is never a reason to stop,
+    defer or ship a smaller patch.
 - Comments in committed Go/TS: 2 lines MAX per comment block. Make the name
   carry the meaning first and rename rather than annotate; spend the 2 lines on
   the *why* a name cannot hold — an invariant, an issue number, a non-obvious
@@ -113,6 +120,36 @@ file locations when it can answer in one hop.
   explaining the why. Types in use: `fix`, `feat`, `chore`, `refactor`, `perf`,
   `docs`, `style`.
 
+## Tests: TDD, and only tests that can fail (Go and frontend)
+- Work red → green → refactor.
+  - Bug: turn the reproduction into a test first, and watch it fail for the
+    reported reason.
+  - Feature: write the test for the first behaviour before writing its code.
+  - Then write the code that makes it pass, and refactor with the suite green.
+
+  If a test was written after the code, prove it anyway: revert the code, watch
+  the test go red, then restore. A test that passes either way is worse than no
+  test. It certifies nothing, and then gets cited as proof the fix works.
+- Every test must name the failure it catches. When no test can reach a change
+  (workflow YAML, pure wiring, layout), say so and name the command that
+  demonstrates it. Never write a stand-in test.
+- Fake tests are forbidden. Delete any you write or meet in the code you touch:
+  - tests of a getter, a constant, a rename, a pure map lookup, or an input the
+    function can never receive;
+  - tests that restate the implementation, such as recomputing the expected
+    value with the same formula or asserting that a mock was called exactly the
+    way the code calls it;
+  - mocking the unit under test, or mocking so much around it that the real
+    code path never runs;
+  - assertions too weak to fail: `err != nil`, `len > 0`, `toBeDefined()`, or
+    `not.toThrow()` alone;
+  - golden files or snapshots regenerated to match whatever the code now outputs;
+  - extra cases that exercise no distinct branch, and tests written to raise
+    coverage.
+
+  One real test that drives the bug through the actual code path beats five
+  that restate the code.
+
 ## Go conventions
 - Stdlib `testing` only (no testify). Table-driven, `t.Run` subtests,
   `t.Helper()` on helpers. Assert the exact value / typed error / emitted
@@ -120,12 +157,6 @@ file locations when it can answer in one hop.
   `database.InitDB(filepath.Join(t.TempDir(), "x-ui.db"))` +
   `t.Cleanup(func() { _ = database.CloseDB() })`; `httptest` for HTTP.
   `internal/sub`'s `initSubDB(t)` is the template.
-- A test must fail without its fix. Write it, revert the fix, watch it go red,
-  restore. A test that passes either way is worse than no test: it certifies
-  nothing and then gets cited as proof the fix works.
-- Test what can actually break. No test for a getter, a constant, a rename, a
-  pure map lookup, or inputs the function can never receive. One real test that
-  drives the bug through the actual code path beats five that restate the code.
 - Code must pass `golangci-lint run` (gofumpt + goimports formatting): `make lint`.
 - Postgres, xray-gRPC-e2e and scale tests `t.Skip` unless `XUI_TEST_PG_DSN`,
   `XUI_DB_TYPE`+`XUI_DB_DSN`, `XRAY_E2E_BINARY` or `XUI_SCALE_TEST` is set — a
@@ -136,7 +167,7 @@ file locations when it can answer in one hop.
 - TS strict; `@typescript-eslint/no-explicit-any` is an error. Zod schemas in
   `src/schemas/` are the source of truth; infer types with `z.infer`, never
   hand-write. Do not edit `src/generated/`.
-- Node 24 (`.nvmrc`) — `make gen` imports `.ts` directly and needs its type
+- Node 26 (`.nvmrc`) — `make gen` imports `.ts` directly and needs its type
   stripping; Node 22 dies with `ERR_UNKNOWN_FILE_EXTENSION`. `npm test` includes
   a headless-Chromium Storybook project, so run
   `npx playwright install --with-deps chromium` once or `make verify` fails.

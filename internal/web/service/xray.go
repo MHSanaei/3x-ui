@@ -727,17 +727,9 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 	})
 }
 
-// amneziawgEgressSniffingSettings matches this fork's normal per-inbound
-// default (see default.json's "mixed" inbound). Without this, domain-based
-// Routing rules can never match this relay: the peer resolved DNS
-// itself, through the tunnel, before ever sending a packet — by the time the
-// embedded forwarder recovers the decapsulated traffic, the destination is
-// already a bare IP, with no domain name attached at the network layer at
-// all. Sniffing recovers it from the payload itself (TLS SNI / HTTP Host /
-// QUIC) the same way it already does for every other inbound; without it,
-// only tag/IP/network-based rules can ever match this traffic, and any
-// domain rule above it in the list is silently unreachable.
-const amneziawgEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
+// Peers resolve DNS inside the tunnel, so domain rules match only via sniffing; routeOnly
+// keeps the dial on the peer's IP, else Telegram's FakeTLS (IP + foreign SNI) breaks.
+const amneziawgEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
 
 // injectAmneziawgnetSocks gives every enabled AmneziaWG inbound with at
 // least one qualifying peer its own loopback SOCKS5 inbound for the
@@ -814,7 +806,7 @@ func amneziawgV6EgressTag(inboundID int, email string) string {
 // injectAmneziawgV6Egress gives every enabled, non-node-hosted AmneziaWG
 // peer with an IPv6 AllowedIPs entry its own single-purpose freedom
 // outbound, bound via sendThrough to that exact address, plus a routing
-// rule sending only that peer's own traffic through it — restoring the
+// rule sending only that peer's IPv6-destined traffic through it — restoring the
 // per-client public IPv6 identity the hard cutover temporarily dropped
 // (Phase 3.5 of the migration plan). Scoped to outbound source identity
 // only: it depends on internal/amneziawgnet's own alias mechanism actually
@@ -916,6 +908,7 @@ func injectAmneziawgV6Egress(cfg *xray.Config, inbounds []*model.Inbound) {
 				"type":        "field",
 				"inboundTag":  []any{inbound.Tag},
 				"user":        []any{p.Email},
+				"ip":          []any{"::/0"},
 				"outboundTag": tag,
 			})
 		}
