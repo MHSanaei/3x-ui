@@ -82,30 +82,52 @@ type clientDraft struct {
 	reset              int
 }
 
-// clientDrafts keys a draft by chat: the steps arrive on the worker pool, so a
-// single draft let two admins fill in one client between them.
-type clientDrafts struct {
-	mu     sync.Mutex
-	drafts map[int64]*clientDraft
+// chatUser names the admin a wizard belongs to. A private chat's ids are equal;
+// in a group they are not, and each admin at its keyboard fills in their own.
+type chatUser struct {
+	chatID int64
+	userID int64
 }
 
-var addClientDrafts = &clientDrafts{drafts: make(map[int64]*clientDraft)}
+// messageActor reads the sender off a message. A post without one (a channel)
+// keys to user 0, an id no admin can hold.
+func messageActor(message telego.Message) chatUser {
+	if message.From == nil {
+		return chatUser{chatID: message.Chat.ID}
+	}
+	return chatUser{chatID: message.Chat.ID, userID: message.From.ID}
+}
 
-func (s *clientDrafts) forChat(chatID int64) *clientDraft {
+// callbackActor reads the admin who tapped the button, not the chat the keyboard
+// sits in: every admin in a group sees the same keyboard.
+func callbackActor(callbackQuery *telego.CallbackQuery) chatUser {
+	return chatUser{chatID: callbackQuery.Message.GetChat().ID, userID: callbackQuery.From.ID}
+}
+
+// clientDrafts keys a draft by the admin filling it in: the steps arrive on the
+// worker pool, so one draft let two admins fill in one client between them.
+type clientDrafts struct {
+	mu     sync.Mutex
+	drafts map[chatUser]*clientDraft
+}
+
+var addClientDrafts = &clientDrafts{drafts: make(map[chatUser]*clientDraft)}
+
+func (s *clientDrafts) forActor(actor chatUser) *clientDraft {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	draft, ok := s.drafts[chatID]
+	draft, ok := s.drafts[actor]
 	if !ok {
 		draft = &clientDraft{}
-		s.drafts[chatID] = draft
+		s.drafts[actor] = draft
 	}
 	return draft
 }
 
-func (s *clientDrafts) reset(chatID int64) {
+func (s *clientDrafts) reset(actor chatUser) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	delete(s.drafts, chatID)
+	delete(s.drafts, actor)
 }
 
 // isAddClientStep reports whether callback data belongs to the add-client
@@ -117,17 +139,17 @@ func isAddClientStep(data string) bool {
 func (s *clientDrafts) resetAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.drafts = make(map[int64]*clientDraft)
+	s.drafts = make(map[chatUser]*clientDraft)
 }
 
-// userStateStore guards the per-chat conversation states. The Telegram command
+// userStateStore guards the per-admin conversation states. The Telegram command
 // and callback handlers run on a worker-pool goroutine while the message handler
 // runs on the dispatch goroutine, so a bare map would be a concurrent-map-write
 // crash. It also expires abandoned conversations so a user who starts a flow and
 // goes silent doesn't leave an entry forever.
 type userStateStore struct {
 	mu        sync.Mutex
-	states    map[int64]userStateEntry
+	states    map[chatUser]userStateEntry
 	lastPrune time.Time
 }
 
@@ -136,30 +158,30 @@ type userStateEntry struct {
 	at    time.Time
 }
 
-var userStateMgr = &userStateStore{states: make(map[int64]userStateEntry)}
+var userStateMgr = &userStateStore{states: make(map[chatUser]userStateEntry)}
 
-func (s *userStateStore) set(chatID int64, state string) {
+func (s *userStateStore) set(actor chatUser, state string) {
 	s.mu.Lock()
-	s.states[chatID] = userStateEntry{state: state, at: time.Now()}
+	s.states[actor] = userStateEntry{state: state, at: time.Now()}
 	s.mu.Unlock()
 }
 
-func (s *userStateStore) get(chatID int64) (string, bool) {
+func (s *userStateStore) get(actor chatUser) (string, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	e, ok := s.states[chatID]
+	e, ok := s.states[actor]
 	return e.state, ok
 }
 
-func (s *userStateStore) clear(chatID int64) {
+func (s *userStateStore) clear(actor chatUser) {
 	s.mu.Lock()
-	delete(s.states, chatID)
+	delete(s.states, actor)
 	s.mu.Unlock()
 }
 
 func (s *userStateStore) reset() {
 	s.mu.Lock()
-	s.states = make(map[int64]userStateEntry)
+	s.states = make(map[chatUser]userStateEntry)
 	s.mu.Unlock()
 }
 

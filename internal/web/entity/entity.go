@@ -382,6 +382,7 @@ type HostGroup struct {
 	Path                   string   `json:"path"`
 	Alpn                   []string `json:"alpn"`
 	Fingerprint            string   `json:"fingerprint"`
+	CipherSuites           string   `json:"cipherSuites"`
 	OverrideSniFromAddress bool     `json:"overrideSniFromAddress"`
 	KeepSniBlank           bool     `json:"keepSniBlank"`
 	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256"`

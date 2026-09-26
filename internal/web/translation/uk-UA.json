@@ -120,6 +120,7 @@
     "outbounds": "Вихідні",
     "apiDocs": "Документація API",
     "donate": "Підтримати",
+    "sponsors": "Спонсори",
     "hosts": "Хости",
     "docs": "Документація",
     "openMenu": "Відкрити меню",
@@ -596,7 +597,7 @@
         "customSockopt": "Користувацький sockopt",
         "addCustomOption": "Додати опцію",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "Набори шифрів",
         "autoOption": "Авто",
         "minMaxVersion": "Мін/Макс версія",
         "rejectUnknownSni": "Відхиляти невідомий SNI",
@@ -2256,6 +2257,27 @@
         "badTag": "Недійсний тег",
         "badVlessRoute": "Введіть одне число від 0 до 65535"
       }
+    },
+    "sponsors": {
+      "title": "Спонсори",
+      "intro": "Компанії, що підтримують розробку 3X-UI. Спонсорські посилання відкриваються в новій вкладці.",
+      "become": "Стати спонсором",
+      "tag": "Спонсор",
+      "visit": "Перейти",
+      "yourBrand": "Тут може бути ваш бренд",
+      "yourBrandText": "Покажіть свою компанію тисячам адміністраторів серверів, які щодня відкривають 3X-UI.",
+      "placements": "Доступні місця",
+      "placementDashboard": "Банер на головній",
+      "placementDashboardDesc": "Преміум-місце вгорі панелі, один спонсор за раз.",
+      "placementSidebar": "Картка в бічній панелі",
+      "placementSidebarDesc": "Показується на всіх сторінках панелі, спонсори чергуються.",
+      "placementLogin": "Сторінка входу",
+      "placementLoginDesc": "Адміністратор бачить її під час кожного входу.",
+      "placementPage": "Сторінка спонсорів",
+      "placementPageDesc": "Розміщення тут із логотипом, описом і посиланням.",
+      "available": "Вільно",
+      "takenUntil": "Зайнято до {date}",
+      "activeCount": "Активних: {count}"
     }
   },
   "tgbot": {
@@ -2433,7 +2455,8 @@
       "disableSuccess": "✅ {{ .Email }}: Успішно вимкнено.",
       "askToAddUserId": "Вашу конфігурацію не знайдено!\r\nБудь ласка, попросіть свого адміністратора використовувати ваш ідентифікатор Telegram у вашій конфігурації.\r\n\r\nВаш ідентифікатор користувача: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Виберіть клієнта для Вхідного {{ .Inbound }}",
-      "chooseInbound": "Виберіть Вхідний"
+      "chooseInbound": "Виберіть Вхідний",
+      "qrCodeForClient": "QR-код для клієнта {{ .Email }}:"
     }
   },
   "discord": {

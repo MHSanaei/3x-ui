@@ -25,6 +25,8 @@ interface ApiMsg<T = unknown> {
 
 const REFRESH_MS = 15000;
 
+const formatKbps = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1 });
+
 export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanelProps) {
   const { t } = useTranslation();
   const [cpuPoints, setCpuPoints] = useState<number[]>([]);
@@ -51,7 +53,7 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
     };
 
     // cpu/mem are percentages (clamp 0-100); net throughput is bytes/sec shown
-    // as KB/s (no upper clamp, the sparkline auto-scales).
+    // as KB/s, which must opt out of Sparkline's 0-100 "%" defaults.
     const fetchSeries = async (metric: string, kind: 'pct' | 'rate') => {
       try {
         const url = `/panel/api/nodes/history/${node.id}/${metric}/${bucket}`;
@@ -148,6 +150,8 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
           fillOpacity={0.18}
           markerRadius={2.6}
           showTooltip
+          valueMax={null}
+          yFormatter={formatKbps}
         />
       </div>
       <div className="series">
@@ -164,6 +168,8 @@ export default function NodeHistoryPanel({ node, bucket = 30 }: NodeHistoryPanel
           fillOpacity={0.18}
           markerRadius={2.6}
           showTooltip
+          valueMax={null}
+          yFormatter={formatKbps}
         />
       </div>
     </div>

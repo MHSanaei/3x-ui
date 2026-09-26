@@ -1083,6 +1083,7 @@ type Host struct {
 	Path                   string   `json:"path" form:"path"`
 	Alpn                   []string `json:"alpn" form:"alpn" gorm:"serializer:json"`
 	Fingerprint            string   `json:"fingerprint" form:"fingerprint"`
+	CipherSuites           string   `json:"cipherSuites" form:"cipherSuites" gorm:"column:cipher_suites"`
 	OverrideSniFromAddress bool     `json:"overrideSniFromAddress" form:"overrideSniFromAddress" gorm:"column:override_sni_from_address"`
 	KeepSniBlank           bool     `json:"keepSniBlank" form:"keepSniBlank" gorm:"column:keep_sni_blank"`
 	PinnedPeerCertSha256   []string `json:"pinnedPeerCertSha256" form:"pinnedPeerCertSha256" gorm:"serializer:json;column:pinned_peer_cert_sha256"`

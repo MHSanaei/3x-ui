@@ -120,6 +120,7 @@
     "outbounds": "Salidas",
     "apiDocs": "Documentación de la API",
     "donate": "Donar",
+    "sponsors": "Patrocinadores",
     "hosts": "Hosts",
     "docs": "Documentación",
     "openMenu": "Abrir menú",
@@ -596,7 +597,7 @@
         "customSockopt": "Sockopt personalizado",
         "addCustomOption": "Añadir opción personalizada",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "Conjuntos de cifrado",
         "autoOption": "Auto",
         "minMaxVersion": "Versión mín/máx",
         "rejectUnknownSni": "Rechazar SNI desconocido",
@@ -2256,6 +2257,27 @@
         "badTag": "Etiqueta no válida",
         "badVlessRoute": "Introduce un único número entre 0 y 65535"
       }
+    },
+    "sponsors": {
+      "title": "Patrocinadores",
+      "intro": "Empresas que apoyan el desarrollo de 3X-UI. Los enlaces patrocinados se abren en una pestaña nueva.",
+      "become": "Hazte patrocinador",
+      "tag": "Patrocinador",
+      "visit": "Visitar",
+      "yourBrand": "Tu marca aquí",
+      "yourBrandText": "Muestra tu empresa a miles de administradores de servidores que abren 3X-UI cada día.",
+      "placements": "Espacios disponibles",
+      "placementDashboard": "Banner del panel",
+      "placementDashboardDesc": "Espacio premium en la parte superior del panel, un patrocinador a la vez.",
+      "placementSidebar": "Tarjeta lateral",
+      "placementSidebarDesc": "Se muestra en todas las páginas del panel, rotando entre patrocinadores.",
+      "placementLogin": "Página de inicio de sesión",
+      "placementLoginDesc": "La ve el administrador en cada inicio de sesión.",
+      "placementPage": "Página de patrocinadores",
+      "placementPageDesc": "Aparece aquí con logo, descripción y enlace.",
+      "available": "Disponible",
+      "takenUntil": "Ocupado hasta {date}",
+      "activeCount": "{count} activos"
     }
   },
   "tgbot": {
@@ -2433,7 +2455,8 @@
       "disableSuccess": "✅ {{ .Email }} : Deshabilitado exitosamente.",
       "askToAddUserId": "¡No se encuentra su configuración!\r\nPor favor, pídale a su administrador que use su ChatID de usuario de Telegram en su(s) configuración(es).\r\n\r\nSu ChatID de usuario: <code>{{ .TgUserID }}</code>",
       "chooseClient": "Elige un Cliente para Inbound {{ .Inbound }}",
-      "chooseInbound": "Elige un Inbound"
+      "chooseInbound": "Elige un Inbound",
+      "qrCodeForClient": "Código QR para el cliente {{ .Email }}:"
     }
   },
   "discord": {

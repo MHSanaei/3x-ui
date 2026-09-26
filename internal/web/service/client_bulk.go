@@ -553,7 +553,7 @@ func (s *ClientService) BulkAdjust(inboundSvc *InboundService, emails []string, 
 			}
 		}
 		if adjustHwid {
-			if err := s.setClientLimitHwidByEmail(db, email, *limitHwid); err != nil {
+			if err := s.setClientLimitHwidByEmail(email, *limitHwid); err != nil {
 				if _, already := skippedReasons[email]; !already {
 					skippedReasons[email] = err.Error()
 				}
@@ -1487,22 +1487,22 @@ func (s *ClientService) BulkCreate(inboundSvc *InboundService, payloads []Client
 		}
 	}
 
-	createdEmails := make([]string, 0, len(prep))
 	for idx := range prep {
 		if failed[idx] {
 			skip(prep[idx].client.Email, reason[idx])
 			continue
 		}
-		if err := s.setClientLimitHwidByEmail(nil, prep[idx].client.Email, prep[idx].limitHwid); err != nil {
+		// The client is already live after fanout; never leave a stale delete
+		// tombstone merely because applying its optional HWID limit failed.
+		withdrawClientTombstones(prep[idx].client.Email)
+		if err := s.setClientLimitHwidByEmail(prep[idx].client.Email, prep[idx].limitHwid); err != nil {
 			skip(prep[idx].client.Email, err.Error())
 			continue
 		}
-		createdEmails = append(createdEmails, prep[idx].client.Email)
 		result.Created++
 	}
 	// A re-created email is a live identity again: a delete tombstone left
 	// standing makes the next node merge prune the new client's inbound links.
-	withdrawClientTombstones(createdEmails...)
 	return result, needRestart, nil
 }
 

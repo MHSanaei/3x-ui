@@ -360,7 +360,7 @@ export const ClientBulkAdjustFormSchema = z
       (v.limitHwid !== undefined && v.limitHwid !== null) ||
       (v.adTag !== undefined && v.adTag.trim() !== ''),
     {
-      message: 'pages.clients.bulkAdjustNothing',
+      error: 'pages.clients.bulkAdjustNothing',
     },
   )
   .refine(
@@ -370,7 +370,7 @@ export const ClientBulkAdjustFormSchema = z
       return /^[0-9a-fA-F]{32}$/.test(tag);
     },
     {
-      message: 'pages.inbounds.form.mtgAdTagInvalid',
+      error: 'pages.inbounds.form.mtgAdTagInvalid',
       path: ['adTag'],
     },
   );

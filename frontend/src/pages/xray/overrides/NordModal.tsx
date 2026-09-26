@@ -86,6 +86,13 @@ const EMPTY: NordFormValues = {
   serverId: null,
 };
 
+// antd warns on a null option value, so "All Cities" is a sentinel mapped back to null.
+const ALL_CITIES = '__all__';
+const allCitiesTransform = {
+  input: (value: unknown) => value ?? ALL_CITIES,
+  output: (value: unknown) => (value === ALL_CITIES ? null : value),
+};
+
 function loadLevel(load: number): 'low' | 'medium' | 'high' {
   if (load < 30) return 'low';
   if (load < 70) return 'medium';
@@ -452,12 +459,16 @@ export default function NordModal({
                   </FormField>
 
                   {cities.length > 0 && (
-                    <FormField name="cityId" label={t('pages.xray.outbound.city')}>
+                    <FormField
+                      name="cityId"
+                      label={t('pages.xray.outbound.city')}
+                      transform={allCitiesTransform}
+                    >
                       <Select
                         data-testid="nord-city-select"
                         showSearch={{ optionFilterProp: 'label' }}
                         options={[
-                          { value: null, label: t('pages.xray.outbound.allCities') },
+                          { value: ALL_CITIES, label: t('pages.xray.outbound.allCities') },
                           ...cities.map((c) => ({ value: c.id, label: c.name })),
                         ]}
                       />

@@ -120,6 +120,7 @@
     "outbounds": "アウトバウンド",
     "apiDocs": "API ドキュメント",
     "donate": "寄付",
+    "sponsors": "スポンサー",
     "hosts": "ホスト",
     "docs": "ドキュメント",
     "openMenu": "メニューを開く",
@@ -617,7 +618,7 @@
         "customSockopt": "カスタム sockopt",
         "addCustomOption": "カスタムオプション追加",
         "serverNameIndication": "SNI",
-        "cipherSuites": "Cipher Suites",
+        "cipherSuites": "暗号スイート",
         "autoOption": "自動",
         "minMaxVersion": "最小/最大バージョン",
         "rejectUnknownSni": "未知の SNI を拒否",
@@ -2256,6 +2257,27 @@
         "badTag": "無効なタグ",
         "badVlessRoute": "0〜65535 の単一の数値を入力してください"
       }
+    },
+    "sponsors": {
+      "title": "スポンサー",
+      "intro": "3X-UI の開発を支援している企業です。スポンサーリンクは新しいタブで開きます。",
+      "become": "スポンサーになる",
+      "tag": "スポンサー",
+      "visit": "訪問",
+      "yourBrand": "ここにあなたのブランドを",
+      "yourBrandText": "毎日 3X-UI を開く何千人ものサーバー管理者に御社をアピールできます。",
+      "placements": "掲載枠",
+      "placementDashboard": "ダッシュボードバナー",
+      "placementDashboardDesc": "ダッシュボード上部のプレミアム枠。一度に 1 社のみ。",
+      "placementSidebar": "サイドバーカード",
+      "placementSidebarDesc": "パネルの全ページに表示され、スポンサー間でローテーションします。",
+      "placementLogin": "ログインページ",
+      "placementLoginDesc": "管理者がログインするたびに表示されます。",
+      "placementPage": "スポンサーページ",
+      "placementPageDesc": "ロゴ、説明、リンク付きでここに掲載されます。",
+      "available": "空きあり",
+      "takenUntil": "{date} まで予約済み",
+      "activeCount": "{count} 件掲載中"
     }
   },
   "tgbot": {
@@ -2433,7 +2455,8 @@
       "disableSuccess": "✅ {{ .Email }}：正常に無効化されました。",
       "askToAddUserId": "設定が見つかりませんでした！\r\n管理者に問い合わせて、設定にTelegramユーザーのChatIDを使用してください。\r\n\r\nあなたのユーザーChatID：<code>{{ .TgUserID }}</code>",
       "chooseClient": "インバウンド {{ .Inbound }} のクライアントを選択",
-      "chooseInbound": "インバウンドを選択"
+      "chooseInbound": "インバウンドを選択",
+      "qrCodeForClient": "クライアント {{ .Email }} のQRコード:"
     }
   },
   "discord": {
