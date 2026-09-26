@@ -9,15 +9,14 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// #6574: outbound fetches must carry the stable panel id so an
-// HWID-limited donor lets them through (same as #6559 for client links).
-func TestOutboundFetchSendsHwid(t *testing.T) {
+// #6574: an outbound subscription fetch must send the id client external links
+// already send (#6559), or an HWID-limited provider counts the panel twice.
+func TestOutboundFetchSendsExternalSubscriptionHwid(t *testing.T) {
 	setupSettingTestDB(t)
 
-	var gotHwid, gotOS string
+	var gotHwid string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotHwid = r.Header.Get("X-HWID")
-		gotOS = r.Header.Get("X-Device-OS")
 		_, _ = w.Write([]byte("outbounds:\n"))
 	}))
 	defer srv.Close()
@@ -32,29 +31,30 @@ func TestOutboundFetchSendsHwid(t *testing.T) {
 	if _, err := svc.Refresh(sub.Id); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
-	if gotHwid == "" {
-		t.Fatal("X-HWID header missing on outbound fetch")
+	var row model.Setting
+	if err := database.GetDB().Where("key = ?", "externalSubHwid").First(&row).Error; err != nil {
+		t.Fatalf("no persisted externalSubHwid after the fetch: %v", err)
 	}
-	if gotOS != "3x-ui" {
-		t.Fatalf("X-Device-OS = %q, want 3x-ui", gotOS)
+	if gotHwid == "" || gotHwid != row.Value {
+		t.Fatalf("X-HWID = %q, want the persisted externalSubHwid %q", gotHwid, row.Value)
 	}
-	guid, err := svc.settingService.GetPanelGuid()
-	if err != nil {
-		t.Fatalf("guid: %v", err)
-	}
-	if gotHwid != guid {
-		t.Fatalf("sent %q != panel guid %q", gotHwid, guid)
-	}
+}
 
-	if err := database.GetDB().Create(
-		&model.Setting{Key: "externalSubSendHwid", Value: "false"}).Error; err != nil {
-		t.Fatalf("opt out: %v", err)
+func TestExternalSubscriptionHwidIsStableAndPersisted(t *testing.T) {
+	setupSettingTestDB(t)
+
+	first := ExternalSubscriptionHwid()
+	if first == "" {
+		t.Fatal("ExternalSubscriptionHwid returned empty")
 	}
-	gotHwid = "sentinel"
-	if _, err := svc.Refresh(sub.Id); err != nil {
-		t.Fatalf("refresh after opt-out: %v", err)
+	if second := ExternalSubscriptionHwid(); second != first {
+		t.Fatalf("hwid not stable: %q vs %q", first, second)
 	}
-	if gotHwid != "" {
-		t.Fatalf("X-HWID sent despite opt-out: %q", gotHwid)
+	var row model.Setting
+	if err := database.GetDB().Where("key = ?", "externalSubHwid").First(&row).Error; err != nil {
+		t.Fatalf("hwid not persisted: %v", err)
+	}
+	if row.Value != first {
+		t.Fatalf("persisted hwid %q != returned %q", row.Value, first)
 	}
 }
