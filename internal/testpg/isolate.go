@@ -19,9 +19,8 @@ const (
 	dbDSNEnv  = "XUI_DB_DSN"
 )
 
-// IsolatePackage gives one go test package its own PostgreSQL schema. Go runs
-// package test binaries concurrently, so sharing public lets independent
-// migration suites race even when the database itself is disposable.
+// IsolatePackage gives one test package its own PostgreSQL schema: package test
+// binaries run concurrently, and sharing public lets their migrations race.
 func IsolatePackage(packageName string) (func(), error) {
 	if os.Getenv(dbTypeEnv) != "postgres" {
 		return func() {}, nil
