@@ -2330,20 +2330,27 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 
 	if fragment != "" {
 		sb.WriteByte('#')
-		if before, after, ok := strings.Cut(fragment, "?serverDescription="); ok {
-			if _, err := base64.StdEncoding.DecodeString(after); err == nil && len(after) > 0 && !strings.ContainsAny(after, " \r\n\t#&") {
-				sb.WriteString(strings.ReplaceAll(url.QueryEscape(before), "+", "%20"))
-				sb.WriteString("?serverDescription=")
-				sb.WriteString(after)
-			} else {
-				sb.WriteString(strings.ReplaceAll(url.QueryEscape(fragment), "+", "%20"))
-			}
-		} else {
-			// Match the frontend's encodeURIComponent(remark): spaces become %20.
-			sb.WriteString(strings.ReplaceAll(url.QueryEscape(fragment), "+", "%20"))
-		}
+		sb.WriteString(escapeLinkFragment(fragment, encodeURIComponent))
 	}
 	return sb.String()
+}
+
+// encodeURIComponent matches the frontend's escaping of a remark: spaces become %20.
+func encodeURIComponent(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+}
+
+// escapeLinkFragment escapes a remark but keeps a valid ?serverDescription=<base64>
+// tail literal, which Happ reads as the subtitle (#6488, #6575).
+func escapeLinkFragment(fragment string, escape func(string) string) string {
+	before, after, ok := strings.Cut(fragment, "?serverDescription=")
+	if !ok || after == "" || strings.ContainsAny(after, " \r\n\t#&") {
+		return escape(fragment)
+	}
+	if _, err := base64.StdEncoding.DecodeString(after); err != nil {
+		return escape(fragment)
+	}
+	return escape(before) + "?serverDescription=" + after
 }
 
 // buildExternalProxyURLLinks is a thin adapter: it maps the legacy externalProxy
