@@ -316,10 +316,95 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings": {
         "type": "boolean"
       },
+      "subIncyAnnounceUrl": {
+        "type": "string"
+      },
+      "subIncyAppAutoDetect": {
+        "description": "Incy client customization settings (app-management). A \"\" value omits\nthe header so the subscriber's own app setting is left alone.",
+        "type": "boolean"
+      },
+      "subIncyBannerBgColor": {
+        "type": "string"
+      },
+      "subIncyBannerButtonColor": {
+        "type": "string"
+      },
+      "subIncyBannerButtonText": {
+        "type": "string"
+      },
+      "subIncyBannerButtonUrl": {
+        "type": "string"
+      },
+      "subIncyBannerText": {
+        "type": "string"
+      },
       "subIncyEnableRouting": {
         "type": "boolean"
       },
+      "subIncyFragmentInterval": {
+        "type": "string"
+      },
+      "subIncyFragmentLength": {
+        "type": "string"
+      },
+      "subIncyFragmentPackets": {
+        "type": "string"
+      },
+      "subIncyFragmentationEnable": {
+        "type": "string"
+      },
+      "subIncyHideCheck": {
+        "type": "string"
+      },
+      "subIncyHideUrl": {
+        "type": "string"
+      },
+      "subIncyNoLimitEnabled": {
+        "type": "string"
+      },
+      "subIncyNoisesDelay": {
+        "type": "string"
+      },
+      "subIncyNoisesEnable": {
+        "type": "string"
+      },
+      "subIncyNoisesPacket": {
+        "type": "string"
+      },
+      "subIncyNoisesType": {
+        "type": "string"
+      },
+      "subIncyPerAppEnable": {
+        "type": "string"
+      },
+      "subIncyPerAppList": {
+        "type": "string"
+      },
+      "subIncyPerAppMode": {
+        "type": "string"
+      },
+      "subIncyPremiumUrl": {
+        "type": "string"
+      },
+      "subIncyProfileDescription": {
+        "type": "string"
+      },
+      "subIncyResolveDnsDomain": {
+        "type": "string"
+      },
+      "subIncyResolveDnsIp": {
+        "type": "string"
+      },
+      "subIncyResolveEnable": {
+        "type": "string"
+      },
       "subIncyRoutingRules": {
+        "type": "string"
+      },
+      "subIncySortOrder": {
+        "type": "string"
+      },
+      "subIncySupportEmail": {
         "type": "string"
       },
       "subInfoNodeEnable": {
@@ -584,8 +669,36 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunMode",
       "subHappTunType",
       "subHideSettings",
+      "subIncyAnnounceUrl",
+      "subIncyAppAutoDetect",
+      "subIncyBannerBgColor",
+      "subIncyBannerButtonColor",
+      "subIncyBannerButtonText",
+      "subIncyBannerButtonUrl",
+      "subIncyBannerText",
       "subIncyEnableRouting",
+      "subIncyFragmentInterval",
+      "subIncyFragmentLength",
+      "subIncyFragmentPackets",
+      "subIncyFragmentationEnable",
+      "subIncyHideCheck",
+      "subIncyHideUrl",
+      "subIncyNoLimitEnabled",
+      "subIncyNoisesDelay",
+      "subIncyNoisesEnable",
+      "subIncyNoisesPacket",
+      "subIncyNoisesType",
+      "subIncyPerAppEnable",
+      "subIncyPerAppList",
+      "subIncyPerAppMode",
+      "subIncyPremiumUrl",
+      "subIncyProfileDescription",
+      "subIncyResolveDnsDomain",
+      "subIncyResolveDnsIp",
+      "subIncyResolveEnable",
       "subIncyRoutingRules",
+      "subIncySortOrder",
+      "subIncySupportEmail",
       "subInfoNodeEnable",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",
@@ -979,10 +1092,95 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings": {
         "type": "boolean"
       },
+      "subIncyAnnounceUrl": {
+        "type": "string"
+      },
+      "subIncyAppAutoDetect": {
+        "description": "Incy client customization settings (app-management). A \"\" value omits\nthe header so the subscriber's own app setting is left alone.",
+        "type": "boolean"
+      },
+      "subIncyBannerBgColor": {
+        "type": "string"
+      },
+      "subIncyBannerButtonColor": {
+        "type": "string"
+      },
+      "subIncyBannerButtonText": {
+        "type": "string"
+      },
+      "subIncyBannerButtonUrl": {
+        "type": "string"
+      },
+      "subIncyBannerText": {
+        "type": "string"
+      },
       "subIncyEnableRouting": {
         "type": "boolean"
       },
+      "subIncyFragmentInterval": {
+        "type": "string"
+      },
+      "subIncyFragmentLength": {
+        "type": "string"
+      },
+      "subIncyFragmentPackets": {
+        "type": "string"
+      },
+      "subIncyFragmentationEnable": {
+        "type": "string"
+      },
+      "subIncyHideCheck": {
+        "type": "string"
+      },
+      "subIncyHideUrl": {
+        "type": "string"
+      },
+      "subIncyNoLimitEnabled": {
+        "type": "string"
+      },
+      "subIncyNoisesDelay": {
+        "type": "string"
+      },
+      "subIncyNoisesEnable": {
+        "type": "string"
+      },
+      "subIncyNoisesPacket": {
+        "type": "string"
+      },
+      "subIncyNoisesType": {
+        "type": "string"
+      },
+      "subIncyPerAppEnable": {
+        "type": "string"
+      },
+      "subIncyPerAppList": {
+        "type": "string"
+      },
+      "subIncyPerAppMode": {
+        "type": "string"
+      },
+      "subIncyPremiumUrl": {
+        "type": "string"
+      },
+      "subIncyProfileDescription": {
+        "type": "string"
+      },
+      "subIncyResolveDnsDomain": {
+        "type": "string"
+      },
+      "subIncyResolveDnsIp": {
+        "type": "string"
+      },
+      "subIncyResolveEnable": {
+        "type": "string"
+      },
       "subIncyRoutingRules": {
+        "type": "string"
+      },
+      "subIncySortOrder": {
+        "type": "string"
+      },
+      "subIncySupportEmail": {
         "type": "string"
       },
       "subInfoNodeEnable": {
@@ -1255,8 +1453,36 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunMode",
       "subHappTunType",
       "subHideSettings",
+      "subIncyAnnounceUrl",
+      "subIncyAppAutoDetect",
+      "subIncyBannerBgColor",
+      "subIncyBannerButtonColor",
+      "subIncyBannerButtonText",
+      "subIncyBannerButtonUrl",
+      "subIncyBannerText",
       "subIncyEnableRouting",
+      "subIncyFragmentInterval",
+      "subIncyFragmentLength",
+      "subIncyFragmentPackets",
+      "subIncyFragmentationEnable",
+      "subIncyHideCheck",
+      "subIncyHideUrl",
+      "subIncyNoLimitEnabled",
+      "subIncyNoisesDelay",
+      "subIncyNoisesEnable",
+      "subIncyNoisesPacket",
+      "subIncyNoisesType",
+      "subIncyPerAppEnable",
+      "subIncyPerAppList",
+      "subIncyPerAppMode",
+      "subIncyPremiumUrl",
+      "subIncyProfileDescription",
+      "subIncyResolveDnsDomain",
+      "subIncyResolveDnsIp",
+      "subIncyResolveEnable",
       "subIncyRoutingRules",
+      "subIncySortOrder",
+      "subIncySupportEmail",
       "subInfoNodeEnable",
       "subJsonAlwaysArray",
       "subJsonAutoDetect",

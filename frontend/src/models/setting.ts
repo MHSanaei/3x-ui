@@ -107,6 +107,35 @@ export class AllSetting {
   subHappPerAppList = '';
   subHappLocalProxyAuth = 'auto';
 
+  subIncyAppAutoDetect = false;
+  subIncyProfileDescription = '';
+  subIncySortOrder = '';
+  subIncySupportEmail = '';
+  subIncyAnnounceUrl = '';
+  subIncyPremiumUrl = '';
+  subIncyBannerText = '';
+  subIncyBannerButtonText = '';
+  subIncyBannerButtonUrl = '';
+  subIncyBannerBgColor = '';
+  subIncyBannerButtonColor = '';
+  subIncyHideUrl = '';
+  subIncyHideCheck = '';
+  subIncyNoLimitEnabled = '';
+  subIncyPerAppEnable = '';
+  subIncyPerAppMode = '';
+  subIncyPerAppList = '';
+  subIncyFragmentationEnable = '';
+  subIncyFragmentLength = '';
+  subIncyFragmentInterval = '';
+  subIncyFragmentPackets = '';
+  subIncyNoisesEnable = '';
+  subIncyNoisesType = '';
+  subIncyNoisesPacket = '';
+  subIncyNoisesDelay = '';
+  subIncyResolveEnable = '';
+  subIncyResolveDnsDomain = '';
+  subIncyResolveDnsIp = '';
+
   timeLocation = 'Local';
 
   ldapEnable = false;
