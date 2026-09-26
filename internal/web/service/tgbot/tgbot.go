@@ -408,6 +408,7 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 			{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
 			{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
 			{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
+			{Command: "broadcast", Description: t.I18nBot("tgbot.commands.broadcastDesc")},
 		},
 	})
 	if err != nil {
@@ -542,6 +543,7 @@ func StopBot() {
 
 	userStateMgr.reset()
 	addClientDrafts.resetAll()
+	broadcastResetAll()
 
 	if handler != nil {
 		_ = handler.Stop()
