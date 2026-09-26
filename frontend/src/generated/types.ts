@@ -482,6 +482,80 @@ export interface ClientsSummary {
   total: number;
 }
 
+export interface EffectiveExternalLink {
+  cacheTTL: number;
+  enable: boolean;
+  expiryTime: number;
+  headers: Record<string, string>;
+  kind: string;
+  linkId: number;
+  namePrefix: string;
+  origin: string;
+  remark: string;
+  scope: string;
+  scopeTarget: number;
+  sortIndex: number;
+  userAgent: string;
+  value: string;
+}
+
+export interface ExternalLink {
+  assignedClients: number;
+  cacheTtl: number;
+  createdAt: number;
+  enable?: boolean | null;
+  expiryTime: number;
+  headers: Record<string, string>;
+  id: number;
+  kind: string;
+  lastFetchAt: number;
+  lastFetchError: string;
+  namePrefix: string;
+  remark: string;
+  sortIndex: number;
+  updatedAt: number;
+  userAgent: string;
+  value: string;
+}
+
+export interface ExternalLinkAssignment {
+  createdAt: number;
+  enable?: boolean | null;
+  expiryTime?: number;
+  id: number;
+  linkId: number;
+  namePrefix?: string;
+  origin: string;
+  remark?: string;
+  sortIndex?: number;
+  targetId: number;
+  targetType: string;
+}
+
+export interface ExternalLinkTargetView {
+  name: string;
+  targetId: number;
+  targetType: string;
+}
+
+export interface ExternalLinkView {
+  assignmentId: number;
+  cacheTtl: number;
+  enable: boolean;
+  expiryTime: number;
+  kind: string;
+  lastFetchAt: number;
+  lastFetchError: string;
+  linkId: number;
+  namePrefix: string;
+  own: boolean;
+  remark: string;
+  scope: string;
+  scopeTarget: number;
+  userAgent: string;
+  value: string;
+}
+
 export interface FallbackParentInfo {
   masterId: number;
   path?: string;

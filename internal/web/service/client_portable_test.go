@@ -50,7 +50,7 @@ func TestExportImportPreservesDisabledEnable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal export: %v", err)
 	}
-	var roundTrip []ClientCreatePayload
+	var roundTrip []ClientPortable
 	if err := json.Unmarshal(raw, &roundTrip); err != nil {
 		t.Fatalf("unmarshal export: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestImportClientsPreservesOrphanDisabledEnable(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
 
-	items := []ClientCreatePayload{{
+	items := []ClientPortable{{
 		Client: model.Client{
 			Email: "orphan@disabled", SubID: "sub-orphan-disabled", Enable: false,
 			ID: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",

@@ -74,19 +74,22 @@ func scaleSubSizes(t *testing.T, def ...int) []int {
 func resetScaleSubTables(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	if config.GetDBKind() == "postgres" {
-		if err := db.Exec("TRUNCATE TABLE inbounds, clients, client_inbounds, client_traffics RESTART IDENTITY CASCADE").Error; err != nil {
+		if err := db.Exec("TRUNCATE TABLE inbounds, clients, client_inbounds, client_traffics, external_links, external_link_assignments RESTART IDENTITY CASCADE").Error; err != nil {
 			t.Fatalf("truncate: %v", err)
 		}
 	} else {
-		for _, tbl := range []string{"inbounds", "clients", "client_inbounds", "client_traffics"} {
+		for _, tbl := range []string{"inbounds", "clients", "client_inbounds", "client_traffics", "external_links", "external_link_assignments"} {
 			if err := db.Exec("DELETE FROM " + tbl).Error; err != nil {
 				t.Fatalf("delete %s: %v", tbl, err)
 			}
 		}
 		db.Exec("DELETE FROM sqlite_sequence")
 	}
-	if err := db.Where("1 = 1").Delete(&model.ClientExternalLink{}).Error; err != nil {
-		t.Fatalf("clear client_external_links: %v", err)
+	if err := db.Where("1 = 1").Delete(&model.ExternalLinkAssignment{}).Error; err != nil {
+		t.Fatalf("clear external_link_assignments: %v", err)
+	}
+	if err := db.Where("1 = 1").Delete(&model.ExternalLink{}).Error; err != nil {
+		t.Fatalf("clear external_links: %v", err)
 	}
 }
 

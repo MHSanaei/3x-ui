@@ -878,7 +878,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if err := tx.Where("client_id = ?", id).Delete(&model.ClientInbound{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
+		if err := dropExternalLinkAssignmentsTx(tx, model.ExternalLinkTargetClient, id); err != nil {
 			return err
 		}
 		if err := clearClientHwidsBySubIDTx(tx, existing.SubID); err != nil {
