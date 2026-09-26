@@ -61,9 +61,7 @@ func seedClashQuotaSub(t *testing.T, subID string, expiry int64) {
 	if err := db.Create(&xray.ClientTraffic{Email: "B@e", Up: 100, Down: 200, Total: 2048, ExpiryTime: expiry}).Error; err != nil {
 		t.Fatalf("seed B traffic: %v", err)
 	}
-	if err := db.Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: clashDroppedExternalLink, SortIndex: 1}).Error; err != nil {
-		t.Fatalf("seed B external link: %v", err)
-	}
+	seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: clashDroppedExternalLink, SortIndex: 1})
 }
 
 // B's node cannot be represented in Clash, but B still owns quota: the header
@@ -101,9 +99,7 @@ func TestClashAllUnrepresentableNodesAnswerAlike(t *testing.T) {
 				if err := database.GetDB().Create(rec).Error; err != nil {
 					t.Fatalf("seed client: %v", err)
 				}
-				if err := database.GetDB().Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindLink, Value: clashDroppedExternalLink, SortIndex: 1}).Error; err != nil {
-					t.Fatalf("seed external link: %v", err)
-				}
+				seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindLink, Value: clashDroppedExternalLink, SortIndex: 1})
 			}
 			w := fetchClashSub(t, clashSubRouter(t), "/clash/clash-parity?view=raw")
 			if w.Body.Len() != 0 {

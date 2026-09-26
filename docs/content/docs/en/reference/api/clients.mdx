@@ -78,21 +78,25 @@ _openapi:
         Returns the deleted count. Cannot be undone.
       url: '#delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone'
     - depth: 2
-      title: Return every client as a {client, inboundIds} array — the same shape
-        /bulkCreate and /import accept — so the payload round-trips straight
-        back through /import. Clients with no inbound attachment are included
-        with an empty inboundIds list. The UI shows this in a CodeMirror viewer
-        (copy / download); programmatic callers get the array in obj.
-      url: '#return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj'
+      title: Return every client as a {client, inboundIds, externalLinks} array — the
+        same shape /bulkCreate and /import accept — so the payload round-trips
+        straight back through /import. Clients with no inbound attachment are
+        included with an empty inboundIds list, and a client’s own external
+        links travel in externalLinks, which is panel-local state (it is not
+        pushed to nodes). The UI shows this in a CodeMirror viewer (copy /
+        download); programmatic callers get the array in obj.
+      url: '#return-every-client-as-a-client-inboundids-externallinks-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-and-a-clients-own-external-links-travel-in-externallinks-which-is-panel-local-state-it-is-not-pushed-to-nodes-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj'
     - depth: 2
       title: 'Import clients from a JSON body { "data": "<json>" }, where data is a
-        string-encoded array produced by /export ([{client, inboundIds}]). Items
-        with inboundIds are created and attached to those inbounds; items with
-        an empty inboundIds list are restored as unattached client records.
+        string-encoded array produced by /export ([{client, inboundIds,
+        externalLinks}]). Items with inboundIds are created and attached to
+        those inbounds; items with an empty inboundIds list are restored as
+        unattached client records. externalLinks entries become the client’s own
+        library assignments; nothing is imported for an email that was skipped.
         Existing emails are never overwritten — they are returned in skipped.
         Triggers a single Xray restart at the end if any target inbound was
         running.'
-      url: '#import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running'
+      url: '#import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-externallinks-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-externallinks-entries-become-the-clients-own-library-assignments-nothing-is-imported-for-an-email-that-was-skipped-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running'
     - depth: 2
       title: 'Shift expiry and/or traffic quota for many clients in one call.
         addDays/addBytes may be negative. Clients with unlimited expiry
@@ -351,20 +355,24 @@ _openapi:
           clearing clients left unattached after their inbounds were removed.
           Returns the deleted count. Cannot be undone.
         id: delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
-      - content: Return every client as a {client, inboundIds} array — the same shape
-          /bulkCreate and /import accept — so the payload round-trips straight
-          back through /import. Clients with no inbound attachment are included
-          with an empty inboundIds list. The UI shows this in a CodeMirror
-          viewer (copy / download); programmatic callers get the array in obj.
-        id: return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
+      - content: Return every client as a {client, inboundIds, externalLinks} array —
+          the same shape /bulkCreate and /import accept — so the payload
+          round-trips straight back through /import. Clients with no inbound
+          attachment are included with an empty inboundIds list, and a client’s
+          own external links travel in externalLinks, which is panel-local state
+          (it is not pushed to nodes). The UI shows this in a CodeMirror viewer
+          (copy / download); programmatic callers get the array in obj.
+        id: return-every-client-as-a-client-inboundids-externallinks-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-and-a-clients-own-external-links-travel-in-externallinks-which-is-panel-local-state-it-is-not-pushed-to-nodes-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
       - content: 'Import clients from a JSON body { "data": "<json>" }, where data is a
-          string-encoded array produced by /export ([{client, inboundIds}]).
-          Items with inboundIds are created and attached to those inbounds;
-          items with an empty inboundIds list are restored as unattached client
-          records. Existing emails are never overwritten — they are returned in
+          string-encoded array produced by /export ([{client, inboundIds,
+          externalLinks}]). Items with inboundIds are created and attached to
+          those inbounds; items with an empty inboundIds list are restored as
+          unattached client records. externalLinks entries become the client’s
+          own library assignments; nothing is imported for an email that was
+          skipped. Existing emails are never overwritten — they are returned in
           skipped. Triggers a single Xray restart at the end if any target
           inbound was running.'
-        id: import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running
+        id: import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-externallinks-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-externallinks-entries-become-the-clients-own-library-assignments-nothing-is-imported-for-an-email-that-was-skipped-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running
       - content: 'Shift expiry and/or traffic quota for many clients in one call.
           addDays/addBytes may be negative. Clients with unlimited expiry
           (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the

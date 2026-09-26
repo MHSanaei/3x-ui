@@ -34,7 +34,8 @@ import { HttpUtil, IntlUtil, RandomUtil, Wireguard } from '@/utils';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { generateMtprotoSecret } from '@/lib/xray/inbound-defaults';
 import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
-import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
+import { externalLinkScopeLabel, resolveExternalLinkExpiry } from '@/lib/clients/external-link';
+import { useClientLinksQuery } from '@/api/queries/useLinksQuery';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
@@ -255,6 +256,14 @@ export default function ClientFormModal({
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const isEdit = mode === 'edit';
+
+  // The form edits what the client owns; what it inherits is read from the
+  // library, because editing a shared row from here would reach every client.
+  const { rows: clientLinkViews } = useClientLinksQuery(isEdit ? (client?.id ?? null) : null);
+  const inheritedLinks = useMemo(
+    () => clientLinkViews.filter((row) => !row.own),
+    [clientLinkViews],
+  );
 
   const methods = useForm<Values>({ defaultValues: EMPTY });
   const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
@@ -1525,6 +1534,38 @@ export default function ClientFormModal({
                           ))
                         )}
                       </div>
+
+                      {inheritedLinks.length > 0 && (
+                        <div style={{ marginTop: 24 }}>
+                          <Typography.Title level={5} style={{ marginBottom: 4 }}>
+                            {t('pages.links.inherited')}
+                          </Typography.Title>
+                          <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+                            {t('pages.links.inheritedHint')}
+                          </Typography.Paragraph>
+                          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                            {inheritedLinks.map((row) => (
+                              <div key={row.linkId} className="external-link-card">
+                                <div className="external-link-row">
+                                  <Tag color="blue" style={{ marginInlineEnd: 8 }}>
+                                    {t(externalLinkScopeLabel(row.scope))}
+                                  </Tag>
+                                  <Typography.Text
+                                    ellipsis={{ tooltip: row.value }}
+                                    style={{ flex: 1 }}
+                                  >
+                                    {row.value}
+                                  </Typography.Text>
+                                  {row.remark && (
+                                    <Typography.Text type="secondary">{row.remark}</Typography.Text>
+                                  )}
+                                  {!row.enable && <Tag>{t('disabled')}</Tag>}
+                                </div>
+                              </div>
+                            ))}
+                          </Space>
+                        </div>
+                      )}
                     </>
                   ),
                 },

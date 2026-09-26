@@ -1423,6 +1423,9 @@ func (s *InboundService) delInbound(id int) (bool, func(), error) {
 		if err := s.clientService.DetachInbound(tx, id); err != nil {
 			return err
 		}
+		if err := dropExternalLinkAssignmentsTx(tx, model.ExternalLinkTargetInbound, id); err != nil {
+			return err
+		}
 		if err := tx.Delete(model.Inbound{}, id).Error; err != nil {
 			return err
 		}
