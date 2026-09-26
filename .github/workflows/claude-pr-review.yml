@@ -118,8 +118,8 @@ jobs:
           # allowedTools only pre-approves; it denies nothing. Only the deny list
           # stops the review executing what it just checked out, or delegating.
           claude_args: |
-            --model claude-opus-5
-            --effort xhigh
+            --model claude-opus-5-5
+            --effort medium
             --max-turns 300
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh api:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment ${{ env.PR }}:*),Bash(grep:*),Bash(rg:*),Bash(ls:*),Bash(find:*),Bash(sed:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(git blame:*),Bash(go doc:*),Bash(go env:*),Read,Glob,Grep,WebFetch,WebSearch"
             --disallowedTools "Agent,Bash(go build:*),Bash(go run:*),Bash(go test:*),Bash(go generate:*),Bash(go install:*),Bash(make:*),Bash(npm:*),Bash(npx:*),Bash(pnpm:*),Bash(yarn:*),Bash(node:*),Bash(bash:*),Bash(sh:*),Bash(docker:*),Bash(chmod:*),Edit,Write,NotebookEdit"
