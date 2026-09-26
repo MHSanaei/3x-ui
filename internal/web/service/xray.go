@@ -727,17 +727,9 @@ func injectMtprotoEgress(cfg *xray.Config, inbound *model.Inbound) {
 	})
 }
 
-// amneziawgEgressSniffingSettings matches this fork's normal per-inbound
-// default (see default.json's "mixed" inbound). Without this, domain-based
-// Routing rules can never match this relay: the peer resolved DNS
-// itself, through the tunnel, before ever sending a packet — by the time the
-// embedded forwarder recovers the decapsulated traffic, the destination is
-// already a bare IP, with no domain name attached at the network layer at
-// all. Sniffing recovers it from the payload itself (TLS SNI / HTTP Host /
-// QUIC) the same way it already does for every other inbound; without it,
-// only tag/IP/network-based rules can ever match this traffic, and any
-// domain rule above it in the list is silently unreachable.
-const amneziawgEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
+// Peers resolve DNS inside the tunnel, so domain rules match only via sniffing; routeOnly
+// keeps the dial on the peer's IP, else Telegram's FakeTLS (IP + foreign SNI) breaks.
+const amneziawgEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
 
 // injectAmneziawgnetSocks gives every enabled AmneziaWG inbound with at
 // least one qualifying peer its own loopback SOCKS5 inbound for the

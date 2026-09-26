@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -598,6 +599,29 @@ func TestInjectAmneziawgnetSocks_CreatesRelayTaggedWithInboundsOwnTag(t *testing
 	// Routing-page rules, same as any other protocol's inbound tag.
 	if string(cfg.RouterConfig) != before {
 		t.Fatalf("injectAmneziawgnetSocks must never touch the routing section, got %s", cfg.RouterConfig)
+	}
+}
+
+// Without routeOnly the sniffed SNI replaces the dial target, so Telegram's
+// FakeTLS to 194.221.250.50 (SNI www.google.com) lands on real Google.
+func TestInjectAmneziawgnetSocks_SniffingRouteOnly(t *testing.T) {
+	cfg := egressTestConfig()
+	injectAmneziawgnetSocks(cfg, []*model.Inbound{amneziawgInbound(7, "awg-7", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}},
+	})})
+	var sniffing struct {
+		Enabled      bool     `json:"enabled"`
+		DestOverride []string `json:"destOverride"`
+		RouteOnly    bool     `json:"routeOnly"`
+	}
+	if err := json.Unmarshal(cfg.InboundConfigs[1].Sniffing, &sniffing); err != nil {
+		t.Fatalf("relay inbound must carry a sniffing block, got %q: %v", cfg.InboundConfigs[1].Sniffing, err)
+	}
+	if !sniffing.Enabled || !sniffing.RouteOnly {
+		t.Fatalf("sniffing must be enabled with routeOnly, got %+v", sniffing)
+	}
+	if want := []string{"http", "tls", "quic", "fakedns"}; !slices.Equal(sniffing.DestOverride, want) {
+		t.Fatalf("destOverride = %v, want %v", sniffing.DestOverride, want)
 	}
 }
 
