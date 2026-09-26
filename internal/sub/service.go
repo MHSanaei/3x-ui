@@ -300,15 +300,8 @@ func listenIsInternalOnly(listen string) bool {
 	return isLoopbackHost(listen)
 }
 
-// matchingClients returns the inbound's clients whose SubID equals subId,
-// resolved from the normalized clients/client_inbounds tables (both filter
-// columns indexed) instead of parsing the settings JSON — at large client
-// counts that parse made every subscription fetch cost seconds. The
-// case-insensitive email dedupe stays as cheap insurance even though
-// clients.email is unique, preserving the #5134 guarantee that duplicate
-// settings entries never fan out into duplicate profiles. Resolved clients
-// are primed into the per-request cache so the link generators don't parse
-// settings either.
+// matchingClients selects normalized subId members (email-deduped, #5134).
+// WG/AWG copy this inbound's settings tunnel identity first so shared wg_* columns cannot leak (#6641).
 func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []model.Client {
 	clients, err := s.inboundService.GetClientsBySubId(inbound.Id, subId)
 	if err != nil {
@@ -325,8 +318,56 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 		seen[key] = struct{}{}
 		out = append(out, client)
 	}
+	if len(out) > 0 && (inbound.Protocol == model.WireGuard || inbound.Protocol == model.AmneziaWG) {
+		overlaid, settingsErr := s.overlayInboundTunnelIdentity(inbound, out)
+		if settingsErr != nil {
+			logger.Errorf("SubService - matchingClients: inbound %d tunnel settings: %v", inbound.Id, settingsErr)
+			return nil
+		}
+		out = overlaid
+	}
 	s.primeLinkClients(inbound.Id, out, false)
 	return out
+}
+
+// overlayInboundTunnelIdentity copies per-inbound tunnel fields from settings.
+// An unmatched peer is dropped, malformed settings yield nothing, and empty optional secrets replace shared values (#6641).
+func (s *SubService) overlayInboundTunnelIdentity(inbound *model.Inbound, clients []model.Client) ([]model.Client, error) {
+	embedded, err := s.inboundService.GetClients(inbound)
+	if err != nil {
+		return nil, err
+	}
+	byEmail := make(map[string]model.Client, len(embedded))
+	for i := range embedded {
+		key := strings.ToLower(embedded[i].Email)
+		if key == "" {
+			continue
+		}
+		if _, exists := byEmail[key]; exists {
+			continue
+		}
+		byEmail[key] = embedded[i]
+	}
+	out := make([]model.Client, 0, len(clients))
+	for _, client := range clients {
+		peer, ok := byEmail[strings.ToLower(client.Email)]
+		if !ok {
+			continue
+		}
+		client.PrivateKey = peer.PrivateKey
+		client.PublicKey = peer.PublicKey
+		client.PreSharedKey = peer.PreSharedKey
+		// append onto nil copies a non-empty list and clears a shared address when settings omit one.
+		client.AllowedIPs = append([]string(nil), peer.AllowedIPs...)
+		if peer.KeepAlive == nil {
+			client.KeepAlive = nil
+		} else {
+			keepalive := *peer.KeepAlive
+			client.KeepAlive = &keepalive
+		}
+		out = append(out, client)
+	}
+	return out, nil
 }
 
 // RecordSubscriptionFetch records a successful subscription response for all clients sharing subId.
