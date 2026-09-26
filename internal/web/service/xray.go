@@ -806,7 +806,7 @@ func amneziawgV6EgressTag(inboundID int, email string) string {
 // injectAmneziawgV6Egress gives every enabled, non-node-hosted AmneziaWG
 // peer with an IPv6 AllowedIPs entry its own single-purpose freedom
 // outbound, bound via sendThrough to that exact address, plus a routing
-// rule sending only that peer's own traffic through it — restoring the
+// rule sending only that peer's IPv6-destined traffic through it — restoring the
 // per-client public IPv6 identity the hard cutover temporarily dropped
 // (Phase 3.5 of the migration plan). Scoped to outbound source identity
 // only: it depends on internal/amneziawgnet's own alias mechanism actually
@@ -908,6 +908,7 @@ func injectAmneziawgV6Egress(cfg *xray.Config, inbounds []*model.Inbound) {
 				"type":        "field",
 				"inboundTag":  []any{inbound.Tag},
 				"user":        []any{p.Email},
+				"ip":          []any{"::/0"},
 				"outboundTag": tag,
 			})
 		}

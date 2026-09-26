@@ -770,6 +770,7 @@ type v6EgressRouting struct {
 	Rules []struct {
 		InboundTag  []string `json:"inboundTag"`
 		User        []string `json:"user"`
+		IP          []string `json:"ip"`
 		OutboundTag string   `json:"outboundTag"`
 		Type        string   `json:"type"`
 	} `json:"rules"`
@@ -827,6 +828,10 @@ func TestInjectAmneziawgV6Egress_CreatesOutboundAndRuleForV6Peer(t *testing.T) {
 	if rule.Type != "field" || len(rule.User) != 1 || rule.User[0] != "a@x" ||
 		len(rule.InboundTag) != 1 || rule.InboundTag[0] != "awg-7" {
 		t.Fatalf("rule must match this peer's email and inbound tag, got %+v", rule)
+	}
+	// A v6 sendThrough cannot dial an IPv4 target, so only v6 destinations may take this outbound.
+	if !slices.Equal(rule.IP, []string{"::/0"}) {
+		t.Fatalf("rule must be limited to IPv6 destinations, got ip %v", rule.IP)
 	}
 }
 
