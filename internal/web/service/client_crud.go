@@ -237,7 +237,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	// A re-created email is a live identity again: a delete tombstone left
 	// standing makes the next node merge prune the new client's inbound links.
 	withdrawClientTombstones(client.Email)
-	return needRestart, s.setClientLimitHwidByEmail(nil, client.Email, payload.LimitHwid)
+	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
 }
 
 // inboundFanoutConcurrency caps how many inbounds one client op applies at
@@ -803,7 +803,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
-	if err := s.setClientLimitHwidByEmail(nil, updated.Email, limitHwid); err != nil {
+	if err := s.setClientLimitHwidByEmail(updated.Email, limitHwid); err != nil {
 		return needRestart, err
 	}
 
@@ -868,8 +868,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		return needRestart, errors.Join(delErrs...)
 	}
 
-	db := database.GetDB()
-	if err := db.Transaction(func(tx *gorm.DB) error {
+	if err := runSerializedTx(func(tx *gorm.DB) error {
 		if existing.Email != "" {
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{existing.Email}); err != nil {
 				return err

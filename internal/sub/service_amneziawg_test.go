@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/base64"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -311,6 +312,325 @@ func TestAmneziaWGConfigTextAlwaysCarriesTheServerMTU(t *testing.T) {
 			want := "MTU = " + strconv.Itoa(amneziawg.EffectiveMTU(tc.serverMTU, tc.s4))
 			if !strings.Contains(got, want+"\n") {
 				t.Errorf("client MTU must equal the server's effective MTU (%s)", want)
+			}
+		})
+	}
+}
+
+func decodeAmneziaWGSubLink(t *testing.T, link string) string {
+	t.Helper()
+	if !strings.HasPrefix(link, "vpn://") {
+		t.Fatalf("link = %q, want vpn:// prefix", link)
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(link, "vpn://"))
+	if err != nil {
+		t.Fatalf("decode vpn link: %v\n got: %s", err, link)
+	}
+	return string(raw)
+}
+
+// The shared clients row holds the last sync's tunnel identity. Each vpn://
+// entry must keep its own inbound address and private key, in either sort order (#6641).
+func TestGetSubs_PreservesPerInboundAmneziaWGIdentity(t *testing.T) {
+	serverAPriv, serverAPub := mustWireguardKeypair(t)
+	serverBPriv, serverBPub := mustWireguardKeypair(t)
+	privA, _ := mustWireguardKeypair(t)
+	privB, _ := mustWireguardKeypair(t)
+	mergedPriv, _ := mustWireguardKeypair(t)
+
+	const (
+		email      = "dual@awg"
+		subID      = "sub-awg-identity"
+		mergedAddr = "10.9.9.9/32"
+	)
+	nodes := []struct {
+		tag, listen, addr, priv, serverPriv, serverPub string
+		port                                           int
+	}{
+		{"awg-a", "203.0.113.10", "10.8.1.2/32", privA, serverAPriv, serverAPub, 51820},
+		{"awg-b", "203.0.113.11", "10.8.2.2/32", privB, serverBPriv, serverBPub, 51821},
+	}
+
+	for _, tc := range []struct {
+		name  string
+		sort  [2]int
+		order [2]int
+	}{
+		{name: "creation order", sort: [2]int{1, 2}, order: [2]int{0, 1}},
+		{name: "reversed subscription sort", sort: [2]int{2, 1}, order: [2]int{1, 0}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			initSubDB(t)
+			db := database.GetDB()
+			inbounds := make([]*model.Inbound, len(nodes))
+			for i, n := range nodes {
+				settings := fmt.Sprintf(
+					`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q],"enable":true}]}`,
+					n.serverPriv, n.serverPub, email, n.priv, n.addr,
+				)
+				ib := &model.Inbound{
+					UserId: 1, Tag: n.tag, Enable: true, Listen: n.listen, Port: n.port,
+					Protocol: model.AmneziaWG, Remark: n.tag, Settings: settings, SubSortIndex: tc.sort[i],
+				}
+				if err := db.Create(ib).Error; err != nil {
+					t.Fatalf("create %s: %v", n.tag, err)
+				}
+				inbounds[i] = ib
+			}
+			rec := &model.ClientRecord{
+				Email: email, SubID: subID, Enable: true,
+				PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
+				PreSharedKey: "sharedpsk", KeepAlive: 25,
+			}
+			if err := db.Create(rec).Error; err != nil {
+				t.Fatalf("create client: %v", err)
+			}
+			for _, ib := range inbounds {
+				if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+					t.Fatalf("link %s: %v", ib.Tag, err)
+				}
+			}
+
+			links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
+			if err != nil {
+				t.Fatalf("GetSubs: %v", err)
+			}
+			if len(links) != len(nodes) {
+				t.Fatalf("links = %d, want %d: %v", len(links), len(nodes), links)
+			}
+			for outIdx, nodeIdx := range tc.order {
+				n := nodes[nodeIdx]
+				other := nodes[1-nodeIdx]
+				conf := decodeAmneziaWGSubLink(t, links[outIdx])
+				for _, want := range []string{
+					"PrivateKey = " + n.priv,
+					"Address = " + n.addr,
+					"PublicKey = " + n.serverPub,
+					fmt.Sprintf("Endpoint = %s:%d", n.listen, n.port),
+				} {
+					if !strings.Contains(conf, want) {
+						t.Fatalf("config missing %q\n%s", want, conf)
+					}
+				}
+				for _, leaked := range []string{mergedPriv, mergedAddr, "sharedpsk", "PresharedKey", "PersistentKeepalive", other.priv, other.addr, other.serverPub} {
+					if strings.Contains(conf, leaked) {
+						t.Fatalf("config leaked %q\n%s", leaked, conf)
+					}
+				}
+			}
+		})
+	}
+}
+
+// A peer missing from settings, or settings that do not parse, must not emit the
+// shared clients.wg_* identity. A sibling inbound with its own peer still does (#6641).
+func TestGetSubs_AmneziaWGUnavailableSettingsEmitNoSharedConfig(t *testing.T) {
+	initSubDB(t)
+	db := database.GetDB()
+	serverPriv, serverPub := mustWireguardKeypair(t)
+	validPriv, _ := mustWireguardKeypair(t)
+	otherPriv, _ := mustWireguardKeypair(t)
+	mergedPriv, _ := mustWireguardKeypair(t)
+
+	const (
+		email      = "dual@awg"
+		subID      = "sub-awg-missing"
+		validAddr  = "10.8.1.4/32"
+		mergedAddr = "10.9.9.9/32"
+	)
+	validSettings := fmt.Sprintf(
+		`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q],"enable":true}]}`,
+		serverPriv, serverPub, email, validPriv, validAddr,
+	)
+	absentSettings := fmt.Sprintf(
+		`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":"someone-else@awg","privateKey":%q,"allowedIPs":["10.8.9.9/32"],"enable":true}]}`,
+		serverPriv, serverPub, otherPriv,
+	)
+	specs := []struct {
+		tag, listen, settings string
+		port                  int
+	}{
+		{"awg-bad-json", "203.0.113.31", `{not-json`, 51831},
+		{"awg-absent-peer", "203.0.113.32", absentSettings, 51832},
+		{"awg-valid", "203.0.113.33", validSettings, 51833},
+	}
+	inbounds := make([]*model.Inbound, len(specs))
+	for i, sp := range specs {
+		ib := &model.Inbound{
+			UserId: 1, Tag: sp.tag, Enable: true, Listen: sp.listen, Port: sp.port,
+			Protocol: model.AmneziaWG, Remark: sp.tag, Settings: sp.settings, SubSortIndex: i + 1,
+		}
+		if err := db.Create(ib).Error; err != nil {
+			t.Fatalf("create %s: %v", sp.tag, err)
+		}
+		inbounds[i] = ib
+	}
+	rec := &model.ClientRecord{
+		Email: email, SubID: subID, Enable: true,
+		PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
+		PreSharedKey: "sharedpsk", KeepAlive: 25,
+	}
+	if err := db.Create(rec).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	for _, ib := range inbounds {
+		if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+			t.Fatalf("link %s: %v", ib.Tag, err)
+		}
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if len(links) != 1 {
+		t.Fatalf("links = %d, want 1 (absent and malformed inbounds must not emit the shared row): %q", len(links), links)
+	}
+	conf := decodeAmneziaWGSubLink(t, links[0])
+	for _, want := range []string{
+		"PrivateKey = " + validPriv,
+		"Address = " + validAddr,
+		"Endpoint = 203.0.113.33:51833",
+	} {
+		if !strings.Contains(conf, want) {
+			t.Fatalf("config missing %q\n%s", want, conf)
+		}
+	}
+	for _, leaked := range []string{mergedPriv, mergedAddr, "sharedpsk", otherPriv, "10.8.9.9/32", "203.0.113.31", "203.0.113.32", "PresharedKey", "PersistentKeepalive"} {
+		if strings.Contains(conf, leaked) {
+			t.Fatalf("config leaked %q\n%s", leaked, conf)
+		}
+	}
+}
+
+// Explicit empty preshared key and keepalive must not inherit the shared row (#6641).
+func TestGetSubs_AmneziaWGEmptyOptionalTunnelFieldsDoNotInheritShared(t *testing.T) {
+	initSubDB(t)
+	db := database.GetDB()
+	serverPriv, serverPub := mustWireguardKeypair(t)
+	clientPriv, _ := mustWireguardKeypair(t)
+	mergedPriv, _ := mustWireguardKeypair(t)
+
+	const (
+		email      = "optional@awg"
+		subID      = "sub-awg-optional"
+		addr       = "10.8.1.8/32"
+		mergedAddr = "10.9.9.9/32"
+	)
+	settings := fmt.Sprintf(
+		`{"server":{"privateKey":%q,"publicKey":%q,"mtu":1420},"clients":[{"email":%q,"privateKey":%q,"allowedIPs":[%q],"preSharedKey":"","keepAlive":0,"enable":true}]}`,
+		serverPriv, serverPub, email, clientPriv, addr,
+	)
+	ib := &model.Inbound{
+		UserId: 1, Tag: "awg-optional", Enable: true, Listen: "203.0.113.40", Port: 51840,
+		Protocol: model.AmneziaWG, Remark: "awg-optional", Settings: settings,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	rec := &model.ClientRecord{
+		Email: email, SubID: subID, Enable: true,
+		PrivateKey: mergedPriv, AllowedIPs: mergedAddr,
+		PreSharedKey: "sharedpsk", KeepAlive: 25,
+	}
+	if err := db.Create(rec).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("link client: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs(subID, "sub.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if len(links) != 1 {
+		t.Fatalf("links = %d, want 1: %q", len(links), links)
+	}
+	conf := decodeAmneziaWGSubLink(t, links[0])
+	for _, want := range []string{"PrivateKey = " + clientPriv, "Address = " + addr} {
+		if !strings.Contains(conf, want) {
+			t.Fatalf("config missing %q\n%s", want, conf)
+		}
+	}
+	for _, leaked := range []string{"PresharedKey", "PersistentKeepalive", "sharedpsk", mergedPriv, mergedAddr} {
+		if strings.Contains(conf, leaked) {
+			t.Fatalf("config leaked %q\n%s", leaked, conf)
+		}
+	}
+}
+
+// Membership and account metadata stay on the normalized row. Settings may carry a
+// stale subId/enable and an extra email; tunnel fields still come from this inbound (#6641).
+func TestMatchingClients_TunnelMetadataStaysNormalized(t *testing.T) {
+	const (
+		subID       = "sub-meta"
+		email       = "user@awg"
+		freshID     = "11111111-2222-4333-8444-555555555555"
+		staleID     = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+		settingsKey = "settings-private-key"
+		sharedKey   = "shared-private-key"
+		expiry      = int64(1700000000000)
+	)
+	clientsJSON := fmt.Sprintf(`[
+		{"id":%q,"email":"User@AWG","subId":"stale-sub","enable":false,"totalGB":1,"expiryTime":1,"comment":"stale","limitIp":9,"privateKey":%q,"publicKey":"settings-pub","allowedIPs":["10.8.1.2/32","fd00::2/128"],"preSharedKey":"settings-psk","keepAlive":15},
+		{"email":"settings-only@awg","subId":%q,"enable":true,"privateKey":"only-priv","allowedIPs":["10.8.1.9/32"]}
+	]`, staleID, settingsKey, subID)
+
+	for _, protocol := range []model.Protocol{model.AmneziaWG, model.WireGuard} {
+		t.Run(string(protocol), func(t *testing.T) {
+			initSubDB(t)
+			db := database.GetDB()
+			settings := `{"secretKey":"c2VydmVy","clients":` + clientsJSON + `}`
+			if protocol == model.AmneziaWG {
+				settings = `{"server":{"privateKey":"c2VydmVy","publicKey":"cHVi"},"clients":` + clientsJSON + `}`
+			}
+			ib := &model.Inbound{
+				UserId: 1, Tag: "meta-" + string(protocol), Enable: true, Listen: "203.0.113.50", Port: 51850,
+				Protocol: protocol, Remark: "meta", Settings: settings,
+			}
+			if err := db.Create(ib).Error; err != nil {
+				t.Fatalf("create inbound: %v", err)
+			}
+			rec := &model.ClientRecord{
+				Email: email, SubID: subID, UUID: freshID, Enable: true,
+				TotalGB: 5, ExpiryTime: expiry, Comment: "vip", LimitIP: 3,
+				PrivateKey: sharedKey, PublicKey: "shared-pub", AllowedIPs: "10.9.9.9/32",
+				PreSharedKey: "shared-psk", KeepAlive: 99,
+			}
+			other := &model.ClientRecord{
+				Email: "other-sub@awg", SubID: "other-sub", UUID: "22222222-2222-4333-8444-555555555555", Enable: true,
+			}
+			for _, row := range []*model.ClientRecord{rec, other} {
+				if err := db.Create(row).Error; err != nil {
+					t.Fatalf("create client %s: %v", row.Email, err)
+				}
+				if err := db.Create(&model.ClientInbound{ClientId: row.Id, InboundId: ib.Id}).Error; err != nil {
+					t.Fatalf("link %s: %v", row.Email, err)
+				}
+			}
+
+			s := &SubService{}
+			got := s.matchingClients(ib, subID)
+			if len(got) != 1 {
+				t.Fatalf("clients = %d, want the one normalized member: %+v", len(got), got)
+			}
+			c := got[0]
+			if c.Email != email || c.ID != freshID || c.SubID != subID || !c.Enable || c.TotalGB != 5 || c.ExpiryTime != expiry || c.Comment != "vip" || c.LimitIP != 3 {
+				t.Fatalf("normalized metadata = %+v", c)
+			}
+			if c.PrivateKey != settingsKey || c.PublicKey != "settings-pub" || c.PreSharedKey != "settings-psk" || c.KeepAliveSeconds() != 15 {
+				t.Fatalf("tunnel identity = key %q pub %q psk %q ka %d", c.PrivateKey, c.PublicKey, c.PreSharedKey, c.KeepAliveSeconds())
+			}
+			if !slices.Equal(c.AllowedIPs, []string{"10.8.1.2/32", "fd00::2/128"}) {
+				t.Fatalf("allowedIPs = %v, want this inbound's v4 and v6", c.AllowedIPs)
+			}
+			cached, ok := s.clientForLink(ib, email)
+			if !ok || cached.PrivateKey != settingsKey || cached.PreSharedKey != "settings-psk" || cached.KeepAliveSeconds() != 15 || !slices.Equal(cached.AllowedIPs, c.AllowedIPs) {
+				t.Fatalf("primed cache = %+v, ok %v", cached, ok)
+			}
+			if extra := s.matchingClients(ib, "nope"); len(extra) != 0 {
+				t.Fatalf("non-matching subId must yield 0 clients, got %d", len(extra))
 			}
 		})
 	}

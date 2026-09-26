@@ -9,13 +9,17 @@ const RULE = 'input-number(no-synthetic-clear)';
 
 function runGuard(target: string): string {
   try {
-    execFileSync('./node_modules/.bin/oxlint', ['-c', `${FIXTURES}/guard.oxlintrc.json`, target], {
-      encoding: 'utf8',
-      stdio: 'pipe',
-    });
+    // .bin/oxlint is a sh shim Windows can't spawn; run the node entry directly.
+    execFileSync(
+      process.execPath,
+      ['node_modules/oxlint/bin/oxlint', '-c', `${FIXTURES}/guard.oxlintrc.json`, target],
+      { encoding: 'utf8', stdio: 'pipe' },
+    );
     return '';
   } catch (error) {
-    return String((error as { stdout?: string }).stdout ?? '');
+    const { status, stdout } = error as { status?: number | null; stdout?: string };
+    if (typeof status !== 'number') throw error;
+    return String(stdout ?? '');
   }
 }
 

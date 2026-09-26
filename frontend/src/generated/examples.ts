@@ -1021,6 +1021,37 @@ export const EXAMPLES: Record<string, unknown> = {
     "key": "",
     "value": ""
   },
+  "Sponsor": {
+    "enable": true,
+    "id": "acme-2026-10",
+    "link": "https://acme.example/?utm_source=3x-ui",
+    "logo": "/sponsors/logo/acme.png",
+    "name": "Acme VPS",
+    "slots": [
+      ""
+    ],
+    "text": {},
+    "title": {},
+    "until": "2026-11-01T00:00:00Z"
+  },
+  "SponsorList": {
+    "contact": "https://t.me/example",
+    "sponsors": [
+      {
+        "enable": true,
+        "id": "acme-2026-10",
+        "link": "https://acme.example/?utm_source=3x-ui",
+        "logo": "/sponsors/logo/acme.png",
+        "name": "Acme VPS",
+        "slots": [
+          ""
+        ],
+        "text": {},
+        "title": {},
+        "until": "2026-11-01T00:00:00Z"
+      }
+    ]
+  },
   "SubBalancer": {
     "createdAt": 1710000000000,
     "enabled": true,

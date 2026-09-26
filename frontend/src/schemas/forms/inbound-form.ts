@@ -52,7 +52,7 @@ const InboundTlsSettingsSchema = TlsStreamSettingsSchema.extend({
     .array(InboundTlsCertSchema)
     .default([])
     .refine((certificates) => certificates.some((cert) => cert.usage !== 'verify'), {
-      message: 'pages.inbounds.form.tlsServerCertificateRequired',
+      error: 'pages.inbounds.form.tlsServerCertificateRequired',
     }),
 });
 
