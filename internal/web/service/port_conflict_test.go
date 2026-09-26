@@ -114,7 +114,7 @@ func TestListenOverlaps(t *testing.T) {
 		{"1.2.3.4", "::1", false},
 	}
 	for _, c := range cases {
-		if got := listenOverlaps(c.a, c.b); got != c.want {
+		if got := listenOverlaps(bindAddr{listen: c.a}, bindAddr{listen: c.b}); got != c.want {
 			t.Errorf("listenOverlaps(%q, %q) = %v, want %v", c.a, c.b, got, c.want)
 		}
 	}
@@ -925,5 +925,31 @@ func TestCheckPortConflict_AmneziawgnetSocksRelayReverseDirectionBlockedOnUpdate
 	}
 	if got == nil {
 		t.Fatalf("awg-1's own derived relay port %d collides with vless-1's real port; must be rejected", relayPort)
+	}
+}
+
+// xray binds "::" dual-stack unless sockopt.v6only is set, so only then may an
+// IPv4 address share its port; the flag is read from the saved streamSettings.
+func TestCheckPortConflict_V6OnlyWildcardLeavesIPv4AddressFree(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		stream string
+		want   bool
+	}{
+		{"dual-stack", `{"network":"tcp"}`, true},
+		{"v6only", `{"network":"tcp","sockopt":{"v6only":true}}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			setupConflictDB(t)
+			seedInboundConflict(t, "vless-v6", "::", 443, model.VLESS, tc.stream, `{}`)
+			v4 := &model.Inbound{Tag: "vless-v4", Listen: "10.5.0.200", Port: 443, Protocol: model.VLESS, StreamSettings: `{"network":"tcp"}`}
+			exist, err := (&InboundService{}).checkPortConflict(v4, 0)
+			if err != nil {
+				t.Fatalf("checkPortConflict: %v", err)
+			}
+			if got := exist != nil; got != tc.want {
+				t.Fatalf("conflict = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }

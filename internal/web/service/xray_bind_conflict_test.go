@@ -54,21 +54,27 @@ func TestBindConflicts(t *testing.T) {
 			``, 0,
 		},
 		{
-			"ipv4 and ipv6 wildcards are separate sockets",
+			"ipv4 and ipv6 wildcards bind one dual-stack socket",
 			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6"},
 			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"ipv4"}`,
-			``, 0,
-		},
-		{
-			"ipv4 wildcard still overlaps an ipv4 specific listen",
-			`{"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"wildcard"},
-			 {"listen":"192.0.2.10","port":443,"protocol":"vless","tag":"specific"}`,
 			``, 1,
 		},
 		{
-			"ipv6 wildcard still overlaps an ipv6 specific listen",
-			`{"listen":"::","port":443,"protocol":"vless","tag":"wildcard"},
-			 {"listen":"2001:db8::10","port":443,"protocol":"vless","tag":"specific"}`,
+			"dual-stack ipv6 wildcard takes an ipv4 address",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6"},
+			 {"listen":"10.5.0.200","port":443,"protocol":"vless","tag":"ipv4"}`,
+			``, 1,
+		},
+		{
+			"v6only ipv6 wildcard leaves an ipv4 address free",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6","streamSettings":{"network":"tcp","sockopt":{"v6only":true}}},
+			 {"listen":"10.5.0.200","port":443,"protocol":"vless","tag":"ipv4"}`,
+			``, 0,
+		},
+		{
+			"v6only ipv6 wildcard still collides with the dual-stack 0.0.0.0",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6","streamSettings":{"network":"tcp","sockopt":{"v6only":true}}},
+			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"ipv4"}`,
 			``, 1,
 		},
 		{
