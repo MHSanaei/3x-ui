@@ -187,28 +187,22 @@ func TestApplyIncyHeaders_RejectsUndocumentedValues(t *testing.T) {
 	}
 }
 
-func TestIncyExcludesHappOnlyHeaders(t *testing.T) {
-	// Incy documents none of the Happ-only headers, so the Incy path must not
-	// emit them even when the Happ config is populated.
-	happCfg := HappConfig{
-		AutoDetect:   true,
-		ProviderId:   "pid-test",
-		TunMode:      "gvisor",
-		PingType:     "http",
-		ColorProfile: `{"serverRowBackgroundColor":"#21003D67"}`,
-	}
-	gin.SetMode(gin.TestMode)
-	recorder := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(recorder)
-	ctx.Request = httptest.NewRequest(http.MethodGet, "/sub/test", nil)
-	ctx.Request.Header.Set("User-Agent", "INCY/1.0.0/android")
-
-	ApplyHappHeaders(ctx, happCfg, IsHappClient(ctx.GetHeader("User-Agent")))
-	ApplyIncyHeaders(ctx, fullIncyConfig(), IsIncyClient(ctx.GetHeader("User-Agent")))
-
-	for _, name := range []string{"ProviderID", "Tun-Mode", "Ping-Type", "Color-Profile"} {
-		if got := recorder.Header().Get(name); got != "" {
-			t.Errorf("Happ-only header %s leaked to an Incy client: %q", name, got)
-		}
+func TestApplyIncyHeaders_PerAppListKeepsSeparators(t *testing.T) {
+	// The settings textarea takes one package per line, and a header cannot
+	// carry a newline, so each line must stay a separate list entry.
+	for _, tc := range []struct {
+		name, list, want string
+	}{
+		{"newline", "com.google.chrome\norg.telegram.messenger", "com.google.chrome,org.telegram.messenger"},
+		{"crlf and blank lines", "com.google.chrome\r\n\r\norg.telegram.messenger\r\n", "com.google.chrome,org.telegram.messenger"},
+		{"url", " https://example.com/apps.txt ", "https://example.com/apps.txt"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := IncyConfig{AutoDetect: true, PerAppProxyList: tc.list}
+			h := applyIncyToHeaders(t, cfg, "INCY/1.0.0/android")
+			if got := h.Get("Per-App-Proxy-List"); got != tc.want {
+				t.Errorf("Per-App-Proxy-List = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }

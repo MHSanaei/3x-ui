@@ -104,6 +104,19 @@ func incyASCII(v string) bool {
 	return true
 }
 
+// incyPackageList joins a comma- or line-separated app list as CSV, since a
+// header cannot carry the newlines the settings textarea accepts.
+func incyPackageList(v string) string {
+	entries := strings.FieldsFunc(v, func(r rune) bool { return r == ',' || r == '\n' || r == '\r' })
+	kept := entries[:0]
+	for _, entry := range entries {
+		if entry = strings.TrimSpace(entry); entry != "" {
+			kept = append(kept, entry)
+		}
+	}
+	return strings.Join(kept, ",")
+}
+
 // incyHeaderText base64-wraps non-ASCII text because the docs require
 // `base64:<...>` for anything outside the ASCII range (Cyrillic, CJK, emoji).
 func incyHeaderText(v string) string {
@@ -145,7 +158,7 @@ func ApplyIncyHeaders(c *gin.Context, cfg IncyConfig, isIncy bool) {
 
 	set("Per-App-Proxy-Enable", incyOnOff(cfg.PerAppProxyEnable))
 	set("Per-App-Proxy-Mode", incyEnum(cfg.PerAppProxyMode, "bypass", "proxy"))
-	set("Per-App-Proxy-List", sanitizeHeaderValue(cfg.PerAppProxyList))
+	set("Per-App-Proxy-List", incyPackageList(cfg.PerAppProxyList))
 
 	set("Fragmentation-Enable", incyOnOff(cfg.FragmentationEnable))
 	set("Fragmentation-Length", incyMatch(cfg.FragmentationLength, incyRangeRegex))

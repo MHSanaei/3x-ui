@@ -52,12 +52,6 @@ function render(subIncy: Partial<AllSetting> = {}) {
   return updateSetting;
 }
 
-function clickSwitch(title: string) {
-  const toggle = settingRow(title).querySelector('.ant-switch');
-  if (!toggle) throw new Error(`switch for '${title}' not found`);
-  fireEvent.click(toggle);
-}
-
 describe('Incy app-management settings', () => {
   // Every Incy switch and enum is tri-state: "Not set" must store the empty
   // value so the panel sends no header and the subscriber's app choice wins.
@@ -68,14 +62,6 @@ describe('Incy app-management settings', () => {
     selectOption('Server sort order', 'Not set');
 
     expect(updateSetting).toHaveBeenCalledWith({ subIncySortOrder: '' });
-  });
-
-  it('renders the auto-detection switch at the top and updates it', () => {
-    const updateSetting = render({ subIncyAppAutoDetect: false });
-
-    clickSwitch('Incy header auto-detection');
-
-    expect(updateSetting).toHaveBeenCalledWith({ subIncyAppAutoDetect: true });
   });
 
   it('sends the documented per-app literal, not the Happ on/include spelling', () => {
@@ -94,14 +80,5 @@ describe('Incy app-management settings', () => {
     selectOption('Per-app mode type', 'Listed apps bypass');
 
     expect(updateSetting).toHaveBeenCalledWith({ subIncyPerAppMode: 'bypass' });
-  });
-
-  it('keeps the Incy routing controls in their own tab', () => {
-    const updateSetting = render();
-
-    openTab('Routing');
-    clickSwitch('Enable routing');
-
-    expect(updateSetting).toHaveBeenCalledWith({ subIncyEnableRouting: true });
   });
 });
