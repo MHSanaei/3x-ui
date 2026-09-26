@@ -275,6 +275,25 @@ func TestRunBroadcastCancelsMidway(t *testing.T) {
 	}
 }
 
+// Regression: a 403 left the progress counter where it was, so a streak of
+// unreachable chats at a multiple of broadcastProgressEvery edited the card per chat.
+func TestRunBroadcastUnreachableKeepsProgressThrottled(t *testing.T) {
+	broadcastLocalizer(t)
+	url, calls, _ := newBroadcastMock(t)
+	swapTestBot(t, url)
+	setBroadcastRunning(t, true)
+	blocked := &telegoapi.Error{ErrorCode: 403, Description: "Forbidden: bot can't initiate conversation with a user"}
+	swapBroadcastSender(t, func(int64, broadcastDraft) error { return blocked }, func(time.Duration) {})
+
+	runner := &broadcastRunner{chatID: 100, messageID: 5}
+	(&Tgbot{}).runBroadcast(runner, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, []int64{1, 2, 3, 4, 5})
+
+	// Five recipients sit under both throttle thresholds: only the summary edits the card.
+	if got := calls("editMessageText"); got != 1 {
+		t.Errorf("editMessageText calls = %d, want 1 (the summary alone)", got)
+	}
+}
+
 // A long retry_after must not park the runner slot: the wait is slept in
 // slices and an abort between them ends the recipient immediately.
 func TestBroadcastFloodWaitSlicesLongWaits(t *testing.T) {

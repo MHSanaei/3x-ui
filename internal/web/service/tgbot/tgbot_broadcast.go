@@ -341,7 +341,7 @@ func (t *Tgbot) runBroadcast(runner *broadcastRunner, draft broadcastDraft, reci
 			failed++
 			logger.Warningf("broadcast: chat %d not delivered: %v", chatID, err)
 		}
-		done := sent + failed
+		done := i + 1
 		if done%broadcastProgressEvery == 0 || time.Since(lastProgress) >= broadcastProgressInterval {
 			t.editMessageTgBot(runner.chatID, runner.messageID, t.broadcastProgressText(done, len(recipients), sent, failed), t.broadcastCancelKeyboard())
 			lastProgress = time.Now()
