@@ -73,7 +73,7 @@ func (r *broadcastRunner) getResult() broadcastResult {
 	return r.result
 }
 
-// broadcastCompose is one chat's composition: collected message ids, the
+// broadcastCompose is one admin's composition: collected message ids, the
 // album group still arriving, and the token binding the preview to its card.
 type broadcastCompose struct {
 	messageIDs []int
@@ -84,7 +84,7 @@ type broadcastCompose struct {
 
 var (
 	broadcastMu       sync.Mutex
-	broadcastComposes = make(map[int64]*broadcastCompose)
+	broadcastComposes = make(map[chatUser]*broadcastCompose)
 	broadcastActive   *broadcastRunner
 )
 
@@ -106,28 +106,28 @@ func broadcastResetAll() {
 			c.timer.Stop()
 		}
 	}
-	broadcastComposes = make(map[int64]*broadcastCompose)
+	broadcastComposes = make(map[chatUser]*broadcastCompose)
 	if broadcastActive != nil {
 		broadcastActive.cancel.Store(true)
 		broadcastActive = nil
 	}
 }
 
-func broadcastDropCompose(chatID int64) {
+func broadcastDropCompose(actor chatUser) {
 	broadcastMu.Lock()
 	defer broadcastMu.Unlock()
-	if c := broadcastComposes[chatID]; c != nil && c.timer != nil {
+	if c := broadcastComposes[actor]; c != nil && c.timer != nil {
 		c.timer.Stop()
 	}
-	delete(broadcastComposes, chatID)
+	delete(broadcastComposes, actor)
 }
 
-// broadcastPendingDraft reports the ids awaiting confirmation for a chat;
+// broadcastPendingDraft reports the ids awaiting an admin's confirmation;
 // ok is false while an album is still being collected.
-func broadcastPendingDraft(chatID int64) ([]int, string, bool) {
+func broadcastPendingDraft(actor chatUser) ([]int, string, bool) {
 	broadcastMu.Lock()
 	defer broadcastMu.Unlock()
-	c := broadcastComposes[chatID]
+	c := broadcastComposes[actor]
 	if c == nil || c.groupID != "" || c.token == "" {
 		return nil, "", false
 	}
@@ -135,15 +135,15 @@ func broadcastPendingDraft(chatID int64) ([]int, string, bool) {
 }
 
 // broadcastTakePending removes the pending draft only when its card token
-// matches; ok is false for stale taps or chats with no pending draft.
-func broadcastTakePending(chatID int64, token string) ([]int, bool) {
+// matches; ok is false for stale taps or admins with no pending draft.
+func broadcastTakePending(actor chatUser, token string) ([]int, bool) {
 	broadcastMu.Lock()
 	defer broadcastMu.Unlock()
-	c := broadcastComposes[chatID]
+	c := broadcastComposes[actor]
 	if c == nil || c.token == "" || c.token != token {
 		return nil, false
 	}
-	delete(broadcastComposes, chatID)
+	delete(broadcastComposes, actor)
 	return c.messageIDs, true
 }
 
@@ -189,21 +189,17 @@ func (t *Tgbot) startBroadcast(actor chatUser) {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAlreadyRunning"))
 		return
 	}
-	broadcastDropCompose(chatId)
+	broadcastDropCompose(actor)
 	userStateMgr.set(actor, broadcastAwaitingText)
 	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAskText"), t.broadcastCancelKeyboard())
 }
 
 // handleBroadcastInput references the message the admin sent and shows the
-// confirmation preview. Only the chat's admin may fill the shared state.
+// confirmation preview. The router hands over only the admin /broadcast awaits.
 func (t *Tgbot) handleBroadcastInput(message *telego.Message, actor chatUser) {
-	chatId := actor.chatID
-	if message.From == nil || !checkAdmin(message.From.ID) {
-		return
-	}
-	logger.Debugf("broadcast: chat %d input (message_id=%d group=%q)", chatId, message.MessageID, message.MediaGroupID)
+	logger.Debugf("broadcast: chat %d input (message_id=%d group=%q)", actor.chatID, message.MessageID, message.MediaGroupID)
 	if message.MediaGroupID == "" {
-		broadcastDropCompose(chatId)
+		broadcastDropCompose(actor)
 		t.acceptBroadcastDraft(actor, []int{message.MessageID})
 		return
 	}
@@ -215,7 +211,7 @@ func (t *Tgbot) handleBroadcastInput(message *telego.Message, actor chatUser) {
 func (t *Tgbot) acceptBroadcastDraft(actor chatUser, ids []int) {
 	chatId := actor.chatID
 	if err := broadcastSender(chatId, broadcastDraft{FromChatID: chatId, MessageIDs: ids}); err != nil {
-		broadcastDropCompose(chatId)
+		broadcastDropCompose(actor)
 		userStateMgr.clear(actor)
 		logger.Warningf("broadcast: chat %d message %v cannot be copied: %v", chatId, ids, err)
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastNotCopyable"))
@@ -224,7 +220,7 @@ func (t *Tgbot) acceptBroadcastDraft(actor chatUser, ids []int) {
 	recipients := t.collectBroadcastRecipients()
 	token := t.randomLowerAndNum(12)
 	broadcastMu.Lock()
-	broadcastComposes[chatId] = &broadcastCompose{messageIDs: ids, token: token}
+	broadcastComposes[actor] = &broadcastCompose{messageIDs: ids, token: token}
 	broadcastMu.Unlock()
 	userStateMgr.clear(actor)
 	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
@@ -237,9 +233,8 @@ func (t *Tgbot) acceptBroadcastDraft(actor chatUser, ids []int) {
 // bufferBroadcastMedia appends an album item; the debounce timer fires the
 // preview once the group stops growing.
 func (t *Tgbot) bufferBroadcastMedia(actor chatUser, groupID string, messageID int) {
-	chatId := actor.chatID
 	broadcastMu.Lock()
-	c := broadcastComposes[chatId]
+	c := broadcastComposes[actor]
 	if c == nil || c.groupID != groupID {
 		if c != nil && c.timer != nil {
 			c.timer.Stop()
@@ -248,7 +243,7 @@ func (t *Tgbot) bufferBroadcastMedia(actor chatUser, groupID string, messageID i
 		c.timer = time.AfterFunc(broadcastAlbumDebounce, func() {
 			t.finalizeBroadcastAlbum(actor, groupID)
 		})
-		broadcastComposes[chatId] = c
+		broadcastComposes[actor] = c
 	}
 	c.messageIDs = append(c.messageIDs, messageID)
 	c.timer.Reset(broadcastAlbumDebounce)
@@ -256,9 +251,8 @@ func (t *Tgbot) bufferBroadcastMedia(actor chatUser, groupID string, messageID i
 }
 
 func (t *Tgbot) finalizeBroadcastAlbum(actor chatUser, groupID string) {
-	chatId := actor.chatID
 	broadcastMu.Lock()
-	c := broadcastComposes[chatId]
+	c := broadcastComposes[actor]
 	if c == nil || c.groupID != groupID {
 		broadcastMu.Unlock()
 		return
@@ -268,7 +262,7 @@ func (t *Tgbot) finalizeBroadcastAlbum(actor chatUser, groupID string) {
 	ids := append([]int(nil), c.messageIDs...)
 	slices.Sort(ids)
 	ids = slices.Compact(ids)
-	delete(broadcastComposes, chatId)
+	delete(broadcastComposes, actor)
 	broadcastMu.Unlock()
 
 	t.acceptBroadcastDraft(actor, ids)
@@ -289,7 +283,7 @@ func (t *Tgbot) confirmBroadcast(actor chatUser, token string, messageID int, qu
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.messages.broadcastAlreadyRunning"))
 		return
 	}
-	ids, ok := broadcastTakePending(chatId, token)
+	ids, ok := broadcastTakePending(actor, token)
 	if !ok {
 		broadcastUnregisterRunner(runner)
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.wentWrong"))
@@ -426,7 +420,7 @@ func (t *Tgbot) cancelBroadcast(actor chatUser, messageID int, queryID string) {
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceling"))
 		return
 	}
-	broadcastDropCompose(chatId)
+	broadcastDropCompose(actor)
 	userStateMgr.clear(actor)
 	t.deleteMessageTgBot(chatId, messageID)
 	t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceled"))
