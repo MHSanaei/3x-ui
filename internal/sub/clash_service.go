@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"maps"
@@ -521,10 +522,16 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 			if fp, ok := inner["fingerprint"].(string); ok && fp != "" {
 				proxy["client-fingerprint"] = fp
 			}
+			if certFingerprint := mihomoCertFingerprint(inner["pinnedPeerCertSha256"]); certFingerprint != "" {
+				proxy["fingerprint"] = certFingerprint
+			}
 		}
 	}
 	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
 		proxy["skip-cert-verify"] = true
+	}
+	if certFingerprint := mihomoCertFingerprint(ep["pinnedPeerCertSha256"]); certFingerprint != "" {
+		proxy["fingerprint"] = certFingerprint
 	}
 
 	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
@@ -553,6 +560,45 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 	}
 
 	return proxy
+}
+
+// Mihomo supports only one certificate fingerprint, so mihomoCertFingerprint
+// converts the first valid SHA-256 pin to its colon-separated TLS form.
+func mihomoCertFingerprint(value any) string {
+	var pins []string
+	switch typed := value.(type) {
+	case []any:
+		for _, item := range typed {
+			if pin, ok := item.(string); ok {
+				pins = append(pins, pin)
+			}
+		}
+	case []string:
+		pins = typed
+	case string:
+		pins = strings.Split(typed, ",")
+	}
+
+	for _, pin := range pins {
+		normalized := hysteriaPinHex(pin)
+		if len(normalized) != 64 {
+			continue
+		}
+		if _, err := hex.DecodeString(normalized); err != nil {
+			continue
+		}
+		normalized = strings.ToUpper(normalized)
+		var out strings.Builder
+		out.Grow(95)
+		for i := 0; i < len(normalized); i += 2 {
+			if i > 0 {
+				out.WriteByte(':')
+			}
+			out.WriteString(normalized[i : i+2])
+		}
+		return out.String()
+	}
+	return ""
 }
 
 // buildWireguardProxy produces a mihomo-compatible Clash entry for a native

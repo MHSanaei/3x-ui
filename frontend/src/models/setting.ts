@@ -66,6 +66,7 @@ export class AllSetting {
   restartXrayOnClientDisable = true;
   subCertFile = '';
   subKeyFile = '';
+  externalSubUserAgent = 'v2rayNG/1.8.5';
   subUpdates = 12;
   subEncrypt = true;
   subURI = '';
@@ -104,6 +105,7 @@ export class AllSetting {
   subHappAutoConnectType = 'lowestdelay';
   subHappPerAppMode = 'off';
   subHappPerAppList = '';
+  subHappLocalProxyAuth = 'auto';
 
   subIncyAppAutoDetect = false;
   subIncyProfileDescription = '';

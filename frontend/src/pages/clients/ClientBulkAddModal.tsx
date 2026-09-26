@@ -25,6 +25,7 @@ import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import { useClients, type InboundOption } from '@/hooks/useClients';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
+import ClientRenewalFields from './ClientRenewalFields';
 import { ClientBulkAddFormSchema, type ClientBulkAddFormValues } from '@/schemas/client';
 
 const FLOW_OPTIONS = Object.values(TLS_FLOW_CONTROL);
@@ -57,6 +58,7 @@ const EMPTY: ClientBulkAddFormValues = {
   expiryTime: 0,
   reset: 0,
   resetDay: 0,
+  resetWeekday: 0,
   resetMax: 0,
   trafficReset: 'never' as const,
   trafficResetDay: 1,
@@ -215,6 +217,7 @@ export default function ClientBulkAddModal({
           expiryTime: current.expiryTime,
           reset: Number(current.reset) || 0,
           resetDay: Number(current.resetDay) || 0,
+          resetWeekday: Number(current.resetWeekday) || 0,
           resetMax: Number(current.resetMax) || 0,
           trafficReset: current.trafficReset || 'never',
           trafficResetDay: Number(current.trafficResetDay) || 1,
@@ -437,32 +440,13 @@ export default function ClientBulkAddModal({
               </Form.Item>
             )}
 
-            <FormField
-              name="reset"
-              label={t('pages.clients.renew')}
-              tooltip={t('pages.clients.renewDesc')}
-              transform={{ output: (v) => Number(v) || 0 }}
-            >
-              <InputNumber min={0} />
-            </FormField>
-
-            <FormField
-              name="resetDay"
-              label={t('pages.clients.renewOnDay')}
-              tooltip={t('pages.clients.renewOnDayDesc')}
-              transform={{ output: (v) => Number(v) || 0 }}
-            >
-              <InputNumber min={0} max={31} />
-            </FormField>
-
-            <FormField
-              name="resetMax"
-              label={t('pages.clients.renewMax')}
-              tooltip={t('pages.clients.renewMaxDesc')}
-              transform={{ output: (v) => Number(v) || 0 }}
-            >
-              <InputNumber min={0} />
-            </FormField>
+            <ClientRenewalFields
+              active={open}
+              delayedStart={delayedStart}
+              expiryTime={expiryTime}
+              bulk
+              setExpiry={(expiry) => methods.setValue('expiryTime', expiry)}
+            />
 
             <FormField name="trafficReset" label={t('pages.inbounds.periodicTrafficResetTitle')}>
               <Select

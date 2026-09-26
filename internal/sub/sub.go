@@ -253,6 +253,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	happCfg.AutoConnectType, _ = s.settingService.GetSubHappAutoConnectType()
 	happCfg.PerAppMode, _ = s.settingService.GetSubHappPerAppMode()
 	happCfg.PerAppList, _ = s.settingService.GetSubHappPerAppList()
+	happCfg.LocalProxyAuth, _ = s.settingService.GetSubHappLocalProxyAuth()
 
 	incyCfg := IncyConfig{}
 	incyCfg.AutoDetect, _ = s.settingService.GetSubIncyAppAutoDetect()

@@ -360,6 +360,9 @@ func (t socksTarget) String() string {
 // Domain targets resolve via the tunnel; reply-side helper must not be used here.
 func (t socksTarget) resolveTunnelVia(dnsServer, tag string, dev *Device) (netip.AddrPort, error) {
 	if t.ip.IsValid() {
+		if !tunnelSupportsAddr(dev.LocalAddresses(), t.ip) {
+			return netip.AddrPort{}, fmt.Errorf("tunnel has no route for %s (device addresses %v)", t.ip, dev.LocalAddresses())
+		}
 		return netip.AddrPortFrom(t.ip, t.port), nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), tunnelResolveTimeout)
@@ -522,6 +525,10 @@ func (s *udpEgressSessions) getOrDial(dev *Device, tag string, udpConn *net.UDPC
 	defer s.mu.Unlock()
 	if sess, ok := s.m[dst]; ok {
 		return sess
+	}
+	if !tunnelSupportsAddr(dev.LocalAddresses(), dst.Addr()) {
+		logger.Warningf("amneziawgnet: egress %q: dial udp %s: tunnel has no route for address family (device addresses %v)", tag, dst, dev.LocalAddresses())
+		return nil
 	}
 	raddr := tcpip.FullAddress{
 		NIC:  1,

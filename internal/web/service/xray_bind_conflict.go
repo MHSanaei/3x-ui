@@ -66,7 +66,9 @@ func rawBindConflicts(cfg *xray.Config) []bindConflict {
 			for j := i + 1; j < len(group); j++ {
 				left, right := group[i], group[j]
 				listenLeft, listenRight := configListen(left.Listen), configListen(right.Listen)
-				if !listenOverlaps(listenLeft, listenRight) {
+				bindLeft := bindAddr{listen: listenLeft, v6only: streamV6Only(string(left.StreamSettings))}
+				bindRight := bindAddr{listen: listenRight, v6only: streamV6Only(string(right.StreamSettings))}
+				if !listenOverlaps(bindLeft, bindRight) {
 					continue
 				}
 				// One port carrying tcp on one inbound and udp on another is a

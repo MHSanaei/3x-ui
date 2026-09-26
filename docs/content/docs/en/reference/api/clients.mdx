@@ -38,6 +38,9 @@ _openapi:
         omitted, so callers can send only the universal fields.
       url: '#create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields'
     - depth: 2
+      title: Preview client auto-renewal dates without saving or resetting anything.
+      url: '#preview-client-auto-renewal-dates-without-saving-or-resetting-anything'
+    - depth: 2
       title: Update an existing client by email. Changes propagate to every attached
         inbound. Body is the JSON client payload — supply the full set of fields
         you want to keep (the server replaces the row, it does not patch).
@@ -317,6 +320,8 @@ _openapi:
           call. Body is JSON. Per-protocol secrets are generated server-side
           when omitted, so callers can send only the universal fields.
         id: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: Preview client auto-renewal dates without saving or resetting anything.
+        id: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
       - content: Update an existing client by email. Changes propagate to every attached
           inbound. Body is the JSON client payload — supply the full set of
           fields you want to keep (the server replaces the row, it does not
@@ -592,6 +597,16 @@ _openapi:
           one per line. `limitHwid` is applied only when every inbound
           succeeded, so re-run the call after fixing the failure.
         heading: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: Uses the same calendar and catch-up calculation as auto-renew in the
+          panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables
+          weekly mode; it cannot be combined with positive reset or resetDay.
+          Existing resetDay takes precedence over reset. With expiryTime=0,
+          calendar modes suggest a first cutoff but do not activate renewal.
+          Negative expiryTime waits for first-use activation. resetMax and
+          resetCount simulate the existing per-period allowance limit; the
+          preview is informational and does not reserve an allowance or
+          guarantee node availability.
+        heading: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
       - content: 'The inbounds are applied concurrently and independently: one that
           fails no longer stops the others. Every inbound error names the
           inbound it came from (`inbound 7: <message>`), and several failures
@@ -638,7 +653,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }

@@ -3,6 +3,7 @@ export type GeoKind = string;
 export type OnlineAPISupport = number;
 export type ProcessState = string;
 export type Protocol = string;
+export type addrFamily = number;
 export type staticEgressResolver = string;
 export type trafficLocalApplyAction = number;
 export type transportBits = number;
@@ -20,6 +21,7 @@ export interface AllSetting {
   discordMemory: number;
   discordRunTime: string;
   expireDiff: number;
+  externalSubUserAgent: string;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
   happLinkEnable: boolean;
@@ -87,6 +89,7 @@ export interface AllSetting {
   subHappExcludeApns: boolean;
   subHappExcludeRoutes: string;
   subHappFallbackUrl: string;
+  subHappLocalProxyAuth: string;
   subHappNewUrl: string;
   subHappNoLimit: boolean;
   subHappNotificationExpire: boolean;
@@ -198,6 +201,7 @@ export interface AllSettingView {
   discordMemory: number;
   discordRunTime: string;
   expireDiff: number;
+  externalSubUserAgent: string;
   externalTrafficInformEnable: boolean;
   externalTrafficInformURI: string;
   happLinkEnable: boolean;
@@ -273,6 +277,7 @@ export interface AllSettingView {
   subHappExcludeApns: boolean;
   subHappExcludeRoutes: string;
   subHappFallbackUrl: string;
+  subHappLocalProxyAuth: string;
   subHappNewUrl: string;
   subHappNoLimit: boolean;
   subHappNotificationExpire: boolean;
@@ -420,6 +425,7 @@ export interface Client {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   reverse?: ClientReverse | null;
   secret?: string;
   security: string;
@@ -471,6 +477,7 @@ export interface ClientRecord {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   reverse: unknown;
   secret: string;
   security: string;
@@ -481,6 +488,27 @@ export interface ClientRecord {
   trafficResetDay: number;
   updatedAt: number;
   uuid: string;
+}
+
+export interface ClientRenewalPreview {
+  canRenew: boolean;
+  delayedStart: boolean;
+  nextExpiry: string;
+  renewAt: string;
+  renewals: number;
+  suggestedExpiry: string;
+  suggestedExpiryTime: number;
+  timeZone: string;
+  validThrough: string;
+}
+
+export interface ClientRenewalPreviewRequest {
+  expiryTime: number;
+  reset: number;
+  resetCount: number;
+  resetDay: number;
+  resetMax: number;
+  resetWeekday: number;
 }
 
 export interface ClientReverse {
@@ -500,6 +528,7 @@ export interface ClientSlim {
   reset: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   subId: string;
   totalGB: number;
   traffic?: ClientTraffic | null;
@@ -519,6 +548,7 @@ export interface ClientTraffic {
   resetCount: number;
   resetDay: number;
   resetMax: number;
+  resetWeekday: number;
   subId: string;
   total: number;
   up: number;
@@ -993,6 +1023,23 @@ export interface Setting {
   id: number;
   key: string;
   value: string;
+}
+
+export interface Sponsor {
+  enable?: boolean | null;
+  id: string;
+  link: string;
+  logo?: string;
+  name: string;
+  slots: string[];
+  text: Record<string, string>;
+  title: Record<string, string>;
+  until: string;
+}
+
+export interface SponsorList {
+  contact?: string;
+  sponsors: Sponsor[];
 }
 
 export interface SubBalancer {

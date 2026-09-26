@@ -248,6 +248,26 @@ export default function SubscriptionGeneralTab({
                   onChange={onNumber((v) => updateSetting({ subUpdates: v }))}
                 />
               </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.externalSubUserAgent')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="externalSubUserAgent"
+                    value={allSetting.externalSubUserAgent}
+                  />
+                }
+                description={t('pages.settings.externalSubUserAgentDesc')}
+              >
+                <Input
+                  value={allSetting.externalSubUserAgent}
+                  placeholder="v2rayNG/1.8.5"
+                  maxLength={512}
+                  allowClear
+                  onChange={(e) => updateSetting({ externalSubUserAgent: e.target.value })}
+                />
+              </SettingListItem>
             </>
           ),
         },
