@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import PiaModal from '@/pages/xray/overrides/PiaModal';
 import { HttpUtil, Msg } from '@/utils';
@@ -106,7 +106,10 @@ async function chooseOption(testId: string, labelPart: string) {
     (item.getAttribute('title') ?? item.textContent ?? '').includes(labelPart),
   );
   if (!option) throw new Error(`Missing option containing ${labelPart}`);
-  fireEvent.click(option);
+  // Picking a country fetches its servers; let that settle inside act().
+  await act(async () => {
+    fireEvent.click(option);
+  });
 }
 
 async function clickAddOutbound() {
@@ -115,7 +118,10 @@ async function clickAddOutbound() {
     if ((btn as HTMLButtonElement).disabled) throw new Error('Add outbound still disabled');
     return btn;
   });
-  fireEvent.click(addButton);
+  // Adding provisions a key over HTTP; let that settle inside act().
+  await act(async () => {
+    fireEvent.click(addButton);
+  });
 }
 
 function expectPiaOutbound(
@@ -224,6 +230,25 @@ describe('PIA modal', () => {
       publicKey: 'pubkey-west',
       endpoint: '198.51.100.30:1337',
     });
+  });
+
+  it('lists every server again when All regions is chosen after a region', async () => {
+    mockPiaApi();
+    renderWithProviders(<PiaHarness />);
+
+    await waitFor(() => expect(screen.getByText('p*****67')).toBeTruthy());
+    await chooseOption('pia-country-select', 'US');
+    await chooseOption('pia-region-select', 'US West');
+    await chooseOption('pia-region-select', 'All regions');
+
+    const serverNode = screen.getByTestId('pia-server-select');
+    const serverSelect = serverNode.closest('.ant-select') ?? serverNode;
+    fireEvent.mouseDown(serverSelect.querySelector('.ant-select-selector') ?? serverSelect);
+    await waitFor(() =>
+      expect(
+        visibleOptions().filter((option) => /useast1|uswest1/.test(option.textContent ?? '')),
+      ).toHaveLength(2),
+    );
   });
 
   it('disables Add when the selected server is already in the list', async () => {

@@ -82,7 +82,7 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			userStateMgr.clear(message.Chat.ID)
+			userStateMgr.clear(messageActor(message))
 			t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
 			return nil
 		}, th.TextEqual(t.I18nBot("tgbot.buttons.closeKeyboard")))
@@ -95,7 +95,7 @@ func (t *Tgbot) OnReceive() {
 
 			// Use goroutine with worker pool for concurrent command processing
 			go runBotHandler(func() {
-				userStateMgr.clear(message.Chat.ID)
+				userStateMgr.clear(messageActor(message))
 				t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
 			})
 			return nil
@@ -104,7 +104,7 @@ func (t *Tgbot) OnReceive() {
 		h.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
 			// Use goroutine with worker pool for concurrent callback processing
 			go runBotHandler(func() {
-				userStateMgr.clear(query.Message.GetChat().ID)
+				userStateMgr.clear(callbackActor(&query))
 				t.answerCallback(&query, checkAdmin(query.From.ID))
 			})
 			return nil
@@ -113,22 +113,23 @@ func (t *Tgbot) OnReceive() {
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
 			userStateMgr.maybePrune(time.Hour)
-			if userState, exists := userStateMgr.get(message.Chat.ID); exists {
+			actor := messageActor(message)
+			if userState, exists := userStateMgr.get(actor); exists {
 				// Only a wizard step touches the draft, so only it takes the lock.
-				draft := addClientDrafts.forChat(message.Chat.ID)
+				draft := addClientDrafts.forActor(actor)
 				draft.Lock()
 				defer draft.Unlock()
 				switch userState {
 				case "awaiting_email":
 					if draft.email == strings.TrimSpace(message.Text) {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						userStateMgr.clear(message.Chat.ID)
+						userStateMgr.clear(actor)
 						return nil
 					}
 
 					draft.email = strings.TrimSpace(message.Text)
 					if t.isSingleWord(draft.email) {
-						userStateMgr.set(message.Chat.ID, "awaiting_email")
+						userStateMgr.set(actor, "awaiting_email")
 
 						cancel_btn_markup := tu.InlineKeyboard(
 							tu.InlineKeyboardRow(
@@ -139,26 +140,26 @@ func (t *Tgbot) OnReceive() {
 						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 					} else {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_email"), 3, tu.ReplyKeyboardRemove())
-						userStateMgr.clear(message.Chat.ID)
+						userStateMgr.clear(actor)
 						t.addClient(message.Chat.ID, draft, t.BuildClientDraftMessage(draft))
 					}
 				case "awaiting_comment":
 					if draft.comment == strings.TrimSpace(message.Text) {
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						userStateMgr.clear(message.Chat.ID)
+						userStateMgr.clear(actor)
 						return nil
 					}
 
 					draft.comment = strings.TrimSpace(message.Text)
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_comment"), 3, tu.ReplyKeyboardRemove())
-					userStateMgr.clear(message.Chat.ID)
+					userStateMgr.clear(actor)
 					t.addClient(message.Chat.ID, draft, t.BuildClientDraftMessage(draft))
 				case "awaiting_tg_id":
 					input := strings.TrimSpace(message.Text)
 					if input == "" || input == "-" || strings.EqualFold(input, "none") {
 						draft.tgID = ""
 						t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-						userStateMgr.clear(message.Chat.ID)
+						userStateMgr.clear(actor)
 						t.addClient(message.Chat.ID, draft, t.BuildClientDraftMessage(draft))
 						return nil
 					}
@@ -173,7 +174,7 @@ func (t *Tgbot) OnReceive() {
 					}
 					draft.tgID = input
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.userSaved"), 3, tu.ReplyKeyboardRemove())
-					userStateMgr.clear(message.Chat.ID)
+					userStateMgr.clear(actor)
 					t.addClient(message.Chat.ID, draft, t.BuildClientDraftMessage(draft))
 				}
 			} else {
@@ -315,12 +316,13 @@ func isCommandForBot(text string, username string) bool {
 // answerCallback processes callback queries from inline keyboards.
 func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
 	chatId := callbackQuery.Message.GetChat().ID
+	actor := callbackActor(callbackQuery)
 
 	// Only an admin's wizard callbacks touch a draft, so only they take its lock:
 	// a report tap must not wait on a slot, a rejected chat must not be stored.
 	var draft *clientDraft
 	if isAdmin && isAddClientStep(callbackQuery.Data) {
-		draft = addClientDrafts.forChat(chatId)
+		draft = addClientDrafts.forActor(actor)
 		draft.Lock()
 		defer draft.Unlock()
 	}
@@ -1066,7 +1068,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
 	case "add_client_ch_default_email":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStateMgr.set(chatId, "awaiting_email")
+		userStateMgr.set(actor, "awaiting_email")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1076,7 +1078,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_comment":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStateMgr.set(chatId, "awaiting_comment")
+		userStateMgr.set(actor, "awaiting_comment")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1086,7 +1088,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_tg_id":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		userStateMgr.set(chatId, "awaiting_tg_id")
+		userStateMgr.set(actor, "awaiting_tg_id")
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("add_client_default_info"),
@@ -1189,11 +1191,11 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "add_client_default_info":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
-		userStateMgr.clear(chatId)
+		userStateMgr.clear(actor)
 		t.addClient(chatId, draft, t.BuildClientDraftMessage(draft))
 	case "add_client_cancel":
-		userStateMgr.clear(chatId)
-		addClientDrafts.reset(chatId)
+		userStateMgr.clear(actor)
+		addClientDrafts.reset(actor)
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 3, tu.ReplyKeyboardRemove())
 	case "add_client_default_traffic_exp":
@@ -1235,7 +1237,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.successfulOperation"), tu.ReplyKeyboardRemove())
 			t.sendClientIndividualLinks(chatId, draft.email)
 			t.sendClientQRLinks(chatId, draft.email)
-			addClientDrafts.reset(chatId)
+			addClientDrafts.reset(actor)
 		}
 	case "add_client_submit_enable":
 		draft.enable = true
@@ -1248,7 +1250,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.successfulOperation"), tu.ReplyKeyboardRemove())
 			t.sendClientIndividualLinks(chatId, draft.email)
 			t.sendClientQRLinks(chatId, draft.email)
-			addClientDrafts.reset(chatId)
+			addClientDrafts.reset(actor)
 		}
 	case "reset_all_traffics_cancel":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())

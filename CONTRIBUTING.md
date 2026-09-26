@@ -5,7 +5,7 @@ Thanks for taking the time to contribute to 3x-ui. This guide gets a development
 ## Prerequisites
 
 - **Go 1.27+** (the version pinned in `go.mod`)
-- **Node.js 24 LTS** (the version pinned in `.nvmrc`) and npm 10+ (for the React frontend)
+- **Node.js 26** (the version pinned in `.nvmrc`) and npm 11+ (for the React frontend)
 - **Git**
 - **A C compiler** — required by the CGo SQLite driver (`github.com/mattn/go-sqlite3`). Linux and macOS already ship one; for Windows see below.
 

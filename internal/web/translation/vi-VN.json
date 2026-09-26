@@ -120,6 +120,7 @@
     "outbounds": "Outbound",
     "apiDocs": "Tài liệu API",
     "donate": "Quyên góp",
+    "sponsors": "Nhà tài trợ",
     "hosts": "Hosts",
     "docs": "Tài liệu",
     "openMenu": "Mở menu",
@@ -2256,6 +2257,27 @@
         "badTag": "Tag không hợp lệ",
         "badVlessRoute": "Nhập một số duy nhất từ 0 đến 65535"
       }
+    },
+    "sponsors": {
+      "title": "Nhà tài trợ",
+      "intro": "Các công ty hỗ trợ phát triển 3X-UI. Liên kết tài trợ mở trong tab mới.",
+      "become": "Trở thành nhà tài trợ",
+      "tag": "Tài trợ",
+      "visit": "Truy cập",
+      "yourBrand": "Thương hiệu của bạn ở đây",
+      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày.",
+      "placements": "Vị trí hiện có",
+      "placementDashboard": "Banner tổng quan",
+      "placementDashboardDesc": "Vị trí cao cấp ở đầu bảng điều khiển, mỗi lần một nhà tài trợ.",
+      "placementSidebar": "Thẻ thanh bên",
+      "placementSidebarDesc": "Hiển thị trên mọi trang của panel, luân phiên giữa các nhà tài trợ.",
+      "placementLogin": "Trang đăng nhập",
+      "placementLoginDesc": "Quản trị viên thấy mỗi lần đăng nhập.",
+      "placementPage": "Trang nhà tài trợ",
+      "placementPageDesc": "Được liệt kê tại đây với logo, mô tả và liên kết.",
+      "available": "Còn trống",
+      "takenUntil": "Đã đặt đến {date}",
+      "activeCount": "{count} đang hoạt động"
     }
   },
   "tgbot": {

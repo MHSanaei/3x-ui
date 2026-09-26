@@ -120,6 +120,7 @@
     "outbounds": "出站",
     "apiDocs": "API 文件",
     "donate": "捐贈",
+    "sponsors": "贊助商",
     "hosts": "主機",
     "docs": "文件",
     "openMenu": "開啟選單",
@@ -2256,6 +2257,27 @@
         "badTag": "無效的標籤",
         "badVlessRoute": "請輸入 0 到 65535 之間的單一數字"
       }
+    },
+    "sponsors": {
+      "title": "贊助商",
+      "intro": "支持 3X-UI 開發的公司。贊助連結將在新分頁中開啟。",
+      "become": "成為贊助商",
+      "tag": "贊助",
+      "visit": "造訪",
+      "yourBrand": "您的品牌展示位",
+      "yourBrandText": "讓每天打開 3X-UI 的數千名伺服器管理員看到您的公司。",
+      "placements": "可用展示位",
+      "placementDashboard": "總覽橫幅",
+      "placementDashboardDesc": "儀表板頂部的高級位置，每次僅一家贊助商。",
+      "placementSidebar": "側邊欄卡片",
+      "placementSidebarDesc": "在面板所有頁面顯示，並在贊助商之間輪換。",
+      "placementLogin": "登入頁",
+      "placementLoginDesc": "管理員每次登入時都能看到。",
+      "placementPage": "贊助商頁面",
+      "placementPageDesc": "在此頁面展示標誌、簡介與連結。",
+      "available": "可預訂",
+      "takenUntil": "已預訂至 {date}",
+      "activeCount": "{count} 個進行中"
     }
   },
   "tgbot": {

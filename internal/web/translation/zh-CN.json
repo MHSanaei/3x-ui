@@ -120,6 +120,7 @@
     "outbounds": "出站",
     "apiDocs": "API 文档",
     "donate": "捐赠",
+    "sponsors": "赞助商",
     "hosts": "主机",
     "docs": "文档",
     "openMenu": "打开菜单",
@@ -2256,6 +2257,27 @@
         "badTag": "无效的标签",
         "badVlessRoute": "请输入 0 到 65535 之间的单个数字"
       }
+    },
+    "sponsors": {
+      "title": "赞助商",
+      "intro": "支持 3X-UI 开发的公司。赞助链接将在新标签页中打开。",
+      "become": "成为赞助商",
+      "tag": "赞助",
+      "visit": "访问",
+      "yourBrand": "您的品牌展示位",
+      "yourBrandText": "让每天打开 3X-UI 的数千名服务器管理员看到您的公司。",
+      "placements": "可用展示位",
+      "placementDashboard": "概览横幅",
+      "placementDashboardDesc": "仪表盘顶部的高级位置，每次仅一家赞助商。",
+      "placementSidebar": "侧边栏卡片",
+      "placementSidebarDesc": "在面板所有页面显示，并在赞助商之间轮换。",
+      "placementLogin": "登录页",
+      "placementLoginDesc": "管理员每次登录时都能看到。",
+      "placementPage": "赞助商页面",
+      "placementPageDesc": "在此页面展示徽标、简介和链接。",
+      "available": "可预订",
+      "takenUntil": "已预订至 {date}",
+      "activeCount": "{count} 个进行中"
     }
   },
   "tgbot": {

@@ -120,6 +120,7 @@
     "outbounds": "الصادرات",
     "apiDocs": "توثيق API",
     "donate": "تبرع",
+    "sponsors": "الرعاة",
     "hosts": "المضيفات",
     "docs": "التوثيق",
     "openMenu": "فتح القائمة",
@@ -2256,6 +2257,27 @@
         "badTag": "وسم غير صالح",
         "badVlessRoute": "أدخل رقماً واحداً بين 0 و65535"
       }
+    },
+    "sponsors": {
+      "title": "الرعاة",
+      "intro": "شركات تدعم تطوير 3X-UI. تُفتح روابط الرعاة في علامة تبويب جديدة.",
+      "become": "كن راعيًا",
+      "tag": "راعٍ",
+      "visit": "زيارة",
+      "yourBrand": "علامتك التجارية هنا",
+      "yourBrandText": "ضع شركتك أمام آلاف مسؤولي الخوادم الذين يفتحون 3X-UI كل يوم.",
+      "placements": "المواضع المتاحة",
+      "placementDashboard": "لافتة لوحة المعلومات",
+      "placementDashboardDesc": "موضع مميز أعلى لوحة المعلومات، راعٍ واحد في كل مرة.",
+      "placementSidebar": "بطاقة الشريط الجانبي",
+      "placementSidebarDesc": "تظهر في كل صفحات اللوحة وتتناوب بين الرعاة.",
+      "placementLogin": "صفحة تسجيل الدخول",
+      "placementLoginDesc": "يراها المسؤول عند كل تسجيل دخول.",
+      "placementPage": "صفحة الرعاة",
+      "placementPageDesc": "مدرجة هنا مع الشعار والوصف والرابط.",
+      "available": "متاح",
+      "takenUntil": "محجوز حتى {date}",
+      "activeCount": "{count} نشط"
     }
   },
   "tgbot": {
