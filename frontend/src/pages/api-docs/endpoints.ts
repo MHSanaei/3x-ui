@@ -237,6 +237,13 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "obj": "csrf-token-string"\n}',
       },
       {
+        method: 'GET',
+        path: '/sponsors',
+        summary:
+          'Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); expired entries are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.',
+        responseSchema: 'SponsorList',
+      },
+      {
         method: 'POST',
         path: '/getTwoFactorEnable',
         summary:

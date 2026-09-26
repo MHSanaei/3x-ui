@@ -120,6 +120,7 @@
     "outbounds": "Giden Bağlantılar",
     "apiDocs": "API Belgeleri",
     "donate": "Bağış Yap",
+    "sponsors": "Sponsorlar",
     "hosts": "Host'lar",
     "docs": "Belgeler",
     "openMenu": "Menüyü aç",
@@ -2256,6 +2257,27 @@
         "badTag": "Geçersiz etiket",
         "badVlessRoute": "0 ile 65535 arasında tek bir sayı girin"
       }
+    },
+    "sponsors": {
+      "title": "Sponsorlar",
+      "intro": "3X-UI geliştirmesini destekleyen şirketler. Sponsor bağlantıları yeni sekmede açılır.",
+      "become": "Sponsor ol",
+      "tag": "Sponsor",
+      "visit": "Ziyaret et",
+      "yourBrand": "Markanız burada",
+      "yourBrandText": "Şirketinizi her gün 3X-UI açan binlerce sunucu yöneticisinin önüne çıkarın.",
+      "placements": "Mevcut yerleşimler",
+      "placementDashboard": "Genel bakış afişi",
+      "placementDashboardDesc": "Panonun üstünde premium alan, aynı anda tek sponsor.",
+      "placementSidebar": "Kenar çubuğu kartı",
+      "placementSidebarDesc": "Tüm panel sayfalarında gösterilir, sponsorlar arasında döner.",
+      "placementLogin": "Giriş sayfası",
+      "placementLoginDesc": "Yönetici her girişte görür.",
+      "placementPage": "Sponsorlar sayfası",
+      "placementPageDesc": "Logo, açıklama ve bağlantıyla burada listelenir.",
+      "available": "Müsait",
+      "takenUntil": "{date} tarihine kadar dolu",
+      "activeCount": "{count} aktif"
     }
   },
   "tgbot": {

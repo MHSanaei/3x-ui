@@ -121,6 +121,7 @@
     "outbounds": "Outbounds",
     "apiDocs": "API Docs",
     "donate": "Donate",
+    "sponsors": "Sponsors",
     "docs": "Documentation",
     "openMenu": "Open menu",
     "pinSidebar": "Pin sidebar",
@@ -2256,6 +2257,27 @@
       },
       "defaultOutbound": "Default Outbound",
       "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list)."
+    },
+    "sponsors": {
+      "title": "Sponsors",
+      "intro": "Companies that support 3X-UI development. Sponsored links open in a new tab.",
+      "become": "Become a sponsor",
+      "tag": "Sponsor",
+      "visit": "Visit",
+      "yourBrand": "Your brand here",
+      "yourBrandText": "Put your company in front of thousands of server admins who open 3X-UI every day.",
+      "placements": "Available placements",
+      "placementDashboard": "Overview banner",
+      "placementDashboardDesc": "Premium spot at the top of the dashboard, one sponsor at a time.",
+      "placementSidebar": "Sidebar card",
+      "placementSidebarDesc": "Shown on every panel page, rotating between sponsors.",
+      "placementLogin": "Login page",
+      "placementLoginDesc": "Seen by the admin at every sign-in.",
+      "placementPage": "Sponsors page",
+      "placementPageDesc": "Listed here with logo, description and link.",
+      "available": "Available",
+      "takenUntil": "Taken until {date}",
+      "activeCount": "{count} active"
     }
   },
   "tgbot": {

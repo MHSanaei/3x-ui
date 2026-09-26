@@ -120,6 +120,7 @@
     "outbounds": "Saídas",
     "apiDocs": "Documentação da API",
     "donate": "Doar",
+    "sponsors": "Patrocinadores",
     "hosts": "Hosts",
     "docs": "Documentação",
     "openMenu": "Abrir menu",
@@ -2256,6 +2257,27 @@
         "badTag": "Tag inválida",
         "badVlessRoute": "Insira um único número entre 0 e 65535"
       }
+    },
+    "sponsors": {
+      "title": "Patrocinadores",
+      "intro": "Empresas que apoiam o desenvolvimento do 3X-UI. Links patrocinados abrem em uma nova aba.",
+      "become": "Seja um patrocinador",
+      "tag": "Patrocinador",
+      "visit": "Visitar",
+      "yourBrand": "Sua marca aqui",
+      "yourBrandText": "Coloque sua empresa diante de milhares de administradores de servidores que abrem o 3X-UI todos os dias.",
+      "placements": "Espaços disponíveis",
+      "placementDashboard": "Banner do painel",
+      "placementDashboardDesc": "Espaço premium no topo do painel, um patrocinador por vez.",
+      "placementSidebar": "Cartão lateral",
+      "placementSidebarDesc": "Exibido em todas as páginas do painel, alternando entre patrocinadores.",
+      "placementLogin": "Página de login",
+      "placementLoginDesc": "Visto pelo administrador a cada login.",
+      "placementPage": "Página de patrocinadores",
+      "placementPageDesc": "Listado aqui com logo, descrição e link.",
+      "available": "Disponível",
+      "takenUntil": "Ocupado até {date}",
+      "activeCount": "{count} ativos"
     }
   },
   "tgbot": {

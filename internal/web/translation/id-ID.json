@@ -120,6 +120,7 @@
     "outbounds": "Outbound",
     "apiDocs": "Dokumentasi API",
     "donate": "Donasi",
+    "sponsors": "Sponsor",
     "hosts": "Host",
     "docs": "Dokumentasi",
     "openMenu": "Buka menu",
@@ -2256,6 +2257,27 @@
         "badTag": "Tag tidak valid",
         "badVlessRoute": "Masukkan satu angka antara 0 dan 65535"
       }
+    },
+    "sponsors": {
+      "title": "Sponsor",
+      "intro": "Perusahaan yang mendukung pengembangan 3X-UI. Tautan sponsor dibuka di tab baru.",
+      "become": "Jadi sponsor",
+      "tag": "Sponsor",
+      "visit": "Kunjungi",
+      "yourBrand": "Merek Anda di sini",
+      "yourBrandText": "Tampilkan perusahaan Anda kepada ribuan admin server yang membuka 3X-UI setiap hari.",
+      "placements": "Slot yang tersedia",
+      "placementDashboard": "Banner dasbor",
+      "placementDashboardDesc": "Tempat premium di atas dasbor, satu sponsor dalam satu waktu.",
+      "placementSidebar": "Kartu sidebar",
+      "placementSidebarDesc": "Tampil di setiap halaman panel, bergantian antar sponsor.",
+      "placementLogin": "Halaman login",
+      "placementLoginDesc": "Dilihat admin setiap kali masuk.",
+      "placementPage": "Halaman sponsor",
+      "placementPageDesc": "Tercantum di sini dengan logo, deskripsi, dan tautan.",
+      "available": "Tersedia",
+      "takenUntil": "Terisi hingga {date}",
+      "activeCount": "{count} aktif"
     }
   },
   "tgbot": {

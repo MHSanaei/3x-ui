@@ -23,6 +23,12 @@ _openapi:
         requests.
       url: '#mint-a-csrf-token-for-the-current-session-the-spa-replays-it-in-the-x-csrf-token-header-on-unsafe-requests-bearer-token-callers-can-skip-this--the-middleware-short-circuits-csrf-for-authenticated-api-requests'
     - depth: 2
+      title: Public. Active paid sponsor placements read from the project
+        sponsors.json (cached for 1h); expired entries are dropped. Logos are
+        proxied by the panel at /sponsors/logo/{name}. Used by the login page
+        and panel sponsor slots.
+      url: '#public-active-paid-sponsor-placements-read-from-the-project-sponsorsjson-cached-for-1h-expired-entries-are-dropped-logos-are-proxied-by-the-panel-at-sponsorslogoname-used-by-the-login-page-and-panel-sponsor-slots'
+    - depth: 2
       title: Returns whether 2FA is enabled on the panel — used by the login page to
         decide whether to show the OTP field.
       url: '#returns-whether-2fa-is-enabled-on-the-panel--used-by-the-login-page-to-decide-whether-to-show-the-otp-field'
@@ -39,6 +45,11 @@ _openapi:
           this — the middleware short-circuits CSRF for authenticated API
           requests.
         id: mint-a-csrf-token-for-the-current-session-the-spa-replays-it-in-the-x-csrf-token-header-on-unsafe-requests-bearer-token-callers-can-skip-this--the-middleware-short-circuits-csrf-for-authenticated-api-requests
+      - content: Public. Active paid sponsor placements read from the project
+          sponsors.json (cached for 1h); expired entries are dropped. Logos are
+          proxied by the panel at /sponsors/logo/{name}. Used by the login page
+          and panel sponsor slots.
+        id: public-active-paid-sponsor-placements-read-from-the-project-sponsorsjson-cached-for-1h-expired-entries-are-dropped-logos-are-proxied-by-the-panel-at-sponsorslogoname-used-by-the-login-page-and-panel-sponsor-slots
       - content: Returns whether 2FA is enabled on the panel — used by the login page to
           decide whether to show the OTP field.
         id: returns-whether-2fa-is-enabled-on-the-panel--used-by-the-login-page-to-decide-whether-to-show-the-otp-field
@@ -54,7 +65,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/login","method":"post"},{"path":"/logout","method":"post"},{"path":"/csrf-token","method":"get"},{"path":"/getTwoFactorEnable","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/login","method":"post"},{"path":"/logout","method":"post"},{"path":"/csrf-token","method":"get"},{"path":"/sponsors","method":"get"},{"path":"/getTwoFactorEnable","method":"post"}]} showTitle />
     </>
   );
 }
