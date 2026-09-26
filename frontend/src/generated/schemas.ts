@@ -4109,6 +4109,84 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "Sponsor": {
+    "description": "Sponsor is one paid placement published in the repo's sponsors.json.",
+    "properties": {
+      "enable": {
+        "example": true,
+        "nullable": true,
+        "type": "boolean"
+      },
+      "id": {
+        "example": "acme-2026-10",
+        "type": "string"
+      },
+      "link": {
+        "example": "https://acme.example/?utm_source=3x-ui",
+        "type": "string"
+      },
+      "logo": {
+        "example": "/sponsors/logo/acme.png",
+        "type": "string"
+      },
+      "name": {
+        "example": "Acme VPS",
+        "type": "string"
+      },
+      "slots": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "text": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "until": {
+        "example": "2026-11-01T00:00:00Z",
+        "format": "date-time",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "link",
+      "name",
+      "slots",
+      "text",
+      "title",
+      "until"
+    ],
+    "type": "object"
+  },
+  "SponsorList": {
+    "description": "SponsorList is the active sponsor set plus the contact link for new sponsors.",
+    "properties": {
+      "contact": {
+        "example": "https://t.me/example",
+        "type": "string"
+      },
+      "sponsors": {
+        "items": {
+          "$ref": "#/components/schemas/Sponsor"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "sponsors"
+    ],
+    "type": "object"
+  },
   "SubBalancer": {
     "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
     "properties": {

@@ -44,8 +44,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_non_write_users: "*"
           claude_args: |
-            --model claude-opus-5
-            --effort xhigh
+            --model claude-opus-5-5
+            --effort medium
             --max-turns 300
             --allowedTools "Bash(gh label list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh issue comment ${{ github.event.issue.number }}:*),Bash(gh issue edit ${{ github.event.issue.number }} --add-label:*),Bash(gh issue edit ${{ github.event.issue.number }} --remove-label:*),Bash(gh issue edit ${{ github.event.issue.number }} --title:*),Bash(gh issue close ${{ github.event.issue.number }}:*),Bash(gh search issues:*),Bash(gh search commits:*),Bash(gh search prs:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh release list:*),Bash(gh release view:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(git ls-tree:*),Bash(git tag:*),Read,Glob,Grep,Write(//tmp/**),Edit(//tmp/**)"
             --disallowedTools "Read(//**/.git/**),Edit(//**/.git/**)"

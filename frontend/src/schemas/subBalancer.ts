@@ -33,12 +33,12 @@ export const SubBalancerFormSchema = z.object({
     .record(
       z.string(),
       z
-        .number({ message: 'pages.settings.subBalancers.errWeightPositive' })
+        .number({ error: 'pages.settings.subBalancers.errWeightPositive' })
         .positive('pages.settings.subBalancers.errWeightPositive'),
     )
     .optional(),
   sortOrder: z
-    .number({ message: 'pages.settings.subBalancers.errSortOrder' })
+    .number({ error: 'pages.settings.subBalancers.errSortOrder' })
     .int('pages.settings.subBalancers.errSortOrder')
     .min(1, 'pages.settings.subBalancers.errSortOrder'),
   enabled: z.boolean(),

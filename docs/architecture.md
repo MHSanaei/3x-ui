@@ -565,7 +565,7 @@ golangci-lint run                   # full lint (gofumpt + goimports formatting)
 go run main.go                      # run the panel locally (serves embedded dist if built)
 ```
 
-**Frontend (`cd frontend`, Node 24 — see `.nvmrc`):**
+**Frontend (`cd frontend`, Node 26 — see `.nvmrc`):**
 
 ```bash
 npm install
