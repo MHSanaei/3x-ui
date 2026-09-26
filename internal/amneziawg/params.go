@@ -137,10 +137,27 @@ func generateHValues() [4]string {
 // Padded handshake messages (148+S1, 92+S2, 64+S3 bytes) must fit the smallest receive
 // buffer amneziawg-go has: MaxSegmentSize 1700 on iOS (device/queueconstants_ios.go).
 const (
-	maxS1 = 1700 - 148
-	maxS2 = 1700 - 92
-	maxS3 = 1700 - 64
+	maxServerS1 = 1700 - 148
+	maxServerS2 = 1700 - 92
+	maxServerS3 = 1700 - 64
 )
+
+// ValidateServerObfuscation adds the receive-buffer bounds to ValidateObfuscation:
+// an inbound's peers may be iOS clients, which cannot receive a larger handshake.
+func ValidateServerObfuscation(o Obfuscation31) error {
+	if err := ValidateObfuscation(o); err != nil {
+		return err
+	}
+	for _, f := range []struct {
+		name   string
+		v, max int
+	}{{"S1", o.S1, maxServerS1}, {"S2", o.S2, maxServerS2}, {"S3", o.S3, maxServerS3}} {
+		if f.v > f.max {
+			return fmt.Errorf("invalid %s value %d (must be 0..%d so every client can receive it)", f.name, f.v, f.max)
+		}
+	}
+	return nil
+}
 
 // ValidateObfuscation rejects malformed parameters before they are saved, so
 // a bad manual entry can't break the embedded amneziawg-go device's own
@@ -152,7 +169,8 @@ func ValidateObfuscation(o Obfuscation31) error {
 	if o.Jmin > o.Jmax {
 		return fmt.Errorf("invalid Jmin/Jmax: %d must not exceed %d", o.Jmin, o.Jmax)
 	}
-	// jc/jmin/jmax: amneziawg-go's uint32 UAPI width (device/uapi.go), wider fails IpcSet.
+	// amneziawg-go parses jc/jmin/jmax as uint32 and s1-s3 as uint16 (device/uapi.go);
+	// a wider value makes IpcSet reject the whole device.
 	for _, f := range []struct {
 		name string
 		v    int
@@ -161,9 +179,9 @@ func ValidateObfuscation(o Obfuscation31) error {
 		{"Jc", o.Jc, math.MaxUint32},
 		{"Jmin", o.Jmin, math.MaxUint32},
 		{"Jmax", o.Jmax, math.MaxUint32},
-		{"S1", o.S1, maxS1},
-		{"S2", o.S2, maxS2},
-		{"S3", o.S3, maxS3},
+		{"S1", o.S1, math.MaxUint16},
+		{"S2", o.S2, math.MaxUint16},
+		{"S3", o.S3, math.MaxUint16},
 	} {
 		if int64(f.v) < 0 || int64(f.v) > f.max {
 			return fmt.Errorf("invalid %s value %d (must be 0..%d)", f.name, f.v, f.max)

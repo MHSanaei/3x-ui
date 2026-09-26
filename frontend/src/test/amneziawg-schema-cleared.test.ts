@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AmneziawgServerSchema } from '@/schemas/protocols/inbound/amneziawg';
+import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound/amneziawg';
 
 // AntD InputNumber emits null when cleared; a cleared numeric field must
 // refill its schema default instead of failing validation and blocking the save.
@@ -67,5 +68,17 @@ describe('AmneziawgServerSchema obfuscation bounds', () => {
     for (const field of ['jc', 'jmin', 'jmax', 's1', 's2', 's3', 's4']) {
       expect(AmneziawgServerSchema.safeParse({ [field]: -1 }).success).toBe(false);
     }
+  });
+});
+
+// An outbound's S values come from the remote server and are received on Linux,
+// so only amneziawg-go's uint16 UAPI width bounds them, not the iOS buffer.
+describe('AmneziaWGOutboundSettingsSchema padding bounds', () => {
+  it.each(['s1', 's2', 's3'])('accepts %s past the inbound iOS cap', (field) => {
+    expect(AmneziaWGOutboundSettingsSchema.safeParse({ [field]: 2000 }).success).toBe(true);
+  });
+
+  it.each(['s1', 's2', 's3'])('rejects %s past uint16', (field) => {
+    expect(AmneziaWGOutboundSettingsSchema.safeParse({ [field]: 65536 }).success).toBe(false);
   });
 });

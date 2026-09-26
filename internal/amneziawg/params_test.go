@@ -142,9 +142,9 @@ func TestValidateObfuscationRejectsBadJminJmax(t *testing.T) {
 
 func TestValidateObfuscationRejectsBadS3S4(t *testing.T) {
 	o := validObfuscation()
-	o.S3 = 1637
+	o.S3 = 65536
 	if err := ValidateObfuscation(o); err == nil {
-		t.Fatal("S3 > 1636 must be rejected: the cookie reply would overflow iOS's 1700-byte receive buffer")
+		t.Fatal("S3 past uint16 must be rejected: amneziawg-go's UAPI parser refuses it")
 	}
 	o = validObfuscation()
 	o.S4 = 33
@@ -159,11 +159,11 @@ func TestValidateObfuscationRejectsBadS3S4(t *testing.T) {
 }
 
 // Amnezia Premium ships S3=1045; 1636 is the largest cookie padding every platform can receive.
-func TestValidateObfuscationAcceptsLargeS3(t *testing.T) {
+func TestValidateServerObfuscationAcceptsLargeS3(t *testing.T) {
 	for _, s3 := range []int{1045, 1636} {
 		o := validObfuscation()
 		o.S3 = s3
-		if err := ValidateObfuscation(o); err != nil {
+		if err := ValidateServerObfuscation(o); err != nil {
 			t.Fatalf("S3=%d must be accepted: %v", s3, err)
 		}
 	}
@@ -425,16 +425,16 @@ func TestEffectiveMTUPrefersTheAdminsValue(t *testing.T) {
 	}
 }
 
-// TestValidateObfuscationRejectsOutOfRangeJunkAndPadding pins uint32 for jc/jmin/jmax
-// (UAPI width) and S1/S2 at the largest handshake iOS's 1700-byte buffer receives.
+// TestValidateObfuscationRejectsOutOfRangeJunkAndPadding pins the widths
+// amneziawg-go's UAPI actually parses: uint32 for jc/jmin/jmax, uint16 for s1-s3.
 func TestValidateObfuscationRejectsOutOfRangeJunkAndPadding(t *testing.T) {
 	base := Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
 	tests := []struct {
 		name string
 		mut  func(*Obfuscation31)
 	}{
-		{"S1 init over 1700 bytes", func(o *Obfuscation31) { o.S1 = 1553 }},
-		{"S2 response over 1700 bytes", func(o *Obfuscation31) { o.S2 = 1609 }},
+		{"S1 over uint16", func(o *Obfuscation31) { o.S1 = 65536 }},
+		{"S2 over uint16", func(o *Obfuscation31) { o.S2 = 70000 }},
 		{"negative Jc", func(o *Obfuscation31) { o.Jc = -1 }},
 		{"negative Jmin and Jmax", func(o *Obfuscation31) { o.Jmin, o.Jmax = -5, -1 }},
 		{"Jc over uint32", func(o *Obfuscation31) { o.Jc = 5000000000 }},
@@ -449,9 +449,28 @@ func TestValidateObfuscationRejectsOutOfRangeJunkAndPadding(t *testing.T) {
 			}
 		})
 	}
+	if err := ValidateObfuscation(Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 65535, S2: 30, S3: 20, S4: 20}); err != nil {
+		t.Fatalf("S1 at the uint16 maximum must stay valid for an outbound: %v", err)
+	}
+}
+
+// An inbound's handshakes must fit iOS's 1700-byte buffer: 148+S1, 92+S2 and 64+S3.
+func TestValidateServerObfuscationBoundsHandshakesByTheIOSBuffer(t *testing.T) {
+	base := Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: 20, S2: 30, S3: 20, S4: 20}
+	for name, mut := range map[string]func(*Obfuscation31){
+		"S1 init over 1700 bytes":     func(o *Obfuscation31) { o.S1 = 1553 },
+		"S2 response over 1700 bytes": func(o *Obfuscation31) { o.S2 = 1609 },
+		"S3 cookie over 1700 bytes":   func(o *Obfuscation31) { o.S3 = 1637 },
+	} {
+		o := base
+		mut(&o)
+		if err := ValidateServerObfuscation(o); err == nil {
+			t.Fatalf("%s: an iOS client could never receive it, so the inbound must not save", name)
+		}
+	}
 	// 148+1552 and 92+1608 are exactly 1700; Amnezia Premium ships S1=284 S2=659.
 	for _, s := range [][2]int{{1552, 30}, {20, 1608}, {284, 659}} {
-		if err := ValidateObfuscation(Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: s[0], S2: s[1], S3: 20, S4: 20}); err != nil {
+		if err := ValidateServerObfuscation(Obfuscation31{Jc: 4, Jmin: 40, Jmax: 70, S1: s[0], S2: s[1], S3: 20, S4: 20}); err != nil {
 			t.Fatalf("S1=%d S2=%d must stay valid: %v", s[0], s[1], err)
 		}
 	}

@@ -238,7 +238,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 	} {
 		*f = amneziawg.CanonicalizeUintRange(*f)
 	}
-	if err := amneziawg.ValidateObfuscation(parsed.Server.Obfuscation()); err != nil {
+	if err := amneziawg.ValidateServerObfuscation(parsed.Server.Obfuscation()); err != nil {
 		return fmt.Errorf("amneziawg: %w", err)
 	}
 	if err := amneziawg.ValidateIPv6Subnet(parsed.Server.IPv6Enabled, parsed.Server.IPv6Subnet); err != nil {
