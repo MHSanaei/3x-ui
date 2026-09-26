@@ -37,6 +37,8 @@ func run(root, outDir string) error {
 				"Client",
 				"ClientRecord",
 				"ClientInbound",
+				"ExternalLink",
+				"ExternalLinkAssignment",
 				"InboundFallback",
 				"Host",
 				"SubBalancer",
@@ -67,6 +69,15 @@ func run(root, outDir string) error {
 				"AllSetting",
 				"AllSettingView",
 				"HostGroup",
+			),
+		},
+		{
+			Path: resolveRel(root, "internal/web/runtime"),
+			StructAllow: setOf(
+				"ExternalLinkSync",
+				"ExternalLinkSyncLink",
+				"ExternalLinkSyncClient",
+				"ExternalLinkSyncAssignment",
 			),
 		},
 		{
@@ -108,6 +119,9 @@ func run(root, outDir string) error {
 				"AmneziaWGLogs",
 				"PeerActivity",
 				"HwidSlotStatus",
+				"ExternalLinkView",
+				"ExternalLinkTargetView",
+				"EffectiveExternalLink",
 			),
 		},
 		{

@@ -302,6 +302,11 @@ func (l *Local) DeleteClient(context.Context, string) error {
 	return nil
 }
 
+// The panel's own store is the source of the sync, so there is nothing to apply.
+func (l *Local) PushExternalLinks(context.Context, ExternalLinkSync) error {
+	return nil
+}
+
 func (l *Local) UpdateUser(ctx context.Context, ib *model.Inbound, oldEmail string, payload model.Client) error {
 	if oldEmail != "" {
 		if err := l.RemoveUser(ctx, ib, oldEmail); err != nil && !strings.Contains(err.Error(), "not found") {

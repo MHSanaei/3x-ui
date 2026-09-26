@@ -526,6 +526,143 @@ export const EXAMPLES: Record<string, unknown> = {
     "onlineCount": 1,
     "total": 2000
   },
+  "EffectiveExternalLink": {
+    "cacheTTL": 0,
+    "enable": false,
+    "expiryTime": 0,
+    "headers": {},
+    "kind": "",
+    "linkId": 0,
+    "namePrefix": "",
+    "origin": "",
+    "remark": "",
+    "scope": "",
+    "scopeTarget": 0,
+    "sortIndex": 0,
+    "userAgent": "",
+    "value": ""
+  },
+  "ExternalLink": {
+    "assignedClients": 3,
+    "cacheTtl": 0,
+    "createdAt": 1710000000000,
+    "enable": true,
+    "expiryTime": 0,
+    "headers": {},
+    "id": 1,
+    "kind": "link",
+    "lastFetchAt": 0,
+    "lastFetchError": "",
+    "namePrefix": "[backup] ",
+    "origin": "panel",
+    "remark": "Backup provider",
+    "sortIndex": 0,
+    "updatedAt": 1710000000000,
+    "userAgent": "",
+    "value": "vless://uuid@example.com:443?type=tcp#node"
+  },
+  "ExternalLinkAssignment": {
+    "createdAt": 1710000000000,
+    "enable": true,
+    "expiryTime": 0,
+    "id": 1,
+    "linkId": 1,
+    "namePrefix": "",
+    "origin": "panel",
+    "remark": "",
+    "sortIndex": 0,
+    "targetId": 7,
+    "targetType": "client"
+  },
+  "ExternalLinkSync": {
+    "clients": [
+      {
+        "email": "",
+        "links": [
+          {
+            "enable": false,
+            "expiryTime": 0,
+            "kind": "",
+            "namePrefix": "",
+            "remark": "",
+            "sortIndex": 0,
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "cacheTtl": 0,
+        "enable": false,
+        "expiryTime": 0,
+        "headers": {},
+        "kind": "",
+        "namePrefix": "",
+        "remark": "",
+        "sortIndex": 0,
+        "userAgent": "",
+        "value": ""
+      }
+    ]
+  },
+  "ExternalLinkSyncAssignment": {
+    "enable": false,
+    "expiryTime": 0,
+    "kind": "",
+    "namePrefix": "",
+    "remark": "",
+    "sortIndex": 0,
+    "value": ""
+  },
+  "ExternalLinkSyncClient": {
+    "email": "",
+    "links": [
+      {
+        "enable": false,
+        "expiryTime": 0,
+        "kind": "",
+        "namePrefix": "",
+        "remark": "",
+        "sortIndex": 0,
+        "value": ""
+      }
+    ]
+  },
+  "ExternalLinkSyncLink": {
+    "cacheTtl": 0,
+    "enable": false,
+    "expiryTime": 0,
+    "headers": {},
+    "kind": "",
+    "namePrefix": "",
+    "remark": "",
+    "sortIndex": 0,
+    "userAgent": "",
+    "value": ""
+  },
+  "ExternalLinkTargetView": {
+    "name": "user@example.com",
+    "targetId": 7,
+    "targetType": "client"
+  },
+  "ExternalLinkView": {
+    "assignmentId": 4,
+    "cacheTtl": 0,
+    "enable": true,
+    "expiryTime": 0,
+    "kind": "link",
+    "lastFetchAt": 0,
+    "lastFetchError": "",
+    "linkId": 1,
+    "namePrefix": "",
+    "own": true,
+    "remark": "Backup provider",
+    "scope": "client",
+    "scopeTarget": 7,
+    "userAgent": "",
+    "value": "vless://uuid@example.com:443#node"
+  },
   "FallbackParentInfo": {
     "masterId": 0,
     "path": ""

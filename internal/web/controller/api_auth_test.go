@@ -78,6 +78,9 @@ func newAPIAuthTestEngine(t *testing.T) (*gin.Engine, *APIController) {
 	api.POST("/clients/clientIpsByGuid", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"reached": true})
 	})
+	api.POST("/links/sync", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"reached": true})
+	})
 	return engine, a
 }
 
@@ -164,6 +167,7 @@ func TestNodeSyncScopeAllowlistMatchesRemoteInventory(t *testing.T) {
 		"/server/clientIps":            {http.MethodGet: {}, http.MethodPost: {}},
 		"/clients/clientIpsByGuid":     {http.MethodPost: {}},
 		"/hosts/list":                  {http.MethodGet: {}},
+		"/links/sync":                  {http.MethodPost: {}},
 	}
 	if !reflect.DeepEqual(nodeSyncScopeAllow, expected) {
 		t.Fatalf("node-sync allowlist drift:\n got: %#v\nwant: %#v", nodeSyncScopeAllow, expected)
@@ -184,6 +188,7 @@ func TestNodeSyncScopeUsesFullPathPatterns(t *testing.T) {
 		{"detach email parameter", http.MethodPost, "/panel/api/clients/alice@example.com/detach", http.StatusOK},
 		{"reset inbound id parameter", http.MethodPost, "/panel/api/inbounds/42/resetTraffic", http.StatusOK},
 		{"client IP by guid endpoint", http.MethodPost, "/panel/api/clients/clientIpsByGuid", http.StatusOK},
+		{"link sync push", http.MethodPost, "/panel/api/links/sync", http.StatusOK},
 		{"update panel forbidden", http.MethodPost, "/panel/api/server/updatePanel", http.StatusForbidden},
 	}
 	for _, tc := range cases {

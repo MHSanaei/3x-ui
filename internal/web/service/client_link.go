@@ -179,8 +179,10 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 			return err
 		}
 		disabledIDs := make([]int, 0)
+		createdIDs := make([]int, 0, len(toCreate))
 		for i, rec := range toCreate {
 			idByEmail[rec.Email] = rec.Id
+			createdIDs = append(createdIDs, rec.Id)
 			if !wantEnable[i] {
 				disabledIDs = append(disabledIDs, rec.Id)
 			}
@@ -190,6 +192,11 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 				UpdateColumn("enable", false).Error; err != nil {
 				return err
 			}
+		}
+		// Every client-create path funnels through here, which is what makes
+		// the "new clients" default cover all of them.
+		if err := materializeNewClientExternalLinks(tx, createdIDs...); err != nil {
+			return err
 		}
 	}
 

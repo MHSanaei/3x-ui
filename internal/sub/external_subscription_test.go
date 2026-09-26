@@ -93,7 +93,9 @@ func TestFetchSubscriptionLinksBoundsCacheSize(t *testing.T) {
 	}
 }
 
-func TestFetchSubscriptionLinksSharesStaleResultAfterRefreshFailure(t *testing.T) {
+// A stale entry is served immediately and revalidated behind the caller: one
+// refresh for all waiting clients, and a failed refresh keeps the old body.
+func TestFetchSubscriptionLinksServesStaleAndRefreshesOnce(t *testing.T) {
 	resetSubscriptionCache(t)
 	stale := []string{"vless://stale@example.com:443"}
 	release := make(chan struct{})
@@ -128,22 +130,44 @@ func TestFetchSubscriptionLinksSharesStaleResultAfterRefreshFailure(t *testing.T
 			results <- fetchSubscriptionLinks(staleURL).links
 		})
 	}
-
-	time.Sleep(100 * time.Millisecond)
-	if links := fetchSubscriptionLinks(srv.URL + "/fresh").links; len(links) != 1 || links[0] != "vless://fresh@example.com:443" {
-		t.Fatalf("fresh links = %#v", links)
-	}
-	close(release)
 	wg.Wait()
 	close(results)
 
 	for links := range results {
 		if len(links) != 1 || links[0] != stale[0] {
-			t.Fatalf("links = %#v, want %#v", links, stale)
+			t.Fatalf("links = %#v, want the cached body served without waiting", links)
 		}
 	}
+	if links := fetchSubscriptionLinks(srv.URL + "/fresh").links; len(links) != 1 || links[0] != "vless://fresh@example.com:443" {
+		t.Fatalf("fresh links = %#v", links)
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for staleRequests.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
 	if got := staleRequests.Load(); got != 1 {
-		t.Fatalf("requests = %d, want 1", got)
+		t.Fatalf("refresh requests = %d, want one shared background refresh", got)
+	}
+	close(release)
+
+	for time.Now().Before(deadline) {
+		subscriptionCache.Lock()
+		settled := !subscriptionCache.m[staleURL].retryAt.IsZero()
+		subscriptionCache.Unlock()
+		if settled {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	subscriptionCache.Lock()
+	entry := subscriptionCache.m[staleURL]
+	subscriptionCache.Unlock()
+	if entry.retryAt.IsZero() {
+		t.Fatal("a failed refresh must schedule the next attempt")
+	}
+	if len(entry.links) != 1 || entry.links[0] != stale[0] {
+		t.Fatalf("cached links = %#v, want the last good body kept", entry.links)
 	}
 }
 
@@ -153,7 +177,7 @@ func TestDoFetchSubscriptionLinks_RejectsOversizedBody(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	links, err := doFetchSubscriptionLinks(srv.URL)
+	links, _, err := doFetchSubscriptionLinks(subscriptionRequest{URL: srv.URL}, subscriptionCacheEntry{})
 	if !errors.Is(err, errSubscriptionBodyTooLarge) {
 		t.Fatalf("err = %v, want errSubscriptionBodyTooLarge", err)
 	}
@@ -173,7 +197,7 @@ func TestDoFetchSubscriptionLinks_AcceptsBodyAtLimit(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	links, err := doFetchSubscriptionLinks(srv.URL)
+	links, _, err := doFetchSubscriptionLinks(subscriptionRequest{URL: srv.URL}, subscriptionCacheEntry{})
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -182,7 +206,9 @@ func TestDoFetchSubscriptionLinks_AcceptsBodyAtLimit(t *testing.T) {
 	}
 }
 
-func TestRecordExternalSubscriptionFetchStampsEveryRowForTheURL(t *testing.T) {
+// The fetch status belongs to the shared library row: both owners of the same
+// provider URL must see the same outcome on the entry they inherit.
+func TestExpandEntryStampsFetchStatusOnTheLibraryRow(t *testing.T) {
 	initMutDB(t)
 	resetSubscriptionCache(t)
 	db := database.GetDB()
@@ -206,14 +232,10 @@ func TestRecordExternalSubscriptionFetchStampsEveryRowForTheURL(t *testing.T) {
 		if err := db.Create(&owners[i]).Error; err != nil {
 			t.Fatalf("seed client %d: %v", i, err)
 		}
-		row := model.ClientExternalLink{
-			ClientId: owners[i].Id,
-			Kind:     model.ExternalLinkKindSubscription,
-			Value:    srv.URL,
-		}
-		if err := db.Create(&row).Error; err != nil {
-			t.Fatalf("seed external link %d: %v", i, err)
-		}
+		seedClientExternalLink(t, owners[i].Id, model.ClientExternalLink{
+			Kind:  model.ExternalLinkKindSubscription,
+			Value: srv.URL,
+		})
 	}
 
 	svc := NewSubService("")
@@ -229,20 +251,18 @@ func TestRecordExternalSubscriptionFetchStampsEveryRowForTheURL(t *testing.T) {
 		expandEntry(e)
 	}
 
-	var rows []model.ClientExternalLink
+	var rows []model.ExternalLink
 	if err := db.Where("value = ?", srv.URL).Find(&rows).Error; err != nil {
-		t.Fatalf("read rows: %v", err)
+		t.Fatalf("read library rows: %v", err)
 	}
-	if len(rows) != 2 {
-		t.Fatalf("rows = %d, want 2", len(rows))
+	if len(rows) != 1 {
+		t.Fatalf("library rows = %d, want the one shared entry", len(rows))
 	}
-	for _, row := range rows {
-		if row.LastFetchAt <= 0 {
-			t.Fatalf("row %d lastFetchAt = %d, want a stamped timestamp", row.Id, row.LastFetchAt)
-		}
-		if row.LastFetchError != errBadStatus.Error() {
-			t.Fatalf("row %d lastFetchError = %q, want %q", row.Id, row.LastFetchError, errBadStatus)
-		}
+	if rows[0].LastFetchAt <= 0 {
+		t.Fatalf("lastFetchAt = %d, want a stamped timestamp", rows[0].LastFetchAt)
+	}
+	if rows[0].LastFetchError != errBadStatus.Error() {
+		t.Fatalf("lastFetchError = %q, want %q", rows[0].LastFetchError, errBadStatus)
 	}
 
 	failing.Store(false)
@@ -252,15 +272,16 @@ func TestRecordExternalSubscriptionFetchStampsEveryRowForTheURL(t *testing.T) {
 	}
 
 	if err := db.Where("value = ?", srv.URL).Find(&rows).Error; err != nil {
-		t.Fatalf("re-read rows: %v", err)
+		t.Fatalf("re-read library rows: %v", err)
 	}
-	for _, row := range rows {
-		if row.LastFetchError != "" {
-			t.Fatalf("row %d lastFetchError = %q, want cleared after a good fetch", row.Id, row.LastFetchError)
-		}
-		if row.LastFetchAt <= 0 {
-			t.Fatalf("row %d lastFetchAt = %d, want a stamped timestamp", row.Id, row.LastFetchAt)
-		}
+	if rows[0].LastFetchError != "" {
+		t.Fatalf("lastFetchError = %q, want cleared after a good fetch", rows[0].LastFetchError)
+	}
+	if rows[0].LastFetchAt <= 0 {
+		t.Fatalf("lastFetchAt = %d, want a stamped timestamp", rows[0].LastFetchAt)
+	}
+	if len(rows[0].LastLinks) != 1 || rows[0].LastLinks[0] != "vless://uuid@example.com:443#Node" {
+		t.Fatalf("lastLinks = %#v, want the expansion kept for a restart", rows[0].LastLinks)
 	}
 }
 
@@ -274,10 +295,7 @@ func TestExpandEntryCacheHitWritesNothing(t *testing.T) {
 	if err := db.Create(&rec).Error; err != nil {
 		t.Fatalf("seed client: %v", err)
 	}
-	row := model.ClientExternalLink{ClientId: rec.Id, Kind: model.ExternalLinkKindSubscription, Value: subURL}
-	if err := db.Create(&row).Error; err != nil {
-		t.Fatalf("seed external link: %v", err)
-	}
+	link := seedClientExternalLink(t, rec.Id, model.ClientExternalLink{Kind: model.ExternalLinkKindSubscription, Value: subURL})
 
 	subscriptionCache.Lock()
 	subscriptionCache.m[subURL] = subscriptionCacheEntry{
@@ -290,9 +308,9 @@ func TestExpandEntryCacheHitWritesNothing(t *testing.T) {
 		t.Fatalf("expandEntry = %#v, want the cached link", got)
 	}
 
-	var after model.ClientExternalLink
-	if err := db.First(&after, row.Id).Error; err != nil {
-		t.Fatalf("read row: %v", err)
+	var after model.ExternalLink
+	if err := db.First(&after, link.Id).Error; err != nil {
+		t.Fatalf("read library row: %v", err)
 	}
 	if after.LastFetchAt != 0 || after.LastFetchError != "" {
 		t.Fatalf("cache hit wrote fetch status: %#v", after)

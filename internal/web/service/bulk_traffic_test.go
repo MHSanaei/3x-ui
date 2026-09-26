@@ -158,17 +158,18 @@ func TestBulkDeleteRemovesClientExternalLinks(t *testing.T) {
 		t.Fatalf("seed linkage: %v", err)
 	}
 	rec := lookupClientRecord(t, email)
-	if err := database.GetDB().Create(&model.ClientExternalLink{ClientId: rec.Id, Kind: "sub", Value: "https://example.com/x"}).Error; err != nil {
-		t.Fatalf("seed external link: %v", err)
-	}
+	link := seedLibraryLink(t, model.ExternalLinkKindSubscription, "https://example.com/x", "")
+	assignLibraryLink(t, link.Id, model.ExternalLinkTargetClient, rec.Id, "")
 
 	if _, _, err := svc.BulkDelete(inboundSvc, []string{email}, false); err != nil {
 		t.Fatalf("BulkDelete: %v", err)
 	}
 
 	var cnt int64
-	if err := database.GetDB().Model(&model.ClientExternalLink{}).Where("client_id = ?", rec.Id).Count(&cnt).Error; err != nil {
-		t.Fatalf("count external links: %v", err)
+	if err := database.GetDB().Model(&model.ExternalLinkAssignment{}).
+		Where("target_type = ? AND target_id = ?", model.ExternalLinkTargetClient, rec.Id).
+		Count(&cnt).Error; err != nil {
+		t.Fatalf("count external link assignments: %v", err)
 	}
 	if cnt != 0 {
 		t.Fatalf("BulkDelete left %d orphan external-link row(s) behind", cnt)

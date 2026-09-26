@@ -1,0 +1,133 @@
+---
+title: External Links
+description: The panel-wide library of external links and external
+  subscriptions, plus the targets each entry is assigned to. All endpoints under
+  /panel/api/links. A client receives the union of the entries assigned to it
+  directly, to its group, to the inbounds it sits on and to the panel as a
+  whole; the most specific scope wins for overrides, and the library row itself
+  is shared so one edit reaches every client that inherits it. Subscription
+  entries are fetched by the panel, revalidated conditionally and never allowed
+  to empty a client subscription when the provider is down.
+full: true
+_openapi:
+  preload:
+    - ./public/openapi.json
+  toc:
+    - depth: 2
+      title: List the link library in display order. Each row carries assignedClients,
+        the number of distinct clients it reaches through every scope.
+      url: '#list-the-link-library-in-display-order-each-row-carries-assignedclients-the-number-of-distinct-clients-it-reaches-through-every-scope'
+    - depth: 2
+      title: Create a library entry, or update the one named by id in place. Editing a
+        shared row changes what every client inheriting it receives, so name and
+        lifecycle overrides that belong to one client are stored on the
+        assignment instead (see assign).
+      url: '#create-a-library-entry-or-update-the-one-named-by-id-in-place-editing-a-shared-row-changes-what-every-client-inheriting-it-receives-so-name-and-lifecycle-overrides-that-belong-to-one-client-are-stored-on-the-assignment-instead-see-assign'
+    - depth: 2
+      title: Delete a library entry together with every assignment to it. Clients that
+        inherited it stop receiving it immediately.
+      url: '#delete-a-library-entry-together-with-every-assignment-to-it-clients-that-inherited-it-stop-receiving-it-immediately'
+    - depth: 2
+      title: Enable or disable one library entry without dropping its assignments. A
+        disabled entry stays listed and editable but is not emitted to any
+        subscription.
+      url: '#enable-or-disable-one-library-entry-without-dropping-its-assignments-a-disabled-entry-stays-listed-and-editable-but-is-not-emitted-to-any-subscription'
+    - depth: 2
+      title: Store the library order. It is the order inherited entries appear in a
+        client subscription; a client’s own entries keep their own order and
+        stay first.
+      url: '#store-the-library-order-it-is-the-order-inherited-entries-appear-in-a-client-subscription-a-clients-own-entries-keep-their-own-order-and-stay-first'
+    - depth: 2
+      title: 'List what one library entry is assigned to, with a display name per
+        target: client emails, group names, inbound tags, and the special
+        all-clients and new-clients scopes.'
+      url: '#list-what-one-library-entry-is-assigned-to-with-a-display-name-per-target-client-emails-group-names-inbound-tags-and-the-special-all-clients-and-new-clients-scopes'
+    - depth: 2
+      title: Assign a library entry to every named target in one call. Assigning the
+        same target twice refreshes its overrides instead of duplicating the
+        row.
+      url: '#assign-a-library-entry-to-every-named-target-in-one-call-assigning-the-same-target-twice-refreshes-its-overrides-instead-of-duplicating-the-row'
+    - depth: 2
+      title: Remove the named targets from one library entry. The entry itself stays
+        in the library, and targets not listed keep their assignment.
+      url: '#remove-the-named-targets-from-one-library-entry-the-entry-itself-stays-in-the-library-and-targets-not-listed-keep-their-assignment'
+    - depth: 2
+      title: 'List what one client actually receives: the entries it owns first, then
+        the inherited ones with the scope that granted them. Disabled and
+        expired entries are excluded.'
+      url: '#list-what-one-client-actually-receives-the-entries-it-owns-first-then-the-inherited-ones-with-the-scope-that-granted-them-disabled-and-expired-entries-are-excluded'
+    - depth: 2
+      title: Fetch one subscription entry again right now, bypassing the cached copy,
+        and report how many share links came back. The panel otherwise
+        revalidates it in the background and serves the last good body, so a
+        failing provider never empties a subscription.
+      url: '#fetch-one-subscription-entry-again-right-now-bypassing-the-cached-copy-and-report-how-many-share-links-came-back-the-panel-otherwise-revalidates-it-in-the-background-and-serves-the-last-good-body-so-a-failing-provider-never-empties-a-subscription'
+    - depth: 2
+      title: 'Internal, called by a master panel: store the link set it resolved for
+        this node. Groups and inbound scopes arrive flattened into client
+        bindings because a node holds neither, and the stored rows are marked as
+        pushed so this panel shows them read-only.'
+      url: '#internal-called-by-a-master-panel-store-the-link-set-it-resolved-for-this-node-groups-and-inbound-scopes-arrive-flattened-into-client-bindings-because-a-node-holds-neither-and-the-stored-rows-are-marked-as-pushed-so-this-panel-shows-them-read-only'
+  structuredData:
+    headings:
+      - content: List the link library in display order. Each row carries
+          assignedClients, the number of distinct clients it reaches through
+          every scope.
+        id: list-the-link-library-in-display-order-each-row-carries-assignedclients-the-number-of-distinct-clients-it-reaches-through-every-scope
+      - content: Create a library entry, or update the one named by id in place. Editing
+          a shared row changes what every client inheriting it receives, so name
+          and lifecycle overrides that belong to one client are stored on the
+          assignment instead (see assign).
+        id: create-a-library-entry-or-update-the-one-named-by-id-in-place-editing-a-shared-row-changes-what-every-client-inheriting-it-receives-so-name-and-lifecycle-overrides-that-belong-to-one-client-are-stored-on-the-assignment-instead-see-assign
+      - content: Delete a library entry together with every assignment to it. Clients
+          that inherited it stop receiving it immediately.
+        id: delete-a-library-entry-together-with-every-assignment-to-it-clients-that-inherited-it-stop-receiving-it-immediately
+      - content: Enable or disable one library entry without dropping its assignments. A
+          disabled entry stays listed and editable but is not emitted to any
+          subscription.
+        id: enable-or-disable-one-library-entry-without-dropping-its-assignments-a-disabled-entry-stays-listed-and-editable-but-is-not-emitted-to-any-subscription
+      - content: Store the library order. It is the order inherited entries appear in a
+          client subscription; a client’s own entries keep their own order and
+          stay first.
+        id: store-the-library-order-it-is-the-order-inherited-entries-appear-in-a-client-subscription-a-clients-own-entries-keep-their-own-order-and-stay-first
+      - content: 'List what one library entry is assigned to, with a display name per
+          target: client emails, group names, inbound tags, and the special
+          all-clients and new-clients scopes.'
+        id: list-what-one-library-entry-is-assigned-to-with-a-display-name-per-target-client-emails-group-names-inbound-tags-and-the-special-all-clients-and-new-clients-scopes
+      - content: Assign a library entry to every named target in one call. Assigning the
+          same target twice refreshes its overrides instead of duplicating the
+          row.
+        id: assign-a-library-entry-to-every-named-target-in-one-call-assigning-the-same-target-twice-refreshes-its-overrides-instead-of-duplicating-the-row
+      - content: Remove the named targets from one library entry. The entry itself stays
+          in the library, and targets not listed keep their assignment.
+        id: remove-the-named-targets-from-one-library-entry-the-entry-itself-stays-in-the-library-and-targets-not-listed-keep-their-assignment
+      - content: 'List what one client actually receives: the entries it owns first,
+          then the inherited ones with the scope that granted them. Disabled and
+          expired entries are excluded.'
+        id: list-what-one-client-actually-receives-the-entries-it-owns-first-then-the-inherited-ones-with-the-scope-that-granted-them-disabled-and-expired-entries-are-excluded
+      - content: Fetch one subscription entry again right now, bypassing the cached
+          copy, and report how many share links came back. The panel otherwise
+          revalidates it in the background and serves the last good body, so a
+          failing provider never empties a subscription.
+        id: fetch-one-subscription-entry-again-right-now-bypassing-the-cached-copy-and-report-how-many-share-links-came-back-the-panel-otherwise-revalidates-it-in-the-background-and-serves-the-last-good-body-so-a-failing-provider-never-empties-a-subscription
+      - content: 'Internal, called by a master panel: store the link set it resolved for
+          this node. Groups and inbound scopes arrive flattened into client
+          bindings because a node holds neither, and the stored rows are marked
+          as pushed so this panel shows them read-only.'
+        id: internal-called-by-a-master-panel-store-the-link-set-it-resolved-for-this-node-groups-and-inbound-scopes-arrive-flattened-into-client-bindings-because-a-node-holds-neither-and-the-stored-rows-are-marked-as-pushed-so-this-panel-shows-them-read-only
+    contents: []
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+export default function Layout(props) {
+  const { APIPage, OpenAPIPage } = props.components ?? {};
+  // "APIPage" is the old name from v10, this allows both for backward compatibility
+  const Comp = OpenAPIPage ?? APIPage;
+  return (
+    <>
+      {props.children}
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/links/list","method":"get"},{"path":"/panel/api/links/add","method":"post"},{"path":"/panel/api/links/del/{id}","method":"post"},{"path":"/panel/api/links/enable/{id}","method":"post"},{"path":"/panel/api/links/reorder","method":"post"},{"path":"/panel/api/links/targets/{id}","method":"get"},{"path":"/panel/api/links/assign/{id}","method":"post"},{"path":"/panel/api/links/unassign/{id}","method":"post"},{"path":"/panel/api/links/client/{clientId}","method":"get"},{"path":"/panel/api/links/refresh/{id}","method":"post"},{"path":"/panel/api/links/sync","method":"post"}]} showTitle />
+    </>
+  );
+}

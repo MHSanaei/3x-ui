@@ -648,6 +648,15 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 			advancePushedInbound(rt, prevSettings, oldInbound)
 		}
 	}
+	// A live push only happens for a small operation (a bulk one defers to the
+	// reconcile sweep), so the node can be handed these clients' links too.
+	if push && oldInbound.NodeID != nil {
+		emails := make([]string, 0, len(clients))
+		for _, client := range clients {
+			emails = append(emails, client.Email)
+		}
+		(&ClientService{}).PushExternalLinksForEmails(*oldInbound.NodeID, emails)
+	}
 
 	return needRestart, nil
 }
@@ -1067,6 +1076,9 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 			cancel()
 			if err1 != nil {
 				logger.Warning("Error in updating client on", rt.Name(), ":", err1)
+				// The node did not take the client: spending the link deadline on
+				// it too would double the wait before the reconcile sweep.
+				push = false
 			} else {
 				advancePushedInbound(rt, prevSettings, oldInbound)
 			}
@@ -1074,6 +1086,11 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	} else {
 		logger.Debug("Client old email not found")
 		needRestart = true
+	}
+	// An edit can change the group an inbound attaches to, which changes the
+	// links this client inherits: same live-push rule as the add path.
+	if push && oldInbound.NodeID != nil && len(clients) > 0 {
+		(&ClientService{}).PushExternalLinksForEmails(*oldInbound.NodeID, []string{clients[0].Email})
 	}
 
 	return needRestart, nil

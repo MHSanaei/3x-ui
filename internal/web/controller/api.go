@@ -115,6 +115,7 @@ var nodeSyncScopeAllow = map[string]map[string]struct{}{
 	"/server/clientIps":            {http.MethodGet: {}, http.MethodPost: {}},
 	"/clients/clientIpsByGuid":     {http.MethodPost: {}},
 	"/hosts/list":                  {http.MethodGet: {}},
+	"/links/sync":                  {http.MethodPost: {}},
 }
 
 // enforceTokenScope applies explicit allowlists to monitor and node-sync tokens.
@@ -204,6 +205,10 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// /panel/api/xray/*.
 	a.settingController = NewSettingController(api)
 	a.xraySettingController = NewXraySettingController(api)
+
+	// Link library — the shared external links every client can inherit
+	links := api.Group("/links")
+	NewLinkController(links)
 
 	// Subscription balancers — client-side balancers for the JSON sub output
 	NewSubBalancerController(api)

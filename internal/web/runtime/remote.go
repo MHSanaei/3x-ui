@@ -706,6 +706,11 @@ func (r *Remote) ResetAllTraffics(ctx context.Context) error {
 	return err
 }
 
+func (r *Remote) PushExternalLinks(ctx context.Context, sync ExternalLinkSync) error {
+	_, err := r.do(ctx, http.MethodPost, "panel/api/links/sync", sync)
+	return err
+}
+
 func (r *Remote) ResetInboundTraffic(ctx context.Context, ib *model.Inbound) error {
 	_, err := r.do(ctx, http.MethodPost, fmt.Sprintf("panel/api/inbounds/%d/resetTraffic", ib.Id), nil)
 	return err
