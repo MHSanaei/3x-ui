@@ -3028,6 +3028,11 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": true,
         "type": "boolean"
       },
+      "excludeFromSub": {
+        "description": "Whether to omit this inbound from subscription output while keeping it operational",
+        "example": false,
+        "type": "boolean"
+      },
       "expiryTime": {
         "description": "Expiration timestamp",
         "format": "int64",
@@ -3151,6 +3156,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "disableFlow",
       "down",
       "enable",
+      "excludeFromSub",
       "expiryTime",
       "id",
       "lastTrafficResetTime",

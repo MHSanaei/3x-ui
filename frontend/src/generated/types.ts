@@ -705,6 +705,7 @@ export interface Inbound {
   disableFlow: boolean;
   down: number;
   enable: boolean;
+  excludeFromSub: boolean;
   expiryTime: number;
   fallbackParent?: FallbackParentInfo | null;
   id: number;
