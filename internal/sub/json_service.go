@@ -141,6 +141,12 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		if len(clients) == 0 {
 			continue
 		}
+		if inbound.ExcludeFromSub {
+			if countHiddenClients(clients, seenEmails) {
+				hasEnabledClient = true
+			}
+			continue
+		}
 		subReq.projectThroughFallbackMaster(inbound)
 		if hostEps := subReq.hostEndpoints(inbound, "json"); len(hostEps) > 0 {
 			injectExternalProxy(inbound, hostEps)
