@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -76,7 +77,8 @@ func decodeKey(b64 string) ([keyLen]byte, error) {
 	return out, nil
 }
 
-// FileKeySource accepts only key files that are mode 0600 or stricter.
+// FileKeySource accepts only key files that are mode 0600 or stricter. Windows has
+// no such bits (Stat reports 0666), so there the file's NTFS ACL is what guards it.
 type FileKeySource struct {
 	Path string
 }
@@ -86,7 +88,7 @@ func (f FileKeySource) Load() (*Keyring, error) {
 	if err != nil {
 		return nil, fmt.Errorf("nodetoken: stat key file %s: %w", f.Path, err)
 	}
-	if perm := info.Mode().Perm(); perm&0o077 != 0 {
+	if perm := info.Mode().Perm(); runtime.GOOS != "windows" && perm&0o077 != 0 {
 		return nil, fmt.Errorf("nodetoken: key file %s has insecure mode %#o (want 0600)", f.Path, perm)
 	}
 	data, err := os.ReadFile(f.Path)
