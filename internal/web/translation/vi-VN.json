@@ -639,7 +639,7 @@
         "maxTimeDiff": "Chênh lệch thời gian tối đa (ms)",
         "minClientVer": "Phiên bản client tối thiểu",
         "maxClientVer": "Phiên bản client tối đa",
-        "minClientVerHint": "Để trống nghĩa là không có mức tối thiểu: Xray-core chấp nhận mọi phiên bản client, kể cả các core bên thứ ba như Mihomo và sing-box. Đặt một phiên bản để từ chối các client báo phiên bản cũ hơn.",
+        "minClientVerHint": "Trên Xray-core v26.9.8+, để trống nghĩa là không có mức tối thiểu: mọi phiên bản client đều được chấp nhận, kể cả các core bên thứ ba như Mihomo và sing-box. Các core từ v26.7.11 đến v26.9.7 thì áp dụng mức tối thiểu tích hợp 26.3.27 khi để trống; hãy đặt 1.0.0 để chấp nhận các client đó. Đặt một phiên bản để từ chối các client báo phiên bản cũ hơn.",
         "maxClientVerHint": "Để trống nghĩa là không có giới hạn trên. Nếu đặt, không được thấp hơn phiên bản client tối thiểu — nếu không mọi client đều bị từ chối.",
         "clientVerInvalid": "Phiên bản client phải gồm tối đa ba số cách nhau bằng dấu chấm, mỗi số 0-255 (ví dụ 26.3.27)",
         "maxClientVerBelowMin": "Phiên bản client tối đa không được thấp hơn phiên bản client tối thiểu",

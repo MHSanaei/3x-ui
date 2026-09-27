@@ -618,7 +618,7 @@
         "maxTimeDiff": "Maks. selisih waktu (ms)",
         "minClientVer": "Min. versi klien",
         "maxClientVer": "Maks. versi klien",
-        "minClientVerHint": "Kosong berarti tanpa minimum: Xray-core menerima semua versi klien, termasuk core pihak ketiga seperti Mihomo dan sing-box. Isi versi untuk menolak klien yang melaporkan versi lebih lama.",
+        "minClientVerHint": "Pada Xray-core v26.9.8+ kosong berarti tanpa minimum: semua versi klien diterima, termasuk core pihak ketiga seperti Mihomo dan sing-box. Core v26.7.11 hingga v26.9.7 justru memberlakukan minimum bawaan 26.3.27 saat kosong; isi 1.0.0 di sana untuk menerima klien tersebut. Isi versi untuk menolak klien yang melaporkan versi lebih lama.",
         "maxClientVerHint": "Kosong berarti tanpa batas atas. Jika diisi, tidak boleh lebih rendah dari versi klien minimum — jika tidak, semua klien ditolak.",
         "clientVerInvalid": "Versi klien harus berupa maksimal tiga angka dipisah titik, masing-masing 0-255 (mis. 26.3.27)",
         "maxClientVerBelowMin": "Versi klien maksimum tidak boleh lebih rendah dari versi klien minimum",

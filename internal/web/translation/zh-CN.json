@@ -638,7 +638,7 @@
         "maxTimeDiff": "最大时间差 (ms)",
         "minClientVer": "最小客户端版本",
         "maxClientVer": "最大客户端版本",
-        "minClientVerHint": "留空表示不设下限：Xray-core 接受任何客户端版本，包括 Mihomo、sing-box 等第三方内核。填写版本可拒绝自报版本更低的客户端。",
+        "minClientVerHint": "在 Xray-core v26.9.8 及以上版本中，留空表示不设下限：接受任何客户端版本，包括 Mihomo、sing-box 等第三方内核。v26.7.11 至 v26.9.7 的内核在留空时会改用内置最低值 26.3.27；在这些内核上填 1.0.0 即可放行这类客户端。填写版本可拒绝自报版本更低的客户端。",
         "maxClientVerHint": "留空表示无上限。若填写，不得低于最小客户端版本，否则所有客户端都会被拒绝。",
         "clientVerInvalid": "客户端版本须为最多三段以点分隔的数字，每段 0-255（例如 26.3.27）",
         "maxClientVerBelowMin": "最大客户端版本不得低于最小客户端版本",

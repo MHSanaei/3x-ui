@@ -632,7 +632,7 @@
         "maxTimeDiff": "Max Time Diff (ms)",
         "minClientVer": "Min Client Ver",
         "maxClientVer": "Max Client Ver",
-        "minClientVerHint": "Empty means no minimum: Xray-core accepts every client version, including third-party cores such as Mihomo and sing-box. Set a version to reject clients that report an older one.",
+        "minClientVerHint": "On Xray-core v26.9.8+ empty means no minimum: every client version is accepted, including third-party cores such as Mihomo and sing-box. Cores v26.7.11 to v26.9.7 instead enforce a built-in 26.3.27 minimum when empty; set 1.0.0 there to accept those clients. Set a version to reject clients that report an older one.",
         "maxClientVerHint": "Empty means no upper limit. If set, it must not be lower than Min Client Ver — otherwise every client is rejected.",
         "clientVerInvalid": "Client version must be up to three dot-separated numbers, each 0-255 (e.g. 26.3.27)",
         "maxClientVerBelowMin": "Max Client Ver must not be lower than Min Client Ver",

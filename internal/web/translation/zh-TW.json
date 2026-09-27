@@ -618,7 +618,7 @@
         "maxTimeDiff": "最大時間差 (ms)",
         "minClientVer": "最小客戶端版本",
         "maxClientVer": "最大客戶端版本",
-        "minClientVerHint": "留空表示不設下限：Xray-core 接受任何客戶端版本，包括 Mihomo、sing-box 等第三方核心。填寫版本可拒絕自報版本較低的客戶端。",
+        "minClientVerHint": "在 Xray-core v26.9.8 及以上版本中，留空表示不設下限：接受任何客戶端版本，包括 Mihomo、sing-box 等第三方核心。v26.7.11 至 v26.9.7 的核心在留空時會改用內建最低值 26.3.27；在這些核心上填 1.0.0 即可放行這類客戶端。填寫版本可拒絕自報版本較低的客戶端。",
         "maxClientVerHint": "留空表示無上限。若填寫，不得低於最小客戶端版本，否則所有客戶端都會被拒絕。",
         "clientVerInvalid": "客戶端版本須為最多三段以點分隔的數字，每段 0-255（例如 26.3.27）",
         "maxClientVerBelowMin": "最大客戶端版本不得低於最小客戶端版本",

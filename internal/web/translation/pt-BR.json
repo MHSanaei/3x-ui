@@ -639,7 +639,7 @@
         "maxTimeDiff": "Máx. diferença de tempo (ms)",
         "minClientVer": "Mín. versão cliente",
         "maxClientVer": "Máx. versão cliente",
-        "minClientVerHint": "Vazio significa sem mínimo: o Xray-core aceita qualquer versão de cliente, incluindo núcleos de terceiros como Mihomo e sing-box. Defina uma versão para rejeitar clientes que informem uma mais antiga.",
+        "minClientVerHint": "No Xray-core v26.9.8+ vazio significa sem mínimo: qualquer versão de cliente é aceita, incluindo núcleos de terceiros como Mihomo e sing-box. Já os núcleos v26.7.11 a v26.9.7 aplicam um mínimo embutido de 26.3.27 quando vazio; defina 1.0.0 neles para aceitar esses clientes. Defina uma versão para rejeitar clientes que informem uma mais antiga.",
         "maxClientVerHint": "Vazio significa sem limite superior. Se definido, não deve ser menor que a versão mínima do cliente; caso contrário, todos os clientes são rejeitados.",
         "clientVerInvalid": "A versão do cliente deve ter até três números separados por pontos, cada um 0-255 (ex.: 26.3.27)",
         "maxClientVerBelowMin": "A versão máxima do cliente não deve ser menor que a versão mínima",
