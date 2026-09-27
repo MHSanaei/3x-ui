@@ -1,6 +1,7 @@
 package service
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -75,7 +76,8 @@ func TestClientRenewalWriteValidation(t *testing.T) {
 					t.Fatal("rejected write changed inbound settings")
 				}
 				record, err = svc.GetRecordByEmail(nil, beforeRecord.Email)
-				if err != nil || *record != beforeRecord || readTraffic(t, database.GetDB(), beforeRecord.Email) != beforeTraffic {
+				// ClientRecord holds slices, so it is not comparable with !=.
+				if err != nil || !reflect.DeepEqual(*record, beforeRecord) || readTraffic(t, database.GetDB(), beforeRecord.Email) != beforeTraffic {
 					t.Fatalf("rejected write changed client/traffic: record=%+v error=%v", record, err)
 				}
 				for _, table := range []string{"inbounds", "clients", "client_traffics"} {

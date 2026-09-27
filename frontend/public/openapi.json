@@ -1701,13 +1701,13 @@
             "type": "string"
           },
           "clientHostRuleId": {
-            "description": "ClientHostRuleId optionally binds one Host row to this client. When set,\nsubscription generation uses that host alone instead of the inbound's\nhosts. Nil or non-positive means no override.",
+            "description": "ClientHostRuleId optionally binds one Host row to this client.\nNil or non-positive means no override (inbound rule applies).",
             "example": 1,
             "nullable": true,
             "type": "integer"
           },
           "clientHostRuleIds": {
-            "description": "ClientHostRuleIds optionally binds several Host rows to this client.\nThe effective binding is the union of this list and ClientHostRuleId;\neach bound host renders its own link/proxy. Empty means no override.",
+            "description": "ClientHostRuleIds optionally binds several Host rows to this client.\nUnioned with ClientHostRuleId; each bound host renders its own link.",
             "example": [
               1,
               2
