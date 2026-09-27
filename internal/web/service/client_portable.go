@@ -18,7 +18,6 @@ import (
 type ClientPortableTraffic struct {
 	Up           int64 `json:"up"`
 	Down         int64 `json:"down"`
-	Total        int64 `json:"total"`
 	ResetCount   int   `json:"resetCount"`
 	LastOnline   int64 `json:"lastOnline,omitempty"`
 	LastSubFetch int64 `json:"lastSubFetch,omitempty"`
@@ -68,7 +67,6 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 			trafficByEmail[t.Email] = &ClientPortableTraffic{
 				Up:           t.Up,
 				Down:         t.Down,
-				Total:        t.Total,
 				ResetCount:   t.ResetCount,
 				LastOnline:   t.LastOnline,
 				LastSubFetch: t.LastSubFetch,
@@ -101,20 +99,20 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 		return result, false, nil
 	}
 
-	existingEmails, err := existingClientEmails(items)
-	if err != nil {
-		return result, false, err
-	}
-
 	attached := make([]ClientCreatePayload, 0, len(items))
+	attachedSrc := make([]int, 0, len(items))
 	orphans := make([]ClientCreatePayload, 0)
+	orphanSrc := make([]int, 0)
 	for i := range items {
 		if len(items[i].InboundIds) > 0 {
 			attached = append(attached, items[i])
+			attachedSrc = append(attachedSrc, i)
 		} else {
 			orphans = append(orphans, items[i])
+			orphanSrc = append(orphanSrc, i)
 		}
 	}
+	inserted := make([]int, 0, len(items))
 
 	skip := func(email, reason string) {
 		if strings.TrimSpace(email) == "" {
@@ -125,13 +123,16 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 
 	needRestart := false
 	if len(attached) > 0 {
-		sub, nr, err := s.BulkCreate(inboundSvc, attached)
+		sub, subInserted, nr, err := s.bulkCreate(inboundSvc, attached)
 		if err != nil {
 			return result, needRestart, err
 		}
 		needRestart = needRestart || nr
 		result.Created += sub.Created
 		result.Skipped = append(result.Skipped, sub.Skipped...)
+		for _, j := range subInserted {
+			inserted = append(inserted, attachedSrc[j])
+		}
 	}
 
 	db := database.GetDB()
@@ -211,116 +212,59 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 			}
 		}
 		result.Created++
+		inserted = append(inserted, orphanSrc[i])
 	}
 
-	if err := s.applyPortableTraffics(items, existingEmails, result.Skipped); err != nil {
+	if err := applyPortableTraffics(inboundSvc, items, inserted); err != nil {
 		return result, needRestart, err
 	}
 
 	return result, needRestart, nil
 }
 
-func existingClientEmails(items []ClientCreatePayload) (map[string]struct{}, error) {
-	out := make(map[string]struct{})
-	emails := make([]string, 0, len(items))
-	seen := make(map[string]struct{}, len(items))
-	for i := range items {
-		email := strings.TrimSpace(items[i].Client.Email)
-		if email == "" {
-			continue
-		}
-		le := strings.ToLower(email)
-		if _, ok := seen[le]; ok {
-			continue
-		}
-		seen[le] = struct{}{}
-		emails = append(emails, email)
-	}
-	if len(emails) == 0 {
-		return out, nil
-	}
-	db := database.GetDB()
-	for _, batch := range chunkStrings(emails, sqlInChunk) {
-		var rows []model.ClientRecord
-		if err := db.Select("email").Where("email IN ?", batch).Find(&rows).Error; err != nil {
-			return nil, err
-		}
-		for i := range rows {
-			out[strings.ToLower(rows[i].Email)] = struct{}{}
+// applyPortableTraffics restores counters only for items that inserted a record,
+// in batched serialized transactions rather than one writer round-trip per client.
+func applyPortableTraffics(inboundSvc *InboundService, items []ClientCreatePayload, inserted []int) error {
+	const batchSize = 400
+	withTraffic := make([]int, 0, len(inserted))
+	for _, i := range inserted {
+		if items[i].Traffic != nil {
+			withTraffic = append(withTraffic, i)
 		}
 	}
-	return out, nil
-}
-
-func (s *ClientService) applyPortableTraffics(items []ClientCreatePayload, existingEmails map[string]struct{}, skipped []BulkCreateReport) error {
-	skippedSet := make(map[string]struct{}, len(skipped))
-	for _, rep := range skipped {
-		skippedSet[strings.ToLower(rep.Email)] = struct{}{}
-	}
-	for i := range items {
-		snap := items[i].Traffic
-		if snap == nil {
-			continue
-		}
-		email := strings.TrimSpace(items[i].Client.Email)
-		if email == "" {
-			continue
-		}
-		le := strings.ToLower(email)
-		if _, existed := existingEmails[le]; existed {
-			continue
-		}
-		if _, wasSkipped := skippedSet[le]; wasSkipped {
-			continue
-		}
-		if err := applyPortableTraffic(email, snap, items[i].Client); err != nil {
+	for start := 0; start < len(withTraffic); start += batchSize {
+		batch := withTraffic[start:min(start+batchSize, len(withTraffic))]
+		if err := runSerializedTx(func(tx *gorm.DB) error {
+			for _, i := range batch {
+				if err := applyPortableTraffic(tx, inboundSvc, items[i]); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// applyPortableTraffic restores exported up/down onto a newly imported email's
-// client_traffics row without touching limit/expiry already set by AddClientStat.
-func applyPortableTraffic(email string, snap *ClientPortableTraffic, client model.Client) error {
-	if snap == nil {
-		return nil
+// applyPortableTraffic writes the exported counters. Attached clients got their row
+// on create; an orphan's row (new, or kept by a keepTraffic delete) is upserted here.
+func applyPortableTraffic(tx *gorm.DB, inboundSvc *InboundService, item ClientCreatePayload) error {
+	client := item.Client
+	client.Email = strings.TrimSpace(client.Email)
+	if len(item.InboundIds) == 0 {
+		if err := inboundSvc.AddClientStat(tx, 0, &client); err != nil {
+			return err
+		}
 	}
-	return submitTrafficWrite(func() error {
-		db := database.GetDB()
-		updates := map[string]any{
-			"up":             snap.Up,
-			"down":           snap.Down,
-			"reset_count":    snap.ResetCount,
-			"last_online":    snap.LastOnline,
-			"last_sub_fetch": snap.LastSubFetch,
-		}
-		res := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).Updates(updates)
-		if res.Error != nil {
-			return res.Error
-		}
-		if res.RowsAffected > 0 {
-			return nil
-		}
-		total := client.TotalGB
-		if snap.Total > 0 {
-			total = snap.Total
-		}
-		return db.Create(&xray.ClientTraffic{
-			Email:        email,
-			Enable:       true,
-			Up:           snap.Up,
-			Down:         snap.Down,
-			Total:        total,
-			ExpiryTime:   client.ExpiryTime,
-			Reset:        client.Reset,
-			ResetDay:     client.ResetDay,
-			ResetMax:     client.ResetMax,
-			ResetCount:   snap.ResetCount,
-			LastOnline:   snap.LastOnline,
-			LastSubFetch: snap.LastSubFetch,
-		}).Error
-	})
+	return tx.Model(&xray.ClientTraffic{}).Where("email = ?", client.Email).Updates(map[string]any{
+		"up":             item.Traffic.Up,
+		"down":           item.Traffic.Down,
+		"reset_count":    item.Traffic.ResetCount,
+		"last_online":    item.Traffic.LastOnline,
+		"last_sub_fetch": item.Traffic.LastSubFetch,
+	}).Error
 }
 
 // DeleteOrphans removes every unattached client plus its traffic, IP log, and

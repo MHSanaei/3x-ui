@@ -280,7 +280,7 @@ func TestImportClientsAppliesTrafficForOrphans(t *testing.T) {
 		},
 		InboundIds: nil,
 		Traffic: &ClientPortableTraffic{
-			Up: 7, Down: 8, Total: 1 << 30, ResetCount: 1,
+			Up: 7, Down: 8, ResetCount: 1,
 		},
 	}}
 	res, _, err := svc.ImportClients(&InboundService{}, items)
@@ -296,5 +296,109 @@ func TestImportClientsAppliesTrafficForOrphans(t *testing.T) {
 	}
 	if traf.Up != 7 || traf.Down != 8 || traf.ResetCount != 1 {
 		t.Fatalf("orphan traffic = %+v", traf)
+	}
+}
+
+// An orphan's restored row must carry its weekly schedule, or depletedClientsClause
+// treats the over-quota renewing client as depleted and DelDepleted deletes it.
+func TestImportClientsOrphanTrafficKeepsWeeklyRenewal(t *testing.T) {
+	const email = "weekly@orphan"
+	cases := []struct {
+		name string
+		seed func(t *testing.T, svc *ClientService, inboundSvc *InboundService)
+	}{
+		{name: "no prior row", seed: func(*testing.T, *ClientService, *InboundService) {}},
+		{
+			name: "row kept by keepTraffic delete",
+			seed: func(t *testing.T, svc *ClientService, inboundSvc *InboundService) {
+				ib := mkInbound(t, 25003, model.VLESS, `{"clients":[]}`)
+				if _, err := svc.Create(inboundSvc, &ClientCreatePayload{
+					Client:     model.Client{Email: email, SubID: "sub-weekly-old", Enable: true, TotalGB: 1 << 30},
+					InboundIds: []int{ib.Id},
+				}); err != nil {
+					t.Fatalf("Create: %v", err)
+				}
+				if _, err := svc.Delete(inboundSvc, lookupClientRecord(t, email).Id, true); err != nil {
+					t.Fatalf("Delete keepTraffic: %v", err)
+				}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setupBulkDB(t)
+			svc := &ClientService{}
+			inboundSvc := &InboundService{}
+			tc.seed(t, svc, inboundSvc)
+
+			items := []ClientCreatePayload{{
+				Client: model.Client{
+					Email: email, SubID: "sub-weekly-orphan", Enable: true,
+					TotalGB: 1 << 30, ResetWeekday: 3,
+				},
+				Traffic: &ClientPortableTraffic{Up: 1 << 30, Down: 1},
+			}}
+			if res, _, err := svc.ImportClients(inboundSvc, items); err != nil || res.Created != 1 {
+				t.Fatalf("ImportClients result=%+v err=%v, want 1 created", res, err)
+			}
+			deleted, _, err := svc.DelDepleted(inboundSvc)
+			if err != nil {
+				t.Fatalf("DelDepleted: %v", err)
+			}
+			if deleted != 0 {
+				t.Fatalf("DelDepleted deleted %d weekly-renewing client(s), want 0", deleted)
+			}
+			lookupClientRecord(t, email)
+		})
+	}
+}
+
+// A duplicate email in the file is skipped, but the copy that was created must
+// still get its own counters rather than none or the skipped copy's.
+func TestImportClientsDuplicateEmailRestoresCreatedCopy(t *testing.T) {
+	cases := []struct {
+		name  string
+		items func(ibID int) []ClientCreatePayload
+	}{
+		{
+			name: "second attached copy skipped",
+			items: func(ibID int) []ClientCreatePayload {
+				return []ClientCreatePayload{
+					{Client: model.Client{Email: "dup@traffic", SubID: "sub-dup-a", Enable: true}, InboundIds: []int{ibID}, Traffic: &ClientPortableTraffic{Up: 11, Down: 12}},
+					{Client: model.Client{Email: "dup@traffic", SubID: "sub-dup-b", Enable: true}, InboundIds: []int{ibID}, Traffic: &ClientPortableTraffic{Up: 99, Down: 99}},
+				}
+			},
+		},
+		{
+			name: "earlier orphan copy skipped",
+			items: func(ibID int) []ClientCreatePayload {
+				return []ClientCreatePayload{
+					{Client: model.Client{Email: "dup@traffic", SubID: "sub-dup-b", Enable: true}, Traffic: &ClientPortableTraffic{Up: 99, Down: 99}},
+					{Client: model.Client{Email: "dup@traffic", SubID: "sub-dup-a", Enable: true}, InboundIds: []int{ibID}, Traffic: &ClientPortableTraffic{Up: 11, Down: 12}},
+				}
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setupBulkDB(t)
+			svc := &ClientService{}
+			ib := mkInbound(t, 25002, model.VLESS, `{"clients":[]}`)
+
+			res, _, err := svc.ImportClients(&InboundService{}, tc.items(ib.Id))
+			if err != nil {
+				t.Fatalf("ImportClients: %v", err)
+			}
+			if res.Created != 1 || len(res.Skipped) != 1 {
+				t.Fatalf("ImportClients result=%+v, want 1 created and 1 skipped", res)
+			}
+			var row xray.ClientTraffic
+			if err := database.GetDB().Where("email = ?", "dup@traffic").First(&row).Error; err != nil {
+				t.Fatalf("lookup traffic: %v", err)
+			}
+			if row.Up != 11 || row.Down != 12 {
+				t.Fatalf("traffic up=%d down=%d, want the created copy's 11/12", row.Up, row.Down)
+			}
+		})
 	}
 }
