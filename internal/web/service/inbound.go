@@ -1129,6 +1129,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	}
 	inbound.Tag = tag
 
+	normalizeLegacyClientSettings(inbound)
 	clients, err := s.GetClients(inbound)
 	if err != nil {
 		return inbound, false, err

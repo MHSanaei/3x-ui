@@ -2521,32 +2521,6 @@ func isAllowOnlyFinalRules(v any) bool {
 	return true
 }
 
-func normalizeClientJSONFields(obj map[string]any) {
-	normalizeInt := func(key string) {
-		raw, exists := obj[key]
-		if !exists {
-			return
-		}
-		s, ok := raw.(string)
-		if !ok {
-			return
-		}
-		trimmed := strings.ReplaceAll(strings.TrimSpace(s), " ", "")
-		if trimmed == "" {
-			delete(obj, key)
-			return
-		}
-		if n, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
-			obj[key] = n
-		} else {
-			delete(obj, key)
-		}
-	}
-	for _, k := range []string{"tgId", "limitIp", "totalGB", "expiryTime", "reset", "created_at", "updated_at"} {
-		normalizeInt(k)
-	}
-}
-
 func seedClientsFromInboundJSON() error {
 	var inbounds []model.Inbound
 	if err := db.Find(&inbounds).Error; err != nil {
@@ -2583,7 +2557,7 @@ func seedClientsFromInboundJSON() error {
 				if !ok {
 					continue
 				}
-				normalizeClientJSONFields(obj)
+				model.NormalizeLegacyClientFields(obj)
 				blob, err := json.Marshal(obj)
 				if err != nil {
 					continue
