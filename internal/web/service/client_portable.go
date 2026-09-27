@@ -235,12 +235,14 @@ func applyPortableTraffics(inboundSvc *InboundService, items []ClientCreatePaylo
 	for start := 0; start < len(withTraffic); start += batchSize {
 		batch := withTraffic[start:min(start+batchSize, len(withTraffic))]
 		if err := runSerializedTx(func(tx *gorm.DB) error {
+			emails := make([]string, 0, len(batch))
 			for _, i := range batch {
 				if err := applyPortableTraffic(tx, inboundSvc, items[i]); err != nil {
 					return err
 				}
+				emails = append(emails, strings.TrimSpace(items[i].Client.Email))
 			}
-			return nil
+			return adjustGroupBaselinesForRestoredTraffic(tx, emails)
 		}); err != nil {
 			return err
 		}

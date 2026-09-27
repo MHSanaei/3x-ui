@@ -353,6 +353,61 @@ func TestImportClientsOrphanTrafficKeepsWeeklyRenewal(t *testing.T) {
 	}
 }
 
+// Restored counters are usage from before the import, so they must not move the
+// group total at import time: a delete+re-import would otherwise count them twice.
+func TestImportClientsTrafficLeavesGroupTotalUnchanged(t *testing.T) {
+	t.Run("re-import after delete on the same panel", func(t *testing.T) {
+		setupBulkDB(t)
+		svc := &ClientService{}
+		inboundSvc := &InboundService{}
+		ib := mkInbound(t, 25004, model.VLESS, `{"clients":[]}`)
+		const email = "grouped@traffic"
+		if _, err := svc.Create(inboundSvc, &ClientCreatePayload{
+			Client:     model.Client{Email: email, SubID: "sub-grouped", Enable: true, Group: "g"},
+			InboundIds: []int{ib.Id},
+		}); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", email).
+			Updates(map[string]any{"up": 100, "down": 200}).Error; err != nil {
+			t.Fatalf("seed traffic: %v", err)
+		}
+		exported, err := svc.ExportAll()
+		if err != nil {
+			t.Fatalf("ExportAll: %v", err)
+		}
+		if _, err := svc.Delete(inboundSvc, lookupClientRecord(t, email).Id, false); err != nil {
+			t.Fatalf("Delete: %v", err)
+		}
+		if g := groupByName(t, svc, "g"); g.TrafficUsed != 300 {
+			t.Fatalf("group after delete = %d, want the kept 300", g.TrafficUsed)
+		}
+
+		if res, _, err := svc.ImportClients(inboundSvc, exported); err != nil || res.Created != 1 {
+			t.Fatalf("ImportClients result=%+v err=%v, want 1 created", res, err)
+		}
+		if g := groupByName(t, svc, "g"); g.Up != 100 || g.Down != 200 {
+			t.Fatalf("group after re-import up=%d down=%d, want unchanged 100/200", g.Up, g.Down)
+		}
+	})
+
+	t.Run("new panel starts the group at zero", func(t *testing.T) {
+		setupBulkDB(t)
+		svc := &ClientService{}
+		ib := mkInbound(t, 25005, model.VLESS, `{"clients":[]}`)
+		items := []ClientCreatePayload{
+			{Client: model.Client{Email: "attached@g", SubID: "sub-attached-g", Enable: true, Group: "g"}, InboundIds: []int{ib.Id}, Traffic: &ClientPortableTraffic{Up: 100, Down: 200}},
+			{Client: model.Client{Email: "orphan@g", SubID: "sub-orphan-g", Enable: true, Group: "g"}, Traffic: &ClientPortableTraffic{Up: 10, Down: 20}},
+		}
+		if res, _, err := svc.ImportClients(&InboundService{}, items); err != nil || res.Created != 2 {
+			t.Fatalf("ImportClients result=%+v err=%v, want 2 created", res, err)
+		}
+		if g := groupByName(t, svc, "g"); g.TrafficUsed != 0 {
+			t.Fatalf("group after import = %d (up=%d down=%d), want 0", g.TrafficUsed, g.Up, g.Down)
+		}
+	})
+}
+
 // A duplicate email in the file is skipped, but the copy that was created must
 // still get its own counters rather than none or the skipped copy's.
 func TestImportClientsDuplicateEmailRestoresCreatedCopy(t *testing.T) {
