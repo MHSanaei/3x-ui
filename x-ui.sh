@@ -897,7 +897,8 @@ check_status() {
         if [[ ! -f ${xui_service}/x-ui.service ]]; then
             return 2
         fi
-        temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+        temp=$(systemctl show --property=SubState x-ui)
+        temp=${temp#SubState=}
         if [[ "${temp}" == "running" ]]; then
             return 0
         else
