@@ -96,7 +96,9 @@ func (t *Tgbot) OnReceive() {
 			// Use goroutine with worker pool for concurrent command processing
 			go runBotHandler(func() {
 				userStateMgr.clear(messageActor(message))
-				t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
+				if isAdmin, ok := t.gateCommand(&message); ok {
+					t.answerCommand(&message, message.Chat.ID, isAdmin)
+				}
 			})
 			return nil
 		}, th.AnyCommand())
@@ -105,7 +107,9 @@ func (t *Tgbot) OnReceive() {
 			// Use goroutine with worker pool for concurrent callback processing
 			go runBotHandler(func() {
 				userStateMgr.clear(callbackActor(&query))
-				t.answerCallback(&query, checkAdmin(query.From.ID))
+				if isAdmin, ok := t.gateCallback(&query); ok {
+					t.answerCallback(&query, isAdmin)
+				}
 			})
 			return nil
 		}, th.AnyCallbackQueryWithMessage())
@@ -227,6 +231,18 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.help")
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
+		if len(commandArgs) > 0 {
+			if !isAdmin && !t.allowInviteAttempt(message.From) {
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.inviteRateLimited"))
+				return
+			}
+			t.claimInvite(chatId, message.From.ID, commandArgs[0])
+		}
+		// A stranger learns only its ChatID, which is what an admin needs to bind it.
+		if !isAdmin && t.levelOf(message.From.ID) == levelStranger {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(message.From.ID, 10)))
+			return
+		}
 		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
@@ -792,6 +808,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "tg_user":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.getUserInfo", "Email=="+email))
 				t.clientTelegramUserInfo(chatId, email)
+			case "client_invite_link":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.inviteLink"))
+				t.sendInviteLink(chatId, email)
 			case "tgid_remove":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
