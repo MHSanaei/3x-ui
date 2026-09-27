@@ -107,6 +107,7 @@ type AllSetting struct {
 	SubDomain                   string `json:"subDomain" form:"subDomain"`
 	SubCertFile                 string `json:"subCertFile" form:"subCertFile"`
 	SubKeyFile                  string `json:"subKeyFile" form:"subKeyFile"`
+	ExternalSubUserAgent        string `json:"externalSubUserAgent" form:"externalSubUserAgent"`
 	SubUpdates                  int    `json:"subUpdates" form:"subUpdates" validate:"gte=0,lte=525600"`
 	ExternalTrafficInformEnable bool   `json:"externalTrafficInformEnable" form:"externalTrafficInformEnable"`
 	ExternalTrafficInformURI    string `json:"externalTrafficInformURI" form:"externalTrafficInformURI"`
@@ -153,6 +154,38 @@ type AllSetting struct {
 	SubHappAutoConnectType     string `json:"subHappAutoConnectType" form:"subHappAutoConnectType"`
 	SubHappPerAppMode          string `json:"subHappPerAppMode" form:"subHappPerAppMode"`
 	SubHappPerAppList          string `json:"subHappPerAppList" form:"subHappPerAppList"`
+	SubHappLocalProxyAuth      string `json:"subHappLocalProxyAuth" form:"subHappLocalProxyAuth"`
+
+	// Incy client customization settings (app-management). A "" value omits
+	// the header so the subscriber's own app setting is left alone.
+	SubIncyAppAutoDetect       bool   `json:"subIncyAppAutoDetect" form:"subIncyAppAutoDetect"`
+	SubIncyProfileDescription  string `json:"subIncyProfileDescription" form:"subIncyProfileDescription"`
+	SubIncySortOrder           string `json:"subIncySortOrder" form:"subIncySortOrder"`
+	SubIncySupportEmail        string `json:"subIncySupportEmail" form:"subIncySupportEmail"`
+	SubIncyAnnounceUrl         string `json:"subIncyAnnounceUrl" form:"subIncyAnnounceUrl"`
+	SubIncyPremiumUrl          string `json:"subIncyPremiumUrl" form:"subIncyPremiumUrl"`
+	SubIncyBannerText          string `json:"subIncyBannerText" form:"subIncyBannerText"`
+	SubIncyBannerButtonText    string `json:"subIncyBannerButtonText" form:"subIncyBannerButtonText"`
+	SubIncyBannerButtonUrl     string `json:"subIncyBannerButtonUrl" form:"subIncyBannerButtonUrl"`
+	SubIncyBannerBgColor       string `json:"subIncyBannerBgColor" form:"subIncyBannerBgColor"`
+	SubIncyBannerButtonColor   string `json:"subIncyBannerButtonColor" form:"subIncyBannerButtonColor"`
+	SubIncyHideUrl             string `json:"subIncyHideUrl" form:"subIncyHideUrl"`
+	SubIncyHideCheck           string `json:"subIncyHideCheck" form:"subIncyHideCheck"`
+	SubIncyNoLimitEnabled      string `json:"subIncyNoLimitEnabled" form:"subIncyNoLimitEnabled"`
+	SubIncyPerAppEnable        string `json:"subIncyPerAppEnable" form:"subIncyPerAppEnable"`
+	SubIncyPerAppMode          string `json:"subIncyPerAppMode" form:"subIncyPerAppMode"`
+	SubIncyPerAppList          string `json:"subIncyPerAppList" form:"subIncyPerAppList"`
+	SubIncyFragmentationEnable string `json:"subIncyFragmentationEnable" form:"subIncyFragmentationEnable"`
+	SubIncyFragmentLength      string `json:"subIncyFragmentLength" form:"subIncyFragmentLength"`
+	SubIncyFragmentInterval    string `json:"subIncyFragmentInterval" form:"subIncyFragmentInterval"`
+	SubIncyFragmentPackets     string `json:"subIncyFragmentPackets" form:"subIncyFragmentPackets"`
+	SubIncyNoisesEnable        string `json:"subIncyNoisesEnable" form:"subIncyNoisesEnable"`
+	SubIncyNoisesType          string `json:"subIncyNoisesType" form:"subIncyNoisesType"`
+	SubIncyNoisesPacket        string `json:"subIncyNoisesPacket" form:"subIncyNoisesPacket"`
+	SubIncyNoisesDelay         string `json:"subIncyNoisesDelay" form:"subIncyNoisesDelay"`
+	SubIncyResolveEnable       string `json:"subIncyResolveEnable" form:"subIncyResolveEnable"`
+	SubIncyResolveDnsDomain    string `json:"subIncyResolveDnsDomain" form:"subIncyResolveDnsDomain"`
+	SubIncyResolveDnsIp        string `json:"subIncyResolveDnsIp" form:"subIncyResolveDnsIp"`
 
 	LdapEnable             bool   `json:"ldapEnable" form:"ldapEnable"`
 	LdapHost               string `json:"ldapHost" form:"ldapHost"`

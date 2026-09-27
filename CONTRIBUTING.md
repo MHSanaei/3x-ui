@@ -5,7 +5,7 @@ Thanks for taking the time to contribute to 3x-ui. This guide gets a development
 ## Prerequisites
 
 - **Go 1.27+** (the version pinned in `go.mod`)
-- **Node.js 24 LTS** (the version pinned in `.nvmrc`) and npm 10+ (for the React frontend)
+- **Node.js 26** (the version pinned in `.nvmrc`) and npm 11+ (for the React frontend)
 - **Git**
 - **A C compiler** — required by the CGo SQLite driver (`github.com/mattn/go-sqlite3`). Linux and macOS already ship one; for Windows see below.
 
@@ -243,11 +243,17 @@ For deeper notes on the frontend toolchain see [`frontend/README.md`](frontend/R
 
 Tests live next to the code (`foo.go` ↔ `foo_test.go`); frontend specs and golden fixtures live in `frontend/src/test/`.
 
+### Test first, and only tests that can fail
+
+- **Red → green → refactor.** Write the test before the code. For a bug, the test reproduces the report; for a feature, it covers the first behaviour. Watch it fail, write the code that makes it pass, then refactor with the suite green.
+- **Every test catches a named failure.** Don't test getters, constants or renames. Don't restate the implementation, mock the unit under test, write assertions too weak to fail, or regenerate snapshots to match whatever the code now outputs.
+- **Fix the root cause the right way**, even when that takes more code. A small patch that hides the symptom is not a fix.
+
 ### Go conventions
 
 - **Stdlib `testing` only** — no testify. Table-driven with `t.Run` subtests and `t.Helper()` on helpers.
 - **Assert the contract, not internals.** Pin the exact value / typed error / emitted string — not `err != nil` or `len > 0`. A test that still passes when the behavior is broken is worse than no test.
-- **Real dependencies over mocks.** Get a throwaway DB with `database.InitDB(filepath.Join(t.TempDir(), "x-ui.db"))` + `t.Cleanup(func() { _ = database.CloseDB() })` (Windows-safe), and use `httptest` servers for HTTP. The `internal/sub` suite's `initSubDB(t)` is the template.
+- **Real dependencies over mocks.** Get a throwaway DB with `dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))` from `internal/database/dbtest`: it copies a once-migrated template (migrating from scratch per test is ~7x slower, worst under `-race`) and closes the DB before `t.TempDir` cleanup (Windows-safe). Keep `database.InitDB` for reopening an existing file or migrating a hand-built legacy DB. Use `httptest` servers for HTTP. The `internal/sub` suite's `initSubDB(t)` is the template.
 
 ### Running
 

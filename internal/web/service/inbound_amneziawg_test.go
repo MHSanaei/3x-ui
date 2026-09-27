@@ -188,6 +188,7 @@ func TestNormalizeAmneziaWGSettings_RejectsBad31Values(t *testing.T) {
 	}{
 		{"bad headerProtectionKey", `"headerProtectionKey":"short"`},
 		{"zero rekeyTimeout", `"rekeyTimeout":"0"`},
+		{"S1 past what an iOS client can receive", `"s1":1553`},
 		{"rekey overlapping reject", `"rekeyAfterTime":"100-200","rejectAfterTime":"150-300"`},
 		{"control chars in i2", `"i2":"<r 64>\nPostUp = evil"`},
 		{"line-wrapped headerProtectionKey", `"headerProtectionKey":"MCPfRGcDGotJ6Tcn\r\nIdDqsemj2cMIiGHnPUHM5ivXN18="`},

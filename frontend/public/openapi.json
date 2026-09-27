@@ -69,6 +69,9 @@
             "minimum": 0,
             "type": "integer"
           },
+          "externalSubUserAgent": {
+            "type": "string"
+          },
           "externalTrafficInformEnable": {
             "type": "boolean"
           },
@@ -288,6 +291,9 @@
           "subHappFallbackUrl": {
             "type": "string"
           },
+          "subHappLocalProxyAuth": {
+            "type": "string"
+          },
           "subHappNewUrl": {
             "type": "string"
           },
@@ -336,10 +342,95 @@
           "subHideSettings": {
             "type": "boolean"
           },
+          "subIncyAnnounceUrl": {
+            "type": "string"
+          },
+          "subIncyAppAutoDetect": {
+            "description": "Incy client customization settings (app-management). A \"\" value omits\nthe header so the subscriber's own app setting is left alone.",
+            "type": "boolean"
+          },
+          "subIncyBannerBgColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonText": {
+            "type": "string"
+          },
+          "subIncyBannerButtonUrl": {
+            "type": "string"
+          },
+          "subIncyBannerText": {
+            "type": "string"
+          },
           "subIncyEnableRouting": {
             "type": "boolean"
           },
+          "subIncyFragmentInterval": {
+            "type": "string"
+          },
+          "subIncyFragmentLength": {
+            "type": "string"
+          },
+          "subIncyFragmentPackets": {
+            "type": "string"
+          },
+          "subIncyFragmentationEnable": {
+            "type": "string"
+          },
+          "subIncyHideCheck": {
+            "type": "string"
+          },
+          "subIncyHideUrl": {
+            "type": "string"
+          },
+          "subIncyNoLimitEnabled": {
+            "type": "string"
+          },
+          "subIncyNoisesDelay": {
+            "type": "string"
+          },
+          "subIncyNoisesEnable": {
+            "type": "string"
+          },
+          "subIncyNoisesPacket": {
+            "type": "string"
+          },
+          "subIncyNoisesType": {
+            "type": "string"
+          },
+          "subIncyPerAppEnable": {
+            "type": "string"
+          },
+          "subIncyPerAppList": {
+            "type": "string"
+          },
+          "subIncyPerAppMode": {
+            "type": "string"
+          },
+          "subIncyPremiumUrl": {
+            "type": "string"
+          },
+          "subIncyProfileDescription": {
+            "type": "string"
+          },
+          "subIncyResolveDnsDomain": {
+            "type": "string"
+          },
+          "subIncyResolveDnsIp": {
+            "type": "string"
+          },
+          "subIncyResolveEnable": {
+            "type": "string"
+          },
           "subIncyRoutingRules": {
+            "type": "string"
+          },
+          "subIncySortOrder": {
+            "type": "string"
+          },
+          "subIncySupportEmail": {
             "type": "string"
           },
           "subInfoNodeEnable": {
@@ -519,6 +610,7 @@
           "discordMemory",
           "discordRunTime",
           "expireDiff",
+          "externalSubUserAgent",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
           "happLinkEnable",
@@ -586,6 +678,7 @@
           "subHappExcludeApns",
           "subHappExcludeRoutes",
           "subHappFallbackUrl",
+          "subHappLocalProxyAuth",
           "subHappNewUrl",
           "subHappNoLimit",
           "subHappNotificationExpire",
@@ -602,8 +695,36 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subIncyAnnounceUrl",
+          "subIncyAppAutoDetect",
+          "subIncyBannerBgColor",
+          "subIncyBannerButtonColor",
+          "subIncyBannerButtonText",
+          "subIncyBannerButtonUrl",
+          "subIncyBannerText",
           "subIncyEnableRouting",
+          "subIncyFragmentInterval",
+          "subIncyFragmentLength",
+          "subIncyFragmentPackets",
+          "subIncyFragmentationEnable",
+          "subIncyHideCheck",
+          "subIncyHideUrl",
+          "subIncyNoLimitEnabled",
+          "subIncyNoisesDelay",
+          "subIncyNoisesEnable",
+          "subIncyNoisesPacket",
+          "subIncyNoisesType",
+          "subIncyPerAppEnable",
+          "subIncyPerAppList",
+          "subIncyPerAppMode",
+          "subIncyPremiumUrl",
+          "subIncyProfileDescription",
+          "subIncyResolveDnsDomain",
+          "subIncyResolveDnsIp",
+          "subIncyResolveEnable",
           "subIncyRoutingRules",
+          "subIncySortOrder",
+          "subIncySupportEmail",
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
@@ -699,6 +820,9 @@
           "expireDiff": {
             "minimum": 0,
             "type": "integer"
+          },
+          "externalSubUserAgent": {
+            "type": "string"
           },
           "externalTrafficInformEnable": {
             "type": "boolean"
@@ -943,6 +1067,9 @@
           "subHappFallbackUrl": {
             "type": "string"
           },
+          "subHappLocalProxyAuth": {
+            "type": "string"
+          },
           "subHappNewUrl": {
             "type": "string"
           },
@@ -991,10 +1118,95 @@
           "subHideSettings": {
             "type": "boolean"
           },
+          "subIncyAnnounceUrl": {
+            "type": "string"
+          },
+          "subIncyAppAutoDetect": {
+            "description": "Incy client customization settings (app-management). A \"\" value omits\nthe header so the subscriber's own app setting is left alone.",
+            "type": "boolean"
+          },
+          "subIncyBannerBgColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonText": {
+            "type": "string"
+          },
+          "subIncyBannerButtonUrl": {
+            "type": "string"
+          },
+          "subIncyBannerText": {
+            "type": "string"
+          },
           "subIncyEnableRouting": {
             "type": "boolean"
           },
+          "subIncyFragmentInterval": {
+            "type": "string"
+          },
+          "subIncyFragmentLength": {
+            "type": "string"
+          },
+          "subIncyFragmentPackets": {
+            "type": "string"
+          },
+          "subIncyFragmentationEnable": {
+            "type": "string"
+          },
+          "subIncyHideCheck": {
+            "type": "string"
+          },
+          "subIncyHideUrl": {
+            "type": "string"
+          },
+          "subIncyNoLimitEnabled": {
+            "type": "string"
+          },
+          "subIncyNoisesDelay": {
+            "type": "string"
+          },
+          "subIncyNoisesEnable": {
+            "type": "string"
+          },
+          "subIncyNoisesPacket": {
+            "type": "string"
+          },
+          "subIncyNoisesType": {
+            "type": "string"
+          },
+          "subIncyPerAppEnable": {
+            "type": "string"
+          },
+          "subIncyPerAppList": {
+            "type": "string"
+          },
+          "subIncyPerAppMode": {
+            "type": "string"
+          },
+          "subIncyPremiumUrl": {
+            "type": "string"
+          },
+          "subIncyProfileDescription": {
+            "type": "string"
+          },
+          "subIncyResolveDnsDomain": {
+            "type": "string"
+          },
+          "subIncyResolveDnsIp": {
+            "type": "string"
+          },
+          "subIncyResolveEnable": {
+            "type": "string"
+          },
           "subIncyRoutingRules": {
+            "type": "string"
+          },
+          "subIncySortOrder": {
+            "type": "string"
+          },
+          "subIncySupportEmail": {
             "type": "string"
           },
           "subInfoNodeEnable": {
@@ -1174,6 +1386,7 @@
           "discordMemory",
           "discordRunTime",
           "expireDiff",
+          "externalSubUserAgent",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
           "happLinkEnable",
@@ -1249,6 +1462,7 @@
           "subHappExcludeApns",
           "subHappExcludeRoutes",
           "subHappFallbackUrl",
+          "subHappLocalProxyAuth",
           "subHappNewUrl",
           "subHappNoLimit",
           "subHappNotificationExpire",
@@ -1265,8 +1479,36 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subIncyAnnounceUrl",
+          "subIncyAppAutoDetect",
+          "subIncyBannerBgColor",
+          "subIncyBannerButtonColor",
+          "subIncyBannerButtonText",
+          "subIncyBannerButtonUrl",
+          "subIncyBannerText",
           "subIncyEnableRouting",
+          "subIncyFragmentInterval",
+          "subIncyFragmentLength",
+          "subIncyFragmentPackets",
+          "subIncyFragmentationEnable",
+          "subIncyHideCheck",
+          "subIncyHideUrl",
+          "subIncyNoLimitEnabled",
+          "subIncyNoisesDelay",
+          "subIncyNoisesEnable",
+          "subIncyNoisesPacket",
+          "subIncyNoisesType",
+          "subIncyPerAppEnable",
+          "subIncyPerAppList",
+          "subIncyPerAppMode",
+          "subIncyPremiumUrl",
+          "subIncyProfileDescription",
+          "subIncyResolveDnsDomain",
+          "subIncyResolveDnsIp",
+          "subIncyResolveEnable",
           "subIncyRoutingRules",
+          "subIncySortOrder",
+          "subIncySupportEmail",
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
@@ -1523,11 +1765,15 @@
             "type": "integer"
           },
           "resetDay": {
-            "description": "Calendar renewal day 1-31, 0 = interval mode",
+            "description": "Calendar renewal day 1-31, 0 disables monthly renewal",
             "type": "integer"
           },
           "resetMax": {
             "description": "Max auto-renew count, 0 = unlimited",
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "description": "Calendar weekday 1-7 (Mon-Sun), 0 disables weekly renewal",
             "type": "integer"
           },
           "reverse": {
@@ -1592,6 +1838,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "security",
           "subId",
           "tgId",
@@ -1743,6 +1990,9 @@
           "resetMax": {
             "type": "integer"
           },
+          "resetWeekday": {
+            "type": "integer"
+          },
           "reverse": {},
           "secret": {
             "type": "string"
@@ -1798,6 +2048,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "reverse",
           "secret",
           "security",
@@ -1808,6 +2059,97 @@
           "trafficResetDay",
           "updatedAt",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "ClientRenewalPreview": {
+        "properties": {
+          "canRenew": {
+            "example": true,
+            "type": "boolean"
+          },
+          "delayedStart": {
+            "example": false,
+            "type": "boolean"
+          },
+          "nextExpiry": {
+            "example": "2030-02-01T00:00:00Z",
+            "type": "string"
+          },
+          "renewAt": {
+            "example": "2030-01-01T00:00:00Z",
+            "type": "string"
+          },
+          "renewals": {
+            "example": 1,
+            "type": "integer"
+          },
+          "suggestedExpiry": {
+            "example": "2030-01-01T00:00:00Z",
+            "type": "string"
+          },
+          "suggestedExpiryTime": {
+            "example": 1893456000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "timeZone": {
+            "example": "UTC",
+            "type": "string"
+          },
+          "validThrough": {
+            "example": "2029-12-31T23:59:59Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRenew",
+          "delayedStart",
+          "nextExpiry",
+          "renewAt",
+          "renewals",
+          "suggestedExpiry",
+          "suggestedExpiryTime",
+          "timeZone",
+          "validThrough"
+        ],
+        "type": "object"
+      },
+      "ClientRenewalPreviewRequest": {
+        "properties": {
+          "expiryTime": {
+            "example": 1893456000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "reset": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetCount": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetDay": {
+            "example": 1,
+            "type": "integer"
+          },
+          "resetMax": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expiryTime",
+          "reset",
+          "resetCount",
+          "resetDay",
+          "resetMax",
+          "resetWeekday"
         ],
         "type": "object"
       },
@@ -1881,6 +2223,10 @@
             "example": 0,
             "type": "integer"
           },
+          "resetWeekday": {
+            "example": 0,
+            "type": "integer"
+          },
           "subId": {
             "example": "abcd1234",
             "type": "string"
@@ -1915,6 +2261,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "subId",
           "totalGB",
           "updatedAt"
@@ -1970,12 +2317,17 @@
             "type": "integer"
           },
           "resetDay": {
-            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 disables monthly renewal.",
             "example": 0,
             "type": "integer"
           },
           "resetMax": {
             "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "description": "ResetWeekday renews weekly at panel-local midnight: 1 Monday through 7 Sunday.",
             "example": 0,
             "type": "integer"
           },
@@ -2011,6 +2363,7 @@
           "resetCount",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "subId",
           "total",
           "up",
@@ -2701,6 +3054,11 @@
             "example": true,
             "type": "boolean"
           },
+          "excludeFromSub": {
+            "description": "Whether to omit this inbound from subscription output while keeping it operational",
+            "example": false,
+            "type": "boolean"
+          },
           "expiryTime": {
             "description": "Expiration timestamp",
             "format": "int64",
@@ -2824,6 +3182,7 @@
           "disableFlow",
           "down",
           "enable",
+          "excludeFromSub",
           "expiryTime",
           "id",
           "lastTrafficResetTime",
@@ -4135,6 +4494,84 @@
         ],
         "type": "object"
       },
+      "Sponsor": {
+        "description": "Sponsor is one paid placement published in the repo's sponsors.json.",
+        "properties": {
+          "enable": {
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "id": {
+            "example": "acme-2026-10",
+            "type": "string"
+          },
+          "link": {
+            "example": "https://acme.example/?utm_source=3x-ui",
+            "type": "string"
+          },
+          "logo": {
+            "example": "/sponsors/logo/acme.png",
+            "type": "string"
+          },
+          "name": {
+            "example": "Acme VPS",
+            "type": "string"
+          },
+          "slots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "text": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "title": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "until": {
+            "example": "2026-11-01T00:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "link",
+          "name",
+          "slots",
+          "text",
+          "title",
+          "until"
+        ],
+        "type": "object"
+      },
+      "SponsorList": {
+        "description": "SponsorList is the active sponsor set plus the contact link for new sponsors.",
+        "properties": {
+          "contact": {
+            "example": "https://t.me/example",
+            "type": "string"
+          },
+          "sponsors": {
+            "items": {
+              "$ref": "#/components/schemas/Sponsor"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sponsors"
+        ],
+        "type": "object"
+      },
       "SubBalancer": {
         "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
         "properties": {
@@ -4587,6 +5024,59 @@
         }
       }
     },
+    "/sponsors": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); expired entries are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
+        "operationId": "get_sponsors",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SponsorList"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "contact": "https://t.me/example",
+                    "sponsors": [
+                      {
+                        "enable": true,
+                        "id": "acme-2026-10",
+                        "link": "https://acme.example/?utm_source=3x-ui",
+                        "logo": "/sponsors/logo/acme.png",
+                        "name": "Acme VPS",
+                        "slots": [
+                          ""
+                        ],
+                        "text": {},
+                        "title": {},
+                        "until": "2026-11-01T00:00:00Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/getTwoFactorEnable": {
       "post": {
         "tags": [
@@ -4668,6 +5158,7 @@
                           "resetCount": 0,
                           "resetDay": 0,
                           "resetMax": 0,
+                          "resetWeekday": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
                           "up": 1048576,
@@ -4677,6 +5168,7 @@
                       "disableFlow": false,
                       "down": 0,
                       "enable": true,
+                      "excludeFromSub": false,
                       "expiryTime": 0,
                       "fallbackParent": null,
                       "id": 1,
@@ -7902,6 +8394,7 @@
                         "reset": 0,
                         "resetDay": 0,
                         "resetMax": 0,
+                        "resetWeekday": 0,
                         "subId": "abcd1234",
                         "totalGB": 53687091200,
                         "traffic": null,
@@ -8087,6 +8580,97 @@
                 "example": {
                   "success": true,
                   "msg": "Client added"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/renewalPreview": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Preview client auto-renewal dates without saving or resetting anything.",
+        "operationId": "post_panel_api_clients_renewalPreview",
+        "description": "Uses the same calendar and catch-up calculation as auto-renew in the panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables weekly mode; it cannot be combined with positive reset or resetDay. Existing resetDay takes precedence over reset. With expiryTime=0, calendar modes suggest a first cutoff but do not activate renewal. Negative expiryTime waits for first-use activation. resetMax and resetCount simulate the existing per-period allowance limit; the preview is informational and does not reserve an allowance or guarantee node availability.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiryTime": {
+                    "type": "integer",
+                    "description": "Current cutoff in Unix milliseconds; 0 unlimited, negative first-use duration."
+                  },
+                  "reset": {
+                    "type": "integer",
+                    "description": "Fixed interval in days; 0 disabled."
+                  },
+                  "resetDay": {
+                    "type": "integer",
+                    "description": "Monthly calendar day 1-31; 0 disabled."
+                  },
+                  "resetWeekday": {
+                    "type": "integer",
+                    "description": "Weekly calendar day 1-7 (Monday-Sunday); 0 disabled."
+                  },
+                  "resetMax": {
+                    "type": "integer",
+                    "description": "Maximum renewals; 0 unlimited."
+                  },
+                  "resetCount": {
+                    "type": "integer",
+                    "description": "Renewals already consumed; defaults to 0."
+                  }
+                },
+                "required": [
+                  "expiryTime",
+                  "reset",
+                  "resetDay",
+                  "resetWeekday",
+                  "resetMax",
+                  "resetCount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/ClientRenewalPreview"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "canRenew": true,
+                    "delayedStart": false,
+                    "nextExpiry": "2030-02-01T00:00:00Z",
+                    "renewAt": "2030-01-01T00:00:00Z",
+                    "renewals": 1,
+                    "suggestedExpiry": "2030-01-01T00:00:00Z",
+                    "suggestedExpiryTime": 1893456000000,
+                    "timeZone": "UTC",
+                    "validThrough": "2029-12-31T23:59:59Z"
+                  }
                 }
               }
             }
@@ -8553,7 +9137,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
+        "summary": "Return every client as a {client, inboundIds, traffic} array — the shape /import accepts — so the payload round-trips straight back through /import. traffic carries the usage counters (up, down, resetCount, lastOnline, lastSubFetch) and is omitted for a client with no traffic row; the quota itself stays in client.totalGB. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
         "operationId": "get_panel_api_clients_export",
         "responses": {
           "200": {
@@ -8588,7 +9172,13 @@
                       "inboundIds": [
                         7,
                         9
-                      ]
+                      ],
+                      "traffic": {
+                        "up": 1048576,
+                        "down": 2097152,
+                        "resetCount": 0,
+                        "lastOnline": 1735680000000
+                      }
                     }
                   ]
                 }
@@ -8603,7 +9193,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.",
+        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds, traffic}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. An optional traffic object restores the usage counters, only for clients this import creates. Existing emails are never overwritten — they are returned in skipped, and their live counters are left untouched. Triggers a single Xray restart at the end if any target inbound was running; a failure while restoring counters still reports success=false after the clients were created.",
         "operationId": "post_panel_api_clients_import",
         "requestBody": {
           "required": true,
@@ -10153,6 +10743,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15526,6 +16117,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15608,6 +16200,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15654,6 +16247,7 @@
                       "resetCount": 0,
                       "resetDay": 0,
                       "resetMax": 0,
+                      "resetWeekday": 0,
                       "subId": "i7tvdpeffi0hvvf1",
                       "total": 10737418240,
                       "up": 1048576,
@@ -15663,6 +16257,7 @@
                   "disableFlow": false,
                   "down": 0,
                   "enable": true,
+                  "excludeFromSub": false,
                   "expiryTime": 0,
                   "fallbackParent": null,
                   "id": 1,

@@ -104,11 +104,22 @@ func migrateOutboundSubscriptionUserAgentColumn() error {
 	return migrator.AddColumn(&model.OutboundSubscription{}, "UserAgent")
 }
 
+func migrateInboundExcludeFromSubColumn() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&model.Inbound{}) || migrator.HasColumn(&model.Inbound{}, "exclude_from_sub") {
+		return nil
+	}
+	return migrator.AddColumn(&model.Inbound{}, "ExcludeFromSub")
+}
+
 func initModels() error {
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
 		return err
 	}
 	if err := migrateOutboundSubscriptionUserAgentColumn(); err != nil {
+		return err
+	}
+	if err := migrateInboundExcludeFromSubColumn(); err != nil {
 		return err
 	}
 	models := allModels()
@@ -174,6 +185,9 @@ func initModels() error {
 		return err
 	}
 	if err := migrateClientTrafficResetColumns(); err != nil {
+		return err
+	}
+	if err := migrateClientResetWeekdayColumns(); err != nil {
 		return err
 	}
 	if err := migrateSyncOrphanColumns(); err != nil {
@@ -349,6 +363,17 @@ func migrateClientTrafficResetColumns() error {
 	}
 	if db.Migrator().HasColumn(&model.ClientRecord{}, "traffic_reset_day") {
 		if err := db.Exec("UPDATE clients SET traffic_reset_day = 1 WHERE traffic_reset_day IS NULL").Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Existing clients keep weekly renewal disabled, including nullable columns
+// left by an earlier ALTER TABLE; configured nonzero weekdays are preserved.
+func migrateClientResetWeekdayColumns() error {
+	for _, table := range []string{"clients", "client_traffics"} {
+		if err := db.Table(table).Where("reset_weekday IS NULL").UpdateColumn("reset_weekday", 0).Error; err != nil {
 			return err
 		}
 	}

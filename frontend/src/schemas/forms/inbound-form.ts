@@ -52,7 +52,7 @@ const InboundTlsSettingsSchema = TlsStreamSettingsSchema.extend({
     .array(InboundTlsCertSchema)
     .default([])
     .refine((certificates) => certificates.some((cert) => cert.usage !== 'verify'), {
-      message: 'pages.inbounds.form.tlsServerCertificateRequired',
+      error: 'pages.inbounds.form.tlsServerCertificateRequired',
     }),
 });
 
@@ -81,6 +81,7 @@ export const InboundDbFieldsSchema = z.object({
   shareAddrStrategy: ShareAddrStrategySchema.default('node'),
   shareAddr: z.string().default(''),
   subSortIndex: z.number().int().default(1),
+  excludeFromSub: z.boolean().default(false),
   disableFlow: z.boolean().default(false),
 });
 export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;

@@ -54,6 +54,30 @@ func TestBindConflicts(t *testing.T) {
 			``, 0,
 		},
 		{
+			"ipv4 and ipv6 wildcards bind one dual-stack socket",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6"},
+			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"ipv4"}`,
+			``, 1,
+		},
+		{
+			"dual-stack ipv6 wildcard takes an ipv4 address",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6"},
+			 {"listen":"10.5.0.200","port":443,"protocol":"vless","tag":"ipv4"}`,
+			``, 1,
+		},
+		{
+			"v6only ipv6 wildcard leaves an ipv4 address free",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6","streamSettings":{"network":"tcp","sockopt":{"v6only":true}}},
+			 {"listen":"10.5.0.200","port":443,"protocol":"vless","tag":"ipv4"}`,
+			``, 0,
+		},
+		{
+			"v6only ipv6 wildcard still collides with the dual-stack 0.0.0.0",
+			`{"listen":"::","port":443,"protocol":"vless","tag":"ipv6","streamSettings":{"network":"tcp","sockopt":{"v6only":true}}},
+			 {"listen":"0.0.0.0","port":443,"protocol":"vless","tag":"ipv4"}`,
+			``, 1,
+		},
+		{
 			"wildcard listen overlaps a loopback one",
 			`{"listen":"0.0.0.0","port":8443,"protocol":"vless","tag":"a"},
 			 {"listen":"127.0.0.1","port":8443,"protocol":"trojan","tag":"b"}`,
