@@ -4502,6 +4502,12 @@
             "nullable": true,
             "type": "boolean"
           },
+          "from": {
+            "example": "2026-10-01T00:00:00Z",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
           "id": {
             "example": "acme-2026-10",
             "type": "string"
@@ -5029,7 +5035,7 @@
         "tags": [
           "Authentication"
         ],
-        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); expired entries are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
+        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
         "operationId": "get_sponsors",
         "responses": {
           "200": {
@@ -5057,6 +5063,7 @@
                     "sponsors": [
                       {
                         "enable": true,
+                        "from": "2026-10-01T00:00:00Z",
                         "id": "acme-2026-10",
                         "link": "https://acme.example/?utm_source=3x-ui",
                         "logo": "/sponsors/logo/acme.png",

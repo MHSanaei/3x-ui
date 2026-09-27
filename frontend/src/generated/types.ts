@@ -1028,6 +1028,7 @@ export interface Setting {
 
 export interface Sponsor {
   enable?: boolean | null;
+  from?: string | null;
   id: string;
   link: string;
   logo?: string;
