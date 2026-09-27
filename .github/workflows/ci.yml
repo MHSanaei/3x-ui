@@ -9,6 +9,10 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
+      - "install.sh"
+      - "update.sh"
+      - "x-ui.sh"
+      - "deploy/test/**"
       - ".github/workflows/ci.yml"
   push:
     branches:
@@ -20,12 +24,23 @@ on:
       - "frontend/**"
       - ".nvmrc"
       - "Makefile"
+      - "install.sh"
+      - "update.sh"
+      - "x-ui.sh"
+      - "deploy/test/**"
       - ".github/workflows/ci.yml"
 
 permissions:
   contents: read
 
 jobs:
+  tls-update-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test non-interactive TLS update safety
+        run: bash deploy/test/tls-update-safety.sh
+
   go-test:
     runs-on: ubuntu-latest
     steps:

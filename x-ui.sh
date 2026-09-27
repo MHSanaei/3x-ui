@@ -1333,7 +1333,7 @@ update_geo() {
 
 install_acme() {
     # Check if acme.sh is already installed
-    if command -v ~/.acme.sh/acme.sh &> /dev/null; then
+    if [[ -x "$(acme_executable)" ]]; then
         LOGI "acme.sh is already installed."
         return 0
     fi
@@ -1341,15 +1341,116 @@ install_acme() {
     LOGI "Installing acme.sh..."
     cd ~ || return 1 # Ensure you can change to the home directory
 
-    curl -s https://get.acme.sh | sh
-    if [ $? -ne 0 ]; then
+    if ! curl -fsSL https://get.acme.sh | sh > /dev/null 2>&1; then
         LOGE "Installation of acme.sh failed."
         return 1
-    else
-        LOGI "Installation of acme.sh succeeded."
     fi
+    if [[ ! -x "$(acme_executable)" ]]; then
+        LOGE "acme.sh installer exited successfully, but the executable is missing."
+        return 1
+    fi
+    LOGI "Installation of acme.sh succeeded."
 
     return 0
+}
+
+acme_executable() {
+    printf '%s\n' "${XUI_ACME_HOME:-${HOME}/.acme.sh}/acme.sh"
+}
+
+panel_certificate_dir() {
+    printf '%s/panel/%s\n' "${XUI_CERT_ROOT:-/root/cert}" "$1"
+}
+
+validate_certificate_pair() {
+    local cert_file="$1"
+    local key_file="$2"
+    [[ -s "$cert_file" && -s "$key_file" ]] || return 1
+    openssl x509 -in "$cert_file" -noout -checkend 0 > /dev/null 2>&1 || return 1
+    openssl pkey -in "$key_file" -noout -check > /dev/null 2>&1 || return 1
+    cmp -s \
+        <(openssl x509 -in "$cert_file" -pubkey -noout 2> /dev/null | openssl pkey -pubin -outform DER 2> /dev/null) \
+        <(openssl pkey -in "$key_file" -pubout -outform DER 2> /dev/null)
+}
+
+install_certificate_staged() {
+    local identifier="$1"
+    local target_dir="$2"
+    local reload_cmd="$3"
+    local acme_bin
+    acme_bin="$(acme_executable)"
+    [[ -x "$acme_bin" ]] || return 1
+
+    local target_parent stage_dir stage_cert stage_key install_output install_rc
+    target_parent="$(dirname "$target_dir")"
+    mkdir -p "$target_parent" || return 1
+    stage_dir=$(mktemp -d "${target_parent}/.x-ui-cert-stage.XXXXXX") || return 1
+    stage_cert="${stage_dir}/fullchain.pem"
+    stage_key="${stage_dir}/privkey.pem"
+
+    install_output=$("$acme_bin" --installcert --force -d "$identifier" \
+        --key-file "$stage_key" \
+        --fullchain-file "$stage_cert" \
+        --reloadcmd ":" 2>&1)
+    install_rc=$?
+    if [[ $install_rc -ne 0 ]] || ! validate_certificate_pair "$stage_cert" "$stage_key"; then
+        echo "$install_output"
+        LOGE "Certificate staging or validation failed; existing files were left untouched."
+        rm -rf -- "$stage_dir"
+        return 1
+    fi
+
+    mkdir -p "$target_dir" || { rm -rf -- "$stage_dir"; return 1; }
+    local next_cert="${target_dir}/.fullchain.pem.new.$$"
+    local next_key="${target_dir}/.privkey.pem.new.$$"
+    local old_cert="${target_dir}/.fullchain.pem.previous.$$"
+    local old_key="${target_dir}/.privkey.pem.previous.$$"
+    local had_cert=0 had_key=0
+    [[ -f "${target_dir}/fullchain.pem" ]] && { cp -p "${target_dir}/fullchain.pem" "$old_cert" || { rm -rf -- "$stage_dir"; return 1; }; had_cert=1; }
+    [[ -f "${target_dir}/privkey.pem" ]] && { cp -p "${target_dir}/privkey.pem" "$old_key" || { rm -f "$old_cert"; rm -rf -- "$stage_dir"; return 1; }; had_key=1; }
+
+    if ! install -m 0644 "$stage_cert" "$next_cert" || ! install -m 0600 "$stage_key" "$next_key"; then
+        rm -f "$next_cert" "$next_key" "$old_cert" "$old_key"
+        rm -rf -- "$stage_dir"
+        return 1
+    fi
+    mv -f "$next_key" "${target_dir}/privkey.pem" && mv -f "$next_cert" "${target_dir}/fullchain.pem"
+    local promote_rc=$?
+    rm -rf -- "$stage_dir"
+    if [[ $promote_rc -ne 0 ]]; then
+        if [[ $had_key -eq 1 ]]; then
+            mv -f "$old_key" "${target_dir}/privkey.pem"
+        else
+            rm -f "${target_dir}/privkey.pem"
+        fi
+        if [[ $had_cert -eq 1 ]]; then
+            mv -f "$old_cert" "${target_dir}/fullchain.pem"
+        else
+            rm -f "${target_dir}/fullchain.pem"
+        fi
+        return 1
+    fi
+
+    "$acme_bin" --installcert --force -d "$identifier" \
+        --key-file "${target_dir}/privkey.pem" \
+        --fullchain-file "${target_dir}/fullchain.pem" \
+        --reloadcmd "$reload_cmd" > /dev/null 2>&1 || true
+    if ! validate_certificate_pair "${target_dir}/fullchain.pem" "${target_dir}/privkey.pem"; then
+        if [[ $had_key -eq 1 ]]; then
+            mv -f "$old_key" "${target_dir}/privkey.pem"
+        else
+            rm -f "${target_dir}/privkey.pem"
+        fi
+        if [[ $had_cert -eq 1 ]]; then
+            mv -f "$old_cert" "${target_dir}/fullchain.pem"
+        else
+            rm -f "${target_dir}/fullchain.pem"
+        fi
+        return 1
+    fi
+    rm -f "$old_cert" "$old_key"
+    chmod 600 "${target_dir}/privkey.pem"
+    chmod 644 "${target_dir}/fullchain.pem"
 }
 
 ssl_cert_issue_main() {
@@ -1371,7 +1472,8 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         2)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
+            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found to revoke."
             else
@@ -1379,28 +1481,23 @@ ssl_cert_issue_main() {
                 echo "$domains"
                 read -rp "Please enter a domain from the list to revoke and remove the certificate: " domain
                 if echo "$domains" | grep -qw "$domain"; then
-                    # The IP-cert flow (option 6) stores files under /root/cert/ip, but acme.sh
-                    # tracks the cert under the actual IP address(es). Resolve those so renewal
-                    # state is torn down too; otherwise the acme.sh cron re-creates the deleted cert.
-                    local acme_ids="${domain}"
-                    if [[ "${domain}" == "ip" ]]; then
-                        acme_ids=$(~/.acme.sh/acme.sh --list 2> /dev/null | awk 'NR>1 {print $1}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$|:')
-                    fi
+                    local acme_ids="${domain#ip-}"
+                    local acme_bin="$(acme_executable)"
                     for id in ${acme_ids}; do
                         # Best-effort revoke at the CA, then drop acme.sh renewal tracking.
-                        ~/.acme.sh/acme.sh --revoke -d "${id}" 2> /dev/null
-                        ~/.acme.sh/acme.sh --remove -d "${id}" 2> /dev/null
+                        "$acme_bin" --revoke -d "${id}" 2> /dev/null
+                        "$acme_bin" --remove -d "${id}" 2> /dev/null
                         # --remove leaves the cert files on disk, so delete the state dirs (RSA + ECC).
-                        rm -rf ~/.acme.sh/"${id}" ~/.acme.sh/"${id}_ecc"
+                        rm -rf "$(dirname "$acme_bin")/${id}" "$(dirname "$acme_bin")/${id}_ecc"
                     done
                     # Delete the local certificate files for this domain.
-                    rm -rf "/root/cert/${domain}"
+                    rm -rf "${panel_cert_root}/${domain}"
                     LOGI "Certificate revoked and removed for domain: ${domain}"
 
                     # If the panel currently serves this domain's cert, clear the stored paths
                     # so it stops loading the now-deleted files, then restart.
                     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-                    if [[ "${existing_cert}" == "/root/cert/${domain}/"* ]]; then
+                    if [[ "${existing_cert}" == "${panel_cert_root}/${domain}/"* ]]; then
                         ${xui_folder}/x-ui cert -reset
                         LOGI "Cleared panel certificate paths referencing ${domain}; restarting panel."
                         restart
@@ -1412,7 +1509,8 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         3)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
+            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found to renew."
             else
@@ -1420,7 +1518,7 @@ ssl_cert_issue_main() {
                 echo "$domains"
                 read -rp "Please enter a domain from the list to renew the SSL certificate: " domain
                 if echo "$domains" | grep -qw "$domain"; then
-                    ~/.acme.sh/acme.sh --renew -d ${domain} --force
+                    "$(acme_executable)" --renew -d "${domain#ip-}" --force
                     LOGI "Certificate forcefully renewed for domain: $domain"
                 else
                     echo "Invalid domain entered."
@@ -1429,14 +1527,15 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         4)
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
+            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
-                echo "No certificates found under /root/cert."
+                echo "No panel certificates found under ${panel_cert_root}."
             else
                 echo "Existing domains and their paths:"
                 for domain in $domains; do
-                    local cert_path="/root/cert/${domain}/fullchain.pem"
-                    local key_path="/root/cert/${domain}/privkey.pem"
+                    local cert_path="${panel_cert_root}/${domain}/fullchain.pem"
+                    local key_path="${panel_cert_root}/${domain}/privkey.pem"
                     if [[ -f "${cert_path}" && -f "${key_path}" ]]; then
                         echo -e "Domain: ${domain}"
                         echo -e "\tCertificate Path: ${cert_path}"
@@ -1460,25 +1559,26 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         5)
-            echo -e "${green}\t1.${plain} Use a certificate from /root/cert"
+            echo -e "${green}\t1.${plain} Use a certificate from the panel certificate directory"
             echo -e "${green}\t2.${plain} Enter custom certificate file paths (e.g. certbot, /etc/letsencrypt/...)"
             read -rp "Choose an option: " pathChoice
             if [[ "$pathChoice" == "2" ]]; then
                 read -rp "Certificate file path (fullchain): " webCertFile
                 read -rp "Private key file path: " webKeyFile
-                if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
-                    ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                if validate_certificate_pair "${webCertFile}" "${webKeyFile}" && \
+                    ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"; then
                     echo "Panel certificate paths set:"
                     echo "  - Certificate File: $webCertFile"
                     echo "  - Private Key File: $webKeyFile"
                     restart
                 else
-                    echo "Certificate or private key file not found."
+                    echo "Certificate and private key are missing, invalid, mismatched, or could not be applied."
                 fi
                 ssl_cert_issue_main
                 return
             fi
-            local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
+            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
             if [ -z "$domains" ]; then
                 echo "No certificates found."
             else
@@ -1487,27 +1587,29 @@ ssl_cert_issue_main() {
                 read -rp "Please choose a domain to set the panel paths: " domain
 
                 if echo "$domains" | grep -qw "$domain"; then
-                    local webCertFile="/root/cert/${domain}/fullchain.pem"
-                    local webKeyFile="/root/cert/${domain}/privkey.pem"
+                    local webCertFile="${panel_cert_root}/${domain}/fullchain.pem"
+                    local webKeyFile="${panel_cert_root}/${domain}/privkey.pem"
 
-                    if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
-                        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                    if validate_certificate_pair "${webCertFile}" "${webKeyFile}" && \
+                        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"; then
                         echo "Panel paths set for domain: $domain"
                         echo "  - Certificate File: $webCertFile"
                         echo "  - Private Key File: $webKeyFile"
                         # Register the acme.sh install-cert hook so auto-renewal copies the
                         # renewed cert to these paths and reloads the panel. Without it acme.sh
-                        # renews but never updates /root/cert, silently serving a stale cert.
-                        if command -v ~/.acme.sh/acme.sh &> /dev/null && ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
-                            ~/.acme.sh/acme.sh --installcert --force -d "${domain}" \
+                        # renews but never updates the panel certificate directory, silently serving a stale cert.
+                        local acme_bin="$(acme_executable)"
+                        local acme_id="${domain#ip-}"
+                        if [[ -x "$acme_bin" ]] && "$acme_bin" --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${acme_id}"; then
+                            "$acme_bin" --installcert --force -d "${acme_id}" \
                                 --key-file "${webKeyFile}" \
                                 --fullchain-file "${webCertFile}" \
                                 --reloadcmd "x-ui restart" 2>&1 || true
-                            echo "Registered acme.sh auto-renewal hook for ${domain}."
+                            echo "Registered acme.sh auto-renewal hook for ${acme_id}."
                         fi
                         restart
                     else
-                        echo "Certificate or private key not found for domain: $domain."
+                        echo "Certificate and private key for ${domain} are invalid, mismatched, or could not be applied."
                     fi
                 else
                     echo "Invalid domain entered."
@@ -1587,7 +1689,7 @@ ssl_cert_issue_for_ip() {
     ipv6_addr="${ipv6_addr// /}" # Trim whitespace
 
     # check for acme.sh first
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
+    if [[ ! -x "$(acme_executable)" ]]; then
         LOGI "acme.sh not found, installing..."
         install_acme
         if [ $? -ne 0 ]; then
@@ -1626,8 +1728,7 @@ ssl_cert_issue_for_ip() {
     esac
 
     # Create certificate directory
-    certPath="/root/cert/ip"
-    mkdir -p "$certPath"
+    certPath="$(panel_certificate_dir "ip-${server_ip}")"
 
     # Build domain arguments
     local domain_args="-d ${server_ip}"
@@ -1676,8 +1777,10 @@ ssl_cert_issue_for_ip() {
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null"
 
     # issue the certificate for IP with shortlived profile
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-    ~/.acme.sh/acme.sh --issue \
+    local acme_bin
+    acme_bin="$(acme_executable)"
+    "$acme_bin" --set-default-ca --server letsencrypt --force
+    "$acme_bin" --issue \
         ${domain_args} \
         --standalone \
         --server letsencrypt \
@@ -1689,39 +1792,21 @@ ssl_cert_issue_for_ip() {
     if [ $? -ne 0 ]; then
         LOGE "Failed to issue certificate for IP: ${server_ip}"
         LOGE "Make sure port ${WebPort} is open and the server is accessible from the internet"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${server_ip} ~/.acme.sh/${server_ip}_ecc 2> /dev/null
-        [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} ~/.acme.sh/${ipv6_addr}_ecc 2> /dev/null
-        rm -rf ${certPath} 2> /dev/null
+        LOGW "Existing certificate files and ACME records were left untouched."
         return 1
     else
         LOGI "Certificate issued successfully for IP: ${server_ip}"
     fi
 
-    # Install the certificate
-    # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
-    # but the cert files are still installed. We check for files instead of exit code.
-    ~/.acme.sh/acme.sh --installcert --force -d ${server_ip} \
-        --key-file "${certPath}/privkey.pem" \
-        --fullchain-file "${certPath}/fullchain.pem" \
-        --reloadcmd "${reloadCmd}" 2>&1 || true
-
-    # Verify certificate files exist (don't rely on exit code - reloadcmd failure causes non-zero)
-    if [[ ! -f "${certPath}/fullchain.pem" || ! -f "${certPath}/privkey.pem" ]]; then
-        LOGE "Certificate files not found after installation"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${server_ip} ~/.acme.sh/${server_ip}_ecc 2> /dev/null
-        [[ -n "$ipv6_addr" ]] && rm -rf ~/.acme.sh/${ipv6_addr} ~/.acme.sh/${ipv6_addr}_ecc 2> /dev/null
-        rm -rf ${certPath} 2> /dev/null
+    if ! install_certificate_staged "${server_ip}" "$certPath" "$reloadCmd"; then
+        LOGE "Certificate installation or validation failed; existing files were left untouched."
         return 1
     fi
 
     LOGI "Certificate files installed successfully"
 
     # enable auto-renew
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
-    chmod 600 $certPath/privkey.pem 2> /dev/null
-    chmod 644 $certPath/fullchain.pem 2> /dev/null
+    "$acme_bin" --upgrade --auto-upgrade > /dev/null 2>&1
 
     # Prompt user to set panel paths after successful certificate installation
     local webCertFile="${certPath}/fullchain.pem"
@@ -1730,7 +1815,10 @@ ssl_cert_issue_for_ip() {
     read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            if ! ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"; then
+                LOGE "Certificate files were installed, but the panel TLS configuration was not changed."
+                return 1
+            fi
             LOGI "Panel paths set for IP: $server_ip"
             LOGI "  - Certificate File: $webCertFile"
             LOGI "  - Private Key File: $webKeyFile"
@@ -1753,7 +1841,7 @@ ssl_cert_issue() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     # check for acme.sh first
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
+    if [[ ! -x "$(acme_executable)" ]]; then
         echo "acme.sh could not be found. we will install it"
         install_acme
         if [ $? -ne 0 ]; then
@@ -1761,6 +1849,8 @@ ssl_cert_issue() {
             exit 1
         fi
     fi
+    local acme_bin
+    acme_bin="$(acme_executable)"
 
     # install socat
     case "${release}" in
@@ -1821,38 +1911,32 @@ ssl_cert_issue() {
     # detect existing certificate and reuse it only if its files are actually
     # present and non-empty. acme.sh stores ECC certs under ${domain}_ecc and RSA
     # certs under ${domain}; a failed issuance can leave a domain entry in --list
-    # with no usable cert files, which must not be reused (it produces a 0-byte
-    # fullchain.pem). Broken partial state is cleaned up so issuance can proceed.
+    # with no usable cert files, which must not be reused. Preserve that state for
+    # diagnostics and let acme.sh repair it during a forced re-issue.
     local cert_exists=0
-    if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
+    if "$acme_bin" --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
         local acmeCertDir=""
-        if [[ -s ~/.acme.sh/${domain}_ecc/fullchain.cer && -s ~/.acme.sh/${domain}_ecc/${domain}.key ]]; then
-            acmeCertDir=~/.acme.sh/${domain}_ecc
-        elif [[ -s ~/.acme.sh/${domain}/fullchain.cer && -s ~/.acme.sh/${domain}/${domain}.key ]]; then
-            acmeCertDir=~/.acme.sh/${domain}
+        local acme_home
+        acme_home="$(dirname "$acme_bin")"
+        if [[ -s "${acme_home}/${domain}_ecc/fullchain.cer" && -s "${acme_home}/${domain}_ecc/${domain}.key" ]]; then
+            acmeCertDir="${acme_home}/${domain}_ecc"
+        elif [[ -s "${acme_home}/${domain}/fullchain.cer" && -s "${acme_home}/${domain}/${domain}.key" ]]; then
+            acmeCertDir="${acme_home}/${domain}"
         fi
         if [[ -n "${acmeCertDir}" ]]; then
             cert_exists=1
-            local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
+            local certInfo=$("$acme_bin" --list 2> /dev/null | grep -F "${domain}")
             LOGI "Existing certificate found for ${domain}, will reuse it."
             [[ -n "${certInfo}" ]] && LOGI "${certInfo}"
         else
-            LOGW "Found incomplete acme.sh state for ${domain} (no valid certificate files); cleaning it up and re-issuing."
-            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
+            LOGW "Found incomplete acme.sh state for ${domain}; preserving it and re-issuing."
         fi
     fi
     if [[ ${cert_exists} -eq 0 ]]; then
         LOGI "Your domain is ready for issuing certificates now..."
     fi
 
-    # create a directory for the certificate
-    certPath="/root/cert/${domain}"
-    if [ ! -d "$certPath" ]; then
-        mkdir -p "$certPath"
-    else
-        rm -rf "$certPath"
-        mkdir -p "$certPath"
-    fi
+    certPath="$(panel_certificate_dir "${domain}")"
 
     # get the port number for the standalone server
     local WebPort=80
@@ -1867,14 +1951,14 @@ ssl_cert_issue() {
 
     if [[ ${cert_exists} -eq 0 ]]; then
         # issue the certificate
-        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-        ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
+        "$acme_bin" --set-default-ca --server letsencrypt --force
+        "$acme_bin" --issue -d "${domain}" $(acme_listen_flag) --standalone --httpport "${WebPort}" --force
         if [ $? -ne 0 ]; then
             LOGE "Issuing certificate failed, please check logs."
-            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
+            LOGW "Existing certificate files and ACME records were left untouched."
             exit 1
         else
-            LOGE "Issuing certificate succeeded, installing certificates..."
+            LOGI "Issuing certificate succeeded, installing certificates..."
         fi
     else
         LOGI "Using existing certificate, installing certificates..."
@@ -1906,40 +1990,23 @@ ssl_cert_issue() {
         esac
     fi
 
-    # install the certificate
-    local installOutput=""
-    installOutput=$(~/.acme.sh/acme.sh --installcert --force -d ${domain} \
-        --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
-    local installRc=$?
-    echo "${installOutput}"
-
-    local installWroteFiles=0
-    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
-        installWroteFiles=1
-    fi
-
-    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && (${installRc} -eq 0 || ${installWroteFiles} -eq 1) ]]; then
-        LOGI "Installing certificate succeeded, enabling auto renew..."
-    else
-        LOGE "Installing certificate failed, exiting."
-        if [[ ${cert_exists} -eq 0 ]]; then
-            rm -rf ~/.acme.sh/${domain} ~/.acme.sh/${domain}_ecc
-        fi
+    if ! install_certificate_staged "${domain}" "$certPath" "$reloadCmd"; then
+        LOGE "Certificate installation or validation failed; existing files were left untouched."
         exit 1
     fi
+    LOGI "Installing certificate succeeded, enabling auto renew..."
 
     # enable auto-renew
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade
+    "$acme_bin" --upgrade --auto-upgrade
     if [ $? -ne 0 ]; then
         LOGE "Auto renew failed, certificate details:"
-        ls -lah cert/*
+        ls -lah "${certPath}"/*
         chmod 600 $certPath/privkey.pem
         chmod 644 $certPath/fullchain.pem
         exit 1
     else
         LOGI "Auto renew succeeded, certificate details:"
-        ls -lah cert/*
+        ls -lah "${certPath}"/*
         chmod 600 $certPath/privkey.pem
         chmod 644 $certPath/fullchain.pem
     fi
@@ -1947,11 +2014,14 @@ ssl_cert_issue() {
     # Prompt user to set panel paths after successful certificate installation
     read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
-        local webCertFile="/root/cert/${domain}/fullchain.pem"
-        local webKeyFile="/root/cert/${domain}/privkey.pem"
+        local webCertFile="${certPath}/fullchain.pem"
+        local webKeyFile="${certPath}/privkey.pem"
 
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            if ! ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"; then
+                LOGE "Certificate files were installed, but the panel TLS configuration was not changed."
+                return 1
+            fi
             LOGI "Panel paths set for domain: $domain"
             LOGI "  - Certificate File: $webCertFile"
             LOGI "  - Private Key File: $webKeyFile"
@@ -1979,7 +2049,7 @@ ssl_cert_issue_CF() {
 
     if [ $? -eq 0 ]; then
         # Check for acme.sh first
-        if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
+        if [[ ! -x "$(acme_executable)" ]]; then
             echo "acme.sh could not be found. We will install it."
             install_acme
             if [ $? -ne 0 ]; then
@@ -1987,6 +2057,8 @@ ssl_cert_issue_CF() {
                 exit 1
             fi
         fi
+        local acme_bin
+        acme_bin="$(acme_executable)"
 
         CF_Domain=""
 
@@ -2018,14 +2090,14 @@ ssl_cert_issue_CF() {
         fi
 
         # Set the default CA to Let's Encrypt
-        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
+        "$acme_bin" --set-default-ca --server letsencrypt --force
         if [ $? -ne 0 ]; then
             LOGE "Default CA, Let'sEncrypt fail, script exiting..."
             exit 1
         fi
 
         # Issue the certificate using Cloudflare DNS
-        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log --force
+        "$acme_bin" --issue --dns dns_cf -d "${CF_Domain}" -d "*.${CF_Domain}" --log --force
         if [ $? -ne 0 ]; then
             LOGE "Certificate issuance failed, script exiting..."
             exit 1
@@ -2033,17 +2105,7 @@ ssl_cert_issue_CF() {
             LOGI "Certificate issued successfully, Installing..."
         fi
 
-        # Install the certificate
-        certPath="/root/cert/${CF_Domain}"
-        if [ -d "$certPath" ]; then
-            rm -rf ${certPath}
-        fi
-
-        mkdir -p ${certPath}
-        if [ $? -ne 0 ]; then
-            LOGE "Failed to create directory: ${certPath}"
-            exit 1
-        fi
+        certPath="$(panel_certificate_dir "${CF_Domain}")"
 
         reloadCmd="x-ui restart"
 
@@ -2070,19 +2132,14 @@ ssl_cert_issue_CF() {
                     ;;
             esac
         fi
-        ~/.acme.sh/acme.sh --installcert --force -d ${CF_Domain} -d *.${CF_Domain} \
-            --key-file ${certPath}/privkey.pem \
-            --fullchain-file ${certPath}/fullchain.pem --reloadcmd "${reloadCmd}"
-
-        if [ $? -ne 0 ]; then
-            LOGE "Certificate installation failed, script exiting..."
+        if ! install_certificate_staged "${CF_Domain}" "$certPath" "$reloadCmd"; then
+            LOGE "Certificate installation or validation failed; existing files were left untouched."
             exit 1
-        else
-            LOGI "Certificate installed successfully, Turning on automatic updates..."
         fi
+        LOGI "Certificate installed successfully, turning on automatic updates..."
 
         # Enable auto-update
-        ~/.acme.sh/acme.sh --upgrade --auto-upgrade
+        "$acme_bin" --upgrade --auto-upgrade
         if [ $? -ne 0 ]; then
             LOGE "Auto update setup failed, script exiting..."
             exit 1
@@ -2100,7 +2157,10 @@ ssl_cert_issue_CF() {
             local webKeyFile="${certPath}/privkey.pem"
 
             if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-                ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                if ! ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"; then
+                    LOGE "Certificate files were installed, but the panel TLS configuration was not changed."
+                    return 1
+                fi
                 LOGI "Panel paths set for domain: $CF_Domain"
                 LOGI "  - Certificate File: $webCertFile"
                 LOGI "  - Private Key File: $webKeyFile"

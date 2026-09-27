@@ -92,6 +92,28 @@ func TestUpdateProxyEnvVars(t *testing.T) {
 	})
 }
 
+func TestPanelUpdateEnvIsNonInteractive(t *testing.T) {
+	got := panelUpdateEnv("/usr/local/x-ui", "/etc/systemd/system", "dev-latest", "XUI_UPDATE_RUN_ID=123", "XUI_UPDATE_STATUS_FILE=/tmp/status")
+	want := map[string]bool{
+		"XUI_MAIN_FOLDER=/usr/local/x-ui":    false,
+		"XUI_SERVICE=/etc/systemd/system":    false,
+		"XUI_UPDATE_TAG=dev-latest":          false,
+		"XUI_NONINTERACTIVE=1":               false,
+		"XUI_UPDATE_RUN_ID=123":              false,
+		"XUI_UPDATE_STATUS_FILE=/tmp/status": false,
+	}
+	for _, item := range got {
+		if _, ok := want[item]; ok {
+			want[item] = true
+		}
+	}
+	for item, found := range want {
+		if !found {
+			t.Fatalf("panelUpdateEnv() missing %q: got %v", item, got)
+		}
+	}
+}
+
 func TestExtractReleaseCommit(t *testing.T) {
 	full := "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 	cases := []struct {

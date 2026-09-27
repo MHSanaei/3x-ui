@@ -248,17 +248,14 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	updateScript := fmt.Sprintf("set -e; trap 'rm -f %s' EXIT; %s %s", shellQuote(scriptPath), shellQuote(bash), shellQuote(scriptPath))
 	runIDEnv := "XUI_UPDATE_RUN_ID=" + strconv.FormatInt(runID, 10)
 	statusFileEnv := "XUI_UPDATE_STATUS_FILE=" + statusFile
+	runEnv := panelUpdateEnv(mainFolder, serviceFolder, updateTag, runIDEnv, statusFileEnv)
 	proxyEnv := updateProxyEnvVars()
 
 	if systemdRun, err := exec.LookPath("systemd-run"); err == nil {
 		unitName := fmt.Sprintf("x-ui-web-update-%d", time.Now().Unix())
-		args := []string{
-			"--unit", unitName,
-			"--setenv", "XUI_MAIN_FOLDER=" + mainFolder,
-			"--setenv", "XUI_SERVICE=" + serviceFolder,
-			"--setenv", "XUI_UPDATE_TAG=" + updateTag,
-			"--setenv", runIDEnv,
-			"--setenv", statusFileEnv,
+		args := []string{"--unit", unitName}
+		for _, kv := range runEnv {
+			args = append(args, "--setenv", kv)
 		}
 		for _, kv := range proxyEnv {
 			args = append(args, "--setenv", kv)
@@ -282,13 +279,7 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	}
 
 	cmd := exec.CommandContext(context.Background(), bash, "-lc", updateScript)
-	cmd.Env = append(os.Environ(),
-		"XUI_MAIN_FOLDER="+mainFolder,
-		"XUI_SERVICE="+serviceFolder,
-		"XUI_UPDATE_TAG="+updateTag,
-		runIDEnv,
-		statusFileEnv,
-	)
+	cmd.Env = append(os.Environ(), runEnv...)
 	setDetachedProcess(cmd)
 	if err := cmd.Start(); err != nil {
 		_ = os.Remove(scriptPath)
@@ -301,6 +292,21 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	recordUpdatePID(cmd.Process.Pid)
 	launched = true
 	return runID, nil
+}
+
+// panelUpdateEnv is shared by the systemd-run and detached-process launch
+// paths. Web updates never have a controlling terminal, so make that contract
+// explicit instead of letting read(1) consume EOF and select an interactive
+// default (which previously started ACME issuance on an HTTP-only panel).
+func panelUpdateEnv(mainFolder, serviceFolder, updateTag, runIDEnv, statusFileEnv string) []string {
+	return []string{
+		"XUI_MAIN_FOLDER=" + mainFolder,
+		"XUI_SERVICE=" + serviceFolder,
+		"XUI_UPDATE_TAG=" + updateTag,
+		"XUI_NONINTERACTIVE=1",
+		runIDEnv,
+		statusFileEnv,
+	}
 }
 
 // updateProxyEnvVars forwards ambient proxy env vars to systemd-run's child,
