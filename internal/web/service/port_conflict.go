@@ -256,9 +256,9 @@ func checkPortConflictTx(db *gorm.DB, inbound *model.Inbound, ignoreId int) (*po
 		}, nil
 	}
 
-	// Egress SOCKS server holds loopback EgressBasePort when AWG outbounds are
+	// Egress SOCKS server holds loopback EgressPort when AWG outbounds are
 	// active; conflict check prevents inbounds from colliding with it.
-	if inbound.NodeID == nil && inbound.Port == int(amneziawgnet.EgressBasePort) &&
+	if inbound.NodeID == nil && inbound.Port == amneziawgnet.EgressPort() &&
 		newBits&transportTCP != 0 && listenOverlaps(loopbackBind, inboundBindAddr(inbound)) {
 		return &portConflictDetail{
 			Tag:        "amneziawg-egress",
