@@ -63,6 +63,12 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		if len(clients) == 0 {
 			continue
 		}
+		if inbound.ExcludeFromSub {
+			if countHiddenClients(clients, seenEmails) {
+				hasEnabledClient = true
+			}
+			continue
+		}
 		subReq.projectThroughFallbackMaster(inbound)
 		baseEps := subReq.hostEndpoints(inbound, "clash")
 		baseStream := inbound.StreamSettings

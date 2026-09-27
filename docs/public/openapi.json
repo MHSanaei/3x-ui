@@ -3086,6 +3086,11 @@
             "example": true,
             "type": "boolean"
           },
+          "excludeFromSub": {
+            "description": "Whether to omit this inbound from subscription output while keeping it operational",
+            "example": false,
+            "type": "boolean"
+          },
           "expiryTime": {
             "description": "Expiration timestamp",
             "format": "int64",
@@ -3209,6 +3214,7 @@
           "disableFlow",
           "down",
           "enable",
+          "excludeFromSub",
           "expiryTime",
           "id",
           "lastTrafficResetTime",
@@ -5194,6 +5200,7 @@
                       "disableFlow": false,
                       "down": 0,
                       "enable": true,
+                      "excludeFromSub": false,
                       "expiryTime": 0,
                       "fallbackParent": null,
                       "id": 1,
@@ -16369,6 +16376,7 @@
                   "disableFlow": false,
                   "down": 0,
                   "enable": true,
+                  "excludeFromSub": false,
                   "expiryTime": 0,
                   "fallbackParent": null,
                   "id": 1,

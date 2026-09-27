@@ -330,6 +330,18 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 	return out
 }
 
+// countHiddenClients adds an excludeFromSub inbound's clients to the usage set:
+// the inbound still serves them, so only its links leave the subscription.
+func countHiddenClients(clients []model.Client, seenEmails map[string]struct{}) (anyEnabled bool) {
+	for _, client := range clients {
+		seenEmails[client.Email] = struct{}{}
+		if client.Enable {
+			anyEnabled = true
+		}
+	}
+	return anyEnabled
+}
+
 // overlayInboundTunnelIdentity copies per-inbound tunnel fields from settings.
 // An unmatched peer is dropped, malformed settings yield nothing, and empty optional secrets replace shared values (#6641).
 func (s *SubService) overlayInboundTunnelIdentity(inbound *model.Inbound, clients []model.Client) ([]model.Client, error) {
@@ -471,6 +483,12 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	for _, inbound := range inbounds {
 		clients := s.matchingClients(inbound, subId)
 		if len(clients) == 0 {
+			continue
+		}
+		if inbound.ExcludeFromSub {
+			if countHiddenClients(clients, seenEmails) {
+				hasEnabledClient = true
+			}
 			continue
 		}
 		s.projectThroughFallbackMaster(inbound)
