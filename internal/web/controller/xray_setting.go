@@ -116,6 +116,7 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 		"inboundTags":       json.RawMessage(inboundTags),
 		"clientReverseTags": json.RawMessage(clientReverseTags),
 		"outboundTestUrl":   outboundTestUrl,
+		"geodataSources":    service.StandardGeodataSources(),
 	}
 
 	// Surface subscription outbounds (and their tags) so the frontend can:

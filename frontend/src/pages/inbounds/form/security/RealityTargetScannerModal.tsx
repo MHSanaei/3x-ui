@@ -5,11 +5,15 @@ import type { ColumnsType } from 'antd/es/table';
 
 import type { RealityScanResult } from '@/generated/types';
 
+// xray-core ML-DSA-65 REALITY min peer cert-chain size (not defined in this repo).
+export const MLDSA65_MIN_CERT_CHAIN_BYTES = 3500;
+
 interface RealityTargetScannerModalProps {
   open: boolean;
   onClose: () => void;
   scanRealityCandidates: (targets?: string) => Promise<RealityScanResult[]>;
   onPick: (result: RealityScanResult) => void;
+  mldsa65Enabled?: boolean;
 }
 
 export default function RealityTargetScannerModal({
@@ -17,6 +21,7 @@ export default function RealityTargetScannerModal({
   onClose,
   scanRealityCandidates,
   onPick,
+  mldsa65Enabled = false,
 }: RealityTargetScannerModalProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -127,6 +132,28 @@ export default function RealityTargetScannerModal({
         ),
     },
     {
+      title: t('pages.inbounds.form.scanCertChain'),
+      dataIndex: 'certChainBytes',
+      key: 'certChainBytes',
+      width: 100,
+      render: (bytes: number) => {
+        if (!bytes) return '—';
+        if (mldsa65Enabled && bytes < MLDSA65_MIN_CERT_CHAIN_BYTES) {
+          return (
+            <Tooltip
+              title={t('pages.inbounds.form.scanMldsaCertChainTooSmall', {
+                length: bytes,
+                min: MLDSA65_MIN_CERT_CHAIN_BYTES,
+              })}
+            >
+              <Tag color="warning">{bytes} B</Tag>
+            </Tooltip>
+          );
+        }
+        return `${bytes} B`;
+      },
+    },
+    {
       title: t('pages.inbounds.form.scanLatency'),
       dataIndex: 'latencyMs',
       key: 'latencyMs',
@@ -165,7 +192,7 @@ export default function RealityTargetScannerModal({
         </Button>,
       ]}
       title={t('pages.inbounds.form.scanModalTitle')}
-      width={960}
+      width={1080}
     >
       <Space orientation="vertical" size="small" style={{ width: '100%' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>

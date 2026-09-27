@@ -15,8 +15,8 @@ import (
 // endpointResolveTimeout bounds the one-time DNS lookup in ParseEndpoint.
 const endpointResolveTimeout = 5 * time.Second
 
-// resolvingBind lets peer endpoints be hostnames: StdNetBind has no DNS and
-// an unresolved name kills the whole IpcSet. Resolved once at configure.
+// resolvingBind wraps a Bind so peer endpoints may be hostnames (#6367).
+// Concrete listen values use pinnedBind; wildcards keep StdNetBind.
 type resolvingBind struct {
 	awgconn.Bind
 }
@@ -35,8 +35,8 @@ func defaultLookupEndpointHost(ctx context.Context, host string) ([]netip.Addr, 
 	return out, nil
 }
 
-func newResolvingBind() *resolvingBind {
-	return &resolvingBind{Bind: awgconn.NewDefaultBind()}
+func newResolvingBind(listen string) *resolvingBind {
+	return &resolvingBind{Bind: newListenBind(listen)}
 }
 
 // ParseEndpoint resolves hostnames before handing the address to amneziawg-go

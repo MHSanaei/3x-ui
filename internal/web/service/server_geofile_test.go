@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 )
 
 // Loyalsoldier and runetfreedom write "<hash>  geoip.dat"; chocolate4u writes
@@ -141,10 +141,7 @@ func geofileTestEnv(t *testing.T, entries map[string]geofileEntry) string {
 
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 
 	binFolder := t.TempDir()
 	t.Setenv("XUI_BIN_FOLDER", binFolder)
@@ -390,5 +387,26 @@ func TestUpdateGeofileRejectsNameOutsideAllowlist(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not in allowlist") {
 		t.Fatalf("error = %q, want it to name the allowlist", err)
+	}
+}
+
+func TestStandardGeodataSources(t *testing.T) {
+	want := []GeodataSource{
+		{URL: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", File: "geoip.dat"},
+		{URL: "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", File: "geoip_IR.dat"},
+		{URL: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", File: "geoip_RU.dat"},
+		{URL: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", File: "geosite.dat"},
+		{URL: "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", File: "geosite_IR.dat"},
+		{URL: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", File: "geosite_RU.dat"},
+	}
+
+	got := StandardGeodataSources()
+	if len(got) != len(want) {
+		t.Fatalf("sources = %d entries, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("source %d = %+v, want %+v", i, got[i], want[i])
+		}
 	}
 }

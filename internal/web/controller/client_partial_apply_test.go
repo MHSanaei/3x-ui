@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -22,10 +23,7 @@ func seedPartlyApplyingClient(t *testing.T, email string, basePort int) (healthy
 	t.Helper()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 
 	db := database.GetDB()
 	ids := make([]int, 0, 2)
@@ -121,6 +119,54 @@ func TestDeleteHandlerFlagsRestartOnPartialApply(t *testing.T) {
 	assertPartialApply(t, w)
 	if !a.xrayService.IsNeedRestartAndSetFalse() {
 		t.Fatal("a partly-applied client delete left Xray unflagged for restart")
+	}
+}
+
+// TestImportHandlerFlagsRestartWhenTrafficRestoreFails: the traffic restore runs
+// after the clients are committed, so its failure must not discard their restart.
+func TestImportHandlerFlagsRestartWhenTrafficRestoreFails(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+	db := database.GetDB()
+	ib := &model.Inbound{
+		UserId: 1, Enable: true, Port: 43340, Tag: "in-import-partial",
+		Protocol: model.VLESS, Settings: `{"clients": []}`,
+		StreamSettings: `{"network":"tcp","security":"none"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	trigger := `CREATE TRIGGER fail_traffic_restore BEFORE UPDATE OF up ON client_traffics
+		BEGIN SELECT RAISE(ABORT, 'injected traffic restore failure'); END`
+	if err := db.Exec(trigger).Error; err != nil {
+		t.Fatalf("create failure trigger: %v", err)
+	}
+
+	const email = "import-partial@example.com"
+	data, err := json.Marshal([]service.ClientCreatePayload{{
+		Client:     model.Client{Email: email, SubID: "sub-import-partial", Enable: true},
+		InboundIds: []int{ib.Id},
+		Traffic:    &service.ClientPortableTraffic{Up: 5, Down: 6},
+	}})
+	if err != nil {
+		t.Fatalf("marshal import data: %v", err)
+	}
+	a := &ClientController{}
+	a.xrayService.IsNeedRestartAndSetFalse()
+	c, w := postCtx(t, "", importClientsRequest{Data: string(data)})
+	a.importClients(c)
+
+	assertPartialApply(t, w)
+	var created int64
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).Count(&created).Error; err != nil {
+		t.Fatalf("count imported client: %v", err)
+	}
+	if created != 1 {
+		t.Fatalf("imported client count=%d, want 1 committed before the restore failed", created)
+	}
+	if !a.xrayService.IsNeedRestartAndSetFalse() {
+		t.Fatal("a failed traffic restore left the imported clients' Xray restart unflagged")
 	}
 }
 

@@ -25,7 +25,7 @@ icon: Boxes
 | **Inbound sync**  | `all` 入站，或按标签 `selected`。                                     |
 | **Outbound tag**  | 可选地**通过**指定的出站到达节点（出口桥接）。                        |
 
-当你添加或测试节点时，主控会验证其可达性。随后它每隔几秒发送一次**心跳**，更新节点的状态（`online` / `offline`）并发出 `node.up` / `node.down` 事件（参见 [Telegram 机器人](/docs/operations/telegram-bot)）。
+当你添加或测试节点时，主控会验证其可达性。随后它每隔几秒发送一次**心跳**，更新节点的状态（`online` / `offline`）并发出 `node.up` / `node.down` 事件（参见 [Telegram 机器人](/docs/operations/telegram-bot) 与 [Discord 机器人](/docs/operations/discord-bot)）。
 
 <Callout type="info">
   节点通过每个面板稳定的 GUID 来标识，因此节点在重启后仍能保持其身份。节点本身也可以管理更多节点——主控会将这些以只读的**传递性**子节点形式呈现（Node 1 → Node 2 → Node 3）。

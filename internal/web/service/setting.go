@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/xlzd/gotp"
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -26,8 +25,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netproxy"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/reflect_util"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/totp"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray/dnsconf"
 )
 
 //go:embed config.json
@@ -35,12 +36,20 @@ var xrayTemplateConfig string
 
 const (
 	DefaultSubClashUserAgentRegex     = `(?i)(clash|mihomo)`
+	DefaultExternalSubUserAgent       = "v2rayNG/1.8.5"
 	DefaultSubJsonUserAgentRegex      = ``
 	DefaultRemarkTemplate             = "{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D"
 	DefaultSubExpiredTemplate         = "⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}"
 	DefaultSubTrafficDepletedTemplate = "🚫 {{EMAIL}} | Traffic Depleted | {{TRAFFIC_USED}}/{{TRAFFIC_TOTAL}}"
 	DefaultTrustedProxyCIDRs          = "127.0.0.1/32,::1/128"
 	maxRegexLength                    = 2048
+)
+
+// Built-in profile links expose the subscription URL and require an explicit opt-in.
+const (
+	SubProfileModeNone    = "none"
+	SubProfileModeBuiltin = "builtin"
+	SubProfileModeCustom  = "custom"
 )
 
 var defaultValueMap = map[string]string{
@@ -66,6 +75,7 @@ var defaultValueMap = map[string]string{
 	"webBasePath":                 normalizeBasePath(getEnv("XUI_INIT_WEB_BASE_PATH", "/")),
 	"sessionMaxAge":               "360",
 	"trustedProxyCIDRs":           DefaultTrustedProxyCIDRs,
+	"realityScanCandidates":       DefaultRealityScanCandidatesCSV,
 	"ipLimitAllowlist":            "",
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
@@ -73,6 +83,7 @@ var defaultValueMap = map[string]string{
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
 	"subInfoNodeEnable":           "false",
+	"subCalendarExpireInclusive":  "false",
 	"subExpiredTemplate":          DefaultSubExpiredTemplate,
 	"subTrafficDepletedTemplate":  DefaultSubTrafficDepletedTemplate,
 	"timeLocation":                "Local",
@@ -88,6 +99,7 @@ var defaultValueMap = map[string]string{
 	"tgLang":                      "en-US",
 	"twoFactorEnable":             "false",
 	"twoFactorToken":              "",
+	"happLinkEnable":              "false",
 	"subEnable":                   "true",
 	"subJsonEnable":               "false",
 	"subJsonAutoDetect":           "false",
@@ -97,6 +109,7 @@ var defaultValueMap = map[string]string{
 	"subClashUserAgentRegex":      "",
 	"subTitle":                    "",
 	"subSupportUrl":               "",
+	"subProfileMode":              SubProfileModeNone,
 	"subProfileUrl":               "",
 	"subAnnounce":                 "",
 	"subEnableRouting":            "false",
@@ -125,14 +138,44 @@ var defaultValueMap = map[string]string{
 	"subHappAutoConnectType":      "lowestdelay",
 	"subHappPerAppMode":           "off",
 	"subHappPerAppList":           "",
+	"subHappLocalProxyAuth":       "auto",
 	"subIncyEnableRouting":        "false",
 	"subIncyRoutingRules":         "",
+	"subIncyAppAutoDetect":        "false",
+	"subIncyProfileDescription":   "",
+	"subIncySortOrder":            "",
+	"subIncySupportEmail":         "",
+	"subIncyAnnounceUrl":          "",
+	"subIncyPremiumUrl":           "",
+	"subIncyBannerText":           "",
+	"subIncyBannerButtonText":     "",
+	"subIncyBannerButtonUrl":      "",
+	"subIncyBannerBgColor":        "",
+	"subIncyBannerButtonColor":    "",
+	"subIncyHideUrl":              "",
+	"subIncyHideCheck":            "",
+	"subIncyNoLimitEnabled":       "",
+	"subIncyPerAppEnable":         "",
+	"subIncyPerAppMode":           "",
+	"subIncyPerAppList":           "",
+	"subIncyFragmentationEnable":  "",
+	"subIncyFragmentLength":       "",
+	"subIncyFragmentInterval":     "",
+	"subIncyFragmentPackets":      "",
+	"subIncyNoisesEnable":         "",
+	"subIncyNoisesType":           "",
+	"subIncyNoisesPacket":         "",
+	"subIncyNoisesDelay":          "",
+	"subIncyResolveEnable":        "",
+	"subIncyResolveDnsDomain":     "",
+	"subIncyResolveDnsIp":         "",
 	"subListen":                   "",
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
 	"subDomain":                   "",
 	"subCertFile":                 "",
 	"subKeyFile":                  "",
+	"externalSubUserAgent":        DefaultExternalSubUserAgent,
 	"subUpdates":                  "12",
 	"subEncrypt":                  "true",
 	"subURI":                      "",
@@ -146,6 +189,7 @@ var defaultValueMap = map[string]string{
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
 	"subJsonRoutingRules":         "",
+	"subJsonDns":                  "",
 	"subJsonFinalMask":            "",
 	"subJsonObservatory":          "",
 	"subThemeDir":                 "",
@@ -203,6 +247,18 @@ var defaultValueMap = map[string]string{
 	"smtpFromName":       "",
 	"smtpTo":             "",
 	"smtpEncryptionType": "starttls", // no, starttls, tls
+
+	// Discord bot notifications
+	"discordBotEnable":     "false",
+	"discordBotToken":      "",
+	"discordChannelId":     "",
+	"discordAdminIds":      "",
+	"discordRunTime":       "@daily",
+	"discordBotBackup":     "false",
+	"discordCpu":           "80",
+	"discordMemory":        "80",
+	"discordLang":          "en-US",
+	"discordEnabledEvents": "login.attempt,cpu.high",
 }
 
 // SettingService provides business logic for application settings management.
@@ -281,6 +337,11 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		}
 	}
 
+	// A missing mode must still preserve URLs configured before modes existed.
+	if !keyMap["subProfileMode"] {
+		allSetting.SubProfileMode = ""
+	}
+	allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
 	return allSetting, nil
 }
 
@@ -296,6 +357,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.HasWarpSecret = secretConfigured(mustString(s.GetWarp()))
 	view.HasNordSecret = secretConfigured(mustString(s.GetNord()))
 	view.HasSmtpPassword = secretConfigured(allSetting.SmtpPassword)
+	view.HasDiscordBotToken = secretConfigured(allSetting.DiscordBotToken)
 	var apiTokenCount int64
 	if err := database.GetDB().Model(model.ApiToken{}).Where("enabled = ?", true).Count(&apiTokenCount).Error; err == nil {
 		view.HasApiToken = apiTokenCount > 0
@@ -304,6 +366,7 @@ func (s *SettingService) GetAllSettingView() (*entity.AllSettingView, error) {
 	view.TwoFactorToken = ""
 	view.LdapPassword = ""
 	view.SmtpPassword = ""
+	view.DiscordBotToken = ""
 	return view, nil
 }
 
@@ -636,7 +699,7 @@ func (s *SettingService) VerifyTwoFactorCode(code string) error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(token) == "" || !gotp.NewDefaultTOTP(token).Verify(strings.TrimSpace(code), time.Now().Unix()) {
+	if strings.TrimSpace(token) == "" || !totp.VerifyWithSkew(token, strings.TrimSpace(code), time.Now()) {
 		return common.NewError("invalid two factor code")
 	}
 	return nil
@@ -688,6 +751,10 @@ func (s *SettingService) GetTrustedProxyCIDRs() (string, error) {
 	return s.getString("trustedProxyCIDRs")
 }
 
+func (s *SettingService) GetRealityScanCandidates() (string, error) {
+	return s.getString("realityScanCandidates")
+}
+
 func (s *SettingService) GetRemarkTemplate() (string, error) {
 	return s.getString("remarkTemplate")
 }
@@ -698,6 +765,10 @@ func (s *SettingService) GetSubShowIdentityOnAllLinks() (bool, error) {
 
 func (s *SettingService) GetSubInfoNodeEnable() (bool, error) {
 	return s.getBool("subInfoNodeEnable")
+}
+
+func (s *SettingService) GetSubCalendarExpireInclusive() (bool, error) {
+	return s.getBool("subCalendarExpireInclusive")
 }
 
 func (s *SettingService) GetSubExpiredTemplate() (string, error) {
@@ -781,6 +852,10 @@ func (s *SettingService) GetSubEnable() (bool, error) {
 	return s.getBool("subEnable")
 }
 
+func (s *SettingService) GetHappLinkEnable() (bool, error) {
+	return s.getBool("happLinkEnable")
+}
+
 func (s *SettingService) GetSubJsonEnable() (bool, error) {
 	return s.getBool("subJsonEnable")
 }
@@ -817,6 +892,34 @@ func (s *SettingService) GetSubSupportUrl() (string, error) {
 func (s *SettingService) GetSubProfileUrl() (string, error) {
 	value, err := s.getString("subProfileUrl")
 	return common.EnsureURLScheme(value), err
+}
+
+func (s *SettingService) GetSubProfileMode() (string, error) {
+	setting, err := s.getSetting("subProfileMode")
+	if err != nil && !database.IsNotFound(err) {
+		return SubProfileModeNone, err
+	}
+	if err == nil && setting.Value != "" {
+		return effectiveSubProfileMode(setting.Value, ""), nil
+	}
+	profileURL, err := s.getString("subProfileUrl")
+	if err != nil {
+		return SubProfileModeNone, err
+	}
+	return effectiveSubProfileMode("", profileURL), nil
+}
+
+func effectiveSubProfileMode(mode, profileURL string) string {
+	switch mode {
+	case SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
+		return mode
+	case "":
+		// Older settings have no mode; only an existing custom URL opts them in.
+		if strings.TrimSpace(profileURL) != "" {
+			return SubProfileModeCustom
+		}
+	}
+	return SubProfileModeNone
 }
 
 func (s *SettingService) GetSubAnnounce() (string, error) {
@@ -927,12 +1030,128 @@ func (s *SettingService) GetSubHappPerAppList() (string, error) {
 	return s.getString("subHappPerAppList")
 }
 
+func (s *SettingService) GetSubHappLocalProxyAuth() (string, error) {
+	return s.getString("subHappLocalProxyAuth")
+}
+
 func (s *SettingService) GetSubIncyEnableRouting() (bool, error) {
 	return s.getBool("subIncyEnableRouting")
 }
 
 func (s *SettingService) GetSubIncyRoutingRules() (string, error) {
 	return s.getString("subIncyRoutingRules")
+}
+
+func (s *SettingService) GetSubIncyAppAutoDetect() (bool, error) {
+	return s.getBool("subIncyAppAutoDetect")
+}
+
+func (s *SettingService) GetSubIncyProfileDescription() (string, error) {
+	return s.getString("subIncyProfileDescription")
+}
+
+func (s *SettingService) GetSubIncySortOrder() (string, error) {
+	return s.getString("subIncySortOrder")
+}
+
+func (s *SettingService) GetSubIncySupportEmail() (string, error) {
+	return s.getString("subIncySupportEmail")
+}
+
+func (s *SettingService) GetSubIncyAnnounceUrl() (string, error) {
+	return s.getString("subIncyAnnounceUrl")
+}
+
+func (s *SettingService) GetSubIncyPremiumUrl() (string, error) {
+	return s.getString("subIncyPremiumUrl")
+}
+
+func (s *SettingService) GetSubIncyBannerText() (string, error) {
+	return s.getString("subIncyBannerText")
+}
+
+func (s *SettingService) GetSubIncyBannerButtonText() (string, error) {
+	return s.getString("subIncyBannerButtonText")
+}
+
+func (s *SettingService) GetSubIncyBannerButtonUrl() (string, error) {
+	return s.getString("subIncyBannerButtonUrl")
+}
+
+func (s *SettingService) GetSubIncyBannerBgColor() (string, error) {
+	return s.getString("subIncyBannerBgColor")
+}
+
+func (s *SettingService) GetSubIncyBannerButtonColor() (string, error) {
+	return s.getString("subIncyBannerButtonColor")
+}
+
+func (s *SettingService) GetSubIncyHideUrl() (string, error) {
+	return s.getString("subIncyHideUrl")
+}
+
+func (s *SettingService) GetSubIncyHideCheck() (string, error) {
+	return s.getString("subIncyHideCheck")
+}
+
+func (s *SettingService) GetSubIncyNoLimitEnabled() (string, error) {
+	return s.getString("subIncyNoLimitEnabled")
+}
+
+func (s *SettingService) GetSubIncyPerAppEnable() (string, error) {
+	return s.getString("subIncyPerAppEnable")
+}
+
+func (s *SettingService) GetSubIncyPerAppMode() (string, error) {
+	return s.getString("subIncyPerAppMode")
+}
+
+func (s *SettingService) GetSubIncyPerAppList() (string, error) {
+	return s.getString("subIncyPerAppList")
+}
+
+func (s *SettingService) GetSubIncyFragmentationEnable() (string, error) {
+	return s.getString("subIncyFragmentationEnable")
+}
+
+func (s *SettingService) GetSubIncyFragmentLength() (string, error) {
+	return s.getString("subIncyFragmentLength")
+}
+
+func (s *SettingService) GetSubIncyFragmentInterval() (string, error) {
+	return s.getString("subIncyFragmentInterval")
+}
+
+func (s *SettingService) GetSubIncyFragmentPackets() (string, error) {
+	return s.getString("subIncyFragmentPackets")
+}
+
+func (s *SettingService) GetSubIncyNoisesEnable() (string, error) {
+	return s.getString("subIncyNoisesEnable")
+}
+
+func (s *SettingService) GetSubIncyNoisesType() (string, error) {
+	return s.getString("subIncyNoisesType")
+}
+
+func (s *SettingService) GetSubIncyNoisesPacket() (string, error) {
+	return s.getString("subIncyNoisesPacket")
+}
+
+func (s *SettingService) GetSubIncyNoisesDelay() (string, error) {
+	return s.getString("subIncyNoisesDelay")
+}
+
+func (s *SettingService) GetSubIncyResolveEnable() (string, error) {
+	return s.getString("subIncyResolveEnable")
+}
+
+func (s *SettingService) GetSubIncyResolveDnsDomain() (string, error) {
+	return s.getString("subIncyResolveDnsDomain")
+}
+
+func (s *SettingService) GetSubIncyResolveDnsIp() (string, error) {
+	return s.getString("subIncyResolveDnsIp")
 }
 
 func (s *SettingService) GetSubListen() (string, error) {
@@ -973,6 +1192,17 @@ func (s *SettingService) GetSubKeyFile() (string, error) {
 
 func (s *SettingService) GetSubUpdates() (string, error) {
 	return s.getString("subUpdates")
+}
+
+func (s *SettingService) GetExternalSubUserAgent() (string, error) {
+	value, err := s.getString("externalSubUserAgent")
+	if err != nil {
+		return DefaultExternalSubUserAgent, err
+	}
+	if value = strings.TrimSpace(value); value == "" {
+		return DefaultExternalSubUserAgent, nil
+	}
+	return value, nil
 }
 
 func (s *SettingService) GetSubEncrypt() (bool, error) {
@@ -1021,6 +1251,10 @@ func (s *SettingService) GetSubJsonRules() (string, error) {
 
 func (s *SettingService) GetSubJsonRoutingRules() (string, error) {
 	return s.getString("subJsonRoutingRules")
+}
+
+func (s *SettingService) GetSubJsonDns() (string, error) {
+	return s.getString("subJsonDns")
 }
 
 func (s *SettingService) GetSubJsonFinalMask() (string, error) {
@@ -1309,6 +1543,88 @@ func (s *SettingService) SetSmtpMemory(value int) error {
 	return s.setInt("smtpMemory", value)
 }
 
+// Discord bot settings
+
+func (s *SettingService) GetDiscordBotEnable() (bool, error) {
+	return s.getBool("discordBotEnable")
+}
+
+func (s *SettingService) SetDiscordBotEnable(value bool) error {
+	return s.setBool("discordBotEnable", value)
+}
+
+func (s *SettingService) GetDiscordBotToken() (string, error) {
+	return s.getString("discordBotToken")
+}
+
+func (s *SettingService) SetDiscordBotToken(value string) error {
+	return s.setString("discordBotToken", value)
+}
+
+func (s *SettingService) GetDiscordChannelId() (string, error) {
+	return s.getString("discordChannelId")
+}
+
+func (s *SettingService) SetDiscordChannelId(value string) error {
+	return s.setString("discordChannelId", value)
+}
+
+func (s *SettingService) GetDiscordAdminIds() (string, error) {
+	return s.getString("discordAdminIds")
+}
+
+func (s *SettingService) SetDiscordAdminIds(value string) error {
+	return s.setString("discordAdminIds", value)
+}
+
+func (s *SettingService) GetDiscordEnabledEvents() (string, error) {
+	return s.getString("discordEnabledEvents")
+}
+
+func (s *SettingService) SetDiscordEnabledEvents(events string) error {
+	return s.setString("discordEnabledEvents", events)
+}
+
+func (s *SettingService) GetDiscordCpu() (int, error) {
+	return s.getInt("discordCpu")
+}
+
+func (s *SettingService) SetDiscordCpu(value int) error {
+	return s.setInt("discordCpu", value)
+}
+
+func (s *SettingService) GetDiscordMemory() (int, error) {
+	return s.getInt("discordMemory")
+}
+
+func (s *SettingService) SetDiscordMemory(value int) error {
+	return s.setInt("discordMemory", value)
+}
+
+func (s *SettingService) GetDiscordRunTime() (string, error) {
+	return s.getString("discordRunTime")
+}
+
+func (s *SettingService) SetDiscordRunTime(value string) error {
+	return s.setString("discordRunTime", value)
+}
+
+func (s *SettingService) GetDiscordBotBackup() (bool, error) {
+	return s.getBool("discordBotBackup")
+}
+
+func (s *SettingService) SetDiscordBotBackup(value bool) error {
+	return s.setBool("discordBotBackup", value)
+}
+
+func (s *SettingService) GetDiscordLang() (string, error) {
+	return s.getString("discordLang")
+}
+
+func (s *SettingService) SetDiscordLang(value string) error {
+	return s.setString("discordLang", value)
+}
+
 // GetOutboundDownThreshold returns how many consecutive failed observatory
 // probes an outbound must accumulate before an outbound.down notification is
 // emitted. 1 preserves the legacy "notify on the first failed probe" behaviour.
@@ -1324,12 +1640,19 @@ func (s *SettingService) SetOutboundDownThreshold(value int) error {
 // flag, a blank submitted secret means "unchanged" (the field is always served
 // blank to the browser) and the stored value is preserved.
 type SecretClears struct {
-	TgBotToken   bool
-	LdapPassword bool
-	SmtpPassword bool
+	TgBotToken      bool
+	LdapPassword    bool
+	SmtpPassword    bool
+	DiscordBotToken bool
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	switch allSetting.SubProfileMode {
+	case "", SubProfileModeNone, SubProfileModeBuiltin, SubProfileModeCustom:
+		allSetting.SubProfileMode = effectiveSubProfileMode(allSetting.SubProfileMode, allSetting.SubProfileUrl)
+	default:
+		return errors.New("subscription profile mode must be none, builtin, or custom")
+	}
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}
@@ -1337,6 +1660,9 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 		return err
 	}
 	if err := validateSubUserAgentRegexes(allSetting); err != nil {
+		return err
+	}
+	if err := validateSubJsonDnsSetting(allSetting); err != nil {
 		return err
 	}
 	if err := allSetting.CheckValid(); err != nil {
@@ -1450,6 +1776,13 @@ func (s *SettingService) preserveRedactedSecrets(allSetting *entity.AllSetting, 
 		}
 		allSetting.SmtpPassword = value
 	}
+	if !clears.DiscordBotToken && strings.TrimSpace(allSetting.DiscordBotToken) == "" {
+		value, err := s.GetDiscordBotToken()
+		if err != nil {
+			return err
+		}
+		allSetting.DiscordBotToken = value
+	}
 	return nil
 }
 
@@ -1479,6 +1812,10 @@ func validateSettingsURLs(allSetting *entity.AllSetting) error {
 		&allSetting.SubHappFallbackUrl,
 		&allSetting.SubHappSubInfoButtonLink,
 		&allSetting.SubHappSubExpireButtonLink,
+		&allSetting.SubIncyAnnounceUrl,
+		&allSetting.SubIncyPremiumUrl,
+		&allSetting.SubIncyBannerButtonUrl,
+		&allSetting.SubIncyResolveDnsDomain,
 	} {
 		if strings.TrimSpace(*ptr) != "" {
 			*ptr = common.EnsureURLScheme(strings.TrimSpace(*ptr))
@@ -1505,6 +1842,19 @@ func validateRemoteRoutingURLSetting(name string, value *string) error {
 	if remote {
 		*value = canonical
 	}
+	return nil
+}
+
+// The same parser the sub server uses, so a value can never be saved as valid
+// and then silently ignored at request time.
+func validateSubJsonDnsSetting(allSetting *entity.AllSetting) error {
+	value := strings.TrimSpace(allSetting.SubJsonDns)
+	if value != "" {
+		if _, err := dnsconf.Parse(value); err != nil {
+			return common.NewError("JSON subscription DNS is invalid:", err.Error())
+		}
+	}
+	allSetting.SubJsonDns = value
 	return nil
 }
 
@@ -1580,6 +1930,7 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"defaultKey":       func() (any, error) { return s.GetKeyFile() },
 		"tgBotEnable":      func() (any, error) { return s.GetTgbotEnabled() },
 		"subThemeDir":      func() (any, error) { return s.GetSubThemeDir() },
+		"happLinkEnable":   func() (any, error) { return s.GetHappLinkEnable() },
 		"subEnable":        func() (any, error) { return s.GetSubEnable() },
 		"subJsonEnable":    func() (any, error) { return s.GetSubJsonEnable() },
 		"subClashEnable":   func() (any, error) { return s.GetSubClashEnable() },
@@ -1643,10 +1994,11 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 }
 
 var factoryDefaultSecretKeys = map[string]bool{
-	"tgBotToken":     true,
-	"twoFactorToken": true,
-	"ldapPassword":   true,
-	"smtpPassword":   true,
+	"tgBotToken":      true,
+	"twoFactorToken":  true,
+	"ldapPassword":    true,
+	"smtpPassword":    true,
+	"discordBotToken": true,
 }
 
 /*

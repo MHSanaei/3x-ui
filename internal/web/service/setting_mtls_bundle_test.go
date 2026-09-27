@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -70,5 +71,23 @@ func TestNodeMtlsClientCAPoolRejectsPartiallyValidBundle(t *testing.T) {
 	want := "nodeMtlsClientCAPem is not a valid certificate bundle: certificate bundle contains malformed or non-PEM data"
 	if err == nil || err.Error() != want {
 		t.Fatalf("NodeMtlsClientCAPool() = %v, error = %v, want %q", pool, err, want)
+	}
+}
+
+// The boot path tells the operator whether the bundle itself is unusable or the
+// settings read failed, so the parse failure has to carry a matchable cause.
+func TestNodeMtlsClientCAPoolTagsAnInvalidBundle(t *testing.T) {
+	s := setupSettingMtlsDB(t)
+
+	if err := s.setString("nodeMtlsClientCAPem", "-----BEGIN CERTIFICATE-----\nnot base64\n-----END CERTIFICATE-----\n"); err != nil {
+		t.Fatalf("setString: %v", err)
+	}
+
+	pool, err := s.NodeMtlsClientCAPool()
+	if pool != nil {
+		t.Fatalf("NodeMtlsClientCAPool() returned a pool built from an unusable bundle")
+	}
+	if !errors.Is(err, ErrNodeMtlsTrustBundleInvalid) {
+		t.Fatalf("NodeMtlsClientCAPool() error = %v, want it to wrap ErrNodeMtlsTrustBundleInvalid", err)
 	}
 }

@@ -49,6 +49,10 @@ _openapi:
         chat.
       url: '#test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat'
     - depth: 2
+      title: Test Discord bot connection by sending a test embed to the configured
+        channel.
+      url: '#test-discord-bot-connection-by-sending-a-test-embed-to-the-configured-channel'
+    - depth: 2
       title: Return the built-in default Xray JSON config template that ships with
         this panel version.
       url: '#return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version'
@@ -86,6 +90,9 @@ _openapi:
       - content: Test Telegram bot connection by sending a test message to the
           configured chat.
         id: test-telegram-bot-connection-by-sending-a-test-message-to-the-configured-chat
+      - content: Test Discord bot connection by sending a test embed to the configured
+          channel.
+        id: test-discord-bot-connection-by-sending-a-test-embed-to-the-configured-channel
       - content: Return the built-in default Xray JSON config template that ships with
           this panel version.
         id: return-the-built-in-default-xray-json-config-template-that-ships-with-this-panel-version
@@ -101,7 +108,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/factoryDefaults","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/validateRegex","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/setting/all","method":"post"},{"path":"/panel/api/setting/defaultSettings","method":"post"},{"path":"/panel/api/setting/factoryDefaults","method":"post"},{"path":"/panel/api/setting/update","method":"post"},{"path":"/panel/api/setting/validateRegex","method":"post"},{"path":"/panel/api/setting/updateUser","method":"post"},{"path":"/panel/api/setting/restartPanel","method":"post"},{"path":"/panel/api/setting/testSmtp","method":"post"},{"path":"/panel/api/setting/testTgBot","method":"post"},{"path":"/panel/api/setting/testDiscord","method":"post"},{"path":"/panel/api/setting/getDefaultJsonConfig","method":"get"}]} showTitle />
     </>
   );
 }

@@ -81,9 +81,9 @@ describe('QrPanel dense AmneziaWG config', () => {
     const completeQr = qrGeometry(complete);
     const shorterQr = qrGeometry(withoutDisableCookies);
 
-    expect(completeQr.viewBox).toBe('0 0 105 105');
-    expect(shorterQr.viewBox).toBe('0 0 101 101');
-    expect(completeQr.foreground).toMatch(/^M4 4h7/);
-    expect(shorterQr.foreground).toMatch(/^M4 4h7/);
+    expect(completeQr.viewBox).toBe('0 0 101 101');
+    expect(shorterQr.viewBox).toBe('0 0 97 97');
+    expect(completeQr.foreground).toMatch(/^M2 2h7/);
+    expect(shorterQr.foreground).toMatch(/^M2 2h7/);
   });
 });

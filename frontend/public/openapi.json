@@ -31,15 +31,55 @@
           "datepicker": {
             "type": "string"
           },
+          "discordAdminIds": {
+            "type": "string"
+          },
+          "discordBotBackup": {
+            "type": "boolean"
+          },
+          "discordBotEnable": {
+            "type": "boolean"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordEnabledEvents": {
+            "type": "string"
+          },
+          "discordLang": {
+            "type": "string"
+          },
+          "discordMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordRunTime": {
+            "type": "string"
+          },
           "expireDiff": {
             "minimum": 0,
             "type": "integer"
+          },
+          "externalSubUserAgent": {
+            "type": "string"
           },
           "externalTrafficInformEnable": {
             "type": "boolean"
           },
           "externalTrafficInformURI": {
             "type": "string"
+          },
+          "happLinkEnable": {
+            "type": "boolean"
           },
           "ipLimitAllowlist": {
             "type": "string"
@@ -125,6 +165,9 @@
           "panelOutbound": {
             "type": "string"
           },
+          "realityScanCandidates": {
+            "type": "string"
+          },
           "remarkTemplate": {
             "type": "string"
           },
@@ -180,6 +223,9 @@
           },
           "subAnnounce": {
             "type": "string"
+          },
+          "subCalendarExpireInclusive": {
+            "type": "boolean"
           },
           "subCertFile": {
             "type": "string"
@@ -245,6 +291,9 @@
           "subHappFallbackUrl": {
             "type": "string"
           },
+          "subHappLocalProxyAuth": {
+            "type": "string"
+          },
           "subHappNewUrl": {
             "type": "string"
           },
@@ -293,10 +342,95 @@
           "subHideSettings": {
             "type": "boolean"
           },
+          "subIncyAnnounceUrl": {
+            "type": "string"
+          },
+          "subIncyAppAutoDetect": {
+            "description": "Incy client customization settings (app-management). A \"\" value omits\nthe header so the subscriber's own app setting is left alone.",
+            "type": "boolean"
+          },
+          "subIncyBannerBgColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonText": {
+            "type": "string"
+          },
+          "subIncyBannerButtonUrl": {
+            "type": "string"
+          },
+          "subIncyBannerText": {
+            "type": "string"
+          },
           "subIncyEnableRouting": {
             "type": "boolean"
           },
+          "subIncyFragmentInterval": {
+            "type": "string"
+          },
+          "subIncyFragmentLength": {
+            "type": "string"
+          },
+          "subIncyFragmentPackets": {
+            "type": "string"
+          },
+          "subIncyFragmentationEnable": {
+            "type": "string"
+          },
+          "subIncyHideCheck": {
+            "type": "string"
+          },
+          "subIncyHideUrl": {
+            "type": "string"
+          },
+          "subIncyNoLimitEnabled": {
+            "type": "string"
+          },
+          "subIncyNoisesDelay": {
+            "type": "string"
+          },
+          "subIncyNoisesEnable": {
+            "type": "string"
+          },
+          "subIncyNoisesPacket": {
+            "type": "string"
+          },
+          "subIncyNoisesType": {
+            "type": "string"
+          },
+          "subIncyPerAppEnable": {
+            "type": "string"
+          },
+          "subIncyPerAppList": {
+            "type": "string"
+          },
+          "subIncyPerAppMode": {
+            "type": "string"
+          },
+          "subIncyPremiumUrl": {
+            "type": "string"
+          },
+          "subIncyProfileDescription": {
+            "type": "string"
+          },
+          "subIncyResolveDnsDomain": {
+            "type": "string"
+          },
+          "subIncyResolveDnsIp": {
+            "type": "string"
+          },
+          "subIncyResolveEnable": {
+            "type": "string"
+          },
           "subIncyRoutingRules": {
+            "type": "string"
+          },
+          "subIncySortOrder": {
+            "type": "string"
+          },
+          "subIncySupportEmail": {
             "type": "string"
           },
           "subInfoNodeEnable": {
@@ -307,6 +441,9 @@
           },
           "subJsonAutoDetect": {
             "type": "boolean"
+          },
+          "subJsonDns": {
+            "type": "string"
           },
           "subJsonEnable": {
             "type": "boolean"
@@ -348,6 +485,9 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "subProfileMode": {
+            "type": "string"
           },
           "subProfileUrl": {
             "type": "string"
@@ -459,9 +599,21 @@
         },
         "required": [
           "datepicker",
+          "discordAdminIds",
+          "discordBotBackup",
+          "discordBotEnable",
+          "discordBotToken",
+          "discordChannelId",
+          "discordCpu",
+          "discordEnabledEvents",
+          "discordLang",
+          "discordMemory",
+          "discordRunTime",
           "expireDiff",
+          "externalSubUserAgent",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "ipLimitAllowlist",
           "ldapAutoCreate",
           "ldapAutoDelete",
@@ -487,6 +639,7 @@
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -503,6 +656,7 @@
           "smtpTo",
           "smtpUsername",
           "subAnnounce",
+          "subCalendarExpireInclusive",
           "subCertFile",
           "subClashAutoDetect",
           "subClashEnable",
@@ -524,6 +678,7 @@
           "subHappExcludeApns",
           "subHappExcludeRoutes",
           "subHappFallbackUrl",
+          "subHappLocalProxyAuth",
           "subHappNewUrl",
           "subHappNoLimit",
           "subHappNotificationExpire",
@@ -540,11 +695,40 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subIncyAnnounceUrl",
+          "subIncyAppAutoDetect",
+          "subIncyBannerBgColor",
+          "subIncyBannerButtonColor",
+          "subIncyBannerButtonText",
+          "subIncyBannerButtonUrl",
+          "subIncyBannerText",
           "subIncyEnableRouting",
+          "subIncyFragmentInterval",
+          "subIncyFragmentLength",
+          "subIncyFragmentPackets",
+          "subIncyFragmentationEnable",
+          "subIncyHideCheck",
+          "subIncyHideUrl",
+          "subIncyNoLimitEnabled",
+          "subIncyNoisesDelay",
+          "subIncyNoisesEnable",
+          "subIncyNoisesPacket",
+          "subIncyNoisesType",
+          "subIncyPerAppEnable",
+          "subIncyPerAppList",
+          "subIncyPerAppMode",
+          "subIncyPremiumUrl",
+          "subIncyProfileDescription",
+          "subIncyResolveDnsDomain",
+          "subIncyResolveDnsIp",
+          "subIncyResolveEnable",
           "subIncyRoutingRules",
+          "subIncySortOrder",
+          "subIncySupportEmail",
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDns",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -558,6 +742,7 @@
           "subListen",
           "subPath",
           "subPort",
+          "subProfileMode",
           "subProfileUrl",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",
@@ -598,9 +783,46 @@
           "datepicker": {
             "type": "string"
           },
+          "discordAdminIds": {
+            "type": "string"
+          },
+          "discordBotBackup": {
+            "type": "boolean"
+          },
+          "discordBotEnable": {
+            "type": "boolean"
+          },
+          "discordBotToken": {
+            "type": "string"
+          },
+          "discordChannelId": {
+            "type": "string"
+          },
+          "discordCpu": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordEnabledEvents": {
+            "type": "string"
+          },
+          "discordLang": {
+            "type": "string"
+          },
+          "discordMemory": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "discordRunTime": {
+            "type": "string"
+          },
           "expireDiff": {
             "minimum": 0,
             "type": "integer"
+          },
+          "externalSubUserAgent": {
+            "type": "string"
           },
           "externalTrafficInformEnable": {
             "type": "boolean"
@@ -608,7 +830,13 @@
           "externalTrafficInformURI": {
             "type": "string"
           },
+          "happLinkEnable": {
+            "type": "boolean"
+          },
           "hasApiToken": {
+            "type": "boolean"
+          },
+          "hasDiscordBotToken": {
             "type": "boolean"
           },
           "hasLdapPassword": {
@@ -713,6 +941,9 @@
           "panelOutbound": {
             "type": "string"
           },
+          "realityScanCandidates": {
+            "type": "string"
+          },
           "remarkTemplate": {
             "type": "string"
           },
@@ -768,6 +999,9 @@
           },
           "subAnnounce": {
             "type": "string"
+          },
+          "subCalendarExpireInclusive": {
+            "type": "boolean"
           },
           "subCertFile": {
             "type": "string"
@@ -833,6 +1067,9 @@
           "subHappFallbackUrl": {
             "type": "string"
           },
+          "subHappLocalProxyAuth": {
+            "type": "string"
+          },
           "subHappNewUrl": {
             "type": "string"
           },
@@ -881,10 +1118,95 @@
           "subHideSettings": {
             "type": "boolean"
           },
+          "subIncyAnnounceUrl": {
+            "type": "string"
+          },
+          "subIncyAppAutoDetect": {
+            "description": "Incy client customization settings (app-management). A \"\" value omits\nthe header so the subscriber's own app setting is left alone.",
+            "type": "boolean"
+          },
+          "subIncyBannerBgColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonColor": {
+            "type": "string"
+          },
+          "subIncyBannerButtonText": {
+            "type": "string"
+          },
+          "subIncyBannerButtonUrl": {
+            "type": "string"
+          },
+          "subIncyBannerText": {
+            "type": "string"
+          },
           "subIncyEnableRouting": {
             "type": "boolean"
           },
+          "subIncyFragmentInterval": {
+            "type": "string"
+          },
+          "subIncyFragmentLength": {
+            "type": "string"
+          },
+          "subIncyFragmentPackets": {
+            "type": "string"
+          },
+          "subIncyFragmentationEnable": {
+            "type": "string"
+          },
+          "subIncyHideCheck": {
+            "type": "string"
+          },
+          "subIncyHideUrl": {
+            "type": "string"
+          },
+          "subIncyNoLimitEnabled": {
+            "type": "string"
+          },
+          "subIncyNoisesDelay": {
+            "type": "string"
+          },
+          "subIncyNoisesEnable": {
+            "type": "string"
+          },
+          "subIncyNoisesPacket": {
+            "type": "string"
+          },
+          "subIncyNoisesType": {
+            "type": "string"
+          },
+          "subIncyPerAppEnable": {
+            "type": "string"
+          },
+          "subIncyPerAppList": {
+            "type": "string"
+          },
+          "subIncyPerAppMode": {
+            "type": "string"
+          },
+          "subIncyPremiumUrl": {
+            "type": "string"
+          },
+          "subIncyProfileDescription": {
+            "type": "string"
+          },
+          "subIncyResolveDnsDomain": {
+            "type": "string"
+          },
+          "subIncyResolveDnsIp": {
+            "type": "string"
+          },
+          "subIncyResolveEnable": {
+            "type": "string"
+          },
           "subIncyRoutingRules": {
+            "type": "string"
+          },
+          "subIncySortOrder": {
+            "type": "string"
+          },
+          "subIncySupportEmail": {
             "type": "string"
           },
           "subInfoNodeEnable": {
@@ -895,6 +1217,9 @@
           },
           "subJsonAutoDetect": {
             "type": "boolean"
+          },
+          "subJsonDns": {
+            "type": "string"
           },
           "subJsonEnable": {
             "type": "boolean"
@@ -936,6 +1261,9 @@
             "maximum": 65535,
             "minimum": 1,
             "type": "integer"
+          },
+          "subProfileMode": {
+            "type": "string"
           },
           "subProfileUrl": {
             "type": "string"
@@ -1047,10 +1375,23 @@
         },
         "required": [
           "datepicker",
+          "discordAdminIds",
+          "discordBotBackup",
+          "discordBotEnable",
+          "discordBotToken",
+          "discordChannelId",
+          "discordCpu",
+          "discordEnabledEvents",
+          "discordLang",
+          "discordMemory",
+          "discordRunTime",
           "expireDiff",
+          "externalSubUserAgent",
           "externalTrafficInformEnable",
           "externalTrafficInformURI",
+          "happLinkEnable",
           "hasApiToken",
+          "hasDiscordBotToken",
           "hasLdapPassword",
           "hasNordSecret",
           "hasSmtpPassword",
@@ -1082,6 +1423,7 @@
           "outboundDownThreshold",
           "pageSize",
           "panelOutbound",
+          "realityScanCandidates",
           "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
@@ -1098,6 +1440,7 @@
           "smtpTo",
           "smtpUsername",
           "subAnnounce",
+          "subCalendarExpireInclusive",
           "subCertFile",
           "subClashAutoDetect",
           "subClashEnable",
@@ -1119,6 +1462,7 @@
           "subHappExcludeApns",
           "subHappExcludeRoutes",
           "subHappFallbackUrl",
+          "subHappLocalProxyAuth",
           "subHappNewUrl",
           "subHappNoLimit",
           "subHappNotificationExpire",
@@ -1135,11 +1479,40 @@
           "subHappTunMode",
           "subHappTunType",
           "subHideSettings",
+          "subIncyAnnounceUrl",
+          "subIncyAppAutoDetect",
+          "subIncyBannerBgColor",
+          "subIncyBannerButtonColor",
+          "subIncyBannerButtonText",
+          "subIncyBannerButtonUrl",
+          "subIncyBannerText",
           "subIncyEnableRouting",
+          "subIncyFragmentInterval",
+          "subIncyFragmentLength",
+          "subIncyFragmentPackets",
+          "subIncyFragmentationEnable",
+          "subIncyHideCheck",
+          "subIncyHideUrl",
+          "subIncyNoLimitEnabled",
+          "subIncyNoisesDelay",
+          "subIncyNoisesEnable",
+          "subIncyNoisesPacket",
+          "subIncyNoisesType",
+          "subIncyPerAppEnable",
+          "subIncyPerAppList",
+          "subIncyPerAppMode",
+          "subIncyPremiumUrl",
+          "subIncyProfileDescription",
+          "subIncyResolveDnsDomain",
+          "subIncyResolveDnsIp",
+          "subIncyResolveEnable",
           "subIncyRoutingRules",
+          "subIncySortOrder",
+          "subIncySupportEmail",
           "subInfoNodeEnable",
           "subJsonAlwaysArray",
           "subJsonAutoDetect",
+          "subJsonDns",
           "subJsonEnable",
           "subJsonFinalMask",
           "subJsonMux",
@@ -1153,6 +1526,7 @@
           "subListen",
           "subPath",
           "subPort",
+          "subProfileMode",
           "subProfileUrl",
           "subRoutingRules",
           "subShowIdentityOnAllLinks",
@@ -1391,11 +1765,15 @@
             "type": "integer"
           },
           "resetDay": {
-            "description": "Calendar renewal day 1-31, 0 = interval mode",
+            "description": "Calendar renewal day 1-31, 0 disables monthly renewal",
             "type": "integer"
           },
           "resetMax": {
             "description": "Max auto-renew count, 0 = unlimited",
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "description": "Calendar weekday 1-7 (Mon-Sun), 0 disables weekly renewal",
             "type": "integer"
           },
           "reverse": {
@@ -1460,6 +1838,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "security",
           "subId",
           "tgId",
@@ -1611,6 +1990,9 @@
           "resetMax": {
             "type": "integer"
           },
+          "resetWeekday": {
+            "type": "integer"
+          },
           "reverse": {},
           "secret": {
             "type": "string"
@@ -1666,6 +2048,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "reverse",
           "secret",
           "security",
@@ -1676,6 +2059,97 @@
           "trafficResetDay",
           "updatedAt",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "ClientRenewalPreview": {
+        "properties": {
+          "canRenew": {
+            "example": true,
+            "type": "boolean"
+          },
+          "delayedStart": {
+            "example": false,
+            "type": "boolean"
+          },
+          "nextExpiry": {
+            "example": "2030-02-01T00:00:00Z",
+            "type": "string"
+          },
+          "renewAt": {
+            "example": "2030-01-01T00:00:00Z",
+            "type": "string"
+          },
+          "renewals": {
+            "example": 1,
+            "type": "integer"
+          },
+          "suggestedExpiry": {
+            "example": "2030-01-01T00:00:00Z",
+            "type": "string"
+          },
+          "suggestedExpiryTime": {
+            "example": 1893456000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "timeZone": {
+            "example": "UTC",
+            "type": "string"
+          },
+          "validThrough": {
+            "example": "2029-12-31T23:59:59Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "canRenew",
+          "delayedStart",
+          "nextExpiry",
+          "renewAt",
+          "renewals",
+          "suggestedExpiry",
+          "suggestedExpiryTime",
+          "timeZone",
+          "validThrough"
+        ],
+        "type": "object"
+      },
+      "ClientRenewalPreviewRequest": {
+        "properties": {
+          "expiryTime": {
+            "example": 1893456000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "reset": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetCount": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetDay": {
+            "example": 1,
+            "type": "integer"
+          },
+          "resetMax": {
+            "example": 0,
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "example": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expiryTime",
+          "reset",
+          "resetCount",
+          "resetDay",
+          "resetMax",
+          "resetWeekday"
         ],
         "type": "object"
       },
@@ -1749,6 +2223,10 @@
             "example": 0,
             "type": "integer"
           },
+          "resetWeekday": {
+            "example": 0,
+            "type": "integer"
+          },
           "subId": {
             "example": "abcd1234",
             "type": "string"
@@ -1783,6 +2261,7 @@
           "reset",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "subId",
           "totalGB",
           "updatedAt"
@@ -1838,12 +2317,17 @@
             "type": "integer"
           },
           "resetDay": {
-            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 keeps the interval behaviour.",
+            "description": "ResetDay renews on that day of each calendar month instead of every\nReset days; 0 disables monthly renewal.",
             "example": 0,
             "type": "integer"
           },
           "resetMax": {
             "description": "ResetMax caps how many times auto-renew may fire; 0 means no cap.",
+            "example": 0,
+            "type": "integer"
+          },
+          "resetWeekday": {
+            "description": "ResetWeekday renews weekly at panel-local midnight: 1 Monday through 7 Sunday.",
             "example": 0,
             "type": "integer"
           },
@@ -1879,6 +2363,7 @@
           "resetCount",
           "resetDay",
           "resetMax",
+          "resetWeekday",
           "subId",
           "total",
           "up",
@@ -2126,6 +2611,18 @@
         ],
         "type": "object"
       },
+      "HappLinkResult": {
+        "properties": {
+          "encryptedLink": {
+            "example": "happ://crypt5/example",
+            "type": "string"
+          }
+        },
+        "required": [
+          "encryptedLink"
+        ],
+        "type": "object"
+      },
       "HistoryOfSeeders": {
         "description": "HistoryOfSeeders tracks which database seeders have been executed to prevent re-running.",
         "properties": {
@@ -2156,6 +2653,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "cipherSuites": {
+            "type": "string"
           },
           "createdAt": {
             "format": "int64",
@@ -2290,6 +2790,7 @@
           "address",
           "allowInsecure",
           "alpn",
+          "cipherSuites",
           "createdAt",
           "echConfigList",
           "excludeFromSubTypes",
@@ -2333,6 +2834,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "cipherSuites": {
+            "type": "string"
           },
           "echConfigList": {
             "type": "string"
@@ -2460,6 +2964,7 @@
         "required": [
           "allowInsecure",
           "alpn",
+          "cipherSuites",
           "echConfigList",
           "excludeFromSubTypes",
           "finalMask",
@@ -2609,7 +3114,8 @@
               "tunnel",
               "tun",
               "mtproto",
-              "amneziawg"
+              "amneziawg",
+              "tuic"
             ],
             "example": "vless",
             "type": "string"
@@ -2634,9 +3140,8 @@
           "sniffing": {},
           "streamSettings": {},
           "subSortIndex": {
-            "description": "1-based sort order of this inbound's links in subscription output only (lower first; ties by id)",
+            "description": "Sort order of this inbound's links in subscription output only (lower first; negatives allowed; 0/omitted → 1; ties by id)",
             "example": 1,
-            "minimum": 1,
             "type": "integer"
           },
           "tag": {
@@ -2828,6 +3333,14 @@
           "tlsFlowCapable": {
             "example": true,
             "type": "boolean"
+          },
+          "tuicServer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TuicServerSettings"
+              }
+            ],
+            "nullable": true
           },
           "wgDns": {
             "type": "string"
@@ -3707,6 +4220,11 @@
             "example": "h2",
             "type": "string"
           },
+          "certChainBytes": {
+            "description": "CertChainBytes is the sum of DER lengths of the presented peer chain.\nxray-core ML-DSA-65 REALITY needs >= 3500 bytes (constant lives in xray-core).",
+            "example": 3427,
+            "type": "integer"
+          },
           "certChainValid": {
             "description": "CertChainValid ignores the name: a trusted chain presented for other names\nstill has serverNames the panel can offer instead of the failing SNI.",
             "example": true,
@@ -3789,6 +4307,7 @@
         },
         "required": [
           "alpn",
+          "certChainBytes",
           "certChainValid",
           "certIssuer",
           "certSubject",
@@ -3975,6 +4494,84 @@
         ],
         "type": "object"
       },
+      "Sponsor": {
+        "description": "Sponsor is one paid placement published in the repo's sponsors.json.",
+        "properties": {
+          "enable": {
+            "example": true,
+            "nullable": true,
+            "type": "boolean"
+          },
+          "id": {
+            "example": "acme-2026-10",
+            "type": "string"
+          },
+          "link": {
+            "example": "https://acme.example/?utm_source=3x-ui",
+            "type": "string"
+          },
+          "logo": {
+            "example": "/sponsors/logo/acme.png",
+            "type": "string"
+          },
+          "name": {
+            "example": "Acme VPS",
+            "type": "string"
+          },
+          "slots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "text": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "title": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "until": {
+            "example": "2026-11-01T00:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "link",
+          "name",
+          "slots",
+          "text",
+          "title",
+          "until"
+        ],
+        "type": "object"
+      },
+      "SponsorList": {
+        "description": "SponsorList is the active sponsor set plus the contact link for new sponsors.",
+        "properties": {
+          "contact": {
+            "example": "https://t.me/example",
+            "type": "string"
+          },
+          "sponsors": {
+            "items": {
+              "$ref": "#/components/schemas/Sponsor"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sponsors"
+        ],
+        "type": "object"
+      },
       "SubBalancer": {
         "description": "SubBalancer is one extra JSON-subscription config document whose members are\nthe selected inbounds' proxy outbounds. SortOrder shares SubSortIndex semantics.",
         "properties": {
@@ -4079,6 +4676,78 @@
           "IsOutbound",
           "Tag",
           "Up"
+        ],
+        "type": "object"
+      },
+      "TuicClientSettings": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "TuicServerSettings": {
+        "properties": {
+          "alpn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "authentication_timeout": {
+            "type": "integer"
+          },
+          "certificate": {
+            "type": "string"
+          },
+          "congestion_control": {
+            "type": "string"
+          },
+          "log_level": {
+            "type": "string"
+          },
+          "max_idle_time": {
+            "type": "integer"
+          },
+          "max_udp_relay_packet_size": {
+            "type": "integer"
+          },
+          "private_key": {
+            "type": "string"
+          },
+          "sni": {
+            "type": "string"
+          },
+          "udp_relay_mode": {
+            "type": "string"
+          },
+          "zero_rtt_handshake": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "alpn",
+          "authentication_timeout",
+          "certificate",
+          "congestion_control",
+          "log_level",
+          "max_idle_time",
+          "max_udp_relay_packet_size",
+          "private_key",
+          "udp_relay_mode",
+          "zero_rtt_handshake"
         ],
         "type": "object"
       },
@@ -4355,6 +5024,59 @@
         }
       }
     },
+    "/sponsors": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); expired entries are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
+        "operationId": "get_sponsors",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/SponsorList"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "contact": "https://t.me/example",
+                    "sponsors": [
+                      {
+                        "enable": true,
+                        "id": "acme-2026-10",
+                        "link": "https://acme.example/?utm_source=3x-ui",
+                        "logo": "/sponsors/logo/acme.png",
+                        "name": "Acme VPS",
+                        "slots": [
+                          ""
+                        ],
+                        "text": {},
+                        "title": {},
+                        "until": "2026-11-01T00:00:00Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/getTwoFactorEnable": {
       "post": {
         "tags": [
@@ -4436,6 +5158,7 @@
                           "resetCount": 0,
                           "resetDay": 0,
                           "resetMax": 0,
+                          "resetWeekday": 0,
                           "subId": "i7tvdpeffi0hvvf1",
                           "total": 10737418240,
                           "up": 1048576,
@@ -4575,6 +5298,7 @@
                       "ssMethod": "",
                       "tag": "in-443-tcp",
                       "tlsFlowCapable": true,
+                      "tuicServer": null,
                       "wgDns": "",
                       "wgMtu": 0,
                       "wgPublicKey": ""
@@ -7165,6 +7889,7 @@
                   "success": true,
                   "obj": {
                     "alpn": "h2",
+                    "certChainBytes": 3427,
                     "certChainValid": true,
                     "certIssuer": "Google Trust Services",
                     "certSubject": "cloudflare.com",
@@ -7199,7 +7924,7 @@
         "tags": [
           "Server"
         ],
-        "summary": "Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, a built-in seed list is probed.",
+        "summary": "Probe/discover REALITY targets and return each verdict ranked by feasibility then latency. Each comma-separated token may be a domain (validated with SNI), a bare IP, or a CIDR range (discovered without SNI by reading the certificate domain). When empty, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty).",
         "operationId": "post_panel_api_server_scanRealityTargets",
         "requestBody": {
           "required": false,
@@ -7210,7 +7935,7 @@
                 "properties": {
                   "targets": {
                     "type": "string",
-                    "description": "Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, a built-in seed list is probed."
+                    "description": "Optional comma-separated tokens: domain[:port], IP[:port], or CIDR (e.g. 104.16.0.0/24). When omitted, the realityScanCandidates setting is probed (the built-in seed list if that setting is empty)."
                   }
                 }
               }
@@ -7244,6 +7969,7 @@
                   "obj": [
                     {
                       "alpn": "h2",
+                      "certChainBytes": 3427,
                       "certChainValid": true,
                       "certIssuer": "Google Trust Services",
                       "certSubject": "cloudflare.com",
@@ -7668,6 +8394,7 @@
                         "reset": 0,
                         "resetDay": 0,
                         "resetMax": 0,
+                        "resetWeekday": 0,
                         "subId": "abcd1234",
                         "totalGB": 53687091200,
                         "traffic": null,
@@ -7853,6 +8580,97 @@
                 "example": {
                   "success": true,
                   "msg": "Client added"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/renewalPreview": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Preview client auto-renewal dates without saving or resetting anything.",
+        "operationId": "post_panel_api_clients_renewalPreview",
+        "description": "Uses the same calendar and catch-up calculation as auto-renew in the panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables weekly mode; it cannot be combined with positive reset or resetDay. Existing resetDay takes precedence over reset. With expiryTime=0, calendar modes suggest a first cutoff but do not activate renewal. Negative expiryTime waits for first-use activation. resetMax and resetCount simulate the existing per-period allowance limit; the preview is informational and does not reserve an allowance or guarantee node availability.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiryTime": {
+                    "type": "integer",
+                    "description": "Current cutoff in Unix milliseconds; 0 unlimited, negative first-use duration."
+                  },
+                  "reset": {
+                    "type": "integer",
+                    "description": "Fixed interval in days; 0 disabled."
+                  },
+                  "resetDay": {
+                    "type": "integer",
+                    "description": "Monthly calendar day 1-31; 0 disabled."
+                  },
+                  "resetWeekday": {
+                    "type": "integer",
+                    "description": "Weekly calendar day 1-7 (Monday-Sunday); 0 disabled."
+                  },
+                  "resetMax": {
+                    "type": "integer",
+                    "description": "Maximum renewals; 0 unlimited."
+                  },
+                  "resetCount": {
+                    "type": "integer",
+                    "description": "Renewals already consumed; defaults to 0."
+                  }
+                },
+                "required": [
+                  "expiryTime",
+                  "reset",
+                  "resetDay",
+                  "resetWeekday",
+                  "resetMax",
+                  "resetCount"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/ClientRenewalPreview"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "canRenew": true,
+                    "delayedStart": false,
+                    "nextExpiry": "2030-02-01T00:00:00Z",
+                    "renewAt": "2030-01-01T00:00:00Z",
+                    "renewals": 1,
+                    "suggestedExpiry": "2030-01-01T00:00:00Z",
+                    "suggestedExpiryTime": 1893456000000,
+                    "timeZone": "UTC",
+                    "validThrough": "2029-12-31T23:59:59Z"
+                  }
                 }
               }
             }
@@ -8319,7 +9137,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
+        "summary": "Return every client as a {client, inboundIds, traffic} array — the shape /import accepts — so the payload round-trips straight back through /import. traffic carries the usage counters (up, down, resetCount, lastOnline, lastSubFetch) and is omitted for a client with no traffic row; the quota itself stays in client.totalGB. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.",
         "operationId": "get_panel_api_clients_export",
         "responses": {
           "200": {
@@ -8354,7 +9172,13 @@
                       "inboundIds": [
                         7,
                         9
-                      ]
+                      ],
+                      "traffic": {
+                        "up": 1048576,
+                        "down": 2097152,
+                        "resetCount": 0,
+                        "lastOnline": 1735680000000
+                      }
                     }
                   ]
                 }
@@ -8369,7 +9193,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.",
+        "summary": "Import clients from a JSON body { \"data\": \"<json>\" }, where data is a string-encoded array produced by /export ([{client, inboundIds, traffic}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. An optional traffic object restores the usage counters, only for clients this import creates. Existing emails are never overwritten — they are returned in skipped, and their live counters are left untouched. Triggers a single Xray restart at the end if any target inbound was running; a failure while restoring counters still reports success=false after the clients were created.",
         "operationId": "post_panel_api_clients_import",
         "requestBody": {
           "required": true,
@@ -9529,7 +10353,7 @@
         "tags": [
           "Clients"
         ],
-        "summary": "List registered HWID devices for a client. Hashes are not exposed.",
+        "summary": "List registered HWID devices for a client with a short fingerprint. Full hashes are not exposed.",
         "operationId": "post_panel_api_clients_hwids_email",
         "parameters": [
           {
@@ -9569,7 +10393,8 @@
                       "userAgent": "Happ/1.0",
                       "deviceOs": "android",
                       "osVersion": "15",
-                      "deviceModel": "Pixel 9"
+                      "deviceModel": "Pixel 9",
+                      "fingerprint": "6ad17c93e821"
                     }
                   ]
                 }
@@ -9918,6 +10743,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -9971,6 +10797,55 @@
                     "vless://uuid@host:443?security=reality&...#user1",
                     "vmess://eyJ2IjoyLC..."
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/happLink/{id}": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Generate a fresh Happ crypt5 link locally from the current client subscription URL when Happ link generation is enabled. The panel applies a resource limit of 8192 UTF-8 bytes to the source URL; this is not a Happ client maximum. Longer sources return success: false with msg: happ_source_too_long and obj: null. The source URL is not sent to a generation provider, and the result is not stored or reused.",
+        "operationId": "post_panel_api_clients_happLink_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Stable client record ID.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/HappLinkResult"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "encryptedLink": "happ://crypt5/example"
+                  }
                 }
               }
             }
@@ -10992,6 +11867,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -11086,6 +11962,7 @@
                     "alpn": [
                       ""
                     ],
+                    "cipherSuites": "",
                     "echConfigList": "",
                     "excludeFromSubTypes": [
                       ""
@@ -11183,6 +12060,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "echConfigList": "",
                       "excludeFromSubTypes": [
                         ""
@@ -11333,6 +12211,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "createdAt": 0,
                       "echConfigList": "",
                       "excludeFromSubTypes": [
@@ -11454,6 +12333,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "createdAt": 0,
                       "echConfigList": "",
                       "excludeFromSubTypes": [
@@ -11705,6 +12585,7 @@
                       "alpn": [
                         ""
                       ],
+                      "cipherSuites": "",
                       "createdAt": 0,
                       "echConfigList": "",
                       "excludeFromSubTypes": [
@@ -12215,6 +13096,40 @@
                 "example": {
                   "success": true,
                   "msg": "Test message sent to Telegram"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/testDiscord": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Test Discord bot connection by sending a test embed to the configured channel.",
+        "operationId": "post_panel_api_setting_testDiscord",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "msg": "Test notification sent successfully"
                 }
               }
             }
@@ -15202,6 +16117,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15284,6 +16200,7 @@
                     "resetCount": 0,
                     "resetDay": 0,
                     "resetMax": 0,
+                    "resetWeekday": 0,
                     "subId": "i7tvdpeffi0hvvf1",
                     "total": 10737418240,
                     "up": 1048576,
@@ -15330,6 +16247,7 @@
                       "resetCount": 0,
                       "resetDay": 0,
                       "resetMax": 0,
+                      "resetWeekday": 0,
                       "subId": "i7tvdpeffi0hvvf1",
                       "total": 10737418240,
                       "up": 1048576,

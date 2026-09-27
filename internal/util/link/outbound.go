@@ -48,6 +48,7 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 	lines := splitLines(text)
 	var outbounds []Outbound
 	var identities []string
+	seen := map[string]int{}
 
 	for _, ln := range lines {
 		ln = strings.TrimSpace(ln)
@@ -59,8 +60,14 @@ func ParseSubscriptionBody(body []byte) ([]Outbound, []string, error) {
 			// Ignore unparseable lines (comments, unsupported protocols, etc.)
 			continue
 		}
+		identity := res.Identity
+		// A repeated identity would share one stored tag, shifting both tags on every refresh.
+		if n := seen[res.Identity]; n > 0 {
+			identity = fmt.Sprintf("%s#%d", res.Identity, n)
+		}
+		seen[res.Identity]++
 		outbounds = append(outbounds, res.Outbound)
-		identities = append(identities, res.Identity)
+		identities = append(identities, identity)
 	}
 	return outbounds, identities, nil
 }
@@ -205,6 +212,11 @@ func parseVmess(link string) (*ParseResult, error) {
 		if alpn := getString(j, "alpn", ""); alpn != "" {
 			tls["alpn"] = splitComma(alpn)
 		}
+		// The vmess object names the certificate checks v2rayN does the same way
+		// the url-param protocols name them in applySecurity.
+		tls["echConfigList"] = getString(j, "ech", "")
+		tls["verifyPeerCertByName"] = getString(j, "vcn", "")
+		tls["pinnedPeerCertSha256"] = getString(j, "pcs", "")
 	}
 
 	port := num(j["port"])
@@ -337,16 +349,23 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 	// Two shapes:
 	//   ss://base64(method:pass)@host:port#remark
 	//   ss://base64(method:pass@host:port)#remark
+	// Query may carry Xray-native stream params (type/security/sni/alpn/fp)
+	// emitted by genShadowsocksLink — preserve them like trojan/vless.
 	remark := ""
 	if i := strings.Index(link, "#"); i >= 0 {
 		remark, _ = url.QueryUnescape(link[i+1:])
 		link = link[:i]
 	}
+	rawQuery := ""
 	if i := strings.Index(link, "?"); i >= 0 {
+		rawQuery = link[i+1:]
 		link = link[:i]
 	}
+	params, _ := url.ParseQuery(rawQuery)
 	core := strings.TrimPrefix(link, "ss://")
 	at := strings.Index(core, "@")
+	var host, method, pass string
+	var port int
 	if at >= 0 {
 		// modern
 		userB64 := core[:at]
@@ -364,46 +383,51 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 		if colon < 0 {
 			return nil, fmt.Errorf("bad ss host:port")
 		}
-		host := hp[:colon]
-		port, err := strconv.Atoi(hp[colon+1:])
+		host = hp[:colon]
+		port, err = strconv.Atoi(hp[colon+1:])
 		if err != nil {
 			return nil, fmt.Errorf("bad ss port %q: %w", hp[colon+1:], err)
 		}
-		method, pass := splitMethodPass(userInfo)
-		identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
-		ob := Outbound{
-			"protocol": "shadowsocks",
-			"tag":      remark,
-			"settings": map[string]any{
-				"servers": []any{
-					map[string]any{"address": host, "port": port, "password": pass, "method": method},
-				},
-			},
+		method, pass = splitMethodPass(userInfo)
+	} else {
+		// legacy: whole thing b64
+		dec, err := base64DecodeFlexible(core)
+		if err != nil {
+			return nil, err
 		}
-		return &ParseResult{Outbound: ob, Identity: identity}, nil
+		at = strings.Index(dec, "@")
+		if at < 0 {
+			return nil, fmt.Errorf("bad legacy ss")
+		}
+		userInfo := dec[:at]
+		hp := dec[at+1:]
+		colon := strings.LastIndex(hp, ":")
+		if colon < 0 {
+			return nil, fmt.Errorf("bad legacy ss hp")
+		}
+		host = hp[:colon]
+		port, err = strconv.Atoi(hp[colon+1:])
+		if err != nil {
+			return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
+		}
+		method, pass = splitMethodPass(userInfo)
 	}
-	// legacy: whole thing b64
-	dec, err := base64DecodeFlexible(core)
-	if err != nil {
-		return nil, err
-	}
-	at = strings.Index(dec, "@")
-	if at < 0 {
-		return nil, fmt.Errorf("bad legacy ss")
-	}
-	userInfo := dec[:at]
-	hp := dec[at+1:]
-	colon := strings.LastIndex(hp, ":")
-	if colon < 0 {
-		return nil, fmt.Errorf("bad legacy ss hp")
-	}
-	host := hp[:colon]
-	port, err := strconv.Atoi(hp[colon+1:])
-	if err != nil {
-		return nil, fmt.Errorf("bad legacy ss port %q: %w", hp[colon+1:], err)
-	}
-	method, pass := splitMethodPass(userInfo)
 	identity := "ss:" + method + ":" + pass + "@" + host + ":" + strconv.Itoa(port)
+	// The panel and v2rayN express shadowsocks tcp/http obfuscation only as the
+	// SIP002 plugin, so it has to become the header it stands for.
+	applyObfsLocalPlugin(params, rawQuery)
+	network := params.Get("type")
+	if network == "" {
+		network = "tcp"
+	}
+	security := params.Get("security")
+	if security == "" {
+		security = "none"
+	}
+	stream := buildStream(network, security)
+	applyTransport(stream, params)
+	applySecurity(stream, params)
+	applyFinalMask(stream, params)
 	ob := Outbound{
 		"protocol": "shadowsocks",
 		"tag":      remark,
@@ -412,6 +436,7 @@ func parseShadowsocks(link string) (*ParseResult, error) {
 				map[string]any{"address": host, "port": port, "password": pass, "method": method},
 			},
 		},
+		"streamSettings": stream,
 	}
 	return &ParseResult{Outbound: ob, Identity: identity}, nil
 }
@@ -422,6 +447,54 @@ func splitMethodPass(userInfo string) (string, string) {
 		return "2022-blake3-aes-128-gcm", userInfo // guess
 	}
 	return before, after
+}
+
+// applyObfsLocalPlugin maps a SIP002 obfs-local=http plugin onto the tcp/http
+// response header it stands for; the other plugin values have no Xray header.
+func applyObfsLocalPlugin(p url.Values, rawQuery string) {
+	if p.Get("headerType") != "" || p.Get("type") == "http" {
+		return
+	}
+	plugin := p.Get("plugin")
+	if plugin == "" {
+		plugin = rawQueryPlugin(rawQuery)
+	}
+	parts := strings.Split(plugin, ";")
+	if len(parts) == 0 || parts[0] != "obfs-local" {
+		return
+	}
+	obfs, host := "", ""
+	for _, part := range parts[1:] {
+		if k, v, ok := strings.Cut(part, "="); ok {
+			switch k {
+			case "obfs":
+				obfs = v
+			case "obfs-host":
+				host = v
+			}
+		}
+	}
+	if obfs != "http" {
+		return
+	}
+	p.Set("type", "tcp")
+	p.Set("headerType", "http")
+	if host != "" {
+		p.Set("host", host)
+	}
+}
+
+// rawQueryPlugin reads the plugin parameter straight out of the query string for
+// the pair stdlib discards: a value holding an unencoded semicolon never parses.
+func rawQueryPlugin(rawQuery string) string {
+	for _, segment := range strings.Split(rawQuery, "&") {
+		if key, value, ok := strings.Cut(segment, "="); ok && key == "plugin" {
+			if decoded, err := url.QueryUnescape(value); err == nil {
+				return decoded
+			}
+		}
+	}
+	return ""
 }
 
 // --- hysteria2 ---
@@ -638,6 +711,15 @@ func applyTransport(stream map[string]any, p url.Values) {
 				xh[k] = v
 			}
 		}
+	case "kcp":
+		// mtu/tti live on kcpSettings; header/seed are finalmask mkcp-legacy (see applyMkcpLegacyFromShare).
+		kcp := stream["kcpSettings"].(map[string]any)
+		if n, ok := kcpParamInRange(p.Get("mtu"), kcpMinMTU, kcpMaxMTU); ok {
+			kcp["mtu"] = n
+		}
+		if n, ok := kcpParamInRange(p.Get("tti"), kcpMinTTI, kcpMaxTTI); ok {
+			kcp["tti"] = n
+		}
 	case "tcp":
 		if p.Get("headerType") == "http" || p.Get("type") == "http" {
 			stream["tcpSettings"] = map[string]any{
@@ -666,6 +748,7 @@ func applySecurity(stream map[string]any, p url.Values) {
 			tls["alpn"] = splitComma(alpn)
 		}
 		tls["echConfigList"] = p.Get("ech")
+		tls["verifyPeerCertByName"] = p.Get("vcn")
 		tls["pinnedPeerCertSha256"] = p.Get("pcs")
 	case "reality":
 		re := stream["realitySettings"].(map[string]any)
@@ -685,6 +768,87 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 			sanitizeFinalMaskQuicParams(parsed)
 			stream["finalmask"] = parsed
 		}
+	}
+	applyMkcpLegacyFromShare(stream, p)
+}
+
+// mKCP bounds mirror xray-core's KCPConfig.Build checks (a value outside them fails
+// the whole config load); mtu's ceiling is the int32 that fits its uint32 field everywhere.
+const (
+	kcpMinMTU = 21
+	kcpMaxMTU = math.MaxInt32
+	kcpMinTTI = 10
+	kcpMaxTTI = 1000
+)
+
+// kcpParamInRange rejects an out-of-range or malformed link value so buildStream's default stays.
+func kcpParamInRange(s string, minVal, maxVal int) (int, bool) {
+	n, err := strconv.Atoi(s)
+	return n, err == nil && n >= minVal && n <= maxVal
+}
+
+// kcpHeaderTypeToMask maps share-link headerType to mkcp-legacy settings.header
+// (inverse of sub.kcpMaskToHeaderType).
+var kcpHeaderTypeToMask = map[string]string{
+	"dns":          "dns",
+	"dtls":         "dtls",
+	"srtp":         "srtp",
+	"utp":          "utp",
+	"wechat-video": "wechat",
+	"wireguard":    "wireguard",
+}
+
+// applyMkcpLegacyFromShare restores headerType/seed into finalmask.udp mkcp-legacy,
+// matching the shape InboundFormModal / FinalMaskForm emit. fm= mkcp-legacy wins.
+func applyMkcpLegacyFromShare(stream map[string]any, p url.Values) {
+	headerType := strings.TrimSpace(p.Get("headerType"))
+	seed := p.Get("seed")
+	if headerType == "" || headerType == "none" {
+		headerType = ""
+	}
+	if headerType == "" && seed == "" {
+		return
+	}
+	if network, _ := stream["network"].(string); network != "" && network != "kcp" {
+		return
+	}
+	maskHeader := ""
+	if headerType != "" {
+		mapped, ok := kcpHeaderTypeToMask[headerType]
+		if !ok {
+			return
+		}
+		maskHeader = mapped
+	}
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	if finalmask == nil {
+		finalmask = map[string]any{}
+	}
+	udp, _ := finalmask["udp"].([]any)
+	for _, raw := range udp {
+		m, _ := raw.(map[string]any)
+		if m != nil {
+			if t, _ := m["type"].(string); t == "mkcp-legacy" {
+				return // fm= (or prior) already carries the live mask
+			}
+		}
+	}
+	// One mask per field, seed first: MkcpLegacy.Build ignores value once header is set,
+	// and the chain puts the last mask outermost on the wire (header around the cipher).
+	if seed != "" {
+		udp = append(udp, mkcpLegacyMask("", seed))
+	}
+	if maskHeader != "" {
+		udp = append(udp, mkcpLegacyMask(maskHeader, ""))
+	}
+	finalmask["udp"] = udp
+	stream["finalmask"] = finalmask
+}
+
+func mkcpLegacyMask(header, value string) map[string]any {
+	return map[string]any{
+		"type":     "mkcp-legacy",
+		"settings": map[string]any{"header": header, "value": value},
 	}
 }
 
@@ -890,10 +1054,18 @@ func firstParam(p url.Values, keys ...string) string {
 	return ""
 }
 
+// realityPerRequestParams are picked per request by subscription servers (3x-ui randomizes
+// sid/sni, older releases spx too), so they must not split one server into new identities.
+var realityPerRequestParams = map[string]bool{"sid": true, "sni": true, "spx": true}
+
 func canonicalQuery(p url.Values) string {
 	// Sort keys for stable identity
+	reality := p.Get("security") == "reality"
 	keys := make([]string, 0, len(p))
 	for k := range p {
+		if reality && realityPerRequestParams[k] {
+			continue
+		}
 		keys = append(keys, k)
 	}
 	// simple sort

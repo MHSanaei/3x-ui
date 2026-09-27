@@ -44,7 +44,7 @@ https://<sub-host>:<sub-port>/<sub-path>/<sub-id>
 | **Mihomo（明确端点）**        | `/mihomo/`       | `subClashEnable` | 完整 `subClashPath` 配置的别名。                    |
 | **Clash for Windows（旧版）** | `/clash-legacy/` | `subClashEnable` | 仅包含旧 Clash 内核支持的代理类型、传输方式和加密算法。 |
 
-只有使用 **VLESS、VMess、Trojan、Shadowsocks 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列。使用 `Accept: text/html` 头（或 `?html=1`）请求 `subPath` 会返回一个人类可读的信息页面，而非原始内容。
+只有使用 **VLESS、VMess、Trojan、Shadowsocks、WireGuard、AmneziaWG、MTProto、TUIC 或 Hysteria2** 的已启用入站才会出现在订阅中，并按其订阅排序索引排列（TUIC 和 AmneziaWG 包含在原始链接和 Clash/Mihomo 配置中，但在 JSON 端点中被省略；MTProto 包含在原始链接中）。使用 `Accept: text/html` 头（或 `?html=1`）请求 `subPath` 会返回一个人类可读的信息页面，而非原始内容。
 
 Clash Verge Rev、Mihomo 及其他仍在维护的 Mihomo 客户端应使用
 `/mihomo/<sub-id>`。已经停止维护的 Clash for Windows 应使用
@@ -72,6 +72,18 @@ Clash 格式自动识别保留原有的 `(?i)(clash|mihomo)` 默认匹配器，�
 - **`Subscription-Userinfo`** —— `upload`、`download`、`total`（字节；`total=0` 表示无限制）以及 `expire`（Unix 秒）。
 - **`Profile-Update-Interval`** —— 刷新间隔，以小时为单位（`subUpdates`）。
 - **`Profile-Title`**、**`Support-Url`**、**`Profile-Web-Page-Url`**、**`Announce`** —— 部分客户端会显示的可选品牌信息。
+
+### 资料页链接与升级说明
+
+在 **订阅 → 资料 → 资料页方式** 中选择 `subProfileMode`，对所有订阅客户端生效：
+
+- **不提供**（`none`，默认）：不发送 `Profile-Web-Page-Url`。
+- **内置订阅页**（`builtin`）：提供该客户端的内置订阅页链接。
+- **自定义网站**（`custom`）：使用 `subProfileUrl`；地址留空时不发送该响应头。
+
+**升级提示：** 旧版在 `subProfileUrl` 留空时会自动提供内置订阅页链接。升级后，尚未设置模式且地址为空或仅含空白字符的配置会使用 **不提供**；已有非空地址继续使用 **自定义网站**。需要恢复内置入口时，在上述位置选择 **内置订阅页** 并保存设置。
+
+内置订阅页会公开订阅地址和节点配置，Happ 加密订阅也不例外；请在确定需要提供这些内容时开启。
 
 ## 自定义页面模板
 

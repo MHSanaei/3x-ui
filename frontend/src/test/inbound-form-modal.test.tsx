@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, onTestFinished, vi } from 'vitest';
 import { screen, act, render, cleanup, fireEvent, waitFor } from '@testing-library/react';
 
 import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
@@ -279,6 +279,8 @@ describe('InboundFormModal', () => {
     const post = vi.mocked(HttpUtil.post);
     post.mockClear();
     messageError.mockClear();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    onTestFinished(() => consoleError.mockRestore());
     renderModal();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
@@ -294,6 +296,10 @@ describe('InboundFormModal', () => {
         expect.stringContaining('TLS certificate 1: Import a TLS certificate'),
       );
     });
+    expect(consoleError).toHaveBeenCalledWith('[InboundFormModal] schema validation failed:', [
+      'TLS certificate 1: Import a TLS certificate or enter its file path before saving',
+      'TLS certificate 1: Import the TLS private key or enter its file path before saving',
+    ]);
     expect(post).not.toHaveBeenCalled();
   });
 

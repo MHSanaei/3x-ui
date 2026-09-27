@@ -26,9 +26,10 @@
 
 ## Возможности
 
-- **Многопротокольные входящие подключения** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, Hysteria2, MTProto, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel и TUN.
+- **Многопротокольные входящие подключения** — VLESS, VMess, Trojan, Shadowsocks, WireGuard, AmneziaWG, TUIC v5, Hysteria2, MTProto, HTTP, SOCKS (Mixed), Dokodemo-door / Tunnel и TUN.
 - **Современные транспорты и безопасность** — TCP (Raw), mKCP, WebSocket, gRPC, HTTPUpgrade и XHTTP, защищённые с помощью TLS, XTLS и REALITY.
 - **Встроенный AmneziaWG** — устойчивый к DPI WireGuard работает прямо в панели на сетевом стеке в пространстве пользователя: без модуля ядра, DKMS и дополнительных пакетов.
+- **Встроенный TUIC v5** — высокопроизводительный прокси на базе QUIC с нативным учётом трафика через UDP-релей, 0-RTT рукопожатиями и контролем перегрузок BBR.
 - **MTProto-прокси** — секреты FakeTLS, ad-tag и квоты для каждого клиента применяются на лету, не разрывая существующие соединения.
 - **Fallback** — обслуживание нескольких протоколов на одном порту (например, VLESS и Trojan на 443) с помощью функции fallback в Xray.
 - **Управление по каждому клиенту** — квоты трафика, даты истечения, лимиты IP с исключениями для доверенных адресов, лимиты устройств (HWID), запланированные циклы продления, статус «онлайн» в реальном времени, а также ссылки для общего доступа, QR-коды и подписки в один клик.
@@ -36,7 +37,7 @@
 - **Поддержка нескольких узлов** — управление и масштабирование на несколько серверов из одной панели, включая клонирование входящих на другие узлы.
 - **Исходящие подключения и маршрутизация** — WARP, NordVPN, PIA, пользовательские правила маршрутизации, балансировщики нагрузки с переключением между балансировщиками и цепочки исходящих прокси. Встроенные категории geosite и geoip можно просматривать прямо в редакторе правил.
 - **Встроенный сервер подписок** — вывод в форматах raw, JSON и Clash, выбираемый автоматически по User-Agent клиента, а также [пользовательские шаблоны страниц](docs/custom-subscription-templates.md).
-- **Telegram-бот** для удалённого мониторинга и управления.
+- **Telegram- и Discord-боты** для удалённого мониторинга и управления.
 - **RESTful API** с токенами ограниченной области действия и необязательным сроком действия, а также справочником API внутри панели.
 - **Устанавливаемая панель (PWA)** — закрепите 3X-UI на рабочем столе или главном экране телефона.
 - **Гибкое хранилище** — SQLite (по умолчанию) или PostgreSQL.
@@ -198,6 +199,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 Инструменты и интеграции, созданные сообществом вокруг 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Лицензия: **MIT**): _Управление входящими, клиентами, настройками панели и конфигурацией Xray через код с помощью Terraform / OpenTofu._
+- [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Лицензия: **MIT**): _Нативный Android-клиент для 3x-ui — дашборд, входящие, клиенты с QR, узлы и управление несколькими панелями. Доступен в F-Droid._
 
 ## Поддержка проекта
 
@@ -212,6 +214,18 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
    <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
-## Звезды с течением времени
+## История звёзд
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+<a href="https://www.star-history.com/?repos=mhsanaei%2F3x-ui&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=mhsanaei/3x-ui&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=mhsanaei/3x-ui&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=mhsanaei/3x-ui&type=date&legend=top-left" />
+ </picture>
+</a>
+
+<p align="center">
+ <a href="https://www.star-history.com/mhsanaei/3x-ui">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=MHSanaei/3x-ui&type=rank&theme=dark" /><source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/badge?repo=MHSanaei/3x-ui&type=rank" /><img alt="Star History Rank" src="https://api.star-history.com/badge?repo=MHSanaei/3x-ui&type=rank" /></picture> <picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=MHSanaei/3x-ui&type=trending&theme=dark" /><source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/badge?repo=MHSanaei/3x-ui&type=trending" /><img alt="GitHub Trending Repository of the Day" src="https://api.star-history.com/badge?repo=MHSanaei/3x-ui&type=trending" /></picture>
+ </a>
+</p>

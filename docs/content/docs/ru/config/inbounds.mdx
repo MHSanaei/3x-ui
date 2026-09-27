@@ -59,11 +59,13 @@ icon: ArrowDownToLine
 | **Trojan**             | На основе TLS; поддерживает XTLS и fallback-правила.                      |
 | **Shadowsocks**        | Включает шифры Shadowsocks-2022 (`2022-blake3-*`).                        |
 | **WireGuard**          | Современный туннель.                                                      |
+| **AmneziaWG**          | Форк WireGuard с обфускацией, встроенный в процесс панели. См. [AmneziaWG](/docs/config/amneziawg). |
 | **Hysteria2**          | Выбирается как `hysteria`; панель создаёт ссылки `hysteria2://`.          |
 | **HTTP**               | HTTP-прокси.                                                              |
 | **Mixed (SOCKS/HTTP)** | Совмещённый слушатель SOCKS + HTTP.                                       |
 | **Dokodemo-door / Tunnel** | Перенаправление портов / перенаправление трафика.                    |
 | **MTProto**            | Прокси Telegram MTProto, обслуживаемый встроенным процессом `mtg` (не Xray). |
+| **TUIC**               | Протокол проксирования на базе QUIC (v5), обслуживаемый встроенным процессом `tuic-server`. См. [TUIC](/docs/config/tuic). |
 
 <Callout type="info">
   Hysteria2 внутренне не является отдельным протоколом — это протокол `hysteria`

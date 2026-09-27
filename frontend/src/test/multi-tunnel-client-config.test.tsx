@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
-
+import { MemoryRouter } from 'react-router';
 import ClientInfoModal from '@/pages/clients/ClientInfoModal';
 import ClientQrModal from '@/pages/clients/ClientQrModal';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
@@ -168,13 +168,15 @@ describe('Multi-tunnel Client Modals', () => {
 
   it('renders separate collapse panels in ClientQrModal for multiple AmneziaWG inbounds', () => {
     renderWithProviders(
-      <ClientQrModal
-        open
-        client={multiAwgClient}
-        inboundsById={{ 101: deAwgInbound, 102: fiAwgInbound }}
-        tunnelAllowedIPs={{ 101: '10.8.1.5/32', 102: '10.8.2.10/32' }}
-        onOpenChange={() => {}}
-      />,
+      <MemoryRouter initialEntries={['/clients']}>
+        <ClientQrModal
+          open
+          client={multiAwgClient}
+          inboundsById={{ 101: deAwgInbound, 102: fiAwgInbound }}
+          tunnelAllowedIPs={{ 101: '10.8.1.5/32', 102: '10.8.2.10/32' }}
+          onOpenChange={() => {}}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('DE · Kelsterbach')).toBeTruthy();

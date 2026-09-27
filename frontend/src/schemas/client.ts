@@ -41,6 +41,7 @@ export const ClientRecordSchema = z
     enable: z.boolean().optional(),
     reset: z.number().optional(),
     resetDay: z.number().optional(),
+    resetWeekday: z.number().optional(),
     resetMax: z.number().optional(),
     trafficReset: z.string().optional(),
     trafficResetDay: z.number().optional(),
@@ -101,6 +102,23 @@ export const AwgServerOptionSchema = z
   })
   .loose();
 
+export const TuicServerOptionSchema = z
+  .object({
+    certificate: z.string().optional(),
+    congestion_control: z.string().optional(),
+    alpn: z.array(z.string()).optional(),
+    udp_relay_mode: z.string().optional(),
+    zero_rtt_handshake: z.boolean().optional(),
+    log_level: z.string().optional(),
+    max_idle_time: z.number().optional(),
+    authentication_timeout: z.number().optional(),
+    max_udp_relay_packet_size: z.number().optional(),
+    sni: z.string().optional(),
+  })
+  .loose();
+
+export type TuicServerOption = z.infer<typeof TuicServerOptionSchema>;
+
 export const InboundOptionSchema = z
   .object({
     id: z.number(),
@@ -116,6 +134,7 @@ export const InboundOptionSchema = z
     wgMtu: z.number().optional(),
     wgDns: z.string().optional(),
     awgServer: AwgServerOptionSchema.nullable().optional(),
+    tuicServer: TuicServerOptionSchema.nullable().optional(),
     mtprotoDomain: z.string().optional(),
     // Hosting node id; absent/null for this panel's own inbounds (#4997).
     nodeId: z.number().nullable().optional(),
@@ -310,6 +329,7 @@ export const ClientFormSchema = z.object({
   delayedDays: z.number().int().min(0),
   reset: z.number().int().min(0),
   resetDay: z.number().int().min(0).max(31),
+  resetWeekday: z.number().int().min(0).max(7),
   resetMax: z.number().int().min(0),
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']),
   trafficResetDay: z.number().int().min(1).max(31),
@@ -342,7 +362,7 @@ export const ClientBulkAdjustFormSchema = z
       (v.limitHwid !== undefined && v.limitHwid !== null) ||
       (v.adTag !== undefined && v.adTag.trim() !== ''),
     {
-      message: 'pages.clients.bulkAdjustNothing',
+      error: 'pages.clients.bulkAdjustNothing',
     },
   )
   .refine(
@@ -352,7 +372,7 @@ export const ClientBulkAdjustFormSchema = z
       return /^[0-9a-fA-F]{32}$/.test(tag);
     },
     {
-      message: 'pages.inbounds.form.mtgAdTagInvalid',
+      error: 'pages.inbounds.form.mtgAdTagInvalid',
       path: ['adTag'],
     },
   );
@@ -374,6 +394,7 @@ export const ClientBulkAddFormSchema = z.object({
   expiryTime: z.number(),
   reset: z.number().int().min(0),
   resetDay: z.number().int().min(0).max(31),
+  resetWeekday: z.number().int().min(0).max(7),
   resetMax: z.number().int().min(0),
   trafficReset: z.enum(['never', 'hourly', 'daily', 'weekly', 'monthly']).optional(),
   trafficResetDay: z.number().int().min(1).max(31).optional(),

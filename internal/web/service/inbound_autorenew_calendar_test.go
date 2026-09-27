@@ -389,3 +389,145 @@ func TestAutoRenewClients_CalendarModeSpendsOneAllowancePerMonth(t *testing.T) {
 		t.Fatalf("counters zeroed for a month the client can never use: up=%d down=%d", row.Up, row.Down)
 	}
 }
+
+// Inclusive EOM 23:59:59 must not spend an allowance on the one-second snap
+// to the billing midnight, or resetMax=1 leaves the client expired (#6300).
+func TestAutoRenewClients_CalendarModeEndOfMonthExpiryDoesNotConsumeAllowance(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+	zone := pinPanelZone(t, "UTC")
+
+	now := time.Now().In(zone)
+	// Prior billing midnight B with B < now < B+1mo so one charged step lands ahead.
+	want := firstBillingMidnightAfter(t, now, 1, zone)
+	boundary := want.AddDate(0, -1, 0)
+	past := boundary.Add(-time.Second)
+
+	clients := []model.Client{
+		{Email: "eomcap@x", ID: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", Enable: false, ResetDay: 1, ResetMax: 1, ExpiryTime: past.UnixMilli()},
+	}
+	ib := mkInbound(t, 30207, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: ib.Id, Email: "eomcap@x", Enable: false, ResetDay: 1, ResetMax: 1, ResetCount: 0,
+		Up: 7, Down: 8, ExpiryTime: past.UnixMilli(),
+	}).Error; err != nil {
+		t.Fatalf("seed client_traffics: %v", err)
+	}
+
+	if _, count, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
+		t.Fatalf("autoRenewClients: %v", err)
+	} else if count != 1 {
+		t.Fatalf("renewed count = %d, want 1", count)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Where("email = ?", "eomcap@x").First(&row).Error; err != nil {
+		t.Fatal(err)
+	}
+	got := time.UnixMilli(row.ExpiryTime).In(zone)
+	if !got.Equal(want) {
+		t.Fatalf("renewed to %s, want %s (one full month after the billing midnight)", got.Format(time.RFC3339), want.Format(time.RFC3339))
+	}
+	if row.ResetCount != 1 {
+		t.Fatalf("resetCount = %d, want 1: the EOM snap must not consume an allowance", row.ResetCount)
+	}
+	if !row.Enable {
+		t.Fatal("client remained expired: the single allowance was spent on the one-second alignment")
+	}
+	if row.Up != 0 || row.Down != 0 {
+		t.Fatalf("counters not reset: up=%d down=%d", row.Up, row.Down)
+	}
+}
+
+// Unlimited EOM 23:59:59 must charge one renewal for the month, not two.
+func TestAutoRenewClients_CalendarModeEndOfMonthUnlimitedChargesOnce(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+	zone := pinPanelZone(t, "UTC")
+
+	now := time.Now().In(zone)
+	want := firstBillingMidnightAfter(t, now, 1, zone)
+	boundary := want.AddDate(0, -1, 0)
+	past := boundary.Add(-time.Second)
+
+	clients := []model.Client{
+		{Email: "eomunc@x", ID: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", Enable: false, ResetDay: 1, ExpiryTime: past.UnixMilli()},
+	}
+	ib := mkInbound(t, 30208, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: ib.Id, Email: "eomunc@x", Enable: false, ResetDay: 1, ResetCount: 0,
+		ExpiryTime: past.UnixMilli(),
+	}).Error; err != nil {
+		t.Fatalf("seed client_traffics: %v", err)
+	}
+
+	if _, _, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
+		t.Fatalf("autoRenewClients: %v", err)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Where("email = ?", "eomunc@x").First(&row).Error; err != nil {
+		t.Fatal(err)
+	}
+	got := time.UnixMilli(row.ExpiryTime).In(zone)
+	if !got.Equal(want) {
+		t.Fatalf("renewed to %s, want %s", got.Format(time.RFC3339), want.Format(time.RFC3339))
+	}
+	if row.ResetCount != 1 {
+		t.Fatalf("resetCount = %d, want 1: unlimited must not double-count the EOM alignment", row.ResetCount)
+	}
+}
+
+// Mid-day expiry on the day before billing still charges for alignment; only
+// the inclusive 23:59:59 instant is a free snap (#6300).
+func TestAutoRenewClients_CalendarModeMidDayBeforeBillingChargesAlignment(t *testing.T) {
+	setupBulkDB(t)
+	svc := &InboundService{}
+	db := database.GetDB()
+	zone := pinPanelZone(t, "UTC")
+
+	now := time.Now().In(zone)
+	boundary := firstBillingMidnightAfter(t, now, 1, zone).AddDate(0, -1, 0)
+	past := boundary.Add(-14 * time.Hour)
+
+	clients := []model.Client{
+		{Email: "eommid@x", ID: "cccccccc-cccc-cccc-cccc-cccccccccccc", Enable: false, ResetDay: 1, ResetMax: 1, ExpiryTime: past.UnixMilli()},
+	}
+	ib := mkInbound(t, 30209, model.VLESS, clientsSettings(t, clients))
+	if err := svc.clientService.SyncInbound(nil, ib.Id, clients); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{
+		InboundId: ib.Id, Email: "eommid@x", Enable: false, ResetDay: 1, ResetMax: 1, ResetCount: 0,
+		ExpiryTime: past.UnixMilli(),
+	}).Error; err != nil {
+		t.Fatalf("seed client_traffics: %v", err)
+	}
+
+	if _, _, err := svc.autoRenewClients(db, newTrafficMutationBatch()); err != nil {
+		t.Fatalf("autoRenewClients: %v", err)
+	}
+
+	var row xray.ClientTraffic
+	if err := db.Where("email = ?", "eommid@x").First(&row).Error; err != nil {
+		t.Fatal(err)
+	}
+	got := time.UnixMilli(row.ExpiryTime).In(zone)
+	if !got.Equal(boundary) {
+		t.Fatalf("renewed to %s, want alignment onto %s (no free snap past midday)", got.Format(time.RFC3339), boundary.Format(time.RFC3339))
+	}
+	if row.ResetCount != 1 {
+		t.Fatalf("resetCount = %d, want 1: midday alignment must consume the allowance", row.ResetCount)
+	}
+	if row.Enable {
+		t.Fatal("midday alignment exhausted resetMax=1; client must stay expired")
+	}
+}

@@ -38,6 +38,9 @@ _openapi:
         omitted, so callers can send only the universal fields.
       url: '#create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields'
     - depth: 2
+      title: Preview client auto-renewal dates without saving or resetting anything.
+      url: '#preview-client-auto-renewal-dates-without-saving-or-resetting-anything'
+    - depth: 2
       title: Update an existing client by email. Changes propagate to every attached
         inbound. Body is the JSON client payload — supply the full set of fields
         you want to keep (the server replaces the row, it does not patch).
@@ -78,21 +81,27 @@ _openapi:
         Returns the deleted count. Cannot be undone.
       url: '#delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone'
     - depth: 2
-      title: Return every client as a {client, inboundIds} array — the same shape
-        /bulkCreate and /import accept — so the payload round-trips straight
-        back through /import. Clients with no inbound attachment are included
-        with an empty inboundIds list. The UI shows this in a CodeMirror viewer
-        (copy / download); programmatic callers get the array in obj.
-      url: '#return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj'
+      title: Return every client as a {client, inboundIds, traffic} array — the shape
+        /import accepts — so the payload round-trips straight back through
+        /import. traffic carries the usage counters (up, down, resetCount,
+        lastOnline, lastSubFetch) and is omitted for a client with no traffic
+        row; the quota itself stays in client.totalGB. Clients with no inbound
+        attachment are included with an empty inboundIds list. The UI shows this
+        in a CodeMirror viewer (copy / download); programmatic callers get the
+        array in obj.
+      url: '#return-every-client-as-a-client-inboundids-traffic-array--the-shape-import-accepts--so-the-payload-round-trips-straight-back-through-import-traffic-carries-the-usage-counters-up-down-resetcount-lastonline-lastsubfetch-and-is-omitted-for-a-client-with-no-traffic-row-the-quota-itself-stays-in-clienttotalgb-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj'
     - depth: 2
       title: 'Import clients from a JSON body { "data": "<json>" }, where data is a
-        string-encoded array produced by /export ([{client, inboundIds}]). Items
-        with inboundIds are created and attached to those inbounds; items with
-        an empty inboundIds list are restored as unattached client records.
-        Existing emails are never overwritten — they are returned in skipped.
-        Triggers a single Xray restart at the end if any target inbound was
-        running.'
-      url: '#import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running'
+        string-encoded array produced by /export ([{client, inboundIds,
+        traffic}]). Items with inboundIds are created and attached to those
+        inbounds; items with an empty inboundIds list are restored as unattached
+        client records. An optional traffic object restores the usage counters,
+        only for clients this import creates. Existing emails are never
+        overwritten — they are returned in skipped, and their live counters are
+        left untouched. Triggers a single Xray restart at the end if any target
+        inbound was running; a failure while restoring counters still reports
+        success=false after the clients were created.'
+      url: '#import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-traffic-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-an-optional-traffic-object-restores-the-usage-counters-only-for-clients-this-import-creates-existing-emails-are-never-overwritten--they-are-returned-in-skipped-and-their-live-counters-are-left-untouched-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running-a-failure-while-restoring-counters-still-reports-successfalse-after-the-clients-were-created'
     - depth: 2
       title: 'Shift expiry and/or traffic quota for many clients in one call.
         addDays/addBytes may be negative. Clients with unlimited expiry
@@ -227,8 +236,9 @@ _openapi:
       title: Reset the recorded IP list for a client.
       url: '#reset-the-recorded-ip-list-for-a-client'
     - depth: 2
-      title: List registered HWID devices for a client. Hashes are not exposed.
-      url: '#list-registered-hwid-devices-for-a-client-hashes-are-not-exposed'
+      title: List registered HWID devices for a client with a short fingerprint. Full
+        hashes are not exposed.
+      url: '#list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed'
     - depth: 2
       title: Clear all registered HWID devices for a client so new devices can
         register again.
@@ -275,6 +285,14 @@ _openapi:
         clients.
       url: '#return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients'
     - depth: 2
+      title: 'Generate a fresh Happ crypt5 link locally from the current client
+        subscription URL when Happ link generation is enabled. The panel applies
+        a resource limit of 8192 UTF-8 bytes to the source URL; this is not a
+        Happ client maximum. Longer sources return success: false with msg:
+        happ_source_too_long and obj: null. The source URL is not sent to a
+        generation provider, and the result is not stored or reused.'
+      url: '#generate-a-fresh-happ-crypt5-link-locally-from-the-current-client-subscription-url-when-happ-link-generation-is-enabled-the-panel-applies-a-resource-limit-of-8192-utf-8-bytes-to-the-source-url-this-is-not-a-happ-client-maximum-longer-sources-return-success-false-with-msg-happ_source_too_long-and-obj-null-the-source-url-is-not-sent-to-a-generation-provider-and-the-result-is-not-stored-or-reused'
+    - depth: 2
       title: 'Return every URL for one client across all attached inbounds, one per
         advertised endpoint: the managed hosts of the inbound, else its
         streamSettings.externalProxy entries, else its own address. Supported
@@ -308,6 +326,8 @@ _openapi:
           call. Body is JSON. Per-protocol secrets are generated server-side
           when omitted, so callers can send only the universal fields.
         id: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: Preview client auto-renewal dates without saving or resetting anything.
+        id: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
       - content: Update an existing client by email. Changes propagate to every attached
           inbound. Body is the JSON client payload — supply the full set of
           fields you want to keep (the server replaces the row, it does not
@@ -342,20 +362,26 @@ _openapi:
           clearing clients left unattached after their inbounds were removed.
           Returns the deleted count. Cannot be undone.
         id: delete-every-client-that-is-not-attached-to-any-inbound-along-with-its-traffic-record-ip-log-hwid-devices-and-external-links-useful-for-clearing-clients-left-unattached-after-their-inbounds-were-removed-returns-the-deleted-count-cannot-be-undone
-      - content: Return every client as a {client, inboundIds} array — the same shape
-          /bulkCreate and /import accept — so the payload round-trips straight
-          back through /import. Clients with no inbound attachment are included
-          with an empty inboundIds list. The UI shows this in a CodeMirror
-          viewer (copy / download); programmatic callers get the array in obj.
-        id: return-every-client-as-a-client-inboundids-array--the-same-shape-bulkcreate-and-import-accept--so-the-payload-round-trips-straight-back-through-import-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
+      - content: Return every client as a {client, inboundIds, traffic} array — the
+          shape /import accepts — so the payload round-trips straight back
+          through /import. traffic carries the usage counters (up, down,
+          resetCount, lastOnline, lastSubFetch) and is omitted for a client with
+          no traffic row; the quota itself stays in client.totalGB. Clients with
+          no inbound attachment are included with an empty inboundIds list. The
+          UI shows this in a CodeMirror viewer (copy / download); programmatic
+          callers get the array in obj.
+        id: return-every-client-as-a-client-inboundids-traffic-array--the-shape-import-accepts--so-the-payload-round-trips-straight-back-through-import-traffic-carries-the-usage-counters-up-down-resetcount-lastonline-lastsubfetch-and-is-omitted-for-a-client-with-no-traffic-row-the-quota-itself-stays-in-clienttotalgb-clients-with-no-inbound-attachment-are-included-with-an-empty-inboundids-list-the-ui-shows-this-in-a-codemirror-viewer-copy--download-programmatic-callers-get-the-array-in-obj
       - content: 'Import clients from a JSON body { "data": "<json>" }, where data is a
-          string-encoded array produced by /export ([{client, inboundIds}]).
-          Items with inboundIds are created and attached to those inbounds;
-          items with an empty inboundIds list are restored as unattached client
-          records. Existing emails are never overwritten — they are returned in
-          skipped. Triggers a single Xray restart at the end if any target
-          inbound was running.'
-        id: import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-existing-emails-are-never-overwritten--they-are-returned-in-skipped-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running
+          string-encoded array produced by /export ([{client, inboundIds,
+          traffic}]). Items with inboundIds are created and attached to those
+          inbounds; items with an empty inboundIds list are restored as
+          unattached client records. An optional traffic object restores the
+          usage counters, only for clients this import creates. Existing emails
+          are never overwritten — they are returned in skipped, and their live
+          counters are left untouched. Triggers a single Xray restart at the end
+          if any target inbound was running; a failure while restoring counters
+          still reports success=false after the clients were created.'
+        id: import-clients-from-a-json-body--data-json--where-data-is-a-string-encoded-array-produced-by-export-client-inboundids-traffic-items-with-inboundids-are-created-and-attached-to-those-inbounds-items-with-an-empty-inboundids-list-are-restored-as-unattached-client-records-an-optional-traffic-object-restores-the-usage-counters-only-for-clients-this-import-creates-existing-emails-are-never-overwritten--they-are-returned-in-skipped-and-their-live-counters-are-left-untouched-triggers-a-single-xray-restart-at-the-end-if-any-target-inbound-was-running-a-failure-while-restoring-counters-still-reports-successfalse-after-the-clients-were-created
       - content: 'Shift expiry and/or traffic quota for many clients in one call.
           addDays/addBytes may be negative. Clients with unlimited expiry
           (expiryTime=0) or unlimited traffic (totalGB=0) are skipped for the
@@ -473,8 +499,9 @@ _openapi:
         id: list-source-ips-that-have-connected-with-the-given-clients-credentials-returns-an-array-of-ip-timestamp-strings
       - content: Reset the recorded IP list for a client.
         id: reset-the-recorded-ip-list-for-a-client
-      - content: List registered HWID devices for a client. Hashes are not exposed.
-        id: list-registered-hwid-devices-for-a-client-hashes-are-not-exposed
+      - content: List registered HWID devices for a client with a short fingerprint.
+          Full hashes are not exposed.
+        id: list-registered-hwid-devices-for-a-client-with-a-short-fingerprint-full-hashes-are-not-exposed
       - content: Clear all registered HWID devices for a client so new devices can
           register again.
         id: clear-all-registered-hwid-devices-for-a-client-so-new-devices-can-register-again
@@ -512,6 +539,14 @@ _openapi:
           URL is emitted per external proxy. Empty array when the subId has no
           enabled clients.
         id: return-every-protocol-url-vless-vmess-trojan-ss-hysteria-hy2-for-clients-matching-the-subscription-id-same-result-set-as-the-configured-subpath-endpoint-but-as-a-json-array--no-base64-when-an-inbound-has-streamsettingsexternalproxy-set-one-url-is-emitted-per-external-proxy-empty-array-when-the-subid-has-no-enabled-clients
+      - content: 'Generate a fresh Happ crypt5 link locally from the current client
+          subscription URL when Happ link generation is enabled. The panel
+          applies a resource limit of 8192 UTF-8 bytes to the source URL; this
+          is not a Happ client maximum. Longer sources return success: false
+          with msg: happ_source_too_long and obj: null. The source URL is not
+          sent to a generation provider, and the result is not stored or
+          reused.'
+        id: generate-a-fresh-happ-crypt5-link-locally-from-the-current-client-subscription-url-when-happ-link-generation-is-enabled-the-panel-applies-a-resource-limit-of-8192-utf-8-bytes-to-the-source-url-this-is-not-a-happ-client-maximum-longer-sources-return-success-false-with-msg-happ_source_too_long-and-obj-null-the-source-url-is-not-sent-to-a-generation-provider-and-the-result-is-not-stored-or-reused
       - content: 'Return every URL for one client across all attached inbounds, one per
           advertised endpoint: the managed hosts of the inbound, else its
           streamSettings.externalProxy entries, else its own address. Supported
@@ -574,6 +609,16 @@ _openapi:
           one per line. `limitHwid` is applied only when every inbound
           succeeded, so re-run the call after fixing the failure.
         heading: create-a-new-client-and-attach-it-to-one-or-more-inbounds-in-a-single-call-body-is-json-per-protocol-secrets-are-generated-server-side-when-omitted-so-callers-can-send-only-the-universal-fields
+      - content: Uses the same calendar and catch-up calculation as auto-renew in the
+          panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables
+          weekly mode; it cannot be combined with positive reset or resetDay.
+          Existing resetDay takes precedence over reset. With expiryTime=0,
+          calendar modes suggest a first cutoff but do not activate renewal.
+          Negative expiryTime waits for first-use activation. resetMax and
+          resetCount simulate the existing per-period allowance limit; the
+          preview is informational and does not reserve an allowance or
+          guarantee node availability.
+        heading: preview-client-auto-renewal-dates-without-saving-or-resetting-anything
       - content: 'The inbounds are applied concurrently and independently: one that
           fails no longer stops the others. Every inbound error names the
           inbound it came from (`inbound 7: <message>`), and several failures
@@ -620,7 +665,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/clients/list","method":"get"},{"path":"/panel/api/clients/list/paged","method":"get"},{"path":"/panel/api/clients/get/{email}","method":"get"},{"path":"/panel/api/clients/get/tgId/{tgId}","method":"get"},{"path":"/panel/api/clients/add","method":"post"},{"path":"/panel/api/clients/renewalPreview","method":"post"},{"path":"/panel/api/clients/update/{email}","method":"post"},{"path":"/panel/api/clients/del/{email}","method":"post"},{"path":"/panel/api/clients/{email}/attach","method":"post"},{"path":"/panel/api/clients/{email}/detach","method":"post"},{"path":"/panel/api/clients/{email}/externalLinks","method":"post"},{"path":"/panel/api/clients/resetAllTraffics","method":"post"},{"path":"/panel/api/clients/delDepleted","method":"post"},{"path":"/panel/api/clients/delOrphans","method":"post"},{"path":"/panel/api/clients/export","method":"get"},{"path":"/panel/api/clients/import","method":"post"},{"path":"/panel/api/clients/bulkAdjust","method":"post"},{"path":"/panel/api/clients/bulkEnable","method":"post"},{"path":"/panel/api/clients/bulkDisable","method":"post"},{"path":"/panel/api/clients/bulkDel","method":"post"},{"path":"/panel/api/clients/bulkCreate","method":"post"},{"path":"/panel/api/clients/groups/bulkAdd","method":"post"},{"path":"/panel/api/clients/groups/bulkRemove","method":"post"},{"path":"/panel/api/clients/bulkAttach","method":"post"},{"path":"/panel/api/clients/bulkDetach","method":"post"},{"path":"/panel/api/clients/bulkResetTraffic","method":"post"},{"path":"/panel/api/clients/groups","method":"get"},{"path":"/panel/api/clients/groups/{name}/emails","method":"get"},{"path":"/panel/api/clients/groups/create","method":"post"},{"path":"/panel/api/clients/groups/rename","method":"post"},{"path":"/panel/api/clients/groups/delete","method":"post"},{"path":"/panel/api/clients/groups/resetTraffic","method":"post"},{"path":"/panel/api/clients/resetTraffic/{email}","method":"post"},{"path":"/panel/api/clients/updateTraffic/{email}","method":"post"},{"path":"/panel/api/clients/ips/{email}","method":"post"},{"path":"/panel/api/clients/clearIps/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"post"},{"path":"/panel/api/clients/hwids/{email}","method":"delete"},{"path":"/panel/api/clients/hwids/{email}/{id}","method":"delete"},{"path":"/panel/api/clients/onlines","method":"post"},{"path":"/panel/api/clients/onlinesByGuid","method":"post"},{"path":"/panel/api/clients/clientIpsByGuid","method":"post"},{"path":"/panel/api/clients/activeInbounds","method":"post"},{"path":"/panel/api/clients/lastOnline","method":"post"},{"path":"/panel/api/clients/traffic/{email}","method":"get"},{"path":"/panel/api/clients/subLinks/{subId}","method":"get"},{"path":"/panel/api/clients/happLink/{id}","method":"post"},{"path":"/panel/api/clients/links/{email}","method":"get"}]} showTitle />
     </>
   );
 }

@@ -28,6 +28,9 @@ export function formatPanelVersion(version: string | undefined | null): string {
 
 export function isPanelUpdateAvailable(latest: string, current: string): boolean {
   if (!latest || !current) return false;
+  // A dev+<sha> label and a release tag sit on different channels and carry no
+  // order, so a node moved to the other channel is not "behind" the master's latest.
+  if (latest.trim().startsWith('dev+') !== current.trim().startsWith('dev+')) return false;
   const a = parseVersionParts(latest);
   const b = parseVersionParts(current);
   if (!a || !b) {

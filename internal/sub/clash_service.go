@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"maps"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
@@ -77,8 +79,10 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		if ext.Enable {
 			hasEnabledClient = true
 		}
+		// Count the client even when no proxy comes out of this link, so the
+		// quota header does not shrink because a node is unrepresentable in Clash.
+		seenEmails[ext.Email] = struct{}{}
 		if !ext.Active {
-			seenEmails[ext.Email] = struct{}{}
 			hasInactiveExternal = true
 			continue
 		}
@@ -88,7 +92,6 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 				name = ext.Email
 			}
 			if proxy := s.clashProxyFromExternal(el.Link, name); proxy != nil {
-				seenEmails[ext.Email] = struct{}{}
 				proxies = append(proxies, proxy)
 			}
 		}
@@ -111,7 +114,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	slices.Sort(emails)
 	traffic, _ := subReq.AggregateTrafficByEmails(emails)
 	traffic.Enable = hasEnabledClient
-	header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	header := subReq.subscriptionUserinfo(traffic)
 
 	if mode, remark := subReq.resolveInfoNodeRemark(subId, emails, traffic, len(proxies) > 0); mode != infoNodeNone {
 		dummyProxy := map[string]any{
@@ -401,6 +404,9 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 	if inbound.Protocol == model.WireGuard {
 		return s.buildWireguardProxy(subReq, inbound, client, ep)
 	}
+	if inbound.Protocol == model.TUIC {
+		return s.buildTuicProxy(subReq, inbound, client, ep)
+	}
 	if inbound.Protocol == model.AmneziaWG {
 		return s.buildAmneziaWGProxy(subReq, inbound, client, ep)
 	}
@@ -516,10 +522,16 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 			if fp, ok := inner["fingerprint"].(string); ok && fp != "" {
 				proxy["client-fingerprint"] = fp
 			}
+			if certFingerprint := mihomoCertFingerprint(inner["pinnedPeerCertSha256"]); certFingerprint != "" {
+				proxy["fingerprint"] = certFingerprint
+			}
 		}
 	}
 	if insecure, ok := ep["allowInsecure"].(bool); ok && insecure {
 		proxy["skip-cert-verify"] = true
+	}
+	if certFingerprint := mihomoCertFingerprint(ep["pinnedPeerCertSha256"]); certFingerprint != "" {
+		proxy["fingerprint"] = certFingerprint
 	}
 
 	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
@@ -548,6 +560,45 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 	}
 
 	return proxy
+}
+
+// Mihomo supports only one certificate fingerprint, so mihomoCertFingerprint
+// converts the first valid SHA-256 pin to its colon-separated TLS form.
+func mihomoCertFingerprint(value any) string {
+	var pins []string
+	switch typed := value.(type) {
+	case []any:
+		for _, item := range typed {
+			if pin, ok := item.(string); ok {
+				pins = append(pins, pin)
+			}
+		}
+	case []string:
+		pins = typed
+	case string:
+		pins = strings.Split(typed, ",")
+	}
+
+	for _, pin := range pins {
+		normalized := hysteriaPinHex(pin)
+		if len(normalized) != 64 {
+			continue
+		}
+		if _, err := hex.DecodeString(normalized); err != nil {
+			continue
+		}
+		normalized = strings.ToUpper(normalized)
+		var out strings.Builder
+		out.Grow(95)
+		for i := 0; i < len(normalized); i += 2 {
+			if i > 0 {
+				out.WriteByte(':')
+			}
+			out.WriteString(normalized[i : i+2])
+		}
+		return out.String()
+	}
+	return ""
 }
 
 // buildWireguardProxy produces a mihomo-compatible Clash entry for a native
@@ -608,6 +659,60 @@ func (s *SubClashService) buildWireguardProxy(subReq *SubService, inbound *model
 		}
 	}
 
+	return proxy
+}
+
+func (s *SubClashService) buildTuicProxy(subReq *SubService, inbound *model.Inbound, client model.Client, ep map[string]any) map[string]any {
+	inst, ok := tuic.InstanceFromInbound(inbound)
+	if !ok {
+		return nil
+	}
+	uuid := client.ID
+	password := client.Password
+	for _, c := range inst.Clients {
+		if c.Email == client.Email {
+			if uuid == "" {
+				uuid = c.UUID
+			}
+			if password == "" {
+				password = c.Password
+			}
+			break
+		}
+	}
+	if uuid == "" || password == "" {
+		return nil
+	}
+	server := inbound.Listen
+	if server == "" || server == "0.0.0.0" || server == "::" {
+		server = subReq.resolveInboundAddress(inbound)
+	}
+	proxy := map[string]any{
+		"name":                  subReq.endpointRemark(inbound, client.Email, ep, "tuic"),
+		"type":                  "tuic",
+		"server":                server,
+		"port":                  inbound.Port,
+		"uuid":                  uuid,
+		"password":              password,
+		"congestion-controller": inst.CongestionControl,
+		"udp-relay-mode":        inst.UDPRelayMode,
+		"reduce-rtt":            inst.ZeroRTTHandshake,
+	}
+	if len(inst.ALPN) > 0 {
+		proxy["alpn"] = inst.ALPN
+	}
+	if inst.SNI != "" {
+		proxy["sni"] = inst.SNI
+	}
+	if sni, ok := externalProxySNI(ep); ok {
+		proxy["sni"] = sni
+	}
+	if alpn, ok := externalProxyALPN(ep["alpn"]); ok {
+		proxy["alpn"] = strings.Split(alpn, ",")
+	}
+	if ai, ok := ep["allowInsecure"].(bool); ok && ai {
+		proxy["skip-cert-verify"] = true
+	}
 	return proxy
 }
 

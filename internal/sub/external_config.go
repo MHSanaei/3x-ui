@@ -163,7 +163,7 @@ func applyRemarkToLink(rawLink, remark string) string {
 	if i := strings.IndexByte(rawLink, '#'); i >= 0 {
 		rawLink = rawLink[:i]
 	}
-	return rawLink + "#" + url.PathEscape(remark)
+	return rawLink + "#" + escapeLinkFragment(remark, url.PathEscape)
 }
 
 func applyVmessRemark(rawLink, remark string) string {

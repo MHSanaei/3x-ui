@@ -1,11 +1,18 @@
 package job
 
 import (
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
+
+// periodicResetConcurrency bounds how many inbounds or clients one run resets at once:
+// each waits on its node, so one at a time a few hanging nodes stretched a run for hours.
+const periodicResetConcurrency = 8
 
 // Period represents the time period for traffic resets.
 type Period string
@@ -33,6 +40,21 @@ func monthlyResetDue(resetDay int, now time.Time) bool {
 	}
 	lastDay := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location()).Day()
 	return now.Day() == min(resetDay, lastDay)
+}
+
+func forEachResetBounded(n int, reset func(i int)) {
+	sem := make(chan struct{}, periodicResetConcurrency)
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Add(1)
+		sem <- struct{}{}
+		common.GoRecover("periodic-traffic-reset", func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			reset(i)
+		})
+	}
+	wg.Wait()
 }
 
 // Run resets traffic statistics for all inbounds that match the configured reset
@@ -64,8 +86,9 @@ func (j *PeriodicTrafficResetJob) resetInboundsOnSchedule() {
 	}
 	logger.Infof("Running periodic traffic reset job for period: %s (%d matching inbounds)", j.period, len(inbounds))
 
-	resetCount := 0
-	for _, inbound := range inbounds {
+	var resetCount atomic.Int32
+	forEachResetBounded(len(inbounds), func(i int) {
+		inbound := inbounds[i]
 		resetInboundErr := j.inboundService.ResetInboundTraffic(inbound.Id)
 		if resetInboundErr != nil {
 			logger.Warning("Failed to reset traffic for inbound", inbound.Id, ":", resetInboundErr)
@@ -77,12 +100,12 @@ func (j *PeriodicTrafficResetJob) resetInboundsOnSchedule() {
 		}
 
 		if resetInboundErr == nil && resetClientErr == nil {
-			resetCount++
+			resetCount.Add(1)
 		}
-	}
+	})
 
-	if resetCount > 0 {
-		logger.Infof("Periodic traffic reset completed: %d inbounds reset", resetCount)
+	if count := resetCount.Load(); count > 0 {
+		logger.Infof("Periodic traffic reset completed: %d inbounds reset", count)
 	}
 }
 
@@ -115,19 +138,23 @@ func (j *PeriodicTrafficResetJob) resetClientsOnTheirOwnCycle() {
 	}
 	logger.Infof("Running periodic traffic reset job for period: %s (%d matching clients)", j.period, len(due))
 
+	var mu sync.Mutex
 	resetCount := 0
 	needRestart := false
-	for _, c := range due {
+	forEachResetBounded(len(due), func(i int) {
+		c := due[i]
 		// ResetTrafficByEmail rather than a bulk UPDATE: it is the path that also
 		// propagates to the client's node and clears the MTProto sidecar quota.
 		nr, resetErr := j.clientService.ResetTrafficByEmail(&j.inboundService, c.Email)
 		if resetErr != nil {
 			logger.Warning("Failed to reset traffic for client", c.Email, ":", resetErr)
-			continue
+			return
 		}
+		mu.Lock()
 		needRestart = needRestart || nr
 		resetCount++
-	}
+		mu.Unlock()
+	})
 	// Dropping this leaves a re-enabled client absent from the running core until
 	// something unrelated restarts it.
 	if needRestart {

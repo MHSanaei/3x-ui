@@ -141,7 +141,7 @@ export default function QrPanel({
               value={value}
               size={size}
               errorLevel="L"
-              marginSize={4}
+              marginSize={2}
               type="svg"
               bordered={false}
               color="#000000"

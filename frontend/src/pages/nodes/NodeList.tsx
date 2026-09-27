@@ -145,17 +145,22 @@ function formatUptime(secs?: number): string {
   return `${mins}m`;
 }
 
+// Stable per language: the columns memo depends on it, and a fresh function each
+// render rebuilt every column, re-rendering all rows on each heartbeat push.
 function useRelativeTime() {
   const { t } = useTranslation();
-  return (unixSeconds?: number) => {
-    if (!unixSeconds) return t('pages.nodes.never');
-    const diffSec = Math.max(0, Math.floor(Date.now() / 1000 - unixSeconds));
-    if (diffSec < 5) return t('pages.nodes.justNow');
-    if (diffSec < 60) return `${diffSec}s`;
-    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m`;
-    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h`;
-    return `${Math.floor(diffSec / 86400)}d`;
-  };
+  return useMemo(
+    () => (unixSeconds?: number) => {
+      if (!unixSeconds) return t('pages.nodes.never');
+      const diffSec = Math.max(0, Math.floor(Date.now() / 1000 - unixSeconds));
+      if (diffSec < 5) return t('pages.nodes.justNow');
+      if (diffSec < 60) return `${diffSec}s`;
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h`;
+      return `${Math.floor(diffSec / 86400)}d`;
+    },
+    [t],
+  );
 }
 
 export default function NodeList({
@@ -530,6 +535,47 @@ export default function NodeList({
     ],
   );
 
+  // rc-table re-runs every cell renderer whenever the Table re-renders, so keep the
+  // same element until its inputs change rather than re-rendering all rows each time.
+  const nodeTable = useMemo(
+    () => (
+      <Table<NodeRow>
+        dataSource={dataSource}
+        columns={columns}
+        pagination={false}
+        loading={loading}
+        scroll={{ x: 'max-content' }}
+        size="middle"
+        rowKey="key"
+        rowSelection={
+          dataSource.length > 1
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) =>
+                  onSelectionChange(keys.filter((k) => typeof k === 'number') as number[]),
+                getCheckboxProps: (record) => ({
+                  disabled: !!record.transitive || !isUpdateEligible(record),
+                }),
+              }
+            : undefined
+        }
+        locale={{
+          emptyText: (
+            <div className="card-empty">
+              <ClusterOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+              <div>{t('noData')}</div>
+            </div>
+          ),
+        }}
+        expandable={{
+          expandedRowRender: (record) => <NodeHistoryPanel node={record} />,
+          rowExpandable: (record) => !record.transitive,
+        }}
+      />
+    ),
+    [dataSource, columns, loading, selectedIds, onSelectionChange, t],
+  );
+
   return (
     <Card size="small" hoverable>
       <div className="toolbar">
@@ -806,39 +852,7 @@ export default function NodeList({
           </Modal>
         </>
       ) : (
-        <Table<NodeRow>
-          dataSource={dataSource}
-          columns={columns}
-          pagination={false}
-          loading={loading}
-          scroll={{ x: 'max-content' }}
-          size="middle"
-          rowKey="key"
-          rowSelection={
-            dataSource.length > 1
-              ? {
-                  selectedRowKeys: selectedIds,
-                  onChange: (keys) =>
-                    onSelectionChange(keys.filter((k) => typeof k === 'number') as number[]),
-                  getCheckboxProps: (record) => ({
-                    disabled: !!record.transitive || !isUpdateEligible(record),
-                  }),
-                }
-              : undefined
-          }
-          locale={{
-            emptyText: (
-              <div className="card-empty">
-                <ClusterOutlined style={{ fontSize: 32, marginBottom: 8 }} />
-                <div>{t('noData')}</div>
-              </div>
-            ),
-          }}
-          expandable={{
-            expandedRowRender: (record) => <NodeHistoryPanel node={record} />,
-            rowExpandable: (record) => !record.transitive,
-          }}
-        />
+        nodeTable
       )}
     </Card>
   );

@@ -34,11 +34,16 @@ type HappConfig struct {
 	AutoConnectType     string
 	PerAppMode          string
 	PerAppList          string
+	LocalProxyAuth      string
 }
 
 // IsHappClient checks if the client user-agent identifies as Happ.
 func IsHappClient(userAgent string) bool {
 	return happUserAgentRegex.MatchString(userAgent)
+}
+
+func sanitizeHeaderValue(v string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(v), "\r", ""), "\n", "")
 }
 
 // ApplyHappHeaders sets standard and advanced Happ subscription headers.
@@ -47,15 +52,15 @@ func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 		return
 	}
 	if cfg.ProviderId != "" {
-		c.Writer.Header().Set("ProviderID", cfg.ProviderId)
+		c.Writer.Header().Set("ProviderID", strings.TrimSpace(cfg.ProviderId))
 	}
 	if cfg.NewUrl != "" {
-		c.Writer.Header().Set("New-Url", cfg.NewUrl)
+		c.Writer.Header().Set("New-Url", strings.TrimSpace(cfg.NewUrl))
 	}
 	if cfg.FallbackUrl != "" {
-		c.Writer.Header().Set("Fallback-Url", cfg.FallbackUrl)
+		c.Writer.Header().Set("Fallback-Url", strings.TrimSpace(cfg.FallbackUrl))
 	}
-	if text := strings.TrimSpace(cfg.SubInfoText); text != "" {
+	if text := sanitizeHeaderValue(cfg.SubInfoText); text != "" {
 		color := strings.TrimSpace(cfg.SubInfoColor)
 		switch strings.ToLower(color) {
 		case "primary", "info":
@@ -69,10 +74,10 @@ func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 		}
 		c.Writer.Header().Set("Sub-Info-Color", color)
 		c.Writer.Header().Set("Sub-Info-Text", text)
-		if btnText := strings.TrimSpace(cfg.SubInfoButtonText); btnText != "" {
+		if btnText := sanitizeHeaderValue(cfg.SubInfoButtonText); btnText != "" {
 			c.Writer.Header().Set("Sub-Info-Button-Text", btnText)
 		}
-		if btnLink := strings.TrimSpace(cfg.SubInfoButtonLink); btnLink != "" {
+		if btnLink := sanitizeHeaderValue(cfg.SubInfoButtonLink); btnLink != "" {
 			c.Writer.Header().Set("Sub-Info-Button-Link", btnLink)
 		}
 	}
@@ -103,8 +108,7 @@ func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 	if cfg.ExcludeApns {
 		c.Writer.Header().Set("Exclude-Apns-Enable", "true")
 	}
-	if profile := strings.TrimSpace(cfg.ColorProfile); profile != "" {
-		profile = strings.ReplaceAll(strings.ReplaceAll(profile, "\r", ""), "\n", "")
+	if profile := sanitizeHeaderValue(cfg.ColorProfile); profile != "" {
 		c.Writer.Header().Set("Color-Profile", profile)
 	}
 	if ping := strings.TrimSpace(cfg.PingType); ping != "" {
@@ -125,6 +129,12 @@ func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 		if autoType != "" {
 			c.Writer.Header().Set("Subscription-Autoconnect-Type", autoType)
 		}
+	}
+	// Happ's local SOCKS/HTTP inbounds default to no auth, so any app on the device can use them
+	// to reach the tunnel and learn the server address; these are standard headers (no ProviderID).
+	if mode := strings.TrimSpace(cfg.LocalProxyAuth); mode != "" {
+		c.Writer.Header().Set("Socks-Auth-Mode", mode)
+		c.Writer.Header().Set("Http-Auth-Mode", mode)
 	}
 	if mode := strings.TrimSpace(cfg.PerAppMode); mode != "" && mode != "off" {
 		switch strings.ToLower(mode) {

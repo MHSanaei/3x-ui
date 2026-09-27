@@ -20,8 +20,8 @@ func TestTrafficDisableImmediatelyUpdatesNodeRuntime(t *testing.T) {
 		t.Fatalf("seed traffic: %v", err)
 	}
 
-	if _, _, _, err := (&InboundService{}).addTrafficLocked(nil, nil); err != nil {
-		t.Fatalf("addTrafficLocked: %v", err)
+	if _, _, err := (&InboundService{}).AddTraffic(nil, nil); err != nil {
+		t.Fatalf("AddTraffic: %v", err)
 	}
 	if got := fake.updateInbound.Load(); got != 1 {
 		t.Fatalf("remote UpdateInbound calls = %d, want 1 after commit", got)
@@ -52,8 +52,8 @@ func TestTrafficDisableRefreshesLocalMTProtoSidecar(t *testing.T) {
 		t.Fatalf("deplete traffic: %v", err)
 	}
 
-	if _, _, _, err := (&InboundService{}).addTrafficLocked(nil, nil); err != nil {
-		t.Fatalf("addTrafficLocked: %v", err)
+	if _, _, err := (&InboundService{}).AddTraffic(nil, nil); err != nil {
+		t.Fatalf("AddTraffic: %v", err)
 	}
 	if got := fake.updateInbound.Load(); got != 1 {
 		t.Fatalf("MTProto sidecar UpdateInbound calls = %d, want 1 after commit", got)

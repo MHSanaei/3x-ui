@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 
 import NordModal from '@/pages/xray/overrides/NordModal';
 import { HttpUtil, Msg } from '@/utils';
@@ -70,7 +70,10 @@ async function chooseOption(testId: string, labelPart: string) {
     `${item.getAttribute('title') ?? ''} ${item.textContent ?? ''}`.includes(labelPart),
   );
   if (!option) throw new Error(`Missing option containing ${labelPart}`);
-  fireEvent.click(option);
+  // Picking a country fetches its servers; let that settle inside act().
+  await act(async () => {
+    fireEvent.click(option);
+  });
 }
 
 async function clickAddOutbound() {
@@ -228,6 +231,25 @@ describe('NordVPN modal', () => {
         throw new Error('All Cities is not selected');
       }
     });
+
+    const serverNode = screen.getByTestId('nord-server-select');
+    const serverSelect = serverNode.closest('.ant-select') ?? serverNode;
+    fireEvent.mouseDown(serverSelect.querySelector('.ant-select-selector') ?? serverSelect);
+    await waitFor(() =>
+      expect(
+        document.querySelectorAll<HTMLElement>('.nord-server-popup .ant-select-item-option'),
+      ).toHaveLength(2),
+    );
+  });
+
+  it('lists every server again when All Cities is chosen after a city', async () => {
+    mockNordApi();
+    renderWithProviders(<NordHarness />);
+
+    await waitFor(() => expect(screen.getByText('nord-token')).toBeTruthy());
+    await chooseOption('nord-country-select', 'United States');
+    await chooseOption('nord-city-select', 'New York');
+    await chooseOption('nord-city-select', 'All Cities');
 
     const serverNode = screen.getByTestId('nord-server-select');
     const serverSelect = serverNode.closest('.ant-select') ?? serverNode;

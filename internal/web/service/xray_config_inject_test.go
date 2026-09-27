@@ -2,7 +2,9 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/testpg"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -25,7 +28,16 @@ func TestMain(m *testing.M) {
 	// injectPanelEgress logs when it skips injection; the package logger must
 	// exist before any test exercises a skipped path.
 	xuilogger.InitLogger(logging.ERROR)
-	os.Exit(m.Run())
+	// Against PostgreSQL every package shares one database; give this one its
+	// own schema so a parallel package and a previous run cannot reach it.
+	cleanup, err := testpg.IsolatePackage("internal_web_service")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	code := m.Run()
+	cleanup()
+	os.Exit(code)
 }
 
 func TestEnsureAPIServices(t *testing.T) {
@@ -601,6 +613,29 @@ func TestInjectAmneziawgnetSocks_CreatesRelayTaggedWithInboundsOwnTag(t *testing
 	}
 }
 
+// Without routeOnly the sniffed SNI replaces the dial target, so Telegram's
+// FakeTLS to 194.221.250.50 (SNI www.google.com) lands on real Google.
+func TestInjectAmneziawgnetSocks_SniffingRouteOnly(t *testing.T) {
+	cfg := egressTestConfig()
+	injectAmneziawgnetSocks(cfg, []*model.Inbound{amneziawgInbound(7, "awg-7", []model.Client{
+		{Email: "a@x", Enable: true, PublicKey: "pub-a", AllowedIPs: []string{"10.8.1.2/32"}},
+	})})
+	var sniffing struct {
+		Enabled      bool     `json:"enabled"`
+		DestOverride []string `json:"destOverride"`
+		RouteOnly    bool     `json:"routeOnly"`
+	}
+	if err := json.Unmarshal(cfg.InboundConfigs[1].Sniffing, &sniffing); err != nil {
+		t.Fatalf("relay inbound must carry a sniffing block, got %q: %v", cfg.InboundConfigs[1].Sniffing, err)
+	}
+	if !sniffing.Enabled || !sniffing.RouteOnly {
+		t.Fatalf("sniffing must be enabled with routeOnly, got %+v", sniffing)
+	}
+	if want := []string{"http", "tls", "quic", "fakedns"}; !slices.Equal(sniffing.DestOverride, want) {
+		t.Fatalf("destOverride = %v, want %v", sniffing.DestOverride, want)
+	}
+}
+
 func TestInjectAmneziawgnetSocks_MultipleInboundsEachGetOwnRelay(t *testing.T) {
 	cfg := egressTestConfig()
 	inbound1 := amneziawgInbound(1, "awg-1", []model.Client{
@@ -746,6 +781,7 @@ type v6EgressRouting struct {
 	Rules []struct {
 		InboundTag  []string `json:"inboundTag"`
 		User        []string `json:"user"`
+		IP          []string `json:"ip"`
 		OutboundTag string   `json:"outboundTag"`
 		Type        string   `json:"type"`
 	} `json:"rules"`
@@ -803,6 +839,10 @@ func TestInjectAmneziawgV6Egress_CreatesOutboundAndRuleForV6Peer(t *testing.T) {
 	if rule.Type != "field" || len(rule.User) != 1 || rule.User[0] != "a@x" ||
 		len(rule.InboundTag) != 1 || rule.InboundTag[0] != "awg-7" {
 		t.Fatalf("rule must match this peer's email and inbound tag, got %+v", rule)
+	}
+	// A v6 sendThrough cannot dial an IPv4 target, so only v6 destinations may take this outbound.
+	if !slices.Equal(rule.IP, []string{"::/0"}) {
+		t.Fatalf("rule must be limited to IPv6 destinations, got ip %v", rule.IP)
 	}
 }
 

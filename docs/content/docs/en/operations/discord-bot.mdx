@@ -1,0 +1,121 @@
+---
+title: Discord Bot
+description: Connect a Discord bot to 3x-ui to receive real-time Embed notifications in a channel for panel events (service crashes, node status, CPU/RAM load, and login attempts).
+icon: Bot
+---
+
+3x-ui provides comprehensive Discord integration: real-time event notifications via the event bus (`EventBus`), periodic scheduled health reports with database backups, and interactive commands via the Discord Gateway.
+
+<Callout type="info">
+  Discord notifications and scheduled reports use outbound HTTPS REST API v10 calls. Interactive bot commands connect via a secure background WebSocket connection to the Discord Gateway.
+</Callout>
+
+## Set it up
+
+<Steps>
+
+<Step>
+### Create a Discord Application & Bot
+
+1. Open the [Discord Developer Portal](https://discord.com/developers/applications) and sign in.
+2. Click **New Application** at the top right, enter a name (e.g., `3x-ui Notifier`), and confirm.
+3. In the left sidebar, navigate to the **Bot** tab.
+4. Click **Reset Token** (or **Add Bot** if not already created) and copy the **Bot Token**. Keep this token secure.
+5. Under **Privileged Gateway Intents**, toggle on **Message Content Intent** (required for the bot to read prefix commands like `!status`).
+</Step>
+
+<Step>
+### Invite the Bot to your Discord Server
+
+1. In the Discord Developer Portal, navigate to **OAuth2** $\rightarrow$ **URL Generator**.
+2. Under **Scopes**, check `bot`.
+3. Under **Bot Permissions**, select:
+   - **Send Messages**
+   - **Embed Links**
+   - **Attach Files** (required for database backups)
+   - **Read Message History**
+4. Copy the generated URL at the bottom and open it in your browser to invite the bot to your server.
+</Step>
+
+<Step>
+### Copy the Channel ID
+
+1. In your Discord client, enable Developer Mode: **User Settings** $\rightarrow$ **Advanced** $\rightarrow$ **Developer Mode** (toggle on).
+2. Right-click the channel where you want alerts and bot interaction to occur and select **Copy Channel ID**.
+3. Ensure the bot has access to view and send messages in this specific channel.
+</Step>
+
+<Step>
+### Configure the Panel
+
+1. In the 3x-ui panel, open **Panel Settings** $\rightarrow$ **Discord Bot** (or navigate to `/settings#discord`).
+2. Under **General**:
+   - Toggle **Enable Discord Notifications** on.
+   - Enter your **Discord Bot Token** and **Channel ID**.
+   - Enter your own Discord user ID in **Admin User IDs** (right-click your name → **Copy User ID**; separate several IDs with commas).
+   - Select your preferred **Discord Bot Language**.
+3. Under **Notifications**:
+   - Set the **Notification Time** schedule (e.g., `@daily`, `@weekly`, or custom crontab).
+   - Optionally toggle **Database Backups** to automatically attach `x-ui.db` with periodic reports.
+   - Select which events trigger notifications and adjust CPU/RAM thresholds.
+4. Click **Send Test Notification** to verify delivery. A test embed will immediately appear in your Discord channel.
+5. Click **Save** to apply changes.
+</Step>
+
+</Steps>
+
+## Bot Commands
+
+When enabled, the bot listens to commands in the configured Discord channel (supporting both `!` and `/` prefixes). Only users listed in **Admin User IDs** can run them; messages from anyone else are ignored, and an empty list turns commands off. `!backup` and scheduled backups post the database into the channel, so pick a channel only admins can read:
+
+| Command | Description |
+| ------- | ----------- |
+| `!status` | Display system load, RAM, CPU usage, TCP/UDP connections, and active clients. |
+| `!report` | Generate and send a complete status report embed immediately. |
+| `!backup` | Download current database backup file (`x-ui.db`) and `config.json`. |
+| `!usage <email>` | Query bandwidth usage (upload/download), quota limit, and expiration date for a client. |
+| `!inbounds` | List all active inbounds with port, protocol, traffic, and client counts. |
+| `!restart` | Safely restart the Xray core without restarting the web panel. |
+| `!help` | Display list of available bot commands. |
+
+## Event Alerts
+
+Alerts are sent as Discord Embeds with color coding and relevant diagnostics:
+
+| Event | Indicator | Description |
+| ----- | --------- | ----------- |
+| `xray.crash` | 🔴 Red | Xray-core crashed; includes reason and timestamp |
+| `outbound.down` | 🔴 Red | Outbound connectivity test failed |
+| `outbound.up` | 🟢 Green | Outbound connectivity restored |
+| `node.down` | 🔴 Red | Remote sub-node offline or unreachable |
+| `node.up` | 🟢 Green | Remote sub-node reconnected and healthy |
+| `cpu.high` | 🟠 Orange | Host CPU usage exceeded configured threshold (`discordCpu`) |
+| `memory.high` | 🟠 Orange | Host memory usage exceeded configured threshold (`discordMemory`) |
+| `login.attempt` | 🟢 / 🔴 | Web panel login attempt with username, IP, and status |
+
+<Callout type="warn">
+  Login alerts report the attempted username and client IP address. Passwords are never logged or transmitted.
+</Callout>
+
+## Settings Reference
+
+| Setting | Default | Description |
+| ------- | ------- | ----------- |
+| `discordBotEnable` | `false` | Master toggle for Discord bot and notifications. |
+| `discordBotToken` | _(secret)_ | Discord Bot token from Developer Portal. |
+| `discordChannelId` | _(none)_ | Target Discord channel snowflake ID (17–20 digits). |
+| `discordAdminIds` | _(none)_ | Comma-separated Discord user IDs allowed to run bot commands. Empty turns commands off. |
+| `discordLang` | `en-US` | Language for Discord bot messages and reports. |
+| `discordRunTime` | `@daily` | Cron expression or interval for periodic status reports. |
+| `discordBotBackup` | `false` | Whether to attach database backup (`x-ui.db`) to reports. |
+| `discordEnabledEvents` | `login.attempt,cpu.high` | Comma-separated list of enabled event types. |
+| `discordCpu` | `80` | CPU utilization percentage threshold for alerts (0–100). |
+| `discordMemory` | `80` | RAM utilization percentage threshold for alerts (0–100). |
+
+## Troubleshooting
+
+- **Test fails with "invalid bot token (401)"**: Verify that you copied the full Bot Token from the **Bot** tab in Developer Portal, not the Client Secret or Application ID.
+- **Test fails with "missing permissions (403)"**: Ensure the bot role has **Send Messages**, **Embed Links**, and **Attach Files** permissions in the target channel or category.
+- **Commands do not respond**: Check that your Discord user ID is listed in **Admin User IDs**. Then ensure **Message Content Intent** is enabled under the **Bot** tab in Discord Developer Portal and restart the panel: Discord closes the connection for good when the intent is missing, so the bot does not retry on its own.
+- **Test fails with "channel not found (404)"**: Verify the numeric Channel ID. Ensure the bot is present in the server that owns the channel.
+- **Proxying outbound requests**: If your host requires a proxy to connect to Discord, configure **Panel Outbound** in Panel Settings. Discord requests automatically route through the configured panel outbound proxy.

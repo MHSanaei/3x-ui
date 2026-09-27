@@ -168,9 +168,10 @@ _openapi:
       title: Probe/discover REALITY targets and return each verdict ranked by
         feasibility then latency. Each comma-separated token may be a domain
         (validated with SNI), a bare IP, or a CIDR range (discovered without SNI
-        by reading the certificate domain). When empty, a built-in seed list is
-        probed.
-      url: '#probediscover-reality-targets-and-return-each-verdict-ranked-by-feasibility-then-latency-each-comma-separated-token-may-be-a-domain-validated-with-sni-a-bare-ip-or-a-cidr-range-discovered-without-sni-by-reading-the-certificate-domain-when-empty-a-built-in-seed-list-is-probed'
+        by reading the certificate domain). When empty, the
+        realityScanCandidates setting is probed (the built-in seed list if that
+        setting is empty).
+      url: '#probediscover-reality-targets-and-return-each-verdict-ranked-by-feasibility-then-latency-each-comma-separated-token-may-be-a-domain-validated-with-sni-a-bare-ip-or-a-cidr-range-discovered-without-sni-by-reading-the-certificate-domain-when-empty-the-realityscancandidates-setting-is-probed-the-built-in-seed-list-if-that-setting-is-empty'
     - depth: 2
       title: Fetch the fully aggregated inbound_client_ips database table. Used by
         nodes to sync recently active IPs across the cluster.
@@ -304,9 +305,10 @@ _openapi:
       - content: Probe/discover REALITY targets and return each verdict ranked by
           feasibility then latency. Each comma-separated token may be a domain
           (validated with SNI), a bare IP, or a CIDR range (discovered without
-          SNI by reading the certificate domain). When empty, a built-in seed
-          list is probed.
-        id: probediscover-reality-targets-and-return-each-verdict-ranked-by-feasibility-then-latency-each-comma-separated-token-may-be-a-domain-validated-with-sni-a-bare-ip-or-a-cidr-range-discovered-without-sni-by-reading-the-certificate-domain-when-empty-a-built-in-seed-list-is-probed
+          SNI by reading the certificate domain). When empty, the
+          realityScanCandidates setting is probed (the built-in seed list if
+          that setting is empty).
+        id: probediscover-reality-targets-and-return-each-verdict-ranked-by-feasibility-then-latency-each-comma-separated-token-may-be-a-domain-validated-with-sni-a-bare-ip-or-a-cidr-range-discovered-without-sni-by-reading-the-certificate-domain-when-empty-the-realityscancandidates-setting-is-probed-the-built-in-seed-list-if-that-setting-is-empty
       - content: Fetch the fully aggregated inbound_client_ips database table. Used by
           nodes to sync recently active IPs across the cluster.
         id: fetch-the-fully-aggregated-inbound_client_ips-database-table-used-by-nodes-to-sync-recently-active-ips-across-the-cluster

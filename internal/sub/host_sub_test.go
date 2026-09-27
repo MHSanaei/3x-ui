@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
@@ -15,10 +16,7 @@ func seedSubDB(t *testing.T) {
 	t.Helper()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 }
 
 // seedSubInbound creates a VLESS inbound with one client wired into the
@@ -440,5 +438,33 @@ func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
 		if strings.Contains(joined, leaked) {
 			t.Fatalf("reality parameter %q survived a tls host override: %s", leaked, joined)
 		}
+	}
+}
+
+// A host's cipher suites override the inbound's own in the JSON subscription,
+// while a host that leaves the field blank inherits them.
+func TestSub_HostCipherSuitesJSON(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cs", 4462, 1,
+		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni","cipherSuites":"TLS_CHACHA20_POLY1305_SHA256"}}`)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "CS", Address: "cs.cdn.com", Port: 8443, Security: "tls",
+		CipherSuites: "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256",
+	})
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 1, Remark: "INHERIT", Address: "inh.cdn.com", Port: 8443, Security: "tls",
+	})
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(out, `"cipherSuites": "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"`) &&
+		!strings.Contains(out, `"cipherSuites":"TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"`) {
+		t.Fatalf("json tlsSettings should carry the host's cipher suites:\n%s", out)
+	}
+	if !strings.Contains(out, `"cipherSuites": "TLS_CHACHA20_POLY1305_SHA256"`) &&
+		!strings.Contains(out, `"cipherSuites":"TLS_CHACHA20_POLY1305_SHA256"`) {
+		t.Fatalf("a host with no cipher suites should inherit the inbound's:\n%s", out)
 	}
 }

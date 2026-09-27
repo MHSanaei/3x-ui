@@ -12,6 +12,7 @@ describe('RuleFormModal edit preserves unsurfaced fields', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('keeps a field the form does not surface (ruleTag) when saving an edit', () => {
+    vi.spyOn(HttpUtil, 'get').mockResolvedValue(new Msg(true, '', []));
     const onConfirm = vi.fn();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 

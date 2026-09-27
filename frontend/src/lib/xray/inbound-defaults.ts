@@ -11,6 +11,7 @@ import type {
   ShadowsocksInboundSettings,
 } from '@/schemas/protocols/inbound/shadowsocks';
 import type { TrojanClient, TrojanInboundSettings } from '@/schemas/protocols/inbound/trojan';
+import type { TuicClient, TuicInboundSettings } from '@/schemas/protocols/inbound/tuic';
 import type { TunInboundSettings } from '@/schemas/protocols/inbound/tun';
 import type { TunnelInboundSettings } from '@/schemas/protocols/inbound/tunnel';
 import type { VlessClient, VlessInboundSettings } from '@/schemas/protocols/inbound/vless';
@@ -133,6 +134,22 @@ export interface HysteriaClientSeed extends ClientBaseSeed {
 export function createDefaultHysteriaClient(seed: HysteriaClientSeed = {}): HysteriaClient {
   return {
     auth: seed.auth ?? RandomUtil.randomSeq(10),
+    ...clientBase(seed),
+  };
+}
+
+export interface TuicClientSeed extends ClientBaseSeed {
+  uuid?: string;
+  id?: string;
+  password?: string;
+}
+
+export function createDefaultTuicClient(seed: TuicClientSeed = {}): TuicClient {
+  const uuid = seed.uuid ?? seed.id ?? RandomUtil.randomUUID();
+  return {
+    uuid,
+    id: uuid,
+    password: seed.password ?? RandomUtil.randomSeq(10),
     ...clientBase(seed),
   };
 }
@@ -321,6 +338,25 @@ export function createDefaultAmneziawgInboundSettings(): AmneziawgInboundSetting
   };
 }
 
+export function createDefaultTuicInboundSettings(): TuicInboundSettings {
+  return {
+    server: {
+      certificate: '',
+      private_key: '',
+      congestion_control: 'bbr',
+      alpn: ['h3', 'spdy/3.1'],
+      udp_relay_mode: 'native',
+      zero_rtt_handshake: true,
+      log_level: 'info',
+      max_idle_time: 15,
+      authentication_timeout: 3,
+      max_udp_relay_packet_size: 1500,
+      sni: '',
+    },
+    clients: [],
+  };
+}
+
 // Protocol-aware dispatch over every inbound-settings factory. Mirrors
 // the legacy `Inbound.Settings.getSettings(protocol)` dispatcher, but
 // returns a plain Zod-parsable object instead of a class instance.
@@ -338,7 +374,8 @@ export type AnyInboundSettings =
   | TunnelInboundSettings
   | WireguardInboundSettings
   | MtprotoInboundSettings
-  | AmneziawgInboundSettings;
+  | AmneziawgInboundSettings
+  | TuicInboundSettings;
 
 export function createDefaultInboundSettings(protocol: string): AnyInboundSettings | null {
   switch (protocol) {
@@ -366,6 +403,8 @@ export function createDefaultInboundSettings(protocol: string): AnyInboundSettin
       return createDefaultMtprotoInboundSettings();
     case 'amneziawg':
       return createDefaultAmneziawgInboundSettings();
+    case 'tuic':
+      return createDefaultTuicInboundSettings();
     default:
       return null;
   }

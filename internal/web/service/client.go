@@ -66,9 +66,10 @@ type ClientService struct{}
 var ErrClientNotInInbound = errors.New("client not found in inbound")
 
 type ClientCreatePayload struct {
-	Client     model.Client `json:"client"`
-	InboundIds []int        `json:"inboundIds"`
-	LimitHwid  int          `json:"-"`
+	Client     model.Client           `json:"client"`
+	InboundIds []int                  `json:"inboundIds"`
+	LimitHwid  int                    `json:"-"`
+	Traffic    *ClientPortableTraffic `json:"traffic,omitempty"`
 }
 
 const sqlInChunk = 400
@@ -80,24 +81,41 @@ type clientPayloadWithHwid struct {
 
 func (p *ClientCreatePayload) UnmarshalJSON(data []byte) error {
 	var raw struct {
-		Client     clientPayloadWithHwid `json:"client"`
-		InboundIds []int                 `json:"inboundIds"`
+		Client     json.RawMessage        `json:"client"`
+		InboundIds []int                  `json:"inboundIds"`
+		Traffic    *ClientPortableTraffic `json:"traffic"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	p.Client = raw.Client.Client
+	var withHwid clientPayloadWithHwid
+	if len(raw.Client) > 0 {
+		if err := json.Unmarshal(raw.Client, &withHwid); err != nil {
+			return err
+		}
+	}
+	p.Client = withHwid.Client
 	p.InboundIds = raw.InboundIds
-	p.LimitHwid = raw.Client.LimitHwid
+	p.LimitHwid = withHwid.LimitHwid
+	p.Traffic = raw.Traffic
+	// Omit enable → true (legacy API); explicit false is preserved (#6478).
+	var keys map[string]json.RawMessage
+	if len(raw.Client) > 0 && json.Unmarshal(raw.Client, &keys) == nil {
+		if _, ok := keys["enable"]; !ok {
+			p.Client.Enable = true
+		}
+	}
 	return nil
 }
 
 func (p ClientCreatePayload) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Client     clientPayloadWithHwid `json:"client"`
-		InboundIds []int                 `json:"inboundIds"`
+		Client     clientPayloadWithHwid  `json:"client"`
+		InboundIds []int                  `json:"inboundIds"`
+		Traffic    *ClientPortableTraffic `json:"traffic,omitempty"`
 	}{
 		Client:     clientPayloadWithHwid{Client: p.Client, LimitHwid: p.LimitHwid},
 		InboundIds: p.InboundIds,
+		Traffic:    p.Traffic,
 	})
 }

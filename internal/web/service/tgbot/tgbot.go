@@ -63,34 +63,93 @@ var (
 		timestamp time.Time
 		mutex     sync.RWMutex
 	}
-
-	// clients data to adding new client. receiver_inbound_IDs is the set of
-	// inbounds the new client will be attached to; receiver_inbound_ID mirrors
-	// the primary pick for the legacy attach-picker entry point. Per-protocol
-	// secrets (UUID, password, flow, method) are filled per-inbound on submit
-	// by ClientService.fillProtocolDefaults, so the bot only tracks universal
-	// client fields here.
-	receiver_inbound_ID  int
-	receiver_inbound_IDs []int
-	client_Email         string
-	client_LimitIP       int
-	client_TotalGB       int64
-	client_ExpiryTime    int64
-	client_Enable        bool
-	client_TgID          string
-	client_SubID         string
-	client_Comment       string
-	client_Reset         int
 )
 
-// userStateStore guards the per-chat conversation states. The Telegram command
+// clientDraft is one chat's add-client wizard state. Per-protocol secrets are
+// filled per-inbound on submit, so only the universal fields live here.
+type clientDraft struct {
+	sync.Mutex
+	receiverInboundID  int
+	receiverInboundIDs []int
+	email              string
+	limitIP            int
+	totalGB            int64
+	expiryTime         int64
+	enable             bool
+	tgID               string
+	subID              string
+	comment            string
+	reset              int
+}
+
+// chatUser names the admin a wizard belongs to. A private chat's ids are equal;
+// in a group they are not, and each admin at its keyboard fills in their own.
+type chatUser struct {
+	chatID int64
+	userID int64
+}
+
+// messageActor reads the sender off a message. A post without one (a channel)
+// keys to user 0, an id no admin can hold.
+func messageActor(message telego.Message) chatUser {
+	if message.From == nil {
+		return chatUser{chatID: message.Chat.ID}
+	}
+	return chatUser{chatID: message.Chat.ID, userID: message.From.ID}
+}
+
+// callbackActor reads the admin who tapped the button, not the chat the keyboard
+// sits in: every admin in a group sees the same keyboard.
+func callbackActor(callbackQuery *telego.CallbackQuery) chatUser {
+	return chatUser{chatID: callbackQuery.Message.GetChat().ID, userID: callbackQuery.From.ID}
+}
+
+// clientDrafts keys a draft by the admin filling it in: the steps arrive on the
+// worker pool, so one draft let two admins fill in one client between them.
+type clientDrafts struct {
+	mu     sync.Mutex
+	drafts map[chatUser]*clientDraft
+}
+
+var addClientDrafts = &clientDrafts{drafts: make(map[chatUser]*clientDraft)}
+
+func (s *clientDrafts) forActor(actor chatUser) *clientDraft {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	draft, ok := s.drafts[actor]
+	if !ok {
+		draft = &clientDraft{}
+		s.drafts[actor] = draft
+	}
+	return draft
+}
+
+func (s *clientDrafts) reset(actor chatUser) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.drafts, actor)
+}
+
+// isAddClientStep reports whether callback data belongs to the add-client
+// wizard, the only flow that reads or writes a draft.
+func isAddClientStep(data string) bool {
+	return strings.HasPrefix(data, "add_client")
+}
+
+func (s *clientDrafts) resetAll() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.drafts = make(map[chatUser]*clientDraft)
+}
+
+// userStateStore guards the per-admin conversation states. The Telegram command
 // and callback handlers run on a worker-pool goroutine while the message handler
 // runs on the dispatch goroutine, so a bare map would be a concurrent-map-write
 // crash. It also expires abandoned conversations so a user who starts a flow and
 // goes silent doesn't leave an entry forever.
 type userStateStore struct {
 	mu        sync.Mutex
-	states    map[int64]userStateEntry
+	states    map[chatUser]userStateEntry
 	lastPrune time.Time
 }
 
@@ -99,30 +158,30 @@ type userStateEntry struct {
 	at    time.Time
 }
 
-var userStateMgr = &userStateStore{states: make(map[int64]userStateEntry)}
+var userStateMgr = &userStateStore{states: make(map[chatUser]userStateEntry)}
 
-func (s *userStateStore) set(chatID int64, state string) {
+func (s *userStateStore) set(actor chatUser, state string) {
 	s.mu.Lock()
-	s.states[chatID] = userStateEntry{state: state, at: time.Now()}
+	s.states[actor] = userStateEntry{state: state, at: time.Now()}
 	s.mu.Unlock()
 }
 
-func (s *userStateStore) get(chatID int64) (string, bool) {
+func (s *userStateStore) get(actor chatUser) (string, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	e, ok := s.states[chatID]
+	e, ok := s.states[actor]
 	return e.state, ok
 }
 
-func (s *userStateStore) clear(chatID int64) {
+func (s *userStateStore) clear(actor chatUser) {
 	s.mu.Lock()
-	delete(s.states, chatID)
+	delete(s.states, actor)
 	s.mu.Unlock()
 }
 
 func (s *userStateStore) reset() {
 	s.mu.Lock()
-	s.states = make(map[int64]userStateEntry)
+	s.states = make(map[chatUser]userStateEntry)
 	s.mu.Unlock()
 }
 
@@ -349,6 +408,7 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 			{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
 			{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
 			{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
+			{Command: "broadcast", Description: t.I18nBot("tgbot.commands.broadcastDesc")},
 		},
 	})
 	if err != nil {
@@ -440,6 +500,14 @@ func (t *Tgbot) IsRunning() bool {
 	return isRunning
 }
 
+// adminSnapshot returns the admin chat list under the mutex Start and Stop
+// replace it under: a torn slice header is not a harmless race.
+func adminSnapshot() []int64 {
+	tgBotMutex.Lock()
+	defer tgBotMutex.Unlock()
+	return slices.Clone(adminIds)
+}
+
 // SetHostname sets the hostname for the bot.
 func (t *Tgbot) SetHostname() {
 	host, err := os.Hostname()
@@ -474,6 +542,8 @@ func StopBot() {
 	tgBotMutex.Unlock()
 
 	userStateMgr.reset()
+	addClientDrafts.resetAll()
+	broadcastResetAll()
 
 	if handler != nil {
 		_ = handler.Stop()

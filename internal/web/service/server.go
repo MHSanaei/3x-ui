@@ -148,6 +148,7 @@ type ServerService struct {
 	cachedIPv4         string
 	cachedIPv6         string
 	noIPv6             bool
+	resolvingIPs       bool
 	mu                 sync.Mutex
 	lastCPUTimes       cpu.TimesStat
 	hasLastCPUSample   bool
@@ -158,6 +159,7 @@ type ServerService struct {
 
 	lastStatusMu sync.RWMutex
 	lastStatus   *Status
+	coldStatusMu sync.Mutex
 
 	versionsCacheMu sync.Mutex
 	versionsCache   *cachedXrayVersions
@@ -206,6 +208,21 @@ func (s *ServerService) LastStatus() *Status {
 	s.lastStatusMu.RLock()
 	defer s.lastStatusMu.RUnlock()
 	return s.lastStatus
+}
+
+// CurrentStatus never reports "no status yet": the @2s ticker leaves LastStatus
+// nil for the first seconds after a restart, and a master probing a node then
+// reads the empty snapshot as an offline panel.
+func (s *ServerService) CurrentStatus() *Status {
+	if status := s.LastStatus(); status != nil {
+		return status
+	}
+	s.coldStatusMu.Lock()
+	defer s.coldStatusMu.Unlock()
+	if status := s.LastStatus(); status != nil {
+		return status
+	}
+	return s.RefreshStatus()
 }
 
 // Fail2banStatus tells the frontend whether the per-client IP limit can
@@ -429,34 +446,77 @@ var publicIPv6Services = []string{
 	"https://6.ident.me",
 }
 
-// resolvePublicIPs caches the public IPv4/IPv6 addresses on first use. Guarded
-// by s.mu because the bot's ServerService may call it from sendBackup while a
-// status report runs concurrently.
+// resolvePublicIPs caches the public IPv4/IPv6 addresses on first use. The
+// lookups run outside s.mu so a stalling service cannot block a status sample.
 func (s *ServerService) resolvePublicIPs() {
 	s.mu.Lock()
+	wantIPv4 := s.cachedIPv4 == ""
+	wantIPv6 := s.cachedIPv6 == "" && !s.noIPv6
+	s.mu.Unlock()
+	if !wantIPv4 && !wantIPv6 {
+		return
+	}
+
+	var ipv4, ipv6 string
+	if wantIPv4 {
+		ipv4 = firstPublicIP(publicIPv4Services)
+	}
+	if wantIPv6 {
+		ipv6 = firstPublicIP(publicIPv6Services)
+	}
+
+	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if s.cachedIPv4 == "" {
-		for _, ip4Service := range publicIPv4Services {
-			s.cachedIPv4 = getPublicIP(ip4Service)
-			if s.cachedIPv4 != "N/A" {
-				break
-			}
-		}
+	if wantIPv4 && s.cachedIPv4 == "" {
+		s.cachedIPv4 = ipv4
 	}
-
-	if s.cachedIPv6 == "" && !s.noIPv6 {
-		for _, ip6Service := range publicIPv6Services {
-			s.cachedIPv6 = getPublicIP(ip6Service)
-			if s.cachedIPv6 != "N/A" {
-				break
-			}
-		}
+	if wantIPv6 && s.cachedIPv6 == "" {
+		s.cachedIPv6 = ipv6
 	}
-
 	if s.cachedIPv6 == "N/A" {
 		s.noIPv6 = true
 	}
+}
+
+// firstPublicIP returns the first service that answers, or "N/A" when every
+// one of them fails.
+func firstPublicIP(services []string) string {
+	var ip string
+	for _, service := range services {
+		ip = getPublicIP(service)
+		if ip != "N/A" {
+			break
+		}
+	}
+	return ip
+}
+
+// resolvePublicIPsInBackground keeps a status sample off the lookup path: a box
+// with no IPv6 route spends 3s per service, and the sample is what nodes report.
+func (s *ServerService) resolvePublicIPsInBackground() {
+	s.mu.Lock()
+	settled := s.cachedIPv4 != "" && (s.cachedIPv6 != "" || s.noIPv6)
+	if s.resolvingIPs || settled {
+		s.mu.Unlock()
+		return
+	}
+	s.resolvingIPs = true
+	s.mu.Unlock()
+
+	go func() {
+		defer func() {
+			s.mu.Lock()
+			s.resolvingIPs = false
+			s.mu.Unlock()
+		}()
+		s.resolvePublicIPs()
+	}()
+}
+
+func (s *ServerService) publicIPs() (ipv4 string, ipv6 string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.cachedIPv4, s.cachedIPv6
 }
 
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {
@@ -620,14 +680,15 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get udp connections failed:", err)
 	}
 
-	s.resolvePublicIPs()
-	status.PublicIP.IPv4 = s.cachedIPv4
-	status.PublicIP.IPv6 = s.cachedIPv6
+	s.resolvePublicIPsInBackground()
+	status.PublicIP.IPv4, status.PublicIP.IPv6 = s.publicIPs()
 
 	// Xray status
 	if s.xrayService.IsXrayRunning() {
 		status.Xray.State = Running
-		status.Xray.ErrorMsg = ""
+		// A core that runs but was refused the new config is a fault the
+		// operator only ever sees here and in the node list.
+		status.Xray.ErrorMsg = s.xrayService.GetHeldBackConfig()
 	} else {
 		err := s.xrayService.GetXrayErr()
 		if err != nil {
@@ -1547,10 +1608,11 @@ func (s *ServerService) backupHost(requestHost string) string {
 	}
 	if host == "" {
 		s.resolvePublicIPs()
-		if ip := s.cachedIPv4; ip != "" && ip != "N/A" {
-			host = ip
-		} else if ip := s.cachedIPv6; ip != "" && ip != "N/A" {
-			host = ip
+		ipv4, ipv6 := s.publicIPs()
+		if ipv4 != "" && ipv4 != "N/A" {
+			host = ipv4
+		} else if ipv6 != "" && ipv6 != "N/A" {
+			host = ipv6
 		}
 	}
 	return sanitizeBackupHost(host)
@@ -2198,6 +2260,22 @@ var geofileAllowlist = map[string]geofileEntry{
 	"geosite_IR.dat": {"https://github.com/chocolate4u/Iran-v2ray-rules", "geosite.dat", "geosite_IR.dat"},
 	"geoip_RU.dat":   {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geoip.dat", "geoip_RU.dat"},
 	"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat", "geosite.dat", "geosite_RU.dat"},
+}
+
+// GeodataSource identifies a file Xray downloads through its geodata configuration.
+type GeodataSource struct {
+	URL  string `json:"url"`
+	File string `json:"file"`
+}
+
+// StandardGeodataSources derives the panel presets from the geofile update allowlist.
+func StandardGeodataSources() []GeodataSource {
+	sources := make([]GeodataSource, 0, len(geofileAllowlist))
+	for _, entry := range geofileAllowlist {
+		sources = append(sources, GeodataSource{URL: entry.latestURL(), File: entry.FileName})
+	}
+	slices.SortFunc(sources, func(a, b GeodataSource) int { return strings.Compare(a.File, b.File) })
+	return sources
 }
 
 func (entry geofileEntry) latestURL() string {

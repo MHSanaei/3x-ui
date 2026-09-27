@@ -538,6 +538,23 @@ func (p *Process) ClearNodeOnlineClients(nodeID int) {
 	delete(p.nodeActiveInboundTrees, nodeID)
 }
 
+// RetainNodeOnlineClients drops the subtree of every direct node keep rejects: nodes
+// the master stopped syncing without a failed probe (disabled, offline, deleted).
+func (p *Process) RetainNodeOnlineClients(keep func(nodeID int) bool) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	for nodeID := range p.nodeOnlineTrees {
+		if !keep(nodeID) {
+			delete(p.nodeOnlineTrees, nodeID)
+		}
+	}
+	for nodeID := range p.nodeActiveInboundTrees {
+		if !keep(nodeID) {
+			delete(p.nodeActiveInboundTrees, nodeID)
+		}
+	}
+}
+
 // GetUptime returns the uptime of the Xray process in seconds.
 func (p *Process) GetUptime() uint64 {
 	return uint64(time.Since(p.startTime).Seconds())

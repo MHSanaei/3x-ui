@@ -1,5 +1,5 @@
 {
   "title": "参考",
-  "icon": "BookMarked",
+  "icon": "BookBookmark",
   "pages": ["env-vars", "database", "ports-firewall", "api"]
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 type subPlaceholderData struct {
@@ -76,10 +77,17 @@ func subMetadataUsesPlaceholders(values ...string) bool {
 	return false
 }
 
-func (a *SUBController) metadataForSubRequest(getSubReq func() *SubService, subID string, fallbackProfileURL string) renderedSubMetadata {
+func (a *SUBController) metadataForSubRequest(getSubReq func() *SubService, subID, builtinURL string) renderedSubMetadata {
+	profileURL := ""
+	switch a.subProfileMode {
+	case service.SubProfileModeBuiltin:
+		profileURL = builtinURL
+	case service.SubProfileModeCustom:
+		profileURL = strings.TrimSpace(a.subProfileUrl)
+	}
 	var context remarkContext
 	var hasContext bool
-	if subMetadataUsesPlaceholders(a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce) {
+	if subMetadataUsesPlaceholders(a.subTitle, a.subSupportUrl, profileURL, a.subAnnounce) {
 		var err error
 		subReq := getSubReq()
 		context, hasContext, err = subReq.subscriptionTemplateContextBySubID(subID)
@@ -87,12 +95,8 @@ func (a *SUBController) metadataForSubRequest(getSubReq func() *SubService, subI
 			logger.Warning("sub: load template contexts for subscription metadata:", err)
 		}
 	}
-	profileURL := a.subProfileUrl
-	if profileURL == "" {
-		profileURL = fallbackProfileURL
-	} else {
-		profileURL = renderSubPlaceholders(profileURL, subPlaceholderData{SubID: subID, Context: context, HasCtx: hasContext, Escape: true})
-	}
+	// Disabled modes ignore the retained custom URL and never fall back to the request URL.
+	profileURL = renderSubPlaceholders(profileURL, subPlaceholderData{SubID: subID, Context: context, HasCtx: hasContext, Escape: true})
 	data := subPlaceholderData{SubID: subID, Context: context, HasCtx: hasContext}
 	return renderedSubMetadata{
 		Title:      renderSubPlaceholders(a.subTitle, data),

@@ -10,6 +10,7 @@ import {
   SettingOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
+import { isOutboundProtocol } from '@/schemas/primitives';
 import { HttpUtil, LanguageManager } from '@/utils';
 import { onNumber } from '@/utils/onNumber';
 import { DefaultSettingTag, SettingListItem } from '@/components/ui';
@@ -86,7 +87,7 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
         for (const o of outbounds) {
           if (!o || typeof o !== 'object') continue;
           const rec = o as Record<string, unknown>;
-          if (rec.protocol === 'blackhole') continue; // dropping traffic is never a useful egress
+          if (isOutboundProtocol(rec, 'blackhole')) continue; // never a useful egress
           const tag = rec.tag;
           if (typeof tag === 'string' && tag) tags.add(tag);
         }
@@ -256,6 +257,25 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                   value={allSetting.trustedProxyCIDRs}
                   placeholder="127.0.0.1/32,::1/128"
                   onChange={(e) => updateSetting({ trustedProxyCIDRs: e.target.value })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
+                title={t('pages.settings.realityScanCandidates')}
+                description={t('pages.settings.realityScanCandidatesDesc')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="realityScanCandidates"
+                    value={allSetting.realityScanCandidates}
+                  />
+                }
+              >
+                <Input.TextArea
+                  rows={3}
+                  value={allSetting.realityScanCandidates}
+                  placeholder="www.cloudflare.com:443,www.microsoft.com:443"
+                  onChange={(e) => updateSetting({ realityScanCandidates: e.target.value })}
                 />
               </SettingListItem>
 

@@ -11,10 +11,13 @@ import (
 // own Xray SOCKS5 relay inbound (see relay.go/SocksInboundSettings).
 const SOCKSBasePort = 65100
 
+// relayPortSlots is how many ids fit above SOCKSBasePort before wrapping.
+const relayPortSlots = 65535 - SOCKSBasePort
+
 // SOCKSPortForInbound derives one inbound's loopback SOCKS5 relay port from
-// its id, so config generation and the dialing relay never need to negotiate.
+// its id, wrapping ids past relayPortSlots so no id ever lacks a port.
 func SOCKSPortForInbound(inboundID int) int {
-	return SOCKSBasePort + inboundID
+	return SOCKSBasePort + 1 + (inboundID-1)%relayPortSlots
 }
 
 var (

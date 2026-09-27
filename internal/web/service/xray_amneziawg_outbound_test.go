@@ -31,6 +31,52 @@ func makeAWGOutboundConfig(t *testing.T) *xray.Config {
 	return cfg
 }
 
+// The core folds the protocol id's case before resolving it, so a mixed-case
+// spelling must bridge here too or the raw pseudo-protocol reaches the core.
+func TestTransformAmneziaWGOutbounds_ReadsTheProtocolIDLikeTheCore(t *testing.T) {
+	for _, protocol := range []string{"amneziawg", "AmneziaWG", "AMNEZIAWG"} {
+		t.Run(protocol, func(t *testing.T) {
+			cfg := &xray.Config{}
+			raw := `{"outbounds":[
+				{"protocol":"freedom","tag":"direct"},
+				{"protocol":"` + protocol + `","tag":"awg-hop","settings":{"secretKey":"x"}}
+			]}`
+			if err := json.Unmarshal([]byte(raw), cfg); err != nil {
+				t.Fatal(err)
+			}
+			if err := transformAmneziaWGOutbounds(cfg); err != nil {
+				t.Fatal(err)
+			}
+
+			var outbounds []struct {
+				Protocol string `json:"protocol"`
+				Tag      string `json:"tag"`
+				Settings struct {
+					Address string `json:"address"`
+					Port    int    `json:"port"`
+					User    string `json:"user"`
+				} `json:"settings"`
+			}
+			if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+				t.Fatal(err)
+			}
+			if len(outbounds) != 2 {
+				t.Fatalf("outbound count = %d, want 2 (no additions or drops)", len(outbounds))
+			}
+			got := outbounds[1]
+			if got.Protocol != "socks" {
+				t.Errorf("protocol = %q, want %q: the bridge never ran, so the raw pseudo-protocol reaches the core", got.Protocol, "socks")
+			}
+			if got.Tag != "awg-hop" {
+				t.Errorf("tag = %q, want %q", got.Tag, "awg-hop")
+			}
+			if got.Settings.Address != "127.0.0.1" || got.Settings.Port != amneziawgnetEgressPortForTest() || got.Settings.User != "awg-hop" {
+				t.Errorf("settings = %+v, want the socks bridge for tag %q on port %d", got.Settings, "awg-hop", amneziawgnetEgressPortForTest())
+			}
+		})
+	}
+}
+
 func TestTransformAmneziaWGOutbounds(t *testing.T) {
 	cfg := makeAWGOutboundConfig(t)
 	if err := transformAmneziaWGOutbounds(cfg); err != nil {
