@@ -991,18 +991,10 @@ export default function ClientFormModal({
                             />
                           </Form.Item>
                         </Col>
-                        <Col xs={24}>
-                          <ClientRenewalFields
-                            active={open}
-                            delayedStart={delayedStart}
-                            expiryTime={
-                              delayedStart ? -86400000 * (delayedDays || 0) : expiryDate || 0
-                            }
-                            resetCount={client?.traffic?.resetCount || 0}
-                            setExpiry={(expiry) => methods.setValue('expiryDate', expiry)}
-                          />
-                        </Col>
-                        <Col xs={12} md={6}>
+                      </Row>
+
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
                           <FormField
                             name="trafficReset"
                             label={t('pages.inbounds.periodicTrafficResetTitle')}
@@ -1014,9 +1006,7 @@ export default function ClientFormModal({
                               }))}
                             />
                           </FormField>
-                        </Col>
-                        {trafficReset === 'monthly' && (
-                          <Col xs={12} md={6}>
+                          {trafficReset === 'monthly' && (
                             <FormField
                               name="trafficResetDay"
                               label={t('pages.inbounds.periodicTrafficResetDay')}
@@ -1024,8 +1014,19 @@ export default function ClientFormModal({
                             >
                               <InputNumber min={1} max={31} style={{ width: '100%' }} />
                             </FormField>
-                          </Col>
-                        )}
+                          )}
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <ClientRenewalFields
+                            active={open}
+                            delayedStart={delayedStart}
+                            expiryTime={
+                              delayedStart ? -86400000 * (delayedDays || 0) : expiryDate || 0
+                            }
+                            resetCount={client?.traffic?.resetCount || 0}
+                            setExpiry={(expiry) => methods.setValue('expiryDate', expiry)}
+                          />
+                        </Col>
                       </Row>
 
                       <Row gutter={16}>
