@@ -42,18 +42,25 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 		c.Set("api_authed", true)
 		c.Set("api_token_scope", scope)
 	}
-	auth := c.GetHeader("Authorization")
-	if after, ok := strings.CutPrefix(auth, "Bearer "); ok {
+	matchedScope := ""
+	if after, ok := strings.CutPrefix(c.GetHeader("Authorization"), "Bearer "); ok {
 		if row, matched := a.apiTokenService.MatchToken(after); matched {
-			setAuthenticated(row.Scope)
-			c.Next()
-			return
+			matchedScope = row.Scope
 		}
 	}
-	// A verified client certificate authenticates as node-sync. A valid bearer
-	// token takes precedence so mTLS callers can opt into the node-admin scope.
+	// Verified mTLS keeps its historical node-sync identity. Only an explicit
+	// node-admin bearer elevates it to software-update authority.
 	if c.Request.TLS != nil && len(c.Request.TLS.VerifiedChains) > 0 {
-		setAuthenticated(model.ApiScopeNodeSync)
+		scope := model.ApiScopeNodeSync
+		if matchedScope == model.ApiScopeNodeAdmin {
+			scope = model.ApiScopeNodeAdmin
+		}
+		setAuthenticated(scope)
+		c.Next()
+		return
+	}
+	if matchedScope != "" {
+		setAuthenticated(matchedScope)
 		c.Next()
 		return
 	}

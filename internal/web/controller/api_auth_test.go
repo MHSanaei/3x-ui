@@ -174,6 +174,28 @@ func TestCheckAPIAuth_AcceptsVerifiedClientCert(t *testing.T) {
 		t.Fatalf("updatePanel status = %d, want 403; body=%s", w.Code, w.Body.String())
 	}
 
+	for _, legacyScope := range []string{model.ApiScopeAdmin, model.ApiScopeMonitor, model.ApiScopeNodeSync} {
+		plaintext := "mtls-" + legacyScope + "-token"
+		if err := database.GetDB().Create(&model.ApiToken{
+			Name:    "mtls-" + legacyScope,
+			Token:   crypto.HashTokenSHA256(plaintext),
+			Enabled: true,
+			Scope:   legacyScope,
+		}).Error; err != nil {
+			t.Fatalf("seed %s token: %v", legacyScope, err)
+		}
+		legacy := httptest.NewRequest(http.MethodGet, "/panel/api/server/status", nil)
+		legacy.Header.Set("Authorization", "Bearer "+plaintext)
+		legacy.TLS = &tls.ConnectionState{
+			VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
+		}
+		w = httptest.NewRecorder()
+		engine.ServeHTTP(w, legacy)
+		if w.Code != http.StatusOK || w.Body.String() != `{"api_authed":true,"scope":"node-sync"}` {
+			t.Fatalf("mTLS %s response = %d %s, want preserved node-sync scope", legacyScope, w.Code, w.Body.String())
+		}
+	}
+
 	const plaintext = "mtls-node-admin-token"
 	if err := database.GetDB().Create(&model.ApiToken{
 		Name:    "mtls-node-admin",

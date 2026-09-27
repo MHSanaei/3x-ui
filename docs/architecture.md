@@ -352,8 +352,10 @@ Bearer tokens use the narrowest scope that matches the caller's duties:
 
 `node-admin` remains a node synchronization identity when inbound rules are applied. This
 preserves the node-specific validation path while keeping software-update authority separate
-from ordinary `node-sync` credentials. Existing tokens retain their stored scope, and legacy
-tokens without one continue to migrate to `admin`.
+from ordinary `node-sync` credentials. On an mTLS connection, only a valid `node-admin` bearer
+elevates the request; other bearer scopes retain the historical mTLS `node-sync` behavior.
+Existing tokens retain their stored scope, and legacy tokens without one continue to migrate to
+`admin`.
 
 **Node identity & attribution (the hard part).** Inbounds carry a `NodeID` _and_ an
 `OriginNodeGuid`. Because inbounds can be pushed across hops, the panel attributes traffic and
