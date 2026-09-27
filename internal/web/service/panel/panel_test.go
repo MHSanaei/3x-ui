@@ -54,6 +54,9 @@ func TestShellQuote(t *testing.T) {
 // TestUpdateProxyEnvVars covers the bug this function fixes: ambient proxy
 // vars must reach update.sh's systemd-run child, which inherits nothing.
 func TestUpdateProxyEnvVars(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows env var names are case-insensitive, so both spellings resolve; the updater runs only on Linux")
+	}
 	allKeys := []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "http_proxy", "HTTP_PROXY", "no_proxy", "NO_PROXY"}
 	clearAll := func(t *testing.T) {
 		t.Helper()
