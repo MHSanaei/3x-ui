@@ -13,10 +13,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// ExportAll returns every client in the same {client, inboundIds} shape that
-// /add and /bulkCreate accept, so an exported file round-trips straight back
-// through Import. Clients with no inbound attachment are included with an empty
-// inboundIds list so an export taken before DeleteOrphans can restore them.
+// ClientPortableTraffic is the client_traffics snapshot carried in export/import.
+// model.Client only has the limit (totalGB); usage counters live in this table.
+type ClientPortableTraffic struct {
+	Up           int64 `json:"up"`
+	Down         int64 `json:"down"`
+	ResetCount   int   `json:"resetCount"`
+	LastOnline   int64 `json:"lastOnline,omitempty"`
+	LastSubFetch int64 `json:"lastSubFetch,omitempty"`
+}
+
+// ExportAll returns every client as {client, inboundIds[, traffic]} for round-trip
+// import; orphan clients keep empty inboundIds, and traffic preserves usage (#5858).
 func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
@@ -29,8 +37,12 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 	}
 
 	ids := make([]int, 0, len(rows))
+	emails := make([]string, 0, len(rows))
 	for i := range rows {
 		ids = append(ids, rows[i].Id)
+		if rows[i].Email != "" {
+			emails = append(emails, rows[i].Email)
+		}
 	}
 
 	attachments := make(map[int][]int, len(rows))
@@ -41,6 +53,24 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 		}
 		for _, l := range links {
 			attachments[l.ClientId] = append(attachments[l.ClientId], l.InboundId)
+		}
+	}
+
+	trafficByEmail := make(map[string]*ClientPortableTraffic, len(emails))
+	for _, batch := range chunkStrings(emails, sqlInChunk) {
+		var traffics []xray.ClientTraffic
+		if err := db.Where("email IN ?", batch).Find(&traffics).Error; err != nil {
+			return nil, err
+		}
+		for i := range traffics {
+			t := traffics[i]
+			trafficByEmail[t.Email] = &ClientPortableTraffic{
+				Up:           t.Up,
+				Down:         t.Down,
+				ResetCount:   t.ResetCount,
+				LastOnline:   t.LastOnline,
+				LastSubFetch: t.LastSubFetch,
+			}
 		}
 	}
 
@@ -55,16 +85,14 @@ func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
 			Client:     *client,
 			InboundIds: attachments[rows[i].Id],
 			LimitHwid:  rows[i].LimitHwid,
+			Traffic:    trafficByEmail[rows[i].Email],
 		})
 	}
 	return out, nil
 }
 
-// ImportClients recreates clients from an exported list. Items that carry
-// inboundIds go through the normal BulkCreate path (added to every inbound and
-// pushed to xray); items with no inboundIds are restored as bare records so an
-// orphan-inclusive export round-trips. Existing emails are never overwritten —
-// they are reported in Skipped. The boolean reports whether xray needs a restart.
+// ImportClients recreates exported clients; existing emails are Skipped.
+// Traffic is applied only for newly created emails so live counters stay intact (#5858).
 func (s *ClientService) ImportClients(inboundSvc *InboundService, items []ClientCreatePayload) (BulkCreateResult, bool, error) {
 	result := BulkCreateResult{}
 	if len(items) == 0 {
@@ -72,14 +100,19 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 	}
 
 	attached := make([]ClientCreatePayload, 0, len(items))
+	attachedSrc := make([]int, 0, len(items))
 	orphans := make([]ClientCreatePayload, 0)
+	orphanSrc := make([]int, 0)
 	for i := range items {
 		if len(items[i].InboundIds) > 0 {
 			attached = append(attached, items[i])
+			attachedSrc = append(attachedSrc, i)
 		} else {
 			orphans = append(orphans, items[i])
+			orphanSrc = append(orphanSrc, i)
 		}
 	}
+	inserted := make([]int, 0, len(items))
 
 	skip := func(email, reason string) {
 		if strings.TrimSpace(email) == "" {
@@ -90,13 +123,16 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 
 	needRestart := false
 	if len(attached) > 0 {
-		sub, nr, err := s.BulkCreate(inboundSvc, attached)
+		sub, subInserted, nr, err := s.bulkCreate(inboundSvc, attached)
 		if err != nil {
 			return result, needRestart, err
 		}
 		needRestart = needRestart || nr
 		result.Created += sub.Created
 		result.Skipped = append(result.Skipped, sub.Skipped...)
+		for _, j := range subInserted {
+			inserted = append(inserted, attachedSrc[j])
+		}
 	}
 
 	db := database.GetDB()
@@ -176,15 +212,65 @@ func (s *ClientService) ImportClients(inboundSvc *InboundService, items []Client
 			}
 		}
 		result.Created++
+		inserted = append(inserted, orphanSrc[i])
+	}
+
+	if err := applyPortableTraffics(inboundSvc, items, inserted); err != nil {
+		return result, needRestart, err
 	}
 
 	return result, needRestart, nil
 }
 
-// DeleteOrphans removes every client that is not attached to any inbound,
-// together with its traffic rows, IP log, and external links. It mirrors the
-// cleanup the single-client Delete performs, batched into one transaction.
-// Returns the number of clients deleted.
+// applyPortableTraffics restores counters only for items that inserted a record,
+// in batched serialized transactions rather than one writer round-trip per client.
+func applyPortableTraffics(inboundSvc *InboundService, items []ClientCreatePayload, inserted []int) error {
+	const batchSize = 400
+	withTraffic := make([]int, 0, len(inserted))
+	for _, i := range inserted {
+		if items[i].Traffic != nil {
+			withTraffic = append(withTraffic, i)
+		}
+	}
+	for start := 0; start < len(withTraffic); start += batchSize {
+		batch := withTraffic[start:min(start+batchSize, len(withTraffic))]
+		if err := runSerializedTx(func(tx *gorm.DB) error {
+			emails := make([]string, 0, len(batch))
+			for _, i := range batch {
+				if err := applyPortableTraffic(tx, inboundSvc, items[i]); err != nil {
+					return err
+				}
+				emails = append(emails, strings.TrimSpace(items[i].Client.Email))
+			}
+			return adjustGroupBaselinesForRestoredTraffic(tx, emails)
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// applyPortableTraffic writes the exported counters. Attached clients got their row
+// on create; an orphan's row (new, or kept by a keepTraffic delete) is upserted here.
+func applyPortableTraffic(tx *gorm.DB, inboundSvc *InboundService, item ClientCreatePayload) error {
+	client := item.Client
+	client.Email = strings.TrimSpace(client.Email)
+	if len(item.InboundIds) == 0 {
+		if err := inboundSvc.AddClientStat(tx, 0, &client); err != nil {
+			return err
+		}
+	}
+	return tx.Model(&xray.ClientTraffic{}).Where("email = ?", client.Email).Updates(map[string]any{
+		"up":             item.Traffic.Up,
+		"down":           item.Traffic.Down,
+		"reset_count":    item.Traffic.ResetCount,
+		"last_online":    item.Traffic.LastOnline,
+		"last_sub_fetch": item.Traffic.LastSubFetch,
+	}).Error
+}
+
+// DeleteOrphans removes every unattached client plus its traffic, IP log, and
+// external links in one transaction; returns how many clients were deleted.
 func (s *ClientService) DeleteOrphans() (int, error) {
 	db := database.GetDB()
 	sub := database.GetDB().Table("client_inbounds").Select("client_id")
