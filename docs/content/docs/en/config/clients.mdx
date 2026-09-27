@@ -75,6 +75,16 @@ explicit button can set the first calendar cutoff. Selecting a mode alone never
 rewrites an existing expiry. First-use clients keep their initial duration, and
 their calendar dates are available after activation.
 
+Preview dates use the Gregorian format `YYYY-MM-DD HH:mm:ss UTC±HH:mm`,
+preserving any fractional seconds in the cutoff. Each date includes its own
+UTC offset, so a daylight-saving change can show different offsets before and
+after renewal. The heading identifies the panel time zone; **Server local time**
+means the server's `Local` setting, not the browser's time zone. For example,
+`2026-09-27 05:00:00 UTC+00:00` is 13:00 in UTC+08:00. **Estimated renewals used**
+is the allowance this preview would consume, including any catch-up periods,
+not a count of renewals already performed. The first-cutoff button uses the same
+date format; clicking it still requires saving the form to persist the change.
+
 For legacy last-second calendar cutoffs, the renewal boundary includes the
 existing free alignment to the following midnight. The last-valid-second
 preview still uses the **stored expiry**, not that alignment: an exclusive
