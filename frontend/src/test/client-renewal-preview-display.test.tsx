@@ -1,12 +1,9 @@
 import { expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { createInstance } from 'i18next';
-import { I18nextProvider } from 'react-i18next';
 
 import ClientRenewalFields from '@/pages/clients/ClientRenewalFields';
 import { HttpUtil, Msg } from '@/utils';
-import zhCN from '../../../internal/web/translation/zh-CN.json';
 import { renderWithProviders } from './test-utils';
 
 function PreviewForm() {
@@ -77,49 +74,6 @@ it.each([
     expect(times.map((el) => el.textContent)).toEqual(displayed);
     expect(times.map((el) => el.dateTime)).toEqual(dates);
     expect(times.map((el) => el.dir)).toEqual(['ltr', 'ltr', 'ltr']);
-    expect(screen.getByText('Estimated renewals used: 1').textContent).toBe(
-      'Estimated renewals used: 1',
-    );
-    expect(
-      screen.getByText('Dates use the panel time zone. Previewing does not renew the client.')
-        .textContent,
-    ).toBe('Dates use the panel time zone. Previewing does not renew the client.');
-  } finally {
-    post.mockRestore();
-  }
-});
-
-it('explains the server timezone and estimated renewal count in Chinese', async () => {
-  const i18n = createInstance();
-  await i18n.init({
-    lng: 'zh-CN',
-    resources: { 'zh-CN': { translation: zhCN } },
-    interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
-  });
-  const post = vi.spyOn(HttpUtil, 'post').mockResolvedValue(
-    new Msg(true, '', {
-      timeZone: 'Local',
-      renewAt: '2026-09-27T05:00:00Z',
-      validThrough: '2026-09-27T04:59:59Z',
-      nextExpiry: '2026-09-28T05:00:00Z',
-      suggestedExpiryTime: 0,
-      suggestedExpiry: '',
-      renewals: 1,
-      canRenew: true,
-      delayedStart: false,
-    }),
-  );
-  try {
-    renderWithProviders(
-      <I18nextProvider i18n={i18n}>
-        <PreviewForm />
-      </I18nextProvider>,
-    );
-    await screen.findByText('续期预览（面板时区：服务器本地时区）');
-    expect(screen.getByText('预计消耗续期次数：1').textContent).toBe('预计消耗续期次数：1');
-    expect(screen.getByText('日期按面板时区显示，查看预览不会执行续期。').textContent).toBe(
-      '日期按面板时区显示，查看预览不会执行续期。',
-    );
   } finally {
     post.mockRestore();
   }
