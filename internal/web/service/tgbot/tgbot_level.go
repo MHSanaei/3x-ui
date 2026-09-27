@@ -1,10 +1,6 @@
 package tgbot
 
 import (
-	"sync"
-
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
@@ -48,26 +44,6 @@ func commandAllowed(level userLevel, command string) bool {
 		return true
 	}
 	return commandsByLevel[level][command]
-}
-
-// Authorization keys on the sender but conversation state keys on the chat, and
-// those are the same identity only in a private chat.
-func isPrivateChat(chat telego.Chat) bool {
-	return chat.Type == telego.ChatTypePrivate
-}
-
-var loggedNonPrivateChats sync.Map
-
-// ignoredChat reports whether an update is dropped for its chat type. Each such
-// chat is logged once, so an admin used to a group can find why the bot is quiet.
-func ignoredChat(chat telego.Chat) bool {
-	if isPrivateChat(chat) {
-		return false
-	}
-	if _, seen := loggedNonPrivateChats.LoadOrStore(chat.ID, struct{}{}); !seen {
-		logger.Infof("tgbot: ignoring %s chat %d; the bot answers only in private chats", chat.Type, chat.ID)
-	}
-	return true
 }
 
 // gateCommand reports whether a command reaches answerCommand, and as whom. A

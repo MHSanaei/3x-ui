@@ -82,9 +82,6 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			if ignoredChat(message.Chat) {
-				return nil
-			}
 			userStateMgr.clear(messageActor(message))
 			t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
 			return nil
@@ -92,7 +89,7 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			if ignoredChat(message.Chat) || !t.isCommandForCurrentBot(&message) {
+			if !t.isCommandForCurrentBot(&message) {
 				return nil
 			}
 
@@ -107,11 +104,6 @@ func (t *Tgbot) OnReceive() {
 		}, th.AnyCommand())
 
 		h.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
-			if ignoredChat(query.Message.GetChat()) {
-				// Answered even so, or the tapped button spins until Telegram gives up.
-				go runBotHandler(func() { t.sendCallbackAnswerTgBot(query.ID, "") })
-				return nil
-			}
 			// Use goroutine with worker pool for concurrent callback processing
 			go runBotHandler(func() {
 				userStateMgr.clear(callbackActor(&query))
@@ -124,9 +116,6 @@ func (t *Tgbot) OnReceive() {
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
-			if ignoredChat(message.Chat) {
-				return nil
-			}
 			userStateMgr.maybePrune(time.Hour)
 			actor := messageActor(message)
 			if userState, exists := userStateMgr.get(actor); exists {

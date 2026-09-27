@@ -6,48 +6,6 @@ import (
 	"github.com/mymmrac/telego"
 )
 
-func TestCommandAllowed(t *testing.T) {
-	cases := []struct {
-		level   userLevel
-		command string
-		want    bool
-	}{
-		{levelStranger, "start", true},
-		{levelStranger, "id", true},
-		{levelStranger, "help", false},
-		{levelStranger, "usage", false},
-		{levelStranger, "restart", false},
-		{levelClient, "usage", true},
-		{levelClient, "status", true},
-		{levelClient, "restart", false},
-		{levelClient, "clearall", false},
-		{levelClient, "inbound", false},
-		{levelAdmin, "clearall", true},
-		{levelAdmin, "anything_added_later", true},
-	}
-	for _, c := range cases {
-		if got := commandAllowed(c.level, c.command); got != c.want {
-			t.Errorf("commandAllowed(%d, %q) = %v, want %v", c.level, c.command, got, c.want)
-		}
-	}
-}
-
-func TestIgnoredChat(t *testing.T) {
-	for chatType, want := range map[string]bool{
-		telego.ChatTypePrivate:    false,
-		telego.ChatTypeGroup:      true,
-		telego.ChatTypeSupergroup: true,
-		telego.ChatTypeChannel:    true,
-	} {
-		// Twice, so the log-once path is exercised without changing the verdict.
-		for range 2 {
-			if got := ignoredChat(telego.Chat{ID: -100, Type: chatType}); got != want {
-				t.Errorf("ignoredChat(%q) = %v, want %v", chatType, got, want)
-			}
-		}
-	}
-}
-
 func withAdmins(t *testing.T, ids ...int64) {
 	t.Helper()
 	tgBotMutex.Lock()

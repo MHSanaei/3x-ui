@@ -125,7 +125,17 @@ func TestConcurrentClaimsBindOnlyOneAccount(t *testing.T) {
 			outcomes[i] = tb.claimInvite(id, id, payload)
 		}()
 	}
+	// Hold the inbound write every bind needs, so all claimants resolve before any
+	// bind lands; otherwise the first bind outruns the rest and hides the race.
+	hold := database.GetDB().Begin()
+	if err := hold.Exec("UPDATE inbounds SET remark = remark").Error; err != nil {
+		t.Fatalf("hold inbound write: %v", err)
+	}
 	close(start)
+	time.Sleep(300 * time.Millisecond)
+	if err := hold.Commit().Error; err != nil {
+		t.Fatalf("release inbound write: %v", err)
+	}
 	wg.Wait()
 
 	told, holders := 0, 0
