@@ -36,6 +36,7 @@ func TestGetLogs_ReturnsAtMostC(t *testing.T) {
 // logging — CI caught that as a data race between InitLogger and Warningf.
 func TestInitLoggerConcurrentWithLogging(t *testing.T) {
 	t.Setenv("XUI_LOG_FOLDER", t.TempDir())
+	t.Cleanup(CloseLogger)
 
 	stop := make(chan struct{})
 	var logging sync.WaitGroup

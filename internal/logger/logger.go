@@ -93,8 +93,22 @@ func initFileBackend() logging.Backend {
 		return nil
 	}
 
-	logPath := filepath.Join(logDir, logFileName)
-	rotate := &lumberjack.Logger{
+	backend := logging.NewLogBackend(fileRotateFor(filepath.Join(logDir, logFileName)), "", 0)
+	return logging.NewBackendFormatter(backend, newFormatter(true))
+}
+
+// fileRotateFor reuses the open rotator for logPath: a re-init that swapped in a
+// new one would leave the old one holding the file, and loggers still writing to it.
+func fileRotateFor(logPath string) *lumberjack.Logger {
+	fileRotateMu.Lock()
+	defer fileRotateMu.Unlock()
+	if fileRotate != nil && fileRotate.Filename == logPath {
+		return fileRotate
+	}
+	if fileRotate != nil {
+		_ = fileRotate.Close()
+	}
+	fileRotate = &lumberjack.Logger{
 		Filename:   logPath,
 		MaxSize:    maxLogFileMB,
 		MaxBackups: maxLogBackups,
@@ -102,12 +116,7 @@ func initFileBackend() logging.Backend {
 		LocalTime:  true,
 		Compress:   compressRotated,
 	}
-	fileRotateMu.Lock()
-	fileRotate = rotate
-	fileRotateMu.Unlock()
-
-	backend := logging.NewLogBackend(rotate, "", 0)
-	return logging.NewBackendFormatter(backend, newFormatter(true))
+	return fileRotate
 }
 
 // newFormatter creates a log formatter with optional timestamp.
