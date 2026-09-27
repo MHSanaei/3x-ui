@@ -2698,6 +2698,11 @@ func InitDB(dbPath string) error {
 	}
 	c := &gorm.Config{Logger: gormLogger, DisableForeignKeyConstraintWhenMigrating: true}
 
+	// Reopening replaces the process pool; the replaced one would keep its file open.
+	if err := CloseDB(); err != nil {
+		log.Printf("close the replaced database pool: %v", err)
+	}
+
 	var err error
 	switch config.GetDBKind() {
 	case "postgres":
