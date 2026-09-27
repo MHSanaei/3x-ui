@@ -63,8 +63,9 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 // node-sync push, so the node stores the row instead of re-judging it.
 func (a *InboundController) inboundServiceFor(c *gin.Context) *service.InboundService {
 	svc := a.inboundService
-	scope, _ := c.Get("api_token_scope")
-	svc.FromNodeSync = scope == model.ApiScopeNodeSync
+	scopeValue, _ := c.Get("api_token_scope")
+	scope, _ := scopeValue.(string)
+	svc.FromNodeSync = model.IsNodeSyncApiScope(scope)
 	return &svc
 }
 

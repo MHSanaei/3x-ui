@@ -108,6 +108,43 @@ func TestCheckAPIAuth_BearerSuccess(t *testing.T) {
 	}
 }
 
+func TestPanelUpdateRequiresNodeAdminScope(t *testing.T) {
+	engine, _ := newAPIAuthTestEngine(t)
+
+	cases := []struct {
+		name     string
+		scope    string
+		wantCode int
+		wantBody string
+	}{
+		{"node sync denied", model.ApiScopeNodeSync, http.StatusForbidden, `{"msg":"this API token is not permitted to access this endpoint","success":false}`},
+		{"node admin allowed", model.ApiScopeNodeAdmin, http.StatusOK, `{"reached":true}`},
+		{"monitor denied", model.ApiScopeMonitor, http.StatusForbidden, `{"msg":"this API token is not permitted to access this endpoint","success":false}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			plaintext := tc.name + "-token"
+			if err := database.GetDB().Create(&model.ApiToken{
+				Name:    tc.name,
+				Token:   crypto.HashTokenSHA256(plaintext),
+				Enabled: true,
+				Scope:   tc.scope,
+			}).Error; err != nil {
+				t.Fatalf("seed token: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/panel/api/server/updatePanel", nil)
+			req.Header.Set("Authorization", "Bearer "+plaintext)
+			w := httptest.NewRecorder()
+			engine.ServeHTTP(w, req)
+
+			if w.Code != tc.wantCode || w.Body.String() != tc.wantBody {
+				t.Fatalf("response = %d %s, want %d %s", w.Code, w.Body.String(), tc.wantCode, tc.wantBody)
+			}
+		})
+	}
+}
+
 // TestCheckAPIAuth_AcceptsVerifiedClientCert ensures verified mTLS authenticates
 // as node-sync rather than bypassing scope checks as admin.
 func TestCheckAPIAuth_AcceptsVerifiedClientCert(t *testing.T) {
@@ -135,6 +172,26 @@ func TestCheckAPIAuth_AcceptsVerifiedClientCert(t *testing.T) {
 	engine.ServeHTTP(w, forbidden)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("updatePanel status = %d, want 403; body=%s", w.Code, w.Body.String())
+	}
+
+	const plaintext = "mtls-node-admin-token"
+	if err := database.GetDB().Create(&model.ApiToken{
+		Name:    "mtls-node-admin",
+		Token:   crypto.HashTokenSHA256(plaintext),
+		Enabled: true,
+		Scope:   model.ApiScopeNodeAdmin,
+	}).Error; err != nil {
+		t.Fatalf("seed node-admin token: %v", err)
+	}
+	allowed := httptest.NewRequest(http.MethodPost, "/panel/api/server/updatePanel", nil)
+	allowed.Header.Set("Authorization", "Bearer "+plaintext)
+	allowed.TLS = &tls.ConnectionState{
+		VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{}}},
+	}
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, allowed)
+	if w.Code != http.StatusOK || w.Body.String() != `{"reached":true}` {
+		t.Fatalf("mTLS node-admin response = %d %s, want 200 update launch", w.Code, w.Body.String())
 	}
 }
 

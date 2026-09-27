@@ -35,30 +35,27 @@ func NewAPIController(g *gin.RouterGroup) *APIController {
 }
 
 func (a *APIController) checkAPIAuth(c *gin.Context) {
-	// A verified client certificate (a completed mTLS handshake) authenticates
-	// the caller, equivalent to a valid bearer token. api_authed must be set so
-	// the CSRF middleware lets cert-authed mutations through.
-	if c.Request.TLS != nil && len(c.Request.TLS.VerifiedChains) > 0 {
+	setAuthenticated := func(scope string) {
 		if u, err := a.userService.GetFirstUser(); err == nil {
 			session.SetAPIAuthUser(c, u)
 		}
 		c.Set("api_authed", true)
-		c.Set("api_token_scope", model.ApiScopeNodeSync)
-		c.Next()
-		return
+		c.Set("api_token_scope", scope)
 	}
 	auth := c.GetHeader("Authorization")
 	if after, ok := strings.CutPrefix(auth, "Bearer "); ok {
-		tok := after
-		if row, ok := a.apiTokenService.MatchToken(tok); ok {
-			if u, err := a.userService.GetFirstUser(); err == nil {
-				session.SetAPIAuthUser(c, u)
-			}
-			c.Set("api_authed", true)
-			c.Set("api_token_scope", row.Scope)
+		if row, matched := a.apiTokenService.MatchToken(after); matched {
+			setAuthenticated(row.Scope)
 			c.Next()
 			return
 		}
+	}
+	// A verified client certificate authenticates as node-sync. A valid bearer
+	// token takes precedence so mTLS callers can opt into the node-admin scope.
+	if c.Request.TLS != nil && len(c.Request.TLS.VerifiedChains) > 0 {
+		setAuthenticated(model.ApiScopeNodeSync)
+		c.Next()
+		return
 	}
 	if !session.IsLogin(c) {
 		// A presented Bearer token is not an anonymous scan: return 401 so
@@ -117,7 +114,20 @@ var nodeSyncScopeAllow = map[string]map[string]struct{}{
 	"/hosts/list":                  {http.MethodGet: {}},
 }
 
-// enforceTokenScope applies explicit allowlists to monitor and node-sync tokens.
+var nodeAdminScopeAllow = map[string]map[string]struct{}{
+	"/server/updatePanel": {http.MethodPost: {}},
+}
+
+func scopeAllows(allow map[string]map[string]struct{}, path, method string) bool {
+	methods, exists := allow[path]
+	if !exists {
+		return false
+	}
+	_, exists = methods[method]
+	return exists
+}
+
+// enforceTokenScope applies explicit allowlists to restricted API tokens.
 // Admin tokens and session-login users retain their existing behavior.
 func (a *APIController) enforceTokenScope(c *gin.Context) {
 	scopeVal, ok := c.Get("api_token_scope")
@@ -144,11 +154,14 @@ func (a *APIController) enforceTokenScope(c *gin.Context) {
 			return
 		}
 	case model.ApiScopeNodeSync:
-		if methods, allowed := nodeSyncScopeAllow[rel]; allowed {
-			if _, allowedMethod := methods[c.Request.Method]; allowedMethod {
-				c.Next()
-				return
-			}
+		if scopeAllows(nodeSyncScopeAllow, rel, c.Request.Method) {
+			c.Next()
+			return
+		}
+	case model.ApiScopeNodeAdmin:
+		if scopeAllows(nodeSyncScopeAllow, rel, c.Request.Method) || scopeAllows(nodeAdminScopeAllow, rel, c.Request.Method) {
+			c.Next()
+			return
 		}
 	default:
 		deny()

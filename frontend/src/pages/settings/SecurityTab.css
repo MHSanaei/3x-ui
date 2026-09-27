@@ -49,6 +49,17 @@
   gap: 2px;
 }
 
+.api-token-name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.api-token-name-line .ant-tag {
+  margin-inline-end: 0;
+}
+
 .api-token-name {
   font-weight: 600;
   font-size: 13.5px;
