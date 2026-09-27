@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -79,28 +78,9 @@ func InitLogger(level logging.Level) {
 	logger.Store(newLogger)
 }
 
-// initDefaultBackend creates the console/syslog logging backend.
-// Windows: Uses stderr directly (no syslog support)
-// Unix-like: Attempts syslog, falls back to stderr
+// initDefaultBackend creates the console logging backend: syslog where the platform has it, else stderr.
 func initDefaultBackend() logging.Backend {
-	var backend logging.Backend
-	includeTime := false
-
-	if runtime.GOOS == "windows" {
-		// Windows: Use stderr directly (no syslog support)
-		backend = logging.NewLogBackend(os.Stderr, "", 0)
-		includeTime = true
-	} else {
-		// Unix-like: Try syslog, fallback to stderr
-		if syslogBackend, err := logging.NewSyslogBackend(""); err != nil {
-			fmt.Fprintf(os.Stderr, "syslog backend disabled: %v\n", err)
-			backend = logging.NewLogBackend(os.Stderr, "", 0)
-			includeTime = os.Getppid() > 0
-		} else {
-			backend = syslogBackend
-		}
-	}
-
+	backend, includeTime := newConsoleBackend()
 	return logging.NewBackendFormatter(backend, newFormatter(includeTime))
 }
 
