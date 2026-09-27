@@ -539,8 +539,8 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 				crossAddrs = append(crossAddrs, addr)
 			}
 			for i := range clients {
-				if hit := wireguardAllowedIPsCollision(clients[i].AllowedIPs, crossAddrs); hit != "" {
-					return common.NewError("allowedIPs entry", hit, "is already used by a client on", crossUsed[hit])
+				if entry, taken := wireguardAllowedIPsOverlap(clients[i].AllowedIPs, crossAddrs); taken != "" {
+					return common.NewError("allowedIPs entry", entry, "overlaps", taken, "used by a client on", crossUsed[taken])
 				}
 			}
 		}
@@ -760,8 +760,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 					}
 					peers = append(peers, oldClients[i].AllowedIPs...)
 				}
-				if hit := wireguardAllowedIPsCollision(normalized, peers); hit != "" {
-					return false, common.NewError("wireguard: allowedIPs entry already used by another client:", hit)
+				if entry, taken := wireguardAllowedIPsOverlap(normalized, peers); taken != "" {
+					return false, common.NewError("wireguard: allowedIPs entry", entry, "overlaps", taken, "used by another client")
 				}
 				clients[0].AllowedIPs = normalized
 			}

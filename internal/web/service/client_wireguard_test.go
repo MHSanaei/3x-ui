@@ -362,3 +362,31 @@ func TestDefaultWireguardClientsFallsBackWhenNoExplicitSubnet(t *testing.T) {
 		t.Fatalf("with no explicit subnet, inference from existing clients must still apply; got %v", got)
 	}
 }
+
+// xray credits a packet to the first peer whose allowedIPs contain its source,
+// so a prefix covering another client's address steals that client's traffic.
+func TestDefaultWireguardClientsRejectsOverlappingAllowedIPs(t *testing.T) {
+	existing := []model.Client{{Email: "a@wg", AllowedIPs: []string{"10.10.2.9/24"}}}
+	clients := []model.Client{{Email: "b@wg", AllowedIPs: []string{"10.10.2.52/24"}}}
+	err := defaultWireguardClients("", existing, clients, []any{map[string]any{"email": "b@wg"}}, nil)
+	if err == nil || !strings.Contains(err.Error(), "10.10.2.52/24") || !strings.Contains(err.Error(), "10.10.2.9/24") {
+		t.Fatalf("overlapping allowedIPs must be rejected naming both entries, got: %v", err)
+	}
+
+	crossUsed := map[string]string{"10.8.1.0/24": "inbound 'awg' (#10)"}
+	inside := []model.Client{{Email: "c@wg", AllowedIPs: []string{"10.8.1.21/32"}}}
+	err = defaultWireguardClients("", nil, inside, []any{map[string]any{"email": "c@wg"}}, crossUsed)
+	if err == nil || !strings.Contains(err.Error(), "inbound 'awg' (#10)") {
+		t.Fatalf("an address inside another inbound's prefix must be rejected naming that inbound, got: %v", err)
+	}
+}
+
+func TestAllocateWireguardAddressSkipsAddressesInsideUsedPrefixes(t *testing.T) {
+	got, err := allocateWireguardAddress([]string{"10.0.0.2/31"}, "10.0.0.0/24", true)
+	if err != nil {
+		t.Fatalf("allocateWireguardAddress: %v", err)
+	}
+	if got != "10.0.0.4/32" {
+		t.Fatalf("got %s, want 10.0.0.4/32: .2 and .3 are both inside the used 10.0.0.2/31", got)
+	}
+}
