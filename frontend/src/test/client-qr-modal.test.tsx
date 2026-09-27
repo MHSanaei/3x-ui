@@ -116,6 +116,11 @@ function renderSubject(overrides: Partial<SubjectProps> = {}) {
   };
 }
 
+// Opening fetches sub links with no visible loading state; settle it inside act().
+async function settleSubLinks() {
+  await act(async () => {});
+}
+
 function selectVariant(name: 'Standard' | 'Happ') {
   fireEvent.click(screen.getByRole('radio', { name: name === 'Happ' ? /Happ/ : name }));
 }
@@ -129,8 +134,9 @@ describe('ClientQrModal Happ presentation', () => {
     vi.mocked(HttpUtil.post).mockReset();
   });
 
-  it('opens on Standard without generating a Happ link', () => {
+  it('opens on Standard without generating a Happ link', async () => {
     renderSubject();
+    await settleSubLinks();
 
     expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).checked).toBe(
       true,
@@ -139,8 +145,9 @@ describe('ClientQrModal Happ presentation', () => {
     expect(HttpUtil.post).not.toHaveBeenCalled();
   });
 
-  it('names the Happ option as an encrypted link', () => {
+  it('names the Happ option as an encrypted link', async () => {
     renderSubject();
+    await settleSubLinks();
 
     expect(screen.getByRole('radio', { name: HAPP_OPTION_LABEL })).toBeTruthy();
   });
@@ -148,7 +155,7 @@ describe('ClientQrModal Happ presentation', () => {
   it.each([
     ['missing', undefined],
     ['false', false],
-  ])('marks the selectable Happ option as locked when the gate is %s', (_name, gate) => {
+  ])('marks the selectable Happ option as locked when the gate is %s', async (_name, gate) => {
     const subSettings: TestSubSettings = {
       enable: SUB_SETTINGS.enable,
       subURI: SUB_SETTINGS.subURI,
@@ -158,6 +165,7 @@ describe('ClientQrModal Happ presentation', () => {
     if (gate !== undefined) subSettings.happLinkEnable = gate;
 
     renderSubject({ subSettings });
+    await settleSubLinks();
 
     const standard = screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement;
     const happ = screen.getByRole('radio', { name: /Happ Encrypted Link/ }) as HTMLInputElement;
@@ -176,7 +184,7 @@ describe('ClientQrModal Happ presentation', () => {
     ['false', false],
   ])(
     'replaces the blank Happ content with a persistent empty state when the gate is %s',
-    (_name, gate) => {
+    async (_name, gate) => {
       const subSettings: TestSubSettings = {
         enable: SUB_SETTINGS.enable,
         subURI: SUB_SETTINGS.subURI,
@@ -186,6 +194,7 @@ describe('ClientQrModal Happ presentation', () => {
       if (gate !== undefined) subSettings.happLinkEnable = gate;
 
       renderSubject({ subSettings });
+      await settleSubLinks();
 
       const standard = screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement;
       const happ = screen.getByRole('radio', { name: /Happ Encrypted Link/ }) as HTMLInputElement;
@@ -222,8 +231,9 @@ describe('ClientQrModal Happ presentation', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
-  it('closes the QR modal and deep-links to Happ settings without generating', () => {
+  it('closes the QR modal and deep-links to Happ settings without generating', async () => {
     const view = renderSubject({ subSettings: { ...SUB_SETTINGS, happLinkEnable: false } });
+    await settleSubLinks();
     selectVariant('Happ');
 
     fireEvent.click(screen.getByRole('button', { name: 'Go to Settings' }));
@@ -411,6 +421,7 @@ describe('ClientQrModal Happ presentation', () => {
 
     view.update({ open: false });
     view.update({ open: true });
+    await settleSubLinks();
 
     expect((screen.getByRole('radio', { name: 'Standard' }) as HTMLInputElement).checked).toBe(
       true,

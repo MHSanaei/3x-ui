@@ -9,6 +9,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
 )
@@ -16,10 +17,7 @@ import (
 func newTokenCLIEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
-	if err := database.InitDB(config.GetDBPath()); err != nil {
-		t.Fatalf("init db: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, config.GetDBPath())
 }
 
 func tokenNames(t *testing.T) []string {

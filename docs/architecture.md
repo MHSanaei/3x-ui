@@ -292,7 +292,7 @@ node heartbeat every 5s, periodic traffic resets (hourly/daily/weekly/monthly). 
 ├── install.sh / update.sh / x-ui.sh                        # VPS install + management CLI
 ├── x-ui.service.*  / x-ui.rc                               # systemd units (debian/rhel/arch) + rc script
 ├── windows_files/                                          # Windows service support
-└── .github/workflows/        # CI: ci.yml, codeql.yml, docker.yml, release.yml, smoke.yml,
+└── .github/workflows/        # CI: ci.yml, codeql.yml, docker.yml, release.yml,
                               #     mutation.yml, cleanup_caches.yml, claude-pr-review.yml,
                               #     claude-issue-analyst.yml
 ```
@@ -565,7 +565,7 @@ golangci-lint run                   # full lint (gofumpt + goimports formatting)
 go run main.go                      # run the panel locally (serves embedded dist if built)
 ```
 
-**Frontend (`cd frontend`, Node 24 — see `.nvmrc`):**
+**Frontend (`cd frontend`, Node 26 — see `.nvmrc`):**
 
 ```bash
 npm install
@@ -583,7 +583,7 @@ root → `go build ./...` / `go run main.go`.
 **Docker:** `docker compose up -d` (uses `Dockerfile` + `DockerEntrypoint.sh`).
 
 **CI** (`.github/workflows/`): `ci.yml` (build/test/lint), `codeql.yml` (security scan),
-`smoke.yml` (smoke tests), `mutation.yml` (mutation testing), `docker.yml` + `release.yml`
+`mutation.yml` (mutation testing), `docker.yml` + `release.yml`
 (multi-arch image + release builds), `cleanup_caches.yml`, `claude-pr-review.yml` (PR review
 only - it changes no code), `claude-issue-analyst.yml` (issue triage).
 

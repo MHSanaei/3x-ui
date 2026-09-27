@@ -237,6 +237,13 @@ export const sections: readonly Section[] = [
         response: '{\n  "success": true,\n  "obj": "csrf-token-string"\n}',
       },
       {
+        method: 'GET',
+        path: '/sponsors',
+        summary:
+          'Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); expired entries are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.',
+        responseSchema: 'SponsorList',
+      },
+      {
         method: 'POST',
         path: '/getTwoFactorEnable',
         summary:
@@ -1164,6 +1171,52 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/renewalPreview',
+        summary: 'Preview client auto-renewal dates without saving or resetting anything.',
+        description:
+          'Uses the same calendar and catch-up calculation as auto-renew in the panel timezone. resetWeekday is 1 (Monday) to 7 (Sunday), 0 disables weekly mode; it cannot be combined with positive reset or resetDay. Existing resetDay takes precedence over reset. With expiryTime=0, calendar modes suggest a first cutoff but do not activate renewal. Negative expiryTime waits for first-use activation. resetMax and resetCount simulate the existing per-period allowance limit; the preview is informational and does not reserve an allowance or guarantee node availability.',
+        params: [
+          {
+            name: 'expiryTime',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Current cutoff in Unix milliseconds; 0 unlimited, negative first-use duration.',
+          },
+          {
+            name: 'reset',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Fixed interval in days; 0 disabled.',
+          },
+          {
+            name: 'resetDay',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Monthly calendar day 1-31; 0 disabled.',
+          },
+          {
+            name: 'resetWeekday',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Weekly calendar day 1-7 (Monday-Sunday); 0 disabled.',
+          },
+          {
+            name: 'resetMax',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Maximum renewals; 0 unlimited.',
+          },
+          {
+            name: 'resetCount',
+            in: 'body (json)',
+            type: 'integer',
+            desc: 'Renewals already consumed; defaults to 0.',
+          },
+        ],
+        responseSchema: 'ClientRenewalPreview',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/update/:email',
         summary:
           'Update an existing client by email. Changes propagate to every attached inbound. Body is the JSON client payload — supply the full set of fields you want to keep (the server replaces the row, it does not patch).',
@@ -1276,15 +1329,15 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/panel/api/clients/export',
         summary:
-          'Return every client as a {client, inboundIds} array — the same shape /bulkCreate and /import accept — so the payload round-trips straight back through /import. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
+          'Return every client as a {client, inboundIds, traffic} array — the shape /import accepts — so the payload round-trips straight back through /import. traffic carries the usage counters (up, down, resetCount, lastOnline, lastSubFetch) and is omitted for a client with no traffic row; the quota itself stays in client.totalGB. Clients with no inbound attachment are included with an empty inboundIds list. The UI shows this in a CodeMirror viewer (copy / download); programmatic callers get the array in obj.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "limitHwid": 2,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9]\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "client": {\n        "email": "alice@example.com",\n        "id": "...",\n        "totalGB": 53687091200,\n        "expiryTime": 0,\n        "limitHwid": 2,\n        "enable": true,\n        "subId": "..."\n      },\n      "inboundIds": [7, 9],\n      "traffic": {\n        "up": 1048576,\n        "down": 2097152,\n        "resetCount": 0,\n        "lastOnline": 1735680000000\n      }\n    }\n  ]\n}',
       },
       {
         method: 'POST',
         path: '/panel/api/clients/import',
         summary:
-          'Import clients from a JSON body { "data": "<json>" }, where data is a string-encoded array produced by /export ([{client, inboundIds}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. Existing emails are never overwritten — they are returned in skipped. Triggers a single Xray restart at the end if any target inbound was running.',
+          'Import clients from a JSON body { "data": "<json>" }, where data is a string-encoded array produced by /export ([{client, inboundIds, traffic}]). Items with inboundIds are created and attached to those inbounds; items with an empty inboundIds list are restored as unattached client records. An optional traffic object restores the usage counters, only for clients this import creates. Existing emails are never overwritten — they are returned in skipped, and their live counters are left untouched. Triggers a single Xray restart at the end if any target inbound was running; a failure while restoring counters still reports success=false after the clients were created.',
         body: '{\n  "data": "[{\\"client\\":{\\"email\\":\\"alice@example.com\\",\\"enable\\":true},\\"inboundIds\\":[7]}]"\n}',
         response:
           '{\n  "success": true,\n  "obj": {\n    "created": 2,\n    "skipped": [\n      { "email": "alice@example.com", "reason": "email already in use: alice@example.com" }\n    ]\n  }\n}',

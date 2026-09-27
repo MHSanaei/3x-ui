@@ -11,17 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 func setupTestDB(t *testing.T) service.SettingService {
 	t.Helper()
 	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
-	if err := database.InitDB(dbPath); err != nil {
-		t.Fatalf("init db: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, dbPath)
 	return service.SettingService{}
 }
 

@@ -62,6 +62,7 @@ type SUBController struct {
 	subJsonRoutingRules string
 	subHideSettings     bool
 	happConfig          HappConfig
+	incyConfig          IncyConfig
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
@@ -124,6 +125,7 @@ type subControllerConfig struct {
 	subRoutingRules  string
 	subHideSettings  bool
 	happConfig       HappConfig
+	incyConfig       IncyConfig
 
 	subIncyEnableRouting bool
 	subIncyRoutingRules  string
@@ -259,6 +261,10 @@ func WithSUBHappConfig(value HappConfig) SUBControllerOption {
 	return func(config *subControllerConfig) { config.happConfig = value }
 }
 
+func WithSUBIncyConfig(value IncyConfig) SUBControllerOption {
+	return func(config *subControllerConfig) { config.incyConfig = value }
+}
+
 func defaultSUBControllerConfig() subControllerConfig {
 	return subControllerConfig{
 		subPath:        "/sub/",
@@ -293,6 +299,7 @@ func NewSUBController(g *gin.RouterGroup, options ...SUBControllerOption) *SUBCo
 		subJsonRoutingRules: config.subJsonRoutingRules,
 		subHideSettings:     config.subHideSettings,
 		happConfig:          config.happConfig,
+		incyConfig:          config.incyConfig,
 
 		subIncyEnableRouting: config.subIncyEnableRouting,
 		subIncyRoutingRules:  config.subIncyRoutingRules,
@@ -974,4 +981,5 @@ func (a *SUBController) ApplyCommonHeaders(
 	}
 
 	ApplyHappHeaders(c, a.happConfig, happManaged)
+	ApplyIncyHeaders(c, a.incyConfig, a.incyConfig.AutoDetect && c.Request != nil && IsIncyClient(c.GetHeader("User-Agent")))
 }
