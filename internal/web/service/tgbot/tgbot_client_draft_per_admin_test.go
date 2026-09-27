@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 
 	"github.com/mymmrac/telego"
 )
@@ -12,10 +12,7 @@ import (
 // Regression test: keying the add-client wizard by chat alone left the two
 // admins of a group chat filling in one client between them.
 func TestAddClientDraftIsPerAdminInGroupChat(t *testing.T) {
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 
 	const (
 		groupChat = int64(-1001234567890)

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 )
 
 var sponsorTestNow = time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
@@ -131,10 +131,7 @@ func TestActiveSponsorsResolvesLogoAndSlots(t *testing.T) {
 func setupSponsorServer(t *testing.T, body string) *atomic.Int32 {
 	t.Helper()
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
-	if err := database.InitDB(config.GetDBPath()); err != nil {
-		t.Fatalf("init db: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, config.GetDBPath())
 
 	var hits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

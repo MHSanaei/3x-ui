@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
@@ -57,10 +58,7 @@ func TestValidateRegex(t *testing.T) {
 
 func TestAPITokenMutationRoutesEnforceExpectedScope(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 	row := &model.ApiToken{Name: "route-scope", Token: crypto.HashTokenSHA256("token"), Enabled: true, Scope: model.ApiScopeNodeSync}
 	if err := database.GetDB().Create(row).Error; err != nil {
 		t.Fatalf("seed token: %v", err)
@@ -95,10 +93,7 @@ func TestAPITokenMutationRoutesEnforceExpectedScope(t *testing.T) {
 // rebind the authenticator without presenting a current code.
 func TestUpdateSettingRequiresCodeToReplaceTwoFactorToken(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 
 	settingService := service.SettingService{}
 	if err := settingService.SetTwoFactorToken("ORIGINALSECRET234567"); err != nil {
@@ -195,13 +190,8 @@ func TestTestDiscordEndpoint(t *testing.T) {
 
 	// Setup DB
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = database.CloseDB()
-		SetDiscordService(nil)
-	})
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	t.Cleanup(func() { SetDiscordService(nil) })
 
 	settingService := service.SettingService{}
 	svc := discord.NewDiscordService(settingService)

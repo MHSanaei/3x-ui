@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
@@ -302,10 +303,7 @@ func TestExpandEntryCacheHitWritesNothing(t *testing.T) {
 
 func TestFetchUsesConfiguredExternalSubUserAgent(t *testing.T) {
 	resetSubscriptionCache(t)
-	if err := database.InitDB(filepath.Join(t.TempDir(), "ua.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "ua.db"))
 
 	const customUA = "Happ/4.2.1"
 	if err := database.GetDB().Create(&model.Setting{
@@ -333,10 +331,7 @@ func TestFetchUsesConfiguredExternalSubUserAgent(t *testing.T) {
 
 func TestFetchFallsBackToDefaultExternalSubUserAgent(t *testing.T) {
 	resetSubscriptionCache(t)
-	if err := database.InitDB(filepath.Join(t.TempDir(), "ua-default.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "ua-default.db"))
 
 	var gotUA string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

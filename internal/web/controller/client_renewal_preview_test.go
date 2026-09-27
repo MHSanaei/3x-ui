@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -45,10 +46,7 @@ func TestClientRenewalPreviewHTTP(t *testing.T) {
 		{name: "negative count", zone: "UTC", count: -1, invalid: true, wantError: "renewal preview reset and resetCount must not be negative\n"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = database.CloseDB() })
+			dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 			db := database.GetDB()
 			if err := db.Create(&model.Setting{Key: "timeLocation", Value: tt.zone}).Error; err != nil {
 				t.Fatal(err)

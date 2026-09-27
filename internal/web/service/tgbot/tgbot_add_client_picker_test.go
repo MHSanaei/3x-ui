@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 
 	"github.com/mymmrac/telego"
@@ -15,10 +16,7 @@ import (
 
 func seedPickerInbounds(t *testing.T, protocols ...model.Protocol) {
 	t.Helper()
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 	for i, protocol := range protocols {
 		port := 20000 + i
 		ib := &model.Inbound{Remark: string(protocol), Enable: true, Port: port, Protocol: protocol, Tag: fmt.Sprintf("inbound-%d", port), Settings: `{}`}

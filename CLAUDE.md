@@ -154,9 +154,11 @@ file locations when it can answer in one hop.
 - Stdlib `testing` only (no testify). Table-driven, `t.Run` subtests,
   `t.Helper()` on helpers. Assert the exact value / typed error / emitted
   string, never just `err != nil`. Prefer real deps over mocks: throwaway DB via
-  `database.InitDB(filepath.Join(t.TempDir(), "x-ui.db"))` +
-  `t.Cleanup(func() { _ = database.CloseDB() })`; `httptest` for HTTP.
-  `internal/sub`'s `initSubDB(t)` is the template.
+  `dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))`
+  (`internal/database/dbtest`: copies a once-migrated template and registers
+  `CloseDB` cleanup; a fresh `database.InitDB` costs ~7x more, ~850ms under
+  `-race`); `httptest` for HTTP. Keep `database.InitDB` for reopening a file or
+  migrating a hand-built legacy DB. `internal/sub`'s `initSubDB(t)` is the template.
 - Code must pass `golangci-lint run` (gofumpt + goimports formatting): `make lint`.
 - Postgres, xray-gRPC-e2e and scale tests `t.Skip` unless `XUI_TEST_PG_DSN`,
   `XUI_DB_TYPE`+`XUI_DB_DSN`, `XRAY_E2E_BINARY` or `XUI_SCALE_TEST` is set — a

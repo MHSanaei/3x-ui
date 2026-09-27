@@ -12,6 +12,7 @@ import (
 	"github.com/op/go-logging"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -47,15 +48,7 @@ func setupIntegrationDB(t *testing.T) {
 		log.SetFlags(origLogFlags)
 	})
 
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("database.InitDB failed: %v", err)
-	}
-	// LIFO cleanup order: this runs before t.TempDir's own cleanup.
-	t.Cleanup(func() {
-		if err := database.CloseDB(); err != nil {
-			t.Logf("database.CloseDB warning: %v", err)
-		}
-	})
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 }
 
 // enforceIpLimitForTest runs the same two steps processObserved does: select
