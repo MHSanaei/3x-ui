@@ -239,6 +239,55 @@ panel_certificate_dir() {
     printf '%s/panel/%s\n' "${XUI_CERT_ROOT:-/root/cert}" "$1"
 }
 
+acme_config_value() {
+    local config_file="$1"
+    local setting="$2"
+    local value
+    value=$(sed -n "s/^${setting}=//p" "$config_file" | tail -n 1)
+    case "$value" in
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+    esac
+    printf '%s\n' "$value"
+}
+
+acme_install_target_dir() {
+    local identifier="$1"
+    local acme_home
+    acme_home="$(dirname "$(acme_executable)")"
+    local state_dir config_file fullchain_path key_path
+    for state_dir in "${acme_home}/${identifier}_ecc" "${acme_home}/${identifier}"; do
+        config_file="${state_dir}/${identifier}.conf"
+        [[ -f "$config_file" ]] || continue
+        fullchain_path="$(acme_config_value "$config_file" Le_RealFullChainPath)"
+        key_path="$(acme_config_value "$config_file" Le_RealKeyPath)"
+        if [[ "$(basename "$fullchain_path")" == "fullchain.pem" && \
+            "$(basename "$key_path")" == "privkey.pem" && \
+            "$(dirname "$fullchain_path")" == "$(dirname "$key_path")" ]]; then
+            dirname "$fullchain_path"
+            return 0
+        fi
+    done
+    return 1
+}
+
+certificate_target_dir() {
+    local identifier="$1"
+    local preferred_dir="$2"
+    local legacy_dir="$3"
+    local existing_target
+    if existing_target="$(acme_install_target_dir "$identifier")"; then
+        printf '%s\n' "$existing_target"
+        return 0
+    fi
+    if "$(acme_executable)" --list 2> /dev/null | awk '{print $1}' | grep -Fxq "$identifier" && \
+        [[ -s "${legacy_dir}/fullchain.pem" && -s "${legacy_dir}/privkey.pem" ]]; then
+        printf '%s\n' "$legacy_dir"
+        return 0
+    fi
+    printf '%s\n' "$preferred_dir"
+}
+
 validate_certificate_pair() {
     local cert_file="$1"
     local key_file="$2"
@@ -354,7 +403,8 @@ setup_ssl_certificate() {
 
     # Create certificate directory
     local certPath
-    certPath="$(panel_certificate_dir "${domain}")"
+    certPath="$(certificate_target_dir "${domain}" \
+        "$(panel_certificate_dir "${domain}")" "${XUI_CERT_ROOT:-/root/cert}/${domain}")"
 
     # Issue certificate
     echo -e "${green}Issuing SSL certificate for ${domain}...${plain}"
@@ -429,7 +479,8 @@ setup_ip_certificate() {
 
     # Create certificate directory
     local certDir
-    certDir="$(panel_certificate_dir "ip-${ipv4}")"
+    certDir="$(certificate_target_dir "${ipv4}" \
+        "$(panel_certificate_dir "ip-${ipv4}")" "${XUI_CERT_ROOT:-/root/cert}/ip")"
 
     # Build domain arguments
     local domain_args="-d ${ipv4}"
@@ -590,7 +641,8 @@ ssl_cert_issue() {
     fi
 
     # create a directory for the certificate
-    certPath="$(panel_certificate_dir "${domain}")"
+    certPath="$(certificate_target_dir "${domain}" \
+        "$(panel_certificate_dir "${domain}")" "${XUI_CERT_ROOT:-/root/cert}/${domain}")"
 
     # get the port number for the standalone server
     local WebPort=80

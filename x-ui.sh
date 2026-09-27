@@ -1362,6 +1362,93 @@ panel_certificate_dir() {
     printf '%s/panel/%s\n' "${XUI_CERT_ROOT:-/root/cert}" "$1"
 }
 
+acme_config_value() {
+    local config_file="$1"
+    local setting="$2"
+    local value
+    value=$(sed -n "s/^${setting}=//p" "$config_file" | tail -n 1)
+    case "$value" in
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+    esac
+    printf '%s\n' "$value"
+}
+
+acme_install_target_dir() {
+    local identifier="$1"
+    local acme_home
+    acme_home="$(dirname "$(acme_executable)")"
+    local state_dir config_file fullchain_path key_path
+    for state_dir in "${acme_home}/${identifier}_ecc" "${acme_home}/${identifier}"; do
+        config_file="${state_dir}/${identifier}.conf"
+        [[ -f "$config_file" ]] || continue
+        fullchain_path="$(acme_config_value "$config_file" Le_RealFullChainPath)"
+        key_path="$(acme_config_value "$config_file" Le_RealKeyPath)"
+        if [[ "$(basename "$fullchain_path")" == "fullchain.pem" && \
+            "$(basename "$key_path")" == "privkey.pem" && \
+            "$(dirname "$fullchain_path")" == "$(dirname "$key_path")" ]]; then
+            dirname "$fullchain_path"
+            return 0
+        fi
+    done
+    return 1
+}
+
+certificate_target_dir() {
+    local identifier="$1"
+    local preferred_dir="$2"
+    local legacy_dir="$3"
+    local existing_target
+    if existing_target="$(acme_install_target_dir "$identifier")"; then
+        printf '%s\n' "$existing_target"
+        return 0
+    fi
+    if "$(acme_executable)" --list 2> /dev/null | awk '{print $1}' | grep -Fxq "$identifier" && \
+        [[ -s "${legacy_dir}/fullchain.pem" && -s "${legacy_dir}/privkey.pem" ]]; then
+        printf '%s\n' "$legacy_dir"
+        return 0
+    fi
+    printf '%s\n' "$preferred_dir"
+}
+
+list_panel_certificate_names() {
+    local cert_root="${XUI_CERT_ROOT:-/root/cert}"
+    {
+        find "${cert_root}/panel" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null
+        find "$cert_root" -mindepth 1 -maxdepth 1 -type d ! -name panel -exec basename {} \; 2> /dev/null
+    } | sort -u
+}
+
+panel_certificate_path() {
+    local name="$1"
+    local cert_root="${XUI_CERT_ROOT:-/root/cert}"
+    local acme_id existing_target candidate
+    while read -r acme_id; do
+        [[ -n "$acme_id" ]] || continue
+        if existing_target="$(acme_install_target_dir "$acme_id")" && \
+            [[ -s "${existing_target}/fullchain.pem" && -s "${existing_target}/privkey.pem" ]]; then
+            printf '%s\n' "$existing_target"
+            return 0
+        fi
+    done < <(panel_certificate_acme_ids "$name")
+    for candidate in "${cert_root}/panel/${name}" "${cert_root}/${name}"; do
+        if [[ -s "${candidate}/fullchain.pem" && -s "${candidate}/privkey.pem" ]]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+panel_certificate_acme_ids() {
+    local name="$1"
+    if [[ "$name" == "ip" ]]; then
+        "$(acme_executable)" --list 2> /dev/null | awk 'NR>1 {print $1}' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$|:' || true
+    else
+        printf '%s\n' "${name#ip-}"
+    fi
+}
+
 validate_certificate_pair() {
     local cert_file="$1"
     local key_file="$2"
@@ -1472,8 +1559,8 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         2)
-            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
-            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local cert_root="${XUI_CERT_ROOT:-/root/cert}"
+            local domains=$(list_panel_certificate_names)
             if [ -z "$domains" ]; then
                 echo "No certificates found to revoke."
             else
@@ -1481,8 +1568,10 @@ ssl_cert_issue_main() {
                 echo "$domains"
                 read -rp "Please enter a domain from the list to revoke and remove the certificate: " domain
                 if echo "$domains" | grep -qw "$domain"; then
-                    local acme_ids="${domain#ip-}"
+                    local acme_ids
+                    acme_ids="$(panel_certificate_acme_ids "$domain")"
                     local acme_bin="$(acme_executable)"
+                    [[ -n "$acme_ids" ]] || LOGW "No matching ACME record found; removing local certificate files only."
                     for id in ${acme_ids}; do
                         # Best-effort revoke at the CA, then drop acme.sh renewal tracking.
                         "$acme_bin" --revoke -d "${id}" 2> /dev/null
@@ -1490,14 +1579,15 @@ ssl_cert_issue_main() {
                         # --remove leaves the cert files on disk, so delete the state dirs (RSA + ECC).
                         rm -rf "$(dirname "$acme_bin")/${id}" "$(dirname "$acme_bin")/${id}_ecc"
                     done
-                    # Delete the local certificate files for this domain.
-                    rm -rf "${panel_cert_root}/${domain}"
+                    # Explicit removal clears both current and legacy managed copies.
+                    rm -rf "${cert_root}/panel/${domain}" "${cert_root}/${domain}"
                     LOGI "Certificate revoked and removed for domain: ${domain}"
 
                     # If the panel currently serves this domain's cert, clear the stored paths
                     # so it stops loading the now-deleted files, then restart.
                     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-                    if [[ "${existing_cert}" == "${panel_cert_root}/${domain}/"* ]]; then
+                    if [[ "${existing_cert}" == "${cert_root}/panel/${domain}/"* || \
+                        "${existing_cert}" == "${cert_root}/${domain}/"* ]]; then
                         ${xui_folder}/x-ui cert -reset
                         LOGI "Cleared panel certificate paths referencing ${domain}; restarting panel."
                         restart
@@ -1509,8 +1599,7 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         3)
-            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
-            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local domains=$(list_panel_certificate_names)
             if [ -z "$domains" ]; then
                 echo "No certificates found to renew."
             else
@@ -1518,8 +1607,21 @@ ssl_cert_issue_main() {
                 echo "$domains"
                 read -rp "Please enter a domain from the list to renew the SSL certificate: " domain
                 if echo "$domains" | grep -qw "$domain"; then
-                    "$(acme_executable)" --renew -d "${domain#ip-}" --force
-                    LOGI "Certificate forcefully renewed for domain: $domain"
+                    local renew_failed=0
+                    local renew_found=0
+                    local acme_id
+                    while read -r acme_id; do
+                        [[ -n "$acme_id" ]] || continue
+                        renew_found=1
+                        "$(acme_executable)" --renew -d "$acme_id" --force || renew_failed=1
+                    done < <(panel_certificate_acme_ids "$domain")
+                    if [[ $renew_found -eq 0 ]]; then
+                        LOGE "No matching ACME record found for domain: $domain"
+                    elif [[ $renew_failed -eq 0 ]]; then
+                        LOGI "Certificate forcefully renewed for domain: $domain"
+                    else
+                        LOGE "Certificate renewal failed for domain: $domain"
+                    fi
                 else
                     echo "Invalid domain entered."
                 fi
@@ -1527,28 +1629,30 @@ ssl_cert_issue_main() {
             ssl_cert_issue_main
             ;;
         4)
-            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
-            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local cert_root="${XUI_CERT_ROOT:-/root/cert}"
+            local domains=$(list_panel_certificate_names)
             if [ -z "$domains" ]; then
-                echo "No panel certificates found under ${panel_cert_root}."
+                echo "No panel certificates found under ${cert_root}."
             else
                 echo "Existing domains and their paths:"
+                local panel_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+                local panel_cert_listed=0
                 for domain in $domains; do
-                    local cert_path="${panel_cert_root}/${domain}/fullchain.pem"
-                    local key_path="${panel_cert_root}/${domain}/privkey.pem"
-                    if [[ -f "${cert_path}" && -f "${key_path}" ]]; then
+                    local cert_dir
+                    for cert_dir in "${cert_root}/panel/${domain}" "${cert_root}/${domain}"; do
+                        local cert_path="${cert_dir}/fullchain.pem"
+                        local key_path="${cert_dir}/privkey.pem"
+                        [[ -f "$cert_path" && -f "$key_path" ]] || continue
                         echo -e "Domain: ${domain}"
                         echo -e "\tCertificate Path: ${cert_path}"
                         echo -e "\tPrivate Key Path: ${key_path}"
-                    else
-                        echo -e "Domain: ${domain} - Certificate or Key missing."
-                    fi
+                        [[ "$panel_cert" == "$cert_path" ]] && panel_cert_listed=1
+                    done
                 done
             fi
-            # The panel's configured certificate may live outside /root/cert
-            # (e.g. certbot under /etc/letsencrypt) — show it too (#5070).
-            local panel_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-            if [[ -n "${panel_cert}" && "${panel_cert}" != /root/cert/* ]]; then
+            # Also show a configured certificate that is outside managed paths (#5070).
+            local panel_cert=${panel_cert:-$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')}
+            if [[ -n "${panel_cert}" && ${panel_cert_listed:-0} -eq 0 ]]; then
                 echo -e "Panel certificate (custom path): ${panel_cert}"
                 if [[ -f "${panel_cert}" ]] && command -v openssl > /dev/null 2>&1; then
                     local panel_sans=$(openssl x509 -in "${panel_cert}" -noout -ext subjectAltName 2> /dev/null \
@@ -1577,8 +1681,7 @@ ssl_cert_issue_main() {
                 ssl_cert_issue_main
                 return
             fi
-            local panel_cert_root="${XUI_CERT_ROOT:-/root/cert}/panel"
-            local domains=$(find "$panel_cert_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null)
+            local domains=$(list_panel_certificate_names)
             if [ -z "$domains" ]; then
                 echo "No certificates found."
             else
@@ -1587,8 +1690,10 @@ ssl_cert_issue_main() {
                 read -rp "Please choose a domain to set the panel paths: " domain
 
                 if echo "$domains" | grep -qw "$domain"; then
-                    local webCertFile="${panel_cert_root}/${domain}/fullchain.pem"
-                    local webKeyFile="${panel_cert_root}/${domain}/privkey.pem"
+                    local cert_dir
+                    cert_dir="$(panel_certificate_path "$domain")"
+                    local webCertFile="${cert_dir}/fullchain.pem"
+                    local webKeyFile="${cert_dir}/privkey.pem"
 
                     if validate_certificate_pair "${webCertFile}" "${webKeyFile}" && \
                         ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"; then
@@ -1599,14 +1704,17 @@ ssl_cert_issue_main() {
                         # renewed cert to these paths and reloads the panel. Without it acme.sh
                         # renews but never updates the panel certificate directory, silently serving a stale cert.
                         local acme_bin="$(acme_executable)"
-                        local acme_id="${domain#ip-}"
-                        if [[ -x "$acme_bin" ]] && "$acme_bin" --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${acme_id}"; then
-                            "$acme_bin" --installcert --force -d "${acme_id}" \
-                                --key-file "${webKeyFile}" \
-                                --fullchain-file "${webCertFile}" \
+                        local acme_id existing_target
+                        while read -r acme_id; do
+                            [[ -n "$acme_id" && -x "$acme_bin" ]] || continue
+                            existing_target="$(acme_install_target_dir "$acme_id" 2> /dev/null || true)"
+                            [[ -z "$existing_target" || "$existing_target" == "$cert_dir" ]] || continue
+                            "$acme_bin" --installcert --force -d "$acme_id" \
+                                --key-file "$webKeyFile" \
+                                --fullchain-file "$webCertFile" \
                                 --reloadcmd "x-ui restart" 2>&1 || true
                             echo "Registered acme.sh auto-renewal hook for ${acme_id}."
-                        fi
+                        done < <(panel_certificate_acme_ids "$domain")
                         restart
                     else
                         echo "Certificate and private key for ${domain} are invalid, mismatched, or could not be applied."
@@ -1728,7 +1836,8 @@ ssl_cert_issue_for_ip() {
     esac
 
     # Create certificate directory
-    certPath="$(panel_certificate_dir "ip-${server_ip}")"
+    certPath="$(certificate_target_dir "${server_ip}" \
+        "$(panel_certificate_dir "ip-${server_ip}")" "${XUI_CERT_ROOT:-/root/cert}/ip")"
 
     # Build domain arguments
     local domain_args="-d ${server_ip}"
@@ -1936,7 +2045,8 @@ ssl_cert_issue() {
         LOGI "Your domain is ready for issuing certificates now..."
     fi
 
-    certPath="$(panel_certificate_dir "${domain}")"
+    certPath="$(certificate_target_dir "${domain}" \
+        "$(panel_certificate_dir "${domain}")" "${XUI_CERT_ROOT:-/root/cert}/${domain}")"
 
     # get the port number for the standalone server
     local WebPort=80
@@ -2105,7 +2215,8 @@ ssl_cert_issue_CF() {
             LOGI "Certificate issued successfully, Installing..."
         fi
 
-        certPath="$(panel_certificate_dir "${CF_Domain}")"
+        certPath="$(certificate_target_dir "${CF_Domain}" \
+            "$(panel_certificate_dir "${CF_Domain}")" "${XUI_CERT_ROOT:-/root/cert}/${CF_Domain}")"
 
         reloadCmd="x-ui restart"
 

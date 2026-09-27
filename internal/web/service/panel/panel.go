@@ -294,10 +294,8 @@ func (s *PanelService) startUpdate(useDev bool) (int64, error) {
 	return runID, nil
 }
 
-// panelUpdateEnv is shared by the systemd-run and detached-process launch
-// paths. Web updates never have a controlling terminal, so make that contract
-// explicit instead of letting read(1) consume EOF and select an interactive
-// default (which previously started ACME issuance on an HTTP-only panel).
+// Web updates never have a controlling terminal; make that explicit so read(1)
+// cannot consume EOF and select an interactive default that starts ACME.
 func panelUpdateEnv(mainFolder, serviceFolder, updateTag, runIDEnv, statusFileEnv string) []string {
 	return []string{
 		"XUI_MAIN_FOLDER=" + mainFolder,
