@@ -367,6 +367,8 @@ merged with GUID-based baselines to avoid double counting after resets.
 `job/xray_traffic_job.go`, `job/node_traffic_sync_job.go`, `service/inbound_node.go`
 (`SetRemoteTraffic` / `upsertNodeBaseline`), models `xray.ClientTraffic`,
 `model.NodeClientTraffic`, `model.ClientGlobalTraffic` (cross-master totals).
+A client reset is queued per hosting node in `model.NodePendingReset` (`service/node_reset_queue.go`)
+and replayed by the node sync until the node accepts it.
 Periodic resets: `job/periodic_traffic_reset_job.go` (keyed off `Inbound.TrafficReset`).
 
 ### 5.4 Background jobs (cron)
@@ -465,6 +467,7 @@ for AutoMigrate in `internal/database/db.go`.
 | `Host`                          | Subscription host overrides (per inbound) | `Address`, `Port`, `Sni`, `Path`, `Security`, `Fingerprint`, `SortOrder`, visibility/exclusion flags                                                               |
 | `Node`                          | A managed child panel                     | `Guid`, `Address`, `Status`, `TlsVerifyMode`, `PinnedCertSha256`, `ConfigDirty`, version/heartbeat/metric fields                                                   |
 | `NodeClientTraffic`             | Per-node client traffic baseline          | cross-node merge (anti-double-count)                                                                                                                               |
+| `NodePendingReset`              | Client resets a node has not confirmed    | `NodeId`, `Email`, `QueuedAt`; replayed by the node sync, freezes that client's node verdict until delivered                                                        |
 | `NodeClientIp`                  | Per-node client IP attribution            | `NodeGuid`, `Email`, `Ips`                                                                                                                                         |
 | `ClientGlobalTraffic`           | Cross-master usage totals                 | `MasterGuid`, `Email`, `Up`, `Down`                                                                                                                                |
 | `xray.ClientTraffic`            | Per-client counters (`client_traffics`)   | `Email`, `Up`, `Down`, `Total`, `ExpiryTime`, `LastOnline`                                                                                                         |

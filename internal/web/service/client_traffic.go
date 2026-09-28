@@ -74,6 +74,7 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 		return 0, err
 	}
 	affected := 0
+	var resetNodes []int
 	err = submitTrafficWrite(func() error {
 		db := database.GetDB()
 		return db.Transaction(func(tx *gorm.DB) error {
@@ -97,12 +98,16 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 					return err
 				}
 			}
-			return nil
+			var qErr error
+			resetNodes, qErr = queueNodeResets(tx, cleanEmails)
+			return qErr
 		})
 	})
 	if err != nil {
 		return 0, err
 	}
+	inboundSvc.resetMtprotoClientQuotas(cleanEmails)
+	inboundSvc.deliverNodeResetsNow(resetNodes)
 	// After the zeroing, as in ResetTrafficByEmail: enabling a still-depleted
 	// client first lets the next traffic tick switch it off again.
 	for _, e := range cleanEmails {
@@ -120,18 +125,23 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 }
 
 func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
+	var resetNodes []int
 	err := submitTrafficWrite(func() error {
-		return s.resetAllClientTrafficsLocked(id)
+		var inner error
+		resetNodes, inner = s.resetAllClientTrafficsLocked(id)
+		return inner
 	})
 	if err == nil {
 		inboundSvc.resetAllMtprotoQuotas()
+		inboundSvc.deliverNodeResetsNow(resetNodes)
 	}
 	return err
 }
 
-func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
+func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]int, error) {
 	db := database.GetDB()
 	now := time.Now().Unix() * 1000
+	var resetNodes []int
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		// client_traffics.inbound_id is stale: it reflects the inbound the row was
@@ -176,6 +186,10 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 				return err
 			}
 		}
+		var qErr error
+		if resetNodes, qErr = queueNodeResets(tx, resetEmails); qErr != nil {
+			return qErr
+		}
 
 		inboundWhereText := "id "
 		if id == -1 {
@@ -190,13 +204,14 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 
 		return result.Error
 	}); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return resetNodes, nil
 }
 
 func (s *ClientService) ResetAllTraffics() (bool, error) {
 	var affected int64
+	var resetNodes []int
 	err := submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
 			res := tx.Model(&xray.ClientTraffic{}).
@@ -209,11 +224,19 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 			if err := tx.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
 				return err
 			}
-			return tx.Where("1 = 1").Delete(&model.NodeClientTraffic{}).Error
+			if err := tx.Where("1 = 1").Delete(&model.NodeClientTraffic{}).Error; err != nil {
+				return err
+			}
+			var qErr error
+			resetNodes, qErr = queueNodeResets(tx, nil)
+			return qErr
 		})
 	})
 	if err != nil {
 		return false, err
 	}
+	inbounds := &InboundService{}
+	inbounds.resetAllMtprotoQuotas()
+	inbounds.deliverNodeResetsNow(resetNodes)
 	return affected > 0, nil
 }

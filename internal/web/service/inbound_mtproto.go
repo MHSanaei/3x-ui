@@ -95,16 +95,47 @@ func (s *InboundService) applyLocalMtproto(inboundId int) {
 }
 
 func (s *InboundService) resetMtprotoClientQuota(email string) {
+	s.resetMtprotoClientQuotas([]string{email})
+}
+
+// resetMtprotoClientQuotas zeroes the sidecar's own quota counter for each local
+// MTProto client in emails, or it keeps blocking a client the panel just reset.
+func (s *InboundService) resetMtprotoClientQuotas(emails []string) {
 	mgr := mtproto.GetManager()
-	if !mgr.HasRunning() {
+	if !mgr.HasRunning() || len(emails) == 0 {
 		return
 	}
-	id, ok := s.localMtprotoInboundIdForEmail(email)
-	if !ok {
+	var inbounds []*model.Inbound
+	if err := database.GetDB().Model(model.Inbound{}).
+		Where("protocol = ? AND node_id IS NULL", model.MTProto).
+		Find(&inbounds).Error; err != nil {
 		return
 	}
-	s.applyLocalMtproto(id)
-	mgr.ResetQuota(email)
+	want := make(map[string]struct{}, len(emails))
+	for _, e := range emails {
+		want[e] = struct{}{}
+	}
+	var hit []string
+	for _, ib := range inbounds {
+		inst, ok := mtproto.InstanceFromInbound(ib)
+		if !ok {
+			continue
+		}
+		applied := false
+		for _, sec := range inst.Secrets {
+			if _, ok := want[sec.Name]; !ok {
+				continue
+			}
+			if !applied {
+				s.applyLocalMtproto(ib.Id)
+				applied = true
+			}
+			hit = append(hit, sec.Name)
+		}
+	}
+	for _, email := range hit {
+		mgr.ResetQuota(email)
+	}
 }
 
 func (s *InboundService) resetAllMtprotoQuotas() {
@@ -122,26 +153,4 @@ func (s *InboundService) resetAllMtprotoQuotas() {
 			mgr.ResetQuota(sec.Name)
 		}
 	}
-}
-
-func (s *InboundService) localMtprotoInboundIdForEmail(email string) (int, bool) {
-	db := database.GetDB()
-	var inbounds []*model.Inbound
-	if err := db.Model(model.Inbound{}).
-		Where("protocol = ? AND node_id IS NULL", model.MTProto).
-		Find(&inbounds).Error; err != nil {
-		return 0, false
-	}
-	for _, ib := range inbounds {
-		inst, ok := mtproto.InstanceFromInbound(ib)
-		if !ok {
-			continue
-		}
-		for _, sec := range inst.Secrets {
-			if sec.Name == email {
-				return ib.Id, true
-			}
-		}
-	}
-	return 0, false
 }

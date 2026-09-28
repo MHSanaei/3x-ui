@@ -2,8 +2,13 @@ package service
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -46,7 +51,77 @@ func fakeMtgChildMain() {
 		fmt.Fprintf(f, "%d\n", os.Getpid())
 		f.Close()
 	}
+	if logPath := os.Getenv("MTG_FAKE_APILOG"); logPath != "" && len(os.Args) > 2 {
+		go serveFakeMtgAPI(os.Args[len(os.Args)-1], logPath)
+	}
 	select {}
+}
+
+// serveFakeMtgAPI answers the management API on the config's api-bind-to and
+// logs each reset-quota call, so a test sees which sidecar quotas were zeroed.
+func serveFakeMtgAPI(configPath, logPath string) {
+	cfg, err := os.ReadFile(configPath)
+	if err != nil {
+		return
+	}
+	m := regexp.MustCompile(`api-bind-to = "([^"]+)"`).FindSubmatch(cfg)
+	if m == nil {
+		return
+	}
+	ln, err := net.Listen("tcp", string(m[1]))
+	if err != nil {
+		return
+	}
+	appendFakeMtgLog(logPath, "ready")
+	_ = http.Serve(ln, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if name, ok := strings.CutSuffix(strings.TrimPrefix(r.URL.Path, "/secrets/"), "/reset-quota"); ok && r.Method == http.MethodPost {
+			if unescaped, err := url.PathUnescape(name); err == nil {
+				appendFakeMtgLog(logPath, "reset:"+unescaped)
+			}
+		}
+		_, _ = w.Write([]byte("{}"))
+	}))
+}
+
+func appendFakeMtgLog(path, line string) {
+	if f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+		fmt.Fprintln(f, line)
+		f.Close()
+	}
+}
+
+// installFakeMtgAPI is installFakeMtg whose children also serve the management
+// API; it returns the pid file and the API call log.
+func installFakeMtgAPI(t *testing.T) (string, string) {
+	t.Helper()
+	pidFile := installFakeMtg(t)
+	logPath := filepath.Join(filepath.Dir(pidFile), "mtg-api.log")
+	t.Setenv("MTG_FAKE_APILOG", logPath)
+	return pidFile, logPath
+}
+
+func fakeMtgLog(t *testing.T, logPath string) []string {
+	t.Helper()
+	data, err := os.ReadFile(logPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		t.Fatalf("read mtg api log: %v", err)
+	}
+	return strings.Fields(string(data))
+}
+
+// waitFakeMtgLog polls until the log holds want, failing on timeout.
+func waitFakeMtgLog(t *testing.T, logPath, want string) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !slices.Contains(fakeMtgLog(t, logPath), want) {
+		if time.Now().After(deadline) {
+			t.Fatalf("mtg api log never recorded %q: %v", want, fakeMtgLog(t, logPath))
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 }
 
 // installFakeMtg points the mtproto manager at a copy of the running test

@@ -701,6 +701,12 @@ func (r *Remote) ResetClientTraffic(ctx context.Context, _ *model.Inbound, email
 	return err
 }
 
+// ResetClientTraffics zeroes many clients on the node in one request.
+func (r *Remote) ResetClientTraffics(ctx context.Context, emails []string) error {
+	_, err := r.do(ctx, http.MethodPost, "panel/api/clients/bulkResetTraffic", map[string]any{"emails": emails})
+	return err
+}
+
 func (r *Remote) ResetAllTraffics(ctx context.Context) error {
 	_, err := r.do(ctx, http.MethodPost, "panel/api/inbounds/resetAllTraffics", nil)
 	return err

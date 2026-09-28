@@ -547,6 +547,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		centralCSByEmail[centralClientStats[i].Email] = &centralClientStats[i]
 	}
 
+	owedResets, err := pendingNodeResetEmails(db, nodeID)
+	if err != nil {
+		return false, err
+	}
+
 	nodeBaselines := make(map[string]nodeTrafficCounter)
 	var baselineRows []model.NodeClientTraffic
 	if err := db.Model(&model.NodeClientTraffic{}).
@@ -925,6 +930,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 			// Node-wide total, not this inbound's possibly-stale copy (#5274).
 			canon := nodeEmailTotals[cs.Email]
+			// Until the node applies a reset it owes, its verdict rests on the
+			// pre-reset counters: only usage may move for this client.
+			_, owed := owedResets[cs.Email]
+			clientFrozen := lifecycleFrozen || owed
 
 			base, seen := nodeBaselines[cs.Email]
 			var deltaUp, deltaDown int64
@@ -986,18 +995,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 			existing := centralCSByEmail[cs.Email]
 			if existing != nil {
-				expiryChanged := !lifecycleFrozen && existing.ExpiryTime != mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime)
+				expiryChanged := !clientFrozen && existing.ExpiryTime != mergeActivationExpiry(existing.ExpiryTime, cs.ExpiryTime)
 				// Only a real latch to disabled is structural; one-way merge never
 				// re-enables from the node.
-				enableChanged := !lifecycleFrozen && existing.Enable && !cs.Enable &&
+				enableChanged := !clientFrozen && existing.Enable && !cs.Enable &&
 					!nodeDisableIsStale(existing, cs, now, deltaUp, deltaDown)
-				metaChanged := !lifecycleFrozen && (existing.Total != cs.Total || existing.Reset != cs.Reset || existing.ResetWeekday != cs.ResetWeekday)
+				metaChanged := !clientFrozen && (existing.Total != cs.Total || existing.Reset != cs.Reset || existing.ResetWeekday != cs.ResetWeekday)
 				if enableChanged || metaChanged || expiryChanged {
 					structuralChange = true
 				}
 			}
 
-			renewed := !lifecycleFrozen && seen && existing != nil && nodeClientRenewed(existing, cs, canon, base)
+			renewed := !clientFrozen && seen && existing != nil && nodeClientRenewed(existing, cs, canon, base)
 			if renewed {
 				// Reject when the node's own settings still carry the old absolute:
 				// lagging ClientStats after a master shorten mimic a renew (#6228).
@@ -1037,7 +1046,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				existing.ResetWeekday = cs.ResetWeekday
 				existing.ResetCount = cs.ResetCount
 				structuralChange = true
-			} else if lifecycleFrozen {
+			} else if clientFrozen {
 				// Push pending or just landed: only counters may move, the master
 				// keeps expiry/enable/total/reset.
 				if err := tx.Exec(
@@ -1096,7 +1105,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			// A dip plus a lagging longer expiry mimics nodeClientRenewed and would
 			// undo a master shorten once the freeze lifts (#6228).
-			if lifecycleFrozen && seen && (canon.Up < base.Up || canon.Down < base.Down) {
+			if clientFrozen && seen && (canon.Up < base.Up || canon.Down < base.Down) {
 				continue
 			}
 			if err := s.upsertNodeBaseline(tx, nodeID, cs.Email, canon.Up, canon.Down); err != nil {
