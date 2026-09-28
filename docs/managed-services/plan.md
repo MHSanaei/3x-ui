@@ -56,16 +56,17 @@ Produces `ParseMultiplier(string) (Multiplier,error)`, `Multiplier.String()`,
 `RawAllowance(remaining, remainder int64, multiplier Multiplier) (int64,error)`.
 Consumes the fixed-point contract in semantics.md; no DB or clock dependency.
 
-- [ ] Write failing tests for 0.5/1/1.5/2/10, three-decimal precision, invalid
+- [x] Write failing tests for 0.5/1/1.5/2/10, three-decimal precision, invalid
   zero/negative/NaN/Infinity/exponents, and exact round-trip decimal output.
-- [ ] Test one-byte batches versus unsplit 1,000,001-byte usage, carried
+- [x] Test one-byte batches versus unsplit 1,000,001-byte usage, carried
   fractions across 1×→2×, and 10 GiB + 5 GiB segment example (20 GiB billed).
-- [ ] Test int64 extremes and intermediate product overflow; rejected input
+- [x] Test int64 extremes and intermediate product overflow; rejected input
   must return an exact typed sentinel and no usable partial charge.
-- [ ] Test quota allowance for fractional remaining bytes and all multipliers.
-- [ ] Run `go test ./internal/clientpolicy` and observe missing behavior RED.
-- [ ] Implement checked quotient/remainder operations without floating point.
-- [ ] Run package test, race and fuzz/property boundary checks; commit and push.
+- [x] Test quota allowance for fractional remaining bytes and all multipliers.
+- [x] Run `go test ./internal/clientpolicy` and observe missing behavior RED.
+- [x] Implement checked quotient/remainder operations without floating point.
+- [x] Run package test, race and fuzz/property boundary checks.
+- [ ] Push after approval review permits the external Git operation.
 
 ## Task 3: Durable accounting and identity
 

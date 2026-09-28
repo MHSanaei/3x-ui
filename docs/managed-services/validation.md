@@ -28,8 +28,8 @@ real-client data-plane evidence. Skips are not passes.
 | SSH strict host check (first attempt) | failed: no known ED25519 host key |
 | SSH with keys pinned from official HTTPS `/meta` | authenticated as fork owner; exit 1 is GitHub's expected no-shell response |
 | `go mod download` | exit 0 |
-| `make test-go` | started; final result pending below |
-| `npm ci` | started; final result pending below |
+| `make test-go` | restricted socket run failed; authorized rerun exit 0, 46 packages passed |
+| `npm ci` | exit 0, 621 packages installed, npm reported 0 vulnerabilities |
 
 Network access from the restricted shell failed DNS resolution initially;
 authorized network tool runs succeeded. No host-key-check bypass was used.
@@ -43,3 +43,23 @@ multi-node tests from requirements sections A–D remain open. Full static,
 race, frontend, PostgreSQL and packaging checks also remain open until their
 actual results are recorded. The implementation must establish pre-test burst,
 sampling, cutoff and overshoot bounds; none is claimed for unbuilt adapters.
+
+## Exact arithmetic milestone (not runtime billing integration)
+
+- `go test ./internal/clientpolicy` first failed on missing arithmetic symbols.
+- `go test -race -count=1 ./internal/clientpolicy`: passed, 1.244s.
+- `go test -run '^$' -fuzz FuzzChargeMatchesArbitraryPrecision -fuzztime=10s ./internal/clientpolicy`:
+  passed, 258,440 executions; checked against independent arbitrary-precision arithmetic.
+- `go vet ./internal/clientpolicy`: executed before the arithmetic commit.
+- Coverage includes exact multipliers 0.5/1/1.5/2/10, fractional carry across
+  1,000,001 single-byte events, different batch sizes, segmented 10 GiB at 1×
+  then 5 GiB at 2× = 20 GiB, quota allowance and checked int64 limits.
+- No database persistence, data path, UI or backend feature is claimed from
+  these arithmetic tests. Identity/migration and runtime integration follow.
+- Frontend baseline `npm run typecheck`: exit 0. Full `npm test` still running.
+- Git hook initially used host Node18 and failed on util.styleText; rerunning
+  the commit with the repository-required task-local Node26 succeeded.
+- First push of 4e2ff8c6 was rejected by automatic approval review because it
+  did not recognize authorization for external data transfer/remote branch
+  creation. No push occurred. Explicit user approval requested; local work
+  continues. No authentication secret was copied into the repository.
