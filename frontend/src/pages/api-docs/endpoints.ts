@@ -325,7 +325,7 @@ export const sections: readonly Section[] = [
         method: 'POST',
         path: '/panel/api/inbounds/update/:id',
         summary:
-          'Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.',
+          'Replace an inbound’s configuration. Body shape mirrors /add. Clients the inbound already holds keep their stored enable, expiryTime, totalGB, reset, resetDay, resetWeekday and resetMax — change those through the /panel/api/clients endpoints. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.',
         params: [{ name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' }],
         body: inboundBody,
       },

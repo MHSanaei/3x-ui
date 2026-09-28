@@ -60,10 +60,12 @@ _openapi:
         at most once.
       url: '#delete-many-inbounds-in-one-call-processes-the-list-sequentially-failures-are-reported-per-id-and-the-rest-still-proceed-restarts-xray-at-most-once'
     - depth: 2
-      title: Replace an inbound’s configuration. Body shape mirrors /add. Heavy on
-        inbounds with thousands of clients — prefer /setEnable for enable-only
-        flips.
-      url: '#replace-an-inbounds-configuration-body-shape-mirrors-add-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips'
+      title: Replace an inbound’s configuration. Body shape mirrors /add. Clients the
+        inbound already holds keep their stored enable, expiryTime, totalGB,
+        reset, resetDay, resetWeekday and resetMax — change those through the
+        /panel/api/clients endpoints. Heavy on inbounds with thousands of
+        clients — prefer /setEnable for enable-only flips.
+      url: '#replace-an-inbounds-configuration-body-shape-mirrors-add-clients-the-inbound-already-holds-keep-their-stored-enable-expirytime-totalgb-reset-resetday-resetweekday-and-resetmax--change-those-through-the-panelapiclients-endpoints-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips'
     - depth: 2
       title: Toggle only the enable flag without serialising the whole settings JSON.
         Recommended for UI switches on large inbounds.
@@ -151,10 +153,12 @@ _openapi:
           failures are reported per id and the rest still proceed. Restarts xray
           at most once.
         id: delete-many-inbounds-in-one-call-processes-the-list-sequentially-failures-are-reported-per-id-and-the-rest-still-proceed-restarts-xray-at-most-once
-      - content: Replace an inbound’s configuration. Body shape mirrors /add. Heavy on
-          inbounds with thousands of clients — prefer /setEnable for enable-only
-          flips.
-        id: replace-an-inbounds-configuration-body-shape-mirrors-add-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips
+      - content: Replace an inbound’s configuration. Body shape mirrors /add. Clients
+          the inbound already holds keep their stored enable, expiryTime,
+          totalGB, reset, resetDay, resetWeekday and resetMax — change those
+          through the /panel/api/clients endpoints. Heavy on inbounds with
+          thousands of clients — prefer /setEnable for enable-only flips.
+        id: replace-an-inbounds-configuration-body-shape-mirrors-add-clients-the-inbound-already-holds-keep-their-stored-enable-expirytime-totalgb-reset-resetday-resetweekday-and-resetmax--change-those-through-the-panelapiclients-endpoints-heavy-on-inbounds-with-thousands-of-clients--prefer-setenable-for-enable-only-flips
       - content: Toggle only the enable flag without serialising the whole settings
           JSON. Recommended for UI switches on large inbounds.
         id: toggle-only-the-enable-flag-without-serialising-the-whole-settings-json-recommended-for-ui-switches-on-large-inbounds

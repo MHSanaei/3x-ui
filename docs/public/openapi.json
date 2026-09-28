@@ -5603,7 +5603,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Replace an inbound’s configuration. Body shape mirrors /add. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.",
+        "summary": "Replace an inbound’s configuration. Body shape mirrors /add. Clients the inbound already holds keep their stored enable, expiryTime, totalGB, reset, resetDay, resetWeekday and resetMax — change those through the /panel/api/clients endpoints. Heavy on inbounds with thousands of clients — prefer /setEnable for enable-only flips.",
         "operationId": "post_panel_api_inbounds_update_id",
         "parameters": [
           {

@@ -1770,6 +1770,16 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	var postCommitApply func()
 
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
+		// Re-read inside the writer: a traffic tick since the read above moved the
+		// counters and may have renewed or disabled clients.
+		stored := &model.Inbound{}
+		if err := tx.First(stored, inbound.Id).Error; err != nil {
+			return err
+		}
+		oldInbound = stored
+		if !s.FromNodeSync {
+			inbound.Settings = keepStoredClientLifecycle(inbound.Settings, stored.Settings)
+		}
 		conflict, cErr := checkPortConflictTx(tx, inbound, inbound.Id)
 		if cErr != nil {
 			return cErr
