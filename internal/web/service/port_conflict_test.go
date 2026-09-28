@@ -1,7 +1,9 @@
 package service
 
 import (
+	"net"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -27,14 +30,7 @@ func setupConflictDB(t *testing.T) {
 
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := database.CloseDB(); err != nil {
-			t.Logf("CloseDB warning: %v", err)
-		}
-	})
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 }
 
 func seedInboundConflict(t *testing.T, tag, listen string, port int, protocol model.Protocol, streamSettings, settings string) {
@@ -114,7 +110,7 @@ func TestListenOverlaps(t *testing.T) {
 		{"1.2.3.4", "::1", false},
 	}
 	for _, c := range cases {
-		if got := listenOverlaps(c.a, c.b); got != c.want {
+		if got := listenOverlaps(bindAddr{listen: c.a}, bindAddr{listen: c.b}); got != c.want {
 			t.Errorf("listenOverlaps(%q, %q) = %v, want %v", c.a, c.b, got, c.want)
 		}
 	}
@@ -760,6 +756,30 @@ func TestCheckPortConflict_EgressPortBlockedLocal(t *testing.T) {
 	}
 }
 
+// Where EgressBasePort is taken the egress listens on another port, and that
+// is the port an inbound must not collide with.
+func TestCheckPortConflict_EgressPortFollowsTheListener(t *testing.T) {
+	setupConflictDB(t)
+	if ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(amneziawgnet.EgressBasePort))); err == nil {
+		t.Cleanup(func() { ln.Close() })
+	}
+	egress := amneziawgnet.GetEgressServer()
+	if err := egress.Listen(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(egress.Close)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{Tag: "vless-bridge", Listen: "0.0.0.0", Port: egress.Port(), Protocol: model.VLESS}
+	got, err := svc.checkPortConflict(candidate, 0)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil || got.Tag != "amneziawg-egress" {
+		t.Fatalf("an inbound on the egress's port %d must conflict with amneziawg-egress, got %+v", egress.Port(), got)
+	}
+}
+
 func TestCheckPortConflict_AmneziawgnetSocksRelayBlockedLocal(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflict(t, "awg-1", "0.0.0.0", 51820, model.AmneziaWG, ``, amneziawgRoutedSettings)
@@ -925,5 +945,31 @@ func TestCheckPortConflict_AmneziawgnetSocksRelayReverseDirectionBlockedOnUpdate
 	}
 	if got == nil {
 		t.Fatalf("awg-1's own derived relay port %d collides with vless-1's real port; must be rejected", relayPort)
+	}
+}
+
+// xray binds "::" dual-stack unless sockopt.v6only is set, so only then may an
+// IPv4 address share its port; the flag is read from the saved streamSettings.
+func TestCheckPortConflict_V6OnlyWildcardLeavesIPv4AddressFree(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		stream string
+		want   bool
+	}{
+		{"dual-stack", `{"network":"tcp"}`, true},
+		{"v6only", `{"network":"tcp","sockopt":{"v6only":true}}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			setupConflictDB(t)
+			seedInboundConflict(t, "vless-v6", "::", 443, model.VLESS, tc.stream, `{}`)
+			v4 := &model.Inbound{Tag: "vless-v4", Listen: "10.5.0.200", Port: 443, Protocol: model.VLESS, StreamSettings: `{"network":"tcp"}`}
+			exist, err := (&InboundService{}).checkPortConflict(v4, 0)
+			if err != nil {
+				t.Fatalf("checkPortConflict: %v", err)
+			}
+			if got := exist != nil; got != tc.want {
+				t.Fatalf("conflict = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }

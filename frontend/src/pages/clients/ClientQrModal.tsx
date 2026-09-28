@@ -50,7 +50,7 @@ type QrVariant = 'standard' | 'happ';
 type HappError = 'too_long' | 'unavailable' | null;
 
 const HAPP_CRYPT5_PREFIX = 'happ://crypt5/';
-const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ&happTab=links#subscription';
+const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ#subscription';
 // QrPanel encodes at error level L; QR version 40 holds 2953 UTF-8 bytes at that level.
 const HAPP_QR_MAX_BYTES = 2953;
 const UTF8_ENCODER = new TextEncoder();

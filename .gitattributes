@@ -1,6 +1,3 @@
-*.sh text eol=lf
-frontend/src/generated/** text eol=lf
-frontend/public/openapi.json text eol=lf
-frontend/src/test/__snapshots__/** text eol=lf
-*.go text eol=lf
-deploy/**/*.yaml text eol=lf
+# LF in every checkout, Windows included: format-check, the msw worker check and
+# tests that parse repo files compare bytes, so a CRLF working copy fails them.
+* text=auto eol=lf

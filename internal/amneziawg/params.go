@@ -64,7 +64,7 @@ func GenerateObfuscation31() Obfuscation31 {
 	}
 	// Floored at 12: HeaderProtectionKey is always generated below, and IpcSet
 	// rejects header protection unless every S1-S4 is >= 12.
-	o.S3 = randInt(12, 55) // cookie padding (max 64)
+	o.S3 = randInt(12, 55) // cookie padding
 	o.S4 = randInt(12, 27) // transport padding (max 32)
 
 	h := generateHValues()
@@ -134,6 +134,31 @@ func generateHValues() [4]string {
 	return out
 }
 
+// Padded handshake messages (148+S1, 92+S2, 64+S3 bytes) must fit the smallest receive
+// buffer amneziawg-go has: MaxSegmentSize 1700 on iOS (device/queueconstants_ios.go).
+const (
+	maxServerS1 = 1700 - 148
+	maxServerS2 = 1700 - 92
+	maxServerS3 = 1700 - 64
+)
+
+// ValidateServerObfuscation adds the receive-buffer bounds to ValidateObfuscation:
+// an inbound's peers may be iOS clients, which cannot receive a larger handshake.
+func ValidateServerObfuscation(o Obfuscation31) error {
+	if err := ValidateObfuscation(o); err != nil {
+		return err
+	}
+	for _, f := range []struct {
+		name   string
+		v, max int
+	}{{"S1", o.S1, maxServerS1}, {"S2", o.S2, maxServerS2}, {"S3", o.S3, maxServerS3}} {
+		if f.v > f.max {
+			return fmt.Errorf("invalid %s value %d (must be 0..%d so every client can receive it)", f.name, f.v, f.max)
+		}
+	}
+	return nil
+}
+
 // ValidateObfuscation rejects malformed parameters before they are saved, so
 // a bad manual entry can't break the embedded amneziawg-go device's own
 // UAPI config apply (internal/amneziawgnet's buildUAPIConfig/IpcSet) or
@@ -144,8 +169,8 @@ func ValidateObfuscation(o Obfuscation31) error {
 	if o.Jmin > o.Jmax {
 		return fmt.Errorf("invalid Jmin/Jmax: %d must not exceed %d", o.Jmin, o.Jmax)
 	}
-	// amneziawg-go parses jc/jmin/jmax as uint32 and s1-s4 as uint16
-	// (device/uapi.go); a wider value makes IpcSet reject the whole device.
+	// amneziawg-go parses jc/jmin/jmax as uint32 and s1-s3 as uint16 (device/uapi.go);
+	// a wider value makes IpcSet reject the whole device.
 	for _, f := range []struct {
 		name string
 		v    int
@@ -156,6 +181,7 @@ func ValidateObfuscation(o Obfuscation31) error {
 		{"Jmax", o.Jmax, math.MaxUint32},
 		{"S1", o.S1, math.MaxUint16},
 		{"S2", o.S2, math.MaxUint16},
+		{"S3", o.S3, math.MaxUint16},
 	} {
 		if int64(f.v) < 0 || int64(f.v) > f.max {
 			return fmt.Errorf("invalid %s value %d (must be 0..%d)", f.name, f.v, f.max)
@@ -165,9 +191,6 @@ func ValidateObfuscation(o Obfuscation31) error {
 		if err := validateObfChain(spec); err != nil {
 			return fmt.Errorf("invalid I%d: %w", i+1, err)
 		}
-	}
-	if o.S3 < 0 || o.S3 > 64 {
-		return fmt.Errorf("invalid S3 value %d (must be 0..64)", o.S3)
 	}
 	if o.S4 < 0 || o.S4 > 32 {
 		return fmt.Errorf("invalid S4 value %d (must be 0..32)", o.S4)
@@ -179,6 +202,9 @@ func ValidateObfuscation(o Obfuscation31) error {
 		if err := validateUintRange(h, 0); err != nil {
 			return fmt.Errorf("invalid H%d: %w", i+1, err)
 		}
+	}
+	if err := validateHNoOverlap([4]string{o.H1, o.H2, o.H3, o.H4}); err != nil {
+		return err
 	}
 	if err := validateHeaderProtectionKey(o.HeaderProtectionKey); err != nil {
 		return err
@@ -374,6 +400,27 @@ func validateUintRange(v string, minAllowed int64) error {
 	}
 	if lo < minAllowed || hi > hMaxValid || lo > hi {
 		return fmt.Errorf("range %q must satisfy %d <= low <= high <= %d", v, minAllowed, hMaxValid)
+	}
+	return nil
+}
+
+// validateHNoOverlap mirrors amneziawg-go's "headers must not overlap" (device/uapi.go).
+// A blank Hn is never sent, so the engine keeps its default: WireGuard's own type n.
+func validateHNoOverlap(hs [4]string) error {
+	var lo, hi [4]int64
+	for i, h := range hs {
+		l, u, ok := parseUintRange(h)
+		if !ok {
+			l, u = int64(i+1), int64(i+1)
+		}
+		lo[i], hi[i] = l, u
+	}
+	for i := range 4 {
+		for j := i + 1; j < 4; j++ {
+			if lo[i] <= hi[j] && lo[j] <= hi[i] {
+				return fmt.Errorf("invalid H%d/H%d: %d-%d and %d-%d overlap", i+1, j+1, lo[i], hi[i], lo[j], hi[j])
+			}
+		}
 	}
 	return nil
 }

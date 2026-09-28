@@ -12,6 +12,7 @@ import (
 	"github.com/op/go-logging"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -24,6 +25,7 @@ var loggerInitOnce sync.Once
 // updateInboundClientIps can run end to end. closes the db before
 // TempDir cleanup so windows doesn't complain about the file being in
 // use.
+
 func setupIntegrationDB(t *testing.T) {
 	t.Helper()
 
@@ -46,15 +48,20 @@ func setupIntegrationDB(t *testing.T) {
 		log.SetFlags(origLogFlags)
 	})
 
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("database.InitDB failed: %v", err)
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+}
+
+// enforceIpLimitForTest runs the same two steps processObserved does: select
+// inside the transaction, publish only once it would have committed.
+func (j *CheckClientIpJob) enforceIpLimitForTest(t *testing.T, row *model.InboundClientIps, inbound *model.Inbound, email string, limit int, live []IPWithTimestamp, observedAreLive bool) (banned bool, published []IPWithTimestamp) {
+	t.Helper()
+	candidates, keptLive := j.updateInboundClientIps(database.GetDB(), row, inbound, email, limit, live, true, observedAreLive)
+	actionable := j.selectAdvancedSinceLastBan(email, candidates)
+	done := j.publishBans([]pendingBan{{inbound: inbound, email: email, candidates: candidates, keptLive: keptLive}})
+	if len(done) == 0 {
+		return false, nil
 	}
-	// LIFO cleanup order: this runs before t.TempDir's own cleanup.
-	t.Cleanup(func() {
-		if err := database.CloseDB(); err != nil {
-			t.Logf("database.CloseDB warning: %v", err)
-		}
-	})
+	return true, actionable
 }
 
 // seed an inbound whose settings json has a single client with the
@@ -206,16 +213,13 @@ func TestUpdateInboundClientIps_LiveIpNotBannedByStillFreshHistoricals(t *testin
 	if err != nil {
 		t.Fatalf("getInboundByEmail: %v", err)
 	}
-	shouldCleanLog, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 3, live, true, false)
+	banned, published := j.enforceIpLimitForTest(t, row, inbound, email, 3, live, false)
 
-	if shouldCleanLog {
-		t.Fatalf("shouldCleanLog must be false, nothing should have been banned with 1 live ip under limit 3")
-	}
 	if banned {
 		t.Fatalf("banned must be false with 1 live ip under limit 3")
 	}
-	if len(j.disAllowedIps) != 0 {
-		t.Fatalf("disAllowedIps must be empty, got %v", j.disAllowedIps)
+	if len(published) != 0 {
+		t.Fatalf("published bans must be empty, got %v", published)
 	}
 
 	persisted := ipSet(readClientIps(t, email))
@@ -262,16 +266,13 @@ func TestUpdateInboundClientIps_ExcessLiveIpIsStillBanned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getInboundByEmail: %v", err)
 	}
-	shouldCleanLog, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 1, live, true, false)
+	banned, published := j.enforceIpLimitForTest(t, row, inbound, email, 1, live, false)
 
-	if !shouldCleanLog {
-		t.Fatalf("shouldCleanLog must be true when the live set exceeds the limit")
-	}
 	if !banned {
 		t.Fatalf("banned must be true when the live set exceeds the limit")
 	}
-	if len(j.disAllowedIps) != 1 || j.disAllowedIps[0] != "10.1.0.1" {
-		t.Fatalf("expected 10.1.0.1 to be banned; disAllowedIps = %v", j.disAllowedIps)
+	if len(published) != 1 || published[0].IP != "10.1.0.1" {
+		t.Fatalf("expected 10.1.0.1 to be banned; published = %v", published)
 	}
 
 	persisted := ipSet(readClientIps(t, email))
@@ -446,13 +447,13 @@ func TestUpdateInboundClientIps_AllowlistedIpIsNeitherCountedNorBanned(t *testin
 	if err != nil {
 		t.Fatalf("getInboundByEmail: %v", err)
 	}
-	_, banned := j.updateInboundClientIps(database.GetDB(), row, inbound, email, 1, live, true, false)
+	banned, published := j.enforceIpLimitForTest(t, row, inbound, email, 1, live, false)
 
 	if banned {
 		t.Fatal("an allowlisted address pushed the client over its limit and something was banned")
 	}
-	if len(j.disAllowedIps) != 0 {
-		t.Fatalf("disAllowedIps = %v, want none", j.disAllowedIps)
+	if len(published) != 0 {
+		t.Fatalf("published = %v, want none", published)
 	}
 
 	persisted := ipSet(readClientIps(t, email))
