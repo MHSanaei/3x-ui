@@ -14,7 +14,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // DesiredAmneziaWGInstances derives the AmneziaWG interfaces this panel
@@ -37,47 +36,38 @@ func (s *InboundService) DesiredAmneziaWGInstances() ([]amneziawg.Instance, erro
 		return nil, nil
 	}
 
-	ids := make([]int, 0, len(inbounds))
-	for _, ib := range inbounds {
-		ids = append(ids, ib.Id)
-	}
-	var disabledRows []xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).
-		Where("inbound_id IN ? AND enable = ?", ids, false).
-		Select("inbound_id", "email").
-		Find(&disabledRows).Error
-	if err != nil {
-		return nil, err
-	}
-	disabled := make(map[int]map[string]struct{}, len(disabledRows))
-	for _, row := range disabledRows {
-		if disabled[row.InboundId] == nil {
-			disabled[row.InboundId] = map[string]struct{}{}
-		}
-		disabled[row.InboundId][row.Email] = struct{}{}
-	}
-
 	instances := make([]amneziawg.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
 		inst, ok := amneziawg.InstanceFromInbound(ib)
 		if !ok {
 			continue
 		}
-		if off := disabled[ib.Id]; len(off) > 0 {
-			kept := make([]amneziawg.Peer, 0, len(inst.Peers))
-			for _, p := range inst.Peers {
-				if _, skip := off[p.Email]; !skip {
-					kept = append(kept, p)
-				}
-			}
-			inst.Peers = kept
-		}
-		if len(inst.Peers) == 0 {
-			continue
-		}
 		instances = append(instances, inst)
 	}
-	return instances, nil
+	emails := make([]string, 0)
+	for _, inst := range instances {
+		for _, e := range inst.Peers {
+			emails = append(emails, e.Email)
+		}
+	}
+	disabled, err := trafficDisabledEmails(db, emails)
+	if err != nil {
+		return nil, err
+	}
+	served := instances[:0]
+	for _, inst := range instances {
+		kept := make([]amneziawg.Peer, 0, len(inst.Peers))
+		for _, e := range inst.Peers {
+			if _, off := disabled[e.Email]; !off {
+				kept = append(kept, e)
+			}
+		}
+		inst.Peers = kept
+		if len(kept) > 0 {
+			served = append(served, inst)
+		}
+	}
+	return served, nil
 }
 
 // applyLocalAmneziaWG pushes a single local AmneziaWG inbound's current peer

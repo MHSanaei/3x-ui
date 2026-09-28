@@ -7,7 +7,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // DesiredMtprotoInstances derives the mtg sidecar configs this panel should be
@@ -32,47 +31,38 @@ func (s *InboundService) DesiredMtprotoInstances() ([]mtproto.Instance, error) {
 		return nil, nil
 	}
 
-	ids := make([]int, 0, len(inbounds))
-	for _, ib := range inbounds {
-		ids = append(ids, ib.Id)
-	}
-	var disabledRows []xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).
-		Where("inbound_id IN ? AND enable = ?", ids, false).
-		Select("inbound_id", "email").
-		Find(&disabledRows).Error
-	if err != nil {
-		return nil, err
-	}
-	disabled := make(map[int]map[string]struct{}, len(disabledRows))
-	for _, row := range disabledRows {
-		if disabled[row.InboundId] == nil {
-			disabled[row.InboundId] = map[string]struct{}{}
-		}
-		disabled[row.InboundId][row.Email] = struct{}{}
-	}
-
 	instances := make([]mtproto.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
 		inst, ok := mtproto.InstanceFromInbound(ib)
 		if !ok {
 			continue
 		}
-		if off := disabled[ib.Id]; len(off) > 0 {
-			kept := make([]mtproto.SecretEntry, 0, len(inst.Secrets))
-			for _, sec := range inst.Secrets {
-				if _, skip := off[sec.Name]; !skip {
-					kept = append(kept, sec)
-				}
-			}
-			inst.Secrets = kept
-		}
-		if len(inst.Secrets) == 0 {
-			continue
-		}
 		instances = append(instances, inst)
 	}
-	return instances, nil
+	emails := make([]string, 0)
+	for _, inst := range instances {
+		for _, e := range inst.Secrets {
+			emails = append(emails, e.Name)
+		}
+	}
+	disabled, err := trafficDisabledEmails(db, emails)
+	if err != nil {
+		return nil, err
+	}
+	served := instances[:0]
+	for _, inst := range instances {
+		kept := make([]mtproto.SecretEntry, 0, len(inst.Secrets))
+		for _, e := range inst.Secrets {
+			if _, off := disabled[e.Name]; !off {
+				kept = append(kept, e)
+			}
+		}
+		inst.Secrets = kept
+		if len(kept) > 0 {
+			served = append(served, inst)
+		}
+	}
+	return served, nil
 }
 
 // applyLocalMtproto pushes a single local mtproto inbound's current client set

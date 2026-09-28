@@ -25,7 +25,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -2076,16 +2075,16 @@ func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model
 		return built, nil
 	}
 
-	var clientStats []xray.ClientTraffic
-	if err := tx.Model(xray.ClientTraffic{}).
-		Where("inbound_id = ?", built.Id).
-		Select("email", "enable").
-		Find(&clientStats).Error; err != nil {
-		return nil, err
+	emails := make([]string, 0, len(clients))
+	for _, client := range clients {
+		if c, ok := client.(map[string]any); ok {
+			email, _ := c["email"].(string)
+			emails = append(emails, email)
+		}
 	}
-	enableMap := make(map[string]bool, len(clientStats))
-	for _, clientTraffic := range clientStats {
-		enableMap[clientTraffic.Email] = clientTraffic.Enable
+	disabled, err := trafficDisabledEmails(tx, emails)
+	if err != nil {
+		return nil, err
 	}
 
 	finalClients := make([]any, 0, len(clients))
@@ -2095,7 +2094,7 @@ func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model
 			continue
 		}
 		email, _ := c["email"].(string)
-		if enable, exists := enableMap[email]; exists && !enable {
+		if _, off := disabled[email]; off {
 			continue
 		}
 		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
