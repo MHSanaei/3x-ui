@@ -542,7 +542,7 @@ func checkTuicSocksReverseConflict(db *gorm.DB, id int) (*portConflictDetail, er
 		return nil, err
 	}
 	for _, c := range candidates {
-		if !listenOverlaps("127.0.0.1", c.Listen) {
+		if !listenOverlaps(loopbackBind, inboundBindAddr(c)) {
 			continue
 		}
 		return &portConflictDetail{
@@ -551,6 +551,7 @@ func checkTuicSocksReverseConflict(db *gorm.DB, id int) (*portConflictDetail, er
 			Tag:        c.Tag,
 			Listen:     c.Listen,
 			Port:       relayPort,
+			Relay:      true,
 			Transports: transportTCP,
 		}, nil
 	}
