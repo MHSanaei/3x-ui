@@ -2,12 +2,14 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Form, InputNumber, Select, Space, Typography } from 'antd';
+import { Button, Col, Form, InputNumber, Row, Select, Space, Typography } from 'antd';
 
 import { FormField } from '@/components/form/rhf';
 import { ClientRenewalPreviewSchema } from '@/generated/zod';
 import { HttpUtil } from '@/utils';
 import type { ClientFormValues } from '@/schemas/client';
+
+import './ClientRenewalFields.css';
 
 type RenewalFields = Pick<ClientFormValues, 'reset' | 'resetDay' | 'resetWeekday' | 'resetMax'>;
 type RenewalMode = 'none' | 'interval' | 'weekly' | 'monthly';
@@ -77,68 +79,90 @@ export default function ClientRenewalFields({
     setValue('resetWeekday', next === 'weekly' ? Math.max(1, resetWeekday || 0) : 0);
   }
   return (
-    <>
-      <Form.Item label={t('pages.clients.renewMode')} htmlFor={modeId}>
-        <Select
-          id={modeId}
-          value={mode}
-          onChange={changeMode}
-          options={[
-            { value: 'none', label: t('pages.clients.renewModeNone') },
-            { value: 'interval', label: t('pages.clients.renewModeInterval') },
-            { value: 'weekly', label: t('pages.clients.renewModeWeekly') },
-            { value: 'monthly', label: t('pages.clients.renewModeMonthly') },
-          ]}
-        />
-      </Form.Item>
-      {mode === 'interval' && (
-        <FormField
-          name="reset"
-          label={bulk ? t('pages.clients.renew') : t('pages.clients.renewDays')}
-          tooltip={t('pages.clients.renewDesc')}
-          transform={{ output: (v) => Number(v) || 1 }}
-        >
-          <InputNumber id={'client-renewal-interval-' + formId} min={1} style={{ width: '100%' }} />
-        </FormField>
-      )}
-      {mode === 'monthly' && (
-        <FormField
-          name="resetDay"
-          label={t('pages.clients.renewOnDay')}
-          tooltip={t('pages.clients.renewOnDayDesc')}
-          transform={{ output: (v) => Number(v) || 1 }}
-        >
-          <InputNumber
-            id={'client-renewal-day-' + formId}
-            min={1}
-            max={31}
-            style={{ width: '100%' }}
-          />
-        </FormField>
-      )}
-      {mode === 'weekly' && (
-        <FormField name="resetWeekday" label={t('pages.clients.renewWeekday')}>
-          <Select
-            id={'client-renewal-weekday-' + formId}
-            options={Array.from({ length: 7 }, (_, i) => ({
-              value: i + 1,
-              label: weekdayFormatter.format(new Date(Date.UTC(2026, 0, i + 5))),
-            }))}
-          />
-        </FormField>
-      )}
+    <div className="client-renewal-fields">
+      <Row gutter={16}>
+        <Col xs={24} md={bulk ? 24 : 8}>
+          <Form.Item label={t('pages.clients.renewMode')} htmlFor={modeId}>
+            <Select
+              id={modeId}
+              value={mode}
+              onChange={changeMode}
+              options={[
+                { value: 'none', label: t('pages.clients.renewModeNone') },
+                { value: 'interval', label: t('pages.clients.renewModeInterval') },
+                { value: 'weekly', label: t('pages.clients.renewModeWeekly') },
+                { value: 'monthly', label: t('pages.clients.renewModeMonthly') },
+              ]}
+            />
+          </Form.Item>
+        </Col>
+        {mode === 'interval' && (
+          <Col xs={24} md={bulk ? 24 : 8}>
+            <FormField
+              name="reset"
+              label={bulk ? t('pages.clients.renew') : t('pages.clients.renewDays')}
+              tooltip={t('pages.clients.renewDesc')}
+              transform={{ output: (v) => Number(v) || 1 }}
+            >
+              <InputNumber
+                id={'client-renewal-interval-' + formId}
+                min={1}
+                style={{ width: '100%' }}
+              />
+            </FormField>
+          </Col>
+        )}
+        {mode === 'monthly' && (
+          <Col xs={24} md={bulk ? 24 : 8}>
+            <FormField
+              name="resetDay"
+              label={t('pages.clients.renewOnDay')}
+              tooltip={t('pages.clients.renewOnDayDesc')}
+              transform={{ output: (v) => Number(v) || 1 }}
+            >
+              <InputNumber
+                id={'client-renewal-day-' + formId}
+                min={1}
+                max={31}
+                style={{ width: '100%' }}
+              />
+            </FormField>
+          </Col>
+        )}
+        {mode === 'weekly' && (
+          <Col xs={24} md={bulk ? 24 : 8}>
+            <FormField name="resetWeekday" label={t('pages.clients.renewWeekday')}>
+              <Select
+                id={'client-renewal-weekday-' + formId}
+                options={Array.from({ length: 7 }, (_, i) => ({
+                  value: i + 1,
+                  label: weekdayFormatter.format(new Date(Date.UTC(2026, 0, i + 5))),
+                }))}
+              />
+            </FormField>
+          </Col>
+        )}
+        {mode !== 'none' && (
+          <Col xs={24} md={bulk ? 24 : 8}>
+            <FormField
+              name="resetMax"
+              label={t('pages.clients.renewMax')}
+              tooltip={t('pages.clients.renewMaxDesc')}
+              transform={{ output: (v) => Number(v) || 0 }}
+            >
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </FormField>
+          </Col>
+        )}
+      </Row>
       {mode !== 'none' && (
         <>
-          <FormField
-            name="resetMax"
-            label={t('pages.clients.renewMax')}
-            tooltip={t('pages.clients.renewMaxDesc')}
-            transform={{ output: (v) => Number(v) || 0 }}
-          >
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </FormField>
           <Typography.Paragraph type="secondary">
-            {t('pages.clients.renewScheduleDesc')}
+            {mode === 'interval'
+              ? t('pages.clients.renewIntervalDesc')
+              : mode === 'weekly'
+                ? t('pages.clients.renewWeeklyDesc')
+                : t('pages.clients.renewScheduleDesc')}
           </Typography.Paragraph>
           {query.isError && request === debounced && (
             <Typography.Paragraph type="warning">
@@ -192,6 +216,6 @@ export default function ClientRenewalFields({
           )}
         </>
       )}
-    </>
+    </div>
   );
 }

@@ -745,7 +745,7 @@
       "delayedStart": "Bắt đầu sau lần dùng đầu",
       "expireDays": "Thời hạn (ngày)",
       "renew": "Tự động gia hạn",
-      "renewDesc": "Tự động gia hạn sau khi hết hạn. (0 = tắt) (đơn vị: ngày)",
+      "renewDesc": "Tự động gia hạn sau khi hết hạn. (đơn vị: ngày)",
       "renewDays": "Tự động gia hạn (ngày)",
       "searchPlaceholder": "Tìm email, ghi chú, sub ID, UUID, mật khẩu, auth, Telegram ID…",
       "filterTitle": "Lọc client",
@@ -964,10 +964,12 @@
       "renewNeedsExpiry": "An expiry must be set before auto-renewal can run.",
       "renewPreviewError": "Could not preview renewal dates.",
       "renewOnDay": "Gia hạn vào ngày",
-      "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng. 0 giữ nguyên chế độ khoảng cách theo ngày.",
+      "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng.",
       "renewsUsed": "Số lần gia hạn đã dùng",
       "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
-      "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto."
+      "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto.",
+      "renewIntervalDesc": "Sau khi hết hạn, cộng số ngày đã đặt (mỗi ngày 24 giờ) vào thời điểm hết hạn trước đó và đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm.",
+      "renewWeeklyDesc": "Gia hạn theo lịch diễn ra lúc nửa đêm theo múi giờ của bảng điều khiển và cũng đặt lại lưu lượng của khách hàng. Tắt việc đặt lại lưu lượng độc lập trừ khi bạn muốn đặt lại thêm."
     },
     "groups": {
       "name": "Tên",

@@ -46,6 +46,12 @@ inbounds** at once, with per-client traffic accounting.
 
 The individual and bulk-create forms offer one renewal mode at a time:
 
+In the individual form, the mode, its day/weekday setting, and the renewal limit
+share a row on desktop and stack on mobile. Help and the read-only preview use
+the full width below them. The bulk-create form keeps its stacked fields. Help
+follows the selected mode; the day-1/month-end note appears only for monthly
+renewal. Independent traffic-reset settings remain separate.
+
 | Mode | API fields | Schedule |
 | --- | --- | --- |
 | Disabled | `reset=0`, `resetDay=0`, `resetWeekday=0` | The expiry is not renewed. |
