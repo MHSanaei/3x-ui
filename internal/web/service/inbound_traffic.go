@@ -783,7 +783,6 @@ func (s *InboundService) ResetAllTraffics() error {
 	})
 	if err == nil {
 		s.propagateResetAllTrafficsToNodes()
-		s.resetAllMtprotoQuotas()
 	}
 	return err
 }

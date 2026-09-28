@@ -126,22 +126,24 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 
 func (s *ClientService) ResetAllClientTraffics(inboundSvc *InboundService, id int) error {
 	var resetNodes []int
+	var resetEmails []string
 	err := submitTrafficWrite(func() error {
 		var inner error
-		resetNodes, inner = s.resetAllClientTrafficsLocked(id)
+		resetEmails, resetNodes, inner = s.resetAllClientTrafficsLocked(id)
 		return inner
 	})
 	if err == nil {
-		inboundSvc.resetAllMtprotoQuotas()
+		inboundSvc.resetMtprotoClientQuotas(resetEmails)
 		inboundSvc.deliverNodeResetsNow(resetNodes)
 	}
 	return err
 }
 
-func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]int, error) {
+func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []int, error) {
 	db := database.GetDB()
 	now := time.Now().Unix() * 1000
 	var resetNodes []int
+	var reset []string
 
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		// client_traffics.inbound_id is stale: it reflects the inbound the row was
@@ -164,6 +166,7 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]int, error) {
 		if len(resetEmails) == 0 {
 			return nil
 		}
+		reset = resetEmails
 
 		if err := adjustGroupBaselinesForRemovedTraffic(tx, resetEmails); err != nil {
 			return err
@@ -204,9 +207,9 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]int, error) {
 
 		return result.Error
 	}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return resetNodes, nil
+	return reset, resetNodes, nil
 }
 
 func (s *ClientService) ResetAllTraffics() (bool, error) {

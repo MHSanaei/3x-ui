@@ -78,6 +78,15 @@ func TestPanelResetsZeroSidecarQuota(t *testing.T) {
 			t.Fatalf("sidecar quota resets %v, want [mtga]", got)
 		}
 	})
+	t.Run("inbound clients", func(t *testing.T) {
+		ib, logPath := startQuotaSidecar(t, 46207, model.Client{Enable: true})
+		if err := (&ClientService{}).ResetAllClientTraffics(&InboundService{}, ib.Id); err != nil {
+			t.Fatalf("ResetAllClientTraffics: %v", err)
+		}
+		if got := quotaResets(t, logPath); !slices.Equal(got, []string{"mtga", "mtgb"}) {
+			t.Fatalf("sidecar quota resets %v, want [mtga mtgb]", got)
+		}
+	})
 	t.Run("reset all", func(t *testing.T) {
 		_, logPath := startQuotaSidecar(t, 46202, model.Client{Enable: true})
 		if _, err := (&ClientService{}).ResetAllTraffics(); err != nil {
@@ -97,4 +106,32 @@ func TestPanelResetsZeroSidecarQuota(t *testing.T) {
 			t.Fatalf("sidecar quota resets %v, want [mtga]", got)
 		}
 	})
+}
+
+// Resetting inbound counters leaves every client's usage in place, so the
+// sidecar's quota counters must stay too or clients get their quota again free.
+func TestInboundResetAllKeepsSidecarQuota(t *testing.T) {
+	_, logPath := startQuotaSidecar(t, 46204, model.Client{Enable: true})
+	if err := (&InboundService{}).ResetAllTraffics(); err != nil {
+		t.Fatalf("ResetAllTraffics: %v", err)
+	}
+	if got := quotaResets(t, logPath); len(got) != 0 {
+		t.Fatalf("inbound reset zeroed sidecar quotas %v, want none", got)
+	}
+}
+
+// Resetting one inbound's clients zeroes only their sidecar quotas, not those
+// of MTProto clients whose usage the reset left in place.
+func TestInboundClientResetKeepsOtherSidecarQuotas(t *testing.T) {
+	_, logPath := startQuotaSidecar(t, 46205, model.Client{Enable: true})
+	other := mkInbound(t, 46206, model.VLESS, clientsSettings(t, []model.Client{{Email: "vless-only", ID: "11111111-1111-1111-1111-1111111111ab", Enable: true}}))
+	if err := (&ClientService{}).SyncInbound(nil, other.Id, []model.Client{{Email: "vless-only", ID: "11111111-1111-1111-1111-1111111111ab", Enable: true}}); err != nil {
+		t.Fatalf("SyncInbound: %v", err)
+	}
+	if err := (&ClientService{}).ResetAllClientTraffics(&InboundService{}, other.Id); err != nil {
+		t.Fatalf("ResetAllClientTraffics: %v", err)
+	}
+	if got := quotaResets(t, logPath); len(got) != 0 {
+		t.Fatalf("resetting another inbound zeroed sidecar quotas %v, want none", got)
+	}
 }
