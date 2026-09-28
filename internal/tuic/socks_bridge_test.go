@@ -376,3 +376,24 @@ func TestSocksRelayDialUDP(t *testing.T) {
 		t.Fatalf("unexpected addr: %v", recvAddr)
 	}
 }
+
+func TestSOCKSPortForInboundKeepsEverySlotInsideTheWindow(t *testing.T) {
+	for id := 1; id <= 3000; id++ {
+		port := SOCKSPortForInbound(id)
+		if port < 64001 || port > 65000 {
+			t.Fatalf("id %d derived port %d outside window [64001, 65000]", id, port)
+		}
+	}
+	if got := SOCKSPortForInbound(1); got != 64001 {
+		t.Fatalf("expected 64001 for id 1, got %d", got)
+	}
+	if got := SOCKSPortForInbound(1000); got != 65000 {
+		t.Fatalf("expected 65000 for id 1000, got %d", got)
+	}
+	if got := SOCKSPortForInbound(1001); got != 64001 {
+		t.Fatalf("expected 64001 for id 1001, got %d", got)
+	}
+	if got := SOCKSPortForInbound(0); got != 64001 {
+		t.Fatalf("expected 64001 for id 0, got %d", got)
+	}
+}

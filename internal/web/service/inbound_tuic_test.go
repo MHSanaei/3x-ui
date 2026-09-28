@@ -55,21 +55,14 @@ func TestInjectTuicSocks(t *testing.T) {
 	}
 
 	var parsedSettings struct {
-		Auth     string `json:"auth"`
-		UDP      bool   `json:"udp"`
-		Accounts []struct {
-			User string `json:"user"`
-			Pass string `json:"pass"`
-		} `json:"accounts"`
+		Auth string `json:"auth"`
+		UDP  bool   `json:"udp"`
 	}
 	if err := json.Unmarshal(sc.Settings, &parsedSettings); err != nil {
 		t.Fatalf("failed to unmarshal settings: %v", err)
 	}
-	if parsedSettings.Auth != "password" || !parsedSettings.UDP {
-		t.Fatalf("expected auth=password, udp=true, got %+v", parsedSettings)
-	}
-	if len(parsedSettings.Accounts) != 1 || parsedSettings.Accounts[0].User != "user1@example.com" {
-		t.Fatalf("unexpected accounts: %+v", parsedSettings.Accounts)
+	if parsedSettings.Auth != "noauth" || !parsedSettings.UDP {
+		t.Fatalf("expected auth=noauth, udp=true, got %+v", parsedSettings)
 	}
 }
 
@@ -248,5 +241,55 @@ func TestCheckTuicSocksConflict_DisabledInboundRetainsReservation(t *testing.T) 
 	}
 	if conflict.InboundID != tuicIb.Id {
 		t.Fatalf("expected conflict with inbound %d, got %d", tuicIb.Id, conflict.InboundID)
+	}
+}
+
+func TestCheckTuicSocksRelayCollision(t *testing.T) {
+	setupConflictDB(t)
+	// Seed first TUIC inbound with ID 1
+	ib1 := &model.Inbound{
+		Id:       1,
+		Tag:      "tuic-1",
+		Protocol: model.TUIC,
+		Enable:   true,
+		Listen:   "0.0.0.0",
+		Port:     8443,
+		Settings: `{"clients":[{"uuid":"a0000000-0000-0000-0000-000000000001","password":"p","email":"u1@test.com"}]}`,
+	}
+	if err := database.GetDB().Create(ib1).Error; err != nil {
+		t.Fatalf("seed ib1: %v", err)
+	}
+
+	// ID 1001 wraps to the same relay port (64001) as ID 1
+	conflict, err := checkTuicSocksRelayCollision(database.GetDB(), 1001)
+	if err != nil {
+		t.Fatalf("checkTuicSocksRelayCollision: %v", err)
+	}
+	if conflict == nil {
+		t.Fatal("expected collision between ID 1001 and ID 1, got nil")
+	}
+	if conflict.InboundID != 1 {
+		t.Fatalf("expected collision with inbound 1, got %d", conflict.InboundID)
+	}
+}
+
+func TestTuicSocksSelfConflict(t *testing.T) {
+	ib := &model.Inbound{
+		Protocol: model.TUIC,
+		Listen:   "127.0.0.1",
+		Port:     tuic.SOCKSPortForInbound(5),
+	}
+	errStr := tuicSocksSelfConflict(ib, 5)
+	if errStr == "" {
+		t.Fatal("expected self conflict error string, got empty")
+	}
+	if !strings.Contains(errStr, "own SOCKS5 relay port") {
+		t.Fatalf("unexpected error string: %s", errStr)
+	}
+
+	// Different port should not conflict
+	ib.Port = 9999
+	if diff := tuicSocksSelfConflict(ib, 5); diff != "" {
+		t.Fatalf("expected no conflict for different port, got %s", diff)
 	}
 }

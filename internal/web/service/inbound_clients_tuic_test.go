@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 )
 
 func TestBuildTargetClientFromSourceTuic(t *testing.T) {
@@ -65,8 +66,12 @@ func TestAddInboundTuicClientValidation(t *testing.T) {
 	}
 }
 
-func TestTuicClientMutationsRequestRestart(t *testing.T) {
+func TestTuicClientMutationsDoNotRequireRestart(t *testing.T) {
 	setupConflictDB(t)
+	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, SetNeedRestart: func() {}})
+	runtime.SetManager(mgr)
+	t.Cleanup(func() { runtime.SetManager(nil) })
+
 	inboundSvc := &InboundService{}
 	clientSvc := &ClientService{}
 
@@ -86,7 +91,6 @@ func TestTuicClientMutationsRequestRestart(t *testing.T) {
 		t.Fatalf("AddInbound failed: %v", err)
 	}
 
-	// 1. Add client -> must return needRestart = true
 	addPayload := &model.Inbound{
 		Id:       created.Id,
 		Settings: `{"clients":[{"id":"a0000000-0000-0000-0000-000000000002","password":"p2","email":"user2@tuic.com","enable":true}]}`,
@@ -95,11 +99,10 @@ func TestTuicClientMutationsRequestRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddInboundClient failed: %v", err)
 	}
-	if !needRestart {
-		t.Fatal("expected needRestart = true when adding TUIC client")
+	if needRestart {
+		t.Fatal("expected needRestart = false when adding TUIC client")
 	}
 
-	// 2. Update client -> must return needRestart = true
 	updatePayload := &model.Inbound{
 		Id:       created.Id,
 		Settings: `{"clients":[{"id":"a0000000-0000-0000-0000-000000000002","password":"new-p2","email":"user2@tuic.com","enable":true}]}`,
@@ -108,16 +111,15 @@ func TestTuicClientMutationsRequestRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateInboundClient failed: %v", err)
 	}
-	if !needRestart {
-		t.Fatal("expected needRestart = true when updating TUIC client")
+	if needRestart {
+		t.Fatal("expected needRestart = false when updating TUIC client")
 	}
 
-	// 3. Delete client -> must return needRestart = true
 	needRestart, err = clientSvc.DelInboundClientByEmail(inboundSvc, created.Id, "user2@tuic.com", false, true)
 	if err != nil {
 		t.Fatalf("DelInboundClientByEmail failed: %v", err)
 	}
-	if !needRestart {
-		t.Fatal("expected needRestart = true when deleting TUIC client")
+	if needRestart {
+		t.Fatal("expected needRestart = false when deleting TUIC client")
 	}
 }

@@ -245,27 +245,28 @@ func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbou
 	}
 	if oldIb.Protocol != model.TUIC {
 		_ = l.DelInbound(ctx, oldIb)
-	}
-	if !newIb.Enable {
-		tuic.GetManager().Remove(newIb.Id)
 		if l.deps.SetNeedRestart != nil {
 			l.deps.SetNeedRestart()
 		}
+	}
+	if !newIb.Enable {
+		tuic.GetManager().Remove(newIb.Id)
+		if oldIb.Enable && l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
 		return nil
+	}
+	if !oldIb.Enable && newIb.Enable {
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
 	}
 	inst, ok := tuic.InstanceFromInbound(newIb)
 	if !ok {
 		tuic.GetManager().Remove(newIb.Id)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
-		}
 		return nil
 	}
-	err := tuic.GetManager().Ensure(inst)
-	if l.deps.SetNeedRestart != nil {
-		l.deps.SetNeedRestart()
-	}
-	return err
+	return tuic.GetManager().Ensure(inst)
 }
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {

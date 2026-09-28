@@ -332,3 +332,61 @@ func TestServerUDPDatagramE2E(t *testing.T) {
 		t.Fatalf("unexpected traffic deltas: %+v", deltas[0])
 	}
 }
+
+func TestPacketReassembler(t *testing.T) {
+	pr := newPacketReassembler()
+	targetAddr := &Address{Type: AddrTypeIPv4, IP: net.ParseIP("1.1.1.1"), Port: 53}
+
+	// 1. Unfragmented packet
+	hdrSingle := &PacketHeader{
+		AssocID:   1,
+		PktID:     1,
+		FragTotal: 1,
+		FragID:    0,
+		Addr:      targetAddr,
+	}
+	addr, payload := pr.feed(hdrSingle, []byte("hello single"))
+	if addr == nil || string(payload) != "hello single" {
+		t.Fatalf("unexpected single packet result: %v, %s", addr, payload)
+	}
+
+	// 2. In-order fragments (3 parts)
+	hdr0 := &PacketHeader{AssocID: 2, PktID: 10, FragTotal: 3, FragID: 0, Addr: targetAddr}
+	hdr1 := &PacketHeader{AssocID: 2, PktID: 10, FragTotal: 3, FragID: 1, Addr: targetAddr}
+	hdr2 := &PacketHeader{AssocID: 2, PktID: 10, FragTotal: 3, FragID: 2, Addr: targetAddr}
+
+	_, p0 := pr.feed(hdr0, []byte("part0-"))
+	if p0 != nil {
+		t.Fatalf("expected nil before all fragments arrive, got %s", p0)
+	}
+	_, p1 := pr.feed(hdr1, []byte("part1-"))
+	if p1 != nil {
+		t.Fatalf("expected nil before all fragments arrive, got %s", p1)
+	}
+	a2, p2 := pr.feed(hdr2, []byte("part2"))
+	if a2 == nil || string(p2) != "part0-part1-part2" {
+		t.Fatalf("expected reassembled payload 'part0-part1-part2', got %v, %s", a2, p2)
+	}
+
+	// 3. Out-of-order fragments (parts 1, 2, 0)
+	hdrOO0 := &PacketHeader{AssocID: 3, PktID: 20, FragTotal: 3, FragID: 0, Addr: targetAddr}
+	hdrOO1 := &PacketHeader{AssocID: 3, PktID: 20, FragTotal: 3, FragID: 1, Addr: targetAddr}
+	hdrOO2 := &PacketHeader{AssocID: 3, PktID: 20, FragTotal: 3, FragID: 2, Addr: targetAddr}
+
+	if _, p := pr.feed(hdrOO1, []byte("MIDDLE-")); p != nil {
+		t.Fatalf("expected nil, got %s", p)
+	}
+	if _, p := pr.feed(hdrOO2, []byte("END")); p != nil {
+		t.Fatalf("expected nil, got %s", p)
+	}
+	aOO, pOO := pr.feed(hdrOO0, []byte("START-"))
+	if aOO == nil || string(pOO) != "START-MIDDLE-END" {
+		t.Fatalf("expected 'START-MIDDLE-END', got %s", pOO)
+	}
+
+	// 4. Invalid FragID >= FragTotal
+	hdrInv := &PacketHeader{AssocID: 4, PktID: 30, FragTotal: 2, FragID: 2, Addr: targetAddr}
+	if _, p := pr.feed(hdrInv, []byte("invalid")); p != nil {
+		t.Fatalf("expected nil for invalid FragID, got %s", p)
+	}
+}

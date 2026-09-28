@@ -125,12 +125,14 @@ func TestTuicJob_TrafficAccounting(t *testing.T) {
 		t.Fatalf("client traffic mismatch: got up=%d down=%d, want up=%d down=%d", dbClient.Up, dbClient.Down, wantUp, wantDown)
 	}
 
-	// Verify inbound total traffic in database
+	// Verify inbound total traffic in database: TuicJob leaves inbound total
+	// accounting to xray_traffic_job (metered on the SOCKS relay tag, matching mtproto),
+	// preventing double-counting.
 	var dbInbound model.Inbound
 	if err := database.GetDB().First(&dbInbound, inbound.Id).Error; err != nil {
 		t.Fatalf("find inbound in DB failed: %v", err)
 	}
-	if dbInbound.Up != wantUp || dbInbound.Down != wantDown {
-		t.Fatalf("inbound traffic mismatch: got up=%d down=%d, want up=%d down=%d", dbInbound.Up, dbInbound.Down, wantUp, wantDown)
+	if dbInbound.Up != 0 || dbInbound.Down != 0 {
+		t.Fatalf("expected inbound traffic to remain 0 in TuicJob (metered by Xray bridge), got up=%d down=%d", dbInbound.Up, dbInbound.Down)
 	}
 }

@@ -1271,12 +1271,18 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 				return aErr
 			}
 		}
-		if inbound.Protocol == model.TUIC {
-			if tuic.SOCKSPortForInbound(inbound.Id) > 65535 {
-				return common.NewErrorf("tuic: inbound id %d exceeds the relay port window (ids above %d are not supported)",
-					inbound.Id, 65535-tuic.SOCKSBasePort)
+		if inbound.NodeID == nil && inbound.Protocol == model.TUIC {
+			if self := tuicSocksSelfConflict(inbound, inbound.Id); self != "" {
+				return common.NewError(self)
 			}
-			conflict, cErr := checkTuicSocksReverseConflict(tx, inbound.Id)
+			conflict, cErr := checkTuicSocksRelayCollision(tx, inbound.Id)
+			if cErr != nil {
+				return cErr
+			}
+			if conflict != nil {
+				return common.NewError(conflict.String())
+			}
+			conflict, cErr = checkTuicSocksReverseConflict(tx, inbound.Id)
 			if cErr != nil {
 				return cErr
 			}

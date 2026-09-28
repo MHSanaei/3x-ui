@@ -32,25 +32,8 @@ func (j *TuicJob) Run() {
 	mgr := tuic.GetManager()
 	mgr.Reconcile(desired)
 
-	inboundDeltas, clientDeltas := mgr.CollectAllTraffic()
+	_, clientDeltas := mgr.CollectAllTraffic()
 	onlineEmails, _ := mgr.GetActiveClients(30 * time.Second)
-
-	inboundUp := make(map[string]int64)
-	inboundDown := make(map[string]int64)
-	for _, d := range inboundDeltas {
-		inboundUp[d.Tag] += d.Up
-		inboundDown[d.Tag] += d.Down
-	}
-
-	traffics := make([]*xray.Traffic, 0, len(inboundUp))
-	for tag, up := range inboundUp {
-		traffics = append(traffics, &xray.Traffic{
-			IsInbound: true,
-			Tag:       tag,
-			Up:        up,
-			Down:      inboundDown[tag],
-		})
-	}
 
 	clientTrafficMap := make(map[string]*xray.ClientTraffic, len(clientDeltas)+len(onlineEmails))
 	for _, cd := range clientDeltas {
@@ -75,8 +58,10 @@ func (j *TuicJob) Run() {
 		clientTraffics = append(clientTraffics, ct)
 	}
 
-	if len(traffics) > 0 || len(clientTraffics) > 0 {
-		needRestart, _, err := j.inboundService.AddTraffic(traffics, clientTraffics)
+	// Inbound total traffic is already metered through the loopback SOCKS relay
+	// by xray_traffic_job (matching mtproto); only per-client deltas are submitted here.
+	if len(clientTraffics) > 0 {
+		needRestart, _, err := j.inboundService.AddTraffic(nil, clientTraffics)
 		if err != nil {
 			logger.Warning("tuic job: add traffic failed:", err)
 		} else if needRestart {

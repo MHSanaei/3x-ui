@@ -498,16 +498,19 @@ func PipeBiDirectional(a, b io.ReadWriteCloser, upCounter, downCounter *atomic.I
 
 // SOCKSBasePort is the first loopback port used for a TUIC inbound's
 // internal Xray SOCKS5 relay inbound.
-const SOCKSBasePort = 63200
+const SOCKSBasePort = 64000
+
+// relayPortSlots is how many ids fit in the TUIC relay port window (64001..65000).
+const relayPortSlots = 1000
 
 // SOCKSPortForInbound derives one inbound's loopback SOCKS5 relay port from
-// its id, bounded within the valid TCP port range (<= 65535).
+// its id, bounded within the dedicated range 64001..65000 so it never collides
+// with AmneziaWG (65101..65535), API (62789), or node egress (62800..63800).
 func SOCKSPortForInbound(inboundID int) int {
-	port := SOCKSBasePort + inboundID
-	if port > 65535 {
-		port = 63200 + (inboundID % 1000)
+	if inboundID <= 0 {
+		return SOCKSBasePort + 1
 	}
-	return port
+	return SOCKSBasePort + 1 + (inboundID-1)%relayPortSlots
 }
 
 var (

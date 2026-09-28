@@ -791,7 +791,10 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 	}
 }
 
-const tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
+const (
+	tuicEgressSocksSettings    = `{"auth":"noauth","udp":true}`
+	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
+)
 
 func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 	existingTags := make(map[string]struct{}, len(cfg.InboundConfigs))
@@ -803,28 +806,8 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 		if inbound.Protocol != model.TUIC || !inbound.Enable || inbound.NodeID != nil {
 			continue
 		}
-		inst, ok := tuic.InstanceFromInbound(inbound)
-		if !ok {
-			continue
-		}
 		if _, taken := existingTags[inbound.Tag]; taken {
 			logger.Warning("tuic socks: inbound tag [", inbound.Tag, "] already present in generated config, skipping its relay inbound")
-			continue
-		}
-
-		emails := make([]string, 0, len(inst.Clients))
-		for _, c := range inst.Clients {
-			if c.Email != "" {
-				emails = append(emails, c.Email)
-			}
-		}
-		if len(emails) == 0 {
-			continue
-		}
-
-		settings, err := tuic.SocksInboundSettings(emails, tuic.SocksPassword())
-		if err != nil {
-			logger.Warning("tuic socks: building settings for inbound [", inbound.Tag, "]: ", err)
 			continue
 		}
 
@@ -833,7 +816,7 @@ func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 			Listen:   json_util.RawMessage(`"127.0.0.1"`),
 			Port:     tuic.SOCKSPortForInbound(inbound.Id),
 			Protocol: "socks",
-			Settings: json_util.RawMessage(settings),
+			Settings: json_util.RawMessage(tuicEgressSocksSettings),
 			Sniffing: json_util.RawMessage(tuicEgressSniffingSettings),
 			Tag:      inbound.Tag,
 		})

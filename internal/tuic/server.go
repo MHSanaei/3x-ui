@@ -27,6 +27,9 @@ type Server struct {
 	listenAddr  string
 	authTimeout time.Duration
 
+	maxUdpRelayPacketSize int
+	congestionControl     string
+
 	users *UserRegistry
 	relay *SocksRelay
 
@@ -36,6 +39,9 @@ type Server struct {
 	packetConn   net.PacketConn
 
 	lastOnline sync.Map // email string -> time.Time
+
+	activeConnsMu sync.Mutex
+	activeConns   map[[16]byte]map[*quic.Conn]struct{}
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -74,6 +80,14 @@ func NewServer(inst Instance, relay *SocksRelay) (*Server, error) {
 	if authTimeout <= 0 {
 		authTimeout = 3
 	}
+	maxUdpSize := inst.MaxUdpRelayPacketSize
+	if maxUdpSize <= 0 {
+		maxUdpSize = 1500
+	}
+	cc := inst.CongestionControl
+	if cc == "" {
+		cc = "cubic"
+	}
 
 	quicConfig := &quic.Config{
 		EnableDatagrams: true,
@@ -88,16 +102,19 @@ func NewServer(inst Instance, relay *SocksRelay) (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Server{
-		id:          inst.Id,
-		tag:         inst.Tag,
-		listenAddr:  inst.BindTo(),
-		authTimeout: time.Duration(authTimeout) * time.Second,
-		users:       registry,
-		relay:       relay,
-		tlsConfig:   tlsConfig,
-		quicConfig:  quicConfig,
-		ctx:         ctx,
-		cancel:      cancel,
+		id:                    inst.Id,
+		tag:                   inst.Tag,
+		listenAddr:            inst.BindTo(),
+		authTimeout:           time.Duration(authTimeout) * time.Second,
+		maxUdpRelayPacketSize: maxUdpSize,
+		congestionControl:     cc,
+		users:                 registry,
+		activeConns:           make(map[[16]byte]map[*quic.Conn]struct{}),
+		relay:                 relay,
+		tlsConfig:             tlsConfig,
+		quicConfig:            quicConfig,
+		ctx:                   ctx,
+		cancel:                cancel,
 	}, nil
 }
 
@@ -129,9 +146,57 @@ func (s *Server) IsRunning() bool {
 	return s.running.Load() && !s.closed.Load()
 }
 
-// UpdateUsers updates the active users dynamically without restarting the listener.
+func (s *Server) registerConn(uuid [16]byte, conn *quic.Conn) {
+	s.activeConnsMu.Lock()
+	defer s.activeConnsMu.Unlock()
+	if s.activeConns[uuid] == nil {
+		s.activeConns[uuid] = make(map[*quic.Conn]struct{})
+	}
+	s.activeConns[uuid][conn] = struct{}{}
+}
+
+func (s *Server) unregisterConn(uuid [16]byte, conn *quic.Conn) {
+	s.activeConnsMu.Lock()
+	defer s.activeConnsMu.Unlock()
+	if conns := s.activeConns[uuid]; conns != nil {
+		delete(conns, conn)
+		if len(conns) == 0 {
+			delete(s.activeConns, uuid)
+		}
+	}
+}
+
+func (s *Server) closeUserConns(uuid [16]byte) {
+	s.activeConnsMu.Lock()
+	conns := s.activeConns[uuid]
+	delete(s.activeConns, uuid)
+	s.activeConnsMu.Unlock()
+
+	for conn := range conns {
+		_ = conn.CloseWithError(0x100, "tuic: user revoked")
+	}
+}
+
+func (s *Server) closeAllConns() {
+	s.activeConnsMu.Lock()
+	all := s.activeConns
+	s.activeConns = make(map[[16]byte]map[*quic.Conn]struct{})
+	s.activeConnsMu.Unlock()
+
+	for _, conns := range all {
+		for conn := range conns {
+			_ = conn.CloseWithError(0x00, "tuic: server closed")
+		}
+	}
+}
+
+// UpdateUsers updates the active users dynamically without restarting the listener,
+// and terminates active QUIC sessions for any revoked or disabled users.
 func (s *Server) UpdateUsers(clients []TuicClientSettings) {
-	s.users.SetUsers(clients)
+	revoked := s.users.SetUsers(clients)
+	for _, u := range revoked {
+		s.closeUserConns(u.UUID)
+	}
 }
 
 // GetActiveEmails returns emails that were active within the specified time window.
@@ -225,6 +290,7 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			return
 		}
 		authUser.Store(u)
+		s.registerConn(u.UUID, conn)
 		s.markActive(u.Email)
 		authOnce.Do(func() { close(authSignal) })
 	}
@@ -244,6 +310,9 @@ func (s *Server) handleConn(conn *quic.Conn) {
 	}
 
 	cleanup := func() {
+		if u := authUser.Load(); u != nil {
+			s.unregisterConn(u.UUID, conn)
+		}
 		sessCancel()
 		udpSessions.Range(func(key, value any) bool {
 			sess := value.(*SocksUDPSession)
@@ -290,6 +359,8 @@ func (s *Server) handleConn(conn *quic.Conn) {
 		}
 	}()
 
+	reassembler := newPacketReassembler()
+
 	// Loop 3: Datagrams
 	innerWg.Add(1)
 	go func() {
@@ -299,7 +370,7 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			if err != nil {
 				return
 			}
-			s.handleDatagram(sessCtx, conn, dgram, markAuth, waitForAuth, &udpSessions)
+			s.handleDatagram(sessCtx, conn, dgram, markAuth, waitForAuth, &udpSessions, reassembler)
 		}
 	}()
 
@@ -422,6 +493,87 @@ func (s *Server) handleBiStream(
 	}
 }
 
+type packetFragmentKey struct {
+	assocID uint16
+	pktID   uint16
+}
+
+type packetReassembly struct {
+	total     uint8
+	received  uint8
+	frags     [][]byte
+	addr      *Address
+	updatedAt time.Time
+}
+
+type packetReassembler struct {
+	mu      sync.Mutex
+	packets map[packetFragmentKey]*packetReassembly
+}
+
+func newPacketReassembler() *packetReassembler {
+	return &packetReassembler{
+		packets: make(map[packetFragmentKey]*packetReassembly),
+	}
+}
+
+func (pr *packetReassembler) feed(hdr *PacketHeader, payload []byte) (*Address, []byte) {
+	if hdr.FragTotal <= 1 {
+		return hdr.Addr, payload
+	}
+	if hdr.FragID >= hdr.FragTotal {
+		return nil, nil
+	}
+
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+
+	now := time.Now()
+	if len(pr.packets) > 32 {
+		for k, v := range pr.packets {
+			if now.Sub(v.updatedAt) > 10*time.Second {
+				delete(pr.packets, k)
+			}
+		}
+	}
+
+	key := packetFragmentKey{assocID: hdr.AssocID, pktID: hdr.PktID}
+	entry, ok := pr.packets[key]
+	if !ok {
+		entry = &packetReassembly{
+			total:     hdr.FragTotal,
+			frags:     make([][]byte, hdr.FragTotal),
+			addr:      hdr.Addr,
+			updatedAt: now,
+		}
+		pr.packets[key] = entry
+	}
+
+	if entry.frags[hdr.FragID] == nil {
+		entry.frags[hdr.FragID] = payload
+		entry.received++
+		entry.updatedAt = now
+		if entry.addr == nil && hdr.Addr != nil {
+			entry.addr = hdr.Addr
+		}
+	}
+
+	if entry.received == entry.total {
+		delete(pr.packets, key)
+		totalLen := 0
+		for _, f := range entry.frags {
+			totalLen += len(f)
+		}
+		assembled := make([]byte, 0, totalLen)
+		for _, f := range entry.frags {
+			assembled = append(assembled, f...)
+		}
+		return entry.addr, assembled
+	}
+
+	return nil, nil
+}
+
 func (s *Server) handleDatagram(
 	ctx context.Context,
 	conn *quic.Conn,
@@ -429,6 +581,7 @@ func (s *Server) handleDatagram(
 	markAuth func(*User),
 	waitForAuth func() (*User, error),
 	udpSessions *sync.Map,
+	reassembler *packetReassembler,
 ) {
 	if len(dgram) < 2 || dgram[0] != ProtocolVersion {
 		return
@@ -455,7 +608,11 @@ func (s *Server) handleDatagram(
 		if _, err := io.ReadFull(r, payload); err != nil {
 			return
 		}
-		s.forwardUDPPacket(ctx, conn, user, hdr.AssocID, hdr.Addr, payload, udpSessions)
+		addr, fullPayload := reassembler.feed(hdr, payload)
+		if fullPayload == nil {
+			return
+		}
+		s.forwardUDPPacket(ctx, conn, user, hdr.AssocID, addr, fullPayload, udpSessions)
 
 	case CmdDissociate:
 		if len(dgram) >= 4 {
@@ -501,13 +658,20 @@ func (s *Server) forwardUDPPacket(
 	}
 }
 
+const maxDatagramFragmentSize = 1150
+
 func (s *Server) relayUDPResponses(
 	conn *quic.Conn,
 	user *User,
 	assocID uint16,
 	sess *SocksUDPSession,
 ) {
-	buf := make([]byte, 65535)
+	bufSize := s.maxUdpRelayPacketSize
+	if bufSize < 1500 {
+		bufSize = 1500
+	}
+	buf := make([]byte, bufSize)
+	var nextPktID uint16
 	for {
 		srcAddr, respPayload, err := sess.Receive(buf)
 		if err != nil {
@@ -517,8 +681,41 @@ func (s *Server) relayUDPResponses(
 		user.BytesDown.Add(int64(len(respPayload)))
 		s.markActive(user.Email)
 
+		nextPktID++
+		s.sendUDPPacketFragments(conn, assocID, nextPktID, srcAddr, respPayload)
+	}
+}
+
+func (s *Server) sendUDPPacketFragments(
+	conn *quic.Conn,
+	assocID, pktID uint16,
+	srcAddr *Address,
+	payload []byte,
+) {
+	if len(payload) <= maxDatagramFragmentSize {
 		var out bytes.Buffer
-		if err := WritePacket(&out, assocID, 0, 1, 0, srcAddr, respPayload); err == nil {
+		if err := WritePacket(&out, assocID, pktID, 1, 0, srcAddr, payload); err == nil {
+			_ = conn.SendDatagram(out.Bytes())
+		}
+		return
+	}
+
+	numFrags := (len(payload) + maxDatagramFragmentSize - 1) / maxDatagramFragmentSize
+	if numFrags > 255 {
+		return
+	}
+	fragTotal := uint8(numFrags)
+
+	for i := 0; i < int(fragTotal); i++ {
+		start := i * maxDatagramFragmentSize
+		end := start + maxDatagramFragmentSize
+		if end > len(payload) {
+			end = len(payload)
+		}
+		chunk := payload[start:end]
+
+		var out bytes.Buffer
+		if err := WritePacket(&out, assocID, pktID, fragTotal, uint8(i), srcAddr, chunk); err == nil {
 			_ = conn.SendDatagram(out.Bytes())
 		}
 	}
@@ -539,6 +736,8 @@ func (s *Server) Close() error {
 	if s.packetConn != nil {
 		_ = s.packetConn.Close()
 	}
+
+	s.closeAllConns()
 
 	s.wg.Wait()
 	return err

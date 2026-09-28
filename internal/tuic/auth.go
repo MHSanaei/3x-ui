@@ -40,8 +40,9 @@ func NewUserRegistry() *UserRegistry {
 	}
 }
 
-// SetUsers updates the user list atomically in memory, preserving counters for active users.
-func (ur *UserRegistry) SetUsers(clients []TuicClientSettings) {
+// SetUsers updates the user list atomically in memory, preserving counters and
+// pointer stability for active sessions. It returns any users removed from the registry.
+func (ur *UserRegistry) SetUsers(clients []TuicClientSettings) (revoked []*User) {
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 
@@ -51,19 +52,26 @@ func (ur *UserRegistry) SetUsers(clients []TuicClientSettings) {
 		if err != nil {
 			continue
 		}
-		u := &User{
-			UUID:     parsed,
-			UUIDStr:  parsed.String(),
-			Password: c.Password,
-			Email:    c.Email,
-		}
 		if existing, ok := ur.users[parsed]; ok {
-			u.BytesUp.Store(existing.BytesUp.Load())
-			u.BytesDown.Store(existing.BytesDown.Load())
+			existing.Password = c.Password
+			existing.Email = c.Email
+			newMap[parsed] = existing
+		} else {
+			newMap[parsed] = &User{
+				UUID:     parsed,
+				UUIDStr:  parsed.String(),
+				Password: c.Password,
+				Email:    c.Email,
+			}
 		}
-		newMap[parsed] = u
+	}
+	for id, oldUser := range ur.users {
+		if _, ok := newMap[id]; !ok {
+			revoked = append(revoked, oldUser)
+		}
 	}
 	ur.users = newMap
+	return revoked
 }
 
 // AddTestTraffic adds traffic counters to a user by email for testing purposes.
