@@ -353,9 +353,22 @@ export function dropLegacyOptionalEmpties(
   }
 }
 
-export function formValuesToWirePayload(values: InboundFormValues): WireInboundPayload {
+// An existing inbound's clients change only through the client endpoints, so
+// the edit form neither loads them nor sends them back.
+export function withoutClients(values: InboundFormValues): InboundFormValues {
+  const settings = { ...(values.settings as Record<string, unknown> | undefined) };
+  delete settings.clients;
+  return { ...values, settings } as InboundFormValues;
+}
+
+export function formValuesToWirePayload(
+  values: InboundFormValues,
+  options: { omitClients?: boolean } = {},
+): WireInboundPayload {
   const settingsPruned = (pruneEmpty(values.settings ?? {}) ?? {}) as Record<string, unknown>;
-  if (Array.isArray(settingsPruned.clients)) {
+  if (options.omitClients) {
+    delete settingsPruned.clients;
+  } else if (Array.isArray(settingsPruned.clients)) {
     settingsPruned.clients = normalizeClients(values.protocol, settingsPruned.clients);
   }
   let streamPruned = values.streamSettings

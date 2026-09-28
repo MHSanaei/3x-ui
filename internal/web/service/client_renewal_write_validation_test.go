@@ -48,7 +48,8 @@ func TestClientRenewalWriteValidation(t *testing.T) {
 					}
 					_, _, err = inboundSvc.AddInbound(&update)
 				case "update inbound":
-					_, _, err = inboundSvc.UpdateInbound(&update)
+					// A panel save keeps the stored clients; only a master's push writes them.
+					_, _, err = (&InboundService{FromNodeSync: true}).UpdateInbound(&update)
 				case "add inbound client":
 					client.Email = "invalid-new-client"
 					update.Settings = clientsSettings(t, []model.Client{client})

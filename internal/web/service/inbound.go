@@ -1684,6 +1684,35 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	return needRestart, nil
 }
 
+func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) error {
+	clients, err := s.GetClients(inbound)
+	if err != nil {
+		return err
+	}
+	if err := validateClientsRenewal(clients); err != nil {
+		return err
+	}
+	for _, client := range clients {
+		switch inbound.Protocol {
+		case model.Hysteria:
+			if client.Auth == "" {
+				return common.NewError("empty client ID")
+			}
+		case model.TUIC:
+			if client.ID == "" {
+				return common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return common.NewError("empty client email")
+			}
+		}
+	}
+	return nil
+}
+
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	legacyShareAddr := legacyMtprotoShareAddr(inbound)
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
@@ -1705,34 +1734,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
-
-	clients, err := s.GetClients(inbound)
-	if err != nil {
-		return inbound, false, err
-	}
-	if err := validateClientsRenewal(clients); err != nil {
-		return inbound, false, err
-	}
-	if inbound.Protocol == model.Hysteria {
-		for _, client := range clients {
-			if client.Auth == "" {
-				return inbound, false, common.NewError("empty client ID")
-			}
-		}
-	}
-	if inbound.Protocol == model.TUIC {
-		for _, client := range clients {
-			if client.ID == "" {
-				return inbound, false, common.NewError("empty client ID")
-			}
-			if client.Password == "" {
-				return inbound, false, common.NewError("tuic client requires a password")
-			}
-			if client.Email == "" {
-				return inbound, false, common.NewError("empty client email")
-			}
-		}
-	}
 
 	// Grandfather a row that was already stored incomplete so it stays editable;
 	// only a save that breaks a previously valid TLS block is refused.
@@ -1776,8 +1777,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			return err
 		}
 		oldInbound = stored
+		// The form posts back the clients and enable it loaded; both have their
+		// own endpoints, so only a master's push may change them here.
 		if !s.FromNodeSync {
-			inbound.Settings = keepStoredClientLifecycle(inbound.Settings, stored.Settings)
+			inbound.Settings = keepStoredClients(inbound.Settings, stored.Settings)
+			inbound.Enable = stored.Enable
+		}
+		// On the clients actually saved: a protocol switch keeps the stored ones.
+		if err := s.validateUpdatedInboundClients(inbound); err != nil {
+			return err
 		}
 		conflict, cErr := checkPortConflictTx(tx, inbound, inbound.Id)
 		if cErr != nil {

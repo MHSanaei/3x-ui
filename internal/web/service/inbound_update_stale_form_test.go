@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -90,5 +91,80 @@ func TestInboundUpdateKeepsTrafficAddedMidEdit(t *testing.T) {
 	}
 	if saved.Up != 100 || saved.Down != 50 || saved.Remark != "edited" {
 		t.Fatalf("inbound after edit: up=%d down=%d remark=%q, want 100/50/edited", saved.Up, saved.Down, saved.Remark)
+	}
+}
+
+func inboundLinksEmail(t *testing.T, inboundId int, email string) bool {
+	t.Helper()
+	var n int64
+	if err := database.GetDB().Table("client_inbounds").
+		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
+		Where("client_inbounds.inbound_id = ? AND clients.email = ?", inboundId, email).
+		Count(&n).Error; err != nil {
+		t.Fatalf("count links: %v", err)
+	}
+	return n > 0
+}
+
+// A client added while the modal was open is not in the list it posts back;
+// saving the inbound must not detach it.
+func TestInboundFormSaveKeepsClientAddedWhileOpen(t *testing.T) {
+	setupBulkDB(t)
+	ib := seedRenewableNeighbour(t, 23204, nil)
+	form := *ib
+
+	if _, err := (&ClientService{}).AddInboundClient(&InboundService{}, &model.Inbound{
+		Id: ib.Id, Settings: clientsSettings(t, []model.Client{{Email: "z@stale", ID: "aaaaaaaa-0000-0000-0000-00000000000c", Enable: true}}),
+	}); err != nil {
+		t.Fatalf("AddInboundClient: %v", err)
+	}
+	form.Remark = "edited"
+	if _, _, err := (&InboundService{}).UpdateInbound(&form); err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+	if _, ok := settingsClient(t, ib.Id, "z@stale"); !ok || !inboundLinksEmail(t, ib.Id, "z@stale") {
+		t.Fatalf("client added while the form was open was dropped: in settings=%v linked=%v", ok, inboundLinksEmail(t, ib.Id, "z@stale"))
+	}
+}
+
+// A client deleted while the modal was open is still in the list it posts
+// back; saving must not restore its access.
+func TestInboundFormSaveDoesNotResurrectDeletedClient(t *testing.T) {
+	setupBulkDB(t)
+	ib := seedRenewableNeighbour(t, 23205, nil)
+	form := *ib
+
+	if _, err := (&ClientService{}).DelInboundClientByEmail(&InboundService{}, ib.Id, "x@stale", false, true); err != nil {
+		t.Fatalf("DelInboundClientByEmail: %v", err)
+	}
+	form.Remark = "edited"
+	if _, _, err := (&InboundService{}).UpdateInbound(&form); err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+	if _, ok := settingsClient(t, ib.Id, "x@stale"); ok || inboundLinksEmail(t, ib.Id, "x@stale") {
+		t.Fatalf("deleted client came back: in settings=%v linked=%v", ok, inboundLinksEmail(t, ib.Id, "x@stale"))
+	}
+}
+
+// An inbound switched off while the modal was open stays off when the form,
+// which still holds enable=true, is saved.
+func TestInboundFormSaveKeepsEnableToggledWhileOpen(t *testing.T) {
+	setupBulkDB(t)
+	ib := seedRenewableNeighbour(t, 23206, nil)
+	form := *ib
+
+	if _, err := (&InboundService{}).SetInboundEnable(ib.Id, false); err != nil {
+		t.Fatalf("SetInboundEnable: %v", err)
+	}
+	form.Remark = "edited"
+	if _, _, err := (&InboundService{}).UpdateInbound(&form); err != nil {
+		t.Fatalf("UpdateInbound: %v", err)
+	}
+	saved, err := (&InboundService{}).GetInbound(ib.Id)
+	if err != nil {
+		t.Fatalf("GetInbound: %v", err)
+	}
+	if saved.Enable || saved.Remark != "edited" {
+		t.Fatalf("after save: enable=%v remark=%q, want disabled and edited", saved.Enable, saved.Remark)
 	}
 }

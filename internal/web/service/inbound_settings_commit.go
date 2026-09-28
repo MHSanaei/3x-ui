@@ -140,43 +140,21 @@ func mergeClientLists(base, ours, current []any) []any {
 	return out
 }
 
-// Client limits and state the inbound form never owns: the client endpoints and
-// traffic jobs change them, so a form opened earlier must not write them back.
-var storedClientLifecycleKeys = []string{"enable", "expiryTime", "totalGB", "reset", "resetDay", "resetWeekday", "resetMax"}
-
-// keepStoredClientLifecycle copies those keys from the stored settings onto every
-// payload client the inbound already holds; new clients keep what they carry.
-func keepStoredClientLifecycle(payload, stored string) string {
+// keepStoredClients puts the stored client list back into an inbound save's
+// payload: clients change through the client endpoints, never this form.
+func keepStoredClients(payload, stored string) string {
 	var payloadM, storedM map[string]any
 	if json.Unmarshal([]byte(payload), &payloadM) != nil || json.Unmarshal([]byte(stored), &storedM) != nil {
 		return payload
 	}
-	storedClients, _ := storedM["clients"].([]any)
-	storedBy := indexClientsByEmail(storedClients)
-	payloadClients, _ := payloadM["clients"].([]any)
-	changed := false
-	for _, entry := range payloadClients {
-		p, email := clientEntryEmail(entry)
-		s, known := storedBy[email]
-		if !known {
-			continue
-		}
-		for _, key := range storedClientLifecycleKeys {
-			sv, inStored := s[key]
-			pv, inPayload := p[key]
-			if inStored == inPayload && reflect.DeepEqual(sv, pv) {
-				continue
-			}
-			changed = true
-			if inStored {
-				p[key] = sv
-			} else {
-				delete(p, key)
-			}
-		}
-	}
-	if !changed {
+	storedClients, has := storedM["clients"]
+	if reflect.DeepEqual(payloadM["clients"], storedClients) {
 		return payload
+	}
+	if has {
+		payloadM["clients"] = storedClients
+	} else {
+		delete(payloadM, "clients")
 	}
 	b, err := json.MarshalIndent(payloadM, "", "  ")
 	if err != nil {
