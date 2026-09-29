@@ -644,8 +644,11 @@ func TestListPagedNonASCIICase(t *testing.T) {
 		t.Fatalf("create client: %v", err)
 	}
 	for name, params := range map[string]ClientPageParams{
-		"group":  {PageSize: 50, Group: "Тест"},
-		"search": {PageSize: 50, Search: "Привет"},
+		"group":             {PageSize: 50, Group: "Тест"},
+		"group other case":  {PageSize: 50, Group: "ТЕСТ"},
+		"search":            {PageSize: 50, Search: "Привет"},
+		"search lower case": {PageSize: 50, Search: "привет"},
+		"search upper case": {PageSize: 50, Search: "ПРИВЕТ"},
 	} {
 		resp, err := svc.ListPaged(inboundSvc, settingSvc, params)
 		if err != nil {
@@ -654,5 +657,14 @@ func TestListPagedNonASCIICase(t *testing.T) {
 		if got := pagedEmails(resp.Items); !slices.Equal(got, []string{"lima@x"}) {
 			t.Fatalf("%s: emails = %v, want [lima@x]", name, got)
 		}
+	}
+}
+
+func TestCaseVariants(t *testing.T) {
+	if got, want := caseVariants("пРИвет"), []string{"привет", "пРИвет", "ПРИВЕТ", "Привет"}; !slices.Equal(got, want) {
+		t.Fatalf("caseVariants = %v, want %v", got, want)
+	}
+	if got := caseVariants("abc"); !slices.Equal(got, []string{"abc", "ABC", "Abc"}) {
+		t.Fatalf("ASCII variants = %v", got)
 	}
 }
