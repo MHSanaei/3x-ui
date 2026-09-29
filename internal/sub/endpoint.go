@@ -56,6 +56,26 @@ func (s *SubService) inboundDefaultEndpoint(inbound *model.Inbound) ShareEndpoin
 	}
 }
 
+// shareEndpoints returns one endpoint per valid externalProxy entry (Hosts are
+// injected there by linkFromHosts), or the inbound's own address when none.
+func (s *SubService) shareEndpoints(inbound *model.Inbound) []ShareEndpoint {
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	if eps, ok := stream["externalProxy"].([]any); ok {
+		out := make([]ShareEndpoint, 0, len(eps))
+		for _, raw := range eps {
+			if ep, ok := raw.(map[string]any); ok {
+				if e := externalProxyToEndpoint(ep); e.Address != "" && e.Port > 0 {
+					out = append(out, e)
+				}
+			}
+		}
+		if len(out) > 0 {
+			return out
+		}
+	}
+	return []ShareEndpoint{s.inboundDefaultEndpoint(inbound)}
+}
+
 // applyEndpointTLSParams applies an endpoint's TLS overrides onto a URL-param
 // map. External-proxy endpoints delegate to the unchanged helper; host/default
 // endpoints carry no override yet (Phase 4).

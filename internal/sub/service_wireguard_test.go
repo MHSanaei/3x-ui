@@ -388,3 +388,27 @@ func TestGetSubs_WireGuardEmptyOptionalTunnelFieldsDoNotInheritShared(t *testing
 		t.Fatalf("link inherited shared tunnel fields: %s", links[0])
 	}
 }
+
+func TestGenWireguardLinkHonoursExternalProxy(t *testing.T) {
+	serverPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	clientPriv, _, _ := wgutil.GenerateWireguardKeypair()
+	inbound := &model.Inbound{
+		Listen:         "203.0.113.7",
+		Port:           51820,
+		Protocol:       model.WireGuard,
+		Remark:         "wg-sub",
+		StreamSettings: `{"externalProxy":[{"dest":"a.example.com","port":1111},{"dest":"b.example.com","port":2222}]}`,
+		Settings:       `{"secretKey":"` + serverPriv + `","clients":[{"email":"user","privateKey":"` + clientPriv + `","allowedIPs":["10.0.0.2/32"]}]}`,
+	}
+
+	links := strings.Split((&SubService{}).genWireguardLink(inbound, "user"), "\n")
+	if len(links) != 2 {
+		t.Fatalf("want one link per endpoint, got %d: %v", len(links), links)
+	}
+	for i, want := range []string{"a.example.com:1111", "b.example.com:2222"} {
+		u, err := url.Parse(links[i])
+		if err != nil || u.Host != want {
+			t.Fatalf("link %d host = %q (err %v), want %q", i, u.Host, err, want)
+		}
+	}
+}

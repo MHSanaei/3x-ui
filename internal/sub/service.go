@@ -936,7 +936,6 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	}
 	client := &resolved
 
-	link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
 	params := make(map[string]string)
 	if secretKey != "" {
 		if pub, err := wgutil.PublicKeyFromPrivate(secretKey); err == nil {
@@ -958,7 +957,12 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	if ka := client.KeepAliveSeconds(); ka > 0 {
 		params["keepalive"] = strconv.Itoa(ka)
 	}
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
+	var links []string
+	for _, e := range s.shareEndpoints(inbound) {
+		link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(e.Address, e.Port))
+		links = append(links, buildLinkWithParams(link, params, s.endpointRemark(inbound, email, e.ep, "")))
+	}
+	return strings.Join(links, "\n")
 }
 
 // amneziaWGHeaderOrDefault mirrors the frontend's amneziaWGHLine: AmneziaWG's
@@ -1084,11 +1088,15 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	}
 	client := &resolved
 
-	text := amneziaWGConfigText(server, client, s.resolveInboundAddress(inbound), inbound.Port, s.genRemark(inbound, email, "", ""))
-	if text == "" {
-		return ""
+	var links []string
+	for _, e := range s.shareEndpoints(inbound) {
+		text := amneziaWGConfigText(server, client, e.Address, e.Port, s.endpointRemark(inbound, email, e.ep, ""))
+		if text == "" {
+			return ""
+		}
+		links = append(links, "vpn://"+base64.RawURLEncoding.EncodeToString([]byte(text)))
 	}
-	return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(text))
+	return strings.Join(links, "\n")
 }
 
 // genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret.
