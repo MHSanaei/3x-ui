@@ -11,6 +11,7 @@ import { readyI18n } from '@/i18n/react';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { QueryProvider } from '@/api/QueryProvider';
 import { router } from '@/routes';
+import { claimChunkReload } from '@/lib/chunk-reload';
 
 setupHttp();
 
@@ -18,8 +19,7 @@ setupHttp();
 // longer serves; reload once to pick up the new build instead of an error page.
 window.addEventListener('vite:preloadError', (event) => {
   try {
-    if (sessionStorage.getItem('chunk-reloaded')) return;
-    sessionStorage.setItem('chunk-reloaded', '1');
+    if (!claimChunkReload(window.sessionStorage, Date.now())) return;
   } catch {
     return;
   }
