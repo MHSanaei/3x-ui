@@ -434,10 +434,21 @@ func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
 	if proxyUrl == "" {
 		// No dedicated proxy: choose the route per connection (telegram-bot
 		// bridge, panel egress, then direct) so no bot restart is needed.
+		var (
+			mu      sync.Mutex
+			egress  string
+			egressT time.Time
+		)
 		client.Dial = func(addr string) (net.Conn, error) {
 			p := t.settingService.TelegramBotProxyURL()
 			if p == "" {
-				p = t.settingService.PanelEgressProxyURL()
+				// Cached 10s so the settings read and its warnings don't repeat per connection.
+				mu.Lock()
+				if time.Since(egressT) > 10*time.Second {
+					egress, egressT = t.settingService.PanelEgressProxyURL(), time.Now()
+				}
+				p = egress
+				mu.Unlock()
 			}
 			if strings.HasPrefix(p, "socks5://") {
 				return fasthttpproxy.FasthttpSocksDialer(p)(addr)
