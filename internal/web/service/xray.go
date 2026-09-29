@@ -441,6 +441,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectPanelEgress(xrayConfig, egressTag)
 	}
 
+	injectTelegramBotBridge(xrayConfig)
+
 	nodes, err := s.nodeService.GetAll()
 	if err != nil {
 		logger.Warning("read nodes for egress injection failed:", err)
@@ -525,6 +527,63 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 		Protocol: "socks",
 		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
 		Tag:      PanelEgressInboundTag,
+	})
+}
+
+// TelegramBotInboundTag is the virtual inbound the Telegram bot dials through.
+// It is selectable in Routing -> Inbound tags; the loopback SOCKS inbound behind
+// it exists only while a routing rule references it.
+const TelegramBotInboundTag = "telegram-bot"
+
+// telegramBotBasePort is the first port tried for the bot bridge.
+const telegramBotBasePort = 62780
+
+// injectTelegramBotBridge appends a loopback SOCKS inbound tagged
+// TelegramBotInboundTag when a user routing rule uses that tag. The rule itself
+// (and its outbound) is the user's; nothing is added when no rule refers to it,
+// so the bot keeps connecting directly.
+func injectTelegramBotBridge(cfg *xray.Config) {
+	if len(cfg.RouterConfig) == 0 {
+		return
+	}
+	var routing struct {
+		Rules []struct {
+			InboundTag []string `json:"inboundTag"`
+		} `json:"rules"`
+	}
+	if json.Unmarshal(cfg.RouterConfig, &routing) != nil {
+		return
+	}
+	used := false
+	for _, r := range routing.Rules {
+		if slices.Contains(r.InboundTag, TelegramBotInboundTag) {
+			used = true
+			break
+		}
+	}
+	if !used {
+		return
+	}
+	taken := make(map[int]struct{}, len(cfg.InboundConfigs))
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == TelegramBotInboundTag {
+			return
+		}
+		taken[cfg.InboundConfigs[i].Port] = struct{}{}
+	}
+	port := telegramBotBasePort
+	for {
+		if _, ok := taken[port]; !ok {
+			break
+		}
+		port++
+	}
+	cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
+		Listen:   json_util.RawMessage(`"127.0.0.1"`),
+		Port:     port,
+		Protocol: "socks",
+		Settings: json_util.RawMessage(`{"auth":"noauth","udp":false}`),
+		Tag:      TelegramBotInboundTag,
 	})
 }
 

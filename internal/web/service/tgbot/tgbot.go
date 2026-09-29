@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"embed"
 	"math/big"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -342,15 +343,6 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		logger.Warning("Failed to get Telegram bot proxy URL:", err)
 	}
 
-	// Fall back to the panel-wide egress bridge when no dedicated bot proxy is
-	// set. Resolved once at bot start: if Xray comes up later, the bot keeps
-	// its direct connection until it is restarted.
-	if tgBotProxy == "" {
-		if egress := t.settingService.PanelEgressProxyURL(); egress != "" && isSupportedBotProxyScheme(egress) {
-			tgBotProxy = egress
-		}
-	}
-
 	// Get Telegram bot API server URL
 	tgBotAPIServer, err := t.settingService.GetTgBotAPIServer()
 	if err != nil {
@@ -436,6 +428,21 @@ func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
 			client.Dial = fasthttpproxy.FasthttpSocksDialer(proxyUrl)
 		} else {
 			client.Dial = fasthttpproxy.FasthttpHTTPDialer(proxyUrl)
+		}
+	}
+
+	if proxyUrl == "" {
+		// No dedicated proxy: pick the route per connection so a bridge that
+		// appears after the bot started (Xray comes up later, or a routing rule
+		// is added) is used without restarting the bot. Order: the telegram-bot
+		// routing bridge, then the panel egress bridge, then direct.
+		client.Dial = func(addr string) (net.Conn, error) {
+			for _, p := range []string{t.settingService.TelegramBotProxyURL(), t.settingService.PanelEgressProxyURL()} {
+				if strings.HasPrefix(p, "socks5://") {
+					return fasthttpproxy.FasthttpSocksDialer(p)(addr)
+				}
+			}
+			return fasthttp.Dial(addr)
 		}
 	}
 

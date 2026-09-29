@@ -128,6 +128,8 @@ export default function RoutingTab({
     };
     for (const ib of (templateSettings?.inbounds as Array<{ tag?: string }>) || []) push(ib?.tag);
     for (const tag of inboundTags || []) push(tag);
+    // Virtual inbound: the panel's Telegram bot dials through it (see injectTelegramBotBridge).
+    push('telegram-bot');
     for (const ob of templateSettings?.outbounds || []) {
       const obx = ob as {
         reverse?: { tag?: string };

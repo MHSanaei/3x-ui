@@ -585,6 +585,25 @@ func (s *SettingService) PanelEgressProxyURL() string {
 	return ""
 }
 
+// TelegramBotProxyURL returns the loopback SOCKS bridge for the Telegram bot,
+// or "" when no routing rule uses the telegram-bot inbound tag or Xray is down.
+func (s *SettingService) TelegramBotProxyURL() string {
+	proc := XrayProcess()
+	if proc == nil || !proc.IsRunning() {
+		return ""
+	}
+	cfg := proc.GetConfig()
+	if cfg == nil {
+		return ""
+	}
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag == TelegramBotInboundTag {
+			return fmt.Sprintf("socks5://127.0.0.1:%d", cfg.InboundConfigs[i].Port)
+		}
+	}
+	return ""
+}
+
 func (s *SettingService) NodeEgressProxyURL(nodeID int) string {
 	tag := NodeEgressInboundTag(nodeID)
 	proc := XrayProcess()

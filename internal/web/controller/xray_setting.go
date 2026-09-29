@@ -103,6 +103,14 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
+	// Virtual tag so a routing rule can target the Telegram bot's own traffic.
+	var tagList []string
+	if json.Unmarshal([]byte(inboundTags), &tagList) == nil {
+		tagList = append(tagList, service.TelegramBotInboundTag)
+		if b, mErr := json.Marshal(tagList); mErr == nil {
+			inboundTags = string(b)
+		}
+	}
 	clientReverseTags, err := a.InboundService.GetClientReverseTags()
 	if err != nil {
 		clientReverseTags = "[]"
