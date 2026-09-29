@@ -432,15 +432,15 @@ func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
 	}
 
 	if proxyUrl == "" {
-		// No dedicated proxy: pick the route per connection so a bridge that
-		// appears after the bot started (Xray comes up later, or a routing rule
-		// is added) is used without restarting the bot. Order: the telegram-bot
-		// routing bridge, then the panel egress bridge, then direct.
+		// No dedicated proxy: choose the route per connection (telegram-bot
+		// bridge, panel egress, then direct) so no bot restart is needed.
 		client.Dial = func(addr string) (net.Conn, error) {
-			for _, p := range []string{t.settingService.TelegramBotProxyURL(), t.settingService.PanelEgressProxyURL()} {
-				if strings.HasPrefix(p, "socks5://") {
-					return fasthttpproxy.FasthttpSocksDialer(p)(addr)
-				}
+			p := t.settingService.TelegramBotProxyURL()
+			if p == "" {
+				p = t.settingService.PanelEgressProxyURL()
+			}
+			if strings.HasPrefix(p, "socks5://") {
+				return fasthttpproxy.FasthttpSocksDialer(p)(addr)
 			}
 			return fasthttp.Dial(addr)
 		}

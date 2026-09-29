@@ -1053,3 +1053,41 @@ func TestInjectAmneziawgV6Egress_RulesPrependedBeforeExistingRules(t *testing.T)
 		t.Fatalf("the pre-existing rule must survive, got %+v", routing.Rules[1])
 	}
 }
+
+func TestInjectTelegramBotBridge(t *testing.T) {
+	cases := []struct {
+		name    string
+		routing string
+		want    bool
+	}{
+		{"list form", `{"rules":[{"type":"field","inboundTag":["telegram-bot"],"outboundTag":"warp"}]}`, true},
+		{"string form", `{"rules":[{"type":"field","inboundTag":"telegram-bot","outboundTag":"warp"}]}`, true},
+		{"string form on another rule", `{"rules":[{"inboundTag":"api","outboundTag":"api"},{"inboundTag":["telegram-bot"],"outboundTag":"warp"}]}`, true},
+		{"no rule uses it", `{"rules":[{"inboundTag":["api"],"outboundTag":"api"}]}`, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := egressTestConfig()
+			cfg.RouterConfig = json_util.RawMessage(tc.routing)
+			before := len(cfg.InboundConfigs)
+			injectTelegramBotBridge(cfg)
+			if !tc.want {
+				if len(cfg.InboundConfigs) != before {
+					t.Fatalf("no inbound expected, got %d", len(cfg.InboundConfigs))
+				}
+				return
+			}
+			if len(cfg.InboundConfigs) != before+1 {
+				t.Fatalf("expected one appended inbound, got %d", len(cfg.InboundConfigs))
+			}
+			ib := cfg.InboundConfigs[before]
+			if ib.Tag != TelegramBotInboundTag || ib.Protocol != "socks" || string(ib.Listen) != `"127.0.0.1"` {
+				t.Fatalf("unexpected bridge inbound: %+v", ib)
+			}
+			injectTelegramBotBridge(cfg)
+			if len(cfg.InboundConfigs) != before+1 {
+				t.Fatal("injection must be idempotent")
+			}
+		})
+	}
+}

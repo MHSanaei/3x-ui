@@ -530,33 +530,41 @@ func injectPanelEgress(cfg *xray.Config, outboundTag string) {
 	})
 }
 
-// TelegramBotInboundTag is the virtual inbound the Telegram bot dials through.
-// It is selectable in Routing -> Inbound tags; the loopback SOCKS inbound behind
-// it exists only while a routing rule references it.
+// TelegramBotInboundTag is the virtual inbound the Telegram bot dials through,
+// selectable in Routing; its SOCKS inbound exists only while a rule uses it.
 const TelegramBotInboundTag = "telegram-bot"
 
 // telegramBotBasePort is the first port tried for the bot bridge.
 const telegramBotBasePort = 62780
 
+// ruleUsesInboundTag reports whether a routing rule's inboundTag (a list or a
+// single string in Xray) contains tag.
+func ruleUsesInboundTag(rule map[string]any, tag string) bool {
+	switch v := rule["inboundTag"].(type) {
+	case string:
+		return v == tag
+	case []any:
+		return slices.Contains(v, any(tag))
+	}
+	return false
+}
+
 // injectTelegramBotBridge appends a loopback SOCKS inbound tagged
-// TelegramBotInboundTag when a user routing rule uses that tag. The rule itself
-// (and its outbound) is the user's; nothing is added when no rule refers to it,
-// so the bot keeps connecting directly.
+// TelegramBotInboundTag when a routing rule uses that tag; otherwise the bot
+// connects directly.
 func injectTelegramBotBridge(cfg *xray.Config) {
 	if len(cfg.RouterConfig) == 0 {
 		return
 	}
 	var routing struct {
-		Rules []struct {
-			InboundTag []string `json:"inboundTag"`
-		} `json:"rules"`
+		Rules []map[string]any `json:"rules"`
 	}
 	if json.Unmarshal(cfg.RouterConfig, &routing) != nil {
 		return
 	}
 	used := false
 	for _, r := range routing.Rules {
-		if slices.Contains(r.InboundTag, TelegramBotInboundTag) {
+		if ruleUsesInboundTag(r, TelegramBotInboundTag) {
 			used = true
 			break
 		}
