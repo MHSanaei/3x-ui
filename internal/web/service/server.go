@@ -1184,6 +1184,9 @@ func (s *ServerService) UpdateXray(version string) error {
 	return nil
 }
 
+// syslogTimeout caps how long the panel waits for journalctl.
+const syslogTimeout = 15 * time.Second
+
 func (s *ServerService) GetLogs(count string, level string, syslog string) []string {
 	c, _ := strconv.Atoi(count)
 	var lines []string
@@ -1216,10 +1219,17 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		}
 
 		// Use hardcoded command with validated parameters
-		cmd := exec.CommandContext(context.Background(), "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
+		// Bounded: a large journal can make journalctl run for minutes, which
+		// would otherwise hold the request open until the client times out.
+		ctx, cancel := context.WithTimeout(context.Background(), syslogTimeout)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		err = cmd.Run()
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return []string{"journalctl timed out. The system journal is large; run 'journalctl --vacuum-time=7d' on the server to shrink it."}
+		}
 		if err != nil {
 			return []string{"Failed to run journalctl command! Make sure systemd is available and x-ui service is registered."}
 		}
