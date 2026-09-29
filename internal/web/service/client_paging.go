@@ -113,12 +113,14 @@ const (
 	sqlClientEnabled = "COALESCE(c.enable, FALSE)"
 )
 
-const clientSearchCond = `(LOWER(c.email) LIKE ? ESCAPE '\'
-	OR LOWER(COALESCE(c.sub_id, '')) LIKE ? ESCAPE '\'
-	OR LOWER(COALESCE(c.comment, '')) LIKE ? ESCAPE '\'
-	OR LOWER(COALESCE(c.uuid, '')) LIKE ? ESCAPE '\'
-	OR LOWER(COALESCE(c.password, '')) LIKE ? ESCAPE '\'
-	OR LOWER(COALESCE(c.auth, '')) LIKE ? ESCAPE '\'
+// clientSearchCond matches each text column both lower-cased and as typed:
+// SQLite's LOWER() folds ASCII only, so non-ASCII capitals need the raw match.
+const clientSearchCond = `(LOWER(c.email) LIKE ? ESCAPE '\' OR c.email LIKE ? ESCAPE '\'
+	OR LOWER(COALESCE(c.sub_id, '')) LIKE ? ESCAPE '\' OR COALESCE(c.sub_id, '') LIKE ? ESCAPE '\'
+	OR LOWER(COALESCE(c.comment, '')) LIKE ? ESCAPE '\' OR COALESCE(c.comment, '') LIKE ? ESCAPE '\'
+	OR LOWER(COALESCE(c.uuid, '')) LIKE ? ESCAPE '\' OR COALESCE(c.uuid, '') LIKE ? ESCAPE '\'
+	OR LOWER(COALESCE(c.password, '')) LIKE ? ESCAPE '\' OR COALESCE(c.password, '') LIKE ? ESCAPE '\'
+	OR LOWER(COALESCE(c.auth, '')) LIKE ? ESCAPE '\' OR COALESCE(c.auth, '') LIKE ? ESCAPE '\'
 	OR (COALESCE(c.tg_id, 0) <> 0 AND CAST(c.tg_id AS TEXT) LIKE ? ESCAPE '\'))`
 
 // clientQuery builds the statements behind the clients page: a clients row
@@ -215,7 +217,8 @@ func (q clientQuery) applyParams(tx *gorm.DB, params ClientPageParams, onlines [
 
 	if needle := strings.ToLower(strings.TrimSpace(params.Search)); needle != "" {
 		pattern := "%" + escapeLikeLiteral(needle) + "%"
-		where(clientSearchCond, pattern, pattern, pattern, pattern, pattern, pattern, pattern)
+		raw := "%" + escapeLikeLiteral(strings.TrimSpace(params.Search)) + "%"
+		where(clientSearchCond, pattern, raw, pattern, raw, pattern, raw, pattern, raw, pattern, raw, pattern, raw, pattern)
 	}
 	if protocols := parseCSVStrings(params.Protocol); len(protocols) > 0 {
 		where("EXISTS (SELECT 1 FROM client_inbounds ci JOIN inbounds ib ON ib.id = ci.inbound_id"+
@@ -264,7 +267,8 @@ func (q clientQuery) applyParams(tx *gorm.DB, params ClientPageParams, onlines [
 		where("TRIM(COALESCE(c.comment, '')) = ''")
 	}
 	if groups := parseCSVStrings(params.Group); len(groups) > 0 {
-		where("LOWER(TRIM(COALESCE(c.group_name, ''))) IN ?", groups)
+		// The raw names cover non-ASCII capitals, which SQLite's LOWER() leaves alone.
+		where("(LOWER(TRIM(COALESCE(c.group_name, ''))) IN ? OR TRIM(COALESCE(c.group_name, '')) IN ?)", groups, trimmedCSV(params.Group))
 	}
 	return tx, narrowed
 }
@@ -658,6 +662,17 @@ func parseCSVStrings(raw string) []string {
 	}
 	if len(out) == 0 {
 		return nil
+	}
+	return out
+}
+
+// trimmedCSV splits a comma-separated list and trims each item, keeping case.
+func trimmedCSV(raw string) []string {
+	var out []string
+	for _, p := range strings.Split(raw, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
 	}
 	return out
 }

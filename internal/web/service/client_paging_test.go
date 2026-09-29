@@ -635,3 +635,24 @@ func TestListPagedEmptyPanel(t *testing.T) {
 		t.Fatal("groups = nil, want an empty list so the filter drawer renders")
 	}
 }
+
+// SQLite's LOWER() folds ASCII only, so non-ASCII capitals must still match.
+func TestListPagedNonASCIICase(t *testing.T) {
+	svc, inboundSvc, settingSvc := setupPagingServices(t)
+	rec := model.ClientRecord{Email: "lima@x", Comment: "Привет", Group: "Тест", Enable: true}
+	if err := database.GetDB().Create(&rec).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	for name, params := range map[string]ClientPageParams{
+		"group":  {PageSize: 50, Group: "Тест"},
+		"search": {PageSize: 50, Search: "Привет"},
+	} {
+		resp, err := svc.ListPaged(inboundSvc, settingSvc, params)
+		if err != nil {
+			t.Fatalf("%s: ListPaged: %v", name, err)
+		}
+		if got := pagedEmails(resp.Items); !slices.Equal(got, []string{"lima@x"}) {
+			t.Fatalf("%s: emails = %v, want [lima@x]", name, got)
+		}
+	}
+}
