@@ -1450,6 +1450,7 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 	}
 	if diff.Empty() {
 		process.SetConfig(newCfg)
+		persistHotConfig(process)
 		return true
 	}
 	// The core's RemoveUser drops the credential only, so a disabled or deleted
@@ -1518,7 +1519,16 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 	}
 
 	process.SetConfig(newCfg)
+	persistHotConfig(process)
 	return true
+}
+
+// persistHotConfig refreshes config.json after a hot apply; a write failure is
+// logged only, since the running core already has the change.
+func persistHotConfig(process *xray.Process) {
+	if err := process.PersistConfig(); err != nil {
+		logger.Warning("hot apply: failed to update config.json:", err)
+	}
 }
 
 // addUserReconciling adds a user, and on an email conflict (the user was
