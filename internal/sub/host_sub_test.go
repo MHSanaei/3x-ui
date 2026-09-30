@@ -392,10 +392,8 @@ func TestSub_HostRealitySniOverride(t *testing.T) {
 	}
 }
 
-// A reality host's SNI reaches the JSON and Clash configs as the client-side
-// serverName only. The server-side serverNames list must stay out of the JSON
-// outbound: xray refuses to start a reality client that carries it ("non-empty
-// serverNames, please use serverName instead").
+// A reality host's SNI reaches JSON and Clash as serverName only: xray refuses a
+// reality client that also carries serverNames (#6690).
 func TestSub_HostRealitySniJSONAndClash(t *testing.T) {
 	seedSubDB(t)
 	realityStream := `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`

@@ -162,9 +162,8 @@ func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
 			}
 		}
 	}
-	// Reality SNI override (host only). Both renderers have already reduced the
-	// stream to its client form, so only serverName is set: xray refuses to start
-	// a reality client that carries the server-side serverNames list.
+	// Reality SNI override (host only): the stream is already in client form, and xray
+	// refuses a reality client carrying the server-side serverNames list (#6690).
 	if isHostEndpoint(ep) {
 		if sec, _ := stream["security"].(string); sec == "reality" {
 			if rs, ok := stream["realitySettings"].(map[string]any); ok && rs != nil {
