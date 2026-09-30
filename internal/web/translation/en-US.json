@@ -2255,16 +2255,20 @@
       },
       "tuic": {
         "congestionControl": "Congestion Control",
+        "congestionControlHint": "Server and client algorithm. Server changes apply after reconnecting.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "UDP Relay Mode",
+        "udpRelayModeHint": "Client UDP mode. The server supports both.",
         "zeroRttHandshake": "Zero-RTT Handshake",
         "logLevel": "Log Level",
-        "logLevelHint": "Online status, last online and \"start after first use\" are read from the sidecar's Info lines; Warn or Error turns them off for this inbound.",
+        "logLevelHint": "Minimum log level for this inbound.",
         "maxIdleTime": "Max Idle Time (s)",
         "authTimeout": "Auth Timeout (s)",
         "maxUdpRelayPacketSize": "Max UDP Packet Size",
         "sni": "SNI",
-        "sniHint": "Server Name Indication override"
+        "sniHint": "TLS server name in the client profile.",
+        "sniRequired": "Enter a domain to auto-fill certificate paths."
       },
       "tun": {
         "userLevel": "User Level"

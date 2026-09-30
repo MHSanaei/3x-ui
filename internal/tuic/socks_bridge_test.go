@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -71,6 +73,20 @@ func TestBuildSocks5UDPHeader(t *testing.T) {
 	// Nil target
 	if buildSocks5UDPHeader(nil) != nil {
 		t.Fatalf("expected nil for nil target")
+	}
+}
+
+func TestBuildSocks5UDPRequestHonorsMaximumForAddressOverhead(t *testing.T) {
+	domain := &Address{Type: AddrTypeDomain, Host: strings.Repeat("a", 255), Port: 53}
+	packet, err := buildSocks5UDPRequest(domain, make([]byte, maxSafeUdpRelayPacketSize))
+	if err != nil {
+		t.Fatalf("maximum safe payload was rejected: %v", err)
+	}
+	if len(packet) != maxSocksUdpDatagramSize {
+		t.Fatalf("encoded SOCKS datagram = %d bytes, want %d", len(packet), maxSocksUdpDatagramSize)
+	}
+	if _, err := buildSocks5UDPRequest(domain, make([]byte, maxSafeUdpRelayPacketSize+1)); !errors.Is(err, ErrUdpPayloadTooLarge) {
+		t.Fatalf("oversized SOCKS datagram error = %v, want %v", err, ErrUdpPayloadTooLarge)
 	}
 }
 
@@ -280,14 +296,15 @@ func handleMockSocksConn(conn net.Conn, expectedUser, expectedPass string) {
 			return
 		}
 
-		// Read one UDP packet, echo it back
 		go func() {
-			buf := make([]byte, 2048)
-			n, remoteAddr, err := u.ReadFrom(buf)
-			if err != nil {
-				return
+			buf := make([]byte, maxUdpRelayPacketSize)
+			for {
+				n, remoteAddr, err := u.ReadFrom(buf)
+				if err != nil {
+					return
+				}
+				_, _ = u.WriteTo(buf[:n], remoteAddr)
 			}
-			_, _ = u.WriteTo(buf[:n], remoteAddr)
 		}()
 
 		// Keep conn open until closed

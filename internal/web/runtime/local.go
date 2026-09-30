@@ -249,6 +249,9 @@ func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbou
 			l.deps.SetNeedRestart()
 		}
 	}
+	if oldIb.Protocol == model.TUIC && newIb.Protocol == model.TUIC && oldIb.Enable && newIb.Enable && oldIb.Tag != newIb.Tag && l.deps.SetNeedRestart != nil {
+		l.deps.SetNeedRestart()
+	}
 	if !newIb.Enable {
 		tuic.GetManager().Remove(newIb.Id)
 		if oldIb.Enable && l.deps.SetNeedRestart != nil {

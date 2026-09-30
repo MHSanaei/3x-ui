@@ -14,7 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/quic-go/quic-go"
+	"github.com/poise52/quic-go"
+	quiccongestion "github.com/poise52/quic-go/congestion"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -22,13 +23,14 @@ import (
 // Server is an in-process native Go TUIC v5 server terminating QUIC
 // and bridging decrypted TCP/UDP into a local SOCKS5 inbound.
 type Server struct {
-	id          int
-	tag         string
-	listenAddr  string
-	authTimeout time.Duration
+	id                int
+	tag               atomic.Pointer[string]
+	listenAddr        string
+	authTimeout       time.Duration
+	congestionControl atomic.Value
+	logLevel          atomic.Uint32
 
 	maxUdpRelayPacketSize int
-	congestionControl     string
 
 	users *UserRegistry
 	relay *SocksRelay
@@ -38,10 +40,13 @@ type Server struct {
 	quicListener *quic.Listener
 	packetConn   net.PacketConn
 
-	lastOnline sync.Map // email string -> time.Time
+	lastOnline  sync.Map // email string -> time.Time
+	logThrottle sync.Map // event name -> *atomic.Int64 timestamp
 
 	activeConnsMu sync.Mutex
-	activeConns   map[[16]byte]map[*quic.Conn]struct{}
+	activeConns   map[[16]byte]map[*quic.Conn]*User
+	connectionsMu sync.Mutex
+	connections   map[*quic.Conn]struct{}
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -53,6 +58,9 @@ type Server struct {
 
 // NewServer creates a new TUIC v5 Server instance.
 func NewServer(inst Instance, relay *SocksRelay) (*Server, error) {
+	if err := ValidateClients(inst.Clients); err != nil {
+		return nil, err
+	}
 	if inst.Certificate == "" || inst.PrivateKey == "" {
 		return nil, errors.New("tuic: certificate or private key missing")
 	}
@@ -84,9 +92,11 @@ func NewServer(inst Instance, relay *SocksRelay) (*Server, error) {
 	if maxUdpSize <= 0 {
 		maxUdpSize = 1500
 	}
-	cc := inst.CongestionControl
-	if cc == "" {
-		cc = "cubic"
+	if maxUdpSize > maxSafeUdpRelayPacketSize && maxUdpSize <= maxLegacyUdpRelayPacketSize {
+		maxUdpSize = maxSafeUdpRelayPacketSize
+	}
+	if maxUdpSize > maxLegacyUdpRelayPacketSize {
+		return nil, fmt.Errorf("tuic: max UDP relay packet size %d exceeds %d", maxUdpSize, maxSafeUdpRelayPacketSize)
 	}
 
 	quicConfig := &quic.Config{
@@ -101,21 +111,30 @@ func NewServer(inst Instance, relay *SocksRelay) (*Server, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &Server{
+	s := &Server{
 		id:                    inst.Id,
-		tag:                   inst.Tag,
 		listenAddr:            inst.BindTo(),
 		authTimeout:           time.Duration(authTimeout) * time.Second,
 		maxUdpRelayPacketSize: maxUdpSize,
-		congestionControl:     cc,
 		users:                 registry,
-		activeConns:           make(map[[16]byte]map[*quic.Conn]struct{}),
+		activeConns:           make(map[[16]byte]map[*quic.Conn]*User),
+		connections:           make(map[*quic.Conn]struct{}),
 		relay:                 relay,
 		tlsConfig:             tlsConfig,
 		quicConfig:            quicConfig,
 		ctx:                   ctx,
 		cancel:                cancel,
-	}, nil
+	}
+	s.updateRuntimeSettings(inst.Tag, inst.CongestionControl, inst.LogLevel)
+	s.quicConfig.GetConfigForClient = func(_ *quic.ClientInfo) (*quic.Config, error) {
+		connectionConfig := s.quicConfig.Clone()
+		controller, _ := s.congestionControl.Load().(string)
+		connectionConfig.ConfigureCongestionControl = func(conn *quic.Conn) {
+			s.configureConnectionCongestionControl(conn, controller)
+		}
+		return connectionConfig, nil
+	}
+	return s, nil
 }
 
 // Start opens the UDP socket and starts the QUIC listener.
@@ -134,6 +153,7 @@ func (s *Server) Start() error {
 	}
 	s.quicListener = ln
 	s.running.Store(true)
+	s.logf(tuicLogInfo, "listener started on %s", s.listenAddr)
 
 	s.wg.Add(1)
 	go s.acceptLoop()
@@ -146,56 +166,115 @@ func (s *Server) IsRunning() bool {
 	return s.running.Load() && !s.closed.Load()
 }
 
-func (s *Server) registerConn(uuid [16]byte, conn *quic.Conn) {
-	s.activeConnsMu.Lock()
-	defer s.activeConnsMu.Unlock()
-	if s.activeConns[uuid] == nil {
-		s.activeConns[uuid] = make(map[*quic.Conn]struct{})
+func (s *Server) updateRuntimeSettings(tag, controller, logLevel string) {
+	tagCopy := tag
+	s.tag.Store(&tagCopy)
+	s.logLevel.Store(parseLogLevel(logLevel))
+	normalized, valid := normalizeCongestionControl(controller)
+	s.congestionControl.Store(normalized)
+	if !valid {
+		s.logf(tuicLogWarn, "unsupported congestion controller %q; using %s", controller, normalized)
 	}
-	s.activeConns[uuid][conn] = struct{}{}
 }
 
-func (s *Server) unregisterConn(uuid [16]byte, conn *quic.Conn) {
+func (s *Server) UpdateRuntimeSettings(tag, controller, logLevel string) {
+	s.updateRuntimeSettings(tag, controller, logLevel)
+}
+
+func configureCongestionControl(target interface {
+	SetCubicCongestionControl(reno bool) bool
+	SetCongestionControlFactory(func(quiccongestion.ByteCount) quiccongestion.CongestionControl) bool
+}, controller string,
+) bool {
+	switch controller {
+	case "bbr":
+		return target.SetCongestionControlFactory(func(size quiccongestion.ByteCount) quiccongestion.CongestionControl {
+			return newXrayBBR(size)
+		})
+	case "cubic":
+		return target.SetCubicCongestionControl(false)
+	case "new_reno":
+		return target.SetCubicCongestionControl(true)
+	}
+	return false
+}
+
+func (s *Server) configureConnectionCongestionControl(conn *quic.Conn, controller string) {
+	if !configureCongestionControl(conn, controller) {
+		s.logf(tuicLogError, "QUIC implementation does not support the %s controller", controller)
+		return
+	}
+	s.logf(tuicLogDebug, "configured %s congestion controller before QUIC handshake", controller)
+}
+
+func (s *Server) registerConn(user *User, conn *quic.Conn) {
 	s.activeConnsMu.Lock()
 	defer s.activeConnsMu.Unlock()
-	if conns := s.activeConns[uuid]; conns != nil {
-		delete(conns, conn)
+	if s.activeConns[user.UUID] == nil {
+		s.activeConns[user.UUID] = make(map[*quic.Conn]*User)
+	}
+	s.activeConns[user.UUID][conn] = user
+	user.sessions.Add(1)
+}
+
+func (s *Server) unregisterConn(user *User, conn *quic.Conn) {
+	s.activeConnsMu.Lock()
+	if conns := s.activeConns[user.UUID]; conns != nil {
+		if registered, ok := conns[conn]; ok {
+			delete(conns, conn)
+			if registered == user {
+				s.users.sessionEnded(user)
+			}
+		}
 		if len(conns) == 0 {
-			delete(s.activeConns, uuid)
+			delete(s.activeConns, user.UUID)
 		}
 	}
+	s.activeConnsMu.Unlock()
 }
 
-func (s *Server) closeUserConns(uuid [16]byte) {
+func (s *Server) closeUserConns(user *User) {
 	s.activeConnsMu.Lock()
-	conns := s.activeConns[uuid]
-	delete(s.activeConns, uuid)
+	conns := s.activeConns[user.UUID]
+	var toClose []*quic.Conn
+	for conn, registered := range conns {
+		if registered == user {
+			toClose = append(toClose, conn)
+		}
+	}
 	s.activeConnsMu.Unlock()
 
-	for conn := range conns {
+	for _, conn := range toClose {
 		_ = conn.CloseWithError(0x100, "tuic: user revoked")
 	}
 }
 
 func (s *Server) closeAllConns() {
-	s.activeConnsMu.Lock()
-	all := s.activeConns
-	s.activeConns = make(map[[16]byte]map[*quic.Conn]struct{})
-	s.activeConnsMu.Unlock()
+	s.connectionsMu.Lock()
+	var all []*quic.Conn
+	for conn := range s.connections {
+		all = append(all, conn)
+	}
+	s.connectionsMu.Unlock()
 
-	for _, conns := range all {
-		for conn := range conns {
-			_ = conn.CloseWithError(0x00, "tuic: server closed")
-		}
+	for _, conn := range all {
+		_ = conn.CloseWithError(0x00, "tuic: server closed")
 	}
 }
 
 // UpdateUsers updates the active users dynamically without restarting the listener,
 // and terminates active QUIC sessions for any revoked or disabled users.
 func (s *Server) UpdateUsers(clients []TuicClientSettings) {
+	if err := ValidateClients(clients); err != nil {
+		s.logLimited(tuicLogWarn, "users-invalid", 30*time.Second, "User update rejected: %v", err)
+		return
+	}
 	revoked := s.users.SetUsers(clients)
+	if len(revoked) > 0 {
+		s.logf(tuicLogDebug, "Revoked %d user registrations", len(revoked))
+	}
 	for _, u := range revoked {
-		s.closeUserConns(u.UUID)
+		s.closeUserConns(u)
 	}
 }
 
@@ -216,7 +295,11 @@ func (s *Server) GetActiveEmails(window time.Duration) []string {
 
 // CollectClientTraffic drains and returns traffic deltas for each client.
 func (s *Server) CollectClientTraffic() []ClientTrafficDelta {
-	return s.users.CollectTrafficDeltas()
+	deltas := s.users.CollectTrafficDeltas()
+	for i := range deltas {
+		deltas[i].InboundID = s.id
+	}
+	return deltas
 }
 
 // CollectTotalTraffic drains client deltas and aggregates total up and down bytes.
@@ -232,7 +315,7 @@ func (s *Server) CollectTotalTraffic() (int64, int64) {
 
 // CollectAllTraffic drains client deltas once and returns total up, down and individual client deltas.
 func (s *Server) CollectAllTraffic() (int64, int64, []ClientTrafficDelta) {
-	deltas := s.users.CollectTrafficDeltas()
+	deltas := s.CollectClientTraffic()
 	var totalUp, totalDown int64
 	for _, d := range deltas {
 		totalUp += d.Up
@@ -262,10 +345,19 @@ func (s *Server) acceptLoop() {
 			if s.closed.Load() {
 				return
 			}
-			logger.Warningf("tuic: accept quic connection on %s: %v", s.listenAddr, err)
-			continue
+			s.running.Store(false)
+			s.logf(tuicLogError, "QUIC listener stopped accepting connections: %v", err)
+			_ = s.quicListener.Close()
+			return
 		}
-
+		s.connectionsMu.Lock()
+		if s.closed.Load() {
+			s.connectionsMu.Unlock()
+			_ = conn.CloseWithError(0x00, "tuic: server closed")
+			return
+		}
+		s.connections[conn] = struct{}{}
+		s.connectionsMu.Unlock()
 		s.wg.Add(1)
 		go func(c *quic.Conn) {
 			defer s.wg.Done()
@@ -275,56 +367,81 @@ func (s *Server) acceptLoop() {
 }
 
 func (s *Server) handleConn(conn *quic.Conn) {
+	defer func() {
+		s.connectionsMu.Lock()
+		delete(s.connections, conn)
+		s.connectionsMu.Unlock()
+	}()
 	sessCtx, sessCancel := context.WithCancel(s.ctx)
-	defer sessCancel()
+	stopConnWatch := context.AfterFunc(conn.Context(), sessCancel)
+	defer stopConnWatch()
 
 	var (
-		authUser    atomic.Pointer[User]
-		authSignal  = make(chan struct{})
-		authOnce    sync.Once
-		udpSessions sync.Map // uint16 -> *SocksUDPSession
+		authUser        atomic.Pointer[User]
+		authState       atomic.Uint32 // 0 pending, 1 authenticated, 2 timed out
+		authSignal      = make(chan struct{})
+		authOnce        sync.Once
+		udpAssociations = newUdpAssociationRegistry(s.maxUdpRelayPacketSize)
 	)
 
-	markAuth := func(u *User) {
-		if u == nil {
-			return
+	authTimer := time.AfterFunc(s.authTimeout, func() {
+		if authState.CompareAndSwap(0, 2) {
+			s.logf(tuicLogWarn, "client authentication timed out")
+			sessCancel()
+			_ = conn.CloseWithError(0x100, "tuic: authentication timeout")
 		}
-		authUser.Store(u)
-		s.registerConn(u.UUID, conn)
-		s.markActive(u.Email)
-		authOnce.Do(func() { close(authSignal) })
+	})
+	defer authTimer.Stop()
+
+	authenticate := func(rawUUID [16]byte, token [32]byte) (*User, error) {
+		tlsState := conn.ConnectionState().TLS
+		return s.users.AuthenticateAndRegister(&tlsState, rawUUID, token, func(user *User) bool {
+			if !authState.CompareAndSwap(0, 1) {
+				return authState.Load() == 1 && authUser.Load() == user
+			}
+			authUser.Store(user)
+			s.registerConn(user, conn)
+			s.markActive(user.Email)
+			authTimer.Stop()
+			s.logf(tuicLogInfo, "client authenticated")
+			authOnce.Do(func() { close(authSignal) })
+			return true
+		})
 	}
 
 	waitForAuth := func() (*User, error) {
-		if u := authUser.Load(); u != nil {
-			return u, nil
+		if authState.Load() == 1 {
+			if u := authUser.Load(); u != nil {
+				return u, nil
+			}
+		}
+		if authState.Load() == 2 {
+			return nil, errors.New("tuic: authentication timeout")
 		}
 		select {
 		case <-authSignal:
-			return authUser.Load(), nil
-		case <-time.After(s.authTimeout):
-			return nil, errors.New("tuic: authentication timeout")
+			if u := authUser.Load(); u != nil {
+				return u, nil
+			}
+			return nil, errors.New("tuic: authentication unavailable")
 		case <-sessCtx.Done():
 			return nil, sessCtx.Err()
 		}
 	}
 
+	var relayWg sync.WaitGroup
 	cleanup := func() {
-		if u := authUser.Load(); u != nil {
-			s.unregisterConn(u.UUID, conn)
-		}
 		sessCancel()
-		udpSessions.Range(func(key, value any) bool {
-			sess := value.(*SocksUDPSession)
-			_ = sess.Close()
-			return true
-		})
+		udpAssociations.closeAll()
+		relayWg.Wait()
+		if u := authUser.Load(); u != nil {
+			s.unregisterConn(u, conn)
+		}
 		_ = conn.CloseWithError(0, "")
 	}
 	defer cleanup()
 
 	var innerWg sync.WaitGroup
-
 	// Loop 1: Unidirectional streams
 	innerWg.Add(1)
 	go func() {
@@ -337,7 +454,7 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			innerWg.Add(1)
 			go func(stream *quic.ReceiveStream) {
 				defer innerWg.Done()
-				s.handleUniStream(sessCtx, conn, stream, markAuth, waitForAuth, &udpSessions)
+				s.handleUniStream(sessCtx, conn, stream, authenticate, waitForAuth, udpAssociations, &relayWg)
 			}(uniStream)
 		}
 	}()
@@ -354,12 +471,10 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			innerWg.Add(1)
 			go func(stream *quic.Stream) {
 				defer innerWg.Done()
-				s.handleBiStream(sessCtx, conn, stream, markAuth, waitForAuth)
+				s.handleBiStream(sessCtx, conn, stream, authenticate, waitForAuth)
 			}(biStream)
 		}
 	}()
-
-	reassembler := newPacketReassembler()
 
 	// Loop 3: Datagrams
 	innerWg.Add(1)
@@ -370,7 +485,22 @@ func (s *Server) handleConn(conn *quic.Conn) {
 			if err != nil {
 				return
 			}
-			s.handleDatagram(sessCtx, conn, dgram, markAuth, waitForAuth, &udpSessions, reassembler)
+			s.handleDatagram(sessCtx, conn, dgram, waitForAuth, udpAssociations, &relayWg)
+		}
+	}()
+
+	innerWg.Add(1)
+	go func() {
+		defer innerWg.Done()
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				udpAssociations.reapIdle(time.Now())
+			case <-sessCtx.Done():
+				return
+			}
 		}
 	}()
 
@@ -381,10 +511,12 @@ func (s *Server) handleUniStream(
 	ctx context.Context,
 	conn *quic.Conn,
 	stream *quic.ReceiveStream,
-	markAuth func(*User),
+	authenticate func([16]byte, [32]byte) (*User, error),
 	waitForAuth func() (*User, error),
-	udpSessions *sync.Map,
+	udpAssociations *udpAssociationRegistry,
+	relayWg *sync.WaitGroup,
 ) {
+	defer stream.CancelRead(0)
 	_, cmd, err := ReadCommand(stream)
 	if err != nil {
 		return
@@ -401,14 +533,12 @@ func (s *Server) handleUniStream(
 		copy(rawUUID[:], authData[0:16])
 		copy(token[:], authData[16:48])
 
-		tlsState := conn.ConnectionState().TLS
-		user, err := s.users.Authenticate(&tlsState, rawUUID, token)
+		_, err := authenticate(rawUUID, token)
 		if err != nil {
+			s.logLimited(tuicLogWarn, "auth-rejected", 30*time.Second, "client authentication rejected")
 			_ = conn.CloseWithError(0x100, "tuic: authentication failed")
 			return
 		}
-		markAuth(user)
-
 	case CmdDissociate:
 		if _, err := waitForAuth(); err != nil {
 			return
@@ -418,8 +548,8 @@ func (s *Server) handleUniStream(
 			return
 		}
 		assocID := binary.BigEndian.Uint16(assocIDBytes[:])
-		if val, ok := udpSessions.LoadAndDelete(assocID); ok {
-			_ = val.(*SocksUDPSession).Close()
+		if udpAssociations.dissociate(assocID) {
+			s.logf(tuicLogInfo, "UDP association %d closed", assocID)
 		}
 
 	case CmdPacket:
@@ -428,14 +558,15 @@ func (s *Server) handleUniStream(
 			return
 		}
 		hdr, err := ReadPacketHeader(stream)
+		if err != nil || int(hdr.Size) > s.maxUdpRelayPacketSize {
+			s.logLimited(tuicLogWarn, "udp-malformed", 30*time.Second, "UDP packet rejected: malformed header or size limit")
+			return
+		}
+		payload, err := readPacketPayload(stream, hdr)
 		if err != nil {
 			return
 		}
-		payload := make([]byte, hdr.Size)
-		if _, err := io.ReadFull(stream, payload); err != nil {
-			return
-		}
-		s.forwardUDPPacket(ctx, conn, user, hdr.AssocID, hdr.Addr, payload, udpSessions)
+		s.handlePacket(ctx, conn, user, hdr, payload, packetTransportStream, udpAssociations, relayWg)
 	}
 }
 
@@ -443,10 +574,11 @@ func (s *Server) handleBiStream(
 	ctx context.Context,
 	conn *quic.Conn,
 	stream *quic.Stream,
-	markAuth func(*User),
+	authenticate func([16]byte, [32]byte) (*User, error),
 	waitForAuth func() (*User, error),
 ) {
 	defer stream.Close()
+	defer stream.CancelRead(0)
 
 	_, cmd, err := ReadCommand(stream)
 	if err != nil {
@@ -464,14 +596,12 @@ func (s *Server) handleBiStream(
 		copy(rawUUID[:], authData[0:16])
 		copy(token[:], authData[16:48])
 
-		tlsState := conn.ConnectionState().TLS
-		user, err := s.users.Authenticate(&tlsState, rawUUID, token)
+		_, err := authenticate(rawUUID, token)
 		if err != nil {
+			s.logLimited(tuicLogWarn, "auth-rejected", 30*time.Second, "client authentication rejected")
 			_ = conn.CloseWithError(0x100, "tuic: authentication failed")
 			return
 		}
-		markAuth(user)
-
 	case CmdConnect:
 		user, err := waitForAuth()
 		if err != nil {
@@ -479,109 +609,210 @@ func (s *Server) handleBiStream(
 		}
 		target, err := ReadAddress(stream)
 		if err != nil {
+			s.logLimited(tuicLogWarn, "tcp-relay", 30*time.Second, "TCP relay failed: malformed target address")
 			return
 		}
 
 		s.markActive(user.Email)
-		socksConn, err := s.relay.DialTCP(ctx, user.Email, target)
-		if err != nil {
-			logger.Warningf("tuic: relay DialTCP failed for %s to %s: %v", user.Email, target, err)
+		if !isPacketTarget(target) {
+			s.logLimited(tuicLogWarn, "tcp-relay", 30*time.Second, "TCP relay failed: invalid target address")
 			return
 		}
+		socksConn, err := s.relay.DialTCP(ctx, user.Email, target)
+		if err != nil {
+			s.logLimited(tuicLogWarn, "tcp-relay", 30*time.Second, "TCP relay failed: %v", err)
+			return
+		}
+		s.logf(tuicLogInfo, "TCP relay started")
 
-		PipeBiDirectional(stream, socksConn, &user.BytesUp, &user.BytesDown)
+		PipeBiDirectionalContext(ctx, tcpRelayStream{stream}, socksConn, &user.Traffic.BytesUp, &user.Traffic.BytesDown)
+		s.logf(tuicLogDebug, "TCP relay closed")
 	}
 }
 
 type packetFragmentKey struct {
-	assocID uint16
-	pktID   uint16
+	assocID   uint16
+	pktID     uint16
+	transport uint8
+}
+
+const (
+	packetTransportDatagram uint8 = iota
+	packetTransportStream
+)
+
+type udpRelaySession struct {
+	relay             *SocksUDPSession
+	responseTransport uint8
 }
 
 type packetReassembly struct {
 	total     uint8
 	received  uint8
+	size      int
 	frags     [][]byte
 	addr      *Address
 	updatedAt time.Time
 }
 
 type packetReassembler struct {
-	mu      sync.Mutex
-	packets map[packetFragmentKey]*packetReassembly
+	mu            sync.Mutex
+	maxPacketSize int
+	packets       map[packetFragmentKey]*packetReassembly
 }
 
-func newPacketReassembler() *packetReassembler {
+const (
+	maxSafeUdpRelayPacketSize   = maxSocksUdpDatagramSize - 262
+	maxLegacyUdpRelayPacketSize = maxSocksUdpDatagramSize
+	maxUdpRelayPacketSize       = maxSafeUdpRelayPacketSize
+	maxPendingPacketAssemblies  = 32
+	packetAssemblyTimeout       = 10 * time.Second
+)
+
+func newPacketReassembler(maxPacketSize int) *packetReassembler {
+	if maxPacketSize <= 0 || maxPacketSize > maxUdpRelayPacketSize {
+		maxPacketSize = maxUdpRelayPacketSize
+	}
 	return &packetReassembler{
-		packets: make(map[packetFragmentKey]*packetReassembly),
+		maxPacketSize: maxPacketSize,
+		packets:       make(map[packetFragmentKey]*packetReassembly),
 	}
 }
 
-func (pr *packetReassembler) feed(hdr *PacketHeader, payload []byte) (*Address, []byte) {
-	if hdr.FragTotal <= 1 {
-		return hdr.Addr, payload
+func (pr *packetReassembler) feed(transport uint8, hdr *PacketHeader, payload []byte) (*Address, []byte, bool) {
+	if hdr == nil || hdr.FragTotal == 0 || hdr.FragID >= hdr.FragTotal || int(hdr.Size) != len(payload) || len(payload) > pr.maxPacketSize {
+		return nil, nil, false
 	}
-	if hdr.FragID >= hdr.FragTotal {
-		return nil, nil
-	}
-
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
-
 	now := time.Now()
-	if len(pr.packets) > 32 {
-		for k, v := range pr.packets {
-			if now.Sub(v.updatedAt) > 10*time.Second {
-				delete(pr.packets, k)
-			}
+	pr.expireLocked(now)
+	key := packetFragmentKey{assocID: hdr.AssocID, pktID: hdr.PktID, transport: transport}
+	if hdr.FragTotal == 1 {
+		if hdr.FragID != 0 || !isPacketTarget(hdr.Addr) {
+			return nil, nil, false
 		}
+		delete(pr.packets, key)
+		return hdr.Addr, payload, true
+	}
+	if (hdr.FragID == 0 && !isPacketTarget(hdr.Addr)) || (hdr.FragID != 0 && hdr.Addr != nil && hdr.Addr.Type != AddrTypeNone) {
+		return nil, nil, false
 	}
 
-	key := packetFragmentKey{assocID: hdr.AssocID, pktID: hdr.PktID}
 	entry, ok := pr.packets[key]
 	if !ok {
+		if len(pr.packets) >= maxPendingPacketAssemblies {
+			return nil, nil, false
+		}
 		entry = &packetReassembly{
 			total:     hdr.FragTotal,
 			frags:     make([][]byte, hdr.FragTotal),
-			addr:      hdr.Addr,
 			updatedAt: now,
 		}
 		pr.packets[key] = entry
+	} else if entry.total != hdr.FragTotal {
+		delete(pr.packets, key)
+		return nil, nil, false
 	}
 
-	if entry.frags[hdr.FragID] == nil {
-		entry.frags[hdr.FragID] = payload
-		entry.received++
-		entry.updatedAt = now
-		if entry.addr == nil && hdr.Addr != nil {
-			entry.addr = hdr.Addr
+	fragment := entry.frags[hdr.FragID]
+	if fragment != nil {
+		if !bytes.Equal(fragment, payload) {
+			delete(pr.packets, key)
 		}
+		return nil, nil, false
+	}
+	if entry.size+len(payload) > pr.maxPacketSize {
+		delete(pr.packets, key)
+		return nil, nil, false
+	}
+	entry.frags[hdr.FragID] = make([]byte, len(payload))
+	copy(entry.frags[hdr.FragID], payload)
+	entry.size += len(payload)
+	entry.received++
+	entry.updatedAt = now
+	if hdr.FragID == 0 {
+		entry.addr = hdr.Addr
 	}
 
 	if entry.received == entry.total {
 		delete(pr.packets, key)
-		totalLen := 0
-		for _, f := range entry.frags {
-			totalLen += len(f)
+		if !isPacketTarget(entry.addr) {
+			return nil, nil, false
 		}
-		assembled := make([]byte, 0, totalLen)
+		assembled := make([]byte, 0, entry.size)
 		for _, f := range entry.frags {
 			assembled = append(assembled, f...)
 		}
-		return entry.addr, assembled
+		return entry.addr, assembled, true
 	}
 
-	return nil, nil
+	return nil, nil, false
+}
+
+func (pr *packetReassembler) expireLocked(now time.Time) {
+	for key, entry := range pr.packets {
+		if now.Sub(entry.updatedAt) > packetAssemblyTimeout {
+			delete(pr.packets, key)
+		}
+	}
+}
+
+func (pr *packetReassembler) clearAssociation(assocID uint16) {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	for key := range pr.packets {
+		if key.assocID == assocID {
+			delete(pr.packets, key)
+		}
+	}
+}
+
+func (pr *packetReassembler) clearAll() {
+	pr.mu.Lock()
+	pr.packets = make(map[packetFragmentKey]*packetReassembly)
+	pr.mu.Unlock()
+}
+
+func isPacketTarget(addr *Address) bool {
+	return addr != nil && addr.Type != AddrTypeNone
+}
+
+func readPacketPayload(r io.Reader, hdr *PacketHeader) ([]byte, error) {
+	payload := make([]byte, int(hdr.Size))
+	if _, err := io.ReadFull(r, payload); err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
+func (s *Server) handlePacket(
+	ctx context.Context,
+	conn *quic.Conn,
+	user *User,
+	hdr *PacketHeader,
+	payload []byte,
+	transport uint8,
+	udpAssociations *udpAssociationRegistry,
+	relayWg *sync.WaitGroup,
+) {
+	association, addr, fullPayload, complete := udpAssociations.feed(transport, hdr, payload)
+	if association == nil {
+		s.logLimited(tuicLogWarn, "udp-malformed", 30*time.Second, "UDP packet rejected")
+	}
+	if !complete {
+		return
+	}
+	s.forwardUDPPacket(ctx, conn, user, hdr.AssocID, association, addr, fullPayload, udpAssociations, relayWg)
 }
 
 func (s *Server) handleDatagram(
 	ctx context.Context,
 	conn *quic.Conn,
 	dgram []byte,
-	markAuth func(*User),
 	waitForAuth func() (*User, error),
-	udpSessions *sync.Map,
-	reassembler *packetReassembler,
+	udpAssociations *udpAssociationRegistry,
+	relayWg *sync.WaitGroup,
 ) {
 	if len(dgram) < 2 || dgram[0] != ProtocolVersion {
 		return
@@ -601,24 +832,21 @@ func (s *Server) handleDatagram(
 		}
 		r := bytes.NewReader(dgram[2:])
 		hdr, err := ReadPacketHeader(r)
-		if err != nil {
+		if err != nil || int(hdr.Size) > s.maxUdpRelayPacketSize {
+			s.logLimited(tuicLogWarn, "udp-malformed", 30*time.Second, "UDP packet rejected: malformed header or size limit")
 			return
 		}
-		payload := make([]byte, hdr.Size)
-		if _, err := io.ReadFull(r, payload); err != nil {
+		payload, err := readPacketPayload(r, hdr)
+		if err != nil || r.Len() != 0 {
 			return
 		}
-		addr, fullPayload := reassembler.feed(hdr, payload)
-		if fullPayload == nil {
-			return
-		}
-		s.forwardUDPPacket(ctx, conn, user, hdr.AssocID, addr, fullPayload, udpSessions)
+		s.handlePacket(ctx, conn, user, hdr, payload, packetTransportDatagram, udpAssociations, relayWg)
 
 	case CmdDissociate:
 		if len(dgram) >= 4 {
 			assocID := binary.BigEndian.Uint16(dgram[2:4])
-			if val, ok := udpSessions.LoadAndDelete(assocID); ok {
-				_ = val.(*SocksUDPSession).Close()
+			if udpAssociations.dissociate(assocID) {
+				s.logf(tuicLogInfo, "UDP association %d closed", assocID)
 			}
 		}
 	}
@@ -629,96 +857,138 @@ func (s *Server) forwardUDPPacket(
 	conn *quic.Conn,
 	user *User,
 	assocID uint16,
+	association *udpAssociation,
 	target *Address,
 	payload []byte,
-	udpSessions *sync.Map,
+	udpAssociations *udpAssociationRegistry,
+	relayWg *sync.WaitGroup,
 ) {
-	var sess *SocksUDPSession
-	if val, ok := udpSessions.Load(assocID); ok {
-		sess = val.(*SocksUDPSession)
-	} else {
-		newSess, err := s.relay.DialUDP(ctx, user.Email)
-		if err != nil {
-			logger.Warningf("tuic: DialUDP relay failed for %s (assoc %d): %v", user.Email, assocID, err)
-			return
-		}
-		actual, loaded := udpSessions.LoadOrStore(assocID, newSess)
-		if loaded {
-			_ = newSess.Close()
-			sess = actual.(*SocksUDPSession)
-		} else {
-			sess = newSess
-			go s.relayUDPResponses(conn, user, assocID, sess)
-		}
+	if len(payload) > s.maxUdpRelayPacketSize || !isPacketTarget(target) {
+		return
+	}
+	if association == nil || len(payload) > s.maxUdpRelayPacketSize || !isPacketTarget(target) {
+		return
+	}
+	association, created, err := udpAssociations.ensureRelay(ctx, assocID, association, user, s.relay)
+	if err != nil {
+		s.logLimited(tuicLogWarn, "udp-dial", 30*time.Second, "UDP relay could not be opened: %v", err)
+		return
+	}
+	sess := association.relay
+	if created {
+		s.logf(tuicLogInfo, "UDP association %d started", assocID)
+		relayWg.Add(1)
+		go func() {
+			defer relayWg.Done()
+			s.relayUDPResponses(ctx, conn, user, assocID, association, udpAssociations, sess)
+		}()
 	}
 
-	if _, err := sess.Send(target, payload); err == nil {
-		user.BytesUp.Add(int64(len(payload)))
-		s.markActive(user.Email)
+	if _, err := sess.relay.Send(target, payload); err != nil {
+		s.logLimited(tuicLogWarn, "udp-send", 30*time.Second, "UDP relay request failed: %v", err)
+		return
 	}
+	user.Traffic.BytesUp.Add(int64(len(payload)))
+	s.markActive(user.Email)
 }
 
-const maxDatagramFragmentSize = 1150
+const (
+	maxDatagramFragmentSize = 850
+	maxStreamFragmentSize   = 8 * 1024
+)
 
 func (s *Server) relayUDPResponses(
+	ctx context.Context,
 	conn *quic.Conn,
 	user *User,
 	assocID uint16,
-	sess *SocksUDPSession,
+	association *udpAssociation,
+	associations *udpAssociationRegistry,
+	sess *udpRelaySession,
 ) {
-	bufSize := s.maxUdpRelayPacketSize
-	if bufSize < 1500 {
-		bufSize = 1500
-	}
-	buf := make([]byte, bufSize)
+	defer associations.release(assocID, association)
+	buf := make([]byte, s.maxUdpRelayPacketSize+263)
 	var nextPktID uint16
 	for {
-		srcAddr, respPayload, err := sess.Receive(buf)
+		srcAddr, respPayload, err := sess.relay.Receive(buf)
 		if err != nil {
-			break
+			if ctx.Err() == nil && !sess.relay.closed.Load() {
+				s.logLimited(tuicLogWarn, "udp-receive", 30*time.Second, "UDP relay receive failed: %v", err)
+			}
+			return
+		}
+		if len(respPayload) > s.maxUdpRelayPacketSize {
+			continue
 		}
 
-		user.BytesDown.Add(int64(len(respPayload)))
+		user.Traffic.BytesDown.Add(int64(len(respPayload)))
 		s.markActive(user.Email)
 
 		nextPktID++
-		s.sendUDPPacketFragments(conn, assocID, nextPktID, srcAddr, respPayload)
+		if err := s.sendUDPPacketFragments(ctx, conn, assocID, nextPktID, srcAddr, respPayload, sess.responseTransport); err != nil {
+			if ctx.Err() == nil {
+				s.logLimited(tuicLogWarn, "udp-response", 30*time.Second, "UDP relay response failed: %v", err)
+			}
+			return
+		}
+		associations.touch(assocID, association, time.Now())
 	}
 }
 
 func (s *Server) sendUDPPacketFragments(
+	ctx context.Context,
 	conn *quic.Conn,
 	assocID, pktID uint16,
 	srcAddr *Address,
 	payload []byte,
-) {
-	if len(payload) <= maxDatagramFragmentSize {
-		var out bytes.Buffer
-		if err := WritePacket(&out, assocID, pktID, 1, 0, srcAddr, payload); err == nil {
-			_ = conn.SendDatagram(out.Bytes())
-		}
-		return
+	transport uint8,
+) error {
+	if len(payload) > s.maxUdpRelayPacketSize || !isPacketTarget(srcAddr) {
+		return fmt.Errorf("tuic: UDP response exceeds configured limit or has invalid source address")
+	}
+	fragmentSize := maxDatagramFragmentSize
+	if transport == packetTransportStream {
+		fragmentSize = maxStreamFragmentSize
+	}
+	fragmentTotal := (len(payload) + fragmentSize - 1) / fragmentSize
+	if fragmentTotal == 0 {
+		fragmentTotal = 1
+	}
+	if fragmentTotal > 255 {
+		return fmt.Errorf("tuic: UDP response requires too many fragments: %d", fragmentTotal)
 	}
 
-	numFrags := (len(payload) + maxDatagramFragmentSize - 1) / maxDatagramFragmentSize
-	if numFrags > 255 {
-		return
-	}
-	fragTotal := uint8(numFrags)
-
-	for i := 0; i < int(fragTotal); i++ {
-		start := i * maxDatagramFragmentSize
-		end := start + maxDatagramFragmentSize
-		if end > len(payload) {
-			end = len(payload)
+	for i := 0; i < fragmentTotal; i++ {
+		start := i * fragmentSize
+		end := min(start+fragmentSize, len(payload))
+		addr := (*Address)(nil)
+		if i == 0 {
+			addr = srcAddr
 		}
-		chunk := payload[start:end]
+		var frame bytes.Buffer
+		if err := WritePacket(&frame, assocID, pktID, uint8(fragmentTotal), uint8(i), addr, payload[start:end]); err != nil {
+			return err
+		}
 
-		var out bytes.Buffer
-		if err := WritePacket(&out, assocID, pktID, fragTotal, uint8(i), srcAddr, chunk); err == nil {
-			_ = conn.SendDatagram(out.Bytes())
+		if transport == packetTransportStream {
+			stream, err := conn.OpenUniStreamSync(ctx)
+			if err != nil {
+				return err
+			}
+			if _, err := stream.Write(frame.Bytes()); err != nil {
+				stream.CancelWrite(0)
+				return err
+			}
+			if err := stream.Close(); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := conn.SendDatagram(frame.Bytes()); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 // Close gracefully stops the server and releases all network resources.
@@ -727,6 +997,7 @@ func (s *Server) Close() error {
 		return nil
 	}
 	s.running.Store(false)
+	s.logf(tuicLogInfo, "listener stopped")
 	s.cancel()
 
 	var err error
@@ -743,9 +1014,84 @@ func (s *Server) Close() error {
 	return err
 }
 
+const (
+	tuicLogDebug uint32 = iota
+	tuicLogInfo
+	tuicLogWarn
+	tuicLogError
+)
+
+func parseLogLevel(level string) uint32 {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		return tuicLogDebug
+	case "warn", "warning":
+		return tuicLogWarn
+	case "error":
+		return tuicLogError
+	default:
+		return tuicLogInfo
+	}
+}
+
+func normalizeCongestionControl(controller string) (string, bool) {
+	normalized, err := NormalizeCongestionControl(controller)
+	if err != nil {
+		return "new_reno", false
+	}
+	return normalized, true
+}
+
+func (s *Server) logf(level uint32, format string, args ...any) {
+	if level < s.logLevel.Load() {
+		return
+	}
+	tag := ""
+	if value := s.tag.Load(); value != nil && *value != "" {
+		tag = fmt.Sprintf(" (%s)", *value)
+	}
+	message := fmt.Sprintf("tuic: inbound %d%s: %s", s.id, tag, fmt.Sprintf(format, args...))
+	switch level {
+	case tuicLogDebug:
+		logger.Debugf("%s", message)
+	case tuicLogInfo:
+		logger.Infof("%s", message)
+	case tuicLogWarn:
+		logger.Warningf("%s", message)
+	case tuicLogError:
+		logger.Errorf("%s", message)
+	}
+}
+
+func (s *Server) logLimited(level uint32, key string, interval time.Duration, format string, args ...any) {
+	if level < s.logLevel.Load() {
+		return
+	}
+	value, _ := s.logThrottle.LoadOrStore(key, &atomic.Int64{})
+	stamp := value.(*atomic.Int64)
+	now := time.Now().UnixNano()
+	last := stamp.Load()
+	if last != 0 && time.Duration(now-last) < interval {
+		return
+	}
+	if stamp.CompareAndSwap(last, now) {
+		s.logf(level, format, args...)
+	}
+}
+
 func loadCertificate(certInput, keyInput string) (tls.Certificate, error) {
 	if strings.Contains(certInput, "-----BEGIN CERTIFICATE-----") {
 		return tls.X509KeyPair([]byte(certInput), []byte(keyInput))
 	}
 	return tls.LoadX509KeyPair(certInput, keyInput)
 }
+
+// QUIC Close sends FIN but does not interrupt reads. Relay cancellation must
+// cancel reads too, while a normal EOF preserves the peer's half-close.
+type tcpRelayStream struct{ *quic.Stream }
+
+func (stream tcpRelayStream) Close() error {
+	stream.CancelRead(0)
+	return stream.Stream.Close()
+}
+func (stream tcpRelayStream) CloseWrite() error { return stream.Stream.Close() }

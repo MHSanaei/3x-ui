@@ -136,3 +136,47 @@ func TestTuicJob_TrafficAccounting(t *testing.T) {
 		t.Fatalf("expected inbound traffic to remain 0 in TuicJob (metered by Xray bridge), got up=%d down=%d", dbInbound.Up, dbInbound.Down)
 	}
 }
+
+func TestAggregateTuicClientTrafficSumsAcrossInbounds(t *testing.T) {
+	got := aggregateTuicClientTraffic([]tuic.ClientTrafficDelta{
+		{Email: "shared@example.test", Up: 100, Down: 200},
+		{Email: "shared@example.test", Up: 300, Down: 400},
+		{Email: "other@example.test", Up: 5, Down: 6},
+	}, []string{"shared@example.test", "online-only@example.test"})
+	byEmail := make(map[string]struct{ up, down int64 }, len(got))
+	for _, traffic := range got {
+		byEmail[traffic.Email] = struct{ up, down int64 }{traffic.Up, traffic.Down}
+	}
+	if shared := byEmail["shared@example.test"]; shared.up != 400 || shared.down != 600 {
+		t.Fatalf("shared client traffic = %+v, want (400, 600)", shared)
+	}
+	if other := byEmail["other@example.test"]; other.up != 5 || other.down != 6 {
+		t.Fatalf("other client traffic = %+v, want (5, 6)", other)
+	}
+	if online, ok := byEmail["online-only@example.test"]; !ok || online.up != 0 || online.down != 0 {
+		t.Fatalf("online-only client traffic = %+v, present=%v", online, ok)
+	}
+	if len(got) != 3 {
+		t.Fatalf("got %d aggregated clients, want 3", len(got))
+	}
+}
+
+func TestAggregateTuicClientTrafficPreservesStableIdentityAcrossEmailRename(t *testing.T) {
+	const (
+		inboundID  = 82
+		clientUUID = "a0000000-0000-0000-0000-000000000082"
+	)
+	got := aggregateTuicClientTraffic([]tuic.ClientTrafficDelta{
+		{Email: "old@example.test", UUID: clientUUID, InboundID: inboundID, Up: 10, Down: 20},
+		{Email: "old@example.test", UUID: clientUUID, InboundID: inboundID, Up: 30, Down: 40},
+	}, nil)
+	if len(got) != 1 {
+		t.Fatalf("aggregate returned %d records, want 1", len(got))
+	}
+	if got[0].Email != "old@example.test" || got[0].TuicUUID != clientUUID || got[0].TuicInboundId != inboundID {
+		t.Fatalf("aggregate lost retired TUIC identity: %+v", got[0])
+	}
+	if got[0].Up != 40 || got[0].Down != 60 {
+		t.Fatalf("aggregate counters = (%d,%d), want (40,60)", got[0].Up, got[0].Down)
+	}
+}

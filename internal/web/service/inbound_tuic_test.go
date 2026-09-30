@@ -293,3 +293,45 @@ func TestTuicSocksSelfConflict(t *testing.T) {
 		t.Fatalf("expected no conflict for different port, got %s", diff)
 	}
 }
+
+func TestInboundTuicServerParsesLegacyFlatSettings(t *testing.T) {
+	server := inboundTuicServer(string(model.TUIC), `{"certificate":"/cert.pem","private_key":"/secret-key.pem","congestion_control":" CuBiC ","udp_relay_mode":"quic","sni":"profile.example"}`)
+	if server == nil {
+		t.Fatal("expected legacy flat TUIC settings")
+	}
+	if server.CongestionControl != "cubic" || server.UDPRelayMode != "quic" || server.SNI != "profile.example" {
+		t.Fatalf("legacy flat fields were not normalized: %+v", server)
+	}
+	if server.PrivateKey != "" {
+		t.Fatal("client preview exposed the inbound private key")
+	}
+}
+
+func TestNormalizeTuicSettingsCanonicalizesCongestionAndPacketLimit(t *testing.T) {
+	ib := &model.Inbound{Protocol: model.TUIC, Settings: `{"congestion_control":"RENO","max_udp_relay_packet_size":65507,"server":{"congestion_control":" CuBiC ","max_udp_relay_packet_size":65500}}`}
+	if err := normalizeTuicSettings(ib); err != nil {
+		t.Fatalf("normalizeTuicSettings: %v", err)
+	}
+	var got struct {
+		CongestionControl string `json:"congestion_control"`
+		MaxPacketSize     int    `json:"max_udp_relay_packet_size"`
+		Server            struct {
+			CongestionControl string `json:"congestion_control"`
+			MaxPacketSize     int    `json:"max_udp_relay_packet_size"`
+		} `json:"server"`
+	}
+	if err := json.Unmarshal([]byte(ib.Settings), &got); err != nil {
+		t.Fatalf("unmarshal normalized settings: %v", err)
+	}
+	if got.CongestionControl != "new_reno" || got.Server.CongestionControl != "cubic" {
+		t.Fatalf("congestion controllers were not canonicalized: %+v", got)
+	}
+	if got.MaxPacketSize != 65245 || got.Server.MaxPacketSize != 65245 {
+		t.Fatalf("packet limits were not clamped: %+v", got)
+	}
+
+	ib.Settings = `{"server":{"congestion_control":"experimental"}}`
+	if err := normalizeTuicSettings(ib); err == nil {
+		t.Fatal("unsupported congestion controller was accepted")
+	}
+}

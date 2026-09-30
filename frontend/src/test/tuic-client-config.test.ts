@@ -52,6 +52,16 @@ describe('buildTuicClientConfig', () => {
     expect(cfg).toContain('sni: server.example.com');
   });
 
+  it('exports canonical controller values for legacy settings', () => {
+    const legacyInbound = {
+      ...inbound,
+      tuicServer: { ...inbound.tuicServer, congestion_control: ' RENO ' },
+    } as InboundOption;
+    const cfg = buildTuicClientConfig(client, legacyInbound, 'server.example.com', '');
+    expect(cfg).toContain('congestion-controller: new_reno');
+    expect(cfg).not.toContain('congestion-controller:  RENO ');
+  });
+
   it('escapes quotes in passwords and remarks', () => {
     const dangerousClient: ClientRecord = {
       ...client,

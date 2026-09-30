@@ -2137,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "Kontrol Kemacetan",
+        "congestionControlHint": "Algoritma server dan klien. Perubahan server berlaku setelah terhubung ulang.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Mode Relai UDP",
+        "udpRelayModeHint": "Mode UDP klien. Server mendukung keduanya.",
         "zeroRttHandshake": "Jabat Tangan 0-RTT",
         "logLevel": "Tingkat Log",
-        "logLevelHint": "Status online, terakhir online, dan \"mulai setelah penggunaan pertama\" dibaca dari baris Info sidecar; Warn atau Error menonaktifkannya untuk inbound ini.",
+        "logLevelHint": "Level log minimum untuk inbound ini.",
         "maxIdleTime": "Waktu Diam Maks (dtk)",
         "authTimeout": "Batas Waktu Otentikasi (dtk)",
         "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
         "sni": "SNI",
-        "sniHint": "Penggantian Server Name Indication"
+        "sniHint": "Nama server TLS dalam profil klien.",
+        "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       },
       "tun": {
         "userLevel": "Level Pengguna"

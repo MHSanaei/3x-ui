@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -14,6 +15,10 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+var ErrUdpPayloadTooLarge = errors.New("tuic socks: UDP packet exceeds the maximum SOCKS datagram size")
+
+const maxSocksUdpDatagramSize = 65507
 
 // SocksRelay describes the loopback SOCKS5 endpoint where decrypted TUIC traffic is forwarded.
 type SocksRelay struct {
@@ -190,16 +195,26 @@ func (s *SocksUDPSession) Send(target *Address, payload []byte) (int, error) {
 		return 0, net.ErrClosed
 	}
 
-	hdr := buildSocks5UDPHeader(target)
-	if hdr == nil {
-		return 0, ErrInvalidAddr
+	packet, err := buildSocks5UDPRequest(target, payload)
+	if err != nil {
+		return 0, err
 	}
 
+	return s.udpConn.Write(packet)
+}
+
+func buildSocks5UDPRequest(target *Address, payload []byte) ([]byte, error) {
+	hdr := buildSocks5UDPHeader(target)
+	if hdr == nil {
+		return nil, ErrInvalidAddr
+	}
+	if len(hdr)+len(payload) > maxSocksUdpDatagramSize {
+		return nil, ErrUdpPayloadTooLarge
+	}
 	packet := make([]byte, len(hdr)+len(payload))
 	copy(packet, hdr)
 	copy(packet[len(hdr):], payload)
-
-	return s.udpConn.Write(packet)
+	return packet, nil
 }
 
 // Receive reads a relayed UDP payload and extracts its original source address.
@@ -455,6 +470,13 @@ func (g *guardedReader) arm() {
 
 // PipeBiDirectional pipes data between two connections and tracks byte counts in each direction.
 func PipeBiDirectional(a, b io.ReadWriteCloser, upCounter, downCounter *atomic.Int64) {
+	PipeBiDirectionalContext(context.Background(), a, b, upCounter, downCounter)
+}
+
+func PipeBiDirectionalContext(ctx context.Context, a, b io.ReadWriteCloser, upCounter, downCounter *atomic.Int64) {
+	closeBoth := func() { _ = a.Close(); _ = b.Close() }
+	stop := context.AfterFunc(ctx, closeBoth)
+	defer stop()
 	ga := newGuardedReader(a)
 	gb := newGuardedReader(b)
 
@@ -471,10 +493,14 @@ func PipeBiDirectional(a, b io.ReadWriteCloser, upCounter, downCounter *atomic.I
 					counter.Add(int64(n))
 				}
 				if _, werr := dst.Write(buf[:n]); werr != nil {
+					closeBoth()
 					break
 				}
 			}
 			if err != nil {
+				if !errors.Is(err, io.EOF) {
+					closeBoth()
+				}
 				break
 			}
 		}

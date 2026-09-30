@@ -2137,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "Control de congestión",
+        "congestionControlHint": "Algoritmo del servidor y cliente. Los cambios del servidor se aplican al reconectar.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Modo de retransmisión UDP",
+        "udpRelayModeHint": "Modo UDP del cliente. El servidor admite ambos.",
         "zeroRttHandshake": "Apretón de manos 0-RTT",
         "logLevel": "Nivel de registro",
-        "logLevelHint": "El estado en línea, la última conexión y «iniciar tras el primer uso» se leen de las líneas Info del sidecar; Warn o Error los desactivan para este inbound.",
+        "logLevelHint": "Nivel mínimo de registro de esta entrada.",
         "maxIdleTime": "Tiempo máx. de inactividad (s)",
         "authTimeout": "Tiempo de espera de autenticación (s)",
         "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",
         "sni": "SNI",
-        "sniHint": "Sobrescritura de Server Name Indication"
+        "sniHint": "Nombre del servidor TLS en el perfil del cliente.",
+        "sniRequired": "Introduce un dominio para completar las rutas del certificado."
       },
       "tun": {
         "userLevel": "Nivel de Usuario"

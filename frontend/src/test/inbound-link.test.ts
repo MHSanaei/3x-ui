@@ -1091,6 +1091,41 @@ describe('genVlessLink XHTTP extra compatibility', () => {
 });
 
 describe('genTuicLink', () => {
+  it('canonicalizes legacy flat controller values to the Go runtime default', () => {
+    const cases = [
+      { value: '', expected: 'bbr' },
+      { value: ' ', expected: 'bbr' },
+      { value: 'BBR', expected: 'bbr' },
+      { value: ' CuBiC ', expected: 'cubic' },
+      { value: 'reno', expected: 'new_reno' },
+      { value: 'invalid', expected: 'new_reno' },
+    ];
+    for (const { value, expected } of cases) {
+      const inbound = InboundSchema.parse({
+        id: 10,
+        protocol: 'tuic',
+        port: 8443,
+        settings: {
+          congestion_control: value,
+          clients: [
+            {
+              uuid: '11111111-2222-3333-4444-555555555555',
+              password: 'secretpassword',
+              email: 'user@tuic',
+            },
+          ],
+        },
+      });
+      const link = genTuicLink({
+        inbound,
+        address: 'example.com',
+        clientUuid: '11111111-2222-3333-4444-555555555555',
+        clientPassword: 'secretpassword',
+      });
+      expect(new URL(link).searchParams.get('congestion_control')).toBe(expected);
+    }
+  });
+
   it('builds a standard tuic share link with all parameters', () => {
     const inbound = InboundSchema.parse({
       id: 1,

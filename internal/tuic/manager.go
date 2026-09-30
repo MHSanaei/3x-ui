@@ -16,9 +16,10 @@ type managed struct {
 }
 
 type Manager struct {
-	mu           sync.Mutex
-	servers      map[int]*managed
-	lastStartErr map[int]string
+	mu             sync.Mutex
+	servers        map[int]*managed
+	lastStartErr   map[int]string
+	pendingTraffic map[string]ClientTrafficDelta
 }
 
 var (
@@ -29,8 +30,9 @@ var (
 func GetManager() *Manager {
 	managerOnce.Do(func() {
 		managerInstance = &Manager{
-			servers:      make(map[int]*managed),
-			lastStartErr: make(map[int]string),
+			servers:        make(map[int]*managed),
+			lastStartErr:   make(map[int]string),
+			pendingTraffic: make(map[string]ClientTrafficDelta),
 		}
 	})
 	return managerInstance
@@ -54,6 +56,9 @@ func (m *Manager) Ensure(inst Instance) error {
 }
 
 func (m *Manager) ensureLocked(inst Instance) error {
+	if err := ValidateClients(inst.Clients); err != nil {
+		return err
+	}
 	if len(inst.Clients) == 0 {
 		m.removeLocked(inst.Id)
 		return nil
@@ -65,13 +70,14 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if existing, ok := m.servers[inst.Id]; ok && existing != nil {
 		if existing.server != nil && existing.server.IsRunning() && existing.structuralFP == structuralFP {
 			existing.tag = inst.Tag
+			existing.server.UpdateRuntimeSettings(inst.Tag, inst.CongestionControl, inst.LogLevel)
 			if existing.usersFP != usersFP {
 				existing.usersFP = usersFP
 				existing.server.UpdateUsers(inst.Clients)
 			}
 			return nil
 		}
-		stopManaged(existing)
+		m.stopAndDrainLocked(existing)
 		delete(m.servers, inst.Id)
 	}
 
@@ -79,7 +85,9 @@ func (m *Manager) ensureLocked(inst Instance) error {
 	if err != nil {
 		if m.lastStartErr[inst.Id] != err.Error() {
 			m.lastStartErr[inst.Id] = err.Error()
-			logger.Warningf("tuic: failed to start tuic server for inbound %d (%s): %v", inst.Id, inst.Tag, err)
+			if tuicLogWarn >= parseLogLevel(inst.LogLevel) {
+				logger.Warningf("tuic: inbound %d (%s): failed to start server: %v", inst.Id, inst.Tag, err)
+			}
 		}
 		return err
 	}
@@ -109,10 +117,41 @@ func (m *Manager) startLocked(inst Instance) (*Server, error) {
 	return server, nil
 }
 
-func stopManaged(mg *managed) {
-	if mg.server != nil {
-		_ = mg.server.Close()
+func (m *Manager) stopAndDrainLocked(mg *managed) {
+	if mg == nil || mg.server == nil {
+		return
 	}
+	_ = mg.server.Close()
+	m.appendPendingTrafficLocked(mg.server.CollectClientTraffic())
+}
+
+func (m *Manager) appendPendingTrafficLocked(deltas []ClientTrafficDelta) {
+	if m.pendingTraffic == nil {
+		m.pendingTraffic = make(map[string]ClientTrafficDelta)
+	}
+	for _, delta := range deltas {
+		key := delta.Email
+		if delta.TrafficID > 0 {
+			key = fmt.Sprintf("traffic:%d", delta.TrafficID)
+		}
+		if delta.TrafficID == 0 && delta.InboundID > 0 && delta.UUID != "" {
+			key = fmt.Sprintf("%d:%s", delta.InboundID, delta.UUID)
+		}
+		current := m.pendingTraffic[key]
+		current.Email = delta.Email
+		current.UUID = delta.UUID
+		current.InboundID = delta.InboundID
+		current.TrafficID = delta.TrafficID
+		current.Up += delta.Up
+		current.Down += delta.Down
+		m.pendingTraffic[key] = current
+	}
+}
+
+func (m *Manager) RequeueClientTraffic(deltas []ClientTrafficDelta) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.appendPendingTrafficLocked(deltas)
 }
 
 func (m *Manager) GetActiveClients(window time.Duration) ([]string, []string) {
@@ -153,7 +192,11 @@ func (m *Manager) CollectAllTraffic() ([]InboundTrafficDelta, []ClientTrafficDel
 	defer m.mu.Unlock()
 
 	var inbounds []InboundTrafficDelta
-	var clients []ClientTrafficDelta
+	clients := make([]ClientTrafficDelta, 0, len(m.pendingTraffic))
+	for email, delta := range m.pendingTraffic {
+		clients = append(clients, delta)
+		delete(m.pendingTraffic, email)
+	}
 
 	for _, mg := range m.servers {
 		if mg.server != nil && mg.server.IsRunning() {
@@ -188,7 +231,7 @@ func (m *Manager) Remove(id int) {
 
 func (m *Manager) removeLocked(id int) {
 	if existing, ok := m.servers[id]; ok && existing != nil {
-		stopManaged(existing)
+		m.stopAndDrainLocked(existing)
 		delete(m.servers, id)
 		delete(m.lastStartErr, id)
 	}
@@ -218,7 +261,7 @@ func (m *Manager) StopAll() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, mg := range m.servers {
-		stopManaged(mg)
+		m.stopAndDrainLocked(mg)
 	}
 	m.servers = make(map[int]*managed)
 }
