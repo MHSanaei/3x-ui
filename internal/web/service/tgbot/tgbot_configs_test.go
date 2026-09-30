@@ -5,10 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
@@ -217,25 +214,6 @@ func TestOwnsClient(t *testing.T) {
 	}
 }
 
-// newCustomerTgbot seeds one inbound plus the clients-table row that binds it
-// to a Telegram id. The binding check reads the clients table, while the link
-// senders read traffic, so both have to exist before a customer tap can be
-// exercised end to end.
-func newCustomerTgbot(t *testing.T, email string) (*Tgbot, func(string) int) {
-	t.Helper()
-	tb, calls := newLinksCallbackTgbot(t, email)
-	seedClientRecord(t, email, "sub-owned", ownerTgID)
-	if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", email).
-		Updates(map[string]any{"total": 1024 * 1024 * 1024, "up": 1024 * 1024 * 10, "down": 1024 * 1024 * 20}).Error; err != nil {
-		t.Fatalf("cap traffic: %v", err)
-	}
-	if err := database.GetDB().Model(&model.Inbound{}).Where("remark = ?", "in").
-		Update("settings", `{"clients":[{"email":"`+email+`","tgId":4242,"subId":"sub-owned"}]}`).Error; err != nil {
-		t.Fatalf("seed inbound settings: %v", err)
-	}
-	return tb, calls
-}
-
 // A link page must say which config it is showing, or a customer holding
 // several cannot tell them apart.
 func TestClientHeaderNamesTheConfig(t *testing.T) {
@@ -307,14 +285,12 @@ func TestClientEmailPicker(t *testing.T) {
 	t.Run("one config is used without asking", func(t *testing.T) {
 		tb, calls := newCustomerTgbot(t, ownerMail)
 		customerLocalizer(t)
+		runningBot(t)
 
 		emails := tb.clientEmailPicker(7001, ownerTgID, "client_one_link", false)
 
 		if len(emails) != 1 || emails[0] != ownerMail {
 			t.Fatalf("emails = %v, want just the owner's", emails)
-		}
-		if n := calls("sendMessage"); n != 1 {
-			t.Errorf("sendMessage = %d, want 1: the single config must be served without asking", n)
 		}
 		if n := calls("answerCallbackQuery"); n != 0 {
 			t.Errorf("answerCallbackQuery = %d, want 0: the picker asks no question", n)

@@ -11,12 +11,22 @@ import (
 // serves are not routed here.
 func (t *Tgbot) runClientSelfAction(chatId int64, verb, arg string) {
 	switch verb {
+	case "client_sub_links":
+		t.sendClientSubLinks(chatId, arg)
+	case "client_individual_links":
+		t.sendClientIndividualLinks(chatId, arg)
+	case "client_qr_links":
+		t.sendClientQRLinks(chatId, arg)
 	case "client_one_link":
 		t.oneLinkPicker(chatId, arg)
 	case "link_one":
 		if target, index, ok := splitClientLinkIndex(arg); ok {
 			t.sendOneLink(chatId, target, index)
 		}
+	default:
+		// A verb nothing handles would leave the button spinning, so it is
+		// answered rather than swallowed.
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"))
 	}
 }
 

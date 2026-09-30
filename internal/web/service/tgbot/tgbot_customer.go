@@ -6,11 +6,17 @@ import (
 )
 
 // One door for a customer's own surface, so the buttons they are offered never
-// depend on which message happened to reach them first.
+// depend on which message happened to reach them first. Each row names a verb
+// the router serves, not a per-client email: the picker resolves which of the
+// caller's configs a verb applies to.
 func (t *Tgbot) clientMenuKeyboard() *telego.InlineKeyboardMarkup {
 	return tu.InlineKeyboardGrid([][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getAllLinks")).WithCallbackData(t.encodeQuery("client_one_link")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getAllLinks")).WithCallbackData(t.encodeQuery("client_individual_links")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getOneConfig")).WithCallbackData(t.encodeQuery("client_one_link")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.subscriptionUrl")).WithCallbackData(t.encodeQuery("client_sub_links")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.qrCodes")).WithCallbackData(t.encodeQuery("client_qr_links")),
 		),
 		tu.InlineKeyboardRow(

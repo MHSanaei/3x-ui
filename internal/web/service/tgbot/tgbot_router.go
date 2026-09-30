@@ -1007,6 +1007,12 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "client_commands":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands"))
+	case "client_menu_open":
+		// The customer keyboard's Commands button is the one entry every linked
+		// account already has, so the menu opens from there rather than adding a
+		// button main's keyboard would have to grow.
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.customerMenu"))
+		t.clientMenu(chatId, callbackQuery.From.ID, isAdmin)
 	case "client_menu":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.customerMenu"))
 		t.clientMenu(chatId, callbackQuery.From.ID, isAdmin)
@@ -1366,7 +1372,7 @@ func checkAdmin(tgId int64) bool {
 // admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
-	case "client_traffic", "client_commands", "client_menu", "guide_menu",
+	case "client_traffic", "client_commands", "client_menu", "client_menu_open", "guide_menu",
 		"client_sub_links", "client_individual_links", "client_qr_links",
 		"client_one_link":
 		return true
