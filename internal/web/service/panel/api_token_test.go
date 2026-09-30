@@ -40,7 +40,7 @@ func TestRecreateByNamePreservesTokenWhenReplacementFails(t *testing.T) {
 	dbtest.InitDB(t, config.GetDBPath())
 
 	svc := ApiTokenService{}
-	first, err := svc.RecreateByName("cli-fallback")
+	first, err := svc.RecreateByName("cli-fallback", "")
 	if err != nil {
 		t.Fatalf("first recreate: %v", err)
 	}
@@ -55,7 +55,7 @@ func TestRecreateByNamePreservesTokenWhenReplacementFails(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Callback().Create().Remove(callback) })
 
-	if _, err := svc.RecreateByName("cli-fallback"); !errors.Is(err, errInjectedTokenCreate) {
+	if _, err := svc.RecreateByName("cli-fallback", ""); !errors.Is(err, errInjectedTokenCreate) {
 		t.Fatalf("recreate error = %v, want %v", err, errInjectedTokenCreate)
 	}
 	var row model.ApiToken
@@ -76,14 +76,14 @@ func TestRecreateByNameRejectsOverlongName(t *testing.T) {
 	const wantErr = "token name must be 64 characters or fewer"
 
 	svc := ApiTokenService{}
-	_, err := svc.RecreateByName(strings.Repeat("n", 65))
+	_, err := svc.RecreateByName(strings.Repeat("n", 65), "")
 	if err == nil {
 		t.Fatal("expected a 65-character token name to be rejected")
 	}
 	if got := strings.TrimSpace(err.Error()); got != wantErr {
 		t.Fatalf("error = %q, want %q — any other error would pass a bare nil check", got, wantErr)
 	}
-	if _, err := svc.RecreateByName(strings.Repeat("n", 64)); err != nil {
+	if _, err := svc.RecreateByName(strings.Repeat("n", 64), ""); err != nil {
 		t.Fatalf("64 characters is the documented limit, got: %v", err)
 	}
 }
@@ -98,7 +98,7 @@ func TestRecreateByNameKeepsReplacedTokenScope(t *testing.T) {
 	if _, err := svc.Create("grafana", model.ApiScopeMonitor, 0); err != nil {
 		t.Fatalf("seed grafana: %v", err)
 	}
-	rotated, err := svc.RecreateByName("grafana")
+	rotated, err := svc.RecreateByName("grafana", "")
 	if err != nil {
 		t.Fatalf("recreate: %v", err)
 	}
@@ -115,6 +115,56 @@ func TestRecreateByNameKeepsReplacedTokenScope(t *testing.T) {
 	}
 }
 
+// An explicit scope wins over the replaced token's, and a bad one is refused
+// before the old token is touched.
+func TestRecreateByNameAppliesGivenScope(t *testing.T) {
+	tests := []struct {
+		name      string
+		seedScope string
+		scope     string
+		want      string
+		wantErr   string
+	}{
+		{name: "replaces a monitor token as node-sync", seedScope: model.ApiScopeMonitor, scope: model.ApiScopeNodeSync, want: model.ApiScopeNodeSync},
+		{name: "creates a new token as monitor", scope: model.ApiScopeMonitor, want: model.ApiScopeMonitor},
+		{name: "refuses an unknown scope", seedScope: model.ApiScopeMonitor, scope: "root", want: model.ApiScopeMonitor, wantErr: "scope must be 'admin', 'monitor', or 'node-sync'"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("XUI_DB_FOLDER", t.TempDir())
+			dbtest.InitDB(t, config.GetDBPath())
+
+			svc := ApiTokenService{}
+			var seeded *ApiTokenView
+			if tt.seedScope != "" {
+				var err error
+				if seeded, err = svc.Create("bot", tt.seedScope, 0); err != nil {
+					t.Fatalf("seed bot: %v", err)
+				}
+			}
+			_, err := svc.RecreateByName("bot", tt.scope)
+			if tt.wantErr != "" {
+				if err == nil || strings.TrimSpace(err.Error()) != tt.wantErr {
+					t.Fatalf("error = %v, want %q", err, tt.wantErr)
+				}
+				if !svc.Match(seeded.Token) {
+					t.Fatal("the old token was revoked by a refused rotation")
+				}
+			} else if err != nil {
+				t.Fatalf("recreate: %v", err)
+			}
+
+			var row model.ApiToken
+			if err := database.GetDB().Where("name = ?", "bot").First(&row).Error; err != nil {
+				t.Fatalf("load bot: %v", err)
+			}
+			if row.Scope != tt.want {
+				t.Fatalf("stored scope = %q, want %q", row.Scope, tt.want)
+			}
+		})
+	}
+}
+
 // A scope this build does not know, as after a downgrade, must not be guessed
 // as admin; the rotation fails and the stored row stays untouched.
 func TestRecreateByNameRefusesUnknownStoredScope(t *testing.T) {
@@ -128,7 +178,7 @@ func TestRecreateByNameRefusesUnknownStoredScope(t *testing.T) {
 	}
 
 	const wantErr = `token "remote" has unknown scope "node-admin"`
-	_, err := (&ApiTokenService{}).RecreateByName("remote")
+	_, err := (&ApiTokenService{}).RecreateByName("remote", "")
 	if err == nil || strings.TrimSpace(err.Error()) != wantErr {
 		t.Fatalf("error = %v, want %q", err, wantErr)
 	}
@@ -146,11 +196,11 @@ func TestRecreateByNameKeepsOneToken(t *testing.T) {
 	dbtest.InitDB(t, config.GetDBPath())
 
 	svc := ApiTokenService{}
-	first, err := svc.RecreateByName("cli-fallback")
+	first, err := svc.RecreateByName("cli-fallback", "")
 	if err != nil {
 		t.Fatalf("first recreate: %v", err)
 	}
-	second, err := svc.RecreateByName("cli-fallback")
+	second, err := svc.RecreateByName("cli-fallback", "")
 	if err != nil {
 		t.Fatalf("second recreate: %v", err)
 	}

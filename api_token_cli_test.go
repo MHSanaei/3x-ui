@@ -57,12 +57,12 @@ func TestGetApiTokenRotatesOnlyTheNamedToken(t *testing.T) {
 	newTokenCLIEnv(t)
 
 	svc := panel.ApiTokenService{}
-	weekly, err := svc.RecreateByName("weekly-report")
+	weekly, err := svc.RecreateByName("weekly-report", "")
 	if err != nil {
 		t.Fatalf("seed weekly-report: %v", err)
 	}
 
-	GetApiToken(true, "ci-bot")
+	GetApiToken(true, "ci-bot", "")
 
 	names := tokenNames(t)
 	if !hasName(names, "ci-bot") {
@@ -78,7 +78,7 @@ func TestGetApiTokenRotatesOnlyTheNamedToken(t *testing.T) {
 func TestGetApiTokenUsesGivenNameOnEmptyDatabase(t *testing.T) {
 	newTokenCLIEnv(t)
 
-	GetApiToken(true, "ci-bot")
+	GetApiToken(true, "ci-bot", "")
 
 	names := tokenNames(t)
 	if !hasName(names, "ci-bot") {
@@ -89,15 +89,31 @@ func TestGetApiTokenUsesGivenNameOnEmptyDatabase(t *testing.T) {
 	}
 }
 
+// -tokenScope has to reach both branches, or a fresh panel would mint an admin
+// token for a caller that asked for monitor.
+func TestGetApiTokenAppliesGivenScope(t *testing.T) {
+	newTokenCLIEnv(t)
+
+	GetApiToken(true, "ci-bot", model.ApiScopeMonitor)
+	if got := tokenRow(t, "ci-bot").Scope; got != model.ApiScopeMonitor {
+		t.Fatalf("minted scope = %q, want %q", got, model.ApiScopeMonitor)
+	}
+
+	GetApiToken(true, "ci-bot", model.ApiScopeNodeSync)
+	if got := tokenRow(t, "ci-bot").Scope; got != model.ApiScopeNodeSync {
+		t.Fatalf("regenerated scope = %q, want %q", got, model.ApiScopeNodeSync)
+	}
+}
+
 // install.sh records the token it gets on a fresh panel. A later bare
 // -getApiToken must rotate the fallback slot and leave that record valid.
 func TestGetApiTokenPreservesInstallTokenWhenRotating(t *testing.T) {
 	newTokenCLIEnv(t)
 
-	GetApiToken(true, "")
+	GetApiToken(true, "", "")
 	installed := tokenRow(t, installTokenName)
 
-	GetApiToken(true, "")
+	GetApiToken(true, "", "")
 
 	names := tokenNames(t)
 	if !hasName(names, cliFallbackTokenName) {
@@ -134,10 +150,10 @@ func TestGetApiTokenWarnsOnIgnoredPositionalArgs(t *testing.T) {
 func TestGetApiTokenTrimsName(t *testing.T) {
 	newTokenCLIEnv(t)
 
-	if _, err := (&panel.ApiTokenService{}).RecreateByName("seed"); err != nil {
+	if _, err := (&panel.ApiTokenService{}).RecreateByName("seed", ""); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	GetApiToken(true, "   ")
+	GetApiToken(true, "   ", "")
 
 	names := tokenNames(t)
 	if !hasName(names, cliFallbackTokenName) {

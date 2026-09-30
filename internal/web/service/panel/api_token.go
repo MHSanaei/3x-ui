@@ -119,7 +119,7 @@ func (s *ApiTokenService) Create(name, scope string, expiresAt int64) (*ApiToken
 
 // RecreateByName replaces any token with this name, keeping exactly one so a
 // repeatedly-run caller cannot accumulate credentials it can never revoke.
-func (s *ApiTokenService) RecreateByName(name string) (*ApiTokenView, error) {
+func (s *ApiTokenService) RecreateByName(name, scope string) (*ApiTokenView, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, common.NewError("token name is required")
@@ -128,21 +128,30 @@ func (s *ApiTokenService) RecreateByName(name string) (*ApiTokenView, error) {
 	if len(name) > 64 {
 		return nil, common.NewError("token name must be 64 characters or fewer")
 	}
-	plaintext := random.Seq(apiTokenLength)
-	row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(plaintext), Enabled: true}
-	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
-		var replaced []model.ApiToken
-		if err := tx.Where("name = ?", name).Order("id asc").Limit(1).Find(&replaced).Error; err != nil {
-			return err
+	givenScope := ""
+	if strings.TrimSpace(scope) != "" {
+		var err error
+		if givenScope, err = NormalizeScope(scope); err != nil {
+			return nil, err
 		}
-		// An empty Scope takes the column default of admin, so a rotated
-		// monitor or node-sync token would silently gain full access.
-		row.Scope = model.ApiScopeAdmin
-		if len(replaced) > 0 {
-			if !model.IsKnownApiScope(replaced[0].Scope) {
-				return common.NewErrorf("token %q has unknown scope %q", name, replaced[0].Scope)
+	}
+	plaintext := random.Seq(apiTokenLength)
+	row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(plaintext), Enabled: true, Scope: givenScope}
+	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		if row.Scope == "" {
+			var replaced []model.ApiToken
+			if err := tx.Where("name = ?", name).Order("id asc").Limit(1).Find(&replaced).Error; err != nil {
+				return err
 			}
-			row.Scope = replaced[0].Scope
+			// An empty Scope takes the column default of admin, so a rotated
+			// monitor or node-sync token would silently gain full access.
+			row.Scope = model.ApiScopeAdmin
+			if len(replaced) > 0 {
+				if !model.IsKnownApiScope(replaced[0].Scope) {
+					return common.NewErrorf("token %q has unknown scope %q", name, replaced[0].Scope)
+				}
+				row.Scope = replaced[0].Scope
+			}
 		}
 		if err := tx.Where("name = ?", name).Delete(model.ApiToken{}).Error; err != nil {
 			return err
