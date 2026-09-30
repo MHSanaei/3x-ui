@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"net/http"
 
+	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -49,6 +50,10 @@ func CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 		if !session.ValidateCSRFToken(c) {
+			// Rejected requests are otherwise completely invisible to operators,
+			// which makes diagnosing failed logins (e.g. a missing/expired CSRF
+			// token) very confusing. Log the rejection without any token material.
+			logger.Warning("CSRF validation failed, request rejected: method=", c.Request.Method, " path=", c.Request.URL.Path, " IP=", c.ClientIP())
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
