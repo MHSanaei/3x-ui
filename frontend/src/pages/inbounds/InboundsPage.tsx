@@ -39,7 +39,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useHostsQuery } from '@/api/queries/useHostsQuery';
-import { withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
+import { withHostEndpoints } from '@/lib/hosts/host-link';
 import AppSidebar from '@/layouts/AppSidebar';
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 import type { TextModalTab } from '@/components/feedback/TextModal';
@@ -340,7 +340,7 @@ export default function InboundsPage() {
       const hostOverride = hostOverrideFor(dbInbound);
       const fallbackHostname = preferPublicHost(window.location.hostname, subSettings.publicHost);
       const genInput = {
-        inbound: withMtprotoHostEndpoints(
+        inbound: withHostEndpoints(
           inboundFromDb(projected),
           dbInbound.id,
           hosts,

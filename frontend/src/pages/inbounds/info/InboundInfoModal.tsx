@@ -10,14 +10,14 @@ import { InfinityIcon } from '@/components/ui';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import {
   genAllLinks,
-  genAmneziaWGConfigs,
-  genAmneziaWGLinks,
-  genWireguardConfigs,
-  genWireguardLinks,
+  genAmneziaWGPeerConfigs,
+  genAmneziaWGPeerLinks,
+  genWireguardPeerConfigs,
+  genWireguardPeerLinks,
   preferPublicHost,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb } from '@/lib/xray/inbound-from-db';
-import { withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
+import { withHostEndpoints } from '@/lib/hosts/host-link';
 
 import {
   buildInboundInfo,
@@ -25,6 +25,7 @@ import {
   downloadText,
   formatIpInfo,
   hasShareLink,
+  peerConfFileName,
   statsColor,
 } from './helpers';
 import type { ClientSetting, ClientStats, InboundInfo, InboundInfoModalProps } from './types';
@@ -53,10 +54,10 @@ export default function InboundInfoModal({
   const [clientSettings, setClientSettings] = useState<ClientSetting | null>(null);
   const [clientStats, setClientStats] = useState<ClientStats | null>(null);
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
-  const [wireguardConfigs, setWireguardConfigs] = useState<string[]>([]);
-  const [wireguardLinks, setWireguardLinks] = useState<string[]>([]);
-  const [amneziawgConfigs, setAmneziawgConfigs] = useState<string[]>([]);
-  const [amneziawgLinks, setAmneziawgLinks] = useState<string[]>([]);
+  const [wireguardConfigs, setWireguardConfigs] = useState<string[][]>([]);
+  const [wireguardLinks, setWireguardLinks] = useState<string[][]>([]);
+  const [amneziawgConfigs, setAmneziawgConfigs] = useState<string[][]>([]);
+  const [amneziawgLinks, setAmneziawgLinks] = useState<string[][]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -145,7 +146,7 @@ export default function InboundInfoModal({
       window.location.hostname,
       subSettings?.publicHost ?? '',
     );
-    const inboundForLinks = withMtprotoHostEndpoints(
+    const inboundForLinks = withHostEndpoints(
       inboundFromDb(dbInbound),
       dbInbound.id,
       hosts,
@@ -154,40 +155,40 @@ export default function InboundInfoModal({
     );
     if (info.protocol === Protocols.WIREGUARD) {
       setWireguardConfigs(
-        genWireguardConfigs({
+        genWireguardPeerConfigs({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setWireguardLinks(
-        genWireguardLinks({
+        genWireguardPeerLinks({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setAmneziawgConfigs([]);
       setAmneziawgLinks([]);
       setLinks([]);
     } else if (info.protocol === Protocols.AMNEZIAWG) {
       setAmneziawgConfigs(
-        genAmneziaWGConfigs({
+        genAmneziaWGPeerConfigs({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setAmneziawgLinks(
-        genAmneziaWGLinks({
+        genAmneziaWGPeerLinks({
           inbound: inboundForLinks,
           remark: dbInbound.remark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setWireguardConfigs([]);
       setWireguardLinks([]);
@@ -1189,49 +1190,55 @@ export default function InboundInfoModal({
                     </dd>
                   </div>
                 </dl>
-                {wireguardConfigs[idx] && (
-                  <div className="link-panel">
-                    <div className="link-panel-header">
-                      <Tag color="green">
-                        {t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}
-                      </Tag>
-                      <Tooltip title={t('copy')}>
-                        <Button
-                          size="small"
-                          icon={<CopyOutlined />}
-                          aria-label={t('copy')}
-                          onClick={() => copyText(wireguardConfigs[idx], t)}
-                        />
-                      </Tooltip>
-                      <Tooltip title={t('download')}>
-                        <Button
-                          size="small"
-                          icon={<DownloadOutlined />}
-                          aria-label={t('download')}
-                          onClick={() =>
-                            downloadText(wireguardConfigs[idx], `peer-${idx + 1}.conf`)
-                          }
-                        />
-                      </Tooltip>
-                    </div>
-                    <code className="link-panel-text">{wireguardConfigs[idx]}</code>
-                  </div>
+                {(wireguardConfigs[idx] ?? []).map(
+                  (cfg, j, all) =>
+                    cfg && (
+                      <div key={`wg-cfg-${j}`} className="link-panel">
+                        <div className="link-panel-header">
+                          <Tag color="green">
+                            {t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}
+                          </Tag>
+                          <Tooltip title={t('copy')}>
+                            <Button
+                              size="small"
+                              icon={<CopyOutlined />}
+                              aria-label={t('copy')}
+                              onClick={() => copyText(cfg, t)}
+                            />
+                          </Tooltip>
+                          <Tooltip title={t('download')}>
+                            <Button
+                              size="small"
+                              icon={<DownloadOutlined />}
+                              aria-label={t('download')}
+                              onClick={() =>
+                                downloadText(cfg, peerConfFileName(idx, j, all.length))
+                              }
+                            />
+                          </Tooltip>
+                        </div>
+                        <code className="link-panel-text">{cfg}</code>
+                      </div>
+                    ),
                 )}
-                {wireguardLinks[idx] && (
-                  <div className="link-panel">
-                    <div className="link-panel-header">
-                      <Tag color="green">Peer {idx + 1} link</Tag>
-                      <Tooltip title={t('copy')}>
-                        <Button
-                          size="small"
-                          icon={<CopyOutlined />}
-                          aria-label={t('copy')}
-                          onClick={() => copyText(wireguardLinks[idx], t)}
-                        />
-                      </Tooltip>
-                    </div>
-                    <code className="link-panel-text">{wireguardLinks[idx]}</code>
-                  </div>
+                {(wireguardLinks[idx] ?? []).map(
+                  (link, j) =>
+                    link && (
+                      <div key={`wg-link-${j}`} className="link-panel">
+                        <div className="link-panel-header">
+                          <Tag color="green">Peer {idx + 1} link</Tag>
+                          <Tooltip title={t('copy')}>
+                            <Button
+                              size="small"
+                              icon={<CopyOutlined />}
+                              aria-label={t('copy')}
+                              onClick={() => copyText(link, t)}
+                            />
+                          </Tooltip>
+                        </div>
+                        <code className="link-panel-text">{link}</code>
+                      </div>
+                    ),
                 )}
               </Fragment>
             ))}
@@ -1241,49 +1248,55 @@ export default function InboundInfoModal({
       {inbound?.protocol === Protocols.AMNEZIAWG && amneziawgConfigs.length > 0 && (
         <>
           <Divider>{t('pages.inbounds.copyLink')}</Divider>
-          {amneziawgConfigs.map((cfg, idx) => (
+          {amneziawgConfigs.map((peerConfigs, idx) => (
             <Fragment key={idx}>
-              {cfg && (
-                <div className="link-panel">
-                  <div className="link-panel-header">
-                    <Tag color="green">
-                      {t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}
-                    </Tag>
-                    <Tooltip title={t('copy')}>
-                      <Button
-                        size="small"
-                        icon={<CopyOutlined />}
-                        aria-label={t('copy')}
-                        onClick={() => copyText(cfg, t)}
-                      />
-                    </Tooltip>
-                    <Tooltip title={t('download')}>
-                      <Button
-                        size="small"
-                        icon={<DownloadOutlined />}
-                        aria-label={t('download')}
-                        onClick={() => downloadText(cfg, `peer-${idx + 1}.conf`)}
-                      />
-                    </Tooltip>
-                  </div>
-                  <code className="link-panel-text">{cfg}</code>
-                </div>
+              {peerConfigs.map(
+                (cfg, j, all) =>
+                  cfg && (
+                    <div key={`awg-cfg-${j}`} className="link-panel">
+                      <div className="link-panel-header">
+                        <Tag color="green">
+                          {t('pages.inbounds.info.peerNumberConfig', { n: idx + 1 })}
+                        </Tag>
+                        <Tooltip title={t('copy')}>
+                          <Button
+                            size="small"
+                            icon={<CopyOutlined />}
+                            aria-label={t('copy')}
+                            onClick={() => copyText(cfg, t)}
+                          />
+                        </Tooltip>
+                        <Tooltip title={t('download')}>
+                          <Button
+                            size="small"
+                            icon={<DownloadOutlined />}
+                            aria-label={t('download')}
+                            onClick={() => downloadText(cfg, peerConfFileName(idx, j, all.length))}
+                          />
+                        </Tooltip>
+                      </div>
+                      <code className="link-panel-text">{cfg}</code>
+                    </div>
+                  ),
               )}
-              {amneziawgLinks[idx] && (
-                <div className="link-panel">
-                  <div className="link-panel-header">
-                    <Tag color="green">Peer {idx + 1} link</Tag>
-                    <Tooltip title={t('copy')}>
-                      <Button
-                        size="small"
-                        icon={<CopyOutlined />}
-                        aria-label={t('copy')}
-                        onClick={() => copyText(amneziawgLinks[idx], t)}
-                      />
-                    </Tooltip>
-                  </div>
-                  <code className="link-panel-text">{amneziawgLinks[idx]}</code>
-                </div>
+              {(amneziawgLinks[idx] ?? []).map(
+                (link, j) =>
+                  link && (
+                    <div key={`awg-link-${j}`} className="link-panel">
+                      <div className="link-panel-header">
+                        <Tag color="green">Peer {idx + 1} link</Tag>
+                        <Tooltip title={t('copy')}>
+                          <Button
+                            size="small"
+                            icon={<CopyOutlined />}
+                            aria-label={t('copy')}
+                            onClick={() => copyText(link, t)}
+                          />
+                        </Tooltip>
+                      </div>
+                      <code className="link-panel-text">{link}</code>
+                    </div>
+                  ),
               )}
             </Fragment>
           ))}

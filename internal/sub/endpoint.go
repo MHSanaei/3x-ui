@@ -56,21 +56,19 @@ func (s *SubService) inboundDefaultEndpoint(inbound *model.Inbound) ShareEndpoin
 	}
 }
 
-// shareEndpoints returns one endpoint per valid externalProxy entry (Hosts are
-// injected there by linkFromHosts), or the inbound's own address when none.
-func (s *SubService) shareEndpoints(inbound *model.Inbound) []ShareEndpoint {
+// advertisedEndpoints is every endpoint a stream-less link (mtproto, wireguard,
+// amneziawg) must fan out over: the externalProxy/Host entries, else the default.
+func (s *SubService) advertisedEndpoints(inbound *model.Inbound) []ShareEndpoint {
 	stream := unmarshalStreamSettings(inbound.StreamSettings)
-	if eps, ok := stream["externalProxy"].([]any); ok {
-		out := make([]ShareEndpoint, 0, len(eps))
-		for _, raw := range eps {
+	if externalProxies, ok := stream["externalProxy"].([]any); ok {
+		endpoints := make([]ShareEndpoint, 0, len(externalProxies))
+		for _, raw := range externalProxies {
 			if ep, ok := raw.(map[string]any); ok {
-				if e := externalProxyToEndpoint(ep); e.Address != "" && e.Port > 0 {
-					out = append(out, e)
-				}
+				endpoints = append(endpoints, externalProxyToEndpoint(ep))
 			}
 		}
-		if len(out) > 0 {
-			return out
+		if len(endpoints) > 0 {
+			return endpoints
 		}
 	}
 	return []ShareEndpoint{s.inboundDefaultEndpoint(inbound)}
