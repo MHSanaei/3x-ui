@@ -224,6 +224,26 @@ describe('parseVlessLink — XHTTP advanced fields', () => {
 });
 
 describe('parseVlessLink', () => {
+  // A panel older than xray-core 26.9.30 shares xdns in the string lists the core no
+  // longer parses, so an outbound imported verbatim would fail the whole config.
+  it('upgrades a legacy xdns fm= mask to the object shape', () => {
+    const fm = encodeURIComponent(
+      JSON.stringify({
+        udp: [{ type: 'xdns', settings: { resolvers: ['t.example.com+udp://8.8.8.8:53'] } }],
+      }),
+    );
+    const out = parseVlessLink(
+      `vless://11111111-2222-4333-8444-555555555555@srv:53?type=kcp&security=none&fm=${fm}#dns`,
+    );
+    const finalmask = (out!.streamSettings as Record<string, unknown>).finalmask as {
+      udp: Array<{ settings: unknown }>;
+    };
+    expect(finalmask.udp[0].settings).toEqual({
+      domains: [{ name: 't.example.com', types: [16], edns0: 1232 }],
+      resolvers: [{ type: 'udp', settings: { addr: '8.8.8.8:53' } }],
+    });
+  });
+
   it('parses a vless:// link with reality', () => {
     const link =
       'vless://11111111-2222-4333-8444-555555555555@srv.example:443' +

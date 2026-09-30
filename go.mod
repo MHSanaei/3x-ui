@@ -26,7 +26,7 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/valyala/fasthttp v1.74.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.260327.1-0.20260908222543-52a412d9e2f5
+	github.com/xtls/xray-core v1.260327.1-0.20260930074004-b26a91de4f32
 	go.uber.org/atomic v1.12.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/net v0.59.0
@@ -94,8 +94,6 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.63.0 // indirect
 	github.com/rogpeppe/go-internal v1.15.0 // indirect
-	github.com/sagernet/sing v0.9.5 // indirect
-	github.com/sagernet/sing-shadowsocks v0.2.9 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
