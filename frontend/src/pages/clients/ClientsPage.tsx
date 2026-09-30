@@ -60,6 +60,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useClients } from '@/hooks/useClients';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
+import { useHostsQuery } from '@/api/queries/useHostsQuery';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import type {
   ClientRecord,
@@ -381,6 +382,15 @@ export default function ClientsPage() {
   // Node list for the Nodes filter; the section only renders when the panel
   // actually manages nodes (#4997).
   const { nodes } = useNodesQuery();
+  // Tunnel configs advertise these Hosts, so an empty list must mean "no hosts"
+  // and not "not loaded yet" — the page gate waits for it.
+  const {
+    hosts,
+    fetched: hostsFetched,
+    fetchError: hostsFetchError,
+    refetch: refetchHosts,
+  } = useHostsQuery();
+  const hostsError = hosts.length > 0 ? '' : hostsFetchError;
 
   const [togglingEmail, setTogglingEmail] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -769,11 +779,11 @@ export default function ClientsPage() {
   const onRefreshClick = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refresh();
+      await Promise.all([refresh(), refetchHosts()]);
     } finally {
       setRefreshing(false);
     }
-  }, [refresh]);
+  }, [refresh, refetchHosts]);
 
   const openText = useCallback((opts: { title: string; content: string; fileName?: string }) => {
     setTextTitle(opts.title);
@@ -1289,14 +1299,19 @@ export default function ClientsPage() {
 
         <Layout className="content-shell">
           <Layout.Content id="content-layout" className="content-area">
-            <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
-              {!fetched ? (
+            <Spin
+              spinning={!fetched || !hostsFetched}
+              delay={200}
+              description={t('loading')}
+              size="large"
+            >
+              {!fetched || !hostsFetched ? (
                 <div className="loading-spacer" />
-              ) : fetchError ? (
+              ) : fetchError || hostsError ? (
                 <Result
                   status="error"
                   title={t('somethingWentWrong')}
-                  subTitle={fetchError}
+                  subTitle={fetchError || hostsError}
                   extra={
                     <Button type="primary" loading={refreshing} onClick={onRefreshClick}>
                       {t('refresh')}
@@ -1898,6 +1913,7 @@ export default function ClientsPage() {
             tunnelAllowedIPs={viewingTunnelAllowedIPs}
             isOnline={infoClient ? isOnline(infoClient.email) : false}
             subSettings={subSettings}
+            hosts={hosts}
             onOpenChange={setInfoOpen}
           />
         </LazyMount>
@@ -1908,6 +1924,7 @@ export default function ClientsPage() {
             inboundsById={inboundsById}
             tunnelAllowedIPs={viewingTunnelAllowedIPs}
             subSettings={subSettings}
+            hosts={hosts}
             onOpenChange={setQrOpen}
           />
         </LazyMount>
