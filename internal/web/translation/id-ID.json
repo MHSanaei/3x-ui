@@ -2509,7 +2509,21 @@
       "eventNodeDown": "Node {{ .Name }} MATI",
       "eventNodeUp": "Node {{ .Name }} AKTIF",
       "eventLoginFallback": "Gagal masuk dari {{ .Source }}",
-      "memoryThreshold": "Penggunaan memori {{ .Percent }}% melebihi ambang batas {{ .Threshold }}%"
+      "memoryThreshold": "Penggunaan memori {{ .Percent }}% melebihi ambang batas {{ .Threshold }}%",
+      "guideChoose": "📖 <b>Panduan pengaturan</b>\r\nPilih perangkat yang ingin Anda atur.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. Instal <b>Streisand</b> atau <b>V2Box</b> dari App Store.\r\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\r\n3. Di aplikasi, ketuk <b>+</b> → <b>Add from clipboard</b>.\r\n4. Tarik ke bawah untuk memperbarui, lalu sambungkan.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. Instal <b>v2rayNG</b> atau <b>Hiddify</b> dari Google Play.\r\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\r\n3. Di aplikasi, ketuk <b>+</b> → <b>Import from clipboard</b>.\r\n4. Segarkan langganan, pilih server, lalu sambungkan.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. Instal <b>Hiddify</b> atau <b>v2rayN</b>.\r\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\r\n3. Di aplikasi, tambahkan langganan dan tempel URL.\r\n4. Perbarui langganan, pilih server, lalu sambungkan.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. Instal <b>Hiddify</b> atau <b>V2Box</b>.\r\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\r\n3. Di aplikasi, tambahkan langganan dan tempel URL.\r\n4. Perbarui langganan, pilih server, lalu sambungkan.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. Instal <b>Hiddify</b> (AppImage) atau <b>Nekoray</b>.\r\n2. Buka halaman tautan langganan di bot ini dan salin URL langganan Anda.\r\n3. Di aplikasi, tambahkan langganan dan tempel URL.\r\n4. Perbarui langganan, pilih server, lalu sambungkan.",
+      "customerMenu": "👇 Apa yang Anda perlukan?",
+      "configsChoose": "👇 Pilih cara mengambil konfigurasi Anda:",
+      "chooseOneConfig": "👇 Konfigurasi mana yang Anda mau?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 Belum ada konfigurasi yang tertaut ke akun Telegram ini.\r\nMinta tautan undangan dari admin lalu buka.",
+      "noBoundClientAdmin": "🔗 Anda belum menautkan konfigurasi ke akun ini.\r\nBuka 🛡 Admin → 🔗 Invite Links, pilih klien Anda dan buka tautannya.",
+      "notStarted": "belum mulai",
+      "unlimited": "♾ Tanpa batas"
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -2553,7 +2567,19 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Komentar",
       "ResetAllTraffics": "Reset Semua Lalu Lintas",
-      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut"
+      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut",
+      "customerMenu": "Konfigurasi saya",
+      "setupGuide": "Panduan pengaturan",
+      "getAllLinks": "Semua tautan",
+      "getOneConfig": "Satu tautan",
+      "subscriptionUrl": "URL langganan",
+      "qrCodes": "Kode QR",
+      "backToMenu": "Kembali",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Siaran dimulai.",

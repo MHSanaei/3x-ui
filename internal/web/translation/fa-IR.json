@@ -2509,7 +2509,21 @@
       "eventNodeDown": "نود {{ .Name }} قطع است",
       "eventNodeUp": "نود {{ .Name }} وصل است",
       "eventLoginFallback": "ورود ناموفق از {{ .Source }}",
-      "memoryThreshold": "مصرف حافظه {{ .Percent }}% از حد آستانه {{ .Threshold }}% فراتر رفته است"
+      "memoryThreshold": "مصرف حافظه {{ .Percent }}% از حد آستانه {{ .Threshold }}% فراتر رفته است",
+      "guideChoose": "📖 <b>راهنمای راه‌اندازی</b>\r\nدستگاهی را که می‌خواهید راه‌اندازی کنید انتخاب کنید.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. ‏<b>Streisand</b> یا <b>V2Box</b> را از App Store نصب کنید.\r\n2. صفحهٔ پیوندهای اشتراک را در این ربات باز کنید و نشانی اشتراک خود را کپی کنید.\r\n3. در برنامه، <b>+</b> ← <b>Add from clipboard</b> را بزنید.\r\n4. برای به‌روزرسانی بکشید پایین، سپس متصل شوید.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. ‏<b>v2rayNG</b> یا <b>Hiddify</b> را از Google Play نصب کنید.\r\n2. صفحهٔ پیوندهای اشتراک را در این ربات باز کنید و نشانی اشتراک خود را کپی کنید.\r\n3. در برنامه، <b>+</b> ← <b>Import from clipboard</b> را بزنید.\r\n4. اشتراک را به‌روز کنید، سروری انتخاب کنید و متصل شوید.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. ‏<b>Hiddify</b> یا <b>v2rayN</b> را نصب کنید.\r\n2. صفحهٔ پیوندهای اشتراک را در این ربات باز کنید و نشانی اشتراک خود را کپی کنید.\r\n3. در برنامه یک اشتراک اضافه کنید و نشانی را بچسبانید.\r\n4. اشتراک را به‌روز کنید، سروری انتخاب کنید و متصل شوید.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. ‏<b>Hiddify</b> یا <b>V2Box</b> را نصب کنید.\r\n2. صفحهٔ پیوندهای اشتراک را در این ربات باز کنید و نشانی اشتراک خود را کپی کنید.\r\n3. در برنامه یک اشتراک اضافه کنید و نشانی را بچسبانید.\r\n4. اشتراک را به‌روز کنید، سروری انتخاب کنید و متصل شوید.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. ‏<b>Hiddify</b> (AppImage) یا <b>Nekoray</b> را نصب کنید.\r\n2. صفحهٔ پیوندهای اشتراک را در این ربات باز کنید و نشانی اشتراک خود را کپی کنید.\r\n3. در برنامه یک اشتراک اضافه کنید و نشانی را بچسبانید.\r\n4. اشتراک را به‌روز کنید، سروری انتخاب کنید و متصل شوید.",
+      "customerMenu": "👇 چه چیزی می‌خواهید؟",
+      "configsChoose": "👇 انتخاب کنید تنظیمات خود را چگونه بگیرید:",
+      "chooseOneConfig": "👇 کدام تنظیم را می‌خواهید؟",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 هنوز هیچ تنظیمی به این حساب تلگرام پیوند نخورده است.\r\nاز مدیر بخواهید پیوند دعوت بدهد و آن را باز کنید.",
+      "noBoundClientAdmin": "🔗 هنوز تنظیمی به این حساب پیوند نخورده است.\r\n🛡 Admin → 🔗 Invite Links را باز کنید، کلاینت خود را انتخاب کنید و پیوندش را باز کنید.",
+      "notStarted": "شروع نشده",
+      "unlimited": "♾ نامحدود"
     },
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",
@@ -2553,7 +2567,19 @@
       "change_email": "⚙️📧 ایمیل",
       "change_comment": "⚙️💬 نظر",
       "ResetAllTraffics": "بازنشانی همه ترافیک‌ها",
-      "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده"
+      "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده",
+      "customerMenu": "تنظیمات من",
+      "setupGuide": "راهنمای راه‌اندازی",
+      "getAllLinks": "همهٔ لینک‌ها",
+      "getOneConfig": "یک لینک",
+      "subscriptionUrl": "لینک اشتراک",
+      "qrCodes": "کدهای QR",
+      "backToMenu": "بازگشت",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 ارسال گروهی آغاز شد.",

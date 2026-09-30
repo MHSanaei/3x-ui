@@ -2509,7 +2509,21 @@
       "eventNodeDown": "節點 {{ .Name }} 已離線",
       "eventNodeUp": "節點 {{ .Name }} 已上線",
       "eventLoginFallback": "來自 {{ .Source }} 的登入失敗",
-      "memoryThreshold": "記憶體使用率 {{ .Percent }}% 超過閾值 {{ .Threshold }}%"
+      "memoryThreshold": "記憶體使用率 {{ .Percent }}% 超過閾值 {{ .Threshold }}%",
+      "guideChoose": "📖 <b>設定指南</b>\r\n請選擇你要設定的裝置。",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. 從 App Store 安裝 <b>Streisand</b> 或 <b>V2Box</b>。\r\n2. 在本機器人中開啟訂閱連結頁面，複製你的訂閱網址。\r\n3. 在 App 中點選 <b>+</b> → <b>Add from clipboard</b>。\r\n4. 向下拉動重新整理後連線。",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. 從 Google Play 安裝 <b>v2rayNG</b> 或 <b>Hiddify</b>。\r\n2. 在本機器人中開啟訂閱連結頁面，複製你的訂閱網址。\r\n3. 在 App 中點選 <b>+</b> → <b>Import from clipboard</b>。\r\n4. 更新訂閱，選擇伺服器後連線。",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. 安裝 <b>Hiddify</b> 或 <b>v2rayN</b>。\r\n2. 在本機器人中開啟訂閱連結頁面，複製你的訂閱網址。\r\n3. 在 App 中新增訂閱並貼上網址。\r\n4. 更新訂閱，選擇伺服器後連線。",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. 安裝 <b>Hiddify</b> 或 <b>V2Box</b>。\r\n2. 在本機器人中開啟訂閱連結頁面，複製你的訂閱網址。\r\n3. 在 App 中新增訂閱並貼上網址。\r\n4. 更新訂閱，選擇伺服器後連線。",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. 安裝 <b>Hiddify</b>（AppImage）或 <b>Nekoray</b>。\r\n2. 在本機器人中開啟訂閱連結頁面，複製你的訂閱網址。\r\n3. 在 App 中新增訂閱並貼上網址。\r\n4. 更新訂閱，選擇伺服器後連線。",
+      "customerMenu": "👇 你需要什麼？",
+      "configsChoose": "👇 選擇取得設定的方式：",
+      "chooseOneConfig": "👇 你想要哪個設定？",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 此 Telegram 帳號尚未綁定任何設定。\r\n請向管理員索取邀請連結並開啟它。",
+      "noBoundClientAdmin": "🔗 你尚未為此帳號綁定設定。\r\n開啟 🛡 Admin → 🔗 Invite Links，選擇你自己的用戶端並開啟其連結。",
+      "notStarted": "未開始",
+      "unlimited": "♾ 無限"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",
@@ -2553,7 +2567,19 @@
       "change_email": "⚙️📧 電子郵件",
       "change_comment": "⚙️💬 評論",
       "ResetAllTraffics": "重設所有流量",
-      "SortedTrafficUsageReport": "排序過的流量使用報告"
+      "SortedTrafficUsageReport": "排序過的流量使用報告",
+      "customerMenu": "我的設定",
+      "setupGuide": "設定指南",
+      "getAllLinks": "全部連結",
+      "getOneConfig": "單一連結",
+      "subscriptionUrl": "訂閱連結",
+      "qrCodes": "QR 碼",
+      "backToMenu": "返回",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 群發已開始。",

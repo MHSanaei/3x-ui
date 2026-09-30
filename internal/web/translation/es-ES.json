@@ -2509,7 +2509,21 @@
       "eventNodeDown": "El nodo {{ .Name }} está CAÍDO",
       "eventNodeUp": "El nodo {{ .Name }} está ACTIVO",
       "eventLoginFallback": "Inicio de sesión fallido desde {{ .Source }}",
-      "memoryThreshold": "Uso de memoria {{ .Percent }}% supera el umbral de {{ .Threshold }}%"
+      "memoryThreshold": "Uso de memoria {{ .Percent }}% supera el umbral de {{ .Threshold }}%",
+      "guideChoose": "📖 <b>Guía de instalación</b>\r\nElige el dispositivo que quieres configurar.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. Instala <b>Streisand</b> o <b>V2Box</b> desde la App Store.\r\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL de suscripción.\r\n3. En la app, toca <b>+</b> → <b>Add from clipboard</b>.\r\n4. Desliza hacia abajo para actualizar y conéctate.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. Instala <b>v2rayNG</b> o <b>Hiddify</b> desde Google Play.\r\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL de suscripción.\r\n3. En la app, toca <b>+</b> → <b>Import from clipboard</b>.\r\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. Instala <b>Hiddify</b> o <b>v2rayN</b>.\r\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL de suscripción.\r\n3. En la app, añade una suscripción y pega la URL.\r\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. Instala <b>Hiddify</b> o <b>V2Box</b>.\r\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL de suscripción.\r\n3. En la app, añade una suscripción y pega la URL.\r\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. Instala <b>Hiddify</b> (AppImage) o <b>Nekoray</b>.\r\n2. Abre la página de enlaces de suscripción en este bot y copia tu URL de suscripción.\r\n3. En la app, añade una suscripción y pega la URL.\r\n4. Actualiza la suscripción, elige un servidor y conéctate.",
+      "customerMenu": "👇 ¿Qué necesitas?",
+      "configsChoose": "👇 Elige cómo obtener tu configuración:",
+      "chooseOneConfig": "👇 ¿Qué configuración quieres?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 Aún no hay ninguna configuración vinculada a esta cuenta de Telegram.\r\nPide a tu administrador un enlace de invitación y ábrelo.",
+      "noBoundClientAdmin": "🔗 Aún no has vinculado ninguna configuración a esta cuenta.\r\nAbre 🛡 Admin → 🔗 Invite Links, elige tu cliente y abre su enlace.",
+      "notStarted": "sin iniciar",
+      "unlimited": "♾ Ilimitado"
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -2553,7 +2567,19 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Comentario",
       "ResetAllTraffics": "Reiniciar todo el tráfico",
-      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado"
+      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado",
+      "customerMenu": "Mis configuraciones",
+      "setupGuide": "Guía de instalación",
+      "getAllLinks": "Todos los enlaces",
+      "getOneConfig": "Un enlace",
+      "subscriptionUrl": "URL de suscripción",
+      "qrCodes": "Códigos QR",
+      "backToMenu": "Volver",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Difusión iniciada.",
