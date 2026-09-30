@@ -131,6 +131,19 @@ func (s *ApiTokenService) RecreateByName(name string) (*ApiTokenView, error) {
 	plaintext := random.Seq(apiTokenLength)
 	row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(plaintext), Enabled: true}
 	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
+		var replaced []model.ApiToken
+		if err := tx.Where("name = ?", name).Order("id asc").Limit(1).Find(&replaced).Error; err != nil {
+			return err
+		}
+		// An empty Scope takes the column default of admin, so a rotated
+		// monitor or node-sync token would silently gain full access.
+		row.Scope = model.ApiScopeAdmin
+		if len(replaced) > 0 {
+			if !model.IsKnownApiScope(replaced[0].Scope) {
+				return common.NewErrorf("token %q has unknown scope %q", name, replaced[0].Scope)
+			}
+			row.Scope = replaced[0].Scope
+		}
 		if err := tx.Where("name = ?", name).Delete(model.ApiToken{}).Error; err != nil {
 			return err
 		}

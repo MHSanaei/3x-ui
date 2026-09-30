@@ -88,6 +88,59 @@ func TestRecreateByNameRejectsOverlongName(t *testing.T) {
 	}
 }
 
+// Rotating a monitor token through the CLI silently reissued it as admin,
+// because the replacement row took the column default instead of the old scope.
+func TestRecreateByNameKeepsReplacedTokenScope(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	dbtest.InitDB(t, config.GetDBPath())
+
+	svc := ApiTokenService{}
+	if _, err := svc.Create("grafana", model.ApiScopeMonitor, 0); err != nil {
+		t.Fatalf("seed grafana: %v", err)
+	}
+	rotated, err := svc.RecreateByName("grafana")
+	if err != nil {
+		t.Fatalf("recreate: %v", err)
+	}
+
+	var row model.ApiToken
+	if err := database.GetDB().Where("name = ?", "grafana").First(&row).Error; err != nil {
+		t.Fatalf("load grafana: %v", err)
+	}
+	if row.Scope != model.ApiScopeMonitor {
+		t.Fatalf("stored scope = %q, want %q", row.Scope, model.ApiScopeMonitor)
+	}
+	if rotated.Scope != model.ApiScopeMonitor {
+		t.Fatalf("returned scope = %q, want %q", rotated.Scope, model.ApiScopeMonitor)
+	}
+}
+
+// A scope this build does not know, as after a downgrade, must not be guessed
+// as admin; the rotation fails and the stored row stays untouched.
+func TestRecreateByNameRefusesUnknownStoredScope(t *testing.T) {
+	t.Setenv("XUI_DB_FOLDER", t.TempDir())
+	dbtest.InitDB(t, config.GetDBPath())
+
+	db := database.GetDB()
+	stored := model.ApiToken{Name: "remote", Token: "stored-hash", Enabled: true, Scope: "node-admin"}
+	if err := db.Create(&stored).Error; err != nil {
+		t.Fatalf("seed remote: %v", err)
+	}
+
+	const wantErr = `token "remote" has unknown scope "node-admin"`
+	_, err := (&ApiTokenService{}).RecreateByName("remote")
+	if err == nil || strings.TrimSpace(err.Error()) != wantErr {
+		t.Fatalf("error = %v, want %q", err, wantErr)
+	}
+	var row model.ApiToken
+	if err := db.Where("name = ?", "remote").First(&row).Error; err != nil {
+		t.Fatalf("load remote: %v", err)
+	}
+	if row.Id != stored.Id || row.Token != stored.Token || row.Scope != stored.Scope {
+		t.Fatalf("row = %+v, want the stored row %+v unchanged", row, stored)
+	}
+}
+
 func TestRecreateByNameKeepsOneToken(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
 	dbtest.InitDB(t, config.GetDBPath())
