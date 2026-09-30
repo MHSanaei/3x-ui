@@ -9,6 +9,12 @@ describe('deriveSpiderX', () => {
   it('matches the Go deriveSpiderX vectors', () => {
     expect(deriveSpiderX('/seed', 'subAlice')).toBe('/c252fbc3ecd3e3c');
     expect(deriveSpiderX('/', '')).toBe('/d08ed99bd9afc60');
+    expect(deriveSpiderX('/seed?p=40-400&r=500-2000', 'subAlice')).toBe(
+      '/09dd00b3f8c01f5?p=40-400&r=500-2000',
+    );
+    expect(deriveSpiderX('/?p=40-400&c=1-4&t=1-3&i=1500-6000&r=500-2000', '')).toBe(
+      '/ac2cb268d22908e?p=40-400&c=1-4&t=1-3&i=1500-6000&r=500-2000',
+    );
   });
 
   it('is stable per client, distinct across clients, and rotates with the seed', () => {
