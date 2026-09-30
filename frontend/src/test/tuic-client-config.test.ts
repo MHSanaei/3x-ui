@@ -70,4 +70,42 @@ describe('buildTuicClientConfig', () => {
     const cfg = buildTuicClientConfig(dangerousClient, inbound, 'server.example.com', '');
     expect(cfg).toContain('password: "pass\\"with\\"quotes\\nnewline"');
   });
+
+  it.each([
+    ['bbr', 'bbr'],
+    ['cubic', 'cubic'],
+    [' RENO ', 'new_reno'],
+    ['unknown', 'new_reno'],
+  ])('keeps controller %s and relay settings when applying a Host', (controller, expected) => {
+    const config = buildTuicClientConfig(
+      client,
+      {
+        ...inbound,
+        tuicServer: {
+          ...inbound.tuicServer,
+          congestion_control: controller,
+          udp_relay_mode: 'quic',
+          zero_rtt_handshake: false,
+        },
+      } as InboundOption,
+      'panel.example.com',
+      '',
+      {
+        dest: 'edge.example.com',
+        port: 9443,
+        remark: 'Edge',
+        sni: 'edge.sni.example.com',
+        alpn: ['h3'],
+        allowInsecure: true,
+      },
+    );
+    expect(config).toContain('server: edge.example.com');
+    expect(config).toContain('port: 9443');
+    expect(config).toContain('sni: edge.sni.example.com');
+    expect(config).toContain('alpn:\n      - h3\n');
+    expect(config).toContain(`congestion-controller: ${expected}`);
+    expect(config).toContain('udp-relay-mode: quic');
+    expect(config).toContain('reduce-rtt: false');
+    expect(config).toContain('skip-cert-verify: true');
+  });
 });

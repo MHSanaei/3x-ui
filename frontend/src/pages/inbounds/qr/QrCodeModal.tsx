@@ -6,17 +6,18 @@ import type { CollapseProps } from 'antd';
 import { Protocols } from '@/schemas/primitives';
 import {
   genAllLinks,
-  genAmneziaWGConfigs,
-  genAmneziaWGLinks,
-  genWireguardConfigs,
-  genWireguardLinks,
+  genAmneziaWGPeerConfigs,
+  genAmneziaWGPeerLinks,
+  genWireguardPeerConfigs,
+  genWireguardPeerLinks,
   isPostQuantumLink,
   preferPublicHost,
 } from '@/lib/xray/inbound-link';
 import { inboundFromDb, type DbInboundLike } from '@/lib/xray/inbound-from-db';
-import { withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
+import { withHostEndpoints } from '@/lib/hosts/host-link';
 import type { HostRecord } from '@/schemas/api/host';
 import QrPanel from './QrPanel';
+import { peerConfFileName } from '../info/helpers';
 import type { SubSettings } from '../useInbounds';
 
 interface ClientSetting {
@@ -56,10 +57,10 @@ export default function QrCodeModal({
 }: QrCodeModalProps) {
   const { t } = useTranslation();
   const [links, setLinks] = useState<{ remark?: string; link: string }[]>([]);
-  const [wireguardConfigs, setWireguardConfigs] = useState<string[]>([]);
-  const [wireguardLinks, setWireguardLinks] = useState<string[]>([]);
-  const [amneziawgConfigs, setAmneziawgConfigs] = useState<string[]>([]);
-  const [amneziawgLinks, setAmneziawgLinks] = useState<string[]>([]);
+  const [wireguardConfigs, setWireguardConfigs] = useState<string[][]>([]);
+  const [wireguardLinks, setWireguardLinks] = useState<string[][]>([]);
+  const [amneziawgConfigs, setAmneziawgConfigs] = useState<string[][]>([]);
+  const [amneziawgLinks, setAmneziawgLinks] = useState<string[][]>([]);
   const [subLink, setSubLink] = useState('');
   const [subJsonLink, setSubJsonLink] = useState('');
   const [activeKey, setActiveKey] = useState<string[]>([]);
@@ -88,7 +89,7 @@ export default function QrCodeModal({
       window.location.hostname,
       subSettings?.publicHost ?? '',
     );
-    const inbound = withMtprotoHostEndpoints(
+    const inbound = withHostEndpoints(
       inboundFromDb(dbInbound),
       dbInbound.id,
       hosts,
@@ -100,20 +101,20 @@ export default function QrCodeModal({
         ? `${dbInbound.remark}-${client.email}`
         : dbInbound.remark || '';
       setWireguardConfigs(
-        genWireguardConfigs({
+        genWireguardPeerConfigs({
           inbound,
           remark: peerRemark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setWireguardLinks(
-        genWireguardLinks({
+        genWireguardPeerLinks({
           inbound,
           remark: peerRemark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setAmneziawgConfigs([]);
       setAmneziawgLinks([]);
@@ -123,20 +124,20 @@ export default function QrCodeModal({
         ? `${dbInbound.remark}-${client.email}`
         : dbInbound.remark || '';
       setAmneziawgConfigs(
-        genAmneziaWGConfigs({
+        genAmneziaWGPeerConfigs({
           inbound,
           remark: peerRemark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setAmneziawgLinks(
-        genAmneziaWGLinks({
+        genAmneziaWGPeerLinks({
           inbound,
           remark: peerRemark,
           hostOverride: nodeAddress,
           fallbackHostname,
-        }).split('\r\n'),
+        }),
       );
       setWireguardConfigs([]);
       setWireguardLinks([]);
@@ -183,38 +184,30 @@ export default function QrCodeModal({
     links.forEach((link, idx) => {
       items.push({ key: `l${idx}`, header: link.remark || `Link ${idx + 1}`, value: link.link });
     });
-    wireguardConfigs.forEach((cfg, idx) => {
-      items.push({
-        key: `wc${idx}`,
-        header: `Peer ${idx + 1} config`,
-        value: cfg,
-        downloadName: `peer-${idx + 1}.conf`,
-      });
-      if (wireguardLinks[idx]) {
-        items.push({
-          key: `wl${idx}`,
-          header: `Peer ${idx + 1} link`,
-          value: wireguardLinks[idx],
-          showQr: false,
+    const pushTunnelPeers = (prefix: string, configs: string[][], peerLinks: string[][]) => {
+      configs.forEach((peerConfigs, idx) => {
+        peerConfigs.forEach((cfg, j) => {
+          const multi = peerConfigs.length > 1 ? ` #${j + 1}` : '';
+          items.push({
+            key: `${prefix}c${idx}-${j}`,
+            header: `Peer ${idx + 1} config${multi}`,
+            value: cfg,
+            downloadName: peerConfFileName(idx, j, peerConfigs.length),
+          });
+          const link = peerLinks[idx]?.[j];
+          if (link) {
+            items.push({
+              key: `${prefix}l${idx}-${j}`,
+              header: `Peer ${idx + 1} link${multi}`,
+              value: link,
+              showQr: false,
+            });
+          }
         });
-      }
-    });
-    amneziawgConfigs.forEach((cfg, idx) => {
-      items.push({
-        key: `ac${idx}`,
-        header: `Peer ${idx + 1} config`,
-        value: cfg,
-        downloadName: `peer-${idx + 1}.conf`,
       });
-      if (amneziawgLinks[idx]) {
-        items.push({
-          key: `al${idx}`,
-          header: `Peer ${idx + 1} link`,
-          value: amneziawgLinks[idx],
-          showQr: false,
-        });
-      }
-    });
+    };
+    pushTunnelPeers('w', wireguardConfigs, wireguardLinks);
+    pushTunnelPeers('a', amneziawgConfigs, amneziawgLinks);
     return items;
   }, [
     subLink,
