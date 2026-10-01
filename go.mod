@@ -32,7 +32,7 @@ require (
 	golang.org/x/net v0.59.0
 	golang.org/x/sys v0.48.0
 	golang.org/x/text v0.42.0
-	google.golang.org/grpc v1.85.0-dev.0.20260825072537-93e31b48545e
+	google.golang.org/grpc v1.86.0-dev
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/postgres v1.6.3
