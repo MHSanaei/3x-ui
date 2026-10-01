@@ -1927,6 +1927,7 @@
         "verifyPeerName": "Перевіряти ім'я peer",
         "pinnedSha256": "Pinned SHA256",
         "shortId": "Short ID",
+        "supportX25519Mlkem768": "Підтримка X25519MLKEM768",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Інтервал keep alive",
         "markFwmark": "Mark (fwmark)",

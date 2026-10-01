@@ -1927,6 +1927,7 @@
         "verifyPeerName": "Peer Adını Doğrula",
         "pinnedSha256": "Sabitlenmiş SHA256",
         "shortId": "Kısa Kimlik",
+        "supportX25519Mlkem768": "X25519MLKEM768 desteği",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Keep Alive Aralığı",
         "markFwmark": "Mark (fwmark)",

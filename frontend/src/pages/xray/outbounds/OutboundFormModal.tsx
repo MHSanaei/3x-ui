@@ -227,6 +227,7 @@ export default function OutboundFormModal({
         shortId: '',
         spiderX: '',
         mldsa65Verify: '',
+        supportX25519Mlkem768: false,
       };
     }
     cleaned.security = next;

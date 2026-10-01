@@ -74,6 +74,7 @@ describe('buildShareLinks', () => {
     expect(parsed.port).toBe(443);
     expect(parsed.credential).toBe('11111111-2222-3333-4444-555555555555');
     expect(parsed.params.security).toBe('reality');
+    expect(parsed.params['support-x25519mlkem768']).toBe('true');
     expect(parsed.name).toBe('HK-01');
   });
 });

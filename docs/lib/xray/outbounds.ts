@@ -33,6 +33,7 @@ export interface StreamInput {
   publicKey?: string; // reality
   shortId?: string; // reality
   spiderX?: string; // reality
+  supportX25519Mlkem768?: boolean; // reality client compatibility
 }
 
 export interface ProxyServerInput {
@@ -130,6 +131,7 @@ export function buildStreamSettings(s: StreamInput): Record<string, unknown> {
     if (s.sni) reality.serverName = s.sni;
     if (s.shortId) reality.shortId = s.shortId;
     if (s.spiderX) reality.spiderX = s.spiderX;
+    if (s.supportX25519Mlkem768) reality.supportX25519Mlkem768 = true;
     out.realitySettings = reality;
   }
 

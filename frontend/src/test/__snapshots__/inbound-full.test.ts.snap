@@ -298,6 +298,7 @@ exports[`InboundSchema (full) fixtures > parses vless-tcp-reality byte-stably 1`
         "publicKey": "Tx5yj1bRcOPHkdvT2pIAQ2zh0gQ8m4OPdnzqXJxxV3o",
         "serverName": "",
         "spiderX": "/",
+        "supportX25519Mlkem768": false,
       },
       "shortIds": [
         "a3f1",

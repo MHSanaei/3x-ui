@@ -47,6 +47,7 @@ export interface SubClient {
   serviceName?: string;
   publicKey?: string; // reality
   shortId?: string; // reality
+  supportX25519Mlkem768?: boolean; // reality client compatibility
 }
 
 function normPath(p: string): string {
@@ -77,6 +78,9 @@ function streamParams(c: SubClient): Record<string, string> {
   if (c.serviceName) p.serviceName = c.serviceName;
   if (c.publicKey) p.pbk = c.publicKey;
   if (c.shortId) p.sid = c.shortId;
+  if (c.security === 'reality' && c.publicKey && c.supportX25519Mlkem768 !== false) {
+    p['support-x25519mlkem768'] = 'true';
+  }
   return p;
 }
 
@@ -195,6 +199,8 @@ function proxyOutbound(c: SubClient): Record<string, unknown> {
     serviceName: c.serviceName,
     publicKey: c.publicKey,
     shortId: c.shortId,
+    supportX25519Mlkem768:
+      c.security === 'reality' && c.publicKey ? c.supportX25519Mlkem768 !== false : undefined,
   });
 
   let settings: Record<string, unknown>;

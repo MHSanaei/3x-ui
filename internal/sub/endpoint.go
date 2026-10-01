@@ -98,7 +98,15 @@ func dropBaseRealityParams(params map[string]string, baseSecurity, securityToApp
 	}
 	// sni and fp name the master's reality dest, not this endpoint's own
 	// certificate; the host's values are re-applied right after this.
-	for _, k := range []string{"pbk", "sid", "spx", "pqv", "sni", "fp"} {
+	for _, k := range []string{
+		"pbk",
+		"sid",
+		"spx",
+		"pqv",
+		"support-x25519mlkem768",
+		"sni",
+		"fp",
+	} {
 		delete(params, k)
 	}
 }

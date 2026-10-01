@@ -70,6 +70,7 @@ func TestGenVlessLink_RealityParamsMapped(t *testing.T) {
 
 	wants := []string{
 		"security=reality",
+		"support-x25519mlkem768=true",
 		"sni=reality.example.com",
 		"pbk=PBKvalue",
 		"sid=ab12cd",

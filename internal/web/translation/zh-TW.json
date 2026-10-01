@@ -1927,6 +1927,7 @@
         "verifyPeerName": "驗證 peer 名稱",
         "pinnedSha256": "Pinned SHA256",
         "shortId": "Short ID",
+        "supportX25519Mlkem768": "支援 X25519MLKEM768",
         "sockopts": "Sockopts",
         "keepAliveInterval": "keep alive 間隔",
         "markFwmark": "Mark (fwmark)",

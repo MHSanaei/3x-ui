@@ -111,7 +111,7 @@ func streamSub(t *testing.T, res *ParseResult, key string) map[string]any {
 }
 
 func TestParse_RealitySecurityMapped(t *testing.T) {
-	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&pbk=PBK&sid=SID&sni=SNI&fp=firefox&spx=%2Fspx&pqv=PQV")
+	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&pbk=PBK&sid=SID&sni=SNI&fp=firefox&spx=%2Fspx&pqv=PQV&support-x25519mlkem768=true")
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
@@ -120,6 +120,9 @@ func TestParse_RealitySecurityMapped(t *testing.T) {
 		if re[k] != want {
 			t.Errorf("realitySettings[%q] = %v, want %q", k, re[k], want)
 		}
+	}
+	if re["supportX25519Mlkem768"] != true {
+		t.Errorf("realitySettings[supportX25519Mlkem768] = %v, want true", re["supportX25519Mlkem768"])
 	}
 }
 

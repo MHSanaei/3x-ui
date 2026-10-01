@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { act, fireEvent } from '@testing-library/react';
+import { act, fireEvent, waitFor } from '@testing-library/react';
 
 import OutboundFormModal from '@/pages/xray/outbounds/OutboundFormModal';
 import {
@@ -83,6 +83,57 @@ describe('OutboundFormModal', () => {
     toggleSockoptsSwitch();
 
     expect(fieldLabels()).toContain('Domain Strategy');
+  });
+
+  it('shows and preserves the REALITY ML-KEM support switch', async () => {
+    const onConfirm = vi.fn();
+    renderWithProviders(
+      <OutboundFormModal
+        open
+        outbound={{
+          protocol: 'vless',
+          tag: 'reality-out',
+          settings: { address: 'example.com', port: 443, id: 'client-id', encryption: 'none' },
+          streamSettings: {
+            network: 'tcp',
+            tcpSettings: { header: { type: 'none' } },
+            security: 'none',
+          },
+        }}
+        existingTags={[]}
+        onClose={() => {}}
+        onConfirm={onConfirm}
+      />,
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    const realityRadio = document.querySelector(
+      'input[type="radio"][value="reality"]',
+    ) as HTMLElement;
+    fireEvent.click(realityRadio);
+    await waitFor(() => expect(fieldLabels()).toContain('X25519MLKEM768 support'));
+    const item = Array.from(document.querySelectorAll('.ant-form-item')).find((el) =>
+      (el.querySelector('.ant-form-item-label label')?.textContent ?? '').includes(
+        'X25519MLKEM768',
+      ),
+    );
+    const supportSwitch = item?.querySelector('.ant-switch') as HTMLElement;
+    expect(supportSwitch.getAttribute('aria-checked')).toBe('false');
+    fireEvent.click(supportSwitch);
+    expect(supportSwitch.getAttribute('aria-checked')).toBe('true');
+
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    const payload = onConfirm.mock.calls[0][0] as {
+      streamSettings: { realitySettings: { supportX25519Mlkem768: boolean } };
+    };
+    expect(payload.streamSettings.realitySettings.supportX25519Mlkem768).toBe(true);
   });
 
   // The core migrates freedom's outbound-root targetStrategy into the very same

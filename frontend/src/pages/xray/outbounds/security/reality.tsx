@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Input, Select } from 'antd';
+import { Input, Select, Switch } from 'antd';
 
 import { FormField } from '@/components/form/rhf';
 
@@ -38,6 +38,13 @@ export default function RealityForm() {
         name={['streamSettings', 'realitySettings', 'mldsa65Verify']}
       >
         <Input.TextArea autoSize={{ minRows: 2 }} />
+      </FormField>
+      <FormField
+        label={t('pages.xray.outboundForm.supportX25519Mlkem768')}
+        name={['streamSettings', 'realitySettings', 'supportX25519Mlkem768']}
+        valueProp="checked"
+      >
+        <Switch />
       </FormField>
     </>
   );
