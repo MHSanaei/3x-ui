@@ -71,7 +71,7 @@
     "@vitest/coverage-v8": "^5.0.2",
     "husky": "^9.1.7",
     "jsdom": "^30.1.1",
-    "lint-staged": "^17.5.1",
+    "lint-staged": "^17.6.0",
     "msw": "^2.15.0",
     "oxfmt": "0.70.0",
     "oxlint": "1.85.0",
