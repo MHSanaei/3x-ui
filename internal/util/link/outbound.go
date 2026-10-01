@@ -758,8 +758,9 @@ func applySecurity(stream map[string]any, p url.Values) {
 		re["shortId"] = p.Get("sid")
 		re["spiderX"] = p.Get("spx")
 		re["mldsa65Verify"] = p.Get("pqv")
-		supportX25519Mlkem768 := p.Get("support-x25519mlkem768")
-		re["supportX25519Mlkem768"] = supportX25519Mlkem768 == "true" || supportX25519Mlkem768 == "1"
+		if enabled, err := strconv.ParseBool(p.Get("support-x25519mlkem768")); err == nil {
+			re["supportX25519Mlkem768"] = enabled
+		}
 	}
 }
 

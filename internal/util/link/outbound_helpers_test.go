@@ -126,6 +126,16 @@ func TestParse_RealitySecurityMapped(t *testing.T) {
 	}
 }
 
+func TestParse_RealityMLKEMBooleanAlias(t *testing.T) {
+	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&support-x25519mlkem768=1")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if got := streamSub(t, res, "realitySettings")["supportX25519Mlkem768"]; got != true {
+		t.Errorf("supportX25519Mlkem768 = %v, want true", got)
+	}
+}
+
 func TestParse_TLSSecurityMapped(t *testing.T) {
 	res, err := ParseLink("trojan://pw@h.com:443?type=tcp&security=tls&sni=SNI&fp=chrome&alpn=h2,http/1.1&ech=ECH&vcn=VCN&pcs=PCS")
 	if err != nil {
