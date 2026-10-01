@@ -144,9 +144,34 @@ function hasShareableFinalMaskValue(value: unknown): boolean {
   return true;
 }
 
+function withLegacyFragmentRanges(finalmask: FinalMaskStreamSettings): FinalMaskStreamSettings {
+  let changed = false;
+  const tcp = finalmask.tcp.map((mask) => {
+    if (mask.type !== 'fragment' || !mask.settings) return mask;
+
+    const settings = mask.settings;
+    const legacy: Record<string, unknown> = {};
+    if (settings.length === undefined && Array.isArray(settings.lengths)) {
+      const length = settings.lengths.at(-1);
+      if (typeof length === 'string' && length.trim().length > 0) legacy.length = length;
+    }
+    if (settings.delay === undefined && Array.isArray(settings.delays)) {
+      const delay = settings.delays.at(-1);
+      if (typeof delay === 'string' && delay.trim().length > 0) legacy.delay = delay;
+    }
+    if (Object.keys(legacy).length === 0) return mask;
+
+    changed = true;
+    return { ...mask, settings: { ...settings, ...legacy } };
+  });
+
+  return changed ? { ...finalmask, tcp } : finalmask;
+}
+
 function serializeFinalMask(finalmask: FinalMaskStreamSettings | undefined): string {
   if (!finalmask) return '';
-  return hasShareableFinalMaskValue(finalmask) ? JSON.stringify(finalmask) : '';
+  const shareable = withLegacyFragmentRanges(finalmask);
+  return hasShareableFinalMaskValue(shareable) ? JSON.stringify(shareable) : '';
 }
 
 function applyFinalMaskToObj(

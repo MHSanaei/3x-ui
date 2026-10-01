@@ -2843,7 +2843,7 @@ func applyFinalMaskObj(finalmask map[string]any, obj map[string]any) {
 }
 
 func marshalFinalMask(finalmask map[string]any) (string, bool) {
-	normalized := normalizeFinalMask(finalmask)
+	normalized := withLegacyFragmentRanges(normalizeFinalMask(finalmask))
 	if !hasFinalMaskContent(normalized) {
 		return "", false
 	}
@@ -2852,6 +2852,84 @@ func marshalFinalMask(finalmask map[string]any) (string, bool) {
 		return "", false
 	}
 	return string(b), true
+}
+
+// withLegacyFragmentRanges adds the legacy singular range fields to a copy of
+// each fragment mask so older subscription clients can still parse it. Newer
+// xray-core uses the arrays whenever present, so the per-segment settings stay
+// authoritative.
+func withLegacyFragmentRanges(finalmask map[string]any) map[string]any {
+	tcpMasks, ok := finalmask["tcp"].([]any)
+	if !ok {
+		return finalmask
+	}
+
+	var result map[string]any
+	var resultMasks []any
+	for i, rawMask := range tcpMasks {
+		mask, ok := rawMask.(map[string]any)
+		if !ok || mask["type"] != "fragment" {
+			continue
+		}
+		settings, ok := mask["settings"].(map[string]any)
+		if !ok {
+			continue
+		}
+
+		legacySettings := maps.Clone(settings)
+		changed := false
+		if _, exists := settings["length"]; !exists {
+			if value, ok := lastFragmentRange(settings["lengths"]); ok {
+				legacySettings["length"] = value
+				changed = true
+			}
+		}
+		if _, exists := settings["delay"]; !exists {
+			if value, ok := lastFragmentRange(settings["delays"]); ok {
+				legacySettings["delay"] = value
+				changed = true
+			}
+		}
+		if !changed {
+			continue
+		}
+
+		if result == nil {
+			result = maps.Clone(finalmask)
+			resultMasks = slices.Clone(tcpMasks)
+			result["tcp"] = resultMasks
+		}
+		legacyMask := maps.Clone(mask)
+		legacyMask["settings"] = legacySettings
+		resultMasks[i] = legacyMask
+	}
+	if result == nil {
+		return finalmask
+	}
+	return result
+}
+
+func lastFragmentRange(value any) (string, bool) {
+	var last any
+	switch ranges := value.(type) {
+	case []any:
+		if len(ranges) == 0 {
+			return "", false
+		}
+		last = ranges[len(ranges)-1]
+	case []string:
+		if len(ranges) == 0 {
+			return "", false
+		}
+		last = ranges[len(ranges)-1]
+	default:
+		return "", false
+	}
+	rangeValue, ok := last.(string)
+	if !ok || strings.TrimSpace(rangeValue) == "" {
+		return "", false
+	}
+	return rangeValue, true
 }
 
 func normalizeFinalMask(finalmask map[string]any) map[string]any {
