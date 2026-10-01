@@ -40,7 +40,7 @@
     "@hookform/resolvers": "^5.9.1",
     "@noble/hashes": "^2.4.0",
     "@tanstack/react-query": "^5.103.2",
-    "@tanstack/react-query-devtools": "^5.103.2",
+    "@tanstack/react-query-devtools": "^5.104.0",
     "antd": "^6.6.5",
     "codemirror": "^6.0.2",
     "dayjs": "^1.11.23",
