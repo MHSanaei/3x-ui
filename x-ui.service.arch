@@ -28,7 +28,10 @@ ProtectSystem=full
 # xray binary/config/geo in XUI_BIN_FOLDER under /usr/local/x-ui, logs in
 # XUI_LOG_FOLDER (/var/log/x-ui). Add any relocated folder to this list too;
 # the leading '-' keeps the unit startable if a path is not created yet.
+# ReadWritePaths= requires systemd >= 231; ReadWriteDirectories= is the deprecated
+# alias for older systemd, needed so ProtectSystem=full keeps /etc/x-ui writable.
 ReadWritePaths=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
+ReadWriteDirectories=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectKernelLogs=yes
