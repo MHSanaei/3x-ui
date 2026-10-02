@@ -2016,14 +2016,18 @@ func subKey(c model.Client) string {
 	return c.Email
 }
 
-// deriveSpiderX maps the inbound's spiderX seed plus a stable client key to a
-// deterministic per-client "/path"; frontend/src/lib/xray/spider-x.ts mirrors it.
+// deriveSpiderX maps the seed and a stable client key to a per-client "/path" plus the seed's
+// query, where xray reads its spider settings (#6693); frontend/src/lib/xray/spider-x.ts mirrors it.
 func deriveSpiderX(seed, clientKey string) string {
 	if seed == "" && clientKey == "" {
 		return "/" + random.Seq(15)
 	}
 	sum := sha256.Sum256([]byte(seed + "|" + clientKey))
-	return "/" + hex.EncodeToString(sum[:])[:15]
+	path := "/" + hex.EncodeToString(sum[:])[:15]
+	if _, query, _ := strings.Cut(seed, "?"); query != "" {
+		return path + "?" + query
+	}
+	return path
 }
 
 func buildVmessLink(obj map[string]any) string {

@@ -480,6 +480,61 @@ func TestSub_HostRealitySniOverride(t *testing.T) {
 	}
 }
 
+// A reality host's SNI reaches JSON and Clash as serverName only: xray refuses a
+// reality client that also carries serverNames (#6690).
+func TestSub_HostRealitySniJSONAndClash(t *testing.T) {
+	seedSubDB(t)
+	realityStream := `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+	ib := seedSubInbound(t, "s1", "rlj", 4491, 1, realityStream)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "RLJ", Address: "rl.cdn.com", Port: 8443,
+		Security: "reality", Sni: "host.reality.com",
+	})
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatalf("a single-config subscription should be one JSON object: %v\n%s", err, out)
+	}
+	reality := proxyRealitySettings(t, doc)
+	if got := reality["serverName"]; got != "host.reality.com" {
+		t.Fatalf("json serverName = %v, want the host's SNI host.reality.com", got)
+	}
+	if names, leaked := reality["serverNames"]; leaked {
+		t.Fatalf("server-side serverNames %v leaked into the json reality client:\n%s", names, out)
+	}
+
+	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(yaml, "servername: host.reality.com") {
+		t.Fatalf("clash proxy should carry the host's SNI:\n%s", yaml)
+	}
+}
+
+func proxyRealitySettings(t *testing.T, doc map[string]any) map[string]any {
+	t.Helper()
+	outbounds, _ := doc["outbounds"].([]any)
+	for _, ob := range outbounds {
+		outbound, _ := ob.(map[string]any)
+		if outbound["tag"] != "proxy" {
+			continue
+		}
+		stream, _ := outbound["streamSettings"].(map[string]any)
+		reality, ok := stream["realitySettings"].(map[string]any)
+		if !ok {
+			t.Fatalf("proxy outbound has no realitySettings: %v", outbound)
+		}
+		return reality
+	}
+	t.Fatalf("no proxy outbound in %v", doc)
+	return nil
+}
+
 // #9 — ExcludeFromSubTypes is honored per format: a host excluded from clash is
 // absent from GetClash but present in the raw GetSubs output.
 func TestSub_ExcludeFromSubTypes(t *testing.T) {

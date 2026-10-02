@@ -164,14 +164,18 @@ Endpoint = your-server:443
 PersistentKeepalive = 25
 ```
 
+## Multi-node (sub-nodes)
+
+An AmneziaWG inbound can be created on, or cloned to, a sub-node. The node's
+own panel runs the interface, so the node must run panel **v3.7.0** or newer;
+the master refuses an older node, or one that has not reported its version yet.
+A client's `forwardedPorts` are checked against the ports in use on that node.
+
 ## Not yet covered
 
 <Callout type="info">
 
-- **Multi-node (sub-nodes)** and **Telegram bot** — AmneziaWG inbounds haven't
-  been exercised through those paths yet. They likely work (the reconciler
-  runs the same way regardless of how the panel itself is deployed), but
-  that's not the same as a confirmed, tested claim — treat it as unverified
-  rather than assume it either way until someone reports back.
+- **Telegram bot** — AmneziaWG inbounds haven't been exercised through the
+  bot yet. Treat it as unverified until someone reports back.
 
 </Callout>

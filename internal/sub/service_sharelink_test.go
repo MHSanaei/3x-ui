@@ -143,6 +143,23 @@ func TestGenVlessLink_RealitySpiderXPerClientStable(t *testing.T) {
 	}
 }
 
+// A seed's spider settings (p, c, t, i, r) ride along in the share link's spx,
+// escaped so they stay inside that one parameter.
+func TestGenVlessLink_RealitySpiderXKeepsSpiderSettings(t *testing.T) {
+	s := &SubService{}
+	inbound := realityTwoClientInbound()
+	inbound.StreamSettings = strings.Replace(inbound.StreamSettings, `"spiderX":"/seed"`, `"spiderX":"/seed?p=40-400&r=500-2000"`, 1)
+
+	link := s.genVlessLink(inbound, "alice")
+	if got, want := spxParam(t, link), "/09dd00b3f8c01f5?p=40-400&r=500-2000"; got != want {
+		t.Fatalf("spx = %q, want %q", got, want)
+	}
+	u, _ := url.Parse(link)
+	if u.Query().Get("p") != "" || u.Query().Get("r") != "" {
+		t.Fatalf("spider settings leaked out of spx into the link's own query: %q", link)
+	}
+}
+
 func TestDeriveSpiderX(t *testing.T) {
 	if got := deriveSpiderX("seed", "clientA"); got != deriveSpiderX("seed", "clientA") {
 		t.Fatalf("deriveSpiderX not deterministic: %q", got)
@@ -168,6 +185,10 @@ func TestDeriveSpiderXMatchesFrontendVectors(t *testing.T) {
 	vectors := map[string]struct{ seed, clientKey, want string }{
 		"seed and subId": {"/seed", "subAlice", "/c252fbc3ecd3e3c"},
 		"seed only":      {"/", "", "/d08ed99bd9afc60"},
+		// xray reads p, c, t, i and r from the spiderX query as the spider's
+		// own settings, so the seed's query must survive the derivation.
+		"seed with spider settings": {"/seed?p=40-400&r=500-2000", "subAlice", "/09dd00b3f8c01f5?p=40-400&r=500-2000"},
+		"spider settings only":      {"/?p=40-400&c=1-4&t=1-3&i=1500-6000&r=500-2000", "", "/ac2cb268d22908e?p=40-400&c=1-4&t=1-3&i=1500-6000&r=500-2000"},
 	}
 	for name, v := range vectors {
 		t.Run(name, func(t *testing.T) {
