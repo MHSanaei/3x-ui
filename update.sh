@@ -9,6 +9,15 @@ plain='\033[0m'
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
+# Web updates are detached and have no TTY. Treat every no-TTY invocation as
+# non-interactive even when an older launcher did not set the explicit flag.
+if [[ "${XUI_NONINTERACTIVE:-0}" == "1" ]] || [[ ! -t 0 ]]; then
+    NONINTERACTIVE=1
+else
+    NONINTERACTIVE=0
+fi
+export NONINTERACTIVE
+
 # Don't edit this config
 b_source="${BASH_SOURCE[0]}"
 while [ -h "$b_source" ]; do
@@ -210,14 +219,169 @@ install_base() {
 install_acme() {
     echo -e "${green}Installing acme.sh for SSL certificate management...${plain}"
     cd ~ || return 1
-    curl -s https://get.acme.sh | sh > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
+    if ! curl -fsSL https://get.acme.sh | sh > /dev/null 2>&1; then
         echo -e "${red}Failed to install acme.sh${plain}"
         return 1
-    else
-        echo -e "${green}acme.sh installed successfully${plain}"
     fi
+    if [[ ! -x "$(acme_executable)" ]]; then
+        echo -e "${red}acme.sh installer exited successfully, but the executable is missing${plain}"
+        return 1
+    fi
+    echo -e "${green}acme.sh installed successfully${plain}"
     return 0
+}
+
+acme_executable() {
+    printf '%s\n' "${XUI_ACME_HOME:-${HOME}/.acme.sh}/acme.sh"
+}
+
+panel_certificate_dir() {
+    printf '%s/panel/%s\n' "${XUI_CERT_ROOT:-/root/cert}" "$1"
+}
+
+acme_config_value() {
+    local config_file="$1"
+    local setting="$2"
+    local value
+    value=$(sed -n "s/^${setting}=//p" "$config_file" | tail -n 1)
+    case "$value" in
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+    esac
+    printf '%s\n' "$value"
+}
+
+acme_install_target_dir() {
+    local identifier="$1"
+    local acme_home
+    acme_home="$(dirname "$(acme_executable)")"
+    local state_dir config_file fullchain_path key_path
+    for state_dir in "${acme_home}/${identifier}_ecc" "${acme_home}/${identifier}"; do
+        config_file="${state_dir}/${identifier}.conf"
+        [[ -f "$config_file" ]] || continue
+        fullchain_path="$(acme_config_value "$config_file" Le_RealFullChainPath)"
+        key_path="$(acme_config_value "$config_file" Le_RealKeyPath)"
+        if [[ "$(basename "$fullchain_path")" == "fullchain.pem" && \
+            "$(basename "$key_path")" == "privkey.pem" && \
+            "$(dirname "$fullchain_path")" == "$(dirname "$key_path")" ]]; then
+            dirname "$fullchain_path"
+            return 0
+        fi
+    done
+    return 1
+}
+
+certificate_target_dir() {
+    local identifier="$1"
+    local preferred_dir="$2"
+    local legacy_dir="$3"
+    local existing_target
+    if existing_target="$(acme_install_target_dir "$identifier")"; then
+        printf '%s\n' "$existing_target"
+        return 0
+    fi
+    if "$(acme_executable)" --list 2> /dev/null | awk '{print $1}' | grep -Fxq "$identifier" && \
+        [[ -s "${legacy_dir}/fullchain.pem" && -s "${legacy_dir}/privkey.pem" ]]; then
+        printf '%s\n' "$legacy_dir"
+        return 0
+    fi
+    printf '%s\n' "$preferred_dir"
+}
+
+validate_certificate_pair() {
+    local cert_file="$1"
+    local key_file="$2"
+    [[ -s "$cert_file" && -s "$key_file" ]] || return 1
+    openssl x509 -in "$cert_file" -noout -checkend 0 > /dev/null 2>&1 || return 1
+    openssl pkey -in "$key_file" -noout -check > /dev/null 2>&1 || return 1
+    cmp -s \
+        <(openssl x509 -in "$cert_file" -pubkey -noout 2> /dev/null | openssl pkey -pubin -outform DER 2> /dev/null) \
+        <(openssl pkey -in "$key_file" -pubout -outform DER 2> /dev/null)
+}
+
+# Ask acme.sh to write into a private staging directory, validate the complete
+# pair, and only then replace the panel's live files. Existing files and ACME
+# records are never removed on a failed issue/install attempt.
+install_certificate_staged() {
+    local identifier="$1"
+    local target_dir="$2"
+    local reload_cmd="$3"
+    local acme_bin
+    acme_bin="$(acme_executable)"
+    [[ -x "$acme_bin" ]] || return 1
+
+    local target_parent stage_dir stage_cert stage_key install_output install_rc
+    target_parent="$(dirname "$target_dir")"
+    mkdir -p "$target_parent" || return 1
+    stage_dir=$(mktemp -d "${target_parent}/.x-ui-cert-stage.XXXXXX") || return 1
+    stage_cert="${stage_dir}/fullchain.pem"
+    stage_key="${stage_dir}/privkey.pem"
+
+    install_output=$("$acme_bin" --installcert --force -d "$identifier" \
+        --key-file "$stage_key" \
+        --fullchain-file "$stage_cert" \
+        --reloadcmd ":" 2>&1)
+    install_rc=$?
+    if [[ $install_rc -ne 0 ]] || ! validate_certificate_pair "$stage_cert" "$stage_key"; then
+        echo "$install_output"
+        echo -e "${red}Certificate staging or validation failed; existing files were left untouched${plain}"
+        rm -rf -- "$stage_dir"
+        return 1
+    fi
+
+    mkdir -p "$target_dir" || { rm -rf -- "$stage_dir"; return 1; }
+    local next_cert="${target_dir}/.fullchain.pem.new.$$"
+    local next_key="${target_dir}/.privkey.pem.new.$$"
+    local old_cert="${target_dir}/.fullchain.pem.previous.$$"
+    local old_key="${target_dir}/.privkey.pem.previous.$$"
+    local had_cert=0 had_key=0
+    [[ -f "${target_dir}/fullchain.pem" ]] && { cp -p "${target_dir}/fullchain.pem" "$old_cert" || { rm -rf -- "$stage_dir"; return 1; }; had_cert=1; }
+    [[ -f "${target_dir}/privkey.pem" ]] && { cp -p "${target_dir}/privkey.pem" "$old_key" || { rm -f "$old_cert"; rm -rf -- "$stage_dir"; return 1; }; had_key=1; }
+
+    if ! install -m 0644 "$stage_cert" "$next_cert" || ! install -m 0600 "$stage_key" "$next_key"; then
+        rm -f "$next_cert" "$next_key" "$old_cert" "$old_key"
+        rm -rf -- "$stage_dir"
+        return 1
+    fi
+    mv -f "$next_key" "${target_dir}/privkey.pem" && mv -f "$next_cert" "${target_dir}/fullchain.pem"
+    local promote_rc=$?
+    rm -rf -- "$stage_dir"
+    if [[ $promote_rc -ne 0 ]]; then
+        if [[ $had_key -eq 1 ]]; then
+            mv -f "$old_key" "${target_dir}/privkey.pem"
+        else
+            rm -f "${target_dir}/privkey.pem"
+        fi
+        if [[ $had_cert -eq 1 ]]; then
+            mv -f "$old_cert" "${target_dir}/fullchain.pem"
+        else
+            rm -f "${target_dir}/fullchain.pem"
+        fi
+        return 1
+    fi
+
+    # Persist the final destinations for future renewals. The source material
+    # is the same pair that passed validation above; validate again afterwards.
+    "$acme_bin" --installcert --force -d "$identifier" \
+        --key-file "${target_dir}/privkey.pem" \
+        --fullchain-file "${target_dir}/fullchain.pem" \
+        --reloadcmd "$reload_cmd" > /dev/null 2>&1 || true
+    if ! validate_certificate_pair "${target_dir}/fullchain.pem" "${target_dir}/privkey.pem"; then
+        if [[ $had_key -eq 1 ]]; then
+            mv -f "$old_key" "${target_dir}/privkey.pem"
+        else
+            rm -f "${target_dir}/privkey.pem"
+        fi
+        if [[ $had_cert -eq 1 ]]; then
+            mv -f "$old_cert" "${target_dir}/fullchain.pem"
+        else
+            rm -f "${target_dir}/fullchain.pem"
+        fi
+        return 1
+    fi
+    rm -f "$old_cert" "$old_key"
+    chmod 600 "${target_dir}/privkey.pem"
+    chmod 644 "${target_dir}/fullchain.pem"
 }
 
 setup_ssl_certificate() {
@@ -229,7 +393,7 @@ setup_ssl_certificate() {
     echo -e "${green}Setting up SSL certificate...${plain}"
 
     # Check if acme.sh is installed
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
+    if [[ ! -x "$(acme_executable)" ]]; then
         install_acme
         if [ $? -ne 0 ]; then
             echo -e "${yellow}Failed to install acme.sh, skipping SSL setup${plain}"
@@ -238,46 +402,43 @@ setup_ssl_certificate() {
     fi
 
     # Create certificate directory
-    local certPath="/root/cert/${domain}"
-    mkdir -p "$certPath"
+    local certPath
+    certPath="$(certificate_target_dir "${domain}" \
+        "$(panel_certificate_dir "${domain}")" "${XUI_CERT_ROOT:-/root/cert}/${domain}")"
 
     # Issue certificate
     echo -e "${green}Issuing SSL certificate for ${domain}...${plain}"
     echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
 
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
-    ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport 80 --force
+    local acme_bin
+    acme_bin="$(acme_executable)"
+    "$acme_bin" --set-default-ca --server letsencrypt --force > /dev/null 2>&1
+    "$acme_bin" --issue -d "${domain}" $(acme_listen_flag) --standalone --httpport 80 --force
 
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
         echo -e "${yellow}Please ensure port 80 is open and try again later with: x-ui${plain}"
-        rm -rf ~/.acme.sh/${domain} 2> /dev/null
-        rm -rf "$certPath" 2> /dev/null
+        echo -e "${yellow}Existing certificate files and ACME records were left untouched.${plain}"
         return 1
     fi
 
-    # Install certificate
-    ~/.acme.sh/acme.sh --installcert --force -d ${domain} \
-        --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem \
-        --reloadcmd "systemctl restart x-ui" > /dev/null 2>&1
-
-    if [ $? -ne 0 ]; then
+    if ! install_certificate_staged "${domain}" "$certPath" "systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"; then
         echo -e "${yellow}Failed to install certificate${plain}"
         return 1
     fi
 
     # Enable auto-renew
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
-    chmod 600 $certPath/privkey.pem 2> /dev/null
-    chmod 644 $certPath/fullchain.pem 2> /dev/null
+    "$acme_bin" --upgrade --auto-upgrade > /dev/null 2>&1
 
     # Set certificate for panel
-    local webCertFile="/root/cert/${domain}/fullchain.pem"
-    local webKeyFile="/root/cert/${domain}/privkey.pem"
+    local webCertFile="${certPath}/fullchain.pem"
+    local webKeyFile="${certPath}/privkey.pem"
 
     if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" > /dev/null 2>&1
+        if ! ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" > /dev/null 2>&1; then
+            echo -e "${yellow}Certificate files were installed, but the panel TLS configuration was not changed${plain}"
+            return 1
+        fi
         echo -e "${green}SSL certificate installed and configured successfully!${plain}"
         return 0
     else
@@ -297,7 +458,7 @@ setup_ip_certificate() {
     echo -e "${yellow}Default listener is port 80. If you choose another port, ensure external port 80 forwards to it.${plain}"
 
     # Check for acme.sh
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
+    if [[ ! -x "$(acme_executable)" ]]; then
         install_acme
         if [ $? -ne 0 ]; then
             echo -e "${red}Failed to install acme.sh${plain}"
@@ -317,8 +478,9 @@ setup_ip_certificate() {
     fi
 
     # Create certificate directory
-    local certDir="/root/cert/ip"
-    mkdir -p "$certDir"
+    local certDir
+    certDir="$(certificate_target_dir "${ipv4}" \
+        "$(panel_certificate_dir "ip-${ipv4}")" "${XUI_CERT_ROOT:-/root/cert}/ip")"
 
     # Build domain arguments
     local domain_args="-d ${ipv4}"
@@ -332,7 +494,11 @@ setup_ip_certificate() {
 
     # Choose port for HTTP-01 listener (default 80, prompt override)
     local WebPort=""
-    read -rp "Port to use for ACME HTTP-01 listener (default 80): " WebPort
+    if [[ "$NONINTERACTIVE" == "1" ]]; then
+        WebPort="${XUI_ACME_HTTP_PORT:-80}"
+    else
+        read -rp "Port to use for ACME HTTP-01 listener (default 80): " WebPort
+    fi
     WebPort="${WebPort:-80}"
     if ! [[ "${WebPort}" =~ ^[0-9]+$ ]] || ((WebPort < 1 || WebPort > 65535)); then
         echo -e "${red}Invalid port provided. Falling back to 80.${plain}"
@@ -349,6 +515,10 @@ setup_ip_certificate() {
             echo -e "${yellow}Port ${WebPort} is currently in use.${plain}"
 
             local alt_port=""
+            if [[ "$NONINTERACTIVE" == "1" ]]; then
+                echo -e "${red}Port ${WebPort} is busy; cannot proceed in non-interactive mode.${plain}"
+                return 1
+            fi
             read -rp "Enter another port for acme.sh standalone listener (leave empty to abort): " alt_port
             alt_port="${alt_port// /}"
             if [[ -z "${alt_port}" ]]; then
@@ -369,9 +539,11 @@ setup_ip_certificate() {
 
     # Issue certificate with shortlived profile
     echo -e "${green}Issuing IP certificate for ${ipv4}...${plain}"
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force > /dev/null 2>&1
+    local acme_bin
+    acme_bin="$(acme_executable)"
+    "$acme_bin" --set-default-ca --server letsencrypt --force > /dev/null 2>&1
 
-    ~/.acme.sh/acme.sh --issue \
+    "$acme_bin" --issue \
         ${domain_args} \
         --standalone \
         --server letsencrypt \
@@ -383,53 +555,32 @@ setup_ip_certificate() {
     if [ $? -ne 0 ]; then
         echo -e "${red}Failed to issue IP certificate${plain}"
         echo -e "${yellow}Please ensure port ${WebPort} is reachable (or forwarded from external port 80)${plain}"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${ipv4} 2> /dev/null
-        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
+        echo -e "${yellow}Existing certificate files and ACME records were left untouched.${plain}"
         return 1
     fi
 
     echo -e "${green}Certificate issued successfully, installing...${plain}"
 
-    # Install certificate
-    # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
-    # but the cert files are still installed. We check for files instead of exit code.
-    ~/.acme.sh/acme.sh --installcert --force -d ${ipv4} \
-        --key-file "${certDir}/privkey.pem" \
-        --fullchain-file "${certDir}/fullchain.pem" \
-        --reloadcmd "${reloadCmd}" 2>&1 || true
-
-    # Verify certificate files exist (don't rely on exit code - reloadcmd failure causes non-zero)
-    if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
-        echo -e "${red}Certificate files not found after installation${plain}"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
-        rm -rf ~/.acme.sh/${ipv4} 2> /dev/null
-        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2> /dev/null
-        rm -rf ${certDir} 2> /dev/null
+    if ! install_certificate_staged "${ipv4}" "$certDir" "$reloadCmd"; then
+        echo -e "${red}Certificate installation or validation failed${plain}"
         return 1
     fi
 
     echo -e "${green}Certificate files installed successfully${plain}"
 
     # Enable auto-upgrade for acme.sh (ensures cron job runs)
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade > /dev/null 2>&1
-
-    chmod 600 ${certDir}/privkey.pem 2> /dev/null
-    chmod 644 ${certDir}/fullchain.pem 2> /dev/null
+    "$acme_bin" --upgrade --auto-upgrade > /dev/null 2>&1
 
     # Configure panel to use the certificate
     echo -e "${green}Setting certificate paths for the panel...${plain}"
-    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"
-    if [ $? -ne 0 ]; then
-        echo -e "${yellow}Warning: Could not set certificate paths automatically.${plain}"
-        echo -e "${yellow}You may need to set them manually in the panel settings.${plain}"
+    if ! ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"; then
+        echo -e "${yellow}Certificate files were installed, but the panel TLS configuration was not changed.${plain}"
         echo -e "${yellow}Cert path: ${certDir}/fullchain.pem${plain}"
         echo -e "${yellow}Key path: ${certDir}/privkey.pem${plain}"
-    else
-        echo -e "${green}Certificate paths set successfully!${plain}"
+        return 1
     fi
 
+    echo -e "${green}Certificate paths set successfully!${plain}"
     echo -e "${green}IP certificate installed and configured successfully!${plain}"
     echo -e "${green}Certificate valid for ~6 days, auto-renews via acme.sh cron job.${plain}"
     echo -e "${yellow}Panel will automatically restart after each renewal.${plain}"
@@ -442,17 +593,12 @@ ssl_cert_issue() {
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
 
     # check for acme.sh first
-    if ! command -v ~/.acme.sh/acme.sh &> /dev/null; then
+    if [[ ! -x "$(acme_executable)" ]]; then
         echo "acme.sh could not be found. Installing now..."
-        cd ~ || return 1
-        curl -s https://get.acme.sh | sh
-        if [ $? -ne 0 ]; then
-            echo -e "${red}Failed to install acme.sh${plain}"
-            return 1
-        else
-            echo -e "${green}acme.sh installed successfully${plain}"
-        fi
+        install_acme || return 1
     fi
+    local acme_bin
+    acme_bin="$(acme_executable)"
 
     # get the domain here, and we need to verify it
     local domain=""
@@ -475,25 +621,28 @@ ssl_cert_issue() {
     echo -e "${green}Your domain is: ${domain}, checking it...${plain}"
     SSL_ISSUED_DOMAIN="${domain}"
 
-    # detect existing certificate and reuse it if present
+    # Reuse only complete ACME state. Incomplete state is kept for diagnostics
+    # and repaired by a forced re-issue rather than deleted on an error path.
     local cert_exists=0
-    if ~/.acme.sh/acme.sh --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
-        cert_exists=1
-        local certInfo=$(~/.acme.sh/acme.sh --list 2> /dev/null | grep -F "${domain}")
-        echo -e "${yellow}Existing certificate found for ${domain}, will reuse it.${plain}"
-        [[ -n "${certInfo}" ]] && echo "$certInfo"
+    if "$acme_bin" --list 2> /dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
+        local acme_home
+        acme_home="$(dirname "$acme_bin")"
+        if [[ (-s "${acme_home}/${domain}_ecc/fullchain.cer" && -s "${acme_home}/${domain}_ecc/${domain}.key") || \
+            (-s "${acme_home}/${domain}/fullchain.cer" && -s "${acme_home}/${domain}/${domain}.key") ]]; then
+            cert_exists=1
+            local certInfo=$("$acme_bin" --list 2> /dev/null | grep -F "${domain}")
+            echo -e "${yellow}Existing certificate found for ${domain}, will reuse it.${plain}"
+            [[ -n "${certInfo}" ]] && echo "$certInfo"
+        else
+            echo -e "${yellow}Found incomplete acme.sh state for ${domain}; re-issuing without deleting the existing record.${plain}"
+        fi
     else
         echo -e "${green}Your domain is ready for issuing certificates now...${plain}"
     fi
 
     # create a directory for the certificate
-    certPath="/root/cert/${domain}"
-    if [ ! -d "$certPath" ]; then
-        mkdir -p "$certPath"
-    else
-        rm -rf "$certPath"
-        mkdir -p "$certPath"
-    fi
+    certPath="$(certificate_target_dir "${domain}" \
+        "$(panel_certificate_dir "${domain}")" "${XUI_CERT_ROOT:-/root/cert}/${domain}")"
 
     # get the port number for the standalone server
     local WebPort=80
@@ -512,11 +661,11 @@ ssl_cert_issue() {
 
     if [[ ${cert_exists} -eq 0 ]]; then
         # issue the certificate
-        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-        ~/.acme.sh/acme.sh --issue -d ${domain} $(acme_listen_flag) --standalone --httpport ${WebPort} --force
+        "$acme_bin" --set-default-ca --server letsencrypt --force
+        "$acme_bin" --issue -d "${domain}" $(acme_listen_flag) --standalone --httpport "${WebPort}" --force
         if [ $? -ne 0 ]; then
             echo -e "${red}Issuing certificate failed, please check logs.${plain}"
-            rm -rf ~/.acme.sh/${domain}
+            echo -e "${yellow}Existing certificate files and ACME records were left untouched.${plain}"
             systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
             return 1
         else
@@ -552,42 +701,22 @@ ssl_cert_issue() {
         esac
     fi
 
-    # install the certificate
-    local installOutput=""
-    installOutput=$(~/.acme.sh/acme.sh --installcert --force -d ${domain} \
-        --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
-    local installRc=$?
-    echo "${installOutput}"
-
-    local installWroteFiles=0
-    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
-        installWroteFiles=1
-    fi
-
-    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && (${installRc} -eq 0 || ${installWroteFiles} -eq 1) ]]; then
+    if install_certificate_staged "${domain}" "$certPath" "$reloadCmd"; then
         echo -e "${green}Installing certificate succeeded, enabling auto renew...${plain}"
     else
         echo -e "${red}Installing certificate failed, exiting.${plain}"
-        if [[ ${cert_exists} -eq 0 ]]; then
-            rm -rf ~/.acme.sh/${domain}
-        fi
         systemctl start x-ui 2> /dev/null || rc-service x-ui start 2> /dev/null
         return 1
     fi
 
     # enable auto-renew
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade
+    "$acme_bin" --upgrade --auto-upgrade
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Auto renew setup had issues, certificate details:${plain}"
-        ls -lah /root/cert/${domain}/
-        chmod 600 $certPath/privkey.pem
-        chmod 644 $certPath/fullchain.pem
+        ls -lah "$certPath/"
     else
         echo -e "${green}Auto renew succeeded, certificate details:${plain}"
-        ls -lah /root/cert/${domain}/
-        chmod 600 $certPath/privkey.pem
-        chmod 644 $certPath/fullchain.pem
+        ls -lah "$certPath/"
     fi
 
     # Restart panel
@@ -596,11 +725,14 @@ ssl_cert_issue() {
     # Prompt user to set panel paths after successful certificate installation
     read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
-        local webCertFile="/root/cert/${domain}/fullchain.pem"
-        local webKeyFile="/root/cert/${domain}/privkey.pem"
+        local webCertFile="${certPath}/fullchain.pem"
+        local webKeyFile="${certPath}/privkey.pem"
 
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            if ! ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"; then
+                echo -e "${red}Certificate files were installed, but the panel TLS configuration was not changed.${plain}"
+                return 1
+            fi
             echo -e "${green}Certificate paths set for the panel${plain}"
             echo -e "${green}Certificate File: $webCertFile${plain}"
             echo -e "${green}Private Key File: $webKeyFile${plain}"
@@ -610,6 +742,7 @@ ssl_cert_issue() {
             systemctl restart x-ui 2> /dev/null || rc-service x-ui restart 2> /dev/null
         else
             echo -e "${red}Error: Certificate or private key file not found for domain: $domain.${plain}"
+            return 1
         fi
     else
         echo -e "${yellow}Skipping panel path setting.${plain}"
@@ -625,6 +758,9 @@ prompt_and_setup_ssl() {
     local server_ip="$3"
 
     local ssl_choice=""
+    SSL_SCHEME="http"
+    SSL_HOST="${server_ip}"
+    SSL_CONFIGURED=0
 
     echo -e "${yellow}Choose SSL certificate setup method:${plain}"
     echo -e "${green}1.${plain} Let's Encrypt for Domain (90-day validity, auto-renews)"
@@ -647,15 +783,19 @@ prompt_and_setup_ssl() {
             echo -e "${green}Using Let's Encrypt for domain certificate...${plain}"
             if ssl_cert_issue; then
                 local cert_domain="${SSL_ISSUED_DOMAIN}"
+                local applied_cert
+                applied_cert=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
                 if [[ -z "${cert_domain}" ]]; then
-                    cert_domain=$(~/.acme.sh/acme.sh --list 2> /dev/null | tail -1 | awk '{print $1}')
+                    cert_domain=$("$(acme_executable)" --list 2> /dev/null | tail -1 | awk '{print $1}')
                 fi
 
-                if [[ -n "${cert_domain}" ]]; then
+                if [[ -n "${cert_domain}" && -n "${applied_cert}" ]]; then
                     SSL_HOST="${cert_domain}"
+                    SSL_SCHEME="https"
+                    SSL_CONFIGURED=1
                     echo -e "${green}✓ SSL certificate configured successfully with domain: ${cert_domain}${plain}"
                 else
-                    echo -e "${yellow}SSL setup may have completed, but domain extraction failed${plain}"
+                    echo -e "${yellow}Certificate issuance completed, but panel TLS was not configured.${plain}"
                     SSL_HOST="${server_ip}"
                 fi
             else
@@ -698,6 +838,8 @@ prompt_and_setup_ssl() {
             setup_ip_certificate "${server_ip}" "${ipv6_addr}"
             if [ $? -eq 0 ]; then
                 SSL_HOST="${server_ip}"
+                SSL_SCHEME="https"
+                SSL_CONFIGURED=1
                 echo -e "${green}✓ Let's Encrypt IP certificate configured successfully${plain}"
             else
                 echo -e "${red}✗ IP certificate setup failed. Please check port 80 is open.${plain}"
@@ -757,8 +899,15 @@ prompt_and_setup_ssl() {
                 fi
             done
 
-            # 3.4 Apply Settings via x-ui binary
-            ${xui_folder}/x-ui cert -webCert "$custom_cert" -webCertKey "$custom_key" > /dev/null 2>&1
+            # 3.4 Validate and apply settings via x-ui binary
+            if ! validate_certificate_pair "$custom_cert" "$custom_key"; then
+                echo -e "${red}The certificate and private key are invalid or do not match.${plain}"
+                return 1
+            fi
+            if ! ${xui_folder}/x-ui cert -webCert "$custom_cert" -webCertKey "$custom_key" > /dev/null 2>&1; then
+                echo -e "${red}Failed to apply custom certificate paths.${plain}"
+                return 1
+            fi
 
             # Set SSL_HOST for composing Panel URL
             if [[ -n "$custom_domain" ]]; then
@@ -766,6 +915,8 @@ prompt_and_setup_ssl() {
             else
                 SSL_HOST="${server_ip}"
             fi
+            SSL_SCHEME="https"
+            SSL_CONFIGURED=1
 
             echo -e "${green}✓ Custom certificate paths applied.${plain}"
             echo -e "${yellow}Note: You are responsible for renewing these files externally.${plain}"
@@ -783,6 +934,7 @@ prompt_and_setup_ssl() {
 
             SSL_SCHEME="http"
             SSL_HOST="${server_ip}"
+            SSL_CONFIGURED=0
 
             local bind_local=""
             read -rp "Bind the panel to 127.0.0.1 only? (recommended — forces SSH tunnel / reverse-proxy access) [y/N]: " bind_local
@@ -809,8 +961,22 @@ prompt_and_setup_ssl() {
             ;;
         *)
             echo -e "${red}Invalid option. Skipping SSL setup.${plain}"
+            SSL_SCHEME="http"
             SSL_HOST="${server_ip}"
+            SSL_CONFIGURED=0
             ;;
+    esac
+}
+
+panel_url_host_from_cert() {
+    local cert_path="$1"
+    local fallback="$2"
+    local cert_dir_name
+    cert_dir_name=$(basename "$(dirname "$cert_path")")
+    case "$cert_dir_name" in
+        ip-*) printf '%s\n' "${cert_dir_name#ip-}" ;;
+        ip | panel) printf '%s\n' "$fallback" ;;
+        *) printf '%s\n' "$cert_dir_name" ;;
     esac
 }
 
@@ -847,15 +1013,21 @@ config_after_update() {
     done
 
     if [[ -z "$server_ip" ]]; then
-        echo -e "${yellow}Could not auto-detect server IP from any provider.${plain}"
-        while [[ -z "$server_ip" ]]; do
-            read -rp "Please enter your server's public IPv4 address: " server_ip
-            server_ip="${server_ip// /}"
-            if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                echo -e "${red}Invalid IPv4 address. Please try again.${plain}"
-                server_ip=""
-            fi
-        done
+        if [[ "$NONINTERACTIVE" == "1" ]]; then
+            server_ip="${XUI_SERVER_IP:-$(hostname -I 2> /dev/null | awk '{print $1}')}"
+            server_ip="${server_ip:-127.0.0.1}"
+            echo -e "${yellow}Could not auto-detect the public IP; using ${server_ip} for the displayed URL.${plain}"
+        else
+            echo -e "${yellow}Could not auto-detect server IP from any provider.${plain}"
+            while [[ -z "$server_ip" ]]; do
+                read -rp "Please enter your server's public IPv4 address: " server_ip
+                server_ip="${server_ip// /}"
+                if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo -e "${red}Invalid IPv4 address. Please try again.${plain}"
+                    server_ip=""
+                fi
+            done
+        fi
     fi
 
     # Handle missing/short webBasePath
@@ -868,35 +1040,44 @@ config_after_update() {
         echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
     fi
 
-    # Check and prompt for SSL if missing
+    SSL_SCHEME="http"
+    SSL_HOST="${server_ip}"
+    SSL_CONFIGURED=0
+
+    # A web update must preserve TLS settings exactly. With no configured
+    # certificate it stays HTTP-only; certificate issuance is an explicit,
+    # interactive action from the x-ui SSL menu or installer.
     if [[ -z "$existing_cert" ]]; then
-        echo ""
-        echo -e "${red}═══════════════════════════════════════════${plain}"
-        echo -e "${red}      ⚠ NO SSL CERTIFICATE DETECTED ⚠     ${plain}"
-        echo -e "${red}═══════════════════════════════════════════${plain}"
-        echo -e "${yellow}For security, SSL certificate is MANDATORY for all panels.${plain}"
-        echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
-        echo ""
+        if [[ "$NONINTERACTIVE" == "1" ]]; then
+            echo -e "${yellow}No panel TLS certificate is configured; preserving the existing HTTP-only configuration.${plain}"
+            echo -e "${yellow}Run 'x-ui' and choose SSL Certificate Management to configure TLS explicitly.${plain}"
+        else
+            echo ""
+            echo -e "${yellow}No panel TLS certificate is configured.${plain}"
+            prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"
+        fi
 
-        # Prompt and setup SSL (domain or IP)
-        prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"
-
+        echo ""
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}     Panel Access Information              ${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}Access URL: ${SSL_SCHEME}://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        if [[ "$SSL_CONFIGURED" == "1" ]]; then
+            echo -e "${green}SSL Certificate: enabled and configured${plain}"
+        else
+            echo -e "${yellow}SSL Certificate: not configured; panel remains HTTP-only${plain}"
+        fi
+    else
+        SSL_SCHEME="https"
+        SSL_CONFIGURED=1
+        echo -e "${green}SSL certificate is already configured${plain}"
+        SSL_HOST="$(panel_url_host_from_cert "$existing_cert" "$server_ip")"
         echo ""
         echo -e "${green}═══════════════════════════════════════════${plain}"
         echo -e "${green}     Panel Access Information              ${plain}"
         echo -e "${green}═══════════════════════════════════════════${plain}"
         echo -e "${green}Access URL: https://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
-        echo -e "${green}═══════════════════════════════════════════${plain}"
-        echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
-    else
-        echo -e "${green}SSL certificate is already configured${plain}"
-        # Show access URL with existing certificate
-        local cert_domain=$(basename "$(dirname "$existing_cert")")
-        echo ""
-        echo -e "${green}═══════════════════════════════════════════${plain}"
-        echo -e "${green}     Panel Access Information              ${plain}"
-        echo -e "${green}═══════════════════════════════════════════${plain}"
-        echo -e "${green}Access URL: https://${cert_domain}:${existing_port}/${existing_webBasePath}${plain}"
         echo -e "${green}═══════════════════════════════════════════${plain}"
     fi
 
