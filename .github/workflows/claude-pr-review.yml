@@ -162,9 +162,9 @@ jobs:
             what is HIGH in this repository, the checks to always run, what not to
             report, the verification bar, the volume cap and the shape of the
             comment. It also settles the one thing a finding never carries: the
-            fix. Name where the fix belongs, never what it is - no patch, no
-            snippet, no suggestion block, no rewrite in prose. The maintainer
-            decides the change.
+            fix. Not what it is and not where it belongs - no patch, no snippet,
+            no suggestion block, no rewrite in prose, no "The fix belongs in"
+            line. Stop at what breaks. The maintainer decides the change.
 
             WHAT IS CHECKED OUT WHERE
             The working tree is the BASE branch. The head under review,

@@ -202,9 +202,11 @@ evidence, not a retelling of the pull request.
 A finding says what is wrong, where (`file:line`), what triggers it and what
 breaks. It never carries the fix: no `suggestion` block, no patch, no
 replacement snippet, no rewritten function, no "suggested fix" section — in
-the summary and in an inline comment alike. One clause naming WHERE the fix
-belongs is the most it may add — a file, a function, a symbol, a layer — and
-nothing about what happens there. Prose is a patch too the moment a verb
+the summary and in an inline comment alike. It does not say where the fix
+belongs either: no closing "The fix belongs in …" line. The `file:line`
+already locates the defect, and a location set beside the missing piece the
+finding just named — "the fix belongs in the capability set" after naming the
+two capabilities it lacks — is the fix. Prose is a patch too the moment a verb
 describes the change: "move the lookup inside the body", "spend the comment
 on the invariant instead" hand it over as surely as a diff would, and so does
 holding up an existing symbol as the model to copy. A clause the maintainer
