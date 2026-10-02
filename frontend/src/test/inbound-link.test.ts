@@ -86,6 +86,22 @@ describe('genVlessLink', () => {
   const fixtures = fixturesForProtocol('vless');
   expect(fixtures.length, 'need at least one vless full-inbound fixture').toBeGreaterThan(0);
 
+  it('enables X25519MLKEM768 in REALITY share links', () => {
+    const entry = fixtures.find(([name]) => name === 'vless-tcp-reality');
+    expect(entry, 'need a VLESS REALITY fixture').toBeDefined();
+    const [, raw] = entry!;
+    const typed = InboundSchema.parse(raw);
+    const client = (raw as { settings: { clients: Array<{ id: string }> } }).settings.clients[0];
+
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'example.test',
+      clientId: client.id,
+    });
+
+    expect(new URL(link).searchParams.get('support-x25519mlkem768')).toBe('true');
+  });
+
   for (const [name, raw] of fixtures) {
     it(`${name}: byte-stable`, () => {
       const typed = InboundSchema.parse(raw);

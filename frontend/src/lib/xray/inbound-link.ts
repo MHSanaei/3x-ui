@@ -453,6 +453,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     applyExternalProxyTLSParams(externalProxy, params, security);
   } else if (security === 'reality') {
     params.set('security', 'reality');
+    params.set('support-x25519mlkem768', 'true');
     if (stream.security === 'reality') {
       const reality = stream.realitySettings;
       params.set('pbk', reality.settings.publicKey);

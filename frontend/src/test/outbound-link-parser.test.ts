@@ -9,6 +9,7 @@ import {
   parseHysteria2Link,
   parseWireguardLink,
 } from '@/lib/xray/outbound-link-parser';
+import { formValuesToWirePayload, rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
 import { Base64 } from '@/utils';
 
 // Focused acceptance tests for the share-link parsers — one happy-path
@@ -248,6 +249,7 @@ describe('parseVlessLink', () => {
     const link =
       'vless://11111111-2222-4333-8444-555555555555@srv.example:443' +
       '?type=tcp&security=reality&pbk=pubkey&sid=abcd&fp=chrome&sni=cloudflare.com&flow=xtls-rprx-vision' +
+      '&support-x25519mlkem768=true' +
       '#imported-vless';
     const out = parseVlessLink(link);
     expect(out?.protocol).toBe('vless');
@@ -263,6 +265,14 @@ describe('parseVlessLink', () => {
     expect(reality.publicKey).toBe('pubkey');
     expect(reality.shortId).toBe('abcd');
     expect(reality.serverName).toBe('cloudflare.com');
+    // The hint is for Mihomo; xray-core's REALITYConfig has no such field.
+    expect(reality).not.toHaveProperty('supportX25519Mlkem768');
+
+    const form = rawOutboundToFormValues(out!);
+    const saved = formValuesToWirePayload(form);
+    const savedReality = (saved.streamSettings as Record<string, unknown>)
+      .realitySettings as Record<string, unknown>;
+    expect(savedReality).not.toHaveProperty('supportX25519Mlkem768');
   });
 
   it('parses encryption + pqv (post-quantum) into settings and mldsa65Verify', () => {
