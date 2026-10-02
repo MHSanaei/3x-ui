@@ -19,6 +19,7 @@ import {
   preferPublicHost,
   resolveAddr,
 } from '@/lib/xray/inbound-link';
+import { type DbInboundLike, inboundFromDb } from '@/lib/xray/inbound-from-db';
 import { InboundSchema } from '@/schemas/api/inbound';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
@@ -262,6 +263,18 @@ describe('genVlessLink TCP fragment finalmask compatibility', () => {
     const exported = finalmaskFrom(linkFor(finalmask));
 
     expect(exported).toEqual(finalmask);
+  });
+
+  it('exports a stored UDP-only finalmask whose empty tcp list was dropped on save', () => {
+    const udpOnly = { udp: [{ type: 'salamander', settings: { password: 'p' } }] };
+    const inbound = inboundFromDb({
+      ...(raw as unknown as DbInboundLike),
+      streamSettings: { ...(raw.streamSettings as Record<string, unknown>), finalmask: udpOnly },
+    });
+
+    const link = genVlessLink({ inbound, address: 'example.test', port: inbound.port, clientId });
+
+    expect(finalmaskFrom(link)).toEqual(udpOnly);
   });
 
   it('does not create empty legacy values or search before a mixed-type last entry', () => {

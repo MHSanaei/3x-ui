@@ -2855,10 +2855,8 @@ func marshalFinalMask(finalmask map[string]any) (string, bool) {
 	return string(b), true
 }
 
-// withLegacyFragmentRanges adds the legacy singular range fields to a copy of
-// each fragment mask so older subscription clients can still parse it. Newer
-// xray-core uses the arrays whenever present, so the per-segment settings stay
-// authoritative.
+// withLegacyFragmentRanges copies the last lengths/delays entry into the singular fields older
+// cores require; newer xray-core prefers the arrays whenever they are non-empty.
 func withLegacyFragmentRanges(finalmask map[string]any) map[string]any {
 	tcpMasks, ok := finalmask["tcp"].([]any)
 	if !ok {
@@ -2911,22 +2909,11 @@ func withLegacyFragmentRanges(finalmask map[string]any) map[string]any {
 }
 
 func lastFragmentRange(value any) (string, bool) {
-	var last any
-	switch ranges := value.(type) {
-	case []any:
-		if len(ranges) == 0 {
-			return "", false
-		}
-		last = ranges[len(ranges)-1]
-	case []string:
-		if len(ranges) == 0 {
-			return "", false
-		}
-		last = ranges[len(ranges)-1]
-	default:
+	ranges, _ := value.([]any)
+	if len(ranges) == 0 {
 		return "", false
 	}
-	rangeValue, ok := last.(string)
+	rangeValue, ok := ranges[len(ranges)-1].(string)
 	if !ok || strings.TrimSpace(rangeValue) == "" {
 		return "", false
 	}

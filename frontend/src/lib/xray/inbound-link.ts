@@ -145,6 +145,8 @@ function hasShareableFinalMaskValue(value: unknown): boolean {
 }
 
 function withLegacyFragmentRanges(finalmask: FinalMaskStreamSettings): FinalMaskStreamSettings {
+  // Stored rows reach here unparsed: dropEmptyFinalMask deletes an empty `tcp` on save.
+  if (!Array.isArray(finalmask.tcp)) return finalmask;
   let changed = false;
   const tcp = finalmask.tcp.map((mask) => {
     if (mask.type !== 'fragment' || !mask.settings) return mask;
