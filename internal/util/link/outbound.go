@@ -660,7 +660,7 @@ func buildStream(network, security string) map[string]any {
 	case "reality":
 		stream["realitySettings"] = map[string]any{
 			"publicKey": "", "fingerprint": "chrome", "serverName": "",
-			"shortId": "", "spiderX": "", "mldsa65Verify": "", "supportX25519Mlkem768": false,
+			"shortId": "", "spiderX": "", "mldsa65Verify": "",
 		}
 	}
 	return stream
@@ -760,9 +760,6 @@ func applySecurity(stream map[string]any, p url.Values) {
 		re["shortId"] = p.Get("sid")
 		re["spiderX"] = p.Get("spx")
 		re["mldsa65Verify"] = p.Get("pqv")
-		if enabled, err := strconv.ParseBool(p.Get("support-x25519mlkem768")); err == nil {
-			re["supportX25519Mlkem768"] = enabled
-		}
 	}
 }
 

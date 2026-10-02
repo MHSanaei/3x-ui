@@ -121,6 +121,14 @@ describe('buildJsonSubscription', () => {
     expect(cfg.remarks).toBe('HK-01');
   });
 
+  it('keeps the Mihomo-only ML-KEM hint out of the Xray realitySettings', () => {
+    const cfg = JSON.parse(buildJsonSubscription([vlessClient]));
+    expect(cfg.outbounds[0].streamSettings.realitySettings.publicKey).toBe(vlessClient.publicKey);
+    expect(cfg.outbounds[0].streamSettings.realitySettings).not.toHaveProperty(
+      'supportX25519Mlkem768',
+    );
+  });
+
   it('uses the iOS-compatible SOCKS inbound while preserving the mixed tag and HTTP inbound', () => {
     const cfg = JSON.parse(buildJsonSubscription([vlessClient]));
     const socks = cfg.inbounds.find((inbound: { port: number }) => inbound.port === 10808);

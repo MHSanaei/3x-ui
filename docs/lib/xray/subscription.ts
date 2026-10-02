@@ -199,8 +199,6 @@ function proxyOutbound(c: SubClient): Record<string, unknown> {
     serviceName: c.serviceName,
     publicKey: c.publicKey,
     shortId: c.shortId,
-    supportX25519Mlkem768:
-      c.security === 'reality' && c.publicKey ? c.supportX25519Mlkem768 !== false : undefined,
   });
 
   let settings: Record<string, unknown>;

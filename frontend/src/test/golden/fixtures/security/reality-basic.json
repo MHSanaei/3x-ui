@@ -16,8 +16,7 @@
       "fingerprint": "chrome",
       "serverName": "",
       "spiderX": "/",
-      "mldsa65Verify": "",
-      "supportX25519Mlkem768": false
+      "mldsa65Verify": ""
     }
   }
 }

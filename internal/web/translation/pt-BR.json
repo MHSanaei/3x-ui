@@ -1927,7 +1927,6 @@
         "verifyPeerName": "Verificar nome do peer",
         "pinnedSha256": "SHA256 pinned",
         "shortId": "Short ID",
-        "supportX25519Mlkem768": "Suporte a X25519MLKEM768",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Intervalo keep alive",
         "markFwmark": "Mark (fwmark)",

@@ -11,7 +11,6 @@ export const RealityClientSettingsSchema = z.object({
   serverName: z.string().default(''),
   spiderX: z.string().default('/'),
   mldsa65Verify: z.string().default(''),
-  supportX25519Mlkem768: z.boolean().default(false),
 });
 export type RealityClientSettings = z.infer<typeof RealityClientSettingsSchema>;
 
@@ -75,7 +74,6 @@ export const RealityStreamSettingsSchema = z.preprocess(
       serverName: '',
       spiderX: '/',
       mldsa65Verify: '',
-      supportX25519Mlkem768: false,
     }),
   }),
 );

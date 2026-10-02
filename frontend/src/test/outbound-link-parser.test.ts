@@ -265,13 +265,14 @@ describe('parseVlessLink', () => {
     expect(reality.publicKey).toBe('pubkey');
     expect(reality.shortId).toBe('abcd');
     expect(reality.serverName).toBe('cloudflare.com');
-    expect(reality.supportX25519Mlkem768).toBe(true);
+    // The hint is for Mihomo; xray-core's REALITYConfig has no such field.
+    expect(reality).not.toHaveProperty('supportX25519Mlkem768');
 
     const form = rawOutboundToFormValues(out!);
     const saved = formValuesToWirePayload(form);
     const savedReality = (saved.streamSettings as Record<string, unknown>)
       .realitySettings as Record<string, unknown>;
-    expect(savedReality.supportX25519Mlkem768).toBe(true);
+    expect(savedReality).not.toHaveProperty('supportX25519Mlkem768');
   });
 
   it('parses encryption + pqv (post-quantum) into settings and mldsa65Verify', () => {

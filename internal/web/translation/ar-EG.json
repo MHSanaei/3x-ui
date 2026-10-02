@@ -1927,7 +1927,6 @@
         "verifyPeerName": "التحقق من اسم peer",
         "pinnedSha256": "SHA256 مثبت",
         "shortId": "Short ID",
-        "supportX25519Mlkem768": "دعم X25519MLKEM768",
         "sockopts": "Sockopts",
         "keepAliveInterval": "فاصل keep alive",
         "markFwmark": "Mark (fwmark)",

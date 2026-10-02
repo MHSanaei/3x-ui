@@ -30,11 +30,6 @@ describe('SecuritySettingsSchema fixtures', () => {
 });
 
 describe('RealityStreamSettingsSchema dest -> target alias', () => {
-  it('defaults the outbound ML-KEM compatibility flag to disabled', () => {
-    const parsed = RealityStreamSettingsSchema.parse({});
-    expect(parsed.settings.supportX25519Mlkem768).toBe(false);
-  });
-
   it('maps legacy `dest` to `target` when `target` is absent', () => {
     const parsed = RealityStreamSettingsSchema.parse({
       dest: 'example.com:443',

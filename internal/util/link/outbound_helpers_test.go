@@ -1,11 +1,15 @@
 package link
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"net/url"
 	"reflect"
 	"slices"
 	"testing"
+
+	"github.com/xtls/xray-core/infra/conf"
 )
 
 func TestDefaultPort(t *testing.T) {
@@ -121,18 +125,23 @@ func TestParse_RealitySecurityMapped(t *testing.T) {
 			t.Errorf("realitySettings[%q] = %v, want %q", k, re[k], want)
 		}
 	}
-	if re["supportX25519Mlkem768"] != true {
-		t.Errorf("realitySettings[supportX25519Mlkem768] = %v, want true", re["supportX25519Mlkem768"])
-	}
 }
 
-func TestParse_RealityMLKEMBooleanAlias(t *testing.T) {
-	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&support-x25519mlkem768=1")
+// Xray-core drops unknown JSON keys silently, so a key its REALITYConfig lacks
+// would reach the outbound as a setting that does nothing.
+func TestParse_RealitySettingsAreXrayFields(t *testing.T) {
+	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&pbk=PBK&sid=SID&sni=SNI&fp=firefox&spx=%2Fspx&pqv=PQV&support-x25519mlkem768=true")
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	if got := streamSub(t, res, "realitySettings")["supportX25519Mlkem768"]; got != true {
-		t.Errorf("supportX25519Mlkem768 = %v, want true", got)
+	raw, err := json.Marshal(streamSub(t, res, "realitySettings"))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&conf.REALITYConfig{}); err != nil {
+		t.Fatalf("realitySettings %s is not an xray-core REALITY config: %v", raw, err)
 	}
 }
 

@@ -187,7 +187,6 @@ function buildStream(network: string, security: string): Raw {
       shortId: '',
       spiderX: '',
       mldsa65Verify: '',
-      supportX25519Mlkem768: false,
     };
   }
   return stream;
@@ -497,7 +496,6 @@ function applySecurityParams(stream: Raw, params: URLSearchParams): void {
     reality.shortId = params.get('sid') ?? '';
     reality.spiderX = params.get('spx') ?? '';
     reality.mldsa65Verify = params.get('pqv') ?? '';
-    reality.supportX25519Mlkem768 = asBool(params.get('support-x25519mlkem768')) ?? false;
   }
 }
 
