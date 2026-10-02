@@ -1,7 +1,10 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound';
-import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
+import {
+  dropEmptyFinalMask,
+  normalizeStreamSettingsForWire,
+} from '@/lib/xray/stream-wire-normalize';
 import { Wireguard } from '@/utils';
 import type { Sniffing, SniffingDest } from '@/schemas/primitives';
 import type { OutboundDomainStrategy } from '@/schemas/protocols/outbound';
@@ -258,17 +261,47 @@ function wireguardFromWire(raw: Raw): WireguardOutboundFormSettings {
     secretKey,
     pubKey,
     address: addressArr.join(','),
-    domainStrategy: ((): WireguardOutboundFormSettings['domainStrategy'] => {
-      const allowed = ['ForceIP', 'ForceIPv4', 'ForceIPv4v6', 'ForceIPv6', 'ForceIPv6v4'];
-      const s = asString(raw.domainStrategy);
-      return (allowed.includes(s) ? s : '') as WireguardOutboundFormSettings['domainStrategy'];
-    })(),
     reserved: reservedArr.join(','),
-    remoteDNS: asArray(raw.remoteDNS)
-      .map((x) => asString(x))
-      .join(','),
+    remoteDNS: isLegacyLocalRemoteDNS(raw.remoteDNS)
+      ? ''
+      : asArray(raw.remoteDNS)
+          .map((x) => asString(x))
+          .join(','),
     peers,
     noKernelTun: asBool(raw.noKernelTun),
+  };
+}
+
+// remoteDNS ["local"] is a mode xray-core 26.9.30 removed; the core now panics parsing
+// it as an address, so liftLegacyWireguardStrategy carries it over to targetStrategy.
+function isLegacyLocalRemoteDNS(value: unknown): boolean {
+  const list = asArray(value);
+  return list.length === 1 && list[0] === 'local';
+}
+
+const isAsIs = (strategy: OutboundDomainStrategy | '') => strategy === '' || strategy === 'AsIs';
+
+// xray-core 26.9.30 (#6771) ignores wireguard's settings.domainStrategy: sockopt.domainStrategy
+// now picks the endpoint's family, targetStrategy the targets'. Mirrors the Go seeder.
+function liftLegacyWireguardStrategy(
+  settings: Raw,
+  targetStrategy: OutboundDomainStrategy | '',
+  streamSettings: OutboundStreamFormValues | undefined,
+): { targetStrategy: OutboundDomainStrategy | ''; streamSettings?: OutboundStreamFormValues } {
+  const legacy = targetStrategyFromWire(settings.domainStrategy);
+  const family = legacy.startsWith('ForceIP') && legacy !== 'ForceIP' ? legacy : '';
+  const lifted = family || (isLegacyLocalRemoteDNS(settings.remoteDNS) ? 'ForceIP' : '');
+  let stream = streamSettings;
+  const sockopt = asObject((stream as Raw | undefined)?.sockopt);
+  if (family && isAsIs(targetStrategyFromWire(sockopt.domainStrategy))) {
+    stream = {
+      ...(stream ?? {}),
+      sockopt: { ...sockopt, domainStrategy: family },
+    } as OutboundStreamFormValues;
+  }
+  return {
+    targetStrategy: lifted && isAsIs(targetStrategy) ? lifted : targetStrategy,
+    streamSettings: stream,
   };
 }
 
@@ -604,15 +637,20 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
       typed = { protocol: 'vless', settings: vlessFromWire(settings) };
   }
 
+  const placed =
+    protocol === 'wireguard'
+      ? liftLegacyWireguardStrategy(settings, targetStrategy, streamSettings)
+      : { targetStrategy, streamSettings };
+
   return {
     ...typed,
     tag,
     sendThrough,
     // The freedom card owns the strategy for freedom, so the shared root field
     // stays empty and cannot disagree with what the card is showing.
-    targetStrategy: protocol === 'freedom' ? '' : targetStrategy,
+    targetStrategy: protocol === 'freedom' ? '' : placed.targetStrategy,
     mux,
-    streamSettings,
+    streamSettings: placed.streamSettings,
   };
 }
 
@@ -715,7 +753,6 @@ function wireguardToWire(s: WireguardOutboundFormSettings) {
           .map((x) => x.trim())
           .filter(Boolean)
       : [],
-    domainStrategy: s.domainStrategy || undefined,
     reserved: s.reserved
       ? s.reserved
           .split(',')
@@ -912,14 +949,23 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     result.targetStrategy = values.targetStrategy;
   }
 
-  // streamSettings emission gates on canEnableStream — non-stream protocols
-  // still emit just `sockopt` if that key is present (legacy behavior).
+  // Non-stream protocols emit only `sockopt`; wireguard also keeps `finalmask`, which the
+  // core dials its peer through (the one non-stream protocol the mask editor renders for).
   if (values.streamSettings) {
     if (STREAM_PROTOCOLS.has(values.protocol)) {
       result.streamSettings = stripUiOnlyStreamFields(values.streamSettings);
     } else {
-      const sockopt = (values.streamSettings as { sockopt?: unknown }).sockopt;
-      if (sockopt) result.streamSettings = { sockopt };
+      const { sockopt, finalmask } = values.streamSettings as {
+        sockopt?: unknown;
+        finalmask?: unknown;
+      };
+      const stream: Raw = {};
+      if (sockopt) stream.sockopt = sockopt;
+      if (values.protocol === 'wireguard' && finalmask && typeof finalmask === 'object') {
+        stream.finalmask = { ...(finalmask as Raw) };
+        dropEmptyFinalMask(stream);
+      }
+      if (Object.keys(stream).length > 0) result.streamSettings = stream;
     }
   }
 

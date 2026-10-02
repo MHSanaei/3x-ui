@@ -65,6 +65,34 @@ function reservedFor(clientId?: string): number[] {
   return out;
 }
 
+export function buildWarpOutbound(
+  data: WarpData | null,
+  config: WarpConfig | null,
+): Record<string, unknown> | null {
+  const cfg = config?.config;
+  if (!cfg?.peers?.length) return null;
+  const peer = cfg.peers[0];
+  return {
+    tag: 'warp',
+    protocol: 'wireguard',
+    // ForceIP may resolve engage.cloudflareclient.com to its AAAA and a half-configured IPv6
+    // host blackholes the handshake silently (#5205); sockopt drives that lookup since 26.9.30.
+    streamSettings: { sockopt: { domainStrategy: 'ForceIPv4v6' } },
+    // Targets inside the tunnel keep the IPv4 preference the removed settings key gave them.
+    targetStrategy: 'ForceIPv4v6',
+    settings: {
+      mtu: 1420,
+      secretKey: data?.private_key,
+      address: addressesFor(cfg.interface?.addresses || {}),
+      reserved: reservedFor(cfg.client_id ?? data?.client_id),
+      peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
+      // Userspace TUN: kernel TUN needs CAP_NET_ADMIN + fwmark routing, fails silently on many
+      // VPS setups, and differs from the connectivity test's path (always noKernelTun=true).
+      noKernelTun: true,
+    },
+  };
+}
+
 export function mergeWarpRotation(
   existing: Record<string, unknown> | undefined,
   data: WarpData | null,
@@ -127,31 +155,8 @@ export default function WarpModal({
 
   const collectConfig = useCallback(
     (data: WarpData | null, config: WarpConfig | null): Record<string, unknown> | null => {
-      const cfg = config?.config;
-      if (!cfg?.peers?.length) return null;
-      const peer = cfg.peers[0];
-      const outbound: Record<string, unknown> = {
-        tag: 'warp',
-        protocol: 'wireguard',
-        settings: {
-          mtu: 1420,
-          secretKey: data?.private_key,
-          address: addressesFor(cfg.interface?.addresses || {}),
-          reserved: reservedFor(cfg.client_id ?? data?.client_id),
-          // Prefer IPv4 with IPv6 fallback: plain ForceIP may pick the AAAA
-          // record for engage.cloudflareclient.com, and a host with
-          // half-configured IPv6 then blackholes the handshake with no error
-          // logged (#5205).
-          domainStrategy: 'ForceIPv4v6',
-          peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
-          // Userspace TUN: kernel TUN needs CAP_NET_ADMIN + fwmark routing and
-          // fails silently on many VPS setups, and it is a different data path
-          // than the panel's connectivity test (which always probes with
-          // noKernelTun=true), so "test ok" and "traffic flows" can disagree.
-          noKernelTun: true,
-        },
-      };
-      setStagedOutbound(outbound);
+      const outbound = buildWarpOutbound(data, config);
+      if (outbound) setStagedOutbound(outbound);
       return outbound;
     },
     [],

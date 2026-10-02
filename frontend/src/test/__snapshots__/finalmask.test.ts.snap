@@ -272,11 +272,28 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-mask byte-stably 1`
     {
       "settings": {
         "domains": [
-          "example.com:txt",
-          "example.org:a",
+          {
+            "edns0": 1232,
+            "name": "example.com",
+            "types": [
+              16,
+            ],
+          },
+          {
+            "edns0": 1232,
+            "name": "example.org",
+            "types": [
+              1,
+            ],
+          },
         ],
         "resolvers": [
-          "example.com:txt+udp://1.1.1.1:53",
+          {
+            "settings": {
+              "addr": "1.1.1.1:53",
+            },
+            "type": "udp",
+          },
         ],
       },
       "type": "xdns",

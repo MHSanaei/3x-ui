@@ -312,6 +312,74 @@ describe('outbound-form-adapter: round-trip', () => {
     expect((unset.settings as { remoteDNS?: string[] }).remoteDNS).toBeUndefined();
   });
 
+  // xray-core 26.9.30 ignores wireguard's settings.domainStrategy and panics on remoteDNS
+  // "local"; the endpoint lookup reads sockopt.domainStrategy, in-tunnel targets targetStrategy.
+  it('wireguard lifts the removed domainStrategy and remoteDNS local where the core reads them', () => {
+    const settings = {
+      secretKey: 'YFVmTVCBsLxXJCe4i+jK8PgD3S6vUqfZ4Zl0JVNDfHA=',
+      peers: [{ publicKey: 'pk', endpoint: 'engage.cloudflareclient.com:2408' }],
+    };
+    const warp = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings: { ...settings, domainStrategy: 'ForceIPv4v6' },
+      }),
+    );
+    expect(warp.targetStrategy).toBe('ForceIPv4v6');
+    expect(warp.streamSettings).toEqual({ sockopt: { domainStrategy: 'ForceIPv4v6' } });
+    expect((warp.settings as Record<string, unknown>).domainStrategy).toBeUndefined();
+
+    const local = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings: { ...settings, remoteDNS: ['local'] },
+      }),
+    );
+    expect(local.targetStrategy).toBe('ForceIP');
+    expect((local.settings as Record<string, unknown>).remoteDNS).toBeUndefined();
+
+    const admin = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        targetStrategy: 'UseIPv6',
+        streamSettings: { sockopt: { domainStrategy: 'UseIPv4' } },
+        settings: { ...settings, domainStrategy: 'ForceIPv6' },
+      }),
+    );
+    expect(admin.targetStrategy).toBe('UseIPv6');
+    expect(admin.streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv4' } });
+  });
+
+  // The core dials a wireguard peer through its finalmask (noise "exp" was built for WARP),
+  // so saving through the form must keep the masks next to sockopt instead of dropping them.
+  it('wireguard keeps its finalmask on save and drops an empty one', () => {
+    const settings = {
+      secretKey: 'YFVmTVCBsLxXJCe4i+jK8PgD3S6vUqfZ4Zl0JVNDfHA=',
+      peers: [{ publicKey: 'pk', endpoint: 'engage.cloudflareclient.com:2408' }],
+    };
+    const noise = {
+      type: 'noise',
+      settings: { noise: [{ type: 'exp', packet: '<b 0d0a0d0a><t>', delay: '1-3' }] },
+    };
+    const masked = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings,
+        streamSettings: { sockopt: { mark: 255 }, finalmask: { tcp: [], udp: [noise] } },
+      }),
+    );
+    expect(masked.streamSettings).toEqual({ sockopt: { mark: 255 }, finalmask: { udp: [noise] } });
+
+    const empty = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings,
+        streamSettings: { sockopt: { mark: 255 }, finalmask: { tcp: [], udp: [] } },
+      }),
+    );
+    expect(empty.streamSettings).toEqual({ sockopt: { mark: 255 } });
+  });
+
   it('dns rules normalize qType numeric strings, split domains, carry rCode', () => {
     const wire = {
       protocol: 'dns',
