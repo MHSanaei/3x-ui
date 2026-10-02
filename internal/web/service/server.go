@@ -1184,15 +1184,8 @@ func (s *ServerService) UpdateXray(version string) error {
 	return nil
 }
 
-// syslogTimeout caps the wait; syslogWindow keeps a rare -p level from scanning the whole journal.
-const (
-	syslogTimeout = 15 * time.Second
-	syslogWindow  = "30 days ago"
-)
-
-func journalctlArgs(count int, level string) []string {
-	return []string{"-u", "x-ui", "--no-pager", "--since", syslogWindow, "-n", strconv.Itoa(count), "-p", level}
-}
+// syslogTimeout keeps a stalled journalctl from hanging the Syslog request (#6629).
+var syslogTimeout = 15 * time.Second
 
 func (s *ServerService) GetLogs(count string, level string, syslog string) []string {
 	c, _ := strconv.Atoi(count)
@@ -1228,7 +1221,7 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		// Use hardcoded command with validated parameters
 		ctx, cancel := context.WithTimeout(context.Background(), syslogTimeout)
 		defer cancel()
-		cmd := exec.CommandContext(ctx, "journalctl", journalctlArgs(countInt, level)...)
+		cmd := exec.CommandContext(ctx, "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		err = cmd.Run()
