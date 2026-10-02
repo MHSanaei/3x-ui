@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mergeWarpRotation } from '@/pages/xray/overrides/WarpModal';
+import { buildWarpOutbound, mergeWarpRotation } from '@/pages/xray/overrides/WarpModal';
 
 const clientId = btoa(String.fromCharCode(1, 2, 3));
 
@@ -108,5 +108,16 @@ describe('mergeWarpRotation', () => {
     expect(settings.peers).toEqual([
       { publicKey: 'newPub', endpoint: 'engage.cloudflareclient.com:2408' },
     ]);
+  });
+});
+
+describe('buildWarpOutbound', () => {
+  // xray-core 26.9.30 ignores wireguard's settings.domainStrategy, so the IPv4-first
+  // endpoint lookup #5205 depends on has to travel in sockopt, where the core reads it.
+  it('places the IPv4-first strategy where xray-core reads it', () => {
+    const outbound = buildWarpOutbound({ private_key: 'secret' }, rotatedConfig()) ?? {};
+    expect(outbound.streamSettings).toEqual({ sockopt: { domainStrategy: 'ForceIPv4v6' } });
+    expect(outbound.targetStrategy).toBe('ForceIPv4v6');
+    expect(outbound.settings).not.toHaveProperty('domainStrategy');
   });
 });

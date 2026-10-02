@@ -39,14 +39,6 @@ export const MODE_OPTION = Object.freeze({
   STREAM_ONE: 'stream-one',
 });
 
-export const WireguardDomainStrategy = Object.freeze([
-  'ForceIP',
-  'ForceIPv4',
-  'ForceIPv4v6',
-  'ForceIPv6',
-  'ForceIPv6v4',
-] as const);
-
 export const Address_Port_Strategy = Object.freeze({
   NONE: 'none',
   SRV_PORT_ONLY: 'SrvPortOnly',
