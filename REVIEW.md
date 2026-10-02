@@ -78,6 +78,11 @@ surface — still pre-existing, but open the summary with it.
 - No second way to do a thing already decided: Go tests are stdlib `testing`
   (never testify), the panel is Ant Design (never Tailwind or shadcn). Neither
   golangci-lint nor oxlint forbids the import, so it passes CI clean.
+- No second copy of logic the repository already has. A parse, guard,
+  formatter or type the change writes afresh usually exists in
+  `internal/util/`, in the service it sits in, or in `frontend/src/lib/` —
+  grep for the behaviour, not the name. Two copies drift apart; the three link
+  implementations are what that costs. Rate it by what the drift would break.
 
 ## Try to break it
 
@@ -143,6 +148,16 @@ near-certain about and that actually breaks something:
 
 - A claim about behaviour needs a `file:line` citation from this repository,
   not an inference from a name.
+- Reading code establishes what it says, not what it does when it runs. Keep
+  apart what was read, what a test or command reproduced, and what is
+  inferred, and say which one a finding rests on. "This races" or "this breaks
+  clients" with no reproduction behind it is an inference, and reads as one.
+- A performance finding needs evidence, not complexity or intuition: a
+  benchmark, a query plan, a measured timing, an allocation count, or an
+  invariant this repository already holds.
+- A security finding traces the trust boundary the change sits on — who
+  reaches the code, and what authorization, validation, escaping and
+  privilege it assumes — against the existing code, not the hunk.
 - A claim about what the change does to a caller or a callee needs that file
   read, not inferred from the hunk. A dispatch-rule violation rarely shows
   inside the diff — the changed line calls an innocuous helper and the
@@ -183,6 +198,10 @@ Open with a one-line tally — `1 HIGH / 2 MEDIUM / 1 LOW, 1 pre-existing`,
 where a pre-existing finding counts only in its own bucket — so the author
 sees the shape of the review before the detail. When nothing is blocking,
 lead with `No blocking issues` and put the tally after it.
+
+Say each finding once. Where it already sits in an inline comment on its
+line, the summary gives it one line — severity, `file:line`, what breaks —
+and the reasoning stays in the inline comment.
 
 Nothing pads the comment: no "Strengths" section, no restatement of what the
 pull request does, no praise, no closing pleasantry. Padding is not neutral —
