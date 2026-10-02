@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -308,19 +309,107 @@ func TestSub_HostFinalMask_RawLink(t *testing.T) {
 	seedSubDB(t)
 	ib := seedSubInbound(t, "s1", "fmh", 4455, 1,
 		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"},"finalmask":{"tcp":[{"type":"sudoku"}]}}`)
+	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","lengths":["5-10","10-15","15-20","20-25","25-30"],"delays":["10-20","5-20","5-25","15-25","10-30"],"maxSplit":"10-15"}}]}`
 	seedHost(t, &model.Host{
 		InboundId: ib.Id, SortOrder: 0, Remark: "FM", Address: "fm.cdn.com", Port: 8443, Security: "tls",
-		FinalMask: `{"tcp":[{"type":"fragment"}]}`,
+		FinalMask: finalMask,
 	})
 
 	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
 	if err != nil {
 		t.Fatalf("GetSubs: %v", err)
 	}
-	joined := strings.Join(links, "\n")
-	wantFm := "fm=" + url.QueryEscape(`{"tcp":[{"type":"sudoku"},{"type":"fragment"}]}`)
-	if !strings.Contains(joined, wantFm) {
-		t.Fatalf("raw link should merge the host Final Mask into fm.\n got: %s\nwant substring: %s", joined, wantFm)
+	if len(links) == 0 {
+		t.Fatal("GetSubs returned no links")
+	}
+	link, err := url.Parse(strings.Split(links[0], "\n")[0])
+	if err != nil {
+		t.Fatalf("parse raw link: %v", err)
+	}
+	var finalmask map[string]any
+	if err := json.Unmarshal([]byte(link.Query().Get("fm")), &finalmask); err != nil {
+		t.Fatalf("unmarshal fm query param: %v", err)
+	}
+	tcp, _ := finalmask["tcp"].([]any)
+	if len(tcp) != 2 {
+		t.Fatalf("tcp mask count = %d, want existing + host mask: %#v", len(tcp), finalmask)
+	}
+	fragment, _ := tcp[1].(map[string]any)
+	settings, _ := fragment["settings"].(map[string]any)
+	if settings["length"] != "25-30" || settings["delay"] != "10-30" {
+		t.Fatalf("legacy ranges = (%v, %v), want last per-segment values", settings["length"], settings["delay"])
+	}
+	if len(settings["lengths"].([]any)) != 5 || len(settings["delays"].([]any)) != 5 {
+		t.Fatalf("per-segment ranges changed: %#v", settings)
+	}
+}
+
+func TestSub_HostFinalMaskJSONAddsLegacyFragmentRanges(t *testing.T) {
+	seedSubDB(t)
+	baseStream := `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"},"finalmask":{"tcp":[{"type":"sudoku","settings":{"password":"p"}}]}}`
+	ib := seedSubInbound(t, "s1", "fmj", 4456, 1, baseStream)
+	finalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","lengths":["5-10","10-15","15-20","20-25","25-30"],"delays":["10-20","5-20","5-25","15-25","10-30"],"maxSplit":"10-15"}}]}`
+	host := seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "FM", Address: "fm-json.cdn.com", Port: 8444, Security: "tls",
+		FinalMask: finalMask,
+	})
+
+	globalFinalMask := `{"tcp":[{"type":"fragment","settings":{"packets":"tlshello","lengths":["31-40"],"delays":[]}}]}`
+	out, _, err := NewSubJsonService("", "", globalFinalMask, "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	var config map[string]any
+	if err := json.Unmarshal([]byte(out), &config); err != nil {
+		t.Fatalf("unmarshal JSON subscription: %v", err)
+	}
+	outbounds, _ := config["outbounds"].([]any)
+	if len(outbounds) == 0 {
+		t.Fatalf("JSON subscription has no outbounds: %s", out)
+	}
+	outbound, _ := outbounds[0].(map[string]any)
+	stream, _ := outbound["streamSettings"].(map[string]any)
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	tcp, _ := finalmask["tcp"].([]any)
+	if len(tcp) != 3 {
+		t.Fatalf("tcp mask count = %d, want base + global + host masks: %#v", len(tcp), finalmask)
+	}
+	globalFragment, _ := tcp[1].(map[string]any)
+	globalSettings, _ := globalFragment["settings"].(map[string]any)
+	if globalSettings["length"] != "31-40" {
+		t.Fatalf("global legacy length = %v, want 31-40", globalSettings["length"])
+	}
+	if _, exists := globalSettings["delay"]; exists {
+		t.Fatalf("empty global delays must not emit a fallback: %#v", globalSettings)
+	}
+	fragment, _ := tcp[2].(map[string]any)
+	settings, _ := fragment["settings"].(map[string]any)
+	if settings["length"] != "25-30" || settings["delay"] != "10-30" {
+		t.Fatalf("legacy ranges = (%v, %v), want the final per-segment ranges", settings["length"], settings["delay"])
+	}
+	if got := settings["lengths"].([]any); len(got) != 5 || got[4] != "25-30" {
+		t.Fatalf("per-segment lengths changed: %#v", settings["lengths"])
+	}
+	if got := settings["delays"].([]any); len(got) != 5 || got[4] != "10-30" {
+		t.Fatalf("per-segment delays changed: %#v", settings["delays"])
+	}
+	if got := settings["maxSplit"]; got != "10-15" {
+		t.Fatalf("maxSplit = %v, want 10-15", got)
+	}
+
+	var storedHost model.Host
+	if err := database.GetDB().First(&storedHost, host.Id).Error; err != nil {
+		t.Fatalf("reload host: %v", err)
+	}
+	if storedHost.FinalMask != finalMask {
+		t.Fatalf("stored host FinalMask changed: %s", storedHost.FinalMask)
+	}
+	var storedInbound model.Inbound
+	if err := database.GetDB().First(&storedInbound, ib.Id).Error; err != nil {
+		t.Fatalf("reload inbound: %v", err)
+	}
+	if storedInbound.StreamSettings != baseStream {
+		t.Fatalf("stored inbound StreamSettings changed: %s", storedInbound.StreamSettings)
 	}
 }
 
@@ -434,7 +523,13 @@ func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
 	if !strings.Contains(joined, "security=tls") {
 		t.Fatalf("host forces tls, link must say so: %s", joined)
 	}
-	for _, leaked := range []string{"pbk=", "sid=", "spx=", "sni=master-dest.example.com"} {
+	for _, leaked := range []string{
+		"pbk=",
+		"sid=",
+		"spx=",
+		"support-x25519mlkem768=",
+		"sni=master-dest.example.com",
+	} {
 		if strings.Contains(joined, leaked) {
 			t.Fatalf("reality parameter %q survived a tls host override: %s", leaked, joined)
 		}
