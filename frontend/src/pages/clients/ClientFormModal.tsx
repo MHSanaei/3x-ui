@@ -1006,7 +1006,9 @@ export default function ClientFormModal({
                               }))}
                             />
                           </FormField>
-                          {trafficReset === 'monthly' && (
+                        </Col>
+                        {trafficReset === 'monthly' && (
+                          <Col xs={24} md={12}>
                             <FormField
                               name="trafficResetDay"
                               label={t('pages.inbounds.periodicTrafficResetDay')}
@@ -1014,20 +1016,17 @@ export default function ClientFormModal({
                             >
                               <InputNumber min={1} max={31} style={{ width: '100%' }} />
                             </FormField>
-                          )}
-                        </Col>
-                        <Col xs={24} md={12}>
-                          <ClientRenewalFields
-                            active={open}
-                            delayedStart={delayedStart}
-                            expiryTime={
-                              delayedStart ? -86400000 * (delayedDays || 0) : expiryDate || 0
-                            }
-                            resetCount={client?.traffic?.resetCount || 0}
-                            setExpiry={(expiry) => methods.setValue('expiryDate', expiry)}
-                          />
-                        </Col>
+                          </Col>
+                        )}
                       </Row>
+
+                      <ClientRenewalFields
+                        active={open}
+                        delayedStart={delayedStart}
+                        expiryTime={delayedStart ? -86400000 * (delayedDays || 0) : expiryDate || 0}
+                        resetCount={client?.traffic?.resetCount || 0}
+                        setExpiry={(expiry) => methods.setValue('expiryDate', expiry)}
+                      />
 
                       <Row gutter={16}>
                         <Col xs={24} md={12}>
