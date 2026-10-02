@@ -15,5 +15,42 @@ ExecReload=/bin/kill -USR1 $MAINPID
 Restart=on-failure
 RestartSec=5s
 
+# The panel intentionally stays root: it supervises the Xray child processes,
+# edits netfilter state and reads TLS private keys. These settings only bound
+# what a panel-level flaw can reach.
+#
+# PrivateTmp=yes is deliberately absent: the web updater writes its script into
+# /tmp and hands the absolute path to a "systemd-run" transient unit, which
+# does not share this service's private /tmp (the download would vanish).
+NoNewPrivileges=yes
+ProtectSystem=full
+# Default stores: DB/update status/node-token in XUI_DB_FOLDER (/etc/x-ui),
+# xray binary/config/geo in XUI_BIN_FOLDER under /usr/local/x-ui, logs in
+# XUI_LOG_FOLDER (/var/log/x-ui). Add any relocated folder to this list too;
+# the leading '-' keeps the unit startable if a path is not created yet.
+ReadWritePaths=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+# read-only rather than yes: installs keep TLS certs under /root/cert, and the
+# panel must still be able to read them.
+ProtectHome=read-only
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+UMask=0077
+# AF_NETLINK for interface/route lookups and the ip(8) child used by the
+# AmneziaWG IPv6-alias feature.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+# NET_ADMIN for ip(8)/tproxy, NET_BIND_SERVICE for ports below 1024, NET_RAW
+# for raw sockets and SO_BINDTODEVICE.
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
 [Install]
 WantedBy=multi-user.target
