@@ -115,8 +115,10 @@ const (
 )
 
 // clientSearchCols are the text columns the search box matches.
-var clientSearchCols = []string{"c.email", "COALESCE(c.sub_id, '')", "COALESCE(c.comment, '')",
-	"COALESCE(c.uuid, '')", "COALESCE(c.password, '')", "COALESCE(c.auth, '')"}
+var clientSearchCols = []string{
+	"c.email", "COALESCE(c.sub_id, '')", "COALESCE(c.comment, '')",
+	"COALESCE(c.uuid, '')", "COALESCE(c.password, '')", "COALESCE(c.auth, '')",
+}
 
 // caseVariants returns s lower-cased, as typed, upper-cased and title-cased.
 // SQLite's LOWER() and LIKE fold ASCII only, so non-ASCII text is matched
