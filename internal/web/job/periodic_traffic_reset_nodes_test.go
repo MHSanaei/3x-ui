@@ -40,11 +40,17 @@ func (g *resetGate) waitAll(t *testing.T, want int32) {
 	}
 }
 
-// resetNode is a node whose every traffic reset hangs until the gate opens.
-func resetNode(t *testing.T, gate *resetGate, name string) int {
+// resetNode is a node hosting inboundTag whose every traffic reset hangs until the
+// gate opens; it lists the inbound so the master can resolve its node-side id.
+func resetNode(t *testing.T, gate *resetGate, name, inboundTag string) int {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.Copy(io.Discard, r.Body)
+		if strings.HasSuffix(r.URL.Path, "/panel/api/inbounds/list") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = fmt.Fprintf(w, `{"success":true,"obj":[{"id":1,"tag":%q}]}`, inboundTag)
+			return
+		}
 		if strings.Contains(r.URL.Path, "resetTraffic") {
 			gate.entered.Add(1)
 			select {
@@ -93,7 +99,7 @@ func TestPeriodicResetReachesClientNodesConcurrently(t *testing.T) {
 	gate := newResetFleet(t)
 	db := database.GetDB()
 	for i := range 3 {
-		nodeID := resetNode(t, gate, fmt.Sprintf("client-node-%d", i))
+		nodeID := resetNode(t, gate, fmt.Sprintf("client-node-%d", i), "reset-client-"+strconv.Itoa(i))
 		email := fmt.Sprintf("cycle-%d@node", i)
 		client := model.Client{Email: email, ID: fmt.Sprintf("00000000-0000-4000-8000-00000000000%d", i), Enable: true, TrafficReset: "daily"}
 		settings, _ := json.Marshal(map[string]any{"clients": []model.Client{client}})
@@ -121,7 +127,7 @@ func TestPeriodicResetReachesClientNodesConcurrently(t *testing.T) {
 func TestPeriodicResetReachesInboundNodesConcurrently(t *testing.T) {
 	gate := newResetFleet(t)
 	for i := range 3 {
-		nodeID := resetNode(t, gate, fmt.Sprintf("inbound-node-%d", i))
+		nodeID := resetNode(t, gate, fmt.Sprintf("inbound-node-%d", i), "reset-inbound-"+strconv.Itoa(i))
 		ib := model.Inbound{
 			UserId: 1, Enable: true, Port: 47100 + i, Protocol: model.VLESS, NodeID: &nodeID,
 			Tag: "reset-inbound-" + strconv.Itoa(i), TrafficReset: "daily", Settings: `{"clients":[]}`,

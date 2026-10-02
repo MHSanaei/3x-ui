@@ -74,6 +74,9 @@ func TestNewListenBindPinsSpecificAddress(t *testing.T) {
 }
 
 func TestNewListenBindWildcardUsesDefault(t *testing.T) {
+	prev := wildcardBindHost
+	wildcardBindHost = ""
+	t.Cleanup(func() { wildcardBindHost = prev })
 	for _, listen := range []string{"", "0.0.0.0", "::", "::0", "[::]", "hostname.example", "203.0.113.10", "not-an-ip"} {
 		bind := newListenBind(listen)
 		if _, ok := bind.(*pinnedBind); ok {

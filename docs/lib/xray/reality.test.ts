@@ -50,6 +50,7 @@ const CONFIG: RealityConfig = {
   fingerprint: 'chrome',
   spiderX: '/',
   flow: 'xtls-rprx-vision',
+  supportX25519Mlkem768: true,
 };
 
 describe('realityClientLink', () => {
@@ -61,6 +62,7 @@ describe('realityClientLink', () => {
     expect(parsed.port).toBe(443);
     expect(parsed.params.security).toBe('reality');
     expect(parsed.params.pbk).toBe('PUB');
+    expect(parsed.params['support-x25519mlkem768']).toBe('true');
     expect(parsed.params.sid).toBe('ab12');
     expect(parsed.params.sni).toBe('www.microsoft.com');
     expect(parsed.params.flow).toBe('xtls-rprx-vision');

@@ -713,7 +713,11 @@ func (r *Remote) ResetAllTraffics(ctx context.Context) error {
 }
 
 func (r *Remote) ResetInboundTraffic(ctx context.Context, ib *model.Inbound) error {
-	_, err := r.do(ctx, http.MethodPost, fmt.Sprintf("panel/api/inbounds/%d/resetTraffic", ib.Id), nil)
+	id, err := r.resolveRemoteID(ctx, ib.Tag)
+	if err != nil {
+		return fmt.Errorf("remote ResetInboundTraffic: resolve tag %q: %w", ib.Tag, err)
+	}
+	_, err = r.do(ctx, http.MethodPost, fmt.Sprintf("panel/api/inbounds/%d/resetTraffic", id), nil)
 	return err
 }
 

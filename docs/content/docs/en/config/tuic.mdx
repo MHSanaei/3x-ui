@@ -106,4 +106,5 @@ tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.ex
   - **Full Xray routing & cascading**: Decrypted traffic passes directly through Xray's routing engine. Inbound tags (`in-<port>-udp`) work seamlessly with routing rules, domain/IP blocks, and cascading to any outbound proxy (VLESS, Shadowsocks, WARP, etc.).
   - **Per-client traffic limits & expiration**: Individual traffic quotas (`totalGB`) and expiration timestamps (`expiryTime`) are tracked and enforced for each client.
   - **Zero-downtime client updates**: Adding, modifying, or disabling clients updates the in-memory user registry instantly without restarting the UDP port or interrupting existing client sessions.
+  - **Deployment**: A TUIC inbound can be created on, or cloned to, a sub-node. The node's own panel runs the TUIC server, so the node must run panel v3.8.0 or newer; the master refuses an older node.
 </Callout>

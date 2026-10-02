@@ -19,7 +19,10 @@ import {
 import type { StreamSettings } from '@/schemas/api/inbound';
 import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
-import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
+import {
+  dropEmptyFinalMask,
+  normalizeStreamSettingsForWire,
+} from '@/lib/xray/stream-wire-normalize';
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
 import { tlsCertUsesFiles } from '@/schemas/protocols/security/tls';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
@@ -328,25 +331,7 @@ export function dropLegacyOptionalEmpties(
   if (Array.isArray(fb) && fb.length === 0) delete settings.fallbacks;
 
   if (stream) {
-    // StreamSettings emits `finalmask` only when at least one transport
-    // mask exists (legacy `hasFinalMask`). Drop the whole block when all
-    // sub-fields are empty; otherwise drop only the empty sub-arrays so
-    // the wire payload doesn't carry a stray `"tcp": []` next to a
-    // populated UDP mask list (and vice versa).
-    const fm = stream.finalmask as
-      | { tcp?: unknown[]; udp?: unknown[]; quicParams?: unknown }
-      | undefined;
-    if (fm && typeof fm === 'object') {
-      const hasTcp = Array.isArray(fm.tcp) && fm.tcp.length > 0;
-      const hasUdp = Array.isArray(fm.udp) && fm.udp.length > 0;
-      const hasQuic = fm.quicParams != null;
-      if (!hasTcp && !hasUdp && !hasQuic) {
-        delete stream.finalmask;
-      } else {
-        if (!hasTcp) delete fm.tcp;
-        if (!hasUdp) delete fm.udp;
-      }
-    }
+    dropEmptyFinalMask(stream);
 
     // Hysteria's per-client auth lives in settings.clients[*].auth; the
     // streamSettings.hysteriaSettings.auth slot is a holdover from older
