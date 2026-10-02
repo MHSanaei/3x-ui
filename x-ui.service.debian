@@ -28,18 +28,28 @@ ProtectSystem=full
 # xray binary/config/geo in XUI_BIN_FOLDER under /usr/local/x-ui, logs in
 # XUI_LOG_FOLDER (/var/log/x-ui). These are the plain-install defaults and the
 # floor, not the whole list: install.sh and update.sh regenerate a drop-in
-# (x-ui.service.d/10-xui-write-paths.conf) holding the folders resolved from
-# the XUI_* variables, so a relocated XUI_DB_FOLDER or XUI_LOG_FOLDER stays
-# writable and the list is refreshed on every update instead of being reset to
-# these defaults. Add local extras in your own drop-in (e.g. 20-local.conf).
-# /etc/systemd/system stays writable for the panel's own updater: it prefers a
-# transient systemd-run unit, but falls back to a plain child process that
-# inherits this sandbox while update.sh lands the unit file there again.
+# (x-ui.service.d/10-xui-sandbox.conf) with the folders resolved from the XUI_*
+# variables, so a relocated XUI_DB_FOLDER or XUI_LOG_FOLDER stays writable and
+# the list survives an update instead of being reset to these defaults. Changing
+# one of those variables in the env file is not enough by itself: the drop-in has
+# to be refreshed as well, i.e. install or update the panel again.
+# Add local extras in your own drop-in (e.g. 20-local.conf).
 # The leading '-' keeps the unit startable if a path does not exist yet.
+# What ProtectSystem=full covers, precisely: /usr, /boot, /efi and /etc become
+# read-only, everything else stays writable. So this list matters for stores
+# under those trees -- the default main folder under /usr/local is one.
+#
+# The in-panel updater is expected to leave this sandbox: it runs update.sh
+# through a transient systemd-run unit, which does not inherit these settings.
+# Its plain-child fallback (taken when systemd-run is unavailable) cannot work
+# here -- update.sh stages the release archive beside the main folder, replaces
+# /usr/bin/x-ui and calls the package manager -- so it stops with one clear
+# message instead of failing halfway, and the sandbox deliberately does not
+# grant /usr or /etc to accommodate it.
 # ReadWritePaths= requires systemd >= 231; ReadWriteDirectories= is the deprecated
 # alias for older systemd, needed so ProtectSystem=full keeps /etc/x-ui writable.
-ReadWritePaths=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui -/etc/systemd/system
-ReadWriteDirectories=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui -/etc/systemd/system
+ReadWritePaths=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
+ReadWriteDirectories=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectKernelLogs=yes
@@ -59,20 +69,26 @@ RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 # NET_ADMIN for ip(8)/tproxy, NET_BIND_SERVICE for ports below 1024, NET_RAW
 # for raw sockets and SO_BINDTODEVICE.
 #
-# DAC_OVERRIDE and DAC_READ_SEARCH have to stay. The panel runs as root, but a
-# bounding set is subtracted from root's privileges as well: without these two,
-# root can only read a file when the owner/group/other bits let uid 0 through.
-# Any TLS private key that belongs to another account then becomes unreadable --
-# a Caddy-issued certificate under /var/lib/caddy, an acme.sh home in
-# /root/.acme.sh, any 0600 file that root does not own. TLS fails quietly: the
-# panel listener catches the tls.LoadX509KeyPair error, logs it and keeps
-# serving plain HTTP, and every Xray inbound using that key stops. Those reads
-# worked before the sandbox because the panel is root, so dropping the two bits
-# would turn an update into an outage.
-CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+# DAC_OVERRIDE has to stay. The panel runs as root, but a bounding set is
+# subtracted from root's own privileges too: without it root can only read a
+# file when the owner/group/other bits let uid 0 through, and any TLS private
+# key belonging to another account becomes unreadable -- a certificate issued to
+# Caddy, an acme.sh home, any 0600 file that root does not own. TLS then fails
+# quietly: the panel listener catches the tls.LoadX509KeyPair error, logs it and
+# keeps serving plain HTTP, and every Xray inbound using that key stops. Those
+# reads worked before the sandbox because the panel is root.
+# DAC_READ_SEARCH is deliberately absent: directory search is already covered by
+# DAC_OVERRIDE, so it would only widen the set without adding anything.
+CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
 SystemCallArchitectures=native
-SystemCallFilter=@system-service
-SystemCallErrorNumber=EPERM
+# No seccomp whitelist here on purpose. The @-named filter groups need systemd
+# >= 239, and older systemd does not ignore an unknown group name gracefully: on
+# <231 the name fails to resolve and the filter stays the built-in whitelist of
+# execve/exit/exit_group/rt_sigreturn/sigreturn, on 231..238 it degrades to
+# @default -- either way the panel then gets EPERM on read/openat/mmap/clone and
+# cannot start. install.sh and update.sh add SystemCallFilter=@system-service and
+# SystemCallErrorNumber=EPERM to the generated drop-in, but only when
+# "systemctl --version" reports 239 or newer.
 
 [Install]
 WantedBy=multi-user.target
