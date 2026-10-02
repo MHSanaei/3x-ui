@@ -58,6 +58,26 @@ describe('inboundFromDb', () => {
     expect((inbound.streamSettings as { security?: string })?.security).toBe('tls');
   });
 
+  // The settings parse strips keys the schema does not list, so a TUN option xray-core
+  // 26.9.30 added and an admin entered as JSON would vanish on the next form save.
+  it('keeps the TUN options xray-core 26.9.30 added', () => {
+    const inbound = inboundFromDb({
+      ...BASE_DB_FIELDS,
+      protocol: 'tun',
+      settings: {
+        name: 'xray0',
+        gateway: ['10.0.0.1/16'],
+        autoSystemDnsToGateway: true,
+        autoSystemWfpBlockLeak: ['dns', 'misconfigtun'],
+      },
+      streamSettings: '',
+    });
+    expect(inbound.settings).toMatchObject({
+      autoSystemDnsToGateway: true,
+      autoSystemWfpBlockLeak: ['dns', 'misconfigtun'],
+    });
+  });
+
   it('returns schema-default settings for missing/empty fields without throwing', () => {
     const raw = {
       ...BASE_DB_FIELDS,

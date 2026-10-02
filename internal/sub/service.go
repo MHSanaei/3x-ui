@@ -1240,6 +1240,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		applyShareTLSParams(stream, params)
 	case "reality":
 		applyShareRealityParams(stream, params, subKey(client))
+		params["support-x25519mlkem768"] = "true"
 	default:
 		params["security"] = "none"
 	}

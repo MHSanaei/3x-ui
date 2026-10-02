@@ -523,7 +523,13 @@ func TestSub_HostTlsOverRealityDropsRealityParams(t *testing.T) {
 	if !strings.Contains(joined, "security=tls") {
 		t.Fatalf("host forces tls, link must say so: %s", joined)
 	}
-	for _, leaked := range []string{"pbk=", "sid=", "spx=", "sni=master-dest.example.com"} {
+	for _, leaked := range []string{
+		"pbk=",
+		"sid=",
+		"spx=",
+		"support-x25519mlkem768=",
+		"sni=master-dest.example.com",
+	} {
 		if strings.Contains(joined, leaked) {
 			t.Fatalf("reality parameter %q survived a tls host override: %s", leaked, joined)
 		}

@@ -23,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 
@@ -654,6 +655,27 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		return
 	}
 	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
+	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
+}
+
+// canonicalizeLegacyXdnsMasks stores an xdns mask posted in the pre-26.9.30 string
+// lists in the object shape the core parses, as GetXrayConfig would heal it anyway.
+func canonicalizeLegacyXdnsMasks(streamSettings string) string {
+	if streamSettings == "" {
+		return streamSettings
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return streamSettings
+	}
+	if !maskcompat.UpgradeLegacyXdns(stream["finalmask"]) {
+		return streamSettings
+	}
+	out, err := json.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		return streamSettings
+	}
+	return string(out)
 }
 
 // canonicalizeStreamNetworkKey rewrites a streamSettings JSON that names its

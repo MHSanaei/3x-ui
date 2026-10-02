@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
+import { message } from 'antd';
 
 import { AllSetting } from '@/models/setting';
 import HappSettingsContent from '@/pages/settings/HappSettingsContent';
 
 import { renderWithProviders } from './test-utils';
+
+vi.spyOn(message, 'success').mockImplementation(() => undefined as never);
 
 const chinaProfile = {
   Name: 'Bypass-CN',

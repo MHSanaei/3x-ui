@@ -87,6 +87,25 @@ func TestParseVlessLink_FinalMaskQuicParamsSanitized(t *testing.T) {
 	}
 }
 
+// A panel older than xray-core 26.9.30 shares its xdns mask in the string lists the
+// core no longer parses; imported verbatim, the outbound would fail the whole config.
+func TestParseLink_UpgradesLegacyXdnsFinalMask(t *testing.T) {
+	fm := url.QueryEscape(`{"udp":[{"type":"xdns","settings":{"resolvers":["t.example.com+udp://8.8.8.8:53"]}}]}`)
+	res, err := ParseLink("vless://uuid@1.2.3.4:53?type=kcp&security=none&fm=" + fm + "#dns")
+	if err != nil {
+		t.Fatalf("parse vless with fm: %v", err)
+	}
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	got, err := json.Marshal(stream["finalmask"])
+	if err != nil {
+		t.Fatalf("marshal finalmask: %v", err)
+	}
+	want := `{"udp":[{"settings":{"domains":[{"edns0":1232,"name":"t.example.com","types":[16]}],"resolvers":[{"settings":{"addr":"8.8.8.8:53"},"type":"udp"}]},"type":"xdns"}]}`
+	if string(got) != want {
+		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
+	}
+}
+
 func TestSanitizeFinalMaskQuicParams_ClampsAndRejects(t *testing.T) {
 	cases := []struct {
 		name string
