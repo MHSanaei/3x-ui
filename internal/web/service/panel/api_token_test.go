@@ -191,6 +191,65 @@ func TestRecreateByNameRefusesUnknownStoredScope(t *testing.T) {
 	}
 }
 
+// Rotating a token issued with an expiry through the API handed back one that
+// never expires, since the replacement row took ExpiresAt 0.
+func TestRecreateByNameKeepsReplacedTokenExpiry(t *testing.T) {
+	for _, scope := range []string{"", model.ApiScopeNodeSync} {
+		t.Run("scope="+scope, func(t *testing.T) {
+			t.Setenv("XUI_DB_FOLDER", t.TempDir())
+			dbtest.InitDB(t, config.GetDBPath())
+
+			svc := ApiTokenService{}
+			expiresAt := nowMilli() + 30*24*60*60*1000
+			if _, err := svc.Create("grafana", model.ApiScopeMonitor, expiresAt); err != nil {
+				t.Fatalf("seed grafana: %v", err)
+			}
+			rotated, err := svc.RecreateByName("grafana", scope)
+			if err != nil {
+				t.Fatalf("recreate: %v", err)
+			}
+
+			var row model.ApiToken
+			if err := database.GetDB().Where("name = ?", "grafana").First(&row).Error; err != nil {
+				t.Fatalf("load grafana: %v", err)
+			}
+			if row.ExpiresAt != expiresAt || rotated.ExpiresAt != expiresAt {
+				t.Fatalf("stored expiresAt = %d, returned %d, want %d", row.ExpiresAt, rotated.ExpiresAt, expiresAt)
+			}
+		})
+	}
+}
+
+// An expired token must not come back to life without an expiry; the rotation
+// is refused and the expired row is left as it was.
+func TestRecreateByNameRefusesExpiredToken(t *testing.T) {
+	for _, scope := range []string{"", model.ApiScopeAdmin} {
+		t.Run("scope="+scope, func(t *testing.T) {
+			t.Setenv("XUI_DB_FOLDER", t.TempDir())
+			dbtest.InitDB(t, config.GetDBPath())
+
+			db := database.GetDB()
+			stored := model.ApiToken{Name: "grafana", Token: "stored-hash", Enabled: true, Scope: model.ApiScopeMonitor, ExpiresAt: nowMilli() - 1000}
+			if err := db.Create(&stored).Error; err != nil {
+				t.Fatalf("seed grafana: %v", err)
+			}
+
+			const wantErr = `token "grafana" has expired; create a new token from the panel or the API instead`
+			_, err := (&ApiTokenService{}).RecreateByName("grafana", scope)
+			if err == nil || strings.TrimSpace(err.Error()) != wantErr {
+				t.Fatalf("error = %v, want %q", err, wantErr)
+			}
+			var row model.ApiToken
+			if err := db.Where("name = ?", "grafana").First(&row).Error; err != nil {
+				t.Fatalf("load grafana: %v", err)
+			}
+			if row.Id != stored.Id || row.Token != stored.Token || row.ExpiresAt != stored.ExpiresAt {
+				t.Fatalf("row = %+v, want the stored row %+v unchanged", row, stored)
+			}
+		})
+	}
+}
+
 func TestRecreateByNameKeepsOneToken(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", t.TempDir())
 	dbtest.InitDB(t, config.GetDBPath())

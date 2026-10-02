@@ -138,11 +138,19 @@ func (s *ApiTokenService) RecreateByName(name, scope string) (*ApiTokenView, err
 	plaintext := random.Seq(apiTokenLength)
 	row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(plaintext), Enabled: true, Scope: givenScope}
 	if err := database.GetDB().Transaction(func(tx *gorm.DB) error {
-		if row.Scope == "" {
-			var replaced []model.ApiToken
-			if err := tx.Where("name = ?", name).Order("id asc").Limit(1).Find(&replaced).Error; err != nil {
-				return err
+		var replaced []model.ApiToken
+		if err := tx.Where("name = ?", name).Order("id asc").Limit(1).Find(&replaced).Error; err != nil {
+			return err
+		}
+		if len(replaced) > 0 {
+			// A rotation keeps the deadline the token was issued with; reviving an
+			// expired one would silently hand back a credential that never expires.
+			if replaced[0].ExpiresAt != 0 && nowMilli() >= replaced[0].ExpiresAt {
+				return common.NewErrorf("token %q has expired; create a new token from the panel or the API instead", name)
 			}
+			row.ExpiresAt = replaced[0].ExpiresAt
+		}
+		if row.Scope == "" {
 			// An empty Scope takes the column default of admin, so a rotated
 			// monitor or node-sync token would silently gain full access.
 			row.Scope = model.ApiScopeAdmin
