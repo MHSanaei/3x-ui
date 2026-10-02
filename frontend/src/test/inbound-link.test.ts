@@ -19,9 +19,11 @@ import {
   preferPublicHost,
   resolveAddr,
 } from '@/lib/xray/inbound-link';
+import { type DbInboundLike, inboundFromDb } from '@/lib/xray/inbound-from-db';
 import { InboundSchema } from '@/schemas/api/inbound';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
+import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalmask';
 
 // reverse of inbound-link.ts's own toBase64Url, for asserting on the
 // decoded vpn:// payload without depending on that helper being exported.
@@ -176,6 +178,129 @@ describe('genVlessLink vlessRoute', () => {
       externalProxy: null,
     });
     expect(link).toContain('vless://11111111-2222-4333-8444-555555555555@');
+  });
+});
+
+describe('genVlessLink TCP fragment finalmask compatibility', () => {
+  const [, raw] = fixturesForProtocol('vless')[0];
+  const baseInbound = InboundSchema.parse(raw);
+  const clientId = (raw as { settings: { clients: Array<{ id: string }> } }).settings.clients[0].id;
+
+  function linkFor(finalmask: FinalMaskStreamSettings): string {
+    if (!baseInbound.streamSettings) throw new Error('fixture needs stream settings');
+    baseInbound.streamSettings.finalmask = finalmask;
+
+    return genVlessLink({
+      inbound: baseInbound,
+      address: 'example.test',
+      port: baseInbound.port,
+      clientId,
+    });
+  }
+
+  function finalmaskFrom(link: string): Record<string, unknown> {
+    const encoded = new URL(link).searchParams.get('fm');
+    if (!encoded) throw new Error('link needs an fm parameter');
+    return JSON.parse(encoded) as Record<string, unknown>;
+  }
+
+  it('emits the final configured length and delay for legacy clients', () => {
+    const finalmask: FinalMaskStreamSettings = {
+      tcp: [
+        {
+          type: 'fragment',
+          settings: {
+            packets: 'tlshello',
+            lengths: ['5-10', '10-15', '15-20', '20-25', '25-30'],
+            delays: ['10-20', '5-20', '5-25', '15-25', '10-30'],
+            maxSplit: '10-15',
+          },
+        },
+      ],
+      udp: [],
+    };
+    const tcpMasks = finalmask.tcp;
+    const fragmentSettings = finalmask.tcp[0].settings;
+    const lengths = fragmentSettings?.lengths;
+    const delays = fragmentSettings?.delays;
+    const before = structuredClone(finalmask);
+
+    const exported = finalmaskFrom(linkFor(finalmask));
+    const fragment = (exported.tcp as Array<{ settings: Record<string, unknown> }>)[0].settings;
+
+    expect(fragment).toEqual({
+      packets: 'tlshello',
+      lengths: ['5-10', '10-15', '15-20', '20-25', '25-30'],
+      delays: ['10-20', '5-20', '5-25', '15-25', '10-30'],
+      maxSplit: '10-15',
+      length: '25-30',
+      delay: '10-30',
+    });
+    expect(finalmask).toEqual(before);
+    expect(finalmask.tcp).toBe(tcpMasks);
+    expect(finalmask.tcp[0].settings).toBe(fragmentSettings);
+    expect(fragmentSettings?.lengths).toBe(lengths);
+    expect(fragmentSettings?.delays).toBe(delays);
+  });
+
+  it('preserves explicit legacy fields and does not add them to other masks', () => {
+    const finalmask: FinalMaskStreamSettings = {
+      tcp: [
+        {
+          type: 'fragment',
+          settings: {
+            length: '40-50',
+            delay: '3-4',
+            lengths: ['5-10', '25-30'],
+            delays: ['10-20', '10-30'],
+          },
+        },
+        { type: 'sudoku', settings: { lengths: ['5-10'], delays: ['10-20'] } },
+      ],
+      udp: [{ type: 'noise', settings: { lengths: ['5-10'], delays: ['10-20'] } }],
+    };
+
+    const exported = finalmaskFrom(linkFor(finalmask));
+
+    expect(exported).toEqual(finalmask);
+  });
+
+  it('exports a stored UDP-only finalmask whose empty tcp list was dropped on save', () => {
+    const udpOnly = { udp: [{ type: 'salamander', settings: { password: 'p' } }] };
+    const inbound = inboundFromDb({
+      ...(raw as unknown as DbInboundLike),
+      streamSettings: { ...(raw.streamSettings as Record<string, unknown>), finalmask: udpOnly },
+    });
+
+    const link = genVlessLink({ inbound, address: 'example.test', port: inbound.port, clientId });
+
+    expect(finalmaskFrom(link)).toEqual(udpOnly);
+  });
+
+  it('does not create empty legacy values or search before a mixed-type last entry', () => {
+    const finalmask: FinalMaskStreamSettings = {
+      tcp: [
+        { type: 'fragment', settings: { packets: 'tlshello', lengths: [], delays: [] } },
+        {
+          type: 'fragment',
+          settings: { packets: 'tlshello', lengths: ['5-10', 25], delays: ['10-20', null] },
+        },
+        { type: 'fragment', settings: { lengths: [' '], delays: ['\t'] } },
+      ],
+      udp: [],
+    };
+
+    const exported = finalmaskFrom(linkFor(finalmask));
+    const [emptyRanges, mixedRanges, blankRanges] = exported.tcp as Array<{
+      settings: Record<string, unknown>;
+    }>;
+
+    expect(emptyRanges.settings).not.toHaveProperty('length');
+    expect(emptyRanges.settings).not.toHaveProperty('delay');
+    expect(mixedRanges.settings).not.toHaveProperty('length');
+    expect(mixedRanges.settings).not.toHaveProperty('delay');
+    expect(blankRanges.settings).not.toHaveProperty('length');
+    expect(blankRanges.settings).not.toHaveProperty('delay');
   });
 });
 
