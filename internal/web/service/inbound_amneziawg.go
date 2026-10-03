@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
@@ -380,10 +381,18 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 			}
 			return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
 		}
-		if ctx.onNode || ib.Protocol != model.AmneziaWG {
+		if ctx.onNode {
 			continue
 		}
-		socksPort := amneziawgnet.SOCKSPortForInbound(ib.Id)
+		var socksPort int
+		switch ib.Protocol {
+		case model.AmneziaWG:
+			socksPort = amneziawgnet.SOCKSPortForInbound(ib.Id)
+		case model.TUIC:
+			socksPort = tuic.SOCKSPortForInbound(ib.Id)
+		default:
+			continue
+		}
 		if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
 			name := ib.Remark
 			if name == "" {

@@ -17,6 +17,7 @@ import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
 import { deriveSpiderX } from './spider-x';
+import { normalizeTuicCongestionController, resolveTuicServerSettings } from '@/lib/tuic';
 
 // Share-link generators. Each per-protocol fn takes a typed inbound plus
 // client overrides and returns a URL (or '' when the protocol doesn't
@@ -914,15 +915,16 @@ export function genTuicLink(input: GenTuicLinkInput): string {
   if (!clientUuid || !clientPassword) return '';
 
   const rawSettings = inbound.settings as Record<string, unknown>;
-  const server = (rawSettings.server as Record<string, unknown>) ?? rawSettings;
+  const server = resolveTuicServerSettings(rawSettings);
   const host = formatUrlHost(externalProxy?.dest || address);
   const targetPort = externalProxy?.port || port;
 
   const url = new URL(
     `tuic://${encodeURIComponent(clientUuid)}:${encodeURIComponent(clientPassword)}@${host}:${targetPort}`,
   );
-  const cc =
-    (server.congestion_control as string) || (rawSettings.congestion_control as string) || 'bbr';
+  const cc = normalizeTuicCongestionController(
+    server.congestion_control ?? rawSettings.congestion_control,
+  );
   url.searchParams.set('congestion_control', cc);
 
   const epAlpn = externalProxyAlpn(externalProxy?.alpn);

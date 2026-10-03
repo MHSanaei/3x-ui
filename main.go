@@ -207,7 +207,9 @@ func runWebServer() {
 			tgbot.StopBot()
 			// ------------------------------------------------------------
 
-			_ = server.Stop()
+			if err := server.Stop(); err != nil {
+				logger.Error("Server shutdown failed:", err)
+			}
 			_ = subServer.Stop()
 			log.Println("Shutting down servers.")
 			return

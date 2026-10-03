@@ -18,7 +18,7 @@ inbounds** at once, with per-client traffic accounting.
 | **Auth**       | Hysteria2             | The client credential.                                             |
 | **Flow**       | VLESS                 | XTLS flow, e.g. `xtls-rprx-vision`.                                |
 | **Limit IP**   | all (except TUIC)     | Max simultaneous source IPs (enforced via Fail2ban).               |
-| **Total (GB)** | all (except TUIC)     | Traffic quota; the client is disabled when exhausted (for TUIC, limits are set at the inbound level). |
+| **Total (GB)** | all                   | Traffic quota; the client is disabled when exhausted.              |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
 | **Auto renewal** | all                 | Disabled, fixed interval in days, calendar weekly, or calendar monthly. |
 | **Telegram ID**| all                   | Links the client to a Telegram user for self-service/notifications.|

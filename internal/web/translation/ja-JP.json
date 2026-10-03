@@ -966,7 +966,6 @@
       "renewOnDay": "更新する日",
       "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
       "renewsUsed": "使用済み更新回数",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。"
     },
     "groups": {
@@ -2138,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "輻輳制御",
+        "congestionControlHint": "サーバーとクライアントの方式。サーバーへの変更は再接続後に適用。",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "UDP リレーモード",
+        "udpRelayModeHint": "クライアントの UDP モード。サーバーは両方に対応。",
         "zeroRttHandshake": "0-RTT ハンドシェイク",
         "logLevel": "ログレベル",
-        "logLevelHint": "オンライン状態、最終オンライン、「初回使用後に開始」はサイドカーの Info 行から検出されます。Warn または Error を選ぶとこのインバウンドでは無効になります。",
+        "logLevelHint": "このインバウンドの最低ログレベル。",
         "maxIdleTime": "最大アイドル時間 (秒)",
         "authTimeout": "認証タイムアウト (秒)",
         "maxUdpRelayPacketSize": "最大 UDP パケットサイズ",
         "sni": "SNI",
-        "sniHint": "Server Name Indication の上書き"
+        "sniHint": "クライアント設定の TLS サーバー名。",
+        "sniRequired": "証明書パスの自動入力にはドメインを指定してください。"
       },
       "tun": {
         "userLevel": "ユーザーレベル"

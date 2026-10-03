@@ -966,7 +966,6 @@
       "renewOnDay": "Yenileme günü",
       "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur.",
       "renewsUsed": "Kullanılan yenileme",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın."
     },
     "groups": {
@@ -2138,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "Tıkanıklık Kontrolü",
+        "congestionControlHint": "Sunucu ve istemci algoritması. Sunucu değişiklikleri yeniden bağlanınca uygulanır.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "UDP İletim Modu",
+        "udpRelayModeHint": "İstemci UDP modu. Sunucu her ikisini de destekler.",
         "zeroRttHandshake": "0-RTT El Sıkışması",
         "logLevel": "Günlük Seviyesi",
-        "logLevelHint": "Çevrimiçi durumu, son görülme ve \"ilk kullanımdan sonra başlat\" sidecar'ın Info satırlarından okunur; Warn veya Error bunları bu inbound için kapatır.",
+        "logLevelHint": "Bu gelen bağlantı için en düşük günlük seviyesi.",
         "maxIdleTime": "Maksimum Boşta Kalma Süresi (sn)",
         "authTimeout": "Kimlik Doğrulama Zaman Aşımı (sn)",
         "maxUdpRelayPacketSize": "Maksimum UDP Paket Boyutu",
         "sni": "SNI",
-        "sniHint": "Sunucu Adı Belirtimi (SNI) geçersiz kılma"
+        "sniHint": "İstemci profilindeki TLS sunucu adı.",
+        "sniRequired": "Sertifika yollarını otomatik doldurmak için alan adı girin."
       },
       "tun": {
         "userLevel": "Kullanıcı Seviyesi"
