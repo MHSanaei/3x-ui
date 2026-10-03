@@ -193,6 +193,17 @@ func (s *HostService) GetHosts() ([]*entity.HostGroup, error) {
 	return groupHosts(hosts), nil
 }
 
+// GetRawHosts returns every host row with its numeric id, so callers that
+// bind by host id (per-client host rule overrides) can list candidates.
+func (s *HostService) GetRawHosts() ([]*model.Host, error) {
+	var hosts []*model.Host
+	err := database.GetDB().Order("sort_order asc, id asc").Find(&hosts).Error
+	if err != nil {
+		return nil, err
+	}
+	return hosts, nil
+}
+
 func (s *HostService) GetHostsByInbound(inboundId int) ([]*entity.HostGroup, error) {
 	var groupIds []string
 	if err := database.GetDB().Model(&model.Host{}).Where("inbound_id = ?", inboundId).Distinct().Pluck("group_id", &groupIds).Error; err != nil {

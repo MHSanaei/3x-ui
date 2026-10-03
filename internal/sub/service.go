@@ -499,9 +499,13 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			if client.Enable {
 				hasEnabledClient = true
 			}
+			effectiveEps, _ := s.clientHostEndpoints(inbound, client, "raw", hostEps)
 			var link string
-			if len(hostEps) > 0 {
-				link = s.linkFromHosts(inbound, client, hostEps)
+			if len(effectiveEps) > 0 {
+				link = s.linkFromHosts(inbound, client, effectiveEps)
+				if link == "" {
+					link = s.GetLink(inbound, client.Email)
+				}
 			} else {
 				link = s.GetLink(inbound, client.Email)
 			}
@@ -572,9 +576,13 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 			continue
 		}
 		seen[key] = struct{}{}
+		effectiveEps, _ := s.clientHostEndpoints(inbound, client, "raw", hostEps)
 		var link string
-		if len(hostEps) > 0 {
-			link = s.linkFromHosts(inbound, client, hostEps)
+		if len(effectiveEps) > 0 {
+			link = s.linkFromHosts(inbound, client, effectiveEps)
+			if link == "" {
+				link = s.GetLink(inbound, client.Email)
+			}
 		} else {
 			link = s.GetLink(inbound, client.Email)
 		}

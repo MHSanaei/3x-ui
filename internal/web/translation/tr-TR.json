@@ -920,6 +920,8 @@
       "mtprotoSecretHint": "İstemcinin FakeTLS sırrı. Değiştirmek için yeniden oluşturun.",
       "mtprotoAdTag": "Reklam etiketi (sponsorlu kanal)",
       "mtprotoAdTagHint": "Telegram proxy kaydından alınan isteğe bağlı 32 karakterlik onaltılık etiket. Ayarlandığında bu istemci Telegram ara proxy'leri üzerinden yönlendirilir ve sohbet listesinin en üstünde sponsorlu bir kanal görünür.",
+      "hostRuleOverride": "Host kuralı geçersiz kılma",
+      "hostRuleOverridePlaceholder": "Varsayılan (gelen bağlantı kuralı)",
       "reverseTag": "Reverse Tag",
       "reverseTagPlaceholder": "İsteğe Bağlı Reverse Tag",
       "telegramId": "Telegram Kullanıcı ID'si",

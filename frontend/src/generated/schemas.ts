@@ -1674,6 +1674,23 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Auth password (Hysteria)",
         "type": "string"
       },
+      "clientHostRuleId": {
+        "description": "ClientHostRuleId optionally binds one Host row to this client.\nNil or non-positive means no override (inbound rule applies).",
+        "example": 1,
+        "nullable": true,
+        "type": "integer"
+      },
+      "clientHostRuleIds": {
+        "description": "ClientHostRuleIds optionally binds several Host rows to this client.\nUnioned with ClientHostRuleId; each bound host renders its own link.",
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
       "comment": {
         "description": "Client comment",
         "type": "string"
@@ -1904,6 +1921,21 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "auth": {
         "type": "string"
+      },
+      "clientHostRuleId": {
+        "example": 1,
+        "nullable": true,
+        "type": "integer"
+      },
+      "clientHostRuleIds": {
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
       },
       "comment": {
         "type": "string"

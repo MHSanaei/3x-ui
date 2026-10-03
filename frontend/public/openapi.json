@@ -1700,6 +1700,23 @@
             "description": "Auth password (Hysteria)",
             "type": "string"
           },
+          "clientHostRuleId": {
+            "description": "ClientHostRuleId optionally binds one Host row to this client.\nNil or non-positive means no override (inbound rule applies).",
+            "example": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "clientHostRuleIds": {
+            "description": "ClientHostRuleIds optionally binds several Host rows to this client.\nUnioned with ClientHostRuleId; each bound host renders its own link.",
+            "example": [
+              1,
+              2
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "comment": {
             "description": "Client comment",
             "type": "string"
@@ -1930,6 +1947,21 @@
           },
           "auth": {
             "type": "string"
+          },
+          "clientHostRuleId": {
+            "example": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "clientHostRuleIds": {
+            "example": [
+              1,
+              2
+            ],
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
           },
           "comment": {
             "type": "string"
@@ -11920,6 +11952,93 @@
                       ],
                       "verifyPeerCertByName": "",
                       "vlessRoute": ""
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/hosts/raw": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "List every host row with its numeric id, for id-based pickers such as the per-client host rule override.",
+        "operationId": "get_panel_api_hosts_raw",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Host"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "address": "cdn.example.com",
+                      "allowInsecure": false,
+                      "alpn": [
+                        ""
+                      ],
+                      "cipherSuites": "",
+                      "createdAt": 0,
+                      "echConfigList": "",
+                      "excludeFromSubTypes": [
+                        ""
+                      ],
+                      "finalMask": "",
+                      "fingerprint": "",
+                      "groupId": "",
+                      "hostHeader": "",
+                      "id": 1,
+                      "inboundId": 1,
+                      "isDisabled": false,
+                      "isHidden": false,
+                      "keepSniBlank": false,
+                      "mihomoIpVersion": "dual",
+                      "mihomoX25519": false,
+                      "muxParams": null,
+                      "nodeGuids": [
+                        ""
+                      ],
+                      "overrideSniFromAddress": false,
+                      "path": "",
+                      "pinnedPeerCertSha256": [
+                        ""
+                      ],
+                      "port": 8443,
+                      "remark": "cdn-front",
+                      "security": "same",
+                      "serverDescription": "",
+                      "shuffleHost": false,
+                      "sni": "",
+                      "sockoptParams": null,
+                      "sortOrder": 0,
+                      "tags": [
+                        ""
+                      ],
+                      "updatedAt": 0,
+                      "verifyPeerCertByName": "",
+                      "vlessRoute": "443"
                     }
                   ]
                 }

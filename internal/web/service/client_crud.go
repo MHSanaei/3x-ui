@@ -259,6 +259,20 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	// A re-created email is a live identity again: a delete tombstone left
 	// standing makes the next node merge prune the new client's inbound links.
 	withdrawClientTombstones(client.Email)
+	if client.ClientHostRuleId != nil {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("email = ?", client.Email).
+			UpdateColumn("client_host_rule_id", client.ClientHostRuleId).Error; err != nil {
+			return needRestart, err
+		}
+	}
+	if client.ClientHostRuleIds != nil {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("email = ?", client.Email).
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds(client.ClientHostRuleIds)).Error; err != nil {
+			return needRestart, err
+		}
+	}
 	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
 }
 
@@ -759,29 +773,31 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		if err := database.GetDB().Model(&model.ClientRecord{}).
 			Where("id = ?", id).
 			Updates(map[string]any{
-				"sub_id":            merged.SubID,
-				"uuid":              merged.UUID,
-				"password":          merged.Password,
-				"auth":              merged.Auth,
-				"secret":            merged.Secret,
-				"flow":              merged.Flow,
-				"security":          merged.Security,
-				"wg_private_key":    merged.PrivateKey,
-				"wg_public_key":     merged.PublicKey,
-				"wg_allowed_ips":    merged.AllowedIPs,
-				"wg_pre_shared_key": merged.PreSharedKey,
-				"wg_keep_alive":     merged.KeepAlive,
-				"limit_ip":          merged.LimitIP,
-				"total_gb":          merged.TotalGB,
-				"expiry_time":       merged.ExpiryTime,
-				"tg_id":             merged.TgID,
-				"comment":           merged.Comment,
-				"reset":             merged.Reset,
-				"reset_day":         merged.ResetDay,
-				"reset_weekday":     merged.ResetWeekday,
-				"reset_max":         merged.ResetMax,
-				"traffic_reset":     merged.TrafficReset,
-				"traffic_reset_day": merged.TrafficResetDay,
+				"sub_id":               merged.SubID,
+				"uuid":                 merged.UUID,
+				"password":             merged.Password,
+				"auth":                 merged.Auth,
+				"secret":               merged.Secret,
+				"flow":                 merged.Flow,
+				"security":             merged.Security,
+				"client_host_rule_id":  merged.ClientHostRuleId,
+				"client_host_rule_ids": model.EncodeClientHostRuleIds(merged.ClientHostRuleIds),
+				"wg_private_key":       merged.PrivateKey,
+				"wg_public_key":        merged.PublicKey,
+				"wg_allowed_ips":       merged.AllowedIPs,
+				"wg_pre_shared_key":    merged.PreSharedKey,
+				"wg_keep_alive":        merged.KeepAlive,
+				"limit_ip":             merged.LimitIP,
+				"total_gb":             merged.TotalGB,
+				"expiry_time":          merged.ExpiryTime,
+				"tg_id":                merged.TgID,
+				"comment":              merged.Comment,
+				"reset":                merged.Reset,
+				"reset_day":            merged.ResetDay,
+				"reset_weekday":        merged.ResetWeekday,
+				"reset_max":            merged.ResetMax,
+				"traffic_reset":        merged.TrafficReset,
+				"traffic_reset_day":    merged.TrafficResetDay,
 			}).Error; err != nil {
 			return needRestart, err
 		}
@@ -818,6 +834,24 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		Where("id = ?", id).
 		UpdateColumn("ad_tag", updated.AdTag).Error; err != nil {
 		return needRestart, err
+	}
+
+	// Same shape as the group write: SyncInbound preserves a stored binding,
+	// so the editor's round-tripped value (nil clears) is applied here.
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("id = ?", id).
+		UpdateColumn("client_host_rule_id", updated.ClientHostRuleId).Error; err != nil {
+		return needRestart, err
+	}
+
+	// Multi bindings round-trip like the single id, but nil (omitted) is
+	// distinct from empty (clear), so omitted preserves the stored list.
+	if updated.ClientHostRuleIds != nil {
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("id = ?", id).
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds(updated.ClientHostRuleIds)).Error; err != nil {
+			return needRestart, err
+		}
 	}
 
 	if err := database.GetDB().Model(&model.ClientRecord{}).

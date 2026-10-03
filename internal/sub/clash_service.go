@@ -70,15 +70,27 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 			continue
 		}
 		subReq.projectThroughFallbackMaster(inbound)
-		if hostEps := subReq.hostEndpoints(inbound, "clash"); len(hostEps) > 0 {
-			injectExternalProxy(inbound, hostEps)
+		baseEps := subReq.hostEndpoints(inbound, "clash")
+		baseStream := inbound.StreamSettings
+		if len(baseEps) > 0 {
+			injectExternalProxy(inbound, baseEps)
 		}
 		for _, client := range clients {
 			if client.Enable {
 				hasEnabledClient = true
 			}
 			seenEmails[client.Email] = struct{}{}
-			proxies = append(proxies, s.getProxies(subReq, inbound, client, host)...)
+			effective := inbound
+			var clone model.Inbound
+			if effectiveEps, hasBinding := subReq.clientHostEndpoints(inbound, client, "clash", baseEps); hasBinding {
+				clone = *inbound
+				clone.StreamSettings = baseStream
+				if len(effectiveEps) > 0 {
+					injectExternalProxy(&clone, effectiveEps)
+				}
+				effective = &clone
+			}
+			proxies = append(proxies, s.getProxies(subReq, effective, client, host)...)
 		}
 	}
 	for _, ext := range externalLinks {

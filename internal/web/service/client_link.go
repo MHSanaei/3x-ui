@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
@@ -41,6 +42,14 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	row.Flow = incoming.Flow
 	if incoming.Security != "" {
 		row.Security = incoming.Security
+	}
+	// Guarded like Group: snapshots predating the binding carry nil and must
+	// not wipe it; clearing flows through Update's explicit write.
+	if incoming.ClientHostRuleId != nil {
+		row.ClientHostRuleId = incoming.ClientHostRuleId
+	}
+	if incoming.ClientHostRuleIds != nil {
+		row.ClientHostRuleIds = model.CloneClientHostRuleIds(incoming.ClientHostRuleIds)
 	}
 	if incoming.Reverse != "" {
 		row.Reverse = incoming.Reverse
@@ -166,7 +175,9 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 
 		idByEmail[email] = row.Id
 
-		if *row == before {
+		// DeepEqual: ClientRecord now carries a slice (ClientHostRuleIds)
+		// and is no longer ==-comparable.
+		if reflect.DeepEqual(*row, before) {
 			continue
 		}
 		if err := tx.Save(row).Error; err != nil {
