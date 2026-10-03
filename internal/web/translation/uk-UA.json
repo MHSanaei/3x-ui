@@ -2512,7 +2512,21 @@
       "eventNodeDown": "Вузол {{ .Name }} НЕДОСТУПНИЙ",
       "eventNodeUp": "Вузол {{ .Name }} ДОСТУПНИЙ",
       "eventLoginFallback": "Невдала спроба входу з {{ .Source }}",
-      "memoryThreshold": "Використання пам'яті {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%"
+      "memoryThreshold": "Використання пам'яті {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",
+      "guideChoose": "📖 <b>Посібник із налаштування</b>\r\nОберіть пристрій, який хочете налаштувати.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. Встановіть <b>Streisand</b> або <b>V2Box</b> з App Store.\r\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте URL підписки.\r\n3. У застосунку натисніть <b>+</b> → <b>Add from clipboard</b>.\r\n4. Потягніть донизу для оновлення, потім підключіться.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. Встановіть <b>v2rayNG</b> або <b>Hiddify</b> з Google Play.\r\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте URL підписки.\r\n3. У застосунку натисніть <b>+</b> → <b>Import from clipboard</b>.\r\n4. Оновіть підписку, виберіть сервер і підключіться.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. Встановіть <b>Hiddify</b> або <b>v2rayN</b>.\r\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте URL підписки.\r\n3. У застосунку додайте підписку й вставте URL.\r\n4. Оновіть підписку, виберіть сервер і підключіться.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. Встановіть <b>Hiddify</b> або <b>V2Box</b>.\r\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте URL підписки.\r\n3. У застосунку додайте підписку й вставте URL.\r\n4. Оновіть підписку, виберіть сервер і підключіться.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. Встановіть <b>Hiddify</b> (AppImage) або <b>Nekoray</b>.\r\n2. Відкрийте сторінку посилань підписки в цьому боті та скопіюйте URL підписки.\r\n3. У застосунку додайте підписку й вставте URL.\r\n4. Оновіть підписку, виберіть сервер і підключіться.",
+      "customerMenu": "👇 Що вам потрібно?",
+      "configsChoose": "👇 Оберіть, як отримати конфігурацію:",
+      "chooseOneConfig": "👇 Яка конфігурація потрібна?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 До цього облікового запису Telegram ще не прив’язано конфігурацію.\r\nПопросіть у адміністратора посилання-запрошення та відкрийте його.",
+      "noBoundClientAdmin": "🔗 Ви ще не прив’язали конфігурацію до цього облікового запису.\r\nВідкрийте 🛡 Admin → 🔗 Invite Links, виберіть свого клієнта та відкрийте його посилання.",
+      "notStarted": "не почато",
+      "unlimited": "♾ Без обмежень"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
@@ -2556,7 +2570,19 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Коментар",
       "ResetAllTraffics": "Скинути весь трафік",
-      "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку"
+      "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку",
+      "customerMenu": "Мої конфігурації",
+      "setupGuide": "Посібник із налаштування",
+      "getAllLinks": "Усі посилання",
+      "getOneConfig": "Одне посилання",
+      "subscriptionUrl": "URL підписки",
+      "qrCodes": "QR-коди",
+      "backToMenu": "Назад",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Розсилку запущено.",

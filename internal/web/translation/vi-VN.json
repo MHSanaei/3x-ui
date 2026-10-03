@@ -2512,7 +2512,21 @@
       "eventNodeDown": "Node {{ .Name }} đã NGỪNG HOẠT ĐỘNG",
       "eventNodeUp": "Node {{ .Name }} đã HOẠT ĐỘNG",
       "eventLoginFallback": "Đăng nhập thất bại từ {{ .Source }}",
-      "memoryThreshold": "Sử dụng bộ nhớ {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
+      "memoryThreshold": "Sử dụng bộ nhớ {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
+      "guideChoose": "📖 <b>Hướng dẫn thiết lập</b>\r\nChọn thiết bị bạn muốn thiết lập.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. Cài <b>Streisand</b> hoặc <b>V2Box</b> từ App Store.\r\n2. Mở trang liên kết đăng ký trong bot này và sao chép URL đăng ký của bạn.\r\n3. Trong ứng dụng, chạm <b>+</b> → <b>Add from clipboard</b>.\r\n4. Kéo xuống để cập nhật, rồi kết nối.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. Cài <b>v2rayNG</b> hoặc <b>Hiddify</b> từ Google Play.\r\n2. Mở trang liên kết đăng ký trong bot này và sao chép URL đăng ký của bạn.\r\n3. Trong ứng dụng, chạm <b>+</b> → <b>Import from clipboard</b>.\r\n4. Làm mới đăng ký, chọn máy chủ rồi kết nối.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. Cài <b>Hiddify</b> hoặc <b>v2rayN</b>.\r\n2. Mở trang liên kết đăng ký trong bot này và sao chép URL đăng ký của bạn.\r\n3. Trong ứng dụng, thêm một đăng ký và dán URL.\r\n4. Cập nhật đăng ký, chọn máy chủ rồi kết nối.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. Cài <b>Hiddify</b> hoặc <b>V2Box</b>.\r\n2. Mở trang liên kết đăng ký trong bot này và sao chép URL đăng ký của bạn.\r\n3. Trong ứng dụng, thêm một đăng ký và dán URL.\r\n4. Cập nhật đăng ký, chọn máy chủ rồi kết nối.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. Cài <b>Hiddify</b> (AppImage) hoặc <b>Nekoray</b>.\r\n2. Mở trang liên kết đăng ký trong bot này và sao chép URL đăng ký của bạn.\r\n3. Trong ứng dụng, thêm một đăng ký và dán URL.\r\n4. Cập nhật đăng ký, chọn máy chủ rồi kết nối.",
+      "customerMenu": "👇 Bạn cần gì?",
+      "configsChoose": "👇 Chọn cách lấy cấu hình của bạn:",
+      "chooseOneConfig": "👇 Bạn cần cấu hình nào?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 Chưa có cấu hình nào được liên kết với tài khoản Telegram này.\r\nHãy xin liên kết mời từ quản trị viên và mở nó.",
+      "noBoundClientAdmin": "🔗 Bạn chưa liên kết cấu hình nào với tài khoản này.\r\nMở 🛡 Admin → 🔗 Invite Links, chọn client của bạn và mở liên kết đó.",
+      "notStarted": "chưa bắt đầu",
+      "unlimited": "♾ Không giới hạn"
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
@@ -2556,7 +2570,19 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Bình Luận",
       "ResetAllTraffics": "Đặt lại tất cả lưu lượng",
-      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp"
+      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp",
+      "customerMenu": "Cấu hình của tôi",
+      "setupGuide": "Hướng dẫn thiết lập",
+      "getAllLinks": "Tất cả liên kết",
+      "getOneConfig": "Một liên kết",
+      "subscriptionUrl": "URL đăng ký",
+      "qrCodes": "Mã QR",
+      "backToMenu": "Quay lại",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Đã bắt đầu phát tin.",

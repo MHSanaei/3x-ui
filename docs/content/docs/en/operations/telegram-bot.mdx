@@ -74,6 +74,25 @@ resetting traffic, DB backups, ban logs, listing inbounds/clients, online
 clients, "depleting soon", and a full **add-client** wizard. Regular users get
 buttons for their own usage, subscription links, individual links, and QR codes.
 
+### Customer self-service
+
+A linked customer opens **My configs** and gets a menu of what they can do
+without an admin:
+
+- **All links** — the client's share links as text, headed by its expiry date
+  and remaining quota so a customer holding several can tell them apart.
+- **One link** — a picker that asks which of the client's links to send, rather
+  than returning every one of them.
+- **Subscription URL** and **QR codes** — the same two the panel shows.
+- **Setup guide** — plain-text instructions for iPhone/iPad, Android, Windows,
+  macOS and Linux, naming a current app for each. Telegram only accepts `http`,
+  `https` and `tg://` in link buttons, so the guide cannot be a tap-through
+  link and has to be text.
+
+Every per-client button re-checks that the caller owns the client before it
+sends anything, so a customer cannot reach another customer's links by
+replaying the callback data from an older message.
+
 ## Reports & alerts
 
 - **Periodic report** — on the `tgRunTime` schedule (default `@daily`), the bot

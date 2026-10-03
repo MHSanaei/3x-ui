@@ -2512,7 +2512,21 @@
       "eventNodeDown": "节点 {{ .Name }} 已离线",
       "eventNodeUp": "节点 {{ .Name }} 已上线",
       "eventLoginFallback": "来自 {{ .Source }} 的登录失败",
-      "memoryThreshold": "内存使用率 {{ .Percent }}% 超过阈值 {{ .Threshold }}%"
+      "memoryThreshold": "内存使用率 {{ .Percent }}% 超过阈值 {{ .Threshold }}%",
+      "guideChoose": "📖 <b>设置指南</b>\r\n请选择你要设置的设备。",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. 从 App Store 安装 <b>Streisand</b> 或 <b>V2Box</b>。\r\n2. 在本机器人中打开订阅链接页面，复制你的订阅地址。\r\n3. 在应用中点击 <b>+</b> → <b>Add from clipboard</b>。\r\n4. 下拉刷新后连接。",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. 从 Google Play 安装 <b>v2rayNG</b> 或 <b>Hiddify</b>。\r\n2. 在本机器人中打开订阅链接页面，复制你的订阅地址。\r\n3. 在应用中点击 <b>+</b> → <b>Import from clipboard</b>。\r\n4. 更新订阅，选择服务器后连接。",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. 安装 <b>Hiddify</b> 或 <b>v2rayN</b>。\r\n2. 在本机器人中打开订阅链接页面，复制你的订阅地址。\r\n3. 在应用中添加订阅并粘贴地址。\r\n4. 更新订阅，选择服务器后连接。",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. 安装 <b>Hiddify</b> 或 <b>V2Box</b>。\r\n2. 在本机器人中打开订阅链接页面，复制你的订阅地址。\r\n3. 在应用中添加订阅并粘贴地址。\r\n4. 更新订阅，选择服务器后连接。",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. 安装 <b>Hiddify</b>（AppImage）或 <b>Nekoray</b>。\r\n2. 在本机器人中打开订阅链接页面，复制你的订阅地址。\r\n3. 在应用中添加订阅并粘贴地址。\r\n4. 更新订阅，选择服务器后连接。",
+      "customerMenu": "👇 你需要什么？",
+      "configsChoose": "👇 选择获取配置的方式：",
+      "chooseOneConfig": "👇 你想要哪个配置？",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 该 Telegram 账号尚未绑定任何配置。\r\n请向管理员索取邀请链接并打开它。",
+      "noBoundClientAdmin": "🔗 你还没有为此账号绑定配置。\r\n打开 🛡 Admin → 🔗 Invite Links，选择你自己的客户端并打开其链接。",
+      "notStarted": "未开始",
+      "unlimited": "♾ 不限"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -2556,7 +2570,19 @@
       "change_email": "⚙️📧 邮箱",
       "change_comment": "⚙️💬 评论",
       "ResetAllTraffics": "重置所有流量",
-      "SortedTrafficUsageReport": "排序的流量使用报告"
+      "SortedTrafficUsageReport": "排序的流量使用报告",
+      "customerMenu": "我的配置",
+      "setupGuide": "设置指南",
+      "getAllLinks": "全部链接",
+      "getOneConfig": "单个链接",
+      "subscriptionUrl": "订阅链接",
+      "qrCodes": "二维码",
+      "backToMenu": "返回",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 群发已开始。",
