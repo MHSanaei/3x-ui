@@ -59,6 +59,8 @@ func TestGateCommand(t *testing.T) {
 		wantSends int
 	}{
 		{"stranger start", 777, "/start", true, false, 0},
+		{"stranger login", 777, "/login code", true, false, 0},
+		{"stranger link", 777, "/link code", true, false, 0},
 		{"stranger help", 777, "/help", false, false, 0},
 		{"stranger admin command", 777, "/restart", false, false, 0},
 		{"client usage", ownerTgID, "/usage", true, false, 0},

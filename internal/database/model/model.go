@@ -42,6 +42,7 @@ type User struct {
 	Username   string `json:"username"`
 	Password   string `json:"password"`
 	LoginEpoch int64  `json:"-" gorm:"default:0"`
+	TelegramID int64  `json:"-" gorm:"default:0;index"`
 }
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.

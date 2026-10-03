@@ -415,3 +415,29 @@
 .login-sponsor {
   margin-top: 20px;
 }
+
+.telegram-login {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  color: var(--color-text);
+}
+
+.telegram-login p {
+  margin: 0 0 12px;
+}
+
+.telegram-login-command {
+  display: block;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--bg-card-solid);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.telegram-login .telegram-login-waiting {
+  color: var(--color-text-subtle);
+}
