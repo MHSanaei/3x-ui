@@ -920,6 +920,8 @@
       "mtprotoSecretHint": "Secret FakeTLS klien. Buat ulang untuk menggantinya.",
       "mtprotoAdTag": "Ad-tag (kanal bersponsor)",
       "mtprotoAdTagHint": "Tag heksadesimal 32 karakter opsional dari pendaftaran proxy Telegram. Jika diatur, klien ini dirutekan melalui proxy perantara Telegram dan kanal bersponsor muncul di bagian atas daftar obrolannya.",
+      "hostRuleOverride": "Penggantian aturan host",
+      "hostRuleOverridePlaceholder": "Bawaan (aturan inbound)",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag opsional",
       "telegramId": "ID pengguna Telegram",

@@ -1097,13 +1097,13 @@ export default function ClientFormModal({
 
                       <Row gutter={16}>
                         <Col xs={24} md={12}>
-                          <Form.Item label="Host Rule Override">
+                          <Form.Item label={t('pages.clients.hostRuleOverride')}>
                             <Select
                               mode="multiple"
                               value={clientHostRuleIds || []}
                               onChange={(v) => methods.setValue('clientHostRuleIds', v)}
                               options={hostRuleOptions}
-                              placeholder="Default (inbound rule)"
+                              placeholder={t('pages.clients.hostRuleOverridePlaceholder')}
                               maxTagCount="responsive"
                               placement="topLeft"
                               listHeight={220}
