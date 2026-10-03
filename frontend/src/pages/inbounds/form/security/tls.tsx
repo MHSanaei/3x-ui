@@ -398,7 +398,7 @@ export default function TlsForm({
           />
           <Button
             icon={<CloudDownloadOutlined />}
-            onClick={pinFromRemote}
+            onClick={() => pinFromRemote()}
             loading={saving}
             title={t('pages.inbounds.form.pinFromRemote')}
           />
