@@ -299,7 +299,7 @@ uninstall() {
         # silently re-apply on a later install of another unit of the same name.
         # Local drop-ins the operator added go with it, which is what an
         # uninstall is expected to do.
-        rm -rf ${xui_service}/x-ui.service.d
+        rm -rf -- "${xui_service}/x-ui.service.d"
         systemctl daemon-reload
         systemctl reset-failed
     fi

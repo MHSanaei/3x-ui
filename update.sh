@@ -947,12 +947,17 @@ setup_fail2ban() {
 # cannot write anything this update needs. Say so once, up front, instead of
 # dying partway through with "Failed to download x-ui".
 require_writable_update_paths() {
-    local dir
+    local dir probe
     for dir in "${xui_folder%/*}" "/usr/bin"; do
         [[ -n "$dir" && -d "$dir" ]] || continue
-        if [[ ! -w "$dir" ]]; then
-            _fail "ERROR: ${dir} is read-only for this process. The panel's fallback updater cannot run inside the hardened systemd sandbox; update from the panel UI (which uses systemd-run) or run 'x-ui update' in a shell."
+        probe="${dir}/.x-ui-write-test.$$"
+        # A real write test rather than [[ -w ]]: this runs as root, where a
+        # permission bit means little and the test only reflects the file mode
+        # and the mount flags, not an immutable attribute or a full filesystem.
+        if ! : > "$probe" 2> /dev/null; then
+            _fail "ERROR: ${dir} is not writable for this process (read-only mount, attribute or full filesystem). The panel's fallback updater cannot run inside the hardened systemd sandbox; update from the panel UI (which uses systemd-run) or run 'x-ui update' in a shell."
         fi
+        rm -f "$probe"
     done
 }
 
@@ -973,25 +978,47 @@ _xui_systemd_major_version() {
     echo "$version"
 }
 
+# The shipped units list hardening that older systemd does not know: the
+# directive is logged and ignored at load time rather than rejected, so the
+# panel still starts, only without that protection. The drop-in gates
+# SystemCallFilter= on 239 already; this note covers the unit itself, for
+# distributions that ship an old systemd (CentOS 7 has 219).
+_xui_warn_unsupported_hardening() {
+    local version
+    version="$(_xui_systemd_major_version)"
+    [[ "$version" -gt 0 && "$version" -lt 239 ]] || return 0
+    echo -e "${yellow}Note: systemd ${version} ignores part of the hardening in x-ui.service; the panel still starts.${plain}"
+    echo "      Needs a newer systemd: NoNewPrivileges (229), RestrictRealtime and ReadWritePaths= (231),"
+    echo "      ProtectKernelTunables, ProtectKernelModules, RestrictSUIDSGID and RestrictNamespaces (232),"
+    echo "      LockPersonality (233), ProtectClock and ProtectHostname (242), ProtectKernelLogs (244);"
+    echo "      ProtectHome=read-only is only understood by a newer systemd as well."
+    echo "      Still in force here: ProtectSystem=full, UMask=, CapabilityBoundingSet=,"
+    echo "      RestrictAddressFamilies= and ReadWriteDirectories=, the alias this script installs."
+    echo "      Upgrade systemd to apply the rest."
+    return 0
+}
+
 # ProtectSystem=full makes /usr, /boot, /efi and /etc read-only. ProtectSystem=
 # strict would make the whole hierarchy read-only (only the kernel API
 # filesystems stay as they are), and that would break the panel's own use of
-# /tmp. The panel's
-# stores are configurable (XUI_DB_FOLDER, XUI_LOG_FOLDER, XUI_BIN_FOLDER,
-# XUI_MAIN_FOLDER), so a hard-coded list in the unit either misses a relocated
-# folder -- the panel then cannot write its own SQLite database and sits in a
-# Restart=on-failure loop -- or forces the operator to edit a file that every
-# install/update overwrites from the release tarball. install.sh and update.sh
-# therefore regenerate the drop-in from the folders actually in use, and the
-# unit's own ReadWritePaths only carry the plain-install defaults. A relocated
-# store means re-running install or update: the drop-in is only written here.
+# /tmp. The panel's stores are configurable (XUI_DB_FOLDER, XUI_LOG_FOLDER,
+# XUI_BIN_FOLDER), and XUI_MAIN_FOLDER is the folder install.sh/update.sh place
+# the files in -- the unit's WorkingDirectory on a stock install, and what a
+# relative XUI_BIN_FOLDER is resolved against. So a hard-coded list in the unit
+# either misses a relocated store -- the panel then cannot write its own SQLite
+# database and sits in a Restart=on-failure loop -- or forces the operator to
+# edit a file that every install/update overwrites from the release tarball.
+# install.sh and update.sh therefore regenerate the drop-in from the folders
+# actually in use, and the unit's own ReadWritePaths only carry the
+# plain-install defaults. A relocated store means re-running install or update:
+# the drop-in is only written here.
 _xui_service_write_paths_dropin() {
     # $1 is the env file to resolve the XUI_* folders from; callers pass nothing
     # and get the OS-specific path the unit itself uses.
     local env_file="${1:-}"
     local dropin_dir dropin temp_file
     local db_folder log_folder bin_folder main_folder
-    local path line="" whitespace_paths=""
+    local path line="" whitespace_paths="" seen_paths="" escaped_path
 
     if [[ -z "$env_file" ]]; then
         env_file="$(xui_env_file_path)"
@@ -1026,10 +1053,15 @@ _xui_service_write_paths_dropin() {
             whitespace_paths="${whitespace_paths:+$whitespace_paths }$path"
             continue
         fi
-        case " $line " in
-            *" -$path "*) continue ;;
+        case " $seen_paths " in
+            *" $path "*) continue ;;
         esac
-        line="${line} -${path}"
+        seen_paths="${seen_paths}${seen_paths:+ }$path"
+        # systemd expands %-specifiers in unit files, so a folder name carrying
+        # a literal % has to be written as %%, or the entry stops naming the
+        # folder systemd is meant to keep writable.
+        escaped_path="${path//%/%%}"
+        line="${line} -${escaped_path}"
     done
     if [[ -n "$whitespace_paths" ]]; then
         echo "Warning: these folders contain whitespace and were left out of" >&2
@@ -1113,6 +1145,7 @@ _install_xui_service_unit() {
         echo -e "${yellow}Warning: could not refresh ${xui_service}/x-ui.service.d/10-xui-sandbox.conf.${plain}"
         echo -e "${yellow}If XUI_DB_FOLDER or XUI_LOG_FOLDER points outside /etc/x-ui and /var/log/x-ui, the panel may not be able to write to it under ProtectSystem=full.${plain}"
     fi
+    _xui_warn_unsupported_hardening
     return 0
 }
 
