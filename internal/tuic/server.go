@@ -302,17 +302,6 @@ func (s *Server) CollectClientTraffic() []ClientTrafficDelta {
 	return deltas
 }
 
-// CollectTotalTraffic drains client deltas and aggregates total up and down bytes.
-func (s *Server) CollectTotalTraffic() (int64, int64) {
-	deltas := s.users.CollectTrafficDeltas()
-	var totalUp, totalDown int64
-	for _, d := range deltas {
-		totalUp += d.Up
-		totalDown += d.Down
-	}
-	return totalUp, totalDown
-}
-
 // CollectAllTraffic drains client deltas once and returns total up, down and individual client deltas.
 func (s *Server) CollectAllTraffic() (int64, int64, []ClientTrafficDelta) {
 	deltas := s.CollectClientTraffic()

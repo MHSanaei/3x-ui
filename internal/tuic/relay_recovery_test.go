@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -132,6 +133,9 @@ func audit3ReceivePacket(c *clientquic.Conn, mode uint8, duration time.Duration)
 }
 
 func TestAudit3UDPAssociationMustRecoverAfterBridgeReadFailure(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Go disables SIO_UDP_CONNRESET on Windows, so a dead UDP bridge never fails a read there")
+	}
 	for _, mode := range []uint8{packetTransportDatagram, packetTransportStream} {
 		name := "datagram"
 		if mode == packetTransportStream {

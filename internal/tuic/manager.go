@@ -177,11 +177,6 @@ type InboundTrafficDelta struct {
 	Down int64
 }
 
-func (m *Manager) CollectTraffic() []InboundTrafficDelta {
-	inbounds, _ := m.CollectAllTraffic()
-	return inbounds
-}
-
 func (m *Manager) CollectClientTraffic() []ClientTrafficDelta {
 	_, clients := m.CollectAllTraffic()
 	return clients
