@@ -74,12 +74,20 @@ export default function SponsorCard({
         <SponsorLogo sponsor={sponsor} />
         <span className="sponsor-body" dir="auto">
           <span className="sponsor-head">
-            <span className="sponsor-tag">{tag}</span>
+            {variant !== 'banner' && <span className="sponsor-tag">{tag}</span>}
             <span className="sponsor-title">{title}</span>
           </span>
           {text && <span className="sponsor-text">{text}</span>}
         </span>
-        {variant !== 'compact' && (
+        {variant === 'banner' && (
+          <span className="sponsor-aside">
+            <span className="sponsor-tag">{tag}</span>
+            <span className="sponsor-visit">
+              {t('pages.sponsors.visit')} <ExportOutlined />
+            </span>
+          </span>
+        )}
+        {variant === 'card' && (
           <span className="sponsor-visit">
             {t('pages.sponsors.visit')} <ExportOutlined />
           </span>
