@@ -7,10 +7,12 @@ import (
 	"net"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
-	"github.com/poise52/quic-go"
+	"github.com/apernet/quic-go"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -203,7 +205,7 @@ func TestEnsureUpdatesControllerWithoutRestartForNewConnections(t *testing.T) {
 
 	connBBR := dial()
 	defer connBBR.CloseWithError(0, "")
-	waitForTuicLog(t, "configured bbr congestion controller before QUIC handshake")
+	waitForTuicLog(t, "applied bbr congestion controller")
 	bbrSender := waitForClientCongestionSender(t, server, connBBR, "bbr")
 
 	inst.CongestionControl = "cubic"
@@ -221,8 +223,8 @@ func TestEnsureUpdatesControllerWithoutRestartForNewConnections(t *testing.T) {
 	}
 	connCubic := dial()
 	defer connCubic.CloseWithError(0, "")
-	waitForTuicLog(t, "configured cubic congestion controller before QUIC handshake")
-	cubicSender := waitForClientCongestionSender(t, server, connCubic, "cubic")
+	waitForTuicLog(t, "cubic is not available; applied new_reno congestion controller")
+	cubicSender := waitForClientCongestionSender(t, server, connCubic, "new_reno")
 
 	inst.CongestionControl = "new_reno"
 	if err := m.Ensure(inst); err != nil {
@@ -242,7 +244,7 @@ func TestEnsureUpdatesControllerWithoutRestartForNewConnections(t *testing.T) {
 	}
 	connReno := dial()
 	defer connReno.CloseWithError(0, "")
-	waitForTuicLog(t, "configured new_reno congestion controller before QUIC handshake")
+	waitForTuicLog(t, "applied new_reno congestion controller")
 	waitForClientCongestionSender(t, server, connReno, "new_reno")
 }
 
@@ -296,15 +298,21 @@ func matchesClientSocket(serverConn, clientConn *quic.Conn) bool {
 	return serverOK && clientOK && serverAddr.Port == clientAddr.Port
 }
 
-func inspectCongestionSender(conn *quic.Conn) (string, uintptr) {
+// lockedCongestion reads the sender under the mutex SetCongestionControl writes
+// it under, which the BBR install after the handshake races otherwise.
+func lockedCongestion(conn *quic.Conn) (reflect.Value, func()) {
 	handler := reflect.ValueOf(conn).Elem().FieldByName("sentPacketHandler").Elem().Elem()
-	controller := handler.FieldByName("congestion").Elem()
+	mu := (*sync.RWMutex)(unsafe.Pointer(handler.FieldByName("congestionMutex").UnsafeAddr()))
+	mu.RLock()
+	return handler.FieldByName("congestion").Elem(), mu.RUnlock
+}
+
+func inspectCongestionSender(conn *quic.Conn) (string, uintptr) {
+	controller, unlock := lockedCongestion(conn)
+	defer unlock()
 	sender := controller
 	if controller.Type().String() == "*ackhandler.ccAdapterEx" || controller.Type().String() == "*ackhandler.ccAdapter" {
 		sender = controller.Elem().FieldByName("CC").Elem()
-	}
-	if strings.Contains(sender.Type().String(), "xrayBBRAdapter") {
-		sender = sender.Elem().FieldByName("sender").Elem()
 	}
 	switch {
 	case strings.Contains(sender.Type().String(), "bbrSender"):

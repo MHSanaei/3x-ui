@@ -169,8 +169,6 @@ github.com/pion/transport/v5 v5.1.1/go.mod h1:Qxw6fCEjFWQkRDZOhS4Vf+neJBcihauvA3
 github.com/pires/go-proxyproto v0.15.0 h1:dTshmNbFm/D+0+sbrxUuddPOZ5Y0B7c5NhtsBkm6LqI=
 github.com/pires/go-proxyproto v0.15.0/go.mod h1:OXsCrKwrK2tXS9YrI5tkHx5xaQlO8FH3lFW76orFh24=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/poise52/quic-go v0.0.0-20260930185929-512544b0c57f h1:UwIwmSLR7xB8TkNRcHKUtFzCKt9wcbxfRLTeEQO4jFU=
-github.com/poise52/quic-go v0.0.0-20260930185929-512544b0c57f/go.mod h1:3e3BkVDlm6p1+Ktr7qn82F3vXfUfKyyn7fr0dZkRgig=
 github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0 h1:XA01Vk/wv9YikCi1V51yRzIHPMT5of9+cMpZoZvDn/M=
 github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
 github.com/quic-go/go-ossfuzz-seeds v0.1.0 h1:APacT+iIaNF6fd8AGEiN3bT/Jtkd2jz4v4TzM7MFjy0=

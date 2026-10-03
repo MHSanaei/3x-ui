@@ -7,13 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"reflect"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/apernet/quic-go"
 	"github.com/google/uuid"
-	"github.com/poise52/quic-go"
 )
 
 type reauditCCSnapshot struct {
@@ -24,14 +22,11 @@ type reauditCCSnapshot struct {
 }
 
 func reauditActualSender(conn *quic.Conn) (string, uintptr) {
-	handler := reflect.ValueOf(conn).Elem().FieldByName("sentPacketHandler").Elem().Elem()
-	cc := handler.FieldByName("congestion").Elem()
+	cc, unlock := lockedCongestion(conn)
+	defer unlock()
 	ptr := cc.Pointer()
 	if cc.Type().String() == "*ackhandler.ccAdapterEx" || cc.Type().String() == "*ackhandler.ccAdapter" {
 		sender := cc.Elem().FieldByName("CC").Elem()
-		if strings.Contains(sender.Type().String(), "xrayBBRAdapter") {
-			sender = sender.Elem().FieldByName("sender").Elem()
-		}
 		return sender.Type().String(), ptr
 	}
 	return fmt.Sprintf("%s reno=%t", cc.Type(), cc.Elem().FieldByName("reno").Bool()), ptr
@@ -41,7 +36,7 @@ func reauditWantedSender(controller string) string {
 	if controller == "bbr" {
 		return "*bbr.bbrSender"
 	}
-	return fmt.Sprintf("*congestion.cubicSender reno=%t", controller == "new_reno")
+	return "*congestion.cubicSender reno=true"
 }
 
 func TestAudit3ManagerEnsureActualSendersWithPersistentTraffic(t *testing.T) {
@@ -141,6 +136,10 @@ func TestAudit3ManagerEnsureActualSendersWithPersistentTraffic(t *testing.T) {
 			t.Fatal(err)
 		}
 		normalized, _ := normalizeCongestionControl(controller)
+		served := normalized
+		if served == "cubic" {
+			served = "new_reno"
+		}
 		if server.quicListener != listener || server.packetConn.LocalAddr().String() != address {
 			t.Fatal("listener changed")
 		}
@@ -169,7 +168,7 @@ func TestAudit3ManagerEnsureActualSendersWithPersistentTraffic(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		waitForClientCongestionSender(t, server, client, normalized)
+		waitForClientCongestionSender(t, server, client, served)
 		var serverConn *quic.Conn
 		server.connectionsMu.Lock()
 		for candidate := range server.connections {

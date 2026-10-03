@@ -22,7 +22,7 @@ unstable networks.
 | **Port** | UDP port for incoming client QUIC connections. |
 | **Certificate & Key** | Full TLS certificate chain and private key. QUIC mandates TLS encryption; self-signed certificates or valid Let's Encrypt / ACME certs are supported. |
 | **SNI** | Server Name Indication matching your TLS certificate domain name. |
-| **Congestion Control** | QUIC congestion control algorithm: `bbr` (recommended for high throughput), `cubic`, or `new_reno`. |
+| **Congestion Control** | QUIC congestion control algorithm: `bbr` (recommended for high throughput), `cubic`, or `new_reno`. The server runs `bbr` or `new_reno`; `cubic` is sent to clients but served as `new_reno`. |
 | **ALPN** | Application-Layer Protocol Negotiation tokens (default: `h3`). |
 | **UDP Relay Mode** | Packet encapsulation mode: `native` (QUIC datagrams, recommended) or `quic`. |
 | **Zero-RTT Handshake** | Enables 0-RTT connection resumption to eliminate initial handshake round-trips for returning clients. |

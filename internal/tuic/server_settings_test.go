@@ -2,13 +2,10 @@ package tuic
 
 import (
 	"fmt"
-	"reflect"
 	"slices"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/poise52/quic-go/congestion"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -71,49 +68,6 @@ func TestLogfUsesCommonLoggerAndHonorsThreshold(t *testing.T) {
 			}
 			if !strings.Contains(logs, "inbound 99001 (log-test)") {
 				t.Fatal("TUIC event was not written through the shared 3x-ui logger")
-			}
-		})
-	}
-}
-
-type congestionTargetRecorder struct {
-	controller string
-	reno       bool
-	packetSize congestion.ByteCount
-}
-
-func (r *congestionTargetRecorder) SetCubicCongestionControl(reno bool) bool {
-	r.controller = "cubic"
-	r.reno = reno
-	return true
-}
-
-func (r *congestionTargetRecorder) SetCongestionControlFactory(factory func(congestion.ByteCount) congestion.CongestionControl) bool {
-	r.controller = "bbr"
-	controller := factory(1200)
-	r.packetSize = 1200
-	if !strings.Contains(reflect.TypeOf(controller.(*xrayBBRAdapter).sender).String(), "bbrSender") {
-		r.controller = "wrong"
-	}
-	return true
-}
-
-func TestConnectionControllerIsSelectedBeforeHandshake(t *testing.T) {
-	for _, test := range []struct {
-		controller string
-		want       string
-		wantReno   bool
-	}{{"bbr", "bbr", false}, {"cubic", "cubic", false}, {"new_reno", "cubic", true}} {
-		t.Run(test.controller, func(t *testing.T) {
-			target := &congestionTargetRecorder{}
-			if !configureCongestionControl(target, test.controller) {
-				t.Fatal("controller setter was not applied")
-			}
-			if target.controller != test.want || target.reno != test.wantReno {
-				t.Fatalf("selected controller = %q, reno=%t, want %q, reno=%t", target.controller, target.reno, test.want, test.wantReno)
-			}
-			if test.controller == "bbr" && target.packetSize != 1200 {
-				t.Fatalf("BBR factory packet size = %d, want 1200", target.packetSize)
 			}
 		})
 	}

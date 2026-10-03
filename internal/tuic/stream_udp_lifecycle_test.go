@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	serverquic "github.com/apernet/quic-go"
 	"github.com/google/uuid"
-	serverquic "github.com/poise52/quic-go"
 	clientquic "github.com/quic-go/quic-go"
 )
 

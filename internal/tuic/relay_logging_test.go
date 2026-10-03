@@ -183,7 +183,7 @@ func TestAudit3RealEventsRespectThresholdAndDoNotExposeSecrets(t *testing.T) {
 					t.Errorf("event %q present=%t, want %t\n%s", event, got, wantWarn, logs)
 				}
 			}
-			if got := strings.Contains(logs, "configured bbr congestion controller"); got != (level == "debug") {
+			if got := strings.Contains(logs, "applied bbr congestion controller"); got != (level == "debug") {
 				t.Errorf("debug controller event=%t", got)
 			}
 			if !strings.Contains(logs, "QUIC listener stopped accepting connections") {

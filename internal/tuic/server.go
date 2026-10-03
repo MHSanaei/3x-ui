@@ -14,8 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/poise52/quic-go"
-	quiccongestion "github.com/poise52/quic-go/congestion"
+	"github.com/apernet/quic-go"
+	xraycongestion "github.com/xtls/xray-core/transport/internet/hysteria/congestion"
+	"github.com/xtls/xray-core/transport/internet/hysteria/congestion/bbr"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
@@ -126,14 +127,6 @@ func NewServer(inst Instance, relay *SocksRelay) (*Server, error) {
 		cancel:                cancel,
 	}
 	s.updateRuntimeSettings(inst.Tag, inst.CongestionControl, inst.LogLevel)
-	s.quicConfig.GetConfigForClient = func(_ *quic.ClientInfo) (*quic.Config, error) {
-		connectionConfig := s.quicConfig.Clone()
-		controller, _ := s.congestionControl.Load().(string)
-		connectionConfig.ConfigureCongestionControl = func(conn *quic.Conn) {
-			s.configureConnectionCongestionControl(conn, controller)
-		}
-		return connectionConfig, nil
-	}
 	return s, nil
 }
 
@@ -181,30 +174,19 @@ func (s *Server) UpdateRuntimeSettings(tag, controller, logLevel string) {
 	s.updateRuntimeSettings(tag, controller, logLevel)
 }
 
-func configureCongestionControl(target interface {
-	SetCubicCongestionControl(reno bool) bool
-	SetCongestionControlFactory(func(quiccongestion.ByteCount) quiccongestion.CongestionControl) bool
-}, controller string,
-) bool {
+// applyCongestionControl installs Xray's BBR on an accepted connection; quic-go
+// itself only ships New Reno, so a CUBIC choice is served as New Reno.
+func (s *Server) applyCongestionControl(conn *quic.Conn) {
+	controller, _ := s.congestionControl.Load().(string)
 	switch controller {
 	case "bbr":
-		return target.SetCongestionControlFactory(func(size quiccongestion.ByteCount) quiccongestion.CongestionControl {
-			return newXrayBBR(size)
-		})
+		xraycongestion.UseBBR(conn, bbr.ProfileStandard)
+		s.logf(tuicLogDebug, "applied bbr congestion controller")
 	case "cubic":
-		return target.SetCubicCongestionControl(false)
-	case "new_reno":
-		return target.SetCubicCongestionControl(true)
+		s.logf(tuicLogDebug, "cubic is not available; applied new_reno congestion controller")
+	default:
+		s.logf(tuicLogDebug, "applied new_reno congestion controller")
 	}
-	return false
-}
-
-func (s *Server) configureConnectionCongestionControl(conn *quic.Conn, controller string) {
-	if !configureCongestionControl(conn, controller) {
-		s.logf(tuicLogError, "QUIC implementation does not support the %s controller", controller)
-		return
-	}
-	s.logf(tuicLogDebug, "configured %s congestion controller before QUIC handshake", controller)
 }
 
 func (s *Server) registerConn(user *User, conn *quic.Conn) {
@@ -361,6 +343,7 @@ func (s *Server) handleConn(conn *quic.Conn) {
 		delete(s.connections, conn)
 		s.connectionsMu.Unlock()
 	}()
+	s.applyCongestionControl(conn)
 	sessCtx, sessCancel := context.WithCancel(s.ctx)
 	stopConnWatch := context.AfterFunc(conn.Context(), sessCancel)
 	defer stopConnWatch()
