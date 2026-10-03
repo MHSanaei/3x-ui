@@ -1410,10 +1410,11 @@ setup_fail2ban() {
     return 0
 }
 
-# Major version of the local systemd, 0 when it cannot be determined. @-named
-# system call filter groups (SystemCallFilter=@system-service) only exist from
-# systemd 239 on; on older versions an unknown group is not ignored safely, the
-# filter stays in force and leaves a whitelist the panel cannot run under.
+# Major version of the local systemd, 0 when it cannot be determined. The
+# SystemCallFilter=@system-service group only exists from systemd 239 on (other
+# @-named groups exist since 231); on older versions an unknown group is not
+# ignored safely, the filter stays in force and leaves a whitelist the panel
+# cannot run under.
 _xui_systemd_major_version() {
     local version=""
     if command -v systemctl > /dev/null 2>&1; then
@@ -1426,9 +1427,10 @@ _xui_systemd_major_version() {
     echo "$version"
 }
 
-# ProtectSystem=full makes /usr, /boot, /efi and /etc read-only. It is
-# ProtectSystem=strict that locks down everything outside /var, /run and the
-# listed paths, and that would break the panel's own use of /tmp. The panel's
+# ProtectSystem=full makes /usr, /boot, /efi and /etc read-only. ProtectSystem=
+# strict would make the whole hierarchy read-only (only the kernel API
+# filesystems stay as they are), and that would break the panel's own use of
+# /tmp. The panel's
 # stores are configurable (XUI_DB_FOLDER, XUI_LOG_FOLDER, XUI_BIN_FOLDER,
 # XUI_MAIN_FOLDER), so a hard-coded list in the unit either misses a relocated
 # folder -- the panel then cannot write its own SQLite database and sits in a
@@ -1443,7 +1445,7 @@ _xui_service_write_paths_dropin() {
     local env_file="${1:-}"
     local dropin_dir dropin temp_file
     local db_folder log_folder bin_folder main_folder
-    local path line=""
+    local path line="" whitespace_paths=""
 
     if [[ -z "$env_file" ]]; then
         case "${release}" in
@@ -1480,11 +1482,24 @@ _xui_service_write_paths_dropin() {
 
     for path in "$db_folder" "$log_folder" "$bin_folder" "$main_folder"; do
         [[ "$path" == /* ]] || continue
+        # ReadWritePaths= is a whitespace-separated list, and a folder whose
+        # name contains whitespace cannot be written into it without relying on
+        # quoting. A wrong entry makes systemd reject the whole drop-in and the
+        # panel would not start, so leave such a folder out and say so instead.
+        if [[ "$path" != "${path//[[:space:]]/}" ]]; then
+            whitespace_paths="${whitespace_paths:+$whitespace_paths }$path"
+            continue
+        fi
         case " $line " in
             *" -$path "*) continue ;;
         esac
         line="${line} -${path}"
     done
+    if [[ -n "$whitespace_paths" ]]; then
+        echo "Warning: these folders contain whitespace and were left out of" >&2
+        echo "         10-xui-sandbox.conf: $whitespace_paths" >&2
+        echo "         The panel cannot write to them under the unit's sandbox." >&2
+    fi
     line="${line# }"
     [[ -n "$line" ]] || return 1
 
@@ -1509,7 +1524,7 @@ ReadWriteDirectories=${line}
 EOF
     if [[ "$(_xui_systemd_major_version)" -ge 239 ]]; then
         cat >> "$temp_file" << 'EOF'
-# @-named syscall filter groups need systemd >= 239; on older versions this
+# @system-service needs systemd >= 239; on older versions the unknown group
 # would leave the panel with a filter it cannot start under (x-ui.service.*).
 SystemCallFilter=@system-service
 SystemCallErrorNumber=EPERM

@@ -81,8 +81,9 @@ RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 # DAC_OVERRIDE, so it would only widen the set without adding anything.
 CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
 SystemCallArchitectures=native
-# No seccomp whitelist here on purpose. The @-named filter groups need systemd
-# >= 239, and older systemd does not ignore an unknown group name gracefully: on
+# No seccomp whitelist here on purpose. @system-service needs systemd >= 239
+# (other @-named groups exist since 231), and older systemd does not ignore an
+# unknown group name gracefully: on
 # <231 the name fails to resolve and the filter stays the built-in whitelist of
 # execve/exit/exit_group/rt_sigreturn/sigreturn, on 231..238 it degrades to
 # @default -- either way the panel then gets EPERM on read/openat/mmap/clone and
