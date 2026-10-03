@@ -29,7 +29,11 @@ func TestNodeSyncPushSkipsOperatorTLSGuard(t *testing.T) {
 	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, SetNeedRestart: func() {}}))
 	t.Cleanup(func() { runtime.SetManager(prev) })
 
-	for name, scope := range map[string]string{"node-sync": model.ApiScopeNodeSync, "admin": model.ApiScopeAdmin} {
+	for name, scope := range map[string]string{
+		"node-sync":  model.ApiScopeNodeSync,
+		"node-admin": model.ApiScopeNodeAdmin,
+		"admin":      model.ApiScopeAdmin,
+	} {
 		row := &model.ApiToken{Name: name, Token: crypto.HashTokenSHA256(name + "-token"), Enabled: true, Scope: scope}
 		if err := database.GetDB().Create(row).Error; err != nil {
 			t.Fatalf("seed %s token: %v", name, err)
@@ -75,6 +79,16 @@ func TestNodeSyncPushSkipsOperatorTLSGuard(t *testing.T) {
 			t.Fatalf("node-sync add rejected: %s", body)
 		}
 		if got := rows(t, "tls-legacy-45001"); got != 1 {
+			t.Fatalf("stored rows = %d, want 1", got)
+		}
+	})
+
+	t.Run("a node admin push keeps node sync semantics", func(t *testing.T) {
+		body := add(t, "node-admin-token", 45003)
+		if !strings.Contains(body, `"success":true`) {
+			t.Fatalf("node-admin add rejected: %s", body)
+		}
+		if got := rows(t, "tls-legacy-45003"); got != 1 {
 			t.Fatalf("stored rows = %d, want 1", got)
 		}
 	})
