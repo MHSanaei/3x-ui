@@ -57,9 +57,7 @@ func startLifecycleTestServer(t *testing.T, relayAddr, email string) (*Server, *
 	if _, err := stream.Write(auth); err != nil {
 		t.Fatalf("write authentication: %v", err)
 	}
-	if err := stream.Close(); err != nil {
-		t.Fatalf("close authentication stream: %v", err)
-	}
+	closeUniStream(t, stream)
 	return server, client, clientID, password
 }
 
