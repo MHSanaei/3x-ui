@@ -1,7 +1,9 @@
 package service
 
 import (
+	"net"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -751,6 +753,30 @@ func TestCheckPortConflict_EgressPortBlockedLocal(t *testing.T) {
 	}
 	if got == nil {
 		t.Fatalf("a local inbound on the egress port %d must conflict", amneziawgnet.EgressBasePort)
+	}
+}
+
+// Where EgressBasePort is taken the egress listens on another port, and that
+// is the port an inbound must not collide with.
+func TestCheckPortConflict_EgressPortFollowsTheListener(t *testing.T) {
+	setupConflictDB(t)
+	if ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(amneziawgnet.EgressBasePort))); err == nil {
+		t.Cleanup(func() { ln.Close() })
+	}
+	egress := amneziawgnet.GetEgressServer()
+	if err := egress.Listen(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(egress.Close)
+
+	svc := &InboundService{}
+	candidate := &model.Inbound{Tag: "vless-bridge", Listen: "0.0.0.0", Port: egress.Port(), Protocol: model.VLESS}
+	got, err := svc.checkPortConflict(candidate, 0)
+	if err != nil {
+		t.Fatalf("checkPortConflict: %v", err)
+	}
+	if got == nil || got.Tag != "amneziawg-egress" {
+		t.Fatalf("an inbound on the egress's port %d must conflict with amneziawg-egress, got %+v", egress.Port(), got)
 	}
 }
 

@@ -471,19 +471,6 @@ export default function ClientFormModal({
     return ids;
   }, [inbounds]);
 
-  const tuicIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const row of inbounds || []) {
-      if (row && row.protocol === 'tuic') ids.add(row.id);
-    }
-    return ids;
-  }, [inbounds]);
-
-  const hasTuic = useMemo(
-    () => (inboundIds || []).some((id) => tuicIds.has(id)),
-    [inboundIds, tuicIds],
-  );
-
   const mtprotoDomain = useMemo(() => {
     for (const id of inboundIds || []) {
       const ib = (inbounds || []).find((row) => row.id === id);
@@ -933,11 +920,7 @@ export default function ClientFormModal({
                           <FormField
                             name="totalGB"
                             label={t('pages.clients.totalGB')}
-                            tooltip={
-                              hasTuic
-                                ? t('pages.clients.tuicTotalGBDesc')
-                                : t('pages.clients.totalGBDesc')
-                            }
+                            tooltip={t('pages.clients.totalGBDesc')}
                             transform={{ output: (v) => Number(v) || 0 }}
                           >
                             <InputNumber min={0} step={1} style={{ width: '100%' }} />
@@ -1040,18 +1023,10 @@ export default function ClientFormModal({
                             />
                           </Form.Item>
                         </Col>
-                        <Col xs={24}>
-                          <ClientRenewalFields
-                            active={open}
-                            delayedStart={delayedStart}
-                            expiryTime={
-                              delayedStart ? -86400000 * (delayedDays || 0) : expiryDate || 0
-                            }
-                            resetCount={client?.traffic?.resetCount || 0}
-                            setExpiry={(expiry) => methods.setValue('expiryDate', expiry)}
-                          />
-                        </Col>
-                        <Col xs={12} md={6}>
+                      </Row>
+
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
                           <FormField
                             name="trafficReset"
                             label={t('pages.inbounds.periodicTrafficResetTitle')}
@@ -1063,9 +1038,7 @@ export default function ClientFormModal({
                               }))}
                             />
                           </FormField>
-                        </Col>
-                        {trafficReset === 'monthly' && (
-                          <Col xs={12} md={6}>
+                          {trafficReset === 'monthly' && (
                             <FormField
                               name="trafficResetDay"
                               label={t('pages.inbounds.periodicTrafficResetDay')}
@@ -1073,8 +1046,19 @@ export default function ClientFormModal({
                             >
                               <InputNumber min={1} max={31} style={{ width: '100%' }} />
                             </FormField>
-                          </Col>
-                        )}
+                          )}
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <ClientRenewalFields
+                            active={open}
+                            delayedStart={delayedStart}
+                            expiryTime={
+                              delayedStart ? -86400000 * (delayedDays || 0) : expiryDate || 0
+                            }
+                            resetCount={client?.traffic?.resetCount || 0}
+                            setExpiry={(expiry) => methods.setValue('expiryDate', expiry)}
+                          />
+                        </Col>
                       </Row>
 
                       <Row gutter={16}>

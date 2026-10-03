@@ -37,6 +37,8 @@ func TestActiveSponsorsFilters(t *testing.T) {
 	}{
 		{"valid", func(*Sponsor) {}, true},
 		{"expired", func(s *Sponsor) { s.Until = sponsorTestNow }, false},
+		{"not started yet", func(s *Sponsor) { s.From = new(sponsorTestNow.Add(time.Hour)) }, false},
+		{"starts exactly now", func(s *Sponsor) { s.From = new(sponsorTestNow) }, true},
 		{"enable false with future until", func(s *Sponsor) { s.Enable = new(false) }, false},
 		{"enable true without until", func(s *Sponsor) { s.Enable, s.Until = new(true), time.Time{} }, false},
 		{"enable true with future until", func(s *Sponsor) { s.Enable = new(true) }, true},

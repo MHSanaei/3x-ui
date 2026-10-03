@@ -618,7 +618,7 @@
         "maxTimeDiff": "Maks. selisih waktu (ms)",
         "minClientVer": "Min. versi klien",
         "maxClientVer": "Maks. versi klien",
-        "minClientVerHint": "Kosong berarti tanpa minimum: Xray-core menerima semua versi klien, termasuk core pihak ketiga seperti Mihomo dan sing-box. Isi versi untuk menolak klien yang melaporkan versi lebih lama.",
+        "minClientVerHint": "Pada Xray-core v26.9.8+ kosong berarti tanpa minimum: semua versi klien diterima, termasuk core pihak ketiga seperti Mihomo dan sing-box. Core v26.7.11 hingga v26.9.7 justru memberlakukan minimum bawaan 26.3.27 saat kosong; isi 1.0.0 di sana untuk menerima klien tersebut. Isi versi untuk menolak klien yang melaporkan versi lebih lama.",
         "maxClientVerHint": "Kosong berarti tanpa batas atas. Jika diisi, tidak boleh lebih rendah dari versi klien minimum — jika tidak, semua klien ditolak.",
         "clientVerInvalid": "Versi klien harus berupa maksimal tiga angka dipisah titik, masing-masing 0-255 (mis. 26.3.27)",
         "maxClientVerBelowMin": "Versi klien maksimum tidak boleh lebih rendah dari versi klien minimum",
@@ -966,7 +966,6 @@
       "renewOnDay": "Perpanjang pada tanggal",
       "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya. 0 mempertahankan mode interval hari.",
       "renewsUsed": "Perpanjangan terpakai",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto."
     },
     "groups": {
@@ -1643,13 +1642,10 @@
       "subHappProxyIPs": "IP / CIDR Proxy",
       "subHappBlockIPs": "IP / CIDR Diblokir",
       "subHappDeeplinkGenerated": "Deeplink dibuat dan diterapkan ke aturan routing",
-      "subHappGroupLinks": "Tautan Langganan",
       "subHappGroupRouting": "Routing & Aturan",
-      "subHappGroupBanners": "Banner & Pengumuman",
       "subHappGroupNetwork": "Jaringan & Mesin TUN",
       "subHappGroupThemes": "Tampilan & Tema",
       "subHappGroupFailover": "Migrasi & Manajemen Aplikasi",
-      "subHappGroupAndroid": "Proxy Per-Aplikasi Android",
       "discordSettings": "Bot Discord",
       "discordBotEnable": "Aktifkan Notifikasi Discord",
       "discordBotEnableDesc": "Kirim peringatan sistem dan acara ke saluran Discord melalui bot",
@@ -2141,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "Kontrol Kemacetan",
+        "congestionControlHint": "Algoritma server dan klien. Perubahan server berlaku setelah terhubung ulang.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Mode Relai UDP",
+        "udpRelayModeHint": "Mode UDP klien. Server mendukung keduanya.",
         "zeroRttHandshake": "Jabat Tangan 0-RTT",
         "logLevel": "Tingkat Log",
-        "logLevelHint": "Status online, terakhir online, dan \"mulai setelah penggunaan pertama\" dibaca dari baris Info sidecar; Warn atau Error menonaktifkannya untuk inbound ini.",
+        "logLevelHint": "Level log minimum untuk inbound ini.",
         "maxIdleTime": "Waktu Diam Maks (dtk)",
         "authTimeout": "Batas Waktu Otentikasi (dtk)",
         "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
         "sni": "SNI",
-        "sniHint": "Penggantian Server Name Indication"
+        "sniHint": "Nama server TLS dalam profil klien.",
+        "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       },
       "tun": {
         "userLevel": "Level Pengguna"

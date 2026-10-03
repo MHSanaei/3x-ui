@@ -1102,6 +1102,8 @@ update_x-ui() {
         echo -e "${green}Removing old README and LICENSE file...${plain}"
         rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
         rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
+        rm ${xui_folder}/bin/tuic-server -f > /dev/null 2>&1
+        rm ${xui_folder}/bin/tuic -rf > /dev/null 2>&1
     else
         rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
         _fail "ERROR: x-ui not installed."
@@ -1137,9 +1139,6 @@ update_x-ui() {
         chmod +x bin/mtg-linux-arm > /dev/null 2>&1
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch) > /dev/null 2>&1
-    fi
-    if [[ -f bin/tuic-server ]]; then
-        chmod +x bin/tuic-server > /dev/null 2>&1
     fi
 
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"

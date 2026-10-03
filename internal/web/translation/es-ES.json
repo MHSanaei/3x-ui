@@ -639,7 +639,7 @@
         "maxTimeDiff": "Máx. diferencia de tiempo (ms)",
         "minClientVer": "Mín. versión cliente",
         "maxClientVer": "Máx. versión cliente",
-        "minClientVerHint": "Vacío significa sin mínimo: Xray-core acepta cualquier versión de cliente, incluidos núcleos de terceros como Mihomo y sing-box. Establece una versión para rechazar a los clientes que informen una más antigua.",
+        "minClientVerHint": "En Xray-core v26.9.8+ vacío significa sin mínimo: se acepta cualquier versión de cliente, incluidos núcleos de terceros como Mihomo y sing-box. Los núcleos v26.7.11 a v26.9.7, en cambio, aplican un mínimo integrado de 26.3.27 cuando está vacío; establece 1.0.0 en ellos para aceptar a esos clientes. Establece una versión para rechazar a los clientes que informen una más antigua.",
         "maxClientVerHint": "Vacío significa sin límite superior. Si se establece, no debe ser inferior a la versión mínima del cliente; de lo contrario, se rechaza a todos los clientes.",
         "clientVerInvalid": "La versión del cliente debe tener hasta tres números separados por puntos, cada uno 0-255 (p. ej. 26.3.27)",
         "maxClientVerBelowMin": "La versión máxima del cliente no debe ser inferior a la versión mínima",
@@ -966,7 +966,6 @@
       "renewOnDay": "Renovar el día",
       "renewOnDayDesc": "Renueva este día de cada mes natural, a medianoche en la zona horaria del panel, en lugar de cada N días. Si el mes es demasiado corto para el día elegido, renueva su último día. 0 mantiene el modo de intervalo en días.",
       "renewsUsed": "Renovaciones usadas",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Introduce una etiqueta hexadecimal de 32 caracteres para asignar, o 'none' para borrarla en MTProto."
     },
     "groups": {
@@ -1643,13 +1642,10 @@
       "subHappProxyIPs": "IPs / CIDR por proxy",
       "subHappBlockIPs": "IPs / CIDR bloqueados",
       "subHappDeeplinkGenerated": "Deeplink generado y aplicado a las reglas de enrutamiento",
-      "subHappGroupLinks": "Enlaces de suscripción",
       "subHappGroupRouting": "Enrutamiento y reglas",
-      "subHappGroupBanners": "Banners y anuncios",
       "subHappGroupNetwork": "Red y motor TUN",
       "subHappGroupThemes": "Apariencia y tema",
       "subHappGroupFailover": "Migración y gestión de la app",
-      "subHappGroupAndroid": "Proxy por aplicación en Android",
       "discordSettings": "Bot de Discord",
       "discordBotEnable": "Habilitar notificaciones de Discord",
       "discordBotEnableDesc": "Enviar alertas del sistema y eventos a un canal de Discord a través del bot",
@@ -2141,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "Control de congestión",
+        "congestionControlHint": "Algoritmo del servidor y cliente. Los cambios del servidor se aplican al reconectar.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Modo de retransmisión UDP",
+        "udpRelayModeHint": "Modo UDP del cliente. El servidor admite ambos.",
         "zeroRttHandshake": "Apretón de manos 0-RTT",
         "logLevel": "Nivel de registro",
-        "logLevelHint": "El estado en línea, la última conexión y «iniciar tras el primer uso» se leen de las líneas Info del sidecar; Warn o Error los desactivan para este inbound.",
+        "logLevelHint": "Nivel mínimo de registro de esta entrada.",
         "maxIdleTime": "Tiempo máx. de inactividad (s)",
         "authTimeout": "Tiempo de espera de autenticación (s)",
         "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",
         "sni": "SNI",
-        "sniHint": "Sobrescritura de Server Name Indication"
+        "sniHint": "Nombre del servidor TLS en el perfil del cliente.",
+        "sniRequired": "Introduce un dominio para completar las rutas del certificado."
       },
       "tun": {
         "userLevel": "Nivel de Usuario"

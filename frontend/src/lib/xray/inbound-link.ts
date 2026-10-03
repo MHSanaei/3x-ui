@@ -17,6 +17,7 @@ import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
 import { deriveSpiderX } from './spider-x';
+import { normalizeTuicCongestionController, resolveTuicServerSettings } from '@/lib/tuic';
 
 // Share-link generators. Each per-protocol fn takes a typed inbound plus
 // client overrides and returns a URL (or '' when the protocol doesn't
@@ -144,9 +145,36 @@ function hasShareableFinalMaskValue(value: unknown): boolean {
   return true;
 }
 
+function withLegacyFragmentRanges(finalmask: FinalMaskStreamSettings): FinalMaskStreamSettings {
+  // Stored rows reach here unparsed: dropEmptyFinalMask deletes an empty `tcp` on save.
+  if (!Array.isArray(finalmask.tcp)) return finalmask;
+  let changed = false;
+  const tcp = finalmask.tcp.map((mask) => {
+    if (mask.type !== 'fragment' || !mask.settings) return mask;
+
+    const settings = mask.settings;
+    const legacy: Record<string, unknown> = {};
+    if (settings.length === undefined && Array.isArray(settings.lengths)) {
+      const length = settings.lengths.at(-1);
+      if (typeof length === 'string' && length.trim().length > 0) legacy.length = length;
+    }
+    if (settings.delay === undefined && Array.isArray(settings.delays)) {
+      const delay = settings.delays.at(-1);
+      if (typeof delay === 'string' && delay.trim().length > 0) legacy.delay = delay;
+    }
+    if (Object.keys(legacy).length === 0) return mask;
+
+    changed = true;
+    return { ...mask, settings: { ...settings, ...legacy } };
+  });
+
+  return changed ? { ...finalmask, tcp } : finalmask;
+}
+
 function serializeFinalMask(finalmask: FinalMaskStreamSettings | undefined): string {
   if (!finalmask) return '';
-  return hasShareableFinalMaskValue(finalmask) ? JSON.stringify(finalmask) : '';
+  const shareable = withLegacyFragmentRanges(finalmask);
+  return hasShareableFinalMaskValue(shareable) ? JSON.stringify(shareable) : '';
 }
 
 function applyFinalMaskToObj(
@@ -453,6 +481,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     applyExternalProxyTLSParams(externalProxy, params, security);
   } else if (security === 'reality') {
     params.set('security', 'reality');
+    params.set('support-x25519mlkem768', 'true');
     if (stream.security === 'reality') {
       const reality = stream.realitySettings;
       params.set('pbk', reality.settings.publicKey);
@@ -886,15 +915,16 @@ export function genTuicLink(input: GenTuicLinkInput): string {
   if (!clientUuid || !clientPassword) return '';
 
   const rawSettings = inbound.settings as Record<string, unknown>;
-  const server = (rawSettings.server as Record<string, unknown>) ?? rawSettings;
+  const server = resolveTuicServerSettings(rawSettings);
   const host = formatUrlHost(externalProxy?.dest || address);
   const targetPort = externalProxy?.port || port;
 
   const url = new URL(
     `tuic://${encodeURIComponent(clientUuid)}:${encodeURIComponent(clientPassword)}@${host}:${targetPort}`,
   );
-  const cc =
-    (server.congestion_control as string) || (rawSettings.congestion_control as string) || 'bbr';
+  const cc = normalizeTuicCongestionController(
+    server.congestion_control ?? rawSettings.congestion_control,
+  );
   url.searchParams.set('congestion_control', cc);
 
   const epAlpn = externalProxyAlpn(externalProxy?.alpn);
@@ -1117,44 +1147,43 @@ export interface GenAmneziaWGFanoutInput {
   fallbackHostname: string;
 }
 
-export function genAmneziaWGLinks(input: GenAmneziaWGFanoutInput): string {
+function amneziaWGFanout(
+  input: GenAmneziaWGFanoutInput,
+  render: (input: GenAmneziaWGLinkInput) => string,
+): string[][] {
   const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
-  if (inbound.protocol !== 'amneziawg') return '';
-  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
-  const sep = '-';
+  if (inbound.protocol !== 'amneziawg') return [];
+  const endpoints = tunnelEndpoints(inbound, resolveAddr(inbound, hostOverride, fallbackHostname));
   const settings = inbound.settings as AmneziawgInboundSettings;
   const clients = settings.clients ?? [];
-  return clients
-    .map((c, i) =>
-      genAmneziaWGLink({
+  return clients.map((c, i) =>
+    endpoints.map((e) =>
+      render({
         settings,
-        address: addr,
-        port: inbound.port,
-        remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(c)}`,
+        address: e.address,
+        port: e.port,
+        remark: tunnelPeerRemark(remark, e.remark, i, c),
         peerIndex: i,
       }),
-    )
-    .join('\r\n');
+    ),
+  );
+}
+
+// Per-peer lists with one entry per advertised endpoint (Host), peer-major.
+export function genAmneziaWGPeerLinks(input: GenAmneziaWGFanoutInput): string[][] {
+  return amneziaWGFanout(input, genAmneziaWGLink);
+}
+
+export function genAmneziaWGPeerConfigs(input: GenAmneziaWGFanoutInput): string[][] {
+  return amneziaWGFanout(input, genAmneziaWGConfig);
+}
+
+export function genAmneziaWGLinks(input: GenAmneziaWGFanoutInput): string {
+  return genAmneziaWGPeerLinks(input).flat().join('\r\n');
 }
 
 export function genAmneziaWGConfigs(input: GenAmneziaWGFanoutInput): string {
-  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
-  if (inbound.protocol !== 'amneziawg') return '';
-  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
-  const sep = '-';
-  const settings = inbound.settings as AmneziawgInboundSettings;
-  const clients = settings.clients ?? [];
-  return clients
-    .map((c, i) =>
-      genAmneziaWGConfig({
-        settings,
-        address: addr,
-        port: inbound.port,
-        remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(c)}`,
-        peerIndex: i,
-      }),
-    )
-    .join('\r\n');
+  return genAmneziaWGPeerConfigs(input).flat().join('\r\n');
 }
 
 export function wireguardConfigFromLink(link: string, fallbackRemark = ''): string {
@@ -1624,46 +1653,67 @@ function wgRenderPeers(settings: WireguardInboundSettings): WireguardInboundPeer
   return settings.peers;
 }
 
-export function genWireguardLinks(input: GenWireguardFanoutInput): string {
+// Hosts reach wireguard/amneziawg as externalProxy entries (withHostEndpoints);
+// with none, every peer is advertised on the inbound's own address.
+function tunnelEndpoints(
+  inbound: Inbound,
+  addr: string,
+): Array<{ address: string; port: number; remark: string }> {
+  const externals = inbound.streamSettings?.externalProxy;
+  if (Array.isArray(externals) && externals.length > 0) {
+    return externals.map((ep) => ({ address: ep.dest, port: ep.port, remark: ep.remark ?? '' }));
+  }
+  return [{ address: addr, port: inbound.port, remark: '' }];
+}
+
+function tunnelPeerRemark(
+  remark: string,
+  endpointRemark: string,
+  index: number,
+  peer: unknown,
+): string {
+  const base = [remark, endpointRemark].filter((x) => x.length > 0).join('-');
+  return `${base}-${index + 1}${wgPeerCommentSuffix(peer)}`;
+}
+
+function wireguardFanout(
+  input: GenWireguardFanoutInput,
+  render: (input: GenWireguardLinkInput) => string,
+): string[][] {
   const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
-  if (inbound.protocol !== 'wireguard') return '';
-  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
-  const sep = '-';
+  if (inbound.protocol !== 'wireguard') return [];
+  const endpoints = tunnelEndpoints(inbound, resolveAddr(inbound, hostOverride, fallbackHostname));
   const baseSettings = inbound.settings as WireguardInboundSettings;
   const peers = wgRenderPeers(baseSettings);
   const settings: WireguardInboundSettings = { ...baseSettings, peers };
-  return peers
-    .map((p, i) =>
-      genWireguardLink({
+  return peers.map((p, i) =>
+    endpoints.map((e) =>
+      render({
         settings,
-        address: addr,
-        port: inbound.port,
-        remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,
+        address: e.address,
+        port: e.port,
+        remark: tunnelPeerRemark(remark, e.remark, i, p),
         peerIndex: i,
       }),
-    )
-    .join('\r\n');
+    ),
+  );
+}
+
+// Per-peer lists with one entry per advertised endpoint (Host), peer-major.
+export function genWireguardPeerLinks(input: GenWireguardFanoutInput): string[][] {
+  return wireguardFanout(input, genWireguardLink);
+}
+
+export function genWireguardPeerConfigs(input: GenWireguardFanoutInput): string[][] {
+  return wireguardFanout(input, genWireguardConfig);
+}
+
+export function genWireguardLinks(input: GenWireguardFanoutInput): string {
+  return genWireguardPeerLinks(input).flat().join('\r\n');
 }
 
 export function genWireguardConfigs(input: GenWireguardFanoutInput): string {
-  const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
-  if (inbound.protocol !== 'wireguard') return '';
-  const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
-  const sep = '-';
-  const baseSettings = inbound.settings as WireguardInboundSettings;
-  const peers = wgRenderPeers(baseSettings);
-  const settings: WireguardInboundSettings = { ...baseSettings, peers };
-  return peers
-    .map((p, i) =>
-      genWireguardConfig({
-        settings,
-        address: addr,
-        port: inbound.port,
-        remark: `${remark}${sep}${i + 1}${wgPeerCommentSuffix(p)}`,
-        peerIndex: i,
-      }),
-    )
-    .join('\r\n');
+  return genWireguardPeerConfigs(input).flat().join('\r\n');
 }
 
 // Peer comments (#5168) are panel-side annotations; when present they ride

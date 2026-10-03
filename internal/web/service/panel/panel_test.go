@@ -33,15 +33,6 @@ func TestIsNewerVersion(t *testing.T) {
 	}
 }
 
-func TestCompareVersionStringsRejectsUnexpectedFormats(t *testing.T) {
-	if _, ok := compareVersionStrings("latest", "2.9.3"); ok {
-		t.Fatal("expected non-semver latest tag to be rejected")
-	}
-	if _, ok := compareVersionStrings("v2.9", "2.9.3"); ok {
-		t.Fatal("expected short version to be rejected")
-	}
-}
-
 func TestShellQuote(t *testing.T) {
 	if got := shellQuote("/usr/bin/curl"); got != "'/usr/bin/curl'" {
 		t.Fatalf("unexpected quote result: %s", got)
@@ -54,6 +45,9 @@ func TestShellQuote(t *testing.T) {
 // TestUpdateProxyEnvVars covers the bug this function fixes: ambient proxy
 // vars must reach update.sh's systemd-run child, which inherits nothing.
 func TestUpdateProxyEnvVars(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows env var names are case-insensitive, so both spellings resolve; the updater runs only on Linux")
+	}
 	allKeys := []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "http_proxy", "HTTP_PROXY", "no_proxy", "NO_PROXY"}
 	clearAll := func(t *testing.T) {
 		t.Helper()

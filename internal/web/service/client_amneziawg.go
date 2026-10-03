@@ -93,11 +93,11 @@ func defaultAmneziaWGClients(settingsJSON string, existing, clients []model.Clie
 			if len(normalized) == 0 {
 				return common.NewError("amneziawg: allowedIPs has no usable entry")
 			}
-			if hit := wireguardAllowedIPsCollision(normalized, used); hit != "" {
-				if where := crossInboundUsed[hit]; where != "" {
-					return common.NewError("amneziawg: allowedIPs entry", hit, "is already used by a client on", where)
+			if entry, taken := wireguardAllowedIPsOverlap(normalized, used); taken != "" {
+				if where := crossInboundUsed[taken]; where != "" {
+					return common.NewError("amneziawg: allowedIPs entry", entry, "overlaps", taken, "used by a client on", where)
 				}
-				return common.NewError("amneziawg: allowedIPs entry already used by another client:", hit)
+				return common.NewError("amneziawg: allowedIPs entry", entry, "overlaps", taken, "used by another client")
 			}
 			c.AllowedIPs = normalized
 		}

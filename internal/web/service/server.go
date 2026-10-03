@@ -1184,6 +1184,9 @@ func (s *ServerService) UpdateXray(version string) error {
 	return nil
 }
 
+// syslogTimeout keeps a stalled journalctl from hanging the Syslog request (#6629).
+var syslogTimeout = 15 * time.Second
+
 func (s *ServerService) GetLogs(count string, level string, syslog string) []string {
 	c, _ := strconv.Atoi(count)
 	var lines []string
@@ -1216,10 +1219,15 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		}
 
 		// Use hardcoded command with validated parameters
-		cmd := exec.CommandContext(context.Background(), "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
+		ctx, cancel := context.WithTimeout(context.Background(), syslogTimeout)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		err = cmd.Run()
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return []string{"journalctl did not answer in time. Try a smaller line count or a less strict level."}
+		}
 		if err != nil {
 			return []string{"Failed to run journalctl command! Make sure systemd is available and x-ui service is registered."}
 		}

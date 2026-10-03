@@ -191,14 +191,13 @@ func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
 			}
 		}
 	}
-	// Reality SNI override (host only): JSON realityData reads serverNames and
-	// clash reads serverName, so set both forms.
+	// Reality SNI override (host only): the stream is already in client form, and xray
+	// refuses a reality client carrying the server-side serverNames list (#6690).
 	if isHostEndpoint(ep) {
 		if sec, _ := stream["security"].(string); sec == "reality" {
 			if rs, ok := stream["realitySettings"].(map[string]any); ok && rs != nil {
 				if sni, ok := externalProxySNI(ep); ok {
 					rs["serverName"] = sni
-					rs["serverNames"] = []any{sni}
 				}
 			}
 		}

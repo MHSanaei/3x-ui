@@ -56,6 +56,24 @@ func (s *SubService) inboundDefaultEndpoint(inbound *model.Inbound) ShareEndpoin
 	}
 }
 
+// advertisedEndpoints is every endpoint a stream-less link (mtproto, wireguard,
+// amneziawg) must fan out over: the externalProxy/Host entries, else the default.
+func (s *SubService) advertisedEndpoints(inbound *model.Inbound) []ShareEndpoint {
+	stream := unmarshalStreamSettings(inbound.StreamSettings)
+	if externalProxies, ok := stream["externalProxy"].([]any); ok {
+		endpoints := make([]ShareEndpoint, 0, len(externalProxies))
+		for _, raw := range externalProxies {
+			if ep, ok := raw.(map[string]any); ok {
+				endpoints = append(endpoints, externalProxyToEndpoint(ep))
+			}
+		}
+		if len(endpoints) > 0 {
+			return endpoints
+		}
+	}
+	return []ShareEndpoint{s.inboundDefaultEndpoint(inbound)}
+}
+
 // applyEndpointTLSParams applies an endpoint's TLS overrides onto a URL-param
 // map. External-proxy endpoints delegate to the unchanged helper; host/default
 // endpoints carry no override yet (Phase 4).
@@ -80,7 +98,15 @@ func dropBaseRealityParams(params map[string]string, baseSecurity, securityToApp
 	}
 	// sni and fp name the master's reality dest, not this endpoint's own
 	// certificate; the host's values are re-applied right after this.
-	for _, k := range []string{"pbk", "sid", "spx", "pqv", "sni", "fp"} {
+	for _, k := range []string{
+		"pbk",
+		"sid",
+		"spx",
+		"pqv",
+		"support-x25519mlkem768",
+		"sni",
+		"fp",
+	} {
 		delete(params, k)
 	}
 }

@@ -1,11 +1,15 @@
 package link
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"net/url"
 	"reflect"
 	"slices"
 	"testing"
+
+	"github.com/xtls/xray-core/infra/conf"
 )
 
 func TestDefaultPort(t *testing.T) {
@@ -111,7 +115,7 @@ func streamSub(t *testing.T, res *ParseResult, key string) map[string]any {
 }
 
 func TestParse_RealitySecurityMapped(t *testing.T) {
-	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&pbk=PBK&sid=SID&sni=SNI&fp=firefox&spx=%2Fspx&pqv=PQV")
+	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&pbk=PBK&sid=SID&sni=SNI&fp=firefox&spx=%2Fspx&pqv=PQV&support-x25519mlkem768=true")
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
@@ -120,6 +124,24 @@ func TestParse_RealitySecurityMapped(t *testing.T) {
 		if re[k] != want {
 			t.Errorf("realitySettings[%q] = %v, want %q", k, re[k], want)
 		}
+	}
+}
+
+// Xray-core drops unknown JSON keys silently, so a key its REALITYConfig lacks
+// would reach the outbound as a setting that does nothing.
+func TestParse_RealitySettingsAreXrayFields(t *testing.T) {
+	res, err := ParseLink("vless://uuid@h.com:443?type=tcp&security=reality&pbk=PBK&sid=SID&sni=SNI&fp=firefox&spx=%2Fspx&pqv=PQV&support-x25519mlkem768=true")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	raw, err := json.Marshal(streamSub(t, res, "realitySettings"))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&conf.REALITYConfig{}); err != nil {
+		t.Fatalf("realitySettings %s is not an xray-core REALITY config: %v", raw, err)
 	}
 }
 

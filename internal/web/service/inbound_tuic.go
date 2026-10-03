@@ -7,7 +7,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 func (s *InboundService) DesiredTuicInstances() ([]tuic.Instance, error) {
@@ -23,47 +22,42 @@ func (s *InboundService) DesiredTuicInstances() ([]tuic.Instance, error) {
 		return nil, nil
 	}
 
-	ids := make([]int, 0, len(inbounds))
-	for _, ib := range inbounds {
-		ids = append(ids, ib.Id)
-	}
-	var disabledRows []xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).
-		Where("inbound_id IN ? AND enable = ?", ids, false).
-		Select("inbound_id", "email").
-		Find(&disabledRows).Error
-	if err != nil {
-		return nil, err
-	}
-	disabled := make(map[int]map[string]struct{}, len(disabledRows))
-	for _, row := range disabledRows {
-		if disabled[row.InboundId] == nil {
-			disabled[row.InboundId] = map[string]struct{}{}
-		}
-		disabled[row.InboundId][row.Email] = struct{}{}
-	}
-
 	instances := make([]tuic.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
-		inst, ok := tuic.InstanceFromInbound(ib)
+		built, err := s.buildInboundForLocalRuntime(db, ib)
+		if err != nil {
+			return nil, err
+		}
+		inst, ok := tuic.InstanceFromInbound(built)
 		if !ok {
-			continue
-		}
-		if off := disabled[ib.Id]; len(off) > 0 {
-			kept := make([]tuic.TuicClientSettings, 0, len(inst.Clients))
-			for _, c := range inst.Clients {
-				if _, skip := off[c.Email]; !skip {
-					kept = append(kept, c)
-				}
-			}
-			inst.Clients = kept
-		}
-		if len(inst.Clients) == 0 {
 			continue
 		}
 		instances = append(instances, inst)
 	}
-	return instances, nil
+	emails := make([]string, 0)
+	for _, inst := range instances {
+		for _, e := range inst.Clients {
+			emails = append(emails, e.Email)
+		}
+	}
+	disabled, err := trafficDisabledEmails(db, emails)
+	if err != nil {
+		return nil, err
+	}
+	served := instances[:0]
+	for _, inst := range instances {
+		kept := make([]tuic.TuicClientSettings, 0, len(inst.Clients))
+		for _, e := range inst.Clients {
+			if _, off := disabled[e.Email]; !off {
+				kept = append(kept, e)
+			}
+		}
+		inst.Clients = kept
+		if len(kept) > 0 {
+			served = append(served, inst)
+		}
+	}
+	return served, nil
 }
 
 func (s *InboundService) applyLocalTuic(inboundId int) {

@@ -10,10 +10,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
-// egressPortBound reports whether 127.0.0.1:<EgressBasePort> accepts TCP.
+// egressPortBound reports whether the egress server's Port accepts TCP.
 func egressPortBound(t *testing.T) bool {
 	t.Helper()
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", itoa(int(EgressBasePort))), 500*time.Millisecond)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", itoa(GetEgressServer().Port())), 500*time.Millisecond)
 	if err != nil {
 		return false
 	}
@@ -54,7 +54,7 @@ func newTestOutboundDesired(t *testing.T, tag string) OutboundDesired {
 }
 
 // TestOutboundManagerReconcileEmptyDesiredClosesEgress verifies that an empty
-// desired set tears down interfaces and releases 127.0.0.1:64900.
+// desired set tears down interfaces and releases the egress port.
 func TestOutboundManagerReconcileEmptyDesiredClosesEgress(t *testing.T) {
 	m := &OutboundManager{iface: map[string]*managedOutbound{}}
 	defer m.Reconcile(nil)
@@ -72,13 +72,14 @@ func TestOutboundManagerReconcileEmptyDesiredClosesEgress(t *testing.T) {
 	if !egressPortBound(t) {
 		t.Fatal("egress port not bound after Reconcile with a desired outbound")
 	}
+	held := GetEgressServer().Port()
 
 	// Empty: listener must be released so other listeners can take the port.
 	m.Reconcile(nil)
 	if egressPortBound(t) {
 		t.Fatal("egress port still bound after Reconcile(nil)")
 	}
-	ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", itoa(int(EgressBasePort))))
+	ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", itoa(held)))
 	if err != nil {
 		t.Fatalf("egress port must be free after Reconcile(nil): %v", err)
 	}
@@ -102,6 +103,7 @@ func TestEgressServerCloseDuringConcurrentAccepts(t *testing.T) {
 	if err := srv.Listen(); err != nil {
 		t.Fatal(err)
 	}
+	addr := net.JoinHostPort("127.0.0.1", itoa(srv.Port()))
 
 	stop := make(chan struct{})
 	done := make(chan struct{})
@@ -113,7 +115,7 @@ func TestEgressServerCloseDuringConcurrentAccepts(t *testing.T) {
 			case <-stop:
 				return
 			default:
-				c, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", itoa(int(EgressBasePort))), 50*time.Millisecond)
+				c, err := net.DialTimeout("tcp", addr, 50*time.Millisecond)
 				if err == nil {
 					clientWg.Add(1)
 					go func(conn net.Conn) {

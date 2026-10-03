@@ -618,7 +618,7 @@
         "maxTimeDiff": "أقصى فرق زمن (ms)",
         "minClientVer": "أدنى إصدار للعميل",
         "maxClientVer": "أقصى إصدار للعميل",
-        "minClientVerHint": "تركه فارغًا يعني بلا حد أدنى: يقبل Xray-core أي إصدار عميل، بما في ذلك النوى الخارجية مثل Mihomo وsing-box. عيّن إصدارًا لرفض العملاء الذين يبلغون عن إصدار أقدم.",
+        "minClientVerHint": "في Xray-core v26.9.8 وما بعده، تركه فارغًا يعني بلا حد أدنى: يُقبل أي إصدار عميل، بما في ذلك النوى الخارجية مثل Mihomo وsing-box. أما النوى من v26.7.11 إلى v26.9.7 فتفرض عند تركه فارغًا حدًا أدنى مدمجًا هو 26.3.27؛ عيّن 1.0.0 عليها لقبول هؤلاء العملاء. عيّن إصدارًا لرفض العملاء الذين يبلغون عن إصدار أقدم.",
         "maxClientVerHint": "تركه فارغًا يعني بلا حد أقصى. إذا عُيّن، يجب ألا يقل عن أدنى إصدار للعميل — وإلا سيُرفض جميع العملاء.",
         "clientVerInvalid": "يجب أن يتكون إصدار العميل من ثلاثة أرقام كحد أقصى مفصولة بنقاط، كل منها 0-255 (مثل 26.3.27)",
         "maxClientVerBelowMin": "أقصى إصدار للعميل يجب ألا يقل عن أدنى إصدار للعميل",
@@ -966,7 +966,6 @@
       "renewOnDay": "يوم التجديد",
       "renewOnDayDesc": "يتم التجديد في هذا اليوم من كل شهر ميلادي، عند منتصف الليل بتوقيت اللوحة، بدلاً من كل N يوم. إذا كان الشهر أقصر من اليوم المختار، يتم التجديد في آخر يوم منه. القيمة 0 تُبقي وضع الفاصل اليومي.",
       "renewsUsed": "التجديدات المستخدمة",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "أدخل علامة من 32 حرفًا ست عشريًا للتعيين، أو 'none' للمسح في منافذ MTProto."
     },
     "groups": {
@@ -1643,13 +1642,10 @@
       "subHappProxyIPs": "IPs / CIDRs عبر البروكسي",
       "subHappBlockIPs": "IPs / CIDRs محظورة",
       "subHappDeeplinkGenerated": "تم إنشاء الرابط العميق وتطبيقه على قواعد التوجيه",
-      "subHappGroupLinks": "روابط الاشتراك",
       "subHappGroupRouting": "التوجيه والقواعد",
-      "subHappGroupBanners": "اللافتات والإعلانات",
       "subHappGroupNetwork": "الشبكة ومحرك TUN",
       "subHappGroupThemes": "المظهر والسمة",
       "subHappGroupFailover": "الترحيل وإدارة التطبيق",
-      "subHappGroupAndroid": "البروكسي لكل تطبيق على Android",
       "discordSettings": "بوت ديسكورد",
       "discordBotEnable": "تفعيل إشعارات ديسكورد",
       "discordBotEnableDesc": "إرسال تنبيهات النظام والأحداث إلى قناة ديسكورد عبر البوت",
@@ -2141,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "التحكم في الازدحام",
+        "congestionControlHint": "خوارزمية الخادم والعميل. تسري تغييرات الخادم بعد إعادة الاتصال.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "وضع ترحيل UDP",
+        "udpRelayModeHint": "وضع UDP للعميل. يدعم الخادم كلا الوضعين.",
         "zeroRttHandshake": "مصافحة 0-RTT",
         "logLevel": "مستوى السجل",
-        "logLevelHint": "يتم استنتاج حالة الاتصال وآخر ظهور و«البدء بعد أول استخدام» من سطور Info الخاصة بالعملية الجانبية؛ اختيار Warn أو Error يعطّلها لهذا الإنباوند.",
+        "logLevelHint": "أدنى مستوى للسجل لهذا الاتصال الوارد.",
         "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
         "authTimeout": "مهلة المصادقة (ثوانٍ)",
         "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
         "sni": "SNI",
-        "sniHint": "تجاوز إشارة اسم الخادم"
+        "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
+        "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       },
       "tun": {
         "userLevel": "مستوى المستخدم"

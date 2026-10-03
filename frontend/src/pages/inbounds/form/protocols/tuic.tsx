@@ -4,6 +4,7 @@ import {
   AutoComplete,
   Button,
   Collapse,
+  Divider,
   Form,
   Input,
   InputNumber,
@@ -20,7 +21,7 @@ import { HttpUtil } from '@/utils';
 
 export default function TuicFields() {
   const { t } = useTranslation();
-  const { control, setValue, getValues } = useFormContext();
+  const { control, setValue } = useFormContext();
   const [loadingPanelCert, setLoadingPanelCert] = useState(false);
 
   const sni = (useWatch({ control, name: 'settings.server.sni' }) ?? '') as string;
@@ -30,24 +31,12 @@ export default function TuicFields() {
 
   const handleSniChange = (newSni: string) => {
     setValue('settings.server.sni', newSni);
-    const cleanSni = newSni.trim();
-    if (!cleanSni) return;
-
-    const currentCert = String(getValues('settings.server.certificate') || '');
-    const currentKey = String(getValues('settings.server.private_key') || '');
-
-    if (!currentCert || currentCert.startsWith('/root/cert/')) {
-      setValue('settings.server.certificate', `/root/cert/${cleanSni}/fullchain.pem`);
-    }
-    if (!currentKey || currentKey.startsWith('/root/cert/')) {
-      setValue('settings.server.private_key', `/root/cert/${cleanSni}/privkey.pem`);
-    }
   };
 
   const autofillFromSni = () => {
     const cleanSni = (sni || '').trim();
     if (!cleanSni) {
-      message.warning(t('pages.xray.tuic.sniHint'));
+      message.warning(t('pages.xray.tuic.sniRequired'));
       return;
     }
     setValue('settings.server.certificate', `/root/cert/${cleanSni}/fullchain.pem`);
@@ -147,7 +136,7 @@ export default function TuicFields() {
             name={['settings', 'server', 'max_udp_relay_packet_size']}
             label={t('pages.xray.tuic.maxUdpRelayPacketSize')}
           >
-            <InputNumber min={1} style={{ width: '100%' }} />
+            <InputNumber min={1} max={65245} style={{ width: '100%' }} />
           </FormField>
         </>
       ),
@@ -156,20 +145,6 @@ export default function TuicFields() {
 
   return (
     <>
-      <Form.Item label={t('pages.xray.tuic.sni')}>
-        <Space.Compact style={{ display: 'flex' }}>
-          <Input
-            value={sni}
-            placeholder="example.com"
-            onChange={(e) => handleSniChange(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <Button icon={<SyncOutlined />} onClick={autofillFromSni}>
-            {t('pages.inbounds.form.autoFill')}
-          </Button>
-        </Space.Compact>
-      </Form.Item>
-
       <Form.Item label={t('pages.inbounds.publicKey')}>
         <AutoComplete
           value={certificate}
@@ -198,6 +173,9 @@ export default function TuicFields() {
           >
             {t('pages.inbounds.setDefaultCert')}
           </Button>
+          <Button icon={<SyncOutlined />} onClick={autofillFromSni}>
+            {t('pages.inbounds.form.autoFill')}
+          </Button>
           <Button
             danger
             onClick={() => {
@@ -213,6 +191,7 @@ export default function TuicFields() {
       <FormField
         name={['settings', 'server', 'congestion_control']}
         label={t('pages.xray.tuic.congestionControl')}
+        tooltip={t('pages.xray.tuic.congestionControlHint')}
       >
         <Select
           options={[
@@ -234,9 +213,20 @@ export default function TuicFields() {
         />
       </FormField>
 
+      <Divider titlePlacement="start">{t('pages.xray.tuic.profileOptions')}</Divider>
+
+      <Form.Item label={t('pages.xray.tuic.sni')} tooltip={t('pages.xray.tuic.sniHint')}>
+        <Input
+          value={sni}
+          placeholder="example.com"
+          onChange={(e) => handleSniChange(e.target.value)}
+        />
+      </Form.Item>
+
       <FormField
         name={['settings', 'server', 'udp_relay_mode']}
         label={t('pages.xray.tuic.udpRelayMode')}
+        tooltip={t('pages.xray.tuic.udpRelayModeHint')}
       >
         <Select
           options={[

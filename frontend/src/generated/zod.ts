@@ -1095,6 +1095,7 @@ export type Setting = z.infer<typeof SettingSchema>;
 
 export const SponsorSchema = z.object({
   enable: z.boolean().nullable().optional(),
+  from: z.string().nullable().optional(),
   id: z.string(),
   link: z.string(),
   logo: z.string().optional(),

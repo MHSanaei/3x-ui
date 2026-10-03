@@ -10,7 +10,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-func amneziawgnetEgressPortForTest() int { return amneziawgnet.EgressBasePort }
+func amneziawgnetEgressPortForTest() int { return amneziawgnet.EgressPort() }
 
 func wgKeypairForTest() (priv, pub string, err error) {
 	return wgutil.GenerateWireguardKeypair()

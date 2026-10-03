@@ -1117,6 +1117,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "Sponsor": {
     "enable": true,
+    "from": "2026-10-01T00:00:00Z",
     "id": "acme-2026-10",
     "link": "https://acme.example/?utm_source=3x-ui",
     "logo": "/sponsors/logo/acme.png",
@@ -1133,6 +1134,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "sponsors": [
       {
         "enable": true,
+        "from": "2026-10-01T00:00:00Z",
         "id": "acme-2026-10",
         "link": "https://acme.example/?utm_source=3x-ui",
         "logo": "/sponsors/logo/acme.png",

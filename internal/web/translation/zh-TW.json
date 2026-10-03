@@ -618,7 +618,7 @@
         "maxTimeDiff": "最大時間差 (ms)",
         "minClientVer": "最小客戶端版本",
         "maxClientVer": "最大客戶端版本",
-        "minClientVerHint": "留空表示不設下限：Xray-core 接受任何客戶端版本，包括 Mihomo、sing-box 等第三方核心。填寫版本可拒絕自報版本較低的客戶端。",
+        "minClientVerHint": "在 Xray-core v26.9.8 及以上版本中，留空表示不設下限：接受任何客戶端版本，包括 Mihomo、sing-box 等第三方核心。v26.7.11 至 v26.9.7 的核心在留空時會改用內建最低值 26.3.27；在這些核心上填 1.0.0 即可放行這類客戶端。填寫版本可拒絕自報版本較低的客戶端。",
         "maxClientVerHint": "留空表示無上限。若填寫，不得低於最小客戶端版本，否則所有客戶端都會被拒絕。",
         "clientVerInvalid": "客戶端版本須為最多三段以點分隔的數字，每段 0-255（例如 26.3.27）",
         "maxClientVerBelowMin": "最大客戶端版本不得低於最小客戶端版本",
@@ -966,7 +966,6 @@
       "renewOnDay": "按日期續期",
       "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。填 0 保持按天間隔模式。",
       "renewsUsed": "已用續期次數",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "輸入 32 位十六進位標籤以設定，或輸入 'none' 清除 MTProto 贊助頻道。"
     },
     "groups": {
@@ -1643,13 +1642,10 @@
       "subHappProxyIPs": "代理 IP / CIDR",
       "subHappBlockIPs": "封鎖 IP / CIDR",
       "subHappDeeplinkGenerated": "已產生深層連結並套用至路由規則",
-      "subHappGroupLinks": "訂閱連結",
       "subHappGroupRouting": "路由與規則",
-      "subHappGroupBanners": "橫幅與公告",
       "subHappGroupNetwork": "網路與 TUN 引擎",
       "subHappGroupThemes": "外觀與主題",
       "subHappGroupFailover": "遷移與應用程式管理",
-      "subHappGroupAndroid": "Android 個別應用程式代理",
       "discordSettings": "Discord 機器人",
       "discordBotEnable": "啟用 Discord 通知",
       "discordBotEnableDesc": "透過機器人向 Discord 頻道發送系統與事件警報",
@@ -2141,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "壅塞控制演算法",
+        "congestionControlHint": "伺服器與用戶端演算法。伺服器變更於重新連線後生效。",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "UDP 轉發模式",
+        "udpRelayModeHint": "用戶端 UDP 模式。伺服器支援兩種模式。",
         "zeroRttHandshake": "0-RTT 握手",
         "logLevel": "日誌層級",
-        "logLevelHint": "線上狀態、最後上線時間和「首次使用後開始」來自 sidecar 的 Info 日誌行；選擇 Warn 或 Error 會使此入站失去這些功能。",
+        "logLevelHint": "此入站的最低記錄級別。",
         "maxIdleTime": "最大閒置時間 (秒)",
         "authTimeout": "認證逾時時間 (秒)",
         "maxUdpRelayPacketSize": "最大 UDP 封包大小",
         "sni": "SNI",
-        "sniHint": "伺服器名稱指示 (SNI) 覆蓋"
+        "sniHint": "用戶端設定檔中的 TLS 伺服器名稱。",
+        "sniRequired": "請輸入網域以自動填入憑證路徑。"
       },
       "tun": {
         "userLevel": "用戶級別"

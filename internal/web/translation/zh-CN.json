@@ -638,7 +638,7 @@
         "maxTimeDiff": "最大时间差 (ms)",
         "minClientVer": "最小客户端版本",
         "maxClientVer": "最大客户端版本",
-        "minClientVerHint": "留空表示不设下限：Xray-core 接受任何客户端版本，包括 Mihomo、sing-box 等第三方内核。填写版本可拒绝自报版本更低的客户端。",
+        "minClientVerHint": "在 Xray-core v26.9.8 及以上版本中，留空表示不设下限：接受任何客户端版本，包括 Mihomo、sing-box 等第三方内核。v26.7.11 至 v26.9.7 的内核在留空时会改用内置最低值 26.3.27；在这些内核上填 1.0.0 即可放行这类客户端。填写版本可拒绝自报版本更低的客户端。",
         "maxClientVerHint": "留空表示无上限。若填写，不得低于最小客户端版本，否则所有客户端都会被拒绝。",
         "clientVerInvalid": "客户端版本须为最多三段以点分隔的数字，每段 0-255（例如 26.3.27）",
         "maxClientVerBelowMin": "最大客户端版本不得低于最小客户端版本",
@@ -966,7 +966,6 @@
       "renewOnDay": "按日期续期",
       "renewOnDayDesc": "每个自然月的这一天午夜（按面板时区）续期，而不是每 N 天续期一次。若当月没有该日期，则在当月最后一天续期。填 0 保持按天间隔模式。",
       "renewsUsed": "已用续期次数",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "输入 32 位十六进制标签以设置，或输入 'none' 清除 MTProto 赞助频道。"
     },
     "groups": {
@@ -1643,13 +1642,10 @@
       "subHappProxyIPs": "代理 IP / CIDR",
       "subHappBlockIPs": "阻止 IP / CIDR",
       "subHappDeeplinkGenerated": "DeepLink 已生成并填入路由规则",
-      "subHappGroupLinks": "订阅链接",
       "subHappGroupRouting": "路由分流与规则",
-      "subHappGroupBanners": "横幅公告与通知",
       "subHappGroupNetwork": "网络与 TUN 引擎",
       "subHappGroupThemes": "界面与主题外观",
       "subHappGroupFailover": "迁移与客户端管理",
-      "subHappGroupAndroid": "Android 分应用代理",
       "discordSettings": "Discord 机器人",
       "discordBotEnable": "启用 Discord 通知",
       "discordBotEnableDesc": "通过机器人向 Discord 频道发送系统和事件警报",
@@ -2141,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "拥塞控制算法",
+        "congestionControlHint": "服务器和客户端算法。服务器更改在重新连接后生效。",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "UDP 转发模式",
+        "udpRelayModeHint": "客户端 UDP 模式。服务器支持两种模式。",
         "zeroRttHandshake": "0-RTT 握手",
         "logLevel": "日志级别",
-        "logLevelHint": "在线状态、最后在线时间和“首次使用后开始”来自 sidecar 的 Info 日志行；选择 Warn 或 Error 会使此入站失去这些功能。",
+        "logLevelHint": "此入站的最低日志级别。",
         "maxIdleTime": "最大空闲时间 (秒)",
         "authTimeout": "认证超时时间 (秒)",
         "maxUdpRelayPacketSize": "最大 UDP 数据包大小",
         "sni": "SNI",
-        "sniHint": "服务器名称指示 (SNI) 覆盖"
+        "sniHint": "客户端配置中的 TLS 服务器名称。",
+        "sniRequired": "请输入域名以自动填充证书路径。"
       },
       "tun": {
         "userLevel": "用户级别"

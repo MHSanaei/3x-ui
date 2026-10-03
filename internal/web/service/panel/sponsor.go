@@ -26,6 +26,7 @@ type Sponsor struct {
 	Name   string            `json:"name" example:"Acme VPS"`
 	Enable *bool             `json:"enable,omitempty" example:"true"`
 	Slots  []string          `json:"slots"`
+	From   *time.Time        `json:"from,omitempty" example:"2026-10-01T00:00:00Z"`
 	Until  time.Time         `json:"until" example:"2026-11-01T00:00:00Z"`
 	Logo   string            `json:"logo,omitempty" example:"/sponsors/logo/acme.png"`
 	Title  map[string]string `json:"title"`
@@ -77,8 +78,8 @@ var (
 	logos   = map[string]sponsorLogo{}
 )
 
-// GetSponsors returns the currently active sponsors. The remote file is cached,
-// but expiry is re-checked on every call so a slot ends exactly at Until.
+// GetSponsors returns the currently active sponsors. The remote file is cached, but the
+// window is re-checked on every call so a slot starts exactly at From and ends at Until.
 func (s *PanelService) GetSponsors() (*SponsorList, error) {
 	raw, err := cachedSponsors()
 	if err != nil {
@@ -220,7 +221,8 @@ func activeSponsors(raw *SponsorList, now time.Time) *SponsorList {
 	for _, sp := range raw.Sponsors {
 		// A missing enable counts as on, so a forgotten field never hides a paid slot.
 		disabled := sp.Enable != nil && !*sp.Enable
-		if disabled || sp.ID == "" || !now.Before(sp.Until) || !strings.HasPrefix(sp.Link, "https://") {
+		notStarted := sp.From != nil && now.Before(*sp.From)
+		if disabled || notStarted || sp.ID == "" || !now.Before(sp.Until) || !strings.HasPrefix(sp.Link, "https://") {
 			continue
 		}
 		// A bad logo name drops only the logo; the paid slot still renders with its initial.

@@ -162,6 +162,12 @@ export function downloadText(content: string, filename: string) {
   FileManager.downloadTextFile(content, filename);
 }
 
+// One file per advertised Host, so a peer behind two Hosts gets two names.
+export function peerConfFileName(peerIndex: number, endpointIndex: number, endpointCount: number) {
+  const suffix = endpointCount > 1 ? `-${endpointIndex + 1}` : '';
+  return `peer-${peerIndex + 1}${suffix}.conf`;
+}
+
 export function statsColor(stats: ClientStats, trafficDiff: number) {
   return ColorUtils.usageColor(stats.up + stats.down, trafficDiff, stats.total);
 }

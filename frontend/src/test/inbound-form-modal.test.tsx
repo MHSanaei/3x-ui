@@ -317,4 +317,34 @@ describe('InboundFormModal', () => {
       );
     });
   });
+
+  // Clients and enable change through their own endpoints; the server keeps the
+  // stored ones, so the edit form must neither send nor validate its stale copy.
+  it('edit save neither sends nor validates the clients it loaded', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    const dbInbound = cloneLikeVlessInbound('example.com:443');
+    const legacy = new DBInbound({
+      ...dbInbound,
+      settings: {
+        ...(dbInbound.settings as Record<string, unknown>),
+        clients: [{ email: 'legacy', id: '' }],
+      },
+    });
+    renderCloneLikeEdit(legacy);
+
+    fireEvent.click(primaryButton());
+
+    await waitFor(() => expect(post).toHaveBeenCalled());
+    const payload = post.mock.calls[0][1] as { settings: string };
+    expect(JSON.parse(payload.settings)).not.toHaveProperty('clients');
+  });
+
+  it('offers the enable switch when adding an inbound but not when editing one', () => {
+    renderModal();
+    expect(document.getElementById('inbound-enable')).not.toBeNull();
+    cleanup();
+    renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+    expect(document.getElementById('inbound-enable')).toBeNull();
+  });
 });
