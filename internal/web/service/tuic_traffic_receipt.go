@@ -4,8 +4,10 @@ import (
 	"errors"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -17,10 +19,7 @@ func (s *InboundService) AddTuicTrafficBatch(id string, traffic []*xray.ClientTr
 	}
 	return submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
-			if err := tx.Exec("CREATE TABLE IF NOT EXISTS tuic_traffic_receipts (id TEXT PRIMARY KEY)").Error; err != nil {
-				return err
-			}
-			result := tx.Exec("INSERT INTO tuic_traffic_receipts (id) VALUES (?) ON CONFLICT(id) DO NOTHING", id)
+			result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.TuicTrafficReceipt{ID: id})
 			if result.Error != nil {
 				return result.Error
 			}
