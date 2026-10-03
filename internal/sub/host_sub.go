@@ -10,9 +10,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// clientHostEndpoints resolves one client's effective host endpoints.
-// Unbound clients reuse baseEps; bound ones get one endpoint per valid host,
-// falling back to baseEps when none applies (deleted/disabled binding).
+// clientHostEndpoints resolves one client's effective host endpoints — one
+// per valid bound host, or baseEps when unbound or nothing applies.
 func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Client, format string, baseEps []map[string]any) ([]map[string]any, bool) {
 	ids := model.EffectiveClientHostRuleIds(client)
 	if len(ids) == 0 {
