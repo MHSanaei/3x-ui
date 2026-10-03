@@ -248,7 +248,7 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
             JOIN inbounds i ON i.id = ci.inbound_id
             WHERE i.protocol = ? AND c.uuid <> '' AND ci.inbound_id IN ?
             GROUP BY ci.inbound_id, LOWER(c.uuid) HAVING COUNT(*) > 1
-        )`, model.TUIC, ids).Scan(&duplicates).Error
+        ) AS duplicate_uuids`, model.TUIC, ids).Scan(&duplicates).Error
 		if err != nil {
 			return err
 		}
