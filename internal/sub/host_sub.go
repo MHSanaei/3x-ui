@@ -25,7 +25,7 @@ func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Cl
 	eps := make([]map[string]any, 0, len(ids))
 	for _, id := range ids {
 		var h model.Host
-		if err := database.GetDB().Where("id = ?", id).First(&h).Error; err != nil {
+		if err := database.GetDB().Where("id = ? AND inbound_id = ?", id, inbound.Id).First(&h).Error; err != nil {
 			continue
 		}
 		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {

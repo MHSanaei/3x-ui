@@ -585,23 +585,35 @@ export default function ClientFormModal({
     [inbounds, inboundIds],
   );
 
-  // Host rule override options from the raw hosts list, which carries the
-  // numeric ids the binding references. Empty means the inbound rule applies.
-  const { hosts: rawHostRules } = useRawHostsQuery();
-  const hostRuleOptions = useMemo(
-    () =>
-      (rawHostRules || [])
-        .filter((h) => !h.isDisabled)
-        .map((h) => ({
-          value: h.id as number,
-          label:
-            h.remark || h.address
-              ? `${h.remark || h.address}${h.address && h.remark ? ` (${h.address})` : ''} (#${h.id})`
-              : `Host #${h.id}`,
-        })),
-    [rawHostRules],
-  );
+  // Host rule options scoped to the inbounds currently selected, so a
+  // binding can only reference a host on an inbound the client is on.
+  const { hosts: rawHostRules, fetched: rawHostsFetched } = useRawHostsQuery();
+  const hostRuleOptions = useMemo(() => {
+    const selected = new Set(inboundIds || []);
+    return (rawHostRules || [])
+      .filter((h) => !h.isDisabled && h.inboundId !== undefined && selected.has(h.inboundId))
+      .map((h) => ({
+        value: h.id as number,
+        label:
+          h.remark || h.address
+            ? `${h.remark || h.address}${h.address && h.remark ? ` (${h.address})` : ''} (#${h.id})`
+            : `Host #${h.id}`,
+      }));
+  }, [rawHostRules, inboundIds]);
   const clientHostRuleIds = useWatch({ control: methods.control, name: 'clientHostRuleIds' });
+
+  // Drop bindings whose host left the selection with its inbound.
+  useEffect(() => {
+    if (!rawHostsFetched) return;
+    const allowed = new Set(hostRuleOptions.map((o) => o.value));
+    const current = methods.getValues('clientHostRuleIds') || [];
+    if (current.some((id) => !allowed.has(id))) {
+      methods.setValue(
+        'clientHostRuleIds',
+        current.filter((id) => allowed.has(id)),
+      );
+    }
+  }, [hostRuleOptions, rawHostsFetched, methods]);
 
   const expiryDayjs = useMemo<Dayjs | null>(
     () => (expiryDate > 0 ? dayjs(expiryDate) : null),

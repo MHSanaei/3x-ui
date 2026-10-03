@@ -767,3 +767,84 @@ func TestSub_ClientHostRule_JSONSNI(t *testing.T) {
 		t.Fatalf("json config must not contain the unbound host:\n%s", out)
 	}
 }
+
+// A host bound on inbound A must not leak onto inbound B for a client on
+// both: B's raw/JSON/Clash output keeps its own endpoint.
+func TestSub_ClientHostRule_ScopedToInbound(t *testing.T) {
+	seedSubDB(t)
+	db := database.GetDB()
+	ibA := seedSubInbound(t, "s1", "scope-a", 443, 1, tcpTLSStream)
+	var rec model.ClientRecord
+	if err := db.Where("email = ?", "scope-a@e").First(&rec).Error; err != nil {
+		t.Fatalf("load client record: %v", err)
+	}
+	ibB := &model.Inbound{
+		UserId: 1, Tag: "scope-b", Enable: true, Listen: "203.0.113.5", Port: 8443,
+		Protocol: model.VLESS, Remark: "scope-b", Settings: ibA.Settings,
+		StreamSettings: tcpTLSStream, SubSortIndex: 2,
+	}
+	if err := db.Create(ibB).Error; err != nil {
+		t.Fatalf("seed inbound B: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ibB.Id}).Error; err != nil {
+		t.Fatalf("attach client to inbound B: %v", err)
+	}
+	hostA := seedHost(t, &model.Host{InboundId: ibA.Id, SortOrder: 1, Remark: "HA", Address: "host-a.cdn.com", Port: 9443, Security: "tls", Sni: "host-a.sni"})
+	if err := db.Model(&model.ClientRecord{}).Where("id = ?", rec.Id).
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id})).Error; err != nil {
+		t.Fatalf("bind host rule: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 2 {
+		t.Fatalf("one link per inbound, got %d: %v", len(parts), parts)
+	}
+	joined := strings.Join(parts, "\n")
+	if got := strings.Count(joined, "host-a.cdn.com"); got != 1 {
+		t.Fatalf("host-a address appears %d times, want once (inbound A only):\n%s", got, joined)
+	}
+	if got := strings.Count(joined, "host-a.sni"); got != 1 {
+		t.Fatalf("host-a SNI appears %d times, want once (inbound A only):\n%s", got, joined)
+	}
+	plain := ""
+	for _, l := range parts {
+		if strings.Contains(l, "203.0.113.5:8443") {
+			plain = l
+		}
+	}
+	if plain == "" {
+		t.Fatalf("inbound B must keep its own endpoint 203.0.113.5:8443:\n%s", joined)
+	}
+	if strings.Contains(plain, "host-a.cdn.com") || strings.Contains(plain, "host-a.sni") {
+		t.Fatalf("inbound B link leaked host A:\n%s", plain)
+	}
+
+	jsOut, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if got := strings.Count(jsOut, "host-a.cdn.com"); got != 1 {
+		t.Fatalf("json host-a address appears %d times, want once:\n%s", got, jsOut)
+	}
+	if got := strings.Count(jsOut, "host-a.sni"); got != 1 {
+		t.Fatalf("json host-a SNI appears %d times, want once:\n%s", got, jsOut)
+	}
+	if !strings.Contains(jsOut, "203.0.113.5") {
+		t.Fatalf("json must keep inbound B on its own address:\n%s", jsOut)
+	}
+
+	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if got := strings.Count(yaml, "host-a.cdn.com"); got != 1 {
+		t.Fatalf("clash host-a server appears %d times, want once:\n%s", got, yaml)
+	}
+	if !strings.Contains(yaml, "203.0.113.5") {
+		t.Fatalf("clash must keep inbound B on its own server:\n%s", yaml)
+	}
+}
