@@ -180,3 +180,34 @@ func TestAggregateTuicClientTrafficPreservesStableIdentityAcrossEmailRename(t *t
 		t.Fatalf("aggregate counters = (%d,%d), want (40,60)", got[0].Up, got[0].Down)
 	}
 }
+
+func TestTuicSpeedPayloadCarriesClientDeltasWithoutInboundTotals(t *testing.T) {
+	interval := 12 * time.Second
+	clients := []*xray.ClientTraffic{{Email: "tuic@example.test", Up: 1200, Down: 2400}}
+	payload := tuicSpeedPayload(clients, interval)
+
+	gotClients, ok := payload["clientTraffics"].([]*xray.ClientTraffic)
+	if !ok || len(gotClients) != 1 || gotClients[0] != clients[0] {
+		t.Fatal("TUIC speed event lost client deltas")
+	}
+	if payload["clientTrafficSource"] != "tuic" {
+		t.Fatalf("speed source = %v, want tuic", payload["clientTrafficSource"])
+	}
+	if payload["clientTrafficIntervalMs"] != interval.Milliseconds() {
+		t.Fatalf("sample interval = %v, want %d ms", payload["clientTrafficIntervalMs"], interval.Milliseconds())
+	}
+	if _, ok := payload["traffics"]; ok {
+		t.Fatal("TUIC speed event must not report inbound totals already metered through Xray")
+	}
+}
+
+func TestTuicSpeedSampleIntervalUsesElapsedPollTime(t *testing.T) {
+	current := time.Date(2026, time.October, 3, 12, 0, 10, 0, time.UTC)
+	previous := current.Add(-12 * time.Second)
+	if got := tuicSpeedSampleInterval(previous, current); got != 12*time.Second {
+		t.Fatalf("sample interval = %s, want 12s", got)
+	}
+	if got := tuicSpeedSampleInterval(time.Time{}, current); got != defaultTuicSpeedSampleInterval {
+		t.Fatalf("initial sample interval = %s, want %s", got, defaultTuicSpeedSampleInterval)
+	}
+}

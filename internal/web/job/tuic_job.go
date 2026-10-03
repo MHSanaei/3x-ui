@@ -2,16 +2,22 @@ package job
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/websocket"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
+const defaultTuicSpeedSampleInterval = 10 * time.Second
+
 type TuicJob struct {
-	inboundService service.InboundService
+	inboundService  service.InboundService
+	runMu           sync.Mutex
+	lastSpeedSample time.Time
 }
 
 func NewTuicJob() *TuicJob {
@@ -19,6 +25,9 @@ func NewTuicJob() *TuicJob {
 }
 
 func (j *TuicJob) Run() {
+	j.runMu.Lock()
+	defer j.runMu.Unlock()
+
 	tuicJournalMu.Lock()
 	journalErr := j.replayTuicJournal()
 	tuicJournalMu.Unlock()
@@ -44,19 +53,27 @@ func (j *TuicJob) Run() {
 	onlineEmails, _ := mgr.GetActiveClients(30 * time.Second)
 
 	clientTraffics := aggregateTuicClientTraffic(clientDeltas, onlineEmails)
+	sampledAt := time.Now()
+	sampleInterval := tuicSpeedSampleInterval(j.lastSpeedSample, sampledAt)
 
 	// Inbound total traffic is already metered through the loopback SOCKS relay
 	// by xray_traffic_job (matching mtproto); only per-client deltas are submitted here.
+	persisted := true
 	if len(clientTraffics) > 0 {
 		needRestart, _, err := j.inboundService.AddTraffic(nil, clientTraffics)
 		if err != nil {
 			logger.Warning("tuic job: add traffic failed:", err)
 			mgr.RequeueClientTraffic(clientDeltas)
+			persisted = false
 		} else if needRestart {
 			if desired, err := j.inboundService.DesiredTuicInstances(); err == nil {
 				mgr.Reconcile(desired)
 			}
 		}
+	}
+	if persisted {
+		websocket.BroadcastTraffic(tuicSpeedPayload(clientTraffics, sampleInterval))
+		j.lastSpeedSample = sampledAt
 	}
 
 	if len(onlineEmails) > 0 {
@@ -66,6 +83,25 @@ func (j *TuicJob) Run() {
 	}
 
 	j.inboundService.RefreshLocalOnlineClients(onlineEmails, activeTags)
+}
+
+func tuicSpeedSampleInterval(previous, current time.Time) time.Duration {
+	if previous.IsZero() || !current.After(previous) {
+		return defaultTuicSpeedSampleInterval
+	}
+	return current.Sub(previous)
+}
+
+func tuicSpeedPayload(clientTraffics []*xray.ClientTraffic, sampleInterval time.Duration) map[string]any {
+	intervalMs := sampleInterval.Milliseconds()
+	if intervalMs < 1 {
+		intervalMs = 1
+	}
+	return map[string]any{
+		"clientTraffics":          clientTraffics,
+		"clientTrafficSource":     "tuic",
+		"clientTrafficIntervalMs": intervalMs,
+	}
 }
 
 // FlushStoppedTraffic persists counters drained when the TUIC manager stops its

@@ -164,7 +164,11 @@ export default function TuicFields() {
       </Form.Item>
 
       <Form.Item label=" ">
-        <Space>
+        <Space
+          className="tuic-certificate-actions"
+          wrap
+          style={{ display: 'flex', flexWrap: 'wrap', width: '100%' }}
+        >
           <Button
             type="primary"
             icon={<CloudDownloadOutlined />}
