@@ -11,6 +11,7 @@ import {
 } from '@/lib/xray/inbound-link';
 import { LinkTags, parseLinkParts } from '@/lib/xray/link-label';
 import SubQrButton from './SubQrButton';
+import PostQuantumQrNotice from '@/pages/inbounds/qr/PostQuantumQrNotice';
 
 interface SubConfigsTabProps {
   links: string[];
@@ -49,7 +50,9 @@ export default function SubConfigsTab({ links, onCopy }: SubConfigsTabProps) {
                   aria-label={t('copy')}
                   title={t('copy')}
                 />
-                {!isPostQuantumLink(link) && (
+                {isPostQuantumLink(link) ? (
+                  <PostQuantumQrNotice size="middle" />
+                ) : (
                   <SubQrButton value={link} label={rowTitle} onCopy={onCopy} />
                 )}
               </div>

@@ -18,6 +18,7 @@ import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
+import PostQuantumQrNotice from '@/pages/inbounds/qr/PostQuantumQrNotice';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import {
@@ -773,7 +774,9 @@ export default function ClientInfoModal({
                             onClick={() => copyValue(link)}
                           />
                         </Tooltip>
-                        {canQr && (
+                        {!canQr ? (
+                          <PostQuantumQrNotice />
+                        ) : (
                           <Popover
                             trigger="click"
                             placement="left"

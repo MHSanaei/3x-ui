@@ -40,6 +40,8 @@
   "unlimited": "無限制",
   "none": "無",
   "qrCode": "二維碼",
+  "qrCodeUnavailable": "無法使用 QR 碼",
+  "qrCodePostQuantumHint": "包含後量子金鑰的連結會隱藏 QR 碼，因為 QR 碼可能過大或過於密集，難以可靠掃描。請複製連結，並在用戶端應用程式中從剪貼簿匯入。",
   "info": "更多資訊",
   "edit": "編輯",
   "delete": "刪除",

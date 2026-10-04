@@ -40,6 +40,8 @@
   "unlimited": "Unlimited",
   "none": "None",
   "qrCode": "QR Code",
+  "qrCodeUnavailable": "QR code unavailable",
+  "qrCodePostQuantumHint": "QR codes are hidden for links containing post-quantum keys because they can be too large or dense to scan reliably. Copy the link and import it from the clipboard in your client app.",
   "info": "More Information",
   "edit": "Edit",
   "delete": "Delete",

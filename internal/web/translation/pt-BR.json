@@ -40,6 +40,8 @@
   "unlimited": "Ilimitado",
   "none": "Nenhum",
   "qrCode": "Código QR",
+  "qrCodeUnavailable": "Código QR indisponível",
+  "qrCodePostQuantumHint": "Os códigos QR são ocultados para links com chaves pós-quânticas porque podem ser grandes ou densos demais para uma leitura confiável. Copie o link e importe-o da área de transferência no aplicativo cliente.",
   "info": "Mais Informações",
   "edit": "Editar",
   "delete": "Excluir",

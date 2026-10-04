@@ -40,6 +40,8 @@
   "unlimited": "Không giới hạn",
   "none": "Không",
   "qrCode": "Mã QR",
+  "qrCodeUnavailable": "Không có mã QR",
+  "qrCodePostQuantumHint": "Mã QR bị ẩn đối với liên kết chứa khóa hậu lượng tử vì mã có thể quá lớn hoặc quá dày đặc để quét đáng tin cậy. Sao chép liên kết và nhập từ bộ nhớ tạm trong ứng dụng máy khách.",
   "info": "Thông tin thêm",
   "edit": "Sửa",
   "delete": "Xóa",

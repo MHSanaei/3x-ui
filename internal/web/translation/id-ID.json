@@ -40,6 +40,8 @@
   "unlimited": "Tanpa Batas",
   "none": "Tidak ada",
   "qrCode": "Kode QR",
+  "qrCodeUnavailable": "Kode QR tidak tersedia",
+  "qrCodePostQuantumHint": "Kode QR disembunyikan untuk tautan dengan kunci pascakuantum karena bisa terlalu besar atau padat untuk dipindai dengan andal. Salin tautan dan impor dari papan klip di aplikasi klien Anda.",
   "info": "Informasi Lebih Lanjut",
   "edit": "Edit",
   "delete": "Hapus",

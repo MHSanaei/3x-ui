@@ -40,6 +40,8 @@
   "unlimited": "Sınırsız",
   "none": "Yok",
   "qrCode": "QR Kod",
+  "qrCodeUnavailable": "QR kodu kullanılamıyor",
+  "qrCodePostQuantumHint": "Kuantum sonrası anahtarlar içeren bağlantılar için QR kodları gizlenir; bu kodlar güvenilir biçimde taranamayacak kadar büyük veya yoğun olabilir. Bağlantıyı kopyalayın ve istemci uygulamanızda panodan içe aktarın.",
   "info": "Daha Fazla Bilgi",
   "edit": "Düzenle",
   "delete": "Sil",

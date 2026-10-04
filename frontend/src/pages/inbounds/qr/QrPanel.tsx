@@ -5,6 +5,8 @@ import { CopyOutlined, DownloadOutlined, PictureOutlined } from '@ant-design/ico
 
 import { ClipboardManager, FileManager } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
+import { isPostQuantumLink } from '@/lib/xray/inbound-link';
+import PostQuantumQrNotice from './PostQuantumQrNotice';
 import './QrPanel.css';
 
 interface QrPanelProps {
@@ -114,6 +116,7 @@ export default function QrPanel({
             />
           </Tooltip>
         )}
+        {!showQr && isPostQuantumLink(value) && <PostQuantumQrNotice />}
         {downloadName && (
           <Tooltip title={t('download')}>
             <Button

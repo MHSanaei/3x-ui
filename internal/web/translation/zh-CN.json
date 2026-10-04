@@ -40,6 +40,8 @@
   "unlimited": "无限制",
   "none": "无",
   "qrCode": "二维码",
+  "qrCodeUnavailable": "二维码不可用",
+  "qrCodePostQuantumHint": "包含后量子密钥的链接会隐藏二维码，因为二维码可能过大或过于密集，难以可靠扫描。请复制链接，并在客户端应用中从剪贴板导入。",
   "info": "更多信息",
   "edit": "编辑",
   "delete": "删除",
