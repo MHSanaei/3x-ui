@@ -1228,6 +1228,27 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			applyMasterClientLifecycle(&clients[i], existing, csPtr)
 			filtered = append(filtered, clients[i])
 		}
+		// Empty-snapshot guard. A node that comes back reporting zero clients for
+		// an inbound the hub still has clients on is indistinguishable from a
+		// genuine "every client was removed" — and in practice it is almost always
+		// the former: the node was just deleted, reset, restarted, or returned a
+		// snapshot before its config loaded. Acting on it is destructive and hard
+		// to undo: SyncInbound makes the inbound's links match the set exactly, so
+		// an empty set deletes every link for the inbound; a client shared across
+		// nodes then loses its links one node at a time and, once the last one
+		// goes, is orphan-marked and hard-deleted by ReapSyncOrphans — the
+		// 2026-10-04 outage, where removing one node deleted clients that still
+		// lived on the others. Treat a zero-client snapshot as non-authoritative:
+		// skip the link rebuild and the orphan sweep for this inbound (the same
+		// handling a failed SyncInbound gets) and wait for a snapshot that carries
+		// clients. Removing the last client from a node is instead done from the
+		// hub (which updates links and pushes); a node that still serves other
+		// clients prunes a removed one authoritatively through the partial path.
+		if len(filtered) == 0 && len(oldEmailsRows) > 0 {
+			logger.Warningf("setRemoteTraffic: node snapshot for tag %q reported zero clients while the hub has %d attached — treating as a degraded snapshot, skipping link rebuild and orphan sweep for this inbound", snapIb.Tag, len(oldEmailsRows))
+			syncFailedInbounds[c.Id] = struct{}{}
+			continue
+		}
 		localEmails := make([]string, 0, len(filtered))
 		for i := range filtered {
 			if filtered[i].Email != "" {

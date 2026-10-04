@@ -32,6 +32,10 @@ func backdateOrphanMark(t *testing.T, db *gorm.DB, email string) {
 
 // The merge must soft-orphan, not delete: everything stays recoverable until
 // the grace period has elapsed and the reaper confirms nothing reclaimed it.
+// The removal is driven by a partial snapshot (the node is alive and still
+// serves another client, so dropping one is authoritative); a fully empty
+// snapshot is treated as a degraded node and never orphans — see
+// TestSetRemoteTraffic_EmptySnapshotKeepsClients.
 func TestSyncOrphanSurvivesMergeUntilGraceElapses(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -40,16 +44,20 @@ func TestSyncOrphanSurvivesMergeUntilGraceElapses(t *testing.T) {
 	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
 
 	const email = "gone@x"
-	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, email)
-	settings := fmt.Sprintf(`{"clients":[{"email":%q,"enable":true}]}`, email)
-	syncNodeWithSettings(t, svc, 1, "n1-in", settings,
+	const keep = "keep@x"
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, keep)
+	bothSettings := fmt.Sprintf(`{"clients":[{"email":%q,"enable":true},{"email":%q,"enable":true}]}`, keep, email)
+	syncNodeWithSettings(t, svc, 1, "n1-in", bothSettings,
+		xray.ClientTraffic{Email: keep, Enable: true},
 		xray.ClientTraffic{Email: email, Up: 5, Down: 5, Enable: true})
 
 	if rec, traf := countClientRows(t, db, email); rec != 1 || traf != 1 {
 		t.Fatalf("setup: clients=%d client_traffics=%d, want 1/1", rec, traf)
 	}
 
-	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false, false); err != nil {
+	keepOnly := fmt.Sprintf(`{"clients":[{"email":%q,"enable":true}]}`, keep)
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithClients(t, "n1-in", keepOnly,
+		xray.ClientTraffic{Email: keep, Enable: true}), false, false); err != nil {
 		t.Fatalf("orphaning merge: %v", err)
 	}
 	if rec, traf := countClientRows(t, db, email); rec != 1 || traf != 1 {
@@ -86,6 +94,8 @@ func TestSyncOrphanSurvivesMergeUntilGraceElapses(t *testing.T) {
 
 // A client the node reports again was never gone: clearing the mark is what
 // turns a bad merge into a recoverable blip instead of a delayed deletion.
+// The drop is driven by a partial snapshot (node alive, still serving another
+// client); a fully empty snapshot is a degraded node and never orphans.
 func TestSyncOrphanMarkClearedOnReattach(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -94,19 +104,24 @@ func TestSyncOrphanMarkClearedOnReattach(t *testing.T) {
 	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
 
 	const email = "flaky@x"
-	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, email)
-	settings := fmt.Sprintf(`{"clients":[{"email":%q,"enable":true}]}`, email)
-	syncNodeWithSettings(t, svc, 1, "n1-in", settings,
+	const keep = "keep@x"
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, keep)
+	bothSettings := fmt.Sprintf(`{"clients":[{"email":%q,"enable":true},{"email":%q,"enable":true}]}`, keep, email)
+	syncNodeWithSettings(t, svc, 1, "n1-in", bothSettings,
+		xray.ClientTraffic{Email: keep, Enable: true},
 		xray.ClientTraffic{Email: email, Up: 5, Down: 5, Enable: true})
 
-	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false, false); err != nil {
+	keepOnly := fmt.Sprintf(`{"clients":[{"email":%q,"enable":true}]}`, keep)
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithClients(t, "n1-in", keepOnly,
+		xray.ClientTraffic{Email: keep, Enable: true}), false, false); err != nil {
 		t.Fatalf("orphaning merge: %v", err)
 	}
 	if readOrphanMark(t, db, email) <= 0 {
 		t.Fatal("setup: expected the merge to mark the client")
 	}
 
-	syncNodeWithSettings(t, svc, 1, "n1-in", settings,
+	syncNodeWithSettings(t, svc, 1, "n1-in", bothSettings,
+		xray.ClientTraffic{Email: keep, Enable: true},
 		xray.ClientTraffic{Email: email, Up: 6, Down: 6, Enable: true})
 
 	if orphanedAt := readOrphanMark(t, db, email); orphanedAt != 0 {
