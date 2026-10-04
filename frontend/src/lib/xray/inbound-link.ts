@@ -1724,8 +1724,13 @@ function wgPeerCommentSuffix(peer: unknown): string {
 }
 
 export function isPostQuantumLink(link: string): boolean {
-  if (/[?&]pqv=/.test(link)) return true;
-  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
-  if (link.includes('ML-KEM-768')) return true;
-  return false;
+  try {
+    const params = new URL(link).searchParams;
+    if (params.get('pqv')) return true;
+    // The REALITY support hint carries no key; only encryption/pqv payloads restrict QR.
+    const encryption = params.get('encryption') ?? '';
+    return /mlkem768|mldsa65|ML-KEM-768/.test(encryption);
+  } catch {
+    return false;
+  }
 }

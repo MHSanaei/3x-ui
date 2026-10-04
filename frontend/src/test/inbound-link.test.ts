@@ -16,6 +16,7 @@ import {
   genVmessLink,
   genWireguardConfig,
   genWireguardLink,
+  isPostQuantumLink,
   preferPublicHost,
   resolveAddr,
 } from '@/lib/xray/inbound-link';
@@ -102,6 +103,7 @@ describe('genVlessLink', () => {
     });
 
     expect(new URL(link).searchParams.get('support-x25519mlkem768')).toBe('true');
+    expect(isPostQuantumLink(link)).toBe(false);
   });
 
   for (const [name, raw] of fixtures) {
