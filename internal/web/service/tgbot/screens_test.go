@@ -1,8 +1,10 @@
 package tgbot
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -593,6 +595,22 @@ func countMethod(calls []apiCall, method string) int {
 	return n
 }
 
+// sheetBytesForTest reads the bytes back out of an uploadable file, so a test can
+// decode the picture the bot would send.
+func sheetBytesForTest(t *testing.T, file *telego.InputFile) []byte {
+	t.Helper()
+	// A byte-backed InputFile carries a NamedReader; reading it is what the
+	// upload would do.
+	if file.File == nil {
+		t.Fatal("the sheet carries no data")
+	}
+	data, err := io.ReadAll(file.File)
+	if err != nil {
+		t.Fatalf("read the sheet: %v", err)
+	}
+	return data
+}
+
 // localizeWithRealBundle points the bot localizer at the shipped en-US file, so
 // a test sees the text a user would, not the bare key.
 func localizeWithRealBundle(t *testing.T) {
@@ -814,5 +832,114 @@ func TestClientMenuButtonsHaveRealLabels(t *testing.T) {
 	}
 	if strings.TrimSpace(sc.pages[0]) == "" {
 		t.Error("the client's screen body is empty")
+	}
+}
+
+// 1. A finished broadcast is a message like any other: its run controls go, and
+// what stays is the hide button.
+func TestFinishedBroadcastCardKeepsOnlyHide(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	broadcastLocalizer(t)
+
+	runner := &broadcastRunner{actor: chatUser{chatID: 100}, chatID: 100, messageID: 5}
+	if !tb.finalizeBroadcastCard(runner, "done") {
+		t.Fatal("the summary card could not be edited")
+	}
+
+	edits := 0
+	for _, call := range calls() {
+		if call.Method != "editMessageText" {
+			continue
+		}
+		edits++
+		markup, _ := json.Marshal(call.Payload["reply_markup"])
+		if !strings.Contains(string(markup), "\"hide\"") {
+			t.Errorf("the finished card offers no hide button: %s", markup)
+		}
+		if strings.Contains(string(markup), "\"broadcast_cancel\"") {
+			t.Errorf("the finished card still offers the run controls: %s", markup)
+		}
+	}
+	if edits != 1 {
+		t.Errorf("editMessageText calls = %d, want 1", edits)
+	}
+}
+
+// 3. "Client card" on the links screen only repeats the client's own usage, so a
+// client must not be offered it; an admin still gets it.
+func TestLinksScreenHidesTheClientCardFromItsOwner(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4646, "mine@x")
+
+	tb.screenClientLinks(4646, "mine@x")
+	sc, ok := tb.screens().get(4646)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	markup, _ := json.Marshal(sc.markup)
+	if strings.Contains(string(markup), "client_get_usage") {
+		t.Errorf("a client is still offered the admin's client card: %s", markup)
+	}
+	// The other links are what the client came for.
+	for _, want := range []string{"client_individual_links", "client_qr_links"} {
+		if !strings.Contains(string(markup), want) {
+			t.Errorf("the links screen lacks %s: %s", want, markup)
+		}
+	}
+}
+
+// 4. The QR screen carries every code the subscription has, as one picture.
+func TestQRScreenCarriesEveryCodeOnOnePicture(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4747, "codes@x")
+
+	tb.screenClientQR(777, "codes@x")
+
+	if got := countMethod(calls(), "sendDocument"); got != 0 {
+		t.Errorf("sendDocument calls = %d, want the codes on the screen's picture", got)
+	}
+	if countMethod(calls(), "sendPhoto") == 0 {
+		t.Fatal("the QR screen sent no picture")
+	}
+	sc, ok := tb.screens().get(777)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	if sc.qrPicture == nil {
+		t.Fatal("the QR screen carries no sheet of codes")
+	}
+}
+
+// The sheet itself, independent of any service: every code given is drawn, and
+// the legend numbers exactly that many.
+func TestQRSheetDrawsEveryCodeAndNumbersIt(t *testing.T) {
+	codes := []subscriptionQRCode{
+		{content: "https://panel.example/sub/abc", kind: "sub"},
+		{content: "https://panel.example/json/abc", kind: "json"},
+		{content: "vless://uuid@host:443?type=tcp#app1", kind: "link", app: 1},
+		{content: "vless://uuid@host:8443?type=ws#app2", kind: "link", app: 2},
+	}
+
+	picture := qrSheetPicture(codes)
+	if picture == nil {
+		t.Fatal("the sheet could not be rendered")
+	}
+
+	// Decode what the encoder produced, so a broken picture is caught here and not
+	// in the chat. Four codes fill three columns, so the sheet is 3x2 tiles with
+	// padding between and around them.
+	img, err := png.Decode(bytes.NewReader(sheetBytesForTest(t, picture)))
+	if err != nil {
+		t.Fatalf("the sheet is not a valid PNG: %v", err)
+	}
+	wantW := 3*qrTileSize + 4*qrSheetPad
+	wantH := 2*qrTileSize + 3*qrSheetPad
+	if img.Bounds().Dx() != wantW || img.Bounds().Dy() != wantH {
+		t.Errorf("sheet is %dx%d, want %dx%d", img.Bounds().Dx(), img.Bounds().Dy(), wantW, wantH)
 	}
 }

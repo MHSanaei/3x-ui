@@ -25,9 +25,12 @@ type screen struct {
 	// root marks a screen that IS the viewer's top level: it must not offer a
 	// back button, because there is nothing above it to go back to.
 	root bool
-	// qrContent is the URL a QR screen encodes; its picture is that code rather
-	// than the bot's avatar.
-	qrContent string
+	// qrPicture is the sheet of QR codes a "qr" screen shows instead of the
+	// bot's avatar. It is rendered per screen, because a code belongs to one
+	// client and can never be part of the shared artwork.
+	qrPicture *telego.InputFile
+	// qrSource is the subscription URL the sheet was built from.
+	qrSource string
 	// attachment is a picture built for this one screen (a QR). It is uploaded
 	// on send and remembered by content, so an edit reuses the same picture.
 	attachment *telego.InputFile
@@ -136,16 +139,11 @@ func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
 	if sc == nil || bot == nil {
 		return
 	}
-	// A QR screen carries its own picture: the code being shown is what the
-	// client opened the screen for, and a file beside it is just clutter.
-	if sc.kind == "qr" && sc.qrContent != "" {
-		if id, ok := qrArtFor(sc.qrContent); ok {
-			sc.hasPhoto, sc.photo = true, id
-		} else {
-			sc.attachment = qrUpload(sc.qrContent)
-		}
-	}
-	if sc.attachment == nil {
+	// A QR screen carries its own picture: the codes being shown are what the
+	// screen was opened for, and a file beside it is just clutter.
+	if sc.qrPicture != nil {
+		sc.hasPhoto, sc.attachment = true, sc.qrPicture
+	} else {
 		t.attachArt(sc)
 	}
 	sc.text = sc.header + sc.pages[min(sc.page, len(sc.pages)-1)]
@@ -292,11 +290,7 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	// every later edit a cheap media edit instead of another upload.
 	if sc.hasPhoto && sc.photo == "" && len(sent.Photo) > 0 {
 		sc.photo = sent.Photo[len(sent.Photo)-1].FileID
-		if sc.qrContent != "" {
-			cacheQRArt(sc.qrContent, sc.photo)
-		} else {
-			cacheArtFileID(sc.kind, sc.photo)
-		}
+		cacheArtFileID(sc.kind, sc.photo)
 	}
 	t.screens().put(chatID, sc)
 	return sent.MessageID

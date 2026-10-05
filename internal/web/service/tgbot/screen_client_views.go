@@ -153,6 +153,21 @@ func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
 	})
 }
 
+// ownSubscriptionOnly reports whether the chat is the client's own and the
+// screen shows that one subscription: true means admin-only controls must stay
+// off it. A single traffic bound to the chat's own Telegram user is the exact
+// case a client reaches by tapping "Links".
+func (t *Tgbot) ownSubscriptionOnly(chatID int64, email string) bool {
+	if checkAdmin(chatID) {
+		return false
+	}
+	traffics, err := t.inboundService.GetClientTrafficTgBot(chatID)
+	if err != nil {
+		return false
+	}
+	return len(traffics) == 1 && traffics[0].Email == email
+}
+
 // screenClientLinks draws the subscription and the links of a client.
 func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 	subURL, subJSON, err := t.buildSubscriptionURLs(email)
@@ -169,9 +184,14 @@ func (t *Tgbot) screenClientLinks(chatID int64, email string) {
 	rows := [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.qrCode", t.encodeQuery("client_qr_links "+email))),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientCard", t.encodeQuery("client_get_usage "+email))),
-		t.backRow(),
 	}
+	// A client looking at its own subscription has nothing behind the admin's
+	// card: it only repeats the usage already on its home screen.
+	if !t.ownSubscriptionOnly(chatID, email) {
+		rows = append(rows, tu.InlineKeyboardRow(
+			t.btn("tgbot.buttons.clientCard", t.encodeQuery("client_get_usage "+email))))
+	}
+	rows = append(rows, t.backRow())
 	t.renderScreen(chatID, t.newScreen("links", body, rows...))
 }
 
@@ -214,11 +234,22 @@ func (t *Tgbot) screenClientQR(chatID int64, email string) {
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
 		t.backRow(),
 	}
-	// The QR replaces the screen's picture instead of arriving as a file: the
-	// code is the point of the screen, and a second document per client was
-	// clutter for a picture the caption can already name.
-	sc := t.newScreen("qr", body, rows...)
-	sc.qrContent = subURL
+	// One picture carrying every code, exactly the codes the original bot sent as
+	// separate documents: the subscription, the JSON subscription, and one per app
+	// link. Tiles carry no text (they are scanned), so the legend in the caption
+	// numbers them.
+	codes := t.subscriptionQRCodes(email, subURL)
+	if len(codes) == 0 {
+		t.sendNotice(chatID, t.I18nBot("tgbot.answers.errorOperation"))
+		return
+	}
+	sc := t.newScreen("qr", body+t.qrCodeLegend(codes), rows...)
+	sc.qrPicture = qrSheetPicture(codes)
+	sc.qrSource = subURL
+	if sc.qrPicture == nil {
+		t.sendNotice(chatID, t.I18nBot("tgbot.answers.errorOperation"))
+		return
+	}
 	t.renderScreen(chatID, sc)
 }
 

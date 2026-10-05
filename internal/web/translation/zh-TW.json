@@ -2511,7 +2511,11 @@
       "inlineHint": "\r\n🔍 The list opens through search: tap Find and start typing.",
       "subURL": "🔗 Subscription: <code>{{ .URL }}</code>\r\n",
       "jsonURL": "🧩 JSON: <code>{{ .URL }}</code>\r\n",
-      "inviteHint": "Send this link to the client: the first Telegram account to open it is bound to the client."
+      "inviteHint": "Send this link to the client: the first Telegram account to open it is bound to the client.",
+      "qrLegendHeader": "🔳 QR 碼:",
+      "qrLegendSubscription": "{{ .Code }}. 訂閱",
+      "qrLegendJSON": "{{ .Code }}. JSON 訂閱",
+      "qrLegendLink": "{{ .Code }}. 應用程式連結 {{ .App }}"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",
