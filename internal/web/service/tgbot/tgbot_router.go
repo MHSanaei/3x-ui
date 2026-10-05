@@ -945,8 +945,11 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	switch callbackQuery.Data {
 	case "home":
 		t.screenHome(chatId)
+	case cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance:
+		t.screenCategory(chatId, strings.TrimPrefix(callbackQuery.Data, "cat:"))
 	case "act":
-		t.screenActions(chatId)
+		// The old "Actions" screen folded into the Maintenance category.
+		t.screenCategory(chatId, "maintenance")
 	case "hide":
 		t.hideMessage(callbackQuery)
 	case "pg:next":

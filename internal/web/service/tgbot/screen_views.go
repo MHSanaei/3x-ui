@@ -216,11 +216,6 @@ func (t *Tgbot) screenCommands(chatID int64, isAdmin bool) {
 	t.renderScreen(chatID, t.newScreen("commands", t.I18nBot(key), t.backRow()))
 }
 
-// screenActions holds the heavier operations behind one extra tap.
-func (t *Tgbot) screenActions(chatID int64) {
-	t.renderScreen(chatID, t.newScreen("main", t.I18nBot("tgbot.messages.actionsHint"), t.actionsRows()...))
-}
-
 // sendBackupScreen delivers the backup and its summary as ONE message: the file
 // travels with a caption, so the chat does not get a header and a document for
 // the same event. A summary too long for a caption is sent after the file.

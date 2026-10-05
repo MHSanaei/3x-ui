@@ -282,6 +282,63 @@ func TestInlineQueryWithoutScopeListsInboundsNotClients(t *testing.T) {
 	}
 }
 
+// An unknown capability cache must not answer "inline is off": right after a
+// restart that showed the warning for a bot that has inline mode on, until the
+// background refresh happened to land.
+func TestInlineSupportProbesWhenUnknown(t *testing.T) {
+	srv, _ := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+
+	// Fresh process: nothing was recorded yet.
+	inlineCapability.mu.Lock()
+	inlineCapability.ok, inlineCapability.known = false, false
+	inlineCapability.mu.Unlock()
+
+	tb := &Tgbot{}
+	if !tb.inlineSupported() {
+		t.Error("an unknown cache answered inline-off; the probe must run first")
+	}
+	if !inlineCapability.known {
+		t.Error("the probe did not record the capability")
+	}
+}
+
+// An inline client card is what a user reads before tapping: the email as the
+// title, and three lines of facts under it.
+func TestInlineClientCardCarriesTrafficAndExpiry(t *testing.T) {
+	srv, queries := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	inlineCapability.recordForTest(true)
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+	seedReportClients(t, "nl-fast", []string{"a@x"})
+
+	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq7", From: telego.User{ID: 1}, Query: inlineScopeClients})
+
+	got := maybeAnswerInline(queries)
+	results, _ := got[0]["results"].([]any)
+	if len(results) == 0 {
+		t.Fatal("the client browser returned nothing")
+	}
+	item, _ := results[0].(map[string]any)
+	if title, _ := item["title"].(string); title != "a@x" {
+		t.Errorf("title = %q, want the client's email", title)
+	}
+	desc, _ := item["description"].(string)
+	if strings.Count(desc, "\n") != 2 {
+		t.Errorf("description = %q, want three lines (two newlines)", desc)
+	}
+	for _, want := range []string{"🚦", "📅"} {
+		if !strings.Contains(desc, want) {
+			t.Errorf("description = %q, want the %s line", desc, want)
+		}
+	}
+}
+
 // All clients is its own browser: it lists clients straight away and never asks
 // for an inbound first.
 func TestAllClientsScreenListsClientsWithoutAnInboundStep(t *testing.T) {

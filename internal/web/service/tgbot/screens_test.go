@@ -264,9 +264,34 @@ func TestHomeScreenCarriesTheMenu(t *testing.T) {
 			data[btn.CallbackData] = true
 		}
 	}
-	for _, want := range []string{cbServer, cbInbounds, cbClients, cbOnlines, cbDeplete, cbReport, cbBackup, cbBanLogs, cbAddClient, cbActions, cbHome} {
+	// The menu opens with categories only: each subject is one tap deeper, and
+	// the entry screen must not grow back into the wall of buttons.
+	for _, want := range []string{cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance, cbHome} {
 		if !data[want] {
 			t.Errorf("menu is missing the %q button", want)
+		}
+	}
+	for _, old := range []string{cbServer, cbInbounds, cbClients, cbOnlines, cbDeplete, cbReport, cbBackup, cbBanLogs, cbAddClient} {
+		if data[old] {
+			t.Errorf("menu still carries %q directly; it belongs in a category", old)
+		}
+	}
+
+	// Every category the menu offers must be drawn, and carry its own entries.
+	for _, category := range []string{"server", "clients", "traffic", "maintenance"} {
+		rows := tb.categoryRows(category)
+		if len(rows) < 2 {
+			t.Errorf("category %q has %d rows, want its entries plus a way back", category, len(rows))
+			continue
+		}
+		flat := map[string]bool{}
+		for _, row := range rows {
+			for _, btn := range row {
+				flat[btn.CallbackData] = true
+			}
+		}
+		if !flat[cbHome] {
+			t.Errorf("category %q has no way back to the menu", category)
 		}
 	}
 }

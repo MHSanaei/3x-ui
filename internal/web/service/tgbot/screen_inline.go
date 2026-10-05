@@ -66,17 +66,26 @@ func recordInlineCapability(supported bool) {
 	inlineCapability.mu.Unlock()
 }
 
-// inlineSupported reports whether the launcher may be shown. A stale value is
+// inlineSupported reports whether the launcher may be shown. A STALE value is
 // served as-is and refreshed off the render path, so a screen never waits on a
-// network round trip.
+// network round trip. An UNKNOWN value is different: right after a restart the
+// cache is empty, and answering from it showed the "enable inline mode" warning
+// for a bot that has it on, until the background refresh happened to land.
 func (t *Tgbot) inlineSupported() bool {
 	inlineCapability.mu.Lock()
 	ok, known, at := inlineCapability.ok, inlineCapability.known, inlineCapability.at
 	inlineCapability.mu.Unlock()
 
-	if !known || time.Since(at) > inlineCapabilityTTL {
-		go t.refreshInlineCapability()
+	if known && time.Since(at) <= inlineCapabilityTTL {
+		return ok
 	}
+	if !known {
+		t.refreshInlineCapability()
+		inlineCapability.mu.Lock()
+		defer inlineCapability.mu.Unlock()
+		return inlineCapability.ok
+	}
+	go t.refreshInlineCapability()
 	return ok
 }
 
@@ -258,7 +267,8 @@ func (t *Tgbot) inboundResults(search, action string) []telego.InlineQueryResult
 		if ib.Enable {
 			status = "✅"
 		}
-		description := fmt.Sprintf("#%d · %s · %s · %d %s", ib.Id, ib.Protocol, status, len(ib.ClientStats), "👥")
+		description := fmt.Sprintf("#%d · %s · %s · 🚦 %s\n👥 %d", ib.Id, ib.Protocol, status,
+			common.FormatTraffic(ib.Up+ib.Down), len(ib.ClientStats))
 		if needle != "" && !strings.Contains(strings.ToLower(remark+" "+string(ib.Protocol)+" "+strconv.Itoa(ib.Port)), needle) {
 			continue
 		}
@@ -281,24 +291,17 @@ func (t *Tgbot) clientResults(search string, isAdmin bool, inboundID string) []t
 	needle := strings.ToLower(strings.TrimSpace(search))
 	results := make([]telego.InlineQueryResult, 0, 32)
 
-	add := func(email, remark string, used, limit int64, enabled, online bool) {
+	add := func(email, remark string, used, limit, expiry int64, enabled, online bool) {
 		if needle != "" && !strings.Contains(strings.ToLower(email+" "+remark), needle) {
 			return
 		}
-		status := "❌"
-		if enabled {
-			status = "✅"
-		}
-		traffic := common.FormatTraffic(used)
-		if limit > 0 {
-			traffic += " / " + common.FormatTraffic(limit)
-		}
-		description := strings.TrimSpace(strings.Join([]string{remark, traffic, status, boolMark(online)}, " · "))
 		results = append(results, &telego.InlineQueryResultArticle{
-			Type:        "article",
-			ID:          "cl:" + email,
-			Title:       email,
-			Description: description,
+			Type:  "article",
+			ID:    "cl:" + email,
+			Title: email, // the title is the one thing every client shows
+			// Telegram renders about three lines here, so the three facts a
+			// client screen answers first get one line each.
+			Description: t.clientCardLines(remark, used, limit, expiry, enabled, online),
 			InputMessageContent: &telego.InputTextMessageContent{
 				MessageText: "cl:" + email,
 			},
@@ -332,10 +335,66 @@ func (t *Tgbot) clientResults(search string, isAdmin bool, inboundID string) []t
 			if traffic, err := t.inboundService.GetClientTrafficByEmail(client.Email); err == nil && traffic != nil {
 				used = traffic.Up + traffic.Down
 			}
-			add(client.Email, ib.Remark, used, client.TotalGB, client.Enable, false)
+			add(client.Email, ib.Remark, used, client.TotalGB, client.ExpiryTime, client.Enable, false)
 		}
 	}
 	return results
+}
+
+// clientCardLines is an inline result's description: three lines, because that
+// is what Telegram renders under the title.
+func (t *Tgbot) clientCardLines(remark string, used, limit, expiry int64, enabled, online bool) string {
+	head := "❌"
+	if enabled {
+		head = "✅"
+	}
+	if online {
+		head += " 🟢"
+	}
+	if remark != "" {
+		head += " · " + remark
+	}
+
+	traffic := common.FormatTraffic(used)
+	if limit > 0 {
+		// The percentage is what people actually compare between clients.
+		traffic += " / " + common.FormatTraffic(limit) +
+			fmt.Sprintf(" · %d%%", used*100/limit)
+	} else {
+		traffic += " / " + t.I18nBot("tgbot.unlimited")
+	}
+
+	expiryText := t.I18nBot("tgbot.unlimited")
+	switch {
+	case expiry < 0:
+		// A negative term is days counted from first use, not a date.
+		expiryText = t.durationText(-expiry*86400000, true)
+	case expiry > 0:
+		expiryText = t.durationText(expiry-time.Now().UnixMilli(), false)
+	}
+	return head + "\n🚦 " + traffic + "\n📅 " + expiryText
+}
+
+// durationText is a compact, localized span: "12 Minutes", "5 Hours", "30 Days".
+// fromFirstUse names the not-yet-started case, whose clock has not begun.
+func (t *Tgbot) durationText(ms int64, fromFirstUse bool) string {
+	if ms <= 0 {
+		return t.I18nBot("tgbot.inline.expired")
+	}
+	if fromFirstUse {
+		return fmt.Sprintf("%d %s (%s)", ms/86400000, t.I18nBot("tgbot.days"),
+			t.I18nBot("tgbot.inline.fromFirstUse"))
+	}
+	switch {
+	case ms >= 30*86400000:
+		return fmt.Sprintf("%d %s", ms/(30*86400000), t.I18nBot("tgbot.months"))
+	case ms >= 86400000:
+		return fmt.Sprintf("%d %s", ms/86400000, t.I18nBot("tgbot.days"))
+	case ms >= 3600000:
+		return fmt.Sprintf("%d %s", ms/3600000, t.I18nBot("tgbot.hours"))
+	default:
+		return fmt.Sprintf("%d %s", ms/60000, t.I18nBot("tgbot.minutes"))
+	}
 }
 
 func boolMark(v bool) string {
