@@ -17,6 +17,7 @@ import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
 import { deriveSpiderX } from './spider-x';
+import { vlessEncryptionAuthKind } from './vless-encryption';
 import { normalizeTuicCongestionController, resolveTuicServerSettings } from '@/lib/tuic';
 
 // Share-link generators. Each per-protocol fn takes a typed inbound plus
@@ -1723,9 +1724,13 @@ function wgPeerCommentSuffix(peer: unknown): string {
   return typeof comment === 'string' && comment.trim() !== '' ? ` (${comment.trim()})` : '';
 }
 
+// Only the post-quantum key payloads outgrow a QR; the REALITY ML-KEM hint and the
+// mlkem768x25519plus prefix of an X25519-authenticated encryption do not (#6730).
 export function isPostQuantumLink(link: string): boolean {
-  if (/[?&]pqv=/.test(link)) return true;
-  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
-  if (link.includes('ML-KEM-768')) return true;
-  return false;
+  const withoutRemark = link.split('#', 1)[0];
+  const queryStart = withoutRemark.indexOf('?');
+  if (queryStart < 0) return false;
+  const params = new URLSearchParams(withoutRemark.slice(queryStart + 1));
+  if (params.get('pqv')) return true;
+  return vlessEncryptionAuthKind(params.get('encryption') ?? '')?.startsWith('mlkem768') ?? false;
 }

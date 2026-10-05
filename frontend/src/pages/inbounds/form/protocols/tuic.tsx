@@ -21,6 +21,7 @@ import { HttpUtil } from '@/utils';
 
 export default function TuicFields() {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const { control, setValue } = useFormContext();
   const [loadingPanelCert, setLoadingPanelCert] = useState(false);
 
@@ -36,7 +37,7 @@ export default function TuicFields() {
   const autofillFromSni = () => {
     const cleanSni = (sni || '').trim();
     if (!cleanSni) {
-      message.warning(t('pages.xray.tuic.sniRequired'));
+      messageApi.warning(t('pages.xray.tuic.sniRequired'));
       return;
     }
     setValue('settings.server.certificate', `/root/cert/${cleanSni}/fullchain.pem`);
@@ -51,12 +52,12 @@ export default function TuicFields() {
           ? await HttpUtil.get(`/panel/api/nodes/webCert/${nodeId}`, undefined, { silent: true })
           : await HttpUtil.post('/panel/api/setting/all', undefined, { silent: true });
       if (!msg?.success) {
-        message.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
+        messageApi.warning(msg?.msg || t('pages.inbounds.setDefaultCertEmpty'));
         return;
       }
       const obj = msg.obj as { webCertFile?: string; webKeyFile?: string };
       if (!obj?.webCertFile && !obj?.webKeyFile) {
-        message.warning(t('pages.inbounds.setDefaultCertEmpty'));
+        messageApi.warning(t('pages.inbounds.setDefaultCertEmpty'));
         return;
       }
       if (obj.webCertFile) {
@@ -65,9 +66,9 @@ export default function TuicFields() {
       if (obj.webKeyFile) {
         setValue('settings.server.private_key', obj.webKeyFile);
       }
-      message.success(t('pages.inbounds.setSuccess'));
+      messageApi.success(t('pages.inbounds.setSuccess'));
     } catch {
-      message.error(t('somethingWentWrong'));
+      messageApi.error(t('somethingWentWrong'));
     } finally {
       setLoadingPanelCert(false);
     }
@@ -145,6 +146,7 @@ export default function TuicFields() {
 
   return (
     <>
+      {messageContextHolder}
       <Form.Item label={t('pages.inbounds.publicKey')}>
         <AutoComplete
           value={certificate}
