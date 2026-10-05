@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -394,9 +395,22 @@ type MLKEM768Response struct {
 	Client string `json:"client" example:"mlkem768-client"`
 }
 
+// publicIPTransport lets a test refuse sockets without writing
+// http.DefaultTransport, which this lookup reads on a resolver goroutine.
+var publicIPTransport atomic.Pointer[http.Transport]
+
+// publicIPLookups lets a test wait for resolvers started by earlier tests.
+var publicIPLookups atomic.Int64
+
 func getPublicIP(url string) string {
+	publicIPLookups.Add(1)
+	defer publicIPLookups.Add(-1)
+
 	client := &http.Client{
 		Timeout: 3 * time.Second,
+	}
+	if transport := publicIPTransport.Load(); transport != nil {
+		client.Transport = transport
 	}
 
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)

@@ -12,7 +12,29 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
+
+// waitForPublicIPLookups blocks until lookups read idle twice in a row: a
+// goroutine can sit between the cache check and its first dial.
+func waitForPublicIPLookups(t *testing.T) {
+	t.Helper()
+	// 30s covers an IPv6-less box, which walks all five services at 3s each.
+	deadline := time.Now().Add(30 * time.Second)
+	idle := 0
+	for time.Now().Before(deadline) {
+		if publicIPLookups.Load() == 0 {
+			idle++
+			if idle >= 2 {
+				return
+			}
+		} else {
+			idle = 0
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("public-IP lookups never settled: %d in flight", publicIPLookups.Load())
+}
 
 func TestHappGenerateLocallyWithoutNetwork(t *testing.T) {
 	initHappTestDB(t)
@@ -20,13 +42,14 @@ func TestHappGenerateLocallyWithoutNetwork(t *testing.T) {
 	configureHappSubscription(t, true, "https://sub.example/sub/")
 	configureHappLinkGate(t, true)
 	var calls atomic.Int32
-	previous := http.DefaultTransport
-	// Fail before opening a socket, including clients cloned from the default transport.
-	http.DefaultTransport = &http.Transport{DialContext: func(context.Context, string, string) (net.Conn, error) {
+	// A resolver started by an earlier test may still be dialing; its dials must
+	// not land in the tally below.
+	waitForPublicIPLookups(t)
+	previous := publicIPTransport.Swap(&http.Transport{DialContext: func(context.Context, string, string) (net.Conn, error) {
 		calls.Add(1)
 		return nil, errors.New("network is unavailable in the local-generation test")
-	}}
-	t.Cleanup(func() { http.DefaultTransport = previous })
+	}})
+	t.Cleanup(func() { publicIPTransport.Store(previous) })
 	svc := NewHappService(&ClientService{}, &SettingService{})
 	result, err := svc.Generate(context.Background(), client.Id, "panel.example")
 	if err != nil || !strings.HasPrefix(result.EncryptedLink, "happ://crypt5/") {
