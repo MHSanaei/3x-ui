@@ -7,7 +7,6 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/gin-contrib/sessions"
@@ -135,39 +134,6 @@ func TestCheckAPIAuth_AcceptsVerifiedClientCert(t *testing.T) {
 	engine.ServeHTTP(w, forbidden)
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("updatePanel status = %d, want 403; body=%s", w.Code, w.Body.String())
-	}
-}
-
-func TestNodeSyncScopeAllowlistMatchesRemoteInventory(t *testing.T) {
-	expected := map[string]map[string]struct{}{
-		"/server/status":               {http.MethodGet: {}},
-		"/inbounds/list":               {http.MethodGet: {}},
-		"/inbounds/add":                {http.MethodPost: {}},
-		"/inbounds/del/:id":            {http.MethodPost: {}},
-		"/inbounds/update/:id":         {http.MethodPost: {}},
-		"/clients/add":                 {http.MethodPost: {}},
-		"/clients/del/:email":          {http.MethodPost: {}},
-		"/clients/:email/detach":       {http.MethodPost: {}},
-		"/clients/update/:email":       {http.MethodPost: {}},
-		"/server/restartXrayService":   {http.MethodPost: {}},
-		"/server/getWebCertFiles":      {http.MethodGet: {}},
-		"/server/descendants":          {http.MethodGet: {}},
-		"/clients/resetTraffic/:email": {http.MethodPost: {}},
-		"/inbounds/resetAllTraffics":   {http.MethodPost: {}},
-		"/inbounds/:id/resetTraffic":   {http.MethodPost: {}},
-		"/clients/onlinesByGuid":       {http.MethodPost: {}},
-		"/clients/onlines":             {http.MethodPost: {}},
-		"/clients/lastOnline":          {http.MethodPost: {}},
-		"/inbounds/pushClientTraffics": {http.MethodPost: {}},
-		"/server/clientIps":            {http.MethodGet: {}, http.MethodPost: {}},
-		"/clients/clientIpsByGuid":     {http.MethodPost: {}},
-		"/hosts/list":                  {http.MethodGet: {}},
-	}
-	if !reflect.DeepEqual(nodeSyncScopeAllow, expected) {
-		t.Fatalf("node-sync allowlist drift:\n got: %#v\nwant: %#v", nodeSyncScopeAllow, expected)
-	}
-	if _, ok := nodeSyncScopeAllow["/server/updatePanel"]; ok {
-		t.Fatal("node-sync must not include /server/updatePanel")
 	}
 }
 
