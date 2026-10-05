@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
@@ -262,7 +263,7 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 		}
 	}
 
-	portCtx, err := s.loadPortConflictContext(database.GetDB())
+	portCtx, err := s.loadPortConflictContext(database.GetDB(), inbound.NodeID)
 	if err != nil {
 		return err
 	}
@@ -303,23 +304,31 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 	return nil
 }
 
-// portConflictContext caches what checkForwardedPortsConflict needs — the panel's
-// own port and this host's enabled rows — so one save costs one query, not N.
+// portConflictContext caches what checkForwardedPortsConflict needs about the
+// host a forward listener binds on, so one save costs one query, not N.
 type portConflictContext struct {
 	webPort  int
 	inbounds []*model.Inbound
+	// onNode: the host is a node, whose web port and relay ports (derived from
+	// its own inbound ids) this panel does not know; the node re-checks both.
+	onNode bool
 }
 
-// loadPortConflictContext loads the panel's own port and every enabled inbound
-// hosted on THIS panel: a node-hosted one listens on that node's host, not here.
-func (s *InboundService) loadPortConflictContext(db *gorm.DB) (portConflictContext, error) {
+// loadPortConflictContext loads every enabled inbound hosted where nodeID's rows
+// run -- this panel for nil, else that node -- plus this panel's own port.
+func (s *InboundService) loadPortConflictContext(db *gorm.DB, nodeID *int) (portConflictContext, error) {
 	var ctx portConflictContext
-	if webPort, err := (&SettingService{}).GetPort(); err == nil {
-		ctx.webPort = webPort
+	q := db.Model(model.Inbound{}).Where("enable = ?", true)
+	if nodeID != nil {
+		ctx.onNode = true
+		q = q.Where("node_id = ?", *nodeID)
+	} else {
+		if webPort, err := (&SettingService{}).GetPort(); err == nil {
+			ctx.webPort = webPort
+		}
+		q = q.Where("node_id IS NULL")
 	}
-	err := db.Model(model.Inbound{}).
-		Where("enable = ? AND node_id IS NULL", true).
-		Find(&ctx.inbounds).Error
+	err := q.Find(&ctx.inbounds).Error
 	return ctx, err
 }
 
@@ -340,7 +349,7 @@ func (s *InboundService) checkAmneziaWGForwardedPorts(db *gorm.DB, settings stri
 	if err := json.Unmarshal([]byte(settings), &parsed); err != nil {
 		return nil
 	}
-	ctx, err := s.loadPortConflictContext(db)
+	ctx, err := s.loadPortConflictContext(db, nil)
 	if err != nil {
 		return err
 	}
@@ -372,10 +381,18 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 			}
 			return fmt.Sprintf("inbound '%s' (#%d, port %d)", name, ib.Id, ib.Port)
 		}
-		if ib.Protocol != model.AmneziaWG {
+		if ctx.onNode {
 			continue
 		}
-		socksPort := amneziawgnet.SOCKSPortForInbound(ib.Id)
+		var socksPort int
+		switch ib.Protocol {
+		case model.AmneziaWG:
+			socksPort = amneziawgnet.SOCKSPortForInbound(ib.Id)
+		case model.TUIC:
+			socksPort = tuic.SOCKSPortForInbound(ib.Id)
+		default:
+			continue
+		}
 		if amneziawg.ForwardedPortsInclude(forwardedPorts, socksPort) {
 			name := ib.Remark
 			if name == "" {

@@ -1,6 +1,7 @@
 import type { HostEndpoint } from '@/lib/hosts/host-link';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
+import { normalizeTuicCongestionController } from '@/lib/tuic';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 export function isTuicClient(client: ClientRecord | null | undefined): boolean {
@@ -39,7 +40,7 @@ export function buildTuicClientConfig(
       ? tuicServer.alpn
       : ['h3', 'spdy/3.1'];
   const sni = hostEndpoint?.sni || tuicServer?.sni || endpointHost;
-  const cc = tuicServer?.congestion_control || 'bbr';
+  const cc = normalizeTuicCongestionController(tuicServer?.congestion_control);
   const udpRelay = tuicServer?.udp_relay_mode || 'native';
   const reduceRtt = tuicServer?.zero_rtt_handshake ?? true;
 

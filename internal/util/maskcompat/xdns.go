@@ -34,7 +34,7 @@ func upgradeLegacyXdnsSettings(settings map[string]any) bool {
 	if !hasLegacyXdnsEntry(rawDomains) && !hasLegacyXdnsEntry(rawResolvers) {
 		return false
 	}
-	domains := make([]any, 0, len(rawDomains)+len(rawResolvers))
+	domains := make([]any, 0, len(rawDomains))
 	listed := map[string]bool{}
 	addDomain := func(domain map[string]any) {
 		key, _ := domain["name"].(string)

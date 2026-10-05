@@ -24,7 +24,11 @@ func (s *InboundService) DesiredTuicInstances() ([]tuic.Instance, error) {
 
 	instances := make([]tuic.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
-		inst, ok := tuic.InstanceFromInbound(ib)
+		built, err := s.buildInboundForLocalRuntime(db, ib)
+		if err != nil {
+			return nil, err
+		}
+		inst, ok := tuic.InstanceFromInbound(built)
 		if !ok {
 			continue
 		}

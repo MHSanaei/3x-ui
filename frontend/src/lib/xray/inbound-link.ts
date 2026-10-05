@@ -17,6 +17,8 @@ import { parseGeckoPacketSize } from '@/lib/xray/forms/transport/FinalMaskForm';
 import { getHeaderValue } from './headers';
 import { canEnableTlsFlow } from './protocol-capabilities';
 import { deriveSpiderX } from './spider-x';
+import { vlessEncryptionAuthKind } from './vless-encryption';
+import { normalizeTuicCongestionController, resolveTuicServerSettings } from '@/lib/tuic';
 
 // Share-link generators. Each per-protocol fn takes a typed inbound plus
 // client overrides and returns a URL (or '' when the protocol doesn't
@@ -144,9 +146,36 @@ function hasShareableFinalMaskValue(value: unknown): boolean {
   return true;
 }
 
+function withLegacyFragmentRanges(finalmask: FinalMaskStreamSettings): FinalMaskStreamSettings {
+  // Stored rows reach here unparsed: dropEmptyFinalMask deletes an empty `tcp` on save.
+  if (!Array.isArray(finalmask.tcp)) return finalmask;
+  let changed = false;
+  const tcp = finalmask.tcp.map((mask) => {
+    if (mask.type !== 'fragment' || !mask.settings) return mask;
+
+    const settings = mask.settings;
+    const legacy: Record<string, unknown> = {};
+    if (settings.length === undefined && Array.isArray(settings.lengths)) {
+      const length = settings.lengths.at(-1);
+      if (typeof length === 'string' && length.trim().length > 0) legacy.length = length;
+    }
+    if (settings.delay === undefined && Array.isArray(settings.delays)) {
+      const delay = settings.delays.at(-1);
+      if (typeof delay === 'string' && delay.trim().length > 0) legacy.delay = delay;
+    }
+    if (Object.keys(legacy).length === 0) return mask;
+
+    changed = true;
+    return { ...mask, settings: { ...settings, ...legacy } };
+  });
+
+  return changed ? { ...finalmask, tcp } : finalmask;
+}
+
 function serializeFinalMask(finalmask: FinalMaskStreamSettings | undefined): string {
   if (!finalmask) return '';
-  return hasShareableFinalMaskValue(finalmask) ? JSON.stringify(finalmask) : '';
+  const shareable = withLegacyFragmentRanges(finalmask);
+  return hasShareableFinalMaskValue(shareable) ? JSON.stringify(shareable) : '';
 }
 
 function applyFinalMaskToObj(
@@ -453,6 +482,7 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     applyExternalProxyTLSParams(externalProxy, params, security);
   } else if (security === 'reality') {
     params.set('security', 'reality');
+    params.set('support-x25519mlkem768', 'true');
     if (stream.security === 'reality') {
       const reality = stream.realitySettings;
       params.set('pbk', reality.settings.publicKey);
@@ -886,15 +916,16 @@ export function genTuicLink(input: GenTuicLinkInput): string {
   if (!clientUuid || !clientPassword) return '';
 
   const rawSettings = inbound.settings as Record<string, unknown>;
-  const server = (rawSettings.server as Record<string, unknown>) ?? rawSettings;
+  const server = resolveTuicServerSettings(rawSettings);
   const host = formatUrlHost(externalProxy?.dest || address);
   const targetPort = externalProxy?.port || port;
 
   const url = new URL(
     `tuic://${encodeURIComponent(clientUuid)}:${encodeURIComponent(clientPassword)}@${host}:${targetPort}`,
   );
-  const cc =
-    (server.congestion_control as string) || (rawSettings.congestion_control as string) || 'bbr';
+  const cc = normalizeTuicCongestionController(
+    server.congestion_control ?? rawSettings.congestion_control,
+  );
   url.searchParams.set('congestion_control', cc);
 
   const epAlpn = externalProxyAlpn(externalProxy?.alpn);
@@ -1693,9 +1724,13 @@ function wgPeerCommentSuffix(peer: unknown): string {
   return typeof comment === 'string' && comment.trim() !== '' ? ` (${comment.trim()})` : '';
 }
 
+// Only the post-quantum key payloads outgrow a QR; the REALITY ML-KEM hint and the
+// mlkem768x25519plus prefix of an X25519-authenticated encryption do not (#6730).
 export function isPostQuantumLink(link: string): boolean {
-  if (/[?&]pqv=/.test(link)) return true;
-  if (link.includes('mlkem768') || link.includes('mldsa65')) return true;
-  if (link.includes('ML-KEM-768')) return true;
-  return false;
+  const withoutRemark = link.split('#', 1)[0];
+  const queryStart = withoutRemark.indexOf('?');
+  if (queryStart < 0) return false;
+  const params = new URLSearchParams(withoutRemark.slice(queryStart + 1));
+  if (params.get('pqv')) return true;
+  return vlessEncryptionAuthKind(params.get('encryption') ?? '')?.startsWith('mlkem768') ?? false;
 }

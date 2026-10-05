@@ -966,7 +966,6 @@
       "renewOnDay": "Подовжувати числа",
       "renewOnDayDesc": "Подовжувати цього числа кожного місяця, опівночі за часовим поясом панелі, замість інтервалу в днях. Якщо в місяці такого числа немає, подовження припаде на останній день. 0 — залишити режим інтервалу.",
       "renewsUsed": "Подовжень витрачено",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Введіть 32-значний hex-тег для встановлення або 'none' для очищення спонсорського каналу на MTProto."
     },
     "groups": {
@@ -2138,16 +2137,20 @@
       },
       "tuic": {
         "congestionControl": "Контроль перевантаження",
+        "congestionControlHint": "Алгоритм сервера й клієнта. На сервері змінюється після перепідключення.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Режим ретрансляції UDP",
+        "udpRelayModeHint": "Режим UDP для клієнта. Сервер підтримує обидва.",
         "zeroRttHandshake": "0-RTT рукостискання",
         "logLevel": "Рівень журналювання",
-        "logLevelHint": "Статус онлайн, «востаннє онлайн» і «старт після першого використання» читаються з рядків Info сайдкара; Warn або Error вимикають їх для цього інбаунда.",
+        "logLevelHint": "Мінімальний рівень повідомлень у логах цього інбаунду.",
         "maxIdleTime": "Макс. час простою (сек)",
         "authTimeout": "Таймаут автентифікації (сек)",
         "maxUdpRelayPacketSize": "Макс. розмір пакета UDP",
         "sni": "SNI",
-        "sniHint": "Перевизначення Server Name Indication"
+        "sniHint": "Ім’я сервера для TLS у профілі клієнта.",
+        "sniRequired": "Укажіть домен для автозаповнення."
       },
       "tun": {
         "userLevel": "Рівень користувача"

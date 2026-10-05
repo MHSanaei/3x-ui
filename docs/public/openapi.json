@@ -7797,6 +7797,10 @@
                   "server": {
                     "type": "string",
                     "description": "Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com."
+                  },
+                  "allowPrivate": {
+                    "type": "boolean",
+                    "description": "Ping a private/internal/loopback server (LAN, Docker service name). Default false (SSRF guard blocks it and the error response sets obj.privateTarget=true)."
                   }
                 },
                 "required": [

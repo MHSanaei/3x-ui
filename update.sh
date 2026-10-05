@@ -1277,6 +1277,8 @@ update_x-ui() {
         echo -e "${green}Removing old README and LICENSE file...${plain}"
         rm ${xui_folder}/bin/README.md -f > /dev/null 2>&1
         rm ${xui_folder}/bin/LICENSE -f > /dev/null 2>&1
+        rm ${xui_folder}/bin/tuic-server -f > /dev/null 2>&1
+        rm ${xui_folder}/bin/tuic -rf > /dev/null 2>&1
     else
         rm x-ui-linux-$(arch).tar.gz -f > /dev/null 2>&1
         _fail "ERROR: x-ui not installed."
@@ -1313,9 +1315,6 @@ update_x-ui() {
     elif [[ -f bin/mtg-linux-$(arch) ]]; then
         chmod +x bin/mtg-linux-$(arch) > /dev/null 2>&1
     fi
-    if [[ -f bin/tuic-server ]]; then
-        chmod +x bin/tuic-server > /dev/null 2>&1
-    fi
 
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
     local xui_script_temp="/usr/bin/x-ui-temp.$$"
@@ -1346,6 +1345,11 @@ update_x-ui() {
         echo -e "${green}Changing on config file permissions...${plain}"
         chmod 640 ${xui_folder}/bin/config.json > /dev/null 2>&1
     fi
+
+    # Finish the schema/data migrations before the service starts, so the service and
+    # config_after_update's CLI calls never run them on the same database at once (#6728).
+    echo -e "${green}Migrating database...${plain}"
+    "${xui_folder}/x-ui" migrate
 
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
