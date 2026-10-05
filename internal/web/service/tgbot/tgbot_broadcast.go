@@ -674,7 +674,32 @@ func deliverBroadcastCopy(chatID int64, draft broadcastDraft) ([]int, error) {
 		}
 		return err
 	})
+	// The one case that needs it: a recipient that is the bot's OTHER admin has
+	// no panel menu to clear a message from, so the copy carries the hide button
+	// the rest of the bot uses. Every other recipient sees the message exactly as
+	// the admin composed it.
+	if err == nil && len(ids) == 1 && adminSnapshotContains(chatID) {
+		markupBroadcastCopy(chatID, ids[0])
+	}
 	return ids, err
+}
+
+// adminSnapshotContains reports whether a chat is one of the bot's admins.
+func adminSnapshotContains(chatID int64) bool {
+	return slices.Contains(adminSnapshot(), chatID)
+}
+
+// markupBroadcastCopy puts the hide button on a delivered copy. Best-effort: a
+// failure here leaves the broadcast intact and is not worth retrying the send.
+func markupBroadcastCopy(chatID int64, messageID int) {
+	_ = callTelegramAPI(func(ctx context.Context) error {
+		_, err := bot.EditMessageReplyMarkup(ctx, &telego.EditMessageReplyMarkupParams{
+			ChatID:      tu.ID(chatID),
+			MessageID:   messageID,
+			ReplyMarkup: hideButtonMarkup(),
+		})
+		return err
+	})
 }
 
 func callTelegramAPI(call func(ctx context.Context) error) error {

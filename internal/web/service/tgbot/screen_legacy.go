@@ -1,8 +1,6 @@
 package tgbot
 
 import (
-	"time"
-
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 
 	"github.com/mymmrac/telego"
@@ -120,7 +118,6 @@ func (t *Tgbot) searchClientScreen(chatID int64, email string) {
 		return
 	}
 	body := t.clientInfoMsg(traffic, true, true, true, true, true, true)
-	body += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.renderScreen(chatID, t.newScreen("client", body, t.clientRows(email)...))
 }
 

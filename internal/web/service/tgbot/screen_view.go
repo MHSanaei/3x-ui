@@ -60,6 +60,7 @@ func (t *Tgbot) categoryRows(category string) [][]telego.InlineKeyboardButton {
 	case "server":
 		return [][]telego.InlineKeyboardButton{
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.serverUsage", cbServer)),
+			tu.InlineKeyboardRow(t.btn("tgbot.buttons.getInbounds", cbInbounds)),
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.onlines", cbOnlines)),
 			home,
 		}
@@ -72,7 +73,6 @@ func (t *Tgbot) categoryRows(category string) [][]telego.InlineKeyboardButton {
 		}
 	case "traffic":
 		return [][]telego.InlineKeyboardButton{
-			tu.InlineKeyboardRow(t.btn("tgbot.buttons.getInbounds", cbInbounds)),
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.SortedTrafficUsageReport", cbReport)),
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.depleteSoon", cbDeplete)),
 			home,

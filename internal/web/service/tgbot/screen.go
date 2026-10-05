@@ -443,7 +443,16 @@ func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) {
 
 // hideButton is the keyboard of a non-screen message: one tap clears it.
 func (t *Tgbot) hideButton() *telego.InlineKeyboardMarkup {
-	return tu.InlineKeyboard(t.hideRow())
+	return hideButtonMarkup()
+}
+
+// hideButtonMarkup is the same keyboard for callers that have no Tgbot at hand,
+// such as a delivered broadcast copy.
+func hideButtonMarkup() *telego.InlineKeyboardMarkup {
+	label := (&Tgbot{}).I18nBot("tgbot.buttons.hide")
+	return tu.InlineKeyboard(tu.InlineKeyboardRow(
+		tu.InlineKeyboardButton(label).WithCallbackData("hide"),
+	))
 }
 
 // answerSilent acknowledges a callback without a toast, for taps whose only

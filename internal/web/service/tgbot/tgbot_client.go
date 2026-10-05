@@ -385,7 +385,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 		if len(email) > 0 {
 			for _, traffic := range traffics {
 				if traffic.Email == email[0] {
-					output := t.clientInfoMsg(traffic, true, true, true, true, true, true)
+					output := t.clientInfoMsg(traffic, true, true, true, true, true, false)
 					t.SendMsgToTgbot(chatId, output)
 					return
 				}

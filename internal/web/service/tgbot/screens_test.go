@@ -87,6 +87,17 @@ func recordingServer(t *testing.T, failEdit bool) (*httptest.Server, func() []ap
 			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
 				"message_id": id, "date": 0, "chat": map[string]any{"id": 1, "type": "private"},
 			}})
+		case "copyMessage":
+			// Telegram answers with a MessageID object, not a boolean.
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
+				"message_id": id,
+			}})
+		case "copyMessages":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": []any{
+				map[string]any{"message_id": id},
+			}})
 		case "getMe":
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
@@ -611,6 +622,9 @@ func sheetBytesForTest(t *testing.T, file *telego.InputFile) []byte {
 	return data
 }
 
+// ord is rune to int, for the emoji range checks in the menu tests.
+func ord(ch rune) int { return int(ch) }
+
 // localizeWithRealBundle points the bot localizer at the shipped en-US file, so
 // a test sees the text a user would, not the bare key.
 func localizeWithRealBundle(t *testing.T) {
@@ -941,5 +955,117 @@ func TestQRSheetDrawsEveryCodeAndNumbersIt(t *testing.T) {
 	wantH := 2*qrTileSize + 3*qrSheetPad
 	if img.Bounds().Dx() != wantW || img.Bounds().Dy() != wantH {
 		t.Errorf("sheet is %dx%d, want %dx%d", img.Bounds().Dx(), img.Bounds().Dy(), wantW, wantH)
+	}
+}
+
+// ru-Locale labels for the menu, so these tests are independent of the localizer.
+func TestAdminCategoriesHaveEmojiOnEveryButton(t *testing.T) {
+	localizeWithRealBundle(t)
+	tb := &Tgbot{}
+
+	hasEmoji := func(s string) bool {
+		for _, ch := range s {
+			o := ord(ch)
+			if (o >= 0x1F000 && o <= 0x1FAFF) || (o >= 0x2600 && o <= 0x27BF) ||
+				(o >= 0x2B00 && o <= 0x2BFF) || o == 0xFE0F {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, category := range []string{"server", "clients", "traffic", "maintenance"} {
+		rows := tb.categoryRows(category)
+		if len(rows) == 0 {
+			t.Fatalf("category %q has no buttons", category)
+		}
+		for _, row := range rows {
+			for _, button := range row {
+				if button.CallbackData == cbHome {
+					continue // the back row is a plain arrow by design
+				}
+				if !hasEmoji(button.Text) {
+					t.Errorf("category %q: button %q has no emoji: %q",
+						category, button.CallbackData, button.Text)
+				}
+			}
+		}
+	}
+}
+
+// A screen must not print "Refreshed on" twice: the card carries one and the
+// caller used to append a second.
+func TestClientScreensPrintRefreshedOnOnce(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4848, "once@x")
+
+	// The admin's client card, which is where the duplicate was visible.
+	tb.searchClientScreen(777, "once@x")
+	sc, ok := tb.screens().get(777)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	needle := tb.I18nBot("tgbot.messages.refreshedOn", "Time==x")
+	if needle == "" {
+		t.Skip("no localizer in this test environment")
+	}
+	// Compare on the key itself, which survives an empty localizer.
+	if got := strings.Count(sc.pages[0], "refreshedOn"); got > 1 {
+		t.Errorf("refreshedOn appears %d times on the client card", got)
+	}
+	if got := strings.Count(sc.body, "Refreshed"); got > 1 && needle != "" {
+		t.Errorf("the refreshed line is printed %d times", got)
+	}
+}
+
+// Inbounds belongs with the server, not under traffic: it says what the server
+// listens on, and the traffic category is about quota.
+func TestInboundsSitsInTheServerCategory(t *testing.T) {
+	tb := &Tgbot{}
+	in := func(category, want string) bool {
+		for _, row := range tb.categoryRows(category) {
+			for _, button := range row {
+				if button.CallbackData == want {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	if !in("server", cbInbounds) {
+		t.Error("the Server category does not offer Inbounds")
+	}
+	if in("traffic", cbInbounds) {
+		t.Error("the Traffic category still offers Inbounds")
+	}
+}
+
+// A delivered broadcast copy carries the hide button when the recipient is one of
+// the bot's admins: that recipient has no panel menu to clear it from.
+func TestBroadcastCopyToAnotherAdminCarriesHide(t *testing.T) {
+	localizeWithRealBundle(t)
+	srv, calls := recordingServer(t, false)
+	swapTestBot(t, srv.URL)
+	t.Cleanup(srv.Close)
+	setTestAdmins(t, 111, 222)
+
+	if _, err := deliverBroadcastCopy(222, broadcastDraft{FromChatID: 111, MessageIDs: []int{5}}); err != nil {
+		t.Fatalf("deliverBroadcastCopy: %v", err)
+	}
+
+	got := false
+	for _, call := range calls() {
+		if call.Method != "editMessageReplyMarkup" {
+			continue
+		}
+		markup, _ := json.Marshal(call.Payload["reply_markup"])
+		if strings.Contains(string(markup), "\"hide\"") {
+			got = true
+		}
+	}
+	if !got {
+		t.Error("the copy delivered to an admin carries no hide button")
 	}
 }
