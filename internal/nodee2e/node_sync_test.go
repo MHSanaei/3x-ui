@@ -16,6 +16,7 @@ func TestNodeSync(t *testing.T) {
 	bin := panelBinary(t)
 	for _, scope := range []string{"admin", "node-sync"} {
 		t.Run("enrolled with "+scope+" token", func(t *testing.T) {
+			t.Parallel()
 			runNodeSyncScenarios(t, bin, scope)
 		})
 	}

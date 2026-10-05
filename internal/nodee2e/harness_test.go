@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -94,6 +95,17 @@ func (p *panel) mintToken(name, scope string) string {
 // sub-server port (two panels on one host would race for 2096) and an admin token.
 func newPanel(t *testing.T, bin, name string) *panel {
 	t.Helper()
+	p := preparePanel(t, bin, name)
+	p.token = p.mintToken("e2e-driver", "admin")
+	return p
+}
+
+// sharedDBMu guards the process-global database handle the harness borrows
+// while the scopes run in parallel.
+var sharedDBMu sync.Mutex
+
+func preparePanel(t *testing.T, bin, name string) *panel {
+	t.Helper()
 	p := &panel{t: t, name: name, bin: bin, dir: t.TempDir(), port: freePort(t)}
 	for _, d := range []string{"db", "log", "bin"} {
 		if err := os.MkdirAll(filepath.Join(p.dir, d), 0o755); err != nil {
@@ -101,6 +113,8 @@ func newPanel(t *testing.T, bin, name string) *panel {
 		}
 	}
 	p.cli("setting", "-username", "e2e", "-password", "e2e-pass", "-port", strconv.Itoa(p.port), "-webBasePath", "/")
+	sharedDBMu.Lock()
+	defer sharedDBMu.Unlock()
 	if err := database.InitDB(filepath.Join(p.dir, "db", "x-ui.db")); err != nil {
 		t.Fatalf("%s: open db: %v", name, err)
 	}
@@ -112,7 +126,6 @@ func newPanel(t *testing.T, bin, name string) *panel {
 	if err := database.CloseDB(); err != nil {
 		t.Fatalf("%s: close db: %v", name, err)
 	}
-	p.token = p.mintToken("e2e-driver", "admin")
 	t.Cleanup(p.stop)
 	return p
 }
@@ -169,6 +182,8 @@ func (p *panel) deleteInboundRow(id int) {
 	if p.cmd != nil {
 		p.t.Fatalf("%s: deleteInboundRow on a running panel", p.name)
 	}
+	sharedDBMu.Lock()
+	defer sharedDBMu.Unlock()
 	if err := database.InitDB(filepath.Join(p.dir, "db", "x-ui.db")); err != nil {
 		p.t.Fatalf("%s: open db: %v", p.name, err)
 	}
