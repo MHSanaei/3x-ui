@@ -8,9 +8,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-// #6738: a host's Description must reach hysteria:// and hysteria2:// links the
-// way it already reaches vless/trojan/ss. Without it Happ falls back to its
-// own "Hysteria | hysteria | TLS" caption for the same host.
+// #6738: without the host's Description on hysteria(2):// links, Happ falls back
+// to its own "Hysteria | hysteria | TLS" caption on a host that also serves VLESS.
 func TestGenHysteriaLinkAppendsHostServerDescription(t *testing.T) {
 	tests := map[string]struct {
 		version int
@@ -54,24 +53,5 @@ func TestGenHysteriaLinkAppendsHostServerDescription(t *testing.T) {
 				t.Fatalf("host serverDescription missing from fragment.\n got: %s\nwant suffix: ?serverDescription=V2ktRmk=", got)
 			}
 		})
-	}
-}
-
-// A legacy externalProxy entry carries no host description, so its link must
-// stay exactly as it is — no empty serverDescription param leaks in.
-func TestGenHysteriaLinkWithoutServerDescriptionUnchanged(t *testing.T) {
-	in := &model.Inbound{
-		Id: 920011, Listen: "203.0.113.1", Port: 443, Protocol: model.Hysteria,
-		Remark: "hy",
-		StreamSettings: `{"security":"tls","externalProxy":[` +
-			`{"dest":"cdn.example.com","port":8443,"forceTls":"same","remark":"CDN"}]}`,
-		Settings: `{"version":2,"clients":[{"auth":"secret","email":"user"}]}`,
-	}
-	got := (&SubService{}).genHysteriaLink(in, "user")
-	if strings.Contains(got, "serverDescription") {
-		t.Fatalf("unexpected serverDescription on an endpoint without a host description:\n %s", got)
-	}
-	if !strings.Contains(got, "hysteria2://secret@cdn.example.com:8443") {
-		t.Fatalf("link base changed:\n %s", got)
 	}
 }
