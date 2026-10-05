@@ -634,6 +634,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		security, _ := newStream["security"].(string)
 		if hasExternalProxy {
 			applyExternalProxyTLSToStream(extPrxy, newStream, security)
+			liftHostTLSVerification(newStream)
 		}
 		applyHostStreamOverrides(extPrxy, newStream)
 		if finalmask, ok := newStream["finalmask"].(map[string]any); ok {
@@ -774,6 +775,23 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	if cs, ok := tData["cipherSuites"].(string); ok && cs != "" {
 		tlsData["cipherSuites"] = cs
 	}
+	putClientTLSVerification(tlsData, tlsClientSettings)
+	return tlsData
+}
+
+// liftHostTLSVerification moves the host overrides applyExternalProxyTLSToStream
+// wrote into the panel-shaped tlsSettings.settings up to where xray reads them.
+func liftHostTLSVerification(stream map[string]any) {
+	tlsSettings, _ := stream["tlsSettings"].(map[string]any)
+	inner, ok := tlsSettings["settings"].(map[string]any)
+	if !ok {
+		return
+	}
+	delete(tlsSettings, "settings")
+	putClientTLSVerification(tlsSettings, inner)
+}
+
+func putClientTLSVerification(tlsData map[string]any, tlsClientSettings map[string]any) {
 	if ech, ok := tlsClientSettings["echConfigList"].(string); ok && ech != "" {
 		tlsData["echConfigList"] = ech
 	}
@@ -785,7 +803,6 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 	if pins, ok := pinnedSha256List(tlsClientSettings); ok {
 		tlsData["pinnedPeerCertSha256"] = strings.Join(pins, ",")
 	}
-	return tlsData
 }
 
 func (s *SubJsonService) realityData(rData map[string]any, clientKey string) map[string]any {
