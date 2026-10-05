@@ -268,6 +268,11 @@ func (t *Tgbot) finalizeBroadcastAlbum(actor chatUser, groupID string) {
 	t.acceptBroadcastDraft(actor, ids)
 }
 
+// The broadcast flow stays message-scoped rather than screen-scoped: two admins
+// in one group compose and confirm their own drafts, and a single per-chat
+// screen would make the second preview overwrite the first admin's card (and
+// its confirm token). Each card carries its own confirm/cancel, and cancel
+// deletes it, so the chat still ends up clean.
 func (t *Tgbot) broadcastCancelKeyboard() *telego.InlineKeyboardMarkup {
 	return tu.InlineKeyboard(tu.InlineKeyboardRow(
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("broadcast_cancel"),

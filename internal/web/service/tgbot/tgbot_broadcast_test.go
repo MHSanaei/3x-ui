@@ -41,6 +41,12 @@ func newBroadcastMock(t *testing.T) (url string, calls func(string) int, bodies 
 		if method == "copyMessages" {
 			result = []any{message, message}
 		}
+		if method == "sendPhoto" {
+			// Screens are photo messages: their caption and keyboard travel as
+			// form fields, so the mock lifts them into the JSON shape the
+			// assertions read.
+			payload["text"] = payload["caption"]
+		}
 		mu.Lock()
 		counts[method]++
 		sent[method] = append(sent[method], payload)
