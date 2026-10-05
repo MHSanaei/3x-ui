@@ -723,12 +723,15 @@ func (t *Tgbot) getCommonClientButtons(draft *clientDraft) [][]telego.InlineKeyb
 	}
 }
 
-// addClient renders the draft message + shared client-first keyboard.
+// addClient renders the draft as the chat's screen: the wizard keeps ONE
+// message, and a value picker can edit it without losing the card.
 func (t *Tgbot) addClient(chatId int64, draft *clientDraft, msg string, messageID ...int) {
-	inlineKeyboard := tu.InlineKeyboard(t.getCommonClientButtons(draft)...)
 	if len(messageID) > 0 {
-		t.editMessageTgBot(chatId, messageID[0], msg, inlineKeyboard)
-	} else {
-		t.SendMsgToTgbot(chatId, msg, inlineKeyboard)
+		t.adoptScreen(chatId, messageID[0])
 	}
+	body := msg
+	if body == "" {
+		body = t.BuildClientDraftMessage(draft)
+	}
+	t.renderScreen(chatId, t.newScreen("wizard", body, t.getCommonClientButtons(draft)...))
 }

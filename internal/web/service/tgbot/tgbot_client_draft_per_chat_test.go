@@ -2,7 +2,6 @@ package tgbot
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -23,23 +22,15 @@ func draftTexts(t *testing.T) (string, func(int64) []string) {
 	var mu sync.Mutex
 	texts := map[int64][]string{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		method := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
 		result := any(true)
-		if r.URL.Path == "/bot"+testBotToken+"/sendMessage" || r.URL.Path == "/bot"+testBotToken+"/editMessageText" {
-			var payload struct {
-				ChatID any    `json:"chat_id"`
-				Text   string `json:"text"`
-			}
-			_ = json.Unmarshal(body, &payload)
-			chatID := int64(0)
-			switch v := payload.ChatID.(type) {
-			case float64:
-				chatID = int64(v)
-			}
+		switch method {
+		case "sendMessage", "sendPhoto", "editMessageText", "editMessageMedia", "editMessageCaption":
+			sent := extractSentBody(t, r)
 			mu.Lock()
-			texts[chatID] = append(texts[chatID], payload.Text)
+			texts[sent.ChatID] = append(texts[sent.ChatID], sent.Text)
 			mu.Unlock()
-			result = map[string]any{"message_id": 1, "date": 0, "chat": map[string]any{"id": chatID, "type": "private"}}
+			result = map[string]any{"message_id": 1, "date": 0, "chat": map[string]any{"id": sent.ChatID, "type": "private"}}
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": result})

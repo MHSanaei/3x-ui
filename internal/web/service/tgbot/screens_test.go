@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -285,6 +286,75 @@ func TestScreenKeepsArtFromTheBotAvatar(t *testing.T) {
 	if countMethod(calls(), "sendPhoto") == 0 {
 		t.Errorf("calls = %v, want the screen sent as a photo", methods(calls()))
 	}
+}
+
+// sentText is what a Telegram call would display, plus the chat it went to.
+// A screen travels as a photo (multipart, caption inside the media field), so a
+// test helper that only reads JSON `text` sees nothing at all.
+type sentText struct {
+	ChatID int64
+	Text   string
+}
+
+// extractSentBody reads the displayable text and the target chat off a Bot API
+// request, whichever shape the call used.
+func extractSentBody(t *testing.T, r *http.Request) sentText {
+	t.Helper()
+	out := sentText{}
+	ctype := r.Header.Get("Content-Type")
+	if strings.HasPrefix(ctype, "multipart/form-data") {
+		if err := r.ParseMultipartForm(1 << 22); err != nil {
+			return out
+		}
+		out.Text = r.FormValue("caption")
+		if out.Text == "" {
+			out.Text = r.FormValue("text")
+		}
+		if media := r.FormValue("media"); media != "" {
+			var payload struct {
+				Caption string `json:"caption"`
+			}
+			if json.Unmarshal([]byte(media), &payload) == nil && payload.Caption != "" {
+				out.Text = payload.Caption
+			}
+		}
+		out.ChatID = parseInt64(r.FormValue("chat_id"))
+		return out
+	}
+	body, _ := io.ReadAll(r.Body)
+	var payload struct {
+		ChatID  json.RawMessage `json:"chat_id"`
+		Text    string          `json:"text"`
+		Caption string          `json:"caption"`
+		Media   json.RawMessage `json:"media"`
+	}
+	if json.Unmarshal(body, &payload) != nil {
+		return out
+	}
+	out.Text = payload.Text
+	if out.Text == "" {
+		out.Text = payload.Caption
+	}
+	if len(payload.Media) > 0 {
+		var media struct {
+			Caption string `json:"caption"`
+		}
+		if json.Unmarshal(payload.Media, &media) == nil && media.Caption != "" {
+			out.Text = media.Caption
+		}
+	}
+	var chat any
+	if json.Unmarshal(payload.ChatID, &chat) == nil {
+		if f, ok := chat.(float64); ok {
+			out.ChatID = int64(f)
+		}
+	}
+	return out
+}
+
+func parseInt64(v string) int64 {
+	n, _ := strconv.ParseInt(v, 10, 64)
+	return n
 }
 
 func countMethod(calls []apiCall, method string) int {

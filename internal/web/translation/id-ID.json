@@ -2504,7 +2504,10 @@
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "actionsHint": "Maintenance actions:",
-      "inlineHint": "\r\n🔍 The list opens through search: tap Find and start typing."
+      "inlineHint": "\r\n🔍 The list opens through search: tap Find and start typing.",
+      "subURL": "🔗 Subscription: <code>{{ .URL }}</code>\r\n",
+      "jsonURL": "🧩 JSON: <code>{{ .URL }}</code>\r\n",
+      "inviteHint": "Send this link to the client: the first Telegram account to open it is bound to the client."
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -2556,7 +2559,12 @@
       "page": "Page {{ .Page }} of {{ .Pages }}",
       "searchInbounds": "🔍 Find inbound…",
       "searchClients": "🔍 Find client…",
-      "inlineDisabled": "⚠️ Inline mode is off"
+      "inlineDisabled": "⚠️ Inline mode is off",
+      "clientCard": "⬅️ Client card",
+      "confirm": "✅ Confirm",
+      "links": "🔗 Links",
+      "individualLinks": "🔗 Individual links",
+      "qrCode": "🔳 QR code"
     },
     "answers": {
       "broadcastStarted": "🚀 Siaran dimulai.",
@@ -2608,7 +2616,8 @@
       "offTitle": "⚠️ Inline mode is disabled for this bot",
       "offBody": "Lists are browsed in inline mode. Enable it in @BotFather: /setinline, then tap Check again.",
       "recheck": "Check again"
-    }
+    },
+    "noValue": "—"
   },
   "discord": {
     "test": {
