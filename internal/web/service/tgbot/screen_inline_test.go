@@ -180,9 +180,26 @@ func TestInlineQueryListsClientsOfTheChosenInbound(t *testing.T) {
 	chosen := inbounds[0]
 
 	// The screen is drawn in a group: chat id 500, the admin's own id 1.
-	tb.screenInboundClients(500, 1, chosen.Id)
+	tb.screenInboundClients(500, chosen.Id)
 
-	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq4", From: telego.User{ID: 1}, Query: ""})
+	// The launcher prefills the query with the browser's intent; that text is
+	// what Telegram sends back, so the test sends exactly it.
+	sc, ok := tb.screens().get(500)
+	if !ok {
+		t.Fatal("the client screen was not rendered")
+	}
+	var queryText string
+	for _, row := range sc.markup.InlineKeyboard {
+		for _, btn := range row {
+			if btn.SwitchInlineQueryCurrentChat != nil {
+				queryText = *btn.SwitchInlineQueryCurrentChat
+			}
+		}
+	}
+	if queryText == "" {
+		t.Fatal("the client screen carries no inline launcher")
+	}
+	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq4", From: telego.User{ID: 1}, Query: queryText})
 
 	got := maybeAnswerInline(queries)
 	if len(got) != 1 {
@@ -218,7 +235,7 @@ func TestClientScreenCarriesNoClientButtons(t *testing.T) {
 	if err != nil || len(inbounds) == 0 {
 		t.Fatalf("seeded inbounds = %d (err %v), want at least 1", len(inbounds), err)
 	}
-	tb.screenInboundClients(500, 1, inbounds[0].Id)
+	tb.screenInboundClients(500, inbounds[0].Id)
 
 	sc, ok := tb.screens().get(500)
 	if !ok || sc.markup == nil {
@@ -252,7 +269,6 @@ func TestInlineQueryWithoutScopeListsInboundsNotClients(t *testing.T) {
 	tb := initReportDB(t)
 	setTestAdmins(t, 1)
 	seedReportClients(t, "nl-fast", []string{"a@x"})
-	inlineScopes.reset()
 
 	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq5", From: telego.User{ID: 1}, Query: ""})
 
@@ -262,6 +278,76 @@ func TestInlineQueryWithoutScopeListsInboundsNotClients(t *testing.T) {
 		item, _ := raw.(map[string]any)
 		if id, _ := item["id"].(string); strings.HasPrefix(id, "cl:") {
 			t.Fatalf("an unscoped query leaked the client %q", id)
+		}
+	}
+}
+
+// All clients is its own browser: it lists clients straight away and never asks
+// for an inbound first.
+func TestAllClientsScreenListsClientsWithoutAnInboundStep(t *testing.T) {
+	srv, queries := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	inlineCapability.recordForTest(true)
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+	seedReportClients(t, "nl-fast", []string{"a@x", "b@x"})
+
+	tb.screenAllClients(500)
+
+	sc, ok := tb.screens().get(500)
+	if !ok || sc.markup == nil {
+		t.Fatal("All clients drew no screen")
+	}
+	var queryText string
+	for _, row := range sc.markup.InlineKeyboard {
+		for _, btn := range row {
+			if btn.SwitchInlineQueryCurrentChat != nil {
+				queryText = *btn.SwitchInlineQueryCurrentChat
+			}
+		}
+	}
+	if queryText != inlineScopeClients {
+		t.Fatalf("launcher query = %q, want the all-clients marker %q", queryText, inlineScopeClients)
+	}
+
+	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq6", From: telego.User{ID: 1}, Query: queryText})
+
+	got := maybeAnswerInline(queries)
+	results, _ := got[0]["results"].([]any)
+	if len(results) != 2 {
+		t.Fatalf("results = %d, want both seeded clients", len(results))
+	}
+	for _, raw := range results {
+		item, _ := raw.(map[string]any)
+		if id, _ := item["id"].(string); !strings.HasPrefix(id, "cl:") {
+			t.Errorf("result id = %q, want a cl: marker, never an inbound", id)
+		}
+	}
+}
+
+// The query text is the whole intent, so its parsing is pinned: a server-side
+// scope is what kept sending the client step back to the inbound list.
+func TestParseInlineQuery(t *testing.T) {
+	cases := []struct {
+		text, action, data, search string
+	}{
+		{"", inlineScopeInbounds, "", ""},
+		{"nl", inlineScopeInbounds, "", "nl"},
+		{inlineScopeClients, inlineScopeClients, "", ""},
+		{inlineScopeClients + " 3", inlineScopeClients, "3", ""},
+		{inlineScopeClients + " 3 vas", inlineScopeClients, "3", "vas"},
+		{inlineScopeClients + " vas", inlineScopeClients, "", "vas"},
+		{"add", "add", "", ""},
+		{"add nl", "add", "", "nl"},
+	}
+	for _, c := range cases {
+		action, data, search := parseInlineQuery(c.text)
+		if action != c.action || data != c.data || search != c.search {
+			t.Errorf("parseInlineQuery(%q) = (%q, %q, %q), want (%q, %q, %q)",
+				c.text, action, data, search, c.action, c.data, c.search)
 		}
 	}
 }

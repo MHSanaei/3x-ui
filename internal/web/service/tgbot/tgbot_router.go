@@ -875,7 +875,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				t.answerSilent(callbackQuery.ID)
-				t.screenInboundClients(chatId, callbackQuery.From.ID, inboundIdInt)
+				t.screenInboundClients(chatId, inboundIdInt)
 			case "add_client_to":
 				inboundIdInt, err := strconv.Atoi(dataArray[1])
 				if err != nil {
@@ -958,8 +958,11 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "srv":
 		t.answerSilent(callbackQuery.ID)
 		t.screenServer(chatId)
-	case "inb", "inbounds", "get_inbounds", "cli":
+	case "inb", "inbounds", "get_inbounds":
 		t.screenInbounds(chatId, callbackQuery.From.ID)
+	case "cli":
+		t.answerSilent(callbackQuery.ID)
+		t.screenAllClients(chatId)
 	case "onl", "onlines", "onlines_refresh":
 		t.answerSilent(callbackQuery.ID)
 		t.screenOnlines(chatId)

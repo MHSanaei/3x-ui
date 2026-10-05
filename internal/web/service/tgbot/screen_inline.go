@@ -22,46 +22,25 @@ import (
 // hint instead of a launcher, because the buttons the old bot used no longer
 // exist and a silent dead button is worse than an instruction.
 
-// inlineScope names what the user's inline query should list. It is remembered
-// per chat when a list screen is drawn: an inline query carries no chat, so the
-// launcher has to say what it is looking for.
-type inlineScope struct {
-	kind string // "inb" — inbounds, "cl" — clients, "add" — inbounds for a new client
-	// data is what a client scope browses: an inbound id, empty for all clients.
-	data string
-	at   time.Time
-}
+// The launcher carries its own intent: an inline query arrives with no chat and
+// no memory of which screen opened it, so the query text is the intent. Empty
+// means "inbounds"; "cl" is every client; "cl <inbound id>" is one inbound's
+// clients. Nothing is kept on the server, so a panel restart can neither lose
+// the intent nor silently fall back to the wrong list.
+const (
+	inlineScopeInbounds = ""
+	inlineScopeClients  = "cl"
+)
 
-type inlineScopeStore struct {
-	mu     sync.Mutex
-	scopes map[int64]inlineScope
-}
-
-var inlineScopes = &inlineScopeStore{scopes: map[int64]inlineScope{}}
-
-func (s *inlineScopeStore) set(tgUserID int64, kind, data string) {
-	s.mu.Lock()
-	s.scopes[tgUserID] = inlineScope{kind: kind, data: data, at: time.Now()}
-	s.mu.Unlock()
-}
-
-// get is keyed by the inline query's sender, not by the chat the list was
-// opened in: in a group those are different numbers, and a scope written under
-// the chat id would leave the query falling back to inbounds forever.
-func (s *inlineScopeStore) get(tgUserID int64) inlineScope {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	entry, ok := s.scopes[tgUserID]
-	if !ok || time.Since(entry.at) > 30*time.Minute {
-		return inlineScope{}
+// scopeQuery is the inline-query text the launcher opens with.
+func scopeQuery(kind, data string) string {
+	if kind == inlineScopeClients && data != "" {
+		return inlineScopeClients + " " + data
 	}
-	return entry
-}
-
-func (s *inlineScopeStore) reset() {
-	s.mu.Lock()
-	s.scopes = map[int64]inlineScope{}
-	s.mu.Unlock()
+	if kind == inlineScopeClients {
+		return inlineScopeClients
+	}
+	return ""
 }
 
 // inlineSupport caches getMe().supports_inline_queries. A permanent cache would
@@ -117,14 +96,18 @@ func (t *Tgbot) refreshInlineCapability() {
 
 // launchRow is the one way into a list: a launcher that opens inline mode in
 // this chat, or the hint that says why there is none.
-func (t *Tgbot) launchRow(scope, labelKey string) []telego.InlineKeyboardButton {
+func (t *Tgbot) launchRow(query string, labelKey string) []telego.InlineKeyboardButton {
 	if !t.inlineSupported() {
 		return tu.InlineKeyboardRow(t.btn("tgbot.buttons.inlineDisabled", "inline_help"))
 	}
-	empty := ""
+	// Telegram prefills the message box with this text and sends it back as the
+	// query, so it is both the intent and the filter prefix the user types
+	// after. It is deliberately not localized: a translated marker could not be
+	// parsed, and a machine token reads like the command prefixes users already
+	// know. Empty means "all inbounds".
 	btn := telego.InlineKeyboardButton{
 		Text:                         t.I18nBot(labelKey),
-		SwitchInlineQueryCurrentChat: &empty,
+		SwitchInlineQueryCurrentChat: &query,
 	}
 	return tu.InlineKeyboardRow(btn)
 }
@@ -181,8 +164,10 @@ func (t *Tgbot) handleInlineQuery(query *telego.InlineQuery) {
 		t.answerInline(query.ID, nil)
 		return
 	}
-	scope := inlineScopes.get(query.From.ID)
-	results := t.inlineResults(scope, query.Query, level == levelAdmin)
+	// Telegram prefills the typed text with the launcher's query, so the intent
+	// arrives before anything the user adds; a bare query means inbounds.
+	action, data, search := parseInlineQuery(query.Query)
+	results := t.inlineResults(action, data, search, level == levelAdmin)
 	t.answerInline(query.ID, results)
 }
 
@@ -215,21 +200,43 @@ func (t *Tgbot) answerInline(queryID string, results []telego.InlineQueryResult)
 	}
 }
 
-// inlineResults builds the items for a scope, filtered by the typed text. The
-// scope is resolved from the user's id, so the query itself needs no context.
-func (t *Tgbot) inlineResults(scope inlineScope, search string, isAdmin bool) []telego.InlineQueryResult {
-	switch scope.kind {
-	case "cl":
-		return t.clientResults(search, isAdmin, scope.data)
+// inlineResults builds the items for one inline query.
+func (t *Tgbot) inlineResults(action, data, search string, isAdmin bool) []telego.InlineQueryResult {
+	switch action {
+	case inlineScopeClients:
+		return t.clientResults(search, isAdmin, data)
 	case "add":
 		return t.inboundResults(search, "add")
-	case "inb":
-		return t.inboundResults(search, "inb")
 	}
-	// No scope: the query was typed without a list screen behind it. Listing
-	// every client would leak the panel's names to anyone who can type, and
-	// listing inbounds is what the caller most likely meant to search.
 	return t.inboundResults(search, "inb")
+}
+
+// parseInlineQuery splits "cl 3 user@x" into its action, inbound and the text to
+// filter by. Nothing found means the inbounds list.
+func parseInlineQuery(text string) (action, data, search string) {
+	trimmed := strings.TrimSpace(text)
+	lower := strings.ToLower(trimmed)
+	for _, marker := range []string{inlineScopeClients, "add"} {
+		if !strings.HasPrefix(lower, marker) {
+			continue
+		}
+		rest := strings.TrimSpace(trimmed[len(marker):])
+		if marker == inlineScopeClients {
+			// "cl 3 name" — the first token is the inbound when it is a number.
+			fields := strings.SplitN(rest, " ", 2)
+			if len(fields) > 0 && fields[0] != "" {
+				if _, err := strconv.Atoi(fields[0]); err == nil {
+					if len(fields) == 2 {
+						return marker, fields[0], fields[1]
+					}
+					return marker, fields[0], ""
+				}
+			}
+			return marker, "", rest
+		}
+		return marker, "", rest
+	}
+	return inlineScopeInbounds, "", trimmed
 }
 
 // inboundResults lists inbounds as markers. action is what a chosen item means:
@@ -365,7 +372,7 @@ func (t *Tgbot) handleListMarker(message *telego.Message) bool {
 		if err != nil {
 			return true
 		}
-		t.screenInboundClients(message.Chat.ID, message.From.ID, id)
+		t.screenInboundClients(message.Chat.ID, id)
 	case "add":
 		id, err := strconv.Atoi(value)
 		if err != nil {
@@ -406,7 +413,7 @@ func splitListMarker(text string) (action, value string, ok bool) {
 }
 
 // screenInboundClients draws one inbound's clients, listed by the inline query.
-func (t *Tgbot) screenInboundClients(chatID, userID int64, inboundID int) {
+func (t *Tgbot) screenInboundClients(chatID int64, inboundID int) {
 	inbound, err := t.inboundService.GetInbound(inboundID)
 	if err != nil {
 		t.sendNotice(chatID, t.I18nBot("tgbot.answers.getInboundsFailed"))
@@ -414,12 +421,43 @@ func (t *Tgbot) screenInboundClients(chatID, userID int64, inboundID int) {
 	}
 	// The clients are browsed in inline mode, never as a callback-button grid:
 	// a big inbound would otherwise fill the screen with one button per client.
-	inlineScopes.set(userID, "cl", strconv.Itoa(inboundID))
 	rows := [][]telego.InlineKeyboardButton{
-		t.launchRow("cl", "tgbot.buttons.searchClients"),
+		t.launchRow(scopeQuery(inlineScopeClients, strconv.Itoa(inboundID)), "tgbot.buttons.searchClients"),
 		t.backRow(),
 	}
 	t.renderScreen(chatID, t.newScreen("clients", t.inboundSummaryText(inbound), rows...))
+}
+
+// screenAllClients is the panel-wide client browser. There is no inbound step:
+// the list is every client, and a tap opens the client's own screen.
+func (t *Tgbot) screenAllClients(chatID int64) {
+	body := t.I18nBot("tgbot.messages.clientsCount", "Count=="+strconv.Itoa(t.clientCount()))
+	body += t.I18nBot("tgbot.messages.inlineHint")
+	rows := [][]telego.InlineKeyboardButton{
+		t.launchRow(scopeQuery(inlineScopeClients, ""), "tgbot.buttons.searchClients"),
+		t.backRow(),
+	}
+	t.renderScreen(chatID, t.newScreen("clients", body, rows...))
+}
+
+// clientCount is how many clients the panel holds, for the browser's header.
+func (t *Tgbot) clientCount() int {
+	inbounds, err := t.inboundService.GetAllInbounds()
+	if err != nil {
+		logger.Warning("Cannot count clients for the browser:", err)
+		return 0
+	}
+	seen := map[string]bool{}
+	for _, ib := range inbounds {
+		clients, err := t.inboundService.GetClients(ib)
+		if err != nil {
+			continue
+		}
+		for _, client := range clients {
+			seen[client.Email] = true
+		}
+	}
+	return len(seen)
 }
 
 // inboundSummaryText is one inbound's header line: remark, protocol, port.
