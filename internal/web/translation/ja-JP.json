@@ -2472,6 +2472,7 @@
       "no": "❌ いいえ",
       "email_prompt": "📧 デフォルトメール: {{ .ClientEmail }}\n\nメールを入力してください。",
       "comment_prompt": "💬 デフォルトコメント: {{ .ClientComment }}\n\nコメントを入力してください。",
+      "tgid_prompt": "🆔 既定のTGユーザー: {{ .ClientTGID }}\n\nこのクライアントに紐付けるユーザーの数値idを送信してください。解除するには - / none を送信します。",
       "cancel": "❌ プロセスがキャンセルされました！\n\nいつでも /start で再開できます。 🔄",
       "error_add_client": "⚠️ エラー:\n\n {{ .error }}",
       "incorrect_input": "入力が無効です。\nフレーズはスペースなしで続けて入力してください。\n正しい例: aaaaaa\n間違った例: aaa aaa 🚫",

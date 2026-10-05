@@ -2472,6 +2472,7 @@
       "no": "❌ 否",
       "email_prompt": "📧 默认邮箱: {{ .ClientEmail }}\n\n请输入您的邮箱。",
       "comment_prompt": "💬 默认评论: {{ .ClientComment }}\n\n请输入您的评论。",
+      "tgid_prompt": "🆔 默认 TG 用户：{{ .ClientTGID }}\n\n发送用户的数字 id 以绑定到此客户端，或发送 - / none 以清除。",
       "cancel": "❌ 进程已取消！\n\n您可以随时使用 /start 重新开始。 🔄",
       "error_add_client": "⚠️ 错误:\n\n {{ .error }}",
       "incorrect_input": "您的输入无效。\n短语应连续输入，不能有空格。\n正确示例: aaaaaa\n错误示例: aaa aaa 🚫",

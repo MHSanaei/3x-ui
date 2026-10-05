@@ -2472,6 +2472,7 @@
       "no": "❌ No",
       "email_prompt": "📧 Correo electrónico predeterminado: {{ .ClientEmail }}\n\nIntroduce tu correo electrónico.",
       "comment_prompt": "💬 Comentario predeterminado: {{ .ClientComment }}\n\nIntroduce tu comentario.",
+      "tgid_prompt": "🆔 Usuario TG predeterminado: {{ .ClientTGID }}\n\nEnvía el id numérico del usuario para vincularlo a este cliente, o envía - / none para borrarlo.",
       "cancel": "❌ ¡Proceso cancelado! \n\nPuedes /start de nuevo en cualquier momento. 🔄",
       "error_add_client": "⚠️ Error:\n\n {{ .error }}",
       "incorrect_input": "Tu entrada no es válida.\nLas frases deben ser continuas sin espacios.\nEjemplo correcto: aaaaaa\nEjemplo incorrecto: aaa aaa 🚫",

@@ -2472,6 +2472,7 @@
       "no": "❌ 否",
       "email_prompt": "📧 預設電子郵件: {{ .ClientEmail }}\n\n請輸入您的電子郵件。",
       "comment_prompt": "💬 預設評論: {{ .ClientComment }}\n\n請輸入您的評論。",
+      "tgid_prompt": "🆔 預設 TG 使用者：{{ .ClientTGID }}\n\n傳送使用者的數字 id 以綁定到此用戶端，或傳送 - / none 以清除。",
       "cancel": "❌ 程序已取消！\n\n您可以隨時使用 /start 重新開始。 🔄",
       "error_add_client": "⚠️ 錯誤:\n\n {{ .error }}",
       "incorrect_input": "您的輸入無效。\n短語應連續輸入，不能有空格。\n正確示例: aaaaaa\n錯誤示例: aaa aaa 🚫",

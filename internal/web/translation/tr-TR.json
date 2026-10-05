@@ -2472,6 +2472,7 @@
       "no": "❌ Hayır",
       "email_prompt": "📧 Varsayılan E-posta: {{ .ClientEmail }}\n\nE-postanızı girin.",
       "comment_prompt": "💬 Varsayılan Yorum: {{ .ClientComment }}\n\nYorumunuzu girin.",
+      "tgid_prompt": "🆔 Varsayılan TG kullanıcısı: {{ .ClientTGID }}\n\nBu istemciye bağlamak için kullanıcının sayısal id'sini gönderin veya temizlemek için - / none gönderin.",
       "cancel": "❌ İşlem iptal edildi! \n\nİstediğiniz zaman /start ile yeniden başlayabilirsiniz. 🔄",
       "error_add_client": "⚠️ Hata:\n\n {{ .error }}",
       "incorrect_input": "Geçersiz değer girdiniz.\nİfadeler arasında boşluk olmamalıdır.\nDoğru örnek: aaaaaa\nYanlış örnek: aaa aaa 🚫",

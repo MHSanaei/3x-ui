@@ -252,6 +252,44 @@ func (t *Tgbot) adoptScreen(chatID int64, msgID int) {
 	t.screens().put(chatID, &screen{msgID: msgID})
 }
 
+// clientTrafficID resolves the traffic row id a client's TG-user picker needs.
+// A missing row is 0: the caller's screen already reports the unknown client.
+func (t *Tgbot) clientTrafficID(email string) int {
+	traffic, err := t.inboundService.GetClientTrafficByEmail(email)
+	if err != nil || traffic == nil {
+		return 0
+	}
+	return traffic.Id
+}
+
+// sendNoticeNoKeyboard reports a result and drops the reply keyboard the client
+// picker installed, in one message: the bot owns exactly one reply keyboard and
+// this is the only place it is torn down.
+func (t *Tgbot) sendNoticeNoKeyboard(chatID int64, text string) {
+	if bot == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	_, err := bot.SendMessage(ctx, &telego.SendMessageParams{
+		ChatID: tu.ID(chatID), Text: text, ParseMode: "HTML",
+		ReplyMarkup: tu.ReplyKeyboardRemove(),
+	})
+	if err != nil {
+		logger.Warning("Failed to send a notice:", err)
+	}
+}
+
+// wizardPrompt asks for a text value on the draft screen itself: the wizard owns
+// one message, so the question replaces the card instead of stacking above it.
+// The reply keyboard is left alone here - the client TG-user picker is the one
+// place a reply button is still needed.
+func (t *Tgbot) wizardPrompt(chatID int64, draft *clientDraft, prompt string) {
+	rows := append([][]telego.InlineKeyboardButton{}, t.getCommonClientButtons(draft)...)
+	rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.use_default", "add_client_default_info")))
+	t.renderScreen(chatID, t.newScreen("wizard", prompt, rows...))
+}
+
 // wizardInvalidInput redraws the draft with the hint that the last value was
 // rejected: the wizard keeps ONE message, so a retry does not stack a hint under
 // a stale card.

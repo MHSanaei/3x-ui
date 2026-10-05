@@ -2472,6 +2472,7 @@
       "no": "❌ Tidak",
       "email_prompt": "📧 Email Default: {{ .ClientEmail }}\n\nMasukkan email Anda.",
       "comment_prompt": "💬 Komentar Default: {{ .ClientComment }}\n\nMasukkan komentar Anda.",
+      "tgid_prompt": "🆔 Pengguna TG default: {{ .ClientTGID }}\n\nKirim id numerik pengguna untuk melampirkan ke klien ini, atau kirim - / none untuk menghapus.",
       "cancel": "❌ Proses Dibatalkan! \n\nAnda dapat /start lagi kapan saja. 🔄",
       "error_add_client": "⚠️ Error:\n\n {{ .error }}",
       "incorrect_input": "Masukan Anda tidak valid.\nFrasa harus berlanjut tanpa spasi.\nContoh benar: aaaaaa\nContoh salah: aaa aaa 🚫",

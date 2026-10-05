@@ -2472,6 +2472,7 @@
       "no": "❌ Không",
       "email_prompt": "📧 Email mặc định: {{ .ClientEmail }}\n\nVui lòng nhập email của bạn.",
       "comment_prompt": "💬 Bình luận mặc định: {{ .ClientComment }}\n\nVui lòng nhập bình luận của bạn.",
+      "tgid_prompt": "🆔 Người dùng TG mặc định: {{ .ClientTGID }}\n\nGửi id số của người dùng để gắn vào client này, hoặc gửi - / none để xóa.",
       "cancel": "❌ Quá trình đã bị hủy! \n\nBạn có thể bắt đầu lại bất cứ lúc nào bằng cách nhập /start. 🔄",
       "error_add_client": "⚠️ Lỗi:\n\n {{ .error }}",
       "incorrect_input": "Dữ liệu bạn nhập không hợp lệ.\nCác chuỗi phải liền mạch và không có dấu cách.\nVí dụ đúng: aaaaaa\nVí dụ sai: aaa aaa 🚫",

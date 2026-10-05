@@ -2472,6 +2472,7 @@
       "no": "❌ No",
       "email_prompt": "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email.",
       "comment_prompt": "💬 Default Comment: {{ .ClientComment }}\n\nEnter your comment.",
+      "tgid_prompt": "🆔 Default TG user: {{ .ClientTGID }}\n\nSend the numeric user id to attach to this client, or send - / none to clear.",
       "cancel": "❌ Process Canceled! \n\nYou can /start again anytime. 🔄",
       "error_add_client": "⚠️ Error:\n\n {{ .error }}",
       "incorrect_input": "Your input is not valid.\nThe phrases should be continuous without spaces.\nCorrect example: aaaaaa\nIncorrect example: aaa aaa 🚫",
