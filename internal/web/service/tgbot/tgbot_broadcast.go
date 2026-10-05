@@ -674,19 +674,15 @@ func deliverBroadcastCopy(chatID int64, draft broadcastDraft) ([]int, error) {
 		}
 		return err
 	})
-	// The one case that needs it: a recipient that is the bot's OTHER admin has
-	// no panel menu to clear a message from, so the copy carries the hide button
-	// the rest of the bot uses. Every other recipient sees the message exactly as
-	// the admin composed it.
-	if err == nil && len(ids) == 1 && adminSnapshotContains(chatID) {
-		markupBroadcastCopy(chatID, ids[0])
+	// Every recipient can put the message away: a client has no panel menu to
+	// clear it from, and the admin who composed it had no button either. The copy
+	// is the broadcast, so its content is untouched — only the keyboard is added.
+	if err == nil {
+		for _, id := range ids {
+			markupBroadcastCopy(chatID, id)
+		}
 	}
 	return ids, err
-}
-
-// adminSnapshotContains reports whether a chat is one of the bot's admins.
-func adminSnapshotContains(chatID int64) bool {
-	return slices.Contains(adminSnapshot(), chatID)
 }
 
 // markupBroadcastCopy puts the hide button on a delivered copy. Best-effort: a

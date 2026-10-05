@@ -213,11 +213,14 @@ func (t *Tgbot) screenIndividualLinks(chatID int64, email string) {
 	for _, link := range links {
 		body.WriteString("<code>" + html.EscapeString(link) + "</code>\n")
 	}
-	rows := [][]telego.InlineKeyboardButton{
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.links", t.encodeQuery("client_sub_links "+email))),
-		t.backRow(),
-	}
-	t.renderScreen(chatID, t.newScreen("links", body.String(), rows...))
+	t.renderScreen(chatID, t.newScreen("links", body.String(), t.individualLinksRows()...))
+}
+
+// individualLinksRows is the individual-links screen's keyboard. The way back is
+// the back row every screen carries; a second "Links" button next to it did the
+// same thing and read as a duplicate, so there is exactly one control here.
+func (t *Tgbot) individualLinksRows() [][]telego.InlineKeyboardButton {
+	return [][]telego.InlineKeyboardButton{t.backRow()}
 }
 
 // screenClientQR renders the subscription QR as the screen picture and leaves

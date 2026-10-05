@@ -1225,7 +1225,10 @@ func checkAdmin(tgId int64) bool {
 // admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
-	case "home", "client_traffic", "client_commands", "client_sub_links",
+	// "hide" is how a recipient — client or admin — puts a message away. It
+	// carries no target of its own (it is the message it sits on), so it is safe
+	// for anyone to reach; without it a broadcast copy could not be dismissed.
+	case "home", "hide", "client_traffic", "client_commands", "client_sub_links",
 		"client_individual_links", "client_qr_links":
 		return true
 	}

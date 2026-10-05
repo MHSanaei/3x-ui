@@ -447,9 +447,15 @@ func (t *Tgbot) hideButton() *telego.InlineKeyboardMarkup {
 }
 
 // hideButtonMarkup is the same keyboard for callers that have no Tgbot at hand,
-// such as a delivered broadcast copy.
+// such as a delivered broadcast copy. The label falls back to plain text when the
+// panel localizer cannot resolve the key: a client's own language may be one the
+// panel does not ship, and a button with an empty label is worse than an English
+// one.
 func hideButtonMarkup() *telego.InlineKeyboardMarkup {
 	label := (&Tgbot{}).I18nBot("tgbot.buttons.hide")
+	if strings.TrimSpace(label) == "" {
+		label = "🙈 Hide"
+	}
 	return tu.InlineKeyboard(tu.InlineKeyboardRow(
 		tu.InlineKeyboardButton(label).WithCallbackData("hide"),
 	))

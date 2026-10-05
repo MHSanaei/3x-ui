@@ -1069,3 +1069,59 @@ func TestBroadcastCopyToAnotherAdminCarriesHide(t *testing.T) {
 		t.Error("the copy delivered to an admin carries no hide button")
 	}
 }
+
+// 1. EVERY recipient gets the hide button, not just another admin: a client has
+// no panel menu, so without it the copy cannot be dismissed at all.
+func TestBroadcastCopyToAClientCarriesHide(t *testing.T) {
+	localizeWithRealBundle(t)
+	srv, calls := recordingServer(t, false)
+	swapTestBot(t, srv.URL)
+	t.Cleanup(srv.Close)
+	setTestAdmins(t, 111) // 222 is an ordinary client, not an admin
+
+	if _, err := deliverBroadcastCopy(222, broadcastDraft{FromChatID: 111, MessageIDs: []int{5}}); err != nil {
+		t.Fatalf("deliverBroadcastCopy: %v", err)
+	}
+
+	got := ""
+	for _, call := range calls() {
+		if call.Method != "editMessageReplyMarkup" {
+			continue
+		}
+		markup, _ := json.Marshal(call.Payload["reply_markup"])
+		got = string(markup)
+	}
+	if !strings.Contains(got, "\"hide\"") {
+		t.Errorf("the copy delivered to a client carries no hide button: %s", got)
+	}
+	// A blank label would be worse than English: a client's language need not be
+	// one the panel ships.
+	if !strings.Contains(got, "Hide") {
+		t.Errorf("the hide button has no visible label: %s", got)
+	}
+}
+
+// The hide button must reach a client through the callback gate, or it would be
+// drawn and then silently ignored.
+func TestClientCanReachTheHideCallback(t *testing.T) {
+	if !isClientSelfCallback("hide") {
+		t.Fatal("a client's hide button is refused by the callback gate")
+	}
+}
+
+// 2. The individual-links screen offered "Links", which did what the back row
+// already does.
+func TestIndividualLinksScreenHasNoDuplicateLinksButton(t *testing.T) {
+	// The same harness the ownership tests use: it seeds a real client whose
+	// subscription actually resolves, which the individual links need.
+	// The screen's own keyboard, without going through the subscription service:
+	// drawing the full screen needs a subscription the panel can resolve, which
+	// the DB-only harness cannot produce.
+	rows := (&Tgbot{}).individualLinksRows()
+	if len(rows) != 1 || len(rows[0]) != 1 {
+		t.Fatalf("the individual-links screen has %d row(s), want exactly the back row", len(rows))
+	}
+	if got := rows[0][0].CallbackData; got != cbHome {
+		t.Errorf("the only control is %q, want the back row %q", got, cbHome)
+	}
+}
