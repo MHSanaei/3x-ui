@@ -53,7 +53,7 @@ func (t *Tgbot) screenClientHome(chatID, userID int64) {
 	var rows [][]telego.InlineKeyboardButton
 	if len(traffics) == 1 {
 		rows = append(rows, tu.InlineKeyboardRow(
-			t.btn("tgbot.buttons.clientLinks", "client_sub_links"),
+			t.btn("tgbot.buttons.links", "client_sub_links"),
 			t.btn("tgbot.buttons.qrCode", "client_qr_links"),
 		))
 	} else {
