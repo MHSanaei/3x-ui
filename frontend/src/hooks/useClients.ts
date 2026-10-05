@@ -98,6 +98,8 @@ export interface ClientSpeedEntry {
   down: number;
 }
 
+type ClientSpeedSource = 'xray' | 'tuic';
+
 type ClientStatRow = ClientTraffic & { email?: string };
 
 export function sameSpeedMap(
@@ -299,7 +301,31 @@ export function useClients(options: UseClientsOptions = {}) {
   // settings request still lets the page fall back and render.
   const settingsReady = defaultsQuery.isFetched;
 
-  const [clientSpeed, setClientSpeed] = useState<Record<string, ClientSpeedEntry>>({});
+  const [clientSpeedBySource, setClientSpeedBySource] = useState<
+    Partial<Record<ClientSpeedSource, Record<string, ClientSpeedEntry>>>
+  >({});
+  const clientSpeedExpiryTimers = useRef<Partial<Record<ClientSpeedSource, number>>>({});
+  const clientSpeedSourceVersions = useRef<Record<ClientSpeedSource, number>>({ xray: 0, tuic: 0 });
+  const clientSpeed = useMemo(() => {
+    const combined: Record<string, ClientSpeedEntry> = {};
+    for (const source of Object.values(clientSpeedBySource)) {
+      if (!source) continue;
+      for (const [email, speed] of Object.entries(source)) {
+        const current = combined[email] ?? { up: 0, down: 0 };
+        combined[email] = { up: current.up + speed.up, down: current.down + speed.down };
+      }
+    }
+    return combined;
+  }, [clientSpeedBySource]);
+
+  useEffect(
+    () => () => {
+      for (const timer of Object.values(clientSpeedExpiryTimers.current)) {
+        if (timer !== undefined) window.clearTimeout(timer);
+      }
+    },
+    [],
+  );
   const summary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
 
   const invalidateAll = useCallback(() => {
@@ -725,6 +751,8 @@ export function useClients(options: UseClientsOptions = {}) {
       const p = payload as {
         onlineClients?: string[];
         clientTraffics?: { email: string; up: number; down: number }[];
+        clientTrafficSource?: 'xray' | 'tuic';
+        clientTrafficIntervalMs?: number;
       };
       if (Array.isArray(p.onlineClients)) {
         queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
@@ -736,17 +764,45 @@ export function useClients(options: UseClientsOptions = {}) {
         // dropped and an unchanged result returns the previous object — which lets
         // React bail out of the update instead of re-rendering the table.
         const next: Record<string, ClientSpeedEntry> = {};
+        const source = p.clientTrafficSource === 'tuic' ? 'tuic' : 'xray';
+        const sampleIntervalMs =
+          typeof p.clientTrafficIntervalMs === 'number' &&
+          Number.isFinite(p.clientTrafficIntervalMs) &&
+          p.clientTrafficIntervalMs > 0
+            ? p.clientTrafficIntervalMs
+            : TRAFFIC_POLL_INTERVAL_S * 1000;
+        const sampleIntervalSeconds = sampleIntervalMs / 1000;
         for (const ct of p.clientTraffics) {
           if (!ct || !ct.email) continue;
           const up = ct.up || 0;
           const down = ct.down || 0;
           if (up === 0 && down === 0) continue;
+          const current = next[ct.email] ?? { up: 0, down: 0 };
           next[ct.email] = {
-            up: up / TRAFFIC_POLL_INTERVAL_S,
-            down: down / TRAFFIC_POLL_INTERVAL_S,
+            up: current.up + up / sampleIntervalSeconds,
+            down: current.down + down / sampleIntervalSeconds,
           };
         }
-        setClientSpeed((prev) => (sameSpeedMap(prev, next) ? prev : next));
+        setClientSpeedBySource((prev) =>
+          sameSpeedMap(prev[source] ?? {}, next) ? prev : { ...prev, [source]: next },
+        );
+
+        const version = ++clientSpeedSourceVersions.current[source];
+        const previousTimer = clientSpeedExpiryTimers.current[source];
+        if (previousTimer !== undefined) window.clearTimeout(previousTimer);
+        clientSpeedExpiryTimers.current[source] = window.setTimeout(
+          () => {
+            if (clientSpeedSourceVersions.current[source] !== version) return;
+            delete clientSpeedExpiryTimers.current[source];
+            setClientSpeedBySource((prev) => {
+              if (!prev[source]) return prev;
+              const nextSources = { ...prev };
+              delete nextSources[source];
+              return nextSources;
+            });
+          },
+          Math.min(sampleIntervalMs * 2, 120_000),
+        );
       }
     },
     [queryClient],

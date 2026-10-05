@@ -619,6 +619,52 @@ func TestSub_HostCipherSuitesJSON(t *testing.T) {
 	}
 }
 
+// Xray reads a client's TLS verification fields at the top of tlsSettings; a
+// nested "settings" map is panel-only shape and xray silently ignores it.
+func TestSub_HostTLSVerificationJSONAtXrayLevel(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "ech", 4461, 1,
+		`{"network":"xhttp","security":"tls","xhttpSettings":{"path":"/"},"tlsSettings":{"serverName":"base.sni","settings":{"fingerprint":"chrome"}}}`)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "ECH", Address: "ech.cdn.com", Port: 443, Security: "tls",
+		EchConfigList: "cloudflare-ech.com+udp://1.1.1.1", VerifyPeerCertByName: "cert.example.com",
+		PinnedPeerCertSha256: []string{"aa11", "bb22"}, AllowInsecure: true,
+	})
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	var config map[string]any
+	if err := json.Unmarshal([]byte(out), &config); err != nil {
+		t.Fatalf("unmarshal JSON subscription: %v", err)
+	}
+	outbounds, _ := config["outbounds"].([]any)
+	if len(outbounds) == 0 {
+		t.Fatalf("JSON subscription has no outbounds: %s", out)
+	}
+	outbound, _ := outbounds[0].(map[string]any)
+	stream, _ := outbound["streamSettings"].(map[string]any)
+	tls, _ := stream["tlsSettings"].(map[string]any)
+	want := map[string]any{
+		"serverName":           "base.sni",
+		"fingerprint":          "chrome",
+		"echConfigList":        "cloudflare-ech.com+udp://1.1.1.1",
+		"verifyPeerCertByName": "cert.example.com",
+		"pinnedPeerCertSha256": "aa11,bb22",
+	}
+	for key, value := range want {
+		if tls[key] != value {
+			t.Errorf("tlsSettings.%s = %#v, want %#v", key, tls[key], value)
+		}
+	}
+	for _, key := range []string{"settings", "allowInsecure"} {
+		if _, ok := tls[key]; ok {
+			t.Errorf("tlsSettings.%s must not reach xray: %#v", key, tls)
+		}
+	}
+}
+
 // seedSubClient adds a second client sharing subId to an already-seeded
 // inbound, so per-client host bindings can be compared within one sub.
 func seedSubClient(t *testing.T, ib *model.Inbound, subId, email string) {

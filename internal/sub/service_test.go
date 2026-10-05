@@ -744,16 +744,6 @@ func TestApplyExternalProxy_ECHPropagates(t *testing.T) {
 		}
 	})
 
-	t.Run("json stream settings", func(t *testing.T) {
-		stream := map[string]any{"security": "tls", "tlsSettings": map[string]any{}}
-		ep := map[string]any{"dest": "proxy.example.com", "echConfigList": ech}
-		applyExternalProxyTLSToStream(ep, stream, "tls")
-		settings, _ := stream["tlsSettings"].(map[string]any)["settings"].(map[string]any)
-		if settings["echConfigList"] != ech {
-			t.Fatalf("echConfigList = %v, want %q", settings["echConfigList"], ech)
-		}
-	})
-
 	t.Run("non-tls security drops ech", func(t *testing.T) {
 		params := map[string]string{}
 		ep := map[string]any{"echConfigList": ech}
