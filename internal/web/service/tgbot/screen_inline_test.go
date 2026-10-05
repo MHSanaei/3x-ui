@@ -101,6 +101,63 @@ func TestInlineQueryListsInboundsWithMarkers(t *testing.T) {
 	}
 }
 
+// /start is the only advertised command; it must draw the menu screen. It also
+// reaches the route the colon predicate guards, so this pins that a command is
+// never mistaken for an inline marker.
+func TestStartCommandDrawsTheMenu(t *testing.T) {
+	srv, calls := recordingServer(t, false)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	setTestAdmins(t, 1)
+
+	tb := initReportDB(t)
+
+	tb.answerCommand(&telego.Message{
+		MessageID: 1,
+		Chat:      telego.Chat{ID: 500, Type: "private"},
+		From:      &telego.User{ID: 1},
+		Text:      "/start",
+	}, 500, true)
+
+	got := calls()
+	if len(got) == 0 {
+		t.Fatal("an admin's /start drew nothing")
+	}
+	if got[0].Method != "sendPhoto" && got[0].Method != "sendMessage" {
+		t.Errorf("first call = %q, want the menu message", got[0].Method)
+	}
+}
+
+// A stranger's /start reports its own id, which is what an admin needs to bind
+// it; it must never render the panel menu.
+func TestStartCommandForAStrangerRevealsOnlyItsID(t *testing.T) {
+	srv, calls := recordingServer(t, false)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	setTestAdmins(t, 1)
+
+	tb := initReportDB(t)
+
+	tb.answerCommand(&telego.Message{
+		MessageID: 1,
+		Chat:      telego.Chat{ID: 777, Type: "private"},
+		From:      &telego.User{ID: 777777},
+		Text:      "/start",
+	}, 777, false)
+
+	got := calls()
+	if len(got) == 0 {
+		t.Fatal("a stranger's /start got no answer at all")
+	}
+	// The locale key is what the test environment resolves to; the panel's own
+	// bundle renders it as the stranger's id, which an admin needs to bind it.
+	if !strings.Contains(got[0].text(), "askToAddUserId") {
+		t.Errorf("answer = %q, want the bind-your-id notice", got[0].text())
+	}
+}
+
 // A client list must be scoped to the inbound the screen it was opened from
 // names, and the scope has to survive the trip through the inline query: the
 // query carries the user's id, and in a group that is not the chat's id.

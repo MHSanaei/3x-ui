@@ -1740,7 +1740,9 @@
       "subIncyGroupRouting": "Маршрутизація",
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
-      "tgInlineRecheck": "Check again"
+      "tgInlineRecheck": "Check again",
+      "tgPrivacyOn": "Увімкнено режим приватності бота",
+      "tgPrivacyOnDesc": "Вимкніть Group Privacy у @BotFather, щоб бот бачив /start, написаний у групі. Відкрийте /mybots → ваш бот → Bot Settings → Group Privacy → Turn off."
     },
     "xray": {
       "save": "Зберегти",

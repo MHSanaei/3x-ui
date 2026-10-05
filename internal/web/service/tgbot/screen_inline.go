@@ -133,8 +133,11 @@ func (t *Tgbot) launchRow(scope, labelKey string) []telego.InlineKeyboardButton 
 // a BotFather switch, so the panel can only warn, never enable it.
 type Capabilities struct {
 	InlineEnabled bool
-	Username      string
-	Running       bool
+	// GroupPrivacy means the bot CANNOT read every group message, so a /start
+	// typed in a group never reaches it unless the message mentions the bot.
+	GroupPrivacy bool
+	Username     string
+	Running      bool
 }
 
 // Capabilities probes the live bot for what it can do.
@@ -150,6 +153,8 @@ func (t *Tgbot) Capabilities() (Capabilities, error) {
 		return caps, err
 	}
 	caps.InlineEnabled = me.SupportsInlineQueries
+	// can_read_all_group_messages is the inverse of BotFather's Group Privacy.
+	caps.GroupPrivacy = !me.CanReadAllGroupMessages
 	caps.Username = me.Username
 	recordInlineCapability(me.SupportsInlineQueries)
 	return caps, nil

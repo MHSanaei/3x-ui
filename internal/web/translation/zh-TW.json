@@ -1740,7 +1740,9 @@
       "subIncyGroupRouting": "路由",
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
-      "tgInlineRecheck": "Check again"
+      "tgInlineRecheck": "Check again",
+      "tgPrivacyOn": "機器人隱私模式已開啟",
+      "tgPrivacyOnDesc": "請在 @BotFather 關閉 Group Privacy，機器人才能看到在群組輸入的 /start。/mybots → 你的機器人 → Bot Settings → Group Privacy → Turn off。"
     },
     "xray": {
       "save": "儲存",

@@ -745,6 +745,7 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		}
 		return controller.TgBotCapabilities{
 			InlineEnabled: caps.InlineEnabled,
+			GroupPrivacy:  caps.GroupPrivacy,
 			Username:      caps.Username,
 			Running:       caps.Running,
 		}, nil

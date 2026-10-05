@@ -1740,7 +1740,9 @@
       "subIncyGroupRouting": "Định tuyến",
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
-      "tgInlineRecheck": "Check again"
+      "tgInlineRecheck": "Check again",
+      "tgPrivacyOn": "Chế độ riêng tư của bot đang bật",
+      "tgPrivacyOnDesc": "Tắt Group Privacy trong @BotFather để bot thấy /start gõ trong nhóm. Mở /mybots → bot của bạn → Bot Settings → Group Privacy → Turn off."
     },
     "xray": {
       "importRules": "Nhập quy tắc",

@@ -22,6 +22,7 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; msg: string } | null>(null);
   const [inlineWarning, setInlineWarning] = useState<string | null>(null);
+  const [privacyWarning, setPrivacyWarning] = useState<string | null>(null);
   const [capsLoading, setCapsLoading] = useState(false);
 
   // The bot's lists live in inline mode, which only BotFather can enable, so the
@@ -31,13 +32,16 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
     try {
       const res = (await HttpUtil.post('/panel/api/setting/tgBotCapabilities')) as {
         success?: boolean;
-        obj?: { inlineEnabled?: boolean; username?: string };
+        obj?: { inlineEnabled?: boolean; groupPrivacy?: boolean; username?: string };
       };
       if (res.success && res.obj && !res.obj.inlineEnabled) {
         setInlineWarning(res.obj.username || '');
       } else {
         setInlineWarning(null);
       }
+      // Privacy mode is the mirror-image trap: with it on, a bare /start typed
+      // in a group never reaches the bot, so the command looks dead.
+      setPrivacyWarning(res.success && !!res.obj?.groupPrivacy ? res.obj?.username || '' : null);
     } catch {
       // The bot may simply be stopped; the token field still tells that story.
       setInlineWarning(null);
@@ -167,6 +171,17 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
                       {t('pages.settings.tgInlineRecheck')}
                     </Button>
                   }
+                />
+              )}
+
+              {privacyWarning !== null && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  icon={<WarningOutlined />}
+                  style={{ marginTop: 16 }}
+                  title={t('pages.settings.tgPrivacyOn')}
+                  description={t('pages.settings.tgPrivacyOnDesc')}
                 />
               )}
 
