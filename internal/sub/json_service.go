@@ -634,6 +634,7 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		security, _ := newStream["security"].(string)
 		if hasExternalProxy {
 			applyExternalProxyTLSToStream(extPrxy, newStream, security)
+			liftJSONTLSClientSettings(newStream)
 		}
 		applyHostStreamOverrides(extPrxy, newStream)
 		if finalmask, ok := newStream["finalmask"].(map[string]any); ok {
@@ -786,6 +787,36 @@ func (s *SubJsonService) tlsData(tData map[string]any) map[string]any {
 		tlsData["pinnedPeerCertSha256"] = strings.Join(pins, ",")
 	}
 	return tlsData
+}
+
+// liftJSONTLSClientSettings moves the Host TLS overrides that
+// applyExternalProxyTLSToStream writes under tlsSettings.settings (the
+// panel-side shape) to the top level of tlsSettings, where Xray's outbound
+// TLS config reads them. The stream has already been flattened by tlsData at
+// this point, so without this the overrides would be ignored by clients
+// (#6743). Pins are joined into a comma-separated string, matching tlsData.
+func liftJSONTLSClientSettings(stream map[string]any) {
+	tlsSettings, _ := stream["tlsSettings"].(map[string]any)
+	if tlsSettings == nil {
+		return
+	}
+	settings, ok := tlsSettings["settings"].(map[string]any)
+	if !ok {
+		return
+	}
+	delete(tlsSettings, "settings")
+	if ech, ok := settings["echConfigList"].(string); ok && ech != "" {
+		tlsSettings["echConfigList"] = ech
+	}
+	if vcn, ok := verifyPeerCertByNameValue(settings); ok {
+		tlsSettings["verifyPeerCertByName"] = vcn
+	}
+	if pins, ok := pinnedSha256List(settings); ok {
+		tlsSettings["pinnedPeerCertSha256"] = strings.Join(pins, ",")
+	}
+	if ai, ok := settings["allowInsecure"].(bool); ok && ai {
+		tlsSettings["allowInsecure"] = true
+	}
 }
 
 func (s *SubJsonService) realityData(rData map[string]any, clientKey string) map[string]any {
