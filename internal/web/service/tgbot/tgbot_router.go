@@ -1218,18 +1218,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "add_client_cancel":
 		userStateMgr.clear(actor)
 		addClientDrafts.reset(actor)
-		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 3, tu.ReplyKeyboardRemove())
-	case "add_client_default_traffic_exp":
-		messageId := callbackQuery.Message.GetMessageID()
-		message_text := t.BuildClientDraftMessage(draft)
-		t.addClient(chatId, draft, message_text, messageId)
-		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.canceled", "Email=="+draft.email))
-	case "add_client_default_ip_limit":
-		messageId := callbackQuery.Message.GetMessageID()
-		message_text := t.BuildClientDraftMessage(draft)
-		t.addClient(chatId, draft, message_text, messageId)
-		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.canceled", "Email=="+draft.email))
+		t.renderScreen(chatId, t.newScreen("main", t.I18nBot("tgbot.messages.cancel"), t.homeRows()...))
+	case "add_client_default_traffic_exp", "add_client_default_ip_limit":
+		// The picker was cancelled: the draft comes back unchanged.
+		t.addClient(chatId, draft, t.BuildClientDraftMessage(draft), callbackQuery.Message.GetMessageID())
 	case "add_client_attach_more":
 		picker, err := t.getInboundsAttachPicker(draft)
 		if err != nil {
@@ -1245,35 +1237,21 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.getInboundsFailed"))
 			return
 		}
-		message_text := t.BuildClientDraftMessage(draft)
-		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-		t.addClient(chatId, draft, message_text)
-	case "add_client_submit_disable":
-		draft.enable = false
-		_, err := t.SubmitAddClient(draft)
-		if err != nil {
-			errorMessage := fmt.Sprintf("%v", err)
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+errorMessage), tu.ReplyKeyboardRemove())
-		} else {
-			t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.successfulOperation"), tu.ReplyKeyboardRemove())
-			t.screenIndividualLinks(chatId, draft.email)
-			t.screenClientQR(chatId, draft.email)
-			addClientDrafts.reset(actor)
+		t.addClient(chatId, draft, t.BuildClientDraftMessage(draft), callbackQuery.Message.GetMessageID())
+	case "add_client_submit_disable", "add_client_submit_enable":
+		// Both submits land here and differ only in the enable flag; the data is
+		// short enough never to be hashed, so its raw form is the discriminator.
+		draft.enable = callbackQuery.Data == "add_client_submit_enable"
+		if _, err := t.SubmitAddClient(draft); err != nil {
+			t.sendNotice(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+err.Error()))
+			return
 		}
-	case "add_client_submit_enable":
-		draft.enable = true
-		_, err := t.SubmitAddClient(draft)
-		if err != nil {
-			errorMessage := fmt.Sprintf("%v", err)
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+errorMessage), tu.ReplyKeyboardRemove())
-		} else {
-			t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.successfulOperation"), tu.ReplyKeyboardRemove())
-			t.screenIndividualLinks(chatId, draft.email)
-			t.screenClientQR(chatId, draft.email)
-			addClientDrafts.reset(actor)
-		}
+		email := draft.email
+		addClientDrafts.reset(actor)
+		// The new client's card is the screen: the links and the QR hang off it,
+		// so nobody has to go looking for the client they just created.
+		t.searchClientScreen(chatId, email)
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
 	case "reset_all_traffics_cancel":
 		t.renderScreen(chatId, t.newScreen("main", t.I18nBot("tgbot.messages.cancel"), t.homeRows()...))
 	case "reset_all_traffics_c":
