@@ -96,9 +96,7 @@ func TestAudit3ManagerEnsureActualSendersWithPersistentTraffic(t *testing.T) {
 			if _, err := stream.Write(frame.Bytes()); err != nil {
 				t.Fatal(err)
 			}
-			if err := stream.Close(); err != nil {
-				t.Fatal(err)
-			}
+			closeUniStream(t, stream)
 			response, err := p.client.AcceptUniStream(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -164,9 +162,7 @@ func TestAudit3ManagerEnsureActualSendersWithPersistentTraffic(t *testing.T) {
 		if _, err := auth.Write(authBytes); err != nil {
 			t.Fatal(err)
 		}
-		if err := auth.Close(); err != nil {
-			t.Fatal(err)
-		}
+		closeUniStream(t, auth)
 
 		waitForClientCongestionSender(t, server, client, served)
 		var serverConn *quic.Conn

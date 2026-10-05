@@ -57,9 +57,7 @@ func audit3LogsStart(t *testing.T, level, marker, relayAddr string) (*Server, *c
 	if _, err := auth.Write(frame); err != nil {
 		t.Fatal(err)
 	}
-	if err := auth.Close(); err != nil {
-		t.Fatal(err)
-	}
+	closeUniStream(t, auth)
 	_, _ = authenticatedServerConnection(t, s, id)
 	return s, c, id, password, token
 }

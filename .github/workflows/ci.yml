@@ -141,6 +141,22 @@ jobs:
           # internal/web/service runs ~10x slower under -race and overruns the 10m default.
           go test -race -shuffle=on -count=1 -timeout 25m $(cat /tmp/go-packages.txt)
 
+  # A real master and node panel, each its own process, driven through node sync.
+  # A SKIP here means the binary was never handed over, so it fails the job.
+  node-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Master + node end to end
+        run: |
+          set -o pipefail
+          make node-e2e 2>&1 | tee /tmp/node-e2e.log
+          if grep -q -- '--- SKIP' /tmp/node-e2e.log; then echo "node-e2e skipped"; exit 1; fi
+
   # Brief native-fuzz smoke on the security-/parser-critical decoders. Each runs the
   # generated corpus plus 30s of exploration; a crash here is a real input-handling bug.
   fuzz-smoke:

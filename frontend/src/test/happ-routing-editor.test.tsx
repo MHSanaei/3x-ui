@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { EditorView } from 'codemirror';
 
 import { AllSetting } from '@/models/setting';
@@ -326,5 +326,20 @@ describe('Happ routing editor', () => {
     expect(JSON.parse(jsonEditor().state.doc.toString())).toEqual(minimal);
     fireEvent.click(screen.getByRole('button', { name: 'Generate Deeplink' }));
     expect(generatedProfile()).toEqual(minimal);
+  });
+
+  // The static message API outlived the test file and logged act() warnings
+  // after teardown, failing CI with "Closing rpc while onUserConsoleLog was pending".
+  it('takes its toast down with it when unmounted', async () => {
+    renderSettings();
+    openEditor();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Deeplink' }));
+    await screen.findByText('Deeplink generated and applied to routing rules');
+
+    cleanup();
+
+    expect(document.body.textContent).not.toContain(
+      'Deeplink generated and applied to routing rules',
+    );
   });
 });

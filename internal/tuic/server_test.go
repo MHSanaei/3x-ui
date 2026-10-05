@@ -10,12 +10,14 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"io"
 	"math/big"
 	"net"
 	"testing"
 	"time"
 
+	serverquic "github.com/apernet/quic-go"
 	"github.com/google/uuid"
 	"github.com/quic-go/quic-go"
 )
@@ -197,6 +199,27 @@ func testServerTCPConnectE2E(t *testing.T, controller string) {
 	}
 
 	waitForClientTraffic(t, server, "alice@example.com", int64(len(testMsg)))
+}
+
+// closeUniStream tolerates only the server's STOP_SENDING: it cancels the read side of a
+// uni stream once the command is parsed, which can land before the client's FIN.
+func closeUniStream(t *testing.T, stream interface {
+	Close() error
+	Context() context.Context
+},
+) {
+	t.Helper()
+	err := stream.Close()
+	if err == nil {
+		return
+	}
+	cause := context.Cause(stream.Context())
+	var clientErr *quic.StreamError
+	var serverErr *serverquic.StreamError
+	if (errors.As(cause, &clientErr) && clientErr.Remote) || (errors.As(cause, &serverErr) && serverErr.Remote) {
+		return
+	}
+	t.Fatalf("close uni stream: %v (cause %v)", err, cause)
 }
 
 // waitForClientTraffic accumulates drained deltas because the up and down counters are
@@ -445,9 +468,7 @@ func testServerUDPStreamE2E(t *testing.T, controller string) {
 	if _, err := authStream.Write(authPayload); err != nil {
 		t.Fatalf("write authentication payload failed: %v", err)
 	}
-	if err := authStream.Close(); err != nil {
-		t.Fatalf("close authentication stream failed: %v", err)
-	}
+	closeUniStream(t, authStream)
 
 	target := &Address{Type: AddrTypeIPv4, IP: net.ParseIP("8.8.8.8"), Port: 53}
 	udpMsg := bytes.Repeat([]byte("s"), 8500)
@@ -470,9 +491,7 @@ func testServerUDPStreamE2E(t *testing.T, controller string) {
 		if _, err := packetStream.Write(frame.Bytes()); err != nil {
 			t.Fatalf("write packet frame failed: %v", err)
 		}
-		if err := packetStream.Close(); err != nil {
-			t.Fatalf("close packet stream failed: %v", err)
-		}
+		closeUniStream(t, packetStream)
 	}
 
 	replyReassembler := newPacketReassembler(maxUdpRelayPacketSize)
