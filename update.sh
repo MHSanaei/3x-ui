@@ -1171,6 +1171,11 @@ update_x-ui() {
         chmod 640 ${xui_folder}/bin/config.json > /dev/null 2>&1
     fi
 
+    # Finish the schema/data migrations before the service starts, so the service and
+    # config_after_update's CLI calls never run them on the same database at once (#6728).
+    echo -e "${green}Migrating database...${plain}"
+    "${xui_folder}/x-ui" migrate
+
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
         xui_rc_temp="/etc/init.d/x-ui.tmp.$$"
