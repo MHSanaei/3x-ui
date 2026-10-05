@@ -252,6 +252,16 @@ func (t *Tgbot) adoptScreen(chatID int64, msgID int) {
 	t.screens().put(chatID, &screen{msgID: msgID})
 }
 
+// wizardInvalidInput redraws the draft with the hint that the last value was
+// rejected: the wizard keeps ONE message, so a retry does not stack a hint under
+// a stale card.
+func (t *Tgbot) wizardInvalidInput(chatID int64, draft *clientDraft) {
+	rows := append([][]telego.InlineKeyboardButton{}, t.getCommonClientButtons(draft)...)
+	rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.use_default", "add_client_default_info")))
+	t.renderScreen(chatID, t.newScreen("wizard",
+		t.BuildClientDraftMessage(draft)+"\n\n"+t.I18nBot("tgbot.messages.incorrect_input"), rows...))
+}
+
 // screenClientConfirm is the one-tap confirmation the client actions use, drawn
 // on the screen instead of a bare keyboard swap.
 func (t *Tgbot) screenClientConfirm(chatID int64, body string, email string, confirmData, cancelData string) {

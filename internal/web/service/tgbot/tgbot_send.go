@@ -12,71 +12,6 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-// sendResponse sends the response message based on the onlyMessage flag.
-func (t *Tgbot) sendResponse(chatId int64, msg string, onlyMessage, isAdmin bool) {
-	if onlyMessage {
-		t.SendMsgToTgbot(chatId, msg)
-	} else {
-		t.SendAnswer(chatId, msg, isAdmin)
-	}
-}
-
-// SendAnswer sends a response message with an inline keyboard to the specified chat.
-func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
-	numericKeyboard := tu.InlineKeyboard(
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.SortedTrafficUsageReport")).WithCallbackData(t.encodeQuery("get_sorted_traffic_usage_report")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.serverUsage")).WithCallbackData(t.encodeQuery("get_usage")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ResetAllTraffics")).WithCallbackData(t.encodeQuery("reset_all_traffics")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.dbBackup")).WithCallbackData(t.encodeQuery("get_backup")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getBanLogs")).WithCallbackData(t.encodeQuery("get_banlogs")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getInbounds")).WithCallbackData(t.encodeQuery("inbounds")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.depleteSoon")).WithCallbackData(t.encodeQuery("deplete_soon")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("commands")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.onlines")).WithCallbackData(t.encodeQuery("onlines")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.addClient")).WithCallbackData(t.encodeQuery("add_client")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("pages.settings.subSettings")).WithCallbackData(t.encodeQuery("admin_client_sub_links")),
-			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("admin_client_individual_links")),
-			tu.InlineKeyboardButton(t.I18nBot("qrCode")).WithCallbackData(t.encodeQuery("admin_client_qr_links")),
-		),
-		// TODOOOOOOOOOOOOOO: Add restart button here.
-	)
-	numericKeyboardClient := tu.InlineKeyboard(
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clientUsage")).WithCallbackData(t.encodeQuery("client_traffic")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("client_commands")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("pages.settings.subSettings")).WithCallbackData(t.encodeQuery("client_sub_links")),
-			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("client_individual_links")),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("qrCode")).WithCallbackData(t.encodeQuery("client_qr_links")),
-		),
-	)
-
-	var ReplyMarkup telego.ReplyMarkup
-	if isAdmin {
-		ReplyMarkup = numericKeyboard
-	} else {
-		ReplyMarkup = numericKeyboardClient
-	}
-	t.SendMsgToTgbot(chatId, msg, ReplyMarkup)
-}
-
 const telegramPageLimit = 2000
 
 func pageMessage(message string, limit int) []string {
@@ -248,39 +183,6 @@ func isTelegramNotModifiedError(err error) bool {
 	errStr := err.Error()
 	return strings.Contains(errStr, "not modified") ||
 		strings.Contains(errStr, "No fields to modify")
-}
-
-// SendMsgToTgbotDeleteAfter sends a message and deletes it after a specified delay.
-func (t *Tgbot) SendMsgToTgbotDeleteAfter(chatId int64, msg string, delayInSeconds int, replyMarkup ...telego.ReplyMarkup) {
-	// Determine if replyMarkup was passed; otherwise, set it to nil
-	var replyMarkupParam telego.ReplyMarkup
-	if len(replyMarkup) > 0 {
-		replyMarkupParam = replyMarkup[0] // Use the first element
-	}
-
-	// Send the message
-	sentMsg, err := bot.SendMessage(context.Background(), &telego.SendMessageParams{
-		ChatID:      tu.ID(chatId),
-		Text:        msg,
-		ReplyMarkup: replyMarkupParam, // Use the correct replyMarkup value
-	})
-	if err != nil {
-		logger.Warning("Failed to send message:", err)
-		return
-	}
-
-	// Delete the sent message after the specified number of seconds.
-	go t.deleteMessageAfterDelay(chatId, sentMsg.MessageID, delayInSeconds)
-}
-
-// deleteMessageAfterDelay waits delayInSeconds and then removes the message. It
-// deliberately does not touch the conversation state: every caller that ends a
-// wizard step already clears the state synchronously, and clearing it here — up
-// to several seconds later — would wipe a state the user set for the next step
-// in the meantime, silently dropping their following input.
-func (t *Tgbot) deleteMessageAfterDelay(chatId int64, messageID, delayInSeconds int) {
-	time.Sleep(time.Duration(delayInSeconds) * time.Second)
-	t.deleteMessageTgBot(chatId, messageID)
 }
 
 // deleteMessageTgBot deletes a message from the chat.
