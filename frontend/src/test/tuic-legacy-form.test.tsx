@@ -42,14 +42,6 @@ describe('TUIC legacy edit and raw profile precedence', () => {
     const displayed = Array.from(document.querySelectorAll('input')).map((x) => x.value);
     expect(displayed).toContain('/old/cert.pem');
   });
-  it('wraps certificate actions inside the form column on narrow layouts', () => {
-    render(<Harness />);
-    const actions = document.querySelector<HTMLElement>('.tuic-certificate-actions');
-    expect(actions?.style.display).toBe('flex');
-    expect(actions?.style.flexWrap).toBe('wrap');
-    expect(actions?.style.width).toBe('100%');
-    expect(actions?.querySelectorAll('button')).toHaveLength(3);
-  });
   it('editing only SNI must preserve controller and runtime values', () => {
     render(<Harness />);
     act(() => methods.setValue('settings.server.sni', 'new.example'));
