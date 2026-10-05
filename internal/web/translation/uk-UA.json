@@ -2503,7 +2503,8 @@
       "pickInbound": "Pick the inbound the new client goes to.",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
-      "actionsHint": "Maintenance actions:"
+      "actionsHint": "Maintenance actions:",
+      "inlineHint": "\r\n🔍 The list opens through search: tap Find and start typing."
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
@@ -2553,7 +2554,9 @@
       "back": "⬅️ Back",
       "hide": "🙈 Hide",
       "page": "Page {{ .Page }} of {{ .Pages }}",
-      "browse": "🔍 Search…"
+      "searchInbounds": "🔍 Find inbound…",
+      "searchClients": "🔍 Find client…",
+      "inlineDisabled": "⚠️ Inline mode is off"
     },
     "answers": {
       "broadcastStarted": "🚀 Розсилку запущено.",
@@ -2598,6 +2601,13 @@
       "deplete": "Running out",
       "commands": "Commands",
       "broadcast": "Broadcast"
+    },
+    "inline": {
+      "noneTitle": "Nothing found",
+      "noneDesc": "Use @BotFather /setinline to enable the list.",
+      "offTitle": "⚠️ Inline mode is disabled for this bot",
+      "offBody": "Lists are browsed in inline mode. Enable it in @BotFather: /setinline, then tap Check again.",
+      "recheck": "Check again"
     }
   },
   "discord": {

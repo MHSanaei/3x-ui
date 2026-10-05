@@ -58,6 +58,7 @@ func (t *Tgbot) OnReceive() {
 	params := telego.GetUpdatesParams{
 		Timeout: 20, // Reduced timeout to detect connection issues faster
 	}
+
 	// Strict singleton: never start a second long-polling loop.
 	tgBotMutex.Lock()
 	if botCancel != nil || isRunning {
@@ -83,6 +84,14 @@ func (t *Tgbot) OnReceive() {
 		botHandler = h
 		tgBotMutex.Unlock()
 
+		// A picked inline item lands as the user's own message: it is caught
+		// before every wizard and generic text handler (first match wins).
+		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			defer recoverBotPanic()
+			t.handleListMarker(&message)
+			return nil
+		}, th.TextContains(":"), th.AnyMessageWithFrom())
+
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
 			userStateMgr.clear(messageActor(message))
@@ -105,6 +114,17 @@ func (t *Tgbot) OnReceive() {
 			})
 			return nil
 		}, th.AnyCommand())
+
+		// Inline mode is the only list browser: no middleware is registered on
+		// it, because a query fires on every keystroke and a middleware that
+		// returns nil for an unmatched type silently swallows the list.
+		h.HandleInlineQuery(func(ctx *th.Context, query telego.InlineQuery) error {
+			defer recoverBotPanic()
+			go runBotHandler(func() {
+				t.handleInlineQuery(&query)
+			})
+			return nil
+		})
 
 		h.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
 			// Use goroutine with worker pool for concurrent callback processing
@@ -981,6 +1001,16 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "ban", "get_banlogs":
 		t.answerSilent(callbackQuery.ID)
 		t.screenBanLogs(chatId)
+	case "inline_help":
+		t.answerSilent(callbackQuery.ID)
+		t.screenInlineHelp(chatId)
+	case "inline_recheck":
+		t.refreshInlineCapability()
+		if t.inlineSupported() {
+			t.screenInbounds(chatId)
+		} else {
+			t.screenInlineHelp(chatId)
+		}
 	case "cmd", "commands", "client_commands":
 		t.screenCommands(chatId, isAdmin)
 	case "addc", "add_client":

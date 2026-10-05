@@ -1,0 +1,216 @@
+package tgbot
+
+import (
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/mymmrac/telego"
+)
+
+// inlineCapturingServer records answerInlineQuery results so a test can assert
+// on the list Telegram would show, and on the marker an item carries.
+func inlineCapturingServer(t *testing.T, supportsInline bool) (*httptest.Server, func() []map[string]any) {
+	t.Helper()
+	var mu sync.Mutex
+	var queries []map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		method := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+		var payload map[string]any
+		_ = json.Unmarshal(body, &payload)
+		w.Header().Set("Content-Type", "application/json")
+		switch method {
+		case "answerInlineQuery":
+			mu.Lock()
+			queries = append(queries, payload)
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": true})
+		case "getMe":
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
+				"id": 42, "is_bot": true, "first_name": "bot", "username": "bot",
+				"supports_inline_queries": supportsInline,
+			}})
+		case "getChat":
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
+				"id": 42, "type": "private", "photo": map[string]any{"big_file_id": "big"},
+			}})
+		case "sendMessage", "sendPhoto", "sendDocument":
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
+				"message_id": 5, "date": 0, "chat": map[string]any{"id": 1, "type": "private"},
+			}})
+		default:
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": true})
+		}
+	}))
+	return srv, func() []map[string]any {
+		mu.Lock()
+		defer mu.Unlock()
+		return append([]map[string]any(nil), queries...)
+	}
+}
+
+// maybeAnswerInline waits briefly for the asynchronous query answer.
+func maybeAnswerInline(get func() []map[string]any) []map[string]any {
+	for range 20 {
+		if got := get(); len(got) > 0 {
+			return got
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return get()
+}
+
+func TestInlineQueryListsInboundsWithMarkers(t *testing.T) {
+	srv, queries := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+	seedReportClients(t, "nl-fast", []string{"a@x"})
+
+	tb.handleInlineQuery(&telego.InlineQuery{
+		ID:    "iq1",
+		From:  telego.User{ID: 1},
+		Query: "",
+	})
+
+	got := maybeAnswerInline(queries)
+	if len(got) != 1 {
+		t.Fatalf("answerInlineQuery calls = %d, want 1", len(got))
+	}
+	results, _ := got[0]["results"].([]any)
+	if len(results) == 0 {
+		t.Fatal("inline results are empty, want the seeded inbound")
+	}
+	item, _ := results[0].(map[string]any)
+	id, _ := item["id"].(string)
+	if !strings.HasPrefix(id, "inb:") {
+		t.Errorf("result id = %q, want an inb: marker", id)
+	}
+	content, _ := item["input_message_content"].(map[string]any)
+	if text, _ := content["message_text"].(string); text != id {
+		t.Errorf("marker text = %q, want the marker itself (%q), never the real content", text, id)
+	}
+}
+
+func TestInlineQueryAnswersEmptyResult(t *testing.T) {
+	srv, queries := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+
+	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq2", From: telego.User{ID: 1}, Query: "nothing-matches-this"})
+
+	got := maybeAnswerInline(queries)
+	if len(got) != 1 {
+		t.Fatalf("answerInlineQuery calls = %d, want 1: an empty list must still answer", len(got))
+	}
+	if results, _ := got[0]["results"].([]any); len(results) == 0 {
+		t.Error("results are empty, want the none-found card")
+	}
+}
+
+func TestInlineQueryRefusesAStranger(t *testing.T) {
+	srv, queries := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+	seedReportClients(t, "secret", []string{"a@x"})
+
+	// 777777 owns no client and is not an admin.
+	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq3", From: telego.User{ID: 777777}})
+
+	got := maybeAnswerInline(queries)
+	if len(got) != 1 {
+		t.Fatalf("answerInlineQuery calls = %d, want 1", len(got))
+	}
+	results, _ := got[0]["results"].([]any)
+	for _, raw := range results {
+		item, _ := raw.(map[string]any)
+		if id, _ := item["id"].(string); strings.HasPrefix(id, "inb:") || strings.HasPrefix(id, "cl:") {
+			t.Fatalf("a stranger received the results item %q", id)
+		}
+	}
+}
+
+func TestInlineLauncherOnlyWhenInlineIsOn(t *testing.T) {
+	srv, _ := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	inlineCapability.recordForTest(true)
+
+	tb := &Tgbot{}
+	row := tb.launchRow("inb", "tgbot.buttons.searchInbounds")
+	if len(row) != 1 || row[0].SwitchInlineQueryCurrentChat == nil {
+		t.Fatalf("launcher row = %+v, want a switch-inline button", row)
+	}
+
+	inlineCapability.recordForTest(false)
+	row = tb.launchRow("inb", "tgbot.buttons.searchInbounds")
+	if len(row) != 1 || row[0].SwitchInlineQueryCurrentChat != nil {
+		t.Fatalf("row = %+v, want the inline-off hint instead of a dead button", row)
+	}
+	if row[0].CallbackData != "inline_help" {
+		t.Errorf("hint callback = %q, want inline_help", row[0].CallbackData)
+	}
+}
+
+// setTestAdmins registers admins for the duration of a test.
+func setTestAdmins(t *testing.T, ids ...int64) {
+	t.Helper()
+	orig := adminSnapshot()
+	tgBotMutex.Lock()
+	adminIds = ids
+	tgBotMutex.Unlock()
+	t.Cleanup(func() {
+		tgBotMutex.Lock()
+		adminIds = orig
+		tgBotMutex.Unlock()
+	})
+}
+
+// recordForTest pins the capability cache without a round trip.
+func (s *inlineSupport) recordForTest(supported bool) {
+	s.mu.Lock()
+	s.ok = supported
+	s.known = true
+	s.at = time.Now()
+	s.mu.Unlock()
+}
+
+func TestListMarkerParsesAndRejectsForeignPrefixes(t *testing.T) {
+	for _, tt := range []struct {
+		text   string
+		action string
+		value  string
+		ok     bool
+	}{
+		{"inb:3", "inb", "3", true},
+		{"add:12", "add", "12", true},
+		{"cl:user@x", "cl", "user@x", true},
+		{"hello world", "", "", false},
+		{"inb:", "", "", false},
+		{"http://x", "", "", false},
+	} {
+		action, value, ok := splitListMarker(tt.text)
+		if ok != tt.ok || action != tt.action || value != tt.value {
+			t.Errorf("splitListMarker(%q) = (%q, %q, %v), want (%q, %q, %v)",
+				tt.text, action, value, ok, tt.action, tt.value, tt.ok)
+		}
+	}
+}
