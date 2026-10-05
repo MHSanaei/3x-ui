@@ -89,6 +89,10 @@ func (t *Tgbot) OnReceive() {
 		botHandler = h
 		tgBotMutex.Unlock()
 
+		// The menu marks these as returning to a root screen, so a screen that
+		// carries one already offers a way out.
+		registerTerminalCallbacks(cbHome, cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance)
+
 		// A picked inline item lands as the user's own message: it is caught
 		// before every wizard and generic text handler (first match wins).
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
@@ -116,6 +120,10 @@ func (t *Tgbot) OnReceive() {
 				if isAdmin, ok := t.gateCommand(&message); ok {
 					t.answerCommand(&message, message.Chat.ID, isAdmin)
 				}
+				// The command itself is litter next to the screen it opens: the
+				// bot's answer is the message worth keeping. Commands for another
+				// bot never get here, so those are left alone.
+				t.deleteIncoming(&message)
 			})
 			return nil
 		}, th.AnyCommand())
@@ -261,6 +269,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			t.sendNotice(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(message.From.ID, 10)))
 			return
 		}
+		t.clearBroadcastPrompt(messageActor(*message))
 		t.screenHome(chatId, message.From.ID)
 		return
 	case "status":
@@ -1008,72 +1017,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "client_traffic":
 		t.answerSilent(callbackQuery.ID)
 		t.getClientUsage(chatId, callbackQuery.From.ID)
-	case "client_sub_links":
-		// show user's own clients to choose one for sub links
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			t.sendNotice(chatId, t.I18nBot("tgbot.answers.errorOperation"))
-			return
-		}
-		if len(traffics) == 0 {
-			t.sendNotice(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons = append(buttons, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_sub_links "+tr.Email)))
-		}
-		cols := 1
-		if len(buttons) >= 6 {
-			cols = 2
-		}
-		keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-		t.renderScreen(chatId, t.newScreen("links", t.I18nBot("tgbot.commands.pleaseChoose"), keyboard.InlineKeyboard...))
-	case "client_individual_links":
-		// show user's clients to choose for individual links
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			t.sendNotice(chatId, t.I18nBot("tgbot.answers.errorOperation"))
-			return
-		}
-		if len(traffics) == 0 {
-			t.sendNotice(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons2 []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons2 = append(buttons2, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_individual_links "+tr.Email)))
-		}
-		cols2 := 1
-		if len(buttons2) >= 6 {
-			cols2 = 2
-		}
-		keyboard2 := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols2, buttons2...))
-		t.renderScreen(chatId, t.newScreen("links", t.I18nBot("tgbot.commands.pleaseChoose"), keyboard2.InlineKeyboard...))
-	case "client_qr_links":
-		// show user's clients to choose for QR codes
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOccurred")+"\r\n"+err.Error())
-			return
-		}
-		if len(traffics) == 0 {
-			t.sendNotice(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons3 []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons3 = append(buttons3, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_qr_links "+tr.Email)))
-		}
-		cols3 := 1
-		if len(buttons3) >= 6 {
-			cols3 = 2
-		}
-		keyboard3 := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols3, buttons3...))
-		t.renderScreen(chatId, t.newScreen("links", t.I18nBot("tgbot.commands.pleaseChoose"), keyboard3.InlineKeyboard...))
+	case "client_sub_links", "client_individual_links", "client_qr_links":
+		// A client tapped its own link button: its identity already says which
+		// subscription, so it opens directly. A second one still needs a choice.
+		t.openOwnClientScreen(chatId, callbackQuery.From.ID, callbackQuery.Data)
 	case "add_client_ch_default_email":
 		userStateMgr.set(actor, "awaiting_email")
 		t.wizardPrompt(chatId, draft, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+html.EscapeString(draft.email)))
@@ -1278,7 +1225,7 @@ func checkAdmin(tgId int64) bool {
 // admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
-	case "client_traffic", "client_commands", "client_sub_links",
+	case "home", "client_traffic", "client_commands", "client_sub_links",
 		"client_individual_links", "client_qr_links":
 		return true
 	}

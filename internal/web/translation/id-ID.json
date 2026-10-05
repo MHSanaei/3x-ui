@@ -2570,10 +2570,7 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 Siaran",
-      "clientUsage": "📊 Pemakaian saya",
-      "clientLinks": "🔗 Tautan saya",
-      "clientCommands": "📖 Perintah"
+      "broadcast": "📢 Siaran"
     },
     "answers": {
       "broadcastStarted": "🚀 Siaran dimulai.",

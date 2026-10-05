@@ -24,6 +24,13 @@ import (
 var (
 	screenArtMu  sync.RWMutex
 	screenArtIDs = map[string]string{}
+	// artOverrides is artwork the panel set for one screen kind. It outranks
+	// the bot's avatar, so adopting an avatar never silently replaces it.
+	artOverrides = map[string]string{}
+	// qrArtIDs caches the uploaded picture of a subscription QR, keyed by the
+	// URL it encodes: the same client's QR is uploaded once, and a QR is
+	// per-client, so it can never be cached per screen kind.
+	qrArtIDs = map[string]string{}
 	// artFromAvatar records whether the cached ids came from the bot's own
 	// avatar. A tile cached from an upload must never win over an avatar the
 	// operator sets afterwards.
@@ -124,8 +131,39 @@ func (t *Tgbot) ensureScreenArt() {
 func artFileID(kind string) (string, bool) {
 	screenArtMu.RLock()
 	defer screenArtMu.RUnlock()
+	if id, ok := artOverrides[kind]; ok && id != "" {
+		return id, true
+	}
 	id, ok := screenArtIDs[kind]
 	return id, ok && id != ""
+}
+
+// setScreenArt pins artwork the panel uploaded for one screen kind.
+func setScreenArt(kind, fileID string) {
+	if kind == "" || fileID == "" {
+		return
+	}
+	screenArtMu.Lock()
+	artOverrides[kind] = fileID
+	screenArtMu.Unlock()
+}
+
+// qrArtFor returns the cached picture of a subscription QR.
+func qrArtFor(content string) (string, bool) {
+	screenArtMu.RLock()
+	defer screenArtMu.RUnlock()
+	id, ok := qrArtIDs[content]
+	return id, ok && id != ""
+}
+
+// cacheQRArt remembers the uploaded picture of one subscription QR.
+func cacheQRArt(content, fileID string) {
+	if content == "" || fileID == "" {
+		return
+	}
+	screenArtMu.Lock()
+	qrArtIDs[content] = fileID
+	screenArtMu.Unlock()
 }
 
 // artUpload is the last-resort picture: the generated black tile.
@@ -168,6 +206,8 @@ func cacheArtFileID(kind, fileID string) {
 func resetScreenArt() {
 	screenArtMu.Lock()
 	screenArtIDs = map[string]string{}
+	artOverrides = map[string]string{}
+	qrArtIDs = map[string]string{}
 	artFromAvatar = false
 	artProbedAt = time.Time{}
 	screenArtMu.Unlock()
@@ -177,6 +217,6 @@ func resetScreenArt() {
 // own artwork every kind resolves to the same avatar, but the kinds stay named
 // so a screen's intent is visible in the code.
 var screenKinds = []string{
-	"main", "status", "inbounds", "clients", "client", "links", "qr",
+	"main", "home", "status", "inbounds", "clients", "client", "links", "qr",
 	"wizard", "reports", "backup", "onlines", "deplete", "commands", "broadcast",
 }

@@ -2570,10 +2570,7 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 بث",
-      "clientUsage": "📊 استخدامي",
-      "clientLinks": "🔗 روابطي",
-      "clientCommands": "📖 الأوامر"
+      "broadcast": "📢 بث"
     },
     "answers": {
       "broadcastStarted": "🚀 بدأ البث.",

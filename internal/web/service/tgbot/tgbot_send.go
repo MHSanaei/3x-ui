@@ -55,15 +55,19 @@ func splitMessageLines(block string, limit int) []string {
 }
 
 // SendMsgToTgbot sends a message to the Telegram bot with optional reply markup.
-func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.ReplyMarkup) {
+// SendMsgToTgbot sends a message and returns the id of the last one it managed to
+// deliver, or 0. A caller that may need to take its own message back (the
+// broadcast prompt) reads it; every other caller ignores it.
+func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.ReplyMarkup) int {
 	if !t.IsRunning() {
-		return
+		return 0
 	}
 
 	if msg == "" {
 		logger.Info("[tgbot] message is empty!")
-		return
+		return 0
 	}
+	lastID := 0
 
 	allMessages := pageMessage(msg, telegramPageLimit)
 	for n, message := range allMessages {
@@ -81,10 +85,13 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 		maxRetries := 3
 		for attempt := range maxRetries {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			_, err := bot.SendMessage(ctx, &params)
+			sent, err := bot.SendMessage(ctx, &params)
 			cancel()
 
 			if err == nil {
+				if sent != nil {
+					lastID = sent.MessageID
+				}
 				break // Success
 			}
 
@@ -111,6 +118,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
+	return lastID
 }
 
 // SendMsgToTgbotAdmins sends a message to all admin Telegram chats.

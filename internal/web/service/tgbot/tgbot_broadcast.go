@@ -90,7 +90,10 @@ type broadcastCompose struct {
 var (
 	broadcastMu       sync.Mutex
 	broadcastComposes = make(map[chatUser]*broadcastCompose)
-	broadcastActive   *broadcastRunner
+	// broadcastPrompts is the "send me the message" card per admin, remembered
+	// only so that leaving the flow takes it out of the chat.
+	broadcastPrompts = make(map[chatUser]int)
+	broadcastActive  *broadcastRunner
 )
 
 // broadcastAlbumDebounce waits out Telegram's stream of one media group: an
@@ -116,6 +119,7 @@ func broadcastResetAll() {
 		broadcastActive.cancel.Store(true)
 		broadcastActive = nil
 	}
+	broadcastPrompts = make(map[chatUser]int)
 }
 
 func broadcastDropCompose(actor chatUser) {
@@ -208,14 +212,48 @@ func (t *Tgbot) startBroadcast(actor chatUser) {
 		return
 	}
 	broadcastDropCompose(actor)
+	// A second prompt supersedes the first: twin "send me the message" cards in
+	// one chat is the sort of litter this flow is supposed to avoid.
+	t.clearBroadcastPrompt(actor)
 	userStateMgr.set(actor, broadcastAwaitingText)
-	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAskText"), t.broadcastCancelKeyboard())
+	id := t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastAskText"), t.broadcastCancelKeyboard())
+	broadcastSetPrompt(actor, id)
+}
+
+// broadcastSetPrompt remembers the "send me the message" card, so leaving the
+// flow cannot strand it in the chat.
+func broadcastSetPrompt(actor chatUser, messageID int) {
+	if messageID == 0 {
+		return
+	}
+	broadcastMu.Lock()
+	broadcastPrompts[actor] = messageID
+	broadcastMu.Unlock()
+}
+
+// broadcastTakePrompt returns the pending prompt and forgets it.
+func broadcastTakePrompt(actor chatUser) int {
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+	id := broadcastPrompts[actor]
+	delete(broadcastPrompts, actor)
+	return id
+}
+
+// clearBroadcastPrompt removes the prompt from the chat, if one is pending.
+func (t *Tgbot) clearBroadcastPrompt(actor chatUser) {
+	if id := broadcastTakePrompt(actor); id != 0 {
+		t.deleteScreenMessage(actor.chatID, id)
+	}
 }
 
 // handleBroadcastInput references the message the admin sent and shows the
 // confirmation preview. The router hands over only the admin /broadcast awaits.
 func (t *Tgbot) handleBroadcastInput(message *telego.Message, actor chatUser) {
 	logger.Debugf("broadcast: chat %d input (message_id=%d group=%q)", actor.chatID, message.MessageID, message.MediaGroupID)
+	// The prompt has been answered: it is the admin's scratch space, not the
+	// broadcast, so it does not stay behind the preview card.
+	t.clearBroadcastPrompt(actor)
 	if message.MediaGroupID == "" {
 		broadcastDropCompose(actor)
 		t.acceptBroadcastDraft(actor, []int{message.MessageID})
@@ -522,11 +560,13 @@ func (t *Tgbot) cancelBroadcast(actor chatUser, messageID int, queryID string) {
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceling"))
 		return
 	}
-	// Dropping a broadcast before it ran: the admin's input, its preview copy and
-	// the confirmation card all go, so the chat is as it was before /broadcast.
+	// Dropping a broadcast before it ran: the admin's input, its preview copy,
+	// the "send me the message" card and the confirmation card all go, so the
+	// chat is as it was before /broadcast.
 	inputIDs := broadcastComposeInputs(actor)
 	broadcastDropCompose(actor)
 	userStateMgr.clear(actor)
+	t.clearBroadcastPrompt(actor)
 	t.clearBroadcastDraft(actor, inputIDs, nil)
 	t.deleteMessageTgBot(chatId, messageID)
 	t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceled"))

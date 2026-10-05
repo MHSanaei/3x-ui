@@ -2570,10 +2570,7 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 Рассылка",
-      "clientUsage": "📊 Моё использование",
-      "clientLinks": "🔗 Мои ссылки",
-      "clientCommands": "📖 Команды"
+      "broadcast": "📢 Рассылка"
     },
     "answers": {
       "broadcastStarted": "🚀 Рассылка запущена.",

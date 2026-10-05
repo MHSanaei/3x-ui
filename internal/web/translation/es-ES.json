@@ -2570,10 +2570,7 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 Difusión",
-      "clientUsage": "📊 Mi uso",
-      "clientLinks": "🔗 Mis enlaces",
-      "clientCommands": "📖 Comandos"
+      "broadcast": "📢 Difusión"
     },
     "answers": {
       "broadcastStarted": "🚀 Difusión iniciada.",

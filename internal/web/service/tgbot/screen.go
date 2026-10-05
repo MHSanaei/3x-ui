@@ -20,18 +20,27 @@ const botCaptionLimit = 1024
 // inline keyboard are edited on every user action. Nothing else is posted, so a
 // chat never grows a second stale menu.
 type screen struct {
-	msgID    int
-	kind     string
-	photo    string // file_id to reuse for an edit; empty means upload or text
-	hasPhoto bool   // whether the tracked message carries a picture
-	header   string
-	body     string
-	pages    []string
-	page     int
-	rows     [][]telego.InlineKeyboardButton
-	markup   *telego.InlineKeyboardMarkup
-	text     string
-	pageMax  int
+	msgID int
+	kind  string
+	// root marks a screen that IS the viewer's top level: it must not offer a
+	// back button, because there is nothing above it to go back to.
+	root bool
+	// qrContent is the URL a QR screen encodes; its picture is that code rather
+	// than the bot's avatar.
+	qrContent string
+	// attachment is a picture built for this one screen (a QR). It is uploaded
+	// on send and remembered by content, so an edit reuses the same picture.
+	attachment *telego.InputFile
+	photo      string // file_id to reuse for an edit; empty means upload or text
+	hasPhoto   bool   // whether the tracked message carries a picture
+	header     string
+	body       string
+	pages      []string
+	page       int
+	rows       [][]telego.InlineKeyboardButton
+	markup     *telego.InlineKeyboardMarkup
+	text       string
+	pageMax    int
 }
 
 // screenStore keeps the live screen per chat. The msgID inside it belongs to
@@ -71,8 +80,41 @@ func (s *screenStore) reset() {
 // newScreen assembles a screen: breadcrumb header, body split into
 // caption-sized pages, and the caller's keyboard rows (the pager is added at
 // render time so it reflects the page the user actually sees).
+// rootScreen builds a screen that is the viewer's own top level, so the way-out
+// invariant does not apply: a back button there would lead to the same screen.
+func (t *Tgbot) rootScreen(kind, body string, rows ...[]telego.InlineKeyboardButton) *screen {
+	sc := t.newScreen(kind, body, append(rows, t.backRow())...)
+	sc.root = true
+	sc.rows = stripWayOut(sc.rows)
+	if sc.markup != nil {
+		sc.markup = tu.InlineKeyboard(sc.rows...)
+	}
+	return sc
+}
+
+// stripWayOut removes the home row. Used only when building a root screen, where
+// a way out would be a link to itself.
+func stripWayOut(rows [][]telego.InlineKeyboardButton) [][]telego.InlineKeyboardButton {
+	out := make([][]telego.InlineKeyboardButton, 0, len(rows))
+	for _, row := range rows {
+		kept := make([]telego.InlineKeyboardButton, 0, len(row))
+		for _, btn := range row {
+			if btn.CallbackData != cbHome {
+				kept = append(kept, btn)
+			}
+		}
+		if len(kept) > 0 {
+			out = append(out, kept)
+		}
+	}
+	return out
+}
+
 func (t *Tgbot) newScreen(kind, body string, rows ...[]telego.InlineKeyboardButton) *screen {
-	rows = t.ensureBackRow(rows)
+	// One header builder for every screen, so a screen cannot be written that
+	// opens as a dead end. Callback data beyond "home" is left to the caller:
+	// the panel's menu registers its own terminal callbacks.
+	rows = t.ensureWayOut(rows)
 	header := ""
 	if crumb := t.breadcrumb(kind); crumb != "" {
 		header = "<b>" + crumb + "</b>\r\n"
@@ -94,7 +136,18 @@ func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
 	if sc == nil || bot == nil {
 		return
 	}
-	t.attachArt(sc)
+	// A QR screen carries its own picture: the code being shown is what the
+	// client opened the screen for, and a file beside it is just clutter.
+	if sc.kind == "qr" && sc.qrContent != "" {
+		if id, ok := qrArtFor(sc.qrContent); ok {
+			sc.hasPhoto, sc.photo = true, id
+		} else {
+			sc.attachment = qrUpload(sc.qrContent)
+		}
+	}
+	if sc.attachment == nil {
+		t.attachArt(sc)
+	}
 	sc.text = sc.header + sc.pages[min(sc.page, len(sc.pages)-1)]
 	rows := sc.rows
 	if row := t.pagerRow(sc); row != nil {
@@ -147,6 +200,15 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 			},
 			ReplyMarkup: next.markup,
 		})
+	case next.attachment != nil:
+		_, err = bot.EditMessageMedia(ctx, &telego.EditMessageMediaParams{
+			ChatID:    tu.ID(chatID),
+			MessageID: prev.msgID,
+			Media: &telego.InputMediaPhoto{
+				Type: "photo", Media: *next.attachment, Caption: next.text, ParseMode: "HTML",
+			},
+			ReplyMarkup: next.markup,
+		})
 	case next.hasPhoto:
 		// No file_id yet (the avatar was never read): upload the fallback tile.
 		upload, ok := artUpload(next.kind)
@@ -186,7 +248,7 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 
 // replaceScreen sends the new screen BEFORE deleting the old one: with a slow
 // send, delete-first leaves the chat empty and reads as broken.
-func (t *Tgbot) replaceScreen(chatID int64, sc *screen) {
+func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -199,10 +261,15 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) {
 			ChatID: tu.ID(chatID), Photo: tu.FileFromID(sc.photo),
 			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
+	case sc.attachment != nil:
+		sent, err = bot.SendPhoto(ctx, &telego.SendPhotoParams{
+			ChatID: tu.ID(chatID), Photo: *sc.attachment,
+			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
+		})
 	case sc.hasPhoto:
 		upload, ok := artUpload(sc.kind)
 		if !ok {
-			return
+			return 0
 		}
 		sent, err = bot.SendPhoto(ctx, &telego.SendPhotoParams{
 			ChatID: tu.ID(chatID), Photo: upload,
@@ -215,7 +282,7 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) {
 	}
 	if err != nil {
 		logger.Warning("Failed to send a screen:", err)
-		return
+		return 0
 	}
 	if hadPrev && prev.msgID != 0 {
 		t.deleteOwnMessage(chatID, prev.msgID)
@@ -225,9 +292,14 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) {
 	// every later edit a cheap media edit instead of another upload.
 	if sc.hasPhoto && sc.photo == "" && len(sent.Photo) > 0 {
 		sc.photo = sent.Photo[len(sent.Photo)-1].FileID
-		cacheArtFileID(sc.kind, sc.photo)
+		if sc.qrContent != "" {
+			cacheQRArt(sc.qrContent, sc.photo)
+		} else {
+			cacheArtFileID(sc.kind, sc.photo)
+		}
 	}
 	t.screens().put(chatID, sc)
+	return sent.MessageID
 }
 
 // ensureBackRow guarantees every screen can be left. A screen that only offers
@@ -235,6 +307,51 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) {
 // reset and left a screen whose single button was the thing already used. The
 // check is by callback, not by label, so a screen is free to name the way back
 // whatever fits ("Cancel", "Back", the category's name).
+// wayOutNotes are callbacks that already return to a root menu, so a screen
+// carrying one must not gain a second, confusing back row.
+var wayOutNotes = []string{cbHome}
+
+// terminalCallbacks extends wayOutNotes: an engine may register the callbacks
+// its own root menu answers to. Guarded, because tests and the panel install
+// into it.
+var (
+	terminalCallbacksMu sync.RWMutex
+	terminalCallbacks   []string
+)
+
+func registerTerminalCallbacks(data ...string) {
+	terminalCallbacksMu.Lock()
+	terminalCallbacks = append(terminalCallbacks, data...)
+	terminalCallbacksMu.Unlock()
+}
+
+// hasWayOut reports whether any button on the screen is a route back to a root
+// menu, so that a screen offering one is not a dead end.
+func hasWayOut(rows [][]telego.InlineKeyboardButton) bool {
+	terminalCallbacksMu.RLock()
+	known := append(append([]string{}, wayOutNotes...), terminalCallbacks...)
+	terminalCallbacksMu.RUnlock()
+	for _, row := range rows {
+		for _, btn := range row {
+			for _, want := range known {
+				if btn.CallbackData == want {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// ensureWayOut appends the home row to a screen that offers no exit. This is
+// the one place screens are built, so no new screen can forget it.
+func (t *Tgbot) ensureWayOut(rows [][]telego.InlineKeyboardButton) [][]telego.InlineKeyboardButton {
+	if hasWayOut(rows) {
+		return rows
+	}
+	return append(append([][]telego.InlineKeyboardButton{}, rows...), t.backRow())
+}
+
 func (t *Tgbot) ensureBackRow(rows [][]telego.InlineKeyboardButton) [][]telego.InlineKeyboardButton {
 	for _, row := range rows {
 		for _, btn := range row {

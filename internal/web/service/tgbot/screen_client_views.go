@@ -17,6 +17,18 @@ import (
 )
 
 // qrPNG encodes content as a QR image of the given size.
+// qrUpload builds the uploadable picture of a subscription QR. It is nil when
+// the code cannot be rendered, which leaves the screen on its usual artwork.
+func qrUpload(content string) *telego.InputFile {
+	png, err := qrPNG(content, 512)
+	if err != nil {
+		logger.Warning("Failed to render a subscription QR:", err)
+		return nil
+	}
+	file := tu.FileFromBytes(png, "sub.png")
+	return &file
+}
+
 func qrPNG(content string, size int) ([]byte, error) {
 	if size <= 0 {
 		size = 256
@@ -182,8 +194,7 @@ func (t *Tgbot) screenIndividualLinks(chatID int64, email string) {
 		body.WriteString("<code>" + html.EscapeString(link) + "</code>\n")
 	}
 	rows := [][]telego.InlineKeyboardButton{
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.links", t.encodeQuery("client_links "+email))),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientCard", t.encodeQuery("client_get_usage "+email))),
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.links", t.encodeQuery("client_sub_links "+email))),
 		t.backRow(),
 	}
 	t.renderScreen(chatID, t.newScreen("links", body.String(), rows...))
@@ -192,7 +203,7 @@ func (t *Tgbot) screenIndividualLinks(chatID int64, email string) {
 // screenClientQR renders the subscription QR as the screen picture and leaves
 // the individual QRs to a document, so one screen covers the tap.
 func (t *Tgbot) screenClientQR(chatID int64, email string) {
-	subURL, subJSON, err := t.buildSubscriptionURLs(email)
+	subURL, _, err := t.buildSubscriptionURLs(email)
 	if err != nil {
 		t.sendNotice(chatID, t.I18nBot("tgbot.answers.errorOperation"))
 		return
@@ -201,20 +212,14 @@ func (t *Tgbot) screenClientQR(chatID int64, email string) {
 	body += t.I18nBot("tgbot.messages.subURL", "URL=="+html.EscapeString(subURL))
 	rows := [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.links", t.encodeQuery("client_links "+email))),
 		t.backRow(),
 	}
-	t.renderScreen(chatID, t.newScreen("qr", body, rows...))
-	// The QR is a file, not a screen picture: it is delivered with a hide button
-	// so the screen stays the tracked message.
-	if png, err := qrPNG(subURL, 512); err == nil {
-		t.sendDocumentWithHide(chatID, png, "sub.png")
-	}
-	if subJSON != "" {
-		if png, err := qrPNG(subJSON, 320); err == nil {
-			t.sendDocumentWithHide(chatID, png, "subjson.png")
-		}
-	}
+	// The QR replaces the screen's picture instead of arriving as a file: the
+	// code is the point of the screen, and a second document per client was
+	// clutter for a picture the caption can already name.
+	sc := t.newScreen("qr", body, rows...)
+	sc.qrContent = subURL
+	t.renderScreen(chatID, sc)
 }
 
 // renderPickerOnClient redraws the client card with a picker's rows appended,
@@ -346,4 +351,47 @@ func (t *Tgbot) clientSubLinksFor(email string) ([]string, error) {
 		return nil, err
 	}
 	return t.clientSubLinks(email, subURL)
+}
+
+// openOwnClientScreen resolves the client behind a Telegram user and opens the
+// asked-for screen. One subscription needs no choice; several are offered, one
+// button per subscription, because that choice is real information.
+func (t *Tgbot) openOwnClientScreen(chatID, tgUserID int64, action string) {
+	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
+	if err != nil {
+		t.sendNotice(chatID, t.I18nBot("tgbot.answers.errorOperation"))
+		return
+	}
+	if len(traffics) == 0 {
+		t.sendNotice(chatID, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
+		return
+	}
+	if len(traffics) == 1 {
+		t.openClientAction(chatID, action, traffics[0].Email)
+		return
+	}
+	var buttons []telego.InlineKeyboardButton
+	for _, tr := range traffics {
+		buttons = append(buttons, tu.InlineKeyboardButton(tr.Email).
+			WithCallbackData(t.encodeQuery(action+" "+tr.Email)))
+	}
+	cols := 1
+	if len(buttons) >= 6 {
+		cols = 2
+	}
+	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+	rows := append(keyboard.InlineKeyboard, t.backRow())
+	t.renderScreen(chatID, t.newScreen("links", t.I18nBot("tgbot.commands.pleaseChoose"), rows...))
+}
+
+// openClientAction opens one per-client screen by name.
+func (t *Tgbot) openClientAction(chatID int64, action, email string) {
+	switch action {
+	case "client_sub_links":
+		t.screenClientLinks(chatID, email)
+	case "client_individual_links":
+		t.screenIndividualLinks(chatID, email)
+	case "client_qr_links":
+		t.screenClientQR(chatID, email)
+	}
 }

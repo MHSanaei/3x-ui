@@ -99,6 +99,12 @@ func (t *Tgbot) screenCategory(chatID int64, category string) {
 }
 
 // btn is the one place a localized label becomes a callback button.
+// btn2 is btn with a caller-supplied label: a client's own email names its
+// subscription better than any localized word can.
+func (t *Tgbot) btn2(label, data string) telego.InlineKeyboardButton {
+	return tu.InlineKeyboardButton(label).WithCallbackData(data)
+}
+
 func (t *Tgbot) btn(labelKey, data string) telego.InlineKeyboardButton {
 	return tu.InlineKeyboardButton(t.I18nBot(labelKey)).WithCallbackData(data)
 }

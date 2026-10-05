@@ -2570,10 +2570,7 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 Phát tin",
-      "clientUsage": "📊 Mức dùng của tôi",
-      "clientLinks": "🔗 Liên kết của tôi",
-      "clientCommands": "📖 Lệnh"
+      "broadcast": "📢 Phát tin"
     },
     "answers": {
       "broadcastStarted": "🚀 Đã bắt đầu phát tin.",

@@ -47,15 +47,23 @@ func (t *Tgbot) screenClientHome(chatID, userID int64) {
 		body.WriteString(t.clientInfoMsg(traffic, true, true, true, true, true, true))
 		body.WriteString("\r\n")
 	}
-	rows := [][]telego.InlineKeyboardButton{
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientUsage", "client_traffic")),
-		tu.InlineKeyboardRow(
+	// One subscription needs no choice: its links and QR are right here. Several
+	// are one row each, which is a choice worth making. Either way this screen is
+	// the client's own top level, so it carries no back button.
+	var rows [][]telego.InlineKeyboardButton
+	if len(traffics) == 1 {
+		rows = append(rows, tu.InlineKeyboardRow(
 			t.btn("tgbot.buttons.clientLinks", "client_sub_links"),
 			t.btn("tgbot.buttons.qrCode", "client_qr_links"),
-		),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientCommands", "client_commands")),
+		))
+	} else {
+		for _, traffic := range traffics {
+			rows = append(rows, tu.InlineKeyboardRow(
+				t.btn2(traffic.Email, t.encodeQuery("client_sub_links "+traffic.Email)),
+			))
+		}
 	}
-	t.renderScreen(chatID, t.newScreen("main", body.String(), rows...))
+	t.renderScreen(chatID, t.rootScreen("main", body.String(), rows...))
 }
 
 // homeSummary is the panel overview line used by the menu and the report, so

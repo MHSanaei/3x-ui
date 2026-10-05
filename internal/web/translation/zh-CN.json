@@ -2570,10 +2570,7 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 广播",
-      "clientUsage": "📊 我的用量",
-      "clientLinks": "🔗 我的链接",
-      "clientCommands": "📖 命令"
+      "broadcast": "📢 广播"
     },
     "answers": {
       "broadcastStarted": "🚀 群发已开始。",

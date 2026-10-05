@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -580,4 +585,174 @@ func countMethod(calls []apiCall, method string) int {
 		}
 	}
 	return n
+}
+
+// seeding a client bound to a Telegram user, which the client screens key on
+func seedClientForTgUser(t *testing.T, tgUserID int64, email string) {
+	t.Helper()
+	// A client's Telegram binding lives in the inbound's settings blob, not in a
+	// column: that is where GetClientTrafficTgBot reads it from.
+	settings := fmt.Sprintf(`{"clients":[{"email":%q,"tgId":%d,"subId":"sub-%s"}]}`, email, tgUserID, email)
+	inbound := &model.Inbound{
+		UserId: 1, Tag: "tg-" + email, Remark: "tg-" + email, Port: 8443,
+		Protocol: model.VLESS, Enable: true, Settings: settings,
+	}
+	if err := database.GetDB().Create(inbound).Error; err != nil {
+		t.Fatalf("seed inbound for %s: %v", email, err)
+	}
+	if err := database.GetDB().Create(&xray.ClientTraffic{
+		InboundId: inbound.Id, Email: email, Enable: true, Up: 1, Down: 1,
+	}).Error; err != nil {
+		t.Fatalf("seed traffic for %s: %v", email, err)
+	}
+	record := (&model.Client{Email: email, Enable: true, SubID: "sub-" + email}).ToRecord()
+	if err := database.GetDB().Create(record).Error; err != nil {
+		t.Fatalf("seed client %s: %v", email, err)
+	}
+	if err := database.GetDB().Create(&model.ClientInbound{ClientId: record.Id, InboundId: inbound.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbounds for %s: %v", email, err)
+	}
+}
+
+// 1. The back button did nothing for a client: "home" was not one of the
+// callbacks a non-admin was allowed to reach.
+func TestClientBackButtonIsAllowed(t *testing.T) {
+	if !isClientSelfCallback("home") {
+		t.Fatal("a client's back button is still refused by the callback gate")
+	}
+}
+
+// A client with one subscription has nothing to choose: the links must open
+// directly instead of asking the client to tap its own name.
+func TestClientMenuWithOneSubscriptionOpensLinksDirectly(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4242, "solo@x")
+
+	tb.screenClientHome(777, 4242)
+
+	if countMethod(calls(), "sendPhoto") == 0 {
+		t.Fatal("nothing was rendered")
+	}
+	sc, ok := tb.screens().get(777)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	markup, _ := json.Marshal(sc.markup)
+	// The client's own top level: its subscription's real actions, right there,
+	// and none of the controls that used to do nothing.
+	for _, want := range []string{"client_sub_links", "client_qr_links"} {
+		if !strings.Contains(string(markup), want) {
+			t.Errorf("the client's menu lacks %s: %s", want, markup)
+		}
+	}
+	for _, gone := range []string{"client_commands", "client_traffic", "pleaseChoose", "\"home\""} {
+		if strings.Contains(string(markup), gone) {
+			t.Errorf("the dead or pointless %s control is still offered: %s", gone, markup)
+		}
+	}
+}
+
+// Several subscriptions still need a choice, but one button per subscription
+// rather than a "choose yourself" step.
+func TestClientMenuWithSeveralSubscriptionsListsThem(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4343, "a@x")
+	seedClientForTgUser(t, 4343, "b@x")
+
+	tb.screenClientHome(777, 4343)
+
+	sc, ok := tb.screens().get(777)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	markup, _ := json.Marshal(sc.markup)
+	for _, email := range []string{"a@x", "b@x"} {
+		if !strings.Contains(string(markup), email) {
+			t.Errorf("the client's own subscription %q is not offered: %s", email, markup)
+		}
+	}
+}
+
+// A QR screen shows the code as its own picture; it is not a file beside it.
+func TestQRScreenCarriesTheCodeAsItsPicture(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4444, "qr@x")
+
+	tb.screenClientQR(777, "qr@x")
+
+	if got := countMethod(calls(), "sendDocument"); got != 0 {
+		t.Errorf("sendDocument calls = %d, want the QR on the screen instead of as a file", got)
+	}
+	if got := countMethod(calls(), "sendPhoto"); got == 0 {
+		t.Fatal("the QR screen sent no picture")
+	}
+}
+
+// /start is a reset: leaving the broadcast flow must not strand its prompt.
+func TestStartClearsTheBroadcastPrompt(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t, 5555)
+	broadcastLocalizer(t)
+	t.Cleanup(func() { resetBroadcastState(t) })
+	setBroadcastRunning(t, true)
+
+	admin := chatUser{chatID: 5555, userID: 5555}
+	tb.startBroadcast(admin)
+	broadcastSetPrompt(admin, 4321)
+
+	before := countMethod(calls(), "deleteMessage")
+	tb.answerCommand(&telego.Message{
+		MessageID: 9, Chat: telego.Chat{ID: 5555}, From: &telego.User{ID: 5555},
+		Text: "/start",
+	}, 5555, true)
+
+	if got := countMethod(calls(), "deleteMessage"); got <= before {
+		t.Error("the broadcast prompt survived /start")
+	}
+}
+
+// /start is a command like any other: once it has opened the menu the command
+// itself is removed, and a second /start edits the live screen instead of
+// leaving the chat with two of them.
+func TestStartCommandIsRemovedAndEditsTheLiveScreen(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t, 6666)
+
+	// The handler deletes the command after answering, exactly as the router
+	// wires it; calling both keeps the test on the real path.
+	start := func(messageID int) {
+		msg := &telego.Message{
+			MessageID: messageID,
+			Chat:      telego.Chat{ID: 6666},
+			From:      &telego.User{ID: 6666},
+			Text:      "/start",
+		}
+		tb.answerCommand(msg, 6666, true)
+		tb.deleteIncoming(msg)
+	}
+
+	start(12)
+	if countMethod(calls(), "sendPhoto") != 1 {
+		t.Fatalf("sendPhoto calls = %d, want 1 for the first /start", countMethod(calls(), "sendPhoto"))
+	}
+	if countMethod(calls(), "deleteMessage") < 1 {
+		t.Error("the /start command message was left in the chat")
+	}
+
+	// A second /start must redraw the tracked screen, not send another one.
+	start(13)
+	if got := countMethod(calls(), "sendPhoto"); got != 1 {
+		t.Errorf("sendPhoto calls = %d, want 1: a second /start duplicated the menu", got)
+	}
+	if countMethod(calls(), "editMessageMedia") == 0 {
+		t.Error("the second /start did not edit the live screen")
+	}
 }
