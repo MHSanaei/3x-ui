@@ -61,8 +61,8 @@ func (t *Tgbot) resetAllConfirm() *screen {
 
 // screenInbounds summarises the inbounds; the browsable, searchable list is the
 // inline query, so the screen carries only the summary and the way back.
-func (t *Tgbot) screenInbounds(chatID int64) {
-	inlineScopes.set(chatID, "inb")
+func (t *Tgbot) screenInbounds(chatID, userID int64) {
+	inlineScopes.set(userID, "inb", "")
 	body := t.getInboundUsages()
 	body += t.I18nBot("tgbot.messages.inlineHint")
 	rows := [][]telego.InlineKeyboardButton{
@@ -74,8 +74,8 @@ func (t *Tgbot) screenInbounds(chatID int64) {
 
 // browseInboundsScreen is the pick-an-inbound step: the list itself is the
 // inline browser, so the screen carries the hint and the search launcher.
-func (t *Tgbot) browseInboundsScreen(chatID int64) {
-	inlineScopes.set(chatID, "inb")
+func (t *Tgbot) browseInboundsScreen(chatID, userID int64) {
+	inlineScopes.set(userID, "inb", "")
 	rows := [][]telego.InlineKeyboardButton{
 		t.launchRow("inb", "tgbot.buttons.searchInbounds"),
 		t.backRow(),
@@ -85,8 +85,8 @@ func (t *Tgbot) browseInboundsScreen(chatID int64) {
 
 // screenAddClientStart renders the add-client wizard's first step: which
 // inbound the client lands on.
-func (t *Tgbot) screenAddClientStart(chatID int64) {
-	inlineScopes.set(chatID, "add")
+func (t *Tgbot) screenAddClientStart(chatID, userID int64) {
+	inlineScopes.set(userID, "add", "")
 	rows := [][]telego.InlineKeyboardButton{
 		t.launchRow("add", "tgbot.buttons.searchInbounds"),
 		t.backRow(),

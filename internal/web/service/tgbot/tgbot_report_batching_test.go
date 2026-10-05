@@ -28,7 +28,9 @@ func seedReportClients(t *testing.T, remark string, emails []string) {
 		settings = append(settings, fmt.Sprintf(`{"email":%q,"subId":"sub-%s"}`, email, email))
 	}
 	inbound := &model.Inbound{
-		UserId:   1,
+		UserId: 1,
+		// The tag is unique per inbound, so a test may seed more than one.
+		Tag:      "tag-" + remark,
 		Remark:   remark,
 		Port:     8443,
 		Protocol: model.VLESS,

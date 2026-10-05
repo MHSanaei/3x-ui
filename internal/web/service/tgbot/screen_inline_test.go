@@ -101,6 +101,114 @@ func TestInlineQueryListsInboundsWithMarkers(t *testing.T) {
 	}
 }
 
+// A client list must be scoped to the inbound the screen it was opened from
+// names, and the scope has to survive the trip through the inline query: the
+// query carries the user's id, and in a group that is not the chat's id.
+func TestInlineQueryListsClientsOfTheChosenInbound(t *testing.T) {
+	srv, queries := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	inlineCapability.recordForTest(true)
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+	seedReportClients(t, "nl-fast", []string{"a@x"})
+	seedReportClients(t, "de-slow", []string{"b@x"})
+
+	inbounds, err := tb.inboundService.GetAllInbounds()
+	if err != nil || len(inbounds) != 2 {
+		t.Fatalf("seeded inbounds = %d (err %v), want 2", len(inbounds), err)
+	}
+	chosen := inbounds[0]
+
+	// The screen is drawn in a group: chat id 500, the admin's own id 1.
+	tb.screenInboundClients(500, 1, chosen.Id)
+
+	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq4", From: telego.User{ID: 1}, Query: ""})
+
+	got := maybeAnswerInline(queries)
+	if len(got) != 1 {
+		t.Fatalf("answerInlineQuery calls = %d, want 1", len(got))
+	}
+	results, _ := got[0]["results"].([]any)
+	if len(results) != 1 {
+		t.Fatalf("results = %d, want exactly the chosen inbound's single client", len(results))
+	}
+	item, _ := results[0].(map[string]any)
+	if id, _ := item["id"].(string); !strings.HasPrefix(id, "cl:") {
+		t.Errorf("result id = %q, want a cl: marker, never an inbound", id)
+	}
+	if title, _ := item["title"].(string); title != "a@x" {
+		t.Errorf("result title = %q, want the client of the chosen inbound", title)
+	}
+}
+
+// The client screen is browsed in inline mode only: a callback-button grid of
+// every client is what the screen layer exists to remove.
+func TestClientScreenCarriesNoClientButtons(t *testing.T) {
+	srv, _ := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	inlineCapability.recordForTest(true)
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+	seedReportClients(t, "nl-fast", []string{"a@x", "b@x"})
+
+	inbounds, err := tb.inboundService.GetAllInbounds()
+	if err != nil || len(inbounds) == 0 {
+		t.Fatalf("seeded inbounds = %d (err %v), want at least 1", len(inbounds), err)
+	}
+	tb.screenInboundClients(500, 1, inbounds[0].Id)
+
+	sc, ok := tb.screens().get(500)
+	if !ok || sc.markup == nil {
+		t.Fatal("the client screen was not rendered")
+	}
+	var buttons []string
+	for _, row := range sc.markup.InlineKeyboard {
+		for _, btn := range row {
+			buttons = append(buttons, btn.CallbackData)
+		}
+	}
+	for _, data := range buttons {
+		if strings.Contains(data, "client_get_usage") || strings.Contains(data, "@x") {
+			t.Errorf("the client screen carries the client button %q; clients are inline-only", data)
+		}
+	}
+	if len(buttons) == 0 {
+		t.Error("the client screen lost its buttons entirely")
+	}
+}
+
+// A query with no list screen behind it must fall back to inbounds: listing
+// every client would hand the panel's client names to anyone who can type.
+func TestInlineQueryWithoutScopeListsInboundsNotClients(t *testing.T) {
+	srv, queries := inlineCapturingServer(t, true)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+	inlineCapability.recordForTest(true)
+
+	tb := initReportDB(t)
+	setTestAdmins(t, 1)
+	seedReportClients(t, "nl-fast", []string{"a@x"})
+	inlineScopes.reset()
+
+	tb.handleInlineQuery(&telego.InlineQuery{ID: "iq5", From: telego.User{ID: 1}, Query: ""})
+
+	got := maybeAnswerInline(queries)
+	results, _ := got[0]["results"].([]any)
+	for _, raw := range results {
+		item, _ := raw.(map[string]any)
+		if id, _ := item["id"].(string); strings.HasPrefix(id, "cl:") {
+			t.Fatalf("an unscoped query leaked the client %q", id)
+		}
+	}
+}
+
 func TestInlineQueryAnswersEmptyResult(t *testing.T) {
 	srv, queries := inlineCapturingServer(t, true)
 	swapTestBot(t, srv.URL)

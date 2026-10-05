@@ -875,7 +875,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				t.answerSilent(callbackQuery.ID)
-				t.screenInboundClients(chatId, inboundIdInt)
+				t.screenInboundClients(chatId, callbackQuery.From.ID, inboundIdInt)
 			case "add_client_to":
 				inboundIdInt, err := strconv.Atoi(dataArray[1])
 				if err != nil {
@@ -924,13 +924,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				// The broadcast step owns its own message; nothing else runs.
 				return
 			case "get_inbounds":
-				t.screenInbounds(chatId)
-			case "admin_client_sub_links":
-				t.browseInboundsScreen(chatId)
-			case "admin_client_individual_links":
-				t.browseInboundsScreen(chatId)
-			case "admin_client_qr_links":
-				t.browseInboundsScreen(chatId)
+				t.screenInbounds(chatId, callbackQuery.From.ID)
+			case "admin_client_sub_links", "admin_client_individual_links", "admin_client_qr_links":
+				t.browseInboundsScreen(chatId, callbackQuery.From.ID)
 			}
 		}
 	}
@@ -963,7 +959,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.answerSilent(callbackQuery.ID)
 		t.screenServer(chatId)
 	case "inb", "inbounds", "get_inbounds", "cli":
-		t.screenInbounds(chatId)
+		t.screenInbounds(chatId, callbackQuery.From.ID)
 	case "onl", "onlines", "onlines_refresh":
 		t.answerSilent(callbackQuery.ID)
 		t.screenOnlines(chatId)
@@ -983,14 +979,14 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "inline_recheck":
 		t.refreshInlineCapability()
 		if t.inlineSupported() {
-			t.screenInbounds(chatId)
+			t.screenInbounds(chatId, callbackQuery.From.ID)
 		} else {
 			t.screenInlineHelp(chatId)
 		}
 	case "cmd", "commands", "client_commands":
 		t.screenCommands(chatId, isAdmin)
 	case "addc", "add_client":
-		t.screenAddClientStart(chatId)
+		t.screenAddClientStart(chatId, callbackQuery.From.ID)
 	case "xray_restart":
 		t.restartXrayFromScreen(callbackQuery)
 	case "rst_all", "reset_all_traffics":

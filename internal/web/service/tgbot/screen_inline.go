@@ -27,6 +27,8 @@ import (
 // launcher has to say what it is looking for.
 type inlineScope struct {
 	kind string // "inb" — inbounds, "cl" — clients, "add" — inbounds for a new client
+	// data is what a client scope browses: an inbound id, empty for all clients.
+	data string
 	at   time.Time
 }
 
@@ -37,20 +39,23 @@ type inlineScopeStore struct {
 
 var inlineScopes = &inlineScopeStore{scopes: map[int64]inlineScope{}}
 
-func (s *inlineScopeStore) set(chatID int64, kind string) {
+func (s *inlineScopeStore) set(tgUserID int64, kind, data string) {
 	s.mu.Lock()
-	s.scopes[chatID] = inlineScope{kind: kind, at: time.Now()}
+	s.scopes[tgUserID] = inlineScope{kind: kind, data: data, at: time.Now()}
 	s.mu.Unlock()
 }
 
-func (s *inlineScopeStore) get(chatID int64) string {
+// get is keyed by the inline query's sender, not by the chat the list was
+// opened in: in a group those are different numbers, and a scope written under
+// the chat id would leave the query falling back to inbounds forever.
+func (s *inlineScopeStore) get(tgUserID int64) inlineScope {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	entry, ok := s.scopes[chatID]
+	entry, ok := s.scopes[tgUserID]
 	if !ok || time.Since(entry.at) > 30*time.Minute {
-		return ""
+		return inlineScope{}
 	}
-	return entry.kind
+	return entry
 }
 
 func (s *inlineScopeStore) reset() {
@@ -205,16 +210,21 @@ func (t *Tgbot) answerInline(queryID string, results []telego.InlineQueryResult)
 	}
 }
 
-// inlineResults builds the items for a scope, filtered by the typed text.
-func (t *Tgbot) inlineResults(scope, search string, isAdmin bool) []telego.InlineQueryResult {
-	switch scope {
+// inlineResults builds the items for a scope, filtered by the typed text. The
+// scope is resolved from the user's id, so the query itself needs no context.
+func (t *Tgbot) inlineResults(scope inlineScope, search string, isAdmin bool) []telego.InlineQueryResult {
+	switch scope.kind {
 	case "cl":
-		return t.clientResults(search, isAdmin, "")
+		return t.clientResults(search, isAdmin, scope.data)
 	case "add":
 		return t.inboundResults(search, "add")
-	default:
+	case "inb":
 		return t.inboundResults(search, "inb")
 	}
+	// No scope: the query was typed without a list screen behind it. Listing
+	// every client would leak the panel's names to anyone who can type, and
+	// listing inbounds is what the caller most likely meant to search.
+	return t.inboundResults(search, "inb")
 }
 
 // inboundResults lists inbounds as markers. action is what a chosen item means:
@@ -350,7 +360,7 @@ func (t *Tgbot) handleListMarker(message *telego.Message) bool {
 		if err != nil {
 			return true
 		}
-		t.screenInboundClients(message.Chat.ID, id)
+		t.screenInboundClients(message.Chat.ID, message.From.ID, id)
 	case "add":
 		id, err := strconv.Atoi(value)
 		if err != nil {
@@ -390,18 +400,20 @@ func splitListMarker(text string) (action, value string, ok bool) {
 	return "", "", false
 }
 
-// screenInboundClients draws one inbound's clients, with the client browser.
-func (t *Tgbot) screenInboundClients(chatID int64, inboundID int) {
+// screenInboundClients draws one inbound's clients, listed by the inline query.
+func (t *Tgbot) screenInboundClients(chatID, userID int64, inboundID int) {
 	inbound, err := t.inboundService.GetInbound(inboundID)
 	if err != nil {
 		t.sendNotice(chatID, t.I18nBot("tgbot.answers.getInboundsFailed"))
 		return
 	}
-	rows := [][]telego.InlineKeyboardButton{t.launchRow("cl", "tgbot.buttons.searchClients")}
-	if kb, err := t.getInboundClients(inboundID); err == nil {
-		rows = append(rows, kb.InlineKeyboard...)
+	// The clients are browsed in inline mode, never as a callback-button grid:
+	// a big inbound would otherwise fill the screen with one button per client.
+	inlineScopes.set(userID, "cl", strconv.Itoa(inboundID))
+	rows := [][]telego.InlineKeyboardButton{
+		t.launchRow("cl", "tgbot.buttons.searchClients"),
+		t.backRow(),
 	}
-	rows = append(rows, t.backRow())
 	t.renderScreen(chatID, t.newScreen("clients", t.inboundSummaryText(inbound), rows...))
 }
 
