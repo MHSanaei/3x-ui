@@ -2501,7 +2501,6 @@
       "eventNodeUp": "Вузол {{ .Name }} ДОСТУПНИЙ",
       "eventLoginFallback": "Невдала спроба входу з {{ .Source }}",
       "memoryThreshold": "Використання пам'яті {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",
-      "pickInbound": "Pick the inbound the new client goes to.",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "category_server": "🖥 Сервер",
@@ -2574,7 +2573,9 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 Розсилка"
+      "broadcast": "📢 Розсилка",
+      "attachInbound": "Прив’язати інбаунд ({{ .Count }})",
+      "attachDone": "✅ Готово"
     },
     "answers": {
       "broadcastStarted": "🚀 Розсилку запущено.",

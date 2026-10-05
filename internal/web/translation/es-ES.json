@@ -2501,7 +2501,6 @@
       "eventNodeUp": "El nodo {{ .Name }} está ACTIVO",
       "eventLoginFallback": "Inicio de sesión fallido desde {{ .Source }}",
       "memoryThreshold": "Uso de memoria {{ .Percent }}% supera el umbral de {{ .Threshold }}%",
-      "pickInbound": "Pick the inbound the new client goes to.",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "category_server": "🖥 Servidor",
@@ -2574,7 +2573,9 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 Difusión"
+      "broadcast": "📢 Difusión",
+      "attachInbound": "Adjuntar entrada ({{ .Count }})",
+      "attachDone": "✅ Listo"
     },
     "answers": {
       "broadcastStarted": "🚀 Difusión iniciada.",

@@ -2501,7 +2501,6 @@
       "eventNodeUp": "Node {{ .Name }} AKTIF",
       "eventLoginFallback": "Gagal masuk dari {{ .Source }}",
       "memoryThreshold": "Penggunaan memori {{ .Percent }}% melebihi ambang batas {{ .Threshold }}%",
-      "pickInbound": "Pick the inbound the new client goes to.",
       "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
       "clientsCount": "👥 Clients: {{ .Count }}\r\n",
       "category_server": "🖥 Server",
@@ -2574,7 +2573,9 @@
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
       "qrCode": "🔳 QR code",
-      "broadcast": "📢 Siaran"
+      "broadcast": "📢 Siaran",
+      "attachInbound": "Lampirkan inbound ({{ .Count }})",
+      "attachDone": "✅ Selesai"
     },
     "answers": {
       "broadcastStarted": "🚀 Siaran dimulai.",

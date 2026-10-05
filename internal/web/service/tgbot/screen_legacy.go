@@ -83,15 +83,17 @@ func (t *Tgbot) browseInboundsScreen(chatID, userID int64) {
 	t.renderScreen(chatID, t.newScreen("inbounds", t.I18nBot("tgbot.answers.chooseInbound"), rows...))
 }
 
-// screenAddClientStart renders the add-client wizard's first step: which
-// inbound the client lands on.
+// screenAddClientStart opens the add-client wizard on a fresh draft. The client
+// is not attached to anything yet: filling the draft IS the first step, and the
+// inbounds are picked on its "➕ Attach inbound" button.
 func (t *Tgbot) screenAddClientStart(chatID, userID int64) {
-	_ = userID
-	rows := [][]telego.InlineKeyboardButton{
-		t.launchRow(scopeQuery("add", ""), "tgbot.buttons.searchInbounds"),
-		t.backRow(),
-	}
-	t.renderScreen(chatID, t.newScreen("wizard", t.I18nBot("tgbot.messages.pickInbound"), rows...))
+	actor := chatUser{chatID: chatID, userID: userID}
+	addClientDrafts.reset(actor)
+	draft := addClientDrafts.forActor(actor)
+	draft.Lock()
+	defer draft.Unlock()
+	t.resetDraft(draft)
+	t.addClient(chatID, draft, t.BuildClientDraftMessage(draft))
 }
 
 // restartXrayFromScreen restarts Xray and reports the outcome as a toast, so

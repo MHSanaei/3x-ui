@@ -89,7 +89,8 @@ func (t *Tgbot) getInboundsAttachPicker(draft *clientDraft) (*telego.InlineKeybo
 	}
 	rows := tu.InlineKeyboardCols(cols, buttons...)
 	rows = append(rows, tu.InlineKeyboardRow(
-		tu.InlineKeyboardButton("✅ Done").WithCallbackData(t.encodeQuery("add_client_attach_done")),
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.attachDone")).
+			WithCallbackData(t.encodeQuery("add_client_attach_done")),
 	))
 	return tu.InlineKeyboardGrid(rows), nil
 }
@@ -132,28 +133,6 @@ func (t *Tgbot) getInboundClientsFor(inbound *model.Inbound, action string) (*te
 	for _, client := range clients {
 		rows = append(rows, tu.InlineKeyboardRow(tu.InlineKeyboardButton(client.Email).
 			WithCallbackData(t.encodeQuery(action+" "+client.Email))))
-	}
-	return tu.InlineKeyboard(rows...), nil
-}
-
-// getInboundsAddClient builds the inbound picker of the add-client wizard:
-// every protocol that actually owns per-client entries.
-func (t *Tgbot) getInboundsAddClient() (*telego.InlineKeyboardMarkup, error) {
-	inbounds, err := t.inboundService.GetAllInbounds()
-	if err != nil {
-		logger.Warning("GetAllInbounds run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-	rows := make([][]telego.InlineKeyboardButton, 0, len(inbounds))
-	for _, inbound := range inbounds {
-		if addClientExcludedProtocols[inbound.Protocol] {
-			continue
-		}
-		rows = append(rows, tu.InlineKeyboardRow(tu.InlineKeyboardButton(inboundLabel(inbound)).
-			WithCallbackData(t.encodeQuery(fmt.Sprintf("add_client_to %d", inbound.Id)))))
-	}
-	if len(rows) == 0 {
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
 	return tu.InlineKeyboard(rows...), nil
 }
