@@ -180,3 +180,14 @@ func TestAggregateTuicClientTrafficPreservesStableIdentityAcrossEmailRename(t *t
 		t.Fatalf("aggregate counters = (%d,%d), want (40,60)", got[0].Up, got[0].Down)
 	}
 }
+
+func TestTuicSpeedSampleIntervalUsesElapsedPollTime(t *testing.T) {
+	current := time.Date(2026, time.October, 3, 12, 0, 10, 0, time.UTC)
+	previous := current.Add(-12 * time.Second)
+	if got := tuicSpeedSampleInterval(previous, current); got != 12*time.Second {
+		t.Fatalf("sample interval = %s, want 12s", got)
+	}
+	if got := tuicSpeedSampleInterval(time.Time{}, current); got != defaultTuicSpeedSampleInterval {
+		t.Fatalf("initial sample interval = %s, want %s", got, defaultTuicSpeedSampleInterval)
+	}
+}

@@ -166,7 +166,7 @@ export default function TuicFields() {
       </Form.Item>
 
       <Form.Item label=" ">
-        <Space>
+        <Space wrap style={{ display: 'flex', flexWrap: 'wrap', width: '100%' }}>
           <Button
             type="primary"
             icon={<CloudDownloadOutlined />}

@@ -15,16 +15,16 @@ unstable networks.
 
 ## Key settings
 
-### Server & QUIC parameters
+### Server, QUIC & client-profile parameters
 
 | Field | Description |
 | --- | --- |
 | **Port** | UDP port for incoming client QUIC connections. |
 | **Certificate & Key** | Full TLS certificate chain and private key. QUIC mandates TLS encryption; self-signed certificates or valid Let's Encrypt / ACME certs are supported. |
-| **SNI** | Server Name Indication matching your TLS certificate domain name. |
-| **Congestion Control** | QUIC congestion control algorithm: `bbr` (recommended for high throughput), `cubic`, or `new_reno`. The server runs `bbr` or `new_reno`; `cubic` is sent to clients but served as `new_reno`. |
+| **SNI** | Client-profile Server Name Indication. Set it to the domain covered by the server certificate; this field does not configure the listener certificate. |
+| **Congestion Control** | QUIC congestion control algorithm used in the server setting and exported client profile: `bbr`, `cubic`, or `new_reno`. The server runs BBR or New Reno; when CUBIC is selected, the client profile keeps CUBIC while this server currently falls back to New Reno. |
 | **ALPN** | Application-Layer Protocol Negotiation tokens (default: `h3`). |
-| **UDP Relay Mode** | Packet encapsulation mode: `native` (QUIC datagrams, recommended) or `quic`. |
+| **UDP Relay Mode** | Client-profile packet mode: `native` (QUIC datagrams) or `quic` (unidirectional streams). The server accepts both modes regardless of this exported preference. |
 | **Zero-RTT Handshake** | Enables 0-RTT connection resumption to eliminate initial handshake round-trips for returning clients. |
 | **Authentication Timeout** | Maximum time (seconds) allowed for client authentication before disconnecting (default: `3s`). |
 | **Max Idle Time** | Inactivity timeout (seconds) before closing idle QUIC connections (default: `15s`). |
@@ -105,6 +105,8 @@ tuic://<uuid>:<password>@<host>:<port>?congestion_control=bbr&alpn=h3&sni=vpn.ex
   - **Native in-process Go engine**: TUIC v5 runs 100% natively in Go within the 3x-ui process. No external binaries or sidecars to download or maintain.
   - **Full Xray routing & cascading**: Decrypted traffic passes directly through Xray's routing engine. Inbound tags (`in-<port>-udp`) work seamlessly with routing rules, domain/IP blocks, and cascading to any outbound proxy (VLESS, Shadowsocks, WARP, etc.).
   - **Per-client traffic limits & expiration**: Individual traffic quotas (`totalGB`) and expiration timestamps (`expiryTime`) are tracked and enforced for each client.
+  - **Live speed & traffic totals**: Native TUIC client counters are sampled every 10 seconds and sent to the panel for per-client live speed. Xray meters inbound totals through the loopback relay; TUIC's client-speed event does not add inbound totals again.
+  - **UDP resource bounds**: Each QUIC connection can hold up to 256 active UDP associations. Idle associations are closed after five minutes. This is a per-connection limit, not a node-wide association cap. TUIC uses a reserved loopback SOCKS relay port in `64001–65000`; 3x-ui checks it against managed inbound and relay ports.
   - **Zero-downtime client updates**: Adding, modifying, or disabling clients updates the in-memory user registry instantly without restarting the UDP port or interrupting existing client sessions.
   - **Deployment**: A TUIC inbound can be created on, or cloned to, a sub-node. The node's own panel runs the TUIC server, so the node must run panel v3.8.0 or newer; the master refuses an older node.
 </Callout>
