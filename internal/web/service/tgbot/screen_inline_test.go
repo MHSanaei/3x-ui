@@ -124,8 +124,16 @@ func TestStartCommandDrawsTheMenu(t *testing.T) {
 	if len(got) == 0 {
 		t.Fatal("an admin's /start drew nothing")
 	}
-	if got[0].Method != "sendPhoto" && got[0].Method != "sendMessage" {
-		t.Errorf("first call = %q, want the menu message", got[0].Method)
+	// The menu is drawn as a photo when art is cached and as text otherwise;
+	// either way the call has to be there.
+	drew := false
+	for _, c := range got {
+		if c.Method == "sendPhoto" || c.Method == "sendMessage" {
+			drew = true
+		}
+	}
+	if !drew {
+		t.Errorf("calls = %v, want the menu message", methods(got))
 	}
 }
 

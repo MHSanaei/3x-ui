@@ -152,8 +152,11 @@ func TestResetAllTrafficsAnswersWithNoClients(t *testing.T) {
 	}, true) // admin
 
 	got := sent()
-	if len(got) != 1 {
-		t.Fatalf("messages = %d, want 1: an empty panel must still answer the tap", len(got))
+	// Two messages now: the report, and the menu the confirmation is replaced
+	// with. The confirmation used to stay on screen with only the button that
+	// had just been pressed, which was a trap.
+	if len(got) != 2 {
+		t.Fatalf("messages = %d, want 2: the report and the menu that replaces the confirmation", len(got))
 	}
 	if got[0].body() == "" {
 		t.Error("reset report text is empty, want the finish-process message")

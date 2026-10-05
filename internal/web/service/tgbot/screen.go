@@ -72,6 +72,7 @@ func (s *screenStore) reset() {
 // caption-sized pages, and the caller's keyboard rows (the pager is added at
 // render time so it reflects the page the user actually sees).
 func (t *Tgbot) newScreen(kind, body string, rows ...[]telego.InlineKeyboardButton) *screen {
+	rows = t.ensureBackRow(rows)
 	header := ""
 	if crumb := t.breadcrumb(kind); crumb != "" {
 		header = "<b>" + crumb + "</b>\r\n"
@@ -115,6 +116,9 @@ func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
 // otherwise the generated black tile, which is always available. A screen is
 // therefore always a photo message, and an edit can always go through media.
 func (t *Tgbot) attachArt(sc *screen) {
+	// A stale cache is refreshed off the render path, so a picture uploaded to
+	// @BotFather shows up without a panel restart and no screen waits on it.
+	t.ensureScreenArt()
 	sc.hasPhoto = true
 	if id, ok := artFileID(sc.kind); ok {
 		sc.photo = id
@@ -224,6 +228,22 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) {
 		cacheArtFileID(sc.kind, sc.photo)
 	}
 	t.screens().put(chatID, sc)
+}
+
+// ensureBackRow guarantees every screen can be left. A screen that only offers
+// its own actions is a trap — the reset confirmation spent its Cancel on the
+// reset and left a screen whose single button was the thing already used. The
+// check is by callback, not by label, so a screen is free to name the way back
+// whatever fits ("Cancel", "Back", the category's name).
+func (t *Tgbot) ensureBackRow(rows [][]telego.InlineKeyboardButton) [][]telego.InlineKeyboardButton {
+	for _, row := range rows {
+		for _, btn := range row {
+			if btn.CallbackData == cbHome {
+				return rows
+			}
+		}
+	}
+	return append(append([][]telego.InlineKeyboardButton{}, rows...), t.backRow())
 }
 
 // breadcrumb names the screen's place in the tree, so a user who was away can

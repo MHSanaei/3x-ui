@@ -9,8 +9,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/mymmrac/telego"
+	tu "github.com/mymmrac/telego/telegoutil"
 )
 
 // recordingServer answers the Bot API calls the screen layer makes and keeps
@@ -293,6 +295,128 @@ func TestHomeScreenCarriesTheMenu(t *testing.T) {
 		if !flat[cbHome] {
 			t.Errorf("category %q has no way back to the menu", category)
 		}
+	}
+}
+
+// hasHomeRow reports whether a screen carries the way back to the menu.
+func hasHomeRow(sc *screen) bool {
+	for _, row := range sc.rows {
+		for _, btn := range row {
+			if btn.CallbackData == cbHome {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// A screen whose only buttons are its own actions is a trap once the action
+// runs — that is exactly what the reset confirmation did. Every screen must
+// offer a way out, even one that forgot to ask for it.
+func TestEveryScreenOffersAWayOut(t *testing.T) {
+	tb := &Tgbot{}
+
+	ownActionOnly := tb.newScreen("main", "body",
+		tu.InlineKeyboardRow(tb.btn("tgbot.buttons.confirmResetTraffic", "reset_all_traffics_c")))
+	if !hasHomeRow(ownActionOnly) {
+		t.Error("a screen with only its own action got no way back")
+	}
+
+	// A screen that already ends with Back must not grow a second copy.
+	withBack := tb.newScreen("main", "body", tb.backRow())
+	backs := 0
+	for _, row := range withBack.rows {
+		for _, btn := range row {
+			if btn.CallbackData == cbHome {
+				backs++
+			}
+		}
+	}
+	if backs != 1 {
+		t.Errorf("back rows = %d, want exactly 1", backs)
+	}
+
+	// And the screens the menu actually draws.
+	for name, sc := range map[string]*screen{
+		"reset confirmation": tb.resetAllConfirm(),
+		"home":               tb.newScreen("main", "x", tb.homeRows()...),
+		"category":           tb.newScreen("main", "x", tb.categoryRows("maintenance")...),
+	} {
+		if !hasHomeRow(sc) {
+			t.Errorf("%s has no way back to the menu", name)
+		}
+	}
+}
+
+// The reset confirmation must not stay on screen after the reset runs: its
+// Cancel was the way back and its only other button was the one just pressed.
+func TestResetConfirmIsReplacedByTheMenu(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	initReportDB(t)
+	seedReportClients(t, "nl-fast", []string{"a@x"})
+
+	tb.answerCallback(&telego.CallbackQuery{
+		ID:      "q1",
+		From:    telego.User{ID: 1},
+		Data:    "reset_all_traffics_c",
+		Message: &telego.Message{Chat: telego.Chat{ID: 1}},
+	}, true)
+
+	if countMethod(calls(), "sendPhoto")+countMethod(calls(), "sendMessage") == 0 {
+		t.Fatal("the reset drew no message at all")
+	}
+	// The chat's tracked screen has to be the menu now, not the confirmation.
+	sc, ok := tb.screens().get(1)
+	if !ok {
+		t.Fatal("no screen is tracked after the reset")
+	}
+	if !hasHomeRow(sc) {
+		t.Error("the screen left behind after the reset has no way back")
+	}
+	if sc.kind != "main" {
+		t.Errorf("tracked screen kind = %q, want the menu", sc.kind)
+	}
+}
+
+// A missing avatar is retried sooner than a present one: an operator who
+// uploads a picture checks right after, and tiles until the next restart would
+// read as the feature not working.
+func TestScreenArtReprobeWindow(t *testing.T) {
+	srv, calls := recordingServer(t, false)
+	swapTestBot(t, srv.URL)
+	defer srv.Close()
+	resetScreenArt()
+
+	tb := &Tgbot{}
+
+	// A miss two minutes ago is past the retry window: a probe must fire.
+	screenArtMu.Lock()
+	artFromAvatar = false
+	artProbedAt = time.Now().Add(-2 * time.Minute)
+	screenArtMu.Unlock()
+
+	tb.ensureScreenArt()
+	for range 30 {
+		if countMethod(calls(), "getChat") > 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if countMethod(calls(), "getChat") == 0 {
+		t.Error("a stale missing avatar was not re-probed")
+	}
+
+	// A known avatar is inside its long window: no probe.
+	screenArtMu.Lock()
+	artFromAvatar = true
+	artProbedAt = time.Now().Add(-2 * time.Minute)
+	screenArtMu.Unlock()
+
+	before := countMethod(calls(), "getChat")
+	tb.ensureScreenArt()
+	time.Sleep(80 * time.Millisecond)
+	if countMethod(calls(), "getChat") != before {
+		t.Error("a freshly read avatar was re-probed too eagerly")
 	}
 }
 

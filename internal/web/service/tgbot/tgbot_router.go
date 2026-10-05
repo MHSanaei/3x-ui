@@ -802,6 +802,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					t.screenClientIps(chatId, email)
 				} else {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+					t.screenClientIps(chatId, email)
 				}
 			case "ip_log":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.getIpLog", "Email=="+email))
@@ -842,6 +843,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					t.screenClientTG(chatId, email, false)
 				} else {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+					t.screenClientTG(chatId, email, false)
 				}
 			case "toggle_enable":
 				inlineKeyboard := tu.InlineKeyboard(
@@ -867,6 +869,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					t.searchClientScreen(chatId, email)
 				} else {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+					t.searchClientScreen(chatId, email)
 				}
 			case "get_clients":
 				inboundIdInt, err := strconv.Atoi(dataArray[1])
@@ -1233,6 +1236,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		// Escaped whole: one stray "<" in a remark or email otherwise makes
 		// Telegram reject the page it landed on, losing ~15 clients at once.
 		t.sendNotice(chatId, html.EscapeString(report.String()))
+		// The confirmation has served its purpose: leaving it on screen left the
+		// only button being the one just pressed.
+		t.screenHome(chatId)
 	default:
 		action, email, ok := splitClientLinkCallback(callbackQuery.Data)
 		if !ok {
