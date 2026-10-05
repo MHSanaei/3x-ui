@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,7 +16,11 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/locale"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -587,6 +593,25 @@ func countMethod(calls []apiCall, method string) int {
 	return n
 }
 
+// localizeWithRealBundle points the bot localizer at the shipped en-US file, so
+// a test sees the text a user would, not the bare key.
+func localizeWithRealBundle(t *testing.T) {
+	t.Helper()
+	path := filepath.Join(repoRootForTest(t), "internal/web/translation/en-US.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	bundle := i18n.NewBundle(language.MustParse("en-US"))
+	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
+	if _, err := bundle.ParseMessageFileBytes(data, path); err != nil {
+		t.Fatalf("parse %s: %v", path, err)
+	}
+	orig := locale.LocalizerBot
+	locale.LocalizerBot = i18n.NewLocalizer(bundle, "en-US")
+	t.Cleanup(func() { locale.LocalizerBot = orig })
+}
+
 // seeding a client bound to a Telegram user, which the client screens key on
 func seedClientForTgUser(t *testing.T, tgUserID int64, email string) {
 	t.Helper()
@@ -754,5 +779,40 @@ func TestStartCommandIsRemovedAndEditsTheLiveScreen(t *testing.T) {
 	}
 	if countMethod(calls(), "editMessageMedia") == 0 {
 		t.Error("the second /start did not edit the live screen")
+	}
+}
+
+// The screen tests compare callback data, so a button whose translation key does
+// not exist still passes them: the label is the empty string. /start broke that
+// way. This one loads the real en-US file and insists the client's menu has
+// visible labels.
+func TestClientMenuButtonsHaveRealLabels(t *testing.T) {
+	localizeWithRealBundle(t)
+	tb, _ := newScreenTgbot(t, false)
+	initReportDB(t)
+	setTestAdmins(t)
+	seedClientForTgUser(t, 4545, "labelled@x")
+
+	tb.screenClientHome(777, 4545)
+
+	sc, ok := tb.screens().get(777)
+	if !ok {
+		t.Fatal("the client's /start produced no screen")
+	}
+	if len(sc.rows) == 0 {
+		t.Fatal("the client's screen has no buttons")
+	}
+	for _, row := range sc.rows {
+		for _, button := range row {
+			if strings.TrimSpace(button.Text) == "" {
+				t.Errorf("a button on the client's menu has an empty label (callback %q)", button.CallbackData)
+			}
+			if strings.HasPrefix(button.Text, "tgbot.") {
+				t.Errorf("button %q shows its raw key instead of text: the key is missing", button.CallbackData)
+			}
+		}
+	}
+	if strings.TrimSpace(sc.pages[0]) == "" {
+		t.Error("the client's screen body is empty")
 	}
 }
