@@ -54,7 +54,7 @@ export default function DetachClientsModal({
 
   // Reset during render, not in an effect, so the first frame is already clean.
   const openSource = open ? source : null;
-  const [syncedSource, setSyncedSource] = useState(openSource);
+  const [syncedSource, setSyncedSource] = useState<DBInbound | null>(null);
   if (openSource !== syncedSource) {
     setSyncedSource(openSource);
     if (openSource) {

@@ -287,6 +287,9 @@ func TestNormalizeAmneziaWGSettings_CanonicalizesClientAllowedIPs(t *testing.T) 
 }
 
 func TestGetAmneziaWGLogs_ClampsCountAndFiltersEvents(t *testing.T) {
+	// GetAmneziaWGLogs appends peer handshake activity, which reads the DB;
+	// own a throwaway one so -shuffle can't leave us the global nil DB.
+	setupConflictDB(t)
 	logger.InitLogger(logging.DEBUG)
 	logger.Info("amneziawg: started interface awg1 for inbound 1")
 	logger.Info("xray: unrelated line that must never show up here")
