@@ -30,12 +30,8 @@ func backdateOrphanMark(t *testing.T, db *gorm.DB, email string) {
 	}
 }
 
-// The merge must soft-orphan, not delete: everything stays recoverable until
-// the grace period has elapsed and the reaper confirms nothing reclaimed it.
-// The removal is driven by a partial snapshot (the node is alive and still
-// serves another client, so dropping one is authoritative); a fully empty
-// snapshot is treated as a degraded node and never orphans — see
-// TestSetRemoteTraffic_EmptySnapshotKeepsClients.
+// A partial snapshot (node alive, still serving another client) authoritatively drops one;
+// the merge soft-orphans, recoverable until the grace elapses and the reaper confirms it.
 func TestSyncOrphanSurvivesMergeUntilGraceElapses(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -92,10 +88,8 @@ func TestSyncOrphanSurvivesMergeUntilGraceElapses(t *testing.T) {
 	}
 }
 
-// A client the node reports again was never gone: clearing the mark is what
+// A client the node reports again (partial snapshot) was never gone: clearing the mark
 // turns a bad merge into a recoverable blip instead of a delayed deletion.
-// The drop is driven by a partial snapshot (node alive, still serving another
-// client); a fully empty snapshot is a degraded node and never orphans.
 func TestSyncOrphanMarkClearedOnReattach(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}

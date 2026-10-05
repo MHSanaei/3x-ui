@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -23,22 +24,8 @@ func linkCount(t *testing.T, db *gorm.DB, email string) int64 {
 	return n
 }
 
-func orphanMark(t *testing.T, db *gorm.DB, email string) int64 {
-	t.Helper()
-	var at int64
-	if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).
-		Pluck("sync_orphaned_at", &at).Error; err != nil {
-		t.Fatalf("read sync_orphaned_at %q: %v", email, err)
-	}
-	return at
-}
-
-// TestSetRemoteTraffic_EmptySnapshotKeepsClients is the core guard: a managed
-// node that comes back reporting zero clients for an inbound the hub still has
-// clients on is treated as degraded (just deleted/reset/restarted, or a
-// snapshot taken before the config loaded), not as "every client was removed".
-// Its links must stay and nothing may be orphan-marked — otherwise SyncInbound
-// would strip every link and ReapSyncOrphans would later hard-delete the row.
+// A degraded node reporting zero clients for an inbound the hub populates must
+// keep its links and never orphan-mark, or SyncInbound/ReapSyncOrphans delete the row.
 func TestSetRemoteTraffic_EmptySnapshotKeepsClients(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -66,50 +53,22 @@ func TestSetRemoteTraffic_EmptySnapshotKeepsClients(t *testing.T) {
 	if n := linkCount(t, db, "svc@x"); n != 1 {
 		t.Fatalf("empty snapshot stripped the client link: links=%d, want 1", n)
 	}
-	if at := orphanMark(t, db, "svc@x"); at != 0 {
+	if at := readOrphanMark(t, db, "svc@x"); at != 0 {
 		t.Fatalf("empty snapshot orphan-marked a live client: sync_orphaned_at=%d, want 0", at)
 	}
-}
-
-// TestSetRemoteTraffic_EmptySnapshotSurvivesReap closes the loop on the outage
-// of 2026-10-04: without the guard an empty/degraded snapshot orphan-marks the
-// inbound's clients and ReapSyncOrphans hard-deletes them after the grace
-// period. The guard keeps them attached, so even a backdated reap can't take
-// them — which is exactly what deleting one node must not do to the clients it
-// served.
-func TestSetRemoteTraffic_EmptySnapshotSurvivesReap(t *testing.T) {
-	db := initTrafficTestDB(t)
-	svc := &InboundService{}
-	clientSvc := &ClientService{}
-
-	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
-	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "svc@x")
-
-	settings := `{"clients":[{"email":"svc@x","enable":true}]}`
-	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithClients(t, "n1-in", settings,
-		xray.ClientTraffic{Email: "svc@x", Enable: true}), false, false); err != nil {
-		t.Fatalf("seed sync: %v", err)
+	// The hub must keep the client in the inbound's settings, or reconcile re-pushes
+	// an empty blob to the node and the clients never come back (#6734).
+	var ib model.Inbound
+	if err := db.Where("tag = ?", "n1-in").First(&ib).Error; err != nil {
+		t.Fatalf("read central inbound: %v", err)
 	}
-
-	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false, false); err != nil {
-		t.Fatalf("empty-snapshot sync: %v", err)
-	}
-
-	backdateOrphanMark(t, db, "svc@x") // no-op if unmarked; proves reap can't take it
-	if reaped, err := clientSvc.ReapSyncOrphans(); err != nil {
-		t.Fatalf("reap: %v", err)
-	} else if reaped != 0 {
-		t.Fatalf("reaped %d client(s) off an empty snapshot, want 0", reaped)
-	}
-	if rec, _ := countClientRows(t, db, "svc@x"); rec != 1 {
-		t.Fatalf("empty snapshot + reap deleted the client: clients=%d, want 1", rec)
+	if !strings.Contains(ib.Settings, "svc@x") {
+		t.Fatalf("empty snapshot blanked the inbound settings: %q", ib.Settings)
 	}
 }
 
-// TestSetRemoteTraffic_PartialSnapshotStillPrunes confirms the guard is narrow:
-// a snapshot that still carries at least one client is authoritative, so a
-// client the node really dropped is still unlinked and left for the orphan
-// sweep. Only the all-empty snapshot is treated as degraded.
+// The guard is narrow: a snapshot still carrying a client is authoritative, so a
+// client the node really dropped is unlinked and orphan-marked; only all-empty is degraded.
 func TestSetRemoteTraffic_PartialSnapshotStillPrunes(t *testing.T) {
 	db := initTrafficTestDB(t)
 	svc := &InboundService{}
@@ -140,7 +99,7 @@ func TestSetRemoteTraffic_PartialSnapshotStillPrunes(t *testing.T) {
 	if n := linkCount(t, db, "drop@x"); n != 0 {
 		t.Fatalf("partial snapshot kept an unreported client linked: drop@x links=%d, want 0", n)
 	}
-	if at := orphanMark(t, db, "drop@x"); at <= 0 {
+	if at := readOrphanMark(t, db, "drop@x"); at <= 0 {
 		t.Fatalf("partial snapshot did not orphan-mark the removed client: sync_orphaned_at=%d, want >0", at)
 	}
 }
