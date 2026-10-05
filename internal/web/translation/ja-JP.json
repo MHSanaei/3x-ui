@@ -2569,7 +2569,11 @@
       "confirm": "✅ Confirm",
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
-      "qrCode": "🔳 QR code"
+      "qrCode": "🔳 QR code",
+      "broadcast": "📢 一斉送信",
+      "clientUsage": "📊 使用状況",
+      "clientLinks": "🔗 マイリンク",
+      "clientCommands": "📖 コマンド"
     },
     "answers": {
       "broadcastStarted": "🚀 一括送信を開始しました。",

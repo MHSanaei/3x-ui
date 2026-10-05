@@ -53,9 +53,11 @@ func (t *Tgbot) turnPage(query *telego.CallbackQuery, delta int) {
 
 // resetAllConfirm is the confirmation screen for the panel-wide traffic reset.
 func (t *Tgbot) resetAllConfirm() *screen {
+	// The forward action and the way out must be different rows: sharing one
+	// row made "Cancel" read as part of the confirmation.
 	return t.newScreen("main", t.I18nBot("tgbot.messages.AreYouSure"),
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.confirmResetTraffic", "reset_all_traffics_c")),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.cancel", cbHome)),
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.back", cbHome)),
 	)
 }
 

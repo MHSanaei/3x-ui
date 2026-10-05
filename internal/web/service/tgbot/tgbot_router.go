@@ -261,7 +261,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			t.sendNotice(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(message.From.ID, 10)))
 			return
 		}
-		t.screenHome(chatId)
+		t.screenHome(chatId, message.From.ID)
 		return
 	case "status":
 		t.screenServer(chatId)
@@ -947,7 +947,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 	switch callbackQuery.Data {
 	case "home":
-		t.screenHome(chatId)
+		t.screenHome(chatId, callbackQuery.From.ID)
 	case cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance:
 		t.screenCategory(chatId, strings.TrimPrefix(callbackQuery.Data, "cat:"))
 	case "act":
@@ -996,6 +996,11 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.screenCommands(chatId, isAdmin)
 	case "addc", "add_client":
 		t.screenAddClientStart(chatId, callbackQuery.From.ID)
+	case cbBroadcast:
+		// The broadcast flow already existed behind /broadcast; the button is
+		// the discoverable way in. It owns its own messages, so no screen here.
+		t.answerSilent(callbackQuery.ID)
+		t.startBroadcast(actor)
 	case "xray_restart":
 		t.restartXrayFromScreen(callbackQuery)
 	case "rst_all", "reset_all_traffics":
@@ -1238,7 +1243,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.sendNotice(chatId, html.EscapeString(report.String()))
 		// The confirmation has served its purpose: leaving it on screen left the
 		// only button being the one just pressed.
-		t.screenHome(chatId)
+		t.screenHome(chatId, callbackQuery.From.ID)
 	default:
 		action, email, ok := splitClientLinkCallback(callbackQuery.Data)
 		if !ok {

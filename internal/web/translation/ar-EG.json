@@ -2569,7 +2569,11 @@
       "confirm": "✅ Confirm",
       "links": "🔗 Links",
       "individualLinks": "🔗 Individual links",
-      "qrCode": "🔳 QR code"
+      "qrCode": "🔳 QR code",
+      "broadcast": "📢 بث",
+      "clientUsage": "📊 استخدامي",
+      "clientLinks": "🔗 روابطي",
+      "clientCommands": "📖 الأوامر"
     },
     "answers": {
       "broadcastStarted": "🚀 بدأ البث.",

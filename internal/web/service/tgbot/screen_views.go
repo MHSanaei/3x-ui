@@ -23,9 +23,39 @@ import (
 // screenHome is the admin's landing screen: the numbers you open the bot for,
 // then the menu. The picture is the bot's own avatar until the panel can host
 // its own artwork.
-func (t *Tgbot) screenHome(chatID int64) {
+func (t *Tgbot) screenHome(chatID, userID int64) {
+	if level := t.levelOf(userID); level != levelAdmin {
+		t.screenClientHome(chatID, userID)
+		return
+	}
 	body := t.homeSummary()
 	t.renderScreen(chatID, t.newScreen("main", body, t.homeRows()...))
+}
+
+// screenClientHome is a client's own entry point: its usage and, from there, its
+// links and QR. A client used to be handed the ADMIN menu by /start, which both
+// advertised panel operations it cannot run and listed every client's email
+// through the All-clients browser.
+func (t *Tgbot) screenClientHome(chatID, userID int64) {
+	traffics, err := t.inboundService.GetClientTrafficTgBot(userID)
+	if err != nil || len(traffics) == 0 {
+		t.sendNotice(chatID, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(userID, 10)))
+		return
+	}
+	var body strings.Builder
+	for _, traffic := range traffics {
+		body.WriteString(t.clientInfoMsg(traffic, true, true, true, true, true, true))
+		body.WriteString("\r\n")
+	}
+	rows := [][]telego.InlineKeyboardButton{
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientUsage", "client_traffic")),
+		tu.InlineKeyboardRow(
+			t.btn("tgbot.buttons.clientLinks", "client_sub_links"),
+			t.btn("tgbot.buttons.qrCode", "client_qr_links"),
+		),
+		tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientCommands", "client_commands")),
+	}
+	t.renderScreen(chatID, t.newScreen("main", body.String(), rows...))
 }
 
 // homeSummary is the panel overview line used by the menu and the report, so

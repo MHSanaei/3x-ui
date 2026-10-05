@@ -28,6 +28,7 @@ const (
 	cbCatServer      = "cat:server"
 	cbCatClients     = "cat:clients"
 	cbCatTraffic     = "cat:traffic"
+	cbBroadcast      = "bc"
 	cbCatMaintenance = "cat:maintenance"
 	cbResetAll       = "rst_all"
 	cbRestartXry     = "xray_restart"
@@ -66,6 +67,7 @@ func (t *Tgbot) categoryRows(category string) [][]telego.InlineKeyboardButton {
 		return [][]telego.InlineKeyboardButton{
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.allClients", cbClients)),
 			tu.InlineKeyboardRow(t.btn("tgbot.buttons.addClient", cbAddClient)),
+			tu.InlineKeyboardRow(t.btn("tgbot.buttons.broadcast", cbBroadcast)),
 			home,
 		}
 	case "traffic":

@@ -364,6 +364,7 @@ func TestEveryScreenOffersAWayOut(t *testing.T) {
 // Cancel was the way back and its only other button was the one just pressed.
 func TestResetConfirmIsReplacedByTheMenu(t *testing.T) {
 	tb, calls := newScreenTgbot(t, false)
+	setTestAdmins(t, 1)
 	initReportDB(t)
 	seedReportClients(t, "nl-fast", []string{"a@x"})
 
@@ -387,6 +388,59 @@ func TestResetConfirmIsReplacedByTheMenu(t *testing.T) {
 	}
 	if sc.kind != "main" {
 		t.Errorf("tracked screen kind = %q, want the menu", sc.kind)
+	}
+}
+
+// A client's /start must never render the admin menu: it used to, which both
+// advertised panel operations a client cannot run and listed every client's
+// email through the All-clients browser.
+func TestClientStartNeverShowsTheAdminMenu(t *testing.T) {
+	tb, _ := newScreenTgbot(t, false)
+	setTestAdmins(t, 1)
+	initReportDB(t)
+	seedReportClients(t, "nl-fast", []string{"mine@x"})
+
+	// A client: owns a record, is not an admin.
+	screenArtMu.Lock()
+	artFromAvatar, artProbedAt = false, time.Now()
+	screenArtMu.Unlock()
+
+	tb.screenHome(500, 777777)
+
+	sc, ok := tb.screens().get(500)
+	if !ok || sc.markup == nil {
+		// No record at all: the client is told its id instead. That is fine.
+		return
+	}
+	for _, row := range sc.rows {
+		for _, btn := range row {
+			switch btn.CallbackData {
+			case cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance, cbBroadcast, cbAddClient:
+				t.Errorf("a client's menu carries the admin-only %q button", btn.CallbackData)
+			}
+		}
+	}
+}
+
+// The broadcast the /broadcast command already drove must be reachable as a
+// button, and only for an admin.
+func TestBroadcastButtonIsAdminOnly(t *testing.T) {
+	tb := &Tgbot{}
+	found := false
+	for _, category := range []string{"server", "clients", "traffic", "maintenance"} {
+		for _, row := range tb.categoryRows(category) {
+			for _, btn := range row {
+				if btn.CallbackData == cbBroadcast {
+					found = true
+					if category != "clients" {
+						t.Errorf("broadcast sits in %q, want the clients category", category)
+					}
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("no category carries the broadcast button")
 	}
 }
 
