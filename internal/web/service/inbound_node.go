@@ -441,6 +441,20 @@ func snapshotDropsEveryHubClient(tx *gorm.DB, inboundID int, wireSettings string
 	return links > 0
 }
 
+// snapshotAttachedEmails lowercases the emails a snapshot inbound's settings list;
+// ok is false when the settings cannot be parsed, so membership is unknown.
+func snapshotAttachedEmails(settings string) (map[string]struct{}, bool) {
+	clients, err := ParseInboundSettingsClients(settings)
+	if err != nil {
+		return nil, false
+	}
+	emails := make(map[string]struct{}, len(clients))
+	for i := range clients {
+		emails[strings.ToLower(clients[i].Email)] = struct{}{}
+	}
+	return emails, true
+}
+
 // clientEmailsOwnedElsewhere returns the emails attached only to inbounds of
 // other nodes: email is unique, so adopting one would overwrite a client this
 // node does not serve. Attached nowhere means soft-orphaned, hence adoptable.
@@ -942,7 +956,12 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		snapEmails := make(map[string]struct{}, len(snapIb.ClientStats))
 		// Parsed once per inbound on the first renewal candidate, not per client.
 		var snapExpiries map[string]int64
+		attachedOnNode, membershipKnown := snapshotAttachedEmails(snapIb.Settings)
 		for _, cs := range snapIb.ClientStats {
+			// A node detach keeps the stat row, so its quota and verdict are stale (#6724).
+			if _, attached := attachedOnNode[strings.ToLower(cs.Email)]; membershipKnown && !attached {
+				continue
+			}
 			snapEmails[cs.Email] = struct{}{}
 
 			// Node-wide total, not this inbound's possibly-stale copy (#5274).
