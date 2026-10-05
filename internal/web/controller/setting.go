@@ -80,6 +80,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
 	g.POST("/testSmtp", a.testSmtp)
 	g.POST("/testTgBot", a.testTgBot)
+	g.POST("/tgBotCapabilities", a.tgBotCapabilities)
 	g.POST("/testDiscord", a.testDiscord)
 }
 
@@ -347,6 +348,41 @@ func (a *SettingController) testTgBot(c *gin.Context) {
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.tgBotNotRunning"), errors.New("bot not started"))
 }
+
+// tgBotCapabilities reports what the configured bot can do. Inline mode is a
+// BotFather switch — the API can read it but never set it — and the bot's lists
+// live in inline mode, so the panel has to warn before a user wonders why a
+// list never opens.
+func (a *SettingController) tgBotCapabilities(c *gin.Context) {
+	enabled, err := a.settingService.GetTgbotEnabled()
+	if err != nil || !enabled {
+		jsonMsg(c, I18nWeb(c, "pages.settings.tgBotNotEnabled"), errors.New("telegram bot disabled"))
+		return
+	}
+	if tgCapsFunc == nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.tgBotNotRunning"), errors.New("bot not started"))
+		return
+	}
+	caps, err := tgCapsFunc()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.tgTestFailed")+": "+err.Error(), err)
+		return
+	}
+	jsonObj(c, caps, nil)
+}
+
+// TgBotCapabilities is the browser-safe shape of the bot's own capabilities.
+type TgBotCapabilities struct {
+	InlineEnabled bool   `json:"inlineEnabled"`
+	Username      string `json:"username"`
+	Running       bool   `json:"running"`
+}
+
+// tgCapsFunc is wired from the web layer; importing tgbot here is circular.
+var tgCapsFunc func() (TgBotCapabilities, error)
+
+// SetTgBotCapsFunc registers the capability probe.
+func SetTgBotCapsFunc(fn func() (TgBotCapabilities, error)) { tgCapsFunc = fn }
 
 // testTgFunc is set from web layer to test Telegram sending without circular imports.
 var testTgFunc func() error

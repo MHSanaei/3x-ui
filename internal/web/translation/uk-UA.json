@@ -1738,7 +1738,10 @@
       "subIncyResolveDnsDomainDesc": "URL DoH-сервера, зазвичай закінчується на /dns-query.",
       "subIncyResolveDnsIp": "IP DoH-сервера",
       "subIncyResolveDnsIpDesc": "IP DoH-сервера для bootstrap.",
-      "subIncyGroupRouting": "Маршрутизація"
+      "subIncyGroupRouting": "Маршрутизація",
+      "tgInlineMissing": "Inline mode is disabled",
+      "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
+      "tgInlineRecheck": "Check again"
     },
     "xray": {
       "save": "Зберегти",

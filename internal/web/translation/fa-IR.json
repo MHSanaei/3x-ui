@@ -1738,7 +1738,10 @@
       "subIncyResolveDnsDomainDesc": "آدرس سرور DoH، معمولاً به /dns-query ختم میشود.",
       "subIncyResolveDnsIp": "آیپی سرور DoH",
       "subIncyResolveDnsIpDesc": "آیپی سرور DoH برای بوتاسترپ.",
-      "subIncyGroupRouting": "مسیریابی"
+      "subIncyGroupRouting": "مسیریابی",
+      "tgInlineMissing": "Inline mode is disabled",
+      "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
+      "tgInlineRecheck": "Check again"
     },
     "xray": {
       "save": "ذخیره",

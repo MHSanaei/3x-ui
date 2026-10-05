@@ -2,6 +2,7 @@ package tgbot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -121,6 +122,32 @@ func (t *Tgbot) launchRow(scope, labelKey string) []telego.InlineKeyboardButton 
 		SwitchInlineQueryCurrentChat: &empty,
 	}
 	return tu.InlineKeyboardRow(btn)
+}
+
+// Capabilities is the bot's own answer to "can you show lists?": inline mode is
+// a BotFather switch, so the panel can only warn, never enable it.
+type Capabilities struct {
+	InlineEnabled bool
+	Username      string
+	Running       bool
+}
+
+// Capabilities probes the live bot for what it can do.
+func (t *Tgbot) Capabilities() (Capabilities, error) {
+	caps := Capabilities{Running: t.IsRunning(), Username: botUsername()}
+	if bot == nil {
+		return caps, errors.New("bot is not initialised")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	me, err := bot.GetMe(ctx)
+	if err != nil {
+		return caps, err
+	}
+	caps.InlineEnabled = me.SupportsInlineQueries
+	caps.Username = me.Username
+	recordInlineCapability(me.SupportsInlineQueries)
+	return caps, nil
 }
 
 // screenInlineHelp explains a bot that cannot open lists: inline mode is a

@@ -1738,7 +1738,10 @@
       "subIncyResolveDnsDomainDesc": "DoH sunucu URL'si, genelde /dns-query ile biter.",
       "subIncyResolveDnsIp": "DoH sunucu IP'si",
       "subIncyResolveDnsIpDesc": "Bootstrap için DoH sunucu IP'si.",
-      "subIncyGroupRouting": "Yönlendirme"
+      "subIncyGroupRouting": "Yönlendirme",
+      "tgInlineMissing": "Inline mode is disabled",
+      "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
+      "tgInlineRecheck": "Check again"
     },
     "xray": {
       "save": "Kaydet",

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Input, Select, Space, Switch, Tabs } from 'antd';
-import { BellOutlined, SendOutlined, SettingOutlined } from '@ant-design/icons';
+import { BellOutlined, SendOutlined, SettingOutlined, WarningOutlined } from '@ant-design/icons';
 import { HttpUtil, LanguageManager } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
@@ -21,6 +21,30 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
   const { isMobile } = useMediaQuery();
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; msg: string } | null>(null);
+  const [inlineWarning, setInlineWarning] = useState<string | null>(null);
+  const [capsLoading, setCapsLoading] = useState(false);
+
+  // The bot's lists live in inline mode, which only BotFather can enable, so the
+  // panel checks the live capability and warns instead of leaving dead buttons.
+  async function checkInlineMode() {
+    setCapsLoading(true);
+    try {
+      const res = (await HttpUtil.post('/panel/api/setting/tgBotCapabilities')) as {
+        success?: boolean;
+        obj?: { inlineEnabled?: boolean; username?: string };
+      };
+      if (res.success && res.obj && !res.obj.inlineEnabled) {
+        setInlineWarning(res.obj.username || '');
+      } else {
+        setInlineWarning(null);
+      }
+    } catch {
+      // The bot may simply be stopped; the token field still tells that story.
+      setInlineWarning(null);
+    } finally {
+      setCapsLoading(false);
+    }
+  }
 
   async function handleTestTgBot() {
     setTestLoading(true);
@@ -130,12 +154,32 @@ export default function TelegramTab({ allSetting, updateSetting }: TelegramTabPr
                 />
               </SettingListItem>
 
+              {inlineWarning !== null && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  icon={<WarningOutlined />}
+                  style={{ marginTop: 16 }}
+                  title={t('pages.settings.tgInlineMissing')}
+                  description={t('pages.settings.tgInlineMissingDesc')}
+                  action={
+                    <Button size="small" loading={capsLoading} onClick={checkInlineMode}>
+                      {t('pages.settings.tgInlineRecheck')}
+                    </Button>
+                  }
+                />
+              )}
+
               <Space orientation="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
                 <Button
                   type="primary"
                   icon={<SendOutlined />}
-                  loading={testLoading}
-                  onClick={handleTestTgBot}
+                  loading={testLoading || capsLoading}
+                  onClick={() => {
+                    setTestResult(null);
+                    void handleTestTgBot();
+                    void checkInlineMode();
+                  }}
                 >
                   {t('pages.settings.testTgBot')}
                 </Button>
