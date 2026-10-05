@@ -356,6 +356,10 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		return err
 	}
 
+	// Screen art is the bot's own avatar, so it is resolved once the identity
+	// is known; a bot without an avatar renders text screens instead.
+	t.resolveScreenArt()
+
 	t.trySetBotCommands(bot)
 
 	// Start receiving Telegram bot messages
@@ -377,17 +381,11 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 		}
 	}()
 
+	// Only /start is advertised: the rest of the actions live on buttons, and
+	// the old list merely duplicated the menu. The commands still work.
 	err := bot.SetMyCommands(context.Background(), &telego.SetMyCommandsParams{
 		Commands: []telego.BotCommand{
 			{Command: "start", Description: t.I18nBot("tgbot.commands.startDesc")},
-			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
-			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
-			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
-			{Command: "usage", Description: t.I18nBot("tgbot.commands.usageDesc")},
-			{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
-			{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
-			{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
-			{Command: "broadcast", Description: t.I18nBot("tgbot.commands.broadcastDesc")},
 		},
 	})
 	if err != nil {

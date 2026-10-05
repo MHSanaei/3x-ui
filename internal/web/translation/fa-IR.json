@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ صفحه کلید بسته شد!",
     "noResult": "❗ نتیجه ای یافت نشد!",
     "noQuery": "❌ درخواست یافت نشد! لطفا دوباره تلاش کنید!",
     "wentWrong": "❌ مشکلی پیش آمد!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ دستور ناشناخته",
       "pleaseChoose": "👇 لطفاً انتخاب کنید:\r\n",
       "help": "🤖 به این ربات خوش آمدید! این ربات برای ارائه داده‌های خاص از سرور طراحی شده است و به شما امکان تغییرات لازم را می‌دهد.\r\n\r\n",
-      "start": "👋 سلام <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 به ربات مدیریت <b>{{ .Hostname }}</b> خوش آمدید.\r\n",
-      "status": "✅ ربات در حالت عادی است!",
-      "usage": "❗ لطفاً یک متن برای جستجو وارد کنید!",
       "getID": "🆔 شناسه شما: <code>{{ .ID }}</code>",
       "helpAdminCommands": "برای راه‌اندازی مجدد Xray Core:\r\n<code>/restart</code>\r\n\r\nبرای جستجوی ایمیل مشتری:\r\n<code>/usage [ایمیل]</code>\r\n\r\nبرای جستجوی ورودی‌ها (با آمار مشتری):\r\n<code>/inbound [توضیحات]</code>\r\n\r\nشناسه گفتگوی تلگرام:\r\n<code>/id</code>",
       "helpClientCommands": "برای جستجوی آمار، از دستور زیر استفاده کنید:\r\n<code>/usage [ایمیل]</code>\r\n\r\nشناسه گفتگوی تلگرام:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ عملیات با موفقیت انجام شد!",
       "restartFailed": "❗ خطا در عملیات.\r\n\r\n<code>خطا: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core در حال اجرا نیست.",
-      "startDesc": "نمایش منوی اصلی",
-      "helpDesc": "راهنمای ربات",
-      "statusDesc": "بررسی وضعیت ربات",
-      "idDesc": "نمایش شناسه تلگرام شما",
-      "usageDesc": "مشاهده مصرف کاربر: /usage ایمیل",
-      "inboundDesc": "جستجوی ورودی‌ها: /inbound نام (مدیر)",
-      "restartDesc": "راه‌اندازی مجدد هسته Xray (مدیر)",
-      "broadcastDesc": "ارسال پیام به همه کاربران (مدیر)",
-      "clearallDesc": "صفر کردن ترافیک همه کاربران (مدیر)"
+      "startDesc": "نمایش منوی اصلی"
     },
     "messages": {
       "cpuThreshold": "بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "نود {{ .Name }} قطع است",
       "eventNodeUp": "نود {{ .Name }} وصل است",
       "eventLoginFallback": "ورود ناموفق از {{ .Source }}",
-      "memoryThreshold": "مصرف حافظه {{ .Percent }}% از حد آستانه {{ .Threshold }}% فراتر رفته است"
+      "memoryThreshold": "مصرف حافظه {{ .Percent }}% از حد آستانه {{ .Threshold }}% فراتر رفته است",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 ایمیل",
       "change_comment": "⚙️💬 نظر",
       "ResetAllTraffics": "بازنشانی همه ترافیک‌ها",
-      "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده"
+      "SortedTrafficUsageReport": "گزارش استفاده از ترافیک مرتب‌شده",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 ارسال گروهی آغاز شد.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "یک مشتری برای ورودی {{ .Inbound }} انتخاب کنید",
       "chooseInbound": "یک ورودی انتخاب کنید",
       "qrCodeForClient": "کد QR برای کاربر {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

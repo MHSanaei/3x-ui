@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Klavye kapatıldı!",
     "noResult": "❗ Sonuç yok!",
     "noQuery": "❌ Sorgu bulunamadı! Lütfen komutu tekrar kullanın!",
     "wentWrong": "❌ Bir şeyler yanlış gitti!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Bilinmeyen komut.",
       "pleaseChoose": "👇 Lütfen seçin:\r\n",
       "help": "🤖 Bu bota hoş geldiniz! Web panelinden belirli verileri sunmak ve gerektiğinde değişiklik yapmanıza olanak tanımak için tasarlanmıştır.\r\n\r\n",
-      "start": "👋 Merhaba <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 <b>{{ .Hostname }}</b> yönetim botuna hoş geldiniz.\r\n",
-      "status": "✅ Bot çalışıyor!",
-      "usage": "❗ Lütfen aramak için bir metin sağlayın!",
       "getID": "🆔 Kimliğiniz: <code>{{ .ID }}</code>",
       "helpAdminCommands": "Xray Core'u yeniden başlatmak için:\r\n<code>/restart</code>\r\n\r\nBir kullanıcının istatistiklerini aramak için:\r\n<code>/usage [E-posta]</code>\r\n\r\nGelen bağlantılarnı aramak için (kullanıcı istatistikleri ile):\r\n<code>/inbound [Açıklama]</code>\r\n\r\nTelegram Sohbet Kimliği (Chat ID):\r\n<code>/id</code>",
       "helpClientCommands": "İstatistiklerinizi görmek için şu komutu kullanın:\r\n\r\n<code>/usage [E-posta]</code>\r\n\r\nTelegram Sohbet Kimliği:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ İşlem başarılı!",
       "restartFailed": "❗ İşlem hatası.\r\n\r\n<code>Hata: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core çalışmıyor.",
-      "startDesc": "Ana menüyü göster",
-      "helpDesc": "Bot yardımı",
-      "statusDesc": "Bot durumunu kontrol et",
-      "idDesc": "Telegram Kimliğinizi gösterir",
-      "usageDesc": "İstemci kullanımını göster: /usage e-posta",
-      "inboundDesc": "Gelenleri ara: /inbound ad (yönetici)",
-      "restartDesc": "Xray çekirdeğini yeniden başlat (yönetici)",
-      "broadcastDesc": "Tüm istemcilere mesaj gönder (yönetici)",
-      "clearallDesc": "Tüm istemcilerin trafiğini sıfırla (yönetici)"
+      "startDesc": "Ana menüyü göster"
     },
     "messages": {
       "cpuThreshold": "CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "{{ .Name }} düğümü ÇEVRİMDIŞI",
       "eventNodeUp": "{{ .Name }} düğümü ÇEVRİMİÇİ",
       "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız",
-      "memoryThreshold": "Bellek kullanımı {{ .Percent }}% eşiği {{ .Threshold }}% aşıyor"
+      "memoryThreshold": "Bellek kullanımı {{ .Percent }}% eşiği {{ .Threshold }}% aşıyor",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 E-posta",
       "change_comment": "⚙️💬 Yorum",
       "ResetAllTraffics": "Tüm Trafikleri Sıfırla",
-      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu"
+      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Toplu gönderim başladı.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Gelen Bağlantı {{ .Inbound }} için bir Kullanıcı Seçin",
       "chooseInbound": "Bir Gelen Bağlantı Seçin",
       "qrCodeForClient": "{{ .Email }} istemcisi için QR Kodu:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

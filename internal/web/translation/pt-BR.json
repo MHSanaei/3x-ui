@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Teclado fechado!",
     "noResult": "❗ Nenhum resultado!",
     "noQuery": "❌ Consulta não encontrada! Por favor, use o comando novamente!",
     "wentWrong": "❌ Algo deu errado!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Comando desconhecido.",
       "pleaseChoose": "👇 Escolha:\r\n",
       "help": "🤖 Bem-vindo a este bot! Ele foi projetado para oferecer dados específicos do painel da web e permite que você faça as modificações necessárias.\r\n\r\n",
-      "start": "👋 Olá <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 Bem-vindo ao bot de gerenciamento do <b>{{ .Hostname }}</b>.\r\n",
-      "status": "✅ Bot está OK!",
-      "usage": "❗ Por favor, forneça um texto para pesquisar!",
       "getID": "🆔 Seu ID: <code>{{ .ID }}</code>",
       "helpAdminCommands": "Para reiniciar o Xray Core:\r\n<code>/restart</code>\r\n\r\nPara pesquisar por um email de cliente:\r\n<code>/usage [Email]</code>\r\n\r\nPara pesquisar por inbounds (com estatísticas do cliente):\r\n<code>/inbound [Remark]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>",
       "helpClientCommands": "Para pesquisar por estatísticas, use o seguinte comando:\r\n\r\n<code>/usage [Email]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ Operação bem-sucedida!",
       "restartFailed": "❗ Erro na operação.\r\n\r\n<code>Erro: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core não está em execução.",
-      "startDesc": "Mostrar menu principal",
-      "helpDesc": "Ajuda do bot",
-      "statusDesc": "Verificar status do bot",
-      "idDesc": "Mostrar seu ID do Telegram",
-      "usageDesc": "Ver o uso do cliente: /usage email",
-      "inboundDesc": "Buscar entradas: /inbound nome (admin)",
-      "restartDesc": "Reiniciar o núcleo Xray (admin)",
-      "broadcastDesc": "Enviar uma mensagem para todos os clientes (admin)",
-      "clearallDesc": "Zerar o tráfego de todos os clientes (admin)"
+      "startDesc": "Mostrar menu principal"
     },
     "messages": {
       "cpuThreshold": "A carga da CPU {{ .Percent }}% excede o limite de {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "O nó {{ .Name }} está INATIVO",
       "eventNodeUp": "O nó {{ .Name }} está ATIVO",
       "eventLoginFallback": "Falha de login a partir de {{ .Source }}",
-      "memoryThreshold": "Uso de memória {{ .Percent }}% excede o limite de {{ .Threshold }}%"
+      "memoryThreshold": "Uso de memória {{ .Percent }}% excede o limite de {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Comentário",
       "ResetAllTraffics": "Redefinir Todo o Tráfego",
-      "SortedTrafficUsageReport": "Relatório de Uso de Tráfego Ordenado"
+      "SortedTrafficUsageReport": "Relatório de Uso de Tráfego Ordenado",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Transmissão iniciada.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Escolha um cliente para Inbound {{ .Inbound }}",
       "chooseInbound": "Escolha um Inbound",
       "qrCodeForClient": "QR Code para o cliente {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

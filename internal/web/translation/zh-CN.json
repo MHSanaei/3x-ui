@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ 自定义键盘已关闭！",
     "noResult": "❗ 没有结果！",
     "noQuery": "❌ 未找到查询！请再次使用该命令！",
     "wentWrong": "❌ 出了点问题！",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ 未知命令",
       "pleaseChoose": "👇 请选择：\r\n",
       "help": "🤖 欢迎使用本机器人！它旨在为您提供来自服务器的特定数据，并允许您进行必要的修改。\r\n\r\n",
-      "start": "👋 你好，<i>{{ .Firstname }}</i>。\r\n",
-      "welcome": "🤖 欢迎来到 <b>{{ .Hostname }}</b> 管理机器人。\r\n",
-      "status": "✅ 机器人正常运行！",
-      "usage": "❗ 请输入要搜索的文本！",
       "getID": "🆔 您的 ID 为：<code>{{ .ID }}</code>",
       "helpAdminCommands": "要重新启动 Xray Core：\r\n<code>/restart</code>\r\n\r\n要搜索客户电子邮件：\r\n<code>/usage [电子邮件]</code>\r\n\r\n要搜索入站（带有客户统计数据）：\r\n<code>/inbound [备注]</code>\r\n\r\nTelegram 聊天 ID：\r\n<code>/id</code>",
       "helpClientCommands": "要搜索统计数据，请使用以下命令：\r\n<code>/usage [电子邮件]</code>\r\n\r\nTelegram 聊天 ID：\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ 操作成功!",
       "restartFailed": "❗ 操作错误。\r\n\r\n<code>错误: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core 未运行。",
-      "startDesc": "显示主菜单",
-      "helpDesc": "机器人帮助",
-      "statusDesc": "检查机器人状态",
-      "idDesc": "显示您的 Telegram ID",
-      "usageDesc": "查看客户端用量：/usage 邮箱",
-      "inboundDesc": "搜索入站：/inbound 备注（管理员）",
-      "restartDesc": "重启 Xray 内核（管理员）",
-      "broadcastDesc": "向所有客户端群发消息（管理员）",
-      "clearallDesc": "重置所有客户端流量（管理员）"
+      "startDesc": "显示主菜单"
     },
     "messages": {
       "cpuThreshold": "CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "节点 {{ .Name }} 已离线",
       "eventNodeUp": "节点 {{ .Name }} 已上线",
       "eventLoginFallback": "来自 {{ .Source }} 的登录失败",
-      "memoryThreshold": "内存使用率 {{ .Percent }}% 超过阈值 {{ .Threshold }}%"
+      "memoryThreshold": "内存使用率 {{ .Percent }}% 超过阈值 {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 邮箱",
       "change_comment": "⚙️💬 评论",
       "ResetAllTraffics": "重置所有流量",
-      "SortedTrafficUsageReport": "排序的流量使用报告"
+      "SortedTrafficUsageReport": "排序的流量使用报告",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 群发已开始。",
@@ -2584,6 +2581,23 @@
       "chooseClient": "为入站 {{ .Inbound }} 选择一个客户",
       "chooseInbound": "选择一个入站",
       "qrCodeForClient": "客户端 {{ .Email }} 的二维码："
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Клавиатура закрыта.",
     "noResult": "❗ Нет результатов.",
     "noQuery": "❌ Запрос не найден. Пожалуйста, повторите команду.",
     "wentWrong": "❌ Что-то пошло не так...",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Неизвестная команда",
       "pleaseChoose": "👇 Пожалуйста, выберите:\r\n",
       "help": "🤖 Добро пожаловать! Этот бот предназначен для предоставления вам данных с сервера и позволяет вносить изменения на него.\r\n\r\n",
-      "start": "👋 Привет, <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 Добро пожаловать в бота управления <b>{{ .Hostname }}</b>!\r\n",
-      "status": "✅ Бот функционирует нормально.",
-      "usage": "❗ Пожалуйста, укажите email для поиска.",
       "getID": "🆔 Ваш User ID: <code>{{ .ID }}</code>",
       "helpAdminCommands": "🔃 Для перезапуска Xray Core:\r\n<code>/restart</code>\r\n\r\n🔎 Для поиска клиента по email:\r\n<code>/usage [Email]</code>\r\n\r\n📊 Для поиска входящих подключений (со статистикой клиентов):\r\n<code>/inbound [имя подключения]</code>\r\n\r\n🆔 Ваш Telegram User ID:\r\n<code>/id</code>",
       "helpClientCommands": "💲 Для просмотра информации о вашей подписке используйте команду:\r\n<code>/usage [Email]</code>\r\n\r\n🆔 Ваш Telegram User ID:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ Ядро Xray успешно перезапущено.",
       "restartFailed": "❗ Ошибка при перезапуске Xray-core.\r\n\r\n<code>Ошибка: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core не запущен.",
-      "startDesc": "Показать главное меню",
-      "helpDesc": "Справка по боту",
-      "statusDesc": "Проверить статус бота",
-      "idDesc": "Показать ваш Telegram ID",
-      "usageDesc": "Показать трафик клиента: /usage email",
-      "inboundDesc": "Поиск входящих: /inbound имя (админ)",
-      "restartDesc": "Перезапустить ядро Xray (админ)",
-      "broadcastDesc": "Массовая рассылка всем клиентам (админ)",
-      "clearallDesc": "Сбросить трафик всех клиентов (админ)"
+      "startDesc": "Показать главное меню"
     },
     "messages": {
       "cpuThreshold": "Загрузка процессора составляет {{ .Percent }}%, что превышает пороговое значение {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "Узел {{ .Name }} НЕДОСТУПЕН",
       "eventNodeUp": "Узел {{ .Name }} В СЕТИ",
       "eventLoginFallback": "Неудачный вход с {{ .Source }}",
-      "memoryThreshold": "🔴 Использование памяти {{ .Percent }}% превышает пороговое значение {{ .Threshold }}%"
+      "memoryThreshold": "🔴 Использование памяти {{ .Percent }}% превышает пороговое значение {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрыть клавиатуру",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Комментарий",
       "ResetAllTraffics": "Сбросить весь трафик",
-      "SortedTrafficUsageReport": "Отсортированный отчет об использовании трафика"
+      "SortedTrafficUsageReport": "Отсортированный отчет об использовании трафика",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Рассылка запущена.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Выберите клиента для входящего подключения {{ .Inbound }}",
       "chooseInbound": "Выберите входящее подключение",
       "qrCodeForClient": "QR-код для клиента {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Teclado cerrado!",
     "noResult": "❗ ¡Sin resultados!",
     "noQuery": "❌ ¡Consulta no encontrada! ¡Por favor, use el comando nuevamente!",
     "wentWrong": "❌ ¡Algo salió mal!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Comando desconocido",
       "pleaseChoose": "👇 Por favor elige:\r\n",
       "help": "🤖 ¡Bienvenido a este bot! Está diseñado para ofrecerte datos específicos del servidor y te permite hacer modificaciones según sea necesario.\r\n\r\n",
-      "start": "👋 Hola <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 Bienvenido al bot de gestión de <b>{{ .Hostname }}</b>.\r\n",
-      "status": "✅ ¡El bot está bien!",
-      "usage": "❗ ¡Por favor proporciona un texto para buscar!",
       "getID": "🆔 Tu ID: <code>{{ .ID }}</code>",
       "helpAdminCommands": "Para reiniciar Xray Core:\r\n<code>/restart</code>\r\n\r\nPara buscar un correo electrónico de cliente:\r\n<code>/usage [Correo electrónico]</code>\r\n\r\nPara buscar entradas (con estadísticas de cliente):\r\n<code>/inbound [Observación]</code>\r\n\r\nID de Chat de Telegram:\r\n<code>/id</code>",
       "helpClientCommands": "Para buscar estadísticas, utiliza el siguiente comando:\r\n<code>/usage [Correo electrónico]</code>\r\n\r\nID de Chat de Telegram:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ ¡Operación exitosa!",
       "restartFailed": "❗ Error en la operación.\r\n\r\n<code>Error: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core no está en ejecución.",
-      "startDesc": "Mostrar el menú principal",
-      "helpDesc": "Ayuda del bot",
-      "statusDesc": "Comprobar el estado del bot",
-      "idDesc": "Mostrar tu ID de Telegram",
-      "usageDesc": "Ver el uso del cliente: /usage correo",
-      "inboundDesc": "Buscar entradas: /inbound nombre (admin)",
-      "restartDesc": "Reiniciar el núcleo de Xray (admin)",
-      "broadcastDesc": "Enviar un mensaje a todos los clientes (admin)",
-      "clearallDesc": "Restablecer el tráfico de todos los clientes (admin)"
+      "startDesc": "Mostrar el menú principal"
     },
     "messages": {
       "cpuThreshold": "El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "El nodo {{ .Name }} está CAÍDO",
       "eventNodeUp": "El nodo {{ .Name }} está ACTIVO",
       "eventLoginFallback": "Inicio de sesión fallido desde {{ .Source }}",
-      "memoryThreshold": "Uso de memoria {{ .Percent }}% supera el umbral de {{ .Threshold }}%"
+      "memoryThreshold": "Uso de memoria {{ .Percent }}% supera el umbral de {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Comentario",
       "ResetAllTraffics": "Reiniciar todo el tráfico",
-      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado"
+      "SortedTrafficUsageReport": "Informe de uso de tráfico ordenado",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Difusión iniciada.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Elige un Cliente para Inbound {{ .Inbound }}",
       "chooseInbound": "Elige un Inbound",
       "qrCodeForClient": "Código QR para el cliente {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

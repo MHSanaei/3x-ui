@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ キーボードを閉じました！",
     "noResult": "❗ 結果がありません！",
     "noQuery": "❌ クエリが見つかりません！コマンドを再利用してください！",
     "wentWrong": "❌ 何かがうまくいかなかった！",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ 不明なコマンド",
       "pleaseChoose": "👇 選択してください：\r\n",
       "help": "🤖 このボットをご利用いただきありがとうございます！サーバーから特定のデータを提供し、必要な変更を行うことができます。\r\n\r\n",
-      "start": "👋 こんにちは、<i>{{ .Firstname }}</i>。\r\n",
-      "welcome": "🤖 <b>{{ .Hostname }}</b> 管理ボットへようこそ。\r\n",
-      "status": "✅ ボットは正常に動作しています！",
-      "usage": "❗ 検索するテキストを入力してください！",
       "getID": "🆔 あなたのIDは：<code>{{ .ID }}</code>",
       "helpAdminCommands": "Xray Coreを再起動するには：\r\n<code>/restart</code>\r\n\r\nクライアントの電子メールを検索するには：\r\n<code>/usage [電子メール]</code>\r\n\r\nインバウンド（クライアントの統計情報を含む）を検索するには：\r\n<code>/inbound [備考]</code>\r\n\r\nTelegramチャットID：\r\n<code>/id</code>",
       "helpClientCommands": "統計情報を検索するには、次のコマンドを使用してください：\r\n<code>/usage [電子メール]</code>\r\n\r\nTelegramチャットID：\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ 操作成功！",
       "restartFailed": "❗ 操作エラー。\r\n\r\n<code>エラー: {{ .Error }}</code>",
       "xrayNotRunning": "❗ Xray Core は動作していません。",
-      "startDesc": "メインメニューを表示",
-      "helpDesc": "ボットのヘルプ",
-      "statusDesc": "ボットの状態を確認",
-      "idDesc": "Telegram IDを表示",
-      "usageDesc": "クライアント使用量を表示: /usage メール",
-      "inboundDesc": "インバウンド検索: /inbound 備考（管理者）",
-      "restartDesc": "Xray コアを再起動（管理者）",
-      "broadcastDesc": "全クライアントへ一括送信（管理者）",
-      "clearallDesc": "全クライアントのトラフィックをリセット（管理者）"
+      "startDesc": "メインメニューを表示"
     },
     "messages": {
       "cpuThreshold": "CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "ノード {{ .Name }} がダウンしています",
       "eventNodeUp": "ノード {{ .Name }} が復旧しました",
       "eventLoginFallback": "{{ .Source }} からのログインに失敗しました",
-      "memoryThreshold": "メモリ使用率 {{ .Percent }}% がしきい値 {{ .Threshold }}% を超えました"
+      "memoryThreshold": "メモリ使用率 {{ .Percent }}% がしきい値 {{ .Threshold }}% を超えました",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 メール",
       "change_comment": "⚙️💬 コメント",
       "ResetAllTraffics": "すべてのトラフィックをリセット",
-      "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート"
+      "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 一括送信を開始しました。",
@@ -2584,6 +2581,23 @@
       "chooseClient": "インバウンド {{ .Inbound }} のクライアントを選択",
       "chooseInbound": "インバウンドを選択",
       "qrCodeForClient": "クライアント {{ .Email }} のQRコード:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

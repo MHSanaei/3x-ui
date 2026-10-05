@@ -63,13 +63,13 @@ func (t *Tgbot) SendBackupToAdmins() {
 	}
 }
 
-// sendExhaustedToAdmins sends notifications about exhausted clients to admins.
+// sendExhaustedToAdmins sends the depletion summary to each admin as a screen.
 func (t *Tgbot) sendExhaustedToAdmins() {
 	if !t.IsRunning() {
 		return
 	}
 	for _, adminId := range adminSnapshot() {
-		t.getExhausted(adminId)
+		t.screenDeplete(adminId)
 	}
 }
 

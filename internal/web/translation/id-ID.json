@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Keyboard ditutup!",
     "noResult": "❗ Tidak ada hasil!",
     "noQuery": "❌ Kueri tidak ditemukan! Silakan gunakan perintah lagi!",
     "wentWrong": "❌ Terjadi kesalahan!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Perintah tidak dikenal.",
       "pleaseChoose": "👇 Harap pilih:\r\n",
       "help": "🤖 Selamat datang di bot ini! Ini dirancang untuk menyediakan data tertentu dari panel web dan memungkinkan Anda melakukan modifikasi sesuai kebutuhan.\r\n\r\n",
-      "start": "👋 Halo <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 Selamat datang di <b>{{.Hostname }}</b> bot managemen.\r\n",
-      "status": "✅ Bot dalam keadaan baik!",
-      "usage": "❗ Harap berikan teks untuk mencari!",
       "getID": "🆔 ID Anda: <code>{{ .ID }}</code>",
       "helpAdminCommands": "Untuk memulai ulang Xray Core:\r\n<code>/restart</code>\r\n\r\nUntuk mencari email klien:\r\n<code>/usage [Email]</code>\r\n\r\nUntuk mencari inbound (dengan statistik klien):\r\n<code>/inbound [Catatan]</code>\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>",
       "helpClientCommands": "Untuk mencari statistik, gunakan perintah berikut:\r\n<code>/usage [Email]</code>\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ Operasi berhasil!",
       "restartFailed": "❗ Kesalahan dalam operasi.\r\n\r\n<code>Error: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core tidak berjalan.",
-      "startDesc": "Tampilkan menu utama",
-      "helpDesc": "Bantuan bot",
-      "statusDesc": "Periksa status bot",
-      "idDesc": "Tampilkan ID Telegram Anda",
-      "usageDesc": "Lihat pemakaian klien: /usage email",
-      "inboundDesc": "Cari inbound: /inbound nama (admin)",
-      "restartDesc": "Mulai ulang inti Xray (admin)",
-      "broadcastDesc": "Kirim pesan ke semua klien (admin)",
-      "clearallDesc": "Reset trafik semua klien (admin)"
+      "startDesc": "Tampilkan menu utama"
     },
     "messages": {
       "cpuThreshold": "Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "Node {{ .Name }} MATI",
       "eventNodeUp": "Node {{ .Name }} AKTIF",
       "eventLoginFallback": "Gagal masuk dari {{ .Source }}",
-      "memoryThreshold": "Penggunaan memori {{ .Percent }}% melebihi ambang batas {{ .Threshold }}%"
+      "memoryThreshold": "Penggunaan memori {{ .Percent }}% melebihi ambang batas {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Komentar",
       "ResetAllTraffics": "Reset Semua Lalu Lintas",
-      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut"
+      "SortedTrafficUsageReport": "Laporan Penggunaan Lalu Lintas yang Terurut",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Siaran dimulai.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Pilih Klien untuk Inbound {{ .Inbound }}",
       "chooseInbound": "Pilih Inbound",
       "qrCodeForClient": "Kode QR untuk klien {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Клавіатуру закрито!",
     "noResult": "❗ Немає результату!",
     "noQuery": "❌ Запит не знайдено! Будь ласка, використовуйте команду ще раз!",
     "wentWrong": "❌ Щось пішло не так!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Невідома команда.",
       "pleaseChoose": "👇 Будь ласка, виберіть:\r\n",
       "help": "🤖 Ласкаво просимо до цього бота! Він розроблений, щоб надавати певні дані з веб-панелі та дозволяє вносити зміни за потреби.\r\n\r\n",
-      "start": "👋 Привіт <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 Ласкаво просимо до <b>{{ .Hostname }}</b> бота керування.\r\n",
-      "status": "✅ Бот в порядку!",
-      "usage": "❗ Введіть текст для пошуку!",
       "getID": "🆔 Ваш ідентифікатор: <code>{{ .ID }}</code>",
       "helpAdminCommands": "Для перезапуску Xray Core:\r\n<code>/restart</code>\r\n\r\nДля пошуку електронної пошти клієнта:\r\n<code>/usage [Електронна пошта]</code>\r\n\r\nДля пошуку вхідних (зі статистикою клієнта):\r\n<code>/inbound [Примітка]</code>\r\n\r\nID чату Telegram:\r\n<code>/id</code>",
       "helpClientCommands": "Для пошуку статистики використовуйте наступну команду:\r\n<code>/usage [Електронна пошта]</code>\r\n\r\nID чату Telegram:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ Операція успішна!",
       "restartFailed": "❗ Помилка в операції.\r\n\r\n<code>Помилка: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core не запущений.",
-      "startDesc": "Показати головне меню",
-      "helpDesc": "Довідка по боту",
-      "statusDesc": "Перевірити статус бота",
-      "idDesc": "Показати ваш Telegram ID",
-      "usageDesc": "Показати трафік клієнта: /usage email",
-      "inboundDesc": "Пошук вхідних: /inbound назва (адмін)",
-      "restartDesc": "Перезапустити ядро Xray (адмін)",
-      "broadcastDesc": "Масове розсилання всім клієнтам (адмін)",
-      "clearallDesc": "Скинути трафік усіх клієнтів (адмін)"
+      "startDesc": "Показати головне меню"
     },
     "messages": {
       "cpuThreshold": "Навантаження ЦП  {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "Вузол {{ .Name }} НЕДОСТУПНИЙ",
       "eventNodeUp": "Вузол {{ .Name }} ДОСТУПНИЙ",
       "eventLoginFallback": "Невдала спроба входу з {{ .Source }}",
-      "memoryThreshold": "Використання пам'яті {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%"
+      "memoryThreshold": "Використання пам'яті {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Коментар",
       "ResetAllTraffics": "Скинути весь трафік",
-      "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку"
+      "SortedTrafficUsageReport": "Відсортований звіт про використання трафіку",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Розсилку запущено.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Виберіть клієнта для Вхідного {{ .Inbound }}",
       "chooseInbound": "Виберіть Вхідний",
       "qrCodeForClient": "QR-код для клієнта {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

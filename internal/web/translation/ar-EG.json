@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ لوحة المفاتيح مغلقة!",
     "noResult": "❗ لا يوجد نتائج!",
     "noQuery": "❌ لم يتم العثور على الاستعلام! يرجى استخدام الأمر مرة أخرى!",
     "wentWrong": "❌ حدث خطأ ما!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ أمر مش معروف.",
       "pleaseChoose": "👇 من فضلك اختار:\r\n",
       "help": "🤖 أهلا بيك في البوت! البوت ده معمول عشان يديك بيانات معينة من البانل ويسمحلك بالتعديلات.",
-      "start": "👋 أهلا <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 أهلا بيك في بوت إدارة <b>{{ .Hostname }}</b>.\r\n",
-      "status": "✅ البوت شغال!",
-      "usage": "❗ من فضلك ادخل نص للتبحث عنه!",
       "getID": "🆔 الـ ID بتاعك: <code>{{ .ID }}</code>",
       "helpAdminCommands": "عشان تعيد تشغيل Xray Core:\r\n<code>/restart</code>\r\n\r\nعشان تدور على إيميل عميل:\r\n<code>/usage [Email]</code>\r\n\r\nعشان تدور على إدخالات (مع إحصائيات العملاء):\r\n<code>/inbound [Remark]</code>\r\n\r\nID شات Telegram:\r\n<code>/id</code>",
       "helpClientCommands": "عشان تدور على الإحصائيات، استخدم الأمر ده:\r\n\r\n<code>/usage [Email]</code>\r\n\r\nID شات Telegram:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ العملية نجحت!",
       "restartFailed": "❗ حصل خطأ في العملية.\r\n\r\n<code>Error: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core مش شغال.",
-      "startDesc": "عرض القائمة الرئيسية",
-      "helpDesc": "مساعدة البوت",
-      "statusDesc": "التحقق من حالة البوت",
-      "idDesc": "عرض معرف Telegram الخاص بك",
-      "usageDesc": "عرض استهلاك العميل: /usage البريد",
-      "inboundDesc": "البحث في الواردات: /inbound الاسم (مشرف)",
-      "restartDesc": "إعادة تشغيل نواة Xray (مشرف)",
-      "broadcastDesc": "إرسال رسالة لجميع العملاء (مسؤول)",
-      "clearallDesc": "تصفير استهلاك جميع العملاء (مشرف)"
+      "startDesc": "عرض القائمة الرئيسية"
     },
     "messages": {
       "cpuThreshold": "حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "العقدة {{ .Name }} غير متصلة",
       "eventNodeUp": "العقدة {{ .Name }} متصلة",
       "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}",
-      "memoryThreshold": "استخدام الذاكرة {{ .Percent }}% يتجاوز الحد {{ .Threshold }}%"
+      "memoryThreshold": "استخدام الذاكرة {{ .Percent }}% يتجاوز الحد {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 البريد",
       "change_comment": "⚙️💬 تعليق",
       "ResetAllTraffics": "إعادة ضبط جميع الترافيك",
-      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب"
+      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 بدأ البث.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "اختار عميل للإدخال {{ .Inbound }}",
       "chooseInbound": "اختار الإدخال",
       "qrCodeForClient": "رمز QR للعميل {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

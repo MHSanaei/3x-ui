@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Bàn phím đã đóng!",
     "noResult": "❗ Không có kết quả!",
     "noQuery": "❌ Không tìm thấy truy vấn! Vui lòng sử dụng lại lệnh!",
     "wentWrong": "❌ Đã xảy ra lỗi!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Lệnh không rõ",
       "pleaseChoose": "👇 Vui lòng chọn:\r\n",
       "help": "🤖 Chào mừng bạn đến với bot này! Bot được thiết kế để cung cấp cho bạn dữ liệu cụ thể từ máy chủ và cho phép bạn thực hiện các thay đổi cần thiết.\r\n\r\n",
-      "start": "👋 Xin chào <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 Chào mừng đến với bot quản lý của <b>{{ .Hostname }}</b>.\r\n",
-      "status": "✅ Bot hoạt động bình thường!",
-      "usage": "❗ Vui lòng cung cấp văn bản để tìm kiếm!",
       "getID": "🆔 ID của bạn: <code>{{ .ID }}</code>",
       "helpAdminCommands": "Để khởi động lại Xray Core:\r\n<code>/restart</code>\r\n\r\nĐể tìm kiếm email của khách hàng:\r\n<code>/usage [Email]</code>\r\n\r\nĐể tìm kiếm các nhập (với số liệu thống kê của khách hàng):\r\n<code>/inbound [Ghi chú]</code>\r\n\r\nID Trò chuyện Telegram:\r\n<code>/id</code>",
       "helpClientCommands": "Để tìm kiếm thống kê, sử dụng lệnh sau:\r\n<code>/usage [Email]</code>\r\n\r\nID Trò chuyện Telegram:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ Hoạt động thành công!",
       "restartFailed": "❗ Lỗi trong quá trình hoạt động.\r\n\r\n<code>Lỗi: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core không chạy.",
-      "startDesc": "Hiển thị menu chính",
-      "helpDesc": "Trợ giúp bot",
-      "statusDesc": "Kiểm tra trạng thái bot",
-      "idDesc": "Hiển thị ID Telegram của bạn",
-      "usageDesc": "Xem mức dùng của khách: /usage email",
-      "inboundDesc": "Tìm inbound: /inbound tên (quản trị)",
-      "restartDesc": "Khởi động lại lõi Xray (quản trị)",
-      "broadcastDesc": "Gửi tin nhắn tới tất cả khách hàng (quản trị)",
-      "clearallDesc": "Đặt lại lưu lượng mọi khách hàng (quản trị)"
+      "startDesc": "Hiển thị menu chính"
     },
     "messages": {
       "cpuThreshold": "Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "Node {{ .Name }} đã NGỪNG HOẠT ĐỘNG",
       "eventNodeUp": "Node {{ .Name }} đã HOẠT ĐỘNG",
       "eventLoginFallback": "Đăng nhập thất bại từ {{ .Source }}",
-      "memoryThreshold": "Sử dụng bộ nhớ {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
+      "memoryThreshold": "Sử dụng bộ nhớ {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Bình Luận",
       "ResetAllTraffics": "Đặt lại tất cả lưu lượng",
-      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp"
+      "SortedTrafficUsageReport": "Báo cáo sử dụng lưu lượng đã sắp xếp",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Đã bắt đầu phát tin.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Chọn một Khách hàng cho Inbound {{ .Inbound }}",
       "chooseInbound": "Chọn một Inbound",
       "qrCodeForClient": "Mã QR cho khách hàng {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

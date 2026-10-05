@@ -54,6 +54,10 @@ func swapTestBot(t *testing.T, url string) {
 		t.Fatalf("NewBot: %v", err)
 	}
 	messageWorkerPool = make(chan struct{}, 10)
+	// The screen store is process-wide state: a screen left by an earlier test
+	// would make this one edit an unrelated message instead of sending.
+	screens.reset()
+	resetScreenArt()
 }
 
 func newStaleButtonTgbot(t *testing.T) *Tgbot {

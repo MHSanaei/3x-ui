@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ Custom keyboard closed!",
     "noResult": "❗ No result!",
     "noQuery": "❌ Query not found! Please use the command again!",
     "wentWrong": "❌ Something went wrong!",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ Unknown command.",
       "pleaseChoose": "👇 Please choose:\r\n",
       "help": "🤖 Welcome to this bot! It's designed to offer specific data from the web panel and allows you to make modifications as needed.\r\n\r\n",
-      "start": "👋 Hello <i>{{ .Firstname }}</i>.\r\n",
-      "welcome": "🤖 Welcome to <b>{{ .Hostname }}</b> management bot.\r\n",
-      "status": "✅ Bot is OK!",
-      "usage": "❗ Please provide a text to search!",
       "getID": "🆔 Your ID: <code>{{ .ID }}</code>",
       "helpAdminCommands": "To restart Xray Core:\r\n<code>/restart</code>\r\n\r\nTo search for a client email:\r\n<code>/usage [Email]</code>\r\n\r\nTo search for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>",
       "helpClientCommands": "To search for statistics, use the following command:\r\n\r\n<code>/usage [Email]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ Operation successful!",
       "restartFailed": "❗ Error in operation.\r\n\r\n<code>Error: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core is not running.",
-      "startDesc": "Show the main menu",
-      "helpDesc": "Bot help",
-      "statusDesc": "Check bot status",
-      "idDesc": "Show your Telegram ID",
-      "usageDesc": "Show client usage: /usage email",
-      "inboundDesc": "Search inbounds: /inbound remark (admin)",
-      "restartDesc": "Restart Xray core (admin)",
-      "broadcastDesc": "Broadcast a message to all clients (admin)",
-      "clearallDesc": "Reset all clients' traffic (admin)"
+      "startDesc": "Show the main menu"
     },
     "messages": {
       "cpuThreshold": "CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "Node {{ .Name }} is DOWN",
       "eventNodeUp": "Node {{ .Name }} is UP",
       "eventLoginFallback": "Login failed from {{ .Source }}",
-      "memoryThreshold": "Memory Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%"
+      "memoryThreshold": "Memory Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Comment",
       "ResetAllTraffics": "Reset All Traffic",
-      "SortedTrafficUsageReport": "Sorted Traffic Usage Report"
+      "SortedTrafficUsageReport": "Sorted Traffic Usage Report",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 Broadcast started.",
@@ -2584,6 +2581,23 @@
       "chooseClient": "Choose a Client for Inbound {{ .Inbound }}",
       "chooseInbound": "Choose an Inbound",
       "qrCodeForClient": "QRCode for client {{ .Email }}:"
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {

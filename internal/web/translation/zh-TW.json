@@ -2388,7 +2388,6 @@
     }
   },
   "tgbot": {
-    "keyboardClosed": "❌ 自定義鍵盤已關閉！",
     "noResult": "❗ 沒有結果！",
     "noQuery": "❌ 未找到查詢！請再次使用該命令！",
     "wentWrong": "❌ 出了點問題！",
@@ -2410,10 +2409,6 @@
       "unknown": "❗ 未知命令",
       "pleaseChoose": "👇 請選擇：\r\n",
       "help": "🤖 歡迎使用本機器人！它旨在為您提供來自伺服器的特定資料，並允許您進行必要的修改。\r\n\r\n",
-      "start": "👋 你好，<i>{{ .Firstname }}</i>。\r\n",
-      "welcome": "🤖 歡迎來到 <b>{{ .Hostname }}</b> 管理機器人。\r\n",
-      "status": "✅ 機器人正常執行！",
-      "usage": "❗ 請輸入要搜尋的文字！",
       "getID": "🆔 您的 ID 為：<code>{{ .ID }}</code>",
       "helpAdminCommands": "要重新啟動 Xray Core：\r\n<code>/restart</code>\r\n\r\n要搜尋客戶電子郵件：\r\n<code>/usage [電子郵件]</code>\r\n\r\n要搜尋入站（帶有客戶統計資料）：\r\n<code>/inbound [備註]</code>\r\n\r\nTelegram 聊天 ID：\r\n<code>/id</code>",
       "helpClientCommands": "要搜尋統計資料，請使用以下命令：\r\n<code>/usage [電子郵件]</code>\r\n\r\nTelegram 聊天 ID：\r\n<code>/id</code>",
@@ -2421,15 +2416,7 @@
       "restartSuccess": "✅ 操作成功!",
       "restartFailed": "❗ 操作錯誤。\r\n\r\n<code>錯誤: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core 未運行。",
-      "startDesc": "顯示主選單",
-      "helpDesc": "機器人幫助",
-      "statusDesc": "檢查機器人狀態",
-      "idDesc": "顯示您的 Telegram ID",
-      "usageDesc": "查看客戶端用量：/usage 郵箱",
-      "inboundDesc": "搜尋入站：/inbound 備註（管理員）",
-      "restartDesc": "重啟 Xray 核心（管理員）",
-      "broadcastDesc": "向所有客戶端群發訊息（管理員）",
-      "clearallDesc": "重置所有客戶端流量（管理員）"
+      "startDesc": "顯示主選單"
     },
     "messages": {
       "cpuThreshold": "CPU 使用率為 {{ .Percent }}%，超過閾值 {{ .Threshold }}%",
@@ -2512,7 +2499,11 @@
       "eventNodeDown": "節點 {{ .Name }} 已離線",
       "eventNodeUp": "節點 {{ .Name }} 已上線",
       "eventLoginFallback": "來自 {{ .Source }} 的登入失敗",
-      "memoryThreshold": "記憶體使用率 {{ .Percent }}% 超過閾值 {{ .Threshold }}%"
+      "memoryThreshold": "記憶體使用率 {{ .Percent }}% 超過閾值 {{ .Threshold }}%",
+      "pickInbound": "Pick the inbound the new client goes to.",
+      "inboundsCount": "🔌 Inbounds: {{ .Count }}\r\n",
+      "clientsCount": "👥 Clients: {{ .Count }}\r\n",
+      "actionsHint": "Maintenance actions:"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",
@@ -2556,7 +2547,13 @@
       "change_email": "⚙️📧 電子郵件",
       "change_comment": "⚙️💬 評論",
       "ResetAllTraffics": "重設所有流量",
-      "SortedTrafficUsageReport": "排序過的流量使用報告"
+      "SortedTrafficUsageReport": "排序過的流量使用報告",
+      "actions": "⚙️ Actions",
+      "restartXray": "♻️ Restart Xray",
+      "back": "⬅️ Back",
+      "hide": "🙈 Hide",
+      "page": "Page {{ .Page }} of {{ .Pages }}",
+      "browse": "🔍 Search…"
     },
     "answers": {
       "broadcastStarted": "🚀 群發已開始。",
@@ -2584,6 +2581,23 @@
       "chooseClient": "為入站 {{ .Inbound }} 選擇一個客戶",
       "chooseInbound": "選擇一個入站",
       "qrCodeForClient": "客戶端 {{ .Email }} 的二維碼："
+    },
+    "screens": {
+      "panel": "Panel",
+      "main": "Main",
+      "status": "Server",
+      "inbounds": "Inbounds",
+      "clients": "Clients",
+      "client": "Client",
+      "links": "Links",
+      "qr": "QR code",
+      "wizard": "New client",
+      "reports": "Report",
+      "backup": "Backup",
+      "onlines": "Online",
+      "deplete": "Running out",
+      "commands": "Commands",
+      "broadcast": "Broadcast"
     }
   },
   "discord": {
