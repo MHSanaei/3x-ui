@@ -1535,7 +1535,11 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			applyExternalProxyHysteriaParams(ep, epParams)
 
 			link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(dest, int(portF)))
-			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep, "quic")))
+			// VLESS/Trojan/SS get the host's description through buildEndpointLinks;
+			// this loop renders the fragment itself, so add it here too (#6738).
+			remark := s.endpointRemark(inbound, email, ep, "quic")
+			remark = appendHappServerDescription(remark, externalProxyToEndpoint(ep).ServerDescription)
+			links = append(links, buildLinkWithParams(link, epParams, remark))
 		}
 		return strings.Join(links, "\n")
 	}
