@@ -60,7 +60,7 @@ export default function AttachClientsModal({
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
   const openSource = open ? source : null;
-  const [syncedSource, setSyncedSource] = useState(openSource);
+  const [syncedSource, setSyncedSource] = useState<DBInbound | null>(null);
   if (openSource !== syncedSource) {
     setSyncedSource(openSource);
     if (openSource) {
