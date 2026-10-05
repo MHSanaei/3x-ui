@@ -369,6 +369,10 @@ merged with GUID-based baselines to avoid double counting after resets.
 A client reset is queued per hosting node in `model.NodePendingReset` (`service/node_reset_queue.go`)
 and replayed by the node sync until the node accepts it.
 Periodic resets: `job/periodic_traffic_reset_job.go` (keyed off `Inbound.TrafficReset`).
+Each client's latest online session (`SessionStart`/`SessionUp`/`SessionDown`) is folded in the
+same UPDATE as `last_online` by `database.ClientSessionAssignments`, fed observations built in
+`service/client_session.go`. A node that reports its own `sessionStart` decides the boundary;
+older nodes fall back to gaps in `lastOnline`. Traffic resets never touch the session.
 
 ### 5.4 Background jobs (cron)
 
@@ -469,7 +473,7 @@ for AutoMigrate in `internal/database/db.go`.
 | `NodePendingReset`              | Client resets a node has not confirmed    | `NodeId`, `Email`, `QueuedAt`; replayed by the node sync, freezes that client's node verdict until delivered                                                       |
 | `NodeClientIp`                  | Per-node client IP attribution            | `NodeGuid`, `Email`, `Ips`                                                                                                                                         |
 | `ClientGlobalTraffic`           | Cross-master usage totals                 | `MasterGuid`, `Email`, `Up`, `Down`                                                                                                                                |
-| `xray.ClientTraffic`            | Per-client counters (`client_traffics`)   | `Email`, `Up`, `Down`, `Total`, `ExpiryTime`, `LastOnline`                                                                                                         |
+| `xray.ClientTraffic`            | Per-client counters (`client_traffics`)   | `Email`, `Up`, `Down`, `Total`, `ExpiryTime`, `LastOnline`, `SessionStart`/`SessionUp`/`SessionDown`                                                               |
 | `InboundClientIps`              | IP set per client email                   | drives IP-limit enforcement                                                                                                                                        |
 | `OutboundTraffics`              | Outbound counters                         | per outbound tag                                                                                                                                                   |
 | `OutboundSubscription`          | External provider subs                    | Warp/Nord style                                                                                                                                                    |
