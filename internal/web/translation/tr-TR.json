@@ -2617,7 +2617,10 @@
       "offBody": "Lists are browsed in inline mode. Enable it in @BotFather: /setinline, then tap Check again.",
       "recheck": "Check again"
     },
-    "noValue": "—"
+    "noValue": "—",
+    "notices": {
+      "repeat": "\r\n\r\n🔁 repeated {{ .Count }}× · last {{ .Time }}"
+    }
   },
   "discord": {
     "test": {

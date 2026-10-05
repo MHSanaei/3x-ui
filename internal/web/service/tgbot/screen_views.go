@@ -221,21 +221,34 @@ func (t *Tgbot) screenActions(chatID int64) {
 	t.renderScreen(chatID, t.newScreen("main", t.I18nBot("tgbot.messages.actionsHint"), t.actionsRows()...))
 }
 
-// sendBackupScreen delivers the backup files. A file cannot be a screen's
-// picture, so each file is a message with a hide button and the chat keeps no
-// screen state.
+// sendBackupScreen delivers the backup and its summary as ONE message: the file
+// travels with a caption, so the chat does not get a header and a document for
+// the same event. A summary too long for a caption is sent after the file.
 func (t *Tgbot) sendBackupScreen(chatID int64) {
 	dbData, err := t.serverService.GetDb()
 	if err != nil {
 		logger.Error("Error in getting db backup:", err)
 	}
-	output := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
-	output += t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
-	t.sendNotice(chatID, output)
+	summary := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
+	summary += t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 
-	if dbData != nil {
-		t.sendDocumentWithHide(chatID, dbData, t.serverService.BackupFilename(""))
+	if dbData == nil {
+		t.sendNotice(chatID, summary)
+		return
 	}
+	// The summary and the depletion list share the file's caption: one message
+	// carries the backup and what it is for.
+	body := summary + "\n\n" + t.depleteReport()
+	caption := trimCaption(body, botCaptionLimit)
+	if t.sendDocumentWithCaption(chatID, dbData, t.serverService.BackupFilename(""), caption) {
+		if rest := strings.TrimSpace(strings.TrimPrefix(body, caption)); rest != "" {
+			// Rare: the summary outgrew a caption. The file already landed.
+			t.sendNotice(chatID, rest)
+		}
+		return
+	}
+	// The upload failed: the summary is still worth sending.
+	t.sendNotice(chatID, summary)
 }
 
 // screenBanLogs sends the ban log file as a notice, never as a screen.

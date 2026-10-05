@@ -30,10 +30,12 @@ func (t *Tgbot) hideMessage(query *telego.CallbackQuery) {
 	}
 	chat := query.Message.GetChat()
 	t.deleteOwnMessage(chat.ID, query.Message.GetMessageID())
-	// A hidden notice must not stay the chat's screen either.
+	// A hidden notice must not stay the chat's screen either, and the next event
+	// of its kind has to start a fresh card rather than edit a deleted one.
 	if sc, ok := t.screens().get(chat.ID); ok && sc.msgID == query.Message.GetMessageID() {
 		t.screens().clear(chat.ID)
 	}
+	t.dropNoticeFor(chat.ID, query.Message.GetMessageID())
 	t.answerSilent(query.ID)
 }
 

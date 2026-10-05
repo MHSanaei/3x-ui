@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 )
@@ -25,22 +24,21 @@ func getHostname() string {
 	return cachedHostname
 }
 
-var tgEventLimiter = eventbus.NewRateLimiter(1 * time.Minute)
-
-// HandleEvent is the eventbus subscriber callback. It formats incoming events
-// as Telegram messages and sends them to all admin chats.
+// HandleEvent is the eventbus subscriber callback. One kind of event keeps ONE
+// live card per admin chat: a repeat inside the window edits it and bumps a
+// counter, so a flapping outbound reads as one line instead of a wall of
+// identical messages.
 func (t *Tgbot) HandleEvent(e eventbus.Event) {
 	if !t.isEventEnabled(e.Type) {
 		return
 	}
-	if e.Type != eventbus.EventLoginAttempt {
-		if !tgEventLimiter.Allow(e.Type, e.Source) {
-			return
-		}
-	}
 	msg := t.formatEventMessage(e)
-	if msg != "" {
-		t.SendMsgToTgbotAdmins(msg)
+	if msg == "" {
+		return
+	}
+	kind := string(e.Type) + ":" + e.Source
+	for _, adminID := range adminSnapshot() {
+		t.liveNotice(adminID, kind, msg)
 	}
 }
 
