@@ -84,6 +84,18 @@ func recordingServer(t *testing.T, failEdit bool) (*httptest.Server, func() []ap
 			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
 				"id": 42, "type": "private", "photo": map[string]any{"small_file_id": "s", "big_file_id": "big"},
 			}})
+		case "getUserProfilePhotos":
+			// The avatar has to arrive as a Photo file_id: a ChatPhoto id from
+			// getChat ist rejected by sendPhoto with "can't use file of type
+			// ChatPhoto as Photo".
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
+				"total_count": 1,
+				"photos": []any{[]any{
+					map[string]any{"file_id": "small-photo", "file_unique_id": "u1", "width": 160, "height": 160},
+					map[string]any{"file_id": "big-photo", "file_unique_id": "u2", "width": 640, "height": 640},
+				}},
+			}})
 		default:
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": true})
@@ -396,13 +408,13 @@ func TestScreenArtReprobeWindow(t *testing.T) {
 	screenArtMu.Unlock()
 
 	tb.ensureScreenArt()
-	for range 30 {
-		if countMethod(calls(), "getChat") > 0 {
+	for range 50 {
+		if countMethod(calls(), "getUserProfilePhotos") > 0 {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if countMethod(calls(), "getChat") == 0 {
+	if countMethod(calls(), "getUserProfilePhotos") == 0 {
 		t.Error("a stale missing avatar was not re-probed")
 	}
 
@@ -412,10 +424,10 @@ func TestScreenArtReprobeWindow(t *testing.T) {
 	artProbedAt = time.Now().Add(-2 * time.Minute)
 	screenArtMu.Unlock()
 
-	before := countMethod(calls(), "getChat")
+	before := countMethod(calls(), "getUserProfilePhotos")
 	tb.ensureScreenArt()
 	time.Sleep(80 * time.Millisecond)
-	if countMethod(calls(), "getChat") != before {
+	if countMethod(calls(), "getUserProfilePhotos") != before {
 		t.Error("a freshly read avatar was re-probed too eagerly")
 	}
 }
@@ -429,8 +441,8 @@ func TestScreenKeepsArtFromTheBotAvatar(t *testing.T) {
 	}
 	tb.renderScreen(1, tb.newScreen("main", "with art", tb.homeRows()...))
 
-	if countMethod(calls(), "getChat") == 0 {
-		t.Error("getChat was not called: the avatar cannot have been read")
+	if countMethod(calls(), "getUserProfilePhotos") == 0 {
+		t.Error("the avatar probe never ran, so no picture can have been cached")
 	}
 	if countMethod(calls(), "sendPhoto") == 0 {
 		t.Errorf("calls = %v, want the screen sent as a photo", methods(calls()))

@@ -8,6 +8,7 @@ import (
 	"image/draw"
 	"image/png"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
@@ -28,6 +29,8 @@ var (
 	// operator sets afterwards.
 	artFromAvatar bool
 	artProbedAt   time.Time
+	// artProbeRunning keeps a burst of renders from starting a burst of probes.
+	artProbeRunning atomic.Bool
 
 	blackTileOnce  sync.Once
 	blackTileBytes []byte
@@ -56,32 +59,44 @@ func (t *Tgbot) resolveScreenArt() {
 		logger.Warning("Failed to read the bot identity for screen art:", err)
 		return
 	}
-	chat, err := bot.GetChat(ctx, &telego.GetChatParams{ChatID: tu.ID(me.ID)})
+
+	// The avatar must come from getUserProfilePhotos, not getChat: getChat
+	// returns a ChatPhoto file_id, and Telegram refuses it in a sendPhoto with
+	// "can't use file of type ChatPhoto as Photo". Same picture, different id
+	// namespace, and only one of them is usable here.
+	photos, err := bot.GetUserProfilePhotos(ctx, &telego.GetUserProfilePhotosParams{
+		UserID: me.ID, Limit: 1,
+	})
 	if err != nil {
-		logger.Debug("Failed to read the bot chat for screen art:", err)
+		logger.Debug("Failed to read the bot's profile photos for screen art:", err)
 		return
 	}
 
 	screenArtMu.Lock()
 	defer screenArtMu.Unlock()
 	artProbedAt = time.Now()
-	if chat.Photo == nil || chat.Photo.BigFileID == "" {
+	if len(photos.Photos) == 0 || len(photos.Photos[0]) == 0 {
 		// Remember the miss so the next render does not probe again, but keep
 		// any tile already cached: an avatar-less bot still shows a picture.
 		artFromAvatar = false
 		logger.Debug("Bot has no avatar; screens will use the black fallback")
 		return
 	}
+	// The last entry is the largest size Telegram keeps.
+	sizes := photos.Photos[0]
+	fileID := sizes[len(sizes)-1].FileID
 	screenArtIDs = map[string]string{}
 	for _, kind := range screenKinds {
-		screenArtIDs[kind] = chat.Photo.BigFileID
+		screenArtIDs[kind] = fileID
 	}
 	artFromAvatar = true
 }
 
-// ensureScreenArt refreshes the cached artwork in the background when it is
-// stale: a known avatar is re-read rarely, a missing one sooner, so a picture
-// the operator uploads shows up without restarting the panel.
+// ensureScreenArt refreshes the cached artwork when it is stale: a known avatar
+// is re-read rarely, a missing one sooner, so a picture the operator uploads
+// shows up without restarting the panel. The probe runs in its own goroutine
+// and at most one is in flight — the caller is on the render path and must not
+// wait on Telegram.
 func (t *Tgbot) ensureScreenArt() {
 	screenArtMu.RLock()
 	fromAvatar, at := artFromAvatar, artProbedAt
@@ -91,9 +106,16 @@ func (t *Tgbot) ensureScreenArt() {
 	if fromAvatar {
 		ttl = artAvatarTTL
 	}
-	if time.Since(at) > ttl {
-		go t.resolveScreenArt()
+	if time.Since(at) <= ttl {
+		return
 	}
+	if !artProbeRunning.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer artProbeRunning.Store(false)
+		t.resolveScreenArt()
+	}()
 }
 
 // artFileID returns the cached Telegram file_id for a screen kind. A fallback
