@@ -1,10 +1,16 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -102,4 +108,98 @@ func TestSetRemoteTraffic_PartialSnapshotStillPrunes(t *testing.T) {
 	if at := readOrphanMark(t, db, "drop@x"); at <= 0 {
 		t.Fatalf("partial snapshot did not orphan-mark the removed client: sync_orphaned_at=%d, want >0", at)
 	}
+}
+
+// Keeping the hub's settings is not recovery: the node is only healed once the
+// hub actually re-pushes them, which needs a dirty node and a stale fingerprint.
+func TestSetRemoteTraffic_EmptySnapshotRepushesHubClients(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+
+	var mu sync.Mutex
+	var pushed []string
+	writeOK := func(w http.ResponseWriter, obj any) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "msg": "", "obj": obj})
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panel/api/inbounds/list", func(w http.ResponseWriter, _ *http.Request) {
+		writeOK(w, []map[string]any{{"id": 7, "tag": "deg-in", "port": 41001, "protocol": "vless"}})
+	})
+	mux.HandleFunc("/panel/api/inbounds/update/", func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		mu.Lock()
+		pushed = append(pushed, r.PostForm.Get("settings"))
+		mu.Unlock()
+		writeOK(w, nil)
+	})
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	node := reconcileTestNode(t, ts, "deg-node", "all", nil)
+	settings := `{"clients":[{"email":"svc@x","enable":true,"id":"11111111-1111-1111-1111-111111111111"}]}`
+	nid := node.Id
+	if err := db.Create(&model.Inbound{UserId: 1, Tag: "deg-in", Enable: true, Port: 41001, Protocol: model.VLESS, NodeID: &nid, Settings: settings}).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	rt := runtime.NewRemote(node, nil)
+	mgr := runtime.NewManager(runtime.LocalDeps{})
+	mgr.SetRuntimeOverride(node.Id, rt)
+	runtime.SetManager(mgr)
+	t.Cleanup(func() { runtime.SetManager(nil) })
+
+	if _, err := svc.setRemoteTrafficLocked(node.Id, snapshotWithClients(t, "deg-in", settings,
+		xray.ClientTraffic{Email: "svc@x", Enable: true}), false, false); err != nil {
+		t.Fatalf("seed sync: %v", err)
+	}
+	if err := svc.ReconcileNode(context.Background(), rt, node); err != nil {
+		t.Fatalf("first reconcile: %v", err)
+	}
+	mu.Lock()
+	pushed = nil
+	mu.Unlock()
+
+	if _, err := svc.setRemoteTrafficLocked(node.Id, snapshotWithoutClients(t, "deg-in"), false, false); err != nil {
+		t.Fatalf("empty-snapshot sync: %v", err)
+	}
+	var after model.Node
+	if err := db.Where("id = ?", node.Id).First(&after).Error; err != nil {
+		t.Fatalf("reload node: %v", err)
+	}
+	if !after.ConfigDirty {
+		t.Fatal("empty snapshot left the node clean: the job never reconciles it, so the node stays without its clients")
+	}
+	if err := svc.ReconcileNode(context.Background(), rt, &after); err != nil {
+		t.Fatalf("reconcile after empty snapshot: %v", err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(pushed) != 1 || !strings.Contains(pushed[0], "svc@x") {
+		t.Fatalf("reconcile after empty snapshot pushed %d settings payload(s) %q, want one carrying svc@x", len(pushed), pushed)
+	}
+}
+
+// The traffic a client used while its node reported nothing must still count
+// once the node reports it again.
+func TestSetRemoteTraffic_EmptySnapshotKeepsTrafficBaseline(t *testing.T) {
+	db := initTrafficTestDB(t)
+	svc := &InboundService{}
+
+	seedNodeRow(t, db, &model.Node{Id: 1, Name: "n1", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	createNodeInboundWithClient(t, db, 1, "n1-in", 41001, "svc@x")
+	settings := `{"clients":[{"email":"svc@x","enable":true}]}`
+	for _, used := range []int64{100, 200} {
+		syncNodeWithSettings(t, svc, 1, "n1-in", settings, xray.ClientTraffic{Email: "svc@x", Up: used, Down: used, Enable: true})
+	}
+	before := readTraffic(t, db, "svc@x")
+
+	if _, err := svc.setRemoteTrafficLocked(1, snapshotWithoutClients(t, "n1-in"), false, false); err != nil {
+		t.Fatalf("empty-snapshot sync: %v", err)
+	}
+	syncNodeWithSettings(t, svc, 1, "n1-in", settings, xray.ClientTraffic{Email: "svc@x", Up: 250, Down: 250, Enable: true})
+
+	assertUpDown(t, readTraffic(t, db, "svc@x"), before.Up+50, before.Down+50, "after the node recovered")
 }

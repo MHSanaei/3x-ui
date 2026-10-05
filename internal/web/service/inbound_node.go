@@ -427,6 +427,20 @@ func adoptedWireInbound(c, snapIb *model.Inbound, adoptedSettings string) *model
 	return &a
 }
 
+// snapshotDropsEveryHubClient reports a node that lists no clients where the hub
+// still links some: a reset or half-started node, never an authoritative removal.
+func snapshotDropsEveryHubClient(tx *gorm.DB, inboundID int, wireSettings string) bool {
+	clients, err := ParseInboundSettingsClients(wireSettings)
+	if err != nil || len(clients) > 0 {
+		return false
+	}
+	var links int64
+	if err := tx.Table("client_inbounds").Where("inbound_id = ?", inboundID).Count(&links).Error; err != nil {
+		return false
+	}
+	return links > 0
+}
+
 // clientEmailsOwnedElsewhere returns the emails attached only to inbounds of
 // other nodes: email is unique, so adopting one would overwrite a client this
 // node does not serve. Attached nowhere means soft-orphaned, hence adoptable.
@@ -644,6 +658,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		wireSettings string
 	}
 	var pendingAdopts []pendingAdopt
+	degradedInbounds := map[int]string{}
 
 	newInboundIDs := make(map[int]struct{})
 
@@ -782,7 +797,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			adoptedSettings = deduped
 		}
 		updates := map[string]any{}
-		if !dirty {
+		if !dirty && snapshotDropsEveryHubClient(tx, c.Id, adoptedSettings) {
+			degradedInbounds[c.Id] = c.Tag
+		} else if !dirty {
 			// Defer lifecycle lift until after client_traffics absorbs this tick's
 			// deltas so quota stale-disable matches SQL (#6228).
 			pendingAdopts = append(pendingAdopts, pendingAdopt{
@@ -1121,6 +1138,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if k.inboundID != c.Id {
 				continue
 			}
+			if _, degraded := degradedInbounds[c.Id]; degraded {
+				continue
+			}
 			if _, kept := snapEmails[k.email]; kept {
 				continue
 			}
@@ -1167,16 +1187,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			lifecycleLifted = true
 		}
 		if p.central.Settings != adoptedSettings {
-			// #6734: a zero-client snapshot must not blank an inbound the hub still
-			// populates, or reconcile re-pushes an empty blob and the node never recovers.
-			snapCopy := *p.snapIb
-			snapCopy.Settings = adoptedSettings
-			if blob, gcErr := s.GetClients(&snapCopy); gcErr == nil && len(blob) == 0 {
-				var hubAttached int64
-				if err := tx.Table("client_inbounds").Where("inbound_id = ?", p.central.Id).Count(&hubAttached).Error; err == nil && hubAttached > 0 {
-					continue
-				}
-			}
 			if err := tx.Model(model.Inbound{}).
 				Where("id = ?", p.central.Id).
 				Update("settings", adoptedSettings).Error; err != nil {
@@ -1240,8 +1250,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		}
 		// A degraded node (reset/restart/removal) reports zero clients for an inbound the
 		// hub populates; adopting it empties links and ReapSyncOrphans deletes shared clients (#6734).
-		if len(filtered) == 0 && len(oldEmailsRows) > 0 {
-			logger.Warningf("setRemoteTraffic: node snapshot for tag %q reported zero clients while the hub has %d attached — treating as a degraded snapshot, skipping link rebuild and orphan sweep for this inbound", snapIb.Tag, len(oldEmailsRows))
+		if _, degraded := degradedInbounds[c.Id]; degraded {
+			logger.Warningf("setRemoteTraffic: node %d reported zero clients for tag %q while the hub has %d attached — keeping them and re-pushing", nodeID, snapIb.Tag, len(oldEmailsRows))
 			syncFailedInbounds[c.Id] = struct{}{}
 			continue
 		}
@@ -1353,6 +1363,21 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		return false, err
 	}
 	committed = true
+
+	if len(degradedInbounds) > 0 {
+		if mgr := runtime.GetManager(); mgr != nil {
+			if rt, rtErr := mgr.RuntimeFor(&nodeID); rtErr == nil {
+				if rem, ok := rt.(*runtime.Remote); ok {
+					for _, tag := range degradedInbounds {
+						rem.ForgetPushedInbound(tag)
+					}
+				}
+			}
+		}
+		if err := (&NodeService{}).MarkNodeDirty(nodeID); err != nil {
+			logger.Warningf("setRemoteTraffic: mark node %d dirty after an empty snapshot failed: %v", nodeID, err)
+		}
+	}
 
 	if lifecycleLifted && !dirty {
 		var already model.Node

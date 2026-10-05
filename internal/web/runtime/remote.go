@@ -528,6 +528,17 @@ func (r *Remote) RecordAdoptedInbound(ib *model.Inbound) {
 	r.recordPushedInbound(ib)
 }
 
+// ForgetPushedInbound drops the reconcile-skip fingerprint once the node is seen
+// without the payload it stamped, so the next reconcile re-sends the inbound.
+func (r *Remote) ForgetPushedInbound(tag string) {
+	prefix := nodeInboundTagPrefix(r.node.Id)
+	bare := strings.TrimPrefix(tag, prefix)
+	r.mu.Lock()
+	delete(r.pushedFP, bare)
+	delete(r.pushedFP, prefix+bare)
+	r.mu.Unlock()
+}
+
 // AdoptInboundAlias records a deployed alias without mutating either panel.
 // The runtime association is rediscovered after a master restart.
 func (r *Remote) AdoptInboundAlias(ib *model.Inbound, remote RemoteInboundOption) {
