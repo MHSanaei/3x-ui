@@ -94,7 +94,7 @@ func setBroadcastRunning(t *testing.T, running bool) {
 	})
 }
 
-func swapBroadcastSender(t *testing.T, sender func(int64, broadcastDraft) error, pause func(time.Duration)) {
+func swapBroadcastSender(t *testing.T, sender func(int64, broadcastDraft) ([]int, error), pause func(time.Duration)) {
 	t.Helper()
 	origSend, origPause := broadcastSender, broadcastPause
 	t.Cleanup(func() {
@@ -232,8 +232,11 @@ func TestRunBroadcastCounters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			swapBroadcastSender(t, func(chatID int64, _ broadcastDraft) error {
-				return tt.outcomes[chatID]
+			swapBroadcastSender(t, func(chatID int64, _ broadcastDraft) ([]int, error) {
+				if err := tt.outcomes[chatID]; err != nil {
+					return nil, err
+				}
+				return []int{int(chatID)}, nil
 			}, func(time.Duration) {})
 
 			runner := &broadcastRunner{chatID: 100, messageID: 5}
@@ -265,11 +268,11 @@ func TestRunBroadcastCancelsMidway(t *testing.T) {
 	setBroadcastRunning(t, true)
 
 	runner := &broadcastRunner{chatID: 100, messageID: 5}
-	swapBroadcastSender(t, func(chatID int64, _ broadcastDraft) error {
+	swapBroadcastSender(t, func(chatID int64, _ broadcastDraft) ([]int, error) {
 		if chatID == 1 {
 			runner.cancel.Store(true)
 		}
-		return nil
+		return []int{int(chatID)}, nil
 	}, func(time.Duration) {})
 
 	(&Tgbot{}).runBroadcast(runner, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, []int64{1, 2, 3, 4, 5})
@@ -294,7 +297,7 @@ func TestRunBroadcastUnreachableKeepsProgressThrottled(t *testing.T) {
 	swapTestBot(t, url)
 	setBroadcastRunning(t, true)
 	blocked := &telegoapi.Error{ErrorCode: 403, Description: "Forbidden: bot can't initiate conversation with a user"}
-	swapBroadcastSender(t, func(int64, broadcastDraft) error { return blocked }, func(time.Duration) {})
+	swapBroadcastSender(t, func(int64, broadcastDraft) ([]int, error) { return nil, blocked }, func(time.Duration) {})
 
 	runner := &broadcastRunner{chatID: 100, messageID: 5}
 	(&Tgbot{}).runBroadcast(runner, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, []int64{1, 2, 3, 4, 5})
@@ -327,7 +330,7 @@ func TestBroadcastFloodWaitSlicesLongWaits(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var mu sync.Mutex
 			var pauses []time.Duration
-			swapBroadcastSender(t, func(int64, broadcastDraft) error { return flood }, func(d time.Duration) {
+			swapBroadcastSender(t, func(int64, broadcastDraft) ([]int, error) { return nil, flood }, func(d time.Duration) {
 				mu.Lock()
 				defer mu.Unlock()
 				pauses = append(pauses, d)
@@ -341,7 +344,7 @@ func TestBroadcastFloodWaitSlicesLongWaits(t *testing.T) {
 				return checks > tt.abortAfter
 			}
 
-			err := broadcastDeliverOne(9, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, aborted)
+			_, err := broadcastDeliverOne(9, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, aborted)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -384,7 +387,7 @@ func TestStopBotResetsBroadcastState(t *testing.T) {
 		MessageID:    1,
 		MediaGroupID: "grpR",
 	})
-	runner := broadcastRegisterRunner(chatID)
+	runner := broadcastRegisterRunner(chatUser{chatID: chatID, userID: chatID})
 	if runner == nil {
 		t.Fatal("broadcastRegisterRunner() = nil before the stop")
 	}
@@ -414,7 +417,7 @@ func TestRunBroadcastAlbumPacing(t *testing.T) {
 	setBroadcastRunning(t, true)
 
 	var pauses []time.Duration
-	swapBroadcastSender(t, func(int64, broadcastDraft) error { return nil }, func(d time.Duration) {
+	swapBroadcastSender(t, func(int64, broadcastDraft) ([]int, error) { return nil, nil }, func(d time.Duration) {
 		pauses = append(pauses, d)
 	})
 
@@ -475,14 +478,17 @@ func TestBroadcastDeliverOneRetries429(t *testing.T) {
 			var mu sync.Mutex
 			callNum := 0
 			var pauses []time.Duration
-			swapBroadcastSender(t, func(int64, broadcastDraft) error {
+			swapBroadcastSender(t, func(int64, broadcastDraft) ([]int, error) {
 				mu.Lock()
 				defer mu.Unlock()
 				callNum++
 				if callNum > len(tt.responses) {
-					return nil
+					return []int{callNum}, nil
 				}
-				return tt.responses[callNum-1]
+				if err := tt.responses[callNum-1]; err != nil {
+					return nil, err
+				}
+				return []int{callNum}, nil
 			}, func(d time.Duration) {
 				mu.Lock()
 				defer mu.Unlock()
@@ -490,7 +496,7 @@ func TestBroadcastDeliverOneRetries429(t *testing.T) {
 			})
 			canceled := func() bool { return tt.canceled }
 
-			err := broadcastDeliverOne(9, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, canceled)
+			_, err := broadcastDeliverOne(9, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, canceled)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -517,13 +523,13 @@ func TestBroadcastDeliverOneRetries429(t *testing.T) {
 }
 
 func TestBroadcastRegisterRunnerSingleSlot(t *testing.T) {
-	first := broadcastRegisterRunner(1)
+	first := broadcastRegisterRunner(chatUser{chatID: 1})
 	if first == nil {
 		t.Fatal("broadcastRegisterRunner() = nil for an idle bot")
 	}
 	t.Cleanup(func() { broadcastUnregisterRunner(first) })
 
-	if second := broadcastRegisterRunner(2); second != nil {
+	if second := broadcastRegisterRunner(chatUser{chatID: 2}); second != nil {
 		t.Fatalf("broadcastRegisterRunner() = %v while a broadcast is running, want nil", second)
 	}
 
@@ -538,7 +544,7 @@ func TestStartBroadcastRefusesWhileRunning(t *testing.T) {
 	const chatID = int64(9102)
 	resetBroadcastState(t)
 
-	runner := broadcastRegisterRunner(chatID)
+	runner := broadcastRegisterRunner(chatUser{chatID: chatID, userID: chatID})
 	t.Cleanup(func() {
 		broadcastUnregisterRunner(runner)
 	})
@@ -621,7 +627,7 @@ func TestDeliverBroadcastCopy(t *testing.T) {
 			url, calls, bodies := newBroadcastMock(t)
 			swapTestBot(t, url)
 
-			if err := deliverBroadcastCopy(66, tt.draft); err != nil {
+			if _, err := deliverBroadcastCopy(66, tt.draft); err != nil {
 				t.Fatalf("deliverBroadcastCopy() error = %v", err)
 			}
 			for method, want := range tt.wantMethods {
@@ -943,5 +949,86 @@ func TestBroadcastCallbacksDeniedToNonAdmin(t *testing.T) {
 		if broadcastCurrentRunner() != nil {
 			t.Fatalf("%s started a broadcast for a non-admin", data)
 		}
+	}
+}
+
+// broadcastComposeToken reads the token the pending draft was stored under.
+func broadcastComposeToken(t *testing.T, actor chatUser) string {
+	t.Helper()
+	_, token, ok := broadcastPendingDraft(actor)
+	if !ok {
+		t.Fatal("no pending draft to confirm")
+	}
+	return token
+}
+
+// The admin's own composing message is the SOURCE of the broadcast, not the
+// broadcast. Leaving it, its preview copy and the card in the chat put three
+// copies of the same text on screen.
+func TestBroadcastCleansUpItsComposingMessages(t *testing.T) {
+	srv, calls := recordingServer(t, false)
+	swapTestBot(t, srv.URL)
+	t.Cleanup(srv.Close)
+	broadcastLocalizer(t)
+	setBroadcastRunning(t, true)
+	t.Cleanup(func() { resetBroadcastState(t) })
+	swapBroadcastSender(t, func(int64, broadcastDraft) ([]int, error) {
+		// The id Telegram returns for the self-copy preview.
+		return []int{321}, nil
+	}, func(time.Duration) {})
+
+	tb := initReportDB(t)
+	const chatID = int64(9100)
+	admin := chatUser{chatID: chatID, userID: 1}
+
+	tb.handleBroadcastInput(&telego.Message{
+		MessageID: 777,
+		Chat:      telego.Chat{ID: chatID},
+		From:      &telego.User{ID: 1},
+		Text:      "hello everyone",
+	}, admin)
+
+	// The preview copy is the broadcast content: it must leave the chat at once.
+	if got := countMethod(calls(), "deleteMessage"); got == 0 {
+		t.Fatal("the self-copy preview was left in the chat")
+	}
+
+	// Confirming must also remove the admin's own input message.
+	tb.confirmBroadcast(admin, broadcastComposeToken(t, admin), 55, "q1")
+
+	if got := countMethod(calls(), "deleteMessage"); got < 2 {
+		t.Errorf("deleteMessage calls = %d, want the input and the preview removed", got)
+	}
+}
+
+// A cancelled broadcast must not leave its copies in the recipients' chats: the
+// summary would say it stopped while every chat that got one still shows it.
+func TestCancelledBroadcastRecallsDeliveredCopies(t *testing.T) {
+	srv, calls := recordingServer(t, false)
+	swapTestBot(t, srv.URL)
+	t.Cleanup(srv.Close)
+	broadcastLocalizer(t)
+	setBroadcastRunning(t, true)
+	t.Cleanup(func() { resetBroadcastState(t) })
+	initReportDB(t)
+
+	runner := &broadcastRunner{actor: chatUser{chatID: 100}, chatID: 100, messageID: 5}
+	delivered := 0
+	swapBroadcastSender(t, func(int64, broadcastDraft) ([]int, error) {
+		delivered++
+		// The admin cancels mid-run: what already went out has to be withdrawn.
+		if delivered == 2 {
+			runner.cancel.Store(true)
+		}
+		return []int{900 + delivered}, nil
+	}, func(time.Duration) {})
+
+	(&Tgbot{}).runBroadcast(runner, broadcastDraft{FromChatID: 100, MessageIDs: []int{7}}, []int64{1, 2, 3})
+
+	if delivered == 0 {
+		t.Fatal("nothing was delivered, so there is nothing to recall")
+	}
+	if got := countMethod(calls(), "deleteMessage"); got < delivered {
+		t.Errorf("deleteMessage calls = %d, want one per delivered copy (%d)", got, delivered)
 	}
 }

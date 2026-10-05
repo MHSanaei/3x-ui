@@ -310,6 +310,15 @@ func (t *Tgbot) deleteIncoming(message *telego.Message) {
 
 // deleteOwnMessage removes one of our messages without ever surfacing a
 // failure: a user may have deleted it, and Telegram refuses past 48 hours.
+// deleteIncomingID removes one of the user's own messages by id, for flows that
+// hold ids rather than message structs (the broadcast's composing messages).
+func (t *Tgbot) deleteIncomingID(chatID int64, messageID int) {
+	if messageID == 0 {
+		return
+	}
+	t.deleteOwnMessage(chatID, messageID)
+}
+
 func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) {
 	if msgID == 0 || bot == nil {
 		return
