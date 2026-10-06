@@ -208,6 +208,60 @@ pg_ensure_hba_password_auth() {
     sudo -u postgres psql -tAc 'SELECT pg_reload_conf()' > /dev/null 2>&1 || true
 }
 
+# New installs get this PostgreSQL major from the official PGDG repository; distros or
+# CPU architectures PGDG does not build for fall back to the distribution's own package.
+PG_TARGET_MAJOR=18
+
+pg_has_debian_cluster() {
+    command -v pg_lsclusters > /dev/null 2>&1 && [[ -n "$(pg_lsclusters -h 2> /dev/null)" ]]
+}
+
+# Installs postgresql-${PG_TARGET_MAJOR} from apt.postgresql.org. On failure it removes the
+# repository it added, so an unsupported release cannot break later `apt-get update` runs.
+pg_apt_install_pgdg_server() {
+    local list added_lists=()
+    for list in /etc/apt/sources.list.d/pgdg.list /etc/apt/sources.list.d/pgdg.sources; do
+        [[ -e "${list}" ]] || added_lists+=("${list}")
+    done
+    if apt-get install -y -q postgresql-common ca-certificates gnupg >&2 \
+        && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >&2 \
+        && apt-get install -y -q "postgresql-${PG_TARGET_MAJOR}" >&2; then
+        return 0
+    fi
+    for list in "${added_lists[@]}"; do
+        rm -f "${list}"
+    done
+    apt-get update >&2 || true
+    echo -e "${yellow}PostgreSQL ${PG_TARGET_MAJOR} is not available for this system; installing the distribution's PostgreSQL instead.${plain}" >&2
+    return 1
+}
+
+# Installs postgresql${PG_TARGET_MAJOR}-server from the PGDG yum repository (EL 8+ only); on
+# failure it undoes the repository and module changes it made. The caller runs initdb.
+pg_el_install_pgdg_server() {
+    local elver
+    elver=$(rpm -E %rhel 2> /dev/null)
+    [[ "${elver}" =~ ^[0-9]+$ && "${elver}" -ge 8 ]] && command -v dnf > /dev/null 2>&1 || return 1
+    [[ -f /var/lib/pgsql/data/PG_VERSION ]] && return 1
+    local added_repo=false
+    if ! rpm -q pgdg-redhat-repo > /dev/null 2>&1; then
+        if dnf install -y -q "https://download.postgresql.org/pub/repos/yum/reporpms/EL-${elver}-$(uname -m)/pgdg-redhat-repo-latest.noarch.rpm" >&2; then
+            added_repo=true
+            dnf -qy module disable postgresql > /dev/null 2>&1 || true
+        fi
+    fi
+    if rpm -q pgdg-redhat-repo > /dev/null 2>&1 \
+        && dnf install -y -q "postgresql${PG_TARGET_MAJOR}-server" "postgresql${PG_TARGET_MAJOR}-contrib" >&2; then
+        return 0
+    fi
+    if [[ "${added_repo}" == "true" ]]; then
+        dnf -qy module reset postgresql > /dev/null 2>&1 || true
+        dnf remove -y -q pgdg-redhat-repo >&2 || true
+    fi
+    echo -e "${yellow}PostgreSQL ${PG_TARGET_MAJOR} is not available for this system; installing the distribution's PostgreSQL instead.${plain}" >&2
+    return 1
+}
+
 install_postgres_local() {
     local pg_user pg_pass
     pg_pass=$(gen_random_string 24)
@@ -215,21 +269,27 @@ install_postgres_local() {
     local pg_host="127.0.0.1"
     local pg_port="5432"
 
+    local pg_service="postgresql"
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update >&2 && apt-get install -y -q postgresql >&2 || return 1
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
-            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
-            ;;
-        centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum install -y postgresql-server postgresql-contrib >&2 || return 1
-            else
-                dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
+            apt-get update >&2 || return 1
+            if pg_has_debian_cluster || ! pg_apt_install_pgdg_server; then
+                apt-get install -y -q postgresql >&2 || return 1
             fi
-            [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
+            ;;
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol | centos)
+            if [[ "${release}" != "fedora" && "${release}" != "amzn" ]] && pg_el_install_pgdg_server; then
+                pg_service="postgresql-${PG_TARGET_MAJOR}"
+                [[ -f "/var/lib/pgsql/${PG_TARGET_MAJOR}/data/PG_VERSION" ]] \
+                    || "/usr/pgsql-${PG_TARGET_MAJOR}/bin/postgresql-${PG_TARGET_MAJOR}-setup" initdb >&2 || return 1
+            else
+                if [[ "${release}" == "centos" && "${VERSION_ID}" =~ ^7 ]]; then
+                    yum install -y postgresql-server postgresql-contrib >&2 || return 1
+                else
+                    dnf install -y -q postgresql-server postgresql-contrib >&2 || return 1
+                fi
+                [[ -d /var/lib/pgsql/data && -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >&2 || return 1
+            fi
             ;;
         arch | manjaro | parch)
             pacman -Sy --noconfirm postgresql >&2 || return 1
@@ -259,7 +319,7 @@ install_postgres_local() {
     esac
 
     if [[ "${release}" != "alpine" ]]; then
-        systemctl enable --now postgresql >&2 || return 1
+        systemctl enable --now "${pg_service}" >&2 || return 1
     fi
 
     # Wait briefly for the server to accept connections.
