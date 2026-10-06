@@ -614,9 +614,9 @@ func (s *SettingService) NewProxiedHTTPClient(timeout time.Duration) *http.Clien
 	client, err := netproxy.NewHTTPClient(proxyUrl, timeout)
 	if err != nil {
 		logger.Warningf("Invalid panel egress proxy %q, using direct connection: %v", proxyUrl, err)
-		return &http.Client{Timeout: timeout}
+		return panelEgressClient(timeout)
 	}
-	return client
+	return applyPanelEgressTransport(client)
 }
 
 func (s *SettingService) GetTgBotAPIServer() (string, error) {

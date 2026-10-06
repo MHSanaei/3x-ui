@@ -395,23 +395,41 @@ type MLKEM768Response struct {
 	Client string `json:"client" example:"mlkem768-client"`
 }
 
-// publicIPTransport lets a test refuse sockets without writing
-// http.DefaultTransport, which this lookup reads on a resolver goroutine.
-var publicIPTransport atomic.Pointer[http.Transport]
+// panelEgressTransport overrides the Transport of the panel's own ad-hoc HTTP
+// clients so a test can refuse sockets without writing http.DefaultTransport,
+// which getPublicIP reads on a resolver goroutine that outlives its own test.
+var panelEgressTransport atomic.Pointer[http.Transport]
 
-// publicIPLookups lets a test wait for resolvers started by earlier tests.
-var publicIPLookups atomic.Int64
+// panelEgressLookups lets a test wait for resolvers started by earlier tests.
+var panelEgressLookups atomic.Int64
 
-func getPublicIP(url string) string {
-	publicIPLookups.Add(1)
-	defer publicIPLookups.Add(-1)
-
-	client := &http.Client{
-		Timeout: 3 * time.Second,
-	}
-	if transport := publicIPTransport.Load(); transport != nil {
+// panelEgressClient builds a client for panel-originated requests. The
+// Transport stays nil (the http.Client default) unless a test installed an
+// override, so production behaviour is unchanged.
+func panelEgressClient(timeout time.Duration) *http.Client {
+	client := &http.Client{Timeout: timeout}
+	if transport := panelEgressTransport.Load(); transport != nil {
 		client.Transport = transport
 	}
+	return client
+}
+
+// applyPanelEgressTransport covers clients built elsewhere in the panel that
+// would otherwise use the default Transport; it is a no-op outside tests.
+func applyPanelEgressTransport(client *http.Client) *http.Client {
+	if client != nil && client.Transport == nil {
+		if transport := panelEgressTransport.Load(); transport != nil {
+			client.Transport = transport
+		}
+	}
+	return client
+}
+
+func getPublicIP(url string) string {
+	panelEgressLookups.Add(1)
+	defer panelEgressLookups.Add(-1)
+
+	client := panelEgressClient(3 * time.Second)
 
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
