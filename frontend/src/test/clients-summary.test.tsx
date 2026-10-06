@@ -115,4 +115,71 @@ describe('client summary always reflects the server, never a client_stats recomp
 
     expect(result.current.summary).toEqual(serverSummary);
   });
+
+  it('combines independently sampled TUIC and Xray speeds and replaces each source snapshot', async () => {
+    const result = await loadedHook();
+
+    act(() => {
+      result.current.applyTrafficEvent({
+        clientTraffics: [{ email: 'shared@example.test', up: 100, down: 150 }],
+      });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 20, down: 30 });
+
+    act(() => {
+      result.current.applyTrafficEvent({
+        clientTrafficSource: 'tuic',
+        clientTrafficIntervalMs: 10_000,
+        clientTraffics: [
+          { email: 'shared@example.test', up: 300, down: 100 },
+          { email: 'shared@example.test', up: 100, down: 100 },
+        ],
+      });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 60, down: 50 });
+
+    act(() => {
+      result.current.applyTrafficEvent({
+        clientTraffics: [{ email: 'shared@example.test', up: 50, down: 25 }],
+      });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 50, down: 25 });
+
+    act(() => {
+      result.current.applyTrafficEvent({
+        clientTrafficSource: 'tuic',
+        clientTrafficIntervalMs: 10_000,
+        clientTraffics: [],
+      });
+    });
+    expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 10, down: 5 });
+  });
+
+  it('expires stale per-source speeds without clearing the other source', async () => {
+    const result = await loadedHook();
+    vi.useFakeTimers();
+    try {
+      act(() => {
+        result.current.applyTrafficEvent({
+          clientTrafficSource: 'xray',
+          clientTrafficIntervalMs: 1_000,
+          clientTraffics: [{ email: 'shared@example.test', up: 100, down: 200 }],
+        });
+        result.current.applyTrafficEvent({
+          clientTrafficSource: 'tuic',
+          clientTrafficIntervalMs: 2_000,
+          clientTraffics: [{ email: 'shared@example.test', up: 300, down: 400 }],
+        });
+      });
+      expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 250, down: 400 });
+
+      act(() => vi.advanceTimersByTime(2_000));
+      expect(result.current.clientSpeed['shared@example.test']).toEqual({ up: 150, down: 200 });
+
+      act(() => vi.advanceTimersByTime(2_000));
+      expect(result.current.clientSpeed).toEqual({});
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
