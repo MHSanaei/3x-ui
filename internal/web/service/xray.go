@@ -796,8 +796,10 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 }
 
 const (
-	tuicEgressSocksSettings    = `{"auth":"noauth","udp":true}`
-	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
+	tuicEgressSocksSettings = `{"auth":"noauth","udp":true}`
+	// TUIC clients can connect to an IP while TLS carries a different or unresolvable SNI.
+	// Keep sniffed domains available for routing without replacing the requested destination.
+	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
 )
 
 func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
