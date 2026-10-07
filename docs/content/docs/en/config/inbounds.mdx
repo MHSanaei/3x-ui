@@ -89,6 +89,34 @@ Each fallback rule targets a child inbound and can match on `path`, `alpn`, and
 `dest`. Client share links for a fallback child are automatically rewritten to
 advertise the master's address, port, and TLS.
 
+## MTProto relay
+
+An MTProto inbound can run on a relay inside a censored network and send its
+Telegram traffic on to a server outside it. Both parts are in the inbound form:
+
+- **Relay → ServerHello MSS / Session MSS** (`network.clientMss`,
+  `network.clientMssBulk`). Some DPI systems ban the proxy's IP and port when
+  the FakeTLS ServerHello leaves in full-size TCP segments. With a ServerHello
+  MSS set (for example `92`), mtg sends only the ServerHello in small segments
+  and the rest of the session at the session MSS (`1400` by default). A session
+  MSS of `0` keeps the whole session small. Linux only.
+- **Route through Xray → Outbound.** The panel adds a loopback SOCKS inbound,
+  tagged with the inbound's tag, to the Xray config, and points mtg's
+  `[network] proxies` at it. With an outbound (or balancer) selected, it also
+  adds a routing rule from that tag to it, so Telegram traffic leaves through
+  the tunnel to the outside server. Without one, your routing rules decide.
+
+<Callout type="warn">
+  Xray's SOCKS inbound accepts a connection before it dials the target, so mtg
+  cannot fall back from an unreachable IPv6 Telegram address. If the selected
+  outbound has no IPv6, set **IP preference** to `only-ipv4`. Clients with an
+  ad-tag do not work through the bridge: the middle-proxy handshake is bound to
+  mtg's own source address and port, which SOCKS hides.
+</Callout>
+
+The ServerHello settings need an mtg-multi build with `client-mss` support.
+Older builds ignore them and start as before.
+
 ## Not sure which to pick?
 
 Use the wizard to get a recommendation based on your goals and clients:
