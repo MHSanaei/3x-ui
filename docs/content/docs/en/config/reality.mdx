@@ -129,10 +129,11 @@ vless://<uuid>@<server>:443?security=reality&pbk=<public-key>&sid=<short-id>&sni
   nodes, including external links, and uses `chrome` when no fingerprint was set.
   Explicit fingerprints are preserved: choose one that offers ML-KEM (`chrome`
   with Mihomo's uTLS v1.8.7); enabling the flag cannot upgrade an old fingerprint.
-  Raw `vless://` links do not carry this Mihomo option, so clients importing them
-  directly still need a persistent override. Very old REALITY servers that reject
-  ML-KEM require a per-node client override setting this option to `false`, or a
-  server upgrade. Clearing the version limit alone does not fix the handshake.
+  Raw `vless://` links carry the equivalent `support-x25519mlkem768=true` hint;
+  clients that support this URI extension, including current Mihomo builds, apply
+  it on import. Very old REALITY servers that reject ML-KEM require a per-node
+  client override setting this option to `false`, or a server upgrade. Clearing
+  the version limit alone does not fix the handshake.
 
 </Callout>
 

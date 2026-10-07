@@ -8,20 +8,45 @@ overrides:
   'postcss@<8.5.10': '^8.5.15'
   'sharp@<0.35.0': '^0.35.3'
 minimumReleaseAgeExclude:
-  - '@mermaid-js/parser@1.2.1'
-  - mermaid@11.17.0
-  - lucide-react@1.33.0
-  - postcss@8.5.26
-  - fumadocs-mdx@15.3.0 || 15.4.1 || 15.4.5
-  - '@fumadocs/api-docs@0.2.7 || 0.2.9'
-  - '@types/node@26.4.1'
-  - fumadocs-core@16.15.5 || 16.15.11
-  - fumadocs-openapi@11.4.0 || 11.4.3 || 12.0.3
-  - fumadocs-ui@16.15.5 || 16.15.11
-  - '@fumadocs/tailwind@0.1.2'
-  - '@fumari/image-size@0.1.1'
-  - '@fumari/stf@1.1.1'
-  - '@vitest/mocker@5.0.1 || 5.0.2'
-  - '@vitest/spy@5.0.1 || 5.0.2'
-  - fumadocs-docgen@3.1.1
-  - vitest@5.0.1 || 5.0.2
+  - fumadocs-core@16.16.2
+  - fumadocs-ui@16.16.2
+  - '@oxfmt/binding-android-arm-eabi@0.72.0'
+  - '@oxfmt/binding-android-arm64@0.72.0'
+  - '@oxfmt/binding-darwin-arm64@0.72.0'
+  - '@oxfmt/binding-darwin-x64@0.72.0'
+  - '@oxfmt/binding-freebsd-x64@0.72.0'
+  - '@oxfmt/binding-linux-arm-gnueabihf@0.72.0'
+  - '@oxfmt/binding-linux-arm-musleabihf@0.72.0'
+  - '@oxfmt/binding-linux-arm64-gnu@0.72.0'
+  - '@oxfmt/binding-linux-arm64-musl@0.72.0'
+  - '@oxfmt/binding-linux-ppc64-gnu@0.72.0'
+  - '@oxfmt/binding-linux-riscv64-gnu@0.72.0'
+  - '@oxfmt/binding-linux-riscv64-musl@0.72.0'
+  - '@oxfmt/binding-linux-s390x-gnu@0.72.0'
+  - '@oxfmt/binding-linux-x64-gnu@0.72.0'
+  - '@oxfmt/binding-linux-x64-musl@0.72.0'
+  - '@oxfmt/binding-openharmony-arm64@0.72.0'
+  - '@oxfmt/binding-win32-arm64-msvc@0.72.0'
+  - '@oxfmt/binding-win32-ia32-msvc@0.72.0'
+  - '@oxfmt/binding-win32-x64-msvc@0.72.0'
+  - '@oxlint/binding-android-arm-eabi@1.87.0'
+  - '@oxlint/binding-android-arm64@1.87.0'
+  - '@oxlint/binding-darwin-arm64@1.87.0'
+  - '@oxlint/binding-darwin-x64@1.87.0'
+  - '@oxlint/binding-freebsd-x64@1.87.0'
+  - '@oxlint/binding-linux-arm-gnueabihf@1.87.0'
+  - '@oxlint/binding-linux-arm-musleabihf@1.87.0'
+  - '@oxlint/binding-linux-arm64-gnu@1.87.0'
+  - '@oxlint/binding-linux-arm64-musl@1.87.0'
+  - '@oxlint/binding-linux-ppc64-gnu@1.87.0'
+  - '@oxlint/binding-linux-riscv64-gnu@1.87.0'
+  - '@oxlint/binding-linux-riscv64-musl@1.87.0'
+  - '@oxlint/binding-linux-s390x-gnu@1.87.0'
+  - '@oxlint/binding-linux-x64-gnu@1.87.0'
+  - '@oxlint/binding-linux-x64-musl@1.87.0'
+  - '@oxlint/binding-openharmony-arm64@1.87.0'
+  - '@oxlint/binding-win32-arm64-msvc@1.87.0'
+  - '@oxlint/binding-win32-ia32-msvc@1.87.0'
+  - '@oxlint/binding-win32-x64-msvc@1.87.0'
+  - oxfmt@0.72.0
+  - oxlint@1.87.0

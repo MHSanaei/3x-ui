@@ -251,7 +251,7 @@ export function useSecurityActions({
    * remote certificate hash via `xray tls ping`. Useful when the panel doesn't
    * hold the cert file (a CDN front / external endpoint).
    */
-  const pinFromRemote = async () => {
+  const pinFromRemote = async (allowPrivate = false) => {
     const server = (
       (getValues('streamSettings.tlsSettings.serverName') as string | undefined) ?? ''
     ).trim();
@@ -268,7 +268,23 @@ export function useSecurityActions({
     const target = /:\d+$/.test(server) || !port ? server : `${server}:${port}`;
     setSaving(true);
     try {
-      const msg = await HttpUtil.post('/panel/api/server/getRemoteCertHash', { server: target });
+      const msg = await HttpUtil.post(
+        '/panel/api/server/getRemoteCertHash',
+        { server: target, allowPrivate },
+        { silent: true },
+      );
+      // The SSRF guard refuses a LAN/loopback endpoint until the operator confirms it.
+      const blocked = (msg?.obj as { privateTarget?: boolean } | null | undefined)?.privateTarget;
+      if (!msg?.success && blocked && !allowPrivate) {
+        modal.confirm({
+          title: t('pages.inbounds.form.scanPrivateConfirmTitle'),
+          content: t('pages.inbounds.form.scanPrivateConfirmContent', { target }),
+          okText: t('confirm'),
+          cancelText: t('cancel'),
+          onOk: () => pinFromRemote(true),
+        });
+        return;
+      }
       if (!msg?.success) {
         messageApi.warning(msg?.msg || t('pages.inbounds.form.pinFromRemoteFailed'));
         return;

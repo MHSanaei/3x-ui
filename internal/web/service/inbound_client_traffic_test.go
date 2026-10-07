@@ -223,3 +223,109 @@ func TestAddClientTraffic_ExpiryWriteOnlyForConvertedClients(t *testing.T) {
 		t.Errorf("normal traffic not applied: up=%d down=%d, want 30/40", normal.Up, normal.Down)
 	}
 }
+
+func TestAddTrafficClientUpdateFailureRollsBackWholeBatch(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+	db := database.GetDB()
+
+	for _, email := range []string{"healthy@x", "rejected@x"} {
+		if err := db.Create(&xray.ClientTraffic{Email: email, Enable: true}).Error; err != nil {
+			t.Fatalf("create client traffic %s: %v", email, err)
+		}
+	}
+	if err := db.Exec(`
+		CREATE TRIGGER reject_client_traffic_update
+		BEFORE UPDATE OF up, down ON client_traffics
+		WHEN OLD.email = 'rejected@x'
+		BEGIN
+			SELECT RAISE(ABORT, 'blocked client traffic update');
+		END`).Error; err != nil {
+		t.Fatalf("create update trigger: %v", err)
+	}
+
+	batch := []*xray.ClientTraffic{
+		{Email: "healthy@x", Up: 100, Down: 200},
+		{Email: "rejected@x", Up: 300, Down: 400},
+	}
+	svc := &InboundService{}
+	if _, _, err := svc.AddTraffic(nil, batch); err == nil {
+		t.Fatal("AddTraffic succeeded despite a client UPDATE failure")
+	}
+	assertTraffic := func(email string, up, down int64) {
+		t.Helper()
+		var got xray.ClientTraffic
+		if err := db.Where("email = ?", email).First(&got).Error; err != nil {
+			t.Fatalf("load traffic for %s: %v", email, err)
+		}
+		if got.Up != up || got.Down != down {
+			t.Fatalf("traffic for %s = (%d,%d), want (%d,%d)", email, got.Up, got.Down, up, down)
+		}
+	}
+	assertTraffic("healthy@x", 0, 0)
+	assertTraffic("rejected@x", 0, 0)
+
+	if err := db.Exec("DROP TRIGGER reject_client_traffic_update").Error; err != nil {
+		t.Fatalf("drop update trigger: %v", err)
+	}
+	if _, _, err := svc.AddTraffic(nil, batch); err != nil {
+		t.Fatalf("retry AddTraffic: %v", err)
+	}
+	assertTraffic("healthy@x", 100, 200)
+	assertTraffic("rejected@x", 300, 400)
+}
+
+func TestAddClientTrafficResolvesRenamedTuicClientByStableIdentity(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
+	db := database.GetDB()
+
+	const (
+		inboundID  = 18001
+		clientUUID = "a0000000-0000-0000-0000-000000000021"
+		oldEmail   = "before-rename@x"
+		newEmail   = "after-rename@x"
+	)
+	inbound := &model.Inbound{Id: inboundID, Tag: "tuic-rename", Enable: true, Port: 0, Protocol: model.TUIC}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	client := &model.ClientRecord{Email: newEmail, UUID: clientUUID, Enable: true}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("create renamed client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: inboundID}).Error; err != nil {
+		t.Fatalf("create client-inbound link: %v", err)
+	}
+	for _, email := range []string{oldEmail, newEmail} {
+		if err := db.Create(&xray.ClientTraffic{InboundId: inboundID, Email: email, Enable: true}).Error; err != nil {
+			t.Fatalf("create traffic row %s: %v", email, err)
+		}
+	}
+
+	var currentTraffic xray.ClientTraffic
+	if err := db.Where("email = ?", newEmail).First(&currentTraffic).Error; err != nil {
+		t.Fatal(err)
+	}
+	stableTrafficID := currentTraffic.Id
+
+	if err := (&InboundService{}).addClientTraffic(db, []*xray.ClientTraffic{{
+		Email: oldEmail, TuicTrafficID: stableTrafficID, TuicUUID: clientUUID, TuicInboundId: inboundID, Up: 123, Down: 456,
+	}}); err != nil {
+		t.Fatalf("add retired snapshot traffic: %v", err)
+	}
+	for _, test := range []struct {
+		email    string
+		up, down int64
+	}{{oldEmail, 0, 0}, {newEmail, 123, 456}} {
+		var got xray.ClientTraffic
+		if err := db.Where("email = ?", test.email).First(&got).Error; err != nil {
+			t.Fatalf("load traffic for %s: %v", test.email, err)
+		}
+		if got.Up != test.up || got.Down != test.down {
+			t.Errorf("traffic for %s = (%d,%d), want (%d,%d)", test.email, got.Up, got.Down, test.up, test.down)
+		}
+	}
+}

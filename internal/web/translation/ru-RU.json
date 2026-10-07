@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "Предпросмотр продления (часовой пояс панели: {zone})",
+      "renewServerLocal": "Местное время сервера",
+      "renewPreviewHint": "Даты указаны в часовом поясе панели. Предпросмотр не продлевает клиента.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "Будет использовано продлений: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "Продлевать числа",
       "renewOnDayDesc": "Продлевать этого числа каждого месяца, в полночь по часовому поясу панели, вместо интервала в днях. Если в месяце такого числа нет, продление придётся на последний день.",
       "renewsUsed": "Продлений израсходовано",
-      "tuicTotalGBDesc": "TUIC не поддерживает персональные квоты трафика; задайте лимит на уровне инбаунда.",
       "bulkAdTagHint": "Введите 32-значный hex-тег для установки или 'none' для очистки спонсорского канала на MTProto.",
       "renewIntervalDesc": "После истечения срока добавляет указанное число 24-часовых дней к предыдущему сроку и сбрасывает трафик клиента. Оставьте независимый сброс трафика выключенным, если дополнительный сброс не нужен.",
       "renewWeeklyDesc": "Календарное продление выполняется в полночь по часовому поясу панели и также сбрасывает трафик клиента. Оставьте независимый сброс трафика выключенным, если дополнительный сброс не нужен."
@@ -2140,16 +2141,20 @@
       },
       "tuic": {
         "congestionControl": "Контроль перегрузок",
+        "congestionControlHint": "Алгоритм сервера и клиента. На сервере меняется после переподключения.",
+        "profileOptions": "Параметры клиентского профиля",
         "alpn": "ALPN",
         "udpRelayMode": "Режим ретрансляции UDP",
+        "udpRelayModeHint": "Режим UDP для клиента. Сервер поддерживает оба.",
         "zeroRttHandshake": "0-RTT рукопожатие",
         "logLevel": "Уровень логирования",
-        "logLevelHint": "Статус онлайн, «последний раз онлайн» и «старт после первого использования» читаются из строк Info сайдкара; Warn или Error отключают их для этого инбаунда.",
+        "logLevelHint": "Минимальный уровень сообщений в логах этого инбаунда.",
         "maxIdleTime": "Макс. время простоя (сек)",
         "authTimeout": "Таймаут аутентификации (сек)",
         "maxUdpRelayPacketSize": "Макс. размер пакета UDP",
         "sni": "SNI",
-        "sniHint": "Переопределение Server Name Indication"
+        "sniHint": "Имя сервера для TLS в клиентском профиле.",
+        "sniRequired": "Укажите домен для автозаполнения."
       },
       "tun": {
         "userLevel": "Уровень пользователя"

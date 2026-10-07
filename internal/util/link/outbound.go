@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 )
 
 // Outbound is the minimal shape we emit for each parsed link.
@@ -766,6 +768,7 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 		var parsed any
 		if json.Unmarshal([]byte(fm), &parsed) == nil {
 			sanitizeFinalMaskQuicParams(parsed)
+			maskcompat.UpgradeLegacyXdns(parsed)
 			stream["finalmask"] = parsed
 		}
 	}

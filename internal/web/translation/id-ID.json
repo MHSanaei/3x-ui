@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "Pratinjau perpanjangan (zona waktu panel: {zone})",
+      "renewServerLocal": "Waktu lokal server",
+      "renewPreviewHint": "Tanggal menggunakan zona waktu panel. Pratinjau tidak memperpanjang klien.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "Perkiraan jumlah perpanjangan yang digunakan: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "Perpanjang pada tanggal",
       "renewOnDayDesc": "Perpanjang pada tanggal ini setiap bulan kalender, pada tengah malam menurut zona waktu panel, alih-alih setiap N hari. Bulan yang terlalu pendek untuk tanggal yang dipilih diperpanjang pada hari terakhirnya.",
       "renewsUsed": "Perpanjangan terpakai",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto.",
       "renewIntervalDesc": "Setelah kedaluwarsa, menambahkan jumlah hari yang ditentukan (24 jam per hari) ke batas waktu sebelumnya dan mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan.",
       "renewWeeklyDesc": "Perpanjangan kalender dilakukan pada tengah malam menurut zona waktu panel dan juga mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan."
@@ -2140,16 +2141,20 @@
       },
       "tuic": {
         "congestionControl": "Kontrol Kemacetan",
+        "congestionControlHint": "Algoritma server dan klien. Perubahan server berlaku setelah terhubung ulang.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Mode Relai UDP",
+        "udpRelayModeHint": "Mode UDP klien. Server mendukung keduanya.",
         "zeroRttHandshake": "Jabat Tangan 0-RTT",
         "logLevel": "Tingkat Log",
-        "logLevelHint": "Status online, terakhir online, dan \"mulai setelah penggunaan pertama\" dibaca dari baris Info sidecar; Warn atau Error menonaktifkannya untuk inbound ini.",
+        "logLevelHint": "Level log minimum untuk inbound ini.",
         "maxIdleTime": "Waktu Diam Maks (dtk)",
         "authTimeout": "Batas Waktu Otentikasi (dtk)",
         "maxUdpRelayPacketSize": "Ukuran Paket UDP Maks",
         "sni": "SNI",
-        "sniHint": "Penggantian Server Name Indication"
+        "sniHint": "Nama server TLS dalam profil klien.",
+        "sniRequired": "Masukkan domain untuk mengisi jalur sertifikat otomatis."
       },
       "tun": {
         "userLevel": "Level Pengguna"

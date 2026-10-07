@@ -78,6 +78,11 @@ surface — still pre-existing, but open the summary with it.
 - No second way to do a thing already decided: Go tests are stdlib `testing`
   (never testify), the panel is Ant Design (never Tailwind or shadcn). Neither
   golangci-lint nor oxlint forbids the import, so it passes CI clean.
+- No second copy of logic the repository already has. A parse, guard,
+  formatter or type the change writes afresh usually exists in
+  `internal/util/`, in the service it sits in, or in `frontend/src/lib/` —
+  grep for the behaviour, not the name. Two copies drift apart; the three link
+  implementations are what that costs. Rate it by what the drift would break.
 
 ## Try to break it
 
@@ -143,6 +148,16 @@ near-certain about and that actually breaks something:
 
 - A claim about behaviour needs a `file:line` citation from this repository,
   not an inference from a name.
+- Reading code establishes what it says, not what it does when it runs. Keep
+  apart what was read, what a test or command reproduced, and what is
+  inferred, and say which one a finding rests on. "This races" or "this breaks
+  clients" with no reproduction behind it is an inference, and reads as one.
+- A performance finding needs evidence, not complexity or intuition: a
+  benchmark, a query plan, a measured timing, an allocation count, or an
+  invariant this repository already holds.
+- A security finding traces the trust boundary the change sits on — who
+  reaches the code, and what authorization, validation, escaping and
+  privilege it assumes — against the existing code, not the hunk.
 - A claim about what the change does to a caller or a callee needs that file
   read, not inferred from the hunk. A dispatch-rule violation rarely shows
   inside the diff — the changed line calls an innocuous helper and the
@@ -184,6 +199,10 @@ where a pre-existing finding counts only in its own bucket — so the author
 sees the shape of the review before the detail. When nothing is blocking,
 lead with `No blocking issues` and put the tally after it.
 
+Say each finding once. Where it already sits in an inline comment on its
+line, the summary gives it one line — severity, `file:line`, what breaks —
+and the reasoning stays in the inline comment.
+
 Nothing pads the comment: no "Strengths" section, no restatement of what the
 pull request does, no praise, no closing pleasantry. Padding is not neutral —
 it buries the two lines someone actually has to act on.
@@ -202,9 +221,11 @@ evidence, not a retelling of the pull request.
 A finding says what is wrong, where (`file:line`), what triggers it and what
 breaks. It never carries the fix: no `suggestion` block, no patch, no
 replacement snippet, no rewritten function, no "suggested fix" section — in
-the summary and in an inline comment alike. One clause naming WHERE the fix
-belongs is the most it may add — a file, a function, a symbol, a layer — and
-nothing about what happens there. Prose is a patch too the moment a verb
+the summary and in an inline comment alike. It does not say where the fix
+belongs either: no closing "The fix belongs in …" line. The `file:line`
+already locates the defect, and a location set beside the missing piece the
+finding just named — "the fix belongs in the capability set" after naming the
+two capabilities it lacks — is the fix. Prose is a patch too the moment a verb
 describes the change: "move the lookup inside the body", "spend the comment
 on the invariant instead" hand it over as surely as a diff would, and so does
 holding up an existing symbol as the model to copy. A clause the maintainer

@@ -18,7 +18,7 @@ inbounds** at once, with per-client traffic accounting.
 | **Auth**       | Hysteria2             | The client credential.                                             |
 | **Flow**       | VLESS                 | XTLS flow, e.g. `xtls-rprx-vision`.                                |
 | **Limit IP**   | all (except TUIC)     | Max simultaneous source IPs (enforced via Fail2ban).               |
-| **Total (GB)** | all (except TUIC)     | Traffic quota; the client is disabled when exhausted (for TUIC, limits are set at the inbound level). |
+| **Total (GB)** | all                   | Traffic quota; the client is disabled when exhausted.              |
 | **Expiry**     | all                   | Date after which the client stops working.                        |
 | **Auto renewal** | all                 | Disabled, fixed interval in days, calendar weekly, or calendar monthly. |
 | **Telegram ID**| all                   | Links the client to a Telegram user for self-service/notifications.|
@@ -80,6 +80,16 @@ guarantee a future renewal. When no expiry is set, auto-renewal cannot run; an
 explicit button can set the first calendar cutoff. Selecting a mode alone never
 rewrites an existing expiry. First-use clients keep their initial duration, and
 their calendar dates are available after activation.
+
+Preview dates use the Gregorian format `YYYY-MM-DD HH:mm:ss UTC±HH:mm`,
+preserving any fractional seconds in the cutoff. Each date includes its own
+UTC offset, so a daylight-saving change can show different offsets before and
+after renewal. The heading identifies the panel time zone; **Server local time**
+means the server's `Local` setting, not the browser's time zone. For example,
+`2026-09-27 05:00:00 UTC+00:00` is 13:00 in UTC+08:00. **Estimated renewals used**
+is the allowance this preview would consume, including any catch-up periods,
+not a count of renewals already performed. The first-cutoff button uses the same
+date format; clicking it still requires saving the form to persist the change.
 
 For legacy last-second calendar cutoffs, the renewal boundary includes the
 existing free alignment to the following midnight. The last-valid-second

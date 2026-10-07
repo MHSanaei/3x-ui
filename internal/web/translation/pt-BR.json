@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "Prévia da renovação (fuso horário do painel: {zone})",
+      "renewServerLocal": "Hora local do servidor",
+      "renewPreviewHint": "As datas usam o fuso horário do painel. A prévia não renova o cliente.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "Renovações que seriam consumidas: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "Renovar no dia",
       "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele.",
       "renewsUsed": "Renovações usadas",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto.",
       "renewIntervalDesc": "Após a expiração, adiciona o número configurado de dias de 24 horas ao prazo anterior e redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
       "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional."
@@ -2140,16 +2141,20 @@
       },
       "tuic": {
         "congestionControl": "Controle de congestionamento",
+        "congestionControlHint": "Algoritmo do servidor e cliente. Alterações no servidor valem após reconectar.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Modo de retransmissão UDP",
+        "udpRelayModeHint": "Modo UDP do cliente. O servidor aceita ambos.",
         "zeroRttHandshake": "Handshake 0-RTT",
         "logLevel": "Nível de registro",
-        "logLevelHint": "Status online, último acesso e \"iniciar após o primeiro uso\" são lidos das linhas Info do sidecar; Warn ou Error os desativam para este inbound.",
+        "logLevelHint": "Nível mínimo de log desta entrada.",
         "maxIdleTime": "Tempo máx. ocioso (s)",
         "authTimeout": "Tempo limite de autenticação (s)",
         "maxUdpRelayPacketSize": "Tamanho máx. do pacote UDP",
         "sni": "SNI",
-        "sniHint": "Substituição do Server Name Indication"
+        "sniHint": "Nome do servidor TLS no perfil do cliente.",
+        "sniRequired": "Informe um domínio para preencher os caminhos do certificado."
       },
       "tun": {
         "userLevel": "Nível do Usuário"

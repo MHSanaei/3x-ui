@@ -23,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -83,8 +84,10 @@ func allModels() []any {
 		&model.NodeClientTraffic{},
 		&model.NodeClientIp{},
 		&model.ClientGlobalTraffic{},
+		&model.NodePendingReset{},
 		&model.OutboundSubscription{},
 		&model.SubBalancer{},
+		&model.TuicTrafficReceipt{},
 	}
 }
 
@@ -1279,7 +1282,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskObjectsFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1410,6 +1413,18 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "DNSOutboundQTypeZeroFix") {
 		if err := migrateDNSOutboundQTypeZero(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "WireguardDomainStrategyFix") {
+		if err := migrateWireguardDomainStrategy(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "XdnsFinalmaskObjectsFix") {
+		if err := migrateXdnsFinalmaskObjects(); err != nil {
 			return err
 		}
 	}
@@ -1812,6 +1827,226 @@ var freedomDomainStrategies = map[string]bool{
 	"asis": true, "useip": true, "useipv4": true, "useipv6": true,
 	"useipv4v6": true, "useipv6v4": true, "forceip": true, "forceipv4": true,
 	"forceipv6": true, "forceipv4v6": true, "forceipv6v4": true,
+}
+
+func migrateWireguardDomainStrategy() error {
+	var setting model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", "xrayTemplateConfig").First(&setting).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return db.Create(&model.HistoryOfSeeders{SeederName: "WireguardDomainStrategyFix"}).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	updated, changed, rErr := rewriteWireguardDomainStrategy(setting.Value)
+	if rErr != nil {
+		log.Printf("WireguardDomainStrategyFix: skip (invalid xrayTemplateConfig json): %v", rErr)
+		return db.Create(&model.HistoryOfSeeders{SeederName: "WireguardDomainStrategyFix"}).Error
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if changed {
+			if err := tx.Model(&model.Setting{}).Where("key = ?", "xrayTemplateConfig").
+				Update("value", updated).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "WireguardDomainStrategyFix"}).Error
+	})
+}
+
+// rewriteWireguardDomainStrategy splits the settings.domainStrategy xray-core 26.9.30 (#6771)
+// ignores: sockopt.domainStrategy now picks the endpoint's family, targetStrategy the targets'.
+func rewriteWireguardDomainStrategy(raw string) (string, bool, error) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false, nil
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return raw, false, err
+	}
+	outbounds, ok := cfg["outbounds"].([]any)
+	if !ok {
+		return raw, false, nil
+	}
+	changed := false
+	for _, ob := range outbounds {
+		obj, ok := ob.(map[string]any)
+		if !ok {
+			continue
+		}
+		if proto, _ := obj["protocol"].(string); !strings.EqualFold(proto, "wireguard") {
+			continue
+		}
+		settings, _ := obj["settings"].(map[string]any)
+		legacy, hasLegacy := settings["domainStrategy"]
+		remoteDNS, _ := settings["remoteDNS"].([]any)
+		localDNS := len(remoteDNS) == 1 && remoteDNS[0] == "local"
+		if !hasLegacy && !localDNS {
+			continue
+		}
+		delete(settings, "domainStrategy")
+		strategy, _ := legacy.(string)
+		if !wireguardFamilyStrategies[strings.ToLower(strategy)] {
+			strategy = ""
+		}
+		if strategy != "" {
+			if sockopt := outboundSockopt(obj, true); !strategyIsSet(sockopt["domainStrategy"]) {
+				sockopt["domainStrategy"] = strategy
+			}
+		}
+		if localDNS {
+			delete(settings, "remoteDNS")
+			if strategy == "" {
+				strategy = "ForceIP"
+			}
+		}
+		if strategy != "" && !strategyIsSet(obj["targetStrategy"]) {
+			obj["targetStrategy"] = strategy
+		}
+		changed = true
+	}
+	if !changed {
+		return raw, false, nil
+	}
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return raw, false, err
+	}
+	return string(out), true, nil
+}
+
+// wireguardFamilyStrategies are the old wireguard values that pinned an address family;
+// plain ForceIP pinned none, and any other value already failed the old core's load.
+var wireguardFamilyStrategies = map[string]bool{
+	"forceipv4": true, "forceipv6": true, "forceipv4v6": true, "forceipv6v4": true,
+}
+
+func strategyIsSet(value any) bool {
+	s, _ := value.(string)
+	return s != "" && !strings.EqualFold(s, "asis")
+}
+
+// migrateXdnsFinalmaskObjects upgrades every stored xdns mask to the object shape
+// xray-core 26.9.30 requires, wherever the panel keeps a finalmask.
+func migrateXdnsFinalmaskObjects() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var inbounds []model.Inbound
+		if err := tx.Select("id", "stream_settings").Find(&inbounds).Error; err != nil {
+			return err
+		}
+		for _, inbound := range inbounds {
+			if updated, changed := upgradeLegacyXdnsJSON(inbound.StreamSettings, streamFinalmask, false); changed {
+				if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+					Update("stream_settings", updated).Error; err != nil {
+					return err
+				}
+			}
+		}
+		var hosts []model.Host
+		if err := tx.Select("id", "final_mask").Find(&hosts).Error; err != nil {
+			return err
+		}
+		for _, host := range hosts {
+			if updated, changed := upgradeLegacyXdnsJSON(host.FinalMask, wholeFinalmask, false); changed {
+				if err := tx.Model(&model.Host{}).Where("id = ?", host.Id).
+					Update("final_mask", updated).Error; err != nil {
+					return err
+				}
+			}
+		}
+		var subs []model.OutboundSubscription
+		if err := tx.Select("id", "last_fetched_outbounds").Find(&subs).Error; err != nil {
+			return err
+		}
+		for _, sub := range subs {
+			if updated, changed := upgradeLegacyXdnsJSON(sub.LastFetchedOutbounds, outboundListFinalmasks, false); changed {
+				if err := tx.Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).
+					Update("last_fetched_outbounds", updated).Error; err != nil {
+					return err
+				}
+			}
+		}
+		for _, stored := range []struct {
+			key    string
+			locate func(any) []any
+			indent bool
+		}{
+			{"xrayTemplateConfig", templateFinalmasks, true},
+			{"subJsonFinalMask", wholeFinalmask, false},
+		} {
+			var setting model.Setting
+			err := tx.Where("key = ?", stored.key).First(&setting).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if updated, changed := upgradeLegacyXdnsJSON(setting.Value, stored.locate, stored.indent); changed {
+				if err := tx.Model(&model.Setting{}).Where("key = ?", stored.key).
+					Update("value", updated).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "XdnsFinalmaskObjectsFix"}).Error
+	})
+}
+
+// upgradeLegacyXdnsJSON rewrites the finalmasks locate finds in one stored JSON document,
+// leaving the document byte-for-byte alone when nothing in it is legacy.
+func upgradeLegacyXdnsJSON(raw string, locate func(any) []any, indent bool) (string, bool) {
+	if strings.TrimSpace(raw) == "" {
+		return raw, false
+	}
+	var doc any
+	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
+		return raw, false
+	}
+	changed := false
+	for _, mask := range locate(doc) {
+		if maskcompat.UpgradeLegacyXdns(mask) {
+			changed = true
+		}
+	}
+	if !changed {
+		return raw, false
+	}
+	var out []byte
+	var err error
+	if indent {
+		out, err = json.MarshalIndent(doc, "", "  ")
+	} else {
+		out, err = json.Marshal(doc)
+	}
+	if err != nil {
+		return raw, false
+	}
+	return string(out), true
+}
+
+func wholeFinalmask(doc any) []any { return []any{doc} }
+
+func streamFinalmask(doc any) []any {
+	stream, _ := doc.(map[string]any)
+	return []any{stream["finalmask"]}
+}
+
+func outboundListFinalmasks(doc any) []any {
+	list, _ := doc.([]any)
+	finalmasks := make([]any, 0, len(list))
+	for _, entry := range list {
+		obj, _ := entry.(map[string]any)
+		finalmasks = append(finalmasks, streamFinalmask(obj["streamSettings"])...)
+	}
+	return finalmasks
+}
+
+func templateFinalmasks(doc any) []any {
+	cfg, _ := doc.(map[string]any)
+	return append(outboundListFinalmasks(cfg["inbounds"]), outboundListFinalmasks(cfg["outbounds"])...)
 }
 
 // migrateDNSOutboundLegacyKeys rewrites stored dns outbounds once, because the

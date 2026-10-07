@@ -953,11 +953,13 @@
       "renewModeMonthly": "日曆月",
       "renewWeekday": "每週續期日",
       "renewScheduleDesc": "日曆續期按面板時區的午夜執行，並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。每月 1 日續期表示有效至上個月末；每月 31 日不是同一邊界。",
-      "renewPreview": "續期預覽（{zone}）",
+      "renewPreview": "續期預覽（面板時區：{zone}）",
+      "renewServerLocal": "伺服器本地時區",
+      "renewPreviewHint": "日期依面板時區顯示，查看預覽不會執行續期。",
       "renewAt": "續期邊界",
       "renewValidThrough": "本期有效至",
       "renewNextExpiry": "續期後的截止時間",
-      "renewPeriods": "計入續期次數：{count}",
+      "renewPeriods": "預計消耗續期次數：{count}",
       "renewUnavailable": "剩餘續期次數不足以提供未來的截止時間。",
       "renewFirstUse": "首次使用啟用後才能確定日期，首次使用後的初始時長保持不變。",
       "renewSetExpiry": "設定首個週期截止時間",
@@ -966,7 +968,6 @@
       "renewOnDay": "按日期續期",
       "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。",
       "renewsUsed": "已用續期次數",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "輸入 32 位十六進位標籤以設定，或輸入 'none' 清除 MTProto 贊助頻道。",
       "renewIntervalDesc": "到期後從上次截止時間增加指定天數（每天 24 小時），並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。",
       "renewWeeklyDesc": "日曆續期按面板時區的午夜執行，並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。"
@@ -2140,16 +2141,20 @@
       },
       "tuic": {
         "congestionControl": "壅塞控制演算法",
+        "congestionControlHint": "伺服器與用戶端演算法。伺服器變更於重新連線後生效。",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "UDP 轉發模式",
+        "udpRelayModeHint": "用戶端 UDP 模式。伺服器支援兩種模式。",
         "zeroRttHandshake": "0-RTT 握手",
         "logLevel": "日誌層級",
-        "logLevelHint": "線上狀態、最後上線時間和「首次使用後開始」來自 sidecar 的 Info 日誌行；選擇 Warn 或 Error 會使此入站失去這些功能。",
+        "logLevelHint": "此入站的最低記錄級別。",
         "maxIdleTime": "最大閒置時間 (秒)",
         "authTimeout": "認證逾時時間 (秒)",
         "maxUdpRelayPacketSize": "最大 UDP 封包大小",
         "sni": "SNI",
-        "sniHint": "伺服器名稱指示 (SNI) 覆蓋"
+        "sniHint": "用戶端設定檔中的 TLS 伺服器名稱。",
+        "sniRequired": "請輸入網域以自動填入憑證路徑。"
       },
       "tun": {
         "userLevel": "用戶級別"

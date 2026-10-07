@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "پیش‌نمایش تمدید (منطقهٔ زمانی پنل: {zone})",
+      "renewServerLocal": "زمان محلی سرور",
+      "renewPreviewHint": "تاریخ‌ها بر اساس منطقهٔ زمانی پنل نمایش داده می‌شوند. پیش‌نمایش باعث تمدید کاربر نمی‌شود.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "تعداد تمدیدهای قابل مصرف در این پیش‌نمایش: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "روز تمدید",
       "renewOnDayDesc": "در این روز از هر ماه تقویمی، در نیمه‌شب به وقت پنل تمدید می‌شود، به جای هر N روز. اگر ماه کوتاه‌تر از روز انتخابی باشد، در آخرین روز آن ماه تمدید می‌شود.",
       "renewsUsed": "تمدیدهای استفاده‌شده",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "یک برچسب هگز ۳۲ کاراکتری برای تنظیم وارد کنید، یا 'none' برای پاک کردن در MTProto.",
       "renewIntervalDesc": "پس از انقضا، تعداد روزهای تعیین‌شده (هر روز ۲۴ ساعت) به مهلت قبلی اضافه و ترافیک کاربر بازنشانی می‌شود. بازنشانی مستقل ترافیک را غیرفعال نگه دارید، مگر اینکه بازنشانی دیگری می‌خواهید.",
       "renewWeeklyDesc": "تمدید تقویمی در نیمه‌شب به وقت پنل انجام می‌شود و ترافیک کاربر را نیز بازنشانی می‌کند. بازنشانی مستقل ترافیک را غیرفعال نگه دارید، مگر اینکه بازنشانی دیگری می‌خواهید."
@@ -2140,16 +2141,20 @@
       },
       "tuic": {
         "congestionControl": "کنترل ازدحام",
+        "congestionControlHint": "الگوریتم سرور و کلاینت. تغییر سرور پس از اتصال مجدد اعمال می‌شود.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "حالت رله UDP",
+        "udpRelayModeHint": "حالت UDP کلاینت. سرور از هر دو پشتیبانی می‌کند.",
         "zeroRttHandshake": "دست دادن 0-RTT",
         "logLevel": "سطح گزارش",
-        "logLevelHint": "وضعیت آنلاین، آخرین اتصال و «شروع پس از اولین استفاده» از خطوط Info سایدکار خوانده می‌شوند؛ Warn یا Error آن‌ها را برای این اینباند غیرفعال می‌کند.",
+        "logLevelHint": "حداقل سطح لاگ این ورودی.",
         "maxIdleTime": "حداکثر زمان بیکاری (ثانیه)",
         "authTimeout": "مهلت زمانی احراز هویت (ثانیه)",
         "maxUdpRelayPacketSize": "حداکثر اندازه بسته UDP",
         "sni": "SNI",
-        "sniHint": "بازنویسی نشانگر نام سرور"
+        "sniHint": "نام سرور TLS در پروفایل کلاینت.",
+        "sniRequired": "برای تکمیل خودکار مسیرهای گواهی، دامنه را وارد کنید."
       },
       "tun": {
         "userLevel": "سطح کاربر"

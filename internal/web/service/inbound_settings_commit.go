@@ -139,3 +139,26 @@ func mergeClientLists(base, ours, current []any) []any {
 	}
 	return out
 }
+
+// keepStoredClients puts the stored client list back into an inbound save's
+// payload: clients change through the client endpoints, never this form.
+func keepStoredClients(payload, stored string) string {
+	var payloadM, storedM map[string]any
+	if json.Unmarshal([]byte(payload), &payloadM) != nil || json.Unmarshal([]byte(stored), &storedM) != nil {
+		return payload
+	}
+	storedClients, has := storedM["clients"]
+	if reflect.DeepEqual(payloadM["clients"], storedClients) {
+		return payload
+	}
+	if has {
+		payloadM["clients"] = storedClients
+	} else {
+		delete(payloadM, "clients")
+	}
+	b, err := json.MarshalIndent(payloadM, "", "  ")
+	if err != nil {
+		return payload
+	}
+	return string(b)
+}
