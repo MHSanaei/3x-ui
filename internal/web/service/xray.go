@@ -286,6 +286,14 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				if inboundClient, ok := wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(c.Email))]; ok {
 					c.AllowedIPs = inboundClient.AllowedIPs
 					c.PreSharedKey = inboundClient.PreSharedKey
+					c.PublicKey = inboundClient.PublicKey
+					// #6731: a nil settings keepalive must not keep the other tunnel's value.
+					if inboundClient.KeepAlive == nil {
+						c.KeepAlive = nil
+					} else {
+						keepalive := *inboundClient.KeepAlive
+						c.KeepAlive = &keepalive
+					}
 				}
 				wgPeers = append(wgPeers, model.WireguardPeerFromClient(c))
 				continue
@@ -796,8 +804,10 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 }
 
 const (
-	tuicEgressSocksSettings    = `{"auth":"noauth","udp":true}`
-	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"]}`
+	tuicEgressSocksSettings = `{"auth":"noauth","udp":true}`
+	// TUIC clients can connect to an IP while TLS carries a different or unresolvable SNI.
+	// Keep sniffed domains available for routing without replacing the requested destination.
+	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
 )
 
 func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {

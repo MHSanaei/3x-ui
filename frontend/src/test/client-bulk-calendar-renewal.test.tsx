@@ -74,7 +74,11 @@ it('keeps bulk renewal disabled by default and requires explicit cutoff selectio
         }),
       ]),
     );
-    fireEvent.click(screen.getByRole('button', { name: /Set first cycle cutoff/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Set first cycle cutoff: 2030-01-01 00:00:00 UTC+08:00',
+      }),
+    );
     await submit();
     await waitFor(() =>
       expect(bulkCreate).toHaveBeenLastCalledWith([
