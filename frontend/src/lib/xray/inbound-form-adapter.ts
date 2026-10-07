@@ -1,3 +1,4 @@
+import { resolveTuicServerSettings } from '@/lib/tuic';
 import type {
   InboundFormValues,
   ShareAddrStrategy,
@@ -18,7 +19,10 @@ import {
 import type { StreamSettings } from '@/schemas/api/inbound';
 import type { Sniffing } from '@/schemas/primitives';
 import type { z } from 'zod';
-import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
+import {
+  dropEmptyFinalMask,
+  normalizeStreamSettingsForWire,
+} from '@/lib/xray/stream-wire-normalize';
 import { canEnableSniffing } from '@/lib/xray/protocol-capabilities';
 import { tlsCertUsesFiles } from '@/schemas/protocols/security/tls';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
@@ -165,7 +169,12 @@ function stripTlsCertUseFile(stream: Record<string, unknown>): void {
 
 export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const protocol = (row.protocol || 'vless') as InboundSettings['protocol'];
-  const settings = coerceJsonObject(row.settings) as InboundSettings['settings'];
+  const rawSettings = coerceJsonObject(row.settings);
+  const settings = (
+    protocol === 'tuic'
+      ? { clients: rawSettings.clients, server: resolveTuicServerSettings(rawSettings) }
+      : rawSettings
+  ) as InboundSettings['settings'];
   const rawStream = coerceJsonObject(row.streamSettings);
   const streamSettings =
     Object.keys(rawStream).length > 0 ? (rawStream as StreamSettings) : undefined;
@@ -322,25 +331,7 @@ export function dropLegacyOptionalEmpties(
   if (Array.isArray(fb) && fb.length === 0) delete settings.fallbacks;
 
   if (stream) {
-    // StreamSettings emits `finalmask` only when at least one transport
-    // mask exists (legacy `hasFinalMask`). Drop the whole block when all
-    // sub-fields are empty; otherwise drop only the empty sub-arrays so
-    // the wire payload doesn't carry a stray `"tcp": []` next to a
-    // populated UDP mask list (and vice versa).
-    const fm = stream.finalmask as
-      | { tcp?: unknown[]; udp?: unknown[]; quicParams?: unknown }
-      | undefined;
-    if (fm && typeof fm === 'object') {
-      const hasTcp = Array.isArray(fm.tcp) && fm.tcp.length > 0;
-      const hasUdp = Array.isArray(fm.udp) && fm.udp.length > 0;
-      const hasQuic = fm.quicParams != null;
-      if (!hasTcp && !hasUdp && !hasQuic) {
-        delete stream.finalmask;
-      } else {
-        if (!hasTcp) delete fm.tcp;
-        if (!hasUdp) delete fm.udp;
-      }
-    }
+    dropEmptyFinalMask(stream);
 
     // Hysteria's per-client auth lives in settings.clients[*].auth; the
     // streamSettings.hysteriaSettings.auth slot is a holdover from older
@@ -353,9 +344,22 @@ export function dropLegacyOptionalEmpties(
   }
 }
 
-export function formValuesToWirePayload(values: InboundFormValues): WireInboundPayload {
+// An existing inbound's clients change only through the client endpoints, so
+// the edit form neither loads them nor sends them back.
+export function withoutClients(values: InboundFormValues): InboundFormValues {
+  const settings = { ...(values.settings as Record<string, unknown> | undefined) };
+  delete settings.clients;
+  return { ...values, settings } as InboundFormValues;
+}
+
+export function formValuesToWirePayload(
+  values: InboundFormValues,
+  options: { omitClients?: boolean } = {},
+): WireInboundPayload {
   const settingsPruned = (pruneEmpty(values.settings ?? {}) ?? {}) as Record<string, unknown>;
-  if (Array.isArray(settingsPruned.clients)) {
+  if (options.omitClients) {
+    delete settingsPruned.clients;
+  } else if (Array.isArray(settingsPruned.clients)) {
     settingsPruned.clients = normalizeClients(values.protocol, settingsPruned.clients);
   }
   let streamPruned = values.streamSettings

@@ -3,8 +3,10 @@ package nodetoken
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -212,26 +214,43 @@ func TestParseMode(t *testing.T) {
 	}
 }
 
-func TestFileKeySourceRejectsLoosePerms(t *testing.T) {
-	dir := t.TempDir()
-	p := filepath.Join(dir, "k.json")
+// writeKeyFile writes a one-key keyring and chmods it, since WriteFile's mode
+// passes through the umask.
+func writeKeyFile(t *testing.T, mode os.FileMode) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "k.json")
 	key := make([]byte, keyLen)
 	body, _ := json.Marshal(keyFile{Active: "k1", Keys: map[string]string{"k1": base64.StdEncoding.EncodeToString(key)}})
-	if err := os.WriteFile(p, body, 0o644); err != nil {
+	if err := os.WriteFile(p, body, mode); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := (FileKeySource{Path: p}).Load(); err == nil {
-		t.Fatal("0644 key file must be rejected")
-	}
-	if err := os.Chmod(p, 0o600); err != nil {
+	if err := os.Chmod(p, mode); err != nil {
 		t.Fatal(err)
 	}
-	kr, err := (FileKeySource{Path: p}).Load()
+	return p
+}
+
+// Windows reports every writable file as 0666, so a mode check there refused
+// every key file, an owner-only one included.
+func TestFileKeySourceLoadsOwnerOnlyKeyFile(t *testing.T) {
+	kr, err := (FileKeySource{Path: writeKeyFile(t, 0o600)}).Load()
 	if err != nil {
 		t.Fatalf("0600 key file should load: %v", err)
 	}
 	if kr.ActiveID != "k1" || len(kr.Keys) != 1 {
 		t.Fatalf("unexpected keyring %+v", kr)
+	}
+}
+
+func TestFileKeySourceRejectsLoosePerms(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission bits are not meaningful on Windows")
+	}
+	p := writeKeyFile(t, 0o644)
+	_, err := (FileKeySource{Path: p}).Load()
+	want := fmt.Sprintf("nodetoken: key file %s has insecure mode 0644 (want 0600)", p)
+	if err == nil || err.Error() != want {
+		t.Fatalf("Load() error = %v, want %q", err, want)
 	}
 }
 

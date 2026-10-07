@@ -4476,6 +4476,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "nullable": true,
         "type": "boolean"
       },
+      "from": {
+        "example": "2026-10-01T00:00:00Z",
+        "format": "date-time",
+        "nullable": true,
+        "type": "string"
+      },
       "id": {
         "example": "acme-2026-10",
         "type": "string"

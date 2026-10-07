@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"embed"
 	"math/big"
-	"net/http"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -48,8 +48,7 @@ var (
 	EventBus *eventbus.Bus
 
 	// Performance improvements
-	messageWorkerPool   chan struct{} // Semaphore for limiting concurrent message processing
-	optimizedHTTPClient *http.Client  // HTTP client with connection pooling and timeouts
+	messageWorkerPool chan struct{} // Semaphore for limiting concurrent message processing
 
 	// Simple cache for frequently accessed data
 	statusCache struct {
@@ -306,17 +305,6 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	// Initialize worker pool for concurrent message processing (max 10 concurrent handlers)
 	messageWorkerPool = make(chan struct{}, 10)
 
-	// Initialize optimized HTTP client with connection pooling
-	optimizedHTTPClient = &http.Client{
-		Timeout: 15 * time.Second,
-		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 10,
-			IdleConnTimeout:     30 * time.Second,
-			DisableKeepAlives:   false,
-		},
-	}
-
 	t.SetHostname()
 
 	// Get Telegram bot token
@@ -353,15 +341,6 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	tgBotProxy, err := t.settingService.GetTgBotProxy()
 	if err != nil {
 		logger.Warning("Failed to get Telegram bot proxy URL:", err)
-	}
-
-	// Fall back to the panel-wide egress bridge when no dedicated bot proxy is
-	// set. Resolved once at bot start: if Xray comes up later, the bot keeps
-	// its direct connection until it is restarted.
-	if tgBotProxy == "" {
-		if egress := t.settingService.PanelEgressProxyURL(); egress != "" && isSupportedBotProxyScheme(egress) {
-			tgBotProxy = egress
-		}
 	}
 
 	// Get Telegram bot API server URL
@@ -423,7 +402,7 @@ func isSupportedBotProxyScheme(proxyUrl string) bool {
 }
 
 // createRobustFastHTTPClient creates a fasthttp.Client with proper connection handling
-func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
+func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string, panelEgress func() string) *fasthttp.Client {
 	client := &fasthttp.Client{
 		// Connection timeouts
 		ReadTimeout:                   30 * time.Second,
@@ -450,9 +429,22 @@ func (t *Tgbot) createRobustFastHTTPClient(proxyUrl string) *fasthttp.Client {
 		} else {
 			client.Dial = fasthttpproxy.FasthttpHTTPDialer(proxyUrl)
 		}
+	} else if panelEgress != nil {
+		client.Dial = panelEgressDial(panelEgress)
 	}
 
 	return client
+}
+
+// panelEgressDial resolves the panel egress bridge per connection, so a bridge
+// that comes up after bot start (Xray started later) is used without a restart.
+func panelEgressDial(resolve func() string) fasthttp.DialFunc {
+	return func(addr string) (net.Conn, error) {
+		if bridge := resolve(); bridge != "" {
+			return fasthttpproxy.FasthttpSocksDialer(bridge)(addr)
+		}
+		return fasthttp.Dial(addr)
+	}
 }
 
 // NewBot creates a new Telegram bot instance with optional proxy and API server settings.
@@ -480,7 +472,7 @@ func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*tel
 	}
 
 	// Create robust fasthttp client
-	client := t.createRobustFastHTTPClient(proxyUrl)
+	client := t.createRobustFastHTTPClient(proxyUrl, t.settingService.PanelEgressProxyURL)
 
 	// Build bot options
 	var options []telego.BotOption

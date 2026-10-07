@@ -6,9 +6,6 @@ import {
   BuildOutlined,
   CloudSyncOutlined,
   DesktopOutlined,
-  LinkOutlined,
-  MobileOutlined,
-  NotificationOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { AllSetting } from '@/models/setting';
@@ -22,7 +19,6 @@ interface HappSettingsContentProps {
   updateSetting: (patch: Partial<AllSetting>) => void;
   isMobile: boolean;
   remoteSourceBadge: (val: string) => React.ReactNode;
-  defaultActiveTab?: 'routing' | 'links';
 }
 
 export default function HappSettingsContent({
@@ -30,9 +26,9 @@ export default function HappSettingsContent({
   updateSetting,
   isMobile,
   remoteSourceBadge,
-  defaultActiveTab = 'routing',
 }: HappSettingsContentProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   // Generator choices stay local until Apply updates the draft; page Save persists it.
   const [selectedPreset, setSelectedPreset] = useState<string>('iran-bypass');
   const [includeAdblock, setIncludeAdblock] = useState(false);
@@ -42,18 +38,19 @@ export default function HappSettingsContent({
     const payload = buildHappPresetDeeplink(selectedPreset, includeAdblock);
     if (payload) {
       updateSetting({ subRoutingRules: payload });
-      message.success(t('pages.settings.subHappPresetApplied'));
+      messageApi.success(t('pages.settings.subHappPresetApplied'));
     }
   };
 
   const handleBuildDeeplink = (deeplink: string) => {
     updateSetting({ subRoutingRules: deeplink });
     setIsModalOpen(false);
-    message.success(t('pages.settings.subHappDeeplinkGenerated'));
+    messageApi.success(t('pages.settings.subHappDeeplinkGenerated'));
   };
 
   return (
     <>
+      {messageContextHolder}
       <SettingListItem
         paddings="small"
         title={t('pages.settings.subHappAutoDetect')}
@@ -65,17 +62,27 @@ export default function HappSettingsContent({
         />
       </SettingListItem>
 
+      <SettingListItem
+        paddings="small"
+        title={t('pages.settings.happLinkEnable')}
+        description={t('pages.settings.happLinkEnableDesc')}
+      >
+        <Switch
+          checked={allSetting.happLinkEnable}
+          onChange={(v) => updateSetting({ happLinkEnable: v })}
+        />
+      </SettingListItem>
+
       <Tabs
         type="card"
         size="small"
-        defaultActiveKey={defaultActiveTab}
         items={[
           {
             key: 'routing',
-            label: (
-              <span>
-                <BranchesOutlined /> {!isMobile && t('pages.settings.subHappGroupRouting')}
-              </span>
+            label: catTabLabel(
+              <BranchesOutlined />,
+              t('pages.settings.subHappGroupRouting'),
+              isMobile,
             ),
             children: (
               <>
@@ -173,27 +180,11 @@ export default function HappSettingsContent({
             ),
           },
           {
-            key: 'links',
-            label: catTabLabel(<LinkOutlined />, t('pages.settings.subHappGroupLinks'), isMobile),
-            children: (
-              <SettingListItem
-                paddings="small"
-                title={t('pages.settings.happLinkEnable')}
-                description={t('pages.settings.happLinkEnableDesc')}
-              >
-                <Switch
-                  checked={allSetting.happLinkEnable}
-                  onChange={(v) => updateSetting({ happLinkEnable: v })}
-                />
-              </SettingListItem>
-            ),
-          },
-          {
-            key: 'banners',
-            label: (
-              <span>
-                <NotificationOutlined /> {!isMobile && t('pages.settings.subHappGroupBanners')}
-              </span>
+            key: 'appearance',
+            label: catTabLabel(
+              <DesktopOutlined />,
+              t('pages.settings.subHappGroupThemes'),
+              isMobile,
             ),
             children: (
               <>
@@ -285,15 +276,59 @@ export default function HappSettingsContent({
                     onChange={(v) => updateSetting({ subHappNotificationExpire: v })}
                   />
                 </SettingListItem>
+
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subHappColorProfile')}
+                  description={t('pages.settings.subHappColorProfileDesc')}
+                >
+                  <Space orientation="vertical" style={{ width: '100%' }}>
+                    <Input
+                      value={allSetting.subHappColorProfile}
+                      placeholder='{"serverRowBackgroundColor":"#21003D67"} or resetcolors'
+                      onChange={(e) => updateSetting({ subHappColorProfile: e.target.value })}
+                    />
+                    <Space wrap size="small">
+                      <Button
+                        size="small"
+                        onClick={() => updateSetting({ subHappColorProfile: 'resetcolors' })}
+                      >
+                        {t('reset')}
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          updateSetting({
+                            subHappColorProfile:
+                              '{"serverRowBackgroundColor":"#21003D67","cardBackgroundColor":"#120023B3"}',
+                          })
+                        }
+                      >
+                        Violet
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          updateSetting({
+                            subHappColorProfile:
+                              '{"serverRowBackgroundColor":"#002B3667","cardBackgroundColor":"#001F27B3"}',
+                          })
+                        }
+                      >
+                        Turquoise
+                      </Button>
+                    </Space>
+                  </Space>
+                </SettingListItem>
               </>
             ),
           },
           {
             key: 'network',
-            label: (
-              <span>
-                <ThunderboltOutlined /> {!isMobile && t('pages.settings.subHappGroupNetwork')}
-              </span>
+            label: catTabLabel(
+              <ThunderboltOutlined />,
+              t('pages.settings.subHappGroupNetwork'),
+              isMobile,
             ),
             children: (
               <>
@@ -422,70 +457,45 @@ export default function HappSettingsContent({
                     ]}
                   />
                 </SettingListItem>
-              </>
-            ),
-          },
-          {
-            key: 'themes',
-            label: (
-              <span>
-                <DesktopOutlined /> {!isMobile && t('pages.settings.subHappGroupThemes')}
-              </span>
-            ),
-            children: (
-              <>
+
                 <SettingListItem
                   paddings="small"
-                  title={t('pages.settings.subHappColorProfile')}
-                  description={t('pages.settings.subHappColorProfileDesc')}
+                  title={t('pages.settings.subHappPerAppMode')}
+                  description={t('pages.settings.subHappPerAppModeDesc')}
                 >
-                  <Space orientation="vertical" style={{ width: '100%' }}>
-                    <Input
-                      value={allSetting.subHappColorProfile}
-                      placeholder='{"serverRowBackgroundColor":"#21003D67"} or resetcolors'
-                      onChange={(e) => updateSetting({ subHappColorProfile: e.target.value })}
-                    />
-                    <Space wrap size="small">
-                      <Button
-                        size="small"
-                        onClick={() => updateSetting({ subHappColorProfile: 'resetcolors' })}
-                      >
-                        {t('reset')}
-                      </Button>
-                      <Button
-                        size="small"
-                        onClick={() =>
-                          updateSetting({
-                            subHappColorProfile:
-                              '{"serverRowBackgroundColor":"#21003D67","cardBackgroundColor":"#120023B3"}',
-                          })
-                        }
-                      >
-                        Violet
-                      </Button>
-                      <Button
-                        size="small"
-                        onClick={() =>
-                          updateSetting({
-                            subHappColorProfile:
-                              '{"serverRowBackgroundColor":"#002B3667","cardBackgroundColor":"#001F27B3"}',
-                          })
-                        }
-                      >
-                        Turquoise
-                      </Button>
-                    </Space>
-                  </Space>
+                  <Select
+                    value={allSetting.subHappPerAppMode || 'off'}
+                    style={{ width: '100%' }}
+                    onChange={(v) => updateSetting({ subHappPerAppMode: v })}
+                    options={[
+                      { value: 'off', label: t('pages.settings.subHappPerAppOff') },
+                      { value: 'on', label: t('pages.settings.subHappPerAppOn') },
+                      { value: 'bypass', label: t('pages.settings.subHappPerAppBypass') },
+                    ]}
+                  />
+                </SettingListItem>
+
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.settings.subHappPerAppList')}
+                  description={t('pages.settings.subHappPerAppListDesc')}
+                >
+                  <Input.TextArea
+                    value={allSetting.subHappPerAppList}
+                    rows={4}
+                    placeholder="org.telegram.messenger, com.google.android.youtube"
+                    onChange={(e) => updateSetting({ subHappPerAppList: e.target.value })}
+                  />
                 </SettingListItem>
               </>
             ),
           },
           {
             key: 'failover',
-            label: (
-              <span>
-                <CloudSyncOutlined /> {!isMobile && t('pages.settings.subHappGroupFailover')}
-              </span>
+            label: catTabLabel(
+              <CloudSyncOutlined />,
+              t('pages.settings.subHappGroupFailover'),
+              isMobile,
             ),
             children: (
               <>
@@ -533,47 +543,6 @@ export default function HappSettingsContent({
                   <Switch
                     checked={allSetting.subHappAlwaysHwid}
                     onChange={(v) => updateSetting({ subHappAlwaysHwid: v })}
-                  />
-                </SettingListItem>
-              </>
-            ),
-          },
-          {
-            key: 'android',
-            label: (
-              <span>
-                <MobileOutlined /> {!isMobile && t('pages.settings.subHappGroupAndroid')}
-              </span>
-            ),
-            children: (
-              <>
-                <SettingListItem
-                  paddings="small"
-                  title={t('pages.settings.subHappPerAppMode')}
-                  description={t('pages.settings.subHappPerAppModeDesc')}
-                >
-                  <Select
-                    value={allSetting.subHappPerAppMode || 'off'}
-                    style={{ width: '100%' }}
-                    onChange={(v) => updateSetting({ subHappPerAppMode: v })}
-                    options={[
-                      { value: 'off', label: t('pages.settings.subHappPerAppOff') },
-                      { value: 'on', label: t('pages.settings.subHappPerAppOn') },
-                      { value: 'bypass', label: t('pages.settings.subHappPerAppBypass') },
-                    ]}
-                  />
-                </SettingListItem>
-
-                <SettingListItem
-                  paddings="small"
-                  title={t('pages.settings.subHappPerAppList')}
-                  description={t('pages.settings.subHappPerAppListDesc')}
-                >
-                  <Input.TextArea
-                    value={allSetting.subHappPerAppList}
-                    rows={4}
-                    placeholder="org.telegram.messenger, com.google.android.youtube"
-                    onChange={(e) => updateSetting({ subHappPerAppList: e.target.value })}
                   />
                 </SettingListItem>
               </>

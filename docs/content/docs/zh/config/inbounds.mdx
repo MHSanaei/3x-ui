@@ -61,7 +61,7 @@ icon: ArrowDownToLine
 | **Mixed (SOCKS/HTTP)** | SOCKS + HTTP 的组合监听器。                                               |
 | **Dokodemo-door / Tunnel** | 端口转发 / 流量重定向。                                               |
 | **MTProto**            | Telegram MTProto 代理，由内置的 `mtg` 进程提供（而非 Xray）。             |
-| **TUIC**               | 基于 QUIC 的代理协议（v5），由内置的 `tuic-server` 进程提供。参见 [TUIC](/docs/config/tuic)。 |
+| **TUIC**               | 基于 QUIC 的代理协议（v5），由进程内原生 Go 服务器提供。参见 [TUIC](/docs/config/tuic)。 |
 
 <Callout type="info">
   在内部，Hysteria2 并不是一个独立的协议——它是把传输版本设为 2 的 `hysteria`

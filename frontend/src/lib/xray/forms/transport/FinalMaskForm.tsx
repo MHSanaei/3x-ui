@@ -18,6 +18,7 @@ import type { NamePath } from 'antd/es/form/interface';
 import { RandomUtil } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
 import { OutboundProtocols, UTLS_FINGERPRINT } from '@/schemas/primitives';
+import { upgradeLegacyXdnsMasks, XDNS_LEGACY_EDNS0 } from '@/lib/xray/xdns-mask';
 
 const UTLS_FINGERPRINT_OPTIONS = Object.values(UTLS_FINGERPRINT).map((value) => ({
   value,
@@ -244,28 +245,34 @@ export default function FinalMaskForm({
 }: FinalMaskFormProps) {
   const base = asPath(name);
 
-  // Migrate legacy TCP mask shapes once on mount so configs saved before
-  // #6334 (fragment ranges) and #6487 (xmc profiles) render in the list UI.
+  // Migrate legacy mask shapes once on mount so configs saved before #6334 (fragment
+  // ranges), #6487 (xmc profiles) and #6718 (xdns objects) render in the list UI.
   const migratedRef = useRef(false);
   useEffect(() => {
     if (migratedRef.current) return;
     migratedRef.current = true;
     const tcp = form.getFieldValue([...base, 'tcp']);
-    if (!Array.isArray(tcp)) return;
-    let anyChanged = false;
-    const next = tcp.map((mask) => {
-      if (!mask || typeof mask !== 'object') return mask;
-      const m = mask as Record<string, unknown>;
-      if (m.type !== 'fragment' && m.type !== 'xmc') return mask;
-      if (!m.settings || typeof m.settings !== 'object') return mask;
-      const settings = m.settings as Record<string, unknown>;
-      const { next: migrated, changed } =
-        m.type === 'fragment' ? migrateFragmentSettings(settings) : migrateXmcSettings(settings);
-      if (!changed) return mask;
-      anyChanged = true;
-      return { ...m, settings: migrated };
-    });
-    if (anyChanged) form.setFieldValue([...base, 'tcp'], next);
+    if (Array.isArray(tcp)) {
+      let anyChanged = false;
+      const next = tcp.map((mask) => {
+        if (!mask || typeof mask !== 'object') return mask;
+        const m = mask as Record<string, unknown>;
+        if (m.type !== 'fragment' && m.type !== 'xmc') return mask;
+        if (!m.settings || typeof m.settings !== 'object') return mask;
+        const settings = m.settings as Record<string, unknown>;
+        const { next: migrated, changed } =
+          m.type === 'fragment' ? migrateFragmentSettings(settings) : migrateXmcSettings(settings);
+        if (!changed) return mask;
+        anyChanged = true;
+        return { ...m, settings: migrated };
+      });
+      if (anyChanged) form.setFieldValue([...base, 'tcp'], next);
+    }
+    const udp = form.getFieldValue([...base, 'udp']);
+    if (Array.isArray(udp)) {
+      const { next, changed } = upgradeLegacyXdnsMasks(udp);
+      if (changed) form.setFieldValue([...base, 'udp'], next);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -958,11 +965,7 @@ function UdpMaskItem({
             );
           }
           if (type === 'xdns') {
-            return (
-              <Form.Item label="Domains" name={[fieldName, 'settings', 'domains']}>
-                <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
-              </Form.Item>
-            );
+            return <XdnsSettings udpFieldName={fieldName} />;
           }
           if (type === 'xicmp') {
             return (
@@ -1255,6 +1258,113 @@ function UdpHeaderCustom({
   );
 }
 
+const XDNS_RECORD_TYPE_OPTIONS = [
+  { value: 16, label: 'TXT' },
+  { value: 1, label: 'A' },
+  { value: 28, label: 'AAAA' },
+  { value: 5, label: 'CNAME' },
+];
+
+// Every xdns key needs a registered field: the finalmask watch drops keys without one.
+// Resolvers and extraPoll are read by clients only; a server keeps them for the share link.
+function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Form.List name={[udpFieldName, 'settings', 'domains']}>
+        {(domains, { add, remove }) => (
+          <>
+            <Form.Item label="Domains">
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                aria-label={t('add')}
+                onClick={() => add({ name: '', types: [16], edns0: XDNS_LEGACY_EDNS0 })}
+              />
+            </Form.Item>
+            {domains.map((domain, di) => (
+              <div key={domain.key}>
+                <Divider style={{ margin: 0 }}>
+                  Domain {di + 1}
+                  <DeleteOutlined
+                    className="danger-icon"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t('remove')}
+                    onClick={() => remove(domain.name)}
+                    onKeyDown={activateOnKey(() => remove(domain.name))}
+                  />
+                </Divider>
+                <Form.Item label="Name" name={[domain.name, 'name']}>
+                  <Input placeholder="t.example.com" />
+                </Form.Item>
+                <Form.Item
+                  label="Record Types"
+                  name={[domain.name, 'types']}
+                  rules={[{ required: true, type: 'array', min: 1 }]}
+                >
+                  <Select mode="multiple" options={XDNS_RECORD_TYPE_OPTIONS} />
+                </Form.Item>
+                <Form.Item label="EDNS0" name={[domain.name, 'edns0']}>
+                  <InputNumber min={512} max={4096} placeholder="off" />
+                </Form.Item>
+                <Form.Item label="Length Limit" name={[domain.name, 'lenLimit']}>
+                  <InputNumber min={0} max={255} placeholder="255" />
+                </Form.Item>
+                <Form.Item label="Label Limit" name={[domain.name, 'labelLimit']}>
+                  <InputNumber min={0} max={63} placeholder="63" />
+                </Form.Item>
+              </div>
+            ))}
+          </>
+        )}
+      </Form.List>
+      <Form.List name={[udpFieldName, 'settings', 'resolvers']}>
+        {(resolvers, { add, remove }) => (
+          <>
+            <Form.Item label="Resolvers (client)">
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                aria-label={t('add')}
+                onClick={() => add({ type: 'udp', settings: { addr: '' } })}
+              />
+            </Form.Item>
+            {resolvers.map((resolver, ri) => (
+              <Form.Item key={resolver.key} label={`Resolver ${ri + 1}`}>
+                <Space.Compact block>
+                  <Form.Item name={[resolver.name, 'type']} noStyle>
+                    <Select
+                      style={{ width: 80 }}
+                      options={[
+                        { value: 'udp', label: 'UDP' },
+                        { value: 'tcp', label: 'TCP' },
+                      ]}
+                    />
+                  </Form.Item>
+                  <Form.Item name={[resolver.name, 'settings', 'addr']} noStyle>
+                    <Input placeholder="8.8.8.8:53" />
+                  </Form.Item>
+                  <Button
+                    icon={<DeleteOutlined />}
+                    aria-label={t('remove')}
+                    onClick={() => remove(resolver.name)}
+                  />
+                </Space.Compact>
+              </Form.Item>
+            ))}
+          </>
+        )}
+      </Form.List>
+      <Form.Item label="Extra Poll (client)" name={[udpFieldName, 'settings', 'extraPoll']}>
+        <InputNumber min={0} max={3} placeholder="0" />
+      </Form.Item>
+    </>
+  );
+}
+
 function NoiseItems({
   udpFieldName,
   form,
@@ -1352,6 +1462,8 @@ function ItemEditor({
             { value: 'str', label: 'String' },
             { value: 'hex', label: 'Hex' },
             { value: 'base64', label: 'Base64' },
+            // Only the noise mask parses tag expressions (xray-core 26.9.30, #6862).
+            ...(delayMode === 'string' ? [{ value: 'exp', label: 'Expression' }] : []),
           ]}
         />
       </Form.Item>
@@ -1420,7 +1532,7 @@ function ItemEditor({
           }
           return (
             <Form.Item label="Packet" name={[fieldName, 'packet']}>
-              <Input placeholder="binary data" />
+              <Input placeholder={type === 'exp' ? '<b 0d0a0d0a><t><rc 20-40>' : 'binary data'} />
             </Form.Item>
           );
         }}

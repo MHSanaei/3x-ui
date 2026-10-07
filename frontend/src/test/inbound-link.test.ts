@@ -16,12 +16,15 @@ import {
   genVmessLink,
   genWireguardConfig,
   genWireguardLink,
+  isPostQuantumLink,
   preferPublicHost,
   resolveAddr,
 } from '@/lib/xray/inbound-link';
+import { type DbInboundLike, inboundFromDb } from '@/lib/xray/inbound-from-db';
 import { InboundSchema } from '@/schemas/api/inbound';
 import type { AmneziawgInboundSettings } from '@/schemas/protocols/inbound/amneziawg';
 import type { WireguardInboundSettings } from '@/schemas/protocols/inbound/wireguard';
+import type { FinalMaskStreamSettings } from '@/schemas/protocols/stream/finalmask';
 
 // reverse of inbound-link.ts's own toBase64Url, for asserting on the
 // decoded vpn:// payload without depending on that helper being exported.
@@ -85,6 +88,22 @@ describe('genVmessLink', () => {
 describe('genVlessLink', () => {
   const fixtures = fixturesForProtocol('vless');
   expect(fixtures.length, 'need at least one vless full-inbound fixture').toBeGreaterThan(0);
+
+  it('enables X25519MLKEM768 in REALITY share links', () => {
+    const entry = fixtures.find(([name]) => name === 'vless-tcp-reality');
+    expect(entry, 'need a VLESS REALITY fixture').toBeDefined();
+    const [, raw] = entry!;
+    const typed = InboundSchema.parse(raw);
+    const client = (raw as { settings: { clients: Array<{ id: string }> } }).settings.clients[0];
+
+    const link = genVlessLink({
+      inbound: typed,
+      address: 'example.test',
+      clientId: client.id,
+    });
+
+    expect(new URL(link).searchParams.get('support-x25519mlkem768')).toBe('true');
+  });
 
   for (const [name, raw] of fixtures) {
     it(`${name}: byte-stable`, () => {
@@ -160,6 +179,129 @@ describe('genVlessLink vlessRoute', () => {
       externalProxy: null,
     });
     expect(link).toContain('vless://11111111-2222-4333-8444-555555555555@');
+  });
+});
+
+describe('genVlessLink TCP fragment finalmask compatibility', () => {
+  const [, raw] = fixturesForProtocol('vless')[0];
+  const baseInbound = InboundSchema.parse(raw);
+  const clientId = (raw as { settings: { clients: Array<{ id: string }> } }).settings.clients[0].id;
+
+  function linkFor(finalmask: FinalMaskStreamSettings): string {
+    if (!baseInbound.streamSettings) throw new Error('fixture needs stream settings');
+    baseInbound.streamSettings.finalmask = finalmask;
+
+    return genVlessLink({
+      inbound: baseInbound,
+      address: 'example.test',
+      port: baseInbound.port,
+      clientId,
+    });
+  }
+
+  function finalmaskFrom(link: string): Record<string, unknown> {
+    const encoded = new URL(link).searchParams.get('fm');
+    if (!encoded) throw new Error('link needs an fm parameter');
+    return JSON.parse(encoded) as Record<string, unknown>;
+  }
+
+  it('emits the final configured length and delay for legacy clients', () => {
+    const finalmask: FinalMaskStreamSettings = {
+      tcp: [
+        {
+          type: 'fragment',
+          settings: {
+            packets: 'tlshello',
+            lengths: ['5-10', '10-15', '15-20', '20-25', '25-30'],
+            delays: ['10-20', '5-20', '5-25', '15-25', '10-30'],
+            maxSplit: '10-15',
+          },
+        },
+      ],
+      udp: [],
+    };
+    const tcpMasks = finalmask.tcp;
+    const fragmentSettings = finalmask.tcp[0].settings;
+    const lengths = fragmentSettings?.lengths;
+    const delays = fragmentSettings?.delays;
+    const before = structuredClone(finalmask);
+
+    const exported = finalmaskFrom(linkFor(finalmask));
+    const fragment = (exported.tcp as Array<{ settings: Record<string, unknown> }>)[0].settings;
+
+    expect(fragment).toEqual({
+      packets: 'tlshello',
+      lengths: ['5-10', '10-15', '15-20', '20-25', '25-30'],
+      delays: ['10-20', '5-20', '5-25', '15-25', '10-30'],
+      maxSplit: '10-15',
+      length: '25-30',
+      delay: '10-30',
+    });
+    expect(finalmask).toEqual(before);
+    expect(finalmask.tcp).toBe(tcpMasks);
+    expect(finalmask.tcp[0].settings).toBe(fragmentSettings);
+    expect(fragmentSettings?.lengths).toBe(lengths);
+    expect(fragmentSettings?.delays).toBe(delays);
+  });
+
+  it('preserves explicit legacy fields and does not add them to other masks', () => {
+    const finalmask: FinalMaskStreamSettings = {
+      tcp: [
+        {
+          type: 'fragment',
+          settings: {
+            length: '40-50',
+            delay: '3-4',
+            lengths: ['5-10', '25-30'],
+            delays: ['10-20', '10-30'],
+          },
+        },
+        { type: 'sudoku', settings: { lengths: ['5-10'], delays: ['10-20'] } },
+      ],
+      udp: [{ type: 'noise', settings: { lengths: ['5-10'], delays: ['10-20'] } }],
+    };
+
+    const exported = finalmaskFrom(linkFor(finalmask));
+
+    expect(exported).toEqual(finalmask);
+  });
+
+  it('exports a stored UDP-only finalmask whose empty tcp list was dropped on save', () => {
+    const udpOnly = { udp: [{ type: 'salamander', settings: { password: 'p' } }] };
+    const inbound = inboundFromDb({
+      ...(raw as unknown as DbInboundLike),
+      streamSettings: { ...(raw.streamSettings as Record<string, unknown>), finalmask: udpOnly },
+    });
+
+    const link = genVlessLink({ inbound, address: 'example.test', port: inbound.port, clientId });
+
+    expect(finalmaskFrom(link)).toEqual(udpOnly);
+  });
+
+  it('does not create empty legacy values or search before a mixed-type last entry', () => {
+    const finalmask: FinalMaskStreamSettings = {
+      tcp: [
+        { type: 'fragment', settings: { packets: 'tlshello', lengths: [], delays: [] } },
+        {
+          type: 'fragment',
+          settings: { packets: 'tlshello', lengths: ['5-10', 25], delays: ['10-20', null] },
+        },
+        { type: 'fragment', settings: { lengths: [' '], delays: ['\t'] } },
+      ],
+      udp: [],
+    };
+
+    const exported = finalmaskFrom(linkFor(finalmask));
+    const [emptyRanges, mixedRanges, blankRanges] = exported.tcp as Array<{
+      settings: Record<string, unknown>;
+    }>;
+
+    expect(emptyRanges.settings).not.toHaveProperty('length');
+    expect(emptyRanges.settings).not.toHaveProperty('delay');
+    expect(mixedRanges.settings).not.toHaveProperty('length');
+    expect(mixedRanges.settings).not.toHaveProperty('delay');
+    expect(blankRanges.settings).not.toHaveProperty('length');
+    expect(blankRanges.settings).not.toHaveProperty('delay');
   });
 });
 
@@ -1091,6 +1233,41 @@ describe('genVlessLink XHTTP extra compatibility', () => {
 });
 
 describe('genTuicLink', () => {
+  it('canonicalizes legacy flat controller values to the Go runtime default', () => {
+    const cases = [
+      { value: '', expected: 'bbr' },
+      { value: ' ', expected: 'bbr' },
+      { value: 'BBR', expected: 'bbr' },
+      { value: ' CuBiC ', expected: 'cubic' },
+      { value: 'reno', expected: 'new_reno' },
+      { value: 'invalid', expected: 'new_reno' },
+    ];
+    for (const { value, expected } of cases) {
+      const inbound = InboundSchema.parse({
+        id: 10,
+        protocol: 'tuic',
+        port: 8443,
+        settings: {
+          congestion_control: value,
+          clients: [
+            {
+              uuid: '11111111-2222-3333-4444-555555555555',
+              password: 'secretpassword',
+              email: 'user@tuic',
+            },
+          ],
+        },
+      });
+      const link = genTuicLink({
+        inbound,
+        address: 'example.com',
+        clientUuid: '11111111-2222-3333-4444-555555555555',
+        clientPassword: 'secretpassword',
+      });
+      expect(new URL(link).searchParams.get('congestion_control')).toBe(expected);
+    }
+  });
+
   it('builds a standard tuic share link with all parameters', () => {
     const inbound = InboundSchema.parse({
       id: 1,
@@ -1237,5 +1414,48 @@ describe('genTuicLink', () => {
     expect(link).toContain('allow_insecure=1');
     expect(link).toContain('#TUIC-Node-US');
     expect(link).not.toContain('#TUIC-Node-US-US');
+  });
+});
+
+describe('isPostQuantumLink', () => {
+  type RealityFixture = {
+    settings: { clients: Array<{ id: string }>; encryption?: string };
+    streamSettings: { realitySettings: { settings: { mldsa65Verify?: string } } };
+  };
+  const [, raw] = fixturesForProtocol('vless').find(([name]) => name === 'vless-tcp-reality')!;
+  const clientId = (raw as RealityFixture).settings.clients[0].id;
+  const x25519Key = 'G3cdPSd1-NnlpTbWNSM5vHsT5VNzWfFzYSKwbUMnV1Y';
+  const mlkem768Key = 'A'.repeat(1579);
+
+  function realityLink(edit: (inbound: RealityFixture) => void = () => {}): string {
+    const copy = structuredClone(raw) as RealityFixture;
+    edit(copy);
+    return genVlessLink({ inbound: InboundSchema.parse(copy), address: 'example.test', clientId });
+  }
+
+  // #6730: the REALITY ML-KEM support hint is a short flag, not a large PQ payload.
+  it('keeps the QR for a plain REALITY link', () => {
+    expect(isPostQuantumLink(realityLink())).toBe(false);
+  });
+
+  it('keeps the QR for VLESS encryption authenticated by an X25519 key', () => {
+    const link = realityLink((ib) => {
+      ib.settings.encryption = `mlkem768x25519plus.native.0rtt.${x25519Key}`;
+    });
+    expect(isPostQuantumLink(link)).toBe(false);
+  });
+
+  it('hides the QR for VLESS encryption authenticated by an ML-KEM-768 key', () => {
+    const link = realityLink((ib) => {
+      ib.settings.encryption = `mlkem768x25519plus.native.0rtt.${mlkem768Key}`;
+    });
+    expect(isPostQuantumLink(link)).toBe(true);
+  });
+
+  it('hides the QR for a REALITY link carrying an ML-DSA-65 verify key', () => {
+    const link = realityLink((ib) => {
+      ib.streamSettings.realitySettings.settings.mldsa65Verify = 'B'.repeat(2603);
+    });
+    expect(isPostQuantumLink(link)).toBe(true);
   });
 });

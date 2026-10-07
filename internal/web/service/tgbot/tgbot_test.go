@@ -59,7 +59,7 @@ func recordingDialTarget(t *testing.T, n int) (addr string, got chan []byte) {
 func TestTgbotProxyDialerSelectsHTTPForHTTPScheme(t *testing.T) {
 	addr, got := recordingDialTarget(t, len("CONNECT "))
 	tg := &Tgbot{}
-	client := tg.createRobustFastHTTPClient("http://" + addr)
+	client := tg.createRobustFastHTTPClient("http://"+addr, nil)
 	if client.Dial == nil {
 		t.Fatal("Dial must be set for an http:// proxy")
 	}
@@ -77,7 +77,7 @@ func TestTgbotProxyDialerSelectsHTTPForHTTPScheme(t *testing.T) {
 func TestTgbotProxyDialerSelectsSOCKSForSocks5Scheme(t *testing.T) {
 	addr, got := recordingDialTarget(t, 1)
 	tg := &Tgbot{}
-	client := tg.createRobustFastHTTPClient("socks5://" + addr)
+	client := tg.createRobustFastHTTPClient("socks5://"+addr, nil)
 	if client.Dial == nil {
 		t.Fatal("Dial must be set for a socks5:// proxy")
 	}
@@ -92,11 +92,42 @@ func TestTgbotProxyDialerSelectsSOCKSForSocks5Scheme(t *testing.T) {
 	}
 }
 
-func TestTgbotProxyDialerNoneWhenEmpty(t *testing.T) {
+func TestTgbotPanelEgressBridgeAppearingAfterStartIsUsed(t *testing.T) {
+	addr, got := recordingDialTarget(t, 1)
+	bridge := ""
 	tg := &Tgbot{}
-	client := tg.createRobustFastHTTPClient("")
-	if client.Dial != nil {
-		t.Fatal("Dial must be nil when no proxy is configured")
+	client := tg.createRobustFastHTTPClient("", func() string { return bridge })
+	bridge = "socks5://" + addr
+	go func() { _, _ = client.Dial("example.com:443") }()
+	select {
+	case b := <-got:
+		if len(b) != 1 || b[0] != 0x05 {
+			t.Fatalf("expected SOCKS5 greeting (0x05) on the late bridge, got %v", b)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("bridge that came up after bot start never received a connection")
+	}
+}
+
+func TestTgbotPanelEgressDialsDirectWithoutBridge(t *testing.T) {
+	addr, got := recordingDialTarget(t, 1)
+	tg := &Tgbot{}
+	client := tg.createRobustFastHTTPClient("", func() string { return "" })
+	conn, err := client.Dial(addr)
+	if err != nil {
+		t.Fatalf("direct dial: %v", err)
+	}
+	defer conn.Close()
+	if _, err := conn.Write([]byte{0x42}); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	select {
+	case b := <-got:
+		if len(b) != 1 || b[0] != 0x42 {
+			t.Fatalf("expected the payload byte on a direct connection, got %v", b)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("target never received the direct connection")
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -18,8 +19,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
-// EgressBasePort is the fixed loopback port of the panel's SOCKS5 egress
-// server; it appears in every generated amneziawg socks bridge.
+// EgressBasePort is the loopback port the panel's SOCKS5 egress server tries
+// first; generated amneziawg socks bridges dial whichever port it holds.
 const EgressBasePort = 64900
 
 // socks5EgressServer is a minimal loopback SOCKS5 server routing Xray's
@@ -105,17 +106,22 @@ func (s *socks5EgressServer) DeleteStack(tag string) {
 	flushTunnelDNSCacheForTag(tag)
 }
 
-// Listen starts accepting on the loopback listener. Idempotent; a bind
-// failure is returned and retried by the caller's reconcile tick.
+// Listen starts accepting on EgressBasePort, or on any free loopback port when
+// the OS refuses it. Idempotent; the caller's reconcile tick retries a failure.
 func (s *socks5EgressServer) Listen() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.listener != nil {
 		return nil
 	}
-	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", fmt.Sprintf("127.0.0.1:%d", EgressBasePort))
+	lc := &net.ListenConfig{}
+	ln, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf("127.0.0.1:%d", EgressBasePort))
 	if err != nil {
-		return fmt.Errorf("amneziawgnet: egress listen: %w", err)
+		var fallbackErr error
+		if ln, fallbackErr = lc.Listen(context.Background(), "tcp", "127.0.0.1:0"); fallbackErr != nil {
+			return fmt.Errorf("amneziawgnet: egress listen: %w", errors.Join(err, fallbackErr))
+		}
+		logger.Warningf("amneziawgnet: egress port %d unavailable, using a free port: %v", EgressBasePort, err)
 	}
 	s.listener = ln
 	s.closing = make(chan struct{})
@@ -123,6 +129,33 @@ func (s *socks5EgressServer) Listen() error {
 	s.wg.Add(1)
 	go s.acceptLoop(ln, s.closing)
 	return nil
+}
+
+// Port is the port generated socks bridges must dial: the bound one, or
+// EgressBasePort while nothing is bound, since Listen tries it first.
+func (s *socks5EgressServer) Port() int {
+	if port, ok := s.boundPort(); ok {
+		return port
+	}
+	return EgressBasePort
+}
+
+func (s *socks5EgressServer) boundPort() (int, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.listener == nil {
+		return 0, false
+	}
+	addr, ok := s.listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return 0, false
+	}
+	return addr.Port, true
+}
+
+// EgressPort is the process-wide egress server's Port.
+func EgressPort() int {
+	return GetEgressServer().Port()
 }
 
 // Close stops the listener and in-flight handlers; signal first so an accept

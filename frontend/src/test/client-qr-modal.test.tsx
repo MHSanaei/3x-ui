@@ -241,7 +241,7 @@ describe('ClientQrModal Happ presentation', () => {
     expect(view.onOpenChange).toHaveBeenCalledOnce();
     expect(view.onOpenChange).toHaveBeenCalledWith(false);
     expect(screen.getByTestId('location').textContent).toBe(
-      '/settings?subscriptionTab=happ&happTab=links#subscription',
+      '/settings?subscriptionTab=happ#subscription',
     );
     expect(HttpUtil.post).not.toHaveBeenCalled();
   });

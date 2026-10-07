@@ -18,34 +18,34 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "fumadocs-core": "^16.15.14",
+    "fumadocs-core": "^16.16.2",
     "fumadocs-docgen": "^3.1.1",
-    "fumadocs-mdx": "^15.4.5",
-    "fumadocs-openapi": "^12.0.3",
-    "fumadocs-ui": "^16.15.14",
-    "lucide-react": "^1.48.0",
-    "mermaid": "^12.0.0",
-    "next": "16.3.6",
+    "fumadocs-mdx": "^15.4.6",
+    "fumadocs-openapi": "^12.3.0",
+    "fumadocs-ui": "^16.16.2",
+    "lucide-react": "^1.52.0",
+    "mermaid": "^12.1.0",
+    "next": "16.3.8",
     "next-themes": "^0.4.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-qr-code": "^2.2.0",
     "tailwind-merge": "^3.7.0",
-    "zbsearch": "4.0.0",
+    "zbsearch": "4.0.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/mdx": "^2.0.14",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "oxfmt": "0.70.0",
-    "oxlint": "1.85.0",
-    "postcss": "^8.5.28",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "postcss": "^8.5.29",
     "tailwindcss": "^4.3.3",
     "typescript": "7.0.2",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.3"
   },
-  "packageManager": "pnpm@12.6.0"
+  "packageManager": "pnpm@12.9.1"
 }

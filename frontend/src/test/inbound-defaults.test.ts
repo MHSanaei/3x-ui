@@ -178,6 +178,48 @@ describe('createDefault*InboundSettings factories', () => {
   });
 });
 
+describe('TuicInboundSettingsSchema', () => {
+  it('canonicalizes congestion-controller aliases and casing', () => {
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: 'RENO' } }).server
+        ?.congestion_control,
+    ).toBe('new_reno');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: ' CuBiC ' } }).server
+        ?.congestion_control,
+    ).toBe('cubic');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: '' } }).server
+        ?.congestion_control,
+    ).toBe('bbr');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: '  ' } }).server
+        ?.congestion_control,
+    ).toBe('bbr');
+    expect(
+      TuicInboundSettingsSchema.parse({ congestion_control: ' CuBiC ' }).congestion_control,
+    ).toBe('cubic');
+    expect(
+      TuicInboundSettingsSchema.parse({ congestion_control: 'invalid' }).congestion_control,
+    ).toBe('new_reno');
+  });
+
+  it('clamps legacy packet-size values to the SOCKS-safe UDP payload maximum', () => {
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { max_udp_relay_packet_size: 65507 } }).server
+        ?.max_udp_relay_packet_size,
+    ).toBe(65245);
+    expect(
+      TuicInboundSettingsSchema.parse({ max_udp_relay_packet_size: 65500 })
+        .max_udp_relay_packet_size,
+    ).toBe(65245);
+    expect(() =>
+      TuicInboundSettingsSchema.parse({ server: { max_udp_relay_packet_size: 65508 } }),
+    ).toThrow();
+    expect(() => TuicInboundSettingsSchema.parse({ max_udp_relay_packet_size: 65508 })).toThrow();
+  });
+});
+
 describe('createHysteriaTlsSettingsWithDefaultCert', () => {
   it('defaults Hysteria TLS to uTLS None and h3 ALPN', () => {
     const tls = createHysteriaTlsSettingsWithDefaultCert();

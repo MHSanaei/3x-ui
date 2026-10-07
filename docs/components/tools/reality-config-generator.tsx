@@ -66,6 +66,7 @@ export function RealityConfigGenerator() {
           fingerprint,
           spiderX: '/',
           flow: 'xtls-rprx-vision',
+          supportX25519Mlkem768: true,
         }
       : null;
 
