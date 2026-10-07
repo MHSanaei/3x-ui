@@ -175,7 +175,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Decode + verify the node config envelope (zstd + X-Config-Sha256) and
 	// advertise support, before CSRF/handlers read the body.
 	api.Use(middleware.ConfigEnvelopeMiddleware())
-	api.Use(middleware.CSRFMiddleware())
+	api.Use(middleware.CSRFMiddleware(getRemoteIp))
 
 	api.GET("/openapi.json", ServeOpenAPISpec)
 

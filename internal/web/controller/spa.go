@@ -33,7 +33,7 @@ func NewXUIController(g *gin.RouterGroup) *XUIController {
 func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g = g.Group("/panel")
 	g.Use(a.checkLogin)
-	g.Use(middleware.CSRFMiddleware())
+	g.Use(middleware.CSRFMiddleware(getRemoteIp))
 
 	g.GET("/", a.panelSPA)
 	g.GET("/inbounds", a.panelSPA)

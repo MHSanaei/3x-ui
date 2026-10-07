@@ -35,11 +35,9 @@ func newCSPNonce() string {
 	return base64.RawStdEncoding.EncodeToString(b[:])
 }
 
-// CSRFMiddleware rejects unsafe requests that do not include the session CSRF token.
-// Bearer-token-authenticated callers (api_authed flag set by APIController.checkAPIAuth)
-// short-circuit the CSRF check — they are not browser sessions, so the
-// cross-site request forgery threat model doesn't apply to them.
-func CSRFMiddleware() gin.HandlerFunc {
+// CSRFMiddleware rejects unsafe session requests lacking the CSRF token; bearer (api_authed) callers skip it.
+// clientIP must honour the trusted-proxy list: c.ClientIP trusts any peer's X-Forwarded-For.
+func CSRFMiddleware(clientIP func(*gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetBool("api_authed") {
 			c.Next()
@@ -50,10 +48,7 @@ func CSRFMiddleware() gin.HandlerFunc {
 			return
 		}
 		if !session.ValidateCSRFToken(c) {
-			// Rejected requests are otherwise completely invisible to operators,
-			// which makes diagnosing failed logins (e.g. a missing/expired CSRF
-			// token) very confusing. Log the rejection without any token material.
-			logger.Warning("CSRF validation failed, request rejected: method=", c.Request.Method, " path=", c.Request.URL.Path, " IP=", c.ClientIP())
+			logger.Warningf("CSRF validation failed, request rejected: method=%s path=%s IP=%s", c.Request.Method, c.Request.URL.Path, clientIP(c))
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
