@@ -8,10 +8,12 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
+// An inbound save keeps the stored clients, so switching to Hysteria is judged
+// on them: ones with no auth would leave an inbound nobody can connect to.
 func TestUpdateInbound_RejectsHysteriaClientWithoutAuth(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflict(t, "in-45001-tcp", "0.0.0.0", 45001, model.VLESS,
-		`{"network":"tcp"}`, `{"clients":[]}`)
+		`{"network":"tcp"}`, `{"clients":[{"email":"hysteria@x","enable":true,"password":"not-hysteria-auth"}]}`)
 
 	var existing model.Inbound
 	if err := database.GetDB().Where("tag = ?", "in-45001-tcp").First(&existing).Error; err != nil {
@@ -20,7 +22,7 @@ func TestUpdateInbound_RejectsHysteriaClientWithoutAuth(t *testing.T) {
 
 	update := existing
 	update.Protocol = model.Hysteria
-	update.Settings = `{"clients":[{"email":"hysteria@x","enable":true,"password":"not-hysteria-auth"}]}`
+	update.Settings = `{"clients":[]}`
 
 	svc := &InboundService{}
 	if _, _, err := svc.UpdateInbound(&update); err == nil || !strings.Contains(err.Error(), "empty client ID") {
@@ -54,7 +56,8 @@ func TestUpdateInbound_PreservesHysteriaClientAuth(t *testing.T) {
 	update := existing
 	update.Settings = `{"clients":[{"email":"hysteria@x","enable":true,"password":"` + password + `","auth":"` + wantAuth + `"}]}`
 
-	svc := &InboundService{}
+	// Only a master's push still carries clients through an inbound save.
+	svc := &InboundService{FromNodeSync: true}
 	if _, _, err := svc.UpdateInbound(&update); err != nil {
 		t.Fatalf("UpdateInbound: %v", err)
 	}

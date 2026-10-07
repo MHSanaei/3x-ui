@@ -23,6 +23,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -512,15 +513,22 @@ func inboundTuicServer(protocol string, settings string) *tuic.TuicServerSetting
 	if protocol != string(model.TUIC) || strings.TrimSpace(settings) == "" {
 		return nil
 	}
-	var parsed struct {
-		Server *tuic.TuicServerSettings `json:"server"`
-	}
-	if err := json.Unmarshal([]byte(settings), &parsed); err != nil || parsed.Server == nil {
+	inst, ok := tuic.InstanceFromInbound(&model.Inbound{Protocol: model.TUIC, Settings: settings})
+	if !ok {
 		return nil
 	}
-	redacted := *parsed.Server
-	redacted.PrivateKey = ""
-	return &redacted
+	return &tuic.TuicServerSettings{
+		Certificate:           inst.Certificate,
+		CongestionControl:     inst.CongestionControl,
+		ALPN:                  inst.ALPN,
+		UDPRelayMode:          inst.UDPRelayMode,
+		ZeroRTTHandshake:      inst.ZeroRTTHandshake,
+		LogLevel:              inst.LogLevel,
+		MaxIdleTime:           inst.MaxIdleTime,
+		AuthenticationTimeout: inst.AuthenticationTimeout,
+		MaxUdpRelayPacketSize: inst.MaxUdpRelayPacketSize,
+		SNI:                   inst.SNI,
+	}
 }
 
 // inboundMtprotoDomain returns the inbound-level FakeTLS default domain, used by
@@ -655,6 +663,27 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		return
 	}
 	inbound.StreamSettings = canonicalizeStreamNetworkKey(inbound.StreamSettings)
+	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
+}
+
+// canonicalizeLegacyXdnsMasks stores an xdns mask posted in the pre-26.9.30 string
+// lists in the object shape the core parses, as GetXrayConfig would heal it anyway.
+func canonicalizeLegacyXdnsMasks(streamSettings string) string {
+	if streamSettings == "" {
+		return streamSettings
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return streamSettings
+	}
+	if !maskcompat.UpgradeLegacyXdns(stream["finalmask"]) {
+		return streamSettings
+	}
+	out, err := json.MarshalIndent(stream, "", "  ")
+	if err != nil {
+		return streamSettings
+	}
+	return string(out)
 }
 
 // canonicalizeStreamNetworkKey rewrites a streamSettings JSON that names its
@@ -1065,6 +1094,21 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 	// Prefer the already-stored port (carried across edits), then any value the
 	// client sent, then allocate a fresh one.
 	port := parseRouteXrayPort(oldSettings)
+	if inbound.NodeID != nil {
+		// The port is free or taken on the node's host, not here: the node's own
+		// panel allocates it, and node sync brings its choice back as oldSettings.
+		if port <= 0 {
+			delete(parsed, "routeXrayPort")
+		} else {
+			parsed["routeXrayPort"] = port
+		}
+		bs, err := json.MarshalIndent(parsed, "", "  ")
+		if err != nil {
+			return common.NewError("mtproto: could not persist the Xray egress port:", err)
+		}
+		inbound.Settings = string(bs)
+		return nil
+	}
 	if port <= 0 {
 		port = settingsRouteXrayPort(parsed)
 	}
@@ -1093,6 +1137,9 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	inbound.Id = 0
+	if err := normalizeTuicSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	legacyShareAddr := legacyMtprotoShareAddr(inbound)
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
 	// Normalize streamSettings based on protocol
@@ -1115,8 +1162,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := s.normalizeAmneziaWGSettings(inbound, ""); err != nil {
 		return inbound, false, err
 	}
-	if inbound.NodeID != nil && !isNodeEligibleProtocol(inbound.Protocol) {
-		return inbound, false, common.NewErrorf("%s inbounds cannot be assigned to a node", inbound.Protocol)
+	if inbound.NodeID != nil {
+		if err := checkNodeCanHostProtocol(database.GetDB(), *inbound.NodeID, inbound.Protocol); err != nil {
+			return inbound, false, err
+		}
 	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
 	if err := normalizeInboundShareAddressStrict(inbound); err != nil {
@@ -1129,6 +1178,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	}
 	inbound.Tag = tag
 
+	normalizeLegacyClientSettings(inbound)
 	clients, err := s.GetClients(inbound)
 	if err != nil {
 		return inbound, false, err
@@ -1269,6 +1319,25 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			// so the ports it now derives were never in the guard's context.
 			if aErr := s.checkAmneziaWGForwardedPorts(tx, inbound.Settings); aErr != nil {
 				return aErr
+			}
+		}
+		if inbound.NodeID == nil && inbound.Protocol == model.TUIC {
+			if self := tuicSocksSelfConflict(inbound, inbound.Id); self != "" {
+				return common.NewError(self)
+			}
+			conflict, cErr := checkTuicSocksRelayCollision(tx, inbound.Id)
+			if cErr != nil {
+				return cErr
+			}
+			if conflict != nil {
+				return common.NewError(conflict.String())
+			}
+			conflict, cErr = checkTuicSocksReverseConflict(tx, inbound.Id)
+			if cErr != nil {
+				return cErr
+			}
+			if conflict != nil {
+				return common.NewError(conflict.String())
 			}
 		}
 		// Emails seeded here (import's ClientStats, e.g. the controller's forced
@@ -1684,6 +1753,35 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	return needRestart, nil
 }
 
+func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) error {
+	clients, err := s.GetClients(inbound)
+	if err != nil {
+		return err
+	}
+	if err := validateClientsRenewal(clients); err != nil {
+		return err
+	}
+	for _, client := range clients {
+		switch inbound.Protocol {
+		case model.Hysteria:
+			if client.Auth == "" {
+				return common.NewError("empty client ID")
+			}
+		case model.TUIC:
+			if client.ID == "" {
+				return common.NewError("empty client ID")
+			}
+			if client.Password == "" {
+				return common.NewError("tuic client requires a password")
+			}
+			if client.Email == "" {
+				return common.NewError("empty client email")
+			}
+		}
+	}
+	return nil
+}
+
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	legacyShareAddr := legacyMtprotoShareAddr(inbound)
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
@@ -1701,38 +1799,16 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err != nil {
 		return inbound, false, err
 	}
+	// Restore the stored NodeID before any host-scoped check so a node inbound
+	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
+	inbound.NodeID = oldInbound.NodeID
+	if err := normalizeTuicSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	if err := s.normalizeAmneziaWGSettings(inbound, oldInbound.Settings); err != nil {
 		return inbound, false, err
 	}
 	inbound.SubSortIndex = normalizeSubSortIndex(inbound.SubSortIndex)
-
-	clients, err := s.GetClients(inbound)
-	if err != nil {
-		return inbound, false, err
-	}
-	if err := validateClientsRenewal(clients); err != nil {
-		return inbound, false, err
-	}
-	if inbound.Protocol == model.Hysteria {
-		for _, client := range clients {
-			if client.Auth == "" {
-				return inbound, false, common.NewError("empty client ID")
-			}
-		}
-	}
-	if inbound.Protocol == model.TUIC {
-		for _, client := range clients {
-			if client.ID == "" {
-				return inbound, false, common.NewError("empty client ID")
-			}
-			if client.Password == "" {
-				return inbound, false, common.NewError("tuic client requires a password")
-			}
-			if client.Email == "" {
-				return inbound, false, common.NewError("empty client email")
-			}
-		}
-	}
 
 	// Grandfather a row that was already stored incomplete so it stays editable;
 	// only a save that breaks a previously valid TLS block is refused.
@@ -1743,13 +1819,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			}
 		}
 	}
-	// Restore the stored NodeID before the port-conflict check so a node inbound
-	// stays scoped to its own node (the payload's nodeId is unreliable, often absent).
-	inbound.NodeID = oldInbound.NodeID
 	// The node assignment is the stored one, so only a protocol change can
 	// introduce one; a row adopted from a node keeps the protocol it arrived with.
-	if inbound.NodeID != nil && inbound.Protocol != oldInbound.Protocol && !isNodeEligibleProtocol(inbound.Protocol) {
-		return inbound, false, common.NewErrorf("%s inbounds cannot be assigned to a node", inbound.Protocol)
+	if inbound.NodeID != nil && inbound.Protocol != oldInbound.Protocol {
+		if err := checkNodeCanHostProtocol(database.GetDB(), *inbound.NodeID, inbound.Protocol); err != nil {
+			return inbound, false, err
+		}
 	}
 
 	// Capture the pre-edit protocol and routing state before oldInbound is
@@ -1769,6 +1844,23 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	var postCommitApply func()
 
 	txErr := runSerializedTx(func(tx *gorm.DB) error {
+		// Re-read inside the writer: a traffic tick since the read above moved the
+		// counters and may have renewed or disabled clients.
+		stored := &model.Inbound{}
+		if err := tx.First(stored, inbound.Id).Error; err != nil {
+			return err
+		}
+		oldInbound = stored
+		// The form posts back the clients and enable it loaded; both have their
+		// own endpoints, so only a master's push may change them here.
+		if !s.FromNodeSync {
+			inbound.Settings = keepStoredClients(inbound.Settings, stored.Settings)
+			inbound.Enable = stored.Enable
+		}
+		// On the clients actually saved: a protocol switch keeps the stored ones.
+		if err := s.validateUpdatedInboundClients(inbound); err != nil {
+			return err
+		}
 		conflict, cErr := checkPortConflictTx(tx, inbound, inbound.Id)
 		if cErr != nil {
 			return cErr
@@ -1864,6 +1956,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Total = inbound.Total
 		oldInbound.Remark = inbound.Remark
 		oldInbound.SubSortIndex = inbound.SubSortIndex
+		oldInbound.ExcludeFromSub = inbound.ExcludeFromSub
 		oldInbound.Enable = inbound.Enable
 		oldInbound.ExpiryTime = inbound.ExpiryTime
 		oldInbound.TrafficReset = inbound.TrafficReset
@@ -2064,18 +2157,28 @@ func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model
 		return built, nil
 	}
 
-	var clientStats []xray.ClientTraffic
-	if err := tx.Model(xray.ClientTraffic{}).
-		Where("inbound_id = ?", built.Id).
-		Select("email", "enable").
-		Find(&clientStats).Error; err != nil {
+	emails := make([]string, 0, len(clients))
+	for _, client := range clients {
+		if c, ok := client.(map[string]any); ok {
+			email, _ := c["email"].(string)
+			emails = append(emails, email)
+		}
+	}
+	disabled, err := trafficDisabledEmails(tx, emails)
+	if err != nil {
 		return nil, err
 	}
-	enableMap := make(map[string]bool, len(clientStats))
-	for _, clientTraffic := range clientStats {
-		enableMap[clientTraffic.Email] = clientTraffic.Enable
-	}
 
+	trafficIDs := make(map[string]int)
+	if inbound.Protocol == model.TUIC {
+		var rows []xray.ClientTraffic
+		if err := tx.Select("id", "email").Where("email IN ?", emails).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			trafficIDs[row.Email] = row.Id
+		}
+	}
 	finalClients := make([]any, 0, len(clients))
 	for _, client := range clients {
 		c, ok := client.(map[string]any)
@@ -2083,11 +2186,17 @@ func (s *InboundService) buildInboundForLocalRuntime(tx *gorm.DB, inbound *model
 			continue
 		}
 		email, _ := c["email"].(string)
-		if enable, exists := enableMap[email]; exists && !enable {
+		if _, off := disabled[email]; off {
 			continue
 		}
 		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
 			continue
+		}
+		if inbound.Protocol == model.TUIC {
+			delete(c, "traffic_id")
+			if id := trafficIDs[email]; id > 0 {
+				c["traffic_id"] = id
+			}
 		}
 		finalClients = append(finalClients, c)
 	}

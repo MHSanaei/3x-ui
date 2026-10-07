@@ -705,6 +705,7 @@ export interface Inbound {
   disableFlow: boolean;
   down: number;
   enable: boolean;
+  excludeFromSub: boolean;
   expiryTime: number;
   fallbackParent?: FallbackParentInfo | null;
   id: number;
@@ -1027,6 +1028,7 @@ export interface Setting {
 
 export interface Sponsor {
   enable?: boolean | null;
+  from?: string | null;
   id: string;
   link: string;
   logo?: string;

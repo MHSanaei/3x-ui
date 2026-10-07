@@ -330,6 +330,18 @@ func (s *SubService) matchingClients(inbound *model.Inbound, subId string) []mod
 	return out
 }
 
+// countHiddenClients adds an excludeFromSub inbound's clients to the usage set:
+// the inbound still serves them, so only its links leave the subscription.
+func countHiddenClients(clients []model.Client, seenEmails map[string]struct{}) (anyEnabled bool) {
+	for _, client := range clients {
+		seenEmails[client.Email] = struct{}{}
+		if client.Enable {
+			anyEnabled = true
+		}
+	}
+	return anyEnabled
+}
+
 // overlayInboundTunnelIdentity copies per-inbound tunnel fields from settings.
 // An unmatched peer is dropped, malformed settings yield nothing, and empty optional secrets replace shared values (#6641).
 func (s *SubService) overlayInboundTunnelIdentity(inbound *model.Inbound, clients []model.Client) ([]model.Client, error) {
@@ -471,6 +483,12 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 	for _, inbound := range inbounds {
 		clients := s.matchingClients(inbound, subId)
 		if len(clients) == 0 {
+			continue
+		}
+		if inbound.ExcludeFromSub {
+			if countHiddenClients(clients, seenEmails) {
+				hasEnabledClient = true
+			}
 			continue
 		}
 		s.projectThroughFallbackMaster(inbound)
@@ -918,7 +936,6 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	}
 	client := &resolved
 
-	link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
 	params := make(map[string]string)
 	if secretKey != "" {
 		if pub, err := wgutil.PublicKeyFromPrivate(secretKey); err == nil {
@@ -940,7 +957,13 @@ func (s *SubService) genWireguardLink(inbound *model.Inbound, email string) stri
 	if ka := client.KeepAliveSeconds(); ka > 0 {
 		params["keepalive"] = strconv.Itoa(ka)
 	}
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", ""))
+	endpoints := s.advertisedEndpoints(inbound)
+	links := make([]string, 0, len(endpoints))
+	for _, e := range endpoints {
+		link := fmt.Sprintf("wireguard://%s@%s", encodeUserinfo(client.PrivateKey), joinHostPort(e.Address, e.Port))
+		links = append(links, buildLinkWithParams(link, params, s.endpointRemark(inbound, email, e.ep, "")))
+	}
+	return strings.Join(links, "\n")
 }
 
 // amneziaWGHeaderOrDefault mirrors the frontend's amneziaWGHLine: AmneziaWG's
@@ -1066,11 +1089,16 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	}
 	client := &resolved
 
-	text := amneziaWGConfigText(server, client, s.resolveInboundAddress(inbound), inbound.Port, s.genRemark(inbound, email, "", ""))
-	if text == "" {
-		return ""
+	endpoints := s.advertisedEndpoints(inbound)
+	links := make([]string, 0, len(endpoints))
+	for _, e := range endpoints {
+		text := amneziaWGConfigText(server, client, e.Address, e.Port, s.endpointRemark(inbound, email, e.ep, ""))
+		if text == "" {
+			continue
+		}
+		links = append(links, "vpn://"+base64.RawURLEncoding.EncodeToString([]byte(text)))
 	}
-	return "vpn://" + base64.RawURLEncoding.EncodeToString([]byte(text))
+	return strings.Join(links, "\n")
 }
 
 // genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret.
@@ -1083,19 +1111,7 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 	if !ok || resolved.Secret == "" {
 		return ""
 	}
-	endpoints := []ShareEndpoint{s.inboundDefaultEndpoint(inbound)}
-	stream := unmarshalStreamSettings(inbound.StreamSettings)
-	if externalProxies, ok := stream["externalProxy"].([]any); ok && len(externalProxies) > 0 {
-		overrides := make([]ShareEndpoint, 0, len(externalProxies))
-		for _, raw := range externalProxies {
-			if ep, ok := raw.(map[string]any); ok {
-				overrides = append(overrides, externalProxyToEndpoint(ep))
-			}
-		}
-		if len(overrides) > 0 {
-			endpoints = overrides
-		}
-	}
+	endpoints := s.advertisedEndpoints(inbound)
 	links := make([]string, 0, len(endpoints))
 	for _, endpoint := range endpoints {
 		links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
@@ -1224,6 +1240,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		applyShareTLSParams(stream, params)
 	case "reality":
 		applyShareRealityParams(stream, params, subKey(client))
+		params["support-x25519mlkem768"] = "true"
 	default:
 		params["security"] = "none"
 	}
@@ -1518,7 +1535,11 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			applyExternalProxyHysteriaParams(ep, epParams)
 
 			link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(dest, int(portF)))
-			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep, "quic")))
+			// VLESS/Trojan/SS get the host's description through buildEndpointLinks;
+			// this loop renders the fragment itself, so add it here too (#6738).
+			remark := s.endpointRemark(inbound, email, ep, "quic")
+			remark = appendHappServerDescription(remark, externalProxyToEndpoint(ep).ServerDescription)
+			links = append(links, buildLinkWithParams(link, epParams, remark))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -1999,14 +2020,18 @@ func subKey(c model.Client) string {
 	return c.Email
 }
 
-// deriveSpiderX maps the inbound's spiderX seed plus a stable client key to a
-// deterministic per-client "/path"; frontend/src/lib/xray/spider-x.ts mirrors it.
+// deriveSpiderX maps the seed and a stable client key to a per-client "/path" plus the seed's
+// query, where xray reads its spider settings (#6693); frontend/src/lib/xray/spider-x.ts mirrors it.
 func deriveSpiderX(seed, clientKey string) string {
 	if seed == "" && clientKey == "" {
 		return "/" + random.Seq(15)
 	}
 	sum := sha256.Sum256([]byte(seed + "|" + clientKey))
-	return "/" + hex.EncodeToString(sum[:])[:15]
+	path := "/" + hex.EncodeToString(sum[:])[:15]
+	if _, query, _ := strings.Cut(seed, "?"); query != "" {
+		return path + "?" + query
+	}
+	return path
 }
 
 func buildVmessLink(obj map[string]any) string {
@@ -2827,7 +2852,7 @@ func applyFinalMaskObj(finalmask map[string]any, obj map[string]any) {
 }
 
 func marshalFinalMask(finalmask map[string]any) (string, bool) {
-	normalized := normalizeFinalMask(finalmask)
+	normalized := withLegacyFragmentRanges(normalizeFinalMask(finalmask))
 	if !hasFinalMaskContent(normalized) {
 		return "", false
 	}
@@ -2836,6 +2861,71 @@ func marshalFinalMask(finalmask map[string]any) (string, bool) {
 		return "", false
 	}
 	return string(b), true
+}
+
+// withLegacyFragmentRanges copies the last lengths/delays entry into the singular fields older
+// cores require; newer xray-core prefers the arrays whenever they are non-empty.
+func withLegacyFragmentRanges(finalmask map[string]any) map[string]any {
+	tcpMasks, ok := finalmask["tcp"].([]any)
+	if !ok {
+		return finalmask
+	}
+
+	var result map[string]any
+	var resultMasks []any
+	for i, rawMask := range tcpMasks {
+		mask, ok := rawMask.(map[string]any)
+		if !ok || mask["type"] != "fragment" {
+			continue
+		}
+		settings, ok := mask["settings"].(map[string]any)
+		if !ok {
+			continue
+		}
+
+		legacySettings := maps.Clone(settings)
+		changed := false
+		if _, exists := settings["length"]; !exists {
+			if value, ok := lastFragmentRange(settings["lengths"]); ok {
+				legacySettings["length"] = value
+				changed = true
+			}
+		}
+		if _, exists := settings["delay"]; !exists {
+			if value, ok := lastFragmentRange(settings["delays"]); ok {
+				legacySettings["delay"] = value
+				changed = true
+			}
+		}
+		if !changed {
+			continue
+		}
+
+		if result == nil {
+			result = maps.Clone(finalmask)
+			resultMasks = slices.Clone(tcpMasks)
+			result["tcp"] = resultMasks
+		}
+		legacyMask := maps.Clone(mask)
+		legacyMask["settings"] = legacySettings
+		resultMasks[i] = legacyMask
+	}
+	if result == nil {
+		return finalmask
+	}
+	return result
+}
+
+func lastFragmentRange(value any) (string, bool) {
+	ranges, _ := value.([]any)
+	if len(ranges) == 0 {
+		return "", false
+	}
+	rangeValue, ok := ranges[len(ranges)-1].(string)
+	if !ok || strings.TrimSpace(rangeValue) == "" {
+		return "", false
+	}
+	return rangeValue, true
 }
 
 func normalizeFinalMask(finalmask map[string]any) map[string]any {

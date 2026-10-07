@@ -748,6 +748,7 @@ export const InboundSchema = z.object({
   disableFlow: z.boolean(),
   down: z.number().int(),
   enable: z.boolean(),
+  excludeFromSub: z.boolean(),
   expiryTime: z.number().int(),
   fallbackParent: z.lazy(() => FallbackParentInfoSchema).nullable().optional(),
   id: z.number().int(),
@@ -1090,6 +1091,7 @@ export type Setting = z.infer<typeof SettingSchema>;
 
 export const SponsorSchema = z.object({
   enable: z.boolean().nullable().optional(),
+  from: z.string().nullable().optional(),
   id: z.string(),
   link: z.string(),
   logo: z.string().optional(),

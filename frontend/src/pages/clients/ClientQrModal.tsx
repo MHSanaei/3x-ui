@@ -22,6 +22,8 @@ import {
   isAmneziaWGClient,
 } from './amneziawgConfig';
 import { buildTuicClientConfig, findTuicInbound, isTuicClient } from './tuicConfig';
+import { tunnelConfigEndpoints, tunnelEndpointLabel } from './tunnelEndpoints';
+import type { HostRecord } from '@/schemas/api/host';
 
 interface SubSettings {
   enable: boolean;
@@ -38,8 +40,11 @@ interface ClientQrModalProps {
   inboundsById: Record<number, InboundOption>;
   tunnelAllowedIPs?: Record<number, string>;
   subSettings?: SubSettings;
+  hosts?: HostRecord[];
   onOpenChange: (open: boolean) => void;
 }
+
+const NO_HOSTS: HostRecord[] = [];
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
@@ -50,7 +55,7 @@ type QrVariant = 'standard' | 'happ';
 type HappError = 'too_long' | 'unavailable' | null;
 
 const HAPP_CRYPT5_PREFIX = 'happ://crypt5/';
-const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ&happTab=links#subscription';
+const HAPP_SETTINGS_PATH = '/settings?subscriptionTab=happ#subscription';
 // QrPanel encodes at error level L; QR version 40 holds 2953 UTF-8 bytes at that level.
 const HAPP_QR_MAX_BYTES = 2953;
 const UTF8_ENCODER = new TextEncoder();
@@ -227,6 +232,7 @@ function ClientQrModalContent({
   inboundsById,
   tunnelAllowedIPs,
   subSettings = DEFAULT_SUB,
+  hosts = NO_HOSTS,
   onOpenChange,
 }: ClientQrModalProps) {
   const { t } = useTranslation();
@@ -326,20 +332,19 @@ function ClientQrModalContent({
   );
   const wgConfigs = useMemo(() => {
     if (!client || !isWireguardClient(client)) return [];
+    const host = window.location.hostname;
+    const publicHost = subSettings.publicHost ?? '';
     return wgInbounds
-      .map((ib) => {
+      .flatMap((ib) => {
         const address = tunnelAllowedIPs?.[ib.id] ?? '';
-        const text = buildWireguardClientConfig(
-          client,
-          ib,
-          window.location.hostname,
-          subSettings.publicHost ?? '',
-          address,
-        );
-        return { inbound: ib, text };
+        return tunnelConfigEndpoints(ib, hosts, host, publicHost).map((ep) => ({
+          inbound: ib,
+          endpoint: tunnelEndpointLabel(ep),
+          text: buildWireguardClientConfig(client, ib, host, publicHost, address, ep),
+        }));
       })
       .filter((c) => !!c.text);
-  }, [client, wgInbounds, tunnelAllowedIPs, subSettings.publicHost]);
+  }, [client, wgInbounds, tunnelAllowedIPs, subSettings.publicHost, hosts]);
 
   const awgInbounds = useMemo(
     () => findAmneziaWGInbounds(client, inboundsById),
@@ -347,38 +352,37 @@ function ClientQrModalContent({
   );
   const awgConfigs = useMemo(() => {
     if (!client || !isAmneziaWGClient(client)) return [];
+    const host = window.location.hostname;
+    const publicHost = subSettings.publicHost ?? '';
     return awgInbounds
-      .map((ib) => {
+      .flatMap((ib) => {
         const address = tunnelAllowedIPs?.[ib.id] ?? '';
-        const text = buildAmneziaWGClientConfig(
-          client,
-          ib,
-          window.location.hostname,
-          subSettings.publicHost ?? '',
-          address,
-        );
-        return { inbound: ib, text };
+        return tunnelConfigEndpoints(ib, hosts, host, publicHost).map((ep) => ({
+          inbound: ib,
+          endpoint: tunnelEndpointLabel(ep),
+          text: buildAmneziaWGClientConfig(client, ib, host, publicHost, address, ep),
+        }));
       })
       .filter((c) => !!c.text);
-  }, [client, awgInbounds, tunnelAllowedIPs, subSettings.publicHost]);
+  }, [client, awgInbounds, tunnelAllowedIPs, subSettings.publicHost, hosts]);
 
   const tuicInbound = useMemo(() => findTuicInbound(client, inboundsById), [client, inboundsById]);
-  const tuicConfigText = useMemo(() => {
-    if (!client || !tuicInbound || !isTuicClient(client)) return '';
-    return buildTuicClientConfig(
-      client,
-      tuicInbound,
-      window.location.hostname,
-      subSettings.publicHost ?? '',
-    );
-  }, [client, tuicInbound, subSettings.publicHost]);
+  const tuicConfigs = useMemo(() => {
+    if (!client || !tuicInbound || !isTuicClient(client)) return [];
+    const host = window.location.hostname;
+    const publicHost = subSettings.publicHost ?? '';
+    return tunnelConfigEndpoints(tuicInbound, hosts, host, publicHost, 'clash').map((ep) => ({
+      endpoint: tunnelEndpointLabel(ep),
+      text: buildTuicClientConfig(client, tuicInbound, host, publicHost, ep),
+    }));
+  }, [client, tuicInbound, subSettings.publicHost, hosts]);
 
   const hasAnything =
     !!subLink ||
     !!subJsonLink ||
     wgConfigs.length > 0 ||
     awgConfigs.length > 0 ||
-    !!tuicConfigText ||
+    tuicConfigs.length > 0 ||
     links.length > 0;
 
   // The reset runs during render so the effect only carries the request.
@@ -468,8 +472,8 @@ function ClientQrModalContent({
         ),
       });
     });
-    wgConfigs.forEach(({ inbound, text }) => {
-      const meta = formatTunnelConfigMeta(inbound, client?.email, wgConfigs.length);
+    wgConfigs.forEach(({ inbound, endpoint, text }) => {
+      const meta = formatTunnelConfigMeta(inbound, client?.email, wgConfigs.length, endpoint);
       const label = (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Tag color="cyan" style={{ margin: 0 }}>
@@ -479,13 +483,13 @@ function ClientQrModalContent({
         </span>
       );
       out.push({
-        key: `wg-config-${inbound.id}`,
+        key: `wg-config-${inbound.id}-${endpoint}`,
         label,
         children: <QrPanel value={text} remark={meta.qrRemark} downloadName={meta.fileName} />,
       });
     });
-    awgConfigs.forEach(({ inbound, text }) => {
-      const meta = formatTunnelConfigMeta(inbound, client?.email, awgConfigs.length);
+    awgConfigs.forEach(({ inbound, endpoint, text }) => {
+      const meta = formatTunnelConfigMeta(inbound, client?.email, awgConfigs.length, endpoint);
       const label = (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Tag color="purple" style={{ margin: 0 }}>
@@ -495,28 +499,33 @@ function ClientQrModalContent({
         </span>
       );
       out.push({
-        key: `awg-config-${inbound.id}`,
+        key: `awg-config-${inbound.id}-${endpoint}`,
         label,
         children: <QrPanel value={text} remark={meta.qrRemark} downloadName={meta.fileName} />,
       });
     });
-    if (tuicConfigText) {
+    tuicConfigs.forEach(({ endpoint, text }) => {
+      const name = client?.email || 'tuic';
+      const multi = tuicConfigs.length > 1 ? endpoint : '';
       out.push({
-        key: 'tuic-config',
+        key: `tuic-config-${endpoint}`,
         label: (
-          <Tag color="orange" style={{ margin: 0 }}>
-            {t('pages.clients.tuicConfig')}
-          </Tag>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Tag color="orange" style={{ margin: 0 }}>
+              {t('pages.clients.tuicConfig')}
+            </Tag>
+            {multi && <span style={{ opacity: 0.85, fontSize: 12 }}>{multi}</span>}
+          </span>
         ),
         children: (
           <QrPanel
-            value={tuicConfigText}
-            remark={client?.email || 'tuic'}
-            downloadName={`${client?.email || 'tuic'}.yaml`}
+            value={text}
+            remark={[name, multi].filter(Boolean).join(' - ')}
+            downloadName={`${[name, multi.replace(/[^\w.-]+/g, '_')].filter(Boolean).join('-')}.yaml`}
           />
         ),
       });
-    }
+    });
     return out;
   }, [
     subLink,
@@ -533,7 +542,7 @@ function ClientQrModalContent({
     selectVariant,
     regenerateHappLink,
     openHappSettings,
-    tuicConfigText,
+    tuicConfigs,
     t,
   ]);
 

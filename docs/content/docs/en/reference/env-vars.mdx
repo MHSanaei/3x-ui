@@ -42,7 +42,7 @@ default. Encryption at rest is opt-in and fails closed: with any mode other than
 | Variable                  | Default                         | Description                                                                                                                                                            |
 | ------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NODE_TOKEN_ENCRYPTION`   | `off`                           | `off`, `migration` (reads accept plaintext or ciphertext, writes encrypt), or `required` (same writes, startup fails without a key). Note the missing `XUI_` prefix.    |
-| `XUI_NODE_TOKEN_KEY_FILE` | `/etc/x-ui/node_token_key.json` | JSON keyring, mode `0600` or stricter. Loaded first.                                                                                                                   |
+| `XUI_NODE_TOKEN_KEY_FILE` | `/etc/x-ui/node_token_key.json` | JSON keyring, mode `0600` or stricter (not checked on Windows, where NTFS permissions protect it). Loaded first.                                                       |
 | `XUI_NODE_TOKEN_KEY`      | —                               | A single base64 32-byte key, read only when the key file fails to load. Its key id is fixed to `env`, so it cannot rotate.                                              |
 
 The key file names the active key plus every older key still needed to decrypt:

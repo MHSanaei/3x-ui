@@ -84,7 +84,8 @@ func TestUpdateInboundMtprotoUnchangedDoesNotRestart(t *testing.T) {
 		if !strings.Contains(update.Settings, mtprotoTestSecretD) {
 			t.Fatal("fixture must contain the re-keyed secret")
 		}
-		_, needRestart, err := svc.UpdateInbound(&update)
+		// Clients reach an inbound save only as a master's push to its node.
+		_, needRestart, err := (&InboundService{FromNodeSync: true}).UpdateInbound(&update)
 		if err != nil {
 			t.Fatalf("UpdateInbound: %v", err)
 		}

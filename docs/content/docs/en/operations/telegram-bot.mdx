@@ -53,12 +53,21 @@ Additional commands:
 
 | Command            | Who    | Action                                                       |
 | ------------------ | ------ | ------------------------------------------------------------ |
-| `/start`, `/help`  | anyone | Greeting and the menu of inline buttons                      |
-| `/status`          | anyone | Confirm the bot is alive                                     |
+| `/start`           | anyone | Greeting and the menu of inline buttons; an unlinked account gets only its Telegram ID |
+| `/help`            | both   | The menu of inline buttons                                   |
+| `/status`          | both   | Confirm the bot is alive                                     |
 | `/id`              | anyone | Show your Telegram numeric ID                                |
 | `/usage <arg>`     | both   | Admins search clients; users look up their own usage         |
 | `/inbound <remark>`| admin  | Show an inbound's details                                    |
 | `/restart`         | admin  | Restart Xray                                                 |
+
+A user is a Telegram account linked to at least one client. Any other account
+can run only `/start` and `/id`; the bot ignores its other commands and
+button taps. To link a customer, tap **Invite Link** on the client's card in the bot and
+send them the `t.me` link: the first account to open it is linked to every
+client that shares that Subscription ID. The Subscription ID is the invite code,
+so keep it long and random. Each account gets five claim attempts an hour, and
+admins are notified when one runs out.
 
 Admins also get inline-button flows for server usage, sorted traffic reports,
 resetting traffic, DB backups, ban logs, listing inbounds/clients, online

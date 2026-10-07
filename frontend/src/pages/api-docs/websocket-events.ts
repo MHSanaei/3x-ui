@@ -120,10 +120,18 @@ const statusPayloadSchema = {
 
 const trafficPayloadSchema = {
   type: 'object',
-  required: ['onlineClients', 'onlineByGuid', 'activeInbounds', 'lastOnlineMap'],
   properties: {
     traffics: { type: 'array', items: { $ref: '#/components/schemas/Traffic' } },
     clientTraffics: { type: 'array', items: { $ref: '#/components/schemas/ClientTraffic' } },
+    clientTrafficSource: {
+      type: 'string',
+      enum: ['xray', 'tuic'],
+      description: 'Present for native TUIC samples; omitted Xray samples default to xray.',
+    },
+    clientTrafficIntervalMs: {
+      type: 'integer',
+      description: 'Sampling interval used to calculate client speed, in milliseconds.',
+    },
     nodeTraffics: {
       type: 'array',
       nullable: true,
@@ -134,7 +142,20 @@ const trafficPayloadSchema = {
     activeInbounds: stringArrayMap,
     lastOnlineMap: timestampMap,
   },
-  oneOf: [{ required: ['traffics', 'clientTraffics'] }, { required: ['nodeTraffics'] }],
+  oneOf: [
+    {
+      required: [
+        'traffics',
+        'clientTraffics',
+        'onlineClients',
+        'onlineByGuid',
+        'activeInbounds',
+        'lastOnlineMap',
+      ],
+    },
+    { required: ['nodeTraffics'] },
+    { required: ['clientTraffics', 'clientTrafficSource', 'clientTrafficIntervalMs'] },
+  ],
 };
 
 const clientStatsPayloadSchema = {
@@ -205,7 +226,7 @@ export function buildWebSocketEvents(
     {
       type: 'traffic',
       summary:
-        'Live traffic deltas plus online, per-node and last-online maps. Local polls send traffics/clientTraffics; node polls send nodeTraffics.',
+        'Live traffic deltas plus online, per-node and last-online maps. TUIC also sends source-tagged client deltas with their sampling interval for live speed.',
       payloadSchema: trafficPayloadSchema,
       example: {
         type: 'traffic',

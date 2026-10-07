@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -65,7 +66,9 @@ func (a *InboundController) inboundServiceFor(c *gin.Context) *service.InboundSe
 	svc := a.inboundService
 	scopeValue, _ := c.Get("api_token_scope")
 	scope, _ := scopeValue.(string)
-	svc.FromNodeSync = model.IsNodeSyncApiScope(scope)
+	// A master enrolled with an admin token (the -getApiToken default) has no
+	// node-sync scope, so it marks every request it sends instead.
+	svc.FromNodeSync = model.IsNodeSyncApiScope(scope) || c.GetHeader(wirecodec.MasterPushHeader) != ""
 	return &svc
 }
 

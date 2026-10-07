@@ -592,10 +592,14 @@ _openapi:
           the search to the containing /16 before giving up with `inbound <id>:
           wireguard: no free address available in <scope>`, and an `allowedIPs`
           supplied by the caller is validated instead of allocated: `inbound
-          <id>: wireguard: allowedIPs entry already used by another client:
-          <address>` when a different client of that same inbound already holds
-          it. The check is per inbound, so the same address on two different
-          inbounds is accepted. The same validation runs on POST
+          <id>: wireguard: allowedIPs entry <entry> overlaps <address> used by
+          another client` when its range overlaps an address or prefix a
+          different client of that same inbound holds, or `... used by a client
+          on <inbound>` when the holder sits on another WireGuard or AmneziaWG
+          inbound. Ranges are compared, not strings, so `10.0.0.9/24` collides
+          with `10.0.0.5/32`; a `0.0.0.0/0` or `::/0` default route claims no
+          address. Allocation likewise skips every address inside a prefix
+          another client holds. The same validation runs on POST
           /panel/api/clients/{email}/attach, where a client that already carries
           an address brings it along.
 
@@ -640,12 +644,12 @@ _openapi:
         heading: delete-a-client-by-email-removes-it-from-every-attached-inbound-and-drops-its-traffic-record-unless-keeptraffic1-is-passed
       - content: 'A WireGuard client brings its stored `allowedIPs` into the new inbound
           instead of being given a fresh address, so the call fails with
-          `inbound <id>: wireguard: allowedIPs entry already used by another
-          client: <address>` when a different client of the target inbound
-          already holds it. Free the address on that inbound first — see POST
-          /panel/api/clients/add for the full rule. Inbounds are applied
-          independently, so the remaining ones are still attached and a
-          `success:false` response can be partial.'
+          `inbound <id>: wireguard: allowedIPs entry <entry> overlaps <address>
+          used by another client` when its range overlaps an address or prefix a
+          different client of the target inbound holds. Free the address on that
+          inbound first — see POST /panel/api/clients/add for the full rule.
+          Inbounds are applied independently, so the remaining ones are still
+          attached and a `success:false` response can be partial.'
         heading: attach-an-existing-client-to-one-or-more-additional-inbounds-body-is-json
       - content: 'The inbounds are applied concurrently and independently: one that
           fails no longer stops the others. Every inbound error names the

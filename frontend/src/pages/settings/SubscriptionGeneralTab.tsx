@@ -414,8 +414,6 @@ export default function SubscriptionGeneralTab({
               updateSetting={updateSetting}
               isMobile={isMobile}
               remoteSourceBadge={remoteSourceBadge}
-              // QR settings links select the link control; ordinary Happ visits still start on routing.
-              defaultActiveTab={searchParams.get('happTab') === 'links' ? 'links' : 'routing'}
             />
           ),
         },

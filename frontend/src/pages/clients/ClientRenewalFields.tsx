@@ -12,6 +12,19 @@ import type { ClientFormValues } from '@/schemas/client';
 type RenewalFields = Pick<ClientFormValues, 'reset' | 'resetDay' | 'resetWeekday' | 'resetMax'>;
 type RenewalMode = 'none' | 'interval' | 'weekly' | 'monthly';
 
+function RenewalDate({ value }: { value: string }) {
+  // Keep the server's wall time and per-date offset, including across DST.
+  // Parsing into a browser-local Date would show a different renewal boundary.
+  const display = value
+    .replace('T', ' ')
+    .replace(/(Z|[+-]\d{2}:\d{2})$/, (offset) => ` UTC${offset === 'Z' ? '+00:00' : offset}`);
+  return (
+    <time dateTime={value} dir="ltr">
+      {display}
+    </time>
+  );
+}
+
 export default function ClientRenewalFields({
   active,
   expiryTime,
@@ -146,9 +159,17 @@ export default function ClientRenewalFields({
             </Typography.Paragraph>
           )}
           {preview && (
-            <Space orientation="vertical" size={4} style={{ marginBottom: 16 }}>
+            <Space orientation="vertical" size={4} style={{ width: '100%', marginBottom: 16 }}>
               <Typography.Text>
-                {t('pages.clients.renewPreview', { zone: preview.timeZone })}
+                {t('pages.clients.renewPreview', {
+                  zone:
+                    preview.timeZone === 'Local'
+                      ? t('pages.clients.renewServerLocal')
+                      : preview.timeZone,
+                })}
+              </Typography.Text>
+              <Typography.Text type="secondary">
+                {t('pages.clients.renewPreviewHint')}
               </Typography.Text>
               {delayedStart || preview.delayedStart ? (
                 <Typography.Text type="secondary">
@@ -160,22 +181,30 @@ export default function ClientRenewalFields({
                     {t('pages.clients.renewNeedsExpiry')}
                   </Typography.Text>
                   {preview.suggestedExpiryTime > 0 && (
-                    <Button onClick={() => setExpiry(preview.suggestedExpiryTime)}>
-                      {t('pages.clients.renewSetExpiry')}: {preview.suggestedExpiry}
+                    <Button
+                      style={{ maxWidth: '100%', height: 'auto', whiteSpace: 'normal' }}
+                      onClick={() => setExpiry(preview.suggestedExpiryTime)}
+                    >
+                      <span>
+                        {t('pages.clients.renewSetExpiry')}:{' '}
+                        <RenewalDate value={preview.suggestedExpiry} />
+                      </span>
                     </Button>
                   )}
                 </>
               ) : (
                 <>
                   <Typography.Text>
-                    {t('pages.clients.renewAt')}: {preview.renewAt}
+                    {t('pages.clients.renewAt')}: <RenewalDate value={preview.renewAt} />
                   </Typography.Text>
                   <Typography.Text>
-                    {t('pages.clients.renewValidThrough')}: {preview.validThrough}
+                    {t('pages.clients.renewValidThrough')}:{' '}
+                    <RenewalDate value={preview.validThrough} />
                   </Typography.Text>
                   {preview.nextExpiry && (
                     <Typography.Text>
-                      {t('pages.clients.renewNextExpiry')}: {preview.nextExpiry}
+                      {t('pages.clients.renewNextExpiry')}:{' '}
+                      <RenewalDate value={preview.nextExpiry} />
                     </Typography.Text>
                   )}
                   <Typography.Text>
