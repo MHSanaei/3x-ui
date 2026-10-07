@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "Vista previa de renovación (zona horaria del panel: {zone})",
+      "renewServerLocal": "Hora local del servidor",
+      "renewPreviewHint": "Las fechas usan la zona horaria del panel. La vista previa no renueva el cliente.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "Renovaciones que se consumirían: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "Renovar el día",
       "renewOnDayDesc": "Renueva este día de cada mes natural, a medianoche en la zona horaria del panel, en lugar de cada N días. Si el mes es demasiado corto para el día elegido, renueva su último día. 0 mantiene el modo de intervalo en días.",
       "renewsUsed": "Renovaciones usadas",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Introduce una etiqueta hexadecimal de 32 caracteres para asignar, o 'none' para borrarla en MTProto."
     },
     "groups": {
@@ -2138,16 +2139,20 @@
       },
       "tuic": {
         "congestionControl": "Control de congestión",
+        "congestionControlHint": "Algoritmo del servidor y cliente. Los cambios del servidor se aplican al reconectar.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Modo de retransmisión UDP",
+        "udpRelayModeHint": "Modo UDP del cliente. El servidor admite ambos.",
         "zeroRttHandshake": "Apretón de manos 0-RTT",
         "logLevel": "Nivel de registro",
-        "logLevelHint": "El estado en línea, la última conexión y «iniciar tras el primer uso» se leen de las líneas Info del sidecar; Warn o Error los desactivan para este inbound.",
+        "logLevelHint": "Nivel mínimo de registro de esta entrada.",
         "maxIdleTime": "Tiempo máx. de inactividad (s)",
         "authTimeout": "Tiempo de espera de autenticación (s)",
         "maxUdpRelayPacketSize": "Tamaño máx. de paquete UDP",
         "sni": "SNI",
-        "sniHint": "Sobrescritura de Server Name Indication"
+        "sniHint": "Nombre del servidor TLS en el perfil del cliente.",
+        "sniRequired": "Introduce un dominio para completar las rutas del certificado."
       },
       "tun": {
         "userLevel": "Nivel de Usuario"

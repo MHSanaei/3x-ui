@@ -876,6 +876,13 @@ export const sections: readonly Section[] = [
             type: 'string',
             desc: 'Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com.',
           },
+          {
+            name: 'allowPrivate',
+            in: 'body (form)',
+            type: 'boolean',
+            optional: true,
+            desc: 'Ping a private/internal/loopback server (LAN, Docker service name). Default false (SSRF guard blocks it and the error response sets obj.privateTarget=true).',
+          },
         ],
         body: 'server=cloudflare-dns.com',
         response: '{\n  "success": true,\n  "obj": [\n    "e8e2d3..."\n  ]\n}',

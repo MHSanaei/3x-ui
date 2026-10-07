@@ -45,6 +45,7 @@ export default function RoutingTab({
   isMobile,
 }: RoutingTabProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RoutingRule | null>(null);
@@ -179,7 +180,7 @@ export default function RoutingTab({
     try {
       parsed = JSON.parse(value);
     } catch {
-      message.error(t('pages.xray.importInvalidJson'));
+      messageApi.error(t('pages.xray.importInvalidJson'));
       return;
     }
     const obj = parsed as { rules?: unknown; routing?: { rules?: unknown } };
@@ -191,7 +192,7 @@ export default function RoutingTab({
           ? obj.routing!.rules
           : null;
     if (!list) {
-      message.error(t('pages.xray.importInvalidJson'));
+      messageApi.error(t('pages.xray.importInvalidJson'));
       return;
     }
     mutate((tt) => {
@@ -347,6 +348,7 @@ export default function RoutingTab({
   return (
     <>
       {modalContextHolder}
+      {messageContextHolder}
       <Tabs
         defaultActiveKey="basic"
         items={[

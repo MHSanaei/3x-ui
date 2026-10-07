@@ -1,3 +1,4 @@
+import { resolveTuicServerSettings } from '@/lib/tuic';
 import type {
   InboundFormValues,
   ShareAddrStrategy,
@@ -168,7 +169,12 @@ function stripTlsCertUseFile(stream: Record<string, unknown>): void {
 
 export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
   const protocol = (row.protocol || 'vless') as InboundSettings['protocol'];
-  const settings = coerceJsonObject(row.settings) as InboundSettings['settings'];
+  const rawSettings = coerceJsonObject(row.settings);
+  const settings = (
+    protocol === 'tuic'
+      ? { clients: rawSettings.clients, server: resolveTuicServerSettings(rawSettings) }
+      : rawSettings
+  ) as InboundSettings['settings'];
   const rawStream = coerceJsonObject(row.streamSettings);
   const streamSettings =
     Object.keys(rawStream).length > 0 ? (rawStream as StreamSettings) : undefined;

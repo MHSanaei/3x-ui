@@ -95,6 +95,14 @@
   white-space: nowrap;
 }
 
+.sponsor-aside {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .sponsor-close {
   flex: 0 0 auto;
   align-self: flex-start;
@@ -197,8 +205,10 @@
     padding: 10px 12px;
   }
 
-  .sponsor-card-banner .sponsor-visit {
+  .sponsor-card-banner .sponsor-aside {
     flex-basis: 100%;
+    flex-direction: row;
+    align-items: center;
     padding-inline-start: 52px;
   }
 }

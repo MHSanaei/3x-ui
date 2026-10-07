@@ -160,9 +160,10 @@ file locations when it can answer in one hop.
   `-race`); `httptest` for HTTP. Keep `database.InitDB` for reopening a file or
   migrating a hand-built legacy DB. `internal/sub`'s `initSubDB(t)` is the template.
 - Code must pass `golangci-lint run` (gofumpt + goimports formatting): `make lint`.
-- Postgres, xray-gRPC-e2e and scale tests `t.Skip` unless `XUI_TEST_PG_DSN`,
-  `XUI_DB_TYPE`+`XUI_DB_DSN`, `XRAY_E2E_BINARY` or `XUI_SCALE_TEST` is set — a
-  green `go test ./...` does not mean those paths ran.
+- Postgres, xray-gRPC-e2e, master+node and scale tests `t.Skip` unless
+  `XUI_TEST_PG_DSN`, `XUI_DB_TYPE`+`XUI_DB_DSN`, `XRAY_E2E_BINARY`,
+  `XUI_NODE_E2E_BINARY` or `XUI_SCALE_TEST` is set — a green `go test ./...`
+  does not mean those paths ran.
 
 ## Frontend conventions (summary; full version in frontend/CLAUDE.md)
 - Ant Design 6 only — no Tailwind/shadcn. Targeted tweaks, not rewrites.
@@ -191,9 +192,13 @@ reads as a broken repo, not a missing step. Run `make dist-stub` once; every
     make verify   # gen-check + lint + typecheck + test + build + build-storybook
 
 That is the *fast* gate, not all of CI. `ci.yml` also runs `make race`,
-`make vulncheck`, a live-Postgres job (where a SKIP counts as a failure) and a
+`make vulncheck`, a live-Postgres job (where a SKIP counts as a failure),
+`make node-e2e` (a real master and node panel, `internal/nodee2e/`) and a
 30s fuzz smoke on `FuzzParseLink`/`FuzzDecodeCertPin` — run those locally when
-you touch DB/dialect or parser code.
+you touch DB/dialect, node sync or parser code. Node sync has two layers: every
+`runtime.Remote` call gets a cell in `internal/web/node_contract_test.go` (fast,
+in `make test-go`; a method without one fails it), and a multi-tick flow (cron,
+adopt, node down) gets one in `internal/nodee2e/node_sync_test.go`.
 
 Common targets: `make gen` (regenerate Zod/OpenAPI), `make lint` (Go + frontend),
 `make test` (Go `-shuffle=on` + frontend), `make race`, `make build`. See `Makefile`.

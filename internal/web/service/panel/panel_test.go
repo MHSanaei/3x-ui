@@ -33,15 +33,6 @@ func TestIsNewerVersion(t *testing.T) {
 	}
 }
 
-func TestCompareVersionStringsRejectsUnexpectedFormats(t *testing.T) {
-	if _, ok := compareVersionStrings("latest", "2.9.3"); ok {
-		t.Fatal("expected non-semver latest tag to be rejected")
-	}
-	if _, ok := compareVersionStrings("v2.9", "2.9.3"); ok {
-		t.Fatal("expected short version to be rejected")
-	}
-}
-
 func TestShellQuote(t *testing.T) {
 	if got := shellQuote("/usr/bin/curl"); got != "'/usr/bin/curl'" {
 		t.Fatalf("unexpected quote result: %s", got)

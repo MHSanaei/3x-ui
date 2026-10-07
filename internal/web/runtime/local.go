@@ -90,7 +90,11 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 		if !ok {
 			return nil
 		}
-		return tuic.GetManager().Ensure(inst)
+		err := tuic.GetManager().Ensure(inst)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+		return err
 	}
 	body, err := json.MarshalIndent(ib.GenXrayInboundConfig(), "", "  ")
 	if err != nil {
@@ -118,6 +122,9 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	}
 	if ib.Protocol == model.TUIC {
 		tuic.GetManager().Remove(ib.Id)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
 		return nil
 	}
 	return l.withAPI(func(api *xray.XrayAPI) error {
@@ -228,6 +235,9 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	if oldIb.Protocol == model.TUIC && newIb.Protocol != model.TUIC {
 		tuic.GetManager().Remove(oldIb.Id)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
 		if !newIb.Enable {
 			return nil
 		}
@@ -235,10 +245,24 @@ func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbou
 	}
 	if oldIb.Protocol != model.TUIC {
 		_ = l.DelInbound(ctx, oldIb)
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
+	}
+	if oldIb.Protocol == model.TUIC && newIb.Protocol == model.TUIC && oldIb.Enable && newIb.Enable && oldIb.Tag != newIb.Tag && l.deps.SetNeedRestart != nil {
+		l.deps.SetNeedRestart()
 	}
 	if !newIb.Enable {
 		tuic.GetManager().Remove(newIb.Id)
+		if oldIb.Enable && l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
 		return nil
+	}
+	if !oldIb.Enable && newIb.Enable {
+		if l.deps.SetNeedRestart != nil {
+			l.deps.SetNeedRestart()
+		}
 	}
 	inst, ok := tuic.InstanceFromInbound(newIb)
 	if !ok {

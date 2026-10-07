@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "Xem trước gia hạn (múi giờ bảng điều khiển: {zone})",
+      "renewServerLocal": "Giờ địa phương của máy chủ",
+      "renewPreviewHint": "Ngày giờ dùng múi giờ của bảng điều khiển. Xem trước không thực hiện gia hạn máy khách.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "Số lượt gia hạn dự kiến sử dụng: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "Gia hạn vào ngày",
       "renewOnDayDesc": "Gia hạn vào ngày này của mỗi tháng dương lịch, lúc nửa đêm theo múi giờ của bảng điều khiển, thay vì mỗi N ngày. Tháng không có ngày đã chọn sẽ gia hạn vào ngày cuối cùng của tháng. 0 giữ nguyên chế độ khoảng cách theo ngày.",
       "renewsUsed": "Số lần gia hạn đã dùng",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Nhập thẻ hex 32 ký tự để đặt hoặc 'none' để xóa kênh tài trợ trên MTProto."
     },
     "groups": {
@@ -2138,16 +2139,20 @@
       },
       "tuic": {
         "congestionControl": "Kiểm soát tắc nghẽn",
+        "congestionControlHint": "Thuật toán máy chủ và máy khách. Thay đổi trên máy chủ có hiệu lực khi kết nối lại.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "Chế độ chuyển tiếp UDP",
+        "udpRelayModeHint": "Chế độ UDP của máy khách. Máy chủ hỗ trợ cả hai.",
         "zeroRttHandshake": "Bắt tay 0-RTT",
         "logLevel": "Mức ghi nhật ký",
-        "logLevelHint": "Trạng thái trực tuyến, lần trực tuyến cuối và \"bắt đầu sau lần dùng đầu tiên\" được đọc từ các dòng Info của sidecar; Warn hoặc Error sẽ tắt chúng cho inbound này.",
+        "logLevelHint": "Mức nhật ký tối thiểu cho inbound này.",
         "maxIdleTime": "Thời gian nhàn rỗi tối đa (giây)",
         "authTimeout": "Thời gian chờ xác thực (giây)",
         "maxUdpRelayPacketSize": "Kích thước gói UDP tối đa",
         "sni": "SNI",
-        "sniHint": "Ghi đè Server Name Indication"
+        "sniHint": "Tên máy chủ TLS trong cấu hình máy khách.",
+        "sniRequired": "Nhập tên miền để tự điền đường dẫn chứng chỉ."
       },
       "tun": {
         "userLevel": "Mức Người Dùng"

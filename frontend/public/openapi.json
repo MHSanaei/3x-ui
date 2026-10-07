@@ -7797,6 +7797,10 @@
                   "server": {
                     "type": "string",
                     "description": "Remote server as domain or domain:port (default port 443), e.g. cloudflare-dns.com."
+                  },
+                  "allowPrivate": {
+                    "type": "boolean",
+                    "description": "Ping a private/internal/loopback server (LAN, Docker service name). Default false (SSRF guard blocks it and the error response sets obj.privateTarget=true)."
                   }
                 },
                 "required": [
@@ -16023,15 +16027,9 @@
           },
           {
             "type": "traffic",
-            "summary": "Live traffic deltas plus online, per-node and last-online maps. Local polls send traffics/clientTraffics; node polls send nodeTraffics.",
+            "summary": "Live traffic deltas plus online, per-node and last-online maps. TUIC also sends source-tagged client deltas with their sampling interval for live speed.",
             "payloadSchema": {
               "type": "object",
-              "required": [
-                "onlineClients",
-                "onlineByGuid",
-                "activeInbounds",
-                "lastOnlineMap"
-              ],
               "properties": {
                 "traffics": {
                   "type": "array",
@@ -16044,6 +16042,18 @@
                   "items": {
                     "$ref": "#/components/schemas/ClientTraffic"
                   }
+                },
+                "clientTrafficSource": {
+                  "type": "string",
+                  "enum": [
+                    "xray",
+                    "tuic"
+                  ],
+                  "description": "Present for native TUIC samples; omitted Xray samples default to xray."
+                },
+                "clientTrafficIntervalMs": {
+                  "type": "integer",
+                  "description": "Sampling interval used to calculate client speed, in milliseconds."
                 },
                 "nodeTraffics": {
                   "type": "array",
@@ -16088,12 +16098,23 @@
                 {
                   "required": [
                     "traffics",
-                    "clientTraffics"
+                    "clientTraffics",
+                    "onlineClients",
+                    "onlineByGuid",
+                    "activeInbounds",
+                    "lastOnlineMap"
                   ]
                 },
                 {
                   "required": [
                     "nodeTraffics"
+                  ]
+                },
+                {
+                  "required": [
+                    "clientTraffics",
+                    "clientTrafficSource",
+                    "clientTrafficIntervalMs"
                   ]
                 }
               ]

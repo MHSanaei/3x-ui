@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "Renewal preview (panel time zone: {zone})",
+      "renewServerLocal": "Server local time",
+      "renewPreviewHint": "Dates use the panel time zone. Previewing does not renew the client.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "Estimated renewals used: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "Renew on day",
       "renewOnDayDesc": "Renew on this day of every calendar month, at midnight in the panel's time zone, instead of every N days. A month too short for the chosen day renews on its last day. 0 keeps the day-interval mode.",
       "renewsUsed": "Renewals used",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "Enter a 32-character hex tag to set, or 'none' to clear sponsor channel on MTProto inbounds."
     },
     "groups": {
@@ -2256,16 +2257,20 @@
       },
       "tuic": {
         "congestionControl": "Congestion Control",
+        "congestionControlHint": "Server and client algorithm. Server changes apply after reconnecting.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "UDP Relay Mode",
+        "udpRelayModeHint": "Client UDP mode. The server supports both.",
         "zeroRttHandshake": "Zero-RTT Handshake",
         "logLevel": "Log Level",
-        "logLevelHint": "Online status, last online and \"start after first use\" are read from the sidecar's Info lines; Warn or Error turns them off for this inbound.",
+        "logLevelHint": "Minimum log level for this inbound.",
         "maxIdleTime": "Max Idle Time (s)",
         "authTimeout": "Auth Timeout (s)",
         "maxUdpRelayPacketSize": "Max UDP Packet Size",
         "sni": "SNI",
-        "sniHint": "Server Name Indication override"
+        "sniHint": "TLS server name in the client profile.",
+        "sniRequired": "Enter a domain to auto-fill certificate paths."
       },
       "tun": {
         "userLevel": "User Level"

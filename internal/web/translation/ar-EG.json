@@ -953,11 +953,13 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "معاينة التجديد (المنطقة الزمنية للوحة: {zone})",
+      "renewServerLocal": "التوقيت المحلي للخادم",
+      "renewPreviewHint": "تُعرض التواريخ حسب المنطقة الزمنية للوحة. المعاينة لا تجدد العميل.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "عدد التجديدات المتوقع استهلاكها: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
@@ -966,7 +968,6 @@
       "renewOnDay": "يوم التجديد",
       "renewOnDayDesc": "يتم التجديد في هذا اليوم من كل شهر ميلادي، عند منتصف الليل بتوقيت اللوحة، بدلاً من كل N يوم. إذا كان الشهر أقصر من اليوم المختار، يتم التجديد في آخر يوم منه. القيمة 0 تُبقي وضع الفاصل اليومي.",
       "renewsUsed": "التجديدات المستخدمة",
-      "tuicTotalGBDesc": "TUIC does not support per-client traffic limits; set traffic limit on the inbound instead.",
       "bulkAdTagHint": "أدخل علامة من 32 حرفًا ست عشريًا للتعيين، أو 'none' للمسح في منافذ MTProto."
     },
     "groups": {
@@ -2138,16 +2139,20 @@
       },
       "tuic": {
         "congestionControl": "التحكم في الازدحام",
+        "congestionControlHint": "خوارزمية الخادم والعميل. تسري تغييرات الخادم بعد إعادة الاتصال.",
+        "profileOptions": "Client profile options",
         "alpn": "ALPN",
         "udpRelayMode": "وضع ترحيل UDP",
+        "udpRelayModeHint": "وضع UDP للعميل. يدعم الخادم كلا الوضعين.",
         "zeroRttHandshake": "مصافحة 0-RTT",
         "logLevel": "مستوى السجل",
-        "logLevelHint": "يتم استنتاج حالة الاتصال وآخر ظهور و«البدء بعد أول استخدام» من سطور Info الخاصة بالعملية الجانبية؛ اختيار Warn أو Error يعطّلها لهذا الإنباوند.",
+        "logLevelHint": "أدنى مستوى للسجل لهذا الاتصال الوارد.",
         "maxIdleTime": "أقصى وقت خمول (ثوانٍ)",
         "authTimeout": "مهلة المصادقة (ثوانٍ)",
         "maxUdpRelayPacketSize": "أقصى حجم لحزمة UDP",
         "sni": "SNI",
-        "sniHint": "تجاوز إشارة اسم الخادم"
+        "sniHint": "اسم خادم TLS في ملف إعداد العميل.",
+        "sniRequired": "أدخل نطاقًا لملء مسارات الشهادة تلقائيًا."
       },
       "tun": {
         "userLevel": "مستوى المستخدم"
