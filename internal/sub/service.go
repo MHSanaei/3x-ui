@@ -85,10 +85,14 @@ type SubService struct {
 
 // NewSubService creates a new subscription service with the given configuration.
 func NewSubService(remarkTemplate string) *SubService {
-	return &SubService{
+	svc := &SubService{
 		remarkTemplate: remarkTemplate,
 		snapshots:      newSubSnapshotStore(snapshotCacheTTL, snapshotCacheCapacity),
 	}
+	// Panel mutations broadcast through this registry, so subscription bodies
+	// never serve a pre-edit snapshot; the TTL is only a backstop.
+	service.RegisterSubDataInvalidator(svc.snapshots.purgeAll)
+	return svc
 }
 
 // ForRequest returns a shallow copy with request-scoped state populated.

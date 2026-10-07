@@ -150,6 +150,16 @@ func (c *subSnapshotStore) evictLocked() {
 	}
 }
 
+// purgeAll drops every cached snapshot; the invalidator registry calls it
+// after panel mutations so edits surface on the next fetch, not after the
+// TTL. A build racing a purge may store a pre-mutation entry, bounded by TTL.
+func (c *subSnapshotStore) purgeAll() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = make(map[string]*snapshotEntry)
+	c.lru.Init()
+}
+
 func cloneStats(stats map[string]xray.ClientTraffic) map[string]xray.ClientTraffic {
 	out := make(map[string]xray.ClientTraffic, len(stats))
 	for email, row := range stats {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
@@ -183,5 +184,35 @@ func TestGetInboundsBySubIdCacheGate(t *testing.T) {
 	}
 	if len(updated) != 0 {
 		t.Fatal("panel-side reads must bypass the snapshot cache")
+	}
+
+	// Panel mutations broadcast through the invalidator registry; a direct DB
+	// write does not, so the hook is fired the way the mutation paths do.
+	service.InvalidateSubData()
+	afterHook, err := cached.getInboundsBySubId("s1")
+	if err != nil {
+		t.Fatalf("post-invalidation read: %v", err)
+	}
+	if len(afterHook) != 0 {
+		t.Fatal("invalidation must drop the snapshot so panel edits surface at once")
+	}
+}
+
+func TestSnapshotStorePurgeAll(t *testing.T) {
+	store := newSubSnapshotStore(time.Minute, 8)
+	var builds atomic.Int32
+	build := func() ([]*model.Inbound, map[string]xray.ClientTraffic, error) {
+		builds.Add(1)
+		return []*model.Inbound{{Id: 1, Port: 443}}, nil, nil
+	}
+	if _, _, err := store.inboundsFor("s1", build); err != nil {
+		t.Fatalf("first read: %v", err)
+	}
+	store.purgeAll()
+	if _, _, err := store.inboundsFor("s1", build); err != nil {
+		t.Fatalf("post-purge read: %v", err)
+	}
+	if builds.Load() != 2 {
+		t.Fatalf("builds after purge = %d, want 2", builds.Load())
 	}
 }
