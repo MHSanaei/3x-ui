@@ -144,3 +144,28 @@ func TestNormalizeMtprotoSecretHealsClients(t *testing.T) {
 		t.Fatalf("client secret should be healed to front the inbound domain, got %q", got)
 	}
 }
+
+func TestMtprotoDCPoolSizeValidatedOnSave(t *testing.T) {
+	setupConflictDB(t)
+	s := &InboundService{}
+	settings := func(pool string) string {
+		return `{"dcPool":` + pool + `,"clients":[{"email":"pool-client","secret":"` + mtprotoTestSecretA + `","enable":true}]}`
+	}
+	const wantErr = "mtproto dcPool.size must be between 1 and 64"
+
+	for _, pool := range []string{`{"enabled":true,"size":65}`, `{"enabled":true,"size":-1}`} {
+		_, _, err := s.AddInbound(&model.Inbound{Port: 46301, Protocol: model.MTProto, Settings: settings(pool)})
+		if err == nil || err.Error() != wantErr {
+			t.Fatalf("AddInbound with dcPool %s: err = %v, want %q", pool, err, wantErr)
+		}
+	}
+
+	created, _, err := s.AddInbound(&model.Inbound{Port: 46302, Protocol: model.MTProto, Settings: settings(`{"enabled":true,"size":64}`)})
+	if err != nil {
+		t.Fatalf("AddInbound with the maximum pool size: %v", err)
+	}
+	created.Settings = settings(`{"enabled":true,"size":100}`)
+	if _, _, err := s.UpdateInbound(created); err == nil || err.Error() != wantErr {
+		t.Fatalf("UpdateInbound with an oversized pool: err = %v, want %q", err, wantErr)
+	}
+}

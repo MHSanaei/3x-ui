@@ -69,7 +69,17 @@ type Instance struct {
 	// the egress obeys the core's routing rules instead of going out directly.
 	RouteThroughXray bool
 	XrayRoutePort    int
+
+	// Secured also accepts dd clients on each FakeTLS key; DCPoolEnabled keeps warm
+	// Telegram DC connections (zero DCPoolSize = mtg default). Both need a recent mtg-multi.
+	Secured       bool
+	DCPoolEnabled bool
+	DCPoolSize    int
 }
+
+// DCPoolMaxSize caps the warm connections per DC: each one is an idle
+// connection to Telegram kept open for every pooled DC.
+const DCPoolMaxSize = 64
 
 func (inst Instance) bindTo() string {
 	listen := inst.Listen
@@ -97,6 +107,9 @@ func (inst Instance) structuralFingerprint() string {
 		strconv.Itoa(inst.XrayRoutePort),
 		inst.PublicIPv4,
 		inst.PublicIPv6,
+		strconv.FormatBool(inst.Secured),
+		strconv.FormatBool(inst.DCPoolEnabled),
+		strconv.Itoa(inst.DCPoolSize),
 	}
 	return strings.Join(parts, "|")
 }
@@ -185,7 +198,12 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		RouteXrayPort          int    `json:"routeXrayPort"`
 		PublicIPv4             string `json:"publicIpv4"`
 		PublicIPv6             string `json:"publicIpv6"`
-		Clients                []struct {
+		Secured                bool   `json:"secured"`
+		DCPool                 struct {
+			Enabled bool `json:"enabled"`
+			Size    int  `json:"size"`
+		} `json:"dcPool"`
+		Clients []struct {
 			Email      string `json:"email"`
 			Secret     string `json:"secret"`
 			AdTag      string `json:"adTag"`
@@ -231,7 +249,19 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		XrayRoutePort:          parsed.RouteXrayPort,
 		PublicIPv4:             strings.TrimSpace(parsed.PublicIPv4),
 		PublicIPv6:             strings.TrimSpace(parsed.PublicIPv6),
+		Secured:                parsed.Secured,
+		DCPoolEnabled:          parsed.DCPool.Enabled,
+		DCPoolSize:             usableDCPoolSize(parsed.DCPool.Enabled, parsed.DCPool.Size),
 	}, true
+}
+
+// usableDCPoolSize drops a size that is out of range or belongs to a disabled
+// pool, so raw API payloads cannot make mtg reject the config or force a needless restart.
+func usableDCPoolSize(enabled bool, size int) int {
+	if !enabled || size < 1 || size > DCPoolMaxSize {
+		return 0
+	}
+	return size
 }
 
 // usableAdTag returns a stored advertising tag only when it is well-formed.
@@ -523,7 +553,7 @@ func FreeLocalPort() (int, error) {
 // precede any [section] header in TOML, and [secrets] must be the final section
 // so trailing keys are not swallowed by another table. The layout is therefore:
 // top-level scalars (incl. api-bind-to and api-token), then [domain-fronting],
-// [network] and [throttle], then [secret-ad-tags] for clients overriding the
+// [network], [throttle], [secured] and [dc-pool], then [secret-ad-tags] for clients overriding the
 // global advertising tag, and finally [secrets] with one named secret per
 // active client.
 func renderConfig(inst Instance, apiPort int, apiToken string) string {
@@ -568,6 +598,15 @@ func renderConfig(inst Instance, apiPort int, apiToken string) string {
 	}
 	if inst.ThrottleMaxConnections > 0 {
 		fmt.Fprintf(&b, "\n[throttle]\nmax-connections = %d\n", inst.ThrottleMaxConnections)
+	}
+	if inst.Secured {
+		b.WriteString("\n[secured]\nenabled = true\n")
+	}
+	if inst.DCPoolEnabled {
+		b.WriteString("\n[dc-pool]\nenabled = true\n")
+		if inst.DCPoolSize > 0 {
+			fmt.Fprintf(&b, "size = %d\n", inst.DCPoolSize)
+		}
 	}
 	// Only clients present in [secrets] may appear here: mtg rejects a config
 	// whose [secret-ad-tags] names an unknown secret, so a disabled client's

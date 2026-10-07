@@ -1156,6 +1156,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
+	if err := validateMtprotoSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
 	}
@@ -1794,6 +1797,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
+	if err := validateMtprotoSettings(inbound); err != nil {
+		return inbound, false, err
+	}
 
 	oldInbound, err := s.GetInbound(inbound.Id)
 	if err != nil {
