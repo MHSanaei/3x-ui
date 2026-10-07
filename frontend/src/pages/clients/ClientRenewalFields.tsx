@@ -9,8 +9,6 @@ import { ClientRenewalPreviewSchema } from '@/generated/zod';
 import { HttpUtil } from '@/utils';
 import type { ClientFormValues } from '@/schemas/client';
 
-import './ClientRenewalFields.css';
-
 type RenewalFields = Pick<ClientFormValues, 'reset' | 'resetDay' | 'resetWeekday' | 'resetMax'>;
 type RenewalMode = 'none' | 'interval' | 'weekly' | 'monthly';
 
@@ -92,7 +90,7 @@ export default function ClientRenewalFields({
     setValue('resetWeekday', next === 'weekly' ? Math.max(1, resetWeekday || 0) : 0);
   }
   return (
-    <div className="client-renewal-fields">
+    <>
       <Row gutter={16}>
         <Col xs={24} md={bulk ? 24 : 8}>
           <Form.Item label={t('pages.clients.renewMode')} htmlFor={modeId}>
@@ -245,6 +243,6 @@ export default function ClientRenewalFields({
           )}
         </>
       )}
-    </div>
+    </>
   );
 }
