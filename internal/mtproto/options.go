@@ -40,11 +40,15 @@ type Options struct {
 }
 
 type NetworkOptions struct {
-	DNS             string           `json:"dns,omitempty"`
-	Proxies         []string         `json:"proxies,omitempty"`
-	TCPNotSentLowat string           `json:"tcpNotSentLowat,omitempty"`
-	Timeout         TimeoutOptions   `json:"timeout"`
-	KeepAlive       KeepAliveOptions `json:"keepAlive"`
+	DNS             string   `json:"dns,omitempty"`
+	Proxies         []string `json:"proxies,omitempty"`
+	TCPNotSentLowat string   `json:"tcpNotSentLowat,omitempty"`
+	// ClientMSS splits the FakeTLS ServerHello into segments of this MSS. A nil
+	// ClientMSSBulk leaves the rest of the session to mtg's default; 0 keeps it at ClientMSS.
+	ClientMSS     int              `json:"clientMss,omitempty"`
+	ClientMSSBulk *int             `json:"clientMssBulk,omitempty"`
+	Timeout       TimeoutOptions   `json:"timeout"`
+	KeepAlive     KeepAliveOptions `json:"keepAlive"`
 }
 
 type TimeoutOptions struct {
@@ -148,6 +152,14 @@ const (
 	maxListEntries = 32
 	// MaxExtraTOMLBytes caps the free-form config block.
 	MaxExtraTOMLBytes = 64 << 10
+
+	// client-mss bounds of mtg-multi's [network] section. With a bulk of 0 the
+	// client MSS goes on the socket, and the kernel refuses TCP_MAXSEG below 88.
+	ClientMSSMin       = 48
+	ClientMSSMax       = 1460
+	ClientMSSKernelMin = 88
+	ClientMSSBulkMin   = 536
+	ClientMSSBulkMax   = 65495
 )
 
 // forbiddenExtraKeys are top-level keys the extra TOML may not set: the panel owns the
@@ -176,6 +188,10 @@ type optionCheck struct {
 // switch: mtg's proxies list is then owned by the Xray bridge.
 func (o *Options) checks(routeThroughXray bool) []optionCheck {
 	n, d, s, w := &o.Network, &o.Defense, &o.Stats, &o.Web
+	bulkSet, bulk := n.ClientMSSBulk != nil, 0
+	if bulkSet {
+		bulk = *n.ClientMSSBulk
+	}
 	c := []optionCheck{
 		{"concurrency", fmt.Sprintf("must be between 1 and %d", maxUint16), !validCount(o.Concurrency), func(o *Options) { o.Concurrency = 0 }},
 		{"tolerateTimeSkewness", "must be a positive duration like 5s", !validDuration(o.TolerateTimeSkewness), func(o *Options) { o.TolerateTimeSkewness = "" }},
@@ -185,6 +201,10 @@ func (o *Options) checks(routeThroughXray bool) []optionCheck {
 		{"network.proxies", fmt.Sprintf("must be at most %d socks5:// URLs", maxListEntries), !validList(n.Proxies, validProxyURL), func(o *Options) { o.Network.Proxies = nil }},
 		{"network.proxies", "cannot be combined with routing through Xray", routeThroughXray && len(n.Proxies) > 0, func(o *Options) { o.Network.Proxies = nil }},
 		{"network.tcpNotSentLowat", "must be a size like 128kib", !validBytes(n.TCPNotSentLowat), func(o *Options) { o.Network.TCPNotSentLowat = "" }},
+		{"network.clientMss", fmt.Sprintf("must be 0 or between %d and %d", ClientMSSMin, ClientMSSMax), !validMSS(n.ClientMSS, ClientMSSMin, ClientMSSMax), func(o *Options) { o.Network.ClientMSS = 0 }},
+		{"network.clientMssBulk", fmt.Sprintf("must be 0 or between %d and %d", ClientMSSBulkMin, ClientMSSBulkMax), bulkSet && !validMSS(bulk, ClientMSSBulkMin, ClientMSSBulkMax), func(o *Options) { o.Network.ClientMSSBulk = nil }},
+		{"network.clientMssBulk", "must be greater than network.clientMss", bulkSet && n.ClientMSS > 0 && bulk > 0 && bulk <= n.ClientMSS, func(o *Options) { o.Network.ClientMSSBulk = nil }},
+		{"network.clientMss", fmt.Sprintf("must be at least %d when network.clientMssBulk is 0", ClientMSSKernelMin), bulkSet && bulk == 0 && n.ClientMSS > 0 && n.ClientMSS < ClientMSSKernelMin, func(o *Options) { o.Network.ClientMSSBulk = nil }},
 		{"network.timeout.tcp", "must be a positive duration", !validDuration(n.Timeout.TCP), func(o *Options) { o.Network.Timeout.TCP = "" }},
 		{"network.timeout.http", "must be a positive duration", !validDuration(n.Timeout.HTTP), func(o *Options) { o.Network.Timeout.HTTP = "" }},
 		{"network.timeout.idle", "must be a positive duration", !validDuration(n.Timeout.Idle), func(o *Options) { o.Network.Timeout.Idle = "" }},
@@ -329,6 +349,9 @@ func ValidateSettings(settings string) error {
 }
 
 func validCount(v int) bool { return v >= 0 && v <= maxUint16 }
+
+// validMSS accepts 0 (unset) or a segment size within [lo, hi].
+func validMSS(v, lo, hi int) bool { return v == 0 || (v >= lo && v <= hi) }
 
 func validDuration(v string) bool {
 	if v == "" {
@@ -576,6 +599,12 @@ func (o Options) writeNetwork(b *strings.Builder, xrayProxy string) {
 	}
 	s.str("dns", n.DNS)
 	s.str("tcp-not-sent-lowat", n.TCPNotSentLowat)
+	if n.ClientMSS > 0 {
+		s.num("client-mss", n.ClientMSS)
+		if n.ClientMSSBulk != nil {
+			s.line("client-mss-bulk = %d", *n.ClientMSSBulk)
+		}
+	}
 
 	t := &sectionWriter{b: b, header: "network.timeout"}
 	t.str("tcp", n.Timeout.TCP)

@@ -32,6 +32,8 @@ func fullOptions() Options {
 			DNS:             "https://1.1.1.1/dns-query",
 			Proxies:         []string{"socks5://user:pass@10.0.0.1:1080"},
 			TCPNotSentLowat: "1mib",
+			ClientMSS:       92,
+			ClientMSSBulk:   new(1200),
 			Timeout:         TimeoutOptions{TCP: "5s", HTTP: "10s", Idle: "5m", Handshake: "10s"},
 			KeepAlive:       KeepAliveOptions{Disabled: true, Idle: "15s", Interval: "15s", Count: 9},
 		},
@@ -65,7 +67,7 @@ func TestRenderOptionGroups(t *testing.T) {
 
 	for _, want := range []string{
 		"concurrency = 2048\ntolerate-time-skewness = \"5s\"\nallow-fallback-on-unknown-dc = true\nauto-update = true\n",
-		"\n[network]\nproxies = [\"socks5://user:pass@10.0.0.1:1080\"]\ndns = \"https://1.1.1.1/dns-query\"\ntcp-not-sent-lowat = \"1mib\"\n",
+		"\n[network]\nproxies = [\"socks5://user:pass@10.0.0.1:1080\"]\ndns = \"https://1.1.1.1/dns-query\"\ntcp-not-sent-lowat = \"1mib\"\nclient-mss = 92\nclient-mss-bulk = 1200\n",
 		"\n[network.timeout]\ntcp = \"5s\"\nhttp = \"10s\"\nidle = \"5m\"\nhandshake = \"10s\"\n",
 		"\n[network.keep-alive]\ndisabled = true\nidle = \"15s\"\ninterval = \"15s\"\ncount = 9\n",
 		"\n[throttle]\nmax-connections = 100\ncheck-interval = \"10s\"\n",
@@ -151,6 +153,44 @@ func TestRenderNetworkWithXrayRoute(t *testing.T) {
 	if strings.Count(cfg, "[network]") != 1 {
 		t.Fatalf("[network] must be emitted once:\n%s", cfg)
 	}
+
+	// A relay splits the ServerHello towards its clients and still dials
+	// Telegram through the bridge: both land in the one [network] table.
+	inst.Options.Network = NetworkOptions{ClientMSS: 92}
+	if cfg := renderConfig(inst, 5000, ""); !strings.Contains(cfg, "\n[network]\nproxies = [\"socks5://127.0.0.1:50000\"]\nclient-mss = 92\n\n") {
+		t.Fatalf("client-mss must join the bridged [network]:\n%s", cfg)
+	}
+}
+
+// client-mss-bulk is written only next to client-mss (mtg ignores it alone),
+// and an explicit 0 must survive: it keeps the whole session at client-mss.
+func TestRenderClientMSS(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		network  NetworkOptions
+		want     string
+		wantBulk any
+	}{
+		{"bulk left to mtg", NetworkOptions{ClientMSS: 92}, "client-mss = 92\n", nil},
+		{"own bulk", NetworkOptions{ClientMSS: 92, ClientMSSBulk: new(1400)}, "client-mss = 92\nclient-mss-bulk = 1400\n", int64(1400)},
+		{"whole session small", NetworkOptions{ClientMSS: 120, ClientMSSBulk: new(0)}, "client-mss = 120\nclient-mss-bulk = 0\n", int64(0)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := renderConfig(optInstance(Options{Network: tc.network}), 5000, "")
+			if !strings.Contains(cfg, "\n[network]\n"+tc.want+"\n") {
+				t.Fatalf("config is missing %q:\n%s", tc.want, cfg)
+			}
+			network := assertValidMtgConfig(t, cfg)["network"].(map[string]any)
+			if network["client-mss-bulk"] != tc.wantBulk {
+				t.Fatalf("client-mss-bulk = %v, want %v", network["client-mss-bulk"], tc.wantBulk)
+			}
+		})
+	}
+
+	cfg := renderConfig(optInstance(Options{Network: NetworkOptions{ClientMSSBulk: new(1400)}}), 5000, "")
+	if strings.Contains(cfg, "client-mss") || strings.Contains(cfg, "[network]") {
+		t.Fatalf("client-mss-bulk without client-mss must render nothing:\n%s", cfg)
+	}
 }
 
 func TestValidateSettings(t *testing.T) {
@@ -167,6 +207,12 @@ func TestValidateSettings(t *testing.T) {
 		`{"network":{"dns":"tls://dns.example.com"},` + clients + `}`,
 		`{"network":{"dns":"udp://8.8.8.8"},` + clients + `}`,
 		`{"network":{"tcpNotSentLowat":"4 MiB"},` + clients + `}`,
+		`{"network":{"clientMss":48},` + clients + `}`,
+		`{"network":{"clientMss":1460,"clientMssBulk":65495},` + clients + `}`,
+		`{"network":{"clientMss":92,"clientMssBulk":536},` + clients + `}`,
+		`{"network":{"clientMss":88,"clientMssBulk":0},` + clients + `}`,
+		`{"network":{"clientMss":0,"clientMssBulk":0},` + clients + `}`,
+		`{"routeThroughXray":true,"network":{"clientMss":92},` + clients + `}`,
 		`{"defense":{"pendingHandshakes":{"maxPerIp":0}},` + clients + `}`,
 		`{"web":{"bindTo":"[::1]:18080","host":"proxy.example.com"},` + clients + `}`,
 		`{"dcPool":{"enabled":true,"dcs":[-32768,32767]},` + clients + `}`,
@@ -190,6 +236,13 @@ func TestValidateSettings(t *testing.T) {
 		{`{"network":{"proxies":["http://10.0.0.1:3128"]}}`, "network.proxies"},
 		{`{"routeThroughXray":true,"network":{"proxies":["socks5://10.0.0.1:1080"]}}`, "network.proxies"},
 		{`{"network":{"tcpNotSentLowat":"lots"}}`, "network.tcpNotSentLowat"},
+		{`{"network":{"clientMss":47}}`, "network.clientMss must be 0 or between 48 and 1460"},
+		{`{"network":{"clientMss":1461}}`, "network.clientMss must be 0 or between 48 and 1460"},
+		{`{"network":{"clientMss":-1}}`, "network.clientMss must be 0 or between 48 and 1460"},
+		{`{"network":{"clientMss":92,"clientMssBulk":535}}`, "network.clientMssBulk must be 0 or between 536 and 65495"},
+		{`{"network":{"clientMss":92,"clientMssBulk":65496}}`, "network.clientMssBulk must be 0 or between 536 and 65495"},
+		{`{"network":{"clientMss":1400,"clientMssBulk":1400}}`, "network.clientMssBulk must be greater than network.clientMss"},
+		{`{"network":{"clientMss":87,"clientMssBulk":0}}`, "network.clientMss must be at least 88 when network.clientMssBulk is 0"},
 		{`{"network":{"timeout":{"tcp":"0s"}}}`, "network.timeout.tcp"},
 		{`{"network":{"timeout":{"handshake":"10"}}}`, "network.timeout.handshake"},
 		{`{"network":{"keepAlive":{"count":70000}}}`, "network.keepAlive.count"},
@@ -238,7 +291,7 @@ func TestValidateSettings(t *testing.T) {
 // mtg never sees them.
 func TestInstanceFromInboundSanitizesOptions(t *testing.T) {
 	settings := `{"concurrency":70000,"tolerateTimeSkewness":"5s",` +
-		`"network":{"dns":"ftp://x","timeout":{"idle":"1m"}},` +
+		`"network":{"dns":"ftp://x","clientMss":2000,"clientMssBulk":100,"timeout":{"idle":"1m"}},` +
 		`"defense":{"blocklist":{"enabled":true,"urls":["file:///etc/passwd"]}},` +
 		`"stats":{"prometheus":{"enabled":true,"bindTo":"0.0.0.0:3129"}},` +
 		`"web":{"bindTo":"0.0.0.0:80","host":"proxy.example.com"},` +
@@ -250,7 +303,7 @@ func TestInstanceFromInboundSanitizesOptions(t *testing.T) {
 		t.Fatal("expected a usable instance")
 	}
 	o := inst.Options
-	if o.Concurrency != 0 || o.Network.DNS != "" || o.Defense.Blocklist.Enabled || o.Stats.Prometheus.Enabled ||
+	if o.Concurrency != 0 || o.Network.DNS != "" || o.Network.ClientMSS != 0 || o.Network.ClientMSSBulk != nil || o.Defense.Blocklist.Enabled || o.Stats.Prometheus.Enabled ||
 		o.Web.BindTo != "" || o.ExtraTOML != "" || o.DCPool.DCs != nil {
 		t.Fatalf("invalid options must be dropped: %+v", o)
 	}
@@ -294,6 +347,8 @@ func TestOptionsFingerprint(t *testing.T) {
 		"dns":               func(o *Options) { o.Network.DNS = "1.1.1.1" },
 		"proxies":           func(o *Options) { o.Network.Proxies = []string{"socks5://10.0.0.1:1080"} },
 		"lowat":             func(o *Options) { o.Network.TCPNotSentLowat = "1mib" },
+		"clientMss":         func(o *Options) { o.Network.ClientMSS = 92 },
+		"clientMssBulk":     func(o *Options) { o.Network.ClientMSSBulk = new(0) },
 		"timeoutTCP":        func(o *Options) { o.Network.Timeout.TCP = "1s" },
 		"timeoutHTTP":       func(o *Options) { o.Network.Timeout.HTTP = "1s" },
 		"timeoutIdle":       func(o *Options) { o.Network.Timeout.Idle = "1s" },
