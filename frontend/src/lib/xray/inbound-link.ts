@@ -891,9 +891,8 @@ export function mtprotoWebSecret(secret: string, mode?: string): string {
   return dd && mode === 'plain' ? dd.slice(2) : dd;
 }
 
-// The WEB-mode link (Telegram Desktop) of an mtproto client, '' when the
-// inbound does not serve the WEB mode. It points at the WEB domain behind the
-// reverse proxy, so it carries no port and is the same for every endpoint.
+// WEB-mode link of an mtproto client, '' when the inbound does not serve it. It
+// targets the WEB domain behind the reverse proxy, so it is port-less and per-inbound.
 export function genMtprotoWebLink(inbound: Inbound, clientSecret: string): string {
   if (inbound.protocol !== 'mtproto') return '';
   const web = inbound.settings.web;

@@ -156,11 +156,8 @@ func (s *InboundService) resetAllMtprotoQuotas() {
 	}
 }
 
-// validateMtprotoSettings rejects mtg options the sidecar would refuse (out of
-// range numbers, malformed durations, sizes, URLs and addresses, a public
-// metrics or WEB listener, an extra TOML block that is invalid or touches keys
-// the panel owns), so a save can never produce a config that takes the whole
-// inbound down. Unset options are left to mtg's defaults.
+// validateMtprotoSettings rejects mtg options the sidecar would refuse, a public metrics or
+// WEB listener, or extra TOML touching panel keys, so a save never takes the inbound down.
 func validateMtprotoSettings(inbound *model.Inbound) error {
 	if inbound == nil || inbound.Protocol != model.MTProto {
 		return nil

@@ -10,9 +10,8 @@ export const MtprotoDomainFrontingSchema = z.object({
 });
 export type MtprotoDomainFronting = z.infer<typeof MtprotoDomainFrontingSchema>;
 
-// Optional mtg knobs mirror what mtg-multi accepts; the backend re-checks every
-// one on save. A cleared input (null or '') means "unset": the key is left out
-// of the generated config and mtg uses its own default.
+// Optional mtg knobs mirror mtg-multi's limits (the backend re-checks them). A cleared
+// input (null or '') is "unset": the key is left out and mtg uses its default.
 const unset = (v: unknown) => (v === null || v === '' ? undefined : v);
 const optInt = (min: number, max: number) =>
   z.preprocess(unset, z.number().int().min(min).max(max).optional());
@@ -36,9 +35,8 @@ const LOOPBACK_HOSTPORT = /^(127(\.\d{1,3}){3}|\[::1\]):\d{1,5}$/;
 const LOOPBACK_MSG = 'pages.inbounds.form.mtgLoopbackOnly';
 const MAX_UINT16 = 65535;
 
-// mtg's [dc-pool] section: warm connections kept to each Telegram DC. `dcs` is
-// the set of signed DC ids to warm (negative = media DC, 203 = CDN); it needs an
-// mtg-multi build with a configurable DC set, older builds ignore it.
+// [dc-pool]: warm connections per Telegram DC. `dcs` holds signed DC ids (negative =
+// media, 203 = CDN) and needs an mtg-multi build with a configurable DC set.
 export const MtprotoDcPoolSchema = z.object({
   enabled: z.boolean().optional(),
   size: z.number().int().min(1).max(64).optional(),
@@ -91,9 +89,8 @@ export const MtprotoNetworkSchema = z.object({
     .optional(),
 });
 
-// [defense.*]: anti-replay cache, IP block/allow lists, doppelganger traffic
-// shaping and the per-IP pending-handshake cap (the last needs mtg-multi with
-// pending-handshakes support).
+// [defense.*]: anti-replay, IP block/allow lists, doppelganger and the per-IP
+// pending-handshake cap (the last needs mtg-multi with pending-handshakes support).
 export const MtprotoDefenseSchema = z.object({
   antiReplay: z
     .object({
@@ -141,9 +138,8 @@ export const MtprotoStatsSchema = z.object({
     .optional(),
 });
 
-// [web]: MTProto inside a real HTTPS session (Telegram Desktop tg://webproxy
-// links). mtg serves plain HTTP on loopback behind a TLS reverse proxy; needs
-// an mtg-multi build with WEB mode support.
+// [web]: MTProto inside real HTTPS (tg://webproxy). mtg serves plain HTTP on loopback
+// behind a TLS reverse proxy; needs an mtg-multi build with WEB mode.
 export const MtprotoWebSchema = z.object({
   bindTo: optText(LOOPBACK_HOSTPORT, LOOPBACK_MSG),
   host: optText(
@@ -227,9 +223,8 @@ export const MtprotoInboundSettingsSchema = z.object({
   defense: MtprotoDefenseSchema.optional(),
   stats: MtprotoStatsSchema.optional(),
   web: MtprotoWebSchema.optional(),
-  // Free-form TOML merged under the generated config; the panel's own keys win
-  // and [secrets], [secret-limits], [secret-ad-tags], bind-to, api-bind-to and
-  // api-token are rejected by the backend.
+  // Free-form TOML merged under the generated config; panel keys win, and the
+  // backend rejects the client sections, bind-to and the API keys.
   extraToml: z.preprocess(unset, z.string().max(65536).optional()),
 });
 export type MtprotoInboundSettings = z.infer<typeof MtprotoInboundSettingsSchema>;

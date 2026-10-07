@@ -653,9 +653,8 @@ func MtprotoSecuredSecret(secret string) string {
 	return "dd" + strings.ToLower(key)
 }
 
-// MtprotoWebSecret derives the key of a client's tg://webproxy link from its
-// FakeTLS secret: the same 16-byte key, with a dd prefix in the default "dd"
-// mode or bare in "plain" mode; "" when the secret is malformed.
+// MtprotoWebSecret is the tg://webproxy key of a FakeTLS secret: its 16-byte key, dd-prefixed
+// in "dd" mode (the default) or bare in "plain" mode; "" for a malformed secret.
 func MtprotoWebSecret(secret, mode string) string {
 	dd := MtprotoSecuredSecret(secret)
 	if dd == "" || mode == "plain" {

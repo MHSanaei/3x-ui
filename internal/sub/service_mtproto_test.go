@@ -265,9 +265,8 @@ func TestSecuredMtprotoLinksFollowHostEndpoint(t *testing.T) {
 	}
 }
 
-// A WEB-enabled inbound adds one tg://webproxy link to the WEB domain after the
-// regular ones; the key keeps or drops the dd prefix by secret mode, and an
-// invalid or incomplete WEB section yields no link because mtg would not serve it.
+// WEB mode adds one tg://webproxy link (dd-prefixed or bare key by mode); an invalid or
+// incomplete WEB section yields none, since mtg would not serve it.
 func TestGenMtprotoLinkWeb(t *testing.T) {
 	const plainKey = "8196fe6ed8b637d001f91d6952cfcdf0"
 	for _, tc := range []struct {

@@ -1102,10 +1102,8 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	return strings.Join(links, "\n")
 }
 
-// genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret,
-// followed by a dd link on the same key when the inbound accepts secured clients, and a single
-// tg://webproxy link to the WEB domain when the inbound serves the WEB mode.
-// It omits remarks because lenient parsers fold a fragment into the last query value.
+// genMtprotoLink: one ee link per endpoint, plus dd ones when secured and a tg://webproxy one in
+// WEB mode. No remarks: lenient parsers fold a fragment into the last query value.
 func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
 		return ""

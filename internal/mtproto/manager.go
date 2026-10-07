@@ -559,15 +559,8 @@ func FreeLocalPort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
-// renderConfig builds the mtg-multi TOML for an instance. Top-level keys must
-// precede any [section] header in TOML, and [secrets] must be the final section
-// so trailing keys are not swallowed by another table. The layout is therefore:
-// top-level scalars (incl. api-bind-to and api-token), then [domain-fronting],
-// [network], [throttle], [secured], [dc-pool] and the option sections
-// (defense, stats, web), with the extra TOML merged under them, then
-// [secret-ad-tags] for clients overriding the global advertising tag,
-// [secret-limits.*], and finally [secrets] with one named secret per active
-// client.
+// renderConfig builds the mtg-multi TOML: top-level keys before any [section], and the
+// per-client sections last with [secrets] final, so no trailing key lands in another table.
 func renderConfig(inst Instance, apiPort int, apiToken string) string {
 	head := renderHead(inst, apiPort, apiToken)
 	if merged, err := mergeExtraTOML(head, inst.Options.ExtraTOML); err != nil {

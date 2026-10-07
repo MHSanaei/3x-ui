@@ -19,12 +19,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-// Options are the mtg-multi knobs an MTProto inbound exposes beyond the core
-// ones Instance carries (listener, fronting, routing, secured, warm pool).
-// They live in the inbound settings under the JSON keys below. A zero value
-// means "not set": the key is left out of the generated config and mtg uses
-// its own default, so an inbound that sets none of them renders the exact
-// config it always did.
+// Options are the mtg-multi knobs beyond the core ones on Instance. A zero value is "unset":
+// the key is left out and mtg uses its default, so untouched inbounds render as before.
 type Options struct {
 	Concurrency              int    `json:"concurrency,omitempty"`
 	TolerateTimeSkewness     string `json:"tolerateTimeSkewness,omitempty"`
@@ -38,9 +34,8 @@ type Options struct {
 	Stats   StatsOptions   `json:"stats"`
 	Web     WebOptions     `json:"web"`
 
-	// ExtraTOML is free-form mtg config merged under the generated one: a key
-	// the panel already writes wins, and the keys that carry the client set or
-	// the panel's own API access (see forbiddenExtraKeys) are dropped.
+	// ExtraTOML is free-form mtg config merged under the generated one: panel keys win,
+	// and forbiddenExtraKeys (clients, listener, API access) are dropped.
 	ExtraTOML string `json:"extraToml,omitempty"`
 }
 
@@ -155,10 +150,8 @@ const (
 	MaxExtraTOMLBytes = 64 << 10
 )
 
-// forbiddenExtraKeys are top-level keys the extra TOML may not set: the client
-// set and its limits are owned by the panel (and hot-reloaded through the API),
-// and the listener and API endpoint/token are what the panel uses to manage
-// the process.
+// forbiddenExtraKeys are top-level keys the extra TOML may not set: the panel owns the
+// clients (hot-reloaded via the API) and the listener and API it manages mtg through.
 var forbiddenExtraKeys = []string{
 	"secret", "secrets", "secret-limits", "secret-ad-tags",
 	"bind-to", "api-bind-to", "api-token",
@@ -257,10 +250,8 @@ func (o Options) Validate(routeThroughXray bool) error {
 	return nil
 }
 
-// sanitized drops every value that breaks a rule. Save paths validate, but
-// settings can also arrive from raw API payloads or older data, and one bad
-// value in a generated config makes mtg refuse to start — taking every client
-// of the inbound down with it.
+// sanitized drops every value that breaks a rule: raw API payloads or older data skip
+// save-time validation, and one bad value makes mtg refuse to start for every client.
 func (o Options) sanitized(routeThroughXray bool) Options {
 	for range 4 { // a reset can expose another rule (e.g. cleared URLs vs enabled)
 		clean := true
@@ -295,9 +286,8 @@ func ParseOptions(settings string) Options {
 	return o
 }
 
-// WebEndpoint returns the WEB link domain and key mode of mtproto inbound
-// settings when the WEB listener is configured (and valid, so the link is only
-// offered when the generated config actually serves it).
+// WebEndpoint returns the WEB link domain and key mode when the WEB listener is configured
+// and valid, so the link is offered only when the generated config serves it.
 func WebEndpoint(settings string) (host, secretMode string, ok bool) {
 	var raw struct {
 		RouteThroughXray bool `json:"routeThroughXray"`
@@ -392,9 +382,8 @@ func validHTTPSURL(v string) bool {
 	return ok
 }
 
-// validListURL accepts remote FireHOL lists only. mtg also takes a local file,
-// but it refuses to start when that file is missing, and the panel cannot see
-// the filesystem of the node that runs the inbound.
+// validListURL accepts remote lists only: mtg refuses to start on a missing local file,
+// and the panel cannot see the filesystem of the node that runs the inbound.
 func validListURL(v string) bool {
 	_, ok := parsedURL(v, "http", "https")
 	return ok
@@ -575,9 +564,8 @@ func (o Options) writeTopLevel(b *strings.Builder) {
 	}
 }
 
-// writeNetwork emits [network] and its sub-tables. xrayProxy is the SOCKS
-// bridge URL when the inbound routes through Xray; it replaces the user's
-// proxies (validation forbids setting both).
+// writeNetwork emits [network] and its sub-tables. xrayProxy, the Xray SOCKS bridge,
+// replaces the user's proxies (validation forbids setting both).
 func (o Options) writeNetwork(b *strings.Builder, xrayProxy string) {
 	n := o.Network
 	s := &sectionWriter{b: b, header: "network"}
@@ -668,10 +656,8 @@ func (o Options) writeSections(b *strings.Builder) {
 	}
 }
 
-// mergeExtraTOML merges the free-form block under the generated head (every
-// section before the client ones): keys the panel wrote win, tables merge key
-// by key, and forbidden keys are dropped. The result is re-encoded, so it is
-// only used when the extra block actually adds something.
+// mergeExtraTOML merges the extra block under the non-client head key by key, panel keys
+// winning. The result is re-encoded, so a block that adds nothing keeps the head as is.
 func mergeExtraTOML(head, extra string) (string, error) {
 	if strings.TrimSpace(extra) == "" {
 		return head, nil
