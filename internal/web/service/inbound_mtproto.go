@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -157,22 +156,17 @@ func (s *InboundService) resetAllMtprotoQuotas() {
 	}
 }
 
-// validateMtprotoSettings rejects a warm DC pool size mtg cannot use; zero or
-// absent leaves the size to mtg. Other mtproto inbound options are free-form.
+// validateMtprotoSettings rejects mtg options the sidecar would refuse (out of
+// range numbers, malformed durations, sizes, URLs and addresses, a public
+// metrics or WEB listener, an extra TOML block that is invalid or touches keys
+// the panel owns), so a save can never produce a config that takes the whole
+// inbound down. Unset options are left to mtg's defaults.
 func validateMtprotoSettings(inbound *model.Inbound) error {
 	if inbound == nil || inbound.Protocol != model.MTProto {
 		return nil
 	}
-	var parsed struct {
-		DCPool *struct {
-			Size int `json:"size"`
-		} `json:"dcPool"`
-	}
-	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed.DCPool == nil {
-		return nil
-	}
-	if size := parsed.DCPool.Size; size < 0 || size > mtproto.DCPoolMaxSize {
-		return common.NewErrorf("mtproto dcPool.size must be between 1 and %d", mtproto.DCPoolMaxSize)
+	if err := mtproto.ValidateSettings(inbound.Settings); err != nil {
+		return common.NewErrorf("%s", err)
 	}
 	return nil
 }

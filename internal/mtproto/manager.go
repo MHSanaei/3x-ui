@@ -75,6 +75,10 @@ type Instance struct {
 	Secured       bool
 	DCPoolEnabled bool
 	DCPoolSize    int
+
+	// Options carries the remaining mtg knobs (timeouts, defense, stats, WEB
+	// mode, extra TOML); every unset one is left out of the config.
+	Options Options
 }
 
 // DCPoolMaxSize caps the warm connections per DC: each one is an idle
@@ -110,6 +114,7 @@ func (inst Instance) structuralFingerprint() string {
 		strconv.FormatBool(inst.Secured),
 		strconv.FormatBool(inst.DCPoolEnabled),
 		strconv.Itoa(inst.DCPoolSize),
+		inst.Options.fingerprint(),
 	}
 	return strings.Join(parts, "|")
 }
@@ -232,6 +237,10 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 	if len(secrets) == 0 {
 		return Instance{}, false
 	}
+	opts := ParseOptions(settings).sanitized(parsed.RouteThroughXray)
+	if !parsed.DCPool.Enabled {
+		opts.DCPool.DCs = nil
+	}
 	return Instance{
 		Id:                     ib.Id,
 		Tag:                    ib.Tag,
@@ -252,6 +261,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		Secured:                parsed.Secured,
 		DCPoolEnabled:          parsed.DCPool.Enabled,
 		DCPoolSize:             usableDCPoolSize(parsed.DCPool.Enabled, parsed.DCPool.Size),
+		Options:                opts,
 	}, true
 }
 
@@ -553,10 +563,24 @@ func FreeLocalPort() (int, error) {
 // precede any [section] header in TOML, and [secrets] must be the final section
 // so trailing keys are not swallowed by another table. The layout is therefore:
 // top-level scalars (incl. api-bind-to and api-token), then [domain-fronting],
-// [network], [throttle], [secured] and [dc-pool], then [secret-ad-tags] for clients overriding the
-// global advertising tag, and finally [secrets] with one named secret per
-// active client.
+// [network], [throttle], [secured], [dc-pool] and the option sections
+// (defense, stats, web), with the extra TOML merged under them, then
+// [secret-ad-tags] for clients overriding the global advertising tag,
+// [secret-limits.*], and finally [secrets] with one named secret per active
+// client.
 func renderConfig(inst Instance, apiPort int, apiToken string) string {
+	head := renderHead(inst, apiPort, apiToken)
+	if merged, err := mergeExtraTOML(head, inst.Options.ExtraTOML); err != nil {
+		logger.Warningf("mtproto: ignoring the extra TOML of inbound %d: %v", inst.Id, err)
+	} else {
+		head = merged
+	}
+	return head + renderClientSections(inst)
+}
+
+// renderHead renders every key and section that is not about individual
+// clients; the extra TOML is merged into this part only.
+func renderHead(inst Instance, apiPort int, apiToken string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "bind-to = %q\n", inst.bindTo())
 	if inst.Debug {
@@ -578,6 +602,7 @@ func renderConfig(inst Instance, apiPort int, apiToken string) string {
 	if inst.PublicIPv6 != "" {
 		fmt.Fprintf(&b, "public-ipv6 = %q\n", inst.PublicIPv6)
 	}
+	inst.Options.writeTopLevel(&b)
 	if inst.FrontingIP != "" || inst.FrontingPort > 0 || inst.FrontingProxyProtocol {
 		b.WriteString("\n[domain-fronting]\n")
 		if inst.FrontingIP != "" {
@@ -593,11 +618,16 @@ func renderConfig(inst Instance, apiPort int, apiToken string) string {
 	// When the inbound opts into Xray routing, mtg reaches Telegram through the
 	// loopback SOCKS bridge the panel injects into the running Xray config. mtg
 	// only supports SOCKS5 upstreams, which is exactly what the bridge exposes.
+	xrayProxy := ""
 	if inst.RouteThroughXray && inst.XrayRoutePort > 0 {
-		fmt.Fprintf(&b, "\n[network]\nproxies = [\"socks5://127.0.0.1:%d\"]\n", inst.XrayRoutePort)
+		xrayProxy = fmt.Sprintf("socks5://127.0.0.1:%d", inst.XrayRoutePort)
 	}
+	inst.Options.writeNetwork(&b, xrayProxy)
 	if inst.ThrottleMaxConnections > 0 {
 		fmt.Fprintf(&b, "\n[throttle]\nmax-connections = %d\n", inst.ThrottleMaxConnections)
+		if inst.Options.ThrottleCheckInterval != "" {
+			fmt.Fprintf(&b, "check-interval = %s\n", tomlQuote(inst.Options.ThrottleCheckInterval))
+		}
 	}
 	if inst.Secured {
 		b.WriteString("\n[secured]\nenabled = true\n")
@@ -607,7 +637,17 @@ func renderConfig(inst Instance, apiPort int, apiToken string) string {
 		if inst.DCPoolSize > 0 {
 			fmt.Fprintf(&b, "size = %d\n", inst.DCPoolSize)
 		}
+		if len(inst.Options.DCPool.DCs) > 0 {
+			fmt.Fprintf(&b, "dcs = %s\n", tomlIntArray(inst.Options.DCPool.DCs))
+		}
 	}
+	inst.Options.writeSections(&b)
+	return b.String()
+}
+
+// renderClientSections renders the per-client sections that close the config.
+func renderClientSections(inst Instance) string {
+	var b strings.Builder
 	// Only clients present in [secrets] may appear here: mtg rejects a config
 	// whose [secret-ad-tags] names an unknown secret, so a disabled client's
 	// override must vanish together with its secret.
