@@ -43,6 +43,13 @@ describe('link-label parseLinkParts', () => {
     expect(parts && linkMetaText(parts)).toBe('mt-inbound:8443');
   });
 
+  it('labels a dd tg://proxy link as Secured rather than FakeTLS', () => {
+    const parts = parseLinkParts(
+      'tg://proxy?server=host.example.com&port=8443&secret=dd0123456789abcdef0123456789abcdef',
+    );
+    expect(parts?.security).toBe('SECURED');
+  });
+
   // AmneziaWG's vpn:// links are base64url of a plain .conf text, not a
   // structured URL (see inbound-link.ts's genAmneziaWGLink) -- there's no
   // query string or #hash available, so the remark/port have to be read back

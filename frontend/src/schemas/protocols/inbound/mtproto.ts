@@ -10,6 +10,13 @@ export const MtprotoDomainFrontingSchema = z.object({
 });
 export type MtprotoDomainFronting = z.infer<typeof MtprotoDomainFrontingSchema>;
 
+// mtg's [dc-pool] section: warm connections kept to each Telegram DC.
+export const MtprotoDcPoolSchema = z.object({
+  enabled: z.boolean().optional(),
+  size: z.number().int().min(1).max(64).optional(),
+});
+export type MtprotoDcPool = z.infer<typeof MtprotoDcPoolSchema>;
+
 // An MTProto (Telegram) inbound client (multi-client model). Each client is one
 // named FakeTLS secret the mtg-multi sidecar serves through its [secrets]
 // section; `secret` is the ee-prefixed FakeTLS secret whose trailing domain the
@@ -64,5 +71,9 @@ export const MtprotoInboundSettingsSchema = z.object({
   // middle proxy needs when clients carry ad-tags; blank = mtg auto-detects.
   publicIpv4: z.string().optional(),
   publicIpv6: z.string().optional(),
+  // Both need an mtg-multi build that knows [secured] / [dc-pool]; older ones
+  // ignore the sections. An unset pool size leaves the per-DC count to mtg.
+  secured: z.boolean().optional(),
+  dcPool: MtprotoDcPoolSchema.optional(),
 });
 export type MtprotoInboundSettings = z.infer<typeof MtprotoInboundSettingsSchema>;

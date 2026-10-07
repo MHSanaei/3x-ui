@@ -11,6 +11,9 @@ export default function MtprotoFields() {
   const routeThroughXray = useWatch({ control, name: 'settings.routeThroughXray' }) as
     | boolean
     | undefined;
+  const dcPoolEnabled = useWatch({ control, name: 'settings.dcPool.enabled' }) as
+    | boolean
+    | undefined;
   const { data: outboundTags } = useOutboundTags({ excludeBlackhole: true });
   return (
     <>
@@ -111,6 +114,31 @@ export default function MtprotoFields() {
       >
         <Input allowClear placeholder="2001:db8::1" />
       </FormField>
+      <FormField
+        name={['settings', 'secured']}
+        label={t('pages.inbounds.form.mtgSecured')}
+        tooltip={t('pages.inbounds.form.mtgSecuredHint')}
+        valueProp="checked"
+      >
+        <Switch />
+      </FormField>
+      <FormField
+        name={['settings', 'dcPool', 'enabled']}
+        label={t('pages.inbounds.form.mtgDcPool')}
+        tooltip={t('pages.inbounds.form.mtgDcPoolHint')}
+        valueProp="checked"
+      >
+        <Switch />
+      </FormField>
+      {dcPoolEnabled && (
+        <FormField
+          name={['settings', 'dcPool', 'size']}
+          label={t('pages.inbounds.form.mtgDcPoolSize')}
+          tooltip={t('pages.inbounds.form.mtgDcPoolSizeHint')}
+        >
+          <InputNumber min={1} max={64} placeholder="2" style={{ width: '100%' }} />
+        </FormField>
+      )}
     </>
   );
 }
