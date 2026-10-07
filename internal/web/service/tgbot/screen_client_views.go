@@ -16,19 +16,6 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-// qrPNG encodes content as a QR image of the given size.
-// qrUpload builds the uploadable picture of a subscription QR. It is nil when
-// the code cannot be rendered, which leaves the screen on its usual artwork.
-func qrUpload(content string) *telego.InputFile {
-	png, err := qrPNG(content, 512)
-	if err != nil {
-		logger.Warning("Failed to render a subscription QR:", err)
-		return nil
-	}
-	file := tu.FileFromBytes(png, "sub.png")
-	return &file
-}
-
 func qrPNG(content string, size int) ([]byte, error) {
 	if size <= 0 {
 		size = 256
@@ -339,17 +326,6 @@ func (t *Tgbot) wizardInvalidInput(chatID int64, draft *clientDraft) {
 		t.BuildClientDraftMessage(draft)+"\n\n"+t.I18nBot("tgbot.messages.incorrect_input"), rows...))
 }
 
-// screenClientConfirm is the one-tap confirmation the client actions use, drawn
-// on the screen instead of a bare keyboard swap.
-func (t *Tgbot) screenClientConfirm(chatID int64, body string, email string, confirmData, cancelData string) {
-	rows := [][]telego.InlineKeyboardButton{
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.confirm", confirmData)),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.cancel", cancelData)),
-		tu.InlineKeyboardRow(t.btn("tgbot.buttons.clientCard", t.encodeQuery("client_get_usage "+email))),
-	}
-	t.renderScreen(chatID, t.newScreen("client", t.clientScreenBody(email, body), rows...))
-}
-
 // screenInviteLink draws the invite link of a client as instructions plus the
 // link itself, so an admin can forward it without leaving the screen.
 func (t *Tgbot) screenInviteLink(chatID int64, email string) {
@@ -375,16 +351,6 @@ func (t *Tgbot) screenInviteLink(chatID int64, email string) {
 		t.backRow(),
 	}
 	t.renderScreen(chatID, t.newScreen("client", body, rows...))
-}
-
-// clientSubLinksFor is the wrapper the link screens use, kept so the router
-// never has to know how the subscription host is chosen.
-func (t *Tgbot) clientSubLinksFor(email string) ([]string, error) {
-	subURL, _, err := t.buildSubscriptionURLs(email)
-	if err != nil {
-		return nil, err
-	}
-	return t.clientSubLinks(email, subURL)
 }
 
 // openOwnClientScreen resolves the client behind a Telegram user and opens the

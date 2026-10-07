@@ -2,6 +2,8 @@ package tgbot
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -170,22 +172,54 @@ func (t *Tgbot) handleInlineQuery(query *telego.InlineQuery) {
 	}
 	level := t.levelOf(query.From.ID)
 	if level == levelStranger {
-		t.answerInline(query.ID, nil)
+		t.answerInline(query.ID, nil, "")
 		return
 	}
 	// Telegram prefills the typed text with the launcher's query, so the intent
 	// arrives before anything the user adds; a bare query means inbounds.
 	action, data, search := parseInlineQuery(query.Query)
 	results := t.inlineResults(action, data, search, level == levelAdmin)
-	t.answerInline(query.ID, results)
+	t.answerInline(query.ID, results, query.Offset)
 }
 
-// answerInline answers with results, or with the "nothing here" card: an
+// maxInlineResults is the Bot API's hard cap on one answer. Exceeding it gets
+// the whole answer rejected, which on a big panel means an empty list forever.
+const maxInlineResults = 50
+
+// pageInlineResults returns one page and the cursor for the next. The full list
+// is built first because the cap is a property of the transport, not of a list.
+func pageInlineResults(results []telego.InlineQueryResult, offset string) (page []telego.InlineQueryResult, next string) {
+	start, err := strconv.Atoi(offset)
+	if err != nil || start < 0 {
+		start = 0
+	}
+	if start >= len(results) {
+		return nil, ""
+	}
+	end := start + maxInlineResults
+	if end < len(results) {
+		return results[start:end], strconv.Itoa(end)
+	}
+	return results[start:], ""
+}
+
+// markerResultID keeps a result id inside the 64-byte cap Telegram enforces: one
+// long email would otherwise sink the entire answer.
+func markerResultID(marker string) string {
+	if len(marker) <= 63 {
+		return marker
+	}
+	sum := sha256.Sum256([]byte(marker))
+	return "h:" + hex.EncodeToString(sum[:16])
+}
+
+// answerInline answers with page, or with the "nothing here" card: an
 // unanswered query leaves Telegram spinning.
-func (t *Tgbot) answerInline(queryID string, results []telego.InlineQueryResult) {
+func (t *Tgbot) answerInline(queryID string, results []telego.InlineQueryResult, offset string) {
+	page, next := pageInlineResults(results, offset)
 	if len(results) == 0 {
 		hint := t.I18nBot("tgbot.inline.noneTitle")
-		results = []telego.InlineQueryResult{&telego.InlineQueryResultArticle{
+		page = []telego.InlineQueryResult{&telego.InlineQueryResultArticle{
 			Type:        "article",
 			ID:          "none",
 			Title:       hint,
@@ -199,7 +233,8 @@ func (t *Tgbot) answerInline(queryID string, results []telego.InlineQueryResult)
 	defer cancel()
 	err := bot.AnswerInlineQuery(ctx, &telego.AnswerInlineQueryParams{
 		InlineQueryID: queryID,
-		Results:       results,
+		Results:       page,
+		NextOffset:    next,
 		CacheTime:     0,
 		IsPersonal:    true,
 	})
@@ -272,13 +307,14 @@ func (t *Tgbot) inboundResults(search, action string) []telego.InlineQueryResult
 		if needle != "" && !strings.Contains(strings.ToLower(remark+" "+string(ib.Protocol)+" "+strconv.Itoa(ib.Port)), needle) {
 			continue
 		}
+		marker := action + ":" + strconv.Itoa(ib.Id)
 		results = append(results, &telego.InlineQueryResultArticle{
 			Type:        "article",
-			ID:          action + ":" + strconv.Itoa(ib.Id),
+			ID:          markerResultID(marker),
 			Title:       remark,
 			Description: description,
 			InputMessageContent: &telego.InputTextMessageContent{
-				MessageText: action + ":" + strconv.Itoa(ib.Id),
+				MessageText: marker,
 			},
 		})
 	}
@@ -295,15 +331,16 @@ func (t *Tgbot) clientResults(search string, isAdmin bool, inboundID string) []t
 		if needle != "" && !strings.Contains(strings.ToLower(email+" "+remark), needle) {
 			return
 		}
+		marker := "cl:" + email
 		results = append(results, &telego.InlineQueryResultArticle{
 			Type:  "article",
-			ID:    "cl:" + email,
+			ID:    markerResultID(marker),
 			Title: email, // the title is the one thing every client shows
 			// Telegram renders about three lines here, so the three facts a
 			// client screen answers first get one line each.
 			Description: t.clientCardLines(remark, used, limit, expiry, enabled, online),
 			InputMessageContent: &telego.InputTextMessageContent{
-				MessageText: "cl:" + email,
+				MessageText: marker,
 			},
 		})
 	}
@@ -397,13 +434,6 @@ func (t *Tgbot) durationText(ms int64, fromFirstUse bool) string {
 	}
 }
 
-func boolMark(v bool) string {
-	if v {
-		return "🟢"
-	}
-	return ""
-}
-
 // handleListMarker catches an item the user picked in inline mode. The marker
 // arrives as the user's own message, so it is deleted first and only then is
 // the real card drawn.
@@ -415,7 +445,6 @@ func (t *Tgbot) handleListMarker(message *telego.Message) bool {
 	if !ok {
 		return false
 	}
-	t.deleteIncoming(message)
 
 	level := t.levelOf(message.From.ID)
 	if level == levelStranger {
@@ -424,6 +453,8 @@ func (t *Tgbot) handleListMarker(message *telego.Message) bool {
 	if !t.markerAllowed(action, value, message.From.ID, level == levelAdmin) {
 		return true
 	}
+	// Only a marker that actually opens something is litter worth removing.
+	t.deleteIncoming(message)
 
 	switch action {
 	case "inb":
@@ -459,6 +490,17 @@ func (t *Tgbot) markerAllowed(action, value string, tgUserID int64, isAdmin bool
 		return t.clientOwnedByTgUser(tgUserID, value)
 	}
 	return false
+}
+
+// messageIsListMarker matches only a picked inline item. The router predicate
+// used to be "text contains a colon", which swallowed every broadcast and
+// wizard message that merely contained one — a URL, a time, a comment.
+func messageIsListMarker(_ context.Context, update telego.Update) bool {
+	if update.Message == nil {
+		return false
+	}
+	_, _, ok := splitListMarker(update.Message.Text)
+	return ok
 }
 
 // splitListMarker parses "inb:3", "add:3" or "cl:user@x".

@@ -346,17 +346,6 @@ func (t *Tgbot) ensureWayOut(rows [][]telego.InlineKeyboardButton) [][]telego.In
 	return append(append([][]telego.InlineKeyboardButton{}, rows...), t.backRow())
 }
 
-func (t *Tgbot) ensureBackRow(rows [][]telego.InlineKeyboardButton) [][]telego.InlineKeyboardButton {
-	for _, row := range rows {
-		for _, btn := range row {
-			if btn.CallbackData == cbHome {
-				return rows
-			}
-		}
-	}
-	return append(append([][]telego.InlineKeyboardButton{}, rows...), t.backRow())
-}
-
 // breadcrumb names the screen's place in the tree, so a user who was away can
 // see where a stale keyboard left them.
 func (t *Tgbot) breadcrumb(kind string) string {
@@ -419,8 +408,6 @@ func (t *Tgbot) deleteIncoming(message *telego.Message) {
 	}
 }
 
-// deleteOwnMessage removes one of our messages without ever surfacing a
-// failure: a user may have deleted it, and Telegram refuses past 48 hours.
 // deleteIncomingID removes one of the user's own messages by id, for flows that
 // hold ids rather than message structs (the broadcast's composing messages).
 func (t *Tgbot) deleteIncomingID(chatID int64, messageID int) {
@@ -430,6 +417,8 @@ func (t *Tgbot) deleteIncomingID(chatID int64, messageID int) {
 	t.deleteOwnMessage(chatID, messageID)
 }
 
+// deleteOwnMessage removes one of our messages without surfacing a failure: the
+// user may have deleted it, and Telegram refuses past 48 hours.
 func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) {
 	if msgID == 0 || bot == nil {
 		return

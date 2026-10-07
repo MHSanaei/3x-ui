@@ -36,10 +36,22 @@ func (t *Tgbot) HandleEvent(e eventbus.Event) {
 	if msg == "" {
 		return
 	}
-	kind := string(e.Type) + ":" + e.Source
+	kind := t.eventNoticeKind(e)
 	for _, adminID := range adminSnapshot() {
 		t.liveNotice(adminID, kind, msg)
 	}
+}
+
+// eventNoticeKind is the live card a repeat of this event edits. A login
+// success must not fold into the failure card from the same IP: the sequence
+// is the whole point of a login alert, so the outcome is part of the key.
+func (t *Tgbot) eventNoticeKind(e eventbus.Event) string {
+	if e.Type == eventbus.EventLoginAttempt {
+		if data, ok := e.Data.(*eventbus.LoginEventData); ok {
+			return string(e.Type) + ":" + e.Source + ":" + data.Status
+		}
+	}
+	return string(e.Type) + ":" + e.Source
 }
 
 func (t *Tgbot) isEventEnabled(eventType eventbus.EventType) bool {

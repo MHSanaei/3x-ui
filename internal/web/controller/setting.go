@@ -373,12 +373,12 @@ func (a *SettingController) tgBotCapabilities(c *gin.Context) {
 
 // TgBotCapabilities is the browser-safe shape of the bot's own capabilities.
 type TgBotCapabilities struct {
-	InlineEnabled bool `json:"inlineEnabled"`
+	InlineEnabled bool `json:"inlineEnabled" example:"true"`
 	// GroupPrivacy off means the bot reads every group message; when it is on,
 	// a bare /start in a group is invisible to the bot.
-	GroupPrivacy bool   `json:"groupPrivacy"`
-	Username     string `json:"username"`
-	Running      bool   `json:"running"`
+	GroupPrivacy bool   `json:"groupPrivacy" example:"false"`
+	Username     string `json:"username" example:"xui_bot"`
+	Running      bool   `json:"running" example:"true"`
 }
 
 // tgCapsFunc is wired from the web layer; importing tgbot here is circular.

@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 Mã QR:",
       "qrLegendSubscription": "{{ .Code }}. Gói đăng ký",
       "qrLegendJSON": "{{ .Code }}. Gói đăng ký JSON",
-      "qrLegendLink": "{{ .Code }}. Liên kết ứng dụng {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. Liên kết ứng dụng {{ .App }}",
+      "backupFailed": "Không đọc được cơ sở dữ liệu; không có bản sao lưu nào được gửi."
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",

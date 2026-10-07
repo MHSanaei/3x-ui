@@ -1982,8 +1982,7 @@ export const sections: readonly Section[] = [
         path: '/panel/api/setting/tgBotCapabilities',
         summary:
           'Report what the configured bot can do. Inline mode is a BotFather switch, so the panel warns when it is off.',
-        response:
-          '{\n  "success": true,\n  "obj": {\n    "inlineEnabled": false,\n    "username": "mybot",\n    "running": true\n  }\n}',
+        responseSchema: 'TgBotCapabilities',
       },
       {
         method: 'POST',

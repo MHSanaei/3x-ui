@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 QR codes:",
       "qrLegendSubscription": "{{ .Code }}. Subscription",
       "qrLegendJSON": "{{ .Code }}. JSON subscription",
-      "qrLegendLink": "{{ .Code }}. App link {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. App link {{ .App }}",
+      "backupFailed": "Could not read the database; no backup was sent."
     },
     "buttons": {
       "closeKeyboard": "❌ Close Keyboard",

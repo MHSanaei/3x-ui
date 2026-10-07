@@ -134,16 +134,6 @@ func artFileID(kind string) (string, bool) {
 	return id, ok && id != ""
 }
 
-// setScreenArt pins artwork the panel uploaded for one screen kind.
-func setScreenArt(kind, fileID string) {
-	if kind == "" || fileID == "" {
-		return
-	}
-	screenArtMu.Lock()
-	artOverrides[kind] = fileID
-	screenArtMu.Unlock()
-}
-
 // artUpload is the last-resort picture: the generated black tile.
 func artUpload(kind string) (telego.InputFile, bool) {
 	data := blackTile()

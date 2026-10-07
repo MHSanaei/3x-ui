@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 QR 碼:",
       "qrLegendSubscription": "{{ .Code }}. 訂閱",
       "qrLegendJSON": "{{ .Code }}. JSON 訂閱",
-      "qrLegendLink": "{{ .Code }}. 應用程式連結 {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. 應用程式連結 {{ .App }}",
+      "backupFailed": "無法讀取資料庫，未傳送備份。"
     },
     "buttons": {
       "closeKeyboard": "❌ 關閉鍵盤",

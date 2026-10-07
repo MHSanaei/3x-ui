@@ -4650,6 +4650,35 @@
         ],
         "type": "object"
       },
+      "TgBotCapabilities": {
+        "description": "TgBotCapabilities is the browser-safe shape of the bot's own capabilities.",
+        "properties": {
+          "groupPrivacy": {
+            "description": "GroupPrivacy off means the bot reads every group message; when it is on,\na bare /start in a group is invisible to the bot.",
+            "example": false,
+            "type": "boolean"
+          },
+          "inlineEnabled": {
+            "example": true,
+            "type": "boolean"
+          },
+          "running": {
+            "example": true,
+            "type": "boolean"
+          },
+          "username": {
+            "example": "xui_bot",
+            "type": "string"
+          }
+        },
+        "required": [
+          "groupPrivacy",
+          "inlineEnabled",
+          "running",
+          "username"
+        ],
+        "type": "object"
+      },
       "Traffic": {
         "description": "Traffic represents network traffic statistics for Xray connections.\nIt tracks upload and download bytes for inbound or outbound traffic.",
         "properties": {
@@ -13107,6 +13136,47 @@
                 "example": {
                   "success": true,
                   "msg": "Test message sent to Telegram"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/tgBotCapabilities": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Report what the configured bot can do. Inline mode is a BotFather switch, so the panel warns when it is off.",
+        "operationId": "post_panel_api_setting_tgBotCapabilities",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {
+                      "$ref": "#/components/schemas/TgBotCapabilities"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "groupPrivacy": false,
+                    "inlineEnabled": true,
+                    "running": true,
+                    "username": "xui_bot"
+                  }
                 }
               }
             }

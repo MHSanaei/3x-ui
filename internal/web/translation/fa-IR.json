@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 کدهای QR:",
       "qrLegendSubscription": "{{ .Code }}. اشتراک",
       "qrLegendJSON": "{{ .Code }}. اشتراک JSON",
-      "qrLegendLink": "{{ .Code }}. لینک برنامه {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. لینک برنامه {{ .App }}",
+      "backupFailed": "خواندن پایگاه داده ممکن نشد؛ هیچ نسخه پشتیبانی ارسال نشد."
     },
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",

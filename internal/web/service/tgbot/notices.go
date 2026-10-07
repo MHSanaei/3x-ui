@@ -49,12 +49,6 @@ func (s *noticeStore) put(key noticeKey, st noticeState) {
 	s.mu.Unlock()
 }
 
-func (s *noticeStore) drop(key noticeKey) {
-	s.mu.Lock()
-	delete(s.notices, key)
-	s.mu.Unlock()
-}
-
 func (s *noticeStore) reset() {
 	s.mu.Lock()
 	s.notices = map[noticeKey]noticeState{}

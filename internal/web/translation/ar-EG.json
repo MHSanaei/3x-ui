@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 رموز QR:",
       "qrLegendSubscription": "{{ .Code }}. اشتراك",
       "qrLegendJSON": "{{ .Code }}. اشتراك JSON",
-      "qrLegendLink": "{{ .Code }}. رابط التطبيق {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. رابط التطبيق {{ .App }}",
+      "backupFailed": "فشل قراءة قاعدة البيانات؛ لم يُرسل أي نسخة احتياطية."
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",

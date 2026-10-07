@@ -311,38 +311,6 @@ func (t *Tgbot) clearBroadcastDraft(actor chatUser, inputIDs, previewIDs []int) 
 	}
 }
 
-// broadcastDeliver delivers the draft to ONE recipient and reports the ids the
-// copy produced, so a cancelled or abandoned run can take them back out again.
-func broadcastDeliver(chatID int64, draft broadcastDraft) ([]int, error) {
-	var ids []int
-	err := callTelegramAPI(func(ctx context.Context) error {
-		var err error
-		switch {
-		case len(draft.MessageIDs) > 1:
-			var copied []telego.MessageID
-			copied, err = bot.CopyMessages(ctx, &telego.CopyMessagesParams{
-				ChatID: tu.ID(chatID), FromChatID: tu.ID(draft.FromChatID), MessageIDs: draft.MessageIDs,
-			})
-			for _, m := range copied {
-				ids = append(ids, m.MessageID)
-			}
-		case len(draft.MessageIDs) == 1:
-			copied, cerr := bot.CopyMessage(ctx, &telego.CopyMessageParams{
-				ChatID: tu.ID(chatID), FromChatID: tu.ID(draft.FromChatID), MessageID: draft.MessageIDs[0],
-			})
-			err = cerr
-			if copied != nil {
-				ids = append(ids, copied.MessageID)
-			}
-		}
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-	return ids, nil
-}
-
 // recallBroadcast undoes a cancelled broadcast: the copies are removed from
 // every recipient that already got one. Best-effort — Telegram refuses a
 // deleteMessage older than 48 hours, and a recipient may have read it already.

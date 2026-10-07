@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 二维码:",
       "qrLegendSubscription": "{{ .Code }}. 订阅",
       "qrLegendJSON": "{{ .Code }}. JSON 订阅",
-      "qrLegendLink": "{{ .Code }}. 应用链接 {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. 应用链接 {{ .App }}",
+      "backupFailed": "无法读取数据库，未发送备份。"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",

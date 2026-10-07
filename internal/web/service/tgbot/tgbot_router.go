@@ -93,13 +93,14 @@ func (t *Tgbot) OnReceive() {
 		// carries one already offers a way out.
 		registerTerminalCallbacks(cbHome, cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance)
 
-		// A picked inline item lands as the user's own message: it is caught
-		// before every wizard and generic text handler (first match wins).
+		// A picked inline item lands as the user's own message, so it is caught
+		// before the wizard and broadcast handlers. The predicate matches a real
+		// marker only: a catch-all here would eat every message containing ":".
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
 			t.handleListMarker(&message)
 			return nil
-		}, th.TextContains(":"), th.AnyMessageWithFrom())
+		}, messageIsListMarker, th.AnyMessageWithFrom())
 
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()

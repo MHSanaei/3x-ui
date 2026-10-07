@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 QRコード:",
       "qrLegendSubscription": "{{ .Code }}. サブスクリプション",
       "qrLegendJSON": "{{ .Code }}. JSON サブスクリプション",
-      "qrLegendLink": "{{ .Code }}. アプリのリンク {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. アプリのリンク {{ .App }}",
+      "backupFailed": "データベースを読み取れませんでした。バックアップは送信されていません。"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",

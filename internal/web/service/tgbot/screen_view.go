@@ -109,12 +109,6 @@ func (t *Tgbot) btn(labelKey, data string) telego.InlineKeyboardButton {
 	return tu.InlineKeyboardButton(t.I18nBot(labelKey)).WithCallbackData(data)
 }
 
-// hideRow is appended to every message that is not a screen: it gives the user
-// a way to clear a notification without hunting the bot's own menu.
-func (t *Tgbot) hideRow() []telego.InlineKeyboardButton {
-	return tu.InlineKeyboardRow(t.btn("tgbot.buttons.hide", cbHide))
-}
-
 // backRow is the single "up" control a non-root screen carries.
 func (t *Tgbot) backRow() []telego.InlineKeyboardButton {
 	return tu.InlineKeyboardRow(t.btn("tgbot.buttons.back", cbHome))

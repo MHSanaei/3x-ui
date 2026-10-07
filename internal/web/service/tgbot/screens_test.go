@@ -210,8 +210,10 @@ func TestScreenTreatsNotModifiedAsSuccess(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch method {
 		case "editMessageMedia", "editMessageText":
-			_ = json.NewEncoder(w).Encode(map[string]any{"ok": false, "error_code": 400,
-				"description": "Bad Request: message is not modified"})
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"ok": false, "error_code": 400,
+				"description": "Bad Request: message is not modified",
+			})
 		default:
 			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
 				"message_id": 7, "date": 0, "chat": map[string]any{"id": 1, "type": "private"},

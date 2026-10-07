@@ -2514,7 +2514,8 @@
       "qrLegendHeader": "🔳 QR-коди:",
       "qrLegendSubscription": "{{ .Code }}. Підписка",
       "qrLegendJSON": "{{ .Code }}. JSON-підписка",
-      "qrLegendLink": "{{ .Code }}. Посилання для застосунку {{ .App }}"
+      "qrLegendLink": "{{ .Code }}. Посилання для застосунку {{ .App }}",
+      "backupFailed": "Не вдалося прочитати базу даних; резервну копію не надіслано."
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",

@@ -1,10 +1,12 @@
 package tgbot
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -528,5 +530,94 @@ func TestListMarkerParsesAndRejectsForeignPrefixes(t *testing.T) {
 			t.Errorf("splitListMarker(%q) = (%q, %q, %v), want (%q, %q, %v)",
 				tt.text, action, value, ok, tt.action, tt.value, tt.ok)
 		}
+	}
+}
+
+// A picked item is the only thing the marker route may match. The predicate used
+// to be "text contains a colon", which ate broadcast text with a URL or a time.
+func TestOnlyAPickedItemMatchesTheMarkerRoute(t *testing.T) {
+	cases := []struct {
+		text string
+		want bool
+	}{
+		{"inb:3", true},
+		{"add:12", true},
+		{"cl:user@x", true},
+		{"https://example.com/a", false},
+		{"backup at 03:00", false},
+		{"Paid: 2026-11", false},
+		{"note: see panel", false},
+		{"inb:", false},
+		{"", false},
+	}
+	for _, c := range cases {
+		update := telego.Update{Message: &telego.Message{Text: c.text, From: &telego.User{ID: 1}}}
+		if got := messageIsListMarker(context.Background(), update); got != c.want {
+			t.Errorf("messageIsListMarker(%q) = %v, want %v", c.text, got, c.want)
+		}
+	}
+}
+
+// Telegram rejects an answer with more than 50 results, so a big panel has to
+// page: an un-paged answer is rejected whole and the list looks empty forever.
+func TestBigListIsPagedInsteadOfRejected(t *testing.T) {
+	all := make([]telego.InlineQueryResult, 0, 120)
+	for i := range 120 {
+		all = append(all, &telego.InlineQueryResultArticle{
+			Type: "article", ID: strconv.Itoa(i), Title: strconv.Itoa(i),
+			InputMessageContent: &telego.InputTextMessageContent{MessageText: "cl:x" + strconv.Itoa(i)},
+		})
+	}
+
+	first, next := pageInlineResults(all, "")
+	if len(first) != maxInlineResults {
+		t.Fatalf("first page = %d results, want %d", len(first), maxInlineResults)
+	}
+	if next != "50" {
+		t.Fatalf("first page cursor = %q, want %q", next, "50")
+	}
+	second, next2 := pageInlineResults(all, next)
+	if len(second) != 50 {
+		t.Fatalf("second page = %d results, want 50", len(second))
+	}
+	if next2 != "100" {
+		t.Fatalf("second page cursor = %q, want %q", next2, "100")
+	}
+	last, next3 := pageInlineResults(all, next2)
+	if len(last) != 20 {
+		t.Fatalf("last page = %d results, want 20", len(last))
+	}
+	if next3 != "" {
+		t.Fatalf("last page cursor = %q, want empty", next3)
+	}
+	if _, beyond := pageInlineResults(all, "500"); beyond != "" {
+		t.Fatalf("past-the-end cursor = %q, want empty", beyond)
+	}
+	if got, _ := pageInlineResults(all, "not-a-number"); len(got) != maxInlineResults {
+		t.Fatalf("garbage cursor returned %d results, want a first page", len(got))
+	}
+}
+
+// A short list must not grow a cursor, or Telegram keeps paging an exhausted list.
+func TestShortListHasNoCursor(t *testing.T) {
+	list := []telego.InlineQueryResult{&telego.InlineQueryResultArticle{Type: "article", ID: "a"}}
+	page, next := pageInlineResults(list, "")
+	if len(page) != 1 || next != "" {
+		t.Fatalf("page = %d results, cursor = %q; want 1 and empty", len(page), next)
+	}
+}
+
+// Telegram caps a result id at 64 bytes; one long email would sink the answer.
+func TestLongMarkerStaysInsideTheResultIDLimit(t *testing.T) {
+	long := "cl:" + strings.Repeat("a", 200) + "@example.com"
+	id := markerResultID(long)
+	if len(id) > 64 {
+		t.Fatalf("result id is %d bytes, want at most 64", len(id))
+	}
+	if id == markerResultID("cl:"+strings.Repeat("a", 201)+"@example.com") {
+		t.Fatal("two different markers hashed to the same id")
+	}
+	if got := markerResultID("cl:user@x"); got != "cl:user@x" {
+		t.Fatalf("short marker = %q, want it unchanged", got)
 	}
 }

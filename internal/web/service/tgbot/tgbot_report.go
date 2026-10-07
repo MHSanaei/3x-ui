@@ -3,6 +3,7 @@ package tgbot
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +44,9 @@ func (t *Tgbot) backupSummary() string {
 	return trimCaption(summary+"\n\n"+t.depleteReport(), botCaptionLimit)
 }
 
-// SendBackupToAdmins sends a database backup to admin chats.
+// SendBackupToAdmins sends the database, and the generated Xray config when it
+// exists, to admin chats. A failed DB read is reported instead of sending
+// nothing: a silent empty backup looks like the bot is broken.
 func (t *Tgbot) SendBackupToAdmins() {
 	if !t.IsRunning() {
 		return
@@ -53,9 +56,21 @@ func (t *Tgbot) SendBackupToAdmins() {
 		logger.Error("Error in getting db backup: ", err)
 	}
 	dbFilename := t.serverService.BackupFilename("")
+	config, configErr := os.ReadFile(xray.GetConfigPath())
+	if configErr != nil {
+		logger.Warning("Cannot read the Xray config for the backup: ", configErr)
+	}
 	admins := adminSnapshot()
 	for i, adminId := range admins {
-		t.sendDocumentWithCaption(adminId, dbData, dbFilename, t.backupSummary())
+		if dbData == nil {
+			t.sendNotice(adminId, t.I18nBot("tgbot.messages.backupFailed"))
+		} else {
+			t.sendDocumentWithCaption(adminId, dbData, dbFilename, t.backupSummary())
+			time.Sleep(500 * time.Millisecond)
+			if configErr == nil {
+				t.sendDocumentWithCaption(adminId, config, "config.json", "")
+			}
+		}
 		// Add delay between sends to avoid Telegram rate limits
 		if i < len(admins)-1 {
 			time.Sleep(1 * time.Second)
@@ -69,7 +84,10 @@ func (t *Tgbot) sendExhaustedToAdmins() {
 		return
 	}
 	for _, adminId := range adminSnapshot() {
-		t.screenDeplete(adminId)
+		// A scheduled report must never edit the screen the admin is working on:
+		// a cron landing on the add-client wizard would replace the draft. This
+		// posts a free-standing message instead.
+		t.sendNotice(adminId, t.depleteReport())
 	}
 }
 
