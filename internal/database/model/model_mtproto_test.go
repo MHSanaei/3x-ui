@@ -118,3 +118,22 @@ func TestHealMtprotoClientSecrets(t *testing.T) {
 		t.Fatal("expected no change when there are no clients")
 	}
 }
+
+func TestMtprotoSecuredSecret(t *testing.T) {
+	for _, tc := range []struct {
+		name, secret, want string
+	}{
+		{"faketls", "ee8196FE6ED8B637D001F91D6952CFCDF07777772e636c6f7564666c6172652e636f6d", "dd8196fe6ed8b637d001f91d6952cfcdf0"},
+		{"bareKey", "ee8196fe6ed8b637d001f91d6952cfcdf0", "dd8196fe6ed8b637d001f91d6952cfcdf0"},
+		{"alreadySecured", "dd8196fe6ed8b637d001f91d6952cfcdf0", ""},
+		{"shortKey", "ee8196fe6ed8b637d001f91d6952cf", ""},
+		{"nonHexKey", "eezz96fe6ed8b637d001f91d6952cfcd7777", ""},
+		{"empty", "", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := MtprotoSecuredSecret(tc.secret); got != tc.want {
+				t.Fatalf("MtprotoSecuredSecret(%q) = %q, want %q", tc.secret, got, tc.want)
+			}
+		})
+	}
+}

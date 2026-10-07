@@ -1101,7 +1101,8 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	return strings.Join(links, "\n")
 }
 
-// genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret.
+// genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret,
+// followed by a dd link on the same key when the inbound accepts secured clients.
 // It omits remarks because lenient parsers fold a fragment into the last query value.
 func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
@@ -1111,16 +1112,29 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 	if !ok || resolved.Secret == "" {
 		return ""
 	}
+	secrets := []string{resolved.Secret}
+	if dd := model.MtprotoSecuredSecret(resolved.Secret); dd != "" && mtprotoSecuredEnabled(inbound.Settings) {
+		secrets = append(secrets, dd)
+	}
 	endpoints := s.advertisedEndpoints(inbound)
-	links := make([]string, 0, len(endpoints))
+	links := make([]string, 0, len(endpoints)*len(secrets))
 	for _, endpoint := range endpoints {
-		links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
-			"server": endpoint.Address,
-			"port":   fmt.Sprintf("%d", endpoint.Port),
-			"secret": resolved.Secret,
-		}, ""))
+		for _, secret := range secrets {
+			links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
+				"server": endpoint.Address,
+				"port":   fmt.Sprintf("%d", endpoint.Port),
+				"secret": secret,
+			}, ""))
+		}
 	}
 	return strings.Join(links, "\n")
+}
+
+func mtprotoSecuredEnabled(settings string) bool {
+	var parsed struct {
+		Secured bool `json:"secured"`
+	}
+	return json.Unmarshal([]byte(settings), &parsed) == nil && parsed.Secured
 }
 
 // Protocol link generators are intentionally ordered as:

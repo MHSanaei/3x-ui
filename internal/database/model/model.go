@@ -640,6 +640,19 @@ func mtprotoSecretMiddle(secret string) string {
 	return mtprotoRandomMiddle()
 }
 
+// MtprotoSecuredSecret derives a client's secured ("dd") secret from its FakeTLS
+// one. Both share the 16-byte key, so an mtg with [secured] accepts either; "" when malformed.
+func MtprotoSecuredSecret(secret string) string {
+	if !strings.HasPrefix(secret, "ee") || len(secret) < 34 {
+		return ""
+	}
+	key := secret[2:34]
+	if _, err := hex.DecodeString(key); err != nil {
+		return ""
+	}
+	return "dd" + strings.ToLower(key)
+}
+
 // ValidMtprotoAdTag reports whether a Telegram advertising tag from
 // @MTProxybot is well-formed: exactly 16 bytes as 32 hex characters. mtg
 // refuses to start (or rejects a live update) on a malformed tag, so every
