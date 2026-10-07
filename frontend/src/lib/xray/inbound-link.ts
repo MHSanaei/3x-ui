@@ -884,6 +884,28 @@ export function mtprotoSecuredSecret(secret: string): string {
   return key ? `dd${key.toLowerCase()}` : '';
 }
 
+// The key of a client's tg://webproxy link: the FakeTLS secret's 16-byte key,
+// dd-prefixed in the default "dd" mode or bare in "plain" mode.
+export function mtprotoWebSecret(secret: string, mode?: string): string {
+  const dd = mtprotoSecuredSecret(secret);
+  return dd && mode === 'plain' ? dd.slice(2) : dd;
+}
+
+// The WEB-mode link (Telegram Desktop) of an mtproto client, '' when the
+// inbound does not serve the WEB mode. It points at the WEB domain behind the
+// reverse proxy, so it carries no port and is the same for every endpoint.
+export function genMtprotoWebLink(inbound: Inbound, clientSecret: string): string {
+  if (inbound.protocol !== 'mtproto') return '';
+  const web = inbound.settings.web;
+  if (!web?.bindTo || !web.host) return '';
+  const key = mtprotoWebSecret(clientSecret, web.secretMode);
+  if (!key) return '';
+  const url = new URL('tg://webproxy');
+  url.searchParams.set('server', web.host);
+  url.searchParams.set('secret', key);
+  return url.toString();
+}
+
 // Builds a per-client Telegram proxy deep link for an mtproto inbound from the
 // client's own FakeTLS secret. No remark fragment is added: Telegram proxy deep
 // links have no name field, and a trailing "#remark" gets folded into the last
@@ -1606,7 +1628,7 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
     inbound.protocol === 'mtproto' && inbound.settings.secured
       ? mtprotoSecuredSecret(client.secret ?? '')
       : '';
-  return entries.flatMap((e) => {
+  const links = entries.flatMap((e) => {
     const plain = { remark: e.remark, link: e.link };
     if (!securedSecret) return [plain];
     const remarkDd = [e.remark, 'dd'].filter((x) => x.length > 0).join('-');
@@ -1618,6 +1640,11 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
     });
     return [plain, { remark: remarkDd, link }];
   });
+  const webLink = genMtprotoWebLink(inbound, client.secret ?? '');
+  if (webLink) {
+    links.push({ remark: composeRemark('web'), link: webLink });
+  }
+  return links;
 }
 
 export interface GenInboundLinksInput {
