@@ -137,3 +137,18 @@ func TestMtprotoSecuredSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestMtprotoWebSecret(t *testing.T) {
+	const secret = "ee0123456789ABCDEF0123456789abcdef6578616d706c652e636f6d"
+	for _, tc := range []struct{ secret, mode, want string }{
+		{secret, "dd", "dd0123456789abcdef0123456789abcdef"},
+		{secret, "", "dd0123456789abcdef0123456789abcdef"},
+		{secret, "plain", "0123456789abcdef0123456789abcdef"},
+		{"dd0123456789abcdef0123456789abcdef", "dd", ""},
+		{"eezz", "plain", ""},
+	} {
+		if got := MtprotoWebSecret(tc.secret, tc.mode); got != tc.want {
+			t.Fatalf("MtprotoWebSecret(%q, %q) = %q, want %q", tc.secret, tc.mode, got, tc.want)
+		}
+	}
+}

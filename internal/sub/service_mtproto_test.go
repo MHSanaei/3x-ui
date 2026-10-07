@@ -264,3 +264,39 @@ func TestSecuredMtprotoLinksFollowHostEndpoint(t *testing.T) {
 		}
 	}
 }
+
+// A WEB-enabled inbound adds one tg://webproxy link to the WEB domain after the
+// regular ones; the key keeps or drops the dd prefix by secret mode, and an
+// invalid or incomplete WEB section yields no link because mtg would not serve it.
+func TestGenMtprotoLinkWeb(t *testing.T) {
+	const plainKey = "8196fe6ed8b637d001f91d6952cfcdf0"
+	for _, tc := range []struct {
+		name, web string
+		want      string
+	}{
+		{"ddDefault", `"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com"},`, "tg://webproxy?secret=" + mtprotoTestSecuredSecret + "&server=web.example.com"},
+		{"plain", `"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com","secretMode":"plain"},`, "tg://webproxy?secret=" + plainKey + "&server=web.example.com"},
+		{"noBind", `"web":{"host":"web.example.com"},`, ""},
+		{"publicBind", `"web":{"bindTo":"0.0.0.0:18080","host":"web.example.com"},`, ""},
+		{"absent", ``, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			inbound := &model.Inbound{
+				Listen:   "203.0.113.7",
+				Port:     8443,
+				Protocol: model.MTProto,
+				Settings: `{` + tc.web + `"clients":[{"email":"user","enable":true,"secret":"` + mtprotoTestSecret + `"}]}`,
+			}
+			lines := splitLinkLines((&SubService{}).genMtprotoLink(inbound, "user"))
+			if tc.want == "" {
+				if len(lines) != 1 || strings.Contains(lines[0], "webproxy") {
+					t.Fatalf("links = %v, want only the FakeTLS link", lines)
+				}
+				return
+			}
+			if len(lines) != 2 || lines[1] != tc.want {
+				t.Fatalf("links = %v, want the FakeTLS link and %q", lines, tc.want)
+			}
+		})
+	}
+}

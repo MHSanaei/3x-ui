@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
@@ -1102,7 +1103,8 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 }
 
 // genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret,
-// followed by a dd link on the same key when the inbound accepts secured clients.
+// followed by a dd link on the same key when the inbound accepts secured clients, and a single
+// tg://webproxy link to the WEB domain when the inbound serves the WEB mode.
 // It omits remarks because lenient parsers fold a fragment into the last query value.
 func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
@@ -1124,6 +1126,14 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 				"server": endpoint.Address,
 				"port":   fmt.Sprintf("%d", endpoint.Port),
 				"secret": secret,
+			}, ""))
+		}
+	}
+	if host, mode, ok := mtproto.WebEndpoint(inbound.Settings); ok {
+		if key := model.MtprotoWebSecret(resolved.Secret, mode); key != "" {
+			links = append(links, buildLinkWithParams("tg://webproxy", map[string]string{
+				"server": host,
+				"secret": key,
 			}, ""))
 		}
 	}
