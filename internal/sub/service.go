@@ -76,12 +76,18 @@ type SubService struct {
 	// with the clients array left out; generators read only inbound-level
 	// fields (encryption, method, version, …) from it.
 	settingsByInbound map[int]map[string]any
+	// snapshots shares cached subscription reads across all requests of this
+	// service (ForRequest copies the pointer). Only subscription bodies use
+	// it; panel-side link rendering bypasses the cache so admin edits reflect
+	// immediately.
+	snapshots *subSnapshotStore
 }
 
 // NewSubService creates a new subscription service with the given configuration.
 func NewSubService(remarkTemplate string) *SubService {
 	return &SubService{
 		remarkTemplate: remarkTemplate,
+		snapshots:      newSubSnapshotStore(snapshotCacheTTL, snapshotCacheCapacity),
 	}
 }
 
@@ -676,7 +682,28 @@ func subscriptionExpiryFromClient(nowMs, expiryTime int64) int64 {
 	return 0
 }
 
+// getInboundsBySubId serves subscription bodies from the shared snapshot
+// cache; everything else (panel link/QR rendering) reads fresh so admin edits
+// are visible immediately.
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
+	if s.snapshots == nil || !s.subscriptionBody {
+		return s.loadInboundsBySubId(subId)
+	}
+	inbounds, stats, err := s.snapshots.inboundsFor(subId, func() ([]*model.Inbound, map[string]xray.ClientTraffic, error) {
+		inbounds, err := s.loadInboundsBySubId(subId)
+		if err != nil {
+			return nil, nil, err
+		}
+		return inbounds, s.statsByEmail, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.statsByEmail = stats
+	return inbounds, nil
+}
+
+func (s *SubService) loadInboundsBySubId(subId string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Where(`id in (
