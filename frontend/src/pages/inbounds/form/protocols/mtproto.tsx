@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Collapse, Input, InputNumber, Select, Switch } from 'antd';
+import { Alert, Collapse, Input, InputNumber, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { FormField } from '@/components/form/rhf';
@@ -73,6 +73,26 @@ export default function MtprotoFields() {
   ];
 
   const advanced = [
+    {
+      key: 'relay',
+      label: f('mtgAdvancedRelay'),
+      children: [
+        <Alert
+          key="hint"
+          type="info"
+          showIcon
+          title={f('mtgRelayHint')}
+          style={{ marginBottom: 16 }}
+        />,
+        field(['network', 'clientMss'], 'mtgClientMss', num(0, 1460, '92'), 'mtgClientMssHint'),
+        field(
+          ['network', 'clientMssBulk'],
+          'mtgClientMssBulk',
+          num(0, 65495, '1400'),
+          'mtgClientMssBulkHint',
+        ),
+      ],
+    },
     {
       key: 'general',
       label: f('mtgAdvancedGeneral'),

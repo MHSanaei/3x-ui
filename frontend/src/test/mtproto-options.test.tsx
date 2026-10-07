@@ -31,6 +31,8 @@ describe('mtproto mtg options schema', () => {
         dns: 'https://1.1.1.1/dns-query',
         proxies: ['socks5://10.0.0.1:1080'],
         tcpNotSentLowat: '1mib',
+        clientMss: 92,
+        clientMssBulk: 1400,
         timeout: { tcp: '5s', http: '10s', idle: '5m', handshake: '10s' },
         keepAlive: { disabled: true, idle: '15s', interval: '15s', count: 9 },
       },
@@ -87,8 +89,41 @@ describe('mtproto mtg options schema', () => {
     expect(parsed.data?.extraToml).toBeUndefined();
   });
 
+  it('keeps an explicit session MSS of 0 apart from a cleared one', () => {
+    const whole = parse({ network: { clientMss: 120, clientMssBulk: 0 } });
+    expect(whole.data?.network?.clientMssBulk).toBe(0);
+    const cleared = parse({ network: { clientMss: 92, clientMssBulk: null } });
+    expect(cleared.success).toBe(true);
+    expect(cleared.data?.network?.clientMssBulk).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'a session MSS not above the ServerHello MSS',
+      { clientMss: 1400, clientMssBulk: 1400 },
+      'clientMssBulk',
+      'pages.inbounds.form.mtgClientMssBulkTooSmall',
+    ],
+    [
+      'a ServerHello MSS the kernel refuses on the socket',
+      { clientMss: 87, clientMssBulk: 0 },
+      'clientMss',
+      'pages.inbounds.form.mtgClientMssKernelMin',
+    ],
+  ])('flags %s on the right field', (_name, network, field, message) => {
+    const parsed = parse({ network });
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues).toEqual([
+      expect.objectContaining({ path: ['network', field], message }),
+    ]);
+  });
+
   it.each([
     ['concurrency out of range', { concurrency: 70000 }],
+    ['ServerHello MSS below 48', { network: { clientMss: 47 } }],
+    ['ServerHello MSS above 1460', { network: { clientMss: 1461 } }],
+    ['session MSS below 536', { network: { clientMss: 92, clientMssBulk: 535 } }],
+    ['session MSS above 65495', { network: { clientMss: 92, clientMssBulk: 65496 } }],
     ['duration without a unit', { tolerateTimeSkewness: '5' }],
     ['bad size', { network: { tcpNotSentLowat: 'lots' } }],
     ['non-socks proxy', { network: { proxies: ['http://10.0.0.1:3128'] } }],
@@ -209,6 +244,7 @@ describe('mtproto advanced settings form', () => {
   it('groups the mtg options into collapsed sections', () => {
     renderFields();
     for (const title of [
+      'Relay',
       'Advanced: general',
       'Advanced: network',
       'Advanced: defense',
@@ -258,6 +294,15 @@ describe('mtproto advanced settings form', () => {
     ]) {
       expect(labels).toContain(label);
     }
+  });
+
+  it('shows the ServerHello splitting fields in the relay section', () => {
+    renderFields();
+    expect(fieldLabels()).not.toContain('ServerHello MSS');
+    openPanel('Relay');
+    const labels = fieldLabels();
+    expect(labels).toContain('ServerHello MSS');
+    expect(labels).toContain('Session MSS');
   });
 
   it('hides upstream proxies while routing through Xray', () => {

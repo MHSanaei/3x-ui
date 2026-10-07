@@ -65,29 +65,62 @@ const IpListSchema = z.object({
   downloadConcurrency: optInt(1, MAX_UINT16),
 });
 
+// A TCP MSS that is 0 (off) or within [min, max].
+const optMss = (min: number, max: number, message: string) =>
+  z.preprocess(
+    unset,
+    z
+      .number()
+      .int()
+      .refine((v) => v === 0 || (v >= min && v <= max), message)
+      .optional(),
+  );
+
 // [network], [network.timeout] and [network.keep-alive]. `proxies` cannot be
 // combined with routing through Xray, which owns mtg's upstream list.
-export const MtprotoNetworkSchema = z.object({
-  dns: z.preprocess(unset, z.string().trim().optional()),
-  proxies: optList(/^socks5h?:\/\/\S+$/i, 'pages.inbounds.form.mtgInvalidProxy'),
-  tcpNotSentLowat: optText(BYTES, BYTES_MSG),
-  timeout: z
-    .object({
-      tcp: optDuration(),
-      http: optDuration(),
-      idle: optDuration(),
-      handshake: optDuration(),
-    })
-    .optional(),
-  keepAlive: z
-    .object({
-      disabled: z.boolean().optional(),
-      idle: optDuration(),
-      interval: optDuration(),
-      count: optInt(1, MAX_UINT16),
-    })
-    .optional(),
-});
+export const MtprotoNetworkSchema = z
+  .object({
+    dns: z.preprocess(unset, z.string().trim().optional()),
+    proxies: optList(/^socks5h?:\/\/\S+$/i, 'pages.inbounds.form.mtgInvalidProxy'),
+    tcpNotSentLowat: optText(BYTES, BYTES_MSG),
+    // ServerHello split size; an unset bulk is mtg's default (1400), while 0
+    // keeps the whole session at clientMss, which the kernel then needs >= 88.
+    clientMss: optMss(48, 1460, 'pages.inbounds.form.mtgClientMssRange'),
+    clientMssBulk: optMss(536, 65495, 'pages.inbounds.form.mtgClientMssBulkRange'),
+    timeout: z
+      .object({
+        tcp: optDuration(),
+        http: optDuration(),
+        idle: optDuration(),
+        handshake: optDuration(),
+      })
+      .optional(),
+    keepAlive: z
+      .object({
+        disabled: z.boolean().optional(),
+        idle: optDuration(),
+        interval: optDuration(),
+        count: optInt(1, MAX_UINT16),
+      })
+      .optional(),
+  })
+  .superRefine(({ clientMss: mss, clientMssBulk: bulk }, ctx) => {
+    if (!mss || bulk === undefined) return;
+    if (bulk > 0 && bulk <= mss) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['clientMssBulk'],
+        message: 'pages.inbounds.form.mtgClientMssBulkTooSmall',
+      });
+    }
+    if (bulk === 0 && mss < 88) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['clientMss'],
+        message: 'pages.inbounds.form.mtgClientMssKernelMin',
+      });
+    }
+  });
 
 // [defense.*]: anti-replay, IP block/allow lists, doppelganger and the per-IP
 // pending-handshake cap (the last needs mtg-multi with pending-handshakes support).
