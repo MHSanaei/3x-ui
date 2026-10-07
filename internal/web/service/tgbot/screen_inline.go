@@ -19,16 +19,11 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-// The bot's lists are browsed in inline mode, one marker per item. Inline mode
-// has to be enabled by hand in @BotFather; when it is off the screens show a
-// hint instead of a launcher, because the buttons the old bot used no longer
-// exist and a silent dead button is worse than an instruction.
+// The bot's lists are browsed in inline mode, which must be enabled by hand in
+// @BotFather; when off, screens show a hint rather than a silent dead button.
 
-// The launcher carries its own intent: an inline query arrives with no chat and
-// no memory of which screen opened it, so the query text is the intent. Empty
-// means "inbounds"; "cl" is every client; "cl <inbound id>" is one inbound's
-// clients. Nothing is kept on the server, so a panel restart can neither lose
-// the intent nor silently fall back to the wrong list.
+// The launcher carries its own intent as the query text (empty = all inbounds,
+// "cl" = every client, "cl <id>" = one inbound's), so nothing is kept server-side.
 const (
 	inlineScopeInbounds = ""
 	inlineScopeClients  = "cl"
@@ -46,8 +41,7 @@ func scopeQuery(kind, data string) string {
 }
 
 // inlineSupport caches getMe().supports_inline_queries. A permanent cache would
-// freeze a False recorded before /setinline and hide the launcher forever, so
-// the value is refreshed in the background once it goes stale.
+// freeze a pre-/setinline False forever, so it refreshes once stale.
 type inlineSupport struct {
 	mu    sync.Mutex
 	ok    bool
@@ -68,11 +62,8 @@ func recordInlineCapability(supported bool) {
 	inlineCapability.mu.Unlock()
 }
 
-// inlineSupported reports whether the launcher may be shown. A STALE value is
-// served as-is and refreshed off the render path, so a screen never waits on a
-// network round trip. An UNKNOWN value is different: right after a restart the
-// cache is empty, and answering from it showed the "enable inline mode" warning
-// for a bot that has it on, until the background refresh happened to land.
+// inlineSupported reports whether the launcher may be shown. A stale value is
+// served and refreshed off-path; an unknown empty cache must not warn (post-restart bug).
 func (t *Tgbot) inlineSupported() bool {
 	inlineCapability.mu.Lock()
 	ok, known, at := inlineCapability.ok, inlineCapability.known, inlineCapability.at
@@ -92,12 +83,12 @@ func (t *Tgbot) inlineSupported() bool {
 }
 
 func (t *Tgbot) refreshInlineCapability() {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	me, err := bot.GetMe(ctx)
+	me, err := liveBot().GetMe(ctx)
 	if err != nil {
 		logger.Debug("Cannot read the bot capability for inline mode:", err)
 		return
@@ -111,11 +102,8 @@ func (t *Tgbot) launchRow(query string, labelKey string) []telego.InlineKeyboard
 	if !t.inlineSupported() {
 		return tu.InlineKeyboardRow(t.btn("tgbot.buttons.inlineDisabled", "inline_help"))
 	}
-	// Telegram prefills the message box with this text and sends it back as the
-	// query, so it is both the intent and the filter prefix the user types
-	// after. It is deliberately not localized: a translated marker could not be
-	// parsed, and a machine token reads like the command prefixes users already
-	// know. Empty means "all inbounds".
+	// Telegram prefills and returns this token as the query, so it is both intent
+	// and filter prefix; not localized because a translated marker could not parse.
 	btn := telego.InlineKeyboardButton{
 		Text:                         t.I18nBot(labelKey),
 		SwitchInlineQueryCurrentChat: &query,
@@ -128,7 +116,7 @@ func (t *Tgbot) launchRow(query string, labelKey string) []telego.InlineKeyboard
 type Capabilities struct {
 	InlineEnabled bool
 	// GroupPrivacy means the bot CANNOT read every group message, so a /start
-	// typed in a group never reaches it unless the message mentions the bot.
+	// typed in a group never reaches it unless the message mentions the liveBot().
 	GroupPrivacy bool
 	Username     string
 	Running      bool
@@ -137,12 +125,12 @@ type Capabilities struct {
 // Capabilities probes the live bot for what it can do.
 func (t *Tgbot) Capabilities() (Capabilities, error) {
 	caps := Capabilities{Running: t.IsRunning(), Username: botUsername()}
-	if bot == nil {
+	if liveBot() == nil {
 		return caps, errors.New("bot is not initialised")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	me, err := bot.GetMe(ctx)
+	me, err := liveBot().GetMe(ctx)
 	if err != nil {
 		return caps, err
 	}
@@ -167,7 +155,7 @@ func (t *Tgbot) screenInlineHelp(chatID int64) {
 
 // handleInlineQuery answers one query with the items of its scope.
 func (t *Tgbot) handleInlineQuery(query *telego.InlineQuery) {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	level := t.levelOf(query.From.ID)
@@ -231,7 +219,7 @@ func (t *Tgbot) answerInline(queryID string, results []telego.InlineQueryResult,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	err := bot.AnswerInlineQuery(ctx, &telego.AnswerInlineQueryParams{
+	err := liveBot().AnswerInlineQuery(ctx, &telego.AnswerInlineQueryParams{
 		InlineQueryID: queryID,
 		Results:       page,
 		NextOffset:    next,
@@ -434,9 +422,8 @@ func (t *Tgbot) durationText(ms int64, fromFirstUse bool) string {
 	}
 }
 
-// handleListMarker catches an item the user picked in inline mode. The marker
-// arrives as the user's own message, so it is deleted first and only then is
-// the real card drawn.
+// handleListMarker catches an item picked in inline mode. The marker arrives as
+// the user's own message, so it is deleted first, then the real card is drawn.
 func (t *Tgbot) handleListMarker(message *telego.Message) bool {
 	if message == nil || message.Text == "" {
 		return false
@@ -492,9 +479,8 @@ func (t *Tgbot) markerAllowed(action, value string, tgUserID int64, isAdmin bool
 	return false
 }
 
-// messageIsListMarker matches only a picked inline item. The router predicate
-// used to be "text contains a colon", which swallowed every broadcast and
-// wizard message that merely contained one — a URL, a time, a comment.
+// messageIsListMarker matches only a picked inline item; a "text contains a
+// colon" predicate once swallowed broadcasts and wizard messages (URL, time, comment).
 func messageIsListMarker(_ context.Context, update telego.Update) bool {
 	if update.Message == nil {
 		return false

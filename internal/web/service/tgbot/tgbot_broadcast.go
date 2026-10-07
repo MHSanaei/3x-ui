@@ -33,7 +33,7 @@ const (
 )
 
 // broadcastDraft references the admin's original message: copyMessage relays
-// any message type 1:1 on behalf of the bot. An album lists its messages.
+// any message type 1:1 on behalf of the liveBot(). An album lists its messages.
 type broadcastDraft struct {
 	FromChatID int64
 	MessageIDs []int
@@ -78,9 +78,8 @@ func (r *broadcastRunner) getResult() broadcastResult {
 // album group still arriving, and the token binding the preview to its card.
 type broadcastCompose struct {
 	messageIDs []int
-	// inputMessageIDs are the admin's own messages in the chat. They are the
-	// SOURCE of the copy, not something a recipient ever sees, so they are
-	// removed once the broadcast is confirmed or dropped.
+	// inputMessageIDs are the admin's own messages: the SOURCE of the copy, never
+	// seen by recipients, so they are removed once the broadcast is confirmed/dropped.
 	inputMessageIDs []int
 	groupID         string
 	token           string
@@ -290,18 +289,15 @@ func (t *Tgbot) acceptBroadcastDraft(actor chatUser, ids []int) {
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("broadcast_cancel"),
 	))
 	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.broadcastPreview", "Count=="+strconv.Itoa(len(recipients))), keyboard)
-	// The preview is the copy itself, so it is what the recipients receive. It
-	// has served its purpose the moment the admin has looked at it: leaving it
-	// in the chat is how the broadcast ended up with three copies of the same
-	// message on screen.
+	// The preview is the copy recipients receive. It has served its purpose once
+	// the admin has looked at it; leaving it behind produced duplicate copies.
 	for _, id := range previewIDs {
 		t.deleteOwnMessage(chatId, id)
 	}
 }
 
-// clearBroadcastDraft removes the admin's own composing messages: the input the
-// broadcast copies FROM and, when it was already made, the preview copy of it.
-// Both are the operator's scratch space and none of it is the broadcast.
+// clearBroadcastDraft removes the admin's own composing messages — the input the
+// broadcast copies FROM and, if made, its preview — none of which is the broadcast.
 func (t *Tgbot) clearBroadcastDraft(actor chatUser, inputIDs, previewIDs []int) {
 	for _, id := range inputIDs {
 		t.deleteIncomingID(actor.chatID, id)
@@ -311,9 +307,8 @@ func (t *Tgbot) clearBroadcastDraft(actor chatUser, inputIDs, previewIDs []int) 
 	}
 }
 
-// recallBroadcast undoes a cancelled broadcast: the copies are removed from
-// every recipient that already got one. Best-effort — Telegram refuses a
-// deleteMessage older than 48 hours, and a recipient may have read it already.
+// recallBroadcast undoes a cancelled broadcast by removing copies from every
+// recipient. Best-effort: Telegram refuses deleteMessage older than 48 hours.
 func (t *Tgbot) recallBroadcast(chatID int64, ids []int) {
 	for _, id := range ids {
 		t.deleteOwnMessage(chatID, id)
@@ -358,11 +353,8 @@ func (t *Tgbot) finalizeBroadcastAlbum(actor chatUser, groupID string) {
 	t.acceptBroadcastDraft(actor, ids)
 }
 
-// The broadcast flow stays message-scoped rather than screen-scoped: two admins
-// in one group compose and confirm their own drafts, and a single per-chat
-// screen would make the second preview overwrite the first admin's card (and
-// its confirm token). Each card carries its own confirm/cancel, and cancel
-// deletes it, so the chat still ends up clean.
+// The broadcast flow stays message-scoped, not screen-scoped: in a shared group
+// a per-chat screen would make one admin's preview overwrite another's confirm token.
 func (t *Tgbot) broadcastCancelKeyboard() *telego.InlineKeyboardMarkup {
 	return tu.InlineKeyboard(tu.InlineKeyboardRow(
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("broadcast_cancel"),
@@ -513,7 +505,7 @@ func (t *Tgbot) finalizeBroadcastCard(runner *broadcastRunner, summary string) b
 		// "🙈 Скрыть" every other finished message offers.
 		ReplyMarkup: t.hideButton(),
 	}
-	_, err := bot.EditMessageText(context.Background(), &params)
+	_, err := liveBot().EditMessageText(context.Background(), &params)
 	if err == nil || isTelegramNotModifiedError(err) {
 		return true
 	}
@@ -530,9 +522,8 @@ func (t *Tgbot) cancelBroadcast(actor chatUser, messageID int, queryID string) {
 		t.sendCallbackAnswerTgBot(queryID, t.I18nBot("tgbot.answers.broadcastCanceling"))
 		return
 	}
-	// Dropping a broadcast before it ran: the admin's input, its preview copy,
-	// the "send me the message" card and the confirmation card all go, so the
-	// chat is as it was before /broadcast.
+	// Dropping a broadcast before it ran removes the admin's input, its preview
+	// copy and both prompt cards, leaving the chat as it was before /broadcast.
 	inputIDs := broadcastComposeInputs(actor)
 	broadcastDropCompose(actor)
 	userStateMgr.clear(actor)
@@ -618,9 +609,8 @@ func broadcastRetryAfter(err error) (time.Duration, bool) {
 	return time.Duration(apiErr.Parameters.RetryAfter) * time.Second, true
 }
 
-// deliverBroadcastCopy copies the admin's message into one chat; an album rides
-// one copyMessages call and arrives with no forward header. The sender returns
-// the ids it created so the caller can take them away again.
+// deliverBroadcastCopy copies the admin's message into one chat (an album rides
+// one copyMessages call, no forward header) and returns the created ids.
 func deliverBroadcastCopy(chatID int64, draft broadcastDraft) ([]int, error) {
 	from := tu.ID(draft.FromChatID)
 	var ids []int
@@ -629,22 +619,21 @@ func deliverBroadcastCopy(chatID int64, draft broadcastDraft) ([]int, error) {
 		switch {
 		case len(draft.MessageIDs) > 1:
 			var copied []telego.MessageID
-			copied, err = bot.CopyMessages(ctx, &telego.CopyMessagesParams{ChatID: tu.ID(chatID), FromChatID: from, MessageIDs: draft.MessageIDs})
+			copied, err = liveBot().CopyMessages(ctx, &telego.CopyMessagesParams{ChatID: tu.ID(chatID), FromChatID: from, MessageIDs: draft.MessageIDs})
 			for _, m := range copied {
 				ids = append(ids, m.MessageID)
 			}
 		case len(draft.MessageIDs) == 1:
 			var copied *telego.MessageID
-			copied, err = bot.CopyMessage(ctx, &telego.CopyMessageParams{ChatID: tu.ID(chatID), FromChatID: from, MessageID: draft.MessageIDs[0]})
+			copied, err = liveBot().CopyMessage(ctx, &telego.CopyMessageParams{ChatID: tu.ID(chatID), FromChatID: from, MessageID: draft.MessageIDs[0]})
 			if copied != nil {
 				ids = append(ids, copied.MessageID)
 			}
 		}
 		return err
 	})
-	// Every recipient can put the message away: a client has no panel menu to
-	// clear it from, and the admin who composed it had no button either. The copy
-	// is the broadcast, so its content is untouched — only the keyboard is added.
+	// Every recipient can put the message away (a client has no panel menu to
+	// clear it from); the content is untouched, only the keyboard is added.
 	if err == nil {
 		for _, id := range ids {
 			markupBroadcastCopy(chatID, id)
@@ -657,7 +646,7 @@ func deliverBroadcastCopy(chatID int64, draft broadcastDraft) ([]int, error) {
 // failure here leaves the broadcast intact and is not worth retrying the send.
 func markupBroadcastCopy(chatID int64, messageID int) {
 	_ = callTelegramAPI(func(ctx context.Context) error {
-		_, err := bot.EditMessageReplyMarkup(ctx, &telego.EditMessageReplyMarkupParams{
+		_, err := liveBot().EditMessageReplyMarkup(ctx, &telego.EditMessageReplyMarkupParams{
 			ChatID:      tu.ID(chatID),
 			MessageID:   messageID,
 			ReplyMarkup: hideButtonMarkup(),

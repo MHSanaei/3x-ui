@@ -349,10 +349,8 @@ func (a *SettingController) testTgBot(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.settings.tgBotNotRunning"), errors.New("bot not started"))
 }
 
-// tgBotCapabilities reports what the configured bot can do. Inline mode is a
-// BotFather switch — the API can read it but never set it — and the bot's lists
-// live in inline mode, so the panel has to warn before a user wonders why a
-// list never opens.
+// tgBotCapabilities reports what the bot can do. Inline mode is a BotFather
+// switch the API can read but never set, so the panel warns when lists can't open.
 func (a *SettingController) tgBotCapabilities(c *gin.Context) {
 	enabled, err := a.settingService.GetTgbotEnabled()
 	if err != nil || !enabled {

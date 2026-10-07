@@ -21,8 +21,7 @@ import (
 // screen" function; the router only decides which view to show.
 
 // screenHome is the admin's landing screen: the numbers you open the bot for,
-// then the menu. The picture is the bot's own avatar until the panel can host
-// its own artwork.
+// then the menu, with the bot's avatar until the panel can host its own artwork.
 func (t *Tgbot) screenHome(chatID, userID int64) {
 	if level := t.levelOf(userID); level != levelAdmin {
 		t.screenClientHome(chatID, userID)
@@ -32,10 +31,8 @@ func (t *Tgbot) screenHome(chatID, userID int64) {
 	t.renderScreen(chatID, t.newScreen("main", body, t.homeRows()...))
 }
 
-// screenClientHome is a client's own entry point: its usage and, from there, its
-// links and QR. A client used to be handed the ADMIN menu by /start, which both
-// advertised panel operations it cannot run and listed every client's email
-// through the All-clients browser.
+// screenClientHome is a client's own entry point: its usage, then links and QR.
+// /start once gave clients the ADMIN menu (panel ops, every client's email).
 func (t *Tgbot) screenClientHome(chatID, userID int64) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(userID)
 	if err != nil || len(traffics) == 0 {
@@ -47,9 +44,8 @@ func (t *Tgbot) screenClientHome(chatID, userID int64) {
 		body.WriteString(t.clientInfoMsg(traffic, true, true, true, true, true, true))
 		body.WriteString("\r\n")
 	}
-	// One subscription needs no choice: its links and QR are right here. Several
-	// are one row each, which is a choice worth making. Either way this screen is
-	// the client's own top level, so it carries no back button.
+	// One subscription needs no choice (links and QR are right here); several are
+	// one row each. Either way this is the client's top level, so no back button.
 	var rows [][]telego.InlineKeyboardButton
 	if len(traffics) == 1 {
 		rows = append(rows, tu.InlineKeyboardRow(
@@ -104,9 +100,8 @@ func (t *Tgbot) screenServer(chatID int64) {
 	t.renderScreen(chatID, t.newScreen("status", body, rows...))
 }
 
-// screenOnlines lists who is connected right now. The client names used to be
-// buttons; they are plain text here, and the inline browser takes over the
-// per-client pick in the next step.
+// screenOnlines lists who is connected right now; client names are plain text
+// (the inline browser takes over the per-client pick next).
 func (t *Tgbot) screenOnlines(chatID int64) {
 	process := xrayProcessOrNil()
 	if process == nil {
@@ -131,9 +126,8 @@ func (t *Tgbot) screenOnlines(chatID int64) {
 	t.renderScreen(chatID, t.newScreen("onlines", body, rows...))
 }
 
-// screenDeplete renders the "running out" screen. Both the scheduled report
-// and the button use this text, so a client can never be listed twice with a
-// different story.
+// screenDeplete renders the "running out" screen; the scheduled report and the
+// button share this text, so a client is never listed twice with a different story.
 func (t *Tgbot) screenDeplete(chatID int64) {
 	body := t.depleteReport()
 	rows := [][]telego.InlineKeyboardButton{
@@ -254,9 +248,8 @@ func (t *Tgbot) screenCommands(chatID int64, isAdmin bool) {
 	t.renderScreen(chatID, t.newScreen("commands", t.I18nBot(key), t.backRow()))
 }
 
-// sendBackupScreen delivers the backup and its summary as ONE message: the file
-// travels with a caption, so the chat does not get a header and a document for
-// the same event. A summary too long for a caption is sent after the file.
+// sendBackupScreen delivers the backup and summary as ONE message (file plus
+// caption); a summary too long for a caption is sent after the file.
 func (t *Tgbot) sendBackupScreen(chatID int64) {
 	dbData, err := t.serverService.GetDb()
 	if err != nil {
@@ -295,12 +288,12 @@ func (t *Tgbot) screenBanLogs(chatID int64) {
 // sendNotice posts a plain bot message that is explicitly not a screen: it
 // carries the hide button, and it never becomes the chat's tracked screen.
 func (t *Tgbot) sendNotice(chatID int64, text string) {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	for _, chunk := range pageMessage(text, telegramPageLimit) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		_, err := bot.SendMessage(ctx, &telego.SendMessageParams{
+		_, err := liveBot().SendMessage(ctx, &telego.SendMessageParams{
 			ChatID: tu.ID(chatID), Text: chunk, ParseMode: "HTML", ReplyMarkup: t.hideButton(),
 		})
 		cancel()
@@ -318,12 +311,12 @@ func (t *Tgbot) sendBanLogsFile(chatID int64) {
 		return
 	}
 	defer file.Close()
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	_, err = bot.SendDocument(ctx, &telego.SendDocumentParams{
+	_, err = liveBot().SendDocument(ctx, &telego.SendDocumentParams{
 		ChatID:      tu.ID(chatID),
 		Document:    tu.File(file),
 		ReplyMarkup: t.hideButton(),

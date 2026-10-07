@@ -12,10 +12,8 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-// Panel notifications are the bot's other voice: an outage, a failed login, a
-// backup. Each one used to be its own message, so a single flapping outbound
-// buried the chat. They are now ONE live message per (chat, kind) that repeats
-// edit in place, plus the same hide button the rest of the bot uses.
+// Panel notifications (outage, failed login, backup) are ONE live message per
+// (chat, kind): repeats edit it in place instead of burying the chat.
 
 type noticeKey struct {
 	chatID int64
@@ -59,11 +57,10 @@ func (s *noticeStore) reset() {
 // updating the live card instead of starting a new one.
 const noticeRepeatWindow = 30 * time.Minute
 
-// liveNotice sends or updates the chat's card for one kind of event. A repeat
-// inside the window edits the card and counts, so a storm of the same event
-// reads as one line with a number instead of a wall of identical messages.
+// liveNotice sends or updates the chat's card for one kind of event; a repeat
+// inside the window edits it and counts, so a storm reads as one numbered line.
 func (t *Tgbot) liveNotice(chatID int64, kind, body string) {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	key := noticeKey{chatID: chatID, kind: kind}
@@ -84,7 +81,7 @@ func (t *Tgbot) liveNotice(chatID int64, kind, body string) {
 	st = noticeState{body: body, count: 1, at: time.Now()}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	sc, err := bot.SendMessage(ctx, &telego.SendMessageParams{
+	sc, err := liveBot().SendMessage(ctx, &telego.SendMessageParams{
 		ChatID: tu.ID(chatID), Text: t.noticeText(body, 1), ParseMode: "HTML", ReplyMarkup: t.hideButton(),
 	})
 	if err != nil {
@@ -109,7 +106,7 @@ func (t *Tgbot) noticeText(body string, count int) string {
 func (t *Tgbot) editNotice(chatID int64, msgID int, text string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	_, err := bot.EditMessageText(ctx, &telego.EditMessageTextParams{
+	_, err := liveBot().EditMessageText(ctx, &telego.EditMessageTextParams{
 		ChatID: tu.ID(chatID), MessageID: msgID, Text: text, ParseMode: "HTML",
 		ReplyMarkup: t.hideButton(),
 	})
@@ -132,16 +129,15 @@ func (t *Tgbot) dropNoticeFor(chatID int64, msgID int) {
 	}
 }
 
-// sendDocumentWithCaption uploads a file together with its summary: a document
-// cannot hold a screen, so the caption is what carries the information, and one
-// message does the work of two.
+// sendDocumentWithCaption uploads a file with its summary as caption: a document
+// cannot hold a screen, so one message does the work of two.
 func (t *Tgbot) sendDocumentWithCaption(chatID int64, data []byte, name, caption string) bool {
-	if bot == nil || data == nil {
+	if liveBot() == nil || data == nil {
 		return false
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	_, err := bot.SendDocument(ctx, &telego.SendDocumentParams{
+	_, err := liveBot().SendDocument(ctx, &telego.SendDocumentParams{
 		ChatID:      tu.ID(chatID),
 		Document:    tu.FileFromBytes(data, name),
 		Caption:     caption,

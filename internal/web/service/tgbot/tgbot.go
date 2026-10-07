@@ -30,6 +30,9 @@ import (
 
 var (
 	bot *telego.Bot
+	// botMu guards bot: EnsureBot may replace it while a background goroutine
+	// (the screen artwork warm-up) is still using the previous liveBot().
+	botMu sync.RWMutex
 
 	// botCancel stores the function to cancel the context, stopping Long Polling gracefully.
 	botCancel context.CancelFunc
@@ -63,6 +66,13 @@ var (
 		mutex     sync.RWMutex
 	}
 )
+
+// liveBot is the current connection, or nil before login and after logout.
+func liveBot() *telego.Bot {
+	botMu.RLock()
+	defer botMu.RUnlock()
+	return bot
+}
 
 // clientDraft is one chat's add-client wizard state. Per-protocol secrets are
 // filled per-inbound on submit, so only the universal fields live here.
@@ -350,17 +360,16 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	// Create new Telegram bot instance
+	botMu.Lock()
 	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
+	botMu.Unlock()
 	if err != nil {
 		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
 	}
 
-	// Screen art is the bot's own avatar, so it is resolved once the identity
-	// is known; a bot without an avatar renders text screens instead.
 	t.resolveScreenArt()
-
-	t.trySetBotCommands(bot)
+	t.trySetBotCommands(liveBot())
 
 	// Start receiving Telegram bot messages
 	tgBotMutex.Lock()
@@ -498,7 +507,7 @@ func adminSnapshot() []int64 {
 	return slices.Clone(adminIds)
 }
 
-// SetHostname sets the hostname for the bot.
+// SetHostname sets the hostname for the liveBot().
 func (t *Tgbot) SetHostname() {
 	host, err := os.Hostname()
 	if err != nil {
@@ -540,7 +549,7 @@ func StopBot() {
 	}
 
 	if cancel != nil {
-		logger.Info("Sending cancellation signal to Telegram bot...")
+		logger.Info("Sending cancellation signal to Telegram liveBot()...")
 		// Cancels the context passed to UpdatesViaLongPolling; this closes updates channel
 		// and lets botHandler.Start() exit cleanly.
 		cancel()

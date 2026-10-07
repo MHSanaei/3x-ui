@@ -83,9 +83,8 @@ func (t *Tgbot) browseInboundsScreen(chatID, userID int64) {
 	t.renderScreen(chatID, t.newScreen("inbounds", t.I18nBot("tgbot.answers.chooseInbound"), rows...))
 }
 
-// screenAddClientStart opens the add-client wizard on a fresh draft. The client
-// is not attached to anything yet: filling the draft IS the first step, and the
-// inbounds are picked on its "➕ Attach inbound" button.
+// screenAddClientStart opens the add-client wizard on a fresh draft: filling the
+// draft is the first step, and inbounds are picked on "➕ Attach inbound".
 func (t *Tgbot) screenAddClientStart(chatID, userID int64) {
 	actor := chatUser{chatID: chatID, userID: userID}
 	addClientDrafts.reset(actor)

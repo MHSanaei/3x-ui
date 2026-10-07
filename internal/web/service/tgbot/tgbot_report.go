@@ -44,9 +44,8 @@ func (t *Tgbot) backupSummary() string {
 	return trimCaption(summary+"\n\n"+t.depleteReport(), botCaptionLimit)
 }
 
-// SendBackupToAdmins sends the database, and the generated Xray config when it
-// exists, to admin chats. A failed DB read is reported instead of sending
-// nothing: a silent empty backup looks like the bot is broken.
+// SendBackupToAdmins sends the database and, when it exists, the generated Xray
+// config to admin chats. A failed DB read is reported, not sent silently.
 func (t *Tgbot) SendBackupToAdmins() {
 	if !t.IsRunning() {
 		return
@@ -84,9 +83,8 @@ func (t *Tgbot) sendExhaustedToAdmins() {
 		return
 	}
 	for _, adminId := range adminSnapshot() {
-		// A scheduled report must never edit the screen the admin is working on:
-		// a cron landing on the add-client wizard would replace the draft. This
-		// posts a free-standing message instead.
+		// A scheduled report must never edit the admin's screen — a cron landing on
+		// the add-client wizard would replace the draft — so it posts its own message.
 		t.sendNotice(adminId, t.depleteReport())
 	}
 }

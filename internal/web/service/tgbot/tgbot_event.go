@@ -24,10 +24,8 @@ func getHostname() string {
 	return cachedHostname
 }
 
-// HandleEvent is the eventbus subscriber callback. One kind of event keeps ONE
-// live card per admin chat: a repeat inside the window edits it and bumps a
-// counter, so a flapping outbound reads as one line instead of a wall of
-// identical messages.
+// HandleEvent is the eventbus subscriber callback: one kind of event keeps ONE
+// live card per admin chat, so a repeat edits it instead of a wall of messages.
 func (t *Tgbot) HandleEvent(e eventbus.Event) {
 	if !t.isEventEnabled(e.Type) {
 		return
@@ -42,9 +40,8 @@ func (t *Tgbot) HandleEvent(e eventbus.Event) {
 	}
 }
 
-// eventNoticeKind is the live card a repeat of this event edits. A login
-// success must not fold into the failure card from the same IP: the sequence
-// is the whole point of a login alert, so the outcome is part of the key.
+// eventNoticeKind is the live card a repeat of this event edits. A login success
+// must not fold into the failure card from the same IP: outcome is part of the key.
 func (t *Tgbot) eventNoticeKind(e eventbus.Event) string {
 	if e.Type == eventbus.EventLoginAttempt {
 		if data, ok := e.Data.(*eventbus.LoginEventData); ok {

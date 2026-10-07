@@ -17,9 +17,8 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-// Screen art: the bot's own avatar serves every screen's picture, and a panel
-// without an avatar gets a generated black tile. A screen must never fail to
-// render for want of a picture.
+// Screen art: the bot's avatar serves every screen's picture, and a panel without
+// one gets a generated black tile, so a screen never fails for want of a picture.
 
 var (
 	screenArtMu  sync.RWMutex
@@ -27,9 +26,8 @@ var (
 	// artOverrides is artwork the panel set for one screen kind. It outranks
 	// the bot's avatar, so adopting an avatar never silently replaces it.
 	artOverrides = map[string]string{}
-	// artFromAvatar records whether the cached ids came from the bot's own
-	// avatar. A tile cached from an upload must never win over an avatar the
-	// operator sets afterwards.
+	// artFromAvatar records whether the cached ids came from the bot's avatar: a
+	// tile cached from an upload must never win over an avatar set afterwards.
 	artFromAvatar bool
 	artProbedAt   time.Time
 	// artProbeRunning keeps a burst of renders from starting a burst of probes.
@@ -39,35 +37,34 @@ var (
 	blackTileBytes []byte
 )
 
-// Probes are cheap but not free, so a known avatar is trusted for a while and
-// a missing one is retried sooner: an operator who uploads a picture usually
-// checks right after, and would otherwise see tiles until the next restart.
+// Probes are cheap but not free: a known avatar is trusted for a while, a missing
+// one retried sooner, so an uploaded picture shows without a restart.
 const (
 	artAvatarTTL = 10 * time.Minute
 	artRetryTTL  = time.Minute
 )
 
 // resolveScreenArt caches the bot avatar's file_id for every screen kind.
-// Telegram serves one photo per bot, so every kind shares it until the panel
-// can host its own artwork.
+// Telegram serves one photo per bot, so all kinds share it.
 func (t *Tgbot) resolveScreenArt() {
-	if bot == nil {
+	// One read: the panel can swap the bot under us (login/logout), and reading
+	// the global per call is a nil-pointer crash in this background goroutine.
+	b := liveBot()
+	if b == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	me, err := bot.GetMe(ctx)
+	me, err := b.GetMe(ctx)
 	if err != nil {
 		logger.Warning("Failed to read the bot identity for screen art:", err)
 		return
 	}
 
-	// The avatar must come from getUserProfilePhotos, not getChat: getChat
-	// returns a ChatPhoto file_id, and Telegram refuses it in a sendPhoto with
-	// "can't use file of type ChatPhoto as Photo". Same picture, different id
-	// namespace, and only one of them is usable here.
-	photos, err := bot.GetUserProfilePhotos(ctx, &telego.GetUserProfilePhotosParams{
+	// Use getUserProfilePhotos, not getChat: getChat's ChatPhoto file_id is
+	// refused in sendPhoto ("can't use file of type ChatPhoto as Photo").
+	photos, err := b.GetUserProfilePhotos(ctx, &telego.GetUserProfilePhotosParams{
 		UserID: me.ID, Limit: 1,
 	})
 	if err != nil {
@@ -95,11 +92,8 @@ func (t *Tgbot) resolveScreenArt() {
 	artFromAvatar = true
 }
 
-// ensureScreenArt refreshes the cached artwork when it is stale: a known avatar
-// is re-read rarely, a missing one sooner, so a picture the operator uploads
-// shows up without restarting the panel. The probe runs in its own goroutine
-// and at most one is in flight — the caller is on the render path and must not
-// wait on Telegram.
+// ensureScreenArt refreshes stale cached art off the render path, at most one
+// probe in flight, so a just-uploaded picture shows without a restart.
 func (t *Tgbot) ensureScreenArt() {
 	screenArtMu.RLock()
 	fromAvatar, at := artFromAvatar, artProbedAt
@@ -121,9 +115,8 @@ func (t *Tgbot) ensureScreenArt() {
 	}()
 }
 
-// artFileID returns the cached Telegram file_id for a screen kind. A fallback
-// tile cached for one kind must not answer for another, so the avatar flag is
-// checked by the caller: here the per-kind entry is authoritative.
+// artFileID returns the cached file_id for a screen kind. A fallback tile cached
+// for one kind must not answer for another, so the per-kind entry is authoritative.
 func artFileID(kind string) (string, bool) {
 	screenArtMu.RLock()
 	defer screenArtMu.RUnlock()
@@ -155,10 +148,8 @@ func blackTile() []byte {
 	return blackTileBytes
 }
 
-// cacheArtFileID remembers a file_id Telegram just gave us for an uploaded
-// tile, so a screen that had to upload its art edits in place afterwards. It
-// does NOT mark the art as the avatar: a real avatar uploaded later has to be
-// able to replace it.
+// cacheArtFileID remembers the file_id Telegram returned for an uploaded tile,
+// so that screen edits in place. It does NOT mark the art as the avatar.
 func cacheArtFileID(kind, fileID string) {
 	if kind == "" || fileID == "" {
 		return
@@ -180,9 +171,8 @@ func resetScreenArt() {
 	screenArtMu.Unlock()
 }
 
-// screenKinds is the catalogue of screen pictures. Until the panel can host its
-// own artwork every kind resolves to the same avatar, but the kinds stay named
-// so a screen's intent is visible in the code.
+// screenKinds is the catalogue of screen pictures: every kind resolves to the
+// same avatar, but the names keep each screen's intent visible in the code.
 var screenKinds = []string{
 	"main", "status", "inbounds", "clients", "client", "links", "qr",
 	"wizard", "reports", "backup", "onlines", "deplete", "commands", "broadcast",

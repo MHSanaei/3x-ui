@@ -23,9 +23,8 @@ func qrPNG(content string, size int) ([]byte, error) {
 	return qrcode.Encode(content, qrcode.Medium, size)
 }
 
-// The client card and the screens hanging off it: limits, expiry, IP log,
-// Telegram binding, links and QR. Every one of them redraws the same tracked
-// message, so opening a client never leaves the previous screen behind.
+// The client card and its screens (limits, expiry, IP log, TG binding, links,
+// QR) all redraw the same tracked message, so none leaves the previous behind.
 
 // clientScreenBody is the shared header of every per-client screen: a user who
 // tapped through four levels still sees which client they are on.
@@ -87,9 +86,8 @@ func formatIPLog(raw string) string {
 	return raw
 }
 
-// screenClientTG draws the Telegram binding of a client. The user picker is the
-// one reply keyboard the bot keeps: the Bot API has no inline way to request a
-// user, so the button is shown only while this screen is open.
+// screenClientTG draws a client's Telegram binding. The user picker is the one
+// reply keyboard kept: the API has no inline way to request a user.
 func (t *Tgbot) screenClientTG(chatID int64, email string, withPicker bool) {
 	traffic, client, err := t.inboundService.GetClientByEmail(email)
 	if err != nil || client == nil {
@@ -120,11 +118,10 @@ func (t *Tgbot) screenClientTG(chatID int64, email string, withPicker bool) {
 	}
 }
 
-// sendTGPicker posts the native "pick a Telegram user" keyboard, the only way
-// the API lets a bot ask for a user. It is a real message, so it carries the
-// hide button and the flow removes it again once the user is chosen.
+// sendTGPicker posts the native user picker — the only way the API asks for a
+// user. It is a real message, so it carries the hide button and is removed later.
 func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	t.sendNotice(chatID, t.I18nBot("tgbot.buttons.selectOneTGUser"))
@@ -135,15 +132,13 @@ func (t *Tgbot) sendTGPicker(chatID int64, trafficID int) {
 		tu.KeyboardRow(tu.KeyboardButton(t.I18nBot("tgbot.buttons.selectTGUser")).WithRequestUsers(&request)),
 		tu.KeyboardRow(tu.KeyboardButton(t.I18nBot("tgbot.buttons.closeKeyboard"))),
 	).WithIsPersistent().WithResizeKeyboard()
-	_, _ = bot.SendMessage(ctx, &telego.SendMessageParams{
+	_, _ = liveBot().SendMessage(ctx, &telego.SendMessageParams{
 		ChatID: tu.ID(chatID), Text: t.I18nBot("tgbot.buttons.selectOneTGUser"), ReplyMarkup: keyboard,
 	})
 }
 
-// ownSubscriptionOnly reports whether the chat is the client's own and the
-// screen shows that one subscription: true means admin-only controls must stay
-// off it. A single traffic bound to the chat's own Telegram user is the exact
-// case a client reaches by tapping "Links".
+// ownSubscriptionOnly reports whether the screen is the client's own single
+// subscription, where admin-only controls must stay off (reached via "Links").
 func (t *Tgbot) ownSubscriptionOnly(chatID int64, email string) bool {
 	if checkAdmin(chatID) {
 		return false
@@ -203,9 +198,8 @@ func (t *Tgbot) screenIndividualLinks(chatID int64, email string) {
 	t.renderScreen(chatID, t.newScreen("links", body.String(), t.individualLinksRows()...))
 }
 
-// individualLinksRows is the individual-links screen's keyboard. The way back is
-// the back row every screen carries; a second "Links" button next to it did the
-// same thing and read as a duplicate, so there is exactly one control here.
+// individualLinksRows is the individual-links screen's keyboard: exactly one
+// control, the shared back row, since a second "Links" button was a duplicate.
 func (t *Tgbot) individualLinksRows() [][]telego.InlineKeyboardButton {
 	return [][]telego.InlineKeyboardButton{t.backRow()}
 }
@@ -224,10 +218,8 @@ func (t *Tgbot) screenClientQR(chatID int64, email string) {
 		tu.InlineKeyboardRow(t.btn("tgbot.buttons.individualLinks", t.encodeQuery("client_individual_links "+email))),
 		t.backRow(),
 	}
-	// One picture carrying every code, exactly the codes the original bot sent as
-	// separate documents: the subscription, the JSON subscription, and one per app
-	// link. Tiles carry no text (they are scanned), so the legend in the caption
-	// numbers them.
+	// One picture carrying every code the bot once sent as separate documents;
+	// tiles carry no text (they are scanned), so the caption legend numbers them.
 	codes := t.subscriptionQRCodes(email, subURL)
 	if len(codes) == 0 {
 		t.sendNotice(chatID, t.I18nBot("tgbot.answers.errorOperation"))
@@ -243,9 +235,8 @@ func (t *Tgbot) screenClientQR(chatID int64, email string) {
 	t.renderScreen(chatID, sc)
 }
 
-// renderPickerOnClient redraws the client card with a picker's rows appended,
-// so tapping a limit opens the value list on the same screen instead of relying
-// on a message the screen layer does not track.
+// renderPickerOnClient redraws the client card with a picker's rows appended, so
+// tapping a limit opens its value list on the same tracked screen.
 func (t *Tgbot) renderPickerOnClient(chatID int64, email string, picker [][]telego.InlineKeyboardButton) {
 	traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 	if err != nil || traffic == nil {
@@ -288,16 +279,15 @@ func (t *Tgbot) clientTrafficID(email string) int {
 	return traffic.Id
 }
 
-// sendNoticeNoKeyboard reports a result and drops the reply keyboard the client
-// picker installed, in one message: the bot owns exactly one reply keyboard and
-// this is the only place it is torn down.
+// sendNoticeNoKeyboard reports a result and drops the client picker's reply
+// keyboard in one message: this is the only place it is torn down.
 func (t *Tgbot) sendNoticeNoKeyboard(chatID int64, text string) {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	_, err := bot.SendMessage(ctx, &telego.SendMessageParams{
+	_, err := liveBot().SendMessage(ctx, &telego.SendMessageParams{
 		ChatID: tu.ID(chatID), Text: text, ParseMode: "HTML",
 		ReplyMarkup: tu.ReplyKeyboardRemove(),
 	})
@@ -307,18 +297,15 @@ func (t *Tgbot) sendNoticeNoKeyboard(chatID int64, text string) {
 }
 
 // wizardPrompt asks for a text value on the draft screen itself: the wizard owns
-// one message, so the question replaces the card instead of stacking above it.
-// The reply keyboard is left alone here - the client TG-user picker is the one
-// place a reply button is still needed.
+// one message, so the question replaces the card; the reply keyboard is untouched.
 func (t *Tgbot) wizardPrompt(chatID int64, draft *clientDraft, prompt string) {
 	rows := append([][]telego.InlineKeyboardButton{}, t.getCommonClientButtons(draft)...)
 	rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.use_default", "add_client_default_info")))
 	t.renderScreen(chatID, t.newScreen("wizard", prompt, rows...))
 }
 
-// wizardInvalidInput redraws the draft with the hint that the last value was
-// rejected: the wizard keeps ONE message, so a retry does not stack a hint under
-// a stale card.
+// wizardInvalidInput redraws the draft with a rejection hint: the wizard keeps
+// ONE message, so a retry does not stack a hint under a stale card.
 func (t *Tgbot) wizardInvalidInput(chatID int64, draft *clientDraft) {
 	rows := append([][]telego.InlineKeyboardButton{}, t.getCommonClientButtons(draft)...)
 	rows = append(rows, tu.InlineKeyboardRow(t.btn("tgbot.buttons.use_default", "add_client_default_info")))
@@ -354,8 +341,7 @@ func (t *Tgbot) screenInviteLink(chatID int64, email string) {
 }
 
 // openOwnClientScreen resolves the client behind a Telegram user and opens the
-// asked-for screen. One subscription needs no choice; several are offered, one
-// button per subscription, because that choice is real information.
+// asked-for screen; several subscriptions become one button each.
 func (t *Tgbot) openOwnClientScreen(chatID, tgUserID int64, action string) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
 	if err != nil {

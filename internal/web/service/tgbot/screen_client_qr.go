@@ -14,10 +14,8 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-// The QR screen used to post one document per code — the subscription, the JSON
-// subscription and up to five app links — so one tap produced up to seven files
-// in the chat. Every code is still shown; they are laid out on one picture
-// instead, which is also the picture the screen already carried.
+// The QR screen lays every code (subscription, JSON, up to five app links) on
+// ONE picture instead of one document each — up to seven files before.
 
 // subscriptionQRCode is one code on the sheet, in the order it is drawn.
 type subscriptionQRCode struct {
@@ -88,10 +86,8 @@ func (t *Tgbot) qrCodeLegend(codes []subscriptionQRCode) string {
 	return body.String()
 }
 
-// qrSheetPicture draws every code onto one picture, left to right and top to
-// bottom in the legend's order, and returns it as an uploadable file. nil means
-// nothing could be rendered, which the caller reports rather than rendering a
-// screen whose picture is the wrong thing.
+// qrSheetPicture draws every code onto one picture in the legend's order and
+// returns it as an uploadable file; nil means nothing could be rendered.
 func qrSheetPicture(codes []subscriptionQRCode) *telego.InputFile {
 	tiles := make([]image.Image, 0, len(codes))
 	for _, code := range codes {

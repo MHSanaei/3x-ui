@@ -5,9 +5,8 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-// Every screen's keyboard is built here, one builder per screen: the old code
-// assembled keyboards inside the router's callback cases, where a row could be
-// edited without the screen it belongs to noticing.
+// Every screen's keyboard is built here, one builder per screen: keyboards built
+// inside the router's callback cases could be edited without their screen noticing.
 
 const (
 	cbHome           = "home"
@@ -34,9 +33,8 @@ const (
 	cbRestartXry     = "xray_restart"
 )
 
-// homeRows is the admin's menu: four categories and a refresh, so the entry
-// screen keeps one row per subject instead of the wall of buttons it grew into.
-// Every subject is one tap deeper and nothing is more than two taps away.
+// homeRows is the admin's menu: four categories and a refresh, one row per
+// subject, so every subject is one tap deeper and nothing is more than two away.
 func (t *Tgbot) homeRows() [][]telego.InlineKeyboardButton {
 	return [][]telego.InlineKeyboardButton{
 		tu.InlineKeyboardRow(
@@ -98,9 +96,8 @@ func (t *Tgbot) screenCategory(chatID int64, category string) {
 	t.renderScreen(chatID, t.newScreen("main", body, rows...))
 }
 
-// btn is the one place a localized label becomes a callback button.
-// btn2 is btn with a caller-supplied label: a client's own email names its
-// subscription better than any localized word can.
+// btn is where a localized label becomes a callback button; btn2 is btn with a
+// caller-supplied label, since a client's email names its subscription best.
 func (t *Tgbot) btn2(label, data string) telego.InlineKeyboardButton {
 	return tu.InlineKeyboardButton(label).WithCallbackData(data)
 }

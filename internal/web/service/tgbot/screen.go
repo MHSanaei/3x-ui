@@ -17,8 +17,7 @@ import (
 const botCaptionLimit = 1024
 
 // screen is the bot's only chat surface: one photo message whose caption and
-// inline keyboard are edited on every user action. Nothing else is posted, so a
-// chat never grows a second stale menu.
+// keyboard are edited on every action, so a chat never grows a second menu.
 type screen struct {
 	msgID int
 	kind  string
@@ -26,8 +25,7 @@ type screen struct {
 	// back button, because there is nothing above it to go back to.
 	root bool
 	// qrPicture is the sheet of QR codes a "qr" screen shows instead of the
-	// bot's avatar. It is rendered per screen, because a code belongs to one
-	// client and can never be part of the shared artwork.
+	// shared avatar: a code belongs to one client, so it is rendered per screen.
 	qrPicture *telego.InputFile
 	// qrSource is the subscription URL the sheet was built from.
 	qrSource string
@@ -80,11 +78,11 @@ func (s *screenStore) reset() {
 	s.mu.Unlock()
 }
 
-// newScreen assembles a screen: breadcrumb header, body split into
-// caption-sized pages, and the caller's keyboard rows (the pager is added at
-// render time so it reflects the page the user actually sees).
-// rootScreen builds a screen that is the viewer's own top level, so the way-out
-// invariant does not apply: a back button there would lead to the same screen.
+// newScreen assembles a screen: breadcrumb header, body paged into
+// caption-sized chunks, and the caller's keyboard rows.
+
+// rootScreen builds the viewer's own top level, so the way-out invariant does
+// not apply: a back button there would lead to the same screen.
 func (t *Tgbot) rootScreen(kind, body string, rows ...[]telego.InlineKeyboardButton) *screen {
 	sc := t.newScreen(kind, body, append(rows, t.backRow())...)
 	sc.root = true
@@ -114,9 +112,8 @@ func stripWayOut(rows [][]telego.InlineKeyboardButton) [][]telego.InlineKeyboard
 }
 
 func (t *Tgbot) newScreen(kind, body string, rows ...[]telego.InlineKeyboardButton) *screen {
-	// One header builder for every screen, so a screen cannot be written that
-	// opens as a dead end. Callback data beyond "home" is left to the caller:
-	// the panel's menu registers its own terminal callbacks.
+	// One header builder for every screen, so none can open as a dead end.
+	// Terminal callbacks beyond "home" are registered by the caller.
 	rows = t.ensureWayOut(rows)
 	header := ""
 	if crumb := t.breadcrumb(kind); crumb != "" {
@@ -136,7 +133,7 @@ func (t *Tgbot) newScreen(kind, body string, rows ...[]telego.InlineKeyboardButt
 // renderScreen is the single entry point for drawing a screen: EDIT first, and
 // replace (send then delete) only when the edit is genuinely impossible.
 func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
-	if sc == nil || bot == nil {
+	if sc == nil || liveBot() == nil {
 		return
 	}
 	// A QR screen carries its own picture: the codes being shown are what the
@@ -163,9 +160,8 @@ func (t *Tgbot) renderScreen(chatID int64, sc *screen) {
 	t.replaceScreen(chatID, sc)
 }
 
-// attachArt pins the screen's picture: the bot's avatar when there is one, and
-// otherwise the generated black tile, which is always available. A screen is
-// therefore always a photo message, and an edit can always go through media.
+// attachArt pins the screen's picture (avatar, else the always-available black
+// tile), so a screen is always a photo message and edits can go through media.
 func (t *Tgbot) attachArt(sc *screen) {
 	// A stale cache is refreshed off the render path, so a picture uploaded to
 	// @BotFather shows up without a panel restart and no screen waits on it.
@@ -190,7 +186,7 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 	var err error
 	switch {
 	case next.hasPhoto && next.photo != "":
-		_, err = bot.EditMessageMedia(ctx, &telego.EditMessageMediaParams{
+		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
 			ChatID:    tu.ID(chatID),
 			MessageID: prev.msgID,
 			Media: &telego.InputMediaPhoto{
@@ -199,7 +195,7 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 			ReplyMarkup: next.markup,
 		})
 	case next.attachment != nil:
-		_, err = bot.EditMessageMedia(ctx, &telego.EditMessageMediaParams{
+		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
 			ChatID:    tu.ID(chatID),
 			MessageID: prev.msgID,
 			Media: &telego.InputMediaPhoto{
@@ -213,7 +209,7 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 		if !ok {
 			return false
 		}
-		_, err = bot.EditMessageMedia(ctx, &telego.EditMessageMediaParams{
+		_, err = liveBot().EditMessageMedia(ctx, &telego.EditMessageMediaParams{
 			ChatID:    tu.ID(chatID),
 			MessageID: prev.msgID,
 			Media: &telego.InputMediaPhoto{
@@ -224,12 +220,12 @@ func (t *Tgbot) editScreen(chatID int64, prev *screen, next *screen) bool {
 	case prev.hasPhoto:
 		// A photo message cannot become a text one: drop the picture and let
 		// its caption carry the screen.
-		_, err = bot.EditMessageCaption(ctx, &telego.EditMessageCaptionParams{
+		_, err = liveBot().EditMessageCaption(ctx, &telego.EditMessageCaptionParams{
 			ChatID: tu.ID(chatID), MessageID: prev.msgID,
 			Caption: next.text, ParseMode: "HTML", ReplyMarkup: next.markup,
 		})
 	default:
-		_, err = bot.EditMessageText(ctx, &telego.EditMessageTextParams{
+		_, err = liveBot().EditMessageText(ctx, &telego.EditMessageTextParams{
 			ChatID:      tu.ID(chatID),
 			MessageID:   prev.msgID,
 			Text:        next.text,
@@ -255,12 +251,12 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	var err error
 	switch {
 	case sc.hasPhoto && sc.photo != "":
-		sent, err = bot.SendPhoto(ctx, &telego.SendPhotoParams{
+		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
 			ChatID: tu.ID(chatID), Photo: tu.FileFromID(sc.photo),
 			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
 	case sc.attachment != nil:
-		sent, err = bot.SendPhoto(ctx, &telego.SendPhotoParams{
+		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
 			ChatID: tu.ID(chatID), Photo: *sc.attachment,
 			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
@@ -269,12 +265,12 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 		if !ok {
 			return 0
 		}
-		sent, err = bot.SendPhoto(ctx, &telego.SendPhotoParams{
+		sent, err = liveBot().SendPhoto(ctx, &telego.SendPhotoParams{
 			ChatID: tu.ID(chatID), Photo: upload,
 			Caption: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
 	default:
-		sent, err = bot.SendMessage(ctx, &telego.SendMessageParams{
+		sent, err = liveBot().SendMessage(ctx, &telego.SendMessageParams{
 			ChatID: tu.ID(chatID), Text: sc.text, ParseMode: "HTML", ReplyMarkup: sc.markup,
 		})
 	}
@@ -296,18 +292,15 @@ func (t *Tgbot) replaceScreen(chatID int64, sc *screen) int {
 	return sent.MessageID
 }
 
-// ensureBackRow guarantees every screen can be left. A screen that only offers
-// its own actions is a trap — the reset confirmation spent its Cancel on the
-// reset and left a screen whose single button was the thing already used. The
-// check is by callback, not by label, so a screen is free to name the way back
-// whatever fits ("Cancel", "Back", the category's name).
+// ensureBackRow guarantees every screen can be left (a screen with only its own
+// actions traps the user) and checks by callback, not label.
+
 // wayOutNotes are callbacks that already return to a root menu, so a screen
 // carrying one must not gain a second, confusing back row.
 var wayOutNotes = []string{cbHome}
 
 // terminalCallbacks extends wayOutNotes: an engine may register the callbacks
-// its own root menu answers to. Guarded, because tests and the panel install
-// into it.
+// its own root menu answers to. Guarded because tests and the panel install in.
 var (
 	terminalCallbacksMu sync.RWMutex
 	terminalCallbacks   []string
@@ -357,9 +350,8 @@ func (t *Tgbot) breadcrumb(kind string) string {
 	return t.I18nBot("tgbot.screens.panel") + " › " + crumb
 }
 
-// pagerRow adds the page controls when the body did not fit one caption. The
-// label is localized; the arrows are callback data, never a bare icon-only tap
-// target for a destructive action.
+// pagerRow adds the page controls when the body did not fit one caption; the
+// arrows are callback data, never a bare icon-only target.
 func (t *Tgbot) pagerRow(sc *screen) []telego.InlineKeyboardButton {
 	if sc.pageMax <= 1 {
 		return nil
@@ -398,12 +390,12 @@ func (t *Tgbot) deleteScreenMessage(chatID int64, msgID int) { t.deleteOwnMessag
 // deleteIncoming removes a message the user sent: the wizard's text replies and
 // the pilot taps must not pile up in the chat.
 func (t *Tgbot) deleteIncoming(message *telego.Message) {
-	if message == nil || bot == nil {
+	if message == nil || liveBot() == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := bot.DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(message.Chat.ID), MessageID: message.MessageID}); err != nil {
+	if err := liveBot().DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(message.Chat.ID), MessageID: message.MessageID}); err != nil {
 		logger.Debug("Cannot delete a user message:", err)
 	}
 }
@@ -420,12 +412,12 @@ func (t *Tgbot) deleteIncomingID(chatID int64, messageID int) {
 // deleteOwnMessage removes one of our messages without surfacing a failure: the
 // user may have deleted it, and Telegram refuses past 48 hours.
 func (t *Tgbot) deleteOwnMessage(chatID int64, msgID int) {
-	if msgID == 0 || bot == nil {
+	if msgID == 0 || liveBot() == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := bot.DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
+	if err := liveBot().DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msgID}); err != nil {
 		logger.Debug("Cannot delete a bot message:", err)
 	}
 }
@@ -435,11 +427,8 @@ func (t *Tgbot) hideButton() *telego.InlineKeyboardMarkup {
 	return hideButtonMarkup()
 }
 
-// hideButtonMarkup is the same keyboard for callers that have no Tgbot at hand,
-// such as a delivered broadcast copy. The label falls back to plain text when the
-// panel localizer cannot resolve the key: a client's own language may be one the
-// panel does not ship, and a button with an empty label is worse than an English
-// one.
+// hideButtonMarkup is the hide keyboard for callers with no Tgbot (e.g. a
+// broadcast copy); the label falls back to English when the key cannot resolve.
 func hideButtonMarkup() *telego.InlineKeyboardMarkup {
 	label := (&Tgbot{}).I18nBot("tgbot.buttons.hide")
 	if strings.TrimSpace(label) == "" {
@@ -453,12 +442,12 @@ func hideButtonMarkup() *telego.InlineKeyboardMarkup {
 // answerSilent acknowledges a callback without a toast, for taps whose only
 // effect is visible in the message itself.
 func (t *Tgbot) answerSilent(callbackID string) {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := bot.AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{CallbackQueryID: callbackID}); err != nil {
+	if err := liveBot().AnswerCallbackQuery(ctx, &telego.AnswerCallbackQueryParams{CallbackQueryID: callbackID}); err != nil {
 		logger.Debug("Answer callback query failed:", err)
 	}
 }

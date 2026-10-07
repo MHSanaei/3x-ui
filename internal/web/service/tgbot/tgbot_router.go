@@ -33,8 +33,7 @@ func runBotHandler(fn func()) {
 }
 
 // chooseInboundClient fetches the inbound once and reuses the row: the inline
-// keyboard outlives the inbound, so a stale tap must answer an error, not panic.
-// The client list is drawn as a screen, with the pager if it does not fit.
+// keyboard outlives it, so a stale tap must give an error, not a panic.
 func (t *Tgbot) chooseInboundClient(callbackQuery *telego.CallbackQuery, chatId int64, inboundID int, action string) {
 	inbound, err := t.inboundService.GetInbound(inboundID)
 	if err != nil {
@@ -58,7 +57,7 @@ func (t *Tgbot) chooseInboundClient(callbackQuery *telego.CallbackQuery, chatId 
 		t.inboundSummaryText(inbound)+"\n"+t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), rows...))
 }
 
-// OnReceive starts the message receiving loop for the Telegram bot.
+// OnReceive starts the message receiving loop for the Telegram liveBot().
 func (t *Tgbot) OnReceive() {
 	params := telego.GetUpdatesParams{
 		Timeout: 20, // Reduced timeout to detect connection issues faster
@@ -81,10 +80,12 @@ func (t *Tgbot) OnReceive() {
 	tgBotMutex.Unlock()
 
 	// Get updates channel using the context with shorter timeout for better error recovery
-	updates, _ := bot.UpdatesViaLongPolling(ctx, &params)
+	// One bot instance for the loop and the handler it feeds: reading the global twice could diverge them.
+	pollBot := liveBot()
+	updates, _ := pollBot.UpdatesViaLongPolling(ctx, &params)
 	go func() {
 		defer botWG.Done()
-		h, _ := th.NewBotHandler(bot, updates)
+		h, _ := th.NewBotHandler(pollBot, updates)
 		tgBotMutex.Lock()
 		botHandler = h
 		tgBotMutex.Unlock()
@@ -93,9 +94,8 @@ func (t *Tgbot) OnReceive() {
 		// carries one already offers a way out.
 		registerTerminalCallbacks(cbHome, cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance)
 
-		// A picked inline item lands as the user's own message, so it is caught
-		// before the wizard and broadcast handlers. The predicate matches a real
-		// marker only: a catch-all here would eat every message containing ":".
+		// A picked inline item is the user's own message, caught before the wizard
+		// and broadcast handlers; the predicate must not match every ":" message.
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 			defer recoverBotPanic()
 			t.handleListMarker(&message)
@@ -121,17 +121,15 @@ func (t *Tgbot) OnReceive() {
 				if isAdmin, ok := t.gateCommand(&message); ok {
 					t.answerCommand(&message, message.Chat.ID, isAdmin)
 				}
-				// The command itself is litter next to the screen it opens: the
-				// bot's answer is the message worth keeping. Commands for another
-				// bot never get here, so those are left alone.
+				// The command is litter next to the screen it opens: the bot's answer
+				// is worth keeping. Commands for another bot never reach here.
 				t.deleteIncoming(&message)
 			})
 			return nil
 		}, th.AnyCommand())
 
-		// Inline mode is the only list browser: no middleware is registered on
-		// it, because a query fires on every keystroke and a middleware that
-		// returns nil for an unmatched type silently swallows the list.
+		// Inline mode is the only list browser: no middleware is registered on it,
+		// since a query fires on every keystroke and would be swallowed.
 		h.HandleInlineQuery(func(ctx *th.Context, query telego.InlineQuery) error {
 			defer recoverBotPanic()
 			go runBotHandler(func() {
@@ -342,10 +340,10 @@ func (t *Tgbot) isCommandForCurrentBot(message *telego.Message) bool {
 }
 
 func botUsername() string {
-	if bot == nil {
+	if liveBot() == nil {
 		return ""
 	}
-	return bot.Username()
+	return liveBot().Username()
 }
 
 func isCommandForBot(text string, username string) bool {
@@ -1226,9 +1224,8 @@ func checkAdmin(tgId int64) bool {
 // admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
-	// "hide" is how a recipient — client or admin — puts a message away. It
-	// carries no target of its own (it is the message it sits on), so it is safe
-	// for anyone to reach; without it a broadcast copy could not be dismissed.
+	// "hide" is how any recipient puts a message away: it carries no target of its
+	// own (it is the message it sits on), so it is safe for anyone to reach.
 	case "home", "hide", "client_traffic", "client_commands", "client_sub_links",
 		"client_individual_links", "client_qr_links":
 		return true

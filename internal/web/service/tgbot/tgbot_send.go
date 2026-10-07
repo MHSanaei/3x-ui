@@ -54,10 +54,8 @@ func splitMessageLines(block string, limit int) []string {
 	return pages
 }
 
-// SendMsgToTgbot sends a message to the Telegram bot with optional reply markup.
-// SendMsgToTgbot sends a message and returns the id of the last one it managed to
-// deliver, or 0. A caller that may need to take its own message back (the
-// broadcast prompt) reads it; every other caller ignores it.
+// SendMsgToTgbot sends a message with optional reply markup and returns the id
+// of the last one delivered, or 0; only the broadcast prompt needs it.
 func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.ReplyMarkup) int {
 	if !t.IsRunning() {
 		return 0
@@ -85,7 +83,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 		maxRetries := 3
 		for attempt := range maxRetries {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			sent, err := bot.SendMessage(ctx, &params)
+			sent, err := liveBot().SendMessage(ctx, &params)
 			cancel()
 
 			if err == nil {
@@ -141,7 +139,7 @@ func (t *Tgbot) sendCallbackAnswerTgBot(id string, message string) {
 		CallbackQueryID: id,
 		Text:            message,
 	}
-	if err := bot.AnswerCallbackQuery(context.Background(), &params); err != nil {
+	if err := liveBot().AnswerCallbackQuery(context.Background(), &params); err != nil {
 		logger.Warning(err)
 	}
 }
@@ -153,7 +151,7 @@ func (t *Tgbot) editMessageCallbackTgBot(chatId int64, messageID int, inlineKeyb
 		MessageID:   messageID,
 		ReplyMarkup: inlineKeyboard,
 	}
-	if _, err := bot.EditMessageReplyMarkup(context.Background(), &params); err != nil {
+	if _, err := liveBot().EditMessageReplyMarkup(context.Background(), &params); err != nil {
 		if isTelegramNotModifiedError(err) {
 			logger.Debug("Telegram reply markup unchanged, skipping edit")
 			return
@@ -173,7 +171,7 @@ func (t *Tgbot) editMessageTgBot(chatId int64, messageID int, text string, inlin
 	if len(inlineKeyboard) > 0 {
 		params.ReplyMarkup = inlineKeyboard[0]
 	}
-	if _, err := bot.EditMessageText(context.Background(), &params); err != nil {
+	if _, err := liveBot().EditMessageText(context.Background(), &params); err != nil {
 		if isTelegramNotModifiedError(err) {
 			logger.Debug("Telegram message text unchanged, skipping edit")
 			return
@@ -195,14 +193,14 @@ func isTelegramNotModifiedError(err error) bool {
 
 // deleteMessageTgBot deletes a message from the chat.
 func (t *Tgbot) deleteMessageTgBot(chatId int64, messageID int) {
-	if bot == nil {
+	if liveBot() == nil {
 		return
 	}
 	params := telego.DeleteMessageParams{
 		ChatID:    tu.ID(chatId),
 		MessageID: messageID,
 	}
-	if err := bot.DeleteMessage(context.Background(), &params); err != nil {
+	if err := liveBot().DeleteMessage(context.Background(), &params); err != nil {
 		logger.Warning("Failed to delete message:", err)
 	} else {
 		logger.Info("Message deleted successfully")
@@ -211,9 +209,7 @@ func (t *Tgbot) deleteMessageTgBot(chatId int64, messageID int) {
 
 // TestConnection verifies the bot token is valid and the API is reachable.
 func (t *Tgbot) TestConnection() error {
-	tgBotMutex.Lock()
-	b := bot
-	tgBotMutex.Unlock()
+	b := liveBot()
 	if b == nil {
 		return fmt.Errorf("bot not initialized")
 	}
