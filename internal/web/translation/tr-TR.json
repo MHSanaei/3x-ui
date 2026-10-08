@@ -1434,6 +1434,7 @@
       "eventGroupNode": "Düğümler",
       "eventOutboundDown": "Çevrimdışı",
       "eventOutboundUp": "Çevrimiçi",
+      "eventDownThresholdHint": "art arda başarısız kontrol",
       "eventXrayCrash": "Çökme",
       "eventNodeDown": "Çevrimdışı",
       "eventNodeUp": "Çevrimiçi",

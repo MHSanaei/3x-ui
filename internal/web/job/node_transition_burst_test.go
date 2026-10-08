@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 // goingDownNodes seeds n online nodes whose address refuses connections, so the
@@ -28,6 +29,9 @@ func goingDownNodes(t *testing.T, n int) {
 	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 	runtime.SetManager(runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, SetNeedRestart: func() {}}))
 	t.Cleanup(func() { runtime.SetManager(nil) })
+	if err := (&service.SettingService{}).SetNodeDownThreshold(1); err != nil {
+		t.Fatalf("SetNodeDownThreshold: %v", err)
+	}
 	srv := httptest.NewServer(nil)
 	host, port, _ := strings.Cut(strings.TrimPrefix(srv.URL, "http://"), ":")
 	portNum, _ := strconv.Atoi(port)

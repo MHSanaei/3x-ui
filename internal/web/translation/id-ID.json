@@ -1434,6 +1434,7 @@
       "eventGroupNode": "Node",
       "eventOutboundDown": "Mati",
       "eventOutboundUp": "Aktif",
+      "eventDownThresholdHint": "pemeriksaan gagal berturut-turut",
       "eventXrayCrash": "Crash",
       "eventNodeDown": "Mati",
       "eventNodeUp": "Aktif",

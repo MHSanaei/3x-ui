@@ -20,6 +20,7 @@ const GROUPS: NotificationGroupConfig[] = [
         key: 'outbound.down',
         label: 'eventOutboundDown',
         settingKey: 'outboundDownThreshold',
+        hint: 'eventDownThresholdHint',
         extra: ({ value, onChange, ariaLabel }) => (
           <InputNumber
             size="small"
@@ -44,7 +45,23 @@ const GROUPS: NotificationGroupConfig[] = [
     icon: <DesktopOutlined />,
     title: 'eventGroupNode',
     events: [
-      { key: 'node.down', label: 'eventNodeDown', settingKey: '' },
+      {
+        key: 'node.down',
+        label: 'eventNodeDown',
+        settingKey: 'nodeDownThreshold',
+        hint: 'eventDownThresholdHint',
+        extra: ({ value, onChange, ariaLabel }) => (
+          <InputNumber
+            size="small"
+            min={1}
+            max={100}
+            value={value}
+            onChange={onChange}
+            aria-label={ariaLabel}
+            style={{ width: 80 }}
+          />
+        ),
+      },
       { key: 'node.up', label: 'eventNodeUp', settingKey: '' },
     ],
   },

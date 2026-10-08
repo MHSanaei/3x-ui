@@ -1434,6 +1434,7 @@
       "eventGroupNode": "العقد",
       "eventOutboundDown": "غير متصل",
       "eventOutboundUp": "متصل",
+      "eventDownThresholdHint": "فحوصات فاشلة متتالية",
       "eventXrayCrash": "تعطّل",
       "eventNodeDown": "غير متصلة",
       "eventNodeUp": "متصلة",

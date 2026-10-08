@@ -1434,6 +1434,7 @@
       "eventGroupNode": "節點",
       "eventOutboundDown": "中斷",
       "eventOutboundUp": "恢復",
+      "eventDownThresholdHint": "次連續檢查失敗",
       "eventXrayCrash": "當機",
       "eventNodeDown": "離線",
       "eventNodeUp": "上線",

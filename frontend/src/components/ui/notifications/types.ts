@@ -4,6 +4,7 @@ export interface NotificationEventConfig {
   key: string;
   label: string;
   settingKey: string;
+  hint?: string;
   extra?: (props: {
     value: number;
     onChange: (v: number | null) => void;

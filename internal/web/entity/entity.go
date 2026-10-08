@@ -79,6 +79,7 @@ type AllSetting struct {
 	DiscordEnabledEvents string `json:"discordEnabledEvents" form:"discordEnabledEvents"`
 
 	OutboundDownThreshold int `json:"outboundDownThreshold" form:"outboundDownThreshold" validate:"gte=1,lte=100"`
+	NodeDownThreshold     int `json:"nodeDownThreshold" form:"nodeDownThreshold" validate:"gte=1,lte=100"`
 
 	TimeLocation    string `json:"timeLocation" form:"timeLocation"`
 	TwoFactorEnable bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
