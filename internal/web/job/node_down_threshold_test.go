@@ -73,9 +73,15 @@ func TestHeartbeatHoldsNodeDownUntilThreshold(t *testing.T) {
 			want:   []string{"probe 3: node.down", "probe 5: node.up"},
 		},
 		{
-			name:   "offline before restart",
+			name:   "offline before restart stays down",
 			status: "offline",
-			probes: []bool{true},
+			probes: []bool{false, false, false, false},
+		},
+		{
+			name:   "offline before restart recovers",
+			status: "offline",
+			probes: []bool{false, true},
+			want:   []string{"probe 2: node.up"},
 		},
 	}
 	for _, tc := range cases {
