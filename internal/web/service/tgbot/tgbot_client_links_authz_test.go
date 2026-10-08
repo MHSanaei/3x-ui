@@ -30,6 +30,14 @@ func newLinksCallbackTgbot(t *testing.T, email string) (*Tgbot, func(string) int
 			"date":       0,
 			"chat":       map[string]any{"id": ownerTgID, "type": "private"},
 		}},
+		// The owner's links draw on the tracked screen, which is a photo.
+		"sendPhoto": map[string]any{"ok": true, "result": map[string]any{
+			"message_id": 1,
+			"date":       0,
+			"chat":       map[string]any{"id": ownerTgID, "type": "private"},
+		}},
+		"deleteMessage":     map[string]any{"ok": true, "result": true},
+		"answerInlineQuery": map[string]any{"ok": true, "result": true},
 	})
 	swapTestBot(t, mock.URL)
 	t.Cleanup(mock.Close)
@@ -79,8 +87,8 @@ func TestClientLinkCallbackRefusesForeignClient(t *testing.T) {
 
 	tapClientLinks(t, tb, ownerTgID, "client_sub_links someone-else@x")
 
-	if n := calls("sendMessage"); n != 0 {
-		t.Errorf("sendMessage calls = %d, want 0: a non-admin received a foreign client's links", n)
+	if n := calls("sendMessage") + calls("sendPhoto"); n != 0 {
+		t.Errorf("message calls = %d, want 0: a non-admin received a foreign client's links", n)
 	}
 	if n := calls("answerCallbackQuery"); n != 1 {
 		t.Errorf("answerCallbackQuery calls = %d, want 1: the refused tap must be answered", n)
@@ -93,8 +101,8 @@ func TestClientLinkCallbackServesOwnClient(t *testing.T) {
 
 	tapClientLinks(t, tb, ownerTgID, "client_sub_links "+ownerMail)
 
-	if n := calls("sendMessage"); n != 1 {
-		t.Errorf("sendMessage calls = %d, want 1: the owner must still get its links", n)
+	if n := calls("sendMessage") + calls("sendPhoto"); n != 1 {
+		t.Errorf("message calls = %d, want 1: the owner must still get its links", n)
 	}
 	if n := calls("answerCallbackQuery"); n != 0 {
 		t.Errorf("answerCallbackQuery calls = %d, want 0: an allowed tap is not refused", n)
@@ -117,7 +125,7 @@ func TestHashedLinkCallbackServesOwnClient(t *testing.T) {
 	}
 	tapClientLinks(t, tb, ownerTgID, data)
 
-	if n := calls("sendMessage"); n != 1 {
-		t.Errorf("sendMessage calls = %d, want 1: the owner's hashed button must still be served", n)
+	if n := calls("sendMessage") + calls("sendPhoto"); n != 1 {
+		t.Errorf("message calls = %d, want 1: the owner's hashed button must still be served", n)
 	}
 }

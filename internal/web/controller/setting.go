@@ -80,6 +80,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/apiTokens/setEnabled/:id", a.setApiTokenEnabled)
 	g.POST("/testSmtp", a.testSmtp)
 	g.POST("/testTgBot", a.testTgBot)
+	g.POST("/tgBotCapabilities", a.tgBotCapabilities)
 	g.POST("/testDiscord", a.testDiscord)
 }
 
@@ -347,6 +348,42 @@ func (a *SettingController) testTgBot(c *gin.Context) {
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.tgBotNotRunning"), errors.New("bot not started"))
 }
+
+// tgBotCapabilities reports what the bot can do. Inline mode is a BotFather
+// switch the API can read but never set, so the panel warns when lists can't open.
+func (a *SettingController) tgBotCapabilities(c *gin.Context) {
+	enabled, err := a.settingService.GetTgbotEnabled()
+	if err != nil || !enabled {
+		jsonMsg(c, I18nWeb(c, "pages.settings.tgBotNotEnabled"), errors.New("telegram bot disabled"))
+		return
+	}
+	if tgCapsFunc == nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.tgBotNotRunning"), errors.New("bot not started"))
+		return
+	}
+	caps, err := tgCapsFunc()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.tgTestFailed")+": "+err.Error(), err)
+		return
+	}
+	jsonObj(c, caps, nil)
+}
+
+// TgBotCapabilities is the browser-safe shape of the bot's own capabilities.
+type TgBotCapabilities struct {
+	InlineEnabled bool `json:"inlineEnabled" example:"true"`
+	// GroupPrivacy off means the bot reads every group message; when it is on,
+	// a bare /start in a group is invisible to the bot.
+	GroupPrivacy bool   `json:"groupPrivacy" example:"false"`
+	Username     string `json:"username" example:"xui_bot"`
+	Running      bool   `json:"running" example:"true"`
+}
+
+// tgCapsFunc is wired from the web layer; importing tgbot here is circular.
+var tgCapsFunc func() (TgBotCapabilities, error)
+
+// SetTgBotCapsFunc registers the capability probe.
+func SetTgBotCapsFunc(fn func() (TgBotCapabilities, error)) { tgCapsFunc = fn }
 
 // testTgFunc is set from web layer to test Telegram sending without circular imports.
 var testTgFunc func() error

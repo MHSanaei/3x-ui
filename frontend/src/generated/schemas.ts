@@ -4624,6 +4624,35 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "TgBotCapabilities": {
+    "description": "TgBotCapabilities is the browser-safe shape of the bot's own capabilities.",
+    "properties": {
+      "groupPrivacy": {
+        "description": "GroupPrivacy off means the bot reads every group message; when it is on,\na bare /start in a group is invisible to the bot.",
+        "example": false,
+        "type": "boolean"
+      },
+      "inlineEnabled": {
+        "example": true,
+        "type": "boolean"
+      },
+      "running": {
+        "example": true,
+        "type": "boolean"
+      },
+      "username": {
+        "example": "xui_bot",
+        "type": "string"
+      }
+    },
+    "required": [
+      "groupPrivacy",
+      "inlineEnabled",
+      "running",
+      "username"
+    ],
+    "type": "object"
+  },
   "Traffic": {
     "description": "Traffic represents network traffic statistics for Xray connections.\nIt tracks upload and download bytes for inbound or outbound traffic.",
     "properties": {

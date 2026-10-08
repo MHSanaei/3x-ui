@@ -1,7 +1,6 @@
 package tgbot
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"os"
@@ -10,15 +9,11 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
-
-	"github.com/mymmrac/telego"
-	tu "github.com/mymmrac/telego/telegoutil"
 )
 
 // SendReport sends a periodic report to admin chats.
@@ -31,8 +26,7 @@ func (t *Tgbot) SendReport() {
 		t.SendMsgToTgbotAdmins(msg)
 	}
 
-	info := t.sendServerUsage()
-	t.SendMsgToTgbotAdmins(info)
+	t.SendMsgToTgbotAdmins(t.prepareServerUsageInfo())
 
 	t.sendExhaustedToAdmins()
 	t.notifyExhausted()
@@ -43,7 +37,15 @@ func (t *Tgbot) SendReport() {
 	}
 }
 
-// SendBackupToAdmins sends a database backup to admin chats.
+// backupSummary is the caption that travels with a scheduled backup.
+func (t *Tgbot) backupSummary() string {
+	summary := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
+	summary += t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
+	return trimCaption(summary+"\n\n"+t.depleteReport(), botCaptionLimit)
+}
+
+// SendBackupToAdmins sends the database and, when it exists, the generated Xray
+// config to admin chats. A failed DB read is reported, not sent silently.
 func (t *Tgbot) SendBackupToAdmins() {
 	if !t.IsRunning() {
 		return
@@ -53,9 +55,21 @@ func (t *Tgbot) SendBackupToAdmins() {
 		logger.Error("Error in getting db backup: ", err)
 	}
 	dbFilename := t.serverService.BackupFilename("")
+	config, configErr := os.ReadFile(xray.GetConfigPath())
+	if configErr != nil {
+		logger.Warning("Cannot read the Xray config for the backup: ", configErr)
+	}
 	admins := adminSnapshot()
 	for i, adminId := range admins {
-		t.sendBackupData(adminId, dbData, dbFilename)
+		if dbData == nil {
+			t.sendNotice(adminId, t.I18nBot("tgbot.messages.backupFailed"))
+		} else {
+			t.sendDocumentWithCaption(adminId, dbData, dbFilename, t.backupSummary())
+			time.Sleep(500 * time.Millisecond)
+			if configErr == nil {
+				t.sendDocumentWithCaption(adminId, config, "config.json", "")
+			}
+		}
 		// Add delay between sends to avoid Telegram rate limits
 		if i < len(admins)-1 {
 			time.Sleep(1 * time.Second)
@@ -63,36 +77,16 @@ func (t *Tgbot) SendBackupToAdmins() {
 	}
 }
 
-// sendExhaustedToAdmins sends notifications about exhausted clients to admins.
+// sendExhaustedToAdmins sends the depletion summary to each admin as a screen.
 func (t *Tgbot) sendExhaustedToAdmins() {
 	if !t.IsRunning() {
 		return
 	}
 	for _, adminId := range adminSnapshot() {
-		t.getExhausted(adminId)
+		// A scheduled report must never edit the admin's screen — a cron landing on
+		// the add-client wizard would replace the draft — so it posts its own message.
+		t.sendNotice(adminId, t.depleteReport())
 	}
-}
-
-// getServerUsage retrieves and formats server usage information.
-func (t *Tgbot) getServerUsage(chatId int64, messageID ...int) string {
-	info := t.prepareServerUsageInfo()
-
-	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
-		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("usage_refresh"))))
-
-	if len(messageID) > 0 {
-		t.editMessageTgBot(chatId, messageID[0], info, keyboard)
-	} else {
-		t.SendMsgToTgbot(chatId, info, keyboard)
-	}
-
-	return info
-}
-
-// Send server usage without an inline keyboard
-func (t *Tgbot) sendServerUsage() string {
-	info := t.prepareServerUsageInfo()
-	return info
 }
 
 // prepareServerUsageInfo prepares the server usage information string.
@@ -191,108 +185,6 @@ func (t *Tgbot) UserLoginNotify(attempt LoginAttempt) {
 	})
 }
 
-// getExhausted retrieves and sends information about exhausted clients.
-func (t *Tgbot) getExhausted(chatId int64) {
-	trDiff := int64(0)
-	exDiff := int64(0)
-	now := time.Now().Unix() * 1000
-	var exhaustedInbounds []model.Inbound
-	var exhaustedClients []xray.ClientTraffic
-	var disabledInbounds []model.Inbound
-	var disabledClients []xray.ClientTraffic
-
-	TrafficThreshold, err := t.settingService.GetTrafficDiff()
-	if err == nil && TrafficThreshold > 0 {
-		trDiff = int64(TrafficThreshold) * 1073741824
-	}
-	ExpireThreshold, err := t.settingService.GetExpireDiff()
-	if err == nil && ExpireThreshold > 0 {
-		exDiff = int64(ExpireThreshold) * 86400000
-	}
-	inbounds, err := t.inboundService.GetAllInbounds()
-	if err != nil {
-		logger.Warning("Unable to load Inbounds", err)
-	}
-
-	seenClients := make(map[string]bool)
-	for _, inbound := range inbounds {
-		if inbound.Enable {
-			if (inbound.ExpiryTime > 0 && (inbound.ExpiryTime-now < exDiff)) ||
-				(inbound.Total > 0 && (inbound.Total-(inbound.Up+inbound.Down) < trDiff)) {
-				exhaustedInbounds = append(exhaustedInbounds, *inbound)
-			}
-			if len(inbound.ClientStats) > 0 {
-				for _, client := range inbound.ClientStats {
-					if seenClients[client.Email] {
-						continue
-					}
-					seenClients[client.Email] = true
-					if client.Enable {
-						if (client.ExpiryTime > 0 && (client.ExpiryTime-now < exDiff)) ||
-							(client.Total > 0 && (client.Total-(client.Up+client.Down) < trDiff)) {
-							exhaustedClients = append(exhaustedClients, client)
-						}
-					} else {
-						disabledClients = append(disabledClients, client)
-					}
-				}
-			}
-		} else {
-			disabledInbounds = append(disabledInbounds, *inbound)
-		}
-	}
-
-	// Inbounds
-	output := ""
-	output += t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.inbounds"))
-	output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledInbounds)))
-	output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedInbounds)))
-
-	if len(exhaustedInbounds) > 0 {
-		output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+t.I18nBot("tgbot.inbounds"))
-
-		for _, inbound := range exhaustedInbounds {
-			output += t.I18nBot("tgbot.messages.inbound", "Remark=="+inbound.Remark)
-			output += t.I18nBot("tgbot.messages.port", "Port=="+strconv.Itoa(inbound.Port))
-			output += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic((inbound.Up+inbound.Down)), "Upload=="+common.FormatTraffic(inbound.Up), "Download=="+common.FormatTraffic(inbound.Down))
-			if inbound.ExpiryTime == 0 {
-				output += t.I18nBot("tgbot.messages.expire", "Time=="+t.I18nBot("tgbot.unlimited"))
-			} else {
-				output += t.I18nBot("tgbot.messages.expire", "Time=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
-			}
-			output += "\r\n"
-		}
-	}
-
-	// Clients
-	exhaustedCC := len(exhaustedClients)
-	output += t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
-	output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients)))
-	output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(exhaustedCC))
-
-	if exhaustedCC > 0 {
-		output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+t.I18nBot("tgbot.clients"))
-		var buttons []telego.InlineKeyboardButton
-		for _, traffic := range exhaustedClients {
-			output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
-			output += "\r\n"
-			buttons = append(buttons, tu.InlineKeyboardButton(traffic.Email).WithCallbackData(t.encodeQuery("client_get_usage "+traffic.Email)))
-		}
-		cols := 0
-		if exhaustedCC < 11 {
-			cols = 1
-		} else {
-			cols = 2
-		}
-		output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
-		keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-		t.SendMsgToTgbot(chatId, output, keyboard)
-	} else {
-		output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
-		t.SendMsgToTgbot(chatId, output)
-	}
-}
-
 // notifyExhausted sends notifications for exhausted clients.
 func (t *Tgbot) notifyExhausted() {
 	trDiff := int64(0)
@@ -365,146 +257,5 @@ func (t *Tgbot) notifyExhausted() {
 				}
 			}
 		}
-	}
-}
-
-// onlineClients retrieves and sends information about online clients.
-func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
-	process := service.XrayProcess()
-	if process == nil || !process.IsRunning() {
-		return
-	}
-
-	onlines := process.GetOnlineClients()
-	onlinesCount := len(onlines)
-	output := t.I18nBot("tgbot.messages.onlinesCount", "Count=="+fmt.Sprint(onlinesCount))
-	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
-		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("onlines_refresh"))))
-
-	if onlinesCount > 0 {
-		var buttons []telego.InlineKeyboardButton
-		for _, online := range onlines {
-			label := online
-			if _, inbound, err := t.inboundService.GetClientInboundByEmail(online); err == nil && inbound != nil && inbound.Remark != "" {
-				label = online + " - " + inbound.Remark
-			}
-			buttons = append(buttons, tu.InlineKeyboardButton(label).WithCallbackData(t.encodeQuery("client_get_usage "+online)))
-		}
-		cols := 0
-		if onlinesCount < 21 {
-			cols = 2
-		} else if onlinesCount < 61 {
-			cols = 3
-		} else {
-			cols = 4
-		}
-		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tu.InlineKeyboardCols(cols, buttons...)...)
-	}
-
-	if len(messageID) > 0 {
-		t.editMessageTgBot(chatId, messageID[0], output, keyboard)
-	} else {
-		t.SendMsgToTgbot(chatId, output, keyboard)
-	}
-}
-
-// sendBackup sends a backup of the database and configuration files.
-func (t *Tgbot) sendBackup(chatId int64) {
-	dbData, err := t.serverService.GetDb()
-	if err != nil {
-		logger.Error("Error in getting db backup: ", err)
-	}
-	t.sendBackupData(chatId, dbData, t.serverService.BackupFilename(""))
-}
-
-func (t *Tgbot) sendBackupData(chatId int64, dbData []byte, dbFilename string) {
-	output := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
-	output += t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
-	t.SendMsgToTgbot(chatId, output)
-
-	// Send database backup (SQLite file, or a pg_dump archive on PostgreSQL)
-	if dbData != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.FileFromBytes(dbData, dbFilename),
-		)
-		_, err := bot.SendDocument(ctx, document)
-		cancel()
-		if err != nil {
-			logger.Error("Error in uploading backup: ", err)
-		}
-	}
-
-	// Small delay between file sends
-	time.Sleep(500 * time.Millisecond)
-
-	// Send config.json backup
-	file, err := os.Open(xray.GetConfigPath())
-	if err == nil {
-		defer file.Close()
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.File(file),
-		)
-		_, err = bot.SendDocument(ctx, document)
-		if err != nil {
-			logger.Error("Error in uploading config.json: ", err)
-		}
-	} else {
-		logger.Error("Error in opening config.json file for backup: ", err)
-	}
-}
-
-// sendBanLogs sends the ban logs to the specified chat.
-func (t *Tgbot) sendBanLogs(chatId int64, dt bool) {
-	if dt {
-		output := t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
-		output += t.I18nBot("tgbot.messages.datetime", "DateTime=="+time.Now().Format("2006-01-02 15:04:05"))
-		t.SendMsgToTgbot(chatId, output)
-	}
-
-	file, err := os.Open(xray.GetIPLimitBannedPrevLogPath())
-	if err == nil {
-		// Check if the file is non-empty before attempting to upload
-		fileInfo, _ := file.Stat()
-		if fileInfo.Size() > 0 {
-			document := tu.Document(
-				tu.ID(chatId),
-				tu.File(file),
-			)
-			_, err = bot.SendDocument(context.Background(), document)
-			if err != nil {
-				logger.Error("Error in uploading IPLimitBannedPrevLog: ", err)
-			}
-		} else {
-			logger.Warning("IPLimitBannedPrevLog file is empty, not uploading.")
-		}
-		file.Close()
-	} else {
-		logger.Error("Error in opening IPLimitBannedPrevLog file for backup: ", err)
-	}
-
-	file, err = os.Open(xray.GetIPLimitBannedLogPath())
-	if err == nil {
-		// Check if the file is non-empty before attempting to upload
-		fileInfo, _ := file.Stat()
-		if fileInfo.Size() > 0 {
-			document := tu.Document(
-				tu.ID(chatId),
-				tu.File(file),
-			)
-			_, err = bot.SendDocument(context.Background(), document)
-			if err != nil {
-				logger.Error("Error in uploading IPLimitBannedLog: ", err)
-			}
-		} else {
-			logger.Warning("IPLimitBannedLog file is empty, not uploading.")
-		}
-		file.Close()
-	} else {
-		logger.Error("Error in opening IPLimitBannedLog file for backup: ", err)
 	}
 }

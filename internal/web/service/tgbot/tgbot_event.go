@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
 )
@@ -25,23 +24,31 @@ func getHostname() string {
 	return cachedHostname
 }
 
-var tgEventLimiter = eventbus.NewRateLimiter(1 * time.Minute)
-
-// HandleEvent is the eventbus subscriber callback. It formats incoming events
-// as Telegram messages and sends them to all admin chats.
+// HandleEvent is the eventbus subscriber callback: one kind of event keeps ONE
+// live card per admin chat, so a repeat edits it instead of a wall of messages.
 func (t *Tgbot) HandleEvent(e eventbus.Event) {
 	if !t.isEventEnabled(e.Type) {
 		return
 	}
-	if e.Type != eventbus.EventLoginAttempt {
-		if !tgEventLimiter.Allow(e.Type, e.Source) {
-			return
+	msg := t.formatEventMessage(e)
+	if msg == "" {
+		return
+	}
+	kind := t.eventNoticeKind(e)
+	for _, adminID := range adminSnapshot() {
+		t.liveNotice(adminID, kind, msg)
+	}
+}
+
+// eventNoticeKind is the live card a repeat of this event edits. A login success
+// must not fold into the failure card from the same IP: outcome is part of the key.
+func (t *Tgbot) eventNoticeKind(e eventbus.Event) string {
+	if e.Type == eventbus.EventLoginAttempt {
+		if data, ok := e.Data.(*eventbus.LoginEventData); ok {
+			return string(e.Type) + ":" + e.Source + ":" + data.Status
 		}
 	}
-	msg := t.formatEventMessage(e)
-	if msg != "" {
-		t.SendMsgToTgbotAdmins(msg)
-	}
+	return string(e.Type) + ":" + e.Source
 }
 
 func (t *Tgbot) isEventEnabled(eventType eventbus.EventType) bool {

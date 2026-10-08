@@ -40,20 +40,32 @@ func staleButtonServer(t *testing.T, responses map[string]any) (*httptest.Server
 	}
 }
 
+// setTestBot swaps the process-wide connection the way EnsureBot does: under the
+// mutex, so the race detector sees a well-defined handover.
+func setTestBot(b *telego.Bot) {
+	botMu.Lock()
+	bot = b
+	botMu.Unlock()
+}
+
 func swapTestBot(t *testing.T, url string) {
 	t.Helper()
-	origBot := bot
+	origBot := liveBot()
 	origPool := messageWorkerPool
 	t.Cleanup(func() {
-		bot = origBot
+		setTestBot(origBot)
 		messageWorkerPool = origPool
 	})
-	var err error
-	bot, err = telego.NewBot(testBotToken, telego.WithAPIServer(url))
+	newBot, err := telego.NewBot(testBotToken, telego.WithAPIServer(url))
 	if err != nil {
 		t.Fatalf("NewBot: %v", err)
 	}
+	setTestBot(newBot)
 	messageWorkerPool = make(chan struct{}, 10)
+	// The screen store is process-wide state: a screen left by an earlier test
+	// would make this one edit an unrelated message instead of sending.
+	screens.reset()
+	resetScreenArt()
 }
 
 func newStaleButtonTgbot(t *testing.T) *Tgbot {

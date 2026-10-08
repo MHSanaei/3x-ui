@@ -44,145 +44,12 @@ func (t *Tgbot) getInboundUsages() string {
 	return info.String()
 }
 
-// getInbounds creates an inline keyboard with all inbounds.
-func (t *Tgbot) getInbounds() (*telego.InlineKeyboardMarkup, error) {
-	inbounds, err := t.inboundService.GetAllInbounds()
-	if err != nil {
-		logger.Warning("GetAllInbounds run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-
-	if len(inbounds) == 0 {
-		logger.Warning("No inbounds found")
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-
-	var buttons []telego.InlineKeyboardButton
-	for _, inbound := range inbounds {
-		status := "❌"
-		if inbound.Enable {
-			status = "✅"
-		}
-		callbackData := t.encodeQuery(fmt.Sprintf("%s %d", "get_clients", inbound.Id))
-		buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(callbackData))
-	}
-
-	cols := 1
-	if len(buttons) >= 6 {
-		cols = 2
-	}
-
-	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-	return keyboard, nil
-}
-
-// getInboundsFor builds an inline keyboard of inbounds for a custom next action.
-func (t *Tgbot) getInboundsFor(nextAction string) (*telego.InlineKeyboardMarkup, error) {
-	inbounds, err := t.inboundService.GetAllInbounds()
-	if err != nil {
-		logger.Warning("GetAllInbounds run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-
-	if len(inbounds) == 0 {
-		logger.Warning("No inbounds found")
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-
-	var buttons []telego.InlineKeyboardButton
-	for _, inbound := range inbounds {
-		status := "❌"
-		if inbound.Enable {
-			status = "✅"
-		}
-		callbackData := t.encodeQuery(fmt.Sprintf("%s %d", nextAction, inbound.Id))
-		buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(callbackData))
-	}
-
-	cols := 1
-	if len(buttons) >= 6 {
-		cols = 2
-	}
-
-	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-	return keyboard, nil
-}
-
-// getInboundClientsFor lists clients of an inbound with a specific action prefix to be appended with email
-func (t *Tgbot) getInboundClientsFor(inbound *model.Inbound, action string) (*telego.InlineKeyboardMarkup, error) {
-	clients, err := t.inboundService.GetClients(inbound)
-	var buttons []telego.InlineKeyboardButton
-
-	if err != nil {
-		logger.Warning("GetInboundClients run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	} else {
-		if len(clients) > 0 {
-			for _, client := range clients {
-				buttons = append(buttons, tu.InlineKeyboardButton(client.Email).WithCallbackData(t.encodeQuery(action+" "+client.Email)))
-			}
-		} else {
-			return nil, errors.New(t.I18nBot("tgbot.answers.getClientsFailed"))
-		}
-	}
-	cols := 0
-	if len(buttons) < 6 {
-		cols = 3
-	} else {
-		cols = 2
-	}
-	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-
-	return keyboard, nil
-}
-
 // addClientExcludedProtocols are the protocols with no per-client model: Tunnel
 // has no clients, Mixed/HTTP authenticate at the inbound level, not per-client.
 var addClientExcludedProtocols = map[model.Protocol]bool{
 	model.Tunnel: true,
 	model.Mixed:  true,
 	model.HTTP:   true,
-}
-
-// getInboundsAddClient creates an inline keyboard for adding clients to inbounds.
-func (t *Tgbot) getInboundsAddClient() (*telego.InlineKeyboardMarkup, error) {
-	inbounds, err := t.inboundService.GetAllInbounds()
-	if err != nil {
-		logger.Warning("GetAllInbounds run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-
-	if len(inbounds) == 0 {
-		logger.Warning("No inbounds found")
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-
-	var buttons []telego.InlineKeyboardButton
-	for _, inbound := range inbounds {
-		if addClientExcludedProtocols[inbound.Protocol] {
-			continue
-		}
-
-		status := "❌"
-		if inbound.Enable {
-			status = "✅"
-		}
-		callbackData := t.encodeQuery(fmt.Sprintf("%s %d", "add_client_to", inbound.Id))
-		buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(callbackData))
-	}
-
-	if len(buttons) == 0 {
-		logger.Warning("No inbounds eligible for add-client (all excluded by protocol)")
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-
-	cols := 1
-	if len(buttons) >= 6 {
-		cols = 2
-	}
-
-	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-	return keyboard, nil
 }
 
 // getInboundsAttachPicker builds a toggle picker over multi-client inbounds
@@ -222,42 +89,25 @@ func (t *Tgbot) getInboundsAttachPicker(draft *clientDraft) (*telego.InlineKeybo
 	}
 	rows := tu.InlineKeyboardCols(cols, buttons...)
 	rows = append(rows, tu.InlineKeyboardRow(
-		tu.InlineKeyboardButton("✅ Done").WithCallbackData(t.encodeQuery("add_client_attach_done")),
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.attachDone")).
+			WithCallbackData(t.encodeQuery("add_client_attach_done")),
 	))
 	return tu.InlineKeyboardGrid(rows), nil
 }
 
-// getInboundClients creates an inline keyboard with clients of a specific inbound.
-func (t *Tgbot) getInboundClients(id int) (*telego.InlineKeyboardMarkup, error) {
-	inbound, err := t.inboundService.GetInbound(id)
-	if err != nil {
-		logger.Warning("getIboundClients run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
+// getInboundClientsFor builds the client list for the caller's inbound row: a
+// second DB read would reopen the stale-row window the caller's guard closed.
+func (t *Tgbot) getInboundClientsFor(inbound *model.Inbound, action string) (*telego.InlineKeyboardMarkup, error) {
 	clients, err := t.inboundService.GetClients(inbound)
-	var buttons []telego.InlineKeyboardButton
-
-	if err != nil {
-		logger.Warning("GetInboundClients run failed:", err)
-		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	} else {
-		if len(clients) > 0 {
-			for _, client := range clients {
-				buttons = append(buttons, tu.InlineKeyboardButton(client.Email).WithCallbackData(t.encodeQuery("client_get_usage "+client.Email)))
-			}
-		} else {
-			return nil, errors.New(t.I18nBot("tgbot.answers.getClientsFailed"))
-		}
+	if err != nil || len(clients) == 0 {
+		return nil, errors.New(t.I18nBot("tgbot.answers.getClientsFailed"))
 	}
-	cols := 0
-	if len(buttons) < 6 {
-		cols = 3
-	} else {
-		cols = 2
+	rows := make([][]telego.InlineKeyboardButton, 0, len(clients))
+	for _, client := range clients {
+		rows = append(rows, tu.InlineKeyboardRow(tu.InlineKeyboardButton(client.Email).
+			WithCallbackData(t.encodeQuery(action+" "+client.Email))))
 	}
-	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-
-	return keyboard, nil
+	return tu.InlineKeyboard(rows...), nil
 }
 
 // searchInbound searches for inbounds by remark and sends the results.

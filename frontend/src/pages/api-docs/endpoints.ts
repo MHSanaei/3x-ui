@@ -1979,6 +1979,13 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/setting/tgBotCapabilities',
+        summary:
+          'Report what the configured bot can do. Inline mode is a BotFather switch, so the panel warns when it is off.',
+        responseSchema: 'TgBotCapabilities',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/setting/testDiscord',
         summary: 'Test Discord bot connection by sending a test embed to the configured channel.',
         response: '{\n  "success": true,\n  "msg": "Test notification sent successfully"\n}',

@@ -738,6 +738,19 @@ func (s *Server) start(restartXray bool, startTgBot bool) (err error) {
 		return nil
 	})
 
+	controller.SetTgBotCapsFunc(func() (controller.TgBotCapabilities, error) {
+		caps, err := s.tgbotService.Capabilities()
+		if err != nil {
+			return controller.TgBotCapabilities{}, err
+		}
+		return controller.TgBotCapabilities{
+			InlineEnabled: caps.InlineEnabled,
+			GroupPrivacy:  caps.GroupPrivacy,
+			Username:      caps.Username,
+			Running:       caps.Running,
+		}, nil
+	})
+
 	controller.SetReloadTgbotFunc(func() {
 		enabled, err := s.settingService.GetTgbotEnabled()
 		if err != nil || !enabled {

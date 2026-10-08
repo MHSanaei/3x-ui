@@ -53,8 +53,8 @@ func TestEditMessageTgBotSkipsNotModified(t *testing.T) {
 	defer mock.Close()
 
 	// Point the package-level bot at the mock.
-	origBot := bot
-	t.Cleanup(func() { bot = origBot })
+	origBot := liveBot()
+	t.Cleanup(func() { setTestBot(origBot) })
 	var err error
 	bot, err = telego.NewBot(testBotToken, telego.WithAPIServer(mock.URL))
 	if err != nil {
@@ -85,8 +85,8 @@ func TestEditMessageCallbackTgBotSkipsNotModified(t *testing.T) {
 	}))
 	defer mock.Close()
 
-	origBot := bot
-	t.Cleanup(func() { bot = origBot })
+	origBot := liveBot()
+	t.Cleanup(func() { setTestBot(origBot) })
 	var err error
 	bot, err = telego.NewBot(testBotToken, telego.WithAPIServer(mock.URL))
 	if err != nil {
