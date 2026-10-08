@@ -745,7 +745,7 @@
       "delayedStart": "İlk Kullanımdan Sonra Başla",
       "expireDays": "Süre (gün)",
       "renew": "Otomatik Yenileme",
-      "renewDesc": "Süre dolduktan sonra otomatik yeniler. (0 = devre dışı) (birim: gün)",
+      "renewDesc": "Süre dolduktan sonra otomatik yeniler. (birim: gün)",
       "renewDays": "Otomatik Yenileme (gün)",
       "searchPlaceholder": "E-posta, yorum, sub ID, UUID, parola, auth, Telegram ID ara…",
       "filterTitle": "Kullanıcıları Filtrele",
@@ -966,9 +966,11 @@
       "renewNeedsExpiry": "An expiry must be set before auto-renewal can run.",
       "renewPreviewError": "Could not preview renewal dates.",
       "renewOnDay": "Yenileme günü",
-      "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler. 0 gün aralığı modunu korur.",
+      "renewOnDayDesc": "Her N günde bir yerine, her takvim ayının bu gününde, panel saat diliminde gece yarısı yeniler. Seçilen gün için kısa olan aylarda ayın son gününde yeniler.",
       "renewsUsed": "Kullanılan yenileme",
-      "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın."
+      "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın.",
+      "renewIntervalDesc": "Süre dolduktan sonra önceki bitiş zamanına belirlenen sayıda 24 saatlik gün ekler ve istemci trafiğini sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
+      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın."
     },
     "groups": {
       "name": "İsim",

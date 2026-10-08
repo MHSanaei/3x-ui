@@ -745,7 +745,7 @@
       "delayedStart": "初回使用から開始",
       "expireDays": "期間 (日)",
       "renew": "自動更新",
-      "renewDesc": "有効期限切れ後に自動更新します。(0 = 無効) (単位: 日)",
+      "renewDesc": "有効期限切れ後に自動更新します。(単位: 日)",
       "renewDays": "自動更新 (日)",
       "searchPlaceholder": "メール、コメント、sub ID、UUID、パスワード、auth、Telegram ID を検索…",
       "filterTitle": "クライアントをフィルタ",
@@ -966,9 +966,11 @@
       "renewNeedsExpiry": "An expiry must be set before auto-renewal can run.",
       "renewPreviewError": "Could not preview renewal dates.",
       "renewOnDay": "更新する日",
-      "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。0 で日数間隔モードのままになります。",
+      "renewOnDayDesc": "毎月この日の深夜（パネルのタイムゾーン基準）に更新します。N 日ごとの更新の代わりになります。その日が存在しない月は月末に更新されます。",
       "renewsUsed": "使用済み更新回数",
-      "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。"
+      "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。",
+      "renewIntervalDesc": "期限切れ後、前回の期限に指定日数（1 日 24 時間）を加算し、クライアントの通信量をリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。",
+      "renewWeeklyDesc": "カレンダー更新はパネルのタイムゾーンの午前 0 時に行われ、クライアントの通信量もリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。"
     },
     "groups": {
       "name": "名前",

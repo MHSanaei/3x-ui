@@ -745,7 +745,7 @@
       "delayedStart": "Iniciar após o primeiro uso",
       "expireDays": "Duração (dias)",
       "renew": "Renovação automática",
-      "renewDesc": "Renovação automática após a expiração. (0 = desativar) (unidade: dia)",
+      "renewDesc": "Renovação automática após a expiração. (unidade: dia)",
       "renewDays": "Renovação automática (dias)",
       "searchPlaceholder": "Buscar email, comentário, sub ID, UUID, senha, auth, Telegram ID…",
       "filterTitle": "Filtrar clientes",
@@ -966,9 +966,11 @@
       "renewNeedsExpiry": "An expiry must be set before auto-renewal can run.",
       "renewPreviewError": "Could not preview renewal dates.",
       "renewOnDay": "Renovar no dia",
-      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias.",
+      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele.",
       "renewsUsed": "Renovações usadas",
-      "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto."
+      "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto.",
+      "renewIntervalDesc": "Após a expiração, adiciona o número configurado de dias de 24 horas ao prazo anterior e redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
+      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional."
     },
     "groups": {
       "name": "Nome",
