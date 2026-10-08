@@ -877,6 +877,34 @@ export interface GenMtprotoLinkInput {
   clientSecret?: string;
 }
 
+// A secured (dd) secret reuses the client's 16-byte FakeTLS key without the
+// domain; '' when the secret is not a FakeTLS one.
+export function mtprotoSecuredSecret(secret: string): string {
+  const key = /^ee([0-9a-fA-F]{32})/.exec(secret)?.[1];
+  return key ? `dd${key.toLowerCase()}` : '';
+}
+
+// The key of a client's tg://webproxy link: the FakeTLS secret's 16-byte key,
+// dd-prefixed in the default "dd" mode or bare in "plain" mode.
+export function mtprotoWebSecret(secret: string, mode?: string): string {
+  const dd = mtprotoSecuredSecret(secret);
+  return dd && mode === 'plain' ? dd.slice(2) : dd;
+}
+
+// WEB-mode link of an mtproto client, '' when the inbound does not serve it. It
+// targets the WEB domain behind the reverse proxy, so it is port-less and per-inbound.
+export function genMtprotoWebLink(inbound: Inbound, clientSecret: string): string {
+  if (inbound.protocol !== 'mtproto') return '';
+  const web = inbound.settings.web;
+  if (!web?.bindTo || !web.host) return '';
+  const key = mtprotoWebSecret(clientSecret, web.secretMode);
+  if (!key) return '';
+  const url = new URL('tg://webproxy');
+  url.searchParams.set('server', web.host);
+  url.searchParams.set('secret', key);
+  return url.toString();
+}
+
 // Builds a per-client Telegram proxy deep link for an mtproto inbound from the
 // client's own FakeTLS secret. No remark fragment is added: Telegram proxy deep
 // links have no name field, and a trailing "#remark" gets folded into the last
@@ -1563,30 +1591,59 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
     [remark, proxyRemark].filter((x) => x.length > 0).join('-');
 
   const externals = inbound.streamSettings?.externalProxy;
-  if (!externals || externals.length === 0) {
-    const r = composeRemark('');
-    return [
-      {
-        remark: r,
-        link: genLink({ inbound, address: addr, port, forceTls: 'same', remark: r, client }),
-      },
-    ];
-  }
-  return externals.map((ep) => {
-    const r = composeRemark(ep.remark);
-    return {
-      remark: r,
-      link: genLink({
-        inbound,
-        address: ep.dest,
-        port: ep.port,
-        forceTls: ep.forceTls,
-        remark: r,
-        client,
-        externalProxy: ep,
-      }),
-    };
+  const entries: Array<GenAllLinksEntry & { address: string; port: number }> =
+    !externals || externals.length === 0
+      ? [
+          {
+            remark: composeRemark(''),
+            address: addr,
+            port,
+            link: genLink({
+              inbound,
+              address: addr,
+              port,
+              forceTls: 'same',
+              remark: composeRemark(''),
+              client,
+            }),
+          },
+        ]
+      : externals.map((ep) => ({
+          remark: composeRemark(ep.remark),
+          address: ep.dest,
+          port: ep.port,
+          link: genLink({
+            inbound,
+            address: ep.dest,
+            port: ep.port,
+            forceTls: ep.forceTls,
+            remark: composeRemark(ep.remark),
+            client,
+            externalProxy: ep,
+          }),
+        }));
+
+  const securedSecret =
+    inbound.protocol === 'mtproto' && inbound.settings.secured
+      ? mtprotoSecuredSecret(client.secret ?? '')
+      : '';
+  const links = entries.flatMap((e) => {
+    const plain = { remark: e.remark, link: e.link };
+    if (!securedSecret) return [plain];
+    const remarkDd = [e.remark, 'dd'].filter((x) => x.length > 0).join('-');
+    const link = genMtprotoLink({
+      inbound,
+      address: e.address,
+      port: e.port,
+      clientSecret: securedSecret,
+    });
+    return [plain, { remark: remarkDd, link }];
   });
+  const webLink = genMtprotoWebLink(inbound, client.secret ?? '');
+  if (webLink) {
+    links.push({ remark: composeRemark('web'), link: webLink });
+  }
+  return links;
 }
 
 export interface GenInboundLinksInput {

@@ -144,3 +144,61 @@ func TestNormalizeMtprotoSecretHealsClients(t *testing.T) {
 		t.Fatalf("client secret should be healed to front the inbound domain, got %q", got)
 	}
 }
+
+func TestMtprotoDCPoolSizeValidatedOnSave(t *testing.T) {
+	setupConflictDB(t)
+	s := &InboundService{}
+	settings := func(pool string) string {
+		return `{"dcPool":` + pool + `,"clients":[{"email":"pool-client","secret":"` + mtprotoTestSecretA + `","enable":true}]}`
+	}
+	const wantErr = "mtproto dcPool.size must be between 1 and 64"
+
+	for _, pool := range []string{`{"enabled":true,"size":65}`, `{"enabled":true,"size":-1}`} {
+		_, _, err := s.AddInbound(&model.Inbound{Port: 46301, Protocol: model.MTProto, Settings: settings(pool)})
+		if err == nil || err.Error() != wantErr {
+			t.Fatalf("AddInbound with dcPool %s: err = %v, want %q", pool, err, wantErr)
+		}
+	}
+
+	created, _, err := s.AddInbound(&model.Inbound{Port: 46302, Protocol: model.MTProto, Settings: settings(`{"enabled":true,"size":64}`)})
+	if err != nil {
+		t.Fatalf("AddInbound with the maximum pool size: %v", err)
+	}
+	created.Settings = settings(`{"enabled":true,"size":100}`)
+	if _, _, err := s.UpdateInbound(created); err == nil || err.Error() != wantErr {
+		t.Fatalf("UpdateInbound with an oversized pool: err = %v, want %q", err, wantErr)
+	}
+}
+
+// mtg options are checked on both save paths, so neither can store a value
+// that would make the sidecar refuse its config.
+func TestMtprotoOptionsValidatedOnSave(t *testing.T) {
+	setupConflictDB(t)
+	s := &InboundService{}
+	settings := func(opts string) string {
+		return `{` + opts + `"clients":[{"email":"opt-client","secret":"` + mtprotoTestSecretA + `","enable":true}]}`
+	}
+
+	for opts, want := range map[string]string{
+		`"web":{"bindTo":"0.0.0.0:18080","host":"proxy.example.com"},`:     "mtproto web.bindTo",
+		`"stats":{"prometheus":{"enabled":true,"bindTo":"0.0.0.0:3129"}},`: "mtproto stats.prometheus.bindTo",
+		`"extraToml":"[secrets]\nmallory = \"ee00\"\n",`:                   "mtproto extraToml",
+		`"extraToml":"concurrency = ",`:                                    "mtproto extraToml",
+		`"network":{"timeout":{"idle":"forever"}},`:                        "mtproto network.timeout.idle",
+	} {
+		_, _, err := s.AddInbound(&model.Inbound{Port: 46311, Protocol: model.MTProto, Settings: settings(opts)})
+		if err == nil || !strings.HasPrefix(err.Error(), want) {
+			t.Fatalf("AddInbound with %s: err = %v, want prefix %q", opts, err, want)
+		}
+	}
+
+	created, _, err := s.AddInbound(&model.Inbound{Port: 46312, Protocol: model.MTProto, Settings: settings(
+		`"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"},"extraToml":"usage-state-file = \"/var/lib/mtg/u.json\"\n",`)})
+	if err != nil {
+		t.Fatalf("AddInbound with valid options: %v", err)
+	}
+	created.Settings = settings(`"defense":{"allowlist":{"enabled":true}},`)
+	if _, _, err := s.UpdateInbound(created); err == nil || !strings.HasPrefix(err.Error(), "mtproto defense.allowlist.urls") {
+		t.Fatalf("UpdateInbound with an empty enabled allowlist: err = %v", err)
+	}
+}

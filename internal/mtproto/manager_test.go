@@ -90,7 +90,7 @@ func TestRenderConfig(t *testing.T) {
 		Secrets: []SecretEntry{{Name: "alice", Secret: "ee00"}},
 		Listen:  "0.0.0.0", Port: 8443,
 	}, 5000, "")
-	for _, unwanted := range []string{"debug", "proxy-protocol-listener", "prefer-ip", "[domain-fronting]", "[stats.prometheus]", "[throttle]", "[secret-ad-tags]", "api-token"} {
+	for _, unwanted := range []string{"debug", "proxy-protocol-listener", "prefer-ip", "[domain-fronting]", "[stats.prometheus]", "[throttle]", "[secret-ad-tags]", "api-token", "[secured]", "[dc-pool]"} {
 		if strings.Contains(bare, unwanted) {
 			t.Fatalf("bare config should not contain %q:\n%s", unwanted, bare)
 		}
@@ -257,6 +257,9 @@ func TestFingerprintSplit(t *testing.T) {
 		"listen":        func(i *Instance) { i.Listen = "127.0.0.1" },
 		"publicIpv4":    func(i *Instance) { i.PublicIPv4 = "1.2.3.4" },
 		"publicIpv6":    func(i *Instance) { i.PublicIPv6 = "2001:db8::1" },
+		"secured":       func(i *Instance) { i.Secured = true },
+		"dcPool":        func(i *Instance) { i.DCPoolEnabled = true },
+		"dcPoolSize":    func(i *Instance) { i.DCPoolEnabled, i.DCPoolSize = true, 4 },
 	} {
 		t.Run("structural/"+name, func(t *testing.T) {
 			changed := base
@@ -304,4 +307,99 @@ func TestFingerprintSplit(t *testing.T) {
 			t.Fatal("secrets fingerprint must not depend on client order")
 		}
 	})
+}
+
+// Settings saved before secured/dcPool existed must render the exact config
+// they always did, or every upgraded panel would restart its sidecars.
+func TestRenderConfigLegacySettingsUnchanged(t *testing.T) {
+	secret := "ee0123456789abcdef0123456789abcdef6578616d706c652e636f6d"
+	ib := &model.Inbound{
+		Id: 1, Listen: "0.0.0.0", Port: 443, Protocol: model.MTProto,
+		Settings: `{"fakeTlsDomain":"example.com","throttleMaxConnections":100,` +
+			`"clients":[{"email":"alice","secret":"` + secret + `","enable":true}]}`,
+	}
+	inst, ok := InstanceFromInbound(ib)
+	if !ok {
+		t.Fatal("expected a usable instance")
+	}
+	want := "bind-to = \"0.0.0.0:443\"\n" +
+		"api-bind-to = \"127.0.0.1:5000\"\n" +
+		"api-token = \"tok\"\n" +
+		"\n[throttle]\nmax-connections = 100\n" +
+		"\n[secrets]\n\"alice\" = \"" + secret + "\"\n"
+	if got := renderConfig(inst, 5000, "tok"); got != want {
+		t.Fatalf("legacy settings must render unchanged:\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestSecuredAndDCPoolFromSettings(t *testing.T) {
+	const clients = `"clients":[{"email":"a","secret":"ee0123456789abcdef0123456789abcdef61","enable":true}]`
+	for _, tc := range []struct {
+		name     string
+		settings string
+		secured  bool
+		pool     bool
+		size     int
+		want     []string
+		unwanted []string
+	}{
+		{
+			name:     "secured",
+			settings: `{"secured":true,` + clients + `}`,
+			secured:  true,
+			want:     []string{"\n[secured]\nenabled = true\n"},
+			unwanted: []string{"[dc-pool]"},
+		},
+		{
+			name:     "poolWithSize",
+			settings: `{"dcPool":{"enabled":true,"size":4},` + clients + `}`,
+			pool:     true, size: 4,
+			want:     []string{"\n[dc-pool]\nenabled = true\nsize = 4\n"},
+			unwanted: []string{"[secured]"},
+		},
+		{
+			name:     "poolDefaultSize",
+			settings: `{"dcPool":{"enabled":true},` + clients + `}`,
+			pool:     true,
+			want:     []string{"\n[dc-pool]\nenabled = true\n"},
+			unwanted: []string{"size ="},
+		},
+		{
+			name:     "poolOversizedFallsBackToDefault",
+			settings: `{"dcPool":{"enabled":true,"size":65},` + clients + `}`,
+			pool:     true,
+			want:     []string{"\n[dc-pool]\nenabled = true\n"},
+			unwanted: []string{"size ="},
+		},
+		{
+			name:     "poolDisabledIgnoresSize",
+			settings: `{"secured":false,"dcPool":{"enabled":false,"size":8},` + clients + `}`,
+			unwanted: []string{"[dc-pool]", "[secured]", "size ="},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			inst, ok := InstanceFromInbound(&model.Inbound{Port: 443, Protocol: model.MTProto, Settings: tc.settings})
+			if !ok {
+				t.Fatal("expected a usable instance")
+			}
+			if inst.Secured != tc.secured || inst.DCPoolEnabled != tc.pool || inst.DCPoolSize != tc.size {
+				t.Fatalf("parsed secured=%v pool=%v size=%d, want %v %v %d",
+					inst.Secured, inst.DCPoolEnabled, inst.DCPoolSize, tc.secured, tc.pool, tc.size)
+			}
+			cfg := renderConfig(inst, 5000, "")
+			for _, w := range tc.want {
+				if !strings.Contains(cfg, w) {
+					t.Fatalf("config missing %q:\n%s", w, cfg)
+				}
+			}
+			for _, u := range tc.unwanted {
+				if strings.Contains(cfg, u) {
+					t.Fatalf("config must not contain %q:\n%s", u, cfg)
+				}
+			}
+			if strings.LastIndex(cfg, "[secrets]") < strings.LastIndex(cfg, "enabled = true") {
+				t.Fatalf("[secured]/[dc-pool] must precede the final [secrets] section:\n%s", cfg)
+			}
+		})
+	}
 }

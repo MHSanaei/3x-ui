@@ -130,7 +130,11 @@ export function parseLinkParts(link: string): LinkParts | null {
     } catch {
       /* not URL-shaped, fall back to protocol only */
     }
-    if (scheme === 'tg') security = 'FakeTLS';
+    if (scheme === 'tg') {
+      const secret = /[?&]secret=([^&#]*)/.exec(trimmed)?.[1] ?? '';
+      if (trimmed.startsWith('tg://webproxy')) security = 'WEB';
+      else security = secret.startsWith('dd') ? 'Secured' : 'FakeTLS';
+    }
     if (scheme === 'tuic') {
       network = 'quic';
       security = 'TLS';
