@@ -200,6 +200,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Лицензия: **MIT**): _Управление входящими, клиентами, настройками панели и конфигурацией Xray через код с помощью Terraform / OpenTofu._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Лицензия: **MIT**): _Нативный Android-клиент для 3x-ui — дашборд, входящие, клиенты с QR, узлы и управление несколькими панелями. Доступен в F-Droid._
+- [3X-UI Auto Nginx](https://github.com/xPROMSx/3x-ui-auto-nginx) (Лицензия: **GPL-3.0**): _Установка официальной 3x-ui/Xray на VPS одной командой: nginx с SNI-маршрутизацией, сайт-прикрытие, автоматический HTTPS, готовые подключения VLESS REALITY, VLESS XHTTP и Hysteria2, резервное копирование._
 
 ## Поддержка проекта
 
