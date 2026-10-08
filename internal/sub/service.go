@@ -22,6 +22,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
@@ -1101,8 +1102,8 @@ func (s *SubService) genAmneziaWGLink(inbound *model.Inbound, email string) stri
 	return strings.Join(links, "\n")
 }
 
-// genMtprotoLink builds one Telegram link per advertised endpoint with the client's FakeTLS secret.
-// It omits remarks because lenient parsers fold a fragment into the last query value.
+// genMtprotoLink: one ee link per endpoint, plus dd ones when secured and a tg://webproxy one in
+// WEB mode. No remarks: lenient parsers fold a fragment into the last query value.
 func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.MTProto {
 		return ""
@@ -1111,16 +1112,37 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 	if !ok || resolved.Secret == "" {
 		return ""
 	}
+	secrets := []string{resolved.Secret}
+	if dd := model.MtprotoSecuredSecret(resolved.Secret); dd != "" && mtprotoSecuredEnabled(inbound.Settings) {
+		secrets = append(secrets, dd)
+	}
 	endpoints := s.advertisedEndpoints(inbound)
-	links := make([]string, 0, len(endpoints))
+	links := make([]string, 0, len(endpoints)*len(secrets))
 	for _, endpoint := range endpoints {
-		links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
-			"server": endpoint.Address,
-			"port":   fmt.Sprintf("%d", endpoint.Port),
-			"secret": resolved.Secret,
-		}, ""))
+		for _, secret := range secrets {
+			links = append(links, buildLinkWithParams("tg://proxy", map[string]string{
+				"server": endpoint.Address,
+				"port":   fmt.Sprintf("%d", endpoint.Port),
+				"secret": secret,
+			}, ""))
+		}
+	}
+	if host, mode, ok := mtproto.WebEndpoint(inbound.Settings); ok {
+		if key := model.MtprotoWebSecret(resolved.Secret, mode); key != "" {
+			links = append(links, buildLinkWithParams("tg://webproxy", map[string]string{
+				"server": host,
+				"secret": key,
+			}, ""))
+		}
 	}
 	return strings.Join(links, "\n")
+}
+
+func mtprotoSecuredEnabled(settings string) bool {
+	var parsed struct {
+		Secured bool `json:"secured"`
+	}
+	return json.Unmarshal([]byte(settings), &parsed) == nil && parsed.Secured
 }
 
 // Protocol link generators are intentionally ordered as:

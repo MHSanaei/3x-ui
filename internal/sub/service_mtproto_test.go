@@ -9,7 +9,10 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-const mtprotoTestSecret = "ee8196fe6ed8b637d001f91d6952cfcdf07777772e636c6f7564666c6172652e636f6d"
+const (
+	mtprotoTestSecret        = "ee8196fe6ed8b637d001f91d6952cfcdf07777772e636c6f7564666c6172652e636f6d"
+	mtprotoTestSecuredSecret = "dd8196fe6ed8b637d001f91d6952cfcdf0"
+)
 
 func TestGenMtprotoLinkFields(t *testing.T) {
 	inbound := &model.Inbound{
@@ -174,5 +177,125 @@ func TestGetInboundsBySubIdIncludesMtproto(t *testing.T) {
 	}
 	if !strings.HasPrefix(links[0], "tg://proxy") || !strings.Contains(links[0], "secret="+mtprotoTestSecret) {
 		t.Fatalf("subscription link is not a tg://proxy carrying the client secret: %q", links[0])
+	}
+}
+
+func TestGenMtprotoLinkSecured(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		secured string
+		want    []string
+	}{
+		{"secured", `"secured":true,`, []string{mtprotoTestSecret, mtprotoTestSecuredSecret}},
+		{"off", `"secured":false,`, []string{mtprotoTestSecret}},
+		{"absent", ``, []string{mtprotoTestSecret}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			inbound := &model.Inbound{
+				Listen:   "203.0.113.7",
+				Port:     8443,
+				Protocol: model.MTProto,
+				Settings: `{` + tc.secured + `"clients":[{"email":"user","enable":true,"secret":"` + mtprotoTestSecret + `"}]}`,
+			}
+			lines := splitLinkLines((&SubService{}).genMtprotoLink(inbound, "user"))
+			if len(lines) != len(tc.want) {
+				t.Fatalf("links = %v, want %d", lines, len(tc.want))
+			}
+			for i, line := range lines {
+				u, err := url.Parse(line)
+				if err != nil {
+					t.Fatalf("link %q does not parse: %v", line, err)
+				}
+				q := u.Query()
+				if q.Get("secret") != tc.want[i] || q.Get("server") != "203.0.113.7" || q.Get("port") != "8443" {
+					t.Fatalf("link %d = %q, want secret %q on 203.0.113.7:8443", i, line, tc.want[i])
+				}
+			}
+		})
+	}
+}
+
+// A secured inbound behind a managed host must give the dd link the host's
+// address too, on the client page as well as in the subscription.
+func TestSecuredMtprotoLinksFollowHostEndpoint(t *testing.T) {
+	initSubDB(t)
+	db := database.GetDB()
+
+	inbound := &model.Inbound{
+		Listen:   "127.0.0.1",
+		Port:     4061,
+		Protocol: model.MTProto,
+		Enable:   true,
+		Tag:      "mt-secured-host",
+		Settings: `{"secured":true,"clients":[{"email":"dd@mt","enable":true,"subId":"sub-secured","secret":"` + mtprotoTestSecret + `"}]}`,
+	}
+	if err := db.Create(inbound).Error; err != nil {
+		t.Fatalf("create inbound: %v", err)
+	}
+	if err := db.Create(&model.Host{InboundId: inbound.Id, Remark: "public", Address: "proxy.example.com", Port: 443, Security: "same"}).Error; err != nil {
+		t.Fatalf("create host: %v", err)
+	}
+	client := &model.ClientRecord{Email: "dd@mt", SubID: "sub-secured", Enable: true, Secret: mtprotoTestSecret}
+	if err := db.Create(client).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: inbound.Id}).Error; err != nil {
+		t.Fatalf("attach client: %v", err)
+	}
+
+	subLinks, err := NewLinkProvider().SubLinksForSubId("sub.example.com", client.SubID)
+	if err != nil {
+		t.Fatalf("SubLinksForSubId: %v", err)
+	}
+	clientLinks := NewLinkProvider().LinksForClient("sub.example.com", inbound, client.Email)
+	for name, links := range map[string][]string{"subscription": subLinks, "client": clientLinks} {
+		if len(links) != 2 {
+			t.Fatalf("%s links = %v, want the ee and the dd link", name, links)
+		}
+		for i, wantSecret := range []string{mtprotoTestSecret, mtprotoTestSecuredSecret} {
+			u, err := url.Parse(links[i])
+			if err != nil {
+				t.Fatalf("%s link %q does not parse: %v", name, links[i], err)
+			}
+			q := u.Query()
+			if q.Get("server") != "proxy.example.com" || q.Get("port") != "443" || q.Get("secret") != wantSecret {
+				t.Fatalf("%s link %d = %q, want secret %q on proxy.example.com:443", name, i, links[i], wantSecret)
+			}
+		}
+	}
+}
+
+// WEB mode adds one tg://webproxy link (dd-prefixed or bare key by mode); an invalid or
+// incomplete WEB section yields none, since mtg would not serve it.
+func TestGenMtprotoLinkWeb(t *testing.T) {
+	const plainKey = "8196fe6ed8b637d001f91d6952cfcdf0"
+	for _, tc := range []struct {
+		name, web string
+		want      string
+	}{
+		{"ddDefault", `"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com"},`, "tg://webproxy?secret=" + mtprotoTestSecuredSecret + "&server=web.example.com"},
+		{"plain", `"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com","secretMode":"plain"},`, "tg://webproxy?secret=" + plainKey + "&server=web.example.com"},
+		{"noBind", `"web":{"host":"web.example.com"},`, ""},
+		{"publicBind", `"web":{"bindTo":"0.0.0.0:18080","host":"web.example.com"},`, ""},
+		{"absent", ``, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			inbound := &model.Inbound{
+				Listen:   "203.0.113.7",
+				Port:     8443,
+				Protocol: model.MTProto,
+				Settings: `{` + tc.web + `"clients":[{"email":"user","enable":true,"secret":"` + mtprotoTestSecret + `"}]}`,
+			}
+			lines := splitLinkLines((&SubService{}).genMtprotoLink(inbound, "user"))
+			if tc.want == "" {
+				if len(lines) != 1 || strings.Contains(lines[0], "webproxy") {
+					t.Fatalf("links = %v, want only the FakeTLS link", lines)
+				}
+				return
+			}
+			if len(lines) != 2 || lines[1] != tc.want {
+				t.Fatalf("links = %v, want the FakeTLS link and %q", lines, tc.want)
+			}
+		})
 	}
 }

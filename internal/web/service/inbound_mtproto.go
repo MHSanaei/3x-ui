@@ -7,6 +7,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
 )
 
 // DesiredMtprotoInstances derives the mtg sidecar configs this panel should be
@@ -153,4 +154,16 @@ func (s *InboundService) resetAllMtprotoQuotas() {
 			mgr.ResetQuota(sec.Name)
 		}
 	}
+}
+
+// validateMtprotoSettings rejects mtg options the sidecar would refuse, a public metrics or
+// WEB listener, or extra TOML touching panel keys, so a save never takes the inbound down.
+func validateMtprotoSettings(inbound *model.Inbound) error {
+	if inbound == nil || inbound.Protocol != model.MTProto {
+		return nil
+	}
+	if err := mtproto.ValidateSettings(inbound.Settings); err != nil {
+		return common.NewErrorf("%s", err)
+	}
+	return nil
 }
