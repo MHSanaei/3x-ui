@@ -27,8 +27,20 @@ const (
 )
 
 type NodeHeartbeatJob struct {
-	nodeService service.NodeService
-	running     sync.Mutex
+	nodeService    service.NodeService
+	settingService service.SettingService
+	running        sync.Mutex
+	health         map[int]nodeHealth
+}
+
+type nodeHealth struct {
+	failStreak int
+	notified   bool
+}
+
+type nodeProbe struct {
+	node  *model.Node
+	patch service.HeartbeatPatch
 }
 
 func NewNodeHeartbeatJob() *NodeHeartbeatJob {
@@ -53,8 +65,8 @@ func (j *NodeHeartbeatJob) Run() {
 
 	sem := make(chan struct{}, nodeHeartbeatConcurrency)
 	var wg sync.WaitGroup
-	var transitionsMu sync.Mutex
-	var transitions []eventbus.Event
+	var probesMu sync.Mutex
+	var probes []nodeProbe
 	for _, n := range nodes {
 		if !n.Enable {
 			continue
@@ -65,15 +77,14 @@ func (j *NodeHeartbeatJob) Run() {
 		common.GoRecover("node-heartbeat:"+n.Name, func() {
 			defer wg.Done()
 			defer func() { <-sem }()
-			if event := j.probeOne(n); event != nil {
-				transitionsMu.Lock()
-				transitions = append(transitions, *event)
-				transitionsMu.Unlock()
-			}
+			patch := j.probeOne(n)
+			probesMu.Lock()
+			probes = append(probes, nodeProbe{node: n, patch: patch})
+			probesMu.Unlock()
 		})
 	}
 	wg.Wait()
-	publishNodeTransitions(transitions)
+	publishNodeTransitions(j.healthTransitions(probes))
 
 	if !websocket.HasClients() {
 		return
@@ -86,10 +97,9 @@ func (j *NodeHeartbeatJob) Run() {
 	websocket.BroadcastNodes(updated)
 }
 
-func (j *NodeHeartbeatJob) probeOne(n *model.Node) *eventbus.Event {
+func (j *NodeHeartbeatJob) probeOne(n *model.Node) service.HeartbeatPatch {
 	ctx, cancel := context.WithTimeout(context.Background(), nodeHeartbeatRequestTimeout)
 	defer cancel()
-	prevStatus := n.Status
 	patch, err := j.nodeService.Probe(ctx, n)
 	if err != nil {
 		patch.Status = "offline"
@@ -109,26 +119,42 @@ func (j *NodeHeartbeatJob) probeOne(n *model.Node) *eventbus.Event {
 	} else {
 		j.nodeService.ClearDescendants(n.Id)
 	}
-	return nodeTransitionEvent(n, prevStatus, patch)
+	return patch
 }
 
-// nodeTransitionEvent is node.down / node.up on a genuine state change only; an unknown
-// previous status (fresh start) counts as not-online, so it never yields node.down.
-func nodeTransitionEvent(n *model.Node, prevStatus string, patch service.HeartbeatPatch) *eventbus.Event {
-	var eventType eventbus.EventType
-	switch {
-	case prevStatus == "online" && patch.Status == "offline":
-		eventType = eventbus.EventNodeDown
-	case prevStatus != "online" && patch.Status == "online":
-		eventType = eventbus.EventNodeUp
-	default:
-		return nil
+func (j *NodeHeartbeatJob) healthTransitions(probes []nodeProbe) []eventbus.Event {
+	threshold := 1
+	if v, err := j.settingService.GetNodeDownThreshold(); err == nil && v > 0 {
+		threshold = v
 	}
+	prev := j.health
+	j.health = make(map[int]nodeHealth, len(probes))
+	var events []eventbus.Event
+	for _, p := range probes {
+		h := prev[p.node.Id]
+		if p.patch.Status == "online" {
+			if h.notified {
+				events = append(events, nodeHealthEvent(eventbus.EventNodeUp, p.node, p.patch))
+			}
+			h = nodeHealth{}
+		} else {
+			h.failStreak++
+			if h.failStreak >= threshold && !h.notified {
+				events = append(events, nodeHealthEvent(eventbus.EventNodeDown, p.node, p.patch))
+				h.notified = true
+			}
+		}
+		j.health[p.node.Id] = h
+	}
+	return events
+}
+
+func nodeHealthEvent(eventType eventbus.EventType, n *model.Node, patch service.HeartbeatPatch) eventbus.Event {
 	source := n.Name
 	if source == "" {
 		source = "node-" + strconv.Itoa(n.Id)
 	}
-	return &eventbus.Event{
+	return eventbus.Event{
 		Type:   eventType,
 		Source: source,
 		Data: &eventbus.NodeHealthData{
