@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Empty, Form, Input, Modal, Space, Spin, Switch, Tabs, message } from 'antd';
-import { ApiOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons';
+import { ApiOutlined, SafetyOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
 import { ClipboardManager, HttpUtil, IntlUtil, RandomUtil } from '@/utils';
 import type { AllSetting } from '@/models/setting';
 import { SettingListItem } from '@/components/ui';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { catTabLabel } from './catTabLabel';
 import TwoFactorModal from './TwoFactorModal';
+import TelegramAuthSettings from './TelegramAuthSettings';
 import './SecurityTab.css';
 
 interface ApiMsg<T = unknown> {
@@ -323,6 +324,15 @@ export default function SecurityTab({ allSetting, updateSetting, saveSetting }: 
                 <Switch checked={allSetting.twoFactorEnable} onClick={toggleTwoFactor} />
               </SettingListItem>
             ),
+          },
+          {
+            key: 'telegram',
+            label: catTabLabel(
+              <SendOutlined />,
+              t('pages.settings.security.telegramTitle'),
+              isMobile,
+            ),
+            children: <TelegramAuthSettings twoFactorEnabled={allSetting.twoFactorEnable} />,
           },
           {
             key: '3',

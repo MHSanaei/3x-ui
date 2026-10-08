@@ -4822,7 +4822,7 @@
   "tags": [
     {
       "name": "Authentication",
-      "description": "Two authentication modes are supported. UI sessions use a cookie set by the login endpoint. Programmatic clients (bots, scripts, remote panels) authenticate with a Bearer token taken from Settings → Security → API Token. Both work for every endpoint under /panel/api/*."
+      "description": "UI sessions use a cookie set by password login or an explicitly linked Telegram account. Programmatic clients (bots, scripts, remote panels) authenticate with a Bearer token taken from Settings → Security → API Token. Both work for every endpoint under /panel/api/*."
     },
     {
       "name": "Inbounds",
@@ -5111,6 +5111,128 @@
                 "example": {
                   "success": true,
                   "obj": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telegram-auth/status": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Return whether Telegram login is available and the bot username for the login page.",
+        "operationId": "get_telegram_auth_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telegram-auth/start": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Create a short-lived login code bound to the browser session. Requires the CSRF header.",
+        "operationId": "post_telegram_auth_start",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "code": "...",
+                    "expiresAt": 1736000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telegram-auth/complete": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Poll a login code after approval in a private Telegram chat; issues the session cookie once.",
+        "operationId": "post_telegram_auth_complete",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Code returned by start."
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "pending": false
+                  }
                 }
               }
             }
@@ -12988,6 +13110,142 @@
                 "oldPassword": "admin",
                 "newUsername": "newadmin",
                 "newPassword": "newpass"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/telegramAuth/status": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Show whether the current admin has linked a personal Telegram account for login.",
+        "operationId": "get_panel_api_setting_telegramAuth_status",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/telegramAuth/link": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Create a short-lived account-link code. Requires the current password and TOTP when enabled.",
+        "operationId": "post_panel_api_setting_telegramAuth_link",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "Current panel password."
+                  },
+                  "twoFactorCode": {
+                    "type": "string",
+                    "description": "Current TOTP when enabled."
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/setting/telegramAuth/unlink": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Remove the Telegram login binding and invalidate current panel sessions. Requires the current password and TOTP when enabled.",
+        "operationId": "post_panel_api_setting_telegramAuth_unlink",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "Current panel password."
+                  },
+                  "twoFactorCode": {
+                    "type": "string",
+                    "description": "Current TOTP when enabled."
+                  }
+                },
+                "required": [
+                  "password"
+                ]
               }
             }
           }
