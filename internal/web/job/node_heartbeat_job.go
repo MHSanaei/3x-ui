@@ -131,7 +131,10 @@ func (j *NodeHeartbeatJob) healthTransitions(probes []nodeProbe) []eventbus.Even
 	j.health = make(map[int]nodeHealth, len(probes))
 	var events []eventbus.Event
 	for _, p := range probes {
-		h := prev[p.node.Id]
+		h, seen := prev[p.node.Id]
+		if !seen {
+			h.notified = p.node.Status != "online"
+		}
 		if p.patch.Status == "online" {
 			if h.notified {
 				events = append(events, nodeHealthEvent(eventbus.EventNodeUp, p.node, p.patch))
