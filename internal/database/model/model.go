@@ -883,6 +883,12 @@ type Client struct {
 	PrivateKey string         `json:"privateKey,omitempty"`
 	PublicKey  string         `json:"publicKey,omitempty"`
 	AllowedIPs []string       `json:"allowedIPs,omitempty"`
+	// ClientHostRuleId optionally binds one Host row to this client.
+	// Nil or non-positive means no override (inbound rule applies).
+	ClientHostRuleId *int `json:"clientHostRuleId,omitempty" example:"1"`
+	// ClientHostRuleIds optionally binds several Host rows to this client.
+	// Unioned with ClientHostRuleId; each bound host renders its own link.
+	ClientHostRuleIds []int `json:"clientHostRuleIds,omitempty" example:"[1,2]"`
 	// AllowedIPsByInbound optionally overrides AllowedIPs on a per-inbound
 	// basis, keyed by inbound id. Lets one identity attached to both
 	// WireGuard and AmneziaWG carry two genuinely different addresses in a
@@ -917,39 +923,41 @@ type Client struct {
 }
 
 type ClientRecord struct {
-	Id              int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email           string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID           string `json:"subId" gorm:"index;column:sub_id"`
-	UUID            string `json:"uuid" gorm:"column:uuid"`
-	Password        string `json:"password"`
-	Auth            string `json:"auth"`
-	Flow            string `json:"flow"`
-	Security        string `json:"security"`
-	Reverse         string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey      string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey       string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs      string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey    string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive       int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	ForwardedPorts  string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
-	Secret          string `json:"secret" gorm:"column:secret"`
-	AdTag           string `json:"adTag" gorm:"column:ad_tag;default:''"`
-	LimitIP         int    `json:"limitIp" gorm:"column:limit_ip"`
-	LimitHwid       int    `json:"limitHwid" gorm:"column:limit_hwid;default:0"`
-	TotalGB         int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime      int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable          bool   `json:"enable" gorm:"default:true"`
-	TgID            int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
-	Group           string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
-	Comment         string `json:"comment"`
-	Reset           int    `json:"reset" gorm:"default:0"`
-	ResetDay        int    `json:"resetDay" gorm:"column:reset_day;default:0"`
-	ResetWeekday    int    `json:"resetWeekday" gorm:"column:reset_weekday;default:0"`
-	ResetMax        int    `json:"resetMax" gorm:"column:reset_max;default:0"`
-	TrafficReset    string `json:"trafficReset" gorm:"column:traffic_reset;default:never;index:idx_clients_traffic_reset"`
-	TrafficResetDay int    `json:"trafficResetDay" gorm:"column:traffic_reset_day;default:1"`
-	CreatedAt       int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt       int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id                int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email             string `json:"email" gorm:"uniqueIndex;not null"`
+	SubID             string `json:"subId" gorm:"index;column:sub_id"`
+	UUID              string `json:"uuid" gorm:"column:uuid"`
+	Password          string `json:"password"`
+	Auth              string `json:"auth"`
+	Flow              string `json:"flow"`
+	Security          string `json:"security"`
+	Reverse           string `json:"reverse" gorm:"column:reverse"`
+	ClientHostRuleId  *int   `json:"clientHostRuleId,omitempty" gorm:"column:client_host_rule_id;default:null" example:"1"`
+	ClientHostRuleIds []int  `json:"clientHostRuleIds,omitempty" gorm:"serializer:json;column:client_host_rule_ids" example:"[1,2]"`
+	PrivateKey        string `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey         string `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs        string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey      string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive         int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	ForwardedPorts    string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
+	Secret            string `json:"secret" gorm:"column:secret"`
+	AdTag             string `json:"adTag" gorm:"column:ad_tag;default:''"`
+	LimitIP           int    `json:"limitIp" gorm:"column:limit_ip"`
+	LimitHwid         int    `json:"limitHwid" gorm:"column:limit_hwid;default:0"`
+	TotalGB           int64  `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime        int64  `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable            bool   `json:"enable" gorm:"default:true"`
+	TgID              int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
+	Group             string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Comment           string `json:"comment"`
+	Reset             int    `json:"reset" gorm:"default:0"`
+	ResetDay          int    `json:"resetDay" gorm:"column:reset_day;default:0"`
+	ResetWeekday      int    `json:"resetWeekday" gorm:"column:reset_weekday;default:0"`
+	ResetMax          int    `json:"resetMax" gorm:"column:reset_max;default:0"`
+	TrafficReset      string `json:"trafficReset" gorm:"column:traffic_reset;default:never;index:idx_clients_traffic_reset"`
+	TrafficResetDay   int    `json:"trafficResetDay" gorm:"column:traffic_reset_day;default:1"`
+	CreatedAt         int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt         int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
@@ -1141,28 +1149,30 @@ func nonZeroKeepAlive(seconds int) *int {
 
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
-		Email:           c.Email,
-		SubID:           c.SubID,
-		UUID:            c.ID,
-		Password:        c.Password,
-		Auth:            c.Auth,
-		Flow:            c.Flow,
-		Security:        c.Security,
-		LimitIP:         c.LimitIP,
-		TotalGB:         c.TotalGB,
-		ExpiryTime:      c.ExpiryTime,
-		Enable:          c.Enable,
-		TgID:            c.TgID,
-		Group:           c.Group,
-		Comment:         c.Comment,
-		Reset:           c.Reset,
-		ResetDay:        c.ResetDay,
-		ResetWeekday:    c.ResetWeekday,
-		ResetMax:        c.ResetMax,
-		TrafficReset:    c.TrafficReset,
-		TrafficResetDay: c.TrafficResetDay,
-		CreatedAt:       c.CreatedAt,
-		UpdatedAt:       c.UpdatedAt,
+		Email:             c.Email,
+		SubID:             c.SubID,
+		UUID:              c.ID,
+		Password:          c.Password,
+		Auth:              c.Auth,
+		Flow:              c.Flow,
+		Security:          c.Security,
+		ClientHostRuleId:  c.ClientHostRuleId,
+		ClientHostRuleIds: CloneClientHostRuleIds(c.ClientHostRuleIds),
+		LimitIP:           c.LimitIP,
+		TotalGB:           c.TotalGB,
+		ExpiryTime:        c.ExpiryTime,
+		Enable:            c.Enable,
+		TgID:              c.TgID,
+		Group:             c.Group,
+		Comment:           c.Comment,
+		Reset:             c.Reset,
+		ResetDay:          c.ResetDay,
+		ResetWeekday:      c.ResetWeekday,
+		ResetMax:          c.ResetMax,
+		TrafficReset:      c.TrafficReset,
+		TrafficResetDay:   c.TrafficResetDay,
+		CreatedAt:         c.CreatedAt,
+		UpdatedAt:         c.UpdatedAt,
 
 		PrivateKey:     c.PrivateKey,
 		PublicKey:      c.PublicKey,
@@ -1200,28 +1210,30 @@ func splitWireguardAllowedIPs(csv string) []string {
 
 func (r *ClientRecord) ToClient() *Client {
 	c := &Client{
-		ID:              r.UUID,
-		Email:           r.Email,
-		SubID:           r.SubID,
-		Password:        r.Password,
-		Auth:            r.Auth,
-		Flow:            r.Flow,
-		Security:        r.Security,
-		LimitIP:         r.LimitIP,
-		TotalGB:         r.TotalGB,
-		ExpiryTime:      r.ExpiryTime,
-		Enable:          r.Enable,
-		TgID:            r.TgID,
-		Group:           r.Group,
-		Comment:         r.Comment,
-		Reset:           r.Reset,
-		ResetDay:        r.ResetDay,
-		ResetWeekday:    r.ResetWeekday,
-		ResetMax:        r.ResetMax,
-		TrafficReset:    r.TrafficReset,
-		TrafficResetDay: r.TrafficResetDay,
-		CreatedAt:       r.CreatedAt,
-		UpdatedAt:       r.UpdatedAt,
+		ID:                r.UUID,
+		Email:             r.Email,
+		SubID:             r.SubID,
+		Password:          r.Password,
+		Auth:              r.Auth,
+		Flow:              r.Flow,
+		Security:          r.Security,
+		ClientHostRuleId:  r.ClientHostRuleId,
+		ClientHostRuleIds: CloneClientHostRuleIds(r.ClientHostRuleIds),
+		LimitIP:           r.LimitIP,
+		TotalGB:           r.TotalGB,
+		ExpiryTime:        r.ExpiryTime,
+		Enable:            r.Enable,
+		TgID:              r.TgID,
+		Group:             r.Group,
+		Comment:           r.Comment,
+		Reset:             r.Reset,
+		ResetDay:          r.ResetDay,
+		ResetWeekday:      r.ResetWeekday,
+		ResetMax:          r.ResetMax,
+		TrafficReset:      r.TrafficReset,
+		TrafficResetDay:   r.TrafficResetDay,
+		CreatedAt:         r.CreatedAt,
+		UpdatedAt:         r.UpdatedAt,
 
 		PrivateKey:     r.PrivateKey,
 		PublicKey:      r.PublicKey,
@@ -1246,6 +1258,98 @@ type ClientMergeConflict struct {
 	Old   any
 	New   any
 	Kept  any
+}
+
+// equalClientHostRuleId compares nullable host bindings, treating
+// non-positive ids as unset so 0 and nil behave the same.
+func equalClientHostRuleId(a, b *int) bool {
+	return normalizeClientHostRuleId(a) == normalizeClientHostRuleId(b)
+}
+
+// normalizeClientHostRuleId maps nil and non-positive ids to 0.
+func normalizeClientHostRuleId(v *int) int {
+	if v == nil || *v <= 0 {
+		return 0
+	}
+	return *v
+}
+
+// CloneClientHostRuleIds copies a host binding list, preserving the
+// nil vs empty distinction so an explicit clear is not confused with unset.
+func CloneClientHostRuleIds(in []int) []int {
+	if in == nil {
+		return nil
+	}
+	out := make([]int, len(in))
+	copy(out, in)
+	return out
+}
+
+// normalizeClientHostRuleIds drops non-positive ids, preserving nil.
+func normalizeClientHostRuleIds(in []int) []int {
+	if in == nil {
+		return nil
+	}
+	out := make([]int, 0, len(in))
+	for _, id := range in {
+		if id > 0 {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// equalClientHostRuleIds compares binding lists as sets of positive ids.
+func equalClientHostRuleIds(a, b []int) bool {
+	na, nb := normalizeClientHostRuleIds(a), normalizeClientHostRuleIds(b)
+	if len(na) != len(nb) {
+		return false
+	}
+	seen := make(map[int]int, len(na))
+	for _, id := range na {
+		seen[id]++
+	}
+	for _, id := range nb {
+		seen[id]--
+		if seen[id] < 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// EncodeClientHostRuleIds marshals ids into the JSON text stored by raw
+// column writes (Update/Updates), which bypass GORM's serializer.
+func EncodeClientHostRuleIds(ids []int) string {
+	b, err := json.Marshal(ids)
+	if err != nil {
+		return "null"
+	}
+	return string(b)
+}
+
+// EffectiveClientHostRuleIds returns the deduplicated union of a client's
+// single and multi host bindings, keeping first-seen order.
+func EffectiveClientHostRuleIds(c Client) []int {
+	var out []int
+	seen := make(map[int]struct{})
+	add := func(id int) {
+		if id <= 0 {
+			return
+		}
+		if _, dup := seen[id]; dup {
+			return
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	if c.ClientHostRuleId != nil {
+		add(*c.ClientHostRuleId)
+	}
+	for _, id := range c.ClientHostRuleIds {
+		add(id)
+	}
+	return out
 }
 
 type OutboundSubscription struct {
@@ -1493,6 +1597,18 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.Group == "" {
 			keep("group", existing.Group, incoming.Group, incoming.Group)
 			existing.Group = incoming.Group
+		}
+	}
+	if !equalClientHostRuleId(existing.ClientHostRuleId, incoming.ClientHostRuleId) && incoming.ClientHostRuleId != nil {
+		if incomingNewer || existing.ClientHostRuleId == nil {
+			keep("clientHostRuleId", existing.ClientHostRuleId, incoming.ClientHostRuleId, incoming.ClientHostRuleId)
+			existing.ClientHostRuleId = incoming.ClientHostRuleId
+		}
+	}
+	if !equalClientHostRuleIds(existing.ClientHostRuleIds, incoming.ClientHostRuleIds) && incoming.ClientHostRuleIds != nil {
+		if incomingNewer || existing.ClientHostRuleIds == nil {
+			keep("clientHostRuleIds", existing.ClientHostRuleIds, incoming.ClientHostRuleIds, incoming.ClientHostRuleIds)
+			existing.ClientHostRuleIds = CloneClientHostRuleIds(incoming.ClientHostRuleIds)
 		}
 	}
 	if existing.Enable != incoming.Enable {

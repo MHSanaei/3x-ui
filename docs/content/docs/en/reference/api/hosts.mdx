@@ -13,6 +13,10 @@ _openapi:
         sort order.
       url: '#list-every-host-across-all-inbounds-grouped-by-inbound-then-ordered-by-sort-order'
     - depth: 2
+      title: List every host row with its numeric id, for id-based pickers such as the
+        per-client host rule override.
+      url: '#list-every-host-row-with-its-numeric-id-for-id-based-pickers-such-as-the-per-client-host-rule-override'
+    - depth: 2
       title: Fetch a single host group by Group ID.
       url: '#fetch-a-single-host-group-by-group-id'
     - depth: 2
@@ -50,6 +54,9 @@ _openapi:
       - content: List every host across all inbounds, grouped by inbound then ordered by
           sort order.
         id: list-every-host-across-all-inbounds-grouped-by-inbound-then-ordered-by-sort-order
+      - content: List every host row with its numeric id, for id-based pickers such as
+          the per-client host rule override.
+        id: list-every-host-row-with-its-numeric-id-for-id-based-pickers-such-as-the-per-client-host-rule-override
       - content: Fetch a single host group by Group ID.
         id: fetch-a-single-host-group-by-group-id
       - content: Fetch one inbound's hosts, grouped by host group.
@@ -84,7 +91,7 @@ export default function Layout(props) {
   return (
     <>
       {props.children}
-      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/hosts/list","method":"get"},{"path":"/panel/api/hosts/get/{groupId}","method":"get"},{"path":"/panel/api/hosts/byInbound/{inboundId}","method":"get"},{"path":"/panel/api/hosts/tags","method":"get"},{"path":"/panel/api/hosts/add","method":"post"},{"path":"/panel/api/hosts/update/{groupId}","method":"post"},{"path":"/panel/api/hosts/del/{groupId}","method":"post"},{"path":"/panel/api/hosts/setEnable/{groupId}","method":"post"},{"path":"/panel/api/hosts/reorder","method":"post"},{"path":"/panel/api/hosts/bulk/add","method":"post"},{"path":"/panel/api/hosts/bulk/setEnable","method":"post"},{"path":"/panel/api/hosts/bulk/del","method":"post"}]} showTitle />
+      <Comp document="./public/openapi.json" webhooks={[]} operations={[{"path":"/panel/api/hosts/list","method":"get"},{"path":"/panel/api/hosts/raw","method":"get"},{"path":"/panel/api/hosts/get/{groupId}","method":"get"},{"path":"/panel/api/hosts/byInbound/{inboundId}","method":"get"},{"path":"/panel/api/hosts/tags","method":"get"},{"path":"/panel/api/hosts/add","method":"post"},{"path":"/panel/api/hosts/update/{groupId}","method":"post"},{"path":"/panel/api/hosts/del/{groupId}","method":"post"},{"path":"/panel/api/hosts/setEnable/{groupId}","method":"post"},{"path":"/panel/api/hosts/reorder","method":"post"},{"path":"/panel/api/hosts/bulk/add","method":"post"},{"path":"/panel/api/hosts/bulk/setEnable","method":"post"},{"path":"/panel/api/hosts/bulk/del","method":"post"}]} showTitle />
     </>
   );
 }

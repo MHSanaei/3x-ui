@@ -1811,6 +1811,14 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/hosts/raw',
+        summary:
+          'List every host row with its numeric id, for id-based pickers such as the per-client host rule override.',
+        responseSchema: 'Host',
+        responseSchemaArray: true,
+      },
+      {
+        method: 'GET',
         path: '/panel/api/hosts/get/:groupId',
         summary: 'Fetch a single host group by Group ID.',
         params: [{ name: 'groupId', in: 'path', type: 'string', desc: 'Host Group ID.' }],

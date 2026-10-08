@@ -10,6 +10,34 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
+// clientHostEndpoints resolves one client's effective host endpoints — one
+// per valid bound host, or baseEps when unbound or nothing applies.
+func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Client, format string, baseEps []map[string]any) ([]map[string]any, bool) {
+	ids := model.EffectiveClientHostRuleIds(client)
+	if len(ids) == 0 {
+		return baseEps, false
+	}
+	if database.GetDB() == nil {
+		return baseEps, true
+	}
+	defaultDest := s.resolveInboundAddress(inbound)
+	eps := make([]map[string]any, 0, len(ids))
+	for _, id := range ids {
+		var h model.Host
+		if err := database.GetDB().Where("id = ? AND inbound_id = ?", id, inbound.Id).First(&h).Error; err != nil {
+			continue
+		}
+		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
+			continue
+		}
+		eps = append(eps, hostToExternalProxyMap(&h, defaultDest, inbound.Port))
+	}
+	if len(eps) == 0 {
+		return baseEps, true
+	}
+	return eps, true
+}
+
 // hostEndpoints loads an inbound's enabled hosts for the given subscription
 // format ("raw"|"json"|"clash") and returns them as externalProxy-shaped maps so
 // the existing per-format renderers can fan out one link/proxy per host. Returns

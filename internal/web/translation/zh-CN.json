@@ -920,6 +920,8 @@
       "mtprotoSecretHint": "该客户端的 FakeTLS 密钥。重新生成即可更换。",
       "mtprotoAdTag": "广告标签（赞助频道）",
       "mtprotoAdTagHint": "可选的 32 位十六进制标签，从 Telegram 代理注册处获取。设置后，该客户端将通过 Telegram 中间代理路由，赞助频道会显示在其聊天列表顶部。",
+      "hostRuleOverride": "主机规则覆盖",
+      "hostRuleOverridePlaceholder": "默认 (入站规则)",
       "reverseTag": "反向标签",
       "reverseTagPlaceholder": "可选 Reverse tag",
       "telegramId": "Telegram 用户 ID",

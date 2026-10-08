@@ -920,6 +920,8 @@
       "mtprotoSecretHint": "このクライアントの FakeTLS シークレット。変更するには再生成します。",
       "mtprotoAdTag": "広告タグ（スポンサーチャンネル）",
       "mtprotoAdTagHint": "Telegram のプロキシ登録で取得する任意の 32 文字の 16 進数タグ。設定すると、このクライアントは Telegram の中間プロキシ経由でルーティングされ、スポンサーチャンネルがチャット一覧の先頭に表示されます。",
+      "hostRuleOverride": "ホストルールのオーバーライド",
+      "hostRuleOverridePlaceholder": "デフォルト (インバウンドルール)",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "任意の Reverse tag",
       "telegramId": "Telegram ユーザー ID",

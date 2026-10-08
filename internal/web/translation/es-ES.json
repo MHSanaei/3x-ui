@@ -920,6 +920,8 @@
       "mtprotoSecretHint": "El secreto FakeTLS del cliente. Vuelve a generarlo para cambiarlo.",
       "mtprotoAdTag": "Ad-tag (canal patrocinado)",
       "mtprotoAdTagHint": "Etiqueta hexadecimal opcional de 32 caracteres del registro de proxy de Telegram. Si se establece, este cliente se enruta a través de los proxies intermedios de Telegram y aparece un canal patrocinado en la parte superior de su lista de chats.",
+      "hostRuleOverride": "Anulación de regla de host",
+      "hostRuleOverridePlaceholder": "Predeterminado (regla de inbound)",
       "reverseTag": "Etiqueta inversa",
       "reverseTagPlaceholder": "Reverse tag opcional",
       "telegramId": "ID de usuario de Telegram",

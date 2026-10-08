@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { EditorView } from 'codemirror';
 
@@ -39,6 +39,13 @@ function routingLink(value: Record<string, unknown>, mode = 'onadd') {
   return `happ://routing/${mode}/${toBase64Utf8(JSON.stringify(value))}`;
 }
 
+// Unmount while jsdom is alive so CodeMirror destroys its view
+// before the shared cleanup drains pending scheduler callbacks.
+const mounted: Array<() => void> = [];
+afterEach(() => {
+  while (mounted.length) mounted.pop()?.();
+});
+
 function renderSettings(input = routingLink(profile)) {
   const updateSetting = vi.fn<(patch: Partial<AllSetting>) => void>();
 
@@ -60,7 +67,8 @@ function renderSettings(input = routingLink(profile)) {
     );
   }
 
-  renderWithProviders(<SettingsHarness />);
+  const { unmount } = renderWithProviders(<SettingsHarness />);
+  mounted.push(unmount);
   return updateSetting;
 }
 

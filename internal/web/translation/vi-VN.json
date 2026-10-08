@@ -920,6 +920,8 @@
       "mtprotoSecretHint": "Secret FakeTLS của client. Tạo lại để thay đổi.",
       "mtprotoAdTag": "Ad-tag (kênh tài trợ)",
       "mtprotoAdTagHint": "Thẻ thập lục phân 32 ký tự tùy chọn từ đăng ký proxy của Telegram. Khi được đặt, client này sẽ được định tuyến qua các proxy trung gian của Telegram và một kênh tài trợ xuất hiện ở đầu danh sách trò chuyện.",
+      "hostRuleOverride": "Ghi đè quy tắc host",
+      "hostRuleOverridePlaceholder": "Mặc định (quy tắc inbound)",
       "reverseTag": "Reverse tag",
       "reverseTagPlaceholder": "Reverse tag tùy chọn",
       "telegramId": "ID người dùng Telegram",
