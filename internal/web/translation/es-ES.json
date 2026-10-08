@@ -1434,6 +1434,7 @@
       "eventGroupNode": "Nodos",
       "eventOutboundDown": "Caído",
       "eventOutboundUp": "Activo",
+      "eventDownThresholdHint": "comprobaciones fallidas seguidas",
       "eventXrayCrash": "Caída",
       "eventNodeDown": "Caído",
       "eventNodeUp": "Activo",

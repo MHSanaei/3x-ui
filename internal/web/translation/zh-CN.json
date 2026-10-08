@@ -1434,6 +1434,7 @@
       "eventGroupNode": "节点",
       "eventOutboundDown": "断开",
       "eventOutboundUp": "恢复",
+      "eventDownThresholdHint": "次连续检查失败",
       "eventXrayCrash": "崩溃",
       "eventNodeDown": "离线",
       "eventNodeUp": "上线",

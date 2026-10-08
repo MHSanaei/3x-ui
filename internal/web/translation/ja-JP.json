@@ -1434,6 +1434,7 @@
       "eventGroupNode": "ノード",
       "eventOutboundDown": "ダウン",
       "eventOutboundUp": "アップ",
+      "eventDownThresholdHint": "回連続でチェック失敗",
       "eventXrayCrash": "クラッシュ",
       "eventNodeDown": "ダウン",
       "eventNodeUp": "アップ",

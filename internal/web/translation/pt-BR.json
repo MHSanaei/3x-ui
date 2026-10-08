@@ -1434,6 +1434,7 @@
       "eventGroupNode": "Nós",
       "eventOutboundDown": "Inativo",
       "eventOutboundUp": "Ativo",
+      "eventDownThresholdHint": "verificações com falha seguidas",
       "eventXrayCrash": "Falha",
       "eventNodeDown": "Inativo",
       "eventNodeUp": "Ativo",

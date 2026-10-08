@@ -1556,6 +1556,7 @@
       "eventGroupNode": "Nodes",
       "eventOutboundDown": "Down",
       "eventOutboundUp": "Up",
+      "eventDownThresholdHint": "failed checks in a row",
       "eventXrayCrash": "Crash",
       "eventNodeDown": "Down",
       "eventNodeUp": "Up",

@@ -1438,6 +1438,7 @@
       "eventGroupNode": "نودها",
       "eventOutboundDown": "قطع",
       "eventOutboundUp": "وصل",
+      "eventDownThresholdHint": "بررسی ناموفق پیاپی",
       "eventXrayCrash": "کرش",
       "eventNodeDown": "قطع",
       "eventNodeUp": "وصل",
