@@ -1472,6 +1472,7 @@
       "eventGroupNode": "Узлы",
       "eventOutboundDown": "Недоступен",
       "eventOutboundUp": "Работает",
+      "eventDownThresholdHint": "неудачных проверок подряд",
       "eventXrayCrash": "Сбой",
       "eventNodeDown": "Недоступен",
       "eventNodeUp": "В сети",
