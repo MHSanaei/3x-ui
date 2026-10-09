@@ -745,7 +745,7 @@
       "delayedStart": "首次使用後開始",
       "expireDays": "時長 (天)",
       "renew": "自動續期",
-      "renewDesc": "到期後自動續期。(0 = 停用) (單位: 天)",
+      "renewDesc": "到期後自動續期。(單位: 天)",
       "renewDays": "自動續期 (天)",
       "searchPlaceholder": "搜尋電子郵件、備註、sub ID、UUID、密碼、auth、Telegram ID…",
       "filterTitle": "篩選客戶端",
@@ -966,9 +966,11 @@
       "renewNeedsExpiry": "需要先設定到期時間，自動續期才會執行。",
       "renewPreviewError": "無法預覽續期日期。",
       "renewOnDay": "按日期續期",
-      "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。填 0 保持按天間隔模式。",
+      "renewOnDayDesc": "每個自然月的這一天午夜（依面板時區）續期，而不是每 N 天續期一次。若當月沒有該日期，則在當月最後一天續期。",
       "renewsUsed": "已用續期次數",
-      "bulkAdTagHint": "輸入 32 位十六進位標籤以設定，或輸入 'none' 清除 MTProto 贊助頻道。"
+      "bulkAdTagHint": "輸入 32 位十六進位標籤以設定，或輸入 'none' 清除 MTProto 贊助頻道。",
+      "renewIntervalDesc": "到期後從上次截止時間增加指定天數（每天 24 小時），並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。",
+      "renewWeeklyDesc": "日曆續期按面板時區的午夜執行，並重置客戶端流量。若不需要額外重置，請關閉獨立的流量重置。"
     },
     "groups": {
       "name": "名稱",
