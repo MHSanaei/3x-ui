@@ -1223,6 +1223,7 @@ func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func
 		fn("")
 		return
 	}
+	balancerOverrides.reapply(proc, &api, cfg)
 	defer func() {
 		restore := originalRoutingJSON
 		if len(restore) == 0 {
@@ -1231,6 +1232,7 @@ func (s *NodeService) withOutboundBridge(nodeID int, outboundTag string, fn func
 		if err := api.ApplyRoutingConfig(restore); err != nil {
 			logger.Warning("restore routing after node bridge failed:", err)
 		}
+		balancerOverrides.reapply(proc, &api, cfg)
 	}()
 
 	fn(proxyURL)

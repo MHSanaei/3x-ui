@@ -59,9 +59,10 @@ _openapi:
       url: '#live-state-of-routing-balancers-in-the-running-core-routingservicegetbalancerinfo-current-override-and-the-targets-the-strategy-prefers-returns-a-map-keyed-by-balancer-tag'
     - depth: 2
       title: Force a balancer in the running core to always pick one outbound
-        (RoutingService.OverrideBalancerTarget). Applied live without a restart;
-        cleared automatically when Xray restarts.
-      url: '#force-a-balancer-in-the-running-core-to-always-pick-one-outbound-routingserviceoverridebalancertarget-applied-live-without-a-restart-cleared-automatically-when-xray-restarts'
+        (RoutingService.OverrideBalancerTarget). Applied live without a restart
+        and kept across config saves; cleared when Xray restarts or the target
+        outbound is removed.
+      url: '#force-a-balancer-in-the-running-core-to-always-pick-one-outbound-routingserviceoverridebalancertarget-applied-live-without-a-restart-and-kept-across-config-saves-cleared-when-xray-restarts-or-the-target-outbound-is-removed'
     - depth: 2
       title: Ask the running core which outbound its router would pick for a synthetic
         connection (RoutingService.TestRoute). No traffic is sent.
@@ -160,8 +161,9 @@ _openapi:
         id: live-state-of-routing-balancers-in-the-running-core-routingservicegetbalancerinfo-current-override-and-the-targets-the-strategy-prefers-returns-a-map-keyed-by-balancer-tag
       - content: Force a balancer in the running core to always pick one outbound
           (RoutingService.OverrideBalancerTarget). Applied live without a
-          restart; cleared automatically when Xray restarts.
-        id: force-a-balancer-in-the-running-core-to-always-pick-one-outbound-routingserviceoverridebalancertarget-applied-live-without-a-restart-cleared-automatically-when-xray-restarts
+          restart and kept across config saves; cleared when Xray restarts or
+          the target outbound is removed.
+        id: force-a-balancer-in-the-running-core-to-always-pick-one-outbound-routingserviceoverridebalancertarget-applied-live-without-a-restart-and-kept-across-config-saves-cleared-when-xray-restarts-or-the-target-outbound-is-removed
       - content: Ask the running core which outbound its router would pick for a
           synthetic connection (RoutingService.TestRoute). No traffic is sent.
         id: ask-the-running-core-which-outbound-its-router-would-pick-for-a-synthetic-connection-routingservicetestroute-no-traffic-is-sent
