@@ -549,6 +549,9 @@ export interface ClientTraffic {
   resetDay: number;
   resetMax: number;
   resetWeekday: number;
+  sessionDown: number;
+  sessionStart: number;
+  sessionUp: number;
   subId: string;
   total: number;
   up: number;

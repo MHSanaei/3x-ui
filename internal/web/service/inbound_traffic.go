@@ -188,14 +188,17 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		if !ok || (t.Up == 0 && t.Down == 0) {
 			continue
 		}
+		sessionSet, sessionArgs := database.ClientSessionAssignments(localSessionObservation(now, t.Up, t.Down))
+		args := append([]any{t.Up, t.Down, now}, sessionArgs...)
 		if err = tx.Exec(
 			fmt.Sprintf(
-				`UPDATE client_traffics SET up = %s, down = %s, last_online = %s WHERE email = ?`,
+				`UPDATE client_traffics SET up = %s, down = %s, last_online = %s, %s WHERE email = ?`,
 				database.ClampedAddExpr("up"),
 				database.ClampedAddExpr("down"),
 				database.GreatestExpr("last_online", "?"),
+				sessionSet,
 			),
-			t.Up, t.Down, now, ct.Email,
+			append(args, ct.Email)...,
 		).Error; err != nil {
 			return fmt.Errorf("update traffic for %s: %w", ct.Email, err)
 		}
@@ -203,7 +206,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 
 	// adjustTraffics converts delayed-start rows (negative ExpiryTime → absolute
 	// deadline) in-memory. Persist that conversion now since the traffic UPDATE
-	// above only touches up/down/last_online. Only converted emails are written:
+	// above never touches expiry_time. Only converted emails are written:
 	// updating every polled row issued one no-op UPDATE per active client per
 	// poll. Sorted order keeps concurrent writers lock-compatible on Postgres.
 	for _, email := range slices.Sorted(maps.Keys(convertedExpiryByEmail)) {
@@ -1127,21 +1130,22 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	return traffics, nil
 }
 
-// BumpClientsLastOnline sets client_traffics.last_online to now for the given
-// emails. Used in online-API mode for clients that hold a live connection but
-// moved no bytes this poll — the traffic path (addClientTraffic) only bumps
-// last_online on a non-zero delta, so idle-but-connected clients would
-// otherwise show a stale "last online" while being reported online.
+// BumpClientsLastOnline records activity now for clients a live connection keeps
+// online without moving bytes, which addClientTraffic (non-zero deltas only) misses.
 func (s *InboundService) BumpClientsLastOnline(emails []string) error {
 	uniq := uniqueNonEmptyStrings(emails)
 	if len(uniq) == 0 {
 		return nil
 	}
 	now := time.Now().UnixMilli()
+	sessionSet, sessionArgs := database.ClientSessionAssignments(localSessionObservation(now, 0, 0))
+	stmt := fmt.Sprintf(`UPDATE client_traffics SET last_online = %s, %s WHERE email IN ?`,
+		database.GreatestExpr("last_online", "?"), sessionSet)
 	return submitTrafficWrite(func() error {
 		db := database.GetDB()
 		for _, batch := range chunkStrings(uniq, sqliteMaxVars) {
-			if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Update("last_online", now).Error; err != nil {
+			args := append(append([]any{now}, sessionArgs...), batch)
+			if err := db.Exec(stmt, args...).Error; err != nil {
 				return err
 			}
 		}

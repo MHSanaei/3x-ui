@@ -28,4 +28,9 @@ type ClientTraffic struct {
 	ResetCount   int   `json:"resetCount" form:"resetCount" gorm:"default:0" example:"0"`
 	LastOnline   int64 `json:"lastOnline" form:"lastOnline" gorm:"default:0" example:"1735680000000"`
 	LastSubFetch int64 `json:"lastSubFetch" form:"lastSubFetch" gorm:"default:0" example:"1735680000000"`
+	// SessionStart (ms; 0 until one is seen) opens the latest online session that
+	// SessionUp/SessionDown count. An offline gap opens a new one; resets never do.
+	SessionStart int64 `json:"sessionStart" form:"sessionStart" gorm:"default:0" example:"1735676400000"`
+	SessionUp    int64 `json:"sessionUp" form:"sessionUp" gorm:"default:0" example:"52428800"`
+	SessionDown  int64 `json:"sessionDown" form:"sessionDown" gorm:"default:0" example:"157286400"`
 }

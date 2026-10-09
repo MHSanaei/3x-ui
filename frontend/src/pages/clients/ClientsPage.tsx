@@ -70,6 +70,7 @@ import type {
 } from '@/hooks/useClients';
 import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import ClientSpeedTag, { isActiveSpeed } from '@/components/clients/ClientSpeedTag';
+import ClientSessionCell, { hasClientSession } from '@/components/clients/ClientSessionCell';
 import ClientCardComment from '@/components/clients/ClientCardComment';
 import AppSidebar from '@/layouts/AppSidebar';
 import { IntlUtil, SizeFormatter } from '@/utils';
@@ -1203,6 +1204,21 @@ export default function ClientsPage() {
         },
       },
       {
+        title: t('pages.clients.session'),
+        key: 'session',
+        width: 120,
+        align: 'center',
+        render: (_v, record) => (
+          <ClientSessionCell
+            up={record.traffic?.sessionUp}
+            down={record.traffic?.sessionDown}
+            start={record.traffic?.sessionStart}
+            lastOnline={record.traffic?.lastOnline}
+            ongoing={!!record.enable && isOnline(record.email)}
+          />
+        ),
+      },
+      {
         title: t('pages.clients.remaining'),
         key: 'remaining',
         width: 130,
@@ -1704,7 +1720,7 @@ export default function ClientsPage() {
                           rowSelection={rowSelection}
                           pagination={tablePagination}
                           size="small"
-                          scroll={{ x: 1200 }}
+                          scroll={{ x: 1320 }}
                           onChange={onTableChange}
                           locale={{
                             emptyText: (
@@ -1875,6 +1891,22 @@ export default function ClientsPage() {
                                       </div>
                                     );
                                   })()}
+                                  {hasClientSession(
+                                    row.traffic?.sessionStart,
+                                    row.traffic?.sessionUp,
+                                    row.traffic?.sessionDown,
+                                  ) && (
+                                    <div className="client-card-session">
+                                      {t('pages.clients.session')}{' '}
+                                      <ClientSessionCell
+                                        up={row.traffic?.sessionUp}
+                                        down={row.traffic?.sessionDown}
+                                        start={row.traffic?.sessionStart}
+                                        lastOnline={row.traffic?.lastOnline}
+                                        ongoing={!!row.enable && isOnline(row.email)}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
