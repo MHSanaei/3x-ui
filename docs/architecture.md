@@ -340,6 +340,22 @@ code_ works whether the target is the local Xray or a remote node.
 - **Dispatch:** `manager.go` → `Manager.RuntimeFor(nodeID *int)`; `nil` nodeID → `Local`,
   otherwise a cached/lazy-loaded `Remote`. `InvalidateNode(id)` drops a cached remote client.
 
+Bearer tokens use the narrowest scope that matches the caller's duties:
+
+| Scope        | Access                                                                 |
+| ------------ | ---------------------------------------------------------------------- |
+| `monitor`    | Read-only status, version, and metric endpoints.                       |
+| `node-sync`  | Node configuration, inbound/client synchronization, traffic, and Xray. |
+| `node-admin` | All `node-sync` access plus `POST /panel/api/server/updatePanel`.      |
+| `admin`      | Every panel API endpoint; intended for fully trusted automation.       |
+
+`node-admin` remains a node synchronization identity when inbound rules are applied. This
+preserves the node-specific validation path while keeping software-update authority separate
+from ordinary `node-sync` credentials. On an mTLS connection, only a valid `node-admin` bearer
+elevates the request; other bearer scopes retain the historical mTLS `node-sync` behavior.
+Existing tokens retain their stored scope, and legacy tokens without one continue to migrate to
+`admin`.
+
 **Node identity & attribution (the hard part).** Inbounds carry a `NodeID` _and_ an
 `OriginNodeGuid`. Because inbounds can be pushed across hops, the panel attributes traffic and
 online clients back to the originating panel using **stable GUIDs** rather than local IDs.

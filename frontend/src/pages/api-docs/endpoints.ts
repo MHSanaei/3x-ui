@@ -663,7 +663,8 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/server/updatePanel',
-        summary: 'Self-update the panel to the latest version. The server restarts on success.',
+        summary:
+          'Self-update the panel to the latest version. The server restarts on success. Bearer-token callers need admin or node-admin scope.',
         params: [
           {
             name: 'dev',
@@ -1996,7 +1997,7 @@ export const sections: readonly Section[] = [
     id: 'api-tokens',
     title: 'API Tokens',
     description:
-      'Manage scoped Bearer tokens for programmatic auth. Tokens grant admin, monitor, or node-sync access, may expire, and are stored as SHA-256 hashes. The plaintext is returned only once at creation.',
+      'Manage scoped Bearer tokens for programmatic auth. admin grants the full panel API; monitor is read-only for status and metrics; node-sync manages node configuration without panel updates; node-admin adds panel self-update to node-sync. Tokens may expire and are stored as SHA-256 hashes. The plaintext is returned only once at creation.',
     endpoints: [
       {
         method: 'GET',
@@ -2004,7 +2005,7 @@ export const sections: readonly Section[] = [
         summary:
           'List every API token, enabled or not. The token value is never returned — only metadata.',
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "default",\n      "enabled": true,\n      "createdAt": 1736000000\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "name": "central-panel-a",\n      "enabled": true,\n      "createdAt": 1736000000,\n      "scope": "node-admin",\n      "expiresAt": 0\n    }\n  ]\n}',
       },
       {
         method: 'POST',
@@ -2022,7 +2023,8 @@ export const sections: readonly Section[] = [
             name: 'scope',
             in: 'body',
             type: 'string',
-            desc: 'admin (default), monitor, or node-sync.',
+            desc: 'admin (default), monitor, node-sync, or node-admin. node-admin inherits node-sync and may also start a panel update.',
+            enum: ['admin', 'monitor', 'node-sync', 'node-admin'],
             optional: true,
           },
           {
@@ -2033,7 +2035,7 @@ export const sections: readonly Section[] = [
             optional: true,
           },
         ],
-        body: '{\n  "name": "central-panel-a",\n  "scope": "node-sync",\n  "expiresAt": 1798761600000\n}',
+        body: '{\n  "name": "central-panel-a",\n  "scope": "node-admin",\n  "expiresAt": 1798761600000\n}',
         responseSchema: 'ApiTokenView',
         errorResponse:
           '{\n  "success": false,\n  "msg": "a token with that name already exists"\n}',

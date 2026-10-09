@@ -64,10 +64,11 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 // node-sync push, so the node stores the row instead of re-judging it.
 func (a *InboundController) inboundServiceFor(c *gin.Context) *service.InboundService {
 	svc := a.inboundService
-	scope, _ := c.Get("api_token_scope")
+	scopeValue, _ := c.Get("api_token_scope")
+	scope, _ := scopeValue.(string)
 	// A master enrolled with an admin token (the -getApiToken default) has no
 	// node-sync scope, so it marks every request it sends instead.
-	svc.FromNodeSync = scope == model.ApiScopeNodeSync || c.GetHeader(wirecodec.MasterPushHeader) != ""
+	svc.FromNodeSync = model.IsNodeSyncApiScope(scope) || c.GetHeader(wirecodec.MasterPushHeader) != ""
 	return &svc
 }
 

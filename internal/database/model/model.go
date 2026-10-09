@@ -160,13 +160,18 @@ type HistoryOfSeeders struct {
 const ApiTokenUnixMillisecondsThreshold int64 = 100_000_000_000
 
 const (
-	ApiScopeAdmin    = "admin"
-	ApiScopeMonitor  = "monitor"
-	ApiScopeNodeSync = "node-sync"
+	ApiScopeAdmin     = "admin"
+	ApiScopeMonitor   = "monitor"
+	ApiScopeNodeSync  = "node-sync"
+	ApiScopeNodeAdmin = "node-admin"
 )
 
 func IsKnownApiScope(s string) bool {
-	return s == ApiScopeAdmin || s == ApiScopeMonitor || s == ApiScopeNodeSync
+	return s == ApiScopeAdmin || s == ApiScopeMonitor || s == ApiScopeNodeSync || s == ApiScopeNodeAdmin
+}
+
+func IsNodeSyncApiScope(s string) bool {
+	return s == ApiScopeNodeSync || s == ApiScopeNodeAdmin
 }
 
 type ApiToken struct {
