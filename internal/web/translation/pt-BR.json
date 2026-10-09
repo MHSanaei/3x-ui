@@ -2516,7 +2516,21 @@
       "eventNodeDown": "O nó {{ .Name }} está INATIVO",
       "eventNodeUp": "O nó {{ .Name }} está ATIVO",
       "eventLoginFallback": "Falha de login a partir de {{ .Source }}",
-      "memoryThreshold": "Uso de memória {{ .Percent }}% excede o limite de {{ .Threshold }}%"
+      "memoryThreshold": "Uso de memória {{ .Percent }}% excede o limite de {{ .Threshold }}%",
+      "guideChoose": "📖 <b>Guia de configuração</b>\r\nEscolha o dispositivo que deseja configurar.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. Instale <b>Streisand</b> ou <b>V2Box</b> na App Store.\r\n2. Abra a página de links de assinatura neste bot e copie sua URL de assinatura.\r\n3. No app, toque em <b>+</b> → <b>Add from clipboard</b>.\r\n4. Puxe para baixo para atualizar e conecte.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. Instale <b>v2rayNG</b> ou <b>Hiddify</b> no Google Play.\r\n2. Abra a página de links de assinatura neste bot e copie sua URL de assinatura.\r\n3. No app, toque em <b>+</b> → <b>Import from clipboard</b>.\r\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. Instale <b>Hiddify</b> ou <b>v2rayN</b>.\r\n2. Abra a página de links de assinatura neste bot e copie sua URL de assinatura.\r\n3. No app, adicione uma assinatura e cole a URL.\r\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. Instale <b>Hiddify</b> ou <b>V2Box</b>.\r\n2. Abra a página de links de assinatura neste bot e copie sua URL de assinatura.\r\n3. No app, adicione uma assinatura e cole a URL.\r\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. Instale <b>Hiddify</b> (AppImage) ou <b>Nekoray</b>.\r\n2. Abra a página de links de assinatura neste bot e copie sua URL de assinatura.\r\n3. No app, adicione uma assinatura e cole a URL.\r\n4. Atualize a assinatura, escolha um servidor e conecte.",
+      "customerMenu": "👇 O que você precisa?",
+      "configsChoose": "👇 Escolha como obter sua configuração:",
+      "chooseOneConfig": "👇 Qual configuração você quer?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 Nenhuma configuração está vinculada a esta conta do Telegram ainda.\r\nPeça um link de convite ao administrador e abra-o.",
+      "noBoundClientAdmin": "🔗 Você ainda não vinculou nenhuma configuração a esta conta.\r\nAbra 🛡 Admin → 🔗 Invite Links, escolha seu cliente e abra o link dele.",
+      "notStarted": "não iniciado",
+      "unlimited": "♾ Ilimitado"
     },
     "buttons": {
       "closeKeyboard": "❌ Fechar teclado",
@@ -2560,7 +2574,19 @@
       "change_email": "⚙️📧 Email",
       "change_comment": "⚙️💬 Comentário",
       "ResetAllTraffics": "Redefinir Todo o Tráfego",
-      "SortedTrafficUsageReport": "Relatório de Uso de Tráfego Ordenado"
+      "SortedTrafficUsageReport": "Relatório de Uso de Tráfego Ordenado",
+      "customerMenu": "Minhas configurações",
+      "setupGuide": "Guia de configuração",
+      "getAllLinks": "Todos os links",
+      "getOneConfig": "Um link",
+      "subscriptionUrl": "URL da assinatura",
+      "qrCodes": "Códigos QR",
+      "backToMenu": "Voltar",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Transmissão iniciada.",

@@ -2516,7 +2516,21 @@
       "eventNodeDown": "{{ .Name }} düğümü ÇEVRİMDIŞI",
       "eventNodeUp": "{{ .Name }} düğümü ÇEVRİMİÇİ",
       "eventLoginFallback": "{{ .Source }} adresinden oturum açma başarısız",
-      "memoryThreshold": "Bellek kullanımı {{ .Percent }}% eşiği {{ .Threshold }}% aşıyor"
+      "memoryThreshold": "Bellek kullanımı {{ .Percent }}% eşiği {{ .Threshold }}% aşıyor",
+      "guideChoose": "📖 <b>Kurulum kılavuzu</b>\r\nKurmak istediğiniz cihazı seçin.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. App Store’dan <b>Streisand</b> veya <b>V2Box</b> kurun.\r\n2. Bu botta abonelik bağlantıları sayfasını açın ve abonelik URL’nizi kopyalayın.\r\n3. Uygulamada <b>+</b> → <b>Add from clipboard</b> dokunun.\r\n4. Güncellemek için aşağı çekin, ardından bağlanın.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. Google Play’den <b>v2rayNG</b> veya <b>Hiddify</b> kurun.\r\n2. Bu botta abonelik bağlantıları sayfasını açın ve abonelik URL’nizi kopyalayın.\r\n3. Uygulamada <b>+</b> → <b>Import from clipboard</b> dokunun.\r\n4. Aboneliği yenileyin, bir sunucu seçin ve bağlanın.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. <b>Hiddify</b> veya <b>v2rayN</b> kurun.\r\n2. Bu botta abonelik bağlantıları sayfasını açın ve abonelik URL’nizi kopyalayın.\r\n3. Uygulamada abonelik ekleyip URL’yi yapıştırın.\r\n4. Aboneliği yenileyin, bir sunucu seçin ve bağlanın.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. <b>Hiddify</b> veya <b>V2Box</b> kurun.\r\n2. Bu botta abonelik bağlantıları sayfasını açın ve abonelik URL’nizi kopyalayın.\r\n3. Uygulamada abonelik ekleyip URL’yi yapıştırın.\r\n4. Aboneliği yenileyin, bir sunucu seçin ve bağlanın.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. <b>Hiddify</b> (AppImage) veya <b>Nekoray</b> kurun.\r\n2. Bu botta abonelik bağlantıları sayfasını açın ve abonelik URL’nizi kopyalayın.\r\n3. Uygulamada abonelik ekleyip URL’yi yapıştırın.\r\n4. Aboneliği yenileyin, bir sunucu seçin ve bağlanın.",
+      "customerMenu": "👇 Neye ihtiyacınız var?",
+      "configsChoose": "👇 Yapılandırmanızı nasıl almak istersiniz:",
+      "chooseOneConfig": "👇 Hangi yapılandırma?",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 Bu Telegram hesabına henüz bir yapılandırma bağlanmadı.\r\nYöneticinizden bir davet bağlantısı isteyip açın.",
+      "noBoundClientAdmin": "🔗 Bu hesaba henüz bir yapılandırma bağlamadınız.\r\n🛡 Admin → 🔗 Invite Links bölümünü açın, kendi istemcinizi seçin ve bağlantısını açın.",
+      "notStarted": "başlanmadı",
+      "unlimited": "♾ Sınırsız"
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",
@@ -2560,7 +2574,19 @@
       "change_email": "⚙️📧 E-posta",
       "change_comment": "⚙️💬 Yorum",
       "ResetAllTraffics": "Tüm Trafikleri Sıfırla",
-      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu"
+      "SortedTrafficUsageReport": "Sıralı Trafik Kullanım Raporu",
+      "customerMenu": "Yapılandırmalarım",
+      "setupGuide": "Kurulum kılavuzu",
+      "getAllLinks": "Tüm bağlantılar",
+      "getOneConfig": "Tek bağlantı",
+      "subscriptionUrl": "Abonelik URL’si",
+      "qrCodes": "QR kodları",
+      "backToMenu": "Geri",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 Toplu gönderim başladı.",

@@ -2516,7 +2516,21 @@
       "eventNodeDown": "العقدة {{ .Name }} غير متصلة",
       "eventNodeUp": "العقدة {{ .Name }} متصلة",
       "eventLoginFallback": "فشل تسجيل الدخول من {{ .Source }}",
-      "memoryThreshold": "استخدام الذاكرة {{ .Percent }}% يتجاوز الحد {{ .Threshold }}%"
+      "memoryThreshold": "استخدام الذاكرة {{ .Percent }}% يتجاوز الحد {{ .Threshold }}%",
+      "guideChoose": "📖 <b>دليل الإعداد</b>\r\nاختر الجهاز الذي تريد إعداده.",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. ثبّت <b>Streisand</b> أو <b>V2Box</b> من App Store.\r\n2. افتح صفحة روابط الاشتراك في هذه البوت وانسخ رابط اشتراكك.\r\n3. في التطبيق اضغط <b>+</b> ← <b>Add from clipboard</b>.\r\n4. اسحب للأسفل للتحديث، ثم اتصل.",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. ثبّت <b>v2rayNG</b> أو <b>Hiddify</b> من Google Play.\r\n2. افتح صفحة روابط الاشتراك في هذه البوت وانسخ رابط اشتراكك.\r\n3. في التطبيق اضغط <b>+</b> ← <b>Import from clipboard</b>.\r\n4. حدّث الاشتراك، واختر خادمًا واتصل.",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. ثبّت <b>Hiddify</b> أو <b>v2rayN</b>.\r\n2. افتح صفحة روابط الاشتراك في هذه البوت وانسخ رابط اشتراكك.\r\n3. في التطبيق أضف اشتراكًا والصق الرابط.\r\n4. حدّث الاشتراك، واختر خادمًا واتصل.",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. ثبّت <b>Hiddify</b> أو <b>V2Box</b>.\r\n2. افتح صفحة روابط الاشتراك في هذه البوت وانسخ رابط اشتراكك.\r\n3. في التطبيق أضف اشتراكًا والصق الرابط.\r\n4. حدّث الاشتراك، واختر خادمًا واتصل.",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. ثبّت <b>Hiddify</b> (AppImage) أو <b>Nekoray</b>.\r\n2. افتح صفحة روابط الاشتراك في هذه البوت وانسخ رابط اشتراكك.\r\n3. في التطبيق أضف اشتراكًا والصق الرابط.\r\n4. حدّث الاشتراك، واختر خادمًا واتصل.",
+      "customerMenu": "👇 ماذا تحتاج؟",
+      "configsChoose": "👇 اختر كيف تحصل على إعدادك:",
+      "chooseOneConfig": "👇 أي إعداد تريد؟",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 لا يوجد إعداد مرتبط بهذا الحساب بعد.\r\nاطلب من المسؤول رابط دعوة وافتحه.",
+      "noBoundClientAdmin": "🔗 لم تربط إعدادًا بهذا الحساب بعد.\r\nافتح 🛡 Admin ← 🔗 Invite Links، واختر إعدادك وافتح رابطه.",
+      "notStarted": "لم يبدأ",
+      "unlimited": "♾ غير محدود"
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",
@@ -2560,7 +2574,19 @@
       "change_email": "⚙️📧 البريد",
       "change_comment": "⚙️💬 تعليق",
       "ResetAllTraffics": "إعادة ضبط جميع الترافيك",
-      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب"
+      "SortedTrafficUsageReport": "تقرير استخدام الترافيك المرتب",
+      "customerMenu": "إعداداتي",
+      "setupGuide": "دليل الإعداد",
+      "getAllLinks": "كل الروابط",
+      "getOneConfig": "رابط واحد",
+      "subscriptionUrl": "رابط الاشتراك",
+      "qrCodes": "رموز QR",
+      "backToMenu": "رجوع",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 بدأ البث.",

@@ -2516,7 +2516,21 @@
       "eventNodeDown": "ノード {{ .Name }} がダウンしています",
       "eventNodeUp": "ノード {{ .Name }} が復旧しました",
       "eventLoginFallback": "{{ .Source }} からのログインに失敗しました",
-      "memoryThreshold": "メモリ使用率 {{ .Percent }}% がしきい値 {{ .Threshold }}% を超えました"
+      "memoryThreshold": "メモリ使用率 {{ .Percent }}% がしきい値 {{ .Threshold }}% を超えました",
+      "guideChoose": "📖 <b>設定ガイド</b>\r\n設定する端末を選んでください。",
+      "guideIos": "🍎 <b>iPhone / iPad</b>\r\n1. App Store から <b>Streisand</b> または <b>V2Box</b> をインストールします。\r\n2. このボットでサブスクリプションリンクのページを開き、サブスクリプションURLをコピーします。\r\n3. アプリで <b>+</b> → <b>Add from clipboard</b> をタップします。\r\n4. 下に引いて更新し、接続します。",
+      "guideAndroid": "🤖 <b>Android</b>\r\n1. Google Play から <b>v2rayNG</b> または <b>Hiddify</b> をインストールします。\r\n2. このボットでサブスクリプションリンクのページを開き、サブスクリプションURLをコピーします。\r\n3. アプリで <b>+</b> → <b>Import from clipboard</b> をタップします。\r\n4. サブスクリプションを更新し、サーバーを選んで接続します。",
+      "guideWindows": "🪟 <b>Windows</b>\r\n1. <b>Hiddify</b> または <b>v2rayN</b> をインストールします。\r\n2. このボットでサブスクリプションリンクのページを開き、サブスクリプションURLをコピーします。\r\n3. アプリでサブスクリプションを追加し、URLを貼り付けます。\r\n4. サブスクリプションを更新し、サーバーを選んで接続します。",
+      "guideMacos": "💻 <b>macOS</b>\r\n1. <b>Hiddify</b> または <b>V2Box</b> をインストールします。\r\n2. このボットでサブスクリプションリンクのページを開き、サブスクリプションURLをコピーします。\r\n3. アプリでサブスクリプションを追加し、URLを貼り付けます。\r\n4. サブスクリプションを更新し、サーバーを選んで接続します。",
+      "guideLinux": "🐧 <b>Linux</b>\r\n1. <b>Hiddify</b>（AppImage）または <b>Nekoray</b> をインストールします。\r\n2. このボットでサブスクリプションリンクのページを開き、サブスクリプションURLをコピーします。\r\n3. アプリでサブスクリプションを追加し、URLを貼り付けます。\r\n4. サブスクリプションを更新し、サーバーを選んで接続します。",
+      "customerMenu": "👇 何が必要ですか？",
+      "configsChoose": "👇 設定の取得方法を選んでください：",
+      "chooseOneConfig": "👇 どの設定が必要ですか？",
+      "clientHeader": "📧 <code>{{ .Email }}</code>\r\n📅 {{ .Expiry }}\r\n📊 {{ .Remaining }}",
+      "noBoundClient": "🔗 この Telegram アカウントにはまだ設定が紐づいていません。\r\n管理者に招待リンクを依頼して開いてください。",
+      "noBoundClientAdmin": "🔗 このアカウントにはまだ設定を紐づけていません。\r\n🛡 Admin → 🔗 Invite Links を開き、自分のクライアントを選んでリンクを開いてください。",
+      "notStarted": "未開始",
+      "unlimited": "♾ 無制限"
     },
     "buttons": {
       "closeKeyboard": "❌ キーボードを閉じる",
@@ -2560,7 +2574,19 @@
       "change_email": "⚙️📧 メール",
       "change_comment": "⚙️💬 コメント",
       "ResetAllTraffics": "すべてのトラフィックをリセット",
-      "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート"
+      "SortedTrafficUsageReport": "ソートされたトラフィック使用レポート",
+      "customerMenu": "自分の設定",
+      "setupGuide": "設定ガイド",
+      "getAllLinks": "すべてのリンク",
+      "getOneConfig": "リンクを1つ",
+      "subscriptionUrl": "サブスクリプションURL",
+      "qrCodes": "QRコード",
+      "backToMenu": "戻る",
+      "guideIos": "iPhone / iPad",
+      "guideAndroid": "Android",
+      "guideWindows": "Windows",
+      "guideMacos": "macOS",
+      "guideLinux": "Linux"
     },
     "answers": {
       "broadcastStarted": "🚀 一括送信を開始しました。",
