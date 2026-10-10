@@ -96,11 +96,8 @@ export default function HostFormModal({
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
-  const watchedHosts = (useWatch({ control: methods.control, name: 'hosts' }) ?? []) as string[];
-  const hasCidr = useMemo(
-    () => watchedHosts.some((h) => typeof h === 'string' && h.includes('/')),
-    [watchedHosts],
-  );
+  const watchedHosts = useWatch({ control: methods.control, name: 'hosts' });
+  const hasCidr = Boolean(watchedHosts?.some((h) => typeof h === 'string' && h.includes('/')));
 
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
