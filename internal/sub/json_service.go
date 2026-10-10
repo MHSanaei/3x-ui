@@ -873,15 +873,11 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 	}
 	outbound.StreamSettings = streamSettings
 
-	// Add encryption for VLESS outbound from inbound settings
-	inboundSettings := subReq.linkSettings(inbound)
-	encryption, _ := inboundSettings["encryption"].(string)
-
 	settings := map[string]any{
 		"address":    inbound.Listen,
 		"port":       inbound.Port,
 		"id":         client.ID,
-		"encryption": encryption,
+		"encryption": vlessClientEncryption(subReq.linkSettings(inbound)),
 		"level":      8,
 	}
 	if client.Flow != "" && !inbound.DisableFlow {
