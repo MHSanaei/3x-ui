@@ -2299,6 +2299,7 @@
         "mihomoIpVersion": "Версія IP",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Перемішувати host",
+        "randomCount": "Кількість випадкових IP",
         "tags": "Теги",
         "nodeGuids": "Вузли",
         "excludeFromSubTypes": "Виключити з форматів",

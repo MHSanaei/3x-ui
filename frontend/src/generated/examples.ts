@@ -702,6 +702,7 @@ export const EXAMPLES: Record<string, unknown> = {
       ""
     ],
     "port": 8443,
+    "randomCount": 1,
     "remark": "cdn-front",
     "security": "same",
     "serverDescription": "",
@@ -751,6 +752,7 @@ export const EXAMPLES: Record<string, unknown> = {
       ""
     ],
     "port": 0,
+    "randomCount": 0,
     "remark": "",
     "security": "same",
     "serverDescription": "",

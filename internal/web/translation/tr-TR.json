@@ -2298,6 +2298,7 @@
         "mihomoIpVersion": "IP sürümü",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Host'u karıştır",
+        "randomCount": "Rastgele IP sayısı",
         "tags": "Etiketler",
         "nodeGuids": "Düğümler",
         "excludeFromSubTypes": "Formatlardan hariç tut",

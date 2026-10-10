@@ -2299,6 +2299,7 @@
         "mihomoIpVersion": "Versão de IP",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Embaralhar host",
+        "randomCount": "Contagem de IPs aleatórios",
         "tags": "Tags",
         "nodeGuids": "Nós",
         "excludeFromSubTypes": "Excluir dos formatos",
