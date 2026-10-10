@@ -1109,6 +1109,7 @@ type Host struct {
 	MihomoIpVersion string `json:"mihomoIpVersion" form:"mihomoIpVersion" gorm:"column:mihomo_ip_version" validate:"omitempty,oneof=dual ipv4 ipv6 ipv4-prefer ipv6-prefer"`
 	MihomoX25519    bool   `json:"mihomoX25519" form:"mihomoX25519" gorm:"column:mihomo_x25519"`
 	ShuffleHost     bool   `json:"shuffleHost" form:"shuffleHost" gorm:"column:shuffle_host"`
+	RandomCount     int    `json:"randomCount" form:"randomCount" gorm:"default:1;column:random_count" example:"1"`
 
 	NodeGuids []string `json:"nodeGuids,omitempty" form:"nodeGuids" gorm:"serializer:json;column:node_guids"`
 

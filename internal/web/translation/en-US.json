@@ -1065,6 +1065,7 @@
         "mihomoIpVersion": "IP version",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Shuffle host",
+        "randomCount": "Random IP count",
         "tags": "Tags",
         "nodeGuids": "Nodes",
         "excludeFromSubTypes": "Exclude from formats",

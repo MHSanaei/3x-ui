@@ -2303,6 +2303,7 @@
         "mihomoIpVersion": "Phiên bản IP",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Xáo trộn host",
+        "randomCount": "Số lượng IP ngẫu nhiên",
         "tags": "Tag",
         "nodeGuids": "Nút",
         "excludeFromSubTypes": "Loại trừ khỏi định dạng",

@@ -2738,6 +2738,10 @@
             "minimum": 0,
             "type": "integer"
           },
+          "randomCount": {
+            "example": 1,
+            "type": "integer"
+          },
           "remark": {
             "example": "cdn-front",
             "maxLength": 256,
@@ -2810,6 +2814,7 @@
           "path",
           "pinnedPeerCertSha256",
           "port",
+          "randomCount",
           "remark",
           "security",
           "serverDescription",
@@ -2919,6 +2924,9 @@
             "minimum": 0,
             "type": "integer"
           },
+          "randomCount": {
+            "type": "integer"
+          },
           "remark": {
             "maxLength": 256,
             "type": "string"
@@ -2984,6 +2992,7 @@
           "path",
           "pinnedPeerCertSha256",
           "port",
+          "randomCount",
           "remark",
           "security",
           "serverDescription",
@@ -11908,6 +11917,7 @@
                         ""
                       ],
                       "port": 0,
+                      "randomCount": 0,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",
@@ -12003,6 +12013,7 @@
                       ""
                     ],
                     "port": 0,
+                    "randomCount": 0,
                     "remark": "",
                     "security": "same",
                     "serverDescription": "",
@@ -12101,6 +12112,7 @@
                         ""
                       ],
                       "port": 0,
+                      "randomCount": 0,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",
@@ -12249,6 +12261,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",
@@ -12371,6 +12384,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",
@@ -12623,6 +12637,7 @@
                         ""
                       ],
                       "port": 8443,
+                      "randomCount": 1,
                       "remark": "cdn-front",
                       "security": "same",
                       "serverDescription": "",

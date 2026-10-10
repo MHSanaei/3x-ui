@@ -2303,6 +2303,7 @@
         "mihomoIpVersion": "Versión de IP",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Barajar host",
+        "randomCount": "Cantidad de IPs aleatorias",
         "tags": "Etiquetas",
         "nodeGuids": "Nodos",
         "excludeFromSubTypes": "Excluir de formatos",

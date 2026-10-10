@@ -2303,6 +2303,7 @@
         "mihomoIpVersion": "IP バージョン",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "ホストをシャッフル",
+        "randomCount": "ランダム IP 数",
         "tags": "タグ",
         "nodeGuids": "ノード",
         "excludeFromSubTypes": "形式から除外",

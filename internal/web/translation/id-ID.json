@@ -2302,6 +2302,7 @@
         "mihomoIpVersion": "Versi IP",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "Acak host",
+        "randomCount": "Jumlah IP acak",
         "tags": "Tag",
         "nodeGuids": "Node",
         "excludeFromSubTypes": "Kecualikan dari format",

@@ -2303,6 +2303,7 @@
         "mihomoIpVersion": "IP 版本",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "随机打乱 Host",
+        "randomCount": "随机 IP 数量",
         "tags": "标签",
         "nodeGuids": "节点",
         "excludeFromSubTypes": "从格式中排除",

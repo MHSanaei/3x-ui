@@ -2303,6 +2303,7 @@
         "mihomoIpVersion": "نسخه IP",
         "mihomoX25519": "Mihomo X25519",
         "shuffleHost": "درهم‌سازی میزبان",
+        "randomCount": "تعداد IP تصادفی",
         "tags": "برچسب‌ها",
         "nodeGuids": "نودها",
         "excludeFromSubTypes": "حذف از فرمت‌ها",
