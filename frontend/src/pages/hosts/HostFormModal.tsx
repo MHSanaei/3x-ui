@@ -255,10 +255,7 @@ export default function HostFormModal({
                       />
                     </FormField>
                     {hasCidr && (
-                      <FormField
-                        name="randomCount"
-                        label={t('pages.hosts.fields.randomCount')}
-                      >
+                      <FormField name="randomCount" label={t('pages.hosts.fields.randomCount')}>
                         <InputNumber min={1} max={100} style={{ width: '100%' }} />
                       </FormField>
                     )}
