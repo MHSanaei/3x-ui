@@ -894,11 +894,8 @@ export default function InboundFormModal({
         cleaned.finalmask = { ...fm, udp };
       }
     }
-    /*
-     * WebSocket needs HTTP/1.1 for its handshake: leaving the TLS default
-     * ALPN ['h2','http/1.1'] makes the server negotiate h2 and breaks WS
-     * (see issue #6782). Other transports keep whatever ALPN is set.
-     */
+    /* WebSocket needs HTTP/1.1 for its handshake; the TLS default
+     * ALPN ['h2','http/1.1'] makes the server negotiate h2 (see #6782). */
     if (next === 'ws' && cleaned.security === 'tls') {
       const tls = (cleaned.tlsSettings as Record<string, unknown> | undefined) ?? {};
       cleaned.tlsSettings = { ...tls, alpn: ['http/1.1'] };
