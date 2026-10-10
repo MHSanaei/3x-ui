@@ -14,7 +14,7 @@ function defaultCertificate(): Record<string, unknown> {
   };
 }
 
-export function createTlsSettingsWithDefaultCert(): Record<string, unknown> {
+export function createTlsSettingsWithDefaultCert(network?: string): Record<string, unknown> {
   const tls = TlsStreamSettingsSchema.parse({}) as Record<string, unknown>;
   tls.certificates = [defaultCertificate()];
   const settings =
@@ -23,6 +23,14 @@ export function createTlsSettingsWithDefaultCert(): Record<string, unknown> {
       : {};
   settings.fingerprint = 'chrome';
   tls.settings = settings;
+  /*
+   * WebSocket bootstraps over HTTP/1.1: leaving ALPN at the schema default
+   * ['h2','http/1.1'] makes the server negotiate h2 and the WS handshake
+   * fails (see issue #6782). Other transports keep the schema default.
+   */
+  if (network === 'ws') {
+    tls.alpn = ['http/1.1'];
+  }
   return tls;
 }
 
