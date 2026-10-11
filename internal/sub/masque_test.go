@@ -114,3 +114,45 @@ func TestSubJsonServiceTurnsInboundHopIntoClientUDPHopMask(t *testing.T) {
 		t.Fatalf("client finalmask\n got: %s\nwant: %s", got, want)
 	}
 }
+
+// Every endpoint's config starts from the same parsed inbound finalmask; a host whose own
+// masks are merged in first must not use up the hop range the endpoints after it need.
+func TestSubJsonServiceKeepsUDPHopMaskOnEveryEndpoint(t *testing.T) {
+	inbound := &model.Inbound{
+		Listen: "203.0.113.10", Port: 443, Protocol: model.Hysteria, Remark: "hy",
+		Settings: `{"version":2,"clients":[{"email":"ivy@example.test","auth":"a"}]}`,
+		StreamSettings: `{"network":"hysteria","security":"tls",
+			"hysteriaSettings":{"version":2},
+			"tlsSettings":{"serverName":"hy.example.test","alpn":["h3"]},
+			"finalmask":{"quicParams":{"udpHop":{"ports":"20000-30000","interval":"5-10"}}},
+			"externalProxy":[
+				{"forceTls":"same","dest":"a.example.test","port":443,"remark":"a",
+					"finalMask":"{\"udp\":[{\"type\":\"salamander\",\"settings\":{\"password\":\"p\"}}]}"},
+				{"forceTls":"same","dest":"b.example.test","port":443,"remark":"b"}]}`,
+	}
+	client := model.Client{Email: "ivy@example.test", Auth: "a"}
+
+	configs := NewSubJsonService("", "", "", "", nil).getConfig(&SubService{address: "sub.example.com"}, inbound, client, "sub.example.com")
+	if len(configs) != 2 {
+		t.Fatalf("got %d configs, want one per endpoint", len(configs))
+	}
+	const hop = `{"settings":{"interval":"5-10","mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}`
+	wants := []string{
+		`{"udp":[{"settings":{"password":"p"},"type":"salamander"},` + hop + `]}`,
+		`{"udp":[` + hop + `]}`,
+	}
+	for i, want := range wants {
+		var config struct {
+			Outbounds []struct {
+				StreamSettings map[string]any `json:"streamSettings"`
+			} `json:"outbounds"`
+		}
+		if err := json.Unmarshal(configs[i], &config); err != nil {
+			t.Fatalf("decode config %d: %v", i, err)
+		}
+		got, _ := json.Marshal(config.Outbounds[0].StreamSettings["finalmask"])
+		if string(got) != want {
+			t.Fatalf("endpoint %d finalmask\n got: %s\nwant: %s", i, got, want)
+		}
+	}
+}

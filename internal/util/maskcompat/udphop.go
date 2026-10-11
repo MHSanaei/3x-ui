@@ -1,9 +1,13 @@
 package maskcompat
 
-import "strings"
+import (
+	"maps"
+	"slices"
+	"strings"
+)
 
-// UpgradeLegacyUDPHop moves the quicParams.udpHop range xray-core 26.9.9 stopped reading
-// into the client-only "udphop" UDP mask, whose intervalRemote mode is what the key did.
+// UpgradeLegacyUDPHop moves the quicParams.udpHop xray-core 26.9.9 ignores into an intervalRemote
+// "udphop" mask, rewriting only finalmask's own keys: a merged finalmask shares quicParams and udp.
 func UpgradeLegacyUDPHop(finalmask any) bool {
 	fm, _ := finalmask.(map[string]any)
 	quicParams, _ := fm["quicParams"].(map[string]any)
@@ -11,9 +15,12 @@ func UpgradeLegacyUDPHop(finalmask any) bool {
 	if !found {
 		return false
 	}
-	delete(quicParams, "udpHop")
-	if len(quicParams) == 0 {
+	restQuic := maps.Clone(quicParams)
+	delete(restQuic, "udpHop")
+	if len(restQuic) == 0 {
 		delete(fm, "quicParams")
+	} else {
+		fm["quicParams"] = restQuic
 	}
 
 	hop, _ := legacy.(map[string]any)
@@ -26,7 +33,7 @@ func UpgradeLegacyUDPHop(finalmask any) bool {
 		settings["interval"] = interval
 	}
 	masks, _ := fm["udp"].([]any)
-	fm["udp"] = append(masks, map[string]any{"type": "udphop", "settings": settings})
+	fm["udp"] = append(slices.Clip(masks), map[string]any{"type": "udphop", "settings": settings})
 	return true
 }
 
