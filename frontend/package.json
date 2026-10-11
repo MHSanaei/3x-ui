@@ -29,8 +29,8 @@
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
-      "oxfmt",
-      "oxlint --fix"
+      "oxfmt --no-error-on-unmatched-pattern",
+      "oxlint --fix --no-error-on-unmatched-pattern"
     ]
   },
   "dependencies": {
