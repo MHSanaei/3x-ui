@@ -70,6 +70,7 @@ var nodeEligibleProtocols = map[model.Protocol]bool{
 	model.MTProto:     true,
 	model.AmneziaWG:   true,
 	model.TUIC:        true,
+	model.MASQUE:      true,
 }
 
 // nodeProtocolFirstRelease is the panel release that introduced each protocol
@@ -78,6 +79,7 @@ var nodeProtocolFirstRelease = map[model.Protocol]string{
 	model.MTProto:   "v3.5.0",
 	model.AmneziaWG: "v3.7.0",
 	model.TUIC:      "v3.8.0",
+	model.MASQUE:    "v3.9.1",
 }
 
 // checkNodeCanHostProtocol refuses assigning protocol to nodeID unless the

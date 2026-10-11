@@ -195,6 +195,8 @@ func (a *XraySettingController) warp(c *gin.Context) {
 		skey := c.PostForm("privateKey")
 		pkey := c.PostForm("publicKey")
 		resp, err = a.WarpService.RegWarp(skey, pkey)
+	case "regMasque":
+		resp, err = a.WarpService.RegWarpMasque()
 	case "changeIp":
 		resp, err = a.WarpService.ChangeWarpIP()
 		if err == nil {

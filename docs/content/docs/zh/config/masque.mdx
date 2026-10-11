@@ -1,0 +1,55 @@
+---
+title: MASQUE
+description: 在 3x-ui 中提供 MASQUE（CONNECT-IP）入站、将出站连接到 MASQUE 服务器，以及通过 MASQUE 连接 Cloudflare WARP。
+icon: Waypoints
+---
+
+**MASQUE** 使用 CONNECT-IP 方法通过 HTTP/3（或 HTTP/2）承载 IP 数据包，客户端因此获得一条看起来与普通
+HTTPS 流量无异的完整三层隧道。xray-core 原生支持它；3x-ui 将其作为入站协议、出站协议以及二者共用的 `masque`
+传输方式提供。
+
+## 入站
+
+| 字段         | 说明 |
+| ------------ | ---- |
+| **客户端**   | 每个客户端使用自己的**邮箱**和**密码**登录（HTTP Basic 认证）。流量、配额、IP 限制和到期时间与其他多用户协议相同。 |
+| **地址池**   | 隧道地址从这些前缀中分配——最多一个 IPv4 和一个 IPv6（默认 `10.14.0.1/24`、`fd14::1/64`）。地址池大小决定同时在线的客户端上限。 |
+| **MTU**      | 隧道 MTU，1280–65535；留空则使用内核默认值。 |
+| **Path**     | 服务端响应的请求路径（默认 `/.well-known/masque/ip/*/*/`）。 |
+| **安全**     | 始终为 TLS。ALPN 决定监听方式：`h3` 在 UDP 上提供 HTTP/3，`h2` 在 TCP 上提供 HTTP/2，两者同时设置则都提供。 |
+
+<Callout type="info">
+  MASQUE 没有分享链接格式，因此 MASQUE 入站不生成链接、二维码或 Clash 条目。客户端通过 **JSON 订阅**获取可直接导入的配置：
+  一个使用该客户端邮箱和密码认证的 `masque` 出站。
+</Callout>
+
+## 出站
+
+选择 **masque** 作为出站协议，然后设置：
+
+| 字段                | 说明 |
+| ------------------- | ---- |
+| **地址 / 端口**     | MASQUE 服务器。 |
+| **Remote DNS**      | 可选，在隧道内查询的 DNS 服务器 IP。 |
+| **Host / Path**     | CONNECT-IP 请求的 authority 和路径；路径必须与服务端一致。 |
+| **用户名 / 密码**   | HTTP Basic 凭据——在 3x-ui 服务端上即客户端的邮箱和密码。 |
+| **Headers**         | 额外的请求头。 |
+| **TLS**             | 必需。ALPN 仅为 `h2` 时改用 TCP 上的 HTTP/2；否则使用 HTTP/3。 |
+
+## 通过 MASQUE 使用 WARP
+
+最简单的方式是 **Xray → 出站 → WARP → 添加 WARP over MASQUE 出站**：面板会单独注册一个 WARP 设备、为其注册 MASQUE 密钥，
+并添加一个可直接使用的 `warp-masque` 出站（若已存在则更新）。你的 WireGuard WARP 注册不受影响。
+如需手动设置：
+
+在 masque 传输中开启 **WARP**，即可通过 Cloudflare 的 MASQUE 端点而非 WireGuard 连接 WARP。这需要一个已为
+MASQUE 注册的 WARP 账户：
+
+| 字段             | 说明 |
+| ---------------- | ---- |
+| **私钥**         | 已注册的 ECDSA P-256 私钥（PEM 或 base64 编码的 DER）。 |
+| **端点公钥**     | 注册时返回的 Cloudflare 端点公钥。 |
+| **隧道地址**     | Cloudflare 为该注册分配的 IPv4 和 IPv6 地址。 |
+
+此时 host 和 path 默认指向 Cloudflare 端点，且 WARP 不能与用户名或密码同时使用。请将出站指向注册所得的端点地址，
+并将 TLS 服务器名称设为 `consumer-masque.cloudflareclient.com`。
