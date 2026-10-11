@@ -509,6 +509,29 @@ func shadowsocksKeyBytes(method string) int {
 	return 0
 }
 
+// validateShadowsocks2022ServerKey refuses a server key xray-core cannot parse:
+// the core then fails to build the inbound and does not start at all.
+func validateShadowsocks2022ServerKey(protocol model.Protocol, settings string) error {
+	if protocol != model.Shadowsocks {
+		return nil
+	}
+	var parsed struct {
+		Method   string `json:"method"`
+		Password string `json:"password"`
+	}
+	if json.Unmarshal([]byte(settings), &parsed) != nil {
+		return nil
+	}
+	n := xray.Shadowsocks2022KeyBytes(parsed.Method)
+	if n == 0 {
+		return nil
+	}
+	if !xray.ValidShadowsocks2022Key(parsed.Method, parsed.Password) {
+		return common.NewErrorf("shadowsocks inbound password: %s needs a %d-byte key, base64 encoded", parsed.Method, n)
+	}
+	return nil
+}
+
 // normalizeShadowsocksClientKeys rewrites any Shadowsocks-2022 client password
 // whose decoded length no longer matches settings.method, which happens after the
 // inbound method is switched between ciphers of different key sizes (e.g.
