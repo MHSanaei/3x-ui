@@ -17,6 +17,7 @@ const STREAM_PROTOCOLS = [
   'hysteria',
   'wireguard',
   'tunnel',
+  'masque',
 ];
 const VISION_FLOW = 'xtls-rprx-vision';
 const SS_2022_PREFIX = '2022';
@@ -37,9 +38,18 @@ export interface CapabilityShadowsocksSlice extends CapabilityProtocolSlice {
 }
 
 export function canEnableTls(values: CapabilityProtocolSlice): boolean {
-  if (values.protocol === 'hysteria') return true;
+  if (values.protocol === 'hysteria' || values.protocol === 'masque') return true;
   if (!TLS_ELIGIBLE_PROTOCOLS.includes(values.protocol)) return false;
   return TLS_NETWORKS.includes(values.streamSettings?.network ?? '');
+}
+
+// An XDRIVE outbound's tlsSettings shape only its HTTPS calls to the storage API (SNI, uTLS
+// fingerprint); xray-core 26.10.10 reads them on the dial side, never on a listener.
+export function canEnableOutboundTls(values: CapabilityProtocolSlice): boolean {
+  if (canEnableTls(values)) return true;
+  return (
+    TLS_ELIGIBLE_PROTOCOLS.includes(values.protocol) && values.streamSettings?.network === 'xdrive'
+  );
 }
 
 export function canEnableReality(values: CapabilityProtocolSlice): boolean {

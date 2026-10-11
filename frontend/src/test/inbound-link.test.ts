@@ -127,6 +127,28 @@ describe('genVlessLink', () => {
   }
 });
 
+describe('XDRIVE share links', () => {
+  // No client reads an xdrive link, and one carrying the storage secrets would print
+  // them into every QR code; mirrors the Go generator, which emits none either.
+  it('emits no link for an XDRIVE stream', () => {
+    const [, raw] = fixturesForProtocol('vless').find(([name]) => name === 'vless-ws-tls')!;
+    const inbound = InboundSchema.parse({
+      ...raw,
+      streamSettings: {
+        network: 'xdrive',
+        security: 'none',
+        xdriveSettings: { service: 'local', remoteFolder: '/srv/xdrive' },
+      },
+    });
+    const client = (raw as { settings: { clients: Array<{ id: string; email: string }> } }).settings
+      .clients[0];
+
+    const entries = genAllLinks({ inbound, client, fallbackHostname: 'panel.example.test' });
+
+    expect(entries.map((e) => e.link)).toEqual(['']);
+  });
+});
+
 describe('applyVlessRoute', () => {
   const id = '11111111-2222-4333-8444-555555555555';
   it('encodes a single value into the 3rd group and no-ops on invalid input', () => {

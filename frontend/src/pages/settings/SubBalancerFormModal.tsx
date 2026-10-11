@@ -24,6 +24,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'trojan',
   'hysteria',
   'wireguard',
+  'masque',
 ]);
 
 const STRATEGY_LABEL_KEYS: Record<SubBalancerStrategy, string> = {

@@ -695,7 +695,41 @@
           "node": "Адрес узла",
           "listen": "Адрес прослушивания inbound",
           "custom": "Пользовательская"
-        }
+        },
+        "xdrive": {
+          "service": "Сервис хранилища",
+          "serviceLocal": "Локальная папка",
+          "serviceTemplate": "Свой шаблон",
+          "remoteFolder": "Удалённая папка",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Секреты",
+          "secretsDesc": "Значения, которые шаблон читает как {secret0}, {secret1}, …",
+          "template": "Шаблон хранилища",
+          "templateInvalid": "Должен быть объект JSON",
+          "front": "Адрес фронтинга",
+          "frontDesc": "Необязательный хост или IP для подключения к API хранилища (domain fronting).",
+          "frontPort": "Порт фронтинга",
+          "segmentBytes": "Размер сегмента (байт)",
+          "flushInterval": "Интервал отправки (мс)",
+          "pollInterval": "Интервал опроса (мс)",
+          "maxPollInterval": "Макс. интервал опроса (мс)",
+          "eagerWindow": "Окно упреждения (мс)",
+          "holeTimeout": "Тайм-аут пропущенного сегмента (мс)",
+          "sessionTtl": "TTL сессии (с)",
+          "concurrency": "Параллелизм"
+        },
+        "masque": {
+          "addressPool": "Пул адресов",
+          "addressPoolDesc": "Адреса туннелей выдаются из этих префиксов — не более одного IPv4 и одного IPv6."
+        },
+        "tunDesc": "Тип адаптера",
+        "tunDescTooltip": "Только Windows: тип туннеля, с которым создаётся новый адаптер Wintun. Пусто — Wintun.",
+        "autoSystemDnsToGateway": "Системный DNS на шлюз",
+        "autoSystemDnsToGatewayTooltip": "Только Linux: направляет systemd-resolved на шлюз TUN, чтобы системные запросы шли через Xray. Нужен шлюз; при ошибке TUN не запустится.",
+        "autoSystemWfpBlockLeak": "Блокировка утечек (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Только Windows, вместе с авто-маршрутами системы: dns удерживает DNS внутри TUN (нужны DNS-серверы), misconfigtun блокирует версию IP, которую ни один маршрут не ведёт в TUN."
       },
       "info": {
         "mode": "Режим",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Fail2ban недоступен в Windows, поэтому ограничение по IP не может быть применено.",
       "limitIpDisabled": "Функция ограничения по IP отключена на этом сервере.",
       "password": "Пароль",
-      "passwordDesc": "Используется клиентами Trojan, Shadowsocks и TUIC; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
+      "passwordDesc": "Используется клиентами Trojan, Shadowsocks, TUIC и MASQUE; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
       "subId": "ID подписки",
       "subIdDesc": "Также служит кодом приглашения этого клиента в Telegram-боте: тот, кто отправит его боту, будет привязан к этому клиенту. Используйте длинное случайное значение — короткий или легко угадываемый ID может присвоить кто-то другой.",
       "online": "В сети",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "имя сервера",
         "verifyPeerName": "Проверять имя peer",
         "pinnedSha256": "Pinned SHA256",
+        "useSystemCA": "Использовать системные CA",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Интервал keep alive",
@@ -1936,7 +1971,10 @@
         "interface": "Интерфейс",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (мс)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)",
+        "masqueWarpDesc": "Подключение к Cloudflare WARP через MASQUE с зарегистрированным ключом ECDSA P-256; host и path по умолчанию указывают на конечную точку Cloudflare.",
+        "masqueWarpPublicKey": "Открытый ключ конечной точки",
+        "masqueWarpAddress": "Адреса туннеля"
       },
       "outbound": {
         "tag": "Тег",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "WARP+ data",
         "quota": "Квота",
         "usage": "Использование",
-        "addOutbound": "Добавить исходящий"
+        "addOutbound": "Добавить исходящий",
+        "masqueDesc": "Регистрирует отдельное устройство WARP для MASQUE; регистрация WireGuard выше не затрагивается.",
+        "addMasqueOutbound": "Добавить аутбаунд WARP через MASQUE"
       },
       "dns": {
         "enable": "Включить DNS",
@@ -2241,7 +2281,11 @@
         "clearAll": "Удалить все",
         "clearAllTitle": "Удалить все DNS-серверы?",
         "clearAllConfirm": "Все DNS-серверы будут удалены из списка. Это действие нельзя отменить.",
-        "dnsLeakWarning": "DNS может утекать через localhost, обычный UDP/TCP, локальный режим DoH/DoQ, fallback-запросы или EDNS client IP. Для приватности используйте маршрутизируемый DoH, закрепляйте резолверы в hosts и отключайте fallback."
+        "dnsLeakWarning": "DNS может утекать через localhost, обычный UDP/TCP, локальный режим DoH/DoQ, fallback-запросы или EDNS client IP. Для приватности используйте маршрутизируемый DoH, закрепляйте резолверы в hosts и отключайте fallback.",
+        "script": "Lua-скрипт",
+        "scriptDesc": "Путь к файлу .lua с функцией HandleDNSQuery — абсолютный или относительно папки bin Xray. Скрипт отвечает на все запросы и обращается к серверам только из своего кода. Xray не запустится, если файл отсутствует или содержит ошибки.",
+        "serverId": "ID",
+        "serverIdDesc": "Имя, по которому DNS-скрипт на Lua выбирает этот сервер"
       },
       "fakedns": {
         "add": "Создать Fake DNS",
@@ -2249,7 +2293,10 @@
         "poolSize": "Размер пула"
       },
       "defaultOutbound": "Исходящий по умолчанию",
-      "defaultOutboundDesc": "Трафик без совпадения с правилами маршрутизации идёт через этот исходящий (первый в списке)."
+      "defaultOutboundDesc": "Трафик без совпадения с правилами маршрутизации идёт через этот исходящий (первый в списке).",
+      "routingScript": "Скрипт маршрутизации",
+      "routingScriptDesc": "Путь к файлу .lua с функцией HandleRoute — абсолютный или относительно папки bin Xray. Скрипт выбирает каждый маршрут, а Xray игнорирует все правила маршрутизации, включая правило api панели: направляйте входящий api на исходящий api, иначе остановятся статистика трафика и применение изменений клиентов на лету. Xray не запустится, если файл отсутствует или содержит ошибки.",
+      "routingScriptActive": "В разделе «{section}» задан скрипт маршрутизации, поэтому Xray игнорирует эти правила."
     },
     "hosts": {
       "addHost": "Добавить хост",

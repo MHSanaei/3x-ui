@@ -39,6 +39,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'wireguard',
   'amneziawg',
   'tuic',
+  'masque',
 ]);
 
 const EMPTY: ClientBulkAddFormValues = {

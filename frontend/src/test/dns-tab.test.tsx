@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { useEffect, useState } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 
 import DnsTab from '@/pages/xray/dns/DnsTab';
@@ -126,5 +126,29 @@ describe('DnsTab', () => {
     fireEvent.click(screen.getByRole('tab', { name: /Hosts$/ }));
 
     expect(screen.queryByLabelText('Domain (e.g. domain:example.com)')).toBeNull();
+  });
+
+  // xray-core 26.10.10 dns.script is a file path; an empty one fails the core build.
+  it('writes the Lua script path and drops the key once cleared', () => {
+    const seen = vi.fn();
+    const latest = () => seen.mock.lastCall?.[0] as { dns: Record<string, unknown> };
+    function Harness() {
+      const [templateSettings, setTemplateSettings] = useState<XraySettingsValue | null>(
+        withHosts({}),
+      );
+      useEffect(() => seen(templateSettings), [templateSettings]);
+      const updateTemplate: SetTemplate = (next) => {
+        setTemplateSettings((current) => (typeof next === 'function' ? next(current) : next));
+      };
+      return <DnsTab templateSettings={templateSettings} setTemplateSettings={updateTemplate} />;
+    }
+
+    renderWithProviders(<Harness />);
+    const script = screen.getByRole('textbox', { name: 'Lua Script' });
+    fireEvent.change(script, { target: { value: '/etc/xray/dns.lua' } });
+    expect(latest().dns.script).toBe('/etc/xray/dns.lua');
+
+    fireEvent.change(script, { target: { value: '' } });
+    expect(latest().dns).not.toHaveProperty('script');
   });
 });

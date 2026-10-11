@@ -694,7 +694,41 @@
           "listen": "Địa chỉ listen inbound",
           "custom": "Tùy chỉnh"
         },
-        "autoFill": "Tự động điền"
+        "autoFill": "Tự động điền",
+        "xdrive": {
+          "service": "Dịch vụ lưu trữ",
+          "serviceLocal": "Thư mục cục bộ",
+          "serviceTemplate": "Template tùy chỉnh",
+          "remoteFolder": "Thư mục từ xa",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Giá trị bí mật",
+          "secretsDesc": "Các giá trị template đọc dưới dạng {secret0}, {secret1}, …",
+          "template": "Template lưu trữ",
+          "templateInvalid": "Phải là một đối tượng JSON",
+          "front": "Địa chỉ fronting",
+          "frontDesc": "Host hoặc IP tùy chọn để kết nối tới API lưu trữ (domain fronting).",
+          "frontPort": "Cổng fronting",
+          "segmentBytes": "Kích thước phân đoạn (byte)",
+          "flushInterval": "Khoảng gửi (ms)",
+          "pollInterval": "Khoảng thăm dò (ms)",
+          "maxPollInterval": "Khoảng thăm dò tối đa (ms)",
+          "eagerWindow": "Cửa sổ gửi sớm (ms)",
+          "holeTimeout": "Thời gian chờ phân đoạn thiếu (ms)",
+          "sessionTtl": "TTL phiên (s)",
+          "concurrency": "Số luồng đồng thời"
+        },
+        "masque": {
+          "addressPool": "Dải địa chỉ",
+          "addressPoolDesc": "Địa chỉ đường hầm được cấp từ các tiền tố này — tối đa một IPv4 và một IPv6."
+        },
+        "tunDesc": "Loại adapter",
+        "tunDescTooltip": "Chỉ Windows: loại tunnel dùng khi tạo adapter Wintun mới. Để trống nghĩa là Wintun.",
+        "autoSystemDnsToGateway": "DNS hệ thống tới gateway",
+        "autoSystemDnsToGatewayTooltip": "Chỉ Linux: trỏ systemd-resolved tới gateway của TUN để truy vấn của hệ thống đi qua Xray. Cần có gateway, và TUN sẽ không khởi động nếu việc này thất bại.",
+        "autoSystemWfpBlockLeak": "Chặn rò rỉ (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS bên trong TUN (cần máy chủ DNS), misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN."
       },
       "info": {
         "mode": "Chế độ",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Fail2ban không khả dụng trên Windows nên không thể áp dụng giới hạn IP.",
       "limitIpDisabled": "Tính năng giới hạn IP đã bị tắt trên máy chủ này.",
       "password": "Mật khẩu",
-      "passwordDesc": "Chỉ được dùng bởi các client Trojan và Shadowsocks; bị bỏ qua đối với VLESS, VMess, Hysteria và WireGuard.",
+      "passwordDesc": "Được dùng bởi các client Trojan, Shadowsocks, TUIC và MASQUE; bị bỏ qua đối với VLESS, VMess, Hysteria và WireGuard.",
       "subId": "ID đăng ký",
       "subIdDesc": "Cũng được dùng làm mã mời bot Telegram của client này: ai gửi mã này cho bot sẽ được liên kết với client. Hãy để mã dài và ngẫu nhiên — ID ngắn hoặc dễ đoán có thể bị người khác chiếm.",
       "online": "Trực tuyến",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "tên máy chủ",
         "verifyPeerName": "Xác minh tên peer",
         "pinnedSha256": "SHA256 pinned",
+        "useSystemCA": "Dùng CA của hệ thống",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Khoảng keep alive",
@@ -1936,7 +1971,10 @@
         "interface": "Giao diện",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Kết nối Cloudflare WARP qua MASQUE bằng khóa ECDSA P-256 đã đăng ký; host và path mặc định là endpoint của Cloudflare.",
+        "masqueWarpPublicKey": "Khóa công khai endpoint",
+        "masqueWarpAddress": "Địa chỉ đường hầm"
       },
       "outbound": {
         "tag": "Tag",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "Dữ liệu WARP+",
         "quota": "Hạn ngạch",
         "usage": "Sử dụng",
-        "addOutbound": "Thêm outbound"
+        "addOutbound": "Thêm outbound",
+        "masqueDesc": "Đăng ký một thiết bị WARP riêng cho MASQUE; đăng ký WireGuard ở trên không bị ảnh hưởng.",
+        "addMasqueOutbound": "Thêm outbound WARP qua MASQUE"
       },
       "dns": {
         "enable": "Kích hoạt DNS",
@@ -2241,7 +2281,11 @@
         "clearAll": "Xóa tất cả",
         "clearAllTitle": "Xóa tất cả máy chủ DNS?",
         "clearAllConfirm": "Thao tác này sẽ xóa toàn bộ máy chủ DNS khỏi danh sách. Không thể hoàn tác.",
-        "dnsLeakWarning": "DNS có thể rò rỉ qua localhost, UDP/TCP không mã hóa, DoH/DoQ chế độ cục bộ, truy vấn fallback hoặc EDNS client IP. Hãy dùng DoH được định tuyến, ghim resolver trong hosts và tắt fallback khi cần riêng tư."
+        "dnsLeakWarning": "DNS có thể rò rỉ qua localhost, UDP/TCP không mã hóa, DoH/DoQ chế độ cục bộ, truy vấn fallback hoặc EDNS client IP. Hãy dùng DoH được định tuyến, ghim resolver trong hosts và tắt fallback khi cần riêng tư.",
+        "script": "Script Lua",
+        "scriptDesc": "Đường dẫn tới tệp .lua định nghĩa HandleDNSQuery, tuyệt đối hoặc tương đối với thư mục bin của Xray. Khi đó script trả lời mọi truy vấn và chỉ dùng các máy chủ qua mã của chính nó. Xray sẽ không khởi động nếu tệp không tồn tại hoặc không hợp lệ.",
+        "serverId": "ID",
+        "serverIdDesc": "Tên mà script DNS Lua dùng để chọn máy chủ này"
       },
       "fakedns": {
         "add": "Thêm DNS giả",
@@ -2249,7 +2293,10 @@
         "poolSize": "Kích thước bể bơi"
       },
       "defaultOutbound": "Outbound mặc định",
-      "defaultOutboundDesc": "Lưu lượng không khớp quy tắc định tuyến dùng outbound này (mục đầu danh sách)."
+      "defaultOutboundDesc": "Lưu lượng không khớp quy tắc định tuyến dùng outbound này (mục đầu danh sách).",
+      "routingScript": "Script định tuyến",
+      "routingScriptDesc": "Đường dẫn tới tệp .lua định nghĩa HandleRoute, tuyệt đối hoặc tương đối với thư mục bin của Xray. Khi đó script chọn mọi tuyến và Xray bỏ qua tất cả quy tắc định tuyến, kể cả quy tắc api của panel: hãy chuyển inbound api tới outbound api, nếu không thống kê lưu lượng và việc áp dụng thay đổi client trực tiếp sẽ dừng. Xray sẽ không khởi động nếu tệp không tồn tại hoặc không hợp lệ.",
+      "routingScriptActive": "Một script định tuyến đã được đặt trong {section}, nên Xray bỏ qua các quy tắc này."
     },
     "hosts": {
       "addHost": "Thêm Host",

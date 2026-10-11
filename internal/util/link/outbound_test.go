@@ -87,10 +87,10 @@ func TestParseVlessLink_FinalMaskQuicParamsSanitized(t *testing.T) {
 	}
 }
 
-// A panel older than xray-core 26.9.30 shares its xdns mask in the string lists the
-// core no longer parses; imported verbatim, the outbound would fail the whole config.
+// A panel on xray-core 26.9.30 shares xdns objects whose "name" and typed resolvers
+// 26.10.10 ignores; imported verbatim, the outbound would dial with no domain.
 func TestParseLink_UpgradesLegacyXdnsFinalMask(t *testing.T) {
-	fm := url.QueryEscape(`{"udp":[{"type":"xdns","settings":{"resolvers":["t.example.com+udp://8.8.8.8:53"]}}]}`)
+	fm := url.QueryEscape(`{"udp":[{"type":"xdns","settings":{"domains":[{"name":"t.example.com","types":[16],"edns0":1232}],"resolvers":[{"type":"udp","settings":{"addr":"8.8.8.8:53"}}]}}]}`)
 	res, err := ParseLink("vless://uuid@1.2.3.4:53?type=kcp&security=none&fm=" + fm + "#dns")
 	if err != nil {
 		t.Fatalf("parse vless with fm: %v", err)
@@ -100,7 +100,7 @@ func TestParseLink_UpgradesLegacyXdnsFinalMask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal finalmask: %v", err)
 	}
-	want := `{"udp":[{"settings":{"domains":[{"edns0":1232,"name":"t.example.com","types":[16]}],"resolvers":[{"settings":{"addr":"8.8.8.8:53"},"type":"udp"}]},"type":"xdns"}]}`
+	want := `{"udp":[{"settings":{"domains":[{"edns0":1232,"names":["t.example.com"],"types":[16]}],"resolvers":[{"addrs":["udp://8.8.8.8:53"]}]},"type":"xdns"}]}`
 	if string(got) != want {
 		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
 	}
@@ -304,9 +304,9 @@ func TestParseHysteria2_Mport(t *testing.T) {
 			wantHop:   true,
 		},
 		{
-			name:      "legacy fm quicParams.udpHop no longer suppresses mport",
+			name:      "legacy fm quicParams.udpHop is upgraded and wins over mport like the mask",
 			query:     "mport=1-2&fm=" + url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"30000-40000","interval":"7-9"}}}`),
-			wantPorts: "1-2",
+			wantPorts: "30000-40000",
 			wantHop:   true,
 		},
 	}
@@ -575,5 +575,24 @@ func TestParseShadowsocksObfsLocalPlugin(t *testing.T) {
 				t.Errorf("host = %q, want %q", got, tc.wantHost)
 			}
 		})
+	}
+}
+
+// A panel older than the 26.9.9 core shares its hop range as quicParams.udpHop inside fm=,
+// which the core ignores; imported verbatim, the outbound would never hop.
+func TestParseLink_UpgradesLegacyUDPHopFinalMask(t *testing.T) {
+	fm := url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"20000-30000","interval":"5-10"}}}`)
+	res, err := ParseLink("hysteria2://auth@hy.example.com:443?sni=hy.example.com&fm=" + fm + "#hy")
+	if err != nil {
+		t.Fatalf("parse hysteria2 with fm: %v", err)
+	}
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	got, err := json.Marshal(stream["finalmask"])
+	if err != nil {
+		t.Fatalf("marshal finalmask: %v", err)
+	}
+	want := `{"udp":[{"settings":{"interval":"5-10","mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
+	if string(got) != want {
+		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
 	}
 }

@@ -43,7 +43,7 @@ function tooltipIconForLabel(label: string): HTMLElement {
 }
 
 describe('ClientFormModal credential tooltips', () => {
-  it('explains that the Password field is only consumed by Trojan/Shadowsocks', async () => {
+  it('explains which protocols consume the Password field', async () => {
     renderModal();
     openCredentialsTab();
 
@@ -52,7 +52,7 @@ describe('ClientFormModal credential tooltips', () => {
 
     await waitFor(() => {
       expect(document.body.textContent).toContain(
-        'Used by Trojan, Shadowsocks, and TUIC clients; ignored for VLESS, VMess, Hysteria, and WireGuard.',
+        'Used by Trojan, Shadowsocks, TUIC, and MASQUE clients; ignored for VLESS, VMess, Hysteria, and WireGuard.',
       );
     });
   });

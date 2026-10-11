@@ -1,0 +1,59 @@
+---
+title: MASQUE
+description: Serve MASQUE (CONNECT-IP) inbounds in 3x-ui, connect outbounds to MASQUE servers, and reach Cloudflare WARP over MASQUE.
+icon: Waypoints
+---
+
+**MASQUE** carries IP packets over HTTP/3 (or HTTP/2) with the CONNECT-IP method, so a
+client gets a full layer-3 tunnel that looks like ordinary HTTPS traffic. xray-core
+serves it natively; 3x-ui offers it as an inbound protocol, an outbound protocol, and the
+matching `masque` transport they both ride on.
+
+## Inbound
+
+| Field            | Description |
+| ---------------- | ----------- |
+| **Clients**      | Each client logs in with its **email** and **password** (HTTP Basic auth). Traffic, quotas, IP limits and expiry work like any other multi-user protocol. |
+| **Address pool** | Prefixes the tunnel addresses are leased from — at most one IPv4 and one IPv6 (default `10.14.0.1/24`, `fd14::1/64`). The pool size caps how many clients can be connected at once. |
+| **MTU**          | Tunnel MTU, 1280–65535; leave empty for the core default. |
+| **Path**         | Request path the server answers on (default `/.well-known/masque/ip/*/*/`). |
+| **Security**     | Always TLS. The ALPN picks the listeners: `h3` serves HTTP/3 on UDP, `h2` serves HTTP/2 on TCP, and both together serve both. |
+
+<Callout type="info">
+  MASQUE has no share-link format, so MASQUE inbounds get no link, QR code or Clash
+  entry. Clients get a ready-to-import config from the **JSON subscription**: a `masque`
+  outbound that authenticates with the client's email and password.
+</Callout>
+
+## Outbound
+
+Pick **masque** as the outbound protocol, then set:
+
+| Field                   | Description |
+| ----------------------- | ----------- |
+| **Address / Port**      | The MASQUE server. |
+| **Remote DNS**          | Optional DNS server IPs queried inside the tunnel. |
+| **Host / Path**         | Authority and path of the CONNECT-IP request; the path must match the server's. |
+| **Username / Password** | HTTP Basic credentials — on a 3x-ui server, the client's email and password. |
+| **Headers**             | Extra request headers. |
+| **TLS**                 | Required. An ALPN of `h2` alone switches to HTTP/2 over TCP; otherwise HTTP/3 is used. |
+
+## WARP over MASQUE
+
+The quickest way is **Xray → Outbounds → WARP → Add WARP over MASQUE outbound**: the panel
+registers a separate WARP device, enrolls a MASQUE key for it and adds a ready `warp-masque`
+outbound (or refreshes the existing one). Your WireGuard WARP registration is not touched.
+To set it up by hand instead:
+
+Turn on **WARP** in the masque transport to reach Cloudflare WARP through its MASQUE
+endpoint instead of WireGuard. It takes a WARP registration enrolled for MASQUE:
+
+| Field                   | Description |
+| ----------------------- | ----------- |
+| **Private key**         | The enrolled ECDSA P-256 private key (PEM, or base64 DER). |
+| **Endpoint public key** | Cloudflare's endpoint public key returned by the enrollment. |
+| **Tunnel addresses**    | The IPv4 and IPv6 addresses Cloudflare assigned to the registration. |
+
+Host and path then default to Cloudflare's endpoint, and WARP can't be combined with a
+username or password. Point the outbound at the endpoint address from your enrollment and
+set the TLS server name to `consumer-masque.cloudflareclient.com`.

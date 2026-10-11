@@ -695,7 +695,41 @@
           "node": "Node address",
           "listen": "Inbound listen",
           "custom": "Custom"
-        }
+        },
+        "xdrive": {
+          "service": "Storage service",
+          "serviceLocal": "Local folder",
+          "serviceTemplate": "Custom template",
+          "remoteFolder": "Remote folder",
+          "clientId": "Client ID",
+          "clientSecret": "Client secret",
+          "refreshToken": "Refresh token",
+          "secrets": "Secrets",
+          "secretsDesc": "Values the template reads as {secret0}, {secret1}, …",
+          "template": "Storage template",
+          "templateInvalid": "Must be a JSON object",
+          "front": "Front address",
+          "frontDesc": "Optional host or IP the storage API is dialed through (domain fronting).",
+          "frontPort": "Front port",
+          "segmentBytes": "Segment size (bytes)",
+          "flushInterval": "Flush interval (ms)",
+          "pollInterval": "Poll interval (ms)",
+          "maxPollInterval": "Max poll interval (ms)",
+          "eagerWindow": "Eager window (ms)",
+          "holeTimeout": "Missing segment timeout (ms)",
+          "sessionTtl": "Session TTL (s)",
+          "concurrency": "Concurrency"
+        },
+        "masque": {
+          "addressPool": "Address pool",
+          "addressPoolDesc": "Tunnel addresses are leased from these prefixes — at most one IPv4 and one IPv6."
+        },
+        "tunDesc": "Adapter type",
+        "tunDescTooltip": "Windows only: the tunnel type a new Wintun adapter is created with. Empty means Wintun.",
+        "autoSystemDnsToGateway": "System DNS to gateway",
+        "autoSystemDnsToGatewayTooltip": "Linux only: points systemd-resolved at the TUN gateway so system lookups go through Xray. Needs a gateway, and the TUN does not start if this fails.",
+        "autoSystemWfpBlockLeak": "Block leaks (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS inside the TUN (needs DNS servers), misconfigtun blocks an IP version that no route sends into the TUN."
       },
       "info": {
         "mode": "Mode",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Fail2ban is not available on Windows, so the IP limit cannot be enforced.",
       "limitIpDisabled": "The IP limit feature is disabled on this server.",
       "password": "Password",
-      "passwordDesc": "Used by Trojan, Shadowsocks, and TUIC clients; ignored for VLESS, VMess, Hysteria, and WireGuard.",
+      "passwordDesc": "Used by Trojan, Shadowsocks, TUIC, and MASQUE clients; ignored for VLESS, VMess, Hysteria, and WireGuard.",
       "subId": "Subscription ID",
       "subIdDesc": "Also works as this client's Telegram bot invite code: whoever sends it to the bot is linked to this client. Keep it long and random — a short or guessable ID can be claimed by someone else.",
       "online": "Online",
@@ -2047,6 +2081,7 @@
         "serverNamePlaceholder": "server name",
         "verifyPeerName": "Verify peer name",
         "pinnedSha256": "Pinned SHA256",
+        "useSystemCA": "Use system CA",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Keep alive interval",
@@ -2054,7 +2089,10 @@
         "interface": "Interface",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Connect to Cloudflare WARP over MASQUE with an enrolled ECDSA P-256 key; host and path default to Cloudflare's endpoint.",
+        "masqueWarpPublicKey": "Endpoint public key",
+        "masqueWarpAddress": "Tunnel addresses"
       },
       "outbound": {
         "tag": "Tag",
@@ -2315,7 +2353,9 @@
         "warpPlusData": "WARP+ data",
         "quota": "Quota",
         "usage": "Usage",
-        "addOutbound": "Add outbound"
+        "addOutbound": "Add outbound",
+        "masqueDesc": "Registers a separate WARP device enrolled for MASQUE; the WireGuard registration above is not affected.",
+        "addMasqueOutbound": "Add WARP over MASQUE outbound"
       },
       "dns": {
         "enable": "Enable DNS",
@@ -2359,7 +2399,11 @@
         "clearAll": "Delete All",
         "clearAllTitle": "Delete all DNS servers?",
         "clearAllConfirm": "This removes every DNS server from the list. This cannot be undone.",
-        "dnsLeakWarning": "DNS can leak through localhost, plain UDP/TCP, local-mode DoH/DoQ, fallback queries, or EDNS client IP. Use routed DoH, hosts pins, and disable fallback when privacy matters."
+        "dnsLeakWarning": "DNS can leak through localhost, plain UDP/TCP, local-mode DoH/DoQ, fallback queries, or EDNS client IP. Use routed DoH, hosts pins, and disable fallback when privacy matters.",
+        "script": "Lua Script",
+        "scriptDesc": "Path to a .lua file defining HandleDNSQuery, absolute or relative to the Xray bin folder. The script then answers every query and reaches the servers only through its own code. Xray will not start if the file is missing or invalid.",
+        "serverId": "ID",
+        "serverIdDesc": "The name a Lua DNS script uses to pick this server"
       },
       "fakedns": {
         "add": "Add Fake DNS",
@@ -2367,7 +2411,10 @@
         "poolSize": "Pool Size"
       },
       "defaultOutbound": "Default Outbound",
-      "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list)."
+      "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list).",
+      "routingScript": "Routing Script",
+      "routingScriptDesc": "Path to a .lua file defining HandleRoute, absolute or relative to the Xray bin folder. The script then picks every route and Xray ignores all routing rules, the panel's api rule included: send the api inbound to the api outbound or traffic stats and live client changes stop. Xray will not start if the file is missing or invalid.",
+      "routingScriptActive": "A routing script is set under {section}, so Xray ignores these rules."
     },
     "sponsors": {
       "title": "Sponsors",

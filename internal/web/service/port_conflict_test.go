@@ -75,6 +75,13 @@ func TestInboundTransports(t *testing.T) {
 		{"hysteria forced udp", model.Hysteria, `{"network":"tcp"}`, ``, transportUDP},
 		{"wireguard forced udp", model.WireGuard, ``, ``, transportUDP},
 
+		// MASQUE serves HTTP/3 on UDP unless the TLS ALPN offers only h2, and adds an
+		// HTTP/2 listener on TCP whenever h2 is offered.
+		{"masque without alpn is udp", model.MASQUE, `{"network":"masque","tlsSettings":{}}`, ``, transportUDP},
+		{"masque h3 is udp", model.MASQUE, `{"network":"masque","tlsSettings":{"alpn":["h3"]}}`, ``, transportUDP},
+		{"masque h2 is tcp", model.MASQUE, `{"network":"masque","tlsSettings":{"alpn":["h2"]}}`, ``, transportTCP},
+		{"masque h3+h2 is both", model.MASQUE, `{"network":"masque","tlsSettings":{"alpn":["h3","h2"]}}`, ``, transportTCP | transportUDP},
+
 		{"shadowsocks tcp,udp", model.Shadowsocks, ``, `{"network":"tcp,udp"}`, transportTCP | transportUDP},
 		{"shadowsocks udp only", model.Shadowsocks, ``, `{"network":"udp"}`, transportUDP},
 		{"shadowsocks tcp only", model.Shadowsocks, ``, `{"network":"tcp"}`, transportTCP},
