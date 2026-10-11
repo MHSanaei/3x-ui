@@ -24,13 +24,12 @@ function renderModal(outbound: Record<string, unknown> | null = null) {
   );
 }
 
-function toggleSockoptsSwitch() {
+function toggleSwitch(label: string) {
   const item = Array.from(document.querySelectorAll('.ant-form-item')).find(
-    (el) =>
-      (el.querySelector('.ant-form-item-label label')?.textContent ?? '').trim() === 'Sockopts',
+    (el) => (el.querySelector('.ant-form-item-label label')?.textContent ?? '').trim() === label,
   );
   const control = item?.querySelector('.ant-switch');
-  if (!control) throw new Error('Sockopts switch not found');
+  if (!control) throw new Error(`${label} switch not found`);
   fireEvent.click(control);
 }
 
@@ -74,7 +73,7 @@ describe('OutboundFormModal', () => {
   // sockopt.domainStrategy, so freedom must show only one control for it.
   it('hides the Transport sockopt strategy for freedom', () => {
     renderModal({ protocol: 'freedom', tag: 'direct', settings: {} });
-    toggleSockoptsSwitch();
+    toggleSwitch('Sockopts');
 
     expect(fieldLabels()).toContain('Sockopts');
     expect(fieldLabels()).not.toContain('Domain Strategy');
@@ -83,7 +82,7 @@ describe('OutboundFormModal', () => {
 
   it('keeps the Transport sockopt strategy for protocols without a card field', () => {
     renderModal({ protocol: 'vless', tag: 'proxy', settings: {} });
-    toggleSockoptsSwitch();
+    toggleSwitch('Sockopts');
 
     expect(fieldLabels()).toContain('Domain Strategy');
   });
@@ -153,9 +152,9 @@ describe('OutboundFormModal', () => {
     expect(payload.settings.reverse?.tag).toBe('r1');
   });
 
-  // xray-core 26.9.30 no longer parses xdns's string lists, so the mask editor lifts
-  // them into objects on open rather than saving a config the core would refuse.
-  it('saves a legacy xdns mask in the object shape', async () => {
+  // xray-core 26.10.10 reads a 26.9.30 xdns mask as no domain at all, so the mask editor
+  // lifts it to names/addrs on open and must keep those keys registered through the save.
+  it('saves a legacy xdns mask in the names/addrs shape', async () => {
     const onConfirm = vi.fn();
     const queryClient = makeTestQueryClient();
     const outbound = {
@@ -175,7 +174,15 @@ describe('OutboundFormModal', () => {
         security: 'none',
         kcpSettings: { mtu: 130, tti: 50 },
         finalmask: {
-          udp: [{ type: 'xdns', settings: { resolvers: ['t.example.com+udp://8.8.8.8:53'] } }],
+          udp: [
+            {
+              type: 'xdns',
+              settings: {
+                domains: [{ name: 't.example.com', types: [16], edns0: 1232 }],
+                resolvers: [{ type: 'udp', settings: { addr: '8.8.8.8:53' } }],
+              },
+            },
+          ],
         },
       },
     };
@@ -216,10 +223,71 @@ describe('OutboundFormModal', () => {
       {
         type: 'xdns',
         settings: {
-          domains: [{ name: 't.example.com', types: [16], edns0: 1232 }],
-          resolvers: [{ type: 'udp', settings: { addr: '8.8.8.8:53' } }],
+          domains: [{ names: ['t.example.com'], types: [16], edns0: 1232 }],
+          resolvers: [{ addrs: ['udp://8.8.8.8:53'] }],
         },
       },
     ]);
+  });
+
+  // xray-core 26.10.10 verifies TLS against its bundled roots, not the OS store, so an
+  // outbound to a server signed by a privately installed CA needs useSystemCA set.
+  it('saves useSystemCA from the TLS switch', async () => {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const outbound = {
+      protocol: 'vless',
+      tag: 'tls-out',
+      settings: {
+        vnext: [
+          {
+            address: 'example.com',
+            port: 443,
+            users: [{ id: 'c9f0c2d0-0000-4000-8000-000000000000', encryption: 'none' }],
+          },
+        ],
+      },
+      streamSettings: {
+        network: 'tcp',
+        security: 'tls',
+        tlsSettings: { serverName: 'example.com' },
+      },
+    };
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={outbound}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    toggleSwitch('Use system CA');
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const payload = onConfirm.mock.calls[0][0] as {
+      streamSettings: { tlsSettings: { serverName?: string; useSystemCA?: boolean } };
+    };
+    expect(payload.streamSettings.tlsSettings).toMatchObject({
+      serverName: 'example.com',
+      useSystemCA: true,
+    });
   });
 });

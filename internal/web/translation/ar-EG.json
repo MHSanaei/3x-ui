@@ -1929,6 +1929,7 @@
         "serverNamePlaceholder": "اسم الخادم",
         "verifyPeerName": "التحقق من اسم peer",
         "pinnedSha256": "SHA256 مثبت",
+        "useSystemCA": "استخدام CA النظام",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "فاصل keep alive",

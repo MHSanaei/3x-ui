@@ -225,14 +225,19 @@ describe('parseVlessLink — XHTTP advanced fields', () => {
 });
 
 describe('parseVlessLink', () => {
-  // A panel older than xray-core 26.9.30 shares xdns in the string lists the core no
-  // longer parses, so an outbound imported verbatim would fail the whole config.
-  it('upgrades a legacy xdns fm= mask to the object shape', () => {
-    const fm = encodeURIComponent(
-      JSON.stringify({
-        udp: [{ type: 'xdns', settings: { resolvers: ['t.example.com+udp://8.8.8.8:53'] } }],
-      }),
-    );
+  // Older panels share xdns as string lists (pre-26.9.30, a load error) or as name/typed
+  // resolver objects (26.9.30) that xray-core 26.10.10 reads as no domain at all.
+  it.each([
+    ['pre-26.9.30 string lists', { resolvers: ['t.example.com+udp://8.8.8.8:53'] }],
+    [
+      '26.9.30 objects',
+      {
+        domains: [{ name: 't.example.com', types: [16], edns0: 1232 }],
+        resolvers: [{ type: 'udp', settings: { addr: '8.8.8.8:53' } }],
+      },
+    ],
+  ])('upgrades a %s xdns fm= mask to names/addrs', (_shape, settings) => {
+    const fm = encodeURIComponent(JSON.stringify({ udp: [{ type: 'xdns', settings }] }));
     const out = parseVlessLink(
       `vless://11111111-2222-4333-8444-555555555555@srv:53?type=kcp&security=none&fm=${fm}#dns`,
     );
@@ -240,8 +245,8 @@ describe('parseVlessLink', () => {
       udp: Array<{ settings: unknown }>;
     };
     expect(finalmask.udp[0].settings).toEqual({
-      domains: [{ name: 't.example.com', types: [16], edns0: 1232 }],
-      resolvers: [{ type: 'udp', settings: { addr: '8.8.8.8:53' } }],
+      domains: [{ names: ['t.example.com'], types: [16], edns0: 1232 }],
+      resolvers: [{ addrs: ['udp://8.8.8.8:53'] }],
     });
   });
 

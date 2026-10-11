@@ -1929,6 +1929,7 @@
         "serverNamePlaceholder": "نام سرور",
         "verifyPeerName": "تایید نام Peer",
         "pinnedSha256": "SHA256 پین‌شده",
+        "useSystemCA": "استفاده از CA سیستم",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "بازه Keep alive",

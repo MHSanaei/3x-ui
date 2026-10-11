@@ -1929,6 +1929,7 @@
         "serverNamePlaceholder": "服务器名",
         "verifyPeerName": "验证 peer 名称",
         "pinnedSha256": "Pinned SHA256",
+        "useSystemCA": "使用系统 CA",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "keep alive 间隔",

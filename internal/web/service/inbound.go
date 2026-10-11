@@ -666,8 +666,8 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
 }
 
-// canonicalizeLegacyXdnsMasks stores an xdns mask posted in the pre-26.9.30 string
-// lists in the object shape the core parses, as GetXrayConfig would heal it anyway.
+// canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
+// the names/addrs lists the core reads, as GetXrayConfig would heal it anyway.
 func canonicalizeLegacyXdnsMasks(streamSettings string) string {
 	if streamSettings == "" {
 		return streamSettings
