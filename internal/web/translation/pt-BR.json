@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "Pool de endereços",
           "addressPoolDesc": "Os endereços do túnel são atribuídos a partir destes prefixos — no máximo um IPv4 e um IPv6."
-        }
+        },
+        "tunDesc": "Tipo de adaptador",
+        "tunDescTooltip": "Somente Windows: o tipo de túnel com que um novo adaptador Wintun é criado. Vazio significa Wintun.",
+        "autoSystemDnsToGateway": "DNS do sistema para o gateway",
+        "autoSystemDnsToGatewayTooltip": "Somente Linux: aponta o systemd-resolved para o gateway do TUN para que as consultas do sistema passem pelo Xray. Precisa de um gateway, e o TUN não inicia se isso falhar.",
+        "autoSystemWfpBlockLeak": "Bloquear vazamentos (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Somente Windows, com Auto system routes: dns mantém o DNS dentro do TUN (precisa de servidores DNS) e misconfigtun bloqueia uma versão de IP que nenhuma rota envia ao TUN."
       },
       "info": {
         "mode": "Modo",

@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "مجمّع العناوين",
           "addressPoolDesc": "تُخصَّص عناوين النفق من هذه البادئات — بحد أقصى IPv4 واحد و IPv6 واحد."
-        }
+        },
+        "tunDesc": "نوع المحوّل",
+        "tunDescTooltip": "على ويندوز بس: نوع النفق اللي بيتعمل بيه محوّل Wintun جديد. لو فاضي يبقى Wintun.",
+        "autoSystemDnsToGateway": "DNS النظام إلى البوابة",
+        "autoSystemDnsToGatewayTooltip": "على لينكس بس: بيوجّه systemd-resolved لبوابة TUN عشان استعلامات النظام تعدّي من Xray. محتاج بوابة، والـTUN مش هيشتغل لو ده فشل.",
+        "autoSystemWfpBlockLeak": "منع التسريب (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "على ويندوز بس، مع Auto system routes: ‏dns بيخلّي DNS جوّه الـTUN (محتاج سيرفرات DNS)، وmisconfigtun بيمنع نسخة IP مفيش مسار بيوديها للـTUN."
       },
       "info": {
         "mode": "الوضع",

@@ -467,6 +467,49 @@ describe('InboundFormModal', () => {
     expect(JSON.stringify(finalmask.udp ?? [])).not.toContain('udphop');
   });
 
+  // xray-core 26.9: the Wintun adapter type (desc) and the TUN auto-system leak guards.
+  it('saves the TUN adapter type and auto-system options set in the form', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    const tun = new DBInbound({
+      id: 44,
+      port: 0,
+      listen: '',
+      protocol: 'tun',
+      remark: 'tun',
+      enable: true,
+      settings: {
+        name: 'xray0',
+        mtu: 1500,
+        gateway: ['10.0.0.1/16'],
+        dns: ['1.1.1.1'],
+        userLevel: 0,
+        autoSystemRoutingTable: ['0.0.0.0/0'],
+        autoOutboundsInterface: 'auto',
+      },
+      streamSettings: {},
+      sniffing: { enabled: false },
+      nodeId: null,
+      shareAddrStrategy: 'listen',
+      shareAddr: '',
+    });
+    renderCloneLikeEdit(tun);
+
+    fireEvent.change(document.getElementById('tun-desc')!, { target: { value: 'MyTun' } });
+    fireEvent.click(document.getElementById('tun-auto-dns-gateway')!);
+    chooseSelectOption('tun-wfp-block-leak', 'dns');
+    fireEvent.click(primaryButton());
+
+    const isUpdate = ([url]: unknown[]) => url === '/panel/api/inbounds/update/44';
+    await waitFor(() => expect(post.mock.calls.some(isUpdate)).toBe(true));
+    const payload = post.mock.calls.find(isUpdate)![1] as { settings: string };
+    expect(JSON.parse(payload.settings)).toMatchObject({
+      desc: 'MyTun',
+      autoSystemDnsToGateway: true,
+      autoSystemWfpBlockLeak: ['dns'],
+    });
+  });
+
   // Clients and enable change through their own endpoints; the server keeps the
   // stored ones, so the edit form must neither send nor validate its stale copy.
   it('edit save neither sends nor validates the clients it loaded', async () => {

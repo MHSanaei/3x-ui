@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "Adres havuzu",
           "addressPoolDesc": "Tünel adresleri bu öneklerden atanır — en fazla bir IPv4 ve bir IPv6."
-        }
+        },
+        "tunDesc": "Bağdaştırıcı türü",
+        "tunDescTooltip": "Yalnızca Windows: yeni bir Wintun bağdaştırıcısının oluşturulduğu tünel türü. Boş bırakılırsa Wintun.",
+        "autoSystemDnsToGateway": "Sistem DNS'ini ağ geçidine yönlendir",
+        "autoSystemDnsToGatewayTooltip": "Yalnızca Linux: sistem sorguları Xray üzerinden gitsin diye systemd-resolved'ı TUN ağ geçidine yönlendirir. Ağ geçidi gerekir ve bu başarısız olursa TUN başlamaz.",
+        "autoSystemWfpBlockLeak": "Sızıntıları engelle (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i TUN içinde tutar (DNS sunucuları gerekir); misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller."
       },
       "info": {
         "mode": "Mod",

@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "Dải địa chỉ",
           "addressPoolDesc": "Địa chỉ đường hầm được cấp từ các tiền tố này — tối đa một IPv4 và một IPv6."
-        }
+        },
+        "tunDesc": "Loại adapter",
+        "tunDescTooltip": "Chỉ Windows: loại tunnel dùng khi tạo adapter Wintun mới. Để trống nghĩa là Wintun.",
+        "autoSystemDnsToGateway": "DNS hệ thống tới gateway",
+        "autoSystemDnsToGatewayTooltip": "Chỉ Linux: trỏ systemd-resolved tới gateway của TUN để truy vấn của hệ thống đi qua Xray. Cần có gateway, và TUN sẽ không khởi động nếu việc này thất bại.",
+        "autoSystemWfpBlockLeak": "Chặn rò rỉ (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Chỉ Windows, cùng với Auto system routes: dns giữ DNS bên trong TUN (cần máy chủ DNS), misconfigtun chặn phiên bản IP mà không tuyến nào đưa vào TUN."
       },
       "info": {
         "mode": "Chế độ",

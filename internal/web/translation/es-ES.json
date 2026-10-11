@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "Pool de direcciones",
           "addressPoolDesc": "Las direcciones del túnel se asignan de estos prefijos: como máximo uno IPv4 y uno IPv6."
-        }
+        },
+        "tunDesc": "Tipo de adaptador",
+        "tunDescTooltip": "Solo Windows: el tipo de túnel con el que se crea un adaptador Wintun nuevo. Vacío equivale a Wintun.",
+        "autoSystemDnsToGateway": "DNS del sistema a la puerta de enlace",
+        "autoSystemDnsToGatewayTooltip": "Solo Linux: apunta systemd-resolved a la puerta de enlace del TUN para que las consultas del sistema pasen por Xray. Necesita una puerta de enlace y el TUN no arranca si esto falla.",
+        "autoSystemWfpBlockLeak": "Bloquear fugas (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS dentro del TUN (necesita servidores DNS) y misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN."
       },
       "info": {
         "mode": "Modo",

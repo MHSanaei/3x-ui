@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "Kumpulan alamat",
           "addressPoolDesc": "Alamat terowongan diberikan dari prefiks ini — maksimal satu IPv4 dan satu IPv6."
-        }
+        },
+        "tunDesc": "Jenis adaptor",
+        "tunDescTooltip": "Khusus Windows: jenis tunnel untuk adaptor Wintun baru. Kosong berarti Wintun.",
+        "autoSystemDnsToGateway": "DNS sistem ke gateway",
+        "autoSystemDnsToGatewayTooltip": "Khusus Linux: mengarahkan systemd-resolved ke gateway TUN agar lookup sistem lewat Xray. Butuh gateway, dan TUN tidak berjalan jika ini gagal.",
+        "autoSystemWfpBlockLeak": "Blokir kebocoran (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS tetap di dalam TUN (butuh server DNS), misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN."
       },
       "info": {
         "mode": "Mode",

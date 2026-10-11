@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "مخزن آدرس",
           "addressPoolDesc": "آدرس‌های تونل از این پیشوندها تخصیص داده می‌شوند — حداکثر یک IPv4 و یک IPv6."
-        }
+        },
+        "tunDesc": "نوع آداپتور",
+        "tunDescTooltip": "فقط ویندوز: نوع تونلی که آداپتور Wintun جدید با آن ساخته می‌شود. خالی یعنی Wintun.",
+        "autoSystemDnsToGateway": "DNS سیستم به گیت‌وی",
+        "autoSystemDnsToGatewayTooltip": "فقط لینوکس: systemd-resolved را به گیت‌وی TUN می‌برد تا کوئری‌های سیستم از Xray عبور کنند. به گیت‌وی نیاز دارد و اگر این کار شکست بخورد TUN اجرا نمی‌شود.",
+        "autoSystemWfpBlockLeak": "جلوگیری از نشت (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "فقط ویندوز، همراه با مسیریابی خودکار سیستم: dns ترافیک DNS را داخل TUN نگه می‌دارد (به سرور DNS نیاز دارد) و misconfigtun نسخه‌ای از IP را که هیچ مسیری به TUN نمی‌فرستد مسدود می‌کند."
       },
       "info": {
         "mode": "حالت",

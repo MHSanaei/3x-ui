@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "Пул адрес",
           "addressPoolDesc": "Адреси тунелів видаються з цих префіксів — не більше одного IPv4 та одного IPv6."
-        }
+        },
+        "tunDesc": "Тип адаптера",
+        "tunDescTooltip": "Лише Windows: тип тунелю, з яким створюється новий адаптер Wintun. Порожньо — Wintun.",
+        "autoSystemDnsToGateway": "Системний DNS на шлюз",
+        "autoSystemDnsToGatewayTooltip": "Лише Linux: спрямовує systemd-resolved на шлюз TUN, щоб системні запити йшли через Xray. Потрібен шлюз; у разі помилки TUN не запуститься.",
+        "autoSystemWfpBlockLeak": "Блокування витоків (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Лише Windows, разом з авто-маршрутами системи: dns утримує DNS усередині TUN (потрібні DNS-сервери), misconfigtun блокує версію IP, яку жоден маршрут не веде в TUN."
       },
       "info": {
         "mode": "Режим",

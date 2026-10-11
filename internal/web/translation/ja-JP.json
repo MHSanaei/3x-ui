@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "アドレスプール",
           "addressPoolDesc": "トンネルのアドレスはこれらのプレフィックスから割り当てられます（IPv4 と IPv6 をそれぞれ最大 1 つ）。"
-        }
+        },
+        "tunDesc": "アダプターの種類",
+        "tunDescTooltip": "Windows のみ：新しく作成する Wintun アダプターのトンネル種別。空欄の場合は Wintun。",
+        "autoSystemDnsToGateway": "システム DNS をゲートウェイへ",
+        "autoSystemDnsToGatewayTooltip": "Linux のみ：systemd-resolved を TUN のゲートウェイに向け、システムの名前解決を Xray 経由にします。ゲートウェイが必要で、失敗すると TUN は起動しません。",
+        "autoSystemWfpBlockLeak": "リーク遮断 (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS を TUN 内に留め（DNS サーバーが必要）、misconfigtun は TUN へのルートがない IP バージョンを遮断します。"
       },
       "info": {
         "mode": "モード",

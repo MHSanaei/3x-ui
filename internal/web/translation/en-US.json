@@ -723,7 +723,13 @@
         "masque": {
           "addressPool": "Address pool",
           "addressPoolDesc": "Tunnel addresses are leased from these prefixes — at most one IPv4 and one IPv6."
-        }
+        },
+        "tunDesc": "Adapter type",
+        "tunDescTooltip": "Windows only: the tunnel type a new Wintun adapter is created with. Empty means Wintun.",
+        "autoSystemDnsToGateway": "System DNS to gateway",
+        "autoSystemDnsToGatewayTooltip": "Linux only: points systemd-resolved at the TUN gateway so system lookups go through Xray. Needs a gateway, and the TUN does not start if this fails.",
+        "autoSystemWfpBlockLeak": "Block leaks (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Windows only, with Auto system routes: dns keeps DNS inside the TUN (needs DNS servers), misconfigtun blocks an IP version that no route sends into the TUN."
       },
       "info": {
         "mode": "Mode",

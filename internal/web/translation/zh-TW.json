@@ -722,7 +722,13 @@
         "masque": {
           "addressPool": "位址池",
           "addressPoolDesc": "通道位址從這些前綴中分配——最多一個 IPv4 與一個 IPv6。"
-        }
+        },
+        "tunDesc": "介面卡類型",
+        "tunDescTooltip": "僅限 Windows：新建 Wintun 介面卡時使用的通道類型，留空即為 Wintun。",
+        "autoSystemDnsToGateway": "系統 DNS 指向閘道",
+        "autoSystemDnsToGatewayTooltip": "僅限 Linux：將 systemd-resolved 指向 TUN 閘道，使系統解析經過 Xray。需要設定閘道，失敗時 TUN 不會啟動。",
+        "autoSystemWfpBlockLeak": "阻止洩漏 (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "僅限 Windows，需搭配自動系統路由：dns 讓 DNS 只走 TUN（需設定 DNS 伺服器），misconfigtun 阻止沒有任何路由指向 TUN 的 IP 版本。"
       },
       "info": {
         "mode": "模式",
