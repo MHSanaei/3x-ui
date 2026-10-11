@@ -160,6 +160,7 @@ export default function BasicsTab({
   );
 
   const routingStrategy = templateSettings?.routing?.domainStrategy ?? 'AsIs';
+  const routingScript = templateSettings?.routing?.script ?? '';
   const log = (templateSettings?.log || {}) as Record<string, unknown>;
   const policy = (templateSettings?.policy?.system || {}) as Record<string, boolean>;
   const level0 = (templateSettings?.policy?.levels?.['0'] || {}) as Record<string, unknown>;
@@ -256,6 +257,25 @@ export default function BasicsTab({
                     if (tt.routing) tt.routing.domainStrategy = next;
                   })
                 }
+              />
+            }
+          />
+          <SettingListItem
+            title={t('pages.xray.routingScript')}
+            description={t('pages.xray.routingScriptDesc')}
+            paddings="small"
+            control={
+              <Input
+                value={routingScript}
+                placeholder="routing.lua"
+                onChange={(e) => {
+                  const next = e.target.value;
+                  mutate((tt) => {
+                    if (!tt.routing) return;
+                    if (next.trim() === '') delete tt.routing.script;
+                    else tt.routing.script = next;
+                  });
+                }}
               />
             }
           />

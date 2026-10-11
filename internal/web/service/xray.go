@@ -180,10 +180,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
 	xrayConfig.RouterConfig = stripDisabledRules(xrayConfig.RouterConfig)
-	// Template outbounds authored before the xray-core #6258 XHTTP rename may
-	// still carry sessionPlacement/sessionKey; lift them too (same reason as
-	// the per-inbound lift below).
-	xrayConfig.OutboundConfigs = liftOutboundsXhttpSessionIDKeys(xrayConfig.OutboundConfigs)
+	// A pasted or restored template can still carry pre-#6258 XHTTP session keys, a pre-26.10.10
+	// xdns mask or a pre-26.9.9 quicParams.udpHop, all of which the core silently ignores.
+	xrayConfig.OutboundConfigs = healOutboundStreams(xrayConfig.OutboundConfigs,
+		liftXhttpSessionIDKeys, upgradeStreamLegacyXdns, upgradeStreamLegacyUDPHop)
 	// Bridge amneziawg outbounds before anything else reads OutboundConfigs;
 	// the core has no amneziawg proxy and would reject the raw entry.
 	if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
@@ -282,6 +282,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				if c.Auth != "" {
 					entry["auth"] = c.Auth
 				}
+			case model.MASQUE:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
 			case model.WireGuard:
 				if inboundClient, ok := wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(c.Email))]; ok {
 					c.AllowedIPs = inboundClient.AllowedIPs
@@ -376,7 +380,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				logger.Warningf("Inbound %q: dropping %d XMC finalmask mask(s) without complete Minecraft profiles — reconfigure them to restore the obfuscation (see XTLS/Xray-core#6487)", inbound.Tag, dropped)
 			}
 
-			// A row that skipped the save path can still carry the pre-26.9.30 xdns lists.
+			// A row that skipped the save path can still carry an xdns shape older than 26.10.10.
 			maskcompat.UpgradeLegacyXdns(stream["finalmask"])
 
 			// xray-core v26.6.22 (#6258) renamed the XHTTP session keys and
@@ -1712,11 +1716,9 @@ func liftXhttpSessionIDKeys(stream map[string]any) bool {
 	return changed
 }
 
-// liftOutboundsXhttpSessionIDKeys applies liftXhttpSessionIDKeys to every
-// outbound's streamSettings in the raw outbounds array. The original bytes are
-// returned untouched when nothing needs lifting, so an unchanged config never
-// looks modified to the hot-reload diff.
-func liftOutboundsXhttpSessionIDKeys(raw json_util.RawMessage) json_util.RawMessage {
+// healOutboundStreams applies every heal to each outbound's streamSettings, returning the
+// original bytes when none changed anything so the hot-reload diff sees no edit.
+func healOutboundStreams(raw json_util.RawMessage, heals ...func(stream map[string]any) bool) json_util.RawMessage {
 	if len(raw) == 0 {
 		return raw
 	}
@@ -1727,8 +1729,10 @@ func liftOutboundsXhttpSessionIDKeys(raw json_util.RawMessage) json_util.RawMess
 	changed := false
 	for _, ob := range outbounds {
 		if stream, ok := ob["streamSettings"].(map[string]any); ok {
-			if liftXhttpSessionIDKeys(stream) {
-				changed = true
+			for _, heal := range heals {
+				if heal(stream) {
+					changed = true
+				}
 			}
 		}
 	}
@@ -1739,4 +1743,12 @@ func liftOutboundsXhttpSessionIDKeys(raw json_util.RawMessage) json_util.RawMess
 		return rewritten
 	}
 	return raw
+}
+
+func upgradeStreamLegacyXdns(stream map[string]any) bool {
+	return maskcompat.UpgradeLegacyXdns(stream["finalmask"])
+}
+
+func upgradeStreamLegacyUDPHop(stream map[string]any) bool {
+	return maskcompat.UpgradeLegacyUDPHop(stream["finalmask"])
 }

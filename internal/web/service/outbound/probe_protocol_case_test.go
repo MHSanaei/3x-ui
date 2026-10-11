@@ -51,6 +51,9 @@ func TestOutboundTransportIsUDPMatchesTheCore(t *testing.T) {
 		{"capitalised wireguard", map[string]any{"protocol": "WireGuard"}, true},
 		{"upper hysteria", map[string]any{"protocol": "HYSTERIA"}, true},
 		{"amneziawg", map[string]any{"protocol": "amneziawg"}, true},
+		// The core's MASQUE client dials HTTP/3 over QUIC unless the ALPN offers h2 without h3.
+		{"masque over http/3", map[string]any{"protocol": "masque", "streamSettings": map[string]any{"network": "masque"}}, true},
+		{"masque pinned to http/2", map[string]any{"protocol": "masque", "streamSettings": map[string]any{"network": "masque", "tlsSettings": map[string]any{"alpn": []any{"h2"}}}}, false},
 		{"kcp transport", map[string]any{"streamSettings": map[string]any{"network": "kcp"}}, true},
 		{"kcp transport capitalised", map[string]any{"streamSettings": map[string]any{"network": "KCP"}}, true},
 		{"mkcp alias", map[string]any{"streamSettings": map[string]any{"network": "mkcp"}}, true},
