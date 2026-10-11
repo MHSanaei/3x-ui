@@ -995,6 +995,25 @@ func validateFinalMaskXmcProfiles(streamSettings string) error {
 	return common.NewError("XMC finalmask requires at least one complete Minecraft profile — each needs a username (3-16 of A-Z a-z 0-9 _), a UUID, and both texture fields from Mojang's session server (XTLS/Xray-core#6487). Complete the profiles or remove the XMC mask.")
 }
 
+// validateFinalMaskSalamander refuses at save a salamander password the core loads and then refuses
+// when the listener opens, which stops every other inbound with it.
+func validateFinalMaskSalamander(streamSettings string) error {
+	var stream map[string]any
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil {
+		return nil
+	}
+	return maskcompat.CheckSalamanderPasswords(stream["finalmask"])
+}
+
+// validateFinalMaskJSONSalamander checks a stored whole finalmask: a host's, or the subscription's.
+func validateFinalMaskJSONSalamander(finalmask string) error {
+	var fm map[string]any
+	if json.Unmarshal([]byte(finalmask), &fm) != nil {
+		return nil
+	}
+	return maskcompat.CheckSalamanderPasswords(fm)
+}
+
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
 // always valid before the row is persisted, and drops the vestigial inbound-level
 // secret and adTag: MTProto is multi-client, so mtg and every share link read
@@ -1154,6 +1173,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateFinalMaskSalamander(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
@@ -1796,6 +1818,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateFinalMaskSalamander(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
