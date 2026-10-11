@@ -2290,7 +2290,7 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if _, kept := newEmails[email]; kept {
 			continue
 		}
-		stillUsed, err := s.emailUsedByOtherInbounds(email, oldInbound.Id)
+		stillUsed, err := s.emailUsedByOtherInbounds(tx, email, oldInbound.Id)
 		if err != nil {
 			return err
 		}
