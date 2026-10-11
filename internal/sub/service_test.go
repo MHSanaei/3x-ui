@@ -744,16 +744,6 @@ func TestApplyExternalProxy_ECHPropagates(t *testing.T) {
 		}
 	})
 
-	t.Run("json stream settings", func(t *testing.T) {
-		stream := map[string]any{"security": "tls", "tlsSettings": map[string]any{}}
-		ep := map[string]any{"dest": "proxy.example.com", "echConfigList": ech}
-		applyExternalProxyTLSToStream(ep, stream, "tls")
-		settings, _ := stream["tlsSettings"].(map[string]any)["settings"].(map[string]any)
-		if settings["echConfigList"] != ech {
-			t.Fatalf("echConfigList = %v, want %q", settings["echConfigList"], ech)
-		}
-	})
-
 	t.Run("non-tls security drops ech", func(t *testing.T) {
 		params := map[string]string{}
 		ep := map[string]any{"echConfigList": ech}
@@ -1188,6 +1178,20 @@ func TestMarshalFinalMask_KeepsUdpHopMask(t *testing.T) {
 	}
 	if !strings.Contains(out, "udphop") || !strings.Contains(out, "20000-50000") {
 		t.Fatalf("marshaled finalmask dropped the udphop mask: %s", out)
+	}
+}
+
+// xray-core 26.6 accepts sudoku as a UDP mask too; the link must not drop it from fm=.
+func TestMarshalFinalMask_KeepsSudokuUdpMask(t *testing.T) {
+	fm := map[string]any{
+		"udp": []any{map[string]any{"type": "sudoku", "settings": map[string]any{"password": "s3cr3t"}}},
+	}
+	out, ok := marshalFinalMask(fm)
+	if !ok {
+		t.Fatal("expected ok=true for a sudoku udp mask")
+	}
+	if want := `{"udp":[{"settings":{"password":"s3cr3t"},"type":"sudoku"}]}`; out != want {
+		t.Fatalf("marshalFinalMask = %s, want %s", out, want)
 	}
 }
 

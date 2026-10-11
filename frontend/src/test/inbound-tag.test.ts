@@ -32,6 +32,27 @@ describe('composeInboundTag transport suffix parity', () => {
     ],
     ['wireguard forced udp', base({ protocol: 'wireguard' }), 'in-443-udp'],
     [
+      'masque without alpn is udp',
+      base({ protocol: 'masque', streamSettings: { network: 'masque', tlsSettings: {} } }),
+      'in-443-udp',
+    ],
+    [
+      'masque h2 is tcp',
+      base({
+        protocol: 'masque',
+        streamSettings: { network: 'masque', tlsSettings: { alpn: ['h2'] } },
+      }),
+      'in-443-tcp',
+    ],
+    [
+      'masque h3+h2 is both',
+      base({
+        protocol: 'masque',
+        streamSettings: { network: 'masque', tlsSettings: { alpn: ['h3', 'h2'] } },
+      }),
+      'in-443-tcpudp',
+    ],
+    [
       'tuic forced udp',
       base({ protocol: 'tuic', streamSettings: { network: 'tcp' } }),
       'in-443-udp',

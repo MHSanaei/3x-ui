@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const TunInboundSettingsSchema = z.object({
   name: z.string().default('xray0'),
+  // Windows: the tunnel type a new Wintun adapter is created with (core default Wintun).
+  desc: z.string().optional(),
   mtu: z.number().int().min(0).default(1500),
   gateway: z.array(z.string()).default([]),
   dns: z.array(z.string()).default([]),

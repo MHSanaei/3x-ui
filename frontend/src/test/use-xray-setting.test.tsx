@@ -49,6 +49,32 @@ describe('useXraySetting', () => {
     expect(result.current.xraySetting).toBe('{"outbounds":[]}');
   });
 
+  // xray-core 26.10.10 runs a Lua dns.script that addresses servers by id; stripped
+  // on load, the next template save would silently delete both.
+  it('keeps the dns script and server ids through the load', async () => {
+    const payload = xrayPayload({
+      xraySetting: {
+        dns: { script: 'dns.lua', servers: [{ address: '1.1.1.1', port: 53, id: 'cf' }] },
+      },
+    });
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {
+      if (url === '/panel/api/xray/') return new Msg(true, '', JSON.stringify(payload));
+      return new Msg(true, '');
+    });
+    const queryClient = makeTestQueryClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useXraySetting(), { wrapper });
+
+    await waitFor(() => expect(result.current.fetched).toBe(true));
+    const loaded = JSON.parse(result.current.xraySetting) as {
+      dns: { script?: string; servers: Array<Record<string, unknown>> };
+    };
+    expect(loaded.dns.script).toBe('dns.lua');
+    expect(loaded.dns.servers[0].id).toBe('cf');
+  });
+
   it('keeps the outbound test URL input empty when it is cleared', async () => {
     const payload = xrayPayload({ outboundTestUrl: 'https://www.google.com/generate_204' });
     vi.spyOn(HttpUtil, 'post').mockImplementation(async (url) => {

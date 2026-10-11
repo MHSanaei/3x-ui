@@ -8,9 +8,13 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-const legacyXdnsStream = `{"network":"kcp","security":"none","kcpSettings":{"mtu":900},"finalmask":{"udp":[{"type":"xdns","settings":{"domains":["t.example.com"]}}]}}`
+// legacyXdnsStream carries the 26.9.30 xdns objects, whose "name" and typed resolvers
+// xray-core 26.10.10 ignores: the mask would load with no domain at all.
+const legacyXdnsStream = `{"network":"kcp","security":"none","kcpSettings":{"mtu":900},"finalmask":{"udp":[{"type":"xdns","settings":{"domains":[{"name":"t.example.com","types":[16],"edns0":1232}],"resolvers":[{"type":"udp","settings":{"addr":"8.8.8.8:53"}}]}}]}}`
 
-func firstXdnsDomain(t *testing.T, stream map[string]any) any {
+const upgradedXdnsSettings = `{"domains":[{"edns0":1232,"names":["t.example.com"],"types":[16]}],"resolvers":[{"addrs":["udp://8.8.8.8:53"]}]}`
+
+func assertXdnsSettingsUpgraded(t *testing.T, stream map[string]any) {
 	t.Helper()
 	finalmask, _ := stream["finalmask"].(map[string]any)
 	udp, _ := finalmask["udp"].([]any)
@@ -18,17 +22,18 @@ func firstXdnsDomain(t *testing.T, stream map[string]any) any {
 		t.Fatalf("finalmask.udp = %v, want one mask", finalmask["udp"])
 	}
 	mask, _ := udp[0].(map[string]any)
-	settings, _ := mask["settings"].(map[string]any)
-	domains, _ := settings["domains"].([]any)
-	if len(domains) != 1 {
-		t.Fatalf("xdns domains = %v, want one", settings["domains"])
+	got, err := json.Marshal(mask["settings"])
+	if err != nil {
+		t.Fatalf("marshal xdns settings: %v", err)
 	}
-	return domains[0]
+	if string(got) != upgradedXdnsSettings {
+		t.Fatalf("xdns settings\n got: %s\nwant: %s", got, upgradedXdnsSettings)
+	}
 }
 
-// An API client can still post the pre-26.9.30 string lists; stored as sent they would
-// reach the sub links and the form in a shape the core no longer parses.
-func TestAddInbound_StoresXdnsMaskInObjectShape(t *testing.T) {
+// An API client or an older panel's export can still post the 26.9.30 shape; stored as
+// sent it would reach the sub links and the form in a shape the core silently empties.
+func TestAddInbound_StoresXdnsMaskInNamesShape(t *testing.T) {
 	setupConflictDB(t)
 	in := &model.Inbound{
 		Tag: "in-45300-kcp", Enable: true, Listen: "0.0.0.0", Port: 45300, Protocol: model.VLESS,
@@ -46,27 +51,15 @@ func TestAddInbound_StoresXdnsMaskInObjectShape(t *testing.T) {
 	if err := json.Unmarshal([]byte(stored.StreamSettings), &stream); err != nil {
 		t.Fatalf("stored stream is not JSON: %v", err)
 	}
-	domain, ok := firstXdnsDomain(t, stream).(map[string]any)
-	if !ok || domain["name"] != "t.example.com" {
-		t.Fatalf("stored xdns domain = %#v, want an object named t.example.com", firstXdnsDomain(t, stream))
-	}
+	assertXdnsSettingsUpgraded(t, stream)
 }
 
 // A row that never went through the save path (restored backup, node sync, direct DB
-// edit) must still reach the core in a shape it builds, or it keeps every inbound down.
+// edit) must still reach the core with its xdns domains, or the mask serves nothing.
 func TestGetXrayConfig_UpgradesLegacyXdnsMask(t *testing.T) {
 	setupConflictDB(t)
 	seedInboundConflict(t, "in-45301-kcp", "127.0.0.1", 45301, model.VLESS,
 		legacyXdnsStream, `{"clients":[],"decryption":"none"}`)
-
-	var legacy map[string]any
-	if err := json.Unmarshal([]byte(`{"tag":"in-45301-kcp","listen":"127.0.0.1","port":45301,"protocol":"vless",
-		"settings":{"clients":[],"decryption":"none"},"streamSettings":`+legacyXdnsStream+`}`), &legacy); err != nil {
-		t.Fatalf("decode legacy inbound: %v", err)
-	}
-	if err := buildGoldenInbound(t, legacy); err == nil {
-		t.Fatal("xray-core accepted the legacy xdns lists; the heal is no longer needed")
-	}
 
 	cfg, err := (&XrayService{}).GetXrayConfig()
 	if err != nil {
@@ -84,8 +77,74 @@ func TestGetXrayConfig_UpgradesLegacyXdnsMask(t *testing.T) {
 		if err := json.Unmarshal(raw, &emitted); err != nil {
 			t.Fatalf("decode emitted inbound: %v", err)
 		}
+		stream, _ := emitted["streamSettings"].(map[string]any)
+		assertXdnsSettingsUpgraded(t, stream)
 		assertXrayAccepts(t, "the healed xdns inbound", buildGoldenInbound(t, emitted))
 		return
 	}
 	t.Fatal("inbound in-45301-kcp not found in the generated config")
+}
+
+// A template pasted from a 26.9.30 panel after the seeder ran passes the save check,
+// since the core loads that shape without error; only the build-time heal catches it.
+func TestGetXrayConfig_UpgradesTemplateOutboundXdnsMask(t *testing.T) {
+	setupConflictDB(t)
+	template := `{"outbounds":[{"protocol":"freedom","tag":"direct"},{"protocol":"vless","tag":"dns-tunnel",
+		"settings":{"vnext":[{"address":"t.example.com","port":53,"users":[{"id":"c9f0c2d0-0000-4000-8000-000000000000","encryption":"none"}]}]},
+		"streamSettings":` + legacyXdnsStream + `}]}`
+	if err := (&SettingService{}).saveSetting("xrayTemplateConfig", template); err != nil {
+		t.Fatalf("seed template: %v", err)
+	}
+
+	cfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatalf("GetXrayConfig: %v", err)
+	}
+	var outbounds []map[string]any
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatalf("decode emitted outbounds: %v", err)
+	}
+	for _, outbound := range outbounds {
+		if outbound["tag"] == "dns-tunnel" {
+			stream, _ := outbound["streamSettings"].(map[string]any)
+			assertXdnsSettingsUpgraded(t, stream)
+			return
+		}
+	}
+	t.Fatal("outbound dns-tunnel not found in the generated config")
+}
+
+// A hysteria outbound pasted from a pre-26.9.9 template still carries quicParams.udpHop,
+// which the core now ignores; the build heal hands it the udphop mask instead.
+func TestGetXrayConfig_UpgradesTemplateOutboundUDPHop(t *testing.T) {
+	setupConflictDB(t)
+	template := `{"outbounds":[{"protocol":"freedom","tag":"direct"},{"protocol":"hysteria","tag":"hy-out",
+		"settings":{"version":2,"address":"hy.example.com","port":443},
+		"streamSettings":{"network":"hysteria","security":"tls","hysteriaSettings":{"version":2,"auth":"a"},
+			"finalmask":{"quicParams":{"udpHop":{"ports":"20000-30000","interval":"5-10"}}}}}]}`
+	if err := (&SettingService{}).saveSetting("xrayTemplateConfig", template); err != nil {
+		t.Fatalf("seed template: %v", err)
+	}
+
+	cfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatalf("GetXrayConfig: %v", err)
+	}
+	var outbounds []map[string]any
+	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+		t.Fatalf("decode emitted outbounds: %v", err)
+	}
+	for _, outbound := range outbounds {
+		if outbound["tag"] != "hy-out" {
+			continue
+		}
+		stream, _ := outbound["streamSettings"].(map[string]any)
+		got, _ := json.Marshal(stream["finalmask"])
+		const want = `{"udp":[{"settings":{"interval":"5-10","mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
+		if string(got) != want {
+			t.Fatalf("emitted finalmask\n got: %s\nwant: %s", got, want)
+		}
+		return
+	}
+	t.Fatal("outbound hy-out not found in the generated config")
 }
