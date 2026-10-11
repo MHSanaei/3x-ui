@@ -37,15 +37,57 @@ func UpgradeLegacyUDPHop(finalmask any) bool {
 	return true
 }
 
-func hasUDPHopMask(fm map[string]any) bool {
+// NormalizeUDPHop keeps the last udphop mask alone at the end of udp: the core reverses the list
+// and refuses ("incorrect index") a mask that dials its own socket anywhere but the socket end.
+func NormalizeUDPHop(finalmask any) bool {
+	fm, _ := finalmask.(map[string]any)
 	masks, _ := fm["udp"].([]any)
-	for _, entry := range masks {
-		mask, _ := entry.(map[string]any)
-		if maskType, _ := mask["type"].(string); strings.EqualFold(maskType, "udphop") {
-			return true
+	last, hops := -1, 0
+	for i, mask := range masks {
+		if isUDPHopMask(mask) {
+			last, hops = i, hops+1
 		}
 	}
-	return false
+	if last < 0 || (hops == 1 && last == len(masks)-1) {
+		return false
+	}
+	kept := make([]any, 0, len(masks)-hops+1)
+	for _, mask := range masks {
+		if !isUDPHopMask(mask) {
+			kept = append(kept, mask)
+		}
+	}
+	fm["udp"] = append(kept, masks[last])
+	return true
+}
+
+// WithoutUDPHop returns finalmask minus its udphop masks, for a default that yields to a hop
+// range already set; finalmask itself is left untouched.
+func WithoutUDPHop(finalmask map[string]any) map[string]any {
+	masks, _ := finalmask["udp"].([]any)
+	if !slices.ContainsFunc(masks, isUDPHopMask) {
+		return finalmask
+	}
+	out := maps.Clone(finalmask)
+	out["udp"] = slices.DeleteFunc(slices.Clone(masks), isUDPHopMask)
+	return out
+}
+
+// HasUDPHopMask reports whether finalmask already dials through a udphop mask.
+func HasUDPHopMask(finalmask any) bool {
+	fm, _ := finalmask.(map[string]any)
+	return hasUDPHopMask(fm)
+}
+
+func hasUDPHopMask(fm map[string]any) bool {
+	masks, _ := fm["udp"].([]any)
+	return slices.ContainsFunc(masks, isUDPHopMask)
+}
+
+func isUDPHopMask(entry any) bool {
+	mask, _ := entry.(map[string]any)
+	maskType, _ := mask["type"].(string)
+	return strings.EqualFold(maskType, "udphop")
 }
 
 func isEmptyHopValue(value any) bool {

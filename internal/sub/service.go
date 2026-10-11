@@ -24,6 +24,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
@@ -2855,6 +2856,7 @@ func applyFinalMaskObj(finalmask map[string]any, obj map[string]any) {
 
 func marshalFinalMask(finalmask map[string]any) (string, bool) {
 	normalized := withLegacyFragmentRanges(normalizeFinalMask(finalmask))
+	maskcompat.NormalizeUDPHop(normalized)
 	if !hasFinalMaskContent(normalized) {
 		return "", false
 	}
