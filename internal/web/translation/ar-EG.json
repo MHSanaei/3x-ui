@@ -694,7 +694,31 @@
         "bytesPerSecTip": "حد السرعة (بايت/ثانية) المطبّق على مرور الـ fallback بعد العتبة، عشان الفحوصات ماتقدرش تستخدم سيرفرك كنطاق ترددي مجاني للهدف. 0 = بلا حد (بيعطّل الاتجاه ده).",
         "burstBytesPerSec": "بايت في الثانية للدفقة",
         "burstBytesPerSecTip": "السماح بدفقات قصيرة فوق المعدل الثابت (حجم token-bucket). لو أقل من بايت في الثانية بيترفع ليطابقه.",
-        "autoFill": "الملء التلقائي"
+        "autoFill": "الملء التلقائي",
+        "xdrive": {
+          "service": "خدمة التخزين",
+          "serviceLocal": "مجلد محلي",
+          "serviceTemplate": "قالب مخصص",
+          "remoteFolder": "المجلد البعيد",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "الأسرار",
+          "secretsDesc": "قيم يقرؤها القالب باسم {secret0} و{secret1} …",
+          "template": "قالب التخزين",
+          "templateInvalid": "يجب أن يكون كائن JSON",
+          "front": "عنوان الواجهة (Front)",
+          "frontDesc": "مضيف أو IP اختياري يُتصل عبره بواجهة API التخزين (domain fronting).",
+          "frontPort": "منفذ الواجهة (Front)",
+          "segmentBytes": "حجم المقطع (بايت)",
+          "flushInterval": "فاصل الإرسال (ms)",
+          "pollInterval": "فاصل الاستطلاع (ms)",
+          "maxPollInterval": "أقصى فاصل استطلاع (ms)",
+          "eagerWindow": "نافذة الإرسال المبكر (ms)",
+          "holeTimeout": "مهلة المقطع المفقود (ms)",
+          "sessionTtl": "مدة صلاحية الجلسة (s)",
+          "concurrency": "التزامن"
+        }
       },
       "info": {
         "mode": "الوضع",

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { ThemeProvider } from '@/hooks/useTheme';
@@ -22,6 +22,23 @@ function renderModal(outbound: Record<string, unknown> | null = null) {
       onConfirm={() => {}}
     />,
   );
+}
+
+function formItemByLabel(label: string): Element | undefined {
+  return Array.from(document.querySelectorAll('.ant-form-item')).find(
+    (el) => (el.querySelector('.ant-form-item-label label')?.textContent ?? '').trim() === label,
+  );
+}
+
+function chooseOptionByLabel(label: string, optionText: string) {
+  const select = formItemByLabel(label)?.querySelector('.ant-select');
+  if (!select) throw new Error(`${label} select not found`);
+  fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
+  const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+    (o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === optionText,
+  );
+  if (!option) throw new Error(`Option '${optionText}' not found for ${label}`);
+  fireEvent.click(option);
 }
 
 function toggleSwitch(label: string) {
@@ -288,6 +305,76 @@ describe('OutboundFormModal', () => {
     expect(payload.streamSettings.tlsSettings).toMatchObject({
       serverName: 'example.com',
       useSystemCA: true,
+    });
+  });
+
+  // xray-core reads Google Drive's three secrets by position (ClientID, ClientSecret,
+  // RefreshToken); a misordered list fails OAuth only when the tunnel first dials.
+  it('saves an XDRIVE stream picked in the transmission selector', async () => {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const outbound = {
+      protocol: 'vless',
+      tag: 'drive-out',
+      settings: {
+        vnext: [
+          {
+            address: 'example.com',
+            port: 443,
+            users: [{ id: 'c9f0c2d0-0000-4000-8000-000000000000', encryption: 'none' }],
+          },
+        ],
+      },
+      streamSettings: { network: 'tcp', security: 'none' },
+    };
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={outbound}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    chooseOptionByLabel('Transmission', 'XDRIVE');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    for (const [label, value] of [
+      ['Remote folder', 'xray-tunnel'],
+      ['Client ID', 'id.apps.googleusercontent.com'],
+      ['Client secret', 'client-secret'],
+      ['Refresh token', 'refresh-token'],
+    ]) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    }
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const payload = onConfirm.mock.calls[0][0] as { streamSettings: Record<string, unknown> };
+    expect(payload.streamSettings).toMatchObject({
+      network: 'xdrive',
+      xdriveSettings: {
+        service: 'Google Drive',
+        remoteFolder: 'xray-tunnel',
+        secrets: ['id.apps.googleusercontent.com', 'client-secret', 'refresh-token'],
+      },
     });
   });
 });

@@ -44,6 +44,7 @@ export const NETWORK_OPTIONS: { value: string; label: string }[] = [
   { value: 'grpc', label: 'gRPC' },
   { value: 'httpupgrade', label: 'HTTPUpgrade' },
   { value: 'xhttp', label: 'XHTTP' },
+  { value: 'xdrive', label: 'XDRIVE' },
 ];
 
 // The hysteria protocol is locked to its own QUIC transport: the selector

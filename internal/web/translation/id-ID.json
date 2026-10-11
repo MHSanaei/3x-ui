@@ -694,7 +694,31 @@
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
         "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
-        "autoFill": "Isi Otomatis"
+        "autoFill": "Isi Otomatis",
+        "xdrive": {
+          "service": "Layanan penyimpanan",
+          "serviceLocal": "Folder lokal",
+          "serviceTemplate": "Template kustom",
+          "remoteFolder": "Folder jarak jauh",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Rahasia",
+          "secretsDesc": "Nilai yang dibaca template sebagai {secret0}, {secret1}, …",
+          "template": "Template penyimpanan",
+          "templateInvalid": "Harus berupa objek JSON",
+          "front": "Alamat fronting",
+          "frontDesc": "Host atau IP opsional untuk menghubungi API penyimpanan (domain fronting).",
+          "frontPort": "Port fronting",
+          "segmentBytes": "Ukuran segmen (byte)",
+          "flushInterval": "Interval pengiriman (ms)",
+          "pollInterval": "Interval polling (ms)",
+          "maxPollInterval": "Interval polling maks. (ms)",
+          "eagerWindow": "Jendela kirim awal (ms)",
+          "holeTimeout": "Batas waktu segmen hilang (ms)",
+          "sessionTtl": "TTL sesi (s)",
+          "concurrency": "Konkurensi"
+        }
       },
       "info": {
         "mode": "Mode",

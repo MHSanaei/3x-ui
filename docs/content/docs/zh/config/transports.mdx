@@ -1,6 +1,6 @@
 ---
 title: 传输方式与安全层
-description: 3x-ui 提供的每一种传输方式——TCP、mKCP、WebSocket、gRPC、HTTPUpgrade、XHTTP、Hysteria——及其设置项，外加 FinalMask 混淆、sockopt、TLS/REALITY、XTLS-Vision 以及 VLESS 加密。
+description: 3x-ui 提供的每一种传输方式——TCP、mKCP、WebSocket、gRPC、HTTPUpgrade、XHTTP、Hysteria、XDRIVE——及其设置项，外加 FinalMask 混淆、sockopt、TLS/REALITY、XTLS-Vision 以及 VLESS 加密。
 icon: Network
 ---
 
@@ -22,6 +22,7 @@ icon: Network
 | **HTTPUpgrade** | `httpupgradeSettings` | 对 CDN 友好的 HTTP/1.1 `Upgrade`；比完整的 WebSocket 更轻量。          |
 | **XHTTP**       | `xhttpSettings`       | 现代的流多路复用 HTTP 传输；对 CDN 友好且支持 REALITY。               |
 | **Hysteria**    | `hysteriaSettings`    | 基于 QUIC 的传输——仅用于 **Hysteria2** 协议。                          |
+| **XDRIVE**      | `xdriveSettings`      | 通过共享云存储（Google Drive、本地文件夹或任意 HTTP 存储 API）中的文件传输数据流。 |
 
 <Callout type="info">
   **WireGuard** 和 **Tunnel**（dokodemo-door）入站不提供传输方式选择器——它们的传输流
@@ -111,6 +112,22 @@ Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
 | `auth`           | _(无)_  | 共享的认证字符串。                                                      |
 | `udpIdleTimeout` | `60`    | 空闲 UDP 会话被丢弃前的秒数（2–600）。                                 |
 | `masquerade`     | —       | 伪装成一个 HTTP/3 服务器：`type` 为 `proxy`/`file`/`string`，配合 `url`/`dir`/`content`，外加 `headers` 与 `statusCode`。 |
+
+### XDRIVE — `xdriveSettings`
+
+XDRIVE 把数据流作为文件存放在双方都能访问的文件夹中：服务端轮询该文件夹，而不是在端口上接受连接。
+双方必须使用**相同**的服务、文件夹和密钥，因此 JSON 订阅会把它们下发给每个客户端；XDRIVE 入站不生成分享链接或 Clash 条目。
+
+| 字段           | 默认值         | 含义 |
+| -------------- | -------------- | ---- |
+| `service`      | `Google Drive` | `Google Drive`、`local`（磁盘上的文件夹）或 `template`（任意 HTTP 存储 API）。 |
+| `remoteFolder` | —              | 存放会话文件的文件夹。 |
+| `secrets`      | —              | Google Drive：恰好三项，依次为 ClientID、ClientSecret、RefreshToken。Template：以 `{secret0}`、`{secret1}`… 引用的值。 |
+| `template`     | —              | 仅用于 template 服务：存储 API 的 `auth`、`put`、`get`、`list` 和 `delete` 操作。 |
+| 调优参数       | 内核默认值     | `segmentBytes`（512 KiB）、`flushIntervalMs`（20）、`pollIntervalMs`/`maxPollIntervalMs`（50/500）、`eagerWindowMs`（2000）、`holeTimeoutMs`（30000）、`sessionTtlSeconds`（300）、`concurrency`（8）。 |
+
+可选的**前置地址/端口**（stream 级的 `address`/`port`）是连接存储 API 时使用的域前置；TLS 中仍使用 API 主机名。
+XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 HTTPS。
 
 ## FinalMask — 末层混淆
 

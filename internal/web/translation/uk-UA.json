@@ -694,7 +694,31 @@
           "listen": "Адреса прослуховування inbound",
           "custom": "Користувацька"
         },
-        "autoFill": "Автозаповнення"
+        "autoFill": "Автозаповнення",
+        "xdrive": {
+          "service": "Сервіс сховища",
+          "serviceLocal": "Локальна тека",
+          "serviceTemplate": "Власний шаблон",
+          "remoteFolder": "Віддалена тека",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Секрети",
+          "secretsDesc": "Значення, які шаблон читає як {secret0}, {secret1}, …",
+          "template": "Шаблон сховища",
+          "templateInvalid": "Має бути об'єкт JSON",
+          "front": "Адреса фронтингу",
+          "frontDesc": "Необов'язковий хост або IP для підключення до API сховища (domain fronting).",
+          "frontPort": "Порт фронтингу",
+          "segmentBytes": "Розмір сегмента (байт)",
+          "flushInterval": "Інтервал надсилання (мс)",
+          "pollInterval": "Інтервал опитування (мс)",
+          "maxPollInterval": "Макс. інтервал опитування (мс)",
+          "eagerWindow": "Вікно випередження (мс)",
+          "holeTimeout": "Тайм-аут пропущеного сегмента (мс)",
+          "sessionTtl": "TTL сесії (с)",
+          "concurrency": "Паралельність"
+        }
       },
       "info": {
         "mode": "Режим",

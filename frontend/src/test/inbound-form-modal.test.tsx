@@ -318,6 +318,50 @@ describe('InboundFormModal', () => {
     });
   });
 
+  // The core reads an XDRIVE inbound's TLS/REALITY as the storage API's client TLS, so
+  // switching a REALITY inbound to XDRIVE must store security none with its secrets.
+  it('switches a REALITY inbound to an XDRIVE stream with security none', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    renderCloneLikeEdit(cloneLikeVlessInbound('example.com:443'));
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Stream' }));
+    const transmission = Array.from(document.querySelectorAll('.ant-form-item')).find(
+      (el) =>
+        el.querySelector('.ant-form-item-label label')?.textContent?.trim() === 'Transmission',
+    );
+    const select = transmission?.querySelector('.ant-select') as HTMLElement;
+    fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
+    const option = Array.from(document.querySelectorAll('.ant-select-item-option')).find(
+      (o) => (o.getAttribute('title') ?? o.textContent ?? '').trim() === 'XDRIVE',
+    ) as HTMLElement;
+    fireEvent.click(option);
+    for (const [label, value] of [
+      ['Remote folder', 'xray-tunnel'],
+      ['Client ID', 'id.apps.googleusercontent.com'],
+      ['Client secret', 'client-secret'],
+      ['Refresh token', 'refresh-token'],
+    ]) {
+      fireEvent.change(await screen.findByLabelText(label), { target: { value } });
+    }
+    fireEvent.click(primaryButton());
+
+    const isUpdate = ([url]: unknown[]) => url === '/panel/api/inbounds/update/42';
+    await waitFor(() => expect(post.mock.calls.some(isUpdate)).toBe(true));
+    const payload = post.mock.calls.find(isUpdate)![1] as { streamSettings: string };
+    const stream = JSON.parse(payload.streamSettings) as Record<string, unknown>;
+    expect(stream).toMatchObject({
+      network: 'xdrive',
+      security: 'none',
+      xdriveSettings: {
+        service: 'Google Drive',
+        remoteFolder: 'xray-tunnel',
+        secrets: ['id.apps.googleusercontent.com', 'client-secret', 'refresh-token'],
+      },
+    });
+    expect(stream.realitySettings).toBeUndefined();
+  });
+
   // Clients and enable change through their own endpoints; the server keeps the
   // stored ones, so the edit form must neither send nor validate its stale copy.
   it('edit save neither sends nor validates the clients it loaded', async () => {

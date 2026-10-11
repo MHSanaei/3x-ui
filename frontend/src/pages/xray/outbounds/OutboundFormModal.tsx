@@ -8,6 +8,7 @@ import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import { formValuesToWirePayload, rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
+import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
 import { XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
 import { OutboundFormBaseSchema, type OutboundFormValues } from '@/schemas/forms/outbound-form';
 import {
@@ -487,6 +488,8 @@ export default function OutboundFormModal({
                           {network === 'xhttp' && <XhttpForm onXmuxToggle={onXmuxToggle} />}
 
                           {network === 'hysteria' && <HysteriaForm />}
+
+                          {network === 'xdrive' && <XDriveForm />}
                         </>
                       )}
 

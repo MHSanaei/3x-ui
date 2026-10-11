@@ -818,9 +818,13 @@ func mergeStreamFromMaster(childStream, masterStream string) string {
 
 // GetLink dispatches to the protocol-specific generator for one (inbound, client)
 // pair. Returns "" when the inbound's protocol doesn't produce a subscription URL
-// (socks, http, mixed, wireguard, dokodemo, tunnel). The returned string may
-// contain multiple `\n`-separated URLs when the inbound has externalProxy set.
+// (socks, http, mixed, wireguard, dokodemo, tunnel) or its transport has no link
+// format (xdrive). The returned string may contain multiple `\n`-separated URLs
+// when the inbound has externalProxy set.
 func (s *SubService) GetLink(inbound *model.Inbound, email string) string {
+	if network, _ := unmarshalStreamSettings(inbound.StreamSettings)["network"].(string); network == "xdrive" {
+		return ""
+	}
 	switch inbound.Protocol {
 	case "vmess":
 		return s.genVmessLink(inbound, email)

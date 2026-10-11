@@ -694,7 +694,31 @@
           "listen": "آدرس شنود ورودی",
           "custom": "سفارشی"
         },
-        "autoFill": "تکمیل خودکار"
+        "autoFill": "تکمیل خودکار",
+        "xdrive": {
+          "service": "سرویس ذخیره‌سازی",
+          "serviceLocal": "پوشهٔ محلی",
+          "serviceTemplate": "قالب سفارشی",
+          "remoteFolder": "پوشهٔ راه دور",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "مقادیر محرمانه",
+          "secretsDesc": "مقادیری که قالب با {secret0}، {secret1}، … می‌خواند",
+          "template": "قالب ذخیره‌سازی",
+          "templateInvalid": "باید یک شیء JSON باشد",
+          "front": "آدرس Front",
+          "frontDesc": "میزبان یا IP اختیاری که API ذخیره‌ساز از طریق آن وصل می‌شود (domain fronting).",
+          "frontPort": "پورت Front",
+          "segmentBytes": "اندازهٔ قطعه (بایت)",
+          "flushInterval": "فاصلهٔ ارسال (میلی‌ثانیه)",
+          "pollInterval": "فاصلهٔ بررسی (میلی‌ثانیه)",
+          "maxPollInterval": "حداکثر فاصلهٔ بررسی (میلی‌ثانیه)",
+          "eagerWindow": "پنجرهٔ پیش‌ارسال (میلی‌ثانیه)",
+          "holeTimeout": "مهلت قطعهٔ گمشده (میلی‌ثانیه)",
+          "sessionTtl": "TTL نشست (ثانیه)",
+          "concurrency": "هم‌زمانی"
+        }
       },
       "info": {
         "mode": "حالت",

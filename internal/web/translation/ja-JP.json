@@ -694,7 +694,31 @@
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
         },
-        "autoFill": "自動入力"
+        "autoFill": "自動入力",
+        "xdrive": {
+          "service": "ストレージサービス",
+          "serviceLocal": "ローカルフォルダ",
+          "serviceTemplate": "カスタムテンプレート",
+          "remoteFolder": "リモートフォルダ",
+          "clientId": "クライアント ID",
+          "clientSecret": "クライアントシークレット",
+          "refreshToken": "リフレッシュトークン",
+          "secrets": "シークレット",
+          "secretsDesc": "テンプレートで {secret0}、{secret1}、… として参照される値",
+          "template": "ストレージテンプレート",
+          "templateInvalid": "JSON オブジェクトである必要があります",
+          "front": "フロンティングアドレス",
+          "frontDesc": "ストレージ API への接続に使う任意のホストまたは IP（ドメインフロンティング）。",
+          "frontPort": "フロンティングポート",
+          "segmentBytes": "セグメントサイズ（バイト）",
+          "flushInterval": "送出間隔（ms）",
+          "pollInterval": "ポーリング間隔（ms）",
+          "maxPollInterval": "最大ポーリング間隔（ms）",
+          "eagerWindow": "先行送信ウィンドウ（ms）",
+          "holeTimeout": "欠落セグメントのタイムアウト（ms）",
+          "sessionTtl": "セッション TTL（秒）",
+          "concurrency": "同時実行数"
+        }
       },
       "info": {
         "mode": "モード",

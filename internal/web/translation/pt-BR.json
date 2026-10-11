@@ -694,7 +694,31 @@
           "listen": "Endereço de escuta do inbound",
           "custom": "Personalizada"
         },
-        "autoFill": "Preenchimento automático"
+        "autoFill": "Preenchimento automático",
+        "xdrive": {
+          "service": "Serviço de armazenamento",
+          "serviceLocal": "Pasta local",
+          "serviceTemplate": "Template personalizado",
+          "remoteFolder": "Pasta remota",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Segredos",
+          "secretsDesc": "Valores que o template lê como {secret0}, {secret1}, …",
+          "template": "Template de armazenamento",
+          "templateInvalid": "Deve ser um objeto JSON",
+          "front": "Endereço de fronting",
+          "frontDesc": "Host ou IP opcional usado para conectar à API de armazenamento (domain fronting).",
+          "frontPort": "Porta de fronting",
+          "segmentBytes": "Tamanho do segmento (bytes)",
+          "flushInterval": "Intervalo de envio (ms)",
+          "pollInterval": "Intervalo de polling (ms)",
+          "maxPollInterval": "Intervalo máximo de polling (ms)",
+          "eagerWindow": "Janela antecipada (ms)",
+          "holeTimeout": "Timeout de segmento ausente (ms)",
+          "sessionTtl": "TTL da sessão (s)",
+          "concurrency": "Concorrência"
+        }
       },
       "info": {
         "mode": "Modo",

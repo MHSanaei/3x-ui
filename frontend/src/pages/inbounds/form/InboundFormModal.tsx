@@ -54,8 +54,10 @@ import { WsStreamSettingsSchema } from '@/schemas/protocols/stream/ws';
 import { GrpcStreamSettingsSchema } from '@/schemas/protocols/stream/grpc';
 import { HttpUpgradeStreamSettingsSchema } from '@/schemas/protocols/stream/httpupgrade';
 import { XHttpStreamSettingsSchema } from '@/schemas/protocols/stream/xhttp';
+import { XDriveStreamSettingsSchema } from '@/schemas/protocols/stream/xdrive';
 import { DateTimePicker } from '@/components/form';
 import { FinalMaskField } from '@/lib/xray/forms/fields';
+import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
 import './InboundFormModal.css';
 
 import { AdvancedAllEditor, AdvancedSliceEditor } from './advanced-editors';
@@ -214,6 +216,8 @@ function newStreamSlice(n: string): Record<string, unknown> {
       return HttpUpgradeStreamSettingsSchema.parse({});
     case 'xhttp':
       return XHttpStreamSettingsSchema.parse({});
+    case 'xdrive':
+      return XDriveStreamSettingsSchema.parse({});
     default:
       return {};
   }
@@ -865,11 +869,21 @@ export default function InboundFormModal({
       'grpcSettings',
       'httpupgradeSettings',
       'xhttpSettings',
+      'xdriveSettings',
     ];
     const current = (getV('streamSettings') as Record<string, unknown>) ?? {};
     const cleaned: Record<string, unknown> = { ...current, network: next };
     for (const k of ALL) {
       if (k !== `${next}Settings`) delete cleaned[k];
+    }
+    if (next === 'xdrive') {
+      /* The core would read the inbound's TLS as the storage API's client TLS. */
+      cleaned.security = 'none';
+      delete cleaned.tlsSettings;
+      delete cleaned.realitySettings;
+    } else {
+      delete cleaned.address;
+      delete cleaned.port;
     }
     cleaned[`${next}Settings`] = newStreamSlice(next);
     if (next === 'kcp') {
@@ -918,6 +932,7 @@ export default function InboundFormModal({
               { value: 'grpc', label: 'gRPC' },
               { value: 'httpupgrade', label: 'HTTPUpgrade' },
               { value: 'xhttp', label: 'XHTTP' },
+              { value: 'xdrive', label: 'XDRIVE' },
             ]}
           />
         </Form.Item>
@@ -941,6 +956,8 @@ export default function InboundFormModal({
           {network === 'httpupgrade' && <HttpUpgradeForm />}
 
           {network === 'kcp' && <KcpForm />}
+
+          {network === 'xdrive' && <XDriveForm />}
         </>
       )}
 

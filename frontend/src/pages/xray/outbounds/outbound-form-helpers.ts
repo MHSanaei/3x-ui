@@ -1,6 +1,7 @@
 import { rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
 import { canEnableReality, canEnableTls } from '@/lib/xray/protocol-capabilities';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
+import { XDriveStreamSettingsSchema } from '@/schemas/protocols/stream/xdrive';
 
 import { MUX_PROTOCOLS } from './outbound-form-constants';
 
@@ -64,6 +65,8 @@ export function newStreamSlice(network: string): Record<string, unknown> {
           udpIdleTimeout: 60,
         },
       };
+    case 'xdrive':
+      return { network: 'xdrive', xdriveSettings: XDriveStreamSettingsSchema.parse({}) };
     default:
       return { network: 'tcp', tcpSettings: { header: { type: 'none' } } };
   }

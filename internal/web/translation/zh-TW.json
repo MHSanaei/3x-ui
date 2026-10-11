@@ -694,7 +694,31 @@
           "listen": "入站監聽地址",
           "custom": "自訂"
         },
-        "autoFill": "自動填入"
+        "autoFill": "自動填入",
+        "xdrive": {
+          "service": "儲存服務",
+          "serviceLocal": "本機資料夾",
+          "serviceTemplate": "自訂範本",
+          "remoteFolder": "遠端資料夾",
+          "clientId": "用戶端 ID",
+          "clientSecret": "用戶端密鑰",
+          "refreshToken": "重新整理權杖",
+          "secrets": "密鑰",
+          "secretsDesc": "範本中以 {secret0}、{secret1}… 引用的值",
+          "template": "儲存範本",
+          "templateInvalid": "必須是 JSON 物件",
+          "front": "前置位址",
+          "frontDesc": "連線儲存 API 時使用的選用主機或 IP（網域前置）。",
+          "frontPort": "前置連接埠",
+          "segmentBytes": "分段大小（位元組）",
+          "flushInterval": "傳送間隔（毫秒）",
+          "pollInterval": "輪詢間隔（毫秒）",
+          "maxPollInterval": "最大輪詢間隔（毫秒）",
+          "eagerWindow": "預發視窗（毫秒）",
+          "holeTimeout": "遺失分段逾時（毫秒）",
+          "sessionTtl": "工作階段 TTL（秒）",
+          "concurrency": "並行數"
+        }
       },
       "info": {
         "mode": "模式",

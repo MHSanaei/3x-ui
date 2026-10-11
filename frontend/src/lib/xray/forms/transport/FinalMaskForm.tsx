@@ -36,7 +36,7 @@ export interface FinalMaskFormProps {
   showAll?: boolean;
 }
 
-const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'];
+const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp', 'xdrive'];
 const DEFAULT_GECKO_PACKET_SIZE = { min: 512, max: 1200 };
 // Xray-core caps the Gecko output packet size at its internal buffer (2048)
 // and needs 1 <= min <= max; mirror those bounds so the panel rejects what

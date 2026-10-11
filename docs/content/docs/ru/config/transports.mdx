@@ -1,6 +1,6 @@
 ---
 title: Транспорты и безопасность
-description: Все транспорты, которые предоставляет 3x-ui — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria — с их настройками, а также обфускация FinalMask, sockopt, TLS/REALITY, XTLS-Vision и шифрование VLESS.
+description: Все транспорты, которые предоставляет 3x-ui — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria, XDRIVE — с их настройками, а также обфускация FinalMask, sockopt, TLS/REALITY, XTLS-Vision и шифрование VLESS.
 icon: Network
 ---
 
@@ -25,6 +25,7 @@ network записывает свой собственный ключ настр
 | **HTTPUpgrade** | `httpupgradeSettings` | Дружественный к CDN апгрейд HTTP/1.1 `Upgrade`; легче полноценного WebSocket. |
 | **XHTTP**       | `xhttpSettings`       | Современный HTTP-транспорт с мультиплексированием потоков; дружественный к CDN и совместимый с REALITY. |
 | **Hysteria**    | `hysteriaSettings`    | Транспорт на базе QUIC — только для протокола **Hysteria2**.           |
+| **XDRIVE**      | `xdriveSettings`      | Туннелирует поток через файлы в общем облачном хранилище (Google Drive, локальная папка или любой HTTP API хранилища). |
 
 <Callout type="info">
   Inbound-соединения **WireGuard** и **Tunnel** (dokodemo-door) не предоставляют
@@ -118,6 +119,25 @@ HTTPUpgrade — это одноразовый HTTP/1.1 `Upgrade` без фрей
 | `auth`           | _(нет)_ | Общая строка аутентификации.                                            |
 | `udpIdleTimeout` | `60`    | Секунды (2–600) до сброса простаивающих UDP-сессий.                     |
 | `masquerade`     | —       | Маскировка под HTTP/3-сервер: `type` `proxy`/`file`/`string` с `url`/`dir`/`content`, а также `headers` и `statusCode`. |
+
+### XDRIVE — `xdriveSettings`
+
+XDRIVE передаёт поток файлами в папке, доступной обеим сторонам: сервер опрашивает эту
+папку, а не принимает соединения на своём порту. Обе стороны должны использовать
+**одинаковые** сервис, папку и секреты, поэтому JSON-подписка передаёт их каждому
+клиенту; для XDRIVE-инбаундов не создаются ссылки и записи Clash.
+
+| Поле           | По умолчанию   | Значение |
+| -------------- | -------------- | -------- |
+| `service`      | `Google Drive` | `Google Drive`, `local` (папка на диске) или `template` (любой HTTP API хранилища). |
+| `remoteFolder` | —              | Папка с файлами сессий. |
+| `secrets`      | —              | Google Drive: ровно три значения — ClientID, ClientSecret, RefreshToken, в этом порядке. Template: значения, доступные как `{secret0}`, `{secret1}`, …. |
+| `template`     | —              | Только для template: операции `auth`, `put`, `get`, `list` и `delete` API хранилища. |
+| тонкая настройка | значения ядра | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). |
+
+Необязательные **адрес/порт фронтинга** (`address`/`port` на уровне stream) — домен-фронт,
+через который идёт подключение к API хранилища; в TLS по-прежнему указывается хост API.
+У XDRIVE нет собственного уровня TLS/REALITY — его трафик это HTTPS самого API хранилища.
 
 ## FinalMask — обфускация на позднем уровне
 

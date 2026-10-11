@@ -694,7 +694,31 @@
           "listen": "Địa chỉ listen inbound",
           "custom": "Tùy chỉnh"
         },
-        "autoFill": "Tự động điền"
+        "autoFill": "Tự động điền",
+        "xdrive": {
+          "service": "Dịch vụ lưu trữ",
+          "serviceLocal": "Thư mục cục bộ",
+          "serviceTemplate": "Template tùy chỉnh",
+          "remoteFolder": "Thư mục từ xa",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Giá trị bí mật",
+          "secretsDesc": "Các giá trị template đọc dưới dạng {secret0}, {secret1}, …",
+          "template": "Template lưu trữ",
+          "templateInvalid": "Phải là một đối tượng JSON",
+          "front": "Địa chỉ fronting",
+          "frontDesc": "Host hoặc IP tùy chọn để kết nối tới API lưu trữ (domain fronting).",
+          "frontPort": "Cổng fronting",
+          "segmentBytes": "Kích thước phân đoạn (byte)",
+          "flushInterval": "Khoảng gửi (ms)",
+          "pollInterval": "Khoảng thăm dò (ms)",
+          "maxPollInterval": "Khoảng thăm dò tối đa (ms)",
+          "eagerWindow": "Cửa sổ gửi sớm (ms)",
+          "holeTimeout": "Thời gian chờ phân đoạn thiếu (ms)",
+          "sessionTtl": "TTL phiên (s)",
+          "concurrency": "Số luồng đồng thời"
+        }
       },
       "info": {
         "mode": "Chế độ",

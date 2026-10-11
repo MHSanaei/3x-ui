@@ -694,7 +694,31 @@
           "custom": "自定义"
         },
         "verifyPeerCertByName": "按名称验证对端证书",
-        "autoFill": "自动填充"
+        "autoFill": "自动填充",
+        "xdrive": {
+          "service": "存储服务",
+          "serviceLocal": "本地文件夹",
+          "serviceTemplate": "自定义模板",
+          "remoteFolder": "远程文件夹",
+          "clientId": "客户端 ID",
+          "clientSecret": "客户端密钥",
+          "refreshToken": "刷新令牌",
+          "secrets": "密钥",
+          "secretsDesc": "模板中以 {secret0}、{secret1}… 引用的值",
+          "template": "存储模板",
+          "templateInvalid": "必须是 JSON 对象",
+          "front": "前置地址",
+          "frontDesc": "连接存储 API 时使用的可选主机或 IP（域前置）。",
+          "frontPort": "前置端口",
+          "segmentBytes": "分段大小（字节）",
+          "flushInterval": "发送间隔（毫秒）",
+          "pollInterval": "轮询间隔（毫秒）",
+          "maxPollInterval": "最大轮询间隔（毫秒）",
+          "eagerWindow": "预发窗口（毫秒）",
+          "holeTimeout": "缺失分段超时（毫秒）",
+          "sessionTtl": "会话 TTL（秒）",
+          "concurrency": "并发数"
+        }
       },
       "info": {
         "mode": "模式",

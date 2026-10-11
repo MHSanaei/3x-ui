@@ -1,6 +1,6 @@
 ---
 title: Transports & Security
-description: Every transport 3x-ui exposes — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria — with their settings, plus FinalMask obfuscation, sockopt, TLS/REALITY, XTLS-Vision, and VLESS encryption.
+description: Every transport 3x-ui exposes — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria, XDRIVE — with their settings, plus FinalMask obfuscation, sockopt, TLS/REALITY, XTLS-Vision, and VLESS encryption.
 icon: Network
 ---
 
@@ -23,6 +23,7 @@ network writes its own settings key on the wire (`tcpSettings`, `kcpSettings`, �
 | **HTTPUpgrade** | `httpupgradeSettings` | CDN-friendly HTTP/1.1 `Upgrade`; lighter than full WebSocket.          |
 | **XHTTP**       | `xhttpSettings`       | Modern stream-multiplexed HTTP transport; CDN-friendly and REALITY-capable. |
 | **Hysteria**    | `hysteriaSettings`    | QUIC-based transport — only for the **Hysteria2** protocol.            |
+| **XDRIVE**      | `xdriveSettings`      | Tunnels the stream through files in shared cloud storage (Google Drive, a local folder or any HTTP storage API). |
 
 <Callout type="info">
   **WireGuard** and **Tunnel** (dokodemo-door) inbounds expose no transport
@@ -115,6 +116,25 @@ Only valid when the protocol is **Hysteria2**.
 | `auth`           | _(none)_| Shared authentication string.                                           |
 | `udpIdleTimeout` | `60`    | Seconds (2–600) before idle UDP sessions are dropped.                   |
 | `masquerade`     | —       | Disguise as an HTTP/3 server: `type` `proxy`/`file`/`string` with `url`/`dir`/`content`, plus `headers` and `statusCode`. |
+
+### XDRIVE — `xdriveSettings`
+
+XDRIVE carries the stream as files in a folder both ends can reach: the server polls
+that folder instead of accepting connections on its port. Both sides must use the
+**same** service, folder and secrets, so the JSON subscription ships them to every
+client; XDRIVE inbounds get no share link or Clash entry.
+
+| Field          | Default        | Meaning                                                                 |
+| -------------- | -------------- | ----------------------------------------------------------------------- |
+| `service`      | `Google Drive` | `Google Drive`, `local` (a folder on disk) or `template` (any HTTP storage API). |
+| `remoteFolder` | —              | Folder that holds the session files.                                    |
+| `secrets`      | —              | Google Drive: ClientID, ClientSecret, RefreshToken — exactly three, in that order. Template: values read as `{secret0}`, `{secret1}`, …. |
+| `template`     | —              | Template service only: the storage API's `auth`, `put`, `get`, `list` and `delete` operations. |
+| tuning         | core defaults  | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). |
+
+The optional **Front address/port** (the stream-level `address`/`port`) is a domain
+front the storage API is dialed through; TLS still names the API host. XDRIVE has
+no TLS/REALITY layer of its own — its traffic is the storage API's HTTPS.
 
 ## FinalMask — late-layer obfuscation
 

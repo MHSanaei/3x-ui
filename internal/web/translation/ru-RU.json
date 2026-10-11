@@ -695,6 +695,30 @@
           "node": "Адрес узла",
           "listen": "Адрес прослушивания inbound",
           "custom": "Пользовательская"
+        },
+        "xdrive": {
+          "service": "Сервис хранилища",
+          "serviceLocal": "Локальная папка",
+          "serviceTemplate": "Свой шаблон",
+          "remoteFolder": "Удалённая папка",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Секреты",
+          "secretsDesc": "Значения, которые шаблон читает как {secret0}, {secret1}, …",
+          "template": "Шаблон хранилища",
+          "templateInvalid": "Должен быть объект JSON",
+          "front": "Адрес фронтинга",
+          "frontDesc": "Необязательный хост или IP для подключения к API хранилища (domain fronting).",
+          "frontPort": "Порт фронтинга",
+          "segmentBytes": "Размер сегмента (байт)",
+          "flushInterval": "Интервал отправки (мс)",
+          "pollInterval": "Интервал опроса (мс)",
+          "maxPollInterval": "Макс. интервал опроса (мс)",
+          "eagerWindow": "Окно упреждения (мс)",
+          "holeTimeout": "Тайм-аут пропущенного сегмента (мс)",
+          "sessionTtl": "TTL сессии (с)",
+          "concurrency": "Параллелизм"
         }
       },
       "info": {
