@@ -1,0 +1,54 @@
+{
+  "tcp": [
+    {
+      "type": "header-custom",
+      "settings": {
+        "clients": [
+          [
+            { "delay": 0, "type": "array", "rand": 8, "capture": "nonce" },
+            { "delay": 0, "type": "str", "packet": "HELLO" }
+          ]
+        ],
+        "servers": [
+          [
+            { "delay": 0, "reuse": "nonce" },
+            {
+              "delay": 0,
+              "transform": {
+                "op": "concat",
+                "args": [{ "type": "str", "bytes": "OK " }, { "reuse": "nonce" }]
+              }
+            }
+          ]
+        ],
+        "errors": [[{ "delay": 0, "type": "str", "packet": "DENIED" }]]
+      }
+    }
+  ],
+  "udp": [
+    {
+      "type": "header-custom",
+      "settings": {
+        "mode": "standalone",
+        "client": [{ "type": "array", "rand": 8, "capture": "token" }],
+        "server": [{ "reuse": "token" }]
+      }
+    },
+    {
+      "type": "sudoku",
+      "settings": {
+        "password": "s3cr3t",
+        "ascii": "prefer_entropy",
+        "paddingMin": 2,
+        "paddingMax": 7
+      }
+    },
+    {
+      "type": "noise",
+      "settings": {
+        "reset": "60-120",
+        "noise": [{ "type": "array", "rand": "10-20", "delay": "10-16" }]
+      }
+    }
+  ]
+}

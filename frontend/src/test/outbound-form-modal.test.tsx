@@ -516,3 +516,135 @@ describe('OutboundFormModal UDP hop', () => {
     expect(payload.streamSettings.finalmask.quicParams?.congestion).toBe('bbr');
   });
 });
+
+describe('OutboundFormModal finalmask variables', () => {
+  function xhttpOutbound(finalmask: Record<string, unknown>) {
+    return {
+      protocol: 'vless',
+      tag: 'masked',
+      settings: {
+        vnext: [
+          {
+            address: 'example.com',
+            port: 443,
+            users: [{ id: 'c9f0c2d0-0000-4000-8000-000000000000', encryption: 'none' }],
+          },
+        ],
+      },
+      streamSettings: {
+        network: 'xhttp',
+        security: 'none',
+        xhttpSettings: { path: '/', mode: 'auto' },
+        finalmask,
+      },
+    };
+  }
+
+  async function saveFinalmask(
+    finalmask: Record<string, unknown>,
+    edit: () => void = () => {},
+  ): Promise<Record<string, unknown>> {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={xhttpOutbound(finalmask)}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    edit();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    return (
+      onConfirm.mock.calls[0][0] as { streamSettings: { finalmask: Record<string, unknown> } }
+    ).streamSettings.finalmask;
+  }
+
+  function typeInto(label: string, value: string) {
+    const input = formItemByLabel(label)?.querySelector('input, textarea');
+    if (!input) throw new Error(`${label} input not found`);
+    fireEvent.change(input, { target: { value } });
+  }
+
+  // xray-core 26.6 header-custom variables, error replies and standalone UDP headers, plus
+  // the sudoku UDP mask; the same fixture is built by Go's TestGoldenStreamFixturesBuildInXray.
+  it('keeps every header-custom variable, sudoku UDP mask and noise reset range on save', async () => {
+    const fixture = (await import('./golden/fixtures/finalmask/header-custom-variables.json'))
+      .default as Record<string, unknown>;
+
+    expect(await saveFinalmask(structuredClone(fixture))).toEqual(fixture);
+  });
+
+  // The core rejects an item carrying two kinds ("exactly one item kind must be set").
+  it('drops the bytes of an item switched to reuse a variable', async () => {
+    const finalmask = await saveFinalmask(
+      {
+        udp: [
+          {
+            type: 'header-custom',
+            settings: { client: [{ type: 'array', rand: 4, randRange: '0-255' }], server: [] },
+          },
+        ],
+      },
+      () => {
+        chooseOptionByLabel('Kind', 'Reuse variable');
+        typeInto('Reuse', 'nonce');
+      },
+    );
+
+    expect(finalmask.udp).toEqual([
+      { type: 'header-custom', settings: { client: [{ reuse: 'nonce' }], server: [] } },
+    ]);
+  });
+
+  // A string transform fails the whole core config, so half-typed JSON must never be saved.
+  it.each([
+    ['{"op": "be16", "args": [{"u64": 7}]}', [{ transform: { op: 'be16', args: [{ u64: 7 }] } }]],
+    ['{"op": "be16"', [{}]],
+  ])('saves the typed transform %s only once it parses', async (typed, client) => {
+    const finalmask = await saveFinalmask(
+      {
+        udp: [
+          { type: 'header-custom', settings: { client: [{ type: 'array', rand: 4 }], server: [] } },
+        ],
+      },
+      () => {
+        chooseOptionByLabel('Kind', 'Transform');
+        typeInto('Transform', typed);
+      },
+    );
+
+    expect(finalmask.udp).toEqual([{ type: 'header-custom', settings: { client, server: [] } }]);
+  });
+
+  it('saves a noise reset typed as a range', async () => {
+    const finalmask = await saveFinalmask(
+      { udp: [{ type: 'noise', settings: { reset: 0, noise: [] } }] },
+      () => typeInto('Reset', '60-120'),
+    );
+
+    expect(finalmask.udp).toEqual([{ type: 'noise', settings: { reset: '60-120', noise: [] } }]);
+  });
+});

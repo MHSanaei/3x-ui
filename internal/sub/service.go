@@ -2700,6 +2700,7 @@ var validFinalMaskUDPTypes = map[string]struct{}{
 	"header-custom": {},
 	"realm":         {},
 	"udphop":        {},
+	"sudoku":        {},
 }
 
 var validFinalMaskTCPTypes = map[string]struct{}{

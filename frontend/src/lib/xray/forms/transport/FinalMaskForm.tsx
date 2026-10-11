@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AutoComplete,
   Button,
@@ -9,6 +9,7 @@ import {
   Select,
   Space,
   Switch,
+  Typography,
 } from 'antd';
 import { DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -98,14 +99,7 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
       // a single length entry reproduces the legacy single-range behavior.
       return { packets: '1-3', lengths: ['100-200'], delays: [], maxSplit: '' };
     case 'sudoku':
-      return {
-        password: '',
-        ascii: '',
-        customTable: '',
-        customTables: [],
-        paddingMin: 0,
-        paddingMax: 0,
-      };
+      return defaultSudokuSettings();
     case 'header-custom':
       return { clients: [], servers: [] };
     case 'xmc':
@@ -117,6 +111,17 @@ function defaultTcpMaskSettings(type: string): Record<string, unknown> {
     default:
       return {};
   }
+}
+
+function defaultSudokuSettings(): Record<string, unknown> {
+  return {
+    password: '',
+    ascii: '',
+    customTable: '',
+    customTables: [],
+    paddingMin: 0,
+    paddingMax: 0,
+  };
 }
 
 function defaultXmcProfile(): Record<string, unknown> {
@@ -198,6 +203,8 @@ function defaultUdpMaskSettings(type: string): Record<string, unknown> {
       return { client: [], server: [] };
     case 'noise':
       return { reset: 0, noise: [] };
+    case 'sudoku':
+      return defaultSudokuSettings();
     case 'udphop':
       return { mode: 'intervalRemote', interval: '5-10', remotePorts: '' };
     default:
@@ -471,30 +478,7 @@ function TcpMaskItem({
               </>
             );
           }
-          if (type === 'sudoku') {
-            return (
-              <>
-                <Form.Item label="Password" name={[fieldName, 'settings', 'password']}>
-                  <Input />
-                </Form.Item>
-                <Form.Item label="ASCII" name={[fieldName, 'settings', 'ascii']}>
-                  <Input />
-                </Form.Item>
-                <Form.Item label="Custom Table" name={[fieldName, 'settings', 'customTable']}>
-                  <Input />
-                </Form.Item>
-                <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}>
-                  <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
-                </Form.Item>
-                <Form.Item label="Padding Min" name={[fieldName, 'settings', 'paddingMin']}>
-                  <InputNumber min={0} />
-                </Form.Item>
-                <Form.Item label="Padding Max" name={[fieldName, 'settings', 'paddingMax']}>
-                  <InputNumber min={0} />
-                </Form.Item>
-              </>
-            );
-          }
+          if (type === 'sudoku') return <SudokuSettings fieldName={fieldName} />;
           if (type === 'header-custom') {
             return (
               <HeaderCustomGroups
@@ -542,6 +526,31 @@ function TcpMaskItem({
         }}
       </Form.Item>
     </div>
+  );
+}
+
+function SudokuSettings({ fieldName }: { fieldName: number }) {
+  return (
+    <>
+      <Form.Item label="Password" name={[fieldName, 'settings', 'password']}>
+        <Input />
+      </Form.Item>
+      <Form.Item label="ASCII" name={[fieldName, 'settings', 'ascii']}>
+        <Input />
+      </Form.Item>
+      <Form.Item label="Custom Table" name={[fieldName, 'settings', 'customTable']}>
+        <Input />
+      </Form.Item>
+      <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}>
+        <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
+      </Form.Item>
+      <Form.Item label="Padding Min" name={[fieldName, 'settings', 'paddingMin']}>
+        <InputNumber min={0} />
+      </Form.Item>
+      <Form.Item label="Padding Max" name={[fieldName, 'settings', 'paddingMax']}>
+        <InputNumber min={0} />
+      </Form.Item>
+    </>
   );
 }
 
@@ -764,6 +773,16 @@ function XmcProfilesList({ tcpFieldName }: { tcpFieldName: number }) {
   );
 }
 
+const HEADER_CUSTOM_TCP_GROUPS = [
+  { key: 'clients', label: 'Clients', tooltip: undefined },
+  { key: 'servers', label: 'Servers', tooltip: undefined },
+  {
+    key: 'errors',
+    label: 'Errors',
+    tooltip: 'Sent instead when the matching client group fails to match, e.g. an HTTP 400',
+  },
+] as const;
+
 function HeaderCustomGroups({
   tcpFieldName,
   form,
@@ -776,11 +795,11 @@ function HeaderCustomGroups({
   const { t } = useTranslation();
   return (
     <>
-      {(['clients', 'servers'] as const).map((groupKey) => (
+      {HEADER_CUSTOM_TCP_GROUPS.map(({ key: groupKey, label, tooltip }) => (
         <Form.List key={groupKey} name={[tcpFieldName, 'settings', groupKey]}>
           {(groups, { add: addGroup, remove: removeGroup }) => (
             <>
-              <Form.Item label={groupKey === 'clients' ? 'Clients' : 'Servers'}>
+              <Form.Item label={label} tooltip={tooltip}>
                 <Button
                   type="primary"
                   size="small"
@@ -792,7 +811,7 @@ function HeaderCustomGroups({
               {groups.map((group, gi) => (
                 <div key={group.key}>
                   <Divider style={{ margin: 0 }}>
-                    {groupKey === 'clients' ? 'Clients' : 'Servers'} Group {gi + 1}
+                    {label} Group {gi + 1}
                     <DeleteOutlined
                       className="danger-icon"
                       role="button"
@@ -825,6 +844,7 @@ function HeaderCustomGroups({
                               item.name,
                             ]}
                             delayMode="number"
+                            allowVariables
                             onRemove={() => removeItem(item.name)}
                           />
                         ))}
@@ -938,6 +958,7 @@ function UdpMaskItem({
         { value: 'realm', label: 'Realm' },
         { value: 'header-custom', label: 'Header Custom' },
         { value: 'noise', label: 'Noise' },
+        { value: 'sudoku', label: 'Sudoku' },
         ...udpHopOption,
       ];
 
@@ -1109,6 +1130,7 @@ function UdpMaskItem({
               />
             );
           }
+          if (type === 'sudoku') return <SudokuSettings fieldName={fieldName} />;
           if (type === 'noise') {
             return (
               <NoiseItems
@@ -1253,6 +1275,20 @@ function UdpHeaderCustom({
   const { t } = useTranslation();
   return (
     <>
+      <Form.Item
+        label="Mode"
+        name={[udpFieldName, 'settings', 'mode']}
+        tooltip="Prefix puts the header on every packet; Standalone exchanges it as separate handshake packets first"
+      >
+        <Select
+          allowClear
+          placeholder="Prefix"
+          options={[
+            { value: 'prefix', label: 'Prefix' },
+            { value: 'standalone', label: 'Standalone' },
+          ]}
+        />
+      </Form.Item>
       {(['client', 'server'] as const).map((groupKey) => (
         <Form.List key={groupKey} name={[udpFieldName, 'settings', groupKey]}>
           {(items, { add, remove }) => (
@@ -1283,6 +1319,7 @@ function UdpHeaderCustom({
                     fieldName={item.name}
                     form={form}
                     absoluteItemPath={[...absoluteSettingsPath, groupKey, item.name]}
+                    allowVariables
                     onRemove={() => remove(item.name)}
                   />
                 </div>
@@ -1463,6 +1500,19 @@ function UdpHopSettings({ udpFieldName }: { udpFieldName: number }) {
   );
 }
 
+// xray-core reads reset as an Int32Range: a plain number or a "min-max" string.
+function validateNoiseReset(_: unknown, value: unknown) {
+  if (value == null || value === '') return Promise.resolve();
+  const bounds = String(value)
+    .split('-')
+    .map((v) => Number(v.trim()));
+  const valid =
+    bounds.length <= 2 &&
+    bounds.every((v) => Number.isInteger(v) && v >= 0) &&
+    bounds[0] <= bounds[bounds.length - 1];
+  return valid ? Promise.resolve() : Promise.reject(new Error('seconds, e.g. 0 or 60-120'));
+}
+
 function NoiseItems({
   udpFieldName,
   form,
@@ -1475,8 +1525,13 @@ function NoiseItems({
   const { t } = useTranslation();
   return (
     <>
-      <Form.Item label="Reset" name={[udpFieldName, 'settings', 'reset']}>
-        <InputNumber min={0} />
+      <Form.Item
+        label="Reset"
+        name={[udpFieldName, 'settings', 'reset']}
+        tooltip="Seconds before the noise is sent to a destination again; 0 sends it once"
+        rules={[{ validator: validateNoiseReset }]}
+      >
+        <Input placeholder="0 or 60-120" />
       </Form.Item>
       <Form.List name={[udpFieldName, 'settings', 'noise']}>
         {(items, { add, remove }) => (
@@ -1519,20 +1574,98 @@ function NoiseItems({
   );
 }
 
+// xray-core 26.6 header-custom: an item is exactly one of raw bytes, a reused variable
+// or a transform ("exactly one item kind must be set"); capture works with any of them.
+type ItemKind = 'bytes' | 'reuse' | 'transform';
+
+const ITEM_KIND_OPTIONS: { value: ItemKind; label: string }[] = [
+  { value: 'bytes', label: 'Bytes' },
+  { value: 'reuse', label: 'Reuse variable' },
+  { value: 'transform', label: 'Transform' },
+];
+
+function itemKindOf(item: unknown): ItemKind {
+  const fields = (item ?? {}) as Record<string, unknown>;
+  if (typeof fields.reuse === 'string') return 'reuse';
+  if (fields.transform != null) return 'transform';
+  return 'bytes';
+}
+
+function validateCustomVarName(_: unknown, value: unknown) {
+  if (value == null || value === '') return Promise.resolve();
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(value))
+    ? Promise.resolve()
+    : Promise.reject(new Error('letters, digits and _, not starting with a digit'));
+}
+
+// Hands the form only a parsed JSON object, so half-typed text never reaches the config.
+function TransformEditor({
+  value,
+  onChange,
+}: {
+  value?: Record<string, unknown>;
+  onChange?: (next: Record<string, unknown> | undefined) => void;
+}) {
+  const [text, setText] = useState(() => (value ? JSON.stringify(value) : ''));
+  const [invalid, setInvalid] = useState(false);
+  return (
+    <>
+      <Input.TextArea
+        value={text}
+        autoSize={{ minRows: 2, maxRows: 8 }}
+        placeholder='{"op": "concat", "args": [{"reuse": "nonce"}]}'
+        onChange={(e) => {
+          const next = e.target.value;
+          setText(next);
+          if (next.trim() === '') {
+            setInvalid(false);
+            onChange?.(undefined);
+            return;
+          }
+          try {
+            const parsed: unknown = JSON.parse(next);
+            const isObject = !!parsed && typeof parsed === 'object' && !Array.isArray(parsed);
+            setInvalid(!isObject);
+            if (isObject) onChange?.(parsed as Record<string, unknown>);
+          } catch {
+            setInvalid(true);
+          }
+        }}
+      />
+      {invalid && <Typography.Text type="danger">Must be a JSON object</Typography.Text>}
+    </>
+  );
+}
+
 function ItemEditor({
   fieldName,
   form,
   absoluteItemPath,
   delayMode,
+  allowVariables = false,
   onRemove: _onRemove,
 }: {
   fieldName: number;
   form: FormInstance;
   absoluteItemPath: (string | number)[];
   delayMode?: 'number' | 'string';
+  allowVariables?: boolean;
   onRemove?: () => void;
 }) {
   const { t } = useTranslation();
+  const [kind, setKind] = useState<ItemKind>(() =>
+    allowVariables ? itemKindOf(form.getFieldValue(absoluteItemPath)) : 'bytes',
+  );
+  const onKindChange = (next: ItemKind) => {
+    setKind(next);
+    for (const key of ['type', 'packet', 'rand', 'randRange', 'reuse', 'transform']) {
+      form.setFieldValue([...absoluteItemPath, key], undefined);
+    }
+    if (next === 'bytes') {
+      form.setFieldValue([...absoluteItemPath, 'type'], 'array');
+      form.setFieldValue([...absoluteItemPath, 'rand'], 0);
+    }
+  };
   /**
    * Switching to `array` clears the packet instead of emptying it to `[]`:
    * that branch is rand-driven, and xray-core counts even an empty array as a
@@ -1552,19 +1685,26 @@ function ItemEditor({
 
   return (
     <>
-      <Form.Item label="Type" name={[fieldName, 'type']}>
-        <Select
-          onChange={onTypeChange}
-          options={[
-            { value: 'array', label: 'Array' },
-            { value: 'str', label: 'String' },
-            { value: 'hex', label: 'Hex' },
-            { value: 'base64', label: 'Base64' },
-            // Only the noise mask parses tag expressions (xray-core 26.9.30, #6862).
-            ...(delayMode === 'string' ? [{ value: 'exp', label: 'Expression' }] : []),
-          ]}
-        />
-      </Form.Item>
+      {allowVariables && (
+        <Form.Item label="Kind">
+          <Select value={kind} onChange={onKindChange} options={ITEM_KIND_OPTIONS} />
+        </Form.Item>
+      )}
+      {kind === 'bytes' && (
+        <Form.Item label="Type" name={[fieldName, 'type']}>
+          <Select
+            onChange={onTypeChange}
+            options={[
+              { value: 'array', label: 'Array' },
+              { value: 'str', label: 'String' },
+              { value: 'hex', label: 'Hex' },
+              { value: 'base64', label: 'Base64' },
+              // Only the noise mask parses tag expressions (xray-core 26.9.30, #6862).
+              ...(delayMode === 'string' ? [{ value: 'exp', label: 'Expression' }] : []),
+            ]}
+          />
+        </Form.Item>
+      )}
 
       {delayMode === 'number' && (
         <Form.Item label="Delay (ms)" name={[fieldName, 'delay']}>
@@ -1577,6 +1717,30 @@ function ItemEditor({
         </Form.Item>
       )}
 
+      {kind === 'reuse' && (
+        <Form.Item
+          label="Reuse"
+          name={[fieldName, 'reuse']}
+          tooltip="Writes the bytes an earlier item captured under this name"
+          rules={[
+            { required: true, message: 'name the captured variable' },
+            { validator: validateCustomVarName },
+          ]}
+        >
+          <Input placeholder="variable name" />
+        </Form.Item>
+      )}
+      {kind === 'transform' && (
+        <Form.Item
+          label="Transform"
+          name={[fieldName, 'transform']}
+          tooltip='An expression tree, e.g. {"op": "concat", "args": [{"type": "str", "bytes": "OK "}, {"reuse": "nonce"}]}'
+          rules={[{ required: true, message: 'enter the transform expression' }]}
+        >
+          <TransformEditor />
+        </Form.Item>
+      )}
+
       <Form.Item
         noStyle
         shouldUpdate={(prev, curr) =>
@@ -1585,6 +1749,7 @@ function ItemEditor({
         }
       >
         {({ getFieldValue }) => {
+          if (kind !== 'bytes') return null;
           const type = getFieldValue([...absoluteItemPath, 'type']) as string | undefined;
           if (type === 'array') {
             return (
@@ -1635,6 +1800,18 @@ function ItemEditor({
           );
         }}
       </Form.Item>
+
+      {allowVariables && (
+        <Form.Item
+          label="Capture"
+          name={[fieldName, 'capture']}
+          tooltip="Saves the bytes this item writes or reads under a name later items can reuse"
+          normalize={(v) => (v === '' ? undefined : v)}
+          rules={[{ validator: validateCustomVarName }]}
+        >
+          <Input placeholder="variable name" />
+        </Form.Item>
+      )}
     </>
   );
 }
