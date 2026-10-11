@@ -452,3 +452,67 @@ describe('OutboundFormModal MASQUE', () => {
     expect(payload.streamSettings.masqueSettings.pass).toBeUndefined();
   });
 });
+
+describe('OutboundFormModal UDP hop', () => {
+  // xray-core 26.9.9 ignores quicParams.udpHop; a client hops only through the udphop
+  // mask, so the editor must lift the dead key and keep every mask field on save.
+  it('saves a legacy quicParams.udpHop hysteria outbound as a udphop mask', async () => {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const outbound = {
+      protocol: 'hysteria',
+      tag: 'hy-out',
+      settings: { address: 'hy.example.com', port: 443, version: 2 },
+      streamSettings: {
+        network: 'hysteria',
+        security: 'tls',
+        hysteriaSettings: { version: 2, auth: 'a', udpIdleTimeout: 60 },
+        tlsSettings: { serverName: 'hy.example.com', alpn: ['h3'] },
+        finalmask: {
+          udp: [{ type: 'salamander', settings: { password: 'p' } }],
+          quicParams: { congestion: 'bbr', udpHop: { ports: '20000-30000', interval: '5-10' } },
+        },
+      },
+    };
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={outbound}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const payload = onConfirm.mock.calls[0][0] as {
+      streamSettings: { finalmask: { udp: unknown[]; quicParams?: Record<string, unknown> } };
+    };
+    expect(payload.streamSettings.finalmask.udp).toEqual([
+      { type: 'salamander', settings: { password: 'p' } },
+      {
+        type: 'udphop',
+        settings: { mode: 'intervalRemote', remotePorts: '20000-30000', interval: '5-10' },
+      },
+    ]);
+    expect(payload.streamSettings.finalmask.quicParams?.udpHop).toBeUndefined();
+    expect(payload.streamSettings.finalmask.quicParams?.congestion).toBe('bbr');
+  });
+});

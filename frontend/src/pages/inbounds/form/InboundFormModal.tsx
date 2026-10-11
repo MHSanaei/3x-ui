@@ -998,6 +998,7 @@ export default function InboundFormModal({
               onChange={field.onChange}
               network={network}
               protocol={protocol}
+              side="server"
             />
           )}
         />

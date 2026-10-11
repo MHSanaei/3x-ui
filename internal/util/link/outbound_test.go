@@ -304,9 +304,9 @@ func TestParseHysteria2_Mport(t *testing.T) {
 			wantHop:   true,
 		},
 		{
-			name:      "legacy fm quicParams.udpHop no longer suppresses mport",
+			name:      "legacy fm quicParams.udpHop is upgraded and wins over mport like the mask",
 			query:     "mport=1-2&fm=" + url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"30000-40000","interval":"7-9"}}}`),
-			wantPorts: "1-2",
+			wantPorts: "30000-40000",
 			wantHop:   true,
 		},
 	}
@@ -575,5 +575,24 @@ func TestParseShadowsocksObfsLocalPlugin(t *testing.T) {
 				t.Errorf("host = %q, want %q", got, tc.wantHost)
 			}
 		})
+	}
+}
+
+// A panel older than the 26.9.9 core shares its hop range as quicParams.udpHop inside fm=,
+// which the core ignores; imported verbatim, the outbound would never hop.
+func TestParseLink_UpgradesLegacyUDPHopFinalMask(t *testing.T) {
+	fm := url.QueryEscape(`{"quicParams":{"udpHop":{"ports":"20000-30000","interval":"5-10"}}}`)
+	res, err := ParseLink("hysteria2://auth@hy.example.com:443?sni=hy.example.com&fm=" + fm + "#hy")
+	if err != nil {
+		t.Fatalf("parse hysteria2 with fm: %v", err)
+	}
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	got, err := json.Marshal(stream["finalmask"])
+	if err != nil {
+		t.Fatalf("marshal finalmask: %v", err)
+	}
+	want := `{"udp":[{"settings":{"interval":"5-10","mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
+	if string(got) != want {
+		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
 	}
 }

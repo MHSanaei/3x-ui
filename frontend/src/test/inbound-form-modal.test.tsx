@@ -417,6 +417,56 @@ describe('InboundFormModal', () => {
     });
   });
 
+  // xray-core refuses a udphop mask on a listener ("client only"), so an inbound keeps its
+  // advertised hop range in quicParams.udpHop: the client-side lift must not run here.
+  it('keeps an inbound hop range in quicParams.udpHop on save', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    const hysteria = new DBInbound({
+      id: 43,
+      port: 443,
+      listen: '',
+      protocol: 'hysteria',
+      remark: 'hy',
+      enable: true,
+      settings: { version: 2, clients: [] },
+      streamSettings: {
+        network: 'hysteria',
+        security: 'tls',
+        hysteriaSettings: { version: 2, auth: '', udpIdleTimeout: 60 },
+        tlsSettings: {
+          serverName: 'hy.example.com',
+          alpn: ['h3'],
+          certificates: [
+            { certificateFile: '/etc/ssl/certs/hy.crt', keyFile: '/etc/ssl/private/hy.key' },
+          ],
+        },
+        finalmask: { quicParams: { udpHop: { ports: '20000-30000', interval: '5-10' } } },
+      },
+      sniffing: { enabled: false },
+      nodeId: null,
+      shareAddrStrategy: 'listen',
+      shareAddr: '',
+    });
+    renderCloneLikeEdit(hysteria);
+    // Form watches flush in a macrotask; save only once the hop fields have emitted.
+    await screen.findByDisplayValue('20000-30000');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    fireEvent.click(primaryButton());
+
+    const isUpdate = ([url]: unknown[]) => url === '/panel/api/inbounds/update/43';
+    await waitFor(() => expect(post.mock.calls.some(isUpdate)).toBe(true));
+    const payload = post.mock.calls.find(isUpdate)![1] as { streamSettings: string };
+    const finalmask = JSON.parse(payload.streamSettings).finalmask as Record<string, unknown>;
+    expect(finalmask.quicParams).toMatchObject({
+      udpHop: { ports: '20000-30000', interval: '5-10' },
+    });
+    expect(JSON.stringify(finalmask.udp ?? [])).not.toContain('udphop');
+  });
+
   // Clients and enable change through their own endpoints; the server keeps the
   // stored ones, so the edit form must neither send nor validate its stale copy.
   it('edit save neither sends nor validates the clients it loaded', async () => {

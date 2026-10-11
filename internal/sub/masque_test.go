@@ -81,3 +81,36 @@ func TestGetInboundsBySubIdIncludesMasque(t *testing.T) {
 		t.Fatalf("masque inbound not returned for subId: %+v", inbounds)
 	}
 }
+
+// An inbound keeps its hop range in quicParams.udpHop (udphop refuses to run on a server),
+// but the client config must carry the udphop mask: the core ignores the old key since 26.9.9.
+func TestSubJsonServiceTurnsInboundHopIntoClientUDPHopMask(t *testing.T) {
+	inbound := &model.Inbound{
+		Listen: "203.0.113.10", Port: 443, Protocol: model.Hysteria, Remark: "hy",
+		Settings: `{"version":2,"clients":[{"email":"ivy@example.test","auth":"a"}]}`,
+		StreamSettings: `{"network":"hysteria","security":"tls",
+			"hysteriaSettings":{"version":2},
+			"tlsSettings":{"serverName":"hy.example.test","alpn":["h3"]},
+			"finalmask":{"quicParams":{"udpHop":{"ports":"20000-30000","interval":"5-10"}}}}`,
+	}
+	client := model.Client{Email: "ivy@example.test", Auth: "a"}
+
+	configs := NewSubJsonService("", "", "", "", nil).getConfig(&SubService{address: "sub.example.com"}, inbound, client, "sub.example.com")
+	if len(configs) != 1 {
+		t.Fatalf("got %d configs, want one", len(configs))
+	}
+	var config struct {
+		Outbounds []struct {
+			Protocol       string         `json:"protocol"`
+			StreamSettings map[string]any `json:"streamSettings"`
+		} `json:"outbounds"`
+	}
+	if err := json.Unmarshal(configs[0], &config); err != nil {
+		t.Fatalf("decode config: %v", err)
+	}
+	got, _ := json.Marshal(config.Outbounds[0].StreamSettings["finalmask"])
+	const want = `{"udp":[{"settings":{"interval":"5-10","mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
+	if string(got) != want {
+		t.Fatalf("client finalmask\n got: %s\nwant: %s", got, want)
+	}
+}

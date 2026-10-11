@@ -18,6 +18,7 @@ import type { NamePath } from 'antd/es/form/interface';
 import { RandomUtil } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
 import { OutboundProtocols, UTLS_FINGERPRINT } from '@/schemas/primitives';
+import { upgradeLegacyUdpHop } from '@/lib/xray/udphop-mask';
 import { upgradeLegacyXdnsMasks, XDNS_LEGACY_EDNS0 } from '@/lib/xray/xdns-mask';
 
 const UTLS_FINGERPRINT_OPTIONS = Object.values(UTLS_FINGERPRINT).map((value) => ({
@@ -34,6 +35,9 @@ export interface FinalMaskFormProps {
   // network/protocol. Used by the global sub-JSON finalmask editor where
   // the masks apply to every stream rather than one specific transport.
   showAll?: boolean;
+  // udphop runs only on the dialing side (the core refuses it on a listener), so a server
+  // keeps the advertised hop range in quicParams.udpHop and a client gets the mask.
+  side?: 'server' | 'client';
 }
 
 const TCP_NETWORKS = ['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp', 'xdrive'];
@@ -194,6 +198,8 @@ function defaultUdpMaskSettings(type: string): Record<string, unknown> {
       return { client: [], server: [] };
     case 'noise':
       return { reset: 0, noise: [] };
+    case 'udphop':
+      return { mode: 'intervalRemote', interval: '5-10', remotePorts: '' };
     default:
       return {};
   }
@@ -242,6 +248,7 @@ export default function FinalMaskForm({
   protocol,
   form,
   showAll = false,
+  side = 'client',
 }: FinalMaskFormProps) {
   const base = asPath(name);
 
@@ -273,6 +280,13 @@ export default function FinalMaskForm({
       const { next, changed } = upgradeLegacyXdnsMasks(udp);
       if (changed) form.setFieldValue([...base, 'udp'], next);
     }
+    if (side === 'client') {
+      const finalmask = form.getFieldValue(base) as Record<string, unknown> | undefined;
+      if (finalmask && typeof finalmask === 'object') {
+        const { next, changed } = upgradeLegacyUdpHop(finalmask);
+        if (changed) form.setFieldValue(base, next);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -282,7 +296,13 @@ export default function FinalMaskForm({
   // wrap anything even though the leftover network value may be 'tcp'.
   const isWireguard = protocol === 'wireguard';
   const showTcp = showAll || (!isWireguard && TCP_NETWORKS.includes(network));
-  const showUdp = showAll || isHysteria || isWireguard || network === 'kcp';
+  // xhttp's HTTP/3 dial runs the UDP masks too, which is where a client's udphop lives.
+  const showUdp =
+    showAll ||
+    isHysteria ||
+    isWireguard ||
+    network === 'kcp' ||
+    (side === 'client' && network === 'xhttp');
   const showQuic = showAll || isHysteria || network === 'xhttp';
   const quicParams = Form.useWatch([...base, 'quicParams'], { form, preserve: true });
   const hasQuicParams = quicParams != null;
@@ -299,6 +319,7 @@ export default function FinalMaskForm({
           isHysteria={isHysteria}
           isWireguard={isWireguard}
           network={network}
+          allowUdpHop={side === 'client'}
         />
       )}
       {showQuic && (
@@ -311,7 +332,13 @@ export default function FinalMaskForm({
               }}
             />
           </Form.Item>
-          {hasQuicParams && <QuicParamsForm base={[...base, 'quicParams']} form={form} />}
+          {hasQuicParams && (
+            <QuicParamsForm
+              base={[...base, 'quicParams']}
+              form={form}
+              showUdpHop={side === 'server'}
+            />
+          )}
         </>
       )}
     </>
@@ -820,12 +847,14 @@ function UdpMasksList({
   isHysteria,
   isWireguard,
   network,
+  allowUdpHop,
 }: {
   base: (string | number)[];
   form: FormInstance;
   isHysteria: boolean;
   isWireguard: boolean;
   network: string;
+  allowUdpHop: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -854,6 +883,7 @@ function UdpMasksList({
               isHysteria={isHysteria}
               isWireguard={isWireguard}
               network={network}
+              allowUdpHop={allowUdpHop}
               onRemove={() => remove(field.name)}
             />
           ))}
@@ -871,6 +901,7 @@ function UdpMaskItem({
   isHysteria,
   isWireguard,
   network,
+  allowUdpHop,
   onRemove,
 }: {
   fieldName: number;
@@ -880,6 +911,7 @@ function UdpMaskItem({
   isHysteria: boolean;
   isWireguard: boolean;
   network: string;
+  allowUdpHop: boolean;
   onRemove: () => void;
 }) {
   const absolutePath = [...listPath, fieldName];
@@ -893,8 +925,9 @@ function UdpMaskItem({
     }
   };
 
+  const udpHopOption = allowUdpHop ? [{ value: 'udphop', label: 'UDP Hop' }] : [];
   const options = isHysteria
-    ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }]
+    ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }, ...udpHopOption]
     : [
         // Salamander is the mask xray-core's own wireguard finalmask example
         // uses; it stays hysteria-only elsewhere to keep legacy parity.
@@ -905,6 +938,7 @@ function UdpMaskItem({
         { value: 'realm', label: 'Realm' },
         { value: 'header-custom', label: 'Header Custom' },
         { value: 'noise', label: 'Noise' },
+        ...udpHopOption,
       ];
 
   return (
@@ -966,6 +1000,9 @@ function UdpMaskItem({
           }
           if (type === 'xdns') {
             return <XdnsSettings udpFieldName={fieldName} />;
+          }
+          if (type === 'udphop') {
+            return <UdpHopSettings udpFieldName={fieldName} />;
           }
           if (type === 'xicmp') {
             return (
@@ -1366,6 +1403,66 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
   );
 }
 
+const UDP_HOP_MODES = [
+  { value: 'intervalRemote', label: 'Rotate server port (interval)' },
+  { value: 'perConnRemote', label: 'Random server port per connection' },
+  { value: 'intervalLocal', label: 'Rotate local port (interval)' },
+];
+
+// xray-core lowercases each comma-separated mode, so a lowercase one (from an mport
+// import) still maps onto its option here.
+function udpHopModesFromWire(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  return value
+    .split(',')
+    .map((mode) => mode.trim())
+    .filter(Boolean)
+    .map(
+      (mode) =>
+        UDP_HOP_MODES.find((m) => m.value.toLowerCase() === mode.toLowerCase())?.value ?? mode,
+    );
+}
+
+function validateUdpHopInterval(_: unknown, value: unknown) {
+  if (value == null || value === '') return Promise.resolve();
+  const bounds = String(value)
+    .split('-')
+    .map((v) => Number(v.trim()));
+  const valid = bounds.length <= 2 && bounds.every((v) => Number.isInteger(v) && v >= 5);
+  return valid ? Promise.resolve() : Promise.reject(new Error('seconds ≥ 5, e.g. 30 or 5-10'));
+}
+
+// Client-only hopping (xray-core 26.9.9); every key needs a registered field because the
+// finalmask watch drops keys without one.
+function UdpHopSettings({ udpFieldName }: { udpFieldName: number }) {
+  return (
+    <>
+      <Form.Item
+        label="Mode"
+        name={[udpFieldName, 'settings', 'mode']}
+        getValueProps={(value) => ({ value: udpHopModesFromWire(value) })}
+        normalize={(value: string[]) => value.join(',')}
+        rules={[{ required: true, message: 'pick at least one mode' }]}
+      >
+        <Select mode="multiple" options={UDP_HOP_MODES} />
+      </Form.Item>
+      <Form.Item
+        label="Interval (s)"
+        name={[udpFieldName, 'settings', 'interval']}
+        rules={[{ validator: validateUdpHopInterval }]}
+      >
+        <Input placeholder="30 or 5-10" />
+      </Form.Item>
+      <Form.Item label="Remote Ports" name={[udpFieldName, 'settings', 'remotePorts']}>
+        <Input placeholder="20000-50000" />
+      </Form.Item>
+      <Form.Item label="Remote IPs" name={[udpFieldName, 'settings', 'remoteIPs']}>
+        <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',', ' ']} />
+      </Form.Item>
+    </>
+  );
+}
+
 function NoiseItems({
   udpFieldName,
   form,
@@ -1542,7 +1639,15 @@ function ItemEditor({
   );
 }
 
-function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormInstance }) {
+function QuicParamsForm({
+  base,
+  form,
+  showUdpHop,
+}: {
+  base: (string | number)[];
+  form: FormInstance;
+  showUdpHop: boolean;
+}) {
   const congestion = Form.useWatch([...base, 'congestion'], form) as string | undefined;
   const udpHop = Form.useWatch([...base, 'udpHop'], { form, preserve: true }) as
     | Record<string, unknown>
@@ -1596,22 +1701,31 @@ function QuicParamsForm({ base, form }: { base: (string | number)[]; form: FormI
         </>
       )}
 
-      <Form.Item label="UDP Hop">
-        <Switch
-          checked={hasUdpHop}
-          onChange={(v) => {
-            form.setFieldValue([...base, 'udpHop'], v ? defaultUdpHop() : undefined);
-          }}
-        />
-      </Form.Item>
-      {hasUdpHop && (
+      {/* Advertised to clients (link mport, JSON-subscription udphop mask); the server
+          itself listens on its own port. */}
+      {showUdpHop && (
         <>
-          <Form.Item label="Hop Ports" name={[...base, 'udpHop', 'ports']}>
-            <Input placeholder="e.g. 20000-50000" />
+          <Form.Item
+            label="UDP Hop"
+            tooltip="Advertised to clients as a hop range; the server listens on its own port only"
+          >
+            <Switch
+              checked={hasUdpHop}
+              onChange={(v) => {
+                form.setFieldValue([...base, 'udpHop'], v ? defaultUdpHop() : undefined);
+              }}
+            />
           </Form.Item>
-          <Form.Item label="Hop Interval (s)" name={[...base, 'udpHop', 'interval']}>
-            <Input placeholder="e.g. 5-10" />
-          </Form.Item>
+          {hasUdpHop && (
+            <>
+              <Form.Item label="Hop Ports" name={[...base, 'udpHop', 'ports']}>
+                <Input placeholder="e.g. 20000-50000" />
+              </Form.Item>
+              <Form.Item label="Hop Interval (s)" name={[...base, 'udpHop', 'interval']}>
+                <Input placeholder="e.g. 5-10" />
+              </Form.Item>
+            </>
+          )}
         </>
       )}
 

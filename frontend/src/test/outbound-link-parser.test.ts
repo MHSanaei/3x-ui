@@ -488,6 +488,25 @@ describe('parseShadowsocksLink', () => {
 });
 
 describe('parseHysteria2Link', () => {
+  // A panel older than the 26.9.9 core shares its hop range as quicParams.udpHop in fm=,
+  // which the core ignores; the import must hand it the udphop mask instead.
+  it('upgrades a legacy fm= quicParams.udpHop to the udphop mask', () => {
+    const fm = encodeURIComponent(
+      JSON.stringify({ quicParams: { udpHop: { ports: '20000-30000', interval: '5-10' } } }),
+    );
+    const out = parseHysteria2Link(
+      `hysteria2://auth@hy.example.com:443?sni=hy.example.com&fm=${fm}#hy`,
+    );
+    expect((out!.streamSettings as Record<string, unknown>).finalmask).toEqual({
+      udp: [
+        {
+          type: 'udphop',
+          settings: { mode: 'intervalRemote', remotePorts: '20000-30000', interval: '5-10' },
+        },
+      ],
+    });
+  });
+
   it('parses a hysteria2:// link with sni', () => {
     const link = 'hysteria2://auth-secret@srv.example:443?sni=example.com#imported-hy2';
     const out = parseHysteria2Link(link);
@@ -822,8 +841,14 @@ describe('parseVlessLink — extra / fm / x_padding_bytes (B20)', () => {
     const quicParams = finalmask.quicParams as Record<string, unknown>;
     expect(quicParams.congestion).toBe('bbr');
     expect(quicParams.maxIdleTimeout).toBe(30);
-    expect((quicParams.udpHop as Record<string, unknown>).interval).toBe('5-10');
-    expect((quicParams.udpHop as Record<string, unknown>).ports).toBe('20000-50000');
+    // xray-core 26.9.9 ignores quicParams.udpHop; the import moves it to the udphop mask.
+    expect(quicParams.udpHop).toBeUndefined();
+    expect(finalmask.udp).toEqual([
+      {
+        type: 'udphop',
+        settings: { mode: 'intervalRemote', remotePorts: '20000-50000', interval: '5-10' },
+      },
+    ]);
   });
 
   it('falls back to x_padding_bytes when extra has no xPaddingBytes', () => {
