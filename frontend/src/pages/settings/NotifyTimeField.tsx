@@ -3,11 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Input, InputNumber, Select, Space } from 'antd';
 import { onNumber } from '@/utils/onNumber';
 
-// The notification schedule is fed straight to robfig/cron's AddJob (see
-// web.go startTask), which accepts @every <duration>, the @hourly/@daily/...
-// macros, and full crontab expressions. This builder covers the common cases
-// with dropdowns so users don't have to memorise the syntax, while "Custom"
-// preserves the raw crontab escape hatch.
+// The schedule is parsed by internal/util/cronspec: @every, the @macros, and
+// five- or six-field crontab; "Custom" keeps the raw crontab escape hatch.
 export type Unit = 's' | 'm' | 'h';
 export type Macro = '@hourly' | '@daily' | '@weekly' | '@monthly';
 export type Mode = 'every' | Macro | 'custom';
@@ -44,11 +41,8 @@ export function composeRunTime(s: RunTime): string {
   return s.mode;
 }
 
-// The panel's cron runs with seconds enabled (cron.WithSeconds() in web.go), so
-// crontab expressions are 6-field: "second minute hour day month weekday". When
-// the user drops into Custom we seed the box with the crontab equivalent of the
-// current selection rather than a bare @macro, so they get a real expression to
-// edit (and one that the 6-field parser accepts).
+// Custom is seeded with the six-field ("second minute hour day month weekday")
+// equivalent of the current selection, so the admin edits a real expression.
 export function toCrontab(s: RunTime): string {
   switch (s.mode) {
     case '@hourly':

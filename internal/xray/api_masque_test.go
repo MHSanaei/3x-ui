@@ -6,9 +6,8 @@ import (
 	"github.com/xtls/xray-core/proxy/masque"
 )
 
-// Panel paths hand AddUser the client's "password"; the hot diff hands it the user
-// as GetXrayConfig emitted it, keyed "pass". Without an account the core adds a
-// MASQUE user it can never authenticate.
+// Panel paths hand AddUser the client's "password", the hot diff the emitted user's
+// "pass"; without an account the core adds a MASQUE user it can never authenticate.
 func TestBuildUserAccountMasque(t *testing.T) {
 	tests := []struct {
 		name string

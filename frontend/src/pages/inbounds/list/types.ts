@@ -55,7 +55,6 @@ export interface InboundSpeedEntry {
 export type RowAction =
   | 'edit'
   | 'showInfo'
-  | 'qrcode'
   | 'export'
   | 'subs'
   | 'clipboard'

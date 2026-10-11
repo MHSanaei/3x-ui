@@ -180,10 +180,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
 	xrayConfig.RouterConfig = stripDisabledRules(xrayConfig.RouterConfig)
-	// A pasted or restored template can still carry pre-#6258 XHTTP session keys, a pre-26.10.10
-	// xdns mask or a pre-26.9.9 quicParams.udpHop, all of which the core silently ignores.
+	// A pasted or restored template can carry pre-#6258 XHTTP keys, a pre-26.10.10 xdns mask or a
+	// pre-26.9.9 quicParams.udpHop, which the core ignores, or a udphop not last, which it cannot dial.
 	xrayConfig.OutboundConfigs = healOutboundStreams(xrayConfig.OutboundConfigs,
-		liftXhttpSessionIDKeys, upgradeStreamLegacyXdns, upgradeStreamLegacyUDPHop)
+		liftXhttpSessionIDKeys, upgradeStreamLegacyXdns, upgradeStreamLegacyUDPHop, normalizeStreamUDPHop)
 	// Bridge amneziawg outbounds before anything else reads OutboundConfigs;
 	// the core has no amneziawg proxy and would reject the raw entry.
 	if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
@@ -1751,4 +1751,8 @@ func upgradeStreamLegacyXdns(stream map[string]any) bool {
 
 func upgradeStreamLegacyUDPHop(stream map[string]any) bool {
 	return maskcompat.UpgradeLegacyUDPHop(stream["finalmask"])
+}
+
+func normalizeStreamUDPHop(stream map[string]any) bool {
+	return maskcompat.NormalizeUDPHop(stream["finalmask"])
 }

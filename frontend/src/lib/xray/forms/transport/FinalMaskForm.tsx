@@ -88,6 +88,20 @@ function validateGeckoPacketSize(_rule: unknown, value: unknown): Promise<void> 
   );
 }
 
+// xray-core's salamander smPSKMinLen counts bytes; a shorter password loads, then the listener
+// (stopping Xray) or the dial fails, so the backend refuses it at save too.
+const SALAMANDER_MIN_PSK_BYTES = 4;
+
+function validateSalamanderPassword(_rule: unknown, value: unknown): Promise<void> {
+  const bytes = new TextEncoder().encode(typeof value === 'string' ? value : '').length;
+  if (bytes >= SALAMANDER_MIN_PSK_BYTES) return Promise.resolve();
+  return Promise.reject(
+    new Error(
+      `Use at least ${SALAMANDER_MIN_PSK_BYTES} bytes; xray-core refuses a shorter password`,
+    ),
+  );
+}
+
 function asPath(name: NamePath): (string | number)[] {
   return Array.isArray(name) ? [...name] : [name];
 }
@@ -1198,7 +1212,11 @@ function SalamanderUdpMaskSettings({
 
       <Form.Item label="Password">
         <Space.Compact block>
-          <Form.Item name={[fieldName, 'settings', 'password']} noStyle>
+          <Form.Item
+            name={[fieldName, 'settings', 'password']}
+            noStyle
+            rules={[{ validator: validateSalamanderPassword }]}
+          >
             <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
           </Form.Item>
           <Button

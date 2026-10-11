@@ -940,7 +940,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// email's last inbound — wiping it while a sibling still feeds it
 			// loses the summed history, and the next node sync would re-seed the
 			// row with that node's counter alone.
-			sharedEmails, sErr := s.emailsUsedByOtherInbounds(goneEmails, c.Id)
+			sharedEmails, sErr := s.emailsUsedByOtherInbounds(tx, goneEmails, c.Id)
 			if sErr != nil {
 				return false, sErr
 			}
@@ -1218,7 +1218,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			// Same shared-accumulator rule as the inbound-removal sweep above:
 			// keep the row while another inbound still references the email.
-			stillUsed, uErr := s.emailUsedByOtherInbounds(existing.Email, c.Id)
+			stillUsed, uErr := s.emailUsedByOtherInbounds(tx, existing.Email, c.Id)
 			if uErr != nil {
 				return false, uErr
 			}

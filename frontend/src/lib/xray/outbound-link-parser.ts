@@ -1,6 +1,6 @@
 import { Base64 } from '@/utils';
 
-import { upgradeLegacyUdpHop } from './udphop-mask';
+import { normalizeUdpHop, upgradeLegacyUdpHop } from './udphop-mask';
 import { upgradeLegacyXdnsMasks } from './xdns-mask';
 
 // Focused share-link parser for the OutboundFormModal's link-import
@@ -283,7 +283,7 @@ function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
       if (parsed && typeof parsed === 'object') {
         sanitizeFinalMaskQuicParams(parsed);
         if (Array.isArray(parsed.udp)) parsed.udp = upgradeLegacyXdnsMasks(parsed.udp).next;
-        stream.finalmask = upgradeLegacyUdpHop(parsed).next;
+        stream.finalmask = normalizeUdpHop(upgradeLegacyUdpHop(parsed).next).next;
       }
     } catch {
       // malformed fm — leave streamSettings.finalmask absent
