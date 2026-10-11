@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"slices"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
@@ -30,6 +31,8 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 		return transportUDP
 	case model.MTProto:
 		return transportTCP
+	case model.MASQUE:
+		return masqueTransports(streamSettings)
 	}
 
 	var bits transportBits
@@ -89,6 +92,26 @@ func inboundTransports(protocol model.Protocol, streamSettings, settings string)
 	// safety net: never return zero, even if every parse failed.
 	if bits == 0 {
 		bits = transportTCP
+	}
+	return bits
+}
+
+// masqueTransports mirrors xray-core's MASQUE listener: HTTP/2 on TCP when the TLS
+// ALPN offers h2, HTTP/3 on UDP when it offers h3 or does not offer h2.
+func masqueTransports(streamSettings string) transportBits {
+	var stream struct {
+		TLSSettings struct {
+			ALPN []string `json:"alpn"`
+		} `json:"tlsSettings"`
+	}
+	_ = json.Unmarshal([]byte(streamSettings), &stream)
+	h2 := slices.Contains(stream.TLSSettings.ALPN, "h2")
+	var bits transportBits
+	if h2 {
+		bits |= transportTCP
+	}
+	if !h2 || slices.Contains(stream.TLSSettings.ALPN, "h3") {
+		bits |= transportUDP
 	}
 	return bits
 }
