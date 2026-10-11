@@ -30,6 +30,7 @@ import (
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/infra/conf"
 	hysteriaAccount "github.com/xtls/xray-core/proxy/hysteria/account"
+	"github.com/xtls/xray-core/proxy/masque"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
 	"github.com/xtls/xray-core/proxy/trojan"
@@ -677,6 +678,15 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 		return serial.ToTypedMessage(&hysteriaAccount.Account{
 			Auth: auth,
 		}), nil
+	case "masque":
+		pass, err := masqueUserPassword(user)
+		if err != nil {
+			return nil, err
+		}
+
+		return serial.ToTypedMessage(&masque.Account{
+			Password: pass,
+		}), nil
 	case "wireguard":
 		pubB64, err := getRequiredUserString(user, "publicKey")
 		if err != nil {
@@ -715,6 +725,15 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 	default:
 		return nil, nil
 	}
+}
+
+// masqueUserPassword reads a MASQUE user's password: panel callers send the client's
+// "password", the hot diff sends the user as emitted for the core, keyed "pass".
+func masqueUserPassword(user map[string]any) (string, error) {
+	if pass, err := getOptionalUserString(user, "pass"); err != nil || pass != "" {
+		return pass, err
+	}
+	return getRequiredUserString(user, "password")
 }
 
 // AddUser adds a user to an inbound in the Xray core using the specified

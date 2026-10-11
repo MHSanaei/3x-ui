@@ -180,10 +180,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	xrayConfig.API = ensureAPIServices(xrayConfig.API)
 	xrayConfig.Policy = ensureStatsPolicy(xrayConfig.Policy)
 	xrayConfig.RouterConfig = stripDisabledRules(xrayConfig.RouterConfig)
-	// A pasted or restored template can still carry pre-#6258 XHTTP session keys or a
-	// pre-26.10.10 xdns mask the core silently empties; heal them like the inbounds below.
+	// A pasted or restored template can still carry pre-#6258 XHTTP session keys, a pre-26.10.10
+	// xdns mask or a pre-26.9.9 quicParams.udpHop, all of which the core silently ignores.
 	xrayConfig.OutboundConfigs = healOutboundStreams(xrayConfig.OutboundConfigs,
-		liftXhttpSessionIDKeys, upgradeStreamLegacyXdns)
+		liftXhttpSessionIDKeys, upgradeStreamLegacyXdns, upgradeStreamLegacyUDPHop)
 	// Bridge amneziawg outbounds before anything else reads OutboundConfigs;
 	// the core has no amneziawg proxy and would reject the raw entry.
 	if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
@@ -281,6 +281,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			case model.Hysteria:
 				if c.Auth != "" {
 					entry["auth"] = c.Auth
+				}
+			case model.MASQUE:
+				if c.Password != "" {
+					entry["password"] = c.Password
 				}
 			case model.WireGuard:
 				if inboundClient, ok := wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(c.Email))]; ok {
@@ -1743,4 +1747,8 @@ func healOutboundStreams(raw json_util.RawMessage, heals ...func(stream map[stri
 
 func upgradeStreamLegacyXdns(stream map[string]any) bool {
 	return maskcompat.UpgradeLegacyXdns(stream["finalmask"])
+}
+
+func upgradeStreamLegacyUDPHop(stream map[string]any) bool {
+	return maskcompat.UpgradeLegacyUDPHop(stream["finalmask"])
 }

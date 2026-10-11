@@ -35,6 +35,31 @@ exports[`NetworkSettingsSchema fixtures > parses ws-default byte-stably 1`] = `
 }
 `;
 
+exports[`NetworkSettingsSchema fixtures > parses xdrive-google-drive byte-stably 1`] = `
+{
+  "address": "142.250.0.1",
+  "network": "xdrive",
+  "port": 443,
+  "xdriveSettings": {
+    "concurrency": 8,
+    "eagerWindowMs": 2000,
+    "flushIntervalMs": 20,
+    "holeTimeoutMs": 30000,
+    "maxPollIntervalMs": 500,
+    "pollIntervalMs": 50,
+    "remoteFolder": "xray-tunnel",
+    "secrets": [
+      "000000000000-example.apps.googleusercontent.com",
+      "GOCSPX-example-client-secret",
+      "1//example-refresh-token",
+    ],
+    "segmentBytes": 524288,
+    "service": "Google Drive",
+    "sessionTtlSeconds": 300,
+  },
+}
+`;
+
 exports[`NetworkSettingsSchema fixtures > parses xhttp-basic byte-stably 1`] = `
 {
   "network": "xhttp",

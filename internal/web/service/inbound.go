@@ -656,6 +656,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Hysteria:    true,
 		model.WireGuard:   true,
 		model.Tunnel:      true,
+		model.MASQUE:      true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {
@@ -1241,7 +1242,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Secure client ID
 	for _, client := range clients {
 		switch inbound.Protocol {
-		case "trojan":
+		case "trojan", "masque":
 			if client.Password == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
@@ -1765,6 +1766,10 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 		switch inbound.Protocol {
 		case model.Hysteria:
 			if client.Auth == "" {
+				return common.NewError("empty client ID")
+			}
+		case model.MASQUE:
+			if client.Password == "" {
 				return common.NewError("empty client ID")
 			}
 		case model.TUIC:

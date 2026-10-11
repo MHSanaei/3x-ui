@@ -211,6 +211,29 @@ func TestComputeHotDiff_ClientOnlyChangeUsesUserOps(t *testing.T) {
 	}
 }
 
+// A MASQUE inbound carries every user's CONNECT-IP tunnel; replacing the handler to
+// add one user would drop all of them, so its client list diffs per user too.
+func TestComputeHotDiff_MasqueClientAddUsesUserOps(t *testing.T) {
+	oldCfg := makeHotConfig()
+	oldCfg.InboundConfigs[1].Protocol = "masque"
+	oldCfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[{"email":"a","pass":"pw-a"}],"address":["10.14.0.1/24"]}`)
+	newCfg := makeHotConfig()
+	newCfg.InboundConfigs[1].Protocol = "masque"
+	newCfg.InboundConfigs[1].Settings = json_util.RawMessage(`{"clients":[{"email":"a","pass":"pw-a"},{"email":"b","pass":"pw-b"}],"address":["10.14.0.1/24"]}`)
+
+	diff, ok := ComputeHotDiff(oldCfg, newCfg)
+	if !ok {
+		t.Fatal("a MASQUE client-only change must be hot-appliable")
+	}
+	if len(diff.RemovedInboundTags) != 0 || len(diff.AddedInbounds) != 0 {
+		t.Fatalf("a MASQUE client add must not replace the handler, got %+v", diff)
+	}
+	if len(diff.RemovedUsers) != 0 || len(diff.AddedUsers) != 1 ||
+		diff.AddedUsers[0].Email != "b" || diff.AddedUsers[0].User["pass"] != "pw-b" {
+		t.Fatalf("expected only user b added with its pass, got added %+v removed %+v", diff.AddedUsers, diff.RemovedUsers)
+	}
+}
+
 func TestComputeHotDiff_ClientChangeFallsBackToReplace(t *testing.T) {
 	cases := []struct {
 		name   string
