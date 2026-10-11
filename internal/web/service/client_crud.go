@@ -509,9 +509,9 @@ func shadowsocksKeyBytes(method string) int {
 	return 0
 }
 
-// validateShadowsocks2022ServerKey refuses a server key xray-core cannot parse:
-// the core then fails to build the inbound and does not start at all.
-func validateShadowsocks2022ServerKey(protocol model.Protocol, settings string) error {
+// validateShadowsocks2022Inbound refuses a method or server key xray-core cannot
+// build an inbound from: the core then does not start at all.
+func validateShadowsocks2022Inbound(protocol model.Protocol, settings string) error {
 	if protocol != model.Shadowsocks {
 		return nil
 	}
@@ -525,6 +525,9 @@ func validateShadowsocks2022ServerKey(protocol model.Protocol, settings string) 
 	n := xray.Shadowsocks2022KeyBytes(parsed.Method)
 	if n == 0 {
 		return nil
+	}
+	if xray.Shadowsocks2022NoMultiUser(parsed.Method) {
+		return common.NewErrorf("shadowsocks inbound method %s does not support multiple users, use a 2022-blake3-aes method", parsed.Method)
 	}
 	if !xray.ValidShadowsocks2022Key(parsed.Method, parsed.Password) {
 		return common.NewErrorf("shadowsocks inbound password: %s needs a %d-byte key, base64 encoded", parsed.Method, n)

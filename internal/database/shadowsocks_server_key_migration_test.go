@@ -67,3 +67,55 @@ func TestRepairShadowsocks2022ServerKeys(t *testing.T) {
 		})
 	}
 }
+
+// A stored 2022-chacha20 inbound never let xray-core start; aes-256-gcm takes the
+// same 32-byte keys, so switching keeps every stored key valid.
+func TestMigrateShadowsocks2022ChachaInbounds(t *testing.T) {
+	dbDir := t.TempDir()
+	t.Setenv("XUI_DB_FOLDER", dbDir)
+	if err := InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+
+	key := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef0123456789abcdef"))
+	rows := map[string]struct{ settings, wantMethod string }{
+		"chacha":        {`{"method":"2022-blake3-chacha20-poly1305","password":"` + key + `","clients":[{"email":"c","password":"` + key + `"}]}`, "2022-blake3-aes-256-gcm"},
+		"legacy chacha": {`{"method":"chacha20-ietf-poly1305","clients":[{"email":"l","password":"p"}]}`, "chacha20-ietf-poly1305"},
+	}
+	port := 31200
+	for tag, r := range rows {
+		port++
+		ib := model.Inbound{UserId: 1, Port: port, Protocol: model.Shadowsocks, Tag: tag, Settings: r.settings}
+		if err := GetDB().Create(&ib).Error; err != nil {
+			t.Fatalf("create %s: %v", tag, err)
+		}
+	}
+
+	if err := migrateShadowsocks2022ChachaInbounds(); err != nil {
+		t.Fatalf("migrateShadowsocks2022ChachaInbounds: %v", err)
+	}
+
+	for tag, r := range rows {
+		var ib model.Inbound
+		if err := GetDB().Where("tag = ?", tag).First(&ib).Error; err != nil {
+			t.Fatal(err)
+		}
+		var got struct {
+			Method   string `json:"method"`
+			Password string `json:"password"`
+			Clients  []struct {
+				Password string `json:"password"`
+			} `json:"clients"`
+		}
+		if err := json.Unmarshal([]byte(ib.Settings), &got); err != nil {
+			t.Fatal(err)
+		}
+		if got.Method != r.wantMethod {
+			t.Errorf("%s: method %q, want %q", tag, got.Method, r.wantMethod)
+		}
+		if tag == "chacha" && (got.Password != key || got.Clients[0].Password != key) {
+			t.Errorf("%s: keys changed to server=%q client=%q, want both kept", tag, got.Password, got.Clients[0].Password)
+		}
+	}
+}

@@ -266,16 +266,6 @@ describe('getInboundClients with schema-shaped inbound', () => {
     expect(getInboundClients(inbound)).toHaveLength(1);
   });
 
-  it('returns null for SS single-user', () => {
-    const inbound = inboundFromDb({
-      ...BASE_DB_FIELDS,
-      protocol: 'shadowsocks',
-      settings: { method: '2022-blake3-chacha20-poly1305', password: 'pw', clients: [] },
-      streamSettings: { network: 'tcp', security: 'none' },
-    });
-    expect(getInboundClients(inbound)).toBeNull();
-  });
-
   it('returns null for non-client protocols (http/mixed/tun/tunnel)', () => {
     for (const protocol of ['http', 'mixed', 'tun', 'tunnel']) {
       const inbound = inboundFromDb({

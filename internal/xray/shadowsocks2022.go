@@ -18,3 +18,10 @@ func ValidShadowsocks2022Key(method, key string) bool {
 	_, err := shadowsocks_2022.ParseKey(key, Shadowsocks2022KeyBytes(method))
 	return err == nil
 }
+
+// Shadowsocks2022NoMultiUser reports a 2022 method xray-core refuses on an
+// inbound with users: the multi-user identity header is AES-only.
+func Shadowsocks2022NoMultiUser(method string) bool {
+	cipher, err := shadowsocks_2022.GetCipherMethod(method)
+	return err == nil && cipher.IsChaCha
+}

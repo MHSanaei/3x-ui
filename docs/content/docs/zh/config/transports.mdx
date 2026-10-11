@@ -199,8 +199,8 @@ VLESS 支持后量子**加密**（ML-KEM / `mlkem768x25519`），它存储在入
 ## Shadowsocks 加密方式
 
 Shadowsocks 入站同时支持经典加密方式和 **Shadowsocks-2022**（以 `2022-blake3-`
-开头的方法名）。大多数加密方式支持多用户；`2022-blake3-chacha20-poly1305`
-为单用户。
+开头的方法名）。入站不提供
+`2022-blake3-chacha20-poly1305`：Xray-core 仅在无用户时支持它，而面板的每个入站都有客户端。出站仍可使用。
 
 <Callout type="info">
   传输方式和安全层必须在两端一致。客户端的分享链接会对它们进行编码（`type=ws`、

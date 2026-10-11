@@ -1178,7 +1178,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := validateFinalMaskSalamander(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
-	if err := validateShadowsocks2022ServerKey(inbound.Protocol, inbound.Settings); err != nil {
+	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
@@ -1826,7 +1826,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	if err := validateFinalMaskSalamander(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
-	if err := validateShadowsocks2022ServerKey(inbound.Protocol, inbound.Settings); err != nil {
+	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)

@@ -75,3 +75,50 @@ func TestShadowsocks2022ServerKeyRejected(t *testing.T) {
 		}
 	})
 }
+
+// xray-core builds a Shadowsocks-2022 inbound with users only for the AES methods;
+// a 2022-chacha20 one with clients keeps the whole core from starting.
+func TestShadowsocks2022ChachaInboundRejected(t *testing.T) {
+	const chacha = "2022-blake3-chacha20-poly1305"
+	key32 := base64.StdEncoding.EncodeToString(make([]byte, 32))
+	key16 := base64.StdEncoding.EncodeToString(make([]byte, 16))
+	const wantErr = "shadowsocks inbound method 2022-blake3-chacha20-poly1305 does not support multiple users"
+
+	t.Run("add", func(t *testing.T) {
+		setupConflictDB(t)
+		nodeID, fake := setupNodeRuntime(t)
+		ib := &model.Inbound{
+			UserId: 1, NodeID: &nodeID, Tag: "ss-chacha-add", Enable: true, Port: 41811, Protocol: model.Shadowsocks,
+			Settings: ss2022Settings(chacha, key32),
+		}
+		_, _, err := (&InboundService{}).AddInbound(ib)
+		if err == nil || !strings.Contains(err.Error(), wantErr) {
+			t.Fatalf("AddInbound with %s: err = %v", chacha, err)
+		}
+		if fake.addInbound.Load() != 0 {
+			t.Fatal("rejected inbound dispatched to the runtime")
+		}
+	})
+
+	t.Run("update", func(t *testing.T) {
+		setupConflictDB(t)
+		nodeID, fake := setupNodeRuntime(t)
+		svc := &InboundService{}
+		ib := &model.Inbound{
+			UserId: 1, NodeID: &nodeID, Tag: "ss-chacha-update", Enable: true, Port: 41812, Protocol: model.Shadowsocks,
+			Settings: ss2022Settings("2022-blake3-aes-128-gcm", key16),
+		}
+		if _, _, err := svc.AddInbound(ib); err != nil {
+			t.Fatalf("AddInbound: %v", err)
+		}
+		update := *ib
+		update.Settings = ss2022Settings(chacha, key32)
+		_, _, err := svc.UpdateInbound(&update)
+		if err == nil || !strings.Contains(err.Error(), wantErr) {
+			t.Fatalf("UpdateInbound to %s: err = %v", chacha, err)
+		}
+		if fake.updateInbound.Load() != 0 {
+			t.Fatal("rejected update dispatched to the runtime")
+		}
+	})
+}
