@@ -694,7 +694,41 @@
           "listen": "インバウンドのリッスンアドレス",
           "custom": "カスタム"
         },
-        "autoFill": "自動入力"
+        "autoFill": "自動入力",
+        "xdrive": {
+          "service": "ストレージサービス",
+          "serviceLocal": "ローカルフォルダ",
+          "serviceTemplate": "カスタムテンプレート",
+          "remoteFolder": "リモートフォルダ",
+          "clientId": "クライアント ID",
+          "clientSecret": "クライアントシークレット",
+          "refreshToken": "リフレッシュトークン",
+          "secrets": "シークレット",
+          "secretsDesc": "テンプレートで {secret0}、{secret1}、… として参照される値",
+          "template": "ストレージテンプレート",
+          "templateInvalid": "JSON オブジェクトである必要があります",
+          "front": "フロンティングアドレス",
+          "frontDesc": "ストレージ API への接続に使う任意のホストまたは IP（ドメインフロンティング）。",
+          "frontPort": "フロンティングポート",
+          "segmentBytes": "セグメントサイズ（バイト）",
+          "flushInterval": "送出間隔（ms）",
+          "pollInterval": "ポーリング間隔（ms）",
+          "maxPollInterval": "最大ポーリング間隔（ms）",
+          "eagerWindow": "先行送信ウィンドウ（ms）",
+          "holeTimeout": "欠落セグメントのタイムアウト（ms）",
+          "sessionTtl": "セッション TTL（秒）",
+          "concurrency": "同時実行数"
+        },
+        "masque": {
+          "addressPool": "アドレスプール",
+          "addressPoolDesc": "トンネルのアドレスはこれらのプレフィックスから割り当てられます（IPv4 と IPv6 をそれぞれ最大 1 つ）。"
+        },
+        "tunDesc": "アダプターの種類",
+        "tunDescTooltip": "Windows のみ：新しく作成する Wintun アダプターのトンネル種別。空欄の場合は Wintun。",
+        "autoSystemDnsToGateway": "システム DNS をゲートウェイへ",
+        "autoSystemDnsToGatewayTooltip": "Linux のみ：systemd-resolved を TUN のゲートウェイに向け、システムの名前解決を Xray 経由にします。ゲートウェイが必要で、失敗すると TUN は起動しません。",
+        "autoSystemWfpBlockLeak": "リーク遮断 (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Windows のみ（自動システムルートと併用）：dns は DNS を TUN 内に留め（DNS サーバーが必要）、misconfigtun は TUN へのルートがない IP バージョンを遮断します。"
       },
       "info": {
         "mode": "モード",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Windows では Fail2ban を利用できないため、IP 制限を適用できません。",
       "limitIpDisabled": "このサーバーでは IP 制限機能が無効になっています。",
       "password": "パスワード",
-      "passwordDesc": "Trojan と Shadowsocks のクライアントのみが使用します。VLESS、VMess、Hysteria、WireGuard では無視されます。",
+      "passwordDesc": "Trojan、Shadowsocks、TUIC、MASQUE のクライアントが使用します。VLESS、VMess、Hysteria、WireGuard では無視されます。",
       "subId": "サブスクリプション ID",
       "subIdDesc": "このクライアントの Telegram ボット招待コードとしても使われます。ボットに送信した人がこのクライアントに紐付けられます。長くランダムな値にしてください。短い、または推測しやすい ID は他人に取得されるおそれがあります。",
       "online": "オンライン",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "サーバー名",
         "verifyPeerName": "peer 名を検証",
         "pinnedSha256": "Pinned SHA256",
+        "useSystemCA": "システムの CA を使用",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "keep alive 間隔",
@@ -1936,7 +1971,10 @@
         "interface": "インターフェース",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)",
+        "masqueWarpDesc": "登録済みの ECDSA P-256 鍵で MASQUE 経由で Cloudflare WARP に接続します。host と path の既定値は Cloudflare のエンドポイントです。",
+        "masqueWarpPublicKey": "エンドポイント公開鍵",
+        "masqueWarpAddress": "トンネルアドレス"
       },
       "outbound": {
         "tag": "タグ",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "WARP+ データ",
         "quota": "クォータ",
         "usage": "使用量",
-        "addOutbound": "アウトバウンドを追加"
+        "addOutbound": "アウトバウンドを追加",
+        "masqueDesc": "MASQUE 用に別の WARP デバイスを登録します。上の WireGuard の登録には影響しません。",
+        "addMasqueOutbound": "WARP over MASQUE のアウトバウンドを追加"
       },
       "dns": {
         "enable": "DNSを有効にする",
@@ -2241,7 +2281,11 @@
         "clearAll": "すべて削除",
         "clearAllTitle": "すべての DNS サーバを削除しますか？",
         "clearAllConfirm": "リストからすべての DNS サーバが削除されます。この操作は元に戻せません。",
-        "dnsLeakWarning": "DNS は localhost、暗号化なしの UDP/TCP、ローカルモードの DoH/DoQ、フォールバック問い合わせ、EDNS client IP から漏れる可能性があります。プライバシー重視ではルーティングされた DoH、hosts 固定、フォールバック無効化を使ってください。"
+        "dnsLeakWarning": "DNS は localhost、暗号化なしの UDP/TCP、ローカルモードの DoH/DoQ、フォールバック問い合わせ、EDNS client IP から漏れる可能性があります。プライバシー重視ではルーティングされた DoH、hosts 固定、フォールバック無効化を使ってください。",
+        "script": "Lua スクリプト",
+        "scriptDesc": "HandleDNSQuery を定義した .lua ファイルのパス（絶対パス、または Xray の bin フォルダからの相対パス）。設定するとスクリプトがすべてのクエリに応答し、サーバーへはスクリプト自身のコードからのみ問い合わせます。ファイルが存在しないか不正な場合、Xray は起動しません。",
+        "serverId": "ID",
+        "serverIdDesc": "Lua DNS スクリプトがこのサーバーを選ぶときの名前"
       },
       "fakedns": {
         "add": "フェイクDNS追加",
@@ -2249,7 +2293,10 @@
         "poolSize": "プールサイズ"
       },
       "defaultOutbound": "デフォルトアウトバウンド",
-      "defaultOutboundDesc": "ルーティング規則に一致しないトラフィックはこのアウトバウンドを使います（一覧の先頭）。"
+      "defaultOutboundDesc": "ルーティング規則に一致しないトラフィックはこのアウトバウンドを使います（一覧の先頭）。",
+      "routingScript": "ルーティングスクリプト",
+      "routingScriptDesc": "HandleRoute を定義した .lua ファイルのパス（絶対パス、または Xray の bin フォルダからの相対パス）。設定するとスクリプトがすべての経路を選び、Xray はパネルの api ルールを含むすべてのルーティングルールを無視します。api インバウンドを api アウトバウンドへ送らないと、トラフィック統計とクライアント変更の即時反映が止まります。ファイルが存在しないか不正な場合、Xray は起動しません。",
+      "routingScriptActive": "{section} でルーティングスクリプトが設定されているため、Xray はこれらのルールを無視します。"
     },
     "hosts": {
       "addHost": "ホストを追加",

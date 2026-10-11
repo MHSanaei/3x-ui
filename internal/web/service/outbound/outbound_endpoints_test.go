@@ -52,3 +52,15 @@ func TestExtractOutboundEndpointsVLESS(t *testing.T) {
 		})
 	}
 }
+
+// A MASQUE outbound names its server flat in settings, like hysteria; without it the
+// outbound test has no endpoint to resolve and reports the outbound unreachable.
+func TestExtractOutboundEndpointsMasque(t *testing.T) {
+	got := extractOutboundEndpoints(map[string]any{
+		"protocol": "masque",
+		"settings": map[string]any{"address": "masque.example.com", "port": float64(8443)},
+	})
+	if want := []string{"masque.example.com:8443"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("extractOutboundEndpoints() = %v, want %v", got, want)
+	}
+}

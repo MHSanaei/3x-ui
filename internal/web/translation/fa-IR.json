@@ -694,7 +694,41 @@
           "listen": "آدرس شنود ورودی",
           "custom": "سفارشی"
         },
-        "autoFill": "تکمیل خودکار"
+        "autoFill": "تکمیل خودکار",
+        "xdrive": {
+          "service": "سرویس ذخیره‌سازی",
+          "serviceLocal": "پوشهٔ محلی",
+          "serviceTemplate": "قالب سفارشی",
+          "remoteFolder": "پوشهٔ راه دور",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "مقادیر محرمانه",
+          "secretsDesc": "مقادیری که قالب با {secret0}، {secret1}، … می‌خواند",
+          "template": "قالب ذخیره‌سازی",
+          "templateInvalid": "باید یک شیء JSON باشد",
+          "front": "آدرس Front",
+          "frontDesc": "میزبان یا IP اختیاری که API ذخیره‌ساز از طریق آن وصل می‌شود (domain fronting).",
+          "frontPort": "پورت Front",
+          "segmentBytes": "اندازهٔ قطعه (بایت)",
+          "flushInterval": "فاصلهٔ ارسال (میلی‌ثانیه)",
+          "pollInterval": "فاصلهٔ بررسی (میلی‌ثانیه)",
+          "maxPollInterval": "حداکثر فاصلهٔ بررسی (میلی‌ثانیه)",
+          "eagerWindow": "پنجرهٔ پیش‌ارسال (میلی‌ثانیه)",
+          "holeTimeout": "مهلت قطعهٔ گمشده (میلی‌ثانیه)",
+          "sessionTtl": "TTL نشست (ثانیه)",
+          "concurrency": "هم‌زمانی"
+        },
+        "masque": {
+          "addressPool": "مخزن آدرس",
+          "addressPoolDesc": "آدرس‌های تونل از این پیشوندها تخصیص داده می‌شوند — حداکثر یک IPv4 و یک IPv6."
+        },
+        "tunDesc": "نوع آداپتور",
+        "tunDescTooltip": "فقط ویندوز: نوع تونلی که آداپتور Wintun جدید با آن ساخته می‌شود. خالی یعنی Wintun.",
+        "autoSystemDnsToGateway": "DNS سیستم به گیت‌وی",
+        "autoSystemDnsToGatewayTooltip": "فقط لینوکس: systemd-resolved را به گیت‌وی TUN می‌برد تا کوئری‌های سیستم از Xray عبور کنند. به گیت‌وی نیاز دارد و اگر این کار شکست بخورد TUN اجرا نمی‌شود.",
+        "autoSystemWfpBlockLeak": "جلوگیری از نشت (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "فقط ویندوز، همراه با مسیریابی خودکار سیستم: dns ترافیک DNS را داخل TUN نگه می‌دارد (به سرور DNS نیاز دارد) و misconfigtun نسخه‌ای از IP را که هیچ مسیری به TUN نمی‌فرستد مسدود می‌کند."
       },
       "info": {
         "mode": "حالت",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Fail2ban روی ویندوز در دسترس نیست، بنابراین محدودیت IP قابل اعمال نیست.",
       "limitIpDisabled": "قابلیت محدودیت IP روی این سرور غیرفعال است.",
       "password": "رمز عبور",
-      "passwordDesc": "فقط توسط کلاینت‌های Trojan و Shadowsocks استفاده می‌شود؛ برای VLESS، VMess، Hysteria و WireGuard نادیده گرفته می‌شود.",
+      "passwordDesc": "توسط کلاینت‌های Trojan، Shadowsocks، TUIC و MASQUE استفاده می‌شود؛ برای VLESS، VMess، Hysteria و WireGuard نادیده گرفته می‌شود.",
       "subId": "شناسه اشتراک",
       "subIdDesc": "این شناسه، کد دعوت این کاربر در ربات تلگرام هم هست: هر کسی آن را به ربات بفرستد به این کاربر متصل می‌شود. آن را طولانی و تصادفی نگه دارید؛ شناسهٔ کوتاه یا قابل حدس ممکن است توسط شخص دیگری تصاحب شود.",
       "online": "آنلاین",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "نام سرور",
         "verifyPeerName": "تایید نام Peer",
         "pinnedSha256": "SHA256 پین‌شده",
+        "useSystemCA": "استفاده از CA سیستم",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "بازه Keep alive",
@@ -1936,7 +1971,10 @@
         "interface": "رابط",
         "proxyProtocol": "Proxy Protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "اتصال به Cloudflare WARP از طریق MASQUE با یک کلید ECDSA P-256 ثبت‌شده؛ host و path به‌طور پیش‌فرض endpoint کلودفلر هستند.",
+        "masqueWarpPublicKey": "کلید عمومی endpoint",
+        "masqueWarpAddress": "آدرس‌های تونل"
       },
       "outbound": {
         "tag": "تگ",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "داده WARP+",
         "quota": "سهمیه",
         "usage": "مصرف",
-        "addOutbound": "افزودن خروجی"
+        "addOutbound": "افزودن خروجی",
+        "masqueDesc": "یک دستگاه WARP جداگانه برای MASQUE ثبت می‌کند؛ ثبت WireGuard بالا تغییری نمی‌کند.",
+        "addMasqueOutbound": "افزودن outbound برای WARP روی MASQUE"
       },
       "dns": {
         "enable": "فعال کردن حل دامنه",
@@ -2241,7 +2281,11 @@
         "clearAll": "حذف همه",
         "clearAllTitle": "حذف همه سرورهای DNS؟",
         "clearAllConfirm": "این کار همه سرورهای DNS را از لیست حذف می‌کند و قابل بازگشت نیست.",
-        "dnsLeakWarning": "DNS ممکن است از طریق localhost، UDP/TCP ساده، حالت محلی DoH/DoQ، درخواست‌های fallback یا EDNS client IP نشت کند. برای حریم خصوصی از DoH مسیریابی‌شده، مقدارهای hosts ثابت و غیرفعال‌سازی fallback استفاده کنید."
+        "dnsLeakWarning": "DNS ممکن است از طریق localhost، UDP/TCP ساده، حالت محلی DoH/DoQ، درخواست‌های fallback یا EDNS client IP نشت کند. برای حریم خصوصی از DoH مسیریابی‌شده، مقدارهای hosts ثابت و غیرفعال‌سازی fallback استفاده کنید.",
+        "script": "اسکریپت Lua",
+        "scriptDesc": "مسیر یک فایل ‎.lua‎ که HandleDNSQuery را تعریف می‌کند، به‌صورت مطلق یا نسبت به پوشه‌ی bin در Xray. از آن پس اسکریپت به همه‌ی کوئری‌ها پاسخ می‌دهد و سرورها فقط از طریق کد خودش استفاده می‌شوند. اگر فایل وجود نداشته باشد یا نامعتبر باشد، Xray اجرا نمی‌شود.",
+        "serverId": "شناسه",
+        "serverIdDesc": "نامی که اسکریپت Lua‌ی DNS با آن این سرور را انتخاب می‌کند"
       },
       "fakedns": {
         "add": "افزودن دی‌ان‌اس جعلی",
@@ -2249,7 +2293,10 @@
         "poolSize": "اندازه استخر"
       },
       "defaultOutbound": "خروجی پیش‌فرض",
-      "defaultOutboundDesc": "ترافیکی که با هیچ قانون مسیریابی جور نشود از این خروجی استفاده می‌کند (اولین خروجی در فهرست)."
+      "defaultOutboundDesc": "ترافیکی که با هیچ قانون مسیریابی جور نشود از این خروجی استفاده می‌کند (اولین خروجی در فهرست).",
+      "routingScript": "اسکریپت مسیریابی",
+      "routingScriptDesc": "مسیر یک فایل ‎.lua‎ که HandleRoute را تعریف می‌کند، به‌صورت مطلق یا نسبت به پوشه‌ی bin در Xray. از آن پس اسکریپت همه‌ی مسیرها را انتخاب می‌کند و Xray همه‌ی قوانین مسیریابی، از جمله قانون api پنل، را نادیده می‌گیرد: اینباند api را به اوت‌باند api بفرستید، وگرنه آمار ترافیک و اعمال زنده‌ی تغییرات کلاینت‌ها متوقف می‌شود. اگر فایل وجود نداشته باشد یا نامعتبر باشد، Xray اجرا نمی‌شود.",
+      "routingScriptActive": "یک اسکریپت مسیریابی در بخش {section} تنظیم شده است، بنابراین Xray این قوانین را نادیده می‌گیرد."
     },
     "hosts": {
       "addHost": "افزودن میزبان",

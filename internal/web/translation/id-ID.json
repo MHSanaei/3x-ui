@@ -694,7 +694,41 @@
         "bytesPerSecTip": "Batas kecepatan (byte/detik) yang diterapkan pada lalu lintas fallback setelah ambang batas, agar probe tidak dapat memakai server Anda sebagai bandwidth gratis menuju target. 0 = tanpa batas (menonaktifkan arah ini).",
         "burstBytesPerSec": "Byte per detik burst",
         "burstBytesPerSecTip": "Kelonggaran untuk burst singkat di atas laju tetap (ukuran token-bucket). Jika lebih kecil dari Byte per detik, nilainya dinaikkan agar sama.",
-        "autoFill": "Isi Otomatis"
+        "autoFill": "Isi Otomatis",
+        "xdrive": {
+          "service": "Layanan penyimpanan",
+          "serviceLocal": "Folder lokal",
+          "serviceTemplate": "Template kustom",
+          "remoteFolder": "Folder jarak jauh",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Rahasia",
+          "secretsDesc": "Nilai yang dibaca template sebagai {secret0}, {secret1}, …",
+          "template": "Template penyimpanan",
+          "templateInvalid": "Harus berupa objek JSON",
+          "front": "Alamat fronting",
+          "frontDesc": "Host atau IP opsional untuk menghubungi API penyimpanan (domain fronting).",
+          "frontPort": "Port fronting",
+          "segmentBytes": "Ukuran segmen (byte)",
+          "flushInterval": "Interval pengiriman (ms)",
+          "pollInterval": "Interval polling (ms)",
+          "maxPollInterval": "Interval polling maks. (ms)",
+          "eagerWindow": "Jendela kirim awal (ms)",
+          "holeTimeout": "Batas waktu segmen hilang (ms)",
+          "sessionTtl": "TTL sesi (s)",
+          "concurrency": "Konkurensi"
+        },
+        "masque": {
+          "addressPool": "Kumpulan alamat",
+          "addressPoolDesc": "Alamat terowongan diberikan dari prefiks ini — maksimal satu IPv4 dan satu IPv6."
+        },
+        "tunDesc": "Jenis adaptor",
+        "tunDescTooltip": "Khusus Windows: jenis tunnel untuk adaptor Wintun baru. Kosong berarti Wintun.",
+        "autoSystemDnsToGateway": "DNS sistem ke gateway",
+        "autoSystemDnsToGatewayTooltip": "Khusus Linux: mengarahkan systemd-resolved ke gateway TUN agar lookup sistem lewat Xray. Butuh gateway, dan TUN tidak berjalan jika ini gagal.",
+        "autoSystemWfpBlockLeak": "Blokir kebocoran (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Khusus Windows, bersama Auto system routes: dns menjaga DNS tetap di dalam TUN (butuh server DNS), misconfigtun memblokir versi IP yang tidak dikirim rute mana pun ke TUN."
       },
       "info": {
         "mode": "Mode",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Fail2ban tidak tersedia di Windows, sehingga batas IP tidak dapat diterapkan.",
       "limitIpDisabled": "Fitur batas IP dinonaktifkan di server ini.",
       "password": "Kata sandi",
-      "passwordDesc": "Hanya digunakan oleh klien Trojan dan Shadowsocks; diabaikan untuk VLESS, VMess, Hysteria, dan WireGuard.",
+      "passwordDesc": "Digunakan oleh klien Trojan, Shadowsocks, TUIC, dan MASQUE; diabaikan untuk VLESS, VMess, Hysteria, dan WireGuard.",
       "subId": "ID Langganan",
       "subIdDesc": "Juga berfungsi sebagai kode undangan bot Telegram untuk klien ini: siapa pun yang mengirimkannya ke bot akan ditautkan ke klien ini. Buat panjang dan acak — ID yang pendek atau mudah ditebak bisa diklaim orang lain.",
       "online": "Online",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "nama server",
         "verifyPeerName": "Verifikasi nama peer",
         "pinnedSha256": "SHA256 pinned",
+        "useSystemCA": "Gunakan CA sistem",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Interval keep alive",
@@ -1936,7 +1971,10 @@
         "interface": "Interface",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (d)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (d)",
+        "masqueWarpDesc": "Terhubung ke Cloudflare WARP melalui MASQUE dengan kunci ECDSA P-256 yang terdaftar; host dan path default ke endpoint Cloudflare.",
+        "masqueWarpPublicKey": "Kunci publik endpoint",
+        "masqueWarpAddress": "Alamat terowongan"
       },
       "outbound": {
         "tag": "Tag",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "Data WARP+",
         "quota": "Kuota",
         "usage": "Penggunaan",
-        "addOutbound": "Tambah outbound"
+        "addOutbound": "Tambah outbound",
+        "masqueDesc": "Mendaftarkan perangkat WARP terpisah untuk MASQUE; pendaftaran WireGuard di atas tidak terpengaruh.",
+        "addMasqueOutbound": "Tambah outbound WARP melalui MASQUE"
       },
       "dns": {
         "enable": "Aktifkan DNS",
@@ -2241,7 +2281,11 @@
         "clearAll": "Hapus Semua",
         "clearAllTitle": "Hapus semua server DNS?",
         "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan.",
-        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting."
+        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting.",
+        "script": "Skrip Lua",
+        "scriptDesc": "Path ke file .lua yang mendefinisikan HandleDNSQuery, absolut atau relatif terhadap folder bin Xray. Skrip lalu menjawab setiap kueri dan hanya menjangkau server melalui kodenya sendiri. Xray tidak akan berjalan jika file tidak ada atau tidak valid.",
+        "serverId": "ID",
+        "serverIdDesc": "Nama yang dipakai skrip DNS Lua untuk memilih server ini"
       },
       "fakedns": {
         "add": "Tambahkan DNS Palsu",
@@ -2249,7 +2293,10 @@
         "poolSize": "Ukuran Kolam"
       },
       "defaultOutbound": "Outbound default",
-      "defaultOutboundDesc": "Lalu lintas tanpa aturan routing memakai outbound ini (yang pertama dalam daftar)."
+      "defaultOutboundDesc": "Lalu lintas tanpa aturan routing memakai outbound ini (yang pertama dalam daftar).",
+      "routingScript": "Skrip Routing",
+      "routingScriptDesc": "Path ke file .lua yang mendefinisikan HandleRoute, absolut atau relatif terhadap folder bin Xray. Skrip lalu memilih setiap rute dan Xray mengabaikan semua aturan routing, termasuk aturan api panel: arahkan inbound api ke outbound api atau statistik trafik dan perubahan klien langsung akan berhenti. Xray tidak akan berjalan jika file tidak ada atau tidak valid.",
+      "routingScriptActive": "Skrip routing diatur di {section}, jadi Xray mengabaikan aturan ini."
     },
     "hosts": {
       "addHost": "Tambah Host",

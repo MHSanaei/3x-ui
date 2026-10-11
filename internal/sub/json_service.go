@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
@@ -640,6 +641,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		if finalmask, ok := newStream["finalmask"].(map[string]any); ok {
 			newStream["finalmask"] = withLegacyFragmentRanges(finalmask)
 		}
+		// An inbound keeps its hop range as quicParams.udpHop; clients hop only with the mask.
+		maskcompat.UpgradeLegacyUDPHop(newStream["finalmask"])
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
 		hostMux := hostMuxOverride(extPrxy)
 
@@ -663,6 +666,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+		case "masque":
+			newOutbounds = append(newOutbounds, s.genMasque(inbound, newStream, client))
 		case "wireguard":
 			wgOutbound := s.genWireguard(inbound, client)
 			if wgOutbound == nil {
@@ -999,10 +1004,37 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	if finalmask, ok := hyStream["finalmask"].(map[string]any); ok {
 		newStream["finalmask"] = mergeFinalMask(newStream["finalmask"], finalmask)
 	}
+	maskcompat.UpgradeLegacyUDPHop(newStream["finalmask"])
 
 	newStream["network"] = "hysteria"
 	newStream["security"] = "tls"
 
+	outbound.StreamSettings, _ = json.MarshalIndent(newStream, "", "  ")
+
+	result, _ := json.MarshalIndent(outbound, "", "  ")
+	return result
+}
+
+// genMasque builds the client side of a MASQUE inbound: the server reads only the
+// path, and authenticates the CONNECT-IP request by the client's email and password.
+func (s *SubJsonService) genMasque(inbound *model.Inbound, newStream map[string]any, client model.Client) json_util.RawMessage {
+	outbound := Outbound{
+		Protocol: string(inbound.Protocol),
+		Tag:      "proxy",
+		Settings: map[string]any{
+			"address": inbound.Listen,
+			"port":    inbound.Port,
+		},
+	}
+	masqueSettings := map[string]any{"user": client.Email, "pass": client.Password}
+	if server, ok := newStream["masqueSettings"].(map[string]any); ok {
+		if path, ok := server["path"].(string); ok && path != "" {
+			masqueSettings["path"] = path
+		}
+	}
+	newStream["masqueSettings"] = masqueSettings
+	newStream["network"] = "masque"
+	newStream["security"] = "tls"
 	outbound.StreamSettings, _ = json.MarshalIndent(newStream, "", "  ")
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")

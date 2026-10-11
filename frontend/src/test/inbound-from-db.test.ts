@@ -60,12 +60,13 @@ describe('inboundFromDb', () => {
 
   // The settings parse strips keys the schema does not list, so a TUN option xray-core
   // 26.9.30 added and an admin entered as JSON would vanish on the next form save.
-  it('keeps the TUN options xray-core 26.9.30 added', () => {
+  it('keeps the TUN options xray-core 26.9 added', () => {
     const inbound = inboundFromDb({
       ...BASE_DB_FIELDS,
       protocol: 'tun',
       settings: {
         name: 'xray0',
+        desc: 'MyTun',
         gateway: ['10.0.0.1/16'],
         autoSystemDnsToGateway: true,
         autoSystemWfpBlockLeak: ['dns', 'misconfigtun'],
@@ -73,6 +74,7 @@ describe('inboundFromDb', () => {
       streamSettings: '',
     });
     expect(inbound.settings).toMatchObject({
+      desc: 'MyTun',
       autoSystemDnsToGateway: true,
       autoSystemWfpBlockLeak: ['dns', 'misconfigtun'],
     });

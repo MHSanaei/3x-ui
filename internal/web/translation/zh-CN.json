@@ -694,7 +694,41 @@
           "custom": "自定义"
         },
         "verifyPeerCertByName": "按名称验证对端证书",
-        "autoFill": "自动填充"
+        "autoFill": "自动填充",
+        "xdrive": {
+          "service": "存储服务",
+          "serviceLocal": "本地文件夹",
+          "serviceTemplate": "自定义模板",
+          "remoteFolder": "远程文件夹",
+          "clientId": "客户端 ID",
+          "clientSecret": "客户端密钥",
+          "refreshToken": "刷新令牌",
+          "secrets": "密钥",
+          "secretsDesc": "模板中以 {secret0}、{secret1}… 引用的值",
+          "template": "存储模板",
+          "templateInvalid": "必须是 JSON 对象",
+          "front": "前置地址",
+          "frontDesc": "连接存储 API 时使用的可选主机或 IP（域前置）。",
+          "frontPort": "前置端口",
+          "segmentBytes": "分段大小（字节）",
+          "flushInterval": "发送间隔（毫秒）",
+          "pollInterval": "轮询间隔（毫秒）",
+          "maxPollInterval": "最大轮询间隔（毫秒）",
+          "eagerWindow": "预发窗口（毫秒）",
+          "holeTimeout": "缺失分段超时（毫秒）",
+          "sessionTtl": "会话 TTL（秒）",
+          "concurrency": "并发数"
+        },
+        "masque": {
+          "addressPool": "地址池",
+          "addressPoolDesc": "隧道地址从这些前缀中分配——最多一个 IPv4 和一个 IPv6。"
+        },
+        "tunDesc": "适配器类型",
+        "tunDescTooltip": "仅限 Windows：新建 Wintun 适配器时使用的隧道类型，留空即为 Wintun。",
+        "autoSystemDnsToGateway": "系统 DNS 指向网关",
+        "autoSystemDnsToGatewayTooltip": "仅限 Linux：将 systemd-resolved 指向 TUN 网关，使系统解析经过 Xray。需要设置网关，失败时 TUN 不会启动。",
+        "autoSystemWfpBlockLeak": "阻止泄漏 (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "仅限 Windows，需配合自动系统路由：dns 让 DNS 只走 TUN（需设置 DNS 服务器），misconfigtun 阻止没有任何路由指向 TUN 的 IP 版本。"
       },
       "info": {
         "mode": "模式",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Windows 上不支持 Fail2ban，无法实施 IP 限制。",
       "limitIpDisabled": "此服务器已禁用 IP 限制功能。",
       "password": "密码",
-      "passwordDesc": "用于 Trojan、Shadowsocks 和 TUIC 客户端；对 VLESS、VMess、Hysteria 和 WireGuard 忽略。",
+      "passwordDesc": "用于 Trojan、Shadowsocks、TUIC 和 MASQUE 客户端；对 VLESS、VMess、Hysteria 和 WireGuard 忽略。",
       "subId": "订阅 ID",
       "subIdDesc": "同时用作该客户端的 Telegram 机器人邀请码：任何人将其发送给机器人即会绑定到此客户端。请保持足够长且随机——过短或易猜的 ID 可能被他人抢先绑定。",
       "online": "在线",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "服务器名",
         "verifyPeerName": "验证 peer 名称",
         "pinnedSha256": "Pinned SHA256",
+        "useSystemCA": "使用系统 CA",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "keep alive 间隔",
@@ -1936,7 +1971,10 @@
         "interface": "接口",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "使用已注册的 ECDSA P-256 密钥通过 MASQUE 连接 Cloudflare WARP；host 和 path 默认指向 Cloudflare 端点。",
+        "masqueWarpPublicKey": "端点公钥",
+        "masqueWarpAddress": "隧道地址"
       },
       "outbound": {
         "tag": "标签",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "WARP+ 数据",
         "quota": "配额",
         "usage": "使用",
-        "addOutbound": "添加出站"
+        "addOutbound": "添加出站",
+        "masqueDesc": "为 MASQUE 单独注册一个 WARP 设备；上方的 WireGuard 注册不受影响。",
+        "addMasqueOutbound": "添加 WARP over MASQUE 出站"
       },
       "dns": {
         "enable": "启用 DNS",
@@ -2241,7 +2281,11 @@
         "clearAll": "删除全部",
         "clearAllTitle": "删除所有 DNS 服务器？",
         "clearAllConfirm": "此操作将从列表中删除所有 DNS 服务器，且无法撤销。",
-        "dnsLeakWarning": "DNS 可能通过 localhost、明文 UDP/TCP、本地模式 DoH/DoQ、回退查询或 EDNS client IP 泄漏。重视隐私时请使用经路由的 DoH、在 hosts 中固定解析器，并禁用回退。"
+        "dnsLeakWarning": "DNS 可能通过 localhost、明文 UDP/TCP、本地模式 DoH/DoQ、回退查询或 EDNS client IP 泄漏。重视隐私时请使用经路由的 DoH、在 hosts 中固定解析器，并禁用回退。",
+        "script": "Lua 脚本",
+        "scriptDesc": "定义了 HandleDNSQuery 的 .lua 文件路径，可为绝对路径或相对于 Xray bin 目录的路径。设置后由脚本应答所有查询，只通过脚本自身的代码访问服务器。文件不存在或无效时 Xray 无法启动。",
+        "serverId": "ID",
+        "serverIdDesc": "Lua DNS 脚本用来选择此服务器的名称"
       },
       "fakedns": {
         "add": "添加假 DNS",
@@ -2249,7 +2293,10 @@
         "poolSize": "池大小"
       },
       "defaultOutbound": "默认出站",
-      "defaultOutboundDesc": "未匹配任何路由规则的流量走此出站（列表中的第一个出站）。"
+      "defaultOutboundDesc": "未匹配任何路由规则的流量走此出站（列表中的第一个出站）。",
+      "routingScript": "路由脚本",
+      "routingScriptDesc": "定义了 HandleRoute 的 .lua 文件路径，可为绝对路径或相对于 Xray bin 目录的路径。设置后由脚本选择所有路由，Xray 会忽略全部路由规则，包括面板的 api 规则：请把 api 入站路由到 api 出站，否则流量统计和客户端变更的实时生效都会停止。文件不存在或无效时 Xray 无法启动。",
+      "routingScriptActive": "已在“{section}”中设置路由脚本，因此 Xray 会忽略这些规则。"
     },
     "hosts": {
       "addHost": "添加主机",

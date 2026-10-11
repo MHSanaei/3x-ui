@@ -3,9 +3,16 @@ package integration
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -29,6 +36,12 @@ const (
 // warpAPIBase is the Cloudflare WARP registration API base URL. It is a var
 // (not a const) so integration tests can point it at a mock server.
 var warpAPIBase = "https://api.cloudflareclient.com/v0a4005"
+
+// warpMasqueAPIBase and warpMasqueClientVer are the API revision and client the WARP
+// apps enroll secp256r1 MASQUE keys with; a var so tests can point it at a mock.
+var warpMasqueAPIBase = "https://api.cloudflareclient.com/v0a4471"
+
+const warpMasqueClientVer = "a-6.35-4471"
 
 func (s *WarpService) GetWarpData() (string, error) {
 	return s.GetWarp()
@@ -132,6 +145,119 @@ func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error
 		return "", err
 	}
 	return string(result), nil
+}
+
+// RegWarpMasque registers a WARP device of its own and enrolls an ECDSA P-256 key for
+// MASQUE: enrolling replaces a device's WireGuard key, so the stored one stays untouched.
+func (s *WarpService) RegWarpMasque() (string, error) {
+	_, wgPublicKey, err := wireguard.GenerateWireguardKeypair()
+	if err != nil {
+		return "", err
+	}
+	hostName, _ := os.Hostname()
+	regBody, err := json.Marshal(map[string]any{
+		"key":   wgPublicKey,
+		"tos":   time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
+		"type":  "PC",
+		"model": "x-ui",
+		"name":  hostName,
+	})
+	if err != nil {
+		return "", err
+	}
+	var registration struct {
+		ID    string `json:"id"`
+		Token string `json:"token"`
+	}
+	if err := s.doWarpMasqueRequest(http.MethodPost, warpMasqueAPIBase+"/reg", "", regBody, &registration); err != nil {
+		return "", err
+	}
+	if registration.ID == "" || registration.Token == "" {
+		return "", common.NewError("warp masque register: missing 'id' or 'token' in response")
+	}
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return "", err
+	}
+	publicDER, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	if err != nil {
+		return "", err
+	}
+	enrollBody, err := json.Marshal(map[string]string{
+		"key":         base64.StdEncoding.EncodeToString(publicDER),
+		"key_type":    "secp256r1",
+		"tunnel_type": "masque",
+		"name":        hostName,
+	})
+	if err != nil {
+		return "", err
+	}
+	var enrolled struct {
+		Config struct {
+			Interface struct {
+				Addresses struct {
+					V4 string `json:"v4"`
+					V6 string `json:"v6"`
+				} `json:"addresses"`
+			} `json:"interface"`
+			Peers []struct {
+				PublicKey string `json:"public_key"`
+				Endpoint  struct {
+					V4 string `json:"v4"`
+				} `json:"endpoint"`
+			} `json:"peers"`
+		} `json:"config"`
+	}
+	if err := s.doWarpMasqueRequest(http.MethodPatch, warpMasqueAPIBase+"/reg/"+registration.ID, registration.Token, enrollBody, &enrolled); err != nil {
+		return "", err
+	}
+	if len(enrolled.Config.Peers) == 0 || enrolled.Config.Peers[0].PublicKey == "" {
+		return "", common.NewError("warp masque enroll: missing endpoint public key in response")
+	}
+	peer := enrolled.Config.Peers[0]
+	endpoint, _, err := net.SplitHostPort(peer.Endpoint.V4)
+	if err != nil {
+		endpoint = peer.Endpoint.V4
+	}
+	privateDER, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return "", err
+	}
+	var address []string
+	for _, a := range []string{enrolled.Config.Interface.Addresses.V4, enrolled.Config.Interface.Addresses.V6} {
+		if a != "" {
+			address = append(address, a)
+		}
+	}
+	result, err := json.MarshalIndent(map[string]any{
+		"privateKey": string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privateDER})),
+		"publicKey":  peer.PublicKey,
+		"address":    address,
+		"endpoint":   endpoint,
+	}, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+func (s *WarpService) doWarpMasqueRequest(method, url, token string, body []byte, out any) error {
+	req, err := http.NewRequestWithContext(context.Background(), method, url, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("CF-Client-Version", warpMasqueClientVer)
+	req.Header.Set("User-Agent", "WARP for Android")
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	respBody, err := s.doWarpRequest(req)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(respBody, out)
 }
 
 func (s *WarpService) SetWarpLicense(license string) (string, error) {

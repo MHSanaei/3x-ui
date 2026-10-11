@@ -694,7 +694,41 @@
           "listen": "Dirección de escucha del inbound",
           "custom": "Personalizada"
         },
-        "autoFill": "Autocompletar"
+        "autoFill": "Autocompletar",
+        "xdrive": {
+          "service": "Servicio de almacenamiento",
+          "serviceLocal": "Carpeta local",
+          "serviceTemplate": "Plantilla personalizada",
+          "remoteFolder": "Carpeta remota",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Secretos",
+          "secretsDesc": "Valores que la plantilla lee como {secret0}, {secret1}, …",
+          "template": "Plantilla de almacenamiento",
+          "templateInvalid": "Debe ser un objeto JSON",
+          "front": "Dirección de fronting",
+          "frontDesc": "Host o IP opcional a través del cual se conecta a la API de almacenamiento (domain fronting).",
+          "frontPort": "Puerto de fronting",
+          "segmentBytes": "Tamaño de segmento (bytes)",
+          "flushInterval": "Intervalo de envío (ms)",
+          "pollInterval": "Intervalo de sondeo (ms)",
+          "maxPollInterval": "Intervalo máximo de sondeo (ms)",
+          "eagerWindow": "Ventana anticipada (ms)",
+          "holeTimeout": "Tiempo de espera de segmento perdido (ms)",
+          "sessionTtl": "TTL de sesión (s)",
+          "concurrency": "Concurrencia"
+        },
+        "masque": {
+          "addressPool": "Pool de direcciones",
+          "addressPoolDesc": "Las direcciones del túnel se asignan de estos prefijos: como máximo uno IPv4 y uno IPv6."
+        },
+        "tunDesc": "Tipo de adaptador",
+        "tunDescTooltip": "Solo Windows: el tipo de túnel con el que se crea un adaptador Wintun nuevo. Vacío equivale a Wintun.",
+        "autoSystemDnsToGateway": "DNS del sistema a la puerta de enlace",
+        "autoSystemDnsToGatewayTooltip": "Solo Linux: apunta systemd-resolved a la puerta de enlace del TUN para que las consultas del sistema pasen por Xray. Necesita una puerta de enlace y el TUN no arranca si esto falla.",
+        "autoSystemWfpBlockLeak": "Bloquear fugas (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Solo Windows, con Auto system routes: dns mantiene el DNS dentro del TUN (necesita servidores DNS) y misconfigtun bloquea una versión de IP que ninguna ruta envía al TUN."
       },
       "info": {
         "mode": "Modo",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Fail2ban no está disponible en Windows, por lo que no se puede aplicar el límite de IP.",
       "limitIpDisabled": "La función de límite de IP está deshabilitada en este servidor.",
       "password": "Contraseña",
-      "passwordDesc": "Solo la usan los clientes Trojan y Shadowsocks; se ignora para VLESS, VMess, Hysteria y WireGuard.",
+      "passwordDesc": "La usan los clientes Trojan, Shadowsocks, TUIC y MASQUE; se ignora para VLESS, VMess, Hysteria y WireGuard.",
       "subId": "ID de suscripción",
       "subIdDesc": "También sirve como código de invitación de este cliente en el bot de Telegram: quien lo envíe al bot queda vinculado a este cliente. Mantenlo largo y aleatorio: un ID corto o fácil de adivinar puede ser reclamado por otra persona.",
       "online": "En línea",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "nombre del servidor",
         "verifyPeerName": "Verificar nombre del peer",
         "pinnedSha256": "SHA256 pinned",
+        "useSystemCA": "Usar CA del sistema",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Intervalo keep alive",
@@ -1936,7 +1971,10 @@
         "interface": "Interfaz",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Conecta a Cloudflare WARP mediante MASQUE con una clave ECDSA P-256 registrada; host y path usan por defecto el endpoint de Cloudflare.",
+        "masqueWarpPublicKey": "Clave pública del endpoint",
+        "masqueWarpAddress": "Direcciones del túnel"
       },
       "outbound": {
         "tag": "Etiqueta",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "Datos WARP+",
         "quota": "Cuota",
         "usage": "Uso",
-        "addOutbound": "Añadir salida"
+        "addOutbound": "Añadir salida",
+        "masqueDesc": "Registra un dispositivo WARP aparte inscrito para MASQUE; el registro de WireGuard de arriba no se ve afectado.",
+        "addMasqueOutbound": "Añadir outbound de WARP sobre MASQUE"
       },
       "dns": {
         "enable": "Habilitar DNS",
@@ -2241,7 +2281,11 @@
         "clearAll": "Eliminar todos",
         "clearAllTitle": "¿Eliminar todos los servidores DNS?",
         "clearAllConfirm": "Esto eliminará todos los servidores DNS de la lista. No se puede deshacer.",
-        "dnsLeakWarning": "El DNS puede filtrarse por localhost, UDP/TCP sin cifrar, DoH/DoQ en modo local, consultas de respaldo o EDNS client IP. Usa DoH enrutado, fija los resolutores en hosts y desactiva el respaldo cuando la privacidad importe."
+        "dnsLeakWarning": "El DNS puede filtrarse por localhost, UDP/TCP sin cifrar, DoH/DoQ en modo local, consultas de respaldo o EDNS client IP. Usa DoH enrutado, fija los resolutores en hosts y desactiva el respaldo cuando la privacidad importe.",
+        "script": "Script Lua",
+        "scriptDesc": "Ruta a un archivo .lua que define HandleDNSQuery, absoluta o relativa a la carpeta bin de Xray. El script responde entonces a cada consulta y solo llega a los servidores a través de su propio código. Xray no arrancará si el archivo falta o no es válido.",
+        "serverId": "ID",
+        "serverIdDesc": "Nombre con el que un script DNS en Lua elige este servidor"
       },
       "fakedns": {
         "add": "Agregar DNS Falso",
@@ -2249,7 +2293,10 @@
         "poolSize": "Tamaño del grupo"
       },
       "defaultOutbound": "Salida predeterminada",
-      "defaultOutboundDesc": "El tráfico que no coincide con ninguna regla de enrutamiento usa esta salida (la primera de la lista)."
+      "defaultOutboundDesc": "El tráfico que no coincide con ninguna regla de enrutamiento usa esta salida (la primera de la lista).",
+      "routingScript": "Script de enrutamiento",
+      "routingScriptDesc": "Ruta a un archivo .lua que define HandleRoute, absoluta o relativa a la carpeta bin de Xray. El script elige entonces cada ruta y Xray ignora todas las reglas de enrutamiento, incluida la regla api del panel: envía el inbound api al outbound api o se detendrán las estadísticas de tráfico y los cambios de clientes en vivo. Xray no arrancará si el archivo falta o no es válido.",
+      "routingScriptActive": "Hay un script de enrutamiento definido en {section}, así que Xray ignora estas reglas."
     },
     "hosts": {
       "addHost": "Agregar host",

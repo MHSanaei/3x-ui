@@ -5,6 +5,10 @@ export const XDNS_LEGACY_EDNS0 = 1232;
 
 const LEGACY_RECORD_TYPES: Record<string, number> = { '': 16, txt: 16, a: 1, aaaa: 28 };
 
+function isRaw(value: unknown): value is Raw {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 function legacyDomain(spec: string): Raw | null {
   let name = spec.trim();
   let method = '';
@@ -16,46 +20,73 @@ function legacyDomain(spec: string): Raw | null {
   name = name.replace(/^\.+|\.+$/g, '');
   const type = LEGACY_RECORD_TYPES[method];
   if (!name || type === undefined) return null;
-  return { name, types: [type], edns0: XDNS_LEGACY_EDNS0 };
+  return { names: [name], types: [type], edns0: XDNS_LEGACY_EDNS0 };
 }
 
-// xray-core 26.9.30 (#6718) parses xdns domains/resolvers only as objects. Mirrors
+/** Folds a 26.9.30 domain's single `name` into the `names` list. */
+function upgradeDomainObject(domain: Raw): Raw {
+  if (!('name' in domain)) return domain;
+  const { name: raw, ...rest } = domain;
+  const name = typeof raw === 'string' ? raw.trim() : '';
+  const names = Array.isArray(rest.names) ? [...(rest.names as unknown[])] : [];
+  if (name && !names.includes(name)) names.unshift(name);
+  return { ...rest, names };
+}
+
+/** A 26.9.30 {type, settings:{addr}} resolver as an addrs URL; that loader took only udp/tcp. */
+function legacyResolverAddr(resolver: Raw): string | null {
+  const kind = typeof resolver.type === 'string' ? resolver.type.trim().toLowerCase() : '';
+  const settings = isRaw(resolver.settings) ? resolver.settings : {};
+  const addr = typeof settings.addr === 'string' ? settings.addr.trim() : '';
+  if ((kind !== 'udp' && kind !== 'tcp') || !addr) return null;
+  return `${kind}://${addr}`;
+}
+
+const isLegacyDomain = (v: unknown) => typeof v === 'string' || (isRaw(v) && 'name' in v);
+const isLegacyResolver = (v: unknown) => typeof v === 'string' || (isRaw(v) && !('addrs' in v));
+
+// xray-core 26.10.10 (#7090) reads xdns only as names/addrs lists. Mirrors
 // internal/util/maskcompat: a bare name becomes TXT, entries the old core refused are dropped.
 export function upgradeLegacyXdnsSettings(settings: Raw): { next: Raw; changed: boolean } {
   const rawDomains = Array.isArray(settings.domains) ? (settings.domains as unknown[]) : [];
   const rawResolvers = Array.isArray(settings.resolvers) ? (settings.resolvers as unknown[]) : [];
-  const isLegacy = (v: unknown) => typeof v === 'string';
-  if (!rawDomains.some(isLegacy) && !rawResolvers.some(isLegacy)) {
+  if (!rawDomains.some(isLegacyDomain) && !rawResolvers.some(isLegacyResolver)) {
     return { next: settings, changed: false };
   }
   const domains: unknown[] = [];
   const listed = new Set<string>();
   const addDomain = (domain: Raw) => {
-    const key = String(domain.name ?? '').toLowerCase();
-    if (key && listed.has(key)) return;
-    listed.add(key);
+    const names = Array.isArray(domain.names) ? (domain.names as unknown[]) : [];
+    for (const name of names) if (typeof name === 'string') listed.add(name.toLowerCase());
     domains.push(domain);
+  };
+  const addLegacyDomain = (domain: Raw) => {
+    const [name] = domain.names as string[];
+    if (!listed.has(name.toLowerCase())) addDomain(domain);
   };
   for (const entry of rawDomains) {
     if (typeof entry === 'string') {
       const domain = legacyDomain(entry);
-      if (domain) addDomain(domain);
-    } else if (entry && typeof entry === 'object') {
-      addDomain(entry as Raw);
+      if (domain) addLegacyDomain(domain);
+    } else if (isRaw(entry)) {
+      addDomain(upgradeDomainObject(entry));
     }
   }
   const resolvers: unknown[] = [];
   for (const entry of rawResolvers) {
-    if (typeof entry !== 'string') {
+    if (typeof entry === 'string') {
+      const sep = entry.indexOf('+udp://');
+      const addr = sep >= 0 ? entry.slice(sep + '+udp://'.length).trim() : '';
+      const domain = sep >= 0 ? legacyDomain(entry.slice(0, sep)) : null;
+      if (!addr || !domain) continue;
+      addLegacyDomain(domain);
+      resolvers.push({ addrs: [`udp://${addr}`] });
+    } else if (isRaw(entry) && isLegacyResolver(entry)) {
+      const addr = legacyResolverAddr(entry);
+      if (addr) resolvers.push({ addrs: [addr] });
+    } else {
       resolvers.push(entry);
-      continue;
     }
-    const sep = entry.indexOf('+udp://');
-    const addr = sep >= 0 ? entry.slice(sep + '+udp://'.length).trim() : '';
-    const domain = sep >= 0 ? legacyDomain(entry.slice(0, sep)) : null;
-    if (!addr || !domain) continue;
-    addDomain(domain);
-    resolvers.push({ type: 'udp', settings: { addr } });
   }
   const next: Raw = { ...settings, domains };
   if (resolvers.length > 0) next.resolvers = resolvers;

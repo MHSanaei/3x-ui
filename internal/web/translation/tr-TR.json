@@ -694,7 +694,41 @@
         "bytesPerSecTip": "Eşik aşıldıktan sonra fallback trafiğine uygulanan hız sınırı (bayt/sn); böylece sondalar sunucunuzu hedefe ücretsiz bant genişliği olarak kullanamaz. 0 = sınır yok (bu yönü devre dışı bırakır).",
         "burstBytesPerSec": "Saniye Başına Patlama Baytı",
         "burstBytesPerSecTip": "Sabit hızın üzerindeki kısa patlamalar için pay (token-bucket boyutu). Saniye Başına Bayt değerinden düşükse ona eşitlenecek şekilde yükseltilir.",
-        "autoFill": "Otomatik Doldur"
+        "autoFill": "Otomatik Doldur",
+        "xdrive": {
+          "service": "Depolama hizmeti",
+          "serviceLocal": "Yerel klasör",
+          "serviceTemplate": "Özel şablon",
+          "remoteFolder": "Uzak klasör",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Gizli değerler",
+          "secretsDesc": "Şablonun {secret0}, {secret1}, … olarak okuduğu değerler",
+          "template": "Depolama şablonu",
+          "templateInvalid": "Bir JSON nesnesi olmalı",
+          "front": "Fronting adresi",
+          "frontDesc": "Depolama API'sine bağlanmak için isteğe bağlı ana makine veya IP (domain fronting).",
+          "frontPort": "Fronting portu",
+          "segmentBytes": "Segment boyutu (bayt)",
+          "flushInterval": "Gönderim aralığı (ms)",
+          "pollInterval": "Yoklama aralığı (ms)",
+          "maxPollInterval": "Maks. yoklama aralığı (ms)",
+          "eagerWindow": "Erken gönderim penceresi (ms)",
+          "holeTimeout": "Eksik segment zaman aşımı (ms)",
+          "sessionTtl": "Oturum TTL (s)",
+          "concurrency": "Eşzamanlılık"
+        },
+        "masque": {
+          "addressPool": "Adres havuzu",
+          "addressPoolDesc": "Tünel adresleri bu öneklerden atanır — en fazla bir IPv4 ve bir IPv6."
+        },
+        "tunDesc": "Bağdaştırıcı türü",
+        "tunDescTooltip": "Yalnızca Windows: yeni bir Wintun bağdaştırıcısının oluşturulduğu tünel türü. Boş bırakılırsa Wintun.",
+        "autoSystemDnsToGateway": "Sistem DNS'ini ağ geçidine yönlendir",
+        "autoSystemDnsToGatewayTooltip": "Yalnızca Linux: sistem sorguları Xray üzerinden gitsin diye systemd-resolved'ı TUN ağ geçidine yönlendirir. Ağ geçidi gerekir ve bu başarısız olursa TUN başlamaz.",
+        "autoSystemWfpBlockLeak": "Sızıntıları engelle (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Yalnızca Windows, Auto system routes ile: dns, DNS'i TUN içinde tutar (DNS sunucuları gerekir); misconfigtun, hiçbir rotanın TUN'a göndermediği IP sürümünü engeller."
       },
       "info": {
         "mode": "Mod",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "Fail2ban Windows'ta kullanılamadığından IP sınırı uygulanamaz.",
       "limitIpDisabled": "IP sınırı özelliği bu sunucuda devre dışı.",
       "password": "Şifre",
-      "passwordDesc": "Yalnızca Trojan ve Shadowsocks istemcileri tarafından kullanılır; VLESS, VMess, Hysteria ve WireGuard için yok sayılır.",
+      "passwordDesc": "Trojan, Shadowsocks, TUIC ve MASQUE istemcileri tarafından kullanılır; VLESS, VMess, Hysteria ve WireGuard için yok sayılır.",
       "subId": "Abonelik ID'si",
       "subIdDesc": "Bu istemcinin Telegram botu davet kodu olarak da kullanılır: bunu bota gönderen kişi bu istemciye bağlanır. Uzun ve rastgele tutun — kısa veya tahmin edilebilir bir kimlik başkası tarafından sahiplenilebilir.",
       "online": "Çevrimiçi",
@@ -1929,6 +1963,7 @@
         "serverNamePlaceholder": "sunucu adı",
         "verifyPeerName": "Peer Adını Doğrula",
         "pinnedSha256": "Sabitlenmiş SHA256",
+        "useSystemCA": "Sistem CA'sını kullan",
         "shortId": "Kısa Kimlik",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Keep Alive Aralığı",
@@ -1936,7 +1971,10 @@
         "interface": "Arabirim",
         "proxyProtocol": "Proxy Protocol",
         "tcpUserTimeoutMs": "TCP User Timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive bekleme süresi (saniye)"
+        "tcpKeepAliveIdleS": "TCP keep-alive bekleme süresi (saniye)",
+        "masqueWarpDesc": "Kayıtlı bir ECDSA P-256 anahtarıyla MASQUE üzerinden Cloudflare WARP'a bağlanır; host ve path varsayılan olarak Cloudflare uç noktasıdır.",
+        "masqueWarpPublicKey": "Uç nokta açık anahtarı",
+        "masqueWarpAddress": "Tünel adresleri"
       },
       "outbound": {
         "tag": "Etiket",
@@ -2197,7 +2235,9 @@
         "warpPlusData": "WARP+ Veri",
         "quota": "Kota",
         "usage": "Kullanım",
-        "addOutbound": "Giden Bağlantı Ekle"
+        "addOutbound": "Giden Bağlantı Ekle",
+        "masqueDesc": "MASQUE için ayrı bir WARP cihazı kaydeder; yukarıdaki WireGuard kaydı etkilenmez.",
+        "addMasqueOutbound": "MASQUE üzerinden WARP outbound ekle"
       },
       "dns": {
         "enable": "DNS'yi Etkinleştir",
@@ -2241,7 +2281,11 @@
         "clearAll": "Tümünü Sil",
         "clearAllTitle": "Tüm DNS sunucularını sil?",
         "clearAllConfirm": "Bu işlem tüm DNS sunucularını listeden kaldırır. Geri alınamaz.",
-        "dnsLeakWarning": "DNS; localhost, düz UDP/TCP, yerel mod DoH/DoQ, fallback sorguları veya EDNS client IP üzerinden sızabilir. Gizlilik önemliyse yönlendirilmiş DoH, hosts sabitlemeleri ve kapalı fallback kullanın."
+        "dnsLeakWarning": "DNS; localhost, düz UDP/TCP, yerel mod DoH/DoQ, fallback sorguları veya EDNS client IP üzerinden sızabilir. Gizlilik önemliyse yönlendirilmiş DoH, hosts sabitlemeleri ve kapalı fallback kullanın.",
+        "script": "Lua Betiği",
+        "scriptDesc": "HandleDNSQuery tanımlayan bir .lua dosyasının yolu; mutlak ya da Xray bin klasörüne göre göreli. Betik bundan sonra her sorguyu yanıtlar ve sunuculara yalnızca kendi koduyla ulaşır. Dosya yoksa veya geçersizse Xray başlamaz.",
+        "serverId": "Kimlik",
+        "serverIdDesc": "Bir Lua DNS betiğinin bu sunucuyu seçerken kullandığı ad"
       },
       "fakedns": {
         "add": "Sahte DNS Ekle",
@@ -2249,7 +2293,10 @@
         "poolSize": "Havuz Boyutu"
       },
       "defaultOutbound": "Varsayılan giden",
-      "defaultOutboundDesc": "Yönlendirme kuralıyla eşleşmeyen trafik bu gideni kullanır (listedeki ilk giden)."
+      "defaultOutboundDesc": "Yönlendirme kuralıyla eşleşmeyen trafik bu gideni kullanır (listedeki ilk giden).",
+      "routingScript": "Yönlendirme Betiği",
+      "routingScriptDesc": "HandleRoute tanımlayan bir .lua dosyasının yolu; mutlak ya da Xray bin klasörüne göre göreli. Betik bundan sonra her rotayı seçer ve Xray, panelin api kuralı dahil tüm yönlendirme kurallarını yok sayar: api gelen bağlantısını api giden bağlantısına yönlendirin, yoksa trafik istatistikleri ve canlı istemci değişiklikleri durur. Dosya yoksa veya geçersizse Xray başlamaz.",
+      "routingScriptActive": "{section} bölümünde bir yönlendirme betiği ayarlı, bu yüzden Xray bu kuralları yok sayar."
     },
     "hosts": {
       "addHost": "Host Ekle",

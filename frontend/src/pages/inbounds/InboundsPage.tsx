@@ -326,6 +326,7 @@ export default function InboundsPage() {
       switch (dbInbound.protocol) {
         case 'trojan':
         case 'shadowsocks':
+        case 'masque':
           return c.password === client.password && c.email === client.email;
         default:
           return c.id === client.id && c.email === client.email;
