@@ -2275,7 +2275,11 @@
         "clearAll": "Remover Todos",
         "clearAllTitle": "Remover todos os servidores DNS?",
         "clearAllConfirm": "Isso remove todos os servidores DNS da lista. Não pode ser desfeito.",
-        "dnsLeakWarning": "DNS pode vazar por localhost, UDP/TCP sem criptografia, DoH/DoQ em modo local, consultas de fallback ou EDNS client IP. Use DoH roteado, fixe resolvedores em hosts e desative fallback quando privacidade importar."
+        "dnsLeakWarning": "DNS pode vazar por localhost, UDP/TCP sem criptografia, DoH/DoQ em modo local, consultas de fallback ou EDNS client IP. Use DoH roteado, fixe resolvedores em hosts e desative fallback quando privacidade importar.",
+        "script": "Script Lua",
+        "scriptDesc": "Caminho para um arquivo .lua que define HandleDNSQuery, absoluto ou relativo à pasta bin do Xray. O script passa a responder a todas as consultas e só alcança os servidores pelo próprio código. O Xray não inicia se o arquivo estiver ausente ou for inválido.",
+        "serverId": "ID",
+        "serverIdDesc": "Nome com que um script DNS em Lua escolhe este servidor"
       },
       "fakedns": {
         "add": "Adicionar Fake DNS",
@@ -2283,7 +2287,10 @@
         "poolSize": "Tamanho do Pool"
       },
       "defaultOutbound": "Saída padrão",
-      "defaultOutboundDesc": "Tráfego sem regra de roteamento usa esta saída (a primeira da lista)."
+      "defaultOutboundDesc": "Tráfego sem regra de roteamento usa esta saída (a primeira da lista).",
+      "routingScript": "Script de roteamento",
+      "routingScriptDesc": "Caminho para um arquivo .lua que define HandleRoute, absoluto ou relativo à pasta bin do Xray. O script passa a escolher cada rota e o Xray ignora todas as regras de roteamento, inclusive a regra api do painel: envie o inbound api para o outbound api ou as estatísticas de tráfego e as alterações de clientes ao vivo param. O Xray não inicia se o arquivo estiver ausente ou for inválido.",
+      "routingScriptActive": "Há um script de roteamento definido em {section}, então o Xray ignora estas regras."
     },
     "hosts": {
       "addHost": "Adicionar Host",

@@ -2275,7 +2275,11 @@
         "clearAll": "すべて削除",
         "clearAllTitle": "すべての DNS サーバを削除しますか？",
         "clearAllConfirm": "リストからすべての DNS サーバが削除されます。この操作は元に戻せません。",
-        "dnsLeakWarning": "DNS は localhost、暗号化なしの UDP/TCP、ローカルモードの DoH/DoQ、フォールバック問い合わせ、EDNS client IP から漏れる可能性があります。プライバシー重視ではルーティングされた DoH、hosts 固定、フォールバック無効化を使ってください。"
+        "dnsLeakWarning": "DNS は localhost、暗号化なしの UDP/TCP、ローカルモードの DoH/DoQ、フォールバック問い合わせ、EDNS client IP から漏れる可能性があります。プライバシー重視ではルーティングされた DoH、hosts 固定、フォールバック無効化を使ってください。",
+        "script": "Lua スクリプト",
+        "scriptDesc": "HandleDNSQuery を定義した .lua ファイルのパス（絶対パス、または Xray の bin フォルダからの相対パス）。設定するとスクリプトがすべてのクエリに応答し、サーバーへはスクリプト自身のコードからのみ問い合わせます。ファイルが存在しないか不正な場合、Xray は起動しません。",
+        "serverId": "ID",
+        "serverIdDesc": "Lua DNS スクリプトがこのサーバーを選ぶときの名前"
       },
       "fakedns": {
         "add": "フェイクDNS追加",
@@ -2283,7 +2287,10 @@
         "poolSize": "プールサイズ"
       },
       "defaultOutbound": "デフォルトアウトバウンド",
-      "defaultOutboundDesc": "ルーティング規則に一致しないトラフィックはこのアウトバウンドを使います（一覧の先頭）。"
+      "defaultOutboundDesc": "ルーティング規則に一致しないトラフィックはこのアウトバウンドを使います（一覧の先頭）。",
+      "routingScript": "ルーティングスクリプト",
+      "routingScriptDesc": "HandleRoute を定義した .lua ファイルのパス（絶対パス、または Xray の bin フォルダからの相対パス）。設定するとスクリプトがすべての経路を選び、Xray はパネルの api ルールを含むすべてのルーティングルールを無視します。api インバウンドを api アウトバウンドへ送らないと、トラフィック統計とクライアント変更の即時反映が止まります。ファイルが存在しないか不正な場合、Xray は起動しません。",
+      "routingScriptActive": "{section} でルーティングスクリプトが設定されているため、Xray はこれらのルールを無視します。"
     },
     "hosts": {
       "addHost": "ホストを追加",

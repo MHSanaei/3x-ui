@@ -2275,7 +2275,11 @@
         "clearAll": "Hapus Semua",
         "clearAllTitle": "Hapus semua server DNS?",
         "clearAllConfirm": "Ini akan menghapus semua server DNS dari daftar. Tidak dapat dibatalkan.",
-        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting."
+        "dnsLeakWarning": "DNS dapat bocor lewat localhost, UDP/TCP polos, DoH/DoQ mode lokal, kueri fallback, atau EDNS client IP. Gunakan DoH yang dirutekan, pin resolver di hosts, dan nonaktifkan fallback saat privasi penting.",
+        "script": "Skrip Lua",
+        "scriptDesc": "Path ke file .lua yang mendefinisikan HandleDNSQuery, absolut atau relatif terhadap folder bin Xray. Skrip lalu menjawab setiap kueri dan hanya menjangkau server melalui kodenya sendiri. Xray tidak akan berjalan jika file tidak ada atau tidak valid.",
+        "serverId": "ID",
+        "serverIdDesc": "Nama yang dipakai skrip DNS Lua untuk memilih server ini"
       },
       "fakedns": {
         "add": "Tambahkan DNS Palsu",
@@ -2283,7 +2287,10 @@
         "poolSize": "Ukuran Kolam"
       },
       "defaultOutbound": "Outbound default",
-      "defaultOutboundDesc": "Lalu lintas tanpa aturan routing memakai outbound ini (yang pertama dalam daftar)."
+      "defaultOutboundDesc": "Lalu lintas tanpa aturan routing memakai outbound ini (yang pertama dalam daftar).",
+      "routingScript": "Skrip Routing",
+      "routingScriptDesc": "Path ke file .lua yang mendefinisikan HandleRoute, absolut atau relatif terhadap folder bin Xray. Skrip lalu memilih setiap rute dan Xray mengabaikan semua aturan routing, termasuk aturan api panel: arahkan inbound api ke outbound api atau statistik trafik dan perubahan klien langsung akan berhenti. Xray tidak akan berjalan jika file tidak ada atau tidak valid.",
+      "routingScriptActive": "Skrip routing diatur di {section}, jadi Xray mengabaikan aturan ini."
     },
     "hosts": {
       "addHost": "Tambah Host",

@@ -2393,7 +2393,11 @@
         "clearAll": "Delete All",
         "clearAllTitle": "Delete all DNS servers?",
         "clearAllConfirm": "This removes every DNS server from the list. This cannot be undone.",
-        "dnsLeakWarning": "DNS can leak through localhost, plain UDP/TCP, local-mode DoH/DoQ, fallback queries, or EDNS client IP. Use routed DoH, hosts pins, and disable fallback when privacy matters."
+        "dnsLeakWarning": "DNS can leak through localhost, plain UDP/TCP, local-mode DoH/DoQ, fallback queries, or EDNS client IP. Use routed DoH, hosts pins, and disable fallback when privacy matters.",
+        "script": "Lua Script",
+        "scriptDesc": "Path to a .lua file defining HandleDNSQuery, absolute or relative to the Xray bin folder. The script then answers every query and reaches the servers only through its own code. Xray will not start if the file is missing or invalid.",
+        "serverId": "ID",
+        "serverIdDesc": "The name a Lua DNS script uses to pick this server"
       },
       "fakedns": {
         "add": "Add Fake DNS",
@@ -2401,7 +2405,10 @@
         "poolSize": "Pool Size"
       },
       "defaultOutbound": "Default Outbound",
-      "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list)."
+      "defaultOutboundDesc": "Traffic that does not match any routing rule uses this outbound (Xray uses the first outbound in the list).",
+      "routingScript": "Routing Script",
+      "routingScriptDesc": "Path to a .lua file defining HandleRoute, absolute or relative to the Xray bin folder. The script then picks every route and Xray ignores all routing rules, the panel's api rule included: send the api inbound to the api outbound or traffic stats and live client changes stop. Xray will not start if the file is missing or invalid.",
+      "routingScriptActive": "A routing script is set under {section}, so Xray ignores these rules."
     },
     "sponsors": {
       "title": "Sponsors",

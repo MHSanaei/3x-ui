@@ -188,6 +188,13 @@ export default function DnsServerModal({
               <InputNumber min={1} max={65535} />
             </FormField>
           )}
+          <FormField
+            label={t('pages.xray.dns.serverId')}
+            tooltip={t('pages.xray.dns.serverIdDesc')}
+            name="id"
+          >
+            <Input />
+          </FormField>
           <FormField label={t('pages.xray.dns.tag')} name="tag">
             <Input />
           </FormField>

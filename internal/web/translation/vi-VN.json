@@ -2275,7 +2275,11 @@
         "clearAll": "Xóa tất cả",
         "clearAllTitle": "Xóa tất cả máy chủ DNS?",
         "clearAllConfirm": "Thao tác này sẽ xóa toàn bộ máy chủ DNS khỏi danh sách. Không thể hoàn tác.",
-        "dnsLeakWarning": "DNS có thể rò rỉ qua localhost, UDP/TCP không mã hóa, DoH/DoQ chế độ cục bộ, truy vấn fallback hoặc EDNS client IP. Hãy dùng DoH được định tuyến, ghim resolver trong hosts và tắt fallback khi cần riêng tư."
+        "dnsLeakWarning": "DNS có thể rò rỉ qua localhost, UDP/TCP không mã hóa, DoH/DoQ chế độ cục bộ, truy vấn fallback hoặc EDNS client IP. Hãy dùng DoH được định tuyến, ghim resolver trong hosts và tắt fallback khi cần riêng tư.",
+        "script": "Script Lua",
+        "scriptDesc": "Đường dẫn tới tệp .lua định nghĩa HandleDNSQuery, tuyệt đối hoặc tương đối với thư mục bin của Xray. Khi đó script trả lời mọi truy vấn và chỉ dùng các máy chủ qua mã của chính nó. Xray sẽ không khởi động nếu tệp không tồn tại hoặc không hợp lệ.",
+        "serverId": "ID",
+        "serverIdDesc": "Tên mà script DNS Lua dùng để chọn máy chủ này"
       },
       "fakedns": {
         "add": "Thêm DNS giả",
@@ -2283,7 +2287,10 @@
         "poolSize": "Kích thước bể bơi"
       },
       "defaultOutbound": "Outbound mặc định",
-      "defaultOutboundDesc": "Lưu lượng không khớp quy tắc định tuyến dùng outbound này (mục đầu danh sách)."
+      "defaultOutboundDesc": "Lưu lượng không khớp quy tắc định tuyến dùng outbound này (mục đầu danh sách).",
+      "routingScript": "Script định tuyến",
+      "routingScriptDesc": "Đường dẫn tới tệp .lua định nghĩa HandleRoute, tuyệt đối hoặc tương đối với thư mục bin của Xray. Khi đó script chọn mọi tuyến và Xray bỏ qua tất cả quy tắc định tuyến, kể cả quy tắc api của panel: hãy chuyển inbound api tới outbound api, nếu không thống kê lưu lượng và việc áp dụng thay đổi client trực tiếp sẽ dừng. Xray sẽ không khởi động nếu tệp không tồn tại hoặc không hợp lệ.",
+      "routingScriptActive": "Một script định tuyến đã được đặt trong {section}, nên Xray bỏ qua các quy tắc này."
     },
     "hosts": {
       "addHost": "Thêm Host",

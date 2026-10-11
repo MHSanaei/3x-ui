@@ -2275,7 +2275,11 @@
         "clearAll": "删除全部",
         "clearAllTitle": "删除所有 DNS 服务器？",
         "clearAllConfirm": "此操作将从列表中删除所有 DNS 服务器，且无法撤销。",
-        "dnsLeakWarning": "DNS 可能通过 localhost、明文 UDP/TCP、本地模式 DoH/DoQ、回退查询或 EDNS client IP 泄漏。重视隐私时请使用经路由的 DoH、在 hosts 中固定解析器，并禁用回退。"
+        "dnsLeakWarning": "DNS 可能通过 localhost、明文 UDP/TCP、本地模式 DoH/DoQ、回退查询或 EDNS client IP 泄漏。重视隐私时请使用经路由的 DoH、在 hosts 中固定解析器，并禁用回退。",
+        "script": "Lua 脚本",
+        "scriptDesc": "定义了 HandleDNSQuery 的 .lua 文件路径，可为绝对路径或相对于 Xray bin 目录的路径。设置后由脚本应答所有查询，只通过脚本自身的代码访问服务器。文件不存在或无效时 Xray 无法启动。",
+        "serverId": "ID",
+        "serverIdDesc": "Lua DNS 脚本用来选择此服务器的名称"
       },
       "fakedns": {
         "add": "添加假 DNS",
@@ -2283,7 +2287,10 @@
         "poolSize": "池大小"
       },
       "defaultOutbound": "默认出站",
-      "defaultOutboundDesc": "未匹配任何路由规则的流量走此出站（列表中的第一个出站）。"
+      "defaultOutboundDesc": "未匹配任何路由规则的流量走此出站（列表中的第一个出站）。",
+      "routingScript": "路由脚本",
+      "routingScriptDesc": "定义了 HandleRoute 的 .lua 文件路径，可为绝对路径或相对于 Xray bin 目录的路径。设置后由脚本选择所有路由，Xray 会忽略全部路由规则，包括面板的 api 规则：请把 api 入站路由到 api 出站，否则流量统计和客户端变更的实时生效都会停止。文件不存在或无效时 Xray 无法启动。",
+      "routingScriptActive": "已在“{section}”中设置路由脚本，因此 Xray 会忽略这些规则。"
     },
     "hosts": {
       "addHost": "添加主机",

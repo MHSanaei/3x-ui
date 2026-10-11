@@ -2275,7 +2275,11 @@
         "clearAll": "Tümünü Sil",
         "clearAllTitle": "Tüm DNS sunucularını sil?",
         "clearAllConfirm": "Bu işlem tüm DNS sunucularını listeden kaldırır. Geri alınamaz.",
-        "dnsLeakWarning": "DNS; localhost, düz UDP/TCP, yerel mod DoH/DoQ, fallback sorguları veya EDNS client IP üzerinden sızabilir. Gizlilik önemliyse yönlendirilmiş DoH, hosts sabitlemeleri ve kapalı fallback kullanın."
+        "dnsLeakWarning": "DNS; localhost, düz UDP/TCP, yerel mod DoH/DoQ, fallback sorguları veya EDNS client IP üzerinden sızabilir. Gizlilik önemliyse yönlendirilmiş DoH, hosts sabitlemeleri ve kapalı fallback kullanın.",
+        "script": "Lua Betiği",
+        "scriptDesc": "HandleDNSQuery tanımlayan bir .lua dosyasının yolu; mutlak ya da Xray bin klasörüne göre göreli. Betik bundan sonra her sorguyu yanıtlar ve sunuculara yalnızca kendi koduyla ulaşır. Dosya yoksa veya geçersizse Xray başlamaz.",
+        "serverId": "Kimlik",
+        "serverIdDesc": "Bir Lua DNS betiğinin bu sunucuyu seçerken kullandığı ad"
       },
       "fakedns": {
         "add": "Sahte DNS Ekle",
@@ -2283,7 +2287,10 @@
         "poolSize": "Havuz Boyutu"
       },
       "defaultOutbound": "Varsayılan giden",
-      "defaultOutboundDesc": "Yönlendirme kuralıyla eşleşmeyen trafik bu gideni kullanır (listedeki ilk giden)."
+      "defaultOutboundDesc": "Yönlendirme kuralıyla eşleşmeyen trafik bu gideni kullanır (listedeki ilk giden).",
+      "routingScript": "Yönlendirme Betiği",
+      "routingScriptDesc": "HandleRoute tanımlayan bir .lua dosyasının yolu; mutlak ya da Xray bin klasörüne göre göreli. Betik bundan sonra her rotayı seçer ve Xray, panelin api kuralı dahil tüm yönlendirme kurallarını yok sayar: api gelen bağlantısını api giden bağlantısına yönlendirin, yoksa trafik istatistikleri ve canlı istemci değişiklikleri durur. Dosya yoksa veya geçersizse Xray başlamaz.",
+      "routingScriptActive": "{section} bölümünde bir yönlendirme betiği ayarlı, bu yüzden Xray bu kuralları yok sayar."
     },
     "hosts": {
       "addHost": "Host Ekle",

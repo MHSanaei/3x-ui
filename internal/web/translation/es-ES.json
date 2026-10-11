@@ -2275,7 +2275,11 @@
         "clearAll": "Eliminar todos",
         "clearAllTitle": "¿Eliminar todos los servidores DNS?",
         "clearAllConfirm": "Esto eliminará todos los servidores DNS de la lista. No se puede deshacer.",
-        "dnsLeakWarning": "El DNS puede filtrarse por localhost, UDP/TCP sin cifrar, DoH/DoQ en modo local, consultas de respaldo o EDNS client IP. Usa DoH enrutado, fija los resolutores en hosts y desactiva el respaldo cuando la privacidad importe."
+        "dnsLeakWarning": "El DNS puede filtrarse por localhost, UDP/TCP sin cifrar, DoH/DoQ en modo local, consultas de respaldo o EDNS client IP. Usa DoH enrutado, fija los resolutores en hosts y desactiva el respaldo cuando la privacidad importe.",
+        "script": "Script Lua",
+        "scriptDesc": "Ruta a un archivo .lua que define HandleDNSQuery, absoluta o relativa a la carpeta bin de Xray. El script responde entonces a cada consulta y solo llega a los servidores a través de su propio código. Xray no arrancará si el archivo falta o no es válido.",
+        "serverId": "ID",
+        "serverIdDesc": "Nombre con el que un script DNS en Lua elige este servidor"
       },
       "fakedns": {
         "add": "Agregar DNS Falso",
@@ -2283,7 +2287,10 @@
         "poolSize": "Tamaño del grupo"
       },
       "defaultOutbound": "Salida predeterminada",
-      "defaultOutboundDesc": "El tráfico que no coincide con ninguna regla de enrutamiento usa esta salida (la primera de la lista)."
+      "defaultOutboundDesc": "El tráfico que no coincide con ninguna regla de enrutamiento usa esta salida (la primera de la lista).",
+      "routingScript": "Script de enrutamiento",
+      "routingScriptDesc": "Ruta a un archivo .lua que define HandleRoute, absoluta o relativa a la carpeta bin de Xray. El script elige entonces cada ruta y Xray ignora todas las reglas de enrutamiento, incluida la regla api del panel: envía el inbound api al outbound api o se detendrán las estadísticas de tráfico y los cambios de clientes en vivo. Xray no arrancará si el archivo falta o no es válido.",
+      "routingScriptActive": "Hay un script de enrutamiento definido en {section}, así que Xray ignora estas reglas."
     },
     "hosts": {
       "addHost": "Agregar host",
