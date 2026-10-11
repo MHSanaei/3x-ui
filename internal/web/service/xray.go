@@ -1337,6 +1337,9 @@ func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error
 // OverrideBalancer forces balancer tag onto target in the running core; an empty
 // target clears it. The panel keeps it across routing reloads until Xray restarts.
 func (s *XrayService) OverrideBalancer(tag, target string) error {
+	// Serialized with config applies, so the target is checked against the config the core runs.
+	lock.Lock()
+	defer lock.Unlock()
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
 		return errors.New("xray is not running")

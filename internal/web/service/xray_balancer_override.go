@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -13,14 +12,13 @@ import (
 
 var errOverrideTargetUnknown = errors.New("override target is not an outbound in the running config")
 
-// balancerOverrides keeps the overrides set through the panel, because every
-// routing reload rebuilds the core's balancers and drops them.
+// balancerOverrides keeps the panel's overrides across routing reloads, which drop
+// them. The package lock guards it, as it does every change to the running core.
 var balancerOverrides balancerOverrideSet
 
 // balancerOverrideSet belongs to one core process: a restart clears overrides,
 // so records made for an earlier process are never re-applied.
 type balancerOverrideSet struct {
-	mu      sync.Mutex
 	process *xray.Process
 	targets map[string]string
 }
@@ -28,8 +26,6 @@ type balancerOverrideSet struct {
 // set forces balancer tag to target in the running core and records it; an
 // empty target clears the override.
 func (s *balancerOverrideSet) set(process *xray.Process, api *xray.XrayAPI, tag, target string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	coreTarget := ""
 	if target != "" {
 		resolved, err := resolveOverrideTarget(process.GetConfig(), target)
@@ -56,8 +52,6 @@ func (s *balancerOverrideSet) set(process *xray.Process, api *xray.XrayAPI, tag,
 // reapply restores the recorded overrides once cfg is live, dropping any whose
 // balancer or target cfg no longer has.
 func (s *balancerOverrideSet) reapply(process *xray.Process, api *xray.XrayAPI, cfg *xray.Config) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.process != process {
 		return
 	}

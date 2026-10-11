@@ -82,6 +82,13 @@ func freeLoopbackPort(t *testing.T) int {
 // current process, the way RestartXray does.
 func startBalancerTestXray(t *testing.T, spec balancerTestConfig) (*xray.Process, int) {
 	t.Helper()
+	return startBalancerTestXrayOnPort(t, spec, freeLoopbackPort(t))
+}
+
+// startBalancerTestXrayOnPort keeps the API port, as a panel restart does,
+// so clients still holding the old core's port reach the new one.
+func startBalancerTestXrayOnPort(t *testing.T, spec balancerTestConfig, apiPort int) (*xray.Process, int) {
+	t.Helper()
 	bin := os.Getenv("XRAY_E2E_BINARY")
 	if bin == "" {
 		t.Skip("set XRAY_E2E_BINARY to an xray built from go.mod's xray-core (go build github.com/xtls/xray-core/main)")
@@ -92,7 +99,6 @@ func startBalancerTestXray(t *testing.T, spec balancerTestConfig) (*xray.Process
 	}
 	t.Setenv("XUI_BIN_FOLDER", binDir)
 
-	apiPort := freeLoopbackPort(t)
 	process := xray.NewTestProcess(spec.build(t, apiPort), filepath.Join(binDir, "config.json"))
 	if err := process.Start(); err != nil {
 		t.Fatalf("start xray: %v", err)
@@ -135,6 +141,39 @@ func liveBalancerOverride(t *testing.T, process *xray.Process, tag string) strin
 		t.Fatalf("GetBalancerInfo(%s): %v", tag, err)
 	}
 	return info.Override
+}
+
+// routeFor is the outbound the running core picks for a TCP connection to port.
+func routeFor(process *xray.Process, port int) (string, error) {
+	api := xray.XrayAPI{}
+	if err := api.Init(process.GetAPIPort()); err != nil {
+		return "", err
+	}
+	defer api.Close()
+	result, err := api.TestRoute(xray.RouteTestRequest{IP: "203.0.113.1", Port: port})
+	if err != nil {
+		return "", err
+	}
+	return result.OutboundTag, nil
+}
+
+func liveRoute(t *testing.T, process *xray.Process, port int) string {
+	t.Helper()
+	route, err := routeFor(process, port)
+	if err != nil {
+		t.Fatalf("TestRoute(port %d): %v", port, err)
+	}
+	return route
+}
+
+// saveDuringTest hot-applies cfg the way RestartXray does, holding the package lock.
+func saveDuringTest(t *testing.T, process *xray.Process, cfg *xray.Config) {
+	t.Helper()
+	lock.Lock()
+	defer lock.Unlock()
+	if !(&XrayService{}).tryHotApply(process, cfg) {
+		t.Fatal("tryHotApply = false, want the change applied live")
+	}
 }
 
 // Every routing save is hot-applied with AddRule(shouldAppend=false), which
@@ -199,6 +238,158 @@ func TestBalancerOverrideSurvivesNodeOutboundBridge(t *testing.T) {
 	}
 }
 
+// A node probe can run for seconds; an override the operator sets meanwhile,
+// onto an outbound saved meanwhile, must outlive the bridge's teardown.
+func TestBalancerOverrideSetDuringNodeBridgeSurvivesTeardown(t *testing.T) {
+	process, apiPort := startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
+	withProxyC := balancerTestConfig{outbounds: []string{"direct", "blocked", "proxy-a", "proxy-b", "proxy-c"}}.build(t, apiPort)
+
+	(&NodeService{}).withOutboundBridge(1, "direct", func(proxyURL string) {
+		if proxyURL == "" {
+			t.Fatal("bridge was not built, so the teardown under test never runs")
+		}
+		saveDuringTest(t, process, withProxyC)
+		if err := (&XrayService{}).OverrideBalancer("b1", "proxy-c"); err != nil {
+			t.Fatalf("OverrideBalancer: %v", err)
+		}
+	})
+
+	if got := liveBalancerOverride(t, process, "b1"); got != "proxy-c" {
+		t.Fatalf("override after the node bridge was torn down = %q, want proxy-c", got)
+	}
+}
+
+// The teardown used to restore the routing captured before the probe, silently
+// reverting a rule change saved while the probe ran.
+func TestNodeBridgeTeardownKeepsRoutingSavedDuringProbe(t *testing.T) {
+	process, apiPort := startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
+	withPort8888Rule := balancerTestConfig{outbounds: allBalancerTestOutbounds, extraRule: true}.build(t, apiPort)
+
+	(&NodeService{}).withOutboundBridge(1, "direct", func(proxyURL string) {
+		if proxyURL == "" {
+			t.Fatal("bridge was not built, so the teardown under test never runs")
+		}
+		saveDuringTest(t, process, withPort8888Rule)
+	})
+
+	if got := liveRoute(t, process, 8888); got != "blocked" {
+		t.Fatalf("route for port 8888 after the node bridge was torn down = %q, want blocked", got)
+	}
+}
+
+// Mid-apply, the core already runs the saved rules but its config snapshot is
+// stale; a bridge opened then ran every connection on the stale rules.
+func TestNodeBridgeOpenedDuringConfigApplyRoutesByTheAppliedConfig(t *testing.T) {
+	process, apiPort := startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
+	withPort8888Rule := balancerTestConfig{outbounds: allBalancerTestOutbounds, extraRule: true}.build(t, apiPort)
+	api := xray.XrayAPI{}
+	if err := api.Init(apiPort); err != nil {
+		t.Fatal(err)
+	}
+	defer api.Close()
+
+	type probeView struct {
+		proxyURL, route string
+		err             error
+	}
+	seen, torndown := make(chan probeView, 1), make(chan struct{})
+	lock.Lock()
+	if err := api.ApplyRoutingConfig(withPort8888Rule.RouterConfig); err != nil {
+		lock.Unlock()
+		t.Fatalf("ApplyRoutingConfig: %v", err)
+	}
+	go func() {
+		defer close(torndown)
+		(&NodeService{}).withOutboundBridge(1, "direct", func(proxyURL string) {
+			route, err := routeFor(process, 8888)
+			seen <- probeView{proxyURL, route, err}
+		})
+	}()
+	time.Sleep(300 * time.Millisecond) // room for an unserialized bridge to open mid-apply
+	process.SetConfig(withPort8888Rule)
+	lock.Unlock()
+	view := <-seen
+	<-torndown
+
+	if view.proxyURL == "" {
+		t.Fatal("bridge was not built, so the routing under test never ran")
+	}
+	if view.err != nil {
+		t.Fatalf("TestRoute while the bridge was up: %v", view.err)
+	}
+	if view.route != "blocked" {
+		t.Fatalf("route for port 8888 while the node bridge was up = %q, want blocked", view.route)
+	}
+}
+
+// Mid-apply, the core already runs the saved rules but its config snapshot is
+// stale; a teardown landing then restored the stale rules over the save.
+func TestNodeBridgeTeardownDuringConfigApplyRestoresTheAppliedRouting(t *testing.T) {
+	process, apiPort := startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
+	withPort8888Rule := balancerTestConfig{outbounds: allBalancerTestOutbounds, extraRule: true}.build(t, apiPort)
+	api := xray.XrayAPI{}
+	if err := api.Init(apiPort); err != nil {
+		t.Fatal(err)
+	}
+	defer api.Close()
+
+	probing, finishProbe, torndown := make(chan string), make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(torndown)
+		(&NodeService{}).withOutboundBridge(1, "direct", func(proxyURL string) {
+			probing <- proxyURL
+			<-finishProbe
+		})
+	}()
+	if proxyURL := <-probing; proxyURL == "" {
+		close(finishProbe)
+		t.Fatal("bridge was not built, so the teardown under test never runs")
+	}
+
+	lock.Lock()
+	if err := api.ApplyRoutingConfig(withPort8888Rule.RouterConfig); err != nil {
+		lock.Unlock()
+		close(finishProbe)
+		t.Fatalf("ApplyRoutingConfig: %v", err)
+	}
+	close(finishProbe)
+	time.Sleep(300 * time.Millisecond) // room for an unserialized teardown to land mid-apply
+	process.SetConfig(withPort8888Rule)
+	lock.Unlock()
+	<-torndown
+
+	if got := liveRoute(t, process, 8888); got != "blocked" {
+		t.Fatalf("route for port 8888 after the node bridge was torn down = %q, want blocked", got)
+	}
+}
+
+// A core restarted during the probe never had the bridge; the teardown must not
+// push the old core's routing or overrides into it through the shared API port.
+func TestNodeBridgeTeardownLeavesRestartedCoreAlone(t *testing.T) {
+	first, apiPort := startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
+	if err := (&XrayService{}).OverrideBalancer("b1", "proxy-b"); err != nil {
+		t.Fatalf("OverrideBalancer: %v", err)
+	}
+
+	var restarted *xray.Process
+	(&NodeService{}).withOutboundBridge(1, "direct", func(proxyURL string) {
+		if proxyURL == "" {
+			t.Fatal("bridge was not built, so the teardown under test never runs")
+		}
+		lock.Lock()
+		defer lock.Unlock()
+		_ = first.Stop()
+		restarted, _ = startBalancerTestXrayOnPort(t, balancerTestConfig{outbounds: allBalancerTestOutbounds, extraRule: true}, apiPort)
+	})
+
+	if got := liveRoute(t, restarted, 8888); got != "blocked" {
+		t.Errorf("route for port 8888 on the restarted core = %q, want blocked from its own config", got)
+	}
+	if got := liveBalancerOverride(t, restarted, "b1"); got != "" {
+		t.Errorf("override on the restarted core = %q, want none", got)
+	}
+}
+
 // The core accepts any string as a target and then closes every connection the
 // balancer routes, so the panel must refuse a target the running config lacks.
 func TestOverrideBalancerRejectsUnknownTarget(t *testing.T) {
@@ -210,6 +401,36 @@ func TestOverrideBalancerRejectsUnknownTarget(t *testing.T) {
 	}
 	if got := liveBalancerOverride(t, process, "b1"); got != "" {
 		t.Fatalf("core override after a refused target = %q, want none", got)
+	}
+}
+
+// Mid-apply, the core has already dropped an outbound its config snapshot still
+// lists; an override landing then pinned the balancer to that missing tag.
+func TestOverrideBalancerDuringConfigApplyChecksTheAppliedConfig(t *testing.T) {
+	process, apiPort := startBalancerTestXray(t, balancerTestConfig{outbounds: allBalancerTestOutbounds})
+	withoutProxyB := balancerTestConfig{outbounds: []string{"direct", "blocked", "proxy-a"}}.build(t, apiPort)
+	api := xray.XrayAPI{}
+	if err := api.Init(apiPort); err != nil {
+		t.Fatal(err)
+	}
+	defer api.Close()
+
+	lock.Lock()
+	if err := api.DelOutbound("proxy-b"); err != nil {
+		lock.Unlock()
+		t.Fatalf("DelOutbound: %v", err)
+	}
+	result := make(chan error, 1)
+	go func() { result <- (&XrayService{}).OverrideBalancer("b1", "proxy-b") }()
+	time.Sleep(300 * time.Millisecond) // room for an unserialized override to land mid-apply
+	process.SetConfig(withoutProxyB)
+	lock.Unlock()
+
+	if err := <-result; !errors.Is(err, errOverrideTargetUnknown) {
+		t.Errorf("OverrideBalancer(removed outbound) error = %v, want errOverrideTargetUnknown", err)
+	}
+	if got := liveBalancerOverride(t, process, "b1"); got != "" {
+		t.Errorf("core override = %q, want none: proxy-b is gone from the core", got)
 	}
 }
 
