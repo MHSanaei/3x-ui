@@ -26,12 +26,11 @@ func TestInboundCanEnableTlsFlow(t *testing.T) {
 		{"vmess tcp tls", string(model.VMESS), `{"network":"tcp","security":"tls"}`, "", false},
 		{"empty stream", string(model.VLESS), "", "", false},
 
-		// vlessenc is gated to XHTTP only. TCP without tls/reality is NOT
-		// Vision-capable even with vlessenc set — the combination only works on
-		// XHTTP in practice.
-		{"vless tcp vlessenc not capable", string(model.VLESS), `{"network":"tcp","security":"none"}`, `{"decryption":"mlkem768x25519plus.native.600s.mMFxPe7lz5xoq2qBk22cQYefu5fpc_2dGR8lMOKem0E","encryption":"mlkem768x25519plus.native.0rtt.hT4AY_tPWY9NVuKR3BIXxXq6zx9DqN2X86QPYW09XEM"}`, false},
-		// ws is a framed transport — vlessenc never enables Vision there.
-		{"vless ws vlessenc still off", string(model.VLESS), `{"network":"ws","security":"none"}`, `{"encryption":"` + vlessEncValue + `"}`, false},
+		// xray-core runs Vision inside VLESS encryption on any transport (encryption.CommonConn).
+		{"vless raw vlessenc", string(model.VLESS), `{"network":"tcp","security":"none"}`, `{"decryption":"mlkem768x25519plus.native.600s.mMFxPe7lz5xoq2qBk22cQYefu5fpc_2dGR8lMOKem0E","encryption":"mlkem768x25519plus.native.0rtt.hT4AY_tPWY9NVuKR3BIXxXq6zx9DqN2X86QPYW09XEM"}`, true},
+		{"vless ws vlessenc", string(model.VLESS), `{"network":"ws","security":"none"}`, `{"encryption":"` + vlessEncValue + `"}`, true},
+		{"vless xdrive vlessenc", string(model.VLESS), `{"network":"xdrive","security":"none"}`, `{"decryption":"` + vlessEncValue + `"}`, true},
+		{"vless xdrive no encryption", string(model.VLESS), `{"network":"xdrive","security":"none"}`, `{"decryption":"none"}`, false},
 
 		// XHTTP + VLESS encryption (the #5157 case).
 		{"vless xhttp vlessenc", string(model.VLESS), `{"network":"xhttp","security":"none"}`, `{"encryption":"` + vlessEncValue + `"}`, true},

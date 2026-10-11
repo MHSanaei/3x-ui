@@ -185,7 +185,7 @@ mKCP 和 Hysteria 不使用单独的 TLS/REALITY 层——mKCP 以明文运行�
 `xtls-rprx-vision` 流控既快速又能抵抗 DPI。在以下任一情况下，它都可用于 **VLESS**：
 
 - 传输方式为裸 **TCP**，安全层为 **TLS** 或 **REALITY**（经典的 XTLS-Vision），或者
-- 传输方式为 **XHTTP** 且启用了 VLESS 加密（见下文）。
+- 启用了 VLESS 加密，任意传输方式均可（见下文）。
 
 请在 VLESS **客户端**上设置流控，而不是在入站上。在 TCP 上使用经典 Vision 时，一旦某个
 客户端使用该流控，面板还可以提供一个 **Vision seed**。
@@ -193,7 +193,7 @@ mKCP 和 Hysteria 不使用单独的 TLS/REALITY 层——mKCP 以明文运行�
 ## VLESS 加密（ML-KEM）
 
 VLESS 支持后量子**加密**（ML-KEM / `mlkem768x25519`），它存储在入站的 `decryption`
-（服务器）以及客户端的 `encryption`（用于生成链接）中。启用后，它会解锁在 XHTTP
+（服务器）以及客户端的 `encryption`（用于生成链接）中。启用后，它会解锁任意传输方式
 之上的 Vision 流控。请从面板的 VLESS 设置中生成密钥。
 
 ## Shadowsocks 加密方式

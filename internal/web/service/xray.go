@@ -208,6 +208,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		}
 		settings := map[string]any{}
 		_ = json.Unmarshal([]byte(inbound.Settings), &settings)
+		flowAllowed := !inbound.DisableFlow &&
+			inboundCanEnableTlsFlow(string(inbound.Protocol), inbound.StreamSettings, inbound.Settings)
 		var wireguardClientsByEmail map[string]model.Client
 		if inbound.Protocol == model.WireGuard {
 			inboundClients, _ := ParseInboundSettingsClients(inbound.Settings)
@@ -245,7 +247,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if flow == "xtls-rprx-vision-udp443" {
 				flow = "xtls-rprx-vision"
 			}
-			if inbound.DisableFlow {
+			if !flowAllowed {
 				flow = ""
 			}
 			entry := map[string]any{"email": c.Email}

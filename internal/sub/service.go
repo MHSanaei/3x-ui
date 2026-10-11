@@ -1193,21 +1193,13 @@ func vlessEncryptionEnabled(settings map[string]any) bool {
 	return false
 }
 
-// vlessFlowAllowed reports whether a client's XTLS Vision flow belongs in
-// generated links/configs. Mirrors inboundCanEnableTlsFlow in
-// internal/web/service: Vision runs on TCP with tls/reality (classic), and on
-// XHTTP whenever VLESS encryption (vlessenc / ML-KEM) is enabled — there the
-// VLESS-level encryption stands in for the transport TLS that Vision relies
-// on, regardless of the stream security layer (so XHTTP+REALITY+vlessenc
-// keeps its flow too).
+// vlessFlowAllowed mirrors inboundCanEnableTlsFlow in internal/web/service: Vision runs over
+// TLS/REALITY on raw TCP, or inside VLESS encryption on any transport.
 func vlessFlowAllowed(network, security string, settings map[string]any) bool {
-	switch network {
-	case "tcp":
-		return security == "tls" || security == "reality"
-	case "xhttp":
-		return vlessEncryptionEnabled(settings)
+	if network == "tcp" && (security == "tls" || security == "reality") {
+		return true
 	}
-	return false
+	return vlessEncryptionEnabled(settings)
 }
 
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
