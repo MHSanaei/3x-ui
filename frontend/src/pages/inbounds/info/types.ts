@@ -36,7 +36,6 @@ export interface InboundInfo {
   isHttpupgrade: boolean;
   isXHTTP: boolean;
   isGrpc: boolean;
-  isSSMultiUser: boolean;
   isSS2022: boolean;
   isVlessTlsFlow: boolean;
   host: string | null;
