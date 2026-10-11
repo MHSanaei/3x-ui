@@ -1387,11 +1387,8 @@ export function preferPublicHost(browserHost: string, publicHost: string): strin
   return publicHost && isLoopbackHost(browserHost) ? publicHost : browserHost;
 }
 
-// Returns the client array for protocols that have one. SS returns its
-// clients only in 2022-blake3 multi-user mode (matches the legacy
-// `this.clients` getter, which used isSSMultiUser to gate). Returns null
-// for SS single-user, http, mixed, tunnel, wireguard, hysteria2-without-
-// clients, and any protocol without a clients array.
+// Returns the client array for protocols that have one; null for http, mixed,
+// tunnel, wireguard, hysteria2-without-clients, and any protocol without one.
 type ClientShape = {
   id?: string;
   uuid?: string;

@@ -8,7 +8,7 @@ import {
   genWireguardLinks,
   getInboundClients,
 } from '@/lib/xray/inbound-link';
-import { canEnableTlsFlow, isSS2022, isSSMultiUser } from '@/lib/xray/protocol-capabilities';
+import { canEnableTlsFlow, isSS2022 } from '@/lib/xray/protocol-capabilities';
 
 const FALLBACK_HOST = 'panel.example.test';
 
@@ -171,24 +171,6 @@ describe('inboundFromDb', () => {
 });
 
 describe('protocol-capability helpers with raw coerced shapes', () => {
-  it('isSSMultiUser returns true for legacy SS methods', () => {
-    expect(isSSMultiUser({ protocol: 'shadowsocks', settings: { method: 'aes-256-gcm' } })).toBe(
-      true,
-    );
-    expect(
-      isSSMultiUser({ protocol: 'shadowsocks', settings: { method: '2022-blake3-aes-128-gcm' } }),
-    ).toBe(true);
-  });
-
-  it('isSSMultiUser returns false for single-user blake3-chacha20 method', () => {
-    expect(
-      isSSMultiUser({
-        protocol: 'shadowsocks',
-        settings: { method: '2022-blake3-chacha20-poly1305' },
-      }),
-    ).toBe(false);
-  });
-
   it('isSS2022 detects 2022-blake3 family', () => {
     expect(
       isSS2022({ protocol: 'shadowsocks', settings: { method: '2022-blake3-aes-128-gcm' } }),
