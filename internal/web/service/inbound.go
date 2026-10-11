@@ -656,6 +656,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Hysteria:    true,
 		model.WireGuard:   true,
 		model.Tunnel:      true,
+		model.MASQUE:      true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {
@@ -666,8 +667,8 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
 }
 
-// canonicalizeLegacyXdnsMasks stores an xdns mask posted in the pre-26.9.30 string
-// lists in the object shape the core parses, as GetXrayConfig would heal it anyway.
+// canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
+// the names/addrs lists the core reads, as GetXrayConfig would heal it anyway.
 func canonicalizeLegacyXdnsMasks(streamSettings string) string {
 	if streamSettings == "" {
 		return streamSettings
@@ -1241,7 +1242,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Secure client ID
 	for _, client := range clients {
 		switch inbound.Protocol {
-		case "trojan":
+		case "trojan", "masque":
 			if client.Password == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
@@ -1765,6 +1766,10 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 		switch inbound.Protocol {
 		case model.Hysteria:
 			if client.Auth == "" {
+				return common.NewError("empty client ID")
+			}
+		case model.MASQUE:
+			if client.Password == "" {
 				return common.NewError("empty client ID")
 			}
 		case model.TUIC:

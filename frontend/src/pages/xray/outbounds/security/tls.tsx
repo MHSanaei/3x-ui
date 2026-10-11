@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Input, Select } from 'antd';
+import { Input, Select, Switch } from 'antd';
 
 import { FormField } from '@/components/form/rhf';
 
@@ -36,6 +36,13 @@ export default function TlsForm() {
         name={['streamSettings', 'tlsSettings', 'pinnedPeerCertSha256']}
       >
         <Input placeholder="base64 SHA256" />
+      </FormField>
+      <FormField
+        label={t('pages.xray.outboundForm.useSystemCA')}
+        name={['streamSettings', 'tlsSettings', 'useSystemCA']}
+        valueProp="checked"
+      >
+        <Switch />
       </FormField>
     </>
   );

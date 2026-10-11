@@ -344,7 +344,8 @@ export function useSecurityActions({
     delete cleaned.tlsSettings;
     delete cleaned.realitySettings;
     if (next === 'tls') {
-      cleaned.tlsSettings = createTlsSettingsWithDefaultCert();
+      const network = (current.network as string | undefined) ?? '';
+      cleaned.tlsSettings = createTlsSettingsWithDefaultCert(network);
     }
     if (next === 'reality') {
       const reality = RealityStreamSettingsSchema.parse({}) as Record<string, unknown>;

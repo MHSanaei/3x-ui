@@ -1,0 +1,70 @@
+{
+  "id": 31,
+  "up": 0,
+  "down": 0,
+  "total": 0,
+  "remark": "ivy-masque",
+  "enable": true,
+  "expiryTime": 0,
+  "listen": "",
+  "port": 8443,
+  "tag": "inbound-masque",
+  "sniffing": {
+    "enabled": true,
+    "destOverride": ["http", "tls", "quic", "fakedns"],
+    "metadataOnly": false,
+    "routeOnly": false,
+    "ipsExcluded": [],
+    "domainsExcluded": []
+  },
+  "protocol": "masque",
+  "settings": {
+    "clients": [
+      {
+        "password": "masque-pass-ivy",
+        "email": "ivy@example.test",
+        "limitIp": 0,
+        "totalGB": 0,
+        "expiryTime": 0,
+        "enable": true,
+        "tgId": 0,
+        "subId": "masque-001",
+        "comment": "",
+        "reset": 0
+      }
+    ],
+    "address": ["10.14.0.1/24", "fd14::1/64"],
+    "mtu": 1400
+  },
+  "streamSettings": {
+    "network": "masque",
+    "masqueSettings": {
+      "path": "/.well-known/masque/ip/*/*/"
+    },
+    "security": "tls",
+    "tlsSettings": {
+      "serverName": "masque.example.test",
+      "minVersion": "1.2",
+      "maxVersion": "1.3",
+      "cipherSuites": "",
+      "rejectUnknownSni": false,
+      "disableSystemRoot": false,
+      "enableSessionResumption": false,
+      "certificates": [
+        {
+          "certificateFile": "/etc/ssl/certs/masque.crt",
+          "keyFile": "/etc/ssl/private/masque.key",
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+          "buildChain": false
+        }
+      ],
+      "alpn": ["h3", "h2"],
+      "echServerKeys": "",
+      "settings": {
+        "fingerprint": "chrome",
+        "echConfigList": ""
+      }
+    }
+  }
+}

@@ -84,6 +84,95 @@ exports[`InboundSchema (full) fixtures > parses hysteria-tls byte-stably 1`] = `
 }
 `;
 
+exports[`InboundSchema (full) fixtures > parses masque-tls byte-stably 1`] = `
+{
+  "down": 0,
+  "enable": true,
+  "expiryTime": 0,
+  "id": 31,
+  "listen": "",
+  "port": 8443,
+  "protocol": "masque",
+  "remark": "ivy-masque",
+  "settings": {
+    "address": [
+      "10.14.0.1/24",
+      "fd14::1/64",
+    ],
+    "clients": [
+      {
+        "comment": "",
+        "email": "ivy@example.test",
+        "enable": true,
+        "expiryTime": 0,
+        "limitIp": 0,
+        "password": "masque-pass-ivy",
+        "reset": 0,
+        "subId": "masque-001",
+        "tgId": 0,
+        "totalGB": 0,
+      },
+    ],
+    "mtu": 1400,
+  },
+  "shareAddr": "",
+  "shareAddrStrategy": "node",
+  "sniffing": {
+    "destOverride": [
+      "http",
+      "tls",
+      "quic",
+      "fakedns",
+    ],
+    "domainsExcluded": [],
+    "enabled": true,
+    "ipsExcluded": [],
+    "metadataOnly": false,
+    "routeOnly": false,
+  },
+  "streamSettings": {
+    "masqueSettings": {
+      "path": "/.well-known/masque/ip/*/*/",
+    },
+    "network": "masque",
+    "security": "tls",
+    "tlsSettings": {
+      "alpn": [
+        "h3",
+        "h2",
+      ],
+      "certificates": [
+        {
+          "buildChain": false,
+          "certificateFile": "/etc/ssl/certs/masque.crt",
+          "keyFile": "/etc/ssl/private/masque.key",
+          "ocspStapling": 0,
+          "oneTimeLoading": false,
+          "usage": "encipherment",
+        },
+      ],
+      "cipherSuites": "",
+      "disableSystemRoot": false,
+      "echServerKeys": "",
+      "enableSessionResumption": false,
+      "maxVersion": "1.3",
+      "minVersion": "1.2",
+      "rejectUnknownSni": false,
+      "serverName": "masque.example.test",
+      "settings": {
+        "echConfigList": "",
+        "fingerprint": "chrome",
+        "pinnedPeerCertSha256": [],
+        "verifyPeerCertByName": "",
+      },
+    },
+  },
+  "tag": "inbound-masque",
+  "total": 0,
+  "up": 0,
+}
+`;
+
 exports[`InboundSchema (full) fixtures > parses shadowsocks-tcp-2022 byte-stably 1`] = `
 {
   "down": 0,

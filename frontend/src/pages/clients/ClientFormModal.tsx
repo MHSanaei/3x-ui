@@ -65,6 +65,7 @@ const MULTI_CLIENT_PROTOCOLS = new Set([
   'mtproto',
   'amneziawg',
   'tuic',
+  'masque',
 ]);
 
 const CLIENT_FORM_MODAL_Z_INDEX = 1000;

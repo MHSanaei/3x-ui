@@ -31,7 +31,8 @@ export function outboundAddresses(o: OutboundRow): string[] {
       return serverObj ? serverObj.map((s) => `${s.address}:${s.port}`) : [];
     }
     case isOutboundProtocol(o, Protocols.VLESS):
-    case isOutboundProtocol(o, Protocols.Hysteria): {
+    case isOutboundProtocol(o, Protocols.Hysteria):
+    case isOutboundProtocol(o, Protocols.Masque): {
       // A vless row carries either shape, and the probe reads both.
       const vnext = settings?.vnext as Array<{ address?: string; port?: number }> | undefined;
       const addr = vnext?.[0]?.address || (settings?.address as string | undefined);

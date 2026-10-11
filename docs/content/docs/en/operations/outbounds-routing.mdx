@@ -151,6 +151,20 @@ put specific rules above general ones.
 }
 ```
 
+### Lua scripts
+
+Xray 26.10.10 can hand routing and DNS to Lua. **Basics → Routing Script** takes the
+path of a `.lua` file that defines `HandleRoute` (absolute, or relative to the Xray
+`bin` folder); **DNS → Lua Script** takes one that defines `HandleDNSQuery`, and a
+DNS server's **ID** is the name such a script picks it by.
+
+<Callout type="warn">
+  A routing script replaces **every** routing rule, the panel's own `api` rule
+  included. Send the `api` inbound to the `api` outbound in your script, or traffic
+  statistics and live client changes stop. Xray does not start if the file is missing
+  or fails to load.
+</Callout>
+
 ## Balancers
 
 A **balancer** groups outbounds by a **selector** (tag prefixes, including the

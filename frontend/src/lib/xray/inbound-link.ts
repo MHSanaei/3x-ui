@@ -1449,6 +1449,11 @@ export interface GenLinkInput {
   externalProxy?: ExternalProxyEntry | null;
 }
 
+// XDRIVE has no link format; a link carrying its storage secrets would leak them.
+function hasNoLinkFormat(inbound: Inbound): boolean {
+  return inbound.streamSettings?.network === 'xdrive';
+}
+
 // Per-protocol dispatcher matching the legacy `genLink` switch. Returns
 // '' for protocols that don't have client-based share links (wireguard
 // goes through genWireguardLinks/Configs separately, http/mixed/tunnel
@@ -1463,6 +1468,7 @@ export function genLink(input: GenLinkInput): string {
     client,
     externalProxy = null,
   } = input;
+  if (hasNoLinkFormat(inbound)) return '';
   switch (inbound.protocol) {
     case 'vmess':
       return genVmessLink({
@@ -1603,6 +1609,7 @@ export interface GenInboundLinksInput {
 // other clientless protocols (http, mixed, tunnel).
 export function genInboundLinks(input: GenInboundLinksInput): string {
   const { inbound, remark = '', hostOverride = '', fallbackHostname } = input;
+  if (hasNoLinkFormat(inbound)) return '';
   const addr = resolveAddr(inbound, hostOverride, fallbackHostname);
   const clients = getInboundClients(inbound);
   if (clients) {

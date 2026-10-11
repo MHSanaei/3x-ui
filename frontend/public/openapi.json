@@ -3115,7 +3115,8 @@
               "tun",
               "mtproto",
               "amneziawg",
-              "tuic"
+              "tuic",
+              "masque"
             ],
             "example": "vless",
             "type": "string"
@@ -13649,7 +13650,7 @@
             "name": "action",
             "in": "path",
             "required": true,
-            "description": "data — return Warp stats. del — delete Warp data. config — return current config. reg — register (sends keys). changeIp — rotate the endpoint. license — set a Warp+ key. interval — set automatic rotation in hours.",
+            "description": "data — return Warp stats. del — delete Warp data. config — return current config. reg — register (sends keys). regMasque — register a separate device enrolled for MASQUE and return its warp key pair, addresses and endpoint. changeIp — rotate the endpoint. license — set a Warp+ key. interval — set automatic rotation in hours.",
             "schema": {
               "type": "string"
             }
