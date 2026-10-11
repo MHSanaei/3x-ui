@@ -181,6 +181,12 @@ func initModels() error {
 	if err := migrateShadowsocksRemovedCiphers(); err != nil {
 		return err
 	}
+	if err := migrateShadowsocks2022ChachaInbounds(); err != nil {
+		return err
+	}
+	if err := repairShadowsocks2022ServerKeys(); err != nil {
+		return err
+	}
 	if err := migrateVmessRemovedSecurities(); err != nil {
 		return err
 	}
@@ -983,6 +989,67 @@ func migrateShadowsocksRemovedCiphers() error {
 	}
 	if migrated > 0 {
 		log.Printf("Rewrote removed shadowsocks cipher on %d inbound(s)", migrated)
+	}
+	return nil
+}
+
+// migrateShadowsocks2022ChachaInbounds moves 2022-chacha20 inbounds, which the core
+// refuses with users, to aes-256-gcm: same 32-byte keys, so all keys stay valid.
+func migrateShadowsocks2022ChachaInbounds() error {
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", model.Shadowsocks).Find(&inbounds).Error; err != nil {
+		return err
+	}
+	for _, inbound := range inbounds {
+		var settings map[string]any
+		if json.Unmarshal([]byte(inbound.Settings), &settings) != nil {
+			continue
+		}
+		method, _ := settings["method"].(string)
+		if !xray.Shadowsocks2022NoMultiUser(method) {
+			continue
+		}
+		settings["method"] = "2022-blake3-aes-256-gcm"
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		log.Printf("Inbound %q: switched %s to 2022-blake3-aes-256-gcm; its share links changed", inbound.Tag, method)
+	}
+	return nil
+}
+
+// repairShadowsocks2022ServerKeys replaces a stored server key xray-core cannot
+// parse; that inbound never worked, as the core refuses to start with it.
+func repairShadowsocks2022ServerKeys() error {
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", model.Shadowsocks).Find(&inbounds).Error; err != nil {
+		return err
+	}
+	for _, inbound := range inbounds {
+		var settings map[string]any
+		if json.Unmarshal([]byte(inbound.Settings), &settings) != nil {
+			continue
+		}
+		method, _ := settings["method"].(string)
+		n := xray.Shadowsocks2022KeyBytes(method)
+		if key, _ := settings["password"].(string); n == 0 || xray.ValidShadowsocks2022Key(method, key) {
+			continue
+		}
+		settings["password"] = random.Base64Bytes(n)
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		log.Printf("Inbound %q: replaced a %s server key of the wrong size; its share links changed", inbound.Tag, method)
 	}
 	return nil
 }

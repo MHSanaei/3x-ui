@@ -18,12 +18,31 @@ export function upgradeLegacyUdpHop(finalmask: Raw): { next: Raw; changed: boole
 
   const hop = (udpHop && typeof udpHop === 'object' ? udpHop : {}) as Raw;
   const udp = Array.isArray(finalmask.udp) ? [...(finalmask.udp as unknown[])] : [];
-  const hasMask = udp.some((m) => String((m as Raw | null)?.type ?? '').toLowerCase() === 'udphop');
+  const hasMask = udp.some(isUdpHopMask);
   if (!isEmptyHopValue(hop.ports) && !hasMask) {
     const settings: Raw = { mode: 'intervalRemote', remotePorts: hop.ports };
     if (!isEmptyHopValue(hop.interval)) settings.interval = hop.interval;
     udp.push({ type: 'udphop', settings });
     next.udp = udp;
   }
+  return { next, changed: true };
+}
+
+function isUdpHopMask(mask: unknown): boolean {
+  return String((mask as Raw | null)?.type ?? '').toLowerCase() === 'udphop';
+}
+
+// Mirrors maskcompat.NormalizeUDPHop: the core reverses the UDP masks and refuses ("incorrect
+// index") a udphop anywhere but the socket end, so the last one listed is kept alone, last.
+export function normalizeUdpHop(finalmask: Raw): { next: Raw; changed: boolean } {
+  const udp = Array.isArray(finalmask.udp) ? (finalmask.udp as unknown[]) : [];
+  const hops = udp.filter(isUdpHopMask);
+  if (hops.length === 0 || (hops.length === 1 && isUdpHopMask(udp[udp.length - 1]))) {
+    return { next: finalmask, changed: false };
+  }
+  const next = {
+    ...finalmask,
+    udp: [...udp.filter((m) => !isUdpHopMask(m)), hops[hops.length - 1]],
+  };
   return { next, changed: true };
 }

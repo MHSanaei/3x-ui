@@ -219,8 +219,9 @@ keys from the panel's VLESS settings.
 ## Shadowsocks ciphers
 
 Shadowsocks inbounds support both classic ciphers and **Shadowsocks-2022**
-(method names starting with `2022-blake3-`). Most ciphers are multi-user;
-`2022-blake3-chacha20-poly1305` is single-user.
+(method names starting with `2022-blake3-`). `2022-blake3-chacha20-poly1305` is not
+offered for inbounds: Xray-core supports it only without users, and every panel
+inbound has clients. Outbounds can still use it.
 
 <Callout type="info">
   Transports and security must match on both ends. The client's share link
