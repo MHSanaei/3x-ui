@@ -5,6 +5,7 @@ import InboundFormModal from '@/pages/inbounds/form/InboundFormModal';
 import { DBInbound } from '@/models/dbinbound';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { HttpUtil } from '@/utils';
+import { Protocols } from '@/schemas/primitives';
 import {
   renderWithProviders,
   fieldLabels,
@@ -37,6 +38,22 @@ function renderModal() {
       onSaved={() => {}}
     />,
   );
+}
+
+// The protocol dropdown is virtualized, so jsdom renders only its first options; step
+// the active option by keyboard from the current protocol in the options' own order.
+function chooseVirtualizedProtocol(optionText: string) {
+  const input = document.getElementById('protocol') as HTMLElement;
+  const select = input.closest('.ant-select') as HTMLElement;
+  const current = (select.textContent ?? '').trim();
+  const order = Object.values(Protocols) as string[];
+  const steps = order.indexOf(optionText) - order.indexOf(current);
+  if (order.indexOf(optionText) < 0 || order.indexOf(current) < 0 || steps < 0) {
+    throw new Error(`cannot step from '${current}' to '${optionText}'`);
+  }
+  fireEvent.mouseDown(select.querySelector('.ant-select-selector') ?? select);
+  for (let i = 0; i < steps; i++) fireEvent.keyDown(input, { key: 'ArrowDown', keyCode: 40 });
+  fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
 }
 
 function primaryButton(): HTMLElement {
@@ -360,6 +377,44 @@ describe('InboundFormModal', () => {
       },
     });
     expect(stream.realitySettings).toBeUndefined();
+  });
+
+  // xray-core runs MASQUE only on its own transport behind TLS, and leases tunnel
+  // addresses from settings.address; picking the protocol must seed all three.
+  it('adds a MASQUE inbound on its own transport with TLS and an address pool', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    renderModal();
+
+    chooseVirtualizedProtocol('masque');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Security' }));
+    expect(screen.queryByRole('radio', { name: 'None' })).toBeNull();
+    fireEvent.change(await screen.findByLabelText('Public Key'), {
+      target: { value: '/etc/ssl/certs/m.crt' },
+    });
+    fireEvent.change(screen.getByLabelText('Private Key'), {
+      target: { value: '/etc/ssl/private/m.key' },
+    });
+    fireEvent.click(primaryButton());
+
+    const isAdd = ([url]: unknown[]) => url === '/panel/api/inbounds/add';
+    await waitFor(() => expect(post.mock.calls.some(isAdd)).toBe(true));
+    const payload = post.mock.calls.find(isAdd)![1] as {
+      protocol: string;
+      settings: string;
+      streamSettings: string;
+    };
+    expect(payload.protocol).toBe('masque');
+    expect(JSON.parse(payload.settings)).toMatchObject({ address: ['10.14.0.1/24', 'fd14::1/64'] });
+    expect(JSON.parse(payload.streamSettings)).toMatchObject({
+      network: 'masque',
+      security: 'tls',
+      masqueSettings: { path: '/.well-known/masque/ip/*/*/' },
+      tlsSettings: { alpn: ['h3'] },
+    });
   });
 
   // Clients and enable change through their own endpoints; the server keeps the

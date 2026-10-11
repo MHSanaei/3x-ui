@@ -718,6 +718,10 @@
           "holeTimeout": "مهلت قطعهٔ گمشده (میلی‌ثانیه)",
           "sessionTtl": "TTL نشست (ثانیه)",
           "concurrency": "هم‌زمانی"
+        },
+        "masque": {
+          "addressPool": "مخزن آدرس",
+          "addressPoolDesc": "آدرس‌های تونل از این پیشوندها تخصیص داده می‌شوند — حداکثر یک IPv4 و یک IPv6."
         }
       },
       "info": {
@@ -813,7 +817,7 @@
       "limitIpFail2banWindows": "Fail2ban روی ویندوز در دسترس نیست، بنابراین محدودیت IP قابل اعمال نیست.",
       "limitIpDisabled": "قابلیت محدودیت IP روی این سرور غیرفعال است.",
       "password": "رمز عبور",
-      "passwordDesc": "فقط توسط کلاینت‌های Trojan و Shadowsocks استفاده می‌شود؛ برای VLESS، VMess، Hysteria و WireGuard نادیده گرفته می‌شود.",
+      "passwordDesc": "توسط کلاینت‌های Trojan، Shadowsocks، TUIC و MASQUE استفاده می‌شود؛ برای VLESS، VMess، Hysteria و WireGuard نادیده گرفته می‌شود.",
       "subId": "شناسه اشتراک",
       "subIdDesc": "این شناسه، کد دعوت این کاربر در ربات تلگرام هم هست: هر کسی آن را به ربات بفرستد به این کاربر متصل می‌شود. آن را طولانی و تصادفی نگه دارید؛ شناسهٔ کوتاه یا قابل حدس ممکن است توسط شخص دیگری تصاحب شود.",
       "online": "آنلاین",
@@ -1961,7 +1965,10 @@
         "interface": "رابط",
         "proxyProtocol": "Proxy Protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "اتصال به Cloudflare WARP از طریق MASQUE با یک کلید ECDSA P-256 ثبت‌شده؛ host و path به‌طور پیش‌فرض endpoint کلودفلر هستند.",
+        "masqueWarpPublicKey": "کلید عمومی endpoint",
+        "masqueWarpAddress": "آدرس‌های تونل"
       },
       "outbound": {
         "tag": "تگ",

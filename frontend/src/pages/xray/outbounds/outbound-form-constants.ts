@@ -51,6 +51,9 @@ export const NETWORK_OPTIONS: { value: string; label: string }[] = [
 // shows only this option when the parent protocol is hysteria.
 export const HYSTERIA_NETWORK_OPTION = { value: 'hysteria', label: 'Hysteria' };
 
+// MASQUE likewise pairs only with its own CONNECT-IP transport.
+export const MASQUE_NETWORK_OPTION = { value: 'masque', label: 'MASQUE' };
+
 // Protocols whose form schema carries a flat connect target — these all
 // get the shared "server" sub-block (address + port) at the top of the
 // protocol section. Wireguard has an address but no port. DNS/freedom/
@@ -63,4 +66,5 @@ export const SERVER_PROTOCOLS = new Set<string>([
   'socks',
   'http',
   'hysteria',
+  'masque',
 ]);

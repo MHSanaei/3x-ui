@@ -718,6 +718,10 @@
           "holeTimeout": "遺失分段逾時（毫秒）",
           "sessionTtl": "工作階段 TTL（秒）",
           "concurrency": "並行數"
+        },
+        "masque": {
+          "addressPool": "位址池",
+          "addressPoolDesc": "通道位址從這些前綴中分配——最多一個 IPv4 與一個 IPv6。"
         }
       },
       "info": {
@@ -813,7 +817,7 @@
       "limitIpFail2banWindows": "Windows 上不支援 Fail2ban，無法實施 IP 限制。",
       "limitIpDisabled": "此伺服器已停用 IP 限制功能。",
       "password": "密碼",
-      "passwordDesc": "僅 Trojan 與 Shadowsocks 用戶端使用；VLESS、VMess、Hysteria 和 WireGuard 會忽略此項。",
+      "passwordDesc": "用於 Trojan、Shadowsocks、TUIC 與 MASQUE 用戶端；VLESS、VMess、Hysteria 和 WireGuard 會忽略此項。",
       "subId": "訂閱 ID",
       "subIdDesc": "同時作為此用戶端的 Telegram 機器人邀請碼：任何人將其傳送給機器人即會綁定到此用戶端。請保持足夠長且隨機——過短或容易猜到的 ID 可能被他人搶先綁定。",
       "online": "上線",
@@ -1961,7 +1965,10 @@
         "interface": "介面",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "使用已註冊的 ECDSA P-256 金鑰透過 MASQUE 連線 Cloudflare WARP；host 與 path 預設為 Cloudflare 端點。",
+        "masqueWarpPublicKey": "端點公開金鑰",
+        "masqueWarpAddress": "通道位址"
       },
       "outbound": {
         "tag": "標籤",

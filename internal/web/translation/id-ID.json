@@ -718,6 +718,10 @@
           "holeTimeout": "Batas waktu segmen hilang (ms)",
           "sessionTtl": "TTL sesi (s)",
           "concurrency": "Konkurensi"
+        },
+        "masque": {
+          "addressPool": "Kumpulan alamat",
+          "addressPoolDesc": "Alamat terowongan diberikan dari prefiks ini — maksimal satu IPv4 dan satu IPv6."
         }
       },
       "info": {
@@ -813,7 +817,7 @@
       "limitIpFail2banWindows": "Fail2ban tidak tersedia di Windows, sehingga batas IP tidak dapat diterapkan.",
       "limitIpDisabled": "Fitur batas IP dinonaktifkan di server ini.",
       "password": "Kata sandi",
-      "passwordDesc": "Hanya digunakan oleh klien Trojan dan Shadowsocks; diabaikan untuk VLESS, VMess, Hysteria, dan WireGuard.",
+      "passwordDesc": "Digunakan oleh klien Trojan, Shadowsocks, TUIC, dan MASQUE; diabaikan untuk VLESS, VMess, Hysteria, dan WireGuard.",
       "subId": "ID Langganan",
       "subIdDesc": "Juga berfungsi sebagai kode undangan bot Telegram untuk klien ini: siapa pun yang mengirimkannya ke bot akan ditautkan ke klien ini. Buat panjang dan acak — ID yang pendek atau mudah ditebak bisa diklaim orang lain.",
       "online": "Online",
@@ -1961,7 +1965,10 @@
         "interface": "Interface",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (d)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (d)",
+        "masqueWarpDesc": "Terhubung ke Cloudflare WARP melalui MASQUE dengan kunci ECDSA P-256 yang terdaftar; host dan path default ke endpoint Cloudflare.",
+        "masqueWarpPublicKey": "Kunci publik endpoint",
+        "masqueWarpAddress": "Alamat terowongan"
       },
       "outbound": {
         "tag": "Tag",

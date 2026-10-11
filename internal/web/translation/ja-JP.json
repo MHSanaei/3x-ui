@@ -718,6 +718,10 @@
           "holeTimeout": "欠落セグメントのタイムアウト（ms）",
           "sessionTtl": "セッション TTL（秒）",
           "concurrency": "同時実行数"
+        },
+        "masque": {
+          "addressPool": "アドレスプール",
+          "addressPoolDesc": "トンネルのアドレスはこれらのプレフィックスから割り当てられます（IPv4 と IPv6 をそれぞれ最大 1 つ）。"
         }
       },
       "info": {
@@ -813,7 +817,7 @@
       "limitIpFail2banWindows": "Windows では Fail2ban を利用できないため、IP 制限を適用できません。",
       "limitIpDisabled": "このサーバーでは IP 制限機能が無効になっています。",
       "password": "パスワード",
-      "passwordDesc": "Trojan と Shadowsocks のクライアントのみが使用します。VLESS、VMess、Hysteria、WireGuard では無視されます。",
+      "passwordDesc": "Trojan、Shadowsocks、TUIC、MASQUE のクライアントが使用します。VLESS、VMess、Hysteria、WireGuard では無視されます。",
       "subId": "サブスクリプション ID",
       "subIdDesc": "このクライアントの Telegram ボット招待コードとしても使われます。ボットに送信した人がこのクライアントに紐付けられます。長くランダムな値にしてください。短い、または推測しやすい ID は他人に取得されるおそれがあります。",
       "online": "オンライン",
@@ -1961,7 +1965,10 @@
         "interface": "インターフェース",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (秒)",
+        "masqueWarpDesc": "登録済みの ECDSA P-256 鍵で MASQUE 経由で Cloudflare WARP に接続します。host と path の既定値は Cloudflare のエンドポイントです。",
+        "masqueWarpPublicKey": "エンドポイント公開鍵",
+        "masqueWarpAddress": "トンネルアドレス"
       },
       "outbound": {
         "tag": "タグ",

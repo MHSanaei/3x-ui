@@ -8,6 +8,7 @@ import { GrpcStreamSettingsSchema } from './grpc';
 import { HttpUpgradeStreamSettingsSchema } from './httpupgrade';
 import { HysteriaStreamSettingsSchema } from './hysteria';
 import { KcpStreamSettingsSchema } from './kcp';
+import { MasqueStreamSettingsSchema } from './masque';
 import { SockoptStreamSettingsSchema } from './sockopt';
 import { TcpStreamSettingsSchema } from './tcp';
 import { WsStreamSettingsSchema } from './ws';
@@ -20,6 +21,7 @@ export * from './grpc';
 export * from './httpupgrade';
 export * from './hysteria';
 export * from './kcp';
+export * from './masque';
 export * from './sockopt';
 export * from './tcp';
 export * from './ws';
@@ -35,6 +37,7 @@ export const NetworkSchema = z.enum([
   'xhttp',
   'hysteria',
   'xdrive',
+  'masque',
 ]);
 export type Network = z.infer<typeof NetworkSchema>;
 
@@ -58,6 +61,8 @@ const TransportNetworkSettingsSchema = z.discriminatedUnion('network', [
   }),
   z.object({ network: z.literal('xhttp'), xhttpSettings: XHttpStreamSettingsSchema }),
   z.object({ network: z.literal('hysteria'), hysteriaSettings: HysteriaStreamSettingsSchema }),
+  // `masque` pairs only with the masque protocol, in both directions.
+  z.object({ network: z.literal('masque'), masqueSettings: MasqueStreamSettingsSchema }),
   // The stream-level address/port is the domain front XDRIVE dials for its storage API.
   z.object({
     network: z.literal('xdrive'),

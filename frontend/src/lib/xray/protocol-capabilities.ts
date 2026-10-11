@@ -17,6 +17,7 @@ const STREAM_PROTOCOLS = [
   'hysteria',
   'wireguard',
   'tunnel',
+  'masque',
 ];
 const VISION_FLOW = 'xtls-rprx-vision';
 const SS_2022_PREFIX = '2022';
@@ -37,7 +38,7 @@ export interface CapabilityShadowsocksSlice extends CapabilityProtocolSlice {
 }
 
 export function canEnableTls(values: CapabilityProtocolSlice): boolean {
-  if (values.protocol === 'hysteria') return true;
+  if (values.protocol === 'hysteria' || values.protocol === 'masque') return true;
   if (!TLS_ELIGIBLE_PROTOCOLS.includes(values.protocol)) return false;
   return TLS_NETWORKS.includes(values.streamSettings?.network ?? '');
 }

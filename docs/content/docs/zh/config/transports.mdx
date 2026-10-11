@@ -1,6 +1,6 @@
 ---
 title: 传输方式与安全层
-description: 3x-ui 提供的每一种传输方式——TCP、mKCP、WebSocket、gRPC、HTTPUpgrade、XHTTP、Hysteria、XDRIVE——及其设置项，外加 FinalMask 混淆、sockopt、TLS/REALITY、XTLS-Vision 以及 VLESS 加密。
+description: 3x-ui 提供的每一种传输方式——TCP、mKCP、WebSocket、gRPC、HTTPUpgrade、XHTTP、Hysteria、XDRIVE、MASQUE——及其设置项，外加 FinalMask 混淆、sockopt、TLS/REALITY、XTLS-Vision 以及 VLESS 加密。
 icon: Network
 ---
 
@@ -23,6 +23,7 @@ icon: Network
 | **XHTTP**       | `xhttpSettings`       | 现代的流多路复用 HTTP 传输；对 CDN 友好且支持 REALITY。               |
 | **Hysteria**    | `hysteriaSettings`    | 基于 QUIC 的传输——仅用于 **Hysteria2** 协议。                          |
 | **XDRIVE**      | `xdriveSettings`      | 通过共享云存储（Google Drive、本地文件夹或任意 HTTP 存储 API）中的文件传输数据流。 |
+| **MASQUE**      | `masqueSettings`      | 基于 HTTP/3 或 HTTP/2 的 CONNECT-IP——仅用于 **MASQUE** 协议。参见 [MASQUE](/docs/config/masque)。 |
 
 <Callout type="info">
   **WireGuard** 和 **Tunnel**（dokodemo-door）入站不提供传输方式选择器——它们的传输流

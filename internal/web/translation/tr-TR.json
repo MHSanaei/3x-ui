@@ -718,6 +718,10 @@
           "holeTimeout": "Eksik segment zaman aşımı (ms)",
           "sessionTtl": "Oturum TTL (s)",
           "concurrency": "Eşzamanlılık"
+        },
+        "masque": {
+          "addressPool": "Adres havuzu",
+          "addressPoolDesc": "Tünel adresleri bu öneklerden atanır — en fazla bir IPv4 ve bir IPv6."
         }
       },
       "info": {
@@ -813,7 +817,7 @@
       "limitIpFail2banWindows": "Fail2ban Windows'ta kullanılamadığından IP sınırı uygulanamaz.",
       "limitIpDisabled": "IP sınırı özelliği bu sunucuda devre dışı.",
       "password": "Şifre",
-      "passwordDesc": "Yalnızca Trojan ve Shadowsocks istemcileri tarafından kullanılır; VLESS, VMess, Hysteria ve WireGuard için yok sayılır.",
+      "passwordDesc": "Trojan, Shadowsocks, TUIC ve MASQUE istemcileri tarafından kullanılır; VLESS, VMess, Hysteria ve WireGuard için yok sayılır.",
       "subId": "Abonelik ID'si",
       "subIdDesc": "Bu istemcinin Telegram botu davet kodu olarak da kullanılır: bunu bota gönderen kişi bu istemciye bağlanır. Uzun ve rastgele tutun — kısa veya tahmin edilebilir bir kimlik başkası tarafından sahiplenilebilir.",
       "online": "Çevrimiçi",
@@ -1961,7 +1965,10 @@
         "interface": "Arabirim",
         "proxyProtocol": "Proxy Protocol",
         "tcpUserTimeoutMs": "TCP User Timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive bekleme süresi (saniye)"
+        "tcpKeepAliveIdleS": "TCP keep-alive bekleme süresi (saniye)",
+        "masqueWarpDesc": "Kayıtlı bir ECDSA P-256 anahtarıyla MASQUE üzerinden Cloudflare WARP'a bağlanır; host ve path varsayılan olarak Cloudflare uç noktasıdır.",
+        "masqueWarpPublicKey": "Uç nokta açık anahtarı",
+        "masqueWarpAddress": "Tünel adresleri"
       },
       "outbound": {
         "tag": "Etiket",

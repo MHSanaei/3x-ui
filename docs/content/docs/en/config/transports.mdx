@@ -1,6 +1,6 @@
 ---
 title: Transports & Security
-description: Every transport 3x-ui exposes — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria, XDRIVE — with their settings, plus FinalMask obfuscation, sockopt, TLS/REALITY, XTLS-Vision, and VLESS encryption.
+description: Every transport 3x-ui exposes — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria, XDRIVE, MASQUE — with their settings, plus FinalMask obfuscation, sockopt, TLS/REALITY, XTLS-Vision, and VLESS encryption.
 icon: Network
 ---
 
@@ -24,6 +24,7 @@ network writes its own settings key on the wire (`tcpSettings`, `kcpSettings`, �
 | **XHTTP**       | `xhttpSettings`       | Modern stream-multiplexed HTTP transport; CDN-friendly and REALITY-capable. |
 | **Hysteria**    | `hysteriaSettings`    | QUIC-based transport — only for the **Hysteria2** protocol.            |
 | **XDRIVE**      | `xdriveSettings`      | Tunnels the stream through files in shared cloud storage (Google Drive, a local folder or any HTTP storage API). |
+| **MASQUE**      | `masqueSettings`      | CONNECT-IP over HTTP/3 or HTTP/2 — only for the **MASQUE** protocol. See [MASQUE](/docs/config/masque). |
 
 <Callout type="info">
   **WireGuard** and **Tunnel** (dokodemo-door) inbounds expose no transport

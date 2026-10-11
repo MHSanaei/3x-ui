@@ -378,3 +378,77 @@ describe('OutboundFormModal', () => {
     });
   });
 });
+
+describe('OutboundFormModal MASQUE', () => {
+  // xray-core refuses user/pass next to warp, and builds the WARP client certificate
+  // from privateKey; a save that kept stale credentials or dropped a key never connects.
+  it('saves a WARP-over-MASQUE outbound without Basic-auth credentials', async () => {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const outbound = {
+      protocol: 'masque',
+      tag: 'warp-masque',
+      settings: { address: '162.159.198.1', port: 443 },
+      streamSettings: {
+        network: 'masque',
+        security: 'tls',
+        tlsSettings: { serverName: '' },
+        masqueSettings: { user: 'old-user', pass: 'old-pass' },
+      },
+    };
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={outbound}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    toggleSwitch('WARP');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    fireEvent.change(screen.getByLabelText('Private key'), { target: { value: 'PRIVATE-PEM' } });
+    fireEvent.change(screen.getByLabelText('Endpoint public key'), {
+      target: { value: 'PUBLIC-PEM' },
+    });
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const payload = onConfirm.mock.calls[0][0] as {
+      protocol: string;
+      settings: Record<string, unknown>;
+      streamSettings: {
+        network: string;
+        security: string;
+        masqueSettings: Record<string, unknown>;
+      };
+    };
+    expect(payload.protocol).toBe('masque');
+    expect(payload.settings).toMatchObject({ address: '162.159.198.1', port: 443 });
+    expect(payload.streamSettings).toMatchObject({ network: 'masque', security: 'tls' });
+    expect(payload.streamSettings.masqueSettings.warp).toMatchObject({
+      privateKey: 'PRIVATE-PEM',
+      publicKey: 'PUBLIC-PEM',
+    });
+    expect(payload.streamSettings.masqueSettings.user).toBeUndefined();
+    expect(payload.streamSettings.masqueSettings.pass).toBeUndefined();
+  });
+});

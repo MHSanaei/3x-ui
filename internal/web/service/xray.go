@@ -282,6 +282,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				if c.Auth != "" {
 					entry["auth"] = c.Auth
 				}
+			case model.MASQUE:
+				if c.Password != "" {
+					entry["password"] = c.Password
+				}
 			case model.WireGuard:
 				if inboundClient, ok := wireguardClientsByEmail[strings.ToLower(strings.TrimSpace(c.Email))]; ok {
 					c.AllowedIPs = inboundClient.AllowedIPs

@@ -44,7 +44,11 @@ import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { Protocols, TRAFFIC_RESETS } from '@/schemas/primitives';
 import { SockoptStreamSettingsSchema } from '@/schemas/protocols/stream/sockopt';
 import { HysteriaStreamSettingsSchema } from '@/schemas/protocols/stream/hysteria';
-import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
+import {
+  createHysteriaTlsSettingsWithDefaultCert,
+  createMasqueTlsSettingsWithDefaultCert,
+} from '@/lib/xray/inbound-tls-defaults';
+import { MASQUE_DEFAULT_PATH } from '@/schemas/protocols/stream/masque';
 import { NODE_ELIGIBLE_PROTOCOLS } from '@/lib/xray/node-protocols';
 import { VLESS_AUTH_LABEL_KEYS, vlessEncryptionAuthKind } from '@/lib/xray/vless-encryption';
 import { SniffingSchema } from '@/schemas/primitives/sniffing';
@@ -66,6 +70,8 @@ import {
   AmneziawgFields,
   HttpFields,
   HysteriaFields,
+  MasqueSettingsFields,
+  MasqueStreamFields,
   MixedFields,
   MtprotoFields,
   ShadowsocksFields,
@@ -285,6 +291,7 @@ export default function InboundFormModal({
    */
   const hasSelectableTransport =
     protocol !== Protocols.HYSTERIA &&
+    protocol !== Protocols.MASQUE &&
     protocol !== Protocols.WIREGUARD &&
     protocol !== Protocols.TUNNEL &&
     protocol !== Protocols.TUIC;
@@ -552,11 +559,18 @@ export default function InboundFormModal({
             ],
           },
         });
+      } else if (next === Protocols.MASQUE) {
+        setV('streamSettings', {
+          network: 'masque',
+          security: 'tls',
+          masqueSettings: { path: MASQUE_DEFAULT_PATH },
+          tlsSettings: createMasqueTlsSettingsWithDefaultCert(),
+        });
       } else if (next === Protocols.WIREGUARD || next === Protocols.TUNNEL) {
         setV('streamSettings', { security: 'none' });
       } else {
         const current = getV('streamSettings') as { network?: string } | undefined;
-        if (current?.network === 'hysteria' || !current?.network) {
+        if (current?.network === 'hysteria' || current?.network === 'masque' || !current?.network) {
           setV('streamSettings', { network: 'tcp', security: 'none', tcpSettings: {} });
         }
       }
@@ -819,6 +833,8 @@ export default function InboundFormModal({
 
       {protocol === Protocols.TUIC && <TuicFields />}
 
+      {protocol === Protocols.MASQUE && <MasqueSettingsFields />}
+
       {protocol === Protocols.TUN && <TunFields />}
 
       {protocol === Protocols.TUNNEL && <TunnelFields />}
@@ -943,6 +959,8 @@ export default function InboundFormModal({
           dropdown is hidden above. */}
       {protocol === Protocols.HYSTERIA && <HysteriaFields />}
 
+      {protocol === Protocols.MASQUE && <MasqueStreamFields />}
+
       {hasSelectableTransport && (
         <>
           {network === 'tcp' && <RawForm />}
@@ -989,7 +1007,7 @@ export default function InboundFormModal({
 
   const tlsOk = canEnableTls({ protocol, streamSettings: { network, security } });
   const realityOk = canEnableReality({ protocol, streamSettings: { network, security } });
-  const tlsOnly = protocol === Protocols.HYSTERIA;
+  const tlsOnly = protocol === Protocols.HYSTERIA || protocol === Protocols.MASQUE;
 
   const securityTab = (
     <>
@@ -1177,6 +1195,7 @@ export default function InboundFormModal({
                     Protocols.MTPROTO,
                     Protocols.AMNEZIAWG,
                     Protocols.TUIC,
+                    Protocols.MASQUE,
                   ] as string[]
                 ).includes(protocol) || isFallbackHost
                   ? [

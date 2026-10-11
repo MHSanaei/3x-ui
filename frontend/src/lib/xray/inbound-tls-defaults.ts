@@ -31,6 +31,11 @@ export function createTlsSettingsWithDefaultCert(network?: string): Record<strin
   return tls;
 }
 
+// MASQUE serves HTTP/3 over QUIC by default, so it takes Hysteria's QUIC-ready TLS.
+export function createMasqueTlsSettingsWithDefaultCert(): Record<string, unknown> {
+  return createHysteriaTlsSettingsWithDefaultCert();
+}
+
 export function createHysteriaTlsSettingsWithDefaultCert(): Record<string, unknown> {
   const tls = createTlsSettingsWithDefaultCert();
   tls.alpn = ['h3'];

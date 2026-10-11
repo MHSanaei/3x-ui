@@ -719,6 +719,10 @@
           "holeTimeout": "Тайм-аут пропущенного сегмента (мс)",
           "sessionTtl": "TTL сессии (с)",
           "concurrency": "Параллелизм"
+        },
+        "masque": {
+          "addressPool": "Пул адресов",
+          "addressPoolDesc": "Адреса туннелей выдаются из этих префиксов — не более одного IPv4 и одного IPv6."
         }
       },
       "info": {
@@ -813,7 +817,7 @@
       "limitIpFail2banWindows": "Fail2ban недоступен в Windows, поэтому ограничение по IP не может быть применено.",
       "limitIpDisabled": "Функция ограничения по IP отключена на этом сервере.",
       "password": "Пароль",
-      "passwordDesc": "Используется клиентами Trojan, Shadowsocks и TUIC; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
+      "passwordDesc": "Используется клиентами Trojan, Shadowsocks, TUIC и MASQUE; игнорируется для VLESS, VMess, Hysteria и WireGuard.",
       "subId": "ID подписки",
       "subIdDesc": "Также служит кодом приглашения этого клиента в Telegram-боте: тот, кто отправит его боту, будет привязан к этому клиенту. Используйте длинное случайное значение — короткий или легко угадываемый ID может присвоить кто-то другой.",
       "online": "В сети",
@@ -1961,7 +1965,10 @@
         "interface": "Интерфейс",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (мс)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (с)",
+        "masqueWarpDesc": "Подключение к Cloudflare WARP через MASQUE с зарегистрированным ключом ECDSA P-256; host и path по умолчанию указывают на конечную точку Cloudflare.",
+        "masqueWarpPublicKey": "Открытый ключ конечной точки",
+        "masqueWarpAddress": "Адреса туннеля"
       },
       "outbound": {
         "tag": "Тег",

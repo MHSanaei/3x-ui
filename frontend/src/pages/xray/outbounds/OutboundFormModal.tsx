@@ -21,6 +21,7 @@ import {
 import {
   FLOW_OPTIONS,
   HYSTERIA_NETWORK_OPTION,
+  MASQUE_NETWORK_OPTION,
   NETWORK_OPTIONS,
   PROTOCOL_OPTIONS,
   SERVER_PROTOCOLS,
@@ -30,6 +31,7 @@ import {
   applyNetworkChange,
   buildAddModeValues,
   hysteriaStreamSlice,
+  masqueStreamSlice,
   newStreamSlice,
 } from './outbound-form-helpers';
 import {
@@ -38,6 +40,7 @@ import {
   FreedomFields,
   HttpFields,
   LoopbackFields,
+  MasqueFields,
   ServerTarget,
   ShadowsocksFields,
   SocksFields,
@@ -52,6 +55,7 @@ import {
   HttpUpgradeForm,
   HysteriaForm,
   KcpForm,
+  MasqueForm,
   MuxForm,
   RawForm,
   SockoptForm,
@@ -163,6 +167,16 @@ export default function OutboundFormModal({
   }, [streamAllowed, network, protocol, methods]);
 
   useEffect(() => {
+    if (protocol !== 'masque') return;
+    if (network === 'masque' && security === 'tls') return;
+    const existing = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
+    const slice = masqueStreamSlice();
+    if (existing.masqueSettings) slice.masqueSettings = existing.masqueSettings;
+    if (existing.tlsSettings) slice.tlsSettings = existing.tlsSettings;
+    methods.setValue('streamSettings', slice as StreamValue);
+  }, [protocol, network, security, methods]);
+
+  useEffect(() => {
     if (protocol !== 'hysteria') return;
     if (network === 'hysteria' && security === 'tls') return;
     const existing = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
@@ -194,9 +208,12 @@ export default function OutboundFormModal({
       const nextProtocol = methods.getValues('protocol');
       const next = rawOutboundToFormValues({ protocol: nextProtocol });
       methods.setValue('settings', next.settings);
+      const currentNetwork = methods.getValues('streamSettings.network') ?? '';
       if (nextProtocol === 'hysteria') {
         methods.setValue('streamSettings', hysteriaStreamSlice() as StreamValue);
-      } else if ((methods.getValues('streamSettings.network') ?? '') === 'hysteria') {
+      } else if (nextProtocol === 'masque') {
+        methods.setValue('streamSettings', masqueStreamSlice() as StreamValue);
+      } else if (currentNetwork === 'hysteria' || currentNetwork === 'masque') {
         methods.setValue('streamSettings', {
           ...newStreamSlice('tcp'),
           security: 'none',
@@ -437,6 +454,7 @@ export default function OutboundFormModal({
                       {protocol === 'shadowsocks' && <ShadowsocksFields />}
                       {protocol === 'http' && <HttpFields />}
                       {protocol === 'socks' && <SocksFields />}
+                      {protocol === 'masque' && <MasqueFields />}
 
                       {protocol === 'loopback' && <LoopbackFields />}
                       {protocol === 'blackhole' && <BlackholeFields />}
@@ -470,7 +488,9 @@ export default function OutboundFormModal({
                               options={
                                 protocol === 'hysteria'
                                   ? [HYSTERIA_NETWORK_OPTION]
-                                  : NETWORK_OPTIONS
+                                  : protocol === 'masque'
+                                    ? [MASQUE_NETWORK_OPTION]
+                                    : NETWORK_OPTIONS
                               }
                             />
                           </Form.Item>
@@ -490,6 +510,8 @@ export default function OutboundFormModal({
                           {network === 'hysteria' && <HysteriaForm />}
 
                           {network === 'xdrive' && <XDriveForm />}
+
+                          {network === 'masque' && <MasqueForm />}
                         </>
                       )}
 
@@ -532,7 +554,7 @@ export default function OutboundFormModal({
                             buttonStyle="solid"
                             onChange={(e) => onSecurityChange(e.target.value as string)}
                           >
-                            {network !== 'hysteria' && (
+                            {network !== 'hysteria' && network !== 'masque' && (
                               <Radio.Button value="none">{t('none')}</Radio.Button>
                             )}
                             {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}

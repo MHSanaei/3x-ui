@@ -1,6 +1,6 @@
 ---
 title: Транспорты и безопасность
-description: Все транспорты, которые предоставляет 3x-ui — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria, XDRIVE — с их настройками, а также обфускация FinalMask, sockopt, TLS/REALITY, XTLS-Vision и шифрование VLESS.
+description: Все транспорты, которые предоставляет 3x-ui — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria, XDRIVE, MASQUE — с их настройками, а также обфускация FinalMask, sockopt, TLS/REALITY, XTLS-Vision и шифрование VLESS.
 icon: Network
 ---
 
@@ -26,6 +26,7 @@ network записывает свой собственный ключ настр
 | **XHTTP**       | `xhttpSettings`       | Современный HTTP-транспорт с мультиплексированием потоков; дружественный к CDN и совместимый с REALITY. |
 | **Hysteria**    | `hysteriaSettings`    | Транспорт на базе QUIC — только для протокола **Hysteria2**.           |
 | **XDRIVE**      | `xdriveSettings`      | Туннелирует поток через файлы в общем облачном хранилище (Google Drive, локальная папка или любой HTTP API хранилища). |
+| **MASQUE**      | `masqueSettings`      | CONNECT-IP поверх HTTP/3 или HTTP/2 — только для протокола **MASQUE**. См. [MASQUE](/docs/config/masque). |
 
 <Callout type="info">
   Inbound-соединения **WireGuard** и **Tunnel** (dokodemo-door) не предоставляют
