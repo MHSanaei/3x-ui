@@ -38,6 +38,10 @@ HTTPS 流量无异的完整三层隧道。xray-core 原生支持它；3x-ui 将�
 
 ## 通过 MASQUE 使用 WARP
 
+最简单的方式是 **Xray → 出站 → WARP → 添加 WARP over MASQUE 出站**：面板会单独注册一个 WARP 设备、为其注册 MASQUE 密钥，
+并添加一个可直接使用的 `warp-masque` 出站（若已存在则更新）。你的 WireGuard WARP 注册不受影响。
+如需手动设置：
+
 在 masque 传输中开启 **WARP**，即可通过 Cloudflare 的 MASQUE 端点而非 WireGuard 连接 WARP。这需要一个已为
 MASQUE 注册的 WARP 账户：
 

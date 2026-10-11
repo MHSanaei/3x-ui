@@ -2229,7 +2229,9 @@
         "warpPlusData": "Data WARP+",
         "quota": "Kuota",
         "usage": "Penggunaan",
-        "addOutbound": "Tambah outbound"
+        "addOutbound": "Tambah outbound",
+        "masqueDesc": "Mendaftarkan perangkat WARP terpisah untuk MASQUE; pendaftaran WireGuard di atas tidak terpengaruh.",
+        "addMasqueOutbound": "Tambah outbound WARP melalui MASQUE"
       },
       "dns": {
         "enable": "Aktifkan DNS",

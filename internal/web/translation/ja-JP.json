@@ -2229,7 +2229,9 @@
         "warpPlusData": "WARP+ データ",
         "quota": "クォータ",
         "usage": "使用量",
-        "addOutbound": "アウトバウンドを追加"
+        "addOutbound": "アウトバウンドを追加",
+        "masqueDesc": "MASQUE 用に別の WARP デバイスを登録します。上の WireGuard の登録には影響しません。",
+        "addMasqueOutbound": "WARP over MASQUE のアウトバウンドを追加"
       },
       "dns": {
         "enable": "DNSを有効にする",

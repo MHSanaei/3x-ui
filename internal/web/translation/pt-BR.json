@@ -2229,7 +2229,9 @@
         "warpPlusData": "Dados WARP+",
         "quota": "Quota",
         "usage": "Uso",
-        "addOutbound": "Adicionar saída"
+        "addOutbound": "Adicionar saída",
+        "masqueDesc": "Registra um dispositivo WARP separado inscrito para MASQUE; o registro WireGuard acima não é afetado.",
+        "addMasqueOutbound": "Adicionar outbound WARP via MASQUE"
       },
       "dns": {
         "enable": "Ativar DNS",

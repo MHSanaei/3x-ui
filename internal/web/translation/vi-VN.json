@@ -2229,7 +2229,9 @@
         "warpPlusData": "Dữ liệu WARP+",
         "quota": "Hạn ngạch",
         "usage": "Sử dụng",
-        "addOutbound": "Thêm outbound"
+        "addOutbound": "Thêm outbound",
+        "masqueDesc": "Đăng ký một thiết bị WARP riêng cho MASQUE; đăng ký WireGuard ở trên không bị ảnh hưởng.",
+        "addMasqueOutbound": "Thêm outbound WARP qua MASQUE"
       },
       "dns": {
         "enable": "Kích hoạt DNS",

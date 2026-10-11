@@ -2229,7 +2229,9 @@
         "warpPlusData": "داده WARP+",
         "quota": "سهمیه",
         "usage": "مصرف",
-        "addOutbound": "افزودن خروجی"
+        "addOutbound": "افزودن خروجی",
+        "masqueDesc": "یک دستگاه WARP جداگانه برای MASQUE ثبت می‌کند؛ ثبت WireGuard بالا تغییری نمی‌کند.",
+        "addMasqueOutbound": "افزودن outbound برای WARP روی MASQUE"
       },
       "dns": {
         "enable": "فعال کردن حل دامنه",

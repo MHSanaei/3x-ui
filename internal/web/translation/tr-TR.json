@@ -2229,7 +2229,9 @@
         "warpPlusData": "WARP+ Veri",
         "quota": "Kota",
         "usage": "Kullanım",
-        "addOutbound": "Giden Bağlantı Ekle"
+        "addOutbound": "Giden Bağlantı Ekle",
+        "masqueDesc": "MASQUE için ayrı bir WARP cihazı kaydeder; yukarıdaki WireGuard kaydı etkilenmez.",
+        "addMasqueOutbound": "MASQUE üzerinden WARP outbound ekle"
       },
       "dns": {
         "enable": "DNS'yi Etkinleştir",

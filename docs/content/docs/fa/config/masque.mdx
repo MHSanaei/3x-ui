@@ -40,6 +40,11 @@ icon: Waypoints
 
 ## WARP از طریق MASQUE
 
+ساده‌ترین راه **Xray ← Outbounds ← WARP ← افزودن outbound برای WARP روی MASQUE** است: پنل یک
+دستگاه WARP جداگانه ثبت می‌کند، برای آن کلید MASQUE ثبت می‌کند و یک outbound آمادهٔ `warp-masque`
+اضافه می‌کند (یا outbound موجود را تازه می‌کند). ثبت WARP وایرگارد شما دست نمی‌خورد.
+برای راه‌اندازی دستی:
+
 **WARP** را در transport مربوط به masque روشن کنید تا به‌جای WireGuard از طریق endpoint
 مخصوص MASQUE به Cloudflare WARP برسید. این کار به یک ثبت‌نام WARP نیاز دارد که برای MASQUE
 ثبت شده باشد:

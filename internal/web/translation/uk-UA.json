@@ -2229,7 +2229,9 @@
         "warpPlusData": "WARP+ data",
         "quota": "Квота",
         "usage": "Використання",
-        "addOutbound": "Додати вихідний"
+        "addOutbound": "Додати вихідний",
+        "masqueDesc": "Реєструє окремий пристрій WARP для MASQUE; реєстрація WireGuard вище не змінюється.",
+        "addMasqueOutbound": "Додати аутбаунд WARP через MASQUE"
       },
       "dns": {
         "enable": "Увімкнути DNS",

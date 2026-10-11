@@ -2229,7 +2229,9 @@
         "warpPlusData": "بيانات WARP+",
         "quota": "الحصة",
         "usage": "الاستخدام",
-        "addOutbound": "إضافة صادر"
+        "addOutbound": "إضافة صادر",
+        "masqueDesc": "يسجّل جهاز WARP منفصلًا مخصصًا لـ MASQUE؛ ولا يتأثر تسجيل WireGuard أعلاه.",
+        "addMasqueOutbound": "إضافة outbound لـ WARP عبر MASQUE"
       },
       "dns": {
         "enable": "فعل DNS",

@@ -2229,7 +2229,9 @@
         "warpPlusData": "WARP+ 数据",
         "quota": "配额",
         "usage": "使用",
-        "addOutbound": "添加出站"
+        "addOutbound": "添加出站",
+        "masqueDesc": "为 MASQUE 单独注册一个 WARP 设备；上方的 WireGuard 注册不受影响。",
+        "addMasqueOutbound": "添加 WARP over MASQUE 出站"
       },
       "dns": {
         "enable": "启用 DNS",
