@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
@@ -16,24 +17,83 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-// SendReport sends a periodic report to admin chats.
-func (t *Tgbot) SendReport() {
-	runTime, err := t.settingService.GetTgbotRuntime()
-	if err == nil && len(runTime) > 0 {
-		msg := ""
+// reportHeader opens the report: the schedule it ran on and when.
+func (t *Tgbot) reportHeader(runTime string) string {
+	msg := ""
+	if runTime != "" {
 		msg += t.I18nBot("tgbot.messages.report", "RunTime=="+runTime)
-		msg += t.I18nBot("tgbot.messages.datetime", "DateTime=="+time.Now().Format("2006-01-02 15:04:05"))
-		t.SendMsgToTgbotAdmins(msg)
+	}
+	msg += t.I18nBot("tgbot.messages.datetime", "DateTime=="+time.Now().Format("2006-01-02 15:04:05"))
+	return msg
+}
+
+// SendReport sends the periodic report as ONE message per admin: a report that
+// arrived as a pile left every part but the last one undismissable.
+func (t *Tgbot) SendReport() {
+	if !t.IsRunning() {
+		return
+	}
+	runTime, err := t.settingService.GetTgbotRuntime()
+	if err != nil {
+		runTime = ""
+	}
+	body := t.reportHeader(runTime)
+	body += t.prepareServerUsageInfo()
+	if deplete := t.depleteReport(); deplete != "" {
+		body += "\r\n\r\n" + deplete
+	}
+	for _, adminID := range adminSnapshot() {
+		t.sendReport(adminID, body)
 	}
 
-	t.SendMsgToTgbotAdmins(t.prepareServerUsageInfo())
-
-	t.sendExhaustedToAdmins()
+	// Per-client alerts stay their own dismissable messages, one live card per
+	// client, rather than being folded into the report.
 	t.notifyExhausted()
 
 	backupEnable, err := t.settingService.GetTgBotBackup()
 	if err == nil && backupEnable {
 		t.SendBackupToAdmins()
+	}
+}
+
+// reportPrev tracks each chat's last report message, so a new run replaces it.
+var reportPrev = struct {
+	mu  sync.Mutex
+	msg map[int64]int
+}{msg: map[int64]int{}}
+
+func reportPrevGet(chatID int64) (int, bool) {
+	reportPrev.mu.Lock()
+	defer reportPrev.mu.Unlock()
+	id, ok := reportPrev.msg[chatID]
+	return id, ok
+}
+
+func reportPrevSet(chatID int64, id int) {
+	reportPrev.mu.Lock()
+	defer reportPrev.mu.Unlock()
+	reportPrev.msg[chatID] = id
+}
+
+// sendReport posts the report as one or more messages, every one of them
+// dismissable, and removes the previous run's message so the chat does not fill
+// with daily copies.
+func (t *Tgbot) sendReport(chatID int64, body string) {
+	if body == "" {
+		return
+	}
+	if prev, ok := reportPrevGet(chatID); ok {
+		t.deleteOwnMessage(chatID, prev)
+	}
+	last := 0
+	for _, chunk := range pageMessage(body, telegramPageLimit) {
+		id := t.sendNoticeReturningID(chatID, chunk)
+		if id != 0 {
+			last = id
+		}
+	}
+	if last != 0 {
+		reportPrevSet(chatID, last)
 	}
 }
 
@@ -74,18 +134,6 @@ func (t *Tgbot) SendBackupToAdmins() {
 		if i < len(admins)-1 {
 			time.Sleep(1 * time.Second)
 		}
-	}
-}
-
-// sendExhaustedToAdmins sends the depletion summary to each admin as a screen.
-func (t *Tgbot) sendExhaustedToAdmins() {
-	if !t.IsRunning() {
-		return
-	}
-	for _, adminId := range adminSnapshot() {
-		// A scheduled report must never edit the admin's screen — a cron landing on
-		// the add-client wizard would replace the draft — so it posts its own message.
-		t.sendNotice(adminId, t.depleteReport())
 	}
 }
 
@@ -247,7 +295,9 @@ func (t *Tgbot) notifyExhausted() {
 											output.WriteString(t.clientInfoMsg(&traffic, true, false, false, true, true, false))
 											output.WriteString("\r\n")
 										}
-										t.SendMsgToTgbot(chatID, output.String())
+										// The alert is routine and daily: give it the same dismiss the
+										// rest of the bot uses instead of a message a client cannot clear.
+										t.sendNotice(chatID, output.String())
 									}
 									chatIDsDone = append(chatIDsDone, chatID)
 								}

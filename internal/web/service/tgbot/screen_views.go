@@ -288,19 +288,25 @@ func (t *Tgbot) screenBanLogs(chatID int64) {
 // sendNotice posts a plain bot message that is explicitly not a screen: it
 // carries the hide button, and it never becomes the chat's tracked screen.
 func (t *Tgbot) sendNotice(chatID int64, text string) {
-	if liveBot() == nil {
-		return
+	t.sendNoticeReturningID(chatID, text)
+}
+
+// sendNoticeReturningID posts one dismissable message and hands back its id, so
+// the caller can replace it later instead of leaving copies behind.
+func (t *Tgbot) sendNoticeReturningID(chatID int64, text string) int {
+	if liveBot() == nil || text == "" {
+		return 0
 	}
-	for _, chunk := range pageMessage(text, telegramPageLimit) {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		_, err := liveBot().SendMessage(ctx, &telego.SendMessageParams{
-			ChatID: tu.ID(chatID), Text: chunk, ParseMode: "HTML", ReplyMarkup: t.hideButton(),
-		})
-		cancel()
-		if err != nil {
-			logger.Warning("Failed to send a notice:", err)
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	sent, err := liveBot().SendMessage(ctx, &telego.SendMessageParams{
+		ChatID: tu.ID(chatID), Text: text, ParseMode: "HTML", ReplyMarkup: t.hideButton(),
+	})
+	if err != nil {
+		logger.Warning("Failed to send a notice:", err)
+		return 0
 	}
+	return sent.MessageID
 }
 
 // sendBanLogsFile delivers the banned-IP log as a notice with a hide button.
