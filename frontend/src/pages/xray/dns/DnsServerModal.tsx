@@ -32,6 +32,7 @@ interface DnsServerModalProps {
 const STRATEGIES = DnsQueryStrategySchema.options;
 
 type DnsServerForm = {
+  id: string;
   address: string;
   port: number;
   domains: string[];
@@ -50,6 +51,7 @@ type DnsServerForm = {
 
 function defaultFormValues(): DnsServerForm {
   return {
+    id: '',
     address: 'localhost',
     port: 53,
     domains: [],
@@ -83,6 +85,7 @@ function valuesFromServer(server: DnsServerValue | null): DnsServerForm {
     skipFallback: data?.skipFallback ?? server.skipFallback ?? false,
     disableCache: data?.disableCache ?? server.disableCache ?? false,
     finalQuery: data?.finalQuery ?? server.finalQuery ?? false,
+    id: data?.id ?? server.id ?? '',
     tag: data?.tag ?? server.tag ?? '',
     clientIP: data?.clientIP ?? server.clientIP ?? '',
     serveStale: data?.serveStale ?? server.serveStale ?? false,
@@ -101,6 +104,7 @@ function valuesToWire(values: DnsServerForm): DnsServerValue {
     values.skipFallback === false &&
     values.disableCache === false &&
     values.finalQuery === false &&
+    !values.id &&
     !values.tag &&
     !values.clientIP &&
     values.serveStale === false &&
@@ -122,6 +126,7 @@ function valuesToWire(values: DnsServerForm): DnsServerValue {
     timeoutMs: values.timeoutMs,
   };
   if (!isEncryptedDnsAddress(values.address)) out.port = values.port;
+  if (values.id) out.id = values.id;
   if (values.tag) out.tag = values.tag;
   if (values.clientIP) out.clientIP = values.clientIP;
   return out as DnsServerValue;

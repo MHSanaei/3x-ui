@@ -1282,7 +1282,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskObjectsFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1423,8 +1423,8 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
-	if !slices.Contains(seedersHistory, "XdnsFinalmaskObjectsFix") {
-		if err := migrateXdnsFinalmaskObjects(); err != nil {
+	if !slices.Contains(seedersHistory, "XdnsFinalmaskNamesAddrsFix") {
+		if err := migrateXdnsFinalmaskShape(); err != nil {
 			return err
 		}
 	}
@@ -1928,9 +1928,9 @@ func strategyIsSet(value any) bool {
 	return s != "" && !strings.EqualFold(s, "asis")
 }
 
-// migrateXdnsFinalmaskObjects upgrades every stored xdns mask to the object shape
-// xray-core 26.9.30 requires, wherever the panel keeps a finalmask.
-func migrateXdnsFinalmaskObjects() error {
+// migrateXdnsFinalmaskShape upgrades every stored xdns mask to the names/addrs shape
+// xray-core 26.10.10 reads, wherever the panel keeps a finalmask.
+func migrateXdnsFinalmaskShape() error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		var inbounds []model.Inbound
 		if err := tx.Select("id", "stream_settings").Find(&inbounds).Error; err != nil {
@@ -1991,7 +1991,7 @@ func migrateXdnsFinalmaskObjects() error {
 				}
 			}
 		}
-		return tx.Create(&model.HistoryOfSeeders{SeederName: "XdnsFinalmaskObjectsFix"}).Error
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "XdnsFinalmaskNamesAddrsFix"}).Error
 	})
 }
 

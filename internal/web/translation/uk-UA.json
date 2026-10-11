@@ -1938,6 +1938,7 @@
         "serverNamePlaceholder": "ім'я сервера",
         "verifyPeerName": "Перевіряти ім'я peer",
         "pinnedSha256": "Pinned SHA256",
+        "useSystemCA": "Використовувати системні CA",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Інтервал keep alive",

@@ -1938,6 +1938,7 @@
         "serverNamePlaceholder": "tên máy chủ",
         "verifyPeerName": "Xác minh tên peer",
         "pinnedSha256": "SHA256 pinned",
+        "useSystemCA": "Dùng CA của hệ thống",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Khoảng keep alive",

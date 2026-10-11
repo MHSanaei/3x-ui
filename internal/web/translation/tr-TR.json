@@ -1938,6 +1938,7 @@
         "serverNamePlaceholder": "sunucu adı",
         "verifyPeerName": "Peer Adını Doğrula",
         "pinnedSha256": "Sabitlenmiş SHA256",
+        "useSystemCA": "Sistem CA'sını kullan",
         "shortId": "Kısa Kimlik",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Keep Alive Aralığı",

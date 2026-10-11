@@ -1938,6 +1938,7 @@
         "serverNamePlaceholder": "nama server",
         "verifyPeerName": "Verifikasi nama peer",
         "pinnedSha256": "SHA256 pinned",
+        "useSystemCA": "Gunakan CA sistem",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Interval keep alive",
