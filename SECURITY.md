@@ -12,6 +12,10 @@ repository's **Security** tab and click **Report a vulnerability**. Include
 the affected 3x-ui version, reproduction steps, and the impact you see.
 You will receive replies in the advisory thread.
 
+If you cannot use GitHub's private reporting, email the security contact
+at ho3ein.sanaei@gmail.com. Automated reports from Anthropic's OSS Scanner
+also go to this address.
+
 There is no bug-bounty program. Fixes ship in the next release, and the
 advisory is published after a fixed version is available.
 
