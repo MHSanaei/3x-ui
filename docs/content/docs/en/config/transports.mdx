@@ -135,7 +135,9 @@ client; XDRIVE inbounds get no share link or Clash entry.
 
 The optional **Front address/port** (the stream-level `address`/`port`) is a domain
 front the storage API is dialed through; TLS still names the API host. XDRIVE has
-no TLS/REALITY layer of its own — its traffic is the storage API's HTTPS.
+no TLS/REALITY layer of its own — its traffic is the storage API's HTTPS. On an
+outbound, **TLS** security shapes that HTTPS connection: its SNI, uTLS fingerprint
+and ALPN are what the storage API sees.
 
 ## FinalMask — late-layer obfuscation
 

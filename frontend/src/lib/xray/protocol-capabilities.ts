@@ -43,6 +43,15 @@ export function canEnableTls(values: CapabilityProtocolSlice): boolean {
   return TLS_NETWORKS.includes(values.streamSettings?.network ?? '');
 }
 
+// An XDRIVE outbound's tlsSettings shape only its HTTPS calls to the storage API (SNI, uTLS
+// fingerprint); xray-core 26.10.10 reads them on the dial side, never on a listener.
+export function canEnableOutboundTls(values: CapabilityProtocolSlice): boolean {
+  if (canEnableTls(values)) return true;
+  return (
+    TLS_ELIGIBLE_PROTOCOLS.includes(values.protocol) && values.streamSettings?.network === 'xdrive'
+  );
+}
+
 export function canEnableReality(values: CapabilityProtocolSlice): boolean {
   if (!REALITY_ELIGIBLE_PROTOCOLS.includes(values.protocol)) return false;
   return REALITY_NETWORKS.includes(values.streamSettings?.network ?? '');

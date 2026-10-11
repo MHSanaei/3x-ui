@@ -1,5 +1,5 @@
 import { rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
-import { canEnableReality, canEnableTls } from '@/lib/xray/protocol-capabilities';
+import { canEnableOutboundTls, canEnableReality } from '@/lib/xray/protocol-capabilities';
 import type { OutboundFormValues } from '@/schemas/forms/outbound-form';
 import { XDriveStreamSettingsSchema } from '@/schemas/protocols/stream/xdrive';
 
@@ -112,7 +112,7 @@ export function applyNetworkChange(
   if (next === 'masque') return masqueStreamSlice();
   const stream = prevStream ?? {};
   const currentSecurity = (stream.security as string) ?? 'none';
-  const stillTls = canEnableTls({
+  const stillTls = canEnableOutboundTls({
     protocol,
     streamSettings: { network: next, security: currentSecurity },
   });

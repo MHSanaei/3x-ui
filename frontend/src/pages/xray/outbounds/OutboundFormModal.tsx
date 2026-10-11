@@ -14,7 +14,7 @@ import { OutboundFormBaseSchema, type OutboundFormValues } from '@/schemas/forms
 import {
   canEnableReality,
   canEnableStream,
-  canEnableTls,
+  canEnableOutboundTls,
   canEnableTlsFlow,
 } from '@/lib/xray/protocol-capabilities';
 
@@ -111,7 +111,7 @@ export default function OutboundFormModal({
     | undefined;
 
   const streamAllowed = canEnableStream({ protocol });
-  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
+  const tlsAllowed = canEnableOutboundTls({ protocol, streamSettings: { network, security } });
   const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
   const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
 

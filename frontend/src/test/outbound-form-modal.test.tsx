@@ -379,6 +379,80 @@ describe('OutboundFormModal', () => {
   });
 });
 
+// xray-core 26.10.10 dials the XDRIVE storage API with the outbound's tlsSettings (SNI,
+// uTLS fingerprint), so switching a TLS outbound to XDRIVE must keep them.
+describe('OutboundFormModal XDRIVE TLS', () => {
+  it('keeps TLS when a TLS outbound moves to XDRIVE', async () => {
+    const onConfirm = vi.fn();
+    const queryClient = makeTestQueryClient();
+    const outbound = {
+      protocol: 'vless',
+      tag: 'drive-out',
+      settings: {
+        vnext: [
+          {
+            address: 'www.google.com',
+            port: 443,
+            users: [{ id: 'c9f0c2d0-0000-4000-8000-000000000000', encryption: 'none' }],
+          },
+        ],
+      },
+      streamSettings: {
+        network: 'tcp',
+        security: 'tls',
+        tlsSettings: { serverName: 'www.google.com', fingerprint: 'chrome' },
+      },
+    };
+    const tree = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <OutboundFormModal
+            open={open}
+            outbound={outbound}
+            existingTags={[]}
+            onClose={() => {}}
+            onConfirm={onConfirm}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(false));
+    rerender(tree(true));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    chooseOptionByLabel('Transmission', 'XDRIVE');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect((screen.getByRole('radio', { name: 'TLS' }) as HTMLInputElement).checked).toBe(true);
+    for (const [label, value] of [
+      ['Remote folder', 'xray-tunnel'],
+      ['Client ID', 'id.apps.googleusercontent.com'],
+      ['Client secret', 'client-secret'],
+      ['Refresh token', 'refresh-token'],
+    ]) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    }
+    const ok = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement;
+    await act(async () => {
+      fireEvent.click(ok);
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    const payload = onConfirm.mock.calls[0][0] as { streamSettings: Record<string, unknown> };
+    expect(payload.streamSettings).toMatchObject({
+      network: 'xdrive',
+      security: 'tls',
+      tlsSettings: { serverName: 'www.google.com', fingerprint: 'chrome' },
+    });
+  });
+});
+
 describe('OutboundFormModal MASQUE', () => {
   // xray-core refuses user/pass next to warp, and builds the WARP client certificate
   // from privateKey; a save that kept stale credentials or dropped a key never connects.

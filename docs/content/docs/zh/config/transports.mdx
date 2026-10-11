@@ -128,7 +128,8 @@ XDRIVE 把数据流作为文件存放在双方都能访问的文件夹中：服�
 | 调优参数       | 内核默认值     | `segmentBytes`（512 KiB）、`flushIntervalMs`（20）、`pollIntervalMs`/`maxPollIntervalMs`（50/500）、`eagerWindowMs`（2000）、`holeTimeoutMs`（30000）、`sessionTtlSeconds`（300）、`concurrency`（8）。 |
 
 可选的**前置地址/端口**（stream 级的 `address`/`port`）是连接存储 API 时使用的域前置；TLS 中仍使用 API 主机名。
-XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 HTTPS。
+XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 HTTPS。在出站上，**TLS**
+安全设置决定这条 HTTPS 连接：存储 API 看到的就是其中的 SNI、uTLS 指纹和 ALPN。
 
 ## FinalMask — 末层混淆
 
