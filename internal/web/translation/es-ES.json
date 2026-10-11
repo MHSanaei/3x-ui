@@ -1929,6 +1929,7 @@
         "serverNamePlaceholder": "nombre del servidor",
         "verifyPeerName": "Verificar nombre del peer",
         "pinnedSha256": "SHA256 pinned",
+        "useSystemCA": "Usar CA del sistema",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Intervalo keep alive",

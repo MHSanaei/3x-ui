@@ -1929,6 +1929,7 @@
         "serverNamePlaceholder": "サーバー名",
         "verifyPeerName": "peer 名を検証",
         "pinnedSha256": "Pinned SHA256",
+        "useSystemCA": "システムの CA を使用",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "keep alive 間隔",
