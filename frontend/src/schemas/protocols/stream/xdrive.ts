@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
-// XDRIVE tunnels the stream through files in shared cloud storage, so both ends
-// carry the same service, folder and secrets. Zero/absent tuning knobs take the
-// core's defaults; segmentBytes and concurrency are capped there at 16 MiB / 64.
+// Both XDRIVE ends carry the same service, folder and secrets; an absent tuning knob takes
+// the core's default (segmentBytes and concurrency are capped there at 16 MiB / 64).
 export const XDriveServiceSchema = z.enum(['Google Drive', 'local', 'template']);
 export type XDriveService = z.infer<typeof XDriveServiceSchema>;
 
