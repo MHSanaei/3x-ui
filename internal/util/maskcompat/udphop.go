@@ -51,7 +51,7 @@ func NormalizeUDPHop(finalmask any) bool {
 	if last < 0 || (hops == 1 && last == len(masks)-1) {
 		return false
 	}
-	kept := make([]any, 0, len(masks)-hops+1)
+	kept := make([]any, 0, len(masks)) // hops >= 1, so the re-appended hop still fits
 	for _, mask := range masks {
 		if !isUDPHopMask(mask) {
 			kept = append(kept, mask)
