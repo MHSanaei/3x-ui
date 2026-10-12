@@ -587,7 +587,8 @@ root → `go build ./...` / `go run main.go`.
 **CI** (`.github/workflows/`): `ci.yml` (build/test/lint), `codeql.yml` (security scan),
 `mutation.yml` (mutation testing), `docker.yml` + `release.yml`
 (multi-arch image + release builds), `cleanup_caches.yml`, `claude-pr-review.yml` (PR review
-only - it changes no code), `claude-issue-analyst.yml` (issue triage).
+only - it changes no code), `claude-issue-analyst.yml` (issue triage). A maintainer re-runs
+them with a comment starting `@claude review` on a PR or `@claude analyze` on an issue.
 
 ---
 
