@@ -500,7 +500,11 @@ func (s *SubService) getSubs(subId string) ([]string, []string, int64, xray.Clie
 			if client.Enable {
 				hasEnabledClient = true
 			}
-			effectiveEps, _ := s.clientHostEndpoints(inbound, client, "raw", hostEps)
+			effectiveEps, bound := s.clientHostEndpoints(inbound, client, "raw", hostEps)
+			if bound && len(effectiveEps) == 0 {
+				seenEmails[client.Email] = struct{}{}
+				continue
+			}
 			var link string
 			if len(effectiveEps) > 0 {
 				link = s.linkFromHosts(inbound, client, effectiveEps)
@@ -577,7 +581,10 @@ func (s *SubService) inboundLinks(inbound *model.Inbound) []string {
 			continue
 		}
 		seen[key] = struct{}{}
-		effectiveEps, _ := s.clientHostEndpoints(inbound, client, "raw", hostEps)
+		effectiveEps, bound := s.clientHostEndpoints(inbound, client, "raw", hostEps)
+		if bound && len(effectiveEps) == 0 {
+			continue
+		}
 		var link string
 		if len(effectiveEps) > 0 {
 			link = s.linkFromHosts(inbound, client, effectiveEps)

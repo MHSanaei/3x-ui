@@ -133,6 +133,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 	var header string
 	var hasInactiveExternal bool
 	var hasEnabledClient bool
+	var hasBoundClosed bool
 
 	seenEmails := make(map[string]struct{})
 	entries := make([]subConfigEntry, 0, len(inbounds))
@@ -164,11 +165,13 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			effective := inbound
 			var clone model.Inbound
 			if effectiveEps, hasBinding := subReq.clientHostEndpoints(inbound, client, "json", baseEps); hasBinding {
+				if len(effectiveEps) == 0 {
+					hasBoundClosed = true
+					continue
+				}
 				clone = *inbound
 				clone.StreamSettings = baseStream
-				if len(effectiveEps) > 0 {
-					injectExternalProxy(&clone, effectiveEps)
-				}
+				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
 			inboundConfigs = append(inboundConfigs, s.getConfig(subReq, effective, client, host)...)
@@ -228,7 +231,7 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		}
 	}
 
-	if len(configArray) == 0 && !hasInactiveExternal {
+	if len(configArray) == 0 && !hasInactiveExternal && !hasBoundClosed {
 		return "", "", nil
 	}
 

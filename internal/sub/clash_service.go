@@ -56,6 +56,7 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 	var proxies []map[string]any
 	var hasInactiveExternal bool
 	var hasEnabledClient bool
+	var hasBoundClosed bool
 
 	seenEmails := make(map[string]struct{})
 	for _, inbound := range inbounds {
@@ -83,11 +84,13 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 			effective := inbound
 			var clone model.Inbound
 			if effectiveEps, hasBinding := subReq.clientHostEndpoints(inbound, client, "clash", baseEps); hasBinding {
+				if len(effectiveEps) == 0 {
+					hasBoundClosed = true
+					continue
+				}
 				clone = *inbound
 				clone.StreamSettings = baseStream
-				if len(effectiveEps) > 0 {
-					injectExternalProxy(&clone, effectiveEps)
-				}
+				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone
 			}
 			proxies = append(proxies, s.getProxies(subReq, effective, client, host)...)
@@ -115,13 +118,18 @@ func (s *SubClashService) getClash(subId string, host string, legacy bool) (stri
 		}
 	}
 
-	if len(proxies) == 0 && !hasInactiveExternal {
+	if len(proxies) == 0 && !hasInactiveExternal && !hasBoundClosed {
 		return "", "", nil
 	}
 	if legacy {
-		proxies = legacyClashProxies(proxies)
-		if len(proxies) == 0 {
-			return "", "", errNoLegacyClashProxies
+		if hasBoundClosed && len(proxies) == 0 && !hasInactiveExternal {
+			// Fail-closed binding: zero proxies but accounting remains;
+			// fall through to the header path instead of a legacy error.
+		} else {
+			proxies = legacyClashProxies(proxies)
+			if len(proxies) == 0 {
+				return "", "", errNoLegacyClashProxies
+			}
 		}
 	}
 
