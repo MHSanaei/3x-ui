@@ -161,6 +161,10 @@ near-certain about and that actually breaks something:
 - A security finding traces the trust boundary the change sits on — who
   reaches the code, and what authorization, validation, escaping and
   privilege it assumes — against the existing code, not the hunk.
+- A finding triggered by a stored value — a setting, a host field, a client
+  limit — names who can store it: an unauthenticated caller, a client, or
+  only an authenticated admin or API token. "Any API client" when only an
+  admin can write the value overstates the risk.
 - A claim about what the change does to a caller or a callee needs that file
   read, not inferred from the hunk. A dispatch-rule violation rarely shows
   inside the diff — the changed line calls an innocuous helper and the
@@ -255,8 +259,8 @@ the panel already offers it or most of it (setting, inbound option, existing
 endpoint); whether it holds across the deployment shapes in "What HIGH means
 here" — multi-node, upgrade over an existing database, every link
 implementation — and which ones it leaves out. Then give one verdict: `Fits`,
-`Fits with gaps` or `Overlaps existing` — and under it a short **Design**
-section: in prose only, the ideas a senior engineer would raise about the
+`Fits with gaps` or `Overlaps existing` — and, after the tally, a short
+**Design** section: in prose only, the ideas a senior engineer would raise about the
 approach — a simpler model, an existing mechanism it could build on, a case
 the design does not cover, how an operator will meet it. Ideas, not
 instructions, and never code.
@@ -283,10 +287,11 @@ full base-to-head trace is for changes to what the panel does. Anything under
 
 ## What the comment must show
 
-Open with the verdict, then a one-line tally — `1 HIGH / 2 MEDIUM / 1 LOW, 1 pre-existing`,
-where a pre-existing finding counts only in its own bucket — so the author
-sees the shape of the review before the detail. When nothing is blocking,
-lead with `No blocking issues` and put the tally after it.
+Open with the verdict paragraph, then — before the Design section and
+everything else — a one-line tally: `1 HIGH / 2 MEDIUM / 1 LOW,
+1 pre-existing`, where a pre-existing finding counts only in its own bucket,
+so the author sees the shape of the review before the detail. When nothing is
+blocking, lead with `No blocking issues` and put the tally after it.
 
 The review is one plain comment, with no inline comments. Say each finding
 once, in full, under its severity and `file:line`.
