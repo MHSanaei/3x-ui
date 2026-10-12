@@ -42,22 +42,33 @@ func AttachUDPHandler(gstack *stack.Stack, handler UDPHandler) {
 	})
 }
 
-// WriteUDPReply injects a UDP packet into gstack as if it arrived from
-// `from` addressed to `to` -- i.e. a reply travelling back into the tunnel
-// toward the client -- constructed by hand since gVisor exposes no
-// connected-socket-style Write for an address the stack doesn't itself own.
+// WriteUDPReply sends replies through gVisor's network route,
+// which applies the NIC MTU and fragments locally generated IP datagrams.
 func WriteUDPReply(gstack *stack.Stack, from, to netip.AddrPort, payload []byte) error {
+	if !from.Addr().IsValid() || !to.Addr().IsValid() || from.Addr().Zone() != "" || to.Addr().Zone() != "" || from.Addr().Is4() != to.Addr().Is4() {
+		return fmt.Errorf("amneziawgnet: invalid UDP reply addresses: %s -> %s", from, to)
+	}
 	udpLen := header.UDPMinimumSize + len(payload)
+	if udpLen > 65535 {
+		return fmt.Errorf("amneziawgnet: UDP reply too large: %d bytes", udpLen)
+	}
 	srcIP := tcpip.AddrFromSlice(from.Addr().AsSlice())
 	dstIP := tcpip.AddrFromSlice(to.Addr().AsSlice())
 
-	isIPv4 := from.Addr().Is4()
 	ipHdrSize := header.IPv6MinimumSize
 	ipProtocol := header.IPv6ProtocolNumber
-	if isIPv4 {
+	if from.Addr().Is4() {
 		ipHdrSize = header.IPv4MinimumSize
 		ipProtocol = header.IPv4ProtocolNumber
+		if ipHdrSize+udpLen > 65535 {
+			return fmt.Errorf("amneziawgnet: IPv4 reply too large: %d bytes", ipHdrSize+udpLen)
+		}
 	}
+	route, tcpipErr := gstack.FindRoute(1, srcIP, dstIP, ipProtocol, false)
+	if tcpipErr != nil {
+		return fmt.Errorf("amneziawgnet: FindRoute: %s", tcpipErr)
+	}
+	defer route.Release()
 
 	pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
 		ReserveHeaderBytes: ipHdrSize + header.UDPMinimumSize,
@@ -72,31 +83,17 @@ func WriteUDPReply(gstack *stack.Stack, from, to netip.AddrPort, payload []byte)
 		Length:  uint16(udpLen),
 	})
 	xsum := header.PseudoHeaderChecksum(header.UDPProtocolNumber, srcIP, dstIP, uint16(udpLen))
-	udpHdr.SetChecksum(^udpHdr.CalculateChecksum(checksum.Checksum(payload, xsum)))
-
-	if isIPv4 {
-		ipHdr := header.IPv4(pkt.NetworkHeader().Push(header.IPv4MinimumSize))
-		ipHdr.Encode(&header.IPv4Fields{
-			TotalLength: uint16(header.IPv4MinimumSize + udpLen),
-			TTL:         64,
-			Protocol:    uint8(header.UDPProtocolNumber),
-			SrcAddr:     srcIP,
-			DstAddr:     dstIP,
-		})
-		ipHdr.SetChecksum(^ipHdr.CalculateChecksum())
-	} else {
-		ipHdr := header.IPv6(pkt.NetworkHeader().Push(header.IPv6MinimumSize))
-		ipHdr.Encode(&header.IPv6Fields{
-			PayloadLength:     uint16(udpLen),
-			TransportProtocol: header.UDPProtocolNumber,
-			HopLimit:          64,
-			SrcAddr:           srcIP,
-			DstAddr:           dstIP,
-		})
+	udpChecksum := ^udpHdr.CalculateChecksum(checksum.Checksum(payload, xsum))
+	if udpChecksum == 0 {
+		udpChecksum = 0xffff
 	}
+	udpHdr.SetChecksum(udpChecksum)
 
-	if tcpipErr := gstack.WriteRawPacket(1, ipProtocol, buffer.MakeWithView(pkt.ToView())); tcpipErr != nil {
-		return fmt.Errorf("amneziawgnet: WriteRawPacket: %s", tcpipErr)
+	if tcpipErr := route.WritePacket(stack.NetworkHeaderParams{
+		Protocol: header.UDPProtocolNumber,
+		TTL:      64,
+	}, pkt); tcpipErr != nil {
+		return fmt.Errorf("amneziawgnet: WritePacket: %s", tcpipErr)
 	}
 	return nil
 }

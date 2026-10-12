@@ -1193,6 +1193,15 @@ func vlessEncryptionEnabled(settings map[string]any) bool {
 	return false
 }
 
+// vlessClientEncryption reads the client-side VLESS encryption from inbound settings. Inbounds
+// stored without the field (older panels, API adds) mean "none", as the frontend schema does.
+func vlessClientEncryption(settings map[string]any) string {
+	if encryption, _ := settings["encryption"].(string); encryption != "" {
+		return encryption
+	}
+	return "none"
+}
+
 // vlessFlowAllowed mirrors inboundCanEnableTlsFlow in internal/web/service: Vision runs over
 // TLS/REALITY on raw TCP, or inside VLESS encryption on any transport.
 func vlessFlowAllowed(network, security string, settings map[string]any) bool {
@@ -1218,11 +1227,8 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	params := make(map[string]string)
 	params["type"] = streamNetwork
 
-	// Add encryption parameter for VLESS from inbound settings
 	settings := s.linkSettings(inbound)
-	if encryption, ok := settings["encryption"].(string); ok {
-		params["encryption"] = encryption
-	}
+	params["encryption"] = vlessClientEncryption(settings)
 
 	applyShareNetworkParams(stream, streamNetwork, params)
 	if finalmask, ok := stream["finalmask"].(map[string]any); ok {
