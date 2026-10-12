@@ -1681,7 +1681,7 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "clientHostRuleIds": {
-        "description": "ClientHostRuleIds is the canonical per-client host binding; each id renders its own link.\nNil means omitted (preserve); empty means clear.",
+        "description": "ClientHostRuleIds is the canonical per-client host binding; each id renders its own link.\nNil preserves, empty clears; no usable host yields empty subscription for that inbound.",
         "example": [
           1,
           2

@@ -29,7 +29,7 @@
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
-      "oxfmt",
+      "oxfmt --no-error-on-unmatched-pattern",
       "oxlint --fix"
     ]
   },

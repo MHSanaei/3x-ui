@@ -932,7 +932,7 @@ type Client struct {
 	// Nil or non-positive means no override (inbound rule applies).
 	ClientHostRuleId *int `json:"clientHostRuleId,omitempty" example:"1"`
 	// ClientHostRuleIds is the canonical per-client host binding; each id renders its own link.
-	// Nil means omitted (preserve); empty means clear.
+	// Nil preserves, empty clears; no usable host yields empty subscription for that inbound.
 	ClientHostRuleIds []int `json:"clientHostRuleIds,omitempty" example:"[1,2]"`
 	// AllowedIPsByInbound optionally overrides AllowedIPs on a per-inbound
 	// basis, keyed by inbound id. Lets one identity attached to both
