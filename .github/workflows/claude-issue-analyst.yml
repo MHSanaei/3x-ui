@@ -150,6 +150,18 @@ jobs:
                (`git log -S '<literal>' -- <path>`, `git blame -L`), give the
                short sha and subject.
 
+               Then MAP THE BUG CLASS. The reporter saw one path; the same wrong
+               decision is usually reached from several. Name the invariant the
+               bug breaks in one sentence ("a change to X must never Y"), then
+               find the SINK where it is broken - the function that makes the
+               wrong decision, not the caller the reporter hit - and Grep every
+               other path that reaches it: the other callers, the other jobs and
+               endpoints that send the same request, the retry or reconcile loop
+               that replays it, the bulk variant past its threshold. For each one
+               you confirm, note its file:line. An analysis that names only the
+               reported caller sends the maintainer to fix one path while the
+               siblings stay broken.
+
             5. CHECK WHETHER IT IS ALREADY FIXED. The reporter's version is
                almost never the tip. Compare their stated version against
                `gh release list -L 10`, then search forward:
@@ -215,7 +227,10 @@ jobs:
               for a screenshot - ask for the exact error text, the raw JSON, or
               the log lines.
             - Say what you could NOT determine and what would settle it. An
-              honest gap is worth more than a confident invention.
+              honest gap is worth more than a confident invention. But a gap is
+              for what the source cannot answer - runtime state, the reporter's
+              environment - never for a file you did not open: if reading one
+              more function settles it, read it.
 
             SEVERITY (exactly one):
             - Critical: security hole, data corruption or loss, authentication
@@ -388,6 +403,9 @@ jobs:
                 Root cause:     exact file, function and line and the triggering
                                 condition, or one sentence on why there is none.
                                 Name the introducing commit when you found it.
+                Same class:     every other path step 4 confirmed reaches the
+                                same root cause, each with file:line, or
+                                `None found` once you searched for them
                 Already fixed:  the commit and the release that carries it,
                                 "still present on the default branch", or
                                 `Not applicable`
@@ -400,9 +418,16 @@ jobs:
                                 that would settle it, or `None`
               A plain fenced code block naming the exact file, function and line
               is welcome. Never a ```suggestion``` block.
-            - `Suggested fix:` at most three sentences, and ONLY when the
+            - `Suggested fix:` at most four sentences, and ONLY when the
               verdict is Confirmed bug. It is a pointer for the maintainer, not
               a patch - do not write the diff and do not offer to implement it.
+              Point at the layer where ONE change closes the reported path AND
+              every `Same class:` path - usually the sink, not the reported
+              caller. Check the suggestion against what the code already does
+              there before writing it: per-operation caps and thresholds, an
+              existing batch endpoint, a peer running an older version. When a
+              narrower patch would only cover the reported path, say in one
+              clause what it would leave broken.
             - A feature request, a plain question or a documentation issue gets
               a prose answer in the style above with NO field scaffold - just
               the answer, and a `Verdict:` line.
