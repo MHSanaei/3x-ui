@@ -205,7 +205,17 @@ func parseVmess(link string) (*ParseResult, error) {
 				},
 			}
 		}
+	case "kcp":
+		applyTransport(stream, url.Values{"mtu": {strconv.Itoa(num(j["mtu"]))}, "tti": {strconv.Itoa(num(j["tti"]))}})
 	}
+
+	// The vmess object carries fm as-is and the mKCP header and seed as type and path.
+	maskParams := url.Values{"fm": {getString(j, "fm", "")}}
+	if network == "kcp" {
+		maskParams.Set("headerType", getString(j, "type", ""))
+		maskParams.Set("seed", getString(j, "path", ""))
+	}
+	applyFinalMask(stream, maskParams)
 
 	if security == "tls" {
 		tls := stream["tlsSettings"].(map[string]any)

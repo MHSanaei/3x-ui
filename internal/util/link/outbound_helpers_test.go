@@ -286,6 +286,11 @@ func mkcpLegacyMasks(t *testing.T, res *ParseResult) []mkcpMask {
 	return out
 }
 
+func vmessKcpLink(fields string) string {
+	inner := `{"v":"2","add":"h.com","port":443,"id":"11111111-2222-4333-8444-555555555555","net":"kcp","tls":"none",` + fields + `}`
+	return "vmess://" + base64.StdEncoding.EncodeToString([]byte(inner))
+}
+
 func TestParse_KcpShareParams(t *testing.T) {
 	// The emitter flattens one mkcp-legacy mask per field into headerType/seed; a merged
 	// mask drops the seed in xray-core (MkcpLegacy.Build), so import rebuilds them separately.
@@ -323,6 +328,20 @@ func TestParse_KcpShareParams(t *testing.T) {
 			wantMTU: 1350,
 			wantTTI: 20,
 		},
+		{
+			name:      "vmess header and seed from type and path",
+			link:      vmessKcpLink(`"type":"wechat-video","path":"secret-seed","mtu":1400,"tti":50`),
+			wantMTU:   1400,
+			wantTTI:   50,
+			wantMasks: []mkcpMask{{"", "secret-seed"}, {"wechat", ""}},
+		},
+		{
+			name:      "vmess fm mkcp-legacy mask wins over path",
+			link:      vmessKcpLink(`"type":"none","path":"s3cr3tSeed","mtu":1350,"tti":20,"fm":"{\"udp\":[{\"settings\":{\"header\":\"\",\"value\":\"s3cr3tSeed\"},\"type\":\"mkcp-legacy\"}]}"`),
+			wantMTU:   1350,
+			wantTTI:   20,
+			wantMasks: []mkcpMask{{"", "s3cr3tSeed"}},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -338,5 +357,17 @@ func TestParse_KcpShareParams(t *testing.T) {
 				t.Fatalf("mkcp-legacy masks = %v, want %v", got, c.wantMasks)
 			}
 		})
+	}
+}
+
+func TestParse_VmessFinalMask(t *testing.T) {
+	res, err := ParseLink(vmessKcpLink(`"type":"none","fm":"{\"udp\":[{\"settings\":{\"password\":\"obfspw123\"},\"type\":\"salamander\"}]}"`))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	udp := finalmaskUDP(t, res)
+	want := []any{map[string]any{"type": "salamander", "settings": map[string]any{"password": "obfspw123"}}}
+	if !reflect.DeepEqual(udp, want) {
+		t.Fatalf("finalmask.udp = %#v, want %#v", udp, want)
 	}
 }
