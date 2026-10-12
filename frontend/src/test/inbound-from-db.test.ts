@@ -226,12 +226,21 @@ describe('protocol-capability helpers with raw coerced shapes', () => {
         streamSettings: { network: 'xhttp', security: 'none' },
       }),
     ).toBe(false);
-    // vlessenc is XHTTP-only: TCP without tls/reality is not Vision-capable.
+    // xray-core runs Vision inside VLESS encryption on any transport, RAW and WS included.
+    for (const network of ['tcp', 'ws', 'grpc', 'xdrive']) {
+      expect(
+        canEnableTlsFlow({
+          protocol: 'vless',
+          settings: { decryption: dec, encryption: enc },
+          streamSettings: { network, security: 'none' },
+        }),
+      ).toBe(true);
+    }
     expect(
       canEnableTlsFlow({
         protocol: 'vless',
-        settings: { decryption: dec, encryption: enc },
-        streamSettings: { network: 'tcp', security: 'none' },
+        settings: { encryption: 'none' },
+        streamSettings: { network: 'ws', security: 'tls' },
       }),
     ).toBe(false);
   });

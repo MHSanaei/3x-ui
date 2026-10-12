@@ -74,10 +74,8 @@ export function canEnableTlsFlow(values: CapabilityProtocolSlice): boolean {
   // Classic XTLS Vision: raw TCP carried over TLS or REALITY.
   if (network === 'tcp' && (security === 'tls' || security === 'reality')) return true;
 
-  // vlessenc carries Vision over XHTTP without transport TLS.
-  if (network === 'xhttp' && hasVlessEncryption(values.settings)) return true;
-
-  return false;
+  // xray-core runs Vision inside VLESS encryption (encryption.CommonConn) on any transport.
+  return hasVlessEncryption(values.settings);
 }
 
 export function canEnableStream(values: { protocol: string }): boolean {

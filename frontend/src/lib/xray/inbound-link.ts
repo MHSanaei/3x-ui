@@ -503,10 +503,8 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     params.set('security', 'none');
   }
 
-  // XTLS Vision flow: TCP over tls/reality (classic) or XHTTP+vlessenc (the
-  // VLESS-level encryption stands in for transport TLS). Mirrors the backend's
-  // vlessFlowAllowed and the form's flow-field gating so panel link, share
-  // link and subscription agree.
+  // Same gate as the backend's vlessFlowAllowed and the form's flow field, so the
+  // panel link, share link and subscription agree.
   if (
     flow.length > 0 &&
     canEnableTlsFlow({
