@@ -215,12 +215,20 @@ jobs:
             `REVIEW.md` calls blocking.
 
             CI IS THE BUILD
-            You cannot build or test here, but CI already ran on the head. Read
-            its check runs with
+            You cannot build or test here; CI builds the head, and may still be
+            running or waiting for a maintainer to approve a fork's run. Read its
+            check runs once, near the end, with
             `gh api repos/${{ env.REPO }}/commits/${{ needs.prepare.outputs.sha }}/check-runs`
-            and report what they concluded instead of writing that verification
-            was unavailable. A required check that failed, or never ran on this
-            head, is itself a finding.
+            and report each as it stands: concluded, still running, or never
+            started. Never wait or poll for CI - nothing resumes this run. A
+            check that concluded in failure is a finding; one still running is
+            unverified, and the coverage list says so. A fork's run that is
+            waiting for approval (`action_required`) is not a finding against
+            the pull request - nothing its author can do starts it - so the
+            coverage list says CI awaits maintainer approval and that nothing
+            it covers is verified until a maintainer approves the run. A
+            finding of yours from an earlier round that said only this is
+            withdrawn on that ground.
 
             UPSTREAM SOURCE
             The xray-core module the base `go.mod` pins is unpacked read-only at
@@ -282,11 +290,14 @@ jobs:
             a maintainer, or withdrawn as wrong with the `file:line` that shows it.
 
             THE COMMENT
-            You post nothing yourself, and your token cannot write to GitHub.
-            The review is ONE plain comment: write its body to `/tmp/review.md`
-            with the Write tool - the only file you may write - and end your
-            turn; the workflow posts that file on the pull request afterwards.
-            A run that ends without writing it has failed. The comment opens
+            This run ends the moment you end your turn: nothing waits, polls or
+            resumes it, so the whole review happens in this one turn. You post
+            nothing yourself, and your token cannot write to GitHub. The review
+            is ONE plain comment: write its finished body to `/tmp/review.md`
+            with the Write tool - the only file you may write - as your last
+            action, never a placeholder or a draft. Whatever that file holds
+            when your turn ends is what the workflow posts; a run that ends
+            without the finished review in it has failed. The comment opens
             with the verdict, then the tally, carries the line
             `Reviewed head: ${{ needs.prepare.outputs.sha }}`, gives each
             finding in full with its `file:line`, and ends with the coverage list
@@ -378,8 +389,8 @@ jobs:
             || exit 0
           echo "skipped=true" >> "$GITHUB_OUTPUT"
           echo "::warning::No review of #${PR}: the Claude credential was refused, so nothing in this pull request was examined."
-      # The review never proposes code, so a fence is cut out before posting. The
-      # skip in `prepare` keys on the Reviewed head line, so it is never left out.
+      # A body without its own Reviewed head line is unfinished (run 38188509693
+      # posted a "placeholder"), and posting it would mark the PR as reviewed.
       - name: Post the review
         if: ${{ !cancelled() && steps.throttled.outputs.skipped != 'true' && steps.refused.outputs.skipped != 'true' }}
         env:
@@ -391,10 +402,13 @@ jobs:
             echo "::error::The review run ended without writing a review of ${HEAD_SHA} for #${PR}. Read the uploaded transcript before re-running."
             exit 1
           fi
+          if ! grep -qF "Reviewed head: ${HEAD_SHA}" "$BODY"; then
+            echo "::error::The review of ${HEAD_SHA} for #${PR} is unfinished: its body lacks the Reviewed head line, so nothing was posted. Read the uploaded transcript before re-running."
+            exit 1
+          fi
           out=$(mktemp)
           awk '/^[ \t]*(```|~~~)/ { if (!open) print "_[Code removed: this review does not propose code.]_"; open = !open; next } !open' \
             "$BODY" > "$out"
-          grep -qF "Reviewed head: ${HEAD_SHA}" "$out" || printf '\nReviewed head: %s\n' "$HEAD_SHA" >> "$out"
           gh pr comment "$PR" --repo "$REPO" --body-file "$out"
           if grep -qE '^[[:space:]]*(```|~~~)' "$BODY"; then
             echo "::error::Removed fenced code from the review of #${PR} before posting it: the review must not propose code."
