@@ -26,3 +26,9 @@ func TestFormatTraffic(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkFormatTraffic(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = FormatTraffic(1536 + int64(i%64)*1024)
+	}
+}
