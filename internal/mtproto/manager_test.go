@@ -345,10 +345,15 @@ func TestSecuredAndDCPoolFromSettings(t *testing.T) {
 	}{
 		{
 			name:     "secured",
-			settings: `{"secured":true,` + clients + `}`,
+			settings: `{"secured":true,"mtgSecuredWebBuild":true,` + clients + `}`,
 			secured:  true,
 			want:     []string{"\n[secured]\nenabled = true\n"},
 			unwanted: []string{"[dc-pool]"},
+		},
+		{
+			name:     "securedWithoutBuildFlag",
+			settings: `{"secured":true,` + clients + `}`,
+			unwanted: []string{"[secured]"},
 		},
 		{
 			name:     "poolWithSize",

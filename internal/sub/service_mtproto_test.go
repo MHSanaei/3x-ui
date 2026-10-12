@@ -186,8 +186,10 @@ func TestGenMtprotoLinkSecured(t *testing.T) {
 		secured string
 		want    []string
 	}{
-		{"secured", `"secured":true,`, []string{mtprotoTestSecret, mtprotoTestSecuredSecret}},
-		{"off", `"secured":false,`, []string{mtprotoTestSecret}},
+		{"secured", `"secured":true,"mtgSecuredWebBuild":true,`, []string{mtprotoTestSecret, mtprotoTestSecuredSecret}},
+		{"noBuildFlag", `"secured":true,`, []string{mtprotoTestSecret}},
+		{"buildFlagOff", `"secured":true,"mtgSecuredWebBuild":false,`, []string{mtprotoTestSecret}},
+		{"off", `"secured":false,"mtgSecuredWebBuild":true,`, []string{mtprotoTestSecret}},
 		{"absent", ``, []string{mtprotoTestSecret}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -227,7 +229,7 @@ func TestSecuredMtprotoLinksFollowHostEndpoint(t *testing.T) {
 		Protocol: model.MTProto,
 		Enable:   true,
 		Tag:      "mt-secured-host",
-		Settings: `{"secured":true,"clients":[{"email":"dd@mt","enable":true,"subId":"sub-secured","secret":"` + mtprotoTestSecret + `"}]}`,
+		Settings: `{"secured":true,"mtgSecuredWebBuild":true,"clients":[{"email":"dd@mt","enable":true,"subId":"sub-secured","secret":"` + mtprotoTestSecret + `"}]}`,
 	}
 	if err := db.Create(inbound).Error; err != nil {
 		t.Fatalf("create inbound: %v", err)
@@ -273,10 +275,11 @@ func TestGenMtprotoLinkWeb(t *testing.T) {
 		name, web string
 		want      string
 	}{
-		{"ddDefault", `"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com"},`, "tg://webproxy?secret=" + mtprotoTestSecuredSecret + "&server=web.example.com"},
-		{"plain", `"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com","secretMode":"plain"},`, "tg://webproxy?secret=" + plainKey + "&server=web.example.com"},
-		{"noBind", `"web":{"host":"web.example.com"},`, ""},
-		{"publicBind", `"web":{"bindTo":"0.0.0.0:18080","host":"web.example.com"},`, ""},
+		{"ddDefault", `"mtgSecuredWebBuild":true,"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com"},`, "tg://webproxy?secret=" + mtprotoTestSecuredSecret + "&server=web.example.com"},
+		{"plain", `"mtgSecuredWebBuild":true,"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com","secretMode":"plain"},`, "tg://webproxy?secret=" + plainKey + "&server=web.example.com"},
+		{"noBuildFlag", `"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com"},`, ""},
+		{"noBind", `"mtgSecuredWebBuild":true,"web":{"host":"web.example.com"},`, ""},
+		{"publicBind", `"mtgSecuredWebBuild":true,"web":{"bindTo":"0.0.0.0:18080","host":"web.example.com"},`, ""},
 		{"absent", ``, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

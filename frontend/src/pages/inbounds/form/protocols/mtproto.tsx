@@ -17,7 +17,7 @@ export default function MtprotoFields() {
     | undefined;
   const { data: outboundTags } = useOutboundTags({ excludeBlackhole: true });
   const f = (key: string) => t(`pages.inbounds.form.${key}`);
-  // Free-form lists (URLs, proxies, CIDRs, DC ids) are entered as tags; the
+  // Free-form lists (URLs, proxies, CIDRs) are entered as tags; the
   // dropdown stays closed because there is nothing to pick from.
   const tags = (placeholder: string) => (
     <Select
@@ -433,6 +433,14 @@ export default function MtprotoFields() {
         <Input allowClear placeholder="2001:db8::1" />
       </FormField>
       <FormField
+        name={['settings', 'mtgSecuredWebBuild']}
+        label={t('pages.inbounds.form.mtgSecuredWebBuild')}
+        tooltip={t('pages.inbounds.form.mtgSecuredWebBuildHint')}
+        valueProp="checked"
+      >
+        <Switch />
+      </FormField>
+      <FormField
         name={['settings', 'secured']}
         label={t('pages.inbounds.form.mtgSecured')}
         tooltip={t('pages.inbounds.form.mtgSecuredHint')}
@@ -457,13 +465,6 @@ export default function MtprotoFields() {
           <InputNumber min={1} max={64} placeholder="2" style={{ width: '100%' }} />
         </FormField>
       )}
-      {dcPoolEnabled &&
-        field(
-          ['dcPool', 'dcs'],
-          'mtgDcPoolDcs',
-          tags('1, 2, 3, 4, 5, -2, 203'),
-          'mtgDcPoolDcsHint',
-        )}
       <Collapse size="small" items={advanced} />
     </>
   );

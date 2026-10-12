@@ -30,9 +30,12 @@ type Options struct {
 
 	Network NetworkOptions `json:"network"`
 	Defense DefenseOptions `json:"defense"`
-	DCPool  DCPoolOptions  `json:"dcPool"`
 	Stats   StatsOptions   `json:"stats"`
 	Web     WebOptions     `json:"web"`
+
+	// SecuredWebBuild confirms the host's mtg-multi reads [secured] and [web] (v1.15.0 and
+	// earlier ignore both); without it neither those sections nor dd/WEB links are emitted.
+	SecuredWebBuild bool `json:"mtgSecuredWebBuild,omitempty"`
 
 	// ExtraTOML is free-form mtg config merged under the generated one: panel keys win,
 	// and forbiddenExtraKeys (clients, listener, API access) are dropped.
@@ -94,12 +97,6 @@ type PendingHandshakesOptions struct {
 	DryRun   bool `json:"dryRun,omitempty"`
 }
 
-// DCPoolOptions holds the pool knobs beyond enabled/size, which Instance
-// carries directly for compatibility with the first version of the settings.
-type DCPoolOptions struct {
-	DCs []int `json:"dcs,omitempty"`
-}
-
 type StatsOptions struct {
 	Prometheus PrometheusOptions `json:"prometheus"`
 	StatsD     StatsDOptions     `json:"statsd"`
@@ -141,8 +138,6 @@ func (w WebOptions) Enabled() bool {
 const (
 	// maxUint16 is the upper bound of mtg's TypeConcurrency (16-bit, > 0).
 	maxUint16 = math.MaxUint16
-	// DCPoolMaxDCs caps the DC list of the warm pool (mtg-multi DCPoolMaxDCs).
-	DCPoolMaxDCs = 32
 	// maxListEntries caps URL, proxy and CIDR lists so one inbound cannot make
 	// mtg fan out to an unbounded number of downloads or dialers.
 	maxListEntries = 32
@@ -156,6 +151,12 @@ var forbiddenExtraKeys = []string{
 	"secret", "secrets", "secret-limits", "secret-ad-tags",
 	"bind-to", "api-bind-to", "api-token",
 }
+
+// securedWebKeys are the sections only an mtg-multi build with secured / WEB mode reads.
+var securedWebKeys = []string{"secured", "web"}
+
+// needsSecuredWebBuild ends the errors of settings gated on SecuredWebBuild.
+const needsSecuredWebBuild = "needs an mtg-multi build with secured and WEB mode (turn on mtgSecuredWebBuild); mtg-multi v1.15.0 and earlier ignore it, so its links would not connect"
 
 var (
 	metricPrefixRe = regexp.MustCompile(`^[a-z0-9]+$`)
@@ -204,8 +205,6 @@ func (o *Options) checks(routeThroughXray bool) []optionCheck {
 		optionCheck{"defense.doppelganger.raidEach", "must be a positive duration", !validDuration(d.Doppelganger.RaidEach), func(o *Options) { o.Defense.Doppelganger.RaidEach = "" }},
 		optionCheck{"defense.pendingHandshakes.maxPerIp", fmt.Sprintf("must be between 0 and %d", maxUint16), d.PendingHandshakes.MaxPerIP < 0 || d.PendingHandshakes.MaxPerIP > maxUint16, func(o *Options) { o.Defense.PendingHandshakes.MaxPerIP = 0 }},
 
-		optionCheck{"dcPool.dcs", fmt.Sprintf("must hold at most %d distinct non-zero DC ids between -32768 and 32767", DCPoolMaxDCs), !validDCs(o.DCPool.DCs), func(o *Options) { o.DCPool.DCs = nil }},
-
 		optionCheck{"stats.prometheus.bindTo", "must be a loopback IP:port like 127.0.0.1:3129", s.Prometheus.BindTo != "" && !validLoopbackHostPort(s.Prometheus.BindTo), func(o *Options) { o.Stats.Prometheus = PrometheusOptions{} }},
 		optionCheck{"stats.prometheus.bindTo", "is required when Prometheus is enabled", s.Prometheus.Enabled && s.Prometheus.BindTo == "", func(o *Options) { o.Stats.Prometheus.Enabled = false }},
 		optionCheck{"stats.prometheus.httpPath", "must be a URL path like /metrics", !validHTTPPath(s.Prometheus.HTTPPath), func(o *Options) { o.Stats.Prometheus.HTTPPath = "" }},
@@ -223,6 +222,7 @@ func (o *Options) checks(routeThroughXray bool) []optionCheck {
 		optionCheck{"web.trustedProxies", fmt.Sprintf("must be at most %d CIDRs like 127.0.0.1/32", maxListEntries), !validList(w.TrustedProxies, validCIDR), func(o *Options) { o.Web.TrustedProxies = nil }},
 		optionCheck{"web.maxSessions", fmt.Sprintf("must be between 1 and %d", maxUint16), !validCount(w.MaxSessions), func(o *Options) { o.Web.MaxSessions = 0 }},
 		optionCheck{"web.maxPending", fmt.Sprintf("must be between 1 and %d", maxUint16), !validCount(w.MaxPending), func(o *Options) { o.Web.MaxPending = 0 }},
+		optionCheck{"web", needsSecuredWebBuild, w.Enabled() && !o.SecuredWebBuild, func(o *Options) { o.Web = WebOptions{} }},
 	)
 	if err := checkExtraTOML(o.ExtraTOML); err != nil {
 		c = append(c, optionCheck{"extraToml", err.Error(), true, func(o *Options) { o.ExtraTOML = "" }})
@@ -308,6 +308,7 @@ func WebEndpoint(settings string) (host, secretMode string, ok bool) {
 func ValidateSettings(settings string) error {
 	var raw struct {
 		RouteThroughXray bool `json:"routeThroughXray"`
+		Secured          bool `json:"secured"`
 		DCPool           *struct {
 			Size int `json:"size"`
 		} `json:"dcPool"`
@@ -325,7 +326,31 @@ func ValidateSettings(settings string) error {
 		}
 		return fmt.Errorf("mtproto settings: %w", err)
 	}
-	return o.Validate(raw.RouteThroughXray)
+	if err := o.Validate(raw.RouteThroughXray); err != nil {
+		return err
+	}
+	if o.SecuredWebBuild {
+		return nil
+	}
+	if raw.Secured {
+		return fmt.Errorf("mtproto secured %s", needsSecuredWebBuild)
+	}
+	if k := gatedExtraKey(o.ExtraTOML); k != "" {
+		return fmt.Errorf("mtproto extraToml may not set [%s]: it %s", k, needsSecuredWebBuild)
+	}
+	return nil
+}
+
+// SecuredEnabled reports whether the inbound serves secured (dd) clients: Secured is on
+// and the operator confirmed the mtg-multi build reads [secured].
+func SecuredEnabled(settings string) bool {
+	var raw struct {
+		Secured bool `json:"secured"`
+	}
+	if json.Unmarshal([]byte(settings), &raw) != nil || !raw.Secured {
+		return false
+	}
+	return ParseOptions(settings).SecuredWebBuild
 }
 
 func validCount(v int) bool { return v >= 0 && v <= maxUint16 }
@@ -447,23 +472,6 @@ func validCIDR(v string) bool {
 	return err == nil
 }
 
-func validDCs(dcs []int) bool {
-	if len(dcs) > DCPoolMaxDCs {
-		return false
-	}
-	seen := make(map[int]struct{}, len(dcs))
-	for _, dc := range dcs {
-		if dc == 0 || dc < math.MinInt16 || dc > math.MaxInt16 {
-			return false
-		}
-		if _, dup := seen[dc]; dup {
-			return false
-		}
-		seen[dc] = struct{}{}
-	}
-	return true
-}
-
 // checkExtraTOML accepts an empty block or a TOML document that does not set
 // any key the panel owns.
 func checkExtraTOML(extra string) error {
@@ -485,6 +493,21 @@ func checkExtraTOML(extra string) error {
 	return nil
 }
 
+// gatedExtraKey names a [secured] / [web] table the extra TOML sets, "" if none. Render
+// drops them without the build flag; save refuses them so the operator knows.
+func gatedExtraKey(extra string) string {
+	doc := map[string]any{}
+	if strings.TrimSpace(extra) == "" || toml.Unmarshal([]byte(extra), &doc) != nil {
+		return ""
+	}
+	for _, k := range securedWebKeys {
+		if _, ok := doc[k]; ok {
+			return k
+		}
+	}
+	return ""
+}
+
 // tomlQuote renders a basic TOML string. Values reaching it are validated to
 // be printable UTF-8, for which Go's quoting is valid TOML.
 func tomlQuote(v string) string {
@@ -497,14 +520,6 @@ func tomlStringArray(items []string) string {
 		quoted[i] = tomlQuote(it)
 	}
 	return "[" + strings.Join(quoted, ", ") + "]"
-}
-
-func tomlIntArray(items []int) string {
-	parts := make([]string, len(items))
-	for i, it := range items {
-		parts[i] = strconv.Itoa(it)
-	}
-	return "[" + strings.Join(parts, ", ") + "]"
 }
 
 // sectionWriter emits a [header] lazily, right before its first key, so a
@@ -658,7 +673,7 @@ func (o Options) writeSections(b *strings.Builder) {
 
 // mergeExtraTOML merges the extra block under the non-client head key by key, panel keys
 // winning. The result is re-encoded, so a block that adds nothing keeps the head as is.
-func mergeExtraTOML(head, extra string) (string, error) {
+func mergeExtraTOML(head, extra string, securedWebBuild bool) (string, error) {
 	if strings.TrimSpace(extra) == "" {
 		return head, nil
 	}
@@ -668,6 +683,11 @@ func mergeExtraTOML(head, extra string) (string, error) {
 	}
 	for _, k := range forbiddenExtraKeys {
 		delete(add, k)
+	}
+	if !securedWebBuild {
+		for _, k := range securedWebKeys {
+			delete(add, k)
+		}
 	}
 	if len(add) == 0 {
 		return head, nil

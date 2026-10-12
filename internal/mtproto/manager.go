@@ -238,9 +238,6 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		return Instance{}, false
 	}
 	opts := ParseOptions(settings).sanitized(parsed.RouteThroughXray)
-	if !parsed.DCPool.Enabled {
-		opts.DCPool.DCs = nil
-	}
 	return Instance{
 		Id:                     ib.Id,
 		Tag:                    ib.Tag,
@@ -258,7 +255,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		XrayRoutePort:          parsed.RouteXrayPort,
 		PublicIPv4:             strings.TrimSpace(parsed.PublicIPv4),
 		PublicIPv6:             strings.TrimSpace(parsed.PublicIPv6),
-		Secured:                parsed.Secured,
+		Secured:                parsed.Secured && opts.SecuredWebBuild,
 		DCPoolEnabled:          parsed.DCPool.Enabled,
 		DCPoolSize:             usableDCPoolSize(parsed.DCPool.Enabled, parsed.DCPool.Size),
 		Options:                opts,
@@ -563,7 +560,7 @@ func FreeLocalPort() (int, error) {
 // per-client sections last with [secrets] final, so no trailing key lands in another table.
 func renderConfig(inst Instance, apiPort int, apiToken string) string {
 	head := renderHead(inst, apiPort, apiToken)
-	if merged, err := mergeExtraTOML(head, inst.Options.ExtraTOML); err != nil {
+	if merged, err := mergeExtraTOML(head, inst.Options.ExtraTOML, inst.Options.SecuredWebBuild); err != nil {
 		logger.Warningf("mtproto: ignoring the extra TOML of inbound %d: %v", inst.Id, err)
 	} else {
 		head = merged
@@ -629,9 +626,6 @@ func renderHead(inst Instance, apiPort int, apiToken string) string {
 		b.WriteString("\n[dc-pool]\nenabled = true\n")
 		if inst.DCPoolSize > 0 {
 			fmt.Fprintf(&b, "size = %d\n", inst.DCPoolSize)
-		}
-		if len(inst.Options.DCPool.DCs) > 0 {
-			fmt.Fprintf(&b, "dcs = %s\n", tomlIntArray(inst.Options.DCPool.DCs))
 		}
 	}
 	inst.Options.writeSections(&b)

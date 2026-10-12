@@ -886,7 +886,7 @@ export function mtprotoWebSecret(secret: string, mode?: string): string {
 // WEB-mode link of an mtproto client, '' when the inbound does not serve it. It
 // targets the WEB domain behind the reverse proxy, so it is port-less and per-inbound.
 export function genMtprotoWebLink(inbound: Inbound, clientSecret: string): string {
-  if (inbound.protocol !== 'mtproto') return '';
+  if (inbound.protocol !== 'mtproto' || !inbound.settings.mtgSecuredWebBuild) return '';
   const web = inbound.settings.web;
   if (!web?.bindTo || !web.host) return '';
   const key = mtprotoWebSecret(clientSecret, web.secretMode);
@@ -1615,7 +1615,9 @@ export function genAllLinks(input: GenAllLinksInput): GenAllLinksEntry[] {
         }));
 
   const securedSecret =
-    inbound.protocol === 'mtproto' && inbound.settings.secured
+    inbound.protocol === 'mtproto' &&
+    inbound.settings.secured &&
+    inbound.settings.mtgSecuredWebBuild
       ? mtprotoSecuredSecret(client.secret ?? '')
       : '';
   const links = entries.flatMap((e) => {

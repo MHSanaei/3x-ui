@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { InboundPortSchema, SniffingSchema } from '@/schemas/primitives';
-import { InboundSettingsSchema } from '@/schemas/protocols/inbound';
+import { InboundSettingsSchema, mtprotoBuildGateIssues } from '@/schemas/protocols/inbound';
 import {
   TlsCertInlineSchema,
   TlsStreamSettingsSchema,
@@ -108,8 +108,15 @@ export type InboundFormBase = z.infer<typeof InboundFormBaseSchema>;
 
 // Full form values = base + db fields + protocol-discriminated settings.
 // Consumers narrow on `.protocol` to access the matching settings branch.
-export const InboundFormSchema =
-  InboundFormBaseSchema.and(InboundDbFieldsSchema).and(InboundSettingsSchema);
+// Save-time only: the stored-inbound schema must still read settings saved before the gate.
+export const InboundFormSchema = InboundFormBaseSchema.and(InboundDbFieldsSchema)
+  .and(InboundSettingsSchema)
+  .superRefine((form, ctx) => {
+    if (form.protocol !== 'mtproto') return;
+    for (const issue of mtprotoBuildGateIssues(form.settings)) {
+      ctx.addIssue({ code: 'custom', path: ['settings', ...issue.path], message: issue.message });
+    }
+  });
 export type InboundFormValues = z.infer<typeof InboundFormSchema>;
 
 export const FallbackRowSchema = z.object({

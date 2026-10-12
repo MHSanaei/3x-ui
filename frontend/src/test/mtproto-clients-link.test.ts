@@ -54,7 +54,7 @@ describe('mtproto multi-client link fan-out', () => {
 describe('mtproto secured (dd) links', () => {
   it('adds a dd link after each ee link when the inbound is secured', () => {
     const out = genInboundLinks({
-      inbound: mtprotoInbound({ secured: true }),
+      inbound: mtprotoInbound({ secured: true, mtgSecuredWebBuild: true }),
       remark: 'mt-mc',
       fallbackHostname: 'mt.example.test',
     });
@@ -68,7 +68,7 @@ describe('mtproto secured (dd) links', () => {
 
   it('labels the dd entry so the QR and info panels can tell it apart', () => {
     const entries = genAllLinks({
-      inbound: mtprotoInbound({ secured: true }),
+      inbound: mtprotoInbound({ secured: true, mtgSecuredWebBuild: true }),
       remark: 'mt-mc',
       client: { secret: 'ee0123456789abcdef0123456789abcdef7777772e636c6f7564666c6172652e636f6d' },
       fallbackHostname: 'mt.example.test',
@@ -78,10 +78,24 @@ describe('mtproto secured (dd) links', () => {
 
   it('emits no dd link when secured is off', () => {
     const out = genInboundLinks({
-      inbound: mtprotoInbound({ secured: false }),
+      inbound: mtprotoInbound({ secured: false, mtgSecuredWebBuild: true }),
       remark: 'mt-mc',
       fallbackHostname: 'mt.example.test',
     });
+    expect(out).not.toContain('secret=dd');
+  });
+
+  // The released mtg-multi ignores [secured]: without the build flag a dd link would not connect.
+  it.each([
+    ['absent', {}],
+    ['off', { mtgSecuredWebBuild: false }],
+  ])('emits no dd link while the build flag is %s', (_name, flag) => {
+    const out = genInboundLinks({
+      inbound: mtprotoInbound({ secured: true, ...flag }),
+      remark: 'mt-mc',
+      fallbackHostname: 'mt.example.test',
+    });
+    expect(out.split('\r\n')).toHaveLength(2);
     expect(out).not.toContain('secret=dd');
   });
 });

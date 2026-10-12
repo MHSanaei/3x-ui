@@ -45,7 +45,6 @@ func fullOptions() Options {
 			Doppelganger:      DoppelgangerOptions{URLs: []string{"https://cdn.example.com/a.js"}, RepeatsPerRaid: 10, RaidEach: "6h", DRS: true},
 			PendingHandshakes: PendingHandshakesOptions{MaxPerIP: 32, DryRun: true},
 		},
-		DCPool: DCPoolOptions{DCs: []int{1, 2, 3, 4, 5, -2, -4, 203}},
 		Stats: StatsOptions{
 			Prometheus: PrometheusOptions{Enabled: true, BindTo: "127.0.0.1:3129", HTTPPath: "/metrics", MetricPrefix: "mtg"},
 			StatsD:     StatsDOptions{Enabled: true, Address: "10.0.0.5:8125", MetricPrefix: "mtg", TagFormat: "influxdb"},
@@ -54,6 +53,7 @@ func fullOptions() Options {
 			BindTo: "127.0.0.1:18080", Host: "proxy.example.com", SecretMode: "plain", DecoyDir: "/var/www/decoy",
 			TrustedProxies: []string{"127.0.0.1/32", "::1/128"}, MaxSessions: 1024, MaxPending: 4096, Diag: true,
 		},
+		SecuredWebBuild: true,
 	}
 }
 
@@ -69,7 +69,7 @@ func TestRenderOptionGroups(t *testing.T) {
 		"\n[network.timeout]\ntcp = \"5s\"\nhttp = \"10s\"\nidle = \"5m\"\nhandshake = \"10s\"\n",
 		"\n[network.keep-alive]\ndisabled = true\nidle = \"15s\"\ninterval = \"15s\"\ncount = 9\n",
 		"\n[throttle]\nmax-connections = 100\ncheck-interval = \"10s\"\n",
-		"\n[dc-pool]\nenabled = true\nsize = 4\ndcs = [1, 2, 3, 4, 5, -2, -4, 203]\n",
+		"\n[dc-pool]\nenabled = true\nsize = 4\n",
 		"\n[defense.anti-replay]\nenabled = true\nmax-size = \"1mib\"\nerror-rate = 0.001\n",
 		"\n[defense.blocklist]\nenabled = true\ndownload-concurrency = 2\nurls = [\"https://iplists.firehol.org/files/firehol_level1.netset\"]\nupdate-each = \"24h\"\n",
 		"\n[defense.allowlist]\nenabled = true\nurls = [\"https://example.com/ru.netset\"]\nupdate-each = \"12h\"\n",
@@ -168,10 +168,11 @@ func TestValidateSettings(t *testing.T) {
 		`{"network":{"dns":"udp://8.8.8.8"},` + clients + `}`,
 		`{"network":{"tcpNotSentLowat":"4 MiB"},` + clients + `}`,
 		`{"defense":{"pendingHandshakes":{"maxPerIp":0}},` + clients + `}`,
-		`{"web":{"bindTo":"[::1]:18080","host":"proxy.example.com"},` + clients + `}`,
-		`{"dcPool":{"enabled":true,"dcs":[-32768,32767]},` + clients + `}`,
+		`{"mtgSecuredWebBuild":true,"web":{"bindTo":"[::1]:18080","host":"proxy.example.com"},` + clients + `}`,
+		`{"mtgSecuredWebBuild":true,"secured":true,` + clients + `}`,
+		`{"web":{"secretMode":"plain"},` + clients + `}`, // no listener: nothing to gate
 		`{"extraToml":"# only a comment\n",` + clients + `}`,
-		`{"extraToml":"usage-state-file = \"/var/lib/mtg/usage.json\"\n[web]\nmax-sessions-per-user = 4\n",` + clients + `}`,
+		`{"mtgSecuredWebBuild":true,"extraToml":"usage-state-file = \"/var/lib/mtg/usage.json\"\n[web]\nmax-sessions-per-user = 4\n",` + clients + `}`,
 	} {
 		if err := ValidateSettings(ok); err != nil {
 			t.Fatalf("%s: unexpected error %v", ok, err)
@@ -203,10 +204,6 @@ func TestValidateSettings(t *testing.T) {
 		{`{"defense":{"doppelganger":{"urls":["http://example.com/a.js"]}}}`, "defense.doppelganger.urls"},
 		{`{"defense":{"doppelganger":{"repeatsPerRaid":-1}}}`, "defense.doppelganger.repeatsPerRaid"},
 		{`{"defense":{"pendingHandshakes":{"maxPerIp":70000}}}`, "defense.pendingHandshakes.maxPerIp"},
-		{`{"dcPool":{"enabled":true,"dcs":[2,0]}}`, "dcPool.dcs"},
-		{`{"dcPool":{"enabled":true,"dcs":[2,-2,2]}}`, "dcPool.dcs"},
-		{`{"dcPool":{"enabled":true,"dcs":[40000]}}`, "dcPool.dcs"},
-		{`{"dcPool":{"enabled":true,"dcs":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33]}}`, "dcPool.dcs"},
 		{`{"dcPool":{"size":65}}`, "dcPool.size"},
 		{`{"stats":{"prometheus":{"enabled":true}}}`, "stats.prometheus.bindTo"},
 		{`{"stats":{"prometheus":{"enabled":true,"bindTo":"0.0.0.0:3129"}}}`, "stats.prometheus.bindTo"},
@@ -221,6 +218,11 @@ func TestValidateSettings(t *testing.T) {
 		{`{"web":{"decoyDir":"www/decoy"}}`, "web.decoyDir"},
 		{`{"web":{"trustedProxies":["10.0.0.1"]}}`, "web.trustedProxies"},
 		{`{"web":{"maxSessions":70000}}`, "web.maxSessions"},
+		{`{"secured":true}`, "secured needs an mtg-multi build"},
+		{`{"mtgSecuredWebBuild":false,"secured":true}`, "mtgSecuredWebBuild"},
+		{`{"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"}}`, "mtproto web needs an mtg-multi build"},
+		{`{"extraToml":"[secured]\nenabled = true\n"}`, "extraToml may not set [secured]"},
+		{`{"extraToml":"[web]\nbind-to = \"127.0.0.1:1\"\n"}`, "extraToml may not set [web]"},
 		{`{"extraToml":"concurrency = "}`, "extraToml"},
 		{`{"extraToml":"[secrets]\nmallory = \"ee00\"\n"}`, "extraToml"},
 		{`{"extraToml":"api-token = \"x\"\n"}`, "extraToml"},
@@ -242,7 +244,6 @@ func TestInstanceFromInboundSanitizesOptions(t *testing.T) {
 		`"defense":{"blocklist":{"enabled":true,"urls":["file:///etc/passwd"]}},` +
 		`"stats":{"prometheus":{"enabled":true,"bindTo":"0.0.0.0:3129"}},` +
 		`"web":{"bindTo":"0.0.0.0:80","host":"proxy.example.com"},` +
-		`"dcPool":{"enabled":false,"dcs":[2]},` +
 		`"extraToml":"[secrets]\nmallory = \"ee00\"\n",` +
 		`"clients":[{"email":"alice","secret":"` + optTestSecret + `","enable":true}]}`
 	inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Port: 443, Protocol: model.MTProto, Settings: settings})
@@ -251,7 +252,7 @@ func TestInstanceFromInboundSanitizesOptions(t *testing.T) {
 	}
 	o := inst.Options
 	if o.Concurrency != 0 || o.Network.DNS != "" || o.Defense.Blocklist.Enabled || o.Stats.Prometheus.Enabled ||
-		o.Web.BindTo != "" || o.ExtraTOML != "" || o.DCPool.DCs != nil {
+		o.Web.BindTo != "" || o.ExtraTOML != "" {
 		t.Fatalf("invalid options must be dropped: %+v", o)
 	}
 	if o.TolerateTimeSkewness != "5s" || o.Network.Timeout.Idle != "1m" {
@@ -270,7 +271,7 @@ func TestInstanceFromInboundReadsOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	settings := strings.TrimSuffix(string(raw), "}") +
-		`,"dcPool":{"enabled":true,"dcs":[1,2,3,4,5,-2,-4,203]},` +
+		`,"dcPool":{"enabled":true,"dcs":[1,2,3]},` + // a DC list from older settings is ignored
 		`"clients":[{"email":"alice","secret":"` + optTestSecret + `","enable":true}]}`
 	inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Port: 443, Protocol: model.MTProto, Settings: settings})
 	if !ok {
@@ -316,7 +317,7 @@ func TestOptionsFingerprint(t *testing.T) {
 		"doppelDRS":         func(o *Options) { o.Defense.Doppelganger.DRS = true },
 		"pendingMax":        func(o *Options) { o.Defense.PendingHandshakes.MaxPerIP = 8 },
 		"pendingDry":        func(o *Options) { o.Defense.PendingHandshakes.DryRun = true },
-		"dcs":               func(o *Options) { o.DCPool.DCs = []int{2} },
+		"securedWebBuild":   func(o *Options) { o.SecuredWebBuild = true },
 		"prometheus":        func(o *Options) { o.Stats.Prometheus.Enabled = true },
 		"prometheusBind":    func(o *Options) { o.Stats.Prometheus.BindTo = "127.0.0.1:1" },
 		"prometheusPath":    func(o *Options) { o.Stats.Prometheus.HTTPPath = "/m" },
@@ -349,7 +350,7 @@ func TestOptionsFingerprint(t *testing.T) {
 }
 
 func TestExtraTOMLMerge(t *testing.T) {
-	inst := optInstance(Options{Concurrency: 100, Network: NetworkOptions{DNS: "1.1.1.1"}})
+	inst := optInstance(Options{Concurrency: 100, Network: NetworkOptions{DNS: "1.1.1.1"}, SecuredWebBuild: true})
 	inst.Options.ExtraTOML = "concurrency = 5\n" + // the panel's value wins
 		"usage-state-file = \"/var/lib/mtg/usage.json\"\n" + // a key the panel does not write is added
 		"api-token = \"stolen\"\n" + // forbidden keys are dropped
@@ -398,5 +399,49 @@ func TestExtraTOMLNoopKeepsConfig(t *testing.T) {
 		if got != plain {
 			t.Fatalf("extra %q changed the config:\n got: %q\nwant: %q", extra, got, plain)
 		}
+	}
+}
+
+// Without the build flag neither the panel nor the extra TOML may emit [secured] or [web]:
+// the released mtg-multi ignores both, and links to them would not connect.
+func TestSecuredWebBuildGate(t *testing.T) {
+	const clients = `"clients":[{"email":"alice","secret":"` + optTestSecret + `","enable":true}]`
+	const modes = `"secured":true,"web":{"bindTo":"127.0.0.1:18080","host":"web.example.com"},` +
+		`"extraToml":"usage-state-file = \"/x\"\n[secured]\nenabled = true\n[web]\nmax-sessions-per-user = 4\n",`
+	for _, tc := range []struct {
+		name  string
+		flag  string
+		serve bool
+	}{
+		{"absent", ``, false},
+		{"off", `"mtgSecuredWebBuild":false,`, false},
+		{"on", `"mtgSecuredWebBuild":true,`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			settings := `{` + tc.flag + modes + clients + `}`
+			inst, ok := InstanceFromInbound(&model.Inbound{Id: 1, Port: 443, Protocol: model.MTProto, Settings: settings})
+			if !ok {
+				t.Fatal("expected a usable instance")
+			}
+			cfg := renderConfig(inst, 5000, "")
+			doc := assertValidMtgConfig(t, cfg)
+			_, hasSecured := doc["secured"]
+			_, hasWeb := doc["web"]
+			if inst.Secured != tc.serve || hasSecured != tc.serve || hasWeb != tc.serve {
+				t.Fatalf("secured=%v [secured]=%v [web]=%v, want all %v:\n%s", inst.Secured, hasSecured, hasWeb, tc.serve, cfg)
+			}
+			if doc["usage-state-file"] != "/x" {
+				t.Fatalf("other extra keys must survive the gate:\n%s", cfg)
+			}
+			if got := SecuredEnabled(settings); got != tc.serve {
+				t.Fatalf("SecuredEnabled = %v, want %v", got, tc.serve)
+			}
+			if _, _, got := WebEndpoint(settings); got != tc.serve {
+				t.Fatalf("WebEndpoint ok = %v, want %v", got, tc.serve)
+			}
+			if err := ValidateSettings(settings); (err == nil) != tc.serve {
+				t.Fatalf("ValidateSettings = %v, want an error only without the build flag", err)
+			}
+		})
 	}
 }

@@ -35,26 +35,10 @@ const LOOPBACK_HOSTPORT = /^(127(\.\d{1,3}){3}|\[::1\]):\d{1,5}$/;
 const LOOPBACK_MSG = 'pages.inbounds.form.mtgLoopbackOnly';
 const MAX_UINT16 = 65535;
 
-// [dc-pool]: warm connections per Telegram DC. `dcs` holds signed DC ids (negative =
-// media, 203 = CDN) and needs an mtg-multi build with a configurable DC set.
+// [dc-pool]: warm connections per Telegram DC; an unset size leaves the count to mtg.
 export const MtprotoDcPoolSchema = z.object({
   enabled: z.boolean().optional(),
   size: z.number().int().min(1).max(64).optional(),
-  dcs: z.preprocess(
-    (v) => (Array.isArray(v) && v.length === 0 ? undefined : unset(v)),
-    z
-      .array(
-        z.coerce
-          .number()
-          .int()
-          .min(-32768)
-          .max(32767)
-          .refine((n) => n !== 0),
-      )
-      .max(32)
-      .refine((a) => new Set(a).size === a.length, 'pages.inbounds.form.mtgDcPoolDcsDuplicate')
-      .optional(),
-  ),
 });
 export type MtprotoDcPool = z.infer<typeof MtprotoDcPoolSchema>;
 
@@ -209,9 +193,10 @@ export const MtprotoInboundSettingsSchema = z.object({
   // middle proxy needs when clients carry ad-tags; blank = mtg auto-detects.
   publicIpv4: z.string().optional(),
   publicIpv6: z.string().optional(),
-  // Both need an mtg-multi build that knows [secured] / [dc-pool]; older ones
-  // ignore the sections. An unset pool size leaves the per-DC count to mtg.
+  // Both need an mtg-multi build that knows [secured] / [dc-pool]; older ones ignore the
+  // sections. Secured and WEB also need mtgSecuredWebBuild, or no dd/WEB link is offered.
   secured: z.boolean().optional(),
+  mtgSecuredWebBuild: z.boolean().optional(),
   dcPool: MtprotoDcPoolSchema.optional(),
   // The remaining mtg-multi options; each is written only when set.
   concurrency: optInt(1, MAX_UINT16),
@@ -228,3 +213,19 @@ export const MtprotoInboundSettingsSchema = z.object({
   extraToml: z.preprocess(unset, z.string().max(65536).optional()),
 });
 export type MtprotoInboundSettings = z.infer<typeof MtprotoInboundSettingsSchema>;
+
+// The released mtg-multi (v1.15.0 and earlier) ignores [secured] and [web], so Secured
+// and the WEB listener are refused on save until the operator confirms the build serves them.
+export function mtprotoBuildGateIssues(
+  settings: Partial<MtprotoInboundSettings> | undefined,
+): Array<{ path: string[]; message: string }> {
+  if (!settings || settings.mtgSecuredWebBuild) return [];
+  const issues: Array<{ path: string[]; message: string }> = [];
+  if (settings.secured) {
+    issues.push({ path: ['secured'], message: 'pages.inbounds.form.mtgSecuredNeedsBuild' });
+  }
+  if (settings.web?.bindTo?.trim() && settings.web.host?.trim()) {
+    issues.push({ path: ['web', 'bindTo'], message: 'pages.inbounds.form.mtgWebNeedsBuild' });
+  }
+  return issues;
+}

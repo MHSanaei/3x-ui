@@ -185,6 +185,8 @@ func TestMtprotoOptionsValidatedOnSave(t *testing.T) {
 		`"extraToml":"[secrets]\nmallory = \"ee00\"\n",`:                   "mtproto extraToml",
 		`"extraToml":"concurrency = ",`:                                    "mtproto extraToml",
 		`"network":{"timeout":{"idle":"forever"}},`:                        "mtproto network.timeout.idle",
+		`"secured":true,`: "mtproto secured needs an mtg-multi build",
+		`"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"},`: "mtproto web needs an mtg-multi build",
 	} {
 		_, _, err := s.AddInbound(&model.Inbound{Port: 46311, Protocol: model.MTProto, Settings: settings(opts)})
 		if err == nil || !strings.HasPrefix(err.Error(), want) {
@@ -193,9 +195,13 @@ func TestMtprotoOptionsValidatedOnSave(t *testing.T) {
 	}
 
 	created, _, err := s.AddInbound(&model.Inbound{Port: 46312, Protocol: model.MTProto, Settings: settings(
-		`"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"},"extraToml":"usage-state-file = \"/var/lib/mtg/u.json\"\n",`)})
+		`"mtgSecuredWebBuild":true,"secured":true,"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"},"extraToml":"usage-state-file = \"/var/lib/mtg/u.json\"\n",`)})
 	if err != nil {
 		t.Fatalf("AddInbound with valid options: %v", err)
+	}
+	created.Settings = settings(`"secured":true,`)
+	if _, _, err := s.UpdateInbound(created); err == nil || !strings.HasPrefix(err.Error(), "mtproto secured needs an mtg-multi build") {
+		t.Fatalf("UpdateInbound with secured but no build flag: err = %v", err)
 	}
 	created.Settings = settings(`"defense":{"allowlist":{"enabled":true}},`)
 	if _, _, err := s.UpdateInbound(created); err == nil || !strings.HasPrefix(err.Error(), "mtproto defense.allowlist.urls") {

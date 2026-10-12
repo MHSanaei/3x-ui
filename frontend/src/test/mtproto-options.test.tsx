@@ -8,6 +8,7 @@ import { genAllLinks, genInboundLinks, mtprotoWebSecret } from '@/lib/xray/inbou
 import { parseLinkParts } from '@/lib/xray/link-label';
 import MtprotoFields from '@/pages/inbounds/form/protocols/mtproto';
 import { InboundSchema } from '@/schemas/api/inbound';
+import { InboundFormSchema } from '@/schemas/forms/inbound-form';
 import { MtprotoInboundSettingsSchema } from '@/schemas/protocols/inbound/mtproto';
 import { HttpUtil, Msg } from '@/utils';
 import { fieldLabels, renderWithProviders } from './test-utils';
@@ -41,7 +42,9 @@ describe('mtproto mtg options schema', () => {
         doppelganger: { urls: ['https://cdn.example.com/a.js'], repeatsPerRaid: 10, drs: true },
         pendingHandshakes: { maxPerIp: 32, dryRun: true },
       },
-      dcPool: { enabled: true, size: 4, dcs: [1, 2, -2, 203] },
+      dcPool: { enabled: true, size: 4 },
+      secured: true,
+      mtgSecuredWebBuild: true,
       stats: {
         prometheus: { enabled: true, bindTo: '127.0.0.1:3129', httpPath: '/metrics' },
         statsd: {
@@ -68,12 +71,11 @@ describe('mtproto mtg options schema', () => {
     expect(parsed.data).toMatchObject(settings);
   });
 
-  it('treats cleared inputs as unset and coerces DC tags to numbers', () => {
+  it('treats cleared inputs as unset', () => {
     const parsed = parse({
       concurrency: null,
       tolerateTimeSkewness: '',
       network: { proxies: [], timeout: { idle: '' } },
-      dcPool: { enabled: true, dcs: ['2', '-4', '203'] },
       web: { bindTo: '', host: '' },
       extraToml: '',
     });
@@ -82,7 +84,6 @@ describe('mtproto mtg options schema', () => {
     expect(parsed.data?.tolerateTimeSkewness).toBeUndefined();
     expect(parsed.data?.network?.proxies).toBeUndefined();
     expect(parsed.data?.network?.timeout?.idle).toBeUndefined();
-    expect(parsed.data?.dcPool?.dcs).toEqual([2, -4, 203]);
     expect(parsed.data?.web?.bindTo).toBeUndefined();
     expect(parsed.data?.extraToml).toBeUndefined();
   });
@@ -94,8 +95,6 @@ describe('mtproto mtg options schema', () => {
     ['non-socks proxy', { network: { proxies: ['http://10.0.0.1:3128'] } }],
     ['error rate of 100', { defense: { antiReplay: { errorRate: 100 } } }],
     ['plain-http doppelganger URL', { defense: { doppelganger: { urls: ['http://a.b/c'] } } }],
-    ['zero DC', { dcPool: { dcs: [2, 0] } }],
-    ['duplicate DC', { dcPool: { dcs: [2, 2] } }],
     ['public metrics listener', { stats: { prometheus: { bindTo: '0.0.0.0:3129' } } }],
     ['metric prefix with a dot', { stats: { statsd: { metricPrefix: 'mtg.' } } }],
     ['public WEB listener', { web: { bindTo: '0.0.0.0:18080' } }],
@@ -107,7 +106,7 @@ describe('mtproto mtg options schema', () => {
   });
 });
 
-function webInbound(web: Record<string, unknown> | undefined) {
+function webInbound(web: Record<string, unknown> | undefined, mtgSecuredWebBuild = true) {
   return InboundSchema.parse({
     id: 71,
     remark: 'mt-web',
@@ -115,6 +114,7 @@ function webInbound(web: Record<string, unknown> | undefined) {
     protocol: 'mtproto',
     settings: {
       fakeTlsDomain: 'www.cloudflare.com',
+      mtgSecuredWebBuild,
       ...(web ? { web } : {}),
       clients: [{ email: 'alice', secret: SECRET, enable: true }],
     },
@@ -168,6 +168,67 @@ describe('mtproto WEB links', () => {
       fallbackHostname: 'mt.example.test',
     });
     expect(out).not.toContain('webproxy');
+  });
+
+  it('emits no WEB link without the build flag', () => {
+    const out = genInboundLinks({
+      inbound: webInbound({ bindTo: '127.0.0.1:18080', host: 'web.example.com' }, false),
+      remark: 'mt-web',
+      fallbackHostname: 'mt.example.test',
+    });
+    expect(out).not.toContain('webproxy');
+  });
+});
+
+function saveMtproto(settings: Record<string, unknown>) {
+  return InboundFormSchema.safeParse({
+    port: 8443,
+    protocol: 'mtproto',
+    settings: { fakeTlsDomain: 'www.cloudflare.com', clients: [], ...settings },
+  });
+}
+
+const WEB_ON = { bindTo: '127.0.0.1:18080', host: 'web.example.com' };
+
+describe('mtproto secured / WEB build gate on save', () => {
+  it.each([
+    [
+      'secured',
+      { secured: true },
+      ['settings', 'secured'],
+      'pages.inbounds.form.mtgSecuredNeedsBuild',
+    ],
+    [
+      'WEB listener',
+      { web: WEB_ON },
+      ['settings', 'web', 'bindTo'],
+      'pages.inbounds.form.mtgWebNeedsBuild',
+    ],
+  ])('refuses %s without the build flag', (_name, settings, path, message) => {
+    const parsed = saveMtproto(settings);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues).toEqual([expect.objectContaining({ path, message })]);
+  });
+
+  it('accepts secured and WEB once the build flag is on', () => {
+    expect(saveMtproto({ secured: true, web: WEB_ON, mtgSecuredWebBuild: true }).success).toBe(
+      true,
+    );
+  });
+
+  it('accepts an inbound that uses neither mode without the flag', () => {
+    expect(saveMtproto({ secured: false, web: { host: 'web.example.com' } }).success).toBe(true);
+  });
+
+  // Stored inbounds saved before the gate still load; only the save path refuses them.
+  it('still reads a stored secured WEB inbound without the flag', () => {
+    const stored = InboundSchema.safeParse({
+      id: 72,
+      port: 8443,
+      protocol: 'mtproto',
+      settings: { secured: true, web: WEB_ON, clients: [] },
+    });
+    expect(stored.success).toBe(true);
   });
 });
 
@@ -274,13 +335,11 @@ describe('mtproto advanced settings form', () => {
     expect(fieldLabels()).toContain('Upstream SOCKS5 proxies');
   });
 
-  it('shows the DC list only for an enabled pool', () => {
+  it('offers the build flag next to Secured and no DC list for the pool', () => {
     renderFields({ dcPool: { enabled: true } });
-    expect(fieldLabels()).toContain('DCs to keep warm');
-  });
-
-  it('hides the DC list for a disabled pool', () => {
-    renderFields();
-    expect(fieldLabels()).not.toContain('DCs to keep warm');
+    const labels = fieldLabels();
+    expect(labels).toContain('mtg-multi serves Secured and WEB');
+    expect(labels).toContain('Connections per DC');
+    expect(labels).not.toContain('DCs to keep warm');
   });
 });

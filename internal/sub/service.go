@@ -1115,7 +1115,7 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 		return ""
 	}
 	secrets := []string{resolved.Secret}
-	if dd := model.MtprotoSecuredSecret(resolved.Secret); dd != "" && mtprotoSecuredEnabled(inbound.Settings) {
+	if dd := model.MtprotoSecuredSecret(resolved.Secret); dd != "" && mtproto.SecuredEnabled(inbound.Settings) {
 		secrets = append(secrets, dd)
 	}
 	endpoints := s.advertisedEndpoints(inbound)
@@ -1138,13 +1138,6 @@ func (s *SubService) genMtprotoLink(inbound *model.Inbound, email string) string
 		}
 	}
 	return strings.Join(links, "\n")
-}
-
-func mtprotoSecuredEnabled(settings string) bool {
-	var parsed struct {
-		Secured bool `json:"secured"`
-	}
-	return json.Unmarshal([]byte(settings), &parsed) == nil && parsed.Secured
 }
 
 // Protocol link generators are intentionally ordered as:
