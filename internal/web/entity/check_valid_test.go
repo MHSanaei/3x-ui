@@ -78,3 +78,28 @@ func TestCheckValidIPOrCIDRLists(t *testing.T) {
 		t.Errorf("trustedProxyCIDRs error = %v, want it to name the trusted-proxy list and the bad entry", err)
 	}
 }
+
+// A schedule the scheduler cannot parse used to be saved anyway, and the report
+// or sync job then silently never ran.
+func TestCheckValidSchedules(t *testing.T) {
+	set := map[string]func(*AllSetting, string){
+		"tgRunTime":      func(s *AllSetting, v string) { s.TgRunTime = v },
+		"discordRunTime": func(s *AllSetting, v string) { s.DiscordRunTime = v },
+		"ldapSyncCron":   func(s *AllSetting, v string) { s.LdapSyncCron = v },
+	}
+	for name, apply := range set {
+		for _, v := range []string{"", "@daily", "30 8 * * *", "0 30 8 * * *", "@every 1m"} {
+			s := &AllSetting{WebPort: 2053, SubPort: 2096}
+			apply(s, v)
+			if err := s.CheckValid(); err != nil {
+				t.Errorf("%s=%q: unexpected error %v", name, v, err)
+			}
+		}
+		s := &AllSetting{WebPort: 2053, SubPort: 2096}
+		apply(s, "every morning")
+		err := s.CheckValid()
+		if err == nil || !strings.Contains(err.Error(), name) {
+			t.Errorf("%s=%q: want an error naming %s, got %v", name, "every morning", name, err)
+		}
+	}
+}

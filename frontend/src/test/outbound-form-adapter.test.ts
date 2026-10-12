@@ -58,6 +58,7 @@ describe('outbound-form-adapter: round-trip', () => {
         flow: 'xtls-rprx-vision',
         encryption: 'none',
       },
+      streamSettings: { network: 'tcp', security: 'reality' },
     };
     const form = rawOutboundToFormValues(wire);
     expect(form.protocol).toBe('vless');
@@ -117,6 +118,64 @@ describe('outbound-form-adapter: round-trip', () => {
     const back = formValuesToWirePayload(form);
     const settings = back.settings as Record<string, unknown>;
     expect(settings.reverse).toMatchObject({ tag: 'rev-1' });
+  });
+
+  // The flow select hides off TCP+TLS/REALITY but keeps its value; xray then fails every dial.
+  it('vless drops a Vision flow its transport cannot carry, and lets mux back on', () => {
+    const outbound = (streamSettings: Record<string, unknown>) =>
+      formValuesToWirePayload(
+        rawOutboundToFormValues({
+          protocol: 'vless',
+          settings: {
+            address: 'srv',
+            port: 443,
+            id: '11111111-2222-4333-8444-555555555555',
+            flow: 'xtls-rprx-vision',
+            encryption: 'none',
+            testpre: 5,
+          },
+          streamSettings,
+          mux: { enabled: true, concurrency: 8 },
+        }),
+      );
+
+    const xdrive = outbound({
+      network: 'xdrive',
+      security: 'none',
+      xdriveSettings: { service: 'local', remoteFolder: '/tmp/shared' },
+    });
+    expect(xdrive.settings).toMatchObject({ flow: '' });
+    expect(xdrive.settings).not.toHaveProperty('testpre');
+    expect(xdrive.mux).toMatchObject({ enabled: true });
+
+    const ws = outbound({ network: 'ws', security: 'tls', wsSettings: { path: '/' } });
+    expect(ws.settings).toMatchObject({ flow: '' });
+
+    const reality = outbound({
+      network: 'tcp',
+      security: 'reality',
+      realitySettings: { serverName: 'a.example', publicKey: 'k', fingerprint: 'chrome' },
+    });
+    expect(reality.settings).toMatchObject({ flow: 'xtls-rprx-vision', testpre: 5 });
+    expect(reality).not.toHaveProperty('mux');
+  });
+
+  // VLESS encryption carries Vision on any transport; stripping it gets the server's "client flow is empty".
+  it('vless keeps a Vision flow over VLESS encryption on RAW without TLS', () => {
+    const wire = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'vless',
+        settings: {
+          address: 'srv',
+          port: 443,
+          id: '11111111-2222-4333-8444-555555555555',
+          flow: 'xtls-rprx-vision',
+          encryption: 'mlkem768x25519plus.native.0rtt.cbEXq-_hfkxDUex6HqmSaemEELvnFWc8qQ1MxlNDHnE',
+        },
+        streamSettings: { network: 'tcp', security: 'none' },
+      }),
+    );
+    expect(wire.settings).toMatchObject({ flow: 'xtls-rprx-vision' });
   });
 
   it('vless does not emit testpre/testseed unless flow is vision', () => {
@@ -543,6 +602,7 @@ describe('outbound-form-adapter: round-trip', () => {
           flow: 'xtls-rprx-vision',
           encryption: 'none',
         },
+        streamSettings: { network: 'tcp', security: 'reality' },
         mux: { enabled: true },
       }),
     );

@@ -1302,28 +1302,6 @@ export default function InboundInfoModal({
           ))}
         </>
       )}
-
-      {dbInbound.isSS && !inbound.isSSMultiUser && links.length > 0 && (
-        <>
-          <Divider>{t('pages.inbounds.copyLink')}</Divider>
-          {links.map((link, idx) => (
-            <div key={idx} className="link-panel">
-              <div className="link-panel-header">
-                <Tag color="green">{link.remark || `Link ${idx + 1}`}</Tag>
-                <Tooltip title={t('copy')}>
-                  <Button
-                    size="small"
-                    icon={<CopyOutlined />}
-                    aria-label={t('copy')}
-                    onClick={() => copyText(link.link, t)}
-                  />
-                </Tooltip>
-              </div>
-              <code className="link-panel-text">{link.link}</code>
-            </div>
-          ))}
-        </>
-      )}
     </>
   );
 

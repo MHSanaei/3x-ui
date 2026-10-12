@@ -114,37 +114,46 @@ func TestGetXrayConfig_UpgradesTemplateOutboundXdnsMask(t *testing.T) {
 	t.Fatal("outbound dns-tunnel not found in the generated config")
 }
 
-// A hysteria outbound pasted from a pre-26.9.9 template still carries quicParams.udpHop,
-// which the core now ignores; the build heal hands it the udphop mask instead.
-func TestGetXrayConfig_UpgradesTemplateOutboundUDPHop(t *testing.T) {
-	setupConflictDB(t)
-	template := `{"outbounds":[{"protocol":"freedom","tag":"direct"},{"protocol":"hysteria","tag":"hy-out",
-		"settings":{"version":2,"address":"hy.example.com","port":443},
-		"streamSettings":{"network":"hysteria","security":"tls","hysteriaSettings":{"version":2,"auth":"a"},
-			"finalmask":{"quicParams":{"udpHop":{"ports":"20000-30000","interval":"5-10"}}}}}]}`
-	if err := (&SettingService{}).saveSetting("xrayTemplateConfig", template); err != nil {
-		t.Fatalf("seed template: %v", err)
+// A template outbound pasted from before 26.9.9 carries quicParams.udpHop, which the core ignores,
+// and a hand-ordered udphop not last makes it refuse every dial; the build heals both.
+func TestGetXrayConfig_HealsTemplateOutboundUDPHop(t *testing.T) {
+	const hop = `{"settings":{"interval":"5-10","mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}`
+	const salamander = `{"settings":{"password":"s3cr3t"},"type":"salamander"}`
+	tests := []struct{ name, finalmask, want string }{
+		{"legacy quicParams.udpHop", `{"quicParams":{"udpHop":{"ports":"20000-30000","interval":"5-10"}}}`, `{"udp":[` + hop + `]}`},
+		{"udphop listed first", `{"udp":[` + hop + `,` + salamander + `]}`, `{"udp":[` + salamander + `,` + hop + `]}`},
 	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			setupConflictDB(t)
+			template := `{"outbounds":[{"protocol":"freedom","tag":"direct"},{"protocol":"hysteria","tag":"hy-out",
+				"settings":{"version":2,"address":"hy.example.com","port":443},
+				"streamSettings":{"network":"hysteria","security":"tls","hysteriaSettings":{"version":2,"auth":"a"},
+					"finalmask":` + tc.finalmask + `}}]}`
+			if err := (&SettingService{}).saveSetting("xrayTemplateConfig", template); err != nil {
+				t.Fatalf("seed template: %v", err)
+			}
 
-	cfg, err := (&XrayService{}).GetXrayConfig()
-	if err != nil {
-		t.Fatalf("GetXrayConfig: %v", err)
+			cfg, err := (&XrayService{}).GetXrayConfig()
+			if err != nil {
+				t.Fatalf("GetXrayConfig: %v", err)
+			}
+			var outbounds []map[string]any
+			if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
+				t.Fatalf("decode emitted outbounds: %v", err)
+			}
+			for _, outbound := range outbounds {
+				if outbound["tag"] != "hy-out" {
+					continue
+				}
+				stream, _ := outbound["streamSettings"].(map[string]any)
+				got, _ := json.Marshal(stream["finalmask"])
+				if string(got) != tc.want {
+					t.Fatalf("emitted finalmask\n got: %s\nwant: %s", got, tc.want)
+				}
+				return
+			}
+			t.Fatal("outbound hy-out not found in the generated config")
+		})
 	}
-	var outbounds []map[string]any
-	if err := json.Unmarshal(cfg.OutboundConfigs, &outbounds); err != nil {
-		t.Fatalf("decode emitted outbounds: %v", err)
-	}
-	for _, outbound := range outbounds {
-		if outbound["tag"] != "hy-out" {
-			continue
-		}
-		stream, _ := outbound["streamSettings"].(map[string]any)
-		got, _ := json.Marshal(stream["finalmask"])
-		const want = `{"udp":[{"settings":{"interval":"5-10","mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
-		if string(got) != want {
-			t.Fatalf("emitted finalmask\n got: %s\nwant: %s", got, want)
-		}
-		return
-	}
-	t.Fatal("outbound hy-out not found in the generated config")
 }
