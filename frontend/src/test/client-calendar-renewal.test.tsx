@@ -50,7 +50,9 @@ it('preserves monthly clients, previews backend dates, and saves exclusive weekl
     );
     const mode = screen.getByLabelText('Auto renewal');
     expect(mode.closest('.ant-select')?.textContent).toContain('Calendar monthly');
-    await waitFor(() => expect(document.body.textContent).toContain('2029-12-31T23:59:59+08:00'));
+    await waitFor(() =>
+      expect(document.body.textContent).toContain('2029-12-31 23:59:59 UTC+08:00'),
+    );
     expect(post).toHaveBeenCalledWith(
       '/panel/api/clients/renewalPreview',
       expect.objectContaining({ resetMax: 3, resetCount: 2 }),

@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
@@ -640,6 +641,9 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		if finalmask, ok := newStream["finalmask"].(map[string]any); ok {
 			newStream["finalmask"] = withLegacyFragmentRanges(finalmask)
 		}
+		// A host's legacy hop still needs the mask; the last-merged hop, the host's, wins.
+		maskcompat.UpgradeLegacyUDPHop(newStream["finalmask"])
+		maskcompat.NormalizeUDPHop(newStream["finalmask"])
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
 		hostMux := hostMuxOverride(extPrxy)
 
@@ -663,6 +667,8 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 			newOutbounds = append(newOutbounds, s.genServer(subReq, inbound, streamSettings, client, jsonMux(mux, hostMux)))
 		case "hysteria":
 			newOutbounds = append(newOutbounds, s.genHy(inbound, newStream, client, jsonMux(mux, hostMux)))
+		case "masque":
+			newOutbounds = append(newOutbounds, s.genMasque(inbound, newStream, client))
 		case "wireguard":
 			wgOutbound := s.genWireguard(inbound, client)
 			if wgOutbound == nil {
@@ -710,6 +716,8 @@ func (s *SubJsonService) streamData(stream string, clientKey string) map[string]
 	}
 	delete(streamSettings, "sockopt")
 
+	// The inbound's own hop range becomes a mask first, so the global default yields to it.
+	maskcompat.UpgradeLegacyUDPHop(streamSettings["finalmask"])
 	if s.finalMask != "" {
 		s.applyGlobalFinalMask(streamSettings)
 	}
@@ -748,6 +756,10 @@ func (s *SubJsonService) applyGlobalFinalMask(streamSettings map[string]any) {
 	var fm map[string]any
 	if err := json.Unmarshal([]byte(s.finalMask), &fm); err != nil || len(fm) == 0 {
 		return
+	}
+	// The global hop range is a default: an inbound that advertises its own keeps it.
+	if maskcompat.HasUDPHopMask(streamSettings["finalmask"]) {
+		fm = maskcompat.WithoutUDPHop(fm)
 	}
 	merged := mergeFinalMask(streamSettings["finalmask"], fm)
 	if len(merged) > 0 {
@@ -873,15 +885,11 @@ func (s *SubJsonService) genVless(subReq *SubService, inbound *model.Inbound, st
 	}
 	outbound.StreamSettings = streamSettings
 
-	// Add encryption for VLESS outbound from inbound settings
-	inboundSettings := subReq.linkSettings(inbound)
-	encryption, _ := inboundSettings["encryption"].(string)
-
 	settings := map[string]any{
 		"address":    inbound.Listen,
 		"port":       inbound.Port,
 		"id":         client.ID,
-		"encryption": encryption,
+		"encryption": vlessClientEncryption(subReq.linkSettings(inbound)),
 		"level":      8,
 	}
 	if client.Flow != "" && !inbound.DisableFlow {
@@ -999,10 +1007,38 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 	if finalmask, ok := hyStream["finalmask"].(map[string]any); ok {
 		newStream["finalmask"] = mergeFinalMask(newStream["finalmask"], finalmask)
 	}
+	maskcompat.UpgradeLegacyUDPHop(newStream["finalmask"])
+	maskcompat.NormalizeUDPHop(newStream["finalmask"])
 
 	newStream["network"] = "hysteria"
 	newStream["security"] = "tls"
 
+	outbound.StreamSettings, _ = json.MarshalIndent(newStream, "", "  ")
+
+	result, _ := json.MarshalIndent(outbound, "", "  ")
+	return result
+}
+
+// genMasque builds the client side of a MASQUE inbound: the server reads only the
+// path, and authenticates the CONNECT-IP request by the client's email and password.
+func (s *SubJsonService) genMasque(inbound *model.Inbound, newStream map[string]any, client model.Client) json_util.RawMessage {
+	outbound := Outbound{
+		Protocol: string(inbound.Protocol),
+		Tag:      "proxy",
+		Settings: map[string]any{
+			"address": inbound.Listen,
+			"port":    inbound.Port,
+		},
+	}
+	masqueSettings := map[string]any{"user": client.Email, "pass": client.Password}
+	if server, ok := newStream["masqueSettings"].(map[string]any); ok {
+		if path, ok := server["path"].(string); ok && path != "" {
+			masqueSettings["path"] = path
+		}
+	}
+	newStream["masqueSettings"] = masqueSettings
+	newStream["network"] = "masque"
+	newStream["security"] = "tls"
 	outbound.StreamSettings, _ = json.MarshalIndent(newStream, "", "  ")
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")

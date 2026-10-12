@@ -1,6 +1,7 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound';
+import { canEnableTlsFlow } from '@/lib/xray/protocol-capabilities';
 import {
   dropEmptyFinalMask,
   normalizeStreamSettingsForWire,
@@ -18,6 +19,7 @@ import type {
   FreedomOutboundFormSettings,
   HttpOutboundFormSettings,
   HysteriaOutboundFormSettings,
+  MasqueOutboundFormSettings,
   LoopbackOutboundFormSettings,
   MuxForm,
   OutboundFormSettings,
@@ -310,6 +312,14 @@ function hysteriaFromWire(raw: Raw): HysteriaOutboundFormSettings {
     address: asString(raw.address),
     port: asPort(raw.port, 443),
     version: 2,
+  };
+}
+
+function masqueFromWire(raw: Raw): MasqueOutboundFormSettings {
+  return {
+    address: asString(raw.address),
+    port: asPort(raw.port, 443),
+    remoteDNS: asArray(raw.remoteDNS).filter((v): v is string => typeof v === 'string'),
   };
 }
 
@@ -618,6 +628,9 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     case 'hysteria':
       typed = { protocol: 'hysteria', settings: hysteriaFromWire(settings) };
       break;
+    case 'masque':
+      typed = { protocol: 'masque', settings: masqueFromWire(settings) };
+      break;
     case 'freedom':
       typed = {
         protocol: 'freedom',
@@ -780,6 +793,15 @@ function hysteriaToWire(s: HysteriaOutboundFormSettings) {
   return { address: s.address, port: s.port, version: s.version };
 }
 
+function masqueToWire(s: MasqueOutboundFormSettings) {
+  const remoteDNS = s.remoteDNS.filter(Boolean);
+  return {
+    address: s.address,
+    port: s.port,
+    remoteDNS: remoteDNS.length > 0 ? remoteDNS : undefined,
+  };
+}
+
 function freedomToWire(s: FreedomOutboundFormSettings) {
   // Legacy semantics: emit fragment only when the user actually populated
   // at least one of the four sub-fields. Defaults like packets='1-3' alone
@@ -857,7 +879,7 @@ function loopbackToWire(s: LoopbackOutboundFormSettings) {
 
 // canEnableMux mirrors the legacy Outbound.canEnableMux().
 const MUX_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
-const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria']);
+const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria', 'masque']);
 
 function dropEmptyStrings(obj: Raw): Raw {
   const out: Raw = {};
@@ -881,10 +903,23 @@ function stripUiOnlyStreamFields(stream: unknown): Raw {
   return normalizeStreamSettingsForWire(next, { side: 'outbound' }) as Raw;
 }
 
+// The flow select only hides off a Vision-capable transport; its stale value must not reach xray.
+export function effectiveVlessFlow(
+  settings: Pick<VlessOutboundFormSettings, 'flow' | 'encryption'>,
+  stream: { network?: string; security?: string } | undefined,
+): string {
+  const allowed = canEnableTlsFlow({
+    protocol: 'vless',
+    settings: { encryption: settings.encryption },
+    streamSettings: { network: stream?.network, security: stream?.security },
+  });
+  return allowed ? settings.flow : '';
+}
+
 function muxAllowed(values: OutboundFormValues): boolean {
   if (!MUX_PROTOCOLS.has(values.protocol)) return false;
   const flow =
-    values.protocol === 'vless' ? (values.settings as VlessOutboundFormSettings).flow : '';
+    values.protocol === 'vless' ? effectiveVlessFlow(values.settings, values.streamSettings) : '';
   if (flow) return false;
   const network =
     values.streamSettings && 'network' in values.streamSettings
@@ -903,7 +938,10 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
       settings = vmessToWire(values.settings);
       break;
     case 'vless':
-      settings = vlessToWire(values.settings);
+      settings = vlessToWire({
+        ...values.settings,
+        flow: effectiveVlessFlow(values.settings, values.streamSettings),
+      });
       break;
     case 'trojan':
       settings = trojanToWire(values.settings);
@@ -925,6 +963,9 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
       break;
     case 'hysteria':
       settings = hysteriaToWire(values.settings);
+      break;
+    case 'masque':
+      settings = masqueToWire(values.settings);
       break;
     case 'freedom':
       settings = freedomToWire(values.settings);

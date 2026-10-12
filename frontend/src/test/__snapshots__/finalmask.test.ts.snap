@@ -38,6 +38,107 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses combined byte-stably 1`
 }
 `;
 
+exports[`FinalMaskStreamSettingsSchema fixtures > parses header-custom-variables byte-stably 1`] = `
+{
+  "tcp": [
+    {
+      "settings": {
+        "clients": [
+          [
+            {
+              "capture": "nonce",
+              "delay": 0,
+              "rand": 8,
+              "type": "array",
+            },
+            {
+              "delay": 0,
+              "packet": "HELLO",
+              "type": "str",
+            },
+          ],
+        ],
+        "errors": [
+          [
+            {
+              "delay": 0,
+              "packet": "DENIED",
+              "type": "str",
+            },
+          ],
+        ],
+        "servers": [
+          [
+            {
+              "delay": 0,
+              "reuse": "nonce",
+            },
+            {
+              "delay": 0,
+              "transform": {
+                "args": [
+                  {
+                    "bytes": "OK ",
+                    "type": "str",
+                  },
+                  {
+                    "reuse": "nonce",
+                  },
+                ],
+                "op": "concat",
+              },
+            },
+          ],
+        ],
+      },
+      "type": "header-custom",
+    },
+  ],
+  "udp": [
+    {
+      "settings": {
+        "client": [
+          {
+            "capture": "token",
+            "rand": 8,
+            "type": "array",
+          },
+        ],
+        "mode": "standalone",
+        "server": [
+          {
+            "reuse": "token",
+          },
+        ],
+      },
+      "type": "header-custom",
+    },
+    {
+      "settings": {
+        "ascii": "prefer_entropy",
+        "paddingMax": 7,
+        "paddingMin": 2,
+        "password": "s3cr3t",
+      },
+      "type": "sudoku",
+    },
+    {
+      "settings": {
+        "noise": [
+          {
+            "delay": "10-16",
+            "rand": "10-20",
+            "type": "array",
+          },
+        ],
+        "reset": "60-120",
+      },
+      "type": "noise",
+    },
+  ],
+}
+`;
+
 exports[`FinalMaskStreamSettingsSchema fixtures > parses quic-params byte-stably 1`] = `
 {
   "quicParams": {
@@ -274,14 +375,18 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-mask byte-stably 1`
         "domains": [
           {
             "edns0": 1232,
-            "name": "example.com",
+            "names": [
+              "example.com",
+            ],
             "types": [
               16,
             ],
           },
           {
             "edns0": 1232,
-            "name": "example.org",
+            "names": [
+              "example.org",
+            ],
             "types": [
               1,
             ],
@@ -289,10 +394,9 @@ exports[`FinalMaskStreamSettingsSchema fixtures > parses udp-mask byte-stably 1`
         ],
         "resolvers": [
           {
-            "settings": {
-              "addr": "1.1.1.1:53",
-            },
-            "type": "udp",
+            "addrs": [
+              "udp://1.1.1.1:53",
+            ],
           },
         ],
       },

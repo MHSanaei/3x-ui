@@ -297,6 +297,18 @@ export default function DnsTab({ templateSettings, setTemplateSettings }: DnsTab
                     />
                   }
                 />
+                <SettingListItem
+                  paddings="small"
+                  title={t('pages.xray.dns.script')}
+                  description={t('pages.xray.dns.scriptDesc')}
+                  control={
+                    <Input
+                      value={dns?.script ?? ''}
+                      placeholder="dns.lua"
+                      onChange={(e) => setDnsField('script', e.target.value, true)}
+                    />
+                  }
+                />
                 {(
                   [
                     [

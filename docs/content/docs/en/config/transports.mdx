@@ -1,6 +1,6 @@
 ---
 title: Transports & Security
-description: Every transport 3x-ui exposes — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria — with their settings, plus FinalMask obfuscation, sockopt, TLS/REALITY, XTLS-Vision, and VLESS encryption.
+description: Every transport 3x-ui exposes — TCP, mKCP, WebSocket, gRPC, HTTPUpgrade, XHTTP, Hysteria, XDRIVE, MASQUE — with their settings, plus FinalMask obfuscation, sockopt, TLS/REALITY, XTLS-Vision, and VLESS encryption.
 icon: Network
 ---
 
@@ -23,6 +23,8 @@ network writes its own settings key on the wire (`tcpSettings`, `kcpSettings`, �
 | **HTTPUpgrade** | `httpupgradeSettings` | CDN-friendly HTTP/1.1 `Upgrade`; lighter than full WebSocket.          |
 | **XHTTP**       | `xhttpSettings`       | Modern stream-multiplexed HTTP transport; CDN-friendly and REALITY-capable. |
 | **Hysteria**    | `hysteriaSettings`    | QUIC-based transport — only for the **Hysteria2** protocol.            |
+| **XDRIVE**      | `xdriveSettings`      | Tunnels the stream through files in shared cloud storage (Google Drive, a local folder or any HTTP storage API). |
+| **MASQUE**      | `masqueSettings`      | CONNECT-IP over HTTP/3 or HTTP/2 — only for the **MASQUE** protocol. See [MASQUE](/docs/config/masque). |
 
 <Callout type="info">
   **WireGuard** and **Tunnel** (dokodemo-door) inbounds expose no transport
@@ -116,6 +118,27 @@ Only valid when the protocol is **Hysteria2**.
 | `udpIdleTimeout` | `60`    | Seconds (2–600) before idle UDP sessions are dropped.                   |
 | `masquerade`     | —       | Disguise as an HTTP/3 server: `type` `proxy`/`file`/`string` with `url`/`dir`/`content`, plus `headers` and `statusCode`. |
 
+### XDRIVE — `xdriveSettings`
+
+XDRIVE carries the stream as files in a folder both ends can reach: the server polls
+that folder instead of accepting connections on its port. Both sides must use the
+**same** service, folder and secrets, so the JSON subscription ships them to every
+client; XDRIVE inbounds get no share link or Clash entry.
+
+| Field          | Default        | Meaning                                                                 |
+| -------------- | -------------- | ----------------------------------------------------------------------- |
+| `service`      | `Google Drive` | `Google Drive`, `local` (a folder on disk) or `template` (any HTTP storage API). |
+| `remoteFolder` | —              | Folder that holds the session files.                                    |
+| `secrets`      | —              | Google Drive: ClientID, ClientSecret, RefreshToken — exactly three, in that order. Template: values read as `{secret0}`, `{secret1}`, …. |
+| `template`     | —              | Template service only: the storage API's `auth`, `put`, `get`, `list` and `delete` operations. |
+| tuning         | core defaults  | `segmentBytes` (512 KiB), `flushIntervalMs` (20), `pollIntervalMs`/`maxPollIntervalMs` (50/500), `eagerWindowMs` (2000), `holeTimeoutMs` (30000), `sessionTtlSeconds` (300), `concurrency` (8). |
+
+The optional **Front address/port** (the stream-level `address`/`port`) is a domain
+front the storage API is dialed through; TLS still names the API host. XDRIVE has
+no TLS/REALITY layer of its own — its traffic is the storage API's HTTPS. On an
+outbound, **TLS** security shapes that HTTPS connection: its SNI, uTLS fingerprint
+and ALPN are what the storage API sees.
+
 ## FinalMask — late-layer obfuscation
 
 **FinalMask** wraps traffic **after** the transport and security layers, so it can
@@ -126,11 +149,16 @@ TLS. Masks are configured per direction:
   stream as Minecraft protocol traffic; requires a password, with optional
   hostname and player usernames).
 - **UDP masks** — `salamander`, `mkcp-legacy`, `header-custom`, `xdns`, `xicmp`,
-  `noise`, `sudoku`, `realm`. (`mkcp-legacy` reproduces the old mKCP header
-  obfuscation.)
+  `noise`, `sudoku`, `realm`, plus the client-only `udphop`. (`mkcp-legacy`
+  reproduces the old mKCP header obfuscation; `udphop` rotates the remote port —
+  and optionally the remote IP — on an interval or per connection to dodge port
+  blocking.)
 - **QUIC params** — congestion control (`reno`, `bbr`, `brutal`, `force-brutal`),
-  Brutal up/down rates, `udpHop` (rotate the QUIC port across a range to dodge
-  port blocking), and receive-window tuning.
+  Brutal up/down rates, and receive-window tuning. On an inbound, **UDP Hop** sets
+  the port range advertised to clients (the share link's `mport` and the JSON
+  subscription's `udphop` mask); the server still listens on its own port. Since
+  Xray 26.9.9 a client hops only through the `udphop` mask, so the panel converts
+  an older client `quicParams.udpHop` to it.
 
 FinalMask replaces the per-transport `header`/`seed` obfuscation that older Xray
 builds exposed.
@@ -176,7 +204,7 @@ The `xtls-rprx-vision` flow is fast and DPI-resistant. It's available for
 
 - the transport is raw **TCP** with **TLS** or **REALITY** security (classic
   XTLS-Vision), or
-- the transport is **XHTTP** with VLESS encryption enabled (see below).
+- VLESS encryption is enabled, on any transport (see below).
 
 Set the flow on the VLESS **client**, not the inbound. With classic Vision on
 TCP, the panel can also offer a **Vision seed** once a client uses the flow.
@@ -185,14 +213,15 @@ TCP, the panel can also offer a **Vision seed** once a client uses the flow.
 
 VLESS supports post-quantum **encryption** (ML-KEM / `mlkem768x25519`), stored in
 the inbound's `decryption` (server) and clients' `encryption` (for link
-generation). When enabled, it unlocks the Vision flow over XHTTP. Generate the
+generation). When enabled, it unlocks the Vision flow on any transport. Generate the
 keys from the panel's VLESS settings.
 
 ## Shadowsocks ciphers
 
 Shadowsocks inbounds support both classic ciphers and **Shadowsocks-2022**
-(method names starting with `2022-blake3-`). Most ciphers are multi-user;
-`2022-blake3-chacha20-poly1305` is single-user.
+(method names starting with `2022-blake3-`). `2022-blake3-chacha20-poly1305` is not
+offered for inbounds: Xray-core supports it only without users, and every panel
+inbound has clients. Outbounds can still use it.
 
 <Callout type="info">
   Transports and security must match on both ends. The client's share link

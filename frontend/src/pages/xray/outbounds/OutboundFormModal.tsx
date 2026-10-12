@@ -8,18 +8,20 @@ import { JsonEditor } from '@/components/form';
 import { Wireguard } from '@/utils';
 import { formValuesToWirePayload, rawOutboundToFormValues } from '@/lib/xray/outbound-form-adapter';
 import { parseOutboundLink } from '@/lib/xray/outbound-link-parser';
+import XDriveForm from '@/lib/xray/forms/transport/XDriveForm';
 import { XMUX_FRESH_DEFAULTS } from '@/schemas/protocols/stream/xhttp';
 import { OutboundFormBaseSchema, type OutboundFormValues } from '@/schemas/forms/outbound-form';
 import {
   canEnableReality,
   canEnableStream,
-  canEnableTls,
+  canEnableOutboundTls,
   canEnableTlsFlow,
 } from '@/lib/xray/protocol-capabilities';
 
 import {
   FLOW_OPTIONS,
   HYSTERIA_NETWORK_OPTION,
+  MASQUE_NETWORK_OPTION,
   NETWORK_OPTIONS,
   PROTOCOL_OPTIONS,
   SERVER_PROTOCOLS,
@@ -29,6 +31,7 @@ import {
   applyNetworkChange,
   buildAddModeValues,
   hysteriaStreamSlice,
+  masqueStreamSlice,
   newStreamSlice,
 } from './outbound-form-helpers';
 import {
@@ -37,6 +40,7 @@ import {
   FreedomFields,
   HttpFields,
   LoopbackFields,
+  MasqueFields,
   ServerTarget,
   ShadowsocksFields,
   SocksFields,
@@ -51,6 +55,7 @@ import {
   HttpUpgradeForm,
   HysteriaForm,
   KcpForm,
+  MasqueForm,
   MuxForm,
   RawForm,
   SockoptForm,
@@ -99,16 +104,25 @@ export default function OutboundFormModal({
     '') as string;
   const security = (useWatch({ control: methods.control, name: 'streamSettings.security' }) ??
     'none') as string;
-  const flow = (useWatch({ control: methods.control, name: 'settings.flow' }) ?? '') as string;
+  const storedFlow = (useWatch({ control: methods.control, name: 'settings.flow' }) ??
+    '') as string;
+  const encryption = useWatch({ control: methods.control, name: 'settings.encryption' }) as
+    | string
+    | undefined;
   const reverseTag = useWatch({ control: methods.control, name: 'settings.reverseTag' });
   const wgSecretKey = useWatch({ control: methods.control, name: 'settings.secretKey' }) as
     | string
     | undefined;
 
   const streamAllowed = canEnableStream({ protocol });
-  const tlsAllowed = canEnableTls({ protocol, streamSettings: { network, security } });
+  const tlsAllowed = canEnableOutboundTls({ protocol, streamSettings: { network, security } });
   const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
-  const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
+  const tlsFlowAllowed = canEnableTlsFlow({
+    protocol,
+    settings: { encryption },
+    streamSettings: { network, security },
+  });
+  const flow = tlsFlowAllowed ? storedFlow : '';
 
   /*
    * Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
@@ -162,6 +176,16 @@ export default function OutboundFormModal({
   }, [streamAllowed, network, protocol, methods]);
 
   useEffect(() => {
+    if (protocol !== 'masque') return;
+    if (network === 'masque' && security === 'tls') return;
+    const existing = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
+    const slice = masqueStreamSlice();
+    if (existing.masqueSettings) slice.masqueSettings = existing.masqueSettings;
+    if (existing.tlsSettings) slice.tlsSettings = existing.tlsSettings;
+    methods.setValue('streamSettings', slice as StreamValue);
+  }, [protocol, network, security, methods]);
+
+  useEffect(() => {
     if (protocol !== 'hysteria') return;
     if (network === 'hysteria' && security === 'tls') return;
     const existing = (methods.getValues('streamSettings') ?? {}) as Record<string, unknown>;
@@ -193,9 +217,12 @@ export default function OutboundFormModal({
       const nextProtocol = methods.getValues('protocol');
       const next = rawOutboundToFormValues({ protocol: nextProtocol });
       methods.setValue('settings', next.settings);
+      const currentNetwork = methods.getValues('streamSettings.network') ?? '';
       if (nextProtocol === 'hysteria') {
         methods.setValue('streamSettings', hysteriaStreamSlice() as StreamValue);
-      } else if ((methods.getValues('streamSettings.network') ?? '') === 'hysteria') {
+      } else if (nextProtocol === 'masque') {
+        methods.setValue('streamSettings', masqueStreamSlice() as StreamValue);
+      } else if (currentNetwork === 'hysteria' || currentNetwork === 'masque') {
         methods.setValue('streamSettings', {
           ...newStreamSlice('tcp'),
           security: 'none',
@@ -436,6 +463,7 @@ export default function OutboundFormModal({
                       {protocol === 'shadowsocks' && <ShadowsocksFields />}
                       {protocol === 'http' && <HttpFields />}
                       {protocol === 'socks' && <SocksFields />}
+                      {protocol === 'masque' && <MasqueFields />}
 
                       {protocol === 'loopback' && <LoopbackFields />}
                       {protocol === 'blackhole' && <BlackholeFields />}
@@ -469,7 +497,9 @@ export default function OutboundFormModal({
                               options={
                                 protocol === 'hysteria'
                                   ? [HYSTERIA_NETWORK_OPTION]
-                                  : NETWORK_OPTIONS
+                                  : protocol === 'masque'
+                                    ? [MASQUE_NETWORK_OPTION]
+                                    : NETWORK_OPTIONS
                               }
                             />
                           </Form.Item>
@@ -487,6 +517,10 @@ export default function OutboundFormModal({
                           {network === 'xhttp' && <XhttpForm onXmuxToggle={onXmuxToggle} />}
 
                           {network === 'hysteria' && <HysteriaForm />}
+
+                          {network === 'xdrive' && <XDriveForm />}
+
+                          {network === 'masque' && <MasqueForm />}
                         </>
                       )}
 
@@ -502,7 +536,7 @@ export default function OutboundFormModal({
 
                       {/* Vision seed knobs only meaningful for the exact
                           xtls-rprx-vision flow, on TCP+(tls|reality). */}
-                      {tlsFlowAllowed && flow === 'xtls-rprx-vision' && (
+                      {flow === 'xtls-rprx-vision' && (
                         <>
                           <FormField
                             label={t('pages.xray.outboundForm.visionTestpre')}
@@ -529,7 +563,7 @@ export default function OutboundFormModal({
                             buttonStyle="solid"
                             onChange={(e) => onSecurityChange(e.target.value as string)}
                           >
-                            {network !== 'hysteria' && (
+                            {network !== 'hysteria' && network !== 'masque' && (
                               <Radio.Button value="none">{t('none')}</Radio.Button>
                             )}
                             {tlsAllowed && <Radio.Button value="tls">TLS</Radio.Button>}
@@ -565,7 +599,7 @@ export default function OutboundFormModal({
                         )}
                       />
 
-                      <MuxForm protocol={protocol} network={network} />
+                      <MuxForm protocol={protocol} network={network} flow={flow} />
                     </>
                   ),
                 },

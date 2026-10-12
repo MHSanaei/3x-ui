@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/json"
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -228,6 +229,38 @@ func TestSubJsonServiceVlessFlattened(t *testing.T) {
 	}
 	if settings["address"] != "1.2.3.4" || settings["id"] != "uuid-1" || settings["encryption"] != "none" || settings["flow"] != "xtls-rprx-vision" {
 		t.Fatalf("flat vless settings wrong: %#v", settings)
+	}
+}
+
+// VLESS inbounds stored without settings.encryption (pre-2.6.8 rows, API adds)
+// must still give clients "none": xray refuses a VLESS outbound with "".
+func TestSubVlessEncryptionDefaultsToNone(t *testing.T) {
+	cases := []struct {
+		name     string
+		settings string
+		want     string
+	}{
+		{"missing", `{"clients":[{"id":"uuid-1","email":"user"}],"decryption":"none"}`, "none"},
+		{"empty", `{"clients":[{"id":"uuid-1","email":"user"}],"decryption":"none","encryption":""}`, "none"},
+		{"vlessenc kept", `{"clients":[{"id":"uuid-1","email":"user"}],"decryption":"mlkem768x25519plus.native.600s.d","encryption":"mlkem768x25519plus.native.0rtt.e"}`, "mlkem768x25519plus.native.0rtt.e"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			inbound := &model.Inbound{Listen: "1.2.3.4", Port: 443, Protocol: model.VLESS, Settings: tc.settings, StreamSettings: `{"network":"tcp","security":"none"}`}
+
+			settings := outboundSettings(t, NewSubJsonService("", "", "", "", nil).genVless(&SubService{}, inbound, nil, model.Client{ID: "uuid-1"}, ""))
+			if settings["encryption"] != tc.want {
+				t.Fatalf("json outbound encryption = %#v, want %q", settings["encryption"], tc.want)
+			}
+
+			link, err := url.Parse((&SubService{}).genVlessLink(inbound, "user"))
+			if err != nil {
+				t.Fatalf("parse link: %v", err)
+			}
+			if got := link.Query().Get("encryption"); got != tc.want {
+				t.Fatalf("share link encryption = %q, want %q (%s)", got, tc.want, link)
+			}
+		})
 	}
 }
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { SSMethodSchema } from '../shared/shadowsocks';
+import { SSInboundMethodSchema } from '../shared/shadowsocks';
 
 export const SSNetworkSchema = z.enum(['tcp', 'udp', 'tcp,udp']);
 export type SSNetwork = z.infer<typeof SSNetworkSchema>;
@@ -30,7 +30,7 @@ export const ShadowsocksClientSchema = z.object({
 export type ShadowsocksClient = z.infer<typeof ShadowsocksClientSchema>;
 
 export const ShadowsocksInboundSettingsSchema = z.object({
-  method: SSMethodSchema.default('2022-blake3-aes-256-gcm'),
+  method: SSInboundMethodSchema.default('2022-blake3-aes-256-gcm'),
   password: z.string().default(''),
   network: SSNetworkSchema.default('tcp,udp'),
   clients: z.array(ShadowsocksClientSchema).default([]),

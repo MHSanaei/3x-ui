@@ -181,6 +181,12 @@ func initModels() error {
 	if err := migrateShadowsocksRemovedCiphers(); err != nil {
 		return err
 	}
+	if err := migrateShadowsocks2022ChachaInbounds(); err != nil {
+		return err
+	}
+	if err := repairShadowsocks2022ServerKeys(); err != nil {
+		return err
+	}
 	if err := migrateVmessRemovedSecurities(); err != nil {
 		return err
 	}
@@ -987,6 +993,67 @@ func migrateShadowsocksRemovedCiphers() error {
 	return nil
 }
 
+// migrateShadowsocks2022ChachaInbounds moves 2022-chacha20 inbounds, which the core
+// refuses with users, to aes-256-gcm: same 32-byte keys, so all keys stay valid.
+func migrateShadowsocks2022ChachaInbounds() error {
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", model.Shadowsocks).Find(&inbounds).Error; err != nil {
+		return err
+	}
+	for _, inbound := range inbounds {
+		var settings map[string]any
+		if json.Unmarshal([]byte(inbound.Settings), &settings) != nil {
+			continue
+		}
+		method, _ := settings["method"].(string)
+		if !xray.Shadowsocks2022NoMultiUser(method) {
+			continue
+		}
+		settings["method"] = "2022-blake3-aes-256-gcm"
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		log.Printf("Inbound %q: switched %s to 2022-blake3-aes-256-gcm; its share links changed", inbound.Tag, method)
+	}
+	return nil
+}
+
+// repairShadowsocks2022ServerKeys replaces a stored server key xray-core cannot
+// parse; that inbound never worked, as the core refuses to start with it.
+func repairShadowsocks2022ServerKeys() error {
+	var inbounds []model.Inbound
+	if err := db.Where("protocol = ?", model.Shadowsocks).Find(&inbounds).Error; err != nil {
+		return err
+	}
+	for _, inbound := range inbounds {
+		var settings map[string]any
+		if json.Unmarshal([]byte(inbound.Settings), &settings) != nil {
+			continue
+		}
+		method, _ := settings["method"].(string)
+		n := xray.Shadowsocks2022KeyBytes(method)
+		if key, _ := settings["password"].(string); n == 0 || xray.ValidShadowsocks2022Key(method, key) {
+			continue
+		}
+		settings["password"] = random.Base64Bytes(n)
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := db.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
+			Update("settings", string(newSettings)).Error; err != nil {
+			return err
+		}
+		log.Printf("Inbound %q: replaced a %s server key of the wrong size; its share links changed", inbound.Tag, method)
+	}
+	return nil
+}
+
 // migrateVmessRemovedSecurities rewrites the vmess "none"/"zero" security
 // values that xray-core v26.7.11 removed to "auto" (what the core now treats
 // them as), on both the clients column and each vmess inbound's settings.
@@ -1282,7 +1349,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskObjectsFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1423,8 +1490,14 @@ func runSeeders(isUsersEmpty bool) error {
 		}
 	}
 
-	if !slices.Contains(seedersHistory, "XdnsFinalmaskObjectsFix") {
-		if err := migrateXdnsFinalmaskObjects(); err != nil {
+	if !slices.Contains(seedersHistory, "XdnsFinalmaskNamesAddrsFix") {
+		if err := migrateXdnsFinalmaskShape(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "UDPHopClientMaskFix") {
+		if err := migrateUDPHopClientMasks(); err != nil {
 			return err
 		}
 	}
@@ -1928,16 +2001,16 @@ func strategyIsSet(value any) bool {
 	return s != "" && !strings.EqualFold(s, "asis")
 }
 
-// migrateXdnsFinalmaskObjects upgrades every stored xdns mask to the object shape
-// xray-core 26.9.30 requires, wherever the panel keeps a finalmask.
-func migrateXdnsFinalmaskObjects() error {
+// migrateXdnsFinalmaskShape upgrades every stored xdns mask to the names/addrs shape
+// xray-core 26.10.10 reads, wherever the panel keeps a finalmask.
+func migrateXdnsFinalmaskShape() error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		var inbounds []model.Inbound
 		if err := tx.Select("id", "stream_settings").Find(&inbounds).Error; err != nil {
 			return err
 		}
 		for _, inbound := range inbounds {
-			if updated, changed := upgradeLegacyXdnsJSON(inbound.StreamSettings, streamFinalmask, false); changed {
+			if updated, changed := upgradeFinalmasksJSON(inbound.StreamSettings, streamFinalmask, false, maskcompat.UpgradeLegacyXdns); changed {
 				if err := tx.Model(&model.Inbound{}).Where("id = ?", inbound.Id).
 					Update("stream_settings", updated).Error; err != nil {
 					return err
@@ -1949,7 +2022,7 @@ func migrateXdnsFinalmaskObjects() error {
 			return err
 		}
 		for _, host := range hosts {
-			if updated, changed := upgradeLegacyXdnsJSON(host.FinalMask, wholeFinalmask, false); changed {
+			if updated, changed := upgradeFinalmasksJSON(host.FinalMask, wholeFinalmask, false, maskcompat.UpgradeLegacyXdns); changed {
 				if err := tx.Model(&model.Host{}).Where("id = ?", host.Id).
 					Update("final_mask", updated).Error; err != nil {
 					return err
@@ -1961,7 +2034,7 @@ func migrateXdnsFinalmaskObjects() error {
 			return err
 		}
 		for _, sub := range subs {
-			if updated, changed := upgradeLegacyXdnsJSON(sub.LastFetchedOutbounds, outboundListFinalmasks, false); changed {
+			if updated, changed := upgradeFinalmasksJSON(sub.LastFetchedOutbounds, outboundListFinalmasks, false, maskcompat.UpgradeLegacyXdns); changed {
 				if err := tx.Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).
 					Update("last_fetched_outbounds", updated).Error; err != nil {
 					return err
@@ -1984,20 +2057,75 @@ func migrateXdnsFinalmaskObjects() error {
 			if err != nil {
 				return err
 			}
-			if updated, changed := upgradeLegacyXdnsJSON(setting.Value, stored.locate, stored.indent); changed {
+			if updated, changed := upgradeFinalmasksJSON(setting.Value, stored.locate, stored.indent, maskcompat.UpgradeLegacyXdns); changed {
 				if err := tx.Model(&model.Setting{}).Where("key = ?", stored.key).
 					Update("value", updated).Error; err != nil {
 					return err
 				}
 			}
 		}
-		return tx.Create(&model.HistoryOfSeeders{SeederName: "XdnsFinalmaskObjectsFix"}).Error
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "XdnsFinalmaskNamesAddrsFix"}).Error
 	})
 }
 
-// upgradeLegacyXdnsJSON rewrites the finalmasks locate finds in one stored JSON document,
-// leaving the document byte-for-byte alone when nothing in it is legacy.
-func upgradeLegacyXdnsJSON(raw string, locate func(any) []any, indent bool) (string, bool) {
+// migrateUDPHopClientMasks moves the quicParams.udpHop xray-core 26.9.9 ignores into a
+// udphop mask in every client-side finalmask; inbounds keep it, udphop refuses to run there.
+func migrateUDPHopClientMasks() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var hosts []model.Host
+		if err := tx.Select("id", "final_mask").Find(&hosts).Error; err != nil {
+			return err
+		}
+		for _, host := range hosts {
+			if updated, changed := upgradeFinalmasksJSON(host.FinalMask, wholeFinalmask, false, maskcompat.UpgradeLegacyUDPHop); changed {
+				if err := tx.Model(&model.Host{}).Where("id = ?", host.Id).
+					Update("final_mask", updated).Error; err != nil {
+					return err
+				}
+			}
+		}
+		var subs []model.OutboundSubscription
+		if err := tx.Select("id", "last_fetched_outbounds").Find(&subs).Error; err != nil {
+			return err
+		}
+		for _, sub := range subs {
+			if updated, changed := upgradeFinalmasksJSON(sub.LastFetchedOutbounds, outboundListFinalmasks, false, maskcompat.UpgradeLegacyUDPHop); changed {
+				if err := tx.Model(&model.OutboundSubscription{}).Where("id = ?", sub.Id).
+					Update("last_fetched_outbounds", updated).Error; err != nil {
+					return err
+				}
+			}
+		}
+		for _, stored := range []struct {
+			key    string
+			locate func(any) []any
+			indent bool
+		}{
+			{"xrayTemplateConfig", templateOutboundFinalmasks, true},
+			{"subJsonFinalMask", wholeFinalmask, false},
+		} {
+			var setting model.Setting
+			err := tx.Where("key = ?", stored.key).First(&setting).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if updated, changed := upgradeFinalmasksJSON(setting.Value, stored.locate, stored.indent, maskcompat.UpgradeLegacyUDPHop); changed {
+				if err := tx.Model(&model.Setting{}).Where("key = ?", stored.key).
+					Update("value", updated).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "UDPHopClientMaskFix"}).Error
+	})
+}
+
+// upgradeFinalmasksJSON runs upgrade on the finalmasks locate finds in one stored JSON
+// document, leaving the document byte-for-byte alone when nothing in it changed.
+func upgradeFinalmasksJSON(raw string, locate func(any) []any, indent bool, upgrade func(any) bool) (string, bool) {
 	if strings.TrimSpace(raw) == "" {
 		return raw, false
 	}
@@ -2007,7 +2135,7 @@ func upgradeLegacyXdnsJSON(raw string, locate func(any) []any, indent bool) (str
 	}
 	changed := false
 	for _, mask := range locate(doc) {
-		if maskcompat.UpgradeLegacyXdns(mask) {
+		if upgrade(mask) {
 			changed = true
 		}
 	}
@@ -2042,6 +2170,11 @@ func outboundListFinalmasks(doc any) []any {
 		finalmasks = append(finalmasks, streamFinalmask(obj["streamSettings"])...)
 	}
 	return finalmasks
+}
+
+func templateOutboundFinalmasks(doc any) []any {
+	cfg, _ := doc.(map[string]any)
+	return outboundListFinalmasks(cfg["outbounds"])
 }
 
 func templateFinalmasks(doc any) []any {
