@@ -395,6 +395,13 @@ func (s *SubClashService) getProxies(subReq *SubService, inbound *model.Inbound,
 			if v, _ := extPrxy["mihomoIpVersion"].(string); v != "" {
 				proxy["ip-version"] = v
 			}
+			// A pre-26.9.8 core accepts a plain X25519 hello, which some DPI lets
+			// through where it drops the two-segment ML-KEM one.
+			if hostX25519Only(extPrxy) {
+				if opts, ok := proxy["reality-opts"].(map[string]any); ok {
+					opts["support-x25519mlkem768"] = false
+				}
+			}
 			proxies = append(proxies, proxy)
 		}
 	}

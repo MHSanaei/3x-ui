@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/goccy/go-yaml"
+
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -545,6 +547,88 @@ func TestSub_HostRealityFingerprintJSONAndClash(t *testing.T) {
 	}
 	if !strings.Contains(yaml, "client-fingerprint: firefox") {
 		t.Fatalf("clash proxy should carry the host's fingerprint:\n%s", yaml)
+	}
+}
+
+const mihomoRealityStream = `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+
+// seedMihomoX25519Hosts puts a default host and a "Mihomo X25519" host on one
+// reality inbound, so each test proves the toggle is per host, not per inbound.
+func seedMihomoX25519Hosts(t *testing.T) {
+	t.Helper()
+	ib := seedSubInbound(t, "s1", "mx", 4493, 1, mihomoRealityStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 0, Remark: "PQ", Address: "pq.cdn.com", Port: 443})
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "CLASSIC", Address: "classic.cdn.com", Port: 443, MihomoX25519: true})
+}
+
+// Servers on Xray-core < 26.9.8 do not need ML-KEM, and a two-segment ML-KEM
+// ClientHello is what some DPI drops; the host toggle must turn it off in Clash.
+func TestSub_HostMihomoX25519Clash(t *testing.T) {
+	seedSubDB(t)
+	seedMihomoX25519Hosts(t)
+
+	out, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	var config struct {
+		Proxies []struct {
+			Server      string `yaml:"server"`
+			RealityOpts struct {
+				MLKEM *bool `yaml:"support-x25519mlkem768"`
+			} `yaml:"reality-opts"`
+		} `yaml:"proxies"`
+	}
+	if err := yaml.Unmarshal([]byte(out), &config); err != nil {
+		t.Fatalf("decode Clash YAML: %v\n%s", err, out)
+	}
+	want := map[string]bool{"pq.cdn.com": true, "classic.cdn.com": false}
+	for _, proxy := range config.Proxies {
+		mlkem, ok := want[proxy.Server]
+		if !ok {
+			continue
+		}
+		if got := proxy.RealityOpts.MLKEM; got == nil || *got != mlkem {
+			t.Errorf("%s: support-x25519mlkem768 = %s, want %v\n%s", proxy.Server, fmtOptBool(got), mlkem, out)
+		}
+		delete(want, proxy.Server)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing host proxies %v in:\n%s", want, out)
+	}
+}
+
+func fmtOptBool(b *bool) string {
+	if b == nil {
+		return "absent"
+	}
+	return fmt.Sprint(*b)
+}
+
+// Mihomo also reads the ML-KEM hint from imported vless:// links (#6712), so a
+// "Mihomo X25519" host must not carry it there either.
+func TestSub_HostMihomoX25519RawLink(t *testing.T) {
+	seedSubDB(t)
+	seedMihomoX25519Hosts(t)
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	var pq, classic string
+	for _, link := range strings.Split(strings.Join(links, "\n"), "\n") {
+		switch {
+		case strings.Contains(link, "@pq.cdn.com:443"):
+			pq = link
+		case strings.Contains(link, "@classic.cdn.com:443"):
+			classic = link
+		}
+	}
+	if !strings.Contains(pq, "support-x25519mlkem768=true") {
+		t.Fatalf("default host must keep the ML-KEM hint: %q", pq)
+	}
+	if classic == "" || strings.Contains(classic, "support-x25519mlkem768") {
+		t.Fatalf("Mihomo X25519 host must drop the ML-KEM hint: %q", classic)
 	}
 }
 

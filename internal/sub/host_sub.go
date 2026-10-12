@@ -98,6 +98,9 @@ func hostToExternalProxyMap(h *model.Host, defaultDest string, defaultPort int) 
 	if h.MihomoIpVersion != "" {
 		ep["mihomoIpVersion"] = h.MihomoIpVersion
 	}
+	if h.MihomoX25519 {
+		ep["mihomoX25519"] = true
+	}
 	if h.SockoptParams != "" {
 		ep["sockoptParams"] = h.SockoptParams
 	}
@@ -313,6 +316,16 @@ func applyEndpointRealityParams(e ShareEndpoint, params map[string]string, secur
 	if fp, ok := e.ep["fingerprint"].(string); ok && fp != "" {
 		params["fp"] = fp
 	}
+	if hostX25519Only(e.ep) {
+		delete(params, "support-x25519mlkem768")
+	}
+}
+
+// hostX25519Only reports whether a host asks Mihomo for a plain X25519 reality
+// hello instead of the ML-KEM one Xray-core 26.9.8+ requires.
+func hostX25519Only(ep map[string]any) bool {
+	v, _ := ep["mihomoX25519"].(bool)
+	return v
 }
 
 // applyEndpointAllowInsecure adds allowInsecure=1 to a TLS/Reality link when the

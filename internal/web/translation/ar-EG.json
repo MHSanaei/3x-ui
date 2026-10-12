@@ -2363,6 +2363,7 @@
         "serverDescription": "ملاحظة اختيارية تظهر تحت الملاحظة.",
         "allowInsecure": "تخطّي التحقق من شهادة TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "قيمة مسار VLESS واحدة (0-65535) تُدمَج في UUID، مثل 443. اتركه فارغاً لعدم وجود أي منها.",
+        "mihomoX25519": "Mihomo فقط: مصافحة REALITY باستخدام X25519 العادي بدون ML-KEM (support-x25519mlkem768: false). للخوادم التي تعمل بإصدار Xray-core أقدم من 26.9.8 ولا تتطلب ML-KEM.",
         "remark": "تسمية بسيطة لهذا المضيف. تظهر كاسم للإعداد فقط عندما لا يكون للوارد ملاحظة خاصة به."
       },
       "remarkVars": {

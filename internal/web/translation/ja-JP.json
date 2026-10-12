@@ -2363,6 +2363,7 @@
         "serverDescription": "備考の下に表示される任意のメモ。",
         "allowInsecure": "TLS 証明書の検証をスキップします（allowInsecure / skip-cert-verify）。",
         "vlessRoute": "UUID に埋め込まれる単一の VLESS ルート値（0〜65535）。例: 443。なしの場合は空欄にします。",
+        "mihomoX25519": "Mihomo のみ: ML-KEM を使わず通常の X25519 で REALITY ハンドシェイクを行います (support-x25519mlkem768: false)。ML-KEM を必要としない Xray-core 26.9.8 未満のサーバー向けです。",
         "remark": "このホストのプレーンなラベル。インバウンド自身に備考がない場合にのみ設定名として表示されます。"
       },
       "remarkVars": {
