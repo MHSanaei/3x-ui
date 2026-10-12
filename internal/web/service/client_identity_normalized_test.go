@@ -92,14 +92,14 @@ func TestEmailsUsedByOtherInboundsMatchesCaseInsensitively(t *testing.T) {
 		}
 	}
 
-	shared, err := is.emailsUsedByOtherInbounds([]string{"alice@x"}, ibA.Id)
+	shared, err := is.emailsUsedByOtherInbounds(database.GetDB(), []string{"alice@x"}, ibA.Id)
 	if err != nil {
 		t.Fatalf("emailsUsedByOtherInbounds: %v", err)
 	}
 	if !shared["alice@x"] {
 		t.Error("lower-cased lookup missed a stored mixed-case email")
 	}
-	used, err := is.emailUsedByOtherInbounds("alice@x", ibA.Id)
+	used, err := is.emailUsedByOtherInbounds(database.GetDB(), "alice@x", ibA.Id)
 	if err != nil {
 		t.Fatalf("emailUsedByOtherInbounds: %v", err)
 	}

@@ -1,8 +1,6 @@
 package common
 
-import (
-	"fmt"
-)
+import "strconv"
 
 // FormatTraffic formats traffic bytes into human-readable units (B, KB, MB, GB, TB, PB).
 func FormatTraffic(trafficBytes int64) string {
@@ -14,5 +12,5 @@ func FormatTraffic(trafficBytes int64) string {
 		size /= 1024
 		unitIndex++
 	}
-	return fmt.Sprintf("%.2f%s", size, units[unitIndex])
+	return strconv.FormatFloat(size, 'f', 2, 64) + units[unitIndex]
 }

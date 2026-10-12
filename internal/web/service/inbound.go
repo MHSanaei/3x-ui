@@ -656,6 +656,7 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 		model.Hysteria:    true,
 		model.WireGuard:   true,
 		model.Tunnel:      true,
+		model.MASQUE:      true,
 	}
 
 	if !protocolsWithStream[inbound.Protocol] {
@@ -666,8 +667,8 @@ func (s *InboundService) normalizeStreamSettings(inbound *model.Inbound) {
 	inbound.StreamSettings = canonicalizeLegacyXdnsMasks(inbound.StreamSettings)
 }
 
-// canonicalizeLegacyXdnsMasks stores an xdns mask posted in the pre-26.9.30 string
-// lists in the object shape the core parses, as GetXrayConfig would heal it anyway.
+// canonicalizeLegacyXdnsMasks stores an xdns mask posted in a pre-26.10.10 shape in
+// the names/addrs lists the core reads, as GetXrayConfig would heal it anyway.
 func canonicalizeLegacyXdnsMasks(streamSettings string) string {
 	if streamSettings == "" {
 		return streamSettings
@@ -994,6 +995,97 @@ func validateFinalMaskXmcProfiles(streamSettings string) error {
 	return common.NewError("XMC finalmask requires at least one complete Minecraft profile — each needs a username (3-16 of A-Z a-z 0-9 _), a UUID, and both texture fields from Mojang's session server (XTLS/Xray-core#6487). Complete the profiles or remove the XMC mask.")
 }
 
+// validateFinalMaskSalamander refuses at save a salamander password the core loads and then refuses
+// when the listener opens, which stops every other inbound with it.
+func validateFinalMaskSalamander(streamSettings string) error {
+	var stream map[string]any
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil {
+		return nil
+	}
+	return maskcompat.CheckSalamanderPasswords(stream["finalmask"])
+}
+
+// validateXDriveStorage refuses at save the XDRIVE storage xray-core refuses when an inbound starts
+// listening (stopping every inbound) or an outbound dials.
+func validateXDriveStorage(streamSettings string) error {
+	var stream struct {
+		Network        string `json:"network"`
+		XDriveSettings struct {
+			Service      string          `json:"service"`
+			RemoteFolder string          `json:"remoteFolder"`
+			Secrets      []string        `json:"secrets"`
+			Template     json.RawMessage `json:"template"`
+		} `json:"xdriveSettings"`
+	}
+	if json.Unmarshal([]byte(streamSettings), &stream) != nil || stream.Network != "xdrive" {
+		return nil
+	}
+	xd := stream.XDriveSettings
+	hasFolder := strings.TrimSpace(xd.RemoteFolder) != ""
+	switch xd.Service {
+	case "local":
+		if !hasFolder {
+			return common.NewError(`XDRIVE needs a "remoteFolder": the local folder both ends share.`)
+		}
+	case "Google Drive":
+		if !hasFolder {
+			return common.NewError(`XDRIVE needs a "remoteFolder": the id of the shared Google Drive folder.`)
+		}
+		if len(xd.Secrets) != 3 || slices.ContainsFunc(xd.Secrets, func(s string) bool { return strings.TrimSpace(s) == "" }) {
+			return common.NewError("Google Drive needs 3 secrets, in order: ClientID, ClientSecret, RefreshToken.")
+		}
+	case "template":
+		if len(xd.Template) == 0 || string(xd.Template) == "null" {
+			return common.NewError(`XDRIVE service "template" needs a "template" object describing the storage API.`)
+		}
+		return validateXDriveTemplate(xd.Template)
+	default:
+		return common.NewError(fmt.Sprintf("unsupported XDRIVE service %q: use local, Google Drive or template.", xd.Service))
+	}
+	return nil
+}
+
+// validateXDriveTemplate applies the checks of xray-core's newTemplateStorage
+// (transport/internet/xdrive/template.go), which only run once the listener starts.
+func validateXDriveTemplate(raw json.RawMessage) error {
+	type op struct {
+		URL        string `json:"url"`
+		NamesRegex string `json:"namesRegex"`
+	}
+	var tmpl struct {
+		Put    op `json:"put"`
+		Get    op `json:"get"`
+		Delete op `json:"delete"`
+		List   op `json:"list"`
+	}
+	if err := json.Unmarshal(raw, &tmpl); err != nil {
+		return common.NewError("XDRIVE template is not a valid storage template:", err)
+	}
+	if tmpl.Put.URL == "" || tmpl.Get.URL == "" || tmpl.List.URL == "" || tmpl.Delete.URL == "" {
+		return common.NewError("XDRIVE template needs put, get, list and delete operations, each with a url.")
+	}
+	if tmpl.List.NamesRegex == "" {
+		return common.NewError("XDRIVE template list needs a namesRegex.")
+	}
+	names, err := regexp.Compile(tmpl.List.NamesRegex)
+	if err != nil {
+		return common.NewError("XDRIVE template namesRegex does not compile:", err)
+	}
+	if names.NumSubexp() < 1 {
+		return common.NewError("XDRIVE template namesRegex needs one capture group for the object name.")
+	}
+	return nil
+}
+
+// validateFinalMaskJSONSalamander checks a stored whole finalmask: a host's, or the subscription's.
+func validateFinalMaskJSONSalamander(finalmask string) error {
+	var fm map[string]any
+	if json.Unmarshal([]byte(finalmask), &fm) != nil {
+		return nil
+	}
+	return maskcompat.CheckSalamanderPasswords(fm)
+}
+
 // normalizeMtprotoSecret rebuilds every mtproto client's FakeTLS secret so it is
 // always valid before the row is persisted, and drops the vestigial inbound-level
 // secret and adTag: MTProto is multi-client, so mtg and every share link read
@@ -1155,6 +1247,15 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
 		return inbound, false, err
 	}
+	if err := validateFinalMaskSalamander(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
+		return inbound, false, err
+	}
 	s.normalizeMtprotoSecret(inbound)
 	if err := s.normalizeMtprotoXrayPort(inbound, ""); err != nil {
 		return inbound, false, err
@@ -1241,7 +1342,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	// Secure client ID
 	for _, client := range clients {
 		switch inbound.Protocol {
-		case "trojan":
+		case "trojan", "masque":
 			if client.Password == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
@@ -1767,6 +1868,10 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 			if client.Auth == "" {
 				return common.NewError("empty client ID")
 			}
+		case model.MASQUE:
+			if client.Password == "" {
+				return common.NewError("empty client ID")
+			}
 		case model.TUIC:
 			if client.ID == "" {
 				return common.NewError("empty client ID")
@@ -1791,6 +1896,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 	if err := validateFinalMaskXmcProfiles(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateFinalMaskSalamander(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateXDriveStorage(inbound.StreamSettings); err != nil {
+		return inbound, false, err
+	}
+	if err := validateShadowsocks2022Inbound(inbound.Protocol, inbound.Settings); err != nil {
 		return inbound, false, err
 	}
 	s.normalizeMtprotoSecret(inbound)
@@ -2254,7 +2368,7 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if _, kept := newEmails[email]; kept {
 			continue
 		}
-		stillUsed, err := s.emailUsedByOtherInbounds(email, oldInbound.Id)
+		stillUsed, err := s.emailUsedByOtherInbounds(tx, email, oldInbound.Id)
 		if err != nil {
 			return err
 		}

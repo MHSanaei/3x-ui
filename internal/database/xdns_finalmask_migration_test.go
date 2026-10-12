@@ -7,10 +7,12 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
-const legacyXdnsFinalmask = `{"udp":[{"type":"xdns","settings":{"domains":["t.example.com"]}}]}`
+// legacyXdnsFinalmask is the 26.9.30 object shape the previous seeder left in panel DBs;
+// xray-core 26.10.10 reads neither its "name" nor its typed resolver.
+const legacyXdnsFinalmask = `{"udp":[{"type":"xdns","settings":{"domains":[{"name":"t.example.com","types":[16],"edns0":1232}],"resolvers":[{"type":"udp","settings":{"addr":"8.8.8.8:53"}}]}}]}`
 
-// assertXdnsUpgraded fails unless the finalmask's xdns domains are objects, the only
-// shape xray-core 26.9.30 parses.
+// assertXdnsUpgraded fails unless the finalmask's xdns mask uses the names/addrs lists,
+// the only shape xray-core 26.10.10 reads.
 func assertXdnsUpgraded(t *testing.T, where string, finalmask any) {
 	t.Helper()
 	fm, _ := finalmask.(map[string]any)
@@ -20,13 +22,13 @@ func assertXdnsUpgraded(t *testing.T, where string, finalmask any) {
 	}
 	mask, _ := udp[0].(map[string]any)
 	settings, _ := mask["settings"].(map[string]any)
-	domains, _ := settings["domains"].([]any)
-	if len(domains) != 1 {
-		t.Fatalf("%s: domains = %v, want one entry", where, settings["domains"])
+	got, err := json.Marshal(settings)
+	if err != nil {
+		t.Fatalf("%s: marshal xdns settings: %v", where, err)
 	}
-	domain, ok := domains[0].(map[string]any)
-	if !ok || domain["name"] != "t.example.com" {
-		t.Fatalf("%s: domain = %#v, want an object named t.example.com", where, domains[0])
+	const want = `{"domains":[{"edns0":1232,"names":["t.example.com"],"types":[16]}],"resolvers":[{"addrs":["udp://8.8.8.8:53"]}]}`
+	if string(got) != want {
+		t.Fatalf("%s: xdns settings\n got: %s\nwant: %s", where, got, want)
 	}
 }
 
@@ -49,7 +51,7 @@ func TestXdnsFinalmaskSeederUpgradesEveryStoredMask(t *testing.T) {
 	if err := GetDB().Create(sub).Error; err != nil {
 		t.Fatalf("create outbound subscription: %v", err)
 	}
-	if err := GetDB().Where("seeder_name = ?", "XdnsFinalmaskObjectsFix").
+	if err := GetDB().Where("seeder_name = ?", "XdnsFinalmaskNamesAddrsFix").
 		Delete(&model.HistoryOfSeeders{}).Error; err != nil {
 		t.Fatalf("clear seeder history: %v", err)
 	}

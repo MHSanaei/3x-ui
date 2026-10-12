@@ -1181,6 +1181,34 @@ func TestMarshalFinalMask_KeepsUdpHopMask(t *testing.T) {
 	}
 }
 
+// xray-core 26.6 accepts sudoku as a UDP mask too; the link must not drop it from fm=.
+func TestMarshalFinalMask_KeepsSudokuUdpMask(t *testing.T) {
+	fm := map[string]any{
+		"udp": []any{map[string]any{"type": "sudoku", "settings": map[string]any{"password": "s3cr3t"}}},
+	}
+	out, ok := marshalFinalMask(fm)
+	if !ok {
+		t.Fatal("expected ok=true for a sudoku udp mask")
+	}
+	if want := `{"udp":[{"settings":{"password":"s3cr3t"},"type":"sudoku"}]}`; out != want {
+		t.Fatalf("marshalFinalMask = %s, want %s", out, want)
+	}
+}
+
+// A share link's fm= is what a client dials with; a udphop listed before another UDP mask
+// makes the core refuse every dial ("incorrect index"), so the link carries it last.
+func TestMarshalFinalMask_PutsUDPHopLast(t *testing.T) {
+	fm := map[string]any{"udp": []any{
+		map[string]any{"type": "udphop", "settings": map[string]any{"mode": "intervalRemote", "remotePorts": "20000-30000"}},
+		map[string]any{"type": "salamander", "settings": map[string]any{"password": "s3cr3t"}},
+	}}
+	out, ok := marshalFinalMask(fm)
+	want := `{"udp":[{"settings":{"password":"s3cr3t"},"type":"salamander"},{"settings":{"mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
+	if !ok || out != want {
+		t.Fatalf("marshalFinalMask = %s, want %s", out, want)
+	}
+}
+
 func TestHasFinalMaskContent(t *testing.T) {
 	if hasFinalMaskContent(nil) {
 		t.Fatal("nil should not count as content")

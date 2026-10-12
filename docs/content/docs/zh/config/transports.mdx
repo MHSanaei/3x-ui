@@ -1,6 +1,6 @@
 ---
 title: 传输方式与安全层
-description: 3x-ui 提供的每一种传输方式——TCP、mKCP、WebSocket、gRPC、HTTPUpgrade、XHTTP、Hysteria——及其设置项，外加 FinalMask 混淆、sockopt、TLS/REALITY、XTLS-Vision 以及 VLESS 加密。
+description: 3x-ui 提供的每一种传输方式——TCP、mKCP、WebSocket、gRPC、HTTPUpgrade、XHTTP、Hysteria、XDRIVE、MASQUE——及其设置项，外加 FinalMask 混淆、sockopt、TLS/REALITY、XTLS-Vision 以及 VLESS 加密。
 icon: Network
 ---
 
@@ -22,6 +22,8 @@ icon: Network
 | **HTTPUpgrade** | `httpupgradeSettings` | 对 CDN 友好的 HTTP/1.1 `Upgrade`；比完整的 WebSocket 更轻量。          |
 | **XHTTP**       | `xhttpSettings`       | 现代的流多路复用 HTTP 传输；对 CDN 友好且支持 REALITY。               |
 | **Hysteria**    | `hysteriaSettings`    | 基于 QUIC 的传输——仅用于 **Hysteria2** 协议。                          |
+| **XDRIVE**      | `xdriveSettings`      | 通过共享云存储（Google Drive、本地文件夹或任意 HTTP 存储 API）中的文件传输数据流。 |
+| **MASQUE**      | `masqueSettings`      | 基于 HTTP/3 或 HTTP/2 的 CONNECT-IP——仅用于 **MASQUE** 协议。参见 [MASQUE](/docs/config/masque)。 |
 
 <Callout type="info">
   **WireGuard** 和 **Tunnel**（dokodemo-door）入站不提供传输方式选择器——它们的传输流
@@ -112,6 +114,23 @@ Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
 | `udpIdleTimeout` | `60`    | 空闲 UDP 会话被丢弃前的秒数（2–600）。                                 |
 | `masquerade`     | —       | 伪装成一个 HTTP/3 服务器：`type` 为 `proxy`/`file`/`string`，配合 `url`/`dir`/`content`，外加 `headers` 与 `statusCode`。 |
 
+### XDRIVE — `xdriveSettings`
+
+XDRIVE 把数据流作为文件存放在双方都能访问的文件夹中：服务端轮询该文件夹，而不是在端口上接受连接。
+双方必须使用**相同**的服务、文件夹和密钥，因此 JSON 订阅会把它们下发给每个客户端；XDRIVE 入站不生成分享链接或 Clash 条目。
+
+| 字段           | 默认值         | 含义 |
+| -------------- | -------------- | ---- |
+| `service`      | `Google Drive` | `Google Drive`、`local`（磁盘上的文件夹）或 `template`（任意 HTTP 存储 API）。 |
+| `remoteFolder` | —              | 存放会话文件的文件夹。 |
+| `secrets`      | —              | Google Drive：恰好三项，依次为 ClientID、ClientSecret、RefreshToken。Template：以 `{secret0}`、`{secret1}`… 引用的值。 |
+| `template`     | —              | 仅用于 template 服务：存储 API 的 `auth`、`put`、`get`、`list` 和 `delete` 操作。 |
+| 调优参数       | 内核默认值     | `segmentBytes`（512 KiB）、`flushIntervalMs`（20）、`pollIntervalMs`/`maxPollIntervalMs`（50/500）、`eagerWindowMs`（2000）、`holeTimeoutMs`（30000）、`sessionTtlSeconds`（300）、`concurrency`（8）。 |
+
+可选的**前置地址/端口**（stream 级的 `address`/`port`）是连接存储 API 时使用的域前置；TLS 中仍使用 API 主机名。
+XDRIVE 没有自己的 TLS/REALITY 层——其流量就是存储 API 自身的 HTTPS。在出站上，**TLS**
+安全设置决定这条 HTTPS 连接：存储 API 看到的就是其中的 SNI、uTLS 指纹和 ALPN。
+
 ## FinalMask — 末层混淆
 
 **FinalMask** 在传输方式和安全层**之后**包裹流量，因此它既能伪装那些承载不了 TLS 的
@@ -120,9 +139,14 @@ Session-ID 字段（`sessionIDPlacement`、`sessionIDKey`、`sessionIDTable`、
 - **TCP 掩码** — `fragment`、`sudoku`、`header-custom`、`xmc`（把流量伪装成
   Minecraft 协议；密码必填，主机名和玩家用户名可选）。
 - **UDP 掩码** — `salamander`、`mkcp-legacy`、`header-custom`、`xdns`、`xicmp`、
-  `noise`、`sudoku`、`realm`。（`mkcp-legacy` 重现旧版 mKCP 的头部混淆。）
+  `noise`、`sudoku`、`realm`，以及仅限客户端的 `udphop`。（`mkcp-legacy` 重现旧版
+  mKCP 的头部混淆；`udphop` 按时间间隔或按连接轮换远端端口——也可轮换远端 IP——以规避
+  端口封锁。）
 - **QUIC 参数** — 拥塞控制（`reno`、`bbr`、`brutal`、`force-brutal`）、Brutal 上/下行
-  速率、`udpHop`（在一个范围内轮换 QUIC 端口以规避端口封锁）以及接收窗口调优。
+  速率以及接收窗口调优。在入站上，**UDP Hop** 设置向客户端公布的端口范围（分享链接的
+  `mport` 和 JSON 订阅中的 `udphop` 掩码）；服务器本身仍只监听自己的端口。自 Xray
+  26.9.9 起客户端只通过 `udphop` 掩码跳端口，因此面板会把客户端旧的
+  `quicParams.udpHop` 转换为该掩码。
 
 FinalMask 取代了旧版 Xray 构建中暴露的、按每种传输各自实现的 `header`/`seed` 混淆。
 
@@ -161,7 +185,7 @@ mKCP 和 Hysteria 不使用单独的 TLS/REALITY 层——mKCP 以明文运行�
 `xtls-rprx-vision` 流控既快速又能抵抗 DPI。在以下任一情况下，它都可用于 **VLESS**：
 
 - 传输方式为裸 **TCP**，安全层为 **TLS** 或 **REALITY**（经典的 XTLS-Vision），或者
-- 传输方式为 **XHTTP** 且启用了 VLESS 加密（见下文）。
+- 启用了 VLESS 加密，任意传输方式均可（见下文）。
 
 请在 VLESS **客户端**上设置流控，而不是在入站上。在 TCP 上使用经典 Vision 时，一旦某个
 客户端使用该流控，面板还可以提供一个 **Vision seed**。
@@ -169,14 +193,14 @@ mKCP 和 Hysteria 不使用单独的 TLS/REALITY 层——mKCP 以明文运行�
 ## VLESS 加密（ML-KEM）
 
 VLESS 支持后量子**加密**（ML-KEM / `mlkem768x25519`），它存储在入站的 `decryption`
-（服务器）以及客户端的 `encryption`（用于生成链接）中。启用后，它会解锁在 XHTTP
+（服务器）以及客户端的 `encryption`（用于生成链接）中。启用后，它会解锁任意传输方式
 之上的 Vision 流控。请从面板的 VLESS 设置中生成密钥。
 
 ## Shadowsocks 加密方式
 
 Shadowsocks 入站同时支持经典加密方式和 **Shadowsocks-2022**（以 `2022-blake3-`
-开头的方法名）。大多数加密方式支持多用户；`2022-blake3-chacha20-poly1305`
-为单用户。
+开头的方法名）。入站不提供
+`2022-blake3-chacha20-poly1305`：Xray-core 仅在无用户时支持它，而面板的每个入站都有客户端。出站仍可使用。
 
 <Callout type="info">
   传输方式和安全层必须在两端一致。客户端的分享链接会对它们进行编码（`type=ws`、

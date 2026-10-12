@@ -57,9 +57,9 @@ func TestLiftXhttpSessionIDKeys(t *testing.T) {
 	})
 }
 
-func TestLiftOutboundsXhttpSessionIDKeys(t *testing.T) {
+func TestHealOutboundStreams_LiftsXhttpSessionIDKeys(t *testing.T) {
 	raw := json_util.RawMessage(`[{"protocol":"vless","streamSettings":{"network":"xhttp","xhttpSettings":{"sessionKey":"x_session","sessionPlacement":"query"}}}]`)
-	out := liftOutboundsXhttpSessionIDKeys(raw)
+	out := healOutboundStreams(raw, liftXhttpSessionIDKeys)
 
 	var parsed []map[string]any
 	if err := json.Unmarshal(out, &parsed); err != nil {
@@ -75,7 +75,7 @@ func TestLiftOutboundsXhttpSessionIDKeys(t *testing.T) {
 
 	// Unchanged input must return byte-identical output (no spurious hot-reload).
 	clean := json_util.RawMessage(`[{"protocol":"freedom"}]`)
-	if got := liftOutboundsXhttpSessionIDKeys(clean); string(got) != string(clean) {
+	if got := healOutboundStreams(clean, liftXhttpSessionIDKeys); string(got) != string(clean) {
 		t.Fatalf("clean outbounds were rewritten: %s", got)
 	}
 }

@@ -769,6 +769,8 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 		if json.Unmarshal([]byte(fm), &parsed) == nil {
 			sanitizeFinalMaskQuicParams(parsed)
 			maskcompat.UpgradeLegacyXdns(parsed)
+			maskcompat.UpgradeLegacyUDPHop(parsed)
+			maskcompat.NormalizeUDPHop(parsed)
 			stream["finalmask"] = parsed
 		}
 	}
