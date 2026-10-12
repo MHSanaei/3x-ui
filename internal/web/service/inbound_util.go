@@ -72,7 +72,7 @@ func chunkStrings(s []string, size int) [][]string {
 	if size <= 0 || len(s) == 0 {
 		return nil
 	}
-	out := make([][]string, 0, (len(s)+size-1)/size)
+	out := make([][]string, 0, chunkCount(len(s), size))
 	for i := 0; i < len(s); i += size {
 		end := min(i+size, len(s))
 		out = append(out, s[i:end])
@@ -86,10 +86,19 @@ func chunkInts(s []int, size int) [][]int {
 	if size <= 0 || len(s) == 0 {
 		return nil
 	}
-	out := make([][]int, 0, (len(s)+size-1)/size)
+	out := make([][]int, 0, chunkCount(len(s), size))
 	for i := 0; i < len(s); i += size {
 		end := min(i+size, len(s))
 		out = append(out, s[i:end])
 	}
 	return out
+}
+
+// chunkCount is ceil(n/size) without the n+size-1 sum, which overflows for a size near MaxInt.
+func chunkCount(n, size int) int {
+	count := n / size
+	if n%size != 0 {
+		count++
+	}
+	return count
 }

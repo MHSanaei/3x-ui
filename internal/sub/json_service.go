@@ -641,8 +641,9 @@ func (s *SubJsonService) getConfig(subReq *SubService, inbound *model.Inbound, c
 		if finalmask, ok := newStream["finalmask"].(map[string]any); ok {
 			newStream["finalmask"] = withLegacyFragmentRanges(finalmask)
 		}
-		// An inbound keeps its hop range as quicParams.udpHop; clients hop only with the mask.
+		// A host's legacy hop still needs the mask; the last-merged hop, the host's, wins.
 		maskcompat.UpgradeLegacyUDPHop(newStream["finalmask"])
+		maskcompat.NormalizeUDPHop(newStream["finalmask"])
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
 		hostMux := hostMuxOverride(extPrxy)
 
@@ -715,6 +716,8 @@ func (s *SubJsonService) streamData(stream string, clientKey string) map[string]
 	}
 	delete(streamSettings, "sockopt")
 
+	// The inbound's own hop range becomes a mask first, so the global default yields to it.
+	maskcompat.UpgradeLegacyUDPHop(streamSettings["finalmask"])
 	if s.finalMask != "" {
 		s.applyGlobalFinalMask(streamSettings)
 	}
@@ -753,6 +756,10 @@ func (s *SubJsonService) applyGlobalFinalMask(streamSettings map[string]any) {
 	var fm map[string]any
 	if err := json.Unmarshal([]byte(s.finalMask), &fm); err != nil || len(fm) == 0 {
 		return
+	}
+	// The global hop range is a default: an inbound that advertises its own keeps it.
+	if maskcompat.HasUDPHopMask(streamSettings["finalmask"]) {
+		fm = maskcompat.WithoutUDPHop(fm)
 	}
 	merged := mergeFinalMask(streamSettings["finalmask"], fm)
 	if len(merged) > 0 {
@@ -1001,6 +1008,7 @@ func (s *SubJsonService) genHy(inbound *model.Inbound, newStream map[string]any,
 		newStream["finalmask"] = mergeFinalMask(newStream["finalmask"], finalmask)
 	}
 	maskcompat.UpgradeLegacyUDPHop(newStream["finalmask"])
+	maskcompat.NormalizeUDPHop(newStream["finalmask"])
 
 	newStream["network"] = "hysteria"
 	newStream["security"] = "tls"
