@@ -550,6 +550,114 @@ func TestSub_HostRealityFingerprintJSONAndClash(t *testing.T) {
 	}
 }
 
+// Hosts of one inbound render from per-host copies of the same stream; a host
+// that leaves an override blank must get the inbound's value, not the previous host's.
+func TestSub_HostBlankOverridesDoNotLeakBetweenHosts(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		stream    string
+		first     model.Host
+		clashWant map[string]string
+		jsonField func(stream map[string]any) any
+		jsonWant  any
+	}{
+		{
+			name:      "reality fingerprint and sni",
+			stream:    mihomoRealityStream,
+			first:     model.Host{Security: "reality", Sni: "a.reality.com", Fingerprint: "firefox"},
+			clashWant: map[string]string{"client-fingerprint": "chrome", "servername": "base.reality.com"},
+			jsonField: func(stream map[string]any) any {
+				rs, _ := stream["realitySettings"].(map[string]any)
+				return rs["fingerprint"]
+			},
+			jsonWant: "chrome",
+		},
+		{
+			name:      "ws host header and path",
+			stream:    wsTLSStream,
+			first:     model.Host{Security: "tls", HostHeader: "a.host", Path: "/a"},
+			clashWant: map[string]string{"ws-opts.path": "/base", "ws-opts.headers.Host": "base.host"},
+			jsonField: func(stream map[string]any) any {
+				ws, _ := stream["wsSettings"].(map[string]any)
+				return ws["path"]
+			},
+			jsonWant: "/base",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			seedSubDB(t)
+			ib := seedSubInbound(t, "s1", "lk", 4494, 1, tc.stream)
+			first := tc.first
+			first.InboundId, first.SortOrder, first.Remark, first.Address, first.Port = ib.Id, 0, "A", "a.cdn.com", 443
+			seedHost(t, &first)
+			seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "B", Address: "b.cdn.com", Port: 443, Security: tc.first.Security})
+
+			out, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+			if err != nil {
+				t.Fatalf("GetClash: %v", err)
+			}
+			second := clashProxyByServer(t, out, "b.cdn.com")
+			for field, want := range tc.clashWant {
+				if got := lookupPath(second, field); got != want {
+					t.Errorf("host B clash %s = %v, want the inbound's %q", field, got, want)
+				}
+			}
+
+			out, _, err = NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+			if err != nil {
+				t.Fatalf("GetJson: %v", err)
+			}
+			var configs []map[string]any
+			if err := json.Unmarshal([]byte(out), &configs); err != nil || len(configs) != 2 {
+				t.Fatalf("want one JSON config per host, got err=%v:\n%s", err, out)
+			}
+			if got := tc.jsonField(proxyStreamSettings(t, configs[1])); got != tc.jsonWant {
+				t.Errorf("host B json value = %v, want the inbound's %v", got, tc.jsonWant)
+			}
+		})
+	}
+}
+
+func clashProxyByServer(t *testing.T, out, server string) map[string]any {
+	t.Helper()
+	var config struct {
+		Proxies []map[string]any `yaml:"proxies"`
+	}
+	if err := yaml.Unmarshal([]byte(out), &config); err != nil {
+		t.Fatalf("decode Clash YAML: %v\n%s", err, out)
+	}
+	for _, proxy := range config.Proxies {
+		if proxy["server"] == server {
+			return proxy
+		}
+	}
+	t.Fatalf("no clash proxy for %s in:\n%s", server, out)
+	return nil
+}
+
+func lookupPath(m map[string]any, path string) any {
+	var cur any = m
+	for _, key := range strings.Split(path, ".") {
+		next, _ := cur.(map[string]any)
+		cur = next[key]
+	}
+	return cur
+}
+
+func proxyStreamSettings(t *testing.T, doc map[string]any) map[string]any {
+	t.Helper()
+	outbounds, _ := doc["outbounds"].([]any)
+	for _, ob := range outbounds {
+		outbound, _ := ob.(map[string]any)
+		if outbound["tag"] == "proxy" {
+			stream, _ := outbound["streamSettings"].(map[string]any)
+			return stream
+		}
+	}
+	t.Fatalf("no proxy outbound in %v", doc)
+	return nil
+}
+
 const mihomoRealityStream = `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
 
 // seedMihomoX25519Hosts puts a default host and a "Mihomo X25519" host on one
