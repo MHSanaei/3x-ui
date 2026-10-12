@@ -349,6 +349,11 @@ func ValidateSettings(settings string) error {
 	if err := o.Validate(raw.RouteThroughXray); err != nil {
 		return err
 	}
+	if o.Network.ClientMSS > 0 {
+		if k := extraNetworkKey(o.ExtraTOML, "client-mss", "client-mss-bulk"); k != "" {
+			return fmt.Errorf("mtproto extraToml may not set [network] %s while network.clientMss is set: keep one of the two", k)
+		}
+	}
 	if o.SecuredWebBuild {
 		return nil
 	}
@@ -525,6 +530,22 @@ func gatedExtraKey(extra string) string {
 	}
 	for _, k := range securedWebKeys {
 		if _, ok := doc[k]; ok {
+			return k
+		}
+	}
+	return ""
+}
+
+// extraNetworkKey names the first of keys the extra TOML sets under [network], "" if none.
+// The relay fields own client-mss: a second source would be silently overridden by them.
+func extraNetworkKey(extra string, keys ...string) string {
+	doc := map[string]any{}
+	if strings.TrimSpace(extra) == "" || toml.Unmarshal([]byte(extra), &doc) != nil {
+		return ""
+	}
+	network, _ := doc["network"].(map[string]any)
+	for _, k := range keys {
+		if _, ok := network[k]; ok {
 			return k
 		}
 	}

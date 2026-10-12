@@ -100,7 +100,8 @@ Telegram traffic on to a server outside it. Both parts are in the inbound form:
   the FakeTLS ServerHello leaves in full-size TCP segments. With a ServerHello
   MSS set (for example `92`), mtg sends only the ServerHello in small segments
   and the rest of the session at the session MSS (`1400` by default). A session
-  MSS of `0` keeps the whole session small. Linux only.
+  MSS of `0` keeps the whole session small. Linux only. Set them here or as
+  `[network] client-mss` in the extra TOML, not both: a save with both is refused.
 - **Route through Xray → Outbound.** The panel adds a loopback SOCKS inbound,
   tagged with the inbound's tag, to the Xray config, and points mtg's
   `[network] proxies` at it. With an outbound (or balancer) selected, it also

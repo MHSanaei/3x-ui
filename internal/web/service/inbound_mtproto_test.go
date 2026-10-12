@@ -186,7 +186,8 @@ func TestMtprotoOptionsValidatedOnSave(t *testing.T) {
 		`"extraToml":"concurrency = ",`:                                    "mtproto extraToml",
 		`"network":{"timeout":{"idle":"forever"}},`:                        "mtproto network.timeout.idle",
 		`"secured":true,`: "mtproto secured needs an mtg-multi build",
-		`"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"},`: "mtproto web needs an mtg-multi build",
+		`"network":{"clientMss":92},"extraToml":"[network]\nclient-mss = 100\n",`: "mtproto extraToml may not set [network] client-mss",
+		`"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"},`:          "mtproto web needs an mtg-multi build",
 	} {
 		_, _, err := s.AddInbound(&model.Inbound{Port: 46311, Protocol: model.MTProto, Settings: settings(opts)})
 		if err == nil || !strings.HasPrefix(err.Error(), want) {

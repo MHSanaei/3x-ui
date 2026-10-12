@@ -213,6 +213,8 @@ func TestValidateSettings(t *testing.T) {
 		`{"network":{"clientMss":88,"clientMssBulk":0},` + clients + `}`,
 		`{"network":{"clientMss":0,"clientMssBulk":0},` + clients + `}`,
 		`{"routeThroughXray":true,"network":{"clientMss":92},` + clients + `}`,
+		`{"extraToml":"[network]\nclient-mss = 92\nclient-mss-bulk = 1400\n",` + clients + `}`, // extra TOML alone
+		`{"network":{"clientMss":92},"extraToml":"[network]\ndns = \"1.1.1.1\"\n",` + clients + `}`,
 		`{"defense":{"pendingHandshakes":{"maxPerIp":0}},` + clients + `}`,
 		`{"mtgSecuredWebBuild":true,"web":{"bindTo":"[::1]:18080","host":"proxy.example.com"},` + clients + `}`,
 		`{"mtgSecuredWebBuild":true,"secured":true,` + clients + `}`,
@@ -276,6 +278,8 @@ func TestValidateSettings(t *testing.T) {
 		{`{"web":{"bindTo":"127.0.0.1:18080","host":"proxy.example.com"}}`, "mtproto web needs an mtg-multi build"},
 		{`{"extraToml":"[secured]\nenabled = true\n"}`, "extraToml may not set [secured]"},
 		{`{"extraToml":"[web]\nbind-to = \"127.0.0.1:1\"\n"}`, "extraToml may not set [web]"},
+		{`{"network":{"clientMss":92},"extraToml":"[network]\nclient-mss = 100\n"}`, "extraToml may not set [network] client-mss while"},
+		{`{"network":{"clientMss":92,"clientMssBulk":1400},"extraToml":"[network]\nclient-mss-bulk = 0\n"}`, "extraToml may not set [network] client-mss-bulk"},
 		{`{"extraToml":"concurrency = "}`, "extraToml"},
 		{`{"extraToml":"[secrets]\nmallory = \"ee00\"\n"}`, "extraToml"},
 		{`{"extraToml":"api-token = \"x\"\n"}`, "extraToml"},
