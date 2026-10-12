@@ -121,13 +121,11 @@ export function hostEndpointsFor(
         const ips = randomIPsFromCIDR(dest, count);
         if (ips.length > 0) {
           for (let i = 0; i < ips.length; i++) {
-            const ip = ips[i];
-            const remark =
-              ips.length > 1
-                ? record.remark
-                  ? `${record.remark} - ${i + 1}`
-                  : `${i + 1}`
-                : record.remark || '';
+            const ip = ips[i]!;
+            let remark = record.remark ?? '';
+            if (ips.length > 1) {
+              remark = record.remark ? `${record.remark} - ${i + 1}` : `${i + 1}`;
+            }
             const endpoint: HostEndpoint = { dest: ip, port, remark };
             const sni = record.overrideSniFromAddress ? ip : record.sni;
             if (!record.keepSniBlank && sni) endpoint.sni = sni;

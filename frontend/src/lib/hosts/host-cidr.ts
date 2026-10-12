@@ -56,11 +56,7 @@ export function parseIPv6(ipStr: string): bigint | null {
   }
 
   const missingZeros = 8 - totalParts;
-  const allParts = [
-    ...leftParts,
-    ...Array(missingZeros).fill('0'),
-    ...rightParts,
-  ];
+  const allParts = [...leftParts, ...Array(missingZeros).fill('0'), ...rightParts];
 
   let result = 0n;
   for (const part of allParts) {
@@ -104,8 +100,14 @@ export function formatIPv6(val: bigint): string {
   }
 
   if (bestLen >= 2) {
-    const left = parts.slice(0, bestStart).map((p) => p.toString(16)).join(':');
-    const right = parts.slice(bestStart + bestLen).map((p) => p.toString(16)).join(':');
+    const left = parts
+      .slice(0, bestStart)
+      .map((p) => p.toString(16))
+      .join(':');
+    const right = parts
+      .slice(bestStart + bestLen)
+      .map((p) => p.toString(16))
+      .join(':');
     return `${left}::${right}`;
   }
 
@@ -157,7 +159,7 @@ export function randomIPsFromCIDR(cidrStr: string, count: number): string[] {
 
 function randomIPv4FromCIDR(ip4: number, prefix: number, count: number): string[] {
   const hostBits = 32 - prefix;
-  const mask = prefix === 0 ? 0 : ((~0 << hostBits) >>> 0);
+  const mask = prefix === 0 ? 0 : (~0 << hostBits) >>> 0;
   const baseU32 = (ip4 & mask) >>> 0;
 
   if (hostBits === 0) {
@@ -199,7 +201,7 @@ function randomIPv4FromCIDR(ip4: number, prefix: number, count: number): string[
 
 function randomIPv6FromCIDR(ip6: bigint, prefix: number, count: number): string[] {
   const hostBits = 128 - prefix;
-  const mask = prefix === 0 ? 0n : (((1n << 128n) - 1n) ^ ((1n << BigInt(hostBits)) - 1n));
+  const mask = prefix === 0 ? 0n : ((1n << 128n) - 1n) ^ ((1n << BigInt(hostBits)) - 1n);
   const baseInt = ip6 & mask;
 
   if (hostBits === 0) {

@@ -183,12 +183,11 @@ describe('clients page tunnel configs follow Hosts', () => {
     ];
     const eps = tunnelConfigEndpoints(inbound, cidrHosts, PANEL, '');
     expect(eps).toHaveLength(2);
-    expect(eps[0].remark).toBe('CIDR-WG - 1');
-    expect(eps[1].remark).toBe('CIDR-WG - 2');
-    expect(eps.map((e) => e.port)).toEqual([51820, 51820]);
+    expect(eps[0]?.remark).toBe('CIDR-WG - 1');
+    expect(eps[1]?.remark).toBe('CIDR-WG - 2');
+    expect(eps.map((e) => e?.port)).toEqual([51820, 51820]);
     for (const ep of eps) {
-      expect(ep.dest).toMatch(/^198\.51\.100\.[12]$/);
+      expect(ep?.dest).toMatch(/^198\.51\.100\.[12]$/);
     }
   });
 });
-
