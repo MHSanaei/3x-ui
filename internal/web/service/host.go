@@ -264,31 +264,72 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 	if err := validateFinalMaskJSONSalamander(req.FinalMask); err != nil {
 		return nil, err
 	}
-	created := buildHostRows(groupId, req)
+	desired := buildHostRows(groupId, req)
 
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
-		var count int64
-		if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Count(&count).Error; err != nil {
+		var existing []*model.Host
+		if err := tx.Where("group_id = ?", groupId).Find(&existing).Error; err != nil {
 			return err
 		}
-		if count == 0 {
+		if len(existing) == 0 {
 			return common.NewError("host not found")
 		}
 		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
 			return err
 		}
-		if err := tx.Where("group_id = ?", groupId).Delete(&model.Host{}).Error; err != nil {
-			return err
+		// Reuse ids for unchanged (inbound, address, port) keys so edits
+		// keep bindings; absent keys are deleted, orphaning deliberately.
+		type hostKey struct {
+			inbound int
+			addr    string
+			port    int
 		}
-		if len(created) > 0 {
-			return tx.Create(&created).Error
+		byKey := make(map[hostKey][]*model.Host)
+		for _, h := range existing {
+			k := hostKey{h.InboundId, h.Address, h.Port}
+			byKey[k] = append(byKey[k], h)
+		}
+		var toInsert, toUpdate []*model.Host
+		matched := make(map[int]struct{}, len(desired))
+		for _, d := range desired {
+			k := hostKey{d.InboundId, d.Address, d.Port}
+			if q := byKey[k]; len(q) > 0 {
+				d.Id = q[0].Id
+				d.CreatedAt = q[0].CreatedAt
+				byKey[k] = q[1:]
+				toUpdate = append(toUpdate, d)
+				matched[d.Id] = struct{}{}
+			} else {
+				toInsert = append(toInsert, d)
+			}
+		}
+		var toDelete []int
+		for _, h := range existing {
+			if _, ok := matched[h.Id]; !ok {
+				toDelete = append(toDelete, h.Id)
+			}
+		}
+		if len(toDelete) > 0 {
+			if err := tx.Where("id IN ?", toDelete).Delete(&model.Host{}).Error; err != nil {
+				return err
+			}
+		}
+		for _, u := range toUpdate {
+			if err := tx.Save(u).Error; err != nil {
+				return err
+			}
+		}
+		if len(toInsert) > 0 {
+			if err := tx.Create(&toInsert).Error; err != nil {
+				return err
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return created, nil
+	return desired, nil
 }
 
 func (s *HostService) DeleteHostGroup(groupId string) error {

@@ -11,6 +11,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
 func seedSubDB(t *testing.T) {
@@ -938,5 +940,92 @@ func TestSub_ClientHostRule_ScopedToInbound(t *testing.T) {
 	}
 	if !strings.Contains(yaml, "203.0.113.5") {
 		t.Fatalf("clash must keep inbound B on its own server:\n%s", yaml)
+	}
+}
+
+// Binding survives a host-rule edit: UpdateHostGroup keeps row ids, so
+// raw/JSON/Clash still render only the bound host with the new SNI.
+func TestSub_ClientHostRule_SurvivesGroupEdit(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "edit", 4451, 1, tcpTLSStream)
+	hostSvc := &service.HostService{}
+	created, err := hostSvc.AddHostGroup(&entity.HostGroup{
+		InboundIds: []int{ib.Id},
+		Hosts:      []string{"a.cdn.com:443", "b.cdn.com:443"},
+		Remark:     "orig",
+		Port:       443,
+		Security:   "tls",
+		Sni:        "old.sni",
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+	if len(created) != 2 {
+		t.Fatalf("created = %d rows, want 2", len(created))
+	}
+	boundId := 0
+	for _, h := range created {
+		if h.Address == "b.cdn.com" {
+			boundId = h.Id
+		}
+	}
+	if boundId == 0 {
+		t.Fatalf("bound host row not found in %v", created)
+	}
+
+	db := database.GetDB()
+	if err := db.Model(&model.ClientRecord{}).Where("email = ?", "edit@e").
+		Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{boundId})).Error; err != nil {
+		t.Fatalf("bind host rule: %v", err)
+	}
+
+	g, err := hostSvc.GetHostGroup(created[0].GroupId)
+	if err != nil {
+		t.Fatalf("GetHostGroup: %v", err)
+	}
+	g.Remark = "renamed"
+	g.Sni = "new.sni"
+	if _, err := hostSvc.UpdateHostGroup(g.GroupId, g); err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 1 {
+		t.Fatalf("edited binding must still render 1 link, got %d: %v", len(parts), parts)
+	}
+	if !strings.Contains(parts[0], "b.cdn.com:443") || !strings.Contains(parts[0], "sni=new.sni") {
+		t.Fatalf("bound link must carry the edited host with new SNI: %s", parts[0])
+	}
+	if strings.Contains(parts[0], "a.cdn.com") || strings.Contains(parts[0], "sni=old.sni") {
+		t.Fatalf("edited binding must not fall back to the unbound host: %s", parts[0])
+	}
+
+	jsOut, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(jsOut, "b.cdn.com") || !strings.Contains(jsOut, "new.sni") {
+		t.Fatalf("json must carry the edited bound host with new SNI:\n%s", jsOut)
+	}
+	if strings.Contains(jsOut, "a.cdn.com") || strings.Contains(jsOut, "old.sni") {
+		t.Fatalf("json must not contain the unbound host or old SNI:\n%s", jsOut)
+	}
+
+	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if got := strings.Count(yaml, "b.cdn.com"); got != 1 {
+		t.Fatalf("clash bound host appears %d times, want once:\n%s", got, yaml)
+	}
+	if !strings.Contains(yaml, "new.sni") {
+		t.Fatalf("clash must carry the new SNI:\n%s", yaml)
+	}
+	if strings.Contains(yaml, "a.cdn.com") || strings.Contains(yaml, "old.sni") {
+		t.Fatalf("clash must not contain the unbound host or old SNI:\n%s", yaml)
 	}
 }
