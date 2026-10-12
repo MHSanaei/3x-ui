@@ -459,3 +459,45 @@ func TestMigrateMtprotoCustomShareAddrWithUnusableSameAddressHost(t *testing.T) 
 		})
 	}
 }
+
+// Mihomo X25519 was stored but ignored before it started dropping ML-KEM; a row
+// switched on back then must not change its subscription output on upgrade.
+func TestMigrate_PreexistingMihomoX25519IsResetOnce(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	ib := seedInboundWithStream(t, "mx-legacy", 5559, `{"network":"tcp","security":"reality"}`)
+	host := &model.Host{InboundId: ib.Id, Remark: "legacy", Address: "cdn.example.com", MihomoX25519: true}
+	if err := GetDB().Create(host).Error; err != nil {
+		t.Fatalf("seed host: %v", err)
+	}
+	if err := GetDB().Where("seeder_name = ?", "HostMihomoX25519Reset").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	reopen := func() model.Host {
+		t.Helper()
+		if err := CloseDB(); err != nil {
+			t.Fatalf("CloseDB: %v", err)
+		}
+		if err := InitDB(dbPath); err != nil {
+			t.Fatalf("reopen InitDB: %v", err)
+		}
+		var got model.Host
+		if err := GetDB().First(&got, host.Id).Error; err != nil {
+			t.Fatalf("load host: %v", err)
+		}
+		return got
+	}
+
+	if got := reopen(); got.MihomoX25519 {
+		t.Fatalf("pre-existing mihomoX25519 = true after upgrade, want it reset to false")
+	}
+	if err := GetDB().Model(&model.Host{}).Where("id = ?", host.Id).Update("mihomo_x25519", true).Error; err != nil {
+		t.Fatalf("switch on after upgrade: %v", err)
+	}
+	if got := reopen(); !got.MihomoX25519 {
+		t.Fatalf("mihomoX25519 set after the upgrade was reset again on restart")
+	}
+}

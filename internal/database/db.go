@@ -431,6 +431,17 @@ func migrateHostVerifyPeerCertByNameColumn() error {
 	return db.Exec(`UPDATE hosts SET verify_peer_cert_by_name = '' WHERE verify_peer_cert_by_name IS NULL OR typeof(verify_peer_cert_by_name) <> 'text'`).Error
 }
 
+// mihomo_x25519 was saved but ignored until it began dropping ML-KEM, so rows set
+// back then are cleared once rather than silently changing their subscriptions.
+func resetPreexistingMihomoX25519() error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.Host{}).Where("mihomo_x25519 = ?", true).Update("mihomo_x25519", false).Error; err != nil {
+			return err
+		}
+		return tx.Create(&model.HistoryOfSeeders{SeederName: "HostMihomoX25519Reset"}).Error
+	})
+}
+
 // AutoMigrate casts the boolean-era column to text before the migration above runs,
 // so a saved false/true reads back as the cert name "0"/"false"/"1"/"true".
 func blankLegacyBoolVerifyPeerCertByName() error {
@@ -1362,7 +1373,7 @@ func runSeeders(isUsersEmpty bool) error {
 	}
 
 	if empty && isUsersEmpty {
-		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
+		seeders := []string{"UserPasswordHash", "ClientsTable", "InboundClientsArrayFix", "InboundClientTgIdFix2", "InboundClientSubIdFix", "FreedomFinalRulesReverseFix", "FreedomFinalRulesPrivateEgressBlock", "UppercaseFreedomFinalRulesFix", "InboundRealityFinalmaskTcpStrip", "ApiTokensHash", "LegacyProxySettingsCleanup", "OutboundRemovedKeysFix", "FreedomDomainStrategyFix", "DNSOutboundLegacyKeysFix", "DNSOutboundQTypeZeroFix", "WireguardDomainStrategyFix", "XdnsFinalmaskNamesAddrsFix", "UDPHopClientMaskFix", "HostVerifyPeerCertByNameBoolFix", "HostMihomoX25519Reset", "WireguardPeersToClients", "MtprotoSecretsToClients", "NodeInboundsAdopted", "ResetIpLimitNoFail2ban"}
 		for _, name := range seeders {
 			if err := db.Create(&model.HistoryOfSeeders{SeederName: name}).Error; err != nil {
 				return err
@@ -1517,6 +1528,12 @@ func runSeeders(isUsersEmpty bool) error {
 
 	if !slices.Contains(seedersHistory, "HostVerifyPeerCertByNameBoolFix") {
 		if err := blankLegacyBoolVerifyPeerCertByName(); err != nil {
+			return err
+		}
+	}
+
+	if !slices.Contains(seedersHistory, "HostMihomoX25519Reset") {
+		if err := resetPreexistingMihomoX25519(); err != nil {
 			return err
 		}
 	}
