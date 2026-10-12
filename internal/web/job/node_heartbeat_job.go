@@ -133,11 +133,12 @@ func (j *NodeHeartbeatJob) healthTransitions(probes []nodeProbe) []eventbus.Even
 	for _, p := range probes {
 		h, seen := prev[p.node.Id]
 		if !seen {
-			h.notified = p.node.Status != "online"
+			h.notified = p.node.DownNotified
 		}
 		if p.patch.Status == "online" {
 			if h.notified {
 				events = append(events, nodeHealthEvent(eventbus.EventNodeUp, p.node, p.patch))
+				j.saveDownNotified(p.node.Id, false)
 			}
 			h = nodeHealth{}
 		} else {
@@ -145,11 +146,18 @@ func (j *NodeHeartbeatJob) healthTransitions(probes []nodeProbe) []eventbus.Even
 			if h.failStreak >= threshold && !h.notified {
 				events = append(events, nodeHealthEvent(eventbus.EventNodeDown, p.node, p.patch))
 				h.notified = true
+				j.saveDownNotified(p.node.Id, true)
 			}
 		}
 		j.health[p.node.Id] = h
 	}
 	return events
+}
+
+func (j *NodeHeartbeatJob) saveDownNotified(id int, notified bool) {
+	if err := j.nodeService.SetDownNotified(id, notified); err != nil {
+		logger.Warning("node heartbeat: save down-notified flag for node", id, "failed:", err)
+	}
 }
 
 func nodeHealthEvent(eventType eventbus.EventType, n *model.Node, patch service.HeartbeatPatch) eventbus.Event {

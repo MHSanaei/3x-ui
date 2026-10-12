@@ -20,7 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
-func switchableNode(t *testing.T, status string) *atomic.Bool {
+func switchableNode(t *testing.T) *atomic.Bool {
 	t.Helper()
 	xuilogger.InitLogger(logging.ERROR)
 	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
@@ -46,7 +46,7 @@ func switchableNode(t *testing.T, status string) *atomic.Bool {
 	portNum, _ := strconv.Atoi(port)
 	node := &model.Node{
 		Name: "flaky", Scheme: "http", Address: host, Port: portNum, BasePath: "/", ApiToken: "tok",
-		Enable: true, Status: status, AllowPrivateAddress: true, TlsVerifyMode: "verify",
+		Enable: true, Status: "online", AllowPrivateAddress: true, TlsVerifyMode: "verify",
 	}
 	if err := database.GetDB().Create(node).Error; err != nil {
 		t.Fatalf("create node: %v", err)
@@ -56,37 +56,42 @@ func switchableNode(t *testing.T, status string) *atomic.Bool {
 
 func TestHeartbeatHoldsNodeDownUntilThreshold(t *testing.T) {
 	cases := []struct {
-		name   string
-		status string
-		probes []bool
-		want   []string
+		name          string
+		probes        []bool
+		restartBefore int
+		want          []string
 	}{
 		{
 			name:   "flapping below threshold",
-			status: "online",
 			probes: []bool{false, true, false, false, true, false, true},
 		},
 		{
 			name:   "outage reaching threshold",
-			status: "online",
 			probes: []bool{false, false, false, false, true},
 			want:   []string{"probe 3: node.down", "probe 5: node.up"},
 		},
 		{
-			name:   "offline before restart stays down",
-			status: "offline",
-			probes: []bool{false, false, false, false},
+			name:          "restart mid-streak still announces the outage",
+			probes:        []bool{false, false, false, false, true},
+			restartBefore: 2,
+			want:          []string{"probe 4: node.down", "probe 5: node.up"},
 		},
 		{
-			name:   "offline before restart recovers",
-			status: "offline",
-			probes: []bool{false, true},
-			want:   []string{"probe 2: node.up"},
+			name:          "restart after announced outage does not repeat it",
+			probes:        []bool{false, false, false, false, false, false, true},
+			restartBefore: 5,
+			want:          []string{"probe 3: node.down", "probe 7: node.up"},
+		},
+		{
+			name:          "restart after recovery announces the next outage",
+			probes:        []bool{false, false, false, true, false, false, false, true},
+			restartBefore: 5,
+			want:          []string{"probe 3: node.down", "probe 4: node.up", "probe 7: node.down", "probe 8: node.up"},
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			up := switchableNode(t, tc.status)
+			up := switchableNode(t)
 			if err := (&service.SettingService{}).SetNodeDownThreshold(3); err != nil {
 				t.Fatalf("SetNodeDownThreshold: %v", err)
 			}
@@ -95,6 +100,9 @@ func TestHeartbeatHoldsNodeDownUntilThreshold(t *testing.T) {
 
 			var got []string
 			for i, probeOK := range tc.probes {
+				if i+1 == tc.restartBefore {
+					job = NewNodeHeartbeatJob()
+				}
 				up.Store(probeOK)
 				job.Run()
 				for _, e := range events()[len(got):] {
