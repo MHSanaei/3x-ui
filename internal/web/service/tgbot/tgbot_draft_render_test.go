@@ -20,8 +20,8 @@ const clientDraftTestChatID = -9001
 // Regression test: the draft is sent with ParseMode HTML, so Markdown markers
 // were rendered literally and an unescaped value could break the whole message.
 func TestClientDraftMessageRendersHTML(t *testing.T) {
-	draft := addClientDrafts.forChat(clientDraftTestChatID)
-	t.Cleanup(func() { addClientDrafts.reset(clientDraftTestChatID) })
+	draft := addClientDrafts.forActor(chatUser{chatID: clientDraftTestChatID, userID: 1})
+	t.Cleanup(func() { addClientDrafts.reset(chatUser{chatID: clientDraftTestChatID, userID: 1}) })
 
 	draft.email = "a@b.c"
 	draft.comment = "<b>promo</b> & <10 GB>"
@@ -67,10 +67,10 @@ func TestAddClientPromptsEscapeDraftValues(t *testing.T) {
 	url, texts := draftTexts(t)
 	swapTestBot(t, url)
 
-	draft := addClientDrafts.forChat(1)
+	draft := addClientDrafts.forActor(chatUser{chatID: 1, userID: 1})
 	origRunning := isRunning
 	t.Cleanup(func() {
-		addClientDrafts.reset(1)
+		addClientDrafts.reset(chatUser{chatID: 1, userID: 1})
 		isRunning = origRunning
 	})
 	isRunning = true

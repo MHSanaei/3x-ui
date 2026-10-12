@@ -65,6 +65,59 @@ function reservedFor(clientId?: string): number[] {
   return out;
 }
 
+export function buildWarpOutbound(
+  data: WarpData | null,
+  config: WarpConfig | null,
+): Record<string, unknown> | null {
+  const cfg = config?.config;
+  if (!cfg?.peers?.length) return null;
+  const peer = cfg.peers[0];
+  return {
+    tag: 'warp',
+    protocol: 'wireguard',
+    // ForceIP may resolve engage.cloudflareclient.com to its AAAA and a half-configured IPv6
+    // host blackholes the handshake silently (#5205); sockopt drives that lookup since 26.9.30.
+    streamSettings: { sockopt: { domainStrategy: 'ForceIPv4v6' } },
+    // Targets inside the tunnel keep the IPv4 preference the removed settings key gave them.
+    targetStrategy: 'ForceIPv4v6',
+    settings: {
+      mtu: 1420,
+      secretKey: data?.private_key,
+      address: addressesFor(cfg.interface?.addresses || {}),
+      reserved: reservedFor(cfg.client_id ?? data?.client_id),
+      peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
+      // Userspace TUN: kernel TUN needs CAP_NET_ADMIN + fwmark routing, fails silently on many
+      // VPS setups, and differs from the connectivity test's path (always noKernelTun=true).
+      noKernelTun: true,
+    },
+  };
+}
+
+interface WarpMasqueRegistration {
+  privateKey: string;
+  publicKey: string;
+  address: string[];
+  endpoint: string;
+}
+
+// Cloudflare serves WARP over MASQUE on HTTP/3 behind this SNI; the enrolled key and
+// endpoint key replace user/pass, which xray-core refuses next to a warp block.
+export function buildWarpMasqueOutbound(reg: WarpMasqueRegistration): Record<string, unknown> {
+  return {
+    tag: 'warp-masque',
+    protocol: 'masque',
+    settings: { address: reg.endpoint, port: 443 },
+    streamSettings: {
+      network: 'masque',
+      security: 'tls',
+      tlsSettings: { serverName: 'consumer-masque.cloudflareclient.com', alpn: ['h3'] },
+      masqueSettings: {
+        warp: { privateKey: reg.privateKey, publicKey: reg.publicKey, address: reg.address },
+      },
+    },
+  };
+}
+
 export function mergeWarpRotation(
   existing: Record<string, unknown> | undefined,
   data: WarpData | null,
@@ -127,31 +180,8 @@ export default function WarpModal({
 
   const collectConfig = useCallback(
     (data: WarpData | null, config: WarpConfig | null): Record<string, unknown> | null => {
-      const cfg = config?.config;
-      if (!cfg?.peers?.length) return null;
-      const peer = cfg.peers[0];
-      const outbound: Record<string, unknown> = {
-        tag: 'warp',
-        protocol: 'wireguard',
-        settings: {
-          mtu: 1420,
-          secretKey: data?.private_key,
-          address: addressesFor(cfg.interface?.addresses || {}),
-          reserved: reservedFor(cfg.client_id ?? data?.client_id),
-          // Prefer IPv4 with IPv6 fallback: plain ForceIP may pick the AAAA
-          // record for engage.cloudflareclient.com, and a host with
-          // half-configured IPv6 then blackholes the handshake with no error
-          // logged (#5205).
-          domainStrategy: 'ForceIPv4v6',
-          peers: [{ publicKey: peer.public_key, endpoint: peer.endpoint?.host }],
-          // Userspace TUN: kernel TUN needs CAP_NET_ADMIN + fwmark routing and
-          // fails silently on many VPS setups, and it is a different data path
-          // than the panel's connectivity test (which always probes with
-          // noKernelTun=true), so "test ok" and "traffic flows" can disagree.
-          noKernelTun: true,
-        },
-      };
-      setStagedOutbound(outbound);
+      const outbound = buildWarpOutbound(data, config);
+      if (outbound) setStagedOutbound(outbound);
       return outbound;
     },
     [],
@@ -300,6 +330,21 @@ export default function WarpModal({
         onRemoveOutbound('warp');
         onClose();
       }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function addMasqueOutbound() {
+    setLoading(true);
+    try {
+      const msg = await HttpUtil.post<string>('/panel/api/xray/warp/regMasque');
+      if (!msg?.success || !msg.obj) return;
+      const outbound = buildWarpMasqueOutbound(JSON.parse(msg.obj) as WarpMasqueRegistration);
+      const index = templateSettings?.outbounds?.findIndex((o) => o?.tag === 'warp-masque') ?? -1;
+      if (index >= 0) onResetOutbound({ index, outbound });
+      else onAddOutbound(outbound);
+      onClose();
     } finally {
       setLoading(false);
     }
@@ -539,6 +584,18 @@ export default function WarpModal({
               )}
             </>
           )}
+
+          <Divider className="my-10">MASQUE</Divider>
+          <Alert type="info" showIcon title={t('pages.xray.warp.masqueDesc')} />
+          <Button
+            type="primary"
+            className="mt-8"
+            loading={loading}
+            icon={<PlusOutlined />}
+            onClick={addMasqueOutbound}
+          >
+            {t('pages.xray.warp.addMasqueOutbound')}
+          </Button>
         </FormProvider>
       </Modal>
     </>

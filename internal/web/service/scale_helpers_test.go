@@ -11,6 +11,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -41,10 +42,7 @@ func setupScaleDB(t *testing.T) {
 		if dbPath == "" {
 			dbPath = filepath.Join(t.TempDir(), "scale.db")
 		}
-		if err := database.InitDB(dbPath); err != nil {
-			t.Fatalf("InitDB(sqlite): %v", err)
-		}
-		t.Cleanup(func() { _ = database.CloseDB() })
+		dbtest.InitDB(t, dbPath)
 		return
 	}
 

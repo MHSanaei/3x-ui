@@ -358,7 +358,7 @@ func TestEgressGreetingRejectsNoAuthClient(t *testing.T) {
 	tun := newPairedTunnelForTest(t)
 	registerEgressDeviceForTest(t, tun.client)
 
-	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
+	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(GetEgressServer().Port())))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +384,7 @@ func TestEgressConnectDomainResolvesThroughTunnel(t *testing.T) {
 	// fail fast (nothing listens on :80), while proving resolution happened.
 	gotQuery := tun.overrideDNS(t, tun.serverIP)
 
-	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
+	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(GetEgressServer().Port())))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +436,7 @@ func TestEgressConnectDomainIPv6OnlyTunnelResolvesThroughTunnel(t *testing.T) {
 	resetTunnelDNSCacheForTest()
 	gotQuery := tun.startDNS(t, tun.serverIP)
 
-	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
+	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(GetEgressServer().Port())))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -482,7 +482,7 @@ func TestEgressUDPDatagramDomainForwardedIntoTunnel(t *testing.T) {
 	}
 	defer in.Close()
 
-	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
+	ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(GetEgressServer().Port())))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -585,7 +585,7 @@ func TestEgressUDPDatagramDomainInterleavedClients(t *testing.T) {
 	}()
 
 	dialUDP := func() *net.UDPConn {
-		ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(EgressBasePort)))
+		ctl, err := (&net.Dialer{Timeout: egressTestDialTimeout}).Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(GetEgressServer().Port())))
 		if err != nil {
 			t.Fatal(err)
 		}

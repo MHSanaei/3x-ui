@@ -24,6 +24,10 @@ import type { GeoCategory, GeoEntry, GeoFile, GeoKind } from '@/generated/types'
 import './GeoBrowserModal.css';
 
 const ENTRY_PAGE_SIZE = 100;
+
+// Attributes are dropped server-side, so kind:value repeats within real
+// geosite categories; the page position is the only unique row key.
+type GeoEntryRow = GeoEntry & { position: number };
 const CATEGORY_SCROLL_HEIGHT = 438;
 const ENTRY_FILTER_DELAY = 500;
 
@@ -224,7 +228,12 @@ export default function GeoBrowserModal({
     [t],
   );
 
-  const entryColumns: ColumnsType<GeoEntry> = useMemo(
+  const entryRows: GeoEntryRow[] = useMemo(
+    () => (entriesQuery.data?.items ?? []).map((entry, position) => ({ ...entry, position })),
+    [entriesQuery.data],
+  );
+
+  const entryColumns: ColumnsType<GeoEntryRow> = useMemo(
     () => [
       {
         dataIndex: 'kind',
@@ -391,9 +400,9 @@ export default function GeoBrowserModal({
                     <Table
                       size="small"
                       showHeader={false}
-                      rowKey={(entry, index) => `${entry.value}-${index}`}
+                      rowKey="position"
                       columns={entryColumns}
-                      dataSource={entriesQuery.data?.items ?? []}
+                      dataSource={entryRows}
                       loading={entriesQuery.isLoading}
                       locale={{
                         emptyText: entriesQuery.isError

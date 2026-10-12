@@ -14,6 +14,7 @@ export function isEncryptedDnsAddress(address: string): boolean {
 }
 
 export const DnsServerObjectInnerSchema = z.object({
+  id: z.string().optional(),
   address: z.string(),
   port: PortSchema.optional(),
   domains: z.array(z.string()).optional(),
@@ -54,6 +55,7 @@ export const DnsObjectSchema = z.object({
   tag: z.string().optional(),
   hosts: DnsHostsSchema.optional(),
   servers: z.array(DnsServerEntrySchema).optional(),
+  script: z.string().optional(),
   clientIp: z.string().optional(),
   queryStrategy: DnsQueryStrategySchema.default('UseIP'),
   disableCache: z.boolean().default(false),

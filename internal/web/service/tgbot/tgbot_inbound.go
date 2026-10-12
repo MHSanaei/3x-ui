@@ -136,6 +136,14 @@ func (t *Tgbot) getInboundClientsFor(inbound *model.Inbound, action string) (*te
 	return keyboard, nil
 }
 
+// addClientExcludedProtocols are the protocols with no per-client model: Tunnel
+// has no clients, Mixed/HTTP authenticate at the inbound level, not per-client.
+var addClientExcludedProtocols = map[model.Protocol]bool{
+	model.Tunnel: true,
+	model.Mixed:  true,
+	model.HTTP:   true,
+}
+
 // getInboundsAddClient creates an inline keyboard for adding clients to inbounds.
 func (t *Tgbot) getInboundsAddClient() (*telego.InlineKeyboardMarkup, error) {
 	inbounds, err := t.inboundService.GetAllInbounds()
@@ -149,17 +157,9 @@ func (t *Tgbot) getInboundsAddClient() (*telego.InlineKeyboardMarkup, error) {
 		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
 
-	excludedProtocols := map[model.Protocol]bool{
-		model.Tunnel:    true,
-		model.Mixed:     true,
-		model.WireGuard: true,
-		model.AmneziaWG: true,
-		model.HTTP:      true,
-	}
-
 	var buttons []telego.InlineKeyboardButton
 	for _, inbound := range inbounds {
-		if excludedProtocols[inbound.Protocol] {
+		if addClientExcludedProtocols[inbound.Protocol] {
 			continue
 		}
 
@@ -169,6 +169,11 @@ func (t *Tgbot) getInboundsAddClient() (*telego.InlineKeyboardMarkup, error) {
 		}
 		callbackData := t.encodeQuery(fmt.Sprintf("%s %d", "add_client_to", inbound.Id))
 		buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(callbackData))
+	}
+
+	if len(buttons) == 0 {
+		logger.Warning("No inbounds eligible for add-client (all excluded by protocol)")
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
 
 	cols := 1
@@ -194,20 +199,13 @@ func (t *Tgbot) getInboundsAttachPicker(draft *clientDraft) (*telego.InlineKeybo
 	if len(inbounds) == 0 {
 		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
-	excludedProtocols := map[model.Protocol]bool{
-		model.Tunnel:    true,
-		model.Mixed:     true,
-		model.WireGuard: true,
-		model.AmneziaWG: true,
-		model.HTTP:      true,
-	}
 	selected := make(map[int]bool, len(draft.receiverInboundIDs))
 	for _, id := range draft.receiverInboundIDs {
 		selected[id] = true
 	}
 	var buttons []telego.InlineKeyboardButton
 	for _, ib := range inbounds {
-		if excludedProtocols[ib.Protocol] {
+		if addClientExcludedProtocols[ib.Protocol] {
 			continue
 		}
 		mark := "☐"

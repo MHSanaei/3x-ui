@@ -310,3 +310,25 @@ func TestValidateAmneziaWGOutbound_DNSField(t *testing.T) {
 		}
 	}
 }
+
+// An outbound's S values are dictated by the remote server and received here on
+// Linux, so the iOS receive-buffer cap on inbounds must not refuse them.
+func TestValidateAmneziaWGOutbound_AcceptsRemotePaddingPastTheIOSCap(t *testing.T) {
+	m := validOutboundMapT(t)
+	m["s1"], m["s2"], m["s3"] = 2000, 3000, 4000
+	bs, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateAmneziaWGOutbound("t", wrapOutboundSettings(bs)); err != nil {
+		t.Fatalf("remote server padding S1=2000 S2=3000 S3=4000 refused: %v", err)
+	}
+
+	m["s1"] = 65536
+	if bs, err = json.Marshal(m); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateAmneziaWGOutbound("t", wrapOutboundSettings(bs)); err == nil {
+		t.Fatal("S1=65536 is past amneziawg-go's uint16 UAPI width and must be refused")
+	}
+}

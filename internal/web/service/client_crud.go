@@ -81,6 +81,28 @@ func validateClientResetMax(resetMax int) error {
 	return nil
 }
 
+func validateClientRenewal(client model.Client) error {
+	if err := validateClientResetDay(client.ResetDay); err != nil {
+		return err
+	}
+	if client.ResetWeekday < 0 || client.ResetWeekday > 7 {
+		return common.NewError("client resetWeekday must be between 0 and 7, got:", client.ResetWeekday)
+	}
+	if client.ResetWeekday > 0 && (client.Reset > 0 || client.ResetDay > 0) {
+		return common.NewError("client weekly renewal cannot be combined with reset or resetDay")
+	}
+	return nil
+}
+
+func validateClientsRenewal(clients []model.Client) error {
+	for _, client := range clients {
+		if err := validateClientRenewal(client); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // normalizeClientTrafficReset stores what the inbound path would store, so the
 // day never reaches the DB as a 0 that three layers downstream each clamp to 1.
 func normalizeClientTrafficReset(c *model.Client) {
@@ -137,7 +159,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if err := validateClientSubID(client.SubID); err != nil {
 		return false, err
 	}
-	if err := validateClientResetDay(client.ResetDay); err != nil {
+	if err := validateClientRenewal(client); err != nil {
 		return false, err
 	}
 	if err := validateClientResetMax(client.ResetMax); err != nil {
@@ -237,7 +259,7 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	// A re-created email is a live identity again: a delete tombstone left
 	// standing makes the next node merge prune the new client's inbound links.
 	withdrawClientTombstones(client.Email)
-	return needRestart, s.setClientLimitHwidByEmail(nil, client.Email, payload.LimitHwid)
+	return needRestart, s.setClientLimitHwidByEmail(client.Email, payload.LimitHwid)
 }
 
 // inboundFanoutConcurrency caps how many inbounds one client op applies at
@@ -389,7 +411,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.ID == "" {
 			c.ID = uuid.NewString()
 		}
-	case model.Trojan:
+	case model.Trojan, model.MASQUE:
 		if c.Password == "" {
 			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
@@ -485,6 +507,32 @@ func shadowsocksKeyBytes(method string) int {
 		return 32
 	}
 	return 0
+}
+
+// validateShadowsocks2022Inbound refuses a method or server key xray-core cannot
+// build an inbound from: the core then does not start at all.
+func validateShadowsocks2022Inbound(protocol model.Protocol, settings string) error {
+	if protocol != model.Shadowsocks {
+		return nil
+	}
+	var parsed struct {
+		Method   string `json:"method"`
+		Password string `json:"password"`
+	}
+	if json.Unmarshal([]byte(settings), &parsed) != nil {
+		return nil
+	}
+	n := xray.Shadowsocks2022KeyBytes(parsed.Method)
+	if n == 0 {
+		return nil
+	}
+	if xray.Shadowsocks2022NoMultiUser(parsed.Method) {
+		return common.NewErrorf("shadowsocks inbound method %s does not support multiple users, use a 2022-blake3-aes method", parsed.Method)
+	}
+	if !xray.ValidShadowsocks2022Key(parsed.Method, parsed.Password) {
+		return common.NewErrorf("shadowsocks inbound password: %s needs a %d-byte key, base64 encoded", parsed.Method, n)
+	}
+	return nil
 }
 
 // normalizeShadowsocksClientKeys rewrites any Shadowsocks-2022 client password
@@ -591,7 +639,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := validateClientSubID(updated.SubID); err != nil {
 		return false, err
 	}
-	if err := validateClientResetDay(updated.ResetDay); err != nil {
+	if err := validateClientRenewal(updated); err != nil {
 		return false, err
 	}
 	if err := validateClientResetMax(updated.ResetMax); err != nil {
@@ -756,6 +804,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 				"comment":           merged.Comment,
 				"reset":             merged.Reset,
 				"reset_day":         merged.ResetDay,
+				"reset_weekday":     merged.ResetWeekday,
 				"reset_max":         merged.ResetMax,
 				"traffic_reset":     merged.TrafficReset,
 				"traffic_reset_day": merged.TrafficResetDay,
@@ -803,7 +852,7 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 		return needRestart, err
 	}
 
-	if err := s.setClientLimitHwidByEmail(nil, updated.Email, limitHwid); err != nil {
+	if err := s.setClientLimitHwidByEmail(updated.Email, limitHwid); err != nil {
 		return needRestart, err
 	}
 
@@ -868,8 +917,7 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		return needRestart, errors.Join(delErrs...)
 	}
 
-	db := database.GetDB()
-	if err := db.Transaction(func(tx *gorm.DB) error {
+	if err := runSerializedTx(func(tx *gorm.DB) error {
 		if existing.Email != "" {
 			if err := adjustGroupBaselinesForRemovedTraffic(tx, []string{existing.Email}); err != nil {
 				return err

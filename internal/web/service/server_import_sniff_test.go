@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 )
 
 func TestSniffImportKind(t *testing.T) {
@@ -30,10 +31,7 @@ func TestSniffImportKind(t *testing.T) {
 
 	t.Run("panel migration dump", func(t *testing.T) {
 		dbPath := filepath.Join(t.TempDir(), "x-ui.db")
-		if err := database.InitDB(dbPath); err != nil {
-			t.Fatalf("InitDB: %v", err)
-		}
-		t.Cleanup(func() { _ = database.CloseDB() })
+		dbtest.InitDB(t, dbPath)
 		dump, err := database.DumpSQLiteToBytes(dbPath)
 		if err != nil {
 			t.Fatalf("DumpSQLiteToBytes: %v", err)

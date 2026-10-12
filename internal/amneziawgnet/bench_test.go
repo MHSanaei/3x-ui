@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	awgconn "github.com/amnezia-vpn/amneziawg-go/v3/conn"
 	"github.com/amnezia-vpn/amneziawg-go/v3/device"
 	"github.com/amnezia-vpn/amneziawg-go/v3/tun/netstack"
 	"gvisor.dev/gvisor/pkg/buffer"
@@ -31,8 +30,8 @@ func BenchmarkStackTunWrite(b *testing.B) {
 
 	b.SetBytes(int64(len(packet)))
 	b.ReportAllocs()
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		if _, err := tun.Write(bufs, 0); err != nil {
 			b.Fatalf("Write: %v", err)
 		}
@@ -49,8 +48,8 @@ func BenchmarkStackTunRead(b *testing.B) {
 
 	b.SetBytes(int64(len(packet)))
 	b.ReportAllocs()
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		tun.incomingPacket <- buffer.NewViewWithData(packet)
 		if _, err := tun.Read(buf, sizes, 0); err != nil {
 			b.Fatalf("Read: %v", err)
@@ -77,8 +76,8 @@ func BenchmarkUDPDatagramDelivery(b *testing.B) {
 
 	b.SetBytes(int64(len(payload)))
 	b.ReportAllocs()
-	b.ResetTimer()
-	for range b.N {
+
+	for b.Loop() {
 		if _, err := st.Write(bufs, 0); err != nil {
 			b.Fatalf("Write: %v", err)
 		}
@@ -159,7 +158,7 @@ func newBenchTunnel(b *testing.B, listenPort int, serverAddr, clientAddr string)
 	if err != nil {
 		b.Fatalf("client CreateNetTUN: %v", err)
 	}
-	clientDev := device.NewDevice(clientTun, awgconn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
+	clientDev := device.NewDevice(clientTun, newListenBind(""), device.NewLogger(device.LogLevelSilent, ""))
 
 	clientPrivHex, err := wireguard.KeyToHex(clientPriv)
 	if err != nil {

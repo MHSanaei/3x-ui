@@ -34,6 +34,7 @@ type HappConfig struct {
 	AutoConnectType     string
 	PerAppMode          string
 	PerAppList          string
+	LocalProxyAuth      string
 }
 
 // IsHappClient checks if the client user-agent identifies as Happ.
@@ -128,6 +129,12 @@ func ApplyHappHeaders(c *gin.Context, cfg HappConfig, isHapp bool) {
 		if autoType != "" {
 			c.Writer.Header().Set("Subscription-Autoconnect-Type", autoType)
 		}
+	}
+	// Happ's local SOCKS/HTTP inbounds default to no auth, so any app on the device can use them
+	// to reach the tunnel and learn the server address; these are standard headers (no ProviderID).
+	if mode := strings.TrimSpace(cfg.LocalProxyAuth); mode != "" {
+		c.Writer.Header().Set("Socks-Auth-Mode", mode)
+		c.Writer.Header().Set("Http-Auth-Mode", mode)
 	}
 	if mode := strings.TrimSpace(cfg.PerAppMode); mode != "" && mode != "off" {
 		switch strings.ToLower(mode) {

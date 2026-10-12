@@ -64,6 +64,7 @@ export interface RealityConfig {
   fingerprint: string;
   spiderX: string;
   flow: string;
+  supportX25519Mlkem768: boolean;
 }
 
 /** Server-side VLESS + REALITY inbound (Xray config shape). */
@@ -108,6 +109,7 @@ export function realityClientLink(c: RealityConfig): string {
       sid: c.shortIds[0] ?? '',
       spx: c.spiderX,
       flow: c.flow,
+      ...(c.supportX25519Mlkem768 ? { 'support-x25519mlkem768': 'true' } : {}),
     },
     name: `${c.address}-reality`,
   });

@@ -16,9 +16,9 @@ func hotConfigWithClients(clients string) *Config {
 	return cfg
 }
 
-// diffInboundUsers refuses shadowsocks and hysteria, so their dropped clients
-// reach the guard through the inbound instead of through a per-user op.
-func TestHotDiffDropsUsersOnProtocolsItCannotDiff(t *testing.T) {
+// Shadowsocks reaches the drop guard through the inbound's settings.clients compare,
+// hysteria through its per-user diff; either way a dropped client must be reported.
+func TestHotDiffDropsUsersOnShadowsocksAndHysteria(t *testing.T) {
 	for _, protocol := range []string{"shadowsocks", "hysteria"} {
 		t.Run(protocol, func(t *testing.T) {
 			withClients := func(clients string) *Config {

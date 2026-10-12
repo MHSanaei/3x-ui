@@ -39,6 +39,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/sys"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
@@ -148,6 +149,7 @@ type ServerService struct {
 	cachedIPv4         string
 	cachedIPv6         string
 	noIPv6             bool
+	resolvingIPs       bool
 	mu                 sync.Mutex
 	lastCPUTimes       cpu.TimesStat
 	hasLastCPUSample   bool
@@ -158,6 +160,7 @@ type ServerService struct {
 
 	lastStatusMu sync.RWMutex
 	lastStatus   *Status
+	coldStatusMu sync.Mutex
 
 	versionsCacheMu sync.Mutex
 	versionsCache   *cachedXrayVersions
@@ -206,6 +209,21 @@ func (s *ServerService) LastStatus() *Status {
 	s.lastStatusMu.RLock()
 	defer s.lastStatusMu.RUnlock()
 	return s.lastStatus
+}
+
+// CurrentStatus never reports "no status yet": the @2s ticker leaves LastStatus
+// nil for the first seconds after a restart, and a master probing a node then
+// reads the empty snapshot as an offline panel.
+func (s *ServerService) CurrentStatus() *Status {
+	if status := s.LastStatus(); status != nil {
+		return status
+	}
+	s.coldStatusMu.Lock()
+	defer s.coldStatusMu.Unlock()
+	if status := s.LastStatus(); status != nil {
+		return status
+	}
+	return s.RefreshStatus()
 }
 
 // Fail2banStatus tells the frontend whether the per-client IP limit can
@@ -429,34 +447,77 @@ var publicIPv6Services = []string{
 	"https://6.ident.me",
 }
 
-// resolvePublicIPs caches the public IPv4/IPv6 addresses on first use. Guarded
-// by s.mu because the bot's ServerService may call it from sendBackup while a
-// status report runs concurrently.
+// resolvePublicIPs caches the public IPv4/IPv6 addresses on first use. The
+// lookups run outside s.mu so a stalling service cannot block a status sample.
 func (s *ServerService) resolvePublicIPs() {
 	s.mu.Lock()
+	wantIPv4 := s.cachedIPv4 == ""
+	wantIPv6 := s.cachedIPv6 == "" && !s.noIPv6
+	s.mu.Unlock()
+	if !wantIPv4 && !wantIPv6 {
+		return
+	}
+
+	var ipv4, ipv6 string
+	if wantIPv4 {
+		ipv4 = firstPublicIP(publicIPv4Services)
+	}
+	if wantIPv6 {
+		ipv6 = firstPublicIP(publicIPv6Services)
+	}
+
+	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if s.cachedIPv4 == "" {
-		for _, ip4Service := range publicIPv4Services {
-			s.cachedIPv4 = getPublicIP(ip4Service)
-			if s.cachedIPv4 != "N/A" {
-				break
-			}
-		}
+	if wantIPv4 && s.cachedIPv4 == "" {
+		s.cachedIPv4 = ipv4
 	}
-
-	if s.cachedIPv6 == "" && !s.noIPv6 {
-		for _, ip6Service := range publicIPv6Services {
-			s.cachedIPv6 = getPublicIP(ip6Service)
-			if s.cachedIPv6 != "N/A" {
-				break
-			}
-		}
+	if wantIPv6 && s.cachedIPv6 == "" {
+		s.cachedIPv6 = ipv6
 	}
-
 	if s.cachedIPv6 == "N/A" {
 		s.noIPv6 = true
 	}
+}
+
+// firstPublicIP returns the first service that answers, or "N/A" when every
+// one of them fails.
+func firstPublicIP(services []string) string {
+	var ip string
+	for _, service := range services {
+		ip = getPublicIP(service)
+		if ip != "N/A" {
+			break
+		}
+	}
+	return ip
+}
+
+// resolvePublicIPsInBackground keeps a status sample off the lookup path: a box
+// with no IPv6 route spends 3s per service, and the sample is what nodes report.
+func (s *ServerService) resolvePublicIPsInBackground() {
+	s.mu.Lock()
+	settled := s.cachedIPv4 != "" && (s.cachedIPv6 != "" || s.noIPv6)
+	if s.resolvingIPs || settled {
+		s.mu.Unlock()
+		return
+	}
+	s.resolvingIPs = true
+	s.mu.Unlock()
+
+	go func() {
+		defer func() {
+			s.mu.Lock()
+			s.resolvingIPs = false
+			s.mu.Unlock()
+		}()
+		s.resolvePublicIPs()
+	}()
+}
+
+func (s *ServerService) publicIPs() (ipv4 string, ipv6 string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.cachedIPv4, s.cachedIPv6
 }
 
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {
@@ -620,9 +681,8 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get udp connections failed:", err)
 	}
 
-	s.resolvePublicIPs()
-	status.PublicIP.IPv4 = s.cachedIPv4
-	status.PublicIP.IPv6 = s.cachedIPv6
+	s.resolvePublicIPsInBackground()
+	status.PublicIP.IPv4, status.PublicIP.IPv6 = s.publicIPs()
 
 	// Xray status
 	if s.xrayService.IsXrayRunning() {
@@ -1125,6 +1185,9 @@ func (s *ServerService) UpdateXray(version string) error {
 	return nil
 }
 
+// syslogTimeout keeps a stalled journalctl from hanging the Syslog request (#6629).
+var syslogTimeout = 15 * time.Second
+
 func (s *ServerService) GetLogs(count string, level string, syslog string) []string {
 	c, _ := strconv.Atoi(count)
 	var lines []string
@@ -1157,10 +1220,15 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		}
 
 		// Use hardcoded command with validated parameters
-		cmd := exec.CommandContext(context.Background(), "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
+		ctx, cancel := context.WithTimeout(context.Background(), syslogTimeout)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
 		err = cmd.Run()
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return []string{"journalctl did not answer in time. Try a smaller line count or a less strict level."}
+		}
 		if err != nil {
 			return []string{"Failed to run journalctl command! Make sure systemd is available and x-ui service is registered."}
 		}
@@ -1549,10 +1617,11 @@ func (s *ServerService) backupHost(requestHost string) string {
 	}
 	if host == "" {
 		s.resolvePublicIPs()
-		if ip := s.cachedIPv4; ip != "" && ip != "N/A" {
-			host = ip
-		} else if ip := s.cachedIPv6; ip != "" && ip != "N/A" {
-			host = ip
+		ipv4, ipv6 := s.publicIPs()
+		if ipv4 != "" && ipv4 != "N/A" {
+			host = ipv4
+		} else if ipv6 != "" && ipv6 != "N/A" {
+			host = ipv6
 		}
 	}
 	return sanitizeBackupHost(host)
@@ -2689,7 +2758,8 @@ func walkCertFiles(node any, out []string) []string {
 // proxy). A native handshake replaces the old `xray tls ping` subprocess so the
 // real dial/handshake failure (connection refused, timeout, …) surfaces
 // verbatim. `server` may be host or host:port; the port defaults to 443.
-func (s *ServerService) GetRemoteCertHash(server string) ([]string, error) {
+// allowPrivate lifts the SSRF guard for this one probe (the panel's confirmed opt-in).
+func (s *ServerService) GetRemoteCertHash(server string, allowPrivate bool) ([]string, error) {
 	server = strings.TrimSpace(server)
 	if server == "" {
 		return nil, common.NewError("no server provided")
@@ -2700,10 +2770,11 @@ func (s *ServerService) GetRemoteCertHash(server string) ([]string, error) {
 		host, port = h, p
 	}
 
-	dialer := stdnet.Dialer{Timeout: 10 * time.Second}
-	tcpConn, err := dialer.Dial("tcp", stdnet.JoinHostPort(host, port))
+	ctx, cancel := context.WithTimeout(netsafe.ContextWithAllowPrivate(context.Background(), allowPrivate), 10*time.Second)
+	defer cancel()
+	tcpConn, err := netsafe.SSRFGuardedDialContext(ctx, "tcp", stdnet.JoinHostPort(host, port))
 	if err != nil {
-		return nil, common.NewErrorf("failed to dial %s: %s", stdnet.JoinHostPort(host, port), err)
+		return nil, fmt.Errorf("failed to dial %s: %w", stdnet.JoinHostPort(host, port), err)
 	}
 	defer tcpConn.Close()
 	_ = tcpConn.SetDeadline(time.Now().Add(15 * time.Second))

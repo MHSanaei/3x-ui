@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -25,7 +25,8 @@ vi.mock('persian-calendar-suite', () => ({
   ),
 }));
 
-afterEach(() => setDatepicker('gregorian'));
+// Runs before the shared cleanup(), so the picker is still mounted and re-renders.
+afterEach(() => act(() => setDatepicker('gregorian')));
 
 function openPicker(): void {
   const input = document.querySelector('.ant-picker input');

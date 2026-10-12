@@ -81,21 +81,45 @@ func TestHub_BroadcastDeliversToClient(t *testing.T) {
 	waitClientCount(t, h, 1)
 
 	h.Broadcast(MessageTypeStatus, map[string]string{"k": "v"})
-
 	select {
 	case raw := <-c.Send:
-		var m Message
-		if err := json.Unmarshal(raw, &m); err != nil {
-			t.Fatalf("payload is not valid JSON: %v\n%s", err, raw)
+		var message Message
+		if err := json.Unmarshal(raw, &message); err != nil {
+			t.Fatalf("payload is not valid JSON: %v", err)
 		}
-		if m.Type != MessageTypeStatus {
-			t.Fatalf("Type = %q, want %q", m.Type, MessageTypeStatus)
+		if message.Type != MessageTypeStatus {
+			t.Fatalf("message type = %q, want %q", message.Type, MessageTypeStatus)
 		}
-		if m.Time == 0 {
+		if message.Time == 0 {
 			t.Fatal("Time should be set to a non-zero unix-millis value")
 		}
 	case <-time.After(500 * time.Millisecond):
-		t.Fatal("timed out waiting for broadcast to reach client")
+		t.Fatal("timed out waiting for status broadcast to reach client")
+	}
+
+	for _, source := range []string{"tuic", "xray"} {
+		h.Broadcast(MessageTypeTraffic, map[string]string{"source": source})
+	}
+
+	for _, wantSource := range []string{"tuic", "xray"} {
+		select {
+		case raw := <-c.Send:
+			var message struct {
+				Type    MessageType       `json:"type"`
+				Payload map[string]string `json:"payload"`
+			}
+			if err := json.Unmarshal(raw, &message); err != nil {
+				t.Fatalf("traffic event is not valid JSON: %v", err)
+			}
+			if message.Type != MessageTypeTraffic {
+				t.Fatalf("message type = %q, want %q", message.Type, MessageTypeTraffic)
+			}
+			if got := message.Payload["source"]; got != wantSource {
+				t.Fatalf("traffic source = %q, want %q", got, wantSource)
+			}
+		case <-time.After(500 * time.Millisecond):
+			t.Fatalf("timed out waiting for %q traffic event", wantSource)
+		}
 	}
 }
 
@@ -156,11 +180,16 @@ func TestHub_ShouldThrottle(t *testing.T) {
 		t.Fatal("non-gated message type should never throttle on second call")
 	}
 
-	if h.shouldThrottle(MessageTypeTraffic) {
+	if h.shouldThrottle(MessageTypeInbounds) {
 		t.Fatal("first call for gated type should not throttle")
 	}
-	if !h.shouldThrottle(MessageTypeTraffic) {
+	if !h.shouldThrottle(MessageTypeInbounds) {
 		t.Fatal("immediate second call for gated type should throttle")
+	}
+	for i := range 2 {
+		if h.shouldThrottle(MessageTypeTraffic) {
+			t.Fatalf("traffic event %d must not be throttled", i+1)
+		}
 	}
 }
 
@@ -168,11 +197,11 @@ func TestHub_ShouldThrottle_DistinctTypesIndependent(t *testing.T) {
 	h := NewHub()
 	defer h.Stop()
 
-	if h.shouldThrottle(MessageTypeTraffic) {
-		t.Fatal("first Traffic call should not throttle")
-	}
 	if h.shouldThrottle(MessageTypeInbounds) {
-		t.Fatal("first Inbounds call should not throttle even after Traffic")
+		t.Fatal("first Inbounds call should not throttle")
+	}
+	if h.shouldThrottle(MessageTypeOutbounds) {
+		t.Fatal("first Outbounds call should not throttle even after Inbounds")
 	}
 }
 

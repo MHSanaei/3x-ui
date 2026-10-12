@@ -63,7 +63,7 @@ func TestProductionHTTPServersUseServeHTTPWrapper(t *testing.T) {
 			return walkErr
 		}
 		if entry.IsDir() {
-			if entry.Name() == ".git" || entry.Name() == "vendor" || entry.Name() == "node_modules" {
+			if entry.Name() == ".git" || entry.Name() == "vendor" || entry.Name() == "node_modules" || entry.Name() == "third_party" {
 				return filepath.SkipDir
 			}
 			return nil

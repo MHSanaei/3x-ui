@@ -1,8 +1,10 @@
 package database
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -133,5 +135,37 @@ func closeGorm(db *gorm.DB) {
 	}
 	if s, err := db.DB(); err == nil {
 		s.Close()
+	}
+}
+
+func TestRestoreSQLiteWritesNoFileOutsideDestination(t *testing.T) {
+	cases := []struct {
+		name      string
+		statement string
+	}{
+		{"attach", "ATTACH DATABASE '%s' AS x; CREATE TABLE x.t (a); INSERT INTO x.t VALUES (1);"},
+		{"vacuum into", "CREATE TABLE t (a); VACUUM INTO '%s';"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			outside := filepath.Join(t.TempDir(), "outside.db")
+			dumpPath := filepath.Join(dir, "in.dump")
+			script := "PRAGMA foreign_keys=OFF;\n" + fmt.Sprintf(tc.statement, outside) + "\n"
+			if err := os.WriteFile(dumpPath, []byte(script), 0o600); err != nil {
+				t.Fatalf("write dump: %v", err)
+			}
+
+			err := RestoreSQLite(dumpPath, filepath.Join(dir, "rebuilt.db"))
+			if err == nil {
+				t.Fatal("RestoreSQLite accepted a dump that writes another database file")
+			}
+			if !strings.Contains(err.Error(), "too many attached databases") {
+				t.Fatalf("restore failed for another reason: %v", err)
+			}
+			if _, statErr := os.Stat(outside); !os.IsNotExist(statErr) {
+				t.Fatalf("restore created %s (stat err %v)", outside, statErr)
+			}
+		})
 	}
 }

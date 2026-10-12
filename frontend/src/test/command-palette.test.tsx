@@ -203,7 +203,7 @@ describe('CommandPalette component', () => {
     });
 
     // Wait past the 300ms debounce interval while bob fetch is still pending
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
 
     // Stale Alice row must STILL not be rendered
     expect(screen.queryByText('alice@example.com')).toBeNull();
@@ -258,7 +258,7 @@ describe('CommandPalette component', () => {
 
     // Add trailing whitespace
     fireEvent.change(input, { target: { value: 'abc ' } });
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
 
     // No extra search call because trimmed query has not changed
     const callsAfterAbcSpace = getSpy.mock.calls.filter((c) =>

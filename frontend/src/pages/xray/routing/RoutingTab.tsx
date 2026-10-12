@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Dropdown, Modal, Space, Table, Tabs, message } from 'antd';
+import { Alert, Button, Dropdown, Modal, Space, Table, Tabs, message } from 'antd';
 import {
   AimOutlined,
   ControlOutlined,
@@ -45,6 +45,7 @@ export default function RoutingTab({
   isMobile,
 }: RoutingTabProps) {
   const { t } = useTranslation();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RoutingRule | null>(null);
@@ -63,6 +64,7 @@ export default function RoutingTab({
     moved: false,
   });
 
+  const routingScript = templateSettings?.routing?.script ?? '';
   const rules = useMemo(
     () => (templateSettings?.routing?.rules || []) as RoutingRule[],
     [templateSettings?.routing?.rules],
@@ -179,7 +181,7 @@ export default function RoutingTab({
     try {
       parsed = JSON.parse(value);
     } catch {
-      message.error(t('pages.xray.importInvalidJson'));
+      messageApi.error(t('pages.xray.importInvalidJson'));
       return;
     }
     const obj = parsed as { rules?: unknown; routing?: { rules?: unknown } };
@@ -191,7 +193,7 @@ export default function RoutingTab({
           ? obj.routing!.rules
           : null;
     if (!list) {
-      message.error(t('pages.xray.importInvalidJson'));
+      messageApi.error(t('pages.xray.importInvalidJson'));
       return;
     }
     mutate((tt) => {
@@ -347,6 +349,15 @@ export default function RoutingTab({
   return (
     <>
       {modalContextHolder}
+      {messageContextHolder}
+      {routingScript.trim() !== '' && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={t('pages.xray.routingScriptActive', { section: t('pages.xray.basicTemplate') })}
+        />
+      )}
       <Tabs
         defaultActiveKey="basic"
         items={[

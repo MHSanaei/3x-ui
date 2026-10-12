@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
@@ -69,10 +70,7 @@ func withWarpAPIBase(t *testing.T, base string) {
 }
 
 func TestChangeWarpIPPreservesLicenseKey(t *testing.T) {
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 
 	const license = "WARPPLLUS-KEY-0123456789abcdefgh" // 32 chars, >= 26 gate
 	seedWarp(t, license)
@@ -124,10 +122,7 @@ func TestChangeWarpIPPreservesLicenseKey(t *testing.T) {
 }
 
 func TestChangeWarpIPKeepsLicenseWhenReapplyFails(t *testing.T) {
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 
 	const license = "WARPPLLUS-KEY-0123456789abcdefgh"
 	seedWarp(t, license)

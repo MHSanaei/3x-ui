@@ -1431,3 +1431,77 @@ func TestBuildAmneziaWGProxyForClashEffectiveMTU(t *testing.T) {
 		}
 	})
 }
+
+func TestBuildHysteriaProxyIncludesCertificateFingerprint(t *testing.T) {
+	const pin = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+	const want = "00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F:10:11:12:13:14:15:16:17:18:19:1A:1B:1C:1D:1E:1F"
+	const externalPin = "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100"
+	const wantExternal = "FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00"
+
+	svc := &SubClashService{}
+	subReq := &SubService{}
+	inbound := &model.Inbound{
+		Protocol: model.Hysteria,
+		Listen:   "192.0.2.1",
+		Port:     443,
+		Remark:   "hysteria 2",
+		Settings: `{"version":2}`,
+		StreamSettings: `{
+			"tlsSettings": {
+				"alpn": ["h3"],
+				"settings": {
+					"fingerprint": "chrome",
+					"pinnedPeerCertSha256": ["` + pin + `"]
+				}
+			}
+		}`,
+	}
+	client := model.Client{Email: "client", Auth: "secret", Enable: true}
+
+	proxy := svc.buildHysteriaProxy(subReq, inbound, client, nil)
+	if got := proxy["fingerprint"]; got != want {
+		t.Fatalf("fingerprint = %v, want %s", got, want)
+	}
+	if got := proxy["client-fingerprint"]; got != "chrome" {
+		t.Fatalf("client-fingerprint = %v, want chrome", got)
+	}
+
+	externalProxy := svc.buildHysteriaProxy(subReq, inbound, client, map[string]any{
+		"pinnedPeerCertSha256": []any{externalPin},
+	})
+	if got := externalProxy["fingerprint"]; got != wantExternal {
+		t.Fatalf("external fingerprint = %v, want %s", got, wantExternal)
+	}
+}
+
+func TestMihomoCertFingerprintUsesFirstValidPin(t *testing.T) {
+	const firstPin = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+	const secondPin = "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100"
+	const wantFirst = "00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F:10:11:12:13:14:15:16:17:18:19:1A:1B:1C:1D:1E:1F"
+	const wantSecond = "FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00"
+
+	tests := []struct {
+		name string
+		pins any
+		want string
+	}{
+		{
+			name: "invalid first pin uses second",
+			pins: []any{"not-a-certificate-pin", secondPin},
+			want: wantSecond,
+		},
+		{
+			name: "two valid pins use first",
+			pins: []any{firstPin, secondPin},
+			want: wantFirst,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := mihomoCertFingerprint(tt.pins); got != tt.want {
+				t.Fatalf("mihomoCertFingerprint() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

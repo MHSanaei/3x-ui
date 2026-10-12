@@ -72,36 +72,70 @@ function splitAdvertisedHost(value: string, inboundPort: number): [string, numbe
   return match ? [match[1], Number(match[2])] : [host, inboundPort];
 }
 
-export function withMtprotoHostEndpoints(
+export interface HostEndpoint {
+  dest: string;
+  port: number;
+  remark: string;
+  sni?: string;
+  alpn?: string[];
+  allowInsecure?: boolean;
+}
+
+// hostEndpointsFor mirrors the backend hostEndpoints + hostToExternalProxyMap:
+// enabled Hosts of that sub type only; a blank address or port inherits the inbound's.
+export function hostEndpointsFor(
+  records: HostRecord[],
+  inboundId: number,
+  inboundPort: number,
+  defaultDest: string,
+  subType: 'raw' | 'clash' = 'raw',
+): HostEndpoint[] {
+  const endpoints: HostEndpoint[] = [];
+  for (const record of records) {
+    if (
+      record.isDisabled ||
+      !record.inboundIds.includes(inboundId) ||
+      record.excludeFromSubTypes?.includes(subType)
+    ) {
+      continue;
+    }
+    for (const value of record.hosts) {
+      const [address, port] = splitAdvertisedHost(value, inboundPort);
+      const dest = address || defaultDest;
+      const endpoint: HostEndpoint = { dest, port, remark: record.remark || '' };
+      const sni = record.overrideSniFromAddress ? dest : record.sni;
+      if (!record.keepSniBlank && sni) endpoint.sni = sni;
+      if (record.alpn && record.alpn.length > 0) endpoint.alpn = record.alpn;
+      if (record.allowInsecure) endpoint.allowInsecure = true;
+      endpoints.push(endpoint);
+    }
+  }
+  return endpoints;
+}
+
+// Panel-built links of these protocols read Hosts; the rest still show the
+// inbound's own address on the inbounds page.
+const HOST_LINK_PROTOCOLS: ReadonlySet<string> = new Set(['mtproto', 'wireguard', 'amneziawg']);
+
+export function withHostEndpoints(
   inbound: Inbound,
   inboundId: number,
   records: HostRecord[],
   hostOverride: string,
   fallbackHostname: string,
 ): Inbound {
-  if (inbound.protocol !== 'mtproto') return inbound;
-  const endpoints: ExternalProxyEntry[] = [];
-  for (const record of records) {
-    if (
-      record.isDisabled ||
-      !record.inboundIds.includes(inboundId) ||
-      record.excludeFromSubTypes?.includes('raw')
-    ) {
-      continue;
-    }
-    for (const value of record.hosts) {
-      const [dest, port] = splitAdvertisedHost(value, inbound.port);
-      endpoints.push({
-        forceTls: 'same',
-        dest: dest || resolveAddr(inbound, hostOverride, fallbackHostname),
-        port,
-        remark: record.remark || '',
-      });
-    }
-  }
+  if (!HOST_LINK_PROTOCOLS.has(inbound.protocol)) return inbound;
+  const defaultDest = resolveAddr(inbound, hostOverride, fallbackHostname);
+  const endpoints = hostEndpointsFor(records, inboundId, inbound.port, defaultDest);
   if (endpoints.length === 0) return inbound;
+  const externalProxy: ExternalProxyEntry[] = endpoints.map(({ dest, port, remark }) => ({
+    forceTls: 'same',
+    dest,
+    port,
+    remark,
+  }));
   return {
     ...inbound,
-    streamSettings: { ...inbound.streamSettings, externalProxy: endpoints },
+    streamSettings: { ...inbound.streamSettings, externalProxy },
   } as Inbound;
 }

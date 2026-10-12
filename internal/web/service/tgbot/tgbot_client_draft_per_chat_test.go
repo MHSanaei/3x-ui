@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 
 	"github.com/mymmrac/telego"
 )
@@ -84,10 +84,7 @@ func lastDraftCard(t *testing.T, texts []string) string {
 // Regression test: one package-level draft per bot meant an admin's new client
 // was filled in by another chat's steps.
 func TestAddClientDraftIsPerChat(t *testing.T) {
-	if err := database.InitDB(filepath.Join(t.TempDir(), "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
 
 	const (
 		chatA = int64(7101)
@@ -139,7 +136,7 @@ func TestNonWizardCallbackTakesNoDraftLock(t *testing.T) {
 	)
 	decliningServer(t)
 
-	held := addClientDrafts.forChat(heldChat)
+	held := addClientDrafts.forActor(chatUser{chatID: heldChat, userID: 1})
 	held.Lock()
 	defer held.Unlock()
 
@@ -170,7 +167,7 @@ func TestNonWizardCallbackTakesNoDraftLock(t *testing.T) {
 	tap(spareChat, false, "add_client_to 1")
 
 	addClientDrafts.mu.Lock()
-	_, stored := addClientDrafts.drafts[spareChat]
+	_, stored := addClientDrafts.drafts[chatUser{chatID: spareChat, userID: 1}]
 	addClientDrafts.mu.Unlock()
 	if stored {
 		t.Errorf("draft stored for chat %d, want none until its wizard starts", spareChat)

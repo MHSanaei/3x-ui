@@ -25,6 +25,8 @@ export default defineConfig({
           name: 'unit',
           include: ['src/test/**/*.test.ts'],
           environment: 'node',
+          // msw probes localStorage on load; Node 25+'s file-less one warns per worker.
+          execArgv: ['--no-experimental-webstorage'],
           setupFiles: ['./src/test/setup.ts', './src/test/setup.msw.ts'],
         },
       },

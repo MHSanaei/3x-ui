@@ -55,6 +55,12 @@ func (s *SubClashService) clashProxyFromExternal(rawLink, name string) map[strin
 		if flow, _ := settings["flow"].(string); flow != "" {
 			proxy["flow"] = flow
 		}
+		if encryption, ok := settings["encryption"].(string); ok {
+			encryption = strings.TrimSpace(encryption)
+			if encryption != "" && encryption != "none" {
+				proxy["encryption"] = encryption
+			}
+		}
 	case "trojan":
 		server := firstServer(settings)
 		if server == nil {

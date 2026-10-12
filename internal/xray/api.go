@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -21,6 +22,7 @@ import (
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 
 	"github.com/xtls/xray-core/app/proxyman/command"
+	"github.com/xtls/xray-core/app/router"
 	routerService "github.com/xtls/xray-core/app/router/command"
 	statsService "github.com/xtls/xray-core/app/stats/command"
 	xnet "github.com/xtls/xray-core/common/net"
@@ -28,6 +30,7 @@ import (
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/infra/conf"
 	hysteriaAccount "github.com/xtls/xray-core/proxy/hysteria/account"
+	"github.com/xtls/xray-core/proxy/masque"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/shadowsocks_2022"
 	"github.com/xtls/xray-core/proxy/trojan"
@@ -182,8 +185,33 @@ func ValidateOutboundConfig(outbound []byte) error {
 	if err := json.Unmarshal(outbound, detour); err != nil {
 		return err
 	}
-	_, err := detour.Build()
-	return err
+	built, err := detour.Build()
+	if err != nil {
+		return err
+	}
+	return validateWireguardRemoteDNS(built.ProxySettings)
+}
+
+// validateWireguardRemoteDNS refuses what conf.Build() lets through but the core feeds to
+// netip.MustParseAddr at startup: a non-IP remoteDNS entry, like "local" before 26.9.30.
+func validateWireguardRemoteDNS(settings *serial.TypedMessage) error {
+	if settings == nil {
+		return nil
+	}
+	instance, err := settings.GetInstance()
+	if err != nil {
+		return nil
+	}
+	device, ok := instance.(*wireguard.DeviceConfig)
+	if !ok || !device.IsClient {
+		return nil
+	}
+	for _, server := range device.DNS {
+		if _, err := netip.ParseAddr(server); err != nil {
+			return common.NewErrorf("wireguard remoteDNS entry %q is not an IP address", server)
+		}
+	}
+	return nil
 }
 
 // AddOutbound adds a new outbound configuration to the Xray core via gRPC.
@@ -236,16 +264,7 @@ func (x *XrayAPI) ApplyRoutingConfig(routing []byte) error {
 		return common.NewError("xray RoutingServiceClient is not initialized")
 	}
 
-	// Rules referencing geoip:/geosite: need the dat files; point xray-core's
-	// in-process loader at the panel's bin folder where they live.
-	ensureXrayAssetLocation()
-
-	routerConf := new(conf.RouterConfig)
-	if err := json.Unmarshal(routing, routerConf); err != nil {
-		logger.Debug("Failed to unmarshal routing config:", err)
-		return err
-	}
-	config, err := routerConf.Build()
+	config, err := buildReloadableRouting(routing)
 	if err != nil {
 		logger.Debug("Failed to build routing config:", err)
 		return err
@@ -259,6 +278,21 @@ func (x *XrayAPI) ApplyRoutingConfig(routing []byte) error {
 		Config:       serial.ToTypedMessage(config),
 	})
 	return err
+}
+
+// buildReloadableRouting builds the rules and balancers RoutingService.AddRule swaps in.
+// The Lua routing script is fixed at core start, so its file is never resolved here.
+func buildReloadableRouting(routing []byte) (*router.Config, error) {
+	// Rules referencing geoip:/geosite: need the dat files; point xray-core's
+	// in-process loader at the panel's bin folder where they live.
+	ensureXrayAssetLocation()
+
+	routerConf := new(conf.RouterConfig)
+	if err := json.Unmarshal(routing, routerConf); err != nil {
+		return nil, err
+	}
+	routerConf.Script = ""
+	return routerConf.Build()
 }
 
 // BalancerInfo is the live state of one balancer inside the running core.
@@ -644,6 +678,15 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 		return serial.ToTypedMessage(&hysteriaAccount.Account{
 			Auth: auth,
 		}), nil
+	case "masque":
+		pass, err := masqueUserPassword(user)
+		if err != nil {
+			return nil, err
+		}
+
+		return serial.ToTypedMessage(&masque.Account{
+			Password: pass,
+		}), nil
 	case "wireguard":
 		pubB64, err := getRequiredUserString(user, "publicKey")
 		if err != nil {
@@ -682,6 +725,15 @@ func buildUserAccount(protocolName string, user map[string]any) (*serial.TypedMe
 	default:
 		return nil, nil
 	}
+}
+
+// masqueUserPassword reads a MASQUE user's password: panel callers send the client's
+// "password", the hot diff sends the user as emitted for the core, keyed "pass".
+func masqueUserPassword(user map[string]any) (string, error) {
+	if pass, err := getOptionalUserString(user, "pass"); err != nil || pass != "" {
+		return pass, err
+	}
+	return getRequiredUserString(user, "password")
 }
 
 // AddUser adds a user to an inbound in the Xray core using the specified

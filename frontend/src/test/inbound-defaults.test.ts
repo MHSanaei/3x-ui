@@ -18,12 +18,16 @@ import {
   createDefaultVmessInboundSettings,
   createDefaultWireguardInboundSettings,
 } from '@/lib/xray/inbound-defaults';
-import { createHysteriaTlsSettingsWithDefaultCert } from '@/lib/xray/inbound-tls-defaults';
+import {
+  createHysteriaTlsSettingsWithDefaultCert,
+  createTlsSettingsWithDefaultCert,
+} from '@/lib/xray/inbound-tls-defaults';
 import { HttpInboundSettingsSchema } from '@/schemas/protocols/inbound/http';
 import {
   HysteriaClientSchema,
   HysteriaInboundSettingsSchema,
 } from '@/schemas/protocols/inbound/hysteria';
+import { TlsStreamSettingsSchema } from '@/schemas/protocols/security/tls';
 import { MixedInboundSettingsSchema } from '@/schemas/protocols/inbound/mixed';
 import {
   ShadowsocksClientSchema,
@@ -178,6 +182,48 @@ describe('createDefault*InboundSettings factories', () => {
   });
 });
 
+describe('TuicInboundSettingsSchema', () => {
+  it('canonicalizes congestion-controller aliases and casing', () => {
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: 'RENO' } }).server
+        ?.congestion_control,
+    ).toBe('new_reno');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: ' CuBiC ' } }).server
+        ?.congestion_control,
+    ).toBe('cubic');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: '' } }).server
+        ?.congestion_control,
+    ).toBe('bbr');
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { congestion_control: '  ' } }).server
+        ?.congestion_control,
+    ).toBe('bbr');
+    expect(
+      TuicInboundSettingsSchema.parse({ congestion_control: ' CuBiC ' }).congestion_control,
+    ).toBe('cubic');
+    expect(
+      TuicInboundSettingsSchema.parse({ congestion_control: 'invalid' }).congestion_control,
+    ).toBe('new_reno');
+  });
+
+  it('clamps legacy packet-size values to the SOCKS-safe UDP payload maximum', () => {
+    expect(
+      TuicInboundSettingsSchema.parse({ server: { max_udp_relay_packet_size: 65507 } }).server
+        ?.max_udp_relay_packet_size,
+    ).toBe(65245);
+    expect(
+      TuicInboundSettingsSchema.parse({ max_udp_relay_packet_size: 65500 })
+        .max_udp_relay_packet_size,
+    ).toBe(65245);
+    expect(() =>
+      TuicInboundSettingsSchema.parse({ server: { max_udp_relay_packet_size: 65508 } }),
+    ).toThrow();
+    expect(() => TuicInboundSettingsSchema.parse({ max_udp_relay_packet_size: 65508 })).toThrow();
+  });
+});
+
 describe('createHysteriaTlsSettingsWithDefaultCert', () => {
   it('defaults Hysteria TLS to uTLS None and h3 ALPN', () => {
     const tls = createHysteriaTlsSettingsWithDefaultCert();
@@ -190,5 +236,21 @@ describe('createHysteriaTlsSettingsWithDefaultCert', () => {
         keyFile: '',
       }),
     ]);
+  });
+});
+
+describe('createTlsSettingsWithDefaultCert', () => {
+  it('keeps the schema ALPN default for non-WebSocket transports', () => {
+    for (const network of [undefined, '', 'tcp', 'kcp', 'grpc', 'httpupgrade', 'xhttp']) {
+      const tls = createTlsSettingsWithDefaultCert(network);
+      expect(tls.alpn).toEqual(['h2', 'http/1.1']);
+    }
+  });
+
+  it('defaults ALPN to http/1.1 for WebSocket (issue #6782)', () => {
+    const tls = createTlsSettingsWithDefaultCert('ws');
+    expect(tls.alpn).toEqual(['http/1.1']);
+    // The overridden value must still satisfy the TLS settings schema.
+    expect(TlsStreamSettingsSchema.parse(tls).alpn).toEqual(['http/1.1']);
   });
 });

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -127,13 +128,37 @@ func RestoreSQLite(dumpPath, dstPath string) error {
 		return err
 	}
 
-	// mattn/go-sqlite3 executes every statement in a multi-statement string.
-	if _, err := sqlDB.ExecContext(context.Background(), string(script)); err != nil {
+	if err := replayDump(sqlDB, string(script)); err != nil {
 		sqlDB.Close()
 		os.Remove(dstPath)
 		return fmt.Errorf("restore failed: %w", err)
 	}
 	return sqlDB.Close()
+}
+
+// replayDump runs the script on one connection that cannot open a second database
+// file: ATTACH and VACUUM INTO both attach, and a dump only rebuilds its own tables.
+func replayDump(sqlDB *sql.DB, script string) error {
+	ctx := context.Background()
+	conn, err := sqlDB.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	err = conn.Raw(func(driverConn any) error {
+		sc, ok := driverConn.(*sqlite3.SQLiteConn)
+		if !ok {
+			return fmt.Errorf("unexpected sqlite driver connection %T", driverConn)
+		}
+		sc.SetLimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// mattn/go-sqlite3 executes every statement in a multi-statement string.
+	_, err = conn.ExecContext(ctx, script)
+	return err
 }
 
 // dumpTableData appends one INSERT statement per row of table to b.

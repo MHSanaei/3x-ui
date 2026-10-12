@@ -5,6 +5,9 @@ import { initReactI18next } from 'react-i18next';
 
 import enUS from '../../../internal/web/translation/en-US.json';
 
+// RTL sets this from a global beforeAll, which never runs with `globals: false`.
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
 vi.mock('persian-calendar-suite', () => ({
   PersianDateTimePicker: () => null,
 }));

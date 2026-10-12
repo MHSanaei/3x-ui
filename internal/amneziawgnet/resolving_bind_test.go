@@ -14,12 +14,39 @@ func mustResolvingBind(t *testing.T) *resolvingBind {
 	return newResolvingBind("")
 }
 
-func endpointAddrPort(ep awgconn.Endpoint) netip.AddrPort {
-	std, ok := ep.(*awgconn.StdNetEndpoint)
-	if !ok {
-		panic("unexpected endpoint type")
+// endpointAddrPort reads any bind's endpoint; Windows' default bind has its own type.
+func endpointAddrPort(t *testing.T, ep awgconn.Endpoint) netip.AddrPort {
+	t.Helper()
+	ap, err := netip.ParseAddrPort(ep.DstToString())
+	if err != nil {
+		t.Fatalf("endpoint %q: %v", ep.DstToString(), err)
 	}
-	return std.AddrPort
+	return ap
+}
+
+// ownEndpointBind accepts only endpoints it parsed itself, as WinRingBind does.
+type ownEndpointBind struct{ awgconn.Bind }
+
+type ownEndpoint struct{ awgconn.StdNetEndpoint }
+
+func (ownEndpointBind) ParseEndpoint(s string) (awgconn.Endpoint, error) {
+	ap, err := netip.ParseAddrPort(s)
+	if err != nil {
+		return nil, err
+	}
+	return &ownEndpoint{awgconn.StdNetEndpoint{AddrPort: ap}}, nil
+}
+
+// WinRingBind, the default bind on Windows, refuses to send to an endpoint of any
+// other type, so a hand-built StdNetEndpoint killed every handshake there.
+func TestResolvingBind_ParseEndpointComesFromTheWrappedBind(t *testing.T) {
+	ep, err := (&resolvingBind{Bind: ownEndpointBind{}}).ParseEndpoint("203.0.113.7:51820")
+	if err != nil {
+		t.Fatalf("ParseEndpoint: %v", err)
+	}
+	if _, ok := ep.(*ownEndpoint); !ok {
+		t.Fatalf("endpoint is %T, not the wrapped bind's own type", ep)
+	}
 }
 
 func TestResolvingBind_ParseEndpointIPLiteral(t *testing.T) {
@@ -28,7 +55,7 @@ func TestResolvingBind_ParseEndpointIPLiteral(t *testing.T) {
 	if err != nil {
 		t.Fatalf("IP endpoint rejected: %v", err)
 	}
-	got := endpointAddrPort(ep)
+	got := endpointAddrPort(t, ep)
 	if got.Addr().String() != "203.0.113.7" || got.Port() != 51820 {
 		t.Fatalf("endpoint = %v, want 203.0.113.7:51820", got)
 	}
@@ -49,7 +76,7 @@ func TestResolvingBind_ParseEndpointHostnameResolves(t *testing.T) {
 	if err != nil {
 		t.Fatalf("hostname endpoint rejected: %v", err)
 	}
-	if got := endpointAddrPort(ep); got.Addr().String() != "198.51.100.9" || got.Port() != 443 {
+	if got := endpointAddrPort(t, ep); got.Addr().String() != "198.51.100.9" || got.Port() != 443 {
 		t.Fatalf("endpoint = %v, want 198.51.100.9:443", got)
 	}
 }

@@ -100,8 +100,8 @@ question it already answers.
   subtests and `t.Helper()` on helpers. An assertion must pin the exact value,
   typed error or emitted string — `err != nil` and `len(x) > 0` are findings,
   not nits. Prefer real dependencies: a throwaway DB via
-  `database.InitDB(filepath.Join(t.TempDir(), "x-ui.db"))` with `t.Cleanup`, and
-  `httptest` for HTTP. `internal/sub`'s `initSubDB(t)` is the template.
+  `dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))`
+  (`internal/database/dbtest`), and `httptest` for HTTP. `internal/sub`'s `initSubDB(t)` is the template.
   A test must FAIL without its fix; one that passes either way certifies
   nothing and then gets cited as proof the fix works.
 

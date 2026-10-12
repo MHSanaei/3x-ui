@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
 )
@@ -14,14 +15,7 @@ func setupAPITokenTestDB(t *testing.T) {
 	t.Helper()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := database.CloseDB(); err != nil {
-			t.Fatalf("CloseDB: %v", err)
-		}
-	})
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 }
 
 func TestAPITokenScopeExpiryAndExpectedRevoke(t *testing.T) {

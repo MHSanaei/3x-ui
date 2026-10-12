@@ -7,7 +7,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
 // DesiredMtprotoInstances derives the mtg sidecar configs this panel should be
@@ -32,47 +31,38 @@ func (s *InboundService) DesiredMtprotoInstances() ([]mtproto.Instance, error) {
 		return nil, nil
 	}
 
-	ids := make([]int, 0, len(inbounds))
-	for _, ib := range inbounds {
-		ids = append(ids, ib.Id)
-	}
-	var disabledRows []xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).
-		Where("inbound_id IN ? AND enable = ?", ids, false).
-		Select("inbound_id", "email").
-		Find(&disabledRows).Error
-	if err != nil {
-		return nil, err
-	}
-	disabled := make(map[int]map[string]struct{}, len(disabledRows))
-	for _, row := range disabledRows {
-		if disabled[row.InboundId] == nil {
-			disabled[row.InboundId] = map[string]struct{}{}
-		}
-		disabled[row.InboundId][row.Email] = struct{}{}
-	}
-
 	instances := make([]mtproto.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
 		inst, ok := mtproto.InstanceFromInbound(ib)
 		if !ok {
 			continue
 		}
-		if off := disabled[ib.Id]; len(off) > 0 {
-			kept := make([]mtproto.SecretEntry, 0, len(inst.Secrets))
-			for _, sec := range inst.Secrets {
-				if _, skip := off[sec.Name]; !skip {
-					kept = append(kept, sec)
-				}
-			}
-			inst.Secrets = kept
-		}
-		if len(inst.Secrets) == 0 {
-			continue
-		}
 		instances = append(instances, inst)
 	}
-	return instances, nil
+	emails := make([]string, 0)
+	for _, inst := range instances {
+		for _, e := range inst.Secrets {
+			emails = append(emails, e.Name)
+		}
+	}
+	disabled, err := trafficDisabledEmails(db, emails)
+	if err != nil {
+		return nil, err
+	}
+	served := instances[:0]
+	for _, inst := range instances {
+		kept := make([]mtproto.SecretEntry, 0, len(inst.Secrets))
+		for _, e := range inst.Secrets {
+			if _, off := disabled[e.Name]; !off {
+				kept = append(kept, e)
+			}
+		}
+		inst.Secrets = kept
+		if len(kept) > 0 {
+			served = append(served, inst)
+		}
+	}
+	return served, nil
 }
 
 // applyLocalMtproto pushes a single local mtproto inbound's current client set
@@ -105,16 +95,47 @@ func (s *InboundService) applyLocalMtproto(inboundId int) {
 }
 
 func (s *InboundService) resetMtprotoClientQuota(email string) {
+	s.resetMtprotoClientQuotas([]string{email})
+}
+
+// resetMtprotoClientQuotas zeroes the sidecar's own quota counter for each local
+// MTProto client in emails, or it keeps blocking a client the panel just reset.
+func (s *InboundService) resetMtprotoClientQuotas(emails []string) {
 	mgr := mtproto.GetManager()
-	if !mgr.HasRunning() {
+	if !mgr.HasRunning() || len(emails) == 0 {
 		return
 	}
-	id, ok := s.localMtprotoInboundIdForEmail(email)
-	if !ok {
+	var inbounds []*model.Inbound
+	if err := database.GetDB().Model(model.Inbound{}).
+		Where("protocol = ? AND node_id IS NULL", model.MTProto).
+		Find(&inbounds).Error; err != nil {
 		return
 	}
-	s.applyLocalMtproto(id)
-	mgr.ResetQuota(email)
+	want := make(map[string]struct{}, len(emails))
+	for _, e := range emails {
+		want[e] = struct{}{}
+	}
+	var hit []string
+	for _, ib := range inbounds {
+		inst, ok := mtproto.InstanceFromInbound(ib)
+		if !ok {
+			continue
+		}
+		applied := false
+		for _, sec := range inst.Secrets {
+			if _, ok := want[sec.Name]; !ok {
+				continue
+			}
+			if !applied {
+				s.applyLocalMtproto(ib.Id)
+				applied = true
+			}
+			hit = append(hit, sec.Name)
+		}
+	}
+	for _, email := range hit {
+		mgr.ResetQuota(email)
+	}
 }
 
 func (s *InboundService) resetAllMtprotoQuotas() {
@@ -132,26 +153,4 @@ func (s *InboundService) resetAllMtprotoQuotas() {
 			mgr.ResetQuota(sec.Name)
 		}
 	}
-}
-
-func (s *InboundService) localMtprotoInboundIdForEmail(email string) (int, bool) {
-	db := database.GetDB()
-	var inbounds []*model.Inbound
-	if err := db.Model(model.Inbound{}).
-		Where("protocol = ? AND node_id IS NULL", model.MTProto).
-		Find(&inbounds).Error; err != nil {
-		return 0, false
-	}
-	for _, ib := range inbounds {
-		inst, ok := mtproto.InstanceFromInbound(ib)
-		if !ok {
-			continue
-		}
-		for _, sec := range inst.Secrets {
-			if sec.Name == email {
-				return ib.Id, true
-			}
-		}
-	}
-	return 0, false
 }

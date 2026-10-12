@@ -263,11 +263,21 @@ func (s *InboundService) MigrationRequirements() (err error) {
 	// Must be cross-DB: INSTR/REPLACE work on SQLite; Postgres needs position().
 	tagCleanup := `UPDATE inbounds
 		SET tag = REPLACE(tag, '0.0.0.0:', '')
-		WHERE INSTR(tag, '0.0.0.0:') > 0;`
+		WHERE INSTR(tag, '0.0.0.0:') > 0
+		  AND NOT EXISTS (
+			SELECT 1 FROM inbounds AS other
+			WHERE other.id <> inbounds.id
+			  AND other.tag = REPLACE(inbounds.tag, '0.0.0.0:', '')
+		  );`
 	if database.IsPostgres() {
-		tagCleanup = `UPDATE inbounds
+		tagCleanup = `UPDATE inbounds AS i
 			SET tag = REPLACE(tag, '0.0.0.0:', '')
-			WHERE position('0.0.0.0:' in tag) > 0;`
+			WHERE position('0.0.0.0:' in tag) > 0
+			  AND NOT EXISTS (
+				SELECT 1 FROM inbounds AS other
+				WHERE other.id <> i.id
+				  AND other.tag = REPLACE(i.tag, '0.0.0.0:', '')
+			  );`
 	}
 	err = tx.Exec(tagCleanup).Error
 	if err != nil {

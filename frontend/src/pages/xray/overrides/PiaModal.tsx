@@ -73,6 +73,13 @@ const EMPTY: PiaFormValues = {
   hostname: null,
 };
 
+// antd warns on a null option value, so "All Regions" is a sentinel mapped back to null.
+const ALL_REGIONS = '__all__';
+const allRegionsTransform = {
+  input: (value: unknown) => value ?? ALL_REGIONS,
+  output: (value: unknown) => (value === ALL_REGIONS ? null : value),
+};
+
 function piaHostnameOf(outbound: PiaOutboundRow): string {
   if (typeof outbound.piaHostname === 'string' && outbound.piaHostname.trim()) {
     return outbound.piaHostname.trim();
@@ -389,12 +396,16 @@ export default function PiaModal({
                 </FormField>
 
                 {regions.length > 0 && (
-                  <FormField name="regionId" label={t('pages.xray.pia.region')}>
+                  <FormField
+                    name="regionId"
+                    label={t('pages.xray.pia.region')}
+                    transform={allRegionsTransform}
+                  >
                     <Select
                       data-testid="pia-region-select"
                       showSearch={{ optionFilterProp: 'label' }}
                       options={[
-                        { value: null, label: t('pages.xray.pia.allRegions') },
+                        { value: ALL_REGIONS, label: t('pages.xray.pia.allRegions') },
                         ...regions.map((r) => ({ value: r.id, label: r.name })),
                       ]}
                     />

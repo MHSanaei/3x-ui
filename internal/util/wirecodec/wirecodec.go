@@ -16,6 +16,8 @@ const (
 	HashHeader = "X-Config-Sha256"
 	// CapsHeader is set by a node on its API responses to advertise support.
 	CapsHeader = "X-3x-Node-Caps"
+	// MasterPushHeader marks a request as a master's push, whatever its token scope.
+	MasterPushHeader = "X-3x-Master-Push"
 	// EncodingZstd is the Content-Encoding value for a zstd-compressed body.
 	EncodingZstd = "zstd"
 	// CapZstd is the capability token advertised in CapsHeader.

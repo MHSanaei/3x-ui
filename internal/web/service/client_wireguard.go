@@ -105,10 +105,28 @@ func allocateWireguardAddress(used []string, base string, allowWidening bool) (s
 		hostBits = "128"
 	}
 	taken := make(map[netip.Addr]struct{}, len(used))
+	var wide []netip.Prefix
 	for _, u := range used {
-		if a := wireguardHostAddr(u); a.IsValid() {
-			taken[a] = struct{}{}
+		p, ok := wireguardClaimedPrefix(u)
+		if !ok {
+			continue
 		}
+		if p.IsSingleIP() {
+			taken[p.Addr()] = struct{}{}
+		} else {
+			wide = append(wide, p)
+		}
+	}
+	isTaken := func(a netip.Addr) bool {
+		if _, ok := taken[a]; ok {
+			return true
+		}
+		for _, p := range wide {
+			if p.Contains(a) {
+				return true
+			}
+		}
+		return false
 	}
 	scopes := []netip.Prefix{prefix}
 	if allowWidening && prefix.Addr().Is4() && prefix.Bits() > wireguardPoolFloorBits {
@@ -119,7 +137,7 @@ func allocateWireguardAddress(used []string, base string, allowWidening bool) (s
 	for _, scope := range scopes {
 		addr := scope.Masked().Addr().Next().Next()
 		for scope.Contains(addr) {
-			if _, ok := taken[addr]; !ok {
+			if !isTaken(addr) {
 				return addr.String() + "/" + hostBits, nil
 			}
 			addr = addr.Next()
@@ -156,17 +174,44 @@ func normalizeWireguardAllowedIPs(values []string) ([]string, error) {
 	return out, nil
 }
 
-func wireguardAllowedIPsCollision(entries, used []string) string {
-	taken := make(map[string]struct{}, len(used))
-	for _, u := range used {
-		taken[strings.TrimSpace(u)] = struct{}{}
+// wireguardClaimedPrefix is the masked range an allowedIPs entry claims, as xray
+// reads it. A /0 default route claims no tunnel address, as legacy peers carry it.
+func wireguardClaimedPrefix(s string) (netip.Prefix, bool) {
+	s = strings.TrimSpace(s)
+	p, err := netip.ParsePrefix(s)
+	if err != nil {
+		a, aErr := netip.ParseAddr(s)
+		if aErr != nil {
+			return netip.Prefix{}, false
+		}
+		p = netip.PrefixFrom(a, a.BitLen())
+	}
+	if p.Bits() == 0 {
+		return netip.Prefix{}, false
+	}
+	return p.Masked(), true
+}
+
+// wireguardAllowedIPsOverlap returns the first entry whose range overlaps a used
+// one, and that used entry; xray routes and attributes by containment, not equality.
+func wireguardAllowedIPsOverlap(entries, used []string) (entry, taken string) {
+	usedPrefixes := make([]netip.Prefix, len(used))
+	usedOK := make([]bool, len(used))
+	for i, u := range used {
+		usedPrefixes[i], usedOK[i] = wireguardClaimedPrefix(u)
 	}
 	for _, e := range entries {
-		if _, ok := taken[e]; ok {
-			return e
+		ep, ok := wireguardClaimedPrefix(e)
+		if !ok {
+			continue
+		}
+		for i, up := range usedPrefixes {
+			if usedOK[i] && ep.Overlaps(up) {
+				return e, used[i]
+			}
 		}
 	}
-	return ""
+	return "", ""
 }
 
 // defaultWireguardClients fills in blank WireGuard credentials for newly added
@@ -231,11 +276,11 @@ func defaultWireguardClients(settingsJSON string, existing, clients []model.Clie
 			if len(normalized) == 0 {
 				return common.NewError("wireguard: allowedIPs has no usable entry")
 			}
-			if hit := wireguardAllowedIPsCollision(normalized, used); hit != "" {
-				if where := crossInboundUsed[hit]; where != "" {
-					return common.NewError("wireguard: allowedIPs entry", hit, "is already used by a client on", where)
+			if entry, taken := wireguardAllowedIPsOverlap(normalized, used); taken != "" {
+				if where := crossInboundUsed[taken]; where != "" {
+					return common.NewError("wireguard: allowedIPs entry", entry, "overlaps", taken, "used by a client on", where)
 				}
-				return common.NewError("wireguard: allowedIPs entry already used by another client:", hit)
+				return common.NewError("wireguard: allowedIPs entry", entry, "overlaps", taken, "used by another client")
 			}
 			c.AllowedIPs = normalized
 		}

@@ -967,10 +967,12 @@ export class LanguageManager {
 }
 
 export class FileManager {
+  // Typed text/plain, Android's MediaStore saves peer.conf as peer.conf.txt;
+  // octet-stream carries no extension of its own, so the given name is kept.
   static downloadTextFile(
     content: BlobPart,
     filename: string = 'file.txt',
-    options: BlobPropertyBag = { type: 'text/plain' },
+    options: BlobPropertyBag = { type: 'application/octet-stream' },
   ): void {
     const link = window.document.createElement('a');
     link.download = filename;

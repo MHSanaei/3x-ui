@@ -1,5 +1,8 @@
 import { Base64 } from '@/utils';
 
+import { normalizeUdpHop, upgradeLegacyUdpHop } from './udphop-mask';
+import { upgradeLegacyXdnsMasks } from './xdns-mask';
+
 // Focused share-link parser for the OutboundFormModal's link-import
 // helper. Each parser returns a wire-shape outbound record (the same
 // shape OutboundsTab.tsx stores in templateSettings.outbounds[]) or
@@ -270,8 +273,8 @@ const kcpHeaderTypeToMask: Record<string, string> = {
 };
 
 // The inbound link emits the entire finalmask object as a JSON-encoded
-// `fm` query param. Decode and attach to streamSettings so udpHop /
-// quicParams / tcp+udp masks round-trip on outbound import.
+// `fm` query param. Decode and attach to streamSettings so quicParams and the
+// tcp+udp masks round-trip on outbound import; a legacy udpHop becomes the mask.
 function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
   const fm = params.get('fm');
   if (fm) {
@@ -279,7 +282,8 @@ function applyFinalMaskParam(stream: Raw, params: URLSearchParams): void {
       const parsed = JSON.parse(fm) as Record<string, unknown>;
       if (parsed && typeof parsed === 'object') {
         sanitizeFinalMaskQuicParams(parsed);
-        stream.finalmask = parsed;
+        if (Array.isArray(parsed.udp)) parsed.udp = upgradeLegacyXdnsMasks(parsed.udp).next;
+        stream.finalmask = normalizeUdpHop(upgradeLegacyUdpHop(parsed).next).next;
       }
     } catch {
       // malformed fm — leave streamSettings.finalmask absent

@@ -39,8 +39,8 @@ func newResolvingBind(listen string) *resolvingBind {
 	return &resolvingBind{Bind: newListenBind(listen)}
 }
 
-// ParseEndpoint resolves hostnames before handing the address to amneziawg-go
-// (whose own implementation accepts literal IPs only).
+// ParseEndpoint resolves hostnames, then lets the wrapped bind build the endpoint:
+// its own parser takes literal IPs only, and WinRingBind sends to its own type only.
 func (b *resolvingBind) ParseEndpoint(s string) (awgconn.Endpoint, error) {
 	host, portStr, err := net.SplitHostPort(strings.TrimSpace(s))
 	if err != nil {
@@ -63,5 +63,5 @@ func (b *resolvingBind) ParseEndpoint(s string) (awgconn.Endpoint, error) {
 		}
 		addr = addrs[0]
 	}
-	return &awgconn.StdNetEndpoint{AddrPort: netip.AddrPortFrom(addr.Unmap(), uint16(port64))}, nil
+	return b.Bind.ParseEndpoint(netip.AddrPortFrom(addr.Unmap(), uint16(port64)).String())
 }

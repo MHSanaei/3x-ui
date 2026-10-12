@@ -365,3 +365,27 @@ func TestUpdateHostGroup_ValidateBeforeDelete(t *testing.T) {
 		t.Fatalf("remark not updated: %s", got2.Remark)
 	}
 }
+
+// Host fields are copied by hand in buildHostRows and newHostGroup; a missed
+// copy on either side silently blanks the value on the next edit-and-save.
+func TestHostGroup_CipherSuitesRoundTrip(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	const suites = "TLS_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+
+	created, err := svc.AddHostGroup(&entity.HostGroup{
+		InboundIds: []int{ib.Id}, Remark: "cs", Hosts: []string{"cs.example.com"},
+		Security: "tls", CipherSuites: suites,
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+	g, err := svc.GetHostGroup(created[0].GroupId)
+	if err != nil {
+		t.Fatalf("GetHostGroup: %v", err)
+	}
+	if g.CipherSuites != suites {
+		t.Fatalf("CipherSuites = %q, want %q", g.CipherSuites, suites)
+	}
+}

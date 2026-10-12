@@ -68,6 +68,16 @@ func (s *ClientService) ListGroups() ([]GroupSummary, error) {
 // adjustGroupBaselinesForRemovedTraffic shifts group baselines down by the clients'
 // current counters so ListGroups totals survive a traffic reset or client delete (#5675).
 func adjustGroupBaselinesForRemovedTraffic(tx *gorm.DB, emails []string) error {
+	return shiftGroupBaselines(tx, emails, -1)
+}
+
+// adjustGroupBaselinesForRestoredTraffic shifts group baselines up by counters an
+// import restored, so usage from before the import never enters a group total.
+func adjustGroupBaselinesForRestoredTraffic(tx *gorm.DB, emails []string) error {
+	return shiftGroupBaselines(tx, emails, 1)
+}
+
+func shiftGroupBaselines(tx *gorm.DB, emails []string, sign int64) error {
 	if len(emails) == 0 {
 		return nil
 	}
@@ -101,14 +111,14 @@ func adjustGroupBaselinesForRemovedTraffic(tx *gorm.DB, emails []string) error {
 			continue
 		}
 		res := tx.Model(&model.ClientGroup{}).Where("name = ?", name).Updates(map[string]any{
-			"reset_up":   gorm.Expr("reset_up - ?", d.Up),
-			"reset_down": gorm.Expr("reset_down - ?", d.Down),
+			"reset_up":   gorm.Expr("reset_up + ?", sign*d.Up),
+			"reset_down": gorm.Expr("reset_down + ?", sign*d.Down),
 		})
 		if res.Error != nil {
 			return res.Error
 		}
 		if res.RowsAffected == 0 {
-			if err := tx.Create(&model.ClientGroup{Name: name, ResetUp: -d.Up, ResetDown: -d.Down}).Error; err != nil {
+			if err := tx.Create(&model.ClientGroup{Name: name, ResetUp: sign * d.Up, ResetDown: sign * d.Down}).Error; err != nil {
 				return err
 			}
 		}

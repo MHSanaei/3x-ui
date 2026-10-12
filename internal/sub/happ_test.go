@@ -348,3 +348,37 @@ func TestIsHappClient(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyHappHeaders_LocalProxyAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cases := []struct {
+		name       string
+		autoDetect bool
+		userAgent  string
+		mode       string
+		want       string
+	}{
+		{"Happ gets auto for both inbounds", true, "Happ/4.4.1 (Android)", "auto", "auto"},
+		{"explicit disable is forwarded", true, "Happ/4.4.1 (Android)", "disable", "disable"},
+		{"empty mode sends nothing", true, "Happ/4.4.1 (Android)", "", ""},
+		{"non-Happ client gets nothing", true, "v2rayNG/1.8.5", "auto", ""},
+		{"AutoDetect off sends nothing", false, "Happ/4.4.1 (Android)", "auto", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/sub/test", nil)
+			ctx.Request.Header.Set("User-Agent", tc.userAgent)
+
+			controller := &SUBController{happConfig: HappConfig{AutoDetect: tc.autoDetect, LocalProxyAuth: tc.mode}}
+			controller.ApplyCommonHeaders(ctx, "", "", "Title", "", "", "", false, "", false)
+
+			for _, h := range []string{"Socks-Auth-Mode", "Http-Auth-Mode"} {
+				if got := recorder.Header().Get(h); got != tc.want {
+					t.Fatalf("%s = %q, want %q", h, got, tc.want)
+				}
+			}
+		})
+	}
+}

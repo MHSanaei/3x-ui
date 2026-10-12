@@ -1,7 +1,10 @@
 package service
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -65,6 +68,7 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	row.Comment = incoming.Comment
 	row.Reset = incoming.Reset
 	row.ResetDay = incoming.ResetDay
+	row.ResetWeekday = incoming.ResetWeekday
 	row.ResetMax = incoming.ResetMax
 	// Guarded like Group and AdTag: a node snapshot rebuilt from settings that
 	// predate the cycle would otherwise silently erase it.
@@ -94,8 +98,15 @@ func (s *ClientService) ApplyInboundClientDelta(tx *gorm.DB, inboundId int, chan
 }
 
 func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients []model.Client, detachEmails []string, prune bool) error {
+	if err := validateClientsRenewal(clients); err != nil {
+		return err
+	}
 	if tx == nil {
 		tx = database.GetDB()
+	}
+
+	if err := s.validateProtocolClients(tx, inboundId, clients, detachEmails, prune); err != nil {
+		return err
 	}
 
 	emails := make([]string, 0, len(clients))
@@ -211,7 +222,42 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		wantedIds = append(wantedIds, id)
 	}
 
-	return s.reconcileInboundLinks(tx, inboundId, wantedFlow, wantedIds, detachEmails, prune)
+	if err := s.reconcileInboundLinks(tx, inboundId, wantedFlow, wantedIds, detachEmails, prune); err != nil {
+		return err
+	}
+
+	affected := map[int]struct{}{inboundId: {}}
+	for _, ids := range chunkInts(wantedIds, sqlInChunk) {
+		var inboundIDs []int
+		if err := tx.Model(&model.ClientInbound{}).Distinct("inbound_id").Where("client_id IN ?", ids).Pluck("inbound_id", &inboundIDs).Error; err != nil {
+			return err
+		}
+		for _, id := range inboundIDs {
+			affected[id] = struct{}{}
+		}
+	}
+	affectedIDs := make([]int, 0, len(affected))
+	for id := range affected {
+		affectedIDs = append(affectedIDs, id)
+	}
+	for _, ids := range chunkInts(affectedIDs, sqlInChunk) {
+		var duplicates int64
+		err := tx.Raw(`SELECT COUNT(*) FROM (
+            SELECT ci.inbound_id, LOWER(c.uuid) FROM clients c
+            JOIN client_inbounds ci ON ci.client_id = c.id
+            JOIN inbounds i ON i.id = ci.inbound_id
+            WHERE i.protocol = ? AND c.uuid <> '' AND ci.inbound_id IN ?
+            GROUP BY ci.inbound_id, LOWER(c.uuid) HAVING COUNT(*) > 1
+        ) AS duplicate_uuids`, model.TUIC, ids).Scan(&duplicates).Error
+		if err != nil {
+			return err
+		}
+		if duplicates > 0 {
+			return fmt.Errorf("TUIC: duplicate client UUID within inbound")
+		}
+	}
+
+	return nil
 }
 
 // reconcileInboundLinks writes only the client_inbounds rows that differ. prune
@@ -368,4 +414,68 @@ func (s *ClientService) ListForInboundBySubId(tx *gorm.DB, inboundId int, subId 
 		out = append(out, *c)
 	}
 	return out, nil
+}
+
+// validateProtocolClients runs inside the write every path linking clients to an inbound
+// shares, so a client the protocol's core config would refuse never reaches it.
+func (s *ClientService) validateProtocolClients(tx *gorm.DB, inboundID int, changed []model.Client, detached []string, prune bool) error {
+	var inbound model.Inbound
+	if err := tx.Select("protocol").Where("id = ?", inboundID).Take(&inbound).Error; err != nil {
+		return err
+	}
+	switch inbound.Protocol {
+	case model.TUIC:
+		return s.validateTuicIdentities(tx, inboundID, changed, detached, prune)
+	case model.MASQUE:
+		return validateMasqueEmails(changed)
+	}
+	return nil
+}
+
+// MASQUE sends the email as the Basic-auth user, so xray-core refuses the whole inbound,
+// and with it the Xray start, over one email holding ":".
+func validateMasqueEmails(clients []model.Client) error {
+	for _, client := range clients {
+		if strings.Contains(client.Email, ":") {
+			return fmt.Errorf("MASQUE: client email %q cannot contain \":\"", client.Email)
+		}
+	}
+	return nil
+}
+
+func (s *ClientService) validateTuicIdentities(tx *gorm.DB, inboundID int, changed []model.Client, detached []string, prune bool) error {
+	candidates := append([]model.Client(nil), changed...)
+	if !prune {
+		current, err := s.ListForInbound(tx, inboundID)
+		if err != nil {
+			return err
+		}
+		excluded := make(map[string]bool)
+		for _, client := range changed {
+			excluded[client.Email] = true
+		}
+		for _, email := range detached {
+			excluded[email] = true
+		}
+		for _, client := range current {
+			if !excluded[client.Email] {
+				candidates = append(candidates, client)
+			}
+		}
+	}
+	seen := make(map[uuid.UUID]string)
+	for _, client := range candidates {
+		if client.ID == "" {
+			continue
+		}
+		id, err := uuid.Parse(client.ID)
+		if err != nil {
+			return fmt.Errorf("TUIC: invalid client UUID")
+		}
+		if email, exists := seen[id]; exists && email != client.Email {
+			return fmt.Errorf("TUIC: duplicate client UUID within inbound")
+		}
+		seen[id] = client.Email
+	}
+	return nil
 }

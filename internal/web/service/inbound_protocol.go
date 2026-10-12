@@ -2,8 +2,13 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/version"
+
+	"gorm.io/gorm"
 )
 
 // inboundShadowsocksMethod extracts settings.method for Shadowsocks inbounds so
@@ -22,41 +27,25 @@ func inboundShadowsocksMethod(protocol, settings string) string {
 	return s.Method
 }
 
-// inboundCanEnableTlsFlow mirrors canEnableTlsFlow() from the frontend
-// (frontend/src/lib/xray/protocol-capabilities.ts). XTLS Vision is valid for
-// VLESS on TCP with tls or reality (classic), and on XHTTP when VLESS encryption
-// (vlessenc / ML-KEM) is enabled — there the post-quantum, VLESS-level
-// encryption stands in for the transport TLS that Vision relies on. settings is
-// the inbound's raw settings JSON, which carries the encryption value
-// (streamSettings does not).
+// inboundCanEnableTlsFlow mirrors the frontend's canEnableTlsFlow: xray-core runs Vision over
+// TLS/REALITY on raw TCP, or inside VLESS encryption (encryption.CommonConn) on any transport.
 func inboundCanEnableTlsFlow(protocol, streamSettings, settings string) bool {
 	if protocol != string(model.VLESS) {
-		return false
-	}
-	if streamSettings == "" {
 		return false
 	}
 	var stream struct {
 		Network  string `json:"network"`
 		Security string `json:"security"`
 	}
-	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
-		return false
+	if json.Unmarshal([]byte(streamSettings), &stream) == nil && stream.Network == "tcp" &&
+		(stream.Security == "tls" || stream.Security == "reality") {
+		return true
 	}
-	switch stream.Network {
-	case "tcp":
-		return stream.Security == "tls" || stream.Security == "reality"
-	case "xhttp":
-		return vlessEncryptionEnabled(settings)
-	default:
-		return false
-	}
+	return vlessEncryptionEnabled(settings)
 }
 
-// nodeEligibleProtocols mirrors the frontend's NODE_ELIGIBLE_PROTOCOLS. The
-// sidecar-managed protocols are absent because their reconcile loops only query
-// NodeID IS NULL rows, so a node-assigned one would never be reconciled at all.
-// A new protocol defaults to ineligible until added here, as on the frontend.
+// nodeEligibleProtocols mirrors the frontend's NODE_ELIGIBLE_PROTOCOLS. A sidecar
+// protocol's row is local on the node it is pushed to, so that panel runs it.
 var nodeEligibleProtocols = map[model.Protocol]bool{
 	model.VLESS:       true,
 	model.VMESS:       true,
@@ -64,11 +53,45 @@ var nodeEligibleProtocols = map[model.Protocol]bool{
 	model.Shadowsocks: true,
 	model.Hysteria:    true,
 	model.WireGuard:   true,
+	model.MTProto:     true,
+	model.AmneziaWG:   true,
+	model.TUIC:        true,
+	model.MASQUE:      true,
 }
 
-// isNodeEligibleProtocol reports whether protocol may be assigned to a node.
-func isNodeEligibleProtocol(protocol model.Protocol) bool {
-	return nodeEligibleProtocols[protocol]
+// nodeProtocolFirstRelease is the panel release that introduced each protocol
+// newer than node support itself; an older node would hand it to Xray as-is.
+var nodeProtocolFirstRelease = map[model.Protocol]string{
+	model.MTProto:   "v3.5.0",
+	model.AmneziaWG: "v3.7.0",
+	model.TUIC:      "v3.8.0",
+	model.MASQUE:    "v3.9.1",
+}
+
+// checkNodeCanHostProtocol refuses assigning protocol to nodeID unless the
+// protocol may live on a node and that node's panel is new enough to run it.
+func checkNodeCanHostProtocol(db *gorm.DB, nodeID int, protocol model.Protocol) error {
+	if !nodeEligibleProtocols[protocol] {
+		return common.NewErrorf("%s inbounds cannot be assigned to a node", protocol)
+	}
+	firstRelease, ok := nodeProtocolFirstRelease[protocol]
+	if !ok {
+		return nil
+	}
+	var node model.Node
+	if err := db.Select("id", "name", "panel_version").First(&node, nodeID).Error; err != nil {
+		return err
+	}
+	if strings.TrimSpace(node.PanelVersion) == "" {
+		return common.NewErrorf("node %q has not reported its panel version yet; %s inbounds need %s or newer",
+			node.Name, protocol, firstRelease)
+	}
+	// A dev build reports "dev+<sha>": it tracks main, which carries every protocol.
+	if cmp, ok := version.Compare(node.PanelVersion, firstRelease); ok && cmp < 0 {
+		return common.NewErrorf("node %q runs panel %s; %s inbounds need %s or newer",
+			node.Name, node.PanelVersion, protocol, firstRelease)
+	}
+	return nil
 }
 
 // vlessEncryptionEnabled reports whether a VLESS inbound has VLESS-level
@@ -104,7 +127,7 @@ func vlessEncValueSet(v string) bool {
 // inboundCanHostFallbacks gates the settings.fallbacks injection.
 // Xray only honors fallbacks on VLESS and Trojan inbounds carried over
 // TCP transport with TLS or Reality security. This is intentionally stricter
-// than inboundCanEnableTlsFlow (which also accepts XHTTP+vlessenc): fallbacks
+// than inboundCanEnableTlsFlow (which also accepts any vlessenc stream): fallbacks
 // are a raw-TCP-only feature.
 func inboundCanHostFallbacks(ib *model.Inbound) bool {
 	if ib == nil {

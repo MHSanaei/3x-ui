@@ -8,7 +8,7 @@ import {
   genWireguardLinks,
   getInboundClients,
 } from '@/lib/xray/inbound-link';
-import { canEnableTlsFlow, isSS2022, isSSMultiUser } from '@/lib/xray/protocol-capabilities';
+import { canEnableTlsFlow, isSS2022 } from '@/lib/xray/protocol-capabilities';
 
 const FALLBACK_HOST = 'panel.example.test';
 
@@ -56,6 +56,28 @@ describe('inboundFromDb', () => {
     expect(inbound.settings).not.toBe(settings);
     expect((inbound.settings as { encryption?: string }).encryption).toBe('none');
     expect((inbound.streamSettings as { security?: string })?.security).toBe('tls');
+  });
+
+  // The settings parse strips keys the schema does not list, so a TUN option xray-core
+  // 26.9.30 added and an admin entered as JSON would vanish on the next form save.
+  it('keeps the TUN options xray-core 26.9 added', () => {
+    const inbound = inboundFromDb({
+      ...BASE_DB_FIELDS,
+      protocol: 'tun',
+      settings: {
+        name: 'xray0',
+        desc: 'MyTun',
+        gateway: ['10.0.0.1/16'],
+        autoSystemDnsToGateway: true,
+        autoSystemWfpBlockLeak: ['dns', 'misconfigtun'],
+      },
+      streamSettings: '',
+    });
+    expect(inbound.settings).toMatchObject({
+      desc: 'MyTun',
+      autoSystemDnsToGateway: true,
+      autoSystemWfpBlockLeak: ['dns', 'misconfigtun'],
+    });
   });
 
   it('returns schema-default settings for missing/empty fields without throwing', () => {
@@ -149,24 +171,6 @@ describe('inboundFromDb', () => {
 });
 
 describe('protocol-capability helpers with raw coerced shapes', () => {
-  it('isSSMultiUser returns true for legacy SS methods', () => {
-    expect(isSSMultiUser({ protocol: 'shadowsocks', settings: { method: 'aes-256-gcm' } })).toBe(
-      true,
-    );
-    expect(
-      isSSMultiUser({ protocol: 'shadowsocks', settings: { method: '2022-blake3-aes-128-gcm' } }),
-    ).toBe(true);
-  });
-
-  it('isSSMultiUser returns false for single-user blake3-chacha20 method', () => {
-    expect(
-      isSSMultiUser({
-        protocol: 'shadowsocks',
-        settings: { method: '2022-blake3-chacha20-poly1305' },
-      }),
-    ).toBe(false);
-  });
-
   it('isSS2022 detects 2022-blake3 family', () => {
     expect(
       isSS2022({ protocol: 'shadowsocks', settings: { method: '2022-blake3-aes-128-gcm' } }),
@@ -222,12 +226,21 @@ describe('protocol-capability helpers with raw coerced shapes', () => {
         streamSettings: { network: 'xhttp', security: 'none' },
       }),
     ).toBe(false);
-    // vlessenc is XHTTP-only: TCP without tls/reality is not Vision-capable.
+    // xray-core runs Vision inside VLESS encryption on any transport, RAW and WS included.
+    for (const network of ['tcp', 'ws', 'grpc', 'xdrive']) {
+      expect(
+        canEnableTlsFlow({
+          protocol: 'vless',
+          settings: { decryption: dec, encryption: enc },
+          streamSettings: { network, security: 'none' },
+        }),
+      ).toBe(true);
+    }
     expect(
       canEnableTlsFlow({
         protocol: 'vless',
-        settings: { decryption: dec, encryption: enc },
-        streamSettings: { network: 'tcp', security: 'none' },
+        settings: { encryption: 'none' },
+        streamSettings: { network: 'ws', security: 'tls' },
       }),
     ).toBe(false);
   });
@@ -242,16 +255,6 @@ describe('getInboundClients with schema-shaped inbound', () => {
       streamSettings: { network: 'tcp', security: 'none' },
     });
     expect(getInboundClients(inbound)).toHaveLength(1);
-  });
-
-  it('returns null for SS single-user', () => {
-    const inbound = inboundFromDb({
-      ...BASE_DB_FIELDS,
-      protocol: 'shadowsocks',
-      settings: { method: '2022-blake3-chacha20-poly1305', password: 'pw', clients: [] },
-      streamSettings: { network: 'tcp', security: 'none' },
-    });
-    expect(getInboundClients(inbound)).toBeNull();
   });
 
   it('returns null for non-client protocols (http/mixed/tun/tunnel)', () => {

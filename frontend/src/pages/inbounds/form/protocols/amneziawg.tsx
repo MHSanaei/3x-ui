@@ -103,13 +103,13 @@ export default function AmneziawgFields({
         <InputNumber min={0} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 's1']} label={t('pages.xray.amneziawg.s1')}>
-        <InputNumber min={0} style={{ width: '100%' }} />
+        <InputNumber min={0} max={1552} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 's2']} label={t('pages.xray.amneziawg.s2')}>
-        <InputNumber min={0} style={{ width: '100%' }} />
+        <InputNumber min={0} max={1608} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 's3']} label={t('pages.xray.amneziawg.s3')}>
-        <InputNumber min={0} max={64} style={{ width: '100%' }} />
+        <InputNumber min={0} max={1636} style={{ width: '100%' }} />
       </FormField>
       <FormField name={['settings', 'server', 's4']} label={t('pages.xray.amneziawg.s4')}>
         <InputNumber min={0} max={32} style={{ width: '100%' }} />

@@ -58,6 +58,7 @@ describe('outbound-form-adapter: round-trip', () => {
         flow: 'xtls-rprx-vision',
         encryption: 'none',
       },
+      streamSettings: { network: 'tcp', security: 'reality' },
     };
     const form = rawOutboundToFormValues(wire);
     expect(form.protocol).toBe('vless');
@@ -117,6 +118,64 @@ describe('outbound-form-adapter: round-trip', () => {
     const back = formValuesToWirePayload(form);
     const settings = back.settings as Record<string, unknown>;
     expect(settings.reverse).toMatchObject({ tag: 'rev-1' });
+  });
+
+  // The flow select hides off TCP+TLS/REALITY but keeps its value; xray then fails every dial.
+  it('vless drops a Vision flow its transport cannot carry, and lets mux back on', () => {
+    const outbound = (streamSettings: Record<string, unknown>) =>
+      formValuesToWirePayload(
+        rawOutboundToFormValues({
+          protocol: 'vless',
+          settings: {
+            address: 'srv',
+            port: 443,
+            id: '11111111-2222-4333-8444-555555555555',
+            flow: 'xtls-rprx-vision',
+            encryption: 'none',
+            testpre: 5,
+          },
+          streamSettings,
+          mux: { enabled: true, concurrency: 8 },
+        }),
+      );
+
+    const xdrive = outbound({
+      network: 'xdrive',
+      security: 'none',
+      xdriveSettings: { service: 'local', remoteFolder: '/tmp/shared' },
+    });
+    expect(xdrive.settings).toMatchObject({ flow: '' });
+    expect(xdrive.settings).not.toHaveProperty('testpre');
+    expect(xdrive.mux).toMatchObject({ enabled: true });
+
+    const ws = outbound({ network: 'ws', security: 'tls', wsSettings: { path: '/' } });
+    expect(ws.settings).toMatchObject({ flow: '' });
+
+    const reality = outbound({
+      network: 'tcp',
+      security: 'reality',
+      realitySettings: { serverName: 'a.example', publicKey: 'k', fingerprint: 'chrome' },
+    });
+    expect(reality.settings).toMatchObject({ flow: 'xtls-rprx-vision', testpre: 5 });
+    expect(reality).not.toHaveProperty('mux');
+  });
+
+  // VLESS encryption carries Vision on any transport; stripping it gets the server's "client flow is empty".
+  it('vless keeps a Vision flow over VLESS encryption on RAW without TLS', () => {
+    const wire = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'vless',
+        settings: {
+          address: 'srv',
+          port: 443,
+          id: '11111111-2222-4333-8444-555555555555',
+          flow: 'xtls-rprx-vision',
+          encryption: 'mlkem768x25519plus.native.0rtt.cbEXq-_hfkxDUex6HqmSaemEELvnFWc8qQ1MxlNDHnE',
+        },
+        streamSettings: { network: 'tcp', security: 'none' },
+      }),
+    );
+    expect(wire.settings).toMatchObject({ flow: 'xtls-rprx-vision' });
   });
 
   it('vless does not emit testpre/testseed unless flow is vision', () => {
@@ -312,6 +371,74 @@ describe('outbound-form-adapter: round-trip', () => {
     expect((unset.settings as { remoteDNS?: string[] }).remoteDNS).toBeUndefined();
   });
 
+  // xray-core 26.9.30 ignores wireguard's settings.domainStrategy and panics on remoteDNS
+  // "local"; the endpoint lookup reads sockopt.domainStrategy, in-tunnel targets targetStrategy.
+  it('wireguard lifts the removed domainStrategy and remoteDNS local where the core reads them', () => {
+    const settings = {
+      secretKey: 'YFVmTVCBsLxXJCe4i+jK8PgD3S6vUqfZ4Zl0JVNDfHA=',
+      peers: [{ publicKey: 'pk', endpoint: 'engage.cloudflareclient.com:2408' }],
+    };
+    const warp = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings: { ...settings, domainStrategy: 'ForceIPv4v6' },
+      }),
+    );
+    expect(warp.targetStrategy).toBe('ForceIPv4v6');
+    expect(warp.streamSettings).toEqual({ sockopt: { domainStrategy: 'ForceIPv4v6' } });
+    expect((warp.settings as Record<string, unknown>).domainStrategy).toBeUndefined();
+
+    const local = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings: { ...settings, remoteDNS: ['local'] },
+      }),
+    );
+    expect(local.targetStrategy).toBe('ForceIP');
+    expect((local.settings as Record<string, unknown>).remoteDNS).toBeUndefined();
+
+    const admin = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        targetStrategy: 'UseIPv6',
+        streamSettings: { sockopt: { domainStrategy: 'UseIPv4' } },
+        settings: { ...settings, domainStrategy: 'ForceIPv6' },
+      }),
+    );
+    expect(admin.targetStrategy).toBe('UseIPv6');
+    expect(admin.streamSettings).toEqual({ sockopt: { domainStrategy: 'UseIPv4' } });
+  });
+
+  // The core dials a wireguard peer through its finalmask (noise "exp" was built for WARP),
+  // so saving through the form must keep the masks next to sockopt instead of dropping them.
+  it('wireguard keeps its finalmask on save and drops an empty one', () => {
+    const settings = {
+      secretKey: 'YFVmTVCBsLxXJCe4i+jK8PgD3S6vUqfZ4Zl0JVNDfHA=',
+      peers: [{ publicKey: 'pk', endpoint: 'engage.cloudflareclient.com:2408' }],
+    };
+    const noise = {
+      type: 'noise',
+      settings: { noise: [{ type: 'exp', packet: '<b 0d0a0d0a><t>', delay: '1-3' }] },
+    };
+    const masked = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings,
+        streamSettings: { sockopt: { mark: 255 }, finalmask: { tcp: [], udp: [noise] } },
+      }),
+    );
+    expect(masked.streamSettings).toEqual({ sockopt: { mark: 255 }, finalmask: { udp: [noise] } });
+
+    const empty = formValuesToWirePayload(
+      rawOutboundToFormValues({
+        protocol: 'wireguard',
+        settings,
+        streamSettings: { sockopt: { mark: 255 }, finalmask: { tcp: [], udp: [] } },
+      }),
+    );
+    expect(empty.streamSettings).toEqual({ sockopt: { mark: 255 } });
+  });
+
   it('dns rules normalize qType numeric strings, split domains, carry rCode', () => {
     const wire = {
       protocol: 'dns',
@@ -475,6 +602,7 @@ describe('outbound-form-adapter: round-trip', () => {
           flow: 'xtls-rprx-vision',
           encryption: 'none',
         },
+        streamSettings: { network: 'tcp', security: 'reality' },
         mux: { enabled: true },
       }),
     );

@@ -234,3 +234,21 @@ func (s *InboundService) markClientsDisabledInSettings(tx *gorm.DB, inboundID in
 	}
 	return &snapshot, &ib, nil
 }
+
+// trafficDisabledEmails reports which emails have a switched-off stats row. The
+// table is email-keyed and its inbound_id goes stale, so never filter on it.
+func trafficDisabledEmails(db *gorm.DB, emails []string) (map[string]struct{}, error) {
+	disabled := make(map[string]struct{})
+	for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqlInChunk) {
+		var page []string
+		if err := db.Model(xray.ClientTraffic{}).
+			Where("email IN ? AND enable = ?", batch, false).
+			Pluck("email", &page).Error; err != nil {
+			return nil, err
+		}
+		for _, e := range page {
+			disabled[e] = struct{}{}
+		}
+	}
+	return disabled, nil
+}

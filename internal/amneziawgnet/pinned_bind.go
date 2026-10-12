@@ -162,13 +162,24 @@ func newListenBind(listen string) awgconn.Bind {
 		if raw != "" && !isWildcardListen(raw) {
 			logger.Warningf("amneziawgnet: listen %q is not a bindable IP; using dual-stack wildcard", raw)
 		}
-		return awgconn.NewDefaultBind()
+		return wildcardBind()
 	}
 	if !listenBindable(addr) {
 		logger.Warningf("amneziawgnet: listen %q is not usable on this host; using dual-stack wildcard", raw)
-		return awgconn.NewDefaultBind()
+		return wildcardBind()
 	}
 	return newPinnedBind(addr)
+}
+
+// wildcardBindHost replaces "all interfaces" for every host socket this package
+// opens; TestMain pins it to loopback so Windows Firewall never prompts.
+var wildcardBindHost = ""
+
+func wildcardBind() awgconn.Bind {
+	if wildcardBindHost != "" {
+		return newPinnedBind(netip.MustParseAddr(wildcardBindHost))
+	}
+	return awgconn.NewDefaultBind()
 }
 
 // normalizedListenFP collapses wildcard spellings so fingerprint rebuilds

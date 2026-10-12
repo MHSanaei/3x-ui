@@ -1,14 +1,5 @@
 import { z } from 'zod';
 
-export const WireguardDomainStrategySchema = z.enum([
-  'ForceIP',
-  'ForceIPv4',
-  'ForceIPv4v6',
-  'ForceIPv6',
-  'ForceIPv6v4',
-]);
-export type WireguardDomainStrategy = z.infer<typeof WireguardDomainStrategySchema>;
-
 // AntD InputNumber emits null (not undefined) when the user clears it, and
 // the form store hands that null straight to safeParse on submit — a bare
 // .optional() would reject it and block the save.
@@ -68,7 +59,6 @@ export const WireguardInboundSettingsSchema = z.object({
   peers: z.array(WireguardInboundPeerSchema).default([]),
   clients: z.array(WireguardClientSchema).default([]),
   noKernelTun: z.boolean().default(false),
-  domainStrategy: WireguardDomainStrategySchema.optional(),
   // Admin-configurable base subnet new clients are auto-allocated from —
   // mirrors AmneziaWG's settings.server.subnetIp/subnetCidr. Optional and
   // left blank by default: an inbound that never sets this keeps the

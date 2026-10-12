@@ -107,3 +107,71 @@ func TestGetXrayConfig_EnabledClientsStillEmitted(t *testing.T) {
 		t.Errorf("client id not carried through: %#v", entry)
 	}
 }
+
+// A flow kept from a TCP+REALITY stream makes xray demand Vision on a transport that cannot run it
+// without VLESS encryption: "XTLS only supports TLS and REALITY directly".
+func TestGetXrayConfig_OmitsVisionFlowOnIneligibleStream(t *testing.T) {
+	cases := []struct {
+		name   string
+		stream string
+	}{
+		{"xdrive", `{"network":"xdrive","security":"none","xdriveSettings":{"service":"local","remoteFolder":"/tmp/shared"}}`},
+		{"ws over tls", `{"network":"ws","security":"tls","wsSettings":{"path":"/"}}`},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tag := "stale-flow"
+			seedVlessInbound(t, tag, 43110+i, []model.Client{
+				{Email: "vision@x", ID: "44444444-4444-4444-4444-444444444444", Enable: true, Flow: "xtls-rprx-vision"},
+			})
+			if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", tag).
+				Update("stream_settings", tc.stream).Error; err != nil {
+				t.Fatalf("set stream: %v", err)
+			}
+			value, _ := emittedClients(t, tag)
+			list, ok := value.([]any)
+			if !ok || len(list) != 1 {
+				t.Fatalf("settings.clients = %#v, want the one enabled client", value)
+			}
+			entry, _ := list[0].(map[string]any)
+			if flow, present := entry["flow"]; present {
+				t.Fatalf("flow %q emitted for a %s stream", flow, tc.name)
+			}
+		})
+	}
+}
+
+// xray-core runs Vision over TLS/REALITY on RAW, or over VLESS encryption on any transport.
+func TestGetXrayConfig_KeepsVisionFlowWhereTheCoreRunsIt(t *testing.T) {
+	const vlessenc = `{"clients":[],"decryption":"mlkem768x25519plus.native.600s.WB3OymHLL_DJ1jdHiqcMC-u84TgvfNFlgbZIJE-NtUQ"}`
+	cases := []struct {
+		name     string
+		stream   string
+		settings string
+	}{
+		{"tcp reality", `{"network":"tcp","security":"reality","realitySettings":{}}`, `{"clients":[],"decryption":"none"}`},
+		{"raw vlessenc", `{"network":"tcp","security":"none"}`, vlessenc},
+		{"ws vlessenc", `{"network":"ws","security":"none","wsSettings":{"path":"/"}}`, vlessenc},
+		{"xdrive vlessenc", `{"network":"xdrive","security":"none","xdriveSettings":{"service":"local","remoteFolder":"/tmp/shared"}}`, vlessenc},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tag := "vision-flow"
+			seedVlessInbound(t, tag, 43120+i, []model.Client{
+				{Email: "vision@x", ID: "55555555-5555-5555-5555-555555555555", Enable: true, Flow: "xtls-rprx-vision"},
+			})
+			if err := database.GetDB().Model(&model.Inbound{}).Where("tag = ?", tag).
+				Updates(map[string]any{"stream_settings": tc.stream, "settings": tc.settings}).Error; err != nil {
+				t.Fatalf("set stream: %v", err)
+			}
+			value, _ := emittedClients(t, tag)
+			list, _ := value.([]any)
+			if len(list) != 1 {
+				t.Fatalf("settings.clients = %#v, want one client", value)
+			}
+			if entry, _ := list[0].(map[string]any); entry["flow"] != "xtls-rprx-vision" {
+				t.Fatalf("flow = %#v, want xtls-rprx-vision kept on %s", entry["flow"], tc.name)
+			}
+		})
+	}
+}

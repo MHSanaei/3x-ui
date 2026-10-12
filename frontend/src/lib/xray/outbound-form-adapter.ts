@@ -1,7 +1,11 @@
 import { XHttpXmuxSchema } from '@/schemas/protocols/stream/xhttp';
 import { OutboundDomainStrategySchema } from '@/schemas/protocols/outbound';
 import { AmneziaWGOutboundSettingsSchema } from '@/schemas/protocols/outbound';
-import { normalizeStreamSettingsForWire } from '@/lib/xray/stream-wire-normalize';
+import { canEnableTlsFlow } from '@/lib/xray/protocol-capabilities';
+import {
+  dropEmptyFinalMask,
+  normalizeStreamSettingsForWire,
+} from '@/lib/xray/stream-wire-normalize';
 import { Wireguard } from '@/utils';
 import type { Sniffing, SniffingDest } from '@/schemas/primitives';
 import type { OutboundDomainStrategy } from '@/schemas/protocols/outbound';
@@ -15,6 +19,7 @@ import type {
   FreedomOutboundFormSettings,
   HttpOutboundFormSettings,
   HysteriaOutboundFormSettings,
+  MasqueOutboundFormSettings,
   LoopbackOutboundFormSettings,
   MuxForm,
   OutboundFormSettings,
@@ -258,17 +263,47 @@ function wireguardFromWire(raw: Raw): WireguardOutboundFormSettings {
     secretKey,
     pubKey,
     address: addressArr.join(','),
-    domainStrategy: ((): WireguardOutboundFormSettings['domainStrategy'] => {
-      const allowed = ['ForceIP', 'ForceIPv4', 'ForceIPv4v6', 'ForceIPv6', 'ForceIPv6v4'];
-      const s = asString(raw.domainStrategy);
-      return (allowed.includes(s) ? s : '') as WireguardOutboundFormSettings['domainStrategy'];
-    })(),
     reserved: reservedArr.join(','),
-    remoteDNS: asArray(raw.remoteDNS)
-      .map((x) => asString(x))
-      .join(','),
+    remoteDNS: isLegacyLocalRemoteDNS(raw.remoteDNS)
+      ? ''
+      : asArray(raw.remoteDNS)
+          .map((x) => asString(x))
+          .join(','),
     peers,
     noKernelTun: asBool(raw.noKernelTun),
+  };
+}
+
+// remoteDNS ["local"] is a mode xray-core 26.9.30 removed; the core now panics parsing
+// it as an address, so liftLegacyWireguardStrategy carries it over to targetStrategy.
+function isLegacyLocalRemoteDNS(value: unknown): boolean {
+  const list = asArray(value);
+  return list.length === 1 && list[0] === 'local';
+}
+
+const isAsIs = (strategy: OutboundDomainStrategy | '') => strategy === '' || strategy === 'AsIs';
+
+// xray-core 26.9.30 (#6771) ignores wireguard's settings.domainStrategy: sockopt.domainStrategy
+// now picks the endpoint's family, targetStrategy the targets'. Mirrors the Go seeder.
+function liftLegacyWireguardStrategy(
+  settings: Raw,
+  targetStrategy: OutboundDomainStrategy | '',
+  streamSettings: OutboundStreamFormValues | undefined,
+): { targetStrategy: OutboundDomainStrategy | ''; streamSettings?: OutboundStreamFormValues } {
+  const legacy = targetStrategyFromWire(settings.domainStrategy);
+  const family = legacy.startsWith('ForceIP') && legacy !== 'ForceIP' ? legacy : '';
+  const lifted = family || (isLegacyLocalRemoteDNS(settings.remoteDNS) ? 'ForceIP' : '');
+  let stream = streamSettings;
+  const sockopt = asObject((stream as Raw | undefined)?.sockopt);
+  if (family && isAsIs(targetStrategyFromWire(sockopt.domainStrategy))) {
+    stream = {
+      ...(stream ?? {}),
+      sockopt: { ...sockopt, domainStrategy: family },
+    } as OutboundStreamFormValues;
+  }
+  return {
+    targetStrategy: lifted && isAsIs(targetStrategy) ? lifted : targetStrategy,
+    streamSettings: stream,
   };
 }
 
@@ -277,6 +312,14 @@ function hysteriaFromWire(raw: Raw): HysteriaOutboundFormSettings {
     address: asString(raw.address),
     port: asPort(raw.port, 443),
     version: 2,
+  };
+}
+
+function masqueFromWire(raw: Raw): MasqueOutboundFormSettings {
+  return {
+    address: asString(raw.address),
+    port: asPort(raw.port, 443),
+    remoteDNS: asArray(raw.remoteDNS).filter((v): v is string => typeof v === 'string'),
   };
 }
 
@@ -585,6 +628,9 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
     case 'hysteria':
       typed = { protocol: 'hysteria', settings: hysteriaFromWire(settings) };
       break;
+    case 'masque':
+      typed = { protocol: 'masque', settings: masqueFromWire(settings) };
+      break;
     case 'freedom':
       typed = {
         protocol: 'freedom',
@@ -604,15 +650,20 @@ export function rawOutboundToFormValues(raw: RawOutboundRow): OutboundFormValues
       typed = { protocol: 'vless', settings: vlessFromWire(settings) };
   }
 
+  const placed =
+    protocol === 'wireguard'
+      ? liftLegacyWireguardStrategy(settings, targetStrategy, streamSettings)
+      : { targetStrategy, streamSettings };
+
   return {
     ...typed,
     tag,
     sendThrough,
     // The freedom card owns the strategy for freedom, so the shared root field
     // stays empty and cannot disagree with what the card is showing.
-    targetStrategy: protocol === 'freedom' ? '' : targetStrategy,
+    targetStrategy: protocol === 'freedom' ? '' : placed.targetStrategy,
     mux,
-    streamSettings,
+    streamSettings: placed.streamSettings,
   };
 }
 
@@ -715,7 +766,6 @@ function wireguardToWire(s: WireguardOutboundFormSettings) {
           .map((x) => x.trim())
           .filter(Boolean)
       : [],
-    domainStrategy: s.domainStrategy || undefined,
     reserved: s.reserved
       ? s.reserved
           .split(',')
@@ -741,6 +791,15 @@ function wireguardToWire(s: WireguardOutboundFormSettings) {
 
 function hysteriaToWire(s: HysteriaOutboundFormSettings) {
   return { address: s.address, port: s.port, version: s.version };
+}
+
+function masqueToWire(s: MasqueOutboundFormSettings) {
+  const remoteDNS = s.remoteDNS.filter(Boolean);
+  return {
+    address: s.address,
+    port: s.port,
+    remoteDNS: remoteDNS.length > 0 ? remoteDNS : undefined,
+  };
 }
 
 function freedomToWire(s: FreedomOutboundFormSettings) {
@@ -820,7 +879,7 @@ function loopbackToWire(s: LoopbackOutboundFormSettings) {
 
 // canEnableMux mirrors the legacy Outbound.canEnableMux().
 const MUX_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'http', 'socks']);
-const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria']);
+const STREAM_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'hysteria', 'masque']);
 
 function dropEmptyStrings(obj: Raw): Raw {
   const out: Raw = {};
@@ -844,10 +903,23 @@ function stripUiOnlyStreamFields(stream: unknown): Raw {
   return normalizeStreamSettingsForWire(next, { side: 'outbound' }) as Raw;
 }
 
+// The flow select only hides off a Vision-capable transport; its stale value must not reach xray.
+export function effectiveVlessFlow(
+  settings: Pick<VlessOutboundFormSettings, 'flow' | 'encryption'>,
+  stream: { network?: string; security?: string } | undefined,
+): string {
+  const allowed = canEnableTlsFlow({
+    protocol: 'vless',
+    settings: { encryption: settings.encryption },
+    streamSettings: { network: stream?.network, security: stream?.security },
+  });
+  return allowed ? settings.flow : '';
+}
+
 function muxAllowed(values: OutboundFormValues): boolean {
   if (!MUX_PROTOCOLS.has(values.protocol)) return false;
   const flow =
-    values.protocol === 'vless' ? (values.settings as VlessOutboundFormSettings).flow : '';
+    values.protocol === 'vless' ? effectiveVlessFlow(values.settings, values.streamSettings) : '';
   if (flow) return false;
   const network =
     values.streamSettings && 'network' in values.streamSettings
@@ -866,7 +938,10 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
       settings = vmessToWire(values.settings);
       break;
     case 'vless':
-      settings = vlessToWire(values.settings);
+      settings = vlessToWire({
+        ...values.settings,
+        flow: effectiveVlessFlow(values.settings, values.streamSettings),
+      });
       break;
     case 'trojan':
       settings = trojanToWire(values.settings);
@@ -888,6 +963,9 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
       break;
     case 'hysteria':
       settings = hysteriaToWire(values.settings);
+      break;
+    case 'masque':
+      settings = masqueToWire(values.settings);
       break;
     case 'freedom':
       settings = freedomToWire(values.settings);
@@ -912,14 +990,23 @@ export function formValuesToWirePayload(values: OutboundFormValues): WireOutboun
     result.targetStrategy = values.targetStrategy;
   }
 
-  // streamSettings emission gates on canEnableStream — non-stream protocols
-  // still emit just `sockopt` if that key is present (legacy behavior).
+  // Non-stream protocols emit only `sockopt`; wireguard also keeps `finalmask`, which the
+  // core dials its peer through (the one non-stream protocol the mask editor renders for).
   if (values.streamSettings) {
     if (STREAM_PROTOCOLS.has(values.protocol)) {
       result.streamSettings = stripUiOnlyStreamFields(values.streamSettings);
     } else {
-      const sockopt = (values.streamSettings as { sockopt?: unknown }).sockopt;
-      if (sockopt) result.streamSettings = { sockopt };
+      const { sockopt, finalmask } = values.streamSettings as {
+        sockopt?: unknown;
+        finalmask?: unknown;
+      };
+      const stream: Raw = {};
+      if (sockopt) stream.sockopt = sockopt;
+      if (values.protocol === 'wireguard' && finalmask && typeof finalmask === 'object') {
+        stream.finalmask = { ...(finalmask as Raw) };
+        dropEmptyFinalMask(stream);
+      }
+      if (Object.keys(stream).length > 0) result.streamSettings = stream;
     }
   }
 

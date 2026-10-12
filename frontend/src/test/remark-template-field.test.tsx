@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import RemarkTemplateField from '@/components/form/RemarkTemplateField';
 import { previewRemark, SUBSCRIPTION_METADATA_VARIABLES } from '@/lib/remark/remarkVariables';
@@ -29,7 +29,7 @@ describe('RemarkTemplateField', () => {
     const onChange = vi.fn();
     render(<RemarkTemplateField value="Hello " onChange={onChange} multiline rows={3} />);
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
-    textarea.focus();
+    act(() => textarea.focus());
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
     fireEvent.click(screen.getByRole('button'));

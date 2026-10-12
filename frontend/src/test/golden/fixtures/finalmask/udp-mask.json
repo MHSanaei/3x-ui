@@ -48,8 +48,11 @@
     {
       "type": "xdns",
       "settings": {
-        "domains": ["example.com:txt", "example.org:a"],
-        "resolvers": ["example.com:txt+udp://1.1.1.1:53"]
+        "domains": [
+          { "names": ["example.com"], "types": [16], "edns0": 1232 },
+          { "names": ["example.org"], "types": [1], "edns0": 1232 }
+        ],
+        "resolvers": [{ "addrs": ["udp://1.1.1.1:53"] }]
       }
     },
     {

@@ -39,7 +39,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useHostsQuery } from '@/api/queries/useHostsQuery';
-import { withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
+import { withHostEndpoints } from '@/lib/hosts/host-link';
 import AppSidebar from '@/layouts/AppSidebar';
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 import type { TextModalTab } from '@/components/feedback/TextModal';
@@ -51,7 +51,6 @@ import { LazyMount } from '@/components/utility';
 const InboundFormModal = lazy(() => import('./form/InboundFormModal'));
 const CloneInboundModal = lazy(() => import('./CloneInboundModal'));
 const InboundInfoModal = lazy(() => import('./info/InboundInfoModal'));
-const QrCodeModal = lazy(() => import('./qr/QrCodeModal'));
 const AttachClientsModal = lazy(() => import('./clients/AttachClientsModal'));
 const AttachExistingClientsModal = lazy(() => import('./clients/AttachExistingClientsModal'));
 const DetachClientsModal = lazy(() => import('./clients/DetachClientsModal'));
@@ -60,7 +59,6 @@ const AddClientsToGroupModal = lazy(() => import('./clients/AddClientsToGroupMod
 type RowAction =
   | 'edit'
   | 'showInfo'
-  | 'qrcode'
   | 'export'
   | 'subs'
   | 'clipboard'
@@ -167,9 +165,6 @@ export default function InboundsPage() {
   const [infoDbInbound, setInfoDbInbound] = useState<DBInbound | null>(null);
   const [infoClientIndex, setInfoClientIndex] = useState(0);
 
-  const [qrOpen, setQrOpen] = useState(false);
-  const [qrDbInbound, setQrDbInbound] = useState<DBInbound | null>(null);
-
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
   const [attachExistingOpen, setAttachExistingOpen] = useState(false);
@@ -213,7 +208,6 @@ export default function InboundsPage() {
     () => hostOverrideFor(infoDbInbound),
     [infoDbInbound, hostOverrideFor],
   );
-  const qrNodeAddress = useMemo(() => hostOverrideFor(qrDbInbound), [qrDbInbound, hostOverrideFor]);
 
   const openText = useCallback(
     (opts: {
@@ -326,6 +320,7 @@ export default function InboundsPage() {
       switch (dbInbound.protocol) {
         case 'trojan':
         case 'shadowsocks':
+        case 'masque':
           return c.password === client.password && c.email === client.email;
         default:
           return c.id === client.id && c.email === client.email;
@@ -340,7 +335,7 @@ export default function InboundsPage() {
       const hostOverride = hostOverrideFor(dbInbound);
       const fallbackHostname = preferPublicHost(window.location.hostname, subSettings.publicHost);
       const genInput = {
-        inbound: withMtprotoHostEndpoints(
+        inbound: withHostEndpoints(
           inboundFromDb(projected),
           dbInbound.id,
           hosts,
@@ -636,7 +631,6 @@ export default function InboundsPage() {
       const hydratingKeys: RowAction[] = [
         'edit',
         'showInfo',
-        'qrcode',
         'export',
         'subs',
         'clipboard',
@@ -657,10 +651,6 @@ export default function InboundsPage() {
           setInfoDbInbound(checkFallback(target));
           setInfoClientIndex(findClientIndex(target, null));
           setInfoOpen(true);
-          break;
-        case 'qrcode':
-          setQrDbInbound(checkFallback(target));
-          setQrOpen(true);
           break;
         case 'export':
           exportInboundLinks(target);
@@ -844,17 +834,6 @@ export default function InboundsPage() {
             hosts={hosts}
             lastOnlineMap={lastOnlineMap}
             nodeAddress={infoNodeAddress}
-          />
-        </LazyMount>
-        <LazyMount when={qrOpen}>
-          <QrCodeModal
-            open={qrOpen}
-            onClose={() => setQrOpen(false)}
-            dbInbound={qrDbInbound}
-            client={null}
-            nodeAddress={qrNodeAddress}
-            subSettings={subSettings}
-            hosts={hosts}
           />
         </LazyMount>
         <LazyMount when={attachOpen}>

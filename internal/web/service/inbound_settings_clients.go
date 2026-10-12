@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 
@@ -47,4 +48,28 @@ func settingsEntriesToClients(entries []any) ([]model.Client, error) {
 		return nil, err
 	}
 	return clients, nil
+}
+
+// normalizeLegacyClientSettings rewrites settings whose clients still carry the
+// string numbers of a v2.x export, so parsing and storage see a single shape.
+func normalizeLegacyClientSettings(inbound *model.Inbound) {
+	dec := json.NewDecoder(bytes.NewReader([]byte(inbound.Settings)))
+	dec.UseNumber()
+	var settings map[string]any
+	if err := dec.Decode(&settings); err != nil {
+		return
+	}
+	clients, _ := settings["clients"].([]any)
+	changed := false
+	for _, raw := range clients {
+		if obj, ok := raw.(map[string]any); ok && model.NormalizeLegacyClientFields(obj) {
+			changed = true
+		}
+	}
+	if !changed {
+		return
+	}
+	if out, err := json.MarshalIndent(settings, "", "  "); err == nil {
+		inbound.Settings = string(out)
+	}
 }

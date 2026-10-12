@@ -13,7 +13,6 @@ import {
   FreedomFragmentSchema,
   FreedomNoiseSchema,
   OutboundDomainStrategySchema,
-  WireguardDomainStrategySchema,
 } from '@/schemas/protocols/outbound';
 
 export const VmessOutboundFormSettingsSchema = z.object({
@@ -105,7 +104,6 @@ export const WireguardOutboundFormSettingsSchema = z.object({
   secretKey: z.string().default(''),
   pubKey: z.string().default(''),
   address: z.string().default(''),
-  domainStrategy: z.union([WireguardDomainStrategySchema, z.literal('')]).default(''),
   reserved: z.string().default(''),
   remoteDNS: z.string().default(''),
   peers: z.array(WireguardOutboundFormPeerSchema).default([]),
@@ -126,6 +124,13 @@ export const HysteriaOutboundFormSettingsSchema = z.object({
   version: z.literal(2).default(2),
 });
 export type HysteriaOutboundFormSettings = z.infer<typeof HysteriaOutboundFormSettingsSchema>;
+
+export const MasqueOutboundFormSettingsSchema = z.object({
+  address: z.string().default(''),
+  port: PortSchema.default(443),
+  remoteDNS: z.array(z.string()).default([]),
+});
+export type MasqueOutboundFormSettings = z.infer<typeof MasqueOutboundFormSettingsSchema>;
 
 // FinalRule (freedom): network/port are strings; ip is string[]; blockDelay
 // is only meaningful when action === 'block'. The adapter omits empty
@@ -202,6 +207,7 @@ export const OutboundFormSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('wireguard'), settings: WireguardOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('amneziawg'), settings: AmneziaWGOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('hysteria'), settings: HysteriaOutboundFormSettingsSchema }),
+  z.object({ protocol: z.literal('masque'), settings: MasqueOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('freedom'), settings: FreedomOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('blackhole'), settings: BlackholeOutboundFormSettingsSchema }),
   z.object({ protocol: z.literal('dns'), settings: DnsOutboundFormSettingsSchema }),

@@ -154,6 +154,29 @@ func TestResolveRequest_GatesRealIPFallback(t *testing.T) {
 	}
 }
 
+// nginx often sets X-Real-IP without X-Forwarded-Host; a trusted proxy's X-Real-IP
+// used to put the subscriber's public IP into subscription "server" fields (#6589).
+func TestResolveRequest_IgnoresRealIPEvenWhenTrusted(t *testing.T) {
+	initSubDB(t)
+	// Empty / shipped-default CIDRs → forwardedHeadersTrusted returns true.
+	s := &SubService{}
+
+	c := requestFrom(t, "10.1.2.3:44000", map[string]string{
+		"X-Real-IP": "198.51.100.7",
+	})
+	_, host, hostWithPort, hostHeader := s.ResolveRequest(c)
+
+	if host != "panel.example.com" {
+		t.Errorf("host = %q, want request host (not X-Real-IP)", host)
+	}
+	if hostWithPort != "panel.example.com:2096" {
+		t.Errorf("hostWithPort = %q, want request Host", hostWithPort)
+	}
+	if hostHeader != "panel.example.com" {
+		t.Errorf("hostHeader = %q, want request host (not X-Real-IP)", hostHeader)
+	}
+}
+
 func TestHasForwardedHeaders(t *testing.T) {
 	tests := []struct {
 		name    string

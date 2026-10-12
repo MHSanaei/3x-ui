@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
@@ -12,10 +13,7 @@ func initClientHwidTestDB(t *testing.T) {
 	t.Helper()
 	dbDir := t.TempDir()
 	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "x-ui.db")); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() { _ = database.CloseDB() })
+	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 }
 
 func seedHwidClient(t *testing.T, limit int) *model.ClientRecord {
@@ -44,6 +42,23 @@ func TestClientHwidGate(t *testing.T) {
 	}
 	if !res.Allowed || res.Active {
 		t.Fatalf("no limit should allow missing HWID without active headers: %+v", res)
+	}
+
+	for _, ua := range []string{"Happ/1.0", "Happ/2.0"} {
+		res, err = svc.EnforceHwidForSubID("sub-hwid", HwidRequest{Hwid: "device-one", UserAgent: ua})
+		if err != nil {
+			t.Fatalf("no-limit gate with HWID: %v", err)
+		}
+		if res != (HwidGateResult{Allowed: true}) {
+			t.Fatalf("no limit should allow HWID without active headers: %+v", res)
+		}
+	}
+	list, err := svc.ListClientHwids("hwid@example.com")
+	if err != nil {
+		t.Fatalf("list HWIDs: %v", err)
+	}
+	if len(list) != 1 || list[0].UserAgent != "Happ/2.0" {
+		t.Fatalf("no limit should still track one device with fresh metadata, got %+v", list)
 	}
 }
 
@@ -136,7 +151,7 @@ func TestClientHwidGateRegistersAndBlocks(t *testing.T) {
 		t.Fatalf("updated HWID metadata missing: %#v", list)
 	}
 
-	if err := svc.setClientLimitHwidByEmail(nil, rec.Email, 1); err != nil {
+	if err := svc.setClientLimitHwidByEmail(rec.Email, 1); err != nil {
 		t.Fatalf("lower limit: %v", err)
 	}
 	var count int64

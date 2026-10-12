@@ -26,7 +26,9 @@ export const withTheme: Decorator = (Story, context) => {
     document.documentElement.removeAttribute('data-theme');
   }, [dark]);
   return (
-    <ConfigProvider theme={buildAntdThemeConfig(dark, false)}>
+    // The click wave outlives its story and re-renders from a ResizeObserver
+    // inside the next story's act(), tripping React's act-environment warning.
+    <ConfigProvider theme={buildAntdThemeConfig(dark, false)} wave={{ disabled: true }}>
       <div style={{ padding: 24, minWidth: 320 }}>
         <Story />
       </div>

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/wirecodec"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
@@ -64,7 +65,9 @@ func (a *InboundController) broadcastInboundsUpdate(userId int) {
 func (a *InboundController) inboundServiceFor(c *gin.Context) *service.InboundService {
 	svc := a.inboundService
 	scope, _ := c.Get("api_token_scope")
-	svc.FromNodeSync = scope == model.ApiScopeNodeSync
+	// A master enrolled with an admin token (the -getApiToken default) has no
+	// node-sync scope, so it marks every request it sends instead.
+	svc.FromNodeSync = scope == model.ApiScopeNodeSync || c.GetHeader(wirecodec.MasterPushHeader) != ""
 	return &svc
 }
 
@@ -442,11 +445,8 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	notifyClientsChanged()
 }
 
-// resolveHost mirrors what sub.SubService.ResolveRequest does for the host
-// field: prefers X-Forwarded-Host (first entry of any list, port stripped),
-// then X-Real-IP, then the host portion of c.Request.Host. Keeping it in the
-// controller layer means the service interface stays HTTP-agnostic — service
-// methods receive a plain host string instead of a *gin.Context.
+// resolveHost mirrors SubService.ResolveRequest's host: trusted X-Forwarded-Host,
+// else the dialed request Host. X-Real-IP names the visitor, not the panel (#6589).
 func resolveHost(c *gin.Context) string {
 	if isTrustedForwardedRequest(c) {
 		if h := strings.TrimSpace(c.GetHeader("X-Forwarded-Host")); h != "" {
@@ -456,9 +456,6 @@ func resolveHost(c *gin.Context) string {
 			if hp, _, err := net.SplitHostPort(h); err == nil {
 				return hp
 			}
-			return h
-		}
-		if h := c.GetHeader("X-Real-IP"); h != "" {
 			return h
 		}
 	}

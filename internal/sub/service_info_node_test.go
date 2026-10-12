@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -15,12 +16,7 @@ import (
 
 func setupInfoNodeTestDB(t *testing.T) {
 	t.Helper()
-	if err := database.InitDB(t.TempDir() + "/test_infonode.db"); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = database.CloseDB()
-	})
+	dbtest.InitDB(t, t.TempDir()+"/test_infonode.db")
 	db := database.GetDB()
 	if err := db.AutoMigrate(
 		&model.Inbound{},

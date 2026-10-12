@@ -42,12 +42,12 @@ func TestUpdateInbound_NodeMtprotoShareAddrIsEditable(t *testing.T) {
 	}
 }
 
-// Converting a node inbound to a protocol the master's sidecars only reconcile
-// for local rows is still refused: those loops query node_id IS NULL.
+// Converting a node inbound to a protocol that never lives on a node is still
+// refused, and so is one the node's panel is too old to run.
 func TestUpdateInbound_RejectsProtocolChangeToNodeIneligible(t *testing.T) {
 	setupConflictDB(t)
 	nodeID := 6
-	seedNodeRow(t, database.GetDB(), &model.Node{Id: nodeID, Name: "n6", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true})
+	seedNodeRow(t, database.GetDB(), &model.Node{Id: nodeID, Name: "n6", Address: "127.0.0.1", Port: 2096, ApiToken: "tok", Enable: true, PanelVersion: "v3.4.1"})
 	seedInboundConflictNode(t, "vless-node", "127.0.0.1", 4064, model.VLESS,
 		`{"network":"tcp","security":"none"}`,
 		`{"clients":[{"id":"11111111-2222-4333-8444-555555555555","email":"vn-c","enable":true}],"decryption":"none"}`, &nodeID)
@@ -57,11 +57,27 @@ func TestUpdateInbound_RejectsProtocolChangeToNodeIneligible(t *testing.T) {
 		t.Fatalf("read seeded row: %v", err)
 	}
 
-	update := existing
-	update.Protocol = model.MTProto
-	update.Settings = `{"clients":[{"email":"vn-c","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`
-	if _, _, err := (&InboundService{}).UpdateInbound(&update); err == nil ||
-		!strings.Contains(err.Error(), "cannot be assigned to a node") {
-		t.Fatalf("err = %v, want a node-eligibility refusal", err)
+	cases := []struct {
+		name     string
+		protocol model.Protocol
+		settings string
+		wantErr  string
+	}{
+		{"panel-local protocol", model.HTTP, `{"accounts":[]}`, "cannot be assigned to a node"},
+		{
+			"protocol newer than the node", model.MTProto,
+			`{"clients":[{"email":"vn-c","enable":true,"secret":"ee0123456789abcdef0123456789abcdef"}]}`, "need v3.5.0 or newer",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			update := existing
+			update.Protocol = tc.protocol
+			update.Settings = tc.settings
+			if _, _, err := (&InboundService{}).UpdateInbound(&update); err == nil ||
+				!strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("err = %v, want a refusal mentioning %q", err, tc.wantErr)
+			}
+		})
 	}
 }

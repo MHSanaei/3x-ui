@@ -20,10 +20,10 @@ func TestAddClientExpiryPresetReplacesTheTerm(t *testing.T) {
 	swapTestBot(t, url)
 
 	// A fresh draft attaches no inbound, so the card never looks one up by remark.
-	draft := addClientDrafts.forChat(chatID)
+	draft := addClientDrafts.forActor(chatUser{chatID: chatID, userID: 1})
 	origRunning := isRunning
 	t.Cleanup(func() {
-		addClientDrafts.reset(chatID)
+		addClientDrafts.reset(chatUser{chatID: chatID, userID: 1})
 		isRunning = origRunning
 	})
 	isRunning = true

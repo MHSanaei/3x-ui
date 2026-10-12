@@ -22,9 +22,10 @@ export const AmneziaWGOutboundSettingsSchema = z.object({
   jc: z.number().int().min(0).default(0),
   jmin: z.number().int().min(0).default(40),
   jmax: z.number().int().min(0).default(100),
-  s1: z.number().int().min(0).default(15),
-  s2: z.number().int().min(0).default(80),
-  s3: z.number().int().min(0).max(64).default(12),
+  // The remote server sets S1-S3; only amneziawg-go's uint16 UAPI width bounds them here.
+  s1: z.number().int().min(0).max(65535).default(15),
+  s2: z.number().int().min(0).max(65535).default(80),
+  s3: z.number().int().min(0).max(65535).default(12),
   s4: z.number().int().min(0).max(32).default(12),
   h1: z.string().default(''),
   h2: z.string().default(''),

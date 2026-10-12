@@ -18,7 +18,16 @@ describe('client enable toggle', () => {
       const email = 'scheduled@example.com';
       vi.spyOn(HttpUtil, 'get').mockResolvedValue(
         new Msg(true, '', {
-          client: { email, enable: !enable, trafficReset: 'monthly', trafficResetDay: 15 },
+          client: {
+            email,
+            enable: !enable,
+            trafficReset: 'monthly',
+            trafficResetDay: 15,
+            reset: 0,
+            resetDay: 0,
+            resetWeekday: 7,
+            resetMax: 3,
+          },
           inboundIds: [],
         }),
       );
@@ -44,7 +53,16 @@ describe('client enable toggle', () => {
       expect(HttpUtil.get).toHaveBeenCalledWith('/panel/api/clients/get/scheduled%40example.com');
       expect(post).toHaveBeenCalledWith(
         '/panel/api/clients/update/scheduled%40example.com',
-        expect.objectContaining({ email, enable, trafficReset: 'monthly', trafficResetDay: 15 }),
+        expect.objectContaining({
+          email,
+          enable,
+          trafficReset: 'monthly',
+          trafficResetDay: 15,
+          reset: 0,
+          resetDay: 0,
+          resetWeekday: 7,
+          resetMax: 3,
+        }),
         { headers: { 'Content-Type': 'application/json' } },
       );
     },

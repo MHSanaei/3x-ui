@@ -12,12 +12,11 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 )
 
-// External subscription fetching: a "subscription" external link is a remote
-// URL whose body is a (often base64-encoded) newline list of share links. We
-// fetch it on demand, cache the decoded links briefly, and bound the request
-// with a short timeout so a slow/dead provider can't stall a client's sub.
+// External subscription fetching: a remote URL whose body is a share-link
+// list. Fetches are cached briefly and bounded so a dead provider can't stall.
 
 const (
 	subscriptionCacheTTL      = 5 * time.Minute
@@ -149,7 +148,11 @@ func doFetchSubscriptionLinks(rawURL string) ([]string, error) {
 		return nil, err
 	}
 	// Some providers gate the link body on a known client User-Agent.
-	req.Header.Set("User-Agent", "v2rayNG/1.8.5")
+	req.Header.Set("User-Agent", externalSubUserAgent())
+	// A 3x-ui donor with an HWID limit answers 404 when the header is empty (#6559).
+	if hwid := service.ExternalSubscriptionHwid(); hwid != "" {
+		req.Header.Set("X-HWID", hwid)
+	}
 	resp, err := subscriptionHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -172,6 +175,19 @@ var (
 	errBadStatus                = &subError{"non-2xx subscription response"}
 	errSubscriptionBodyTooLarge = &subError{"subscription response body exceeds size limit"}
 )
+
+// externalSubUserAgent returns the panel setting for external subscription
+// fetches, or the historical client UA when it is unset or the DB is unreachable.
+func externalSubUserAgent() string {
+	if database.GetDB() == nil {
+		return service.DefaultExternalSubUserAgent
+	}
+	ua, err := (&service.SettingService{}).GetExternalSubUserAgent()
+	if err != nil {
+		return service.DefaultExternalSubUserAgent
+	}
+	return ua
+}
 
 type subError struct{ msg string }
 

@@ -294,6 +294,35 @@ describe('formValuesToWirePayload', () => {
   });
 });
 
+describe('excludeFromSub', () => {
+  it('DBInbound constructor preserves excludeFromSub from the API row', () => {
+    expect(new DBInbound({ excludeFromSub: true }).excludeFromSub).toBe(true);
+    expect(new DBInbound({ excludeFromSub: false }).excludeFromSub).toBe(false);
+  });
+
+  it('DBInbound defaults excludeFromSub to false when the API omits it', () => {
+    expect(new DBInbound({ protocol: 'vless' }).excludeFromSub).toBe(false);
+    expect(new DBInbound().excludeFromSub).toBe(false);
+  });
+
+  it('rawInboundToFormValues reads excludeFromSub and defaults to false', () => {
+    expect(rawInboundToFormValues({ ...vlessRow, excludeFromSub: true }).excludeFromSub).toBe(true);
+    expect(rawInboundToFormValues(vlessRow).excludeFromSub).toBe(false);
+  });
+
+  it('formValuesToWirePayload includes excludeFromSub', () => {
+    const values = rawInboundToFormValues({ ...vlessRow, excludeFromSub: true });
+    expect(formValuesToWirePayload(values).excludeFromSub).toBe(true);
+  });
+
+  it('excludeFromSub survives raw → DBInbound → values → payload (the edit round-trip)', () => {
+    const db = new DBInbound({ ...vlessRow, excludeFromSub: true } as unknown as DBInboundInit);
+    const values = rawInboundToFormValues(db as unknown as RawInboundRow);
+    const payload = formValuesToWirePayload(values);
+    expect(payload.excludeFromSub).toBe(true);
+  });
+});
+
 describe('disableFlow', () => {
   it('DBInbound constructor preserves disableFlow from the API row', () => {
     expect(new DBInbound({ disableFlow: true }).disableFlow).toBe(true);

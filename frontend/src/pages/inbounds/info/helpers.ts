@@ -2,11 +2,7 @@ import { getMessage } from '@/utils/messageBus';
 import { ColorUtils, ClipboardManager, FileManager } from '@/utils';
 import { Protocols } from '@/schemas/primitives';
 import { coerceInboundJsonField } from '@/models/dbinbound';
-import {
-  canEnableTlsFlow,
-  isSS2022 as isSS2022Helper,
-  isSSMultiUser as isSSMultiUserHelper,
-} from '@/lib/xray/protocol-capabilities';
+import { canEnableTlsFlow, isSS2022 as isSS2022Helper } from '@/lib/xray/protocol-capabilities';
 
 import type { ClientSetting, ClientStats, DBInboundLike, InboundInfo } from './types';
 
@@ -123,10 +119,6 @@ export function buildInboundInfo(dbInbound: DBInboundLike): InboundInfo {
     isHttpupgrade: network === 'httpupgrade',
     isXHTTP: network === 'xhttp',
     isGrpc: network === 'grpc',
-    isSSMultiUser: isSSMultiUserHelper({
-      protocol: dbInbound.protocol,
-      settings: settings as { method?: string },
-    }),
     isSS2022: isSS2022Helper({
       protocol: dbInbound.protocol,
       settings: settings as { method?: string },
@@ -160,6 +152,12 @@ export function copyText(value: unknown, t: (k: string) => string) {
 
 export function downloadText(content: string, filename: string) {
   FileManager.downloadTextFile(content, filename);
+}
+
+// One file per advertised Host, so a peer behind two Hosts gets two names.
+export function peerConfFileName(peerIndex: number, endpointIndex: number, endpointCount: number) {
+  const suffix = endpointCount > 1 ? `-${endpointIndex + 1}` : '';
+  return `peer-${peerIndex + 1}${suffix}.conf`;
 }
 
 export function statsColor(stats: ClientStats, trafficDiff: number) {

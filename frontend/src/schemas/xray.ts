@@ -27,6 +27,7 @@ export const XraySettingsValueSchema = z
         rules: z.array(RuleObjectSchema).optional(),
         balancers: z.array(BalancerObjectSchema).optional(),
         domainStrategy: z.string().optional(),
+        script: z.string().optional(),
       })
       .loose()
       .optional(),
@@ -132,7 +133,7 @@ export const BalancerFormSchema = z.object({
     .string()
     .trim()
     .min(1, 'pages.xray.balancerTagRequired')
-    .refine((val) => !val.startsWith('_bl_'), { message: 'pages.xray.balancer.reservedPrefix' }),
+    .refine((val) => !val.startsWith('_bl_'), { error: 'pages.xray.balancer.reservedPrefix' }),
   strategy: BalancerStrategyTypeSchema.default('random'),
   selector: z.array(z.string()).min(1, 'pages.xray.balancerSelectorRequired'),
   fallbackTag: z.string().default(''),
@@ -143,7 +144,7 @@ export const OutboundTagSchema = z
   .string()
   .trim()
   .min(1, 'pages.xray.outboundTagRequired')
-  .refine((val) => !val.startsWith('_bl_'), { message: 'pages.xray.balancer.reservedPrefix' });
+  .refine((val) => !val.startsWith('_bl_'), { error: 'pages.xray.balancer.reservedPrefix' });
 
 export type BalancerFormValues = z.infer<typeof BalancerFormSchema>;
 export type RuleFormValues = z.infer<typeof RuleFormSchema>;

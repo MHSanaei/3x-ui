@@ -45,6 +45,7 @@ func newHostGroup(h *model.Host, groupId string) *entity.HostGroup {
 		Path:                   h.Path,
 		Alpn:                   h.Alpn,
 		Fingerprint:            h.Fingerprint,
+		CipherSuites:           h.CipherSuites,
 		OverrideSniFromAddress: h.OverrideSniFromAddress,
 		KeepSniBlank:           h.KeepSniBlank,
 		PinnedPeerCertSha256:   h.PinnedPeerCertSha256,
@@ -133,6 +134,7 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				Path:                   req.Path,
 				Alpn:                   req.Alpn,
 				Fingerprint:            req.Fingerprint,
+				CipherSuites:           req.CipherSuites,
 				OverrideSniFromAddress: req.OverrideSniFromAddress,
 				KeepSniBlank:           req.KeepSniBlank,
 				PinnedPeerCertSha256:   req.PinnedPeerCertSha256,
@@ -227,6 +229,9 @@ func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error)
 	if groupId == "" {
 		groupId = random.NumLower(16)
 	}
+	if err := validateFinalMaskJSONSalamander(req.FinalMask); err != nil {
+		return nil, err
+	}
 	created := buildHostRows(groupId, req)
 
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
@@ -245,6 +250,9 @@ func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error)
 }
 
 func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]*model.Host, error) {
+	if err := validateFinalMaskJSONSalamander(req.FinalMask); err != nil {
+		return nil, err
+	}
 	created := buildHostRows(groupId, req)
 
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
