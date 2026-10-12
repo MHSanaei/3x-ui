@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -55,6 +56,46 @@ func TestGetXrayConfig_EmitsMasqueUserPasswords(t *testing.T) {
 		return
 	}
 	t.Fatal("inbound in-8443-masque not found in the generated config")
+}
+
+// MASQUE logs users in over Basic auth, so xray-core refuses the whole inbound over one
+// email holding ":"; the panel allows that email elsewhere and must refuse it here.
+func TestCreateClient_RefusesColonEmailOnMasque(t *testing.T) {
+	setupConflictDB(t)
+	in := &model.Inbound{
+		Tag: "in-8443-masque", Enable: true, Listen: "127.0.0.1", Port: 8443, Protocol: model.MASQUE,
+		Settings:       `{"clients":[{"email":"ivy@example.test","password":"masque-pass-ivy","enable":true}],"address":["10.14.0.1/24"]}`,
+		StreamSettings: masqueTestStream,
+	}
+	if _, _, err := (&InboundService{}).AddInbound(in); err != nil {
+		t.Fatalf("AddInbound: %v", err)
+	}
+
+	_, err := (&ClientService{}).Create(&InboundService{}, &ClientCreatePayload{
+		Client:     model.Client{Email: "tg:42", Enable: true},
+		InboundIds: []int{in.Id},
+	})
+	if want := `MASQUE: client email "tg:42" cannot contain ":"`; err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("Create err = %v, want one containing %q", err, want)
+	}
+
+	cfg, err := (&XrayService{}).GetXrayConfig()
+	if err != nil {
+		t.Fatalf("GetXrayConfig: %v", err)
+	}
+	for i := range cfg.InboundConfigs {
+		if cfg.InboundConfigs[i].Tag != in.Tag {
+			continue
+		}
+		raw, _ := json.Marshal(cfg.InboundConfigs[i])
+		var emitted map[string]any
+		if err := json.Unmarshal(raw, &emitted); err != nil {
+			t.Fatalf("decode emitted inbound: %v", err)
+		}
+		assertXrayAccepts(t, "the emitted MASQUE inbound", buildGoldenInbound(t, emitted))
+		return
+	}
+	t.Fatalf("inbound %s not found in the generated config", in.Tag)
 }
 
 // A client added to a MASQUE inbound without a password could never authenticate,

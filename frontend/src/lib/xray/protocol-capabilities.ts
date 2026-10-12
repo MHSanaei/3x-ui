@@ -1,6 +1,6 @@
 // Pure-function ports of the legacy Inbound class capability predicates
 // (canEnableTls, canEnableReality, canEnableTlsFlow, canEnableStream,
-// canEnableVisionSeed, isSS2022, isSSMultiUser). Each accepts the minimal
+// canEnableVisionSeed, isSS2022). Each accepts the minimal
 // slice of an InboundFormValues it needs, so the same predicate can be
 // called against a partial-row, a full form value, or a hand-built test
 // fixture without the caller projecting a whole object.
@@ -21,7 +21,6 @@ const STREAM_PROTOCOLS = [
 ];
 const VISION_FLOW = 'xtls-rprx-vision';
 const SS_2022_PREFIX = '2022';
-const SS_BLAKE3_CHACHA20 = '2022-blake3-chacha20-poly1305';
 
 export interface CapabilityProtocolSlice {
   protocol: string;
@@ -75,10 +74,8 @@ export function canEnableTlsFlow(values: CapabilityProtocolSlice): boolean {
   // Classic XTLS Vision: raw TCP carried over TLS or REALITY.
   if (network === 'tcp' && (security === 'tls' || security === 'reality')) return true;
 
-  // vlessenc carries Vision over XHTTP without transport TLS.
-  if (network === 'xhttp' && hasVlessEncryption(values.settings)) return true;
-
-  return false;
+  // xray-core runs Vision inside VLESS encryption (encryption.CommonConn) on any transport.
+  return hasVlessEncryption(values.settings);
 }
 
 export function canEnableStream(values: { protocol: string }): boolean {
@@ -101,15 +98,6 @@ export function canEnableVisionSeed(values: CapabilityVlessSlice): boolean {
   const clients = values.settings?.clients;
   if (!Array.isArray(clients)) return false;
   return clients.some((c) => c?.flow === VISION_FLOW);
-}
-
-// Why: legacy returns true on non-SS protocols too (the method getter
-// resolves to "" and "" !== blake3-chacha20-poly1305). Preserved for
-// parity with the legacy class; in practice the callers all narrow on
-// protocol === shadowsocks before checking.
-export function isSSMultiUser(values: CapabilityShadowsocksSlice): boolean {
-  const method = values.protocol === 'shadowsocks' ? (values.settings?.method ?? '') : '';
-  return method !== SS_BLAKE3_CHACHA20;
 }
 
 export function isSS2022(values: CapabilityShadowsocksSlice): boolean {

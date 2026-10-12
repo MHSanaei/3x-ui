@@ -1143,7 +1143,7 @@ func (s *ClientService) bulkDelInboundClients(
 	var sharedSet map[string]bool
 	if !keepTraffic {
 		var sharedErr error
-		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(foundList, inboundId)
+		sharedSet, sharedErr = inboundSvc.emailsUsedByOtherInbounds(db, foundList, inboundId)
 		if sharedErr != nil {
 			for email := range wantedEmails {
 				res.perEmailSkipped[email] = sharedErr.Error()

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/cronspec"
 )
 
 type Msg struct {
@@ -350,6 +351,19 @@ func (s *AllSetting) CheckValid() error {
 	}
 	if !strings.HasSuffix(s.SubClashPath, "/") {
 		s.SubClashPath += "/"
+	}
+
+	for _, sched := range []struct{ name, spec string }{
+		{"tgRunTime", s.TgRunTime},
+		{"discordRunTime", s.DiscordRunTime},
+		{"ldapSyncCron", s.LdapSyncCron},
+	} {
+		if strings.TrimSpace(sched.spec) == "" {
+			continue
+		}
+		if _, err := cronspec.Parse(sched.spec); err != nil {
+			return common.NewError(sched.name+":", err)
+		}
 	}
 
 	if err := checkIPOrCIDRList(s.TrustedProxyCIDRs, "trusted proxy CIDR is not valid:"); err != nil {

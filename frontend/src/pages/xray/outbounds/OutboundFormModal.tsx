@@ -104,7 +104,11 @@ export default function OutboundFormModal({
     '') as string;
   const security = (useWatch({ control: methods.control, name: 'streamSettings.security' }) ??
     'none') as string;
-  const flow = (useWatch({ control: methods.control, name: 'settings.flow' }) ?? '') as string;
+  const storedFlow = (useWatch({ control: methods.control, name: 'settings.flow' }) ??
+    '') as string;
+  const encryption = useWatch({ control: methods.control, name: 'settings.encryption' }) as
+    | string
+    | undefined;
   const reverseTag = useWatch({ control: methods.control, name: 'settings.reverseTag' });
   const wgSecretKey = useWatch({ control: methods.control, name: 'settings.secretKey' }) as
     | string
@@ -113,7 +117,12 @@ export default function OutboundFormModal({
   const streamAllowed = canEnableStream({ protocol });
   const tlsAllowed = canEnableOutboundTls({ protocol, streamSettings: { network, security } });
   const realityAllowed = canEnableReality({ protocol, streamSettings: { network, security } });
-  const tlsFlowAllowed = canEnableTlsFlow({ protocol, streamSettings: { network, security } });
+  const tlsFlowAllowed = canEnableTlsFlow({
+    protocol,
+    settings: { encryption },
+    streamSettings: { network, security },
+  });
+  const flow = tlsFlowAllowed ? storedFlow : '';
 
   /*
    * Parse a share link (vmess:// / vless:// / trojan:// / ss:// /
@@ -527,7 +536,7 @@ export default function OutboundFormModal({
 
                       {/* Vision seed knobs only meaningful for the exact
                           xtls-rprx-vision flow, on TCP+(tls|reality). */}
-                      {tlsFlowAllowed && flow === 'xtls-rprx-vision' && (
+                      {flow === 'xtls-rprx-vision' && (
                         <>
                           <FormField
                             label={t('pages.xray.outboundForm.visionTestpre')}
@@ -590,7 +599,7 @@ export default function OutboundFormModal({
                         )}
                       />
 
-                      <MuxForm protocol={protocol} network={network} />
+                      <MuxForm protocol={protocol} network={network} flow={flow} />
                     </>
                   ),
                 },

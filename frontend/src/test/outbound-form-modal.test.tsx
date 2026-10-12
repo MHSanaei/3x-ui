@@ -310,6 +310,60 @@ describe('OutboundFormModal', () => {
 
   // xray-core reads Google Drive's three secrets by position (ClientID, ClientSecret,
   // RefreshToken); a misordered list fails OAuth only when the tunnel first dials.
+  it('gates Flow and Mux on the flow the transport can actually carry', async () => {
+    const vless = (encryption: string, streamSettings: Record<string, unknown>) => ({
+      protocol: 'vless',
+      tag: 'flow-out',
+      settings: {
+        address: 'example.com',
+        port: 443,
+        id: 'c9f0c2d0-0000-4000-8000-000000000000',
+        flow: 'xtls-rprx-vision',
+        encryption,
+      },
+      streamSettings,
+    });
+    const openModal = async (outbound: Record<string, unknown>) => {
+      const queryClient = makeTestQueryClient();
+      const tree = (open: boolean) => (
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <OutboundFormModal
+              open={open}
+              outbound={outbound}
+              existingTags={[]}
+              onClose={() => {}}
+              onConfirm={() => {}}
+            />
+          </ThemeProvider>
+        </QueryClientProvider>
+      );
+      const view = render(tree(false));
+      view.rerender(tree(true));
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+      return view;
+    };
+
+    const ws = await openModal(
+      vless('none', { network: 'ws', security: 'tls', wsSettings: { path: '/' } }),
+    );
+    expect(formItemByLabel('Transmission')?.textContent).toContain('WebSocket');
+    expect(formItemByLabel('Flow')).toBeUndefined();
+    expect(formItemByLabel('Mux')).toBeDefined();
+    ws.unmount();
+
+    await openModal(
+      vless('mlkem768x25519plus.native.0rtt.key', {
+        network: 'xhttp',
+        security: 'none',
+        xhttpSettings: { path: '/', mode: 'auto' },
+      }),
+    );
+    expect(formItemByLabel('Flow')).toBeDefined();
+  });
+
   it('saves an XDRIVE stream picked in the transmission selector', async () => {
     const onConfirm = vi.fn();
     const queryClient = makeTestQueryClient();
