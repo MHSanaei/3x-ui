@@ -752,7 +752,7 @@ export const EXAMPLES: Record<string, unknown> = {
       ""
     ],
     "port": 0,
-    "randomCount": 0,
+    "randomCount": 1,
     "remark": "",
     "security": "same",
     "serverDescription": "",

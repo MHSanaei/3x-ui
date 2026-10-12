@@ -8,9 +8,21 @@ import (
 	"strings"
 )
 
+const MaxRandomCIDRCount = 100
+
+func cleanCIDR(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.Trim(s, "[]")
+	if strings.HasPrefix(s, "[") {
+		s = strings.TrimPrefix(s, "[")
+	}
+	s = strings.Replace(s, "]/", "/", 1)
+	return s
+}
+
 // IsCIDR reports whether s represents a valid CIDR network notation.
 func IsCIDR(s string) bool {
-	s = strings.Trim(strings.TrimSpace(s), "[]")
+	s = cleanCIDR(s)
 	if !strings.Contains(s, "/") {
 		return false
 	}
@@ -23,8 +35,10 @@ func IsCIDR(s string) bool {
 func RandomIPsFromCIDR(cidr string, count int) ([]string, error) {
 	if count <= 0 {
 		count = 1
+	} else if count > MaxRandomCIDRCount {
+		count = MaxRandomCIDRCount
 	}
-	clean := strings.Trim(strings.TrimSpace(cidr), "[]")
+	clean := cleanCIDR(cidr)
 	_, ipNet, err := net.ParseCIDR(clean)
 	if err != nil {
 		return nil, err

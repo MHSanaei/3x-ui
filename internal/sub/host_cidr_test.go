@@ -16,6 +16,7 @@ func TestIsCIDR(t *testing.T) {
 		{input: "[192.168.1.0/24]", want: true},
 		{input: "2a01:4f8:1c1b:729::/64", want: true},
 		{input: "[2a01:4f8:1c1b:729::/64]", want: true},
+		{input: "[2001:db8::]/64", want: true},
 		{input: "fe80::/10", want: true},
 		{input: "example.com", want: false},
 		{input: "192.168.1.1", want: false},
@@ -143,6 +144,26 @@ func TestRandomIPsFromCIDR_IPv6(t *testing.T) {
 		}
 		if len(ips) != 3 {
 			t.Fatalf("len(ips) = %d, want 3", len(ips))
+		}
+	})
+
+	t.Run("bracketed host form /64", func(t *testing.T) {
+		ips, err := RandomIPsFromCIDR("[2001:db8::]/64", 3)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(ips) != 3 {
+			t.Fatalf("len(ips) = %d, want 3", len(ips))
+		}
+	})
+
+	t.Run("unbounded count clamped to MaxRandomCIDRCount", func(t *testing.T) {
+		ips, err := RandomIPsFromCIDR("2001:db8::/64", 1000)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(ips) != MaxRandomCIDRCount {
+			t.Fatalf("len(ips) = %d, want %d", len(ips), MaxRandomCIDRCount)
 		}
 	})
 }

@@ -722,7 +722,7 @@ export const HostGroupSchema = z.object({
   path: z.string(),
   pinnedPeerCertSha256: z.array(z.string()),
   port: z.number().int().min(0).max(65535),
-  randomCount: z.number().int(),
+  randomCount: z.number().int().min(1).max(100),
   remark: z.string().max(256),
   security: z.enum(['same', 'tls', 'none', 'reality']),
   serverDescription: z.string().max(64),

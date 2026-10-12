@@ -2899,6 +2899,8 @@ export const SCHEMAS: Record<string, unknown> = {
         "type": "integer"
       },
       "randomCount": {
+        "maximum": 100,
+        "minimum": 1,
         "type": "integer"
       },
       "remark": {

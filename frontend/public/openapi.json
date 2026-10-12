@@ -2925,6 +2925,8 @@
             "type": "integer"
           },
           "randomCount": {
+            "maximum": 100,
+            "minimum": 1,
             "type": "integer"
           },
           "remark": {
@@ -11918,7 +11920,7 @@
                         ""
                       ],
                       "port": 0,
-                      "randomCount": 0,
+                      "randomCount": 1,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",
@@ -12014,7 +12016,7 @@
                       ""
                     ],
                     "port": 0,
-                    "randomCount": 0,
+                    "randomCount": 1,
                     "remark": "",
                     "security": "same",
                     "serverDescription": "",
@@ -12113,7 +12115,7 @@
                         ""
                       ],
                       "port": 0,
-                      "randomCount": 0,
+                      "randomCount": 1,
                       "remark": "",
                       "security": "same",
                       "serverDescription": "",

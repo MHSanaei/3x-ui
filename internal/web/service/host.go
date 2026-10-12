@@ -154,7 +154,7 @@ func buildHostRows(groupId string, req *entity.HostGroup) []*model.Host {
 				MihomoIpVersion:        req.MihomoIpVersion,
 				MihomoX25519:           req.MihomoX25519,
 				ShuffleHost:            req.ShuffleHost,
-				RandomCount:            req.RandomCount,
+				RandomCount:            clampRandomCount(req.RandomCount),
 			})
 		}
 	}
@@ -367,4 +367,14 @@ func parseHostAndPort(hostStr string, defaultPort int) (string, int) {
 		addr = addr[1 : len(addr)-1]
 	}
 	return addr, defaultPort
+}
+
+func clampRandomCount(n int) int {
+	if n <= 0 {
+		return 1
+	}
+	if n > 100 {
+		return 100
+	}
+	return n
 }
