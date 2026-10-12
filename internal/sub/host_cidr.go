@@ -13,9 +13,7 @@ const MaxRandomCIDRCount = 100
 func cleanCIDR(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.Trim(s, "[]")
-	if strings.HasPrefix(s, "[") {
-		s = strings.TrimPrefix(s, "[")
-	}
+	s = strings.TrimPrefix(s, "[")
 	s = strings.Replace(s, "]/", "/", 1)
 	return s
 }
