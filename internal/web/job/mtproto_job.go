@@ -42,7 +42,12 @@ func (j *MtprotoJob) Run() {
 	mgr.Reconcile(desired)
 
 	deltas, onlineEmails := mgr.CollectTraffic()
+	j.recordTraffic(deltas, onlineEmails, routedTags, activeTags)
+}
 
+// recordTraffic folds one mtg scrape into client and inbound traffic and the
+// local online set.
+func (j *MtprotoJob) recordTraffic(deltas []mtproto.Traffic, onlineEmails []string, routedTags map[string]bool, activeTags []string) {
 	// A routed inbound's total is already metered through the Xray bridge by
 	// xray_traffic_job, so only non-routed inbounds are rolled up here; per-client
 	// deltas are always kept, since the bridge cannot tell mtproto users apart.
@@ -75,6 +80,22 @@ func (j *MtprotoJob) Run() {
 		if _, _, err := j.inboundService.AddTraffic(traffics, clientTraffics); err != nil {
 			logger.Warning("mtproto job: add traffic failed:", err)
 		}
+	}
+
+	// The traffic path only bumps last_online on a non-zero delta; keep it fresh
+	// for clients held online by a live mtg connection alone, as the Xray poll does.
+	moved := make(map[string]bool, len(deltas))
+	for _, d := range deltas {
+		moved[d.Email] = true
+	}
+	idleOnline := make([]string, 0, len(onlineEmails))
+	for _, email := range onlineEmails {
+		if !moved[email] {
+			idleOnline = append(idleOnline, email)
+		}
+	}
+	if err := j.inboundService.BumpClientsLastOnline(idleOnline); err != nil {
+		logger.Warning("mtproto job: bump last online for connected clients failed:", err)
 	}
 
 	j.inboundService.RefreshLocalOnlineClients(onlineEmails, activeTags)

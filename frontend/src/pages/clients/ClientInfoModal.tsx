@@ -19,6 +19,7 @@ import { isPostQuantumLink } from '@/lib/xray/inbound-link';
 import { LinkTags, linkMetaText, parseLinkParts } from '@/lib/xray/link-label';
 import { QrPanel } from '@/pages/inbounds/qr';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
+import { hasClientSession } from '@/components/clients/ClientSessionCell';
 import ConfigBlock from '@/components/clients/ConfigBlock';
 import {
   buildWireguardClientConfig,
@@ -419,6 +420,38 @@ export default function ClientInfoModal({
                       {SizeFormatter.sizeFormat(used)} /{' '}
                       {totalBytes > 0 ? SizeFormatter.sizeFormat(totalBytes) : '∞'}
                     </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t('pages.clients.session')}</td>
+                  <td>
+                    {hasClientSession(
+                      traffic?.sessionStart,
+                      traffic?.sessionUp,
+                      traffic?.sessionDown,
+                    ) ? (
+                      <>
+                        <Tag color={client.enable && isOnline ? 'blue' : undefined}>
+                          ↑ {SizeFormatter.sizeFormat(traffic?.sessionUp || 0)} / ↓{' '}
+                          {SizeFormatter.sizeFormat(traffic?.sessionDown || 0)}
+                        </Tag>
+                        <span className="hint">
+                          {SizeFormatter.sizeFormat(
+                            (traffic?.sessionUp || 0) + (traffic?.sessionDown || 0),
+                          )}
+                          {' · '}
+                          {t('pages.clients.sessionStarted')}: {dateLabel(traffic?.sessionStart)}
+                          {!(client.enable && isOnline) && (
+                            <>
+                              {' · '}
+                              {t('pages.clients.sessionEnded')}: {dateLabel(traffic?.lastOnline)}
+                            </>
+                          )}
+                        </span>
+                      </>
+                    ) : (
+                      <Tag>—</Tag>
+                    )}
                   </td>
                 </tr>
                 <tr>

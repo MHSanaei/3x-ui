@@ -99,6 +99,26 @@ func migrateClientTrafficLastSubFetchColumn() error {
 	return migrator.AddColumn(&xray.ClientTraffic{}, "LastSubFetch")
 }
 
+func migrateClientTrafficSessionColumns() error {
+	migrator := db.Migrator()
+	if !migrator.HasTable(&xray.ClientTraffic{}) {
+		return nil
+	}
+	for _, column := range []struct{ name, field string }{
+		{"session_start", "SessionStart"},
+		{"session_up", "SessionUp"},
+		{"session_down", "SessionDown"},
+	} {
+		if migrator.HasColumn(&xray.ClientTraffic{}, column.name) {
+			continue
+		}
+		if err := migrator.AddColumn(&xray.ClientTraffic{}, column.field); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func migrateOutboundSubscriptionUserAgentColumn() error {
 	migrator := db.Migrator()
 	if !migrator.HasTable(&model.OutboundSubscription{}) || migrator.HasColumn(&model.OutboundSubscription{}, "user_agent") {
@@ -117,6 +137,9 @@ func migrateInboundExcludeFromSubColumn() error {
 
 func initModels() error {
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
+		return err
+	}
+	if err := migrateClientTrafficSessionColumns(); err != nil {
 		return err
 	}
 	if err := migrateOutboundSubscriptionUserAgentColumn(); err != nil {

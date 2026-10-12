@@ -2305,6 +2305,22 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": 0,
         "type": "integer"
       },
+      "sessionDown": {
+        "example": 157286400,
+        "format": "int64",
+        "type": "integer"
+      },
+      "sessionStart": {
+        "description": "SessionStart (ms; 0 until one is seen) opens the latest online session that\nSessionUp/SessionDown count. An offline gap opens a new one; resets never do.",
+        "example": 1735676400000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "sessionUp": {
+        "example": 52428800,
+        "format": "int64",
+        "type": "integer"
+      },
       "subId": {
         "example": "i7tvdpeffi0hvvf1",
         "type": "string"
@@ -2338,6 +2354,9 @@ export const SCHEMAS: Record<string, unknown> = {
       "resetDay",
       "resetMax",
       "resetWeekday",
+      "sessionDown",
+      "sessionStart",
+      "sessionUp",
       "subId",
       "total",
       "up",

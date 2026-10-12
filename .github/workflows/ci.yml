@@ -92,6 +92,17 @@ jobs:
             exit 1
           fi
 
+      - name: PostgreSQL client session tests
+        run: |
+          set -o pipefail
+          go test ./internal/web/service -run '^TestClientSessionFold_Postgres$' -count=1 -v | tee /tmp/postgres-session.log
+          # The session fold is dialect SQL the SQLite suite cannot vouch for.
+          passed=$(grep -c -- '^--- PASS' /tmp/postgres-session.log || true)
+          if [ "$passed" -lt 1 ]; then
+            echo "expected the client session PostgreSQL test to pass, got $passed" >&2
+            exit 1
+          fi
+
   codegen:
     runs-on: ubuntu-latest
     steps:
@@ -202,7 +213,10 @@ jobs:
         run: npm ci
         working-directory: frontend
       - name: Verify generated MSW worker is current
-        run: git diff --exit-code -- public/mockServiceWorker.js package-lock.json
+        # allowScripts keeps msw's postinstall from rewriting the worker, so compare it.
+        run: |
+          git diff --exit-code -- public/mockServiceWorker.js package-lock.json
+          cmp public/mockServiceWorker.js node_modules/msw/lib/mockServiceWorker.js
         working-directory: frontend
       - name: Lint
         run: npm run lint

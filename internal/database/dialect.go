@@ -37,6 +37,33 @@ func GreatestExpr(a, b string) string {
 	return fmt.Sprintf("MAX(%s, %s)", a, b)
 }
 
+// SessionObservation is one report of client activity, folded into the session
+// columns of its client_traffics row by ClientSessionAssignments.
+type SessionObservation struct {
+	QuietBefore      int64 // a last_online older than this means the previous session ended
+	UntrackedBefore  int64 // a row with no session yet opens one only below this last_online
+	Start            int64 // session_start of a session this report opens
+	OpenUp, OpenDown int64 // counters a session this report opens starts from
+	Up, Down         int64 // bytes the running session gains otherwise
+}
+
+// ClientSessionAssignments returns the SET list folding o into the session
+// columns, with its args in placeholder order; it reads last_online's old value.
+func ClientSessionAssignments(o SessionObservation) (string, []any) {
+	opens := "(last_online < CAST(? AS BIGINT) OR (session_start <= 0 AND last_online < CAST(? AS BIGINT)))"
+	set := fmt.Sprintf(
+		"session_start = CASE WHEN %[1]s THEN CAST(? AS BIGINT) ELSE session_start END, "+
+			"session_up = CASE WHEN %[1]s THEN CAST(? AS BIGINT) ELSE %[2]s END, "+
+			"session_down = CASE WHEN %[1]s THEN CAST(? AS BIGINT) ELSE %[3]s END",
+		opens, ClampedAddExpr("session_up"), ClampedAddExpr("session_down"),
+	)
+	return set, []any{
+		o.QuietBefore, o.UntrackedBefore, o.Start,
+		o.QuietBefore, o.UntrackedBefore, o.OpenUp, o.Up,
+		o.QuietBefore, o.UntrackedBefore, o.OpenDown, o.Down,
+	}
+}
+
 // ClientTrafficEnableMergeExpr: placeholders nodeEnable, nodeExpiry, nodeTotal,
 // now, deltaUp, deltaDown. Mirrors nodeDisableIsStale (#6228 / #4917).
 func ClientTrafficEnableMergeExpr() string {

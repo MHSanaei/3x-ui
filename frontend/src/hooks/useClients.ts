@@ -834,6 +834,9 @@ export function useClients(options: UseClientsOptions = {}) {
           if (typeof upd.expiryTime === 'number') merged.expiryTime = upd.expiryTime;
           if (typeof upd.enable === 'boolean') merged.enable = upd.enable;
           if (typeof upd.lastOnline === 'number') merged.lastOnline = upd.lastOnline;
+          if (typeof upd.sessionStart === 'number') merged.sessionStart = upd.sessionStart;
+          if (typeof upd.sessionUp === 'number') merged.sessionUp = upd.sessionUp;
+          if (typeof upd.sessionDown === 'number') merged.sessionDown = upd.sessionDown;
           next[i] = { ...row, traffic: merged };
           touched = true;
         }

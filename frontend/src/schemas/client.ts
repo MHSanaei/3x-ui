@@ -19,6 +19,9 @@ export const ClientTrafficSchema = z.object({
   lastSubFetch: z.number().optional(),
   resetMax: z.number().optional(),
   resetCount: z.number().optional(),
+  sessionStart: z.number().optional(),
+  sessionUp: z.number().optional(),
+  sessionDown: z.number().optional(),
 });
 
 export const ClientRecordSchema = z

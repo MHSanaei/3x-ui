@@ -132,6 +132,39 @@ func seedNodeTraffic(t *testing.T, emails ...string) {
 	}
 }
 
+const (
+	contractSessionStart = int64(1735676400000)
+	contractSessionUp    = int64(52428800)
+	contractSessionDown  = int64(157286400)
+)
+
+func seedNodeSession(t *testing.T, email string) {
+	t.Helper()
+	if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"session_start": contractSessionStart, "session_up": contractSessionUp, "session_down": contractSessionDown}).Error; err != nil {
+		t.Fatalf("seed session %s: %v", email, err)
+	}
+}
+
+// A master trusts a node's session boundaries only when they arrive; without
+// them it silently falls back to guessing sessions from lastOnline gaps.
+func assertSnapshotSession(t *testing.T, snap *runtime.TrafficSnapshot, email string) {
+	t.Helper()
+	for _, ib := range snap.Inbounds {
+		for _, cs := range ib.ClientStats {
+			if cs.Email != email {
+				continue
+			}
+			if cs.SessionStart != contractSessionStart || cs.SessionUp != contractSessionUp || cs.SessionDown != contractSessionDown {
+				t.Fatalf("snapshot session for %s = start %d, %d/%d; want start %d, %d/%d", email,
+					cs.SessionStart, cs.SessionUp, cs.SessionDown, contractSessionStart, contractSessionUp, contractSessionDown)
+			}
+			return
+		}
+	}
+	t.Fatalf("snapshot carries no client stats for %s", email)
+}
+
 const contractTag = "in-51001-tcp"
 
 func masterInbound(remark string, enable bool, clients ...string) *model.Inbound {
@@ -173,6 +206,7 @@ func TestMasterNodeContract(t *testing.T) {
 			node := startContractNode(t)
 			master := node.masterWithToken(t, scope)
 			ctx := context.Background()
+			var fetched *runtime.TrafficSnapshot
 
 			cells := []struct {
 				name   string
@@ -268,9 +302,13 @@ func TestMasterNodeContract(t *testing.T) {
 					}
 				}},
 				{"FetchTrafficSnapshot reads every part of the snapshot", []string{"FetchTrafficSnapshot"}, func() error {
-					_, err := master.FetchTrafficSnapshot(ctx)
+					seedNodeSession(t, "c0")
+					snap, err := master.FetchTrafficSnapshot(ctx)
+					fetched = snap
 					return err
-				}, nil},
+				}, func(t *testing.T) {
+					assertSnapshotSession(t, fetched, "c0")
+				}},
 				{"PushGlobalClientTraffics is accepted", []string{"PushGlobalClientTraffics"}, func() error {
 					return master.PushGlobalClientTraffics(ctx, "master-guid", []*xray.ClientTraffic{{Email: "c0", Up: 1, Down: 2}})
 				}, nil},

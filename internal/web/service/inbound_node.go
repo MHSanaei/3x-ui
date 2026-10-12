@@ -616,6 +616,8 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	// the reset clamp re-add a lower sibling as fresh traffic (#5274).
 	snapEmailsAll := make(map[string]struct{})
 	nodeEmailTotals := make(map[string]nodeTrafficCounter)
+	// The copy each email's activity and session are read from.
+	nodeEmailFreshest := make(map[string]xray.ClientTraffic)
 	for _, snapIb := range snap.Inbounds {
 		if snapIb == nil {
 			continue
@@ -623,6 +625,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 		for i := range snapIb.ClientStats {
 			email := snapIb.ClientStats[i].Email
 			snapEmailsAll[email] = struct{}{}
+			if fresh, ok := nodeEmailFreshest[email]; !ok || fresherNodeCopy(snapIb.ClientStats[i], fresh) {
+				nodeEmailFreshest[email] = snapIb.ClientStats[i]
+			}
 			cur := nodeEmailTotals[email]
 			if snapIb.ClientStats[i].Up > cur.Up {
 				cur.Up = snapIb.ClientStats[i].Up
@@ -1008,6 +1013,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 
 			// Node-wide total, not this inbound's possibly-stale copy (#5274).
 			canon := nodeEmailTotals[cs.Email]
+			fresh := nodeEmailFreshest[cs.Email]
 			// Until the node applies a reset it owes, its verdict rests on the
 			// pre-reset counters: only usage may move for this client.
 			_, owed := owedResets[cs.Email]
@@ -1054,7 +1060,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					ResetCount:   cs.ResetCount,
 					Up:           seedUp,
 					Down:         seedDown,
-					LastOnline:   cs.LastOnline,
+					LastOnline:   fresh.LastOnline,
+					SessionStart: fresh.SessionStart,
+					SessionUp:    clampTrafficCounter(fresh.SessionUp),
+					SessionDown:  clampTrafficCounter(fresh.SessionDown),
 				}
 				if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "email"}}, DoNothing: true}).
 					Create(row).Error; err != nil {
@@ -1096,19 +1105,25 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 				}
 			}
 			if renewed {
+				// The node's counters restarted at the renewal: all of canon moved since the last merge.
+				sessionSet, sessionArgs := database.ClientSessionAssignments(nodeSessionObservation(fresh, canon.Up, canon.Down))
+				args := []any{
+					canon.Up, canon.Down, cs.Enable, cs.Total,
+					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday, cs.ResetCount,
+					fresh.LastOnline,
+				}
 				// A renewal starts a fresh quota window: adopt the node's counters
 				// and enable state, drop stale pushes (mirrors autoRenewClients).
 				if err := tx.Exec(
 					fmt.Sprintf(
 						`UPDATE client_traffics
 						 SET up = ?, down = ?, enable = ?, total = ?,
-						     expiry_time = ?, reset = ?, reset_day = ?, reset_weekday = ?, reset_count = ?, last_online = %s
+						     expiry_time = ?, reset = ?, reset_day = ?, reset_weekday = ?, reset_count = ?, last_online = %s, %s
 						 WHERE email = ?`,
 						database.GreatestExpr("last_online", "?"),
+						sessionSet,
 					),
-					canon.Up, canon.Down, cs.Enable, cs.Total,
-					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday, cs.ResetCount,
-					cs.LastOnline, cs.Email,
+					append(append(args, sessionArgs...), cs.Email)...,
 				).Error; err != nil {
 					return false, err
 				}
@@ -1127,16 +1142,18 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			} else if clientFrozen {
 				// Push pending or just landed: only counters may move, the master
 				// keeps expiry/enable/total/reset.
+				sessionSet, sessionArgs := database.ClientSessionAssignments(nodeSessionObservation(fresh, deltaUp, deltaDown))
 				if err := tx.Exec(
 					fmt.Sprintf(
 						`UPDATE client_traffics
-						 SET up = %s, down = %s, last_online = %s
+						 SET up = %s, down = %s, last_online = %s, %s
 						 WHERE email = ?`,
 						database.ClampedAddExpr("up"),
 						database.ClampedAddExpr("down"),
 						database.GreatestExpr("last_online", "?"),
+						sessionSet,
 					),
-					deltaUp, deltaDown, cs.LastOnline, cs.Email,
+					append(append([]any{deltaUp, deltaDown, fresh.LastOnline}, sessionArgs...), cs.Email)...,
 				).Error; err != nil {
 					return false, err
 				}
@@ -1147,24 +1164,29 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			} else {
 				enableExpr := database.ClientTrafficEnableMergeExpr()
 				expiryExpr := database.ClientTrafficExpiryMergeExpr()
+				sessionSet, sessionArgs := database.ClientSessionAssignments(nodeSessionObservation(fresh, deltaUp, deltaDown))
+				args := []any{
+					deltaUp, deltaDown,
+					cs.Enable, cs.ExpiryTime, cs.Total, now, deltaUp, deltaDown,
+					cs.Total,
+					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday,
+					fresh.LastOnline,
+				}
 				if err := tx.Exec(
 					fmt.Sprintf(
 						`UPDATE client_traffics
 						 SET up = %s, down = %s, enable = %s, total = ?,
 						     expiry_time = %s,
-						     reset = ?, reset_day = ?, reset_weekday = ?, last_online = %s
+						     reset = ?, reset_day = ?, reset_weekday = ?, last_online = %s, %s
 						 WHERE email = ?`,
 						database.ClampedAddExpr("up"),
 						database.ClampedAddExpr("down"),
 						enableExpr,
 						expiryExpr,
 						database.GreatestExpr("last_online", "?"),
+						sessionSet,
 					),
-					deltaUp, deltaDown,
-					cs.Enable, cs.ExpiryTime, cs.Total, now, deltaUp, deltaDown,
-					cs.Total,
-					cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday,
-					cs.LastOnline, cs.Email,
+					append(append(args, sessionArgs...), cs.Email)...,
 				).Error; err != nil {
 					return false, err
 				}
