@@ -10,6 +10,7 @@ import {
   ClientPageResponseSchema,
   InboundOptionsSchema,
   OnlinesSchema,
+  ClientInboundsByNodeSchema,
   BulkAdjustResultSchema,
   BulkAttachResultSchema,
   BulkCreateResultSchema,
@@ -247,6 +248,22 @@ export function useClients(options: UseClientsOptions = {}) {
     staleTime: Infinity,
   });
 
+  // email -> inbound tags the client is currently attributed to, flattened across
+  // hosting panels. Built from the access log, so it is empty when the log is off.
+  const clientInboundsQuery = useQuery({
+    queryKey: keys.clients.clientInbounds(),
+    queryFn: async () => {
+      const msg = await HttpUtil.post('/panel/api/clients/clientInbounds', undefined, {
+        silent: true,
+      });
+      if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch clientInbounds');
+      const validated = parseMsg(msg, ClientInboundsByNodeSchema, 'clients/clientInbounds');
+      return (validated.obj ?? {}) as Record<string, Record<string, string[]> | null>;
+    },
+    enabled: withList,
+    staleTime: Infinity,
+  });
+
   const clients = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
   const filtered = listQuery.data?.filtered ?? 0;
@@ -264,6 +281,19 @@ export function useClients(options: UseClientsOptions = {}) {
 
   const inbounds = inboundOptionsQuery.data ?? [];
   const onlines = useMemo(() => onlinesQuery.data ?? [], [onlinesQuery.data]);
+  const clientInbounds = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const byEmail of Object.values(clientInboundsQuery.data ?? {})) {
+      if (!byEmail) continue;
+      for (const [email, tags] of Object.entries(byEmail)) {
+        if (!Array.isArray(tags)) continue;
+        const merged = out[email] ?? [];
+        for (const tag of tags) if (!merged.includes(tag)) merged.push(tag);
+        out[email] = merged;
+      }
+    }
+    return out;
+  }, [clientInboundsQuery.data]);
 
   const defaults = defaultsQuery.data ?? {};
   const subSettings: SubSettings = useMemo(
@@ -750,12 +780,16 @@ export function useClients(options: UseClientsOptions = {}) {
       if (!payload || typeof payload !== 'object') return;
       const p = payload as {
         onlineClients?: string[];
+        clientInbounds?: Record<string, Record<string, string[]> | null>;
         clientTraffics?: { email: string; up: number; down: number }[];
         clientTrafficSource?: 'xray' | 'tuic';
         clientTrafficIntervalMs?: number;
       };
       if (Array.isArray(p.onlineClients)) {
         queryClient.setQueryData(keys.clients.onlines(), p.onlineClients);
+      }
+      if (p.clientInbounds && typeof p.clientInbounds === 'object') {
+        queryClient.setQueryData(keys.clients.clientInbounds(), p.clientInbounds);
       }
       if (Array.isArray(p.clientTraffics)) {
         // Xray reports a row per client whether or not it moved a byte, so most of
@@ -859,6 +893,7 @@ export function useClients(options: UseClientsOptions = {}) {
     setQuery,
     inbounds,
     onlines,
+    clientInbounds,
     transitioning,
     fetched,
     fetchError,

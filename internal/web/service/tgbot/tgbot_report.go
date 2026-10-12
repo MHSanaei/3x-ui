@@ -383,11 +383,25 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 
 	if onlinesCount > 0 {
 		var buttons []telego.InlineKeyboardButton
-		for _, online := range onlines {
-			label := online
-			if _, inbound, err := t.inboundService.GetClientInboundByEmail(online); err == nil && inbound != nil && inbound.Remark != "" {
-				label = online + " - " + inbound.Remark
+		// Inbound(s) each online client is actually using, from the access log.
+		// A client attached to several inbounds is listed on all of them.
+		attributed := process.GetLocalClientInbounds()
+		remarkByTag := map[string]string{}
+		if len(attributed) > 0 {
+			if inbounds, err := t.inboundService.GetAllInbounds(); err == nil {
+				for _, ib := range inbounds {
+					remarkByTag[ib.Tag] = ib.Remark
+				}
 			}
+		}
+		for _, online := range onlines {
+			fallback := ""
+			if len(attributed[online]) == 0 {
+				if _, inbound, err := t.inboundService.GetClientInboundByEmail(online); err == nil && inbound != nil {
+					fallback = inbound.Remark
+				}
+			}
+			label := onlineButtonLabel(online, attributed[online], remarkByTag, fallback)
 			buttons = append(buttons, tu.InlineKeyboardButton(label).WithCallbackData(t.encodeQuery("client_get_usage "+online)))
 		}
 		cols := 0

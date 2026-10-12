@@ -175,7 +175,15 @@ type process struct {
 	// populates entries per cron tick and clears them when a probe fails. The
 	// mutex guards this map, onlineClients, and localLastOnline above so the
 	// online getters never see a torn read.
-	nodeOnlineTrees map[int]map[string][]string
+	// localClientInbounds records, per email, the last time this panel's access
+	// log showed that client opening a connection on each inbound tag
+	// (email -> tag -> unix ms). Xray's per-user stats aggregate across inbounds,
+	// so the access log is the only source that pairs a client with the inbound
+	// it actually used. localClientInboundsView is the grace-filtered snapshot
+	// rebuilt by RefreshLocalClientInbounds and served by the getter.
+	localClientInbounds     map[string]map[string]int64
+	localClientInboundsView map[string][]string
+	nodeOnlineTrees         map[int]map[string][]string
 	// nodeActiveInboundTrees mirrors nodeOnlineTrees for active inbound tags:
 	// each direct node reports a GUID-keyed subtree of inbound tags that carried
 	// traffic within its own grace window. The inbounds page combines this with
@@ -510,6 +518,88 @@ func (p *Process) RefreshLocalOnline(activeEmails, activeInboundTags []string, n
 		}
 	}
 	p.localActiveInbounds = activeInbounds
+}
+
+// clientInboundMaxAgeMs bounds how long a logged (email, inbound) pair is kept
+// while the client stays online. The access log only records a connection when
+// it opens, so a long-lived connection logs nothing afterwards; the pair must
+// outlive the grace window for as long as the client keeps being online.
+const clientInboundMaxAgeMs int64 = 24 * 60 * 60 * 1000
+
+// RefreshLocalClientInbounds folds the (email -> inbound tags) pairs seen in
+// the access log this poll into the local pair map, then rebuilds the visible
+// snapshot. A pair is visible while its client is online (see RefreshLocalOnline)
+// and either it was logged within graceMs or its inbound carried traffic within
+// the same window — the latter keeps an idle-looking but still connected
+// session attributed to the right inbound. Call it right after
+// RefreshLocalOnline in the same tick; pass nil to only rebuild/prune.
+func (p *Process) RefreshLocalClientInbounds(pairs map[string][]string, now, graceMs int64) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	if p.localClientInbounds == nil {
+		p.localClientInbounds = make(map[string]map[string]int64, len(pairs))
+	}
+	for email, tags := range pairs {
+		if email == "" {
+			continue
+		}
+		m := p.localClientInbounds[email]
+		if m == nil {
+			m = make(map[string]int64, len(tags))
+			p.localClientInbounds[email] = m
+		}
+		for _, tag := range tags {
+			if tag != "" {
+				m[tag] = now
+			}
+		}
+	}
+	online := make(map[string]struct{}, len(p.onlineClients))
+	for _, email := range p.onlineClients {
+		online[email] = struct{}{}
+	}
+	active := make(map[string]struct{}, len(p.localActiveInbounds))
+	for _, tag := range p.localActiveInbounds {
+		active[tag] = struct{}{}
+	}
+	view := make(map[string][]string)
+	for email, tags := range p.localClientInbounds {
+		_, isOnline := online[email]
+		for tag, ts := range tags {
+			age := now - ts
+			if age >= clientInboundMaxAgeMs || (!isOnline && age >= graceMs) {
+				delete(tags, tag)
+				continue
+			}
+			if !isOnline {
+				continue
+			}
+			if _, tagActive := active[tag]; age < graceMs || tagActive {
+				view[email] = append(view[email], tag)
+			}
+		}
+		if len(tags) == 0 {
+			delete(p.localClientInbounds, email)
+		}
+	}
+	for _, tags := range view {
+		sort.Strings(tags)
+	}
+	p.localClientInboundsView = view
+}
+
+// GetLocalClientInbounds returns a copy of the online clients' inbound tags
+// attributed from the access log (email -> tags). An email missing from the map
+// means the log gave no attribution for it, so callers fall back to the coarser
+// traffic-delta signal.
+func (p *Process) GetLocalClientInbounds() map[string][]string {
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+	out := make(map[string][]string, len(p.localClientInboundsView))
+	for email, tags := range p.localClientInboundsView {
+		out[email] = append([]string(nil), tags...)
+	}
+	return out
 }
 
 // SetNodeOnlineTree records the GUID-keyed online subtree one direct remote

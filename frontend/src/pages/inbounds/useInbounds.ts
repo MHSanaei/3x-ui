@@ -9,7 +9,12 @@ import { Protocols } from '@/schemas/primitives';
 import { setDatepicker } from '@/hooks/useDatepicker';
 import { keys } from '@/api/queryKeys';
 import { SlimInboundListSchema, LastOnlineMapSchema, InboundDetailSchema } from '@/schemas/inbound';
-import { OnlinesSchema, OnlineByNodeSchema, ActiveInboundsByNodeSchema } from '@/schemas/client';
+import {
+  OnlinesSchema,
+  OnlineByNodeSchema,
+  ActiveInboundsByNodeSchema,
+  ClientInboundsByNodeSchema,
+} from '@/schemas/client';
 import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults';
 
 import type { InboundSpeedEntry } from './list/types';
@@ -110,6 +115,45 @@ async function fetchActiveInboundsByNode(): Promise<Record<string, string[]>> {
     : {};
 }
 
+async function fetchClientInboundsByGuid(): Promise<Record<string, Record<string, string[]>>> {
+  const msg = await HttpUtil.post('/panel/api/clients/clientInbounds', undefined, { silent: true });
+  if (!msg?.success) throw new Error(msg?.msg || 'Failed to fetch clientInbounds');
+  const validated = parseMsg(msg, ClientInboundsByNodeSchema, 'clients/clientInbounds');
+  return validated.obj && typeof validated.obj === 'object'
+    ? (validated.obj as Record<string, Record<string, string[]>>)
+    : {};
+}
+
+// guid -> email -> tags. Pairs come from the access log, so a client missing
+// here simply has no attribution and the rollup falls back to the active-tag
+// signal for it.
+function toClientInboundsMap(
+  data: Record<string, Record<string, string[]> | null>,
+): Map<string, Map<string, Set<string>>> {
+  const map = new Map<string, Map<string, Set<string>>>();
+  for (const [guid, byEmail] of Object.entries(data)) {
+    if (!byEmail || typeof byEmail !== 'object') continue;
+    const inner = new Map<string, Set<string>>();
+    for (const [email, tags] of Object.entries(byEmail)) {
+      if (Array.isArray(tags)) inner.set(email, new Set(tags));
+    }
+    map.set(guid, inner);
+  }
+  return map;
+}
+
+function sameClientInbounds(
+  a: Map<string, Map<string, Set<string>>>,
+  b: Map<string, Map<string, Set<string>>>,
+): boolean {
+  if (a.size !== b.size) return false;
+  for (const [guid, inner] of b) {
+    const prev = a.get(guid);
+    if (!prev || !sameGuidSets(prev, inner)) return false;
+  }
+  return true;
+}
+
 function toGuidOnlineMap(data: Record<string, string[]>): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   for (const [key, emails] of Object.entries(data)) {
@@ -171,6 +215,12 @@ export function useInbounds() {
   const activeInboundsQuery = useQuery({
     queryKey: keys.clients.activeInbounds(),
     queryFn: fetchActiveInboundsByNode,
+    staleTime: Infinity,
+  });
+
+  const clientInboundsQuery = useQuery({
+    queryKey: keys.clients.clientInbounds(),
+    queryFn: fetchClientInboundsByGuid,
     staleTime: Infinity,
   });
 
@@ -247,6 +297,13 @@ export function useInbounds() {
   // inbound whose tag carried traffic this window.
   const [activeByGuid, setActiveByGuid] = useState<Map<string, Set<string>>>(() => new Map());
 
+  // Per-client inbound attribution from the access log, keyed by the hosting
+  // panelGuid. When a client has an entry here the rollup trusts it over the
+  // per-tag traffic signal, which cannot tell two clients on one inbound apart.
+  const [clientInboundsByGuid, setClientInboundsByGuid] = useState<
+    Map<string, Map<string, Set<string>>>
+  >(() => new Map());
+
   const [lastOnlineMap, setLastOnlineMap] = useState<Record<string, number>>({});
 
   const rollupClients = useCallback(
@@ -315,7 +372,13 @@ export function useInbounds() {
             continue;
           }
           active.push(client.email);
-          if (inboundActive && nodeOnline?.has(client.email)) online.push(client.email);
+          if (nodeOnline?.has(client.email)) {
+            const attributed = clientInboundsByGuid.get(guid)?.get(client.email);
+            const onThisInbound = attributed
+              ? !dbInbound.tag || attributed.has(dbInbound.tag)
+              : inboundActive;
+            if (onThisInbound) online.push(client.email);
+          }
           if (stats) {
             const expiringSoon =
               (stats.expiryTime > 0 && stats.expiryTime - now < expireDiff) ||
@@ -339,7 +402,7 @@ export function useInbounds() {
         comments,
       };
     },
-    [onlineByGuid, activeByGuid, expireDiff, trafficDiff],
+    [onlineByGuid, activeByGuid, clientInboundsByGuid, expireDiff, trafficDiff],
   );
 
   // Every write to a DBInbound row also replaces the dbInbounds array, so this
@@ -387,6 +450,12 @@ export function useInbounds() {
     setActiveByGuid(toGuidOnlineMap(activeInboundsQuery.data));
   }
 
+  const [syncedClientInbounds, setSyncedClientInbounds] = useState<unknown>();
+  if (clientInboundsQuery.data && clientInboundsQuery.data !== syncedClientInbounds) {
+    setSyncedClientInbounds(clientInboundsQuery.data);
+    setClientInboundsByGuid(toClientInboundsMap(clientInboundsQuery.data));
+  }
+
   const [syncedLastOnline, setSyncedLastOnline] = useState<unknown>();
   if (lastOnlineQuery.data && lastOnlineQuery.data !== syncedLastOnline) {
     setSyncedLastOnline(lastOnlineQuery.data);
@@ -411,6 +480,7 @@ export function useInbounds() {
       queryClient.invalidateQueries({ queryKey: keys.clients.onlines() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.onlinesByGuid() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.activeInbounds() }),
+      queryClient.invalidateQueries({ queryKey: keys.clients.clientInbounds() }),
       queryClient.invalidateQueries({ queryKey: keys.clients.lastOnline() }),
       queryClient.invalidateQueries({ queryKey: keys.xray.config() }),
     ]);
@@ -444,6 +514,7 @@ export function useInbounds() {
       onlineClients?: string[];
       onlineByGuid?: Record<string, string[]>;
       activeInbounds?: Record<string, string[]>;
+      clientInbounds?: Record<string, Record<string, string[]> | null>;
       lastOnlineMap?: Record<string, number>;
     };
     if (Array.isArray(p.onlineClients)) {
@@ -456,6 +527,10 @@ export function useInbounds() {
     if (p.activeInbounds && typeof p.activeInbounds === 'object') {
       const next = toGuidOnlineMap(p.activeInbounds);
       setActiveByGuid((prev) => (sameGuidSets(prev, next) ? prev : next));
+    }
+    if (p.clientInbounds && typeof p.clientInbounds === 'object') {
+      const next = toClientInboundsMap(p.clientInbounds);
+      setClientInboundsByGuid((prev) => (sameClientInbounds(prev, next) ? prev : next));
     }
     if (p.lastOnlineMap && typeof p.lastOnlineMap === 'object') {
       setLastOnlineMap((prev) => ({ ...prev, ...p.lastOnlineMap! }));

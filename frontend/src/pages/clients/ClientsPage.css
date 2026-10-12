@@ -16,6 +16,14 @@
   white-space: nowrap;
 }
 
+.client-email-inbounds {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-inline-start: 8px;
+  vertical-align: middle;
+}
+
 .client-email-more {
   margin-top: 4px;
   padding-top: 4px;

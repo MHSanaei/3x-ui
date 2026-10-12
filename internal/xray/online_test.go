@@ -186,3 +186,61 @@ func TestOnlineAPISupportTriState(t *testing.T) {
 		t.Fatalf("expected OnlineAPIUnsupported, got %v", got)
 	}
 }
+
+func TestLocalClientInboundsAttributesPerInbound(t *testing.T) {
+	p := newOnlineTestProcess()
+	const grace = int64(20000)
+
+	// alice is online on in-1 and in-2 (both logged), bob only on in-2.
+	p.RefreshLocalOnline([]string{"alice", "bob"}, []string{"in-1", "in-2"}, 1000, grace)
+	p.RefreshLocalClientInbounds(map[string][]string{
+		"alice": {"in-1", "in-2"},
+		"bob":   {"in-2"},
+	}, 1000, grace)
+
+	got := p.GetLocalClientInbounds()
+	if len(got["alice"]) != 2 || got["alice"][0] != "in-1" || got["alice"][1] != "in-2" {
+		t.Errorf("alice should be on both inbounds, got %v", got["alice"])
+	}
+	if len(got["bob"]) != 1 || got["bob"][0] != "in-2" {
+		t.Errorf("bob should only be on in-2, got %v", got["bob"])
+	}
+}
+
+func TestLocalClientInboundsKeepsLongLivedConnectionWhileInboundActive(t *testing.T) {
+	p := newOnlineTestProcess()
+	const grace = int64(20000)
+
+	p.RefreshLocalOnline([]string{"alice"}, []string{"in-1"}, 1000, grace)
+	p.RefreshLocalClientInbounds(map[string][]string{"alice": {"in-1"}}, 1000, grace)
+
+	// Much later: no new log line, but alice is still online and in-1 still
+	// carries traffic, so the pair stays attributed.
+	p.RefreshLocalOnline([]string{"alice"}, []string{"in-1"}, 100000, grace)
+	p.RefreshLocalClientInbounds(nil, 100000, grace)
+	if got := p.GetLocalClientInbounds()["alice"]; len(got) != 1 || got[0] != "in-1" {
+		t.Errorf("long-lived connection should stay attributed, got %v", got)
+	}
+
+	// The inbound goes idle while alice stays online elsewhere: the stale pair
+	// is no longer shown.
+	p.RefreshLocalOnline([]string{"alice"}, nil, 200000, grace)
+	p.RefreshLocalClientInbounds(nil, 200000, grace)
+	if got := p.GetLocalClientInbounds()["alice"]; len(got) != 0 {
+		t.Errorf("idle inbound should drop out, got %v", got)
+	}
+}
+
+func TestLocalClientInboundsDropsOfflineClient(t *testing.T) {
+	p := newOnlineTestProcess()
+	const grace = int64(20000)
+
+	p.RefreshLocalOnline([]string{"alice"}, []string{"in-1"}, 1000, grace)
+	p.RefreshLocalClientInbounds(map[string][]string{"alice": {"in-1"}}, 1000, grace)
+
+	p.RefreshLocalOnline(nil, nil, 50000, grace)
+	p.RefreshLocalClientInbounds(nil, 50000, grace)
+	if got := p.GetLocalClientInbounds(); len(got) != 0 {
+		t.Errorf("offline client should be gone, got %v", got)
+	}
+}

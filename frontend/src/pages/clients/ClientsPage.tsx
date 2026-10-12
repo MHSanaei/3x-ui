@@ -143,13 +143,37 @@ function UngroupIcon() {
 // The server sends exact counters but caps the email arrays behind them, so a
 // panel with thousands of depleted clients neither ships nor renders them all.
 // The trailing chip reports what the popover left out.
-function ClientEmailList({ emails, total }: { emails: string[]; total: number }) {
+function ClientEmailList({
+  emails,
+  total,
+  inboundLabels,
+}: {
+  emails: string[];
+  total: number;
+  // email -> display names of the inbounds the client is connected through.
+  // Several entries mean the client is connected to more than one inbound.
+  inboundLabels?: Record<string, string[]>;
+}) {
   const hidden = total - emails.length;
   return (
     <div className="client-email-list">
-      {emails.map((e) => (
-        <div key={e}>{e}</div>
-      ))}
+      {emails.map((e) => {
+        const labels = inboundLabels?.[e];
+        return (
+          <div key={e}>
+            {e}
+            {labels && labels.length > 0 && (
+              <span className="client-email-inbounds">
+                {labels.map((label) => (
+                  <Tag key={label} style={{ marginInlineEnd: 0 }}>
+                    {label}
+                  </Tag>
+                ))}
+              </span>
+            )}
+          </div>
+        );
+      })}
       {hidden > 0 && <div className="client-email-more">+{hidden}</div>}
     </div>
   );
@@ -160,11 +184,20 @@ interface SummaryStatProps {
   value: number;
   prefix: ReactNode;
   emails?: string[];
+  inboundLabels?: Record<string, string[]>;
   selected?: boolean;
   onSelect: () => void;
 }
 
-function SummaryStat({ title, value, prefix, emails, selected, onSelect }: SummaryStatProps) {
+function SummaryStat({
+  title,
+  value,
+  prefix,
+  emails,
+  inboundLabels,
+  selected,
+  onSelect,
+}: SummaryStatProps) {
   const stat = (
     <div
       role="button"
@@ -182,7 +215,7 @@ function SummaryStat({ title, value, prefix, emails, selected, onSelect }: Summa
     <Popover
       title={title}
       open={value ? undefined : false}
-      content={<ClientEmailList emails={emails} total={value} />}
+      content={<ClientEmailList emails={emails} total={value} inboundLabels={inboundLabels} />}
     >
       {stat}
     </Popover>
@@ -337,6 +370,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds,
     onlines,
+    clientInbounds,
     transitioning,
     fetched,
     fetchError,
@@ -557,6 +591,21 @@ export default function ClientsPage() {
   }, [clients]);
 
   const onlineSet = useMemo(() => new Set(onlines || []), [onlines]);
+  // Online email -> names of the inbound(s) it is connected through, for the
+  // online popover. Tags the inbound list doesn't know (e.g. a deleted inbound)
+  // are shown as-is.
+  const onlineInboundLabels = useMemo(() => {
+    const labelByTag = new Map<string, string>();
+    for (const ib of inbounds) {
+      if (ib.tag) labelByTag.set(ib.tag, formatInboundLabel(ib.tag, ib.remark));
+    }
+    const out: Record<string, string[]> = {};
+    for (const email of summary.online ?? []) {
+      const tags = clientInbounds[email];
+      if (tags?.length) out[email] = tags.map((tag) => labelByTag.get(tag) ?? tag);
+    }
+    return out;
+  }, [inbounds, clientInbounds, summary.online]);
   const inboundsById = useMemo(() => {
     const out: Record<number, InboundOption> = {};
     for (const ib of inbounds) out[ib.id] = ib;
@@ -1336,6 +1385,7 @@ export default function ClientsPage() {
                             title={t('online')}
                             value={summary.onlineCount}
                             emails={summary.online}
+                            inboundLabels={onlineInboundLabels}
                             prefix={<span className="dot dot-blue" />}
                             selected={isOnlyBucket('online')}
                             onSelect={() => selectBucket('online')}

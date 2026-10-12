@@ -147,6 +147,7 @@ func (j *XrayTrafficJob) Run() {
 		}
 	}
 	j.inboundService.RefreshLocalOnlineClients(activeEmails, activeInboundTags)
+	j.inboundService.RefreshLocalClientInbounds()
 
 	if !websocket.HasClients() {
 		return
@@ -201,6 +202,7 @@ func (j *XrayTrafficJob) Run() {
 		"onlineClients":  onlineClients,
 		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
 		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
+		"clientInbounds": j.inboundService.GetClientInboundsByGuid(),
 		"lastOnlineMap":  lastOnlineMap,
 	})
 
