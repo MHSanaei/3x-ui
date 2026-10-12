@@ -443,6 +443,16 @@ func IsMissingHandlerErr(err error) bool {
 		strings.Contains(msg, "not enough information")
 }
 
+// IsMissingUserErr reports whether err is xray removing a user the inbound does
+// not hold; a missing handler fails the same call and is not one.
+func IsMissingUserErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not found") && !strings.Contains(msg, "failed to get handler")
+}
+
 // IsExistingTagErr reports whether err is xray's response to adding a handler
 // whose tag is already taken by a running handler.
 func IsExistingTagErr(err error) bool {

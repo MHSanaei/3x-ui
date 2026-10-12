@@ -26,6 +26,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/util/maskcompat"
 	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
 	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/runtime"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
@@ -1964,6 +1965,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := tx.First(stored, inbound.Id).Error; err != nil {
 			return err
 		}
+		running := *stored
 		oldInbound = stored
 		// The form posts back the clients and enable it loaded; both have their
 		// own endpoints, so only a master's push may change them here.
@@ -2113,7 +2115,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			}
 			if !push {
 				needRestart = true
-			} else if oldProtocol == model.MTProto || oldInbound.Protocol == model.MTProto || oldProtocol == model.TUIC || oldInbound.Protocol == model.TUIC {
+			} else if servedOutsideXray(oldProtocol) || servedOutsideXray(oldInbound.Protocol) {
 				oldSnapshot := *oldInbound
 				oldSnapshot.Tag = tag
 				oldSnapshot.Protocol = oldProtocol
@@ -2127,7 +2129,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						pushable = false
 					}
 				}
-				newProtocolIsSidecar := oldInbound.Protocol == model.MTProto || oldInbound.Protocol == model.TUIC
+				newProtocolIsSidecar := servedOutsideXray(oldInbound.Protocol)
 				if pushable {
 					postCommitApply = func() {
 						if err2 := rt.UpdateInbound(context.Background(), &oldSnapshot, payload); err2 == nil {
@@ -2143,7 +2145,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			} else {
 				oldSnapshot := *oldInbound
 				oldSnapshot.Tag = tag
-				var runtimeInbound *model.Inbound
+				var runtimeInbound, runningInbound *model.Inbound
 				if inbound.Enable {
 					var err2 error
 					runtimeInbound, err2 = s.buildInboundForLocalRuntime(tx, oldInbound)
@@ -2152,7 +2154,15 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 						needRestart = true
 					}
 				}
+				if runtimeInbound != nil && running.Enable {
+					// Unbuildable means unknown running state: the rebuild below covers it.
+					runningInbound, _ = s.buildInboundForLocalRuntime(tx, &running)
+				}
 				postCommitApply = func() {
+					if runningInbound != nil && applyInboundUserOps(rt, runningInbound, runtimeInbound) {
+						logger.Debug("Inbound clients updated in place on", rt.Name(), ":", oldInbound.Tag)
+						return
+					}
 					if err2 := rt.DelInbound(context.Background(), &oldSnapshot); err2 == nil {
 						logger.Debug("Old inbound deleted on", rt.Name(), ":", tag)
 					}
@@ -2215,6 +2225,41 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		}
 	}
 	return inbound, needRestart, nil
+}
+
+// servedOutsideXray: these protocols run under their own manager, whose update
+// reconfigures in place where a Del+Add would drop every live session.
+func servedOutsideXray(protocol model.Protocol) bool {
+	return protocol == model.MTProto || protocol == model.TUIC || protocol == model.AmneziaWG
+}
+
+// applyInboundUserOps reports whether per-user core ops moved running to next, so
+// its listener and live connections survive; false means rebuild the handler.
+func applyInboundUserOps(rt runtime.Runtime, running, next *model.Inbound) bool {
+	diff, ok := xray.InboundUserOps(running.GenXrayInboundConfig(), next.GenXrayInboundConfig())
+	if !ok {
+		return false
+	}
+	ctx := context.Background()
+	for _, u := range diff.RemovedUsers {
+		if err := rt.RemoveUser(ctx, next, u.Email); err != nil && !xray.IsMissingUserErr(err) {
+			logger.Debug("Unable to remove client", u.Email, "in place on", rt.Name(), ":", err)
+			return false
+		}
+	}
+	for _, u := range diff.AddedUsers {
+		err := rt.AddUser(ctx, next, u.User)
+		if xray.IsUserExistsErr(err) {
+			if err = rt.RemoveUser(ctx, next, u.Email); err == nil {
+				err = rt.AddUser(ctx, next, u.User)
+			}
+		}
+		if err != nil {
+			logger.Debug("Unable to add client", u.Email, "in place on", rt.Name(), ":", err)
+			return false
+		}
+	}
+	return true
 }
 
 // A node mirrors this payload into its own DB, so every client must survive:
