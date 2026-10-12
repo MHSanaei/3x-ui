@@ -586,35 +586,65 @@ export default function ClientFormModal({
     [inbounds, inboundIds],
   );
 
-  // Host rule options scoped to the inbounds currently selected, so a
-  // binding can only reference a host on an inbound the client is on.
-  const { hosts: rawHostRules, fetched: rawHostsFetched } = useRawHostsQuery();
+  // Host options cover selected inbounds only; bound disabled hosts stay
+  // visible with a suffix so open+save never silently drops them.
+  const { hosts: rawHostRules } = useRawHostsQuery();
+  const clientHostRuleIds = useWatch({ control: methods.control, name: 'clientHostRuleIds' });
   const hostRuleOptions = useMemo(() => {
     const selected = new Set(inboundIds || []);
-    return (rawHostRules || [])
-      .filter((h) => !h.isDisabled && h.inboundId !== undefined && selected.has(h.inboundId))
-      .map((h) => ({
-        value: h.id as number,
-        label:
-          h.remark || h.address
-            ? `${h.remark || h.address}${h.address && h.remark ? ` (${h.address})` : ''} (#${h.id})`
-            : `Host #${h.id}`,
-      }));
-  }, [rawHostRules, inboundIds]);
-  const clientHostRuleIds = useWatch({ control: methods.control, name: 'clientHostRuleIds' });
-
-  // Drop bindings whose host left the selection with its inbound.
-  useEffect(() => {
-    if (!rawHostsFetched) return;
-    const allowed = new Set(hostRuleOptions.map((o) => o.value));
-    const current = methods.getValues('clientHostRuleIds') || [];
-    if (current.some((id) => !allowed.has(id))) {
-      methods.setValue(
-        'clientHostRuleIds',
-        current.filter((id) => allowed.has(id)),
-      );
+    const bound = new Set(clientHostRuleIds || []);
+    const formatBase = (h: { id?: number; remark?: string; address?: string }) =>
+      h.remark || h.address
+        ? `${h.remark || h.address}${h.address && h.remark ? ` (${h.address})` : ''} (#${h.id})`
+        : `Host #${h.id}`;
+    const options: { value: number; label: string }[] = [];
+    const seen = new Set<number>();
+    for (const h of rawHostRules || []) {
+      if (h.id === undefined || h.inboundId === undefined || !selected.has(h.inboundId)) continue;
+      const id = h.id as number;
+      const base = formatBase(h);
+      if (!h.isDisabled) {
+        options.push({ value: id, label: base });
+        seen.add(id);
+      } else if (bound.has(id)) {
+        options.push({ value: id, label: t('pages.clients.hostRuleDisabled', { label: base }) });
+        seen.add(id);
+      }
     }
-  }, [hostRuleOptions, rawHostsFetched, methods]);
+    for (const id of bound) {
+      if (seen.has(id)) continue;
+      const h = (rawHostRules || []).find((r) => r.id === id);
+      if (h) {
+        const base = formatBase(h);
+        options.push({
+          value: id,
+          label: h.isDisabled ? t('pages.clients.hostRuleDisabled', { label: base }) : base,
+        });
+      } else {
+        options.push({ value: id, label: `Host #${id}` });
+      }
+    }
+    return options;
+  }, [rawHostRules, inboundIds, clientHostRuleIds, t]);
+
+  // Prune only bindings whose inbound was just deselected, never on
+  // disabled state, so a temporarily disabled host survives untouched.
+  function handleInboundChange(next: number[]) {
+    const prevSelected = new Set(inboundIds || []);
+    const nextSelected = new Set(next || []);
+    const removed = new Set([...prevSelected].filter((id) => !nextSelected.has(id)));
+    methods.setValue('inboundIds', next);
+    if (removed.size === 0) return;
+    const current = methods.getValues('clientHostRuleIds') || [];
+    if (current.length === 0) return;
+    const byId = new Map((rawHostRules || []).map((h) => [h.id as number, h]));
+    const kept = current.filter((id) => {
+      const host = byId.get(id);
+      if (!host || host.inboundId === undefined) return true;
+      return !removed.has(host.inboundId);
+    });
+    if (kept.length !== current.length) methods.setValue('clientHostRuleIds', kept);
+  }
 
   const expiryDayjs = useMemo<Dayjs | null>(
     () => (expiryDate > 0 ? dayjs(expiryDate) : null),
@@ -1149,12 +1179,12 @@ export default function ClientFormModal({
                         <SelectAllClearButtons
                           options={inboundOptions}
                           value={inboundIds}
-                          onChange={(v) => methods.setValue('inboundIds', v)}
+                          onChange={handleInboundChange}
                         />
                         <Select
                           mode="multiple"
                           value={inboundIds}
-                          onChange={(v) => methods.setValue('inboundIds', v)}
+                          onChange={handleInboundChange}
                           options={inboundOptions}
                           placeholder={t('pages.clients.selectInbound')}
                           maxTagCount="responsive"

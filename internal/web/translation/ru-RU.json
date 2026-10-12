@@ -956,6 +956,7 @@
       "mtprotoAdTagHint": "Необязательный шестнадцатеричный тег из 32 символов, получаемый при регистрации прокси в Telegram. Если задан, этот клиент маршрутизируется через промежуточные прокси Telegram, и спонсорский канал появляется вверху списка чатов.",
       "hostRuleOverride": "Переопределение правила хоста",
       "hostRuleOverridePlaceholder": "По умолчанию (правило входящего)",
+      "hostRuleDisabled": "{label} (отключено)",
       "reverseTag": "Обратный тег",
       "reverseTagPlaceholder": "Необязательный Reverse tag",
       "telegramId": "ID пользователя Telegram",
