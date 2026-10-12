@@ -53,6 +53,14 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 	if err != nil {
 		return common.NewError("xray template config invalid:", err)
 	}
+	for _, inbound := range xrayConfig.InboundConfigs {
+		if err := validateFinalMaskSalamander(string(inbound.StreamSettings)); err != nil {
+			return common.NewError("xray template inbound \""+inbound.Tag+"\":", err)
+		}
+		if err := validateXDriveStorage(string(inbound.StreamSettings)); err != nil {
+			return common.NewError("xray template inbound \""+inbound.Tag+"\":", err)
+		}
+	}
 	if len(xrayConfig.OutboundConfigs) > 0 {
 		var outbounds []json.RawMessage
 		if err := json.Unmarshal(xrayConfig.OutboundConfigs, &outbounds); err != nil {
@@ -76,6 +84,17 @@ func (s *XraySettingService) CheckXrayConfig(XrayTemplateConfig string) error {
 					return err
 				}
 				continue
+			}
+			var probe struct {
+				Tag            string          `json:"tag"`
+				StreamSettings json.RawMessage `json:"streamSettings"`
+			}
+			_ = json.Unmarshal(outbound, &probe)
+			if err := validateFinalMaskSalamander(string(probe.StreamSettings)); err != nil {
+				return common.NewError("xray template outbound \""+probe.Tag+"\":", err)
+			}
+			if err := validateXDriveStorage(string(probe.StreamSettings)); err != nil {
+				return common.NewError("xray template outbound \""+probe.Tag+"\":", err)
 			}
 			if err := xray.ValidateOutboundConfig(outbound); err != nil {
 				if shouldSkipLegacyUnencryptedOutboundRejection(coreVersion, err) {

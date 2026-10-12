@@ -229,6 +229,9 @@ func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error)
 	if groupId == "" {
 		groupId = random.NumLower(16)
 	}
+	if err := validateFinalMaskJSONSalamander(req.FinalMask); err != nil {
+		return nil, err
+	}
 	created := buildHostRows(groupId, req)
 
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
@@ -247,6 +250,9 @@ func (s *HostService) AddHostGroup(req *entity.HostGroup) ([]*model.Host, error)
 }
 
 func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]*model.Host, error) {
+	if err := validateFinalMaskJSONSalamander(req.FinalMask); err != nil {
+		return nil, err
+	}
 	created := buildHostRows(groupId, req)
 
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {

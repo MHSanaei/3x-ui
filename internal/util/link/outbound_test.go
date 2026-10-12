@@ -596,3 +596,19 @@ func TestParseLink_UpgradesLegacyUDPHopFinalMask(t *testing.T) {
 		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
 	}
 }
+
+// A link from a panel that listed udphop before another UDP mask would leave an outbound
+// whose every dial the core refuses ("incorrect index"); the import puts the hop last.
+func TestParseLink_PutsUDPHopMaskLast(t *testing.T) {
+	fm := url.QueryEscape(`{"udp":[{"type":"udphop","settings":{"mode":"intervalRemote","remotePorts":"20000-30000"}},{"type":"salamander","settings":{"password":"s3cr3t"}}]}`)
+	res, err := ParseLink("hysteria2://auth@hy.example.com:443?sni=hy.example.com&fm=" + fm + "#hy")
+	if err != nil {
+		t.Fatalf("parse hysteria2 with fm: %v", err)
+	}
+	stream, _ := res.Outbound["streamSettings"].(map[string]any)
+	got, _ := json.Marshal(stream["finalmask"])
+	want := `{"udp":[{"settings":{"password":"s3cr3t"},"type":"salamander"},{"settings":{"mode":"intervalRemote","remotePorts":"20000-30000"},"type":"udphop"}]}`
+	if string(got) != want {
+		t.Fatalf("imported finalmask\n got: %s\nwant: %s", got, want)
+	}
+}

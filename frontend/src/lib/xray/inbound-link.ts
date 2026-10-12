@@ -503,10 +503,8 @@ export function genVlessLink(input: GenVlessLinkInput): string {
     params.set('security', 'none');
   }
 
-  // XTLS Vision flow: TCP over tls/reality (classic) or XHTTP+vlessenc (the
-  // VLESS-level encryption stands in for transport TLS). Mirrors the backend's
-  // vlessFlowAllowed and the form's flow-field gating so panel link, share
-  // link and subscription agree.
+  // Same gate as the backend's vlessFlowAllowed and the form's flow field, so the
+  // panel link, share link and subscription agree.
   if (
     flow.length > 0 &&
     canEnableTlsFlow({
@@ -676,13 +674,8 @@ export interface GenShadowsocksLinkInput {
   externalProxy?: ExternalProxyEntry | null;
 }
 
-// Shadowsocks 2022 share link. The userinfo portion is base64(method:pw)
-// for single-user and base64(method:settingsPw:clientPw) for multi-user
-// 2022-blake3. Legacy SS (non-2022) leaves the password out of the
-// userinfo entirely — matches the legacy class's password-array logic.
-// Note: legacy `isSSMultiUser` returns true for everything except
-// 2022-blake3-chacha20-poly1305 (a curious classification, but we
-// preserve it for byte-stable parity).
+// Shadowsocks share link: base64(method:clientPw) for legacy SS, and
+// percent-encoded method:serverPw:clientPw for 2022-blake3 (SIP022).
 export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
   const {
     inbound,
@@ -725,10 +718,9 @@ export function genShadowsocksLink(input: GenShadowsocksLinkInput): string {
   }
 
   const isSS2022 = settings.method.substring(0, 4) === '2022';
-  const isSSMultiUser = settings.method !== '2022-blake3-chacha20-poly1305';
   const passwords: string[] = [];
   if (isSS2022) passwords.push(settings.password);
-  if (isSSMultiUser) passwords.push(clientPassword);
+  passwords.push(clientPassword);
 
   if (isSS2022) {
     // SIP022 (2022-blake3-*) forbids base64 userinfo: method and each key are
@@ -1393,11 +1385,8 @@ export function preferPublicHost(browserHost: string, publicHost: string): strin
   return publicHost && isLoopbackHost(browserHost) ? publicHost : browserHost;
 }
 
-// Returns the client array for protocols that have one. SS returns its
-// clients only in 2022-blake3 multi-user mode (matches the legacy
-// `this.clients` getter, which used isSSMultiUser to gate). Returns null
-// for SS single-user, http, mixed, tunnel, wireguard, hysteria2-without-
-// clients, and any protocol without a clients array.
+// Returns the client array for protocols that have one; null for http, mixed,
+// tunnel, wireguard, hysteria2-without-clients, and any protocol without one.
 type ClientShape = {
   id?: string;
   uuid?: string;
@@ -1430,10 +1419,8 @@ export function getInboundClients(inbound: Inbound): ClientShape[] | null {
       return (inbound.settings.clients ?? []) as ClientShape[];
     case 'tuic':
       return (inbound.settings.clients ?? []) as ClientShape[];
-    case 'shadowsocks': {
-      const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
-      return isMultiUser ? ((inbound.settings.clients ?? []) as ClientShape[]) : null;
-    }
+    case 'shadowsocks':
+      return (inbound.settings.clients ?? []) as ClientShape[];
     default:
       return null;
   }
@@ -1493,18 +1480,16 @@ export function genLink(input: GenLinkInput): string {
         flow: client.flow,
         externalProxy,
       });
-    case 'shadowsocks': {
-      const isMultiUser = inbound.settings.method !== '2022-blake3-chacha20-poly1305';
+    case 'shadowsocks':
       return genShadowsocksLink({
         inbound,
         address,
         port,
         forceTls,
         remark,
-        clientPassword: isMultiUser ? (client.password ?? '') : '',
+        clientPassword: client.password ?? '',
         externalProxy,
       });
-    }
     case 'trojan':
       return genTrojanLink({
         inbound,

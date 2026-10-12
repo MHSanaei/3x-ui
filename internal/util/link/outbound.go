@@ -770,6 +770,7 @@ func applyFinalMask(stream map[string]any, p url.Values) {
 			sanitizeFinalMaskQuicParams(parsed)
 			maskcompat.UpgradeLegacyXdns(parsed)
 			maskcompat.UpgradeLegacyUDPHop(parsed)
+			maskcompat.NormalizeUDPHop(parsed)
 			stream["finalmask"] = parsed
 		}
 	}

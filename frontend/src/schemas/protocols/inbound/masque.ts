@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
-// MASQUE inbound (CONNECT-IP over HTTP/3 or HTTP/2). Clients log in with their email
-// and password over Basic auth; the panel stores `password` and the backend hands it
-// to xray-core as `pass`.
+// MASQUE clients log in with email and password over Basic auth; the panel stores
+// `password` and the backend hands it to xray-core as `pass`.
 export const MasqueClientSchema = z.object({
   password: z.string().min(1),
   email: z.string().min(1),

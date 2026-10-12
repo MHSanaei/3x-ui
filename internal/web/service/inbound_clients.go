@@ -124,14 +124,14 @@ func (s *InboundService) backfillClientStats(db *gorm.DB, inbounds []*model.Inbo
 	return clientsByInbound
 }
 
-// emailUsedByOtherInbounds reports whether email lives in any inbound other
-// than exceptInboundId. Empty email returns false.
-func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId int) (bool, error) {
+// emailUsedByOtherInbounds reports whether email lives in any inbound other than
+// exceptInboundId. Inside a transaction pass tx: a pool query there starves the pool.
+func (s *InboundService) emailUsedByOtherInbounds(db *gorm.DB, email string, exceptInboundId int) (bool, error) {
 	if email == "" {
 		return false, nil
 	}
 	var count int64
-	err := database.GetDB().Table("client_inbounds").
+	err := db.Table("client_inbounds").
 		Joins("JOIN clients ON clients.id = client_inbounds.client_id").
 		Where("client_inbounds.inbound_id != ? AND LOWER(clients.email) = ?",
 			exceptInboundId, strings.ToLower(strings.TrimSpace(email))).
@@ -142,7 +142,7 @@ func (s *InboundService) emailUsedByOtherInbounds(email string, exceptInboundId 
 	return count > 0, nil
 }
 
-func (s *InboundService) emailsUsedByOtherInbounds(emails []string, exceptInboundId int) (map[string]bool, error) {
+func (s *InboundService) emailsUsedByOtherInbounds(db *gorm.DB, emails []string, exceptInboundId int) (map[string]bool, error) {
 	shared := make(map[string]bool, len(emails))
 	want := make(map[string]struct{}, len(emails))
 	for _, e := range emails {
@@ -158,7 +158,6 @@ func (s *InboundService) emailsUsedByOtherInbounds(emails []string, exceptInboun
 	for e := range want {
 		lowered = append(lowered, e)
 	}
-	db := database.GetDB()
 	for _, batch := range chunkStrings(lowered, sqlInChunk) {
 		var rows []struct{ Email string }
 		err := db.Table("client_inbounds").

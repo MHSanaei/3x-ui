@@ -507,6 +507,23 @@ describe('parseHysteria2Link', () => {
     });
   });
 
+  // The core reverses the UDP masks and refuses a udphop anywhere but last ("incorrect index"),
+  // so an import of a link that lists it first must reorder it like the Go importer does.
+  it('moves a udphop mask listed first in fm= to the end', () => {
+    const hop = {
+      type: 'udphop',
+      settings: { mode: 'intervalRemote', remotePorts: '20000-30000' },
+    };
+    const salamander = { type: 'salamander', settings: { password: 's3cr3t' } };
+    const fm = encodeURIComponent(JSON.stringify({ udp: [hop, salamander] }));
+    const out = parseHysteria2Link(
+      `hysteria2://auth@hy.example.com:443?sni=hy.example.com&fm=${fm}#hy`,
+    );
+    expect((out!.streamSettings as Record<string, unknown>).finalmask).toEqual({
+      udp: [salamander, hop],
+    });
+  });
+
   it('parses a hysteria2:// link with sni', () => {
     const link = 'hysteria2://auth-secret@srv.example:443?sni=example.com#imported-hy2';
     const out = parseHysteria2Link(link);
