@@ -1701,13 +1701,13 @@
             "type": "string"
           },
           "clientHostRuleId": {
-            "description": "ClientHostRuleId optionally binds one Host row to this client.\nNil or non-positive means no override (inbound rule applies).",
+            "description": "ClientHostRuleId is a deprecated read-only alias of ClientHostRuleIds[0].\nNil or non-positive means no override (inbound rule applies).",
             "example": 1,
             "nullable": true,
             "type": "integer"
           },
           "clientHostRuleIds": {
-            "description": "ClientHostRuleIds optionally binds several Host rows to this client.\nUnioned with ClientHostRuleId; each bound host renders its own link.",
+            "description": "ClientHostRuleIds is the canonical per-client host binding; each id renders its own link.\nNil means omitted (preserve); empty means clear.",
             "example": [
               1,
               2

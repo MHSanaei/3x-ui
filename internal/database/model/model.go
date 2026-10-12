@@ -928,11 +928,11 @@ type Client struct {
 	PrivateKey string         `json:"privateKey,omitempty"`
 	PublicKey  string         `json:"publicKey,omitempty"`
 	AllowedIPs []string       `json:"allowedIPs,omitempty"`
-	// ClientHostRuleId optionally binds one Host row to this client.
+	// ClientHostRuleId is a deprecated read-only alias of ClientHostRuleIds[0].
 	// Nil or non-positive means no override (inbound rule applies).
 	ClientHostRuleId *int `json:"clientHostRuleId,omitempty" example:"1"`
-	// ClientHostRuleIds optionally binds several Host rows to this client.
-	// Unioned with ClientHostRuleId; each bound host renders its own link.
+	// ClientHostRuleIds is the canonical per-client host binding; each id renders its own link.
+	// Nil means omitted (preserve); empty means clear.
 	ClientHostRuleIds []int `json:"clientHostRuleIds,omitempty" example:"[1,2]"`
 	// AllowedIPsByInbound optionally overrides AllowedIPs on a per-inbound
 	// basis, keyed by inbound id. Lets one identity attached to both
@@ -1395,6 +1395,44 @@ func EffectiveClientHostRuleIds(c Client) []int {
 		add(id)
 	}
 	return out
+}
+
+// NormalizeClientHostBindings makes the list canonical; the single id is a read-only alias.
+// Nil list preserves (migrating a lone single); non-nil list wins and mirrors its first id.
+func NormalizeClientHostBindings(single **int, list *[]int) {
+	if single == nil || list == nil {
+		return
+	}
+	if *list != nil {
+		seen := make(map[int]struct{}, len(*list))
+		canonical := make([]int, 0, len(*list))
+		for _, id := range *list {
+			if id <= 0 {
+				continue
+			}
+			if _, dup := seen[id]; dup {
+				continue
+			}
+			seen[id] = struct{}{}
+			canonical = append(canonical, id)
+		}
+		*list = canonical
+		if len(canonical) > 0 {
+			v := canonical[0]
+			*single = &v
+		} else {
+			*single = nil
+		}
+		return
+	}
+	if *single != nil && **single > 0 {
+		v := **single
+		*list = []int{v}
+		return
+	}
+	if *single != nil && **single <= 0 {
+		*single = nil
+	}
 }
 
 type OutboundSubscription struct {

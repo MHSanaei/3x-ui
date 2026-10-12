@@ -43,13 +43,16 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	if incoming.Security != "" {
 		row.Security = incoming.Security
 	}
-	// Guarded like Group: snapshots predating the binding carry nil and must
-	// not wipe it; clearing flows through Update's explicit write.
-	if incoming.ClientHostRuleId != nil {
-		row.ClientHostRuleId = incoming.ClientHostRuleId
-	}
+	// List is canonical; nil preserves, empty clears via Update's write.
+	model.NormalizeClientHostBindings(&incoming.ClientHostRuleId, &incoming.ClientHostRuleIds)
 	if incoming.ClientHostRuleIds != nil {
 		row.ClientHostRuleIds = model.CloneClientHostRuleIds(incoming.ClientHostRuleIds)
+		if incoming.ClientHostRuleId != nil {
+			v := *incoming.ClientHostRuleId
+			row.ClientHostRuleId = &v
+		} else {
+			row.ClientHostRuleId = nil
+		}
 	}
 	if incoming.Reverse != "" {
 		row.Reverse = incoming.Reverse
@@ -159,6 +162,8 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		// ToRecord copies the raw email; store the trimmed key this function
 		// looks up by, or a padded email is inserted and never found again.
 		incoming.Email = email
+		// List canonical for new rows too; merge path re-normalizes idempotently.
+		model.NormalizeClientHostBindings(&incoming.ClientHostRuleId, &incoming.ClientHostRuleIds)
 		row, ok := existing[email]
 		if !ok {
 			if _, dup := pending[email]; !dup {
