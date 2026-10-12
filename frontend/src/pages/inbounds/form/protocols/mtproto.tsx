@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useEffect, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Collapse, Input, InputNumber, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -8,10 +8,23 @@ import { useOutboundTags } from '@/api/queries/useOutboundTags';
 
 export default function MtprotoFields() {
   const { t } = useTranslation();
-  const { control } = useFormContext();
+  const { control, getValues, setValue } = useFormContext();
   const routeThroughXray = useWatch({ control, name: 'settings.routeThroughXray' }) as
     | boolean
     | undefined;
+  const preferIp = useWatch({ control, name: 'settings.preferIp' }) as string | undefined;
+  const clients = useWatch({ control, name: 'settings.clients' }) as
+    | Array<{ adTag?: string }>
+    | undefined;
+  // Xray's SOCKS bridge accepts before it dials, so mtg (prefer-ipv6 by default) cannot fall
+  // back from IPv6: routing defaults an unset preference to prefer-ipv4, as the backend does.
+  useEffect(() => {
+    if (routeThroughXray && !getValues('settings.preferIp')) {
+      setValue('settings.preferIp', 'prefer-ipv4', { shouldDirty: true });
+    }
+  }, [routeThroughXray, getValues, setValue]);
+  const routeIpv6 = routeThroughXray && (preferIp === 'prefer-ipv6' || preferIp === 'only-ipv6');
+  const routeAdTags = routeThroughXray && (clients ?? []).some((c) => c?.adTag?.trim());
   const dcPoolEnabled = useWatch({ control, name: 'settings.dcPool.enabled' }) as
     | boolean
     | undefined;
@@ -437,6 +450,22 @@ export default function MtprotoFields() {
             options={(outboundTags ?? []).map((tag) => ({ value: tag, label: tag }))}
           />
         </FormField>
+      )}
+      {routeIpv6 && (
+        <Alert
+          type="warning"
+          showIcon
+          title={f('mtgRouteIpv6Warning')}
+          style={{ marginBottom: 16 }}
+        />
+      )}
+      {routeAdTags && (
+        <Alert
+          type="warning"
+          showIcon
+          title={f('mtgRouteAdTagWarning')}
+          style={{ marginBottom: 16 }}
+        />
       )}
       <FormField
         name={['settings', 'publicIpv4']}

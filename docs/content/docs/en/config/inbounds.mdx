@@ -110,10 +110,12 @@ Telegram traffic on to a server outside it. Both parts are in the inbound form:
 
 <Callout type="warn">
   Xray's SOCKS inbound accepts a connection before it dials the target, so mtg
-  cannot fall back from an unreachable IPv6 Telegram address. If the selected
-  outbound has no IPv6, set **IP preference** to `only-ipv4`. Clients with an
-  ad-tag do not work through the bridge: the middle-proxy handshake is bound to
-  mtg's own source address and port, which SOCKS hides.
+  cannot fall back from an unreachable IPv6 Telegram address. With **Route
+  through Xray** on, an empty **IP preference** is saved as `prefer-ipv4`; if
+  the selected outbound has no IPv6, `only-ipv4` fits too, and the form warns
+  about `prefer-ipv6` and `only-ipv6`. Clients with an ad-tag do not work
+  through the bridge, and the form warns about them too: the middle-proxy
+  handshake is bound to mtg's own source address and port, which SOCKS hides.
 </Callout>
 
 The ServerHello settings need an mtg-multi build with `client-mss` support.

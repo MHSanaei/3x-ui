@@ -246,7 +246,7 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		Secrets:                secrets,
 		Debug:                  parsed.Debug,
 		ProxyProtocolListener:  parsed.ProxyProtocolListener,
-		PreferIP:               parsed.PreferIP,
+		PreferIP:               RoutedPreferIP(parsed.RouteThroughXray, parsed.PreferIP),
 		FrontingIP:             parsed.DomainFronting.IP,
 		FrontingPort:           parsed.DomainFronting.Port,
 		FrontingProxyProtocol:  parsed.DomainFronting.ProxyProtocol,
@@ -260,6 +260,46 @@ func InstanceFromInbound(ib *model.Inbound) (Instance, bool) {
 		DCPoolSize:             usableDCPoolSize(parsed.DCPool.Enabled, parsed.DCPool.Size),
 		Options:                opts,
 	}, true
+}
+
+// RoutedPreferIP is mtg's IP preference: through the Xray bridge an unset one becomes prefer-ipv4,
+// since the SOCKS inbound accepts before it dials and mtg (prefer-ipv6 by default) cannot fall back.
+func RoutedPreferIP(routeThroughXray bool, preferIP string) string {
+	preferIP = strings.TrimSpace(preferIP)
+	if routeThroughXray && preferIP == "" {
+		return "prefer-ipv4"
+	}
+	return preferIP
+}
+
+// RouteWarnings lists what in mtproto settings will not work through the Xray bridge: an IPv6-first
+// preference (fine only if the outbound has IPv6) and ad-tags, whose middle-proxy handshake SOCKS breaks.
+func RouteWarnings(settings string) []string {
+	var parsed struct {
+		RouteThroughXray bool   `json:"routeThroughXray"`
+		PreferIP         string `json:"preferIp"`
+		Clients          []struct {
+			Email string `json:"email"`
+			AdTag string `json:"adTag"`
+		} `json:"clients"`
+	}
+	if json.Unmarshal([]byte(settings), &parsed) != nil || !parsed.RouteThroughXray {
+		return nil
+	}
+	var warnings []string
+	if pref := RoutedPreferIP(true, parsed.PreferIP); pref == "prefer-ipv6" || pref == "only-ipv6" {
+		warnings = append(warnings, fmt.Sprintf("preferIp %s goes through Xray, which cannot fall back to IPv4: use only-ipv4 or prefer-ipv4 unless the outbound has IPv6", pref))
+	}
+	tagged := 0
+	for _, c := range parsed.Clients {
+		if strings.TrimSpace(c.AdTag) != "" {
+			tagged++
+		}
+	}
+	if tagged > 0 {
+		warnings = append(warnings, fmt.Sprintf("%d client(s) carry an ad-tag, which does not work through the Xray SOCKS bridge", tagged))
+	}
+	return warnings
 }
 
 // usableDCPoolSize drops a size that is out of range or belongs to a disabled

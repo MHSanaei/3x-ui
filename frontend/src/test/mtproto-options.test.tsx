@@ -374,6 +374,37 @@ describe('mtproto advanced settings form', () => {
     expect(labels).not.toContain('Upstream SOCKS5 proxies');
   });
 
+  it('defaults the IP preference to prefer-ipv4 while routing through Xray', () => {
+    renderFields({ routeThroughXray: true });
+    expect(screen.getByTitle('prefer-ipv4')).toBeTruthy();
+  });
+
+  it('keeps an explicit IP preference and warns about IPv6 through Xray', () => {
+    renderFields({ routeThroughXray: true, preferIp: 'only-ipv6' });
+    expect(screen.getByTitle('only-ipv6')).toBeTruthy();
+    expect(screen.getByText(/cannot fall back from IPv6 to IPv4/)).toBeTruthy();
+  });
+
+  it('warns about ad-tagged clients through Xray', () => {
+    renderFields({
+      routeThroughXray: true,
+      preferIp: 'only-ipv4',
+      clients: [{ email: 'a', adTag: '0123456789abcdef0123456789abcdef' }],
+    });
+    expect(screen.getByText(/Ad-tags do not work through the Xray SOCKS bridge/)).toBeTruthy();
+    expect(screen.queryByText(/cannot fall back from IPv6 to IPv4/)).toBeNull();
+  });
+
+  it('leaves a direct inbound alone', () => {
+    renderFields({
+      preferIp: 'only-ipv6',
+      clients: [{ email: 'a', adTag: '0123456789abcdef0123456789abcdef' }],
+    });
+    expect(screen.queryByText(/cannot fall back from IPv6 to IPv4/)).toBeNull();
+    expect(screen.queryByText(/Ad-tags do not work/)).toBeNull();
+    expect(screen.queryByTitle('prefer-ipv4')).toBeNull();
+  });
+
   it('offers upstream proxies without Xray routing', () => {
     renderFields();
     openPanel('Advanced: network');

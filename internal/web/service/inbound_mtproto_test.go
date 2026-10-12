@@ -209,3 +209,45 @@ func TestMtprotoOptionsValidatedOnSave(t *testing.T) {
 		t.Fatalf("UpdateInbound with an empty enabled allowlist: err = %v", err)
 	}
 }
+
+// A routed inbound saved without an IP preference stores prefer-ipv4, so the form shows
+// what mtg runs with; an explicit preference and an unrouted inbound are left alone.
+func TestMtprotoRoutedPreferIPStoredOnSave(t *testing.T) {
+	setupConflictDB(t)
+	s := &InboundService{}
+	settings := func(opts string) string {
+		return `{` + opts + `"clients":[{"email":"pref-client","secret":"` + mtprotoTestSecretA + `","enable":true}]}`
+	}
+	preferIP := func(raw string) any {
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+			t.Fatalf("settings do not parse: %v", err)
+		}
+		return parsed["preferIp"]
+	}
+
+	created, _, err := s.AddInbound(&model.Inbound{Port: 46321, Protocol: model.MTProto, Settings: settings(`"routeThroughXray":true,`)})
+	if err != nil {
+		t.Fatalf("AddInbound routed: %v", err)
+	}
+	if got := preferIP(created.Settings); got != "prefer-ipv4" {
+		t.Fatalf("routed inbound without a preference stored preferIp = %v, want prefer-ipv4", got)
+	}
+
+	created.Settings = settings(`"routeThroughXray":true,"preferIp":"only-ipv6",`)
+	updated, _, err := s.UpdateInbound(created)
+	if err != nil {
+		t.Fatalf("UpdateInbound routed with only-ipv6: %v", err)
+	}
+	if got := preferIP(updated.Settings); got != "only-ipv6" {
+		t.Fatalf("an explicit preference must be kept, got %v", got)
+	}
+
+	direct, _, err := s.AddInbound(&model.Inbound{Port: 46322, Protocol: model.MTProto, Settings: strings.Replace(settings(``), "pref-client", "pref-direct", 1)})
+	if err != nil {
+		t.Fatalf("AddInbound direct: %v", err)
+	}
+	if got := preferIP(direct.Settings); got != nil {
+		t.Fatalf("an unrouted inbound must keep mtg's default, stored preferIp = %v", got)
+	}
+}

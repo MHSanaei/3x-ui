@@ -408,3 +408,63 @@ func TestSecuredAndDCPoolFromSettings(t *testing.T) {
 		})
 	}
 }
+
+// Through the Xray bridge mtg cannot fall back from IPv6, so an unset preference becomes
+// prefer-ipv4 there; an explicit one and unrouted inbounds keep what they had.
+func TestRoutedPreferIP(t *testing.T) {
+	const clients = `"clients":[{"email":"a","secret":"ee0123456789abcdef0123456789abcdef61","enable":true}]`
+	for _, tc := range []struct {
+		name, settings, want string
+	}{
+		{"routedUnset", `{"routeThroughXray":true,"routeXrayPort":50000,` + clients + `}`, "prefer-ipv4"},
+		{"routedEmpty", `{"routeThroughXray":true,"preferIp":"","routeXrayPort":50000,` + clients + `}`, "prefer-ipv4"},
+		{"routedExplicit", `{"routeThroughXray":true,"preferIp":"only-ipv4","routeXrayPort":50000,` + clients + `}`, "only-ipv4"},
+		{"routedIPv6", `{"routeThroughXray":true,"preferIp":"prefer-ipv6","routeXrayPort":50000,` + clients + `}`, "prefer-ipv6"},
+		{"direct", `{` + clients + `}`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			inst, ok := InstanceFromInbound(&model.Inbound{Port: 443, Protocol: model.MTProto, Settings: tc.settings})
+			if !ok {
+				t.Fatal("expected a usable instance")
+			}
+			if inst.PreferIP != tc.want {
+				t.Fatalf("PreferIP = %q, want %q", inst.PreferIP, tc.want)
+			}
+			cfg := renderConfig(inst, 5000, "")
+			if tc.want == "" && strings.Contains(cfg, "prefer-ip") {
+				t.Fatalf("a direct inbound must keep mtg's default:\n%s", cfg)
+			}
+			if tc.want != "" && !strings.Contains(cfg, "prefer-ip = \""+tc.want+"\"\n") {
+				t.Fatalf("config must carry prefer-ip %q:\n%s", tc.want, cfg)
+			}
+		})
+	}
+}
+
+func TestRouteWarnings(t *testing.T) {
+	const tagged = `"clients":[{"email":"a","adTag":"0123456789abcdef0123456789abcdef"},{"email":"b"}]`
+	for _, tc := range []struct {
+		name, settings string
+		want           []string
+	}{
+		{"direct", `{"preferIp":"only-ipv6",` + tagged + `}`, nil},
+		{"routedDefault", `{"routeThroughXray":true,"clients":[]}`, nil},
+		{"routedIPv4", `{"routeThroughXray":true,"preferIp":"only-ipv4"}`, nil},
+		{"routedPreferIPv6", `{"routeThroughXray":true,"preferIp":"prefer-ipv6"}`, []string{"preferIp prefer-ipv6"}},
+		{"routedOnlyIPv6", `{"routeThroughXray":true,"preferIp":"only-ipv6"}`, []string{"preferIp only-ipv6"}},
+		{"routedAdTag", `{"routeThroughXray":true,` + tagged + `}`, []string{"1 client(s) carry an ad-tag"}},
+		{"both", `{"routeThroughXray":true,"preferIp":"only-ipv6",` + tagged + `}`, []string{"preferIp only-ipv6", "ad-tag"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := RouteWarnings(tc.settings)
+			if len(got) != len(tc.want) {
+				t.Fatalf("warnings = %q, want %d matching %q", got, len(tc.want), tc.want)
+			}
+			for i, w := range tc.want {
+				if !strings.Contains(got[i], w) {
+					t.Fatalf("warning %d = %q, want it to mention %q", i, got[i], w)
+				}
+			}
+		})
+	}
+}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -166,4 +167,31 @@ func validateMtprotoSettings(inbound *model.Inbound) error {
 		return common.NewErrorf("%s", err)
 	}
 	return nil
+}
+
+// normalizeMtprotoPreferIP stores prefer-ipv4 for a routed inbound with no IP preference, so the
+// form shows what mtg runs with, and logs what will not work through the Xray bridge.
+func (s *InboundService) normalizeMtprotoPreferIP(inbound *model.Inbound) {
+	if inbound == nil || inbound.Protocol != model.MTProto || s.FromNodeSync {
+		return
+	}
+	for _, w := range mtproto.RouteWarnings(inbound.Settings) {
+		logger.Warningf("mtproto inbound %q: %s", inbound.Tag, w)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(inbound.Settings), &parsed); err != nil || parsed == nil {
+		return
+	}
+	routed, _ := parsed["routeThroughXray"].(bool)
+	pref, _ := parsed["preferIp"].(string)
+	want := mtproto.RoutedPreferIP(routed, pref)
+	if want == pref {
+		return
+	}
+	parsed["preferIp"] = want
+	if bs, err := json.MarshalIndent(parsed, "", "  "); err == nil {
+		inbound.Settings = string(bs)
+	} else {
+		logger.Warning("mtproto: failed to marshal settings after setting the IP preference:", err)
+	}
 }
