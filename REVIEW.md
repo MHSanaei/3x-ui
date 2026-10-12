@@ -276,9 +276,13 @@ evidence:
 | `docs` | Does it match what the code does? | `Accurate` / `Inaccurate` (cite the line it contradicts) |
 | `ci`, workflow | Does it keep every guard named under "What HIGH means here"? | `No guard weakened` / `Weakens a guard` |
 
-Write the verdict for someone who has not read the diff: two to six sentences
-on what was broken or missing and what now changes, then the evidence. On a
-re-review, update it in light of the new commits.
+Write the verdict paragraph for someone who has not read the diff: two to six
+plain sentences, with no `file:line`, symbol or library internals, on what an
+operator or end user ran into — the client that failed, the traffic that was
+dropped, the setting that was ignored — and what changes for them now. The
+evidence the questions above ask for — traces, citations, test reasoning —
+goes in a separate paragraph after it. On a re-review, update both in light of the new
+commits.
 
 Scale the trace to the change. One with no runtime effect — a typo, a comment,
 a docs wording — gets a one- or two-line verdict and a short coverage list; the
@@ -287,11 +291,13 @@ full base-to-head trace is for changes to what the panel does. Anything under
 
 ## What the comment must show
 
-Open with the verdict paragraph, then — before the Design section and
-everything else — a one-line tally: `1 HIGH / 2 MEDIUM / 1 LOW,
-1 pre-existing`, where a pre-existing finding counts only in its own bucket,
-so the author sees the shape of the review before the detail. When nothing is
-blocking, lead with `No blocking issues` and put the tally after it.
+Open with the verdict paragraph, then — before the evidence, the Design
+section and everything else — a one-line tally: `1 HIGH / 2 MEDIUM / 1 LOW
+open (1 new), 1 pre-existing`. It counts every finding still open, those
+carried from earlier rounds included, and says how many are new this round;
+a pre-existing finding counts only in its own bucket. The author sees the
+shape of the review before the detail. When nothing is blocking, lead with
+`No blocking issues` and put the tally after it.
 
 The review is one plain comment, with no inline comments. Say each finding
 once, in full, under its severity and `file:line`.

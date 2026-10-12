@@ -222,7 +222,13 @@ jobs:
             and report each as it stands: concluded, still running, or never
             started. Never wait or poll for CI - nothing resumes this run. A
             check that concluded in failure is a finding; one still running is
-            unverified, and the coverage list says so.
+            unverified, and the coverage list says so. A fork's run that is
+            waiting for approval (`action_required`) is not a finding against
+            the pull request - nothing its author can do starts it - so the
+            coverage list says CI awaits maintainer approval and that nothing
+            it covers is verified until a maintainer approves the run. A
+            finding of yours from an earlier round that said only this is
+            withdrawn on that ground.
 
             UPSTREAM SOURCE
             The xray-core module the base `go.mod` pins is unpacked read-only at
