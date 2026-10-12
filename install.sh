@@ -1471,8 +1471,7 @@ _xui_warn_unsupported_hardening() {
     local version entry missing=""
     version="$(_xui_systemd_major_version)"
     [[ "$version" -gt 0 ]] || return 0
-    for entry in RestrictRealtime:231 ReadWritePaths:231 ProtectKernelTunables:232 \
-        ProtectKernelModules:232 RestrictNamespaces:233 LockPersonality:235 \
+    for entry in RestrictRealtime:231 ReadWritePaths:231 ProtectKernelModules:232 RestrictNamespaces:233 LockPersonality:235 \
         SystemCallFilter:239 ProtectHostname:242 RestrictSUIDSGID:242 \
         ProtectKernelLogs:244 ProtectClock:245; do
         if [[ "$version" -lt "${entry##*:}" ]]; then

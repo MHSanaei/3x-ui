@@ -50,8 +50,8 @@ ProtectSystem=full
 # alias for older systemd, needed so ProtectSystem=full keeps /etc/x-ui writable.
 ReadWritePaths=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
 ReadWriteDirectories=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
-# Xray (tun inbound) writes /proc/sys/net/ipv4/conf/*/rp_filter at start; with yes it
-# fails with "read-only file system". Do not re-enable without checking tun inbounds.
+# A kernel-TUN WireGuard outbound writes /proc/sys/net/ipv4/conf/*/rp_filter at start; with yes
+# Xray fails with "read-only file system". Do not re-enable while such outbounds are supported.
 ProtectKernelTunables=no
 ProtectKernelModules=yes
 ProtectKernelLogs=yes
