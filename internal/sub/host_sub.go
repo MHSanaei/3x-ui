@@ -170,6 +170,9 @@ func applyHostStreamOverrides(ep map[string]any, stream map[string]any) {
 				if sni, ok := externalProxySNI(ep); ok {
 					rs["serverName"] = sni
 				}
+				if fp, ok := ep["fingerprint"].(string); ok && fp != "" {
+					rs["fingerprint"] = fp
+				}
 			}
 		}
 	}

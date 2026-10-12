@@ -516,6 +516,38 @@ func TestSub_HostRealitySniJSONAndClash(t *testing.T) {
 	}
 }
 
+// A reality host's fingerprint must reach JSON and Clash like it reaches the raw
+// link; otherwise one host gets fp=firefox in vless:// but chrome in Clash.
+func TestSub_HostRealityFingerprintJSONAndClash(t *testing.T) {
+	seedSubDB(t)
+	realityStream := `{"network":"tcp","security":"reality","tcpSettings":{"header":{"type":"none"}},"realitySettings":{"serverNames":["base.reality.com"],"shortIds":["abcd"],"settings":{"publicKey":"PBK","fingerprint":"chrome"}}}`
+	ib := seedSubInbound(t, "s1", "rlf", 4492, 1, realityStream)
+	seedHost(t, &model.Host{
+		InboundId: ib.Id, SortOrder: 0, Remark: "RLF", Address: "rl.cdn.com", Port: 8443,
+		Security: "reality", Sni: "host.reality.com", Fingerprint: "firefox",
+	})
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatalf("a single-config subscription should be one JSON object: %v\n%s", err, out)
+	}
+	if got := proxyRealitySettings(t, doc)["fingerprint"]; got != "firefox" {
+		t.Fatalf("json reality fingerprint = %v, want the host's firefox", got)
+	}
+
+	yaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(yaml, "client-fingerprint: firefox") {
+		t.Fatalf("clash proxy should carry the host's fingerprint:\n%s", yaml)
+	}
+}
+
 func proxyRealitySettings(t *testing.T, doc map[string]any) map[string]any {
 	t.Helper()
 	outbounds, _ := doc["outbounds"].([]any)
