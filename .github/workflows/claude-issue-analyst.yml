@@ -9,7 +9,6 @@ on:
 permissions:
   contents: read
   issues: write
-  id-token: write
 
 jobs:
   issue-analyst:
@@ -29,7 +28,6 @@ jobs:
     permissions:
       contents: read
       issues: write
-      id-token: write
     steps:
       - name: Record when this run started
         id: started

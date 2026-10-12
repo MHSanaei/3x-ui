@@ -99,7 +99,6 @@ jobs:
       contents: read
       pull-requests: read
       issues: read
-      id-token: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
@@ -297,8 +296,9 @@ jobs:
             with the Write tool - the only file you may write - as your last
             action, never a placeholder or a draft. Whatever that file holds
             when your turn ends is what the workflow posts; a run that ends
-            without the finished review in it has failed. The comment opens
-            with the verdict, then the tally, carries the line
+            without the finished review in it has failed. The comment follows
+            the opening order in `REVIEW.md` - verdict paragraph, then the
+            status line with the full tally - carries the line
             `Reviewed head: ${{ needs.prepare.outputs.sha }}`, gives each
             finding in full with its `file:line`, and ends with the coverage list
             `REVIEW.md` asks for, whether or not you found anything. When there is
