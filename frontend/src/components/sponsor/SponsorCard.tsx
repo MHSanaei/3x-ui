@@ -70,6 +70,7 @@ export default function SponsorCard({
         href={sponsor.link}
         target="_blank"
         rel="noopener noreferrer sponsored"
+        title={variant === 'compact' ? [title, text].filter(Boolean).join('\n') : undefined}
       >
         <SponsorLogo sponsor={sponsor} />
         <span className="sponsor-body" dir="auto">

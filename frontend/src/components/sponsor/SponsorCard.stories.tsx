@@ -14,6 +14,34 @@ const sponsor: Sponsor = {
   link: 'https://acme.example/?utm_source=3x-ui',
 };
 
+// Copy as long as the real sponsors.json entries; each story renders it at its slot's width.
+const longSponsor: Sponsor = {
+  ...sponsor,
+  title: { en: 'Advertise here — reach 3X-UI server admins' },
+  text: {
+    en: 'Put your VPS, hosting or domain brand in front of the admins who use 3X-UI every day. Message us for slots and pricing.',
+  },
+};
+
+function part(root: HTMLElement, selector: string): HTMLElement {
+  const el = root.querySelector<HTMLElement>(selector);
+  if (!el) throw new Error(`missing ${selector}`);
+  return el;
+}
+
+async function expectInsideCard(root: HTMLElement, selector: string) {
+  const card = part(root, '.sponsor-card').getBoundingClientRect();
+  const box = part(root, selector).getBoundingClientRect();
+  await expect(box.left).toBeGreaterThanOrEqual(card.left - 0.5);
+  await expect(box.right).toBeLessThanOrEqual(card.right + 0.5);
+}
+
+async function expectNotClipped(root: HTMLElement, selector: string) {
+  const el = part(root, selector);
+  await expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth + 1);
+  await expect(el.scrollHeight).toBeLessThanOrEqual(el.clientHeight + 1);
+}
+
 const meta = {
   title: 'Sponsor/SponsorCard',
   component: SponsorCard,
@@ -66,6 +94,62 @@ export const Card: Story = {
       <SponsorCard {...args} />
     </div>
   ),
+};
+
+export const BannerLongCopy: Story = {
+  args: { variant: 'banner', sponsor: longSponsor, onClose: () => {} },
+  render: (args) => (
+    <div style={{ width: 360 }}>
+      <SponsorCard {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectNotClipped(canvasElement, '.sponsor-title');
+  },
+};
+
+export const SidebarLongCopy: Story = {
+  args: { variant: 'compact', sponsor: longSponsor, onClose: () => {} },
+  render: (args) => (
+    <div style={{ width: 204 }}>
+      <SponsorCard {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectNotClipped(canvasElement, '.sponsor-title');
+    await expectInsideCard(canvasElement, '.sponsor-text');
+    await expect(part(canvasElement, '.sponsor-main')).toHaveAttribute(
+      'title',
+      `${longSponsor.title.en}\n${longSponsor.text.en}`,
+    );
+  },
+};
+
+export const LoginLongCopy: Story = {
+  args: { variant: 'compact', sponsor: longSponsor, onClose: () => {} },
+  render: (args) => (
+    <div style={{ width: 334 }}>
+      <SponsorCard {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectNotClipped(canvasElement, '.sponsor-title');
+    await expectNotClipped(canvasElement, '.sponsor-text');
+  },
+};
+
+export const PageLongCopy: Story = {
+  args: { variant: 'card', sponsor: longSponsor },
+  render: (args) => (
+    <div style={{ width: 320 }}>
+      <SponsorCard {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectInsideCard(canvasElement, '.sponsor-title');
+    await expectInsideCard(canvasElement, '.sponsor-text');
+    await expectNotClipped(canvasElement, '.sponsor-title');
+  },
 };
 
 export const IconOnly: Story = {
