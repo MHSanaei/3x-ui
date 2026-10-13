@@ -809,30 +809,50 @@ func TestIncyRoutingIsolatedFromHappHeaders(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	const happRules = "happ://routing/onadd/existing-rules"
 	const incyRules = "incy://routing/onadd/AbC+/="
-	router := gin.New()
-	NewSUBController(router.Group("/"),
-		WithSUBEncryption(false),
-		WithSUBEnableRouting(true),
-		WithSUBRoutingRules(happRules),
-		WithSUBIncyEnableRouting(true),
-		WithSUBIncyRoutingRules(incyRules),
-		WithSUBIncyConfig(IncyConfig{AutoDetect: false}),
-	)
-	for _, ua := range []string{"INCY/1.0.0/ios", "Happ/1.2.0"} {
-		t.Run(ua, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
-			req.Header.Set("User-Agent", ua)
+	sharedRules := "incy://routing/onadd/" + base64.StdEncoding.EncodeToString([]byte(`{"Name":"shared","DirectSites":["geosite:category-ru"]}`))
+
+	cases := []struct {
+		name              string
+		path              string
+		userAgent         string
+		incyRouting       bool
+		wantRouting       string
+		wantRoutingEnable string
+		wantIncyLine      bool
+	}{
+		{name: "happ keeps its own tab and never sees the incy line", path: "/sub/s1", userAgent: "Happ/1.2.0", incyRouting: true, wantRouting: happRules, wantRoutingEnable: "true"},
+		{name: "incy without its own tab gets the shared json profile", path: "/sub/s1", userAgent: "INCY/1.0.0/ios", wantRouting: sharedRules},
+		{name: "incy body profile is not outranked by a routing header", path: "/sub/s1", userAgent: "INCY/1.0.0/ios", incyRouting: true, wantIncyLine: true},
+		{name: "incy json documents keep the shared profile header", path: "/json/s1", userAgent: "INCY/1.0.0/ios", incyRouting: true, wantRouting: sharedRules},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.New()
+			NewSUBController(router.Group("/"),
+				WithSUBEncryption(false),
+				WithSUBJsonEnabled(true),
+				WithSUBEnableRouting(true),
+				WithSUBRoutingRules(happRules),
+				WithSUBJsonRoutingRules(sharedRules),
+				WithSUBIncyEnableRouting(tc.incyRouting),
+				WithSUBIncyRoutingRules(incyRules),
+			)
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com"+tc.path, nil)
+			req.Header.Set("User-Agent", tc.userAgent)
 			resp := httptest.NewRecorder()
 			router.ServeHTTP(resp, req)
-			if resp.Code != http.StatusOK || !strings.Contains(resp.Body.String(), "vless://") {
-				t.Fatalf("status=%d, body=%s", resp.Code, resp.Body.String())
+			body := resp.Body.String()
+			if resp.Code != http.StatusOK || !strings.Contains(body, "vless") {
+				t.Fatalf("status=%d, body=%s", resp.Code, body)
 			}
-			if ua == "INCY/1.0.0/ios" {
-				if !strings.HasSuffix(resp.Body.String(), incyRules+"\n") || resp.Header().Get("Routing") != "" || resp.Header().Get("Routing-Enable") != "" {
-					t.Fatalf("Incy routing: headers=%v, body=%s", resp.Header(), resp.Body.String())
-				}
-			} else if strings.Contains(resp.Body.String(), "incy://") || resp.Header().Get("Routing") != happRules || resp.Header().Get("Routing-Enable") != "true" {
-				t.Fatalf("Happ routing: headers=%v, body=%s", resp.Header(), resp.Body.String())
+			if got := resp.Header().Get("Routing"); got != tc.wantRouting {
+				t.Fatalf("Routing = %q, want %q", got, tc.wantRouting)
+			}
+			if got := resp.Header().Get("Routing-Enable"); got != tc.wantRoutingEnable {
+				t.Fatalf("Routing-Enable = %q, want %q", got, tc.wantRoutingEnable)
+			}
+			if got := strings.HasSuffix(body, incyRules+"\n"); got != tc.wantIncyLine || (!got && strings.Contains(body, incyRules)) {
+				t.Fatalf("incy line at body end = %v, want %v; body=%s", got, tc.wantIncyLine, body)
 			}
 		})
 	}

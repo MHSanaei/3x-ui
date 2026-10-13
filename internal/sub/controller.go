@@ -510,6 +510,9 @@ func (a *SUBController) subs(c *gin.Context) {
 			if err == nil && strings.TrimSpace(incyRules) != "" {
 				result.WriteString(incyRules)
 				result.WriteString("\n")
+				// INCY ranks a Routing header above a body line, so the shared
+				// profile must not override INCY's own one here.
+				c.Writer.Header().Del("Routing")
 			}
 		}
 
@@ -958,27 +961,28 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	// Incy treats a Happ Routing header as its profile, so a recognized Incy
-	// client skips Happ routing headers, including the JSON fallback (#6062).
+	// The Happ tab is Happ-only, so INCY reads it as blank and gets the shared
+	// JSON profile instead; INCY takes a routing link of any scheme (#6062).
 	incyClient := c.Request != nil && IsIncyClient(c.GetHeader("User-Agent"))
+	if incyClient {
+		profileEnableRouting, profileRoutingRules = false, ""
+	}
+	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
+	if strings.TrimSpace(profileRoutingRules) == "" {
+		// Happ/INCY fetch the geo files the baked rules reference through this
+		// header; unlike the documents, it keeps the profile's own DNS servers.
+		rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
+	}
 	// The off values undo a previously pushed setting, so they ride the same
 	// opt-in as every other Happ header rather than reaching every Happ client.
 	happManaged := a.happConfig.AutoDetect && c.Request != nil && IsHappClient(c.GetHeader("User-Agent"))
-	if !incyClient {
-		rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
-		if strings.TrimSpace(profileRoutingRules) == "" {
-			// Happ fetches the geo files the baked rules reference through this
-			// header; unlike the documents, it keeps the profile's own DNS servers.
-			rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
-		}
-		if profileEnableRouting {
-			c.Writer.Header().Set("Routing-Enable", "true")
-		} else if happManaged {
-			c.Writer.Header().Set("Routing-Enable", "0")
-		}
-		if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
-			c.Writer.Header().Set("Routing", rules)
-		}
+	if profileEnableRouting {
+		c.Writer.Header().Set("Routing-Enable", "true")
+	} else if happManaged {
+		c.Writer.Header().Set("Routing-Enable", "0")
+	}
+	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
+		c.Writer.Header().Set("Routing", rules)
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
