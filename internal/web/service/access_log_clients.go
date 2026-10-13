@@ -3,7 +3,6 @@ package service
 import (
 	"io"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -13,53 +12,27 @@ import (
 )
 
 const (
-	// accessLogMaxReadBytes caps what one poll reads. A poll normally sees a few
-	// KB; if the log grew past the cap (tailer stalled, huge burst) only the
-	// newest bytes are scanned so the traffic job is never held up.
+	// Per-poll read cap; a bigger backlog is skipped to its newest bytes.
 	accessLogMaxReadBytes int64 = 4 << 20
-	// accessLogSeedBytes is how far back the very first poll looks, so a panel
-	// restart still attributes clients that connected just before it.
-	accessLogSeedBytes int64 = 256 << 10
-	// accessLogSeedWindow ignores lines older than this on the first poll.
-	accessLogSeedWindow = 2 * time.Minute
-	// accessLogPathTTL is how long the resolved access-log path is cached; the
-	// path comes from parsing config.json, which is too heavy for every poll.
+	// First poll looks this far back so a panel restart keeps recent attribution.
+	accessLogSeedBytes  int64 = 256 << 10
+	accessLogSeedWindow       = 2 * time.Minute
+	// The access-log path comes from parsing config.json, so cache it.
 	accessLogPathTTL = 30 * time.Second
 )
 
-var (
-	accessLogInboundRe = regexp.MustCompile(`\[([^\s\]]+)\s*(?:>>|->)\s*[^\]]*\]`)
-	accessLogEmailRe   = regexp.MustCompile(`\bemail:\s*(\S+)`)
-)
-
-// parseAccessLogClientInbound extracts the inbound tag and client email from one
-// Xray access-log line, e.g.
-//
-//	2026/10/12 10:00:01.123456 from 1.2.3.4:5678 accepted tcp:example.com:443 [inbound-443 >> direct] email: alice
-//
-// Lines without both fields (api calls, dns, anonymous inbounds) report ok=false.
+// parseAccessLogClientInbound reuses the log viewer's parser; ok is false for
+// lines without both an inbound tag and a client email (api calls, anonymous).
 func parseAccessLogClientInbound(line string) (email, tag string, ts time.Time, ok bool) {
-	if strings.Contains(line, "api -> api") {
+	entry := parseAccessLogFields(line)
+	if entry.Email == "" || entry.Inbound == "" || entry.Inbound == "api" {
 		return "", "", time.Time{}, false
 	}
-	e := accessLogEmailRe.FindStringSubmatch(line)
-	t := accessLogInboundRe.FindStringSubmatch(line)
-	if e == nil || t == nil {
-		return "", "", time.Time{}, false
-	}
-	fields := strings.Fields(line)
-	if len(fields) > 1 {
-		if parsed, err := time.ParseInLocation("2006/01/02 15:04:05.999999", fields[0]+" "+fields[1], time.Local); err == nil {
-			ts = parsed
-		}
-	}
-	return e[1], t[1], ts, true
+	return entry.Email, entry.Inbound, entry.DateTime, true
 }
 
-// accessLogTailer incrementally reads new lines appended to the Xray access log
-// and reports which inbound each client opened connections on. It is only active
-// when an access log is configured; with "none" it returns nothing and the
-// panel keeps using the traffic-delta heuristic.
+// accessLogTailer incrementally reads new Xray access-log lines; it reports
+// nothing when no access log is configured.
 type accessLogTailer struct {
 	mu          sync.Mutex
 	path        string
@@ -89,29 +62,28 @@ func (t *accessLogTailer) resolvePath(now time.Time) string {
 	return t.path
 }
 
-// poll returns the email -> inbound tags observed in log lines appended since
-// the previous call. nil means nothing new (or no access log).
-func (t *accessLogTailer) poll() map[string][]string {
+// poll returns email -> inbound tags from lines appended since the last call,
+// and whether an access log is configured at all.
+func (t *accessLogTailer) poll() (map[string][]string, bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	now := time.Now()
 	path := t.resolvePath(now)
 	if path == "" {
-		return nil
+		return nil, false
 	}
 	f, err := os.Open(path)
 	if err != nil {
-		return nil
+		return nil, true
 	}
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {
-		return nil
+		return nil, true
 	}
 	size := info.Size()
 	if size < t.offset {
-		// Truncated or rotated (clear_logs_job truncates it): start over.
 		t.offset = 0
 		t.partial = ""
 	}
@@ -127,27 +99,24 @@ func (t *accessLogTailer) poll() map[string][]string {
 	if size == start {
 		t.offset = size
 		t.seeded = true
-		return nil
+		return nil, true
 	}
 	if _, err := f.Seek(start, io.SeekStart); err != nil {
-		return nil
+		return nil, true
 	}
 	buf, err := io.ReadAll(io.LimitReader(f, size-start))
 	if err != nil {
 		logger.Debug("access log tail read failed:", err)
-		return nil
+		return nil, true
 	}
 	seeding := !t.seeded
 	t.offset = start + int64(len(buf))
 	t.seeded = true
 
-	chunk := t.partial + string(buf)
-	lines := strings.Split(chunk, "\n")
-	// The last element is an unterminated line still being written.
+	lines := strings.Split(t.partial+string(buf), "\n")
 	t.partial = lines[len(lines)-1]
 	lines = lines[:len(lines)-1]
 	if seeding && start > 0 && len(lines) > 0 {
-		// Seeded mid-file: the first line is probably cut in half.
 		lines = lines[1:]
 	}
 
@@ -169,28 +138,28 @@ func (t *accessLogTailer) poll() map[string][]string {
 		out[email] = append(out[email], tag)
 	}
 	if len(out) == 0 {
-		return nil
+		return nil, true
 	}
-	return out
+	return out, true
 }
 
-// RefreshLocalClientInbounds reads the access log lines appended since the last
-// poll and folds the (client, inbound) pairs into the local online view. Call it
-// after RefreshLocalOnlineClients in the same traffic tick. With no access log
-// configured it only prunes, leaving the attribution map empty.
+// RefreshLocalClientInbounds folds new access-log pairs into the online view;
+// call it after RefreshLocalOnlineClients. Without an access log it clears the view.
 func (s *InboundService) RefreshLocalClientInbounds() {
 	process := currentXrayProcess()
 	if process == nil {
 		return
 	}
-	process.RefreshLocalClientInbounds(clientInboundTailer.poll(), time.Now().UnixMilli(), onlineGracePeriodMs)
+	pairs, enabled := clientInboundTailer.poll()
+	if !enabled {
+		process.ClearLocalClientInbounds()
+		return
+	}
+	process.RefreshLocalClientInbounds(pairs, time.Now().UnixMilli(), onlineGracePeriodMs)
 }
 
-// GetClientInboundsByGuid returns, keyed by the hosting panel's GUID, which
-// inbound tags each online client is attributed to (email -> tags). Only this
-// panel's own clients are covered, and only when the Xray access log is enabled;
-// a GUID or email absent from the result means "no attribution", and callers
-// fall back to the coarser traffic-delta signal.
+// GetClientInboundsByGuid returns email -> attributed inbound tags per panelGuid.
+// Only this panel's clients, and only with an access log; absence means unknown.
 func (s *InboundService) GetClientInboundsByGuid() map[string]map[string][]string {
 	out := map[string]map[string][]string{}
 	process := currentXrayProcess()

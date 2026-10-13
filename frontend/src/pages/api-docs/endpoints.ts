@@ -1599,6 +1599,14 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/clients/clientInbounds',
+        summary:
+          'Inbound tags each online client is attributed to, grouped by panelGuid then email. Built from the Xray access log, so it is empty when the access log is off. Only this panel\'s own clients are covered; TUIC and MTProto inbounds never appear.',
+        response:
+          '{\n  "success": true,\n  "obj": {\n    "a1b2-...": {\n      "user1": ["in-443-tcp", "in-8443-tcp"]\n    }\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/clients/lastOnline',
         summary: 'Map of client email → last-seen unix timestamp.',
         response:

@@ -248,8 +248,7 @@ export function useClients(options: UseClientsOptions = {}) {
     staleTime: Infinity,
   });
 
-  // email -> inbound tags the client is currently attributed to, flattened across
-  // hosting panels. Built from the access log, so it is empty when the log is off.
+  // email -> attributed inbound tags (flattened across panels); empty without an access log.
   const clientInboundsQuery = useQuery({
     queryKey: keys.clients.clientInbounds(),
     queryFn: async () => {

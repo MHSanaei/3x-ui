@@ -19,6 +19,7 @@ import { DefaultsPayloadSchema, type DefaultsPayload } from '@/schemas/defaults'
 
 import type { InboundSpeedEntry } from './list/types';
 import { TRAFFIC_POLL_INTERVAL_S } from '@/lib/traffic/poll-interval';
+import { isClientOnlineOnInbound } from '@/lib/online-attribution';
 
 export interface SubSettings {
   enable: boolean;
@@ -124,9 +125,8 @@ async function fetchClientInboundsByGuid(): Promise<Record<string, Record<string
     : {};
 }
 
-// guid -> email -> tags. Pairs come from the access log, so a client missing
-// here simply has no attribution and the rollup falls back to the active-tag
-// signal for it.
+// guid -> email -> tags; a client missing here has no attribution and
+// falls back to the active-tag signal.
 function toClientInboundsMap(
   data: Record<string, Record<string, string[]> | null>,
 ): Map<string, Map<string, Set<string>>> {
@@ -297,9 +297,8 @@ export function useInbounds() {
   // inbound whose tag carried traffic this window.
   const [activeByGuid, setActiveByGuid] = useState<Map<string, Set<string>>>(() => new Map());
 
-  // Per-client inbound attribution from the access log, keyed by the hosting
-  // panelGuid. When a client has an entry here the rollup trusts it over the
-  // per-tag traffic signal, which cannot tell two clients on one inbound apart.
+  // guid -> email -> tags from the access log; preferred over the per-tag
+  // traffic signal, which cannot tell clients on one inbound apart.
   const [clientInboundsByGuid, setClientInboundsByGuid] = useState<
     Map<string, Map<string, Set<string>>>
   >(() => new Map());
@@ -372,12 +371,16 @@ export function useInbounds() {
             continue;
           }
           active.push(client.email);
-          if (nodeOnline?.has(client.email)) {
-            const attributed = clientInboundsByGuid.get(guid)?.get(client.email);
-            const onThisInbound = attributed
-              ? !dbInbound.tag || attributed.has(dbInbound.tag)
-              : inboundActive;
-            if (onThisInbound) online.push(client.email);
+          if (
+            nodeOnline?.has(client.email) &&
+            isClientOnlineOnInbound({
+              attributed: clientInboundsByGuid.get(guid)?.get(client.email),
+              tag: dbInbound.tag,
+              protocol: dbInbound.protocol,
+              inboundActive,
+            })
+          ) {
+            online.push(client.email);
           }
           if (stats) {
             const expiringSoon =

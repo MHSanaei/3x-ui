@@ -244,3 +244,27 @@ func TestLocalClientInboundsDropsOfflineClient(t *testing.T) {
 		t.Errorf("offline client should be gone, got %v", got)
 	}
 }
+
+func TestLocalClientInboundsExpiresAfterWindowEvenWhenInboundBusy(t *testing.T) {
+	p := newOnlineTestProcess()
+	const grace = int64(20000)
+	p.RefreshLocalOnline([]string{"alice"}, []string{"in-1"}, 1000, grace)
+	p.RefreshLocalClientInbounds(map[string][]string{"alice": {"in-1"}}, 1000, grace)
+
+	later := 1000 + clientInboundWindowMs + 1
+	p.RefreshLocalOnline([]string{"alice"}, []string{"in-1"}, later, grace)
+	p.RefreshLocalClientInbounds(nil, later, grace)
+	if got := p.GetLocalClientInbounds(); len(got) != 0 {
+		t.Errorf("pair past the window must expire, got %v", got)
+	}
+}
+
+func TestClearLocalClientInbounds(t *testing.T) {
+	p := newOnlineTestProcess()
+	p.RefreshLocalOnline([]string{"alice"}, []string{"in-1"}, 1000, 20000)
+	p.RefreshLocalClientInbounds(map[string][]string{"alice": {"in-1"}}, 1000, 20000)
+	p.ClearLocalClientInbounds()
+	if got := p.GetLocalClientInbounds(); len(got) != 0 {
+		t.Errorf("clear should empty the view, got %v", got)
+	}
+}

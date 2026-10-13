@@ -2,13 +2,8 @@ package tgbot
 
 import "strings"
 
-// onlineButtonLabel builds the label of one online-client button. tags are the
-// inbound tags the client is currently attributed to (from the access log); a
-// client connected to several inbounds lists every one of them, so the bot no
-// longer reports only the first inbound the client happens to be attached to.
-// remarkByTag maps a tag to its inbound remark; a tag without a remark is shown
-// as-is. With no attribution, fallback (the legacy single-inbound remark, may be
-// empty) is used.
+// onlineButtonLabel lists every inbound a client is attributed to; with no
+// tags it uses fallback (the legacy single-inbound remark, may be empty).
 func onlineButtonLabel(email string, tags []string, remarkByTag map[string]string, fallback string) string {
 	names := make([]string, 0, len(tags))
 	seen := make(map[string]struct{}, len(tags))

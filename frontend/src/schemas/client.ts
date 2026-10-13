@@ -275,9 +275,7 @@ export const OnlineByNodeSchema = z
   .nullable()
   .transform((v) => v ?? {});
 
-// panelGuid -> email -> inbound tags the client is attributed to (from the Xray
-// access log). Absent entries mean "no attribution": callers fall back to the
-// coarser active-inbound signal.
+// panelGuid -> email -> inbound tags from the access log; absent means no attribution.
 export const ClientInboundsByNodeSchema = z
   .record(z.string(), z.record(z.string(), nullableStringArray).nullable())
   .nullable()

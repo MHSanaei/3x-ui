@@ -29,6 +29,11 @@ func TestParseAccessLogClientInbound(t *testing.T) {
 	}
 }
 
+func pollPairs(tl *accessLogTailer) map[string][]string {
+	pairs, _ := tl.poll()
+	return pairs
+}
+
 func TestAccessLogTailerReadsOnlyNewLines(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "access.log")
 	line := func(email, tag string) string {
@@ -39,10 +44,10 @@ func TestAccessLogTailerReadsOnlyNewLines(t *testing.T) {
 	}
 	tail := &accessLogTailer{path: path, pathChecked: time.Now()}
 
-	if got := tail.poll(); len(got["alice"]) != 1 || got["alice"][0] != "in-1" {
+	if got := pollPairs(tail); len(got["alice"]) != 1 || got["alice"][0] != "in-1" {
 		t.Fatalf("seed poll: got %v", got)
 	}
-	if got := tail.poll(); got != nil {
+	if got := pollPairs(tail); got != nil {
 		t.Fatalf("nothing new, got %v", got)
 	}
 
@@ -56,14 +61,14 @@ func TestAccessLogTailerReadsOnlyNewLines(t *testing.T) {
 	if _, err := f.WriteString(line("bob", "in-2") + half[:20]); err != nil {
 		t.Fatal(err)
 	}
-	got := tail.poll()
+	got := pollPairs(tail)
 	if len(got) != 1 || got["bob"][0] != "in-2" {
 		t.Fatalf("append poll: got %v", got)
 	}
 	if _, err := f.WriteString(half[20:]); err != nil {
 		t.Fatal(err)
 	}
-	if got := tail.poll(); got["carol"][0] != "in-3" {
+	if got := pollPairs(tail); got["carol"][0] != "in-3" {
 		t.Fatalf("completed line should be picked up, got %v", got)
 	}
 
@@ -71,7 +76,7 @@ func TestAccessLogTailerReadsOnlyNewLines(t *testing.T) {
 	if err := os.WriteFile(path, []byte(line("dave", "in-4")), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if got := tail.poll(); got["dave"][0] != "in-4" {
+	if got := pollPairs(tail); got["dave"][0] != "in-4" {
 		t.Fatalf("after truncation: got %v", got)
 	}
 }

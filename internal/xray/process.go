@@ -175,15 +175,10 @@ type process struct {
 	// populates entries per cron tick and clears them when a probe fails. The
 	// mutex guards this map, onlineClients, and localLastOnline above so the
 	// online getters never see a torn read.
-	// localClientInbounds records, per email, the last time this panel's access
-	// log showed that client opening a connection on each inbound tag
-	// (email -> tag -> unix ms). Xray's per-user stats aggregate across inbounds,
-	// so the access log is the only source that pairs a client with the inbound
-	// it actually used. localClientInboundsView is the grace-filtered snapshot
-	// rebuilt by RefreshLocalClientInbounds and served by the getter.
+	nodeOnlineTrees map[int]map[string][]string
+	// email -> tag -> unix ms of the last access-log line; view is the filtered snapshot.
 	localClientInbounds     map[string]map[string]int64
 	localClientInboundsView map[string][]string
-	nodeOnlineTrees         map[int]map[string][]string
 	// nodeActiveInboundTrees mirrors nodeOnlineTrees for active inbound tags:
 	// each direct node reports a GUID-keyed subtree of inbound tags that carried
 	// traffic within its own grace window. The inbounds page combines this with
@@ -520,19 +515,13 @@ func (p *Process) RefreshLocalOnline(activeEmails, activeInboundTags []string, n
 	p.localActiveInbounds = activeInbounds
 }
 
-// clientInboundMaxAgeMs bounds how long a logged (email, inbound) pair is kept
-// while the client stays online. The access log only records a connection when
-// it opens, so a long-lived connection logs nothing afterwards; the pair must
-// outlive the grace window for as long as the client keeps being online.
-const clientInboundMaxAgeMs int64 = 24 * 60 * 60 * 1000
+// clientInboundWindowMs bounds how long a logged (email, tag) pair stays
+// visible; the access log only records connection opens, so old pairs expire.
+const clientInboundWindowMs int64 = 10 * 60 * 1000
 
-// RefreshLocalClientInbounds folds the (email -> inbound tags) pairs seen in
-// the access log this poll into the local pair map, then rebuilds the visible
-// snapshot. A pair is visible while its client is online (see RefreshLocalOnline)
-// and either it was logged within graceMs or its inbound carried traffic within
-// the same window — the latter keeps an idle-looking but still connected
-// session attributed to the right inbound. Call it right after
-// RefreshLocalOnline in the same tick; pass nil to only rebuild/prune.
+// RefreshLocalClientInbounds folds this poll's access-log pairs in and rebuilds
+// the snapshot: a pair shows while its client is online and it is recent, or
+// its inbound still carries traffic within clientInboundWindowMs.
 func (p *Process) RefreshLocalClientInbounds(pairs map[string][]string, now, graceMs int64) {
 	p.onlineMu.Lock()
 	defer p.onlineMu.Unlock()
@@ -567,7 +556,7 @@ func (p *Process) RefreshLocalClientInbounds(pairs map[string][]string, now, gra
 		_, isOnline := online[email]
 		for tag, ts := range tags {
 			age := now - ts
-			if age >= clientInboundMaxAgeMs || (!isOnline && age >= graceMs) {
+			if age >= clientInboundWindowMs || (!isOnline && age >= graceMs) {
 				delete(tags, tag)
 				continue
 			}
@@ -588,10 +577,16 @@ func (p *Process) RefreshLocalClientInbounds(pairs map[string][]string, now, gra
 	p.localClientInboundsView = view
 }
 
-// GetLocalClientInbounds returns a copy of the online clients' inbound tags
-// attributed from the access log (email -> tags). An email missing from the map
-// means the log gave no attribution for it, so callers fall back to the coarser
-// traffic-delta signal.
+// ClearLocalClientInbounds drops all attribution, e.g. when the access log is turned off.
+func (p *Process) ClearLocalClientInbounds() {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	p.localClientInbounds = nil
+	p.localClientInboundsView = nil
+}
+
+// GetLocalClientInbounds returns a copy of email -> attributed inbound tags;
+// a missing email means no attribution, so callers fall back.
 func (p *Process) GetLocalClientInbounds() map[string][]string {
 	p.onlineMu.RLock()
 	defer p.onlineMu.RUnlock()
