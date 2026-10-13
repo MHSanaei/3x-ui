@@ -1,6 +1,21 @@
 package tgbot
 
-import "testing"
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/dbtest"
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/sub"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+)
 
 // The customer keyboard is the only surface every linked account already has,
 // so the menu has to be reachable from it or nothing below it can be opened.
@@ -26,31 +41,92 @@ func TestCustomerMenuIsReachableFromTheCustomerKeyboard(t *testing.T) {
 	}
 }
 
-// Regression test: collapsing the three client pickers routed their verbs
-// through runClientSelfAction, which handled only this branch's own two verbs.
-// A customer with exactly one config tapping Subscription URL, Individual links
-// or QR codes was therefore answered with silence. On main the same tap showed a
-// picker.
+// recordingCustomerServer stands in for Telegram and keeps every send as
+// "<method> <text>", so a test can tell a served verb from the error fallback.
+func recordingCustomerServer(t *testing.T) func() []string {
+	t.Helper()
+	var mu sync.Mutex
+	var sent []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+		var body struct {
+			Text string `json:"text"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		sent = append(sent, method+" "+body.Text)
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{
+			"message_id": 1, "date": 0, "chat": map[string]any{"id": ownerTgID, "type": "private"},
+		}})
+	}))
+	t.Cleanup(srv.Close)
+	swapTestBot(t, srv.URL)
+	return func() []string {
+		mu.Lock()
+		defer mu.Unlock()
+		return append([]string(nil), sent...)
+	}
+}
+
+// seedLinkableCustomer binds one config to ownerTgID with everything the link
+// builders read, so each verb can succeed rather than fail into a reply.
+func seedLinkableCustomer(t *testing.T, uuid string) {
+	t.Helper()
+	dbtest.InitDB(t, filepath.Join(t.TempDir(), "x-ui.db"))
+	service.RegisterSubLinkProvider(sub.NewLinkProvider())
+
+	db := database.GetDB()
+	ib := &model.Inbound{
+		UserId: 1, Tag: "in-443", Enable: true, Listen: "203.0.113.5", Port: 443,
+		Protocol: model.VLESS, Remark: "in",
+		Settings: `{"clients":[{"id":"` + uuid + `","email":"` + ownerMail + `","tgId":4242,"subId":"sub-owned","enable":true}],"decryption":"none"}`,
+	}
+	if err := db.Create(ib).Error; err != nil {
+		t.Fatalf("seed inbound: %v", err)
+	}
+	rec := &model.ClientRecord{Email: ownerMail, SubID: "sub-owned", UUID: uuid, TgID: ownerTgID, Enable: true}
+	if err := db.Create(rec).Error; err != nil {
+		t.Fatalf("seed client: %v", err)
+	}
+	if err := db.Create(&model.ClientInbound{ClientId: rec.Id, InboundId: ib.Id}).Error; err != nil {
+		t.Fatalf("seed client_inbound: %v", err)
+	}
+	if err := db.Create(&xray.ClientTraffic{InboundId: ib.Id, Email: ownerMail, Enable: true}).Error; err != nil {
+		t.Fatalf("seed traffic: %v", err)
+	}
+}
+
+// A one-config customer once got the error fallback for main's three verbs, so
+// each verb must produce the output only its own handler sends.
 func TestSingleConfigCustomerGetsMainVerbsServed(t *testing.T) {
-	for _, verb := range []string{
-		"client_sub_links",
-		"client_individual_links",
-		"client_qr_links",
-		"client_one_link",
-	} {
-		t.Run(verb, func(t *testing.T) {
-			tb, calls := newCustomerTgbot(t, ownerMail)
+	const uuid = "11111111-2222-4333-8444-555555555555"
+	vlessLink := "vless://" + uuid + "@203.0.113.5:443"
+	cases := []struct {
+		verb string
+		want string
+	}{
+		{verb: "client_sub_links", want: "/sub-owned</code>"},
+		{verb: "client_individual_links", want: vlessLink},
+		{verb: "client_qr_links", want: "sendDocument "},
+		{verb: "client_one_link", want: "EMAIL=" + ownerMail},
+	}
+	for _, tc := range cases {
+		t.Run(tc.verb, func(t *testing.T) {
+			sent := recordingCustomerServer(t)
+			seedLinkableCustomer(t, uuid)
 			customerLocalizer(t)
 			runningBot(t)
 
-			before := calls("sendMessage")
-			beforeDoc := calls("sendDocument")
-			tb.clientEmailPicker(7001, ownerTgID, verb, false)
+			(&Tgbot{}).clientEmailPicker(7001, ownerTgID, tc.verb, false)
 
-			// The QR verb answers with documents rather than text, so it counts
-			// the send that carries them instead of only sendMessage.
-			if got := calls("sendMessage") - before + calls("sendDocument") - beforeDoc; got == 0 {
-				t.Fatalf("%s was answered with silence for a customer holding one config", verb)
+			got := strings.Join(sent(), "\n")
+			if !strings.Contains(got, tc.want) {
+				t.Fatalf("%s for a one-config customer sent %q, want it to contain %q", tc.verb, got, tc.want)
+			}
+			if tc.verb == "client_one_link" && !strings.Contains(got, vlessLink) {
+				t.Fatalf("client_one_link sent %q, want the header followed by the client's only link", got)
 			}
 		})
 	}
@@ -69,9 +145,8 @@ func TestUnhandledSelfVerbIsAnsweredNotSwallowed(t *testing.T) {
 	}
 }
 
-// Every button on the menu must map to a verb the router serves, and each must
-// pass the customer gate. A button that falls through answers "error", so the
-// customer taps it and nothing happens.
+// Every menu button must pass the customer gate, or a customer's tap falls
+// through to the "error" answer and nothing happens.
 func TestEveryMenuButtonIsServedAndGated(t *testing.T) {
 	tb, _ := newCustomerTgbot(t, ownerMail)
 	customerLocalizer(t)
