@@ -208,3 +208,23 @@ func TestOverlongLineIsSplitInsteadOfRejected(t *testing.T) {
 		t.Fatal("splitting an over-long line lost or changed bytes")
 	}
 }
+
+// /usage with no argument is how a client asks about its own traffic; the rows
+// were built from email[0] and panicked on the empty slice.
+func TestUsageWithoutAnArgumentDoesNotPanic(t *testing.T) {
+	initReportDB(t)
+	tb, _ := newScreenTgbot(t, false)
+	seedClientForTgUser(t, 3131, "usage-client@example.com")
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("getClientUsage panicked: %v", r)
+		}
+	}()
+	tb.getClientUsage(3131, 3131)
+
+	if sc, ok := tb.screens().get(3131); !ok || sc.kind != "client" {
+		t.Fatalf("the usage path never rendered a client screen (ok=%v): the test does "+
+			"not exercise the row-building line", ok)
+	}
+}
