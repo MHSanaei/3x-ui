@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -225,6 +226,9 @@ func outboundTransportIsUDP(ob map[string]any) bool {
 	if protocol, _ := ob["protocol"].(string); equalsAnyFold(protocol, "hysteria", "wireguard", "amneziawg") {
 		return true
 	}
+	if protocol, _ := ob["protocol"].(string); equalsAnyFold(protocol, "masque") {
+		return masqueDialsHTTP3(ob)
+	}
 	if stream, ok := ob["streamSettings"].(map[string]any); ok {
 		// The core resolves "kcp" and "mkcp" to the same mKCP transport.
 		if n, _ := stream["network"].(string); equalsAnyFold(n, "hysteria", "kcp", "mkcp", "quic") {
@@ -232,6 +236,15 @@ func outboundTransportIsUDP(ob map[string]any) bool {
 		}
 	}
 	return false
+}
+
+// masqueDialsHTTP3 mirrors the core's MASQUE client, which falls back to HTTP/2 over
+// TCP only when the TLS ALPN offers h2 and not h3.
+func masqueDialsHTTP3(ob map[string]any) bool {
+	stream, _ := ob["streamSettings"].(map[string]any)
+	tlsSettings, _ := stream["tlsSettings"].(map[string]any)
+	alpn, _ := tlsSettings["alpn"].([]any)
+	return !slices.Contains(alpn, any("h2")) || slices.Contains(alpn, any("h3"))
 }
 
 // equalsAnyFold mirrors the core, which lowercases a protocol id and a
@@ -281,7 +294,7 @@ func extractOutboundEndpoints(ob map[string]any) []string {
 		if len(out) == 0 {
 			addServer(settings["address"], settings["port"])
 		}
-	case "hysteria":
+	case "hysteria", "masque":
 		addServer(settings["address"], settings["port"])
 	case "trojan", "shadowsocks", "http", "socks":
 		if servers, ok := settings["servers"].([]any); ok {

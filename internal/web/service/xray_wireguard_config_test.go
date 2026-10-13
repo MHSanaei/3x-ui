@@ -7,6 +7,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
+	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 )
 
 func wgTestSecretKey() string {
@@ -55,7 +56,7 @@ func seedWGInbound(t *testing.T, tag string, port int, clients []model.Client) {
 	}
 }
 
-func seedDualTunnelClient(t *testing.T, enabled bool) string {
+func seedDualTunnelClient(t *testing.T, enabled bool, wgKeepAlive *int) string {
 	t.Helper()
 	setupSettingTestDB(t)
 	db := database.GetDB()
@@ -64,13 +65,16 @@ func seedDualTunnelClient(t *testing.T, enabled bool) string {
 	wgClient := model.Client{
 		Email:        email,
 		Enable:       true,
-		PublicKey:    "pub-dual",
+		PublicKey:    "pub-wg",
 		AllowedIPs:   []string{"10.0.0.5/32"},
 		PreSharedKey: "wg-psk",
+		KeepAlive:    wgKeepAlive,
 	}
 	awgClient := wgClient
+	awgClient.PublicKey = "pub-awg"
 	awgClient.AllowedIPs = []string{"10.8.1.5/32"}
 	awgClient.PreSharedKey = "awg-psk"
+	awgClient.KeepAlive = model.KeepAlivePtr(25)
 
 	wgSettings, err := json.Marshal(map[string]any{
 		"secretKey": wgTestSecretKey(),
@@ -191,14 +195,14 @@ func TestGetXrayConfigWireGuardDisabledClientExcluded(t *testing.T) {
 }
 
 func TestGetXrayConfigWireGuardUsesInboundLocalTunnelFields(t *testing.T) {
-	email := seedDualTunnelClient(t, true)
+	email := seedDualTunnelClient(t, true, model.KeepAlivePtr(15))
 
 	var shared model.ClientRecord
 	if err := database.GetDB().Where("email = ?", email).First(&shared).Error; err != nil {
 		t.Fatalf("read shared client: %v", err)
 	}
-	if shared.AllowedIPs != "10.8.1.5/32" || shared.PreSharedKey != "awg-psk" {
-		t.Fatalf("test setup did not persist AmneziaWG last: allowedIPs=%q preSharedKey=%q", shared.AllowedIPs, shared.PreSharedKey)
+	if shared.AllowedIPs != "10.8.1.5/32" || shared.PreSharedKey != "awg-psk" || shared.PublicKey != "pub-awg" || shared.KeepAlive != 25 {
+		t.Fatalf("test setup did not persist AmneziaWG last: allowedIPs=%q preSharedKey=%q publicKey=%q keepAlive=%d", shared.AllowedIPs, shared.PreSharedKey, shared.PublicKey, shared.KeepAlive)
 	}
 
 	peers := wgPeerList(t, wgInboundEmittedSettings(t, "wg-dual"))
@@ -212,10 +216,39 @@ func TestGetXrayConfigWireGuardUsesInboundLocalTunnelFields(t *testing.T) {
 	if peers[0]["preSharedKey"] != "wg-psk" {
 		t.Fatalf("WireGuard peer preSharedKey = %v, want wg-psk", peers[0]["preSharedKey"])
 	}
+	if peers[0]["publicKey"] != "pub-wg" {
+		t.Fatalf("WireGuard peer publicKey = %v, want pub-wg", peers[0]["publicKey"])
+	}
+	if peers[0]["keepAlive"] != float64(15) {
+		t.Fatalf("WireGuard peer keepAlive = %v, want 15", peers[0]["keepAlive"])
+	}
+}
+
+func TestGetXrayConfigWireGuardOmitsKeepAliveAbsentFromSettings(t *testing.T) {
+	email := seedDualTunnelClient(t, true, nil)
+
+	var shared model.ClientRecord
+	if err := database.GetDB().Where("email = ?", email).First(&shared).Error; err != nil {
+		t.Fatalf("read shared client: %v", err)
+	}
+	if shared.PublicKey != "pub-awg" || shared.KeepAlive != 25 {
+		t.Fatalf("test setup did not persist AmneziaWG identity: publicKey=%q keepAlive=%d", shared.PublicKey, shared.KeepAlive)
+	}
+
+	peers := wgPeerList(t, wgInboundEmittedSettings(t, "wg-dual"))
+	if len(peers) != 1 {
+		t.Fatalf("expected 1 peer, got %d: %v", len(peers), peers)
+	}
+	if peers[0]["publicKey"] != "pub-wg" {
+		t.Fatalf("WireGuard peer publicKey = %v, want pub-wg", peers[0]["publicKey"])
+	}
+	if _, ok := peers[0]["keepAlive"]; ok {
+		t.Fatalf("WireGuard peer keepAlive = %v, want absent", peers[0]["keepAlive"])
+	}
 }
 
 func TestGetXrayConfigWireGuardDisabledDualProtocolClientExcluded(t *testing.T) {
-	seedDualTunnelClient(t, false)
+	seedDualTunnelClient(t, false, model.KeepAlivePtr(15))
 
 	peers := wgPeerList(t, wgInboundEmittedSettings(t, "wg-dual"))
 	if len(peers) != 0 {
@@ -236,5 +269,37 @@ func TestGetXrayConfigWireGuardNoClientsEmitsEmptyPeers(t *testing.T) {
 	}
 	if len(peers) != 0 {
 		t.Fatalf("expected empty peers, got %v", peers)
+	}
+}
+
+// #6796: where the core would pick a kernel TUN it cannot set up (Docker, a sandboxed unit),
+// one WireGuard outbound aborts the whole start unless it is moved to the userspace TUN.
+func TestForceUserspaceWireGuardTun(t *testing.T) {
+	cases := []struct {
+		name, protocol, settings string
+	}{
+		{"kernel TUN requested", "wireguard", `{"noKernelTun":false,"mtu":1420}`},
+		{"kernel TUN by default, protocol cased like the core accepts", "WireGuard", `{"mtu":1420}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := json_util.RawMessage(`[{"protocol":"freedom","tag":"direct","settings":{}},` +
+				`{"protocol":"` + tc.protocol + `","tag":"warp","settings":` + tc.settings + `}]`)
+			var outbounds []struct {
+				Settings map[string]any `json:"settings"`
+			}
+			if err := json.Unmarshal(forceUserspaceWireGuardTun(raw), &outbounds); err != nil {
+				t.Fatal(err)
+			}
+			if got := outbounds[1].Settings["noKernelTun"]; got != true {
+				t.Fatalf("wireguard noKernelTun = %v, want true", got)
+			}
+			if got := outbounds[1].Settings["mtu"]; got != float64(1420) {
+				t.Fatalf("wireguard mtu = %v, want the template's 1420 kept", got)
+			}
+			if _, ok := outbounds[0].Settings["noKernelTun"]; ok {
+				t.Fatalf("freedom outbound gained noKernelTun: %v", outbounds[0].Settings)
+			}
+		})
 	}
 }

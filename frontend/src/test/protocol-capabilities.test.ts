@@ -8,7 +8,6 @@ import {
   canEnableStream,
   canEnableVisionSeed,
   isSS2022,
-  isSSMultiUser,
 } from '@/lib/xray/protocol-capabilities';
 
 // Pure-function tests for the capability predicates. Each fixture × stream
@@ -67,7 +66,6 @@ describe('protocol capability predicates', () => {
           canEnableStream: canEnableStream(values),
           canEnableVisionSeed: canEnableVisionSeed(values),
           isSS2022: isSS2022(values),
-          isSSMultiUser: isSSMultiUser(values),
         };
         expect(result).toMatchSnapshot();
       });
