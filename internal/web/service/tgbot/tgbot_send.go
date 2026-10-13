@@ -42,14 +42,27 @@ func splitMessageLines(block string, limit int) []string {
 	}
 
 	lines := strings.Split(block, "\r\n")
-	pages := []string{lines[0]}
-	for _, line := range lines[1:] {
+	pages := []string{}
+	for _, line := range lines {
+		// A single link can exceed a caption on its own; Telegram counts bytes,
+		// so such a line is split rather than kept whole and rejected.
+		for len(line) > limit {
+			pages = append(pages, line[:limit])
+			line = line[limit:]
+		}
+		if len(pages) == 0 {
+			pages = append(pages, line)
+			continue
+		}
 		last := len(pages) - 1
 		if len(pages[last])+len("\r\n")+len(line) > limit {
 			pages = append(pages, line)
 			continue
 		}
 		pages[last] += "\r\n" + line
+	}
+	if len(pages) == 0 {
+		pages = append(pages, "")
 	}
 	return pages
 }
@@ -189,6 +202,14 @@ func isTelegramNotModifiedError(err error) bool {
 	errStr := err.Error()
 	return strings.Contains(errStr, "not modified") ||
 		strings.Contains(errStr, "No fields to modify")
+}
+
+// sendPagedNotice posts one notice per page, each dismissable. Telegram rejects
+// a message over 4096 characters whole, so a per-client report has to be split.
+func (t *Tgbot) sendPagedNotice(chatID int64, text string) {
+	for _, chunk := range pageMessage(text, telegramPageLimit) {
+		t.sendNoticeReturningID(chatID, chunk)
+	}
 }
 
 // deleteMessageTgBot deletes a message from the chat.

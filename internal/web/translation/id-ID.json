@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ Operasi berhasil!",
       "restartFailed": "❗ Kesalahan dalam operasi.\r\n\r\n<code>Error: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core tidak berjalan.",
-      "startDesc": "Tampilkan menu utama"
+      "startDesc": "Tampilkan menu utama",
+      "statusOk": "✅ Bot berfungsi!"
     },
     "messages": {
       "cpuThreshold": "Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%",

@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ İşlem başarılı!",
       "restartFailed": "❗ İşlem hatası.\r\n\r\n<code>Hata: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core çalışmıyor.",
-      "startDesc": "Ana menüyü göster"
+      "startDesc": "Ana menüyü göster",
+      "statusOk": "✅ Bot çalışıyor!"
     },
     "messages": {
       "cpuThreshold": "CPU Yükü ({{ .Percent }}%), {{ .Threshold }}% eşiğini aşıyor",

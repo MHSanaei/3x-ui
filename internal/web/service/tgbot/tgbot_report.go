@@ -75,9 +75,7 @@ func reportPrevSet(chatID int64, id int) {
 	reportPrev.msg[chatID] = id
 }
 
-// sendReport posts the report as one or more messages, every one of them
-// dismissable, and removes the previous run's message so the chat does not fill
-// with daily copies.
+// sendReport posts the report paged and dismissable, replacing the previous run's.
 func (t *Tgbot) sendReport(chatID int64, body string) {
 	if body == "" {
 		return

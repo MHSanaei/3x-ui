@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ 操作成功!",
       "restartFailed": "❗ 操作錯誤。\r\n\r\n<code>錯誤: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core 未運行。",
-      "startDesc": "顯示主選單"
+      "startDesc": "顯示主選單",
+      "statusOk": "✅ 機器人運作正常！"
     },
     "messages": {
       "cpuThreshold": "CPU 使用率為 {{ .Percent }}%，超過閾值 {{ .Threshold }}%",

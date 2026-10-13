@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ ¡Operación exitosa!",
       "restartFailed": "❗ Error en la operación.\r\n\r\n<code>Error: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core no está en ejecución.",
-      "startDesc": "Mostrar el menú principal"
+      "startDesc": "Mostrar el menú principal",
+      "statusOk": "✅ ¡El bot funciona!"
     },
     "messages": {
       "cpuThreshold": "El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%",

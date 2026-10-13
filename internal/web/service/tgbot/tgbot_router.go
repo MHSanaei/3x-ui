@@ -272,7 +272,13 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		t.screenHome(chatId, message.From.ID)
 		return
 	case "status":
-		t.screenServer(chatId)
+		// The full server screen carries the host addresses and versions, so it
+		// stays admin-only; a client asking for status gets liveness alone.
+		if isAdmin {
+			t.screenServer(chatId)
+			return
+		}
+		t.sendNotice(chatId, t.I18nBot("tgbot.commands.statusOk"))
 		return
 	case "id":
 		t.sendNotice(chatId, t.I18nBot("tgbot.commands.getID", "ID=="+strconv.FormatInt(message.From.ID, 10)))
@@ -1172,7 +1178,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 
 		// One report per tap, not one message per client: a large panel would
-		// otherwise burst past Telegram's rate limit; the notice pages it.
+		// otherwise burst past Telegram's rate limit.
 		var report strings.Builder
 		for _, email := range emails {
 			if err := t.inboundService.ResetClientTrafficByEmail(email); err == nil {
@@ -1184,9 +1190,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 		report.WriteString(t.I18nBot("tgbot.messages.FinishProcess"))
 
-		// Escaped whole: one stray "<" in a remark or email otherwise makes
-		// Telegram reject the page it landed on, losing ~15 clients at once.
-		t.sendNotice(chatId, html.EscapeString(report.String()))
+		// Escaped whole (a stray "<" makes Telegram reject a page) and paged:
+		// past ~80 clients the report exceeds one message.
+		t.sendPagedNotice(chatId, html.EscapeString(report.String()))
 		// The confirmation has served its purpose: leaving it on screen left the
 		// only button being the one just pressed.
 		t.screenHome(chatId, callbackQuery.From.ID)

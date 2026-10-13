@@ -232,12 +232,16 @@ func (t *Tgbot) answerInline(queryID string, results []telego.InlineQueryResult,
 	}
 }
 
-// inlineResults builds the items for one inline query.
+// inlineResults builds one inline query's items. Inbound lists are admin-only:
+// that browser leaked every inbound's remark, protocol, traffic and client count.
 func (t *Tgbot) inlineResults(action, data, search string, isAdmin bool) []telego.InlineQueryResult {
-	switch action {
-	case inlineScopeClients:
+	if action == inlineScopeClients {
 		return t.clientResults(search, isAdmin, data)
-	case "add":
+	}
+	if !isAdmin {
+		return nil
+	}
+	if action == "add" {
 		return t.inboundResults(search, "add")
 	}
 	return t.inboundResults(search, "inb")

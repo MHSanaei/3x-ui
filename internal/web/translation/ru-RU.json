@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ Ядро Xray успешно перезапущено.",
       "restartFailed": "❗ Ошибка при перезапуске Xray-core.\r\n\r\n<code>Ошибка: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core не запущен.",
-      "startDesc": "Показать главное меню"
+      "startDesc": "Показать главное меню",
+      "statusOk": "✅ Бот в порядке!"
     },
     "messages": {
       "cpuThreshold": "Загрузка процессора составляет {{ .Percent }}%, что превышает пороговое значение {{ .Threshold }}%",

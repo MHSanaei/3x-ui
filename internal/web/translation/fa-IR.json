@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ عملیات با موفقیت انجام شد!",
       "restartFailed": "❗ خطا در عملیات.\r\n\r\n<code>خطا: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core در حال اجرا نیست.",
-      "startDesc": "نمایش منوی اصلی"
+      "startDesc": "نمایش منوی اصلی",
+      "statusOk": "✅ ربات سالم است!"
     },
     "messages": {
       "cpuThreshold": "بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%",

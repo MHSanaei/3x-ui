@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ العملية نجحت!",
       "restartFailed": "❗ حصل خطأ في العملية.\r\n\r\n<code>Error: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core مش شغال.",
-      "startDesc": "عرض القائمة الرئيسية"
+      "startDesc": "عرض القائمة الرئيسية",
+      "statusOk": "✅ البوت يعمل!"
     },
     "messages": {
       "cpuThreshold": "حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)",

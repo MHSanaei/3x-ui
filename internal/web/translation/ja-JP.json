@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ 操作成功！",
       "restartFailed": "❗ 操作エラー。\r\n\r\n<code>エラー: {{ .Error }}</code>",
       "xrayNotRunning": "❗ Xray Core は動作していません。",
-      "startDesc": "メインメニューを表示"
+      "startDesc": "メインメニューを表示",
+      "statusOk": "✅ ボットは正常です！"
     },
     "messages": {
       "cpuThreshold": "CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました",

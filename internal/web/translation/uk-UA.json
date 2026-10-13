@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ Операція успішна!",
       "restartFailed": "❗ Помилка в операції.\r\n\r\n<code>Помилка: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core не запущений.",
-      "startDesc": "Показати головне меню"
+      "startDesc": "Показати головне меню",
+      "statusOk": "✅ Бот працює!"
     },
     "messages": {
       "cpuThreshold": "Навантаження ЦП  {{ .Percent }}% перевищує порогове значення {{ .Threshold }}%",

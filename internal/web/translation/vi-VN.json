@@ -2420,7 +2420,8 @@
       "restartSuccess": "✅ Hoạt động thành công!",
       "restartFailed": "❗ Lỗi trong quá trình hoạt động.\r\n\r\n<code>Lỗi: {{ .Error }}</code>.",
       "xrayNotRunning": "❗ Xray Core không chạy.",
-      "startDesc": "Hiển thị menu chính"
+      "startDesc": "Hiển thị menu chính",
+      "statusOk": "✅ Bot hoạt động bình thường!"
     },
     "messages": {
       "cpuThreshold": "Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%",

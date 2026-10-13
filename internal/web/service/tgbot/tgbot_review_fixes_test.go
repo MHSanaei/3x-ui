@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/eventbus"
+
+	"github.com/mymmrac/telego"
 )
 
 // A login success must not fold into the failure card of the same IP: the
@@ -110,11 +112,6 @@ func TestNewReportReplacesThePreviousOne(t *testing.T) {
 	}
 }
 
-// reportTestBody is long enough that pageMessage splits it into several messages.
-func reportTestBody() string {
-	return strings.Repeat("📈 line of the scheduled report\r\n", 260)
-}
-
 // A client's daily alert about its own traffic is routine too: it must carry the
 // same dismiss the rest of the bot uses, not arrive as an unclearable message.
 func TestClientTrafficAlertIsDismissable(t *testing.T) {
@@ -133,4 +130,81 @@ func TestClientTrafficAlertIsDismissable(t *testing.T) {
 		return
 	}
 	t.Fatal("no alert message was sent")
+}
+
+// reportTestBody is long enough that pageMessage splits it into several messages.
+func reportTestBody() string {
+	return strings.Repeat("📈 line of the scheduled report\r\n", 260)
+}
+
+// The server screen carries the host's addresses and versions, so /status must
+// not hand it to a client-level account.
+func TestStatusCommandGivesAClientLivenessOnly(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+	setTestAdmins(t, 1001)
+
+	tb.answerCommand(&telego.Message{
+		Chat: telego.Chat{ID: 2002, Type: "private"},
+		From: &telego.User{ID: 2002},
+		Text: "/status",
+	}, 2002, false)
+
+	if methods := methods(calls()); len(methods) == 0 {
+		t.Fatal("a client got no answer to /status")
+	}
+	for _, c := range calls() {
+		text := c.text()
+		if strings.Contains(text, "Xray") || strings.Contains(text, "Uptime") {
+			t.Fatalf("a client received the server screen: %q", text)
+		}
+	}
+}
+
+// The inline browser listed every inbound to any client-level account, which
+// leaked remarks, ports and client counts.
+func TestInlineBrowserRefusesInboundsForAClient(t *testing.T) {
+	tb := &Tgbot{}
+	for _, action := range []string{"", "inb", "add"} {
+		if got := tb.inlineResults(action, "", "", false); len(got) != 0 {
+			t.Fatalf("client-level inline scope %q returned %d results", action, len(got))
+		}
+	}
+}
+
+// Past ~80 clients the per-client reset report exceeded Telegram's message limit
+// whole, so the admin saw no outcome at all.
+func TestResetAllReportIsPaged(t *testing.T) {
+	tb, calls := newScreenTgbot(t, false)
+
+	// Roughly what 120 clients produce.
+	body := strings.Repeat("✅ Traffic reset for client@example.com\r\n\r\n", 120)
+	tb.sendPagedNotice(31337, body)
+
+	sent := 0
+	for _, c := range calls() {
+		if c.Method != "sendMessage" {
+			continue
+		}
+		sent++
+		if len(c.text()) > telegramPageLimit {
+			t.Fatalf("message %d is %d bytes, over the %d limit", sent, len(c.text()), telegramPageLimit)
+		}
+	}
+	if sent < 2 {
+		t.Fatalf("the report went out as %d message(s); it must be split", sent)
+	}
+}
+
+// A single line longer than a caption used to become a page over the limit, and
+// Telegram rejected it whole: the screen never appeared.
+func TestOverlongLineIsSplitInsteadOfRejected(t *testing.T) {
+	long := "vless://" + strings.Repeat("a", 4000)
+	for i, page := range splitMessageLines(long, botCaptionLimit) {
+		if len(page) > botCaptionLimit {
+			t.Fatalf("page %d is %d bytes, over the %d caption limit", i, len(page), botCaptionLimit)
+		}
+	}
+	if joined := strings.Join(splitMessageLines(long, botCaptionLimit), ""); joined != long {
+		t.Fatal("splitting an over-long line lost or changed bytes")
+	}
 }
