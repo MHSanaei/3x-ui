@@ -223,8 +223,53 @@ func TestUsageWithoutAnArgumentDoesNotPanic(t *testing.T) {
 	}()
 	tb.getClientUsage(3131, 3131)
 
-	if sc, ok := tb.screens().get(3131); !ok || sc.kind != "client" {
-		t.Fatalf("the usage path never rendered a client screen (ok=%v): the test does "+
-			"not exercise the row-building line", ok)
+	if sc, ok := tb.screens().get(3131); !ok || sc.msgID == 0 {
+		t.Fatalf("the usage path never rendered a screen (ok=%v): the test does not exercise the row-building line", ok)
+	}
+}
+
+// The usage card used to draw the admin keyboard for every caller, so a client
+// tapping /usage saw reset-traffic, IP-limit and enable/disable buttons. Those
+// act on an account and must never be offered to a client.
+func TestUsageGivesAClientNoAdminButtons(t *testing.T) {
+	initReportDB(t)
+	tb, _ := newScreenTgbot(t, false)
+	seedClientForTgUser(t, 4141, "usage-self@example.com")
+
+	tb.getClientUsage(4141, 4141)
+
+	sc, ok := tb.screens().get(4141)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	markup, _ := json.Marshal(sc.markup)
+	for _, action := range []string{
+		"reset_traffic", "limit_traffic", "ip_limit", "ip_log",
+		"toggle_enable", "tg_user", "reset_exp", "client_invite_link",
+	} {
+		if strings.Contains(string(markup), action) {
+			t.Fatalf("a client's usage card offered the admin control %q: %s", action, markup)
+		}
+	}
+}
+
+// A non-admin email argument must not open an admin card either: /usage <email>
+// for a client resolves to its own card, never to the named one.
+func TestUsageEmailArgumentDoesNotLeakAnotherClient(t *testing.T) {
+	initReportDB(t)
+	tb, _ := newScreenTgbot(t, false)
+	seedClientForTgUser(t, 5151, "mine@example.com")
+	seedClientForTgUser(t, 9999, "other@example.com")
+
+	tb.getClientUsage(5151, 5151, "other@example.com")
+
+	sc, ok := tb.screens().get(5151)
+	if !ok {
+		t.Fatal("no screen was tracked")
+	}
+	body := sc.body + sc.text
+	markup, _ := json.Marshal(sc.markup)
+	if strings.Contains(body, "other@example.com") || strings.Contains(string(markup), "other@example.com") {
+		t.Fatalf("a client's /usage <email> leaked another client:\n%s\n%s", body, markup)
 	}
 }

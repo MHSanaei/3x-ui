@@ -379,6 +379,13 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID int64, email ...string) {
 		return
 	}
 
+	// A client sees only its own card, and never the admin keyboard: every button
+	// on it (reset traffic, limits, IP limit, enable/disable) acts on an account.
+	if t.levelOf(tgUserID) != levelAdmin {
+		t.screenClientHome(chatId, tgUserID)
+		return
+	}
+
 	output := ""
 
 	if len(traffics) > 0 {
