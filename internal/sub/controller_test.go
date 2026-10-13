@@ -802,3 +802,38 @@ func TestLegacyClashEndpointNormalizesShadowsocksCipher(t *testing.T) {
 		})
 	}
 }
+
+func TestIncyRoutingIsolatedFromHappHeaders(t *testing.T) {
+	seedSubDB(t)
+	seedSubInbound(t, "s1", "vl", 4492, 1, `{"network":"tcp","security":"none"}`)
+	gin.SetMode(gin.TestMode)
+	const happRules = "happ://routing/onadd/existing-rules"
+	const incyRules = "incy://routing/onadd/AbC+/="
+	router := gin.New()
+	NewSUBController(router.Group("/"),
+		WithSUBEncryption(false),
+		WithSUBEnableRouting(true),
+		WithSUBRoutingRules(happRules),
+		WithSUBIncyEnableRouting(true),
+		WithSUBIncyRoutingRules(incyRules),
+		WithSUBIncyConfig(IncyConfig{AutoDetect: false}),
+	)
+	for _, ua := range []string{"INCY/1.0.0/ios", "Happ/1.2.0"} {
+		t.Run(ua, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "http://sub.example.com/sub/s1", nil)
+			req.Header.Set("User-Agent", ua)
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK || !strings.Contains(resp.Body.String(), "vless://") {
+				t.Fatalf("status=%d, body=%s", resp.Code, resp.Body.String())
+			}
+			if ua == "INCY/1.0.0/ios" {
+				if !strings.HasSuffix(resp.Body.String(), incyRules+"\n") || resp.Header().Get("Routing") != "" || resp.Header().Get("Routing-Enable") != "" {
+					t.Fatalf("Incy routing: headers=%v, body=%s", resp.Header(), resp.Body.String())
+				}
+			} else if strings.Contains(resp.Body.String(), "incy://") || resp.Header().Get("Routing") != happRules || resp.Header().Get("Routing-Enable") != "true" {
+				t.Fatalf("Happ routing: headers=%v, body=%s", resp.Header(), resp.Body.String())
+			}
+		})
+	}
+}

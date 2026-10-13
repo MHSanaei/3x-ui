@@ -504,7 +504,8 @@ func (a *SUBController) subs(c *gin.Context) {
 		metadata := a.metadataForSubRequest(func() *SubService { return subReq }, subId, builtinProfileURL(c, scheme, hostWithPort))
 		a.ApplyCommonHeaders(c, header, a.updateInterval, metadata.Title, metadata.SupportURL, metadata.ProfileURL, metadata.Announce, a.subEnableRouting, a.subRoutingRules, a.subHideSettings)
 
-		if a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
+		// Incy's profile rides the raw body; other clients must not see that line (#6062).
+		if IsIncyClient(userAgent) && a.subIncyEnableRouting && a.subIncyRoutingRules != "" {
 			incyRules, _, err := resolveIncyRoutingSource(a.subIncyRoutingRules)
 			if err == nil && strings.TrimSpace(incyRules) != "" {
 				result.WriteString(incyRules)
@@ -957,22 +958,27 @@ func (a *SUBController) ApplyCommonHeaders(
 		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	}
 
-	rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
-	if strings.TrimSpace(profileRoutingRules) == "" {
-		// Happ/INCY fetch the geo files the baked rules reference through this
-		// header; unlike the documents, it keeps the profile's own DNS servers.
-		rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
-	}
+	// Incy treats a Happ Routing header as its profile, so a recognized Incy
+	// client skips Happ routing headers, including the JSON fallback (#6062).
+	incyClient := c.Request != nil && IsIncyClient(c.GetHeader("User-Agent"))
 	// The off values undo a previously pushed setting, so they ride the same
 	// opt-in as every other Happ header rather than reaching every Happ client.
 	happManaged := a.happConfig.AutoDetect && c.Request != nil && IsHappClient(c.GetHeader("User-Agent"))
-	if profileEnableRouting {
-		c.Writer.Header().Set("Routing-Enable", "true")
-	} else if happManaged {
-		c.Writer.Header().Set("Routing-Enable", "0")
-	}
-	if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
-		c.Writer.Header().Set("Routing", rules)
+	if !incyClient {
+		rules, remote, routingErr := resolveRoutingSource(remoteRoutingHapp, profileRoutingRules)
+		if strings.TrimSpace(profileRoutingRules) == "" {
+			// Happ fetches the geo files the baked rules reference through this
+			// header; unlike the documents, it keeps the profile's own DNS servers.
+			rules, remote, routingErr = jsonRoutingHeaderSource(a.subJsonRoutingRules), false, nil
+		}
+		if profileEnableRouting {
+			c.Writer.Header().Set("Routing-Enable", "true")
+		} else if happManaged {
+			c.Writer.Header().Set("Routing-Enable", "0")
+		}
+		if (routingErr == nil || !remote) && strings.TrimSpace(rules) != "" {
+			c.Writer.Header().Set("Routing", rules)
+		}
 	}
 	if profileHideSettings {
 		c.Writer.Header().Set("Hide-Settings", "1")
@@ -981,5 +987,5 @@ func (a *SUBController) ApplyCommonHeaders(
 	}
 
 	ApplyHappHeaders(c, a.happConfig, happManaged)
-	ApplyIncyHeaders(c, a.incyConfig, a.incyConfig.AutoDetect && c.Request != nil && IsIncyClient(c.GetHeader("User-Agent")))
+	ApplyIncyHeaders(c, a.incyConfig, a.incyConfig.AutoDetect && incyClient)
 }
