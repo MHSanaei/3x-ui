@@ -2423,19 +2423,7 @@
       "tag": "Tài trợ",
       "visit": "Truy cập",
       "yourBrand": "Thương hiệu của bạn ở đây",
-      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày.",
-      "placements": "Vị trí hiện có",
-      "placementDashboard": "Banner tổng quan",
-      "placementDashboardDesc": "Vị trí cao cấp ở đầu bảng điều khiển, mỗi lần một nhà tài trợ.",
-      "placementSidebar": "Thẻ thanh bên",
-      "placementSidebarDesc": "Hiển thị trên mọi trang của panel, luân phiên giữa các nhà tài trợ.",
-      "placementLogin": "Trang đăng nhập",
-      "placementLoginDesc": "Quản trị viên thấy mỗi lần đăng nhập.",
-      "placementPage": "Trang nhà tài trợ",
-      "placementPageDesc": "Được liệt kê tại đây với logo, mô tả và liên kết.",
-      "available": "Còn trống",
-      "takenUntil": "Đã đặt đến {date}",
-      "activeCount": "{count} đang hoạt động"
+      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày."
     }
   },
   "tgbot": {

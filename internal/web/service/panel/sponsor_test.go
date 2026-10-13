@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -22,7 +21,7 @@ func validSponsor() Sponsor {
 	return Sponsor{
 		ID:    "acme",
 		Name:  "Acme",
-		Slots: []string{"dashboard", "sidebar"},
+		Slots: []string{"dashboard"},
 		Until: sponsorTestNow.Add(24 * time.Hour),
 		Logo:  "acme.png",
 		Link:  "https://acme.example/",
@@ -59,34 +58,6 @@ func TestActiveSponsorsFilters(t *testing.T) {
 	}
 }
 
-func TestActiveSponsorsCapsSidebarAtThree(t *testing.T) {
-	raw := &SponsorList{}
-	for _, id := range []string{"expired", "a", "b", "c", "d", "e"} {
-		sp := validSponsor()
-		sp.ID = id
-		sp.Slots = []string{"sidebar", "page"}
-		if id == "expired" {
-			sp.Until = sponsorTestNow
-		}
-		if id == "e" {
-			sp.Slots = []string{"sidebar"}
-		}
-		raw.Sponsors = append(raw.Sponsors, sp)
-	}
-	got := activeSponsors(raw, sponsorTestNow)
-	want := map[string][]string{
-		"a": {"sidebar", "page"}, "b": {"sidebar", "page"}, "c": {"sidebar", "page"}, "d": {"page"},
-	}
-	if len(got.Sponsors) != len(want) {
-		t.Fatalf("got %d sponsors, want %d (e has only sidebar and must drop)", len(got.Sponsors), len(want))
-	}
-	for _, sp := range got.Sponsors {
-		if !slices.Equal(sp.Slots, want[sp.ID]) {
-			t.Errorf("%s slots = %v, want %v", sp.ID, sp.Slots, want[sp.ID])
-		}
-	}
-}
-
 func TestActiveSponsorsLogoName(t *testing.T) {
 	cases := []struct{ logo, want string }{
 		{"acme.png", "/sponsors/logo/acme.png"},
@@ -114,7 +85,7 @@ func TestActiveSponsorsLogoName(t *testing.T) {
 
 func TestActiveSponsorsResolvesLogoAndSlots(t *testing.T) {
 	sp := validSponsor()
-	sp.Slots = []string{"subpage", "login"}
+	sp.Slots = []string{"subpage", "sidebar", "login"}
 	got := activeSponsors(&SponsorList{Contact: "javascript:x", Sponsors: []Sponsor{sp}}, sponsorTestNow)
 	if len(got.Sponsors) != 1 {
 		t.Fatalf("got %d sponsors, want 1", len(got.Sponsors))

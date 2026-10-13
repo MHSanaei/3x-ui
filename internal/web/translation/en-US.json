@@ -2423,19 +2423,7 @@
       "tag": "Sponsor",
       "visit": "Visit",
       "yourBrand": "Your brand here",
-      "yourBrandText": "Put your company in front of thousands of server admins who open 3X-UI every day.",
-      "placements": "Available placements",
-      "placementDashboard": "Overview banner",
-      "placementDashboardDesc": "Premium spot at the top of the dashboard, one sponsor at a time.",
-      "placementSidebar": "Sidebar card",
-      "placementSidebarDesc": "Shown on every panel page, rotating between sponsors.",
-      "placementLogin": "Login page",
-      "placementLoginDesc": "Seen by the admin at every sign-in.",
-      "placementPage": "Sponsors page",
-      "placementPageDesc": "Listed here with logo, description and link.",
-      "available": "Available",
-      "takenUntil": "Taken until {date}",
-      "activeCount": "{count} active"
+      "yourBrandText": "Put your company in front of thousands of server admins who open 3X-UI every day."
     }
   },
   "tgbot": {

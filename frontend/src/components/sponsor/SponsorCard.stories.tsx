@@ -7,7 +7,7 @@ import SponsorCard from './SponsorCard';
 const sponsor: Sponsor = {
   id: 'acme-2026-10',
   name: 'Acme VPS',
-  slots: ['dashboard', 'sidebar', 'page', 'login'],
+  slots: ['dashboard', 'page', 'login'],
   until: '2099-01-01T00:00:00Z',
   title: { en: 'Acme VPS — fast NVMe servers', fa: 'سرورهای سریع Acme' },
   text: { en: 'Deploy 3X-UI in 60 seconds. 20% off for panel users.' },
@@ -57,9 +57,8 @@ const meta = {
   argTypes: {
     sponsor: { description: 'Sponsor entry from GET /sponsors.' },
     variant: {
-      description: 'banner (dashboard), compact (sidebar/login) or card (Sponsors page).',
+      description: 'banner (dashboard), compact (login) or card (Sponsors page).',
     },
-    iconOnly: { description: 'Logo-only rendering for the collapsed sidebar rail.' },
     onClose: { description: 'When set, shows a close button (temporary dismiss).' },
   },
   args: { sponsor },
@@ -81,7 +80,7 @@ export const Banner: Story = {
 export const Compact: Story = {
   args: { variant: 'compact', onClose: () => {} },
   render: (args) => (
-    <div style={{ width: 204 }}>
+    <div style={{ width: 334 }}>
       <SponsorCard {...args} />
     </div>
   ),
@@ -108,23 +107,6 @@ export const BannerLongCopy: Story = {
   },
 };
 
-export const SidebarLongCopy: Story = {
-  args: { variant: 'compact', sponsor: longSponsor, onClose: () => {} },
-  render: (args) => (
-    <div style={{ width: 204 }}>
-      <SponsorCard {...args} />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    await expectNotClipped(canvasElement, '.sponsor-title');
-    await expectInsideCard(canvasElement, '.sponsor-text');
-    await expect(part(canvasElement, '.sponsor-main')).toHaveAttribute(
-      'title',
-      `${longSponsor.title.en}\n${longSponsor.text.en}`,
-    );
-  },
-};
-
 export const LoginLongCopy: Story = {
   args: { variant: 'compact', sponsor: longSponsor, onClose: () => {} },
   render: (args) => (
@@ -135,6 +117,10 @@ export const LoginLongCopy: Story = {
   play: async ({ canvasElement }) => {
     await expectNotClipped(canvasElement, '.sponsor-title');
     await expectNotClipped(canvasElement, '.sponsor-text');
+    await expect(part(canvasElement, '.sponsor-main')).toHaveAttribute(
+      'title',
+      `${longSponsor.title.en}\n${longSponsor.text.en}`,
+    );
   },
 };
 
@@ -150,8 +136,4 @@ export const PageLongCopy: Story = {
     await expectInsideCard(canvasElement, '.sponsor-text');
     await expectNotClipped(canvasElement, '.sponsor-title');
   },
-};
-
-export const IconOnly: Story = {
-  args: { iconOnly: true },
 };
