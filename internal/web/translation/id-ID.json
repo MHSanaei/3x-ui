@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "Mode privasi bot aktif",
-      "tgPrivacyOnDesc": "Matikan Group Privacy di @BotFather agar bot melihat /start yang ditulis di grup. Buka /mybots → bot Anda → Bot Settings → Group Privacy → Turn off."
+      "tgPrivacyOn": "Privasi grup aktif",
+      "tgPrivacyOnDesc": "Bot ini hanya menjawab di obrolan pribadi, jadi grup sengaja diabaikan. Privasi grup hanya menentukan apakah bot boleh membaca pesan grup, yang tidak digunakan."
     },
     "xray": {
       "save": "Simpan",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. Langganan",
       "qrLegendJSON": "{{ .Code }}. Langganan JSON",
       "qrLegendLink": "{{ .Code }}. Tautan aplikasi {{ .App }}",
-      "backupFailed": "Tidak dapat membaca basis data; tidak ada cadangan yang dikirim."
+      "backupFailed": "Tidak dapat membaca basis data; tidak ada cadangan yang dikirim.",
+      "privateOnly": "🤖 Bot ini hanya berfungsi di obrolan pribadi. Silakan buka di pesan langsung."
     },
     "buttons": {
       "closeKeyboard": "❌ Tutup Papan Ketik",

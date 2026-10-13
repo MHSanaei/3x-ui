@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "وضع خصوصية البوت مُفعّل",
-      "tgPrivacyOnDesc": "أوقف Group Privacy في @BotFather ليرى البوت الأمر /start المكتوب في مجموعة. افتح /mybots → بوتك → Bot Settings → Group Privacy → Turn off."
+      "tgPrivacyOn": "خصوصية المجموعات مُفعّلة",
+      "tgPrivacyOnDesc": "هذا البوت يرد في المحادثة الخاصة فقط، لذا يتجاهل المجموعات عن قصد. خصوصية المجموعات تحدد فقط ما إذا كان البوت يستطيع قراءة رسائل المجموعة، وهو لا يستخدم ذلك."
     },
     "xray": {
       "save": "احفظ",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. اشتراك",
       "qrLegendJSON": "{{ .Code }}. اشتراك JSON",
       "qrLegendLink": "{{ .Code }}. رابط التطبيق {{ .App }}",
-      "backupFailed": "فشل قراءة قاعدة البيانات؛ لم يُرسل أي نسخة احتياطية."
+      "backupFailed": "فشل قراءة قاعدة البيانات؛ لم يُرسل أي نسخة احتياطية.",
+      "privateOnly": "🤖 يعمل هذا البوت في المحادثة الخاصة فقط. يرجى فتحه في رسالة مباشرة."
     },
     "buttons": {
       "closeKeyboard": "❌ اقفل الكيبورد",

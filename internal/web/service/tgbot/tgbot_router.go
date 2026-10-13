@@ -94,6 +94,8 @@ func (t *Tgbot) OnReceive() {
 		// carries one already offers a way out.
 		registerTerminalCallbacks(cbHome, cbCatServer, cbCatClients, cbCatTraffic, cbCatMaintenance)
 
+		refuseGroups(h, t)
+
 		// A picked inline item is the user's own message, caught before the wizard
 		// and broadcast handlers; the predicate must not match every ":" message.
 		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
@@ -1249,4 +1251,53 @@ func splitClientLinkCallback(data string) (action, email string, ok bool) {
 		}
 	}
 	return "", "", false
+}
+
+// refuseGroups installs the guard that keeps every update in a private chat: a
+// group has one screen and one keyboard shared by many members, so admins and
+// clients would overwrite each other in it.
+func refuseGroups(h *th.BotHandler, t *Tgbot) {
+	h.Use(func(ctx *th.Context, update telego.Update) error {
+		if chatType := updateChatType(update); chatType != "" && chatType != telego.ChatTypePrivate {
+			t.refuseNonPrivateChat(update)
+			return nil
+		}
+		return ctx.Next(update)
+	})
+}
+
+// updateChatType reports the chat kind of a message or a callback, and "channel"
+// for an inline query from a channel where the sender is not a member. A query
+// carries ChatType "sender" in a private chat, which counts as private here.
+func updateChatType(update telego.Update) string {
+	switch {
+	case update.Message != nil:
+		return update.Message.Chat.Type
+	case update.CallbackQuery != nil && update.CallbackQuery.Message != nil:
+		return update.CallbackQuery.Message.GetChat().Type
+	case update.InlineQuery != nil:
+		if update.InlineQuery.ChatType == "" || update.InlineQuery.ChatType == "sender" {
+			return telego.ChatTypePrivate
+		}
+		return update.InlineQuery.ChatType
+	}
+	return ""
+}
+
+// refuseNonPrivateChat answers a group or channel that the bot refuses to serve.
+func (t *Tgbot) refuseNonPrivateChat(update telego.Update) {
+	if update.InlineQuery != nil {
+		t.answerInline(update.InlineQuery.ID, nil, "")
+		return
+	}
+	chatID := int64(0)
+	if update.Message != nil {
+		chatID = update.Message.Chat.ID
+	} else if update.CallbackQuery != nil && update.CallbackQuery.Message != nil {
+		chatID = update.CallbackQuery.Message.GetChat().ID
+		t.answerSilent(update.CallbackQuery.ID)
+	}
+	if chatID != 0 {
+		t.sendNoticeNoKeyboard(chatID, t.I18nBot("tgbot.messages.privateOnly"))
+	}
 }

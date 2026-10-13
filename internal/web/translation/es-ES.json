@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "El modo privacidad del bot está activo",
-      "tgPrivacyOnDesc": "Desactiva Group Privacy en @BotFather para que el bot vea un /start escrito en un grupo. Abre /mybots → tu bot → Bot Settings → Group Privacy → Turn off."
+      "tgPrivacyOn": "La privacidad de grupos está activada",
+      "tgPrivacyOnDesc": "Este bot responde solo en el chat privado, así que ignora los grupos a propósito. La privacidad de grupos solo decide si el bot puede leer los mensajes del grupo, cosa que no usa."
     },
     "xray": {
       "save": "Guardar configuración",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. Suscripción",
       "qrLegendJSON": "{{ .Code }}. Suscripción JSON",
       "qrLegendLink": "{{ .Code }}. Enlace de la app {{ .App }}",
-      "backupFailed": "No se pudo leer la base de datos; no se envió ninguna copia de seguridad."
+      "backupFailed": "No se pudo leer la base de datos; no se envió ninguna copia de seguridad.",
+      "privateOnly": "🤖 Este bot solo funciona en el chat privado. Ábrelo en un mensaje directo."
     },
     "buttons": {
       "closeKeyboard": "❌ Cerrar Teclado",

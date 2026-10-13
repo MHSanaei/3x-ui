@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "Chế độ riêng tư của bot đang bật",
-      "tgPrivacyOnDesc": "Tắt Group Privacy trong @BotFather để bot thấy /start gõ trong nhóm. Mở /mybots → bot của bạn → Bot Settings → Group Privacy → Turn off."
+      "tgPrivacyOn": "Quyền riêng tư nhóm đang bật",
+      "tgPrivacyOnDesc": "Bot này chỉ trả lời trong trò chuyện riêng, nên nhóm bị bỏ qua có chủ đích. Quyền riêng tư nhóm chỉ quyết định bot có được đọc tin nhắn nhóm hay không, và bot không dùng đến."
     },
     "xray": {
       "importRules": "Nhập quy tắc",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. Gói đăng ký",
       "qrLegendJSON": "{{ .Code }}. Gói đăng ký JSON",
       "qrLegendLink": "{{ .Code }}. Liên kết ứng dụng {{ .App }}",
-      "backupFailed": "Không đọc được cơ sở dữ liệu; không có bản sao lưu nào được gửi."
+      "backupFailed": "Không đọc được cơ sở dữ liệu; không có bản sao lưu nào được gửi.",
+      "privateOnly": "🤖 Bot này chỉ hoạt động trong trò chuyện riêng. Hãy mở nó trong tin nhắn trực tiếp."
     },
     "buttons": {
       "closeKeyboard": "❌ Đóng Bàn Phím",

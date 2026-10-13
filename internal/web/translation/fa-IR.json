@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "حالت حریم خصوصی ربات فعال است",
-      "tgPrivacyOnDesc": "برای اینکه ربات /start نوشتهشده در گروه را ببیند، Group Privacy را در @BotFather خاموش کنید. /mybots → ربات شما → Bot Settings → Group Privacy → Turn off."
+      "tgPrivacyOn": "حریم خصوصی گروه فعال است",
+      "tgPrivacyOnDesc": "این ربات فقط در چت خصوصی پاسخ میدهد، بنابراین گروهها را عمداً نادیده میگیرد. حریم خصوصی گروه فقط تعیین میکند که ربات اجازه خواندن پیامهای گروه را دارد یا نه، که از آن استفاده نمیکند."
     },
     "xray": {
       "save": "ذخیره",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. اشتراک",
       "qrLegendJSON": "{{ .Code }}. اشتراک JSON",
       "qrLegendLink": "{{ .Code }}. لینک برنامه {{ .App }}",
-      "backupFailed": "خواندن پایگاه داده ممکن نشد؛ هیچ نسخه پشتیبانی ارسال نشد."
+      "backupFailed": "خواندن پایگاه داده ممکن نشد؛ هیچ نسخه پشتیبانی ارسال نشد.",
+      "privateOnly": "🤖 این ربات فقط در چت خصوصی کار میکند. لطفاً آن را در پیام مستقیم باز کنید."
     },
     "buttons": {
       "closeKeyboard": "❌ بستن کیبورد",

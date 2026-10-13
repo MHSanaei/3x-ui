@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "Bot gizlilik modu açık",
-      "tgPrivacyOnDesc": "@BotFather'da Group Privacy'yi kapatın ki bot grupta yazılan /start'ı görsün. /mybots → botunuz → Bot Settings → Group Privacy → Turn off."
+      "tgPrivacyOn": "Grup gizliliği açık",
+      "tgPrivacyOnDesc": "Bu bot yalnızca özel sohbette yanıt verir, bu yüzden grupları bilerek yok sayar. Grup gizliliği yalnızca botun grup mesajlarını okuyup okuyamayacağını belirler; bot bunu kullanmaz."
     },
     "xray": {
       "save": "Kaydet",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. Abonelik",
       "qrLegendJSON": "{{ .Code }}. JSON abonelik",
       "qrLegendLink": "{{ .Code }}. Uygulama bağlantısı {{ .App }}",
-      "backupFailed": "Veritabanı okunamadı; yedek gönderilmedi."
+      "backupFailed": "Veritabanı okunamadı; yedek gönderilmedi.",
+      "privateOnly": "🤖 Bu bot yalnızca özel sohbette çalışır. Lütfen doğrudan mesajda açın."
     },
     "buttons": {
       "closeKeyboard": "❌ Klavyeyi Kapat",

@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "Увімкнено режим приватності бота",
-      "tgPrivacyOnDesc": "Вимкніть Group Privacy у @BotFather, щоб бот бачив /start, написаний у групі. Відкрийте /mybots → ваш бот → Bot Settings → Group Privacy → Turn off."
+      "tgPrivacyOn": "Режим приватності увімкнено",
+      "tgPrivacyOnDesc": "Бот працює лише в особистих повідомленнях, тож групи він ігнорує навмисно. Приватність у групах визначає лише те, чи може бот читати повідомлення групи, — а він цього не використовує."
     },
     "xray": {
       "save": "Зберегти",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. Підписка",
       "qrLegendJSON": "{{ .Code }}. JSON-підписка",
       "qrLegendLink": "{{ .Code }}. Посилання для застосунку {{ .App }}",
-      "backupFailed": "Не вдалося прочитати базу даних; резервну копію не надіслано."
+      "backupFailed": "Не вдалося прочитати базу даних; резервну копію не надіслано.",
+      "privateOnly": "🤖 Бот працює лише в особистих повідомленнях. Відкрий його в особистому чаті."
     },
     "buttons": {
       "closeKeyboard": "❌ Закрити клавіатуру",

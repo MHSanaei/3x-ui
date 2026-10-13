@@ -1779,8 +1779,8 @@
       "tgInlineMissing": "Inline mode is disabled",
       "tgInlineMissingDesc": "Lists in the bot open through inline search. Enable it in @BotFather with /setinline, otherwise tapping a search button does nothing.",
       "tgInlineRecheck": "Check again",
-      "tgPrivacyOn": "机器人隐私模式已开启",
-      "tgPrivacyOnDesc": "请在 @BotFather 关闭 Group Privacy，机器人才能看到在群里输入的 /start。/mybots → 你的机器人 → Bot Settings → Group Privacy → Turn off。"
+      "tgPrivacyOn": "群组隐私已开启",
+      "tgPrivacyOnDesc": "此机器人只在私聊中回复，因此会刻意忽略群组。群组隐私仅决定机器人能否读取群消息，而它并不使用该权限。"
     },
     "xray": {
       "importRules": "导入规则",
@@ -2567,7 +2567,8 @@
       "qrLegendSubscription": "{{ .Code }}. 订阅",
       "qrLegendJSON": "{{ .Code }}. JSON 订阅",
       "qrLegendLink": "{{ .Code }}. 应用链接 {{ .App }}",
-      "backupFailed": "无法读取数据库，未发送备份。"
+      "backupFailed": "无法读取数据库，未发送备份。",
+      "privateOnly": "🤖 此机器人仅在私聊中工作。请在私信中打开它。"
     },
     "buttons": {
       "closeKeyboard": "❌ 关闭键盘",
