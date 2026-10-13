@@ -26,9 +26,8 @@ func TestClientWithInboundFlow_GatesByInboundCapability(t *testing.T) {
 		{"vless tcp none clears flow", model.VLESS, `{"network":"tcp","security":"none"}`, "", ""},
 		{"vmess tcp tls clears flow", model.VMESS, `{"network":"tcp","security":"tls"}`, "", ""},
 		{"empty stream clears flow", model.VLESS, "", "", ""},
-		// vlessenc (ML-KEM) keeps Vision flow without transport TLS only on XHTTP.
-		// TCP without tls/reality clears it even with vlessenc set.
-		{"vless tcp vlessenc clears flow", model.VLESS, `{"network":"tcp","security":"none"}`, enc, ""},
+		// vlessenc (ML-KEM) carries Vision without transport TLS on any transport.
+		{"vless tcp vlessenc keeps flow", model.VLESS, `{"network":"tcp","security":"none"}`, enc, vision},
 		{"vless xhttp vlessenc keeps flow", model.VLESS, `{"network":"xhttp","security":"none"}`, enc, vision},
 		{"vless xhttp no encryption clears flow", model.VLESS, `{"network":"xhttp","security":"none"}`, `{"encryption":"none"}`, ""},
 		{"vless xhttp empty settings clears flow", model.VLESS, `{"network":"xhttp","security":"none"}`, "", ""},

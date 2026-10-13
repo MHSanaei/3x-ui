@@ -105,7 +105,7 @@ func (s *ClientService) syncInboundClients(tx *gorm.DB, inboundId int, clients [
 		tx = database.GetDB()
 	}
 
-	if err := s.validateTuicIdentities(tx, inboundId, clients, detachEmails, prune); err != nil {
+	if err := s.validateProtocolClients(tx, inboundId, clients, detachEmails, prune); err != nil {
 		return err
 	}
 
@@ -416,14 +416,34 @@ func (s *ClientService) ListForInboundBySubId(tx *gorm.DB, inboundId int, subId 
 	return out, nil
 }
 
-func (s *ClientService) validateTuicIdentities(tx *gorm.DB, inboundID int, changed []model.Client, detached []string, prune bool) error {
+// validateProtocolClients runs inside the write every path linking clients to an inbound
+// shares, so a client the protocol's core config would refuse never reaches it.
+func (s *ClientService) validateProtocolClients(tx *gorm.DB, inboundID int, changed []model.Client, detached []string, prune bool) error {
 	var inbound model.Inbound
 	if err := tx.Select("protocol").Where("id = ?", inboundID).Take(&inbound).Error; err != nil {
 		return err
 	}
-	if inbound.Protocol != model.TUIC {
-		return nil
+	switch inbound.Protocol {
+	case model.TUIC:
+		return s.validateTuicIdentities(tx, inboundID, changed, detached, prune)
+	case model.MASQUE:
+		return validateMasqueEmails(changed)
 	}
+	return nil
+}
+
+// MASQUE sends the email as the Basic-auth user, so xray-core refuses the whole inbound,
+// and with it the Xray start, over one email holding ":".
+func validateMasqueEmails(clients []model.Client) error {
+	for _, client := range clients {
+		if strings.Contains(client.Email, ":") {
+			return fmt.Errorf("MASQUE: client email %q cannot contain \":\"", client.Email)
+		}
+	}
+	return nil
+}
+
+func (s *ClientService) validateTuicIdentities(tx *gorm.DB, inboundID int, changed []model.Client, detached []string, prune bool) error {
 	candidates := append([]model.Client(nil), changed...)
 	if !prune {
 		current, err := s.ListForInbound(tx, inboundID)

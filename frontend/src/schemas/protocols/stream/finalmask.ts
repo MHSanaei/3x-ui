@@ -20,7 +20,7 @@ export const TcpMaskSchema = z.object({
 export type TcpMask = z.infer<typeof TcpMaskSchema>;
 
 // 'udphop' is client-only in xray-core (it refuses to wrap a server socket),
-// so it round-trips here but is deliberately absent from the mask dropdown.
+// so only the client-side mask editors offer it.
 export const UdpMaskTypeSchema = z.enum([
   'salamander',
   'mkcp-legacy',

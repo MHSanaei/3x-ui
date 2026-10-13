@@ -10,3 +10,7 @@ export const SSMethodSchema = z.enum([
   '2022-blake3-chacha20-poly1305',
 ]);
 export type SSMethod = z.infer<typeof SSMethodSchema>;
+
+// xray-core refuses a 2022 chacha20 inbound with users: the multi-user identity
+// header is AES-only, and every panel inbound carries users.
+export const SSInboundMethodSchema = SSMethodSchema.exclude(['2022-blake3-chacha20-poly1305']);

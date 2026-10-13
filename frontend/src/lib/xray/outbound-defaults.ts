@@ -5,6 +5,7 @@ import type { DNSOutboundSettings } from '@/schemas/protocols/outbound/dns';
 import type { FreedomOutboundSettings } from '@/schemas/protocols/outbound/freedom';
 import type { HttpOutboundSettings } from '@/schemas/protocols/outbound/http';
 import type { HysteriaOutboundSettings } from '@/schemas/protocols/outbound/hysteria';
+import type { MasqueOutboundSettings } from '@/schemas/protocols/outbound/masque';
 import type { LoopbackOutboundSettings } from '@/schemas/protocols/outbound/loopback';
 import type { ShadowsocksOutboundSettings } from '@/schemas/protocols/outbound/shadowsocks';
 import type { SocksOutboundSettings } from '@/schemas/protocols/outbound/socks';
@@ -130,12 +131,17 @@ export function createDefaultHysteriaOutboundSettings(): HysteriaOutboundSetting
   return { address: '', port: 443, version: 2 };
 }
 
+export function createDefaultMasqueOutboundSettings(): MasqueOutboundSettings {
+  return { address: '', port: 443 };
+}
+
 export type AnyOutboundSettings =
   | BlackholeOutboundSettings
   | DNSOutboundSettings
   | FreedomOutboundSettings
   | HttpOutboundSettings
   | HysteriaOutboundSettings
+  | MasqueOutboundSettings
   | LoopbackOutboundSettings
   | ShadowsocksOutboundSettings
   | SocksOutboundSettings
@@ -177,6 +183,8 @@ export function createDefaultOutboundSettings(protocol: string): AnyOutboundSett
       return createDefaultWireguardOutboundSettings();
     case 'hysteria':
       return createDefaultHysteriaOutboundSettings();
+    case 'masque':
+      return createDefaultMasqueOutboundSettings();
     case 'loopback':
       return createDefaultLoopbackOutboundSettings();
     default:

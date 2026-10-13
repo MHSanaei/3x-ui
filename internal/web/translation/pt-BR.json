@@ -694,7 +694,41 @@
           "listen": "Endereço de escuta do inbound",
           "custom": "Personalizada"
         },
-        "autoFill": "Preenchimento automático"
+        "autoFill": "Preenchimento automático",
+        "xdrive": {
+          "service": "Serviço de armazenamento",
+          "serviceLocal": "Pasta local",
+          "serviceTemplate": "Template personalizado",
+          "remoteFolder": "Pasta remota",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "refreshToken": "Refresh Token",
+          "secrets": "Segredos",
+          "secretsDesc": "Valores que o template lê como {secret0}, {secret1}, …",
+          "template": "Template de armazenamento",
+          "templateInvalid": "Deve ser um objeto JSON",
+          "front": "Endereço de fronting",
+          "frontDesc": "Host ou IP opcional usado para conectar à API de armazenamento (domain fronting).",
+          "frontPort": "Porta de fronting",
+          "segmentBytes": "Tamanho do segmento (bytes)",
+          "flushInterval": "Intervalo de envio (ms)",
+          "pollInterval": "Intervalo de polling (ms)",
+          "maxPollInterval": "Intervalo máximo de polling (ms)",
+          "eagerWindow": "Janela antecipada (ms)",
+          "holeTimeout": "Timeout de segmento ausente (ms)",
+          "sessionTtl": "TTL da sessão (s)",
+          "concurrency": "Concorrência"
+        },
+        "masque": {
+          "addressPool": "Pool de endereços",
+          "addressPoolDesc": "Os endereços do túnel são atribuídos a partir destes prefixos — no máximo um IPv4 e um IPv6."
+        },
+        "tunDesc": "Tipo de adaptador",
+        "tunDescTooltip": "Somente Windows: o tipo de túnel com que um novo adaptador Wintun é criado. Vazio significa Wintun.",
+        "autoSystemDnsToGateway": "DNS do sistema para o gateway",
+        "autoSystemDnsToGatewayTooltip": "Somente Linux: aponta o systemd-resolved para o gateway do TUN para que as consultas do sistema passem pelo Xray. Precisa de um gateway, e o TUN não inicia se isso falhar.",
+        "autoSystemWfpBlockLeak": "Bloquear vazamentos (WFP)",
+        "autoSystemWfpBlockLeakTooltip": "Somente Windows, com Auto system routes: dns mantém o DNS dentro do TUN (precisa de servidores DNS) e misconfigtun bloqueia uma versão de IP que nenhuma rota envia ao TUN."
       },
       "info": {
         "mode": "Modo",
@@ -745,7 +779,7 @@
       "delayedStart": "Iniciar após o primeiro uso",
       "expireDays": "Duração (dias)",
       "renew": "Renovação automática",
-      "renewDesc": "Renovação automática após a expiração. (0 = desativar) (unidade: dia)",
+      "renewDesc": "Renovação automática após a expiração. (unidade: dia)",
       "renewDays": "Renovação automática (dias)",
       "searchPlaceholder": "Buscar email, comentário, sub ID, UUID, senha, auth, Telegram ID…",
       "filterTitle": "Filtrar clientes",
@@ -789,7 +823,7 @@
       "limitIpFail2banWindows": "O Fail2ban não está disponível no Windows, portanto o limite de IP não pode ser aplicado.",
       "limitIpDisabled": "O recurso de limite de IP está desativado neste servidor.",
       "password": "Senha",
-      "passwordDesc": "Usada apenas pelos clientes Trojan e Shadowsocks; ignorada para VLESS, VMess, Hysteria e WireGuard.",
+      "passwordDesc": "Usada pelos clientes Trojan, Shadowsocks, TUIC e MASQUE; ignorada para VLESS, VMess, Hysteria e WireGuard.",
       "subId": "ID da assinatura",
       "subIdDesc": "Também funciona como código de convite deste cliente no bot do Telegram: quem enviá-lo ao bot fica vinculado a este cliente. Mantenha-o longo e aleatório — um ID curto ou fácil de adivinhar pode ser reivindicado por outra pessoa.",
       "online": "Online",
@@ -953,20 +987,24 @@
       "renewModeMonthly": "Calendar monthly",
       "renewWeekday": "Renew on weekday",
       "renewScheduleDesc": "Calendar renewal uses midnight in the panel timezone and also resets the client's traffic. Keep independent traffic resets disabled unless an additional reset is intended. Monthly day 1 means valid through the preceding month; day 31 is not the same boundary.",
-      "renewPreview": "Renewal preview ({zone})",
+      "renewPreview": "Prévia da renovação (fuso horário do painel: {zone})",
+      "renewServerLocal": "Hora local do servidor",
+      "renewPreviewHint": "As datas usam o fuso horário do painel. A prévia não renova o cliente.",
       "renewAt": "Renewal boundary",
       "renewValidThrough": "Valid through",
       "renewNextExpiry": "Cutoff after renewal",
-      "renewPeriods": "Periods charged: {count}",
+      "renewPeriods": "Renovações que seriam consumidas: {count}",
       "renewUnavailable": "The remaining renewal allowances cannot provide a future cutoff.",
       "renewFirstUse": "Dates are available after first-use activation. The initial duration is unchanged.",
       "renewSetExpiry": "Set first cycle cutoff",
       "renewNeedsExpiry": "An expiry must be set before auto-renewal can run.",
       "renewPreviewError": "Could not preview renewal dates.",
       "renewOnDay": "Renovar no dia",
-      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele. 0 mantém o modo de intervalo em dias.",
+      "renewOnDayDesc": "Renova neste dia de cada mês do calendário, à meia-noite no fuso horário do painel, em vez de a cada N dias. Se o mês for curto demais para o dia escolhido, renova no último dia dele.",
       "renewsUsed": "Renovações usadas",
-      "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto."
+      "bulkAdTagHint": "Insira uma tag hexadecimal de 32 caracteres para definir ou 'none' para limpar no MTProto.",
+      "renewIntervalDesc": "Após a expiração, adiciona o número configurado de dias de 24 horas ao prazo anterior e redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional.",
+      "renewWeeklyDesc": "A renovação por calendário ocorre à meia-noite no fuso horário do painel e também redefine o tráfego do cliente. Mantenha as redefinições independentes de tráfego desativadas, a menos que queira uma redefinição adicional."
     },
     "groups": {
       "name": "Nome",
@@ -1925,6 +1963,7 @@
         "serverNamePlaceholder": "nome do servidor",
         "verifyPeerName": "Verificar nome do peer",
         "pinnedSha256": "SHA256 pinned",
+        "useSystemCA": "Usar CA do sistema",
         "shortId": "Short ID",
         "sockopts": "Sockopts",
         "keepAliveInterval": "Intervalo keep alive",
@@ -1932,7 +1971,10 @@
         "interface": "Interface",
         "proxyProtocol": "Proxy protocol",
         "tcpUserTimeoutMs": "TCP user timeout (ms)",
-        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)"
+        "tcpKeepAliveIdleS": "TCP keep-alive idle (s)",
+        "masqueWarpDesc": "Conecta ao Cloudflare WARP via MASQUE com uma chave ECDSA P-256 registrada; host e path usam por padrão o endpoint da Cloudflare.",
+        "masqueWarpPublicKey": "Chave pública do endpoint",
+        "masqueWarpAddress": "Endereços do túnel"
       },
       "outbound": {
         "tag": "Tag",
@@ -2193,7 +2235,9 @@
         "warpPlusData": "Dados WARP+",
         "quota": "Quota",
         "usage": "Uso",
-        "addOutbound": "Adicionar saída"
+        "addOutbound": "Adicionar saída",
+        "masqueDesc": "Registra um dispositivo WARP separado inscrito para MASQUE; o registro WireGuard acima não é afetado.",
+        "addMasqueOutbound": "Adicionar outbound WARP via MASQUE"
       },
       "dns": {
         "enable": "Ativar DNS",
@@ -2237,7 +2281,11 @@
         "clearAll": "Remover Todos",
         "clearAllTitle": "Remover todos os servidores DNS?",
         "clearAllConfirm": "Isso remove todos os servidores DNS da lista. Não pode ser desfeito.",
-        "dnsLeakWarning": "DNS pode vazar por localhost, UDP/TCP sem criptografia, DoH/DoQ em modo local, consultas de fallback ou EDNS client IP. Use DoH roteado, fixe resolvedores em hosts e desative fallback quando privacidade importar."
+        "dnsLeakWarning": "DNS pode vazar por localhost, UDP/TCP sem criptografia, DoH/DoQ em modo local, consultas de fallback ou EDNS client IP. Use DoH roteado, fixe resolvedores em hosts e desative fallback quando privacidade importar.",
+        "script": "Script Lua",
+        "scriptDesc": "Caminho para um arquivo .lua que define HandleDNSQuery, absoluto ou relativo à pasta bin do Xray. O script passa a responder a todas as consultas e só alcança os servidores pelo próprio código. O Xray não inicia se o arquivo estiver ausente ou for inválido.",
+        "serverId": "ID",
+        "serverIdDesc": "Nome com que um script DNS em Lua escolhe este servidor"
       },
       "fakedns": {
         "add": "Adicionar Fake DNS",
@@ -2245,7 +2293,10 @@
         "poolSize": "Tamanho do Pool"
       },
       "defaultOutbound": "Saída padrão",
-      "defaultOutboundDesc": "Tráfego sem regra de roteamento usa esta saída (a primeira da lista)."
+      "defaultOutboundDesc": "Tráfego sem regra de roteamento usa esta saída (a primeira da lista).",
+      "routingScript": "Script de roteamento",
+      "routingScriptDesc": "Caminho para um arquivo .lua que define HandleRoute, absoluto ou relativo à pasta bin do Xray. O script passa a escolher cada rota e o Xray ignora todas as regras de roteamento, inclusive a regra api do painel: envie o inbound api para o outbound api ou as estatísticas de tráfego e as alterações de clientes ao vivo param. O Xray não inicia se o arquivo estiver ausente ou for inválido.",
+      "routingScriptActive": "Há um script de roteamento definido em {section}, então o Xray ignora estas regras."
     },
     "hosts": {
       "addHost": "Adicionar Host",

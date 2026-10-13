@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -50,8 +51,19 @@ func TestInjectTuicSocks(t *testing.T) {
 	if string(sc.Listen) != `"127.0.0.1"` {
 		t.Fatalf("expected listen 127.0.0.1, got %s", sc.Listen)
 	}
-	if string(sc.Sniffing) != tuicEgressSniffingSettings {
-		t.Fatalf("expected sniffing settings %s, got %s", tuicEgressSniffingSettings, sc.Sniffing)
+	var parsedSniffing struct {
+		Enabled      bool     `json:"enabled"`
+		DestOverride []string `json:"destOverride"`
+		RouteOnly    bool     `json:"routeOnly"`
+	}
+	if err := json.Unmarshal(sc.Sniffing, &parsedSniffing); err != nil {
+		t.Fatalf("failed to unmarshal sniffing settings: %v", err)
+	}
+	if !parsedSniffing.Enabled || !parsedSniffing.RouteOnly {
+		t.Fatalf("sniffing must be enabled with routeOnly, got %+v", parsedSniffing)
+	}
+	if want := []string{"http", "tls", "quic", "fakedns"}; !slices.Equal(parsedSniffing.DestOverride, want) {
+		t.Fatalf("destOverride = %v, want %v", parsedSniffing.DestOverride, want)
 	}
 
 	var parsedSettings struct {

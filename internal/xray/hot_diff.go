@@ -221,7 +221,20 @@ func droppedClients(oldIb, newIb *InboundConfig) []UserOp {
 	return dropped
 }
 
-var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}}
+// InboundUserOps returns the per-user ops that bring a running inbound from oldIb
+// to newIb; ok is false when only rebuilding its handler can apply the change.
+func InboundUserOps(oldIb, newIb *InboundConfig) (*HotDiff, bool) {
+	diff := &HotDiff{}
+	if inboundEqualNormalized(oldIb, newIb) {
+		return diff, true
+	}
+	if !diffInboundUsers(oldIb, newIb, diff) {
+		return nil, false
+	}
+	return diff, true
+}
+
+var userDiffableProtocols = map[string]struct{}{"vless": {}, "vmess": {}, "trojan": {}, "hysteria": {}, "masque": {}}
 
 // diffInboundUsers emits per-user AlterInbound ops when two same-tag inbounds
 // differ only in settings.clients, so the handler (and its listener) survives.

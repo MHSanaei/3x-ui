@@ -14,7 +14,9 @@ func TestCurrentStatusSamplesBeforeFirstTick(t *testing.T) {
 	t.Setenv("XUI_DB_FOLDER", dbDir)
 	dbtest.InitDB(t, filepath.Join(dbDir, "x-ui.db"))
 
-	svc := &ServerService{}
+	// A settled IP cache keeps GetStatus from starting a public-IP resolver that
+	// outlives this test and races http.DefaultTransport in later ones.
+	svc := &ServerService{cachedIPv4: "192.0.2.1", noIPv6: true}
 	if svc.LastStatus() != nil {
 		t.Fatal("a fresh ServerService should hold no snapshot yet")
 	}

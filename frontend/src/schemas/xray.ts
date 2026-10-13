@@ -27,6 +27,7 @@ export const XraySettingsValueSchema = z
         rules: z.array(RuleObjectSchema).optional(),
         balancers: z.array(BalancerObjectSchema).optional(),
         domainStrategy: z.string().optional(),
+        script: z.string().optional(),
       })
       .loose()
       .optional(),

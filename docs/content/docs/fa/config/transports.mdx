@@ -1,6 +1,6 @@
 ---
 title: انتقال‌ها و امنیت
-description: هر انتقالی که 3x-ui ارائه می‌دهد — TCP، mKCP، WebSocket، gRPC، HTTPUpgrade، XHTTP، Hysteria — به‌همراه تنظیماتشان، و نیز مبهم‌سازی FinalMask، sockopt، TLS/REALITY، XTLS-Vision و رمزنگاری VLESS.
+description: هر انتقالی که 3x-ui ارائه می‌دهد — TCP، mKCP، WebSocket، gRPC، HTTPUpgrade، XHTTP، Hysteria، XDRIVE، MASQUE — به‌همراه تنظیماتشان، و نیز مبهم‌سازی FinalMask، sockopt، TLS/REALITY، XTLS-Vision و رمزنگاری VLESS.
 icon: Network
 ---
 
@@ -23,6 +23,8 @@ icon: Network
 | **HTTPUpgrade** | `httpupgradeSettings` | `Upgrade` مربوط به HTTP/1.1 و سازگار با CDN؛ سبک‌تر از WebSocket کامل.  |
 | **XHTTP**       | `xhttpSettings`       | انتقال HTTP مدرن با مالتی‌پلکس جریانی؛ سازگار با CDN و توانمند برای REALITY. |
 | **Hysteria**    | `hysteriaSettings`    | انتقال مبتنی بر QUIC — تنها برای پروتکل **Hysteria2**.                 |
+| **XDRIVE**      | `xdriveSettings`      | جریان را از طریق فایل‌ها در یک فضای ذخیره‌سازی ابری مشترک (Google Drive، یک پوشهٔ محلی یا هر API ذخیره‌سازی HTTP) تونل می‌کند. |
+| **MASQUE**      | `masqueSettings`      | CONNECT-IP روی HTTP/3 یا HTTP/2 — تنها برای پروتکل **MASQUE**. مشاهده [MASQUE](/docs/config/masque). |
 
 <Callout type="info">
   inbound‌های **WireGuard** و **Tunnel** (dokodemo-door) هیچ انتخابگر انتقالی
@@ -117,6 +119,27 @@ icon: Network
 | `udpIdleTimeout` | `60`    | ثانیه (2–600) پیش از حذف نشست‌های بی‌کار UDP.                           |
 | `masquerade`     | —       | استتار به‌عنوان یک سرور HTTP/3: `type` با مقدار `proxy`/`file`/`string` و `url`/`dir`/`content`، به‌علاوه `headers` و `statusCode`. |
 
+### XDRIVE — `xdriveSettings`
+
+XDRIVE جریان را به‌صورت فایل‌هایی در پوشه‌ای که هر دو طرف به آن دسترسی دارند حمل می‌کند:
+سرور به‌جای پذیرش اتصال روی پورتش، آن پوشه را بررسی می‌کند. هر دو طرف باید سرویس، پوشه
+و مقادیر محرمانهٔ **یکسان** داشته باشند، بنابراین اشتراک JSON آن‌ها را به همهٔ کلاینت‌ها
+می‌فرستد؛ inboundهای XDRIVE لینک اشتراک‌گذاری یا ورودی Clash ندارند.
+
+| فیلد           | پیش‌فرض        | معنا |
+| -------------- | -------------- | ---- |
+| `service`      | `Google Drive` | `Google Drive`، `local` (پوشه‌ای روی دیسک) یا `template` (هر API ذخیره‌سازی HTTP). |
+| `remoteFolder` | —              | پوشه‌ای که فایل‌های نشست در آن قرار می‌گیرند. |
+| `secrets`      | —              | Google Drive: دقیقاً سه مقدار ClientID، ClientSecret و RefreshToken به همین ترتیب. Template: مقادیری که با `{secret0}`، `{secret1}`، … خوانده می‌شوند. |
+| `template`     | —              | فقط برای سرویس template: عملیات `auth`، `put`، `get`، `list` و `delete` در API ذخیره‌ساز. |
+| تنظیمات دقیق   | پیش‌فرض هسته   | `segmentBytes` (512 KiB)، `flushIntervalMs` (20)، `pollIntervalMs`/`maxPollIntervalMs` (50/500)، `eagerWindowMs` (2000)، `holeTimeoutMs` (30000)، `sessionTtlSeconds` (300)، `concurrency` (8). |
+
+**آدرس/پورت Front** اختیاری (کلیدهای `address`/`port` در سطح stream) یک domain front
+است که API ذخیره‌ساز از طریق آن وصل می‌شود؛ نام TLS همچنان میزبان API است. XDRIVE لایهٔ
+TLS/REALITY جداگانه‌ای ندارد — ترافیکش همان HTTPS خود API ذخیره‌ساز است. در اوت‌باند،
+امنیت **TLS** همین اتصال HTTPS را شکل می‌دهد: API ذخیره‌ساز همان SNI، اثرانگشت uTLS و
+ALPN آن را می‌بیند.
+
 ## FinalMask — مبهم‌سازی لایه پایانی
 
 **FinalMask** ترافیک را **پس از** لایه‌های انتقال و امنیت می‌پیچد، بنابراین می‌تواند
@@ -127,11 +150,16 @@ icon: Network
   پروتکل Minecraft استتار می‌کند؛ گذرواژه الزامی است و نام میزبان و نام‌های بازیکن
   اختیاری‌اند).
 - **ماسک‌های UDP** — `salamander`، `mkcp-legacy`، `header-custom`، `xdns`، `xicmp`،
-  `noise`، `sudoku`، `realm`. (`mkcp-legacy` همان مبهم‌سازی قدیمی هدر mKCP را
-  بازتولید می‌کند.)
+  `noise`، `sudoku`، `realm` و `udphop` که فقط سمت کلاینت است. (`mkcp-legacy`
+  همان مبهم‌سازی قدیمی هدر mKCP را بازتولید می‌کند؛ `udphop` پورت مقصد — و در صورت
+  نیاز IP مقصد — را در فواصل زمانی یا به‌ازای هر اتصال عوض می‌کند تا مسدودسازی پورت
+  دور زده شود.)
 - **پارامترهای QUIC** — کنترل ازدحام (`reno`، `bbr`، `brutal`، `force-brutal`)،
-  نرخ‌های آپلود/دانلود Brutal، `udpHop` (چرخاندن پورت QUIC در یک بازه برای دور زدن
-  مسدودسازی پورت)، و تنظیم پنجره دریافت.
+  نرخ‌های آپلود/دانلود Brutal، و تنظیم پنجره دریافت. در اینباند، **UDP Hop** بازه‌ی
+  پورتی را تعیین می‌کند که به کلاینت‌ها اعلام می‌شود (`mport` در لینک اشتراک و ماسک
+  `udphop` در اشتراک JSON)؛ خود سرور همچنان روی پورت خودش گوش می‌دهد. از Xray
+  26.9.9 کلاینت فقط با ماسک `udphop` پورت عوض می‌کند، برای همین پنل `quicParams.udpHop`
+  قدیمی کلاینت را به آن تبدیل می‌کند.
 
 ‏FinalMask جایگزین مبهم‌سازی `header`/`seed` به‌ازای هر انتقال می‌شود که بیلدهای
 قدیمی‌تر Xray نمایش می‌دادند.
@@ -177,7 +205,7 @@ mKCP و Hysteria لایه TLS/REALITY جداگانه‌ای نمی‌گیرند 
 
 - انتقال، **TCP** خام با امنیت **TLS** یا **REALITY** باشد (XTLS-Vision
   کلاسیک)، یا
-- انتقال، **XHTTP** با رمزنگاری VLESS فعال باشد (به ادامه مراجعه کنید).
+- رمزنگاری VLESS فعال باشد، روی هر انتقالی (به ادامه مراجعه کنید).
 
 جریان را روی **کلاینت** VLESS تنظیم کنید، نه روی inbound. با Vision کلاسیک روی
 TCP، پنل می‌تواند پس از آنکه یک کلاینت از جریان استفاده کرد، یک **Vision seed** نیز
@@ -187,14 +215,15 @@ TCP، پنل می‌تواند پس از آنکه یک کلاینت از جری�
 
 ‏VLESS از **رمزنگاری** پساکوانتومی (ML-KEM / `mlkem768x25519`) پشتیبانی می‌کند که در
 ‏`decryption` مربوط به inbound (سمت سرور) و `encryption` کلاینت‌ها (برای تولید
-لینک) ذخیره می‌شود. وقتی فعال باشد، جریان Vision را روی XHTTP باز می‌کند. کلیدها
+لینک) ذخیره می‌شود. وقتی فعال باشد، جریان Vision را روی هر انتقالی باز می‌کند. کلیدها
 را از تنظیمات VLESS در پنل تولید کنید.
 
 ## رمزهای Shadowsocks
 
 ‏inbound‌های Shadowsocks هم از رمزهای کلاسیک و هم از **Shadowsocks-2022**
-پشتیبانی می‌کنند (نام روش‌هایی که با `2022-blake3-` آغاز می‌شوند). بیشتر رمزها چندکاربره هستند؛
-‏`2022-blake3-chacha20-poly1305` تک‌کاربره است.
+پشتیبانی می‌کنند (نام روش‌هایی که با `2022-blake3-` آغاز می‌شوند). روش
+‏`2022-blake3-chacha20-poly1305` برای inbound ارائه نمی‌شود: Xray-core آن را فقط بدون کاربر پشتیبانی می‌کند
+و هر inbound پنل کلاینت دارد. outboundها همچنان می‌توانند از آن استفاده کنند.
 
 <Callout type="info">
   انتقال‌ها و امنیت باید در هر دو سر یکسان باشند. لینک اشتراک کلاینت آن‌ها را

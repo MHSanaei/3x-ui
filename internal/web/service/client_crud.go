@@ -411,7 +411,7 @@ func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound)
 		if c.ID == "" {
 			c.ID = uuid.NewString()
 		}
-	case model.Trojan:
+	case model.Trojan, model.MASQUE:
 		if c.Password == "" {
 			c.Password = strings.ReplaceAll(uuid.NewString(), "-", "")
 		}
@@ -507,6 +507,32 @@ func shadowsocksKeyBytes(method string) int {
 		return 32
 	}
 	return 0
+}
+
+// validateShadowsocks2022Inbound refuses a method or server key xray-core cannot
+// build an inbound from: the core then does not start at all.
+func validateShadowsocks2022Inbound(protocol model.Protocol, settings string) error {
+	if protocol != model.Shadowsocks {
+		return nil
+	}
+	var parsed struct {
+		Method   string `json:"method"`
+		Password string `json:"password"`
+	}
+	if json.Unmarshal([]byte(settings), &parsed) != nil {
+		return nil
+	}
+	n := xray.Shadowsocks2022KeyBytes(parsed.Method)
+	if n == 0 {
+		return nil
+	}
+	if xray.Shadowsocks2022NoMultiUser(parsed.Method) {
+		return common.NewErrorf("shadowsocks inbound method %s does not support multiple users, use a 2022-blake3-aes method", parsed.Method)
+	}
+	if !xray.ValidShadowsocks2022Key(parsed.Method, parsed.Password) {
+		return common.NewErrorf("shadowsocks inbound password: %s needs a %d-byte key, base64 encoded", parsed.Method, n)
+	}
+	return nil
 }
 
 // normalizeShadowsocksClientKeys rewrites any Shadowsocks-2022 client password
