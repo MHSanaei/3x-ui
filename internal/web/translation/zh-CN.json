@@ -525,6 +525,8 @@
         "mtprotoFakeTlsDomainHint": "生成新客户端密钥时使用的默认 FakeTLS 域名。每个客户端可使用各自的域名。",
         "mtgThrottleMaxConnections": "最大连接数",
         "mtgThrottleMaxConnectionsHint": "按公平分配限制所有用户的并发连接数。0 表示不限制。",
+        "mtgPendingHandshakesMaxPerIp": "每 IP 最大未完成握手数",
+        "mtgPendingHandshakesMaxPerIpHint": "当某个 IP 的未完成握手达到此数量时，关闭其新连接。共享 IP（运营商 NAT）后的客户端共用此上限。0 表示禁用。",
         "mtgAdTagInvalid": "广告标签必须为 32 位十六进制字符。",
         "mtgPublicIpv4": "公网 IPv4",
         "mtgPublicIpv6": "公网 IPv6",

@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "نطاق FakeTLS الافتراضي المستخدم لإنشاء سر عميل جديد. يمكن لكل عميل استخدام نطاقه الخاص.",
         "mtgThrottleMaxConnections": "الحد الأقصى للاتصالات",
         "mtgThrottleMaxConnectionsHint": "تحديد الاتصالات المتزامنة لجميع المستخدمين بتوزيع عادل. القيمة 0 تعطّل الميزة.",
+        "mtgPendingHandshakesMaxPerIp": "الحد الأقصى للمصافحات المعلقة لكل IP",
+        "mtgPendingHandshakesMaxPerIpHint": "تُغلق الاتصالات الجديدة من عنوان IP لديه هذا العدد من المصافحات غير المكتملة. يتشارك المستخدمون خلف عنوان IP مشترك (NAT لدى المشغّل) هذا الحد. القيمة 0 تعطّله.",
         "mtgAdTagInvalid": "يجب أن تتكوّن العلامة الإعلانية من 32 حرفًا ست عشريًا بالضبط.",
         "mtgPublicIpv4": "عنوان IPv4 العام",
         "mtgPublicIpv6": "عنوان IPv6 العام",

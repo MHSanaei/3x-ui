@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "Yeni bir istemcinin sırrını oluştururken kullanılan varsayılan FakeTLS alan adı. Her istemci kendi alan adını kullanabilir.",
         "mtgThrottleMaxConnections": "Maks. bağlantı",
         "mtgThrottleMaxConnectionsHint": "Tüm kullanıcıların eşzamanlı bağlantılarını adil paylaşımla sınırlar. 0 devre dışı bırakır.",
+        "mtgPendingHandshakesMaxPerIp": "IP başına maks. bekleyen el sıkışma",
+        "mtgPendingHandshakesMaxPerIpHint": "Bu sayıda tamamlanmamış el sıkışması olan bir IP'den gelen yeni bağlantıları kapatır. Paylaşılan IP arkasındaki istemciler (operatör NAT) sınırı paylaşır. 0 devre dışı bırakır.",
         "mtgAdTagInvalid": "Reklam etiketi tam olarak 32 onaltılık karakter olmalıdır.",
         "mtgPublicIpv4": "Genel IPv4",
         "mtgPublicIpv6": "Genel IPv6",

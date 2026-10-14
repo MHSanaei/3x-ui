@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "Domain FakeTLS default untuk membuat secret klien baru. Setiap klien bisa memakai domainnya sendiri.",
         "mtgThrottleMaxConnections": "Koneksi maksimum",
         "mtgThrottleMaxConnectionsHint": "Batasi koneksi bersamaan semua pengguna dengan pembagian adil. 0 menonaktifkan.",
+        "mtgPendingHandshakesMaxPerIp": "Maks. handshake tertunda per IP",
+        "mtgPendingHandshakesMaxPerIpHint": "Tutup koneksi baru dari IP yang sudah memiliki handshake belum selesai sebanyak ini. Klien di balik IP bersama (NAT operator) berbagi batas ini. 0 menonaktifkan.",
         "mtgAdTagInvalid": "Ad-tag harus tepat 32 karakter heksadesimal.",
         "mtgPublicIpv4": "IPv4 Publik",
         "mtgPublicIpv6": "IPv6 Publik",
