@@ -235,6 +235,7 @@ func parseVmess(link string) (*ParseResult, error) {
 		tls["echConfigList"] = getString(j, "ech", "")
 		tls["verifyPeerCertByName"] = getString(j, "vcn", "")
 		tls["pinnedPeerCertSha256"] = getString(j, "pcs", "")
+		tls["cipherSuites"] = getString(j, "cs", "")
 	}
 
 	port := num(j["port"])
@@ -687,6 +688,7 @@ func buildStream(network, security string) map[string]any {
 		stream["tlsSettings"] = map[string]any{
 			"serverName": "", "alpn": []any{}, "fingerprint": "",
 			"echConfigList": "", "verifyPeerCertByName": "", "pinnedPeerCertSha256": "",
+			"cipherSuites": "",
 		}
 	case "reality":
 		stream["realitySettings"] = map[string]any{
@@ -783,6 +785,9 @@ func applySecurity(stream map[string]any, p url.Values) {
 		tls["echConfigList"] = p.Get("ech")
 		tls["verifyPeerCertByName"] = p.Get("vcn")
 		tls["pinnedPeerCertSha256"] = p.Get("pcs")
+		if cs := p.Get("cs"); cs != "" {
+			tls["cipherSuites"] = cs
+		}
 	case "reality":
 		re := stream["realitySettings"].(map[string]any)
 		re["serverName"] = p.Get("sni")

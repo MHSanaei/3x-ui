@@ -93,8 +93,10 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
+  const fingerprint = (useWatch({ control: methods.control, name: 'fingerprint' }) ?? '') as string;
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
+  const isCipherSuitesEnabled = showTlsExtras && (!fingerprint || fingerprint === 'unsafe');
 
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
@@ -338,7 +340,10 @@ export default function HostFormModal({
                           name="cipherSuites"
                           label={t('pages.inbounds.form.cipherSuites')}
                         >
-                          <CipherSuitesSelect />
+                          <CipherSuitesSelect
+                            disabled={!isCipherSuitesEnabled}
+                            placeholder={t('pages.inbounds.form.autoOption')}
+                          />
                         </FormField>
                         <FormField name="pinnedPeerCertSha256" label={t('pages.hosts.fields.pins')}>
                           <Select mode="tags" allowClear tokenSeparators={[',']} />
