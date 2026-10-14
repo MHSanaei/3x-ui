@@ -200,6 +200,52 @@ func TestParse_XhttpExtraAndSnakeCaseFields(t *testing.T) {
 	}
 }
 
+func TestParse_VmessXhttpInlineFields(t *testing.T) {
+	// The vmess emitter writes the XHTTP extra fields at the top level of the link JSON.
+	cases := []struct {
+		name  string
+		extra string
+		want  map[string]any
+	}{
+		{
+			name:  "session placement and padding obfs",
+			extra: `"sessionIDPlacement":"header","sessionIDKey":"X-Sid","sessionPlacement":"header","sessionKey":"X-Sid","xPaddingObfsMode":true,"xPaddingKey":"pk","xPaddingHeader":"X-Pad","xPaddingPlacement":"header","xPaddingMethod":"tokenish"`,
+			want: map[string]any{
+				"sessionIDPlacement": "header", "sessionIDKey": "X-Sid", "xPaddingObfsMode": true,
+				"xPaddingKey": "pk", "xPaddingHeader": "X-Pad", "xPaddingPlacement": "header", "xPaddingMethod": "tokenish",
+			},
+		},
+		{
+			name:  "uplink and xmux",
+			extra: `"uplinkDataPlacement":"cookie","uplinkDataKey":"d","uplinkHTTPMethod":"PUT","uplinkChunkSize":4096,"xmux":{"maxConcurrency":"16-32"}`,
+			want: map[string]any{
+				"uplinkDataPlacement": "cookie", "uplinkDataKey": "d", "uplinkHTTPMethod": "PUT",
+				"uplinkChunkSize": float64(4096), "xmux": map[string]any{"maxConcurrency": "16-32"},
+			},
+		},
+		{
+			name:  "legacy session keys",
+			extra: `"sessionPlacement":"query","sessionKey":"sid"`,
+			want:  map[string]any{"sessionIDPlacement": "query", "sessionIDKey": "sid"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			inner := `{"v":"2","add":"h","port":443,"id":"11111111-2222-4333-8444-555555555555","net":"xhttp","path":"/xh","mode":"packet-up","tls":"none",` + c.extra + `}`
+			res, err := ParseLink("vmess://" + base64.StdEncoding.EncodeToString([]byte(inner)))
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			xh := streamSub(t, res, "xhttpSettings")
+			for k, want := range c.want {
+				if !reflect.DeepEqual(xh[k], want) {
+					t.Errorf("xhttpSettings.%s = %#v, want %#v", k, xh[k], want)
+				}
+			}
+		})
+	}
+}
+
 func TestParse_VmessWSPathWithoutHostKey(t *testing.T) {
 	inner := `{"v":"2","add":"h","port":443,"id":"11111111-2222-4333-8444-555555555555","net":"ws","path":"/api","tls":"tls"}`
 	link := "vmess://" + base64.StdEncoding.EncodeToString([]byte(inner))
