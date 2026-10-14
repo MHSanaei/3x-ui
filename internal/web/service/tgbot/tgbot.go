@@ -30,6 +30,9 @@ import (
 
 var (
 	bot *telego.Bot
+	// botMu guards bot: EnsureBot may replace it while a background goroutine
+	// (the screen artwork warm-up) is still using the previous liveBot().
+	botMu sync.RWMutex
 
 	// botCancel stores the function to cancel the context, stopping Long Polling gracefully.
 	botCancel context.CancelFunc
@@ -63,6 +66,13 @@ var (
 		mutex     sync.RWMutex
 	}
 )
+
+// liveBot is the current connection, or nil before login and after logout.
+func liveBot() *telego.Bot {
+	botMu.RLock()
+	defer botMu.RUnlock()
+	return bot
+}
 
 // clientDraft is one chat's add-client wizard state. Per-protocol secrets are
 // filled per-inbound on submit, so only the universal fields live here.
@@ -350,13 +360,16 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	// Create new Telegram bot instance
+	botMu.Lock()
 	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
+	botMu.Unlock()
 	if err != nil {
 		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
 	}
 
-	t.trySetBotCommands(bot)
+	t.resolveScreenArt()
+	t.trySetBotCommands(liveBot())
 
 	// Start receiving Telegram bot messages
 	tgBotMutex.Lock()
@@ -377,17 +390,11 @@ func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
 		}
 	}()
 
+	// Only /start is advertised: the rest of the actions live on buttons, and
+	// the old list merely duplicated the menu. The commands still work.
 	err := bot.SetMyCommands(context.Background(), &telego.SetMyCommandsParams{
 		Commands: []telego.BotCommand{
 			{Command: "start", Description: t.I18nBot("tgbot.commands.startDesc")},
-			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
-			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
-			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
-			{Command: "usage", Description: t.I18nBot("tgbot.commands.usageDesc")},
-			{Command: "inbound", Description: t.I18nBot("tgbot.commands.inboundDesc")},
-			{Command: "restart", Description: t.I18nBot("tgbot.commands.restartDesc")},
-			{Command: "clearall", Description: t.I18nBot("tgbot.commands.clearallDesc")},
-			{Command: "broadcast", Description: t.I18nBot("tgbot.commands.broadcastDesc")},
 		},
 	})
 	if err != nil {
@@ -500,7 +507,7 @@ func adminSnapshot() []int64 {
 	return slices.Clone(adminIds)
 }
 
-// SetHostname sets the hostname for the bot.
+// SetHostname sets the hostname for the liveBot().
 func (t *Tgbot) SetHostname() {
 	host, err := os.Hostname()
 	if err != nil {
@@ -542,7 +549,7 @@ func StopBot() {
 	}
 
 	if cancel != nil {
-		logger.Info("Sending cancellation signal to Telegram bot...")
+		logger.Info("Sending cancellation signal to Telegram liveBot()...")
 		// Cancels the context passed to UpdatesViaLongPolling; this closes updates channel
 		// and lets botHandler.Start() exit cleanly.
 		cancel()
