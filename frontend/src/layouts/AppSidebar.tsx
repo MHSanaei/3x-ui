@@ -36,12 +36,14 @@ import {
   SwapOutlined,
   TagsOutlined,
   TeamOutlined,
+  HighlightOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
+import AppearanceDrawer from '@/components/ui/AppearanceDrawer';
 import { useAllSettings } from '@/api/queries/useAllSettings';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
 import './AppSidebar.css';
@@ -193,6 +195,7 @@ export default function AppSidebar() {
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
   const [pinned, setPinned] = useState(readSidebarPinned);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const railCollapsed = !hovered && !pinned;
   const railStyle = useMemo(
     () => ({ '--sider-rail': `${pinned ? SIDER_WIDTH : RAIL_WIDTH}px` }) as CSSProperties,
@@ -398,6 +401,15 @@ export default function AppSidebar() {
               </button>
               <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
               <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
+              <button
+                type="button"
+                className="sidebar-appearance"
+                aria-label="Appearance & Themes"
+                title="Appearance & Themes"
+                onClick={() => setAppearanceOpen(true)}
+              >
+                <HighlightOutlined />
+              </button>
               <ThemeCycleButton
                 id="theme-cycle"
                 isDark={isDark}
@@ -475,6 +487,15 @@ export default function AppSidebar() {
           <div className="drawer-header-actions">
             <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
             <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
+            <button
+              className="sidebar-appearance"
+              type="button"
+              aria-label="Appearance & Themes"
+              title="Appearance & Themes"
+              onClick={() => setAppearanceOpen(true)}
+            >
+              <HighlightOutlined />
+            </button>
             <ThemeCycleButton
               id="theme-cycle-drawer"
               isDark={isDark}
@@ -550,6 +571,7 @@ export default function AppSidebar() {
           <MenuOutlined />
         </button>
       )}
+      <AppearanceDrawer open={appearanceOpen} onClose={() => setAppearanceOpen(false)} />
     </div>
   );
 }
