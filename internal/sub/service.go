@@ -1861,6 +1861,11 @@ func applyShareTLSParams(stream map[string]any, params map[string]string) {
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			params["pcs"] = strings.Join(pins, ",")
 		}
+		if csValue, ok := searchKey(tlsSetting, "cipherSuites"); ok {
+			if cs, _ := csValue.(string); cs != "" {
+				params["cs"] = cs
+			}
+		}
 	}
 }
 
@@ -1895,6 +1900,11 @@ func applyVmessTLSParams(stream map[string]any, obj map[string]any) {
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
 			obj["pcs"] = strings.Join(pins, ",")
+		}
+		if csValue, ok := searchKey(tlsSetting, "cipherSuites"); ok {
+			if cs, _ := csValue.(string); cs != "" {
+				obj["cs"] = cs
+			}
 		}
 	}
 }
@@ -2042,7 +2052,7 @@ func buildVmessLink(obj map[string]any) string {
 func cloneVmessShareObj(baseObj map[string]any, newSecurity string) map[string]any {
 	newObj := map[string]any{}
 	for key, value := range baseObj {
-		if newSecurity != "none" || (key != "alpn" && key != "sni" && key != "fp" && key != "pcs") {
+		if newSecurity != "none" || (key != "alpn" && key != "sni" && key != "fp" && key != "pcs" && key != "cs") {
 			newObj[key] = value
 		}
 	}
@@ -2071,6 +2081,9 @@ func applyExternalProxyTLSObj(ep map[string]any, obj map[string]any, security st
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		obj["ech"] = ech
 	}
+	if cs, ok := externalProxyCipherSuites(ep); ok {
+		obj["cs"] = cs
+	}
 }
 
 func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, security string) {
@@ -2094,6 +2107,9 @@ func applyExternalProxyTLSParams(ep map[string]any, params map[string]string, se
 	}
 	if ech, ok := ep["echConfigList"].(string); ok && ech != "" {
 		params["ech"] = ech
+	}
+	if cs, ok := externalProxyCipherSuites(ep); ok {
+		params["cs"] = cs
 	}
 }
 
@@ -2189,6 +2205,13 @@ func applyExternalProxyTLSToStream(ep map[string]any, stream map[string]any, sec
 		}
 		settings["allowInsecure"] = true
 	}
+}
+
+func externalProxyCipherSuites(ep map[string]any) (string, bool) {
+	if cs, ok := ep["cipherSuites"].(string); ok && cs != "" {
+		return cs, true
+	}
+	return "", false
 }
 
 func externalProxySNI(ep map[string]any) (string, bool) {
@@ -2337,7 +2360,7 @@ func appendQueryAndFragment(link string, params map[string]string, fragment, sec
 			if securityOverride != "" && k == "security" {
 				v = securityOverride
 			}
-			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp" || k == "pcs") {
+			if omitTLSFields && (k == "alpn" || k == "sni" || k == "fp" || k == "pcs" || k == "cs") {
 				continue
 			}
 			q.Set(k, v)

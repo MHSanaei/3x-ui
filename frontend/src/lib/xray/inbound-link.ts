@@ -216,6 +216,8 @@ function applyExternalProxyTLSObj(
   }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0)
     obj.ech = externalProxy.echConfigList;
+  if (externalProxy.cipherSuites && externalProxy.cipherSuites.length > 0)
+    obj.cs = externalProxy.cipherSuites;
 }
 
 export interface GenVmessLinkInput {
@@ -318,6 +320,9 @@ export function genVmessLink(input: GenVmessLinkInput): string {
     if (tlsSettings.settings.pinnedPeerCertSha256.length > 0) {
       obj.pcs = tlsSettings.settings.pinnedPeerCertSha256.join(',');
     }
+    if (tlsSettings.cipherSuites && tlsSettings.cipherSuites.length > 0) {
+      obj.cs = tlsSettings.cipherSuites;
+    }
   }
 
   applyExternalProxyTLSObj(externalProxy, obj, tls);
@@ -375,6 +380,8 @@ function applyExternalProxyTLSParams(
   }
   if (externalProxy.echConfigList && externalProxy.echConfigList.length > 0)
     params.set('ech', externalProxy.echConfigList);
+  if (externalProxy.cipherSuites && externalProxy.cipherSuites.length > 0)
+    params.set('cs', externalProxy.cipherSuites);
 }
 
 export interface GenVlessLinkInput {
@@ -477,6 +484,9 @@ export function genVlessLink(input: GenVlessLinkInput): string {
       }
       if (tls.settings.pinnedPeerCertSha256.length > 0) {
         params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+      }
+      if (tls.cipherSuites && tls.cipherSuites.length > 0) {
+        params.set('cs', tls.cipherSuites);
       }
     }
     applyExternalProxyTLSParams(externalProxy, params, security);
@@ -582,6 +592,9 @@ function writeTlsParams(
   }
   if (tls.settings.pinnedPeerCertSha256.length > 0) {
     params.set('pcs', tls.settings.pinnedPeerCertSha256.join(','));
+  }
+  if (tls.cipherSuites && tls.cipherSuites.length > 0) {
+    params.set('cs', tls.cipherSuites);
   }
 }
 

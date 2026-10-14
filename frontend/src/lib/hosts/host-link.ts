@@ -17,6 +17,7 @@ export type HostLinkInput = Pick<
   | 'pinnedPeerCertSha256'
   | 'verifyPeerCertByName'
   | 'echConfigList'
+  | 'cipherSuites'
   | 'overrideSniFromAddress'
   | 'keepSniBlank'
   | 'vlessRoute'
@@ -54,6 +55,7 @@ export function hostToExternalProxyEntry(host: HostLinkInput): ExternalProxyEntr
         : undefined,
     verifyPeerCertByName: host.verifyPeerCertByName || undefined,
     echConfigList: host.echConfigList || undefined,
+    cipherSuites: host.cipherSuites || undefined,
     vlessRoute: host.vlessRoute || undefined,
     allowInsecure: host.allowInsecure || undefined,
   };
