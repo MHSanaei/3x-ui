@@ -1007,73 +1007,31 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "client_commands":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands"))
+	case "client_menu_open":
+		// The customer keyboard's Commands button is the one entry every linked
+		// account already has, so the menu opens from there rather than adding a
+		// button main's keyboard would have to grow.
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.customerMenu"))
+		t.clientMenu(chatId, callbackQuery.From.ID, isAdmin)
+	case "client_menu":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.customerMenu"))
+		t.clientMenu(chatId, callbackQuery.From.ID, isAdmin)
+	case "guide_menu":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.setupGuide"))
+		t.guideMenu(chatId)
 	case "client_sub_links":
-		// show user's own clients to choose one for sub links
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			// fallback to message
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-			return
-		}
-		if len(traffics) == 0 {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons = append(buttons, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_sub_links "+tr.Email)))
-		}
-		cols := 1
-		if len(buttons) >= 6 {
-			cols = 2
-		}
-		keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), keyboard)
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.subLink"))
+		t.clientEmailPicker(chatId, callbackQuery.From.ID, "client_sub_links", isAdmin)
 	case "client_individual_links":
-		// show user's clients to choose for individual links
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
-			return
-		}
-		if len(traffics) == 0 {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons2 []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons2 = append(buttons2, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_individual_links "+tr.Email)))
-		}
-		cols2 := 1
-		if len(buttons2) >= 6 {
-			cols2 = 2
-		}
-		keyboard2 := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols2, buttons2...))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), keyboard2)
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.getAllLinks"))
+		t.clientEmailPicker(chatId, callbackQuery.From.ID, "client_individual_links", isAdmin)
 	case "client_qr_links":
-		// show user's clients to choose for QR codes
-		tgUserID := callbackQuery.From.ID
-		traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
-		if err != nil {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOccurred")+"\r\n"+err.Error())
-			return
-		}
-		if len(traffics) == 0 {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+strconv.FormatInt(tgUserID, 10)))
-			return
-		}
-		var buttons3 []telego.InlineKeyboardButton
-		for _, tr := range traffics {
-			buttons3 = append(buttons3, tu.InlineKeyboardButton(tr.Email).WithCallbackData(t.encodeQuery("client_qr_links "+tr.Email)))
-		}
-		cols3 := 1
-		if len(buttons3) >= 6 {
-			cols3 = 2
-		}
-		keyboard3 := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols3, buttons3...))
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), keyboard3)
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.qrCodes"))
+		t.clientEmailPicker(chatId, callbackQuery.From.ID, "client_qr_links", isAdmin)
+	case "client_one_link":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.getOneConfig"))
+		t.clientConfigsStep(chatId, callbackQuery.From.ID, isAdmin)
+
 	case "onlines":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.onlines"))
 		t.onlineClients(chatId)
@@ -1363,6 +1321,24 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, html.EscapeString(report.String()), tu.ReplyKeyboardRemove())
 		}
 	default:
+		// Per-client customer verbs carry an email in callback data, which is only
+		// a claim: the caller is proved to own the client before anything is sent.
+		verb, arg, ok := splitClientSelfAction(callbackQuery.Data)
+		if ok {
+			tgUserID := callbackQuery.From.ID
+			if !isAdmin && !t.ownsClient(tgUserID, clientSelfTarget(verb, arg)) {
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+				return
+			}
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+			t.runClientSelfAction(chatId, verb, arg)
+			return
+		}
+		if key, ok := parseGuideCallback(callbackQuery.Data); ok {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.setupGuide"))
+			t.sendGuide(chatId, key)
+			return
+		}
 		action, email, ok := splitClientLinkCallback(callbackQuery.Data)
 		if !ok {
 			// Nothing matched: an unknown button still has to be answered, or it
@@ -1396,12 +1372,21 @@ func checkAdmin(tgId int64) bool {
 // admin-only; the caller still has to prove the client is its own.
 func isClientSelfCallback(data string) bool {
 	switch data {
-	case "client_traffic", "client_commands", "client_sub_links",
-		"client_individual_links", "client_qr_links":
+	case "client_traffic", "client_commands", "client_menu", "client_menu_open", "guide_menu",
+		"client_sub_links", "client_individual_links", "client_qr_links",
+		"client_one_link":
 		return true
 	}
-	_, _, ok := splitClientLinkCallback(data)
-	return ok
+	if _, _, ok := splitClientLinkCallback(data); ok {
+		return true
+	}
+	if _, _, ok := splitClientSelfAction(data); ok {
+		return true
+	}
+	if _, ok := parseGuideCallback(data); ok {
+		return true
+	}
+	return false
 }
 
 // splitClientLinkCallback splits "<action> <email>" for the per-client link
