@@ -2432,19 +2432,7 @@
       "tag": "Sponsor",
       "visit": "Ziyaret et",
       "yourBrand": "Markanız burada",
-      "yourBrandText": "Şirketinizi her gün 3X-UI açan binlerce sunucu yöneticisinin önüne çıkarın.",
-      "placements": "Mevcut yerleşimler",
-      "placementDashboard": "Genel bakış afişi",
-      "placementDashboardDesc": "Panonun üstünde premium alan, aynı anda tek sponsor.",
-      "placementSidebar": "Kenar çubuğu kartı",
-      "placementSidebarDesc": "Tüm panel sayfalarında gösterilir, sponsorlar arasında döner.",
-      "placementLogin": "Giriş sayfası",
-      "placementLoginDesc": "Yönetici her girişte görür.",
-      "placementPage": "Sponsorlar sayfası",
-      "placementPageDesc": "Logo, açıklama ve bağlantıyla burada listelenir.",
-      "available": "Müsait",
-      "takenUntil": "{date} tarihine kadar dolu",
-      "activeCount": "{count} aktif"
+      "yourBrandText": "Şirketinizi her gün 3X-UI açan binlerce sunucu yöneticisinin önüne çıkarın."
     }
   },
   "tgbot": {

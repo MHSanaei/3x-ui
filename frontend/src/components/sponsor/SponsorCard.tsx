@@ -12,7 +12,6 @@ export type SponsorCardVariant = 'banner' | 'compact' | 'card';
 export interface SponsorCardProps {
   sponsor: Sponsor;
   variant?: SponsorCardVariant;
-  iconOnly?: boolean;
   onClose?: () => void;
 }
 
@@ -36,32 +35,12 @@ function SponsorLogo({ sponsor }: { sponsor: Sponsor }) {
   );
 }
 
-export default function SponsorCard({
-  sponsor,
-  variant = 'banner',
-  iconOnly = false,
-  onClose,
-}: SponsorCardProps) {
+export default function SponsorCard({ sponsor, variant = 'banner', onClose }: SponsorCardProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.resolvedLanguage || i18n.language || 'en';
   const title = pickLocale(sponsor.title, lang) || sponsor.name;
   const text = pickLocale(sponsor.text, lang);
   const tag = t('pages.sponsors.tag');
-
-  if (iconOnly) {
-    return (
-      <a
-        className="sponsor-card sponsor-card-icon"
-        href={sponsor.link}
-        target="_blank"
-        rel="noopener noreferrer sponsored"
-        title={`${tag} · ${title}`}
-        aria-label={`${tag}: ${title}`}
-      >
-        <SponsorLogo sponsor={sponsor} />
-      </a>
-    );
-  }
 
   return (
     <div className={`sponsor-card sponsor-card-${variant}`}>
@@ -70,6 +49,7 @@ export default function SponsorCard({
         href={sponsor.link}
         target="_blank"
         rel="noopener noreferrer sponsored"
+        title={variant === 'compact' ? [title, text].filter(Boolean).join('\n') : undefined}
       >
         <SponsorLogo sponsor={sponsor} />
         <span className="sponsor-body" dir="auto">

@@ -1,9 +1,14 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm"
@@ -469,6 +474,163 @@ func TestMultiAttach_SameNode_DivergentSiblings(t *testing.T) {
 	// delta=50 accrues once.
 	sync(200, 200, 200)
 	assertUpDown(t, readTraffic(t, db, email), 100, 100, "equal siblings accrue the single increment")
+}
+
+var clientWriteSQL = regexp.MustCompile(`(?i)^\s*(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+["` + "`" + `]?(clients|client_inbounds|client_traffics|node_client_traffics)\b`)
+
+// countClientRowWrites returns, per client table, how many rows fn's
+// INSERT/UPDATE/DELETE statements touched.
+func countClientRowWrites(t *testing.T, fn func()) map[string]int64 {
+	t.Helper()
+	db := database.GetDB()
+	var mu sync.Mutex
+	rows := map[string]int64{}
+	record := func(tx *gorm.DB) {
+		if tx.Error != nil || tx.RowsAffected == 0 || tx.Statement == nil {
+			return
+		}
+		if m := clientWriteSQL.FindStringSubmatch(tx.Statement.SQL.String()); m != nil {
+			mu.Lock()
+			rows[m[1]] += tx.RowsAffected
+			mu.Unlock()
+		}
+	}
+	const name = "test:count_client_row_writes"
+	cb := db.Callback()
+	for _, err := range []error{
+		cb.Create().After("gorm:create").Register(name, record),
+		cb.Update().After("gorm:update").Register(name, record),
+		cb.Delete().After("gorm:delete").Register(name, record),
+		cb.Raw().After("gorm:raw").Register(name, record),
+	} {
+		if err != nil {
+			t.Fatalf("register write callback: %v", err)
+		}
+	}
+	defer func() {
+		for _, err := range []error{
+			cb.Create().Remove(name), cb.Update().Remove(name),
+			cb.Delete().Remove(name), cb.Raw().Remove(name),
+		} {
+			if err != nil {
+				t.Errorf("remove write callback: %v", err)
+			}
+		}
+	}()
+	fn()
+	return rows
+}
+
+func TestNodeMerge_WritesOnlyChangedClients(t *testing.T) {
+	const clientCount = 20
+	type snapInbound struct {
+		tag      string
+		protocol model.Protocol
+		entry    func(i int, email string) map[string]any
+	}
+	vlessEntry := func(flow string) func(int, string) map[string]any {
+		return func(i int, email string) map[string]any {
+			e := map[string]any{"email": email, "id": fmt.Sprintf("%08d-0000-4000-8000-000000000000", i), "subId": email, "enable": true}
+			if flow != "" {
+				e["flow"] = flow
+			}
+			return e
+		}
+	}
+	wgEntry := func(tunnel int) func(int, string) map[string]any {
+		return func(i int, email string) map[string]any {
+			return map[string]any{
+				"email": email, "subId": email, "enable": true,
+				"privateKey":   fmt.Sprintf("priv-%d-%d", tunnel, i),
+				"publicKey":    fmt.Sprintf("pub-%d-%d", tunnel, i),
+				"allowedIPs":   []string{fmt.Sprintf("10.%d.0.%d/32", tunnel, i+2)},
+				"preSharedKey": fmt.Sprintf("psk-%d-%d", tunnel, i),
+				"keepAlive":    25 * tunnel,
+			}
+		}
+	}
+
+	cases := []struct {
+		name     string
+		inbounds []snapInbound
+	}{
+		{"vless with and without flow", []snapInbound{
+			{"n1-reality", model.VLESS, vlessEntry("xtls-rprx-vision")},
+			{"n1-ws", model.VLESS, vlessEntry("")},
+		}},
+		{"wireguard and vless", []snapInbound{
+			{"n1-wg", model.WireGuard, wgEntry(1)},
+			{"n1-vless", model.VLESS, vlessEntry("")},
+		}},
+		{"two wireguard tunnels", []snapInbound{
+			{"n1-wg-a", model.WireGuard, wgEntry(1)},
+			{"n1-wg-b", model.WireGuard, wgEntry(2)},
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			db := initTrafficTestDB(t)
+			svc := &InboundService{}
+
+			emails := make([]string, clientCount)
+			stats := make([]xray.ClientTraffic, clientCount)
+			for i := range emails {
+				emails[i] = fmt.Sprintf("multi-%d", i)
+				stats[i] = xray.ClientTraffic{Email: emails[i], Up: 1000, Down: 2000, Enable: true, LastOnline: 5000}
+			}
+			settings := make([]string, len(tc.inbounds))
+			for n, ib := range tc.inbounds {
+				entries := make([]map[string]any, clientCount)
+				for i, email := range emails {
+					entries[i] = ib.entry(i, email)
+				}
+				raw, err := json.Marshal(map[string]any{"clients": entries})
+				if err != nil {
+					t.Fatalf("marshal settings: %v", err)
+				}
+				settings[n] = string(raw)
+				nodeID := 1
+				if err := db.Create(&model.Inbound{
+					UserId: 1, NodeID: &nodeID, Tag: ib.tag, Enable: true,
+					Port: 42000 + n, Protocol: ib.protocol, Settings: settings[n],
+				}).Error; err != nil {
+					t.Fatalf("create inbound %q: %v", ib.tag, err)
+				}
+			}
+			merge := func(stats []xray.ClientTraffic) {
+				t.Helper()
+				// A node copies a multi-attached client's one counter onto every inbound it is on.
+				snap := &runtime.TrafficSnapshot{}
+				for n, ib := range tc.inbounds {
+					snap.Inbounds = append(snap.Inbounds, &model.Inbound{
+						Tag: ib.tag, Enable: true, Port: 42000 + n, Protocol: ib.protocol,
+						Settings: settings[n], ClientStats: slices.Clone(stats),
+					})
+				}
+				if _, err := svc.setRemoteTrafficLocked(1, snap, false, false); err != nil {
+					t.Fatalf("setRemoteTrafficLocked: %v", err)
+				}
+			}
+
+			merge(stats)
+			if got := countClientRowWrites(t, func() { merge(stats) }); len(got) != 0 {
+				t.Errorf("repeating an unchanged snapshot wrote client rows %v, want none", got)
+			}
+
+			active := slices.Clone(stats)
+			active[0].Up, active[0].Down, active[0].LastOnline = 1300, 2600, 6000
+			got := countClientRowWrites(t, func() { merge(active) })
+			want := map[string]int64{"client_traffics": 1, "node_client_traffics": 1}
+			if !maps.Equal(got, want) {
+				t.Errorf("one client's traffic tick wrote client rows %v, want %v", got, want)
+			}
+			ct := readTraffic(t, db, emails[0])
+			assertUpDown(t, ct, 300, 600, "active client after its tick")
+			if ct.LastOnline != 6000 {
+				t.Errorf("last_online = %d, want 6000", ct.LastOnline)
+			}
+		})
+	}
 }
 
 func TestDelClientStat_CleansNodeBaselines(t *testing.T) {

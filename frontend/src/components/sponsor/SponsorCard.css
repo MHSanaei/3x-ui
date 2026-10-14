@@ -61,7 +61,7 @@
 
 .sponsor-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   min-width: 0;
 }
@@ -77,15 +77,14 @@
 }
 
 .sponsor-title {
-  overflow: hidden;
   font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .sponsor-text {
   font-size: 13px;
   color: var(--ant-color-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .sponsor-visit {
@@ -129,42 +128,52 @@
 }
 
 .sponsor-card-compact .sponsor-main {
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
   padding: 8px 10px;
 }
 
-.sponsor-card-compact .sponsor-logo {
-  width: 32px;
-  height: 32px;
+.sponsor-card-compact .sponsor-body,
+.sponsor-card-compact .sponsor-head {
+  display: contents;
 }
 
-.sponsor-card-compact .sponsor-head {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+.sponsor-card-compact .sponsor-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.sponsor-card-compact .sponsor-tag {
+  justify-self: start;
+}
+
+.sponsor-card-compact .sponsor-title,
+.sponsor-card-compact .sponsor-text {
+  display: -webkit-box;
+  grid-column: 1 / -1;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
 }
 
 .sponsor-card-compact .sponsor-title {
-  display: -webkit-box;
-  max-width: 100%;
   font-size: 13px;
-  white-space: normal;
   -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 
 .sponsor-card-compact .sponsor-text {
-  display: -webkit-box;
-  overflow: hidden;
   font-size: 12px;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
 .sponsor-card-compact .sponsor-close {
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 4px;
   width: 22px;
   height: 22px;
-  margin: 4px 4px 0 0;
+  margin: 0;
   font-size: 11px;
 }
 
@@ -175,28 +184,37 @@
 .sponsor-card-card .sponsor-main {
   flex-direction: column;
   align-items: flex-start;
-  padding: 16px;
+  gap: 16px;
+  padding: 24px;
 }
 
 .sponsor-card-card .sponsor-logo {
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+}
+
+.sponsor-card-card .sponsor-logo-fallback {
+  font-size: 28px;
+}
+
+.sponsor-card-card .sponsor-body {
+  gap: 6px;
+}
+
+.sponsor-card-card .sponsor-title {
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.sponsor-card-card .sponsor-text {
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .sponsor-card-card .sponsor-visit {
   margin-top: auto;
-}
-
-.sponsor-card-icon {
-  justify-content: center;
-  padding: 6px;
-  border-color: transparent;
-  background: transparent;
-}
-
-.sponsor-card-icon .sponsor-logo {
-  width: 32px;
-  height: 32px;
+  font-size: 14px;
 }
 
 @media (max-width: 576px) {

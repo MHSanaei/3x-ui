@@ -2432,19 +2432,7 @@
       "tag": "اسپانسر",
       "visit": "مشاهده",
       "yourBrand": "جای برند شما",
-      "yourBrandText": "شرکت خود را جلوی چشم هزاران ادمین سروری بگذارید که هر روز 3X-UI را باز می‌کنند.",
-      "placements": "جایگاه‌های موجود",
-      "placementDashboard": "بنر داشبورد",
-      "placementDashboardDesc": "جایگاه ویژه بالای صفحه‌ی داشبورد، هر بار فقط یک اسپانسر.",
-      "placementSidebar": "کارت سایدبار",
-      "placementSidebarDesc": "در همه‌ی صفحات پنل نمایش داده می‌شود و بین اسپانسرها چرخش دارد.",
-      "placementLogin": "صفحه‌ی ورود",
-      "placementLoginDesc": "ادمین در هر بار ورود آن را می‌بیند.",
-      "placementPage": "صفحه‌ی اسپانسرها",
-      "placementPageDesc": "همراه با لوگو، توضیحات و لینک در همین صفحه.",
-      "available": "خالی",
-      "takenUntil": "پر شده تا {date}",
-      "activeCount": "{count} فعال"
+      "yourBrandText": "شرکت خود را جلوی چشم هزاران ادمین سروری بگذارید که هر روز 3X-UI را باز می‌کنند."
     }
   },
   "tgbot": {

@@ -189,6 +189,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if err := transformAmneziaWGOutbounds(xrayConfig); err != nil {
 		return nil, err
 	}
+	if xray.KernelTunBlocked() {
+		xrayConfig.OutboundConfigs = forceUserspaceWireGuardTun(xrayConfig.OutboundConfigs)
+	}
 
 	_, _, _ = s.inboundService.AddTraffic(nil, nil)
 
@@ -1340,65 +1343,21 @@ func (s *XrayService) GetBalancersStatus(tags []string) ([]BalancerStatus, error
 	return statuses, nil
 }
 
-// OverrideBalancer forces a balancer in the running core to use the given
-// outbound tag; an empty target clears the override. When target names
-// another balancer, the override resolves to the loopback outbound that
-// routes traffic through the target balancer via the routing rules.
+// OverrideBalancer forces balancer tag onto target in the running core; an empty
+// target clears it. The panel keeps it across routing reloads until Xray restarts.
 func (s *XrayService) OverrideBalancer(tag, target string) error {
+	// Serialized with config applies, so the target is checked against the config the core runs.
+	lock.Lock()
+	defer lock.Unlock()
 	process := currentXrayProcess()
 	if process == nil || !process.IsRunning() {
 		return errors.New("xray is not running")
-	}
-	if target != "" {
-		resolved, err := s.resolveOverrideTarget(target)
-		if err != nil {
-			return err
-		}
-		if resolved != "" {
-			target = resolved
-		}
 	}
 	if err := s.xrayAPI.Init(process.GetAPIPort()); err != nil {
 		return err
 	}
 	defer s.xrayAPI.Close()
-	return s.xrayAPI.SetBalancerTarget(tag, target)
-}
-
-// resolveOverrideTarget checks if target names a balancer and, if so,
-// returns the loopback outbound tag that routes to it through the
-// routing rules. Returns empty if target is already a concrete outbound.
-func (s *XrayService) resolveOverrideTarget(target string) (string, error) {
-	template, err := s.settingService.GetXrayConfigTemplate()
-	if err != nil {
-		return "", err
-	}
-	var cfg map[string]any
-	if err := json.Unmarshal([]byte(template), &cfg); err != nil {
-		return "", err
-	}
-	routing, _ := cfg["routing"].(map[string]any)
-	if routing == nil {
-		return "", nil
-	}
-	rules, _ := routing["rules"].([]any)
-	for _, r := range rules {
-		rule, ok := r.(map[string]any)
-		if !ok {
-			continue
-		}
-		if rule["balancerTag"] != target {
-			continue
-		}
-		inboundTags, ok := rule["inboundTag"].([]any)
-		if !ok || len(inboundTags) == 0 {
-			continue
-		}
-		if lbTag, ok := inboundTags[0].(string); ok && strings.HasPrefix(lbTag, "_bl_") {
-			return lbTag, nil
-		}
-	}
-	return "", nil
+	return balancerOverrides.set(process, &s.xrayAPI, tag, target)
 }
 
 // TestRoute asks the running core which outbound its router picks for the
@@ -1571,6 +1530,8 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) bo
 			return false
 		}
 	}
+	// A routing reload rebuilds every balancer, and a removed outbound strands an override.
+	balancerOverrides.reapply(process, &hotAPI, newCfg)
 
 	process.SetConfig(newCfg)
 	persistHotConfig(process)
@@ -1757,4 +1718,39 @@ func upgradeStreamLegacyUDPHop(stream map[string]any) bool {
 
 func normalizeStreamUDPHop(stream map[string]any) bool {
 	return maskcompat.NormalizeUDPHop(stream["finalmask"])
+}
+
+// forceUserspaceWireGuardTun moves every WireGuard outbound to the gVisor TUN (#6796). Values
+// stay raw so the template's other keys reach the core byte for byte.
+func forceUserspaceWireGuardTun(raw json_util.RawMessage) json_util.RawMessage {
+	var outbounds []map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &outbounds); err != nil {
+		return raw
+	}
+	for _, ob := range outbounds {
+		var protocol, tag string
+		if json.Unmarshal(ob["protocol"], &protocol) != nil || !strings.EqualFold(protocol, "wireguard") {
+			continue
+		}
+		var settings map[string]json.RawMessage
+		if json.Unmarshal(ob["settings"], &settings) != nil || settings == nil {
+			continue
+		}
+		wasUserspace := string(settings["noKernelTun"]) == "true"
+		settings["noKernelTun"] = json.RawMessage("true")
+		rewritten, err := json.Marshal(settings)
+		if err != nil {
+			continue
+		}
+		ob["settings"] = rewritten
+		if !wasUserspace {
+			_ = json.Unmarshal(ob["tag"], &tag)
+			logger.Warningf("Outbound %q: kernel TUN cannot be set up here, running WireGuard on the userspace TUN instead (#6796)", tag)
+		}
+	}
+	rewritten, err := json.Marshal(outbounds)
+	if err != nil {
+		return raw
+	}
+	return rewritten
 }
