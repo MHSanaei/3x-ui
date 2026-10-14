@@ -2363,6 +2363,7 @@
         "serverDescription": "Catatan opsional yang ditampilkan di bawah catatan.",
         "allowInsecure": "Lewati verifikasi sertifikat TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Satu nilai rute VLESS (0-65535) yang disisipkan ke UUID, mis. 443. Biarkan kosong jika tidak ada.",
+        "mihomoX25519": "Hanya Mihomo: gunakan handshake REALITY dengan X25519 biasa tanpa ML-KEM (support-x25519mlkem768: false). Untuk server dengan Xray-core lebih lama dari 26.9.8 yang tidak mewajibkan ML-KEM.",
         "remark": "Label sederhana untuk host ini. Ditampilkan sebagai nama konfigurasi hanya ketika inbound tidak memiliki catatan tersendiri."
       },
       "remarkVars": {

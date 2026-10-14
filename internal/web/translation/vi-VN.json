@@ -2363,6 +2363,7 @@
         "serverDescription": "Ghi chú tùy chọn hiển thị bên dưới ghi chú.",
         "allowInsecure": "Bỏ qua xác minh chứng chỉ TLS (allowInsecure / skip-cert-verify).",
         "vlessRoute": "Một giá trị định tuyến VLESS (0-65535) được nhúng vào UUID, ví dụ 443. Để trống nếu không dùng.",
+        "mihomoX25519": "Chỉ Mihomo: dùng bắt tay REALITY với X25519 thường, không có ML-KEM (support-x25519mlkem768: false). Dành cho máy chủ chạy Xray-core cũ hơn 26.9.8, không yêu cầu ML-KEM.",
         "remark": "Nhãn đơn giản cho host này. Chỉ hiển thị làm tên cấu hình khi inbound không có ghi chú riêng."
       },
       "remarkVars": {
