@@ -403,7 +403,7 @@ export default function AppSidebar() {
               <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
               <button
                 type="button"
-                className="sidebar-pin"
+                className="sidebar-appearance"
                 aria-label="Appearance & Themes"
                 title="Appearance & Themes"
                 onClick={() => setAppearanceOpen(true)}
@@ -488,7 +488,7 @@ export default function AppSidebar() {
             <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />
             <DonateButton ariaLabel={t('menu.donate') || 'Donate'} />
             <button
-              className="drawer-close"
+              className="sidebar-appearance"
               type="button"
               aria-label="Appearance & Themes"
               title="Appearance & Themes"

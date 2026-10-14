@@ -369,3 +369,31 @@ body.dark .ant-drawer-body .drawer-menu .ant-menu-item-group-list {
   background-color: color-mix(in srgb, var(--ant-color-primary) 10%, transparent) !important;
   color: var(--ant-color-primary) !important;
 }
+
+.sidebar-appearance {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: hsla(0, 0%, 100%, 0.55);
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+
+.sidebar-appearance:active,
+.light .sidebar-appearance:active {
+  background-color: hsla(0, 0%, 100%, 0.08);
+}
+.sidebar-appearance:hover,
+.light .sidebar-appearance:hover {
+  background-color: hsla(0, 0%, 100%, 0.08);
+  color: hsla(0, 0%, 100%, 0.85);
+}

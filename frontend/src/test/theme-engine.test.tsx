@@ -19,7 +19,7 @@ describe('Theme Engine', () => {
   it('builds Ant Design 5 config for default dark preset', () => {
     const config = buildAntdConfig(BUILTIN_PRESETS['default-dark']);
     expect(config.token?.colorPrimary).toBe('#1668dc');
-    expect(config.token?.borderRadius).toBe(12);
+    expect(config.token?.colorBgBase).toBe('#1a1b1f');
   });
 
   it('builds Ant Design 5 config for classic 2.x preset with compact algorithm', () => {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const ColorRegex = /^(#([0-9a-fA-F]{3,8})|rgba?\([^)]+\)|transparent)$/;
+const HexColorRegex = /^#[0-9a-fA-F]{3,8}$/;
 
 export const ThemeTokenSchema = z
   .object({
@@ -9,23 +9,23 @@ export const ThemeTokenSchema = z
     baseMode: z.enum(['light', 'dark']),
 
     // Brand colors
-    colorPrimary: z.string().regex(ColorRegex, 'Invalid hex color for colorPrimary'),
+    colorPrimary: z.string().regex(HexColorRegex, 'Invalid hex color for colorPrimary'),
     colorPrimaryHover: z
       .string()
-      .regex(ColorRegex, 'Invalid hex color for colorPrimaryHover')
+      .regex(HexColorRegex, 'Invalid hex color for colorPrimaryHover')
       .optional(),
 
     // Surfaces & Backgrounds
-    colorBgBase: z.string().regex(ColorRegex, 'Invalid hex color for colorBgBase'),
-    colorBgContainer: z.string().regex(ColorRegex, 'Invalid hex color for colorBgContainer'),
-    colorBgElevated: z.string().regex(ColorRegex, 'Invalid hex color for colorBgElevated'),
+    colorBgBase: z.string().regex(HexColorRegex, 'Invalid hex color for colorBgBase'),
+    colorBgContainer: z.string().regex(HexColorRegex, 'Invalid hex color for colorBgContainer'),
+    colorBgElevated: z.string().regex(HexColorRegex, 'Invalid hex color for colorBgElevated'),
 
     // Borders & Text
-    colorBorder: z.string().regex(ColorRegex, 'Invalid hex color for colorBorder'),
-    colorText: z.string().regex(ColorRegex, 'Invalid hex color for colorText').optional(),
+    colorBorder: z.string().regex(HexColorRegex, 'Invalid hex color for colorBorder').optional(),
+    colorText: z.string().regex(HexColorRegex, 'Invalid hex color for colorText').optional(),
     colorTextSecondary: z
       .string()
-      .regex(ColorRegex, 'Invalid hex color for colorTextSecondary')
+      .regex(HexColorRegex, 'Invalid hex color for colorTextSecondary')
       .optional(),
 
     // Layout, Shape & Density

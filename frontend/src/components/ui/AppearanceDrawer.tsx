@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Button,
   Card,
@@ -29,13 +28,12 @@ interface AppearanceDrawerProps {
 
 export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProps) {
   const { activeTheme, setThemeId, setCustomTheme, resetToDefault } = useTheme();
-
-  const [activePresetId, setActivePresetId] = useState<string>(activeTheme.id);
+  const [messageApi, messageContextHolder] = message.useMessage();
+  const activePresetId = activeTheme.id;
 
   const handleSelectPreset = (presetId: string) => {
-    setActivePresetId(presetId);
     setThemeId(presetId);
-    message.success(`Applied ${BUILTIN_PRESETS[presetId]?.name || presetId}`);
+    messageApi.success(`Applied ${BUILTIN_PRESETS[presetId]?.name || presetId}`);
   };
 
   const handleColorChange = (color: string) => {
@@ -45,7 +43,6 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
       name: 'Custom Theme',
       colorPrimary: color,
     };
-    setActivePresetId('custom');
     setCustomTheme(updated);
   };
 
@@ -56,7 +53,6 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
       name: 'Custom Theme',
       borderRadius: radius,
     };
-    setActivePresetId('custom');
     setCustomTheme(updated);
   };
 
@@ -67,7 +63,6 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
       name: 'Custom Theme',
       density,
     };
-    setActivePresetId('custom');
     setCustomTheme(updated);
   };
 
@@ -78,7 +73,6 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
       name: 'Custom Theme',
       cardStyle,
     };
-    setActivePresetId('custom');
     setCustomTheme(updated);
   };
 
@@ -90,7 +84,7 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
     dlAnchor.setAttribute('download', `3x-ui-theme-${activeTheme.id}.json`);
     dlAnchor.click();
     dlAnchor.remove();
-    message.success('Theme exported successfully');
+    messageApi.success('Theme exported successfully');
   };
 
   const uploadProps: UploadProps = {
@@ -102,12 +96,15 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
         try {
           const json = JSON.parse(e.target?.result as string);
           const parsed = ThemeTokenSchema.parse(json);
-          setActivePresetId(parsed.id);
+          if (BUILTIN_PRESETS[parsed.id]) {
+            parsed.id = `${parsed.id}-custom`;
+            parsed.name = `${parsed.name} (Custom)`;
+          }
           setCustomTheme(parsed);
-          message.success(`Imported and applied theme "${parsed.name}"`);
+          messageApi.success(`Imported and applied theme "${parsed.name}"`);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'Invalid format';
-          message.error(`Failed to import theme: ${msg}`);
+          messageApi.error(`Failed to import theme: ${msg}`);
         }
       };
       reader.readAsText(file);
@@ -128,14 +125,14 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
           size="small"
           onClick={() => {
             resetToDefault();
-            setActivePresetId('default-dark');
-            message.info('Reset to default dark theme');
+            messageApi.info('Reset to default dark theme');
           }}
         >
           Reset
         </Button>
       }
     >
+      {messageContextHolder}
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* Presets List */}
         <div>
@@ -161,7 +158,7 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
                     }}
                     onClick={() => handleSelectPreset(id)}
                   >
-                    <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
                       <div
                         style={{
                           display: 'flex',
@@ -225,7 +222,7 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
             Custom Adjustments
           </Title>
 
-          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <div>
               <Text type="secondary" style={{ display: 'block', marginBottom: 6 }}>
                 Primary Accent Color
@@ -306,7 +303,7 @@ export default function AppearanceDrawer({ open, onClose }: AppearanceDrawerProp
           <Title level={5} style={{ marginBottom: 12 }}>
             Import / Export Theme
           </Title>
-          <Space orientation="horizontal" style={{ width: '100%' }}>
+          <Space direction="horizontal" style={{ width: '100%' }}>
             <Button icon={<DownloadOutlined />} onClick={exportThemeJson}>
               Export JSON
             </Button>

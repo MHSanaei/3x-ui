@@ -1,3 +1,17 @@
+const LIGHT_CONTRAST_TOKENS = {
+  colorTextDescription: 'rgba(0, 0, 0, 0.58)',
+  colorTextTertiary: 'rgba(0, 0, 0, 0.58)',
+  colorTextPlaceholder: '#767676',
+  colorError: '#cf1322',
+  colorErrorText: '#cf1322',
+  colorSuccessText: '#237804',
+};
+
+const LIGHT_BUTTON_TOKENS = {
+  colorPrimary: '#0958d9',
+  colorPrimaryHover: '#2468e5',
+  colorPrimaryActive: '#073ea8',
+};
 import { theme as antdTheme } from 'antd';
 import type { ThemeConfig } from 'antd';
 import type { ThemeTokens } from '@/schemas/forms/theme';
@@ -129,50 +143,72 @@ const SHARED_STYLE_CONFIG = {
 } as const;
 
 export function buildAntdConfig(theme: ThemeTokens): ThemeConfig {
-  const algorithms = [
-    theme.baseMode === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-  ];
+  const isLight = theme.baseMode === 'light';
+  const isUltra =
+    theme.id === 'ultra-dark' ||
+    (theme.colorBgBase === '#000000' && theme.colorBgContainer === '#101013');
+  const isDefaultTheme =
+    theme.id === 'default-dark' || theme.id === 'default-light' || theme.id === 'ultra-dark';
+
+  const algorithms = [isLight ? antdTheme.defaultAlgorithm : antdTheme.darkAlgorithm];
 
   if (theme.density === 'compact') {
     algorithms.push(antdTheme.compactAlgorithm);
   }
 
+  const baseToken: Record<string, unknown> = {
+    colorPrimary: theme.colorPrimary,
+    colorPrimaryHover: theme.colorPrimaryHover || theme.colorPrimary,
+    colorBgBase: theme.colorBgBase,
+    colorBgContainer: theme.colorBgContainer,
+    colorBgElevated: theme.colorBgElevated,
+  };
+
+  // Only set custom borderRadius / border / text if not standard default theme
+  if (!isDefaultTheme) {
+    baseToken.borderRadius = theme.borderRadius;
+    if (theme.colorBorder) baseToken.colorBorder = theme.colorBorder;
+    if (theme.colorText) baseToken.colorText = theme.colorText;
+    if (theme.colorTextSecondary) baseToken.colorTextSecondary = theme.colorTextSecondary;
+  }
+
+  // Restore explicit light mode contrast tokens matching base useTheme.tsx
+  if (isLight) {
+    Object.assign(baseToken, LIGHT_CONTRAST_TOKENS);
+  }
+
+  const headerBg = isUltra ? '#050507' : isLight ? '#ffffff' : '#15161a';
+  const siderBg = isUltra ? '#050507' : isLight ? '#ffffff' : '#15161a';
+  const triggerBg = isUltra ? '#1a1a1e' : isLight ? '#f0f2f5' : '#23252b';
+
   return {
     ...SHARED_STYLE_CONFIG,
     algorithm: algorithms,
-    token: {
-      colorPrimary: theme.colorPrimary,
-      colorPrimaryHover: theme.colorPrimaryHover || theme.colorPrimary,
-      colorBgBase: theme.colorBgBase,
-      colorBgContainer: theme.colorBgContainer,
-      colorBgElevated: theme.colorBgElevated,
-      colorBorder: theme.colorBorder,
-      borderRadius: theme.borderRadius,
-      colorText: theme.colorText,
-      colorTextSecondary: theme.colorTextSecondary,
-    },
+    token: baseToken,
     components: {
       Statistic: {
         contentFontSize: 17,
         titleFontSize: 11,
       },
-      Button: {
-        colorPrimary: theme.colorPrimary,
-        colorPrimaryHover: theme.colorPrimaryHover || theme.colorPrimary,
-      },
+      Button: isLight
+        ? LIGHT_BUTTON_TOKENS
+        : {
+            colorPrimary: theme.colorPrimary,
+            colorPrimaryHover: theme.colorPrimaryHover || theme.colorPrimary,
+          },
       Layout: {
         bodyBg: theme.colorBgBase,
-        headerBg: theme.colorBgElevated,
+        headerBg,
         headerColor: theme.colorText || '#ffffff',
         footerBg: theme.colorBgBase,
-        siderBg: theme.colorBgElevated,
-        triggerBg: theme.colorBgContainer,
+        siderBg,
+        triggerBg,
         triggerColor: theme.colorText || '#ffffff',
       },
       Menu: {
-        darkItemBg: theme.colorBgElevated,
-        darkSubMenuItemBg: theme.colorBgBase,
-        darkPopupBg: theme.colorBgContainer,
+        darkItemBg: isUltra ? '#050507' : '#15161a',
+        darkSubMenuItemBg: isUltra ? '#000' : '#1a1b1f',
+        darkPopupBg: isUltra ? '#101013' : '#23252b',
       },
       Card: {
         colorBorderSecondary: theme.colorBorder,
