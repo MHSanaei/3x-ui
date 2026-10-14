@@ -60,8 +60,8 @@ type sponsorLogo struct {
 }
 
 var (
-	sponsorsURL     = "https://sponsors.sanaei.dev/3X/sponsors.json"
-	sponsorLogoBase = "https://sponsors.sanaei.dev/3X/logos/"
+	sponsorsURL     = "https://raw.githubusercontent.com/MHSanaei/sponsors/refs/heads/main/3X/sponsors.json"
+	sponsorLogoBase = "https://raw.githubusercontent.com/MHSanaei/sponsors/refs/heads/main/3X/logos/"
 	sponsorNow      = time.Now
 
 	// The panel proxies logos from sponsorLogoBase: CSP stays 'self' and no third party sees admin IPs.
