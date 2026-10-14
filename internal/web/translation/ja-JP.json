@@ -526,6 +526,8 @@
         "mtprotoFakeTlsDomainHint": "新しいクライアントのシークレット生成に使う既定の FakeTLS ドメイン。クライアントごとに別のドメインを使用できます。",
         "mtgThrottleMaxConnections": "最大接続数",
         "mtgThrottleMaxConnectionsHint": "全ユーザーの同時接続数を公平配分で制限します。0 で無効。",
+        "mtgPendingHandshakesMaxPerIp": "IP あたりの未完了ハンドシェイク上限",
+        "mtgPendingHandshakesMaxPerIpHint": "未完了のハンドシェイクをこの数だけ保持している IP からの新規接続を閉じます。共有 IP（キャリア NAT）配下のクライアントはこの上限を共有します。0 で無効。",
         "mtgAdTagInvalid": "広告タグは正確に 32 文字の 16 進数である必要があります。",
         "mtgPublicIpv4": "パブリック IPv4",
         "mtgPublicIpv6": "パブリック IPv6",

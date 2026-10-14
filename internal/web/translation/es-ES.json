@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "Dominio FakeTLS predeterminado para generar el secreto de un nuevo cliente. Cada cliente puede usar su propio dominio.",
         "mtgThrottleMaxConnections": "Conexiones máximas",
         "mtgThrottleMaxConnectionsHint": "Limita las conexiones simultáneas de todos los usuarios con reparto equitativo. 0 desactiva el límite.",
+        "mtgPendingHandshakesMaxPerIp": "Máx. handshakes pendientes por IP",
+        "mtgPendingHandshakesMaxPerIpHint": "Cierra las conexiones nuevas de una IP que ya tiene esta cantidad de handshakes sin completar. Los clientes detrás de una IP compartida (NAT del operador) comparten el límite. 0 lo desactiva.",
         "mtgAdTagInvalid": "El ad-tag debe tener exactamente 32 caracteres hexadecimales.",
         "mtgPublicIpv4": "IPv4 pública",
         "mtgPublicIpv6": "IPv6 pública",

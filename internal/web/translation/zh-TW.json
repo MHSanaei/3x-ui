@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "產生新用戶端金鑰時使用的預設 FakeTLS 網域。每個用戶端可使用各自的網域。",
         "mtgThrottleMaxConnections": "最大連線數",
         "mtgThrottleMaxConnectionsHint": "以公平分配限制所有使用者的並行連線數。0 表示不限制。",
+        "mtgPendingHandshakesMaxPerIp": "每 IP 最大未完成交握數",
+        "mtgPendingHandshakesMaxPerIpHint": "當某個 IP 的未完成交握達到此數量時，關閉其新連線。共用 IP（電信 NAT）後的用戶端共用此上限。0 表示停用。",
         "mtgAdTagInvalid": "廣告標籤必須為 32 位十六進位字元。",
         "mtgPublicIpv4": "公網 IPv4",
         "mtgPublicIpv6": "公網 IPv6",

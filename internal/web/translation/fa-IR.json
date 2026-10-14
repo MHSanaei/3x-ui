@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "دامنه پیش‌فرض FakeTLS برای ساخت سکرت کلاینت جدید. هر کلاینت می‌تواند دامنه مخصوص خود را داشته باشد.",
         "mtgThrottleMaxConnections": "حداکثر اتصالات",
         "mtgThrottleMaxConnectionsHint": "محدود کردن اتصالات همزمان همه کاربران با تقسیم منصفانه. مقدار ۰ غیرفعال است.",
+        "mtgPendingHandshakesMaxPerIp": "حداکثر handshake معلق برای هر IP",
+        "mtgPendingHandshakesMaxPerIpHint": "اتصال‌های جدید از IPای که این تعداد handshake ناتمام دارد بسته می‌شوند. کاربرانی که پشت یک IP مشترک (NAT اپراتور) هستند این سقف را با هم شریک‌اند. مقدار ۰ غیرفعال است.",
         "mtgAdTagInvalid": "برچسب تبلیغاتی باید دقیقاً ۳۲ کاراکتر هگزادسیمال باشد.",
         "mtgPublicIpv4": "IPv4 عمومی",
         "mtgPublicIpv6": "IPv6 عمومی",
