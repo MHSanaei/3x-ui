@@ -3,6 +3,7 @@ package sub
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -662,5 +663,115 @@ func TestSub_HostTLSVerificationJSONAtXrayLevel(t *testing.T) {
 		if _, ok := tls[key]; ok {
 			t.Errorf("tlsSettings.%s must not reach xray: %#v", key, tls)
 		}
+	}
+}
+
+func TestSub_HostCIDR_RawLinks(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cidr-raw", 4462, 1,
+		`{"network":"tcp","security":"tls","tlsSettings":{"serverName":"sni.example.com"}}`)
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "IPv6Node",
+		Address:     "2a01:4f8:1c1b:729::/64",
+		Port:        8443,
+		Security:    "tls",
+		RandomCount: 3,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 3 {
+		t.Fatalf("len(parts) = %d, want 3", len(parts))
+	}
+
+	_, ipNet, _ := net.ParseCIDR("2a01:4f8:1c1b:729::/64")
+	seenIPs := make(map[string]struct{}, len(parts))
+
+	for i, link := range parts {
+		wantRemark := fmt.Sprintf("IPv6Node%%20-%%20%d", i+1)
+		if !strings.Contains(link, wantRemark) {
+			t.Errorf("link[%d] does not contain expected remark %q: %s", i, wantRemark, link)
+		}
+
+		atIdx := strings.Index(link, "@")
+		colonIdx := strings.LastIndex(link, ":8443")
+		if atIdx == -1 || colonIdx == -1 || colonIdx <= atIdx {
+			t.Fatalf("malformed link host: %s", link)
+		}
+		rawAddr := strings.Trim(link[atIdx+1:colonIdx], "[]")
+		parsed := net.ParseIP(rawAddr)
+		if parsed == nil || !ipNet.Contains(parsed) {
+			t.Errorf("link[%d] IP %q not inside 2a01:4f8:1c1b:729::/64", i, rawAddr)
+		}
+		if _, dup := seenIPs[rawAddr]; dup {
+			t.Errorf("duplicate IP %q emitted across links", rawAddr)
+		}
+		seenIPs[rawAddr] = struct{}{}
+	}
+}
+
+func TestSub_HostCIDR_SingleCountKeepsBaseRemark(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cidr-single", 4463, 1,
+		`{"network":"tcp","security":"none"}`)
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "SingleCIDR",
+		Address:     "198.51.100.0/24",
+		Port:        8080,
+		Security:    "none",
+		RandomCount: 1,
+	})
+
+	links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	parts := strings.Split(strings.Join(links, "\n"), "\n")
+	if len(parts) != 1 {
+		t.Fatalf("len(parts) = %d, want 1", len(parts))
+	}
+	if strings.Contains(parts[0], "SingleCIDR - 1") {
+		t.Errorf("count=1 must not append index suffix: %s", parts[0])
+	}
+	if !strings.Contains(parts[0], "SingleCIDR") {
+		t.Errorf("link does not contain base remark: %s", parts[0])
+	}
+}
+
+func TestSub_HostCIDR_ClashAndJson(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "cidr-clash", 4464, 1,
+		`{"network":"tcp","security":"none"}`)
+	seedHost(t, &model.Host{
+		InboundId:   ib.Id,
+		SortOrder:   0,
+		Remark:      "V4Node",
+		Address:     "203.0.113.0/24",
+		Port:        8080,
+		Security:    "none",
+		RandomCount: 2,
+	})
+
+	clashYaml, _, err := NewSubClashService(false, "", NewSubService("")).GetClash("s1", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetClash: %v", err)
+	}
+	if !strings.Contains(clashYaml, "V4Node - 1") || !strings.Contains(clashYaml, "V4Node - 2") {
+		t.Errorf("Clash YAML should contain numbered host proxies: %s", clashYaml)
+	}
+
+	jsonDoc, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	if !strings.Contains(jsonDoc, "V4Node - 1") || !strings.Contains(jsonDoc, "V4Node - 2") {
+		t.Errorf("JSON config should contain numbered host outbounds: %s", jsonDoc)
 	}
 }

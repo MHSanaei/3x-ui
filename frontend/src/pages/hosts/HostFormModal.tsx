@@ -74,6 +74,7 @@ function defaultsFor(host: HostRecord | null): FormShape {
     mihomoIpVersion: host?.mihomoIpVersion as BulkAddHostValues['mihomoIpVersion'],
     mihomoX25519: host?.mihomoX25519 ?? false,
     shuffleHost: host?.shuffleHost ?? false,
+    randomCount: host?.randomCount ?? 1,
   };
 }
 
@@ -95,6 +96,8 @@ export default function HostFormModal({
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
+  const watchedHosts = useWatch({ control: methods.control, name: 'hosts' });
+  const hasCidr = Boolean(watchedHosts?.some((h) => typeof h === 'string' && h.includes('/')));
 
   // React resets this during render rather than in an effect so the modal's
   // first open frame already shows cleared fields.
@@ -251,6 +254,11 @@ export default function HostFormModal({
                         placeholder="cdn.example.com, cdn2.example.com:443"
                       />
                     </FormField>
+                    {hasCidr && (
+                      <FormField name="randomCount" label={t('pages.hosts.fields.randomCount')}>
+                        <InputNumber min={1} max={100} style={{ width: '100%' }} />
+                      </FormField>
+                    )}
                     <FormField
                       name="port"
                       label={t('pages.hosts.fields.port')}
