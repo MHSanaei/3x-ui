@@ -1180,6 +1180,8 @@
       "warnDefaultSubPath": "デフォルトのサブスクリプションパス \"/sub/\" はよく知られています — 変更してください。",
       "warnDefaultJsonPath": "デフォルトの JSON サブスクリプションパス \"/json/\" はよく知られています — 変更してください。",
       "TGBotSettings": "Telegram Bot",
+      "showSponsorAds": "スポンサー広告を表示",
+      "showSponsorAdsDesc": "ログイン画面を含むパネル全体で、スポンサーのカード、ページ、広告掲載の案内を表示します。無効にするとスポンサーへの外部リクエストも停止します。設定はすべてのブラウザーに適用され、保存されます。",
       "panelListeningIP": "パネル監視IP",
       "panelListeningIPDesc": "デフォルトではすべてのIPを監視する",
       "panelListeningDomain": "パネル監視ドメイン",

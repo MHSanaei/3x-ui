@@ -80,6 +80,19 @@ var (
 // GetSponsors returns the currently active sponsors. The remote file is cached, but the
 // window is re-checked on every call so a slot starts exactly at From and ends at Until.
 func (s *PanelService) GetSponsors() (*SponsorList, error) {
+	var list *SponsorList
+	err := service.WithSponsorContent(func() error {
+		var err error
+		list, err = s.getSponsors()
+		return err
+	})
+	if errors.Is(err, service.ErrSponsorAdsDisabled) {
+		return &SponsorList{Sponsors: []Sponsor{}}, nil
+	}
+	return list, err
+}
+
+func (s *PanelService) getSponsors() (*SponsorList, error) {
 	raw, err := cachedSponsors()
 	if err != nil {
 		return nil, err
@@ -110,11 +123,25 @@ func cachedSponsors() (*SponsorList, error) {
 
 // GetSponsorLogo returns the image bytes for a logo of a currently active sponsor.
 func (s *PanelService) GetSponsorLogo(name string) ([]byte, string, error) {
+	var data []byte
+	var contentType string
+	err := service.WithSponsorContent(func() error {
+		var err error
+		data, contentType, err = s.getSponsorLogo(name)
+		return err
+	})
+	if errors.Is(err, service.ErrSponsorAdsDisabled) {
+		return nil, "", ErrSponsorLogoUnknown
+	}
+	return data, contentType, err
+}
+
+func (s *PanelService) getSponsorLogo(name string) ([]byte, string, error) {
 	// Validated here, not only via list membership, so name can never carry a path or URL.
 	if !sponsorLogoRe.MatchString(name) {
 		return nil, "", ErrSponsorLogoUnknown
 	}
-	sponsors, err := s.GetSponsors()
+	sponsors, err := s.getSponsors()
 	if err != nil {
 		return nil, "", err
 	}

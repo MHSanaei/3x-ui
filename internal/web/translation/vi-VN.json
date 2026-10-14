@@ -1180,6 +1180,8 @@
       "warnDefaultSubPath": "Đường dẫn đăng ký mặc định \"/sub/\" đã quá phổ biến — đổi nó.",
       "warnDefaultJsonPath": "Đường dẫn đăng ký JSON mặc định \"/json/\" đã quá phổ biến — đổi nó.",
       "TGBotSettings": "Bot Telegram",
+      "showSponsorAds": "Hiển thị quảng cáo của nhà tài trợ",
+      "showSponsorAdsDesc": "Hiển thị thẻ nhà tài trợ, trang Nhà tài trợ và lời mời quảng cáo trên toàn bộ bảng điều khiển, bao gồm trang đăng nhập. Tắt tùy chọn này cũng dừng các yêu cầu bên ngoài đến nhà tài trợ. Lựa chọn được lưu cho mọi trình duyệt.",
       "panelListeningIP": "IP Nghe của bảng điều khiển",
       "panelListeningIPDesc": "Mặc định để trống để nghe tất cả các IP.",
       "panelListeningDomain": "Tên miền của nghe bảng điều khiển",

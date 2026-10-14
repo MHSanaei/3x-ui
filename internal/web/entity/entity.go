@@ -20,6 +20,7 @@ type Msg struct {
 }
 
 type AllSetting struct {
+	ShowSponsorAds        bool   `json:"showSponsorAds" form:"showSponsorAds"`
 	WebListen             string `json:"webListen" form:"webListen"`
 	WebDomain             string `json:"webDomain" form:"webDomain"`
 	WebPort               int    `json:"webPort" form:"webPort" validate:"gte=1,lte=65535"`

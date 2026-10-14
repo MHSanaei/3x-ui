@@ -1180,6 +1180,8 @@
       "warnDefaultSubPath": "Path langganan default \"/sub/\" sudah umum diketahui — ubahlah.",
       "warnDefaultJsonPath": "Path langganan JSON default \"/json/\" sudah umum diketahui — ubahlah.",
       "TGBotSettings": "Bot Telegram",
+      "showSponsorAds": "Tampilkan iklan sponsor",
+      "showSponsorAdsDesc": "Tampilkan kartu sponsor, halaman Sponsor dan penawaran iklan di seluruh panel, termasuk halaman masuk. Menonaktifkannya juga menghentikan permintaan sponsor eksternal. Pilihan disimpan untuk semua browser.",
       "panelListeningIP": "IP Pendengar",
       "panelListeningIPDesc": "Alamat IP untuk panel web. (biarkan kosong untuk mendengarkan semua IP)",
       "panelListeningDomain": "Domain Pendengar",

@@ -179,6 +179,9 @@
             "minimum": 1,
             "type": "integer"
           },
+          "showSponsorAds": {
+            "type": "boolean"
+          },
           "smtpCpu": {
             "maximum": 100,
             "minimum": 0,
@@ -643,6 +646,7 @@
           "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
+          "showSponsorAds",
           "smtpCpu",
           "smtpEnable",
           "smtpEnabledEvents",
@@ -954,6 +958,9 @@
             "maximum": 525600,
             "minimum": 1,
             "type": "integer"
+          },
+          "showSponsorAds": {
+            "type": "boolean"
           },
           "smtpCpu": {
             "maximum": 100,
@@ -1427,6 +1434,7 @@
           "remarkTemplate",
           "restartXrayOnClientDisable",
           "sessionMaxAge",
+          "showSponsorAds",
           "smtpCpu",
           "smtpEnable",
           "smtpEnabledEvents",
@@ -5036,7 +5044,7 @@
         "tags": [
           "Authentication"
         ],
-        "summary": "Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.",
+        "summary": "Public. Active sponsor placements (cached for 1h), with logos proxied at /sponsors/logo/{name}. When showSponsorAds is false, returns an empty list without contact details; neither list nor logo requests access upstream or serve cached content. Responses are not cached by browsers.",
         "operationId": "get_sponsors",
         "responses": {
           "200": {
@@ -5078,6 +5086,40 @@
                       }
                     ]
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sponsors/enabled": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Public. Returns only the database-backed showSponsorAds boolean for the login page and panel navigation. Does not expose administrative settings or fetch sponsor content. Defaults to true; responses use Cache-Control: no-store.",
+        "operationId": "get_sponsors_enabled",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": true
                 }
               }
             }

@@ -1180,6 +1180,8 @@
       "warnDefaultSubPath": "La ruta de suscripción por defecto \"/sub/\" es conocida — cámbiela.",
       "warnDefaultJsonPath": "La ruta de suscripción JSON por defecto \"/json/\" es conocida — cámbiela.",
       "TGBotSettings": "Bot de Telegram",
+      "showSponsorAds": "Mostrar anuncios de patrocinadores",
+      "showSponsorAdsDesc": "Mostrar tarjetas de patrocinadores, su página y ofertas publicitarias en todo el panel, incluido el inicio de sesión. Al desactivarlo también se detienen las solicitudes externas de patrocinadores. Se guarda para todos los navegadores.",
       "panelListeningIP": "IP de Escucha del Panel",
       "panelListeningIPDesc": "Dejar en blanco por defecto para monitorear todas las IPs.",
       "panelListeningDomain": "Dominio de Escucha del Panel",

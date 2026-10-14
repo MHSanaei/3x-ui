@@ -185,6 +185,23 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
             <>
               <SettingListItem
                 paddings="small"
+                title={t('pages.settings.showSponsorAds')}
+                description={t('pages.settings.showSponsorAdsDesc')}
+                badge={
+                  <DefaultSettingTag
+                    settingKey="showSponsorAds"
+                    value={allSetting.showSponsorAds}
+                  />
+                }
+              >
+                <Switch
+                  checked={allSetting.showSponsorAds}
+                  onChange={(showSponsorAds) => updateSetting({ showSponsorAds })}
+                />
+              </SettingListItem>
+
+              <SettingListItem
+                paddings="small"
                 title={t('pages.settings.panelListeningIP')}
                 description={t('pages.settings.panelListeningIPDesc')}
               >

@@ -240,8 +240,15 @@ export const sections: readonly Section[] = [
         method: 'GET',
         path: '/sponsors',
         summary:
-          'Public. Active paid sponsor placements read from the project sponsors.json (cached for 1h); entries outside their from/until window are dropped. Logos are proxied by the panel at /sponsors/logo/{name}. Used by the login page and panel sponsor slots.',
+          'Public. Active sponsor placements (cached for 1h), with logos proxied at /sponsors/logo/{name}. When showSponsorAds is false, returns an empty list without contact details; neither list nor logo requests access upstream or serve cached content. Responses are not cached by browsers.',
         responseSchema: 'SponsorList',
+      },
+      {
+        method: 'GET',
+        path: '/sponsors/enabled',
+        summary:
+          'Public. Returns only the database-backed showSponsorAds boolean for the login page and panel navigation. Does not expose administrative settings or fetch sponsor content. Defaults to true; responses use Cache-Control: no-store.',
+        response: '{\n  "success": true,\n  "obj": true\n}',
       },
       {
         method: 'POST',

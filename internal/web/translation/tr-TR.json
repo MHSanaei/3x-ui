@@ -1180,6 +1180,8 @@
       "warnDefaultSubPath": "Varsayılan abonelik yolu \"/sub/\" yaygın olarak bilinmektedir — değiştirin.",
       "warnDefaultJsonPath": "Varsayılan JSON abonelik yolu \"/json/\" yaygın olarak bilinmektedir — değiştirin.",
       "TGBotSettings": "Telegram Botu",
+      "showSponsorAds": "Sponsor reklamlarını göster",
+      "showSponsorAdsDesc": "Giriş sayfası dahil tüm panelde sponsor kartlarını, Sponsorlar sayfasını ve reklam tekliflerini gösterir. Kapatıldığında harici sponsor istekleri de durur. Seçim tüm tarayıcılar için kaydedilir.",
       "panelListeningIP": "Dinleme IP",
       "panelListeningIPDesc": "Web paneli için IP adresi. (tüm IP'leri dinlemek için boş bırakın)",
       "panelListeningDomain": "Dinleme Alan Adı",

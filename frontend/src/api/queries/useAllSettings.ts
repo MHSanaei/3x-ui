@@ -73,9 +73,15 @@ export function useAllSettings() {
       );
       return { msg, saved };
     },
-    onSuccess: ({ msg, saved }) => {
+    onSuccess: async ({ msg, saved }, { payload }) => {
       if (!msg?.success) return;
       if (saved) markSaved(saved);
+      if (typeof payload.showSponsorAds === 'boolean') {
+        await queryClient.cancelQueries({ queryKey: keys.sponsorVisibility() });
+        queryClient.setQueryData(keys.sponsorVisibility(), payload.showSponsorAds);
+        await queryClient.cancelQueries({ queryKey: keys.sponsors() });
+        queryClient.removeQueries({ queryKey: keys.sponsors() });
+      }
       queryClient.invalidateQueries({ queryKey: keys.settings.all() });
       queryClient.invalidateQueries({ queryKey: keys.settings.defaults() });
     },

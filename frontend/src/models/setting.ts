@@ -2,6 +2,7 @@ import { ObjectUtil } from '@/utils';
 import type { SubProfileMode } from '@/schemas/setting';
 
 export class AllSetting {
+  showSponsorAds = true;
   webListen = '';
   webDomain = '';
   webPort = 2053;

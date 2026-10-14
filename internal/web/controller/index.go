@@ -45,6 +45,7 @@ func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
 	g.GET("/csrf-token", a.csrfToken)
 	g.GET("/sponsors", a.sponsors)
+	g.GET("/sponsors/enabled", a.sponsorsEnabled)
 	g.GET("/sponsors/logo/:name", a.sponsorLogo)
 
 	g.POST("/login", middleware.CSRFMiddleware(), a.login)
@@ -54,6 +55,7 @@ func (a *IndexController) initRouter(g *gin.RouterGroup) {
 
 // sponsors is public so the login page can render its slot; failures stay silent.
 func (a *IndexController) sponsors(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	list, err := a.panelService.GetSponsors()
 	if err != nil {
 		logger.Debug("sponsors fetch failed:", err)
@@ -64,14 +66,25 @@ func (a *IndexController) sponsors(c *gin.Context) {
 }
 
 func (a *IndexController) sponsorLogo(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
 	data, contentType, err := a.panelService.GetSponsorLogo(c.Param("name"))
 	if err != nil {
 		logger.Debug("sponsor logo failed:", err)
 		c.Status(http.StatusNotFound)
 		return
 	}
-	c.Header("Cache-Control", "public, max-age=3600")
 	c.Data(http.StatusOK, contentType, data)
+}
+
+func (a *IndexController) sponsorsEnabled(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	enabled, err := a.settingService.GetShowSponsorAds()
+	if err != nil {
+		logger.Debug("sponsor setting failed:", err)
+		c.JSON(http.StatusOK, entity.Msg{Success: false, Obj: false})
+		return
+	}
+	jsonObj(c, enabled, nil)
 }
 
 // index handles the root route, redirecting logged-in users to the panel or showing the login page.

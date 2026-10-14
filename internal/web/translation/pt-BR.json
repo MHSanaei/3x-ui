@@ -1180,6 +1180,8 @@
       "warnDefaultSubPath": "O caminho de assinatura padrão \"/sub/\" é bem conhecido — altere-o.",
       "warnDefaultJsonPath": "O caminho de assinatura JSON padrão \"/json/\" é bem conhecido — altere-o.",
       "TGBotSettings": "Bot do Telegram",
+      "showSponsorAds": "Mostrar anúncios de patrocinadores",
+      "showSponsorAdsDesc": "Mostrar cartões de patrocinadores, a página de patrocinadores e ofertas de publicidade em todo o painel, incluindo o login. Desativar também interrompe as solicitações externas de patrocinadores. A escolha é salva para todos os navegadores.",
       "panelListeningIP": "IP de Escuta",
       "panelListeningIPDesc": "O endereço IP para o painel web. (deixe em branco para escutar em todos os IPs)",
       "panelListeningDomain": "Domínio de Escuta",

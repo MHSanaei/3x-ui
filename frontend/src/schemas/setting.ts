@@ -9,6 +9,7 @@ export type SubProfileMode = z.infer<typeof SubProfileModeSchema>;
 
 export const AllSettingSchema = z
   .object({
+    showSponsorAds: z.boolean().optional(),
     webListen: z.string().optional(),
     webDomain: z.string().optional(),
     webPort: port.optional(),

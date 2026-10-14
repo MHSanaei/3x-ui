@@ -1180,6 +1180,8 @@
       "warnDefaultSubPath": "默认订阅路径 \"/sub/\" 众所周知 — 请更改。",
       "warnDefaultJsonPath": "默认 JSON 订阅路径 \"/json/\" 众所周知 — 请更改。",
       "TGBotSettings": "Telegram 机器人",
+      "showSponsorAds": "显示赞助商广告",
+      "showSponsorAdsDesc": "在整个面板（包括登录页面）显示赞助商卡片、赞助商页面和广告投放邀请。关闭后也会停止向赞助商发送外部请求。此设置会保存并应用于所有浏览器。",
       "panelListeningIP": "面板监听 IP",
       "panelListeningIPDesc": "默认留空监听所有 IP",
       "panelListeningDomain": "面板监听域名",

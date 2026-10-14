@@ -153,6 +153,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 1,
         "type": "integer"
       },
+      "showSponsorAds": {
+        "type": "boolean"
+      },
       "smtpCpu": {
         "maximum": 100,
         "minimum": 0,
@@ -617,6 +620,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "remarkTemplate",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
+      "showSponsorAds",
       "smtpCpu",
       "smtpEnable",
       "smtpEnabledEvents",
@@ -928,6 +932,9 @@ export const SCHEMAS: Record<string, unknown> = {
         "maximum": 525600,
         "minimum": 1,
         "type": "integer"
+      },
+      "showSponsorAds": {
+        "type": "boolean"
       },
       "smtpCpu": {
         "maximum": 100,
@@ -1401,6 +1408,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "remarkTemplate",
       "restartXrayOnClientDisable",
       "sessionMaxAge",
+      "showSponsorAds",
       "smtpCpu",
       "smtpEnable",
       "smtpEnabledEvents",

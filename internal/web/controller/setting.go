@@ -35,6 +35,7 @@ type updateUserForm struct {
 // "unchanged", so clearing needs its own signal — see #5724).
 type updateSettingForm struct {
 	entity.AllSetting
+	ShowSponsorAds       *bool  `json:"showSponsorAds" form:"showSponsorAds"`
 	TwoFactorCode        string `json:"twoFactorCode" form:"twoFactorCode"`
 	ClearTgBotToken      bool   `json:"clearTgBotToken" form:"clearTgBotToken"`
 	ClearLdapPassword    bool   `json:"clearLdapPassword" form:"clearLdapPassword"`
@@ -128,6 +129,16 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 		return
 	}
 	allSetting := &form.AllSetting
+	if form.ShowSponsorAds != nil {
+		allSetting.ShowSponsorAds = *form.ShowSponsorAds
+	} else {
+		enabled, err := a.settingService.GetShowSponsorAds()
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+			return
+		}
+		allSetting.ShowSponsorAds = enabled
+	}
 	oldTwoFactor, twoFactorErr := a.settingService.GetTwoFactorEnable()
 	oldPanelOutbound, _ := a.settingService.GetPanelOutbound()
 	oldTgEnable, _ := a.settingService.GetTgbotEnabled()

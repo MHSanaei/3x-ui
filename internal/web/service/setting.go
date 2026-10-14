@@ -55,6 +55,7 @@ const (
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
 	"webListen":          "",
+	"showSponsorAds":     "true",
 	"webDomain":          "",
 	"webPort":            "2053",
 	"webCertFile":        "",
@@ -1677,6 +1678,8 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	fields := reflect_util.GetFields(t)
 
 	db := database.GetDB()
+	sponsorContentMu.Lock()
+	defer sponsorContentMu.Unlock()
 	return db.Transaction(func(tx *gorm.DB) error {
 		var existing []*model.Setting
 		if err := tx.Find(&existing).Error; err != nil {

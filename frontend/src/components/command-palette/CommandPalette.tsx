@@ -41,6 +41,7 @@ import { ClipboardManager, HttpUtil, SizeFormatter } from '@/utils';
 import { activateOnKey } from '@/utils/a11y';
 import { useInboundOptions } from '@/api/queries/useInboundOptions';
 import { useAllSettings } from '@/api/queries/useAllSettings';
+import { useSponsorVisibility } from '@/api/queries/useSponsorVisibility';
 import { useTheme } from '@/hooks/useTheme';
 import type { ClientRecord, InboundOption } from '@/schemas/client';
 import { commandPaletteStore, useCommandPalette } from './useCommandPalette';
@@ -63,6 +64,7 @@ interface PaletteItem {
 }
 
 export default function CommandPalette() {
+  const { enabled: sponsorsEnabled } = useSponsorVisibility();
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = message.useMessage();
   const navigate = useNavigate();
@@ -430,6 +432,7 @@ export default function CommandPalette() {
     ];
 
     pages
+      .filter((p) => p.path !== '/sponsors' || sponsorsEnabled)
       .filter((p) => matches(p.title, undefined, p.keywords))
       .forEach((p) => {
         list.push({
@@ -647,6 +650,7 @@ export default function CommandPalette() {
     isDark,
     isUltra,
     allSetting.subURI,
+    sponsorsEnabled,
     t,
     close,
     navigate,

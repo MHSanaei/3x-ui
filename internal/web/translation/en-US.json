@@ -1298,6 +1298,8 @@
       "warnDefaultSubPath": "Default subscription path \"/sub/\" is well-known — change it.",
       "warnDefaultJsonPath": "Default JSON subscription path \"/json/\" is well-known — change it.",
       "TGBotSettings": "Telegram Bot",
+      "showSponsorAds": "Show sponsor ads",
+      "showSponsorAdsDesc": "Show sponsor cards, the Sponsors page and placement offers throughout the panel, including login. Turning this off also stops external sponsor requests. Saved for all browsers.",
       "panelListeningIP": "Listen IP",
       "panelListeningIPDesc": "The IP address for the web panel. (leave blank to listen on all IPs)",
       "panelListeningDomain": "Listen Domain",

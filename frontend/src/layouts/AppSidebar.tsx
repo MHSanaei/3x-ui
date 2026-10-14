@@ -43,6 +43,7 @@ import { HttpUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
+import { useSponsorVisibility } from '@/api/queries/useSponsorVisibility';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
 import './AppSidebar.css';
 
@@ -181,6 +182,7 @@ function saveSidebarPinned(pinned: boolean) {
 }
 
 export default function AppSidebar() {
+  const { enabled: sponsorsEnabled } = useSponsorVisibility();
   const { t } = useTranslation();
   const { isDark, isUltra, toggleTheme, toggleUltra } = useTheme();
   const { open: openCommandPalette } = useCommandPalette();
@@ -235,10 +237,12 @@ export default function AppSidebar() {
       { key: '/settings', icon: 'setting', title: t('menu.settings') },
       { key: '/xray', icon: 'tool', title: t('menu.xray') },
       { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
-      { key: '/sponsors', icon: 'sponsors', title: t('menu.sponsors') },
+      ...(sponsorsEnabled
+        ? [{ key: '/sponsors', icon: 'sponsors' as const, title: t('menu.sponsors') }]
+        : []),
       { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
     ],
-    [t],
+    [t, sponsorsEnabled],
   );
 
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);

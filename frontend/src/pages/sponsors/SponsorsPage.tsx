@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Navigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button, Col, ConfigProvider, Layout, Row, Spin, Typography } from 'antd';
 import { CrownOutlined, PlusOutlined } from '@ant-design/icons';
@@ -44,7 +45,7 @@ function YourBrandCard({ contact }: { contact?: string }) {
 export default function SponsorsPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
-  const { data, fetched } = useSponsorsQuery();
+  const { data, fetched, enabled, visibilityFetched } = useSponsorsQuery();
   const sponsors = sponsorsForSlot(data.sponsors, 'page');
 
   const pageClass = useMemo(() => {
@@ -53,6 +54,9 @@ export default function SponsorsPage() {
     if (isUltra) classes.push('is-ultra');
     return classes.join(' ');
   }, [isDark, isUltra]);
+
+  if (!visibilityFetched) return null;
+  if (!enabled) return <Navigate to="/" replace />;
 
   return (
     <ConfigProvider theme={antdThemeConfig}>

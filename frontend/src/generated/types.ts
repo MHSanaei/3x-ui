@@ -54,6 +54,7 @@ export interface AllSetting {
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
+  showSponsorAds: boolean;
   smtpCpu: number;
   smtpEnable: boolean;
   smtpEnabledEvents: string;
@@ -242,6 +243,7 @@ export interface AllSettingView {
   remarkTemplate: string;
   restartXrayOnClientDisable: boolean;
   sessionMaxAge: number;
+  showSponsorAds: boolean;
   smtpCpu: number;
   smtpEnable: boolean;
   smtpEnabledEvents: string;
