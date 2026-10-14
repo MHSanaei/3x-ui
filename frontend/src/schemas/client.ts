@@ -275,6 +275,12 @@ export const OnlineByNodeSchema = z
   .nullable()
   .transform((v) => v ?? {});
 
+// panelGuid -> email -> inbound tags from the access log; absent means no attribution.
+export const ClientInboundsByNodeSchema = z
+  .record(z.string(), z.record(z.string(), nullableStringArray).nullable())
+  .nullable()
+  .transform((v) => v ?? {});
+
 export const ActiveInboundsByNodeSchema = z
   .record(z.string(), nullableStringArray)
   .nullable()

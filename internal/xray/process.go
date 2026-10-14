@@ -176,6 +176,9 @@ type process struct {
 	// mutex guards this map, onlineClients, and localLastOnline above so the
 	// online getters never see a torn read.
 	nodeOnlineTrees map[int]map[string][]string
+	// email -> tag -> unix ms of the last access-log line; view is the filtered snapshot.
+	localClientInbounds     map[string]map[string]int64
+	localClientInboundsView map[string][]string
 	// nodeActiveInboundTrees mirrors nodeOnlineTrees for active inbound tags:
 	// each direct node reports a GUID-keyed subtree of inbound tags that carried
 	// traffic within its own grace window. The inbounds page combines this with
@@ -510,6 +513,88 @@ func (p *Process) RefreshLocalOnline(activeEmails, activeInboundTags []string, n
 		}
 	}
 	p.localActiveInbounds = activeInbounds
+}
+
+// clientInboundWindowMs bounds how long a logged (email, tag) pair stays
+// visible; the access log only records connection opens, so old pairs expire.
+const clientInboundWindowMs int64 = 10 * 60 * 1000
+
+// RefreshLocalClientInbounds folds this poll's access-log pairs in and rebuilds
+// the snapshot: a pair shows while its client is online and it is recent, or
+// its inbound still carries traffic within clientInboundWindowMs.
+func (p *Process) RefreshLocalClientInbounds(pairs map[string][]string, now, graceMs int64) {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	if p.localClientInbounds == nil {
+		p.localClientInbounds = make(map[string]map[string]int64, len(pairs))
+	}
+	for email, tags := range pairs {
+		if email == "" {
+			continue
+		}
+		m := p.localClientInbounds[email]
+		if m == nil {
+			m = make(map[string]int64, len(tags))
+			p.localClientInbounds[email] = m
+		}
+		for _, tag := range tags {
+			if tag != "" {
+				m[tag] = now
+			}
+		}
+	}
+	online := make(map[string]struct{}, len(p.onlineClients))
+	for _, email := range p.onlineClients {
+		online[email] = struct{}{}
+	}
+	active := make(map[string]struct{}, len(p.localActiveInbounds))
+	for _, tag := range p.localActiveInbounds {
+		active[tag] = struct{}{}
+	}
+	view := make(map[string][]string)
+	for email, tags := range p.localClientInbounds {
+		_, isOnline := online[email]
+		for tag, ts := range tags {
+			age := now - ts
+			if age >= clientInboundWindowMs || (!isOnline && age >= graceMs) {
+				delete(tags, tag)
+				continue
+			}
+			if !isOnline {
+				continue
+			}
+			if _, tagActive := active[tag]; age < graceMs || tagActive {
+				view[email] = append(view[email], tag)
+			}
+		}
+		if len(tags) == 0 {
+			delete(p.localClientInbounds, email)
+		}
+	}
+	for _, tags := range view {
+		sort.Strings(tags)
+	}
+	p.localClientInboundsView = view
+}
+
+// ClearLocalClientInbounds drops all attribution, e.g. when the access log is turned off.
+func (p *Process) ClearLocalClientInbounds() {
+	p.onlineMu.Lock()
+	defer p.onlineMu.Unlock()
+	p.localClientInbounds = nil
+	p.localClientInboundsView = nil
+}
+
+// GetLocalClientInbounds returns a copy of email -> attributed inbound tags;
+// a missing email means no attribution, so callers fall back.
+func (p *Process) GetLocalClientInbounds() map[string][]string {
+	p.onlineMu.RLock()
+	defer p.onlineMu.RUnlock()
+	out := make(map[string][]string, len(p.localClientInboundsView))
+	for email, tags := range p.localClientInboundsView {
+		out[email] = append([]string(nil), tags...)
+	}
+	return out
 }
 
 // SetNodeOnlineTree records the GUID-keyed online subtree one direct remote

@@ -10666,6 +10666,47 @@
         }
       }
     },
+    "/panel/api/clients/clientInbounds": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Inbound tags each online client is attributed to, grouped by panelGuid then email. Built from the Xray access log, so it is empty when the access log is off. Only this panel's own clients are covered; TUIC and MTProto inbounds never appear.",
+        "operationId": "post_panel_api_clients_clientInbounds",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "a1b2-...": {
+                      "user1": [
+                        "in-443-tcp",
+                        "in-8443-tcp"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/panel/api/clients/lastOnline": {
       "post": {
         "tags": [

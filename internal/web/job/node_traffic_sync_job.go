@@ -212,6 +212,7 @@ func (j *NodeTrafficSyncJob) Run() {
 		"onlineClients":  online,
 		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
 		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
+		"clientInbounds": j.inboundService.GetClientInboundsByGuid(),
 		"lastOnlineMap":  lastOnline,
 	}
 	// Always send the key so the dashboard clears node inbounds that went idle
