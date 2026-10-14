@@ -94,11 +94,12 @@ func seedDualTunnelClient(t *testing.T, enabled bool, wgKeepAlive *int) string {
 
 	wgInbound := &model.Inbound{Tag: "wg-dual", Enable: true, Port: 51823, Protocol: model.WireGuard, Settings: string(wgSettings)}
 	awgInbound := &model.Inbound{Tag: "awg-dual", Enable: true, Port: 51824, Protocol: model.AmneziaWG, Settings: string(awgSettings)}
-	if err := db.Create(wgInbound).Error; err != nil {
-		t.Fatalf("create wg inbound: %v", err)
-	}
+	// The lower-id tunnel owns the shared record's peer fields: AmneziaWG first.
 	if err := db.Create(awgInbound).Error; err != nil {
 		t.Fatalf("create awg inbound: %v", err)
+	}
+	if err := db.Create(wgInbound).Error; err != nil {
+		t.Fatalf("create wg inbound: %v", err)
 	}
 
 	svc := ClientService{}
@@ -202,7 +203,7 @@ func TestGetXrayConfigWireGuardUsesInboundLocalTunnelFields(t *testing.T) {
 		t.Fatalf("read shared client: %v", err)
 	}
 	if shared.AllowedIPs != "10.8.1.5/32" || shared.PreSharedKey != "awg-psk" || shared.PublicKey != "pub-awg" || shared.KeepAlive != 25 {
-		t.Fatalf("test setup did not persist AmneziaWG last: allowedIPs=%q preSharedKey=%q publicKey=%q keepAlive=%d", shared.AllowedIPs, shared.PreSharedKey, shared.PublicKey, shared.KeepAlive)
+		t.Fatalf("test setup did not persist AmneziaWG identity: allowedIPs=%q preSharedKey=%q publicKey=%q keepAlive=%d", shared.AllowedIPs, shared.PreSharedKey, shared.PublicKey, shared.KeepAlive)
 	}
 
 	peers := wgPeerList(t, wgInboundEmittedSettings(t, "wg-dual"))

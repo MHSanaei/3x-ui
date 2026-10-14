@@ -75,6 +75,13 @@ export default function MtprotoFields() {
         <InputNumber min={0} placeholder="0" style={{ width: '100%' }} />
       </FormField>
       <FormField
+        name={['settings', 'pendingHandshakesMaxPerIp']}
+        label={t('pages.inbounds.form.mtgPendingHandshakesMaxPerIp')}
+        tooltip={t('pages.inbounds.form.mtgPendingHandshakesMaxPerIpHint')}
+      >
+        <InputNumber min={0} placeholder="0" style={{ width: '100%' }} />
+      </FormField>
+      <FormField
         name={['settings', 'routeThroughXray']}
         label={t('pages.inbounds.form.mtgRouteThroughXray')}
         tooltip={t('pages.inbounds.form.mtgRouteThroughXrayHint')}

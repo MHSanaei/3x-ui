@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "Domain FakeTLS default untuk membuat secret klien baru. Setiap klien bisa memakai domainnya sendiri.",
         "mtgThrottleMaxConnections": "Koneksi maksimum",
         "mtgThrottleMaxConnectionsHint": "Batasi koneksi bersamaan semua pengguna dengan pembagian adil. 0 menonaktifkan.",
+        "mtgPendingHandshakesMaxPerIp": "Maks. handshake tertunda per IP",
+        "mtgPendingHandshakesMaxPerIpHint": "Tutup koneksi baru dari IP yang sudah memiliki handshake belum selesai sebanyak ini. Klien di balik IP bersama (NAT operator) berbagi batas ini. 0 menonaktifkan.",
         "mtgAdTagInvalid": "Ad-tag harus tepat 32 karakter heksadesimal.",
         "mtgPublicIpv4": "IPv4 Publik",
         "mtgPublicIpv6": "IPv6 Publik",
@@ -2423,19 +2425,7 @@
       "tag": "Sponsor",
       "visit": "Kunjungi",
       "yourBrand": "Merek Anda di sini",
-      "yourBrandText": "Tampilkan perusahaan Anda kepada ribuan admin server yang membuka 3X-UI setiap hari.",
-      "placements": "Slot yang tersedia",
-      "placementDashboard": "Banner dasbor",
-      "placementDashboardDesc": "Tempat premium di atas dasbor, satu sponsor dalam satu waktu.",
-      "placementSidebar": "Kartu sidebar",
-      "placementSidebarDesc": "Tampil di setiap halaman panel, bergantian antar sponsor.",
-      "placementLogin": "Halaman login",
-      "placementLoginDesc": "Dilihat admin setiap kali masuk.",
-      "placementPage": "Halaman sponsor",
-      "placementPageDesc": "Tercantum di sini dengan logo, deskripsi, dan tautan.",
-      "available": "Tersedia",
-      "takenUntil": "Terisi hingga {date}",
-      "activeCount": "{count} aktif"
+      "yourBrandText": "Tampilkan perusahaan Anda kepada ribuan admin server yang membuka 3X-UI setiap hari."
     }
   },
   "tgbot": {

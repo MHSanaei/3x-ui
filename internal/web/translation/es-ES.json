@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "Dominio FakeTLS predeterminado para generar el secreto de un nuevo cliente. Cada cliente puede usar su propio dominio.",
         "mtgThrottleMaxConnections": "Conexiones máximas",
         "mtgThrottleMaxConnectionsHint": "Limita las conexiones simultáneas de todos los usuarios con reparto equitativo. 0 desactiva el límite.",
+        "mtgPendingHandshakesMaxPerIp": "Máx. handshakes pendientes por IP",
+        "mtgPendingHandshakesMaxPerIpHint": "Cierra las conexiones nuevas de una IP que ya tiene esta cantidad de handshakes sin completar. Los clientes detrás de una IP compartida (NAT del operador) comparten el límite. 0 lo desactiva.",
         "mtgAdTagInvalid": "El ad-tag debe tener exactamente 32 caracteres hexadecimales.",
         "mtgPublicIpv4": "IPv4 pública",
         "mtgPublicIpv6": "IPv6 pública",
@@ -2423,19 +2425,7 @@
       "tag": "Patrocinador",
       "visit": "Visitar",
       "yourBrand": "Tu marca aquí",
-      "yourBrandText": "Muestra tu empresa a miles de administradores de servidores que abren 3X-UI cada día.",
-      "placements": "Espacios disponibles",
-      "placementDashboard": "Banner del panel",
-      "placementDashboardDesc": "Espacio premium en la parte superior del panel, un patrocinador a la vez.",
-      "placementSidebar": "Tarjeta lateral",
-      "placementSidebarDesc": "Se muestra en todas las páginas del panel, rotando entre patrocinadores.",
-      "placementLogin": "Página de inicio de sesión",
-      "placementLoginDesc": "La ve el administrador en cada inicio de sesión.",
-      "placementPage": "Página de patrocinadores",
-      "placementPageDesc": "Aparece aquí con logo, descripción y enlace.",
-      "available": "Disponible",
-      "takenUntil": "Ocupado hasta {date}",
-      "activeCount": "{count} activos"
+      "yourBrandText": "Muestra tu empresa a miles de administradores de servidores que abren 3X-UI cada día."
     }
   },
   "tgbot": {

@@ -526,6 +526,8 @@
         "mtprotoFakeTlsDomainHint": "Tên miền FakeTLS mặc định dùng để tạo secret cho client mới. Mỗi client có thể dùng tên miền riêng.",
         "mtgThrottleMaxConnections": "Số kết nối tối đa",
         "mtgThrottleMaxConnectionsHint": "Giới hạn kết nối đồng thời của tất cả người dùng theo phân bổ công bằng. 0 để tắt.",
+        "mtgPendingHandshakesMaxPerIp": "Số bắt tay chờ tối đa mỗi IP",
+        "mtgPendingHandshakesMaxPerIpHint": "Đóng kết nối mới từ IP đang có số bắt tay chưa hoàn tất bằng mức này. Các máy khách dùng chung IP (NAT nhà mạng) chia sẻ giới hạn. 0 để tắt.",
         "mtgAdTagInvalid": "Ad-tag phải có đúng 32 ký tự thập lục phân.",
         "mtgPublicIpv4": "IPv4 công khai",
         "mtgPublicIpv6": "IPv6 công khai",
@@ -2423,19 +2425,7 @@
       "tag": "Tài trợ",
       "visit": "Truy cập",
       "yourBrand": "Thương hiệu của bạn ở đây",
-      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày.",
-      "placements": "Vị trí hiện có",
-      "placementDashboard": "Banner tổng quan",
-      "placementDashboardDesc": "Vị trí cao cấp ở đầu bảng điều khiển, mỗi lần một nhà tài trợ.",
-      "placementSidebar": "Thẻ thanh bên",
-      "placementSidebarDesc": "Hiển thị trên mọi trang của panel, luân phiên giữa các nhà tài trợ.",
-      "placementLogin": "Trang đăng nhập",
-      "placementLoginDesc": "Quản trị viên thấy mỗi lần đăng nhập.",
-      "placementPage": "Trang nhà tài trợ",
-      "placementPageDesc": "Được liệt kê tại đây với logo, mô tả và liên kết.",
-      "available": "Còn trống",
-      "takenUntil": "Đã đặt đến {date}",
-      "activeCount": "{count} đang hoạt động"
+      "yourBrandText": "Đưa công ty bạn đến hàng nghìn quản trị viên máy chủ mở 3X-UI mỗi ngày."
     }
   },
   "tgbot": {

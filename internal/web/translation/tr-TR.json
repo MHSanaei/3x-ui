@@ -505,6 +505,8 @@
         "mtprotoFakeTlsDomainHint": "Yeni bir istemcinin sırrını oluştururken kullanılan varsayılan FakeTLS alan adı. Her istemci kendi alan adını kullanabilir.",
         "mtgThrottleMaxConnections": "Maks. bağlantı",
         "mtgThrottleMaxConnectionsHint": "Tüm kullanıcıların eşzamanlı bağlantılarını adil paylaşımla sınırlar. 0 devre dışı bırakır.",
+        "mtgPendingHandshakesMaxPerIp": "IP başına maks. bekleyen el sıkışma",
+        "mtgPendingHandshakesMaxPerIpHint": "Bu sayıda tamamlanmamış el sıkışması olan bir IP'den gelen yeni bağlantıları kapatır. Paylaşılan IP arkasındaki istemciler (operatör NAT) sınırı paylaşır. 0 devre dışı bırakır.",
         "mtgAdTagInvalid": "Reklam etiketi tam olarak 32 onaltılık karakter olmalıdır.",
         "mtgPublicIpv4": "Genel IPv4",
         "mtgPublicIpv6": "Genel IPv6",
@@ -2423,19 +2425,7 @@
       "tag": "Sponsor",
       "visit": "Ziyaret et",
       "yourBrand": "Markanız burada",
-      "yourBrandText": "Şirketinizi her gün 3X-UI açan binlerce sunucu yöneticisinin önüne çıkarın.",
-      "placements": "Mevcut yerleşimler",
-      "placementDashboard": "Genel bakış afişi",
-      "placementDashboardDesc": "Panonun üstünde premium alan, aynı anda tek sponsor.",
-      "placementSidebar": "Kenar çubuğu kartı",
-      "placementSidebarDesc": "Tüm panel sayfalarında gösterilir, sponsorlar arasında döner.",
-      "placementLogin": "Giriş sayfası",
-      "placementLoginDesc": "Yönetici her girişte görür.",
-      "placementPage": "Sponsorlar sayfası",
-      "placementPageDesc": "Logo, açıklama ve bağlantıyla burada listelenir.",
-      "available": "Müsait",
-      "takenUntil": "{date} tarihine kadar dolu",
-      "activeCount": "{count} aktif"
+      "yourBrandText": "Şirketinizi her gün 3X-UI açan binlerce sunucu yöneticisinin önüne çıkarın."
     }
   },
   "tgbot": {
