@@ -150,3 +150,43 @@ func TestParseHysteriaPacketSizeBounds(t *testing.T) {
 		t.Fatalf("valid range = %q", got)
 	}
 }
+
+// Mihomo reads Gecko only from obfs: gecko plus integer packet-size keys; plain
+// salamander on a Gecko server never completes the handshake.
+func TestBuildHysteriaProxyExportsGeckoObfs(t *testing.T) {
+	cases := []struct {
+		name     string
+		settings string
+		want     map[string]any
+	}{
+		{
+			name:     "packetSize exports gecko",
+			settings: `{"password":"pw","packetSize":"512-1200"}`,
+			want: map[string]any{
+				"obfs": "gecko", "obfs-password": "pw",
+				"obfs-min-packet-size": 512, "obfs-max-packet-size": 1200,
+			},
+		},
+		{
+			name:     "password only stays salamander",
+			settings: `{"password":"pw"}`,
+			want:     map[string]any{"obfs": "salamander", "obfs-password": "pw"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			in := &model.Inbound{
+				Listen: "203.0.113.1", Port: 443, Protocol: model.Hysteria,
+				Settings: `{"version":2}`,
+				StreamSettings: `{"security":"tls","finalmask":{"udp":[{"type":"salamander","settings":` +
+					tc.settings + `}]}}`,
+			}
+			proxy := (&SubClashService{}).buildHysteriaProxy(&SubService{}, in, model.Client{Email: "user", Auth: "secret"}, nil)
+			for _, key := range []string{"obfs", "obfs-password", "obfs-min-packet-size", "obfs-max-packet-size"} {
+				if got, want := proxy[key], tc.want[key]; got != want {
+					t.Errorf("%s = %#v, want %#v", key, got, want)
+				}
+			}
+		})
+	}
+}
