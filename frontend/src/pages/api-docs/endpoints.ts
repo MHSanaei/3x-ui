@@ -201,7 +201,7 @@ export const sections: readonly Section[] = [
     id: 'authentication',
     title: 'Authentication',
     description:
-      'Two authentication modes are supported. UI sessions use a cookie set by the login endpoint. Programmatic clients (bots, scripts, remote panels) authenticate with a Bearer token taken from Settings → Security → API Token. Both work for every endpoint under /panel/api/*.',
+      'UI sessions use a cookie set by password login or an explicitly linked Telegram account. Programmatic clients (bots, scripts, remote panels) authenticate with a Bearer token taken from Settings → Security → API Token. Both work for every endpoint under /panel/api/*.',
     endpoints: [
       {
         method: 'POST',
@@ -249,6 +249,27 @@ export const sections: readonly Section[] = [
         summary:
           'Returns whether 2FA is enabled on the panel — used by the login page to decide whether to show the OTP field.',
         response: '{\n  "success": true,\n  "obj": false\n}',
+      },
+      {
+        method: 'GET',
+        path: '/telegram-auth/status',
+        summary:
+          'Return whether Telegram login is available and the bot username for the login page.',
+      },
+      {
+        method: 'POST',
+        path: '/telegram-auth/start',
+        summary:
+          'Create a short-lived login code bound to the browser session. Requires the CSRF header.',
+        response: '{"success":true,"obj":{"code":"...","expiresAt":1736000000000}}',
+      },
+      {
+        method: 'POST',
+        path: '/telegram-auth/complete',
+        summary:
+          'Poll a login code after approval in a private Telegram chat; issues the session cookie once.',
+        params: [{ name: 'code', in: 'body', type: 'string', desc: 'Code returned by start.' }],
+        response: '{"success":true,"obj":{"pending":false}}',
       },
     ],
   },
@@ -1956,6 +1977,43 @@ export const sections: readonly Section[] = [
           { name: 'newPassword', in: 'body', type: 'string', desc: 'Desired new password.' },
         ],
         body: '{\n  "oldUsername": "admin",\n  "oldPassword": "admin",\n  "newUsername": "newadmin",\n  "newPassword": "newpass"\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/setting/telegramAuth/status',
+        summary: 'Show whether the current admin has linked a personal Telegram account for login.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/telegramAuth/link',
+        summary:
+          'Create a short-lived account-link code. Requires the current password and TOTP when enabled.',
+        params: [
+          { name: 'password', in: 'body', type: 'string', desc: 'Current panel password.' },
+          {
+            name: 'twoFactorCode',
+            in: 'body',
+            type: 'string',
+            desc: 'Current TOTP when enabled.',
+            optional: true,
+          },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/setting/telegramAuth/unlink',
+        summary:
+          'Remove the Telegram login binding and invalidate current panel sessions. Requires the current password and TOTP when enabled.',
+        params: [
+          { name: 'password', in: 'body', type: 'string', desc: 'Current panel password.' },
+          {
+            name: 'twoFactorCode',
+            in: 'body',
+            type: 'string',
+            desc: 'Current TOTP when enabled.',
+            optional: true,
+          },
+        ],
       },
       {
         method: 'POST',

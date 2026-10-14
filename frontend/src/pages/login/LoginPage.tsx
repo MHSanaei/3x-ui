@@ -17,13 +17,14 @@ import {
   LockOutlined,
   MoonFilled,
   MoonOutlined,
+  SendOutlined,
   SunOutlined,
   TranslationOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 
 import { FormProvider, useForm } from 'react-hook-form';
-import { HttpUtil, LanguageManager } from '@/utils';
+import { ClipboardManager, HttpUtil, LanguageManager } from '@/utils';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { setMessageInstance } from '@/utils/messageBus';
 import SponsorSlot from '@/components/sponsor/SponsorSlot';
@@ -32,6 +33,18 @@ import { LoginFormSchema, TwoFactorCodeSchema, type LoginFormValues } from '@/sc
 import './LoginPage.css';
 
 const HEADLINE_INTERVAL_MS = 2000;
+const TELEGRAM_POLL_INTERVAL_MS = 2000;
+
+interface TelegramStatus {
+  available: boolean;
+  linked: boolean;
+  botUsername?: string;
+}
+
+interface TelegramChallenge {
+  code: string;
+  expiresAt: number;
+}
 
 type LoginForm = LoginFormValues;
 
@@ -50,6 +63,10 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [twoFactorEnable, setTwoFactorEnable] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
+  const [telegramAvailable, setTelegramAvailable] = useState(false);
+  const [telegramBotUsername, setTelegramBotUsername] = useState('');
+  const [telegramStarting, setTelegramStarting] = useState(false);
+  const [telegramChallenge, setTelegramChallenge] = useState<TelegramChallenge | null>(null);
   const methods = useForm<LoginForm>({
     defaultValues: { username: '', password: '', twoFactorCode: '' },
   });
@@ -67,15 +84,80 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const msg = await HttpUtil.post('/getTwoFactorEnable');
+      const [msg, telegram] = await Promise.all([
+        HttpUtil.post('/getTwoFactorEnable'),
+        HttpUtil.get<TelegramStatus>('/telegram-auth/status', undefined, { silent: true }),
+      ]);
       if (cancelled) return;
       if (msg.success) setTwoFactorEnable(!!msg.obj);
+      if (telegram.success && telegram.obj?.available && telegram.obj.linked) {
+        setTelegramAvailable(true);
+        setTelegramBotUsername(telegram.obj.botUsername || '');
+      }
       setFetched(true);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!telegramChallenge) return;
+    let active = true;
+    let polling = false;
+    const poll = async () => {
+      if (polling || !active) return;
+      if (Date.now() >= telegramChallenge.expiresAt) {
+        setTelegramChallenge(null);
+        messageApi.warning(t('pages.login.telegramExpired'));
+        return;
+      }
+      polling = true;
+      try {
+        const result = await HttpUtil.post<{ pending: boolean }>(
+          '/telegram-auth/complete',
+          { code: telegramChallenge.code },
+          { silent: true },
+        );
+        if (!active) return;
+        if (result.success && result.obj?.pending === false) {
+          window.location.href = basePath + 'panel/';
+        } else if (!result.success) {
+          setTelegramChallenge(null);
+          messageApi.error(result.msg || t('pages.login.telegramFailed'));
+        }
+      } finally {
+        polling = false;
+      }
+    };
+    const timer = window.setInterval(() => void poll(), TELEGRAM_POLL_INTERVAL_MS);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [telegramChallenge, messageApi, t]);
+
+  const startTelegramLogin = useCallback(async () => {
+    setTelegramStarting(true);
+    try {
+      const result = await HttpUtil.post<TelegramChallenge>('/telegram-auth/start');
+      if (result.success && result.obj?.code) setTelegramChallenge(result.obj);
+    } finally {
+      setTelegramStarting(false);
+    }
+  }, []);
+
+  const copyTelegramCommand = useCallback(async () => {
+    if (!telegramChallenge) return;
+    const copied = await ClipboardManager.copyText(`/login ${telegramChallenge.code}`);
+    if (copied) messageApi.success(t('copied'));
+    else messageApi.error(t('copyFail'));
+  }, [telegramChallenge, messageApi, t]);
+
+  const telegramBotLink =
+    telegramChallenge && /^[a-zA-Z0-9_]{5,32}$/.test(telegramBotUsername)
+      ? `https://t.me/${telegramBotUsername}?start=login_${telegramChallenge.code}`
+      : null;
 
   const onSubmit = useCallback(async (values: LoginForm) => {
     setSubmitting(true);
@@ -248,6 +330,48 @@ export default function LoginPage() {
                     </Form.Item>
                   </Form>
                 </FormProvider>
+                {telegramAvailable && (
+                  <div className="telegram-login">
+                    {telegramChallenge ? (
+                      <>
+                        <p>{t('pages.login.telegramInstruction')}</p>
+                        <code className="telegram-login-command">
+                          /login {telegramChallenge.code}
+                        </code>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                          {telegramBotLink && (
+                            <Button
+                              block
+                              type="primary"
+                              href={telegramBotLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {t('pages.login.telegramOpenBot')}
+                            </Button>
+                          )}
+                          <Button block onClick={copyTelegramCommand}>
+                            {t('copy')}
+                          </Button>
+                        </Space>
+                        <p className="telegram-login-waiting">{t('pages.login.telegramWaiting')}</p>
+                        <Button block onClick={() => setTelegramChallenge(null)}>
+                          {t('cancel')}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        block
+                        size="large"
+                        icon={<SendOutlined />}
+                        loading={telegramStarting}
+                        onClick={startTelegramLogin}
+                      >
+                        {t('pages.login.telegramButton')}
+                      </Button>
+                    )}
+                  </div>
+                )}
                 <SponsorSlot slot="login" variant="compact" className="login-sponsor" />
               </div>
             )}

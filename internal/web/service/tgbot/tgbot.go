@@ -350,13 +350,16 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	// Create new Telegram bot instance
-	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
+	newBot, err := t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
 	if err != nil {
 		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
 	}
+	tgBotMutex.Lock()
+	bot = newBot
+	tgBotMutex.Unlock()
 
-	t.trySetBotCommands(bot)
+	t.trySetBotCommands(newBot)
 
 	// Start receiving Telegram bot messages
 	tgBotMutex.Lock()
@@ -490,6 +493,10 @@ func (t *Tgbot) IsRunning() bool {
 	tgBotMutex.Lock()
 	defer tgBotMutex.Unlock()
 	return isRunning
+}
+
+func (t *Tgbot) Username() string {
+	return botUsername()
 }
 
 // adminSnapshot returns the admin chat list under the mutex Start and Stop

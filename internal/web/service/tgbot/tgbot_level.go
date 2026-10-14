@@ -35,8 +35,8 @@ func (t *Tgbot) levelOf(tgUserID int64) userLevel {
 // stays out of reach of non-admins until it is deliberately listed here.
 var commandsByLevel = map[userLevel]map[string]bool{
 	// /id stays open because an admin binding by hand still asks for the ChatID.
-	levelStranger: {"start": true, "id": true},
-	levelClient:   {"start": true, "help": true, "status": true, "id": true, "usage": true},
+	levelStranger: {"start": true, "id": true, "login": true, "link": true},
+	levelClient:   {"start": true, "help": true, "status": true, "id": true, "usage": true, "login": true, "link": true},
 }
 
 func commandAllowed(level userLevel, command string) bool {
@@ -63,6 +63,13 @@ func (t *Tgbot) gateCommand(message *telego.Message) (isAdmin bool, ok bool) {
 // gateCallback answers a stranger's tap without acting on it: a stranger holds
 // no keyboard of ours, so any callback data from one is forged or stale.
 func (t *Tgbot) gateCallback(query *telego.CallbackQuery) (isAdmin bool, ok bool) {
+	if isTelegramAuthCallback(query.Data) {
+		if query.Message != nil && query.Message.GetChat().Type == telego.ChatTypePrivate && query.Message.GetChat().ID == query.From.ID {
+			return false, true
+		}
+		t.sendCallbackAnswerTgBot(query.ID, t.I18nBot("tgbot.authPrivateOnly"))
+		return false, false
+	}
 	level := t.levelOf(query.From.ID)
 	if level == levelStranger {
 		t.sendCallbackAnswerTgBot(query.ID, "")

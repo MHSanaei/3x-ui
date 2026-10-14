@@ -48,6 +48,9 @@ func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/sponsors/logo/:name", a.sponsorLogo)
 
 	g.POST("/login", middleware.CSRFMiddleware(), a.login)
+	g.GET("/telegram-auth/status", a.telegramAuthStatus)
+	g.POST("/telegram-auth/start", middleware.CSRFMiddleware(), a.telegramAuthStart)
+	g.POST("/telegram-auth/complete", middleware.CSRFMiddleware(), a.telegramAuthComplete)
 	g.POST("/logout", middleware.CSRFMiddleware(), a.logout)
 	g.POST("/getTwoFactorEnable", middleware.CSRFMiddleware(), a.getTwoFactorEnable)
 }

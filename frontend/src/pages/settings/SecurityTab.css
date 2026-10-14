@@ -93,3 +93,26 @@
   display: flex;
   align-items: center;
 }
+
+.telegram-auth-challenge {
+  padding: 8px 20px 20px;
+}
+
+.telegram-auth-challenge p {
+  margin: 0 0 12px;
+}
+
+.telegram-auth-command {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.telegram-auth-command code {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--ant-color-fill-tertiary);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
