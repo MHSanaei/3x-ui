@@ -215,8 +215,13 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) ([]string, []int, e
 func (s *ClientService) ResetAllTraffics() (bool, error) {
 	var affected int64
 	var resetNodes []int
+	var restore []string
 	err := submitTrafficWrite(func() error {
 		return database.GetDB().Transaction(func(tx *gorm.DB) error {
+			var qErr error
+			if restore, qErr = quotaDisabledEmails(tx); qErr != nil {
+				return qErr
+			}
 			res := tx.Model(&xray.ClientTraffic{}).
 				Where("1 = 1").
 				Updates(map[string]any{"enable": true, "up": 0, "down": 0})
@@ -230,7 +235,6 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 			if err := tx.Where("1 = 1").Delete(&model.NodeClientTraffic{}).Error; err != nil {
 				return err
 			}
-			var qErr error
 			resetNodes, qErr = queueNodeResets(tx, nil)
 			return qErr
 		})
@@ -241,5 +245,12 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 	inbounds := &InboundService{}
 	inbounds.resetAllMtprotoQuotas()
 	inbounds.deliverNodeResetsNow(resetNodes)
-	return affected > 0, nil
+	needRestart := false
+	if len(restore) > 0 {
+		var enableErr error
+		if _, needRestart, enableErr = s.BulkSetEnable(inbounds, restore, true); enableErr != nil {
+			logger.Warning("Failed to re-enable depleted clients after resetting all traffic:", enableErr)
+		}
+	}
+	return affected > 0 || needRestart, nil
 }
