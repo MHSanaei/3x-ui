@@ -1,0 +1,54 @@
+{
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": "icon.png"
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": {
+        "identity": {
+          "name": "3x-ui",
+          "version": ""
+        },
+        "description": "3X-UI web panel for Xray-core",
+        "minimum-os": "win7",
+        "execution-level": "as invoker",
+        "ui-access": false,
+        "auto-elevate": false,
+        "dpi-awareness": "system",
+        "disable-theming": false,
+        "disable-window-filtering": false,
+        "high-resolution-scrolling-aware": false,
+        "ultra-high-resolution-scrolling-aware": false,
+        "long-path-aware": false,
+        "printer-driver-isolation": false,
+        "gdi-scaling": false,
+        "segment-heap": false,
+        "use-common-controls-v6": false
+      }
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": "0.0.0.0",
+          "product_version": "0.0.0.0"
+        },
+        "info": {
+          "0409": {
+            "CompanyName": "MHSanaei",
+            "FileDescription": "3X-UI web panel for Xray-core",
+            "FileVersion": "",
+            "InternalName": "3x-ui",
+            "LegalCopyright": "3X-UI contributors, licensed under GPL-3.0",
+            "OriginalFilename": "3x-ui.exe",
+            "ProductName": "3X-UI",
+            "ProductVersion": ""
+          }
+        }
+      }
+    }
+  }
+}
