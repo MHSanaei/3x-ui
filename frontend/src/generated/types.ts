@@ -407,6 +407,8 @@ export interface Client {
   allowedIPs?: string[];
   allowedIPsByInbound?: Record<number, string[]>;
   auth?: string;
+  clientHostRuleId?: number | null;
+  clientHostRuleIds?: number[];
   comment: string;
   created_at?: number;
   email: string;
@@ -458,6 +460,8 @@ export interface ClientRecord {
   adTag: string;
   allowedIPs: string;
   auth: string;
+  clientHostRuleId?: number | null;
+  clientHostRuleIds?: number[];
   comment: string;
   createdAt: number;
   email: string;

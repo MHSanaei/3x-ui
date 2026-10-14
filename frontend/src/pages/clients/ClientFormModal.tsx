@@ -37,6 +37,7 @@ import { normalizeClientIps, type ClientIpInfo } from '@/lib/clients/ip-log';
 import { resolveExternalLinkExpiry } from '@/lib/clients/external-link';
 import { useDatepicker } from '@/hooks/useDatepicker';
 import { useClientHwids } from '@/hooks/useClientHwids';
+import { useRawHostsQuery } from '@/api/queries/useRawHostsQuery';
 import { DateTimePicker, SelectAllClearButtons } from '@/components/form';
 import { FormField } from '@/components/form/rhf';
 import ClientHwidListModal from '@/components/clients/ClientHwidList';
@@ -131,6 +132,8 @@ type Values = ClientFormValues & {
   expiryDate: number;
   limitHwid: number;
   externalLinks: ExternalLinkRow[];
+  clientHostRuleId: number | null;
+  clientHostRuleIds: number[];
   wgPrivateKey: string;
   wgPublicKey: string;
   wgPreSharedKey: string;
@@ -150,6 +153,8 @@ const EMPTY: Values = {
   auth: '',
   flow: '',
   security: 'auto',
+  clientHostRuleId: null,
+  clientHostRuleIds: [],
   reverseTag: '',
   totalGB: 0,
   expiryDate: 0,
@@ -367,6 +372,20 @@ export default function ClientFormModal({
             ? 'auto'
             : client.security,
         reverseTag: client.reverse?.tag || '',
+        clientHostRuleId:
+          typeof client.clientHostRuleId === 'number' && client.clientHostRuleId > 0
+            ? client.clientHostRuleId
+            : null,
+        clientHostRuleIds: (() => {
+          const ids = new Set<number>();
+          for (const id of client.clientHostRuleIds || []) {
+            if (typeof id === 'number' && id > 0) ids.add(id);
+          }
+          if (typeof client.clientHostRuleId === 'number' && client.clientHostRuleId > 0) {
+            ids.add(client.clientHostRuleId);
+          }
+          return [...ids];
+        })(),
         totalGB: bytesToGB(client.totalGB || 0),
         reset: Number(client.reset) || 0,
         resetDay: Number(client.resetDay) || 0,
@@ -567,6 +586,66 @@ export default function ClientFormModal({
     [inbounds, inboundIds],
   );
 
+  // Host options cover selected inbounds only; bound disabled hosts stay
+  // visible with a suffix so open+save never silently drops them.
+  const { hosts: rawHostRules } = useRawHostsQuery();
+  const clientHostRuleIds = useWatch({ control: methods.control, name: 'clientHostRuleIds' });
+  const hostRuleOptions = useMemo(() => {
+    const selected = new Set(inboundIds || []);
+    const bound = new Set(clientHostRuleIds || []);
+    const formatBase = (h: { id?: number; remark?: string; address?: string }) =>
+      h.remark || h.address
+        ? `${h.remark || h.address}${h.address && h.remark ? ` (${h.address})` : ''} (#${h.id})`
+        : `Host #${h.id}`;
+    const options: { value: number; label: string }[] = [];
+    const seen = new Set<number>();
+    for (const h of rawHostRules || []) {
+      if (h.id === undefined || h.inboundId === undefined || !selected.has(h.inboundId)) continue;
+      const id = h.id as number;
+      const base = formatBase(h);
+      if (!h.isDisabled) {
+        options.push({ value: id, label: base });
+        seen.add(id);
+      } else if (bound.has(id)) {
+        options.push({ value: id, label: t('pages.clients.hostRuleDisabled', { label: base }) });
+        seen.add(id);
+      }
+    }
+    for (const id of bound) {
+      if (seen.has(id)) continue;
+      const h = (rawHostRules || []).find((r) => r.id === id);
+      if (h) {
+        const base = formatBase(h);
+        options.push({
+          value: id,
+          label: h.isDisabled ? t('pages.clients.hostRuleDisabled', { label: base }) : base,
+        });
+      } else {
+        options.push({ value: id, label: `Host #${id}` });
+      }
+    }
+    return options;
+  }, [rawHostRules, inboundIds, clientHostRuleIds, t]);
+
+  // Prune only bindings whose inbound was just deselected, never on
+  // disabled state, so a temporarily disabled host survives untouched.
+  function handleInboundChange(next: number[]) {
+    const prevSelected = new Set(inboundIds || []);
+    const nextSelected = new Set(next || []);
+    const removed = new Set([...prevSelected].filter((id) => !nextSelected.has(id)));
+    methods.setValue('inboundIds', next);
+    if (removed.size === 0) return;
+    const current = methods.getValues('clientHostRuleIds') || [];
+    if (current.length === 0) return;
+    const byId = new Map((rawHostRules || []).map((h) => [h.id as number, h]));
+    const kept = current.filter((id) => {
+      const host = byId.get(id);
+      if (!host || host.inboundId === undefined) return true;
+      return !removed.has(host.inboundId);
+    });
+    if (kept.length !== current.length) methods.setValue('clientHostRuleIds', kept);
+  }
+
   const expiryDayjs = useMemo<Dayjs | null>(
     () => (expiryDate > 0 ? dayjs(expiryDate) : null),
     [expiryDate],
@@ -649,6 +728,8 @@ export default function ClientFormModal({
       auth: values.auth,
       flow: values.flow,
       security: values.security,
+      clientHostRuleId: values.clientHostRuleId,
+      clientHostRuleIds: values.clientHostRuleIds,
       reverseTag: values.reverseTag,
       totalGB: values.totalGB,
       delayedStart: values.delayedStart,
@@ -685,6 +766,16 @@ export default function ClientFormModal({
       auth: values.auth,
       flow: showFlow ? values.flow || '' : '',
       security: showSecurity ? values.security || 'auto' : 'auto',
+      // The list is the source of truth; the legacy single id mirrors its
+      // first entry. An empty list clears the override.
+      clientHostRuleIds: Array.isArray(values.clientHostRuleIds)
+        ? values.clientHostRuleIds.filter((id) => typeof id === 'number' && id > 0)
+        : [],
+      clientHostRuleId:
+        Array.isArray(values.clientHostRuleIds) &&
+        values.clientHostRuleIds.some((id) => typeof id === 'number' && id > 0)
+          ? values.clientHostRuleIds.find((id) => typeof id === 'number' && id > 0)
+          : null,
       totalGB: totalBytes,
       expiryTime,
       reset: Number(values.reset) || 0,
@@ -1034,31 +1125,53 @@ export default function ClientFormModal({
                         </Col>
                       </Row>
 
-                      {(tgBotEnable || showReverseTag) && (
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          <Form.Item label={t('pages.clients.hostRuleOverride')}>
+                            <Select
+                              mode="multiple"
+                              value={clientHostRuleIds || []}
+                              onChange={(v) => methods.setValue('clientHostRuleIds', v)}
+                              options={hostRuleOptions}
+                              placeholder={t('pages.clients.hostRuleOverridePlaceholder')}
+                              maxTagCount="responsive"
+                              placement="topLeft"
+                              listHeight={220}
+                              allowClear
+                              showSearch={{
+                                filterOption: (input, option) =>
+                                  ((option?.label as string) || '')
+                                    .toLowerCase()
+                                    .includes(input.toLowerCase()),
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                        {showReverseTag && (
+                          <Col xs={24} md={12}>
+                            <FormField name="reverseTag" label={t('pages.clients.reverseTag')}>
+                              <Input placeholder={t('pages.clients.reverseTagPlaceholder')} />
+                            </FormField>
+                          </Col>
+                        )}
+                      </Row>
+
+                      {tgBotEnable && (
                         <Row gutter={16}>
-                          {tgBotEnable && (
-                            <Col xs={24} md={12}>
-                              <FormField
-                                name="tgId"
-                                label={t('pages.clients.telegramId')}
-                                transform={{ output: (v) => Number(v) || 0 }}
-                              >
-                                <InputNumber
-                                  min={0}
-                                  controls={false}
-                                  placeholder={t('pages.clients.telegramIdPlaceholder')}
-                                  style={{ width: '100%' }}
-                                />
-                              </FormField>
-                            </Col>
-                          )}
-                          {showReverseTag && (
-                            <Col xs={24} md={12}>
-                              <FormField name="reverseTag" label={t('pages.clients.reverseTag')}>
-                                <Input placeholder={t('pages.clients.reverseTagPlaceholder')} />
-                              </FormField>
-                            </Col>
-                          )}
+                          <Col xs={24} md={12}>
+                            <FormField
+                              name="tgId"
+                              label={t('pages.clients.telegramId')}
+                              transform={{ output: (v) => Number(v) || 0 }}
+                            >
+                              <InputNumber
+                                min={0}
+                                controls={false}
+                                placeholder={t('pages.clients.telegramIdPlaceholder')}
+                                style={{ width: '100%' }}
+                              />
+                            </FormField>
+                          </Col>
                         </Row>
                       )}
 
@@ -1066,12 +1179,12 @@ export default function ClientFormModal({
                         <SelectAllClearButtons
                           options={inboundOptions}
                           value={inboundIds}
-                          onChange={(v) => methods.setValue('inboundIds', v)}
+                          onChange={handleInboundChange}
                         />
                         <Select
                           mode="multiple"
                           value={inboundIds}
-                          onChange={(v) => methods.setValue('inboundIds', v)}
+                          onChange={handleInboundChange}
                           options={inboundOptions}
                           placeholder={t('pages.clients.selectInbound')}
                           maxTagCount="responsive"

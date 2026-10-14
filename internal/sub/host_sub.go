@@ -10,6 +10,63 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 )
 
+// clientHostEndpoints resolves one client's effective host endpoints — one
+// per valid bound host, or baseEps when unbound. A bound client whose hosts
+// relevant to this inbound all fail to resolve (deleted, disabled,
+// format-excluded) fails closed with (nil, true); callers must emit nothing
+// but still account the client. Bindings that live only on other inbounds do
+// not apply here and fall back to baseEps, so a host bound on inbound A never
+// silences inbound B.
+func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Client, format string, baseEps []map[string]any) ([]map[string]any, bool) {
+	ids := model.EffectiveClientHostRuleIds(client)
+	if len(ids) == 0 {
+		return baseEps, false
+	}
+	if database.GetDB() == nil {
+		return baseEps, true
+	}
+	var rows []model.Host
+	if err := database.GetDB().Where("id IN ?", ids).Find(&rows).Error; err != nil {
+		logger.Warning("SubService - clientHostEndpoints:", err)
+		return nil, true
+	}
+	byId := make(map[int]*model.Host, len(rows))
+	for i := range rows {
+		byId[rows[i].Id] = &rows[i]
+	}
+	relevant := false
+	for _, id := range ids {
+		h, ok := byId[id]
+		if !ok {
+			relevant = true
+			continue
+		}
+		if h.InboundId == inbound.Id {
+			relevant = true
+			break
+		}
+	}
+	if !relevant {
+		return baseEps, false
+	}
+	defaultDest := s.resolveInboundAddress(inbound)
+	eps := make([]map[string]any, 0, len(ids))
+	for _, id := range ids {
+		h, ok := byId[id]
+		if !ok || h.InboundId != inbound.Id {
+			continue
+		}
+		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
+			continue
+		}
+		eps = append(eps, hostToExternalProxyMap(h, defaultDest, inbound.Port))
+	}
+	if len(eps) == 0 {
+		return nil, true
+	}
+	return eps, true
+}
+
 // hostEndpoints loads an inbound's enabled hosts for the given subscription
 // format ("raw"|"json"|"clash") and returns them as externalProxy-shaped maps so
 // the existing per-format renderers can fan out one link/proxy per host. Returns

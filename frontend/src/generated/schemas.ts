@@ -1674,6 +1674,23 @@ export const SCHEMAS: Record<string, unknown> = {
         "description": "Auth password (Hysteria)",
         "type": "string"
       },
+      "clientHostRuleId": {
+        "description": "ClientHostRuleId is a deprecated read-only alias of ClientHostRuleIds[0].\nNil or non-positive means no override (inbound rule applies).",
+        "example": 1,
+        "nullable": true,
+        "type": "integer"
+      },
+      "clientHostRuleIds": {
+        "description": "ClientHostRuleIds is the canonical per-client host binding; each id renders its own link.\nNil preserves, empty clears; no usable host yields empty subscription for that inbound.",
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
       "comment": {
         "description": "Client comment",
         "type": "string"
@@ -1904,6 +1921,21 @@ export const SCHEMAS: Record<string, unknown> = {
       },
       "auth": {
         "type": "string"
+      },
+      "clientHostRuleId": {
+        "example": 1,
+        "nullable": true,
+        "type": "integer"
+      },
+      "clientHostRuleIds": {
+        "example": [
+          1,
+          2
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
       },
       "comment": {
         "type": "string"
