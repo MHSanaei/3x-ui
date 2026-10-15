@@ -1987,6 +1987,9 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		if err := s.updateClientTraffics(tx, oldInbound, inbound); err != nil {
 			return err
 		}
+		if err := database.SyncHostsFromExternalProxy(tx, inbound.Id, running.StreamSettings, inbound.StreamSettings); err != nil {
+			return err
+		}
 
 		// Ensure created_at and updated_at exist in inbound.Settings clients
 		{
