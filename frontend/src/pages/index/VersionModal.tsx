@@ -125,7 +125,10 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
                       <div key={version} className="version-list-item">
                         <Tag color={index % 2 === 0 ? 'purple' : 'green'}>{version}</Tag>
                         <Radio
-                          checked={version === `v${status?.xray?.version}`}
+                          checked={
+                            version === (status.xray.selectedVersion ?? `v${status.xray.version}`)
+                          }
+                          aria-label={version}
                           onClick={() => switchXrayVersion(version)}
                         />
                       </div>

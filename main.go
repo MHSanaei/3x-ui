@@ -112,6 +112,10 @@ func runWebServer() {
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
+	// Restore the container's selection before listeners, jobs, or Xray can start.
+	if err := (&service.ServerService{}).RestoreXrayVersion(); err != nil {
+		log.Fatalf("Error preparing Xray binary: %v", err)
+	}
 
 	server := web.NewServer()
 	global.SetWebServer(server)

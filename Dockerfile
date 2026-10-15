@@ -46,6 +46,7 @@ RUN apk add --no-cache --update \
   openssl
 
 COPY --from=builder /app/build/ /app/
+COPY --from=builder /app/build/bin/xray-* /app/xray-image/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 COPY --from=builder /app/internal/web/translation /app/internal/web/translation

@@ -1,4 +1,7 @@
 import { NumberFormatter } from '@/utils';
+import type { XrayInfo } from '@/schemas/status';
+
+export type { XrayInfo } from '@/schemas/status';
 
 export const USAGE_WARN_PERCENT = 80;
 export const USAGE_CRIT_PERCENT = 90;
@@ -52,13 +55,6 @@ export interface AppStats {
   threads: number;
   mem: number;
   uptime: number;
-}
-
-export interface XrayInfo {
-  state: 'running' | 'stop' | 'error' | string;
-  errorMsg: string;
-  version: string;
-  color: string;
 }
 
 export interface AmneziaWGInfo {
