@@ -92,9 +92,10 @@ type Status struct {
 		Write uint64 `json:"write"`
 	} `json:"diskTraffic"`
 	Xray struct {
-		State    ProcessState `json:"state"`
-		ErrorMsg string       `json:"errorMsg"`
-		Version  string       `json:"version"`
+		State           ProcessState `json:"state"`
+		ErrorMsg        string       `json:"errorMsg"`
+		Version         string       `json:"version"`
+		SelectedVersion string       `json:"selectedVersion,omitempty"`
 	} `json:"xray"`
 	// AmneziaWG gates the overview's AmneziaWG log view: Configured stays true
 	// while an inbound exists but its embedded interface isn't up yet, which
@@ -289,10 +290,7 @@ func (s *ServerService) RefreshStatus() *Status {
 	return next
 }
 
-// GetXrayVersionsCached wraps GetXrayVersions with a TTL cache. On fetch
-// failure we serve the last successful list (if any) so the UI doesn't go
-// blank during a GitHub API hiccup; if there's no cache at all the underlying
-// error is surfaced.
+// Keep a stale release list on GitHub failures; containers can always choose their image.
 func (s *ServerService) GetXrayVersionsCached() ([]string, error) {
 	s.versionsCacheMu.Lock()
 	cache := s.versionsCache
@@ -305,6 +303,10 @@ func (s *ServerService) GetXrayVersionsCached() ([]string, error) {
 		if cache != nil {
 			logger.Warning("GetXrayVersionsCached: serving stale list:", err)
 			return cache.versions, nil
+		}
+		if os.Getenv("XUI_IN_DOCKER") == "true" {
+			logger.Warning("GetXrayVersionsCached: offering bundled version only:", err)
+			return []string{"latest"}, nil
 		}
 		return nil, err
 	}
@@ -700,6 +702,14 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+	if os.Getenv("XUI_IN_DOCKER") == "true" {
+		if version, err := s.settingService.getString("xrayVersion"); err == nil {
+			status.Xray.SelectedVersion = version
+			if version == "" {
+				status.Xray.SelectedVersion = "latest"
+			}
+		}
+	}
 
 	var amneziawgCount int64
 	if err := database.GetDB().Model(model.Inbound{}).
@@ -912,21 +922,11 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	}
 
 	var versions []string
+	if os.Getenv("XUI_IN_DOCKER") == "true" {
+		versions = append(versions, "latest")
+	}
 	for _, release := range releases {
-		tagVersion := strings.TrimPrefix(release.TagName, "v")
-		tagParts := strings.Split(tagVersion, ".")
-		if len(tagParts) != 3 {
-			continue
-		}
-
-		major, err1 := strconv.Atoi(tagParts[0])
-		minor, err2 := strconv.Atoi(tagParts[1])
-		patch, err3 := strconv.Atoi(tagParts[2])
-		if err1 != nil || err2 != nil || err3 != nil {
-			continue
-		}
-
-		if major > 26 || (major == 26 && minor > 6) || (major == 26 && minor == 6 && patch >= 27) {
+		if supportedXrayVersion(release.TagName) {
 			versions = append(versions, release.TagName)
 		}
 	}
@@ -1084,21 +1084,7 @@ func parseXrayDigestSHA256(dgst []byte) (string, error) {
 	return "", fmt.Errorf("xray checksum: no SHA2-256 entry in digest")
 }
 
-func (s *ServerService) UpdateXray(version string) error {
-	versions, err := s.GetXrayVersions()
-	if err != nil {
-		return err
-	}
-	if !slices.Contains(versions, version) {
-		return fmt.Errorf("xray version %q is not in the fetched release list", version)
-	}
-
-	// 1. Stop xray before doing anything
-	if err := s.StopXrayService(); err != nil {
-		logger.Warning("failed to stop xray before update:", err)
-	}
-
-	// 2. Download the zip
+func (s *ServerService) installXrayBinary(version string) error {
 	zipFileName, err := s.downloadXRay(version)
 	if err != nil {
 		return err
@@ -1120,69 +1106,22 @@ func (s *ServerService) UpdateXray(version string) error {
 		return err
 	}
 
-	// 3. Helper to extract files
 	copyZipFile := func(zipName string, fileName string) error {
 		zipFile, err := reader.Open(zipName)
 		if err != nil {
 			return err
 		}
 		defer zipFile.Close()
-		if err := os.MkdirAll(filepath.Dir(fileName), 0o755); err != nil {
-			return err
-		}
-		tmpFile, err := os.CreateTemp(filepath.Dir(fileName), ".xray-*")
-		if err != nil {
-			return err
-		}
-		tmpPath := tmpFile.Name()
-		ok := false
-		defer func() {
-			_ = tmpFile.Close()
-			if !ok {
-				_ = os.Remove(tmpPath)
-			}
-		}()
-		n, err := io.Copy(tmpFile, io.LimitReader(zipFile, maxXrayBinaryBytes+1))
-		if err != nil {
-			return err
-		}
-		if n > maxXrayBinaryBytes {
-			return fmt.Errorf("xray binary exceeds %d bytes", maxXrayBinaryBytes)
-		}
-		if err := tmpFile.Chmod(0o755); err != nil {
-			return err
-		}
-		if err := tmpFile.Close(); err != nil {
-			return err
-		}
-		if runtime.GOOS == "windows" {
-			_ = os.Remove(fileName)
-		}
-		if err := os.Rename(tmpPath, fileName); err != nil {
-			return err
-		}
-		ok = true
-		return nil
+		return replaceXrayBinary(zipFile, fileName)
 	}
 
-	// 4. Extract correct binary
 	if runtime.GOOS == "windows" {
 		targetBinary := filepath.Join(config.GetBinFolderPath(), "xray-windows-amd64.exe")
 		err = copyZipFile("xray.exe", targetBinary)
 	} else {
 		err = copyZipFile("xray", xray.GetBinaryPath())
 	}
-	if err != nil {
-		return err
-	}
-
-	// 5. Restart xray
-	if err := s.xrayService.RestartXray(true); err != nil {
-		logger.Error("start xray failed:", err)
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // syslogTimeout keeps a stalled journalctl from hanging the Syslog request (#6629).

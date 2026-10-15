@@ -26,14 +26,15 @@ export const AppStatsSchema = z.object({
   uptime: z.number(),
 });
 
-export const XrayInfoSchema = z
-  .object({
-    state: z.string(),
-    errorMsg: z.string(),
-    version: z.string(),
-    color: z.string(),
-  })
-  .partial();
+export const XrayInfoSchema = z.object({
+  state: z.string(),
+  errorMsg: z.string(),
+  version: z.string(),
+  selectedVersion: z.string().optional(),
+  color: z.string(),
+});
+
+export type XrayInfo = z.infer<typeof XrayInfoSchema>;
 
 export const StatusSchema = z.object({
   cpu: z.number().optional(),
@@ -52,7 +53,7 @@ export const StatusSchema = z.object({
   uptime: z.number().optional(),
   appUptime: z.number().optional(),
   appStats: AppStatsSchema.optional(),
-  xray: XrayInfoSchema.optional(),
+  xray: XrayInfoSchema.partial().optional(),
 });
 
 export type StatusInput = z.infer<typeof StatusSchema>;

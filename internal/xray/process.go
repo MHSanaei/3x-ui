@@ -320,7 +320,7 @@ func (p *Process) SetConfig(config *Config) {
 // keeping it in step after a hot apply (Start only writes it on a cold start).
 func (p *Process) PersistConfig() error {
 	p.mu.RLock()
-	data, err := json.MarshalIndent(p.config, "", "  ")
+	data, err := marshalProcessConfig(p.config)
 	path := p.configPath
 	p.mu.RUnlock()
 	if err != nil {
@@ -619,7 +619,7 @@ func (p *process) Start() (err error) {
 		}
 	}()
 
-	data, err := json.MarshalIndent(p.config, "", "  ")
+	data, err := marshalProcessConfig(p.config)
 	if err != nil {
 		return common.NewErrorf("Failed to generate XRAY configuration files: %v", err)
 	}
@@ -639,6 +639,12 @@ func (p *process) Start() (err error) {
 	}
 
 	cmd := exec.CommandContext(context.Background(), GetBinaryPath(), "-c", configPath)
+	if os.Getenv("XUI_IN_DOCKER") == "true" {
+		cmd.Env, err = containerXrayEnv()
+		if err != nil {
+			return err
+		}
+	}
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 
