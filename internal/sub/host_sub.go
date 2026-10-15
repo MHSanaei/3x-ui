@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -16,6 +17,100 @@ import (
 // nil when the inbound has no applicable host — the caller then uses the legacy
 // inbound/externalProxy path, preserving byte-identical output for zero-host
 // inbounds.
+type clientHostSelection struct {
+	assigned bool
+	groupIDs map[string]struct{}
+}
+
+func (s *SubService) getClientHostSelection(email string) clientHostSelection {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return clientHostSelection{}
+	}
+	if cached, ok := s.clientHostSelections[email]; ok {
+		return cached
+	}
+	selection := clientHostSelection{assigned: true, groupIDs: map[string]struct{}{}}
+	var ids []string
+	query := database.GetDB().Table("client_hosts ch").
+		Select("ch.group_id").
+		Joins("JOIN clients c ON c.id = ch.client_id").
+		Where("LOWER(c.email) = ?", email).
+		Order("ch.group_id ASC").
+		Pluck("ch.group_id", &ids)
+	if err := query.Error; err != nil {
+		// The relation table is part of the panel schema and is migrated before
+		// subscriptions are served. Fail closed on query errors so a restricted
+		// client can never leak every Host as a fallback.
+		logger.Warning("SubService - getClientHostSelection:", err)
+		return clientHostSelection{assigned: true, groupIDs: map[string]struct{}{}}
+	} else {
+		if len(ids) == 0 {
+			var groupName string
+			if err := database.GetDB().Table("clients").
+				Where("LOWER(email) = ?", email).
+				Pluck("group_name", &groupName).Error; err != nil {
+				logger.Warning("SubService - getClientHostSelection client group:", err)
+				return clientHostSelection{assigned: true, groupIDs: map[string]struct{}{}}
+			}
+			if strings.TrimSpace(groupName) != "" {
+				if err := database.GetDB().Table("client_group_hosts").
+					Where("group_name = ?", groupName).
+					Order("host_group_id ASC").
+					Pluck("host_group_id", &ids).Error; err != nil {
+					logger.Warning("SubService - getClientHostSelection group:", err)
+					return clientHostSelection{assigned: true, groupIDs: map[string]struct{}{}}
+				}
+			}
+		}
+		selection.assigned = len(ids) > 0
+		for _, id := range ids {
+			if id != "" {
+				selection.groupIDs[id] = struct{}{}
+			}
+		}
+	}
+	if s.clientHostSelections == nil {
+		s.clientHostSelections = map[string]clientHostSelection{}
+	}
+	s.clientHostSelections[email] = selection
+	return selection
+}
+
+func (s *SubService) hostEndpointsForClient(inbound *model.Inbound, format, email string) ([]map[string]any, bool) {
+	selection := s.getClientHostSelection(email)
+	if !selection.assigned {
+		return s.hostEndpoints(inbound, format), false
+	}
+	if len(selection.groupIDs) == 0 {
+		return []map[string]any{}, true
+	}
+
+	ids := make([]string, 0, len(selection.groupIDs))
+	for id := range selection.groupIDs {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+
+	var hosts []*model.Host
+	if err := database.GetDB().
+		Where("inbound_id = ? AND is_disabled = ? AND group_id IN ?", inbound.Id, false, ids).
+		Order("sort_order asc, id asc").
+		Find(&hosts).Error; err != nil {
+		logger.Warning("SubService - hostEndpointsForClient:", err)
+		return []map[string]any{}, true
+	}
+	defaultDest := s.resolveInboundAddress(inbound)
+	eps := make([]map[string]any, 0, len(hosts))
+	for _, h := range hosts {
+		if slices.Contains(h.ExcludeFromSubTypes, format) {
+			continue
+		}
+		eps = append(eps, hostToExternalProxyMap(h, defaultDest, inbound.Port))
+	}
+	return eps, true
+}
+
 func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
 	var hosts []*model.Host
 	if err := database.GetDB().

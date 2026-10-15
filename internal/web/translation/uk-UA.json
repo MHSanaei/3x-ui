@@ -1006,7 +1006,12 @@
       "renewsUsed": "Подовжень витрачено",
       "bulkAdTagHint": "Введіть 32-значний hex-тег для встановлення або 'none' для очищення спонсорського каналу на MTProto.",
       "renewIntervalDesc": "Після завершення строку додає вказану кількість 24-годинних днів до попереднього терміну та скидає трафік клієнта. Залиште незалежне скидання трафіку вимкненим, якщо додаткове скидання не потрібне.",
-      "renewWeeklyDesc": "Календарне подовження відбувається опівночі за часовим поясом панелі й також скидає трафік клієнта. Залиште незалежне скидання трафіку вимкненим, якщо додаткове скидання не потрібне."
+      "renewWeeklyDesc": "Календарне подовження відбувається опівночі за часовим поясом панелі й також скидає трафік клієнта. Залиште незалежне скидання трафіку вимкненим, якщо додаткове скидання не потрібне.",
+      "attachedHosts": "Attached hosts",
+      "selectHost": "Select host groups",
+      "hostsEmptyMeansAll": "Leave empty to use all hosts from the attached inbounds.",
+      "hostGroupDisabledOnly": "Only on disabled inbounds: {inbounds}",
+      "hostGroupAlsoDisabled": "Also on disabled inbounds: {inbounds}"
     },
     "groups": {
       "name": "Назва",
@@ -1047,7 +1052,11 @@
       "removeFromGroup": "Видалити клієнтів…",
       "removeFromGroupTitle": "Видалити клієнтів з групи «{name}»",
       "removeFromGroupDesc": "Виберіть учасників для видалення з цієї групи. Самі клієнти зберігаються (використовуйте «Видалити клієнтів групи» для повного видалення).",
-      "removeFromGroupResult": "Видалено {count} клієнт(ів) з {name}."
+      "removeFromGroupResult": "Видалено {count} клієнт(ів) з {name}.",
+      "assignHostGroups": "Призначити хости",
+      "hostGroupsFor": "Хости для {name}",
+      "hostGroups": "Хости",
+      "hostsEmptyMeansLegacy": "Залиште порожнім, щоб використовувати всі хости за старою логікою"
     },
     "nodes": {
       "addNode": "Додати вузол",

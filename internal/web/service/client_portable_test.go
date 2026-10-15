@@ -172,14 +172,21 @@ func TestBulkCreate_DisabledOnNodeSkipsAddClient(t *testing.T) {
 	}
 }
 
-func TestExportImportPreservesTrafficCounters(t *testing.T) {
+func TestExportImportPreservesClientHostAssignmentsAndTrafficCounters(t *testing.T) {
 	setupBulkDB(t)
 	svc := &ClientService{}
 	inboundSvc := &InboundService{}
 
-	ib := mkInbound(t, 25001, model.VLESS, `{"clients":[]}`)
-	const email = "portable@traffic"
-	const subID = "sub-portable-traffic"
+	ib := mkInbound(t, 26004, model.VLESS, `{"clients":[]}`)
+	if err := database.GetDB().Create(&model.Host{
+		GroupId: "portable-host", InboundId: ib.Id, Remark: "Portable", Address: "portable.example.com", Port: 8443,
+		Security: "tls",
+	}).Error; err != nil {
+		t.Fatalf("create host: %v", err)
+	}
+
+	const email = "portable@host-traffic"
+	const subID = "sub-portable-host-traffic"
 	if _, err := svc.Create(inboundSvc, &ClientCreatePayload{
 		Client: model.Client{
 			Email: email, SubID: subID, Enable: true,
@@ -189,7 +196,10 @@ func TestExportImportPreservesTrafficCounters(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-
+	rec := lookupClientRecord(t, email)
+	if err := (&ClientHostService{}).SetGroupIDs(rec.Id, []string{"portable-host"}); err != nil {
+		t.Fatalf("assign host group: %v", err)
+	}
 	db := database.GetDB()
 	if err := db.Model(&xray.ClientTraffic{}).Where("email = ?", email).Updates(map[string]any{
 		"up": 111, "down": 222, "reset_count": 3, "last_online": 999,
@@ -203,6 +213,9 @@ func TestExportImportPreservesTrafficCounters(t *testing.T) {
 	}
 	if len(exported) != 1 {
 		t.Fatalf("ExportAll len=%d, want 1", len(exported))
+	}
+	if len(exported[0].HostGroupIds) != 1 || exported[0].HostGroupIds[0] != "portable-host" {
+		t.Fatalf("exported host assignments = %#v", exported[0].HostGroupIds)
 	}
 	if exported[0].Traffic == nil {
 		t.Fatal("ExportAll missing traffic snapshot")
@@ -219,11 +232,13 @@ func TestExportImportPreservesTrafficCounters(t *testing.T) {
 	if err := json.Unmarshal(raw, &roundTrip); err != nil {
 		t.Fatalf("unmarshal export: %v", err)
 	}
+	if len(roundTrip[0].HostGroupIds) != 1 || roundTrip[0].HostGroupIds[0] != "portable-host" {
+		t.Fatalf("round-trip host assignments = %#v", roundTrip[0].HostGroupIds)
+	}
 	if roundTrip[0].Traffic == nil || roundTrip[0].Traffic.Up != 111 {
 		t.Fatalf("JSON round-trip lost traffic: %+v", roundTrip[0].Traffic)
 	}
 
-	rec := lookupClientRecord(t, email)
 	if _, err := svc.Delete(inboundSvc, rec.Id, false); err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
@@ -234,7 +249,6 @@ func TestExportImportPreservesTrafficCounters(t *testing.T) {
 	if gone != 0 {
 		t.Fatalf("client_traffics still present after delete: %d", gone)
 	}
-
 	res, _, err := svc.ImportClients(inboundSvc, roundTrip)
 	if err != nil {
 		t.Fatalf("ImportClients: %v", err)
@@ -266,6 +280,14 @@ func TestExportImportPreservesTrafficCounters(t *testing.T) {
 	}
 	if live.Up != 5000 || live.Down != 6000 {
 		t.Fatalf("re-import of existing email must leave live traffic alone, got up=%d down=%d", live.Up, live.Down)
+	}
+	imported := lookupClientRecord(t, email)
+	got, err := (&ClientHostService{}).GetGroupIDs(imported.Id)
+	if err != nil {
+		t.Fatalf("GetGroupIDs after import: %v", err)
+	}
+	if len(got) != 1 || got[0] != "portable-host" {
+		t.Fatalf("imported host assignments = %#v", got)
 	}
 }
 

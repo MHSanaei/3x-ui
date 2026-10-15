@@ -76,9 +76,11 @@ func allModels() []any {
 		&model.ApiToken{},
 		&model.ClientRecord{},
 		&model.ClientInbound{},
+		&model.ClientHost{},
 		&model.ClientHwid{},
 		&model.ClientExternalLink{},
 		&model.ClientGroup{},
+		&model.ClientGroupHost{},
 		&model.InboundFallback{},
 		&model.Host{},
 		&model.NodeClientTraffic{},
@@ -908,15 +910,25 @@ func anyToNonEmptyStrings(v any) []string {
 }
 
 func pruneOrphanedHosts() error {
-	res := db.Exec("DELETE FROM hosts WHERE inbound_id NOT IN (SELECT id FROM inbounds)")
-	if res.Error != nil {
-		log.Printf("Error pruning orphaned hosts rows: %v", res.Error)
-		return res.Error
-	}
-	if res.RowsAffected > 0 {
-		log.Printf("Pruned %d orphaned hosts row(s)", res.RowsAffected)
-	}
-	return nil
+	return db.Transaction(func(tx *gorm.DB) error {
+		res := tx.Exec("DELETE FROM hosts WHERE inbound_id NOT IN (SELECT id FROM inbounds)")
+		if res.Error != nil {
+			log.Printf("Error pruning orphaned hosts rows: %v", res.Error)
+			return res.Error
+		}
+		if res.RowsAffected > 0 {
+			log.Printf("Pruned %d orphaned hosts row(s)", res.RowsAffected)
+		}
+		res = tx.Exec("DELETE FROM client_hosts WHERE group_id NOT IN (SELECT DISTINCT group_id FROM hosts WHERE group_id <> '')")
+		if res.Error != nil {
+			log.Printf("Error pruning orphaned client host assignments: %v", res.Error)
+			return res.Error
+		}
+		if res.RowsAffected > 0 {
+			log.Printf("Pruned %d orphaned client host assignment(s)", res.RowsAffected)
+		}
+		return nil
+	})
 }
 
 func pruneOrphanedClientInbounds() error {

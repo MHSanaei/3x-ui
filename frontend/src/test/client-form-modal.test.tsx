@@ -16,6 +16,7 @@ function renderModal() {
         mode="add"
         client={null}
         inbounds={[]}
+        hosts={[]}
         save={vi.fn().mockResolvedValue(null)}
         onOpenChange={() => {}}
       />

@@ -2193,6 +2193,15 @@
             "example": "staff",
             "type": "string"
           },
+          "hostGroupIds": {
+            "example": [
+              "group-a"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "inboundIds": {
             "example": [
               3,
@@ -8397,6 +8406,9 @@
                         "enable": true,
                         "expiryTime": 1735689600000,
                         "group": "staff",
+                        "hostGroupIds": [
+                          "group-a"
+                        ],
                         "inboundIds": [
                           3,
                           5
@@ -8474,6 +8486,124 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/{email}/hosts": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return the HostGroup IDs explicitly assigned to this client for subscription endpoint selection. An empty array means legacy behavior: all enabled hosts from the client's attached inbounds.",
+        "operationId": "get_panel_api_clients_email_hosts",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "group-id-1",
+                    "group-id-2"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Replace the client's HostGroup assignment for subscription endpoint selection. Use an empty hostGroupIds array to restore legacy behavior and include all enabled hosts from attached inbounds.",
+        "operationId": "post_panel_api_clients_email_hosts",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "description": "Client email (unique identifier).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hostGroupIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "HostGroup IDs to assign. Empty array restores legacy all-host behavior."
+                  }
+                },
+                "required": [
+                  "hostGroupIds"
+                ]
+              },
+              "example": {
+                "hostGroupIds": [
+                  "group-id-1",
+                  "group-id-2"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
                 }
               }
             }
@@ -9977,6 +10107,116 @@
                     "alice",
                     "bob",
                     "carol"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/groups/{name}/hosts": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Return the HostGroup IDs assigned to the given client group. An empty list preserves legacy all-host subscription behavior.",
+        "operationId": "get_panel_api_clients_groups_name_hosts",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Group name (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "cdn-a",
+                    "cdn-b"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Replace the HostGroup assignments for the given client group. Assignments are resolved by HostGroup ID and survive Host row recreation.",
+        "operationId": "post_panel_api_clients_groups_name_hosts",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Group name (URL-encoded).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "hostGroupIds": [
+                  "cdn-a",
+                  "cdn-b"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    "cdn-a",
+                    "cdn-b"
                   ]
                 }
               }

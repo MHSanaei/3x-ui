@@ -1006,7 +1006,12 @@
       "renewsUsed": "Renovaciones usadas",
       "bulkAdTagHint": "Introduce una etiqueta hexadecimal de 32 caracteres para asignar, o 'none' para borrarla en MTProto.",
       "renewIntervalDesc": "Tras expirar, añade el número configurado de días de 24 horas al vencimiento anterior y reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional.",
-      "renewWeeklyDesc": "La renovación por calendario se realiza a medianoche en la zona horaria del panel y también reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional."
+      "renewWeeklyDesc": "La renovación por calendario se realiza a medianoche en la zona horaria del panel y también reinicia el tráfico del cliente. Mantén desactivados los reinicios de tráfico independientes salvo que quieras un reinicio adicional.",
+      "attachedHosts": "Attached hosts",
+      "selectHost": "Select host groups",
+      "hostsEmptyMeansAll": "Leave empty to use all hosts from the attached inbounds.",
+      "hostGroupDisabledOnly": "Only on disabled inbounds: {inbounds}",
+      "hostGroupAlsoDisabled": "Also on disabled inbounds: {inbounds}"
     },
     "groups": {
       "name": "Nombre",
@@ -1047,7 +1052,11 @@
       "removeFromGroup": "Quitar clientes…",
       "removeFromGroupTitle": "Quitar clientes del grupo «{name}»",
       "removeFromGroupDesc": "Selecciona miembros para quitar de este grupo. Los clientes se conservan (usa «Eliminar clientes del grupo» para eliminarlos por completo).",
-      "removeFromGroupResult": "Quitados {count} cliente(s) de {name}."
+      "removeFromGroupResult": "Quitados {count} cliente(s) de {name}.",
+      "assignHostGroups": "Asignar hosts",
+      "hostGroupsFor": "Hosts para {name}",
+      "hostGroups": "Hosts",
+      "hostsEmptyMeansLegacy": "Déjelo vacío para usar el comportamiento anterior con todos los hosts"
     },
     "nodes": {
       "addNode": "Agregar nodo",

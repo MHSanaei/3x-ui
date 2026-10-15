@@ -43,6 +43,7 @@ describe('ClientFormModal — Vision flow preservation', () => {
             mode="edit"
             client={CLIENT}
             inbounds={[REALITY_INBOUND]}
+            hosts={[]}
             attachedIds={[4]}
             save={save}
             onOpenChange={() => {}}
@@ -66,6 +67,7 @@ describe('ClientFormModal — Vision flow preservation', () => {
             mode="edit"
             client={CLIENT}
             inbounds={inbounds}
+            hosts={[]}
             attachedIds={[4]}
             save={save}
             onOpenChange={() => {}}

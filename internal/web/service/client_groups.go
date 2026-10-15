@@ -356,8 +356,14 @@ func (s *ClientService) replaceGroupValue(oldName, newName string) (int, error) 
 		if err := db.Where("name = ?", oldName).Delete(&model.ClientGroup{}).Error; err != nil {
 			return 0, err
 		}
+		if err := (&ClientHostService{}).DeleteForClientGroup(oldName); err != nil {
+			return 0, err
+		}
 	} else {
 		if err := db.Model(&model.ClientGroup{}).Where("name = ?", oldName).Update("name", newName).Error; err != nil {
+			return 0, err
+		}
+		if err := db.Model(&model.ClientGroupHost{}).Where("group_name = ?", oldName).Update("group_name", newName).Error; err != nil {
 			return 0, err
 		}
 	}

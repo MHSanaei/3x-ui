@@ -1006,7 +1006,12 @@
       "renewsUsed": "Kullanılan yenileme",
       "bulkAdTagHint": "Aramak için 32 karakterlik onaltılık etiket girin veya MTProto üzerinde temizlemek için 'none' yazın.",
       "renewIntervalDesc": "Süre dolduktan sonra önceki bitiş zamanına belirlenen sayıda 24 saatlik gün ekler ve istemci trafiğini sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
-      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın."
+      "renewWeeklyDesc": "Takvim yenilemesi panelin saat diliminde gece yarısı gerçekleşir ve istemci trafiğini de sıfırlar. Ek bir sıfırlama istemiyorsanız bağımsız trafik sıfırlamalarını devre dışı bırakın.",
+      "attachedHosts": "Attached hosts",
+      "selectHost": "Select host groups",
+      "hostsEmptyMeansAll": "Leave empty to use all hosts from the attached inbounds.",
+      "hostGroupDisabledOnly": "Only on disabled inbounds: {inbounds}",
+      "hostGroupAlsoDisabled": "Also on disabled inbounds: {inbounds}"
     },
     "groups": {
       "name": "İsim",
@@ -1047,7 +1052,11 @@
       "removeFromGroup": "Kullanıcı Çıkar…",
       "removeFromGroupTitle": "«{name}» Grubundan Kullanıcı Çıkar",
       "removeFromGroupDesc": "Bu gruptan çıkarılacak üyeleri seçin. Kullanıcılar korunur (tamamen kaldırmak için «Gruptaki kullanıcıları sil» kullanın).",
-      "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı."
+      "removeFromGroupResult": "{name} grubundan {count} kullanıcı çıkarıldı.",
+      "assignHostGroups": "Host atama",
+      "hostGroupsFor": "{name} için hostlar",
+      "hostGroups": "Hostlar",
+      "hostsEmptyMeansLegacy": "Tüm ana bilgisayarların eski davranışını kullanmak için boş bırakın"
     },
     "nodes": {
       "addNode": "Düğüm Ekle",

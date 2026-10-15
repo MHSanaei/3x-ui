@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
+	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
 
 	"github.com/gin-gonic/gin"
@@ -23,12 +24,37 @@ func NewGroupController(g *gin.RouterGroup) *GroupController {
 func (a *GroupController) initRouter(g *gin.RouterGroup) {
 	g.GET("/groups", a.list)
 	g.GET("/groups/:name/emails", a.emails)
+	g.GET("/groups/:name/hosts", a.hosts)
 	g.POST("/groups/create", a.create)
 	g.POST("/groups/rename", a.rename)
 	g.POST("/groups/delete", a.delete)
 	g.POST("/groups/resetTraffic", a.resetTraffic)
 	g.POST("/groups/bulkAdd", a.bulkAdd)
 	g.POST("/groups/bulkRemove", a.bulkRemove)
+	g.POST("/groups/:name/hosts", a.setHosts)
+}
+
+func (a *GroupController) hosts(c *gin.Context) {
+	ids, err := (&service.ClientHostService{}).GetGroupAssignmentIDs(c.Param("name"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, ids, nil)
+}
+
+func (a *GroupController) setHosts(c *gin.Context) {
+	var body entity.ClientHostAssignment
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if err := (&service.ClientHostService{}).SetGroupAssignmentIDs(c.Param("name"), body.HostGroupIds); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, body.HostGroupIds, nil)
+	notifyClientsChanged()
 }
 
 func (a *GroupController) list(c *gin.Context) {
