@@ -41,7 +41,7 @@
     "@noble/hashes": "^2.4.0",
     "@tanstack/react-query": "^5.104.2",
     "@tanstack/react-query-devtools": "^5.104.2",
-    "antd": "^6.6.5",
+    "antd": "^6.6.6",
     "codemirror": "^6.0.2",
     "dayjs": "^1.11.23",
     "i18next": "^26.4.3",
