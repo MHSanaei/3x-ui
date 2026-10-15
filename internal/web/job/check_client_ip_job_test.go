@@ -362,28 +362,29 @@ func fakeFail2BanClient(t *testing.T) string {
 	return marker
 }
 
-// #6722: a disabled fail2ban must gate enforcement on Windows too, where the
-// disconnect path needs no fail2ban binary.
+// resolveEnforce is platform-pure (the caller supplies needsBinary), so this
+// table pins every branch — the Windows carve-out included — statically.
 func TestResolveEnforce(t *testing.T) {
-	notInstalledWant := runtime.GOOS == "windows"
 	cases := []struct {
 		name         string
 		f2bEnabled   bool
 		hasLimit     bool
 		f2bInstalled bool
+		needsBinary  bool
 		want         bool
 	}{
-		{"disabled env with fail2ban present never enforces", false, true, true, false},
-		{"disabled env without fail2ban never enforces", false, true, false, false},
-		{"enabled with fail2ban and a limit enforces", true, true, true, true},
-		{"enabled without fail2ban enforces only where none is needed", true, true, false, notInstalledWant},
-		{"no limit never enforces even fully installed", true, false, true, false},
+		{"disabled env with fail2ban present never enforces", false, true, true, true, false},
+		{"disabled env without fail2ban never enforces", false, true, false, true, false},
+		{"enabled with fail2ban and a limit enforces", true, true, true, true, true},
+		{"enabled, binary needed but absent, cannot enforce", true, true, false, true, false},
+		{"enabled, no binary needed (windows), enforces without fail2ban", true, true, false, false, true},
+		{"no limit never enforces even fully installed", true, false, true, true, false},
 	}
 	j := NewCheckClientIpJob()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := j.resolveEnforce(tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled); got != tc.want {
-				t.Fatalf("resolveEnforce(%v, %v, %v) = %v, want %v", tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled, got, tc.want)
+			if got := j.resolveEnforce(tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled, tc.needsBinary); got != tc.want {
+				t.Fatalf("resolveEnforce(%v, %v, %v, %v) = %v, want %v", tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled, tc.needsBinary, got, tc.want)
 			}
 		})
 	}

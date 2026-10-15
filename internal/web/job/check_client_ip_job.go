@@ -28,7 +28,7 @@ type IPWithTimestamp struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-// onlineUsersSource is the slice of service.XrayService the scan needs, so
+// onlineUsersSource is the one service.XrayService method the scan needs, so
 // tests can drive Run end to end without a live xray core.
 type onlineUsersSource interface {
 	GetOnlineUsers() ([]xray.OnlineUser, bool, error)
@@ -45,8 +45,6 @@ type CheckClientIpJob struct {
 	lastIpPrune int64
 }
 
-var job *CheckClientIpJob
-
 const defaultXrayAPIPort = 62789
 
 const ipStaleAfterSeconds = int64(30 * 60)
@@ -56,8 +54,7 @@ const ipPruneIntervalSeconds = int64(5 * 60)
 
 // NewCheckClientIpJob creates a new client IP monitoring job instance.
 func NewCheckClientIpJob() *CheckClientIpJob {
-	job = &CheckClientIpJob{onlineUsers: &service.XrayService{}}
-	return job
+	return &CheckClientIpJob{onlineUsers: &service.XrayService{}}
 }
 
 func (j *CheckClientIpJob) Run() {
@@ -79,7 +76,9 @@ func (j *CheckClientIpJob) Run() {
 	}
 	// Read only when the limit is actually applied: this runs every 10s and
 	// most panels carry no IP limit at all.
-	enforce := j.resolveEnforce(isFail2BanEnabled(), hasLimit, f2bInstalled)
+	// Windows enforces through disconnects and never needs the fail2ban binary.
+	needsBinary := runtime.GOOS != "windows"
+	enforce := j.resolveEnforce(isFail2BanEnabled(), hasLimit, f2bInstalled, needsBinary)
 	if enforce {
 		j.allowlist = j.loadAllowlist()
 	}
@@ -87,12 +86,12 @@ func (j *CheckClientIpJob) Run() {
 }
 
 // resolveEnforce decides whether limits can actually be enforced this run: a
-// disabled fail2ban gates every platform, a missing binary the non-Windows ones.
-func (j *CheckClientIpJob) resolveEnforce(f2bEnabled, hasLimit, f2bInstalled bool) bool {
+// disabled fail2ban gates every platform, a missing binary the ones needing it.
+func (j *CheckClientIpJob) resolveEnforce(f2bEnabled, hasLimit, f2bInstalled, needsBinary bool) bool {
 	if !f2bEnabled {
 		return false
 	}
-	if hasLimit && runtime.GOOS != "windows" && !f2bInstalled {
+	if hasLimit && needsBinary && !f2bInstalled {
 		return false
 	}
 	return hasLimit
@@ -558,7 +557,6 @@ func (j *CheckClientIpJob) updateInboundClientIps(tx *gorm.DB, inboundClientIps 
 			// Collection-only run (#6722): no ban selection; keep every IP in
 			// the 30-minute window, sorted so unchanged scans skip the write.
 			dbIps = sortedIpsFromMap(ipMap)
-			keptLive = len(dbIps)
 		}
 		jsonIps, _ := json.Marshal(dbIps)
 		newIps := string(jsonIps)
