@@ -86,9 +86,8 @@ func (j *CheckClientIpJob) Run() {
 	j.processObserved(observed, enforce, true)
 }
 
-// resolveEnforce decides whether limits can actually be enforced this run:
-// a disabled fail2ban gates enforcement on every platform, Windows included,
-// and on platforms that need the binary an absent install blocks it too.
+// resolveEnforce decides whether limits can actually be enforced this run: a
+// disabled fail2ban gates every platform, a missing binary the non-Windows ones.
 func (j *CheckClientIpJob) resolveEnforce(f2bEnabled, hasLimit, f2bInstalled bool) bool {
 	if !f2bEnabled {
 		return false
@@ -858,8 +857,8 @@ func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound
 	return nil, err
 }
 
-// Runs before the fail2ban/apiMode gates: retention must hold for stored rows
-// even while nothing is being collected.
+// Runs before the apiMode gate: retention must hold for stored rows even
+// while nothing is being collected.
 func (j *CheckClientIpJob) pruneStaleIpRows() {
 	now := time.Now().Unix()
 	if now-j.lastIpPrune < ipPruneIntervalSeconds {

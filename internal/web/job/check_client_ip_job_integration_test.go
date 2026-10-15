@@ -321,9 +321,8 @@ func TestProcessObserved_CollectsIpsWithoutLimit(t *testing.T) {
 	}
 }
 
-// #6722: collection-only runs must keep the same 30-minute window enforcing
-// runs keep. Pre-fix: the branch overwrote the blob with the current scan, so
-// an IP seen minutes ago vanished from the panel once the client went offline.
+// #6722: collection-only runs keep the enforcing run's 30-minute window; the
+// old branch overwrote the blob, dropping IPs seen minutes earlier.
 func TestProcessObserved_CollectionOnlyKeepsRecentWindow(t *testing.T) {
 	setupIntegrationDB(t)
 
@@ -354,23 +353,28 @@ func (s staticOnlineUsers) GetOnlineUsers() ([]xray.OnlineUser, bool, error) {
 	return s, true, nil
 }
 
-// #6722: XUI_ENABLE_FAIL2BAN=false must disable IP-limit enforcement without
-// disabling tracking. Pre-fix: Run returned before processObserved, so the
-// panel's client-IP list stayed empty on fail2ban-disabled installs.
+// #6722: fail2ban disabled — an over-limit client is recorded but never banned;
+// the setup can ban (limit 1, two IPs, fake fail2ban), so the flag stops it.
 func TestRun_RecordsIpsWhenFail2banDisabled(t *testing.T) {
 	setupIntegrationDB(t)
 	t.Setenv("XUI_ENABLE_FAIL2BAN", "false")
+	fakeFail2BanClient(t)
 
 	const email = "track-only-user"
-	seedInboundWithClient(t, "inbound-track-only", email, 0)
+	seedLinkedInboundWithClient(t, "inbound-track-only", email, 1)
 
 	j := NewCheckClientIpJob()
-	j.onlineUsers = staticOnlineUsers{{Email: email, IPs: []xray.OnlineIP{{IP: "203.0.113.20"}}}}
+	j.onlineUsers = staticOnlineUsers{{Email: email, IPs: []xray.OnlineIP{
+		{IP: "203.0.113.20"}, {IP: "203.0.113.21"},
+	}}}
+	// Bans need a stored row (the first scan only records), so run twice: the
+	// second scan is where enforcement would fire if the flag allowed it.
+	j.Run()
 	j.Run()
 
-	ips := readClientIps(t, email)
-	if len(ips) != 1 || ips[0].IP != "203.0.113.20" {
-		t.Fatalf("expected the observed IP to be recorded with fail2ban disabled, got %v", ips)
+	got := ipSet(readClientIps(t, email))
+	if len(got) != 2 {
+		t.Fatalf("expected both observed IPs recorded with fail2ban disabled, got %v", got)
 	}
 	if info, err := os.Stat(readIpLimitLogPath()); err == nil && info.Size() > 0 {
 		body, _ := os.ReadFile(readIpLimitLogPath())
