@@ -382,6 +382,22 @@ func TestRun_RecordsIpsWhenFail2banDisabled(t *testing.T) {
 	}
 }
 
+// A zero-value job (the shape tests build directly) must be a clean no-op,
+// not a nil-source panic; the concrete XrayService field guaranteed that.
+func TestRun_ZeroValueJobIsSafeNoOp(t *testing.T) {
+	setupIntegrationDB(t)
+
+	(&CheckClientIpJob{}).Run()
+
+	var count int64
+	if err := database.GetDB().Model(&model.InboundClientIps{}).Count(&count).Error; err != nil {
+		t.Fatalf("count InboundClientIps: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("zero-value job should record nothing, got %d rows", count)
+	}
+}
+
 // #4963: an observed IP for a renamed/deleted client (its email no longer maps
 // to any inbound) must not create or resurrect an inbound_client_ips row, and
 // must drop any orphan left behind — instead of erroring every run.

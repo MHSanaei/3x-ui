@@ -289,6 +289,31 @@ func TestCheckFail2BanInstalled_EmptyEnvSkipsClientProbe(t *testing.T) {
 	}
 }
 
+// Tied timestamps must not leak map-iteration order into the blob: an
+// unchanged client would CAS-rewrite every 10s and the ban pick among the
+// tied IPs would be random per scan.
+func TestPartitionLiveIps_TiedTimestampsKeepStableIpOrder(t *testing.T) {
+	ipMap := map[string]int64{"203.0.113.3": 100, "203.0.113.1": 100, "203.0.113.2": 100}
+	observed := map[string]bool{"203.0.113.1": true, "203.0.113.2": true, "203.0.113.3": true}
+	var first []IPWithTimestamp
+	for i := range 50 {
+		live, _ := partitionLiveIps(ipMap, observed)
+		if i == 0 {
+			first = live
+			continue
+		}
+		if !reflect.DeepEqual(first, live) {
+			t.Fatalf("tied timestamps produced different orders across runs: %v vs %v", first, live)
+		}
+	}
+	want := []string{"203.0.113.1", "203.0.113.2", "203.0.113.3"}
+	for i, ip := range want {
+		if first[i].IP != ip {
+			t.Fatalf("tied timestamps must order by IP, got %v", first)
+		}
+	}
+}
+
 func TestIsFail2BanEnabled_DefaultsToEnabledWhenUnset(t *testing.T) {
 	value, ok := os.LookupEnv("XUI_ENABLE_FAIL2BAN")
 	os.Unsetenv("XUI_ENABLE_FAIL2BAN")

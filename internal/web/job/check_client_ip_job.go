@@ -103,6 +103,10 @@ func (j *CheckClientIpJob) resolveEnforce(f2bEnabled, hasLimit, f2bInstalled boo
 // API is unavailable — xray not running, an older core, or a transient gRPC
 // failure — and the caller skips the run (there is no access-log fallback).
 func (j *CheckClientIpJob) collectFromOnlineAPI() (map[string]map[string]int64, bool) {
+	if j.onlineUsers == nil {
+		// zero-value job (tests build these directly): no source, nothing to collect
+		return nil, false
+	}
 	onlineUsers, ok, err := j.onlineUsers.GetOnlineUsers()
 	if err != nil {
 		logger.Debug("[LimitIP] online-stats API unavailable this run:", err)
@@ -459,8 +463,18 @@ func partitionLiveIps(ipMap map[string]int64, observedThisScan map[string]bool) 
 			historical = append(historical, entry)
 		}
 	}
-	sort.Slice(live, func(i, j int) bool { return live[i].Timestamp < live[j].Timestamp })
-	sort.Slice(historical, func(i, j int) bool { return historical[i].Timestamp < historical[j].Timestamp })
+	sort.Slice(live, func(i, j int) bool {
+		if live[i].Timestamp != live[j].Timestamp {
+			return live[i].Timestamp < live[j].Timestamp
+		}
+		return live[i].IP < live[j].IP
+	})
+	sort.Slice(historical, func(i, j int) bool {
+		if historical[i].Timestamp != historical[j].Timestamp {
+			return historical[i].Timestamp < historical[j].Timestamp
+		}
+		return historical[i].IP < historical[j].IP
+	})
 	return live, historical
 }
 
