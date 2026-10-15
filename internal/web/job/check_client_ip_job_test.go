@@ -336,3 +336,30 @@ func fakeFail2BanClient(t *testing.T) string {
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	return marker
 }
+
+// #6722: a disabled fail2ban must gate enforcement on Windows too, where the
+// disconnect path needs no fail2ban binary.
+func TestResolveEnforce(t *testing.T) {
+	notInstalledWant := runtime.GOOS == "windows"
+	cases := []struct {
+		name         string
+		f2bEnabled   bool
+		hasLimit     bool
+		f2bInstalled bool
+		want         bool
+	}{
+		{"disabled env with fail2ban present never enforces", false, true, true, false},
+		{"disabled env without fail2ban never enforces", false, true, false, false},
+		{"enabled with fail2ban and a limit enforces", true, true, true, true},
+		{"enabled without fail2ban enforces only where none is needed", true, true, false, notInstalledWant},
+		{"no limit never enforces even fully installed", true, false, true, false},
+	}
+	j := NewCheckClientIpJob()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := j.resolveEnforce(tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled); got != tc.want {
+				t.Fatalf("resolveEnforce(%v, %v, %v) = %v, want %v", tc.f2bEnabled, tc.hasLimit, tc.f2bInstalled, got, tc.want)
+			}
+		})
+	}
+}
