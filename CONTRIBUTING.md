@@ -264,6 +264,16 @@ Tests live next to the code (`foo.go` ↔ `foo_test.go`); frontend specs and gol
 | Coverage gaps | `go test -coverprofile=cov.out ./<pkg>/... && go tool cover -func=cov.out` |
 | Fuzz a parser briefly | `go test -run '^$' -fuzz 'FuzzName$' -fuzztime=30s ./<pkg>/...` |
 
+Outbound probes accept raw IPv6 (`::1`) and bracketed IPv6 (`[::1]`) server
+addresses. TCP regression tests use a local IPv6 listener and skip when IPv6
+loopback is unavailable. To exercise HTTP/Real Delay through real temporary
+Xray processes, build the version pinned in `go.mod` and opt in:
+
+```bash
+go build -o /tmp/xray github.com/xtls/xray-core/main
+XRAY_E2E_BINARY=/tmp/xray go test ./internal/web/service/outbound -run '^TestOutboundProbesIPv6ThroughXray$' -count=1 -v
+```
+
 Frontend: `cd frontend && npm run test` (vitest), or `npm run test -- --coverage`.
 
 ### Property and fuzz tests
