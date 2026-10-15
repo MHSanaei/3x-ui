@@ -40,7 +40,13 @@ func (s *ServerService) UpdateXray(version string) error {
 
 	container := os.Getenv("XUI_IN_DOCKER") == "true"
 	imageVersion := container && version == "latest"
-	if !imageVersion {
+	localBinary := ""
+	if imageVersion {
+		localBinary = bundledXrayBinaryPath()
+	} else if container {
+		localBinary = localXrayBinaryPath(version)
+	}
+	if localBinary == "" {
 		versions, err := s.GetXrayVersions()
 		if err != nil {
 			return err
@@ -54,10 +60,10 @@ func (s *ServerService) UpdateXray(version string) error {
 		logger.Warning("failed to stop xray before update:", err)
 	}
 	var err error
-	if imageVersion {
-		err = restoreImageXray()
-	} else {
+	if localBinary == "" {
 		err = s.installXrayBinary(version)
+	} else if localBinary != xray.GetBinaryPath() {
+		err = restoreImageXray()
 	}
 	if err != nil {
 		return err
@@ -87,8 +93,11 @@ func (s *ServerService) RestoreXrayVersion() error {
 	}
 	if version != "" {
 		if supportedXrayVersion(version) {
-			if installedXrayVersion() == strings.TrimPrefix(version, "v") {
-				return nil
+			if localBinary := localXrayBinaryPath(version); localBinary != "" {
+				if localBinary == xray.GetBinaryPath() {
+					return nil
+				}
+				return restoreImageXray()
 			}
 			if err := s.installXrayBinary(version); err == nil {
 				return nil
@@ -102,10 +111,22 @@ func (s *ServerService) RestoreXrayVersion() error {
 	return restoreImageXray()
 }
 
-func installedXrayVersion() string {
+func localXrayBinaryPath(version string) string {
+	if !supportedXrayVersion(version) {
+		return ""
+	}
+	for _, path := range []string{xray.GetBinaryPath(), bundledXrayBinaryPath()} {
+		if xrayBinaryVersion(path) == strings.TrimPrefix(version, "v") {
+			return path
+		}
+	}
+	return ""
+}
+
+func xrayBinaryVersion(path string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	output, err := exec.CommandContext(ctx, xray.GetBinaryPath(), "-version").Output()
+	output, err := exec.CommandContext(ctx, path, "-version").Output()
 	if err != nil {
 		return ""
 	}
@@ -116,13 +137,16 @@ func installedXrayVersion() string {
 	return fields[1]
 }
 
-func restoreImageXray() error {
+func bundledXrayBinaryPath() string {
 	mainFolder := os.Getenv("XUI_MAIN_FOLDER")
 	if mainFolder == "" {
 		mainFolder = "."
 	}
-	imagePath := filepath.Join(mainFolder, "xray-image", xray.GetBinaryName())
-	file, err := os.Open(imagePath)
+	return filepath.Join(mainFolder, "xray-image", xray.GetBinaryName())
+}
+
+func restoreImageXray() error {
+	file, err := os.Open(bundledXrayBinaryPath())
 	if err != nil {
 		return fmt.Errorf("open bundled Xray: %w", err)
 	}

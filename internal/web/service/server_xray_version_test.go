@@ -139,9 +139,15 @@ func TestUpdateXrayPersistsOnlyContainerSelections(t *testing.T) {
 		t.Run(container, func(t *testing.T) {
 			root := setupXrayVersionTest(t)
 			t.Setenv("XUI_IN_DOCKER", container)
-			serveXrayVersion(t, "26.10.10")
+			requests := serveXrayVersion(t, "26.10.10")
+			if container == "false" {
+				writeXrayVersionBinary(t, filepath.Join(root, "xray-image", xray.GetBinaryName()), "26.10.10")
+			}
 			if err := (&ServerService{}).UpdateXray("v26.10.10"); err != nil {
 				t.Fatal(err)
+			}
+			if got := requests.Load(); got != 3 {
+				t.Fatalf("release, archive, and checksum requests = %d, want 3", got)
 			}
 			assertXrayVersionStarts(t, root, "26.10.10\n")
 			want := ""
@@ -149,12 +155,37 @@ func TestUpdateXrayPersistsOnlyContainerSelections(t *testing.T) {
 				want = "v26.10.10"
 			}
 			assertStoredXrayVersion(t, want)
+			writeXrayVersionBinary(t, filepath.Join(root, "xray-image", xray.GetBinaryName()), "26.6.26")
 			err := (&ServerService{}).UpdateXray("v26.6.26")
 			wantError := `xray version "v26.6.26" is not in the fetched release list`
 			if err == nil || err.Error() != wantError {
 				t.Fatalf("rejected update error = %v, want %q", err, wantError)
 			}
 			assertStoredXrayVersion(t, want)
+		})
+	}
+}
+
+func TestContainerXrayUpdateUsesLocalVersionWithoutNetwork(t *testing.T) {
+	for _, tc := range []struct {
+		name, installed, bundled string
+	}{
+		{"bundled version", "26.10.9", "26.10.10"},
+		{"installed version", "26.10.10", "26.10.11"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := setupXrayVersionTest(t)
+			requests := serveXrayVersion(t, "26.10.10")
+			writeXrayVersionBinary(t, xray.GetBinaryPath(), tc.installed)
+			writeXrayVersionBinary(t, filepath.Join(root, "xray-image", xray.GetBinaryName()), tc.bundled)
+			if err := (&ServerService{}).UpdateXray("v26.10.10"); err != nil {
+				t.Fatal(err)
+			}
+			if got := requests.Load(); got != 0 {
+				t.Fatalf("selecting a locally available version made %d network requests, want none", got)
+			}
+			assertXrayVersionStarts(t, root, "26.10.10\n")
+			assertStoredXrayVersion(t, "v26.10.10")
 		})
 	}
 }
@@ -276,6 +307,7 @@ func TestContainerXrayStartupFallbackPreservesPreferenceAndNativeBinary(t *testi
 		wantRequests                      int32
 	}{
 		{"latest replaces stale binary", "", "true", "26.10.11", 0},
+		{"pin available in image", "v26.10.11", "true", "26.10.11", 0},
 		{"unsupported pin", "v26.6.26", "true", "26.10.11", 0},
 		{"invalid pin", "../bad-version", "true", "26.10.11", 0},
 		{"unavailable release", "v26.10.9", "true", "26.10.11", 1},
