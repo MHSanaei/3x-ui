@@ -1,6 +1,7 @@
 package service
 
 import (
+	"reflect"
 	"slices"
 	"testing"
 
@@ -45,6 +46,15 @@ func hostsByGroup(t *testing.T, where string, args ...any) map[string]model.Host
 		byGroup[h.GroupId] = h
 	}
 	return byGroup
+}
+
+func hostRows(t *testing.T, where string, args ...any) []model.Host {
+	t.Helper()
+	var hosts []model.Host
+	if err := database.GetDB().Where(where, args...).Order("id asc").Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	return hosts
 }
 
 func onlyHost(t *testing.T, inboundId int) model.Host {
@@ -137,6 +147,91 @@ func TestUpdateInbound_ExternalProxyChangeKeepsAdminHosts(t *testing.T) {
 		if h := got[groupId]; h.Id != want.Id || h.Address != want.Address || h.Port != want.Port || h.Sni != want.Sni || h.Remark != want.Remark {
 			t.Fatalf("admin host %q = %+v, want it untouched: %+v", groupId, h, want)
 		}
+	}
+}
+
+// Changing one entry must not re-import another that stayed the same: the admin's
+// disable, delete, edit or share of that entry's host would come back as a duplicate.
+func TestUpdateInbound_ExternalProxyChangeLeavesUnchangedEntriesAlone(t *testing.T) {
+	const before = `{"network":"ws","security":"none","wsSettings":{"path":"/ws"},"externalProxy":[
+		{"forceTls":"tls","dest":"a.cdn.example","port":8443,"remark":"A"},
+		{"forceTls":"tls","dest":"b.cdn.example","port":8443,"remark":"B"}]}`
+	const after = `{"network":"ws","security":"none","wsSettings":{"path":"/ws"},"externalProxy":[
+		{"forceTls":"tls","dest":"a.cdn.example","port":8443,"remark":"A"},
+		{"forceTls":"tls","dest":"b.cdn.example","port":443,"remark":"B"}]}`
+	cases := []struct {
+		name  string
+		takeA func(t *testing.T, svc *HostService, a *entity.HostGroup, otherInbound int)
+		wantA int
+	}{
+		{"disabled", func(t *testing.T, svc *HostService, a *entity.HostGroup, _ int) {
+			if err := svc.SetHostGroupEnable(a.GroupId, false); err != nil {
+				t.Fatalf("SetHostGroupEnable: %v", err)
+			}
+		}, 1},
+		{"deleted", func(t *testing.T, svc *HostService, a *entity.HostGroup, _ int) {
+			if err := svc.DeleteHostGroup(a.GroupId); err != nil {
+				t.Fatalf("DeleteHostGroup: %v", err)
+			}
+		}, 0},
+		{"edited", func(t *testing.T, svc *HostService, a *entity.HostGroup, _ int) {
+			a.Remark = "renamed"
+			if _, err := svc.UpdateHostGroup(a.GroupId, a); err != nil {
+				t.Fatalf("UpdateHostGroup: %v", err)
+			}
+		}, 1},
+		{"shared", func(t *testing.T, svc *HostService, a *entity.HostGroup, otherInbound int) {
+			a.InboundIds = append(a.InboundIds, otherInbound)
+			if _, err := svc.UpdateHostGroup(a.GroupId, a); err != nil {
+				t.Fatalf("UpdateHostGroup: %v", err)
+			}
+		}, 1},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			setupConflictDB(t)
+			hostSvc := &HostService{}
+			created := addExternalProxyInbound(t, "edge-pair", 8083, before)
+			other := addExternalProxyInbound(t, "edge-pair-other", 8084, `{"network":"ws","security":"none","wsSettings":{"path":"/other"}}`)
+			imported := map[string]model.Host{}
+			for _, h := range hostsByGroup(t, "inbound_id = ?", created.Id) {
+				imported[h.Remark] = h
+			}
+			a, err := hostSvc.GetHostGroup(imported["A"].GroupId)
+			if err != nil {
+				t.Fatalf("GetHostGroup A: %v", err)
+			}
+			c.takeA(t, hostSvc, a, other.Id)
+			kept := hostRows(t, "address = ?", "a.cdn.example")
+
+			updateStreamSettings(t, created, after)
+
+			got := hostsByGroup(t, "inbound_id = ?", created.Id)
+			if len(got) != 1+c.wantA {
+				t.Fatalf("hosts = %+v, want B plus %d admin-owned A row(s), and no re-imported A", got, c.wantA)
+			}
+			if b := got[imported["B"].GroupId]; b.Address != "b.cdn.example" || b.Port != 443 {
+				t.Fatalf("host B = %+v, want it retargeted to b.cdn.example:443", b)
+			}
+			if rows := hostRows(t, "address = ?", "a.cdn.example"); !reflect.DeepEqual(rows, kept) {
+				t.Fatalf("A rows = %+v, want the admin's rows untouched: %+v", rows, kept)
+			}
+		})
+	}
+}
+
+// The form drops externalProxy when it switches to a protocol with its own stream
+// defaults; that must not delete hosts the operator can no longer see the source of.
+func TestUpdateInbound_StreamWithoutExternalProxyKeepsImportedHosts(t *testing.T) {
+	setupConflictDB(t)
+	created := addExternalProxyInbound(t, "edge-switch", 8085, `{"network":"ws","security":"none","wsSettings":{"path":"/ws"},
+		"externalProxy":[{"forceTls":"tls","dest":"a.cdn.example","port":8443,"remark":"A"}]}`)
+	before := onlyHost(t, created.Id)
+
+	updateStreamSettings(t, created, `{"network":"tcp","security":"none","tcpSettings":{}}`)
+
+	if after := onlyHost(t, created.Id); !reflect.DeepEqual(after, before) {
+		t.Fatalf("host = %+v, want it untouched by a stream with no externalProxy key: %+v", after, before)
 	}
 }
 
