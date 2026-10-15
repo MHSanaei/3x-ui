@@ -1006,7 +1006,12 @@
       "renewsUsed": "Perpanjangan terpakai",
       "bulkAdTagHint": "Masukkan tag heksadesimal 32 karakter untuk mengatur, atau 'none' untuk menghapus pada MTProto.",
       "renewIntervalDesc": "Setelah kedaluwarsa, menambahkan jumlah hari yang ditentukan (24 jam per hari) ke batas waktu sebelumnya dan mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan.",
-      "renewWeeklyDesc": "Perpanjangan kalender dilakukan pada tengah malam menurut zona waktu panel dan juga mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan."
+      "renewWeeklyDesc": "Perpanjangan kalender dilakukan pada tengah malam menurut zona waktu panel dan juga mereset trafik klien. Nonaktifkan reset trafik terpisah kecuali Anda menginginkan reset tambahan.",
+      "attachedHosts": "Attached hosts",
+      "selectHost": "Select host groups",
+      "hostsEmptyMeansAll": "Leave empty to use all hosts from the attached inbounds.",
+      "hostGroupDisabledOnly": "Only on disabled inbounds: {inbounds}",
+      "hostGroupAlsoDisabled": "Also on disabled inbounds: {inbounds}"
     },
     "groups": {
       "name": "Nama",
@@ -1047,7 +1052,11 @@
       "removeFromGroup": "Hapus klien…",
       "removeFromGroupTitle": "Hapus klien dari grup «{name}»",
       "removeFromGroupDesc": "Pilih anggota untuk dihapus dari grup ini. Klien tetap dipertahankan (gunakan «Hapus klien di grup» untuk menghapus sepenuhnya).",
-      "removeFromGroupResult": "{count} klien dihapus dari {name}."
+      "removeFromGroupResult": "{count} klien dihapus dari {name}.",
+      "assignHostGroups": "Tetapkan host",
+      "hostGroupsFor": "Host untuk {name}",
+      "hostGroups": "Host",
+      "hostsEmptyMeansLegacy": "Biarkan kosong untuk menggunakan perilaku lama dengan semua host"
     },
     "nodes": {
       "addNode": "Tambah Node",

@@ -44,6 +44,7 @@ it('preserves monthly clients, previews backend dates, and saves exclusive weekl
         }}
         attachedIds={[1]}
         inbounds={[{ id: 1, protocol: 'vless', tag: 'calendar' }]}
+        hosts={[]}
         save={save}
         onOpenChange={() => {}}
       />,

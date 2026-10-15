@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AutoComplete,
@@ -47,6 +47,7 @@ import type {
   ExternalLink,
   ExternalLinkInput,
 } from '@/hooks/useClients';
+import type { HostRecord } from '@/api/queries/useHostsQuery';
 import { useFail2banStatusQuery, getLimitIpNotice } from '@/api/queries/useFail2banStatusQuery';
 import ClientRenewalFields from './ClientRenewalFields';
 import { ClientFormSchema, ClientCreateFormSchema, type ClientFormValues } from '@/schemas/client';
@@ -96,17 +97,20 @@ interface SaveMetaEdit {
   attach: number[];
   detach: number[];
   externalLinks: ExternalLinkInput[];
+  hostGroupIds: string[];
 }
 
 interface SaveMetaCreate {
   isEdit: false;
   email: string;
   externalLinks: ExternalLinkInput[];
+  hostGroupIds: string[];
 }
 
 interface SaveCreatePayload {
   client: Record<string, unknown>;
   inboundIds: number[];
+  hostGroupIds: string[];
 }
 
 interface ClientFormModalProps {
@@ -119,6 +123,8 @@ interface ClientFormModalProps {
   tunnelAllowedIPs?: Record<number, string>;
   tgBotEnable?: boolean;
   groups?: string[];
+  hosts: HostRecord[];
+  attachedHostGroupIds?: string[];
   save: (
     payload: Record<string, unknown> | SaveCreatePayload,
     meta: SaveMetaEdit | SaveMetaCreate,
@@ -131,6 +137,7 @@ type Values = ClientFormValues & {
   expiryDate: number;
   limitHwid: number;
   externalLinks: ExternalLinkRow[];
+  hostGroupIds: string[];
   wgPrivateKey: string;
   wgPublicKey: string;
   wgPreSharedKey: string;
@@ -168,6 +175,7 @@ const EMPTY: Values = {
   comment: '',
   enable: true,
   inboundIds: [],
+  hostGroupIds: [],
   externalLinks: [],
   wgPrivateKey: '',
   wgPublicKey: '',
@@ -248,6 +256,8 @@ export default function ClientFormModal({
   inbounds,
   attachedExternalLinks = [],
   attachedIds = [],
+  hosts = [],
+  attachedHostGroupIds = [],
   tunnelAllowedIPs = {},
   tgBotEnable = false,
   groups = [],
@@ -261,6 +271,7 @@ export default function ClientFormModal({
 
   const methods = useForm<Values>({ defaultValues: EMPTY });
   const inboundIds = useWatch({ control: methods.control, name: 'inboundIds' });
+  const hostGroupIds = useWatch({ control: methods.control, name: 'hostGroupIds' });
   const delayedStart = useWatch({ control: methods.control, name: 'delayedStart' });
   const delayedDays = useWatch({ control: methods.control, name: 'delayedDays' });
   const expiryDate = useWatch({ control: methods.control, name: 'expiryDate' });
@@ -381,6 +392,7 @@ export default function ClientFormModal({
         comment: client.comment || '',
         enable: !!client.enable,
         inboundIds: Array.isArray(attachedIds) ? [...attachedIds] : [],
+        hostGroupIds: Array.isArray(attachedHostGroupIds) ? [...attachedHostGroupIds] : [],
         externalLinks: toExternalLinkRows(attachedExternalLinks),
         wgPrivateKey: client.privateKey || '',
         wgPublicKey: client.publicKey || '',
@@ -554,6 +566,63 @@ export default function ClientFormModal({
     }
   }, [showMtproto, secret, mtprotoDomain, methods]);
 
+  const hostOptions = useMemo(() => {
+    const attached = new Set(inboundIds || []);
+    const selected = new Set(hostGroupIds || []);
+    const inboundById = new Map((inbounds || []).map((ib) => [ib.id, ib]));
+
+    return (hosts || [])
+      .filter((host) => !!host.groupId)
+      .filter(
+        (host) =>
+          selected.has(host.groupId) ||
+          !attached.size ||
+          (host.inboundIds || []).some((id) => attached.has(id)),
+      )
+      .map((host) => {
+        const relevantInboundIds = (host.inboundIds || []).filter(
+          (id) => !attached.size || attached.has(id),
+        );
+        const disabledInboundNames = relevantInboundIds
+          .map((id) => inboundById.get(id))
+          .filter((ib): ib is InboundOption => !!ib && !ib.enable)
+          .map((ib) => formatInboundLabel(ib.tag, ib.remark));
+        const enabledInboundCount = relevantInboundIds.filter(
+          (id) => inboundById.get(id)?.enable,
+        ).length;
+
+        const labelText = `${host.remark || host.groupId}${host.hosts?.length ? ` — ${host.hosts.join(', ')}` : ''}`;
+        const disabledOnly = disabledInboundNames.length > 0 && enabledInboundCount === 0;
+
+        let statusTag: ReactNode = null;
+        if (disabledInboundNames.length > 0) {
+          statusTag = (
+            <Tooltip
+              title={t(
+                disabledOnly
+                  ? 'pages.clients.hostGroupDisabledOnly'
+                  : 'pages.clients.hostGroupAlsoDisabled',
+                { inbounds: disabledInboundNames.join(', ') },
+              )}
+            >
+              <Tag color={disabledOnly ? 'default' : 'warning'} style={{ marginInlineStart: 4 }}>
+                ⚠
+              </Tag>
+            </Tooltip>
+          );
+        }
+
+        const label = (
+          <span style={disabledOnly ? { opacity: 0.55 } : undefined}>
+            {labelText}
+            {statusTag}
+          </span>
+        );
+
+        return { label, value: host.groupId, title: labelText };
+      });
+  }, [hosts, inbounds, inboundIds, hostGroupIds, t]);
+
   const inboundOptions = useMemo(
     () =>
       (inbounds || [])
@@ -666,6 +735,7 @@ export default function ClientFormModal({
       comment: values.comment,
       enable: values.enable,
       inboundIds: values.inboundIds,
+      hostGroupIds: values.hostGroupIds,
     });
     if (!validated.success) {
       const issue = validated.error.issues[0];
@@ -778,11 +848,21 @@ export default function ClientFormModal({
           attach: toAttach,
           detach: toDetach,
           externalLinks,
+          hostGroupIds: values.hostGroupIds || [],
         });
       } else {
         msg = await save(
-          { client: clientPayload, inboundIds: values.inboundIds },
-          { isEdit: false, email: clientPayload.email as string, externalLinks },
+          {
+            client: clientPayload,
+            inboundIds: values.inboundIds,
+            hostGroupIds: values.hostGroupIds || [],
+          },
+          {
+            isEdit: false,
+            email: clientPayload.email as string,
+            externalLinks,
+            hostGroupIds: values.hostGroupIds || [],
+          },
         );
       }
       if (msg?.success) close();
@@ -1079,11 +1159,41 @@ export default function ClientFormModal({
                           listHeight={220}
                           showSearch={{
                             filterOption: (input, option) =>
-                              ((option?.label as string) || '')
+                              String(option?.title ?? '')
                                 .toLowerCase()
                                 .includes(input.toLowerCase()),
                           }}
                         />
+                      </Form.Item>
+
+                      <Form.Item label={t('pages.clients.attachedHosts')}>
+                        <SelectAllClearButtons
+                          options={hostOptions}
+                          value={hostGroupIds}
+                          onChange={(v) => methods.setValue('hostGroupIds', v)}
+                        />
+                        <Select
+                          mode="multiple"
+                          value={hostGroupIds}
+                          onChange={(v) => methods.setValue('hostGroupIds', v)}
+                          options={hostOptions}
+                          placeholder={t('pages.clients.selectHost')}
+                          maxTagCount="responsive"
+                          placement="topLeft"
+                          listHeight={220}
+                          showSearch={{
+                            filterOption: (input, option) =>
+                              String(option?.label ?? '')
+                                .toLowerCase()
+                                .includes(input.toLowerCase()),
+                          }}
+                        />
+                        <Typography.Text
+                          type="secondary"
+                          style={{ display: 'block', marginTop: 4 }}
+                        >
+                          {t('pages.clients.hostsEmptyMeansAll')}
+                        </Typography.Text>
                       </Form.Item>
 
                       <Form.Item>

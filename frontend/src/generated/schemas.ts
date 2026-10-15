@@ -2167,6 +2167,15 @@ export const SCHEMAS: Record<string, unknown> = {
         "example": "staff",
         "type": "string"
       },
+      "hostGroupIds": {
+        "example": [
+          "group-a"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
       "inboundIds": {
         "example": [
           3,

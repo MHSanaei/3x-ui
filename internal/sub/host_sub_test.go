@@ -664,3 +664,109 @@ func TestSub_HostTLSVerificationJSONAtXrayLevel(t *testing.T) {
 		}
 	}
 }
+
+func TestSub_ClientHostAssignmentFiltersHosts(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s-host", "client", 4450, 1, wsTLSStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, GroupId: "group-a", SortOrder: 1, Remark: "A", Address: "a.example.com", Port: 8443, Security: "tls"})
+	seedHost(t, &model.Host{InboundId: ib.Id, GroupId: "group-b", SortOrder: 2, Remark: "B", Address: "b.example.com", Port: 8443, Security: "tls"})
+
+	var client model.ClientRecord
+	if err := database.GetDB().Where("email = ?", "client@e").First(&client).Error; err != nil {
+		t.Fatalf("load client: %v", err)
+	}
+	if err := database.GetDB().Create(&model.ClientHost{ClientId: client.Id, GroupId: "group-a"}).Error; err != nil {
+		t.Fatalf("assign host group: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s-host", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "a.example.com:8443") {
+		t.Fatalf("assigned host should render: %s", joined)
+	}
+	if strings.Contains(joined, "b.example.com:8443") {
+		t.Fatalf("unassigned host must not render: %s", joined)
+	}
+}
+
+func TestSub_ClientHostAssignmentIsCaseInsensitive(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s-host-case", "case", 4452, 1, wsTLSStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, GroupId: "case-a", SortOrder: 1, Remark: "A", Address: "case-a.example.com", Port: 8443, Security: "tls"})
+	seedHost(t, &model.Host{InboundId: ib.Id, GroupId: "case-b", SortOrder: 2, Remark: "B", Address: "case-b.example.com", Port: 8443, Security: "tls"})
+
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("email = ?", "case@e").
+		Update("email", "Case@E").Error; err != nil {
+		t.Fatalf("update client email: %v", err)
+	}
+	var client model.ClientRecord
+	if err := database.GetDB().Where("email = ?", "Case@E").First(&client).Error; err != nil {
+		t.Fatalf("load client: %v", err)
+	}
+	if err := database.GetDB().Create(&model.ClientHost{ClientId: client.Id, GroupId: "case-a"}).Error; err != nil {
+		t.Fatalf("assign host group: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s-host-case", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "case-a.example.com:8443") {
+		t.Fatalf("assigned host should render: %s", joined)
+	}
+	if strings.Contains(joined, "case-b.example.com:8443") {
+		t.Fatalf("unassigned host must not render for case-variant email: %s", joined)
+	}
+}
+
+func TestSub_ClientHostAssignmentDoesNotFallbackOnMissingInboundHost(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s-host", "restricted", 4451, 1, wsTLSStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, GroupId: "other-group", SortOrder: 1, Remark: "OTHER", Address: "other.example.com", Port: 8443, Security: "tls"})
+
+	var client model.ClientRecord
+	if err := database.GetDB().Where("email = ?", "restricted@e").First(&client).Error; err != nil {
+		t.Fatalf("load client: %v", err)
+	}
+
+	if err := database.GetDB().Create(&model.ClientHost{ClientId: client.Id, GroupId: "missing-here"}).Error; err != nil {
+		t.Fatalf("assign host group: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s-host", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	if len(links) != 0 {
+		t.Fatalf("restricted client with no matching Host must not fall back to the inbound link: %v", links)
+	}
+}
+
+func TestSub_ClientGroupHostAssignmentFiltersHosts(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s-group-host", "grouped", 4453, 1, wsTLSStream)
+	seedHost(t, &model.Host{InboundId: ib.Id, GroupId: "group-a", SortOrder: 1, Remark: "A", Address: "a.example.com", Port: 8443, Security: "tls"})
+	seedHost(t, &model.Host{InboundId: ib.Id, GroupId: "group-b", SortOrder: 2, Remark: "B", Address: "b.example.com", Port: 8443, Security: "tls"})
+	if err := database.GetDB().Model(&model.ClientRecord{}).
+		Where("email = ?", "grouped@e").
+		Update("group_name", "premium").Error; err != nil {
+		t.Fatalf("set client group: %v", err)
+	}
+	if err := database.GetDB().Create(&model.ClientGroupHost{GroupName: "premium", HostGroupId: "group-b"}).Error; err != nil {
+		t.Fatalf("assign client group host: %v", err)
+	}
+
+	links, _, _, _, err := NewSubService("").GetSubs("s-group-host", "req.example.com")
+	if err != nil {
+		t.Fatalf("GetSubs: %v", err)
+	}
+	joined := strings.Join(links, "\n")
+	if !strings.Contains(joined, "b.example.com:8443") || strings.Contains(joined, "a.example.com:8443") {
+		t.Fatalf("group host assignment should select only group-b: %s", joined)
+	}
+}

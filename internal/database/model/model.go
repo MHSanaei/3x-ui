@@ -1002,6 +1002,13 @@ type ClientRecord struct {
 
 func (ClientRecord) TableName() string { return "clients" }
 
+type ClientHost struct {
+	ClientId int    `json:"clientId" gorm:"primaryKey;column:client_id;index"`
+	GroupId  string `json:"groupId" gorm:"primaryKey;column:group_id;index"`
+}
+
+func (ClientHost) TableName() string { return "client_hosts" }
+
 type ClientGroup struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name      string `json:"name" gorm:"uniqueIndex;not null"`
@@ -1012,6 +1019,13 @@ type ClientGroup struct {
 }
 
 func (ClientGroup) TableName() string { return "client_groups" }
+
+type ClientGroupHost struct {
+	GroupName   string `json:"groupName" gorm:"primaryKey;column:group_name;index"`
+	HostGroupId string `json:"hostGroupId" gorm:"primaryKey;column:host_group_id;index"`
+}
+
+func (ClientGroupHost) TableName() string { return "client_group_hosts" }
 
 // MarshalJSON emits the reverse column as a nested JSON object rather than an
 // escaped JSON-text string, matching the same convention Inbound uses for its

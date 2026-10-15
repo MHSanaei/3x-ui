@@ -97,3 +97,25 @@ func TestLinksForClient_UsesClientsTableUUIDWhenSettingsStale(t *testing.T) {
 		t.Fatalf("link still carries stale settings UUID %q: %s", stale, links[0])
 	}
 }
+
+func TestLinksForClient_RespectsClientHostAssignments(t *testing.T) {
+	seedSubDB(t)
+	inbound := seedSubInbound(t, "s-host-link", "host-link", 4434, 1, `{"network":"tcp","security":"none"}`)
+	seedHost(t, &model.Host{InboundId: inbound.Id, GroupId: "link-a", Remark: "A", Address: "a.example.com", Port: 443, Security: "same"})
+	seedHost(t, &model.Host{InboundId: inbound.Id, GroupId: "link-b", Remark: "B", Address: "b.example.com", Port: 443, Security: "same"})
+	var client model.ClientRecord
+	if err := database.GetDB().Where("email = ?", "host-link@e").First(&client).Error; err != nil {
+		t.Fatalf("load client: %v", err)
+	}
+	if err := database.GetDB().Create(&model.ClientHost{ClientId: client.Id, GroupId: "link-a"}).Error; err != nil {
+		t.Fatalf("assign host group: %v", err)
+	}
+
+	links := NewLinkProvider().LinksForClient("req.example.com", inbound, "host-link@e")
+	if len(links) != 1 {
+		t.Fatalf("links = %d, want 1: %v", len(links), links)
+	}
+	if !strings.Contains(links[0], "a.example.com:443") || strings.Contains(links[0], "b.example.com:443") {
+		t.Fatalf("links = %q, want only assigned host", links[0])
+	}
+}

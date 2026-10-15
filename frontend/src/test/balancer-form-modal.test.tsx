@@ -1,10 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { cleanup, fireEvent } from '@testing-library/react';
 
 import BalancerFormModal from '@/pages/xray/balancers/BalancerFormModal';
 import type { BalancerFormValue } from '@/pages/xray/balancers/BalancerFormModal';
 import type { BalancerObject } from '@/schemas/routing';
 import { renderWithProviders } from './test-utils';
+
+afterEach(async () => {
+  // Ant Design schedules delayed state updates while tearing down the modal.
+  // Unmount first, then let those callbacks run before Vitest disposes jsdom.
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 100));
+});
 
 function renderModal(onConfirm = vi.fn()) {
   renderWithProviders(

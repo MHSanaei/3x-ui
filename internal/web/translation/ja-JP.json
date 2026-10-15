@@ -1006,7 +1006,12 @@
       "renewsUsed": "使用済み更新回数",
       "bulkAdTagHint": "設定するには 32 文字の 16 進数タグを入力し、クリアするには 'none' を入力します (MTProto 用)。",
       "renewIntervalDesc": "期限切れ後、前回の期限に指定日数（1 日 24 時間）を加算し、クライアントの通信量をリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。",
-      "renewWeeklyDesc": "カレンダー更新はパネルのタイムゾーンの午前 0 時に行われ、クライアントの通信量もリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。"
+      "renewWeeklyDesc": "カレンダー更新はパネルのタイムゾーンの午前 0 時に行われ、クライアントの通信量もリセットします。追加のリセットが不要なら、独立した通信量リセットは無効にしてください。",
+      "attachedHosts": "Attached hosts",
+      "selectHost": "Select host groups",
+      "hostsEmptyMeansAll": "Leave empty to use all hosts from the attached inbounds.",
+      "hostGroupDisabledOnly": "Only on disabled inbounds: {inbounds}",
+      "hostGroupAlsoDisabled": "Also on disabled inbounds: {inbounds}"
     },
     "groups": {
       "name": "名前",
@@ -1047,7 +1052,11 @@
       "removeFromGroup": "クライアントを削除…",
       "removeFromGroupTitle": "グループ「{name}」からクライアントを削除",
       "removeFromGroupDesc": "このグループから外すメンバーを選択してください。クライアント自体は保持されます (完全に削除するには「グループのクライアントを削除」を使用)。",
-      "removeFromGroupResult": "{count} クライアントを {name} から外しました。"
+      "removeFromGroupResult": "{count} クライアントを {name} から外しました。",
+      "assignHostGroups": "ホストを割り当て",
+      "hostGroupsFor": "{name} のホスト",
+      "hostGroups": "ホスト",
+      "hostsEmptyMeansLegacy": "空欄にすると従来どおりすべてのホストを使用します"
     },
     "nodes": {
       "addNode": "ノードを追加",

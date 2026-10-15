@@ -11,6 +11,7 @@ import {
 
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { InboundOption } from '@/hooks/useClients';
+import type { HostRecord } from '@/schemas/api/host';
 
 const ICON_BUTTON_STYLE = { fontSize: 16 } as const;
 
@@ -147,6 +148,86 @@ export const ClientInboundChips = memo(function ClientInboundChips({
           trigger="click"
           placement="bottomRight"
           content={<div style={OVERFLOW_LIST_STYLE}>{overflow.map(chip)}</div>}
+        >
+          <Tag color="default" style={OVERFLOW_CHIP_STYLE}>
+            +{overflow.length}
+          </Tag>
+        </Popover>
+      )}
+    </>
+  );
+});
+
+interface ClientHostChipsProps {
+  groupIds: string[];
+  hostsByGroupId: Record<string, HostRecord>;
+  inboundsById: Record<number, InboundOption>;
+  chipLimit: number;
+}
+
+const HOST_OVERFLOW_LIST_STYLE = {
+  display: 'flex',
+  flexDirection: 'column' as const,
+  gap: 4,
+  maxWidth: 360,
+  maxHeight: 320,
+  overflowY: 'auto' as const,
+};
+
+export const ClientHostChips = memo(function ClientHostChips({
+  groupIds,
+  hostsByGroupId,
+  inboundsById,
+  chipLimit,
+}: ClientHostChipsProps) {
+  if (groupIds.length === 0) return <span className="cell-empty">—</span>;
+
+  const renderChip = (groupId: string) => {
+    const host = hostsByGroupId[groupId];
+    const addresses = host?.hosts?.filter(Boolean) ?? [];
+    const inboundNames = (host?.inboundIds ?? [])
+      .map((id) => formatInboundLabel(inboundsById[id]?.tag, inboundsById[id]?.remark))
+      .filter(Boolean);
+    const label = addresses.length > 0 ? addresses.join(', ') : groupId;
+    const title = (
+      <div style={{ maxWidth: 360 }}>
+        <div style={{ fontWeight: 500 }}>{host?.remark?.trim() || groupId}</div>
+        <div style={{ marginTop: 4 }}>{addresses.length > 0 ? addresses.join(', ') : '—'}</div>
+        {inboundNames.length > 0 && (
+          <div style={{ marginTop: 4, opacity: 0.7 }}>{inboundNames.join(', ')}</div>
+        )}
+      </div>
+    );
+
+    return (
+      <Tooltip key={groupId} title={title}>
+        <Tag
+          color={host ? 'purple' : 'warning'}
+          style={{
+            margin: 2,
+            maxWidth: 220,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            verticalAlign: 'bottom',
+          }}
+        >
+          {host ? label : '⚠ ' + groupId}
+        </Tag>
+      </Tooltip>
+    );
+  };
+
+  const visible = groupIds.slice(0, chipLimit);
+  const overflow = groupIds.slice(chipLimit);
+
+  return (
+    <>
+      {visible.map(renderChip)}
+      {overflow.length > 0 && (
+        <Popover
+          trigger="click"
+          placement="bottomRight"
+          content={<div style={HOST_OVERFLOW_LIST_STYLE}>{overflow.map(renderChip)}</div>}
         >
           <Tag color="default" style={OVERFLOW_CHIP_STYLE}>
             +{overflow.length}

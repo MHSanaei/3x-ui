@@ -198,6 +198,17 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		}
 	}
 
+	hostAssignments := make(map[int][]string, len(rows))
+	for _, batch := range chunkInts(clientIds, sqlInChunk) {
+		var links []model.ClientHost
+		if err := db.Where("client_id IN ?", batch).Order("group_id ASC").Find(&links).Error; err != nil {
+			return nil, err
+		}
+		for _, l := range links {
+			hostAssignments[l.ClientId] = append(hostAssignments[l.ClientId], l.GroupId)
+		}
+	}
+
 	attachments := make(map[int][]int, len(rows))
 	for _, batch := range chunkInts(clientIds, sqlInChunk) {
 		var links []model.ClientInbound
@@ -230,6 +241,7 @@ func (s *ClientService) List() ([]ClientWithAttachments, error) {
 		out = append(out, ClientWithAttachments{
 			ClientRecord: rows[i],
 			InboundIds:   attachments[rows[i].Id],
+			HostGroupIds: hostAssignments[rows[i].Id],
 			Traffic:      trafficByEmail[rows[i].Email],
 		})
 	}

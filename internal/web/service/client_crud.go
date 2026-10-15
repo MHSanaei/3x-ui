@@ -926,6 +926,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if err := tx.Where("client_id = ?", id).Delete(&model.ClientInbound{}).Error; err != nil {
 			return err
 		}
+		if err := tx.Where("client_id = ?", id).Delete(&model.ClientHost{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Where("client_id = ?", id).Delete(&model.ClientExternalLink{}).Error; err != nil {
 			return err
 		}

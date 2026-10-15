@@ -389,3 +389,63 @@ func TestHostGroup_CipherSuitesRoundTrip(t *testing.T) {
 		t.Fatalf("CipherSuites = %q, want %q", g.CipherSuites, suites)
 	}
 }
+
+func TestDeleteHosts_CleansClientHostAssignments(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 4444, model.VLESS, `{"clients":[]}`)
+	h := mkHost(t, svc, ib.Id, "assigned", 0)
+
+	client := &model.ClientRecord{Email: "host-cleanup@e", SubID: "host-cleanup-sub"}
+	if err := database.GetDB().Create(client).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := database.GetDB().Create(&model.ClientHost{ClientId: client.Id, GroupId: h.GroupId}).Error; err != nil {
+		t.Fatalf("create assignment: %v", err)
+	}
+
+	if err := svc.DeleteHostsGroup([]string{h.GroupId}); err != nil {
+		t.Fatalf("DeleteHostsGroup: %v", err)
+	}
+	var count int64
+	if err := database.GetDB().Model(&model.ClientHost{}).
+		Where("client_id = ? AND group_id = ?", client.Id, h.GroupId).
+		Count(&count).Error; err != nil {
+		t.Fatalf("count assignments: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("client host assignment survived host group deletion")
+	}
+}
+
+func TestUpdateHostGroupEmptyInbounds_ClearsClientHostAssignments(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 4445, model.VLESS, `{"clients":[]}`)
+	h := mkHost(t, svc, ib.Id, "assigned-empty", 0)
+
+	client := &model.ClientRecord{Email: "host-update-cleanup@e", SubID: "host-update-cleanup-sub"}
+	if err := database.GetDB().Create(client).Error; err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	if err := database.GetDB().Create(&model.ClientHost{ClientId: client.Id, GroupId: h.GroupId}).Error; err != nil {
+		t.Fatalf("create assignment: %v", err)
+	}
+
+	if _, err := svc.UpdateHostGroup(h.GroupId, &entity.HostGroup{
+		InboundIds: nil,
+		Hosts:      nil,
+		Remark:     "empty",
+	}); err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+	var count int64
+	if err := database.GetDB().Model(&model.ClientHost{}).
+		Where("client_id = ? AND group_id = ?", client.Id, h.GroupId).
+		Count(&count).Error; err != nil {
+		t.Fatalf("count assignments: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("client host assignment survived empty host group update")
+	}
+}

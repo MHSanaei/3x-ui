@@ -11,6 +11,7 @@ it('shows only the active renewal mode guidance when switching between interval,
       mode="edit"
       client={{ email: 'layout@example.com', reset: 31, expiryTime: 1893427200000 }}
       attachedIds={[1]}
+      hosts={[]}
       inbounds={[{ id: 1, protocol: 'vless', tag: 'calendar' }]}
       save={async () => null}
       onOpenChange={() => {}}

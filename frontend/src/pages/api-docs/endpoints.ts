@@ -1143,6 +1143,33 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'GET',
+        path: '/panel/api/clients/:email/hosts',
+        summary:
+          "Return the HostGroup IDs explicitly assigned to this client for subscription endpoint selection. An empty array means legacy behavior: all enabled hosts from the client's attached inbounds.",
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+        ],
+        response: '{\n  "success": true,\n  "obj": ["group-id-1", "group-id-2"]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/:email/hosts',
+        summary:
+          "Replace the client's HostGroup assignment for subscription endpoint selection. Use an empty hostGroupIds array to restore legacy behavior and include all enabled hosts from attached inbounds.",
+        params: [
+          { name: 'email', in: 'path', type: 'string', desc: 'Client email (unique identifier).' },
+          {
+            name: 'hostGroupIds',
+            in: 'body (json)',
+            type: 'string[]',
+            desc: 'HostGroup IDs to assign. Empty array restores legacy all-host behavior.',
+          },
+        ],
+        body: '{\n  "hostGroupIds": ["group-id-1", "group-id-2"]\n}',
+        response: '{\n  "success": true\n}',
+      },
+      {
+        method: 'GET',
         path: '/panel/api/clients/get/tgId/:tgId',
         summary:
           'Fetch clients by Telegram user ID. Returns an array since multiple clients can share the same Telegram ID.',
@@ -1479,6 +1506,23 @@ export const sections: readonly Section[] = [
           'Return just the email list of clients that currently belong to the given group. Useful for fanning a single bulk action over an entire group without round-tripping the full client list.',
         params: [{ name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' }],
         response: '{\n  "success": true,\n  "obj": ["alice", "bob", "carol"]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/groups/:name/hosts',
+        summary:
+          'Return the HostGroup IDs assigned to the given client group. An empty list preserves legacy all-host subscription behavior.',
+        params: [{ name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' }],
+        response: '{\n  "success": true,\n  "obj": ["cdn-a", "cdn-b"]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/:name/hosts',
+        summary:
+          'Replace the HostGroup assignments for the given client group. Assignments are resolved by HostGroup ID and survive Host row recreation.',
+        params: [{ name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' }],
+        body: '{\n  "hostGroupIds": ["cdn-a", "cdn-b"]\n}',
+        response: '{\n  "success": true,\n  "obj": ["cdn-a", "cdn-b"]\n}',
       },
       {
         method: 'POST',
