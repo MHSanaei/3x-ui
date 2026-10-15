@@ -2298,7 +2298,27 @@
       "defaultOutboundDesc": "El tráfico que no coincide con ninguna regla de enrutamiento usa esta salida (la primera de la lista).",
       "routingScript": "Script de enrutamiento",
       "routingScriptDesc": "Ruta a un archivo .lua que define HandleRoute, absoluta o relativa a la carpeta bin de Xray. El script elige entonces cada ruta y Xray ignora todas las reglas de enrutamiento, incluida la regla api del panel: envía el inbound api al outbound api o se detendrán las estadísticas de tráfico y los cambios de clientes en vivo. Xray no arrancará si el archivo falta o no es válido.",
-      "routingScriptActive": "Hay un script de enrutamiento definido en {section}, así que Xray ignora estas reglas."
+      "routingScriptActive": "Hay un script de enrutamiento definido en {section}, así que Xray ignora estas reglas.",
+      "psiphon": {
+        "title": "Psiphon Outbounds",
+        "menu": "Psiphon",
+        "configTitle": "Psiphon Config",
+        "configDesc": "Paste your Psiphon deployment configuration JSON (PropagationChannelId, SponsorId, server list, etc.)",
+        "saveConfig": "Save Configuration",
+        "testAll": "Test All Latencies",
+        "addSelected": "Add Selected Outbounds",
+        "selectCountries": "Select countries...",
+        "selectAll": "Select All Supported",
+        "memoryWarning": "Each active region runs a tunnel process requiring ~30MB RAM.",
+        "countries": "Countries",
+        "statusConnected": "Connected",
+        "statusStarting": "Starting",
+        "statusStopped": "Stopped",
+        "statusError": "Error",
+        "untested": "Untested",
+        "testPing": "Test Ping",
+        "deleteConfirm": "Are you sure you want to delete this Psiphon outbound?"
+      }
     },
     "hosts": {
       "addHost": "Agregar host",

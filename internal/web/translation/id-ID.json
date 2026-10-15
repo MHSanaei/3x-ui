@@ -2298,7 +2298,27 @@
       "defaultOutboundDesc": "Lalu lintas tanpa aturan routing memakai outbound ini (yang pertama dalam daftar).",
       "routingScript": "Skrip Routing",
       "routingScriptDesc": "Path ke file .lua yang mendefinisikan HandleRoute, absolut atau relatif terhadap folder bin Xray. Skrip lalu memilih setiap rute dan Xray mengabaikan semua aturan routing, termasuk aturan api panel: arahkan inbound api ke outbound api atau statistik trafik dan perubahan klien langsung akan berhenti. Xray tidak akan berjalan jika file tidak ada atau tidak valid.",
-      "routingScriptActive": "Skrip routing diatur di {section}, jadi Xray mengabaikan aturan ini."
+      "routingScriptActive": "Skrip routing diatur di {section}, jadi Xray mengabaikan aturan ini.",
+      "psiphon": {
+        "title": "Psiphon Outbounds",
+        "menu": "Psiphon",
+        "configTitle": "Psiphon Config",
+        "configDesc": "Paste your Psiphon deployment configuration JSON (PropagationChannelId, SponsorId, server list, etc.)",
+        "saveConfig": "Save Configuration",
+        "testAll": "Test All Latencies",
+        "addSelected": "Add Selected Outbounds",
+        "selectCountries": "Select countries...",
+        "selectAll": "Select All Supported",
+        "memoryWarning": "Each active region runs a tunnel process requiring ~30MB RAM.",
+        "countries": "Countries",
+        "statusConnected": "Connected",
+        "statusStarting": "Starting",
+        "statusStopped": "Stopped",
+        "statusError": "Error",
+        "untested": "Untested",
+        "testPing": "Test Ping",
+        "deleteConfirm": "Are you sure you want to delete this Psiphon outbound?"
+      }
     },
     "hosts": {
       "addHost": "Tambah Host",

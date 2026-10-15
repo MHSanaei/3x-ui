@@ -14,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/config"
+	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
@@ -471,6 +472,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		injectNodeEgresses(xrayConfig, nodes)
 	}
 
+	injectPsiphonOutbounds(xrayConfig)
+
 	return xrayConfig, nil
 }
 
@@ -654,6 +657,121 @@ func injectNodeEgresses(cfg *xray.Config, nodes []*model.Node) {
 		return
 	}
 	cfg.RouterConfig = json_util.RawMessage(newRouting)
+}
+
+// injectPsiphonOutbounds generates SOCKS outbounds and an optional leastPing balancer
+// for enabled Psiphon instances, with a UDP/443 bypass for QUIC fallback.
+func injectPsiphonOutbounds(cfg *xray.Config) {
+	db := database.GetDB()
+	if db == nil {
+		return
+	}
+	var instances []*model.PsiphonInstance
+	if err := db.Where("enabled = ?", true).Find(&instances).Error; err != nil || len(instances) == 0 {
+		return
+	}
+
+	var existingOutbounds []map[string]any
+	if len(cfg.OutboundConfigs) > 0 {
+		if err := json.Unmarshal(cfg.OutboundConfigs, &existingOutbounds); err != nil {
+			return
+		}
+	}
+	existingTags := make(map[string]struct{}, len(existingOutbounds))
+	blockedTag := "blocked"
+	hasBlocked := false
+	for _, o := range existingOutbounds {
+		if tag, ok := o["tag"].(string); ok {
+			existingTags[tag] = struct{}{}
+			if tag == "blocked" {
+				hasBlocked = true
+			}
+		}
+		if proto, ok := o["protocol"].(string); ok && proto == "blackhole" && !hasBlocked {
+			if t, ok := o["tag"].(string); ok {
+				blockedTag = t
+				hasBlocked = true
+			}
+		}
+	}
+
+	var psiphonOutbounds []any
+	for _, inst := range instances {
+		tag := fmt.Sprintf("psiphon-%s", inst.CountryCode)
+		if _, exists := existingTags[tag]; exists {
+			continue
+		}
+		outbound := map[string]any{
+			"tag":      tag,
+			"protocol": "socks",
+			"settings": map[string]any{
+				"servers": []any{
+					map[string]any{
+						"address": "127.0.0.1",
+						"port":    inst.SocksPort,
+					},
+				},
+			},
+		}
+		psiphonOutbounds = append(psiphonOutbounds, outbound)
+		existingTags[tag] = struct{}{}
+	}
+
+	if len(psiphonOutbounds) > 0 {
+		mergeSubscriptionOutbounds(cfg, nil, psiphonOutbounds)
+	}
+
+	routing := map[string]any{}
+	if len(cfg.RouterConfig) > 0 {
+		if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+			return
+		}
+	}
+
+	balancers, _ := routing["balancers"].([]any)
+	hasPsiphonBalancer := false
+	for _, b := range balancers {
+		if bMap, ok := b.(map[string]any); ok && bMap["tag"] == "psiphon-balancer" {
+			hasPsiphonBalancer = true
+			break
+		}
+	}
+	if !hasPsiphonBalancer {
+		strategy := map[string]any{"type": "random"}
+		if len(cfg.Observatory) > 0 || len(cfg.BurstObservatory) > 0 {
+			strategy = map[string]any{"type": "leastPing"}
+		}
+		routing["balancers"] = append(balancers, map[string]any{
+			"tag":      "psiphon-balancer",
+			"selector": []any{"psiphon-"},
+			"strategy": strategy,
+		})
+	}
+
+	rules, _ := routing["rules"].([]any)
+	hasQuicRule := false
+	for _, r := range rules {
+		if rMap, ok := r.(map[string]any); ok {
+			if rMap["port"] == "443" && rMap["network"] == "udp" {
+				hasQuicRule = true
+				break
+			}
+		}
+	}
+	if !hasQuicRule && hasBlocked {
+		quicRule := map[string]any{
+			"type":        "field",
+			"port":        "443",
+			"network":     "udp",
+			"outboundTag": blockedTag,
+		}
+		routing["rules"] = append([]any{quicRule}, rules...)
+	}
+
+	newRouting, err := json.Marshal(routing)
+	if err == nil {
+		cfg.RouterConfig = json_util.RawMessage(newRouting)
+	}
 }
 
 // routingTagIsBalancer reports whether tag names a balancer in the parsed

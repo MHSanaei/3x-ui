@@ -2298,7 +2298,27 @@
       "defaultOutboundDesc": "ルーティング規則に一致しないトラフィックはこのアウトバウンドを使います（一覧の先頭）。",
       "routingScript": "ルーティングスクリプト",
       "routingScriptDesc": "HandleRoute を定義した .lua ファイルのパス（絶対パス、または Xray の bin フォルダからの相対パス）。設定するとスクリプトがすべての経路を選び、Xray はパネルの api ルールを含むすべてのルーティングルールを無視します。api インバウンドを api アウトバウンドへ送らないと、トラフィック統計とクライアント変更の即時反映が止まります。ファイルが存在しないか不正な場合、Xray は起動しません。",
-      "routingScriptActive": "{section} でルーティングスクリプトが設定されているため、Xray はこれらのルールを無視します。"
+      "routingScriptActive": "{section} でルーティングスクリプトが設定されているため、Xray はこれらのルールを無視します。",
+      "psiphon": {
+        "title": "Psiphon Outbounds",
+        "menu": "Psiphon",
+        "configTitle": "Psiphon Config",
+        "configDesc": "Paste your Psiphon deployment configuration JSON (PropagationChannelId, SponsorId, server list, etc.)",
+        "saveConfig": "Save Configuration",
+        "testAll": "Test All Latencies",
+        "addSelected": "Add Selected Outbounds",
+        "selectCountries": "Select countries...",
+        "selectAll": "Select All Supported",
+        "memoryWarning": "Each active region runs a tunnel process requiring ~30MB RAM.",
+        "countries": "Countries",
+        "statusConnected": "Connected",
+        "statusStarting": "Starting",
+        "statusStopped": "Stopped",
+        "statusError": "Error",
+        "untested": "Untested",
+        "testPing": "Test Ping",
+        "deleteConfirm": "Are you sure you want to delete this Psiphon outbound?"
+      }
     },
     "hosts": {
       "addHost": "ホストを追加",

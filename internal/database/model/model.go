@@ -1163,6 +1163,20 @@ type Host struct {
 
 func (Host) TableName() string { return "hosts" }
 
+// PsiphonInstance represents a managed Psiphon egress country tunnel.
+type PsiphonInstance struct {
+	Id          string `json:"id" form:"id" gorm:"primaryKey;column:id" example:"US"`
+	CountryCode string `json:"countryCode" form:"countryCode" gorm:"column:country_code;not null;index" example:"US"`
+	SocksPort   int    `json:"socksPort" form:"socksPort" gorm:"column:socks_port;not null;uniqueIndex" example:"40001"`
+	Enabled     bool   `json:"enabled" form:"enabled" gorm:"column:enabled" example:"true"`
+	Status      string `json:"status" form:"status" gorm:"column:status;default:'stopped'" example:"connected"`
+	LatencyMs   int    `json:"latencyMs" form:"latencyMs" gorm:"column:latency_ms;default:0" example:"142"`
+	ExitIP      string `json:"exitIp" form:"exitIp" gorm:"column:exit_ip;default:''" example:"1.2.3.4"`
+	CreatedAt   int64  `json:"createdAt" form:"createdAt" gorm:"column:created_at;autoCreateTime:milli" example:"1710000000000"`
+}
+
+func (PsiphonInstance) TableName() string { return "psiphon_instances" }
+
 // KeepAliveSeconds is the client's PersistentKeepalive, 0 when unset.
 func (c Client) KeepAliveSeconds() int {
 	if c.KeepAlive == nil {

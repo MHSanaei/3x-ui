@@ -36,7 +36,7 @@ import {
   detectBalancerCycles,
 } from './balancers/balancer-loopback';
 import { DnsTab } from './dns';
-import { WarpModal, NordModal, PiaModal } from './overrides';
+import { WarpModal, NordModal, PiaModal, PsiphonModal } from './overrides';
 import './XrayPage.css';
 
 const SECTION_SLUGS = ['basic', 'routing', 'outbound', 'balancer', 'dns', 'advanced'];
@@ -83,6 +83,7 @@ export default function XrayPage() {
   const [warpOpen, setWarpOpen] = useState(false);
   const [nordOpen, setNordOpen] = useState(false);
   const [piaOpen, setPiaOpen] = useState(false);
+  const [psiphonOpen, setPsiphonOpen] = useState(false);
   const [advSettings, setAdvSettings] = useState<AdvKey>('xraySetting');
   const location = useLocation();
   const navigate = useNavigate();
@@ -253,6 +254,7 @@ export default function XrayPage() {
             onShowWarp={() => setWarpOpen(true)}
             onShowNord={() => setNordOpen(true)}
             onShowPia={() => setPiaOpen(true)}
+            onShowPsiphon={() => setPsiphonOpen(true)}
             onRefreshXrayData={fetchAll}
           />
         );
@@ -387,6 +389,11 @@ export default function XrayPage() {
           onClose={() => setPiaOpen(false)}
           onAddOutbound={onAddOutbound}
           onResetOutbound={onResetOutbound}
+        />
+        <PsiphonModal
+          open={psiphonOpen}
+          onClose={() => setPsiphonOpen(false)}
+          onRefreshXrayData={fetchAll}
         />
       </Layout>
     </ConfigProvider>

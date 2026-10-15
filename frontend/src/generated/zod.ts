@@ -3,6 +3,9 @@ import { z } from 'zod';
 export const GeoKindSchema = z.string();
 export type GeoKind = z.infer<typeof GeoKindSchema>;
 
+export const NoticeHandlerSchema = z.unknown();
+export type NoticeHandler = z.infer<typeof NoticeHandlerSchema>;
+
 export const OnlineAPISupportSchema = z.number().int();
 export type OnlineAPISupport = z.infer<typeof OnlineAPISupportSchema>;
 
@@ -423,6 +426,11 @@ export const ApiTokenViewSchema = z.object({
 });
 export type ApiTokenView = z.infer<typeof ApiTokenViewSchema>;
 
+export const BulkAddRequestSchema = z.object({
+  countries: z.array(z.string()),
+});
+export type BulkAddRequest = z.infer<typeof BulkAddRequestSchema>;
+
 export const ClientSchema = z.object({
   adTag: z.string().optional(),
   allowedIPs: z.array(z.string()).optional(),
@@ -598,6 +606,15 @@ export const ClientsSummarySchema = z.object({
   total: z.number().int(),
 });
 export type ClientsSummary = z.infer<typeof ClientsSummarySchema>;
+
+export const CountrySchema = z.object({
+  added: z.boolean(),
+  available: z.boolean(),
+  code: z.string(),
+  flag: z.string(),
+  name: z.string(),
+});
+export type Country = z.infer<typeof CountrySchema>;
 
 export const FallbackParentInfoSchema = z.object({
   masterId: z.number().int(),
@@ -1015,6 +1032,25 @@ export const ProbeResultUISchema = z.object({
   xrayVersion: z.string(),
 });
 export type ProbeResultUI = z.infer<typeof ProbeResultUISchema>;
+
+export const PsiphonConfigSchema = z.object({
+  autoRestart: z.boolean(),
+  basePort: z.number().int(),
+  configJson: z.string(),
+});
+export type PsiphonConfig = z.infer<typeof PsiphonConfigSchema>;
+
+export const PsiphonInstanceSchema = z.object({
+  countryCode: z.string(),
+  createdAt: z.number().int(),
+  enabled: z.boolean(),
+  exitIp: z.string(),
+  id: z.string(),
+  latencyMs: z.number().int(),
+  socksPort: z.number().int(),
+  status: z.string(),
+});
+export type PsiphonInstance = z.infer<typeof PsiphonInstanceSchema>;
 
 export const RealityScanResultSchema = z.object({
   alpn: z.string(),

@@ -100,6 +100,7 @@ interface OutboundsTabProps {
   onShowWarp: () => void;
   onShowNord: () => void;
   onShowPia: () => void;
+  onShowPsiphon?: () => void;
   onRefreshXrayData?: () => void;
 }
 
@@ -121,6 +122,7 @@ export default function OutboundsTab({
   onShowWarp,
   onShowNord,
   onShowPia,
+  onShowPsiphon,
   onRefreshXrayData,
 }: OutboundsTabProps) {
   const { t } = useTranslation();
@@ -571,6 +573,12 @@ export default function OutboundsTab({
                       icon: <ApiOutlined />,
                       label: t('pages.xray.pia.menu'),
                       onClick: onShowPia,
+                    },
+                    {
+                      key: 'psiphon',
+                      icon: <ApiOutlined />,
+                      label: t('pages.xray.psiphon.menu'),
+                      onClick: () => onShowPsiphon?.(),
                     },
                     { type: 'divider' },
                     {

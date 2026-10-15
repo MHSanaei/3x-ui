@@ -2298,7 +2298,27 @@
       "defaultOutboundDesc": "Lưu lượng không khớp quy tắc định tuyến dùng outbound này (mục đầu danh sách).",
       "routingScript": "Script định tuyến",
       "routingScriptDesc": "Đường dẫn tới tệp .lua định nghĩa HandleRoute, tuyệt đối hoặc tương đối với thư mục bin của Xray. Khi đó script chọn mọi tuyến và Xray bỏ qua tất cả quy tắc định tuyến, kể cả quy tắc api của panel: hãy chuyển inbound api tới outbound api, nếu không thống kê lưu lượng và việc áp dụng thay đổi client trực tiếp sẽ dừng. Xray sẽ không khởi động nếu tệp không tồn tại hoặc không hợp lệ.",
-      "routingScriptActive": "Một script định tuyến đã được đặt trong {section}, nên Xray bỏ qua các quy tắc này."
+      "routingScriptActive": "Một script định tuyến đã được đặt trong {section}, nên Xray bỏ qua các quy tắc này.",
+      "psiphon": {
+        "title": "Psiphon Outbounds",
+        "menu": "Psiphon",
+        "configTitle": "Psiphon Config",
+        "configDesc": "Paste your Psiphon deployment configuration JSON (PropagationChannelId, SponsorId, server list, etc.)",
+        "saveConfig": "Save Configuration",
+        "testAll": "Test All Latencies",
+        "addSelected": "Add Selected Outbounds",
+        "selectCountries": "Select countries...",
+        "selectAll": "Select All Supported",
+        "memoryWarning": "Each active region runs a tunnel process requiring ~30MB RAM.",
+        "countries": "Countries",
+        "statusConnected": "Connected",
+        "statusStarting": "Starting",
+        "statusStopped": "Stopped",
+        "statusError": "Error",
+        "untested": "Untested",
+        "testPing": "Test Ping",
+        "deleteConfirm": "Are you sure you want to delete this Psiphon outbound?"
+      }
     },
     "hosts": {
       "addHost": "Thêm Host",

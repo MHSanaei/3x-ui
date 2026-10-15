@@ -50,6 +50,25 @@ tar -xzf "${MTG_PKG}.tar.gz"
 mv "${MTG_PKG}/mtg-multi" "mtg-linux-${FNAME}"
 rm -rf "${MTG_PKG}" "${MTG_PKG}.tar.gz"
 chmod +x "mtg-linux-${FNAME}"
+# psiphon ConsoleClient (Psiphon sidecar) ships prebuilt release binaries
+case $FNAME in
+    arm32) PSIARCH="armv7" ;;
+    *) PSIARCH="$FNAME" ;;
+esac
+if [ "$PSIARCH" = "amd64" ] || [ "$PSIARCH" = "arm64" ] || [ "$PSIARCH" = "armv7" ]; then
+    PSI_VER=$(curl -sfL "https://api.github.com/repos/freeb5d/regionhop/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
+    if [ -n "$PSI_VER" ]; then
+        curl -sfL "https://github.com/freeb5d/regionhop/releases/download/${PSI_VER}/regionhop-linux-${PSIARCH}.tar.gz" -o psiphon.tar.gz || true
+        if [ -f psiphon.tar.gz ]; then
+            tar -xzf psiphon.tar.gz ConsoleClient 2>/dev/null || true
+            if [ -f ConsoleClient ]; then
+                mv ConsoleClient "psiphon-linux-${FNAME}"
+                chmod +x "psiphon-linux-${FNAME}"
+            fi
+            rm -f psiphon.tar.gz
+        fi
+    fi
+fi
 curl -sfLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
 curl -sfLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
 curl -sfLRo geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat

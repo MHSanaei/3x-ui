@@ -198,6 +198,7 @@ var defaultValueMap = map[string]string{
 	"warpUpdateInterval":          "0",
 	"nord":                        "",
 	"pia":                         "",
+	"psiphon_config":              "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
 	"restartXrayOnClientDisable":  "true",
@@ -1295,6 +1296,14 @@ func (s *SettingService) GetPia() (string, error) {
 
 func (s *SettingService) SetPia(data string) error {
 	return s.setString("pia", data)
+}
+
+func (s *SettingService) GetPsiphonConfig() (string, error) {
+	return s.getString("psiphon_config")
+}
+
+func (s *SettingService) SetPsiphonConfig(data string) error {
+	return s.setString("psiphon_config", data)
 }
 
 func (s *SettingService) GetExternalTrafficInformEnable() (bool, error) {

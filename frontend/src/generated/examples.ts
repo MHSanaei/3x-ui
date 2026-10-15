@@ -404,6 +404,12 @@ export const EXAMPLES: Record<string, unknown> = {
     "scope": "admin",
     "token": "new-token-string"
   },
+  "BulkAddRequest": {
+    "countries": [
+      "US",
+      "DE"
+    ]
+  },
   "Client": {
     "adTag": "0123456789abcdef0123456789abcdef",
     "allowedIPs": [
@@ -609,6 +615,13 @@ export const EXAMPLES: Record<string, unknown> = {
     ],
     "onlineCount": 1,
     "total": 2000
+  },
+  "Country": {
+    "added": false,
+    "available": true,
+    "code": "US",
+    "flag": "🇺🇸",
+    "name": "United States"
   },
   "FallbackParentInfo": {
     "masterId": 0,
@@ -1035,6 +1048,21 @@ export const EXAMPLES: Record<string, unknown> = {
     "xrayError": "",
     "xrayState": "",
     "xrayVersion": "25.10.31"
+  },
+  "PsiphonConfig": {
+    "autoRestart": true,
+    "basePort": 40001,
+    "configJson": "{}"
+  },
+  "PsiphonInstance": {
+    "countryCode": "US",
+    "createdAt": 1710000000000,
+    "enabled": true,
+    "exitIp": "1.2.3.4",
+    "id": "US",
+    "latencyMs": 142,
+    "socksPort": 40001,
+    "status": "connected"
   },
   "RealityScanResult": {
     "alpn": "h2",
