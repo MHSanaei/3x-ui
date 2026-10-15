@@ -80,6 +80,9 @@ var (
 // GetSponsors returns the currently active sponsors. The remote file is cached, but the
 // window is re-checked on every call so a slot starts exactly at From and ends at Until.
 func (s *PanelService) GetSponsors() (*SponsorList, error) {
+	if config.IsSponsorDisabled() {
+		return &SponsorList{Sponsors: []Sponsor{}}, nil
+	}
 	raw, err := cachedSponsors()
 	if err != nil {
 		return nil, err
