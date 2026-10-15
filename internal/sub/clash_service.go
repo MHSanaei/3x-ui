@@ -230,6 +230,10 @@ func legacyClashProxy(proxy map[string]any) map[string]any {
 		if (network != "" && network != "tcp") || tls || cipher == "" {
 			return nil
 		}
+		// Legacy endpoints directly block obfs nodes.
+		if plugin, _ := proxy["plugin"].(string); plugin == "obfs" {
+			return nil
+		}
 		fields = []string{"name", "type", "server", "port", "password", "cipher", "udp", "plugin", "plugin-opts"}
 	default:
 		return nil
@@ -426,9 +430,6 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 		"port":   inbound.Port,
 		"udp":    true,
 	}
-	if !s.applyTransport(proxy, network, stream) {
-		return nil
-	}
 
 	switch inbound.Protocol {
 	case model.VMESS:
@@ -468,6 +469,10 @@ func (s *SubClashService) buildProxy(subReq *SubService, inbound *model.Inbound,
 			}
 		}
 	default:
+		return nil
+	}
+
+	if !s.applyTransport(proxy, network, stream) {
 		return nil
 	}
 
@@ -1059,6 +1064,18 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 			if header != nil {
 				typeStr, _ := header["type"].(string)
 				if typeStr != "" && typeStr != "none" {
+					// Maps TCP HTTP obfuscation headers to Mihomo's native simple-obfs plugin only for the Shadowsocks protocol
+					if proxy["type"] == "ss" && typeStr == "http" {
+						proxy["plugin"] = "obfs"
+						opts := map[string]any{
+							"mode": "http",
+						}
+						if host := extractTCPHeaderHost(header); host != "" {
+							opts["host"] = host
+						}
+						proxy["plugin-opts"] = opts
+						return true
+					}
 					return false
 				}
 			}
@@ -1132,6 +1149,54 @@ func (s *SubClashService) applyTransport(proxy map[string]any, network string, s
 	default:
 		return false
 	}
+}
+
+func extractTCPHeaderHost(header map[string]any) string {
+	if header == nil {
+		return ""
+	}
+
+	// Prioritize reading request.headers sent by the client
+	if request, ok := header["request"].(map[string]any); ok {
+		if reqHeaders, ok := request["headers"].(map[string]any); ok {
+			if host := findHostInHeaders(reqHeaders); host != "" {
+				return host
+			}
+		}
+	}
+
+	// Fall back to reading response.headers
+	if response, ok := header["response"].(map[string]any); ok {
+		if respHeaders, ok := response["headers"].(map[string]any); ok {
+			if host := findHostInHeaders(respHeaders); host != "" {
+				return host
+			}
+		}
+	}
+
+	return ""
+}
+
+func findHostInHeaders(headers map[string]any) string {
+	for k, v := range headers {
+		if strings.EqualFold(k, "host") {
+			switch val := v.(type) {
+			case string:
+				return strings.TrimSpace(val)
+			case []string:
+				if len(val) > 0 {
+					return strings.TrimSpace(val[0])
+				}
+			case []any:
+				if len(val) > 0 {
+					if h, ok := val[0].(string); ok {
+						return strings.TrimSpace(h)
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func (s *SubClashService) applySecurity(proxy map[string]any, security string, stream map[string]any) bool {
