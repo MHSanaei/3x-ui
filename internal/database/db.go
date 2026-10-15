@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
 	"strconv"
@@ -821,29 +822,113 @@ func mtprotoInboundClientEmail(remark string, used map[string]struct{}) string {
 // first run, so a freshly imported inbound must be converted here instead. Blank
 // or malformed streamSettings, or one without externalProxy entries, is a no-op.
 func CreateHostsFromExternalProxy(tx *gorm.DB, inboundId int, streamSettings string) (int, error) {
-	if strings.TrimSpace(streamSettings) == "" {
-		return 0, nil
-	}
-	var stream map[string]any
-	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
-		return 0, nil
-	}
-	eps, ok := stream["externalProxy"].([]any)
-	if !ok || len(eps) == 0 {
-		return 0, nil
-	}
 	created := 0
-	for i, raw := range eps {
-		ep, ok := raw.(map[string]any)
-		if !ok {
-			continue
-		}
-		if err := tx.Create(externalProxyEntryToHost(inboundId, i, ep)).Error; err != nil {
+	for _, host := range externalProxyHosts(inboundId, streamSettings) {
+		if err := tx.Create(host).Error; err != nil {
 			return created, err
 		}
 		created++
 	}
 	return created, nil
+}
+
+// SyncHostsFromExternalProxy carries an inbound update's externalProxy change onto the
+// hosts still exactly as imported from the old one; edited, hand-made and shared hosts stay.
+func SyncHostsFromExternalProxy(tx *gorm.DB, inboundId int, oldStreamSettings, newStreamSettings string) error {
+	oldImports := externalProxyHosts(inboundId, oldStreamSettings)
+	newImports := externalProxyHosts(inboundId, newStreamSettings)
+	if slices.EqualFunc(oldImports, newImports, sameImportedHost) {
+		return nil
+	}
+	untouched, err := untouchedImportedHosts(tx, inboundId, oldImports)
+	if err != nil || untouched == nil {
+		return err
+	}
+	for i, host := range newImports {
+		if i >= len(untouched) || untouched[i] == nil {
+			if err := tx.Create(host).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		host.Id, host.GroupId, host.SortOrder, host.CreatedAt = untouched[i].Id, untouched[i].GroupId, untouched[i].SortOrder, untouched[i].CreatedAt
+		if err := tx.Save(host).Error; err != nil {
+			return err
+		}
+	}
+	for _, dropped := range untouched[min(len(newImports), len(untouched)):] {
+		if dropped == nil {
+			continue
+		}
+		if err := tx.Delete(dropped).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// untouchedImportedHosts pairs each old import with a row still equal to it and alone in its
+// group (nil where the admin edited, shared or deleted it); nil when no row qualifies.
+func untouchedImportedHosts(tx *gorm.DB, inboundId int, imports []*model.Host) ([]*model.Host, error) {
+	var stored []*model.Host
+	if err := tx.Where("inbound_id = ?", inboundId).Order("sort_order asc, id asc").Find(&stored).Error; err != nil {
+		return nil, err
+	}
+	paired := make([]*model.Host, len(imports))
+	found := false
+	for i, want := range imports {
+		for _, host := range stored {
+			if slices.Contains(paired, host) || !sameImportedHost(host, want) {
+				continue
+			}
+			var groupRows int64
+			if err := tx.Model(&model.Host{}).Where("group_id = ?", host.GroupId).Count(&groupRows).Error; err != nil {
+				return nil, err
+			}
+			if groupRows == 1 {
+				paired[i], found = host, true
+				break
+			}
+		}
+	}
+	if !found {
+		return nil, nil
+	}
+	return paired, nil
+}
+
+func externalProxyHosts(inboundId int, streamSettings string) []*model.Host {
+	if strings.TrimSpace(streamSettings) == "" {
+		return nil
+	}
+	var stream map[string]any
+	if err := json.Unmarshal([]byte(streamSettings), &stream); err != nil {
+		return nil
+	}
+	eps, _ := stream["externalProxy"].([]any)
+	hosts := make([]*model.Host, 0, len(eps))
+	for i, raw := range eps {
+		if ep, ok := raw.(map[string]any); ok {
+			hosts = append(hosts, externalProxyEntryToHost(inboundId, i, ep))
+		}
+	}
+	return hosts
+}
+
+// sameImportedHost compares every field but row identity and placement, so a host the
+// admin changed in any way no longer counts as the import; empty lists match nil.
+func sameImportedHost(a, b *model.Host) bool {
+	return reflect.DeepEqual(importedHostFields(*a), importedHostFields(*b))
+}
+
+func importedHostFields(h model.Host) model.Host {
+	h.Id, h.GroupId, h.SortOrder, h.CreatedAt, h.UpdatedAt = 0, "", 0, 0, 0
+	for _, list := range []*[]string{&h.Tags, &h.Alpn, &h.PinnedPeerCertSha256, &h.ExcludeFromSubTypes, &h.NodeGuids} {
+		if len(*list) == 0 {
+			*list = nil
+		}
+	}
+	return h
 }
 
 func externalProxyEntryToHost(inboundId, index int, ep map[string]any) *model.Host {
