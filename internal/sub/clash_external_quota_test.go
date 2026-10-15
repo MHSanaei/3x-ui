@@ -18,9 +18,11 @@ import (
 // base64("aes-256-gcm:clientpw"), the SIP002 userinfo both spellings share. The
 // panel emits this node as `plugin=obfs-local;obfs=http`, and Clash has no way
 // to represent it, so both the inbound path and the link path drop it.
-const clashDroppedExternalLink = "ss://YWVzLTI1Ni1nY206Y2xpZW50cHc@198.51.100.9:8443?type=tcp&headerType=http&host=test#obfs"
 
-const tcpObfsStream = `{"network":"tcp","security":"none","tcpSettings":{"header":{"type":"http","request":{"path":["/"],"headers":{"Host":["test"]}}}}}`
+// But Mihomo (Clash.Meta) natively supports simple-obfs out of the box.
+// Use an unrepresentable network (kcp for shadowsocks) to verify
+const clashDroppedExternalLink = "ss://YWVzLTI1Ni1nY206Y2xpZW50cHc@198.51.100.9:8443?type=kcp#unsupported"
+const tcpObfsStream = `{"network":"kcp","security":"none"}`
 
 func clashSubRouter(t *testing.T) *gin.Engine {
 	t.Helper()
