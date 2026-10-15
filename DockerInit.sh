@@ -31,12 +31,13 @@ if [ -z "$MTG_MULTI_VER" ]; then
     echo "DockerInit: could not resolve the latest mtg-multi release tag" >&2
     exit 1
 fi
-mkdir -p build/bin
+mkdir -p build/bin build/xray-image
 cd build/bin
 curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.10.10/Xray-linux-${ARCH}.zip"
 unzip "Xray-linux-${ARCH}.zip"
 rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
-mv xray "xray-linux-${FNAME}"
+mv xray "../xray-image/xray-linux-${FNAME}"
+ln -s "../xray-image/xray-linux-${FNAME}" "xray-linux-${FNAME}"
 # mtg-multi (MTProto sidecar) ships prebuilt release binaries for every target
 # we package, so download and unpack the matching one instead of compiling.
 case $FNAME in

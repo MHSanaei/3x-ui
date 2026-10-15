@@ -115,7 +115,7 @@ func localXrayBinaryPath(version string) string {
 	if !supportedXrayVersion(version) {
 		return ""
 	}
-	for _, path := range []string{xray.GetBinaryPath(), bundledXrayBinaryPath()} {
+	for _, path := range []string{bundledXrayBinaryPath(), xray.GetBinaryPath()} {
 		if xrayBinaryVersion(path) == strings.TrimPrefix(version, "v") {
 			return path
 		}
@@ -146,12 +146,31 @@ func bundledXrayBinaryPath() string {
 }
 
 func restoreImageXray() error {
-	file, err := os.Open(bundledXrayBinaryPath())
+	imagePath, err := filepath.Abs(bundledXrayBinaryPath())
 	if err != nil {
-		return fmt.Errorf("open bundled Xray: %w", err)
+		return err
 	}
-	defer file.Close()
-	return replaceXrayBinary(file, xray.GetBinaryPath())
+	image, err := os.Stat(imagePath)
+	if err != nil {
+		return fmt.Errorf("stat bundled Xray: %w", err)
+	}
+	target := xray.GetBinaryPath()
+	if active, err := os.Stat(target); err == nil && os.SameFile(image, active) {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		return err
+	}
+	tmpDir, err := os.MkdirTemp(filepath.Dir(target), ".xray-link-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+	linkPath := filepath.Join(tmpDir, xray.GetBinaryName())
+	if err := os.Symlink(imagePath, linkPath); err != nil {
+		return err
+	}
+	return os.Rename(linkPath, target)
 }
 
 func replaceXrayBinary(source io.Reader, target string) error {

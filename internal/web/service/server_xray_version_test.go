@@ -134,6 +134,28 @@ func assertXrayVersionStarts(t *testing.T, root, want string) {
 	}
 }
 
+func assertXrayImageLink(t *testing.T, root string) {
+	t.Helper()
+	link, err := os.Lstat(xray.GetBinaryPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if link.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("working Xray mode = %v, want a symlink to the bundled binary", link.Mode())
+	}
+	active, err := os.Stat(xray.GetBinaryPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundled, err := os.Stat(filepath.Join(root, "xray-image", xray.GetBinaryName()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !os.SameFile(active, bundled) {
+		t.Fatal("working and bundled Xray paths refer to different physical files")
+	}
+}
+
 func TestUpdateXrayPersistsOnlyContainerSelections(t *testing.T) {
 	for _, container := range []string{"true", "false"} {
 		t.Run(container, func(t *testing.T) {
@@ -171,6 +193,7 @@ func TestContainerXrayUpdateUsesLocalVersionWithoutNetwork(t *testing.T) {
 		name, installed, bundled string
 	}{
 		{"bundled version", "26.10.9", "26.10.10"},
+		{"duplicate image version", "26.10.10", "26.10.10"},
 		{"installed version", "26.10.10", "26.10.11"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -186,6 +209,9 @@ func TestContainerXrayUpdateUsesLocalVersionWithoutNetwork(t *testing.T) {
 			}
 			assertXrayVersionStarts(t, root, "26.10.10\n")
 			assertStoredXrayVersion(t, "v26.10.10")
+			if tc.bundled == "26.10.10" {
+				assertXrayImageLink(t, root)
+			}
 		})
 	}
 }
@@ -229,21 +255,54 @@ func TestXrayVersionListKeepsImageChoiceWhenGitHubIsOffline(t *testing.T) {
 func TestXrayLatestRestoresImageOfflineAndDeletesPin(t *testing.T) {
 	root := setupXrayVersionTest(t)
 	requests := serveXrayVersion(t, "26.10.10")
-	writeXrayVersionBinary(t, filepath.Join(root, "xray-image", xray.GetBinaryName()), "26.10.11")
+	bundledPath := filepath.Join(root, "xray-image", xray.GetBinaryName())
+	writeXrayVersionBinary(t, bundledPath, "26.10.11")
+	bundledBefore, err := os.ReadFile(bundledPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	svc := &ServerService{}
+	if err := svc.UpdateXray("latest"); err != nil {
+		t.Fatal(err)
+	}
+	assertXrayImageLink(t, root)
+	assertXrayVersionStarts(t, root, "26.10.11\n")
 	if err := svc.UpdateXray("v26.10.10"); err != nil {
 		t.Fatal(err)
 	}
-	assertXrayVersionStarts(t, root, "26.10.10\n")
+	assertXrayVersionStarts(t, root, "26.10.11\n26.10.10\n")
+	bundledAfter, err := os.ReadFile(bundledPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(bundledBefore, bundledAfter) {
+		t.Fatal("installing a pinned release overwrote the bundled symlink target")
+	}
 	requests.Store(0)
 	if err := svc.UpdateXray("latest"); err != nil {
 		t.Fatal(err)
 	}
 	assertStoredXrayVersion(t, "")
-	assertXrayVersionStarts(t, root, "26.10.10\n26.10.11\n")
+	assertXrayImageLink(t, root)
+	assertXrayVersionStarts(t, root, "26.10.11\n26.10.10\n26.10.11\n")
 	if got := requests.Load(); got != 0 {
 		t.Fatalf("latest made %d network requests, want none", got)
 	}
+}
+
+func TestContainerXrayRestoreDoesNotLinkBundledBinaryToItself(t *testing.T) {
+	root := setupXrayVersionTest(t)
+	t.Setenv("XUI_BIN_FOLDER", filepath.Join(root, "xray-image"))
+	writeXrayVersionBinary(t, xray.GetBinaryPath(), "26.10.11")
+	svc := &ServerService{}
+	if err := svc.RestoreXrayVersion(); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RestartXrayService(); err != nil {
+		t.Fatal(err)
+	}
+	assertXrayVersionStarts(t, root, "26.10.11\n")
+	assertStoredXrayVersion(t, "")
 }
 
 func TestContainerXrayPinSurvivesRecreationAndRestartBeforeFirstLaunch(t *testing.T) {
@@ -333,6 +392,9 @@ func TestContainerXrayStartupFallbackPreservesPreferenceAndNativeBinary(t *testi
 			}
 			assertXrayVersionStarts(t, root, tc.wantVersion+"\n")
 			assertStoredXrayVersion(t, tc.pin)
+			if tc.container == "true" {
+				assertXrayImageLink(t, root)
+			}
 			if got := requests.Load(); got != tc.wantRequests {
 				t.Fatalf("startup requests = %d, want %d", got, tc.wantRequests)
 			}

@@ -13,6 +13,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	runXrayAssetProcessHelper()
 	// ComputeHotDiff logs the section that blocks a hot apply; the package
 	// logger must exist before any test exercises a blocked path.
 	xuilogger.InitLogger(logging.ERROR)
