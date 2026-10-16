@@ -104,6 +104,11 @@ func IsDebug() bool {
 	return os.Getenv("XUI_DEBUG") == "true"
 }
 
+// IsSponsorDisabled reports whether sponsor banners are disabled via XUI_DISABLE_SPONSOR.
+func IsSponsorDisabled() bool {
+	return os.Getenv("XUI_DISABLE_SPONSOR") == "true"
+}
+
 // IsSkipHSTS returns true if skipping HSTS mode is enabled via the XUI_SKIP_HSTS environment variable.
 func IsSkipHSTS() bool {
 	return os.Getenv("XUI_SKIP_HSTS") == "true"
