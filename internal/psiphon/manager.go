@@ -96,7 +96,8 @@ func (m *Manager) AllocatePort(preferred int) (int, error) {
 }
 
 func isPortAvailable(port int) bool {
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	var lc net.ListenConfig
+	ln, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return false
 	}
