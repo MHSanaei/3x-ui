@@ -96,7 +96,7 @@ export function AdvancedAllEditor({
   streamEnabled: boolean;
   sniffingEnabled: boolean;
 }) {
-  const { control, setValue } = useFormContext();
+  const { control, getValues, setValue } = useFormContext();
   const wListen = useWatch({ control, name: 'listen' });
   const wPort = useWatch({ control, name: 'port' });
   const wProtocol = useWatch({ control, name: 'protocol' });
@@ -106,29 +106,30 @@ export function AdvancedAllEditor({
   const wStream = useWatch({ control, name: 'streamSettings' });
 
   const serialize = () => {
+    const current = getValues();
     /*
      * Apply the same prune/normalize as the wire payload so the JSON
      * shown here is what the panel actually POSTs (no empty defaults,
      * disabled sniffing as { enabled: false }, finalmask dropped when
      * there are no masks).
      */
-    const settingsView = (pruneEmpty(wSettings ?? {}) ?? {}) as Record<string, unknown>;
-    if (typeof wProtocol === 'string' && Array.isArray(settingsView.clients)) {
-      settingsView.clients = normalizeClients(wProtocol, settingsView.clients);
+    const settingsView = (pruneEmpty(current.settings ?? {}) ?? {}) as Record<string, unknown>;
+    if (typeof current.protocol === 'string' && Array.isArray(settingsView.clients)) {
+      settingsView.clients = normalizeClients(current.protocol, settingsView.clients);
     }
     const streamView = streamEnabled
-      ? ((pruneEmpty(wStream ?? {}) ?? {}) as Record<string, unknown>)
+      ? ((pruneEmpty(current.streamSettings ?? {}) ?? {}) as Record<string, unknown>)
       : undefined;
     dropLegacyOptionalEmpties(settingsView, streamView);
     const out: Record<string, unknown> = {
-      listen: wListen ?? '',
-      port: wPort ?? 0,
-      protocol: wProtocol ?? '',
-      tag: wTag ?? '',
+      listen: current.listen ?? '',
+      port: current.port ?? 0,
+      protocol: current.protocol ?? '',
+      tag: current.tag ?? '',
       settings: settingsView,
     };
     if (sniffingEnabled) {
-      out.sniffing = normalizeSniffing(wSniffing as Parameters<typeof normalizeSniffing>[0]);
+      out.sniffing = normalizeSniffing(current.sniffing as Parameters<typeof normalizeSniffing>[0]);
     }
     if (streamView) out.streamSettings = streamView;
     return JSON.stringify(out, null, 2);
@@ -188,7 +189,7 @@ export function AdvancedAllEditor({
         if (streamEnabled && parsed.streamSettings && typeof parsed.streamSettings === 'object') {
           setValue('streamSettings', parsed.streamSettings);
         }
-        lastEmitRef.current = next;
+        lastEmitRef.current = serialize();
       }}
     />
   );
