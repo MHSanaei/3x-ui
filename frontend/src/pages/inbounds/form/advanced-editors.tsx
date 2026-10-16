@@ -81,6 +81,47 @@ export function AdvancedSliceEditor({
   );
 }
 
+function sameJsonValue(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => sameJsonValue(item, right[index]))
+    );
+  }
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+  const a = left as Record<string, unknown>;
+  const b = right as Record<string, unknown>;
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every((key) => key in b && sameJsonValue(a[key], b[key]))
+  );
+}
+
+function updateTagOnly(raw: string, canonical: string): string | null {
+  let expected: Record<string, unknown>;
+  try {
+    expected = JSON.parse(canonical) as Record<string, unknown>;
+    if (typeof expected.tag !== 'string') return null;
+  } catch {
+    return null;
+  }
+  for (const match of raw.matchAll(/("tag"\s*:\s*)("(?:\\.|[^"\\])*")/g)) {
+    const start = match.index + match[1].length;
+    const candidate =
+      raw.slice(0, start) + JSON.stringify(expected.tag) + raw.slice(start + match[2].length);
+    try {
+      if (sameJsonValue(JSON.parse(candidate), expected)) return candidate;
+    } catch {
+      // Invalid intermediate buffers are replaced with the form's canonical JSON.
+    }
+  }
+  return null;
+}
+
 /*
  * The "All" editor shows the full inbound JSON in one editor: top-level
  * connection fields plus the three nested sub-objects (settings,
@@ -145,7 +186,7 @@ export function AdvancedAllEditor({
   useEffect(() => {
     const formStr = serialize();
     if (formStr === lastEmitRef.current) return;
-    setText(formStr);
+    setText((previous) => updateTagOnly(previous, formStr) ?? formStr);
     lastEmitRef.current = formStr;
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [
@@ -189,7 +230,9 @@ export function AdvancedAllEditor({
         if (streamEnabled && parsed.streamSettings && typeof parsed.streamSettings === 'object') {
           setValue('streamSettings', parsed.streamSettings);
         }
-        lastEmitRef.current = serialize();
+        const canonical = serialize();
+        lastEmitRef.current = canonical;
+        if (!sameJsonValue(parsed, JSON.parse(canonical))) setText(canonical);
       }}
     />
   );

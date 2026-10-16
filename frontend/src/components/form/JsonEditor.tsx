@@ -157,8 +157,18 @@ const JsonEditor = forwardRef<JsonEditorHandle, JsonEditorProps>(function JsonEd
     if (!view) return;
     const current = view.state.doc.toString();
     if (value === current) return;
+    let from = 0;
+    while (from < current.length && from < value.length && current[from] === value[from]) {
+      from += 1;
+    }
+    let oldEnd = current.length;
+    let newEnd = value.length;
+    while (oldEnd > from && newEnd > from && current[oldEnd - 1] === value[newEnd - 1]) {
+      oldEnd -= 1;
+      newEnd -= 1;
+    }
     valueRef.current = value;
-    view.dispatch({ changes: { from: 0, to: current.length, insert: value } });
+    view.dispatch({ changes: { from, to: oldEnd, insert: value.slice(from, newEnd) } });
   }, [value]);
 
   useEffect(() => {
