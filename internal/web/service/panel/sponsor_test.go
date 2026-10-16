@@ -1,6 +1,7 @@
 package panel
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -138,6 +139,60 @@ func setupSponsorServer(t *testing.T, body string) *atomic.Int32 {
 }
 
 var failSponsorList, failSponsorLogos atomic.Bool
+
+func TestSponsorOptOutSkipsFetchingAndDeniesCachedLogos(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		value    string
+		cached   bool
+		disabled bool
+	}{
+		{name: "disabled with cold cache", value: "true", disabled: true},
+		{name: "disabled with cached list and logo", value: "true", cached: true, disabled: true},
+		{name: "uppercase does not disable sponsors", value: "TRUE"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("XUI_DEBUG", "false")
+			t.Setenv("XUI_DISABLE_SPONSOR", "false")
+			hits := setupSponsorServer(t, `{"contact":"https://acme.example/","sponsors":[{"id":"acme","slots":["page"],
+				"logo":"acme.png","until":"2099-01-01T00:00:00Z","link":"https://acme.example/"}]}`)
+			sponsorNow = func() time.Time { return sponsorTestNow }
+			svc := &PanelService{}
+			if tc.cached {
+				data, contentType, err := svc.GetSponsorLogo("acme.png")
+				if err != nil || string(data) != string(pngMagic) || contentType != "image/png" {
+					t.Fatalf("enabled logo = %q, %q, %v; want PNG", data, contentType, err)
+				}
+			}
+			before := hits.Load()
+			t.Setenv("XUI_DISABLE_SPONSOR", tc.value)
+			got, err := svc.GetSponsors()
+			if err != nil {
+				t.Fatalf("GetSponsors: %v", err)
+			}
+			data, contentType, logoErr := svc.GetSponsorLogo("acme.png")
+			if tc.disabled {
+				body, marshalErr := json.Marshal(got)
+				if marshalErr != nil || string(body) != `{"sponsors":[]}` {
+					t.Errorf("disabled sponsors = %s, %v; want {\"sponsors\":[]}", body, marshalErr)
+				}
+				if !errors.Is(logoErr, ErrSponsorLogoUnknown) || data != nil || contentType != "" {
+					t.Errorf("disabled logo = %q, %q, %v; want nil, empty, ErrSponsorLogoUnknown", data, contentType, logoErr)
+				}
+				if gotHits := hits.Load(); gotHits != before {
+					t.Errorf("remote hits = %d, want %d; disabled sponsors must not fetch", gotHits, before)
+				}
+				return
+			}
+			if len(got.Sponsors) != 1 || got.Sponsors[0].ID != "acme" || got.Contact != "https://acme.example/" {
+				t.Errorf("enabled sponsors = %+v; want acme and contact link", got)
+			}
+			if logoErr != nil || string(data) != string(pngMagic) || contentType != "image/png" {
+				t.Errorf("enabled logo = %q, %q, %v; want PNG", data, contentType, logoErr)
+			}
+		})
+	}
+}
 
 func TestGetSponsorsKeepsLastListWhenRefreshFails(t *testing.T) {
 	hits := setupSponsorServer(t, `{"sponsors":[{"id":"acme","slots":["page"],
