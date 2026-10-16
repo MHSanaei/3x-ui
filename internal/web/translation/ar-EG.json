@@ -2298,7 +2298,27 @@
       "defaultOutboundDesc": "الحركة التي لا تطابق أي قاعدة توجيه تستخدم هذا الصادر (الأول في القائمة).",
       "routingScript": "سكريبت التوجيه",
       "routingScriptDesc": "مسار ملف ‎.lua‎ بيعرّف HandleRoute، مطلق أو نسبةً لمجلد bin بتاع Xray. بعدها السكريبت هو اللي بيختار كل مسار وXray بيتجاهل كل قواعد التوجيه، ومنها قاعدة api بتاعة البانل: لازم توجّه الإدخال api للإخراج api وإلا إحصائيات الترافيك وتطبيق تغييرات العملاء مباشرةً هيقفوا. Xray مش هيشتغل لو الملف مش موجود أو مش صالح.",
-      "routingScriptActive": "فيه سكريبت توجيه متظبط في {section}، عشان كده Xray بيتجاهل القواعد دي."
+      "routingScriptActive": "فيه سكريبت توجيه متظبط في {section}، عشان كده Xray بيتجاهل القواعد دي.",
+      "psiphon": {
+        "title": "Psiphon Outbounds",
+        "menu": "Psiphon",
+        "configTitle": "Psiphon Config",
+        "configDesc": "Paste your Psiphon deployment configuration JSON (PropagationChannelId, SponsorId, server list, etc.)",
+        "saveConfig": "Save Configuration",
+        "testAll": "Test All Latencies",
+        "addSelected": "Add Selected Outbounds",
+        "selectCountries": "Select countries...",
+        "selectAll": "Select All Supported",
+        "memoryWarning": "Each active region runs a tunnel process requiring ~30MB RAM.",
+        "countries": "Countries",
+        "statusConnected": "Connected",
+        "statusStarting": "Starting",
+        "statusStopped": "Stopped",
+        "statusError": "Error",
+        "untested": "Untested",
+        "testPing": "Test Ping",
+        "deleteConfirm": "Are you sure you want to delete this Psiphon outbound?"
+      }
     },
     "hosts": {
       "addHost": "إضافة مضيف",

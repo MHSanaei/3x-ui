@@ -1,0 +1,38 @@
+.psiphon-modal .ant-modal-container {
+  overflow: hidden;
+}
+
+.psiphon-modal .ant-modal-body {
+  max-height: min(760px, calc(100vh - 160px));
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.psiphon-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.psiphon-bulk-section {
+  background: var(--ant-color-fill-quaternary);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.psiphon-bulk-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.psiphon-mono {
+  font-family: var(--ant-font-family-code, monospace);
+  font-size: 12px;
+}

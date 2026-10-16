@@ -2298,7 +2298,27 @@
       "defaultOutboundDesc": "未匹配任何路由规则的流量走此出站（列表中的第一个出站）。",
       "routingScript": "路由脚本",
       "routingScriptDesc": "定义了 HandleRoute 的 .lua 文件路径，可为绝对路径或相对于 Xray bin 目录的路径。设置后由脚本选择所有路由，Xray 会忽略全部路由规则，包括面板的 api 规则：请把 api 入站路由到 api 出站，否则流量统计和客户端变更的实时生效都会停止。文件不存在或无效时 Xray 无法启动。",
-      "routingScriptActive": "已在“{section}”中设置路由脚本，因此 Xray 会忽略这些规则。"
+      "routingScriptActive": "已在“{section}”中设置路由脚本，因此 Xray 会忽略这些规则。",
+      "psiphon": {
+        "title": "Psiphon Outbounds",
+        "menu": "Psiphon",
+        "configTitle": "Psiphon Config",
+        "configDesc": "Paste your Psiphon deployment configuration JSON (PropagationChannelId, SponsorId, server list, etc.)",
+        "saveConfig": "Save Configuration",
+        "testAll": "Test All Latencies",
+        "addSelected": "Add Selected Outbounds",
+        "selectCountries": "Select countries...",
+        "selectAll": "Select All Supported",
+        "memoryWarning": "Each active region runs a tunnel process requiring ~30MB RAM.",
+        "countries": "Countries",
+        "statusConnected": "Connected",
+        "statusStarting": "Starting",
+        "statusStopped": "Stopped",
+        "statusError": "Error",
+        "untested": "Untested",
+        "testPing": "Test Ping",
+        "deleteConfirm": "Are you sure you want to delete this Psiphon outbound?"
+      }
     },
     "hosts": {
       "addHost": "添加主机",

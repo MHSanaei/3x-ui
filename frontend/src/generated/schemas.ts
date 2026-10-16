@@ -1647,6 +1647,25 @@ export const SCHEMAS: Record<string, unknown> = {
     ],
     "type": "object"
   },
+  "BulkAddRequest": {
+    "description": "BulkAddRequest defines the payload for adding multiple countries.",
+    "properties": {
+      "countries": {
+        "example": [
+          "US",
+          "DE"
+        ],
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "countries"
+    ],
+    "type": "object"
+  },
   "Client": {
     "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
     "properties": {
@@ -2416,6 +2435,39 @@ export const SCHEMAS: Record<string, unknown> = {
       "online",
       "onlineCount",
       "total"
+    ],
+    "type": "object"
+  },
+  "Country": {
+    "description": "Country represents an egress country option.",
+    "properties": {
+      "added": {
+        "example": false,
+        "type": "boolean"
+      },
+      "available": {
+        "example": true,
+        "type": "boolean"
+      },
+      "code": {
+        "example": "US",
+        "type": "string"
+      },
+      "flag": {
+        "example": "🇺🇸",
+        "type": "string"
+      },
+      "name": {
+        "example": "United States",
+        "type": "string"
+      }
+    },
+    "required": [
+      "added",
+      "available",
+      "code",
+      "flag",
+      "name"
     ],
     "type": "object"
   },
@@ -4186,6 +4238,78 @@ export const SCHEMAS: Record<string, unknown> = {
       "xrayError",
       "xrayState",
       "xrayVersion"
+    ],
+    "type": "object"
+  },
+  "PsiphonConfig": {
+    "description": "PsiphonConfig holds panel-wide Psiphon settings.",
+    "properties": {
+      "autoRestart": {
+        "example": true,
+        "type": "boolean"
+      },
+      "basePort": {
+        "example": 40001,
+        "type": "integer"
+      },
+      "configJson": {
+        "example": "{}",
+        "type": "string"
+      }
+    },
+    "required": [
+      "autoRestart",
+      "basePort",
+      "configJson"
+    ],
+    "type": "object"
+  },
+  "PsiphonInstance": {
+    "description": "PsiphonInstance represents a managed Psiphon egress country tunnel.",
+    "properties": {
+      "countryCode": {
+        "example": "US",
+        "type": "string"
+      },
+      "createdAt": {
+        "example": 1710000000000,
+        "format": "int64",
+        "type": "integer"
+      },
+      "enabled": {
+        "example": true,
+        "type": "boolean"
+      },
+      "exitIp": {
+        "example": "1.2.3.4",
+        "type": "string"
+      },
+      "id": {
+        "example": "US",
+        "type": "string"
+      },
+      "latencyMs": {
+        "example": 142,
+        "type": "integer"
+      },
+      "socksPort": {
+        "example": 40001,
+        "type": "integer"
+      },
+      "status": {
+        "example": "connected",
+        "type": "string"
+      }
+    },
+    "required": [
+      "countryCode",
+      "createdAt",
+      "enabled",
+      "exitIp",
+      "id",
+      "latencyMs",
+      "socksPort",
+      "status"
     ],
     "type": "object"
   },

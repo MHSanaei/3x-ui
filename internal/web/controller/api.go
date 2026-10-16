@@ -22,6 +22,7 @@ type APIController struct {
 	hostController        *HostController
 	settingController     *SettingController
 	xraySettingController *XraySettingController
+	psiphonController     *PsiphonController
 	userService           panel.UserService
 	apiTokenService       panel.ApiTokenService
 	Tgbot                 tgbot.Tgbot
@@ -210,6 +211,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 
 	// Subscription balancers — client-side balancers for the JSON sub output
 	NewSubBalancerController(api)
+
+	// Psiphon outbounds API
+	a.psiphonController = NewPsiphonController(api.Group("/psiphon"))
 
 	// Extra routes
 	api.POST("/backuptotgbot", a.BackuptoTgbot)

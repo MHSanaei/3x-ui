@@ -29,6 +29,7 @@ export * from './trojan';
 export * from './vless';
 export * from './vmess';
 export * from './wireguard';
+export * from './psiphon';
 
 export const OutboundSettingsSchema = z.discriminatedUnion('protocol', [
   z.object({ protocol: z.literal('vmess'), settings: VmessOutboundSettingsSchema }),

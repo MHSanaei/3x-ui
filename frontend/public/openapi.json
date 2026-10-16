@@ -1673,6 +1673,25 @@
         ],
         "type": "object"
       },
+      "BulkAddRequest": {
+        "description": "BulkAddRequest defines the payload for adding multiple countries.",
+        "properties": {
+          "countries": {
+            "example": [
+              "US",
+              "DE"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "countries"
+        ],
+        "type": "object"
+      },
       "Client": {
         "description": "Client represents a client configuration for Xray inbounds with traffic limits and settings.",
         "properties": {
@@ -2442,6 +2461,39 @@
           "online",
           "onlineCount",
           "total"
+        ],
+        "type": "object"
+      },
+      "Country": {
+        "description": "Country represents an egress country option.",
+        "properties": {
+          "added": {
+            "example": false,
+            "type": "boolean"
+          },
+          "available": {
+            "example": true,
+            "type": "boolean"
+          },
+          "code": {
+            "example": "US",
+            "type": "string"
+          },
+          "flag": {
+            "example": "🇺🇸",
+            "type": "string"
+          },
+          "name": {
+            "example": "United States",
+            "type": "string"
+          }
+        },
+        "required": [
+          "added",
+          "available",
+          "code",
+          "flag",
+          "name"
         ],
         "type": "object"
       },
@@ -4215,6 +4267,78 @@
         ],
         "type": "object"
       },
+      "PsiphonConfig": {
+        "description": "PsiphonConfig holds panel-wide Psiphon settings.",
+        "properties": {
+          "autoRestart": {
+            "example": true,
+            "type": "boolean"
+          },
+          "basePort": {
+            "example": 40001,
+            "type": "integer"
+          },
+          "configJson": {
+            "example": "{}",
+            "type": "string"
+          }
+        },
+        "required": [
+          "autoRestart",
+          "basePort",
+          "configJson"
+        ],
+        "type": "object"
+      },
+      "PsiphonInstance": {
+        "description": "PsiphonInstance represents a managed Psiphon egress country tunnel.",
+        "properties": {
+          "countryCode": {
+            "example": "US",
+            "type": "string"
+          },
+          "createdAt": {
+            "example": 1710000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "example": true,
+            "type": "boolean"
+          },
+          "exitIp": {
+            "example": "1.2.3.4",
+            "type": "string"
+          },
+          "id": {
+            "example": "US",
+            "type": "string"
+          },
+          "latencyMs": {
+            "example": 142,
+            "type": "integer"
+          },
+          "socksPort": {
+            "example": 40001,
+            "type": "integer"
+          },
+          "status": {
+            "example": "connected",
+            "type": "string"
+          }
+        },
+        "required": [
+          "countryCode",
+          "createdAt",
+          "enabled",
+          "exitIp",
+          "id",
+          "latencyMs",
+          "socksPort",
+          "status"
+        ],
+        "type": "object"
+      },
       "RealityScanResult": {
         "properties": {
           "alpn": {
@@ -4864,6 +4988,10 @@
     {
       "name": "Subscription Balancers",
       "description": "Client-side balancers for the JSON subscription: each enabled balancer is emitted as one extra config document whose members are the proxy outbounds of the selected inbounds (routing.balancers + burstObservatory). Managed in Settings → Sub Balancers."
+    },
+    {
+      "name": "Psiphon Outbounds",
+      "description": "Manage multi-region Psiphon tunnel daemons: each active country runs an isolated ConsoleClient sidecar binding a loopback-only SOCKS5 proxy, registered into Xray as an outbound and balancer."
     },
     {
       "name": "Subscription Server",
@@ -15280,6 +15408,346 @@
                     "sortOrder": 1,
                     "strategy": "random",
                     "updatedAt": 1710000000000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/psiphon/countries": {
+      "get": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "List available egress countries with flags, availability, and added state.",
+        "operationId": "get_panel_api_psiphon_countries",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/psiphon/instances": {
+      "get": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "List all managed Psiphon country instances with live status, port, exit IP, and ping.",
+        "operationId": "get_panel_api_psiphon_instances",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "Add one or multiple Psiphon egress country tunnels.",
+        "operationId": "post_panel_api_psiphon_instances",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "countries": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "ISO 3166-1 alpha-2 country codes (e.g. [\"US\", \"DE\"]) or [\"ALL\"]."
+                  }
+                },
+                "required": [
+                  "countries"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/psiphon/instances/{id}": {
+      "delete": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "Delete a Psiphon outbound instance and release its port.",
+        "operationId": "delete_panel_api_psiphon_instances_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Instance ID / Country code.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/psiphon/instances/{id}/toggle": {
+      "post": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "Toggle enable/disable status for a Psiphon instance.",
+        "operationId": "post_panel_api_psiphon_instances_id_toggle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Instance ID / Country code.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/psiphon/instances/{id}/ping": {
+      "post": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "Measure latency and exit IP through the local SOCKS proxy of a Psiphon instance.",
+        "operationId": "post_panel_api_psiphon_instances_id_ping",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Instance ID / Country code.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/psiphon/ping-all": {
+      "post": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "Run concurrent latency probes across all active Psiphon instances.",
+        "operationId": "post_panel_api_psiphon_ping_all",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/psiphon/config": {
+      "get": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "Get the master Psiphon deployment configuration JSON.",
+        "operationId": "get_panel_api_psiphon_config",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Psiphon Outbounds"
+        ],
+        "summary": "Update the master Psiphon deployment configuration JSON.",
+        "operationId": "post_panel_api_psiphon_config",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "configJson": {
+                    "type": "string",
+                    "description": "Raw Psiphon deployment config JSON."
+                  }
+                },
+                "required": [
+                  "configJson"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
                   }
                 }
               }

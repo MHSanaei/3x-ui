@@ -2662,6 +2662,80 @@ export const sections: readonly Section[] = [
   },
 
   {
+    id: 'psiphon',
+    title: 'Psiphon Outbounds',
+    description:
+      'Manage multi-region Psiphon tunnel daemons: each active country runs an isolated ConsoleClient sidecar binding a loopback-only SOCKS5 proxy, registered into Xray as an outbound and balancer.',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/panel/api/psiphon/countries',
+        summary: 'List available egress countries with flags, availability, and added state.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/psiphon/instances',
+        summary:
+          'List all managed Psiphon country instances with live status, port, exit IP, and ping.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/psiphon/instances',
+        summary: 'Add one or multiple Psiphon egress country tunnels.',
+        params: [
+          {
+            name: 'countries',
+            in: 'body (json)',
+            type: 'string[]',
+            desc: 'ISO 3166-1 alpha-2 country codes (e.g. ["US", "DE"]) or ["ALL"].',
+          },
+        ],
+      },
+      {
+        method: 'DELETE',
+        path: '/panel/api/psiphon/instances/:id',
+        summary: 'Delete a Psiphon outbound instance and release its port.',
+        params: [{ name: 'id', in: 'path', type: 'string', desc: 'Instance ID / Country code.' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/psiphon/instances/:id/toggle',
+        summary: 'Toggle enable/disable status for a Psiphon instance.',
+        params: [{ name: 'id', in: 'path', type: 'string', desc: 'Instance ID / Country code.' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/psiphon/instances/:id/ping',
+        summary: 'Measure latency and exit IP through the local SOCKS proxy of a Psiphon instance.',
+        params: [{ name: 'id', in: 'path', type: 'string', desc: 'Instance ID / Country code.' }],
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/psiphon/ping-all',
+        summary: 'Run concurrent latency probes across all active Psiphon instances.',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/psiphon/config',
+        summary: 'Get the master Psiphon deployment configuration JSON.',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/psiphon/config',
+        summary: 'Update the master Psiphon deployment configuration JSON.',
+        params: [
+          {
+            name: 'configJson',
+            in: 'body (json)',
+            type: 'string',
+            desc: 'Raw Psiphon deployment config JSON.',
+          },
+        ],
+      },
+    ],
+  },
+
+  {
     id: 'subscription',
     title: 'Subscription Server',
     description:

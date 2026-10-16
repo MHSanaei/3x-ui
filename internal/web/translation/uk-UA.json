@@ -2298,7 +2298,27 @@
       "defaultOutboundDesc": "Трафік без збігу з правилами маршрутизації йде через цей вихідний (перший у списку).",
       "routingScript": "Скрипт маршрутизації",
       "routingScriptDesc": "Шлях до файлу .lua з функцією HandleRoute — абсолютний або відносно теки bin Xray. Скрипт обирає кожен маршрут, а Xray ігнорує всі правила маршрутизації, зокрема правило api панелі: спрямовуйте вхідний api на вихідний api, інакше зупиниться статистика трафіку й застосування змін клієнтів на льоту. Xray не запуститься, якщо файл відсутній або містить помилки.",
-      "routingScriptActive": "У розділі «{section}» задано скрипт маршрутизації, тому Xray ігнорує ці правила."
+      "routingScriptActive": "У розділі «{section}» задано скрипт маршрутизації, тому Xray ігнорує ці правила.",
+      "psiphon": {
+        "title": "Psiphon Outbounds",
+        "menu": "Psiphon",
+        "configTitle": "Psiphon Config",
+        "configDesc": "Paste your Psiphon deployment configuration JSON (PropagationChannelId, SponsorId, server list, etc.)",
+        "saveConfig": "Save Configuration",
+        "testAll": "Test All Latencies",
+        "addSelected": "Add Selected Outbounds",
+        "selectCountries": "Select countries...",
+        "selectAll": "Select All Supported",
+        "memoryWarning": "Each active region runs a tunnel process requiring ~30MB RAM.",
+        "countries": "Countries",
+        "statusConnected": "Connected",
+        "statusStarting": "Starting",
+        "statusStopped": "Stopped",
+        "statusError": "Error",
+        "untested": "Untested",
+        "testPing": "Test Ping",
+        "deleteConfirm": "Are you sure you want to delete this Psiphon outbound?"
+      }
     },
     "hosts": {
       "addHost": "Додати хост",

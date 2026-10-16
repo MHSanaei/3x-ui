@@ -40,6 +40,7 @@ func run(root, outDir string) error {
 				"InboundFallback",
 				"Host",
 				"SubBalancer",
+				"PsiphonInstance",
 			),
 			AliasAllow: setOf("Protocol"),
 			Overrides: map[string][]walkOverride{
@@ -123,6 +124,10 @@ func run(root, outDir string) error {
 		{
 			Path:        resolveRel(root, "internal/tuic"),
 			StructAllow: setOf("TuicServerSettings", "TuicClientSettings"),
+		},
+		{
+			Path:        resolveRel(root, "internal/psiphon"),
+			StructAllow: setOf("Country", "PsiphonConfig", "BulkAddRequest"),
 		},
 	}
 
