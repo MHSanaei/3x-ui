@@ -200,6 +200,7 @@ Katkılarınızı her zaman bekliyoruz. Bir sorun (issue) açmadan veya pull req
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Lisans: **MIT**): _Gelen bağlantılarnı, kullanıcıları, panel ayarlarını ve Xray yapılandırmasını Terraform / OpenTofu ile kod olarak (as code) yönetin._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Lisans: **MIT**): _3x-ui için yerel Android istemcisi — kontrol paneli, gelen bağlantılar, QR ile paylaşımlı kullanıcılar, düğümler ve çoklu panel yönetimi. F-Droid'de mevcut._
+- [3X-UI Auto Nginx](https://github.com/xPROMSx/3x-ui-auto-nginx) (Lisans: **GPL-3.0**): _Resmi 3x-ui/Xray sürümünü tek komutla VPS'ye kurun: nginx ile SNI yönlendirmesi, kamuflaj sitesi, otomatik HTTPS, önceden yapılandırılmış VLESS REALITY, VLESS XHTTP ve Hysteria2 bağlantıları ve yedekleme._
 
 ## Projeyi Destekleyin
 

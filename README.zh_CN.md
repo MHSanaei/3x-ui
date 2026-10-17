@@ -200,6 +200,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (许可证: **MIT**): _使用 Terraform / OpenTofu 通过代码管理入站、客户端、面板设置和 Xray 配置。_
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (许可证: **MIT**): _3x-ui 的原生 Android 客户端 — 仪表板、入站、带二维码分享的客户端、节点以及多面板管理。可在 F-Droid 获取。_
+- [3X-UI Auto Nginx](https://github.com/xPROMSx/3x-ui-auto-nginx) (许可证: **GPL-3.0**): _一条命令在 VPS 上安装官方 3x-ui/Xray：nginx SNI 路由、伪装网站、自动 HTTPS、预配置的 VLESS REALITY、VLESS XHTTP 和 Hysteria2 连接，以及备份。_
 
 ## 支持项目
 
