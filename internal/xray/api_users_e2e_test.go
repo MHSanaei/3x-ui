@@ -60,8 +60,12 @@ func startE2ECore(t *testing.T, inbounds []any) *e2eCore {
 	}
 	all = append(all, inbounds...)
 
+	logLevel := "warning"
+	if os.Getenv("XRAY_E2E_DEBUG") != "" {
+		logLevel = "debug"
+	}
 	cfg := map[string]any{
-		"log": map[string]any{"loglevel": "warning"},
+		"log": map[string]any{"loglevel": logLevel},
 		"api": map[string]any{
 			"services": []string{"HandlerService", "StatsService", "RoutingService"},
 			"tag":      "api",

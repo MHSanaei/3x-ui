@@ -11,6 +11,7 @@ import {
 
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import type { InboundOption } from '@/hooks/useClients';
+import { resolveClientActiveProfiles, type ActiveProfileTree } from '@/lib/clients/active-profiles';
 
 const ICON_BUTTON_STYLE = { fontSize: 16 } as const;
 
@@ -95,6 +96,47 @@ export const ClientRowActions = memo(function ClientRowActions({
 });
 
 const CHIP_STYLE = { margin: 2 } as const;
+
+export const ClientActiveProfiles = memo(function ClientActiveProfiles({
+  email,
+  ids,
+  inboundsById,
+  tree,
+  protocolColors,
+}: {
+  email: string;
+  ids: number[];
+  inboundsById: Record<number, InboundOption>;
+  tree?: ActiveProfileTree;
+  protocolColors: Record<string, string>;
+}) {
+  const { t } = useTranslation();
+  const { activeIds, unknown } = resolveClientActiveProfiles(email, ids, inboundsById, tree);
+  return (
+    <Tooltip
+      title={
+        unknown
+          ? t('pages.clients.activeProfilesUnknownHint')
+          : t('pages.clients.activeProfilesHint')
+      }
+    >
+      <span>
+        {activeIds.length ? (
+          <ClientInboundChips
+            ids={activeIds}
+            inboundsById={inboundsById}
+            protocolColors={protocolColors}
+            chipLimit={Infinity}
+          />
+        ) : (
+          <span className="cell-empty">
+            {unknown ? t('pages.clients.activeProfilesUnknown') : '—'}
+          </span>
+        )}
+      </span>
+    </Tooltip>
+  );
+});
 const OVERFLOW_CHIP_STYLE = { margin: 2, cursor: 'pointer' } as const;
 const OVERFLOW_LIST_STYLE = {
   display: 'flex',

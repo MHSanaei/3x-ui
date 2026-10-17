@@ -26,6 +26,33 @@
       }
     },
     "schemas": {
+      "ActiveProfileSnapshot": {
+        "description": "ActiveProfileSnapshot contains exact, connection-based attribution. Supported\nis false for an older core; an empty supported snapshot means no live links.\nObservedAt belongs to the originating node and is preserved across relays.",
+        "properties": {
+          "clients": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          "observedAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "supported": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "clients",
+          "observedAt",
+          "supported"
+        ],
+        "type": "object"
+      },
       "AllSetting": {
         "properties": {
           "datepicker": {
@@ -3303,6 +3330,9 @@
             "nullable": true,
             "type": "integer"
           },
+          "originNodeGuid": {
+            "type": "string"
+          },
           "port": {
             "example": 443,
             "type": "integer"
@@ -5297,6 +5327,7 @@
                       "network": "",
                       "nodeAddress": "",
                       "nodeId": null,
+                      "originNodeGuid": "",
                       "port": 443,
                       "protocol": "vless",
                       "remark": "VLESS-443",
@@ -10658,6 +10689,51 @@
                       "in-443-tcp",
                       "in-8443-tcp"
                     ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/clients/activeProfiles": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Exact live authenticated connections per client and inbound, grouped by the hosting panel GUID. Includes idle open links and multiple simultaneous profiles. Requires an inbound-tracking-enabled Xray core. supported=false or a missing node means unknown; an empty supported clients map means no live connections. Stale node snapshots expire after 20 seconds. Does not change traffic counters or store connection history.",
+        "operationId": "post_panel_api_clients_activeProfiles",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": {
+                    "node-guid": {
+                      "supported": true,
+                      "observedAt": 1792180000000,
+                      "clients": {
+                        "alice": [
+                          "in-443-tcp",
+                          "in-3000-udp"
+                        ]
+                      }
+                    }
                   }
                 }
               }
@@ -16084,6 +16160,36 @@
                     "type": "array",
                     "items": {
                       "type": "string"
+                    }
+                  }
+                },
+                "activeProfiles": {
+                  "type": "object",
+                  "description": "Exact connection-based client-to-inbound attribution, keyed by hosting panel GUID. Missing or unsupported nodes are unknown, not inferred from aggregate traffic.",
+                  "additionalProperties": {
+                    "type": "object",
+                    "required": [
+                      "supported",
+                      "observedAt",
+                      "clients"
+                    ],
+                    "properties": {
+                      "supported": {
+                        "type": "boolean"
+                      },
+                      "observedAt": {
+                        "type": "integer",
+                        "format": "int64"
+                      },
+                      "clients": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     }
                   }
                 },

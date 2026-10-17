@@ -201,6 +201,7 @@ func (j *XrayTrafficJob) Run() {
 		"onlineClients":  onlineClients,
 		"onlineByGuid":   j.inboundService.GetOnlineClientsByGuid(),
 		"activeInbounds": j.inboundService.GetActiveInboundsByGuid(),
+		"activeProfiles": j.inboundService.GetClientActiveProfiles(),
 		"lastOnlineMap":  lastOnlineMap,
 	})
 
