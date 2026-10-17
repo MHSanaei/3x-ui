@@ -462,6 +462,9 @@ func dedupeEmails(emails []string) []string {
 
 // subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
+	// Every subscription body carries live traffic/expiry and routing headers:
+	// a cached copy keeps stale data after the admin edits routing rules.
+	setNoCacheHeaders(c)
 	userAgent := c.GetHeader("User-Agent")
 	if a.maybeServeSubInfo(c) {
 		logSubscriptionRoute(userAgent, "info")
@@ -840,6 +843,7 @@ func (a *SUBController) serveJsonBody(c *gin.Context, alwaysReturnArray bool, co
 	if len(jsonSub) == 0 && header == "" {
 		return false
 	}
+	setNoCacheHeaders(c)
 	var subReq *SubService
 	metadata := a.metadataForSubRequest(func() *SubService {
 		if subReq == nil {
@@ -908,6 +912,7 @@ func (a *SUBController) serveClashBody(c *gin.Context, rawDownload bool, legacy 
 	if len(clashSub) == 0 && header == "" {
 		return false
 	}
+	setNoCacheHeaders(c)
 	var subReq *SubService
 	metadata := a.metadataForSubRequest(func() *SubService {
 		if subReq == nil {
