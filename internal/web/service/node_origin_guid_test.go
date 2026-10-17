@@ -3,6 +3,7 @@ package service
 import (
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -188,6 +189,7 @@ func TestSetRemoteTraffic_RemapsActiveInboundTreeAndCentralTags(t *testing.T) {
 		ActiveInboundTree: map[string][]string{
 			"dup": {"shared-tag"},
 		},
+		ActiveProfiles: xray.ActiveProfileTree{"dup": {Supported: true, ObservedAt: time.Now().UnixMilli(), Clients: map[string][]string{"alice": {"shared-tag"}}}},
 	}
 
 	svc := InboundService{}
@@ -199,6 +201,11 @@ func TestSetRemoteTraffic_RemapsActiveInboundTreeAndCentralTags(t *testing.T) {
 	assertStringSet(t, "active node:1", merged["node:1"], []string{"n1-shared-tag"})
 	if _, ok := merged["dup"]; ok {
 		t.Fatalf("cloned active-inbound subtree must not stay under shared GUID: %v", merged)
+	}
+	profiles := process.GetMergedActiveProfiles(time.Now())
+	assertStringSet(t, "exact client attribution", profiles["node:1"].Clients["alice"], []string{"n1-shared-tag"})
+	if _, ok := profiles["dup"]; ok {
+		t.Fatal("exact profile snapshot kept a duplicated GUID")
 	}
 }
 

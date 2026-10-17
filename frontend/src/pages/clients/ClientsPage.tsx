@@ -92,7 +92,7 @@ const BulkAttachInboundsModal = lazy(() => import('./BulkAttachInboundsModal'));
 const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
-import { ClientInboundChips, ClientRowActions } from './RowCells';
+import { ClientActiveProfiles, ClientInboundChips, ClientRowActions } from './RowCells';
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
@@ -337,6 +337,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds,
     onlines,
+    activeProfiles,
     transitioning,
     fetched,
     fetchError,
@@ -1172,6 +1173,20 @@ export default function ClientsPage() {
         },
       },
       {
+        title: t('pages.clients.activeProfiles'),
+        key: 'activeProfiles',
+        width: 200,
+        render: (_v, record) => (
+          <ClientActiveProfiles
+            email={record.email}
+            ids={record.inboundIds || EMPTY_INBOUND_IDS}
+            inboundsById={inboundsById}
+            tree={activeProfiles}
+            protocolColors={INBOUND_PROTOCOL_COLORS}
+          />
+        ),
+      },
+      {
         title: t('pages.clients.traffic'),
         key: 'traffic',
         width: 300,
@@ -1228,6 +1243,7 @@ export default function ClientsPage() {
       clientBucket,
       isOnline,
       inboundsById,
+      activeProfiles,
       filters,
       allGroups,
       datepicker,
@@ -1858,6 +1874,16 @@ export default function ClientsPage() {
                                     </div>
                                   </div>
                                   <ClientCardComment comment={row.comment} />
+                                  <div>
+                                    <span>{t('pages.clients.activeProfiles')}: </span>
+                                    <ClientActiveProfiles
+                                      email={row.email}
+                                      ids={row.inboundIds || EMPTY_INBOUND_IDS}
+                                      inboundsById={inboundsById}
+                                      tree={activeProfiles}
+                                      protocolColors={INBOUND_PROTOCOL_COLORS}
+                                    />
+                                  </div>
                                   <ClientTrafficCell
                                     compact
                                     up={row.traffic?.up}

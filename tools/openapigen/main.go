@@ -74,6 +74,7 @@ func run(root, outDir string) error {
 			StructAllow: setOf(
 				"ClientTraffic",
 				"Traffic",
+				"ActiveProfileSnapshot",
 			),
 		},
 		{

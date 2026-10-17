@@ -140,6 +140,20 @@ const trafficPayloadSchema = {
     onlineClients: stringArray,
     onlineByGuid: stringArrayMap,
     activeInbounds: stringArrayMap,
+    activeProfiles: {
+      type: 'object',
+      description:
+        'Exact connection-based client-to-inbound attribution, keyed by hosting panel GUID. Missing or unsupported nodes are unknown, not inferred from aggregate traffic.',
+      additionalProperties: {
+        type: 'object',
+        required: ['supported', 'observedAt', 'clients'],
+        properties: {
+          supported: { type: 'boolean' },
+          observedAt: int64,
+          clients: stringArrayMap,
+        },
+      },
+    },
     lastOnlineMap: timestampMap,
   },
   oneOf: [

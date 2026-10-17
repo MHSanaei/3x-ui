@@ -1504,6 +1504,24 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			activeTree = filterGuidTreeKeys(activeTree, activeInboundGuidKeys(snap.Inbounds, tagToCentral, originGuidFor))
 		}
 		process.SetNodeActiveInboundTree(nodeID, activeTree)
+		profiles := xray.ActiveProfileTree{}
+		allowed := activeInboundGuidKeys(snap.Inbounds, tagToCentral, originGuidFor)
+		for guid, snapshot := range snap.ActiveProfiles {
+			if guidShared && guid == nodeRow.Guid {
+				guid = selfKey
+			}
+			if _, ok := allowed[guid]; !ok {
+				continue
+			}
+			clients := make(map[string][]string, len(snapshot.Clients))
+			for email, tags := range snapshot.Clients {
+				normalized := normalizeActiveInboundTreeTags(map[string][]string{guid: tags}, tagToCentral)
+				clients[email] = normalized[guid]
+			}
+			snapshot.Clients = clients
+			profiles[guid] = snapshot
+		}
+		process.SetNodeActiveProfiles(nodeID, profiles, time.Now())
 	}
 
 	return structuralChange, nil

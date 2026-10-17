@@ -52,12 +52,13 @@ var (
 
 // XrayAPI is a gRPC client for managing Xray core configuration, inbounds, outbounds, and statistics.
 type XrayAPI struct {
-	HandlerServiceClient *command.HandlerServiceClient
-	StatsServiceClient   *statsService.StatsServiceClient
-	RoutingServiceClient *routerService.RoutingServiceClient
-	grpcClient           *grpc.ClientConn
-	isConnected          bool
-	StatsLastValues      map[string]int64
+	HandlerServiceClient  *command.HandlerServiceClient
+	StatsServiceClient    *statsService.StatsServiceClient
+	RoutingServiceClient  *routerService.RoutingServiceClient
+	grpcClient            *grpc.ClientConn
+	isConnected           bool
+	StatsLastValues       map[string]int64
+	OnlineInboundTracking bool
 }
 
 func getRequiredUserString(user map[string]any, key string) (string, error) {
@@ -884,8 +885,9 @@ type OnlineIP struct {
 // OnlineUser is a client email with at least one live connection and the source
 // IPs of those connections, as tracked by Xray's statsUserOnline policy.
 type OnlineUser struct {
-	Email string     `json:"email"`
-	IPs   []OnlineIP `json:"ips"`
+	Email       string     `json:"email"`
+	IPs         []OnlineIP `json:"ips"`
+	InboundTags []string   `json:"inboundTags,omitempty"`
 }
 
 // GetOnlineUsers returns every user with at least one live connection plus their
@@ -906,6 +908,7 @@ func (x *XrayAPI) GetOnlineUsers() ([]OnlineUser, error) {
 	if err != nil {
 		return nil, err
 	}
+	x.OnlineInboundTracking = onlineInboundTracking(resp.ProtoReflect())
 
 	users := make([]OnlineUser, 0, len(resp.GetUsers()))
 	for _, u := range resp.GetUsers() {
@@ -919,7 +922,7 @@ func (x *XrayAPI) GetOnlineUsers() ([]OnlineUser, error) {
 			}
 			ips = append(ips, OnlineIP{IP: entry.GetIp(), LastSeen: entry.GetLastSeen()})
 		}
-		users = append(users, OnlineUser{Email: u.GetEmail(), IPs: ips})
+		users = append(users, OnlineUser{Email: u.GetEmail(), IPs: ips, InboundTags: onlineInboundTags(u.ProtoReflect())})
 	}
 	return users, nil
 }

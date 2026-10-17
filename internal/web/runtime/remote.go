@@ -759,6 +759,7 @@ type TrafficSnapshot struct {
 	// old build without the endpoint; the master then falls back to email-only
 	// online attribution for that node.
 	ActiveInboundTree map[string][]string
+	ActiveProfiles    xray.ActiveProfileTree
 	LastOnlineMap     map[string]int64
 	// HostGroups carries the node's per-inbound host overrides (TLS/SNI/
 	// fingerprint), fetched only when the snapshot holds a not-yet-adopted tag.
@@ -819,6 +820,10 @@ func (r *Remote) FetchTrafficSnapshot(ctx context.Context) (*TrafficSnapshot, er
 		logger.Debugf("remote %s active inbounds fetch failed: %v", r.node.Name, err)
 	} else if len(envActiveInbounds.Obj) > 0 {
 		_ = json.Unmarshal(envActiveInbounds.Obj, &snap.ActiveInboundTree)
+	}
+	// Optional on older panels; do not fabricate attribution from shared traffic.
+	if env, err := r.do(ctx, http.MethodPost, "panel/api/clients/activeProfiles", nil); err == nil && len(env.Obj) > 0 {
+		_ = json.Unmarshal(env.Obj, &snap.ActiveProfiles)
 	}
 
 	return snap, nil
