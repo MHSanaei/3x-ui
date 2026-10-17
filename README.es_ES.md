@@ -200,6 +200,7 @@ Herramientas e integraciones construidas por la comunidad alrededor de 3x-ui.
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (Licencia: **MIT**): _Gestiona inbounds, clientes, configuración del panel y configuración de Xray como código con Terraform / OpenTofu._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (Licencia: **MIT**): _Cliente nativo de Android para 3x-ui — panel de control, inbounds, clientes con compartición por QR, nodos y gestión de múltiples paneles. Disponible en F-Droid._
+- [3X-UI Auto Nginx](https://github.com/xPROMSx/3x-ui-auto-nginx) (Licencia: **GPL-3.0**): _Instala la versión oficial de 3x-ui/Xray en un VPS con un solo comando: enrutamiento SNI con nginx, sitio web de camuflaje, HTTPS automático, conexiones VLESS REALITY, VLESS XHTTP y Hysteria2 preconfiguradas y copias de seguridad._
 
 ## Apoyar el Proyecto
 

@@ -200,6 +200,7 @@ English · فارسی · العربية · 中文（简体） · 中文（繁體
 
 - [terraform-provider-3x-ui](https://github.com/batonogov/terraform-provider-threexui) (مجوز: **MIT**): _مدیریت اینباندها، کلاینت‌ها، تنظیمات پنل و پیکربندی Xray به‌صورت کد با Terraform / OpenTofu._
 - [3X-UI Manager](https://github.com/yukh975/3X-UI-Manager) (مجوز: **MIT**): _کلاینت بومی اندروید برای 3x-ui — داشبورد، اینباندها، کلاینت‌ها با اشتراک‌گذاری QR، نودها و مدیریت چند پنل. در F-Droid در دسترس است._
+- [3X-UI Auto Nginx](https://github.com/xPROMSx/3x-ui-auto-nginx) (مجوز: **GPL-3.0**): _نصب نسخهٔ رسمی 3x-ui/Xray روی VPS با یک دستور: مسیریابی SNI با nginx، وب‌سایت پوششی، HTTPS خودکار، اتصال‌های از پیش پیکربندی‌شدهٔ VLESS REALITY، VLESS XHTTP و Hysteria2 و پشتیبان‌گیری._
 
 ## پشتیبانی از پروژه
 
