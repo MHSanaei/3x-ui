@@ -16,7 +16,7 @@ import (
 const clashExternalVlessLink = "vless://22222222-2222-4222-8222-222222222222@198.51.100.9:443?type=tcp&security=reality&sni=example.com&pbk=test-public-key&sid=ab12&fp=chrome&flow=xtls-rprx-vision"
 
 func TestClashExternalVlessEncryption(t *testing.T) {
-	svc := NewSubClashService(false, "", &SubService{})
+	svc := NewSubClashService(false, "", false, &SubService{})
 	for _, tc := range []struct {
 		name  string
 		query string
