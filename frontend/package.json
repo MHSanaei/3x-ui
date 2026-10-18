@@ -115,10 +115,5 @@
     "tree-sitter-json": false,
     "msw": false,
     "esbuild": false
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
   }
 }
