@@ -9,6 +9,7 @@ import {
   dohEndpointOptions,
   echDomainOptions,
   formatDynamicEch,
+  isSupportedDohUrl,
   parseDynamicEch,
   resolveAutoEchDomain,
 } from '@/lib/xray/ech-presets';
@@ -35,12 +36,8 @@ function initialDomainChoice(sni: string, rejectUnknownSni: boolean): string {
   return resolveAutoEchDomain(sni, rejectUnknownSni) ?? DEFAULT_ECH_DOMAIN;
 }
 
-/*
- * Only the client-side echConfigList can hold the dynamic `domain+DoH` form, so
- * this helper never touches the server-side ECH key fields by itself. The lone
- * exception is the explicit, confirmed "clear local keys" path: behind a CDN
- * those keys are not merely unused, they are the reason handshakes fail.
- */
+/* Only echConfigList can hold the dynamic `domain+DoH` form; clearing local keys
+ * is a separate, explicitly confirmed step because behind a CDN they are dead. */
 export default function DynamicEchHelper({
   value = '',
   sni = '',
@@ -70,9 +67,19 @@ export default function DynamicEchHelper({
     else onApply?.(built);
   };
 
+  const pickDomain = (next: string) => {
+    setDomainChoice(next);
+    setPreview(null);
+  };
+
+  const pickDoh = (next: string) => {
+    setDohChoice(next);
+    setPreview(null);
+  };
+
   const confirmOverwrite = () => {
-    if (!preview) return;
-    onApply?.(preview);
+    if (!built) return;
+    onApply?.(built);
     onClearLocalKeys?.();
     setPreview(null);
   };
@@ -89,7 +96,7 @@ export default function DynamicEchHelper({
             value={domainChoice}
             disabled={disabled}
             showSearch
-            onChange={setDomainChoice}
+            onChange={pickDomain}
             options={[
               ...echDomainOptions(),
               { value: CUSTOM, label: t('pages.inbounds.form.addCustomOption') },
@@ -114,7 +121,7 @@ export default function DynamicEchHelper({
           <Select
             value={dohChoice}
             disabled={disabled}
-            onChange={setDohChoice}
+            onChange={pickDoh}
             options={[
               ...dohEndpointOptions(t),
               {
@@ -130,12 +137,18 @@ export default function DynamicEchHelper({
               value={dohInput}
               disabled={disabled}
               placeholder={DEFAULT_DOH_ENDPOINT}
+              status={dohInput && !isSupportedDohUrl(dohInput) ? 'error' : undefined}
               onChange={(e) => {
                 setDohInput(e.target.value);
                 setPreview(null);
               }}
             />
           </Form.Item>
+        )}
+        {dohChoice === CUSTOM && dohInput && !isSupportedDohUrl(dohInput) && (
+          <Typography.Paragraph type="danger" style={{ fontSize: 12, marginBottom: 8 }}>
+            {t('pages.inbounds.form.echDynamicUnsupportedScheme')}
+          </Typography.Paragraph>
         )}
       </Form>
 
@@ -173,7 +186,14 @@ export default function DynamicEchHelper({
             showIcon
             data-testid="ech-dynamic-overwrite-warning"
             title={t('pages.inbounds.form.echDynamicOverwriteTitle')}
-            description={t('pages.inbounds.form.echDynamicOverwriteBody')}
+            description={
+              <>
+                <div>{t('pages.inbounds.form.echDynamicOverwriteBody')}</div>
+                <div data-testid="ech-dynamic-overwrite-value" style={{ marginTop: 4 }}>
+                  <Typography.Text code>{preview}</Typography.Text>
+                </div>
+              </>
+            }
             action={
               <Space direction="vertical">
                 <Button size="small" type="primary" onClick={confirmOverwrite}>

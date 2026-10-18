@@ -6,8 +6,8 @@ export const ECH_DOH_SEPARATOR = '+';
 export const DEFAULT_ECH_DOMAIN = 'cloudflare-ech.com';
 export const DEFAULT_DOH_ENDPOINT = 'https://dns.alidns.com/dns-query';
 
-/* A resolver only works here if it publishes HTTPS RRs (carrying `ech=`), so
- * this list is narrower than the issue's — the rest are unreachable as of now. */
+/* A resolver only works here if it publishes HTTPS RRs (carrying `ech=`); the
+ * issue's remaining hosts did not answer when this list was assembled. */
 export const DOH_ENDPOINT_GROUPS = [
   {
     key: 'china',
@@ -38,7 +38,7 @@ export const DOH_ENDPOINT_GROUPS = [
   },
 ] as const;
 
-/* Targets verified to publish HTTPS RRs — a name without one yields no ECH. */
+/* Targets that publish HTTPS RRs: a name without one yields no ECH at all. */
 export const ECH_DOMAIN_PRESETS = [
   'cloudflare-ech.com',
   'crypto.cloudflare.com',
@@ -54,13 +54,17 @@ export const ECH_DOMAIN_PRESETS = [
 ] as const;
 
 const DOMAIN_RE = /^([a-z0-9-]+\.)+[a-z]{2,}$/i;
-const DIALABLE_URI_RE = /^(https?|quic|udp|tcp|tls):\/\/[^\s/+]+/i;
+
+/* Xray's ECH resolver dials the DoH half by literal prefix match: https:// and
+ * h2c:// over HTTP, udp:// plain DNS. Any other scheme silently never resolves. */
+export const SUPPORTED_DOH_SCHEMES = ['https', 'h2c', 'udp'] as const;
+const DOH_URI_RE = /^(https|h2c|udp):\/\/[^\s/+]+/i;
 
 export function formatDynamicEch(domain: string, dohUrl: string): string | null {
   const d = domain.trim();
   const u = dohUrl.trim();
   if (!DOMAIN_RE.test(d) || d.includes(ECH_DOH_SEPARATOR)) return null;
-  if (!DIALABLE_URI_RE.test(u)) return null;
+  if (!DOH_URI_RE.test(u)) return null;
   return `${d}${ECH_DOH_SEPARATOR}${u}`;
 }
 
@@ -70,8 +74,12 @@ export function parseDynamicEch(value: string): { domain: string; dohUrl: string
   if (split <= 0) return null;
   const domain = raw.slice(0, split).trim();
   const dohUrl = raw.slice(split + 1).trim();
-  if (!DOMAIN_RE.test(domain) || !DIALABLE_URI_RE.test(dohUrl)) return null;
+  if (!DOMAIN_RE.test(domain) || !DOH_URI_RE.test(dohUrl)) return null;
   return { domain, dohUrl };
+}
+
+export function isSupportedDohUrl(url: string): boolean {
+  return DOH_URI_RE.test(url.trim());
 }
 
 /** null = leave the name to the client, which resolves whatever SNI it dials. */

@@ -7,8 +7,10 @@ import {
   ECH_DOMAIN_PRESETS,
   ECH_DOH_SEPARATOR,
   formatDynamicEch,
+  isSupportedDohUrl,
   parseDynamicEch,
   resolveAutoEchDomain,
+  SUPPORTED_DOH_SCHEMES,
 } from '@/lib/xray/ech-presets';
 
 function optionValues(groups: typeof DOH_ENDPOINT_GROUPS): string[] {
@@ -16,12 +18,10 @@ function optionValues(groups: typeof DOH_ENDPOINT_GROUPS): string[] {
 }
 
 describe('dynamic ECH presets', () => {
-  it('every DoH preset is a scheme Xray can dial for the domain+DoH form', () => {
-    // A typo'd scheme ("htps://") or a bare host silently breaks the client's
-    // DoH lookup, and nothing else in the panel validates this string.
-    const bad = optionValues(DOH_ENDPOINT_GROUPS).filter(
-      (v) => !/^(https?|quic|udp|tcp|tls):\/\/[^/\s]+/i.test(v),
-    );
+  it('every shipped DoH preset is one Xray can actually resolve', () => {
+    // A preset with any other scheme passes review but never resolves, because
+    // Xray matches the scheme by literal prefix before dialing.
+    const bad = optionValues(DOH_ENDPOINT_GROUPS).filter((v) => !isSupportedDohUrl(v));
     expect(bad).toEqual([]);
   });
 
@@ -32,17 +32,30 @@ describe('dynamic ECH presets', () => {
     expect(bad).toEqual([]);
   });
 
-  it('carries the mainland-China direct-connect default the issue asks for', () => {
-    expect(DEFAULT_ECH_DOMAIN).toBe('cloudflare-ech.com');
-    expect(DEFAULT_DOH_ENDPOINT).toBe('https://dns.alidns.com/dns-query');
-    expect(formatDynamicEch(DEFAULT_ECH_DOMAIN, DEFAULT_DOH_ENDPOINT)).toBe(
-      'cloudflare-ech.com+https://dns.alidns.com/dns-query',
-    );
+  it.each(['https', 'h2c', 'udp'])('builds a value for the %s scheme Xray supports', (scheme) => {
+    const url = `${scheme}://dns.example.com/dns-query`;
+    expect(formatDynamicEch('cloudflare-ech.com', url)).toBe(`cloudflare-ech.com+${url}`);
   });
 
-  it('keeps the exact issue example intact', () => {
-    expect(formatDynamicEch('cloudflare-ech.com', 'https://1.1.1.1/dns-query')).toBe(
-      'cloudflare-ech.com+https://1.1.1.1/dns-query',
+  it.each(['http', 'quic', 'tcp', 'tls', 'doq', 'ftp'])(
+    'rejects the %s scheme, which Xray never dials for ECH',
+    (scheme) => {
+      // Accepting these would ship a config that fails at the client, where the
+      // operator cannot see the panel's advice any more.
+      expect(formatDynamicEch('cloudflare-ech.com', `${scheme}://1.1.1.1/dns-query`)).toBeNull();
+    },
+  );
+
+  it('exposes exactly the three schemes its own parser accepts', () => {
+    expect([...SUPPORTED_DOH_SCHEMES]).toEqual(['https', 'h2c', 'udp']);
+    for (const scheme of ['http', 'quic', 'tcp', 'tls']) {
+      expect(SUPPORTED_DOH_SCHEMES).not.toContain(scheme);
+    }
+  });
+
+  it('preselects Cloudflare over AliDNS, the mainland-China reachable pair', () => {
+    expect(formatDynamicEch(DEFAULT_ECH_DOMAIN, DEFAULT_DOH_ENDPOINT)).toBe(
+      'cloudflare-ech.com+https://dns.alidns.com/dns-query',
     );
   });
 
@@ -73,6 +86,12 @@ describe('dynamic ECH presets', () => {
     expect(
       parseDynamicEch(`cloudflare-ech.com${ECH_DOH_SEPARATOR}https://dns.google/dns-query`),
     ).toEqual({ domain: 'cloudflare-ech.com', dohUrl: 'https://dns.google/dns-query' });
+  });
+
+  it('refuses to split a value whose DoH half uses an unsupported scheme', () => {
+    // Otherwise pasting a quic:// value back into the helper would round-trip an
+    // endpoint Xray can never reach.
+    expect(parseDynamicEch('cloudflare-ech.com+quic://1.1.1.1/dns-query')).toBeNull();
   });
 
   it('does not mistake a local ECHConfigList (base64) for a dynamic value', () => {
