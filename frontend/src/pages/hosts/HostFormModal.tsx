@@ -1,6 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, InputNumber, Modal, Select, Switch, Tabs, message } from 'antd';
+import {
+  Alert,
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popover,
+  Select,
+  Switch,
+  Tabs,
+  Typography,
+  message,
+} from 'antd';
 import {
   ProfileOutlined,
   SafetyCertificateOutlined,
@@ -10,6 +23,7 @@ import {
   PartitionOutlined,
   DeploymentUnitOutlined,
   RocketOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
@@ -18,6 +32,7 @@ import { BulkAddHostSchema, type BulkAddHostValues } from '@/schemas/api/host';
 import type { InboundOption } from '@/schemas/client';
 import { ALPN_OPTION, UTLS_FINGERPRINT } from '@/schemas/primitives';
 import { CipherSuitesSelect } from '@/components/form';
+import DynamicEchHelper from '@/components/form/DynamicEchHelper';
 import { FormField, rhfZodValidate } from '@/components/form/rhf';
 import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -93,6 +108,8 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
+  const hostSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
+  const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
 
@@ -358,12 +375,54 @@ export default function HostFormModal({
                         >
                           <Switch />
                         </FormField>
+                        <Form.Item
+                          label={t('pages.hosts.fields.echConfigList')}
+                          style={{ marginBottom: 8 }}
+                        >
+                          <Popover
+                            trigger="click"
+                            placement="bottomLeft"
+                            destroyOnHidden
+                            title={t('pages.inbounds.form.echDynamicTitle')}
+                            content={
+                              <DynamicEchHelper
+                                value={hostEchConfig}
+                                sni={hostSni}
+                                onApply={(next) =>
+                                  methods.setValue('echConfigList', next, { shouldDirty: true })
+                                }
+                              />
+                            }
+                          >
+                            <Button
+                              icon={<ThunderboltOutlined />}
+                              data-testid="ech-dynamic-helper-trigger"
+                            >
+                              {t('pages.inbounds.form.echDynamicTrigger')}
+                            </Button>
+                          </Popover>
+                        </Form.Item>
                         <FormField
                           name="echConfigList"
-                          label={t('pages.hosts.fields.echConfigList')}
+                          label={t('pages.inbounds.form.echConfigList')}
+                          extra={
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {t('pages.inbounds.form.echConfigListHint')}
+                            </Typography.Text>
+                          }
                         >
-                          <Input.TextArea rows={2} />
+                          <Input.TextArea
+                            rows={2}
+                            placeholder={t('pages.inbounds.form.echDynamicPlaceholder')}
+                          />
                         </FormField>
+                        <Alert
+                          type="info"
+                          showIcon
+                          data-testid="ech-cdn-warning"
+                          title={t('pages.inbounds.form.echCdnWarningTitle')}
+                          description={t('pages.inbounds.form.echCdnWarningBody')}
+                        />
                       </>
                     )}
                   </>
