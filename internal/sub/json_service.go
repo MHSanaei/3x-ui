@@ -152,6 +152,9 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 		subReq.projectThroughFallbackMaster(inbound)
 		baseEps := subReq.hostEndpoints(inbound, "json")
 		baseStream := inbound.StreamSettings
+		// getConfig rewrites inbound.Listen/Port per endpoint while rendering a
+		// client, so bound endpoints resolve against this pre-loop snapshot.
+		baseInbound := *inbound
 		if len(baseEps) > 0 {
 			injectExternalProxy(inbound, baseEps)
 		}
@@ -164,12 +167,12 @@ func (s *SubJsonService) GetJson(subId string, host string, alwaysReturnArray bo
 			seenEmails[client.Email] = struct{}{}
 			effective := inbound
 			var clone model.Inbound
-			if effectiveEps, hasBinding := subReq.clientHostEndpoints(inbound, client, "json", baseEps); hasBinding {
+			if effectiveEps, hasBinding := subReq.clientHostEndpoints(&baseInbound, client, "json", baseEps); hasBinding {
 				if len(effectiveEps) == 0 {
 					hasBoundClosed = true
 					continue
 				}
-				clone = *inbound
+				clone = baseInbound
 				clone.StreamSettings = baseStream
 				injectExternalProxy(&clone, effectiveEps)
 				effective = &clone

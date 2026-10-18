@@ -685,6 +685,66 @@ func seedSubClient(t *testing.T, ib *model.Inbound, subId, email string) {
 
 const tcpTLSStream = `{"network":"tcp","security":"tls","tlsSettings":{"serverName":"base.sni"}}`
 
+// A bound host that leaves address and port blank must fall back to the
+// inbound's own, even when an earlier client already rewrote the shared
+// inbound's Listen/Port while rendering its own endpoints.
+func TestSub_JsonBoundHostBlankAddressIgnoresEarlierClient(t *testing.T) {
+	seedSubDB(t)
+	ib := seedSubInbound(t, "s1", "mv", 4491, 1, tcpTLSStream)
+	// Host A has a real address and sorts last, so the unbound client (lower
+	// id, rendered first) leaves the shared inbound pointing at a.cdn.com:443.
+	seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls"})
+	// Host B is override-only: blank address and port, so the bound client's
+	// endpoint must inherit the inbound's own address and port.
+	hostB := seedHost(t, &model.Host{InboundId: ib.Id, SortOrder: 0, Remark: "B", Security: "tls", Sni: "b.sni"})
+	seedSubClient(t, ib, "s1", "bound@e")
+
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", "bound@e").
+		Update("client_host_rule_id", hostB.Id).Error; err != nil {
+		t.Fatalf("bind host rule: %v", err)
+	}
+
+	out, _, err := NewSubJsonService("", "", "", "", NewSubService("")).GetJson("s1", "req.example.com", false)
+	if err != nil {
+		t.Fatalf("GetJson: %v", err)
+	}
+	type config struct {
+		Remarks   string `json:"remarks"`
+		Outbounds []struct {
+			Tag      string `json:"tag"`
+			Settings struct {
+				Address string `json:"address"`
+				Port    int    `json:"port"`
+			} `json:"settings"`
+		} `json:"outbounds"`
+	}
+	var docs []config
+	if err := json.Unmarshal([]byte(out), &docs); err != nil {
+		t.Fatalf("unmarshal json sub: %v\n%s", err, out)
+	}
+	var got struct {
+		address string
+		port    int
+	}
+	for _, doc := range docs {
+		if !strings.Contains(doc.Remarks, "bound@e") {
+			continue
+		}
+		for _, ob := range doc.Outbounds {
+			if ob.Tag == "proxy" {
+				got.address, got.port = ob.Settings.Address, ob.Settings.Port
+			}
+		}
+	}
+	if got.address == "" {
+		t.Fatalf("no proxy outbound found for the bound client:\n%s", out)
+	}
+	if got.address != ib.Listen || got.port != ib.Port {
+		t.Fatalf("override-only host resolved to %s:%d, want the inbound's own %s:%d",
+			got.address, got.port, ib.Listen, ib.Port)
+	}
+}
+
 // A client bound to one host renders only that host's link with its SNI,
 // while an unbound client on the same inbound still fans out to every host.
 func TestSub_ClientHostRule_SingleBinding(t *testing.T) {

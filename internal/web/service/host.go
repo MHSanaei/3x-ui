@@ -268,7 +268,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 
 	err := database.GetDB().Transaction(func(tx *gorm.DB) error {
 		var existing []*model.Host
-		if err := tx.Where("group_id = ?", groupId).Find(&existing).Error; err != nil {
+		if err := tx.Where("group_id = ?", groupId).Order("id asc").Find(&existing).Error; err != nil {
 			return err
 		}
 		if len(existing) == 0 {
