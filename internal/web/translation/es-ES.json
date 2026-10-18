@@ -1301,6 +1301,8 @@
       "subClashEnableRoutingDesc": "Incluir reglas globales de enrutamiento Clash/Mihomo en las suscripciones YAML generadas.",
       "subClashRoutingRules": "Reglas globales de enrutamiento",
       "subClashRoutingRulesDesc": "Pegue reglas/YAML o una URL HTTPS permanente. El panel la actualiza en segundo plano, importa solo grupos, proveedores de reglas y reglas, y conserva los nodos VPN generados y el último valor válido.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "Listening IP",
       "subListenDesc": "Dejar en blanco por defecto para monitorear todas las IPs.",
       "subPort": "Puerto de Suscripción",

@@ -1301,6 +1301,8 @@
       "subClashEnableRoutingDesc": "生成されたYAMLサブスクリプションにClash/Mihomoのグローバルルーティングルールを含めます。",
       "subClashRoutingRules": "グローバルルーティングルール",
       "subClashRoutingRulesDesc": "ルール/YAML、または永続的な HTTPS URL を入力します。パネルはバックグラウンドで更新し、グループ・ルールプロバイダー・ルールのみを取り込み、生成済み VPN ノードと最後の有効値を保持します。",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "監視IP",
       "subListenDesc": "サブスクリプションサービスが監視するIPアドレス（空白にするとすべてのIPを監視）",
       "subPort": "監視ポート",

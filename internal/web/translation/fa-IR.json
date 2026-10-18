@@ -1305,6 +1305,8 @@
       "subClashEnableRoutingDesc": "قوانین مسیریابی سراسری Clash/Mihomo را در اشتراک‌های YAML تولیدشده وارد کن.",
       "subClashRoutingRules": "قوانین مسیریابی سراسری",
       "subClashRoutingRulesDesc": "قوانین/YAML یا یک نشانی دائمی HTTPS وارد کنید. پنل آن را در پس‌زمینه به‌روزرسانی می‌کند، فقط گروه‌ها، ارائه‌دهندگان قانون و قوانین را وارد می‌کند و گره‌های VPN ساخته‌شده و آخرین مقدار معتبر را حفظ می‌کند.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "آدرس آی‌پی",
       "subListenDesc": "آدرس آی‌پی برای سرویس سابسکریپشن. برای گوش دادن به‌تمام آی‌پی‌ها خالی‌بگذارید",
       "subPort": "پورت",

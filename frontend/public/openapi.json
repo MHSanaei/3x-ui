@@ -242,6 +242,9 @@
           "subClashPath": {
             "type": "string"
           },
+          "subClashRemoteDNS": {
+            "type": "boolean"
+          },
           "subClashRules": {
             "type": "string"
           },
@@ -662,6 +665,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",
@@ -1017,6 +1021,9 @@
           },
           "subClashPath": {
             "type": "string"
+          },
+          "subClashRemoteDNS": {
+            "type": "boolean"
           },
           "subClashRules": {
             "type": "string"
@@ -1446,6 +1453,7 @@
           "subClashEnable",
           "subClashEnableRouting",
           "subClashPath",
+          "subClashRemoteDNS",
           "subClashRules",
           "subClashURI",
           "subClashUserAgentRegex",

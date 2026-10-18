@@ -80,6 +80,7 @@ export const AllSettingSchema = z
     subClashURI: z.string().optional(),
     subClashEnableRouting: z.boolean().optional(),
     subClashRules: z.string().optional(),
+    subClashRemoteDNS: z.boolean().optional(),
     subJsonMux: z.string().optional(),
     subJsonRules: z.string().optional(),
     subJsonRoutingRules: z.string().optional(),

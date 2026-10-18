@@ -1423,6 +1423,8 @@
       "subClashEnableRoutingDesc": "Include global Clash/Mihomo routing rules in generated YAML subscriptions.",
       "subClashRoutingRules": "Global routing rules",
       "subClashRoutingRulesDesc": "Paste inline rules/YAML or one permanent HTTPS URL. The panel refreshes it in the background, imports only groups/providers/rules, preserves generated VPN nodes and keeps the last valid value.",
+      "subClashRemoteDNS": "Use DNS from remote rules",
+      "subClashRemoteDNSDesc": "When the global routing rules field is a URL, also take its dns and sniffer sections. Enable only for a template you trust.",
       "subListen": "Listen IP",
       "subListenDesc": "The IP address for the subscription service. (leave blank to listen on all IPs)",
       "subPort": "Listen Port",
