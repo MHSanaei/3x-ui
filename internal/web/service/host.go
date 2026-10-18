@@ -277,8 +277,9 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 		if err := validateInboundsExist(tx, req.InboundIds); err != nil {
 			return err
 		}
-		// Reuse ids for unchanged (inbound, address, port) keys so edits
-		// keep bindings; absent keys are deleted, orphaning deliberately.
+		// Exact (inbound, address, port) matches reuse ids so edits keep
+		// bindings; a second pass pairs same-inbound leftovers with edits.
+		// Rows still unclaimed are deleted.
 		type hostKey struct {
 			inbound int
 			addr    string
@@ -290,6 +291,7 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 			byKey[k] = append(byKey[k], h)
 		}
 		var toInsert, toUpdate []*model.Host
+		var unmatched []*model.Host
 		matched := make(map[int]struct{}, len(desired))
 		for _, d := range desired {
 			k := hostKey{d.InboundId, d.Address, d.Port}
@@ -297,6 +299,23 @@ func (s *HostService) UpdateHostGroup(groupId string, req *entity.HostGroup) ([]
 				d.Id = q[0].Id
 				d.CreatedAt = q[0].CreatedAt
 				byKey[k] = q[1:]
+				toUpdate = append(toUpdate, d)
+				matched[d.Id] = struct{}{}
+			} else {
+				unmatched = append(unmatched, d)
+			}
+		}
+		leftovers := make(map[int][]*model.Host)
+		for _, h := range existing {
+			if _, ok := matched[h.Id]; !ok {
+				leftovers[h.InboundId] = append(leftovers[h.InboundId], h)
+			}
+		}
+		for _, d := range unmatched {
+			if q := leftovers[d.InboundId]; len(q) > 0 {
+				d.Id = q[0].Id
+				d.CreatedAt = q[0].CreatedAt
+				leftovers[d.InboundId] = q[1:]
 				toUpdate = append(toUpdate, d)
 				matched[d.Id] = struct{}{}
 			} else {

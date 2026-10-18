@@ -366,6 +366,104 @@ func TestUpdateHostGroup_ValidateBeforeDelete(t *testing.T) {
 	}
 }
 
+// An address/port edit must keep the row id: per-client host rule bindings
+// reference ids, so a deleted row orphans every bound client.
+func TestUpdateHostGroup_AddressEditKeepsHostId(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	created, err := svc.AddHostGroup(&entity.HostGroup{
+		InboundIds: []int{ib.Id},
+		Remark:     "cdn",
+		Hosts:      []string{"a.cdn.com"},
+		Port:       8443,
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+	wantId := created[0].Id
+
+	if _, err := svc.UpdateHostGroup(created[0].GroupId, &entity.HostGroup{
+		InboundIds: []int{ib.Id},
+		Remark:     "cdn",
+		Hosts:      []string{"a2.cdn.com"},
+		Port:       8443,
+	}); err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+
+	raws, err := svc.GetRawHosts()
+	if err != nil {
+		t.Fatalf("GetRawHosts: %v", err)
+	}
+	var row *model.Host
+	for _, h := range raws {
+		if h.GroupId == created[0].GroupId {
+			if row != nil {
+				t.Fatalf("expected 1 row after edit, got extra %v:%d", h.Address, h.Port)
+			}
+			row = h
+		}
+	}
+	if row == nil {
+		t.Fatalf("host row vanished after edit")
+	}
+	if row.Id != wantId {
+		t.Fatalf("address edit replaced row id %d with %d; bound clients lose all links", wantId, row.Id)
+	}
+	if row.Address != "a2.cdn.com" || row.Port != 8443 {
+		t.Fatalf("row = %s:%d, want a2.cdn.com:8443", row.Address, row.Port)
+	}
+}
+
+// A host moved to another inbound has no leftover row to pair with on the
+// target: the old row must be deleted and the new one inserted.
+func TestUpdateHostGroup_MovedRowsDeletedAndInserted(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib1 := mkInbound(t, 443, model.VLESS, `{"clients":[]}`)
+	ib2 := mkInbound(t, 8443, model.VLESS, `{"clients":[]}`)
+	created, err := svc.AddHostGroup(&entity.HostGroup{
+		InboundIds: []int{ib1.Id},
+		Remark:     "move",
+		Hosts:      []string{"old.example.com"},
+		Port:       8080,
+	})
+	if err != nil {
+		t.Fatalf("AddHostGroup: %v", err)
+	}
+
+	if _, err := svc.UpdateHostGroup(created[0].GroupId, &entity.HostGroup{
+		InboundIds: []int{ib2.Id},
+		Remark:     "move",
+		Hosts:      []string{"new.example.com"},
+		Port:       9090,
+	}); err != nil {
+		t.Fatalf("UpdateHostGroup: %v", err)
+	}
+
+	raws, err := svc.GetRawHosts()
+	if err != nil {
+		t.Fatalf("GetRawHosts: %v", err)
+	}
+	rowsOn := func(inboundId int) []*model.Host {
+		var out []*model.Host
+		for _, h := range raws {
+			if h.GroupId == created[0].GroupId && h.InboundId == inboundId {
+				out = append(out, h)
+			}
+		}
+		return out
+	}
+	if rows := rowsOn(ib1.Id); len(rows) != 0 {
+		t.Fatalf("old inbound kept %d rows, want 0", len(rows))
+	}
+	rows := rowsOn(ib2.Id)
+	if len(rows) != 1 || rows[0].Address != "new.example.com" || rows[0].Port != 9090 {
+		t.Fatalf("moved row = %+v, want 1x new.example.com:9090", rows)
+	}
+}
+
 // Host fields are copied by hand in buildHostRows and newHostGroup; a missed
 // copy on either side silently blanks the value on the next edit-and-save.
 func TestHostGroup_CipherSuitesRoundTrip(t *testing.T) {
