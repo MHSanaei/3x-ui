@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/netip"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -560,8 +561,8 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 		proxy["fingerprint"] = certFingerprint
 	}
 
-	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
-	// block the subscription link generator uses.
+	// Salamander obfs (Hysteria2), read from the same finalmask.udp[salamander]
+	// block as the link generator; a packetSize range is mihomo's gecko obfs.
 	if finalmask, ok := rawStream["finalmask"].(map[string]any); ok {
 		if udpMasks, ok := finalmask["udp"].([]any); ok {
 			for _, m := range udpMasks {
@@ -573,6 +574,13 @@ func (s *SubClashService) buildHysteriaProxy(subReq *SubService, inbound *model.
 				if pw, ok := settings["password"].(string); ok && pw != "" {
 					proxy["obfs"] = "salamander"
 					proxy["obfs-password"] = pw
+					packetSize, _ := settings["packetSize"].(string)
+					if gecko := parseHysteriaPacketSize(packetSize); gecko != "" {
+						minStr, maxStr := splitHysteriaPacketSize(gecko)
+						proxy["obfs"] = "gecko"
+						proxy["obfs-min-packet-size"], _ = strconv.Atoi(minStr)
+						proxy["obfs-max-packet-size"], _ = strconv.Atoi(maxStr)
+					}
 					break
 				}
 			}

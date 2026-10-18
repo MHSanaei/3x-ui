@@ -110,6 +110,110 @@ func TestBackfillEmptyHostGroupIds_RepairsLegacyRows(t *testing.T) {
 	}
 }
 
+// verify_peer_cert_by_name began as a boolean; AutoMigrate's cast to text turned it
+// into the cert name "0"/"1", which xray clients then fail to verify against.
+func TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "x-ui.db")
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	ib := seedInboundWithStream(t, "vcn-legacy", 5557, `{"network":"tcp","security":"tls"}`)
+	for _, stmt := range []string{
+		"ALTER TABLE hosts DROP COLUMN verify_peer_cert_by_name",
+		"ALTER TABLE hosts ADD COLUMN verify_peer_cert_by_name numeric",
+	} {
+		if err := GetDB().Exec(stmt).Error; err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+	}
+	legacy := map[string]any{"bool-false": false, "bool-true": true, "named": "cert.example.com"}
+	for remark, vcn := range legacy {
+		if err := GetDB().Exec(
+			"INSERT INTO hosts (group_id, inbound_id, remark, address, security, verify_peer_cert_by_name) VALUES (?, ?, ?, 'cdn.example.com', 'tls', ?)",
+			remark, ib.Id, remark, vcn,
+		).Error; err != nil {
+			t.Fatalf("insert legacy host %s: %v", remark, err)
+		}
+	}
+	if err := GetDB().Where("seeder_name = ?", "HostVerifyPeerCertByNameBoolFix").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+
+	if err := InitDB(dbPath); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+
+	var hosts []model.Host
+	if err := GetDB().Where("inbound_id = ?", ib.Id).Find(&hosts).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(hosts) != len(legacy) {
+		t.Fatalf("hosts = %d, want %d", len(hosts), len(legacy))
+	}
+	for _, h := range hosts {
+		want := ""
+		if h.Remark == "named" {
+			want = "cert.example.com"
+		}
+		if h.VerifyPeerCertByName != want {
+			t.Errorf("host %s: verifyPeerCertByName = %q, want %q", h.Remark, h.VerifyPeerCertByName, want)
+		}
+	}
+}
+
+// Postgres casts the boolean column with USING col::text whenever the hosts table
+// also lacks a newer column, the shape every boolean-era table had.
+func TestMigrate_LegacyBooleanVerifyPeerCertByNameIsBlanked_Postgres(t *testing.T) {
+	if strings.TrimSpace(os.Getenv("XUI_DB_DSN")) == "" || os.Getenv("XUI_DB_TYPE") != "postgres" {
+		t.Skip("set XUI_DB_TYPE=postgres and XUI_DB_DSN to run the postgres migration test")
+	}
+	if err := InitDB(""); err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() { _ = CloseDB() })
+	GetDB().Exec("TRUNCATE TABLE hosts, inbounds RESTART IDENTITY CASCADE")
+	ib := seedInboundWithStream(t, "vcn-legacy-pg", 5558, `{"network":"tcp","security":"tls"}`)
+	for _, stmt := range []string{
+		"ALTER TABLE hosts DROP COLUMN cipher_suites",
+		"ALTER TABLE hosts DROP COLUMN verify_peer_cert_by_name",
+		"ALTER TABLE hosts ADD COLUMN verify_peer_cert_by_name boolean DEFAULT false",
+	} {
+		if err := GetDB().Exec(stmt).Error; err != nil {
+			t.Fatalf("%s: %v", stmt, err)
+		}
+	}
+	for _, vcn := range []bool{false, true} {
+		if err := GetDB().Exec(
+			"INSERT INTO hosts (group_id, inbound_id, remark, address, security, verify_peer_cert_by_name) VALUES ('g', ?, 'legacy', 'cdn.example.com', 'tls', ?)",
+			ib.Id, vcn,
+		).Error; err != nil {
+			t.Fatalf("insert legacy host %v: %v", vcn, err)
+		}
+	}
+	if err := GetDB().Where("seeder_name = ?", "HostVerifyPeerCertByNameBoolFix").Delete(&model.HistoryOfSeeders{}).Error; err != nil {
+		t.Fatalf("clear seeder history: %v", err)
+	}
+	if err := CloseDB(); err != nil {
+		t.Fatalf("CloseDB: %v", err)
+	}
+
+	if err := InitDB(""); err != nil {
+		t.Fatalf("reopen InitDB: %v", err)
+	}
+
+	var names []string
+	if err := GetDB().Model(&model.Host{}).Where("inbound_id = ?", ib.Id).Pluck("verify_peer_cert_by_name", &names).Error; err != nil {
+		t.Fatalf("load hosts: %v", err)
+	}
+	if len(names) != 2 || names[0] != "" || names[1] != "" {
+		t.Fatalf("verifyPeerCertByName = %q, want two blanks", names)
+	}
+}
+
 // #2 — a second run is a no-op (the HistoryOfSeeders gate).
 func TestMigrate_Idempotent(t *testing.T) {
 	initMigrateDB(t)

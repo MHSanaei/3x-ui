@@ -50,6 +50,10 @@ ProtectSystem=full
 # alias for older systemd, needed so ProtectSystem=full keeps /etc/x-ui writable.
 ReadWritePaths=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
 ReadWriteDirectories=-/etc/x-ui -/usr/local/x-ui -/var/log/x-ui
+# A kernel-TUN WireGuard outbound zeroes net.ipv{4,6}.conf.*.rp_filter as Xray starts
+# (#6796). Reopen only /proc/sys/net: kernel.* (core_pattern among them) stays read-only.
+# No ReadWriteDirectories alias needed: ProtectKernelTunables itself requires systemd 232.
+ReadWritePaths=-/proc/sys/net
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectKernelLogs=yes

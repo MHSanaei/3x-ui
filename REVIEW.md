@@ -33,7 +33,8 @@ changes, so pre-existing bugs surface on every review. One already on the base
 branch stays pre-existing however bad it is: this pull request did not cause
 it, so it cannot be a reason to hold this pull request. Say in one clause that
 it predates the change. The exception is a live security hole on an exposed
-surface — still pre-existing, but open the summary with it.
+surface — still pre-existing, but it gets the maintainer tag line that opens
+the comment.
 
 ## What HIGH means here
 
@@ -263,7 +264,12 @@ implementation — and which ones it leaves out. Then give one verdict: `Fits`,
 **Design** section: in prose only, the ideas a senior engineer would raise about the
 approach — a simpler model, an existing mechanism it could build on, a case
 the design does not cover, how an operator will meet it. Ideas, not
-instructions, and never code.
+instructions, and never code. Design holds approaches and trade-offs only. A
+concrete consequence — something an attacker can exploit, or that breaks for
+an operator — is a finding, even when its root predates the pull request,
+whenever the change makes it reachable or worse: rated by what the change
+added, on the surface it now sits on. A pre-existing spoofable value the pull
+request first puts in front of someone making a trust decision is that case.
 
 Every other kind gets one question and one verdict, with the same `file:line`
 evidence:
@@ -291,13 +297,20 @@ full base-to-head trace is for changes to what the panel does. Anything under
 
 ## What the comment must show
 
-Open with the verdict paragraph, then — before the evidence, the Design
-section and everything else — a one-line tally: `1 HIGH / 2 MEDIUM / 1 LOW
-open (1 new), 1 pre-existing`. It counts every finding still open, those
-carried from earlier rounds included, and says how many are new this round;
-a pre-existing finding counts only in its own bucket. The author sees the
-shape of the review before the detail. When nothing is blocking, lead with
-`No blocking issues` and put the tally after it.
+Every comment opens in the same order, so a reader can rely on where things
+sit:
+
+1. Only when something is blocking, the line that tags the maintainer.
+2. The verdict paragraph.
+3. One status line: `No blocking issues` or `Blocking`, then the tally —
+   `No blocking issues — 0 HIGH / 1 MEDIUM / 2 LOW open (1 new),
+   0 pre-existing`. All three severities appear even when zero. The tally
+   counts every finding still open, those carried from earlier rounds
+   included, and says how many are new this round; a pre-existing finding
+   counts only in its own bucket.
+
+Then `Reviewed head:`, the evidence, the Design section, earlier rounds, the
+findings and the coverage list.
 
 The review is one plain comment, with no inline comments. Say each finding
 once, in full, under its severity and `file:line`.
@@ -312,8 +325,10 @@ was read or the run died early. Every comment therefore ends with a short
 coverage list — one line per area actually checked, naming what was examined
 and what it turned out to be, plus the head SHA and the size of the diff it
 covers. Say which claims could not be verified and why, including a check
-this environment blocked. Keep that coverage list under ten lines; it is
-evidence, not a retelling of the pull request.
+this environment blocked. Keep that coverage list to ten lines at most, one
+line per area and no nested bullets; it is evidence, not a retelling of the
+pull request. Only the list of unread files a partial review names sits
+outside that cap.
 
 ## A finding is a report, not a patch
 
