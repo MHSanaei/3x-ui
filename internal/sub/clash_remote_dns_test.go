@@ -72,25 +72,33 @@ func TestMergeRemoteClashRulesClientConfigIsOptIn(t *testing.T) {
 	}
 }
 
-func TestRemoteClashClientConfigMustBeMap(t *testing.T) {
+func TestRemoteClashMalformedClientConfigIsSkipped(t *testing.T) {
 	tests := []struct {
-		name    string
-		remote  string
-		wantErr string
+		name   string
+		remote string
 	}{
-		{name: "scalar dns", remote: "dns: 8.8.8.8\nrules:\n  - MATCH,PROXY\n", wantErr: "remote Clash dns must be a map"},
-		{name: "list dns", remote: "dns:\n  - 8.8.8.8\nrules:\n  - MATCH,PROXY\n", wantErr: "remote Clash dns must be a map"},
-		{name: "scalar sniffer", remote: "sniffer: true\nrules:\n  - MATCH,PROXY\n", wantErr: "remote Clash sniffer must be a map"},
+		{name: "scalar dns", remote: "dns: 8.8.8.8\nrules:\n  - DOMAIN,remote.example,DIRECT\n  - MATCH,PROXY\n"},
+		{name: "list dns", remote: "dns:\n  - 8.8.8.8\nrules:\n  - DOMAIN,remote.example,DIRECT\n  - MATCH,PROXY\n"},
+		{name: "null dns", remote: "dns:\nrules:\n  - DOMAIN,remote.example,DIRECT\n  - MATCH,PROXY\n"},
+		{name: "scalar sniffer", remote: "sniffer: true\nrules:\n  - DOMAIN,remote.example,DIRECT\n  - MATCH,PROXY\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := mergeRemoteClashRulesYAML(remoteClashTestBase(), tt.remote, true)
-			if err == nil || err.Error() != tt.wantErr {
-				t.Fatalf("merge err=%v, want %q", err, tt.wantErr)
+			if _, _, err := normalizeClashRouting([]byte(tt.remote)); err != nil {
+				t.Fatalf("fetch-time err=%v, want nil", err)
 			}
-			_, _, err = normalizeClashRouting([]byte(tt.remote))
-			if err == nil || err.Error() != "invalid remote Clash routing schema: "+tt.wantErr {
-				t.Fatalf("fetch-time err=%v, want %q", err, tt.wantErr)
+			base := remoteClashTestBase()
+			if err := mergeRemoteClashRulesYAML(base, tt.remote, true); err != nil {
+				t.Fatalf("merge err=%v, want nil", err)
+			}
+			if _, ok := base["dns"]; ok {
+				t.Fatalf("dns = %#v, want absent", base["dns"])
+			}
+			if _, ok := base["sniffer"]; ok {
+				t.Fatalf("sniffer = %#v, want absent", base["sniffer"])
+			}
+			if rules, _ := asAnySlice(base["rules"]); len(rules) == 0 || rules[0] != "DOMAIN,remote.example,DIRECT" {
+				t.Fatalf("rules = %#v, want remote rules applied", base["rules"])
 			}
 		})
 	}

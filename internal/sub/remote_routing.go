@@ -465,8 +465,7 @@ func normalizeClashRouting(body []byte) (string, map[string]any, error) {
 		}},
 		"rules": []string{"MATCH,PROXY"},
 	}
-	// Validate client config keys too, so the toggle can change without a refetch.
-	if err := mergeRemoteClashRules(base, document, true); err != nil {
+	if err := mergeRemoteClashRules(base, document, false); err != nil {
 		return "", nil, fmt.Errorf("invalid remote Clash routing schema: %w", err)
 	}
 	return text, document, nil

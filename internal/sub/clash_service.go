@@ -1336,6 +1336,12 @@ func mergeRemoteClashRules(base map[string]any, remote map[string]any, allowClie
 		if !remoteClashKeyAllowed(key, allowClientConfig) {
 			continue
 		}
+		if remoteClashKeyClasses[key] == remoteClashClientConfig {
+			// A malformed dns or sniffer must not cost the client its routing.
+			if _, ok := value.(map[string]any); !ok {
+				continue
+			}
+		}
 		if err := validateRemoteClashValue(key, value); err != nil {
 			return err
 		}
@@ -1393,10 +1399,6 @@ func validateRemoteClashValue(key string, value any) error {
 					return fmt.Errorf("remote Clash proxy-group %q cannot use proxy-providers", name)
 				}
 			}
-		}
-	case "dns", "sniffer":
-		if _, ok := value.(map[string]any); !ok {
-			return fmt.Errorf("remote Clash %s must be a map", key)
 		}
 	case "rule-providers":
 		providers, ok := value.(map[string]any)
