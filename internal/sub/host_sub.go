@@ -35,16 +35,22 @@ func (s *SubService) clientHostEndpoints(inbound *model.Inbound, client model.Cl
 		byId[rows[i].Id] = &rows[i]
 	}
 	relevant := false
+	anyFound := false
 	for _, id := range ids {
 		h, ok := byId[id]
 		if !ok {
-			relevant = true
 			continue
 		}
+		anyFound = true
 		if h.InboundId == inbound.Id {
 			relevant = true
 			break
 		}
+	}
+	// A binding whose every id is gone fails closed; a missing id alongside a
+	// live one carries no inbound and must not silence unrelated inbounds.
+	if !anyFound {
+		return nil, true
 	}
 	if !relevant {
 		return baseEps, false

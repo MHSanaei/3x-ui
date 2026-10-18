@@ -834,6 +834,45 @@ func TestSub_ClientHostRule_DeletedFallsBack(t *testing.T) {
 			t.Fatalf("traffic.Enable = false, want true: closed client stays enabled")
 		}
 	})
+
+	// A deleted host id must not silence an inbound the client is on but that
+	// has none of the client's other bound hosts. Relevance is decided only by
+	// rows that still exist; fail-closed is reserved for all-bound-ids-gone.
+	t.Run("deleted id on one inbound does not silence an unrelated inbound", func(t *testing.T) {
+		seedSubDB(t)
+		ibA := seedSubInbound(t, "s1", "xa", 4471, 1, tcpTLSStream)
+		ibB := seedSubInbound(t, "s1", "xb", 4472, 2, tcpTLSStream)
+
+		// Put the client on both inbounds under one email.
+		db := database.GetDB()
+		var client model.ClientRecord
+		if err := db.Where("email = ?", "xb@e").First(&client).Error; err != nil {
+			t.Fatalf("load client xb@e: %v", err)
+		}
+		if err := db.Create(&model.ClientInbound{ClientId: client.Id, InboundId: ibA.Id}).Error; err != nil {
+			t.Fatalf("link client to inbound A: %v", err)
+		}
+		// Host A lives on ibA; bind it plus a deleted id 9999.
+		hostA := seedHost(t, &model.Host{InboundId: ibA.Id, SortOrder: 1, Remark: "A", Address: "a.cdn.com", Port: 443, Security: "tls", Sni: "a.sni"})
+		if err := db.Model(&model.ClientRecord{}).Where("email = ?", "xb@e").
+			Update("client_host_rule_ids", model.EncodeClientHostRuleIds([]int{hostA.Id, 9999})).Error; err != nil {
+			t.Fatalf("bind host rules: %v", err)
+		}
+
+		links, _, _, _, err := NewSubService("").GetSubs("s1", "req.example.com")
+		if err != nil {
+			t.Fatalf("GetSubs: %v", err)
+		}
+		joined := strings.Join(links, "\n")
+		// Inbound B has no bound host and none of the ids map to it, so its
+		// legacy fallback link must survive; inbound A still renders host A.
+		if !strings.Contains(joined, "a.cdn.com:443") {
+			t.Fatalf("inbound A's bound host must render: %s", joined)
+		}
+		if !strings.Contains(joined, fmt.Sprintf("203.0.113.5:%d", ibB.Port)) {
+			t.Fatalf("deleted id must not silence inbound B's fallback link: %s", joined)
+		}
+	})
 }
 
 // A client bound to a disabled host fails closed on every format: zero
