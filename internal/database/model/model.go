@@ -1691,6 +1691,11 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if incomingNewer || existing.ClientHostRuleId == nil {
 			keep("clientHostRuleId", existing.ClientHostRuleId, incoming.ClientHostRuleId, incoming.ClientHostRuleId)
 			existing.ClientHostRuleId = incoming.ClientHostRuleId
+			// A legacy snapshot binds only through this alias; migrate the
+			// whole set so the alias cannot diverge from the canonical list.
+			if incoming.ClientHostRuleIds == nil && incomingNewer {
+				existing.ClientHostRuleIds = []int{*incoming.ClientHostRuleId}
+			}
 		}
 	}
 	if !equalClientHostRuleIds(existing.ClientHostRuleIds, incoming.ClientHostRuleIds) && incoming.ClientHostRuleIds != nil {
@@ -1699,6 +1704,7 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 			existing.ClientHostRuleIds = CloneClientHostRuleIds(incoming.ClientHostRuleIds)
 		}
 	}
+	NormalizeClientHostBindings(&existing.ClientHostRuleId, &existing.ClientHostRuleIds)
 	if existing.Enable != incoming.Enable {
 		if incoming.Enable {
 			if !existing.Enable {
