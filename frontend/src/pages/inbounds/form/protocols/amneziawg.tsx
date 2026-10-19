@@ -18,7 +18,7 @@ export default function AmneziawgFields({
   regenInboundAwgObfuscation,
 }: AmneziawgFieldsProps) {
   const { t } = useTranslation();
-  const kernelModeOn = useWatch({ name: ['settings', 'server', 'kernelMode'] });
+  const kernelModeOn = useWatch({ name: 'settings.server.kernelMode' });
   const nodeId = useWatch({ name: 'nodeId' }) as number | null | undefined;
   const remoteTarget = typeof nodeId === 'number';
   const { formState } = useFormContext();

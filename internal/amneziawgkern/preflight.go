@@ -36,15 +36,15 @@ const (
 
 // Blocker is one unmet requirement.
 type Blocker struct {
-	Code   BlockerCode `json:"code"`
-	Detail string      `json:"detail,omitempty"`
+	Code   BlockerCode `json:"code" example:"tools"`
+	Detail string      `json:"detail,omitempty" example:"awg"`
 }
 
 // Readiness is the host's ability to run any kernel-mode inbound at all.
 type Readiness struct {
-	Ready          bool      `json:"ready"`
-	Blockers       []Blocker `json:"blockers"`
-	InstallCommand string    `json:"installCommand"`
+	Ready          bool      `json:"ready" example:"false"`
+	Blockers       []Blocker `json:"blockers" example:"[{\"code\":\"tools\",\"detail\":\"awg\"}]"`
+	InstallCommand string    `json:"installCommand" example:"sudo /usr/local/x-ui/x-ui install-awg-kernel"`
 }
 
 // readinessTTL keeps the form's polling from re-running modprobe on every
@@ -81,7 +81,7 @@ func resetReadinessCache() {
 }
 
 func probeHost() Readiness {
-	r := Readiness{InstallCommand: installCommand()}
+	r := Readiness{Blockers: []Blocker{}, InstallCommand: installCommand()}
 
 	if os.Geteuid() != 0 {
 		r.Blockers = append(r.Blockers, Blocker{Code: BlockerNotRoot})

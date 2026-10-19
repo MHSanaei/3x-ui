@@ -161,28 +161,52 @@ func (c *Collector) ObserveEndpoints(iface string, stats []PeerStat, now time.Ti
 	defer c.mu.Unlock()
 
 	cutoff := now.Add(-window)
+	prefix := iface + "/"
+	for k, sightings := range c.endpoints {
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+		kept := sightings[:0]
+		for _, sighting := range sightings {
+			if !sighting.seen.Before(cutoff) {
+				kept = append(kept, sighting)
+			}
+		}
+		if len(kept) == 0 {
+			delete(c.endpoints, k)
+		} else {
+			c.endpoints[k] = kept
+		}
+	}
 	for _, s := range stats {
 		addr := endpointHost(s.Endpoint)
-		if addr == "" {
+		if addr == "" || s.LatestHandshake <= 0 {
+			continue
+		}
+		seen := time.Unix(s.LatestHandshake, 0)
+		if seen.After(now) || seen.Before(cutoff) {
 			continue
 		}
 		k := key(iface, s.PublicKey)
 		kept := c.endpoints[k][:0]
 		found := false
 		for _, e := range c.endpoints[k] {
-			if e.seen.Before(cutoff) {
-				continue
-			}
 			if e.addr == addr {
-				e.seen = now
+				if seen.After(e.seen) {
+					e.seen = seen
+				}
 				found = true
 			}
 			kept = append(kept, e)
 		}
 		if !found {
-			kept = append(kept, endpointSighting{addr: addr, seen: now})
+			kept = append(kept, endpointSighting{addr: addr, seen: seen})
 		}
-		c.endpoints[k] = kept
+		if len(kept) == 0 {
+			delete(c.endpoints, k)
+		} else {
+			c.endpoints[k] = kept
+		}
 	}
 }
 
