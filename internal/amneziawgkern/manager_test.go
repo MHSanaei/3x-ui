@@ -274,16 +274,32 @@ func TestStopAllLeavesInterfacesRunning(t *testing.T) {
 
 func TestRemoveRetainsManagedInterfaceAfterTeardownFailure(t *testing.T) {
 	calls := 0
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.Id, inst.InterfaceName = 7, "awg7"
+	conf, err := Render(inst, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeConf(dir, inst.InterfaceName, conf); err != nil {
+		t.Fatal(err)
+	}
+	linkUp := true
 	m := &Manager{
-		ifaces: map[int]*managed{7: {name: "awg-remove-retry"}},
+		ifaces:  map[int]*managed{7: {name: "awg7"}},
+		confDir: dir,
 		ops: managerOps{
-			linkExists: func(string) bool { return true },
+			linkExists: func(string) bool { return linkUp },
 			run: func(name string, args ...string) (string, error) {
 				calls++
 				if calls == 1 {
 					return "temporary failure", os.ErrProcessDone
 				}
-				return "", nil
+				if name == "awg-quick" && args[0] == "down" {
+					linkUp = false
+					return "", nil
+				}
+				return "", os.ErrInvalid
 			},
 		},
 	}
@@ -294,11 +310,17 @@ func TestRemoveRetainsManagedInterfaceAfterTeardownFailure(t *testing.T) {
 	if !m.Running(7) {
 		t.Fatal("failed teardown must remain managed so the next reconcile can retry")
 	}
+	if _, err := os.Stat(ConfPathIn(dir, "awg7")); err != nil {
+		t.Fatalf("failed teardown removed its config: %v", err)
+	}
 	if err := m.Remove(7); err != nil {
 		t.Fatalf("Remove retry: %v", err)
 	}
 	if m.Running(7) {
 		t.Fatal("successful retry must forget the interface")
+	}
+	if _, err := os.Stat(ConfPathIn(dir, "awg7")); !os.IsNotExist(err) {
+		t.Fatalf("successful teardown left its config (err=%v)", err)
 	}
 	if calls != 2 {
 		t.Fatalf("teardown attempts = %d, want 2", calls)
@@ -307,16 +329,32 @@ func TestRemoveRetainsManagedInterfaceAfterTeardownFailure(t *testing.T) {
 
 func TestReconcileRetriesRemovedInterfaceAfterTeardownFailure(t *testing.T) {
 	calls := 0
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.Id, inst.InterfaceName = 8, "awg8"
+	conf, err := Render(inst, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeConf(dir, inst.InterfaceName, conf); err != nil {
+		t.Fatal(err)
+	}
+	linkUp := true
 	m := &Manager{
-		ifaces: map[int]*managed{8: {name: "awg-reconcile-retry"}},
+		ifaces:  map[int]*managed{8: {name: "awg8"}},
+		confDir: dir,
 		ops: managerOps{
-			linkExists: func(string) bool { return true },
+			linkExists: func(string) bool { return linkUp },
 			run: func(name string, args ...string) (string, error) {
 				calls++
 				if calls == 1 {
 					return "temporary failure", os.ErrProcessDone
 				}
-				return "", nil
+				if name == "awg-quick" && args[0] == "down" {
+					linkUp = false
+					return "", nil
+				}
+				return "", os.ErrInvalid
 			},
 		},
 	}

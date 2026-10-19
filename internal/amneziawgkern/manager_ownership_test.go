@@ -21,7 +21,7 @@ func ownedTestConfig(t *testing.T, id int) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return "# 3x-ui-owned-amneziawg: " + inst.InterfaceName + "\n" + conf
+	return conf
 }
 func writeTestConfig(t *testing.T, dir, name, contents string) string {
 	t.Helper()
@@ -47,20 +47,25 @@ func TestFreshManagerReconcileEmptyRemovesOnlyOwnedRegularConfigs(t *testing.T) 
 	if err := os.Mkdir(dirPath, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	linkUp := true
-	var calls [][]string
+	linkUp, natTable := true, true
 	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
 		linkExists: func(name string) bool { return name == "awg42" && linkUp },
 		run: func(name string, args ...string) (string, error) {
-			calls = append(calls, append([]string{name}, args...))
-			if name == "awg-quick" && len(args) == 2 && args[0] == "down" && args[1] == "awg42" {
+			switch {
+			case name == "awg-quick" && len(args) == 2 && args[0] == "down" && args[1] == "awg42":
 				linkUp = false
+				return "PostDown failed after link removal", errors.New("partial down")
+			case name == "nft" && reflect.DeepEqual(args, []string{"list", "tables"}):
+				if natTable {
+					return "table ip awgnat42", nil
+				}
 				return "", nil
+			case name == "nft" && reflect.DeepEqual(args, []string{"delete", "table", "ip", "awgnat42"}):
+				natTable = false
+				return "", nil
+			default:
+				return "", errors.New("unexpected command")
 			}
-			if name == "nft" && len(args) == 2 && args[0] == "list" && args[1] == "tables" {
-				return "table ip awgnat42", nil
-			}
-			return "", nil
 		},
 	}}
 	m.Reconcile(nil)
@@ -72,9 +77,14 @@ func TestFreshManagerReconcileEmptyRemovesOnlyOwnedRegularConfigs(t *testing.T) 
 			t.Errorf("unowned or non-regular path %s was removed: %v", path, err)
 		}
 	}
-	want := [][]string{{"awg-quick", "down", "awg42"}, {"nft", "list", "tables"}, {"nft", "delete", "table", "ip", "awgnat42"}}
-	if !reflect.DeepEqual(calls, want) {
-		t.Fatalf("cleanup calls = %v, want %v", calls, want)
+	if err := m.Remove(44); err == nil {
+		t.Fatal("Remove accepted a directory in place of a config")
+	}
+	if _, err := os.Lstat(dirPath); err != nil {
+		t.Fatalf("non-regular config path was removed: %v", err)
+	}
+	if linkUp || natTable {
+		t.Fatalf("cleanup left linkUp=%v natTable=%v", linkUp, natTable)
 	}
 }
 func TestStopAllThenFreshManagerAdoptsDesiredOwnedInterface(t *testing.T) {

@@ -62,7 +62,7 @@ func Render(inst amneziawg.Instance, egressInterface string, routeThroughXray bo
 	}
 
 	var b strings.Builder
-	b.WriteString("[Interface]\n")
+	b.WriteString(ownershipMarker(ownedInterfaceName(inst.Id)) + "\n[Interface]\n")
 	fmt.Fprintf(&b, "PrivateKey = %s\n", inst.PrivateKey)
 	fmt.Fprintf(&b, "Address = %s\n", strings.Join(inst.Address, ", "))
 	fmt.Fprintf(&b, "ListenPort = %d\n", inst.ListenPort)

@@ -225,17 +225,39 @@ func (m *Manager) Reconcile(desired []Desired) {
 	for _, d := range desired {
 		want[d.Instance.Id] = struct{}{}
 	}
+	attempted := make(map[int]struct{})
 	for id, cur := range m.ifaces {
 		if _, ok := want[id]; ok {
 			continue
 		}
-		if err := m.teardown(cur.name); err != nil {
+		attempted[id] = struct{}{}
+		if err := m.teardown(id, cur.name); err != nil {
 			logger.Warning("amneziawgkern: stopping removed inbound ", id, ": ", err)
 			continue
 		}
 		GetCollector().Forget(cur.name)
 		delete(m.ifaces, id)
 		logger.Info("amneziawgkern: stopped kernel interface for removed inbound ", id)
+	}
+	ownedIDs, err := ownedConfigIDs(m.confDir)
+	if err != nil {
+		logger.Warning("amneziawgkern: listing owned configs: ", err)
+	} else {
+		for _, id := range ownedIDs {
+			if _, ok := want[id]; ok {
+				continue
+			}
+			if _, ok := attempted[id]; ok {
+				continue
+			}
+			name := ownedInterfaceName(id)
+			if err := m.teardown(id, name); err != nil {
+				logger.Warning("amneziawgkern: stopping recovered inbound ", id, ": ", err)
+				continue
+			}
+			GetCollector().Forget(name)
+			logger.Info("amneziawgkern: stopped recovered kernel interface for inbound ", id)
+		}
 	}
 	for _, d := range desired {
 		if err := m.ensureLocked(d); err != nil {
@@ -250,14 +272,17 @@ func (m *Manager) Remove(id int) error {
 	defer m.mu.Unlock()
 
 	cur, ok := m.ifaces[id]
-	if !ok {
-		return nil
+	name := ownedInterfaceName(id)
+	if ok {
+		name = cur.name
 	}
-	if err := m.teardown(cur.name); err != nil {
+	if err := m.teardown(id, name); err != nil {
 		return err
 	}
-	delete(m.ifaces, id)
-	GetCollector().Forget(cur.name)
+	if ok {
+		delete(m.ifaces, id)
+	}
+	GetCollector().Forget(name)
 	return nil
 }
 
@@ -373,12 +398,53 @@ func normalizeCIDR(s string) string {
 	return p.String()
 }
 
-func (m *Manager) teardown(name string) error {
-	if !m.linkExists(name) {
+func (m *Manager) teardown(id int, name string) error {
+	if name != ownedInterfaceName(id) {
+		return fmt.Errorf("amneziawgkern: refusing non-canonical interface %s for inbound %d", name, id)
+	}
+	config, found, err := readOwnedConfig(m.confDir, id)
+	if err != nil {
+		return err
+	}
+	linkUp := m.linkExists(name)
+	if !found {
+		if linkUp {
+			return fmt.Errorf("amneziawgkern: refusing to stop %s without an owned config", name)
+		}
 		return nil
 	}
-	if out, err := m.run("awg-quick", "down", name); err != nil {
-		return fmt.Errorf("amneziawgkern: awg-quick down %s: %w (%s)", name, err, out)
+	if linkUp {
+		out, downErr := m.run("awg-quick", "down", name)
+		if m.linkExists(name) {
+			if downErr != nil {
+				return fmt.Errorf("amneziawgkern: awg-quick down %s: %w (%s)", name, downErr, out)
+			}
+			return fmt.Errorf("amneziawgkern: awg-quick down %s left the interface running", name)
+		}
+	}
+	if strings.Contains(config, "PostDown = nft delete table ip awgnat"+fmt.Sprint(id)+"\n") {
+		tables, listErr := m.run("nft", "list", "tables")
+		if listErr != nil {
+			return fmt.Errorf("amneziawgkern: listing nftables tables for %s: %w (%s)", name, listErr, tables)
+		}
+		table := "awgnat" + fmt.Sprint(id)
+		for _, line := range strings.Split(tables, "\n") {
+			fields := strings.Fields(line)
+			if len(fields) != 3 || fields[0] != "table" || fields[1] != "ip" || fields[2] != table {
+				continue
+			}
+			if out, deleteErr := m.run("nft", "delete", "table", "ip", table); deleteErr != nil {
+				return fmt.Errorf("amneziawgkern: deleting nftables table %s: %w (%s)", table, deleteErr, out)
+			}
+			break
+		}
+	}
+	if _, found, err := readOwnedConfig(m.confDir, id); err != nil {
+		return err
+	} else if found {
+		if err := os.Remove(ConfPathIn(m.confDir, name)); err != nil {
+			return fmt.Errorf("amneziawgkern: removing private config %s: %w", name, err)
+		}
 	}
 	return nil
 }
