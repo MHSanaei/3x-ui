@@ -1,7 +1,6 @@
 package amneziawgkern
 
 import (
-	"bufio"
 	"fmt"
 	"net/netip"
 	"os"
@@ -86,16 +85,12 @@ func validOwnedConfig(config, name string) bool {
 	if !ok || !strings.HasPrefix(config, ownershipMarker(name)+"\n") || strings.ContainsAny(config, "\r\x00") {
 		return false
 	}
-	scanner := bufio.NewScanner(strings.NewReader(config))
-	lineNo := 0
 	section := ""
 	interfaceCount := 0
 	postDownCount := 0
 	seenPostUp := map[string]bool{}
-	for scanner.Scan() {
-		line := scanner.Text()
-		lineNo++
-		if lineNo == 1 {
+	for lineNo, line := range strings.Split(config, "\n") {
+		if lineNo == 0 {
 			continue
 		}
 		if line == "" {
@@ -165,7 +160,7 @@ func validOwnedConfig(config, name string) bool {
 			return false
 		}
 	}
-	return scanner.Err() == nil && interfaceCount == 1 && postDownCount <= 1
+	return interfaceCount == 1 && postDownCount <= 1
 }
 
 func validOwnedPostUp(value string, id int) bool {
