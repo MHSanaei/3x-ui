@@ -173,3 +173,50 @@ func TestRemoveRejectsPoisonedOwnedHooksBeforeDown(t *testing.T) {
 		t.Fatalf("poisoned config was removed: %v", err)
 	}
 }
+func TestFreshManagerReportsRecoveredInterfaceAfterCleanupFailure(t *testing.T) {
+	dir := t.TempDir()
+	configPath := writeTestConfig(t, dir, "awg48", ownedTestConfig(t, 48))
+	linkUp, natTable := true, true
+	downAttempts := 0
+	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
+		linkExists: func(name string) bool { return name == "awg48" && linkUp },
+		run: func(name string, args ...string) (string, error) {
+			switch {
+			case name == "awg-quick" && reflect.DeepEqual(args, []string{"down", "awg48"}):
+				downAttempts++
+				if downAttempts == 1 {
+					return "temporary down failure", errors.New("down failed")
+				}
+				linkUp, natTable = false, false
+				return "", nil
+			case name == "nft" && reflect.DeepEqual(args, []string{"list", "tables"}):
+				if natTable {
+					return "table ip awgnat48", nil
+				}
+				return "", nil
+			case name == "nft" && reflect.DeepEqual(args, []string{"delete", "table", "ip", "awgnat48"}):
+				natTable = false
+				return "", nil
+			default:
+				return "", errors.New("unexpected command")
+			}
+		},
+	}}
+	m.Reconcile(nil)
+	if !m.Running(48) {
+		t.Fatal("fresh manager hid a live recovered kernel interface after cleanup failure")
+	}
+	if _, err := os.Stat(configPath); err != nil {
+		t.Fatalf("failed cleanup removed config: %v", err)
+	}
+	m.Reconcile(nil)
+	if m.Running(48) {
+		t.Fatal("successful cleanup still reports the interface running")
+	}
+	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+		t.Fatalf("successful cleanup left config (err=%v)", err)
+	}
+	if downAttempts != 2 {
+		t.Fatalf("down attempts = %d, want retry on second reconcile", downAttempts)
+	}
+}
