@@ -52,10 +52,9 @@ describe('AmneziaWG kernel readiness in the inbound form', () => {
   it('shows a warning when an enabled local kernel inbound is unavailable', async () => {
     vi.spyOn(HttpUtil, 'get').mockResolvedValue(unavailable);
 
-    const { container, getByRole } = renderWithProviders(
-      <Harness nodeId={null} kernelMode />,
-      { queryClient: makeTestQueryClient() },
-    );
+    const { container, getByRole } = renderWithProviders(<Harness nodeId={null} kernelMode />, {
+      queryClient: makeTestQueryClient(),
+    });
 
     await waitFor(() => expect(getByRole('alert')).toBeTruthy());
     expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
@@ -64,10 +63,9 @@ describe('AmneziaWG kernel readiness in the inbound form', () => {
   it('does not use master readiness to block a remote-node inbound', async () => {
     const get = vi.spyOn(HttpUtil, 'get').mockResolvedValue(unavailable);
 
-    const { container, getByText } = renderWithProviders(
-      <Harness nodeId={7} kernelMode />,
-      { queryClient: makeTestQueryClient() },
-    );
+    const { container, getByText } = renderWithProviders(<Harness nodeId={7} kernelMode />, {
+      queryClient: makeTestQueryClient(),
+    });
 
     await waitFor(() => expect(container.querySelector('.ant-alert')).toBeNull());
     const kernelModeItem = getByText('Kernel mode').closest('.ant-form-item');
