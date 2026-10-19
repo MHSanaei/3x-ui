@@ -165,7 +165,7 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			return false
 		}
 		if exists && (inboundUsesSocksAccounts(oldIb) || inboundUsesSocksAccounts(newIb)) {
-			logger.Debug("hot diff: inbound [", oldIb.Tag, "] is a password-auth SOCKS5 inbound (e.g. internal/amneziawgnet's per-peer relay); a gRPC remove+add reports success but was observed in production to silently drop an account, forcing a full restart instead of a hot swap")
+			logger.Debug("hot diff: inbound [", oldIb.Tag, "] is a password-auth SOCKS5 inbound (e.g. TUIC or AmneziaWG relay); a gRPC remove+add reports success but was observed in production to silently drop an account, forcing a full restart instead of a hot swap")
 			return false
 		}
 		diff.RemovedInboundTags = append(diff.RemovedInboundTags, oldIb.Tag)
@@ -190,7 +190,7 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 			return false
 		}
 		if inboundUsesSocksAccounts(newIb) {
-			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a password-auth SOCKS5 inbound (e.g. internal/amneziawgnet's per-peer relay); forcing a full restart instead of a hot add, same reasoning as the existing-inbound case above")
+			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a password-auth SOCKS5 inbound (e.g. TUIC or AmneziaWG relay); forcing a full restart instead of a hot add, same reasoning as the existing-inbound case above")
 			return false
 		}
 		raw, err := json.Marshal(newIb)
@@ -384,12 +384,10 @@ func inboundUsesTproxy(ib *InboundConfig) bool {
 }
 
 // inboundUsesSocksAccounts reports whether an inbound is a password-auth
-// SOCKS5 inbound with one or more named accounts -- the shape
-// internal/amneziawgnet's per-inbound relay (internal/web/service/xray.go's
-// injectAmneziawgnetSocks) is the only generator of in this fork; every
-// other SOCKS5 bridge this fork builds (panel egress, per-node egress,
-// mtproto egress) uses "noauth" with no per-account identity at all, so this
-// check can't accidentally rope in one of those lower-churn bridges.
+// SOCKS5 inbound. TUIC and AmneziaWG generate this shape through
+// injectTuicSocks and injectAmneziawgnetSocks in internal/web/service/xray.go.
+// The panel, per-node and MTProto egress bridges use "noauth" without
+// per-account identity, so this check does not affect those bridges.
 //
 // Real production incident, not a theoretical concern: a single client
 // edit under an AmneziaWG inbound left this inbound's settings unchanged in

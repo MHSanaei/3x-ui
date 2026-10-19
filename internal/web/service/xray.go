@@ -444,7 +444,13 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	// whatever rules the admin adds through the stock Routing page, exactly
 	// like routing any other protocol.
 	injectAmneziawgnetSocks(xrayConfig, inbounds)
-	injectTuicSocks(xrayConfig, inbounds)
+	tuicInstances, err := s.inboundService.desiredTuicInstances(inbounds)
+	if err != nil {
+		return nil, err
+	}
+	if err := injectTuicSocks(xrayConfig, tuicInstances); err != nil {
+		return nil, err
+	}
 
 	// Restores each opted-in peer's own distinct public IPv6 source identity
 	// for its outbound connections — a peer that has an IPv6 address in its
@@ -812,38 +818,110 @@ func injectAmneziawgnetSocks(cfg *xray.Config, inbounds []*model.Inbound) {
 	}
 }
 
-const (
-	tuicEgressSocksSettings = `{"auth":"noauth","udp":true}`
-	// TUIC clients can connect to an IP while TLS carries a different or unresolvable SNI.
-	// Keep sniffed domains available for routing without replacing the requested destination.
-	tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
-)
+// Keep sniffed domains available for routing without replacing the requested destination.
+const tuicEgressSniffingSettings = `{"enabled":true,"destOverride":["http","tls","quic","fakedns"],"routeOnly":true}`
 
-func injectTuicSocks(cfg *xray.Config, inbounds []*model.Inbound) {
+func injectTuicSocks(cfg *xray.Config, instances []tuic.Instance) error {
 	existingTags := make(map[string]struct{}, len(cfg.InboundConfigs))
 	for i := range cfg.InboundConfigs {
 		existingTags[cfg.InboundConfigs[i].Tag] = struct{}{}
 	}
-
-	for _, inbound := range inbounds {
-		if inbound.Protocol != model.TUIC || !inbound.Enable || inbound.NodeID != nil {
+	var userLevel uint32
+	policyReady := false
+	for _, inst := range instances {
+		if _, taken := existingTags[inst.Tag]; taken {
+			return fmt.Errorf("tuic socks: inbound tag %q already exists", inst.Tag)
+		}
+		emails := make([]string, 0, len(inst.Clients))
+		for _, client := range inst.Clients {
+			if client.Email != "" {
+				emails = append(emails, client.Email)
+			}
+		}
+		if len(emails) == 0 {
 			continue
 		}
-		if _, taken := existingTags[inbound.Tag]; taken {
-			logger.Warning("tuic socks: inbound tag [", inbound.Tag, "] already present in generated config, skipping its relay inbound")
-			continue
+		if !policyReady {
+			var err error
+			userLevel, err = tuicRelayPolicyLevel(cfg)
+			if err != nil {
+				return fmt.Errorf("tuic socks: relay policy: %w", err)
+			}
+			policyReady = true
 		}
-
-		existingTags[inbound.Tag] = struct{}{}
+		slices.Sort(emails)
+		emails = slices.Compact(emails)
+		settings, err := tuic.SocksInboundSettings(emails, tuic.SocksPassword(), userLevel)
+		if err != nil {
+			return fmt.Errorf("tuic socks: inbound %d: %w", inst.Id, err)
+		}
+		existingTags[inst.Tag] = struct{}{}
 		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
 			Listen:   json_util.RawMessage(`"127.0.0.1"`),
-			Port:     tuic.SOCKSPortForInbound(inbound.Id),
+			Port:     tuic.SOCKSPortForInbound(inst.Id),
 			Protocol: "socks",
-			Settings: json_util.RawMessage(tuicEgressSocksSettings),
+			Settings: json_util.RawMessage(settings),
 			Sniffing: json_util.RawMessage(tuicEgressSniffingSettings),
-			Tag:      inbound.Tag,
+			Tag:      inst.Tag,
 		})
 	}
+	return nil
+}
+
+// Relay authentication carries routing identity; native TUIC owns client accounting and source IPs.
+// Copy session limits from level 0, but disable Xray's duplicate traffic and loopback online stats.
+func tuicRelayPolicyLevel(cfg *xray.Config) (uint32, error) {
+	var policy map[string]json.RawMessage
+	if len(cfg.Policy) > 0 {
+		if err := json.Unmarshal(cfg.Policy, &policy); err != nil {
+			return 0, err
+		}
+	}
+	if policy == nil {
+		policy = make(map[string]json.RawMessage)
+	}
+	var levels map[uint32]json.RawMessage
+	if raw, ok := policy["levels"]; ok {
+		if err := json.Unmarshal(raw, &levels); err != nil {
+			return 0, err
+		}
+	}
+	if levels == nil {
+		levels = make(map[uint32]json.RawMessage)
+	}
+	var relayPolicy map[string]json.RawMessage
+	if raw, ok := levels[0]; ok {
+		if err := json.Unmarshal(raw, &relayPolicy); err != nil {
+			return 0, err
+		}
+	}
+	if relayPolicy == nil {
+		relayPolicy = make(map[string]json.RawMessage)
+	}
+	for _, key := range []string{"statsUserUplink", "statsUserDownlink", "statsUserOnline"} {
+		relayPolicy[key] = json.RawMessage("false")
+	}
+	level := ^uint32(0)
+	for {
+		if _, exists := levels[level]; !exists {
+			break
+		}
+		if level == 0 {
+			return 0, errors.New("no free user policy level")
+		}
+		level--
+	}
+	raw, err := json.Marshal(relayPolicy)
+	if err != nil {
+		return 0, err
+	}
+	levels[level] = raw
+	policy["levels"], err = json.Marshal(levels)
+	if err != nil {
+		return 0, err
+	}
+	cfg.Policy, err = json.Marshal(policy)
+	return level, err
 }
 
 // amneziawgV6EgressTag returns the stable, globally-unique freedom outbound

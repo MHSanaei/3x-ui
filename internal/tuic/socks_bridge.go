@@ -558,19 +558,19 @@ func SocksPassword() string {
 	return socksPassword
 }
 
-// SocksInboundSettings builds the JSON `settings` block for a stock Xray
-// SOCKS5 inbound with one username/password account per email, all sharing
-// password. UDP is enabled for UDP ASSOCIATE proxying.
-func SocksInboundSettings(emails []string, password string) ([]byte, error) {
+// SocksInboundSettings preserves each client email as the Xray routing identity.
+// The caller selects a policy level so relay traffic is not billed twice.
+func SocksInboundSettings(emails []string, password string, userLevel uint32) ([]byte, error) {
 	type account struct {
 		User string `json:"user"`
 		Pass string `json:"pass"`
 	}
 	settings := struct {
-		Auth     string    `json:"auth"`
-		UDP      bool      `json:"udp"`
-		Accounts []account `json:"accounts"`
-	}{Auth: "password", UDP: true}
+		Auth      string    `json:"auth"`
+		UDP       bool      `json:"udp"`
+		UserLevel uint32    `json:"userLevel"`
+		Accounts  []account `json:"accounts"`
+	}{Auth: "password", UDP: true, UserLevel: userLevel}
 	for _, email := range emails {
 		settings.Accounts = append(settings.Accounts, account{User: email, Pass: password})
 	}

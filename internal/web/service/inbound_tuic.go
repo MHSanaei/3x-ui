@@ -18,12 +18,16 @@ func (s *InboundService) DesiredTuicInstances() ([]tuic.Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(inbounds) == 0 {
-		return nil, nil
-	}
+	return s.desiredTuicInstances(inbounds)
+}
 
+func (s *InboundService) desiredTuicInstances(inbounds []*model.Inbound) ([]tuic.Instance, error) {
+	db := database.GetDB()
 	instances := make([]tuic.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
+		if ib.Protocol != model.TUIC || !ib.Enable || ib.NodeID != nil {
+			continue
+		}
 		built, err := s.buildInboundForLocalRuntime(db, ib)
 		if err != nil {
 			return nil, err
