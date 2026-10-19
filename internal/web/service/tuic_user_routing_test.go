@@ -137,12 +137,16 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 	if err := x.Start(); err != nil {
 		t.Fatal(err)
 	}
+	if err := publishTuicRelayReadiness(cfg); err != nil {
+		t.Fatal(err)
+	}
 	counters := x.GetFeature(stats.ManagerType()).(stats.Manager)
 	instances, err := (&InboundService{}).DesiredTuicInstances()
 	if err != nil || len(instances) != 1 {
 		t.Fatalf("desired TUIC instances = %v, error %v", instances, err)
 	}
 	server, err := tuic.NewServer(instances[0], &tuic.SocksRelay{
+		Gate: tuic.ManagedRelayGate(tuic.SOCKSPortForInbound(ib.Id)), InboundID: ib.Id,
 		Addr: fmt.Sprintf("127.0.0.1:%d", tuic.SOCKSPortForInbound(ib.Id)), Password: tuic.SocksPassword(),
 	})
 	if err != nil {
@@ -238,6 +242,8 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("replacement-window", func(t *testing.T) { verifyTuicReplacementWindow(t, cfg, apiPort, ib, server, clients) })
 
 	verifyTuicHotUserUpdates(t, cfg, apiPort, ib, server, clients, counters)
 
@@ -464,6 +470,12 @@ func connectTuicRoutingClient(t *testing.T, inst tuic.Instance, user model.Clien
 
 func probeTuicRoute(t *testing.T, client *quic.Conn, mode, want string) {
 	t.Helper()
+	if err := exchangeTuicRoute(client, mode, want); err != nil {
+		t.Fatalf("%s relay request failed: %v", mode, err)
+	}
+}
+
+func exchangeTuicRoute(client *quic.Conn, mode, want string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	target := &tuic.Address{Type: tuic.AddrTypeIPv4, IP: net.IPv4(192, 0, 2, 1), Port: 6697}
@@ -473,17 +485,17 @@ func probeTuicRoute(t *testing.T, client *quic.Conn, mode, want string) {
 	case "tcp":
 		stream, err := client.OpenStreamSync(ctx)
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
 		defer stream.Close()
 		_ = stream.SetDeadline(time.Now().Add(5 * time.Second))
 		frame.Write([]byte{tuic.ProtocolVersion, tuic.CmdConnect})
 		if err := tuic.WriteAddress(&frame, target); err != nil {
-			t.Fatal(err)
+			return err
 		}
 		frame.WriteString(tuicRoutingProbe)
 		if _, err := stream.Write(frame.Bytes()); err != nil {
-			t.Fatal(err)
+			return err
 		}
 		reader = stream
 	case "native", "quic":
@@ -492,46 +504,54 @@ func probeTuicRoute(t *testing.T, client *quic.Conn, mode, want string) {
 			association = 2
 		}
 		if err := tuic.WritePacket(&frame, association, 1, 1, 0, target, []byte(tuicRoutingProbe)); err != nil {
-			t.Fatal(err)
+			return err
 		}
 		if mode == "native" {
 			if err := client.SendDatagram(frame.Bytes()); err != nil {
-				t.Fatal(err)
+				return err
 			}
 			response, err := client.ReceiveDatagram(ctx)
 			if err != nil {
-				t.Fatal(err)
+				return err
 			}
 			reader = bytes.NewReader(response)
 		} else {
 			stream, err := client.OpenUniStreamSync(ctx)
 			if err != nil {
-				t.Fatal(err)
+				return err
 			}
 			if _, err := stream.Write(frame.Bytes()); err != nil {
-				t.Fatal(err)
+				return err
 			}
 			_ = stream.Close()
 			response, err := client.AcceptUniStream(ctx)
 			if err != nil {
-				t.Fatal(err)
+				return err
 			}
 			_ = response.SetReadDeadline(time.Now().Add(5 * time.Second))
 			reader = response
 		}
-		if _, cmd, err := tuic.ReadCommand(reader); err != nil || cmd != tuic.CmdPacket {
-			t.Fatalf("UDP response command = %d, error %v", cmd, err)
+		_, cmd, err := tuic.ReadCommand(reader)
+		if err != nil {
+			return fmt.Errorf("read UDP response command: %w", err)
+		}
+		if cmd != tuic.CmdPacket {
+			return fmt.Errorf("UDP response command = %d, want Packet", cmd)
 		}
 		hdr, err := tuic.ReadPacketHeader(reader)
-		if err != nil || hdr.AssocID != association || hdr.Size != uint16(len(want)) {
-			t.Fatalf("UDP response header = %+v, error %v", hdr, err)
+		if err != nil {
+			return fmt.Errorf("read UDP response header: %w", err)
+		}
+		if hdr.AssocID != association || hdr.Size != uint16(len(want)) {
+			return fmt.Errorf("UDP response header = %+v, want association %d and size %d", hdr, association, len(want))
 		}
 	}
 	response := make([]byte, len(want))
 	if _, err := io.ReadFull(reader, response); err != nil {
-		t.Fatal(err)
+		return err
 	}
 	if string(response) != want {
-		t.Fatalf("%s route returned %q, want %q", mode, response, want)
+		return fmt.Errorf("%s route returned %q, want %q", mode, response, want)
 	}
+	return nil
 }

@@ -864,13 +864,14 @@ func injectTuicRelay(cfg *xray.Config, instances []tuic.Instance) error {
 		}
 		existingTags[inst.Tag] = struct{}{}
 		cfg.InboundConfigs = append(cfg.InboundConfigs, xray.InboundConfig{
-			Listen:    json_util.RawMessage(`"127.0.0.1"`),
-			Port:      tuic.SOCKSPortForInbound(inst.Id),
-			Protocol:  "socks",
-			TuicRelay: true,
-			Settings:  json_util.RawMessage(settings),
-			Sniffing:  json_util.RawMessage(tuicEgressSniffingSettings),
-			Tag:       inst.Tag,
+			Listen:        json_util.RawMessage(`"127.0.0.1"`),
+			Port:          tuic.SOCKSPortForInbound(inst.Id),
+			Protocol:      "socks",
+			TuicRelay:     true,
+			TuicInboundID: inst.Id,
+			Settings:      json_util.RawMessage(settings),
+			Sniffing:      json_util.RawMessage(tuicEgressSniffingSettings),
+			Tag:           inst.Tag,
 		})
 	}
 	return nil
@@ -1484,7 +1485,7 @@ func (s *XrayService) RestartXray(isForce bool) error {
 		configUnchanged := process.GetConfig().Equals(xrayConfig)
 		if !isForce && configUnchanged && !isNeedXrayRestart.Load() {
 			logger.Debug("It does not need to restart Xray")
-			return nil
+			return repairUnavailableTuicRelays(xrayConfig, process.GetAPIPort())
 		}
 		// A config the core cannot bind never replaces one that works: its failed
 		// start exits the core, and the watchdog would then loop on it forever.
@@ -1520,6 +1521,10 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	s.xrayAPI.StatsLastValues = nil
 	err = process.Start()
 	if err != nil {
+		return err
+	}
+
+	if err := publishTuicRelayReadiness(xrayConfig); err != nil {
 		return err
 	}
 
