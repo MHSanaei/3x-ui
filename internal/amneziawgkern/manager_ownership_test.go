@@ -36,6 +36,51 @@ func writeTestConfig(t *testing.T, dir, name, contents string) string {
 	return path
 }
 
+func TestFreshManagerRemovesRenderedConfigWithLongPeerComment(t *testing.T) {
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.Id = 49
+	inst.InterfaceName = "awg49"
+	inst.Peers = inst.Peers[:1]
+	inst.Peers[0].Email = strings.Repeat("a", 70*1024)
+	config, err := Render(inst, "eth0", false)
+	if err != nil {
+		t.Fatalf("Render long peer email: %v", err)
+	}
+	if len(config) <= 64*1024 {
+		t.Fatalf("rendered config size = %d, want more than scanner's default token limit", len(config))
+	}
+	path := writeTestConfig(t, dir, "awg49", config)
+	linkUp, natTable := true, true
+	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
+		linkExists: func(name string) bool { return name == "awg49" && linkUp },
+		run: func(name string, args ...string) (string, error) {
+			switch {
+			case name == "awg-quick" && reflect.DeepEqual(args, []string{"down", "awg49"}):
+				linkUp = false
+				return "", nil
+			case name == "nft" && reflect.DeepEqual(args, []string{"list", "tables"}):
+				if natTable {
+					return "table ip awgnat49", nil
+				}
+				return "", nil
+			case name == "nft" && reflect.DeepEqual(args, []string{"delete", "table", "ip", "awgnat49"}):
+				natTable = false
+				return "", nil
+			default:
+				return "", errors.New("unexpected command")
+			}
+		},
+	}}
+	m.Reconcile(nil)
+	if linkUp || natTable {
+		t.Fatalf("long-comment cleanup left linkUp=%v natTable=%v", linkUp, natTable)
+	}
+	if _, err := os.Lstat(path); !os.IsNotExist(err) {
+		t.Fatalf("long-comment config still exists after cleanup (err=%v)", err)
+	}
+}
+
 func TestFreshManagerReconcileEmptyRemovesOnlyOwnedRegularConfigs(t *testing.T) {
 	dir := t.TempDir()
 	ownedPath := writeTestConfig(t, dir, "awg42", ownedTestConfig(t, 42))
