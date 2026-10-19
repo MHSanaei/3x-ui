@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgkern"
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -301,6 +302,30 @@ func (s *InboundService) normalizeAmneziaWGSettings(inbound *model.Inbound, oldS
 		return err
 	}
 	inbound.Settings = string(bs)
+
+	// Refuse a kernel-mode save this host cannot honour while the admin is still
+	// in front of the form; the reconcile job could only log and retry.
+	if parsed.Server.KernelMode && inbound.NodeID == nil {
+		inst, ok := amneziawg.InstanceFromInbound(inbound)
+		if !ok {
+			inst = amneziawg.Instance{
+				Listen:           inbound.Listen,
+				IPv6Enabled:      parsed.Server.IPv6Enabled,
+				RouteThroughXray: parsed.Server.RouteThroughXray,
+			}
+			for _, client := range parsed.Clients {
+				if client.Enable {
+					inst.Peers = append(inst.Peers, amneziawg.Peer{
+						AllowedIPs:     client.AllowedIPs,
+						ForwardedPorts: client.ForwardedPorts,
+					})
+				}
+			}
+		}
+		if err := amneziawgkern.Preflight(inst, inst.RouteThroughXray); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -387,6 +412,9 @@ func (s *InboundService) checkForwardedPortsConflict(ctx portConflictContext, fo
 		var socksPort int
 		switch ib.Protocol {
 		case model.AmneziaWG:
+			if amneziawgKernelMode(ib) {
+				continue
+			}
 			socksPort = amneziawgnet.SOCKSPortForInbound(ib.Id)
 		case model.TUIC:
 			socksPort = tuic.SOCKSPortForInbound(ib.Id)

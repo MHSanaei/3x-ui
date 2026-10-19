@@ -374,6 +374,26 @@ func TestCheckForwardedPortsConflict_CollidesWithAmneziawgnetSocksPort(t *testin
 	}
 }
 
+func TestCheckForwardedPortsConflict_KernelAmneziaWGHasNoEmbeddedRelay(t *testing.T) {
+	setupConflictDB(t)
+	seedInboundConflict(t, "awg-kernel", "0.0.0.0", 51820, model.AmneziaWG, ``,
+		`{"server":{"privateKey":"priv","publicKey":"pub","subnetIp":"10.8.1.0","subnetCidr":24,"kernelMode":true},"clients":[]}`)
+
+	var awgInbound model.Inbound
+	if err := database.GetDB().Where("tag = ?", "awg-kernel").First(&awgInbound).Error; err != nil {
+		t.Fatalf("read seeded row: %v", err)
+	}
+	svc := &InboundService{}
+	ctx, err := svc.loadPortConflictContext(database.GetDB(), nil)
+	if err != nil {
+		t.Fatalf("loadPortConflictContext: %v", err)
+	}
+	relayPort := amneziawgnet.SOCKSPortForInbound(awgInbound.Id)
+	if hit := svc.checkForwardedPortsConflict(ctx, fmt.Sprintf("%d", relayPort)); hit != "" {
+		t.Fatalf("kernel-mode AmneziaWG must not reserve embedded relay port %d, got collision %q", relayPort, hit)
+	}
+}
+
 // A cleared DNS field is meaningful (no DNS line in client configs) and must
 // survive the save round-trip instead of resurrecting the frontend defaults.
 func TestNormalizeAmneziaWGSettingsKeepsClearedDNS(t *testing.T) {
@@ -456,5 +476,34 @@ func TestNormalizeAmneziaWGSettings_DerivesServerPublicKeyFromPrivate(t *testing
 	}
 	if parsed.Server.PublicKey != want {
 		t.Fatalf("server publicKey = %q, want %q derived from the supplied private key", parsed.Server.PublicKey, want)
+	}
+}
+
+func TestNormalizeAmneziaWGSettingsDefersNodeKernelPreflightToRemoteHost(t *testing.T) {
+	setupConflictDB(t)
+	server, err := defaultAmneziaWGServer()
+	if err != nil {
+		t.Fatalf("defaultAmneziaWGServer: %v", err)
+	}
+	server.KernelMode = true
+	settings, err := json.Marshal(amneziawg.InboundSettings{Server: server, Clients: []model.Client{}})
+	if err != nil {
+		t.Fatalf("marshal settings: %v", err)
+	}
+	inbound := &model.Inbound{
+		Protocol: model.AmneziaWG,
+		NodeID:   new(7),
+		Port:     51820,
+		Settings: string(settings),
+	}
+	if err := (&InboundService{}).normalizeAmneziaWGSettings(inbound, ""); err != nil {
+		t.Fatalf("master must defer kernel readiness to the target node: %v", err)
+	}
+	var normalized amneziawg.InboundSettings
+	if err := json.Unmarshal([]byte(inbound.Settings), &normalized); err != nil {
+		t.Fatalf("decode normalized settings: %v", err)
+	}
+	if normalized.Server == nil || !normalized.Server.KernelMode {
+		t.Fatalf("normalized node settings lost kernel mode: %+v", normalized.Server)
 	}
 }

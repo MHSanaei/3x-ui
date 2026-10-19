@@ -4371,6 +4371,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "keepaliveTimeout": {
         "type": "string"
       },
+      "kernelMode": {
+        "description": "KernelMode runs this inbound on the DKMS kernel module and awg-quick\n(internal/amneziawgkern) instead of the embedded amneziawg-go + gVisor stack.",
+        "type": "boolean"
+      },
       "maxHandshakeAttempts": {
         "type": "string"
       },

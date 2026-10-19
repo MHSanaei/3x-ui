@@ -1062,6 +1062,7 @@ export const ServerSettingsSchema = z.object({
   jmax: z.number().int(),
   jmin: z.number().int(),
   keepaliveTimeout: z.string().optional(),
+  kernelMode: z.boolean().optional(),
   maxHandshakeAttempts: z.string().optional(),
   mtu: z.number().int().optional(),
   primaryDns: z.string(),

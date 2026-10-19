@@ -124,6 +124,10 @@ type Instance struct {
 	// for backward compatibility, but not acted on by anything. Slated for
 	// removal alongside the frontend toggle in a follow-up.
 	RouteThroughXray bool
+
+	// KernelMode selects internal/amneziawgkern over internal/amneziawgnet as
+	// this inbound's datapath. See ServerSettings.KernelMode.
+	KernelMode bool
 }
 
 // ServerSettings is the "server" block of an AmneziaWG inbound's Settings
@@ -159,6 +163,10 @@ type ServerSettings struct {
 	IPv6ExternalInterface string `json:"ipv6ExternalInterface,omitempty"`
 
 	RouteThroughXray bool `json:"routeThroughXray,omitempty"`
+
+	// KernelMode runs this inbound on the DKMS kernel module and awg-quick
+	// (internal/amneziawgkern) instead of the embedded amneziawg-go + gVisor stack.
+	KernelMode bool `json:"kernelMode,omitempty"`
 
 	// Obfuscation31's fields, repeated flat (not embedded) rather than
 	// nested under their own key: encoding/json would happily inline an

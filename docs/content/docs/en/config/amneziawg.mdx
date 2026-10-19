@@ -1,6 +1,6 @@
 ---
 title: AmneziaWG
-description: Set up an AmneziaWG inbound in 3x-ui — obfuscation parameters, native IPv6, per-client port-forwarding, and routing client traffic through Xray.
+description: Configure embedded or optional Linux kernel AmneziaWG inbounds in 3x-ui.
 icon: Lock
 ---
 
@@ -116,13 +116,37 @@ the server.
 
 </Steps>
 
-Every AmneziaWG inbound's traffic already goes through Xray — each peer
-relays into its own loopback SOCKS5 inbound, tagged with the AmneziaWG
-inbound's own tag, so it shows up as a normal source on the
-[Routing](/docs/operations/outbounds-routing) page like any other protocol's
-inbound. There is no separate toggle for this: unlike a kernel tunnel,
-there's no other way for a peer's traffic to reach the internet once it's
-decapsulated.
+In the **embedded** backend, each peer relays into its own loopback SOCKS5
+inbound, tagged with the AmneziaWG inbound's tag. Its traffic therefore uses
+Xray routing and appears on the [Routing](/docs/operations/outbounds-routing)
+page, like other Xray inbounds.
+
+## Optional Linux kernel backend
+
+The embedded backend remains the default. On a supported Linux host, an
+administrator can opt an individual inbound into the kernel backend with
+**Kernel mode**. It uses the AmneziaWG kernel module and `awg-quick`; peer
+traffic is forwarded with nftables masquerading and bypasses Xray.
+
+Kernel mode requires a Linux host running the panel as root, with the
+`amneziawg` module loaded and `awg`, `awg-quick`, and `nft` available. The
+readiness panel reports missing host requirements and provides the install
+command. On a standard install, run
+`sudo /usr/local/x-ui/x-ui install-awg-kernel`. The bundled command installs
+the module and tools on supported Debian/apt-based systems; kernel headers and,
+when Secure Boot is enabled, module signing must be available. Review the
+script and host changes before running it.
+
+Kernel mode is not supported in Docker. Embedded mode continues to work in
+containers. The kernel backend does not support Xray routing or sniffing,
+per-client IPv6, client port forwarding, or a pinned listen address. The panel
+rejects saves that request those features. Remote node capability negotiation
+is not available, so the master defers host checks to the target node during
+apply. Review node sync status if that host cannot meet the requirements.
+
+Kernel interfaces remain up while the panel process restarts. Traffic
+accounting adopts their counters after the first successful stats snapshot, so
+traffic between restart and that snapshot may not be included.
 
 ## What the configuration looks like
 
