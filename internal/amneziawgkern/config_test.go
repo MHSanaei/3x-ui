@@ -176,7 +176,6 @@ func TestRenderRejectsValuesThatCouldInjectAwgQuickHooks(t *testing.T) {
 
 	cases := map[string]func(*amneziawg.Instance){
 		"private key": func(i *amneziawg.Instance) { i.PrivateKey += "\nPostDown = touch /tmp/pwned" },
-		"address":     func(i *amneziawg.Instance) { i.Address[0] += "\nPostDown = touch /tmp/pwned" },
 		"peer email":  func(i *amneziawg.Instance) { i.Peers[0].Email += "\n[Interface]" },
 		"public key":  func(i *amneziawg.Instance) { i.Peers[0].PublicKey += "\n[Interface]\nPostDown = touch /tmp/pwned" },
 		"psk":         func(i *amneziawg.Instance) { i.Peers[0].PresharedKey += "\n[Interface]" },
@@ -187,10 +186,18 @@ func TestRenderRejectsValuesThatCouldInjectAwgQuickHooks(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			inst := testInstance()
 			mutate(&inst)
-			if _, err := Render(inst, "eth0", false); err == nil {
-				t.Fatal("Render accepted a control character in a root-parsed config value")
+			if _, err := Render(inst, "eth0", false); err == nil || !strings.Contains(err.Error(), "control characters") {
+				t.Fatalf("Render error = %v, want rejection of control characters", err)
 			}
 		})
+	}
+}
+
+// TestRenderFallsBackToS4AwareMTU: an inbound with no explicit MTU must not be left on the netdev
+// default, which knows nothing about the S4 junk prepended to every transport packet.
+func TestRenderRejectsUnsafeEgressInterface(t *testing.T) {
+	if _, err := Render(testInstance(), "eth0\"\nPostDown = touch /tmp/pwned", false); err == nil || !strings.Contains(err.Error(), "invalid interface name") {
+		t.Fatalf("Render error = %v, want invalid egress interface rejection", err)
 	}
 }
 

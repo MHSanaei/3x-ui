@@ -54,6 +54,9 @@ func Render(inst amneziawg.Instance, egressInterface string, routeThroughXray bo
 	if inst.PrivateKey == "" {
 		return "", fmt.Errorf("amneziawgkern: inbound %d has no private key", inst.Id)
 	}
+	if err := validateConfigValues(inst); err != nil {
+		return "", err
+	}
 	if len(inst.Address) == 0 {
 		return "", fmt.Errorf("amneziawgkern: inbound %d has no interface address", inst.Id)
 	}
@@ -91,6 +94,46 @@ func Render(inst amneziawg.Instance, egressInterface string, routeThroughXray bo
 		fmt.Fprintf(&b, "AllowedIPs = %s\n", strings.Join(p.AllowedIPs, ", "))
 	}
 	return b.String(), nil
+}
+
+func validateConfigValues(inst amneziawg.Instance) error {
+	values := []struct{ field, value string }{
+		{"privateKey", inst.PrivateKey},
+		{"listen", inst.Listen},
+		{"externalInterface", inst.ExternalInterface},
+		{"headerProtectionKey", inst.Obfuscation.HeaderProtectionKey},
+		{"contentPaddingAddition", inst.Obfuscation.ContentPaddingAddition},
+		{"rekeyAfterTime", inst.Obfuscation.RekeyAfterTime},
+		{"rekeyTimeout", inst.Obfuscation.RekeyTimeout},
+		{"rejectAfterTime", inst.Obfuscation.RejectAfterTime},
+		{"keepaliveTimeout", inst.Obfuscation.KeepaliveTimeout},
+		{"maxHandshakeAttempts", inst.Obfuscation.MaxHandshakeAttempts},
+	}
+	for i, value := range []string{inst.Obfuscation.H1, inst.Obfuscation.H2, inst.Obfuscation.H3, inst.Obfuscation.H4} {
+		values = append(values, struct{ field, value string }{fmt.Sprintf("H%d", i+1), value})
+	}
+	for i, value := range []string{inst.Obfuscation.I1, inst.Obfuscation.I2, inst.Obfuscation.I3, inst.Obfuscation.I4, inst.Obfuscation.I5} {
+		values = append(values, struct{ field, value string }{fmt.Sprintf("I%d", i+1), value})
+	}
+	for i, value := range inst.Address {
+		values = append(values, struct{ field, value string }{fmt.Sprintf("address[%d]", i), value})
+	}
+	for _, peer := range inst.Peers {
+		values = append(values,
+			struct{ field, value string }{"email", peer.Email},
+			struct{ field, value string }{"publicKey", peer.PublicKey},
+			struct{ field, value string }{"presharedKey", peer.PresharedKey},
+		)
+		for i, allowedIP := range peer.AllowedIPs {
+			values = append(values, struct{ field, value string }{fmt.Sprintf("allowedIPs[%d]", i), allowedIP})
+		}
+	}
+	for _, value := range values {
+		if err := amneziawg.ValidateConfigValue(value.field, value.value); err != nil {
+			return fmt.Errorf("amneziawgkern: %w", err)
+		}
+	}
+	return nil
 }
 
 func listenNeedsPinnedBind(listen string) bool {
@@ -162,6 +205,9 @@ func natRules(inst amneziawg.Instance, egressInterface string) (string, error) {
 	}
 	if egressInterface == "" {
 		egressInterface = DetectDefaultInterface()
+	}
+	if err := amneziawg.ValidateInterfaceName(egressInterface); err != nil {
+		return "", fmt.Errorf("amneziawgkern: %w", err)
 	}
 
 	table := natTableName(inst)

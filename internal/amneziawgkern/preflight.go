@@ -107,26 +107,37 @@ func probeHost() Readiness {
 // This protects API saves when the frontend readiness check is stale.
 func Preflight(inst amneziawg.Instance, routeThroughXray bool) error {
 	blockers := append([]Blocker(nil), HostReadiness().Blockers...)
+	blockers = append(blockers, instanceFeatureBlockers(inst, routeThroughXray)...)
+	if len(blockers) == 0 {
+		return nil
+	}
+	return fmt.Errorf("kernel mode unavailable: %s", strings.Join(describe(blockers), "; "))
+}
 
-	// Features the embedded backend has and this one does not yet.
+// ValidateInstanceFeatures rejects kernel features this backend cannot serve.
+func ValidateInstanceFeatures(inst amneziawg.Instance, routeThroughXray bool) error {
+	blockers := instanceFeatureBlockers(inst, routeThroughXray)
+	if len(blockers) == 0 {
+		return nil
+	}
+	return fmt.Errorf("kernel mode unavailable: %s", strings.Join(describe(blockers), "; "))
+}
+
+func instanceFeatureBlockers(inst amneziawg.Instance, routeThroughXray bool) []Blocker {
+	var blockers []Blocker
 	if instanceWantsIPv6(inst) {
 		blockers = append(blockers, Blocker{Code: BlockerIPv6})
 	}
 	if instanceWantsPortForwarding(inst) {
 		blockers = append(blockers, Blocker{Code: BlockerPortForward})
 	}
-	// This backend has no Xray data path, so reject routeThroughXray.
 	if routeThroughXray {
 		blockers = append(blockers, Blocker{Code: BlockerRouteXray})
 	}
 	if listenNeedsPinnedBind(inst.Listen) {
 		blockers = append(blockers, Blocker{Code: BlockerListenAddress, Detail: inst.Listen})
 	}
-
-	if len(blockers) == 0 {
-		return nil
-	}
-	return fmt.Errorf("kernel mode unavailable: %s", strings.Join(describe(blockers), "; "))
+	return blockers
 }
 
 // describe renders blockers for the error a direct API caller sees. The panel
