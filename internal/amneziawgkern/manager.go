@@ -309,7 +309,15 @@ func (m *Manager) Running(id int) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	cur, ok := m.ifaces[id]
-	return ok && m.linkExists(cur.name)
+	if ok {
+		return m.linkExists(cur.name)
+	}
+	name := ownedInterfaceName(id)
+	if !m.linkExists(name) {
+		return false
+	}
+	_, found, err := readOwnedConfig(m.confDir, id)
+	return err == nil && found
 }
 
 // InterfaceNameFor exposes the interface an inbound would use, for callers

@@ -146,9 +146,12 @@ apply. Review node sync status if that host cannot meet the requirements.
 
 Kernel interfaces remain up while the panel process restarts. Traffic
 accounting adopts their counters after the first successful stats snapshot, so
-traffic between restart and that snapshot may not be included. Before rolling
-back to a panel build without kernel support, switch the inbound to embedded
-mode and apply it so the kernel interface is removed.
+traffic between restart and that snapshot may not be included. Configs created
+by pre-release kernel builds have no ownership marker and are never removed
+automatically. Before upgrading, disable Kernel mode and apply any inbound you
+will not keep on the kernel backend. Before rolling back to a panel build
+without kernel support, switch the inbound to embedded mode and apply it so
+the kernel interface is removed.
 
 ## What the configuration looks like
 
