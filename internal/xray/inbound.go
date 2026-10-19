@@ -9,6 +9,8 @@ import (
 // InboundConfig represents an Xray inbound configuration.
 // It defines how Xray accepts incoming connections including protocol, port, and settings.
 type InboundConfig struct {
+	// TuicRelay owns client revocation outside Xray; its user edits must not restart the core.
+	TuicRelay      bool                 `json:"-"`
 	Listen         json_util.RawMessage `json:"listen"` // listen cannot be an empty string
 	Port           int                  `json:"port"`
 	Protocol       string               `json:"protocol"`

@@ -21,11 +21,39 @@ func (s *InboundService) DesiredTuicInstances() ([]tuic.Instance, error) {
 	return s.desiredTuicInstances(inbounds)
 }
 
+func configuredTuicInstances(inbounds []*model.Inbound) []tuic.Instance {
+	instances := make([]tuic.Instance, 0)
+	for _, inbound := range inbounds {
+		if inbound.Protocol != model.TUIC || !inbound.Enable || inbound.NodeID != nil {
+			continue
+		}
+		inst, ok := tuic.ConfiguredInstanceFromInbound(inbound)
+		if !ok || tuic.ValidateClients(inst.Clients) != nil {
+			logger.Warningf("tuic: skipping inbound %d: invalid settings or clients", inbound.Id)
+			continue
+		}
+		instances = append(instances, inst)
+	}
+	return instances
+}
+
 func (s *InboundService) desiredTuicInstances(inbounds []*model.Inbound) ([]tuic.Instance, error) {
 	db := database.GetDB()
+	reserved, err := templateInboundTags()
+	if err != nil {
+		return nil, err
+	}
 	instances := make([]tuic.Instance, 0, len(inbounds))
 	for _, ib := range inbounds {
 		if ib.Protocol != model.TUIC || !ib.Enable || ib.NodeID != nil {
+			continue
+		}
+		if _, ok := tuic.InstanceFromInbound(ib); !ok {
+			logger.Warningf("tuic: skipping inbound %d: invalid settings JSON", ib.Id)
+			continue
+		}
+		if _, taken := reserved[ib.Tag]; taken {
+			logger.Warningf("tuic: skipping inbound %d: tag conflicts with Xray template", ib.Id)
 			continue
 		}
 		built, err := s.buildInboundForLocalRuntime(db, ib)

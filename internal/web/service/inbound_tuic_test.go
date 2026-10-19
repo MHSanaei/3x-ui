@@ -13,7 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
-func TestInjectTuicSocks(t *testing.T) {
+func TestInjectTuicRelay(t *testing.T) {
 	cfg := &xray.Config{}
 	inbounds := []*model.Inbound{
 		{
@@ -35,7 +35,7 @@ func TestInjectTuicSocks(t *testing.T) {
 	if !ok {
 		t.Fatal("invalid TUIC fixture")
 	}
-	if err := injectTuicSocks(cfg, []tuic.Instance{inst}); err != nil {
+	if err := injectTuicRelay(cfg, []tuic.Instance{inst}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -361,7 +361,7 @@ func TestNormalizeTuicSettingsCanonicalizesCongestionAndPacketLimit(t *testing.T
 	}
 }
 
-func TestTuicRelayAccountsFollowEligibleRuntimeClients(t *testing.T) {
+func TestTuicRelayIdentitySurvivesNativeEligibilityChanges(t *testing.T) {
 	setupBulkDB(t)
 	clients := []model.Client{
 		{Email: "active@test", ID: "a0000000-0000-0000-0000-000000000071", Password: "p1", Enable: true},
@@ -385,8 +385,8 @@ func TestTuicRelayAccountsFollowEligibleRuntimeClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := tuicRelayAccountEmails(t, cfg, ib.Tag); !slices.Equal(got, []string{"active@test"}) {
-		t.Fatalf("relay accounts = %v, want only active@test", got)
+	if got := tuicRelayAccountEmails(t, cfg, ib.Tag); !slices.Equal(got, []string{"active@test", "manual@test", "quota@test"}) {
+		t.Fatalf("relay accounts = %v, want configured identities independent of native eligibility", got)
 	}
 	instances, err := (&InboundService{}).DesiredTuicInstances()
 	if err != nil || len(instances) != 1 || len(instances[0].Clients) != 1 || instances[0].Clients[0].Email != "active@test" {
@@ -419,11 +419,11 @@ func TestTuicRelayAccountsFollowEligibleRuntimeClients(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := tuicRelayAccountEmails(t, renewedCfg, ib.Tag); !slices.Equal(got, []string{"active@test", "quota@test"}) {
-		t.Fatalf("renewed relay accounts = %v, want active@test and quota@test", got)
+	if got := tuicRelayAccountEmails(t, renewedCfg, ib.Tag); !slices.Equal(got, []string{"active@test", "manual@test", "quota@test"}) {
+		t.Fatalf("renewed relay accounts = %v, want all configured identities", got)
 	}
-	if _, hot := xray.ComputeHotDiff(profileCfg, renewedCfg); hot {
-		t.Fatal("changed SOCKS account list must require a full Xray restart")
+	if diff, hot := xray.ComputeHotDiff(profileCfg, renewedCfg); !hot || !diff.Empty() {
+		t.Fatal("quota renewal must leave relay admission unchanged")
 	}
 
 	if err := database.GetDB().Model(ib).Update("settings", `{"clients":[]}`).Error; err != nil {
@@ -434,8 +434,8 @@ func TestTuicRelayAccountsFollowEligibleRuntimeClients(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, inbound := range emptyCfg.InboundConfigs {
-		if inbound.Tag == ib.Tag {
-			t.Fatal("TUIC relay without any eligible clients must be removed")
+		if inbound.Tag == ib.Tag && len(tuicRelayAccountEmails(t, emptyCfg, ib.Tag)) != 0 {
+			t.Fatal("removed clients must lose relay credentials")
 		}
 	}
 }

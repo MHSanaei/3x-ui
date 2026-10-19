@@ -17,8 +17,9 @@ import (
 )
 
 type LocalDeps struct {
-	APIPort        func() int
-	SetNeedRestart func()
+	APIPort          func() int
+	SetNeedRestart   func()
+	RequestReconcile func()
 }
 
 type Local struct {
@@ -91,8 +92,8 @@ func (l *Local) AddInbound(_ context.Context, ib *model.Inbound) error {
 			return nil
 		}
 		err := tuic.GetManager().Ensure(inst)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
 		}
 		return err
 	}
@@ -122,8 +123,8 @@ func (l *Local) DelInbound(_ context.Context, ib *model.Inbound) error {
 	}
 	if ib.Protocol == model.TUIC {
 		tuic.GetManager().Remove(ib.Id)
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
 		}
 		return nil
 	}
@@ -234,8 +235,8 @@ func (l *Local) updateAmneziaWGInbound(ctx context.Context, oldIb, newIb *model.
 
 func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbound) error {
 	// Account changes also need the generated Xray SOCKS relay refreshed after commit.
-	if l.deps.SetNeedRestart != nil {
-		l.deps.SetNeedRestart()
+	if l.deps.RequestReconcile != nil {
+		l.deps.RequestReconcile()
 	}
 	if oldIb.Protocol == model.TUIC && newIb.Protocol != model.TUIC {
 		tuic.GetManager().Remove(oldIb.Id)
@@ -261,8 +262,8 @@ func (l *Local) updateTuicInbound(ctx context.Context, oldIb, newIb *model.Inbou
 
 func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string]any) error {
 	if ib.Protocol == model.TUIC {
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
 		}
 		return nil
 	}
@@ -276,8 +277,8 @@ func (l *Local) AddUser(_ context.Context, ib *model.Inbound, userMap map[string
 
 func (l *Local) RemoveUser(_ context.Context, ib *model.Inbound, email string) error {
 	if ib.Protocol == model.TUIC {
-		if l.deps.SetNeedRestart != nil {
-			l.deps.SetNeedRestart()
+		if l.deps.RequestReconcile != nil {
+			l.deps.RequestReconcile()
 		}
 		return nil
 	}

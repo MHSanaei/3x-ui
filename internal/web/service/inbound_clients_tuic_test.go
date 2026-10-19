@@ -69,7 +69,7 @@ func TestAddInboundTuicClientValidation(t *testing.T) {
 func TestTuicClientMutationsRequestRelayReconciliation(t *testing.T) {
 	setupConflictDB(t)
 	resyncs := 0
-	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, SetNeedRestart: func() { resyncs++ }})
+	mgr := runtime.NewManager(runtime.LocalDeps{APIPort: func() int { return 0 }, RequestReconcile: func() { resyncs++ }})
 	runtime.SetManager(mgr)
 	t.Cleanup(func() { runtime.SetManager(nil) })
 

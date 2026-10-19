@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/quic-go/quic-go"
+	_ "github.com/xtls/xray-core/app/commander"
 	_ "github.com/xtls/xray-core/app/dispatcher"
 	_ "github.com/xtls/xray-core/app/proxyman/inbound"
 	_ "github.com/xtls/xray-core/app/proxyman/outbound"
@@ -20,6 +22,7 @@ import (
 	"github.com/xtls/xray-core/features/stats"
 	"github.com/xtls/xray-core/infra/conf"
 	_ "github.com/xtls/xray-core/proxy/blackhole"
+	_ "github.com/xtls/xray-core/proxy/dokodemo"
 	_ "github.com/xtls/xray-core/proxy/freedom"
 	_ "github.com/xtls/xray-core/proxy/socks"
 
@@ -65,8 +68,11 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 		addr := startTuicRouteMarker(t, tag)
 		outbounds = append(outbounds, map[string]any{"tag": tag, "protocol": "freedom", "settings": map[string]any{"redirect": addr}})
 	}
+	apiPort := freeLoopbackPort(t)
 	template := map[string]any{
-		"log": map[string]any{"loglevel": "error", "access": "none"}, "stats": map[string]any{},
+		"api":      map[string]any{"tag": "api", "services": []string{"HandlerService"}},
+		"inbounds": []any{map[string]any{"tag": "api", "listen": "127.0.0.1", "port": apiPort, "protocol": "tunnel", "settings": map[string]any{"address": "127.0.0.1"}}},
+		"log":      map[string]any{"loglevel": "error", "access": "none"}, "stats": map[string]any{},
 		"outbounds": outbounds,
 		"policy": map[string]any{
 			"levels": map[string]any{
@@ -76,6 +82,7 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 			"system": map[string]any{"statsInboundUplink": true, "statsInboundDownlink": true},
 		},
 		"routing": map[string]any{"rules": []any{
+			map[string]any{"type": "field", "inboundTag": []string{"api"}, "outboundTag": "api"},
 			map[string]any{"type": "field", "inboundTag": []string{ib.Tag}, "user": []string{clients[0].Email}, "outboundTag": "specific"},
 			map[string]any{"type": "field", "user": []string{clients[0].Email, clients[1].Email}, "outboundTag": "user"},
 			map[string]any{"type": "field", "inboundTag": []string{ib.Tag}, "outboundTag": "fallback"},
@@ -100,7 +107,13 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 	var relaySettings struct {
 		UserLevel uint32 `json:"userLevel"`
 	}
-	if err := json.Unmarshal(cfg.InboundConfigs[0].Settings, &relaySettings); err != nil {
+	var relayInbound xray.InboundConfig
+	for _, candidate := range cfg.InboundConfigs {
+		if candidate.Tag == ib.Tag {
+			relayInbound = candidate
+		}
+	}
+	if err := json.Unmarshal(relayInbound.Settings, &relaySettings); err != nil {
 		t.Fatal(err)
 	}
 	relayPolicy := parsed.Policy.Levels[relaySettings.UserLevel]
@@ -199,6 +212,39 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 			}
 		})
 	}
+	for _, reset := range []string{"telegram", "scheduled"} {
+		t.Run("restore-"+reset, func(t *testing.T) {
+			if err := database.GetDB().Model(&xray.ClientTraffic{}).Where("email = ?", clients[0].Email).Update("enable", false).Error; err != nil {
+				t.Fatal(err)
+			}
+			server.UpdateUsers(nil)
+			var resetErr error
+			if reset == "telegram" {
+				resetErr = (&InboundService{}).ResetClientTrafficByEmail(clients[0].Email)
+			} else {
+				resetErr = (&ClientService{}).ResetAllClientTraffics(&InboundService{}, ib.Id)
+			}
+			if resetErr != nil {
+				t.Fatal(resetErr)
+			}
+			renewed, err := (&InboundService{}).DesiredTuicInstances()
+			if err != nil || len(renewed) != 1 {
+				t.Fatalf("renewal missing: %+v %v", renewed, err)
+			}
+			server.UpdateUsers(renewed[0].Clients)
+			peer := connectTuicRoutingClient(t, renewed[0], clients[0])
+			for _, mode := range []string{"tcp", "native", "quic"} {
+				probeTuicRoute(t, peer, mode, "specific:"+tuicRoutingProbe)
+			}
+		})
+	}
+
+	verifyTuicHotUserUpdates(t, cfg, apiPort, ib, server, clients, counters)
+
+	priorOrdinary := int64(0)
+	if counter := counters.GetCounter("user>>>" + clients[1].Email + ">>>traffic>>>uplink"); counter != nil {
+		priorOrdinary = counter.Value()
+	}
 
 	relay := &tuic.SocksRelay{Addr: fmt.Sprintf("127.0.0.1:%d", ordinaryPort), Password: "ordinary-password"}
 	conn, err := relay.DialTCP(context.Background(), clients[1].Email, &tuic.Address{Type: tuic.AddrTypeIPv4, IP: net.IPv4(192, 0, 2, 1), Port: 6697})
@@ -215,7 +261,7 @@ func TestTuicUserRoutingDoesNotDoubleCountTraffic(t *testing.T) {
 		t.Fatalf("ordinary SOCKS route = %q, error %v", response, err)
 	}
 	counter := counters.GetCounter("user>>>" + clients[1].Email + ">>>traffic>>>uplink")
-	if counter == nil || counter.Value() != int64(len(tuicRoutingProbe)) {
+	if counter == nil || counter.Value()-priorOrdinary != int64(len(tuicRoutingProbe)) {
 		t.Fatal("ordinary Xray user traffic must still be counted independently of TUIC")
 	}
 }
@@ -240,10 +286,15 @@ func startTuicRouteMarker(t *testing.T, marker string) string {
 			}
 			go func() {
 				defer conn.Close()
-				_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
+				_ = conn.SetDeadline(time.Now().Add(30 * time.Second))
 				body := make([]byte, len(tuicRoutingProbe))
-				if _, err := io.ReadFull(conn, body); err == nil {
-					_, _ = conn.Write(append([]byte(marker+":"), body...))
+				for {
+					if _, err := io.ReadFull(conn, body); err != nil {
+						return
+					}
+					if _, err := conn.Write(append([]byte(marker+":"), body...)); err != nil {
+						return
+					}
 				}
 			}()
 		}
@@ -259,6 +310,130 @@ func startTuicRouteMarker(t *testing.T, marker string) string {
 		}
 	}()
 	return listener.Addr().String()
+}
+
+func verifyTuicHotUserUpdates(t *testing.T, initial *xray.Config, apiPort int, inbound *model.Inbound, server *tuic.Server, clients []model.Client, counters stats.Manager) {
+	t.Helper()
+	svc := &XrayService{}
+	if err := (&SettingService{}).SetRestartXrayOnClientDisable(true); err != nil {
+		t.Fatal(err)
+	}
+	api := &xray.XrayAPI{}
+	if err := api.Init(apiPort); err != nil {
+		t.Fatal(err)
+	}
+	defer api.Close()
+	ordinary := initial.InboundConfigs[len(initial.InboundConfigs)-1]
+	otherRelay := &tuic.SocksRelay{Addr: fmt.Sprintf("127.0.0.1:%d", ordinary.Port), Password: "ordinary-password"}
+	other, err := otherRelay.DialTCP(context.Background(), clients[1].Email, &tuic.Address{Type: tuic.AddrTypeIPv4, IP: net.IPv4(192, 0, 2, 1), Port: 6697})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	assertOtherSurvives := func() {
+		t.Helper()
+		_ = other.SetDeadline(time.Now().Add(3 * time.Second))
+		if _, err := other.Write([]byte(tuicRoutingProbe)); err != nil {
+			t.Fatal(err)
+		}
+		response := make([]byte, len("user:"+tuicRoutingProbe))
+		if _, err := io.ReadFull(other, response); err != nil || string(response) != "user:"+tuicRoutingProbe {
+			t.Fatalf("TUIC account edit interrupted an unrelated live connection: %q, %v", response, err)
+		}
+	}
+	assertOtherSurvives()
+	instances, err := (&InboundService{}).DesiredTuicInstances()
+	if err != nil || len(instances) != 1 {
+		t.Fatalf("missing native instance: %+v, %v", instances, err)
+	}
+	persistent := connectTuicRoutingClient(t, instances[0], clients[1])
+	assertNativeSurvives := func() {
+		t.Helper()
+		for _, mode := range []string{"native", "quic"} {
+			probeTuicRoute(t, persistent, mode, "user:"+tuicRoutingProbe)
+		}
+	}
+	assertNativeSurvives()
+	t.Run("hot-rollback", func(t *testing.T) {
+		var previous xray.InboundConfig
+		for _, candidate := range initial.InboundConfigs {
+			if candidate.TuicRelay {
+				previous = candidate
+			}
+		}
+		invalid := previous
+		var settings map[string]any
+		if err := json.Unmarshal(previous.Settings, &settings); err != nil {
+			t.Fatal(err)
+		}
+		settings["accounts"] = []relayAccount{{User: strings.Repeat("x", 256), Pass: "secret"}}
+		invalid.Settings = mustJSON(t, settings)
+		err := applyTuicRelayReplacements(api, []xray.InboundReplacement{{Previous: &previous, Next: &invalid}})
+		if err == nil || !strings.Contains(err.Error(), "credentials exceed SOCKS5 bounds") {
+			t.Fatalf("invalid replacement was not refused: %v", err)
+		}
+		assertOtherSurvives()
+		assertNativeSurvives()
+		fresh := connectTuicRoutingClient(t, instances[0], clients[0])
+		for _, mode := range []string{"tcp", "native", "quic"} {
+			probeTuicRoute(t, fresh, mode, "specific:"+tuicRoutingProbe)
+		}
+	})
+	added := model.Client{Email: "добавлен@test", ID: uuid.NewString(), Password: "new-password", Enable: true}
+	before := initial
+	for _, step := range []string{"add", "delete", "rename", "empty"} {
+		t.Run("hot-"+step, func(t *testing.T) {
+			switch step {
+			case "add":
+				clients = append(clients, added)
+			case "delete":
+				clients = clients[1:]
+			case "rename":
+				added.Email = "переименован@test"
+				clients[len(clients)-1] = added
+			case "empty":
+				clients = nil
+			}
+			var settings map[string]any
+			if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+				t.Fatal(err)
+			}
+			settings["clients"] = clients
+			if err := database.GetDB().Model(inbound).Update("settings", string(mustJSON(t, settings))).Error; err != nil {
+				t.Fatal(err)
+			}
+			after, err := svc.GetXrayConfig()
+			if err != nil {
+				t.Fatal(err)
+			}
+			after.InboundConfigs = append(after.InboundConfigs, ordinary)
+			diff, hot := xray.ComputeHotDiff(before, after)
+			if !hot || svc.restartToDropClients(diff) || applyTuicRelayReplacements(api, diff.TuicRelayChanges) != nil || !applyXrayHotDiff(api, diff) {
+				t.Fatalf("account update requires a core restart: hot=%t diff=%+v", hot, diff)
+			}
+			native, err := (&InboundService{}).DesiredTuicInstances()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(native) > 0 {
+				server.UpdateUsers(native[0].Clients)
+				peer := connectTuicRoutingClient(t, native[0], added)
+				for _, mode := range []string{"tcp", "native", "quic"} {
+					probeTuicRoute(t, peer, mode, "fallback:"+tuicRoutingProbe)
+				}
+				if counter := counters.GetCounter("user>>>" + added.Email + ">>>traffic>>>uplink"); counter != nil {
+					t.Fatalf("hot-added user lost relay policy and was billed twice: %d", counter.Value())
+				}
+			} else {
+				server.UpdateUsers(nil)
+			}
+			if step != "empty" {
+				assertNativeSurvives()
+			}
+			assertOtherSurvives()
+			before = after
+		})
+	}
 }
 
 func connectTuicRoutingClient(t *testing.T, inst tuic.Instance, user model.Client) *quic.Conn {

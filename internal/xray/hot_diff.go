@@ -14,6 +14,7 @@ import (
 // process. It only covers the sections Xray can reload at runtime: inbounds,
 // outbounds and routing rules/balancers.
 type HotDiff struct {
+	TuicRelayChanges   []InboundReplacement
 	RemovedInboundTags []string
 	AddedInbounds      [][]byte
 	RemovedUsers       []UserOp
@@ -24,6 +25,12 @@ type HotDiff struct {
 	RemovedOutboundTags []string
 	AddedOutbounds      [][]byte
 	RoutingConfig       []byte // full new routing section; nil when unchanged
+}
+
+// InboundReplacement is verified independently of ordinary hot changes.
+type InboundReplacement struct {
+	Previous *InboundConfig
+	Next     *InboundConfig
 }
 
 // UserOp is a per-user AlterInbound operation; User is nil for removals.
@@ -57,7 +64,7 @@ func (d *HotDiff) DropsUsers() bool {
 
 // Empty reports whether the diff contains no operations.
 func (d *HotDiff) Empty() bool {
-	return len(d.RemovedInboundTags) == 0 &&
+	return len(d.TuicRelayChanges) == 0 && len(d.RemovedInboundTags) == 0 &&
 		len(d.AddedInbounds) == 0 &&
 		len(d.RemovedUsers) == 0 &&
 		len(d.AddedUsers) == 0 &&
@@ -146,11 +153,15 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 		if oldIb.Tag == apiTag || oldIb.Tag == "api" {
 			return false
 		}
+		if oldIb.TuicRelay && (!exists || newIb.TuicRelay) {
+			diff.TuicRelayChanges = append(diff.TuicRelayChanges, InboundReplacement{Previous: oldIb, Next: newIb})
+			continue
+		}
 		if exists && (inboundHasReverseClient(oldIb) || inboundHasReverseClient(newIb)) {
 			logger.Debug("hot diff: inbound [", oldIb.Tag, "] carries a reverse-tagged client, forcing a full restart instead of a hot swap")
 			return false
 		}
-		if exists {
+		if exists && !oldIb.TuicRelay {
 			diff.DroppedClients = append(diff.DroppedClients, droppedClients(oldIb, newIb)...)
 		}
 		if exists && diffInboundUsers(oldIb, newIb, diff) {
@@ -184,6 +195,10 @@ func diffInbounds(oldCfg, newCfg *Config, diff *HotDiff) bool {
 		}
 		if newIb.Tag == apiTag || newIb.Tag == "api" {
 			return false
+		}
+		if newIb.TuicRelay {
+			diff.TuicRelayChanges = append(diff.TuicRelayChanges, InboundReplacement{Next: newIb})
+			continue
 		}
 		if inboundUsesTproxy(newIb) {
 			logger.Debug("hot diff: new inbound [", newIb.Tag, "] is a TPROXY target (e.g. internal/amneziawg's Xray egress bridge); a gRPC add reports success but does not reliably bind a working listener, forcing a full restart instead of a hot add")
@@ -385,7 +400,7 @@ func inboundUsesTproxy(ib *InboundConfig) bool {
 
 // inboundUsesSocksAccounts reports whether an inbound is a password-auth
 // SOCKS5 inbound. TUIC and AmneziaWG generate this shape through
-// injectTuicSocks and injectAmneziawgnetSocks in internal/web/service/xray.go.
+// injectTuicRelay and injectAmneziawgnetSocks in internal/web/service/xray.go.
 // The panel, per-node and MTProto egress bridges use "noauth" without
 // per-account identity, so this check does not affect those bridges.
 //
