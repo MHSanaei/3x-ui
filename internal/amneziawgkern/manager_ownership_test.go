@@ -23,6 +23,7 @@ func ownedTestConfig(t *testing.T, id int) string {
 	}
 	return conf
 }
+
 func writeTestConfig(t *testing.T, dir, name, contents string) string {
 	t.Helper()
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -34,6 +35,7 @@ func writeTestConfig(t *testing.T, dir, name, contents string) string {
 	}
 	return path
 }
+
 func TestFreshManagerReconcileEmptyRemovesOnlyOwnedRegularConfigs(t *testing.T) {
 	dir := t.TempDir()
 	ownedPath := writeTestConfig(t, dir, "awg42", ownedTestConfig(t, 42))
@@ -87,6 +89,7 @@ func TestFreshManagerReconcileEmptyRemovesOnlyOwnedRegularConfigs(t *testing.T) 
 		t.Fatalf("cleanup left linkUp=%v natTable=%v", linkUp, natTable)
 	}
 }
+
 func TestStopAllThenFreshManagerAdoptsDesiredOwnedInterface(t *testing.T) {
 	dir := t.TempDir()
 	inst := testInstance()
@@ -115,6 +118,7 @@ func TestStopAllThenFreshManagerAdoptsDesiredOwnedInterface(t *testing.T) {
 		t.Fatalf("restarted manager state = %+v, %v; want adopted baseline pending", state, ok)
 	}
 }
+
 func TestRemoveRecoversOwnedConfigAfterDownAndNATCleanupFailure(t *testing.T) {
 	dir := t.TempDir()
 	path := writeTestConfig(t, dir, "awg46", ownedTestConfig(t, 46))
@@ -154,6 +158,7 @@ func TestRemoveRecoversOwnedConfigAfterDownAndNATCleanupFailure(t *testing.T) {
 		t.Fatalf("successful Remove left private config (err=%v)", err)
 	}
 }
+
 func TestRemoveRejectsPoisonedOwnedHooksBeforeDown(t *testing.T) {
 	dir := t.TempDir()
 	config := strings.Replace(ownedTestConfig(t, 47), "[Peer]", "PreDown = touch /tmp/should-not-run\n\n[Peer]", 1)
@@ -173,6 +178,7 @@ func TestRemoveRejectsPoisonedOwnedHooksBeforeDown(t *testing.T) {
 		t.Fatalf("poisoned config was removed: %v", err)
 	}
 }
+
 func TestFreshManagerReportsRecoveredInterfaceAfterCleanupFailure(t *testing.T) {
 	dir := t.TempDir()
 	configPath := writeTestConfig(t, dir, "awg48", ownedTestConfig(t, 48))

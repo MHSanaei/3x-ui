@@ -129,7 +129,8 @@ func validOwnedConfig(config, name string) bool {
 		if !ok || strings.ContainsAny(value, "\r\n\x00") {
 			return false
 		}
-		if section == "Interface" {
+		switch section {
+		case "Interface":
 			switch key {
 			case "PrivateKey", "Address", "ListenPort", "MTU", "Jc", "Jmin", "Jmax", "S1", "S2", "S3", "S4",
 				"H1", "H2", "H3", "H4", "I1", "I2", "I3", "I4", "I5", "HeaderProtectionKey",
@@ -139,10 +140,7 @@ func validOwnedConfig(config, name string) bool {
 					return false
 				}
 			case "PostUp":
-				if !validOwnedPostUp(value, id) {
-					return false
-				}
-				if seenPostUp[value] {
+				if !validOwnedPostUp(value, id) || seenPostUp[value] {
 					return false
 				}
 				seenPostUp[value] = true
@@ -154,7 +152,7 @@ func validOwnedConfig(config, name string) bool {
 			default:
 				return false
 			}
-		} else if section == "Peer" {
+		case "Peer":
 			switch key {
 			case "PublicKey", "PresharedKey", "AllowedIPs":
 				if value == "" {
@@ -163,7 +161,7 @@ func validOwnedConfig(config, name string) bool {
 			default:
 				return false
 			}
-		} else {
+		default:
 			return false
 		}
 	}
