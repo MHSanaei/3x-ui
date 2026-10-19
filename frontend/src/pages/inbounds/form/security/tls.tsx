@@ -5,7 +5,6 @@ import {
   Form,
   Input,
   InputNumber,
-  Popover,
   Radio,
   Select,
   Space,
@@ -17,7 +16,6 @@ import {
   FileProtectOutlined,
   MinusOutlined,
   PlusOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
@@ -244,9 +242,12 @@ function EchKeySection({ saving, getNewEchCert, clearEchCert }: EchKeySectionPro
     control,
     name: 'streamSettings.tlsSettings.settings.echConfigList',
   });
+  const serverName: string =
+    useWatch({ control, name: 'streamSettings.tlsSettings.serverName' }) ?? '';
   const helper = (
     <DynamicEchHelper
       value={echConfig ?? ''}
+      sni={serverName}
       hasLocalKeys={!!localKeys}
       onApply={(next) =>
         setValue('streamSettings.tlsSettings.settings.echConfigList', next, {
@@ -258,19 +259,6 @@ function EchKeySection({ saving, getNewEchCert, clearEchCert }: EchKeySectionPro
   );
   return (
     <>
-      <Form.Item label={t('pages.inbounds.form.echConfig')} style={{ marginBottom: 8 }}>
-        <Popover
-          trigger="click"
-          placement="bottomLeft"
-          destroyOnHidden
-          content={helper}
-          title={t('pages.inbounds.form.echDynamicTitle')}
-        >
-          <Button icon={<ThunderboltOutlined />} data-testid="ech-dynamic-helper-trigger">
-            {t('pages.inbounds.form.echDynamicTrigger')}
-          </Button>
-        </Popover>
-      </Form.Item>
       <FormField
         name={['streamSettings', 'tlsSettings', 'settings', 'echConfigList']}
         label={t('pages.inbounds.form.echConfigList')}
@@ -282,6 +270,9 @@ function EchKeySection({ saving, getNewEchCert, clearEchCert }: EchKeySectionPro
       >
         <Input placeholder={t('pages.inbounds.form.echDynamicPlaceholder')} />
       </FormField>
+      <Form.Item label=" " style={{ marginBottom: 8 }}>
+        {helper}
+      </Form.Item>
       <FormField
         name={['streamSettings', 'tlsSettings', 'echServerKeys']}
         label={t('pages.inbounds.form.echKey')}

@@ -56,8 +56,8 @@ function renderTls(defaultValues?: Record<string, unknown>) {
   );
 }
 
+/** The generator is inline now, so it is present as soon as the TLS form renders. */
 async function openHelper() {
-  fireEvent.click(await screen.findByTestId('ech-dynamic-helper-trigger'));
   return screen.findByTestId('ech-dynamic-helper');
 }
 

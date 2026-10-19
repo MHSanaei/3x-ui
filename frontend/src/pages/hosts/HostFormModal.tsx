@@ -2,12 +2,10 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
-  Button,
   Form,
   Input,
   InputNumber,
   Modal,
-  Popover,
   Select,
   Switch,
   Tabs,
@@ -23,7 +21,6 @@ import {
   PartitionOutlined,
   DeploymentUnitOutlined,
   RocketOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
@@ -109,6 +106,7 @@ export default function HostFormModal({
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
   const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
+  const hostSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
 
@@ -374,32 +372,6 @@ export default function HostFormModal({
                         >
                           <Switch />
                         </FormField>
-                        <Form.Item
-                          label={t('pages.hosts.fields.echConfigList')}
-                          style={{ marginBottom: 8 }}
-                        >
-                          <Popover
-                            trigger="click"
-                            placement="bottomLeft"
-                            destroyOnHidden
-                            title={t('pages.inbounds.form.echDynamicTitle')}
-                            content={
-                              <DynamicEchHelper
-                                value={hostEchConfig}
-                                onApply={(next) =>
-                                  methods.setValue('echConfigList', next, { shouldDirty: true })
-                                }
-                              />
-                            }
-                          >
-                            <Button
-                              icon={<ThunderboltOutlined />}
-                              data-testid="ech-dynamic-helper-trigger"
-                            >
-                              {t('pages.inbounds.form.echDynamicTrigger')}
-                            </Button>
-                          </Popover>
-                        </Form.Item>
                         <FormField
                           name="echConfigList"
                           label={t('pages.inbounds.form.echConfigList')}
@@ -414,6 +386,15 @@ export default function HostFormModal({
                             placeholder={t('pages.inbounds.form.echDynamicPlaceholder')}
                           />
                         </FormField>
+                        <Form.Item label=" " style={{ marginBottom: 8 }}>
+                          <DynamicEchHelper
+                            value={hostEchConfig}
+                            sni={hostSni}
+                            onApply={(next) =>
+                              methods.setValue('echConfigList', next, { shouldDirty: true })
+                            }
+                          />
+                        </Form.Item>
                         <Alert
                           type="info"
                           showIcon

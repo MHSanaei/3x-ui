@@ -1,19 +1,24 @@
 import { describe, expect, it } from 'vitest';
+import type { TFunction } from 'i18next';
 
 import {
   DEFAULT_DOH_ENDPOINT,
   DEFAULT_ECH_DOMAIN,
+  DEFAULT_ECH_PAIR,
   DOH_ENDPOINT_GROUPS,
   ECH_DOMAIN_PRESETS,
   ECH_DOH_SEPARATOR,
   formatDynamicEch,
   isSupportedDohUrl,
+  pairPresetOptions,
   parseDynamicEch,
 } from '@/lib/xray/ech-presets';
 
 function optionValues(groups: typeof DOH_ENDPOINT_GROUPS): string[] {
   return groups.flatMap((g) => g.endpoints.map((o) => o.value));
 }
+
+const t = ((key: string) => key) as unknown as TFunction;
 
 describe('dynamic ECH presets', () => {
   it('every shipped DoH preset is one Xray can actually resolve', () => {
@@ -26,8 +31,23 @@ describe('dynamic ECH presets', () => {
   it('every ECH target domain is a bare registrable name, not a URL', () => {
     // Xray splits the string on the first '+', so a scheme in the domain half
     // would be sent to the DNS resolver verbatim and never resolve.
-    const bad = ECH_DOMAIN_PRESETS.filter((d) => !/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(d));
-    expect(bad).toEqual([]);
+    const bad = ECH_DOMAIN_PRESETS.filter((d) => !/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(d.value));
+    expect(bad.map((d) => d.value)).toEqual([]);
+  });
+
+  it('every preset dropdown pair round-trips through the Xray parser', () => {
+    // The dropdown is a single click away from echConfigList; a pair the parser
+    // rejects here would ship a value every client fails to resolve.
+    const pairs = pairPresetOptions(t).flatMap((g) => g.options.map((o) => o.value));
+    expect(pairs.length).toBeGreaterThan(0);
+    expect(pairs.filter((p) => parseDynamicEch(p) === null)).toEqual([]);
+    expect(pairs).toContain(DEFAULT_ECH_PAIR);
+  });
+
+  it('offers every resolver under the Cloudflare front, udp ones included', () => {
+    const [cloudflare] = pairPresetOptions(t);
+    expect(cloudflare.options).toHaveLength(optionValues(DOH_ENDPOINT_GROUPS).length);
+    expect(cloudflare.options.some((o) => o.value.includes('udp://'))).toBe(true);
   });
 
   it.each(['https', 'h2c', 'udp'])('builds a value for the %s scheme Xray supports', (scheme) => {
