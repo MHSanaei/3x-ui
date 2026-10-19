@@ -238,20 +238,15 @@ interface EchKeySectionProps {
 
 function EchKeySection({ saving, getNewEchCert, clearEchCert }: EchKeySectionProps) {
   const { t } = useTranslation();
-  const { control, setValue, getValues } = useFormContext();
+  const { control, setValue } = useFormContext();
   const localKeys = useWatch({ control, name: 'streamSettings.tlsSettings.echServerKeys' });
   const echConfig = useWatch({
     control,
     name: 'streamSettings.tlsSettings.settings.echConfigList',
   });
-  const sni: string = getValues('streamSettings.tlsSettings.serverName') ?? '';
-  const rejectUnknownSni: boolean =
-    getValues('streamSettings.tlsSettings.rejectUnknownSni') ?? false;
   const helper = (
     <DynamicEchHelper
       value={echConfig ?? ''}
-      sni={sni}
-      rejectUnknownSni={rejectUnknownSni}
       hasLocalKeys={!!localKeys}
       onApply={(next) =>
         setValue('streamSettings.tlsSettings.settings.echConfigList', next, {

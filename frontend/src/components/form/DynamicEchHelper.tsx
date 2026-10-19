@@ -11,15 +11,11 @@ import {
   formatDynamicEch,
   isSupportedDohUrl,
   parseDynamicEch,
-  resolveAutoEchDomain,
 } from '@/lib/xray/ech-presets';
 
 interface DynamicEchHelperProps {
   /** Current echConfigList, so an existing dynamic pair can be recovered. */
   value?: string;
-  /** SNI / serverName, used to preselect the target domain. */
-  sni?: string;
-  rejectUnknownSni?: boolean;
   /** True when a locally generated ECH keypair is present. */
   hasLocalKeys?: boolean;
   onApply?: (value: string) => void;
@@ -30,18 +26,10 @@ interface DynamicEchHelperProps {
 
 const CUSTOM = '__custom__';
 
-/* Prefill the target with the user's own SNI when it can carry ECH; otherwise
- * fall back to Cloudflare's published ECH name (the CDN case). */
-function initialDomainChoice(sni: string, rejectUnknownSni: boolean): string {
-  return resolveAutoEchDomain(sni, rejectUnknownSni) ?? DEFAULT_ECH_DOMAIN;
-}
-
 /* Only echConfigList can hold the dynamic `domain+DoH` form; clearing local keys
  * is a separate, explicitly confirmed step because behind a CDN they are dead. */
 export default function DynamicEchHelper({
   value = '',
-  sni = '',
-  rejectUnknownSni = false,
   hasLocalKeys = false,
   onApply,
   onClearLocalKeys,
@@ -49,8 +37,8 @@ export default function DynamicEchHelper({
 }: DynamicEchHelperProps) {
   const { t } = useTranslation();
   const parsed = parseDynamicEch(value);
-  const [domainChoice, setDomainChoice] = useState<string>(() =>
-    parsed ? parsed.domain : initialDomainChoice(sni, rejectUnknownSni),
+  const [domainChoice, setDomainChoice] = useState<string>(
+    () => parsed?.domain ?? DEFAULT_ECH_DOMAIN,
   );
   const [domainInput, setDomainInput] = useState<string>(() => parsed?.domain ?? '');
   const [dohChoice, setDohChoice] = useState<string>(() => parsed?.dohUrl ?? DEFAULT_DOH_ENDPOINT);
@@ -195,7 +183,7 @@ export default function DynamicEchHelper({
               </>
             }
             action={
-              <Space direction="vertical">
+              <Space orientation="vertical">
                 <Button size="small" type="primary" onClick={confirmOverwrite}>
                   {t('pages.inbounds.form.echDynamicOverwriteConfirm')}
                 </Button>

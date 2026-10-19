@@ -9,8 +9,6 @@ import {
   formatDynamicEch,
   isSupportedDohUrl,
   parseDynamicEch,
-  resolveAutoEchDomain,
-  SUPPORTED_DOH_SCHEMES,
 } from '@/lib/xray/ech-presets';
 
 function optionValues(groups: typeof DOH_ENDPOINT_GROUPS): string[] {
@@ -38,20 +36,16 @@ describe('dynamic ECH presets', () => {
   });
 
   it.each(['http', 'quic', 'tcp', 'tls', 'doq', 'ftp'])(
-    'rejects the %s scheme, which Xray never dials for ECH',
+    'rejects the %s scheme at every entry point',
     (scheme) => {
       // Accepting these would ship a config that fails at the client, where the
       // operator cannot see the panel's advice any more.
-      expect(formatDynamicEch('cloudflare-ech.com', `${scheme}://1.1.1.1/dns-query`)).toBeNull();
+      const url = `${scheme}://1.1.1.1/dns-query`;
+      expect(isSupportedDohUrl(url)).toBe(false);
+      expect(formatDynamicEch('cloudflare-ech.com', url)).toBeNull();
+      expect(parseDynamicEch(`cloudflare-ech.com+${url}`)).toBeNull();
     },
   );
-
-  it('exposes exactly the three schemes its own parser accepts', () => {
-    expect([...SUPPORTED_DOH_SCHEMES]).toEqual(['https', 'h2c', 'udp']);
-    for (const scheme of ['http', 'quic', 'tcp', 'tls']) {
-      expect(SUPPORTED_DOH_SCHEMES).not.toContain(scheme);
-    }
-  });
 
   it('preselects Cloudflare over AliDNS, the mainland-China reachable pair', () => {
     expect(formatDynamicEch(DEFAULT_ECH_DOMAIN, DEFAULT_DOH_ENDPOINT)).toBe(
@@ -101,19 +95,38 @@ describe('dynamic ECH presets', () => {
     expect(parseDynamicEch('')).toBeNull();
   });
 
-  it('falls back to the node SNI for automatically resolved ECH', () => {
-    expect(resolveAutoEchDomain('t.example.com', false)).toBe('t.example.com');
-    expect(resolveAutoEchDomain(' t.example.com ', false)).toBe('t.example.com');
+  it('lower-cases a pasted scheme so Xray prefix-matches it', () => {
+    // Xray compares with strings.HasPrefix(server, "https://") — case-sensitive.
+    // Passing "HTTPS://" through unchanged ships a config every client fails on.
+    expect(formatDynamicEch('cloudflare-ech.com', 'HTTPS://dns.google/dns-query')).toBe(
+      'cloudflare-ech.com+https://dns.google/dns-query',
+    );
+    expect(formatDynamicEch('cloudflare-ech.com', 'UDP://1.1.1.1')).toBe(
+      'cloudflare-ech.com+udp://1.1.1.1',
+    );
+    expect(isSupportedDohUrl('H2C://dns.google/dns-query')).toBe(true);
   });
 
-  it('ignores an SNI that is an IP literal, which can never carry ECH', () => {
-    expect(resolveAutoEchDomain('203.0.113.10', false)).toBeNull();
-    expect(resolveAutoEchDomain('2001:db8::1', false)).toBeNull();
+  it('rejects a resolver URL carrying whitespace Xray would put on the wire', () => {
+    // The old prefix-only regex accepted these and the junk went into the value.
+    expect(isSupportedDohUrl('https://dns.google/dns-query extra')).toBe(false);
+    expect(isSupportedDohUrl('https://dns.google /dns-query')).toBe(false);
+    expect(formatDynamicEch('cloudflare-ech.com', 'https://dns.google/dns-query extra')).toBeNull();
   });
 
-  it('never auto-resolves while the inbound only accepts unknown SNIs', () => {
-    // rejectUnknownSni means the target name is not the SNI; reusing it would
-    // advertise an ECH domain the server does not serve.
-    expect(resolveAutoEchDomain('t.example.com', true)).toBeNull();
+  it('rejects a resolver URL with no host', () => {
+    // new URL("https://?x") parses but carries an empty hostname: Xray would
+    // dial nothing and fail the handshake.
+    expect(isSupportedDohUrl('https://?x')).toBe(false);
+    expect(formatDynamicEch('cloudflare-ech.com', 'https://?x')).toBeNull();
+  });
+
+  it('defaults the target to Cloudflare, not the inbound SNI', () => {
+    // Behind Cloudflare the ECH record belongs to Cloudflare's ECH front, so the
+    // helper must not derive it from the proxied hostname.
+    expect(DEFAULT_ECH_DOMAIN).toBe('cloudflare-ech.com');
+    expect(formatDynamicEch(DEFAULT_ECH_DOMAIN, DEFAULT_DOH_ENDPOINT)).toBe(
+      'cloudflare-ech.com+https://dns.alidns.com/dns-query',
+    );
   });
 });

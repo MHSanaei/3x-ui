@@ -55,16 +55,31 @@ export const ECH_DOMAIN_PRESETS = [
 
 const DOMAIN_RE = /^([a-z0-9-]+\.)+[a-z]{2,}$/i;
 
-/* Xray's ECH resolver dials the DoH half by literal prefix match: https:// and
- * h2c:// over HTTP, udp:// plain DNS. Any other scheme silently never resolves. */
+/* Xray dials the DoH half by case-sensitive prefix match: https:// and h2c://
+ * over HTTP, udp:// plain DNS. Anything else never resolves. */
 export const SUPPORTED_DOH_SCHEMES = ['https', 'h2c', 'udp'] as const;
-const DOH_URI_RE = /^(https|h2c|udp):\/\/[^\s/+]+/i;
+
+function normalizeDohUrl(raw: string): string | null {
+  const url = raw.trim();
+  if (!url || /\s/.test(url)) return null;
+  const match = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//.exec(url);
+  if (!match) return null;
+  const scheme = match[1].toLowerCase();
+  if (!(SUPPORTED_DOH_SCHEMES as readonly string[]).includes(scheme)) return null;
+  try {
+    if (!new URL(url).hostname) return null;
+  } catch {
+    return null;
+  }
+  // Lower-case the scheme only: Xray's prefix match rejects "HTTPS://" otherwise.
+  return `${scheme}://${url.slice(match[0].length)}`;
+}
 
 export function formatDynamicEch(domain: string, dohUrl: string): string | null {
   const d = domain.trim();
-  const u = dohUrl.trim();
+  const u = normalizeDohUrl(dohUrl);
   if (!DOMAIN_RE.test(d) || d.includes(ECH_DOH_SEPARATOR)) return null;
-  if (!DOH_URI_RE.test(u)) return null;
+  if (!u) return null;
   return `${d}${ECH_DOH_SEPARATOR}${u}`;
 }
 
@@ -73,20 +88,13 @@ export function parseDynamicEch(value: string): { domain: string; dohUrl: string
   const split = raw.indexOf(ECH_DOH_SEPARATOR);
   if (split <= 0) return null;
   const domain = raw.slice(0, split).trim();
-  const dohUrl = raw.slice(split + 1).trim();
-  if (!DOMAIN_RE.test(domain) || !DOH_URI_RE.test(dohUrl)) return null;
+  const dohUrl = normalizeDohUrl(raw.slice(split + 1));
+  if (!DOMAIN_RE.test(domain) || !dohUrl) return null;
   return { domain, dohUrl };
 }
 
 export function isSupportedDohUrl(url: string): boolean {
-  return DOH_URI_RE.test(url.trim());
-}
-
-/** null = leave the name to the client, which resolves whatever SNI it dials. */
-export function resolveAutoEchDomain(sni: string, rejectUnknownSni: boolean): string | null {
-  const name = sni.trim();
-  if (rejectUnknownSni || !DOMAIN_RE.test(name)) return null;
-  return name;
+  return normalizeDohUrl(url) !== null;
 }
 
 interface PresetOption {

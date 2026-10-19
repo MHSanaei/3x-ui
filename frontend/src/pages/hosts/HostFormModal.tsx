@@ -108,7 +108,6 @@ export default function HostFormModal({
   const [loading, setLoading] = useState(false);
 
   const security = (useWatch({ control: methods.control, name: 'security' }) ?? 'same') as string;
-  const hostSni = useWatch({ control: methods.control, name: 'sni' }) ?? '';
   const hostEchConfig = useWatch({ control: methods.control, name: 'echConfigList' }) ?? '';
   const showTls = security === 'tls' || security === 'reality' || security === 'same';
   const showTlsExtras = security === 'tls' || security === 'same';
@@ -387,7 +386,6 @@ export default function HostFormModal({
                             content={
                               <DynamicEchHelper
                                 value={hostEchConfig}
-                                sni={hostSni}
                                 onApply={(next) =>
                                   methods.setValue('echConfigList', next, { shouldDirty: true })
                                 }

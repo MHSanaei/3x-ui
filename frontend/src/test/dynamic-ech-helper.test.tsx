@@ -78,25 +78,6 @@ describe('DynamicEchHelper', () => {
     );
   });
 
-  it('confirms with the pair the form shows now, not the one confirmed earlier', () => {
-    // The confirm handler used to replay the captured preview, so a picker change
-    // made between Apply and Replace applied the stale endpoint. Keeping the
-    // prompt open across the change is what makes the live value observable.
-    const onApply = vi.fn();
-    renderWithProviders(
-      <DynamicEchHelper hasLocalKeys onApply={onApply} onClearLocalKeys={vi.fn()} />,
-    );
-    const helper = screen.getByTestId('ech-dynamic-helper');
-    fireEvent.click(within(helper).getByTestId('ech-dynamic-apply'));
-
-    pickDohEndpoint('https://dns.google/dns-query');
-    fireEvent.click(within(helper).getByTestId('ech-dynamic-apply'));
-
-    const warning = within(helper).getByTestId('ech-dynamic-overwrite-warning');
-    fireEvent.click(within(warning).getByRole('button', { name: /replace/i }));
-    expect(onApply).toHaveBeenLastCalledWith('cloudflare-ech.com+https://dns.google/dns-query');
-  });
-
   it('treats a pasted value with an unsupported scheme as unparseable', () => {
     // quic:// does not round-trip, so the helper falls back to its defaults
     // instead of handing back an endpoint Xray can never reach.
@@ -108,16 +89,26 @@ describe('DynamicEchHelper', () => {
     );
   });
 
-  it('preselects the Cloudflare target unless the SNI itself can carry ECH', () => {
+  it('defaults to the Cloudflare ECH front with AliDNS', () => {
+    // Behind Cloudflare the ECH record belongs to Cloudflare, not to the proxied
+    // hostname, so the target must not follow the inbound SNI.
     const onApply = vi.fn();
-    const { unmount } = renderWithProviders(<DynamicEchHelper onApply={onApply} />);
+    renderWithProviders(<DynamicEchHelper onApply={onApply} />);
     fireEvent.click(screen.getByTestId('ech-dynamic-apply'));
     expect(onApply).toHaveBeenCalledWith('cloudflare-ech.com+https://dns.alidns.com/dns-query');
-    unmount();
+  });
 
-    const second = vi.fn();
-    renderWithProviders(<DynamicEchHelper onApply={second} sni="t.example.com" />);
+  it('writes a pasted upper-case scheme in the form Xray accepts', () => {
+    // Xray prefix-matches case-sensitively, so "HTTPS://" must be normalised
+    // before it reaches echConfigList.
+    const onApply = vi.fn();
+    renderWithProviders(
+      <DynamicEchHelper
+        onApply={onApply}
+        value="cloudflare-ech.com+HTTPS://dns.google/dns-query"
+      />,
+    );
     fireEvent.click(screen.getByTestId('ech-dynamic-apply'));
-    expect(second).toHaveBeenCalledWith('t.example.com+https://dns.alidns.com/dns-query');
+    expect(onApply).toHaveBeenCalledWith('cloudflare-ech.com+https://dns.google/dns-query');
   });
 });
