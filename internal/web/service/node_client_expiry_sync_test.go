@@ -55,10 +55,10 @@ func TestNodeDisableIsStale(t *testing.T) {
 	}{
 		{name: "nil master", node: xray.ClientTraffic{ExpiryTime: earlyAbs}},
 		{
-			name:      "matching limits are a genuine verdict",
+			name:      "matching limits with empty counters are stale, not genuine",
 			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
 			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota},
-			wantStale: false,
+			wantStale: true,
 		},
 		{
 			name:      "node still holds the pre-extension deadline",
@@ -101,6 +101,21 @@ func TestNodeDisableIsStale(t *testing.T) {
 			master:    &xray.ClientTraffic{ExpiryTime: lateAbs},
 			node:      xray.ClientTraffic{ExpiryTime: -2592000000},
 			wantStale: true,
+		},
+		{
+			// #6870: matching limits no longer prove the verdict — stale when
+			// the master's own counters still permit the client.
+			name:      "matching limits but master allows the client (#6870)",
+			master:    &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 10, Down: 10},
+			node:      xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Enable: false},
+			wantStale: true,
+		},
+		{
+			// Counterpart: matching limits AND the master's own numbers disallow
+			// the client — a real combined-quota or expiry verdict still latches.
+			name:   "matching limits and master over quota still latch",
+			master: &xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Up: 60, Down: 50},
+			node:   xray.ClientTraffic{ExpiryTime: lateAbs, Total: quota, Enable: false},
 		},
 	}
 	for _, c := range cases {
@@ -389,9 +404,9 @@ func TestNodeStaleLift_MarksNodeDirty(t *testing.T) {
 	}
 }
 
-// A node disable decided on the master's own limits is genuine and must still
-// one-way-merge enable=false onto the master (#4917).
-func TestNodeQuotaDisable_SameExpiryStillLatches(t *testing.T) {
+// A node disable the master's own counters also justify still one-way-merges
+// enable=false onto the master (#4917). Pre-seed over quota so it latches.
+func TestNodeQuotaDisable_MasterOverQuotaStillLatches(t *testing.T) {
 	db := initTrafficTestDB(t)
 	createNodeInbound(t, db, 1, "n1-in", 41001)
 	svc := &InboundService{}
@@ -402,11 +417,15 @@ func TestNodeQuotaDisable_SameExpiryStillLatches(t *testing.T) {
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
 		Email: email, Up: 10, Down: 10, Total: 100, ExpiryTime: expiry, Enable: true,
 	})
+	if err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).
+		Updates(map[string]any{"up": int64(80), "down": int64(30)}).Error; err != nil {
+		t.Fatalf("seed over-quota master: %v", err)
+	}
 	syncNode(t, svc, 1, "n1-in", xray.ClientTraffic{
-		Email: email, Up: 60, Down: 50, Total: 100, ExpiryTime: expiry, Enable: false,
+		Email: email, Up: 80, Down: 30, Total: 100, ExpiryTime: expiry, Enable: false,
 	})
 	if got := readTraffic(t, db, email); got.Enable {
-		t.Fatal("same-expiry node disable must still latch master enable off (#4917)")
+		t.Fatal("over-quota master must still latch enable off (#4917)")
 	}
 }
 
@@ -920,6 +939,15 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 			nodeExpiry: earlyAbs, nodeTotal: 100, nodeEnable: false,
 			wantExpiry: lateAbs, wantEnable: false,
 		},
+		{
+			// #6870: matching limits with master below quota must not latch;
+			// mirrors the Go helper case above.
+			name:         "matching limits, master allows, node disable is stale",
+			masterExpiry: lateAbs, masterEnable: true,
+			masterUp: 10, masterDown: 10, tot: 100,
+			nodeExpiry: lateAbs, nodeTotal: 100, nodeEnable: false,
+			wantExpiry: lateAbs, wantEnable: true,
+		},
 	}
 
 	enableExpr := database.ClientTrafficEnableMergeExpr()
@@ -953,7 +981,7 @@ func TestClientTrafficMergeSQLMatchesHelpers(t *testing.T) {
 					`UPDATE client_traffics SET enable = %s, expiry_time = %s WHERE email = ?`,
 					enableExpr, expiryExpr,
 				),
-				c.nodeEnable, c.nodeExpiry, c.nodeTotal, now, c.deltaUp, c.deltaDown,
+				c.nodeEnable, now, c.deltaUp, c.deltaDown,
 				c.nodeExpiry,
 				rowEmail,
 			).Error; err != nil {

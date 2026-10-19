@@ -254,7 +254,7 @@ func (s *InboundService) mergeNodeClientTraffic(tx *gorm.DB, cs xray.ClientTraff
 			database.GreatestExpr("last_online", "?"),
 		),
 		deltaUp, deltaDown,
-		cs.Enable, cs.ExpiryTime, cs.Total, now, deltaUp, deltaDown,
+		cs.Enable, now, deltaUp, deltaDown,
 		cs.Total,
 		cs.ExpiryTime, cs.Reset, cs.ResetDay, cs.ResetWeekday,
 		cs.LastOnline, cs.Email,
@@ -285,15 +285,10 @@ func masterLimitsAllowClient(master *xray.ClientTraffic, now, deltaUp, deltaDown
 	return true
 }
 
-// nodeDisableIsStale reports an enable=false the node decided against limits the
-// master has since changed, so it must not latch back (#6228 / #4917).
+// nodeDisableIsStale reports a node-reported enable=false the master has since
+// stopped justifying (#6228 / #4917 / #6870): stale iff master allows.
 func nodeDisableIsStale(master *xray.ClientTraffic, node xray.ClientTraffic, now, deltaUp, deltaDown int64) bool {
 	if master == nil {
-		return false
-	}
-	// Matching limits mean the node judged the client on the master's own terms:
-	// that verdict is genuine and still latches, as #4917 requires.
-	if node.ExpiryTime == master.ExpiryTime && node.Total == master.Total {
 		return false
 	}
 	return masterLimitsAllowClient(master, now, deltaUp, deltaDown)
