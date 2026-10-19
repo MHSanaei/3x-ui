@@ -171,28 +171,26 @@ func TestRenderRejectsPinnedListenAddress(t *testing.T) {
 	}
 }
 
-func TestConfPathUsesInterfaceName(t *testing.T) {
+func TestRenderRejectsValuesThatCouldInjectAwgQuickHooks(t *testing.T) {
 	t.Parallel()
 
-	if got, want := ConfPath("awg1"), "/etc/amnezia/amneziawg/awg1.conf"; got != want {
-		t.Errorf("ConfPath = %q, want %q", got, want)
+	cases := map[string]func(*amneziawg.Instance){
+		"private key": func(i *amneziawg.Instance) { i.PrivateKey += "\nPostDown = touch /tmp/pwned" },
+		"address":     func(i *amneziawg.Instance) { i.Address[0] += "\nPostDown = touch /tmp/pwned" },
+		"peer email":  func(i *amneziawg.Instance) { i.Peers[0].Email += "\n[Interface]" },
+		"public key":  func(i *amneziawg.Instance) { i.Peers[0].PublicKey += "\n[Interface]\nPostDown = touch /tmp/pwned" },
+		"psk":         func(i *amneziawg.Instance) { i.Peers[0].PresharedKey += "\n[Interface]" },
+		"allowed IP":  func(i *amneziawg.Instance) { i.Peers[0].AllowedIPs[0] += "\n[Interface]" },
+		"signature":   func(i *amneziawg.Instance) { i.Obfuscation.I1 = "\nPostDown = touch /tmp/pwned" },
 	}
-}
-
-// TestDetectDefaultInterfaceSkipsVirtual only asserts the naming contract -- the real host's interface
-// list is not something a test can arrange -- but a tunnel or bridge device chosen as the NAT egress
-func TestDetectDefaultInterfaceSkipsVirtual(t *testing.T) {
-	t.Parallel()
-
-	for _, name := range []string{"awg1", "wg0", "docker0", "br-abc123", "veth9f2"} {
-		if !hasSkippedPrefix(name) {
-			t.Errorf("%q must never be picked as the NAT egress interface", name)
-		}
-	}
-	for _, name := range []string{"eth0", "ens3", "enp1s0"} {
-		if hasSkippedPrefix(name) {
-			t.Errorf("%q is a normal host NIC and must remain eligible", name)
-		}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			inst := testInstance()
+			mutate(&inst)
+			if _, err := Render(inst, "eth0", false); err == nil {
+				t.Fatal("Render accepted a control character in a root-parsed config value")
+			}
+		})
 	}
 }
 

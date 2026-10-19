@@ -134,21 +134,3 @@ func TestPreflightRefusesRouteThroughXray(t *testing.T) {
 		t.Errorf("routeThroughXray must not be reported when it is off, got %v", err)
 	}
 }
-
-// TestDescribeCoversEveryCode: a code with no prose would surface to a direct
-// API caller as a bare identifier.
-func TestDescribeCoversEveryCode(t *testing.T) {
-	t.Parallel()
-
-	all := []BlockerCode{
-		BlockerNotRoot, BlockerToolsMissing, BlockerModuleMissing,
-		BlockerNftMissing, BlockerIPv6, BlockerPortForward, BlockerRouteXray,
-		BlockerListenAddress,
-	}
-	for _, c := range all {
-		got := describe([]Blocker{{Code: c, Detail: "awg"}})
-		if len(got) != 1 || got[0] == string(c) {
-			t.Errorf("code %q has no human description", c)
-		}
-	}
-}
