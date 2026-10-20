@@ -286,6 +286,9 @@ func TestUpdateInboundPreservesUnchangedLegacyAmneziaWGKeepAlive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if saved.Remark != "updated remark" {
+		t.Fatalf("saved inbound remark = %q, want updated remark", saved.Remark)
+	}
 	if len(clients) != 1 || clients[0].KeepAliveText() != "-5" {
 		t.Fatalf("saved client keepAlive = %#v, want -5", clients)
 	}
@@ -352,6 +355,9 @@ func TestClientUpdateGrandfathersOnlyUnchangedLegacyKeepAlive(t *testing.T) {
 	record, err = clientSvc.GetByID(record.Id)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if record.Email != "legacy-renamed@awg" || record.Comment != "updated comment" || record.KeepAlive != "70000" {
+		t.Fatalf("saved renamed record = %#v, want renamed/comment updated with keepAlive 70000", record)
 	}
 	changed := renamed
 	changed.KeepAlive = model.KeepAlivePtr(70001)
