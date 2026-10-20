@@ -164,3 +164,50 @@ func TestClientCreateRejectsKeepAliveOutsideNativeRangeBeforeWrite(t *testing.T)
 		t.Fatalf("out-of-range client settings = %#v, %v; want no clients", clients, err)
 	}
 }
+
+func TestClientCreateAllowsRangeForSharedAmneziaWGAndVLESSClient(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	awg := keepAliveTestAWGInbound(t, 51877)
+	vless := mkInbound(t, 51878, model.VLESS, `{"clients":[]}`)
+	client := newKeepAliveRangeClient(t, "range@awg-vless", "15-25")
+	if _, err := clientSvc.Create(inboundSvc, &ClientCreatePayload{Client: client, InboundIds: []int{awg.Id, vless.Id}}); err != nil {
+		t.Fatalf("create client shared by AmneziaWG and VLESS: %v", err)
+	}
+	var record model.ClientRecord
+	if err := database.GetDB().Where("email = ?", client.Email).First(&record).Error; err != nil {
+		t.Fatalf("read shared client: %v", err)
+	}
+	if record.KeepAlive != "15-25" {
+		t.Fatalf("shared client keepAlive = %q, want 15-25", record.KeepAlive)
+	}
+}
+
+func TestClientUpdateAllowsRangeForSharedAmneziaWGAndVLESSClient(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	awg := keepAliveTestAWGInbound(t, 51879)
+	vless := mkInbound(t, 51880, model.VLESS, `{"clients":[]}`)
+	client := newKeepAliveRangeClient(t, "update@awg-vless", "25")
+	if _, err := clientSvc.Create(inboundSvc, &ClientCreatePayload{Client: client, InboundIds: []int{awg.Id, vless.Id}}); err != nil {
+		t.Fatalf("create scalar client shared by AmneziaWG and VLESS: %v", err)
+	}
+	record, err := clientSvc.GetRecordByEmail(nil, client.Email)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated := model.KeepAliveValue("15-25")
+	client.KeepAlive = &updated
+	if _, err := clientSvc.Update(inboundSvc, record.Id, client, 0); err != nil {
+		t.Fatalf("update shared client to an AmneziaWG range: %v", err)
+	}
+	var saved model.ClientRecord
+	if err := database.GetDB().Where("id = ?", record.Id).First(&saved).Error; err != nil {
+		t.Fatal(err)
+	}
+	if saved.KeepAlive != "15-25" {
+		t.Fatalf("updated shared client keepAlive = %q, want 15-25", saved.KeepAlive)
+	}
+}
