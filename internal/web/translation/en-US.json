@@ -949,6 +949,8 @@
       "amneziaWgForwardedPorts": "Forwarded Ports",
       "amneziaWgForwardedPortsHint": "Ports/ranges DNAT'd to this client, e.g. 80, 443, 8000-8100. Leave empty for none.",
       "tunnelKeepAlive": "Keepalive (seconds)",
+      "amneziaWgKeepAliveHint": "Enter seconds as a number or range (for example, 15-25). Values must be from 0 to 65535; 0 disables keepalive.",
+      "amneziaWgKeepAliveInvalid": "Enter a whole number or range from 0 to 65535.",
       "tunnelKeepAliveHint": "How often the client sends a keepalive packet. 25 is the usual value: it holds the NAT mapping open and brings an idle peer back on its own after any drop, including a panel restart. 0 disables it — an idle client then stays disconnected until it sends traffic.",
       "amneziaWgConfig": "AmneziaWG config",
       "tuicConfig": "TUIC config (Clash)",

@@ -2,6 +2,7 @@ import type { HostEndpoint } from '@/lib/hosts/host-link';
 import { formatInboundLabel } from '@/lib/inbounds/label';
 import { preferPublicHost, resolveShareHost } from '@/lib/xray/inbound-link';
 import { effectiveMtu } from '@/lib/xray/amneziawg-obfuscation';
+import { AmneziaWGKeepAliveRangeSchema } from '@/schemas/primitives/keepalive';
 import type { ClientRecord, InboundOption } from '@/hooks/useClients';
 
 // AmneziaWG clients are wire-identical to WireGuard clients (same
@@ -16,7 +17,7 @@ export function isAmneziaWGClient(client: ClientRecord | null | undefined): bool
     client.publicKey ||
     client.allowedIPs ||
     client.preSharedKey ||
-    client.keepAlive
+    client.keepAlive !== undefined
   );
 }
 
@@ -107,7 +108,11 @@ export function buildAmneziaWGClientConfig(
   lines.push('[Peer]', `PublicKey = ${server?.publicKey || ''}`);
   if (client.preSharedKey) lines.push(`PresharedKey = ${client.preSharedKey}`);
   lines.push('AllowedIPs = 0.0.0.0/0, ::/0', `Endpoint = ${endpoint}`);
-  if (client.keepAlive && client.keepAlive > 0)
-    lines.push(`PersistentKeepalive = ${client.keepAlive}`);
+  if (typeof client.keepAlive === 'string') {
+    if (!AmneziaWGKeepAliveRangeSchema.safeParse(client.keepAlive).success) return '';
+    lines.push('PersistentKeepalive = ' + client.keepAlive);
+  } else if (client.keepAlive && client.keepAlive > 0) {
+    lines.push('PersistentKeepalive = ' + client.keepAlive);
+  }
   return lines.join('\n');
 }
