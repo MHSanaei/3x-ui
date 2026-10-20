@@ -310,7 +310,8 @@
         "pickInbound": "اختر inbound",
         "matchAny": "أي",
         "destPlaceholder": "تلقائي (listen:port للفرع)",
-        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW)."
+        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW).",
+        "proxyProtocolXver": "هذا الوارد يقبل بروتوكول PROXY. اختر xver 1 أو 2، وإلا سيفشل اتصال الـ Fallback."
       },
       "protocol": "بروتوكول",
       "port": "المنفذ",

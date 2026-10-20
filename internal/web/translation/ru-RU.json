@@ -310,7 +310,8 @@
         "pickInbound": "Выберите инбаунд",
         "matchAny": "любой",
         "destPlaceholder": "авто (listen:порт дочернего)",
-        "needsTls": "Fallbacks станут доступны после выбора TLS или Reality на вкладке «Безопасность» (только VLESS/Trojan поверх RAW)."
+        "needsTls": "Fallbacks станут доступны после выбора TLS или Reality на вкладке «Безопасность» (только VLESS/Trojan поверх RAW).",
+        "proxyProtocolXver": "Это входящее подключение принимает протокол PROXY. Выберите xver 1 или 2, иначе fallback-подключение не удастся."
       },
       "protocol": "Протокол",
       "port": "Порт",

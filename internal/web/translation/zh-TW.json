@@ -310,7 +310,8 @@
         "pickInbound": "選擇一個入站",
         "matchAny": "任何",
         "destPlaceholder": "自動（子入站 listen:port）",
-        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。"
+        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。",
+        "proxyProtocolXver": "此入站接受 PROXY 協定。請選擇 xver 1 或 2，否則回落連線將失敗。"
       },
       "protocol": "協議",
       "port": "連接埠",

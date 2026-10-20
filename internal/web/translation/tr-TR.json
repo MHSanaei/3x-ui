@@ -310,7 +310,8 @@
         "pickInbound": "Bir Gelen Bağlantı Seç",
         "matchAny": "herhangi",
         "destPlaceholder": "otomatik (child listen:port)",
-        "needsTls": "Geri düşüşler (fallback), Güvenlik sekmesinde TLS veya Reality seçildiğinde kullanılabilir olur (yalnızca RAW üzerinde VLESS/Trojan)."
+        "needsTls": "Geri düşüşler (fallback), Güvenlik sekmesinde TLS veya Reality seçildiğinde kullanılabilir olur (yalnızca RAW üzerinde VLESS/Trojan).",
+        "proxyProtocolXver": "Bu gelen bağlantı PROXY protokolünü kabul ediyor. xver 1 veya 2 seçin, aksi halde geri düşüş (fallback) bağlantısı başarısız olur."
       },
       "protocol": "Protokol",
       "port": "Port",

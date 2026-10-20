@@ -310,7 +310,8 @@
         "pickInbound": "Chọn một inbound",
         "matchAny": "bất kỳ",
         "destPlaceholder": "tự động (listen:port của child)",
-        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW)."
+        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW).",
+        "proxyProtocolXver": "Inbound này chấp nhận giao thức PROXY. Hãy chọn xver 1 hoặc 2, nếu không kết nối fallback sẽ thất bại."
       },
       "protocol": "Giao thức",
       "port": "Cổng",
