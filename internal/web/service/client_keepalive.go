@@ -10,7 +10,14 @@ func validateClientKeepAlive(protocol model.Protocol, client model.Client) error
 	if client.KeepAlive == nil {
 		return nil
 	}
-	return client.KeepAlive.Validate(protocol == model.AmneziaWG)
+	switch protocol {
+	case model.AmneziaWG:
+		return client.KeepAlive.Validate(true)
+	case model.WireGuard:
+		return client.KeepAlive.Validate(false)
+	default:
+		return nil
+	}
 }
 
 func validateClientsKeepAlive(protocol model.Protocol, clients []model.Client) error {
