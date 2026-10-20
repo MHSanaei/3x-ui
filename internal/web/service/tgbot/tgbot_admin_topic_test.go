@@ -19,6 +19,7 @@ func TestParseAdminChats(t *testing.T) {
 		{name: "plain ids", raw: "123,-1001", ids: []int64{123, -1001}, topics: map[int64]int{}},
 		{name: "topic", raw: "-1003855200872:42", ids: []int64{-1003855200872}, topics: map[int64]int{-1003855200872: 42}},
 		{name: "mixed with spaces", raw: " 123 , -1001 : 7 ", ids: []int64{123, -1001}, topics: map[int64]int{-1001: 7}},
+		{name: "general topic means no thread", raw: "-1001:1,123", ids: []int64{-1001, 123}, topics: map[int64]int{}},
 		{name: "duplicate chat collapses", raw: "-1001:7,-1001:7,-1001", ids: []int64{-1001}, topics: map[int64]int{-1001: 7}},
 	}
 	for _, tc := range cases {

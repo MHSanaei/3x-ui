@@ -511,14 +511,18 @@ func parseAdminChats(raw string) ([]int64, map[int64]int, error) {
 		if err != nil {
 			return nil, nil, err
 		}
+		topic := 0
 		if hasTopic {
-			topic, err := strconv.Atoi(strings.TrimSpace(topicPart))
+			topic, err = strconv.Atoi(strings.TrimSpace(topicPart))
 			if err != nil {
 				return nil, nil, err
 			}
 			if topic <= 0 {
 				return nil, nil, fmt.Errorf("invalid topic ID %q for chat %d", topicPart, id)
 			}
+		}
+		// General is thread 1 internally, but the Bot API only reaches it with no thread id.
+		if hasTopic && topic != generalTopicID {
 			if prev, ok := topics[id]; ok && prev != topic {
 				return nil, nil, fmt.Errorf("chat %d has more than one topic configured", id)
 			}
@@ -530,6 +534,8 @@ func parseAdminChats(raw string) ([]int64, map[int64]int, error) {
 	}
 	return ids, topics, nil
 }
+
+const generalTopicID = 1
 
 // adminTopic returns the forum topic configured for chatId, or 0 when the
 // chat has none and messages should go to the chat itself.

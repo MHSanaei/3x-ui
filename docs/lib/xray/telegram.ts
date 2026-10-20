@@ -54,7 +54,9 @@ export function parseAdminIds(raw: string): AdminIdsResult {
     const m = /^(-?\d+)\s*(?::\s*(\d+))?$/.exec(part);
     if (m && (m[2] === undefined || Number(m[2]) > 0)) {
       ids.push(Number(m[1]));
-      entries.push(m[2] === undefined ? m[1] : `${m[1]}:${Number(m[2])}`);
+      // General (thread 1) is reached by omitting the topic; the Bot API rejects 1.
+      const topic = m[2] === undefined ? 0 : Number(m[2]);
+      entries.push(topic > 1 ? `${m[1]}:${topic}` : m[1]);
     } else invalid.push(part);
   }
   return { ids, entries, invalid };

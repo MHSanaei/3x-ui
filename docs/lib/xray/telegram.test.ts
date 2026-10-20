@@ -47,6 +47,14 @@ describe('parseAdminIds', () => {
     });
   });
 
+  it('drops the General topic suffix, since the Bot API rejects thread id 1', () => {
+    expect(parseAdminIds('-1001234567:1')).toEqual({
+      ids: [-1001234567],
+      entries: ['-1001234567'],
+      invalid: [],
+    });
+  });
+
   it('keeps a forum topic suffix and rejects a malformed one', () => {
     expect(parseAdminIds('-1001234567:42, 111:0, 222:x')).toEqual({
       ids: [-1001234567],
