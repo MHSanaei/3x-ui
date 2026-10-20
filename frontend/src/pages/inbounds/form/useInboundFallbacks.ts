@@ -4,6 +4,29 @@ import { HttpUtil } from '@/utils';
 import type { FallbackRow } from '@/schemas/forms/inbound-form';
 import { coerceInboundJsonField, type DBInbound } from '@/models/dbinbound';
 
+// RAW is stored as tcp; older rows may say raw. A flag on any other transport
+// is stale and must not opt the child into PROXY protocol.
+const PROXY_PROTOCOL_FIELD: Record<string, string> = {
+  tcp: 'tcpSettings',
+  raw: 'tcpSettings',
+  ws: 'wsSettings',
+  httpupgrade: 'httpupgradeSettings',
+};
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function acceptsProxyProtocol(stream: Record<string, unknown>): boolean {
+  const sockopt = stream.sockopt;
+  if (isPlainRecord(sockopt) && sockopt.acceptProxyProtocol === true) return true;
+  const network = typeof stream.network === 'string' ? stream.network.toLowerCase() : '';
+  const field = PROXY_PROTOCOL_FIELD[network];
+  if (!field) return false;
+  const block = stream[field];
+  return isPlainRecord(block) && block.acceptProxyProtocol === true;
+}
+
 // Fallback rows for VLESS/Trojan TLS inbounds: state + the load/save/derive
 // and add/update/remove/move handlers, plus the eligible-child option list.
 // Lifted out of InboundFormModal so the modal body stays focused on layout.
@@ -16,6 +39,7 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
     .map((ib) => ({
       label: `${ib.remark || `#${ib.id}`} · ${ib.protocol}:${ib.port}`,
       value: ib.id,
+      acceptsProxyProtocol: acceptsProxyProtocol(coerceInboundJsonField(ib.streamSettings)),
     }));
 
   const loadFallbacks = async (masterId: number | null) => {
@@ -76,8 +100,7 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
   // operator wired a fallback target. SNI/ALPN come straight off the
   // child's TLS block; path depends on the child's transport (ws/grpc
   // /httpupgrade carry an explicit path; tcp/kcp/xhttp have no path of
-  // their own). xver stays 0 unless the child explicitly opts in via
-  // PROXY-protocol sockopt.
+  // their own). xver is 1 only when the child accepts PROXY protocol.
   const deriveFallbackDefaults = (childId: number): Partial<FallbackRow> => {
     const child = (dbInbounds || []).find((ib) => ib.id === childId);
     if (!child) return {};
@@ -101,7 +124,7 @@ export function useInboundFallbacks(dbInbound: DBInbound | null, dbInbounds: DBI
       const xh = (stream.xhttpSettings as Record<string, unknown> | undefined) ?? {};
       if (typeof xh.path === 'string') path = xh.path;
     }
-    return { name: sni, alpn, path, xver: 0 };
+    return { name: sni, alpn, path, xver: acceptsProxyProtocol(stream) ? 1 : 0 };
   };
 
   const addFallback = () => {

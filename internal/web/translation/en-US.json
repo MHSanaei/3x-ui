@@ -310,7 +310,8 @@
         "pickInbound": "Pick an inbound",
         "matchAny": "any",
         "destPlaceholder": "auto (child listen:port)",
-        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only)."
+        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only).",
+        "proxyProtocolXver": "This inbound accepts PROXY protocol. Select xver 1 or 2, or the fallback connection will fail."
       },
       "protocol": "Protocol",
       "port": "Port",
