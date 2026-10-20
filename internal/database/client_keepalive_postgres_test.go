@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 )
 
 func TestClientKeepAlivePostgresMigrationPreservesLegacyScalars(t *testing.T) {
