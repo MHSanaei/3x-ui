@@ -10,6 +10,14 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 )
 
+type legacyKeepAliveClient struct {
+	Id        int    `gorm:"column:id;primaryKey"`
+	Email     string `gorm:"column:email"`
+	KeepAlive int    `gorm:"column:wg_keep_alive"`
+}
+
+func (legacyKeepAliveClient) TableName() string { return "clients" }
+
 func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *testing.T) {
 	dbDir := t.TempDir()
 	dbPath := filepath.Join(dbDir, "x-ui.db")
@@ -68,6 +76,33 @@ func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *te
 		if record.KeepAlive != tc.want {
 			t.Fatalf("%s keepAlive = %q, want %q", tc.email, record.KeepAlive, tc.want)
 		}
+	}
+
+	for _, tc := range []struct {
+		email string
+		want  int
+	}{{email: "legacy-25", want: 25}, {email: "legacy-large", want: 70000}, {email: "legacy-off", want: 0}} {
+		var legacyClient legacyKeepAliveClient
+		if err := GetDB().Where("email = ?", tc.email).First(&legacyClient).Error; err != nil {
+			t.Fatalf("legacy int model cannot read %s after migration: %v", tc.email, err)
+		}
+		if legacyClient.KeepAlive != tc.want {
+			t.Fatalf("legacy int model read %s keepAlive = %d, want %d", tc.email, legacyClient.KeepAlive, tc.want)
+		}
+	}
+	if err := GetDB().Create(&model.ClientRecord{Email: "new-unset"}).Error; err != nil {
+		t.Fatalf("create new unset client: %v", err)
+	}
+	var legacyUnset legacyKeepAliveClient
+	if err := GetDB().Where("email = ?", "new-unset").First(&legacyUnset).Error; err != nil || legacyUnset.KeepAlive != 0 {
+		t.Fatalf("legacy int model read of new unset keepAlive = %d, %v; want zero", legacyUnset.KeepAlive, err)
+	}
+	if err := GetDB().Create(&legacyKeepAliveClient{Email: "old-panel-write", KeepAlive: 45}).Error; err != nil {
+		t.Fatalf("legacy int model cannot write after migration: %v", err)
+	}
+	var currentWrite model.ClientRecord
+	if err := GetDB().Where("email = ?", "old-panel-write").First(&currentWrite).Error; err != nil || currentWrite.KeepAlive != "45" {
+		t.Fatalf("new model read of legacy write = %q, %v; want 45", currentWrite.KeepAlive, err)
 	}
 
 	zero := &model.ClientRecord{Email: "explicit-zero", KeepAlive: "0"}
