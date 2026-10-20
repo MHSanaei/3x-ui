@@ -63,7 +63,7 @@ func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *te
 	}{
 		{email: "legacy-25", want: "25"},
 		{email: "legacy-large", want: "70000"},
-		{email: "legacy-off", want: ""},
+		{email: "legacy-off", want: "0"},
 		{email: "legacy-negative", want: "-5"},
 	} {
 		var record model.ClientRecord

@@ -211,3 +211,85 @@ func TestClientUpdateAllowsRangeForSharedAmneziaWGAndVLESSClient(t *testing.T) {
 		t.Fatalf("updated shared client keepAlive = %q, want 15-25", saved.KeepAlive)
 	}
 }
+
+func TestSetClientEnableByEmailPreservesLegacyAmneziaWGKeepAlive(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	legacy := newKeepAliveRangeClient(t, "legacy-enable@awg", "25")
+	inbound := keepAliveTestAWGInbound(t, 51881)
+	if _, err := clientSvc.CreateOne(inboundSvc, inbound.Id, legacy); err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	legacy.KeepAlive = model.KeepAlivePtr(70000)
+	if err := saveKeepAliveTestClientSettings(t, inboundSvc, inbound.Id, legacy); err != nil {
+		t.Fatalf("seed legacy client settings: %v", err)
+	}
+
+	changed, _, err := clientSvc.SetClientEnableByEmail(inboundSvc, legacy.Email, false)
+	if err != nil {
+		t.Fatalf("disable existing client with legacy keepAlive: %v", err)
+	}
+	if !changed {
+		t.Fatal("SetClientEnableByEmail reported no change")
+	}
+	saved, err := inboundSvc.GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clients, err := inboundSvc.GetClients(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(clients) != 1 || clients[0].Enable || clients[0].KeepAliveText() != "70000" {
+		t.Fatalf("saved legacy client = %#v, want disabled with keepAlive 70000", clients)
+	}
+}
+
+func TestUpdateInboundPreservesUnchangedLegacyAmneziaWGKeepAlive(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	legacy := newKeepAliveRangeClient(t, "legacy-remark@awg", "-5")
+	legacy.AllowedIPs = []string{"10.8.1.3/32"}
+	inbound := mkInbound(t, 51882, model.AmneziaWG, clientsSettings(t, []model.Client{legacy}))
+	loaded, err := inboundSvc.GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded.Remark = "updated remark"
+	if _, _, err := inboundSvc.UpdateInbound(loaded); err != nil {
+		t.Fatalf("save unrelated inbound remark with legacy keepAlive: %v", err)
+	}
+	saved, err := inboundSvc.GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clients, err := inboundSvc.GetClients(saved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(clients) != 1 || clients[0].KeepAliveText() != "-5" {
+		t.Fatalf("saved client keepAlive = %#v, want -5", clients)
+	}
+}
+
+func saveKeepAliveTestClientSettings(t *testing.T, inboundSvc *InboundService, inboundID int, client model.Client) error {
+	t.Helper()
+	inbound, err := inboundSvc.GetInbound(inboundID)
+	if err != nil {
+		return err
+	}
+	clients, err := inboundSvc.GetClients(inbound)
+	if err != nil {
+		return err
+	}
+	for i := range clients {
+		if clients[i].Email == client.Email {
+			clients[i].KeepAlive = client.KeepAlive
+			clients[i].AllowedIPs = client.AllowedIPs
+			clients[i].PrivateKey = client.PrivateKey
+			clients[i].PublicKey = client.PublicKey
+		}
+	}
+	return database.GetDB().Model(&model.Inbound{}).Where("id = ?", inboundID).Update("settings", clientsSettings(t, clients)).Error
+}
