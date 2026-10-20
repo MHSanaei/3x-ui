@@ -320,7 +320,7 @@ func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
 			tu.ID(chatId),
 			tu.FileFromBytes(png, "sub.png"),
 		)
-		_, _ = bot.SendDocument(context.Background(), document)
+		_, _ = bot.SendDocument(context.Background(), inAdminTopic(document))
 	} else {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
 	}
@@ -332,7 +332,7 @@ func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
 				tu.ID(chatId),
 				tu.FileFromBytes(png, "subjson.png"),
 			)
-			_, _ = bot.SendDocument(context.Background(), document)
+			_, _ = bot.SendDocument(context.Background(), inAdminTopic(document))
 		} else {
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
 		}
@@ -349,7 +349,7 @@ func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
 					tu.ID(chatId),
 					tu.FileFromBytes(png, filename),
 				)
-				_, _ = bot.SendDocument(context.Background(), document)
+				_, _ = bot.SendDocument(context.Background(), inAdminTopic(document))
 				// Reduced delay for better performance
 				if i < max-1 { // Only delay between documents, not after the last one
 					time.Sleep(50 * time.Millisecond)

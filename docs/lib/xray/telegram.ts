@@ -1,6 +1,6 @@
 // Pure validation + templating helpers for 3x-ui's Telegram bot settings.
-// Grounded in internal/web/service/tgbot/tgbot.go (admin ids parsed with
-// strconv.ParseInt(_,10,64); token handed to telego.NewBot → api.telegram.org)
+// Grounded in internal/web/service/tgbot/tgbot.go (admin ids parsed by
+// parseAdminChats as "chatId[:topicId]"; token handed to telego.NewBot → api.telegram.org)
 // and the panel's tg* settings (tgRunTime uses robfig/cron). No React/DOM.
 
 export interface BotConfig {
@@ -17,6 +17,7 @@ export interface TokenValidation {
 
 export interface AdminIdsResult {
   ids: number[];
+  entries: string[]; // normalized "chatId" or "chatId:topicId", as the panel stores them
   invalid: string[];
 }
 
@@ -42,16 +43,21 @@ export function validateBotToken(token: string): TokenValidation {
 
 export function parseAdminIds(raw: string): AdminIdsResult {
   const ids: number[] = [];
+  const entries: string[] = [];
   const invalid: string[] = [];
   for (const part of raw
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)) {
-    // Telegram chat ids are integers; group/channel ids are negative.
-    if (/^-?\d+$/.test(part)) ids.push(Number(part));
-    else invalid.push(part);
+    // Telegram chat ids are integers; group/channel ids are negative. An
+    // optional ":<topicId>" targets a forum topic inside a supergroup.
+    const m = /^(-?\d+)\s*(?::\s*(\d+))?$/.exec(part);
+    if (m && (m[2] === undefined || Number(m[2]) > 0)) {
+      ids.push(Number(m[1]));
+      entries.push(m[2] === undefined ? m[1] : `${m[1]}:${Number(m[2])}`);
+    } else invalid.push(part);
   }
-  return { ids, invalid };
+  return { ids, entries, invalid };
 }
 
 // robfig/cron predefined macros (note: @reboot is NOT supported).
@@ -108,11 +114,11 @@ export function buildBotConfigSummary(c: BotConfig): {
   tgBotChatId: string;
   tgRunTime: string;
 } {
-  const { ids } = parseAdminIds(c.adminIds);
+  const { entries } = parseAdminIds(c.adminIds);
   return {
     tgBotEnable: true,
     tgBotToken: c.token.trim(),
-    tgBotChatId: ids.join(','),
+    tgBotChatId: entries.join(','),
     tgRunTime: c.runTime.trim(),
   };
 }

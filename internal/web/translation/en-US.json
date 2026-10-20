@@ -1337,7 +1337,7 @@
       "telegramAPIServer": "Telegram API Server",
       "telegramAPIServerDesc": "The Telegram API server to use. Leave blank to use the default server.",
       "telegramChatId": "Admin Chat ID",
-      "telegramChatIdDesc": "The Telegram Admin Chat ID(s). (comma-separated)(get it here {'@'}userinfobot) or (use '/id' command in the bot)",
+      "telegramChatIdDesc": "The Telegram Admin Chat ID(s). (comma-separated)(get it here {'@'}userinfobot) or (use '/id' command in the bot). To post into a forum topic, append ':topicId', e.g. -1001234567890:42",
       "telegramNotifyTime": "Notification Time",
       "telegramNotifyTimeDesc": "How often the Telegram bot sends periodic reports. Pick a preset interval, or choose Custom to enter a raw crontab expression.",
       "notifyTime": {
