@@ -48,3 +48,37 @@ func TestClientKeepAliveJSONPreservesRangeAndScalarCompatibility(t *testing.T) {
 		t.Fatalf("omitted keepAlive serialized as %#v", got["keepAlive"])
 	}
 }
+
+func TestKeepAliveValueValidatesNewInputAndPreservesLegacyScalar(t *testing.T) {
+	for _, value := range []KeepAliveValue{"0", "25", "65535"} {
+		if err := value.Validate(false); err != nil {
+			t.Errorf("scalar %q rejected: %v", value, err)
+		}
+	}
+	if err := KeepAliveValue("15-25").Validate(true); err != nil {
+		t.Fatalf("AmneziaWG range rejected: %v", err)
+	}
+	if err := KeepAliveValue("15-25").Validate(false); err == nil || err.Error() != "keepAlive ranges are supported only for AmneziaWG clients" {
+		t.Fatalf("WireGuard range error = %v", err)
+	}
+	for _, value := range []KeepAliveValue{"25-15", "0-65536", "65536", "01-2"} {
+		if err := value.Validate(true); err == nil {
+			t.Errorf("invalid new value %q accepted", value)
+		}
+	}
+
+	var legacy KeepAliveValue
+	if err := json.Unmarshal([]byte("70000"), &legacy); err != nil {
+		t.Fatalf("read legacy numeric value: %v", err)
+	}
+	blob, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatalf("marshal legacy numeric value: %v", err)
+	}
+	if string(blob) != "70000" {
+		t.Fatalf("legacy numeric value = %s, want 70000", blob)
+	}
+	if err := legacy.Validate(true); err == nil {
+		t.Fatal("new-input validator accepted a legacy value above the panel bound")
+	}
+}

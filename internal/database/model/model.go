@@ -942,7 +942,7 @@ type Client struct {
 	// before -- fully backward compatible for callers that never set this.
 	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
 	PreSharedKey        string           `json:"preSharedKey,omitempty"`
-	KeepAlive           *int             `json:"keepAlive,omitempty"`      // Seconds between PersistentKeepalive packets; 0 sends none, omit to keep the stored value
+	KeepAlive           *KeepAliveValue  `json:"keepAlive,omitempty"`
 	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
 	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
@@ -967,39 +967,39 @@ type Client struct {
 }
 
 type ClientRecord struct {
-	Id              int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email           string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID           string `json:"subId" gorm:"index;column:sub_id"`
-	UUID            string `json:"uuid" gorm:"column:uuid"`
-	Password        string `json:"password"`
-	Auth            string `json:"auth"`
-	Flow            string `json:"flow"`
-	Security        string `json:"security"`
-	Reverse         string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey      string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey       string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs      string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey    string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive       int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	ForwardedPorts  string `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
-	Secret          string `json:"secret" gorm:"column:secret"`
-	AdTag           string `json:"adTag" gorm:"column:ad_tag;default:''"`
-	LimitIP         int    `json:"limitIp" gorm:"column:limit_ip"`
-	LimitHwid       int    `json:"limitHwid" gorm:"column:limit_hwid;default:0"`
-	TotalGB         int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime      int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable          bool   `json:"enable" gorm:"default:true"`
-	TgID            int64  `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
-	Group           string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
-	Comment         string `json:"comment"`
-	Reset           int    `json:"reset" gorm:"default:0"`
-	ResetDay        int    `json:"resetDay" gorm:"column:reset_day;default:0"`
-	ResetWeekday    int    `json:"resetWeekday" gorm:"column:reset_weekday;default:0"`
-	ResetMax        int    `json:"resetMax" gorm:"column:reset_max;default:0"`
-	TrafficReset    string `json:"trafficReset" gorm:"column:traffic_reset;default:never;index:idx_clients_traffic_reset"`
-	TrafficResetDay int    `json:"trafficResetDay" gorm:"column:traffic_reset_day;default:1"`
-	CreatedAt       int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt       int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id              int            `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email           string         `json:"email" gorm:"uniqueIndex;not null"`
+	SubID           string         `json:"subId" gorm:"index;column:sub_id"`
+	UUID            string         `json:"uuid" gorm:"column:uuid"`
+	Password        string         `json:"password"`
+	Auth            string         `json:"auth"`
+	Flow            string         `json:"flow"`
+	Security        string         `json:"security"`
+	Reverse         string         `json:"reverse" gorm:"column:reverse"`
+	PrivateKey      string         `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey       string         `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs      string         `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey    string         `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive       KeepAliveValue `json:"keepAlive" gorm:"column:wg_keep_alive;type:text;default:''"`
+	ForwardedPorts  string         `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
+	Secret          string         `json:"secret" gorm:"column:secret"`
+	AdTag           string         `json:"adTag" gorm:"column:ad_tag;default:''"`
+	LimitIP         int            `json:"limitIp" gorm:"column:limit_ip"`
+	LimitHwid       int            `json:"limitHwid" gorm:"column:limit_hwid;default:0"`
+	TotalGB         int64          `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime      int64          `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable          bool           `json:"enable" gorm:"default:true"`
+	TgID            int64          `json:"tgId" gorm:"column:tg_id;index:idx_clients_tg_id"`
+	Group           string         `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Comment         string         `json:"comment"`
+	Reset           int            `json:"reset" gorm:"default:0"`
+	ResetDay        int            `json:"resetDay" gorm:"column:reset_day;default:0"`
+	ResetWeekday    int            `json:"resetWeekday" gorm:"column:reset_weekday;default:0"`
+	ResetMax        int            `json:"resetMax" gorm:"column:reset_max;default:0"`
+	TrafficReset    string         `json:"trafficReset" gorm:"column:traffic_reset;default:never;index:idx_clients_traffic_reset"`
+	TrafficResetDay int            `json:"trafficResetDay" gorm:"column:traffic_reset_day;default:1"`
+	CreatedAt       int64          `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt       int64          `json:"updatedAt" gorm:"autoUpdateTime:milli"`
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
@@ -1168,25 +1168,39 @@ type Host struct {
 
 func (Host) TableName() string { return "hosts" }
 
-// KeepAliveSeconds is the client's PersistentKeepalive, 0 when unset.
+// KeepAliveSeconds returns a scalar value; ranges are emitted by native AWG config.
 func (c Client) KeepAliveSeconds() int {
 	if c.KeepAlive == nil {
 		return 0
 	}
-	return *c.KeepAlive
+	return c.KeepAlive.Seconds()
 }
 
-// KeepAlivePtr wraps an explicit PersistentKeepalive, 0 included -- distinct
-// from a nil KeepAlive, which means the field was never sent.
-func KeepAlivePtr(v int) *int { return &v }
+func (c Client) KeepAliveText() string {
+	if c.KeepAlive == nil {
+		return ""
+	}
+	return c.KeepAlive.String()
+}
 
-// nonZeroKeepAlive keeps a stored 0 nil: wg_keep_alive cannot tell "off" from
-// "never set", and an explicit 0 would emit keepAlive on every protocol.
-func nonZeroKeepAlive(seconds int) *int {
-	if seconds <= 0 {
+func KeepAlivePtr(v int) *KeepAliveValue {
+	value := KeepAliveValue(fmt.Sprintf("%d", v))
+	return &value
+}
+
+func keepAlivePtr(value KeepAliveValue) *KeepAliveValue {
+	if value == "" {
 		return nil
 	}
-	return KeepAlivePtr(seconds)
+	v := value
+	return &v
+}
+
+func keepAliveValue(value *KeepAliveValue) KeepAliveValue {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
 
 func (c *Client) ToRecord() *ClientRecord {
@@ -1218,7 +1232,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		PublicKey:      c.PublicKey,
 		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
 		PreSharedKey:   c.PreSharedKey,
-		KeepAlive:      c.KeepAliveSeconds(),
+		KeepAlive:      keepAliveValue(c.KeepAlive),
 		ForwardedPorts: c.ForwardedPorts,
 		Secret:         c.Secret,
 		AdTag:          c.AdTag,
@@ -1277,7 +1291,7 @@ func (r *ClientRecord) ToClient() *Client {
 		PublicKey:      r.PublicKey,
 		AllowedIPs:     splitWireguardAllowedIPs(r.AllowedIPs),
 		PreSharedKey:   r.PreSharedKey,
-		KeepAlive:      nonZeroKeepAlive(r.KeepAlive),
+		KeepAlive:      keepAlivePtr(r.KeepAlive),
 		ForwardedPorts: r.ForwardedPorts,
 		Secret:         r.Secret,
 		AdTag:          r.AdTag,
@@ -1521,8 +1535,8 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 			existing.AllowedIPs = incoming.AllowedIPs
 		}
 	}
-	if existing.KeepAlive != incoming.KeepAlive && incoming.KeepAlive != 0 {
-		if incomingNewer || existing.KeepAlive == 0 {
+	if incoming.KeepAlive != "" && existing.KeepAlive != incoming.KeepAlive {
+		if incomingNewer || existing.KeepAlive == "" {
 			keep("keepAlive", existing.KeepAlive, incoming.KeepAlive, incoming.KeepAlive)
 			existing.KeepAlive = incoming.KeepAlive
 		}
