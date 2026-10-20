@@ -334,6 +334,13 @@ func (s *ClientService) AddInboundClient(inboundSvc *InboundService, data *model
 	if err := validateClientsRenewal(clients); err != nil {
 		return false, err
 	}
+	inbound, err := inboundSvc.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
+	if err := validateClientsKeepAlive(inbound.Protocol, clients); err != nil {
+		return false, err
+	}
 
 	var settings map[string]any
 	err = json.Unmarshal([]byte(data.Settings), &settings)
@@ -667,6 +674,13 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 	if err := validateClientsRenewal(clients); err != nil {
 		return false, err
 	}
+	inbound, err := inboundSvc.GetInbound(data.Id)
+	if err != nil {
+		return false, err
+	}
+	if err := validateClientsKeepAlive(inbound.Protocol, clients); err != nil {
+		return false, err
+	}
 
 	var settings map[string]any
 	err = json.Unmarshal([]byte(data.Settings), &settings)
@@ -838,8 +852,8 @@ func (s *ClientService) UpdateInboundClient(inboundSvc *InboundService, data *mo
 				if clients[0].PreSharedKey != "" {
 					newMap["preSharedKey"] = clients[0].PreSharedKey
 				}
-				if ka := clients[0].KeepAliveSeconds(); ka > 0 {
-					newMap["keepAlive"] = ka
+				if clients[0].KeepAlive != nil {
+					newMap["keepAlive"] = clients[0].KeepAlive
 				}
 				if oldInbound.Protocol == model.AmneziaWG && clients[0].ForwardedPorts != "" {
 					newMap["forwardedPorts"] = clients[0].ForwardedPorts

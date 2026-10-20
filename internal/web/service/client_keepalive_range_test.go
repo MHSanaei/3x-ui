@@ -138,3 +138,29 @@ func TestClientUpdateRejectsRangeWhenSharedWithWireGuard(t *testing.T) {
 		}
 	}
 }
+
+func TestClientCreateRejectsKeepAliveOutsideNativeRangeBeforeWrite(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	inbound := keepAliveTestAWGInbound(t, 51876)
+	client := newKeepAliveRangeClient(t, "too-large@awg", "65536")
+	if _, err := clientSvc.CreateOne(inboundSvc, inbound.Id, client); err == nil || !strings.Contains(err.Error(), "keepAlive must be an integer from 0 to 65535") {
+		t.Fatalf("out-of-range create error = %v, want keepAlive bound error", err)
+	}
+	var records int64
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("email = ?", client.Email).Count(&records).Error; err != nil {
+		t.Fatal(err)
+	}
+	if records != 0 {
+		t.Fatalf("out-of-range client was written: %d records", records)
+	}
+	saved, err := inboundSvc.GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clients, err := inboundSvc.GetClients(saved)
+	if err != nil || len(clients) != 0 {
+		t.Fatalf("out-of-range client settings = %#v, %v; want no clients", clients, err)
+	}
+}

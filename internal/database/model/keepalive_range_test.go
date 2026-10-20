@@ -78,6 +78,13 @@ func TestKeepAliveValueValidatesNewInputAndPreservesLegacyScalar(t *testing.T) {
 	if string(blob) != "70000" {
 		t.Fatalf("legacy numeric value = %s, want 70000", blob)
 	}
+	if err := json.Unmarshal([]byte("-5"), &legacy); err != nil {
+		t.Fatalf("read legacy negative numeric value: %v", err)
+	}
+	blob, err = json.Marshal(legacy)
+	if err != nil || string(blob) != "-5" {
+		t.Fatalf("legacy negative numeric value = %s, %v; want -5", blob, err)
+	}
 	if err := legacy.Validate(true); err == nil {
 		t.Fatal("new-input validator accepted a legacy value above the panel bound")
 	}

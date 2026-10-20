@@ -420,7 +420,7 @@ export const EXAMPLES: Record<string, unknown> = {
     "forwardedPorts": "",
     "group": "",
     "id": "",
-    "keepAlive": null,
+    "keepAlive": 0,
     "limitIp": 0,
     "password": "",
     "preSharedKey": "",

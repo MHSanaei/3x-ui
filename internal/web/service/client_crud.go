@@ -406,6 +406,9 @@ func markInboundNodesDirty(inboundIds []int) error {
 }
 
 func (s *ClientService) fillProtocolDefaults(c *model.Client, ib *model.Inbound) error {
+	if err := validateClientKeepAlive(ib.Protocol, *c); err != nil {
+		return err
+	}
 	switch ib.Protocol {
 	case model.VMESS, model.VLESS:
 		if c.ID == "" {
@@ -647,6 +650,17 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	}
 	if err := validateClientTrafficReset(updated.TrafficReset, updated.TrafficResetDay); err != nil {
 		return false, err
+	}
+	if updated.KeepAlive != nil {
+		for _, inboundID := range attachedIds {
+			inbound, getErr := inboundSvc.GetInbound(inboundID)
+			if getErr != nil {
+				return false, fmt.Errorf("inbound %d: %w", inboundID, getErr)
+			}
+			if err := validateClientKeepAlive(inbound.Protocol, updated); err != nil {
+				return false, fmt.Errorf("inbound %d: %w", inboundID, err)
+			}
+		}
 	}
 	normalizeClientTrafficReset(&updated)
 	if updated.SubID == "" {

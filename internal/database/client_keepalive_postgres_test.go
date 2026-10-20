@@ -17,7 +17,10 @@ import (
 func TestClientKeepAlivePostgresMigrationPreservesLegacyScalars(t *testing.T) {
 	dsn := strings.TrimSpace(os.Getenv("XUI_TEST_PG_DSN"))
 	if dsn == "" {
-		t.Skip("set XUI_TEST_PG_DSN to run the PostgreSQL keepAlive migration test")
+		dsn = strings.TrimSpace(os.Getenv("XUI_DB_DSN"))
+	}
+	if dsn == "" {
+		t.Skip("set XUI_TEST_PG_DSN or XUI_DB_DSN to run the PostgreSQL keepAlive migration test")
 	}
 	admin, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

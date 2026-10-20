@@ -942,7 +942,7 @@ type Client struct {
 	// before -- fully backward compatible for callers that never set this.
 	AllowedIPsByInbound map[int][]string `json:"allowedIPsByInbound,omitempty"`
 	PreSharedKey        string           `json:"preSharedKey,omitempty"`
-	KeepAlive           *KeepAliveValue  `json:"keepAlive,omitempty"`
+	KeepAlive           *KeepAliveValue  `json:"keepAlive,omitempty"`      // Numeric values or AmneziaWG ranges; 0 disables, omission preserves.
 	ForwardedPorts      string           `json:"forwardedPorts,omitempty"` // AmneziaWG per-client port-forwarding spec, e.g. "80,443,8000-8100"
 	Secret              string           `json:"secret,omitempty" example:"ee1234567890abcdef1234567890abcd7777772e636c6f7564666c6172652e636f6d"`
 	AdTag               string           `json:"adTag,omitempty" example:"0123456789abcdef0123456789abcdef"`
@@ -980,7 +980,7 @@ type ClientRecord struct {
 	PublicKey       string         `json:"publicKey" gorm:"column:wg_public_key"`
 	AllowedIPs      string         `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
 	PreSharedKey    string         `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive       KeepAliveValue `json:"keepAlive" gorm:"column:wg_keep_alive;type:text;default:''"`
+	KeepAlive       KeepAliveValue `json:"keepAlive" gorm:"column:wg_keep_alive;type:text;default:''"` // Numeric values or AmneziaWG ranges.
 	ForwardedPorts  string         `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
 	Secret          string         `json:"secret" gorm:"column:secret"`
 	AdTag           string         `json:"adTag" gorm:"column:ad_tag;default:''"`

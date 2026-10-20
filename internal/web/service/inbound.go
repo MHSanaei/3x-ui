@@ -1288,6 +1288,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	if err := validateClientsRenewal(clients); err != nil {
 		return inbound, false, err
 	}
+	if err := validateClientsKeepAlive(inbound.Protocol, clients); err != nil {
+		return inbound, false, err
+	}
 	for _, traffic := range inbound.ClientStats {
 		if err := validateClientRenewal(model.Client{Reset: traffic.Reset, ResetDay: traffic.ResetDay, ResetWeekday: traffic.ResetWeekday}); err != nil {
 			return inbound, false, err
@@ -1861,6 +1864,9 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 		return err
 	}
 	if err := validateClientsRenewal(clients); err != nil {
+		return err
+	}
+	if err := validateClientsKeepAlive(inbound.Protocol, clients); err != nil {
 		return err
 	}
 	for _, client := range clients {

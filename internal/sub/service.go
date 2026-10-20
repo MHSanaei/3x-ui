@@ -1064,8 +1064,11 @@ func amneziaWGConfigText(server *amneziawg.ServerSettings, client *model.Client,
 	}
 	b.WriteString("AllowedIPs = 0.0.0.0/0, ::/0\n")
 	fmt.Fprintf(&b, "Endpoint = %s:%d", host, port)
-	if ka := client.KeepAliveSeconds(); ka > 0 {
-		fmt.Fprintf(&b, "\nPersistentKeepalive = %d", ka)
+	if client.KeepAlive != nil {
+		keepAlive := client.KeepAliveText()
+		if (strings.Contains(keepAlive, "-") && client.KeepAlive.Validate(true) == nil) || client.KeepAlive.Seconds() > 0 {
+			fmt.Fprintf(&b, "\nPersistentKeepalive = %s", keepAlive)
+		}
 	}
 
 	return b.String()

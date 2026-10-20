@@ -81,13 +81,13 @@ func (v KeepAliveValue) MarshalJSON() ([]byte, error) {
 	if v == "" {
 		return []byte("0"), nil
 	}
-	if strings.Contains(string(v), "-") {
-		return json.Marshal(string(v))
+	if _, err := strconv.ParseInt(string(v), 10, 64); err == nil {
+		return []byte(string(v)), nil
 	}
-	if _, err := strconv.ParseInt(string(v), 10, 64); err != nil {
+	if err := v.Validate(true); err != nil || !strings.Contains(string(v), "-") {
 		return nil, fmt.Errorf("invalid stored keepAlive %q", v)
 	}
-	return []byte(string(v)), nil
+	return json.Marshal(string(v))
 }
 
 func (v *KeepAliveValue) UnmarshalJSON(data []byte) error {
@@ -112,8 +112,8 @@ func (v *KeepAliveValue) UnmarshalJSON(data []byte) error {
 		return errors.New("keepAlive must be a number or an AmneziaWG range string")
 	}
 	n, err := strconv.ParseInt(string(number), 10, 64)
-	if err != nil || n < 0 {
-		return errors.New("keepAlive must be a non-negative integer")
+	if err != nil {
+		return errors.New("keepAlive must be an integer")
 	}
 	*v = KeepAliveValue(strconv.FormatInt(n, 10))
 	return nil
