@@ -1858,7 +1858,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	return needRestart, nil
 }
 
-func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) error {
+func (s *InboundService) validateUpdatedInboundClients(inbound, existing *model.Inbound) error {
 	clients, err := s.GetClients(inbound)
 	if err != nil {
 		return err
@@ -1866,7 +1866,14 @@ func (s *InboundService) validateUpdatedInboundClients(inbound *model.Inbound) e
 	if err := validateClientsRenewal(clients); err != nil {
 		return err
 	}
-	if err := validateClientsKeepAlive(inbound.Protocol, clients); err != nil {
+	var existingClients []model.Client
+	if inbound.Protocol == existing.Protocol {
+		existingClients, err = s.GetClients(existing)
+		if err != nil {
+			return err
+		}
+	}
+	if err := validateClientsKeepAliveAgainstExisting(inbound.Protocol, clients, existingClients); err != nil {
 		return err
 	}
 	for _, client := range clients {
@@ -1980,7 +1987,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 			inbound.Enable = stored.Enable
 		}
 		// On the clients actually saved: a protocol switch keeps the stored ones.
-		if err := s.validateUpdatedInboundClients(inbound); err != nil {
+		if err := s.validateUpdatedInboundClients(inbound, stored); err != nil {
 			return err
 		}
 		conflict, cErr := checkPortConflictTx(tx, inbound, inbound.Id)

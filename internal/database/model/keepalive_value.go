@@ -16,14 +16,10 @@ type KeepAliveValue string
 func (v KeepAliveValue) String() string { return string(v) }
 
 func (v KeepAliveValue) Seconds() int {
-	if strings.Contains(string(v), "-") {
-		return 0
+	if n, err := strconv.Atoi(string(v)); err == nil {
+		return n
 	}
-	n, err := strconv.Atoi(string(v))
-	if err != nil {
-		return 0
-	}
-	return n
+	return 0
 }
 
 func (v KeepAliveValue) MinSeconds() int {

@@ -7,7 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
+
+	"gorm.io/gorm"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/util/json_util"
 	"github.com/mhsanaei/3x-ui/v3/internal/xray"
@@ -980,7 +983,9 @@ type ClientRecord struct {
 	PublicKey       string         `json:"publicKey" gorm:"column:wg_public_key"`
 	AllowedIPs      string         `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
 	PreSharedKey    string         `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive       KeepAliveValue `json:"keepAlive" gorm:"column:wg_keep_alive;type:text;default:''"` // Numeric values or AmneziaWG ranges.
+	KeepAlive       KeepAliveValue `json:"keepAlive" gorm:"-"`
+	KeepAliveLegacy int            `json:"-" gorm:"column:wg_keep_alive;default:0"`
+	KeepAliveRange  KeepAliveValue `json:"-" gorm:"column:wg_keep_alive_range;type:text;default:''"`
 	ForwardedPorts  string         `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
 	Secret          string         `json:"secret" gorm:"column:secret"`
 	AdTag           string         `json:"adTag" gorm:"column:ad_tag;default:''"`
@@ -1006,6 +1011,47 @@ type ClientRecord struct {
 }
 
 func (ClientRecord) TableName() string { return "clients" }
+
+func (r *ClientRecord) BeforeSave(*gorm.DB) error {
+	legacy, ranged, err := splitKeepAliveStorage(r.KeepAlive)
+	if err != nil {
+		return err
+	}
+	r.KeepAliveLegacy = legacy
+	r.KeepAliveRange = ranged
+	return nil
+}
+
+func (r *ClientRecord) AfterFind(*gorm.DB) error {
+	if r.KeepAliveLegacy != 0 {
+		r.KeepAlive = KeepAliveValue(strconv.Itoa(r.KeepAliveLegacy))
+	} else if r.KeepAliveRange != "" {
+		r.KeepAlive = r.KeepAliveRange
+	} else {
+		r.KeepAlive = ""
+	}
+	return nil
+}
+
+func splitKeepAliveStorage(value KeepAliveValue) (int, KeepAliveValue, error) {
+	if value == "" {
+		return 0, "", nil
+	}
+	if n, err := strconv.Atoi(string(value)); err == nil && strconv.Itoa(n) == string(value) {
+		if n == 0 {
+			return 0, "0", nil
+		}
+		return n, "", nil
+	}
+	if err := value.Validate(true); err != nil || !strings.Contains(string(value), "-") {
+		return 0, "", fmt.Errorf("invalid stored keepAlive %q", value)
+	}
+	return 0, value, nil
+}
+
+func KeepAliveStorage(value KeepAliveValue) (int, KeepAliveValue, error) {
+	return splitKeepAliveStorage(value)
+}
 
 type ClientGroup struct {
 	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`

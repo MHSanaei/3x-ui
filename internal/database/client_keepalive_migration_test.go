@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
@@ -54,8 +55,8 @@ func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *te
 	if err := GetDB().Raw("SELECT type FROM pragma_table_info('clients') WHERE name = 'wg_keep_alive'").Scan(&dataType).Error; err != nil {
 		t.Fatal(err)
 	}
-	if dataType != "TEXT" {
-		t.Fatalf("wg_keep_alive type = %q, want TEXT", dataType)
+	if !strings.EqualFold(dataType, "INTEGER") {
+		t.Fatalf("wg_keep_alive type = %q, want INTEGER", dataType)
 	}
 	for _, tc := range []struct {
 		email string
@@ -63,7 +64,7 @@ func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *te
 	}{
 		{email: "legacy-25", want: "25"},
 		{email: "legacy-large", want: "70000"},
-		{email: "legacy-off", want: "0"},
+		{email: "legacy-off", want: ""},
 		{email: "legacy-negative", want: "-5"},
 	} {
 		var record model.ClientRecord
@@ -113,8 +114,19 @@ func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *te
 	if err := GetDB().Raw("SELECT typeof(wg_keep_alive) FROM clients WHERE email = ?", zero.Email).Scan(&storageType).Error; err != nil {
 		t.Fatal(err)
 	}
-	if storageType != "text" {
-		t.Fatalf("explicit zero SQLite storage class = %q, want text", storageType)
+	if storageType != "integer" {
+		t.Fatalf("explicit zero SQLite storage class = %q, want integer", storageType)
+	}
+	var rangeValue string
+	if err := GetDB().Raw("SELECT wg_keep_alive_range FROM clients WHERE email = ?", zero.Email).Scan(&rangeValue).Error; err != nil || rangeValue != "0" {
+		t.Fatalf("explicit zero range marker = %q, %v; want 0", rangeValue, err)
+	}
+	if err := GetDB().Model(&legacyKeepAliveClient{}).Where("email = ?", zero.Email).Update("wg_keep_alive", 45).Error; err != nil {
+		t.Fatalf("old int model cannot update a new row: %v", err)
+	}
+	var updatedOldRow model.ClientRecord
+	if err := GetDB().Where("email = ?", zero.Email).First(&updatedOldRow).Error; err != nil || updatedOldRow.KeepAlive != "45" {
+		t.Fatalf("new model read after old update = %q, %v; want 45", updatedOldRow.KeepAlive, err)
 	}
 
 	inbound := &model.Inbound{
@@ -123,6 +135,13 @@ func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *te
 	}
 	if err := GetDB().Create(inbound).Error; err != nil {
 		t.Fatalf("save ranged inbound: %v", err)
+	}
+	if err := GetDB().Create(&model.ClientRecord{Email: "range-record", KeepAlive: "15-25"}).Error; err != nil {
+		t.Fatalf("save ranged client record: %v", err)
+	}
+	var rangeRecord model.ClientRecord
+	if err := GetDB().Where("email = ?", "range-record").First(&rangeRecord).Error; err != nil || rangeRecord.KeepAlive != "15-25" {
+		t.Fatalf("read ranged client record = %q, %v; want 15-25", rangeRecord.KeepAlive, err)
 	}
 	if err := CloseDB(); err != nil {
 		t.Fatal(err)
@@ -149,8 +168,8 @@ func TestClientKeepAliveSQLiteMigrationPreservesLegacyScalarsAndAddsRanges(t *te
 	if err := GetDB().Where("email = ?", "explicit-zero").First(&got).Error; err != nil {
 		t.Fatal(err)
 	}
-	if got.KeepAlive != "0" {
-		t.Fatalf("reopened explicit zero = %q, want 0", got.KeepAlive)
+	if got.KeepAlive != "45" {
+		t.Fatalf("reopened explicit zero after old update = %q, want 45", got.KeepAlive)
 	}
 	var reopened model.Inbound
 	if err := GetDB().First(&reopened, inbound.Id).Error; err != nil {

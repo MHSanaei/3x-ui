@@ -210,6 +210,24 @@ func TestClientUpdateAllowsRangeForSharedAmneziaWGAndVLESSClient(t *testing.T) {
 	if saved.KeepAlive != "15-25" {
 		t.Fatalf("updated shared client keepAlive = %q, want 15-25", saved.KeepAlive)
 	}
+	client.KeepAlive = model.KeepAlivePtr(25)
+	if _, err := clientSvc.Update(inboundSvc, record.Id, client, 0); err != nil {
+		t.Fatalf("change shared client range to scalar: %v", err)
+	}
+	client.KeepAlive = model.KeepAlivePtr(0)
+	if _, err := clientSvc.Update(inboundSvc, record.Id, client, 0); err != nil {
+		t.Fatalf("set explicit zero after range: %v", err)
+	}
+	client.KeepAlive = nil
+	if _, err := clientSvc.Update(inboundSvc, record.Id, client, 0); err != nil {
+		t.Fatalf("update with omitted keepAlive after explicit zero: %v", err)
+	}
+	if err := database.GetDB().Where("id = ?", record.Id).First(&saved).Error; err != nil {
+		t.Fatal(err)
+	}
+	if saved.KeepAlive != "0" {
+		t.Fatalf("omitted update changed explicit zero to %q", saved.KeepAlive)
+	}
 }
 
 func TestSetClientEnableByEmailPreservesLegacyAmneziaWGKeepAlive(t *testing.T) {
@@ -292,4 +310,59 @@ func saveKeepAliveTestClientSettings(t *testing.T, inboundSvc *InboundService, i
 		}
 	}
 	return database.GetDB().Model(&model.Inbound{}).Where("id = ?", inboundID).Update("settings", clientsSettings(t, clients)).Error
+}
+
+func TestClientUpdateGrandfathersOnlyUnchangedLegacyKeepAlive(t *testing.T) {
+	setupBulkDB(t)
+	inboundSvc := &InboundService{}
+	clientSvc := &ClientService{}
+	client := newKeepAliveRangeClient(t, "legacy-update@awg", "25")
+	inbound := keepAliveTestAWGInbound(t, 51883)
+	if _, err := clientSvc.CreateOne(inboundSvc, inbound.Id, client); err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	client.KeepAlive = model.KeepAlivePtr(70000)
+	if err := saveKeepAliveTestClientSettings(t, inboundSvc, inbound.Id, client); err != nil {
+		t.Fatalf("seed legacy client settings: %v", err)
+	}
+	fresh, err := inboundSvc.GetInbound(inbound.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clients, err := inboundSvc.GetClients(fresh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := clientSvc.SyncInbound(nil, inbound.Id, clients); err != nil {
+		t.Fatalf("sync legacy record: %v", err)
+	}
+	record, err := clientSvc.GetRecordByEmail(nil, client.Email)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unchanged := model.Client{Email: client.Email, Enable: true, KeepAlive: model.KeepAlivePtr(70000), Comment: "updated comment"}
+	if _, err := clientSvc.Update(inboundSvc, record.Id, unchanged, 0); err != nil {
+		t.Fatalf("update unrelated field with unchanged legacy keepAlive: %v", err)
+	}
+	renamed := unchanged
+	renamed.Email = "legacy-renamed@awg"
+	if _, err := clientSvc.Update(inboundSvc, record.Id, renamed, 0); err != nil {
+		t.Fatalf("rename client with unchanged legacy keepAlive: %v", err)
+	}
+	record, err = clientSvc.GetByID(record.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := renamed
+	changed.KeepAlive = model.KeepAlivePtr(70001)
+	if _, err := clientSvc.Update(inboundSvc, record.Id, changed, 0); err == nil || !strings.Contains(err.Error(), "keepAlive must be an integer from 0 to 65535") {
+		t.Fatalf("changed invalid legacy value error = %v, want keepAlive bound error", err)
+	}
+	stored, err := clientSvc.GetByID(record.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.KeepAlive != "70000" {
+		t.Fatalf("record after rejected changed legacy value = %q, want 70000", stored.KeepAlive)
+	}
 }

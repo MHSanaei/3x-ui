@@ -115,47 +115,16 @@ func migrateInboundExcludeFromSubColumn() error {
 	return migrator.AddColumn(&model.Inbound{}, "ExcludeFromSub")
 }
 
-func migrateClientKeepAliveColumnType() error {
+func migrateClientKeepAliveRangeColumn() error {
 	migrator := db.Migrator()
-	if !migrator.HasTable(&model.ClientRecord{}) || !migrator.HasColumn(&model.ClientRecord{}, "wg_keep_alive") {
+	if !migrator.HasTable(&model.ClientRecord{}) || migrator.HasColumn(&model.ClientRecord{}, "wg_keep_alive_range") {
 		return nil
 	}
-	if IsPostgres() {
-		var dataType string
-		if err := db.Raw(`SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'clients' AND column_name = 'wg_keep_alive'`).Scan(&dataType).Error; err != nil {
-			return err
-		}
-		if strings.EqualFold(dataType, "text") {
-			return nil
-		}
-		return db.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Exec(`ALTER TABLE clients ALTER COLUMN wg_keep_alive DROP DEFAULT`).Error; err != nil {
-				return err
-			}
-			if err := tx.Exec(`ALTER TABLE clients ALTER COLUMN wg_keep_alive TYPE TEXT USING CASE WHEN wg_keep_alive = 0 THEN '' ELSE wg_keep_alive::text END`).Error; err != nil {
-				return err
-			}
-			return tx.Exec(`ALTER TABLE clients ALTER COLUMN wg_keep_alive SET DEFAULT ''`).Error
-		})
-	}
-
-	columns, err := migrator.ColumnTypes(&model.ClientRecord{})
-	if err != nil {
-		return err
-	}
-	for _, column := range columns {
-		if column.Name() == "wg_keep_alive" && strings.EqualFold(column.DatabaseTypeName(), "TEXT") {
-			return nil
-		}
-	}
-	if err := migrator.AlterColumn(&model.ClientRecord{}, "KeepAlive"); err != nil {
-		return err
-	}
-	return db.Exec(`UPDATE clients SET wg_keep_alive = '' WHERE wg_keep_alive = '0'`).Error
+	return migrator.AddColumn(&model.ClientRecord{}, "KeepAliveRange")
 }
 
 func initModels() error {
-	if err := migrateClientKeepAliveColumnType(); err != nil {
+	if err := migrateClientKeepAliveRangeColumn(); err != nil {
 		return err
 	}
 	if err := migrateClientTrafficLastSubFetchColumn(); err != nil {
