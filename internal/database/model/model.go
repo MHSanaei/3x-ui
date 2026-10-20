@@ -983,7 +983,7 @@ type ClientRecord struct {
 	PublicKey       string         `json:"publicKey" gorm:"column:wg_public_key"`
 	AllowedIPs      string         `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
 	PreSharedKey    string         `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive       KeepAliveValue `json:"keepAlive" gorm:"-"`
+	KeepAlive       KeepAliveValue `json:"keepAlive" gorm:"-"` // Numeric values or AmneziaWG ranges.
 	KeepAliveLegacy int            `json:"-" gorm:"column:wg_keep_alive;default:0"`
 	KeepAliveRange  KeepAliveValue `json:"-" gorm:"column:wg_keep_alive_range;type:text;default:''"`
 	ForwardedPorts  string         `json:"forwardedPorts" gorm:"column:wg_forwarded_ports"`
