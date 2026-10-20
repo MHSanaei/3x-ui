@@ -42,8 +42,8 @@ export function validateBotToken(token: string): TokenValidation {
 }
 
 export function parseAdminIds(raw: string): AdminIdsResult {
-  const ids: number[] = [];
-  const entries: string[] = [];
+  // Mirrors parseAdminChats in tgbot.go: one topic per chat, repeats collapse.
+  const topics = new Map<string, number>();
   const invalid: string[] = [];
   for (const part of raw
     .split(',')
@@ -52,13 +52,18 @@ export function parseAdminIds(raw: string): AdminIdsResult {
     // Telegram chat ids are integers; group/channel ids are negative. An
     // optional ":<topicId>" targets a forum topic inside a supergroup.
     const m = /^(-?\d+)\s*(?::\s*(\d+))?$/.exec(part);
-    if (m && (m[2] === undefined || Number(m[2]) > 0)) {
-      ids.push(Number(m[1]));
-      // General (thread 1) is reached by omitting the topic; the Bot API rejects 1.
-      const topic = m[2] === undefined ? 0 : Number(m[2]);
-      entries.push(topic > 1 ? `${m[1]}:${topic}` : m[1]);
-    } else invalid.push(part);
+    if (!m || (m[2] !== undefined && Number(m[2]) <= 0)) {
+      invalid.push(part);
+      continue;
+    }
+    // General (thread 1) is reached by omitting the topic; the Bot API rejects 1.
+    const topic = m[2] === undefined || Number(m[2]) === 1 ? 0 : Number(m[2]);
+    const prev = topics.get(m[1]) ?? 0;
+    if (topic && prev && prev !== topic) invalid.push(part);
+    else topics.set(m[1], topic || prev);
   }
+  const ids = [...topics.keys()].map(Number);
+  const entries = [...topics].map(([chat, topic]) => (topic ? `${chat}:${topic}` : chat));
   return { ids, entries, invalid };
 }
 

@@ -510,9 +510,9 @@ func deliverBroadcastCopy(chatID int64, draft broadcastDraft) error {
 		var err error
 		switch {
 		case len(draft.MessageIDs) > 1:
-			_, err = bot.CopyMessages(ctx, &telego.CopyMessagesParams{ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), FromChatID: from, MessageIDs: draft.MessageIDs})
+			_, err = bot.CopyMessages(ctx, &telego.CopyMessagesParams{ChatID: tu.ID(chatID), FromChatID: from, MessageIDs: draft.MessageIDs})
 		case len(draft.MessageIDs) == 1:
-			_, err = bot.CopyMessage(ctx, &telego.CopyMessageParams{ChatID: tu.ID(chatID), MessageThreadID: adminTopic(chatID), FromChatID: from, MessageID: draft.MessageIDs[0]})
+			_, err = bot.CopyMessage(ctx, &telego.CopyMessageParams{ChatID: tu.ID(chatID), FromChatID: from, MessageID: draft.MessageIDs[0]})
 		}
 		return err
 	})

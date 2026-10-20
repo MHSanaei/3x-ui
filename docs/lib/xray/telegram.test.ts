@@ -55,6 +55,14 @@ describe('parseAdminIds', () => {
     });
   });
 
+  it('rejects a second topic for the same chat, as the panel does', () => {
+    expect(parseAdminIds('-1001:7, -1001:1, -1001:8')).toEqual({
+      ids: [-1001],
+      entries: ['-1001:7'],
+      invalid: ['-1001:8'],
+    });
+  });
+
   it('keeps a forum topic suffix and rejects a malformed one', () => {
     expect(parseAdminIds('-1001234567:42, 111:0, 222:x')).toEqual({
       ids: [-1001234567],
