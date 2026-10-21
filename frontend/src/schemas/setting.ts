@@ -7,6 +7,9 @@ const absolutePath = z.string().regex(/^\//, 'pages.settings.validation.pathLead
 export const SubProfileModeSchema = z.enum(['none', 'builtin', 'custom']);
 export type SubProfileMode = z.infer<typeof SubProfileModeSchema>;
 
+export const SubHostSortModeSchema = z.enum(['inbound-first', 'hosts-first']);
+export type SubHostSortMode = z.infer<typeof SubHostSortModeSchema>;
+
 export const AllSettingSchema = z
   .object({
     webListen: z.string().optional(),
@@ -26,6 +29,7 @@ export const AllSettingSchema = z
     remarkTemplate: z.string().optional(),
     subShowIdentityOnAllLinks: z.boolean().optional(),
     subInfoNodeEnable: z.boolean().optional(),
+    subHostSortMode: SubHostSortModeSchema.optional(),
     subCalendarExpireInclusive: z.boolean().optional(),
     subExpiredTemplate: z.string().optional(),
     subTrafficDepletedTemplate: z.string().optional(),

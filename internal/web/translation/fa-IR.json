@@ -1787,7 +1787,11 @@
       "subIncyResolveDnsDomainDesc": "آدرس سرور DoH، معمولاً به /dns-query ختم میشود.",
       "subIncyResolveDnsIp": "آیپی سرور DoH",
       "subIncyResolveDnsIpDesc": "آیپی سرور DoH برای بوتاسترپ.",
-      "subIncyGroupRouting": "مسیریابی"
+      "subIncyGroupRouting": "مسیریابی",
+      "subHostSortMode": "ترتیب گره‌های اشتراک",
+      "subHostSortInbound": "ترتیب ورودی‌ها (پیش‌فرض)",
+      "subHostSortHosts": "ترتیب میزبان‌ها",
+      "subHostSortModeDesc": "ترتیب میزبان‌ها در صفحهٔ میزبان‌ها، میان همهٔ ورودی‌ها اعمال می‌شود. این تنظیم ترتیب خروجی سرور را تعیین می‌کند؛ برنامهٔ کلاینت ممکن است ترتیب دیگری اعمال کند."
     },
     "xray": {
       "save": "ذخیره",
@@ -2425,7 +2429,8 @@
         "delete": "حذف میزبان",
         "badTag": "برچسب نامعتبر",
         "badVlessRoute": "یک عدد بین 0 تا 65535 وارد کنید"
-      }
+      },
+      "dragToReorder": "برای تغییر ترتیب {name} بکشید"
     },
     "sponsors": {
       "title": "اسپانسرها",

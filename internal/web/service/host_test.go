@@ -1,12 +1,50 @@
 package service
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database"
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 )
+
+func TestReorderHostsRejectsInvalidGroupsAtomically(t *testing.T) {
+	setupBulkDB(t)
+	svc := &HostService{}
+	ib := mkInbound(t, 46890, model.VLESS, `{"clients":[]}`)
+	a := mkHost(t, svc, ib.Id, "a", 0)
+	b := mkHost(t, svc, ib.Id, "b", 1)
+	for _, invalid := range []struct {
+		ids []string
+		err string
+	}{
+		{[]string{b.GroupId, a.GroupId, b.GroupId}, "host group IDs must be nonempty and unique"},
+		{[]string{b.GroupId, ""}, "host group IDs must be nonempty and unique"},
+		{[]string{b.GroupId, "unknown"}, "host group not found"},
+	} {
+		if err := svc.ReorderHostGroups(invalid.ids); err == nil || err.Error() != invalid.err+"\n" {
+			t.Fatalf("invalid group IDs %v: error = %v, want %q", invalid.ids, err, invalid.err)
+		}
+		groups, err := svc.GetHosts()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if groups[0].GroupId != a.GroupId || groups[0].SortOrder != 0 || groups[1].GroupId != b.GroupId || groups[1].SortOrder != 1 {
+			t.Fatalf("invalid request changed ordering: %+v", groups)
+		}
+	}
+	if err := svc.ReorderHostGroups([]string{b.GroupId}); err != nil {
+		t.Fatal(err)
+	}
+	groups, err := svc.GetHosts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := []string{groups[0].GroupId, groups[1].GroupId}; !reflect.DeepEqual(got, []string{b.GroupId, a.GroupId}) || groups[1].SortOrder != 1 {
+		t.Fatalf("partial reorder lost omitted groups: %+v", groups)
+	}
+}
 
 func mkHost(t *testing.T, svc *HostService, inboundId int, remark string, order int) *entity.HostGroup {
 	t.Helper()

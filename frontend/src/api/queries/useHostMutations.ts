@@ -45,7 +45,7 @@ export function useHostMutations() {
     mutationFn: (groupIds: string[]) =>
       HttpUtil.post('/panel/api/hosts/reorder', { ids: groupIds }, JSON_HEADERS),
     onSuccess: (msg) => {
-      if (msg?.success) invalidate();
+      if (msg?.success) return invalidate();
     },
   });
 

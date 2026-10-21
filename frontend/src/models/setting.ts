@@ -1,5 +1,5 @@
 import { ObjectUtil } from '@/utils';
-import type { SubProfileMode } from '@/schemas/setting';
+import type { SubProfileMode, SubHostSortMode } from '@/schemas/setting';
 
 export class AllSetting {
   webListen = '';
@@ -20,6 +20,7 @@ export class AllSetting {
   remarkTemplate = '{{INBOUND}}-{{EMAIL}}|📊{{TRAFFIC_LEFT}}|⏳{{DAYS_LEFT}}D';
   subShowIdentityOnAllLinks = false;
   subInfoNodeEnable = false;
+  subHostSortMode: SubHostSortMode = 'inbound-first';
   subCalendarExpireInclusive = false;
   subExpiredTemplate = '⛔ {{EMAIL}} | Expired: {{EXPIRE_DATE}}';
   subTrafficDepletedTemplate =

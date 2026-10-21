@@ -1864,7 +1864,8 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/hosts/reorder',
-        summary: 'Set host group sort order by the position of each groupId in the array.',
+        summary:
+          'Set host group sort order by the position of each groupId in the array. IDs must be unique and refer to existing groups; omitted groups follow in their previous order.',
         body: '{\n  "ids": ["abc-123", "def-456"]\n}',
       },
       {

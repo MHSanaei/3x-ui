@@ -1787,7 +1787,11 @@
       "subIncyResolveDnsDomainDesc": "URL DoH-сервера, обычно заканчивается на /dns-query.",
       "subIncyResolveDnsIp": "IP DoH-сервера",
       "subIncyResolveDnsIpDesc": "IP DoH-сервера, нужен для bootstrap.",
-      "subIncyGroupRouting": "Маршрутизация"
+      "subIncyGroupRouting": "Маршрутизация",
+      "subHostSortMode": "Порядок узлов подписки",
+      "subHostSortInbound": "Порядок входящих подключений (по умолчанию)",
+      "subHostSortHosts": "Порядок хостов",
+      "subHostSortModeDesc": "Используется порядок со страницы хостов для всех входящих подключений. Настройка задаёт порядок выдачи сервером; клиентские приложения могут сортировать узлы самостоятельно."
     },
     "xray": {
       "importRules": "Импорт правил",
@@ -2425,7 +2429,8 @@
         "delete": "Удалить хост",
         "badTag": "Недопустимый тег",
         "badVlessRoute": "Введите одно число от 0 до 65535"
-      }
+      },
+      "dragToReorder": "Перетащите, чтобы изменить порядок {name}"
     },
     "sponsors": {
       "title": "Спонсоры",

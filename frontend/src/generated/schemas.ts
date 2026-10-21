@@ -316,6 +316,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings": {
         "type": "boolean"
       },
+      "subHostSortMode": {
+        "example": "inbound-first",
+        "type": "string"
+      },
       "subIncyAnnounceUrl": {
         "type": "string"
       },
@@ -669,6 +673,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunMode",
       "subHappTunType",
       "subHideSettings",
+      "subHostSortMode",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",
@@ -1092,6 +1097,10 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHideSettings": {
         "type": "boolean"
       },
+      "subHostSortMode": {
+        "example": "inbound-first",
+        "type": "string"
+      },
       "subIncyAnnounceUrl": {
         "type": "string"
       },
@@ -1453,6 +1462,7 @@ export const SCHEMAS: Record<string, unknown> = {
       "subHappTunMode",
       "subHappTunType",
       "subHideSettings",
+      "subHostSortMode",
       "subIncyAnnounceUrl",
       "subIncyAppAutoDetect",
       "subIncyBannerBgColor",

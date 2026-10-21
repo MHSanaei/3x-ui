@@ -18,7 +18,9 @@ import (
 // inbounds.
 func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[string]any {
 	var hosts []*model.Host
-	if err := database.GetDB().
+	if s.hostsByInbound != nil {
+		hosts = s.hostsByInbound[inbound.Id]
+	} else if err := database.GetDB().
 		Where("inbound_id = ? AND is_disabled = ?", inbound.Id, false).
 		Order("sort_order asc, id asc").
 		Find(&hosts).Error; err != nil {
@@ -31,7 +33,7 @@ func (s *SubService) hostEndpoints(inbound *model.Inbound, format string) []map[
 	defaultDest := s.resolveInboundAddress(inbound)
 	eps := make([]map[string]any, 0, len(hosts))
 	for _, h := range hosts {
-		if slices.Contains(h.ExcludeFromSubTypes, format) {
+		if h.IsDisabled || slices.Contains(h.ExcludeFromSubTypes, format) {
 			continue
 		}
 		eps = append(eps, hostToExternalProxyMap(h, defaultDest, inbound.Port))

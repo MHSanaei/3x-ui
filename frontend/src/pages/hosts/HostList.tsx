@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Popover, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -8,6 +9,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   GlobalOutlined,
+  HolderOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 
@@ -27,6 +29,8 @@ interface HostListProps {
   onDelete: (host: HostRecord) => void;
   onToggleEnable: (host: HostRecord, next: boolean) => void;
   onMove: (host: HostRecord, dir: 'up' | 'down') => void;
+  onReorder: (groupIds: string[]) => void;
+  reordering?: boolean;
   onBulkEnable: (enable: boolean) => void;
   onBulkDelete: () => void;
 }
@@ -52,7 +56,10 @@ export function sortHosts(hosts: HostRecord[]): HostRecord[] {
     const sa = a.sortOrder ?? 0;
     const sb = b.sortOrder ?? 0;
     if (sa !== sb) return sa - sb;
-    return (a.remark || '').localeCompare(b.remark || '');
+    const ar = a.remark || '';
+    const br = b.remark || '';
+    if (ar !== br) return ar < br ? -1 : 1;
+    return a.groupId < b.groupId ? -1 : a.groupId > b.groupId ? 1 : 0;
   });
 }
 
@@ -70,6 +77,8 @@ export default function HostList(props: HostListProps) {
     onDelete,
     onToggleEnable,
     onMove,
+    onReorder,
+    reordering,
     onBulkEnable,
     onBulkDelete,
   } = props;
@@ -81,23 +90,98 @@ export default function HostList(props: HostListProps) {
   }, [inboundOptions]);
 
   const sorted = useMemo(() => sortHosts(hosts), [hosts]);
+  const [drag, setDrag] = useState<{ from: string; to: string; after: boolean } | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const stopDrag = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopDrag.current?.(), []);
+
+  function onHandlePointerDown(from: string, event: ReactPointerEvent<HTMLElement>) {
+    if (
+      reordering ||
+      loading ||
+      event.isPrimary === false ||
+      (event.button != null && event.button !== 0)
+    )
+      return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    stopDrag.current?.();
+    let to = from;
+    let after = false;
+    let moved = false;
+    const pointerId = event.pointerId;
+    const startY = event.clientY;
+    setDrag({ from, to, after });
+    const move = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId || Math.abs(e.clientY - startY) < 5) return;
+      const row = document
+        .elementFromPoint(e.clientX, e.clientY)
+        ?.closest<HTMLElement>('tr[data-row-key]');
+      if (!row || !tableRef.current?.contains(row)) return;
+      moved = true;
+      to = row.dataset.rowKey || from;
+      const rect = row.getBoundingClientRect();
+      after = e.clientY > rect.top + rect.height / 2;
+      setDrag({ from, to, after });
+    };
+    const cleanup = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', cancel);
+      stopDrag.current = null;
+    };
+    const cancel = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return;
+      cleanup();
+      setDrag(null);
+    };
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return;
+      cleanup();
+      setDrag(null);
+      if (!moved) return;
+      const ids = sorted.map((h) => h.groupId);
+      const source = ids.indexOf(from);
+      const target = ids.indexOf(to);
+      if (source < 0 || target < 0) return;
+      const slot = target + (after ? 1 : 0);
+      const destination = slot - (source < slot ? 1 : 0);
+      if (source === destination) return;
+      ids.splice(source, 1);
+      ids.splice(destination, 0, from);
+      onReorder(ids);
+    };
+    stopDrag.current = cleanup;
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', cancel);
+  }
 
   const columns: ColumnsType<HostRecord> = [
     {
       title: t('pages.hosts.fields.actions'),
       key: 'actions',
-      width: 168,
+      width: 196,
       render: (_, h, idx) => {
         const count = sorted.length;
         return (
           <Space size={2}>
+            <Button
+              size="small"
+              type="text"
+              className="host-drag-handle"
+              icon={<HolderOutlined />}
+              aria-label={t('pages.hosts.dragToReorder', { name: h.remark || h.groupId })}
+              disabled={reordering || loading}
+              onPointerDown={(event) => onHandlePointerDown(h.groupId, event)}
+            />
             <Tooltip title={t('pages.hosts.moveUp')}>
               <Button
                 size="small"
                 type="text"
                 icon={<ArrowUpOutlined />}
                 aria-label={t('pages.hosts.moveUp')}
-                disabled={idx === 0}
+                disabled={reordering || loading || idx === 0}
                 onClick={() => onMove(h, 'up')}
               />
             </Tooltip>
@@ -107,7 +191,7 @@ export default function HostList(props: HostListProps) {
                 type="text"
                 icon={<ArrowDownOutlined />}
                 aria-label={t('pages.hosts.moveDown')}
-                disabled={idx >= count - 1}
+                disabled={reordering || loading || idx >= count - 1}
                 onClick={() => onMove(h, 'down')}
               />
             </Tooltip>
@@ -300,7 +384,7 @@ export default function HostList(props: HostListProps) {
   );
 
   return (
-    <Card size="small" hoverable title={toolbar} className="hosts-card">
+    <Card size="small" hoverable title={toolbar} className="hosts-card" ref={tableRef}>
       <Table<HostRecord>
         rowKey="groupId"
         size="small"
@@ -308,6 +392,12 @@ export default function HostList(props: HostListProps) {
         columns={columns}
         dataSource={sorted}
         pagination={false}
+        rowClassName={(h) =>
+          [
+            drag?.from === h.groupId ? 'host-dragging' : '',
+            drag?.to === h.groupId ? (drag.after ? 'host-drop-after' : 'host-drop-before') : '',
+          ].join(' ')
+        }
         scroll={{ x: 'max-content' }}
         rowSelection={{
           selectedRowKeys: selectedGroupIds,

@@ -1165,7 +1165,8 @@
         "delete": "Host deleted successfully",
         "badTag": "Invalid tag",
         "badVlessRoute": "Enter a single number between 0 and 65535"
-      }
+      },
+      "dragToReorder": "Drag to reorder {name}"
     },
     "nodes": {
       "addNode": "Add Node",
@@ -1905,7 +1906,11 @@
       "subIncyResolveDnsDomainDesc": "DoH server URL, usually ending in /dns-query.",
       "subIncyResolveDnsIp": "DoH server IP",
       "subIncyResolveDnsIpDesc": "IP of the DoH server, used for bootstrap.",
-      "subIncyGroupRouting": "Routing"
+      "subIncyGroupRouting": "Routing",
+      "subHostSortMode": "Subscription Node Ordering",
+      "subHostSortInbound": "Inbound order (default)",
+      "subHostSortHosts": "Hosts order",
+      "subHostSortModeDesc": "Hosts order follows the Hosts page across inbounds. This controls the order emitted by the server; client apps may apply their own sorting."
     },
     "xray": {
       "save": "Save",

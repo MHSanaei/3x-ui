@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type HostService struct{}
@@ -102,7 +103,10 @@ func groupHosts(hosts []*model.Host) []*entity.HostGroup {
 		if res[i].SortOrder != res[j].SortOrder {
 			return res[i].SortOrder < res[j].SortOrder
 		}
-		return res[i].Remark < res[j].Remark
+		if res[i].Remark != res[j].Remark {
+			return res[i].Remark < res[j].Remark
+		}
+		return res[i].GroupId < res[j].GroupId
 	})
 
 	return res
@@ -306,8 +310,33 @@ func (s *HostService) ReorderHostGroups(groupIds []string) error {
 	if len(groupIds) == 0 {
 		return nil
 	}
+	seen := make(map[string]bool, len(groupIds))
+	for _, id := range groupIds {
+		if id == "" || seen[id] {
+			return common.NewError("host group IDs must be nonempty and unique")
+		}
+		seen[id] = true
+	}
 	return database.GetDB().Transaction(func(tx *gorm.DB) error {
-		for i, groupId := range groupIds {
+		var rows []*model.Host
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Order("id ASC").Find(&rows).Error; err != nil {
+			return err
+		}
+		groups := groupHosts(rows)
+		known := make(map[string]bool, len(groups))
+		ordered := append([]string(nil), groupIds...)
+		for _, group := range groups {
+			known[group.GroupId] = true
+			if !seen[group.GroupId] {
+				ordered = append(ordered, group.GroupId)
+			}
+		}
+		for _, id := range groupIds {
+			if !known[id] {
+				return common.NewError("host group not found")
+			}
+		}
+		for i, groupId := range ordered {
 			if err := tx.Model(&model.Host{}).Where("group_id = ?", groupId).Update("sort_order", i).Error; err != nil {
 				return err
 			}
