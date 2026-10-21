@@ -441,3 +441,7 @@
 .api-docs-page.is-dark .swagger-ui .errors-wrapper .errors small {
   color: var(--sw-text);
 }
+
+.api-docs-page[data-docs-language='sk-SK'] .swagger-ui .parameter__name.required::after {
+  content: var(--swagger-required-label);
+}

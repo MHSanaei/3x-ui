@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useMemo, useRef } from 'react';
+import type { CSSProperties } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Card, Col, ConfigProvider, Layout, Row, Tabs, Typography } from 'antd';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
@@ -8,6 +9,8 @@ import { useTheme } from '@/hooks/useTheme';
 import AppSidebar from '@/layouts/AppSidebar';
 import { EXAMPLES } from '@/generated/examples';
 import { buildWebSocketEvents } from './websocket-events';
+import { apiReferencePlugin, translateApiText } from './localization';
+import { bindSwaggerLabels } from './swagger-labels';
 import './ApiDocsPage.css';
 
 const basePath = window.X_UI_BASE_PATH || '';
@@ -71,7 +74,17 @@ const sectionTabsPlugin = {
 
 export default function ApiDocsPage() {
   const { isDark, isUltra, antdThemeConfig } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const docsRoot = useRef<HTMLDivElement>(null);
+  const plugins = useMemo(() => [sectionTabsPlugin, apiReferencePlugin(t)], [t]);
+  const docsStyle = {
+    '--swagger-required-label': JSON.stringify(t('apiDocs.labels.requiredSuffix')),
+  } as CSSProperties;
+
+  useEffect(() => {
+    if (i18n.resolvedLanguage !== 'sk-SK' || !docsRoot.current) return;
+    return bindSwaggerLabels(docsRoot.current, t);
+  }, [i18n.resolvedLanguage, t]);
 
   const pageClass = useMemo(() => {
     const classes = ['api-docs-page'];
@@ -82,7 +95,7 @@ export default function ApiDocsPage() {
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
-      <Layout className={pageClass}>
+      <Layout className={pageClass} data-docs-language={i18n.resolvedLanguage} style={docsStyle}>
         <AppSidebar />
 
         <Layout className="content-shell">
@@ -91,14 +104,19 @@ export default function ApiDocsPage() {
               items={[
                 {
                   key: 'panel-api',
-                  label: '3X-UI Panel API',
+                  label: t('apiDocs.labels.panelTab'),
                   children: (
-                    <div className="docs-wrapper" role="region" aria-label={t('menu.apiDocs')}>
+                    <div
+                      ref={docsRoot}
+                      className="docs-wrapper"
+                      role="region"
+                      aria-label={t('menu.apiDocs')}
+                    >
                       <SwaggerUI
                         url={openApiUrl}
                         docExpansion="list"
                         deepLinking={false}
-                        plugins={[sectionTabsPlugin]}
+                        plugins={plugins}
                         tryItOutEnabled
                         persistAuthorization
                       />
@@ -107,15 +125,19 @@ export default function ApiDocsPage() {
                 },
                 {
                   key: 'websocket-events',
-                  label: 'WebSocket events',
+                  label: t('apiDocs.labels.eventsTab'),
                   children: (
                     <section className="websocket-events">
                       <Typography.Paragraph>
-                        After the cookie-authenticated{' '}
-                        <Typography.Text code>GET /ws</Typography.Text> upgrade, every server
-                        message uses{' '}
-                        <Typography.Text code>{'{ type, payload, time }'}</Typography.Text>. The
-                        time value is Unix milliseconds.
+                        <Trans
+                          i18nKey="apiDocs.labels.websocketIntro"
+                          components={{
+                            handshake: <Typography.Text code>GET /ws</Typography.Text>,
+                            envelope: (
+                              <Typography.Text code>{'{ type, payload, time }'}</Typography.Text>
+                            ),
+                          }}
+                        />
                       </Typography.Paragraph>
                       <Row gutter={[12, 12]}>
                         {websocketEvents.map((event) => (
@@ -124,7 +146,9 @@ export default function ApiDocsPage() {
                               size="small"
                               title={<Typography.Text code>{event.type}</Typography.Text>}
                             >
-                              <Typography.Paragraph>{event.summary}</Typography.Paragraph>
+                              <Typography.Paragraph>
+                                {translateApiText(event.summary, t)}
+                              </Typography.Paragraph>
                               <pre>{JSON.stringify(event.example, null, 2)}</pre>
                             </Card>
                           </Col>
