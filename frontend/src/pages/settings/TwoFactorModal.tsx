@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Input, Modal, QRCode, message } from 'antd';
@@ -38,7 +37,7 @@ export default function TwoFactorModal({
     if (!open || !token) return null;
     return new OTPAuth.TOTP({
       issuer: '3x-ui',
-      label: i18next.t('pages.settings.security.apiTokenScopeAdmin'),
+      label: 'Administrator',
       algorithm: 'SHA1',
       digits: 6,
       period: 30,

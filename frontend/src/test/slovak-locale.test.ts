@@ -65,6 +65,7 @@ describe('Slovak catalog', () => {
       expect(i18n.resolvedLanguage).toBe('sk-SK');
       expect(i18n.t('menu.dashboard')).toBe('Prehľad');
       expect(utils.SizeFormatter.sizeFormat(1536)).toBe('1,50 KB');
+      expect(utils.CPUFormatter.cpuCoreFormat(1)).toBe('Jadro: 1');
       expect(utils.CPUFormatter.cpuCoreFormat(2)).toBe('Jadrá: 2');
       expect(utils.NumberFormatter.toFixed(1.234, 2)).toBe(1.23);
       expect(i18n.t('pages.clients.totalGB')).toBe('Dátový limit (GB)');
@@ -75,6 +76,25 @@ describe('Slovak catalog', () => {
       if (!invalid.success) expect(invalid.error.issues[0].message).not.toMatch(/Too small/);
     },
   );
+
+  it('preserves CPU core labels in every existing panel language', async () => {
+    vi.resetModules();
+    const utils = await import('@/utils');
+    let active = 'en-US';
+    vi.spyOn(utils.CookieManager, 'getCookie').mockImplementation((name) =>
+      name === 'lang' ? active : '',
+    );
+    vi.spyOn(utils.CookieManager, 'setCookie').mockImplementation(() => {});
+    vi.stubGlobal('window', { navigator: { language: 'en-US' }, location: { reload: vi.fn() } });
+    const { readyI18n } = await import('@/i18n/react');
+    for (const language of utils.LanguageManager.supportedLanguages) {
+      if (language.value === 'sk-SK') continue;
+      active = language.value;
+      await readyI18n();
+      expect(utils.CPUFormatter.cpuCoreFormat(1), active).toBe('1 Core');
+      expect(utils.CPUFormatter.cpuCoreFormat(8), active).toBe('8 Cores');
+    }
+  });
 
   it('keeps the panel language independent of a Slovak subscription', async () => {
     vi.resetModules();

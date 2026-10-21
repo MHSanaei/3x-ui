@@ -155,7 +155,18 @@ Panel navigation happens client-side through React Router, and per-route code is
 
 ### i18n
 
-Locale strings live in `internal/web/translation/<locale>.json`, **not** under `frontend/`. The Go binary embeds the same JSON and serves it to both backend templates and `react-i18next` (initialized in `src/i18n/react.ts`). When a new English key is added it must also land in **every** non-English locale — missing keys do not break the build, they just render the raw key in the UI.
+Locale strings live in `internal/web/translation/<locale>.json`, **not** under `frontend/`. The Go binary embeds the same JSON and serves it to both backend templates and `react-i18next` (initialized in `src/i18n/react.ts`). When a new English key is added it must also land in **every** non-English locale. The i18n tests enforce matching keys across all 14 catalogs and reject unreferenced keys; runtime fallbacks do not replace that check.
+
+#### API reference translations
+
+The in-panel API reference translates presentation metadata from the generated OpenAPI document. Its prose comes from `src/pages/api-docs/endpoints.ts` and generated Go model descriptions. Adding an endpoint or changing a title, summary, description or tag name therefore also requires updating the `apiDocs.reference` catalogs:
+
+1. Update the endpoint/model source and run `cd frontend && npm run gen`.
+2. Run `npm test -- --project unit src/test/slovak-api-docs.test.ts` from `frontend/`. The coverage check lists missing English prose and retired catalog entries; it fails for either kind of drift.
+3. Add or update semantic keys under `apiDocs.reference` in **every** locale. The English value must exactly match the generated source text. Review existing translations when the source meaning changes; for an untranslated addition, retain its original English text until that locale is translated. Remove retired entries from every catalog once their source prose is no longer used. Keep inline code, placeholders and technical examples verbatim.
+4. Rerun the API-reference and i18n tests, then the normal frontend checks. Regenerate the standalone docs site as described by the endpoint workflow when routes change.
+
+The coverage check keeps the advertised API translation complete; it does not change the canonical OpenAPI response or request data. Swagger's vendor controls use a scoped exact-text adapter (`swagger-labels.ts`), so after a Swagger upgrade also inspect its buttons, authorization dialog, schema expansion and Try it out/Execute behavior in a browser.
 
 ### Dev workflows
 
@@ -187,7 +198,7 @@ Only a genuinely **standalone bundle** (like `login` or `subpage`, reachable wit
 - **Comments in committed Go/TS/TSX: 2 lines MAX per comment block**, spent on the *why* a name cannot hold — an invariant, an issue number, a non-obvious constraint. Names should carry the meaning; rename rather than annotate. Compiler and tool directives (`//go:build`, `//go:generate`, `//nolint:`) are exempt, and HTML `<!-- ... -->` is fine for template structure.
 - **Persian and Arabic users are first-class.** When writing Persian text in toasts or labels, isolate code identifiers on their own lines so RTL reading flows. (Full RTL layout is not currently wired through AntD `ConfigProvider direction` — only the Jalali date picker is RTL-aware — so treat RTL as an open area, not a solved one.)
 - **Schemas over `any`.** New config shapes go in `src/schemas/`; oxlint's `typescript/no-explicit-any` is an error and production schemas use no `.loose()`. Validate form fields with `antdRule(Schema.shape.field, t)` rather than inline `z.string()` in rules.
-- **Document new endpoints.** Every new `g.POST`/`g.GET` in `internal/web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`).
+- **Document new endpoints.** Every new `g.POST`/`g.GET` in `internal/web/controller/` needs a matching entry in `src/pages/api-docs/endpoints.ts` — it drives both the in-panel API docs and the generated OpenAPI/Zod (`npm run gen:api` / `gen:zod`). Keep its prose synchronized with every `apiDocs.reference` catalog; see [API reference translations](#api-reference-translations).
 - **Do not break link generation.** Share-link logic lives in `src/lib/xray/` (`inbound-link.ts`, `outbound-link-parser.ts`, …) and is round-tripped by the golden fixture suite — run `npm run test` after any change to URL generation, defaults, or TLS/Reality handling, and regenerate snapshots (`npx vitest run -u`) only for intentional changes. Two runtime paths consume it: the **inbounds page** and the **clients page** subscription links (`/panel/api/clients/subLinks/:subId` → backend `GetSubs`); exercise both.
 - **Vite is pinned to an exact version** (no `^`) in `frontend/package.json` — read the live version there rather than trusting a number quoted here — so local, CI, and release builds resolve identically. Bump it deliberately and verify both `npm run dev` and `npm run build` afterward.
 - **Reusable components are documented in Storybook.** When you add or change a component in `frontend/src/components/`, add or update its co-located `<Component>.stories.tsx` (`tags: ['autodocs']`), documenting props via `argTypes` / `parameters.docs` string metadata rather than JSDoc. CI compile-checks every story via `npm run build-storybook` and runs each story as a headless-browser test via `@storybook/addon-vitest` (`npm run test`, needs `npx playwright install chromium`); run `npm run storybook` to preview locally.

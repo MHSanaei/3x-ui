@@ -42,7 +42,8 @@ The `@` import alias maps to `src/`.
   Sockopt) remain AntD-`Form` islands wrapped as value/onChange adapters in
   `src/lib/xray/forms/fields/`, bound via a `Controller`.
 - New `g.POST`/`g.GET` route => add it to `src/pages/api-docs/endpoints.ts`,
-  then `npm run gen`.
+  then `npm run gen`. New or reworded API prose also updates every locale
+  `apiDocs.reference`; follow root `CONTRIBUTING.md` → "API reference translations".
 - i18n strings live in `internal/web/translation/<locale>.json`, NOT under
   `frontend/`, and are shared with the Go backend. A new English key must be
   added to every locale. Interpolation here uses single braces `{var}`, not the

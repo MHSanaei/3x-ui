@@ -740,7 +740,7 @@ export class CPUFormatter {
   }
 
   static cpuCoreFormat(cores: number): string {
-    return i18next.t('ui.cpuCoreCount', {
+    return i18next.t(cores === 1 ? 'ui.cpuCoreCountSingular' : 'ui.cpuCoreCount', {
       count: cores,
       defaultValue: cores === 1 ? '1 Core' : cores + ' Cores',
     });

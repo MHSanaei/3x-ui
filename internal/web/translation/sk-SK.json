@@ -2923,7 +2923,8 @@
     "srcIP": "Zdrojová IP",
     "srcPort": "Zdrojový port",
     "attrs": "Atribúty",
-    "cpuCoreCount": "Jadrá: {count}"
+    "cpuCoreCount": "Jadrá: {count}",
+    "cpuCoreCountSingular": "Jadro: {count}"
   },
   "apiDocs": {
     "labels": {

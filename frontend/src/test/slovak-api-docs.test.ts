@@ -61,7 +61,17 @@ describe('Slovak API reference', () => {
   it('covers every generated explanation and notices new or changed upstream prose', async () => {
     const t = await translator('sk-SK');
     const texts = [...new Set(proseValues(buildSpec()))];
-    expect(new Set(Object.values(enUS.apiDocs.reference))).toEqual(new Set(texts));
+    const catalog = new Set(Object.values(enUS.apiDocs.reference));
+    const generated = new Set(texts);
+    const missing = texts.filter((text) => !catalog.has(text));
+    const retired = Object.entries(enUS.apiDocs.reference)
+      .filter(([, text]) => !generated.has(text))
+      .map(([key, text]) => ({ key, text }));
+    expect(
+      { missing, retired },
+      'API prose changed: update apiDocs.reference in every locale, including translations. ' +
+        'Remove retired entries. See CONTRIBUTING.md#api-reference-translations.',
+    ).toEqual({ missing: [], retired: [] });
     expect(texts.map((text) => translateApiText(text, t))).toContain('API panela 3X-UI');
     expect(translateApiText('Client password', t)).toBe('Heslo klienta');
   });

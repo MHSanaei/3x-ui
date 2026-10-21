@@ -92,7 +92,9 @@ question it already answers.
   `internal/web/translation/` (14 files) AND must be referenced from
   `frontend/src` or Go in the SAME change.
   `frontend/src/test/i18n-dead-keys.test.ts` fails on a missing locale file and
-  on an orphan key alike.
+  on an orphan key alike. API prose changes also update `apiDocs.reference` in
+  every locale; the coverage test lists missing and retired entries. The human
+  workflow is in `CONTRIBUTING.md` → "API reference translations".
 - **Migrations.** Schema changes are GORM `AutoMigrate` PLUS hand-written
   migrations in `internal/database/db.go`. There are no migration files and no
   down-migrations, and everything has to work on SQLite AND PostgreSQL.

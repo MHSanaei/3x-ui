@@ -2923,7 +2923,8 @@
     "srcIP": "Src IP",
     "srcPort": "Src Port",
     "attrs": "Attrs",
-    "cpuCoreCount": "Cores: {count}"
+    "cpuCoreCount": "{count} Cores",
+    "cpuCoreCountSingular": "{count} Core"
   },
   "apiDocs": {
     "labels": {
