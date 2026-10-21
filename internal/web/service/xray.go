@@ -1509,6 +1509,8 @@ func (s *XrayService) RestartXray(isForce bool) error {
 				return nil
 			}
 		}
+		invalidateTuicRelayReadiness(process.GetConfig())
+		invalidateTuicRelayReadiness(xrayConfig)
 		_ = process.Stop()
 	} else if conflicts := bindConflicts(xrayConfig, nil); len(conflicts) > 0 {
 		// Nothing is running to protect and the core is the authority on what it
@@ -1516,6 +1518,7 @@ func (s *XrayService) RestartXray(isForce bool) error {
 		logger.Warning("xray config may not start:", conflicts[0].String())
 	}
 
+	invalidateTuicRelayReadiness(xrayConfig)
 	process = xray.NewProcess(xrayConfig)
 	xrayState.replace(process)
 	s.xrayAPI.StatsLastValues = nil
@@ -1553,7 +1556,12 @@ func (s *XrayService) restartToDropClients(diff *xray.HotDiff) bool {
 // TUIC relay replacements are verified separately and rolled back on failure;
 // an error defers that update instead of restarting unrelated connections.
 // Callers must hold the package-level lock.
-func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) (bool, error) {
+func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) (applied bool, applyErr error) {
+	defer func() {
+		if applyErr != nil {
+			s.SetToNeedReconcile()
+		}
+	}()
 	oldCfg := process.GetConfig()
 	diff, ok := xray.ComputeHotDiff(oldCfg, newCfg)
 	if !ok {
@@ -1561,6 +1569,9 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) (b
 		return false, nil
 	}
 	if diff.Empty() {
+		if err := repairUnavailableTuicRelays(newCfg, process.GetAPIPort()); err != nil {
+			return false, err
+		}
 		process.SetConfig(newCfg)
 		persistHotConfig(process)
 		return true, nil
@@ -1572,6 +1583,9 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) (b
 		return false, nil
 	}
 
+	if tuicRequiresOrdinaryRemoval(oldCfg, diff.TuicRelayChanges) {
+		return false, nil
+	}
 	apiPort := process.GetAPIPort()
 	if apiPort <= 0 {
 		if len(diff.TuicRelayChanges) > 0 {
@@ -1591,18 +1605,46 @@ func (s *XrayService) tryHotApply(process *xray.Process, newCfg *xray.Config) (b
 	}
 	defer hotAPI.Close()
 
-	if err := applyTuicRelayReplacements(&hotAPI, diff.TuicRelayChanges); err != nil {
-		return false, err
+	staged, relayErr := reconcileTuicHotConfig(&hotAPI, oldCfg, newCfg, diff.TuicRelayChanges)
+	defer staged.finish()
+	effective := staged.effective
+	intermediate := *oldCfg
+	intermediate.InboundConfigs = nil
+	for _, inbound := range oldCfg.InboundConfigs {
+		if !inbound.TuicRelay {
+			intermediate.InboundConfigs = append(intermediate.InboundConfigs, inbound)
+		}
 	}
+	for _, inbound := range effective.InboundConfigs {
+		if inbound.TuicRelay {
+			intermediate.InboundConfigs = append(intermediate.InboundConfigs, inbound)
+		}
+	}
+	ordinary, hot := xray.ComputeHotDiff(&intermediate, effective)
+	if !hot || len(ordinary.TuicRelayChanges) > 0 {
+		relayErr = errors.Join(relayErr, staged.rollback(&hotAPI))
+		intermediate.InboundConfigs = oldCfg.InboundConfigs
+		process.SetConfig(&intermediate)
+		persistHotConfig(process)
 
-	if !applyXrayHotDiff(&hotAPI, diff) {
+		return false, errors.Join(relayErr, errors.New("independent Xray changes could not be planned after TUIC reconciliation"))
+	}
+	if !applyXrayHotDiff(&hotAPI, ordinary) {
+		relayErr = errors.Join(relayErr, staged.rollback(&hotAPI))
+		intermediate.InboundConfigs = oldCfg.InboundConfigs
+		process.SetConfig(&intermediate)
+		persistHotConfig(process)
+		if relayErr != nil {
+			return false, relayErr
+		}
 		return false, nil
 	}
-	// A routing reload rebuilds every balancer, and a removed outbound strands an override.
-	balancerOverrides.reapply(process, &hotAPI, newCfg)
-
-	process.SetConfig(newCfg)
+	balancerOverrides.reapply(process, &hotAPI, effective)
+	process.SetConfig(effective)
 	persistHotConfig(process)
+	if relayErr != nil {
+		return false, relayErr
+	}
 	return true, nil
 }
 

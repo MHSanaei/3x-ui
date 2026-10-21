@@ -20,6 +20,13 @@ var ErrUdpPayloadTooLarge = errors.New("tuic socks: UDP packet exceeds the maxim
 
 const maxSocksUdpDatagramSize = 65507
 
+func ValidateRelayEmail(email string) error {
+	if len(email) == 0 || len(email) > 255 {
+		return errors.New("TUIC client email must contain 1 to 255 UTF-8 bytes")
+	}
+	return nil
+}
+
 // SocksRelay describes the loopback SOCKS5 endpoint where decrypted TUIC traffic is forwarded.
 type SocksRelay struct {
 	Gate      *RelayGate

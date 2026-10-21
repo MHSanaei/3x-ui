@@ -25,6 +25,8 @@ func TestTryHotApplyWritesConfigFile(t *testing.T) {
 }
 
 func TestTuicChangeWithoutAPIDoesNotFallBackToCoreRestart(t *testing.T) {
+	wasPending := isNeedXrayReconcile.Swap(false)
+	t.Cleanup(func() { isNeedXrayReconcile.Store(wasPending) })
 	previous := &xray.Config{InboundConfigs: []xray.InboundConfig{{
 		Tag: "tuic-test", Listen: json_util.RawMessage(`"127.0.0.1"`), Port: 64001,
 		Protocol: "socks", TuicRelay: true,
@@ -39,5 +41,8 @@ func TestTuicChangeWithoutAPIDoesNotFallBackToCoreRestart(t *testing.T) {
 	}
 	if !process.GetConfig().Equals(previous) {
 		t.Fatal("failed relay update advanced the running config snapshot")
+	}
+	if !isNeedXrayReconcile.Load() {
+		t.Fatal("direct reconciliation failure did not schedule a retry")
 	}
 }

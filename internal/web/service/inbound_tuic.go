@@ -32,9 +32,35 @@ func configuredTuicInstances(inbounds []*model.Inbound) []tuic.Instance {
 			logger.Warningf("tuic: skipping inbound %d: invalid settings or clients", inbound.Id)
 			continue
 		}
+		inst.Clients = supportedTuicRelayClients(inst)
 		instances = append(instances, inst)
 	}
 	return instances
+}
+
+func supportedTuicRelayClients(inst tuic.Instance) []tuic.TuicClientSettings {
+	clients := make([]tuic.TuicClientSettings, 0, len(inst.Clients))
+	for _, client := range inst.Clients {
+		if tuic.ValidateRelayEmail(client.Email) == nil {
+			clients = append(clients, client)
+		}
+	}
+	if len(clients) != len(inst.Clients) {
+		logger.Warningf("tuic: inbound %d: %d clients excluded: email must contain 1 to 255 UTF-8 bytes", inst.Id, len(inst.Clients)-len(clients))
+	}
+	return clients
+}
+
+func validateTuicClientEmails(protocol model.Protocol, clients []model.Client) error {
+	if protocol != model.TUIC {
+		return nil
+	}
+	for _, client := range clients {
+		if err := tuic.ValidateRelayEmail(client.Email); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) desiredTuicInstances(inbounds []*model.Inbound) ([]tuic.Instance, error) {
@@ -64,6 +90,7 @@ func (s *InboundService) desiredTuicInstances(inbounds []*model.Inbound) ([]tuic
 		if !ok {
 			continue
 		}
+		inst.Clients = supportedTuicRelayClients(inst)
 		instances = append(instances, inst)
 	}
 	emails := make([]string, 0)

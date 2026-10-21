@@ -94,6 +94,13 @@ func (g *RelayGate) ReadyFor(owner int) bool {
 	return g.ready && g.owner == owner
 }
 
+func (g *RelayGate) Invalidate(owner int) {
+	g.mu.Lock()
+	g.owner, g.ready, g.accounts = owner, false, nil
+	g.signalLocked()
+	g.mu.Unlock()
+}
+
 // BeginUpdate blocks new handshakes and drains only local SOCKS authentication.
 // Existing TCP streams and UDP associations do not hold this gate.
 func (g *RelayGate) BeginUpdate(ctx context.Context) (*RelayUpdate, error) {

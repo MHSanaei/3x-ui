@@ -9,6 +9,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/tuic"
@@ -44,7 +45,30 @@ func finishTuicRelayUpdate(update *tuic.RelayUpdate, cfg *xray.InboundConfig) {
 	update.Finish(owner, emails, cfg != nil)
 }
 
+func invalidateTuicRelayReadiness(cfg *xray.Config) {
+	if cfg == nil {
+		return
+	}
+	for _, inbound := range cfg.InboundConfigs {
+		if inbound.TuicRelay {
+			if gate := tuic.ManagedRelayGate(inbound.Port); gate != nil {
+				gate.Invalidate(inbound.TuicInboundID)
+			}
+		}
+	}
+}
+
 func publishTuicRelayReadiness(cfg *xray.Config) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return publishTuicRelayBatch(ctx, cfg)
+}
+
+func publishTuicRelayBatch(ctx context.Context, cfg *xray.Config) error {
+	invalidateTuicRelayReadiness(cfg)
+	failures := make([]error, len(cfg.InboundConfigs))
+	slots := make(chan struct{}, 4)
+	var workers sync.WaitGroup
 	for i := range cfg.InboundConfigs {
 		inbound := &cfg.InboundConfigs[i]
 		if !inbound.TuicRelay {
@@ -54,35 +78,57 @@ func publishTuicRelayReadiness(cfg *xray.Config) error {
 		if gate == nil {
 			continue
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		update, err := gate.BeginUpdate(ctx)
-		if err != nil {
-			cancel()
-			return fmt.Errorf("publish TUIC relay readiness: %w", err)
+		if err := validateTuicRelay(inbound); err != nil {
+			failures[i] = fmt.Errorf("TUIC relay %s not ready: %w", inbound.Tag, err)
+			continue
 		}
-		// Starting the child process returns before its listeners have bound.
-		// Keep native sessions waiting until the configured accounts really work.
-		for {
-			err = verifyTuicRelayContext(ctx, nil, inbound)
-			if err == nil || ctx.Err() != nil {
-				break
-			}
-			select {
-			case <-time.After(20 * time.Millisecond):
-			case <-ctx.Done():
-			}
+		select {
+		case slots <- struct{}{}:
+		case <-ctx.Done():
+			failures[i] = ctx.Err()
+			continue
 		}
-		cancel()
-		if err != nil {
-			update.Finish(inbound.TuicInboundID, nil, false)
-			return fmt.Errorf("TUIC relay not ready: %w", err)
-		}
-		finishTuicRelayUpdate(update, inbound)
+		workers.Add(1)
+		go func(index int, inbound *xray.InboundConfig, gate *tuic.RelayGate) {
+			defer workers.Done()
+			defer func() { <-slots }()
+			failures[index] = publishTuicRelay(ctx, inbound, gate)
+		}(i, inbound, gate)
 	}
+	workers.Wait()
+	err := errors.Join(failures...)
+	if err != nil {
+		(&XrayService{}).SetToNeedReconcile()
+	}
+	return err
+}
+
+func publishTuicRelay(ctx context.Context, inbound *xray.InboundConfig, gate *tuic.RelayGate) error {
+	update, err := gate.BeginUpdate(ctx)
+	if err != nil {
+		return fmt.Errorf("publish TUIC relay %s readiness: %w", inbound.Tag, err)
+	}
+	// Starting the child process returns before its listeners have bound.
+	// Keep native sessions waiting until the configured accounts really work.
+	for {
+		err = verifyTuicRelayContext(ctx, nil, inbound)
+		if err == nil || ctx.Err() != nil {
+			break
+		}
+		select {
+		case <-time.After(20 * time.Millisecond):
+		case <-ctx.Done():
+		}
+	}
+	if err != nil {
+		update.Finish(inbound.TuicInboundID, nil, false)
+		return fmt.Errorf("TUIC relay %s not ready: %w", inbound.Tag, err)
+	}
+	finishTuicRelayUpdate(update, inbound)
 	return nil
 }
 
-func repairUnavailableTuicRelays(cfg *xray.Config, apiPort int) error {
+func unavailableTuicRepairs(cfg *xray.Config) []xray.InboundReplacement {
 	var repairs []xray.InboundReplacement
 	for i := range cfg.InboundConfigs {
 		inbound := &cfg.InboundConfigs[i]
@@ -94,18 +140,95 @@ func repairUnavailableTuicRelays(cfg *xray.Config, apiPort int) error {
 			repairs = append(repairs, xray.InboundReplacement{Previous: inbound, Next: inbound})
 		}
 	}
+	return repairs
+}
+
+func repairUnavailableTuicRelays(cfg *xray.Config, apiPort int) error {
+	repairs := unavailableTuicRepairs(cfg)
 	if len(repairs) == 0 {
 		return nil
 	}
 	api := &xray.XrayAPI{}
 	if err := api.Init(apiPort); err != nil {
+		(&XrayService{}).SetToNeedReconcile()
 		return err
 	}
 	defer api.Close()
-	return applyTuicRelayReplacements(api, repairs)
+	err := applyTuicRelayReplacements(api, repairs)
+	if err != nil {
+		(&XrayService{}).SetToNeedReconcile()
+	}
+	return err
 }
 
 func applyTuicRelayReplacements(api *xray.XrayAPI, changes []xray.InboundReplacement) error {
+	var failures error
+	for _, group := range groupTuicRelayChanges(changes) {
+		failures = errors.Join(failures, applyTuicRelayGroup(api, group))
+	}
+	return failures
+}
+
+func validateTuicRelay(inbound *xray.InboundConfig) error {
+	var settings struct {
+		Auth     string         `json:"auth"`
+		Accounts []relayAccount `json:"accounts"`
+	}
+	if err := json.Unmarshal(inbound.Settings, &settings); err != nil {
+		return err
+	}
+	if inbound.Protocol != "socks" || settings.Auth != "password" || string(inbound.Listen) != `"127.0.0.1"` {
+		return errors.New("TUIC relay must require authentication on loopback")
+	}
+	for _, account := range settings.Accounts {
+		if len(account.User) == 0 || len(account.User) > 255 || len(account.Pass) == 0 || len(account.Pass) > 255 {
+			return errors.New("TUIC relay credentials exceed SOCKS5 bounds")
+		}
+	}
+	return nil
+}
+
+type tuicRelayTransaction struct{ states map[int]*tuicRelayUpdate }
+
+func (t *tuicRelayTransaction) finish() {
+	for _, state := range t.states {
+		if state.update != nil {
+			finishTuicRelayUpdate(state.update, state.next)
+		}
+	}
+}
+
+func (t *tuicRelayTransaction) rollback(api *xray.XrayAPI, changes []xray.InboundReplacement) error {
+	reverse := make([]xray.InboundReplacement, 0, len(changes))
+	for i := len(changes) - 1; i >= 0; i-- {
+		reverse = append(reverse, xray.InboundReplacement{Previous: changes[i].Next, Next: changes[i].Previous})
+	}
+	err := replaceTuicRelaySet(api, reverse)
+	for _, state := range t.states {
+		state.next = state.previous
+		if err != nil {
+			state.next = nil
+		}
+	}
+	return err
+}
+
+func applyTuicRelayGroup(api *xray.XrayAPI, changes []xray.InboundReplacement) error {
+	transaction, err := stageTuicRelayGroup(api, changes)
+	if transaction != nil {
+		transaction.finish()
+	}
+	return err
+}
+
+func stageTuicRelayGroup(api *xray.XrayAPI, changes []xray.InboundReplacement) (*tuicRelayTransaction, error) {
+	for _, change := range changes {
+		if change.Next != nil {
+			if err := validateTuicRelay(change.Next); err != nil {
+				return nil, fmt.Errorf("TUIC relay %s update: %w", change.Next.Tag, err)
+			}
+		}
+	}
 	states := make(map[int]*tuicRelayUpdate)
 	for _, change := range changes {
 		for _, cfg := range []*xray.InboundConfig{change.Previous, change.Next} {
@@ -119,6 +242,8 @@ func applyTuicRelayReplacements(api *xray.XrayAPI, changes []xray.InboundReplace
 			}
 			states[old.Port].next = nil
 		}
+	}
+	for _, change := range changes {
 		if next := change.Next; next != nil {
 			states[next.Port].next = next
 		}
@@ -142,68 +267,49 @@ func applyTuicRelayReplacements(api *xray.XrayAPI, changes []xray.InboundReplace
 					state.update.Cancel()
 				}
 			}
-			return fmt.Errorf("pause TUIC relay: %w", err)
+			return nil, fmt.Errorf("pause TUIC relay: %w", err)
 		}
 		states[port].update = update
 	}
-	for i, change := range changes {
-		if err := replaceTuicRelay(api, change.Previous, change.Next); err != nil {
-			var rollbackErr error
-			unavailable := make(map[int]bool)
-			for j := i; j >= 0; j-- {
-				old := changes[j]
-				if restoreErr := replaceTuicRelay(api, old.Next, old.Previous); restoreErr != nil {
-					rollbackErr = errors.Join(rollbackErr, restoreErr)
-					for _, cfg := range []*xray.InboundConfig{old.Previous, old.Next} {
-						if cfg != nil {
-							unavailable[cfg.Port] = true
-						}
-					}
-				}
-			}
-			for port, state := range states {
-				if state.update == nil {
-					continue
-				}
-				restored := state.previous
-				if unavailable[port] {
-					restored = nil
-				}
-				finishTuicRelayUpdate(state.update, restored)
-			}
-			return errors.Join(fmt.Errorf("TUIC relay update: %w", err), rollbackErr)
-		}
+	transaction := &tuicRelayTransaction{states: states}
+	if err := replaceTuicRelaySet(api, changes); err != nil {
+		rollbackErr := transaction.rollback(api, changes)
+		return transaction, errors.Join(fmt.Errorf("TUIC relay update: %w", err), rollbackErr)
 	}
-	for _, state := range states {
-		if state.update != nil {
-			finishTuicRelayUpdate(state.update, state.next)
+	return transaction, nil
+}
+
+func replaceTuicRelaySet(api *xray.XrayAPI, changes []xray.InboundReplacement) error {
+	removed := make(map[string]bool)
+	for _, change := range changes {
+		inbound := change.Previous
+		if inbound == nil {
+			inbound = change.Next
+		}
+		if inbound == nil || removed[inbound.Tag] {
+			continue
+		}
+		if err := api.DelInbound(inbound.Tag); err != nil && !xray.IsMissingHandlerErr(err) {
+			return err
+		}
+		removed[inbound.Tag] = true
+	}
+	for _, change := range changes {
+		if change.Next == nil {
+			continue
+		}
+		raw, err := json.Marshal(change.Next)
+		if err != nil {
+			return err
+		}
+		if err := api.AddInbound(raw); err != nil {
+			return err
+		}
+		if err := verifyTuicRelay(change.Previous, change.Next); err != nil {
+			return err
 		}
 	}
 	return nil
-}
-
-func replaceTuicRelay(api *xray.XrayAPI, previous, next *xray.InboundConfig) error {
-	removed := previous
-	if removed == nil {
-		removed = next
-	}
-	if removed == nil {
-		return nil
-	}
-	if err := api.DelInbound(removed.Tag); err != nil && !xray.IsMissingHandlerErr(err) {
-		return err
-	}
-	if next == nil {
-		return nil
-	}
-	raw, err := json.Marshal(next)
-	if err != nil {
-		return err
-	}
-	if err := api.AddInbound(raw); err != nil {
-		return err
-	}
-	return verifyTuicRelay(previous, next)
 }
 
 func verifyTuicRelay(previous, next *xray.InboundConfig) error {
