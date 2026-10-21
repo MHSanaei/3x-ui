@@ -146,12 +146,15 @@ apply. Review node sync status if that host cannot meet the requirements.
 
 Kernel interfaces remain up while the panel process restarts. Traffic
 accounting adopts their counters after the first successful stats snapshot, so
-traffic between restart and that snapshot may not be included. Configs created
-by pre-release kernel builds have no ownership marker and are never removed
-automatically. Before upgrading, disable Kernel mode and apply any inbound you
-will not keep on the kernel backend. Before rolling back to a panel build
-without kernel support, switch the inbound to embedded mode and apply it so
-the kernel interface is removed.
+traffic between restart and that snapshot may not be included. Configs created by
+pre-release kernel builds have no ownership marker.
+The panel refuses to overwrite or remove unmarked, non-regular, or symlink
+configs, and refuses to adopt a live awgN interface without a valid marked
+config whose key matches the interface. Back up legacy configs, disable their
+interfaces with the old panel, and move those files out of the managed config
+directory before enabling kernel mode in this build. Before rolling back to a
+panel build without kernel support, switch the inbound to embedded mode and
+apply it so the kernel interface is removed.
 
 ## What the configuration looks like
 

@@ -10,13 +10,38 @@ import (
 	"testing"
 
 	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
+
+const (
+	managerTestPrivateKey        = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+	managerTestForeignPrivateKey = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+)
+
+func managerTestPublicKey(t *testing.T) string {
+	t.Helper()
+	publicKey, err := wgutil.PublicKeyFromPrivate(managerTestPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return publicKey
+}
+
+func managerTestForeignPublicKey(t *testing.T) string {
+	t.Helper()
+	publicKey, err := wgutil.PublicKeyFromPrivate(managerTestForeignPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return publicKey
+}
 
 func ownedTestConfig(t *testing.T, id int) string {
 	t.Helper()
 	inst := testInstance()
 	inst.Id = id
 	inst.InterfaceName = "awg" + strconv.Itoa(id)
+	inst.PrivateKey = managerTestPrivateKey
 	conf, err := Render(inst, "eth0", false)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +66,7 @@ func TestFreshManagerRemovesRenderedConfigWithLongPeerComment(t *testing.T) {
 	inst := testInstance()
 	inst.Id = 49
 	inst.InterfaceName = "awg49"
+	inst.PrivateKey = managerTestPrivateKey
 	inst.Peers = inst.Peers[:1]
 	inst.Peers[0].Email = strings.Repeat("a", 70*1024)
 	config, err := Render(inst, "eth0", false)
@@ -55,6 +81,9 @@ func TestFreshManagerRemovesRenderedConfigWithLongPeerComment(t *testing.T) {
 	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
 		linkExists: func(name string) bool { return name == "awg49" && linkUp },
 		run: func(name string, args ...string) (string, error) {
+			if name == "awg" && reflect.DeepEqual(args, []string{"show", "awg49", "public-key"}) {
+				return managerTestPublicKey(t), nil
+			}
 			switch {
 			case name == "awg-quick" && reflect.DeepEqual(args, []string{"down", "awg49"}):
 				linkUp = false
@@ -98,6 +127,9 @@ func TestFreshManagerReconcileEmptyRemovesOnlyOwnedRegularConfigs(t *testing.T) 
 	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
 		linkExists: func(name string) bool { return name == "awg42" && linkUp },
 		run: func(name string, args ...string) (string, error) {
+			if name == "awg" && reflect.DeepEqual(args, []string{"show", "awg42", "public-key"}) {
+				return managerTestPublicKey(t), nil
+			}
 			switch {
 			case name == "awg-quick" && len(args) == 2 && args[0] == "down" && args[1] == "awg42":
 				linkUp = false
@@ -140,6 +172,7 @@ func TestStopAllThenFreshManagerAdoptsDesiredOwnedInterface(t *testing.T) {
 	inst := testInstance()
 	inst.Id = 45
 	inst.InterfaceName = "awg45"
+	inst.PrivateKey = managerTestPrivateKey
 	if err := writeConf(dir, inst.InterfaceName, ownedTestConfig(t, inst.Id)); err != nil {
 		t.Fatal(err)
 	}
@@ -149,6 +182,12 @@ func TestStopAllThenFreshManagerAdoptsDesiredOwnedInterface(t *testing.T) {
 			linkExists:           func(string) bool { return linkUp },
 			liveInterfaceMatches: func(string, amneziawg.Instance) bool { return true },
 			syncPeers:            func(string) error { return nil },
+			run: func(name string, args ...string) (string, error) {
+				if name == "awg" && reflect.DeepEqual(args, []string{"show", "awg45", "public-key"}) {
+					return managerTestPublicKey(t), nil
+				}
+				return "", errors.New("unexpected command")
+			},
 		}}
 	}
 	first := newManager()
@@ -173,6 +212,9 @@ func TestRemoveRecoversOwnedConfigAfterDownAndNATCleanupFailure(t *testing.T) {
 		return &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
 			linkExists: func(name string) bool { return name == "awg46" && linkUp },
 			run: func(name string, args ...string) (string, error) {
+				if name == "awg" && reflect.DeepEqual(args, []string{"show", "awg46", "public-key"}) {
+					return managerTestPublicKey(t), nil
+				}
 				if name == "awg-quick" && args[0] == "down" {
 					linkUp = false
 					return "post-down hook failed", errors.New("down failed")
@@ -232,6 +274,9 @@ func TestFreshManagerReportsRecoveredInterfaceAfterCleanupFailure(t *testing.T) 
 	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
 		linkExists: func(name string) bool { return name == "awg48" && linkUp },
 		run: func(name string, args ...string) (string, error) {
+			if name == "awg" && reflect.DeepEqual(args, []string{"show", "awg48", "public-key"}) {
+				return managerTestPublicKey(t), nil
+			}
 			switch {
 			case name == "awg-quick" && reflect.DeepEqual(args, []string{"down", "awg48"}):
 				downAttempts++

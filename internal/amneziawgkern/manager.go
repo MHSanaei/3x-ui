@@ -96,6 +96,20 @@ func (m *Manager) ensureLocked(d Desired) error {
 	inst := d.Instance
 	name := interfaceName(inst)
 
+	ownedConfig, configFound, err := readOwnedConfig(m.confDir, inst.Id)
+	if err != nil {
+		return err
+	}
+	linkUp := m.linkExists(name)
+	if linkUp {
+		if !configFound {
+			return fmt.Errorf("amneziawgkern: refusing occupied interface %s without an owned config", name)
+		}
+		if err := m.verifyLiveInterface(name, ownedConfig); err != nil {
+			return err
+		}
+	}
+
 	conf, err := Render(inst, d.EgressInterface, d.RouteThroughXray)
 	if err != nil {
 		return err
@@ -103,7 +117,7 @@ func (m *Manager) ensureLocked(d Desired) error {
 	fp := structuralFingerprint(conf)
 
 	cur, exists := m.ifaces[inst.Id]
-	if exists && cur.conf == conf && m.linkExists(name) {
+	if exists && cur.conf == conf && linkUp {
 		return nil
 	}
 
@@ -112,7 +126,10 @@ func (m *Manager) ensureLocked(d Desired) error {
 	}
 
 	// Adopt an interface that outlived the panel.
-	if !exists && m.liveInterfaceMatches(name, inst) {
+	if !exists && linkUp && m.liveInterfaceMatches(name, inst) {
+		if err := m.verifyLiveInterface(name, ownedConfig); err != nil {
+			return err
+		}
 		if err := m.syncPeers(name); err == nil {
 			m.ifaces[inst.Id] = m.newManaged(name, conf, fp, true)
 			logger.Info("amneziawgkern: adopted running interface ", name, " for inbound ", inst.Id)
@@ -123,7 +140,10 @@ func (m *Manager) ensureLocked(d Desired) error {
 	}
 
 	// Reconfigure in place only when we know the interface is genuinely ours and structurally unchanged.
-	if exists && cur.structFP == fp && m.linkExists(name) {
+	if exists && cur.structFP == fp && linkUp {
+		if err := m.verifyLiveInterface(name, ownedConfig); err != nil {
+			return err
+		}
 		if err := m.syncPeers(name); err != nil {
 			return err
 		}
@@ -135,10 +155,21 @@ func (m *Manager) ensureLocked(d Desired) error {
 	}
 
 	if m.linkExists(name) {
+		if !configFound {
+			return fmt.Errorf("amneziawgkern: refusing occupied interface %s without an owned config", name)
+		}
+		if err := m.verifyLiveInterface(name, ownedConfig); err != nil {
+			return err
+		}
 		if out, err := m.run("awg-quick", "down", name); err != nil {
 			// A stale link with no matching config makes awg-quick down fail;
 			// drop the netdev directly so `up` below starts from nothing.
 			logger.Warning("amneziawgkern: awg-quick down ", name, ": ", err, " ", out)
+			if m.linkExists(name) {
+				if verifyErr := m.verifyLiveInterface(name, ownedConfig); verifyErr != nil {
+					return verifyErr
+				}
+			}
 			if out, err := m.run("ip", "link", "del", name); err != nil {
 				return fmt.Errorf("amneziawgkern: removing stale link %s: %w (%s)", name, err, out)
 			}
@@ -187,6 +218,21 @@ func (m *Manager) run(name string, args ...string) (string, error) {
 		return m.ops.run(name, args...)
 	}
 	return run(name, args...)
+}
+
+func (m *Manager) verifyLiveInterface(name, config string) error {
+	want, err := configInterfacePublicKey(config)
+	if err != nil {
+		return fmt.Errorf("amneziawgkern: refusing to manage %s: %w", name, err)
+	}
+	got, err := m.run("awg", "show", name, "public-key")
+	if err != nil {
+		return fmt.Errorf("amneziawgkern: refusing to manage %s: cannot verify live AmneziaWG interface: %w", name, err)
+	}
+	if strings.TrimSpace(got) != want {
+		return fmt.Errorf("amneziawgkern: refusing to manage %s: live interface key does not match its owned config", name)
+	}
+	return nil
 }
 
 // syncPeers applies the on-disk config's peer list to the live interface.
@@ -422,6 +468,9 @@ func (m *Manager) teardown(id int, name string) error {
 		return nil
 	}
 	if linkUp {
+		if err := m.verifyLiveInterface(name, config); err != nil {
+			return err
+		}
 		out, downErr := m.run("awg-quick", "down", name)
 		if m.linkExists(name) {
 			if downErr != nil {

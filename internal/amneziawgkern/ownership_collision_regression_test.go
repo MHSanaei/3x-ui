@@ -110,7 +110,7 @@ func TestEnsureRefusesForeignInterfaceBeforeConfigOrRuntimeMutation(t *testing.T
 				},
 				run: func(name string, args ...string) (string, error) {
 					if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == ownedInterfaceName(inst.Id) && args[2] == "public-key" {
-						return "foreign-interface-public-key", nil
+						return managerTestForeignPublicKey(t), nil
 					}
 					mutatingCommands = append(mutatingCommands, append([]string{name}, args...))
 					return "", errors.New("unexpected command")
@@ -172,20 +172,24 @@ func TestEnsureDoesNotOverwriteForeignConfigWithoutLiveLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writes := 0
+	writes, commands := 0, 0
 	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
 		linkExists: func(string) bool { return false },
 		writeConf: func(dir, name, conf string) error {
 			writes++
 			return writeConf(dir, name, conf)
 		},
+		run: func(string, ...string) (string, error) {
+			commands++
+			return "", errors.New("runtime mutation must be blocked")
+		},
 	}}
 	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err == nil || !strings.Contains(err.Error(), "refusing") {
 		t.Fatalf("Ensure error = %v, want refusal to replace the foreign config", err)
 	}
 	after, err := os.ReadFile(path)
-	if err != nil || string(after) != string(before) || writes != 0 {
-		t.Fatalf("foreign config changed: read error=%v writes=%d", err, writes)
+	if err != nil || string(after) != string(before) || writes != 0 || commands != 0 {
+		t.Fatalf("foreign config changed or runtime started: read error=%v writes=%d commands=%d", err, writes, commands)
 	}
 }
 
@@ -277,7 +281,7 @@ func TestRemoveRefusesOwnedConfigWithForeignLiveInterfaceKey(t *testing.T) {
 		linkExists: func(string) bool { return linkUp },
 		run: func(name string, args ...string) (string, error) {
 			if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
-				return "foreign-interface-public-key", nil
+				return managerTestForeignPublicKey(t), nil
 			}
 			mutations = append(mutations, append([]string{name}, args...))
 			linkUp = false

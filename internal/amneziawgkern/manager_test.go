@@ -40,22 +40,33 @@ func TestStructuralFingerprintIgnoresPeers(t *testing.T) {
 
 func TestEnsureAdoptionPreservesTrafficBaselineUntilDump(t *testing.T) {
 	commands := make([][]string, 0, 2)
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.InterfaceName = ownedInterfaceName(inst.Id)
+	inst.PrivateKey = managerTestPrivateKey
+	conf, err := Render(inst, "eth0", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeConf(dir, inst.InterfaceName, conf); err != nil {
+		t.Fatal(err)
+	}
 	m := &Manager{
 		ifaces:  map[int]*managed{},
-		confDir: t.TempDir(),
+		confDir: dir,
 		ops: managerOps{
 			linkExists:           func(string) bool { return true },
 			liveInterfaceMatches: func(string, amneziawg.Instance) bool { return true },
-			writeConf:            func(string, string, string) error { return nil },
 			syncPeers:            func(string) error { return nil },
 			run: func(name string, args ...string) (string, error) {
+				if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
+					return managerTestPublicKey(t), nil
+				}
 				commands = append(commands, append([]string{name}, args...))
 				return "", nil
 			},
 		},
 	}
-	inst := testInstance()
-	inst.InterfaceName = "awg-traffic-lifecycle-test"
 	collector := NewCollector()
 	if err := m.Ensure(Desired{Instance: inst}); err != nil {
 		t.Fatalf("Ensure adopted interface: %v", err)
@@ -277,6 +288,7 @@ func TestRemoveRetainsManagedInterfaceAfterTeardownFailure(t *testing.T) {
 	dir := t.TempDir()
 	inst := testInstance()
 	inst.Id, inst.InterfaceName = 7, "awg7"
+	inst.PrivateKey = managerTestPrivateKey
 	conf, err := Render(inst, "", true)
 	if err != nil {
 		t.Fatal(err)
@@ -291,6 +303,9 @@ func TestRemoveRetainsManagedInterfaceAfterTeardownFailure(t *testing.T) {
 		ops: managerOps{
 			linkExists: func(string) bool { return linkUp },
 			run: func(name string, args ...string) (string, error) {
+				if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
+					return managerTestPublicKey(t), nil
+				}
 				calls++
 				if calls == 1 {
 					return "temporary failure", os.ErrProcessDone
@@ -332,6 +347,7 @@ func TestReconcileRetriesRemovedInterfaceAfterTeardownFailure(t *testing.T) {
 	dir := t.TempDir()
 	inst := testInstance()
 	inst.Id, inst.InterfaceName = 8, "awg8"
+	inst.PrivateKey = managerTestPrivateKey
 	conf, err := Render(inst, "", true)
 	if err != nil {
 		t.Fatal(err)
@@ -346,6 +362,9 @@ func TestReconcileRetriesRemovedInterfaceAfterTeardownFailure(t *testing.T) {
 		ops: managerOps{
 			linkExists: func(string) bool { return linkUp },
 			run: func(name string, args ...string) (string, error) {
+				if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
+					return managerTestPublicKey(t), nil
+				}
 				calls++
 				if calls == 1 {
 					return "temporary failure", os.ErrProcessDone

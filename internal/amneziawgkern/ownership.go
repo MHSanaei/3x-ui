@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
 )
 
 func ownershipMarker(name string) string {
@@ -78,6 +80,24 @@ func readOwnedConfig(dir string, id int) (string, bool, error) {
 		return "", true, fmt.Errorf("amneziawgkern: refusing untrusted config %s", path)
 	}
 	return string(data), true, nil
+}
+
+func configInterfacePublicKey(config string) (string, error) {
+	var privateKey string
+	for _, line := range strings.Split(config, "\n") {
+		if !strings.HasPrefix(line, "PrivateKey = ") {
+			continue
+		}
+		if privateKey != "" {
+			return "", fmt.Errorf("owned config has multiple private keys")
+		}
+		privateKey = strings.TrimPrefix(line, "PrivateKey = ")
+	}
+	publicKey, err := wgutil.PublicKeyFromPrivate(privateKey)
+	if err != nil {
+		return "", fmt.Errorf("owned config has an invalid private key: %w", err)
+	}
+	return publicKey, nil
 }
 
 func validOwnedConfig(config, name string) bool {
