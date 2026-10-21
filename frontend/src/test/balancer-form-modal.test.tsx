@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent } from '@testing-library/react';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { act, cleanup, fireEvent } from '@testing-library/react';
 
 import BalancerFormModal from '@/pages/xray/balancers/BalancerFormModal';
 import type { BalancerFormValue } from '@/pages/xray/balancers/BalancerFormModal';
@@ -38,6 +38,20 @@ function primaryButton(): HTMLElement {
   if (!btn) throw new Error('Primary button not found');
   return btn as HTMLElement;
 }
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+});
+
+afterEach(async () => {
+  // Settle deferred field validation before jsdom releases window.
+  await act(async () => {
+    await vi.runOnlyPendingTimersAsync();
+  });
+  cleanup();
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
 
 describe('BalancerFormModal', () => {
   it('shows no validation errors when freshly opened in add mode', () => {
