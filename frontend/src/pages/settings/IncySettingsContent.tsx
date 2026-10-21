@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Input, Select, Switch, Tabs } from 'antd';
 import {
@@ -348,7 +349,7 @@ export default function IncySettingsContent({
                       { value: 'tlshello', label: 'tlshello' },
                       { value: '1-3', label: '1-3' },
                       { value: '1', label: '1' },
-                      { value: 'all', label: 'all' },
+                      { value: 'all', label: i18next.t('all') },
                     ]}
                   />
                 </SettingListItem>
@@ -474,7 +475,7 @@ export default function IncySettingsContent({
                 >
                   <Input.TextArea
                     value={allSetting.subIncyRoutingRules}
-                    placeholder="incy://routing/onadd/... or https://.../DEFAULT.JSON"
+                    placeholder={i18next.t('ui.incyRoutingOnaddOrHttpsDEFAULTJSON')}
                     onChange={(e) => updateSetting({ subIncyRoutingRules: e.target.value })}
                   />
                 </SettingListItem>

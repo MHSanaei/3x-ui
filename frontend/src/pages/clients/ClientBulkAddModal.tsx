@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -276,11 +277,11 @@ export default function ClientBulkAddModal({
             <FormField name="emailMethod" label={t('pages.clients.method')}>
               <Select
                 options={[
-                  { value: 0, label: 'Random' },
-                  { value: 1, label: 'Random + Prefix' },
-                  { value: 2, label: 'Random + Prefix + Num' },
-                  { value: 3, label: 'Random + Prefix + Num + Postfix' },
-                  { value: 4, label: 'Prefix + Num + Postfix' },
+                  { value: 0, label: i18next.t('pages.settings.subBalancers.strategyRandom') },
+                  { value: 1, label: i18next.t('ui.randomPrefix') },
+                  { value: 2, label: i18next.t('ui.randomPrefixNum') },
+                  { value: 3, label: i18next.t('ui.randomPrefixNumPostfix') },
+                  { value: 4, label: i18next.t('ui.prefixNumPostfix') },
                 ]}
               />
             </FormField>

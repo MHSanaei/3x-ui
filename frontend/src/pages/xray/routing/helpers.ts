@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import type { RuleRow } from './types';
 
 export function arrJoin(v: unknown): string | undefined {
@@ -90,14 +91,14 @@ export function isApiRule(rule: { outboundTag?: string; inboundTag?: string | st
 
 export function ruleCriteriaChips(rule: RuleRow) {
   const chips: { label: string; value?: string }[] = [];
-  if (rule.domain) chips.push({ label: 'Domain', value: rule.domain });
+  if (rule.domain) chips.push({ label: i18next.t('ui.domain'), value: rule.domain });
   if (rule.ip) chips.push({ label: 'IP', value: rule.ip });
   if (rule.port) chips.push({ label: 'Port', value: rule.port });
-  if (rule.sourceIP) chips.push({ label: 'Src IP', value: rule.sourceIP });
-  if (rule.sourcePort) chips.push({ label: 'Src Port', value: rule.sourcePort });
+  if (rule.sourceIP) chips.push({ label: i18next.t('ui.srcIP'), value: rule.sourceIP });
+  if (rule.sourcePort) chips.push({ label: i18next.t('ui.srcPort'), value: rule.sourcePort });
   if (rule.network) chips.push({ label: 'L4', value: rule.network.toUpperCase() });
-  if (rule.protocol) chips.push({ label: 'Protocol', value: rule.protocol });
-  if (rule.user) chips.push({ label: 'User', value: rule.user });
+  if (rule.protocol) chips.push({ label: i18next.t('protocol'), value: rule.protocol });
+  if (rule.user) chips.push({ label: i18next.t('pages.xray.ruleForm.user'), value: rule.user });
   if (rule.vlessRoute) chips.push({ label: 'VLESS', value: rule.vlessRoute });
   return chips;
 }

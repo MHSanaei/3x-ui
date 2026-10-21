@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Input, Select } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -13,7 +14,7 @@ export default function BlackholeFields() {
       <FormField label={t('pages.xray.outboundForm.responseType')} name={['settings', 'type']}>
         <Select
           options={[
-            { value: '', label: '(empty)' },
+            { value: '', label: i18next.t('ui.empty') },
             { value: 'none', label: 'none' },
             { value: 'http', label: 'http' },
             { value: 'custom', label: 'custom' },

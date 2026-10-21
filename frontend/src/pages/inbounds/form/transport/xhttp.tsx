@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { AutoComplete, Input, InputNumber, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -131,7 +132,7 @@ export default function XhttpForm() {
         name={['streamSettings', 'xhttpSettings', 'serverMaxHeaderBytes']}
         label={t('pages.inbounds.form.serverMaxHeaderBytes')}
       >
-        <InputNumber min={0} placeholder="0 (default)" />
+        <InputNumber min={0} placeholder={i18next.t('ui.0Default')} />
       </FormField>
       <FormField
         name={['streamSettings', 'xhttpSettings', 'xPaddingBytes']}
@@ -151,12 +152,12 @@ export default function XhttpForm() {
       >
         <Select
           options={[
-            { value: '', label: 'Default (POST)' },
+            { value: '', label: i18next.t('ui.defaultPOST') },
             { value: 'POST', label: 'POST' },
             { value: 'PUT', label: 'PUT' },
             {
               value: 'GET',
-              label: 'GET (packet-up only)',
+              label: i18next.t('ui.gETPacketUpOnly'),
               disabled: xhttpMode !== 'packet-up',
             },
           ]}
@@ -189,7 +190,7 @@ export default function XhttpForm() {
           >
             <Select
               options={[
-                { value: '', label: 'Default (queryInHeader)' },
+                { value: '', label: i18next.t('ui.defaultQueryInHeader') },
                 { value: 'queryInHeader', label: 'queryInHeader' },
                 { value: 'header', label: 'header' },
                 { value: 'cookie', label: 'cookie' },
@@ -203,7 +204,7 @@ export default function XhttpForm() {
           >
             <Select
               options={[
-                { value: '', label: 'Default (repeat-x)' },
+                { value: '', label: i18next.t('ui.defaultRepeatX') },
                 { value: 'repeat-x', label: 'repeat-x' },
                 { value: 'tokenish', label: 'tokenish' },
               ]}
@@ -217,7 +218,7 @@ export default function XhttpForm() {
       >
         <Select
           options={[
-            { value: '', label: 'Default (path)' },
+            { value: '', label: i18next.t('ui.defaultPath') },
             { value: 'path', label: 'path' },
             { value: 'header', label: 'header' },
             { value: 'cookie', label: 'cookie' },
@@ -261,7 +262,7 @@ export default function XhttpForm() {
       >
         <Select
           options={[
-            { value: '', label: 'Default (path)' },
+            { value: '', label: i18next.t('ui.defaultPath') },
             { value: 'path', label: 'path' },
             { value: 'header', label: 'header' },
             { value: 'cookie', label: 'cookie' },
@@ -285,7 +286,7 @@ export default function XhttpForm() {
           >
             <Select
               options={[
-                { value: '', label: 'Default (auto)' },
+                { value: '', label: i18next.t('ui.defaultAuto') },
                 { value: 'auto', label: 'auto' },
                 { value: 'body', label: 'body' },
                 { value: 'header', label: 'header' },

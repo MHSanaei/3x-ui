@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Radio, Select, Space, Switch } from 'antd';
 import {
@@ -126,7 +127,7 @@ function CertRow({
       )}
       <FormField
         name={['streamSettings', 'tlsSettings', 'certificates', index, 'ocspStapling']}
-        label="OCSP Stapling"
+        label={i18next.t('ui.oCSPStapling')}
       >
         <InputNumber min={0} suffix="s" style={{ width: '50%' }} />
       </FormField>
@@ -261,7 +262,7 @@ export default function TlsForm({
       <FormField name={['streamSettings', 'tlsSettings', 'settings', 'fingerprint']} label="uTLS">
         <Select
           options={[
-            { value: '', label: 'None' },
+            { value: '', label: i18next.t('none') },
             ...Object.values(UTLS_FINGERPRINT).map((fp) => ({ value: fp, label: fp })),
           ]}
         />

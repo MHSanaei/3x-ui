@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { AutoComplete, Input, InputNumber, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -114,7 +115,7 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
           >
             <Select
               options={[
-                { value: '', label: 'Default (queryInHeader)' },
+                { value: '', label: i18next.t('ui.defaultQueryInHeader') },
                 { value: 'queryInHeader', label: 'queryInHeader' },
                 { value: 'header', label: 'header' },
                 { value: 'cookie', label: 'cookie' },
@@ -128,7 +129,7 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
           >
             <Select
               options={[
-                { value: '', label: 'Default (repeat-x)' },
+                { value: '', label: i18next.t('ui.defaultRepeatX') },
                 { value: 'repeat-x', label: 'repeat-x' },
                 { value: 'tokenish', label: 'tokenish' },
               ]}
@@ -142,12 +143,16 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
         name={['streamSettings', 'xhttpSettings', 'uplinkHTTPMethod']}
       >
         <Select
-          placeholder="Default (POST)"
+          placeholder={i18next.t('ui.defaultPOST')}
           options={[
-            { value: '', label: 'Default (POST)' },
+            { value: '', label: i18next.t('ui.defaultPOST') },
             { value: 'POST', label: 'POST' },
             { value: 'PUT', label: 'PUT' },
-            { value: 'GET', label: 'GET (packet-up only)', disabled: mode !== 'packet-up' },
+            {
+              value: 'GET',
+              label: i18next.t('ui.gETPacketUpOnly'),
+              disabled: mode !== 'packet-up',
+            },
           ]}
         />
       </FormField>
@@ -162,9 +167,9 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
         name={['streamSettings', 'xhttpSettings', 'sessionIDPlacement']}
       >
         <Select
-          placeholder="Default (path)"
+          placeholder={i18next.t('ui.defaultPath')}
           options={[
-            { value: '', label: 'Default (path)' },
+            { value: '', label: i18next.t('ui.defaultPath') },
             { value: 'path', label: 'path' },
             { value: 'header', label: 'header' },
             { value: 'cookie', label: 'cookie' },
@@ -207,9 +212,9 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
         name={['streamSettings', 'xhttpSettings', 'seqPlacement']}
       >
         <Select
-          placeholder="Default (path)"
+          placeholder={i18next.t('ui.defaultPath')}
           options={[
-            { value: '', label: 'Default (path)' },
+            { value: '', label: i18next.t('ui.defaultPath') },
             { value: 'path', label: 'path' },
             { value: 'header', label: 'header' },
             { value: 'cookie', label: 'cookie' },
@@ -247,7 +252,7 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
           >
             <Select
               options={[
-                { value: '', label: 'Default (auto)' },
+                { value: '', label: i18next.t('ui.defaultAuto') },
                 { value: 'auto', label: 'auto' },
                 { value: 'body', label: 'body' },
                 { value: 'header', label: 'header' },
@@ -267,7 +272,11 @@ export default function XhttpForm({ onXmuxToggle }: XhttpFormProps) {
                 label={t('pages.xray.outboundForm.uplinkChunkSize')}
                 name={['streamSettings', 'xhttpSettings', 'uplinkChunkSize']}
               >
-                <InputNumber min={0} placeholder="0 (unlimited)" style={{ width: '100%' }} />
+                <InputNumber
+                  min={0}
+                  placeholder={i18next.t('ui.0Unlimited')}
+                  style={{ width: '100%' }}
+                />
               </FormField>
             </>
           )}

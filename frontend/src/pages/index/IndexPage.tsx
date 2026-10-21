@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ConfigProvider, Layout, Modal, Result, Spin, message } from 'antd';
@@ -369,7 +370,7 @@ export default function IndexPage() {
                 size={isMobile ? 'small' : 'middle'}
                 icon={<CopyOutlined />}
               >
-                Copy
+                {i18next.t('copy')}
               </Button>,
             ]}
           >

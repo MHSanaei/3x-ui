@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -198,13 +199,13 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
         </Form.Item>
         <Form.Item>
           <Checkbox checked={showDirect} onChange={(e) => setShowDirect(e.target.checked)}>
-            Direct
+            {i18next.t('ui.direct')}
           </Checkbox>
           <Checkbox checked={showBlocked} onChange={(e) => setShowBlocked(e.target.checked)}>
-            Blocked
+            {i18next.t('ui.blocked')}
           </Checkbox>
           <Checkbox checked={showProxy} onChange={(e) => setShowProxy(e.target.checked)}>
-            Proxy
+            {i18next.t('ui.proxy')}
           </Checkbox>
           <Checkbox checked={autoUpdate} onChange={(e) => setAutoUpdate(e.target.checked)}>
             {t('pages.index.autoUpdate')}
@@ -222,7 +223,7 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
 
       <div className={`log-container ${isMobile ? 'log-container-mobile' : ''}`}>
         {orderedLogs.length === 0 ? (
-          <div className="log-empty">No Record...</div>
+          <div className="log-empty">{i18next.t('ui.noRecord')}</div>
         ) : isMobile ? (
           orderedLogs.map((log, idx) => (
             <div key={idx} className="log-card">
@@ -242,19 +243,21 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
               <div className="log-meta">
                 {log.Inbound && (
                   <span className="log-meta-pair">
-                    <span className="log-meta-key">in</span>
+                    <span className="log-meta-key">{t('ui.inbound')}</span>
                     <span className="log-meta-val">{log.Inbound}</span>
                   </span>
                 )}
                 {log.Outbound && (
                   <span className="log-meta-pair">
-                    <span className="log-meta-key">out</span>
+                    <span className="log-meta-key">
+                      {t('pages.inbounds.form.mtgRouteOutbound')}
+                    </span>
                     <span className="log-meta-val">{log.Outbound}</span>
                   </span>
                 )}
                 {log.Email && (
                   <span className="log-meta-pair">
-                    <span className="log-meta-key">email</span>
+                    <span className="log-meta-key">{t('pages.clients.email')}</span>
                     <span className="log-meta-val">{log.Email}</span>
                   </span>
                 )}
@@ -265,12 +268,12 @@ export default function XrayLogModal({ open, onClose }: XrayLogModalProps) {
           <table className="xraylog-table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Inbound</th>
-                <th>Outbound</th>
-                <th>Email</th>
+                <th>{i18next.t('ui.date')}</th>
+                <th>{i18next.t('from')}</th>
+                <th>{t('to')}</th>
+                <th>{i18next.t('ui.inbound')}</th>
+                <th>{i18next.t('pages.inbounds.form.mtgRouteOutbound')}</th>
+                <th>{i18next.t('pages.clients.email')}</th>
               </tr>
             </thead>
             <tbody>

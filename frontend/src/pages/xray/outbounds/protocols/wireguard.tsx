@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Input, InputNumber, Space, Switch } from 'antd';
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
@@ -50,7 +51,7 @@ export default function WireguardFields() {
   return (
     <>
       <FormField label={t('pages.inbounds.address')} name={['settings', 'address']}>
-        <Input placeholder="comma-separated, e.g. 10.0.0.1,fd00::1" />
+        <Input placeholder={i18next.t('ui.commaSeparatedEG10001Fd001')} />
       </FormField>
       <Form.Item label={t('pages.inbounds.privatekey')}>
         <Space.Compact block>
@@ -85,10 +86,10 @@ export default function WireguardFields() {
         <Switch />
       </FormField>
       <FormField label={t('pages.xray.outboundForm.reserved')} name={['settings', 'reserved']}>
-        <Input placeholder="comma-separated bytes, e.g. 1,2,3" />
+        <Input placeholder={i18next.t('ui.commaSeparatedBytesEG123')} />
       </FormField>
       <FormField label={t('pages.xray.outboundForm.remoteDNS')} name={['settings', 'remoteDNS']}>
-        <Input placeholder="comma-separated, e.g. 1.1.1.1,2606:4700:4700::1111" />
+        <Input placeholder={i18next.t('ui.commaSeparatedEG11112606470047001111')} />
       </FormField>
       <Form.Item label={t('pages.inbounds.form.peers')}>
         <Button

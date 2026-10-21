@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Input, InputNumber, Select, Switch, Tabs } from 'antd';
@@ -45,29 +46,109 @@ const DEFAULT_BLOCK_RULES: SubJsonRule[] = [
 const BLOCK_IP_RULE: SubJsonRule = { type: 'field', outboundTag: 'block', ip: [] };
 
 const directIPsOptions = [
-  { label: 'Private IP', value: 'geoip:private' },
-  { label: '🇮🇷 Iran', value: 'geoip:ir' },
-  { label: '🇨🇳 China', value: 'geoip:cn' },
-  { label: '🇷🇺 Russia', value: 'geoip:ru' },
-  { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
-  { label: '🇪🇸 Spain', value: 'geoip:es' },
-  { label: '🇮🇩 Indonesia', value: 'geoip:id' },
-  { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
-  { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
-  { label: '🇧🇷 Brazil', value: 'geoip:br' },
+  {
+    get label() {
+      return i18next.t('ui.privateIP');
+    },
+    value: 'geoip:private',
+  },
+  {
+    get label() {
+      return i18next.t('ui.iran');
+    },
+    value: 'geoip:ir',
+  },
+  {
+    get label() {
+      return i18next.t('ui.china');
+    },
+    value: 'geoip:cn',
+  },
+  {
+    get label() {
+      return i18next.t('ui.russia');
+    },
+    value: 'geoip:ru',
+  },
+  {
+    get label() {
+      return i18next.t('ui.vietnam');
+    },
+    value: 'geoip:vn',
+  },
+  {
+    get label() {
+      return i18next.t('ui.spain');
+    },
+    value: 'geoip:es',
+  },
+  {
+    get label() {
+      return i18next.t('ui.indonesia');
+    },
+    value: 'geoip:id',
+  },
+  {
+    get label() {
+      return i18next.t('ui.ukraine');
+    },
+    value: 'geoip:ua',
+  },
+  {
+    get label() {
+      return i18next.t('ui.tuRkiye');
+    },
+    value: 'geoip:tr',
+  },
+  {
+    get label() {
+      return i18next.t('ui.brazil');
+    },
+    value: 'geoip:br',
+  },
 ];
 const directDomainsOptions = [
-  { label: 'Private DNS', value: 'geosite:private' },
-  { label: '🇮🇷 Iran', value: 'geosite:category-ir' },
-  { label: '🇨🇳 China', value: 'geosite:cn' },
-  { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
+  {
+    get label() {
+      return i18next.t('ui.privateDNS');
+    },
+    value: 'geosite:private',
+  },
+  {
+    get label() {
+      return i18next.t('ui.iran');
+    },
+    value: 'geosite:category-ir',
+  },
+  {
+    get label() {
+      return i18next.t('ui.china');
+    },
+    value: 'geosite:cn',
+  },
+  {
+    get label() {
+      return i18next.t('ui.russia');
+    },
+    value: 'geosite:category-ru',
+  },
   { label: 'Apple', value: 'geosite:apple' },
   { label: 'Meta', value: 'geosite:meta' },
   { label: 'Google', value: 'geosite:google' },
 ];
 const blockDomainsOptions = [
-  { label: 'Ads All', value: 'geosite:category-ads-all' },
-  { label: 'Adult +18', value: 'geosite:category-porn' },
+  {
+    get label() {
+      return i18next.t('ui.adsAll');
+    },
+    value: 'geosite:category-ads-all',
+  },
+  {
+    get label() {
+      return i18next.t('ui.adult18');
+    },
+    value: 'geosite:category-porn',
+  },
 ];
 
 function readJson<T>(raw: string, fallback: T): T {
@@ -236,7 +317,7 @@ export default function SubscriptionFormatsTab({
                   >
                     <Input.TextArea
                       value={allSetting.subJsonRoutingRules}
-                      placeholder="happ://routing/onadd/... , routing JSON, or https://.../DEFAULT.JSON"
+                      placeholder={i18next.t('ui.happRoutingOnaddRoutingJSONOrHttpsDEFAULTJSON')}
                       onChange={(e) => updateSetting({ subJsonRoutingRules: e.target.value })}
                       autoSize={{ minRows: 2, maxRows: 6 }}
                     />
@@ -411,7 +492,14 @@ export default function SubscriptionFormatsTab({
               </SettingListItem>
               {directEnabled && (
                 <div className="format-settings">
-                  <SettingListItem paddings="small" title={<>{t('pages.settings.direct')} IPs</>}>
+                  <SettingListItem
+                    paddings="small"
+                    title={
+                      <>
+                        {t('pages.settings.direct')} {i18next.t('ui.iPs')}
+                      </>
+                    }
+                  >
                     <Select
                       mode="tags"
                       value={ruleValues('direct', 'ip')}

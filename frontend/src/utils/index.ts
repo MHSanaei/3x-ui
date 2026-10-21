@@ -714,12 +714,16 @@ export class SizeFormatter {
 
   static sizeFormat(size: number | null | undefined): string {
     if (size == null || !Number.isFinite(size) || size <= 0) return '0 B';
-    if (size < SizeFormatter.ONE_KB) return size.toFixed(0) + ' B';
-    if (size < SizeFormatter.ONE_MB) return (size / SizeFormatter.ONE_KB).toFixed(2) + ' KB';
-    if (size < SizeFormatter.ONE_GB) return (size / SizeFormatter.ONE_MB).toFixed(2) + ' MB';
-    if (size < SizeFormatter.ONE_TB) return (size / SizeFormatter.ONE_GB).toFixed(2) + ' GB';
-    if (size < SizeFormatter.ONE_PB) return (size / SizeFormatter.ONE_TB).toFixed(2) + ' TB';
-    return (size / SizeFormatter.ONE_PB).toFixed(2) + ' PB';
+    if (size < SizeFormatter.ONE_KB) return NumberFormatter.displayFixed(size, 0) + ' B';
+    if (size < SizeFormatter.ONE_MB)
+      return NumberFormatter.displayFixed(size / SizeFormatter.ONE_KB, 2) + ' KB';
+    if (size < SizeFormatter.ONE_GB)
+      return NumberFormatter.displayFixed(size / SizeFormatter.ONE_MB, 2) + ' MB';
+    if (size < SizeFormatter.ONE_TB)
+      return NumberFormatter.displayFixed(size / SizeFormatter.ONE_GB, 2) + ' GB';
+    if (size < SizeFormatter.ONE_PB)
+      return NumberFormatter.displayFixed(size / SizeFormatter.ONE_TB, 2) + ' TB';
+    return NumberFormatter.displayFixed(size / SizeFormatter.ONE_PB, 2) + ' PB';
   }
 
   // Same unit ladder as sizeFormat, expressed per-second.
@@ -730,11 +734,16 @@ export class SizeFormatter {
 
 export class CPUFormatter {
   static cpuSpeedFormat(speed: number): string {
-    return speed > 1000 ? (speed / 1000).toFixed(2) + ' GHz' : speed.toFixed(2) + ' MHz';
+    return speed > 1000
+      ? NumberFormatter.displayFixed(speed / 1000, 2) + ' GHz'
+      : NumberFormatter.displayFixed(speed, 2) + ' MHz';
   }
 
   static cpuCoreFormat(cores: number): string {
-    return cores === 1 ? '1 Core' : cores + ' Cores';
+    return i18next.t('ui.cpuCoreCount', {
+      count: cores,
+      defaultValue: cores === 1 ? '1 Core' : cores + ' Cores',
+    });
   }
 }
 
@@ -758,6 +767,11 @@ export class TimeFormatter {
 }
 
 export class NumberFormatter {
+  static displayFixed(num: number, digits: number): string {
+    const text = num.toFixed(digits);
+    return i18next.resolvedLanguage === 'sk-SK' ? text.replace('.', ',') : text;
+  }
+
   static addZero(num: number): string | number {
     return num < 10 ? '0' + num : num;
   }
@@ -901,6 +915,7 @@ export class LanguageManager {
     { name: 'Український', value: 'uk-UA', icon: '🇺🇦' },
     { name: 'Türkçe', value: 'tr-TR', icon: '🇹🇷' },
     { name: 'Português', value: 'pt-BR', icon: '🇧🇷' },
+    { name: 'Slovenčina', value: 'sk-SK', icon: '🇸🇰' },
   ];
 
   static getLanguage(scope: LanguageScope = 'panel'): string {
@@ -931,6 +946,7 @@ export class LanguageManager {
         ['uk', LanguageManager.supportedLanguages[10].value],
         ['tr', LanguageManager.supportedLanguages[11].value],
         ['pt', LanguageManager.supportedLanguages[12].value],
+        ['sk', 'sk-SK'],
       ];
 
       simularLangs.forEach((pair) => {

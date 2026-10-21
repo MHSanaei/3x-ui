@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Collapse, Modal, Radio, Spin, Tag, Tooltip } from 'antd';
@@ -136,7 +137,7 @@ export default function VersionModal({ open, status, onClose, onBusy }: VersionM
             },
             {
               key: '2',
-              label: 'Geofiles',
+              label: i18next.t('ui.geofiles'),
               children: (
                 <>
                   <div className="version-list">

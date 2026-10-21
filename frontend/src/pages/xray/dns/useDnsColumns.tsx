@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Input, InputNumber, Space } from 'antd';
@@ -114,7 +115,7 @@ export function useFakednsColumns({
         ),
       },
       {
-        title: 'IP pool',
+        title: i18next.t('ui.iPPool'),
         dataIndex: 'ipPool',
         key: 'ipPool',
         align: 'left',
@@ -128,7 +129,7 @@ export function useFakednsColumns({
         ),
       },
       {
-        title: 'Pool size',
+        title: i18next.t('ui.poolSize'),
         dataIndex: 'poolSize',
         key: 'poolSize',
         align: 'right',

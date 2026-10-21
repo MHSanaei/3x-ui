@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 export const ROUTING_DOMAIN_STRATEGIES = ['AsIs', 'IPIfNonMatch', 'IPOnDemand'];
 export const LOG_LEVELS = ['none', 'debug', 'info', 'warning', 'error'];
 export const ACCESS_LOG = ['none', './access.log'];
@@ -6,43 +7,158 @@ export const MASK_ADDRESS = ['quarter', 'half', 'full'];
 export const BITTORRENT_PROTOCOLS = ['bittorrent'];
 
 export const IPS_OPTIONS = [
-  { label: 'Private IPs', value: 'geoip:private' },
-  { label: '🇮🇷 Iran', value: 'ext:geoip_IR.dat:ir' },
-  { label: '🇨🇳 China', value: 'geoip:cn' },
-  { label: '🇷🇺 Russia', value: 'ext:geoip_RU.dat:ru' },
-  { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
-  { label: '🇪🇸 Spain', value: 'geoip:es' },
-  { label: '🇮🇩 Indonesia', value: 'geoip:id' },
-  { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
-  { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
-  { label: '🇧🇷 Brazil', value: 'geoip:br' },
+  {
+    get label() {
+      return i18next.t('ui.privateIPs');
+    },
+    value: 'geoip:private',
+  },
+  {
+    get label() {
+      return i18next.t('ui.iran');
+    },
+    value: 'ext:geoip_IR.dat:ir',
+  },
+  {
+    get label() {
+      return i18next.t('ui.china');
+    },
+    value: 'geoip:cn',
+  },
+  {
+    get label() {
+      return i18next.t('ui.russia');
+    },
+    value: 'ext:geoip_RU.dat:ru',
+  },
+  {
+    get label() {
+      return i18next.t('ui.vietnam');
+    },
+    value: 'geoip:vn',
+  },
+  {
+    get label() {
+      return i18next.t('ui.spain');
+    },
+    value: 'geoip:es',
+  },
+  {
+    get label() {
+      return i18next.t('ui.indonesia');
+    },
+    value: 'geoip:id',
+  },
+  {
+    get label() {
+      return i18next.t('ui.ukraine');
+    },
+    value: 'geoip:ua',
+  },
+  {
+    get label() {
+      return i18next.t('ui.tuRkiye');
+    },
+    value: 'geoip:tr',
+  },
+  {
+    get label() {
+      return i18next.t('ui.brazil');
+    },
+    value: 'geoip:br',
+  },
 ];
 export const DOMAINS_OPTIONS = [
-  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+  {
+    get label() {
+      return i18next.t('ui.iran');
+    },
+    value: 'ext:geosite_IR.dat:ir',
+  },
   { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
   { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
-  { label: '🇨🇳 China', value: 'geosite:cn' },
+  {
+    get label() {
+      return i18next.t('ui.china');
+    },
+    value: 'geosite:cn',
+  },
   { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
-  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
+  {
+    get label() {
+      return i18next.t('ui.russia');
+    },
+    value: 'ext:geosite_RU.dat:ru-available-only-inside',
+  },
   { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
   { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
   { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
   { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
 ];
 export const BLOCK_DOMAINS_OPTIONS = [
-  { label: 'Ads All', value: 'geosite:category-ads-all' },
-  { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
-  { label: 'Ads RU 🇷🇺', value: 'ext:geosite_RU.dat:category-ads-all' },
-  { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
-  { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
-  { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
-  { label: 'Adult +18', value: 'geosite:category-porn' },
-  { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+  {
+    get label() {
+      return i18next.t('ui.adsAll');
+    },
+    value: 'geosite:category-ads-all',
+  },
+  {
+    get label() {
+      return i18next.t('ui.adsIR');
+    },
+    value: 'ext:geosite_IR.dat:category-ads-all',
+  },
+  {
+    get label() {
+      return i18next.t('ui.adsRU');
+    },
+    value: 'ext:geosite_RU.dat:category-ads-all',
+  },
+  {
+    get label() {
+      return i18next.t('ui.malware');
+    },
+    value: 'ext:geosite_IR.dat:malware',
+  },
+  {
+    get label() {
+      return i18next.t('ui.phishing');
+    },
+    value: 'ext:geosite_IR.dat:phishing',
+  },
+  {
+    get label() {
+      return i18next.t('ui.cryptominers');
+    },
+    value: 'ext:geosite_IR.dat:cryptominers',
+  },
+  {
+    get label() {
+      return i18next.t('ui.adult18');
+    },
+    value: 'geosite:category-porn',
+  },
+  {
+    get label() {
+      return i18next.t('ui.iran');
+    },
+    value: 'ext:geosite_IR.dat:ir',
+  },
   { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
   { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
-  { label: '🇨🇳 China', value: 'geosite:cn' },
+  {
+    get label() {
+      return i18next.t('ui.china');
+    },
+    value: 'geosite:cn',
+  },
   { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
-  { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
+  {
+    get label() {
+      return i18next.t('ui.russia');
+    },
+    value: 'ext:geosite_RU.dat:ru-available-only-inside',
+  },
   { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
   { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
   { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },

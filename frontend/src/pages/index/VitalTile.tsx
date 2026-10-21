@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Card, theme } from 'antd';
 
 import { Sparkline } from '@/components/viz';
+import { NumberFormatter } from '@/utils';
 import { mean, peak } from './useOverviewHistory';
 
 interface VitalTileProps {
@@ -44,7 +45,7 @@ export default function VitalTile({
       </div>
 
       <div className="ov-tile-value">
-        <span className="ov-tile-number">{percent.toFixed(1)}</span>
+        <span className="ov-tile-number">{NumberFormatter.displayFixed(percent, 1)}</span>
         <span className="ov-tile-unit">%</span>
       </div>
 

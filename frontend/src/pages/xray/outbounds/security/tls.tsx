@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Input, Select, Switch } from 'antd';
 
@@ -35,7 +36,7 @@ export default function TlsForm() {
         label={t('pages.xray.outboundForm.pinnedSha256')}
         name={['streamSettings', 'tlsSettings', 'pinnedPeerCertSha256']}
       >
-        <Input placeholder="base64 SHA256" />
+        <Input placeholder={i18next.t('ui.base64SHA256')} />
       </FormField>
       <FormField
         label={t('pages.xray.outboundForm.useSystemCA')}

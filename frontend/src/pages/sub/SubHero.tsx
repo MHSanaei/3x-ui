@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Progress, Tag, theme } from 'antd';
 
-import { IntlUtil } from '@/utils';
+import { IntlUtil, NumberFormatter } from '@/utils';
 import type { CalendarKind } from '@/utils';
 import { usagePercent } from './subPageModel';
 import type { SubStatus } from './subPageModel';
@@ -60,7 +60,8 @@ export default function SubHero({
   const pct = usagePercent(usedByte, totalByte);
   const ringColor =
     !healthy || pct >= 90 ? token.colorError : pct >= 75 ? token.colorWarning : token.colorPrimary;
-  const [amount, unit] = splitSize(hasQuota ? remained : used);
+  const formatTraffic = (value: string) => (lang === 'sk-SK' ? value.replace('.', ',') : value);
+  const [amount, unit] = splitSize(formatTraffic(hasQuota ? remained : used));
   const formatDate = (ms: number) => IntlUtil.formatDate(ms, datepicker, lang);
   const statusTag = STATUS_TAGS[status];
 
@@ -76,9 +77,13 @@ export default function SubHero({
       label: t('subscription.status'),
       value: <Tag color={statusTag.color}>{t(statusTag.label)}</Tag>,
     },
-    { key: 'down', label: t('subscription.downloaded'), value: <bdi>{download}</bdi> },
-    { key: 'up', label: t('subscription.uploaded'), value: <bdi>{upload}</bdi> },
-    { key: 'total', label: t('subscription.totalQuota'), value: <bdi>{total}</bdi> },
+    {
+      key: 'down',
+      label: t('subscription.downloaded'),
+      value: <bdi>{formatTraffic(download)}</bdi>,
+    },
+    { key: 'up', label: t('subscription.uploaded'), value: <bdi>{formatTraffic(upload)}</bdi> },
+    { key: 'total', label: t('subscription.totalQuota'), value: <bdi>{formatTraffic(total)}</bdi> },
     {
       key: 'lastOnline',
       label: t('lastOnline'),
@@ -97,7 +102,9 @@ export default function SubHero({
         strokeColor={ringColor}
         format={() => (
           <span className="sub-ring-center">
-            <span className="sub-ring-value">{hasQuota ? `${pct.toFixed(1)}%` : '∞'}</span>
+            <span className="sub-ring-value">
+              {hasQuota ? `${NumberFormatter.displayFixed(pct, 1)}%` : '∞'}
+            </span>
             <span className="sub-ring-label">
               {hasQuota ? t('usage') : t('subscription.unlimited')}
             </span>
@@ -111,7 +118,9 @@ export default function SubHero({
           {unit && <span className="sub-big-unit">{unit}</span>}
         </bdi>
         <div className="sub-muted">
-          {hasQuota ? t('subscription.ofTotal', { total }) : t('subscription.unlimited')}
+          {hasQuota
+            ? t('subscription.ofTotal', { total: formatTraffic(total) })
+            : t('subscription.unlimited')}
         </div>
         <dl className="sub-stats">
           {stats.map((stat) => (

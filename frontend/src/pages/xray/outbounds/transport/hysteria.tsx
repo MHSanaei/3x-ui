@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Select, Switch } from 'antd';
 import { useFormContext, useWatch } from 'react-hook-form';
@@ -60,10 +61,10 @@ export default function HysteriaForm() {
           <FormField label={t('pages.inbounds.form.type')} name={[...MASQ, 'type']}>
             <Select
               options={[
-                { value: '', label: 'default (404 page)' },
-                { value: 'proxy', label: 'proxy (reverse proxy)' },
-                { value: 'file', label: 'file (serve directory)' },
-                { value: 'string', label: 'string (fixed body)' },
+                { value: '', label: i18next.t('ui.default404Page') },
+                { value: 'proxy', label: i18next.t('ui.proxyReverseProxy') },
+                { value: 'file', label: i18next.t('ui.fileServeDirectory') },
+                { value: 'string', label: i18next.t('ui.stringFixedBody') },
               ]}
             />
           </FormField>

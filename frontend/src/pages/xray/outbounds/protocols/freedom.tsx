@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { AutoComplete, Button, Form, Input, InputNumber, Select, Switch } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
@@ -68,7 +69,7 @@ export default function FreedomFields() {
         />
       </FormField>
 
-      <Form.Item label="Fragment">
+      <Form.Item label={i18next.t('ui.fragment')}>
         <Switch
           checked={fragmentEnabled}
           onChange={(checked) => {
@@ -106,7 +107,7 @@ export default function FreedomFields() {
                 { value: '1-3', label: '1-3' },
                 { value: '1-5', label: '1-5' },
               ]}
-              placeholder="tlshello or n-m, e.g. 1-3"
+              placeholder={i18next.t('ui.tlshelloOrNMEG13')}
             />
           </FormField>
           <FormField
@@ -254,7 +255,7 @@ export default function FreedomFields() {
           >
             <Select
               allowClear
-              placeholder="(any)"
+              placeholder={i18next.t('ui.any')}
               options={['tcp', 'udp', 'tcp,udp'].map((v) => ({
                 value: v,
                 label: v,
@@ -271,7 +272,7 @@ export default function FreedomFields() {
             <Select
               mode="tags"
               tokenSeparators={[',', ' ']}
-              placeholder="e.g. 10.0.0.0/8, geoip:private"
+              placeholder={i18next.t('ui.eG100008GeoipPrivate')}
             />
           </FormField>
           {finalRulesValues[index]?.action === 'block' && (

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Switch, Tag, Tooltip } from 'antd';
@@ -223,13 +224,17 @@ export function useRoutingColumns({
             )}
             {record.protocol && (
               <CriterionRow
-                label="Protocol"
+                label={i18next.t('protocol')}
                 value={record.protocol}
                 title={`Protocol: ${record.protocol}`}
               />
             )}
             {record.attrs && (
-              <CriterionRow label="Attrs" value={record.attrs} title={`Attrs: ${record.attrs}`} />
+              <CriterionRow
+                label={i18next.t('ui.attrs')}
+                value={record.attrs}
+                title={`Attrs: ${record.attrs}`}
+              />
             )}
             {!record.network && !record.protocol && !record.attrs && (
               <span className="criterion-empty">—</span>
@@ -249,7 +254,7 @@ export function useRoutingColumns({
             )}
             {record.domain && (
               <CriterionRow
-                label="Domain"
+                label={i18next.t('ui.domain')}
                 value={record.domain}
                 title={`Domain: ${record.domain}`}
               />
@@ -278,13 +283,17 @@ export function useRoutingColumns({
             <div className="criterion-flow">
               {inboundParts.length > 0 && (
                 <CriterionRow
-                  label="Tag"
+                  label={i18next.t('pages.xray.balancer.tag')}
                   values={inboundParts}
                   title={`Inbound tag: ${inboundTagsDisplayTitle(record.inboundTag, remarkByTag) ?? inboundParts.join(', ')}`}
                 />
               )}
               {record.user && (
-                <CriterionRow label="User" value={record.user} title={`User: ${record.user}`} />
+                <CriterionRow
+                  label={i18next.t('pages.xray.ruleForm.user')}
+                  value={record.user}
+                  title={`User: ${record.user}`}
+                />
               )}
               {inboundParts.length === 0 && !record.user && (
                 <span className="criterion-empty">—</span>

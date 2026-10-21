@@ -1,5 +1,8 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { z } from 'zod';
+import skValidation from 'zod/v4/locales/sk.js';
+import enValidation from 'zod/v4/locales/en.js';
 
 import { LanguageManager } from '@/utils';
 import type { LanguageScope } from '@/utils';
@@ -43,6 +46,8 @@ export async function readyI18n(scope: LanguageScope = 'panel') {
       await i18next.changeLanguage(active);
     }
   }
+  z.config(active === 'sk-SK' ? skValidation() : enValidation());
+  if (typeof document !== 'undefined') document.documentElement.lang = active;
   return i18next;
 }
 

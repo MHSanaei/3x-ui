@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -111,10 +112,10 @@ export default function TuicFields() {
           >
             <Select
               options={[
-                { label: 'Info', value: 'info' },
-                { label: 'Warn', value: 'warn' },
-                { label: 'Error', value: 'error' },
-                { label: 'Debug', value: 'debug' },
+                { label: i18next.t('pages.index.logLevelInfo'), value: 'info' },
+                { label: i18next.t('pages.index.logLevelWarning'), value: 'warn' },
+                { label: i18next.t('pages.index.xrayStatusError'), value: 'error' },
+                { label: i18next.t('pages.index.logLevelDebug'), value: 'debug' },
               ]}
             />
           </FormField>
@@ -232,7 +233,7 @@ export default function TuicFields() {
       >
         <Select
           options={[
-            { label: 'Native (Recommended)', value: 'native' },
+            { label: i18next.t('ui.nativeRecommended'), value: 'native' },
             { label: 'QUIC', value: 'quic' },
           ]}
         />

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Checkbox, Empty, Form, Input, Modal, Select, Tag } from 'antd';
@@ -183,16 +184,16 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
               </div>
               <div className="log-meta">
                 <span className="log-meta-pair">
-                  <span className="log-meta-key">iface</span>
+                  <span className="log-meta-key">{t('pages.index.amneziawgInterface')}</span>
                   <span className="log-meta-val">{peer.interface}</span>
                 </span>
                 <span className="log-meta-pair">
-                  <span className="log-meta-key">inbound</span>
+                  <span className="log-meta-key">{t('ui.inbound')}</span>
                   <span className="log-meta-val">{peer.tag}</span>
                 </span>
                 {peer.email && (
                   <span className="log-meta-pair">
-                    <span className="log-meta-key">email</span>
+                    <span className="log-meta-key">{t('pages.clients.email')}</span>
                     <span className="log-meta-val">{peer.email}</span>
                   </span>
                 )}
@@ -212,7 +213,7 @@ export default function AmneziaWGLogModal({ open, onClose }: AmneziaWGLogModalPr
                 <th>{t('pages.index.amneziawgHandshake')}</th>
                 <th>{t('pages.index.amneziawgInterface')}</th>
                 <th>{t('pages.index.amneziawgInbound')}</th>
-                <th>Email</th>
+                <th>{i18next.t('pages.clients.email')}</th>
                 <th>{t('pages.index.amneziawgEndpoint')}</th>
                 <th>{t('pages.clients.amneziaWgAllowedIPs')}</th>
                 <th>↑ / ↓</th>

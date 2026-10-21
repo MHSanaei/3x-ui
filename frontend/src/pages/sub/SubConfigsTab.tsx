@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Tag } from 'antd';
@@ -38,7 +39,11 @@ export default function SubConfigsTab({ links, onCopy }: SubConfigsTabProps) {
         return (
           <Fragment key={link}>
             <div className="sub-row">
-              {parts ? <LinkTags parts={parts} /> : <Tag className="sub-row-tag">LINK</Tag>}
+              {parts ? (
+                <LinkTags parts={parts} />
+              ) : (
+                <Tag className="sub-row-tag">{i18next.t('ui.lINK')}</Tag>
+              )}
               <span className="sub-row-title" dir="auto" title={rowTitle}>
                 {rowTitle}
               </span>

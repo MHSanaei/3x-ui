@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, InputNumber, Select, Switch } from 'antd';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -181,7 +182,7 @@ export default function SockoptForm({
                 label={t('pages.inbounds.form.tryDelayMs')}
                 name={['streamSettings', 'sockopt', 'happyEyeballs', 'tryDelayMs']}
               >
-                <InputNumber min={0} placeholder="0 (disabled) — 250 recommended" />
+                <InputNumber min={0} placeholder={i18next.t('ui.0Disabled250Recommended')} />
               </FormField>
               <FormField
                 label={t('pages.inbounds.form.prioritizeIPv6')}

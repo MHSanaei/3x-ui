@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const LoginFormSchema = z.object({
-  username: z.string().min(1, 'username'),
-  password: z.string().min(1, 'password'),
+  username: z.string().min(1, 'pages.login.toasts.emptyUsername'),
+  password: z.string().min(1, 'pages.login.toasts.emptyPassword'),
   twoFactorCode: z.string().optional(),
 });
 

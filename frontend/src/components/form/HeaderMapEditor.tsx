@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Space } from 'antd';
@@ -124,12 +125,12 @@ export default function HeaderMapEditor({ mode, value, onChange }: HeaderMapEdit
           <InputAddon>{`${idx + 1}`}</InputAddon>
           <Input
             value={row.name}
-            placeholder="Name"
+            placeholder={i18next.t('pages.groups.name')}
             onChange={(e) => setRow(idx, { name: e.target.value })}
           />
           <Input
             value={row.value}
-            placeholder="Value"
+            placeholder={i18next.t('pages.xray.ruleForm.value')}
             onChange={(e) => setRow(idx, { value: e.target.value })}
           />
           <Button
@@ -140,7 +141,7 @@ export default function HeaderMapEditor({ mode, value, onChange }: HeaderMapEdit
         </Space.Compact>
       ))}
       <Button size="small" type="primary" icon={<PlusOutlined />} onClick={addRow}>
-        Add
+        {i18next.t('add')}
       </Button>
     </>
   );

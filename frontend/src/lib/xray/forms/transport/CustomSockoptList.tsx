@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { Button, Divider, Form, Input, Select } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -58,20 +59,26 @@ export default function CustomSockoptList({
                   onKeyDown={activateOnKey(() => remove(field.name))}
                 />
               </Divider>
-              <Form.Item label="System" name={[field.name, 'system']}>
-                <Select placeholder="all" allowClear options={SYSTEM_OPTIONS} />
+              <Form.Item
+                label={i18next.t('pages.settings.eventGroupSystem')}
+                name={[field.name, 'system']}
+              >
+                <Select placeholder={i18next.t('all')} allowClear options={SYSTEM_OPTIONS} />
               </Form.Item>
-              <Form.Item label="Level" name={[field.name, 'level']}>
+              <Form.Item label={i18next.t('ui.level')} name={[field.name, 'level']}>
                 <Input placeholder="6 (SOL_TCP)" />
               </Form.Item>
-              <Form.Item label="Opt" name={[field.name, 'opt']}>
-                <Input placeholder="decimal, e.g. 19" />
+              <Form.Item label={i18next.t('ui.opt')} name={[field.name, 'opt']}>
+                <Input placeholder={i18next.t('ui.decimalEG19')} />
               </Form.Item>
-              <Form.Item label="Type" name={[field.name, 'type']}>
+              <Form.Item label={i18next.t('pages.inbounds.form.type')} name={[field.name, 'type']}>
                 <Select options={TYPE_OPTIONS} />
               </Form.Item>
-              <Form.Item label="Value" name={[field.name, 'value']}>
-                <Input placeholder="value" />
+              <Form.Item
+                label={i18next.t('pages.xray.ruleForm.value')}
+                name={[field.name, 'value']}
+              >
+                <Input placeholder={i18next.t('pages.xray.ruleForm.value')} />
               </Form.Item>
             </div>
           ))}

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useEffect, useRef, useState } from 'react';
 import {
   AutoComplete,
@@ -345,7 +346,7 @@ export default function FinalMaskForm({
       )}
       {showQuic && (
         <>
-          <Form.Item label="QUIC Params">
+          <Form.Item label={i18next.t('ui.qUICParams')}>
             <Switch
               checked={hasQuicParams}
               onChange={(v) => {
@@ -372,7 +373,7 @@ function TcpMasksList({ base, form }: { base: (string | number)[]; form: FormIns
     <Form.List name={[...base, 'tcp']}>
       {(fields, { add, remove }) => (
         <>
-          <Form.Item label="TCP Masks">
+          <Form.Item label={i18next.t('ui.tCPMasks')}>
             <Button
               type="primary"
               size="small"
@@ -421,7 +422,7 @@ function TcpMaskItem({
   return (
     <div>
       <Divider style={{ margin: 0 }}>
-        TCP Mask {displayIndex}
+        {i18next.t('ui.tCPMask')} {displayIndex}
         <DeleteOutlined
           className="danger-icon"
           role="button"
@@ -432,14 +433,14 @@ function TcpMaskItem({
         />
       </Divider>
 
-      <Form.Item label="Type" name={[fieldName, 'type']}>
+      <Form.Item label={i18next.t('pages.inbounds.form.type')} name={[fieldName, 'type']}>
         <Select
           onChange={(v) =>
             form.setFieldValue([...absolutePath, 'settings'], defaultTcpMaskSettings(v))
           }
           options={[
-            { value: 'fragment', label: 'Fragment' },
-            { value: 'header-custom', label: 'Header Custom' },
+            { value: 'fragment', label: i18next.t('ui.fragment') },
+            { value: 'header-custom', label: i18next.t('ui.headerCustom') },
             { value: 'sudoku', label: 'Sudoku' },
             { value: 'xmc', label: 'XMC (Minecraft)' },
           ]}
@@ -460,7 +461,7 @@ function TcpMaskItem({
             return (
               <>
                 <Form.Item
-                  label="Packets"
+                  label={i18next.t('pages.settings.subFormats.packets')}
                   name={[fieldName, 'settings', 'packets']}
                   rules={[{ validator: validateFragmentPackets }]}
                 >
@@ -470,23 +471,26 @@ function TcpMaskItem({
                       { value: '1-3', label: '1-3' },
                       { value: '1-5', label: '1-5' },
                     ]}
-                    placeholder="tlshello or n-m, e.g. 1-3"
+                    placeholder={i18next.t('ui.tlshelloOrNMEG13')}
                   />
                 </Form.Item>
                 <FragmentRangeList
                   listName={[fieldName, 'settings', 'lengths']}
-                  label="Lengths"
+                  label={i18next.t('ui.lengths')}
                   placeholder="e.g. 100-200"
                   minItems={1}
                   validator={validateFragmentLength}
                 />
                 <FragmentRangeList
                   listName={[fieldName, 'settings', 'delays']}
-                  label="Delays"
+                  label={i18next.t('ui.delays')}
                   placeholder="e.g. 10-20 or 0"
                   validator={validateFragmentDelayEntry}
                 />
-                <Form.Item label="Max Split" name={[fieldName, 'settings', 'maxSplit']}>
+                <Form.Item
+                  label={i18next.t('ui.maxSplit')}
+                  name={[fieldName, 'settings', 'maxSplit']}
+                >
                   <Input />
                 </Form.Item>
               </>
@@ -505,19 +509,24 @@ function TcpMaskItem({
           if (type === 'xmc') {
             return (
               <>
-                <Form.Item label="Hostname" name={[fieldName, 'settings', 'hostname']}>
-                  <Input placeholder="Server address mimicked in the handshake" />
+                <Form.Item
+                  label={i18next.t('ui.hostname')}
+                  name={[fieldName, 'settings', 'hostname']}
+                >
+                  <Input placeholder={i18next.t('ui.serverAddressMimickedInTheHandshake')} />
                 </Form.Item>
                 <XmcProfilesList tcpFieldName={fieldName} />
-                <Form.Item label="Password" required>
+                <Form.Item label={i18next.t('password')} required>
                   <Space.Compact block>
                     <Form.Item
                       name={[fieldName, 'settings', 'password']}
                       noStyle
-                      rules={[{ required: true, message: 'Password is required' }]}
+                      rules={[
+                        { required: true, message: i18next.t('pages.login.toasts.emptyPassword') },
+                      ]}
                     >
                       <Input
-                        placeholder="Obfuscation password"
+                        placeholder={i18next.t('ui.obfuscationPassword')}
                         style={{ width: 'calc(100% - 32px)' }}
                       />
                     </Form.Item>
@@ -546,22 +555,25 @@ function TcpMaskItem({
 function SudokuSettings({ fieldName }: { fieldName: number }) {
   return (
     <>
-      <Form.Item label="Password" name={[fieldName, 'settings', 'password']}>
+      <Form.Item label={i18next.t('password')} name={[fieldName, 'settings', 'password']}>
         <Input />
       </Form.Item>
       <Form.Item label="ASCII" name={[fieldName, 'settings', 'ascii']}>
         <Input />
       </Form.Item>
-      <Form.Item label="Custom Table" name={[fieldName, 'settings', 'customTable']}>
+      <Form.Item label={i18next.t('ui.customTable')} name={[fieldName, 'settings', 'customTable']}>
         <Input />
       </Form.Item>
-      <Form.Item label="Custom Tables" name={[fieldName, 'settings', 'customTables']}>
+      <Form.Item
+        label={i18next.t('ui.customTables')}
+        name={[fieldName, 'settings', 'customTables']}
+      >
         <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
       </Form.Item>
-      <Form.Item label="Padding Min" name={[fieldName, 'settings', 'paddingMin']}>
+      <Form.Item label={i18next.t('ui.paddingMin')} name={[fieldName, 'settings', 'paddingMin']}>
         <InputNumber min={0} />
       </Form.Item>
-      <Form.Item label="Padding Max" name={[fieldName, 'settings', 'paddingMax']}>
+      <Form.Item label={i18next.t('ui.paddingMax')} name={[fieldName, 'settings', 'paddingMax']}>
         <InputNumber min={0} />
       </Form.Item>
     </>
@@ -721,7 +733,7 @@ function XmcProfilesList({ tcpFieldName }: { tcpFieldName: number }) {
       {(profiles, { add, remove }) => (
         <>
           <Form.Item
-            label="Profiles"
+            label={i18next.t('ui.profiles')}
             extra="Signed Minecraft session profiles; resolve the UUID by username, then fetch the profile with unsigned=false."
           >
             <Button
@@ -735,7 +747,7 @@ function XmcProfilesList({ tcpFieldName }: { tcpFieldName: number }) {
           {profiles.map((profile, idx) => (
             <div key={profile.key}>
               <Divider style={{ margin: 0 }}>
-                Profile {idx + 1}
+                {i18next.t('pages.settings.profile')} {idx + 1}
                 <DeleteOutlined
                   className="danger-icon"
                   role="button"
@@ -746,7 +758,7 @@ function XmcProfilesList({ tcpFieldName }: { tcpFieldName: number }) {
                 />
               </Divider>
               <Form.Item
-                label="Username"
+                label={i18next.t('username')}
                 name={[profile.name, 'username']}
                 rules={[{ validator: validateXmcUsername }]}
               >
@@ -760,23 +772,23 @@ function XmcProfilesList({ tcpFieldName }: { tcpFieldName: number }) {
                 <Input placeholder="069a79f4-44e9-4726-a5be-fca90e38aaf5" />
               </Form.Item>
               <Form.Item
-                label="Textures Value"
+                label={i18next.t('ui.texturesValue')}
                 name={[profile.name, 'texturesValue']}
-                rules={[{ required: true, message: 'Textures value is required' }]}
+                rules={[{ required: true, message: i18next.t('ui.texturesValueIsRequired') }]}
               >
                 <Input.TextArea
                   autoSize={{ minRows: 2, maxRows: 4 }}
-                  placeholder="Base64 value from the session profile"
+                  placeholder={i18next.t('ui.base64ValueFromTheSessionProfile')}
                 />
               </Form.Item>
               <Form.Item
-                label="Textures Signature"
+                label={i18next.t('ui.texturesSignature')}
                 name={[profile.name, 'texturesSignature']}
-                rules={[{ required: true, message: 'Textures signature is required' }]}
+                rules={[{ required: true, message: i18next.t('ui.texturesSignatureIsRequired') }]}
               >
                 <Input.TextArea
                   autoSize={{ minRows: 2, maxRows: 4 }}
-                  placeholder="Base64 signature from the session profile"
+                  placeholder={i18next.t('ui.base64SignatureFromTheSessionProfile')}
                 />
               </Form.Item>
             </div>
@@ -788,12 +800,28 @@ function XmcProfilesList({ tcpFieldName }: { tcpFieldName: number }) {
 }
 
 const HEADER_CUSTOM_TCP_GROUPS = [
-  { key: 'clients', label: 'Clients', tooltip: undefined },
-  { key: 'servers', label: 'Servers', tooltip: undefined },
+  {
+    key: 'clients',
+    get label() {
+      return i18next.t('clients');
+    },
+    tooltip: undefined,
+  },
+  {
+    key: 'servers',
+    get label() {
+      return i18next.t('ui.servers');
+    },
+    tooltip: undefined,
+  },
   {
     key: 'errors',
-    label: 'Errors',
-    tooltip: 'Sent instead when the matching client group fails to match, e.g. an HTTP 400',
+    get label() {
+      return i18next.t('ui.errors');
+    },
+    get tooltip() {
+      return i18next.t('ui.sentInsteadWhenTheMatchingClientGroupFailsToMatchEGAnHTTP400');
+    },
   },
 ] as const;
 
@@ -825,7 +853,7 @@ function HeaderCustomGroups({
               {groups.map((group, gi) => (
                 <div key={group.key}>
                   <Divider style={{ margin: 0 }}>
-                    {label} Group {gi + 1}
+                    {label} {i18next.t('pages.clients.group')} {gi + 1}
                     <DeleteOutlined
                       className="danger-icon"
                       role="button"
@@ -838,7 +866,7 @@ function HeaderCustomGroups({
                   <Form.List name={[group.name]}>
                     {(items, { add: addItem, remove: removeItem }) => (
                       <>
-                        <Form.Item label="Items">
+                        <Form.Item label={i18next.t('ui.items')}>
                           <Button
                             size="small"
                             icon={<PlusOutlined />}
@@ -895,7 +923,7 @@ function UdpMasksList({
     <Form.List name={[...base, 'udp']}>
       {(fields, { add, remove }) => (
         <>
-          <Form.Item label="UDP Masks">
+          <Form.Item label={i18next.t('ui.uDPMasks')}>
             <Button
               type="primary"
               size="small"
@@ -959,19 +987,19 @@ function UdpMaskItem({
     }
   };
 
-  const udpHopOption = allowUdpHop ? [{ value: 'udphop', label: 'UDP Hop' }] : [];
+  const udpHopOption = allowUdpHop ? [{ value: 'udphop', label: i18next.t('ui.uDPHop') }] : [];
   const options = isHysteria
     ? [{ value: 'salamander', label: 'Salamander (Hysteria2)' }, ...udpHopOption]
     : [
         // Salamander is the mask xray-core's own wireguard finalmask example
         // uses; it stays hysteria-only elsewhere to keep legacy parity.
         ...(isWireguard ? [{ value: 'salamander', label: 'Salamander' }] : []),
-        { value: 'mkcp-legacy', label: 'mKCP Legacy' },
+        { value: 'mkcp-legacy', label: i18next.t('ui.mKCPLegacy') },
         { value: 'xdns', label: 'xDNS' },
         { value: 'xicmp', label: 'xICMP' },
         { value: 'realm', label: 'Realm' },
-        { value: 'header-custom', label: 'Header Custom' },
-        { value: 'noise', label: 'Noise' },
+        { value: 'header-custom', label: i18next.t('ui.headerCustom') },
+        { value: 'noise', label: i18next.t('ui.noise') },
         { value: 'sudoku', label: 'Sudoku' },
         ...udpHopOption,
       ];
@@ -979,7 +1007,7 @@ function UdpMaskItem({
   return (
     <div>
       <Divider style={{ margin: 0 }}>
-        UDP Mask {displayIndex}
+        {i18next.t('ui.uDPMask')} {displayIndex}
         <DeleteOutlined
           className="danger-icon"
           role="button"
@@ -990,7 +1018,7 @@ function UdpMaskItem({
         />
       </Divider>
 
-      <Form.Item label="Type" name={[fieldName, 'type']}>
+      <Form.Item label={i18next.t('pages.inbounds.form.type')} name={[fieldName, 'type']}>
         <Select onChange={onTypeChange} options={options} />
       </Form.Item>
 
@@ -1014,21 +1042,24 @@ function UdpMaskItem({
           if (type === 'mkcp-legacy') {
             return (
               <>
-                <Form.Item label="Header" name={[fieldName, 'settings', 'header']}>
+                <Form.Item label={i18next.t('ui.header')} name={[fieldName, 'settings', 'header']}>
                   <Select
                     options={[
-                      { value: '', label: 'Original / AES-128-GCM' },
+                      { value: '', label: i18next.t('ui.originalAES128GCM') },
                       { value: 'dns', label: 'DNS' },
                       { value: 'dtls', label: 'DTLS 1.2' },
                       { value: 'srtp', label: 'SRTP' },
                       { value: 'utp', label: 'uTP' },
-                      { value: 'wechat', label: 'WeChat Video' },
+                      { value: 'wechat', label: i18next.t('ui.weChatVideo') },
                       { value: 'wireguard', label: 'WireGuard' },
                     ]}
                   />
                 </Form.Item>
-                <Form.Item label="Value" name={[fieldName, 'settings', 'value']}>
-                  <Input placeholder="password (AES-128-GCM) or domain (DNS header)" />
+                <Form.Item
+                  label={i18next.t('pages.xray.ruleForm.value')}
+                  name={[fieldName, 'settings', 'value']}
+                >
+                  <Input placeholder={i18next.t('ui.passwordAES128GCMOrDomainDNSHeader')} />
                 </Form.Item>
               </>
             );
@@ -1043,13 +1074,13 @@ function UdpMaskItem({
             return (
               <>
                 <Form.Item
-                  label="Dgram"
+                  label={i18next.t('ui.dgram')}
                   name={[fieldName, 'settings', 'dgram']}
                   valuePropName="checked"
                 >
                   <Switch />
                 </Form.Item>
-                <Form.Item label="IPs" name={[fieldName, 'settings', 'ips']}>
+                <Form.Item label={i18next.t('ui.iPs')} name={[fieldName, 'settings', 'ips']}>
                   <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',']} />
                 </Form.Item>
               </>
@@ -1061,7 +1092,10 @@ function UdpMaskItem({
                 <Form.Item label="URL" name={[fieldName, 'settings', 'url']}>
                   <Input placeholder="realm://token@host:port/id" />
                 </Form.Item>
-                <Form.Item label="STUN Servers" name={[fieldName, 'settings', 'stunServers']}>
+                <Form.Item
+                  label={i18next.t('ui.sTUNServers')}
+                  name={[fieldName, 'settings', 'stunServers']}
+                >
                   <Select
                     mode="tags"
                     style={{ width: '100%' }}
@@ -1069,44 +1103,44 @@ function UdpMaskItem({
                     placeholder="host:port"
                   />
                 </Form.Item>
-                <Form.Item label="IP Mode" name={[fieldName, 'settings', 'ipMode']}>
+                <Form.Item label={i18next.t('ui.iPMode')} name={[fieldName, 'settings', 'ipMode']}>
                   <Select
                     allowClear
                     placeholder="dual"
                     options={[
-                      { value: 'dual', label: 'Dual' },
+                      { value: 'dual', label: i18next.t('ui.dual') },
                       { value: 'v4', label: 'IPv4' },
                       { value: 'v6', label: 'IPv6' },
                     ]}
                   />
                 </Form.Item>
                 <Form.Item
-                  label="Port Mapping (UPnP / NAT-PMP)"
+                  label={i18next.t('ui.portMappingUPnPNATPMP')}
                   name={[fieldName, 'settings', 'portMapping', 'enabled']}
                   valuePropName="checked"
                 >
                   <Switch />
                 </Form.Item>
                 <Form.Item
-                  label="Mapping Timeout (s)"
+                  label={i18next.t('ui.mappingTimeoutS')}
                   name={[fieldName, 'settings', 'portMapping', 'timeout']}
                 >
-                  <InputNumber min={0} placeholder="10 = default" />
+                  <InputNumber min={0} placeholder={i18next.t('ui.10Default')} />
                 </Form.Item>
                 <Form.Item
-                  label="Mapping Lifetime (s)"
+                  label={i18next.t('ui.mappingLifetimeS')}
                   name={[fieldName, 'settings', 'portMapping', 'lifetime']}
                 >
-                  <InputNumber min={0} placeholder="600 = default" />
+                  <InputNumber min={0} placeholder={i18next.t('ui.600Default')} />
                 </Form.Item>
                 <Divider plain style={{ margin: '8px 0' }}>
-                  TLS (optional)
+                  {i18next.t('ui.tLSOptional')}
                 </Divider>
                 <Form.Item
-                  label="Server Name"
+                  label={i18next.t('ui.serverName')}
                   name={[fieldName, 'settings', 'tlsConfig', 'serverName']}
                 >
-                  <Input placeholder="SNI for the realm server (leave empty to skip TLS)" />
+                  <Input placeholder={i18next.t('ui.sNIForTheRealmServerLeaveEmptyToSkipTLS')} />
                 </Form.Item>
                 <Form.Item label="ALPN" name={[fieldName, 'settings', 'tlsConfig', 'alpn']}>
                   <Select
@@ -1120,13 +1154,13 @@ function UdpMaskItem({
                   />
                 </Form.Item>
                 <Form.Item
-                  label="Fingerprint"
+                  label={i18next.t('pages.inbounds.form.fingerprint')}
                   name={[fieldName, 'settings', 'tlsConfig', 'fingerprint']}
                 >
                   <Select allowClear style={{ width: '100%' }} options={UTLS_FINGERPRINT_OPTIONS} />
                 </Form.Item>
                 <Form.Item
-                  label="Allow Insecure"
+                  label={i18next.t('ui.allowInsecure')}
                   name={[fieldName, 'settings', 'tlsConfig', 'allowInsecure']}
                   valuePropName="checked"
                 >
@@ -1178,7 +1212,7 @@ function SalamanderUdpMaskSettings({
   return (
     <>
       <Form.Item
-        label="Mode"
+        label={i18next.t('pages.inbounds.info.mode')}
         extra={
           mode === 'gecko'
             ? 'Salamander plus Gecko: splits each packet into random-padded fragments sized within the range below, defeating packet-length fingerprinting. Stored as Salamander with packetSize.'
@@ -1205,19 +1239,22 @@ function SalamanderUdpMaskSettings({
           }}
           options={[
             { value: 'salamander', label: 'Salamander' },
-            { value: 'gecko', label: 'Gecko experimental' },
+            { value: 'gecko', label: i18next.t('ui.geckoExperimental') },
           ]}
         />
       </Form.Item>
 
-      <Form.Item label="Password">
+      <Form.Item label={i18next.t('password')}>
         <Space.Compact block>
           <Form.Item
             name={[fieldName, 'settings', 'password']}
             noStyle
             rules={[{ validator: validateSalamanderPassword }]}
           >
-            <Input placeholder="Obfuscation password" style={{ width: 'calc(100% - 32px)' }} />
+            <Input
+              placeholder={i18next.t('ui.obfuscationPassword')}
+              style={{ width: 'calc(100% - 32px)' }}
+            />
           </Form.Item>
           <Button
             icon={<ReloadOutlined />}
@@ -1234,7 +1271,7 @@ function SalamanderUdpMaskSettings({
 
       {mode === 'gecko' && (
         <Form.Item
-          label="Packet size"
+          label={i18next.t('ui.packetSize')}
           name={[fieldName, 'settings', 'packetSize']}
           rules={[{ validator: validateGeckoPacketSize }]}
           extra="Serialized as a string range, for example 512-1200."
@@ -1294,16 +1331,16 @@ function UdpHeaderCustom({
   return (
     <>
       <Form.Item
-        label="Mode"
+        label={i18next.t('pages.inbounds.info.mode')}
         name={[udpFieldName, 'settings', 'mode']}
-        tooltip="Prefix puts the header on every packet; Standalone exchanges it as separate handshake packets first"
+        tooltip={i18next.t('ui.prefixPutsTheHeaderOnEveryPacketStandaloneExchangesItAsSeparateH')}
       >
         <Select
           allowClear
-          placeholder="Prefix"
+          placeholder={i18next.t('pages.clients.prefix')}
           options={[
-            { value: 'prefix', label: 'Prefix' },
-            { value: 'standalone', label: 'Standalone' },
+            { value: 'prefix', label: i18next.t('pages.clients.prefix') },
+            { value: 'standalone', label: i18next.t('ui.standalone') },
           ]}
         />
       </Form.Item>
@@ -1366,7 +1403,7 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
       <Form.List name={[udpFieldName, 'settings', 'domains']}>
         {(domains, { add, remove }) => (
           <>
-            <Form.Item label="Domains">
+            <Form.Item label={i18next.t('pages.xray.dns.domains')}>
               <Button
                 type="primary"
                 size="small"
@@ -1378,7 +1415,7 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
             {domains.map((domain, di) => (
               <div key={domain.key}>
                 <Divider style={{ margin: 0 }}>
-                  Domain {di + 1}
+                  {i18next.t('ui.domain')} {di + 1}
                   <DeleteOutlined
                     className="danger-icon"
                     role="button"
@@ -1388,7 +1425,7 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
                     onKeyDown={activateOnKey(() => remove(domain.name))}
                   />
                 </Divider>
-                <Form.Item label="Names" name={[domain.name, 'names']}>
+                <Form.Item label={i18next.t('ui.names')} name={[domain.name, 'names']}>
                   <Select
                     mode="tags"
                     style={{ width: '100%' }}
@@ -1396,20 +1433,20 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
                     placeholder="t.example.com"
                   />
                 </Form.Item>
-                <Form.Item label="Record Types" name={[domain.name, 'types']}>
+                <Form.Item label={i18next.t('ui.recordTypes')} name={[domain.name, 'types']}>
                   <Select
                     mode="multiple"
                     options={XDNS_RECORD_TYPE_OPTIONS}
-                    placeholder="TXT (client), all (server)"
+                    placeholder={i18next.t('ui.tXTClientAllServer')}
                   />
                 </Form.Item>
                 <Form.Item label="EDNS0" name={[domain.name, 'edns0']}>
                   <InputNumber min={512} max={4096} placeholder="off" />
                 </Form.Item>
-                <Form.Item label="Length Limit" name={[domain.name, 'lenLimit']}>
+                <Form.Item label={i18next.t('ui.lengthLimit')} name={[domain.name, 'lenLimit']}>
                   <InputNumber min={0} max={255} placeholder="255" />
                 </Form.Item>
-                <Form.Item label="Label Limit" name={[domain.name, 'labelLimit']}>
+                <Form.Item label={i18next.t('ui.labelLimit')} name={[domain.name, 'labelLimit']}>
                   <InputNumber min={0} max={63} placeholder="63" />
                 </Form.Item>
               </div>
@@ -1420,7 +1457,7 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
       <Form.List name={[udpFieldName, 'settings', 'resolvers']}>
         {(resolvers, { add, remove }) => (
           <>
-            <Form.Item label="Resolvers (client)">
+            <Form.Item label={i18next.t('ui.resolversClient')}>
               <Button
                 type="primary"
                 size="small"
@@ -1451,7 +1488,10 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
           </>
         )}
       </Form.List>
-      <Form.Item label="Extra Poll (client)" name={[udpFieldName, 'settings', 'extraPoll']}>
+      <Form.Item
+        label={i18next.t('ui.extraPollClient')}
+        name={[udpFieldName, 'settings', 'extraPoll']}
+      >
         <InputNumber min={0} max={3} placeholder="0" />
       </Form.Item>
     </>
@@ -1459,9 +1499,24 @@ function XdnsSettings({ udpFieldName }: { udpFieldName: number }) {
 }
 
 const UDP_HOP_MODES = [
-  { value: 'intervalRemote', label: 'Rotate server port (interval)' },
-  { value: 'perConnRemote', label: 'Random server port per connection' },
-  { value: 'intervalLocal', label: 'Rotate local port (interval)' },
+  {
+    value: 'intervalRemote',
+    get label() {
+      return i18next.t('ui.rotateServerPortInterval');
+    },
+  },
+  {
+    value: 'perConnRemote',
+    get label() {
+      return i18next.t('ui.randomServerPortPerConnection');
+    },
+  },
+  {
+    value: 'intervalLocal',
+    get label() {
+      return i18next.t('ui.rotateLocalPortInterval');
+    },
+  },
 ];
 
 // xray-core lowercases each comma-separated mode, so a lowercase one (from an mport
@@ -1493,7 +1548,7 @@ function UdpHopSettings({ udpFieldName }: { udpFieldName: number }) {
   return (
     <>
       <Form.Item
-        label="Mode"
+        label={i18next.t('pages.inbounds.info.mode')}
         name={[udpFieldName, 'settings', 'mode']}
         getValueProps={(value) => ({ value: udpHopModesFromWire(value) })}
         normalize={(value: string[]) => value.join(',')}
@@ -1502,16 +1557,19 @@ function UdpHopSettings({ udpFieldName }: { udpFieldName: number }) {
         <Select mode="multiple" options={UDP_HOP_MODES} />
       </Form.Item>
       <Form.Item
-        label="Interval (s)"
+        label={i18next.t('ui.intervalS')}
         name={[udpFieldName, 'settings', 'interval']}
         rules={[{ validator: validateUdpHopInterval }]}
       >
         <Input placeholder="30 or 5-10" />
       </Form.Item>
-      <Form.Item label="Remote Ports" name={[udpFieldName, 'settings', 'remotePorts']}>
+      <Form.Item
+        label={i18next.t('ui.remotePorts')}
+        name={[udpFieldName, 'settings', 'remotePorts']}
+      >
         <Input placeholder="20000-50000" />
       </Form.Item>
-      <Form.Item label="Remote IPs" name={[udpFieldName, 'settings', 'remoteIPs']}>
+      <Form.Item label={i18next.t('ui.remoteIPs')} name={[udpFieldName, 'settings', 'remoteIPs']}>
         <Select mode="tags" style={{ width: '100%' }} tokenSeparators={[',', ' ']} />
       </Form.Item>
     </>
@@ -1544,9 +1602,9 @@ function NoiseItems({
   return (
     <>
       <Form.Item
-        label="Reset"
+        label={i18next.t('reset')}
         name={[udpFieldName, 'settings', 'reset']}
-        tooltip="Seconds before the noise is sent to a destination again; 0 sends it once"
+        tooltip={i18next.t('ui.secondsBeforeTheNoiseIsSentToADestinationAgain0SendsItOnce')}
         rules={[{ validator: validateNoiseReset }]}
       >
         <Input placeholder="0 or 60-120" />
@@ -1554,7 +1612,7 @@ function NoiseItems({
       <Form.List name={[udpFieldName, 'settings', 'noise']}>
         {(items, { add, remove }) => (
           <>
-            <Form.Item label="Noise">
+            <Form.Item label={i18next.t('ui.noise')}>
               <Button
                 type="primary"
                 size="small"
@@ -1566,7 +1624,7 @@ function NoiseItems({
             {items.map((item, ni) => (
               <div key={item.key}>
                 <Divider style={{ margin: 0 }}>
-                  Noise {ni + 1}
+                  {i18next.t('ui.noise')} {ni + 1}
                   <DeleteOutlined
                     className="danger-icon"
                     role="button"
@@ -1597,9 +1655,24 @@ function NoiseItems({
 type ItemKind = 'bytes' | 'reuse' | 'transform';
 
 const ITEM_KIND_OPTIONS: { value: ItemKind; label: string }[] = [
-  { value: 'bytes', label: 'Bytes' },
-  { value: 'reuse', label: 'Reuse variable' },
-  { value: 'transform', label: 'Transform' },
+  {
+    value: 'bytes',
+    get label() {
+      return i18next.t('ui.bytes');
+    },
+  },
+  {
+    value: 'reuse',
+    get label() {
+      return i18next.t('ui.reuseVariable');
+    },
+  },
+  {
+    value: 'transform',
+    get label() {
+      return i18next.t('ui.transform');
+    },
+  },
 ];
 
 function itemKindOf(item: unknown): ItemKind {
@@ -1650,7 +1723,11 @@ function TransformEditor({
           }
         }}
       />
-      {invalid && <Typography.Text type="danger">Must be a JSON object</Typography.Text>}
+      {invalid && (
+        <Typography.Text type="danger">
+          {i18next.t('pages.inbounds.form.xdrive.templateInvalid')}
+        </Typography.Text>
+      )}
     </>
   );
 }
@@ -1704,42 +1781,47 @@ function ItemEditor({
   return (
     <>
       {allowVariables && (
-        <Form.Item label="Kind">
+        <Form.Item label={i18next.t('ui.kind')}>
           <Select value={kind} onChange={onKindChange} options={ITEM_KIND_OPTIONS} />
         </Form.Item>
       )}
       {kind === 'bytes' && (
-        <Form.Item label="Type" name={[fieldName, 'type']}>
+        <Form.Item label={i18next.t('pages.inbounds.form.type')} name={[fieldName, 'type']}>
           <Select
             onChange={onTypeChange}
             options={[
-              { value: 'array', label: 'Array' },
-              { value: 'str', label: 'String' },
+              { value: 'array', label: i18next.t('ui.array') },
+              { value: 'str', label: i18next.t('ui.string') },
               { value: 'hex', label: 'Hex' },
               { value: 'base64', label: 'Base64' },
               // Only the noise mask parses tag expressions (xray-core 26.9.30, #6862).
-              ...(delayMode === 'string' ? [{ value: 'exp', label: 'Expression' }] : []),
+              ...(delayMode === 'string'
+                ? [{ value: 'exp', label: i18next.t('ui.expression') }]
+                : []),
             ]}
           />
         </Form.Item>
       )}
 
       {delayMode === 'number' && (
-        <Form.Item label="Delay (ms)" name={[fieldName, 'delay']}>
+        <Form.Item
+          label={i18next.t('pages.settings.subFormats.delayMs')}
+          name={[fieldName, 'delay']}
+        >
           <InputNumber min={0} />
         </Form.Item>
       )}
       {delayMode === 'string' && (
-        <Form.Item label="Delay" name={[fieldName, 'delay']}>
+        <Form.Item label={i18next.t('discord.fields.delay')} name={[fieldName, 'delay']}>
           <Input placeholder="10-20" />
         </Form.Item>
       )}
 
       {kind === 'reuse' && (
         <Form.Item
-          label="Reuse"
+          label={i18next.t('ui.reuse')}
           name={[fieldName, 'reuse']}
-          tooltip="Writes the bytes an earlier item captured under this name"
+          tooltip={i18next.t('ui.writesTheBytesAnEarlierItemCapturedUnderThisName')}
           rules={[
             { required: true, message: 'name the captured variable' },
             { validator: validateCustomVarName },
@@ -1750,9 +1832,9 @@ function ItemEditor({
       )}
       {kind === 'transform' && (
         <Form.Item
-          label="Transform"
+          label={i18next.t('ui.transform')}
           name={[fieldName, 'transform']}
-          tooltip='An expression tree, e.g. {"op": "concat", "args": [{"type": "str", "bytes": "OK "}, {"reuse": "nonce"}]}'
+          tooltip={i18next.t('ui.anExpressionTreeEGOpConcatArgsTypeStrBytesOKReuseNonce')}
           rules={[{ required: true, message: 'enter the transform expression' }]}
         >
           <TransformEditor />
@@ -1772,7 +1854,7 @@ function ItemEditor({
           if (type === 'array') {
             return (
               <>
-                <Form.Item label="Rand" name={[fieldName, 'rand']}>
+                <Form.Item label={i18next.t('ui.rand')} name={[fieldName, 'rand']}>
                   {delayMode === 'string' ? (
                     <Input placeholder="0 or 1-8192" />
                   ) : (
@@ -1783,7 +1865,7 @@ function ItemEditor({
                     explicit "" as the range 0-0 (all-zero fill bytes), while
                     an omitted randRange falls back to the 0-255 default. */}
                 <Form.Item
-                  label="Rand Range"
+                  label={i18next.t('ui.randRange')}
                   name={[fieldName, 'randRange']}
                   normalize={(v) => (v === '' ? undefined : v)}
                   rules={[{ validator: validateRandRange }]}
@@ -1795,7 +1877,7 @@ function ItemEditor({
           }
           if (type === 'base64') {
             return (
-              <Form.Item label="Packet">
+              <Form.Item label={i18next.t('pages.settings.subFormats.packet')}>
                 <Space.Compact block>
                   <Form.Item name={[fieldName, 'packet']} noStyle>
                     <Input placeholder="binary data" style={{ width: 'calc(100% - 32px)' }} />
@@ -1812,7 +1894,10 @@ function ItemEditor({
             );
           }
           return (
-            <Form.Item label="Packet" name={[fieldName, 'packet']}>
+            <Form.Item
+              label={i18next.t('pages.settings.subFormats.packet')}
+              name={[fieldName, 'packet']}
+            >
               <Input placeholder={type === 'exp' ? '<b 0d0a0d0a><t><rc 20-40>' : 'binary data'} />
             </Form.Item>
           );
@@ -1821,9 +1906,9 @@ function ItemEditor({
 
       {allowVariables && (
         <Form.Item
-          label="Capture"
+          label={i18next.t('ui.capture')}
           name={[fieldName, 'capture']}
-          tooltip="Saves the bytes this item writes or reads under a name later items can reuse"
+          tooltip={i18next.t('ui.savesTheBytesThisItemWritesOrReadsUnderANameLaterItemsCanReuse')}
           normalize={(v) => (v === '' ? undefined : v)}
           rules={[{ validator: validateCustomVarName }]}
         >
@@ -1851,43 +1936,47 @@ function QuicParamsForm({
 
   return (
     <>
-      <Form.Item label="Congestion" name={[...base, 'congestion']}>
+      <Form.Item label={i18next.t('ui.congestion')} name={[...base, 'congestion']}>
         <Select
           options={[
             { value: 'reno', label: 'Reno' },
             { value: 'bbr', label: 'BBR' },
             { value: 'brutal', label: 'Brutal' },
-            { value: 'force-brutal', label: 'Force Brutal' },
+            { value: 'force-brutal', label: i18next.t('ui.forceBrutal') },
           ]}
         />
       </Form.Item>
       {congestion === 'bbr' && (
-        <Form.Item label="BBR Profile" name={[...base, 'bbrProfile']}>
+        <Form.Item label={i18next.t('ui.bBRProfile')} name={[...base, 'bbrProfile']}>
           <Select
             allowClear
             placeholder="standard"
             options={[
-              { value: 'conservative', label: 'Conservative' },
-              { value: 'standard', label: 'Standard' },
-              { value: 'aggressive', label: 'Aggressive' },
+              { value: 'conservative', label: i18next.t('ui.conservative') },
+              { value: 'standard', label: i18next.t('pages.clients.qrStandard') },
+              { value: 'aggressive', label: i18next.t('ui.aggressive') },
             ]}
           />
         </Form.Item>
       )}
-      <Form.Item label="Debug" name={[...base, 'debug']} valuePropName="checked">
+      <Form.Item
+        label={i18next.t('pages.index.logLevelDebug')}
+        name={[...base, 'debug']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
 
       {(congestion === 'brutal' || congestion === 'force-brutal') && (
         <>
-          <Form.Item label="Brutal Up" name={[...base, 'brutalUp']}>
+          <Form.Item label={i18next.t('ui.brutalUp')} name={[...base, 'brutalUp']}>
             <Input placeholder="e.g. 60 mbps" />
           </Form.Item>
-          <Form.Item label="Brutal Down" name={[...base, 'brutalDown']}>
+          <Form.Item label={i18next.t('ui.brutalDown')} name={[...base, 'brutalDown']}>
             <Input placeholder="e.g. 100 mbps" />
           </Form.Item>
           <Form.Item
-            label="Brutal Disable Loss Comp"
+            label={i18next.t('ui.brutalDisableLossComp')}
             name={[...base, 'brutalDisableLossCompensation']}
             valuePropName="checked"
           >
@@ -1901,8 +1990,8 @@ function QuicParamsForm({
       {showUdpHop && (
         <>
           <Form.Item
-            label="UDP Hop"
-            tooltip="Advertised to clients as a hop range; the server listens on its own port only"
+            label={i18next.t('ui.uDPHop')}
+            tooltip={i18next.t('ui.advertisedToClientsAsAHopRangeTheServerListensOnItsOwnPortOnly')}
           >
             <Switch
               checked={hasUdpHop}
@@ -1913,10 +2002,13 @@ function QuicParamsForm({
           </Form.Item>
           {hasUdpHop && (
             <>
-              <Form.Item label="Hop Ports" name={[...base, 'udpHop', 'ports']}>
+              <Form.Item label={i18next.t('ui.hopPorts')} name={[...base, 'udpHop', 'ports']}>
                 <Input placeholder="e.g. 20000-50000" />
               </Form.Item>
-              <Form.Item label="Hop Interval (s)" name={[...base, 'udpHop', 'interval']}>
+              <Form.Item
+                label={i18next.t('ui.hopIntervalS')}
+                name={[...base, 'udpHop', 'interval']}
+              >
                 <Input placeholder="e.g. 5-10" />
               </Form.Item>
             </>
@@ -1924,51 +2016,64 @@ function QuicParamsForm({
         </>
       )}
 
-      <Form.Item label="Max Idle Timeout (s)" name={[...base, 'maxIdleTimeout']}>
+      <Form.Item label={i18next.t('ui.maxIdleTimeoutS')} name={[...base, 'maxIdleTimeout']}>
         <InputNumber min={4} max={120} />
       </Form.Item>
-      <Form.Item label="Keep Alive Period (s)" name={[...base, 'keepAlivePeriod']}>
+      <Form.Item label={i18next.t('ui.keepAlivePeriodS')} name={[...base, 'keepAlivePeriod']}>
         <InputNumber min={2} max={60} />
       </Form.Item>
       <Form.Item
-        label="Disable Path MTU Dis"
+        label={i18next.t('ui.disablePathMTUDis')}
         name={[...base, 'disablePathMTUDiscovery']}
         valuePropName="checked"
       >
         <Switch />
       </Form.Item>
       <Form.Item
-        label="Disable Chrome Parrot"
+        label={i18next.t('ui.disableChromeParrot')}
         name={[...base, 'disableChromeParrot']}
         valuePropName="checked"
       >
         <Switch />
       </Form.Item>
-      <Form.Item label="Disable GSO" name={[...base, 'disableGSO']} valuePropName="checked">
+      <Form.Item
+        label={i18next.t('ui.disableGSO')}
+        name={[...base, 'disableGSO']}
+        valuePropName="checked"
+      >
         <Switch />
       </Form.Item>
       <Form.Item
-        label="Disable Stateless Reset"
+        label={i18next.t('ui.disableStatelessReset')}
         name={[...base, 'disableStatelessReset']}
         valuePropName="checked"
       >
         <Switch />
       </Form.Item>
 
-      <Form.Item label="Max Incoming Streams" name={[...base, 'maxIncomingStreams']}>
-        <InputNumber min={8} placeholder="1024 = default" />
+      <Form.Item label={i18next.t('ui.maxIncomingStreams')} name={[...base, 'maxIncomingStreams']}>
+        <InputNumber min={8} placeholder={i18next.t('ui.1024Default')} />
       </Form.Item>
-      <Form.Item label="Init Stream Window" name={[...base, 'initStreamReceiveWindow']}>
-        <InputNumber min={16384} placeholder="8388608 = default" />
+      <Form.Item
+        label={i18next.t('ui.initStreamWindow')}
+        name={[...base, 'initStreamReceiveWindow']}
+      >
+        <InputNumber min={16384} placeholder={i18next.t('ui.8388608Default')} />
       </Form.Item>
-      <Form.Item label="Max Stream Window" name={[...base, 'maxStreamReceiveWindow']}>
-        <InputNumber min={16384} placeholder="8388608 = default" />
+      <Form.Item label={i18next.t('ui.maxStreamWindow')} name={[...base, 'maxStreamReceiveWindow']}>
+        <InputNumber min={16384} placeholder={i18next.t('ui.8388608Default')} />
       </Form.Item>
-      <Form.Item label="Init Conn Window" name={[...base, 'initConnectionReceiveWindow']}>
-        <InputNumber min={16384} placeholder="20971520 = default" />
+      <Form.Item
+        label={i18next.t('ui.initConnWindow')}
+        name={[...base, 'initConnectionReceiveWindow']}
+      >
+        <InputNumber min={16384} placeholder={i18next.t('ui.20971520Default')} />
       </Form.Item>
-      <Form.Item label="Max Conn Window" name={[...base, 'maxConnectionReceiveWindow']}>
-        <InputNumber min={16384} placeholder="20971520 = default" />
+      <Form.Item
+        label={i18next.t('ui.maxConnWindow')}
+        name={[...base, 'maxConnectionReceiveWindow']}
+      >
+        <InputNumber min={16384} placeholder={i18next.t('ui.20971520Default')} />
       </Form.Item>
     </>
   );

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Divider, Modal, Popover, Tag, Tooltip, message } from 'antd';
@@ -759,7 +760,7 @@ export default function ClientInfoModal({
                       {parts ? (
                         <LinkTags parts={parts} />
                       ) : (
-                        <Tag className="link-row-tag">LINK</Tag>
+                        <Tag className="link-row-tag">{i18next.t('ui.lINK')}</Tag>
                       )}
                       <span className="link-row-title" title={rowTitle}>
                         {rowTitle}

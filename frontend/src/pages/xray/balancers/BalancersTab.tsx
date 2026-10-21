@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -364,9 +365,15 @@ export default function BalancersTab({
         </div>
       ),
     },
-    { title: 'Tag', dataIndex: 'tag', key: 'tag', align: 'center', width: 160 },
     {
-      title: 'Strategy',
+      title: i18next.t('pages.xray.balancer.tag'),
+      dataIndex: 'tag',
+      key: 'tag',
+      align: 'center',
+      width: 160,
+    },
+    {
+      title: i18next.t('pages.xray.balancer.balancerStrategy'),
       key: 'strategy',
       align: 'center',
       width: 140,
@@ -377,7 +384,7 @@ export default function BalancersTab({
       ),
     },
     {
-      title: 'Selector',
+      title: i18next.t('pages.xray.balancer.selector'),
       key: 'selector',
       align: 'center',
       render: (_v, record) =>
@@ -388,7 +395,7 @@ export default function BalancersTab({
         )),
     },
     {
-      title: 'Fallback',
+      title: i18next.t('pages.xray.balancer.fallback'),
       dataIndex: 'displayFallbackTag',
       key: 'displayFallbackTag',
       align: 'center',

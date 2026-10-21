@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Input, Select, Switch } from 'antd';
 
@@ -21,7 +22,7 @@ export default function MixedFields({ mixedUdpOn }: { mixedUdpOn: boolean }) {
         <Switch />
       </FormField>
       {mixedUdpOn && (
-        <FormField name={['settings', 'ip']} label="UDP IP">
+        <FormField name={['settings', 'ip']} label={i18next.t('ui.uDPIP')}>
           <Input />
         </FormField>
       )}

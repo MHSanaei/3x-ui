@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Alert, Form, InputNumber, Segmented, Select, Switch } from 'antd';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -91,8 +92,12 @@ export default function SockoptForm({
 
   return (
     <>
-      <Form.Item label="Sockopt">
-        <Switch checked={on} onChange={toggleSockopt} aria-label="Sockopt" />
+      <Form.Item label={i18next.t('pages.hosts.fields.sockoptParams')}>
+        <Switch
+          checked={on}
+          onChange={toggleSockopt}
+          aria-label={i18next.t('pages.hosts.fields.sockoptParams')}
+        />
       </Form.Item>
       {on && (
         <>
@@ -208,8 +213,8 @@ export default function SockoptForm({
             <Select
               style={{ width: '50%' }}
               options={[
-                { value: 'off', label: 'Off' },
-                { value: 'redirect', label: 'Redirect' },
+                { value: 'off', label: i18next.t('pages.settings.subHappPerAppOff') },
+                { value: 'redirect', label: i18next.t('pages.xray.outboundForm.redirect') },
                 { value: 'tproxy', label: 'TProxy' },
               ]}
             />

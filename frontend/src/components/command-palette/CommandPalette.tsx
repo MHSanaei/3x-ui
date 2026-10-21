@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
@@ -812,7 +813,7 @@ export default function CommandPalette() {
                 {t('close')}
               </span>
             </div>
-            <span>3x-ui Command Palette</span>
+            <span>{i18next.t('ui.3xUiCommandPalette')}</span>
           </div>
         </div>
       </div>

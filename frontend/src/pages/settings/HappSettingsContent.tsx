@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select, Space, Switch, Tabs, message } from 'antd';
@@ -150,7 +151,7 @@ export default function HappSettingsContent({
                   <Input.TextArea
                     value={allSetting.subRoutingRules}
                     rows={4}
-                    placeholder="happ://routing/onadd/... or https://.../DEFAULT.DEEPLINK"
+                    placeholder={i18next.t('ui.happRoutingOnaddOrHttpsDEFAULTDEEPLINK')}
                     onChange={(e) => updateSetting({ subRoutingRules: e.target.value })}
                   />
                 </SettingListItem>
@@ -196,7 +197,7 @@ export default function HappSettingsContent({
                   <Input
                     value={allSetting.subHappSubInfoText}
                     maxLength={200}
-                    placeholder="Welcome to our high-speed network!"
+                    placeholder={i18next.t('ui.welcomeToOurHighSpeedNetwork')}
                     onChange={(e) => updateSetting({ subHappSubInfoText: e.target.value })}
                   />
                 </SettingListItem>
@@ -226,7 +227,7 @@ export default function HappSettingsContent({
                   <Input
                     value={allSetting.subHappSubInfoButtonText}
                     maxLength={25}
-                    placeholder="Support Channel"
+                    placeholder={i18next.t('ui.supportChannel')}
                     onChange={(e) => updateSetting({ subHappSubInfoButtonText: e.target.value })}
                   />
                 </SettingListItem>
@@ -285,7 +286,7 @@ export default function HappSettingsContent({
                   <Space orientation="vertical" style={{ width: '100%' }}>
                     <Input
                       value={allSetting.subHappColorProfile}
-                      placeholder='{"serverRowBackgroundColor":"#21003D67"} or resetcolors'
+                      placeholder={i18next.t('ui.serverRowBackgroundColor21003D67OrResetcolors')}
                       onChange={(e) => updateSetting({ subHappColorProfile: e.target.value })}
                     />
                     <Space wrap size="small">
@@ -304,7 +305,7 @@ export default function HappSettingsContent({
                           })
                         }
                       >
-                        Violet
+                        {i18next.t('ui.violet')}
                       </Button>
                       <Button
                         size="small"
@@ -315,7 +316,7 @@ export default function HappSettingsContent({
                           })
                         }
                       >
-                        Turquoise
+                        {i18next.t('ui.turquoise')}
                       </Button>
                     </Space>
                   </Space>
