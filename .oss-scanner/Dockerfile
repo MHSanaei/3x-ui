@@ -4,7 +4,7 @@
 
 FROM node:26-trixie-slim AS node
 
-FROM golang:1.27.2-trixie
+FROM golang:1.27.3-trixie
 
 ENV DEBIAN_FRONTEND=noninteractive \
     CGO_ENABLED=1 \
