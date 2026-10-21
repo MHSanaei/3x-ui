@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { act, cleanup, fireEvent, waitFor } from '@testing-library/react';
 
 import SubBalancerFormModal from '@/pages/settings/SubBalancerFormModal';
 import type { SubBalancer } from '@/schemas/subBalancer';
@@ -83,6 +83,22 @@ function weightInputs(): HTMLInputElement[] {
     document.querySelectorAll<HTMLInputElement>('.sub-balancer-weights .ant-input-number-input'),
   );
 }
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  vi.stubGlobal('jest', { advanceTimersByTime: vi.advanceTimersByTime });
+});
+
+afterEach(async () => {
+  // Settle AntD's deferred validation before jsdom releases window.
+  await act(async () => {
+    await vi.runOnlyPendingTimersAsync();
+  });
+  cleanup();
+  vi.clearAllTimers();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe('SubBalancerFormModal', () => {
   it('shows no validation errors when freshly opened in add mode', () => {
