@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DBInbound } from '@/models/dbinbound';
 import FallbacksCard from '@/pages/inbounds/form/FallbacksCard';
@@ -492,5 +492,92 @@ describe('FallbacksCard proxy protocol warning', () => {
     expect(screen.queryByText(WARNING)).toBeNull();
     fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '0' } });
     expect(screen.getAllByText(WARNING)).toHaveLength(1);
+  });
+});
+
+describe('fallback proxy protocol follow-ups', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('re-derives an auto-filled row when the picker switches children', () => {
+    const master = inbound(1, { network: 'tcp' });
+    const on = inbound(2, { network: 'tcp', tcpSettings: { acceptProxyProtocol: true } });
+    const off = inbound(3, { network: 'tcp', tcpSettings: { acceptProxyProtocol: false } });
+    const { result } = renderHook(() => useInboundFallbacks(master, [master, on, off]));
+    act(() => result.current.addFallback());
+    const key = result.current.fallbacks[0].rowKey;
+
+    act(() => result.current.updateFallback(key, { childId: 2 }));
+    expect(result.current.fallbacks[0]).toMatchObject({ childId: 2, xver: 1 });
+    act(() => result.current.updateFallback(key, { childId: 3 }));
+    expect(result.current.fallbacks[0]).toMatchObject({ childId: 3, xver: 0 });
+
+    act(() => result.current.updateFallback(key, { childId: 2 }));
+    act(() => result.current.updateFallback(key, { xver: 2 }));
+    act(() => result.current.updateFallback(key, { childId: 3 }));
+    expect(result.current.fallbacks[0]).toMatchObject({ childId: 3, xver: 2 });
+  });
+
+  it('bumps saved xver 0 rows once their child accepts PROXY protocol', async () => {
+    const master = inbound(1, { network: 'tcp', security: 'tls' });
+    const other = inbound(4, { network: 'tcp', security: 'tls' });
+    const child = inbound(2, { network: 'ws', wsSettings: { path: '/vlws' } });
+    const stored: Record<number, unknown[]> = {
+      1: [
+        { childId: 2, name: 'kept', alpn: 'h2', path: '/vlws', dest: '', xver: 0, sortOrder: 0 },
+        { childId: 2, name: '', alpn: '', path: '', dest: '8443', xver: 0, sortOrder: 1 },
+        { childId: 3, name: '', alpn: '', path: '', dest: '', xver: 0, sortOrder: 2 },
+      ],
+      4: [{ childId: 2, name: '', alpn: '', path: '', dest: '', xver: 2, sortOrder: 0 }],
+    };
+    vi.spyOn(HttpUtil, 'get').mockImplementation(async (url) => {
+      const id = Number(String(url).match(/inbounds\/(\d+)\//)?.[1]);
+      return new Msg(true, '', stored[id] ?? []);
+    });
+    const posted: [string, unknown][] = [];
+    vi.spyOn(HttpUtil, 'post').mockImplementation(async (url, data) => {
+      posted.push([String(url), data]);
+      return new Msg(true, '', null);
+    });
+    const { result } = renderHook(() => useInboundFallbacks(child, [master, child, other]));
+
+    await act(async () => {
+      await result.current.syncChildProxyProtocol(
+        2,
+        '{"network":"ws","wsSettings":{"path":"/vlws"}}',
+      );
+    });
+    expect(posted).toEqual([]);
+
+    await act(async () => {
+      expect(
+        await result.current.syncChildProxyProtocol(
+          2,
+          JSON.stringify({
+            network: 'ws',
+            wsSettings: { acceptProxyProtocol: true, path: '/vlws' },
+          }),
+        ),
+      ).toBe(true);
+    });
+    expect(posted).toEqual([
+      [
+        '/panel/api/inbounds/1/fallbacks',
+        {
+          fallbacks: [
+            {
+              childId: 2,
+              name: 'kept',
+              alpn: 'h2',
+              path: '/vlws',
+              dest: '',
+              xver: 1,
+              sortOrder: 0,
+            },
+            { childId: 2, name: '', alpn: '', path: '', dest: '8443', xver: 0, sortOrder: 1 },
+            { childId: 3, name: '', alpn: '', path: '', dest: '', xver: 0, sortOrder: 2 },
+          ],
+        },
+      ],
+    ]);
   });
 });
