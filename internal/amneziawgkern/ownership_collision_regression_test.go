@@ -161,3 +161,134 @@ func TestEnsureRefusesForeignInterfaceBeforeConfigOrRuntimeMutation(t *testing.T
 		})
 	}
 }
+
+func TestEnsureDoesNotOverwriteForeignConfigWithoutLiveLink(t *testing.T) {
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.Id = 75
+	inst.InterfaceName = ownedInterfaceName(inst.Id)
+	path := writeTestConfig(t, dir, inst.InterfaceName, "[Interface]\nPrivateKey = foreign\n")
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writes := 0
+	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
+		linkExists: func(string) bool { return false },
+		writeConf: func(dir, name, conf string) error {
+			writes++
+			return writeConf(dir, name, conf)
+		},
+	}}
+	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err == nil || !strings.Contains(err.Error(), "refusing") {
+		t.Fatalf("Ensure error = %v, want refusal to replace the foreign config", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(before) || writes != 0 {
+		t.Fatalf("foreign config changed: read error=%v writes=%d", err, writes)
+	}
+}
+
+func TestEnsureDoesNotTearDownUnmarkedConfigWhenLiveLinkDoesNotMatch(t *testing.T) {
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.Id = 76
+	inst.InterfaceName = ownedInterfaceName(inst.Id)
+	path := writeTestConfig(t, dir, inst.InterfaceName, "[Interface]\nPrivateKey = foreign\n")
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	linkUp := true
+	var mutations [][]string
+	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
+		linkExists:           func(string) bool { return linkUp },
+		liveInterfaceMatches: func(string, amneziawg.Instance) bool { return false },
+		run: func(name string, args ...string) (string, error) {
+			mutations = append(mutations, append([]string{name}, args...))
+			if name == "ip" && len(args) == 3 && args[0] == "link" && args[1] == "del" {
+				linkUp = false
+			}
+			return "", nil
+		},
+	}}
+	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err == nil || !strings.Contains(err.Error(), "refusing") {
+		t.Fatalf("Ensure error = %v, want refusal to touch the foreign link", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(before) || !linkUp || len(mutations) != 0 {
+		t.Fatalf("foreign config/link changed: read error=%v linkUp=%v commands=%v", err, linkUp, mutations)
+	}
+}
+
+func TestEnsureRejectsForeignConfigBeforeManagedFastPath(t *testing.T) {
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.Id = 77
+	inst.InterfaceName = ownedInterfaceName(inst.Id)
+	conf, err := Render(inst, "eth0", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := writeTestConfig(t, dir, inst.InterfaceName, "[Interface]\nPrivateKey = foreign\n")
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writes, syncs := 0, 0
+	m := &Manager{ifaces: map[int]*managed{inst.Id: {name: inst.InterfaceName, conf: conf}}, confDir: dir, ops: managerOps{
+		linkExists: func(string) bool { return true },
+		writeConf: func(dir, name, conf string) error {
+			writes++
+			return writeConf(dir, name, conf)
+		},
+		syncPeers: func(string) error {
+			syncs++
+			return nil
+		},
+	}}
+	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err == nil || !strings.Contains(err.Error(), "refusing") {
+		t.Fatalf("Ensure error = %v, want refusal before cached fast path", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(before) || writes != 0 || syncs != 0 {
+		t.Fatalf("foreign config changed or managed path ran: read error=%v writes=%d syncs=%d", err, writes, syncs)
+	}
+}
+
+func TestRemoveRefusesOwnedConfigWithForeignLiveInterfaceKey(t *testing.T) {
+	dir := t.TempDir()
+	inst := testInstance()
+	inst.Id = 78
+	inst.InterfaceName = ownedInterfaceName(inst.Id)
+	inst.PrivateKey = base64.StdEncoding.EncodeToString(make([]byte, 32))
+	conf, err := Render(inst, "eth0", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := writeTestConfig(t, dir, inst.InterfaceName, conf)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	linkUp := true
+	var mutations [][]string
+	m := &Manager{ifaces: map[int]*managed{}, confDir: dir, ops: managerOps{
+		linkExists: func(string) bool { return linkUp },
+		run: func(name string, args ...string) (string, error) {
+			if name == "awg" && len(args) == 3 && args[0] == "show" && args[1] == inst.InterfaceName && args[2] == "public-key" {
+				return "foreign-interface-public-key", nil
+			}
+			mutations = append(mutations, append([]string{name}, args...))
+			linkUp = false
+			return "", nil
+		},
+	}}
+	if err := m.Remove(inst.Id); err == nil || !strings.Contains(err.Error(), "refusing") {
+		t.Fatalf("Remove error = %v, want refusal before stopping a foreign interface", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(before) || !linkUp || len(mutations) != 0 {
+		t.Fatalf("foreign link/config changed: read error=%v linkUp=%v commands=%v", err, linkUp, mutations)
+	}
+}
