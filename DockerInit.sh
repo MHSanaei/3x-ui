@@ -2,28 +2,56 @@
 set -e
 case $1 in
     amd64)
-        ARCH="64"
         FNAME="amd64"
+        XRAY_FNAME="amd64"
+        XRAY_GOARCH="amd64"
         ;;
-    i386)
-        ARCH="32"
-        FNAME="i386"
+    i386 | 386)
+        FNAME="386"
+        XRAY_FNAME="386"
+        XRAY_GOARCH="386"
         ;;
     armv8 | arm64 | aarch64)
-        ARCH="arm64-v8a"
         FNAME="arm64"
+        XRAY_FNAME="arm64"
+        XRAY_GOARCH="arm64"
         ;;
-    armv7 | arm | arm32)
-        ARCH="arm32-v7a"
+    arm)
+        case ${2:-v7} in
+            v6)
+                FNAME="armv6"
+                XRAY_FNAME="arm32"
+                XRAY_GOARCH="arm"
+                XRAY_GOARM="6"
+                ;;
+            v7 | "")
+                FNAME="arm32"
+                XRAY_FNAME="arm32"
+                XRAY_GOARCH="arm"
+                XRAY_GOARM="7"
+                ;;
+            *)
+                echo "DockerInit: unsupported ARM variant: $2" >&2
+                exit 1
+                ;;
+        esac
+        ;;
+    armv7 | arm32)
         FNAME="arm32"
+        XRAY_FNAME="arm32"
+        XRAY_GOARCH="arm"
+        XRAY_GOARM="7"
         ;;
     armv6)
-        ARCH="arm32-v6"
         FNAME="armv6"
+        XRAY_FNAME="arm32"
+        XRAY_GOARCH="arm"
+        XRAY_GOARM="6"
         ;;
     *)
-        ARCH="64"
         FNAME="amd64"
+        XRAY_FNAME="amd64"
+        XRAY_GOARCH="amd64"
         ;;
 esac
 MTG_MULTI_VER=$(curl -sfL "https://api.github.com/repos/mhsanaei/mtg-multi/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
@@ -32,15 +60,14 @@ if [ -z "$MTG_MULTI_VER" ]; then
     exit 1
 fi
 mkdir -p build/bin
+env CGO_ENABLED=0 GOOS=linux GOARCH="${XRAY_GOARCH}" GOARM="${XRAY_GOARM:-7}" go build -mod=readonly -ldflags="-s -w" -o "$(pwd)/build/bin/xray" github.com/xtls/xray-core/main
 cd build/bin
-curl -sfLRO "https://github.com/XTLS/Xray-core/releases/download/v26.10.10/Xray-linux-${ARCH}.zip"
-unzip "Xray-linux-${ARCH}.zip"
-rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
-mv xray "xray-linux-${FNAME}"
+rm -f geoip.dat geosite.dat
+mv xray "xray-linux-${XRAY_FNAME}"
 # mtg-multi (MTProto sidecar) ships prebuilt release binaries for every target
 # we package, so download and unpack the matching one instead of compiling.
 case $FNAME in
-    i386) MTGARCH="386" ;;
+    386) MTGARCH="386" ;;
     arm32) MTGARCH="armv7" ;;
     *) MTGARCH="$FNAME" ;;
 esac
