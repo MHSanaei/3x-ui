@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -79,7 +78,7 @@ func currentXrayProcess() *xray.Process {
 }
 
 // ErrXrayNotRunning reports an operation that requires a running core when xray is stopped.
-var ErrXrayNotRunning = errors.New("xray is not running")
+var ErrXrayNotRunning = xray.ErrXrayNotRunning
 
 // XrayService provides business logic for Xray process management.
 // It handles starting, stopping, restarting Xray, and managing its configuration.

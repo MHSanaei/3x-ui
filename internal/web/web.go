@@ -812,7 +812,7 @@ func (s *Server) stop(stopXray bool, stopTgBot bool) error {
 	}
 	if s.listener != nil {
 		// httpServer.Shutdown already closes the listener; ignore closed errors.
-		if err := s.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) && !strings.Contains(err.Error(), "use of closed network connection") {
+		if err := s.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 			err1 = common.Combine(err1, err)
 		}
 	}
