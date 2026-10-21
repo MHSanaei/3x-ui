@@ -586,11 +586,6 @@ func (t *Tgbot) randomLowerAndNum(length int) string {
 	return string(bytes)
 }
 
-// int64Contains checks if an int64 slice contains a specific item.
-func int64Contains(slice []int64, item int64) bool {
-	return slices.Contains(slice, item)
-}
-
 // isSingleWord checks if the text contains only a single word.
 func (t *Tgbot) isSingleWord(text string) bool {
 	text = strings.TrimSpace(text)
