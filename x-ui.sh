@@ -3475,75 +3475,171 @@ migrate_db_prompt() {
     migrate_db "$input" "$output"
 }
 
+
 show_usage() {
-    echo -e "┌────────────────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}                       │
-│                                                                │
-│  ${blue}x-ui${plain}                       - Admin Management Script          │
-│  ${blue}x-ui start${plain}                 - Start                            │
-│  ${blue}x-ui stop${plain}                  - Stop                             │
-│  ${blue}x-ui restart${plain}               - Restart                          │
-|  ${blue}x-ui restart-xray${plain}          - Restart Xray                     │
-│  ${blue}x-ui status${plain}                - Current Status                   │
-│  ${blue}x-ui settings${plain}              - Current Settings                 │
-│  ${blue}x-ui enable${plain}                - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}               - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}                   - Check logs                       │
-│  ${blue}x-ui banlog${plain}                - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}                - Update                           │
-│  ${blue}x-ui update-dev${plain}            - Update to Dev channel (latest)   │
-│  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files             │
-│  ${blue}x-ui migrateDB [file]${plain}      - Convert .db <-> .dump (SQLite)   │
-│  ${blue}x-ui pgclient [ver]${plain}        - Upgrade pg_dump/pg_restore tools │
-│  ${blue}x-ui legacy${plain}                - Legacy version                   │
-│  ${blue}x-ui install${plain}               - Install                          │
-│  ${blue}x-ui uninstall${plain}             - Uninstall                        │
+    local MENU_LANG_FILE="/usr/local/x-ui/language.conf"
+    local MENU_LANG="en"
+
+    if [[ -f "$MENU_LANG_FILE" ]]; then
+        IFS= read -r MENU_LANG < "$MENU_LANG_FILE" || true
+    fi
+    [[ "$MENU_LANG" == "zh" ]] || MENU_LANG="en"
+
+    if [[ "$MENU_LANG" == "zh" ]]; then
+        echo -e "┌────────────────────────────────────────────────────────────────┐
+│  ${blue}x-ui 控制菜单用法（子命令）${plain}
+│
+│  ${blue}x-ui${plain}                       - 管理菜单
+│  ${blue}x-ui start${plain}                 - 启动服务
+│  ${blue}x-ui stop${plain}                  - 停止服务
+│  ${blue}x-ui restart${plain}               - 重启服务
+│  ${blue}x-ui restart-xray${plain}          - 重启 Xray
+│  ${blue}x-ui status${plain}                - 查看运行状态
+│  ${blue}x-ui settings${plain}              - 查看当前设置
+│  ${blue}x-ui enable${plain}                - 启用开机自启
+│  ${blue}x-ui disable${plain}               - 禁用开机自启
+│  ${blue}x-ui log${plain}                   - 查看日志
+│  ${blue}x-ui banlog${plain}                - 查看 Fail2ban 封禁日志
+│  ${blue}x-ui update${plain}                - 更新程序
+│  ${blue}x-ui update-dev${plain}            - 更新至开发版（最新提交）
+│  ${blue}x-ui update-all-geofiles${plain}   - 更新所有 Geo 文件
+│  ${blue}x-ui migrateDB [file]${plain}      - 转换 SQLite .db 与 .dump 文件
+│  ${blue}x-ui pgclient [ver]${plain}        - 更新 pg_dump/pg_restore 工具
+│  ${blue}x-ui legacy${plain}                - 切换旧版本
+│  ${blue}x-ui install${plain}               - 安装程序
+│  ${blue}x-ui uninstall${plain}             - 卸载程序
 └────────────────────────────────────────────────────────────────┘"
+    else
+        echo -e "┌────────────────────────────────────────────────────────────────┐
+│  ${blue}x-ui control menu usages (subcommands):${plain}
+│
+│  ${blue}x-ui${plain}                       - Admin Management Script
+│  ${blue}x-ui start${plain}                 - Start
+│  ${blue}x-ui stop${plain}                  - Stop
+│  ${blue}x-ui restart${plain}               - Restart
+│  ${blue}x-ui restart-xray${plain}          - Restart Xray
+│  ${blue}x-ui status${plain}                - Current Status
+│  ${blue}x-ui settings${plain}              - Current Settings
+│  ${blue}x-ui enable${plain}                - Enable Autostart on OS Startup
+│  ${blue}x-ui disable${plain}               - Disable Autostart on OS Startup
+│  ${blue}x-ui log${plain}                   - Check logs
+│  ${blue}x-ui banlog${plain}                - Check Fail2ban ban logs
+│  ${blue}x-ui update${plain}                - Update
+│  ${blue}x-ui update-dev${plain}            - Update to Dev channel (latest)
+│  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files
+│  ${blue}x-ui migrateDB [file]${plain}      - Convert .db <-> .dump (SQLite)
+│  ${blue}x-ui pgclient [ver]${plain}        - Upgrade pg_dump/pg_restore tools
+│  ${blue}x-ui legacy${plain}                - Legacy version
+│  ${blue}x-ui install${plain}               - Install
+│  ${blue}x-ui uninstall${plain}             - Uninstall
+└────────────────────────────────────────────────────────────────┘"
+    fi
 }
 
 show_menu() {
-    echo -e "
+    local MENU_LANG_FILE="/usr/local/x-ui/language.conf"
+    local MENU_LANG="en"
+
+    if [[ -f "$MENU_LANG_FILE" ]]; then
+        IFS= read -r MENU_LANG < "$MENU_LANG_FILE" || true
+    fi
+    [[ "$MENU_LANG" == "zh" ]] || MENU_LANG="en"
+
+    if [[ "$MENU_LANG" == "zh" ]]; then
+        echo -e "
 ╔────────────────────────────────────────────────╗
-│  ${green}3X-UI Panel Management Script${plain}                │
-│  ${green}0.${plain} Exit Script                               │
+│  ${green}3X-UI 面板管理脚本${plain}
+│  ${green}0.${plain} 退出脚本
 │────────────────────────────────────────────────│
-│  ${green}1.${plain} Install                                   │
-│  ${green}2.${plain} Update                                    │
-│  ${green}3.${plain} Update to Dev Channel (latest commit)     │
-│  ${green}4.${plain} Update Menu                               │
-│  ${green}5.${plain} Legacy Version                            │
-│  ${green}6.${plain} Uninstall                                 │
+│  ${green}1.${plain} 安装
+│  ${green}2.${plain} 更新
+│  ${green}3.${plain} 更新至开发版（最新提交）
+│  ${green}4.${plain} 更新菜单
+│  ${green}5.${plain} 旧版本管理
+│  ${green}6.${plain} 卸载
 │────────────────────────────────────────────────│
-│  ${green}7.${plain} Reset Username & Password                 │
-│  ${green}8.${plain} Reset Web Base Path                       │
-│  ${green}9.${plain} Reset Settings                            │
-│  ${green}10.${plain} Change Port                              │
-│  ${green}11.${plain} View Current Settings                    │
+│  ${green}7.${plain} 重置用户名和密码
+│  ${green}8.${plain} 重置 Web 访问路径
+│  ${green}9.${plain} 重置设置
+│  ${green}10.${plain} 修改端口
+│  ${green}11.${plain} 查看当前设置
 │────────────────────────────────────────────────│
-│  ${green}12.${plain} Start                                    │
-│  ${green}13.${plain} Stop                                     │
-│  ${green}14.${plain} Restart                                  │
-|  ${green}15.${plain} Restart Xray                             │
-│  ${green}16.${plain} Check Status                             │
-│  ${green}17.${plain} Logs Management                          │
+│  ${green}12.${plain} 启动服务
+│  ${green}13.${plain} 停止服务
+│  ${green}14.${plain} 重启服务
+│  ${green}15.${plain} 重启 Xray
+│  ${green}16.${plain} 查看运行状态
+│  ${green}17.${plain} 日志管理
 │────────────────────────────────────────────────│
-│  ${green}18.${plain} Enable Autostart                         │
-│  ${green}19.${plain} Disable Autostart                        │
+│  ${green}18.${plain} 启用开机自启
+│  ${green}19.${plain} 禁用开机自启
 │────────────────────────────────────────────────│
-│  ${green}20.${plain} SSL Certificate Management               │
-│  ${green}21.${plain} Cloudflare SSL Certificate               │
-│  ${green}22.${plain} IP Limit Management                      │
-│  ${green}23.${plain} Firewall Management                      │
-│  ${green}24.${plain} SSH Port Forwarding Management           │
-│  ${green}25.${plain} PostgreSQL Management                    │
+│  ${green}20.${plain} SSL 证书管理
+│  ${green}21.${plain} Cloudflare SSL 证书
+│  ${green}22.${plain} IP 限制管理
+│  ${green}23.${plain} 防火墙管理
+│  ${green}24.${plain} SSH 端口转发管理
+│  ${green}25.${plain} PostgreSQL 管理
 │────────────────────────────────────────────────│
-│  ${green}26.${plain} Enable BBR                               │
-│  ${green}27.${plain} Update Geo Files                         │
-│  ${green}28.${plain} Speedtest by Ookla                       │
+│  ${green}26.${plain} 启用 BBR
+│  ${green}27.${plain} 更新 Geo 文件
+│  ${green}28.${plain} Ookla 网络测速
+│────────────────────────────────────────────────│
+│  ${green}29.${plain} 切换中英文菜单
 ╚────────────────────────────────────────────────╝
 "
+    else
+        echo -e "
+╔────────────────────────────────────────────────╗
+│  ${green}3X-UI Panel Management Script${plain}
+│  ${green}0.${plain} Exit Script
+│────────────────────────────────────────────────│
+│  ${green}1.${plain} Install
+│  ${green}2.${plain} Update
+│  ${green}3.${plain} Update to Dev Channel (latest commit)
+│  ${green}4.${plain} Update Menu
+│  ${green}5.${plain} Legacy Version
+│  ${green}6.${plain} Uninstall
+│────────────────────────────────────────────────│
+│  ${green}7.${plain} Reset Username & Password
+│  ${green}8.${plain} Reset Web Base Path
+│  ${green}9.${plain} Reset Settings
+│  ${green}10.${plain} Change Port
+│  ${green}11.${plain} View Current Settings
+│────────────────────────────────────────────────│
+│  ${green}12.${plain} Start
+│  ${green}13.${plain} Stop
+│  ${green}14.${plain} Restart
+│  ${green}15.${plain} Restart Xray
+│  ${green}16.${plain} Check Status
+│  ${green}17.${plain} Logs Management
+│────────────────────────────────────────────────│
+│  ${green}18.${plain} Enable Autostart
+│  ${green}19.${plain} Disable Autostart
+│────────────────────────────────────────────────│
+│  ${green}20.${plain} SSL Certificate Management
+│  ${green}21.${plain} Cloudflare SSL Certificate
+│  ${green}22.${plain} IP Limit Management
+│  ${green}23.${plain} Firewall Management
+│  ${green}24.${plain} SSH Port Forwarding Management
+│  ${green}25.${plain} PostgreSQL Management
+│────────────────────────────────────────────────│
+│  ${green}26.${plain} Enable BBR
+│  ${green}27.${plain} Update Geo Files
+│  ${green}28.${plain} Speedtest by Ookla
+│────────────────────────────────────────────────│
+│  ${green}29.${plain} Switch Chinese / English
+╚────────────────────────────────────────────────╝
+"
+    fi
+
     show_status
-    echo && read -rp "Please enter your selection [0-28]: " num
+
+    if [[ "$MENU_LANG" == "zh" ]]; then
+        read -rp "请输入选项 [0-29]: " num
+    else
+        read -rp "Please enter your selection [0-29]: " num
+    fi
 
     case "${num}" in
         0)
@@ -3633,8 +3729,25 @@ show_menu() {
         28)
             run_speedtest
             ;;
+        29)
+            if [[ "$MENU_LANG" == "zh" ]]; then
+                printf '%s\n' "en" > "$MENU_LANG_FILE"
+                chmod 600 "$MENU_LANG_FILE"
+                echo "Language switched to English."
+            else
+                printf '%s\n' "zh" > "$MENU_LANG_FILE"
+                chmod 600 "$MENU_LANG_FILE"
+                echo "语言已切换为中文。"
+            fi
+            show_menu
+            return
+            ;;
         *)
-            LOGE "Please enter the correct number [0-28]"
+            if [[ "$MENU_LANG" == "zh" ]]; then
+                LOGE "请输入正确的选项 [0-29]"
+            else
+                LOGE "Please enter the correct number [0-29]"
+            fi
             ;;
     esac
 }
