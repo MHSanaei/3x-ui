@@ -51,11 +51,12 @@ func TestEnsureAdoptionPreservesTrafficBaselineUntilDump(t *testing.T) {
 	if err := writeConf(dir, inst.InterfaceName, conf); err != nil {
 		t.Fatal(err)
 	}
+	linkUp := true
 	m := &Manager{
 		ifaces:  map[int]*managed{},
 		confDir: dir,
 		ops: managerOps{
-			linkExists:           func(string) bool { return true },
+			linkExists:           func(string) bool { return linkUp },
 			liveInterfaceMatches: func(string, amneziawg.Instance) bool { return true },
 			syncPeers:            func(string) error { return nil },
 			run: func(name string, args ...string) (string, error) {
@@ -63,12 +64,18 @@ func TestEnsureAdoptionPreservesTrafficBaselineUntilDump(t *testing.T) {
 					return managerTestPublicKey(t), nil
 				}
 				commands = append(commands, append([]string{name}, args...))
+				if name == "awg-quick" && len(args) == 2 && args[0] == "down" {
+					linkUp = false
+				}
+				if name == "awg-quick" && len(args) == 2 && args[0] == "up" {
+					linkUp = true
+				}
 				return "", nil
 			},
 		},
 	}
 	collector := NewCollector()
-	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err != nil {
 		t.Fatalf("Ensure adopted interface: %v", err)
 	}
 	state, ok := m.TrafficStateFor(inst.Id)
@@ -77,7 +84,7 @@ func TestEnsureAdoptionPreservesTrafficBaselineUntilDump(t *testing.T) {
 	}
 
 	inst.Peers = append(inst.Peers, amneziawg.Peer{PublicKey: "newPeerPublicKeyBase64ValueForTests000000="})
-	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err != nil {
 		t.Fatalf("Ensure peer sync: %v", err)
 	}
 	afterSync, _ := m.TrafficStateFor(inst.Id)
@@ -101,7 +108,7 @@ func TestEnsureAdoptionPreservesTrafficBaselineUntilDump(t *testing.T) {
 	}
 
 	inst.MTU++
-	if err := m.Ensure(Desired{Instance: inst}); err != nil {
+	if err := m.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err != nil {
 		t.Fatalf("Ensure rebuilt interface: %v", err)
 	}
 	afterRebuild, _ := m.TrafficStateFor(inst.Id)

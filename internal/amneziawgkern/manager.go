@@ -121,13 +121,12 @@ func (m *Manager) ensureLocked(d Desired) error {
 		return nil
 	}
 
-	if err := m.writeConf(m.confDir, name, conf); err != nil {
-		return err
-	}
-
 	// Adopt an interface that outlived the panel.
-	if !exists && linkUp && m.liveInterfaceMatches(name, inst) {
+	if !exists && linkUp && structuralFingerprint(ownedConfig) == fp && m.liveInterfaceMatches(name, inst) {
 		if err := m.verifyLiveInterface(name, ownedConfig); err != nil {
+			return err
+		}
+		if err := m.writeConf(m.confDir, name, conf); err != nil {
 			return err
 		}
 		if err := m.syncPeers(name); err == nil {
@@ -142,6 +141,9 @@ func (m *Manager) ensureLocked(d Desired) error {
 	// Reconfigure in place only when we know the interface is genuinely ours and structurally unchanged.
 	if exists && cur.structFP == fp && linkUp {
 		if err := m.verifyLiveInterface(name, ownedConfig); err != nil {
+			return err
+		}
+		if err := m.writeConf(m.confDir, name, conf); err != nil {
 			return err
 		}
 		if err := m.syncPeers(name); err != nil {
@@ -169,11 +171,17 @@ func (m *Manager) ensureLocked(d Desired) error {
 				if verifyErr := m.verifyLiveInterface(name, ownedConfig); verifyErr != nil {
 					return verifyErr
 				}
-			}
-			if out, err := m.run("ip", "link", "del", name); err != nil {
-				return fmt.Errorf("amneziawgkern: removing stale link %s: %w (%s)", name, err, out)
+				if out, err := m.run("ip", "link", "del", name); err != nil {
+					return fmt.Errorf("amneziawgkern: removing stale link %s: %w (%s)", name, err, out)
+				}
 			}
 		}
+	}
+	if m.linkExists(name) {
+		return fmt.Errorf("amneziawgkern: refusing to replace config while interface %s is still running", name)
+	}
+	if err := m.writeConf(m.confDir, name, conf); err != nil {
+		return err
 	}
 	if out, err := m.run("awg-quick", "up", name); err != nil {
 		return fmt.Errorf("amneziawgkern: awg-quick up %s: %w (%s)", name, err, out)

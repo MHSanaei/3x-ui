@@ -191,12 +191,12 @@ func TestStopAllThenFreshManagerAdoptsDesiredOwnedInterface(t *testing.T) {
 		}}
 	}
 	first := newManager()
-	if err := first.Ensure(Desired{Instance: inst}); err != nil {
+	if err := first.Ensure(Desired{Instance: inst, EgressInterface: "eth0"}); err != nil {
 		t.Fatal(err)
 	}
 	first.StopAll()
 	second := newManager()
-	second.Reconcile([]Desired{{Instance: inst}})
+	second.Reconcile([]Desired{{Instance: inst, EgressInterface: "eth0"}})
 	state, ok := second.TrafficStateFor(inst.Id)
 	if !ok || !state.Adopted {
 		t.Fatalf("restarted manager state = %+v, %v; want adopted baseline pending", state, ok)
