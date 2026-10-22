@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Popover, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -15,6 +14,7 @@ import {
 
 import type { HostRecord } from '@/api/queries/useHostsQuery';
 import type { InboundOption } from '@/schemas/client';
+import { usePointerRowReorder, type PointerRowDrop } from '@/hooks/usePointerRowReorder';
 import './HostList.css';
 
 interface HostListProps {
@@ -63,6 +63,12 @@ export function sortHosts(hosts: HostRecord[]): HostRecord[] {
   });
 }
 
+function hostDropDestination(keys: string[], { from, to, after }: PointerRowDrop<string>) {
+  const source = keys.indexOf(from);
+  const slot = keys.indexOf(to) + (after ? 1 : 0);
+  return slot - (source < slot ? 1 : 0);
+}
+
 export default function HostList(props: HostListProps) {
   const { t } = useTranslation();
   const {
@@ -90,72 +96,21 @@ export default function HostList(props: HostListProps) {
   }, [inboundOptions]);
 
   const sorted = useMemo(() => sortHosts(hosts), [hosts]);
-  const [drag, setDrag] = useState<{ from: string; to: string; after: boolean } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
-  const stopDrag = useRef<(() => void) | null>(null);
-  useEffect(() => () => stopDrag.current?.(), []);
-
-  function onHandlePointerDown(from: string, event: ReactPointerEvent<HTMLElement>) {
-    if (
-      reordering ||
-      loading ||
-      event.isPrimary === false ||
-      (event.button != null && event.button !== 0)
-    )
-      return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    stopDrag.current?.();
-    let to = from;
-    let after = false;
-    let moved = false;
-    const pointerId = event.pointerId;
-    const startY = event.clientY;
-    setDrag({ from, to, after });
-    const move = (e: PointerEvent) => {
-      if (e.pointerId !== pointerId || Math.abs(e.clientY - startY) < 5) return;
-      const row = document
-        .elementFromPoint(e.clientX, e.clientY)
-        ?.closest<HTMLElement>('tr[data-row-key]');
-      if (!row || !tableRef.current?.contains(row)) return;
-      moved = true;
-      to = row.dataset.rowKey || from;
-      const rect = row.getBoundingClientRect();
-      after = e.clientY > rect.top + rect.height / 2;
-      setDrag({ from, to, after });
-    };
-    const cleanup = () => {
-      document.removeEventListener('pointermove', move);
-      document.removeEventListener('pointerup', up);
-      document.removeEventListener('pointercancel', cancel);
-      stopDrag.current = null;
-    };
-    const cancel = (e: PointerEvent) => {
-      if (e.pointerId !== pointerId) return;
-      cleanup();
-      setDrag(null);
-    };
-    const up = (e: PointerEvent) => {
-      if (e.pointerId !== pointerId) return;
-      cleanup();
-      setDrag(null);
-      if (!moved) return;
-      const ids = sorted.map((h) => h.groupId);
-      const source = ids.indexOf(from);
-      const target = ids.indexOf(to);
-      if (source < 0 || target < 0) return;
-      const slot = target + (after ? 1 : 0);
-      const destination = slot - (source < slot ? 1 : 0);
-      if (source === destination) return;
-      ids.splice(source, 1);
-      ids.splice(destination, 0, from);
+  const keys = sorted.map((h) => h.groupId);
+  const { drag, onPointerDown: onHandlePointerDown } = usePointerRowReorder({
+    containerRef: tableRef,
+    getRowKey: (row) => keys.find((key) => key === row.dataset.rowKey) ?? null,
+    disabled: reordering || loading,
+    isNoop: (drop) => keys.indexOf(drop.from) === hostDropDestination(keys, drop),
+    onDrop: (drop) => {
+      const ids = [...keys];
+      const destination = hostDropDestination(keys, drop);
+      ids.splice(ids.indexOf(drop.from), 1);
+      ids.splice(destination, 0, drop.from);
       onReorder(ids);
-    };
-    stopDrag.current = cleanup;
-    document.addEventListener('pointermove', move);
-    document.addEventListener('pointerup', up);
-    document.addEventListener('pointercancel', cancel);
-  }
+    },
+  });
 
   const columns: ColumnsType<HostRecord> = [
     {

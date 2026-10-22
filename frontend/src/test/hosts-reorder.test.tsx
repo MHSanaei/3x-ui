@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HostsPage from '@/pages/hosts/HostsPage';
 import { HttpUtil, Msg } from '@/utils';
 import { renderWithProviders } from './test-utils';
+import { installPointerEvents, pointAt } from './pointer-events';
 
 vi.mock('@/layouts/AppSidebar', () => ({ default: () => null }));
 vi.mock('@/pages/hosts/HostFormModal', () => ({ default: () => null }));
@@ -34,29 +35,23 @@ async function openHosts() {
 function drag(from: string, to: string, after = false, cancel = false) {
   const target = document.querySelector(`tr[data-row-key="${to}"]`);
   if (!target) throw new Error('missing drop row');
-  vi.spyOn(document, 'elementFromPoint').mockReturnValue(target);
-  vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({ top: 30, height: 20 } as DOMRect);
+  pointAt(target);
   fireEvent.pointerDown(
     screen.getByRole('button', { name: `Drag to reorder Host ${from.toUpperCase()}` }),
     { button: 0, pointerId: 1, clientY: 0 },
   );
   fireEvent.pointerMove(document, { pointerId: 1, clientX: 10, clientY: after ? 48 : 32 });
-  fireEvent[cancel ? 'pointerCancel' : 'pointerUp'](document, { pointerId: 1 });
+  fireEvent[cancel ? 'pointerCancel' : 'pointerUp'](document, {
+    pointerId: 1,
+    clientX: 10,
+    clientY: after ? 48 : 32,
+  });
 }
 
 describe('Hosts page reordering', () => {
   afterEach(() => vi.unstubAllGlobals());
   beforeEach(() => {
-    class BrowserPointerEvent extends MouseEvent {
-      pointerId: number;
-      isPrimary: boolean;
-      constructor(type: string, init: PointerEventInit = {}) {
-        super(type, init);
-        this.pointerId = init.pointerId ?? 1;
-        this.isPrimary = init.isPrimary ?? true;
-      }
-    }
-    vi.stubGlobal('PointerEvent', BrowserPointerEvent);
+    installPointerEvents();
     let stored = initial.map((h) => ({ ...h }));
     vi.spyOn(HttpUtil, 'get').mockImplementation(
       async (url) => new Msg(true, '', url.includes('/hosts/list') ? stored : []),
@@ -71,7 +66,6 @@ describe('Hosts page reordering', () => {
       }
       return new Msg(true, '', {});
     });
-    Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => null });
   });
 
   it('persists one cross-inbound reorder on drop and reloads the saved order', async () => {
@@ -90,9 +84,47 @@ describe('Hosts page reordering', () => {
   it('does not persist a no-op drop or a cancelled pointer', async () => {
     await openHosts();
     drag('a', 'a');
+    drag('a', 'b');
+    drag('b', 'a', true);
     drag('b', 'a', false, true);
     expect(HttpUtil.post).not.toHaveBeenCalled();
     expect(rowOrder()).toEqual(['a', 'b', 'c']);
+  });
+
+  it.each([
+    [false, ['b', 'a', 'c']],
+    [true, ['b', 'c', 'a']],
+  ])('inserts before/after the target (after=%s)', async (after, expected) => {
+    await openHosts();
+    drag('a', 'c', after);
+    await waitFor(() => expect(rowOrder()).toEqual(expected));
+    await waitFor(() =>
+      expect(HttpUtil.post).toHaveBeenCalledExactlyOnceWith(
+        '/panel/api/hosts/reorder',
+        { ids: expected },
+        { headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+  });
+
+  it('persists a touch drag in the mobile RTL table', async () => {
+    const nativeMatchMedia = window.matchMedia;
+    vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+      ...nativeMatchMedia(query),
+      matches: query === '(max-width: 768px)',
+    }));
+    const { container } = await openHosts();
+    container.dir = 'rtl';
+    pointAt(document.querySelector('tr[data-row-key="a"]'));
+    const event = { pointerId: 4, button: 0, pointerType: 'touch', clientX: 10, clientY: 32 };
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Drag to reorder Host B' }), {
+      ...event,
+      clientY: 0,
+    });
+    fireEvent.pointerMove(document, event);
+    fireEvent.pointerUp(document, event);
+    await waitFor(() => expect(rowOrder()).toEqual(['b', 'a', 'c']));
+    await waitFor(() => expect(HttpUtil.post).toHaveBeenCalledTimes(1));
   });
 
   it('cancels an active drag on unmount', async () => {
