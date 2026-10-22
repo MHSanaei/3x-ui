@@ -55,6 +55,9 @@ _write_update_status() {
 
 _report_update_exit() {
     local code=$?
+    # x-ui.sh is staged early (before the old install is touched); drop the
+    # staged copy if a later step failed before it was moved into place.
+    rm -f "/usr/bin/x-ui-temp.$$" > /dev/null 2>&1
     if [[ "${code}" -eq 0 ]]; then
         _write_update_status "success" "0"
     else
@@ -95,11 +98,48 @@ arch() {
         armv6* | armv6) echo 'armv6' ;;
         armv5* | armv5) echo 'armv5' ;;
         s390x) echo 's390x' ;;
-        *) echo -e "${red}Unsupported CPU architecture!${plain}" && rm -f "${cur_dir}/${script_name}" > /dev/null 2>&1 && exit 2 ;;
+        *) echo -e "${red}Unsupported CPU architecture: $(uname -m)${plain}" && return 1 ;;
     esac
 }
 
-echo "Arch: $(arch)"
+# arch() is only ever called as $(arch), so an `exit` inside it would only leave
+# the subshell. Validate once here, where a failure can stop the whole script.
+if ! xui_arch="$(arch)"; then
+    _fail "${xui_arch}"
+fi
+echo "Arch: ${xui_arch}"
+
+# Loads KEY=VALUE pairs from a service env file WITHOUT shell evaluation.
+# `source` would execute characters such as & ; $( ) that are legal in a
+# PostgreSQL DSN. Surrounding single/double quotes are stripped, like systemd.
+load_env_file_safe() {
+    local file="$1" line key value
+    [[ -r "$file" ]] || return 0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        [[ "$line" =~ ^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]] || continue
+        key="${BASH_REMATCH[2]}"
+        value="${BASH_REMATCH[3]}"
+        if [[ "$value" =~ ^\"(.*)\"$ || "$value" =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
+        export "${key}=${value}"
+    done < "$file"
+}
+
+# Prefers the releases/latest web redirect, which is not subject to the
+# unauthenticated API's 60 req/h-per-IP limit, and falls back to the API.
+# Same logic as install.sh.
+resolve_latest_tag() {
+    local url tag
+    url=$(${curl_bin} -sSLI -o /dev/null -w '%{url_effective}' --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://github.com/MHSanaei/3x-ui/releases/latest" 2> /dev/null)
+    tag=${url##*/tag/}
+    if [[ "$tag" != "$url" && -n "$tag" && "$tag" != "latest" ]]; then
+        echo "$tag"
+        return 0
+    fi
+    ${curl_bin} -Ls --retry 5 --retry-delay 3 --connect-timeout 15 --max-time 60 "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" 2> /dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+}
 
 gen_random_string() {
     local length="$1"
@@ -125,12 +165,7 @@ xui_env_file_path() {
 load_xui_env() {
     local env_file
     env_file="$(xui_env_file_path)"
-    if [[ -r "$env_file" ]]; then
-        set -a
-        # shellcheck disable=SC1090
-        source "$env_file"
-        set +a
-    fi
+    load_env_file_safe "$env_file"
 }
 
 install_base() {
@@ -169,7 +204,9 @@ config_after_update() {
 
     echo -e "${yellow}x-ui settings:${plain}"
     ${xui_folder}/x-ui setting -show true
-    ${xui_folder}/x-ui migrate
+    # No `x-ui migrate` here: update_x-ui already ran it BEFORE starting the
+    # service. Running it again now would migrate the same database while the
+    # panel is live -- exactly the race #6728 moved the first call to avoid.
 
     # Properly detect empty cert by checking if cert: line exists and has content after it
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true 2> /dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
@@ -218,6 +255,11 @@ config_after_update() {
     if [[ -n "$existing_cert" ]]; then
         access_scheme="https"
         access_host=$(basename "$(dirname "$existing_cert")")
+        # The IP-certificate flow stores its files under /root/cert/ip; the
+        # folder name is not a host there, so show the server IP instead.
+        if [[ "$access_host" == "ip" ]] || [[ ! "$access_host" =~ \. ]]; then
+            access_host="${server_ip}"
+        fi
     fi
     echo ""
     echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -278,7 +320,11 @@ setup_fail2ban() {
 # dying partway through with "Failed to download x-ui".
 require_writable_update_paths() {
     local dir probe
-    for dir in "${xui_folder%/*}" "/usr/bin"; do
+    # The unit/init-script folder is replaced too, and ProtectSystem=full makes
+    # /etc read-only just like /usr, so probe it up front as well.
+    local svc_dir="${xui_service}"
+    [[ $release == "alpine" ]] && svc_dir="/etc/init.d"
+    for dir in "${xui_folder%/*}" "/usr/bin" "${svc_dir}"; do
         [[ -n "$dir" && -d "$dir" ]] || continue
         probe="${dir}/.x-ui-write-test.$$"
         # A real write test rather than [[ -w ]]: this runs as root, where a
@@ -361,12 +407,8 @@ _xui_service_write_paths_dropin() {
     if [[ -z "$env_file" ]]; then
         env_file="$(xui_env_file_path)"
     fi
-    if [[ -r "$env_file" ]]; then
-        set -a
-        # shellcheck disable=SC1090
-        source "$env_file"
-        set +a
-    fi
+    
+    load_env_file_safe "$env_file"
 
     # XUI_* wins over the script's own default: the unit hands that same env
     # file to the panel through EnvironmentFile=, so these are the folders it
@@ -499,7 +541,11 @@ require_repo_files() {
 }
 
 update_x-ui() {
-    cd ${xui_folder%/x-ui}/
+    # The release tarball always extracts into a folder named "x-ui".
+    if [[ "$(basename "${xui_folder}")" != "x-ui" ]]; then
+        _fail "ERROR: XUI_MAIN_FOLDER (${xui_folder}) must end in /x-ui. The current installation is untouched."
+    fi
+    cd "${xui_folder%/x-ui}/" || _fail "ERROR: Cannot enter ${xui_folder%/x-ui}. The current installation is untouched."
 
     load_xui_env
 
@@ -518,8 +564,8 @@ update_x-ui() {
         tag_version="${XUI_UPDATE_TAG}"
         echo -e "${green}Using update tag: ${tag_version}${plain}"
     else
-        tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" 2> /dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        if [[ ! -n "$tag_version" ]]; then
+        tag_version=$(resolve_latest_tag)
+        if [[ -z "$tag_version" ]]; then
             _fail "ERROR: Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
         fi
     fi
@@ -535,7 +581,12 @@ update_x-ui() {
     local required_files=("x-ui.sh")
     [[ $release == "alpine" ]] && required_files+=("x-ui.rc")
     require_repo_files "${script_ref}" "${required_files[@]}"
-    ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
+
+    # --speed-limit/--speed-time abort a stalled transfer: the web updater runs
+    # this script detached, so a hung curl would otherwise never report back.
+    ${curl_bin} -fLR --retry 5 --retry-delay 3 --connect-timeout 15 --speed-limit 1 --speed-time 300 \
+        -o ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2> /dev/null
+
     if [[ $? -ne 0 ]]; then
         _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
     fi
@@ -566,6 +617,18 @@ update_x-ui() {
         _fail "ERROR: Failed to download the checksum for x-ui-linux-$(arch).tar.gz (HTTP ${sidecar_code})"
     fi
 
+    # Fetch x-ui.sh BEFORE anything is stopped or removed: if GitHub fails
+    # here, the running panel and its service unit are still intact.
+    echo -e "${green}Downloading x-ui.sh script...${plain}"
+    local xui_script_temp="/usr/bin/x-ui-temp.$$"
+    rm -f "${xui_script_temp}"
+    ${curl_bin} -fLR --retry 3 --retry-delay 3 --connect-timeout 15 --max-time 120 \
+        -o "${xui_script_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.sh" > /dev/null 2>&1
+    if [[ $? -ne 0 || ! -s "${xui_script_temp}" ]]; then
+        rm -f "${xui_script_temp}" "${archive}"
+        _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub. The current installation is untouched."
+    fi
+    
     if [[ -e ${xui_folder}/ ]]; then
         echo -e "${green}Stopping x-ui...${plain}"
         if [[ $release == "alpine" ]]; then
@@ -650,18 +713,8 @@ update_x-ui() {
         chmod +x bin/mtg-linux-$(arch) > /dev/null 2>&1
     fi
 
-    echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
-    local xui_script_temp="/usr/bin/x-ui-temp.$$"
-    rm -f "${xui_script_temp}"
-    ${curl_bin} -fLRo "${xui_script_temp}" "https://raw.githubusercontent.com/MHSanaei/3x-ui/${script_ref}/x-ui.sh" > /dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
-        rm -f "${xui_script_temp}"
-        _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
-    fi
-    if [[ ! -s "${xui_script_temp}" ]]; then
-        rm -f "${xui_script_temp}"
-        _fail "ERROR: Downloaded x-ui.sh script is empty, please be sure that your server can access GitHub"
-    fi
+    echo -e "${green}Installing x-ui.sh script...${plain}"
+
     mv -f "${xui_script_temp}" /usr/bin/x-ui
     if [[ $? -ne 0 ]]; then
         rm -f "${xui_script_temp}"
