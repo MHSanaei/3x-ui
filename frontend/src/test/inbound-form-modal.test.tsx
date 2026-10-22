@@ -371,7 +371,7 @@ describe('InboundFormModal', () => {
       network: 'xdrive',
       security: 'none',
       xdriveSettings: {
-        service: 'Google Drive',
+        service: 'google-drive',
         remoteFolder: 'xray-tunnel',
         secrets: ['id.apps.googleusercontent.com', 'client-secret', 'refresh-token'],
       },
@@ -465,6 +465,54 @@ describe('InboundFormModal', () => {
       udpHop: { ports: '20000-30000', interval: '5-10' },
     });
     expect(JSON.stringify(finalmask.udp ?? [])).not.toContain('udphop');
+  });
+
+  // xray-core 26.10.21 (#7206) screens a listener's source IPs with the "filter" mask.
+  it('saves an inbound filter mask with both source lists', async () => {
+    const post = vi.mocked(HttpUtil.post);
+    post.mockClear();
+    const filter = {
+      type: 'filter',
+      settings: { allowedSourceIPs: ['10.0.0.0/8'], blockedSourceIPs: ['geoip:cn'] },
+    };
+    const hysteria = new DBInbound({
+      id: 45,
+      port: 443,
+      listen: '',
+      protocol: 'hysteria',
+      remark: 'hy',
+      enable: true,
+      settings: { version: 2, clients: [] },
+      streamSettings: {
+        network: 'hysteria',
+        security: 'tls',
+        hysteriaSettings: { version: 2, auth: '', udpIdleTimeout: 60 },
+        tlsSettings: {
+          serverName: 'hy.example.com',
+          alpn: ['h3'],
+          certificates: [
+            { certificateFile: '/etc/ssl/certs/hy.crt', keyFile: '/etc/ssl/private/hy.key' },
+          ],
+        },
+        finalmask: { udp: [filter] },
+      },
+      sniffing: { enabled: false },
+      nodeId: null,
+      shareAddrStrategy: 'listen',
+      shareAddr: '',
+    });
+    renderCloneLikeEdit(hysteria);
+    await screen.findByText('geoip:cn');
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    fireEvent.click(primaryButton());
+
+    const isUpdate = ([url]: unknown[]) => url === '/panel/api/inbounds/update/45';
+    await waitFor(() => expect(post.mock.calls.some(isUpdate)).toBe(true));
+    const payload = post.mock.calls.find(isUpdate)![1] as { streamSettings: string };
+    expect(JSON.parse(payload.streamSettings).finalmask.udp).toEqual([filter]);
   });
 
   // xray-core 26.9: the Wintun adapter type (desc) and the TUN auto-system leak guards.

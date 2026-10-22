@@ -248,6 +248,9 @@ func TestGoldenInboundFullFixturesBuildInXray(t *testing.T) {
 
 // TestGoldenStreamFixturesBuildInXray attaches the transport fragments — whole
 // stream sections, the security block, sockopt and finalmask — to an inbound.
+// goldenVlessDecryption carries an XDRIVE fixture, which xray-core 26.10.17 runs only inside VLESS encryption.
+const goldenVlessDecryption = "mlkem768x25519plus.native.600s.mMFxPe7lz5xoq2qBk22cQYefu5fpc_2dGR8lMOKem0E"
+
 func TestGoldenStreamFixturesBuildInXray(t *testing.T) {
 	for _, category := range []string{"stream", "security", "sockopt", "finalmask"} {
 		for name, fixture := range goldenFixtures(t, category) {
@@ -263,11 +266,15 @@ func TestGoldenStreamFixturesBuildInXray(t *testing.T) {
 				case "finalmask":
 					stream["finalmask"] = fixture
 				}
+				decryption := "none"
+				if stream["network"] == "xdrive" {
+					decryption = goldenVlessDecryption
+				}
 				inbound := map[string]any{
 					"tag": "golden-in", "listen": "127.0.0.1", "port": 8443, "protocol": "vless",
 					"settings": map[string]any{
 						"clients":    []any{map[string]any{"id": "b831381d-6324-4d53-ad4f-8cda48b30811", "email": "golden"}},
-						"decryption": "none",
+						"decryption": decryption,
 					},
 					"streamSettings": stream,
 				}

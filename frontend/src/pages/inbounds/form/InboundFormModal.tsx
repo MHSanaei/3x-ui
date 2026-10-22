@@ -948,7 +948,7 @@ export default function InboundFormModal({
               { value: 'grpc', label: 'gRPC' },
               { value: 'httpupgrade', label: 'HTTPUpgrade' },
               { value: 'xhttp', label: 'XHTTP' },
-              { value: 'xdrive', label: 'XDRIVE' },
+              ...(protocol === Protocols.VLESS ? [{ value: 'xdrive', label: 'XDRIVE' }] : []),
             ]}
           />
         </Form.Item>
